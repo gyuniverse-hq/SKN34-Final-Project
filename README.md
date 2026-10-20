@@ -1,5 +1,7 @@
 # K-Beauty AR
 
+> SKN34 Final Project · SK NETWORKS FAMILY AI CAMP 34기 최종 프로젝트 저장소입니다.
+
 외국인 대상 K-뷰티 쇼핑 앱. **룩 발견 → AR 가상 메이크업 → 세트로 장바구니 → 매장 쇼핑 리스트 / 온라인 구매**.
 
 - 협업 규칙(브랜치·커밋·PR): [`CONTRIBUTING.md`](CONTRIBUTING.md) · AI 도구용 요약: [`AGENTS.md`](AGENTS.md)
