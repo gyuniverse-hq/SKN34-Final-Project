@@ -1,56 +1,71 @@
-import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect, useState } from 'react';
+import { theme } from '@/constants/theme';
+import { ApiError } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 
-import { useColorScheme } from '@/components/useColorScheme';
-
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
+export { ErrorBoundary } from 'expo-router';
 
 export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
   anchor: '(tabs)',
 };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
-export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+function createQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 5 * 60 * 1000,
+        retry: (failureCount, error) =>
+          !(error instanceof ApiError && error.status >= 400 && error.status < 500) && failureCount < 2,
+      },
+    },
   });
-
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
-
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
-
-  return <RootLayoutNav />;
 }
 
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+export default function RootLayout() {
+  const [queryClient] = useState(createQueryClient);
+
+  useEffect(() => {
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <StatusBar style="dark" />
+      <RootStack />
+    </QueryClientProvider>
+  );
+}
+
+function RootStack() {
+  const { t } = useI18n();
+  return (
+    <Stack
+      screenOptions={{
+        headerStyle: { backgroundColor: theme.colors.surface },
+        headerTintColor: theme.colors.ink,
+        headerTitleStyle: { fontWeight: '700' },
+        headerShadowVisible: false,
+        headerBackButtonDisplayMode: 'minimal',
+        contentStyle: { backgroundColor: theme.colors.surface },
+      }}>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="product/[id]" options={{ title: '' }} />
+      <Stack.Screen name="look/[id]" options={{ title: '' }} />
+      <Stack.Screen name="checkout" options={{ title: t('checkout.title'), presentation: 'modal' }} />
+      <Stack.Screen name="lists/index" options={{ title: t('list.saved') }} />
+      <Stack.Screen name="lists/[id]" options={{ title: t('list.title') }} />
+      <Stack.Screen name="legal/[doc]" options={{ title: '' }} />
+      <Stack.Screen name="login" options={{ title: t('my.login'), presentation: 'modal' }} />
+      <Stack.Screen name="membership" options={{ title: t('membership.title') }} />
+      <Stack.Screen name="rewards" options={{ title: t('rewards.title') }} />
+      <Stack.Screen name="saved" options={{ title: t('saved.title') }} />
+      <Stack.Screen name="ingredients" options={{ title: t('ingredients.title') }} />
+    </Stack>
   );
 }

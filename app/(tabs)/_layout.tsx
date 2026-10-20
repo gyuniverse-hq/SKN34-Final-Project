@@ -1,69 +1,58 @@
-import { SymbolView } from 'expo-symbols';
-import { Link, Tabs } from 'expo-router';
-import { Platform, Pressable } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Tabs } from 'expo-router';
+import type { ComponentProps } from 'react';
+import type { ColorValue } from 'react-native';
+import { theme } from '@/constants/theme';
+import { useI18n } from '@/lib/i18n';
+import { selectCartCount, useCartStore } from '@/store/cartStore';
 
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+type IconName = ComponentProps<typeof Ionicons>['name'];
+
+function icon(active: IconName, inactive: IconName) {
+  function TabIcon({ color, focused }: { color: ColorValue; focused: boolean }) {
+    return <Ionicons name={focused ? active : inactive} size={24} color={color as string} />;
+  }
+  return TabIcon;
+}
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { t } = useI18n();
+  const cartCount = useCartStore(selectCartCount);
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
+        tabBarActiveTintColor: theme.colors.rose,
+        tabBarInactiveTintColor: theme.colors.inkFaint,
+        tabBarStyle: { backgroundColor: theme.colors.card, borderTopColor: theme.colors.border },
+        headerStyle: { backgroundColor: theme.colors.surface },
+        headerTitleStyle: { fontWeight: '800', color: theme.colors.ink },
+        headerShadowVisible: false,
       }}>
       <Tabs.Screen
         name="index"
+        options={{ title: t('tabs.shop'), headerShown: false, tabBarIcon: icon('bag-handle', 'bag-handle-outline') }}
+      />
+      <Tabs.Screen
+        name="celeb"
+        options={{ title: t('tabs.looks'), headerShown: false, tabBarIcon: icon('sparkles', 'sparkles-outline') }}
+      />
+      <Tabs.Screen
+        name="ar"
+        options={{ title: t('tabs.tryOn'), headerShown: false, tabBarIcon: icon('scan-circle', 'scan-circle-outline') }}
+      />
+      <Tabs.Screen
+        name="cart"
         options={{
-          title: 'Tab One',
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{
-                ios: 'chevron.left.forwardslash.chevron.right',
-                android: 'code',
-                web: 'code',
-              }}
-              tintColor={color}
-              size={28}
-            />
-          ),
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable style={{ marginRight: 15 }}>
-                {({ pressed }) => (
-                  <SymbolView
-                    name={{ ios: 'info.circle', android: 'info', web: 'info' }}
-                    size={25}
-                    tintColor={Colors[colorScheme].text}
-                    style={{ opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
-          ),
+          title: t('tabs.cart'),
+          tabBarIcon: icon('cart', 'cart-outline'),
+          tabBarBadge: cartCount > 0 ? (cartCount > 99 ? '99+' : cartCount) : undefined,
+          tabBarBadgeStyle: { backgroundColor: theme.colors.rose },
         }}
       />
       <Tabs.Screen
-        name="two"
-        options={{
-          title: 'Tab Two',
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{
-                ios: 'chevron.left.forwardslash.chevron.right',
-                android: 'code',
-                web: 'code',
-              }}
-              tintColor={color}
-              size={28}
-            />
-          ),
-        }}
+        name="my"
+        options={{ title: t('tabs.my'), tabBarIcon: icon('person-circle', 'person-circle-outline') }}
       />
     </Tabs>
   );
