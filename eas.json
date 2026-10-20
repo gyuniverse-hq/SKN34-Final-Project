@@ -1,0 +1,22 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "environment": "preview",
+      "android": { "buildType": "apk" },
+      "env": { "EXPO_UNSTABLE_DEPLOY_SERVER": "1" }
+    },
+    "production": {
+      "environment": "production",
+      "autoIncrement": true,
+      "env": { "EXPO_UNSTABLE_DEPLOY_SERVER": "1" }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
