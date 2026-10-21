@@ -49,16 +49,16 @@ Docs: https://docs.expo.dev/eas/index.md
 - The AR renderer is an HTML string in `components/ar/faceTrackerHtml.ts`; typecheck and lint do not see its script, so run `npm test` after editing it.
 - Run `npm run check` (typecheck + lint + tests) before committing.
 
-## Git & GitHub conventions (summary)
+## Git & GitHub conventions (v1.3 summary)
 
-Full rules: `CONTRIBUTING.md`. PR template: `.github/PULL_REQUEST_TEMPLATE.md`.
+The authoritative collaboration convention is `CONTRIBUTING.md` (v1.3). The GitHub PR template is `.github/PULL_REQUEST_TEMPLATE.md`. Keep this summary consistent with the team convention.
 
-- Never push directly to `main` or `develop`; merge through a PR. Work branches start from the latest `develop` and target `develop`.
-- Branch name: `<type>/<issue-number>-<description>` with a real GitHub Issue number and lowercase English words joined by `-` (e.g. `feat/12-user-login`). Do not invent issue numbers; ask for one if it is missing.
-- Branch types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `hotfix` (`hotfix/*` branches from `main` and is also applied to `develop`).
-- Commit message: `<type>: <description>` — lowercase English type, Korean description, **no scope** (`feat: 로그인 API 구현`, not `feat(auth): ...`). Avoid vague descriptions such as `수정`, `작업 완료`, `최종`.
+- Do not push directly to `main` or `develop`; use PRs. Start normal work branches from the latest `develop` and target `develop`.
+- Name branches `<type>/<description>`, with lowercase English words separated by hyphens (e.g. `feat/user-login`, `fix/token-expired`). **Do not append sequence numbers or GitHub Issue numbers.** GitHub Issues are optional, not a prerequisite for branching.
+- Branch types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `hotfix`. Branch `hotfix/*` from `main` and apply the fix back to `develop` as well.
+- Commit message: `<type>: <description>` with a lowercase English type, Korean description, and **no scope** (e.g. `feat: 로그인 API 구현`, not `feat(auth): ...`).
 - Commit types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `style`, `build`, `ci`.
-- Make atomic commits: one purpose per commit, implementation and its tests together, unrelated changes split out. Group by purpose, not by file count, and do not split artificially.
-- Before committing, review the diff and actually run the relevant tests; do not report success based only on generated code.
-- PR title follows the commit format. PR body needs **변경 사항** and **영향 범위** (real folder paths with a short description); add 검증, related issue (`Refs #12`), screenshots or deployment notes only when relevant.
-- Do not force-push shared branches or overwrite other people's changes; delete the work branch after merging.
+- Make atomic commits by logical purpose, not by file count. Keep related implementation and tests together; separate unrelated changes without artificially splitting a cohesive change.
+- Check the diff and run relevant tests before committing. Never claim a test passed unless it was actually run.
+- PR title follows the same scope-free message format. PR body **must contain '변경 사항' and '영향 범위'**. Under 영향 범위, identify real affected directory paths with a short explanation. Add test results, related GitHub Issues, screenshots, or deployment notes only when relevant.
+- Do not force-push shared branches or overwrite another contributor's changes. Delete merged work branches.
