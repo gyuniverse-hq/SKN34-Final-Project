@@ -13,7 +13,7 @@ export const en = {
   'tabs.cart': 'Cart',
   'tabs.my': 'My',
 
-  'shop.title': 'K-Beauty AR',
+  'shop.title': 'VISHUE',
   'shop.tagline': 'Discover, try on, and shop K-beauty',
   'shop.searchPlaceholder': 'Search brands or products',
   'shop.all': 'All',
@@ -156,7 +156,7 @@ export const en = {
   'ar.mic': 'Talk',
   'ar.send': 'Send',
 
-  'login.title': 'Welcome to K-Beauty AR',
+  'login.title': 'Welcome to VISHUE',
   'login.subtitle': 'Log in to save looks, collect rewards and join the membership.',
   'login.email': 'Email',
   'login.password': 'Password',

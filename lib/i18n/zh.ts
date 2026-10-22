@@ -15,7 +15,7 @@ export const zh: Dictionary = {
   'tabs.cart': '购物车',
   'tabs.my': '我的',
 
-  'shop.title': 'K-Beauty AR',
+  'shop.title': 'VISHUE',
   'shop.tagline': '发现、试妆、选购韩国美妆',
   'shop.searchPlaceholder': '搜索品牌或商品',
   'shop.all': '全部',
@@ -156,7 +156,7 @@ export const zh: Dictionary = {
   'ar.mic': '说话',
   'ar.send': '发送',
 
-  'login.title': '欢迎来到 K-Beauty AR',
+  'login.title': '欢迎来到 VISHUE',
   'login.subtitle': '登录后即可保存妆容、累积奖励并加入会员。',
   'login.email': '邮箱',
   'login.password': '密码',

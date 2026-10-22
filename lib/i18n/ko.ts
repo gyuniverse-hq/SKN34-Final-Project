@@ -15,7 +15,7 @@ export const ko: Dictionary = {
   'tabs.cart': '장바구니',
   'tabs.my': '마이',
 
-  'shop.title': 'K-Beauty AR',
+  'shop.title': 'VISHUE',
   'shop.tagline': 'K-뷰티를 발견하고, 입어보고, 쇼핑하세요',
   'shop.searchPlaceholder': '브랜드 또는 제품 검색',
   'shop.all': '전체',
@@ -157,7 +157,7 @@ export const ko: Dictionary = {
   'ar.mic': '말하기',
   'ar.send': '보내기',
 
-  'login.title': 'K-Beauty AR에 오신 걸 환영해요',
+  'login.title': 'VISHUE에 오신 걸 환영해요',
   'login.subtitle': '로그인하면 룩 저장, 보상 적립, 멤버십을 이용할 수 있어요.',
   'login.email': '이메일',
   'login.password': '비밀번호',
