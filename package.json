@@ -53,6 +53,7 @@
   },
   "jest": {
     "preset": "jest-expo",
+    "roots": ["<rootDir>/__tests__"],
     "setupFiles": [
       "./jest.setup.ts"
     ],
