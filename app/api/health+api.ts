@@ -1,10 +1,6 @@
-import { json } from '@/server/http';
-import { isNaverConfigured } from '@/server/naver';
-import { isYoutubeConfigured } from '@/server/youtube';
+import { json } from '@/server/lib/http';
+import { getIntegrationStatus } from '@/server/services/integrationService';
 
 export function GET() {
-  return json({
-    ok: true,
-    integrations: { youtube: isYoutubeConfigured(), naverShopping: isNaverConfigured() },
-  });
+  return json({ ok: true, integrations: getIntegrationStatus() });
 }

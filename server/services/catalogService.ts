@@ -1,8 +1,13 @@
-import { LOOKS } from '@/data/catalog/looks';
-import { PRODUCTS } from '@/data/catalog/products';
-import { STORES } from '@/data/catalog/stores';
-import type { CelebLook, Product, ProductCategory } from '@/types';
-import { isNaverConfigured, searchProductImage } from './naver';
+import { isNaverConfigured, searchProductImage } from '@/server/clients/naverClient';
+import { mapWithConcurrency } from '@/server/lib/concurrency';
+import {
+  findAllLooks,
+  findAllProducts,
+  findAllStores,
+  findLookById,
+  findProductById,
+} from '@/server/repositories/catalogRepository';
+import type { Product, ProductCategory } from '@/types';
 
 export const CATEGORIES: ProductCategory[] = ['lip', 'cheek', 'eye', 'base', 'skincare', 'suncare'];
 
@@ -40,19 +45,6 @@ export function filterProducts(products: Product[], filter: ProductFilter): Prod
 // Naver Search API rejects bursts (HTTP 429), so cap concurrent upstream lookups.
 const IMAGE_LOOKUP_CONCURRENCY = 3;
 
-async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
-  const results = new Array<R>(items.length);
-  let next = 0;
-  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (next < items.length) {
-      const index = next++;
-      results[index] = await fn(items[index]);
-    }
-  });
-  await Promise.all(workers);
-  return results;
-}
-
 /** Replace placeholder images with real product photos when Naver search is configured. */
 async function withLiveImages(products: Product[]): Promise<Product[]> {
   if (!isNaverConfigured()) return products;
@@ -67,31 +59,27 @@ async function withLiveImages(products: Product[]): Promise<Product[]> {
 }
 
 export async function listProducts(filter: ProductFilter) {
-  return withLiveImages(filterProducts(PRODUCTS, filter));
+  return withLiveImages(filterProducts(await findAllProducts(), filter));
 }
 
 export async function getProduct(id: string) {
-  const product = PRODUCTS.find((p) => p.id === id);
+  const product = await findProductById(id);
   if (!product) return null;
   const [enriched] = await withLiveImages([product]);
   return enriched;
 }
 
-export function getProductSync(id: string) {
-  return PRODUCTS.find((p) => p.id === id) ?? null;
-}
-
-export function listLooks(): CelebLook[] {
-  return LOOKS;
+export function listLooks() {
+  return findAllLooks();
 }
 
 export async function getLookWithProducts(id: string) {
-  const look = LOOKS.find((l) => l.id === id);
+  const look = await findLookById(id);
   if (!look) return null;
   const products = await listProducts({ ids: look.items.map((i) => i.productId) });
   return { look, products };
 }
 
-export function listStores() {
-  return STORES.filter((s) => s.pickupAvailable);
+export async function listStores() {
+  return (await findAllStores()).filter((s) => s.pickupAvailable);
 }

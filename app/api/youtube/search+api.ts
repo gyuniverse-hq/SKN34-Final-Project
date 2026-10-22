@@ -1,6 +1,6 @@
-import { RateLimiter } from '@/server/cache';
-import { clientKey, errorResponse, json, stringParam } from '@/server/http';
-import { isYoutubeConfigured, searchTutorials } from '@/server/youtube';
+import { RateLimiter } from '@/server/lib/cache';
+import { clientKey, errorResponse, json, stringParam } from '@/server/lib/http';
+import { isTutorialSearchConfigured, searchTutorials } from '@/server/services/tutorialService';
 import type { YoutubeSearchResult } from '@/types';
 
 const limiter = new RateLimiter(20, 60 * 1000);
@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   const q = stringParam(url, 'q', 80);
   if (!q) return errorResponse(400, 'Missing query', 'missing_query');
 
-  if (!isYoutubeConfigured()) {
+  if (!isTutorialSearchConfigured()) {
     return json<YoutubeSearchResult>({ configured: false, videos: [] });
   }
   if (!limiter.allow(clientKey(request))) {

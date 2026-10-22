@@ -1,6 +1,6 @@
-import { listStores } from '@/server/catalog';
-import { json } from '@/server/http';
+import { json } from '@/server/lib/http';
+import { listStores } from '@/server/services/catalogService';
 
-export function GET() {
-  return json({ stores: listStores() }, { maxAgeSeconds: 3600 });
+export async function GET() {
+  return json({ stores: await listStores() }, { maxAgeSeconds: 3600 });
 }

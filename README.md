@@ -33,8 +33,12 @@ app/                    Expo Router 화면 + API 라우트
   legal/                개인정보처리방침 · 이용약관
   login, membership, rewards, saved, ingredients
                         새 기획 화면 (UI만 있음, 동작은 미구현)
-  api/                  서버 엔드포인트 (*+api.ts) — 키는 여기서만 사용
-server/                 서버 전용 로직 (YouTube, 네이버, 캐시, 레이트리밋)
+  api/                  서버 엔드포인트 (*+api.ts) — 파라미터 검증과 응답만
+server/                 서버 전용 로직 (앱 번들에 포함되지 않음)
+  services/             비즈니스 로직 (검색·필터, 룩 조합, 판매처, 튜토리얼)
+  repositories/         데이터 접근 (지금은 data/catalog, 나중에 DB)
+  clients/              외부 API (네이버, YouTube) — 키는 여기서만 사용
+  lib/                  HTTP, 캐시, 레이트리밋, 환경 변수
 data/catalog/           제품 · 룩 · 매장 데이터 (현재 비어 있음, types/index.ts 형식에 맞춰 추가)
 components/             UI 컴포넌트 (ui/ 범용 · shop/ celeb/ ar/ 기능별)
   ar/                   얼굴 추적 렌더러 (WebView / 웹 iframe 공용 HTML)

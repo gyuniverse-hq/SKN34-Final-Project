@@ -1,7 +1,7 @@
 import { LOOKS } from '@/data/catalog/looks';
 import { PRODUCTS } from '@/data/catalog/products';
 import { STORES } from '@/data/catalog/stores';
-import { filterProducts, isCategory } from '@/server/catalog';
+import { filterProducts, isCategory } from '@/server/services/catalogService';
 import type { Product } from '@/types';
 
 const HEX = /^#[0-9A-F]{6}$/i;

@@ -1,5 +1,5 @@
-import { isCategory, listProducts } from '@/server/catalog';
-import { errorResponse, json, stringParam } from '@/server/http';
+import { errorResponse, json, stringParam } from '@/server/lib/http';
+import { isCategory, listProducts } from '@/server/services/catalogService';
 
 export async function GET(request: Request) {
   const url = new URL(request.url);

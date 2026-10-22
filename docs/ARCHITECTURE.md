@@ -59,17 +59,18 @@ server/lib/                   공통: HTTP 응답·fetch, 캐시, 레이트 리�
 - 라우트에는 비즈니스 로직을 두지 않습니다. 같은 로직이 두 라우트에 필요해지면 서비스로 옮깁니다.
 - 외부 API를 바꾸거나 데이터를 DB로 옮겨도 서비스와 라우트는 바뀌지 않아야 합니다.
 
-### 현재 코드와의 대응
+- 리포지토리 함수는 지금 정적 데이터를 돌려주더라도 **항상 `async`** 로 둡니다. DB로 바꿀 때 호출하는 쪽을 고치지 않기 위해서입니다.
+- 리포지토리는 저장된 데이터를 그대로 돌려주고, 조건 필터(예: 픽업 가능 매장만)는 서비스가 합니다.
+- 파일 이름은 `<대상><레이어>.ts` 형식입니다 (`catalogService.ts`, `catalogRepository.ts`, `naverClient.ts`).
 
-`server/`는 아직 레이어 폴더로 나뉘지 않았습니다. 분리할 때 아래처럼 옮깁니다.
+### 현재 파일
 
-| 현재 | 옮길 곳 |
+| 레이어 | 파일 |
 | --- | --- |
-| `server/catalog.ts`의 검색·필터·조합 로직 | `server/services/` |
-| `server/catalog.ts`의 `PRODUCTS`·`LOOKS`·`STORES` 참조 | `server/repositories/` |
-| `server/naver.ts`, `server/youtube.ts` | `server/clients/` |
-| `server/http.ts`, `server/cache.ts`, `server/env.ts` | `server/lib/` |
-| `server/youtube.ts`의 `decodeEntities` (네이버도 사용) | `server/lib/` |
+| `server/services/` | `catalogService` (검색·필터·룩 조합·이미지 보강), `offerService` (온라인 판매처), `tutorialService` (튜토리얼 검색어 구성), `integrationService` (외부 API 설정 상태) |
+| `server/repositories/` | `catalogRepository` (`data/catalog`의 제품·룩·매장) |
+| `server/clients/` | `naverClient` (쇼핑·이미지 검색), `youtubeClient` (영상 검색) |
+| `server/lib/` | `http`, `cache`, `env`, `text`, `concurrency` |
 
 ## 새 기능을 넣을 때
 
