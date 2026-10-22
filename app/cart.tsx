@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/ui/Button';
+import { Mascot } from '@/components/ui/Mascot';
 import { QuantityStepper } from '@/components/ui/QuantityStepper';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
@@ -22,7 +23,7 @@ export default function CartScreen() {
     return (
       <View style={styles.screen}>
         <EmptyState
-          icon="cart-outline"
+          illustration={<Mascot size={110} decorative />}
           title={t('cart.empty')}
           body={t('cart.emptyBody')}
           action={<Button label={t('cart.goShop')} onPress={() => router.dismissTo('/')} />}
