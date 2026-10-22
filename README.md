@@ -43,7 +43,7 @@ data/catalog/           제품 · 룩 · 매장 데이터 (현재 비어 있음,
 components/             UI 컴포넌트 (ui/ 범용 · shop/ celeb/ ar/ 기능별)
   ar/                   얼굴 추적 렌더러 (WebView / 웹 iframe 공용 HTML)
 hooks/                  화면용 조합 훅 (장바구니 + 제품 조회 등)
-lib/                    API 클라이언트, react-query 훅, i18n, 포맷
+lib/                    API 클라이언트, react-query 훅, 로그인(auth/), i18n, 포맷
 store/                  Zustand (장바구니·쇼핑리스트·설정은 기기에 저장)
 constants/              테마, 약관 등 정적 상수
 __tests__/              데이터 무결성 · 검색 · 장바구니 · i18n · 서버 유틸 테스트
@@ -71,8 +71,9 @@ npx expo start -c
 | --- | --- |
 | `YOUTUBE_API_KEY` | 튜토리얼 검색 (YouTube Data API v3) |
 | `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` | 실제 제품 이미지·온라인 최저가 (네이버 쇼핑 검색 API) |
+| `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | 로그인 (Supabase Auth). 공개용 값이라 앱에 포함됨 |
 
-`EXPO_PUBLIC_` 접두어를 붙이지 마세요. 붙이면 앱 번들에 노출됩니다.
+위 키들에는 `EXPO_PUBLIC_` 접두어를 붙이지 마세요. 붙이면 앱 번들에 노출됩니다. 예외는 Supabase의 Project URL과 publishable 키뿐이고, Supabase secret(`service_role`) 키는 절대 넣지 않습니다.
 
 ## 스크립트
 

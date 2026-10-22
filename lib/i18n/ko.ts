@@ -131,7 +131,7 @@ export const ko: Dictionary = {
   'my.deleteDataConfirm': '이 기기에 저장된 장바구니, 쇼핑 리스트, 설정이 모두 삭제돼요.',
   'my.deleteDataDone': '앱 데이터를 모두 삭제했어요.',
   'my.version': '버전',
-  'my.dataNote': '계정을 사용하지 않아요. 모든 정보는 이 기기에만 저장돼요.',
+  'my.dataNote': '계정 없이도 쓸 수 있어요. 장바구니, 쇼핑 리스트, 설정은 이 기기에만 저장돼요.',
   'my.account': '계정·혜택',
   'my.login': '로그인',
   'my.membership': '멤버십',

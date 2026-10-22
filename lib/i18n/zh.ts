@@ -130,7 +130,7 @@ export const zh: Dictionary = {
   'my.deleteDataConfirm': '这将删除此设备上的购物车、购物清单和设置。',
   'my.deleteDataDone': '已删除全部应用数据。',
   'my.version': '版本',
-  'my.dataNote': '我们不使用账号。所有信息仅保存在此设备上。',
+  'my.dataNote': '无需账号也可使用。购物车、购物清单和设置仅保存在此设备上。',
   'my.account': '账号与福利',
   'my.login': '登录',
   'my.membership': '会员',

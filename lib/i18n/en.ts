@@ -130,7 +130,7 @@ export const en = {
   'my.deleteDataConfirm': 'This deletes your cart, shopping lists and settings from this device.',
   'my.deleteDataDone': 'All app data was deleted.',
   'my.version': 'Version',
-  'my.dataNote': 'We do not use accounts. Everything is stored only on this device.',
+  'my.dataNote': 'An account is optional. Your cart, shopping lists and settings are stored only on this device.',
   'my.account': 'Account & benefits',
   'my.login': 'Log in',
   'my.membership': 'Membership',

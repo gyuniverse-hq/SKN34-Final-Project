@@ -118,7 +118,9 @@ server/lib/                   공통: HTTP 응답·fetch, 캐시, 레이트 리�
 | `server/services/` | `catalogService` (검색·필터·룩 조합·이미지 보강), `offerService` (온라인 판매처), `tutorialService` (튜토리얼 검색어 구성), `integrationService` (외부 API 설정 상태) |
 | `server/repositories/` | `catalogRepository` (`data/catalog`의 제품·룩·매장) |
 | `server/clients/` | `naverClient` (쇼핑·이미지 검색), `youtubeClient` (영상 검색) |
-| `server/lib/` | `http`, `cache`, `env`, `text`, `concurrency` |
+| `server/lib/` | `http`, `cache`, `env`, `text`, `concurrency`, `auth` (Supabase 액세스 토큰 검증) |
+
+로그인은 Supabase Auth를 씁니다. 앱은 `lib/auth`에서 로그인하고 세션을 기기에 저장하며, `lib/api.ts`가 요청마다 액세스 토큰(JWT)을 붙입니다. 사용자 확인이 필요한 라우트는 `server/lib/auth.ts`의 `getAuthUser()`로 토큰을 검증합니다 (예: `app/api/me+api.ts`). Supabase의 Project URL과 publishable 키는 공개용이라 `EXPO_PUBLIC_`로 앱에 넣지만, secret 키는 넣지 않습니다.
 
 ## 린트로 강제하기
 

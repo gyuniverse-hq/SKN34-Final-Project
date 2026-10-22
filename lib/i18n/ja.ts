@@ -131,7 +131,7 @@ export const ja: Dictionary = {
   'my.deleteDataConfirm': 'この端末に保存されたカート、ショッピングリスト、設定がすべて削除されます。',
   'my.deleteDataDone': 'アプリのデータをすべて削除しました。',
   'my.version': 'バージョン',
-  'my.dataNote': 'アカウントは使用しません。すべての情報はこの端末にのみ保存されます。',
+  'my.dataNote': 'アカウントなしでも使えます。カート、ショッピングリスト、設定はこの端末にのみ保存されます。',
   'my.account': 'アカウント・特典',
   'my.login': 'ログイン',
   'my.membership': 'メンバーシップ',
