@@ -24,7 +24,7 @@ function layer(files, patterns, ignores) {
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ["dist/*"],
+    ignores: ["dist/*", "**/.venv/**", "ml/runs/**", "nia-private/**"],
   },
 
   // Client
@@ -37,6 +37,7 @@ module.exports = defineConfig([
     SERVER_ONLY,
     { group: ['@/hooks', '@/hooks/**'], message: 'components/ must not use hooks/; screens pass data via props.' },
     { group: ['@/lib/queries'], message: 'Fetch data in screens or hooks/, not components.' },
+    { group: ['@/lib/nia'], message: 'NIA requests belong in screens or hooks; pass results and actions via props.' },
     {
       group: ['@/components/**', '!@/components/ui', '!@/components/ui/**'],
       message: 'Components may import only components/ui and their own folder.',
@@ -46,6 +47,7 @@ module.exports = defineConfig([
     SERVER_ONLY,
     { group: ['@/hooks', '@/hooks/**'], message: 'components/ must not use hooks/; screens pass data via props.' },
     { group: ['@/lib/queries'], message: 'Fetch data in screens or hooks/, not components.' },
+    { group: ['@/lib/nia'], message: 'NIA requests belong in screens or hooks; pass results and actions via props.' },
     { group: ['@/store', '@/store/**'], message: 'components/ui is generic; move state-aware components to components/<feature>/.' },
     { group: ['@/components/**'], message: 'components/ui must not depend on feature components.' },
   ]),
