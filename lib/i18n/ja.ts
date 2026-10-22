@@ -12,11 +12,11 @@ export const ja: Dictionary = {
   'tabs.shop': 'ショップ',
   'tabs.looks': 'ルック',
   'tabs.tryOn': 'バーチャルメイク',
-  'tabs.cart': 'カート',
   'tabs.my': 'マイ',
 
   'shop.title': 'VISHUE',
   'shop.tagline': 'K-ビューティーを見つけて、試して、買おう',
+  'shop.changeLanguage': '言語を変更',
   'shop.searchPlaceholder': 'ブランド・商品を検索',
   'shop.all': 'すべて',
   'shop.cat.lip': 'リップ',

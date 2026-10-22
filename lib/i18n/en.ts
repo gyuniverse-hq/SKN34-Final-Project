@@ -10,11 +10,11 @@ export const en = {
   'tabs.shop': 'Shop',
   'tabs.looks': 'Looks',
   'tabs.tryOn': 'Try-on',
-  'tabs.cart': 'Cart',
   'tabs.my': 'My',
 
   'shop.title': 'VISHUE',
   'shop.tagline': 'Discover, try on, and shop K-beauty',
+  'shop.changeLanguage': 'Change language',
   'shop.searchPlaceholder': 'Search brands or products',
   'shop.all': 'All',
   'shop.cat.lip': 'Lips',

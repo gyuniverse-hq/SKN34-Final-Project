@@ -12,11 +12,11 @@ export const zh: Dictionary = {
   'tabs.shop': '商店',
   'tabs.looks': '妆容',
   'tabs.tryOn': '虚拟试妆',
-  'tabs.cart': '购物车',
   'tabs.my': '我的',
 
   'shop.title': 'VISHUE',
   'shop.tagline': '发现、试妆、选购韩国美妆',
+  'shop.changeLanguage': '切换语言',
   'shop.searchPlaceholder': '搜索品牌或商品',
   'shop.all': '全部',
   'shop.cat.lip': '唇部',

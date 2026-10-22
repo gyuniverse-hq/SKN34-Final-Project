@@ -25,7 +25,7 @@ export default function CartScreen() {
           icon="cart-outline"
           title={t('cart.empty')}
           body={t('cart.emptyBody')}
-          action={<Button label={t('cart.goShop')} onPress={() => router.navigate('/')} />}
+          action={<Button label={t('cart.goShop')} onPress={() => router.dismissTo('/')} />}
         />
       </View>
     );

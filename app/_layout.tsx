@@ -61,6 +61,7 @@ function RootStack() {
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="product/[id]" options={{ title: '' }} />
       <Stack.Screen name="look/[id]" options={{ title: '' }} />
+      <Stack.Screen name="cart" options={{ title: t('cart.title') }} />
       <Stack.Screen name="checkout" options={{ title: t('checkout.title'), presentation: 'modal' }} />
       <Stack.Screen name="lists/index" options={{ title: t('list.saved') }} />
       <Stack.Screen name="lists/[id]" options={{ title: t('list.title') }} />

@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LookCard } from '@/components/celeb/LookCard';
 import { ProductCard } from '@/components/shop/ProductCard';
 import { SearchBar } from '@/components/shop/SearchBar';
+import { ShopHeaderActions } from '@/components/shop/ShopHeaderActions';
 import { Chip } from '@/components/ui/Chip';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
@@ -41,10 +42,13 @@ export default function ShopScreen() {
   const header = (
     <View>
       <View style={styles.hero}>
-        <Text style={styles.brand} accessibilityRole="header">
-          {t('shop.title')}
-        </Text>
-        <Text style={styles.tagline}>{t('shop.tagline')}</Text>
+        <View style={styles.heroText}>
+          <Text style={styles.brand} accessibilityRole="header">
+            {t('shop.title')}
+          </Text>
+          <Text style={styles.tagline}>{t('shop.tagline')}</Text>
+        </View>
+        <ShopHeaderActions onOpenCart={() => router.push('/cart')} />
       </View>
       <View style={styles.search}>
         <SearchBar value={query} onChangeText={setQuery} placeholder={t('shop.searchPlaceholder')} />
@@ -132,7 +136,8 @@ export default function ShopScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.surface },
   list: { paddingHorizontal: 10, paddingBottom: 32 },
-  hero: { paddingHorizontal: 10, paddingTop: 12 },
+  hero: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 10, paddingTop: 12 },
+  heroText: { flex: 1 },
   brand: { fontSize: theme.font.h1, fontWeight: '800', color: theme.colors.ink, letterSpacing: -0.5 },
   tagline: { fontSize: theme.font.small, color: theme.colors.inkMuted, marginTop: 2 },
   search: { paddingHorizontal: 6, paddingTop: 14, paddingBottom: 10 },
