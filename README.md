@@ -7,6 +7,7 @@
 - 협업 규칙(브랜치·커밋·PR): [`CONTRIBUTING.md`](CONTRIBUTING.md) · AI 도구용 요약: [`AGENTS.md`](AGENTS.md)
 - 레이어 구조와 import 규칙: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - 출시 전 직접 해야 할 일: [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKLIST.md)
+- 학습·평가 보고서와 재현·모델 인계 절차: [`reports/README.md`](reports/README.md)
 
 ## 기능
 
@@ -47,6 +48,8 @@ lib/                    API 클라이언트, react-query 훅, 로그인(auth/), 
 store/                  Zustand (장바구니·쇼핑리스트·설정은 기기에 저장)
 constants/              테마, 약관 등 정적 상수
 __tests__/              데이터 무결성 · 검색 · 장바구니 · i18n · 서버 유틸 테스트
+ml/                     독립 Python 학습 프로젝트 (src · configs · tests · uv.lock)
+reports/                학습·평가 문서와 공유 가능한 결과 요약
 ```
 
 API 키는 `server/`와 `app/api/`에서만 읽고 앱 번들에는 포함되지 않습니다(빌드 결과물 검사로 확인).
