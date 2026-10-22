@@ -1,0 +1,29 @@
+# Paths are relative to ml/. Raw archives are never extracted or modified.
+[data]
+root = "../data/14.안면부 피부질환 이미지 합성데이터"
+output = "runs/acne/audit"
+seed = 42
+phash_distance = 6
+min_eval_per_class = 20
+
+[train]
+output = "runs/acne"
+device_uuid = "GPU-9ed09563-0d58-cdc7-f6bc-b2c84d8da0e3"
+seed = 42
+batch_size = 16
+effective_batch = 32
+num_workers = 2
+freeze_epochs = 3
+finetune_epochs = 17
+head_lr = 0.001
+finetune_head_lr = 0.0001
+backbone_lr = 0.00001
+weight_decay = 0.0001
+amp = true
+
+[initialization]
+nia_config = "../server/nia/config.local.json"
+nia_task = "class/pore"
+
+[evaluation]
+bootstrap_iterations = 1000

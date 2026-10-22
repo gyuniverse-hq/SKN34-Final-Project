@@ -35,6 +35,9 @@ yarn-error.*
 .env*.local
 
 # personal / local-only files
+final_venv/
+/data/*
+!/data/catalog/
 .claude/
 docs/planning/
 ~$*
@@ -45,3 +48,23 @@ docs/planning/
 # generated native folders
 /ios
 /android
+
+# Independent Python ML project
+/ml/.venv/
+/ml/data/
+/ml/runs/
+/ml/.pytest_cache/
+/ml/.ruff_cache/
+/ml/**/__pycache__/
+/ml/configs/evidence.local.json
+/ml/configs/*.local.csv
+
+# Original NIA evaluation resources (local only)
+/server/nia/.venv/
+/server/nia/config.local.json
+**/__pycache__/
+*.pyc
+*.pt
+*.pth
+*.bin
+/nia-private/
