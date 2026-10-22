@@ -72,6 +72,14 @@ server/lib/                   공통: HTTP 응답·fetch, 캐시, 레이트 리�
 | `server/clients/` | `naverClient` (쇼핑·이미지 검색), `youtubeClient` (영상 검색) |
 | `server/lib/` | `http`, `cache`, `env`, `text`, `concurrency` |
 
+## 린트로 강제하기
+
+위 규칙은 `eslint.config.js`의 `no-restricted-imports`로 검사하므로, 위반하면 `npm run lint`가 실패합니다.
+
+- 다른 폴더를 import할 때는 `@/` 별칭을 씁니다 (`@/server/lib/http`). `../`로 시작하는 상대 경로는 금지입니다. 상대 경로를 쓰면 린트 패턴이 어느 레이어인지 알 수 없기 때문입니다.
+- 같은 폴더 안에서는 `./`를 써도 됩니다. 단 `server/clients/` 안에서는 금지입니다 (client끼리 의존하지 않도록).
+- 규칙을 바꿀 때는 이 문서와 `eslint.config.js`를 함께 고칩니다.
+
 ## 새 기능을 넣을 때
 
 예를 들어 로그인을 구현한다면 다음 순서로 위치를 정합니다.

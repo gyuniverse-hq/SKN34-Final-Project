@@ -47,6 +47,7 @@ Docs: https://docs.expo.dev/eas/index.md
 - Layered architecture: `docs/ARCHITECTURE.md` is authoritative. Upper layers import only lower layers; never import upward, and never import `server/` or `data/` from client code.
   - Client: `app/` screens → `hooks/`, `components/` → `lib/`, `store/` → `constants/`, `types/`. Fetch data only in screens or `hooks/`; components receive data via props. `components/ui/` must not read `store/` or `lib/queries`.
   - Server: `app/api/` routes (parse, validate, respond) → `server/services/` (business logic) → `server/repositories/` (data access) and `server/clients/` (external APIs; the only place API keys are used) → `server/lib/` (http, cache, env). Routes must not reach repositories, clients, or `data/` directly.
+  - Enforced by `no-restricted-imports` in `eslint.config.js`: import other folders via the `@/` alias (no `../`); `./` only within the same folder, and never between `server/clients/` files. Update the doc and the lint config together.
   - Repository functions stay `async` even over static data so a DB can replace them without touching callers. Name files `<subject><Layer>.ts` (e.g. `catalogService.ts`, `naverClient.ts`).
 - API keys are read only by server code (`server/`, `app/api/`) from `.env`. Never prefix secrets with `EXPO_PUBLIC_` and never commit `.env`.
 - UI text goes through `lib/i18n`. Add every new key to all four dictionaries (`en`, `ko`, `ja`, `zh`); typecheck fails if one is missing.
