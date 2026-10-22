@@ -31,8 +31,27 @@ class MetricsTests(unittest.TestCase):
         result = regression([10, 20, 30], [12, 18, 33])
         self.assertAlmostEqual(result["mae"], 7 / 3)
         self.assertAlmostEqual(result["rmse"], math.sqrt(17 / 3))
+        self.assertAlmostEqual(result["mse"], 17 / 3)
+        self.assertAlmostEqual(result["r2"], 1 - 17 / 200)
         self.assertAlmostEqual(regression([10, 20, 30], [20, 40, 60])["pearson"], 1)
         self.assertEqual(result["truth"], [10, 20, 30])
+
+    def test_classification_averages_match_sklearn_with_absent_grade(self):
+        from sklearn.metrics import precision_recall_fscore_support
+        truth, predicted = [0, 0, 0, 1, 2], [0, 0, 1, 1, 1]
+        result = classification(truth, predicted, 4)
+        for average in ("macro", "weighted"):
+            expected = precision_recall_fscore_support(
+                truth, predicted, labels=list(range(4)), average=average, zero_division=0)
+            for key, value in zip(("precision", "recall", "f1"), expected[:3], strict=True):
+                self.assertAlmostEqual(result[f"{average}_{key}"], value)
+
+    def test_r2_is_not_forced_to_zero_for_poor_or_undefined_predictions(self):
+        self.assertLess(regression([1, 2, 3], [10, 10, 10])["r2"], 0)
+        for truth, prediction in [([1], [1]), ([1, 1], [1, 1]), ([1, 1], [2, 3])]:
+            result = regression(truth, prediction)
+            self.assertIsNone(result["r2"])
+            self.assertIsNotNone(result["r2_undefined_reason"])
 
     def test_undefined_correlation(self):
         for truth, prediction in [([1], [2]), ([1, 1], [2, 3]), ([1, 2], [3, 3])]:

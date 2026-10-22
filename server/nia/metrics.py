@@ -25,7 +25,12 @@ def classification(truth, predicted, classes):
     errors = [abs(a - p) for a, p in zip(truth, predicted, strict=True)]
     return dict(n=len(truth), accuracy=errors.count(0) / len(errors),
                 mae=statistics.mean(errors), within_one=sum(e <= 1 for e in errors) / len(errors),
+                macro_precision=statistics.mean(g["precision"] for g in per_grade),
+                macro_recall=statistics.mean(g["recall"] for g in per_grade),
                 macro_f1=statistics.mean(g["f1"] for g in per_grade),
+                weighted_precision=sum(g["precision"] * g["support"] for g in per_grade) / len(truth),
+                weighted_recall=sum(g["recall"] * g["support"] for g in per_grade) / len(truth),
+                weighted_f1=sum(g["f1"] * g["support"] for g in per_grade) / len(truth),
                 per_grade=per_grade, confusion=matrix)
 
 
@@ -38,8 +43,14 @@ def regression(truth, predicted):
     correlation = None
     if len(truth) >= 2 and len(set(truth)) > 1 and len(set(predicted)) > 1:
         correlation = statistics.correlation(truth, predicted)
+    mse = statistics.mean(e * e for e in errors)
+    mean_truth = statistics.mean(truth)
+    total = sum((value - mean_truth) ** 2 for value in truth)
+    r2 = 1 - sum(e * e for e in errors) / total if len(truth) >= 2 and total > 0 else None
     return dict(n=len(truth), mae=statistics.mean(abs(e) for e in errors),
-                rmse=math.sqrt(statistics.mean(e * e for e in errors)), pearson=correlation,
+                mse=mse, rmse=math.sqrt(mse), r2=r2,
+                r2_undefined_reason=None if r2 is not None else "fewer_than_two_samples_or_constant_truth",
+                pearson=correlation,
                 truth=list(truth), predicted=list(predicted))
 
 
