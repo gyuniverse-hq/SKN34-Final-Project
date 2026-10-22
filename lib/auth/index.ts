@@ -37,6 +37,14 @@ export function useAuth() {
   return { session: state.session, user: state.session?.user ?? null, ready: state.ready };
 }
 
+/** Current access token, refreshed by Supabase when it is about to expire. */
+export async function getAccessToken() {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token ?? null;
+}
+
 export async function signInWithEmail(email: string, password: string) {
   const { error } = await requireClient().auth.signInWithPassword({ email, password });
   if (error) throw error;
