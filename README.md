@@ -5,6 +5,7 @@
 외국인 대상 K-뷰티 쇼핑 앱. **룩 발견 → AR 가상 메이크업 → 세트로 장바구니 → 매장 쇼핑 리스트 / 온라인 구매**.
 
 - 협업 규칙(브랜치·커밋·PR): [`CONTRIBUTING.md`](CONTRIBUTING.md) · AI 도구용 요약: [`AGENTS.md`](AGENTS.md)
+- 레이어 구조와 import 규칙: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - 출시 전 직접 해야 할 일: [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKLIST.md)
 
 ## 기능
@@ -35,9 +36,12 @@ app/                    Expo Router 화면 + API 라우트
   api/                  서버 엔드포인트 (*+api.ts) — 키는 여기서만 사용
 server/                 서버 전용 로직 (YouTube, 네이버, 캐시, 레이트리밋)
 data/catalog/           제품 · 룩 · 매장 데이터 (현재 비어 있음, types/index.ts 형식에 맞춰 추가)
-components/ar/          얼굴 추적 렌더러 (WebView / 웹 iframe 공용 HTML)
+components/             UI 컴포넌트 (ui/ 범용 · shop/ celeb/ ar/ 기능별)
+  ar/                   얼굴 추적 렌더러 (WebView / 웹 iframe 공용 HTML)
+hooks/                  화면용 조합 훅 (장바구니 + 제품 조회 등)
 lib/                    API 클라이언트, react-query 훅, i18n, 포맷
 store/                  Zustand (장바구니·쇼핑리스트·설정은 기기에 저장)
+constants/              테마, 약관 등 정적 상수
 __tests__/              데이터 무결성 · 검색 · 장바구니 · i18n · 서버 유틸 테스트
 ```
 
