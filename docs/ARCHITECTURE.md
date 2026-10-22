@@ -1,5 +1,53 @@
 # 아키텍처
 
+## 전체 구성 (목표)
+
+앱(기기), 백엔드(FastAPI), 외부 서비스 세 영역으로 나뉩니다. 얼굴 영상은 기기 밖으로 나가지 않고, 백엔드에는 피부톤 추정 수치만 전달합니다.
+
+```mermaid
+flowchart LR
+  subgraph Device["사용자 기기 · Expo 앱"]
+    direction TB
+    UI["화면<br/>app/"]
+    Data["서버 데이터<br/>hooks · lib/queries"]
+    Local["기기 저장<br/>store (장바구니·리스트·설정)"]
+    AR["AR 렌더러<br/>MediaPipe · WebGL"]
+    Skin["피부톤 추정<br/>ITA° · MST"]
+    Http["HTTP 클라이언트<br/>lib/api"]
+    UI --> Data
+    UI --> Local
+    UI --> AR
+    AR --> Skin
+    Data --> Http
+  end
+
+  subgraph Backend["백엔드 · FastAPI"]
+    direction TB
+    Routers["routers<br/>검증·응답"]
+    Services["services<br/>카탈로그·추천·회원·챗봇"]
+    Repos["repositories"]
+    Clients["clients"]
+    Routers --> Services
+    Services --> Repos
+    Services --> Clients
+  end
+
+  PG[("PostgreSQL · 원본<br/>회원·제품·셰이드·룩·매장")]
+  Graph[("Neo4j · 챗봇 전용 사본<br/>피부 타입·성분·제품·룩 관계")]
+  Ext["외부 API<br/>네이버 · YouTube · LLM"]
+
+  Skin -. "피부톤 수치만" .-> Http
+  Http -- "HTTPS · JSON<br/>얼굴 영상 없음" --> Routers
+  Repos --> PG
+  Repos --> Graph
+  PG -. "한 방향 동기화" .-> Graph
+  Clients --> Ext
+```
+
+지금은 백엔드가 없고, 앱 저장소 안의 Expo API 라우트(`app/api/`, `server/`)가 서버 역할을 합니다. 백엔드로 옮기는 순서는 [백엔드](#백엔드-계획) 절을 참고하세요.
+
+## 앱 저장소의 두 런타임 (현재)
+
 이 저장소에는 두 런타임이 함께 있습니다.
 
 - **클라이언트**: Expo Go·웹에서 도는 앱 (`app/`의 화면, `components/`, `hooks/`, `lib/`, `store/`)
@@ -84,7 +132,95 @@ server/lib/                   공통: HTTP 응답·fetch, 캐시, 레이트 리�
 
 예를 들어 로그인을 구현한다면 다음 순서로 위치를 정합니다.
 
-1. 주고받는 형태를 `types/index.ts`에 정의합니다.
-2. 서버: 라우트 `app/api/auth/...+api.ts` → 서비스 `server/services/` → 저장소 `server/repositories/` 또는 외부 인증 `server/clients/`
+1. 주고받는 형태를 `types/index.ts`에 정의합니다. 백엔드가 생기면 백엔드의 OpenAPI 스펙에서 생성합니다.
+2. 서버: 백엔드가 생기기 전에는 라우트 `app/api/auth/...+api.ts` → 서비스 `server/services/` → 저장소 `server/repositories/` 또는 외부 인증 `server/clients/`. 백엔드가 생긴 뒤에는 같은 구조로 백엔드의 `routers/` → `services/` → `repositories/`에 둡니다.
 3. 클라이언트: HTTP 호출과 훅은 `lib/`, 로그인 상태처럼 기기에 남길 값은 `store/`, 화면은 `app/login.tsx`
 4. UI 문구는 `lib/i18n`의 네 사전(`en`, `ko`, `ja`, `zh`)에 모두 추가합니다.
+
+## 백엔드 (계획)
+
+아직 코드는 없습니다. 아래는 팀이 정한 기술 스택과 역할 분담입니다.
+
+### 기술 스택
+
+| 영역 | 선택 |
+| --- | --- |
+| 언어 | Python 3.12 (`.python-version`으로 고정) |
+| 패키지·환경 관리 | uv (`pyproject.toml` + `uv.lock`, 둘 다 커밋) |
+| 프레임워크 | FastAPI + Pydantic |
+| 원본 DB | PostgreSQL, 접근은 SQLAlchemy 2, 스키마 변경은 Alembic |
+| 챗봇용 그래프 DB | Neo4j, 공식 `neo4j` Python 드라이버 |
+| 테스트 | pytest |
+| 레이어 강제 | import-linter (앱의 ESLint 레이어 규칙과 같은 역할) |
+| 배포 | Docker 이미지 (`uv sync --frozen --no-dev`) |
+| 앱과의 타입 공유 | FastAPI OpenAPI 스펙 → `openapi-typescript` → 앱의 `types/` |
+
+- 패키지는 `uv add <패키지>`로만 추가합니다. `pip install`로 따로 설치하면 `uv.lock`과 실제 환경이 어긋납니다.
+- 실행은 `uv run`을 붙입니다 (`uv run uvicorn app.main:app --reload`, `uv run alembic upgrade head`, `uv run pytest`).
+
+### 역할 분담
+
+| 위치 | 맡는 것 |
+| --- | --- |
+| 백엔드 | 카탈로그(제품·셰이드·룩·매장), 회원·로그인, 셰이드 추천(피부톤 수치 → 색차 ΔE 순위), 챗봇, 네이버·YouTube 연동 |
+| 기기 | 얼굴 추적, AR 렌더링, 피부톤 추정, 장바구니·쇼핑 리스트·언어 설정 |
+
+- **얼굴 영상과 이미지는 서버로 보내지 않습니다.** 셰이드 추천에는 기기에서 추정한 수치(ITA°, MST 단계, 언더톤)만 보냅니다.
+- 장바구니와 쇼핑 리스트는 기기에 둡니다. 로그인 사용자의 기기 간 동기화가 필요해질 때 백엔드로 옮깁니다.
+
+### PostgreSQL과 Neo4j
+
+| DB | 담는 것 | 쓰는 곳 |
+| --- | --- | --- |
+| PostgreSQL (원본) | 회원, 제품, 셰이드, 룩, 매장 | 챗봇을 제외한 모든 기능 |
+| Neo4j (사본) | 피부 타입·성분·제품·룩·셀럽 사이의 관계 | 챗봇만 |
+
+1. 데이터 추가와 수정은 **PostgreSQL에서만** 합니다. Neo4j에 직접 쓰지 않습니다.
+2. Neo4j는 동기화 스크립트(`scripts/sync_graph`)로 PostgreSQL에서 **한 방향으로만** 채웁니다.
+3. Neo4j는 `chatbotService` → `graphRepository` 경로로만 씁니다. 다른 서비스는 Neo4j를 몰라도 됩니다.
+
+### 폴더 구조
+
+앱의 `server/` 레이어와 같은 구조입니다.
+
+```text
+backend/
+  pyproject.toml · uv.lock · .python-version · Dockerfile
+  alembic/                 마이그레이션 파일
+  scripts/sync_graph       PostgreSQL → Neo4j 동기화
+  app/
+    routers/               요청 검증·응답          (← 앱의 app/api/)
+    services/              카탈로그·추천·회원·챗봇  (← server/services/)
+    repositories/          catalogRepository(PostgreSQL), graphRepository(Neo4j)  (← server/repositories/)
+    clients/               네이버·YouTube·LLM      (← server/clients/)
+    core/                  설정·DB 연결·인증        (← server/lib/)
+    schemas/               Pydantic 요청·응답 형태
+    models/                PostgreSQL 테이블
+  tests/
+```
+
+| 레이어 | import 가능 |
+| --- | --- |
+| `routers/` | `services`, `schemas`, `core` |
+| `services/` | `repositories`, `clients`, `schemas`, `core` |
+| `repositories/` | `models`, `core` (`graphRepository`는 `chatbotService`에서만 사용) |
+| `clients/` | `core` (다른 client 금지) |
+| `core/` | 외부 패키지만 |
+
+### 옮기는 순서
+
+1. **1단계**: 백엔드 뼈대(uv, FastAPI, PostgreSQL, Alembic)를 만들고 카탈로그와 셰이드 추천 API를 구현합니다. 앱은 `server/repositories/catalogRepository.ts`의 내부만 백엔드 호출로 바꿔서, 서비스·라우트·화면은 그대로 둡니다.
+2. **2단계**: 로그인과 챗봇을 붙이고, 앱의 `lib/api.ts`가 백엔드를 직접 호출하게 바꿉니다. 네이버·YouTube 연동을 백엔드로 옮긴 뒤 앱의 `app/api/`와 `server/`를 삭제합니다.
+
+### 미정
+
+| 항목 | 선택지 |
+| --- | --- |
+| 인증 | Supabase Auth 또는 FastAPI 자체 JWT |
+| 배포처 | Render · Railway · AWS (캠프 제공 여부 확인) |
+| Neo4j 호스팅 | AuraDB 무료 플랜 (미사용 시 일시 정지) 또는 Docker 직접 운영 |
+| 챗봇 LLM | 모델과 API 키 관리 방식 (키는 `clients/`에만 둠) |
+| 챗봇 대화 기록 | 저장 여부와 보관 기간 (개인정보 원칙과 맞춤) |
+| 그래프 모델 | 노드(피부 타입·성분·제품·룩·셀럽)와 관계 정의 |
+| 저장소 위치 | 이 저장소의 `backend/` 폴더 또는 별도 저장소 |
+| 2단계 시점 | Expo API 라우트를 없애는 시점 |
