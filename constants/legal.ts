@@ -9,7 +9,7 @@ export const PRIVACY_POLICY = `Privacy Policy
 
 Last updated: ${LEGAL_LAST_UPDATED}
 
-[Company name] ("we") operates the K-Beauty AR app (the "App"). This policy explains what information the App handles.
+[Company name] ("we") operates the VISHUE app (the "App"). This policy explains what information the App handles.
 
 1. No account, minimal data
 The App does not require an account and we do not collect your name, email address, or phone number.
@@ -43,7 +43,7 @@ export const TERMS_OF_USE = `Terms of Use
 Last updated: ${LEGAL_LAST_UPDATED}
 
 1. The service
-K-Beauty AR (the "App"), operated by [Company name], helps you discover K-beauty products, preview makeup virtually, and prepare shopping lists. The App does not sell products or process payments.
+VISHUE (the "App"), operated by [Company name], helps you discover K-beauty products, preview makeup virtually, and prepare shopping lists. The App does not sell products or process payments.
 
 2. Virtual try-on
 AR previews are simulations. Actual color, texture, and results vary with lighting, device screen, and skin. Always check products in person or with the seller before buying.

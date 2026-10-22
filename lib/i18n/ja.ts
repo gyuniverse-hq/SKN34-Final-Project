@@ -15,7 +15,7 @@ export const ja: Dictionary = {
   'tabs.cart': 'カート',
   'tabs.my': 'マイ',
 
-  'shop.title': 'K-Beauty AR',
+  'shop.title': 'VISHUE',
   'shop.tagline': 'K-ビューティーを見つけて、試して、買おう',
   'shop.searchPlaceholder': 'ブランド・商品を検索',
   'shop.all': 'すべて',
@@ -157,7 +157,7 @@ export const ja: Dictionary = {
   'ar.mic': '話す',
   'ar.send': '送信',
 
-  'login.title': 'K-Beauty ARへようこそ',
+  'login.title': 'VISHUEへようこそ',
   'login.subtitle': 'ログインすると、ルックの保存・特典の獲得・メンバーシップが利用できます。',
   'login.email': 'メールアドレス',
   'login.password': 'パスワード',
