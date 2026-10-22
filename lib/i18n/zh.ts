@@ -17,6 +17,10 @@ export const zh: Dictionary = {
   'shop.title': 'VISHUE',
   'shop.tagline': '发现、试妆、选购韩国美妆',
   'shop.changeLanguage': '切换语言',
+
+  'mascot.hello': '很高兴见到你！',
+  'mascot.cartEmpty': '一起去购物吧！',
+  'mascot.tapHint': '点一下打个招呼',
   'shop.searchPlaceholder': '搜索品牌或商品',
   'shop.all': '全部',
   'shop.cat.lip': '唇部',

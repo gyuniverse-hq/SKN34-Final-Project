@@ -15,6 +15,10 @@ export const en = {
   'shop.title': 'VISHUE',
   'shop.tagline': 'Discover, try on, and shop K-beauty',
   'shop.changeLanguage': 'Change language',
+
+  'mascot.hello': 'Nice to meet you!',
+  'mascot.cartEmpty': "Let's go shopping together!",
+  'mascot.tapHint': 'Tap to say hi',
   'shop.searchPlaceholder': 'Search brands or products',
   'shop.all': 'All',
   'shop.cat.lip': 'Lips',

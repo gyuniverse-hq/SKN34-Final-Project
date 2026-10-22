@@ -10,12 +10,14 @@ import {
 } from 'react-native';
 import { Mascot } from '@/components/ui/Mascot';
 import { theme } from '@/constants/theme';
+import { useI18n } from '@/lib/i18n';
 
 export function AuthScreen({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
+  const { t } = useI18n();
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Mascot size={96} />
+        <Mascot size={96} speech={t('mascot.hello')} />
         <Text style={styles.title}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
         {children}
@@ -56,7 +58,8 @@ export const authStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.surface },
-  content: { padding: theme.spacing.xl, paddingTop: 40, paddingBottom: 48 },
+  // Leaves room above the mascot for its speech bubble.
+  content: { padding: theme.spacing.xl, paddingTop: 64, paddingBottom: 48 },
   title: { fontSize: theme.font.h2, fontWeight: '800', color: theme.colors.ink, textAlign: 'center', marginTop: 18 },
   subtitle: { fontSize: theme.font.small, color: theme.colors.inkMuted, textAlign: 'center', marginTop: 6, lineHeight: 19 },
   input: {

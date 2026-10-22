@@ -23,7 +23,7 @@ export default function CartScreen() {
     return (
       <View style={styles.screen}>
         <EmptyState
-          illustration={<Mascot size={110} decorative />}
+          illustration={<Mascot size={110} speech={t('mascot.cartEmpty')} />}
           title={t('cart.empty')}
           body={t('cart.emptyBody')}
           action={<Button label={t('cart.goShop')} onPress={() => router.dismissTo('/')} />}
