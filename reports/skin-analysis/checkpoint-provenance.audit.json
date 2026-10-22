@@ -1,0 +1,3147 @@
+{
+  "schema": "nia-checkpoint-provenance-audit-v1",
+  "status": "complete",
+  "checked_date_kst": "2026-10-23",
+  "archive_bytes": 2826402246,
+  "archive_entries": [
+    {
+      "path": "checkpoint/class/1st_cnn/save_model/dryness/state_dict.bin",
+      "uncompressed_bytes": 282676299,
+      "zip_timestamp": [
+        2025,
+        12,
+        2,
+        17,
+        40,
+        52
+      ]
+    },
+    {
+      "path": "checkpoint/class/1st_cnn/save_model/pigmentation/state_dict.bin",
+      "uncompressed_bytes": 282700875,
+      "zip_timestamp": [
+        2025,
+        12,
+        2,
+        17,
+        40,
+        56
+      ]
+    },
+    {
+      "path": "checkpoint/class/1st_cnn/save_model/pore/state_dict.bin",
+      "uncompressed_bytes": 282700875,
+      "zip_timestamp": [
+        2025,
+        12,
+        2,
+        17,
+        40,
+        58
+      ]
+    },
+    {
+      "path": "checkpoint/class/1st_cnn/save_model/sagging/state_dict.bin",
+      "uncompressed_bytes": 282700875,
+      "zip_timestamp": [
+        2025,
+        12,
+        2,
+        17,
+        41,
+        2
+      ]
+    },
+    {
+      "path": "checkpoint/class/1st_cnn/save_model/wrinkle/state_dict.bin",
+      "uncompressed_bytes": 282725451,
+      "zip_timestamp": [
+        2025,
+        12,
+        2,
+        17,
+        41,
+        4
+      ]
+    },
+    {
+      "path": "checkpoint/regression/1st_cnn/save_model/pigmentation/state_dict.bin",
+      "uncompressed_bytes": 282577867,
+      "zip_timestamp": [
+        2025,
+        12,
+        2,
+        17,
+        44,
+        46
+      ]
+    },
+    {
+      "path": "checkpoint/regression/1st_cnn/save_model/moisture/state_dict.bin",
+      "uncompressed_bytes": 282577867,
+      "zip_timestamp": [
+        2025,
+        12,
+        2,
+        17,
+        44,
+        50
+      ]
+    },
+    {
+      "path": "checkpoint/regression/1st_cnn/save_model/elasticity_R2/state_dict.bin",
+      "uncompressed_bytes": 282577867,
+      "zip_timestamp": [
+        2025,
+        12,
+        2,
+        17,
+        44,
+        54
+      ]
+    },
+    {
+      "path": "checkpoint/regression/1st_cnn/save_model/wrinkle_Ra/state_dict.bin",
+      "uncompressed_bytes": 282577867,
+      "zip_timestamp": [
+        2025,
+        12,
+        2,
+        17,
+        44,
+        56
+      ]
+    },
+    {
+      "path": "checkpoint/regression/1st_cnn/save_model/pore/state_dict.bin",
+      "uncompressed_bytes": 282577867,
+      "zip_timestamp": [
+        2025,
+        12,
+        2,
+        17,
+        45,
+        0
+      ]
+    }
+  ],
+  "checkpoint_metadata": [
+    {
+      "task": "class/wrinkle",
+      "checkpoint_sha256": "f1e44c6727246291637cecd9f1da1e80116916131581b29f4818f60d0b53f51d",
+      "top_level_keys": [
+        "model_state",
+        "epoch",
+        "best_loss",
+        "batch_size",
+        "info"
+      ],
+      "info_keys": [
+        "correct_",
+        "all_",
+        "micro_precision",
+        "correlation",
+        "global_step",
+        "optimizer_state_dict",
+        "scheduler_state_dict",
+        "run_id",
+        "acc_",
+        "corre_"
+      ],
+      "epoch": 11,
+      "batch_size": 256,
+      "head_shape": [
+        7,
+        2048
+      ],
+      "best_loss": {
+        "dryness": 1.21,
+        "pigmentation": 1.1485,
+        "pore": 1.1945,
+        "sagging": 1.3407,
+        "wrinkle": 1.4361
+      },
+      "saved_info": {
+        "correct_": {
+          "0": 106,
+          "1": 595,
+          "2": 42,
+          "3": 92,
+          "4": 11,
+          "5": 95,
+          "6": 14
+        },
+        "all_": {
+          "0": 236,
+          "1": 800,
+          "2": 368,
+          "3": 318,
+          "4": 164,
+          "5": 169,
+          "6": 145
+        },
+        "micro_precision": 0.4340909090909091,
+        "correlation": 0.7350017909319156,
+        "global_step": 960,
+        "acc_": 0.4340909090909091,
+        "corre_": 0.7350017909319156
+      },
+      "optimizer_groups": [
+        {
+          "lr": 9.86796665637763e-05,
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0,
+          "amsgrad": false,
+          "maximize": false,
+          "foreach": null,
+          "capturable": false,
+          "differentiable": false,
+          "fused": null,
+          "decoupled_weight_decay": false,
+          "initial_lr": 0.0001
+        }
+      ],
+      "scheduler_state": {
+        "base_lrs": [
+          0.0001
+        ],
+        "last_epoch": 12,
+        "_step_count": 13,
+        "_is_initial": false,
+        "_get_lr_called_within_step": false,
+        "_last_lr": [
+          9.86796665637763e-05
+        ],
+        "lr_lambdas": [
+          null
+        ]
+      },
+      "tensor_count": 320,
+      "tensor_payload_loaded": false
+    },
+    {
+      "task": "class/dryness",
+      "checkpoint_sha256": "4ab8d395b1403704296f8de37d735a1ff6a522d65f6c911c35811ded5a9aeafc",
+      "top_level_keys": [
+        "model_state",
+        "epoch",
+        "best_loss",
+        "batch_size",
+        "info"
+      ],
+      "info_keys": [
+        "correct_",
+        "all_",
+        "micro_precision",
+        "correlation",
+        "global_step",
+        "optimizer_state_dict",
+        "scheduler_state_dict",
+        "run_id",
+        "acc_",
+        "corre_"
+      ],
+      "epoch": 11,
+      "batch_size": 256,
+      "head_shape": [
+        5,
+        2048
+      ],
+      "best_loss": {
+        "dryness": 1.21,
+        "pigmentation": "inf",
+        "pore": "inf",
+        "sagging": "inf",
+        "wrinkle": "inf"
+      },
+      "saved_info": {
+        "correct_": {
+          "0": 1,
+          "1": 3,
+          "2": 356,
+          "3": 5,
+          "4": 1
+        },
+        "all_": {
+          "0": 15,
+          "1": 111,
+          "2": 393,
+          "3": 123,
+          "4": 18
+        },
+        "micro_precision": 0.5545454545454546,
+        "correlation": 0.024337039612630503,
+        "global_step": 288,
+        "acc_": 0.5545454545454546,
+        "corre_": 0.024337039612630503
+      },
+      "optimizer_groups": [
+        {
+          "lr": 9.86796665637763e-05,
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0,
+          "amsgrad": false,
+          "maximize": false,
+          "foreach": null,
+          "capturable": false,
+          "differentiable": false,
+          "fused": null,
+          "decoupled_weight_decay": false,
+          "initial_lr": 0.0001
+        }
+      ],
+      "scheduler_state": {
+        "base_lrs": [
+          0.0001
+        ],
+        "last_epoch": 12,
+        "_step_count": 13,
+        "_is_initial": false,
+        "_get_lr_called_within_step": false,
+        "_last_lr": [
+          9.86796665637763e-05
+        ],
+        "lr_lambdas": [
+          null
+        ]
+      },
+      "tensor_count": 320,
+      "tensor_payload_loaded": false
+    },
+    {
+      "task": "class/pigmentation",
+      "checkpoint_sha256": "6d77712bcc0c3c7f78949622b25b2e1f44d53d42505f2b60cc63073d0ab7a367",
+      "top_level_keys": [
+        "model_state",
+        "epoch",
+        "best_loss",
+        "batch_size",
+        "info"
+      ],
+      "info_keys": [
+        "correct_",
+        "all_",
+        "micro_precision",
+        "correlation",
+        "global_step",
+        "optimizer_state_dict",
+        "scheduler_state_dict",
+        "run_id",
+        "acc_",
+        "corre_"
+      ],
+      "epoch": 16,
+      "batch_size": 256,
+      "head_shape": [
+        6,
+        2048
+      ],
+      "best_loss": {
+        "dryness": 1.21,
+        "pigmentation": 1.1485,
+        "pore": "inf",
+        "sagging": "inf",
+        "wrinkle": "inf"
+      },
+      "saved_info": {
+        "correct_": {
+          "0": 68,
+          "1": 440,
+          "2": 145,
+          "3": 142,
+          "5": 14,
+          "4": 19
+        },
+        "all_": {
+          "0": 163,
+          "1": 573,
+          "2": 360,
+          "3": 291,
+          "4": 105,
+          "5": 52
+        },
+        "micro_precision": 0.5362694300518135,
+        "correlation": 0.7255632767466843,
+        "global_step": 969,
+        "acc_": 0.5362694300518135,
+        "corre_": 0.7255632767466843
+      },
+      "optimizer_groups": [
+        {
+          "lr": 9.615334287138055e-05,
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0,
+          "amsgrad": false,
+          "maximize": false,
+          "foreach": null,
+          "capturable": false,
+          "differentiable": false,
+          "fused": null,
+          "decoupled_weight_decay": false,
+          "initial_lr": 0.0001
+        }
+      ],
+      "scheduler_state": {
+        "base_lrs": [
+          0.0001
+        ],
+        "last_epoch": 17,
+        "_step_count": 18,
+        "_is_initial": false,
+        "_get_lr_called_within_step": false,
+        "_last_lr": [
+          9.615334287138055e-05
+        ],
+        "lr_lambdas": [
+          null
+        ]
+      },
+      "tensor_count": 320,
+      "tensor_payload_loaded": false
+    },
+    {
+      "task": "class/pore",
+      "checkpoint_sha256": "efb7d9af822963fdcaa0f535030706fcd0234c53d6786e2f56ec1dd4ba0affa1",
+      "top_level_keys": [
+        "model_state",
+        "epoch",
+        "best_loss",
+        "batch_size",
+        "info"
+      ],
+      "info_keys": [
+        "correct_",
+        "all_",
+        "micro_precision",
+        "correlation",
+        "global_step",
+        "optimizer_state_dict",
+        "scheduler_state_dict",
+        "run_id",
+        "acc_",
+        "corre_"
+      ],
+      "epoch": 18,
+      "batch_size": 256,
+      "head_shape": [
+        6,
+        2048
+      ],
+      "best_loss": {
+        "dryness": 1.21,
+        "pigmentation": 1.1485,
+        "pore": 1.1945,
+        "sagging": "inf",
+        "wrinkle": "inf"
+      },
+      "saved_info": {
+        "correct_": {
+          "0": 5,
+          "1": 58,
+          "2": 426,
+          "3": 11,
+          "4": 4
+        },
+        "all_": {
+          "0": 26,
+          "1": 154,
+          "2": 526,
+          "3": 110,
+          "4": 48,
+          "5": 12
+        },
+        "micro_precision": 0.5753424657534246,
+        "correlation": 0.36399261091508384,
+        "global_step": 646,
+        "acc_": 0.5753424657534246,
+        "corre_": 0.36399261091508384
+      },
+      "optimizer_groups": [
+        {
+          "lr": 9.47891018261278e-05,
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0,
+          "amsgrad": false,
+          "maximize": false,
+          "foreach": null,
+          "capturable": false,
+          "differentiable": false,
+          "fused": null,
+          "decoupled_weight_decay": false,
+          "initial_lr": 0.0001
+        }
+      ],
+      "scheduler_state": {
+        "base_lrs": [
+          0.0001
+        ],
+        "last_epoch": 19,
+        "_step_count": 20,
+        "_is_initial": false,
+        "_get_lr_called_within_step": false,
+        "_last_lr": [
+          9.47891018261278e-05
+        ],
+        "lr_lambdas": [
+          null
+        ]
+      },
+      "tensor_count": 320,
+      "tensor_payload_loaded": false
+    },
+    {
+      "task": "class/sagging",
+      "checkpoint_sha256": "2b98dbb2c7556b3862e6331f740adeecb1dd20f975a0729e5f30bf83e0340798",
+      "top_level_keys": [
+        "model_state",
+        "epoch",
+        "best_loss",
+        "batch_size",
+        "info"
+      ],
+      "info_keys": [
+        "correct_",
+        "all_",
+        "micro_precision",
+        "correlation",
+        "global_step",
+        "optimizer_state_dict",
+        "scheduler_state_dict",
+        "run_id",
+        "acc_",
+        "corre_"
+      ],
+      "epoch": 9,
+      "batch_size": 256,
+      "head_shape": [
+        6,
+        2048
+      ],
+      "best_loss": {
+        "dryness": 1.21,
+        "pigmentation": 1.1485,
+        "pore": 1.1945,
+        "sagging": 1.3407,
+        "wrinkle": "inf"
+      },
+      "saved_info": {
+        "correct_": {
+          "0": 285,
+          "1": 12,
+          "2": 13,
+          "3": 1,
+          "4": 9,
+          "5": 2
+        },
+        "all_": {
+          "0": 303,
+          "1": 135,
+          "2": 87,
+          "3": 78,
+          "4": 36,
+          "5": 24
+        },
+        "micro_precision": 0.4856711915535445,
+        "correlation": 0.463879546207502,
+        "global_step": 170,
+        "acc_": 0.4856711915535445,
+        "corre_": 0.463879546207502
+      },
+      "optimizer_groups": [
+        {
+          "lr": 9.932488451843476e-05,
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0,
+          "amsgrad": false,
+          "maximize": false,
+          "foreach": null,
+          "capturable": false,
+          "differentiable": false,
+          "fused": null,
+          "decoupled_weight_decay": false,
+          "initial_lr": 0.0001
+        }
+      ],
+      "scheduler_state": {
+        "base_lrs": [
+          0.0001
+        ],
+        "last_epoch": 10,
+        "_step_count": 11,
+        "_is_initial": false,
+        "_get_lr_called_within_step": false,
+        "_last_lr": [
+          9.932488451843476e-05
+        ],
+        "lr_lambdas": [
+          null
+        ]
+      },
+      "tensor_count": 320,
+      "tensor_payload_loaded": false
+    },
+    {
+      "task": "regression/pigmentation",
+      "checkpoint_sha256": "df14a36b6b3737e95306dd8b98b9e4631e4021da94abb7621a81493e13c873eb",
+      "top_level_keys": [
+        "model_state",
+        "epoch",
+        "best_loss",
+        "batch_size",
+        "info"
+      ],
+      "info_keys": [
+        "correct_",
+        "all_",
+        "micro_precision",
+        "correlation",
+        "global_step",
+        "optimizer_state_dict",
+        "scheduler_state_dict",
+        "run_id",
+        "acc_",
+        "corre_"
+      ],
+      "epoch": 26,
+      "batch_size": 256,
+      "head_shape": [
+        1,
+        2048
+      ],
+      "best_loss": {
+        "pigmentation": 0.073,
+        "moisture": "inf",
+        "elasticity_R2": "inf",
+        "wrinkle_Ra": "inf",
+        "pore": "inf"
+      },
+      "saved_info": {
+        "correct_": null,
+        "all_": null,
+        "micro_precision": null,
+        "correlation": 0.8559026562569719,
+        "global_step": 675,
+        "acc_": null,
+        "corre_": 0.8559026562569719
+      },
+      "optimizer_groups": [
+        {
+          "lr": 8.746766311071562e-05,
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0,
+          "amsgrad": false,
+          "maximize": false,
+          "foreach": null,
+          "capturable": false,
+          "differentiable": false,
+          "fused": null,
+          "decoupled_weight_decay": false,
+          "initial_lr": 0.0001
+        }
+      ],
+      "scheduler_state": {
+        "base_lrs": [
+          0.0001
+        ],
+        "last_epoch": 27,
+        "_step_count": 28,
+        "_is_initial": false,
+        "_get_lr_called_within_step": false,
+        "_last_lr": [
+          8.746766311071562e-05
+        ],
+        "lr_lambdas": [
+          null
+        ]
+      },
+      "tensor_count": 320,
+      "tensor_payload_loaded": false
+    },
+    {
+      "task": "regression/moisture",
+      "checkpoint_sha256": "2e3869deff693de1a10e341b5f734c173a7ab458f0a8933862907f2df8803b8f",
+      "top_level_keys": [
+        "model_state",
+        "epoch",
+        "best_loss",
+        "batch_size",
+        "info"
+      ],
+      "info_keys": [
+        "correct_",
+        "all_",
+        "micro_precision",
+        "correlation",
+        "global_step",
+        "optimizer_state_dict",
+        "scheduler_state_dict",
+        "run_id",
+        "acc_",
+        "corre_"
+      ],
+      "epoch": 14,
+      "batch_size": 256,
+      "head_shape": [
+        1,
+        2048
+      ],
+      "best_loss": {
+        "pigmentation": 0.073,
+        "moisture": 0.0773,
+        "elasticity_R2": "inf",
+        "wrinkle_Ra": "inf",
+        "pore": "inf"
+      },
+      "saved_info": {
+        "correct_": null,
+        "all_": null,
+        "micro_precision": null,
+        "correlation": 0.31880181703466826,
+        "global_step": 1170,
+        "acc_": null,
+        "corre_": 0.31880181703466826
+      },
+      "optimizer_groups": [
+        {
+          "lr": 9.73179534641814e-05,
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0,
+          "amsgrad": false,
+          "maximize": false,
+          "foreach": null,
+          "capturable": false,
+          "differentiable": false,
+          "fused": null,
+          "decoupled_weight_decay": false,
+          "initial_lr": 0.0001
+        }
+      ],
+      "scheduler_state": {
+        "base_lrs": [
+          0.0001
+        ],
+        "last_epoch": 15,
+        "_step_count": 16,
+        "_is_initial": false,
+        "_get_lr_called_within_step": false,
+        "_last_lr": [
+          9.73179534641814e-05
+        ],
+        "lr_lambdas": [
+          null
+        ]
+      },
+      "tensor_count": 320,
+      "tensor_payload_loaded": false
+    },
+    {
+      "task": "regression/elasticity_R2",
+      "checkpoint_sha256": "4674ded666eb30cbe6a3b43bcdd8362ac1165163c37f0e3237398702aea467cc",
+      "top_level_keys": [
+        "model_state",
+        "epoch",
+        "best_loss",
+        "batch_size",
+        "info"
+      ],
+      "info_keys": [
+        "correct_",
+        "all_",
+        "micro_precision",
+        "correlation",
+        "global_step",
+        "optimizer_state_dict",
+        "scheduler_state_dict",
+        "run_id",
+        "acc_",
+        "corre_"
+      ],
+      "epoch": 13,
+      "batch_size": 256,
+      "head_shape": [
+        1,
+        2048
+      ],
+      "best_loss": {
+        "pigmentation": 0.073,
+        "moisture": 0.0773,
+        "elasticity_R2": 0.0768,
+        "wrinkle_Ra": "inf",
+        "pore": "inf"
+      },
+      "saved_info": {
+        "correct_": null,
+        "all_": null,
+        "micro_precision": null,
+        "correlation": 0.3688876390917065,
+        "global_step": 1092,
+        "acc_": null,
+        "corre_": 0.3688876390917065
+      },
+      "optimizer_groups": [
+        {
+          "lr": 9.782377118595071e-05,
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0,
+          "amsgrad": false,
+          "maximize": false,
+          "foreach": null,
+          "capturable": false,
+          "differentiable": false,
+          "fused": null,
+          "decoupled_weight_decay": false,
+          "initial_lr": 0.0001
+        }
+      ],
+      "scheduler_state": {
+        "base_lrs": [
+          0.0001
+        ],
+        "last_epoch": 14,
+        "_step_count": 15,
+        "_is_initial": false,
+        "_get_lr_called_within_step": false,
+        "_last_lr": [
+          9.782377118595071e-05
+        ],
+        "lr_lambdas": [
+          null
+        ]
+      },
+      "tensor_count": 320,
+      "tensor_payload_loaded": false
+    },
+    {
+      "task": "regression/wrinkle_Ra",
+      "checkpoint_sha256": "c54e2eb122f4f40c51277c477486a195fe5999d24c7feab1d94e8f46780202c3",
+      "top_level_keys": [
+        "model_state",
+        "epoch",
+        "best_loss",
+        "batch_size",
+        "info"
+      ],
+      "info_keys": [
+        "correct_",
+        "all_",
+        "micro_precision",
+        "correlation",
+        "global_step",
+        "optimizer_state_dict",
+        "scheduler_state_dict",
+        "run_id",
+        "acc_",
+        "corre_"
+      ],
+      "epoch": 17,
+      "batch_size": 256,
+      "head_shape": [
+        1,
+        2048
+      ],
+      "best_loss": {
+        "pigmentation": 0.073,
+        "moisture": 0.0773,
+        "elasticity_R2": 0.0768,
+        "wrinkle_Ra": 0.0676,
+        "pore": "inf"
+      },
+      "saved_info": {
+        "correct_": null,
+        "all_": null,
+        "micro_precision": null,
+        "correlation": 0.6359818996144091,
+        "global_step": 648,
+        "acc_": null,
+        "corre_": 0.6359818996144091
+      },
+      "optimizer_groups": [
+        {
+          "lr": 9.549582348493354e-05,
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0,
+          "amsgrad": false,
+          "maximize": false,
+          "foreach": null,
+          "capturable": false,
+          "differentiable": false,
+          "fused": null,
+          "decoupled_weight_decay": false,
+          "initial_lr": 0.0001
+        }
+      ],
+      "scheduler_state": {
+        "base_lrs": [
+          0.0001
+        ],
+        "last_epoch": 18,
+        "_step_count": 19,
+        "_is_initial": false,
+        "_get_lr_called_within_step": false,
+        "_last_lr": [
+          9.549582348493354e-05
+        ],
+        "lr_lambdas": [
+          null
+        ]
+      },
+      "tensor_count": 320,
+      "tensor_payload_loaded": false
+    },
+    {
+      "task": "regression/pore",
+      "checkpoint_sha256": "49df0833cc5d625fedc60153262fb018a327c743942b3a441e4faf2c3dd8e608",
+      "top_level_keys": [
+        "model_state",
+        "epoch",
+        "best_loss",
+        "batch_size",
+        "info"
+      ],
+      "info_keys": [
+        "correct_",
+        "all_",
+        "micro_precision",
+        "correlation",
+        "global_step",
+        "optimizer_state_dict",
+        "scheduler_state_dict",
+        "run_id",
+        "acc_",
+        "corre_"
+      ],
+      "epoch": 17,
+      "batch_size": 256,
+      "head_shape": [
+        1,
+        2048
+      ],
+      "best_loss": {
+        "pigmentation": 0.073,
+        "moisture": 0.0773,
+        "elasticity_R2": 0.0768,
+        "wrinkle_Ra": 0.0676,
+        "pore": 0.1003
+      },
+      "saved_info": {
+        "correct_": null,
+        "all_": null,
+        "micro_precision": null,
+        "correlation": 0.6895111780822474,
+        "global_step": 648,
+        "acc_": null,
+        "corre_": 0.6895111780822474
+      },
+      "optimizer_groups": [
+        {
+          "lr": 9.549582348493354e-05,
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0,
+          "amsgrad": false,
+          "maximize": false,
+          "foreach": null,
+          "capturable": false,
+          "differentiable": false,
+          "fused": null,
+          "decoupled_weight_decay": false,
+          "initial_lr": 0.0001
+        }
+      ],
+      "scheduler_state": {
+        "base_lrs": [
+          0.0001
+        ],
+        "last_epoch": 18,
+        "_step_count": 19,
+        "_is_initial": false,
+        "_get_lr_called_within_step": false,
+        "_last_lr": [
+          9.549582348493354e-05
+        ],
+        "lr_lambdas": [
+          null
+        ]
+      },
+      "tensor_count": 320,
+      "tensor_payload_loaded": false
+    }
+  ],
+  "device_step_audit": [
+    {
+      "task": "class/wrinkle",
+      "saved_global_step": 960,
+      "epoch": 11,
+      "batch_size": 256,
+      "matching_configurations": [
+        {
+          "devices": [
+            "digital_camera"
+          ],
+          "declared_train_plus_val_rois": 20449,
+          "batches_per_epoch": 80,
+          "expected_global_step": 960,
+          "matches_saved_global_step": true
+        }
+      ],
+      "all_configurations": [
+        {
+          "devices": [
+            "digital_camera"
+          ],
+          "declared_train_plus_val_rois": 20449,
+          "batches_per_epoch": 80,
+          "expected_global_step": 960,
+          "matches_saved_global_step": true
+        },
+        {
+          "devices": [
+            "smart_pad"
+          ],
+          "declared_train_plus_val_rois": 8492,
+          "batches_per_epoch": 34,
+          "expected_global_step": 408,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 8519,
+          "batches_per_epoch": 34,
+          "expected_global_step": 408,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_pad"
+          ],
+          "declared_train_plus_val_rois": 28941,
+          "batches_per_epoch": 114,
+          "expected_global_step": 1368,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 28968,
+          "batches_per_epoch": 114,
+          "expected_global_step": 1368,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "smart_pad",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 17011,
+          "batches_per_epoch": 67,
+          "expected_global_step": 804,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_pad",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 37460,
+          "batches_per_epoch": 147,
+          "expected_global_step": 1764,
+          "matches_saved_global_step": false
+        }
+      ]
+    },
+    {
+      "task": "class/dryness",
+      "saved_global_step": 288,
+      "epoch": 11,
+      "batch_size": 256,
+      "matching_configurations": [
+        {
+          "devices": [
+            "digital_camera"
+          ],
+          "declared_train_plus_val_rois": 5964,
+          "batches_per_epoch": 24,
+          "expected_global_step": 288,
+          "matches_saved_global_step": true
+        }
+      ],
+      "all_configurations": [
+        {
+          "devices": [
+            "digital_camera"
+          ],
+          "declared_train_plus_val_rois": 5964,
+          "batches_per_epoch": 24,
+          "expected_global_step": 288,
+          "matches_saved_global_step": true
+        },
+        {
+          "devices": [
+            "smart_pad"
+          ],
+          "declared_train_plus_val_rois": 2556,
+          "batches_per_epoch": 10,
+          "expected_global_step": 120,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 2556,
+          "batches_per_epoch": 10,
+          "expected_global_step": 120,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_pad"
+          ],
+          "declared_train_plus_val_rois": 8520,
+          "batches_per_epoch": 34,
+          "expected_global_step": 408,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 8520,
+          "batches_per_epoch": 34,
+          "expected_global_step": 408,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "smart_pad",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 5112,
+          "batches_per_epoch": 20,
+          "expected_global_step": 240,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_pad",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 11076,
+          "batches_per_epoch": 44,
+          "expected_global_step": 528,
+          "matches_saved_global_step": false
+        }
+      ]
+    },
+    {
+      "task": "class/pigmentation",
+      "saved_global_step": 969,
+      "epoch": 16,
+      "batch_size": 256,
+      "matching_configurations": [
+        {
+          "devices": [
+            "digital_camera"
+          ],
+          "declared_train_plus_val_rois": 14474,
+          "batches_per_epoch": 57,
+          "expected_global_step": 969,
+          "matches_saved_global_step": true
+        }
+      ],
+      "all_configurations": [
+        {
+          "devices": [
+            "digital_camera"
+          ],
+          "declared_train_plus_val_rois": 14474,
+          "batches_per_epoch": 57,
+          "expected_global_step": 969,
+          "matches_saved_global_step": true
+        },
+        {
+          "devices": [
+            "smart_pad"
+          ],
+          "declared_train_plus_val_rois": 5960,
+          "batches_per_epoch": 24,
+          "expected_global_step": 408,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 5960,
+          "batches_per_epoch": 24,
+          "expected_global_step": 408,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_pad"
+          ],
+          "declared_train_plus_val_rois": 20434,
+          "batches_per_epoch": 80,
+          "expected_global_step": 1360,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 20434,
+          "batches_per_epoch": 80,
+          "expected_global_step": 1360,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "smart_pad",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 11920,
+          "batches_per_epoch": 47,
+          "expected_global_step": 799,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_pad",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 26394,
+          "batches_per_epoch": 104,
+          "expected_global_step": 1768,
+          "matches_saved_global_step": false
+        }
+      ]
+    },
+    {
+      "task": "class/pore",
+      "saved_global_step": 646,
+      "epoch": 18,
+      "batch_size": 256,
+      "matching_configurations": [
+        {
+          "devices": [
+            "digital_camera"
+          ],
+          "declared_train_plus_val_rois": 8530,
+          "batches_per_epoch": 34,
+          "expected_global_step": 646,
+          "matches_saved_global_step": true
+        }
+      ],
+      "all_configurations": [
+        {
+          "devices": [
+            "digital_camera"
+          ],
+          "declared_train_plus_val_rois": 8530,
+          "batches_per_epoch": 34,
+          "expected_global_step": 646,
+          "matches_saved_global_step": true
+        },
+        {
+          "devices": [
+            "smart_pad"
+          ],
+          "declared_train_plus_val_rois": 3412,
+          "batches_per_epoch": 14,
+          "expected_global_step": 266,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 3412,
+          "batches_per_epoch": 14,
+          "expected_global_step": 266,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_pad"
+          ],
+          "declared_train_plus_val_rois": 11942,
+          "batches_per_epoch": 47,
+          "expected_global_step": 893,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 11942,
+          "batches_per_epoch": 47,
+          "expected_global_step": 893,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "smart_pad",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 6824,
+          "batches_per_epoch": 27,
+          "expected_global_step": 513,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_pad",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 15354,
+          "batches_per_epoch": 60,
+          "expected_global_step": 1140,
+          "matches_saved_global_step": false
+        }
+      ]
+    },
+    {
+      "task": "class/sagging",
+      "saved_global_step": 170,
+      "epoch": 9,
+      "batch_size": 256,
+      "matching_configurations": [
+        {
+          "devices": [
+            "digital_camera"
+          ],
+          "declared_train_plus_val_rois": 4245,
+          "batches_per_epoch": 17,
+          "expected_global_step": 170,
+          "matches_saved_global_step": true
+        }
+      ],
+      "all_configurations": [
+        {
+          "devices": [
+            "digital_camera"
+          ],
+          "declared_train_plus_val_rois": 4245,
+          "batches_per_epoch": 17,
+          "expected_global_step": 170,
+          "matches_saved_global_step": true
+        },
+        {
+          "devices": [
+            "smart_pad"
+          ],
+          "declared_train_plus_val_rois": 2547,
+          "batches_per_epoch": 10,
+          "expected_global_step": 100,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 2547,
+          "batches_per_epoch": 10,
+          "expected_global_step": 100,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_pad"
+          ],
+          "declared_train_plus_val_rois": 6792,
+          "batches_per_epoch": 27,
+          "expected_global_step": 270,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 6792,
+          "batches_per_epoch": 27,
+          "expected_global_step": 270,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "smart_pad",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 5094,
+          "batches_per_epoch": 20,
+          "expected_global_step": 200,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_pad",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 9339,
+          "batches_per_epoch": 37,
+          "expected_global_step": 370,
+          "matches_saved_global_step": false
+        }
+      ]
+    },
+    {
+      "task": "regression/pigmentation",
+      "saved_global_step": 675,
+      "epoch": 26,
+      "batch_size": 256,
+      "matching_configurations": [
+        {
+          "devices": [
+            "digital_camera"
+          ],
+          "declared_train_plus_val_rois": 6327,
+          "batches_per_epoch": 25,
+          "expected_global_step": 675,
+          "matches_saved_global_step": true
+        }
+      ],
+      "all_configurations": [
+        {
+          "devices": [
+            "digital_camera"
+          ],
+          "declared_train_plus_val_rois": 6327,
+          "batches_per_epoch": 25,
+          "expected_global_step": 675,
+          "matches_saved_global_step": true
+        },
+        {
+          "devices": [
+            "smart_pad"
+          ],
+          "declared_train_plus_val_rois": 2895,
+          "batches_per_epoch": 12,
+          "expected_global_step": 324,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 2895,
+          "batches_per_epoch": 12,
+          "expected_global_step": 324,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_pad"
+          ],
+          "declared_train_plus_val_rois": 9222,
+          "batches_per_epoch": 37,
+          "expected_global_step": 999,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 9222,
+          "batches_per_epoch": 37,
+          "expected_global_step": 999,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "smart_pad",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 5790,
+          "batches_per_epoch": 23,
+          "expected_global_step": 621,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_pad",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 12117,
+          "batches_per_epoch": 48,
+          "expected_global_step": 1296,
+          "matches_saved_global_step": false
+        }
+      ]
+    },
+    {
+      "task": "regression/moisture",
+      "saved_global_step": 1170,
+      "epoch": 14,
+      "batch_size": 256,
+      "matching_configurations": [
+        {
+          "devices": [
+            "digital_camera"
+          ],
+          "declared_train_plus_val_rois": 19946,
+          "batches_per_epoch": 78,
+          "expected_global_step": 1170,
+          "matches_saved_global_step": true
+        }
+      ],
+      "all_configurations": [
+        {
+          "devices": [
+            "digital_camera"
+          ],
+          "declared_train_plus_val_rois": 19946,
+          "batches_per_epoch": 78,
+          "expected_global_step": 1170,
+          "matches_saved_global_step": true
+        },
+        {
+          "devices": [
+            "smart_pad"
+          ],
+          "declared_train_plus_val_rois": 9650,
+          "batches_per_epoch": 38,
+          "expected_global_step": 570,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 9650,
+          "batches_per_epoch": 38,
+          "expected_global_step": 570,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_pad"
+          ],
+          "declared_train_plus_val_rois": 29596,
+          "batches_per_epoch": 116,
+          "expected_global_step": 1740,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 29596,
+          "batches_per_epoch": 116,
+          "expected_global_step": 1740,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "smart_pad",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 19300,
+          "batches_per_epoch": 76,
+          "expected_global_step": 1140,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_pad",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 39246,
+          "batches_per_epoch": 154,
+          "expected_global_step": 2310,
+          "matches_saved_global_step": false
+        }
+      ]
+    },
+    {
+      "task": "regression/elasticity_R2",
+      "saved_global_step": 1092,
+      "epoch": 13,
+      "batch_size": 256,
+      "matching_configurations": [
+        {
+          "devices": [
+            "digital_camera"
+          ],
+          "declared_train_plus_val_rois": 19946,
+          "batches_per_epoch": 78,
+          "expected_global_step": 1092,
+          "matches_saved_global_step": true
+        }
+      ],
+      "all_configurations": [
+        {
+          "devices": [
+            "digital_camera"
+          ],
+          "declared_train_plus_val_rois": 19946,
+          "batches_per_epoch": 78,
+          "expected_global_step": 1092,
+          "matches_saved_global_step": true
+        },
+        {
+          "devices": [
+            "smart_pad"
+          ],
+          "declared_train_plus_val_rois": 9650,
+          "batches_per_epoch": 38,
+          "expected_global_step": 532,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 9650,
+          "batches_per_epoch": 38,
+          "expected_global_step": 532,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_pad"
+          ],
+          "declared_train_plus_val_rois": 29596,
+          "batches_per_epoch": 116,
+          "expected_global_step": 1624,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 29596,
+          "batches_per_epoch": 116,
+          "expected_global_step": 1624,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "smart_pad",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 19300,
+          "batches_per_epoch": 76,
+          "expected_global_step": 1064,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_pad",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 39246,
+          "batches_per_epoch": 154,
+          "expected_global_step": 2156,
+          "matches_saved_global_step": false
+        }
+      ]
+    },
+    {
+      "task": "regression/wrinkle_Ra",
+      "saved_global_step": 648,
+      "epoch": 17,
+      "batch_size": 256,
+      "matching_configurations": [
+        {
+          "devices": [
+            "digital_camera"
+          ],
+          "declared_train_plus_val_rois": 9007,
+          "batches_per_epoch": 36,
+          "expected_global_step": 648,
+          "matches_saved_global_step": true
+        }
+      ],
+      "all_configurations": [
+        {
+          "devices": [
+            "digital_camera"
+          ],
+          "declared_train_plus_val_rois": 9007,
+          "batches_per_epoch": 36,
+          "expected_global_step": 648,
+          "matches_saved_global_step": true
+        },
+        {
+          "devices": [
+            "smart_pad"
+          ],
+          "declared_train_plus_val_rois": 3827,
+          "batches_per_epoch": 15,
+          "expected_global_step": 270,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 3859,
+          "batches_per_epoch": 16,
+          "expected_global_step": 288,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_pad"
+          ],
+          "declared_train_plus_val_rois": 12834,
+          "batches_per_epoch": 51,
+          "expected_global_step": 918,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 12866,
+          "batches_per_epoch": 51,
+          "expected_global_step": 918,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "smart_pad",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 7686,
+          "batches_per_epoch": 31,
+          "expected_global_step": 558,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_pad",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 16693,
+          "batches_per_epoch": 66,
+          "expected_global_step": 1188,
+          "matches_saved_global_step": false
+        }
+      ]
+    },
+    {
+      "task": "regression/pore",
+      "saved_global_step": 648,
+      "epoch": 17,
+      "batch_size": 256,
+      "matching_configurations": [
+        {
+          "devices": [
+            "digital_camera"
+          ],
+          "declared_train_plus_val_rois": 9008,
+          "batches_per_epoch": 36,
+          "expected_global_step": 648,
+          "matches_saved_global_step": true
+        }
+      ],
+      "all_configurations": [
+        {
+          "devices": [
+            "digital_camera"
+          ],
+          "declared_train_plus_val_rois": 9008,
+          "batches_per_epoch": 36,
+          "expected_global_step": 648,
+          "matches_saved_global_step": true
+        },
+        {
+          "devices": [
+            "smart_pad"
+          ],
+          "declared_train_plus_val_rois": 3860,
+          "batches_per_epoch": 16,
+          "expected_global_step": 288,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 3860,
+          "batches_per_epoch": 16,
+          "expected_global_step": 288,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_pad"
+          ],
+          "declared_train_plus_val_rois": 12868,
+          "batches_per_epoch": 51,
+          "expected_global_step": 918,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 12868,
+          "batches_per_epoch": 51,
+          "expected_global_step": 918,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "smart_pad",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 7720,
+          "batches_per_epoch": 31,
+          "expected_global_step": 558,
+          "matches_saved_global_step": false
+        },
+        {
+          "devices": [
+            "digital_camera",
+            "smart_pad",
+            "smart_phone"
+          ],
+          "declared_train_plus_val_rois": 16728,
+          "batches_per_epoch": 66,
+          "expected_global_step": 1188,
+          "matches_saved_global_step": false
+        }
+      ]
+    }
+  ],
+  "label_histogram_audit": [
+    {
+      "task": "class/wrinkle",
+      "device": "digital_camera",
+      "split": "val",
+      "declared_rois": 2483,
+      "labelled_rois": 2246,
+      "missing_labels": 237,
+      "grade_histogram": {
+        "0": 231,
+        "1": 895,
+        "2": 356,
+        "3": 319,
+        "4": 145,
+        "5": 158,
+        "6": 142
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/wrinkle",
+      "device": "digital_camera",
+      "split": "test",
+      "declared_rois": 2200,
+      "labelled_rois": 1965,
+      "missing_labels": 235,
+      "grade_histogram": {
+        "0": 194,
+        "1": 720,
+        "2": 322,
+        "3": 286,
+        "4": 151,
+        "5": 160,
+        "6": 132
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/wrinkle",
+      "device": "smart_pad",
+      "split": "val",
+      "declared_rois": 1032,
+      "labelled_rois": 933,
+      "missing_labels": 99,
+      "grade_histogram": {
+        "0": 97,
+        "1": 373,
+        "2": 148,
+        "3": 133,
+        "4": 60,
+        "5": 64,
+        "6": 58
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/wrinkle",
+      "device": "smart_pad",
+      "split": "test",
+      "declared_rois": 2192,
+      "labelled_rois": 1959,
+      "missing_labels": 233,
+      "grade_histogram": {
+        "0": 193,
+        "1": 718,
+        "2": 321,
+        "3": 284,
+        "4": 151,
+        "5": 160,
+        "6": 132
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/wrinkle",
+      "device": "smart_phone",
+      "split": "val",
+      "declared_rois": 1035,
+      "labelled_rois": 936,
+      "missing_labels": 99,
+      "grade_histogram": {
+        "0": 97,
+        "1": 374,
+        "2": 149,
+        "3": 133,
+        "4": 60,
+        "5": 65,
+        "6": 58
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/wrinkle",
+      "device": "smart_phone",
+      "split": "test",
+      "declared_rois": 2199,
+      "labelled_rois": 1965,
+      "missing_labels": 234,
+      "grade_histogram": {
+        "0": 194,
+        "1": 720,
+        "2": 322,
+        "3": 286,
+        "4": 151,
+        "5": 160,
+        "6": 132
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/dryness",
+      "device": "digital_camera",
+      "split": "val",
+      "declared_rois": 735,
+      "labelled_rois": 651,
+      "missing_labels": 84,
+      "grade_histogram": {
+        "0": 14,
+        "1": 112,
+        "2": 399,
+        "3": 119,
+        "4": 7
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/dryness",
+      "device": "digital_camera",
+      "split": "test",
+      "declared_rois": 660,
+      "labelled_rois": 588,
+      "missing_labels": 72,
+      "grade_histogram": {
+        "0": 12,
+        "1": 96,
+        "2": 354,
+        "3": 108,
+        "4": 18
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/dryness",
+      "device": "smart_pad",
+      "split": "val",
+      "declared_rois": 315,
+      "labelled_rois": 279,
+      "missing_labels": 36,
+      "grade_histogram": {
+        "0": 6,
+        "1": 48,
+        "2": 171,
+        "3": 51,
+        "4": 3
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/dryness",
+      "device": "smart_pad",
+      "split": "test",
+      "declared_rois": 660,
+      "labelled_rois": 588,
+      "missing_labels": 72,
+      "grade_histogram": {
+        "0": 12,
+        "1": 96,
+        "2": 354,
+        "3": 108,
+        "4": 18
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/dryness",
+      "device": "smart_phone",
+      "split": "val",
+      "declared_rois": 315,
+      "labelled_rois": 279,
+      "missing_labels": 36,
+      "grade_histogram": {
+        "0": 6,
+        "1": 48,
+        "2": 171,
+        "3": 51,
+        "4": 3
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/dryness",
+      "device": "smart_phone",
+      "split": "test",
+      "declared_rois": 660,
+      "labelled_rois": 588,
+      "missing_labels": 72,
+      "grade_histogram": {
+        "0": 12,
+        "1": 96,
+        "2": 354,
+        "3": 108,
+        "4": 18
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/pigmentation",
+      "device": "digital_camera",
+      "split": "val",
+      "declared_rois": 1783,
+      "labelled_rois": 1593,
+      "missing_labels": 190,
+      "grade_histogram": {
+        "0": 150,
+        "1": 611,
+        "2": 391,
+        "3": 286,
+        "4": 95,
+        "5": 60
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/pigmentation",
+      "device": "digital_camera",
+      "split": "test",
+      "declared_rois": 1544,
+      "labelled_rois": 1374,
+      "missing_labels": 170,
+      "grade_histogram": {
+        "0": 140,
+        "1": 530,
+        "2": 308,
+        "3": 256,
+        "4": 92,
+        "5": 48
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/pigmentation",
+      "device": "smart_pad",
+      "split": "val",
+      "declared_rois": 734,
+      "labelled_rois": 656,
+      "missing_labels": 78,
+      "grade_histogram": {
+        "0": 64,
+        "1": 254,
+        "2": 160,
+        "3": 116,
+        "4": 38,
+        "5": 24
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/pigmentation",
+      "device": "smart_pad",
+      "split": "test",
+      "declared_rois": 1544,
+      "labelled_rois": 1374,
+      "missing_labels": 170,
+      "grade_histogram": {
+        "0": 140,
+        "1": 530,
+        "2": 308,
+        "3": 256,
+        "4": 92,
+        "5": 48
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/pigmentation",
+      "device": "smart_phone",
+      "split": "val",
+      "declared_rois": 734,
+      "labelled_rois": 656,
+      "missing_labels": 78,
+      "grade_histogram": {
+        "0": 64,
+        "1": 254,
+        "2": 160,
+        "3": 116,
+        "4": 38,
+        "5": 24
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/pigmentation",
+      "device": "smart_phone",
+      "split": "test",
+      "declared_rois": 1544,
+      "labelled_rois": 1374,
+      "missing_labels": 170,
+      "grade_histogram": {
+        "0": 140,
+        "1": 530,
+        "2": 308,
+        "3": 256,
+        "4": 92,
+        "5": 48
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/pore",
+      "device": "digital_camera",
+      "split": "val",
+      "declared_rois": 1050,
+      "labelled_rois": 920,
+      "missing_labels": 130,
+      "grade_histogram": {
+        "0": 20,
+        "1": 175,
+        "2": 560,
+        "3": 120,
+        "4": 35,
+        "5": 10
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/pore",
+      "device": "digital_camera",
+      "split": "test",
+      "declared_rois": 876,
+      "labelled_rois": 780,
+      "missing_labels": 96,
+      "grade_histogram": {
+        "0": 26,
+        "1": 134,
+        "2": 470,
+        "3": 102,
+        "4": 40,
+        "5": 8
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/pore",
+      "device": "smart_pad",
+      "split": "val",
+      "declared_rois": 420,
+      "labelled_rois": 368,
+      "missing_labels": 52,
+      "grade_histogram": {
+        "0": 8,
+        "1": 70,
+        "2": 224,
+        "3": 48,
+        "4": 14,
+        "5": 4
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/pore",
+      "device": "smart_pad",
+      "split": "test",
+      "declared_rois": 876,
+      "labelled_rois": 780,
+      "missing_labels": 96,
+      "grade_histogram": {
+        "0": 26,
+        "1": 134,
+        "2": 470,
+        "3": 102,
+        "4": 40,
+        "5": 8
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/pore",
+      "device": "smart_phone",
+      "split": "val",
+      "declared_rois": 420,
+      "labelled_rois": 368,
+      "missing_labels": 52,
+      "grade_histogram": {
+        "0": 8,
+        "1": 70,
+        "2": 224,
+        "3": 48,
+        "4": 14,
+        "5": 4
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/pore",
+      "device": "smart_phone",
+      "split": "test",
+      "declared_rois": 876,
+      "labelled_rois": 780,
+      "missing_labels": 96,
+      "grade_histogram": {
+        "0": 26,
+        "1": 134,
+        "2": 470,
+        "3": 102,
+        "4": 40,
+        "5": 8
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/sagging",
+      "device": "digital_camera",
+      "split": "val",
+      "declared_rois": 515,
+      "labelled_rois": 480,
+      "missing_labels": 35,
+      "grade_histogram": {
+        "0": 220,
+        "1": 95,
+        "2": 65,
+        "3": 60,
+        "4": 25,
+        "5": 15
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/sagging",
+      "device": "digital_camera",
+      "split": "test",
+      "declared_rois": 663,
+      "labelled_rois": 606,
+      "missing_labels": 57,
+      "grade_histogram": {
+        "0": 279,
+        "1": 117,
+        "2": 78,
+        "3": 75,
+        "4": 33,
+        "5": 24
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/sagging",
+      "device": "smart_pad",
+      "split": "val",
+      "declared_rois": 309,
+      "labelled_rois": 288,
+      "missing_labels": 21,
+      "grade_histogram": {
+        "0": 132,
+        "1": 57,
+        "2": 39,
+        "3": 36,
+        "4": 15,
+        "5": 9
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/sagging",
+      "device": "smart_pad",
+      "split": "test",
+      "declared_rois": 663,
+      "labelled_rois": 606,
+      "missing_labels": 57,
+      "grade_histogram": {
+        "0": 279,
+        "1": 117,
+        "2": 78,
+        "3": 75,
+        "4": 33,
+        "5": 24
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/sagging",
+      "device": "smart_phone",
+      "split": "val",
+      "declared_rois": 309,
+      "labelled_rois": 288,
+      "missing_labels": 21,
+      "grade_histogram": {
+        "0": 132,
+        "1": 57,
+        "2": 39,
+        "3": 36,
+        "4": 15,
+        "5": 9
+      },
+      "saved_histogram_exact_match": false
+    },
+    {
+      "task": "class/sagging",
+      "device": "smart_phone",
+      "split": "test",
+      "declared_rois": 663,
+      "labelled_rois": 606,
+      "missing_labels": 57,
+      "grade_histogram": {
+        "0": 279,
+        "1": 117,
+        "2": 78,
+        "3": 75,
+        "4": 33,
+        "5": 24
+      },
+      "saved_histogram_exact_match": false
+    }
+  ],
+  "upstream_parity": {
+    "status": "passed",
+    "upstream_commit": "055c27b027f344459f01132e77ceb6c33cb12987",
+    "preprocessing_checks": [
+      {
+        "task": "class/wrinkle",
+        "device": "digital_camera",
+        "area": "forehead_wrinkle",
+        "facepart": 1,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/wrinkle",
+        "device": "digital_camera",
+        "area": "glabellus_wrinkle",
+        "facepart": 2,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/wrinkle",
+        "device": "digital_camera",
+        "area": "perocular_wrinkle",
+        "facepart": 3,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/wrinkle",
+        "device": "digital_camera",
+        "area": "perocular_wrinkle",
+        "facepart": 4,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/wrinkle",
+        "device": "smart_pad",
+        "area": "forehead_wrinkle",
+        "facepart": 1,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/wrinkle",
+        "device": "smart_pad",
+        "area": "glabellus_wrinkle",
+        "facepart": 2,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/wrinkle",
+        "device": "smart_pad",
+        "area": "perocular_wrinkle",
+        "facepart": 3,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/wrinkle",
+        "device": "smart_pad",
+        "area": "perocular_wrinkle",
+        "facepart": 4,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/wrinkle",
+        "device": "smart_phone",
+        "area": "forehead_wrinkle",
+        "facepart": 1,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/wrinkle",
+        "device": "smart_phone",
+        "area": "glabellus_wrinkle",
+        "facepart": 2,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/wrinkle",
+        "device": "smart_phone",
+        "area": "perocular_wrinkle",
+        "facepart": 3,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/wrinkle",
+        "device": "smart_phone",
+        "area": "perocular_wrinkle",
+        "facepart": 4,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/dryness",
+        "device": "digital_camera",
+        "area": "dryness",
+        "facepart": 7,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/dryness",
+        "device": "smart_pad",
+        "area": "dryness",
+        "facepart": 7,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/dryness",
+        "device": "smart_phone",
+        "area": "dryness",
+        "facepart": 7,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/pigmentation",
+        "device": "digital_camera",
+        "area": "forehead_pigmentation",
+        "facepart": 1,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/pigmentation",
+        "device": "digital_camera",
+        "area": "cheek_pigmentation",
+        "facepart": 5,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/pigmentation",
+        "device": "digital_camera",
+        "area": "cheek_pigmentation",
+        "facepart": 6,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/pigmentation",
+        "device": "smart_pad",
+        "area": "forehead_pigmentation",
+        "facepart": 1,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/pigmentation",
+        "device": "smart_pad",
+        "area": "cheek_pigmentation",
+        "facepart": 5,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/pigmentation",
+        "device": "smart_pad",
+        "area": "cheek_pigmentation",
+        "facepart": 6,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/pigmentation",
+        "device": "smart_phone",
+        "area": "forehead_pigmentation",
+        "facepart": 1,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/pigmentation",
+        "device": "smart_phone",
+        "area": "cheek_pigmentation",
+        "facepart": 5,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/pigmentation",
+        "device": "smart_phone",
+        "area": "cheek_pigmentation",
+        "facepart": 6,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/pore",
+        "device": "digital_camera",
+        "area": "pore",
+        "facepart": 5,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/pore",
+        "device": "digital_camera",
+        "area": "pore",
+        "facepart": 6,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/pore",
+        "device": "smart_pad",
+        "area": "pore",
+        "facepart": 5,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/pore",
+        "device": "smart_pad",
+        "area": "pore",
+        "facepart": 6,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/pore",
+        "device": "smart_phone",
+        "area": "pore",
+        "facepart": 5,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/pore",
+        "device": "smart_phone",
+        "area": "pore",
+        "facepart": 6,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/sagging",
+        "device": "digital_camera",
+        "area": "sagging",
+        "facepart": 8,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/sagging",
+        "device": "smart_pad",
+        "area": "sagging",
+        "facepart": 8,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "class/sagging",
+        "device": "smart_phone",
+        "area": "sagging",
+        "facepart": 8,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/pigmentation",
+        "device": "digital_camera",
+        "area": "pigmentation",
+        "facepart": 0,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/pigmentation",
+        "device": "smart_pad",
+        "area": "pigmentation",
+        "facepart": 0,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/pigmentation",
+        "device": "smart_phone",
+        "area": "pigmentation",
+        "facepart": 0,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/moisture",
+        "device": "digital_camera",
+        "area": "forehead_moisture",
+        "facepart": 1,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/moisture",
+        "device": "digital_camera",
+        "area": "cheek_moisture",
+        "facepart": 5,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/moisture",
+        "device": "digital_camera",
+        "area": "cheek_moisture",
+        "facepart": 6,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/moisture",
+        "device": "digital_camera",
+        "area": "chin_moisture",
+        "facepart": 8,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/moisture",
+        "device": "smart_pad",
+        "area": "forehead_moisture",
+        "facepart": 1,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/moisture",
+        "device": "smart_pad",
+        "area": "cheek_moisture",
+        "facepart": 5,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/moisture",
+        "device": "smart_pad",
+        "area": "cheek_moisture",
+        "facepart": 6,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/moisture",
+        "device": "smart_pad",
+        "area": "chin_moisture",
+        "facepart": 8,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/moisture",
+        "device": "smart_phone",
+        "area": "forehead_moisture",
+        "facepart": 1,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/moisture",
+        "device": "smart_phone",
+        "area": "cheek_moisture",
+        "facepart": 5,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/moisture",
+        "device": "smart_phone",
+        "area": "cheek_moisture",
+        "facepart": 6,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/moisture",
+        "device": "smart_phone",
+        "area": "chin_moisture",
+        "facepart": 8,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/elasticity_R2",
+        "device": "digital_camera",
+        "area": "forehead_elasticity_R2",
+        "facepart": 1,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/elasticity_R2",
+        "device": "digital_camera",
+        "area": "cheek_elasticity_R2",
+        "facepart": 5,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/elasticity_R2",
+        "device": "digital_camera",
+        "area": "cheek_elasticity_R2",
+        "facepart": 6,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/elasticity_R2",
+        "device": "digital_camera",
+        "area": "chin_elasticity_R2",
+        "facepart": 8,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/elasticity_R2",
+        "device": "smart_pad",
+        "area": "forehead_elasticity_R2",
+        "facepart": 1,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/elasticity_R2",
+        "device": "smart_pad",
+        "area": "cheek_elasticity_R2",
+        "facepart": 5,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/elasticity_R2",
+        "device": "smart_pad",
+        "area": "cheek_elasticity_R2",
+        "facepart": 6,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/elasticity_R2",
+        "device": "smart_pad",
+        "area": "chin_elasticity_R2",
+        "facepart": 8,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/elasticity_R2",
+        "device": "smart_phone",
+        "area": "forehead_elasticity_R2",
+        "facepart": 1,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/elasticity_R2",
+        "device": "smart_phone",
+        "area": "cheek_elasticity_R2",
+        "facepart": 5,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/elasticity_R2",
+        "device": "smart_phone",
+        "area": "cheek_elasticity_R2",
+        "facepart": 6,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/elasticity_R2",
+        "device": "smart_phone",
+        "area": "chin_elasticity_R2",
+        "facepart": 8,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/wrinkle_Ra",
+        "device": "digital_camera",
+        "area": "perocular_wrinkle_Ra",
+        "facepart": 3,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/wrinkle_Ra",
+        "device": "digital_camera",
+        "area": "perocular_wrinkle_Ra",
+        "facepart": 4,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/wrinkle_Ra",
+        "device": "smart_pad",
+        "area": "perocular_wrinkle_Ra",
+        "facepart": 3,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/wrinkle_Ra",
+        "device": "smart_pad",
+        "area": "perocular_wrinkle_Ra",
+        "facepart": 4,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/wrinkle_Ra",
+        "device": "smart_phone",
+        "area": "perocular_wrinkle_Ra",
+        "facepart": 3,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/wrinkle_Ra",
+        "device": "smart_phone",
+        "area": "perocular_wrinkle_Ra",
+        "facepart": 4,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/pore",
+        "device": "digital_camera",
+        "area": "cheek_pore",
+        "facepart": 5,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/pore",
+        "device": "digital_camera",
+        "area": "cheek_pore",
+        "facepart": 6,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/pore",
+        "device": "smart_pad",
+        "area": "cheek_pore",
+        "facepart": 5,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/pore",
+        "device": "smart_pad",
+        "area": "cheek_pore",
+        "facepart": 6,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/pore",
+        "device": "smart_phone",
+        "area": "cheek_pore",
+        "facepart": 5,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      },
+      {
+        "task": "regression/pore",
+        "device": "smart_phone",
+        "area": "cheek_pore",
+        "facepart": 6,
+        "max_abs_tensor_difference": 0.0,
+        "label_normalization_identical": true
+      }
+    ],
+    "faceparts": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "network_checks": [
+      {
+        "task": "class/wrinkle",
+        "inputs": 2,
+        "max_abs_output_difference": 0.0,
+        "strict_state_loading": true
+      },
+      {
+        "task": "regression/moisture",
+        "inputs": 2,
+        "max_abs_output_difference": 0.0,
+        "strict_state_loading": true
+      }
+    ],
+    "source_sha256": {
+      "bundled_resnet.py": "b95c26a01d70a34c24a761afc55cac33adf53d4c86c6011e44af63fb5a2ad5ec",
+      "data_loader.py": "5e44cf26e3ba7044c8979370eb36ee0dd95a228236524cda490590b044778a47",
+      "img_crop.py": "fdd87a17043c1b0f8bedb777ca26fe5c4fab4864458a8224495740aac956e004",
+      "main.py": "d7c02a44c7871e08bc5ec83eabf9456fecb8260825036164e1f1478684ab7c04",
+      "model.py": "ca8db646971fa083e5d2c7d7e05a6cd39a1f15fa2cafe628f464805a13dd2288",
+      "utils.py": "1a39f130a68cbfabd5e9ca78dd829ea706abed2ef46088236f8b57cd121784b6"
+    },
+    "training_resolution_confirmed": false,
+    "training_device_confirmed": false
+  },
+  "upstream_source_comparison": [
+    {
+      "file": "main.py",
+      "sha256": "d7c02a44c7871e08bc5ec83eabf9456fecb8260825036164e1f1478684ab7c04",
+      "identical_between_commits": true
+    },
+    {
+      "file": "data_loader.py",
+      "sha256": "5e44cf26e3ba7044c8979370eb36ee0dd95a228236524cda490590b044778a47",
+      "identical_between_commits": true
+    },
+    {
+      "file": "img_crop.py",
+      "sha256": "fdd87a17043c1b0f8bedb777ca26fe5c4fab4864458a8224495740aac956e004",
+      "identical_between_commits": true
+    },
+    {
+      "file": "utils.py",
+      "sha256": "1a39f130a68cbfabd5e9ca78dd829ea706abed2ef46088236f8b57cd121784b6",
+      "identical_between_commits": true
+    },
+    {
+      "file": "model.py",
+      "sha256": "ca8db646971fa083e5d2c7d7e05a6cd39a1f15fa2cafe628f464805a13dd2288",
+      "identical_between_commits": true
+    }
+  ],
+  "upstream_network_source": {
+    "url": "https://raw.githubusercontent.com/leejeongho3214/NIA/055c27b027f344459f01132e77ceb6c33cb12987/torchvision/models/resnet.py",
+    "raw_sha256": "92ca72d0cd2440d7042b79b5315a304e01dc7d579070f43d8e4d0c80342d9213",
+    "audited_sha256": "b95c26a01d70a34c24a761afc55cac33adf53d4c86c6011e44af63fb5a2ad5ec",
+    "same_python_ast": true
+  },
+  "checkpoint_score_comparison": [
+    {
+      "task": "class/wrinkle",
+      "saved_evaluation_count": 2200,
+      "saved_accuracy": 0.4340909090909091,
+      "current_dslr_count": 1965,
+      "current_dslr_accuracy": 0.4371501272264631,
+      "current_phone_accuracy": 0.3307849133537207,
+      "grade_count_differences_not_explained_by_missing_samples": [
+        {
+          "grade": 4,
+          "saved_correct": 11,
+          "current_correct": 12,
+          "missing_count_if_current_subset_of_saved": 13,
+          "unexplained_correct_difference": -1
+        }
+      ]
+    },
+    {
+      "task": "class/dryness",
+      "saved_evaluation_count": 660,
+      "saved_accuracy": 0.5545454545454546,
+      "current_dslr_count": 588,
+      "current_dslr_accuracy": 0.5663265306122449,
+      "current_phone_accuracy": 0.5931623931623932,
+      "grade_count_differences_not_explained_by_missing_samples": [
+        {
+          "grade": 3,
+          "saved_correct": 5,
+          "current_correct": 6,
+          "missing_count_if_current_subset_of_saved": 15,
+          "unexplained_correct_difference": -1
+        }
+      ]
+    },
+    {
+      "task": "class/pigmentation",
+      "saved_evaluation_count": 1544,
+      "saved_accuracy": 0.5362694300518135,
+      "current_dslr_count": 1374,
+      "current_dslr_accuracy": 0.5393013100436681,
+      "current_phone_accuracy": 0.3282387190684134,
+      "grade_count_differences_not_explained_by_missing_samples": []
+    },
+    {
+      "task": "class/pore",
+      "saved_evaluation_count": 876,
+      "saved_accuracy": 0.5753424657534246,
+      "current_dslr_count": 780,
+      "current_dslr_accuracy": 0.5641025641025641,
+      "current_phone_accuracy": 0.5397435897435897,
+      "grade_count_differences_not_explained_by_missing_samples": []
+    },
+    {
+      "task": "class/sagging",
+      "saved_evaluation_count": 663,
+      "saved_accuracy": 0.4856711915535445,
+      "current_dslr_count": 606,
+      "current_dslr_accuracy": 0.4867986798679868,
+      "current_phone_accuracy": 0.4207920792079208,
+      "grade_count_differences_not_explained_by_missing_samples": [
+        {
+          "grade": 0,
+          "saved_correct": 285,
+          "current_correct": 258,
+          "missing_count_if_current_subset_of_saved": 24,
+          "unexplained_correct_difference": 27
+        },
+        {
+          "grade": 3,
+          "saved_correct": 1,
+          "current_correct": 4,
+          "missing_count_if_current_subset_of_saved": 3,
+          "unexplained_correct_difference": -3
+        },
+        {
+          "grade": 5,
+          "saved_correct": 2,
+          "current_correct": 6,
+          "missing_count_if_current_subset_of_saved": 0,
+          "unexplained_correct_difference": -4
+        }
+      ]
+    }
+  ],
+  "benchmark_report_sha256": "fa97ca1e34ed65219a2a7d83be075cc28677f08085afdc9426a9437c39936bbc",
+  "interpretation": {
+    "training_device_directly_recorded": false,
+    "inferred_training_device": "digital_camera",
+    "device_inference_strength": "all ten checkpoints uniquely match DSLR train+val step counts among all seven nonempty device combinations; saved classification evaluation counts also match DSLR test counts",
+    "device_inference_assumptions": [
+      "saved epoch is zero-based",
+      "global_step starts at zero",
+      "one step per training batch",
+      "no dropped final batch",
+      "supplied split sample counts match the training run",
+      "no unknown changes from resumed training"
+    ],
+    "training_resolution_confirmed": false,
+    "actual_archived_training_cli_available": false,
+    "new_training_or_threshold_fitting": false,
+    "public_training_code_uses_test_for_model_selection": true,
+    "archived_checkpoint_selection_untouched_test_confirmed": false
+  }
+}

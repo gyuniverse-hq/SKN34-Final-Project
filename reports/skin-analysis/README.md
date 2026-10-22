@@ -9,6 +9,7 @@
 | 문서 | 내용 |
 |---|---|
 | [전체 성능 평가](full-performance-evaluation.md) | NIA 10종·여드름 1종의 실제 평가, 기기별 지표·등급별 오류·인물 중복·해석 한계 |
+| [가중치 출처·전처리 확인](checkpoint-provenance.md) | 배포 가중치의 저장 설정·평가 통계, 공식 코드와의 일치 여부, 논문 결과와 비교 가능한 범위 |
 | [여드름 전이학습](acne-transfer-learning.md) | 정상/여드름 이진 학습, ImageNet·NIA 비교, 평가·한계 |
 | [NIA 평가 도구](nia-evaluation.md) | 기존 모델 연결, 개발 화면, 로컬 서버·평가 방법 |
 | [추천 입력 선정](recommendation-inputs.md) | 네 항목 선정과 수분 제외 근거 |
