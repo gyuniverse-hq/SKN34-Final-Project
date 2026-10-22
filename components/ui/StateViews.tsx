@@ -1,15 +1,16 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ComponentProps, ReactNode } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { theme } from '@/constants/theme';
 import { ApiError } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import { Button } from './Button';
+import { Mascot } from './Mascot';
 
 export function LoadingState() {
   return (
     <View style={styles.center} accessibilityRole="progressbar">
-      <ActivityIndicator color={theme.colors.rose} size="large" />
+      <Mascot size={72} bounce decorative />
     </View>
   );
 }
@@ -36,18 +37,21 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
 
 export function EmptyState({
   icon,
+  illustration,
   title,
   body,
   action,
 }: {
-  icon: ComponentProps<typeof Ionicons>['name'];
+  icon?: ComponentProps<typeof Ionicons>['name'];
+  /** Shown instead of the icon. */
+  illustration?: ReactNode;
   title: string;
   body?: string;
   action?: ReactNode;
 }) {
   return (
     <View style={styles.center}>
-      <Ionicons name={icon} size={44} color={theme.colors.inkFaint} />
+      {illustration ?? (icon ? <Ionicons name={icon} size={44} color={theme.colors.inkFaint} /> : null)}
       <Text style={styles.title}>{title}</Text>
       {body ? <Text style={styles.body}>{body}</Text> : null}
       {action ? <View style={styles.action}>{action}</View> : null}

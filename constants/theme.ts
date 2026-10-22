@@ -8,7 +8,7 @@ export const theme = {
     ink: '#1C1517',
     inkMuted: '#6E6165',
     inkFaint: '#A3979A',
-    surface: '#FFFBFA',
+    surface: '#FFFFFF',
     surfaceAlt: '#F6EEEF',
     card: '#FFFFFF',
     border: '#EADCDF',

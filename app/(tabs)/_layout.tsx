@@ -4,7 +4,6 @@ import type { ComponentProps } from 'react';
 import type { ColorValue } from 'react-native';
 import { theme } from '@/constants/theme';
 import { useI18n } from '@/lib/i18n';
-import { selectCartCount, useCartStore } from '@/store/cartStore';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -17,7 +16,6 @@ function icon(active: IconName, inactive: IconName) {
 
 export default function TabLayout() {
   const { t } = useI18n();
-  const cartCount = useCartStore(selectCartCount);
 
   return (
     <Tabs
@@ -40,15 +38,6 @@ export default function TabLayout() {
       <Tabs.Screen
         name="ar"
         options={{ title: t('tabs.tryOn'), headerShown: false, tabBarIcon: icon('scan-circle', 'scan-circle-outline') }}
-      />
-      <Tabs.Screen
-        name="cart"
-        options={{
-          title: t('tabs.cart'),
-          tabBarIcon: icon('cart', 'cart-outline'),
-          tabBarBadge: cartCount > 0 ? (cartCount > 99 ? '99+' : cartCount) : undefined,
-          tabBarBadgeStyle: { backgroundColor: theme.colors.rose },
-        }}
       />
       <Tabs.Screen
         name="my"

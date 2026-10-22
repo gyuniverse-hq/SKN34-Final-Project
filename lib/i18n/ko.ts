@@ -12,11 +12,15 @@ export const ko: Dictionary = {
   'tabs.shop': '쇼핑',
   'tabs.looks': '룩',
   'tabs.tryOn': '가상 메이크업',
-  'tabs.cart': '장바구니',
   'tabs.my': '마이',
 
   'shop.title': 'VISHUE',
   'shop.tagline': 'K-뷰티를 발견하고, 입어보고, 쇼핑하세요',
+  'shop.changeLanguage': '언어 변경',
+
+  'mascot.hello': '반가워요!',
+  'mascot.cartEmpty': '같이 쇼핑하러 가요!',
+  'mascot.tapHint': '눌러서 인사하기',
   'shop.searchPlaceholder': '브랜드 또는 제품 검색',
   'shop.all': '전체',
   'shop.cat.lip': '립',
