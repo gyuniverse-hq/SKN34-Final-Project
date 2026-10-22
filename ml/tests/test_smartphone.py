@@ -8,10 +8,19 @@ import torch
 from PIL import Image
 from server.nia.imaging import prepare
 
-from skin_analysis.smartphone.common import TASKS, assert_disjoint
+from skin_analysis.smartphone.cache import build_cache
+from skin_analysis.smartphone.common import (
+    PREPROCESSING,
+    TASKS,
+    assert_disjoint,
+    digest,
+    file_hash,
+    load_manifest,
+    write_json,
+)
 from skin_analysis.smartphone.data import GradeDataset
 from skin_analysis.smartphone.prepare import assign_splits
-from skin_analysis.smartphone.train import GradeModel, class_weights
+from skin_analysis.smartphone.train import GradeModel, class_weights, verify_crops
 
 
 def record(subject, grade=0, split="train", task="pore"):
@@ -92,3 +101,33 @@ def test_dataset_matches_inference_normalization_and_integer_labels(tmp_path):
     )
     torch.testing.assert_close(image, inference[0], rtol=0, atol=0)
     assert target.dtype == torch.long and target.item() == 4 and index == 0
+
+
+def test_shared_pixel_cache_preserves_exact_inputs_and_rejects_tampering(tmp_path):
+    pixels = np.random.default_rng(1).integers(0, 256, (256, 256, 3), dtype=np.uint8)
+    Image.fromarray(pixels).save(tmp_path / "crop.jpg")
+    item = {**record(1, 3), "crop_sha256": file_hash(tmp_path / "crop.jpg")}
+    manifest = dict(
+        schema="nia-smartphone-data-v1",
+        preprocessing=PREPROCESSING,
+        root=str(tmp_path),
+        records=[item],
+        summary={},
+        excluded={},
+        source_photo_count=1,
+        split_method="unit fixture",
+    )
+    expected, _, _ = GradeDataset(manifest, "pore", "train")[0]
+    manifest["fingerprint"] = digest(manifest)
+    write_json(tmp_path / "manifest.json", manifest)
+    config = dict(data=dict(output=str(tmp_path)))
+    build_cache(config)
+    cached = load_manifest(config)
+    actual, _, _ = GradeDataset(cached, "pore", "train")[0]
+    torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+    verify_crops(cached)
+    with (tmp_path / "pixels.npy").open("r+b") as handle:
+        handle.seek(-1, 2)
+        handle.write(b"\xff")
+    with pytest.raises(ValueError, match="pixel cache has changed"):
+        verify_crops(cached)

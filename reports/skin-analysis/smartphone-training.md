@@ -41,6 +41,7 @@
 
 ```powershell
 uv run --project ml python -m skin_analysis.smartphone.prepare
+uv run --project ml python -m skin_analysis.smartphone.cache
 uv run --project ml python -m skin_analysis.smartphone.train
 uv run --project ml python -m skin_analysis.smartphone.evaluate
 ```

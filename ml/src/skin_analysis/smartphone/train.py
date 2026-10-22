@@ -120,6 +120,12 @@ def optimizer_for(model, settings, frozen):
 def verify_crops(manifest):
     # Validate all audited bytes before any epoch, not just before data preparation.
     root = Path(manifest["root"])
+    if "pixel_cache" in manifest:
+        cache = manifest["pixel_cache"]
+        path = (root / cache["path"]).resolve(strict=True)
+        if not path.is_relative_to(root) or file_hash(path) != cache["sha256"]:
+            raise ValueError("Audited pixel cache has changed")
+        return
     checked = {}
     for record in manifest["records"]:
         path = (root / record["path"]).resolve(strict=True)

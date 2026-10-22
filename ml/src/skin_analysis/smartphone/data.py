@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
@@ -11,6 +12,8 @@ from torchvision import transforms
 class GradeDataset(Dataset):
     def __init__(self, manifest, task, split, training=False):
         self.root = Path(manifest["root"])
+        self.cache_path = manifest.get("pixel_cache", {}).get("path")
+        self._cache = None
         self.records = [r for r in manifest["records"] if r["task"] == task and r["split"] == split]
         augment = [
             transforms.RandomAffine(degrees=5, translate=(0.02, 0.02)),
@@ -30,6 +33,11 @@ class GradeDataset(Dataset):
 
     def __getitem__(self, index):
         record = self.records[index]
+        if self.cache_path:
+            if self._cache is None:
+                self._cache = np.load(self.root / self.cache_path, mmap_mode="r")
+            image = Image.fromarray(self._cache[record["cache_index"]])
+            return self.transform(image), torch.tensor(record["truth"], dtype=torch.long), index
         path = (self.root / record["path"]).resolve(strict=True)
         if not path.is_relative_to(self.root.resolve()):
             raise ValueError("Crop path escapes the audited dataset")
