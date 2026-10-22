@@ -28,7 +28,8 @@ def classification(truth, predicted, classes):
                 macro_precision=statistics.mean(g["precision"] for g in per_grade),
                 macro_recall=statistics.mean(g["recall"] for g in per_grade),
                 macro_f1=statistics.mean(g["f1"] for g in per_grade),
-                weighted_precision=sum(g["precision"] * g["support"] for g in per_grade) / len(truth),
+                weighted_precision=sum(g["precision"] * g["support"] for g in per_grade)
+                / len(truth),
                 weighted_recall=sum(g["recall"] * g["support"] for g in per_grade) / len(truth),
                 weighted_f1=sum(g["f1"] * g["support"] for g in per_grade) / len(truth),
                 per_grade=per_grade, confusion=matrix)
@@ -49,7 +50,8 @@ def regression(truth, predicted):
     r2 = 1 - sum(e * e for e in errors) / total if len(truth) >= 2 and total > 0 else None
     return dict(n=len(truth), mae=statistics.mean(abs(e) for e in errors),
                 mse=mse, rmse=math.sqrt(mse), r2=r2,
-                r2_undefined_reason=None if r2 is not None else "fewer_than_two_samples_or_constant_truth",
+                r2_undefined_reason=None if r2 is not None else
+                "fewer_than_two_samples_or_constant_truth",
                 pearson=correlation,
                 truth=list(truth), predicted=list(predicted))
 
