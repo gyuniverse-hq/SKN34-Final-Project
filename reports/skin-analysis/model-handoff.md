@@ -3,11 +3,22 @@
 선정: 여드름 이진 분류, 모공 등급(0~5), 색소침착 등급(0~5), 주름 등급(0~6).
 수분·탄력·처짐·입술 건조·모공/색소침착/주름 회귀 모델은 추천용 추론에서 실행하지 않습니다.
 
+## 현재 사용할 모델 묶음
+
+2026-10-23 스마트폰 전용 모공·색소침착·주름 분류 학습과 평가를 완료했습니다.
+최신 연구용 묶음은 `ml/runs/nia-smartphone-seed-42/recommendation-bundle/`입니다.
+세 분류 모델은 ImageNet V2에서 새로 학습했고 여드름 모델은 기존 선택본을 유지합니다.
+실제 성능과 등급별 한계는 [스마트폰 학습 보고서](smartphone-training.md)를 확인합니다.
+
+`ml/runs/skin-recommendation-v1/`는 기존 NIA 가중치를 사용한 이전 묶음으로 보존합니다.
+다른 브랜치·장비에 인계할 때 최신 묶음 전체와 해당 보고서를 함께 전달합니다.
+
 ## 저장 단위
 
 하나의 새 추천 모델을 학습한 것이 아니라 **독립적인 분석 모델 4개**를 묶습니다.
-여드름은 이번에 학습해 선택한 ImageNet 초기화 모델의 `inference.pt`, 나머지 3개는
-기존 NIA 분류 체크포인트의 텐서가 동일한 안전 로더용 사본입니다. 재학습하지 않습니다.
+여드름은 기존에 학습해 선택한 ImageNet 초기화 모델의 `inference.pt`입니다.
+최신 묶음의 나머지 3개는 스마트폰 전용 학습 결과이며, 이전 v1 묶음에는 원본 NIA
+분류 체크포인트와 텐서가 동일한 안전 로더용 사본이 들어 있습니다.
 
 `server/nia/recommendation.py`의 export 명령이 가중치의 SHA-256을 검사하고 다음을 만듭니다.
 기존 원본과 내보내기 결과를 덮어쓰지 않습니다.
@@ -25,7 +36,7 @@ skin-recommendation-v1/
 저장소 루트의 기존 Python 환경에서 생성합니다.
 
 ```powershell
-uv run --project ml python -m server.nia.recommendation export --config server/nia/config.local.json --output ml/runs/skin-recommendation-v1
+uv run --project ml python -m server.nia.recommendation export --config server/nia/config.local.json --output ml/runs/skin-recommendation-export
 ```
 
 가중치 묶음은 Git에서 제외됩니다. 브랜치를 바꾸어도 같은 작업 디렉터리의 무시된 파일은
@@ -52,14 +63,14 @@ from pathlib import Path
 from server.nia.recommendation import RecommendationAnalyzer
 
 # 프로세스당 한 번 생성. 첫 analyze에서 가중치를 로드한 뒤 재사용합니다.
-analyzer = RecommendationAnalyzer("ml/runs/skin-recommendation-v1")
+analyzer = RecommendationAnalyzer("ml/runs/nia-smartphone-seed-42/recommendation-bundle")
 features = analyzer.analyze(Path("local-test-photo.jpg").read_bytes())
 ```
 
 CLI로도 로컬 추론을 확인할 수 있습니다.
 
 ```powershell
-uv run --project ml python -m server.nia.recommendation infer --bundle ml/runs/skin-recommendation-v1 --image local-test-photo.jpg
+uv run --project ml python -m server.nia.recommendation infer --bundle ml/runs/nia-smartphone-seed-42/recommendation-bundle --image local-test-photo.jpg
 ```
 
 기존 프로젝트의 얼굴 영상 비전송 정책은 유지합니다. 이 로더는 로컬 연구용이며,

@@ -169,6 +169,15 @@ class AdapterTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 inside(root / "allowed", "../secret.json")
 
+    def test_retrained_phone_model_cannot_report_original_split_as_its_holdout(self):
+        with tempfile.TemporaryDirectory() as directory:
+            service = Service(Path(directory) / "missing-config.json")
+            self.addCleanup(service.worker.shutdown)
+            service.engines["fixture"] = Engine({**config(), "training_device": "smartphone"})
+            with self.assertRaisesRegex(ValueError, "new person split"):
+                service.submit_evaluation({"model_id": "fixture"})
+            self.assertEqual(service.jobs, {})
+
     def test_evaluation_report_and_exports_with_test_double(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

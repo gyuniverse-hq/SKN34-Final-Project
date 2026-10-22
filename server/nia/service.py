@@ -109,6 +109,11 @@ class Service:
 
     def submit_evaluation(self, request):
         engine = self.engine(request["model_id"])
+        if engine.config.get("training_device") == "smartphone":
+            raise ValueError(
+                "Retrained smartphone models use a new person split. Use the held-out results in "
+                "reports/skin-analysis/smartphone-training.md; original-split evaluation is blocked."
+            )
         active = [job for job in self.jobs.values() if job["status"] in ("queued", "running")]
         if active:
             raise ValueError("An evaluation is already running")
