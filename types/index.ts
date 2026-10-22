@@ -132,6 +132,15 @@ export interface YoutubeSearchResult {
   videos: YoutubeVideo[];
 }
 
+export interface AuthUser {
+  id: string;
+  email: string | null;
+}
+
+export interface MeResponse {
+  user: AuthUser;
+}
+
 export interface ApiErrorBody {
   error: string;
   code?: string;

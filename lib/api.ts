@@ -1,3 +1,4 @@
+import { getAccessToken } from '@/lib/auth';
 import type { ApiErrorBody } from '@/types';
 
 export class ApiError extends Error {
@@ -18,11 +19,15 @@ const TIMEOUT_MS = 12000;
  * development and to the `origin` configured for expo-router in production builds.
  */
 export async function apiGet<T>(path: string): Promise<T> {
+  const token = await getAccessToken().catch(() => null);
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   let res: Response;
   try {
-    res = await fetch(path, { signal: controller.signal, headers: { Accept: 'application/json' } });
+    res = await fetch(path, { signal: controller.signal, headers });
   } catch (error) {
     throw new ApiError(
       error instanceof Error && error.name === 'AbortError' ? 'Request timed out' : 'Network error',

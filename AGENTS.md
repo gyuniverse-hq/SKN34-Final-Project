@@ -52,6 +52,8 @@ Docs: https://docs.expo.dev/eas/index.md
   - Never send face video or images to any server. Shade recommendation receives only on-device skin tone values (ITA°, MST level, undertone).
   - Repository functions stay `async` even over static data so a DB can replace them without touching callers. Name files `<subject><Layer>.ts` (e.g. `catalogService.ts`, `naverClient.ts`).
 - API keys are read only by server code (`server/`, `app/api/`) from `.env`. Never prefix secrets with `EXPO_PUBLIC_` and never commit `.env`.
+  - Only exception: the Supabase Project URL and publishable key are public by design and ship in the app as `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Never put the Supabase secret / `service_role` key in the app or under `EXPO_PUBLIC_`.
+- Auth: Supabase Auth through `lib/auth` (email + code verification, Google via browser redirect; Apple is not connected yet). Read the session with `useAuth()`, never copy it into a Zustand store. `lib/api.ts` attaches the access token; API routes verify it with `getAuthUser()` from `server/lib/auth.ts`.
 - UI text goes through `lib/i18n`. Add every new key to all four dictionaries (`en`, `ko`, `ja`, `zh`); typecheck fails if one is missing.
 - The AR renderer is an HTML string in `components/ar/faceTrackerHtml.ts`; typecheck and lint do not see its script, so run `npm test` after editing it.
 - Run `npm run check` (typecheck + lint + tests) before committing.

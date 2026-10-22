@@ -11,17 +11,17 @@ Last updated: ${LEGAL_LAST_UPDATED}
 
 [Company name] ("we") operates the K-Beauty AR app (the "App"). This policy explains what information the App handles.
 
-1. No account, minimal data
-The App does not require an account and we do not collect your name, email address, or phone number.
+1. Account (optional)
+You can use the App without an account. If you create one, we collect your email address. If you sign in with Google, we also receive the name, email address, and profile photo of your Google account. Account data is stored by our authentication provider, Supabase; passwords are stored only in hashed form and we never see them. We use account data only to sign you in and to provide account features such as saved looks and rewards. To delete your account and its data, contact us at [contact email].
 
 2. Camera (AR try-on)
 If you allow camera access, video from your front camera is processed on your device to locate facial features and draw virtual makeup. Camera images are never recorded, saved, or sent to us or anyone else. To run face tracking, the App downloads the MediaPipe library and model files from Google and jsDelivr content delivery networks; these providers receive standard request information such as your IP address. You can turn camera access off at any time in the App (My > Camera) or in your device settings.
 
 3. Data stored on your device
-Your cart, saved shopping lists, and settings (such as language) are stored only on your device. You can delete them at any time in My > Delete all app data, or by uninstalling the App.
+Your cart, saved shopping lists, and settings (such as language) are stored only on your device. You can delete them at any time in My > Delete all app data, or by uninstalling the App. If you sign in, your sign-in session is also kept on your device until you log out in My > Log out.
 
 4. Search and catalog requests
-When you browse products or search for tutorials, the App sends your request (for example, a search term) to our server. Our server forwards tutorial searches to the YouTube Data API and product lookups to the Naver Search API. Our hosting provider may keep standard server logs (IP address, time, requested URL) for security and operations for up to [N] days.
+When you browse products or search for tutorials, the App sends your request (for example, a search term) to our server. Our server forwards tutorial searches to the YouTube Data API and product lookups to the Naver Search API. When you are signed in, these requests include your sign-in token so our server can recognize your account. Our hosting provider may keep standard server logs (IP address, time, requested URL) for security and operations for up to [N] days.
 
 5. YouTube API Services
 The App uses YouTube API Services. By using tutorial features you agree to the YouTube Terms of Service (https://www.youtube.com/t/terms). Google's Privacy Policy applies to YouTube content: https://policies.google.com/privacy

@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ListRow } from '@/components/ui/ListRow';
 import { theme } from '@/constants/theme';
+import { authErrorMessageKey, signOut, useAuth } from '@/lib/auth';
 import { confirmAction, notify } from '@/lib/confirm';
 import { LANGUAGE_LABELS, LANGUAGES, useI18n, type LanguagePreference } from '@/lib/i18n';
 import { STORAGE_KEYS } from '@/lib/storage';
@@ -23,6 +24,7 @@ export default function MyScreen() {
   const cameraConsent = useSettingsStore((s) => s.cameraConsent);
   const setCameraConsent = useSettingsStore((s) => s.setCameraConsent);
   const listCount = useShoppingListStore((s) => s.lists.length);
+  const { user } = useAuth();
 
   const options: { value: LanguagePreference; label: string }[] = [
     { value: 'system', label: t('my.languageSystem') },
@@ -40,10 +42,22 @@ export default function MyScreen() {
       notify(t('my.deleteDataDone'));
     });
 
+  const logout = () =>
+    confirmAction(t('auth.logoutConfirm'), t('auth.logout'), t('common.cancel'), () => {
+      signOut().catch((e) => notify(t(authErrorMessageKey(e))));
+    });
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Section title={t('my.account')}>
-        <ListRow icon="log-in-outline" label={t('my.login')} onPress={() => router.push('/login')} />
+        {user ? (
+          <>
+            <ListRow icon="person-circle-outline" label={t('auth.signedInAs', { email: user.email ?? '' })} />
+            <ListRow icon="log-out-outline" label={t('auth.logout')} onPress={logout} />
+          </>
+        ) : (
+          <ListRow icon="log-in-outline" label={t('my.login')} onPress={() => router.push('/login')} />
+        )}
         <ListRow icon="star-outline" label={t('my.membership')} onPress={() => router.push('/membership')} />
         <ListRow icon="ticket-outline" label={t('my.rewards')} onPress={() => router.push('/rewards')} />
         <ListRow icon="heart-outline" label={t('my.saved')} onPress={() => router.push('/saved')} />
