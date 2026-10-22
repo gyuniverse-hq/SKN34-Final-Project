@@ -44,7 +44,8 @@
 
 - [ ] **앱 이름 확정** (`app.json`의 `name`, 현재 "K-Beauty AR")
 - [ ] **번들 ID 확정** — 현재 `com.kbeautyar.app`. **스토어에 한 번 올리면 변경 불가**
-- [ ] 앱 아이콘(1024×1024), 스플래시, Android 적응형 아이콘 교체 (`assets/images/`)
+- [x] 앱 아이콘(1024×1024), Android 적응형 아이콘, 파비콘 교체 (`assets/images/`)
+- [ ] 스플래시 이미지 교체 (`assets/images/splash-icon.png`, 아직 이전 로고)
 - [ ] 스토어 스크린샷, 설명문 (영어 + 대상 국가 언어)
 
 ## 7. 계정·배포
