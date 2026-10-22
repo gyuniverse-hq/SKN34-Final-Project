@@ -64,6 +64,7 @@ function RootStack() {
       <Stack.Screen name="login" options={{ title: t('my.login'), presentation: 'modal' }} />
       <Stack.Screen name="signup" options={{ title: t('signup.title'), presentation: 'modal' }} />
       <Stack.Screen name="reset-password" options={{ title: t('reset.title'), presentation: 'modal' }} />
+      <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
       <Stack.Screen name="membership" options={{ title: t('membership.title') }} />
       <Stack.Screen name="rewards" options={{ title: t('rewards.title') }} />
       <Stack.Screen name="saved" options={{ title: t('saved.title') }} />

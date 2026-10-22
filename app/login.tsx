@@ -9,7 +9,9 @@ import {
   isAuthConfigured,
   resendSignupCode,
   signInWithEmail,
+  signInWithGoogle,
 } from '@/lib/auth';
+import { notify } from '@/lib/confirm';
 import { useI18n } from '@/lib/i18n';
 
 export default function LoginScreen() {
@@ -18,6 +20,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const configured = isAuthConfigured();
 
@@ -37,6 +40,18 @@ export default function LoginScreen() {
       setError(t(authErrorMessageKey(e)));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const google = async () => {
+    setGoogleBusy(true);
+    setError(null);
+    try {
+      if (await signInWithGoogle()) router.dismissTo('/my');
+    } catch (e) {
+      setError(t(authErrorMessageKey(e)));
+    } finally {
+      setGoogleBusy(false);
     }
   };
 
@@ -73,8 +88,22 @@ export default function LoginScreen() {
 
       <View style={authStyles.divider} />
 
-      <Button label={t('login.apple')} icon="logo-apple" variant="secondary" onPress={() => {}} />
-      <Button label={t('login.google')} icon="logo-google" variant="secondary" onPress={() => {}} style={authStyles.gap} />
+      <Button
+        label={t('login.apple')}
+        icon="logo-apple"
+        variant="secondary"
+        onPress={() => notify(t('common.comingSoon'))}
+        accessibilityHint={t('common.comingSoon')}
+      />
+      <Button
+        label={t('login.google')}
+        icon="logo-google"
+        variant="secondary"
+        onPress={google}
+        loading={googleBusy}
+        disabled={!configured || busy}
+        style={authStyles.gap}
+      />
 
       <Pressable accessibilityRole="button" style={authStyles.link} onPress={() => router.replace('/signup')}>
         <Text style={authStyles.linkText}>{t('login.signup')}</Text>

@@ -1,7 +1,10 @@
 import type { Session } from '@supabase/supabase-js';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { getSupabase } from './client';
 import { AuthFlowError } from './errors';
+import { parseAuthRedirect } from './redirect';
 
 export { isAuthConfigured } from './client';
 export { authErrorCode, authErrorMessageKey } from './errors';
@@ -72,6 +75,46 @@ export async function verifyRecoveryCode(email: string, code: string) {
 export async function updatePassword(password: string) {
   const { error } = await requireClient().auth.updateUser({ password });
   if (error) throw error;
+}
+
+export const AUTH_CALLBACK_PATH = 'auth/callback';
+
+/** Resolves `false` when the user closes the browser without finishing. */
+export async function signInWithGoogle() {
+  const supabase = requireClient();
+  const redirectTo = Linking.createURL(AUTH_CALLBACK_PATH);
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo, skipBrowserRedirect: true },
+  });
+  if (error) throw error;
+  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+  if (result.type !== 'success') return false;
+  return completeAuthRedirect(result.url);
+}
+
+const handledRedirects = new Set<string>();
+
+/**
+ * Stores the session from an OAuth redirect URL. The same URL can arrive twice on Android
+ * (browser result and deep link), and its tokens may only be applied once.
+ */
+export async function completeAuthRedirect(url: string) {
+  const supabase = requireClient();
+  if (handledRedirects.has(url)) {
+    const { data } = await supabase.auth.getSession();
+    return !!data.session;
+  }
+  handledRedirects.add(url);
+  const redirect = parseAuthRedirect(url);
+  if (redirect.type === 'error') throw new Error(redirect.message);
+  if (redirect.type === 'none') return false;
+  const { error } = await supabase.auth.setSession({
+    access_token: redirect.accessToken,
+    refresh_token: redirect.refreshToken,
+  });
+  if (error) throw error;
+  return true;
 }
 
 export async function signOut() {
