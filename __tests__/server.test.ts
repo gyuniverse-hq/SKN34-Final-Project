@@ -1,6 +1,7 @@
-import { RateLimiter, TtlCache } from '@/server/cache';
-import { toHttpsShoppingImage } from '@/server/naver';
-import { buildTutorialQuery, decodeEntities } from '@/server/youtube';
+import { toHttpsShoppingImage } from '@/server/clients/naverClient';
+import { RateLimiter, TtlCache } from '@/server/lib/cache';
+import { decodeEntities } from '@/server/lib/text';
+import { buildTutorialQuery } from '@/server/services/tutorialService';
 
 describe('TtlCache', () => {
   it('de-duplicates concurrent loads and caches the result', async () => {
@@ -44,7 +45,7 @@ describe('toHttpsShoppingImage', () => {
   });
 });
 
-describe('youtube helpers', () => {
+describe('tutorial and text helpers', () => {
   it('appends tutorial keywords only when missing', () => {
     expect(buildTutorialQuery('Jisoo')).toBe('Jisoo makeup tutorial');
     expect(buildTutorialQuery('jisoo makeup')).toBe('jisoo makeup');

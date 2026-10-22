@@ -1,18 +1,14 @@
 import type { YoutubeVideo } from '@/types';
-import { TtlCache } from './cache';
-import { serverEnv } from './env';
-import { fetchWithTimeout } from './http';
+import { TtlCache } from '@/server/lib/cache';
+import { serverEnv } from '@/server/lib/env';
+import { fetchWithTimeout } from '@/server/lib/http';
+import { decodeEntities } from '@/server/lib/text';
 
 // search.list costs 100 quota units per call (10,000/day default) — cache aggressively.
 const searchCache = new TtlCache<YoutubeVideo[]>(12 * 60 * 60 * 1000);
 
 export function isYoutubeConfigured() {
   return Boolean(serverEnv.youtubeApiKey);
-}
-
-export function buildTutorialQuery(query: string) {
-  const q = query.trim();
-  return /makeup|tutorial|메이크업/i.test(q) ? q : `${q} makeup tutorial`;
 }
 
 interface SearchItem {
@@ -25,10 +21,9 @@ interface SearchItem {
   };
 }
 
-export async function searchTutorials(query: string, maxResults = 8): Promise<YoutubeVideo[]> {
+export async function searchVideos(q: string, maxResults = 8): Promise<YoutubeVideo[]> {
   const key = serverEnv.youtubeApiKey;
   if (!key) return [];
-  const q = buildTutorialQuery(query);
   const cacheKey = `${q.toLowerCase()}|${maxResults}`;
 
   return searchCache.getOrLoad(cacheKey, async () => {
@@ -60,13 +55,4 @@ export async function searchTutorials(query: string, maxResults = 8): Promise<Yo
           '',
       }));
   });
-}
-
-export function decodeEntities(text: string) {
-  return text
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>');
 }

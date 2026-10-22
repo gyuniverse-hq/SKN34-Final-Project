@@ -1,8 +1,8 @@
 import type { ShoppingOffer } from '@/types';
-import { TtlCache } from './cache';
-import { serverEnv } from './env';
-import { fetchWithTimeout } from './http';
-import { decodeEntities } from './youtube';
+import { TtlCache } from '@/server/lib/cache';
+import { serverEnv } from '@/server/lib/env';
+import { fetchWithTimeout } from '@/server/lib/http';
+import { decodeEntities } from '@/server/lib/text';
 
 const offerCache = new TtlCache<ShoppingOffer[]>(6 * 60 * 60 * 1000);
 const imageCache = new TtlCache<string | null>(24 * 60 * 60 * 1000);

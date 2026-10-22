@@ -1,5 +1,5 @@
-import { getProduct } from '@/server/catalog';
-import { errorResponse, json } from '@/server/http';
+import { errorResponse, json } from '@/server/lib/http';
+import { getProduct } from '@/server/services/catalogService';
 
 export async function GET(_request: Request, { id }: Record<string, string>) {
   const product = await getProduct(id);
