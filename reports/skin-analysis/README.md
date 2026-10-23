@@ -19,6 +19,7 @@
 | [SAM 비교](sam-experiment.md) | 기존 CE 배치 16의 AdamW에 SAM을 추가한 모공 비교 |
 | [순서형 CDF 손실 비교](ordinal-cdf-experiment.md) | CE+SAM에서 손실만 순서형 누적분포 손실로 교체 |
 | [WFL 비교](weighted-focal-experiment.md) | WCE의 클래스 가중치를 유지한 Weighted Focal Loss + SAM |
+| [분류층 균형 재학습](classifier-retraining.md) | 특징 추출기 고정 후 등급·인물 균형 학습과 조건부 3등급 비교 |
 | [여드름 전이학습](acne-transfer-learning.md) | 정상/여드름 이진 학습, ImageNet·NIA 비교, 평가·한계 |
 | [NIA 평가 도구](nia-evaluation.md) | 기존 모델 연결, 개발 화면, 로컬 서버·평가 방법 |
 | [추천 입력 선정](recommendation-inputs.md) | 네 항목 선정과 수분 제외 근거 |
