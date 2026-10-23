@@ -5,6 +5,7 @@ import json
 import time
 
 import torch
+from server.nia.engine import Engine
 
 from skin_analysis.config import PROJECT_ROOT
 from skin_analysis.runtime import select_cuda
@@ -188,9 +189,39 @@ def publish():
     import matplotlib.pyplot as plt
 
     result = json.loads((ROOT / "comparison.json").read_text("utf-8"))
+    service = json.loads((PROJECT_ROOT.parent / "server/nia/config.local.json").read_text("utf-8"))
+    model_config = next(c for c in service["models"] if c["task"] == "class/pore").copy()
+    model_config.update(
+        checkpoint=str(ROOT / "pore/inference.bin"),
+        sha256=result["candidate_sha256"],
+    )
+    engine = Engine(model_config)
+    engine.device = torch.device("cpu")
+    try:
+        engine.load()
+    except ValueError as error:
+        if "output head does not match" not in str(error):
+            raise
+    else:
+        raise ValueError("Old six-grade service loader must reject three-output weights")
     history = json.loads((ROOT / "pore/history.json").read_text("utf-8"))
     wall = json.loads((ROOT / "wall-time.json").read_text("utf-8"))
-    write_json(REPORT.with_suffix(".metrics.json"), dict(**result, history=history, wall=wall))
+    selected = history[result["summary"]["best_epoch"] - 1]
+    full = max(
+        (h for h in history if h["stage"] == "full_backbone"),
+        key=lambda h: (h["valid_macro_f1"], -h["valid_loss"]),
+    )
+    write_json(
+        REPORT.with_suffix(".metrics.json"),
+        dict(
+            **result,
+            history=history,
+            wall=wall,
+            selected_stage=selected["stage"],
+            best_finetune_epoch_from_history=full["epoch"],
+            six_grade_service_loader_rejected=True,
+        ),
+    )
     prefix = REPORT.read_text("utf-8").split("\n## 실제 결과")[0]
     lines = [
         "",
@@ -214,6 +245,9 @@ def publish():
         "",
         f"선택 epoch {result['summary']['best_epoch']} / 실행 {result['summary']['epochs_run']}, "
         f"학습 {wall['seconds']:.1f}초.",
+        "",
+        f"선택 단계: `{selected['stage']}`. 전체 미세조정 단계의 최고 검증 Macro-F1은 "
+        f"epoch {full['epoch']}의 {full['valid_macro_f1']:.2%}였다.",
         "",
         "| 목표 | 정답 ROI | 예측 ROI | Precision | Recall | F1 |",
         "|---|---:|---:|---:|---:|---:|",
@@ -240,6 +274,31 @@ def publish():
         f"SHA-256: `{result['candidate_sha256']}`",
         "",
     ]
+    if selected["stage"] == "head":
+        lines += [
+            "이 run은 전체 네트워크 미세조정까지 실행했지만 최종 선택 가중치는 "
+            "ImageNet 특징 추출기를 고정했던 warmup 단계다. 이 결과를 피부 데이터로 "
+            "특징 추출기까지 개선된 모델로 설명해서는 안 된다. 정해진 patience 6 기준으로 "
+            "종료했으며 모든 미세조정 가능성을 소진했다는 뜻도 아니다.",
+            "",
+        ]
+    if not result["passes_gate"]:
+        best_name = max(result["results"], key=lambda n: result["results"][n]["valid"]["macro_f1"])
+        lines += [
+            "현재 검증 결과로는 새 3출력 학습 모델을 기존 WCE+SAM보다 낫다고 채택할 "
+            f"근거가 없다. 비교 방법 중 검증 Macro-F1이 가장 높은 방식은 `{best_name}`이다. "
+            "확률을 합산해 argmax하는 방식은 높음을 거의 내지 못했다. "
+            "등급 수를 줄인 것과 피부 상태를 더 정확히 판별하는 것은 별개다.",
+            "",
+        ]
+        if best_name == "six_argmax_mapping":
+            lines += [
+                "현재 3단계 추천 구간을 사용한다면 기존 6등급 WCE+SAM 가중치를 유지하고 "
+                "예측 등급을 `0·1 / 2·3 / 4·5`로 매핑하는 방식을 우선 후보로 삼을 수 있다. "
+                "이를 직접 구현하면 `recommendation_grade = original_grade // 2`이다. "
+                "단순 등급 병합이며 새 3등급 모델을 학습해 성능이 개선된 것은 아니다.",
+                "",
+            ]
     fig, axes = plt.subplots(1, 2, figsize=(11, 4), constrained_layout=True)
     for ax, metric, title in ((axes[0], "macro_f1", "Macro F1"), (axes[1], "accuracy", "Accuracy")):
         ax.plot(
@@ -268,6 +327,7 @@ def publish():
         "기존 6등급 Accuracy와 직접 비교할 수 없다. 테스트셋은 평가하지 않았고 "
         "기존 모델·서비스 설정 17개 파일은 보존했다. CPU 합성 입력의 3출력과 엄격한 "
         "체크포인트 로딩을 확인했으며 분류 지표는 sklearn과 교차 검산했다.",
+        "기존 6등급 서비스 로더는 이 후보를 출력층 크기 불일치로 거절하는 것을 확인했다.",
         "",
         "테스트 페이지에는 자동 적용하지 않았다. 연결하려면 `pore_coarse.load_model`과 "
         "명시적 매핑을 사용하고 API·UI·추천 입력의 등급 계약을 함께 변경해야 한다.",
