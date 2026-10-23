@@ -1,0 +1,145 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      app: ${{ steps.filter.outputs.app }}
+      backend: ${{ steps.filter.outputs.backend }}
+      infra: ${{ steps.filter.outputs.infra }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          predicate-quantifier: every
+          filters: |
+            app:
+              - '**'
+              - '!backend/**'
+              - '!infra/**'
+              - '!docs/**'
+              - '!**/*.md'
+            backend:
+              - 'backend/**'
+            infra:
+              - 'infra/**'
+
+  app:
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+
+  backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [api, chatbot]
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: vishue
+          POSTGRES_PASSWORD: vishue
+          POSTGRES_DB: vishue
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U vishue" --health-interval 5s --health-timeout 3s --health-retries 10
+    defaults:
+      run:
+        working-directory: backend/${{ matrix.service }}
+    env:
+      DATABASE_URL: postgresql+asyncpg://vishue:vishue@localhost:5432/vishue
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/${{ matrix.service }}/uv.lock
+      - run: uv sync --frozen
+      - run: uv run ruff format --check .
+      - run: uv run ruff check .
+      - name: Layer contracts (import-linter)
+        run: uv run lint-imports
+      - name: Migrations apply cleanly and match the models
+        if: matrix.service == 'api'
+        run: |
+          uv run alembic upgrade head
+          uv run alembic check
+      - name: Tests
+        run: uv run pytest
+        env:
+          TEST_DATABASE_URL: ${{ matrix.service == 'api' && env.DATABASE_URL || '' }}
+
+  docker:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [api, chatbot]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: backend/${{ matrix.service }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+  infra:
+    needs: changes
+    if: needs.changes.outputs.infra == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: azure/setup-helm@v5
+      - name: Install kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
+            | tar xz -C /usr/local/bin kubeconform
+      - name: Helm lint and schema validation (local + prod values)
+        run: |
+          for env in local prod; do
+            helm lint infra/helm/vishue -f infra/helm/vishue/values-$env.yaml
+            helm template vishue infra/helm/vishue -f infra/helm/vishue/values-$env.yaml \
+              | kubeconform -strict -summary -ignore-missing-schemas
+          done
+      - name: Compose file is valid
+        run: docker compose -f infra/compose/compose.yaml config --quiet
+
+  # Single required check for branch protection; skipped jobs count as passed.
+  ci-ok:
+    needs: [changes, app, backend, docker, infra]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo '${{ toJSON(needs) }}' | jq -e 'to_entries | all(.value.result == "success" or .value.result == "skipped")'
