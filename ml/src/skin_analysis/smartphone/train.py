@@ -33,15 +33,28 @@ from .losses import ClassBalancedFocalLoss
 
 
 class GradeModel(nn.Module):
-    def __init__(self, classes, pretrained=False, ordinal=False):
+    def __init__(
+        self,
+        classes,
+        pretrained=False,
+        ordinal=False,
+        freeze_bn_stats=False,
+        finetune_scope="all",
+    ):
         super().__init__()
+        if finetune_scope not in ("all", "layer4"):
+            raise ValueError("Finetune scope must be all or layer4")
+        self.freeze_bn_stats = freeze_bn_stats
+        self.finetune_scope = finetune_scope
         self.network = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2 if pretrained else None)
         self.network.fc = CoralHead(2048, classes) if ordinal else nn.Linear(2048, classes)
         self.frozen = False
 
     def set_stage(self, frozen):
         self.frozen = frozen
-        self.network.requires_grad_(not frozen)
+        self.network.requires_grad_(not frozen and self.finetune_scope == "all")
+        if not frozen and self.finetune_scope == "layer4":
+            self.network.layer4.requires_grad_(True)
         self.network.fc.requires_grad_(True)
 
     def train(self, mode=True):
@@ -49,6 +62,11 @@ class GradeModel(nn.Module):
         if mode and self.frozen:
             self.network.eval()
             self.network.fc.train()
+        elif mode and self.freeze_bn_stats:
+            # Freeze running mean/variance/count only; affine weights stay trainable.
+            for module in self.network.modules():
+                if isinstance(module, nn.BatchNorm2d):
+                    module.eval()
         return self
 
     def forward(self, images):
@@ -147,8 +165,7 @@ def evaluate_training(model, loader, device, classes, generator, ordinal=False):
         return dict(
             train_eval_loss=loss,
             **{
-                f"train_eval_{k}": metrics[k]
-                for k in ("accuracy", "macro_f1", "mae", "within_one")
+                f"train_eval_{k}": metrics[k] for k in ("accuracy", "macro_f1", "mae", "within_one")
             },
         )
     finally:
@@ -167,7 +184,9 @@ def optimizer_for(model, settings, frozen):
         groups.append(
             {
                 "params": [
-                    p for n, p in model.network.named_parameters() if not n.startswith("fc.")
+                    p
+                    for n, p in model.network.named_parameters()
+                    if not n.startswith("fc.") and p.requires_grad
                 ],
                 "lr": settings["backbone_lr"],
             }
@@ -253,7 +272,13 @@ def train_task(config, manifest, task, device, resume=None):
         or not (output / "best.pt").is_file()
     ):
         raise ValueError("Resume requires identical source, data, config, environment and best.pt")
-    model = GradeModel(classes, pretrained=not bool(checkpoint), ordinal=ordinal).to(device)
+    model = GradeModel(
+        classes,
+        pretrained=not bool(checkpoint),
+        ordinal=ordinal,
+        freeze_bn_stats=settings.get("freeze_bn_stats", False),
+        finetune_scope=settings.get("finetune_scope", "all"),
+    ).to(device)
     if checkpoint:
         model.network.load_state_dict(checkpoint["model_state"], strict=True)
     initial_weights = (
@@ -294,7 +319,12 @@ def train_task(config, manifest, task, device, resume=None):
     frozen = start < settings["freeze_epochs"]
     optimizer, scheduler = optimizer_for(model, settings, frozen)
     if checkpoint:
-        if checkpoint["stage"] == ("head" if frozen else "full_backbone"):
+        expected_stage = (
+            "head"
+            if frozen
+            else ("layer4" if model.finetune_scope == "layer4" else "full_backbone")
+        )
+        if checkpoint["stage"] == expected_stage:
             optimizer.load_state_dict(checkpoint["optimizer_state"])
             if scheduler:
                 scheduler.load_state_dict(checkpoint["scheduler_state"])
@@ -330,7 +360,9 @@ def train_task(config, manifest, task, device, resume=None):
         row = dict(
             task=task,
             epoch=epoch + 1,
-            stage="head" if frozen else "full_backbone",
+            stage="head"
+            if frozen
+            else ("layer4" if model.finetune_scope == "layer4" else "full_backbone"),
             train_loss=loss,
             valid_loss=valid_loss,
             valid_accuracy=metrics["accuracy"],
@@ -339,6 +371,7 @@ def train_task(config, manifest, task, device, resume=None):
             seconds=time.perf_counter() - started,
             selected=improved,
             amp_overflow_retries=model._amp_overflow_retries,
+            trainable_parameters=sum(p.numel() for p in model.parameters() if p.requires_grad),
         )
         if train_eval_loader is not None:
             row.update(
@@ -371,6 +404,14 @@ def train_task(config, manifest, task, device, resume=None):
             selection="validation macro-F1; unweighted validation "
             + ("threshold BCE tie-break" if ordinal else "CE tie-break"),
             loss_spec=loss_spec,
+            finetune_policy=dict(
+                scope=model.finetune_scope,
+                freeze_bn_stats=model.freeze_bn_stats,
+                bn_running_stats_during_finetune=(
+                    "fixed" if model.freeze_bn_stats else "update_all_layers"
+                ),
+                note="scope controls parameters only; BN statistics are a separate factor",
+            ),
         )
         save_checkpoint(output / "last.pt", saved)
         if improved:
@@ -398,6 +439,7 @@ def train_task(config, manifest, task, device, resume=None):
             "epoch",
             "selection",
             "loss_spec",
+            "finetune_policy",
         )
     }
     exported["kind"] = "inference"
