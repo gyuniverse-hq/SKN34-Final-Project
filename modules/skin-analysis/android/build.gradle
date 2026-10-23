@@ -1,0 +1,39 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.skinanalysis'
+version = '0.1.0'
+def skinEnabled = System.getenv('EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS') == '1'
+
+android {
+  namespace 'expo.modules.skinanalysis'
+  defaultConfig { versionCode 1; versionName '0.1.0' }
+  androidResources { noCompress += ['onnx'] }
+  if (!skinEnabled) { sourceSets.main.assets.exclude('skin/**') }
+}
+
+configurations.configureEach {
+  resolutionStrategy.force 'com.google.guava:listenablefuture:1.0'
+}
+
+dependencies {
+  testImplementation 'junit:junit:4.13.2'
+  implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.22.0'
+  implementation 'org.opencv:opencv:4.13.0'
+  implementation 'com.google.mlkit:face-detection:16.1.7'
+  implementation 'androidx.camera:camera-camera2:1.6.0'
+  implementation 'androidx.camera:camera-lifecycle:1.6.0'
+  implementation 'androidx.camera:camera-view:1.6.0'
+  implementation 'androidx.camera:camera-mlkit-vision:1.6.0'
+  implementation 'androidx.exifinterface:exifinterface:1.4.2'
+}
+
+// EAS and local Gradle builds both fail before packaging incomplete model assets.
+tasks.register('validateSkinAssets', Exec) {
+  onlyIf { skinEnabled }
+  workingDir rootProject.projectDir.parentFile
+  commandLine 'node', 'scripts/skin-assets.mjs', 'validate'
+}
+tasks.named('preBuild').configure { dependsOn 'validateSkinAssets' }

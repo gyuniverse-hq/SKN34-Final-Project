@@ -11,7 +11,8 @@ const original = config.resolver.blockList;
 config.resolver.blockList = [
   ...(Array.isArray(original) ? original : original ? [original] : []),
   ...[
-    'ml', 'nia-private', 'final_venv', 'server/nia/.venv',
+    'ml', 'nia-private', 'final_venv', 'server/nia/.venv', '.gradle-local',
+    'modules/skin-analysis/android/src/main/assets/skin',
     'backend/api/.venv', 'backend/chatbot/.venv',
   ].map(directory),
   new RegExp(`^${escape(path.resolve(__dirname, 'data'))}[/\\\\](?!catalog(?:[/\\\\]|$))`),

@@ -14,7 +14,7 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "NSCameraUsageDescription": "Your camera is used only for live makeup try-on on this device. Camera images are never recorded, saved, or uploaded."
+        "NSCameraUsageDescription": "Your camera is used for on-device makeup try-on and skin analysis. Images are processed temporarily on this device and never uploaded."
       },
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": [
@@ -66,7 +66,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Your camera is used only for live makeup try-on on this device. Camera images are never recorded, saved, or uploaded.",
+          "cameraPermission": "Your camera is used for on-device makeup try-on and skin analysis. Images are processed temporarily on this device and never uploaded.",
           "microphonePermission": false,
           "recordAudioAndroid": false,
           "barcodeScannerEnabled": false
