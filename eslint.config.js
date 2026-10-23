@@ -6,7 +6,7 @@ const expoConfig = require("eslint-config-expo/flat");
 // patterns can see them. A later block replaces (does not merge) an earlier one for the same file.
 const SERVER_ONLY = {
   group: ['@/server', '@/server/**', '@/data', '@/data/**'],
-  message: 'Client code must not import server/ or data/. Fetch through /api with lib/queries.',
+  message: 'Client code must not import server/. Call the backend through lib/queries.',
 };
 const PARENT_RELATIVE = {
   group: ['../*'],
@@ -59,11 +59,8 @@ module.exports = defineConfig([
   layer(['constants/**', 'types/**'], [
     { group: ['@/**'], message: 'constants/ and types/ must not import project code.' },
   ]),
-  layer(['data/**'], [
-    { group: ['@/**', '!@/types'], message: 'data/ may import only types/.' },
-  ]),
 
-  // Server
+  // Dev-only Expo server (app/api/dev, server/): the app's real API is backend/.
   layer(['app/api/**'], [
     {
       group: ['@/server/repositories/**', '@/server/clients/**', '@/data', '@/data/**'],
@@ -79,19 +76,6 @@ module.exports = defineConfig([
       group: ['@/app/**', '@/components/**', '@/hooks/**', '@/lib/**', '@/store/**'],
       message: 'Server code must not import client code.',
     },
-  ]),
-  layer(['server/repositories/**'], [
-    {
-      group: ['@/server/services/**', '@/server/clients/**', '@/app/**', '@/components/**', '@/hooks/**', '@/lib/**', '@/store/**'],
-      message: 'Repositories may import only data/, server/lib and types/.',
-    },
-  ]),
-  layer(['server/clients/**'], [
-    {
-      group: ['@/server/services/**', '@/server/repositories/**', '@/server/clients/**', '@/data', '@/data/**', '@/app/**', '@/components/**', '@/hooks/**', '@/lib/**', '@/store/**'],
-      message: 'Clients may import only server/lib and types/.',
-    },
-    { group: ['./*'], message: 'Clients must not depend on each other.' },
   ]),
   layer(['server/lib/**'], [
     {
