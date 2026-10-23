@@ -68,6 +68,28 @@ model = load_model(checkpoint)  # strict shape + original-to-target mapping
 그대로 넣거나 사진을 외부 서버로 전송하는 사용법은 이 실험 범위에 포함하지 않는다.
 실제 서비스 연결 시 API·UI·추천 값의 3등급 계약을 함께 반영해야 한다.
 
+## 조기 종료에 대한 추가 확인 계획
+
+첫 WCE+SAM run은 8 epoch에서 끝났고 선택 가중치는 warmup 1 epoch였다.
+미세조정의 검증 F1은 epoch 3의 40.39%에서 epoch 8의 45.97%까지 증가하고
+있었지만 warmup의 48.16%를 아직 넘지 못했다. 따라서 이 결과만으로 3등급
+특징 학습의 효과를 부정하지 않고, **patience만 6→20으로 바꿔 2+18 epoch를
+모두 실행하는 후속 비교를 한 번 수행한다**. 데이터·seed·가중치 초기화·LR·SAM·
+증강·선택 지표·총 최대 epoch는 바꾸지 않는다. 첫 run과 가중치는 별도로 보존한다.
+이는 첫 결과를 본 뒤 결정한 탐색 확장이며 사전 계획된 독립 검증은 아니다.
+통과 기준은 기존 두 가지 3등급 기준선에 대한 기준을 그대로 유지한다.
+
+```powershell
+uv run --project ml python -m ml.scripts.pore_coarse_experiment --full-budget --phase preflight
+uv run --project ml python -m ml.scripts.pore_coarse_experiment --full-budget --phase train
+uv run --project ml python -m ml.scripts.pore_coarse_experiment --full-budget --phase evaluate
+uv run --project ml python -m ml.scripts.pore_coarse_experiment --full-budget --phase publish
+```
+
+설정은 `ml/configs/nia_smartphone_pore_coarse_sam_full_budget.toml`이다.
+초기 8 epoch 대조 실험은 `ml/runs/nia-smartphone-pore-coarse-sam-seed-42/`에 남긴다.
+아래 결과는 추가 실행이 끝나면 20 epoch run과 8 epoch 대조군을 함께 비교하도록 갱신한다.
+
 ## 실제 결과
 
 동일 검증 138명·816 ROI, FP32·증강 없음. 사전 통과 조건: **미달**.

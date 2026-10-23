@@ -30,6 +30,7 @@ from skin_analysis.smartphone.train import (
 
 CONFIG = PROJECT_ROOT / "configs/nia_smartphone_pore_coarse_sam.toml"
 ROOT = PROJECT_ROOT / "runs/nia-smartphone-pore-coarse-sam-seed-42"
+CONTROL_ROOT = ROOT
 HEAD_ROOT = PROJECT_ROOT / "runs/nia-smartphone-pore-coarse-seed-42"
 REPORT = PROJECT_ROOT.parent / "reports/skin-analysis/pore-coarse-experiment.md"
 
@@ -37,13 +38,20 @@ REPORT = PROJECT_ROOT.parent / "reports/skin-analysis/pore-coarse-experiment.md"
 def preflight():
     config = load_config(CONFIG)
     previous = load_config(PROJECT_ROOT / "configs/nia_smartphone_sam.toml")
-    excluded = {"output", "classes", "target_mapping"}
+    full_budget = ROOT != CONTROL_ROOT
+    excluded = {"output", "classes", "target_mapping", "patience"}
     if {k: v for k, v in config["train"].items() if k not in excluded} != {
         k: v for k, v in previous["train"].items() if k not in excluded
     } or config["data"] != previous["data"]:
         raise ValueError("Only output path and explicit six-to-three target contract may change")
+    if config["train"]["patience"] != (20 if full_budget else 6):
+        raise ValueError("Patience must match the declared control/full-budget policy")
     classification_contract(config["train"], "pore")
     manifest = load_manifest(config)
+    if full_budget:
+        control = json.loads((CONTROL_ROOT / "comparison.json").read_text("utf-8"))
+        if control["passes_gate"] or control["manifest_fingerprint"] != manifest["fingerprint"]:
+            raise ValueError("Full-budget extension requires the preserved unsuccessful control")
     for root in (SIX_ROOT, HEAD_ROOT):
         result = json.loads((root / "comparison.json").read_text(encoding="utf-8"))
         if (
@@ -60,6 +68,11 @@ def preflight():
     if not path.exists():
         weight = HEAD_ROOT / "pore/inference.bin"
         before[str(weight.relative_to(PROJECT_ROOT.parent))] = file_hash(weight)
+        if full_budget:
+            weight = CONTROL_ROOT / "pore/inference.bin"
+            if file_hash(weight) != control["candidate_sha256"]:
+                raise ValueError("Control checkpoint changed")
+            before[str(weight.relative_to(PROJECT_ROOT.parent))] = control["candidate_sha256"]
     if before != {p: file_hash(PROJECT_ROOT.parent / p) for p in before}:
         raise ValueError("A preserved model/config changed")
     if not path.exists():
@@ -121,6 +134,9 @@ def evaluate():
         "three_frozen_balanced": head["results"]["candidate"],
         "three_wce_sam": {},
     }
+    if ROOT != CONTROL_ROOT:
+        control = json.loads((CONTROL_ROOT / "comparison.json").read_text("utf-8"))
+        results["three_wce_sam_patience6"] = control["results"]["three_wce_sam"]
     for split in ("train", "valid"):
         data = GradeDataset(manifest, "pore", split, target_mapping=PORE_COARSE_MAPPING)
         raw = json.loads((SIX_ROOT / f"baseline-{split}-predictions.json").read_text("utf-8"))
@@ -325,7 +341,8 @@ def publish():
         "임상 중증도 기준이 아니다. 원본 4와 5를 구분하는 성능은 이 모델에서 평가할 수 없다.",
         "",
         "기존 6등급 Accuracy와 직접 비교할 수 없다. 테스트셋은 평가하지 않았고 "
-        "기존 모델·서비스 설정 17개 파일은 보존했다. CPU 합성 입력의 3출력과 엄격한 "
+        f"기존 모델·서비스 설정 {result['preservation']['files']}개 파일은 보존했다. "
+        "CPU 합성 입력의 3출력과 엄격한 "
         "체크포인트 로딩을 확인했으며 분류 지표는 sklearn과 교차 검산했다.",
         "기존 6등급 서비스 로더는 이 후보를 출력층 크기 불일치로 거절하는 것을 확인했다.",
         "",
@@ -340,7 +357,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--phase", choices=("preflight", "train", "evaluate", "publish"), required=True
     )
+    parser.add_argument("--full-budget", action="store_true")
     args = parser.parse_args()
+    if args.full_budget:
+        CONFIG = PROJECT_ROOT / "configs/nia_smartphone_pore_coarse_sam_full_budget.toml"
+        ROOT = PROJECT_ROOT / "runs/nia-smartphone-pore-coarse-sam-full-budget-seed-42"
     if args.phase == "preflight":
         print(json.dumps(dict(preserved_files=preflight()[2], preflight="passed")))
     else:
