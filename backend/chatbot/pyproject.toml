@@ -1,0 +1,66 @@
+[project]
+name = "vishue-chatbot"
+version = "0.1.0"
+description = "VISHUE chatbot: LLM answers grounded in the Neo4j product graph"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.161.1",
+    "httpx>=0.28.1",
+    "neo4j>=6.4.1",
+    "pydantic-settings>=2.16.1",
+    "pyjwt[crypto]>=2.15.1",
+    "redis>=8.1.0",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query"]
+
+# Layer rules from docs/ARCHITECTURE.md (same shape as backend/api).
+[tool.importlinter]
+root_package = "app"
+
+[[tool.importlinter.contracts]]
+name = "Layers: entry points -> routers -> services -> repositories/clients -> schemas -> core"
+type = "layers"
+layers = [
+    "app.main | app.jobs",
+    "app.routers",
+    "app.services",
+    "app.repositories | app.clients",
+    "app.schemas",
+    "app.core",
+]
+
+[[tool.importlinter.contracts]]
+name = "Routers and jobs reach data only through services"
+type = "forbidden"
+source_modules = ["app.routers", "app.jobs"]
+forbidden_modules = ["app.repositories", "app.clients"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Clients do not depend on each other"
+type = "independence"
+modules = ["app.clients.catalog_client", "app.clients.llm_client"]
+
+[dependency-groups]
+dev = [
+    "import-linter>=2.15",
+    "pytest>=9.1.1",
+    "ruff>=0.17.2",
+]
