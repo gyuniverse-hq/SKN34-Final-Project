@@ -30,6 +30,8 @@ from .coral import ARCHITECTURE as CORAL_ARCHITECTURE
 from .coral import DECODING, CoralHead, CoralLoss, decode_coral
 from .data import GradeDataset
 from .losses import ClassBalancedFocalLoss
+from .sam import optimization_spec
+from .sam import train_epoch as sam_train_epoch
 
 
 class GradeModel(nn.Module):
@@ -246,6 +248,7 @@ def require_coral_gate(config, manifest, task):
 def train_task(config, manifest, task, device, resume=None):
     require_coral_gate(config, manifest, task)
     settings, classes = config["train"], TASKS[task]["classes"]
+    optimizer_spec = optimization_spec(settings)
     ordinal = settings.get("loss") == "coral"
     output = Path(settings["output"]) / task
     if not resume and output.exists():
@@ -338,7 +341,8 @@ def train_task(config, manifest, task, device, resume=None):
             frozen = now_frozen
             stale = 0
             optimizer, scheduler = optimizer_for(model, settings, frozen)
-        loss = train_epoch(
+        epoch_runner = sam_train_epoch if optimizer_spec["kind"] == "sam_adamw" else train_epoch
+        loss = epoch_runner(
             model,
             train_loader,
             optimizer,
@@ -347,6 +351,7 @@ def train_task(config, manifest, task, device, resume=None):
             scaler,
             settings["effective_batch"],
             settings["amp"],
+            **({"rho": settings["sam_rho"]} if optimizer_spec["kind"] == "sam_adamw" else {}),
         )
         truth, predicted, _, valid_loss = predict(model, valid_loader, device, ordinal=ordinal)
         metrics = classification(truth, predicted, classes)
@@ -377,6 +382,8 @@ def train_task(config, manifest, task, device, resume=None):
             row.update(
                 evaluate_training(model, train_eval_loader, device, classes, generator, ordinal)
             )
+        if optimizer_spec["kind"] == "sam_adamw":
+            row.update(sam_steps=model._sam_steps, sam_perturbed_loss=model._sam_perturbed_loss)
         history.append(row)
         saved = dict(
             schema="nia-smartphone-training-v1",
@@ -404,6 +411,7 @@ def train_task(config, manifest, task, device, resume=None):
             selection="validation macro-F1; unweighted validation "
             + ("threshold BCE tie-break" if ordinal else "CE tie-break"),
             loss_spec=loss_spec,
+            optimization_spec=optimizer_spec,
             finetune_policy=dict(
                 scope=model.finetune_scope,
                 freeze_bn_stats=model.freeze_bn_stats,
@@ -442,6 +450,9 @@ def train_task(config, manifest, task, device, resume=None):
             "finetune_policy",
         )
     }
+    exported["optimization_spec"] = best.get(
+        "optimization_spec", optimization_spec(best["train_config"])
+    )
     exported["kind"] = "inference"
     save_checkpoint(output / "inference.bin", exported)
     write_json(
