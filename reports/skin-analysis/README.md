@@ -12,6 +12,7 @@
 | [가중치 출처·전처리 확인](checkpoint-provenance.md) | 배포 가중치의 저장 설정·평가 통계, 공식 코드와의 일치 여부, 논문 결과와 비교 가능한 범위 |
 | [스마트폰 전용 학습](smartphone-training.md) | 선별한 세 분류 모델의 스마트폰 전용 학습·인물 분리·재현 및 평가 |
 | [CB Focal 비교](cb-focal-experiment.md) | 기존 모델을 보존한 모공 손실 함수 비교·검증 결과·확대 기준 |
+| [CORAL 비교](coral-experiment.md) | 순서형 출력층·손실을 적용한 모공 우선 비교와 조건부 확대 |
 | [여드름 전이학습](acne-transfer-learning.md) | 정상/여드름 이진 학습, ImageNet·NIA 비교, 평가·한계 |
 | [NIA 평가 도구](nia-evaluation.md) | 기존 모델 연결, 개발 화면, 로컬 서버·평가 방법 |
 | [추천 입력 선정](recommendation-inputs.md) | 네 항목 선정과 수분 제외 근거 |

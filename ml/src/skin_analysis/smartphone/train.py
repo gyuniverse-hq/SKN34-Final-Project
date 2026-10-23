@@ -26,15 +26,17 @@ from .common import (
     load_manifest,
     write_json,
 )
+from .coral import ARCHITECTURE as CORAL_ARCHITECTURE
+from .coral import DECODING, CoralHead, CoralLoss, decode_coral
 from .data import GradeDataset
 from .losses import ClassBalancedFocalLoss
 
 
 class GradeModel(nn.Module):
-    def __init__(self, classes, pretrained=False):
+    def __init__(self, classes, pretrained=False, ordinal=False):
         super().__init__()
         self.network = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2 if pretrained else None)
-        self.network.fc = nn.Linear(2048, classes)
+        self.network.fc = CoralHead(2048, classes) if ordinal else nn.Linear(2048, classes)
         self.frozen = False
 
     def set_stage(self, frozen):
@@ -88,6 +90,16 @@ def criterion_for(labels, classes, settings, device):
             reduction="sum_alpha_modulated_ce / sum_target_alpha",
             legacy_sqrt_class_weights_used=False,
         )
+    elif kind == "coral":
+        criterion = CoralLoss().to(device)
+        specification = dict(
+            kind=kind,
+            counts=counts,
+            formulation="shared_score_cumulative_binary_thresholds",
+            reduction="mean_examples_sum_threshold_bce",
+            legacy_sqrt_class_weights_used=False,
+            threshold_weights="uniform",
+        )
     else:
         raise ValueError("Unknown smartphone training loss")
     return criterion, specification
@@ -107,17 +119,22 @@ def make_loader(data, settings, generator=None, training=False):
 
 
 @torch.inference_mode()
-def predict(model, loader, device):
+def predict(model, loader, device, ordinal=False):
     model.eval()
     truth, predicted, probabilities = [], [], []
     total_loss = 0.0
     for images, targets, _ in loader:
         images, targets = images.to(device, non_blocking=True), targets.to(device)
         logits = model(images).float()
-        total_loss += float(nn.functional.cross_entropy(logits, targets, reduction="sum"))
+        if ordinal:
+            total_loss += float(CoralLoss()(logits, targets)) * len(targets)
+            labels, scores = decode_coral(logits)
+        else:
+            total_loss += float(nn.functional.cross_entropy(logits, targets, reduction="sum"))
+            labels, scores = logits.argmax(1), logits.softmax(1)
         truth.extend(targets.cpu().tolist())
-        predicted.extend(logits.argmax(1).cpu().tolist())
-        probabilities.extend(logits.softmax(1).cpu().tolist())
+        predicted.extend(labels.cpu().tolist())
+        probabilities.extend(scores.cpu().tolist())
     return truth, predicted, probabilities, total_loss / len(truth)
 
 
@@ -169,8 +186,31 @@ def verify_crops(manifest):
             raise ValueError("Audited crop bytes have changed")
 
 
+def require_coral_gate(config, manifest, task):
+    if config["train"].get("loss") != "coral" or task == "pore":
+        return
+    path = Path(config["train"]["output"]) / "pore-comparison.json"
+    if task == "all" or not path.is_file():
+        raise ValueError("Train pore first and record its validation comparison before expansion")
+    result = json.loads(path.read_text(encoding="utf-8"))
+    # Use the recorded policy and metrics together, not just a manually changed flag.
+    from .focal_compare import qualifies
+
+    if (
+        result.get("schema") != "nia-coral-validation-v1"
+        or result.get("data_fingerprint") != manifest["fingerprint"]
+        or result.get("selection_policy") != config["comparison"]["policy"]
+        or result.get("test_set_evaluated") is not False
+        or result.get("qualifies_for_expansion") is not True
+        or not qualifies(result["results"]["ce"]["metrics"], result["results"]["coral"]["metrics"])
+    ):
+        raise ValueError("Pore validation must pass the predefined CORAL expansion policy")
+
+
 def train_task(config, manifest, task, device, resume=None):
+    require_coral_gate(config, manifest, task)
     settings, classes = config["train"], TASKS[task]["classes"]
+    ordinal = settings.get("loss") == "coral"
     output = Path(settings["output"]) / task
     if not resume and output.exists():
         raise FileExistsError("Experiment already exists; choose explicit resume or a new output")
@@ -196,7 +236,7 @@ def train_task(config, manifest, task, device, resume=None):
         or not (output / "best.pt").is_file()
     ):
         raise ValueError("Resume requires identical source, data, config, environment and best.pt")
-    model = GradeModel(classes, pretrained=not bool(checkpoint)).to(device)
+    model = GradeModel(classes, pretrained=not bool(checkpoint), ordinal=ordinal).to(device)
     if checkpoint:
         model.network.load_state_dict(checkpoint["model_state"], strict=True)
     initial_weights = (
@@ -252,7 +292,7 @@ def train_task(config, manifest, task, device, resume=None):
             settings["effective_batch"],
             settings["amp"],
         )
-        truth, predicted, _, valid_loss = predict(model, valid_loader, device)
+        truth, predicted, _, valid_loss = predict(model, valid_loader, device, ordinal=ordinal)
         metrics = classification(truth, predicted, classes)
         key = metrics["macro_f1"], -valid_loss
         improved = key > best_key
@@ -277,7 +317,8 @@ def train_task(config, manifest, task, device, resume=None):
         history.append(row)
         saved = dict(
             schema="nia-smartphone-training-v1",
-            architecture="resnet50",
+            architecture=CORAL_ARCHITECTURE if ordinal else "resnet50",
+            decoding=DECODING if ordinal else "softmax_argmax",
             task=task,
             training_device="smartphone",
             resolution=256,
@@ -297,7 +338,8 @@ def train_task(config, manifest, task, device, resume=None):
             scheduler_state=scheduler.state_dict() if scheduler else None,
             scaler_state=scaler.state_dict(),
             rng_state=capture_rng(generator),
-            selection="validation macro-F1; unweighted validation CE tie-break",
+            selection="validation macro-F1; unweighted validation "
+            + ("threshold BCE tie-break" if ordinal else "CE tie-break"),
             loss_spec=loss_spec,
         )
         save_checkpoint(output / "last.pt", saved)
@@ -313,6 +355,7 @@ def train_task(config, manifest, task, device, resume=None):
         for k in (
             "schema",
             "architecture",
+            "decoding",
             "task",
             "training_device",
             "resolution",
@@ -362,6 +405,7 @@ def main():
     if args.resume and args.task == "all":
         raise ValueError("Resume one explicitly selected task at a time")
     manifest = load_manifest(config)
+    require_coral_gate(config, manifest, args.task)
     verify_crops(manifest)
     device = select_cuda(settings["device_uuid"])
     torch.set_num_threads(4)
