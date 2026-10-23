@@ -6,9 +6,11 @@ Run from repo root: uv run --project ml python -m ml.scripts.report_sam_experime
 import argparse
 import json
 import math
+import statistics
 from pathlib import Path
 
 import torch
+from server.nia.engine import Engine
 from torchvision.models import ResNet50_Weights, resnet50
 
 from skin_analysis.config import PROJECT_ROOT
@@ -99,6 +101,26 @@ def evaluate():
         assert checkpoint["initialization"] == baseline["initialization"]
         assert checkpoint["environment"]["packages"] == baseline["environment"]["packages"]
         verification = {}
+        history = json.loads((path / "history.json").read_text(encoding="utf-8"))
+        selected_bn_updates = sorted(
+            {
+                int(v - initial[k])
+                for k, v in checkpoint["model_state"].items()
+                if k.endswith("num_batches_tracked")
+            }
+        )
+        if name == "ce_batch16":
+            selected_rows = history[: checkpoint["epoch"] + 1]
+            normal = sum(
+                math.ceil(len(data["train"]) / 16) for r in selected_rows if r["stage"] != "head"
+            )
+            retries = sum(r["amp_overflow_retries"] for r in selected_rows if r["stage"] != "head")
+            assert selected_bn_updates == [normal + retries]
+            verification = dict(
+                selected_bn_updates_per_layer=selected_bn_updates[0],
+                selected_normal_bn_updates=normal,
+                selected_extra_bn_updates_from_legacy_amp_retries=retries,
+            )
         if name == "sam_adamw":
             best = torch.load(path / "best.pt", map_location="cpu", weights_only=True)
             last = torch.load(path / "last.pt", map_location="cpu", weights_only=True)
@@ -114,6 +136,10 @@ def evaluate():
             counts = [k for k in initial if k.endswith("num_batches_tracked")]
             assert all(int(last["model_state"][k] - initial[k]) == expected for k in counts)
             assert all(r["sam_steps"] == math.ceil(len(data["train"]) / 16) for r in rows)
+            assert all(
+                int(state["step"]) == expected
+                for state in last["optimizer_state"]["state"].values()
+            )
             verification = dict(
                 bn_layers_checked=len(counts),
                 bn_updates_per_layer=expected,
@@ -121,7 +147,11 @@ def evaluate():
                 adamw_steps_per_epoch=rows[0]["sam_steps"],
                 amp_overflow_retries=sum(r["amp_overflow_retries"] for r in rows),
                 export_matches_selected_weights=True,
+                selected_bn_updates_per_layer=selected_bn_updates[0],
             )
+            assert selected_bn_updates == [
+                sum(r["sam_steps"] for r in rows[: checkpoint["epoch"] + 1] if r["stage"] != "head")
+            ]
             del best, last
         network = resnet50(weights=None, num_classes=6)
         network.load_state_dict(checkpoint["model_state"], strict=True)
@@ -131,6 +161,13 @@ def evaluate():
             epochs_run=summary["epochs_run"],
             sha256=summary["sha256"],
             verification=verification,
+            timing=dict(
+                recorded_epoch_seconds=sum(r["seconds"] for r in history),
+                median_finetune_epoch_seconds=statistics.median(
+                    r["seconds"] for r in history if r["stage"] != "head"
+                ),
+                excludes="train-eval and checkpoint IO; epoch sum includes loader startup",
+            ),
             splits={},
         )
         for split, loader in loaders.items():
@@ -163,6 +200,28 @@ def evaluate():
         del network, checkpoint
         torch.cuda.empty_cache()
     assert before == {p: file_hash(p) for p in before}
+    service_config = json.loads(
+        (PROJECT_ROOT.parent / "server/nia/config.local.json").read_text(encoding="utf-8")
+    )
+    model_config = next(c for c in service_config["models"] if c["task"] == "class/pore").copy()
+    model_config.update(
+        id="pore-sam-comparison",
+        checkpoint=str(ROOT / "pore/inference.bin"),
+        sha256=results["sam_adamw"]["sha256"],
+        source="Local SAM comparison; not activated",
+    )
+    engine = Engine(model_config)
+    engine.device = torch.device("cpu")
+    metadata = engine.load()
+    with torch.inference_mode():
+        output = engine.model(torch.zeros(1, 3, 256, 256))
+    assert output.shape == (1, 6) and torch.isfinite(output).all()
+    loader_verification = dict(
+        strict_service_loader_passed=True,
+        dummy_shape=list(output.shape),
+        device=metadata["device"],
+        service_config_modified=False,
+    )
     write_json(
         ROOT / "comparison.json",
         dict(
@@ -172,6 +231,7 @@ def evaluate():
             test_set_evaluated=False,
             condition_check="passed",
             optimization_spec=optimization_spec(config["train"]),
+            loader_verification=loader_verification,
             preservation=dict(files=len(before), passed=True),
             results=results,
         ),
@@ -194,8 +254,15 @@ def publish():
         ),
         "sam_adamw": json.loads((ROOT / "pore/history.json").read_text(encoding="utf-8")),
     }
-    write_json(REPORT.with_suffix(".metrics.json"), dict(**result, histories=histories))
-    fig, axes = plt.subplots(2, 2, figsize=(11, 8), constrained_layout=True)
+    wall_time = json.loads((ROOT / "wall-time.json").read_text(encoding="utf-8"))
+    assert wall_time["exit_code"] == 0
+    write_json(
+        REPORT.with_suffix(".metrics.json"),
+        dict(**result, histories=histories, sam_training_wall_seconds=wall_time["seconds"]),
+    )
+    fig, axes = plt.subplots(
+        2, 2, figsize=(11, 8), constrained_layout=True, sharex=True, sharey="row"
+    )
     for column, (name, rows) in enumerate(histories.items()):
         for ax, train, valid, title in (
             (axes[0, column], "train_eval_macro_f1", "valid_macro_f1", "Macro F1"),
