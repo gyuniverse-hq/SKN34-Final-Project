@@ -27,6 +27,7 @@ from .common import (
     write_json,
 )
 from .data import GradeDataset
+from .losses import ClassBalancedFocalLoss
 
 
 class GradeModel(nn.Module):
@@ -59,6 +60,37 @@ def class_weights(labels, classes, cap):
     weights = np.sqrt(len(labels) / counts)
     weights /= np.dot(weights, counts / len(labels))
     return torch.tensor(np.minimum(weights, cap), dtype=torch.float32)
+
+
+def criterion_for(labels, classes, settings, device):
+    kind = settings.get("loss", "weighted_cross_entropy")
+    counts = np.bincount(labels, minlength=classes).tolist()
+    if kind == "weighted_cross_entropy":
+        weight = class_weights(labels, classes, settings["class_weight_cap"])
+        criterion = nn.CrossEntropyLoss(weight=weight.to(device))
+        specification = dict(
+            kind=kind,
+            counts=counts,
+            weights=weight.tolist(),
+            reduction="sum_weighted_ce / sum_target_weights",
+        )
+    elif kind == "class_balanced_focal":
+        criterion = ClassBalancedFocalLoss(
+            counts, beta=settings["cb_beta"], gamma=settings["focal_gamma"]
+        ).to(device)
+        specification = dict(
+            kind=kind,
+            counts=counts,
+            weights=criterion.weight.cpu().tolist(),
+            beta=settings["cb_beta"],
+            gamma=settings["focal_gamma"],
+            formulation="exclusive_multiclass_softmax",
+            reduction="sum_alpha_modulated_ce / sum_target_alpha",
+            legacy_sqrt_class_weights_used=False,
+        )
+    else:
+        raise ValueError("Unknown smartphone training loss")
+    return criterion, specification
 
 
 def make_loader(data, settings, generator=None, training=False):
@@ -185,10 +217,9 @@ def train_task(config, manifest, task, device, resume=None):
     validation = GradeDataset(manifest, task, "valid")
     train_loader = make_loader(training, settings, generator, training=True)
     valid_loader = make_loader(validation, settings)
-    weights = class_weights(
-        [r["truth"] for r in training.records], classes, settings["class_weight_cap"]
+    criterion, loss_spec = criterion_for(
+        [r["truth"] for r in training.records], classes, settings, device
     )
-    criterion = nn.CrossEntropyLoss(weight=weights.to(device))
     scaler = torch.amp.GradScaler("cuda", enabled=settings["amp"])
     start = checkpoint["epoch"] + 1 if checkpoint else 0
     history = checkpoint["history"] if checkpoint else []
@@ -267,6 +298,7 @@ def train_task(config, manifest, task, device, resume=None):
             scaler_state=scaler.state_dict(),
             rng_state=capture_rng(generator),
             selection="validation macro-F1; unweighted validation CE tie-break",
+            loss_spec=loss_spec,
         )
         save_checkpoint(output / "last.pt", saved)
         if improved:
@@ -292,6 +324,7 @@ def train_task(config, manifest, task, device, resume=None):
             "environment",
             "epoch",
             "selection",
+            "loss_spec",
         )
     }
     exported["kind"] = "inference"
