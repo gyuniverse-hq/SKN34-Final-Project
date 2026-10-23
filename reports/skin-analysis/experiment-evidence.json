@@ -32647,7 +32647,12 @@
     ],
     "planned_files": 225,
     "planned_bytes": 11883545160,
-    "note": "Raw data and active model references excluded. Historical experiment resume checkpoints are retired."
+    "note": "Raw data and active model references excluded. Historical experiment resume checkpoints are retired.",
+    "completed": true,
+    "removed_files": 226,
+    "removed_bytes": 11883552096,
+    "protected_hashes_verified": true,
+    "retired_smoke_record_removed": true
   },
   "retired_bundle_manifest": {
     "schema": "skin-recommendation-models-v1",
