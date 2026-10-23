@@ -1,0 +1,1 @@
+{{ include "vishue.backend" (dict "root" $ "component" "api" "svc" .Values.api "migrate" .Values.api.migrateOnStart) }}

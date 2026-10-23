@@ -1,0 +1,39 @@
+# kind cluster. Install with release name "vishue" (the URLs below use it):
+#   helm upgrade --install vishue infra/helm/vishue -n vishue --create-namespace -f infra/helm/vishue/values-local.yaml
+env: local
+
+image:
+  registry: ""
+  tag: dev
+  # Images are built locally and loaded with `kind load docker-image`.
+  pullPolicy: Never
+
+api:
+  replicas: 1
+  autoscaling: { enabled: false }
+
+chatbot:
+  replicas: 1
+  autoscaling: { enabled: false }
+  env:
+    NEO4J_URI: bolt://vishue-neo4j:7687
+
+syncGraph:
+  schedule: "*/10 * * * *"
+
+podDisruptionBudget:
+  enabled: false
+
+dataStores:
+  inCluster: true
+
+# Local throwaway credentials only. Pass a real LLM key with --set secrets.chatbot.LLM_API_KEY=...
+secrets:
+  create: true
+  api:
+    DATABASE_URL: postgresql+asyncpg://vishue:vishue@vishue-postgres:5432/vishue
+    REDIS_URL: redis://vishue-redis:6379/0
+  chatbot:
+    NEO4J_PASSWORD: vishue-local
+    REDIS_URL: redis://vishue-redis:6379/1
+    LLM_API_KEY: ""

@@ -24,7 +24,7 @@ function layer(files, patterns, ignores) {
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ["dist/*", "**/.venv/**", "ml/runs/**", "nia-private/**", "final_venv/**",
+    ignores: ["dist/*", "backend/**", "**/.venv/**", "ml/runs/**", "nia-private/**", "final_venv/**",
       "data/028.*/**", "data/14.*/**", "data/Skin-Problem-MultiLabel/**"],
   },
 

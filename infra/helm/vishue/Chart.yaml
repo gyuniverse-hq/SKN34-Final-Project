@@ -1,0 +1,6 @@
+apiVersion: v2
+name: vishue
+description: VISHUE backend on Kubernetes (api, chatbot, graph sync, gateway routes)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

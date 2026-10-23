@@ -1,0 +1,13 @@
+# Local Kubernetes that mirrors production topology: two worker nodes in two "zones",
+# so topologySpreadConstraints place api/chatbot replicas the same way they will on EKS.
+#   kind create cluster --name vishue --config infra/kind/cluster.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+  - role: worker
+    labels:
+      topology.kubernetes.io/zone: zone-a
+  - role: worker
+    labels:
+      topology.kubernetes.io/zone: zone-b

@@ -1,0 +1,107 @@
+# Defaults are production-shaped. values-local.yaml (kind) and values-prod.yaml (EKS) override them.
+
+env: production
+
+image:
+  registry: ghcr.io/gyuniverse-hq
+  # Immutable git SHA tag, written by the image workflow's bump PR. Empty falls back to appVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+  # Needed only while the GHCR packages are private, e.g. [{ name: ghcr-pull }].
+  pullSecrets: []
+
+# Public by design (the app ships the same values as EXPO_PUBLIC_SUPABASE_*). Used to verify tokens.
+supabase:
+  url: ""
+  publishableKey: ""
+
+api:
+  image: vishue-api
+  replicas: 2
+  # Runs `alembic upgrade head` as an initContainer (serialized by a PostgreSQL advisory lock).
+  migrateOnStart: true
+  resources:
+    requests: { cpu: 100m, memory: 192Mi }
+    limits: { memory: 384Mi }
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  env:
+    LOG_LEVEL: INFO
+    CATALOG_CACHE_SECONDS: "300"
+
+chatbot:
+  image: vishue-chatbot
+  replicas: 2
+  resources:
+    requests: { cpu: 100m, memory: 192Mi }
+    limits: { memory: 384Mi }
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+  env:
+    LOG_LEVEL: INFO
+    NEO4J_URI: ""
+    NEO4J_USER: neo4j
+    LLM_BASE_URL: https://api.openai.com/v1
+    LLM_MODEL: ""
+    CHAT_REQUESTS_PER_MINUTE: "10"
+
+# PostgreSQL -> Neo4j copy (through the api service). Also runs once after every deploy.
+syncGraph:
+  schedule: "*/30 * * * *"
+  runAfterDeploy: true
+
+gateway:
+  enabled: true
+  className: eg
+  hostname: ""
+  tls:
+    enabled: false
+    certificateSecret: ""
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  # Namespace where the Gateway's data plane (Envoy proxies) runs.
+  gatewayNamespace: envoy-gateway-system
+
+# Secret keys per service (least privilege: the LLM key exists only in the chatbot's Secret).
+#   api:     DATABASE_URL, REDIS_URL
+#   chatbot: NEO4J_PASSWORD, REDIS_URL, LLM_API_KEY
+secrets:
+  # Local only: render Secrets from the values below. Production uses externalSecrets.
+  create: false
+  api: {}
+  chatbot: {}
+
+externalSecrets:
+  enabled: false
+  refreshInterval: 1h
+  storeRef:
+    kind: ClusterSecretStore
+    name: aws-secrets-manager
+  # Each remote secret is a JSON object whose properties become the Secret's keys.
+  apiKey: vishue/production/api
+  chatbotKey: vishue/production/chatbot
+
+# Local only. Production uses managed services (RDS PostgreSQL, ElastiCache, Neo4j AuraDB).
+dataStores:
+  inCluster: false
+  postgres:
+    image: postgres:17-alpine
+    storage: 2Gi
+    password: vishue
+  redis:
+    image: redis:7-alpine
+  neo4j:
+    image: neo4j:5-community
+    storage: 2Gi
+    password: vishue-local

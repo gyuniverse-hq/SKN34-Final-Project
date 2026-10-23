@@ -1,0 +1,66 @@
+{{- $name := printf "%s-chatbot" (include "vishue.fullname" .) -}}
+{{- define "vishue.syncGraphPod" -}}
+metadata:
+  labels:
+    {{- include "vishue.selector" (dict "root" .root "component" "sync-graph") | nindent 4 }}
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  {{- include "vishue.imagePullSecrets" .root | nindent 2 }}
+  {{- include "vishue.podSecurityContext" . | nindent 2 }}
+  containers:
+    - name: sync-graph
+      image: {{ include "vishue.image" (dict "root" .root "name" .root.Values.chatbot.image) }}
+      imagePullPolicy: {{ .root.Values.image.pullPolicy }}
+      command: ["python", "-m", "app.jobs.sync_graph"]
+      env:
+        - name: CATALOG_API_URL
+          value: http://{{ include "vishue.fullname" .root }}-api:8000
+      {{- include "vishue.envFrom" (dict "name" .name) | nindent 6 }}
+      resources:
+        requests: { cpu: 50m, memory: 128Mi }
+        limits: { memory: 256Mi }
+      {{- include "vishue.containerSecurityContext" . | nindent 6 }}
+      volumeMounts:
+        - { name: tmp, mountPath: /tmp }
+  volumes:
+    - name: tmp
+      emptyDir:
+        sizeLimit: 16Mi
+{{- end -}}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "vishue.fullname" . }}-sync-graph
+  labels:
+    {{- include "vishue.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.syncGraph.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 600
+      ttlSecondsAfterFinished: 3600
+      template:
+        {{- include "vishue.syncGraphPod" (dict "root" $ "name" $name) | nindent 8 }}
+{{- if .Values.syncGraph.runAfterDeploy }}
+---
+# Argo CD maps these Helm hooks to PostSync, so the graph refreshes after every rollout.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "vishue.fullname" . }}-sync-graph-post-deploy
+  labels:
+    {{- include "vishue.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 600
+  template:
+    {{- include "vishue.syncGraphPod" (dict "root" $ "name" $name) | nindent 4 }}
+{{- end }}
