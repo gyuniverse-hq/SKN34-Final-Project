@@ -30,6 +30,7 @@ from .coral import ARCHITECTURE as CORAL_ARCHITECTURE
 from .coral import DECODING, CoralHead, CoralLoss, decode_coral
 from .data import GradeDataset
 from .losses import ClassBalancedFocalLoss
+from .ordinal_loss import WeightedOrdinalCdfLoss
 from .sam import optimization_spec
 from .sam import train_epoch as sam_train_epoch
 
@@ -95,6 +96,19 @@ def criterion_for(labels, classes, settings, device):
             counts=counts,
             weights=weight.tolist(),
             reduction="sum_weighted_ce / sum_target_weights",
+        )
+    elif kind == "weighted_ordinal_cdf":
+        weight = class_weights(labels, classes, settings["class_weight_cap"])
+        criterion = WeightedOrdinalCdfLoss(weight).to(device)
+        specification = dict(
+            kind=kind,
+            counts=counts,
+            weights=weight.tolist(),
+            formulation="sum_squared_cdf_distance_over_K_minus_1_boundaries",
+            reduction="sum_alpha_cdf_distance / sum_target_alpha",
+            boundary_weights="uniform_unit_cost_not_physical_distances",
+            cross_entropy_component=False,
+            decoding="softmax_argmax_unchanged",
         )
     elif kind == "class_balanced_focal":
         criterion = ClassBalancedFocalLoss(
