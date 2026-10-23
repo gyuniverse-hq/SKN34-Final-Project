@@ -10,7 +10,10 @@ const original = config.resolver.blockList;
 // them outside Metro's file map prevents ML writes from flooding its watcher.
 config.resolver.blockList = [
   ...(Array.isArray(original) ? original : original ? [original] : []),
-  ...['ml', 'nia-private', 'final_venv', 'server/nia/.venv'].map(directory),
+  ...[
+    'ml', 'nia-private', 'final_venv', 'server/nia/.venv',
+    'backend/api/.venv', 'backend/chatbot/.venv',
+  ].map(directory),
   new RegExp(`^${escape(path.resolve(__dirname, 'data'))}[/\\\\](?!catalog(?:[/\\\\]|$))`),
 ];
 

@@ -1,5 +1,16 @@
 # NIA 원본 모델 평가 환경
 
+현재 개발 테스트 페이지는 최종 **WCE+AdamW+SAM** 모공·색소침착·주름 가중치를 사용한다.
+로컬 설정은 `ml/runs/nia-smartphone-sam-seed-42/recommendation-bundle/`의 가중치를
+참조하며 여드름 모델은 기존 선택본을 유지한다. 변경 전 설정은 같은 run의
+`config.before-test-page.json`에 보존했다. 새 장비에서는 가중치 묶음과 로컬 설정을
+별도로 준비해야 한다. 이 파일들은 Git에 포함되지 않는다.
+
+이 화면은 같은 Expo 프로젝트 안의 개발 전용 도구다. `/dev/nia` 화면은 `__DEV__`로,
+`/api/dev/nia/*`는 `NODE_ENV=development`로 제한한다. 운영 화면·추천 로직이나
+Expo 기기 내 추론 연결을 변경한 작업은 아니다. 현재 로컬 주소는
+`http://localhost:8083/dev/nia`다.
+
 2026-10-23 후속 작업에서 로컬 설정의 모공·색소침착·주름 분류 모델을 스마트폰 전용
 학습 결과로 교체했습니다. 여드름과 그 외 원본 진단 모델은 보존합니다.
 최신 가중치·분할·성능은 [스마트폰 학습 보고서](smartphone-training.md)를 참고하세요.
