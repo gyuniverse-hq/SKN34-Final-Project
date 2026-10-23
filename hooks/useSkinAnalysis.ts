@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
-import { analyzeSkin, cancelSkinAnalysis, onSkinProgress } from '@/lib/skinAnalysis';
+import { analyzeSkin, cancelSkinAnalysis, onSkinProgress, createSkinWebRun, skinAnalysisUsesWebView } from '@/lib/skinAnalysis';
 import { appendSkinTiming, validateSkinAnalysis } from '@/lib/skinProfile';
 import { useSkinProfileStore } from '@/store/skinProfileStore';
-import type { SkinAnalysisResult, SkinCameraEvent, SkinIndicator, SkinQuestionnaire } from '@/types/skin';
+import type { SkinAnalysisResult, SkinCameraEvent, SkinIndicator, SkinQuestionnaire, SkinWebRun, SkinWebEvent } from '@/types/skin';
 
 export function useSkinAnalysis() {
   const [phase, setPhase] = useState<'ready' | 'camera' | 'analysis' | 'survey' | 'saving' | 'done' | 'error'>('ready');
@@ -11,7 +11,8 @@ export function useSkinAnalysis() {
   const [indicator, setIndicator] = useState<SkinIndicator>('acne');
   const [result, setResult] = useState<SkinAnalysisResult>();
   const [answers, setAnswers] = useState<Partial<SkinQuestionnaire>>({});
-  const [error, setError] = useState<'analysis' | 'storage' | 'model' | null>(null);
+  const [error, setError] = useState<'analysis' | 'storage' | 'model' | 'permission' | null>(null);
+  const [webRun, setWebRun] = useState<SkinWebRun>();
   const generation = useRef(0);
   const captureClaimed = useRef(false);
   const receivedAt = useRef(0);
@@ -26,6 +27,7 @@ export function useSkinAnalysis() {
     void cancelSkinAnalysis().catch(() => {});
     setPhase('ready');
     setResult(undefined); setAnswers({}); setError(null);
+    setWebRun(undefined);
   }, []);
 
   useEffect(() => {
@@ -58,6 +60,22 @@ export function useSkinAnalysis() {
     });
   }, [phase, renderGeneration]);
 
+  const onWebEvent = useCallback((event: SkinWebEvent) => {
+    if (!webRun || renderGeneration !== generation.current || !['camera', 'analysis'].includes(phase)) return;
+    if (event.type === 'camera' && phase === 'camera') setCamera(event.state);
+    else if (event.type === 'captured') setPhase('analysis');
+    else if (event.type === 'progress') setIndicator(event.indicator);
+    else if (event.type === 'error') {
+      setError(event.code === 'permission' ? 'permission' : event.code === 'model' ? 'model' : 'analysis');
+      setPhase('error');
+    } else if (event.type === 'result') {
+      try {
+        validateSkinAnalysis(event.result);
+        receivedAt.current = performance.now(); setResult(event.result); setPhase('survey');
+      } catch { setError('model'); setPhase('error'); }
+    }
+  }, [webRun, phase, renderGeneration]);
+
   // Include the JS handoff up to the first survey layout in the user-visible wait.
   useLayoutEffect(() => {
     if (phase !== 'survey' || !result || recorded.current === result.timing.runId) return;
@@ -77,6 +95,7 @@ export function useSkinAnalysis() {
     captureClaimed.current = false;
     setAnswers({}); setResult(undefined); setError(null);
     setCamera({ guidance: 'noFace', progress: 0 });
+    setWebRun(skinAnalysisUsesWebView ? createSkinWebRun() : undefined);
     setPhase('camera');
   };
 
@@ -93,5 +112,5 @@ export function useSkinAnalysis() {
     finally { saving.current = false; }
   };
 
-  return { phase, camera, indicator, answers, setAnswers, error, complete, start, onCapture, finish, cancel };
+  return { phase, camera, indicator, answers, setAnswers, error, complete, start, onCapture, finish, cancel, webRun, onWebEvent };
 }

@@ -9,7 +9,7 @@ import { SkinSurvey } from '@/components/skin/SkinSurvey';
 import { theme } from '@/constants/theme';
 import { useSkinAnalysis } from '@/hooks/useSkinAnalysis';
 import { useI18n } from '@/lib/i18n';
-import { skinAnalysisSupported } from '@/lib/skinAnalysis';
+import { skinAnalysisSupported, skinAnalysisUsesWebView } from '@/lib/skinAnalysis';
 
 export default function SkinAnalysisScreen() {
   const { t } = useI18n();
@@ -32,19 +32,21 @@ export default function SkinAnalysisScreen() {
   }
   return <SafeAreaView edges={['bottom']} style={styles.screen}>
     <Stack.Screen options={{ title: t('skin.title'), headerBackVisible: false, gestureEnabled: false }} />
+    {(flow.phase === 'camera' || (flow.phase === 'analysis' && flow.webRun)) && <SkinCamera
+      state={flow.camera} onCapture={flow.onCapture} webRun={flow.webRun} onWebEvent={flow.onWebEvent} analyzing={flow.phase === 'analysis'} />}
     {!skinAnalysisSupported ? <View style={styles.center}>
       <Text style={styles.body}>{t('skin.unsupported')}</Text>
     </View> : flow.phase === 'ready' ? <View style={styles.center}>
       <Text style={styles.title}>{t('skin.title')}</Text>
       <Text style={styles.body}>{t('skin.instructions')}</Text>
       <Text style={styles.body}>{t('skin.localNotice')}</Text>
+      {skinAnalysisUsesWebView && <Text style={styles.help}>{t('skin.expoHelp')}</Text>}
       {permission && !permission.granted && !permission.canAskAgain ? <>
         <Text style={styles.body}>{t('skin.permissionDenied')}</Text>
         <Button label={t('skin.openSettings')} onPress={() => { void Linking.openSettings(); }} />
       </> : <Button label={t('skin.start')} onPress={() => { void begin(); }} />}
     </View> : flow.phase === 'camera' ? <>
       <Text style={styles.help}>{t('skin.instructions')}</Text>
-      <SkinCamera state={flow.camera} onCapture={flow.onCapture} />
     </> : flow.phase === 'analysis' ? <View style={styles.center}>
       <ActivityIndicator size="large" color={theme.colors.rose} />
       <Text style={styles.title}>{t('skin.analyzing')}</Text>
@@ -55,8 +57,9 @@ export default function SkinAnalysisScreen() {
         <Text accessibilityRole="header" style={styles.title}>{t('skin.completed')}</Text>
         <Button label={t('skin.confirm')} onPress={leave} />
       </View> : <View style={styles.center}>
-        <Text accessibilityRole="alert" style={styles.body}>{t(flow.error === 'model' ? 'skin.modelFailed' : 'skin.analysisFailed')}</Text>
-        {flow.error !== 'model' && <Button label={t('skin.retry')} onPress={() => { void begin(); }} />}
+        <Text accessibilityRole="alert" style={styles.body}>{t(flow.error === 'permission' ? 'skin.permissionDenied' : flow.error === 'model' ? 'skin.modelFailed' : 'skin.analysisFailed')}</Text>
+        {flow.error === 'permission' && <Button label={t('skin.openSettings')} onPress={() => { void Linking.openSettings(); }} />}
+        <Button label={t('skin.retry')} onPress={() => { void begin(); }} />
       </View>}
     {flow.phase !== 'done' && <Button variant="ghost" label={t('common.cancel')} disabled={flow.phase === 'saving'} onPress={leave} />}
   </SafeAreaView>;

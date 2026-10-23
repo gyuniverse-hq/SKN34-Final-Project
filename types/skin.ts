@@ -14,6 +14,8 @@ export interface SkinModelTiming {
   validationMs: number;
   preprocessingMs: number;
   inferenceMs: number;
+  downloadMs?: number;
+  cacheHit?: boolean;
 }
 
 export interface SkinTiming {
@@ -32,7 +34,9 @@ export interface SkinTiming {
   detectionMs: number;
   nativeMs: number;
   totalMs: number;
-  memoryPssKb: number;
+  memoryPssKb: number | null;
+  startupMs?: number;
+  jpegFixtureMaxError?: number;
   models: SkinModelTiming[];
 }
 
@@ -54,6 +58,7 @@ export interface SkinAnalysisResult {
   acneThreshold: number;
   roiMethod: 'opencv_haar_facebox_proportions_v1';
   validationStatus: 'experimental_unvalidated';
+  preprocessing?: 'opencv4.12-turbojpeg95-wasm-v1';
   timing: SkinTiming;
 }
 
@@ -64,10 +69,20 @@ export interface SkinProfile {
   questionnaire: SkinQuestionnaire;
 }
 
-export type SkinGuidance = 'noFace' | 'multipleFaces' | 'center' | 'distance' | 'forehead' | 'straight' | 'hold' | 'capturing' | 'cameraError';
+export type SkinGuidance = 'loading' | 'noFace' | 'multipleFaces' | 'center' | 'distance' | 'forehead' | 'straight' | 'hold' | 'capturing' | 'cameraError';
 export interface SkinCameraEvent {
   guidance: SkinGuidance;
   progress: number;
   /** Opaque identifier, never a photo URI or base64 image. */
   captureId?: string;
 }
+
+export interface SkinWebRun {
+  assetsUrl: string;
+  run: { runId: string; processId: string; firstInProcess: boolean; device: string; androidVersion: string; build: string };
+}
+export type SkinWebEvent = { type: 'camera'; state: SkinCameraEvent }
+  | { type: 'captured' }
+  | { type: 'progress'; indicator: SkinIndicator }
+  | { type: 'result'; result: SkinAnalysisResult }
+  | { type: 'error'; code: 'photo' | 'permission' | 'model' };

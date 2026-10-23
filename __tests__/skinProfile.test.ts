@@ -7,9 +7,12 @@ import { createElement } from 'react';
 import { act, create } from 'react-test-renderer';
 import { useSkinAnalysis } from '@/hooks/useSkinAnalysis';
 import { analyzeSkin } from '@/lib/skinAnalysis';
+import * as skinRuntime from '@/lib/skinAnalysis';
 
 jest.mock('@/lib/skinAnalysis', () => ({
+  __esModule: true,
   analyzeSkin: jest.fn(), cancelSkinAnalysis: jest.fn(() => Promise.resolve()), onSkinProgress: jest.fn(),
+  skinAnalysisUsesWebView: false, createSkinWebRun: jest.fn(),
 }));
 
 function timing(id = 'run'): SkinTiming {
@@ -130,4 +133,36 @@ it('ignores a late native result after cancellation', async () => {
     expect(useSkinProfileStore.getState().profile).toBeNull();
     expect(await readSkinTimings()).toEqual([]);
   } finally { await act(async () => { renderer.unmount(); }); }
+});
+
+it('accepts WebView camera results without native inference and ignores events from a cancelled run', async () => {
+  const property = jest.replaceProperty(skinRuntime, 'skinAnalysisUsesWebView', true);
+  jest.mocked(skinRuntime.createSkinWebRun).mockReturnValue({ assetsUrl: 'http://localhost:8081/skin-runtime/',
+    run: { runId: 'web-run', processId: 'js-session', firstInProcess: true, device: 'test', androidVersion: 'android 36', build: 'expo-go' } });
+  let flow!: ReturnType<typeof useSkinAnalysis>;
+  function Harness() { flow = useSkinAnalysis(); return null; }
+  let renderer!: ReturnType<typeof create>;
+  await act(async () => { renderer = create(createElement(Harness)); });
+  try {
+    await act(async () => { await flow.start(); });
+    expect(flow.webRun?.run.runId).toBe('web-run');
+    await act(async () => { flow.onWebEvent({ type: 'captured' }); });
+    expect(flow.phase).toBe('analysis');
+    const late = flow.onWebEvent;
+    await act(async () => { flow.cancel(); });
+    await act(async () => { late({ type: 'result', result: analysis() }); });
+    expect(flow.phase).toBe('ready');
+    await act(async () => { await flow.start(); });
+    await act(async () => { flow.onWebEvent({ type: 'captured' }); });
+    const web = { ...analysis(), preprocessing: 'opencv4.12-turbojpeg95-wasm-v1' as const,
+      timing: { ...timing('web'), runtime: 'wasm-cpu', memoryPssKb: null } };
+    await act(async () => { flow.onWebEvent({ type: 'result', result: web }); });
+    expect(flow.phase).toBe('survey');
+    expect(analyzeSkin).not.toHaveBeenCalled();
+    await act(async () => { flow.setAnswers({ tightness: 0, oiliness: 'unknown', sensitivity: 2 }); });
+    await act(async () => { await flow.finish(); });
+    expect(flow.phase).toBe('done');
+    expect((await readSkinProfile())?.analysis.preprocessing).toBe(web.preprocessing);
+    expect((await readSkinProfile())?.analysis.timing.memoryPssKb).toBeNull();
+  } finally { await act(async () => { renderer.unmount(); }); property.restore(); }
 });

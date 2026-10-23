@@ -10,6 +10,7 @@ const FEATURE_MAX: Record<keyof SkinAnalysisResult['features'], number> = {
 };
 
 export function validateSkinAnalysis(result: SkinAnalysisResult): void {
+  if (result.preprocessing !== undefined && result.preprocessing !== 'opencv4.12-turbojpeg95-wasm-v1') throw new Error('skin.analysisFailed');
   if (result.schema !== 'skin-analysis-mobile-v1' || !result.features ||
       Object.keys(result.features).length !== 10 || Object.entries(FEATURE_MAX).some(([key, max]) => {
         const value = result.features[key as keyof typeof FEATURE_MAX];

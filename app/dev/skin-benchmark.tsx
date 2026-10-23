@@ -30,11 +30,17 @@ export default function SkinBenchmarkScreen() {
         </View>;
       })}
       {comparable.map(row => <View key={row.runId} style={styles.card}>
-        <Text selectable>{row.device} · Android {row.androidVersion} · {row.build}</Text>
-        <Text selectable>{row.totalMs.toFixed(0)} ms · PSS {row.memoryPssKb} KB · {t(row.firstInProcess ? 'skin.processFirst' : 'skin.processRepeat')}</Text>
+        <Text selectable>{row.device} · {row.androidVersion} · {row.build}</Text>
+        <Text selectable>{row.runtime}</Text>
+        {row.startupMs !== undefined && <Text>{t('skin.startupTiming', { ms: row.startupMs.toFixed(0) })}</Text>}
+        <Text selectable>{row.totalMs.toFixed(0)} ms · PSS {row.memoryPssKb === null ? t('skin.memoryUnavailable') : `${row.memoryPssKb} KB`} · {t(row.firstInProcess ? 'skin.processFirst' : 'skin.processRepeat')}</Text>
         {row.models.map(model => <Text selectable key={model.indicator}>{t('skin.timingRow', {
           indicator: model.indicator, load: model.loadMs.toFixed(0), prepare: model.preprocessingMs.toFixed(0), infer: model.inferenceMs.toFixed(0),
         })}</Text>)}
+        {row.models.some(model => model.downloadMs !== undefined) && <Text>{t('skin.downloadTiming', {
+          ms: row.models.reduce((sum, model) => sum + (model.downloadMs || 0), 0).toFixed(0),
+        })}</Text>}
+        {row.jpegFixtureMaxError !== undefined && <Text selectable>{t('skin.webPreprocessing', { error: row.jpegFixtureMaxError.toFixed(5) })}</Text>}
       </View>)}
       <Button label={t('skin.start')} onPress={() => router.push('/skin-analysis')} />
       <Button label={t('skin.exportTimings')} disabled={!rows.length} onPress={() => {
