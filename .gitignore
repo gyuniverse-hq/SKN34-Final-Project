@@ -61,6 +61,10 @@ __pycache__/
 /ml/runs/
 /ml/.pytest_cache/
 /ml/.ruff_cache/
+/ml/.uv-cache/
+/ml/.socket-tmp/
+/.gradle-local/
+/modules/skin-analysis/android/src/main/assets/skin/
 /ml/**/__pycache__/
 /ml/configs/evidence.local.json
 /ml/configs/*.local.csv
