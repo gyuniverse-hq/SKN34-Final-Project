@@ -48,7 +48,8 @@ Docs: https://docs.expo.dev/eas/index.md
   - Client: `app/` screens → `hooks/`, `components/` → `lib/`, `store/` → `constants/`, `types/`. Fetch data only in screens or `hooks/`; components receive data via props. `components/ui/` must not read `store/` or `lib/queries`.
   - Server: `app/api/` routes (parse, validate, respond) → `server/services/` (business logic) → `server/repositories/` (data access) and `server/clients/` (external APIs; the only place API keys are used) → `server/lib/` (http, cache, env). Routes must not reach repositories, clients, or `data/` directly.
   - Enforced by `no-restricted-imports` in `eslint.config.js`: import other folders via the `@/` alias (no `../`); `./` only within the same folder, and never between `server/clients/` files. Update the doc and the lint config together.
-  - Planned backend (not in the repo yet; see "백엔드 (계획)" in `docs/ARCHITECTURE.md`): Python 3.12 + FastAPI managed with **uv** (add packages with `uv add`, never `pip install`; commit `uv.lock`; run via `uv run`). PostgreSQL (SQLAlchemy 2 + Alembic) is the source of truth; Neo4j is a chatbot-only read copy filled one way from PostgreSQL. Same layering: `routers/` → `services/` → `repositories/`, `clients/` → `core/`.
+  - Backend (see "백엔드" in `docs/ARCHITECTURE.md`, decisions in `docs/adr/`): two FastAPI services, `backend/api` (catalog, shade recommendation, members; owns PostgreSQL) and `backend/chatbot` (chat, PostgreSQL → Neo4j sync job; owns Neo4j). Each is its own **uv** project (add packages with `uv add`, never `pip install`; commit `uv.lock`; run via `uv run`). Layering `jobs/`, `routers/` → `services/` → `repositories/`, `clients/` → `models/` → `schemas/` → `core/`, enforced by import-linter (`uv run lint-imports`). The chatbot reads the catalog only through the api's HTTP contract, never PostgreSQL directly. Backend JSON matches `types/index.ts` (camelCase, `{ error, code }` errors).
+  - Infra: `infra/compose/` (local stack), `infra/helm/vishue/` (one chart; `values-local.yaml` for kind, `values-prod.yaml` for EKS), `infra/argocd/`, `infra/platform/` (cluster-wide prerequisites). Deploys are GitOps: never `kubectl apply` app resources by hand. See `docs/DEPLOYMENT.md`.
   - Never send face video or images to any server. Shade recommendation receives only on-device skin tone values (ITA°, MST level, undertone).
   - Repository functions stay `async` even over static data so a DB can replace them without touching callers. Name files `<subject><Layer>.ts` (e.g. `catalogService.ts`, `naverClient.ts`).
 - API keys are read only by server code (`server/`, `app/api/`) from `.env`. Never prefix secrets with `EXPO_PUBLIC_` and never commit `.env`.
@@ -56,7 +57,7 @@ Docs: https://docs.expo.dev/eas/index.md
 - Auth: Supabase Auth through `lib/auth` (email + code verification, Google via browser redirect; Apple is not connected yet). Read the session with `useAuth()`, never copy it into a Zustand store. `lib/api.ts` attaches the access token; API routes verify it with `getAuthUser()` from `server/lib/auth.ts`.
 - UI text goes through `lib/i18n`. Add every new key to all four dictionaries (`en`, `ko`, `ja`, `zh`); typecheck fails if one is missing.
 - The AR renderer is an HTML string in `components/ar/faceTrackerHtml.ts`; typecheck and lint do not see its script, so run `npm test` after editing it.
-- Run `npm run check` (typecheck + lint + tests) before committing.
+- Run `npm run check` (typecheck + lint + tests) before committing. For backend changes, also run `uv run ruff check . && uv run lint-imports && uv run pytest` in each changed `backend/<service>/`; for chart changes, `helm lint infra/helm/vishue -f infra/helm/vishue/values-<env>.yaml`.
 
 ## Git & GitHub conventions (v1.3 summary)
 

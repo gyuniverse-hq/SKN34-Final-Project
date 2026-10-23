@@ -24,7 +24,7 @@ function layer(files, patterns, ignores) {
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ["dist/*"],
+    ignores: ["dist/*", "backend/**"],
   },
 
   // Client

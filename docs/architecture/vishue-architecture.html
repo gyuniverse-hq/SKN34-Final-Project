@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>VISHUE 시스템 아키텍처</title>
+<style>
+  :root {
+    --ink: #1d2433; --muted: #5b6475; --line: #d6dbe4; --bg: #f6f7fb;
+    --blue: #2f6fed; --blue-bg: #eaf1ff; --green: #1f9d6b; --green-bg: #e7f6ef;
+    --purple: #7a4fd6; --purple-bg: #f1ebff; --orange: #e07b1a; --orange-bg: #fff3e5;
+    --red: #d64545; --red-bg: #fdeceb; --teal: #138a9e; --teal-bg: #e4f5f8; --gray-bg: #f1f3f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { width: 1600px; background: #fff; font-family: "Malgun Gothic", "Segoe UI", sans-serif; color: var(--ink); padding: 28px 32px 24px; font-size: 13px; line-height: 1.45; }
+  header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 18px; }
+  h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.5px; }
+  h1 span { font-weight: 700; color: var(--muted); font-size: 22px; margin-left: 10px; }
+  .sub { color: var(--muted); font-size: 13.5px; margin-top: 4px; }
+  .badge { border: 1.5px solid var(--green); color: var(--green); background: var(--green-bg); border-radius: 8px; padding: 6px 14px; font-weight: 700; font-size: 13px; text-align: right; }
+  .badge small { display: block; color: var(--muted); font-weight: 400; font-size: 11.5px; }
+
+  .section { border: 1.5px solid var(--line); border-radius: 14px; background: var(--bg); padding: 14px 16px 16px; margin-bottom: 14px; }
+  .section > .title { font-weight: 800; font-size: 14.5px; margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+  .num { display: inline-block; background: var(--ink); color: #fff; border-radius: 6px; padding: 1px 7px; font-size: 12px; }
+  .title .hint { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: auto; }
+
+  .box { background: #fff; border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 11px; }
+  .box b { display: block; font-size: 13.5px; margin-bottom: 2px; }
+  .box p { color: var(--muted); font-size: 12px; }
+  .box.blue { border-color: var(--blue); background: var(--blue-bg); }
+  .box.green { border-color: var(--green); background: var(--green-bg); }
+  .box.purple { border-color: var(--purple); background: var(--purple-bg); }
+  .box.orange { border-color: var(--orange); background: var(--orange-bg); }
+  .box.red { border-color: var(--red); background: var(--red-bg); }
+  .box.teal { border-color: var(--teal); background: var(--teal-bg); }
+  .box.gray { background: var(--gray-bg); }
+  .tag { display: inline-block; font-size: 10.5px; font-weight: 700; border-radius: 4px; padding: 0 5px; margin-left: 4px; vertical-align: 1px; }
+  .tag.ok { background: var(--green); color: #fff; }
+  .tag.next { background: #9aa3b2; color: #fff; }
+
+  .main { display: grid; grid-template-columns: 330px 58px 1fr 58px 230px; align-items: stretch; margin-bottom: 14px; }
+  .arrow { display: flex; flex-direction: column; justify-content: center; align-items: center; color: var(--muted); font-size: 11px; text-align: center; gap: 2px; }
+  .arrow .a { font-size: 26px; line-height: 1; color: var(--ink); }
+  .arrow.dash .a { color: var(--muted); }
+  .stack { display: flex; flex-direction: column; gap: 7px; }
+  .privacy { margin-top: 8px; border: 1.5px dashed var(--red); color: var(--red); background: #fff; border-radius: 8px; padding: 6px 9px; font-size: 12px; font-weight: 700; }
+
+  .cluster { border: 2px solid var(--blue); border-radius: 14px; background: #fbfcff; padding: 12px 14px 14px; }
+  .cluster > .title { font-weight: 800; font-size: 14.5px; margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+  .cluster-grid { display: grid; grid-template-columns: 190px 30px 1fr 30px 262px; align-items: stretch; }
+  .ns { border: 1.5px dashed #9fb3d9; border-radius: 10px; padding: 8px; background: #fff; }
+  .ns > .label { font-size: 11px; font-weight: 700; color: var(--blue); margin-bottom: 6px; }
+  .pods { display: flex; gap: 5px; margin-top: 6px; flex-wrap: wrap; }
+  .pod { font-size: 10.5px; border: 1px solid currentColor; border-radius: 5px; padding: 1px 5px; background: #fff; }
+  .sys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 10px; }
+  .sys .box { padding: 6px 9px; }
+
+  .pipeline { display: grid; grid-template-columns: 1fr 26px 1.25fr 26px 1fr 26px 1fr 26px 1fr 26px 1.1fr; align-items: stretch; }
+  .pipeline .arrow .a { font-size: 22px; }
+  .step-n { display: inline-block; width: 18px; height: 18px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 11px; text-align: center; line-height: 18px; margin-right: 4px; }
+
+  .bottom { display: grid; grid-template-columns: 1.15fr 1fr; gap: 14px; }
+  .envs { display: grid; grid-template-columns: 1fr 22px 1fr 22px 1fr; align-items: stretch; }
+  .principles { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .principles .box { padding: 7px 10px; }
+
+  .legend { display: flex; gap: 22px; color: var(--muted); font-size: 12px; align-items: center; margin-top: 4px; flex-wrap: wrap; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 5px; border: 1.5px solid; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>VISHUE <span>시스템 아키텍처</span></h1>
+    <div class="sub">외국인 대상 K-뷰티 쇼핑 앱 · 룩 발견 → AR 가상 메이크업 → 세트 장바구니 → 매장 쇼핑 리스트 / 온라인 구매</div>
+  </div>
+  <div class="badge">Expo SDK 57 · FastAPI · Kubernetes<small>2026.10.23 기준 · SKN34 Final Project</small></div>
+</header>
+
+<div class="main">
+  <!-- 01 Client -->
+  <div class="section" style="margin-bottom:0">
+    <div class="title"><span class="num">01</span> 사용자 기기 · Expo 앱</div>
+    <div class="stack">
+      <div class="box blue"><b>화면 (Expo Router)<span class="tag ok">구현</span></b><p>iOS · Android · Web<br>쇼핑 · 셀럽 룩 · 가상 메이크업 · 장바구니 · 마이</p></div>
+      <div class="box purple"><b>AR 렌더러 · 피부톤 추정<span class="tag ok">구현</span></b><p>MediaPipe 얼굴 랜드마크 · WebGL 립·블러셔·섀도<br>ITA° · MST 단계 · 언더톤을 기기에서 계산</p></div>
+      <div class="box gray"><b>상태 관리</b><p>서버 데이터: react-query · 기기 저장: Zustand<br>(장바구니 · 쇼핑 리스트 · 언어 설정)</p></div>
+      <div class="box gray"><b>다국어 · 로그인</b><p>EN · KO · JA · ZH 자동 감지<br>Supabase Auth (이메일 코드 · Google)</p></div>
+    </div>
+    <div class="privacy">얼굴 영상·이미지는 기기 밖으로 나가지 않음 → 서버에는 피부톤 수치만 전송</div>
+  </div>
+
+  <div class="arrow"><span class="a">→</span>HTTPS<br>JSON<br>Bearer<br>토큰</div>
+
+  <!-- 02 Cluster -->
+  <div class="cluster">
+    <div class="title"><span class="num">02</span> 백엔드 · Kubernetes (운영: AWS EKS 서울 · 로컬: kind)<span style="margin-left:auto;font-weight:400;color:var(--muted);font-size:12px">노드 2대 · 2개 zone에 Pod 분산 배치</span></div>
+    <div class="cluster-grid">
+      <div class="ns">
+        <div class="label">envoy-gateway-system</div>
+        <div class="box teal" style="height:calc(100% - 22px)">
+          <b>Gateway (단일 진입점)</b>
+          <p>Gateway API · Envoy<br>api.&lt;도메인&gt; · TLS<br><br><b style="display:inline;font-size:12px;color:var(--ink)">/api/chat</b> → chatbot<br><b style="display:inline;font-size:12px;color:var(--ink)">/api/*</b> → api<br><br>요청 ID 부여 · 레이트 리밋</p>
+        </div>
+      </div>
+      <div class="arrow"><span class="a">→</span></div>
+      <div class="ns">
+        <div class="label">namespace: vishue</div>
+        <div class="stack">
+          <div class="box green"><b>api · FastAPI<span class="tag ok">구현</span></b><p>카탈로그(제품·셰이드·룩·매장) · 셰이드 추천(CIEDE2000 ΔE) · 회원<br>routers → services → repositories → models → core</p>
+            <div class="pods" style="color:var(--green)"><span class="pod">Pod ① zone-a</span><span class="pod">Pod ② zone-b</span><span class="pod">HPA 2~6</span><span class="pod">initContainer: Alembic 마이그레이션</span></div></div>
+          <div class="box purple"><b>chatbot · FastAPI<span class="tag ok">구현</span></b><p>GraphRAG 챗봇 · 사용자당 분당 10회 제한 · LLM 키는 여기만</p>
+            <div class="pods" style="color:var(--purple)"><span class="pod">Pod ① zone-a</span><span class="pod">Pod ② zone-b</span><span class="pod">HPA 2~4</span></div></div>
+          <div class="box orange"><b>sync-graph · CronJob</b><p>30분마다 + 배포 직후 1회 · api HTTP로 카탈로그를 읽어 Neo4j에 복사</p></div>
+        </div>
+      </div>
+      <div class="arrow"><span class="a">→</span></div>
+      <div class="ns">
+        <div class="label">데이터 저장소 (운영: 관리형)</div>
+        <div class="stack">
+          <div class="box blue"><b>PostgreSQL · 원본</b><p>제품 · 셰이드 · 룩 · 매장<br>pg_trgm 검색 인덱스 · api만 접근<br>운영: RDS Multi-AZ</p></div>
+          <div class="box red"><b>Redis</b><p>카탈로그 캐시 · 챗봇 레이트 리밋<br>운영: ElastiCache</p></div>
+          <div class="box purple"><b>Neo4j · 챗봇 전용 사본</b><p>제품–성분–태그–룩 관계 그래프<br>chatbot만 접근 · 운영: AuraDB</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="sys">
+      <div class="box gray"><b style="font-size:12.5px">argocd</b><p>Git 상태 = 클러스터 상태 · 자동 동기화 · selfHeal</p></div>
+      <div class="box gray"><b style="font-size:12.5px">external-secrets</b><p>AWS Secrets Manager → 서비스별 Secret 주입</p></div>
+      <div class="box gray"><b style="font-size:12.5px">보안 기본값</b><p>NetworkPolicy · 비루트 · 읽기 전용 FS · PDB</p></div>
+    </div>
+  </div>
+
+  <div class="arrow dash"><span class="a">⇢</span>외부<br>호출</div>
+
+  <!-- External -->
+  <div class="section" style="margin-bottom:0">
+    <div class="title"><span class="num">03</span> 외부 서비스</div>
+    <div class="stack">
+      <div class="box gray"><b>Supabase Auth</b><p>로그인 · 토큰 발급<br>백엔드는 JWKS로 로컬 검증</p></div>
+      <div class="box gray"><b>LLM API</b><p>OpenAI 호환 · chatbot만 호출</p></div>
+      <div class="box gray"><b>네이버 쇼핑 · YouTube</b><p>실시간 최저가 · 제품 이미지 · 튜토리얼<br><span class="tag next">2단계</span> 백엔드로 이전 예정</p></div>
+      <div class="box gray"><b>GHCR</b><p>컨테이너 이미지 저장소<br>SBOM · provenance 첨부</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- 04 CI/CD -->
+<div class="section">
+  <div class="title"><span class="num">04</span> CI/CD · GitOps 배포 흐름<span class="hint">develop에서 검증 → main 반영 · kubectl 직접 배포 없음 · 롤백 = revert</span></div>
+  <div class="pipeline">
+    <div class="box"><b><span class="step-n">1</span>PR 생성</b><p>feat/* → develop<br>커밋·PR 컨벤션 v1.3</p></div>
+    <div class="arrow"><span class="a">→</span></div>
+    <div class="box blue"><b><span class="step-n">2</span>CI · 변경 영역만 검사</b><p>앱: 타입체크·린트·Jest<br>백엔드: ruff · import-linter · pytest · alembic check<br>Docker 빌드 · Helm lint · kubeconform → <b style="display:inline;font-size:12px">ci-ok</b></p></div>
+    <div class="arrow"><span class="a">→</span></div>
+    <div class="box green"><b><span class="step-n">3</span>이미지 발행</b><p>main 병합 시 GHCR<br>불변 태그 sha-xxxxxxx</p></div>
+    <div class="arrow"><span class="a">→</span></div>
+    <div class="box orange"><b><span class="step-n">4</span>태그 갱신 PR 자동 생성</b><p>values-prod.yaml<br>병합 = 배포 승인</p></div>
+    <div class="arrow"><span class="a">→</span></div>
+    <div class="box purple"><b><span class="step-n">5</span>Argo CD 동기화</b><p>Helm 차트 렌더링<br>Git과 클러스터 비교</p></div>
+    <div class="arrow"><span class="a">→</span></div>
+    <div class="box teal"><b><span class="step-n">6</span>무중단 롤링 배포</b><p>마이그레이션(advisory lock)<br>/readyz 통과 후 교체 · 그래프 동기화</p></div>
+  </div>
+</div>
+
+<div class="bottom">
+  <!-- 05 Environments -->
+  <div class="section" style="margin-bottom:0">
+    <div class="title"><span class="num">05</span> 같은 이미지, 세 환경<span class="hint">환경 차이는 설정 파일에만</span></div>
+    <div class="envs">
+      <div class="box"><b>Docker Compose · 로컬 개발</b><p>명령 한 줄로 전체 기동<br>nginx 게이트웨이 :8080 (폰 Expo Go 접속)<br>DB 포트는 127.0.0.1에만</p></div>
+      <div class="arrow"><span class="a">→</span></div>
+      <div class="box"><b>kind · 로컬 쿠버네티스</b><p>운영과 같은 Helm 차트<br>워커 2대 · zone 2개<br>Envoy Gateway · 클러스터 내 DB</p></div>
+      <div class="arrow"><span class="a">→</span></div>
+      <div class="box"><b>AWS EKS · 운영</b><p>Argo CD 자동 배포<br>RDS · ElastiCache · AuraDB<br>Secrets Manager</p></div>
+    </div>
+  </div>
+  <!-- 06 Principles -->
+  <div class="section" style="margin-bottom:0">
+    <div class="title"><span class="num">06</span> 설계 원칙 · 강제 장치</div>
+    <div class="principles">
+      <div class="box"><b>레이어 규칙 자동 검사</b><p>앱 ESLint · 백엔드 import-linter (CI 실패)</p></div>
+      <div class="box"><b>데이터 소유권 분리</b><p>PostgreSQL은 api, Neo4j는 chatbot만</p></div>
+      <div class="box"><b>시크릿 최소 권한</b><p>서비스별 Secret · LLM 키는 챗봇만</p></div>
+      <div class="box"><b>장애 격리</b><p>프로브 분리 · Redis 장애 시 캐시 미스 처리</p></div>
+      <div class="box"><b>API 계약 유지</b><p>Expo 라우트와 같은 JSON → 앱은 주소만 교체</p></div>
+      <div class="box"><b>결정 기록</b><p>ADR 7건 · 아키텍처·배포 문서화</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="legend" style="margin-top:14px">
+  <span>→ 요청 · 데이터 흐름</span>
+  <span>⇢ 외부 API 호출</span>
+  <span><i class="sw" style="border-color:var(--green);background:var(--green-bg)"></i>쇼핑 API</span>
+  <span><i class="sw" style="border-color:var(--purple);background:var(--purple-bg)"></i>챗봇 · AR</span>
+  <span><i class="sw" style="border-color:var(--teal);background:var(--teal-bg)"></i>진입점 · 배포</span>
+  <span><span class="tag ok" style="margin:0 4px 0 0">구현</span>코드·테스트 완료</span>
+  <span><span class="tag next" style="margin:0 4px 0 0">2단계</span>다음 작업</span>
+  <span style="margin-left:auto">VISHUE · SKN34 Final Project</span>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,28 @@
+# AWS EKS (ap-northeast-2). Fill the values marked "set before first deploy" (see docs/DEPLOYMENT.md).
+env: production
+
+image:
+  registry: ghcr.io/gyuniverse-hq
+  # Updated by the image workflow's pull request on every merge to main.
+  tag: ""
+
+supabase:
+  url: ""             # set before first deploy: https://<project>.supabase.co
+  publishableKey: ""  # set before first deploy (public key, not the secret key)
+
+chatbot:
+  env:
+    NEO4J_URI: ""     # set before first deploy: neo4j+s://<id>.databases.neo4j.io (AuraDB)
+    LLM_MODEL: ""     # set before first deploy; empty keeps the chatbot disabled (503)
+
+gateway:
+  hostname: ""        # set before first deploy: api.<domain>
+  tls:
+    enabled: false    # turn on with certificateSecret once the domain and certificate exist
+    certificateSecret: ""
+
+# Secrets come from AWS Secrets Manager through External Secrets Operator:
+#   vishue/production/api      {"DATABASE_URL": ..., "REDIS_URL": ...}
+#   vishue/production/chatbot  {"NEO4J_PASSWORD": ..., "REDIS_URL": ..., "LLM_API_KEY": ...}
+externalSecrets:
+  enabled: true

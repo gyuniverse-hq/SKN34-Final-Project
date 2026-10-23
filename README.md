@@ -5,7 +5,8 @@
 외국인 대상 K-뷰티 쇼핑 앱. **룩 발견 → AR 가상 메이크업 → 세트로 장바구니 → 매장 쇼핑 리스트 / 온라인 구매**.
 
 - 협업 규칙(브랜치·커밋·PR): [`CONTRIBUTING.md`](CONTRIBUTING.md) · AI 도구용 요약: [`AGENTS.md`](AGENTS.md)
-- 레이어 구조와 import 규칙: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- 레이어 구조와 import 규칙: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · 결정 기록: [`docs/adr/`](docs/adr/README.md)
+- 백엔드 실행과 배포(Compose · kind · EKS): [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
 - 출시 전 직접 해야 할 일: [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKLIST.md)
 
 ## 기능
@@ -47,6 +48,14 @@ lib/                    API 클라이언트, react-query 훅, 로그인(auth/), 
 store/                  Zustand (장바구니·쇼핑리스트·설정은 기기에 저장)
 constants/              테마, 약관 등 정적 상수
 __tests__/              데이터 무결성 · 검색 · 장바구니 · i18n · 서버 유틸 테스트
+backend/                FastAPI 백엔드 (서비스별 uv 프로젝트)
+  api/                  카탈로그 · 셰이드 추천(ΔE2000) · 회원 — PostgreSQL · Redis
+  chatbot/              챗봇(GraphRAG) · PostgreSQL→Neo4j 동기화 잡 — Neo4j · LLM
+infra/
+  compose/              로컬 전체 구성 (게이트웨이 · 두 서비스 · DB 3종)
+  helm/vishue/          쿠버네티스 차트 (values-local: kind, values-prod: EKS)
+  argocd/ platform/     GitOps 애플리케이션 · 클러스터 공용 리소스
+.github/workflows/      ci (변경 영역별 검사 → ci-ok) · images (GHCR 발행 → 운영 태그 PR)
 ```
 
 API 키는 `server/`와 `app/api/`에서만 읽고 앱 번들에는 포함되지 않습니다(빌드 결과물 검사로 확인).
@@ -81,6 +90,9 @@ npx expo start -c
 npm run check      # 타입체크 + 린트 + 테스트
 npm test
 npx expo-doctor
+
+# 백엔드 전체 (Docker Desktop 필요) → http://localhost:8080/api/docs
+docker compose -f infra/compose/compose.yaml --env-file .env up --build
 ```
 
 ## 배포
@@ -90,3 +102,5 @@ npx expo-doctor
 - `eas.json`의 `EXPO_UNSTABLE_DEPLOY_SERVER=1`이 빌드 시 서버를 함께 배포하고 앱의 API 주소를 연결합니다.
 
 자세한 순서는 [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKLIST.md) 참고.
+
+백엔드(`backend/`)는 컨테이너 이미지로 GHCR에 발행되고, Helm 차트와 Argo CD로 EKS에 배포됩니다. 앱이 백엔드로 넘어가는 순서(2단계)는 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#옮기는-순서), 배포 흐름은 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)를 참고하세요.

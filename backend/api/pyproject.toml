@@ -1,0 +1,65 @@
+[project]
+name = "vishue-api"
+version = "0.1.0"
+description = "VISHUE core API: catalog, shade recommendation, members"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.20.1",
+    "asyncpg>=0.32.0",
+    "fastapi>=0.161.1",
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.16.1",
+    "pyjwt[crypto]>=2.15.1",
+    "redis>=8.1.0",
+    "sqlalchemy[asyncio]>=2.1.6",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "import-linter>=2.15",
+    "pytest>=9.1.1",
+    "ruff>=0.17.2",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+markers = ["integration: needs a real PostgreSQL (TEST_DATABASE_URL)"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query"]
+
+# Layer rules from docs/ARCHITECTURE.md (same role as the app's ESLint no-restricted-imports).
+[tool.importlinter]
+root_package = "app"
+
+[[tool.importlinter.contracts]]
+name = "Layers: entry points -> routers -> services -> repositories/clients -> models -> schemas -> core"
+type = "layers"
+layers = [
+    "app.main | app.jobs",
+    "app.routers",
+    "app.services",
+    "app.repositories | app.clients",
+    "app.models",
+    "app.schemas",
+    "app.core",
+]
+
+[[tool.importlinter.contracts]]
+name = "Routers and jobs reach data only through services"
+type = "forbidden"
+source_modules = ["app.routers", "app.jobs"]
+forbidden_modules = ["app.repositories", "app.clients", "app.models"]
+allow_indirect_imports = true
