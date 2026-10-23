@@ -2,10 +2,15 @@ export class CaptureGate {
   reset() { this.since = null; this.previous = null; this.lastAt = null; }
   update(faces, now) {
     const face = faces[0];
+    // Match the displayed guide (70% wide, 68% high, centered at .5/.46).
+    // A width-only threshold rejects a correctly framed face in short previews,
+    // or forces it outside the forehead/chin limits in tall previews.
+    const guideFit = face ? Math.max(face.width / .70, (face.bottom - face.top) / .68) : 0;
     const guidance = !faces.length ? 'noFace' : faces.length !== 1 ? 'multipleFaces'
-      : !face.frontal ? 'straight' : face.width < .4 || face.width > .65 ? 'distance'
-        : Math.abs(face.cx - .5) > .08 || Math.abs(face.cy - .48) > .10 ? 'center'
-          : face.top < .10 || face.top > .27 || face.bottom > .80 ? 'forehead' : 'hold';
+      : !face.frontal ? 'straight' : guideFit < .55 || guideFit > 1.10 ? 'distance'
+        : Math.abs(face.cx - .5) > .10 || Math.abs(face.cy - .46) > .12 ||
+          face.cx - face.width / 2 < .05 || face.cx + face.width / 2 > .95 ? 'center'
+          : face.top < .08 || face.top > .32 || face.bottom > .84 ? 'forehead' : 'hold';
     if (guidance !== 'hold') { this.reset(); return { guidance, progress: 0 }; }
     const last = this.previous;
     if (!last || Math.abs(face.cx - last.cx) > .02 || Math.abs(face.cy - last.cy) > .02 ||
