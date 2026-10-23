@@ -85,3 +85,124 @@ uv run --project ml python -m ml.scripts.report_weighted_focal --phase publish
 
 참고: [Focal Loss 원 논문](https://arxiv.org/abs/1708.02002),
 [Class-Balanced Loss 원 논문](https://arxiv.org/abs/1901.05555).
+
+## 결론과 적용 판단
+
+2026-10-23 학습·재평가 완료. **WFL+SAM은 macro-F1에서 작은 이득을 보였지만,
+정확도·평균 등급 오차·weighted F1은 악화됐습니다.** 고등급 Recall 상승도 검증 50 ROI 중
+정답 1개 증가이므로 큰 개선으로 해석하지 않습니다. 전체적으로 우월한 후보라고 판단하지 않고
+비교용 가중치로 보존합니다. 다른 항목 확대나 기존 서비스·테스트 페이지 교체는 하지 않았습니다.
+
+15 epoch에서 patience 6으로 조기 종료됐고 **epoch 9**를 선택했습니다.
+주 비교 기준 WCE+SAM도 같은 15 epoch 종료 / epoch 9 선택입니다.
+WFL 프로세스 전체 시간은 약 **602초(10분 2초)**로, 초기화·cache 확인·worker 시작·
+train-eval·체크포인트 IO를 포함합니다. 완료 후 별도 재평가 시간은 포함하지 않습니다.
+
+| 주 비교 지표 | WCE+SAM | WFL+SAM | 변화 |
+|---|---:|---:|---:|
+| Accuracy | 63.11% (515/816) | 61.15% (499/816) | -1.96%p |
+| macro Precision | 42.06% | 40.16% | -1.90%p |
+| macro Recall | 36.70% | 37.10% | +0.41%p |
+| macro F1 | 36.34% | 37.24% | +0.90%p |
+| weighted F1 | 58.28% | 57.82% | -0.46%p |
+| MAE | 0.4534 | 0.4792 | +0.0257 |
+| ±1등급 적중률 | 92.77% | 92.16% | -0.61%p |
+| 3등급 Recall | 3.88% (4/103) | 7.77% (8/103) | +3.88%p |
+| 4등급 Recall | 22.73% (10/44) | 25.00% (11/44) | +2.27%p |
+| 5등급 Recall | 0% (0/6) | 0% (0/6) | 동일 |
+| 4·5등급 pooled Recall | 20% (10/50) | 22% (11/50) | +2%p |
+
+변화량은 반올림 전 값의 차이로 계산했습니다. 단일 seed·같은 검증셋의 관측이며
+통계적 유의성이나 새로운 인물에 대한 우월성을 검정한 것은 아닙니다.
+
+### 어느 등급에서 달라졌는가
+
+- 3등급의 정답 수가 4 → 8로 늘고 F1은 7.08% → 12.50%로 좋아졌습니다.
+  그래도 실제 103 ROI 중 8개만 맞혔으므로 3등급 구분이 해결됐다고 볼 수 없습니다.
+- 4등급 정답은 10 → 11이지만 4등급 예측 수는 25 → 34로 늘었습니다.
+  Precision은 40.00% → 32.35%, F1은 28.99% → 28.21%로 낮아졌습니다.
+  따라서 고등급 Recall 상승은 false positive 증가와 함께 해석해야 합니다.
+- 5등급을 예측한 3 ROI는 모두 실제 3등급이었습니다. 실제 5등급 6 ROI는
+  기존 WCE+SAM과 똑같이 5개가 2등급, 1개가 3등급으로 분류됐습니다.
+  5등급은 여전히 검증 1명뿐이고 새 모델도 정확히 찾아내지 못했습니다.
+- 2등급 정답이 428 → 406으로 줄었습니다(Recall 85.94% → 81.53%).
+  1등급 정답 +1, 3등급 +4, 4등급 +1로 얻은 6개보다 2등급에서 잃은 22개가 커
+  전체 정답 수는 16개 줄었습니다. 0등급 정답 수는 14개로 같지만 예측 수가 줄어 F1이 올랐습니다.
+
+선택 모델의 학습/검증 F1 차이는 WCE+SAM 43.89% / 36.34%(7.55%p),
+WFL+SAM 46.17% / 37.24%(8.93%p)입니다. Focal이 학습/검증 차이를 줄인 결과는 아닙니다.
+마지막 epoch 15는 학습 F1 54.90% / 검증 F1 34.50%로 차이가 20.41%p로 커졌습니다.
+이 설정에서 Focal이 과적합을 해소했다고 주장하지 않습니다.
+
+직전 순서형 CDF 후보의 고등급 Recall 2%보다 높지만, 그 비교만으로 WFL의 우월성을
+판단하지 않습니다. 주 기준 WCE+SAM 대비에는 Recall 2%p 이득과 Accuracy·MAE 악화가
+동시에 있습니다. 과거 CB Focal보다 나은 숫자 역시 배치·SAM 등 조건이 달라 가중치 방식
+하나의 효과로 볼 수 없습니다. 이번 gamma 2 설정의 결과를 WFL 전체의 한계로 일반화하지 않습니다.
+
+## 검증과 보존
+
+- WCE+SAM과 데이터·초기화·6개 출력·추론·학습률·배치·예산·클래스 가중치·SAM rho·
+  BN/AMP 처리·checkpoint 선택이 같음을 확인했습니다. 변경은 focal 항과 출력 폴더입니다.
+- WFL의 `gamma=0` 값·gradient를 WCE와 대조했고, gamma 2는 독립 softmax 수식 및
+  전체 gradient와 대조했습니다. weighted CE에서 `p_t`를 구하는 잘못된 계산을 막는 검사를
+  포함합니다. 극단 FP16·가중치 스케일·invalid alpha/gamma·설정 변경도 검사했습니다.
+- CB Focal은 이전 effective-number 가중치와 수식의 loss/gradient가 정확히 일치했습니다.
+  실제 GPU의 head/미세조정 단계에서도 합성 입력으로 WFL+SAM을 실행해 유한값을 확인했습니다.
+- 후보 SHA·유한 텐서·best/export 일치·WCE와 동일한 alpha를 검증했습니다.
+  53개 BN의 최종 counter 증분과 AdamW step은 미세조정 **3,341회**, epoch당 **257회**입니다.
+  AMP 재시도 총 3회는 추가 step이나 추가 BN 누적으로 계산되지 않았습니다.
+- 세 모델을 같은 train/valid에서 FP32로 재평가하고 sklearn 지표를 대조했습니다.
+  기존 두 모델의 이전 수치가 재현됐고 선택 epoch와 재평가 값이 일치했습니다.
+- 엄격한 서비스 SHA/shape 로더로 후보를 읽어 유한한 `[1,6]` 더미 출력을 확인했습니다.
+  기존 설정·추천 묶음·모든 이전 비교 가중치 **14개 파일**의 해시가 사전 기록과 같습니다.
+- 후보는 `ml/runs/nia-smartphone-weighted-focal-sam-seed-42/pore/inference.bin`에 저장했습니다.
+  개인별 예측은 로컬 run에만 보존하며 공개 [집계 JSON](weighted-focal-experiment.metrics.json)은
+  등급별/가중 지표·혼동행렬·학습 이력·보존/로더 검사만 포함합니다.
+- ML pytest **146 passed**, ML Ruff 통과, `server/nia` unittest **34 passed**,
+  `npm run check -- -- --runInBand` 통과(타입 검사·린트·앱 **48 tests**).
+- 구현 커밋: `42ac58bc4`. 최종 테스트셋·외부/생성 이미지·새 라벨은 사용하지 않았습니다.
+
+## 실제 비교 결과
+
+동일 검증 138명/816 ROI, 증강 없는 FP32 평가입니다.
+
+| 모델 | epoch / 실행 | Acc | macro P | macro R | macro F1 | MAE | ±1등급 | 고등급 Recall |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| wce_adamw_reference | 14 / 20 | 54.41% | 31.56% | 38.45% | 33.29% | 0.5674 | 90.81% | 20.00% |
+| wce_sam_baseline | 9 / 15 | 63.11% | 42.06% | 36.70% | 36.34% | 0.4534 | 92.77% | 20.00% |
+| weighted_focal_sam | 9 / 15 | 61.15% | 40.16% | 37.10% | 37.24% | 0.4792 | 92.16% | 22.00% |
+
+| 모델 | 학습 F1 | 검증 F1 | 차이(%p) |
+|---|---:|---:|---:|
+| wce_adamw_reference | 60.23% | 33.29% | 26.94 |
+| wce_sam_baseline | 43.89% | 36.34% | 7.55 |
+| weighted_focal_sam | 46.17% | 37.24% | 8.93 |
+
+| 모델 | 등급 | 실제 ROI | 예측 ROI | Precision | Recall | F1 |
+|---|---:|---:|---:|---:|---:|---:|
+| wce_adamw_reference | 0 | 21 | 49 | 36.73% | 85.71% | 51.43% |
+| wce_adamw_reference | 1 | 144 | 150 | 36.67% | 38.19% | 37.41% |
+| wce_adamw_reference | 2 | 498 | 495 | 69.90% | 69.48% | 69.69% |
+| wce_adamw_reference | 3 | 103 | 82 | 18.29% | 14.56% | 16.22% |
+| wce_adamw_reference | 4 | 44 | 36 | 27.78% | 22.73% | 25.00% |
+| wce_adamw_reference | 5 | 6 | 4 | 0.00% | 0.00% | 0.00% |
+| wce_sam_baseline | 0 | 21 | 23 | 60.87% | 66.67% | 63.64% |
+| wce_sam_baseline | 1 | 144 | 140 | 42.14% | 40.97% | 41.55% |
+| wce_sam_baseline | 2 | 498 | 617 | 69.37% | 85.94% | 76.77% |
+| wce_sam_baseline | 3 | 103 | 10 | 40.00% | 3.88% | 7.08% |
+| wce_sam_baseline | 4 | 44 | 25 | 40.00% | 22.73% | 28.99% |
+| wce_sam_baseline | 5 | 6 | 1 | 0.00% | 0.00% | 0.00% |
+| weighted_focal_sam | 0 | 21 | 21 | 66.67% | 66.67% | 66.67% |
+| weighted_focal_sam | 1 | 144 | 148 | 40.54% | 41.67% | 41.10% |
+| weighted_focal_sam | 2 | 498 | 585 | 69.40% | 81.53% | 74.98% |
+| weighted_focal_sam | 3 | 103 | 25 | 32.00% | 7.77% | 12.50% |
+| weighted_focal_sam | 4 | 44 | 34 | 32.35% | 25.00% | 28.21% |
+| weighted_focal_sam | 5 | 6 | 3 | 0.00% | 0.00% | 0.00% |
+
+![학습·검증 곡선](figures/weighted-focal-experiment.png)
+
+가중치 SHA-256:
+
+- wce_adamw_reference: `9dcfe1bd137742281af1ff87cf6c8b12c840a8e4fb20f7114ef08dfbc59b3f92`
+- wce_sam_baseline: `18c5ddd6c921c22a1bf55010a437e32f682470cfce41a9d6a7d2295f75e77644`
+- weighted_focal_sam: `efaaa94ae082eb98f4aeb486be4692efe12459d636d74079b8c078bcd72c8459`
