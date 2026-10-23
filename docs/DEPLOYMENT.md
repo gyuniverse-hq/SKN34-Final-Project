@@ -26,10 +26,11 @@ Docker Desktop이 필요합니다. 저장소 루트에서 실행합니다.
 docker compose -f infra/compose/compose.yaml --env-file .env up --build
 ```
 
-- 루트 `.env`의 `EXPO_PUBLIC_SUPABASE_*` 값을 그대로 읽어 토큰 검증에 씁니다. 챗봇을 켜려면 `.env`에 `LLM_API_KEY`와 `LLM_MODEL`을 추가합니다. 없으면 `/api/chat`은 503을 돌려줍니다.
+- 루트 `.env`를 그대로 읽습니다. `EXPO_PUBLIC_SUPABASE_*`는 토큰 검증에, `NAVER_*`와 `YOUTUBE_API_KEY`는 판매처·제품 이미지·튜토리얼 검색에, `LLM_API_KEY`와 `LLM_MODEL`은 챗봇에 씁니다. 키가 없으면 해당 기능만 꺼집니다(챗봇은 503).
 - 시작 순서는 자동입니다. PostgreSQL → `migrate`(Alembic) → `api` → `sync-graph` 순서로 뜨고, `chatbot`은 Neo4j가 준비되면 뜹니다.
 - 확인: `curl http://localhost:8080/api/products`, API 문서는 `http://localhost:8080/api/docs`
-- 휴대폰(Expo Go)에서는 `http://<PC의 LAN IP>:8080`으로 접근합니다. LAN에 열리는 포트는 게이트웨이(8080) 하나뿐이고, DB 포트는 `127.0.0.1`에만 열립니다.
+- 앱(`npx expo start`)은 개발 중에 Metro를 띄운 PC의 `:8080`으로 자동 연결됩니다. 휴대폰 Expo Go도 같은 Wi-Fi라면 따로 설정할 필요가 없습니다(PC 방화벽에서 8080 허용 필요). 터널 모드(`--tunnel`)처럼 PC 주소로 닿지 않을 때는 `.env`의 `EXPO_PUBLIC_API_BASE_URL`에 백엔드 주소를 넣습니다.
+- LAN에 열리는 포트는 게이트웨이(8080) 하나뿐이고, DB 포트는 `127.0.0.1`에만 열립니다. Expo 웹(`localhost:8081`)에서 부르는 경우를 위해 CORS가 기본으로 열려 있습니다(`CORS_ORIGINS`).
 - 카탈로그 넣기: `backend/api/seed/catalog.json`을 채운 뒤 다음을 실행합니다.
 
   ```bash

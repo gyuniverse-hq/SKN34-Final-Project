@@ -108,7 +108,7 @@
       <div class="ns">
         <div class="label">namespace: vishue</div>
         <div class="stack">
-          <div class="box green"><b>api · FastAPI<span class="tag ok">구현</span></b><p>카탈로그(제품·셰이드·룩·매장) · 셰이드 추천(CIEDE2000 ΔE) · 회원<br>routers → services → repositories → models → core</p>
+          <div class="box green"><b>api · FastAPI<span class="tag ok">구현</span></b><p>카탈로그 · 판매처(네이버) · 튜토리얼(YouTube) · 셰이드 추천(ΔE) · 회원<br>routers → services → repositories · clients → core</p>
             <div class="pods" style="color:var(--green)"><span class="pod">Pod ① zone-a</span><span class="pod">Pod ② zone-b</span><span class="pod">HPA 2~6</span><span class="pod">initContainer: Alembic 마이그레이션</span></div></div>
           <div class="box purple"><b>chatbot · FastAPI<span class="tag ok">구현</span></b><p>GraphRAG 챗봇 · 사용자당 분당 10회 제한 · LLM 키는 여기만</p>
             <div class="pods" style="color:var(--purple)"><span class="pod">Pod ① zone-a</span><span class="pod">Pod ② zone-b</span><span class="pod">HPA 2~4</span></div></div>
@@ -120,7 +120,7 @@
         <div class="label">데이터 저장소 (운영: 관리형)</div>
         <div class="stack">
           <div class="box blue"><b>PostgreSQL · 원본</b><p>제품 · 셰이드 · 룩 · 매장<br>pg_trgm 검색 인덱스 · api만 접근<br>운영: RDS Multi-AZ</p></div>
-          <div class="box red"><b>Redis</b><p>카탈로그 캐시 · 챗봇 레이트 리밋<br>운영: ElastiCache</p></div>
+          <div class="box red"><b>Redis</b><p>카탈로그·외부 API 캐시 · 레이트 리밋<br>운영: ElastiCache</p></div>
           <div class="box purple"><b>Neo4j · 챗봇 전용 사본</b><p>제품–성분–태그–룩 관계 그래프<br>chatbot만 접근 · 운영: AuraDB</p></div>
         </div>
       </div>
@@ -140,7 +140,7 @@
     <div class="stack">
       <div class="box gray"><b>Supabase Auth</b><p>로그인 · 토큰 발급<br>백엔드는 JWKS로 로컬 검증</p></div>
       <div class="box gray"><b>LLM API</b><p>OpenAI 호환 · chatbot만 호출</p></div>
-      <div class="box gray"><b>네이버 쇼핑 · YouTube</b><p>실시간 최저가 · 제품 이미지 · 튜토리얼<br><span class="tag next">2단계</span> 백엔드로 이전 예정</p></div>
+      <div class="box gray"><b>네이버 쇼핑 · YouTube</b><p>실시간 최저가 · 제품 이미지 · 튜토리얼<br>api만 호출 · Redis 캐시</p></div>
       <div class="box gray"><b>GHCR</b><p>컨테이너 이미지 저장소<br>SBOM · provenance 첨부</p></div>
     </div>
   </div>
@@ -197,7 +197,6 @@
   <span><i class="sw" style="border-color:var(--purple);background:var(--purple-bg)"></i>챗봇 · AR</span>
   <span><i class="sw" style="border-color:var(--teal);background:var(--teal-bg)"></i>진입점 · 배포</span>
   <span><span class="tag ok" style="margin:0 4px 0 0">구현</span>코드·테스트 완료</span>
-  <span><span class="tag next" style="margin:0 4px 0 0">2단계</span>다음 작업</span>
   <span style="margin-left:auto">VISHUE · SKN34 Final Project</span>
 </div>
 

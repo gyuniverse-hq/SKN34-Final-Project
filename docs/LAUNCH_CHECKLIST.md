@@ -16,12 +16,12 @@
   - 풀리면 코드 수정 없이 상품 상세에 "온라인 구매"(판매처·최저가·링크)가 자동으로 나타납니다. 지금은 해당 영역만 숨겨집니다
 - [ ] (운영) YouTube API 할당량: 기본 하루 10,000 유닛, 검색 1회 = 100 유닛. 서버 캐시(12시간)로 줄였지만 사용자가 많아지면 Google에 할당량 증가 신청 필요
 
-## 3. 데이터 확인 (`data/catalog/`)
+## 3. 데이터 확인 (`backend/api/seed/catalog.json`, 이후 크롤링 데이터)
 
 - [ ] **제품 가격·컬러명·HEX 색상 검수** — 실제 제품 라인이지만 값은 참고치입니다. 공식몰 기준으로 확인
 - [ ] **제품 이미지 라이선스** — 지금은 Unsplash 임시 사진(다른 브랜드가 찍힌 사진 포함). 네이버 연동 이미지나 브랜드 공식 보도자료 이미지로 교체
 - [ ] **룩 썸네일 교체** — 저작권이 확보된 이미지로 교체
-- [ ] **매장 주소·좌표·영업시간 검수** (`stores.ts`)
+- [ ] **매장 주소·좌표·영업시간 검수** (시드 파일의 `stores`)
 - [ ] 룩 ↔ 제품 매핑 최종 확정, 제품 수 확대 (MVP 권장 30~50개)
 
 ## 4. 법률·정책 판단
@@ -53,20 +53,13 @@
 - [ ] **Apple Developer Program** 가입 (연 $99) — iOS 출시와 실기기 빌드에 필요
 - [ ] **Google Play Console** 가입 (1회 $25)
 - [ ] EAS 프로젝트 연결: `npx eas-cli@latest init`
-- [ ] **서버 키를 EAS에 등록** (배포된 서버가 읽음). EAS Hosting은 `secret` 등급을 배포하지 못하므로 반드시 `sensitive`로:
+- [ ] **백엔드 배포** — [`DEPLOYMENT.md`](DEPLOYMENT.md)의 "AWS EKS" 절. 네이버·YouTube 키는 앱이 아니라 백엔드 시크릿(`vishue/production/api`)에 넣습니다
+  - 배포 후 `https://api.<도메인>/api/health`가 `{"ok":true,"integrations":{"youtube":true,...}}`인지 확인
+- [ ] **앱에 백엔드 주소 등록** (공개 값이라 `plaintext`):
   ```bash
-  npx eas-cli@latest env:create --name YOUTUBE_API_KEY --value <키> --environment production --visibility sensitive
-  npx eas-cli@latest env:create --name NAVER_CLIENT_ID --value <값> --environment production --visibility sensitive
-  npx eas-cli@latest env:create --name NAVER_CLIENT_SECRET --value <값> --environment production --visibility sensitive
+  npx eas-cli@latest env:create --name EXPO_PUBLIC_API_BASE_URL --value https://api.<도메인> --environment production --visibility plaintext
   ```
-  (`preview` 환경에도 동일하게)
-- [ ] 서버 최초 배포:
-  ```bash
-  npx expo export --platform web
-  npx eas-cli@latest deploy --environment production
-  ```
-  나온 URL에서 `/api/health`가 `{"ok":true,"integrations":{"youtube":true,...}}`인지 확인
-- [ ] 키를 바꾸면 다시 export + deploy 해야 반영됩니다 (배포는 변경 불가 단위)
+  (`preview` 환경에도 동일하게. 주소를 바꾸면 앱을 다시 빌드해야 반영됩니다)
 - [ ] 테스트 빌드: `npx eas-cli@latest build --profile preview --platform android` → APK 설치해 확인
 - [ ] 출시 빌드·제출: `npx eas-cli@latest build --profile production --platform all` → `npx eas-cli@latest submit`
 - [ ] App Store Connect **개인정보 라벨**: 계정 없음, 수집 데이터 없음(카메라는 기기 내 처리), 검색어는 서버로 전달되지만 사용자와 연결되지 않음
@@ -74,8 +67,8 @@
 
 ## 참고: 구현된 운영 품질 항목
 
-- API 키는 서버 전용, 앱 번들에 미포함 (빌드 결과물 검사로 확인)
-- 서버 캐시(YouTube 12시간, 네이버 6시간), 검색 레이트리밋(IP당 분당 20회), 외부 API 타임아웃, 입력값 검증
+- API 키는 백엔드 전용, 앱 번들에 미포함
+- 백엔드 캐시(Redis: YouTube 12시간, 네이버 판매처 6시간·이미지 24시간), 튜토리얼 검색 레이트리밋(IP당 분당 20회), 외부 API 타임아웃, 입력값 검증
 - 네트워크 오류·로딩·빈 화면 처리, 재시도
 - 장바구니·쇼핑 리스트·설정은 기기에 저장, 마이 탭에서 전체 삭제 가능
 - 카메라: 동의 화면, 권한 거부 시 설정으로 이동, 탭 이탈·앱 백그라운드 시 카메라 해제
