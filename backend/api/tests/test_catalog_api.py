@@ -1,7 +1,7 @@
 import pytest
 
 from app.schemas.catalog import CatalogBundle
-from app.services.catalog_service import validate_references
+from app.services.catalog_service import validate_catalog
 from tests.conftest import SAMPLE
 
 
@@ -62,10 +62,29 @@ def test_responses_carry_request_id(client):
     assert res.headers["cache-control"] == "no-store"
 
 
-def test_look_references_are_validated():
-    broken = SAMPLE.model_copy(deep=True)
-    broken.looks[0].items[0].product_id = "missing"
-    with pytest.raises(ValueError, match="unknown product"):
-        validate_references(broken)
-    validate_references(SAMPLE)
-    validate_references(CatalogBundle())
+def _broken(mutate) -> CatalogBundle:
+    bundle = SAMPLE.model_copy(deep=True)
+    mutate(bundle)
+    return bundle
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (lambda b: setattr(b.looks[0].items[0], "product_id", "missing"), "unknown product"),
+        (lambda b: setattr(b.looks[0].items[0], "shade_id", "nope"), "unknown shade"),
+        (lambda b: setattr(b.products[1], "id", "lip-1"), "duplicate product"),
+        (lambda b: setattr(b.products[0], "name_ko", " "), "Korean name"),
+        (lambda b: setattr(b.products[0], "price_krw", 0), "price"),
+        (lambda b: b.products[0].shades.clear(), "at least one shade"),
+        (lambda b: setattr(b.stores[0], "lat", 126.98), "outside Korea"),
+    ],
+)
+def test_catalog_integrity_rules(mutate, message):
+    with pytest.raises(ValueError, match=message):
+        validate_catalog(_broken(mutate))
+
+
+def test_valid_catalogs_pass():
+    validate_catalog(SAMPLE)
+    validate_catalog(CatalogBundle())

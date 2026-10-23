@@ -10,6 +10,8 @@ x-backend: &backend
     LOG_LEVEL: ${LOG_LEVEL:-INFO}
     SUPABASE_URL: ${SUPABASE_URL:-${EXPO_PUBLIC_SUPABASE_URL:-}}
     SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}}
+    # Expo web (`npx expo start --web`) calls the gateway from another origin.
+    CORS_ORIGINS: '${CORS_ORIGINS:-["http://localhost:8081"]}'
 
 x-ready: &ready
   interval: 10s
@@ -35,6 +37,9 @@ services:
       <<: *backend-env
       DATABASE_URL: postgresql+asyncpg://vishue:${POSTGRES_PASSWORD:-vishue}@postgres:5432/vishue
       REDIS_URL: redis://redis:6379/0
+      NAVER_CLIENT_ID: ${NAVER_CLIENT_ID:-}
+      NAVER_CLIENT_SECRET: ${NAVER_CLIENT_SECRET:-}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
     depends_on:
       migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }

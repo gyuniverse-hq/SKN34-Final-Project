@@ -18,6 +18,10 @@ class ApiError(Exception):
         self.code = code
 
 
+class UpstreamError(Exception):
+    """An external API (Naver, YouTube) failed or answered unexpectedly."""
+
+
 def error_body(message: str, code: str | None) -> dict[str, str]:
     return {"error": message, "code": code} if code else {"error": message}
 
