@@ -20,6 +20,7 @@ from .common import (
     DEFAULT_CONFIG,
     PREPROCESSING,
     TASKS,
+    classification_contract,
     digest,
     file_hash,
     load_config,
@@ -275,7 +276,8 @@ def require_coral_gate(config, manifest, task):
 
 def train_task(config, manifest, task, device, resume=None):
     require_coral_gate(config, manifest, task)
-    settings, classes = config["train"], TASKS[task]["classes"]
+    settings = config["train"]
+    classes, mapping, exported_task = classification_contract(settings, task)
     optimizer_spec = optimization_spec(settings)
     ordinal = settings.get("loss") == "coral"
     output = Path(settings["output"]) / task
@@ -298,7 +300,7 @@ def train_task(config, manifest, task, device, resume=None):
     if checkpoint and (
         checkpoint["manifest_fingerprint"] != manifest["fingerprint"]
         or checkpoint["train_config"] != settings
-        or checkpoint["task"] != task
+        or checkpoint["task"] != exported_task
         or checkpoint["environment"] != environment
         or not (output / "best.pt").is_file()
     ):
@@ -326,13 +328,13 @@ def train_task(config, manifest, task, device, resume=None):
     )
     seed_all(settings["seed"])
     generator = torch.Generator().manual_seed(settings["seed"])
-    training = GradeDataset(manifest, task, "train", training=True)
-    validation = GradeDataset(manifest, task, "valid")
+    training = GradeDataset(manifest, task, "train", training=True, target_mapping=mapping)
+    validation = GradeDataset(manifest, task, "valid", target_mapping=mapping)
     train_loader = make_loader(training, settings, generator, training=True)
     valid_loader = make_loader(validation, settings)
     train_eval_loader = (
         make_loader(
-            GradeDataset(manifest, task, "train", training=False),
+            GradeDataset(manifest, task, "train", training=False, target_mapping=mapping),
             settings,
             torch.Generator().manual_seed(settings["seed"] + 1),
         )
@@ -340,7 +342,7 @@ def train_task(config, manifest, task, device, resume=None):
         else None
     )
     criterion, loss_spec = criterion_for(
-        [r["truth"] for r in training.records], classes, settings, device
+        [training.target(r) for r in training.records], classes, settings, device
     )
     scaler = torch.amp.GradScaler("cuda", enabled=settings["amp"])
     start = checkpoint["epoch"] + 1 if checkpoint else 0
@@ -417,7 +419,7 @@ def train_task(config, manifest, task, device, resume=None):
             schema="nia-smartphone-training-v1",
             architecture=CORAL_ARCHITECTURE if ordinal else "resnet50",
             decoding=DECODING if ordinal else "softmax_argmax",
-            task=task,
+            task=exported_task,
             training_device="smartphone",
             resolution=256,
             grades=list(range(classes)),
@@ -449,6 +451,8 @@ def train_task(config, manifest, task, device, resume=None):
                 note="scope controls parameters only; BN statistics are a separate factor",
             ),
         )
+        if mapping is not None:
+            saved.update(original_to_target=mapping, original_grades=list(range(6)))
         save_checkpoint(output / "last.pt", saved)
         if improved:
             save_checkpoint(output / "best.pt", saved)
@@ -482,6 +486,8 @@ def train_task(config, manifest, task, device, resume=None):
         "optimization_spec", optimization_spec(best["train_config"])
     )
     exported["kind"] = "inference"
+    if mapping is not None:
+        exported.update(original_to_target=mapping, original_grades=list(range(6)))
     save_checkpoint(output / "inference.bin", exported)
     write_json(
         output / "summary.json",
@@ -515,6 +521,8 @@ def main():
         raise ValueError("Invalid training budget, loader or batch settings")
     if args.resume and args.task == "all":
         raise ValueError("Resume one explicitly selected task at a time")
+    for task in TASKS if args.task == "all" else [args.task]:
+        classification_contract(settings, task)
     manifest = load_manifest(config)
     require_coral_gate(config, manifest, args.task)
     verify_crops(manifest)

@@ -8,9 +8,14 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 
+from .common import PORE_COARSE_MAPPING
+
 
 class GradeDataset(Dataset):
-    def __init__(self, manifest, task, split, training=False):
+    def __init__(self, manifest, task, split, training=False, target_mapping=None):
+        if target_mapping is not None and (task != "pore" or target_mapping != PORE_COARSE_MAPPING):
+            raise ValueError("Only declared pore coarse targets are supported")
+        self.target_mapping = list(target_mapping) if target_mapping is not None else None
         self.root = Path(manifest["root"])
         self.cache_path = manifest.get("pixel_cache", {}).get("path")
         self._cache = None
@@ -31,13 +36,17 @@ class GradeDataset(Dataset):
     def __len__(self):
         return len(self.records)
 
+    def target(self, record):
+        truth = record["truth"]
+        return self.target_mapping[truth] if self.target_mapping is not None else truth
+
     def __getitem__(self, index):
         record = self.records[index]
         if self.cache_path:
             if self._cache is None:
                 self._cache = np.load(self.root / self.cache_path, mmap_mode="r")
             image = Image.fromarray(self._cache[record["cache_index"]])
-            return self.transform(image), torch.tensor(record["truth"], dtype=torch.long), index
+            return self.transform(image), torch.tensor(self.target(record), dtype=torch.long), index
         path = (self.root / record["path"]).resolve(strict=True)
         if not path.is_relative_to(self.root.resolve()):
             raise ValueError("Crop path escapes the audited dataset")
@@ -45,4 +54,4 @@ class GradeDataset(Dataset):
             if source.size != (256, 256):
                 raise ValueError("Expected an audited 256px crop")
             image = self.transform(source.convert("RGB"))
-        return image, torch.tensor(record["truth"], dtype=torch.long), index
+        return image, torch.tensor(self.target(record), dtype=torch.long), index

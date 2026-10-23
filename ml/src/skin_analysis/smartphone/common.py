@@ -24,6 +24,18 @@ TASKS = {
 }
 PREPROCESSING = "nia-square-jpeg-256-rgb-imagenet-v1"
 DEFAULT_CONFIG = PROJECT_ROOT / "configs/nia_smartphone.toml"
+PORE_COARSE_MAPPING = [0, 0, 1, 1, 2, 2]
+
+
+def classification_contract(settings, task):
+    mapping = settings.get("target_mapping")
+    if mapping is None:
+        if "classes" in settings:
+            raise ValueError("Changing output classes requires an explicit target mapping")
+        return TASKS[task]["classes"], None, task
+    if task != "pore" or mapping != PORE_COARSE_MAPPING or settings.get("classes") != 3:
+        raise ValueError("Only explicit pore 0,1 / 2,3 / 4,5 target mapping is supported")
+    return 3, list(mapping), "pore_coarse"
 
 
 def file_hash(path):
