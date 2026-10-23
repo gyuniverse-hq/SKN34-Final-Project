@@ -9,6 +9,7 @@ from skin_analysis.config import PROJECT_ROOT
 from skin_analysis.runtime import select_cuda
 from skin_analysis.smartphone.common import file_hash, load_config, load_manifest, write_json
 from skin_analysis.smartphone.data import GradeDataset
+from skin_analysis.smartphone.evaluate import metrics_for as area_metrics
 from skin_analysis.smartphone.focal_compare import verified_metrics
 from skin_analysis.smartphone.train import GradeModel, make_loader, predict, verify_crops
 
@@ -41,13 +42,22 @@ def main():
                 or cp["manifest_fingerprint"] != manifest["fingerprint"]
             ):
                 raise ValueError("Checkpoint provenance mismatch")
+            if name == "sam_batch16" and (
+                cp["optimization_spec"]["kind"] != "sam_adamw"
+                or cp["loss_spec"]["kind"] != "weighted_cross_entropy"
+            ):
+                raise ValueError("Final selection requires WCE+AdamW+SAM")
             model = GradeModel(classes).to(device)
             model.network.load_state_dict(cp["model_state"], strict=True)
             splits = {}
             for split, loader in loaders.items():
                 truth, predictions, probabilities, loss = predict(model, loader, device)
                 metrics = verified_metrics(truth, predictions, classes)
-                splits[split] = dict(**metrics, unweighted_ce=loss)
+                splits[split] = dict(
+                    **metrics,
+                    unweighted_ce=loss,
+                    areas=area_metrics(data[split].records, truth, predictions, classes)["areas"],
+                )
                 write_json(
                     ROOT / "final-predictions" / f"{task}-{name}-{split}.json",
                     dict(
@@ -88,10 +98,7 @@ def main():
         "",
         "## 실제 전체 평가",
         "",
-        "동일 인물 분할, 정답 ROI, 증강 없는 FP32 평가. 모든 값은 비율의 백분율이다.",
-        "",
-        "| 항목 | 모델 | 분할 | Accuracy | Macro P | Macro R | Macro F1 | MAE | ±1등급 |",
-        "|---|---|---|---:|---:|---:|---:|---:|---:|",
+        "동일 인물 분할, 정답 ROI, 증강 없는 FP32 평가. P/R/F1·정확도는 백분율, MAE는 등급 단위다.",
     ]
     for task, variants in results.items():
         lines += [
@@ -139,7 +146,7 @@ def main():
             "",
         ]
     prefix = REPORT.read_text("utf-8").split("\n## 실제 전체 평가")[0]
-    REPORT.write_text(prefix + "\n".join(lines) + "\n", encoding="utf-8")
+    REPORT.write_text((prefix + "\n".join(lines)).rstrip() + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

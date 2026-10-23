@@ -13,7 +13,7 @@
 이 결정은 기존 테스트 페이지의 활성 설정을 자동 변경하지 않는다.
 
 2026-10-23 스마트폰 전용 모공·색소침착·주름 분류 학습과 평가를 완료했습니다.
-최신 연구용 묶음은 `ml/runs/nia-smartphone-seed-42/recommendation-bundle/`입니다.
+최초 연구용 묶음은 `ml/runs/nia-smartphone-seed-42/recommendation-bundle/`입니다.
 세 분류 모델은 ImageNet V2에서 새로 학습했고 여드름 모델은 기존 선택본을 유지합니다.
 실제 성능과 등급별 한계는 [스마트폰 학습 보고서](smartphone-training.md)를 확인합니다.
 
@@ -70,14 +70,14 @@ from pathlib import Path
 from server.nia.recommendation import RecommendationAnalyzer
 
 # 프로세스당 한 번 생성. 첫 analyze에서 가중치를 로드한 뒤 재사용합니다.
-analyzer = RecommendationAnalyzer("ml/runs/nia-smartphone-seed-42/recommendation-bundle")
+analyzer = RecommendationAnalyzer("ml/runs/nia-smartphone-sam-seed-42/recommendation-bundle")
 features = analyzer.analyze(Path("local-test-photo.jpg").read_bytes())
 ```
 
 CLI로도 로컬 추론을 확인할 수 있습니다.
 
 ```powershell
-uv run --project ml python -m server.nia.recommendation infer --bundle ml/runs/nia-smartphone-seed-42/recommendation-bundle --image local-test-photo.jpg
+uv run --project ml python -m server.nia.recommendation infer --bundle ml/runs/nia-smartphone-sam-seed-42/recommendation-bundle --image local-test-photo.jpg
 ```
 
 기존 프로젝트의 얼굴 영상 비전송 정책은 유지합니다. 이 로더는 로컬 연구용이며,
