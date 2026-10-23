@@ -23,10 +23,14 @@ function script(url) {
 export async function boot(config) {
   const startupAt = performance.now(), base = config.assetsUrl;
   const video = document.querySelector('video'), canvas = document.querySelector('canvas');
+  const captureButton = document.querySelector('#capture');
   let stopped = false, stream, tracker, cv, tensor, manifest, startupMs, ort, cache;
   const abort = new AbortController(), cacheHits = new Set();
   const stopCamera = () => { stream?.getTracks().forEach(track => track.stop()); tracker?.close(); tracker = null; video.srcObject = null; };
-  const cleanup = () => { stopped = true; abort.abort(); stopCamera(); canvas.width = canvas.height = 0; };
+  const cleanup = () => {
+    stopped = true; abort.abort(); stopCamera(); canvas.width = canvas.height = 0;
+    captureButton.disabled = true; captureButton.onclick = null;
+  };
   window.addEventListener('pagehide', cleanup);
   document.addEventListener('visibilitychange', () => { if (document.hidden) cleanup(); });
   const check = () => { if (stopped) throw new Error('cancelled'); };
@@ -157,9 +161,26 @@ export async function boot(config) {
     stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 960 } }, audio: false });
     check(); video.srcObject = stream; await video.play(); startupMs = elapsed(startupAt);
     const openedAt = performance.now(), gate = new CaptureGate(); gate.reset();
-    let lastVideoTime = -1;
+    let lastVideoTime = -1, capturing = false;
+    async function capture() {
+      // Manual and automatic capture share one operation; ignore double taps and late frames.
+      if (stopped || capturing || video.readyState < 2 || !video.videoWidth || !video.videoHeight) return;
+      capturing = true; captureButton.disabled = true;
+      try {
+        const capturedAt = performance.now();
+        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+        canvas.getContext('2d', { willReadFrequently: true }).drawImage(video, 0, 0);
+        const image = cv.imread(canvas), captureMs = elapsed(capturedAt);
+        try {
+          stopCamera(); post({ type: 'captured' }); await sleepFrame();
+          post({ type: 'result', result: await analyze(image, capturedAt, captureMs, capturedAt - openedAt) });
+        } finally { image.delete(); cleanup(); }
+      } catch (error) { cleanup(); post({ type: 'error', code: error?.message === 'photo' ? 'photo' : 'model' }); }
+    }
+    captureButton.onclick = () => { void capture(); };
+    captureButton.disabled = false;
     async function frame() {
-      if (stopped) return;
+      if (stopped || capturing) return;
       try {
         if (video.currentTime === lastVideoTime) { setTimeout(frame, 100); return; }
         lastVideoTime = video.currentTime;
@@ -168,13 +189,7 @@ export async function boot(config) {
         const state = gate.update(result.faceLandmarks.map(points => previewFace(points, video.videoWidth, video.videoHeight, bounds.width, bounds.height)), now);
         post({ type: 'camera', state });
         if (state.progress < 1) { setTimeout(frame, 100); return; }
-        const capturedAt = performance.now();
-        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-        canvas.getContext('2d', { willReadFrequently: true }).drawImage(video, 0, 0);
-        const image = cv.imread(canvas), captureMs = elapsed(capturedAt);
-        stopCamera(); post({ type: 'captured' }); await sleepFrame();
-        try { post({ type: 'result', result: await analyze(image, capturedAt, captureMs, capturedAt - openedAt) }); }
-        finally { image.delete(); cleanup(); }
+        await capture();
       } catch (error) { cleanup(); post({ type: 'error', code: error?.message === 'photo' ? 'photo' : 'model' }); }
     }
     frame();

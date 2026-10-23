@@ -16,7 +16,7 @@ export function SkinCamera({ state, onCapture, webRun, onWebEvent, analyzing = f
   webRun?: SkinWebRun; onWebEvent: (event: SkinWebEvent) => void; analyzing?: boolean;
 }) {
   const { t } = useI18n();
-  const source = useMemo(() => webRun ? { html: skinWebHtml(webRun), baseUrl: 'https://localhost/' } : undefined, [webRun]);
+  const source = useMemo(() => webRun ? { html: skinWebHtml(webRun, t('skin.capture')), baseUrl: 'https://localhost/' } : undefined, [webRun, t]);
   const failed = () => onWebEvent({ type: 'error', code: 'model' });
   return <View style={analyzing ? styles.hidden : styles.frame}>
     {source ? <WebView source={source} originWhitelist={['*']} javaScriptEnabled

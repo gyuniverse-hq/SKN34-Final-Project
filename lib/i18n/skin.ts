@@ -8,6 +8,7 @@ export const skinEn = {
   'skin.title': 'Register skin information',
   'skin.registerAgain': 'Update skin information',
   'skin.start': 'Start camera',
+  'skin.capture': 'Take photo',
   'skin.instructions': 'Lift your fringe and show your forehead through your chin. Face forward in a bright place.',
   'skin.localNotice': 'Analysis runs on this phone. The temporary photo is deleted; only analysis values and answers are saved here.',
   'skin.unsupported': 'Use mobile Expo Go connected to the development server, or the Android skin-analysis build.',
@@ -57,6 +58,7 @@ export const skinEn = {
 };
 type SkinDictionary = Record<keyof typeof skinEn, string>;
 export const skinKo: SkinDictionary = {
+  'skin.capture': '촬영',
   'skin.expoHelp': 'Expo Go 실험 중에는 휴대폰을 PC의 Expo 서버에 연결해 주세요. 모델을 휴대폰으로 받아 실행하며, 카메라 사진은 휴대폰 안에서만 처리합니다.',
   'skin.guidance.loading': '카메라와 분석 도구를 준비하고 있어요',
   'skin.memoryUnavailable': 'WebView에서 측정 불가',
@@ -95,6 +97,7 @@ export const skinKo: SkinDictionary = {
   'skin.deleteNotice': '‘앱 데이터 모두 삭제’ 시 피부 정보와 측정 기록도 삭제합니다.',
 };
 export const skinJa: SkinDictionary = {
+  'skin.capture': '撮影',
   'skin.expoHelp': 'Expo Go実験中はPCのExpoサーバーに接続してください。モデルを端末に読み込み、カメラ画像は端末内だけで処理します。',
   'skin.guidance.loading': 'カメラと分析ツールを準備しています',
   'skin.memoryUnavailable': 'WebViewでは測定不可',
@@ -131,6 +134,7 @@ export const skinJa: SkinDictionary = {
   'skin.deleteNotice': 'アプリデータの全削除で肌情報と測定記録も削除されます。',
 };
 export const skinZh: SkinDictionary = {
+  'skin.capture': '拍摄',
   'skin.expoHelp': 'Expo Go实验期间请连接电脑的Expo服务器。模型下载到手机运行，摄像头图像只在手机内处理。',
   'skin.guidance.loading': '正在准备相机和分析工具',
   'skin.memoryUnavailable': 'WebView无法测量',
