@@ -1,5 +1,5 @@
 # SAM-AdamW vs CE batch16: same data, loss, augmentation, budget and learning rates.
-# Only pore is authorized for this comparison; no automatic service activation.
+# Expanded to pigmentation/wrinkle by user request; no automatic service activation.
 [data]
 root = "../data/028.한국인 피부상태 측정 데이터"
 output = "runs/nia-smartphone-data-v1-seed-42"
