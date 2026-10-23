@@ -75,11 +75,12 @@ def test_invalid_targets_rejected(targets):
 
 
 def test_loss_factory_retains_ce_class_weights_and_uses_six_softmax_logits():
-    labels = [0] * 100 + [1] * 30 + [2] * 10
+    labels = [grade for grade, count in enumerate([100, 30, 20, 10, 5, 2]) for _ in range(count)]
     settings = dict(class_weight_cap=4.0)
-    ce, _ = criterion_for(labels, 3, settings, "cpu")
-    ordinal, spec = criterion_for(labels, 3, settings | dict(loss="weighted_ordinal_cdf"), "cpu")
+    ce, _ = criterion_for(labels, 6, settings, "cpu")
+    ordinal, spec = criterion_for(labels, 6, settings | dict(loss="weighted_ordinal_cdf"), "cpu")
     torch.testing.assert_close(ordinal.weight, ce.weight, rtol=0, atol=0)
+    assert ordinal.weight.shape == (6,)
     assert spec["cross_entropy_component"] is False
     assert spec["decoding"] == "softmax_argmax_unchanged"
 
