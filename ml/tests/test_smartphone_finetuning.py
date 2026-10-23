@@ -2,8 +2,8 @@
 
 import pytest
 import torch
-from ml.scripts.report_finetuning_ablation import require_one_factor
 
+from skin_analysis.smartphone.experiment_checks import require_one_factor as require_one_factor
 from skin_analysis.smartphone.train import GradeModel, optimizer_for
 
 

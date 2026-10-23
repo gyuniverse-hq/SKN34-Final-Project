@@ -6,28 +6,16 @@
 
 ## 문서
 
-| 문서 | 내용 |
+| 목적 | 문서 |
 |---|---|
-| [최종 모델 종합보고서](final-model-report.md) | 모공 실험 종합·세 지표 WCE+SAM 확대·전체 평가와 최종 모델 인계 |
-| [전체 성능 평가](full-performance-evaluation.md) | NIA 10종·여드름 1종의 실제 평가, 기기별 지표·등급별 오류·인물 중복·해석 한계 |
-| [가중치 출처·전처리 확인](checkpoint-provenance.md) | 배포 가중치의 저장 설정·평가 통계, 공식 코드와의 일치 여부, 논문 결과와 비교 가능한 범위 |
-| [스마트폰 전용 학습](smartphone-training.md) | 선별한 세 분류 모델의 스마트폰 전용 학습·인물 분리·재현 및 평가 |
-| [CB Focal 비교](cb-focal-experiment.md) | 기존 모델을 보존한 모공 손실 함수 비교·검증 결과·확대 기준 |
-| [CORAL 비교](coral-experiment.md) | 순서형 출력층·손실을 적용한 모공 우선 비교와 조건부 확대 |
-| [배치 크기 비교](batch-size-experiment.md) | 기존 CE에서 배치 32→16만 변경한 모공 학습 설정·실행 방법 |
-| [학습 진단](training-diagnostics.md) | 소량 데이터 암기 검사·같은 평가 조건의 학습/검증 성능 차이 |
-| [미세조정 분리 실험](finetuning-ablation.md) | BN 통계 고정과 layer4 파라미터 학습을 각각 비교 |
-| [SAM 비교](sam-experiment.md) | 기존 CE 배치 16의 AdamW에 SAM을 추가한 모공 비교 |
-| [순서형 CDF 손실 비교](ordinal-cdf-experiment.md) | CE+SAM에서 손실만 순서형 누적분포 손실로 교체 |
-| [WFL 비교](weighted-focal-experiment.md) | WCE의 클래스 가중치를 유지한 Weighted Focal Loss + SAM |
-| [분류층 균형 재학습](classifier-retraining.md) | 특징 추출기 고정 후 등급·인물 균형 학습과 조건부 3등급 비교 |
-| [모공 3등급 전층 학습](pore-coarse-experiment.md) | 원본 라벨을 보존한 3출력 WCE+SAM 학습·동일 목표 기준선 비교 |
-| [여드름 전이학습](acne-transfer-learning.md) | 정상/여드름 이진 학습, ImageNet·NIA 비교, 평가·한계 |
-| [NIA 평가 도구](nia-evaluation.md) | 기존 모델 연결, 개발 화면, 로컬 서버·평가 방법 |
-| [추천 입력 선정](recommendation-inputs.md) | 네 항목 선정과 수분 제외 근거 |
-| [모델 인계](model-handoff.md) | 네 모델 묶음 내보내기·복원·로딩 계약 |
-| [실험 결과 요약](experiment-summary.md) | 공유 가능한 집계 수치와 해석 |
-| [멀티라벨 학습](multilabel-training.md) | 별도 데이터 감사·학습 파이프라인. 현재 추천용 모델과 구분 |
+| 최종 모델·성능 | [종합보고서](final-model-report.md) |
+| 과거 실험 기록 | [실험 이력](experiment-summary.md) · [근거 JSON](experiment-evidence.json) |
+| 모델 사용 | [모델 인계](model-handoff.md) · [추천 입력](recommendation-inputs.md) |
+| 학습 실행 | [스마트폰 학습](smartphone-training.md) · [여드름 학습](acne-transfer-learning.md) · [멀티라벨](multilabel-training.md) |
+| 기존 평가 도구·출처 | [NIA 평가](nia-evaluation.md) · [가중치 출처](checkpoint-provenance.md) · [기존 전체 평가](full-performance-evaluation.md) |
+
+개별 실험 보고서·그림·보고서 생성기는 보관 기록으로 통합했다. 과거 가중치는 최종 모델 및
+현재 활성 설정에서 사용하는 파일 외에는 제거했으므로 예전 run을 그대로 재개할 수 없다.
 
 ## 폴더 역할
 

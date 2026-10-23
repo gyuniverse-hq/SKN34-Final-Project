@@ -8,7 +8,8 @@
 최종 선정 방침은 모공·색소침착·주름의 WCE+AdamW+SAM이다. 최신 인계 경로는
 `ml/runs/nia-smartphone-sam-seed-42/recommendation-bundle/`이며 평가·해시와
 항목별 한계는 [최종 종합보고서](final-model-report.md)를 따른다. 여드름 모델은 유지한다.
-아래 최초 스마트폰 묶음은 비교용으로 보존한다. 최종 묶음에서도 원본 세부 등급을
+이전 묶음의 지표는 [통합 근거](experiment-evidence.json)에 보존하고, 현재 활성 참조를
+제외한 과거 묶음 파일은 정리했다. 최종 묶음에서도 원본 세부 등급을
 유지하며 모공만 필요에 따라 예측 등급을 `0·1 / 2·3 / 4·5`로 묶는다.
 이 결정은 기존 테스트 페이지의 활성 설정을 자동 변경하지 않는다.
 
@@ -17,15 +18,15 @@
 세 분류 모델은 ImageNet V2에서 새로 학습했고 여드름 모델은 기존 선택본을 유지합니다.
 실제 성능과 등급별 한계는 [스마트폰 학습 보고서](smartphone-training.md)를 확인합니다.
 
-`ml/runs/skin-recommendation-v1/`는 기존 NIA 가중치를 사용한 이전 묶음으로 보존합니다.
+`ml/runs/skin-recommendation-v1/`는 이전 묶음의 역사적 경로이며 현재 사용하지 않습니다.
 다른 브랜치·장비에 인계할 때 최신 묶음 전체와 해당 보고서를 함께 전달합니다.
 
 ## 저장 단위
 
 하나의 새 추천 모델을 학습한 것이 아니라 **독립적인 분석 모델 4개**를 묶습니다.
 여드름은 기존에 학습해 선택한 ImageNet 초기화 모델의 `inference.pt`입니다.
-최신 묶음의 나머지 3개는 스마트폰 전용 학습 결과이며, 이전 v1 묶음에는 원본 NIA
-분류 체크포인트와 텐서가 동일한 안전 로더용 사본이 들어 있습니다.
+최신 묶음의 나머지 3개는 스마트폰 전용 SAM 학습 결과입니다. 이전 v1은 원본 NIA
+분류 체크포인트의 안전 로더용 사본을 사용했던 기록입니다.
 
 `server/nia/recommendation.py`의 export 명령이 가중치의 SHA-256을 검사하고 다음을 만듭니다.
 기존 원본과 내보내기 결과를 덮어쓰지 않습니다.
@@ -43,7 +44,7 @@ skin-recommendation-v1/
 저장소 루트의 기존 Python 환경에서 생성합니다.
 
 ```powershell
-uv run --project ml python -m server.nia.recommendation export --config server/nia/config.local.json --output ml/runs/skin-recommendation-export
+uv run --project ml python -m server.nia.recommendation export --config ml/runs/nia-smartphone-sam-seed-42/config.selected.json --output ml/runs/skin-recommendation-export
 ```
 
 가중치 묶음은 Git에서 제외됩니다. 브랜치를 바꾸어도 같은 작업 디렉터리의 무시된 파일은

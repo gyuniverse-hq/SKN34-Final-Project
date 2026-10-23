@@ -24,7 +24,7 @@
 | 논문의 동일 가중치 여부 | 확인되지 않음 | 논문의 ResNet-50 비교 실험 batch size는 32이며 배포 파일은 256 |
 | 독립 최종 Test 여부 | 확정할 수 없음 | 공개 학습 코드가 Test를 검증·체크포인트 선택에 사용 |
 
-전체 집계 근거는 [감사 JSON](checkpoint-provenance.audit.json)에 보존합니다.
+전체 집계 근거는 [감사 JSON](experiment-evidence.json)에 보존합니다.
 사진·개별 인물·ROI ID·학습 실행 UUID·가중치 텐서는 포함하지 않습니다.
 
 ## 가중치 안에서 직접 확인한 설정

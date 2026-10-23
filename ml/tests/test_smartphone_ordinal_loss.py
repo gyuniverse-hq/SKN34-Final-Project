@@ -2,8 +2,10 @@
 
 import pytest
 import torch
-from ml.scripts.report_ordinal_loss import require_loss_only
 
+from skin_analysis.smartphone.experiment_checks import (
+    require_ordinal_loss_only as require_loss_only,
+)
 from skin_analysis.smartphone.ordinal_loss import WeightedOrdinalCdfLoss
 from skin_analysis.smartphone.train import criterion_for
 

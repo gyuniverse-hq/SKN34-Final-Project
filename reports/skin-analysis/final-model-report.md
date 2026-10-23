@@ -117,11 +117,7 @@ Git에는 코드와 집계 보고서만 포함되므로 다른 브랜치·장비
 촬영 품질·자동 ROI·인물 다양성·소수 등급 재현율 검증이 남는다.
 WCE+SAM 채택 방침과 각 항목에서 성능이 실제로 개선됐는지는 구분한다.
 
-상세 이력: [SAM](sam-experiment.md), [Focal](cb-focal-experiment.md),
-[CORAL](coral-experiment.md), [미세조정](finetuning-ablation.md),
-[순서형 손실](ordinal-cdf-experiment.md), [WFL](weighted-focal-experiment.md),
-[분류층 재학습](classifier-retraining.md), [3등급](pore-coarse-experiment.md),
-[여드름](acne-transfer-learning.md), [모델 인계](model-handoff.md).
+상세 실험 기록은 [실험 이력](experiment-summary.md)과 [통합 근거 JSON](experiment-evidence.json)을 따른다.
 
 ## 실제 전체 평가
 

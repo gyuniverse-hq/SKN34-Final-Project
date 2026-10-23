@@ -4,10 +4,12 @@ import copy
 
 import pytest
 import torch
-from ml.scripts.report_sam_experiment import require_matched_settings
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
+from skin_analysis.smartphone.experiment_checks import (
+    require_sam_settings as require_matched_settings,
+)
 from skin_analysis.smartphone.sam import optimization_spec, train_epoch
 from skin_analysis.train import train_epoch as ordinary_epoch
 

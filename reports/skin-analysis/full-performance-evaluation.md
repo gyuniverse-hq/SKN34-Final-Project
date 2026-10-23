@@ -547,7 +547,7 @@ uv run --project ml python -m server.nia.benchmark_report --input ml/runs/full-e
 
 이번 원본 결과: `ml/runs/full-evaluation-20261022-verified-splits`. 개별 예측 결과·가중치·개별 ROI ID는 Git에서 제외합니다.
 `report.json`에는 전체 기기·부위·등급별 결과와 미중복 부분집합 결과가 있으며, task-device JSON에는 실제 정답·예측이 있습니다. 누락 ROI 수와 split 해시는 report의 audit에 보존했습니다.
-공유 가능한 전체 집계는 [기기·부위·등급별 집계 JSON](full-performance-evaluation.metrics.json)에도 저장했습니다. 개별 인물·ROI 식별자와 사진은 포함하지 않습니다.
+공유 가능한 전체 집계는 [기기·부위·등급별 집계 JSON](experiment-evidence.json)에도 저장했습니다. 개별 인물·ROI 식별자와 사진은 포함하지 않습니다.
 실행 설정: float32, batch 16, 전처리 worker 4. 장치: NVIDIA GeForce RTX 4070 Ti SUPER.
 실행 시점 Git HEAD: `d274af1e9b2eab6c24e811bfdf32cd5c04481793`. 실제 실행 코드의 파일별 SHA-256은 `source_sha256`에 기록했습니다(커밋 전 변경도 식별 가능).
 

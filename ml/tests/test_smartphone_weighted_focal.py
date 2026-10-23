@@ -2,9 +2,11 @@
 
 import pytest
 import torch
-from ml.scripts.report_weighted_focal import require_loss_only
 from torch.nn import functional as F
 
+from skin_analysis.smartphone.experiment_checks import (
+    require_weighted_focal_only as require_loss_only,
+)
 from skin_analysis.smartphone.losses import (
     ClassBalancedFocalLoss,
     WeightedFocalLoss,

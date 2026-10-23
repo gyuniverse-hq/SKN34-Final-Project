@@ -155,7 +155,7 @@ uv run --project ml python -m skin_analysis.smartphone.report
 | 주름 | 기존 NIA | 33.12% | 12.63% | 15.80% | 11.07% | 61.98% |
 | 주름 | 학습 최빈 등급 | 37.52% | 5.36% | 14.29% | 7.79% | 63.71% |
 
-weighted 지표와 혼동행렬은 [집계 JSON](smartphone-training.metrics.json)에 기록합니다. ±1등급은 허용 오차를 적용한 적중률이며 정확 일치율과 구분합니다.
+weighted 지표와 혼동행렬은 [집계 JSON](experiment-evidence.json)에 기록합니다. ±1등급은 허용 오차를 적용한 적중률이며 정확 일치율과 구분합니다.
 
 기존 NIA의 학습 인물 노출 가능성이 있어 이 비교를 공정한 완전 독립 모델 대결이나 논문 재현으로 해석하지 않습니다.
 
