@@ -10,7 +10,8 @@
 
 `[data].output`은 기존 캐시를 재사용합니다. `[train].output`만
 `ml/runs/nia-smartphone-ce-batch16-seed-42/`로 분리해 기존 모델을 보존합니다.
-이번 변경에서는 설정 준비와 검사만 진행했으며, 학습 성능 결과는 아직 없습니다.
+이 설정으로 실행된 선택 모델의 학습/검증 대조와 추가 학습 곡선은
+[학습 진단 보고서](training-diagnostics.md)에 기록합니다.
 
 ## 실행
 
