@@ -10,6 +10,7 @@ from server.nia.recommendation import (
     INDICATORS,
     OUTPUT_SCHEMA,
     RecommendationAnalyzer,
+    bundle_config,
     export_bundle,
 )
 
@@ -106,6 +107,29 @@ class RecommendationTests(unittest.TestCase):
             file.write_text(json.dumps(manifest))
             with self.assertRaisesRegex(ValueError, "Exactly"):
                 RecommendationAnalyzer(bundle)
+
+    def test_bundle_service_ignores_local_config_and_rejects_corrupt_weights(self):
+        from server.nia.service import Service
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            bundle = self.export_fixture(root)
+            with patch.dict("os.environ", {"NIA_EVAL_DEVICE": "cpu"}):
+                service = Service(root / "missing-local-config.json", bundle_directory=bundle)
+            self.assertTrue(all(str(engine.device) == "cpu" for engine in service.engines.values()))
+            self.assertEqual(str(service.acne.device), "cpu")
+            status = service.status()
+            self.assertTrue(status["config_exists"])
+            self.assertEqual(status["errors"], {})
+            self.assertEqual(len(status["models"]), 3)
+            self.assertTrue(all(model["present"] for model in status["models"]))
+            self.assertTrue(status["acne"]["present"])
+            self.assertFalse(status["dataset_configured"])
+            self.assertEqual(set(service.profile_features),
+                             {"pore_grade", "pigmentation_grade", "wrinkle_grade"})
+            (bundle / "weights" / "acne.pt").write_bytes(b"corrupt")
+            with self.assertRaisesRegex(ValueError, "hash mismatch"):
+                bundle_config(bundle)
 
 
 if __name__ == "__main__":

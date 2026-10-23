@@ -89,6 +89,9 @@ npx expo start -c
 
 ## 스크립트
 
+DL 개발 테스트는 최종 가중치 묶음을 받은 뒤 `npm run nia:test`로 실행합니다.
+[가중치 배치와 최초 실행 안내](reports/skin-analysis/model-handoff.md)를 참고하세요.
+
 ```bash
 npm run check      # 타입체크 + 린트 + 테스트
 npm test

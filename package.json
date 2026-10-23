@@ -42,6 +42,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "nia:test": "node scripts/nia-test.mjs",
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",

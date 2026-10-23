@@ -74,26 +74,35 @@ def export_bundle(config_path, output):
     return output
 
 
+def bundle_config(bundle_directory):
+    """Resolve a portable manifest without relying on machine-specific settings."""
+    root = Path(bundle_directory).resolve(strict=True)
+    manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    if (manifest.get("schema") != BUNDLE_SCHEMA
+            or manifest.get("output_schema") != OUTPUT_SCHEMA
+            or manifest.get("indicators") != list(INDICATORS)
+            or manifest.get("excluded") != list(EXCLUDED)):
+        raise ValueError("Unsupported model bundle contract")
+    _validate_selection(manifest)
+    for record in [*manifest["models"], manifest["acne"]]:
+        relative = Path(record["checkpoint"])
+        if relative.is_absolute():
+            raise ValueError("Bundle checkpoints must be relative paths")
+        target = (root / relative).resolve(strict=True)
+        if not target.is_relative_to(root) or not target.is_file():
+            raise ValueError("Checkpoint must stay inside the bundle directory")
+        if sha256(target) != record["sha256"].lower():
+            raise ValueError("Bundle checkpoint hash mismatch")
+        record["checkpoint"] = str(target)
+    return dict(models=manifest["models"], acne=manifest["acne"],
+                dataset_roots=[], allow_dataset_previews=False, metadata_evidence=None)
+
+
 class RecommendationAnalyzer:
     """Load once per process. Pass local image bytes to analyze()."""
 
     def __init__(self, bundle_directory):
-        root = Path(bundle_directory).resolve(strict=True)
-        manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
-        if (manifest.get("schema") != BUNDLE_SCHEMA
-                or manifest.get("output_schema") != OUTPUT_SCHEMA
-                or manifest.get("indicators") != list(INDICATORS)
-                or manifest.get("excluded") != list(EXCLUDED)):
-            raise ValueError("Unsupported model bundle contract")
-        _validate_selection(manifest)
-        for record in [*manifest["models"], manifest["acne"]]:
-            relative = Path(record["checkpoint"])
-            if relative.is_absolute():
-                raise ValueError("Bundle checkpoints must be relative paths")
-            target = (root / relative).resolve(strict=True)
-            if not target.is_relative_to(root) or not target.is_file():
-                raise ValueError("Checkpoint must stay inside the bundle directory")
-            record["checkpoint"] = str(target)
+        manifest = bundle_config(bundle_directory)
         self.engines = {m["id"]: Engine(m) for m in manifest["models"]}
         self.acne = AcneEngine(manifest["acne"])
 

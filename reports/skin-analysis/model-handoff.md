@@ -1,5 +1,47 @@
 # 네 항목 피부 분석 모델 인계
 
+## pull 후 테스트 페이지 실행 (Windows x64)
+
+Node.js와 uv가 설치된 환경에서 저장소를 pull한 뒤 아래 순서로 실행합니다.
+가중치는 팀 공유 Drive에서 `recommendation-bundle` **전체**를 받아 아래에 배치합니다.
+Drive 공유 링크는 배포 담당자가 공유할 예정이며 현재 저장소에는 없습니다.
+
+```text
+ml/runs/nia-smartphone-sam-seed-42/recommendation-bundle/
+  manifest.json
+  weights/acne.pt
+  weights/pore.bin
+  weights/pigmentation.bin
+  weights/wrinkle.bin
+```
+
+저장소 루트에서:
+
+```powershell
+npm ci
+npm run nia:test
+```
+
+이후 앱 의존성이 바뀌지 않았다면 `npm run nia:test`만 실행합니다.
+첫 실행은 `uv run --locked --project ml`이 Python 3.12 및 잠금 파일의 의존성을
+자동 준비하므로 인터넷과 다운로드 시간이 필요합니다. 미리 설치하려면
+`uv sync --project ml --locked`를 사용합니다. 현재 ML 잠금 환경은 Windows x64용입니다.
+GPU는 필요하지 않으며 이 명령은 CPU로 실행합니다. CUDA 빌드의 PyTorch가 설치되지만
+GPU를 사용하지 않습니다. macOS/Linux용 의존성 구성은 이 작업에 포함하지 않았습니다.
+
+실행기가 네 가중치의 SHA-256을 검증하고 Python 서버 준비 후 Expo를 실행합니다.
+Metro 준비 완료 후 **http://localhost:8083/dev/nia** 에서 사진을 선택하고 분석합니다.
+선정한 여드름·모공·색소침착·주름만 실행합니다. 데이터셋 원본은 사진 테스트에 필요하지 않습니다.
+직접 `config.local.json`이나 `.env`를 작성할 필요가 없고 기존 파일도 변경하지 않습니다.
+인증 토큰은 실행마다 생성해 두 하위 프로세스에만 전달합니다. Ctrl+C로 둘 다 종료합니다.
+기존 Expo가 실행 중이면 종료한 뒤 실행하세요. 기존 서버에 자동으로 붙지 않습니다.
+
+다른 위치의 모델은 `NIA_EVAL_BUNDLE`, 포트 충돌은 `NIA_EVAL_PORT`(기본 8765)와
+`NIA_WEB_PORT`(기본 8083)를 해당 터미널에서 지정할 수 있습니다.
+Python과 Expo는 localhost 전용이며 이 명령은 PC 웹 연구 화면용입니다.
+가중치 오류·누락은 서버 시작 단계에서 차단합니다. 사진에서 얼굴을 찾지 못하면 분석은
+실패할 수 있고, CPU 속도와 자동 ROI의 실사 정확도는 별도 검증 대상입니다.
+
 선정: 여드름 이진 분류, 모공 등급(0~5), 색소침착 등급(0~5), 주름 등급(0~6).
 수분·탄력·처짐·입술 건조·모공/색소침착/주름 회귀 모델은 추천용 추론에서 실행하지 않습니다.
 

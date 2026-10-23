@@ -2,6 +2,7 @@
 
 import hashlib
 import importlib.metadata
+import os
 import time
 from pathlib import Path
 
@@ -26,7 +27,8 @@ class Engine:
         self.config = validate_model(config)
         self.model = None
         self.metadata = None
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device(os.environ.get("NIA_EVAL_DEVICE") or
+                                   ("cuda" if torch.cuda.is_available() else "cpu"))
 
     def sync(self):
         if self.device.type == "cuda":

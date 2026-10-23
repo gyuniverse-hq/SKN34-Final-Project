@@ -1,5 +1,6 @@
 """Strict inference bundle loading with an independent failure boundary."""
 
+import os
 import time
 from pathlib import Path
 
@@ -13,7 +14,8 @@ from ml.src.skin_analysis.acne.model import load_bundle
 class AcneEngine:
     def __init__(self, config, device=None):
         self.config = config
-        self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = device or torch.device(os.environ.get("NIA_EVAL_DEVICE") or
+                                             ("cuda" if torch.cuda.is_available() else "cpu"))
         self.model = None
         self.bundle = None
 

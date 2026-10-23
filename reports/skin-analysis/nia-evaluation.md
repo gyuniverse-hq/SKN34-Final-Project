@@ -3,8 +3,9 @@
 현재 개발 테스트 페이지는 최종 **WCE+AdamW+SAM** 모공·색소침착·주름 가중치를 사용한다.
 로컬 설정은 `ml/runs/nia-smartphone-sam-seed-42/recommendation-bundle/`의 가중치를
 참조하며 여드름 모델은 기존 선택본을 유지한다. 변경 전 설정은 같은 run의
-`config.before-test-page.json`에 보존했다. 새 장비에서는 가중치 묶음과 로컬 설정을
-별도로 준비해야 한다. 이 파일들은 Git에 포함되지 않는다.
+`config.before-test-page.json`에 보존했다. 새 장비에서는 최종 묶음을 내려받은 후
+`npm ci`, `npm run nia:test`로 실행한다. 이 실행기는 manifest에서 설정을 읽으므로
+로컬 설정 파일은 필요하지 않다. [최초 실행 절차](model-handoff.md#pull-후-테스트-페이지-실행-windows-x64)를 참고한다.
 
 이 화면은 같은 Expo 프로젝트 안의 개발 전용 도구다. `/dev/nia` 화면은 `__DEV__`로,
 `/api/dev/nia/*`는 `NODE_ENV=development`로 제한한다. 운영 화면·추천 로직이나

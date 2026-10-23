@@ -22,14 +22,19 @@ from .dataset import prepare_dataset
 from .engine import Engine, sha256
 from .metrics import classification, regression, timing
 from .profile import FEATURES, run_profile
+from .recommendation import SELECTED_FEATURES, bundle_config
 
 MAX_BODY = 18 * 1024 * 1024
 
 
 class Service:
-    def __init__(self, config_path):
-        self.config_path = Path(config_path).resolve()
-        self.config = json.loads(self.config_path.read_text(encoding="utf-8")) if self.config_path.is_file() else {}
+    def __init__(self, config_path, bundle_directory=None):
+        self.config_path = (Path(bundle_directory) / "manifest.json" if bundle_directory
+                            else Path(config_path)).resolve()
+        self.config = (bundle_config(bundle_directory) if bundle_directory else
+                       json.loads(self.config_path.read_text(encoding="utf-8"))
+                       if self.config_path.is_file() else {})
+        self.profile_features = SELECTED_FEATURES if bundle_directory else FEATURES
         self.engines = {}
         self.errors = {}
         for model in self.config.get("models", []):
@@ -92,7 +97,8 @@ class Service:
             if len(self.jobs) >= 4:
                 del self.jobs[next(iter(self.jobs))]
             identifier = uuid.uuid4().hex
-            total = sum(len(parts) for _, areas in FEATURES.values() for parts in areas.values()) + int(self.acne is not None)
+            total = sum(len(parts) for _, areas in self.profile_features.values()
+                        for parts in areas.values()) + int(self.acne is not None)
             job = dict(id=identifier, kind="profile", status="queued", completed=0, total=total, report=None)
             self.jobs[identifier] = job
             self.worker.submit(self.run_profile_job, job, raw)
@@ -102,7 +108,9 @@ class Service:
         job["status"] = "running"
         try:
             with self.lock:
-                job["report"] = run_profile(raw, self.engines, job, self.acne)
+                options = (dict(features=self.profile_features, unsupported=("acne",))
+                           if self.profile_features is SELECTED_FEATURES else {})
+                job["report"] = run_profile(raw, self.engines, job, self.acne, **options)
                 job["status"] = "completed"
         except Exception as error:
             job.update(status="failed", error=str(error))
@@ -234,7 +242,8 @@ def main():
     token = os.environ.get("NIA_EVAL_TOKEN", "")
     if len(token) < 32:
         raise SystemExit("Set NIA_EVAL_TOKEN to a random secret with at least 32 characters")
-    service = Service(os.environ.get("NIA_EVAL_CONFIG", "server/nia/config.local.json"))
+    service = Service(os.environ.get("NIA_EVAL_CONFIG", "server/nia/config.local.json"),
+                      os.environ.get("NIA_EVAL_BUNDLE"))
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
