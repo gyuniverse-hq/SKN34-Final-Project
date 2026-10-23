@@ -192,6 +192,11 @@ def evaluate():
             training_environment=checkpoint["environment"],
             initialization=checkpoint["initialization"],
             gate="accuracy >= both six-class decoders; macro-F1 and high recall > both decoders",
+            budget_policy=dict(
+                patience=config["train"]["patience"],
+                max_epochs=20,
+                full_budget_extension=ROOT != CONTROL_ROOT,
+            ),
         ),
     )
     preflight()
@@ -227,6 +232,14 @@ def publish():
         (h for h in history if h["stage"] == "full_backbone"),
         key=lambda h: (h["valid_macro_f1"], -h["valid_loss"]),
     )
+    control_check = None
+    if ROOT != CONTROL_ROOT:
+        original_history = json.loads((CONTROL_ROOT / "pore/history.json").read_text("utf-8"))
+        control_check = all(
+            {k: v for k, v in a.items() if k != "seconds"}
+            == {k: v for k, v in b.items() if k != "seconds"}
+            for a, b in zip(original_history, history[: len(original_history)], strict=True)
+        )
     write_json(
         REPORT.with_suffix(".metrics.json"),
         dict(
@@ -236,6 +249,7 @@ def publish():
             selected_stage=selected["stage"],
             best_finetune_epoch_from_history=full["epoch"],
             six_grade_service_loader_rejected=True,
+            initial_control_epochs_reproduced=control_check,
         ),
     )
     prefix = REPORT.read_text("utf-8").split("\n## 실제 결과")[0]
@@ -249,10 +263,19 @@ def publish():
         "| 방법 | Accuracy | Macro P | Macro R | Macro F1 | 높음 P | 높음 R | MAE |",
         "|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
+    names = {
+        "six_probability_pooling": "기존 6등급: 확률 합산",
+        "six_argmax_mapping": "기존 6등급: 예측 등급 묶음",
+        "three_frozen_balanced": "3등급: 분류층 균형 재학습",
+        "three_wce_sam": "3등급: WCE+SAM (20 epoch)"
+        if ROOT != CONTROL_ROOT
+        else "3등급: WCE+SAM (patience 6)",
+        "three_wce_sam_patience6": "3등급: WCE+SAM (patience 6)",
+    }
     for name, splits in result["results"].items():
         m, g = splits["valid"], splits["valid"]["per_grade"][2]
         lines.append(
-            f"| {name} | {m['accuracy']:.2%} | {m['macro_precision']:.2%} | "
+            f"| {names[name]} | {m['accuracy']:.2%} | {m['macro_precision']:.2%} | "
             f"{m['macro_recall']:.2%} | {m['macro_f1']:.2%} | {g['precision']:.2%} | "
             f"{g['recall']:.2%} | {m['mae']:.4f} |"
         )
@@ -265,6 +288,14 @@ def publish():
         f"선택 단계: `{selected['stage']}`. 전체 미세조정 단계의 최고 검증 Macro-F1은 "
         f"epoch {full['epoch']}의 {full['valid_macro_f1']:.2%}였다.",
         "",
+    ]
+    if control_check is not None:
+        lines += [
+            "최초 8 epoch의 모든 기록(실행 시간 제외)이 대조군과 "
+            + ("완전히 일치했다." if control_check else "일치하지 않았다."),
+            "",
+        ]
+    lines += [
         "| 목표 | 정답 ROI | 예측 ROI | Precision | Recall | F1 |",
         "|---|---:|---:|---:|---:|---:|",
     ]
@@ -277,7 +308,7 @@ def publish():
     lines += ["", "| 방법 | 학습 F1 | 검증 F1 | 차이(%p) |", "|---|---:|---:|---:|"]
     for name, splits in result["results"].items():
         t, v = (splits[s]["macro_f1"] for s in ("train", "valid"))
-        lines.append(f"| {name} | {t:.2%} | {v:.2%} | {(t - v) * 100:.2f} |")
+        lines.append(f"| {names[name]} | {t:.2%} | {v:.2%} | {(t - v) * 100:.2f} |")
     lines += ["", "3등급 WCE+SAM 검증 혼동행렬(행=정답, 열=예측):", "", "```text"]
     lines += [str(row) for row in m["confusion"]] + ["```", ""]
     correct, predicted = m["confusion"][2][2], m["per_grade"][2]["predicted"]
@@ -331,7 +362,12 @@ def publish():
         ax.set(title=f"Three-class WCE+SAM: {title}", xlabel="Epoch", ylim=(0, 1))
         ax.legend(fontsize=8)
         ax.grid(alpha=0.25)
-    fig.savefig(REPORT.parent / "figures/pore-coarse-experiment.png", dpi=150)
+    fig.savefig(
+        REPORT.parent / "figures/pore-coarse-experiment.png",
+        dpi=150,
+        bbox_inches="tight",
+        pad_inches=0.15,
+    )
     plt.close(fig)
     lines += [
         "![3등급 학습 곡선](figures/pore-coarse-experiment.png)",
