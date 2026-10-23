@@ -5,6 +5,7 @@ Run from repo root: uv run --project ml python -m ml.scripts.report_finetuning_a
 
 import argparse
 import json
+import math
 from pathlib import Path
 
 import torch
@@ -117,6 +118,7 @@ def evaluate():
         summary = json.loads((path.parent / "summary.json").read_text(encoding="utf-8"))
         assert file_hash(path) == summary["sha256"]
         checkpoint = torch.load(path, map_location="cpu", weights_only=True)
+        assert all(torch.isfinite(value).all() for value in checkpoint["model_state"].values())
         assert checkpoint["architecture"] == "resnet50" and checkpoint["task"] == "pore"
         assert checkpoint["manifest_fingerprint"] == manifest["fingerprint"]
         assert checkpoint["initialization"] == baseline["initialization"]
@@ -142,6 +144,7 @@ def evaluate():
         )
         for split, loader in loaders.items():
             truth, predicted, probabilities, ce = predict(network, loader, device)
+            assert math.isfinite(ce)
             result["splits"][split] = dict(
                 unweighted_ce=ce, metrics=verified_metrics(truth, predicted, 6)
             )
