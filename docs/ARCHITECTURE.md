@@ -63,6 +63,23 @@ flowchart LR
 
 ## 클라이언트 레이어
 
+### Android 피부 분석 실험
+
+피부 정보 등록은 마이페이지 → `app/skin-analysis.tsx` → 전용 훅 →
+`lib/skinAnalysis.ts`의 네이티브 경계 → `modules/skin-analysis/` 순서로 호출합니다.
+모듈은 상위 앱 레이어를 import하지 않으며 TypeScript 레이어 경계를 린트로 검사합니다.
+Android 실험은 승인된 Expo 개발 빌드/내부 APK에서만 활성화합니다
+(`EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS=1`). 기존 Expo Go에서는 기능을 실행하지 않습니다.
+앱의 다른 화면과 기존 AR 렌더러는 기존 구조를 유지합니다.
+
+네이티브 CameraX·ML Kit로 자동 촬영하고 ONNX Runtime CPU로 4개 모델을 순차 실행합니다.
+촬영 JPEG는 네이티브 메모리에서만 유지하며 분석·취소 후 참조를 해제합니다.
+얼굴 사진·ROI·텐서는 서버 또는 JavaScript로 보내지 않습니다.
+숫자 결과와 설문은 `skinProfileStore`를 통해 저장하며, AsyncStorage 쓰기의 성공을
+확인한 뒤 완료를 표시합니다. 측정 기록도 기기에만 저장하고 숫자 메타데이터만 공유합니다.
+네이티브 모듈은 Expo 자동 연결로 포함되며 루트 `android/`·`ios/`를 직접 수정하지 않습니다.
+실행·측정 절차와 제한은 [모바일 피부 분석](../reports/skin-analysis/mobile-analysis.md)을 참고합니다.
+
 피부 모델 연구 환경은 운영 흐름과 별도로 관리합니다. `ml/src/`에는 학습·평가 코드,
 `ml/configs/`에는 설정, `ml/tests/`에는 자동 테스트를 두고, 실행 방법과 결과 요약은
 [`reports/skin-analysis/`](../reports/skin-analysis/README.md)에 모읍니다. 가중치·원본 데이터·

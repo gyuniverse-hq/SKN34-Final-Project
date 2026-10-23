@@ -1,4 +1,6 @@
+import { skinEn } from './skin';
 export const en = {
+  ...skinEn,
   "nia.acne.ready": "Acne research model available · included in the next analysis",
   "nia.acne.outdated": "This earlier analysis has no acne result. Analyze again with the currently available model.",
   "nia.acne.reanalyze": "Analyze again including acne",

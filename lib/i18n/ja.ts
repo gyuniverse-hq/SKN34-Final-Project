@@ -1,6 +1,8 @@
 import type { Dictionary } from './en';
+import { skinJa } from './skin';
 
 export const ja: Dictionary = {
+  ...skinJa,
   "nia.acne.ready": "ニキビ研究モデルが利用可能 · 次の解析に含まれます",
   "nia.acne.outdated": "以前の解析にはニキビの結果がありません。現在のモデルで再解析してください。",
   "nia.acne.reanalyze": "ニキビを含めて再解析",

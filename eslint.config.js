@@ -24,7 +24,7 @@ function layer(files, patterns, ignores) {
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ["dist/*", "backend/**", "**/.venv/**", "ml/runs/**", "nia-private/**", "final_venv/**",
+    ignores: ["dist/*", "backend/**", "**/.venv/**", "ml/runs/**", "ml/.uv-cache/**", ".gradle-local/**", "nia-private/**", "final_venv/**",
       "data/028.*/**", "data/14.*/**", "data/Skin-Problem-MultiLabel/**"],
   },
 
@@ -58,6 +58,10 @@ module.exports = defineConfig([
   ]),
   layer(['constants/**', 'types/**'], [
     { group: ['@/**'], message: 'constants/ and types/ must not import project code.' },
+  ]),
+  // Android module implementation stays below the client facade in lib/skinAnalysis.
+  layer(['modules/**'], [
+    { group: ['@/app/**', '@/components/**', '@/hooks/**', '@/lib/**', '@/store/**', '@/server/**', '@/data/**'], message: 'Native modules must not import application layers.' },
   ]),
   layer(['data/**'], [
     { group: ['@/**', '!@/types'], message: 'data/ may import only types/.' },

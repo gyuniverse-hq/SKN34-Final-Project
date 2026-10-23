@@ -70,7 +70,7 @@ API 키는 `server/`와 `app/api/`에서만 읽고 앱 번들에는 포함되지
 ```bash
 npm install
 cp .env.example .env      # 키 입력 (없어도 실행됨: 튜토리얼 검색·온라인 가격만 비활성)
-npx expo start -c
+npx expo start --go -c
 ```
 
 - 폰: PC와 같은 Wi-Fi에서 QR 스캔 (iOS Expo Go는 PC와 같은 Expo 계정으로 로그인 필요)
@@ -91,6 +91,10 @@ npx expo start -c
 
 DL 개발 테스트는 최종 가중치 묶음을 받은 뒤 `npm run nia:test`로 실행합니다.
 [가중치 배치와 최초 실행 안내](reports/skin-analysis/model-handoff.md)를 참고하세요.
+
+Android 기기 내 피부 분석 실험은 별도 Expo 개발/내부 빌드를 사용합니다.
+`npm run skin:prepare`로 모바일 모델을 준비한 뒤
+[모바일 피부 분석 실행·측정 안내](reports/skin-analysis/mobile-analysis.md)를 따릅니다.
 
 ```bash
 npm run check      # 타입체크 + 린트 + 테스트
