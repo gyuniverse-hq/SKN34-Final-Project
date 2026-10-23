@@ -138,6 +138,23 @@ def predict(model, loader, device, ordinal=False):
     return truth, predicted, probabilities, total_loss / len(truth)
 
 
+def evaluate_training(model, loader, device, classes, generator, ordinal=False):
+    # Diagnostic evaluation must not alter subsequent training RNG or BN buffers.
+    state = capture_rng(generator)
+    try:
+        truth, predicted, _, loss = predict(model, loader, device, ordinal=ordinal)
+        metrics = classification(truth, predicted, classes)
+        return dict(
+            train_eval_loss=loss,
+            **{
+                f"train_eval_{k}": metrics[k]
+                for k in ("accuracy", "macro_f1", "mae", "within_one")
+            },
+        )
+    finally:
+        restore_rng(state, generator)
+
+
 def optimizer_for(model, settings, frozen):
     model.set_stage(frozen)
     groups = [
@@ -257,6 +274,15 @@ def train_task(config, manifest, task, device, resume=None):
     validation = GradeDataset(manifest, task, "valid")
     train_loader = make_loader(training, settings, generator, training=True)
     valid_loader = make_loader(validation, settings)
+    train_eval_loader = (
+        make_loader(
+            GradeDataset(manifest, task, "train", training=False),
+            settings,
+            torch.Generator().manual_seed(settings["seed"] + 1),
+        )
+        if settings.get("record_train_metrics", False)
+        else None
+    )
     criterion, loss_spec = criterion_for(
         [r["truth"] for r in training.records], classes, settings, device
     )
@@ -314,6 +340,10 @@ def train_task(config, manifest, task, device, resume=None):
             selected=improved,
             amp_overflow_retries=model._amp_overflow_retries,
         )
+        if train_eval_loader is not None:
+            row.update(
+                evaluate_training(model, train_eval_loader, device, classes, generator, ordinal)
+            )
         history.append(row)
         saved = dict(
             schema="nia-smartphone-training-v1",
@@ -382,7 +412,7 @@ def train_task(config, manifest, task, device, resume=None):
             sha256=file_hash(output / "inference.bin"),
         ),
     )
-    del train_loader, valid_loader, optimizer, model, best, exported, saved
+    del train_loader, valid_loader, train_eval_loader, optimizer, model, best, exported, saved
     torch.cuda.empty_cache()
 
 
