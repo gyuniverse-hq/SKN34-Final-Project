@@ -65,6 +65,7 @@ __pycache__/
 /ml/.socket-tmp/
 /.gradle-local/
 /modules/skin-analysis/android/src/main/assets/skin/
+/modules/skin-analysis/android/build/
 /ml/**/__pycache__/
 /ml/configs/evidence.local.json
 /ml/configs/*.local.csv

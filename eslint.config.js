@@ -59,10 +59,14 @@ module.exports = defineConfig([
   layer(['constants/**', 'types/**'], [
     { group: ['@/**'], message: 'constants/ and types/ must not import project code.' },
   ]),
-  // Android module implementation stays below the client facade in lib/skinAnalysis.
+  // Device runtimes (Android and WebView) stay below the client facade in lib/skinAnalysis.
   layer(['modules/**'], [
     { group: ['@/app/**', '@/components/**', '@/hooks/**', '@/lib/**', '@/store/**', '@/server/**', '@/data/**'], message: 'Native modules must not import application layers.' },
   ]),
+  { files: ['modules/skin-analysis/web/*.mjs'], languageOptions: { globals: {
+    window: 'readonly', document: 'readonly', navigator: 'readonly', Image: 'readonly',
+    requestAnimationFrame: 'readonly',
+  } } },
   layer(['data/**'], [
     { group: ['@/**', '!@/types'], message: 'data/ may import only types/.' },
   ]),
