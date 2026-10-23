@@ -63,6 +63,19 @@ flowchart LR
 
 ## 클라이언트 레이어
 
+피부 모델 연구 환경은 운영 흐름과 별도로 관리합니다. `ml/src/`에는 학습·평가 코드,
+`ml/configs/`에는 설정, `ml/tests/`에는 자동 테스트를 두고, 실행 방법과 결과 요약은
+[`reports/skin-analysis/`](../reports/skin-analysis/README.md)에 모읍니다. 가중치·원본 데이터·
+개별 표본 결과는 Git에서 제외합니다. 향후 LLM 외부 호출과 서비스 조합은 기존
+`server/clients/`·`server/services/` 레이어를 따릅니다.
+
+로컬 NIA 연구 도구의 화면은 `app/dev/nia.tsx`, 사진 분석·결과 요청 훅은 `hooks/useNia*.ts`,
+표현 컴포넌트는 `components/nia/`에 둡니다. 컴포넌트는 화면에서 결과와 동작을 props로
+받으며 `lib/nia`를 직접 호출하지 않습니다. 이 경계를 린트로 검사합니다. 개발 API는
+`server/services/niaEvaluationService.ts`를 통해 로컬 Python 평가 프로세스에 연결하며,
+production/test/미지정 환경에서는 차단합니다. Python 코드는 `server/nia/`·`server/acne/`에
+있습니다. 이 도구는 운영 앱의 얼굴 영상 비전송 정책을 변경하지 않습니다.
+
 ```
 app/ (화면, app/api 제외)     화면 조립, 네비게이션, 훅 호출
   ↓

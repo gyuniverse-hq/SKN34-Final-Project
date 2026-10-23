@@ -8,6 +8,7 @@
 - 레이어 구조와 import 규칙: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · 결정 기록: [`docs/adr/`](docs/adr/README.md)
 - 백엔드 실행과 배포(Compose · kind · EKS): [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
 - 출시 전 직접 해야 할 일: [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKLIST.md)
+- 학습·평가 보고서와 재현·모델 인계 절차: [`reports/README.md`](reports/README.md)
 
 ## 기능
 
@@ -48,6 +49,8 @@ lib/                    API 클라이언트, react-query 훅, 로그인(auth/), 
 store/                  Zustand (장바구니·쇼핑리스트·설정은 기기에 저장)
 constants/              테마, 약관 등 정적 상수
 __tests__/              데이터 무결성 · 검색 · 장바구니 · i18n · 서버 유틸 테스트
+ml/                     독립 Python 학습 프로젝트 (src · configs · tests · uv.lock)
+reports/                학습·평가 문서와 공유 가능한 결과 요약
 backend/                FastAPI 백엔드 (서비스별 uv 프로젝트)
   api/                  카탈로그 · 셰이드 추천(ΔE2000) · 회원 — PostgreSQL · Redis
   chatbot/              챗봇(GraphRAG) · PostgreSQL→Neo4j 동기화 잡 — Neo4j · LLM
@@ -85,6 +88,9 @@ npx expo start -c
 위 키들에는 `EXPO_PUBLIC_` 접두어를 붙이지 마세요. 붙이면 앱 번들에 노출됩니다. 예외는 Supabase의 Project URL과 publishable 키뿐이고, Supabase secret(`service_role`) 키는 절대 넣지 않습니다.
 
 ## 스크립트
+
+DL 개발 테스트는 최종 가중치 묶음을 받은 뒤 `npm run nia:test`로 실행합니다.
+[가중치 배치와 최초 실행 안내](reports/skin-analysis/model-handoff.md)를 참고하세요.
 
 ```bash
 npm run check      # 타입체크 + 린트 + 테스트

@@ -1,0 +1,30 @@
+# Main coarse-label fallback: same natural sampling and WCE+SAM as the best six-class run.
+[data]
+root = "../data/028.한국인 피부상태 측정 데이터"
+output = "runs/nia-smartphone-data-v1-seed-42"
+seed = 42
+folds = 7
+valid_fold = 1
+test_fold = 0
+
+[train]
+output = "runs/nia-smartphone-pore-coarse-sam-seed-42"
+classes = 3
+target_mapping = [0, 0, 1, 1, 2, 2]
+seed = 42
+device_uuid = "GPU-9ed09563-0d58-cdc7-f6bc-b2c84d8da0e3"
+batch_size = 16
+effective_batch = 16
+num_workers = 4
+freeze_epochs = 2
+finetune_epochs = 18
+head_lr = 0.001
+finetune_head_lr = 0.0001
+backbone_lr = 0.00001
+weight_decay = 0.0001
+patience = 6
+amp = true
+class_weight_cap = 4.0
+record_train_metrics = true
+optimizer = "sam_adamw"
+sam_rho = 0.05

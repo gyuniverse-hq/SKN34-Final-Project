@@ -1,0 +1,15 @@
+{
+  "dataset_url": "https://universe.roboflow.com/parin-kittipongdaja-vwmn3/skin-problem-multilabel/dataset/1",
+  "dataset_version": 1,
+  "confirmed_classes": [],
+  "license": "CC-BY-4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "rights_evidence": "",
+  "exhaustive_negatives_evidence": "",
+  "normal_definition_evidence": "",
+  "normal_exclusive": null,
+  "full_face_evaluation_evidence": "",
+  "label_review_evidence": "",
+  "image_sources": "",
+  "skin_tone_information": "Unknown; global generalization has not been established."
+}

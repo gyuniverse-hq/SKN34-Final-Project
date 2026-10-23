@@ -1,0 +1,44 @@
+# All paths are relative to ml/, regardless of the invocation directory.
+[data]
+root = "../data/Skin-Problem-MultiLabel"
+evidence = "configs/evidence.local.json"
+metadata = "configs/images.local.csv"
+duplicate_reviews = "configs/duplicates.local.csv"
+
+[audit]
+output = "runs/audit-cleaned"
+seed = 42
+resplit = true
+quarantine_conflicts = true
+quarantine_unreviewed_similarities = true
+phash_distance = 6
+min_compound_train = 100
+min_compound_valid = 30
+min_compound_test = 30
+# Prioritize 70/20/10 class proportions over the initial fixed 20 positives per eval split.
+positive_support_policy = "proportional"
+min_eval_positive = 20
+min_eval_negative = 20
+min_full_face_eval = 30
+
+[train]
+output = "runs/resnet50"
+seed = 42
+device_uuid = "GPU-9ed09563-0d58-cdc7-f6bc-b2c84d8da0e3"
+batch_size = 32
+num_workers = 2
+freeze_epochs = 3
+finetune_epochs = 27
+head_lr = 0.001
+finetune_head_lr = 0.0001
+backbone_lr = 0.00001
+weight_decay = 0.0001
+eta_min = 0.0000001
+pos_weight_cap = 20.0
+patience = 7
+min_delta = 0.0001
+amp = true
+
+[evaluation]
+bootstrap_iterations = 1000
+seed = 42
