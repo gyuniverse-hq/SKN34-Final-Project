@@ -22,7 +22,7 @@ from starlette.formparsers import MultiPartException, MultiPartParser
 
 from ml.src.skin_analysis.runtime import select_cuda
 
-from .auth import AuthUnavailable, SupabaseTokenVerifier
+from .auth import AuthUnavailable, SupabaseTokenVerifier, TestTokenVerifier
 from .engine import sha256
 from .face_detection import DEFAULT_MODEL, YuNetRegions
 from .imaging import MAX_PIXELS
@@ -36,9 +36,11 @@ MIME_TYPES = {"image/jpeg", "image/png"}
 
 @dataclass(frozen=True)
 class Settings:
-    supabase_url: str
-    supabase_publishable_key: str = field(repr=False)
-    gpu_uuid: str
+    supabase_url: str = ""
+    supabase_publishable_key: str = field(default="", repr=False)
+    gpu_uuid: str = ""
+    auth_mode: str = "supabase"
+    test_bearer_token: str = field(default="", repr=False)
     bundle: Path = ROOT / "ml/runs/skin-analysis-v2"
     face_model: Path = DEFAULT_MODEL
     max_upload_bytes: int = 12 * 1024 * 1024
@@ -46,19 +48,25 @@ class Settings:
     def __post_init__(self):
         from urllib.parse import urlsplit
 
-        origin = urlsplit(self.supabase_url)
-        if (
-            origin.scheme != "https"
-            or not origin.hostname
-            or origin.username
-            or origin.password
-            or origin.query
-            or origin.fragment
-            or origin.path not in ("", "/")
-        ):
-            raise ValueError("SUPABASE_URL must be the project's HTTPS origin")
-        if not self.supabase_publishable_key.strip():
-            raise ValueError("SUPABASE_PUBLISHABLE_KEY is required")
+        if self.auth_mode == "supabase":
+            origin = urlsplit(self.supabase_url)
+            if (
+                origin.scheme != "https"
+                or not origin.hostname
+                or origin.username
+                or origin.password
+                or origin.query
+                or origin.fragment
+                or origin.path not in ("", "/")
+            ):
+                raise ValueError("SUPABASE_URL must be the project's HTTPS origin")
+            if not self.supabase_publishable_key.strip():
+                raise ValueError("SUPABASE_PUBLISHABLE_KEY is required")
+        elif self.auth_mode == "test-token":
+            if len(self.test_bearer_token.encode("utf-8")) < 32:
+                raise ValueError("SKIN_TEST_BEARER_TOKEN must contain at least 32 bytes")
+        else:
+            raise ValueError("SKIN_AUTH_MODE must be 'supabase' or 'test-token'")
         if not self.gpu_uuid.startswith("GPU-"):
             raise ValueError("SKIN_GPU_UUID must be an NVIDIA GPU UUID")
         if not 1024 <= self.max_upload_bytes <= 32 * 1024 * 1024:
@@ -72,9 +80,11 @@ class Settings:
             supabase_url=os.environ.get("SUPABASE_URL", ""),
             supabase_publishable_key=os.environ.get("SUPABASE_PUBLISHABLE_KEY", ""),
             gpu_uuid=os.environ.get("SKIN_GPU_UUID", default_gpu),
+            auth_mode=os.environ.get("SKIN_AUTH_MODE", "supabase"),
+            test_bearer_token=os.environ.get("SKIN_TEST_BEARER_TOKEN", ""),
             bundle=Path(os.environ.get("SKIN_MODEL_BUNDLE", ROOT / "ml/runs/skin-analysis-v2")),
             face_model=Path(os.environ.get("SKIN_FACE_MODEL", DEFAULT_MODEL)),
-            max_upload_bytes=int(os.environ.get("SKIN_MAX_UPLOAD_BYTES", 12 * 1024 * 1024)),
+            max_upload_bytes=int(os.environ.get("SKIN_MAX_UPLOAD_BYTES", str(12 * 1024 * 1024))),
         )
 
 
@@ -194,7 +204,10 @@ def create_app(
     @asynccontextmanager
     async def lifespan(app):
         active = settings if settings is not None else Settings.from_env()
-        app.state.verifier = verifier_factory(active.supabase_url, active.supabase_publishable_key)
+        if active.auth_mode == "test-token":
+            app.state.verifier = TestTokenVerifier(active.test_bearer_token)
+        else:
+            app.state.verifier = verifier_factory(active.supabase_url, active.supabase_publishable_key)
         runtime = await run_in_threadpool(runtime_factory, active)
         app.state.settings = active
         app.state.runtime = runtime
@@ -229,7 +242,7 @@ def create_app(
             raise error(
                 401,
                 "UNAUTHORIZED",
-                "Sign in with a valid Supabase access token.",
+                "Provide a valid inference access token.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         return claims

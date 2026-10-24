@@ -1,8 +1,24 @@
 """Verify user access tokens without coupling GPU inference to another service."""
 
+import hmac
+
 import anyio
 import httpx
 import jwt
+
+
+class TestTokenVerifier:
+    """Constant-time shared-token verifier for a deliberately temporary test setup."""
+
+    def __init__(self, token: str):
+        if len(token.encode("utf-8")) < 32:
+            raise ValueError("Test bearer token must contain at least 32 bytes")
+        self._token = token
+
+    async def verify(self, token: str) -> dict | None:
+        if not hmac.compare_digest(token, self._token):
+            return None
+        return {"sub": "shared-test-client", "role": "authenticated", "auth_mode": "test-token"}
 
 
 class AuthUnavailable(RuntimeError):

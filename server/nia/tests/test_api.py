@@ -80,7 +80,7 @@ def setup():
 
 
 def test_startup_loads_once_and_responses_keep_the_existing_schema(setup):
-    client, runtime, factory, app = setup
+    client, runtime, factory, _app = setup
     assert factory.call_count == 1
     for _ in range(2):
         response = client.post(
@@ -98,6 +98,32 @@ def test_startup_loads_once_and_responses_keep_the_existing_schema(setup):
         "gpu": "test GPU",
         "models_loaded": 4,
     }
+
+
+def test_temporary_test_token_mode_does_not_require_supabase():
+    runtime = RuntimeFixture()
+    settings = api.Settings(
+        gpu_uuid="GPU-test",
+        auth_mode="test-token",
+        test_bearer_token=TOKEN,
+    )
+    app = api.create_app(
+        settings,
+        runtime_factory=Mock(return_value=runtime),
+        verifier_factory=Mock(side_effect=AssertionError("Supabase must not be used in test-token mode")),
+    )
+    with TestClient(app) as client:
+        assert client.get("/health").status_code == 401
+        assert client.get("/health", headers=AUTH).status_code == 200
+        assert client.get("/health", headers={"Authorization": "Bearer wrong"}).status_code == 401
+    assert runtime.closed
+
+
+def test_temporary_test_token_must_be_long_and_explicit():
+    with pytest.raises(ValueError, match="32 bytes"):
+        api.Settings(gpu_uuid="GPU-test", auth_mode="test-token", test_bearer_token="short")
+    with pytest.raises(ValueError, match="SKIN_AUTH_MODE"):
+        api.Settings(gpu_uuid="GPU-test", auth_mode="none")
 
 
 @pytest.mark.parametrize("path,method", [("/analyze", "post"), ("/health", "get")])
