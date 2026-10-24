@@ -27,10 +27,12 @@ docker compose -f infra/compose/compose.yaml --env-file .env up --build
 ```
 
 - 루트 `.env`를 그대로 읽습니다. `EXPO_PUBLIC_SUPABASE_*`는 토큰 검증에, `NAVER_*`와 `YOUTUBE_API_KEY`는 판매처·제품 이미지·튜토리얼 검색에, `LLM_API_KEY`와 `LLM_MODEL`은 챗봇에 씁니다. 키가 없으면 해당 기능만 꺼집니다(챗봇은 503).
-- 시작 순서는 자동입니다. PostgreSQL → `migrate`(Alembic) → `api` → `sync-graph` 순서로 뜨고, `chatbot`은 Neo4j가 준비되면 뜹니다.
+- 시작 순서는 자동입니다. PostgreSQL → `migrate`(Alembic) → `api` → 게이트웨이 순서로 뜨고, `chatbot`과 `sync-graph`는 Neo4j가 준비되면 뜹니다. 게이트웨이는 챗봇을 기다리지 않아서, 챗봇이 꺼져 있어도 쇼핑 API는 동작하고 `/api/chat`만 503을 돌려줍니다.
+- 처음 실행은 이미지를 받고 만드느라 몇 분 걸립니다. `-d`를 붙이면 터미널을 닫아도 계속 돌고, 상태는 `docker compose -f infra/compose/compose.yaml ps`로 봅니다.
 - 확인: `curl http://localhost:8080/api/products`, API 문서는 `http://localhost:8080/api/docs`
 - 앱(`npx expo start`)은 개발 중에 Metro를 띄운 PC의 `:8080`으로 자동 연결됩니다. 휴대폰 Expo Go도 같은 Wi-Fi라면 따로 설정할 필요가 없습니다(PC 방화벽에서 8080 허용 필요). 터널 모드(`--tunnel`)처럼 PC 주소로 닿지 않을 때는 `.env`의 `EXPO_PUBLIC_API_BASE_URL`에 백엔드 주소를 넣습니다.
-- LAN에 열리는 포트는 게이트웨이(8080) 하나뿐이고, DB 포트는 `127.0.0.1`에만 열립니다. Expo 웹(`localhost:8081`)에서 부르는 경우를 위해 CORS가 기본으로 열려 있습니다(`CORS_ORIGINS`).
+- LAN에 열리는 포트는 게이트웨이(8080) 하나뿐입니다. DB 관리 도구용 포트는 `127.0.0.1`에만, PC에 이미 설치된 PostgreSQL·Redis와 겹치지 않는 번호로 열립니다(PostgreSQL 15432, Redis 16379, Neo4j 17474·17687). 겹치면 `.env`에서 `GATEWAY_PORT`, `POSTGRES_HOST_PORT` 등으로 바꿉니다.
+- Expo 웹(`localhost:8081`)에서 부르는 경우를 위해 CORS가 기본으로 열려 있습니다(`CORS_ORIGINS`).
 - 카탈로그 넣기: `backend/api/seed/catalog.json`을 채운 뒤 다음을 실행합니다.
 
   ```bash
@@ -39,6 +41,20 @@ docker compose -f infra/compose/compose.yaml --env-file .env up --build
   ```
 
 - 데이터까지 지우기: `docker compose -f infra/compose/compose.yaml down -v`
+
+### 팀 공용 개발 백엔드 (Docker 없는 팀원용)
+
+백엔드를 한 PC(서버 PC)에서만 띄우고, 다른 팀원은 주소만 넣어 씁니다. 화면만 개발하는 팀원은 Docker가 필요 없습니다.
+
+1. 서버 PC: `up -d --build`로 띄우고, 관리자 PowerShell에서 8080 포트를 엽니다.
+   ```powershell
+   New-NetFirewallRule -DisplayName "VISHUE backend 8080" -Direction Inbound -Protocol TCP -LocalPort 8080 -Action Allow
+   ```
+2. 서버 PC의 주소를 팀원에게 공유합니다.
+   - 같은 Wi-Fi: `ipconfig`의 IPv4 주소 → `http://<IP>:8080`
+   - 다른 네트워크: `cloudflared tunnel --url http://localhost:8080`이 출력하는 `https://….trycloudflare.com` (다시 켜면 주소가 바뀜)
+3. 팀원: 브라우저에서 `<주소>/api/health`가 열리는지 확인하고, `.env`에 `EXPO_PUBLIC_API_BASE_URL=<주소>`를 넣은 뒤 `npx expo start -c`.
+4. 백엔드 코드가 `develop`에 병합되면 서버 PC에서 `git pull` 후 `up -d --build`로 다시 띄웁니다. DB는 모두가 함께 쓰므로 시드는 담당자만 실행합니다.
 
 ### 서비스 하나만 직접 실행 (uv)
 

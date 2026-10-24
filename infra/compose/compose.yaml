@@ -1,6 +1,8 @@
 # Local full stack. Run from the repository root:
 #   docker compose -f infra/compose/compose.yaml --env-file .env up --build
-# Only the gateway (:8080) is reachable from the LAN (Expo Go on a phone); data stores bind to 127.0.0.1.
+# Only the gateway (:8080) is reachable from the LAN (Expo Go on a phone); data stores bind to 127.0.0.1
+# on 15432/16379/17474/17687 so they never clash with a PostgreSQL or Redis already installed on the PC.
+# Override any host port in .env (GATEWAY_PORT, POSTGRES_HOST_PORT, REDIS_HOST_PORT, NEO4J_*_HOST_PORT).
 name: vishue
 
 x-backend: &backend
@@ -20,13 +22,13 @@ x-ready: &ready
   start_period: 10s
 
 services:
+  # Waits for api only: shopping keeps working while the chatbot is down (nginx answers 503 for chat).
   gateway:
     image: nginx:1.29-alpine
-    ports: ["8080:8080"]
+    ports: ["${GATEWAY_PORT:-8080}:8080"]
     volumes: ["./nginx.conf:/etc/nginx/conf.d/default.conf:ro"]
     depends_on:
       api: { condition: service_healthy }
-      chatbot: { condition: service_healthy }
     restart: unless-stopped
 
   api:
@@ -96,9 +98,12 @@ services:
     command: ["python", "-m", "app.jobs.seed_catalog", "seed/catalog.json"]
     environment:
       DATABASE_URL: postgresql+asyncpg://vishue:${POSTGRES_PASSWORD:-vishue}@postgres:5432/vishue
+      # Same Redis as api, so the import clears the cached product listings.
+      REDIS_URL: redis://redis:6379/0
     volumes: ["../../backend/api/seed:/app/seed:ro"]
     depends_on:
       migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
     profiles: ["tools"]
 
   postgres:
@@ -107,7 +112,7 @@ services:
       POSTGRES_USER: vishue
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vishue}
       POSTGRES_DB: vishue
-    ports: ["127.0.0.1:5432:5432"]
+    ports: ["127.0.0.1:${POSTGRES_HOST_PORT:-15432}:5432"]
     volumes: ["postgres-data:/var/lib/postgresql/data"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U vishue -d vishue"]
@@ -117,7 +122,7 @@ services:
   redis:
     image: redis:7-alpine
     command: ["redis-server", "--save", "", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
-    ports: ["127.0.0.1:6379:6379"]
+    ports: ["127.0.0.1:${REDIS_HOST_PORT:-16379}:6379"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       <<: *ready
@@ -125,14 +130,15 @@ services:
 
   neo4j:
     image: neo4j:5-community
+    # The image reads every NEO4J_* variable as a setting and refuses unknown ones: add no others.
     environment:
       NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-vishue-local}
-      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-vishue-local}
       NEO4J_server_memory_heap_max__size: 512m
-    ports: ["127.0.0.1:7474:7474", "127.0.0.1:7687:7687"]
+    ports: ["127.0.0.1:${NEO4J_HTTP_HOST_PORT:-17474}:7474", "127.0.0.1:${NEO4J_BOLT_HOST_PORT:-17687}:7687"]
     volumes: ["neo4j-data:/data"]
     healthcheck:
-      test: ["CMD-SHELL", "cypher-shell -u neo4j -p \"$${NEO4J_PASSWORD}\" 'RETURN 1' || exit 1"]
+      # HTTP comes up after Bolt; cypher-shell starts a JVM and is too slow for a probe.
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:7474 || exit 1"]
       <<: *ready
       start_period: 30s
     restart: unless-stopped
