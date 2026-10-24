@@ -1,0 +1,64 @@
+name: dev-data
+
+# Keeps the shared dev databases in step with develop (Render runs the servers):
+#   1. migrate Supabase and reload the catalog from backend/api/seed/catalog.json
+#   2. copy the catalog into Neo4j AuraDB through the dev api (the chatbot never reads PostgreSQL)
+# The schedule touches Render, Supabase and AuraDB twice a day so the free instances do not pause.
+# Scheduled runs use the copy of this file on the default branch (main) and check out develop.
+on:
+  push:
+    branches: [develop]
+    paths: ["backend/api/seed/**", "backend/api/alembic/**"]
+  schedule:
+    - cron: "0 */12 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dev-data
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    # Skipped until the dev environment is configured (see docs/DEPLOYMENT.md).
+    if: vars.DEV_API_URL != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: develop
+      - uses: astral-sh/setup-uv@v10.3.2
+
+      - name: Migrate and reload the catalog (Supabase)
+        if: github.event_name != 'schedule'
+        working-directory: backend/api
+        env:
+          DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
+        run: |
+          uv sync --frozen --no-dev
+          uv run --no-sync alembic upgrade head
+          uv run --no-sync python -m app.jobs.seed_catalog seed/catalog.json
+
+      - name: Wake the dev api (free instances sleep after 15 idle minutes)
+        env:
+          API_URL: ${{ vars.DEV_API_URL }}
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS "$API_URL/healthz" > /dev/null; then exit 0; fi
+            sleep 10
+          done
+          echo "dev api did not answer within 5 minutes" >&2
+          exit 1
+
+      - name: Copy the catalog into Neo4j (AuraDB)
+        working-directory: backend/chatbot
+        env:
+          NEO4J_URI: ${{ secrets.DEV_NEO4J_URI }}
+          NEO4J_USER: ${{ secrets.DEV_NEO4J_USER }}
+          NEO4J_PASSWORD: ${{ secrets.DEV_NEO4J_PASSWORD }}
+          CATALOG_API_URL: ${{ vars.DEV_API_URL }}
+        run: |
+          uv sync --frozen --no-dev
+          uv run --no-sync python -m app.jobs.sync_graph
