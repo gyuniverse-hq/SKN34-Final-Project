@@ -21,7 +21,7 @@
 | FR-04 셀럽 룩 → AR | 룩 선택 시 AR에 일괄 적용, YouTube 튜토리얼 실시간 검색 |
 | FR-05 Look-to-Cart | 룩 제품 세트를 컬러까지 한 번에 담기 |
 | FR-06 매장 안내 | 직원에게 보여주는 한국어 쇼핑 리스트, 매장 선택·지도 |
-| NFR-01 얼굴 비저장 | 기기 내 처리, 녹화·저장·전송 없음, 동의 화면, 탭 이탈 시 카메라 해제 |
+| NFR-01 얼굴 비저장 | AR 영상은 기기 내 처리. 피부 분석은 명시적 촬영 JPEG 한 장만 인증된 GPU API로 전송하며 사진은 저장하지 않음 |
 | NFR-02 다국어 | English(기본)·한국어·日本語·简体中文, 기기 언어 자동 감지 |
 
 결제(PG)는 기획서상 범위 밖이라, 구매는 **매장 쇼핑 리스트**와 **외부 온라인 판매처 링크**로 연결합니다.
@@ -120,3 +120,13 @@ npx expo-doctor
 - 앱: EAS Build/Submit — `npx eas-cli@latest build --profile production --platform all`. 빌드 전에 EAS 환경 변수 `EXPO_PUBLIC_API_BASE_URL`에 백엔드 주소를 넣습니다.
 
 자세한 순서는 [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKLIST.md) 참고.
+
+
+## 피부 분석: 같은 저장소, 서로 다른 실행 환경
+
+- 사용자 개발 PC: `npm ci` → `.env.example`을 `.env.local`로 복사하고 공개 API/Supabase 설정 입력 → `npm run client` → Expo Go 접속.
+- 기본 모드는 서버 분석이다. 사용자 PC에는 Python/CUDA/모델 파일이 필요하지 않다. 기존 일반 백엔드 주소 `EXPO_PUBLIC_API_BASE_URL`과 GPU 주소 `EXPO_PUBLIC_SKIN_API_URL`은 구분한다.
+- GPU 서버(Windows): Python 3.12·uv·NVIDIA 드라이버 준비 → 가중치 별도 배치 → `.env.skin-server.example`을 `.env.skin-server.local`로 복사 → `uv sync --project ml --locked --no-dev --group inference-server` → `scripts/start-skin-server.ps1 -HostAddress 192.168.75.230`.
+- 기기 내 분석은 `EXPO_PUBLIC_SKIN_ANALYSIS_MODE=on-device`로 명시하고 기존 모델 준비 절차를 수행하는 별도 실험이다. 서버 분석 실패 시 자동으로 전환하지 않는다.
+- 현재 사용자 승인 전송 대상은 `http://192.168.75.230:8000`만 허용한다. IP가 바뀌거나 Tunnel을 사용할 때에는 승인 대상과 설정을 함께 변경해야 한다.
+- [설치·인증·전송 형식·검증 방법](reports/skin-analysis/desktop-gpu-server.md)

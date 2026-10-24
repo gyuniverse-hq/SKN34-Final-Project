@@ -4,7 +4,7 @@ import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import { theme } from '@/constants/theme';
 import { useI18n } from '@/lib/i18n';
-import { skinAnalysisSupported } from '@/lib/skinAnalysis';
+import { skinAnalysisSupported, skinAnalysisServerMode } from '@/lib/skinAnalysis';
 import { clearSkinTimings, comparableSkinTimings, readSkinTimings, summarizeSkinTimings } from '@/lib/skinProfile';
 import type { SkinTiming } from '@/types/skin';
 
@@ -21,7 +21,7 @@ export default function SkinBenchmarkScreen() {
   return <ScrollView contentContainerStyle={styles.content}>
     <Stack.Screen options={{ title: t('skin.benchmark') }} />
     {!skinAnalysisSupported ? <Text>{t('skin.unsupported')}</Text> : <>
-      <Text style={styles.body}>{t('skin.benchmarkHelp')}</Text>
+      <Text style={styles.body}>{t(skinAnalysisServerMode ? 'skin.serverBenchmarkHelp' : 'skin.benchmarkHelp')}</Text>
       {[first, repeat].map((group, index) => {
         const stats = summarizeSkinTimings(group);
         return <View key={index} style={styles.card}>
@@ -34,6 +34,7 @@ export default function SkinBenchmarkScreen() {
         <Text selectable>{row.runtime}</Text>
         {row.startupMs !== undefined && <Text>{t('skin.startupTiming', { ms: row.startupMs.toFixed(0) })}</Text>}
         <Text selectable>{row.totalMs.toFixed(0)} ms · PSS {row.memoryPssKb === null ? t('skin.memoryUnavailable') : `${row.memoryPssKb} KB`} · {t(row.firstInProcess ? 'skin.processFirst' : 'skin.processRepeat')}</Text>
+        {row.requestMs !== undefined && <Text>{t('skin.serverTiming', { request: row.requestMs.toFixed(0), server: row.serverMs?.toFixed(0) || '?' })}</Text>}
         {row.models.map(model => <Text selectable key={model.indicator}>{t('skin.timingRow', {
           indicator: model.indicator, load: model.loadMs.toFixed(0), prepare: model.preprocessingMs.toFixed(0), infer: model.inferenceMs.toFixed(0),
         })}</Text>)}

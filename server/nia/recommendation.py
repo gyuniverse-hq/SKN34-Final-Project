@@ -101,15 +101,19 @@ def bundle_config(bundle_directory):
 class RecommendationAnalyzer:
     """Load once per process. Pass local image bytes to analyze()."""
 
-    def __init__(self, bundle_directory):
+    def __init__(self, bundle_directory, *, region_locator=None):
+        self.region_locator = region_locator
         manifest = bundle_config(bundle_directory)
         self.engines = {m["id"]: Engine(m) for m in manifest["models"]}
         self.acne = AcneEngine(manifest["acne"])
 
     def analyze(self, raw):
+        options = {}
+        if getattr(self, "region_locator", None) is not None:
+            options["region_locator"] = self.region_locator
         report = run_profile(raw, self.engines, {"completed": 0}, self.acne,
                              features=SELECTED_FEATURES, unsupported=("acne",),
-                             include_previews=False)
+                             include_previews=False, **options)
         return dict(**{**report["ml_input"], "schema_version": OUTPUT_SCHEMA},
                     status=report["status"], indicators=list(INDICATORS))
 

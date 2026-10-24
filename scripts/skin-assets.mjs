@@ -58,7 +58,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       const rel = relative(resolve(root, 'ml/runs/skin-mobile'), source);
       if (isAbsolute(rel) || rel.startsWith('..')) throw new Error('Unexpected model export directory');
       prepareAssets(source);
-    } else if (command === 'validate' || process.env.EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS === '1') {
+    } else if (command === 'validate' || (process.env.EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS === '1' && process.env.EXPO_PUBLIC_SKIN_ANALYSIS_MODE === 'on-device')) {
       if (!existsSync(resolve(target, 'manifest.json'))) throw new Error('Run npm run skin:prepare before building skin analysis');
       validateAssets(target);
       console.log('Skin asset hashes and contracts verified.');

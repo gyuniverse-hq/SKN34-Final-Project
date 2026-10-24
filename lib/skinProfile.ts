@@ -10,19 +10,27 @@ const FEATURE_MAX: Record<keyof SkinAnalysisResult['features'], number> = {
 };
 
 export function validateSkinAnalysis(result: SkinAnalysisResult): void {
-  if (result.preprocessing !== undefined && result.preprocessing !== 'opencv4.12-turbojpeg95-wasm-v1') throw new Error('skin.analysisFailed');
-  if (result.schema !== 'skin-analysis-mobile-v1' || !result.features ||
+  const server = result?.schema === 'skin-analysis-server-v1';
+  const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0;
+  if ((!server && result?.schema !== 'skin-analysis-mobile-v1') || !result.features ||
       Object.keys(result.features).length !== 10 || Object.entries(FEATURE_MAX).some(([key, max]) => {
         const value = result.features[key as keyof typeof FEATURE_MAX];
         return !Number.isInteger(value) || value < 0 || value > max;
       }) || !Number.isFinite(result.acneScore) || result.acneScore < 0 || result.acneScore > 1 ||
-      !(result.acneThreshold > 0 && result.acneThreshold < 1) ||
+      !Number.isFinite(result.acneThreshold) || !(result.acneThreshold > 0 && result.acneThreshold < 1) ||
       result.features.acne !== Number(result.acneScore >= result.acneThreshold) ||
-      result.roiMethod !== 'opencv_haar_facebox_proportions_v1' || result.validationStatus !== 'experimental_unvalidated' ||
-      !result.timing || !Array.isArray(result.timing.models) || result.timing.models.length !== 4 ||
-      new Set(result.timing.models.map(model => model.indicator)).size !== 4 ||
-      !['acne', 'pore', 'pigmentation', 'wrinkle'].every(indicator => result.timing.models.some(model => model.indicator === indicator)) ||
-      !Number.isFinite(result.timing.totalMs) || result.timing.totalMs < 0) throw new Error('skin.analysisFailed');
+      result.validationStatus !== 'experimental_unvalidated' ||
+      !result.timing || !Array.isArray(result.timing.models) || !finite(result.timing.totalMs)) throw new Error('skin.analysisFailed');
+  if (server) {
+    if (result.roiMethod !== 'opencv_yunet_facebox_proportions_v1' || result.preprocessing !== 'server-native-v1' ||
+        result.timing.runtime !== 'pytorch-cuda' || !/^[a-f0-9]{64}$/.test(result.timing.bundleVersion) ||
+        !finite(result.timing.requestMs) || !finite(result.timing.serverMs) || result.timing.models.length !== 0 ||
+        ['imagePreparationMs', 'validationMs', 'detectionMs', 'nativeMs', 'memoryPssKb'].some(key =>
+          result.timing[key as keyof SkinTiming] !== null)) throw new Error('skin.analysisFailed');
+  } else if (result.roiMethod !== 'opencv_haar_facebox_proportions_v1' ||
+      (result.preprocessing !== undefined && result.preprocessing !== 'opencv4.12-turbojpeg95-wasm-v1') ||
+      result.timing.models.length !== 4 || new Set(result.timing.models.map(model => model.indicator)).size !== 4 ||
+      !['acne', 'pore', 'pigmentation', 'wrinkle'].every(indicator => result.timing.models.some(model => model.indicator === indicator))) throw new Error('skin.analysisFailed');
 }
 
 export async function readSkinProfile(): Promise<SkinProfile | null> {

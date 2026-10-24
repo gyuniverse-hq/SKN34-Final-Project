@@ -1,4 +1,13 @@
 export const skinEn = {
+  "skin.serverNotice": "Your captured photo is sent to the desktop analysis server. It is processed in memory; only results and answers are saved on this phone.",
+  "skin.serverHelp": "Keep Expo Go connected to Metro. Skin models run on the desktop; one captured JPEG is uploaded.",
+  "skin.serverProcessing": "The desktop server is analyzing your photo.",
+  "skin.signInRequired": "Sign in again before starting skin analysis.",
+  "skin.serverUnavailable": "Cannot reach the approved desktop server. Check its LAN address and your connection.",
+  "skin.serverBusy": "The analysis server is busy. Please try again shortly.",
+  "skin.serverBenchmarkHelp": "Remote runs record request round-trip and server processing time separately. Models stay loaded on the server.",
+  "skin.serverTiming": "Request round-trip: {request} ms · server processing: {server} ms",
+
   'skin.expoHelp': 'For this Expo Go experiment, keep your phone connected to the PC’s Expo server. Models are downloaded to the phone; camera images stay on the phone.',
   'skin.guidance.loading': 'Preparing the camera and analysis tools',
   'skin.memoryUnavailable': 'unavailable in WebView',
@@ -58,6 +67,15 @@ export const skinEn = {
 };
 type SkinDictionary = Record<keyof typeof skinEn, string>;
 export const skinKo: SkinDictionary = {
+  "skin.serverNotice": "촬영한 사진 한 장을 데스크톱 분석 서버로 전송합니다. 서버는 메모리에서 처리하고, 분석 수치와 설문 응답만 이 휴대폰에 저장합니다.",
+  "skin.serverHelp": "Expo Go는 Metro에 연결해 두세요. 피부 모델은 데스크톱에서 실행하며 촬영한 JPEG 한 장만 업로드합니다.",
+  "skin.serverProcessing": "데스크톱 서버에서 사진을 분석하고 있습니다.",
+  "skin.signInRequired": "피부 분석을 시작하려면 다시 로그인해 주세요.",
+  "skin.serverUnavailable": "승인된 데스크톱 서버에 연결할 수 없습니다. LAN 주소와 네트워크를 확인해 주세요.",
+  "skin.serverBusy": "서버가 다른 사진을 분석 중입니다. 잠시 후 다시 시도해 주세요.",
+  "skin.serverBenchmarkHelp": "서버 분석은 요청 왕복 시간과 서버 처리 시간을 구분합니다. 모델은 서버에 계속 로드되어 있습니다.",
+  "skin.serverTiming": "요청 왕복: {request} ms · 서버 처리: {server} ms",
+
   'skin.capture': '촬영',
   'skin.expoHelp': 'Expo Go 실험 중에는 휴대폰을 PC의 Expo 서버에 연결해 주세요. 모델을 휴대폰으로 받아 실행하며, 카메라 사진은 휴대폰 안에서만 처리합니다.',
   'skin.guidance.loading': '카메라와 분석 도구를 준비하고 있어요',
@@ -97,6 +115,15 @@ export const skinKo: SkinDictionary = {
   'skin.deleteNotice': '‘앱 데이터 모두 삭제’ 시 피부 정보와 측정 기록도 삭제합니다.',
 };
 export const skinJa: SkinDictionary = {
+  "skin.serverNotice": "撮影した写真1枚をデスクトップ解析サーバーに送信します。サーバーはメモリ上で処理し、結果と回答のみこの端末に保存します。",
+  "skin.serverHelp": "Expo GoをMetroに接続してください。肌モデルはデスクトップで動作し、撮影したJPEG1枚のみアップロードします。",
+  "skin.serverProcessing": "デスクトップサーバーで写真を解析しています。",
+  "skin.signInRequired": "肌解析を始める前に再度ログインしてください。",
+  "skin.serverUnavailable": "承認されたデスクトップサーバーに接続できません。LANアドレスと接続を確認してください。",
+  "skin.serverBusy": "サーバーは別の写真を解析中です。しばらくしてから再試行してください。",
+  "skin.serverBenchmarkHelp": "リモート解析は要求の往復時間とサーバー処理時間を分けて記録します。モデルはサーバーに保持されます。",
+  "skin.serverTiming": "要求往復: {request} ms · サーバー処理: {server} ms",
+
   'skin.capture': '撮影',
   'skin.expoHelp': 'Expo Go実験中はPCのExpoサーバーに接続してください。モデルを端末に読み込み、カメラ画像は端末内だけで処理します。',
   'skin.guidance.loading': 'カメラと分析ツールを準備しています',
@@ -134,6 +161,15 @@ export const skinJa: SkinDictionary = {
   'skin.deleteNotice': 'アプリデータの全削除で肌情報と測定記録も削除されます。',
 };
 export const skinZh: SkinDictionary = {
+  "skin.serverNotice": "拍摄的一张照片会发送到桌面分析服务器。服务器仅在内存中处理，本机仅保存结果与问卷答案。",
+  "skin.serverHelp": "请保持Expo Go与Metro连接。皮肤模型在桌面运行，仅上传拍摄的一张JPEG照片。",
+  "skin.serverProcessing": "桌面服务器正在分析照片。",
+  "skin.signInRequired": "开始皮肤分析前请重新登录。",
+  "skin.serverUnavailable": "无法连接已批准的桌面服务器。请检查LAN地址和网络连接。",
+  "skin.serverBusy": "服务器正在分析其他照片，请稍后重试。",
+  "skin.serverBenchmarkHelp": "远程分析分别记录请求往返时间和服务器处理时间。模型始终加载在服务器中。",
+  "skin.serverTiming": "请求往返: {request} ms · 服务器处理: {server} ms",
+
   'skin.capture': '拍摄',
   'skin.expoHelp': 'Expo Go实验期间请连接电脑的Expo服务器。模型下载到手机运行，摄像头图像只在手机内处理。',
   'skin.guidance.loading': '正在准备相机和分析工具',

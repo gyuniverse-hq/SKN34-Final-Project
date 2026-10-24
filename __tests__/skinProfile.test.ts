@@ -8,12 +8,15 @@ import { act, create } from 'react-test-renderer';
 import { useSkinAnalysis } from '@/hooks/useSkinAnalysis';
 import { analyzeSkin } from '@/lib/skinAnalysis';
 import * as skinRuntime from '@/lib/skinAnalysis';
+import { uploadSkinPhoto } from '@/lib/skinServer';
 
 jest.mock('@/lib/skinAnalysis', () => ({
   __esModule: true,
   analyzeSkin: jest.fn(), cancelSkinAnalysis: jest.fn(() => Promise.resolve()), onSkinProgress: jest.fn(),
-  skinAnalysisUsesWebView: false, createSkinWebRun: jest.fn(),
+  skinAnalysisServerMode: false, skinAnalysisUsesWebView: false, createSkinWebRun: jest.fn(),
 }));
+
+jest.mock('@/lib/skinServer', () => ({ ...jest.requireActual('@/lib/skinServer'), uploadSkinPhoto: jest.fn() }));
 
 function timing(id = 'run'): SkinTiming {
   return { runId: id, processId: 'process', firstInProcess: true, device: 'Android test', androidVersion: '16',
@@ -165,4 +168,39 @@ it('accepts WebView camera results without native inference and ignores events f
     expect((await readSkinProfile())?.analysis.preprocessing).toBe(web.preprocessing);
     expect((await readSkinProfile())?.analysis.timing.memoryPssKb).toBeNull();
   } finally { await act(async () => { renderer.unmount(); }); property.restore(); }
+});
+
+
+it('uploads a completed server capture only once and ignores the response after cancellation', async () => {
+  const webProperty = jest.replaceProperty(skinRuntime, 'skinAnalysisUsesWebView', true);
+  const serverProperty = jest.replaceProperty(skinRuntime, 'skinAnalysisServerMode', true);
+  const previous = process.env.EXPO_PUBLIC_SKIN_API_URL;
+  process.env.EXPO_PUBLIC_SKIN_API_URL = 'http://192.168.75.230:8000';
+  jest.mocked(skinRuntime.createSkinWebRun).mockReturnValue({ mode: 'server', assetsUrl: 'http://localhost:8081/skin-runtime/',
+    run: { runId: 'remote', processId: 'session', firstInProcess: true, device: 'test', androidVersion: 'android', build: 'expo-go' } });
+  let resolveResult!: (result: SkinAnalysisResult) => void;
+  jest.mocked(uploadSkinPhoto).mockReturnValue(new Promise(resolve => { resolveResult = resolve; }));
+  let flow!: ReturnType<typeof useSkinAnalysis>;
+  function Harness() { flow = useSkinAnalysis(); return null; }
+  let renderer!: ReturnType<typeof create>;
+  await act(async () => { renderer = create(createElement(Harness)); });
+  try {
+    await act(async () => { await flow.start(); });
+    await act(async () => { flow.onWebEvent({ type: 'captured' }); });
+    await act(async () => { flow.onWebEvent({ type: 'capture-start', captureId: 'remote:jpeg', mime: 'image/jpeg', byteLength: 3, chunkCount: 1, captureMs: 4, alignmentMs: 1500 }); });
+    await act(async () => { flow.onWebEvent({ type: 'capture-chunk', captureId: 'remote:jpeg', index: 0, data: '/9j/' }); });
+    await act(async () => { flow.onWebEvent({ type: 'capture-end', captureId: 'remote:jpeg' }); });
+    await act(async () => { flow.onWebEvent({ type: 'capture-end', captureId: 'remote:jpeg' }); });
+    expect(uploadSkinPhoto).toHaveBeenCalledTimes(1);
+    const signal = jest.mocked(uploadSkinPhoto).mock.calls[0][2];
+    await act(async () => { flow.cancel(); });
+    expect(signal.aborted).toBe(true);
+    await act(async () => { resolveResult(analysis()); });
+    expect(flow.phase).toBe('ready'); expect(await readSkinTimings()).toEqual([]);
+    expect(useSkinProfileStore.getState().profile).toBeNull();
+  } finally {
+    await act(async () => { renderer.unmount(); }); webProperty.restore(); serverProperty.restore();
+    if (previous === undefined) delete process.env.EXPO_PUBLIC_SKIN_API_URL;
+    else process.env.EXPO_PUBLIC_SKIN_API_URL = previous;
+  }
 });

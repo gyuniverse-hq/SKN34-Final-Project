@@ -6,16 +6,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
 import { SkinCamera } from '@/components/skin/SkinCamera';
 import { SkinSurvey } from '@/components/skin/SkinSurvey';
+import { useAuth } from '@/lib/auth';
 import { theme } from '@/constants/theme';
 import { useSkinAnalysis } from '@/hooks/useSkinAnalysis';
 import { useI18n } from '@/lib/i18n';
-import { skinAnalysisSupported, skinAnalysisUsesWebView } from '@/lib/skinAnalysis';
+import { skinAnalysisSupported, skinAnalysisUsesWebView, skinAnalysisServerMode } from '@/lib/skinAnalysis';
 
 export default function SkinAnalysisScreen() {
   const { t } = useI18n();
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const flow = useSkinAnalysis();
+  const { user, ready } = useAuth();
   const { phase, cancel } = flow;
   const leave = () => { flow.cancel(); router.replace('/(tabs)/my'); };
   useEffect(() => {
@@ -27,6 +29,8 @@ export default function SkinAnalysisScreen() {
   }, [phase, cancel, router]);
 
   async function begin() {
+    if (skinAnalysisServerMode && !ready) return;
+    if (skinAnalysisServerMode && !user) { router.push('/login'); return; }
     const allowed = permission?.granted || (await requestPermission()).granted;
     if (allowed) await flow.start();
   }
@@ -39,8 +43,8 @@ export default function SkinAnalysisScreen() {
     </View> : flow.phase === 'ready' ? <View style={styles.center}>
       <Text style={styles.title}>{t('skin.title')}</Text>
       <Text style={styles.body}>{t('skin.instructions')}</Text>
-      <Text style={styles.body}>{t('skin.localNotice')}</Text>
-      {skinAnalysisUsesWebView && <Text style={styles.help}>{t('skin.expoHelp')}</Text>}
+      <Text style={styles.body}>{t(skinAnalysisServerMode ? 'skin.serverNotice' : 'skin.localNotice')}</Text>
+      {skinAnalysisUsesWebView && <Text style={styles.help}>{t(skinAnalysisServerMode ? 'skin.serverHelp' : 'skin.expoHelp')}</Text>}
       {permission && !permission.granted && !permission.canAskAgain ? <>
         <Text style={styles.body}>{t('skin.permissionDenied')}</Text>
         <Button label={t('skin.openSettings')} onPress={() => { void Linking.openSettings(); }} />
@@ -50,16 +54,16 @@ export default function SkinAnalysisScreen() {
     </> : flow.phase === 'analysis' ? <View style={styles.center}>
       <ActivityIndicator size="large" color={theme.colors.rose} />
       <Text style={styles.title}>{t('skin.analyzing')}</Text>
-      <Text accessibilityLiveRegion="polite" style={styles.body}>{t(`skin.indicator.${flow.indicator}`)}</Text>
+      <Text accessibilityLiveRegion="polite" style={styles.body}>{t(skinAnalysisServerMode ? 'skin.serverProcessing' : `skin.indicator.${flow.indicator}`)}</Text>
     </View> : flow.phase === 'survey' || flow.phase === 'saving' ? <SkinSurvey answers={flow.answers} onChange={flow.setAnswers}
       onFinish={() => { void flow.finish(); }} complete={flow.complete} saving={flow.phase === 'saving'} error={flow.error === 'storage'} />
       : flow.phase === 'done' ? <View style={styles.center}>
         <Text accessibilityRole="header" style={styles.title}>{t('skin.completed')}</Text>
         <Button label={t('skin.confirm')} onPress={leave} />
       </View> : <View style={styles.center}>
-        <Text accessibilityRole="alert" style={styles.body}>{t(flow.error === 'permission' ? 'skin.permissionDenied' : flow.error === 'model' ? 'skin.modelFailed' : 'skin.analysisFailed')}</Text>
+        <Text accessibilityRole="alert" style={styles.body}>{t(flow.error === 'auth' ? 'skin.signInRequired' : flow.error === 'network' ? 'skin.serverUnavailable' : flow.error === 'busy' ? 'skin.serverBusy' : flow.error === 'permission' ? 'skin.permissionDenied' : flow.error === 'model' ? 'skin.modelFailed' : 'skin.analysisFailed')}</Text>
         {flow.error === 'permission' && <Button label={t('skin.openSettings')} onPress={() => { void Linking.openSettings(); }} />}
-        <Button label={t('skin.retry')} onPress={() => { void begin(); }} />
+        <Button label={t(flow.error === 'auth' ? 'my.login' : 'skin.retry')} onPress={() => { if (flow.error === 'auth') router.push('/login'); else void begin(); }} />
       </View>}
     {flow.phase !== 'done' && <Button variant="ghost" label={t('common.cancel')} disabled={flow.phase === 'saving'} onPress={leave} />}
   </SafeAreaView>;

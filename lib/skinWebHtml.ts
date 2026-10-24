@@ -9,6 +9,6 @@ export function skinWebHtml(config: SkinWebRun, captureLabel: string) {
 const fail=()=>window.ReactNativeWebView?.postMessage(JSON.stringify({type:'error',code:'model'}));
 window.addEventListener('error',fail);window.addEventListener('unhandledrejection',fail);
 const config=${data};
-import(config.assetsUrl+'runtime.mjs').then(module=>module.boot(config)).catch(fail);
+import(config.assetsUrl+(config.mode==='server'?'capture.mjs':'runtime.mjs')).then(module=>module.boot(config)).catch(fail);
 </script></body></html>`;
 }

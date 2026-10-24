@@ -63,7 +63,9 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "check": "npm run typecheck && npm run lint && npm test"
+    "check": "npm run typecheck && npm run lint && npm test",
+    "client": "expo start --go",
+    "skin:test-client": "node --test scripts/skin-client.test.mjs"
   },
   "jest": {
     "preset": "jest-expo",

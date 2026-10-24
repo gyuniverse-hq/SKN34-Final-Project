@@ -14,7 +14,7 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "NSCameraUsageDescription": "Your camera is used for on-device makeup try-on and skin analysis. Images are processed temporarily on this device and never uploaded."
+        "NSCameraUsageDescription": "Your camera supports on-device makeup try-on and skin photo capture. With your action, one skin photo is sent to the analysis server and processed without saving it."
       },
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": [
@@ -66,7 +66,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Your camera is used for on-device makeup try-on and skin analysis. Images are processed temporarily on this device and never uploaded.",
+          "cameraPermission": "Your camera supports on-device makeup try-on and skin photo capture. With your action, one skin photo is sent to the analysis server and processed without saving it.",
           "microphonePermission": false,
           "recordAudioAndroid": false,
           "barcodeScannerEnabled": false

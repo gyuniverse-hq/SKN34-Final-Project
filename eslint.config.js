@@ -65,7 +65,7 @@ module.exports = defineConfig([
   ]),
   { files: ['modules/skin-analysis/web/*.mjs'], languageOptions: { globals: {
     window: 'readonly', document: 'readonly', navigator: 'readonly', Image: 'readonly',
-    requestAnimationFrame: 'readonly',
+    requestAnimationFrame: 'readonly', FileReader: 'readonly',
   } } },
   layer(['data/**'], [
     { group: ['@/**', '!@/types'], message: 'data/ may import only types/.' },

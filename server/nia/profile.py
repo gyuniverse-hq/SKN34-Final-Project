@@ -49,7 +49,13 @@ def locate_regions(raw):
         raise ValueError("No frontal face detected. Use a clear, upright photo with one face.")
     if len(faces) != 1:
         raise ValueError("Multiple faces detected. Use a photo containing only one face.")
-    x, y, w, h = [float(v) / scale for v in faces[0]]
+    face = [float(v) / scale for v in faces[0]]
+    return regions_from_face(width, height, face)
+
+
+def regions_from_face(width, height, face, *, method=ROI_METHOD):
+    """Shared proportions for an original-image [x, y, width, height] face box."""
+    x, y, w, h = face
     boxes = {0: [0, 0, width, height]}
     for part, (_, proportions) in REGIONS.items():
         if proportions is None:
@@ -61,14 +67,14 @@ def locate_regions(raw):
             raise ValueError("Face is too close to the image boundary. Use a photo of the complete face.")
         boxes[part] = box
     return dict(original_size=[width, height], face_bbox=[round(x), round(y), round(x+w), round(y+h)],
-                method=ROI_METHOD, training_annotation_match=False, boxes=boxes)
+                method=method, training_annotation_match=False, boxes=boxes)
 
 
 def run_profile(raw, engines, job, acne_engine=None, *, features=None,
-                unsupported=UNSUPPORTED, include_previews=True):
+                unsupported=UNSUPPORTED, include_previews=True, region_locator=None):
     start = time.perf_counter()
     features = FEATURES if features is None else features
-    roi = locate_regions(raw)
+    roi = (region_locator or locate_regions)(raw)
     groups, flat, statuses, provenance = {}, {}, {}, {}
     for feature, (task, areas) in features.items():
         candidates = [e for e in engines.values() if e.config["task"] == task]
@@ -138,7 +144,7 @@ def run_profile(raw, engines, job, acne_engine=None, *, features=None,
                 predicted=predicted, expected=expected, roi=roi, groups=groups,
                 server_ms=(time.perf_counter() - start) * 1000,
                 ml_input=dict(schema_version="nia-photo-features-v2" if acne_engine is not None else "nia-photo-features-v1", features=flat, feature_status=statuses,
-                              provenance=provenance, roi_method=ROI_METHOD,
+                              provenance=provenance, roi_method=roi["method"],
                               validation_status="experimental_unvalidated",
                               training_roi_match=False, softmax_calibrated=False,
                               unsupported=unsupported))

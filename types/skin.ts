@@ -29,19 +29,21 @@ export interface SkinTiming {
   bundleVersion: string;
   alignmentMs: number;
   captureMs: number;
-  imagePreparationMs: number;
-  validationMs: number;
-  detectionMs: number;
-  nativeMs: number;
+  imagePreparationMs: number | null;
+  validationMs: number | null;
+  detectionMs: number | null;
+  nativeMs: number | null;
   totalMs: number;
   memoryPssKb: number | null;
   startupMs?: number;
   jpegFixtureMaxError?: number;
   models: SkinModelTiming[];
+  requestMs?: number;
+  serverMs?: number;
 }
 
 export interface SkinAnalysisResult {
-  schema: 'skin-analysis-mobile-v1';
+  schema: 'skin-analysis-mobile-v1' | 'skin-analysis-server-v1';
   features: {
     acne: number;
     pore_grade_cheek_image_left: number;
@@ -56,9 +58,9 @@ export interface SkinAnalysisResult {
   };
   acneScore: number;
   acneThreshold: number;
-  roiMethod: 'opencv_haar_facebox_proportions_v1';
+  roiMethod: 'opencv_haar_facebox_proportions_v1' | 'opencv_yunet_facebox_proportions_v1';
   validationStatus: 'experimental_unvalidated';
-  preprocessing?: 'opencv4.12-turbojpeg95-wasm-v1';
+  preprocessing?: 'opencv4.12-turbojpeg95-wasm-v1' | 'server-native-v1';
   timing: SkinTiming;
 }
 
@@ -79,10 +81,12 @@ export interface SkinCameraEvent {
 
 export interface SkinWebRun {
   assetsUrl: string;
+  mode?: 'server' | 'on-device';
   run: { runId: string; processId: string; firstInProcess: boolean; device: string; androidVersion: string; build: string };
 }
 export type SkinWebEvent = { type: 'camera'; state: SkinCameraEvent }
   | { type: 'captured' }
+  | ({ type: 'capture-start' | 'capture-chunk' | 'capture-end'; captureId: string } & Record<string, unknown>)
   | { type: 'progress'; indicator: SkinIndicator }
   | { type: 'result'; result: SkinAnalysisResult }
   | { type: 'error'; code: 'photo' | 'permission' | 'model' };
