@@ -13,10 +13,11 @@ spec:
       image: {{ include "vishue.image" (dict "root" .root "name" .root.Values.chatbot.image) }}
       imagePullPolicy: {{ .root.Values.image.pullPolicy }}
       command: ["python", "-m", "app.jobs.sync_graph"]
+      {{- include "vishue.envFrom" (dict "name" .name) | nindent 6 }}
       env:
         - name: CATALOG_API_URL
           value: http://{{ include "vishue.fullname" .root }}-api:8000
-      {{- include "vishue.envFrom" (dict "name" .name) | nindent 6 }}
+        {{- include "vishue.chatbotStoreEnv" (dict "root" .root) | nindent 8 }}
       resources:
         requests: { cpu: 50m, memory: 128Mi }
         limits: { memory: 256Mi }
@@ -49,6 +50,7 @@ spec:
 {{- if .Values.syncGraph.runAfterDeploy }}
 ---
 # Argo CD maps these Helm hooks to PostSync, so the graph refreshes after every rollout.
+# Weight 10 runs it after the optional catalog seed (weight 0).
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -57,6 +59,7 @@ metadata:
     {{- include "vishue.labels" . | nindent 4 }}
   annotations:
     helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
   backoffLimit: 3

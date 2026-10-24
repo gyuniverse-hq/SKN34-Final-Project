@@ -1,1 +1,1 @@
-{{ include "vishue.backend" (dict "root" $ "component" "chatbot" "svc" .Values.chatbot "migrate" false) }}
+{{ include "vishue.backend" (dict "root" $ "component" "chatbot" "svc" .Values.chatbot "migrate" false "storeEnv" (include "vishue.chatbotStoreEnv" (dict "root" $))) }}

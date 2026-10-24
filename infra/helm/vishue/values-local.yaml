@@ -1,4 +1,4 @@
-# kind cluster. Install with release name "vishue" (the URLs below use it):
+# kind cluster:
 #   helm upgrade --install vishue infra/helm/vishue -n vishue --create-namespace -f infra/helm/vishue/values-local.yaml
 env: local
 
@@ -15,8 +15,6 @@ api:
 chatbot:
   replicas: 1
   autoscaling: { enabled: false }
-  env:
-    NEO4J_URI: bolt://vishue-neo4j:7687
 
 syncGraph:
   schedule: "*/10 * * * *"
@@ -25,18 +23,17 @@ podDisruptionBudget:
   enabled: false
 
 dataStores:
-  inCluster: true
+  postgres: { enabled: true }
+  redis: { enabled: true }
+  neo4j: { enabled: true }
 
-# Local throwaway credentials only. Pass a real LLM key with --set secrets.chatbot.LLM_API_KEY=...
+# External API keys only; data store connections are wired by the chart.
+# Pass real keys with --set secrets.api.NAVER_CLIENT_ID=... / secrets.chatbot.LLM_API_KEY=...
 secrets:
   create: true
   api:
-    DATABASE_URL: postgresql+asyncpg://vishue:vishue@vishue-postgres:5432/vishue
-    REDIS_URL: redis://vishue-redis:6379/0
     NAVER_CLIENT_ID: ""
     NAVER_CLIENT_SECRET: ""
     YOUTUBE_API_KEY: ""
   chatbot:
-    NEO4J_PASSWORD: vishue-local
-    REDIS_URL: redis://vishue-redis:6379/1
     LLM_API_KEY: ""

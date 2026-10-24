@@ -1,7 +1,8 @@
-{{- if .Values.dataStores.inCluster }}
 {{- $fullname := include "vishue.fullname" . -}}
 {{- $ds := .Values.dataStores -}}
-# Local-only data stores (kind). Production points the Secrets at managed services instead.
+{{- if or $ds.postgres.enabled $ds.neo4j.enabled }}
+# In-cluster data stores are for local (kind) and dev only. Production uses managed services
+# (RDS, ElastiCache, AuraDB) through the service Secrets instead.
 apiVersion: v1
 kind: Secret
 metadata:
@@ -10,8 +11,16 @@ metadata:
     {{- include "vishue.labels" . | nindent 4 }}
 type: Opaque
 stringData:
+  {{- if $ds.postgres.enabled }}
   POSTGRES_PASSWORD: {{ $ds.postgres.password | quote }}
+  DATABASE_URL: {{ printf "postgresql+asyncpg://vishue:%s@%s-postgres:5432/vishue" $ds.postgres.password $fullname | quote }}
+  {{- end }}
+  {{- if $ds.neo4j.enabled }}
   NEO4J_AUTH: {{ printf "neo4j/%s" $ds.neo4j.password | quote }}
+  NEO4J_PASSWORD: {{ $ds.neo4j.password | quote }}
+  {{- end }}
+{{- end }}
+{{- if $ds.postgres.enabled }}
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -71,6 +80,8 @@ spec:
     {{- include "vishue.selector" (dict "root" $ "component" "postgres") | nindent 4 }}
   ports:
     - { name: postgres, port: 5432, targetPort: postgres }
+{{- end }}
+{{- if $ds.redis.enabled }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -113,6 +124,8 @@ spec:
     {{- include "vishue.selector" (dict "root" $ "component" "redis") | nindent 4 }}
   ports:
     - { name: redis, port: 6379, targetPort: redis }
+{{- end }}
+{{- if $ds.neo4j.enabled }}
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -134,6 +147,7 @@ spec:
       containers:
         - name: neo4j
           image: {{ $ds.neo4j.image }}
+          # The image reads every NEO4J_* variable as a setting: pass only real settings here.
           env:
             - { name: NEO4J_server_memory_heap_max__size, value: 512m }
             - name: NEO4J_AUTH

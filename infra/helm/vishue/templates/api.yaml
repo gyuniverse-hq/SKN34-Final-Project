@@ -1,1 +1,1 @@
-{{ include "vishue.backend" (dict "root" $ "component" "api" "svc" .Values.api "migrate" .Values.api.migrateOnStart) }}
+{{ include "vishue.backend" (dict "root" $ "component" "api" "svc" .Values.api "migrate" .Values.api.migrateOnStart "storeEnv" (include "vishue.apiStoreEnv" (dict "root" $))) }}
