@@ -101,6 +101,11 @@ docker compose -f infra/compose/compose.yaml --env-file .env up -d --build   # �
 DL 개발 테스트는 최종 가중치 묶음을 받은 뒤 `npm run nia:test`로 실행합니다.
 [가중치 배치와 최초 실행 안내](reports/skin-analysis/model-handoff.md)를 참고하세요.
 
+모바일 Expo Go에서는 WebView 카메라·자동 촬영·기기 내 WASM 피부 분석 실험을 실행할 수 있습니다.
+Android 네이티브 경로를 시험할 때는 별도 Expo 개발/내부 빌드를 사용합니다.
+`npm run skin:prepare`로 모바일 모델을 준비한 뒤
+[모바일 피부 분석 실행·측정 안내](reports/skin-analysis/mobile-analysis.md)를 따릅니다.
+
 ```bash
 npm run check      # 타입체크 + 린트 + 테스트
 npm test

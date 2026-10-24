@@ -67,6 +67,43 @@ flowchart LR
 
 ## 클라이언트 레이어
 
+### Android 피부 분석 실험
+
+피부 정보 등록은 마이페이지 → `app/skin-analysis.tsx` → 전용 훅 →
+`lib/skinAnalysis.ts`의 실행 환경 선택 → `modules/skin-analysis/` 순서로 호출합니다.
+모듈은 상위 앱 레이어를 import하지 않으며 TypeScript 레이어 경계를 린트로 검사합니다.
+실험 기능은 `EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS=1`에서 활성화합니다.
+모바일 Expo Go에서는 `components/skin/SkinCamera.tsx`의 WebView를 통해
+`modules/skin-analysis/web/`의 카메라·자동 촬영·ONNX Runtime Web CPU 추론을 실행합니다.
+브라우저 런타임은 상위 앱 코드를 import하지 않고 상태·숫자 결과만 메시지로 전달합니다.
+`scripts/skin-web-middleware.cjs`는 Metro 개발 서버에서 검증 자산과 웹 실행 코드의
+명시된 파일만 GET/HEAD로 제공합니다. 사진 업로드나 서버 추론을 수행하지 않습니다.
+웹 JPEG 코덱은 원본과 픽셀 단위로 일치하지 않아 별도 실험 전처리 버전으로 기록합니다.
+WebView에서는 PSS를 측정할 수 없어 null을 저장하며 모델 전송 시간과 추론 시간을 구분합니다.
+앱의 다른 화면과 기존 AR 렌더러는 기존 구조를 유지합니다.
+
+Android 전용 빌드에서는 네이티브 CameraX·ML Kit로 자동 촬영하고 ONNX Runtime CPU로 4개 모델을 순차 실행합니다.
+촬영 JPEG는 네이티브 메모리에서만 유지하며 분석·취소 후 참조를 해제합니다.
+Expo Go에서는 카메라 프레임·ROI·텐서를 WebView 내부 메모리에서만 처리하며,
+얼굴 사진·ROI·텐서를 서버나 React Native 메시지 경계로 보내지 않습니다.
+숫자 결과와 설문은 `skinProfileStore`를 통해 저장하며, AsyncStorage 쓰기의 성공을
+확인한 뒤 완료를 표시합니다. 측정 기록도 기기에만 저장하고 숫자 메타데이터만 공유합니다.
+네이티브 모듈은 Expo 자동 연결로 포함되며 루트 `android/`·`ios/`를 직접 수정하지 않습니다.
+실행·측정 절차와 제한은 [모바일 피부 분석](../reports/skin-analysis/mobile-analysis.md)을 참고합니다.
+
+피부 모델 연구 환경은 운영 흐름과 별도로 관리합니다. `ml/src/`에는 학습·평가 코드,
+`ml/configs/`에는 설정, `ml/tests/`에는 자동 테스트를 두고, 실행 방법과 결과 요약은
+[`reports/skin-analysis/`](../reports/skin-analysis/README.md)에 모읍니다. 가중치·원본 데이터·
+개별 표본 결과는 Git에서 제외합니다. 향후 LLM 외부 호출과 서비스 조합은 기존
+`server/clients/`·`server/services/` 레이어를 따릅니다.
+
+로컬 NIA 연구 도구의 화면은 `app/dev/nia.tsx`, 사진 분석·결과 요청 훅은 `hooks/useNia*.ts`,
+표현 컴포넌트는 `components/nia/`에 둡니다. 컴포넌트는 화면에서 결과와 동작을 props로
+받으며 `lib/nia`를 직접 호출하지 않습니다. 이 경계를 린트로 검사합니다. 개발 API는
+`server/services/niaEvaluationService.ts`를 통해 로컬 Python 평가 프로세스에 연결하며,
+production/test/미지정 환경에서는 차단합니다. Python 코드는 `server/nia/`·`server/acne/`에
+있습니다. 이 도구는 운영 앱의 얼굴 영상 비전송 정책을 변경하지 않습니다.
+
 ```
 app/ (화면, app/api 제외)     화면 조립, 네비게이션, 훅 호출
   ↓

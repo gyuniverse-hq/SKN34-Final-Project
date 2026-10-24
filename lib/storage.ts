@@ -7,4 +7,6 @@ export const STORAGE_KEYS = {
   cart: 'kb.cart.v1',
   settings: 'kb.settings.v1',
   lists: 'kb.lists.v1',
+  skinProfile: 'kb.skin-profile.v1',
+  skinTimings: 'kb.skin-timings.v1',
 } as const;

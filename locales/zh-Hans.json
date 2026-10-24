@@ -1,5 +1,5 @@
 {
   "ios": {
-    "NSCameraUsageDescription": "相机仅用于在此设备上进行实时虚拟试妆。相机画面不会被录制、保存或上传。"
+    "NSCameraUsageDescription": "相机用于本机虚拟试妆和皮肤分析。图像仅在本机临时处理，不会上传。"
   }
 }
