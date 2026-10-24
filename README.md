@@ -53,7 +53,8 @@ backend/                FastAPI 백엔드 (서비스별 uv 프로젝트)
   chatbot/              챗봇(GraphRAG) · PostgreSQL→Neo4j 동기화 잡 — Neo4j · LLM
 infra/
   compose/              로컬 전체 구성 (게이트웨이 · 두 서비스 · DB 3종)
-  helm/vishue/          쿠버네티스 차트 (values-local: kind, values-dev: 팀 공용 dev, values-prod: 운영)
+  render/               팀 공용 dev 서버 (Render Blueprint: api · chatbot, 무료)
+  helm/vishue/          쿠버네티스 차트 (values-local: kind, values-prod: 운영)
   terraform/aws/        AWS 인프라 코드 (VPC · EKS · RDS · ElastiCache · Secrets Manager · 배포 권한)
   argocd/ platform/     GitOps 애플리케이션 · 클러스터 공용 리소스
 .github/workflows/      ci (변경 영역별 검사 → ci-ok) · images (GHCR 발행 → 운영 태그 PR)
@@ -63,24 +64,25 @@ API 키는 백엔드(`backend/`)에서만 읽고 앱 번들에는 포함되지 �
 
 ## 실행
 
-**Expo SDK 57** (Expo Go 57.x와 호환). 앱은 백엔드에서 데이터를 받으므로 백엔드를 먼저 띄웁니다.
+**Expo SDK 57** (Expo Go 57.x와 호환). 앱은 백엔드에서 데이터를 받습니다. 보통은 팀 공용 dev 서버(Render)를 쓰고, Docker는 필요 없습니다.
 
 ```bash
 npm install
-cp .env.example .env      # 키 입력 (없어도 실행됨: 튜토리얼 검색·온라인 가격만 비활성)
-
-# 1) 백엔드 (Docker Desktop 필요) → http://localhost:8080
-docker compose -f infra/compose/compose.yaml --env-file .env up --build
-
-# 2) 앱 (다른 터미널)
+cp .env.example .env      # EXPO_PUBLIC_API_BASE_URL에 dev 서버 주소 입력 (팀에서 공유)
 npx expo start -c
 ```
 
-- 앱은 개발 중에 Metro를 띄운 PC의 `:8080`(백엔드 게이트웨이)으로 자동 연결됩니다. 다른 서버를 쓰려면 `.env`에 `EXPO_PUBLIC_API_BASE_URL`을 넣습니다.
-- 폰: PC와 같은 Wi-Fi에서 QR 스캔 (iOS Expo Go는 PC와 같은 Expo 계정으로 로그인 필요). PC 방화벽에서 8080 포트를 허용해야 합니다.
+- 폰: PC와 같은 Wi-Fi에서 QR 스캔 (iOS Expo Go는 PC와 같은 Expo 계정으로 로그인 필요)
 - 웹: 터미널에서 `w`
+- dev 서버는 15분 동안 요청이 없으면 잠들어서, 첫 요청이 30초~1분 걸릴 수 있습니다.
 - AR은 첫 진입 시 카메라 동의 → 권한 요청. 얼굴 추적 모델은 처음 한 번 인터넷에서 내려받습니다.
-- 제품 데이터 넣기: `backend/api/seed/catalog.json`을 채운 뒤 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)의 시드 명령을 실행합니다.
+- 제품 데이터 바꾸기: [`docs/DATA.md`](docs/DATA.md)
+
+백엔드를 직접 고치며 확인하려면 내 PC에서 띄웁니다(Docker Desktop 필요). `EXPO_PUBLIC_API_BASE_URL`을 비워 두면 앱이 내 PC의 `:8080`으로 연결됩니다.
+
+```bash
+docker compose -f infra/compose/compose.yaml --env-file .env up -d --build   # → http://localhost:8080
+```
 
 ### 환경 변수 (`.env`)
 

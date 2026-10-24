@@ -9,9 +9,9 @@ backend/api/seed/catalog.json 수정
         ↓ PR (develop 대상)
 CI가 형식·무결성 자동 검사  ── 문제가 있으면 PR에서 실패로 표시
         ↓ 병합
-dev 서버 자동 배포: DB에 교체 → 캐시 비우기 → 챗봇 DB(Neo4j)에 복사
+GitHub Actions(dev-data)가 Supabase에 교체 → 챗봇 DB(AuraDB)에 복사
         ↓
-앱과 Supabase 대시보드에서 확인
+앱(dev 서버)과 Supabase 대시보드에서 확인
 ```
 
 ## 1. 파일 형식
@@ -75,13 +75,15 @@ uv run pytest tests/test_seed_catalog.py
 
 ## 3. 반영 확인
 
-- **앱**: 병합 후 몇 분 뒤 dev 서버를 쓰는 앱에서 바로 보입니다.
+- **진행 상황**: GitHub → Actions → `dev-data` 실행 결과가 초록색이면 반영된 것입니다. 빨간색이면 로그에 이유가 나옵니다.
+- **앱**: 병합 후 몇 분 뒤 dev 서버를 쓰는 앱에서 보입니다.
 - **Supabase 대시보드**: Table Editor의 `products`, `shades`, `looks`, `look_items`, `stores` 표에서 볼 수 있습니다.
-- **챗봇**: 배포 직후 챗봇 DB로 복사되고, 그 뒤로도 30분마다 다시 맞춥니다.
+- **챗봇**: 같은 워크플로가 Supabase에 넣은 뒤 바로 챗봇 DB로 복사하고, 그 뒤로도 12시간마다 다시 맞춥니다.
+- 급하게 다시 돌리고 싶으면 Actions → `dev-data` → **Run workflow**(Branch: `develop`)를 누릅니다.
 
 ## 4. 하지 말 것
 
-- **Supabase 화면에서 표를 직접 고치지 않습니다.** 다음 배포 때 Git 파일 내용으로 다시 덮어써지고, 그사이에는 검사·캐시 비우기·챗봇 복사도 일어나지 않습니다.
+- **Supabase 화면에서 표를 직접 고치지 않습니다.** 다음에 시드가 돌 때 Git 파일 내용으로 다시 덮어써지고, 그사이에는 검사와 챗봇 복사도 일어나지 않습니다.
 - `auth`로 시작하는 표는 로그인 회원 정보입니다. 보기만 하고 건드리지 않습니다.
 - 운영(prod) DB에는 Git 병합만으로 데이터가 들어가지 않습니다. 운영 반영은 백엔드 담당자와 일정을 맞춰 진행합니다.
 

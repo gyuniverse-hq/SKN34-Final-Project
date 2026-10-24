@@ -1,6 +1,6 @@
 # ADR-0008 AWS 위에 dev와 운영을 두고, 인프라는 Terraform으로 관리한다
 
-- 상태: 채택 (2026-10-24). [ADR-0003](0003-containers-helm-gitops.md)의 "AWS 지원이 없으면 Render" 대안은 쓰지 않습니다.
+- 상태: 일부 대체됨 (2026-10-24). 운영(EKS, RDS, Terraform) 부분은 채택 상태이고, dev 환경(EKS `vishue-dev` 네임스페이스, GitHub OIDC 배포) 부분은 [ADR-0009](0009-render-dev-environment.md)로 대체되었습니다.
 
 ## 배경
 

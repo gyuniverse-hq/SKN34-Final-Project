@@ -50,7 +50,7 @@ flowchart LR
 
 - 앱은 진입점 하나(`https://api.<도메인>`)만 압니다. 서비스가 늘거나 나뉘어도 앱 코드는 바뀌지 않습니다.
 - 데이터 소유권은 서비스별로 나뉩니다. PostgreSQL은 `api`만, Neo4j는 `chatbot`만 접근합니다. 챗봇은 카탈로그를 PostgreSQL에서 직접 읽지 않고 `api`의 HTTP 계약으로 받아 갑니다.
-- 같은 컨테이너 이미지가 로컬(Docker Compose), 로컬 쿠버네티스(kind), AWS EKS의 팀 공용 dev와 운영에서 그대로 돌아갑니다. 실행 방법과 배포 흐름은 [`DEPLOYMENT.md`](DEPLOYMENT.md), 결정 이유는 [`adr/`](adr/README.md)에 있습니다.
+- 같은 Dockerfile이 로컬(Docker Compose), 로컬 쿠버네티스(kind), 팀 공용 dev 서버(Render), 운영(AWS EKS)에서 그대로 돌아갑니다. 위 그림은 운영 기준이고, dev 서버는 Gateway 없이 서버마다 주소가 따로 있습니다. 실행 방법과 배포 흐름은 [`DEPLOYMENT.md`](DEPLOYMENT.md), 결정 이유는 [`adr/`](adr/README.md)에 있습니다.
 
 앱은 `lib/api.ts`를 통해 백엔드만 호출합니다. 저장소 안의 Expo 서버(`app/api/dev/`, `server/`)에는 피부 분석 연구용 개발 도구만 남아 있고, 운영 환경에서는 차단됩니다.
 
@@ -255,8 +255,9 @@ backend/<service>/
 
 | 항목 | 현재 결정 | 바꿀 조건 |
 | --- | --- | --- |
-| 배포처 | AWS EKS (서울 리전, Terraform). dev는 `vishue-dev` 네임스페이스, 운영은 `vishue` + Argo CD ([ADR-0008](adr/0008-aws-environments.md)) | 확정 (캠프 AWS 지원) |
-| 데이터 저장소 | dev: Supabase PostgreSQL + 네임스페이스 안 Redis·Neo4j / 운영: RDS, ElastiCache, Neo4j AuraDB | 운영 DB 비용이 문제면 Supabase로 바꿉니다(`DATABASE_URL`만 교체) |
-| 카탈로그 데이터 | dev는 Git의 `seed/catalog.json`이 원본, 배포마다 교체 ([`DATA.md`](DATA.md)) | 크롤링 데이터가 파일 하나로 감당하기 어려워지면 가져오기 방식을 바꿉니다 |
+| 개발 서버 | Render 무료 플랜 + Supabase + Neo4j AuraDB Free ([ADR-0009](adr/0009-render-dev-environment.md)) | 잠들기·사용 시간 제약이 불편해지면 `vishue-api`만 유료로 |
+| 운영 배포처 | AWS EKS (서울 리전, Terraform) + Argo CD ([ADR-0008](adr/0008-aws-environments.md)) | 확정 (캠프 AWS 지원, 배포 단계에 적용) |
+| 운영 데이터 저장소 | RDS PostgreSQL, ElastiCache, Neo4j AuraDB | 운영 DB 비용이 문제면 Supabase로 바꿉니다(`DATABASE_URL`만 교체) |
+| 카탈로그 데이터 | dev는 Git의 `seed/catalog.json`이 원본, 바뀌면 `dev-data` 워크플로가 반영 ([`DATA.md`](DATA.md)) | 크롤링 데이터가 파일 하나로 감당하기 어려워지면 가져오기 방식을 바꿉니다 |
 | 챗봇 LLM | OpenAI 호환 API, 모델은 `LLM_MODEL`로 지정 | 모델 선정은 평가 세트를 만든 뒤에 합니다 |
 | 챗봇 대화 기록 | 저장하지 않음 | 저장하려면 보관 기간과 동의 절차를 먼저 정합니다 |
