@@ -1,11 +1,12 @@
 name: images
 
-# Publishes immutable images (tag = short git SHA) to GHCR. On main, opens a PR that points
-# values-prod.yaml at the new tag; Argo CD deploys when that PR is merged.
+# Publishes immutable images (tag = short git SHA) to GHCR.
+#   develop: deploys the dev environment on EKS directly (helm upgrade, namespace vishue-dev).
+#   main:    opens a PR that points values-prod.yaml at the new tag; Argo CD deploys on merge.
 on:
   push:
     branches: [develop, main]
-    paths: ["backend/**"]
+    paths: ["backend/**", "infra/helm/**"]
   workflow_dispatch:
 
 permissions:
@@ -71,6 +72,9 @@ jobs:
           grep -n "^  tag: \"${TAG}\"" infra/helm/vishue/values-prod.yaml
       - uses: peter-evans/create-pull-request@v8
         with:
+          # PRs opened with the default GITHUB_TOKEN do not trigger workflows, so the required
+          # ci-ok check would never run. DEPLOY_PR_TOKEN is a fine-grained PAT (contents + PRs).
+          token: ${{ secrets.DEPLOY_PR_TOKEN || github.token }}
           branch: chore/deploy-prod-images
           base: main
           commit-message: "chore: 운영 이미지 태그를 ${{ steps.tag.outputs.value }}로 갱신"
@@ -83,3 +87,32 @@ jobs:
             ## 영향 범위
             - `infra/helm/vishue/values-prod.yaml`: 운영 이미지 태그
           delete-branch: true
+
+  # Skipped until the AWS dev environment exists (repository variables set by Terraform outputs).
+  deploy-dev:
+    needs: publish
+    if: github.ref == 'refs/heads/develop' && vars.AWS_DEV_DEPLOY_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: deploy-dev
+      cancel-in-progress: false
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION || 'ap-northeast-2' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEV_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: azure/setup-helm@v5
+      - run: aws eks update-kubeconfig --name "${{ vars.EKS_CLUSTER_NAME }}" --region "$AWS_REGION"
+      - name: Deploy dev (migrations, seed and graph sync run as part of the release)
+        run: |
+          helm upgrade --install vishue-dev infra/helm/vishue \
+            --namespace vishue-dev \
+            -f infra/helm/vishue/values-dev.yaml \
+            --set image.tag="sha-${GITHUB_SHA::7}" \
+            --wait --timeout 15m

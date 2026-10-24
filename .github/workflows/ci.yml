@@ -126,15 +126,22 @@ jobs:
         run: |
           curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
             | tar xz -C /usr/local/bin kubeconform
-      - name: Helm lint and schema validation (local + prod values)
+      - name: Helm lint and schema validation (local, dev, prod values)
         run: |
-          for env in local prod; do
+          for env in local dev prod; do
             helm lint infra/helm/vishue -f infra/helm/vishue/values-$env.yaml
             helm template vishue infra/helm/vishue -f infra/helm/vishue/values-$env.yaml \
               | kubeconform -strict -summary -ignore-missing-schemas
           done
       - name: Compose file is valid
         run: docker compose -f infra/compose/compose.yaml config --quiet
+      - uses: hashicorp/setup-terraform@v4
+      - name: Terraform format and validation (no AWS credentials needed)
+        working-directory: infra/terraform/aws
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false -input=false
+          terraform validate
 
   # Single required check for branch protection; skipped jobs count as passed.
   ci-ok:
