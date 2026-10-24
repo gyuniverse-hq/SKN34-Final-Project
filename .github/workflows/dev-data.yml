@@ -4,11 +4,15 @@ name: dev-data
 #   1. migrate Supabase and reload the catalog from backend/api/seed/catalog.json
 #   2. copy the catalog into Neo4j AuraDB through the dev api (the chatbot never reads PostgreSQL)
 # The schedule touches Render, Supabase and AuraDB twice a day so the free instances do not pause.
-# Scheduled runs use the copy of this file on the default branch (main) and check out develop.
+# GitHub only schedules and offers "Run workflow" for files on the default branch (main); until this
+# file reaches main, it runs on pushes to develop (including changes to this file).
 on:
   push:
     branches: [develop]
-    paths: ["backend/api/seed/**", "backend/api/alembic/**"]
+    paths:
+      - "backend/api/seed/**"
+      - "backend/api/alembic/**"
+      - ".github/workflows/dev-data.yml"
   schedule:
     - cron: "0 */12 * * *"
   workflow_dispatch:
