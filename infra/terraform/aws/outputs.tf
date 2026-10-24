@@ -1,16 +1,11 @@
 output "cluster_name" {
-  description = "GitHub repository variable EKS_CLUSTER_NAME."
+  description = "EKS cluster name (for aws eks update-kubeconfig)."
   value       = module.eks.cluster_name
 }
 
 output "region" {
-  description = "GitHub repository variable AWS_REGION."
+  description = "AWS region of every resource."
   value       = var.region
-}
-
-output "github_dev_deploy_role_arn" {
-  description = "GitHub repository variable AWS_DEV_DEPLOY_ROLE_ARN (enables the dev deploy job)."
-  value       = aws_iam_role.github_dev_deploy.arn
 }
 
 output "configure_kubectl" {

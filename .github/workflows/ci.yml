@@ -126,9 +126,9 @@ jobs:
         run: |
           curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
             | tar xz -C /usr/local/bin kubeconform
-      - name: Helm lint and schema validation (local, dev, prod values)
+      - name: Helm lint and schema validation (local + prod values)
         run: |
-          for env in local dev prod; do
+          for env in local prod; do
             helm lint infra/helm/vishue -f infra/helm/vishue/values-$env.yaml
             helm template vishue infra/helm/vishue -f infra/helm/vishue/values-$env.yaml \
               | kubeconform -strict -summary -ignore-missing-schemas

@@ -33,18 +33,9 @@ module "eks" {
       desired_size   = var.node_count
     }
   }
-
-  # The GitHub dev deploy role may act only inside the vishue-dev namespace: it maps to the
-  # Kubernetes group bound by infra/platform/dev-namespace.yaml.
-  access_entries = {
-    github_dev_deploy = {
-      principal_arn     = aws_iam_role.github_dev_deploy.arn
-      kubernetes_groups = ["vishue-dev-deployers"]
-    }
-  }
 }
 
-# EBS volumes for in-cluster PVCs (dev Redis/Neo4j).
+# EBS volumes for PersistentVolumeClaims (e.g. a Neo4j StatefulSet if AuraDB is replaced).
 module "ebs_csi_pod_identity" {
   source  = "terraform-aws-modules/eks-pod-identity/aws"
   version = "~> 2.0"

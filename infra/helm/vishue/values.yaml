@@ -93,11 +93,11 @@ externalSecrets:
   apiKey: vishue/production/api
   chatbotKey: vishue/production/chatbot
 
-# Replace the catalog with backend/api/seed/catalog.json after every release (dev: Git is the
-# catalog's source of truth). Off in production, where data loads are deliberate.
+# Replace the catalog with backend/api/seed/catalog.json after every release, for clusters where
+# Git is the catalog's source of truth (e.g. kind demos). Off in production: data loads are deliberate.
 seedOnDeploy: false
 
-# In-cluster data stores, switched on per store (local: all, dev: Redis + Neo4j). When enabled,
+# In-cluster data stores, switched on per store (kind turns on all three). When enabled,
 # the chart wires DATABASE_URL / REDIS_URL / NEO4J_* itself; otherwise they come from the Secrets.
 # Production uses managed services (RDS PostgreSQL, ElastiCache, Neo4j AuraDB).
 # Passwords here protect cluster-internal throwaway stores only (NetworkPolicy limits access).

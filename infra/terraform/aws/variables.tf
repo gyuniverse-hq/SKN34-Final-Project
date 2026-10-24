@@ -17,7 +17,7 @@ variable "kubernetes_version" {
 }
 
 variable "node_instance_types" {
-  description = "Instance types for the managed node group (prod and dev namespaces share it)."
+  description = "Instance types for the managed node group."
   type        = list(string)
   default     = ["t3.large"]
 }
@@ -50,10 +50,4 @@ variable "redis_node_type" {
   description = "ElastiCache node type for the production cache."
   type        = string
   default     = "cache.t4g.micro"
-}
-
-variable "github_repository" {
-  description = "owner/repo allowed to deploy the dev environment through GitHub OIDC."
-  type        = string
-  default     = "gyuniverse-hq/SKN34-Final-Project"
 }
