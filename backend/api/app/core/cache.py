@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 class Cache(Protocol):
     async def get_json(self, key: str) -> Any | None: ...
     async def set_json(self, key: str, value: Any, ttl_seconds: int) -> None: ...
+    async def delete_prefix(self, prefix: str) -> None: ...
 
 
 class NullCache:
@@ -22,6 +23,9 @@ class NullCache:
         return None
 
     async def set_json(self, key: str, value: Any, ttl_seconds: int) -> None:
+        return None
+
+    async def delete_prefix(self, prefix: str) -> None:
         return None
 
 
@@ -45,6 +49,12 @@ class RedisCache:
             await self._client.set(self._prefix + key, json.dumps(value), ex=ttl_seconds)
         except Exception:
             logger.warning("cache write failed", extra={"key": key})
+
+    async def delete_prefix(self, prefix: str) -> None:
+        """Raises on Redis errors: it runs after a write, and stale data must not be served."""
+        keys = [k async for k in self._client.scan_iter(match=f"{self._prefix}{prefix}*")]
+        if keys:
+            await self._client.delete(*keys)
 
 
 @lru_cache

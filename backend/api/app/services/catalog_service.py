@@ -10,6 +10,8 @@ from app.repositories.catalog_repository import CatalogRepository
 from app.schemas.catalog import CatalogBundle, CelebLook, Product, Store
 from app.services.image_service import get_image_service
 
+CATALOG_CACHE_PREFIXES = ("products:", "looks")
+
 # Rough bounding box of South Korea; catches swapped lat/lng and missing coordinates.
 KOREA_LAT = (33.0, 39.0)
 KOREA_LNG = (124.0, 132.0)
@@ -92,6 +94,9 @@ class CatalogService:
     async def import_catalog(self, bundle: CatalogBundle) -> None:
         validate_catalog(bundle)
         await self._store.replace_catalog(bundle)
+        # Cached listings would keep serving the old catalog (and feed it to the graph sync).
+        for prefix in CATALOG_CACHE_PREFIXES:
+            await self._cache.delete_prefix(prefix)
 
 
 def _unique(ids: list[str], what: str) -> None:
