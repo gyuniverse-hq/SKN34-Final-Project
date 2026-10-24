@@ -166,4 +166,5 @@ uv run --project ml --group inference-server ruff check server/nia/api.py server
 - Metro의 LAN manifest와 촬영 스크립트 HTTP 200. Android 개발 JavaScript 번들 HTTP 200. 메모리에서 번들을 검사해 정확한 승인 origin·시험 모드 설정이 포함되고 실제 서버 토큰·서버 비밀 환경변수 이름은 포함되지 않음을 확인했다. Android SDK·Gradle·네이티브 빌드는 사용하지 않았다.
 - `npm run check -- -- --runInBand --cacheDirectory .expo/jest-cache`: 타입 검사·lint·Jest 9개 suite / 70개 test 통과. 훅의 촬영 청크 → 실제 업로드 어댑터(HTTP 응답 모킹) → 설문 → 저장, 10개 feature·시간 분리·토큰 미저장, 취소·늦은 응답·잘못된 인증/주소 검사를 포함한다.
 - `npm run skin:test-client`: 피부 모델 없이 카메라 자산을 제공하는 HTTP 검사 등 2개 통과. 제한 환경의 loopback `EACCES` 후 네트워크 허용 환경에서 재실행했다. 최초 Jest 임시 캐시 `EPERM`은 Git 제외된 `.expo/jest-cache` 사용으로 해결했다.
-- 실기기 접속 시 Expo Go SDK 58 / 프로젝트 SDK 57 불일치가 Metro 로그에 보고되었다. SDK 57용 Expo Go 설치 안내 후 촬영→서버 결과→설문·저장의 실기기 결과를 기다리는 상태이며, 위 코드/HTTP 검사를 실기기 성공으로 기록하지 않는다.
+- 실기기 접속 시 Expo Go SDK 58 / 프로젝트 SDK 57 불일치가 Metro 로그에 보고되었다. SDK 57용 공식 Expo Go 설치를 안내한 뒤 사용자가 스마트폰에서 **촬영·분석·설문·저장까지 완료**했다고 확인했다. 이 결과는 사용자 실기기 확인이며, 자동 검사나 직접 API 검사에서 추정한 성공이 아니다. 앱은 설문 전 10개 feature를 검증하고 저장 쓰기 성공 후 완료를 표시한다.
+- 실기기별 왕복·서버 시간은 앱의 기존 피부 분석 시간 기록에서 각각 확인할 수 있다. 이번 대화에서는 실기기 측정 숫자를 수집하지 않았으므로 위 예제 JPEG의 측정값을 실기기 시간으로 사용하지 않는다.
