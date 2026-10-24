@@ -19,33 +19,69 @@ EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable-key>
 EXPO_PUBLIC_API_BASE_URL=<existing-general-backend>
 EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS=1
 EXPO_PUBLIC_SKIN_ANALYSIS_MODE=server
-EXPO_PUBLIC_SKIN_API_URL=http://192.168.75.230:8000
+EXPO_PUBLIC_SKIN_API_URL=https://send-lots-advanced-amended.trycloudflare.com
+EXPO_PUBLIC_SKIN_AUTH_MODE=supabase
 ```
 
 GPU API 주소와 일반 API 주소를 구분한다. 사용자 환경에는 Python·CUDA·ml/runs·ONNX 가중치가 필요하지 않다. `skin:prepare`도 실행하지 않는다. EAS 모델 준비 hook도 서버 모드에서는 가중치를 요구하지 않는다. Expo Go 카메라 자산은 Metro에서 받으므로 휴대폰과 사용자 개발 PC의 Metro 연결은 필요하다.
 
 ### 승인된 전송 대상
 
-현재 사용자가 승인한 대상은 개발용 데스크톱 LAN `http://192.168.75.230:8000`뿐이다. 클라이언트는 `constants/skinServer.ts`의 승인 origin과 설정 URL이 일치해야 요청한다. 다른 호스트, 포트, URL 자격증명, 경로·query 및 HTTP redirect는 거절한다. Supabase access token은 React Native 요청 코드에만 전달하며 WebView에는 넣지 않는다.
+현재 사용자가 승인한 대상은 `https://send-lots-advanced-amended.trycloudflare.com` 하나뿐이다. 클라이언트는 `constants/skinServer.ts`의 승인 origin과 설정 URL이 일치해야 요청한다. 이전 LAN 주소, 다른 호스트, 포트, URL 자격증명, 경로·query 및 HTTP redirect는 거절한다. Bearer 토큰은 React Native 요청 코드에만 전달하며 WebView에는 넣지 않는다.
 
-데스크톱 IP가 달라지거나 HTTPS Tunnel을 사용할 때에는 새로운 전송 대상의 승인을 받고 승인 origin과 환경설정을 함께 변경한다. 이번 작업에서는 외부 Tunnel origin, DNS, 방화벽 변경을 승인하거나 실행하지 않았다. LAN의 HTTP는 개발용이며 인터넷 공개용 구성은 아니다.
+Tunnel은 데스크톱의 `http://127.0.0.1:8000`을 가리키며 이미 실행 중인 것을 사용한다. Tunnel 생성·재시작, DNS·방화벽 변경은 수행하지 않는다. 주소가 응답하지 않으면 연결 실패로 처리한다. 새로운 주소가 필요하면 사용자 승인 후 고정 origin과 환경설정을 함께 바꾼다.
+
+### Expo Go 임시 시험 인증
+
+서버의 `SKIN_AUTH_MODE=test-token` 지원은 커밋 `4fd7965`에 있다. 이 서버에 대한 앱 시험은
+Git에서 제외된 `.env.local`에 다음 **공개 설정만** 넣는다. 실제 토큰은 파일에 넣지 않는다.
+
+```dotenv
+EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS=1
+EXPO_PUBLIC_SKIN_ANALYSIS_MODE=server
+EXPO_PUBLIC_SKIN_API_URL=https://send-lots-advanced-amended.trycloudflare.com
+EXPO_PUBLIC_SKIN_AUTH_MODE=test-token
+```
+
+`npm run client`로 Metro를 실행하고 동일 네트워크의 스마트폰 Expo Go로 접속한다.
+기존 Metro가 열려 있으면 앱을 완전히 Reload하여 변경된 공개 설정을 반영한다.
+마이페이지 → 피부 정보 등록의 개발용 입력란에 서버 관리자가 제공한 시험 토큰을 직접 입력한다.
+서버의 로컬 비밀 설정 파일을 앱에 복사하거나 Metro로 제공하지 않는다.
+토큰은 매 촬영마다 다시 입력하며 업로드 시작·취소·앱 비활성화·화면 이탈 시 메모리 참조와 입력란을 지운다.
+JavaScript 문자열의 물리적 메모리 소거를 보장하지 않으며 토큰의 영구 보관은 수행하지 않는다.
+사진 bytes는 업로드 완료/실패 시 기존 경로에서 0으로 채우고 해제한다.
+
+이 모드는 `__DEV__`에서만 허용한다. 설정을 생략하거나 `supabase`로 지정하면 기존 로그인 경로를 따른다.
+누락·잘못된 토큰은 `UNAUTHORIZED`이며 무인증·Supabase 재시도·기기 모델 대체 실행은 하지 않는다.
+다른 기능의 인증은 바꾸지 않는다. 이 공유 토큰 방식은 일반 사용자 배포용 인증이 아니다.
+
+공식 문서에서 [SDK 57 SecureStore](https://docs.expo.dev/versions/v57.0.0/sdk/securestore/)의 Expo Go 지원과
+생체 인증 옵션 제한을 확인했다. 이번 시험은 영구 보관이 필요 없어 새 의존성 없이 RN의
+[`TextInput.secureTextEntry`](https://reactnative.dev/docs/textinput#securetextentry)와 훅의 메모리 참조만 사용한다.
+자동 완성·자동 수정·대문자 변환을 끄며 WebView·Zustand·AsyncStorage에 토큰을 전달하지 않는다.
+[RN 보안 문서](https://reactnative.dev/docs/security)는 토큰의 AsyncStorage 보관을 금지하며,
+[Expo 환경변수 문서](https://docs.expo.dev/guides/environment-variables/)는 `EXPO_PUBLIC_` 값이 번들에 노출됨을 명시한다.
+
+실기기 인수 시험: 토큰 입력 → 기존 가이드에서 자동 촬영 → 10개 feature 응답 검증 → 필수 설문 3개 → 저장 완료를 확인한다.
+마이페이지의 피부 분석 시간 화면에서 요청 왕복 `requestMs`와 서버 처리 `serverMs`를 따로 확인한다.
+토큰 없이 시작 불가, 틀린 토큰의 거절, 촬영/업로드 중 취소 후 늦은 응답 미반영도 확인한다.
 
 ## Windows GPU 서버
 
 Python 3.12, uv, RTX 4070 Ti SUPER를 지원하는 NVIDIA 드라이버를 준비한다. Node와 npm은 필요하지 않다.
 
 1. 기존 `skin-analysis-v2` 번들 전체(manifest.json과 weights 네 파일)를 서버의 `ml/runs/skin-analysis-v2/`에 별도로 배치한다. 가중치는 Git에서 제외되므로 clone만으로 생성되지 않는다.
-2. `.env.skin-server.example`을 `.env.skin-server.local`로 복사하고 **클라이언트와 같은 Supabase 프로젝트**의 URL 및 publishable key를 입력한다. `service_role`이나 JWT signing secret은 사용하지 않는다.
+2. `.env.skin-server.example`을 `.env.skin-server.local`로 복사한다. 기본 `supabase` 모드에서는 **클라이언트와 같은 Supabase 프로젝트**의 URL 및 publishable key를 입력한다. 임시 `test-token` 모드에서는 `SKIN_AUTH_MODE=test-token`과 서버 전용 `SKIN_TEST_BEARER_TOKEN`이 필요하다. `service_role`이나 JWT signing secret은 사용하지 않는다.
 3. 서버 환경 설치 후 실행한다.
 
 ```powershell
 uv sync --project ml --locked --no-dev --group inference-server
-.\scripts\start-skin-server.ps1 -HostAddress 192.168.75.230 -Port 8000
+.\scripts\start-skin-server.ps1 -HostAddress 127.0.0.1 -Port 8000
 ```
 
-서버 전용 설정은 `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, 선택적 `SKIN_GPU_UUID`, `SKIN_MODEL_BUNDLE`, `SKIN_FACE_MODEL`, `SKIN_MAX_UPLOAD_BYTES`다. 런처는 이 이름만 로컬 설정 파일에서 읽으며 현재 프로세스의 명시적 설정을 우선한다. 비밀정보 값은 출력하지 않는다. 이전 `SKIN_API_TOKEN` 공유 키는 새 GPU API에서 사용하지 않는다.
+서버 전용 설정은 `SKIN_AUTH_MODE`, `SKIN_TEST_BEARER_TOKEN`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, 선택적 `SKIN_GPU_UUID`, `SKIN_MODEL_BUNDLE`, `SKIN_FACE_MODEL`, `SKIN_MAX_UPLOAD_BYTES`다. 런처는 허용한 이름만 로컬 설정 파일에서 읽으며 현재 프로세스의 명시적 설정을 우선한다. 비밀정보 값은 출력하지 않는다. 이전 `SKIN_API_TOKEN` 공유 키는 새 GPU API에서 사용하지 않는다.
 
-기본 bind는 loopback이다. 위처럼 승인된 LAN IP를 명시하면 스마트폰에서 해당 PC로 요청할 수 있다. OS 네트워크/방화벽 통과는 실제 환경에서 확인한다. Uvicorn은 worker 하나, reload 비활성으로 실행하며 forwarded 헤더를 신뢰하지 않는다.
+기본 bind는 loopback이다. 현재 Tunnel은 데스크톱의 이 loopback 서버를 가리킨다. 이미 실행 중인 서버·Tunnel은 이 클라이언트 연결 작업에서 재시작하지 않는다. Uvicorn은 worker 하나, reload 비활성으로 실행하며 forwarded 헤더를 신뢰하지 않는다.
 
 ### 시작과 GPU 수명
 
@@ -57,7 +93,7 @@ YuNet 얼굴 검출기는 별도 준비 명령에서 공식 OpenCV 파일을 다
 
 - `GET /health`: 인증된 준비 상태. `ready`, `cuda:0`, GPU 이름, `models_loaded=4`.
 - `POST /analyze`: 클라이언트는 raw JPEG bytes와 `Content-Type: image/jpeg`를 전송한다. 기존 multipart의 `file` 필드 JPEG/PNG와 raw PNG도 유지한다.
-- 두 경로 모두 `Authorization: Bearer <Supabase user access token>`이 필요하다. 로그인하지 않은 사용자는 촬영 전에 기존 로그인 화면으로 안내한다.
+- 두 경로 모두 Bearer 인증이 필요하다. 기본 모드는 Supabase 사용자 access token이며 로그인하지 않은 사용자는 촬영 전에 기존 로그인 화면으로 안내한다. 서버의 명시적 `test-token` 모드는 서버 로컬 시험 토큰만 받으며, 앱은 위의 개발 모드에서 사용자가 입력한 토큰을 보낸다.
 - 인증은 본문 읽기 전에 수행한다. RS256/ES256은 캐시된 프로젝트 JWKS로 서명, exp, iss, aud, sub를 검증한다. HS256은 해당 Supabase 프로젝트의 Auth `/user`에 검증을 요청하고 프로젝트/만료/역할을 추가 확인한다. 사용자 role만 허용하며 익명·service_role은 거절한다. JWKS/Auth 장애는 인증 성공으로 취급하지 않는다.
 - Supabase에는 토큰 검증 요청만 보내며 사진·ROI는 보내지 않는다.
 
@@ -104,12 +140,12 @@ uv run --project ml --group inference-server ruff check server/nia/api.py server
 
 자동 검사는 실서명 JWT·업로드 인증 선행·용량/메모리·동시 요청, 사진 청크 검증, 취소/시간초과, 서버 결과·기존 기록 호환성, 모델 없는 카메라 실행을 포함한다.
 
-실제 기기에서는 동일 Supabase 프로젝트에 로그인한 Expo Go로 촬영→업로드→10개 결과→설문→저장을 확인한다. ASGI 앱 검증, 별도 TCP 요청, 실제 스마트폰 인수 시험은 구분해서 기록한다. 실제 Supabase 설정·계정 및 기기가 준비되지 않은 검사를 성공으로 보고하지 않는다.
+실제 기기에서는 Supabase 기본 모드 또는 위에 명시한 임시 토큰 모드의 Expo Go로 촬영→업로드→10개 결과→설문→저장을 확인한다. ASGI 앱 검증, 별도 HTTP 요청, 실제 스마트폰 인수 시험은 구분해서 기록한다. 실제 기기가 준비되지 않은 검사를 성공으로 보고하지 않는다.
 
 참고: [Expo SDK 57](https://docs.expo.dev/versions/v57.0.0/), [Expo fetch](https://docs.expo.dev/versions/v57.0.0/sdk/expo/), [Supabase JWT](https://supabase.com/docs/guides/auth/jwts), [OpenCV YuNet](https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet).
 
 
-## 2026-10-25 구현 검증 기록
+## 2026-10-25 초기 LAN/Supabase 구현 검증 기록
 
 - 최신 develop을 기준으로 기기 분석 선행 작업을 통합한 `feat/server-skin-analysis`에서 구현했다.
 - 앱 전체 타입검사·lint·Jest 60개, 서버/JWT/ML pytest 93개(추가 subtest 9개), 모델 없는 클라이언트 검사 2개 통과.
@@ -119,3 +155,15 @@ uv run --project ml --group inference-server ruff check server/nia/api.py server
 - 이 TCP 검증의 인증은 RAM에서 생성한 시험 RS256 JWT와 시험 공개 키를 사용했다. JWT 서명/만료/issuer/audience 검증 코드는 실제로 실행했지만, 실제 Supabase 계정 로그인이나 원격 JWKS 서비스 연결을 대신했다고 주장하지 않는다.
 - 실제 Supabase 로컬 설정 및 로그인한 Expo Go의 촬영→업로드→설문·저장은 사용자가 직접 설정 후 인수 시험한다. 비밀번호·실 access token은 저장소/보고서에 남기지 않는다.
 - 테스트용 GPU 서버는 검증 후 종료했다. 실제 운영 시작은 위 런처와 로컬 설정으로 수행한다. 개인 사진별 결과 및 빌드 결과물은 Git에서 제외된 ml/runs 아래에만 둔다.
+
+## 2026-10-25 Tunnel / Expo Go 시험 인증 연결 검증
+
+기존 서버 지원 커밋 `4fd7965` 위에서 앱 연결을 이어 구현했다. 서버 인증·모델·전처리와 Tunnel 설정은 변경하지 않았다.
+
+- 지정된 Tunnel의 인증된 `/health`: HTTP 200, `ready`, `cuda:0`, `NVIDIA GeForce RTX 4070 Ti SUPER`, `models_loaded=4`.
+- 로컬에 이미 설치된 라이브러리의 예제 인물 JPEG를 메모리에서 직접 업로드: HTTP 200, `complete`, feature 10개, `pytorch-cuda`. 왕복 약 1,679ms와 서버 응답 `serverMs` 약 911.12ms를 구분했다. 이 입력은 스마트폰에서 새로 촬영한 사진이 아니다. 원본과 개인별 결과값은 새 파일·로그·보고서에 남기지 않았다.
+- 토큰 누락·틀린 토큰으로 `/health` 요청: 각각 HTTP 401, `UNAUTHORIZED`. 정상 토큰은 서버 로컬 설정에서 메모리로만 읽고 출력하지 않았다.
+- Metro의 LAN manifest와 촬영 스크립트 HTTP 200. Android 개발 JavaScript 번들 HTTP 200. 메모리에서 번들을 검사해 정확한 승인 origin·시험 모드 설정이 포함되고 실제 서버 토큰·서버 비밀 환경변수 이름은 포함되지 않음을 확인했다. Android SDK·Gradle·네이티브 빌드는 사용하지 않았다.
+- `npm run check -- -- --runInBand --cacheDirectory .expo/jest-cache`: 타입 검사·lint·Jest 9개 suite / 70개 test 통과. 훅의 촬영 청크 → 실제 업로드 어댑터(HTTP 응답 모킹) → 설문 → 저장, 10개 feature·시간 분리·토큰 미저장, 취소·늦은 응답·잘못된 인증/주소 검사를 포함한다.
+- `npm run skin:test-client`: 피부 모델 없이 카메라 자산을 제공하는 HTTP 검사 등 2개 통과. 제한 환경의 loopback `EACCES` 후 네트워크 허용 환경에서 재실행했다. 최초 Jest 임시 캐시 `EPERM`은 Git 제외된 `.expo/jest-cache` 사용으로 해결했다.
+- 실기기 접속 시 Expo Go SDK 58 / 프로젝트 SDK 57 불일치가 Metro 로그에 보고되었다. SDK 57용 Expo Go 설치 안내 후 촬영→서버 결과→설문·저장의 실기기 결과를 기다리는 상태이며, 위 코드/HTTP 검사를 실기기 성공으로 기록하지 않는다.

@@ -126,7 +126,8 @@ npx expo-doctor
 
 - 사용자 개발 PC: `npm ci` → `.env.example`을 `.env.local`로 복사하고 공개 API/Supabase 설정 입력 → `npm run client` → Expo Go 접속.
 - 기본 모드는 서버 분석이다. 사용자 PC에는 Python/CUDA/모델 파일이 필요하지 않다. 기존 일반 백엔드 주소 `EXPO_PUBLIC_API_BASE_URL`과 GPU 주소 `EXPO_PUBLIC_SKIN_API_URL`은 구분한다.
-- GPU 서버(Windows): Python 3.12·uv·NVIDIA 드라이버 준비 → 가중치 별도 배치 → `.env.skin-server.example`을 `.env.skin-server.local`로 복사 → `uv sync --project ml --locked --no-dev --group inference-server` → `scripts/start-skin-server.ps1 -HostAddress 192.168.75.230`.
+- GPU 서버(Windows): Python 3.12·uv·NVIDIA 드라이버 준비 → 가중치 별도 배치 → `.env.skin-server.example`을 `.env.skin-server.local`로 복사 → `uv sync --project ml --locked --no-dev --group inference-server` → `scripts/start-skin-server.ps1 -HostAddress 127.0.0.1`. 이미 실행 중인 서버와 Tunnel은 그대로 사용한다.
 - 기기 내 분석은 `EXPO_PUBLIC_SKIN_ANALYSIS_MODE=on-device`로 명시하고 기존 모델 준비 절차를 수행하는 별도 실험이다. 서버 분석 실패 시 자동으로 전환하지 않는다.
-- 현재 사용자 승인 전송 대상은 `http://192.168.75.230:8000`만 허용한다. IP가 바뀌거나 Tunnel을 사용할 때에는 승인 대상과 설정을 함께 변경해야 한다.
+- 현재 사용자 승인 전송 대상은 `https://send-lots-advanced-amended.trycloudflare.com` 하나만 허용한다. 다른 origin·redirect·자동 전환은 거절한다. Tunnel 생성·재시작은 수행하지 않는다.
+- 로그인 없는 임시 시험은 `.env.local`에 `EXPO_PUBLIC_SKIN_AUTH_MODE=test-token`을 명시하고 Metro를 실행한다. 마이페이지 → 피부 정보 등록의 개발용 입력란에 서버 시험 토큰을 매 촬영마다 직접 입력한다. 토큰은 메모리에서만 사용하며 환경변수·번들·로그·저장 기록에 넣지 않는다. 기본값은 `supabase`이며 시험 모드는 `__DEV__`에서만 작동한다. 자세한 설정과 실기기 검증 절차는 [GPU 서버 문서](reports/skin-analysis/desktop-gpu-server.md)를 참고한다.
 - [설치·인증·전송 형식·검증 방법](reports/skin-analysis/desktop-gpu-server.md)

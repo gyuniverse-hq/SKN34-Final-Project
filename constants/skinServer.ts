@@ -1,2 +1,2 @@
-/** User-approved development desktop only. Change only after approving the new destination. */
-export const TRUSTED_SKIN_API_ORIGIN = 'http://192.168.75.230:8000';
+/** Exact user-approved GPU tunnel. Never follow redirects or fall back to another origin. */
+export const TRUSTED_SKIN_API_ORIGIN = 'https://send-lots-advanced-amended.trycloudflare.com';

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { AppState } from 'react-native';
 import { analyzeSkin, cancelSkinAnalysis, onSkinProgress, createSkinWebRun, skinAnalysisUsesWebView, skinAnalysisServerMode } from '@/lib/skinAnalysis';
 import { SkinCaptureAssembler } from '@/lib/skinCapture';
-import { skinApiUrl, uploadSkinPhoto } from '@/lib/skinServer';
+import { skinApiUrl, uploadSkinPhoto, validateSkinServerAuth } from '@/lib/skinServer';
 import { appendSkinTiming, validateSkinAnalysis } from '@/lib/skinProfile';
 import { useSkinProfileStore } from '@/store/skinProfileStore';
 import type { SkinAnalysisResult, SkinCameraEvent, SkinIndicator, SkinQuestionnaire, SkinWebRun, SkinWebEvent } from '@/types/skin';
@@ -22,10 +22,20 @@ export function useSkinAnalysis() {
   const receivedAt = useRef(0);
   const recorded = useRef('');
   const saving = useRef(false);
+  // Never place the test credential in React state, a store, WebView, or persistent storage.
+  const testToken = useRef('');
+  const [testTokenReady, setTestTokenReady] = useState(false);
+  const [testTokenInputKey, setTestTokenInputKey] = useState(0);
+  const setTestToken = useCallback((value: string) => {
+    testToken.current = value;
+    setTestTokenReady(/^[\x21-\x7e]{32,4096}$/.test(value));
+  }, []);
   const save = useSkinProfileStore(s => s.save);
   const renderGeneration = generation.current;
 
   const cancel = useCallback(() => {
+    testToken.current = ''; setTestTokenReady(false);
+    setTestTokenInputKey(key => key + 1);
     generation.current++;
     assembly.current?.clear(); assembly.current = null;
     upload.current?.abort(); upload.current = null;
@@ -42,6 +52,7 @@ export function useSkinAnalysis() {
       if (state !== 'active' && !saving.current) cancel();
     });
     return () => {
+      testToken.current = '';
       generation.current++;
       assembly.current?.clear(); assembly.current = null; upload.current?.abort();
       app.remove(); progress?.remove();
@@ -77,7 +88,9 @@ export function useSkinAnalysis() {
         assembly.current = null; captureClaimed.current = true;
         const current = generation.current, controller = new AbortController();
         upload.current = controller; setPhase('analysis');
-        void uploadSkinPhoto(photo, webRun.run, controller.signal).then(next => {
+        const pending = uploadSkinPhoto(photo, webRun.run, controller.signal, undefined, testToken.current);
+        testToken.current = ''; setTestTokenReady(false);
+        void pending.then(next => {
           if (current !== generation.current) return;
           validateSkinAnalysis(next); receivedAt.current = performance.now();
           setResult(next); setPhase('survey');
@@ -126,11 +139,17 @@ export function useSkinAnalysis() {
     setAnswers({}); setResult(undefined); setError(null);
     setCamera({ guidance: 'noFace', progress: 0 });
     try {
-      if (skinAnalysisServerMode) skinApiUrl(process.env.EXPO_PUBLIC_SKIN_API_URL);
+      if (skinAnalysisServerMode) {
+        skinApiUrl(process.env.EXPO_PUBLIC_SKIN_API_URL);
+        validateSkinServerAuth(testToken.current);
+      }
       const run = skinAnalysisUsesWebView ? createSkinWebRun() : undefined;
       assembly.current = run?.mode === 'server' ? new SkinCaptureAssembler(run.run.runId + ':jpeg') : null;
       setWebRun(run); setPhase('camera');
-    } catch { setError('network'); setPhase('error'); }
+    } catch (failure) {
+      testToken.current = ''; setTestTokenReady(false);
+      setError((failure as { code?: string })?.code === 'UNAUTHORIZED' ? 'auth' : 'network'); setPhase('error');
+    }
   };
 
   const complete = answers.tightness !== undefined && answers.oiliness !== undefined && answers.sensitivity !== undefined;
@@ -146,5 +165,6 @@ export function useSkinAnalysis() {
     finally { saving.current = false; }
   };
 
-  return { phase, camera, indicator, answers, setAnswers, error, complete, start, onCapture, finish, cancel, webRun, onWebEvent };
+  return { phase, camera, indicator, answers, setAnswers, error, complete, start, onCapture, finish, cancel, webRun, onWebEvent,
+    testTokenReady, testTokenInputKey, setTestToken };
 }
