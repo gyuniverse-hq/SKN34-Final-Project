@@ -6,7 +6,8 @@
 
 - 협업 규칙(브랜치·커밋·PR): [`CONTRIBUTING.md`](CONTRIBUTING.md) · AI 도구용 요약: [`AGENTS.md`](AGENTS.md)
 - 레이어 구조와 import 규칙: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · 결정 기록: [`docs/adr/`](docs/adr/README.md)
-- 백엔드 실행과 배포(Compose · kind · EKS): [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
+- 백엔드 실행과 배포(Compose · kind · AWS dev/운영): [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
+- 제품·룩·매장 데이터 넣기(데이터 담당자): [`docs/DATA.md`](docs/DATA.md)
 - 출시 전 직접 해야 할 일: [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKLIST.md)
 - 학습·평가 보고서와 재현·모델 인계 절차: [`reports/README.md`](reports/README.md)
 
@@ -52,7 +53,8 @@ backend/                FastAPI 백엔드 (서비스별 uv 프로젝트)
   chatbot/              챗봇(GraphRAG) · PostgreSQL→Neo4j 동기화 잡 — Neo4j · LLM
 infra/
   compose/              로컬 전체 구성 (게이트웨이 · 두 서비스 · DB 3종)
-  helm/vishue/          쿠버네티스 차트 (values-local: kind, values-prod: EKS)
+  helm/vishue/          쿠버네티스 차트 (values-local: kind, values-dev: 팀 공용 dev, values-prod: 운영)
+  terraform/aws/        AWS 인프라 코드 (VPC · EKS · RDS · ElastiCache · Secrets Manager · 배포 권한)
   argocd/ platform/     GitOps 애플리케이션 · 클러스터 공용 리소스
 .github/workflows/      ci (변경 영역별 검사 → ci-ok) · images (GHCR 발행 → 운영 태그 PR)
 ```

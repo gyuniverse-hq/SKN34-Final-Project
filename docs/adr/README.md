@@ -11,5 +11,6 @@
 | [0005](0005-supabase-auth-jwks.md) | 인증은 Supabase Auth를 유지하고, 백엔드는 JWKS로 토큰을 검증한다 | 채택 |
 | [0006](0006-secrets-per-service.md) | 시크릿은 서비스별로 나누고, 운영에서는 External Secrets로 주입한다 | 채택 |
 | [0007](0007-observability.md) | JSON 로그 + 요청 ID + 프로브 분리, LLM 추적은 Langfuse로 한다 | 채택 (Langfuse는 3단계) |
+| [0008](0008-aws-environments.md) | AWS EKS에 dev(Supabase)와 운영(RDS)을 두고, 인프라는 Terraform으로 관리한다 | 채택 |
 
 형식: 배경(왜 결정이 필요했나) → 결정 → 결과(얻는 것, 감수하는 것).
