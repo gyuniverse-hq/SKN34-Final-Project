@@ -63,3 +63,8 @@ type = "forbidden"
 source_modules = ["app.routers", "app.jobs"]
 forbidden_modules = ["app.repositories", "app.clients", "app.models"]
 allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Clients do not depend on each other"
+type = "independence"
+modules = ["app.clients.naver_client", "app.clients.youtube_client"]

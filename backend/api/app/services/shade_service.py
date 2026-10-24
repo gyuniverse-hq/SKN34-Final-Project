@@ -57,7 +57,7 @@ class ShadeService:
                 hex=s.hex,
                 delta_e=round(ciede2000(skin, hex_to_lab(s.hex)), 2),
             )
-            for p in await self._catalog.list_products(category="base")
+            for p in await self._catalog.list_products(category="base", with_images=False)
             for s in p.shades
         ]
         matches.sort(key=lambda m: m.delta_e)

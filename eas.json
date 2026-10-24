@@ -7,13 +7,11 @@
     "preview": {
       "distribution": "internal",
       "environment": "preview",
-      "android": { "buildType": "apk" },
-      "env": { "EXPO_UNSTABLE_DEPLOY_SERVER": "1" }
+      "android": { "buildType": "apk" }
     },
     "production": {
       "environment": "production",
-      "autoIncrement": true,
-      "env": { "EXPO_UNSTABLE_DEPLOY_SERVER": "1" }
+      "autoIncrement": true
     }
   },
   "submit": {

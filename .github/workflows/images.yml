@@ -2,10 +2,11 @@ name: images
 
 # Publishes immutable images (tag = short git SHA) to GHCR. On main, opens a PR that points
 # values-prod.yaml at the new tag; Argo CD deploys when that PR is merged.
+# (The shared dev servers on Render build from develop themselves: infra/render/render.yaml.)
 on:
   push:
     branches: [develop, main]
-    paths: ["backend/**"]
+    paths: ["backend/**", "infra/helm/**"]
   workflow_dispatch:
 
 permissions:
@@ -71,6 +72,9 @@ jobs:
           grep -n "^  tag: \"${TAG}\"" infra/helm/vishue/values-prod.yaml
       - uses: peter-evans/create-pull-request@v8
         with:
+          # PRs opened with the default GITHUB_TOKEN do not trigger workflows, so the required
+          # ci-ok check would never run. DEPLOY_PR_TOKEN is a fine-grained PAT (contents + PRs).
+          token: ${{ secrets.DEPLOY_PR_TOKEN || github.token }}
           branch: chore/deploy-prod-images
           base: main
           commit-message: "chore: 운영 이미지 태그를 ${{ steps.tag.outputs.value }}로 갱신"

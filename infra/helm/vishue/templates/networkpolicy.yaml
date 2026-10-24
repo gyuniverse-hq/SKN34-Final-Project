@@ -1,9 +1,14 @@
 {{- if .Values.networkPolicy.enabled }}
 {{- /* target component => list of allowed sources (pod components, or "gateway") */ -}}
 {{- $rules := dict "api" (list "gateway" "sync-graph") "chatbot" (list "gateway") -}}
-{{- if .Values.dataStores.inCluster }}
-{{- $_ := set $rules "postgres" (list "api") -}}
-{{- $_ := set $rules "redis" (list "api" "chatbot") -}}
+{{- $ds := .Values.dataStores -}}
+{{- if $ds.postgres.enabled }}
+{{- $_ := set $rules "postgres" (list "api" "seed") -}}
+{{- end }}
+{{- if $ds.redis.enabled }}
+{{- $_ := set $rules "redis" (list "api" "chatbot" "seed") -}}
+{{- end }}
+{{- if $ds.neo4j.enabled }}
 {{- $_ := set $rules "neo4j" (list "chatbot" "sync-graph") -}}
 {{- end }}
 {{- range $target, $sources := $rules }}

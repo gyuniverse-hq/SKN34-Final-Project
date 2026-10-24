@@ -45,6 +45,13 @@ docs/planning/
 # typescript
 *.tsbuildinfo
 
+# terraform (commit .terraform.lock.hcl, never state)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+
 # python (backend/)
 .venv/
 __pycache__/

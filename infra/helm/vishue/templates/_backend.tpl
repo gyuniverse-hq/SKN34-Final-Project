@@ -1,11 +1,12 @@
 {{/*
 One backend service: ConfigMap, Deployment, Service, HPA, PDB.
-  include "vishue.backend" (dict "root" $ "component" "api" "svc" .Values.api "migrate" true)
+  include "vishue.backend" (dict "root" $ "component" "api" "svc" .Values.api "migrate" true "storeEnv" "...")
 */}}
 {{- define "vishue.backend" -}}
 {{- $root := .root -}}
 {{- $c := .component -}}
 {{- $svc := .svc -}}
+{{- $storeEnv := .storeEnv | default "" | trim -}}
 {{- $name := printf "%s-%s" (include "vishue.fullname" $root) $c -}}
 {{- $selector := include "vishue.selector" (dict "root" $root "component" $c) -}}
 {{- $image := include "vishue.image" (dict "root" $root "name" $svc.image) -}}
@@ -75,6 +76,10 @@ spec:
           imagePullPolicy: {{ $root.Values.image.pullPolicy }}
           command: ["alembic", "upgrade", "head"]
           {{- include "vishue.envFrom" (dict "name" $name) | nindent 10 }}
+          {{- with $storeEnv }}
+          env:
+            {{- . | nindent 12 }}
+          {{- end }}
           {{- include "vishue.containerSecurityContext" . | nindent 10 }}
           volumeMounts:
             - { name: tmp, mountPath: /tmp }
@@ -86,6 +91,10 @@ spec:
           ports:
             - { name: http, containerPort: 8000 }
           {{- include "vishue.envFrom" (dict "name" $name) | nindent 10 }}
+          {{- with $storeEnv }}
+          env:
+            {{- . | nindent 12 }}
+          {{- end }}
           startupProbe:
             httpGet: { path: /healthz, port: http }
             periodSeconds: 3

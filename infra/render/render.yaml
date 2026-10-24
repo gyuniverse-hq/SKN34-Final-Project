@@ -1,0 +1,73 @@
+# Shared dev servers on Render (free plan). Create once: Render dashboard → New → Blueprint →
+# this repository, branch develop, Blueprint path infra/render/render.yaml. See docs/DEPLOYMENT.md.
+# Data stores are external: Supabase (PostgreSQL) and Neo4j AuraDB Free. No Redis on the free plan:
+# the api runs without a cache and rate limits are kept in memory.
+services:
+  - type: web
+    name: vishue-api
+    runtime: docker
+    plan: free
+    region: singapore
+    repo: https://github.com/gyuniverse-hq/SKN34-Final-Project
+    branch: develop
+    rootDir: backend/api
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    # Deploy only after the commit's GitHub checks (ci-ok) pass.
+    autoDeployTrigger: checksPass
+    buildFilter:
+      paths: ["backend/api/**"]
+    envVars:
+      - key: ENV
+        value: development
+      - key: RUN_MIGRATIONS
+        value: "true"
+      - key: CORS_ORIGINS
+        value: '["http://localhost:8081"]'
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: NAVER_CLIENT_ID
+        sync: false
+      - key: NAVER_CLIENT_SECRET
+        sync: false
+      - key: YOUTUBE_API_KEY
+        sync: false
+
+  - type: web
+    name: vishue-chatbot
+    runtime: docker
+    plan: free
+    region: singapore
+    repo: https://github.com/gyuniverse-hq/SKN34-Final-Project
+    branch: develop
+    rootDir: backend/chatbot
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    autoDeployTrigger: checksPass
+    buildFilter:
+      paths: ["backend/chatbot/**"]
+    envVars:
+      - key: ENV
+        value: development
+      - key: CORS_ORIGINS
+        value: '["http://localhost:8081"]'
+      - key: NEO4J_URI
+        sync: false
+      - key: NEO4J_USER
+        sync: false
+      - key: NEO4J_PASSWORD
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        sync: false

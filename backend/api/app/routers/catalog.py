@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, Response
 
-from app.core.errors import ApiError
+from app.core.errors import ApiError, UpstreamError
 from app.core.http import cache_for
 from app.schemas.catalog import (
     CATEGORIES,
@@ -10,7 +10,9 @@ from app.schemas.catalog import (
     ProductsResponse,
     StoresResponse,
 )
+from app.schemas.external import ProductOffers
 from app.services.catalog_service import CatalogService, get_catalog_service
+from app.services.offer_service import OfferService, get_offer_service
 
 router = APIRouter(prefix="/api", tags=["catalog"])
 
@@ -41,6 +43,21 @@ async def get_product(
         raise ApiError(404, "Product not found", "not_found")
     cache_for(response, 300)
     return ProductResponse(product=product)
+
+
+@router.get("/products/{product_id}/offers", response_model=ProductOffers)
+async def get_product_offers(
+    product_id: str, response: Response, service: OfferService = Depends(get_offer_service)
+) -> ProductOffers:
+    try:
+        result = await service.get_product_offers(product_id)
+    except UpstreamError as exc:
+        raise ApiError(502, "Shopping search is temporarily unavailable", "upstream_error") from exc
+    if result is None:
+        raise ApiError(404, "Product not found", "not_found")
+    if result.configured:
+        cache_for(response, 1800)
+    return result
 
 
 @router.get("/looks", response_model=LooksResponse)

@@ -135,6 +135,13 @@ jobs:
           done
       - name: Compose file is valid
         run: docker compose -f infra/compose/compose.yaml config --quiet
+      - uses: hashicorp/setup-terraform@v4
+      - name: Terraform format and validation (no AWS credentials needed)
+        working-directory: infra/terraform/aws
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false -input=false
+          terraform validate
 
   # Single required check for branch protection; skipped jobs count as passed.
   ci-ok:

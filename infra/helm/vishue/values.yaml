@@ -74,8 +74,9 @@ networkPolicy:
   gatewayNamespace: envoy-gateway-system
 
 # Secret keys per service (least privilege: the LLM key exists only in the chatbot's Secret).
-#   api:     DATABASE_URL, REDIS_URL
+#   api:     DATABASE_URL, REDIS_URL, NAVER_CLIENT_ID, NAVER_CLIENT_SECRET, YOUTUBE_API_KEY
 #   chatbot: NEO4J_PASSWORD, REDIS_URL, LLM_API_KEY
+# Keys of in-cluster data stores (see dataStores) are filled by the chart and can be omitted.
 secrets:
   # Local only: render Secrets from the values below. Production uses externalSecrets.
   create: false
@@ -92,16 +93,25 @@ externalSecrets:
   apiKey: vishue/production/api
   chatbotKey: vishue/production/chatbot
 
-# Local only. Production uses managed services (RDS PostgreSQL, ElastiCache, Neo4j AuraDB).
+# Replace the catalog with backend/api/seed/catalog.json after every release, for clusters where
+# Git is the catalog's source of truth (e.g. kind demos). Off in production: data loads are deliberate.
+seedOnDeploy: false
+
+# In-cluster data stores, switched on per store (kind turns on all three). When enabled,
+# the chart wires DATABASE_URL / REDIS_URL / NEO4J_* itself; otherwise they come from the Secrets.
+# Production uses managed services (RDS PostgreSQL, ElastiCache, Neo4j AuraDB).
+# Passwords here protect cluster-internal throwaway stores only (NetworkPolicy limits access).
 dataStores:
-  inCluster: false
   postgres:
+    enabled: false
     image: postgres:17-alpine
     storage: 2Gi
     password: vishue
   redis:
+    enabled: false
     image: redis:7-alpine
   neo4j:
+    enabled: false
     image: neo4j:5-community
     storage: 2Gi
     password: vishue-local
