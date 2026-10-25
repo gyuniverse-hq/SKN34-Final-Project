@@ -1,5 +1,6 @@
 import { SkinCaptureAssembler, CAPTURE_CHUNK_CHARS, MAX_CAPTURE_BYTES } from '@/lib/skinCapture';
-import { adaptSkinServerResult, skinApiUrl, uploadSkinPhoto } from '@/lib/skinServer';
+import { adaptSkinServerResult, getSkinServerToken, skinApiUrl, skinServerUsesTestAuth, uploadSkinPhoto } from '@/lib/skinServer';
+import { getAccessToken } from '@/lib/auth';
 import { TRUSTED_SKIN_API_ORIGIN } from '@/constants/skinServer';
 import { validateSkinAnalysis, writeSkinProfile, readSkinProfile } from '@/lib/skinProfile';
 
@@ -113,4 +114,62 @@ it('aborts an in-flight upload on cancellation and on the 30 second timeout', as
       await assertion; expect(dependencies.fetch).toHaveBeenCalledTimes(1);
     }
   } finally { jest.useRealTimers(); }
+});
+
+describe('temporary skin authentication', () => {
+  const previous = process.env.EXPO_PUBLIC_SKIN_AUTH_MODE;
+  const fixtureToken = 'test-fixture-only-not-a-server-secret';
+  afterEach(() => {
+    if (previous === undefined) delete process.env.EXPO_PUBLIC_SKIN_AUTH_MODE;
+    else process.env.EXPO_PUBLIC_SKIN_AUTH_MODE = previous;
+    jest.clearAllMocks();
+  });
+
+  it('keeps Supabase as the default and does not use an entered test credential', async () => {
+    delete process.env.EXPO_PUBLIC_SKIN_AUTH_MODE;
+    jest.mocked(getAccessToken).mockResolvedValue('supabase-fixture');
+    expect(skinServerUsesTestAuth()).toBe(false);
+    await expect(getSkinServerToken(fixtureToken)).resolves.toBe('supabase-fixture');
+    expect(getAccessToken).toHaveBeenCalledTimes(1);
+  });
+
+  it('requires an explicit development mode and a nonempty header-safe token without auth fallback', async () => {
+    process.env.EXPO_PUBLIC_SKIN_AUTH_MODE = 'test-token';
+    expect(skinServerUsesTestAuth()).toBe(true);
+    for (const token of [undefined, '', 'short', fixtureToken + '\r\nInjected: yes']) {
+      await expect(getSkinServerToken(token)).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
+    }
+    await expect(getSkinServerToken(fixtureToken)).resolves.toBe(fixtureToken);
+    expect(getAccessToken).not.toHaveBeenCalled();
+    const dev = jest.replaceProperty(globalThis as typeof globalThis & { __DEV__: boolean }, '__DEV__', false);
+    try {
+      expect(skinServerUsesTestAuth()).toBe(false);
+      await expect(getSkinServerToken(fixtureToken)).rejects.toMatchObject({ code: 'TEST_MODE_DISABLED' });
+    } finally { dev.restore(); }
+    process.env.EXPO_PUBLIC_SKIN_AUTH_MODE = 'typo';
+    await expect(getSkinServerToken(fixtureToken)).rejects.toMatchObject({ code: 'CONFIG_REQUIRED' });
+  });
+
+  it('rejects missing tokens before sending JPEG bytes and never retries a rejected token', async () => {
+    process.env.EXPO_PUBLIC_SKIN_AUTH_MODE = 'test-token';
+    const dependencies = { fetch: jest.fn().mockResolvedValue({ ok: false, json: async () => ({ code: 'UNAUTHORIZED' }) }),
+      getToken: getSkinServerToken, url: TRUSTED_SKIN_API_ORIGIN };
+    await expect(uploadSkinPhoto(photo, run, new AbortController().signal, dependencies)).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
+    expect(dependencies.fetch).not.toHaveBeenCalled();
+    await expect(uploadSkinPhoto(photo, run, new AbortController().signal, dependencies, fixtureToken)).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
+    expect(dependencies.fetch).toHaveBeenCalledTimes(1);
+    expect(getAccessToken).not.toHaveBeenCalled();
+  });
+});
+
+it.each([undefined, 'http://192.168.75.230:8000', TRUSTED_SKIN_API_ORIGIN + '/analyze',
+  TRUSTED_SKIN_API_ORIGIN + '#fragment', TRUSTED_SKIN_API_ORIGIN.replace('https:', 'http:')])('fails closed for missing or non-approved configuration %s', url => {
+  expect(() => skinApiUrl(url)).toThrow();
+});
+
+it('rejects redirect responses and does not retry or accept their results', async () => {
+  const dependencies = { fetch: jest.fn().mockResolvedValue({ ok: true, redirected: true, json: async () => wire() }),
+    getToken: jest.fn().mockResolvedValue('fixture'), url: TRUSTED_SKIN_API_ORIGIN };
+  await expect(uploadSkinPhoto(photo, run, new AbortController().signal, dependencies)).rejects.toMatchObject({ code: 'UNTRUSTED_SERVER' });
+  expect(dependencies.fetch).toHaveBeenCalledTimes(1);
 });

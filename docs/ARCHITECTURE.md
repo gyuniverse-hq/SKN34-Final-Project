@@ -72,11 +72,17 @@ flowchart LR
 사용자 개발 PC는 `npm ci`와 `npm run client`로 Expo만 실행하며 Python/CUDA/피부 가중치가 필요하지 않습니다.
 서버 모드가 기본이며 `EXPO_PUBLIC_SKIN_ANALYSIS_MODE=on-device`를 명시할 때만 기존 기기 분석 실험을 사용합니다.
 GPU API 주소는 `EXPO_PUBLIC_SKIN_API_URL`로 지정하지만 사용자 승인 origin과 일치해야 합니다.
-현재 승인된 대상은 개발용 데스크톱 LAN `http://192.168.75.230:8000`뿐입니다. 외부 Tunnel은 아직 허용하지 않습니다.
+현재 승인된 대상은 `https://send-lots-advanced-amended.trycloudflare.com` 하나뿐입니다.
+다른 origin, 이전 LAN 주소, redirect, 자동 전환은 거절합니다. Tunnel 생성·재시작은 앱의 역할이 아닙니다.
 
 촬영 WebView는 기존 가이드·자동 촬영 판정을 재사용하고 JPEG 한 장만 48KiB 이하 메모리 청크로 RN에 전달합니다.
 카메라 모듈은 상위 앱 레이어나 인증·업로드 코드를 import하지 않습니다. 화면이 훅으로 사진 이벤트를 전달하고,
-훅과 lib의 업로드 헬퍼가 Supabase 사용자 access token을 첨부해 GPU API에 요청합니다.
+훅과 lib의 업로드 헬퍼가 기본적으로 Supabase 사용자 access token을 첨부해 GPU API에 요청합니다.
+임시 시험은 `__DEV__`와 `EXPO_PUBLIC_SKIN_AUTH_MODE=test-token`을 모두 만족할 때만 피부 분석 로그인 요구를 건너뜁니다.
+이 모드에서는 개발용 입력란에서 매 촬영마다 직접 입력한 시험 Bearer 토큰을 훅의 메모리 참조로만 사용합니다.
+토큰은 업로드 시작·취소·앱 비활성화·화면 이탈 시 참조를 해제하며 저장·로그·번들·WebView에 넣지 않습니다.
+빈 토큰·잘못된 인증 모드·배포 빌드의 test-token 설정은 실패 처리하고 Supabase나 무인증 요청으로 전환하지 않습니다.
+다른 화면의 인증과 저장 형식은 변경하지 않습니다.
 토큰을 WebView에 전달하지 않습니다. 서버는 인증 후 YuNet→기존 ROI→전처리→CUDA 4개 모델→후처리를 실행합니다.
 서버 응답 v1은 유지하며 선택적 execution(runtime/bundleVersion/serverMs)만 추가합니다.
 앱은 `skin-analysis-server-v1`로 변환하여 결과 수치와 설문만 저장하고 기존 모바일 v1 기록도 계속 읽습니다.

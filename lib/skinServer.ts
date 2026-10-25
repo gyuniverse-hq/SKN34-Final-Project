@@ -9,6 +9,25 @@ export class SkinServerError extends Error {
   constructor(public readonly code: string) { super(code); }
 }
 
+/** Explicit, development-only exception for skin analysis; other auth stays unchanged. */
+export function skinServerUsesTestAuth(): boolean {
+  return __DEV__ && process.env.EXPO_PUBLIC_SKIN_AUTH_MODE === 'test-token';
+}
+
+export function validateSkinServerAuth(testToken?: string): void {
+  const mode = process.env.EXPO_PUBLIC_SKIN_AUTH_MODE;
+  if (mode && mode !== 'supabase' && mode !== 'test-token') throw new SkinServerError('CONFIG_REQUIRED');
+  if (mode === 'test-token') {
+    if (!__DEV__) throw new SkinServerError('TEST_MODE_DISABLED');
+    if (!testToken || !/^[\x21-\x7e]{32,4096}$/.test(testToken)) throw new SkinServerError('UNAUTHORIZED');
+  }
+}
+
+export async function getSkinServerToken(testToken?: string): Promise<string | null> {
+  validateSkinServerAuth(testToken);
+  return skinServerUsesTestAuth() ? testToken! : getAccessToken();
+}
+
 export function skinApiUrl(configured: string | undefined): string {
   if (!configured) throw new SkinServerError('CONFIG_REQUIRED');
   const url = new URL(configured);
@@ -45,9 +64,10 @@ export function adaptSkinServerResult(raw: unknown, context: SkinWebRun['run'], 
   return result;
 }
 
-/** Only the desktop LAN origin explicitly approved by the user may receive these bytes/tokens. */
+/** Only the exact tunnel approved by the user may receive these bytes/tokens. */
 export async function uploadSkinPhoto(photo: CapturedSkinPhoto, run: SkinWebRun['run'], signal: AbortSignal,
-  dependencies = { fetch: expoFetch, getToken: getAccessToken, url: process.env.EXPO_PUBLIC_SKIN_API_URL }): Promise<SkinAnalysisResult> {
+  dependencies = { fetch: expoFetch, getToken: getSkinServerToken, url: process.env.EXPO_PUBLIC_SKIN_API_URL },
+  testToken?: string): Promise<SkinAnalysisResult> {
   const url = skinApiUrl(dependencies.url);
   const controller = new AbortController();
   const abort = () => controller.abort();
@@ -55,7 +75,8 @@ export async function uploadSkinPhoto(photo: CapturedSkinPhoto, run: SkinWebRun[
   if (signal.aborted) abort();
   const timer = setTimeout(abort, 30000), started = performance.now();
   try {
-    const token = await dependencies.getToken();
+    const token = await dependencies.getToken(testToken);
+    testToken = undefined;
     if (!token) throw new SkinServerError('UNAUTHORIZED');
     if (controller.signal.aborted) throw new SkinServerError('CANCELLED');
     const requestAt = performance.now();
@@ -63,12 +84,14 @@ export async function uploadSkinPhoto(photo: CapturedSkinPhoto, run: SkinWebRun[
       headers: { 'Content-Type': 'image/jpeg', Authorization: `Bearer ${token}`, Accept: 'application/json' },
       body: Uint8Array.from(photo.bytes).buffer, signal: controller.signal,
       redirect: 'error', credentials: 'omit' });
+    if (response.redirected || (response.url && response.url !== url)) throw new SkinServerError('UNTRUSTED_SERVER');
     const body: unknown = await response.json();
     if (controller.signal.aborted) throw new SkinServerError('CANCELLED');
     if (!response.ok) throw new SkinServerError(typeof record(body).code === 'string' ? record(body).code as string : 'NETWORK');
     return adaptSkinServerResult(body, run, photo, performance.now() - requestAt,
       photo.captureMs + photo.handoffMs + performance.now() - started);
   } finally {
+    testToken = undefined;
     clearTimeout(timer); signal.removeEventListener('abort', abort);
   }
 }
