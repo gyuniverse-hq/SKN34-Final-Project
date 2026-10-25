@@ -165,6 +165,6 @@ export function useSkinAnalysis() {
     finally { saving.current = false; }
   };
 
-  return { phase, camera, indicator, answers, setAnswers, error, complete, start, onCapture, finish, cancel, webRun, onWebEvent,
+  return { phase, camera, indicator, result, answers, setAnswers, error, complete, start, onCapture, finish, cancel, webRun, onWebEvent,
     testTokenReady, testTokenInputKey, setTestToken };
 }

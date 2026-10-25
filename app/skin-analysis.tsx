@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
 import { SkinCamera } from '@/components/skin/SkinCamera';
 import { SkinSurvey } from '@/components/skin/SkinSurvey';
+import { SkinResult } from '@/components/skin/SkinResult';
 import { useAuth } from '@/lib/auth';
 import { theme } from '@/constants/theme';
 import { useSkinAnalysis } from '@/hooks/useSkinAnalysis';
@@ -67,10 +68,9 @@ export default function SkinAnalysisScreen() {
       <Text accessibilityLiveRegion="polite" style={styles.body}>{t(skinAnalysisServerMode ? 'skin.serverProcessing' : `skin.indicator.${flow.indicator}`)}</Text>
     </View> : flow.phase === 'survey' || flow.phase === 'saving' ? <SkinSurvey answers={flow.answers} onChange={flow.setAnswers}
       onFinish={() => { void flow.finish(); }} complete={flow.complete} saving={flow.phase === 'saving'} error={flow.error === 'storage'} />
-      : flow.phase === 'done' ? <View style={styles.center}>
-        <Text accessibilityRole="header" style={styles.title}>{t('skin.completed')}</Text>
-        <Button label={t('skin.confirm')} onPress={leave} />
-      </View> : <View style={styles.center}>
+      : flow.phase === 'done' && flow.result ? <SkinResult result={flow.result}
+        onRecommend={() => router.push('/skin-recommendations')}
+        onRetry={() => { if (testMode) flow.cancel(); else void begin(); }} onExit={leave} /> : <View style={styles.center}>
         <Text accessibilityRole="alert" style={styles.body}>{t(flow.error === 'auth' ? (testMode ? 'skin.testTokenRejected' : 'skin.signInRequired') : flow.error === 'network' ? 'skin.serverUnavailable' : flow.error === 'busy' ? 'skin.serverBusy' : flow.error === 'permission' ? 'skin.permissionDenied' : flow.error === 'model' ? 'skin.modelFailed' : 'skin.analysisFailed')}</Text>
         {flow.error === 'permission' && <Button label={t('skin.openSettings')} onPress={() => { void Linking.openSettings(); }} />}
         <Button label={t(testMode ? 'skin.testRetry' : flow.error === 'auth' ? 'my.login' : 'skin.retry')} onPress={() => {

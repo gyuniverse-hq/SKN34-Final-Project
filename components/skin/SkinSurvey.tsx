@@ -21,7 +21,7 @@ export function SkinSurvey({ answers, onChange, onFinish, complete, saving, erro
       )}</View>
     </View>)}
     {error && <Text accessibilityRole="alert" style={styles.error}>{t('skin.storageFailed')}</Text>}
-    <Button label={t('skin.save')} onPress={onFinish} disabled={!complete} loading={saving} />
+    <Button label={t('skin.viewResult')} onPress={onFinish} disabled={!complete} loading={saving} />
   </ScrollView>;
 }
 const styles = StyleSheet.create({

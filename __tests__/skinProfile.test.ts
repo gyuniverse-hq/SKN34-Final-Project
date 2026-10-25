@@ -11,6 +11,7 @@ import * as skinRuntime from '@/lib/skinAnalysis';
 import { uploadSkinPhoto } from '@/lib/skinServer';
 import { TRUSTED_SKIN_API_ORIGIN } from '@/constants/skinServer';
 import { fetch as expoFetch } from 'expo/fetch';
+import { summarizeSkinResult } from '@/lib/skinResult';
 
 jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
 
@@ -47,6 +48,35 @@ beforeEach(async () => {
   await AsyncStorage.clear();
   useSkinProfileStore.getState().reset();
   jest.clearAllMocks();
+});
+
+it.each([0, 1, 2, 3, 4, 5, 6])('labels grade %i at the good/care boundary without changing model values', grade => {
+  const features = analysis().features;
+  features.pore_grade_cheek_image_left = Math.min(grade, 5);
+  features.pore_grade_cheek_image_right = 0;
+  features.pigmentation_grade_forehead = 0;
+  features.pigmentation_grade_cheek_image_left = Math.min(grade, 5);
+  features.pigmentation_grade_cheek_image_right = 0;
+  features.wrinkle_grade_forehead = 0;
+  features.wrinkle_grade_glabella = 0;
+  features.wrinkle_grade_eye_image_left = 0;
+  features.wrinkle_grade_eye_image_right = grade;
+  const original = { ...features };
+  const summary = summarizeSkinResult(features);
+  expect(summary.grades.map(row => row.status)).toEqual(Array(3).fill(grade <= 2 ? 'good' : 'care'));
+  expect(summary.grades.map(row => row.grade)).toEqual([Math.min(grade, 5), Math.min(grade, 5), grade]);
+  expect(features).toEqual(original);
+});
+
+it('uses the highest area grade and reports acne only as presence or absence', () => {
+  const features = analysis().features;
+  expect(summarizeSkinResult(features)).toEqual({ grades: [
+    { indicator: 'pore', grade: 3, status: 'care' },
+    { indicator: 'pigmentation', grade: 3, status: 'care' },
+    { indicator: 'wrinkle', grade: 4, status: 'care' },
+  ], acneDetected: true });
+  features.acne = 0;
+  expect(summarizeSkinResult(features).acneDetected).toBe(false);
 });
 
 it('persists all 10 areas and unknown answers, and restores after a new store session', async () => {
@@ -120,6 +150,15 @@ it('requires all answers, preserves them on a failed write, then completes after
     await act(async () => { await flow.finish(); });
     expect(flow.phase).toBe('done');
     expect(useSkinProfileStore.getState().profile?.questionnaire).toEqual(flow.answers);
+    expect(useSkinProfileStore.getState().profile?.analysis).toEqual(flow.result);
+    const saved = await readSkinProfile();
+    await act(async () => { flow.cancel(); });
+    expect(flow.result).toBeUndefined();
+    expect(await readSkinProfile()).toEqual(saved);
+    await act(async () => { await flow.start(); });
+    expect(flow.phase).toBe('camera');
+    expect(flow.answers).toEqual({});
+    expect(useSkinProfileStore.getState().profile).toEqual(saved);
   } finally { await act(async () => { renderer.unmount(); }); }
 });
 
