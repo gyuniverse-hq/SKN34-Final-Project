@@ -51,6 +51,24 @@ def train_epoch(
     window = []
 
     def optimize_window(batches, samples):
+        # Match SAM recovery: failed forwards must not persist BN/RNG updates.
+        before_bn = [
+            (b, b.detach().clone())
+            for m in model.modules()
+            if isinstance(m, nn.modules.batchnorm._BatchNorm)
+            for b in m.buffers(recurse=False)
+        ]
+        before_cpu = torch.get_rng_state()
+        before_cuda = torch.cuda.get_rng_state(device) if device.type == "cuda" else None
+
+        def rewind():
+            with torch.no_grad():
+                for buffer, value in before_bn:
+                    buffer.copy_(value)
+            torch.set_rng_state(before_cpu)
+            if before_cuda is not None:
+                torch.cuda.set_rng_state(before_cuda, device)
+
         # FP16 overflows are recoverable. Replay the same accumulation window at a smaller
         # scale, without dropping its labels or applying a partial optimizer update.
         for attempt in range(17):
@@ -73,7 +91,10 @@ def train_epoch(
                 optimizer.zero_grad(set_to_none=True)
                 return window_loss
             if not scaler.is_enabled() or attempt == 16:
+                rewind()
+                optimizer.zero_grad(set_to_none=True)
                 raise RuntimeError("Non-finite training gradients after AMP scale recovery")
+            rewind()
             scaler.update(new_scale=scaler.get_scale() * 0.5)
             model._amp_overflow_retries += 1
         raise RuntimeError("Unreachable accumulation state")
