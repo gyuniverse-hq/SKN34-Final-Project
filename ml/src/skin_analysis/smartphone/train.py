@@ -10,12 +10,12 @@ import numpy as np
 import torch
 from server.nia.metrics import classification
 from torch import nn
-from torch.utils.data import DataLoader
-from torchvision.models import ResNet50_Weights, resnet50
+from torch.utils.data import DataLoader, RandomSampler
 
 from ..dataset import seed_worker
 from ..runtime import capture_rng, cpu_tree, restore_rng, save_checkpoint, seed_all, select_cuda
 from ..train import train_epoch
+from .backbones import BACKBONES, build_network, head_for
 from .common import (
     DEFAULT_CONFIG,
     PREPROCESSING,
@@ -28,9 +28,9 @@ from .common import (
     write_json,
 )
 from .coral import ARCHITECTURE as CORAL_ARCHITECTURE
-from .coral import DECODING, CoralHead, CoralLoss, decode_coral
+from .coral import DECODING, CoralLoss, decode_coral
 from .data import GradeDataset
-from .losses import ClassBalancedFocalLoss, WeightedFocalLoss
+from .losses import ClassBalancedFocalLoss, WeightedFocalLoss, effective_number_weights
 from .ordinal_loss import WeightedOrdinalCdfLoss
 from .sam import optimization_spec
 from .sam import train_epoch as sam_train_epoch
@@ -44,14 +44,16 @@ class GradeModel(nn.Module):
         ordinal=False,
         freeze_bn_stats=False,
         finetune_scope="all",
+        backbone="resnet50",
     ):
         super().__init__()
         if finetune_scope not in ("all", "layer4"):
             raise ValueError("Finetune scope must be all or layer4")
         self.freeze_bn_stats = freeze_bn_stats
         self.finetune_scope = finetune_scope
-        self.network = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2 if pretrained else None)
-        self.network.fc = CoralHead(2048, classes) if ordinal else nn.Linear(2048, classes)
+        if finetune_scope == "layer4" and backbone == "efficientnet_b0":
+            raise ValueError("layer4 is a ResNet-only policy")
+        self.network = build_network(backbone, classes, pretrained, ordinal)
         self.frozen = False
 
     def set_stage(self, frozen):
@@ -59,13 +61,13 @@ class GradeModel(nn.Module):
         self.network.requires_grad_(not frozen and self.finetune_scope == "all")
         if not frozen and self.finetune_scope == "layer4":
             self.network.layer4.requires_grad_(True)
-        self.network.fc.requires_grad_(True)
+        head_for(self.network).requires_grad_(True)
 
     def train(self, mode=True):
         super().train(mode)
         if mode and self.frozen:
             self.network.eval()
-            self.network.fc.train()
+            head_for(self.network).train()
         elif mode and self.freeze_bn_stats:
             # Freeze running mean/variance/count only; affine weights stay trainable.
             for module in self.network.modules():
@@ -77,20 +79,33 @@ class GradeModel(nn.Module):
         return self.network(images)
 
 
-def class_weights(labels, classes, cap):
+def class_weights(labels, classes, cap, exponent=0.5):
     counts = np.bincount(labels, minlength=classes)
-    if len(counts) != classes or (counts == 0).any() or not np.isfinite(cap) or cap < 1:
-        raise ValueError("Every training grade and a finite weight cap >= 1 are required")
-    weights = np.sqrt(len(labels) / counts)
+    if (
+        len(counts) != classes
+        or (counts == 0).any()
+        or (cap is not None and (not np.isfinite(cap) or cap < 1))
+        or not np.isfinite(exponent)
+        or not 0 <= exponent <= 1
+    ):
+        raise ValueError("Every training grade, exponent in [0,1], and cap >= 1 are required")
+    weights = (len(labels) / counts) ** exponent
     weights /= np.dot(weights, counts / len(labels))
-    return torch.tensor(np.minimum(weights, cap), dtype=torch.float32)
+    return torch.tensor(weights if cap is None else np.minimum(weights, cap), dtype=torch.float32)
 
 
 def criterion_for(labels, classes, settings, device):
     kind = settings.get("loss", "weighted_cross_entropy")
     counts = np.bincount(labels, minlength=classes).tolist()
-    if kind == "weighted_cross_entropy":
-        weight = class_weights(labels, classes, settings["class_weight_cap"])
+    if kind in ("weighted_cross_entropy", "unweighted_cross_entropy", "class_balanced_ce"):
+        if kind == "unweighted_cross_entropy":
+            weight = torch.ones(classes)
+        elif kind == "class_balanced_ce":
+            weight = effective_number_weights(counts, settings["cb_beta"])
+        else:
+            weight = class_weights(
+                labels, classes, settings["class_weight_cap"], settings.get("weight_exponent", 0.5)
+            )
         criterion = nn.CrossEntropyLoss(weight=weight.to(device))
         specification = dict(
             kind=kind,
@@ -99,7 +114,9 @@ def criterion_for(labels, classes, settings, device):
             reduction="sum_weighted_ce / sum_target_weights",
         )
     elif kind == "weighted_focal":
-        weight = class_weights(labels, classes, settings["class_weight_cap"])
+        weight = class_weights(
+            labels, classes, settings["class_weight_cap"], settings.get("weight_exponent", 0.5)
+        )
         criterion = WeightedFocalLoss(weight, gamma=settings["focal_gamma"]).to(device)
         specification = dict(
             kind=kind,
@@ -113,7 +130,9 @@ def criterion_for(labels, classes, settings, device):
             effective_number_weights_used=False,
         )
     elif kind == "weighted_ordinal_cdf":
-        weight = class_weights(labels, classes, settings["class_weight_cap"])
+        weight = class_weights(
+            labels, classes, settings["class_weight_cap"], settings.get("weight_exponent", 0.5)
+        )
         criterion = WeightedOrdinalCdfLoss(weight).to(device)
         specification = dict(
             kind=kind,
@@ -151,14 +170,25 @@ def criterion_for(labels, classes, settings, device):
         )
     else:
         raise ValueError("Unknown smartphone training loss")
+    specification.update(
+        weight_exponent=settings.get("weight_exponent", 0.5),
+        class_weight_cap=settings.get("class_weight_cap"),
+    )
     return criterion, specification
 
 
 def make_loader(data, settings, generator=None, training=False):
+    sampler = None
+    if settings.get("deterministic_samples"):
+        if training:
+            sampler = RandomSampler(data, generator=generator)
+        # Worker base-seed draws must not consume the captured shuffle/model RNG.
+        generator = torch.Generator().manual_seed(settings["seed"] + 100000)
     return DataLoader(
         data,
         batch_size=settings["batch_size"],
-        shuffle=training,
+        shuffle=training and sampler is None,
+        sampler=sampler,
         num_workers=settings["num_workers"],
         pin_memory=True,
         persistent_workers=settings["num_workers"] > 0,
@@ -207,7 +237,7 @@ def optimizer_for(model, settings, frozen):
     model.set_stage(frozen)
     groups = [
         {
-            "params": model.network.fc.parameters(),
+            "params": head_for(model.network).parameters(),
             "lr": settings["head_lr"] if frozen else settings["finetune_head_lr"],
         }
     ]
@@ -217,7 +247,7 @@ def optimizer_for(model, settings, frozen):
                 "params": [
                     p
                     for n, p in model.network.named_parameters()
-                    if not n.startswith("fc.") and p.requires_grad
+                    if not n.startswith(("fc.", "classifier.")) and p.requires_grad
                 ],
                 "lr": settings["backbone_lr"],
             }
@@ -254,6 +284,8 @@ def verify_crops(manifest):
 
 
 def require_coral_gate(config, manifest, task):
+    if config["train"].get("study_protocol") == "reselection-v1":
+        return  # All three tasks are explicitly preregistered in the new study.
     if config["train"].get("loss") != "coral" or task == "pore":
         return
     path = Path(config["train"]["output"]) / "pore-comparison.json"
@@ -277,6 +309,9 @@ def require_coral_gate(config, manifest, task):
 def train_task(config, manifest, task, device, resume=None):
     require_coral_gate(config, manifest, task)
     settings = config["train"]
+    backbone = settings.get("backbone", "resnet50")
+    wall_started = time.perf_counter()
+    torch.cuda.reset_peak_memory_stats(device)
     classes, mapping, exported_task = classification_contract(settings, task)
     optimizer_spec = optimization_spec(settings)
     ordinal = settings.get("loss") == "coral"
@@ -311,24 +346,32 @@ def train_task(config, manifest, task, device, resume=None):
         ordinal=ordinal,
         freeze_bn_stats=settings.get("freeze_bn_stats", False),
         finetune_scope=settings.get("finetune_scope", "all"),
+        backbone=backbone,
     ).to(device)
     if checkpoint:
         model.network.load_state_dict(checkpoint["model_state"], strict=True)
     initial_weights = (
-        Path(torch.hub.get_dir()) / "checkpoints" / Path(ResNet50_Weights.IMAGENET1K_V2.url).name
+        Path(torch.hub.get_dir()) / "checkpoints" / Path(BACKBONES[backbone][1].url).name
     )
     initialization = (
         checkpoint["initialization"]
         if checkpoint
         else dict(
-            source="torchvision/ResNet50_Weights.IMAGENET1K_V2",
+            source=f"torchvision/{BACKBONES[backbone][1]}",
             sha256=file_hash(initial_weights),
             nia_weights_used=False,
         )
     )
     seed_all(settings["seed"])
     generator = torch.Generator().manual_seed(settings["seed"])
-    training = GradeDataset(manifest, task, "train", training=True, target_mapping=mapping)
+    training = GradeDataset(
+        manifest,
+        task,
+        "train",
+        training=True,
+        target_mapping=mapping,
+        training_seed=settings["seed"] if settings.get("deterministic_samples") else None,
+    )
     validation = GradeDataset(manifest, task, "valid", target_mapping=mapping)
     train_loader = make_loader(training, settings, generator, training=True)
     valid_loader = make_loader(validation, settings)
@@ -365,6 +408,7 @@ def train_task(config, manifest, task, device, resume=None):
         restore_rng(checkpoint["rng_state"], generator)
     total = settings["freeze_epochs"] + settings["finetune_epochs"]
     for epoch in range(start, total):
+        training.set_epoch(epoch)
         started = time.perf_counter()
         now_frozen = epoch < settings["freeze_epochs"]
         if frozen != now_frozen:
@@ -385,7 +429,10 @@ def train_task(config, manifest, task, device, resume=None):
         )
         truth, predicted, _, valid_loss = predict(model, valid_loader, device, ordinal=ordinal)
         metrics = classification(truth, predicted, classes)
-        key = metrics["macro_f1"], -valid_loss
+        key = (
+            metrics["macro_f1"],
+            -metrics["mae"] if settings.get("selection") == "macro_f1_mae" else -valid_loss,
+        )
         improved = key > best_key
         stale = 0 if improved else stale + 1
         if improved:
@@ -402,6 +449,7 @@ def train_task(config, manifest, task, device, resume=None):
             valid_loss=valid_loss,
             valid_accuracy=metrics["accuracy"],
             valid_macro_f1=metrics["macro_f1"],
+            valid_mae=metrics["mae"],
             valid_within_one=metrics["within_one"],
             seconds=time.perf_counter() - started,
             selected=improved,
@@ -417,7 +465,7 @@ def train_task(config, manifest, task, device, resume=None):
         history.append(row)
         saved = dict(
             schema="nia-smartphone-training-v1",
-            architecture=CORAL_ARCHITECTURE if ordinal else "resnet50",
+            architecture=CORAL_ARCHITECTURE if ordinal else backbone,
             decoding=DECODING if ordinal else "softmax_argmax",
             task=exported_task,
             training_device="smartphone",
@@ -438,8 +486,12 @@ def train_task(config, manifest, task, device, resume=None):
             scheduler_state=scheduler.state_dict() if scheduler else None,
             scaler_state=scaler.state_dict(),
             rng_state=capture_rng(generator),
-            selection="validation macro-F1; unweighted validation "
-            + ("threshold BCE tie-break" if ordinal else "CE tie-break"),
+            selection=(
+                "validation macro-F1; MAE tie-break; earliest epoch"
+                if settings.get("selection") == "macro_f1_mae"
+                else "validation macro-F1; unweighted validation "
+                + ("threshold BCE tie-break" if ordinal else "CE tie-break")
+            ),
             loss_spec=loss_spec,
             optimization_spec=optimizer_spec,
             finetune_policy=dict(
@@ -458,7 +510,7 @@ def train_task(config, manifest, task, device, resume=None):
             save_checkpoint(output / "best.pt", saved)
         write_json(output / "history.json", history)
         print(json.dumps(row), flush=True)
-        if not frozen and stale >= settings["patience"]:
+        if not settings.get("fixed_epochs", False) and not frozen and stale >= settings["patience"]:
             break
     best = torch.load(output / "best.pt", map_location="cpu", weights_only=True)
     exported = {
@@ -497,6 +549,11 @@ def train_task(config, manifest, task, device, resume=None):
             epochs_run=len(history),
             best_key=best["best_key"],
             sha256=file_hash(output / "inference.bin"),
+            wall_seconds=time.perf_counter() - wall_started,
+            peak_memory_bytes=torch.cuda.max_memory_allocated(device),
+            parameter_count=sum(p.numel() for p in model.parameters()),
+            optimizer_steps=len(history)
+            * int(np.ceil(len(training) / settings["effective_batch"])),
         ),
     )
     del train_loader, valid_loader, train_eval_loader, optimizer, model, best, exported, saved

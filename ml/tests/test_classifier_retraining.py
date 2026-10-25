@@ -89,7 +89,7 @@ def test_sam_updates_only_new_head_and_preserves_bn_buffers_exactly(monkeypatch)
             return self.fc(self.features(images))
 
     # Keep the real GradeModel's stage/train behavior, replacing only its network.
-    monkeypatch.setattr("skin_analysis.smartphone.train.resnet50", lambda **kwargs: TinyNetwork())
+    monkeypatch.setattr("skin_analysis.smartphone.train.build_network", lambda *args: TinyNetwork())
     source = copy.deepcopy(GradeModel(6).network.state_dict())
     model = crt.initialize_classifier(source, 3, 42)
     assert not model.network.features[1].training
