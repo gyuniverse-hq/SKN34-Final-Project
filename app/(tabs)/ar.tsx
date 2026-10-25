@@ -1,8 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCameraPermissions } from 'expo-camera';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   AppState,
@@ -21,23 +22,88 @@ import type { ArStatus } from '@/components/ar/faceTrackerHtml';
 import { SwatchFallback } from '@/components/ar/SwatchFallback';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
+import { DEMO_TAG } from '@/constants/demo';
 import { theme } from '@/constants/theme';
+import { COLOR_FAMILIES, colorFamily, type ColorFamily } from '@/lib/colorFamily';
+import { withDevTryOnFallback } from '@/lib/devCatalog';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useProducts } from '@/lib/queries';
 import { useCartStore } from '@/store/cartStore';
-import { useMakeupStore } from '@/store/makeupStore';
+import { MAKEUP_ZONES, useMakeupStore } from '@/store/makeupStore';
 import { useSettingsStore } from '@/store/settingsStore';
-import type { MakeupZone } from '@/types';
+import type { MakeupZone, Texture } from '@/types';
 
 type Mode = 'direct' | 'chat';
 
-const ZONES: MakeupZone[] = ['lip', 'blush', 'eyeshadow'];
 const CHAT_EXAMPLES: TranslationKey[] = ['ar.chatExample1', 'ar.chatExample2', 'ar.chatExample3'];
-const LEVELS: { key: TranslationKey; value: number }[] = [
-  { key: 'ar.light', value: 0.35 },
-  { key: 'ar.medium', value: 0.6 },
-  { key: 'ar.bold', value: 0.85 },
-];
+const INTENSITY_MIN = 0.15;
+const INTENSITY_MAX = 1;
+const TEXTURES: Texture[] = ['matte', 'velvet', 'cream', 'satin', 'sheer', 'glossy', 'shimmer'];
+
+function mixHex(hex: string, toward: number, amount: number) {
+  const h = hex.replace('#', '');
+  const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16) || 0;
+  const ch = (i: number) => {
+    const v = (n >> (16 - i * 8)) & 255;
+    return Math.round(v + (toward - v) * amount);
+  };
+  return `#${[0, 1, 2].map((i) => ch(i).toString(16).padStart(2, '0')).join('')}`;
+}
+
+function IntensitySlider({
+  hex,
+  value,
+  disabled,
+  lightLabel,
+  boldLabel,
+  onChange,
+}: {
+  hex: string;
+  value: number;
+  disabled: boolean;
+  lightLabel: string;
+  boldLabel: string;
+  onChange: (value: number) => void;
+}) {
+  const width = useRef(0);
+  const fraction = Math.min(1, Math.max(0, (value - INTENSITY_MIN) / (INTENSITY_MAX - INTENSITY_MIN)));
+  const setFromX = (x: number) => {
+    const span = width.current;
+    if (span <= 0) return;
+    const t = Math.min(1, Math.max(0, x / span));
+    onChange(INTENSITY_MIN + t * (INTENSITY_MAX - INTENSITY_MIN));
+  };
+  return (
+    <View style={[styles.slider, disabled && styles.sliderDisabled]} pointerEvents={disabled ? 'none' : 'auto'}>
+      <View
+        style={styles.trackHit}
+        onLayout={(e) => {
+          width.current = e.nativeEvent.layout.width;
+        }}
+        onStartShouldSetResponder={() => true}
+        onMoveShouldSetResponder={() => true}
+        onResponderGrant={(e) => setFromX(e.nativeEvent.locationX)}
+        onResponderMove={(e) => setFromX(e.nativeEvent.locationX)}
+        accessibilityRole="adjustable"
+        accessibilityLabel={`${lightLabel} ${boldLabel}`}
+        accessibilityValue={{ min: INTENSITY_MIN, max: INTENSITY_MAX, now: value }}>
+        <View style={styles.track}>
+          <LinearGradient
+            colors={[mixHex(hex, 255, 0.55), hex, mixHex(hex, 0, 0.35)]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
+        <View style={[styles.thumb, { left: `${fraction * 100}%` }]} />
+      </View>
+      <View style={styles.sliderLabels}>
+        <Text style={styles.sliderLabel}>{lightLabel}</Text>
+        <Text style={styles.sliderLabel}>{boldLabel}</Text>
+      </View>
+    </View>
+  );
+}
 
 function useCameraActive() {
   const [focused, setFocused] = useState(false);
@@ -65,6 +131,8 @@ export default function ArTryOnScreen() {
   const [status, setStatus] = useState<ArStatus>('loading');
   const [compare, setCompare] = useState(false);
   const [zone, setZone] = useState<MakeupZone>('lip');
+  const [textureFilter, setTextureFilter] = useState<Texture | null>(null);
+  const [familyFilter, setFamilyFilter] = useState<ColorFamily | null>(null);
   const [added, setAdded] = useState(false);
   const [mode, setMode] = useState<Mode>('direct');
   const [draft, setDraft] = useState('');
@@ -73,7 +141,12 @@ export default function ArTryOnScreen() {
   const addMany = useCartStore((s) => s.addMany);
   const products = useProducts();
 
-  const tryOnProducts = useMemo(() => (products.data ?? []).filter((p) => p.makeupZone), [products.data]);
+  // Development: fall back to the bundled Olive Young + demo colors when the backend has no
+  // try-on products, so AR can be tested in Expo Go without a seeded backend.
+  const tryOnProducts = useMemo(
+    () => withDevTryOnFallback((products.data ?? []).filter((p) => p.makeupZone), __DEV__),
+    [products.data]
+  );
   const zoneSwatches = useMemo(
     () =>
       tryOnProducts
@@ -81,11 +154,47 @@ export default function ArTryOnScreen() {
         .flatMap((p) => p.shades.map((shade) => ({ product: p, shade }))),
     [tryOnProducts, zone]
   );
+  // Filter chips: only textures / color families present in this zone; families for lips only.
+  const textureOptions = useMemo(
+    () => TEXTURES.filter((tx) => zoneSwatches.some(({ product }) => product.texture === tx)),
+    [zoneSwatches]
+  );
+  const familyOptions = useMemo(
+    () =>
+      zone === 'lip'
+        ? COLOR_FAMILIES.filter((fm) => zoneSwatches.some(({ shade }) => colorFamily(shade.hex) === fm))
+        : [],
+    [zoneSwatches, zone]
+  );
+  const visibleSwatches = useMemo(
+    () =>
+      zoneSwatches.filter(
+        ({ product, shade }) =>
+          (!textureFilter || product.texture === textureFilter) &&
+          (!familyFilter || colorFamily(shade.hex) === familyFilter)
+      ),
+    [zoneSwatches, textureFilter, familyFilter]
+  );
 
+  const showsDemo = useMemo(
+    () =>
+      Object.values(selections).some((s) =>
+        tryOnProducts.find((p) => p.id === s?.productId)?.tags.includes(DEMO_TAG)
+      ),
+    [selections, tryOnProducts]
+  );
+
+  const seededLip = useRef(false);
   useEffect(() => {
-    if (makeup.lip || makeup.blush || makeup.eyeshadow) return;
+    if (seededLip.current) return;
+    if (MAKEUP_ZONES.some((z) => makeup[z])) {
+      seededLip.current = true;
+      return;
+    }
     const firstLip = tryOnProducts.find((p) => p.makeupZone === 'lip');
-    if (firstLip?.shades[0]) applyShade(firstLip, firstLip.shades[0]);
+    if (!firstLip?.shades[0]) return;
+    seededLip.current = true;
+    applyShade(firstLip, firstLip.shades[0]);
   }, [tryOnProducts, makeup, applyShade]);
 
   useFocusEffect(
@@ -170,6 +279,11 @@ export default function ArTryOnScreen() {
           <View style={styles.liveDot} />
           <Text style={styles.liveText}>{t('ar.live')}</Text>
         </View>
+        {showsDemo ? (
+          <View style={styles.demoBadge} pointerEvents="none">
+            <Text style={styles.liveText}>{t('ar.demoColors')}</Text>
+          </View>
+        ) : null}
         <Pressable
           onPressIn={() => setCompare(true)}
           onPressOut={() => setCompare(false)}
@@ -248,11 +362,19 @@ export default function ArTryOnScreen() {
           </View>
         ) : (
           <>
-            <View style={styles.zoneRow}>
-              {ZONES.map((z) => (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.zoneScroll}
+              contentContainerStyle={styles.zoneRow}>
+              {MAKEUP_ZONES.map((z) => (
                 <Pressable
                   key={z}
-                  onPress={() => setZone(z)}
+                  onPress={() => {
+                    setZone(z);
+                    setTextureFilter(null);
+                    setFamilyFilter(null);
+                  }}
                   accessibilityRole="tab"
                   accessibilityState={{ selected: zone === z }}
                   style={[styles.zoneTab, zone === z && styles.zoneTabActive]}>
@@ -262,11 +384,43 @@ export default function ArTryOnScreen() {
                   </Text>
                 </Pressable>
               ))}
-            </View>
+            </ScrollView>
 
             {zoneSwatches.length === 0 ? <Text style={styles.noProducts}>{t('ar.noProducts')}</Text> : null}
+            {textureOptions.length + familyOptions.length > 1 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
+                <Chip
+                  label={t('ar.filter.all')}
+                  selected={!textureFilter && !familyFilter}
+                  onPress={() => {
+                    setTextureFilter(null);
+                    setFamilyFilter(null);
+                  }}
+                />
+                {textureOptions.map((tx) => (
+                  <Chip
+                    key={tx}
+                    label={t(`ar.texture.${tx}` as TranslationKey)}
+                    selected={textureFilter === tx}
+                    onPress={() => setTextureFilter(textureFilter === tx ? null : tx)}
+                  />
+                ))}
+                {familyOptions.length ? <View style={styles.filterDivider} /> : null}
+                {familyOptions.map((fm) => (
+                  <Chip
+                    key={fm}
+                    label={t(`ar.family.${fm}` as TranslationKey)}
+                    selected={familyFilter === fm}
+                    onPress={() => setFamilyFilter(familyFilter === fm ? null : fm)}
+                  />
+                ))}
+              </ScrollView>
+            ) : null}
+            {zoneSwatches.length > 0 && visibleSwatches.length === 0 ? (
+              <Text style={styles.noProducts}>{t('ar.filter.empty')}</Text>
+            ) : null}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.swatches}>
-              {zoneSwatches.map(({ product, shade }) => {
+              {visibleSwatches.map(({ product, shade }) => {
                 const selected =
                   selections[zone]?.productId === product.id && selections[zone]?.shadeId === shade.id;
                 return (
@@ -297,23 +451,14 @@ export default function ArTryOnScreen() {
             <View style={styles.levels}>
               <Text style={styles.levelsLabel}>{t('ar.intensity')}</Text>
               <Chip label={t('ar.off')} selected={!makeup[zone]} onPress={() => clearZone(zone)} />
-              {LEVELS.map((level) => (
-                <Chip
-                  key={level.key}
-                  label={t(level.key)}
-                  selected={
-                    currentIntensity !== undefined && Math.abs(currentIntensity - level.value) < 0.13
-                  }
-                  onPress={() => {
-                    if (makeup[zone]) {
-                      setIntensity(zone, level.value);
-                    } else if (zoneSwatches[0]) {
-                      applyShade(zoneSwatches[0].product, zoneSwatches[0].shade);
-                      setIntensity(zone, level.value);
-                    }
-                  }}
-                />
-              ))}
+              <IntensitySlider
+                hex={makeup[zone]?.hex ?? '#C98A8A'}
+                value={currentIntensity ?? 0.6}
+                disabled={!makeup[zone]}
+                lightLabel={t('ar.light')}
+                boldLabel={t('ar.bold')}
+                onChange={(value) => setIntensity(zone, value)}
+              />
             </View>
 
             <View style={styles.actions}>
@@ -333,6 +478,7 @@ export default function ArTryOnScreen() {
             </View>
           </>
         )}
+        <Text style={styles.disclaimer}>{t('ar.disclaimer')}</Text>
       </View>
     </SafeAreaView>
   );
@@ -352,18 +498,22 @@ const styles = StyleSheet.create({
   hintPill: { position: 'absolute', bottom: 64, alignSelf: 'center', backgroundColor: theme.colors.overlay, paddingHorizontal: 14, paddingVertical: 8, borderRadius: theme.radius.pill },
   hintText: { color: theme.colors.white, fontSize: theme.font.small, fontWeight: '600' },
   liveBadge: { position: 'absolute', top: 12, left: 12, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.overlay, paddingHorizontal: 10, paddingVertical: 5, borderRadius: theme.radius.pill },
+  demoBadge: { position: 'absolute', top: 44, left: 12, backgroundColor: theme.colors.overlay, paddingHorizontal: 10, paddingVertical: 5, borderRadius: theme.radius.pill },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#4ADE80' },
   liveText: { color: theme.colors.white, fontSize: 11, fontWeight: '600' },
   compareBtn: { position: 'absolute', bottom: 14, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.overlay, paddingHorizontal: 14, paddingVertical: 9, borderRadius: theme.radius.pill },
   compareText: { color: theme.colors.white, fontSize: theme.font.small, fontWeight: '600' },
   panel: { backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radius.lg, borderTopRightRadius: theme.radius.lg, marginTop: 10, paddingTop: 14, paddingBottom: 12, gap: 10 },
   lookBanner: { marginHorizontal: 16, fontSize: 12, fontWeight: '700', color: theme.colors.rose },
-  zoneRow: { flexDirection: 'row', marginHorizontal: 16, backgroundColor: theme.colors.surfaceAlt, borderRadius: theme.radius.md, padding: 3 },
-  zoneTab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, borderRadius: 10 },
+  zoneScroll: { flexGrow: 0, marginHorizontal: 16, backgroundColor: theme.colors.surfaceAlt, borderRadius: theme.radius.md },
+  zoneRow: { padding: 3 },
+  zoneTab: { flexDirection: 'row', paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, borderRadius: 10 },
   zoneTabActive: { backgroundColor: theme.colors.card, ...theme.shadow },
   zoneDot: { width: 10, height: 10, borderRadius: 5 },
   zoneText: { fontSize: theme.font.small, fontWeight: '600', color: theme.colors.inkMuted },
   zoneTextActive: { color: theme.colors.ink },
+  filters: { gap: 8, paddingHorizontal: 16, paddingBottom: 10, alignItems: 'center' },
+  filterDivider: { width: 1, height: 20, backgroundColor: theme.colors.border, marginHorizontal: 2 },
   swatches: { gap: 10, paddingHorizontal: 16 },
   swatchItem: { width: 70, alignItems: 'center' },
   swatchRing: { width: 50, height: 50, borderRadius: 25, borderWidth: 2, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
@@ -371,9 +521,26 @@ const styles = StyleSheet.create({
   swatch: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)' },
   swatchBrand: { fontSize: 10, color: theme.colors.inkFaint, marginTop: 4 },
   swatchName: { fontSize: 11, color: theme.colors.ink, fontWeight: '600' },
-  levels: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, flexWrap: 'wrap' },
-  levelsLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.inkMuted, marginRight: 4 },
+  levels: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16 },
+  levelsLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.inkMuted },
+  slider: { flex: 1, gap: 2 },
+  sliderDisabled: { opacity: 0.35 },
+  trackHit: { height: 28, justifyContent: 'center' },
+  track: { height: 16, borderRadius: 8, overflow: 'hidden' },
+  thumb: {
+    position: 'absolute',
+    width: 22,
+    height: 22,
+    marginLeft: -11,
+    borderRadius: 11,
+    backgroundColor: theme.colors.white,
+    borderWidth: 2,
+    borderColor: theme.colors.ink,
+  },
+  sliderLabels: { flexDirection: 'row', justifyContent: 'space-between' },
+  sliderLabel: { fontSize: 10, fontWeight: '600', color: theme.colors.inkFaint },
   actions: { flexDirection: 'row', gap: 10, paddingHorizontal: 16 },
+  disclaimer: { paddingHorizontal: 16, fontSize: 10, lineHeight: 14, color: theme.colors.inkFaint },
   noProducts: { marginHorizontal: 16, fontSize: theme.font.small, color: theme.colors.inkMuted },
   modeRow: { flexDirection: 'row', gap: 8, marginHorizontal: 16 },
   modeTab: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 7, borderRadius: theme.radius.pill, backgroundColor: theme.colors.surfaceAlt },
