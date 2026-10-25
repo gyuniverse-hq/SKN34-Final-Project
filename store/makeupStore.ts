@@ -6,10 +6,17 @@ export interface ZoneSelection {
   shadeId: string;
 }
 
+/** Try-on zones in the AR panel's tab order. */
+export const MAKEUP_ZONES: MakeupZone[] = ['lip', 'blush', 'eyeshadow', 'eyeliner', 'mascara', 'highlighter', 'contour'];
+
 export const DEFAULT_INTENSITY: Record<MakeupZone, number> = {
   lip: 0.65,
   blush: 0.45,
   eyeshadow: 0.45,
+  eyeliner: 0.85,
+  mascara: 0.7,
+  highlighter: 0.5,
+  contour: 0.4,
 };
 
 interface MakeupStore {
@@ -23,7 +30,15 @@ interface MakeupStore {
   reset: () => void;
 }
 
-const EMPTY: MakeupState = { lip: null, blush: null, eyeshadow: null };
+const EMPTY: MakeupState = {
+  lip: null,
+  blush: null,
+  eyeshadow: null,
+  eyeliner: null,
+  mascara: null,
+  highlighter: null,
+  contour: null,
+};
 
 export const useMakeupStore = create<MakeupStore>((set) => ({
   makeup: EMPTY,
@@ -55,7 +70,7 @@ export const useMakeupStore = create<MakeupStore>((set) => ({
         selections[product.makeupZone] = { productId: product.id, shadeId: item.shadeId };
       }
     }
-    set({ makeup: look.makeup, selections, activeLook: { id: look.id, title: look.title } });
+    set({ makeup: { ...EMPTY, ...look.makeup }, selections, activeLook: { id: look.id, title: look.title } });
   },
 
   setIntensity: (zone, intensity) =>

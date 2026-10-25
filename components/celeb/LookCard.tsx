@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '@/constants/theme';
+import { MAKEUP_ZONES } from '@/store/makeupStore';
 import type { CelebLook } from '@/types';
 
 interface Props {
@@ -22,7 +23,7 @@ export const LookCard = memo(function LookCard({ look, subtitle, onPress, width 
       <Image source={{ uri: look.thumbnailUrl }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
       <LinearGradient colors={['transparent', 'rgba(20,10,14,0.85)']} style={styles.gradient} />
       <View style={styles.swatches}>
-        {[look.makeup.lip, look.makeup.blush, look.makeup.eyeshadow]
+        {MAKEUP_ZONES.map((z) => look.makeup[z])
           .filter((z): z is NonNullable<typeof z> => !!z)
           .map((z, i) => (
             <View key={i} style={[styles.swatch, { backgroundColor: z.hex }]} />

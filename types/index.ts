@@ -2,14 +2,31 @@
 
 export type ProductCategory = 'lip' | 'cheek' | 'eye' | 'base' | 'skincare' | 'suncare';
 
-export type MakeupZone = 'lip' | 'blush' | 'eyeshadow';
+export type MakeupZone = 'lip' | 'blush' | 'eyeshadow' | 'eyeliner' | 'mascara' | 'highlighter' | 'contour';
 
 export type Texture = 'matte' | 'velvet' | 'glossy' | 'satin' | 'sheer' | 'cream' | 'shimmer';
+
+/** How a shade color was obtained (AR_SPEC 1-8). Measured values always win over estimates. */
+export type MeasureMethod = 'measured' | 'user_verified' | 'estimated' | 'placeholder';
+
+/** CIE Lab, D65. */
+export interface LabColor {
+  L: number;
+  a: number;
+  b: number;
+}
 
 export interface Shade {
   id: string;
   name: string;
   hex: string;
+  measureMethod?: MeasureMethod;
+  /** Where an estimated color came from (AR_SPEC 6-15-2). */
+  colorSource?: 'measured' | 'option_chip' | 'color_compare' | 'product_photo' | 'official_hex' | 'placeholder';
+  labEstimated?: LabColor;
+  /** 0..1 confidence of the color extraction, when the source reports one. */
+  colorConfidence?: number;
+  colorCheckedAt?: string;
 }
 
 export interface Product {
@@ -32,6 +49,11 @@ export interface Product {
   imageUrl: string;
   /** Query used to look the product up on shopping search providers. */
   searchKeyword: string;
+  /** How `texture` was decided (AR_SPEC 6-15-2). */
+  textureSource?: 'measured' | 'team_panel' | 'name_keyword' | 'official_description' | 'review_summary' | 'review_survey' | 'default';
+  /** Page the product data was checked on, and when (YYYY-MM-DD). */
+  sourceUrl?: string;
+  checkedAt?: string;
 }
 
 export interface LookItem {
@@ -40,17 +62,33 @@ export interface LookItem {
   step: 'prep' | 'base' | 'eyes' | 'cheeks' | 'lips';
 }
 
+/** Eyeliner shape (AR_SPEC 5 RecipeStep.geometry): 1 = the default line. */
+export interface ZoneGeometry {
+  /** Wing length, share of the eye width. */
+  length?: number;
+  /** Wing angle above the eye axis, degrees. */
+  angle?: number;
+  /** Line thickness at the outer corner, share of the eye width. */
+  thickness?: number;
+}
+
 export interface ZoneSetting {
   hex: string;
   /** 0..1 */
   intensity: number;
   texture: Texture;
+  geometry?: ZoneGeometry;
 }
 
+/** Zones added after the first three are optional, so looks saved without them still load. */
 export interface MakeupState {
   lip: ZoneSetting | null;
   blush: ZoneSetting | null;
   eyeshadow: ZoneSetting | null;
+  eyeliner?: ZoneSetting | null;
+  mascara?: ZoneSetting | null;
+  highlighter?: ZoneSetting | null;
+  contour?: ZoneSetting | null;
 }
 
 export interface CelebLook {

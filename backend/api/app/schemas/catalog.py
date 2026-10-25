@@ -5,7 +5,9 @@ from pydantic import Field
 from app.schemas.base import ApiModel, OmitNoneModel
 
 ProductCategory = Literal["lip", "cheek", "eye", "base", "skincare", "suncare"]
-MakeupZone = Literal["lip", "blush", "eyeshadow"]
+MakeupZone = Literal[
+    "lip", "blush", "eyeshadow", "eyeliner", "mascara", "highlighter", "contour"
+]
 Texture = Literal["matte", "velvet", "glossy", "satin", "sheer", "cream", "shimmer"]
 LookStep = Literal["prep", "base", "eyes", "cheeks", "lips"]
 
@@ -42,16 +44,30 @@ class LookItem(OmitNoneModel):
     step: LookStep
 
 
-class ZoneSetting(ApiModel):
+class ZoneGeometry(OmitNoneModel):
+    """Eyeliner shape; omitted fields use the app's default line."""
+
+    length: float | None = None
+    angle: float | None = None
+    thickness: float | None = None
+
+
+class ZoneSetting(OmitNoneModel):
     hex: str
     intensity: float = Field(ge=0, le=1)
     texture: Texture
+    geometry: ZoneGeometry | None = None
 
 
 class MakeupState(ApiModel):
     lip: ZoneSetting | None
     blush: ZoneSetting | None
     eyeshadow: ZoneSetting | None
+    # Added later: optional, so looks stored with only the first three zones still validate.
+    eyeliner: ZoneSetting | None = None
+    mascara: ZoneSetting | None = None
+    highlighter: ZoneSetting | None = None
+    contour: ZoneSetting | None = None
 
 
 class CelebLook(ApiModel):
