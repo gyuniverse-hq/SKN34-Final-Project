@@ -1,67 +1,14 @@
-# 피부 분석 실험·학습 환경
+# 피부 모델 재선정 실험 결과
 
-이 환경은 피부 모델 연구와 로컬 개발 도구입니다. 운영 앱의 제품 추천 연결·기기 내 모델
-탑재가 완료됐다는 의미는 아닙니다. 실험 브랜치를 삭제한 뒤에도 코드·설정·lockfile과
-이 문서들로 다음 개선 작업을 시작할 수 있도록 관리합니다.
+2026-10-24에 수행한 축소 비교 실험의 조건과 결과를 모은다. 문서는 결과 공유용이며, 실행 코드와 로컬 학습 산출물은 포함하지 않는다.
 
-## 문서
-
-| 목적 | 문서 |
+| 문서 | 내용 |
 |---|---|
-| 최종 모델·성능 | [종합보고서](final-model-report.md) |
-| 과거 실험 기록 | [실험 이력](experiment-summary.md) · [근거 JSON](experiment-evidence.json) |
-| 모델 사용 | [모델 인계](model-handoff.md) · [추천 입력](recommendation-inputs.md) |
-| 학습 실행 | [스마트폰 학습](smartphone-training.md) · [여드름 학습](acne-transfer-learning.md) · [멀티라벨](multilabel-training.md) |
-| 기존 평가 도구·출처 | [NIA 평가](nia-evaluation.md) · [가중치 출처](checkpoint-provenance.md) · [기존 전체 평가](full-performance-evaluation.md) |
+| [종합 보고서](05-final-model-report.md) | 모델별 후보와 선정 근거, 한계 |
+| [진행 요약](00-experiment-summary.md) | 실행 범위와 완료 상태 |
+| [실험 계획](01-experiment-plan-today.md) | 고정 조건과 사전 비교 규칙 |
+| [전체 비교 결과](03-today-results.md) | 후보 평균과 seed별 결과 |
+| [모공 상한 비교](04-pore-sam-cap-ablation.md) | WCE 상한4와 무상한의 직접 비교 |
+| [데이터 사전 감사](02-preflight-data-audit.md) | 분포·가중치 계산 근거 |
 
-개별 실험 보고서·그림·보고서 생성기는 보관 기록으로 통합했다. 과거 가중치는 최종 모델 및
-현재 활성 설정에서 사용하는 파일 외에는 제거했으므로 예전 run을 그대로 재개할 수 없다.
-
-## 폴더 역할
-
-```text
-ml/
-  src/skin_analysis/           데이터 감사·전처리·학습·평가·추론
-    acne/                      독립 여드름 이진 분류 실험
-  configs/                     공유 설정과 검수 자료 예제
-  tests/                       합성 데이터 기반 자동 테스트
-  runs/                        로컬 실험 산출물·가중치 (Git 제외)
-  pyproject.toml, uv.lock       Python 3.12 독립 환경
-server/
-  nia/, acne/                  로컬 Python 추론·평가와 모델 묶음 로더
-  services/niaEvaluationService.ts  개발 전용 API 게이트웨이
-app/dev/, app/api/dev/         개발 화면·개발 API 진입점
-hooks/useNia*.ts              사진 분석·평가 결과 요청과 화면 상태 조합
-components/nia/               평가 화면 구성 요소
-reports/skin-analysis/        실행 문서·결정·공유 가능한 결과 요약
-```
-
-## 새 장비·새 브랜치에서 시작
-
-1. 최신 `develop`에서 목적에 맞는 작업 브랜치를 만듭니다.
-2. 저장소 루트에서 `uv sync --project ml --locked`로 Python 환경을 복원합니다.
-   현재 lockfile의 검증 범위는 Windows AMD64 / Python 3.12 / CUDA 12.6입니다.
-3. 승인된 데이터·원본 NIA 가중치·분할 또는 내보낸 모델 묶음을 별도로 배치합니다.
-   Git에는 이 자산들이 포함되지 않습니다. 기존 개발 PC의 로컬 파일은 백업이 아닙니다.
-4. `ml/configs/`의 데이터 경로·GPU UUID를 새 장비에 맞게 확인하고,
-   `server/nia/config.example.json`을 복사해 로컬 경로와 SHA-256을 설정합니다.
-5. 해당 실험 문서의 감사·학습·평가 명령을 실행합니다. 기존 run은 덮어쓰지 않습니다.
-6. 개선 코드는 테스트와 함께 커밋하고, 결과·한계는 이 폴더에 갱신합니다.
-
-모델 묶음만 사용하는 경우 [모델 인계](model-handoff.md)의 로딩 절차로 시작합니다.
-실험 기록의 seed·설정·가중치 해시·데이터 분할 fingerprint를 함께 보존해야 합니다.
-큰 자산을 별도 보관소로 전달할 때도 폴더 전체와 manifest를 함께 관리합니다.
-
-## 검사
-
-저장소 루트에서 실행합니다. 테스트는 원본 데이터나 가중치를 다운로드하지 않습니다.
-
-```powershell
-uv run --project ml ruff check ml
-uv run --project ml python -m pytest ml/tests -q
-uv run --project ml python -m unittest discover -s server/nia/tests -v
-npm run check
-```
-
-기능 검사가 통과해도 실제 사진 정확도 검증을 대신하지 않습니다. 공유 수치는
-[전체 성능 평가](full-performance-evaluation.md)의 데이터·전처리·평가 범위와 함께 해석합니다.
+모델 파일, 원시 로그, 실행별 상세 Markdown과 기계 생성 JSON은 이 결과 보고서 묶음에서 제외했다. 모델 후보 번들은 별도 산출물 `ml/runs/skin-analysis-v2/`에 있다.

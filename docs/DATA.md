@@ -79,7 +79,7 @@ uv run pytest tests/test_seed_catalog.py
 - **앱**: 병합 후 몇 분 뒤 dev 서버를 쓰는 앱에서 보입니다.
 - **Supabase 대시보드**: Table Editor의 `products`, `shades`, `looks`, `look_items`, `stores` 표에서 볼 수 있습니다.
 - **챗봇**: 같은 워크플로가 Supabase에 넣은 뒤 바로 챗봇 DB로 복사하고, 그 뒤로도 12시간마다 다시 맞춥니다.
-- 급하게 다시 돌리고 싶으면 Actions → `dev-data` → **Run workflow**(Branch: `develop`)를 누릅니다.
+- 다시 돌리고 싶으면 Actions에서 지난 `dev-data` 실행을 열고 **Re-run all jobs**를 누릅니다. `main`에 첫 병합이 된 뒤부터는 Actions → `dev-data` → **Run workflow**(Branch: `develop`)도 쓸 수 있습니다.
 
 ## 4. 하지 말 것
 

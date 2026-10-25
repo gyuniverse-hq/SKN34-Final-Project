@@ -101,7 +101,10 @@ npx expo start -c
 | Secrets | `DEV_NEO4J_USER` | AuraDB `NEO4J_USERNAME` |
 | Secrets | `DEV_NEO4J_PASSWORD` | AuraDB `NEO4J_PASSWORD` |
 
-그다음 **Actions → dev-data → Run workflow**(Branch: `develop`)를 한 번 실행합니다. 카탈로그를 Supabase에 넣고 AuraDB로 복사합니다. 초록색으로 끝나면 설정이 끝난 것입니다. 이후로는 시드 파일이 바뀔 때마다 자동으로 돕니다.
+이후 `develop`에서 시드 파일, 마이그레이션, 이 워크플로 파일이 바뀌면 `dev-data`가 자동으로 돌아 카탈로그를 Supabase에 넣고 AuraDB로 복사합니다. Actions 탭에서 초록색이면 성공입니다.
+
+- **Run workflow 버튼(수동 실행)과 12시간 예약 실행**은 GitHub 규칙상 이 워크플로가 `main`에 들어간 뒤부터 쓸 수 있습니다(`develop` → `main` 첫 병합 이후).
+- 그 전에 다시 돌리고 싶으면 Actions에서 지난 `dev-data` 실행을 열고 **Re-run all jobs**를 누릅니다.
 
 **5. 팀에 공유**
 
