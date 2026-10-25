@@ -1,6 +1,8 @@
 import type { Dictionary } from './en';
+import { skinKo } from './skin';
 
 export const ko: Dictionary = {
+  ...skinKo,
   "nia.acne.ready": "여드름 연구 모델 사용 가능 · 다음 분석에 포함됩니다",
   "nia.acne.outdated": "이전 분석에는 여드름 결과가 없습니다. 현재 모델로 다시 분석하세요.",
   "nia.acne.reanalyze": "여드름 포함 다시 분석",

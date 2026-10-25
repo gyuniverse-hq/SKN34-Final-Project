@@ -4,6 +4,19 @@
     "appVersionSource": "remote"
   },
   "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "environment": "preview",
+      "android": { "buildType": "apk" },
+      "env": { "EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS": "1" }
+    },
+    "skin-benchmark": {
+      "distribution": "internal",
+      "environment": "preview",
+      "android": { "buildType": "apk" },
+      "env": { "EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS": "1", "EXPO_PUBLIC_SKIN_ANALYSIS_MODE": "on-device" }
+    },
     "preview": {
       "distribution": "internal",
       "environment": "preview",

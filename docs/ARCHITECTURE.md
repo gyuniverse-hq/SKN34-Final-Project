@@ -65,7 +65,69 @@ flowchart LR
 
 앱과 백엔드는 HTTP(`/api/*`)로만 통신합니다. 주고받는 데이터 형태는 앱의 `types/`에 정의하고, 백엔드는 같은 형태의 Pydantic 스키마로 응답합니다. 각 쪽은 레이어로 나뉘며 **위 레이어는 아래 레이어만 import합니다.**
 
+## 데스크톱 GPU 피부 분석 서버
+
+같은 저장소를 서버·사용자 개발 환경에 각각 clone하지만 설치와 실행을 구분합니다.
+서버는 ml의 uv 환경과 `scripts/start-skin-server.ps1`로 CUDA API만 실행하고 Node/Metro가 필요하지 않습니다.
+사용자 개발 PC는 `npm ci`와 `npm run client`로 Expo만 실행하며 Python/CUDA/피부 가중치가 필요하지 않습니다.
+서버 모드가 기본이며 `EXPO_PUBLIC_SKIN_ANALYSIS_MODE=on-device`를 명시할 때만 기존 기기 분석 실험을 사용합니다.
+GPU API 주소는 `EXPO_PUBLIC_SKIN_API_URL`로 지정하지만 사용자 승인 origin과 일치해야 합니다.
+현재 승인된 대상은 `https://send-lots-advanced-amended.trycloudflare.com` 하나뿐입니다.
+다른 origin, 이전 LAN 주소, redirect, 자동 전환은 거절합니다. Tunnel 생성·재시작은 앱의 역할이 아닙니다.
+
+촬영 WebView는 기존 가이드·자동 촬영 판정을 재사용하고 JPEG 한 장만 48KiB 이하 메모리 청크로 RN에 전달합니다.
+카메라 모듈은 상위 앱 레이어나 인증·업로드 코드를 import하지 않습니다. 화면이 훅으로 사진 이벤트를 전달하고,
+훅과 lib의 업로드 헬퍼가 기본적으로 Supabase 사용자 access token을 첨부해 GPU API에 요청합니다.
+임시 시험은 `__DEV__`와 `EXPO_PUBLIC_SKIN_AUTH_MODE=test-token`을 모두 만족할 때만 피부 분석 로그인 요구를 건너뜁니다.
+이 모드에서는 개발용 입력란에서 매 촬영마다 직접 입력한 시험 Bearer 토큰을 훅의 메모리 참조로만 사용합니다.
+토큰은 업로드 시작·취소·앱 비활성화·화면 이탈 시 참조를 해제하며 저장·로그·번들·WebView에 넣지 않습니다.
+빈 토큰·잘못된 인증 모드·배포 빌드의 test-token 설정은 실패 처리하고 Supabase나 무인증 요청으로 전환하지 않습니다.
+다른 화면의 인증과 저장 형식은 변경하지 않습니다.
+토큰을 WebView에 전달하지 않습니다. 서버는 인증 후 YuNet→기존 ROI→전처리→CUDA 4개 모델→후처리를 실행합니다.
+서버 응답 v1은 유지하며 선택적 execution(runtime/bundleVersion/serverMs)만 추가합니다.
+앱은 `skin-analysis-server-v1`로 변환하여 결과 수치와 설문만 저장하고 기존 모바일 v1 기록도 계속 읽습니다.
+원본 JPEG/ROI는 클라이언트·서버 어디에도 파일이나 영구 상태로 저장하지 않습니다.
+이 한 장 업로드는 기존 AR 영상 비전송 정책의 명시적 예외입니다. DB·기존 백엔드 서비스 구조는 변경하지 않습니다.
+실행·인증·제한은 [데스크톱 GPU 서버](../reports/skin-analysis/desktop-gpu-server.md)를 참고합니다.
+
 ## 클라이언트 레이어
+
+### 별도 기기 내 피부 분석 실험
+
+피부 정보 등록은 마이페이지 → `app/skin-analysis.tsx` → 전용 훅 →
+`lib/skinAnalysis.ts`의 실행 환경 선택 → `modules/skin-analysis/` 순서로 호출합니다.
+모듈은 상위 앱 레이어를 import하지 않으며 TypeScript 레이어 경계를 린트로 검사합니다.
+기기 내 실험은 `EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS=1`, `EXPO_PUBLIC_SKIN_ANALYSIS_MODE=on-device`에서 활성화합니다.
+모바일 Expo Go에서는 `components/skin/SkinCamera.tsx`의 WebView를 통해
+`modules/skin-analysis/web/`의 카메라·자동 촬영·ONNX Runtime Web CPU 추론을 실행합니다.
+브라우저 런타임은 상위 앱 코드를 import하지 않고 상태·숫자 결과만 메시지로 전달합니다.
+`scripts/skin-web-middleware.cjs`는 Metro 개발 서버에서 검증 자산과 웹 실행 코드의
+명시된 파일만 GET/HEAD로 제공합니다. 사진 업로드나 서버 추론을 수행하지 않습니다.
+웹 JPEG 코덱은 원본과 픽셀 단위로 일치하지 않아 별도 실험 전처리 버전으로 기록합니다.
+WebView에서는 PSS를 측정할 수 없어 null을 저장하며 모델 전송 시간과 추론 시간을 구분합니다.
+앱의 다른 화면과 기존 AR 렌더러는 기존 구조를 유지합니다.
+
+Android 전용 빌드에서는 네이티브 CameraX·ML Kit로 자동 촬영하고 ONNX Runtime CPU로 4개 모델을 순차 실행합니다.
+촬영 JPEG는 네이티브 메모리에서만 유지하며 분석·취소 후 참조를 해제합니다.
+Expo Go에서는 카메라 기기 내 실험에서는 프레임·ROI·텐서를 WebView 내부 메모리에서만 처리하며,
+얼굴 사진·ROI·텐서를 서버나 React Native 메시지 경계로 보내지 않습니다.
+숫자 결과와 설문은 `skinProfileStore`를 통해 저장하며, AsyncStorage 쓰기의 성공을
+확인한 뒤 완료를 표시합니다. 측정 기록도 기기에만 저장하고 숫자 메타데이터만 공유합니다.
+네이티브 모듈은 Expo 자동 연결로 포함되며 루트 `android/`·`ios/`를 직접 수정하지 않습니다.
+실행·측정 절차와 제한은 [모바일 피부 분석](../reports/skin-analysis/mobile-analysis.md)을 참고합니다.
+
+피부 모델 연구 환경은 운영 흐름과 별도로 관리합니다. `ml/src/`에는 학습·평가 코드,
+`ml/configs/`에는 설정, `ml/tests/`에는 자동 테스트를 두고, 실행 방법과 결과 요약은
+[`reports/skin-analysis/`](../reports/skin-analysis/README.md)에 모읍니다. 가중치·원본 데이터·
+개별 표본 결과는 Git에서 제외합니다. 향후 LLM 외부 호출과 서비스 조합은 기존
+`server/clients/`·`server/services/` 레이어를 따릅니다.
+
+로컬 NIA 연구 도구의 화면은 `app/dev/nia.tsx`, 사진 분석·결과 요청 훅은 `hooks/useNia*.ts`,
+표현 컴포넌트는 `components/nia/`에 둡니다. 컴포넌트는 화면에서 결과와 동작을 props로
+받으며 `lib/nia`를 직접 호출하지 않습니다. 이 경계를 린트로 검사합니다. 개발 API는
+`server/services/niaEvaluationService.ts`를 통해 로컬 Python 평가 프로세스에 연결하며,
+production/test/미지정 환경에서는 차단합니다. Python 코드는 `server/nia/`·`server/acne/`에
+있습니다. 이 도구는 운영 앱의 얼굴 영상 비전송 정책을 변경하지 않습니다.
 
 ```
 app/ (화면, app/api 제외)     화면 조립, 네비게이션, 훅 호출

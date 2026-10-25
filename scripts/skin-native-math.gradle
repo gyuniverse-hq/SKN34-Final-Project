@@ -1,0 +1,22 @@
+// SDK-free JVM verification of the exact Kotlin gate/resampling used by Android.
+// Invoke from a separate empty project with: gradle -b is no longer supported in Gradle 9;
+// scripts/skin-native-test.mjs stages this file as that project's build.gradle.
+plugins { id 'org.jetbrains.kotlin.jvm' version '2.1.20' }
+repositories { mavenCentral() }
+def repository = file(System.getProperty('skin.root'))
+def source = new File(repository, 'modules/skin-analysis/android/src')
+sourceSets {
+  main.kotlin {
+    srcDir new File(source, 'main/java')
+    include '**/CaptureGate.kt', '**/SkinResampling.kt'
+  }
+  test.kotlin {
+    srcDir new File(source, 'test/java')
+    include '**/CaptureGateTest.kt', '**/SkinResamplingTest.kt'
+  }
+}
+dependencies { testImplementation 'junit:junit:4.13.2' }
+test {
+  systemProperty 'skin.assets', new File(source, 'main/assets/skin').absolutePath
+  testLogging { events 'passed', 'failed'; exceptionFormat 'full' }
+}
