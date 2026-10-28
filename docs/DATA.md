@@ -52,7 +52,20 @@ GitHub Actions(dev-data)가 Supabase에 교체 → 챗봇 DB(AuraDB)에 복사
 | `texture` | `matte`, `velvet`, `glossy`, `satin`, `sheer`, `cream`, `shimmer` 중 하나 |
 | `shades[].hex` | `#` + 16진수 6자리 (예: `#B5555E`) |
 | `searchKeyword` | 네이버 쇼핑에서 이 제품이 잘 찾아지는 한국어 검색어 (판매처·이미지 검색에 씀) |
-| `imageUrl` | 원본 이미지 주소. 이미지 파일을 복사해 오지 않습니다(저작권) |
+| `imageUrl` | 원본 이미지 주소. 이미지 파일을 복사해 오지 않습니다(저작권). 비어 있거나 로드에 실패하면 앱이 중립 플레이스홀더를 보여 줍니다 |
+| `tags` (피부 고민) | 앱의 피부 고민 필터는 아래 케어 태그로 제품을 찾습니다. 해당하는 제품에만 붙이고, 효능을 단정하는 태그는 만들지 않습니다 |
+
+| 피부 고민 코드 | 제품 태그 |
+| --- | --- |
+| `dryness` | `hydrating` |
+| `oiliness` | `oil-control` |
+| `sensitivity` | `soothing` |
+| `blemish` | `blemish-care` |
+| `pores` | `pore-care` |
+| `pigmentation` | `brightening` |
+| `wrinkles` | `firming` |
+
+대응표는 `backend/api/app/services/catalog_service.py`의 `CONCERN_TAGS` 한 곳에만 있습니다. 바꿀 때는 이 표도 함께 고칩니다.
 | 매장 `lat`, `lng` | 한국 안의 좌표 (위도 33~39, 경도 124~132) |
 
 ## 2. 자동으로 걸러지는 오류
@@ -80,6 +93,17 @@ uv run pytest tests/test_seed_catalog.py
 - **Supabase 대시보드**: Table Editor의 `products`, `shades`, `looks`, `look_items`, `stores` 표에서 볼 수 있습니다.
 - **챗봇**: 같은 워크플로가 Supabase에 넣은 뒤 바로 챗봇 DB로 복사하고, 그 뒤로도 12시간마다 다시 맞춥니다.
 - 다시 돌리고 싶으면 Actions에서 지난 `dev-data` 실행을 열고 **Re-run all jobs**를 누릅니다. `main`에 첫 병합이 된 뒤부터는 Actions → `dev-data` → **Run workflow**(Branch: `develop`)도 쓸 수 있습니다.
+
+## 3-1. 로컬 시연 데이터
+
+`seed/catalog.json`이 비어 있는 동안 화면을 확인하려면, 내 PC의 로컬 DB에만 가상 카탈로그를 넣습니다. 브랜드는 모두 `VISHUE Demo`이고 실제 제품이 아닙니다.
+
+```bash
+cd backend/api
+uv run python -m app.jobs.seed_catalog fixtures/demo_catalog.json
+```
+
+`fixtures/`는 `dev-data` 워크플로가 읽지 않으므로 dev·운영 DB에는 들어가지 않습니다. 실데이터를 넣으면 같은 명령에 `seed/catalog.json`을 쓰면 되고, 화면 코드는 바꾸지 않습니다.
 
 ## 4. 하지 말 것
 
