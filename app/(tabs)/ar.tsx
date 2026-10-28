@@ -22,8 +22,10 @@ import { SwatchFallback } from '@/components/ar/SwatchFallback';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { theme } from '@/constants/theme';
+import { useArRouteSelection } from '@/hooks/useArRouteSelection';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useProducts } from '@/lib/queries';
+import { MAKEUP_ZONES, parseFlag, parseId, productHref, recommendationsHref } from '@/lib/routes';
 import { useCartStore } from '@/store/cartStore';
 import { useMakeupStore } from '@/store/makeupStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -31,7 +33,6 @@ import type { MakeupZone } from '@/types';
 
 type Mode = 'direct' | 'chat';
 
-const ZONES: MakeupZone[] = ['lip', 'blush', 'eyeshadow'];
 const CHAT_EXAMPLES: TranslationKey[] = ['ar.chatExample1', 'ar.chatExample2', 'ar.chatExample3'];
 const LEVELS: { key: TranslationKey; value: number }[] = [
   { key: 'ar.light', value: 0.35 },
@@ -55,20 +56,36 @@ function useCameraActive() {
   return focused && appActive;
 }
 
+/** `/ar?productId&shadeId&compare=1`: opened from home, a look, or a product ("Try in AR"). */
 export default function ArTryOnScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ compare?: string }>();
+  const params = useLocalSearchParams<{ compare?: string; productId?: string; shadeId?: string }>();
+  const routeProductId = parseId(params.productId);
+  const routeShadeId = parseId(params.shadeId);
   const { t } = useI18n();
   const cameraConsent = useSettingsStore((s) => s.cameraConsent);
   const setCameraConsent = useSettingsStore((s) => s.setCameraConsent);
   const [permission, requestPermission] = useCameraPermissions();
   const cameraActive = useCameraActive();
+  const routeSelection = useArRouteSelection(routeProductId, routeShadeId);
+  const routeZone = routeSelection.product.data?.makeupZone ?? undefined;
+  const compareParam = parseFlag(params.compare);
   const [status, setStatus] = useState<ArStatus>('loading');
-  const [compare, setCompare] = useState(params.compare === '1');
-  const [zone, setZone] = useState<MakeupZone>('lip');
+  const [arKey, setArKey] = useState(0);
+  const [swatchOnly, setSwatchOnly] = useState(false);
+  const [compare, setCompare] = useState(compareParam);
+  const [zone, setZone] = useState<MakeupZone>(routeZone ?? 'lip');
   const [added, setAdded] = useState(false);
   const [mode, setMode] = useState<Mode>('direct');
   const [draft, setDraft] = useState('');
+
+  // Follow new route params (a later "Try in AR" on the already-mounted tab) without an effect.
+  const [seenParams, setSeenParams] = useState({ compare: compareParam, zone: routeZone });
+  if (seenParams.compare !== compareParam || seenParams.zone !== routeZone) {
+    setSeenParams({ compare: compareParam, zone: routeZone });
+    if (compareParam) setCompare(true);
+    if (routeZone) setZone(routeZone);
+  }
 
   const { makeup, selections, activeLook, applyShade, setIntensity, clearZone } = useMakeupStore();
   const addMany = useCartStore((s) => s.addMany);
@@ -84,10 +101,10 @@ export default function ArTryOnScreen() {
   );
 
   useEffect(() => {
-    if (makeup.lip || makeup.blush || makeup.eyeshadow) return;
+    if (routeProductId || makeup.lip || makeup.blush || makeup.eyeshadow) return;
     const firstLip = tryOnProducts.find((p) => p.makeupZone === 'lip');
     if (firstLip?.shades[0]) applyShade(firstLip, firstLip.shades[0]);
-  }, [tryOnProducts, makeup, applyShade]);
+  }, [routeProductId, tryOnProducts, makeup, applyShade]);
 
   useFocusEffect(
     useCallback(() => {
@@ -97,7 +114,7 @@ export default function ArTryOnScreen() {
 
   useEffect(() => {
     if (!added) return;
-    const timer = setTimeout(() => setAdded(false), 1800);
+    const timer = setTimeout(() => setAdded(false), 2400);
     return () => clearTimeout(timer);
   }, [added]);
 
@@ -107,11 +124,26 @@ export default function ArTryOnScreen() {
 
   const onAllow = async () => {
     setCameraConsent(true);
+    setSwatchOnly(false);
     if (!isWeb && !permission?.granted) await requestPermission();
+  };
+
+  const retry = () => {
+    setStatus('loading');
+    setArKey((k) => k + 1);
+  };
+
+  const backToProduct = () => {
+    if (router.canGoBack()) router.back();
+    else if (routeProductId) router.push(productHref(routeProductId, routeShadeId));
   };
 
   const selectionItems = Object.values(selections).filter(Boolean);
   const onAddSelection = () => {
+    if (added) {
+      router.push('/cart');
+      return;
+    }
     addMany(
       selectionItems.map((s) => ({
         productId: s!.productId,
@@ -124,11 +156,32 @@ export default function ArTryOnScreen() {
   };
 
   const currentIntensity = makeup[zone]?.intensity;
+  const zoneSelection = selections[zone];
+  const openRecommendations = () => {
+    if (!zoneSelection) return;
+    router.push(
+      recommendationsHref({
+        productId: zoneSelection.productId,
+        shadeId: zoneSelection.shadeId,
+        zone,
+        intensity: currentIntensity,
+      })
+    );
+  };
 
   let stage: ReactNode;
-  if (!cameraConsent || (!permissionGranted && !permissionBlocked)) {
+  if (swatchOnly) {
     stage = (
-      <View style={styles.consent}>
+      <View style={styles.fill}>
+        <SwatchFallback message={t('ar.swatchOnly')} />
+        <View style={styles.stageActions}>
+          <Button label={t('ar.useCamera')} icon="camera-outline" variant="secondary" compact onPress={onAllow} />
+        </View>
+      </View>
+    );
+  } else if (!cameraConsent || (!permissionGranted && !permissionBlocked)) {
+    stage = (
+      <ScrollView contentContainerStyle={styles.consent}>
         <Ionicons name="scan-circle-outline" size={52} color={theme.colors.rose} />
         <Text style={styles.consentTitle}>{t('ar.consentTitle')}</Text>
         {(['ar.consentPoint1', 'ar.consentPoint2', 'ar.consentPoint3'] as const).map((key) => (
@@ -138,7 +191,8 @@ export default function ArTryOnScreen() {
           </View>
         ))}
         <Button label={t('ar.allowCamera')} icon="camera-outline" onPress={onAllow} style={styles.consentBtn} />
-      </View>
+        <Button label={t('ar.withoutCamera')} variant="ghost" onPress={() => setSwatchOnly(true)} />
+      </ScrollView>
     );
   } else if (permissionBlocked || status === 'denied') {
     stage = (
@@ -148,15 +202,36 @@ export default function ArTryOnScreen() {
         {!isWeb ? (
           <Button label={t('ar.openSettings')} variant="secondary" onPress={() => Linking.openSettings()} style={styles.consentBtn} />
         ) : null}
+        <Button label={t('ar.withoutCamera')} variant="ghost" onPress={() => setSwatchOnly(true)} />
       </View>
     );
   } else if (status === 'unavailable') {
-    stage = <SwatchFallback message={t('ar.unavailable')} />;
+    stage = (
+      <View style={styles.fill}>
+        <SwatchFallback message={t('ar.unavailable')} />
+        <View style={styles.stageActions}>
+          <Button label={t('common.retry')} icon="refresh" variant="secondary" compact onPress={retry} />
+          {routeProductId ? (
+            <Button label={t('ar.backToProduct')} variant="secondary" compact onPress={backToProduct} />
+          ) : null}
+        </View>
+      </View>
+    );
   } else if (cameraActive) {
     stage = (
       <View style={styles.camera}>
-        <ArFaceView makeup={makeup} compare={compare} onStatus={setStatus} />
-        {compare ? <><View pointerEvents="none" style={[styles.compareLabel, styles.beforeLabel]}><Text style={styles.compareLabelText}>{t('idol.before')}</Text></View><View pointerEvents="none" style={[styles.compareLabel, styles.afterLabel]}><Text style={styles.compareLabelText}>{t('idol.after')}</Text></View><View pointerEvents="none" style={styles.splitLine} /></> : null}
+        <ArFaceView key={arKey} makeup={makeup} compare={compare} onStatus={setStatus} />
+        {compare ? (
+          <>
+            <View pointerEvents="none" style={[styles.compareLabel, styles.beforeLabel]}>
+              <Text style={styles.compareLabelText}>{t('idol.before')}</Text>
+            </View>
+            <View pointerEvents="none" style={[styles.compareLabel, styles.afterLabel]}>
+              <Text style={styles.compareLabelText}>{t('idol.after')}</Text>
+            </View>
+            <View pointerEvents="none" style={styles.splitLine} />
+          </>
+        ) : null}
         {status === 'loading' ? (
           <View style={styles.overlay} pointerEvents="none">
             <ActivityIndicator color={theme.colors.white} />
@@ -164,22 +239,33 @@ export default function ArTryOnScreen() {
           </View>
         ) : null}
         {status === 'no-face' ? (
-          <View style={styles.hintPill} pointerEvents="none">
+          <View style={styles.noFace}>
             <Text style={styles.hintText}>{t('ar.noFace')}</Text>
+            <View style={styles.noFaceActions}>
+              <Pressable onPress={retry} accessibilityRole="button" style={styles.pillBtn}>
+                <Text style={styles.pillBtnText}>{t('common.retry')}</Text>
+              </Pressable>
+              <Pressable onPress={() => setSwatchOnly(true)} accessibilityRole="button" style={styles.pillBtn}>
+                <Text style={styles.pillBtnText}>{t('ar.viewSwatches')}</Text>
+              </Pressable>
+            </View>
           </View>
         ) : null}
         <View style={styles.liveBadge} pointerEvents="none">
           <View style={styles.liveDot} />
           <Text style={styles.liveText}>{t('ar.live')}</Text>
         </View>
-        <Pressable
-          onPress={() => setCompare((value) => !value)}
-          accessibilityRole="button"
-          accessibilityLabel={t('ar.compare')}
-          style={styles.compareBtn}>
-          <Ionicons name="contrast-outline" size={18} color={theme.colors.white} />
-          <Text style={styles.compareText}>{compare ? t('idol.fullAr') : t('idol.compare')}</Text>
-        </Pressable>
+        {status !== 'no-face' ? (
+          <Pressable
+            onPress={() => setCompare((value) => !value)}
+            accessibilityRole="button"
+            accessibilityLabel={t('ar.compare')}
+            accessibilityState={{ selected: compare }}
+            style={styles.compareBtn}>
+            <Ionicons name="contrast-outline" size={18} color={theme.colors.white} />
+            <Text style={styles.compareText}>{compare ? t('idol.fullAr') : t('idol.compare')}</Text>
+          </Pressable>
+        ) : null}
       </View>
     );
   } else {
@@ -188,7 +274,19 @@ export default function ArTryOnScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <View style={styles.stage}>{stage}</View>
+      <View style={styles.stage}>
+        {stage}
+        {router.canGoBack() ? (
+          <Pressable
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back')}
+            hitSlop={8}
+            style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={22} color={theme.colors.white} />
+          </Pressable>
+        ) : null}
+      </View>
 
       <View style={styles.panel}>
         <View style={styles.modeRow}>
@@ -214,6 +312,21 @@ export default function ArTryOnScreen() {
         {activeLook ? (
           <Text style={styles.lookBanner} numberOfLines={1}>
             {t('ar.lookApplied', { title: activeLook.title })}
+          </Text>
+        ) : null}
+        {routeSelection.shadeMissing ? (
+          <Text style={styles.warnBanner} accessibilityRole="alert">
+            {t('catalog.shadeMissingPicked')}
+          </Text>
+        ) : null}
+        {routeSelection.notTryOn ? (
+          <Text style={styles.warnBanner} accessibilityRole="alert">
+            {t('ar.notTryOn')}
+          </Text>
+        ) : null}
+        {routeSelection.product.isError ? (
+          <Text style={styles.warnBanner} accessibilityRole="alert">
+            {t('catalog.productUnavailable')}
           </Text>
         ) : null}
 
@@ -250,7 +363,7 @@ export default function ArTryOnScreen() {
         ) : (
           <>
             <View style={styles.zoneRow}>
-              {ZONES.map((z) => (
+              {MAKEUP_ZONES.map((z) => (
                 <Pressable
                   key={z}
                   onPress={() => setZone(z)}
@@ -265,7 +378,14 @@ export default function ArTryOnScreen() {
               ))}
             </View>
 
-            {zoneSwatches.length === 0 ? <Text style={styles.noProducts}>{t('ar.noProducts')}</Text> : null}
+            {products.isError ? (
+              <View style={styles.inlineRow}>
+                <Text style={styles.noProducts}>{t('common.errorTitle')}</Text>
+                <Button label={t('common.retry')} variant="ghost" compact onPress={() => products.refetch()} />
+              </View>
+            ) : zoneSwatches.length === 0 && !products.isPending ? (
+              <Text style={styles.noProducts}>{t('ar.noProducts')}</Text>
+            ) : null}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.swatches}>
               {zoneSwatches.map(({ product, shade }) => {
                 const selected =
@@ -317,19 +437,22 @@ export default function ArTryOnScreen() {
               ))}
             </View>
 
+            <Text style={styles.disclaimer}>{t('ar.disclaimer')}</Text>
+
             <View style={styles.actions}>
               <Button
-                label={added ? t('ar.addedSelection') : t('ar.addSelection')}
+                label={added ? t('looks.viewCart') : t('ar.addSelection')}
                 icon={added ? 'checkmark' : 'cart-outline'}
                 disabled={selectionItems.length === 0}
                 onPress={onAddSelection}
                 style={{ flex: 1 }}
               />
               <Button
-                label={t('ar.browseLooks')}
+                label={t('ar.similar')}
                 variant="secondary"
-                icon="sparkles-outline"
-                onPress={() => router.push('/celeb')}
+                icon="color-filter-outline"
+                disabled={!zoneSelection}
+                onPress={openRecommendations}
               />
             </View>
           </>
@@ -342,28 +465,37 @@ export default function ArTryOnScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.ink },
   stage: { flex: 1, margin: 10, marginBottom: 0, borderRadius: theme.radius.lg, overflow: 'hidden', backgroundColor: theme.colors.black },
+  fill: { flex: 1 },
   camera: { flex: 1, backgroundColor: theme.colors.black },
-  consent: { flex: 1, padding: 28, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: theme.colors.surface },
+  consent: { flexGrow: 1, padding: 28, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: theme.colors.surface },
   consentTitle: { fontSize: theme.font.h2, fontWeight: '800', color: theme.colors.ink, textAlign: 'center', marginBottom: 6 },
   point: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', alignSelf: 'stretch' },
   pointText: { flex: 1, fontSize: theme.font.body, color: theme.colors.inkMuted, lineHeight: 21, textAlign: 'left' },
   consentBtn: { alignSelf: 'stretch', marginTop: 10 },
+  stageActions: { position: 'absolute', bottom: 14, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 8 },
+  backBtn: { position: 'absolute', top: 10, right: 10, width: theme.hitTarget, height: theme.hitTarget, borderRadius: theme.hitTarget / 2, backgroundColor: theme.colors.overlay, alignItems: 'center', justifyContent: 'center' },
   overlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: 'rgba(0,0,0,0.35)' },
   overlayText: { color: theme.colors.white, fontSize: theme.font.small, fontWeight: '600' },
-  hintPill: { position: 'absolute', bottom: 64, alignSelf: 'center', backgroundColor: theme.colors.overlay, paddingHorizontal: 14, paddingVertical: 8, borderRadius: theme.radius.pill },
-  hintText: { color: theme.colors.white, fontSize: theme.font.small, fontWeight: '600' },
+  noFace: { position: 'absolute', bottom: 16, left: 16, right: 16, alignItems: 'center', gap: 8, backgroundColor: theme.colors.overlay, padding: 12, borderRadius: theme.radius.md },
+  noFaceActions: { flexDirection: 'row', gap: 8 },
+  pillBtn: { minHeight: 36, paddingHorizontal: 14, justifyContent: 'center', borderRadius: theme.radius.pill, backgroundColor: 'rgba(255,255,255,0.18)' },
+  pillBtnText: { color: theme.colors.white, fontSize: theme.font.small, fontWeight: '700' },
+  hintText: { color: theme.colors.white, fontSize: theme.font.small, fontWeight: '600', textAlign: 'center' },
   liveBadge: { position: 'absolute', top: 12, left: 12, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.overlay, paddingHorizontal: 10, paddingVertical: 5, borderRadius: theme.radius.pill },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#4ADE80' },
   liveText: { color: theme.colors.white, fontSize: 11, fontWeight: '600' },
-  compareBtn: { position: 'absolute', bottom: 14, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.overlay, paddingHorizontal: 14, paddingVertical: 9, borderRadius: theme.radius.pill },
+  compareBtn: { position: 'absolute', bottom: 14, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.overlay, paddingHorizontal: 14, minHeight: 40, borderRadius: theme.radius.pill },
   compareText: { color: theme.colors.white, fontSize: theme.font.small, fontWeight: '600' },
-  compareLabel: { position: 'absolute', top: 12, paddingHorizontal: 9, paddingVertical: 5, borderRadius: theme.radius.pill, backgroundColor: theme.colors.overlay },
-  beforeLabel: { left: 12 }, afterLabel: { right: 12 }, compareLabelText: { color: theme.colors.white, fontSize: 11, fontWeight: '800' },
+  compareLabel: { position: 'absolute', top: 44, paddingHorizontal: 9, paddingVertical: 5, borderRadius: theme.radius.pill, backgroundColor: theme.colors.overlay },
+  beforeLabel: { left: 12 },
+  afterLabel: { right: 12 },
+  compareLabelText: { color: theme.colors.white, fontSize: 11, fontWeight: '800' },
   splitLine: { position: 'absolute', top: 0, bottom: 0, left: '50%', width: 2, marginLeft: -1, backgroundColor: 'rgba(255,255,255,0.9)' },
   panel: { backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radius.lg, borderTopRightRadius: theme.radius.lg, marginTop: 10, paddingTop: 14, paddingBottom: 12, gap: 10 },
   lookBanner: { marginHorizontal: 16, fontSize: 12, fontWeight: '700', color: theme.colors.rose },
+  warnBanner: { marginHorizontal: 16, fontSize: 12, fontWeight: '600', color: theme.colors.warning },
   zoneRow: { flexDirection: 'row', marginHorizontal: 16, backgroundColor: theme.colors.surfaceAlt, borderRadius: theme.radius.md, padding: 3 },
-  zoneTab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, borderRadius: 10 },
+  zoneTab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 38, borderRadius: 10 },
   zoneTabActive: { backgroundColor: theme.colors.card, ...theme.shadow },
   zoneDot: { width: 10, height: 10, borderRadius: 5 },
   zoneText: { fontSize: theme.font.small, fontWeight: '600', color: theme.colors.inkMuted },
@@ -371,17 +503,19 @@ const styles = StyleSheet.create({
   swatches: { gap: 10, paddingHorizontal: 16 },
   swatchItem: { width: 70, alignItems: 'center' },
   swatchRing: { width: 50, height: 50, borderRadius: 25, borderWidth: 2, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
-  swatchRingActive: { borderColor: theme.colors.ink },
+  swatchRingActive: { borderColor: theme.colors.rose },
   swatch: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)' },
   swatchBrand: { fontSize: 10, color: theme.colors.inkFaint, marginTop: 4 },
   swatchName: { fontSize: 11, color: theme.colors.ink, fontWeight: '600' },
   levels: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, flexWrap: 'wrap' },
   levelsLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.inkMuted, marginRight: 4 },
+  disclaimer: { marginHorizontal: 16, fontSize: 11, lineHeight: 16, color: theme.colors.inkFaint },
   actions: { flexDirection: 'row', gap: 10, paddingHorizontal: 16 },
+  inlineRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16 },
   noProducts: { marginHorizontal: 16, fontSize: theme.font.small, color: theme.colors.inkMuted },
   modeRow: { flexDirection: 'row', gap: 8, marginHorizontal: 16 },
-  modeTab: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 7, borderRadius: theme.radius.pill, backgroundColor: theme.colors.surfaceAlt },
-  modeTabActive: { backgroundColor: theme.colors.ink },
+  modeTab: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, minHeight: 36, borderRadius: theme.radius.pill, backgroundColor: theme.colors.surfaceAlt },
+  modeTabActive: { backgroundColor: theme.colors.rose },
   modeText: { fontSize: theme.font.small, fontWeight: '700', color: theme.colors.inkMuted },
   modeTextActive: { color: theme.colors.white },
   chat: { paddingHorizontal: 16, gap: 8 },

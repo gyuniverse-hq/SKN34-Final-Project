@@ -1,41 +1,48 @@
 import * as Haptics from 'expo-haptics';
-import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { VideoCard } from '@/components/celeb/VideoCard';
+import { ProductLineCard } from '@/components/shop/ProductLineCard';
+import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { ErrorState, LoadingState } from '@/components/ui/StateViews';
+import { Notice } from '@/components/ui/Notice';
+import { ProductImage } from '@/components/ui/ProductImage';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
+import { canTryOn, resolveShade } from '@/lib/catalog';
 import { formatKRW } from '@/lib/format';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useLook, useTutorials } from '@/lib/queries';
+import { arHref, parseId, productHref } from '@/lib/routes';
 import { useCartStore } from '@/store/cartStore';
 import { useMakeupStore } from '@/store/makeupStore';
 
 export default function LookDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string }>();
+  const id = parseId(params.id);
   const router = useRouter();
   const { t } = useI18n();
   const query = useLook(id);
   const tutorials = useTutorials(query.data?.look.tutorialQuery, 4);
   const applyLook = useMakeupStore((s) => s.applyLook);
+  const add = useCartStore((s) => s.add);
   const addMany = useCartStore((s) => s.addMany);
   const [added, setAdded] = useState(false);
+  const [addedLine, setAddedLine] = useState<string | null>(null);
 
+  if (!id) return <EmptyState icon="search-outline" title={t('common.notFound')} />;
   if (query.isPending) return <LoadingState />;
   if (query.isError) return <ErrorState error={query.error} onRetry={() => query.refetch()} />;
 
   const { look, products } = query.data;
-  const lines = look.items
-    .map((item) => {
-      const product = products.find((p) => p.id === item.productId);
-      if (!product) return null;
-      const shade = product.shades.find((s) => s.id === item.shadeId);
-      return { item, product, shade };
-    })
-    .filter((l): l is NonNullable<typeof l> => !!l);
+  const lines = look.items.flatMap((item) => {
+    const product = products.find((p) => p.id === item.productId);
+    const { availability, shade } = resolveShade(product, item.shadeId);
+    return product && availability === 'available' ? [{ item, product, shade }] : [];
+  });
+  const missingCount = look.items.length - lines.length;
   const total = lines.reduce((sum, l) => sum + l.product.priceKRW, 0);
 
   const onLookToCart = () => {
@@ -48,43 +55,62 @@ export default function LookDetailScreen() {
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <Stack.Screen options={{ title: look.title }} />
       <ScrollView contentContainerStyle={styles.content}>
-        <Image source={{ uri: look.thumbnailUrl }} style={styles.hero} contentFit="cover" transition={150} />
+        <ProductImage uri={look.thumbnailUrl} style={styles.hero} />
         <View style={styles.body}>
-          <Text style={styles.inspiration}>{look.inspiration}</Text>
+          {look.inspiration ? <Text style={styles.inspiration}>{look.inspiration}</Text> : null}
           <Text style={styles.title} accessibilityRole="header">
             {look.title}
           </Text>
-          <Text style={styles.description}>{look.description}</Text>
-
-          <Text style={styles.sectionTitle}>{t('looks.productsInLook')}</Text>
-          {lines.map(({ item, product, shade }) => (
-            <Pressable
-              key={`${product.id}-${item.shadeId ?? ''}`}
-              onPress={() =>
-                router.push({ pathname: '/product/[id]', params: { id: product.id, shade: shade?.id ?? '' } })
-              }
-              accessibilityRole="button"
-              style={({ pressed }) => [styles.line, pressed && { opacity: 0.85 }]}>
-              <Image source={{ uri: product.imageUrl }} style={styles.lineImage} contentFit="cover" />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.step}>{t(`looks.step.${item.step}` as TranslationKey)}</Text>
-                <Text style={styles.lineName} numberOfLines={1}>
-                  {product.brand} {product.name}
-                </Text>
-                {shade ? (
-                  <View style={styles.shadeRow}>
-                    <View style={[styles.shadeDot, { backgroundColor: shade.hex }]} />
-                    <Text style={styles.shadeName}>{shade.name}</Text>
-                  </View>
-                ) : null}
-              </View>
-              <Text style={styles.linePrice}>{formatKRW(product.priceKRW)}</Text>
-            </Pressable>
-          ))}
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>{t('looks.setTotal')}</Text>
-            <Text style={styles.totalValue}>{formatKRW(total)}</Text>
+          {look.description ? <Text style={styles.description}>{look.description}</Text> : null}
+          <View style={styles.badges}>
+            <Badge label={t('badge.vishuePick')} tone="brand" icon="sparkles-outline" />
+            {[look.makeup.lip, look.makeup.blush, look.makeup.eyeshadow].some(Boolean) ? (
+              <Badge label={t('looks.arReady')} tone="neutral" icon="scan-outline" />
+            ) : null}
           </View>
+          <View style={styles.gap} />
+          <Notice tone="neutral" body={t('looks.pickNotice')} />
+
+          <Text style={styles.sectionTitle} accessibilityRole="header">
+            {t('looks.productsInLook')}
+          </Text>
+          {lines.length === 0 ? <Text style={styles.note}>{t('looks.noProducts')}</Text> : null}
+          <View style={styles.list}>
+            {lines.map(({ item, product, shade }) => {
+              const key = `${product.id}::${shade?.id ?? ''}`;
+              const actions = [
+                ...(canTryOn(product)
+                  ? [{ label: t('rec.tryThis'), icon: 'scan-outline' as const, onPress: () => router.push(arHref({ productId: product.id, shadeId: shade?.id })) }]
+                  : []),
+                {
+                  label: addedLine === key ? t('product.added') : t('product.addToCart'),
+                  icon: addedLine === key ? ('checkmark' as const) : ('cart-outline' as const),
+                  variant: 'primary' as const,
+                  onPress: () => {
+                    add({ productId: product.id, shadeId: shade?.id, addedFromLookId: look.id });
+                    setAddedLine(key);
+                  },
+                },
+              ];
+              return (
+                <ProductLineCard
+                  key={`${item.step}-${key}`}
+                  product={product}
+                  shade={shade}
+                  eyebrow={t(`looks.step.${item.step}` as TranslationKey)}
+                  onPress={() => router.push(productHref(product.id, shade?.id))}
+                  actions={actions}
+                />
+              );
+            })}
+          </View>
+          {missingCount > 0 ? <Text style={styles.note}>{t('looks.missingProducts', { count: missingCount })}</Text> : null}
+          {lines.length > 0 ? (
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>{t('looks.setTotal')}</Text>
+              <Text style={styles.totalValue}>{formatKRW(total)}</Text>
+            </View>
+          ) : null}
 
           {tutorials.data?.configured !== false ? (
             <>
@@ -111,14 +137,15 @@ export default function LookDetailScreen() {
           variant="secondary"
           onPress={() => {
             applyLook(look, products);
-            router.push('/ar');
+            router.push(arHref({ compare: true }));
           }}
         />
         <Button
-          label={added ? t('looks.addedToCart') : t('looks.lookToCart')}
+          label={added ? t('looks.viewCart') : t('looks.lookToCart')}
           icon={added ? 'checkmark' : 'cart-outline'}
+          disabled={lines.length === 0}
           onPress={added ? () => router.push('/cart') : onLookToCart}
-          accessibilityHint={added ? t('looks.viewCart') : undefined}
+          accessibilityHint={added ? t('looks.addedToCart') : undefined}
         />
       </View>
     </SafeAreaView>
@@ -130,25 +157,13 @@ const styles = StyleSheet.create({
   content: { paddingBottom: 24 },
   hero: { width: '100%', height: 280, backgroundColor: theme.colors.surfaceAlt },
   body: { padding: theme.spacing.xl },
-  inspiration: { fontSize: 12, fontWeight: '700', color: theme.colors.rose },
+  inspiration: { fontSize: 12, fontWeight: '700', color: theme.colors.accent },
   title: { fontSize: theme.font.h1, fontWeight: '800', color: theme.colors.ink, marginTop: 4 },
   description: { fontSize: theme.font.body, color: theme.colors.inkMuted, lineHeight: 22, marginTop: 8 },
-  sectionTitle: { fontSize: theme.font.title, fontWeight: '800', color: theme.colors.ink, marginTop: 28, marginBottom: 8 },
-  line: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
-  },
-  lineImage: { width: 52, height: 52, borderRadius: theme.radius.sm, backgroundColor: theme.colors.surfaceAlt },
-  step: { fontSize: 11, fontWeight: '700', color: theme.colors.rose, textTransform: 'uppercase' },
-  lineName: { fontSize: theme.font.small, fontWeight: '600', color: theme.colors.ink },
-  shadeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
-  shadeDot: { width: 10, height: 10, borderRadius: 5 },
-  shadeName: { fontSize: 12, color: theme.colors.inkMuted },
-  linePrice: { fontSize: theme.font.small, fontWeight: '700', color: theme.colors.ink },
+  badges: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12 },
+  gap: { height: 12 },
+  sectionTitle: { fontSize: theme.font.title, fontWeight: '800', color: theme.colors.ink, marginTop: 28, marginBottom: 10 },
+  list: { gap: 10 },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 },
   totalLabel: { fontSize: theme.font.body, color: theme.colors.inkMuted },
   totalValue: { fontSize: theme.font.title, fontWeight: '800', color: theme.colors.ink },
