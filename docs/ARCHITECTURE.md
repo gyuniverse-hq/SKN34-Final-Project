@@ -270,7 +270,7 @@ backend/<service>/
 
 | 경로 | 서비스 | 비고 |
 | --- | --- | --- |
-| `GET /api/products?q=&category=&ids=` | api | `{ products }`, 5분 캐시, 네이버 이미지로 보강 |
+| `GET /api/products?q=&category=&ids=&concerns=` | api | `{ products }`, 5분 캐시, 네이버 이미지로 보강. `concerns`는 피부 고민 코드 → 케어 태그(`catalog_service.CONCERN_TAGS`) |
 | `GET /api/products/{id}` | api | `{ product }` |
 | `GET /api/products/{id}/offers` | api | `{ configured, offers }`, 네이버 쇼핑 판매처·최저가 (6시간 캐시) |
 | `GET /api/youtube/search?q=&max=` | api | `{ configured, videos }`, IP당 분당 20회, 12시간 캐시 |
@@ -278,6 +278,7 @@ backend/<service>/
 | `GET /api/stores` | api | 픽업 가능 매장만 |
 | `GET /api/me` | api | 로그인 필요 |
 | `POST /api/shades/recommend` | api | `{ skin: { ita?, mst, undertone }, limit }` → ΔE 순위 |
+| `GET /api/shades/similar?productId=&shadeId=&limit=` | api | 같은 부위 셰이드를 공식 색상 ΔE 순으로 `{ source, matches[{ reasons }], products }`. AR 화면 영상·강도는 쓰지 않음 |
 | `POST /api/chat` | chatbot | 로그인 필요, 사용자당 분당 10회 |
 | `GET /api/health` | api | `{ ok, integrations: { youtube, naverShopping } }`, 배포 후 외부 API 키 확인용 |
 | `GET /healthz`, `GET /readyz` | 둘 다 | Gateway로 노출하지 않음 (쿠버네티스 프로브용) |

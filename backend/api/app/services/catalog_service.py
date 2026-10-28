@@ -16,10 +16,29 @@ CATALOG_CACHE_PREFIXES = ("products:", "looks")
 KOREA_LAT = (33.0, 39.0)
 KOREA_LNG = (124.0, 132.0)
 
+# Skin concern filter -> product tags (docs/DATA.md). Cosmetic care tags, never medical claims.
+CONCERN_TAGS: dict[str, tuple[str, ...]] = {
+    "dryness": ("hydrating",),
+    "oiliness": ("oil-control",),
+    "sensitivity": ("soothing",),
+    "blemish": ("blemish-care",),
+    "pores": ("pore-care",),
+    "pigmentation": ("brightening",),
+    "wrinkles": ("firming",),
+}
+
+
+def concern_tags(concerns: list[str]) -> list[str]:
+    return sorted({tag for c in concerns for tag in CONCERN_TAGS.get(c, ())})
+
 
 class CatalogStore(Protocol):
     async def search_products(
-        self, terms: list[str], category: str | None = None, ids: list[str] | None = None
+        self,
+        terms: list[str],
+        category: str | None = None,
+        ids: list[str] | None = None,
+        tags: list[str] | None = None,
     ) -> list[Product]: ...
     async def get_product(self, product_id: str) -> Product | None: ...
     async def list_looks(self) -> list[CelebLook]: ...
@@ -54,14 +73,17 @@ class CatalogService:
         category: str | None = None,
         ids: list[str] | None = None,
         with_images: bool = True,
+        concerns: list[str] | None = None,
     ) -> list[Product]:
         terms = q.lower().split() if q else []
         id_key = ",".join(ids) if ids is not None else "*"
-        key = f"products:{category or ''}:{id_key}:{' '.join(terms)}"
+        tags = concern_tags(concerns) if concerns else None
+        tag_key = ",".join(tags) if tags is not None else "*"
+        key = f"products:{category or ''}:{id_key}:{tag_key}:{' '.join(terms)}"
         if (hit := await self._cache.get_json(key)) is not None:
             products = [Product.model_validate(p) for p in hit]
         else:
-            products = await self._store.search_products(terms, category, ids)
+            products = await self._store.search_products(terms, category, ids, tags)
             await self._cache.set_json(
                 key, [p.model_dump(mode="json") for p in products], self._ttl
             )
