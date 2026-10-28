@@ -24,6 +24,28 @@ class YoutubeVideo(ApiModel):
     published_at: str
 
 
+class YoutubeVideoMetadata(YoutubeVideo):
+    description: str
+
+
+class YoutubePlaylistItem(ApiModel):
+    playlist_id: str
+    playlist_item_id: str
+    position: int
+    video_id: str
+    title: str
+    channel_title: str
+    thumbnail_url: str
+    added_at: str | None = None
+
+
+class YoutubeVideoDetails(YoutubeVideoMetadata):
+    duration_iso8601: str
+    duration_seconds: int = Field(ge=0)
+    embeddable: bool
+    privacy_status: str
+
+
 class YoutubeSearchResult(ApiModel):
     configured: bool
     videos: list[YoutubeVideo]
