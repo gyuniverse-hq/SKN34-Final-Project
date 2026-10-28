@@ -1,45 +1,54 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
-import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
+import { Notice } from '@/components/ui/Notice';
+import { ProductImage } from '@/components/ui/ProductImage';
 import { ShadePicker } from '@/components/ui/ShadePicker';
-import { ErrorState, LoadingState } from '@/components/ui/StateViews';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
+import { canTryOn, pickShade } from '@/lib/catalog';
+import { notify } from '@/lib/confirm';
 import { formatKRW } from '@/lib/format';
-import { useI18n } from '@/lib/i18n';
-import { useProduct, useProductOffers } from '@/lib/queries';
+import { useI18n, type TranslationKey } from '@/lib/i18n';
+import { useProduct } from '@/lib/queries';
+import { arHref, parseId, recommendationsHref } from '@/lib/routes';
 import { useCartStore } from '@/store/cartStore';
-import { useMakeupStore } from '@/store/makeupStore';
-
+import { MAX_COMPARE, useCompareStore } from '@/store/compareStore';
 export default function ProductDetailScreen() {
-  const { id, shade } = useLocalSearchParams<{ id: string; shade?: string }>();
+  const params = useLocalSearchParams<{ id: string; shade?: string }>();
+  const id = parseId(params.id);
+  const requestedShadeId = parseId(params.shade);
   const router = useRouter();
   const { t } = useI18n();
   const product = useProduct(id);
-  const offers = useProductOffers(id);
   const addToCart = useCartStore((s) => s.add);
-  const applyShade = useMakeupStore((s) => s.applyShade);
-  const [pickedShadeId, setShadeId] = useState<string | undefined>(shade || undefined);
+  const addToCompare = useCompareStore((s) => s.add);
+  const inCompare = useCompareStore((s) => s.items.some((i) => i.productId === id));
+  const [pickedShadeId, setShadeId] = useState<string | undefined>(requestedShadeId);
   const [added, setAdded] = useState(false);
 
   useEffect(() => {
     if (!added) return;
-    const timer = setTimeout(() => setAdded(false), 1800);
+    const timer = setTimeout(() => setAdded(false), 2400);
     return () => clearTimeout(timer);
   }, [added]);
 
+  if (!id) return <EmptyState icon="search-outline" title={t('common.notFound')} />;
   if (product.isPending) return <LoadingState />;
   if (product.isError) return <ErrorState error={product.error} onRetry={() => product.refetch()} />;
 
   const p = product.data;
-  const selectedShade = p.shades.find((s) => s.id === pickedShadeId) ?? p.shades[0];
-  const shadeId = selectedShade?.id;
-  const zone = p.makeupZone;
+  const selectedShade = pickShade(p, pickedShadeId);
+  const shadeMissing = !!requestedShadeId && pickedShadeId === requestedShadeId && !p.shades.some((s) => s.id === requestedShadeId);
+  const tryOn = canTryOn(p);
+
+  const selectShade = (shadeId: string) => {
+    setShadeId(shadeId);
+    router.setParams({ shade: shadeId });
+  };
 
   const onAdd = () => {
     addToCart({ productId: p.id, shadeId: selectedShade?.id });
@@ -47,16 +56,16 @@ export default function ProductDetailScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
   };
 
-  const onTryOn = () => {
-    if (selectedShade) applyShade(p, selectedShade);
-    router.push('/ar');
+  const onCompare = () => {
+    if (addToCompare({ productId: p.id, shadeId: selectedShade?.id })) router.push('/compare');
+    else notify(t('compare.full', { max: MAX_COMPARE }));
   };
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <Stack.Screen options={{ title: p.brand }} />
       <ScrollView contentContainerStyle={styles.content}>
-        <Image source={{ uri: p.imageUrl }} style={styles.hero} contentFit="cover" transition={150} />
+        <ProductImage uri={p.imageUrl} category={p.category} style={styles.hero} recyclingKey={p.id} />
         <View style={styles.body}>
           <Text style={styles.brand}>{p.brand}</Text>
           <Text style={styles.name} accessibilityRole="header">
@@ -76,11 +85,36 @@ export default function ProductDetailScreen() {
                 {t('product.shades')}
                 {selectedShade ? <Text style={styles.sectionValue}>  {selectedShade.name}</Text> : null}
               </Text>
-              <ShadePicker shades={p.shades} selectedId={shadeId} onSelect={(s) => setShadeId(s.id)} />
+              {shadeMissing ? <Notice tone="warning" body={t('catalog.shadeMissingPicked')} /> : null}
+              <ShadePicker shades={p.shades} selectedId={selectedShade?.id} onSelect={(s) => selectShade(s.id)} />
+              <Text style={styles.hint}>{t('product.swatchNote')}</Text>
             </View>
           ) : null}
 
-          <Text style={styles.description}>{p.description}</Text>
+          <View style={styles.inlineActions}>
+            {tryOn && selectedShade ? (
+              <Button
+                label={t('product.similar')}
+                icon="color-filter-outline"
+                variant="secondary"
+                compact
+                onPress={() =>
+                  router.push(recommendationsHref({ productId: p.id, shadeId: selectedShade.id, zone: p.makeupZone ?? undefined }))
+                }
+                style={styles.inlineBtn}
+              />
+            ) : null}
+            <Button
+              label={inCompare ? t('compare.view') : t('compare.add')}
+              icon="git-compare-outline"
+              variant="secondary"
+              compact
+              onPress={onCompare}
+              style={styles.inlineBtn}
+            />
+          </View>
+
+          {p.description ? <Text style={styles.description}>{p.description}</Text> : null}
 
           {p.keyIngredients.length > 0 ? (
             <View style={styles.section}>
@@ -95,48 +129,29 @@ export default function ProductDetailScreen() {
             </View>
           ) : null}
 
-          {offers.data?.configured && offers.data.offers.length > 0 ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('product.onlinePrices')}</Text>
-              <Text style={styles.hint}>{t('product.onlinePricesHint')}</Text>
-              {offers.data.offers.slice(0, 3).map((offer) => (
-                <Pressable
-                  key={offer.link}
-                  onPress={() => WebBrowser.openBrowserAsync(offer.link)}
-                  accessibilityRole="link"
-                  accessibilityLabel={`${offer.mallName} ${formatKRW(offer.priceKRW)}`}
-                  style={({ pressed }) => [styles.offer, pressed && { opacity: 0.85 }]}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.offerMall}>{offer.mallName || 'Online'}</Text>
-                    <Text style={styles.offerTitle} numberOfLines={1}>
-                      {offer.title}
-                    </Text>
-                  </View>
-                  <Text style={styles.offerPrice}>{formatKRW(offer.priceKRW)}</Text>
-                  <Ionicons name="open-outline" size={16} color={theme.colors.inkMuted} />
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('compare.texture')}</Text>
+            <Text style={styles.hint}>{t(`texture.${p.texture}` as TranslationKey)}</Text>
+          </View>
+
         </View>
       </ScrollView>
 
-      <Button
-        label={t('product.buyOfficial')}
-        icon="bag-handle-outline"
-        variant="ghost"
-        compact
-        onPress={() => {}}
-        style={styles.officialBtn}
-      />
       <View style={styles.footer}>
-        {zone ? (
-          <Button label={t('product.tryInAr')} icon="scan-outline" variant="secondary" onPress={onTryOn} style={styles.footerBtn} />
+        {tryOn ? (
+          <Button
+            label={t('product.tryInAr')}
+            icon="scan-outline"
+            variant="secondary"
+            onPress={() => router.push(arHref({ productId: p.id, shadeId: selectedShade?.id }))}
+            style={styles.footerBtn}
+          />
         ) : null}
         <Button
-          label={added ? t('product.added') : t('product.addToCart')}
+          label={added ? t('looks.viewCart') : t('product.addToCart')}
           icon={added ? 'checkmark' : 'cart-outline'}
-          onPress={onAdd}
+          onPress={added ? () => router.push('/cart') : onAdd}
+          accessibilityHint={added ? t('product.added') : undefined}
           style={styles.footerBtn}
         />
       </View>
@@ -149,7 +164,7 @@ const styles = StyleSheet.create({
   content: { paddingBottom: 24 },
   hero: { width: '100%', aspectRatio: 1, backgroundColor: theme.colors.surfaceAlt },
   body: { padding: theme.spacing.xl, gap: 4 },
-  brand: { fontSize: 12, color: theme.colors.inkMuted, textTransform: 'uppercase', letterSpacing: 1 },
+  brand: { fontSize: 12, color: theme.colors.accent, fontWeight: '800', letterSpacing: 0.5 },
   name: { fontSize: theme.font.h2, fontWeight: '800', color: theme.colors.ink },
   nameKo: { fontSize: theme.font.small, color: theme.colors.inkMuted },
   priceRow: { marginTop: 10, gap: 2 },
@@ -158,24 +173,13 @@ const styles = StyleSheet.create({
   section: { marginTop: 22, gap: 8 },
   sectionTitle: { fontSize: theme.font.body, fontWeight: '700', color: theme.colors.ink },
   sectionValue: { fontWeight: '400', color: theme.colors.inkMuted },
+  hint: { fontSize: 12, color: theme.colors.inkMuted, lineHeight: 17 },
+  inlineActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 },
+  inlineBtn: { flexGrow: 1, minHeight: theme.hitTarget },
   description: { fontSize: theme.font.body, color: theme.colors.ink, lineHeight: 22, marginTop: 18 },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tag: { backgroundColor: theme.colors.roseSoft, paddingHorizontal: 10, paddingVertical: 5, borderRadius: theme.radius.pill },
   tagText: { fontSize: 12, color: theme.colors.roseDark, fontWeight: '600' },
-  hint: { fontSize: 12, color: theme.colors.inkMuted },
-  offer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 12,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.card,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  offerMall: { fontSize: theme.font.small, fontWeight: '700', color: theme.colors.ink },
-  offerTitle: { fontSize: 12, color: theme.colors.inkMuted },
-  offerPrice: { fontSize: theme.font.body, fontWeight: '700', color: theme.colors.ink },
   footer: {
     flexDirection: 'row',
     gap: 10,
@@ -187,5 +191,4 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
   },
   footerBtn: { flex: 1 },
-  officialBtn: { alignSelf: 'center' },
 });

@@ -36,7 +36,12 @@ def create_app() -> FastAPI:
             CORSMiddleware,
             allow_origins=settings.cors_origins,
             allow_methods=["POST"],
-            allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
+            allow_headers=[
+                "Authorization",
+                "Content-Type",
+                "X-Request-ID",
+                "X-Vishue-Anonymous-Id",
+            ],
         )
     app.add_middleware(RequestContextMiddleware)
     install_error_handlers(app)

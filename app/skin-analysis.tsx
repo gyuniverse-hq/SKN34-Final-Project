@@ -22,10 +22,10 @@ export default function SkinAnalysisScreen() {
   const { user, ready } = useAuth();
   const { phase, cancel } = flow;
   const testMode = skinAnalysisServerMode && skinServerUsesTestAuth();
-  const leave = () => { flow.cancel(); router.replace('/(tabs)/my'); };
+  const leave = () => { flow.cancel(); if (router.canGoBack()) router.back(); else router.replace('/(tabs)/my'); };
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (phase !== 'saving') { cancel(); router.replace('/(tabs)/my'); }
+      if (phase !== 'saving') { cancel(); if (router.canGoBack()) router.back(); else router.replace('/(tabs)/my'); }
       return true;
     });
     return () => subscription.remove();

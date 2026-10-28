@@ -59,10 +59,17 @@ function RootStack() {
         contentStyle: { backgroundColor: theme.colors.surface },
       }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="chat" options={{ title: t('chat.title') }} />
       <Stack.Screen name="product/[id]" options={{ title: '' }} />
       <Stack.Screen name="look/[id]" options={{ title: '' }} />
       <Stack.Screen name="idol-looks" options={{ title: '' }} />
       <Stack.Screen name="idol-look/[id]" options={{ title: '' }} />
+      <Stack.Screen name="search" options={{ title: t('search.title') }} />
+      <Stack.Screen name="compare" options={{ title: t('compare.title') }} />
+      <Stack.Screen name="recommendations" options={{ title: t('rec.title') }} />
+      <Stack.Screen name="external-link" options={{ title: t('ext.screenTitle'), presentation: 'modal' }} />
+      <Stack.Screen name="skin-consent" options={{ title: t('skinFlow.consent.screenTitle') }} />
+      <Stack.Screen name="skin-recommendations" options={{ title: t('skinFlow.resultTitle') }} />
       <Stack.Screen name="cart" options={{ title: t('cart.title') }} />
       <Stack.Screen name="checkout" options={{ title: t('checkout.title'), presentation: 'modal' }} />
       <Stack.Screen name="lists/index" options={{ title: t('list.saved') }} />

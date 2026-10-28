@@ -1,6 +1,8 @@
+import { flowsEn } from './flows';
 import { skinEn } from './skin';
 export const en = {
   ...skinEn,
+  ...flowsEn,
   "nia.acne.ready": "Acne research model available · included in the next analysis",
   "nia.acne.outdated": "This earlier analysis has no acne result. Analyze again with the currently available model.",
   "nia.acne.reanalyze": "Analyze again including acne",
@@ -242,9 +244,8 @@ export const en = {
   'cart.clear': 'Clear cart',
   'cart.fromLook': 'From a look',
 
-  'checkout.title': 'Shopping list',
-  'checkout.intro':
-    'Save your cart as a shopping list with Korean product names you can show to store staff.',
+  'checkout.title': 'Checkout',
+  'checkout.intro': 'Review your order before payment.',
   'checkout.chooseStore': 'Where will you shop? (optional)',
   'checkout.anyStore': 'Any store',
   'checkout.openMap': 'Open in Maps',

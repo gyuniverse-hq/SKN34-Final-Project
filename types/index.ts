@@ -6,6 +6,22 @@ export type MakeupZone = 'lip' | 'blush' | 'eyeshadow';
 
 export type Texture = 'matte' | 'velvet' | 'glossy' | 'satin' | 'sheer' | 'cream' | 'shimmer';
 
+/** Cosmetic care filters for `GET /api/products?concerns=`. Never a medical diagnosis. */
+export type SkinConcern =
+  | 'dryness'
+  | 'oiliness'
+  | 'sensitivity'
+  | 'blemish'
+  | 'pores'
+  | 'pigmentation'
+  | 'wrinkles';
+
+export interface ProductQuery {
+  q?: string;
+  category?: ProductCategory;
+  concerns?: SkinConcern[];
+}
+
 export interface Shade {
   id: string;
   name: string;
@@ -171,9 +187,39 @@ export interface ProductOffers {
   offers: ShoppingOffer[];
 }
 
+export type SimilarReason = 'close_color' | 'same_texture' | 'same_category';
+
+export interface SimilarShadeMatch {
+  productId: string;
+  shadeId: string;
+  /** CIEDE2000 distance between official shade colors. */
+  deltaE: number;
+  reasons: SimilarReason[];
+}
+
+/** `GET /api/shades/similar`: ranked by official colors, not by the AR camera image. */
+export interface SimilarShadesResponse {
+  source: { productId: string; shadeId: string; hex: string; makeupZone: MakeupZone };
+  matches: SimilarShadeMatch[];
+  products: Product[];
+}
+
 export interface YoutubeSearchResult {
   configured: boolean;
   videos: YoutubeVideo[];
+}
+
+/** Product reference returned by the authenticated VISHUE chat service. */
+export interface ChatProductRef {
+  id: string;
+  brand: string;
+  name: string;
+  category: string;
+}
+
+export interface ChatResponse {
+  answer: string;
+  products: ChatProductRef[];
 }
 
 export interface AuthUser {

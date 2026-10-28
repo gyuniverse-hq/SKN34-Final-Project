@@ -39,13 +39,12 @@ export default function ShoppingListScreen() {
           {list.lines.map((line) => (
             <View key={`${line.productId}-${line.shadeId ?? ''}`} style={styles.line}>
               <View style={{ flex: 1 }}>
+                <Text style={styles.brand}>{line.brand}</Text>
                 <Text style={styles.nameKo}>
                   {line.nameKo}
                 </Text>
-                {line.shadeName ? <Text style={styles.shade}>{line.shadeName}</Text> : null}
-                <Text style={styles.nameEn}>
-                  {line.brand} {line.name}
-                </Text>
+                {line.shadeName ? <Text style={styles.shade}>{t('list.shadeLabel')} {line.shadeName}</Text> : null}
+                <Text style={styles.nameEn}>{line.name}</Text>
               </View>
               <View style={styles.qtyBox}>
                 <Text style={styles.qtyLabel}>{t('list.qty')}</Text>
@@ -115,12 +114,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
   },
-  nameKo: { fontSize: 20, fontWeight: '800', color: theme.colors.ink },
-  shade: { fontSize: theme.font.body, fontWeight: '700', color: theme.colors.rose, marginTop: 2 },
+  brand: { fontSize: theme.font.title, fontWeight: '800', color: theme.colors.accent },
+  nameKo: { fontSize: 22, fontWeight: '800', color: theme.colors.ink, lineHeight: 30 },
+  shade: { fontSize: theme.font.title, fontWeight: '800', color: theme.colors.rose, marginTop: 4 },
   nameEn: { fontSize: 12, color: theme.colors.inkMuted, marginTop: 4 },
-  qtyBox: { alignItems: 'center', minWidth: 48 },
-  qtyLabel: { fontSize: 11, color: theme.colors.inkMuted },
-  qty: { fontSize: 24, fontWeight: '800', color: theme.colors.ink },
+  qtyBox: { alignItems: 'center', minWidth: 56 },
+  qtyLabel: { fontSize: 12, color: theme.colors.inkMuted },
+  qty: { fontSize: 30, fontWeight: '800', color: theme.colors.ink },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 },
   totalLabel: { fontSize: theme.font.body, color: theme.colors.inkMuted },
   totalValue: { fontSize: theme.font.title, fontWeight: '800', color: theme.colors.ink },

@@ -77,3 +77,44 @@ export async function apiGet<T>(path: string): Promise<T> {
   }
   return (await res.json()) as T;
 }
+
+/** POST JSON to the backend and attach the current Supabase access token. */
+export async function apiPost<T>(
+  path: string,
+  body: unknown,
+  options: { headers?: Record<string, string> } = {}
+): Promise<T> {
+  const token = await getAccessToken().catch(() => null);
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, { method: 'POST', signal: controller.signal, headers, body: JSON.stringify(body) });
+  } catch (error) {
+    throw new ApiError(
+      error instanceof Error && error.name === 'AbortError' ? 'Request timed out' : 'Network error',
+      0,
+      'network'
+    );
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (!res.ok) {
+    let errorBody: ApiErrorBody | undefined;
+    try {
+      errorBody = (await res.json()) as ApiErrorBody;
+    } catch {
+      // non-JSON error body
+    }
+    throw new ApiError(errorBody?.error ?? `Request failed (${res.status})`, res.status, errorBody?.code);
+  }
+  return (await res.json()) as T;
+}

@@ -1,8 +1,10 @@
 import type { Dictionary } from './en';
+import { flowsKo } from './flows';
 import { skinKo } from './skin';
 
 export const ko: Dictionary = {
   ...skinKo,
+  ...flowsKo,
   "nia.acne.ready": "여드름 연구 모델 사용 가능 · 다음 분석에 포함됩니다",
   "nia.acne.outdated": "이전 분석에는 여드름 결과가 없습니다. 현재 모델로 다시 분석하세요.",
   "nia.acne.reanalyze": "여드름 포함 다시 분석",
@@ -244,8 +246,8 @@ export const ko: Dictionary = {
   'cart.clear': '장바구니 비우기',
   'cart.fromLook': '룩에서 담음',
 
-  'checkout.title': '쇼핑 리스트',
-  'checkout.intro': '장바구니를 매장 직원에게 보여줄 수 있는 한국어 쇼핑 리스트로 저장해요.',
+  'checkout.title': '주문',
+  'checkout.intro': '결제 전에 주문 상품을 확인해 주세요.',
   'checkout.chooseStore': '어디서 쇼핑하시나요? (선택)',
   'checkout.anyStore': '아무 매장',
   'checkout.openMap': '지도에서 열기',

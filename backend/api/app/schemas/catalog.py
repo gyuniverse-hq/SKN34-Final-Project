@@ -8,8 +8,12 @@ ProductCategory = Literal["lip", "cheek", "eye", "base", "skincare", "suncare"]
 MakeupZone = Literal["lip", "blush", "eyeshadow"]
 Texture = Literal["matte", "velvet", "glossy", "satin", "sheer", "cream", "shimmer"]
 LookStep = Literal["prep", "base", "eyes", "cheeks", "lips"]
+SkinConcern = Literal[
+    "dryness", "oiliness", "sensitivity", "blemish", "pores", "pigmentation", "wrinkles"
+]
 
 CATEGORIES: tuple[str, ...] = get_args(ProductCategory)
+CONCERNS: tuple[str, ...] = get_args(SkinConcern)
 
 
 class Shade(ApiModel):

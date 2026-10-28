@@ -1,4 +1,5 @@
-from sqlalchemy import delete, select
+from sqlalchemy import Text, cast, delete, select
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import LookItemRow, LookRow, ProductRow, ShadeRow, StoreRow
@@ -78,12 +79,16 @@ class CatalogRepository:
         terms: list[str],
         category: str | None = None,
         ids: list[str] | None = None,
+        tags: list[str] | None = None,
     ) -> list[Product]:
+        """`tags` matches products carrying any of them; an empty list matches nothing."""
         stmt = select(ProductRow).order_by(ProductRow.position, ProductRow.id)
         if ids is not None:
             stmt = stmt.where(ProductRow.id.in_(ids))
         if category:
             stmt = stmt.where(ProductRow.category == category)
+        if tags is not None:
+            stmt = stmt.where(ProductRow.tags.has_any(cast(tags, ARRAY(Text))))
         for term in terms:
             stmt = stmt.where(ProductRow.search_text.contains(term.lower(), autoescape=True))
         rows = (await self._session.scalars(stmt)).all()

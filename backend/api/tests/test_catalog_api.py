@@ -1,8 +1,14 @@
 import pytest
 
-from app.schemas.catalog import CatalogBundle
-from app.services.catalog_service import validate_catalog
-from tests.conftest import SAMPLE
+from app.core.cache import NullCache
+from app.schemas.catalog import CONCERNS, CatalogBundle
+from app.services.catalog_service import (
+    CONCERN_TAGS,
+    CatalogService,
+    concern_tags,
+    validate_catalog,
+)
+from tests.conftest import SAMPLE, FakeCatalogStore, client_for
 
 
 def test_products_use_the_app_json_contract(client):
@@ -24,6 +30,33 @@ def test_products_filter_by_category_ids_and_query(client):
         "base-2",
     ]
     assert len(client.get("/api/products?q=BESTSELLER").json()["products"]) == 3
+
+
+def test_products_filter_by_skin_concern_tags():
+    bundle = SAMPLE.model_copy(deep=True)
+    bundle.products[0].tags = ["hydrating"]
+    bundle.products[1].tags = ["pore-care", "oil-control"]
+    client = client_for(CatalogService(FakeCatalogStore(bundle), NullCache(), 60))
+
+    def ids(qs: str) -> list[str]:
+        return [p["id"] for p in client.get(f"/api/products?{qs}").json()["products"]]
+
+    assert ids("concerns=dryness") == ["lip-1"]
+    assert ids("concerns=pores,dryness") == ["lip-1", "base-1"]
+    assert ids("concerns=oiliness&category=base") == ["base-1"]
+    assert ids("concerns=wrinkles") == []
+    assert ids("concerns=") == ["lip-1", "base-1", "base-2"]
+
+
+def test_unknown_skin_concern_is_rejected(client):
+    res = client.get("/api/products?concerns=dryness,cancer")
+    assert res.status_code == 400
+    assert res.json() == {"error": "Unknown skin concern", "code": "invalid_concern"}
+
+
+def test_every_concern_maps_to_care_tags():
+    assert set(CONCERN_TAGS) == set(CONCERNS)
+    assert concern_tags(["pores", "dryness", "pores"]) == ["hydrating", "pore-care"]
 
 
 def test_unknown_category_is_rejected(client):

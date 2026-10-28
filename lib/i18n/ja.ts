@@ -1,8 +1,10 @@
 import type { Dictionary } from './en';
+import { flowsJa } from './flows';
 import { skinJa } from './skin';
 
 export const ja: Dictionary = {
   ...skinJa,
+  ...flowsJa,
   "nia.acne.ready": "ニキビ研究モデルが利用可能 · 次の解析に含まれます",
   "nia.acne.outdated": "以前の解析にはニキビの結果がありません。現在のモデルで再解析してください。",
   "nia.acne.reanalyze": "ニキビを含めて再解析",
@@ -244,8 +246,8 @@ export const ja: Dictionary = {
   'cart.clear': 'カートを空にする',
   'cart.fromLook': 'ルックから追加',
 
-  'checkout.title': 'ショッピングリスト',
-  'checkout.intro': 'カートを、店員さんに見せられる韓国語のショッピングリストとして保存します。',
+  'checkout.title': '注文',
+  'checkout.intro': 'お支払い前に注文内容をご確認ください。',
   'checkout.chooseStore': 'どこで買いますか？（任意）',
   'checkout.anyStore': 'どの店舗でも',
   'checkout.openMap': '地図で開く',

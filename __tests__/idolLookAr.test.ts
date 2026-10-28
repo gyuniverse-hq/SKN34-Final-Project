@@ -1,4 +1,5 @@
 import {
+  displayableIdolLooks,
   hasIdolLookArSettings,
   idolLookAsCelebLook,
   offlineIdolLooks,
@@ -36,6 +37,15 @@ const LOOK: IdolLook = {
 beforeEach(() => useMakeupStore.getState().reset());
 
 describe('idol look AR flow', () => {
+  it('shows only verified video metadata in customer-facing collections', () => {
+    expect(displayableIdolLooks([LOOK, offlineIdolLooks[0]])).toEqual([LOOK]);
+  });
+
+  it('shows named sample videos when no verified metadata is available', () => {
+    expect(displayableIdolLooks([])).toEqual(offlineIdolLooks);
+    expect(offlineIdolLooks.map((look) => look.displayName)).not.toContain(expect.stringMatching(/^YouTube video/));
+  });
+
   it('enables AR only when at least one preset zone exists', () => {
     expect(hasIdolLookArSettings(LOOK)).toBe(true);
     expect(hasIdolLookArSettings(offlineIdolLooks[0])).toBe(false);
