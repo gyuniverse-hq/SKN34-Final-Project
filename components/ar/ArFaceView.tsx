@@ -11,7 +11,9 @@ export interface ArFaceViewProps {
 }
 
 export function ArFaceView({ makeup, compare, onStatus }: ArFaceViewProps) {
-  const ref = useRef<WebView>(null);
+  // react-native-webview의 타입이 제네릭 기본값을 `never`로 잡는 경우가 있어,
+  // 메시지/소스에 대해 넉넉한 타입을 명시해 props 타입 추론을 정상화합니다.
+  const ref = useRef<WebView<any>>(null);
   const latest = useRef({ makeup, compare });
   useEffect(() => {
     latest.current = { makeup, compare };
@@ -42,7 +44,7 @@ export function ArFaceView({ makeup, compare, onStatus }: ArFaceViewProps) {
   };
 
   return (
-    <WebView
+    <WebView<any>
       ref={ref}
       source={{ html: FACE_TRACKER_HTML, baseUrl: 'https://localhost/' }}
       originWhitelist={['*']}

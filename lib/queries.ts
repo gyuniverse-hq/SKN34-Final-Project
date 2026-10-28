@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type {
   CelebLook,
+  IdolLook,
   Product,
   ProductCategory,
   ProductOffers,
@@ -8,6 +9,7 @@ import type {
   YoutubeSearchResult,
 } from '@/types';
 import { apiGet } from './api';
+import { offlineIdolLook, offlineIdolLooks } from './idolLooks';
 
 export function useProducts(params: { q?: string; category?: ProductCategory } = {}) {
   const search = new URLSearchParams();
@@ -66,6 +68,36 @@ export function useLook(id: string | undefined) {
     queryKey: ['look', id],
     queryFn: () =>
       apiGet<{ look: CelebLook; products: Product[] }>(`/api/looks/${encodeURIComponent(id!)}`),
+    enabled: !!id,
+  });
+}
+
+export function useIdolLooks() {
+  return useQuery({
+    queryKey: ['idol-looks'],
+    queryFn: async () => {
+      try {
+        return await apiGet<{ looks: IdolLook[] }>('/api/idol-looks');
+      } catch {
+        return { looks: offlineIdolLooks };
+      }
+    },
+    select: (d) => d.looks,
+  });
+}
+
+export function useIdolLook(id: string | undefined) {
+  return useQuery({
+    queryKey: ['idol-look', id],
+    queryFn: async () => {
+      try {
+        return await apiGet<{ look: IdolLook; products: Product[] }>(`/api/idol-looks/${encodeURIComponent(id!)}`);
+      } catch {
+        const look = offlineIdolLook(id);
+        if (!look) throw new Error('Idol look not found');
+        return { look, products: [] };
+      }
+    },
     enabled: !!id,
   });
 }
