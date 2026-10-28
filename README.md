@@ -64,7 +64,7 @@ API 키는 백엔드(`backend/`)에서만 읽고 앱 번들에는 포함되지 �
 
 ## 실행
 
-**Expo SDK 57** (Expo Go 57.x와 호환). 앱은 백엔드에서 데이터를 받습니다. 보통은 팀 공용 dev 서버(Render)를 쓰고, Docker는 필요 없습니다.
+**Expo SDK 58** (Expo Go 58.x와 호환). 앱은 백엔드에서 데이터를 받습니다. 보통은 팀 공용 dev 서버(Render)를 쓰고, Docker는 필요 없습니다.
 
 ```bash
 npm install
