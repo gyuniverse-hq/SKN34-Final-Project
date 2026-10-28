@@ -362,7 +362,8 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     'void main() {',
     '  vec2 uv = vec2(1.0 - vUv.x, vUv.y);',
     '  vec3 col = texture2D(uVideo, uv).rgb;',
-    '  if (uCompare > 0.5) { gl_FragColor = vec4(col, 1.0); return; }',
+    // In comparison mode both sides originate from this same video texture; only the left half skips AR.
+    '  if (uCompare > 0.5 && vUv.x < 0.5) { gl_FragColor = vec4(col, 1.0); return; }',
     '  vec4 cm = tap5(uCrisp, uv, uCrispTexel);',
     '  vec4 sm = tap5(uSoft, uv, uSoftTexel * 1.5);',
     '  float em = sm.g * (1.0 - smoothstep(0.1, 0.6, cm.g)) * uEyeAmt;',
@@ -453,7 +454,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         if (glCanvas.width !== W || glCanvas.height !== H) { glCanvas.width = W; glCanvas.height = H; }
         gl.viewport(0, 0, W, H);
         upload(0, video);
-        const active = hasFace && !compare;
+        const active = hasFace;
         if (active) {
           drawCrispMask();
           drawSoftMask();
@@ -510,10 +511,12 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
         ctx.drawImage(video, 0, 0, W, H);
-        if (hasFace && !compare) {
+        if (hasFace) {
           paintColorLayer(fctx, fw, fh);
           ctx.globalCompositeOperation = 'multiply';
-          ctx.drawImage(fx, 0, 0, W, H);
+          if (compare) {
+            ctx.save(); ctx.beginPath(); ctx.rect(W / 2, 0, W / 2, H); ctx.clip(); ctx.drawImage(fx, 0, 0, W, H); ctx.restore();
+          } else ctx.drawImage(fx, 0, 0, W, H);
           ctx.globalCompositeOperation = 'source-over';
           ctx.globalAlpha = 0.35;
           ctx.drawImage(fx, 0, 0, W, H);

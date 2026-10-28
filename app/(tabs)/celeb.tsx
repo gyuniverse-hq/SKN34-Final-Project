@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LookCard } from '@/components/celeb/LookCard';
 import { VideoCard } from '@/components/celeb/VideoCard';
@@ -26,6 +26,9 @@ export default function LooksScreen() {
           {t('looks.title')}
         </Text>
         <Text style={styles.subtitle}>{t('looks.subtitle')}</Text>
+        <Pressable onPress={() => router.push('/idol-looks' as never)} style={styles.idolLink} accessibilityRole="button">
+          <Text style={styles.idolLinkText}>{t('idol.title')} ›</Text>
+        </Pressable>
 
         <Text style={styles.sectionTitle}>{t('looks.curated')}</Text>
         {looks.isPending ? (
@@ -71,6 +74,8 @@ const styles = StyleSheet.create({
   content: { padding: theme.spacing.lg, paddingBottom: 40 },
   title: { fontSize: theme.font.h1, fontWeight: '800', color: theme.colors.ink, letterSpacing: -0.5 },
   subtitle: { fontSize: theme.font.small, color: theme.colors.inkMuted, marginTop: 4, lineHeight: 19 },
+  idolLink: { marginTop: 16, padding: 14, borderRadius: theme.radius.md, backgroundColor: theme.colors.roseSoft },
+  idolLinkText: { color: theme.colors.roseDark, fontWeight: '800', fontSize: theme.font.body },
   sectionTitle: { fontSize: theme.font.title, fontWeight: '800', color: theme.colors.ink, marginTop: 26, marginBottom: 12 },
   looks: { gap: 14 },
   results: { marginTop: 8 },

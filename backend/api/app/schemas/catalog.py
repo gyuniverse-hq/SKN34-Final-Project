@@ -43,7 +43,7 @@ class LookItem(OmitNoneModel):
 
 
 class ZoneSetting(ApiModel):
-    hex: str
+    hex: str = Field(pattern=r"^#[0-9A-Fa-f]{6}$")
     intensity: float = Field(ge=0, le=1)
     texture: Texture
 

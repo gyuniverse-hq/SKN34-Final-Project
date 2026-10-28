@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
@@ -57,13 +57,14 @@ function useCameraActive() {
 
 export default function ArTryOnScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ compare?: string }>();
   const { t } = useI18n();
   const cameraConsent = useSettingsStore((s) => s.cameraConsent);
   const setCameraConsent = useSettingsStore((s) => s.setCameraConsent);
   const [permission, requestPermission] = useCameraPermissions();
   const cameraActive = useCameraActive();
   const [status, setStatus] = useState<ArStatus>('loading');
-  const [compare, setCompare] = useState(false);
+  const [compare, setCompare] = useState(params.compare === '1');
   const [zone, setZone] = useState<MakeupZone>('lip');
   const [added, setAdded] = useState(false);
   const [mode, setMode] = useState<Mode>('direct');
@@ -155,6 +156,7 @@ export default function ArTryOnScreen() {
     stage = (
       <View style={styles.camera}>
         <ArFaceView makeup={makeup} compare={compare} onStatus={setStatus} />
+        {compare ? <><View pointerEvents="none" style={[styles.compareLabel, styles.beforeLabel]}><Text style={styles.compareLabelText}>{t('idol.before')}</Text></View><View pointerEvents="none" style={[styles.compareLabel, styles.afterLabel]}><Text style={styles.compareLabelText}>{t('idol.after')}</Text></View><View pointerEvents="none" style={styles.splitLine} /></> : null}
         {status === 'loading' ? (
           <View style={styles.overlay} pointerEvents="none">
             <ActivityIndicator color={theme.colors.white} />
@@ -171,13 +173,12 @@ export default function ArTryOnScreen() {
           <Text style={styles.liveText}>{t('ar.live')}</Text>
         </View>
         <Pressable
-          onPressIn={() => setCompare(true)}
-          onPressOut={() => setCompare(false)}
+          onPress={() => setCompare((value) => !value)}
           accessibilityRole="button"
           accessibilityLabel={t('ar.compare')}
           style={styles.compareBtn}>
           <Ionicons name="contrast-outline" size={18} color={theme.colors.white} />
-          <Text style={styles.compareText}>{t('ar.compare')}</Text>
+          <Text style={styles.compareText}>{compare ? t('idol.fullAr') : t('idol.compare')}</Text>
         </Pressable>
       </View>
     );
@@ -356,6 +357,9 @@ const styles = StyleSheet.create({
   liveText: { color: theme.colors.white, fontSize: 11, fontWeight: '600' },
   compareBtn: { position: 'absolute', bottom: 14, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.overlay, paddingHorizontal: 14, paddingVertical: 9, borderRadius: theme.radius.pill },
   compareText: { color: theme.colors.white, fontSize: theme.font.small, fontWeight: '600' },
+  compareLabel: { position: 'absolute', top: 12, paddingHorizontal: 9, paddingVertical: 5, borderRadius: theme.radius.pill, backgroundColor: theme.colors.overlay },
+  beforeLabel: { left: 12 }, afterLabel: { right: 12 }, compareLabelText: { color: theme.colors.white, fontSize: 11, fontWeight: '800' },
+  splitLine: { position: 'absolute', top: 0, bottom: 0, left: '50%', width: 2, marginLeft: -1, backgroundColor: 'rgba(255,255,255,0.9)' },
   panel: { backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radius.lg, borderTopRightRadius: theme.radius.lg, marginTop: 10, paddingTop: 14, paddingBottom: 12, gap: 10 },
   lookBanner: { marginHorizontal: 16, fontSize: 12, fontWeight: '700', color: theme.colors.rose },
   zoneRow: { flexDirection: 'row', marginHorizontal: 16, backgroundColor: theme.colors.surfaceAlt, borderRadius: theme.radius.md, padding: 3 },
