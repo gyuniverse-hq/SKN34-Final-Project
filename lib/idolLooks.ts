@@ -10,20 +10,49 @@ const STEP_BY_ZONE: Record<MakeupZone, LookItem['step']> = {
  * Offline-safe registration records. These deliberately contain no inferred title,
  * creator, product, colour or AR setting. The API replaces them after DB/API lookup.
  */
-const VIDEOS: Array<Pick<IdolVideo, 'id' | 'videoId' | 'youtubeUrl' | 'startSeconds' | 'makeupLookId'>> = [
-  { id: 'VIDEO-001', videoId: 'fDqBPI1SaWY', youtubeUrl: 'https://www.youtube.com/watch?v=fDqBPI1SaWY&t=1576s', startSeconds: 1576, makeupLookId: 'LOOK-001' },
-  { id: 'VIDEO-002', videoId: 'S2nXySh1WuU', youtubeUrl: 'https://www.youtube.com/watch?v=S2nXySh1WuU', startSeconds: 0, makeupLookId: 'LOOK-002' },
-  { id: 'VIDEO-003', videoId: 'mXUMB45414A', youtubeUrl: 'https://www.youtube.com/watch?v=mXUMB45414A', startSeconds: 0, makeupLookId: 'LOOK-003' },
+const VIDEOS: Array<
+  Pick<IdolVideo, 'id' | 'videoId' | 'youtubeUrl' | 'startSeconds' | 'makeupLookId'> & {
+    sampleTitle: string;
+    sampleDescription: string;
+  }
+> = [
+  {
+    id: 'VIDEO-001',
+    videoId: 'fDqBPI1SaWY',
+    youtubeUrl: 'https://www.youtube.com/watch?v=fDqBPI1SaWY&t=1576s',
+    startSeconds: 1576,
+    makeupLookId: 'LOOK-001',
+    sampleTitle: 'K-CELEBRITY LOOK 01',
+    sampleDescription: 'Sample makeup video look',
+  },
+  {
+    id: 'VIDEO-002',
+    videoId: 'S2nXySh1WuU',
+    youtubeUrl: 'https://www.youtube.com/watch?v=S2nXySh1WuU',
+    startSeconds: 0,
+    makeupLookId: 'LOOK-002',
+    sampleTitle: 'K-CELEBRITY LOOK 02',
+    sampleDescription: 'Sample makeup video look',
+  },
+  {
+    id: 'VIDEO-003',
+    videoId: 'mXUMB45414A',
+    youtubeUrl: 'https://www.youtube.com/watch?v=mXUMB45414A',
+    startSeconds: 0,
+    makeupLookId: 'LOOK-003',
+    sampleTitle: 'K-CELEBRITY LOOK 03',
+    sampleDescription: 'Sample makeup video look',
+  },
 ];
 
 export const offlineIdolLooks: IdolLook[] = VIDEOS.map((video) => ({
   id: video.makeupLookId,
-  displayName: `YouTube video ${video.videoId}`,
-  styleDescription: 'Video is registered. Makeup style has not been verified.',
+  displayName: video.sampleTitle,
+  styleDescription: video.sampleDescription,
   isPublished: true,
   video: {
     ...video,
-    title: `YouTube video ${video.videoId}`,
+    title: video.sampleTitle,
     channelName: '',
     thumbnailUrl: `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`,
     description: null,
@@ -37,6 +66,15 @@ export const offlineIdolLooks: IdolLook[] = VIDEOS.map((video) => ({
 
 export function offlineIdolLook(id: string | undefined) {
   return offlineIdolLooks.find((look) => look.id === id);
+}
+
+/**
+ * Use the registered samples while video metadata is unavailable, but prefer
+ * metadata-ready cards as soon as the catalog supplies them.
+ */
+export function displayableIdolLooks(looks: IdolLook[] | undefined): IdolLook[] {
+  const metadataReady = looks?.filter((look) => look.video.analysisStatus === 'metadata_ready') ?? [];
+  return metadataReady.length ? metadataReady : offlineIdolLooks;
 }
 
 export function hasIdolLookArSettings(look: IdolLook): boolean {

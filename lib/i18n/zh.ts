@@ -1,8 +1,10 @@
 import type { Dictionary } from './en';
+import { flowsZh } from './flows';
 import { skinZh } from './skin';
 
 export const zh: Dictionary = {
   ...skinZh,
+  ...flowsZh,
   "nia.acne.ready": "痤疮研究模型可用 · 将包含在下次分析中",
   "nia.acne.outdated": "此前分析没有痤疮结果。请使用当前模型重新分析。",
   "nia.acne.reanalyze": "包含痤疮重新分析",
@@ -243,8 +245,8 @@ export const zh: Dictionary = {
   'cart.clear': '清空购物车',
   'cart.fromLook': '来自妆容',
 
-  'checkout.title': '购物清单',
-  'checkout.intro': '将购物车保存为带有韩文商品名的购物清单，方便出示给店员。',
+  'checkout.title': '结算',
+  'checkout.intro': '请在支付前确认订单商品。',
   'checkout.chooseStore': '您打算在哪里购买？（可选）',
   'checkout.anyStore': '任意门店',
   'checkout.openMap': '在地图中打开',

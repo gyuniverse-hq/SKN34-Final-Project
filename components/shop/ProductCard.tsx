@@ -1,6 +1,6 @@
-import { Image } from 'expo-image';
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ProductImage } from '@/components/ui/ProductImage';
 import { theme } from '@/constants/theme';
 import { formatKRW } from '@/lib/format';
 import type { Product } from '@/types';
@@ -18,13 +18,7 @@ export const ProductCard = memo(function ProductCard({ product, shadeLabel, onPr
       accessibilityRole="button"
       accessibilityLabel={`${product.brand} ${product.name}, ${formatKRW(product.priceKRW)}`}
       style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}>
-      <Image
-        source={{ uri: product.imageUrl }}
-        style={styles.image}
-        contentFit="cover"
-        transition={150}
-        recyclingKey={product.id}
-      />
+      <ProductImage uri={product.imageUrl} category={product.category} style={styles.image} recyclingKey={product.id} />
       <View style={styles.body}>
         <Text style={styles.brand} numberOfLines={1}>
           {product.brand}
@@ -51,15 +45,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.card,
     borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     overflow: 'hidden',
     margin: 6,
-    ...theme.shadow,
   },
   image: { width: '100%', aspectRatio: 1, backgroundColor: theme.colors.surfaceAlt },
   body: { padding: 12, gap: 3 },
-  brand: { fontSize: 11, color: theme.colors.inkMuted, textTransform: 'uppercase', letterSpacing: 0.6 },
+  brand: { fontSize: 11, color: theme.colors.accent, fontWeight: '700' },
   name: { fontSize: 14, fontWeight: '600', color: theme.colors.ink, minHeight: 36 },
-  price: { fontSize: 15, fontWeight: '700', color: theme.colors.ink, marginTop: 2 },
+  price: { fontSize: 15, fontWeight: '800', color: theme.colors.ink, marginTop: 2 },
   shades: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
   dot: { width: 12, height: 12, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)' },
   shadeLabel: { fontSize: 11, color: theme.colors.inkMuted, marginLeft: 2 },

@@ -3,21 +3,24 @@ import type {
   CelebLook,
   IdolLook,
   Product,
-  ProductCategory,
   ProductOffers,
+  ProductQuery,
+  SimilarShadesResponse,
   Store,
   YoutubeSearchResult,
 } from '@/types';
 import { apiGet } from './api';
 import { offlineIdolLook, offlineIdolLooks } from './idolLooks';
 
-export function useProducts(params: { q?: string; category?: ProductCategory } = {}) {
+export function useProducts(params: ProductQuery = {}) {
   const search = new URLSearchParams();
   if (params.q) search.set('q', params.q);
   if (params.category) search.set('category', params.category);
+  const concerns = params.concerns?.join(',') ?? '';
+  if (concerns) search.set('concerns', concerns);
   const qs = search.toString();
   return useQuery({
-    queryKey: ['products', params.q ?? '', params.category ?? 'all'],
+    queryKey: ['products', params.q ?? '', params.category ?? 'all', concerns],
     queryFn: () => apiGet<{ products: Product[] }>(`/api/products${qs ? `?${qs}` : ''}`),
     select: (d) => d.products,
     placeholderData: keepPreviousData,
@@ -52,6 +55,17 @@ export function useProductOffers(id: string | undefined) {
     enabled: !!id,
     staleTime: 30 * 60 * 1000,
     retry: 1,
+  });
+}
+
+export function useSimilarShades(productId: string | undefined, shadeId: string | undefined, limit = 8) {
+  return useQuery({
+    queryKey: ['similar-shades', productId, shadeId, limit],
+    queryFn: () =>
+      apiGet<SimilarShadesResponse>(
+        `/api/shades/similar?productId=${encodeURIComponent(productId!)}&shadeId=${encodeURIComponent(shadeId!)}&limit=${limit}`
+      ),
+    enabled: !!productId && !!shadeId,
   });
 }
 
