@@ -42,6 +42,9 @@ services:
       NAVER_CLIENT_ID: ${NAVER_CLIENT_ID:-}
       NAVER_CLIENT_SECRET: ${NAVER_CLIENT_SECRET:-}
       YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
+      TOSS_CLIENT_KEY: ${TOSS_CLIENT_KEY:-}
+      TOSS_SECRET_KEY: ${TOSS_SECRET_KEY:-}
+      PAYMENT_WEB_BASE_URL: ${PAYMENT_WEB_BASE_URL:-}
     depends_on:
       migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }

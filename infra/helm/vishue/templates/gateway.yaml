@@ -29,7 +29,8 @@ spec:
           - name: {{ required "gateway.tls.certificateSecret is required when TLS is on" .Values.gateway.tls.certificateSecret }}
     {{- end }}
 ---
-# Single entry point: /api/chat -> chatbot, every other /api path -> api (longest prefix wins).
+# Single entry point: /api/chat -> chatbot, every other /api path and the /pay checkout pages -> api
+# (longest prefix wins).
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -50,6 +51,7 @@ spec:
         - { name: {{ $fullname }}-chatbot, port: 8000 }
     - matches:
         - path: { type: PathPrefix, value: /api }
+        - path: { type: PathPrefix, value: /pay }
       backendRefs:
         - { name: {{ $fullname }}-api, port: 8000 }
 {{- if $tls }}
