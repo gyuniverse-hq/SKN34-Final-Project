@@ -1,48 +1,122 @@
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import * as WebBrowser from 'expo-web-browser';
+import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { VideoCard } from '@/components/celeb/VideoCard';
+import { ColorGaps, type ColorGapRow } from '@/components/look/ColorGaps';
 import { Button } from '@/components/ui/Button';
 import { ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
+import { useLookColorGaps } from '@/hooks/useLookColorGaps';
 import { formatKRW } from '@/lib/format';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useLook, useTutorials } from '@/lib/queries';
 import { useCartStore } from '@/store/cartStore';
 import { useMakeupStore } from '@/store/makeupStore';
+import type { CelebLook, Product } from '@/types';
 
 export default function LookDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const query = useLook(id);
+
+  if (query.isPending) return <LoadingState />;
+  if (query.isError) return <ErrorState error={query.error} onRetry={() => query.refetch()} />;
+  return <LookDetail look={query.data.look} products={query.data.products} />;
+}
+
+function LookDetail({ look, products }: { look: CelebLook; products: Product[] }) {
   const router = useRouter();
   const { t } = useI18n();
-  const query = useLook(id);
-  const tutorials = useTutorials(query.data?.look.tutorialQuery, 4);
+  const tutorials = useTutorials(look.tutorialQuery, 4);
   const applyLook = useMakeupStore((s) => s.applyLook);
   const addMany = useCartStore((s) => s.addMany);
   const [added, setAdded] = useState(false);
 
-  if (query.isPending) return <LoadingState />;
-  if (query.isError) return <ErrorState error={query.error} onRetry={() => query.refetch()} />;
-
-  const { look, products } = query.data;
-  const lines = look.items
-    .map((item) => {
-      const product = products.find((p) => p.id === item.productId);
-      if (!product) return null;
-      const shade = product.shades.find((s) => s.id === item.shadeId);
-      return { item, product, shade };
-    })
-    .filter((l): l is NonNullable<typeof l> => !!l);
-  const total = lines.reduce((sum, l) => sum + l.product.priceKRW, 0);
+  const lines = useMemo(
+    () =>
+      look.items
+        .map((item) => {
+          const product = products.find((p) => p.id === item.productId);
+          if (!product) return null;
+          const shade = product.shades.find((s) => s.id === item.shadeId);
+          return { item, product, shade };
+        })
+        .filter((l): l is NonNullable<typeof l> => !!l),
+    [look.items, products]
+  );
+  // A line whose shade is gone from the shop is a missing color, not something to put in the cart.
+  const sellable = useMemo(() => lines.filter((l) => !(l.item.shadeId && !l.shade)), [lines]);
+  const gaps = useLookColorGaps(look.makeup, sellable);
+  // Only the nearest shade of a missing color can be bought here; sellers and sold-out colors cannot.
+  const substitutes = gaps.flatMap((g) => (g.kind === 'nearest' ? [g.nearest] : []));
+  const total =
+    sellable.reduce((sum, l) => sum + l.product.priceKRW, 0) +
+    substitutes.reduce((sum, n) => sum + n.product.priceKRW, 0);
 
   const onLookToCart = () => {
-    addMany(lines.map((l) => ({ productId: l.product.id, shadeId: l.shade?.id, addedFromLookId: look.id })));
+    addMany([
+      ...sellable.map((l) => ({ productId: l.product.id, shadeId: l.shade?.id, addedFromLookId: look.id })),
+      ...substitutes.map((n) => ({ productId: n.product.id, shadeId: n.shade.id, addedFromLookId: look.id })),
+    ]);
     setAdded(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
   };
+
+  const gapRows: ColorGapRow[] = gaps.map((g) => {
+    const base = { key: g.zone, zone: t(`ar.zone.${g.zone}` as TranslationKey), hex: g.hex };
+    if (g.kind === 'nearest') {
+      const { product, shade } = g.nearest;
+      const note =
+        g.amount === null
+          ? t('looks.color.asIs')
+          : g.amount.dir === 'thicker'
+            ? t('looks.color.thicker', { n: g.amount.layers })
+            : t('looks.color.thinner');
+      return {
+        ...base,
+        status: 'nearest',
+        badge: t('looks.color.nearest'),
+        headline: `${product.brand} ${product.name} · ${shade.name}`,
+        swatch: shade.hex,
+        note,
+        onPress: () => router.push({ pathname: '/product/[id]', params: { id: product.id, shade: shade.id } }),
+      };
+    }
+    if (g.kind === 'checking') {
+      return { ...base, status: 'checking', badge: t('looks.color.checking'), note: t('looks.color.notInCart') };
+    }
+    if (g.kind === 'soldout') {
+      return { ...base, status: 'soldout', badge: t('looks.color.soldOut'), note: t('looks.color.soldOutHint') };
+    }
+    const open = (url: string) => () => {
+      WebBrowser.openBrowserAsync(url).catch(() => {});
+    };
+    if (g.kind === 'offers') {
+      return {
+        ...base,
+        status: 'offers',
+        badge: t('looks.color.offers'),
+        note: t('looks.color.notInCart'),
+        offers: g.offers.map((o) => ({
+          key: o.link,
+          text: `${o.mallName} · ${o.title}`,
+          price: formatKRW(o.priceKRW),
+          onPress: open(o.link),
+        })),
+        action: { label: t('looks.color.findOnNaver'), onPress: open(g.url) },
+      };
+    }
+    return {
+      ...base,
+      status: 'link',
+      badge: t('looks.color.offers'),
+      note: t('looks.color.notInCart'),
+      action: { label: t('looks.color.findOnNaver'), onPress: open(g.url) },
+    };
+  });
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
@@ -85,6 +159,8 @@ export default function LookDetailScreen() {
             <Text style={styles.totalLabel}>{t('looks.setTotal')}</Text>
             <Text style={styles.totalValue}>{formatKRW(total)}</Text>
           </View>
+
+          <ColorGaps title={t('looks.color.title')} intro={t('looks.color.intro')} rows={gapRows} />
 
           {tutorials.data?.configured !== false ? (
             <>

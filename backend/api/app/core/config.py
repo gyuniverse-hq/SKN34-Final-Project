@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     naver_client_secret: str | None = None
     youtube_api_key: str | None = None
     tutorial_searches_per_minute: int = 20
+    offer_searches_per_minute: int = 20
     # Public Supabase values, used only to verify access tokens.
     supabase_url: str | None = None
     supabase_publishable_key: str | None = None

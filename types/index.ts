@@ -2,9 +2,11 @@
 
 export type ProductCategory = 'lip' | 'cheek' | 'eye' | 'base' | 'skincare' | 'suncare';
 
-export type MakeupZone = 'lip' | 'blush' | 'eyeshadow' | 'eyeliner' | 'mascara' | 'highlighter' | 'contour';
+export type MakeupZone = 'lip' | 'blush' | 'eyeshadow' | 'eyeliner' | 'mascara' | 'highlighter' | 'contour' | 'brow' | 'foundation';
 
 export type Texture = 'matte' | 'velvet' | 'glossy' | 'satin' | 'sheer' | 'cream' | 'shimmer';
+/** Lid paint chips only. Catalog Texture stays the 7 product names. */
+export type ShadowFinish = 'matte' | 'shimmer' | 'glitter' | 'glossy';
 
 /** How a shade color was obtained (AR_SPEC 1-8). Measured values always win over estimates. */
 export type MeasureMethod = 'measured' | 'user_verified' | 'estimated' | 'placeholder';
@@ -62,18 +64,71 @@ export interface LookItem {
   step: 'prep' | 'base' | 'eyes' | 'cheeks' | 'lips';
 }
 
-/** Eyeliner shape (AR_SPEC 5 RecipeStep.geometry): 1 = the default line. */
+export type HighlightArea = 'forehead' | 'nose_bridge' | 'under_eye' | 'chin';
+
+/** Where the blush sits: on the cheekbone apple, closer to the eye, or out toward the ear. */
+export type BlushPlacement = 'apple' | 'under_eye' | 'side';
+
+/** A small round accent on the lid's inner corner (the "눈앞머리" pearl). */
+export interface InnerPoint {
+  hex: string;
+  /** Coverage 0..1. */
+  a1: number;
+  /** Radius as a share of the eye width. */
+  radius: number;
+}
+
+/**
+ * Shape of a zone (AR_SPEC 5 RecipeStep.geometry). Unset fields use the app's defaults.
+ * Eyeliner: length = wing length and thickness = line thickness at the outer corner, both as a share of
+ * the eye width, angle = wing angle above the eye axis in degrees (negative = puppy, below the axis),
+ * linerStyle = classic_winged | puppy | tightline (omitted: inferred from angle/length).
+ * Mascara: length = lash length and thickness = lash density, both as a multiple of the default (1);
+ * lower = false leaves the lower lashes out.
+ * Lip: overlip = outer line pushed out by this share of the mouth width (0..0.06, the Cupid's-bow peaks by
+ * peakOverdraw more, 0..0.05; both shrink as the mouth opens), centerHighlight = brightness added at the
+ * centre of the lips (0..0.3, color kept).
+ * Eyeshadow: innerPoint = pearl accent at the inner corner, pearl = brightness added at the middle of the lid
+ * (0..0.5, it moves with the head, color kept), shadowFinish = matte | shimmer | glitter | glossy (lid chips).
+ * sparkle 0 still means matte (no particles) for older looks. glitter bool is unused.
+ * Blush: blushPlacement, blushSize (multiple of the default size) and blushSoftness (0 hard edge .. 1 very soft)
+ * make the cheek ellipse follow the face points instead of the default shape.
+ * Highlighter: areas = only these regions (default: the standard set), intensity = multiple of its strength.
+ */
+export type EyelinerStyle = 'classic_winged' | 'puppy' | 'tightline';
+
 export interface ZoneGeometry {
-  /** Wing length, share of the eye width. */
   length?: number;
-  /** Wing angle above the eye axis, degrees. */
   angle?: number;
-  /** Line thickness at the outer corner, share of the eye width. */
   thickness?: number;
+  linerStyle?: EyelinerStyle;
+  lower?: boolean;
+  overlip?: number;
+  peakOverdraw?: number;
+  centerHighlight?: number;
+  innerPoint?: InnerPoint;
+  areas?: HighlightArea[];
+  pearl?: number;
+  sparkle?: number;
+  glitter?: boolean;
+  shadowFinish?: ShadowFinish;
+  blushPlacement?: BlushPlacement;
+  blushSize?: number;
+  blushSoftness?: number;
+  intensity?: number;
+}
+
+/** Zones that share one color: change a product in one and the others follow (when `followOnChange`). */
+export interface ColorLink {
+  zones: MakeupZone[];
+  hex: string;
+  followOnChange: boolean;
 }
 
 export interface ZoneSetting {
   hex: string;
+  /** Second color of a two-tone eyeshadow: fades in at the outer corner and along the lower lash line. */
+  hexTo?: string;
   /** 0..1 */
   intensity: number;
   texture: Texture;
@@ -89,6 +144,8 @@ export interface MakeupState {
   mascara?: ZoneSetting | null;
   highlighter?: ZoneSetting | null;
   contour?: ZoneSetting | null;
+  brow?: ZoneSetting | null;
+  foundation?: ZoneSetting | null;
 }
 
 export interface CelebLook {
@@ -102,6 +159,11 @@ export interface CelebLook {
   tutorialQuery: string;
   items: LookItem[];
   makeup: MakeupState;
+  colorLinks?: ColorLink[];
+  /** The look's key zones, shown first and marked in the AR panel (all other zones stay as the look sets them). */
+  heroZones?: MakeupZone[];
+  /** The order the look is put on (how-to pictures and the camera guide); zones left out follow in the default order. */
+  stepOrder?: MakeupZone[];
   tags: string[];
 }
 

@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,6 +12,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateViews
 import { theme } from '@/constants/theme';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
+import { withDevShopLip } from '@/lib/devCatalog';
 import { useLooks, useProducts } from '@/lib/queries';
 import type { Product, ProductCategory } from '@/types';
 
@@ -25,6 +26,10 @@ export default function ShopScreen() {
   const debouncedQuery = useDebouncedValue(query.trim(), 300);
 
   const products = useProducts({ q: debouncedQuery || undefined, category });
+  const shopProducts = useMemo(
+    () => withDevShopLip(products.data ?? [], { q: debouncedQuery || undefined, category }),
+    [products.data, debouncedQuery, category]
+  );
   const looks = useLooks();
   const showLooks = !debouncedQuery && !category;
 
@@ -98,7 +103,7 @@ export default function ShopScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <FlatList
-        data={products.data ?? []}
+        data={shopProducts}
         keyExtractor={(item) => item.id}
         numColumns={2}
         renderItem={renderItem}

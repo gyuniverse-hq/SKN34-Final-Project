@@ -2,11 +2,11 @@ import { createElement, useCallback, useEffect, useRef, useState } from 'react';
 import type { ArFaceViewProps } from './ArFaceView';
 import { FACE_TRACKER_HTML, type ArStatus } from './faceTrackerHtml';
 
-export function ArFaceView({ makeup, compare, onStatus }: ArFaceViewProps) {
+export function ArFaceView({ makeup, compare, guide = null, onStatus }: ArFaceViewProps) {
   const [frame, setFrame] = useState<HTMLIFrameElement | null>(null);
-  const latest = useRef({ makeup, compare, onStatus });
+  const latest = useRef({ makeup, compare, guide, onStatus });
   useEffect(() => {
-    latest.current = { makeup, compare, onStatus };
+    latest.current = { makeup, compare, guide, onStatus };
   });
 
   const send = useCallback(
@@ -16,6 +16,7 @@ export function ArFaceView({ makeup, compare, onStatus }: ArFaceViewProps) {
 
   useEffect(() => send({ type: 'makeup', makeup }), [makeup, send]);
   useEffect(() => send({ type: 'compare', value: compare }), [compare, send]);
+  useEffect(() => send({ type: 'guide', guide }), [guide, send]);
 
   useEffect(() => {
     if (!frame) return;
@@ -30,6 +31,7 @@ export function ArFaceView({ makeup, compare, onStatus }: ArFaceViewProps) {
       if (message.type === 'hello') {
         send({ type: 'makeup', makeup: latest.current.makeup });
         send({ type: 'compare', value: latest.current.compare });
+        send({ type: 'guide', guide: latest.current.guide });
       } else if (message.type === 'status' && message.status) {
         latest.current.onStatus(message.status);
       }

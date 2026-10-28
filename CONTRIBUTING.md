@@ -4,10 +4,6 @@
 > **목적:** 브랜치 관리, 커밋 작성, Pull Request(PR), 리뷰 및 배포 절차를 팀원 간 일관되게 운영하기 위한 협업 규칙입니다.  
 > **운영 방식:** 간소화된 GitFlow (`main` / `develop` 분리)
 
-> **AI 코딩 도구를 쓰는 경우**
-> - Cursor, OpenAI Codex: 저장소 루트의 `AGENTS.md`를 자동으로 읽습니다. Claude Code는 `CLAUDE.md`를 통해 같은 파일을 읽습니다.
-> - ChatGPT·Claude 웹/앱 채팅: 자동으로 읽지 않습니다. 프로젝트(Projects) 기능에 이 문서와 `AGENTS.md`를 올려두거나, 새 대화마다 두 파일을 첨부하세요.
-> - 규칙을 바꿀 때는 이 문서를 먼저 수정하고, `AGENTS.md`의 요약도 함께 맞춥니다.
 
 ## 1. 기본 원칙
 

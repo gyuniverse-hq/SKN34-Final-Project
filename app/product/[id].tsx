@@ -14,7 +14,7 @@ import { formatKRW } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { useProduct, useProductOffers } from '@/lib/queries';
 import { useCartStore } from '@/store/cartStore';
-import { useMakeupStore } from '@/store/makeupStore';
+import { isArPaintZone, useMakeupStore } from '@/store/makeupStore';
 
 export default function ProductDetailScreen() {
   const { id, shade } = useLocalSearchParams<{ id: string; shade?: string }>();
@@ -23,7 +23,7 @@ export default function ProductDetailScreen() {
   const product = useProduct(id);
   const offers = useProductOffers(id);
   const addToCart = useCartStore((s) => s.add);
-  const applyShade = useMakeupStore((s) => s.applyShade);
+  const startFit = useMakeupStore((s) => s.startFit);
   const [pickedShadeId, setShadeId] = useState<string | undefined>(shade || undefined);
   const [added, setAdded] = useState(false);
 
@@ -47,8 +47,10 @@ export default function ProductDetailScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
   };
 
+  const canTryOn = !!selectedShade && !!zone && isArPaintZone(zone);
   const onTryOn = () => {
-    if (selectedShade) applyShade(p, selectedShade);
+    if (!selectedShade || !canTryOn) return;
+    startFit(p, selectedShade);
     router.push('/ar');
   };
 
@@ -130,7 +132,7 @@ export default function ProductDetailScreen() {
         style={styles.officialBtn}
       />
       <View style={styles.footer}>
-        {zone ? (
+        {canTryOn ? (
           <Button label={t('product.tryInAr')} icon="scan-outline" variant="secondary" onPress={onTryOn} style={styles.footerBtn} />
         ) : null}
         <Button

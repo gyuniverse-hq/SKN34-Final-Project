@@ -44,6 +44,25 @@ def test_look_detail_includes_its_products_and_omits_absent_optionals(client):
     assert [p["id"] for p in body["products"]] == ["lip-1"]
 
 
+def test_look_key_zones_round_trip_in_camel_case_and_reject_unknown_zones():
+    from pydantic import ValidationError
+
+    from app.schemas.catalog import CelebLook
+
+    base = {
+        "id": "l", "title": "t", "inspiration": "i", "description": "d", "thumbnailUrl": "u",
+        "tutorialQuery": "q", "items": [], "tags": [],
+        "makeup": {"lip": None, "blush": None, "eyeshadow": None},
+    }  # fmt: skip
+    look = CelebLook.model_validate({**base, "heroZones": ["lip", "eyeshadow"]})
+    assert look.model_dump(by_alias=True, exclude_none=True)["heroZones"] == ["lip", "eyeshadow"]
+    assert "heroZones" not in CelebLook.model_validate(base).model_dump(
+        by_alias=True, exclude_none=True
+    )
+    with pytest.raises(ValidationError):
+        CelebLook.model_validate({**base, "heroZones": ["tanning"]})
+
+
 def test_stores_only_lists_pickup_stores_without_null_phone(client):
     stores = client.get("/api/stores").json()["stores"]
     assert [s["id"] for s in stores] == ["s1"]

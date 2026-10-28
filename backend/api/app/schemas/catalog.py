@@ -5,10 +5,9 @@ from pydantic import Field
 from app.schemas.base import ApiModel, OmitNoneModel
 
 ProductCategory = Literal["lip", "cheek", "eye", "base", "skincare", "suncare"]
-MakeupZone = Literal[
-    "lip", "blush", "eyeshadow", "eyeliner", "mascara", "highlighter", "contour"
-]
+MakeupZone = Literal["lip", "blush", "eyeshadow", "eyeliner", "mascara", "highlighter", "contour", "brow", "foundation"]
 Texture = Literal["matte", "velvet", "glossy", "satin", "sheer", "cream", "shimmer"]
+ShadowFinish = Literal["matte", "shimmer", "glitter", "glossy"]
 LookStep = Literal["prep", "base", "eyes", "cheeks", "lips"]
 
 CATEGORIES: tuple[str, ...] = get_args(ProductCategory)
@@ -44,16 +43,45 @@ class LookItem(OmitNoneModel):
     step: LookStep
 
 
+HighlightArea = Literal["forehead", "nose_bridge", "under_eye", "chin"]
+BlushPlacement = Literal["apple", "under_eye", "side"]
+LinerStyle = Literal["classic_winged", "puppy", "tightline"]
+
+
+class InnerPoint(ApiModel):
+    """Pearl accent at the inner eye corner; radius is a share of the eye width."""
+
+    hex: str
+    a1: float = Field(ge=0, le=1)
+    radius: float = Field(gt=0, le=0.5)
+
+
 class ZoneGeometry(OmitNoneModel):
-    """Eyeliner shape; omitted fields use the app's default line."""
+    """Shape of a zone; omitted fields use the app's defaults (see `types/index.ts`)."""
 
     length: float | None = None
     angle: float | None = None
     thickness: float | None = None
+    liner_style: LinerStyle | None = None
+    lower: bool | None = None
+    overlip: float | None = Field(default=None, ge=0, le=0.06)
+    peak_overdraw: float | None = Field(default=None, ge=0, le=0.05)
+    center_highlight: float | None = Field(default=None, ge=0, le=0.3)
+    inner_point: InnerPoint | None = None
+    areas: list[HighlightArea] | None = None
+    pearl: float | None = Field(default=None, ge=0, le=0.5)
+    sparkle: float | None = Field(default=None, ge=0, le=1)
+    glitter: bool | None = None
+    shadow_finish: ShadowFinish | None = None
+    blush_placement: BlushPlacement | None = None
+    blush_size: float | None = Field(default=None, gt=0, le=2.5)
+    blush_softness: float | None = Field(default=None, ge=0, le=1)
+    intensity: float | None = Field(default=None, ge=0, le=1)
 
 
 class ZoneSetting(OmitNoneModel):
     hex: str
+    hex_to: str | None = None
     intensity: float = Field(ge=0, le=1)
     texture: Texture
     geometry: ZoneGeometry | None = None
@@ -68,9 +96,19 @@ class MakeupState(ApiModel):
     mascara: ZoneSetting | None = None
     highlighter: ZoneSetting | None = None
     contour: ZoneSetting | None = None
+    brow: ZoneSetting | None = None
+    foundation: ZoneSetting | None = None
 
 
-class CelebLook(ApiModel):
+class ColorLink(ApiModel):
+    """Zones that share one color; a product change in one is followed by the others."""
+
+    zones: list[MakeupZone]
+    hex: str = Field(pattern=r"^#[0-9A-Fa-f]{6}$")
+    follow_on_change: bool
+
+
+class CelebLook(OmitNoneModel):
     id: str
     title: str
     inspiration: str
@@ -79,6 +117,9 @@ class CelebLook(ApiModel):
     tutorial_query: str
     items: list[LookItem]
     makeup: MakeupState
+    color_links: list[ColorLink] | None = None
+    hero_zones: list[MakeupZone] | None = None
+    step_order: list[MakeupZone] | None = None
     tags: list[str]
 
 
