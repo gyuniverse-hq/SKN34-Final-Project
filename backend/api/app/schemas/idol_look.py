@@ -5,9 +5,9 @@ from pydantic import Field
 from app.schemas.base import ApiModel
 from app.schemas.catalog import MakeupState, MakeupZone, Product
 
-VideoAnalysisStatus = Literal['registered', 'metadata_unavailable', 'metadata_ready']
-ProductMappingStatus = Literal['unreviewed', 'no_verified_products', 'mapped']
-LookProductStatus = Literal['verified_used', 'unverified', 'similar']
+VideoAnalysisStatus = Literal["registered", "metadata_unavailable", "metadata_ready"]
+ProductMappingStatus = Literal["unreviewed", "no_verified_products", "mapped"]
+LookProductStatus = Literal["verified_used", "unverified", "similar"]
 
 
 class IdolVideo(ApiModel):

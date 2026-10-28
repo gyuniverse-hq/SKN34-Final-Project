@@ -24,11 +24,11 @@ class IdolLookService:
         self._youtube = youtube
 
     async def list_looks(self) -> list[IdolLook]:
-        if (hit := await self._cache.get_json('idol-looks')) is not None:
+        if (hit := await self._cache.get_json("idol-looks")) is not None:
             return [IdolLook.model_validate(item) for item in hit]
         looks = await self._store.list_published()
         await self._cache.set_json(
-            'idol-looks', [look.model_dump(mode='json') for look in looks], 300
+            "idol-looks", [look.model_dump(mode="json") for look in looks], 300
         )
         return looks
 
@@ -44,7 +44,7 @@ class IdolLookService:
         if metadata is None:
             return False
         await self._store.update_video_metadata(metadata)
-        await self._cache.delete_prefix('idol-looks')
+        await self._cache.delete_prefix("idol-looks")
         return True
 
 

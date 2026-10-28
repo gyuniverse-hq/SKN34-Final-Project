@@ -21,9 +21,11 @@ def test_known_subject_misclassifications_are_corrected():
         "",
         "corrected",
     )
-    assert parse_subject_and_style(
-        "yWzg365rzMw", "룩 스타일: 아오이 유우 스타일 메이크업"
-    ) == ("아오이 유우", "", "corrected")
+    assert parse_subject_and_style("yWzg365rzMw", "룩 스타일: 아오이 유우 스타일 메이크업") == (
+        "아오이 유우",
+        "",
+        "corrected",
+    )
     assert parse_subject_and_style("mcA6C14VuTU", "인물: 카리나") == (
         "",
         "다이소 개강 메이크업",
