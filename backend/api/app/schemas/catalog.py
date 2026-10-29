@@ -5,7 +5,17 @@ from pydantic import Field, SerializerFunctionWrapHandler, model_serializer
 from app.schemas.base import ApiModel, OmitNoneModel
 
 ProductCategory = Literal["lip", "cheek", "eye", "base", "skincare", "suncare"]
-MakeupZone = Literal["lip", "blush", "eyeshadow", "eyeliner", "mascara", "highlighter", "contour", "brow", "foundation"]
+MakeupZone = Literal[
+    "lip",
+    "blush",
+    "eyeshadow",
+    "eyeliner",
+    "mascara",
+    "highlighter",
+    "contour",
+    "brow",
+    "foundation",
+]
 Texture = Literal["matte", "velvet", "glossy", "satin", "sheer", "cream", "shimmer"]
 ShadowFinish = Literal["matte", "shimmer", "glitter", "glossy"]
 LookStep = Literal["prep", "base", "eyes", "cheeks", "lips"]
