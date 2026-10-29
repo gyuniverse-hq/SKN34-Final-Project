@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     supabase_url: str | None = None
     supabase_publishable_key: str | None = None
     cors_origins: list[str] = []
+    toss_client_key: str | None = None
+    toss_secret_key: str | None = None
+    payment_web_base_url: str | None = None
+    payment_return_url: str = "kbeautyar://payment-result"
 
     @property
     def is_production(self) -> bool:

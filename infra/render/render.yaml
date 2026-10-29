@@ -37,6 +37,12 @@ services:
         sync: false
       - key: YOUTUBE_API_KEY
         sync: false
+      - key: TOSS_CLIENT_KEY
+        sync: false
+      - key: TOSS_SECRET_KEY
+        sync: false
+      - key: PAYMENT_WEB_BASE_URL
+        sync: false
 
   - type: web
     name: vishue-chatbot

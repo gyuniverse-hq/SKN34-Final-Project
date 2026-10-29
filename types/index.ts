@@ -235,3 +235,9 @@ export interface ApiErrorBody {
   error: string;
   code?: string;
 }
+
+export interface CreateOrderResponse {
+  orderId: string;
+  amount: number;
+  checkoutUrl: string;
+}

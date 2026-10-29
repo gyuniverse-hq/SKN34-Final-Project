@@ -82,6 +82,8 @@ npx expo start -c
    | vishue-api | `DATABASE_URL` | 1-4에서 만든 주소 |
    | vishue-api | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | 1-5의 Project URL, publishable key |
    | vishue-api | `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `YOUTUBE_API_KEY` | 팀 `.env`와 같은 값 (없으면 비워 둠) |
+   | vishue-api | `TOSS_CLIENT_KEY`, `TOSS_SECRET_KEY` | Toss 개발자센터의 결제위젯 테스트 키 (비우면 결제만 503) |
+   | vishue-api | `PAYMENT_WEB_BASE_URL` | 이 서버의 주소 (`https://vishue-api-xxxx.onrender.com`, 끝에 `/` 없이) |
    | vishue-chatbot | `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD` | 2-3의 AuraDB 접속 정보 |
    | vishue-chatbot | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | 1-5와 같은 값 |
    | vishue-chatbot | `LLM_API_KEY`, `LLM_MODEL` | 챗봇을 켤 때 입력 (비우면 챗봇만 503) |
