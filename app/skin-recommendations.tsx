@@ -3,18 +3,22 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ConcernPicker } from '@/components/skin/ConcernPicker';
+import { ProductLineCard } from '@/components/shop/ProductLineCard';
 import { Button } from '@/components/ui/Button';
+import { InlineState } from '@/components/ui/InlineState';
 import { Notice } from '@/components/ui/Notice';
 import { LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
 import { formatDate } from '@/lib/format';
-import { useI18n } from '@/lib/i18n';
-import { searchHref, SKIN_CONCERNS } from '@/lib/routes';
+import { useI18n, type TranslationKey } from '@/lib/i18n';
+import { useSkinRecommendations } from '@/lib/queries';
+import { productHref, searchHref, SKIN_CONCERNS } from '@/lib/routes';
 import { suggestConcerns, toggleConcern } from '@/lib/skinFilters';
+import { buildSkinRecommendationRequest } from '@/lib/skinRecommendations';
 import { useSkinProfileStore } from '@/store/skinProfileStore';
-import type { SkinConcern } from '@/types';
+import type { SkinConcern, SkinRecommendationRequest } from '@/types';
 
-/** Review / edit filters derived from the on-device skin result, then browse products. */
+/** Confirm concerns derived from analysis + survey, then request ranked care products. */
 export default function SkinRecommendationsScreen() {
   const router = useRouter();
   const { t, language } = useI18n();
@@ -24,6 +28,8 @@ export default function SkinRecommendationsScreen() {
   const [loadFailed, setLoadFailed] = useState(false);
   const suggested = useMemo(() => suggestConcerns(profile), [profile]);
   const [selected, setSelected] = useState<SkinConcern[]>([]);
+  const [request, setRequest] = useState<SkinRecommendationRequest>();
+  const recommendations = useSkinRecommendations(request);
   const seeded = useRef(false);
 
   useEffect(() => {
@@ -59,16 +65,52 @@ export default function SkinRecommendationsScreen() {
           concerns={SKIN_CONCERNS}
           selected={selected}
           suggested={suggested}
-          onToggle={(c) => setSelected((prev) => toggleConcern(prev, c))}
+          onToggle={(c) => {
+            setSelected((prev) => toggleConcern(prev, c));
+            setRequest(undefined);
+          }}
         />
 
         <Notice tone="neutral" title={t('skinFlow.notMedicalTitle')} body={t('skinFlow.notMedicalBody')} />
+
+        {request ? (
+          <View style={styles.results}>
+            <Text style={styles.title} accessibilityRole="header">{t('skinRec.title')}</Text>
+            <Text style={styles.body}>{t('skinRec.how')}</Text>
+            {recommendations.isPending ? <InlineState status="loading" />
+              : recommendations.isError ? (
+                <InlineState status="error" onRetry={() => recommendations.refetch()} />
+              ) : recommendations.data?.status !== 'ok' ? (
+                <InlineState status="empty" message={t(
+                  recommendations.data?.status === 'empty_catalog' ? 'skinRec.emptyCatalog'
+                    : recommendations.data?.status === 'no_concerns' ? 'skinRec.noConcerns' : 'skinRec.noMatches'
+                )} />
+              ) : recommendations.data.matches.map(({ product, matchedConcerns }) => (
+                <ProductLineCard
+                  key={product.id}
+                  product={product}
+                  badges={matchedConcerns.map((c) => ({ label: t(`concern.${c}` as TranslationKey), tone: 'brand' }))}
+                  note={t('skinRec.matched', { count: matchedConcerns.length })}
+                  onPress={() => router.push(productHref(product.id))}
+                />
+              ))}
+          </View>
+        ) : null}
       </ScrollView>
       <View style={styles.footer}>
         <Button
-          label={t('skinFlow.browse', { count: selected.length })}
-          icon="search-outline"
+          label={t('skinRec.show')}
+          icon="sparkles-outline"
           disabled={selected.length === 0}
+          loading={recommendations.isFetching}
+          onPress={() => {
+            if (request) void recommendations.refetch();
+            else setRequest(buildSkinRecommendationRequest(profile, selected));
+          }}
+        />
+        <Button
+          label={t('skinFlow.browse', { count: selected.length })}
+          variant="secondary"
           onPress={() => router.push(searchHref({ concerns: selected, source: 'skin' }))}
         />
         <Button
@@ -86,6 +128,7 @@ const styles = StyleSheet.create({
   content: { padding: theme.spacing.lg, gap: 14, paddingBottom: 32 },
   title: { fontSize: theme.font.h2, fontWeight: '800', color: theme.colors.ink },
   body: { fontSize: theme.font.body, color: theme.colors.inkMuted, lineHeight: 22 },
+  results: { gap: 10 },
   footer: {
     gap: 8,
     paddingHorizontal: theme.spacing.lg,

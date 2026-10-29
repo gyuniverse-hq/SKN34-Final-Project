@@ -22,6 +22,26 @@ export interface ProductQuery {
   concerns?: SkinConcern[];
 }
 
+/** Concern codes derived on device from analysis + survey and confirmed by the user. */
+export interface SkinRecommendationRequest {
+  concerns: SkinConcern[];
+  limit: number;
+}
+
+export interface SkinRecommendationMatch {
+  product: Product;
+  matchedConcerns: SkinConcern[];
+  /** Number of matching concerns; not a probability or an efficacy score. */
+  score: number;
+}
+
+export interface SkinRecommendationResponse {
+  strategyVersion: 'skin-concern-v1';
+  concerns: SkinConcern[];
+  status: 'ok' | 'no_concerns' | 'empty_catalog' | 'no_matches';
+  matches: SkinRecommendationMatch[];
+}
+
 export interface Shade {
   id: string;
   name: string;

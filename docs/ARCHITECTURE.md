@@ -203,7 +203,7 @@ constants/ · types/           테마, 정적 상수, 공용 타입
 
 | 서비스 | 맡는 것 | 데이터 | 외부 호출 |
 | --- | --- | --- | --- |
-| `backend/api` | 카탈로그(제품·셰이드·룩·매장), 온라인 판매처·제품 이미지, 튜토리얼 검색, 셰이드 추천(CIEDE2000 ΔE), 회원(`/api/me`) | PostgreSQL(원본), Redis(캐시·레이트 리밋) | 네이버 검색 API, YouTube Data API, Supabase Auth(토큰 검증) |
+| `backend/api` | 카탈로그(제품·셰이드·룩·매장), 온라인 판매처·제품 이미지, 튜토리얼 검색, 셰이드 추천(CIEDE2000 ΔE), 피부 고민 기반 케어 추천(`/api/recommendations/skin`), 회원(`/api/me`) | PostgreSQL(원본), Redis(캐시·레이트 리밋) | 네이버 검색 API, YouTube Data API, Supabase Auth(토큰 검증) |
 | `backend/chatbot` | 챗봇(`/api/chat`), PostgreSQL → Neo4j 동기화 잡 | Neo4j(사본), Redis(레이트 리밋) | LLM API, `api` 서비스 |
 
 서비스를 둘로 나눈 이유는 [ADR-0001](adr/0001-two-backend-services.md)에 있습니다. LLM 호출은 느리고 비용이 들어서 따로 확장하고 따로 제한해야 합니다. 챗봇 장애가 쇼핑 기능으로 번지지 않아야 하고, LLM 키는 챗봇 Pod에만 있어야 합니다.
