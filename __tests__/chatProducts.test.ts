@@ -61,6 +61,7 @@ describe('chat product cards', () => {
     expect(rows).toContain('shop.cat.lip');
     expect(rows).toContain('product.keyIngredients: Panthenol');
     expect(rows).toContain('chat.ui.keyIngredientsNotice');
+    expect(rows).toContain('chat.ui.ingredientUnavailable');
     expect(rows).toContain('lip · chat.conditionMet');
     expect(rows).toContain('lip · chat.conditionNotMet');
     expect(rows).toContain('under 20000 · chat.conditionMet (chat.conditionPriceBasis)');

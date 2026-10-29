@@ -19,7 +19,7 @@ const CATEGORIES: { value: ProductCategory; pattern: RegExp }[] = [
 // Only show filter candidates for explicit shopping requests, never general how-to questions.
 const SHOPPING = /추천|찾아|골라|제품|상품|화장품|\b(?:recommend|suggest|find|shop|product|buy)\b|おすすめ|探して|商品|推荐|找(?:找|一款)?|产品|商品/i;
 const GENERAL_QUESTION = /바르는\s*법|사용\s*방법|화장법|메이크업\s*방법|\bhow\s+(?:to|do|can)\b|使い方|塗り方|怎么用|如何使用/i;
-const NEGATION = /^\s*(?:(?:건|것|제품)(?:은|는)?\s*)?(?:아니|말고|싫|불필요|필요\s*없|는\s*아니|은\s*아니|不要|以外|ではない)/i;
+const NEGATION = /^\s*(?:(?:건|것|제품)(?:은|는)?\s*)?(?:아니|말고|빼|제외|싫|불필요|필요\s*없|는\s*아니|은\s*아니|不要|以外|ではない)/i;
 
 export function extractChatConditions(message: string): ChatCondition[] {
   if (!SHOPPING.test(message) || GENERAL_QUESTION.test(message)) return [];
@@ -34,12 +34,17 @@ export function extractChatConditions(message: string): ChatCondition[] {
   }
   if (categories.length === 1) conditions.push(categories[0]);
 
-  const price = /(?:^|[^\d.,])(\d{1,3}(?:,\d{3})+|\d+)(?:\s*만\s*(\d{1,4})?)?\s*원\s*이하/i.exec(message)
-    ?? /\b(?:at most|up to)\s*(?:₩\s*|krw\s*)(\d{1,3}(?:,\d{3})+|\d+)\s*(?:krw)?/i.exec(message);
-  if (price && !NEGATION.test(message.slice(price.index + price[0].length))) {
-    const value = Number(price[1].replaceAll(',', '')) * (/만/.test(price[0]) ? 10000 : 1) + Number(price[2] ?? 0);
-    if (Number.isSafeInteger(value) && value > 0) {
-      const text = /원\s*이하/i.test(price[0]) ? price[0].slice(price[0].indexOf(price[1])) : price[0];
+  const koreanPrice = /(?:^|[^\d.,])(\d{1,3}(?:,\d{3})+|\d+)(?:\s*만\s*(\d{1,4})?)?\s*원\s*이하/i.exec(message);
+  const englishPrice = /\b(at most|up to|under|less than)\s*(?:₩\s*|krw\s*)(\d{1,3}(?:,\d{3})+|\d+)(?![\d,]|\.\d)/i.exec(message);
+  const price = koreanPrice ?? englishPrice;
+  if (price && !NEGATION.test(message.slice(price.index + price[0].length)) &&
+      !/\bnot\s*$/i.test(message.slice(0, price.index))) {
+    const amount = koreanPrice ? koreanPrice[1] : englishPrice![2];
+    const exclusive = !koreanPrice && englishPrice && /^(?:under|less than)$/i.test(englishPrice[1]);
+    const value = Number(amount.replaceAll(',', '')) * (koreanPrice && /만/.test(koreanPrice[0]) ? 10000 : 1)
+      + Number(koreanPrice?.[2] ?? 0) - (exclusive ? 1 : 0);
+    if (Number.isSafeInteger(value) && value >= 0) {
+      const text = koreanPrice ? price[0].slice(price[0].indexOf(amount)) : price[0];
       conditions.push({ kind: 'maxPrice', text: text.trim(), required: true, value });
     }
   }
@@ -49,8 +54,11 @@ export function extractChatConditions(message: string): ChatCondition[] {
     conditions.push({ kind: 'fragranceFree', text: fragrance[0], required: true });
   }
 
-  const moisturizing = /촉촉(?:함|한|하게)?\s*(?:우선|선호|좋아)|보습\s*(?:우선|선호)|\b(?:prefer|prioriti[sz]e)\s+(?:hydrating|moisturi[sz]ing|hydration|moisture)\b|保湿(?:を)?優先|优先保湿/i.exec(message);
-  if (moisturizing && !NEGATION.test(message.slice(moisturizing.index + moisturizing[0].length))) {
+  const moisturizing = /촉촉(?:함|한|하게)?\s*(?:우선|선호|좋아)|촉촉한(?=\s*(?:립|블러셔|파운데이션|제품|화장품))|보습\s*(?:우선|선호)|\b(?:prefer|prioriti[sz]e)\s+(?:hydrating|moisturi[sz]ing|hydration|moisture)\b|\b(?:hydrating|moisturi[sz]ing)(?=\s+(?:lip|blush|foundation|product))|保湿(?:を)?優先|优先保湿/i.exec(message);
+  const afterMoisturizing = moisturizing ? message.slice(moisturizing.index + moisturizing[0].length) : '';
+  if (moisturizing && !NEGATION.test(afterMoisturizing) &&
+      !/(?:안|덜|\bnot(?:\s+(?:a|an))?|\bnon-)\s*$/i.test(message.slice(0, moisturizing.index)) &&
+      !/^\s*(?:(?:립(?:\s*제품)?|블러셔|파운데이션|제품|화장품)(?:은|는|이|가|을|를)?\s*)?(?:말고|싫|아니|빼|제외)/i.test(afterMoisturizing)) {
     conditions.push({ kind: 'moisturizing', text: moisturizing[0], required: false });
   }
   return conditions;

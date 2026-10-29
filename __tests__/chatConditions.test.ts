@@ -15,8 +15,26 @@ describe('extractChatConditions', () => {
     ['2만 5000원 이하 립 추천', 25000],
     ['립 20,000원 이하 추천', 20000],
     ['find a lip product up to KRW 15,000', 15000],
+    ['Recommend a moisturizing lip product under ₩20,000.', 19999],
+    ['find a lip product less than KRW 20,000', 19999],
   ])('extracts the maximum reference price in %s', (message, value) => {
     expect(extractChatConditions(message).find((condition) => condition.kind === 'maxPrice')?.value).toBe(value);
+  });
+
+  it.each([
+    ['2만 원 이하 촉촉한 립 제품 추천해줘', '촉촉한'],
+    ['Recommend a moisturizing lip product under ₩20,000.', 'moisturizing'],
+  ])('recognizes the moisturizing preference in %s', (message, text) => {
+    expect(extractChatConditions(message)).toContainEqual({ kind: 'moisturizing', text, required: false });
+  });
+
+  it.each([
+    '안 촉촉한 립 제품 추천해줘',
+    '촉촉한 립 제품 말고 블러셔 추천해줘',
+    'recommend a lip product that is not moisturizing',
+    'recommend a product that is not a moisturizing lip product',
+  ])('does not label a negated moisturizing request as preferred: %s', (message) => {
+    expect(extractChatConditions(message).some((condition) => condition.kind === 'moisturizing')).toBe(false);
   });
 
   it.each([
@@ -32,6 +50,10 @@ describe('extractChatConditions', () => {
     const kinds = extractChatConditions('립 말고 블러셔 제품, 2만원짜리 향료 없는 건 아니야').map((c) => c.kind);
     expect(kinds).toEqual(['category']);
     expect(extractChatConditions('₩20,000 lip product').some((c) => c.kind === 'maxPrice')).toBe(false);
+    expect(extractChatConditions('립 빼고 블러셔 제품 추천').filter((c) => c.kind === 'category')).toEqual([
+      { kind: 'category', text: '블러셔', required: true, value: 'cheek' },
+    ]);
+    expect(extractChatConditions('recommend a lip product not under ₩20,000').some((c) => c.kind === 'maxPrice')).toBe(false);
   });
 
   it('does not misrepresent multiple categories as mandatory at once', () => {

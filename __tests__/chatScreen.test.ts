@@ -1,5 +1,5 @@
 import { createElement } from 'react';
-import { Text, TextInput } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, Text, TextInput } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import ChatScreen from '@/app/chat';
 import { ChatProducts } from '@/components/chat/ChatProducts';
@@ -18,6 +18,7 @@ jest.mock('@/lib/queries', () => ({ useProductsByIds: (ids: string[]) => mockPro
 jest.mock('@/components/chat/ChatProducts', () => ({ ChatProducts: () => null }));
 jest.mock('@expo/vector-icons/Ionicons', () => () => null);
 jest.mock('expo-router', () => ({ Stack: { Screen: () => null }, useRouter: () => ({ push: mockPush }) }));
+jest.mock('expo-router/react-navigation', () => ({ useHeaderHeight: () => 88 }));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }: { children: unknown }) => children,
 }));
@@ -49,6 +50,70 @@ beforeEach(() => {
 });
 
 describe('standalone chat input', () => {
+  it('shows the price and moisturizing preference for the English example', async () => {
+    const renderer = await renderScreen();
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('Recommend a moisturizing lip product under ₩20,000.'); });
+    const texts = renderer.root.findAllByType(Text).map((item) => item.props.children);
+    expect(texts).toContain('under ₩20,000');
+    expect(texts).toContain('moisturizing');
+    expect(texts).toContain('chat.ui.preferred');
+    expect(mockMutateAsync).not.toHaveBeenCalled();
+    await act(async () => { renderer.unmount(); });
+  });
+
+  it('shows extracted required and preferred conditions only while present in the draft', async () => {
+    const renderer = await renderScreen();
+    await act(async () => { renderer.root.findByType(TextInput).props.onFocus(); });
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('립 제품 중 2만 원 이하 추천해줘, 촉촉함 우선'); });
+    const texts = () => renderer.root.findAllByType(Text).map((item) => item.props.children);
+    expect(texts()).toContain('chat.ui.conditions');
+    expect(texts()).toContain('chat.ui.required');
+    expect(texts()).toContain('chat.ui.preferred');
+    expect(texts()).toContain('2만 원 이하');
+    expect(mockMutateAsync).not.toHaveBeenCalled();
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('메이크업 방법 알려줘'); });
+    expect(texts()).not.toContain('chat.ui.conditions');
+    expect(texts()).not.toContain('2만 원 이하');
+    await act(async () => { renderer.unmount(); });
+  });
+
+  it('keeps the draft and controls available while focused, and restores the welcome area on blur or keyboard dismissal', async () => {
+    const listeners: Partial<Record<'keyboardDidShow' | 'keyboardDidHide', Parameters<typeof Keyboard.addListener>[1]>> = {};
+    const removals: Partial<Record<'keyboardDidShow' | 'keyboardDidHide', jest.Mock>> = {};
+    const keyboardListener = jest.spyOn(Keyboard, 'addListener').mockImplementation((event, listener) => {
+      const remove = jest.fn();
+      if (event === 'keyboardDidShow' || event === 'keyboardDidHide') {
+        listeners[event] = listener;
+        removals[event] = remove;
+      }
+      return { remove };
+    });
+    const renderer = await renderScreen();
+    if (Platform.OS === 'ios') {
+      expect(renderer.root.findByType(KeyboardAvoidingView).props.keyboardVerticalOffset).toBe(88);
+    }
+    expect(renderer.root.findAllByType(Text).some((item) => item.props.children === 'chat.ui.welcomeTitle')).toBe(true);
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('draft question'); });
+    await act(async () => { renderer.root.findByType(TextInput).props.onFocus(); });
+    expect(renderer.root.findAllByType(Text).some((item) => item.props.children === 'chat.ui.welcomeTitle')).toBe(false);
+    expect(renderer.root.findAllByType(Text).some((item) => item.props.children === 'chat.ui.welcomeBody')).toBe(false);
+    expect(renderer.root.findAllByType(Text).some((item) => item.props.children === 'chat.ui.examples')).toBe(false);
+    expect(buttonWithText(renderer.root, 'chat.ui.product')).toBeTruthy();
+    expect(renderer.root.findByType(TextInput).props.value).toBe('draft question');
+    expect(renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.disabled).toBe(false);
+    await act(async () => { renderer.root.findByType(TextInput).props.onBlur(); });
+    expect(renderer.root.findAllByType(Text).some((item) => item.props.children === 'chat.ui.welcomeTitle')).toBe(true);
+    await act(async () => { renderer.root.findByType(TextInput).props.onFocus(); });
+    expect(listeners.keyboardDidHide).toBeDefined();
+    await act(async () => { listeners.keyboardDidHide?.({} as never); });
+    expect(renderer.root.findAllByType(Text).some((item) => item.props.children === 'chat.ui.welcomeTitle')).toBe(true);
+    expect(renderer.root.findByType(TextInput).props.value).toBe('draft question');
+    await act(async () => { renderer.unmount(); });
+    expect(removals.keyboardDidShow).toHaveBeenCalledTimes(1);
+    expect(removals.keyboardDidHide).toHaveBeenCalledTimes(1);
+    keyboardListener.mockRestore();
+  });
+
   it('changes category examples and fills the draft without sending', async () => {
     const renderer = await renderScreen();
     await act(async () => { buttonWithText(renderer.root, 'chat.ui.ingredient').props.onPress(); });

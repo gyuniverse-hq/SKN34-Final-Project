@@ -33,18 +33,27 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
         const selectedShade = validShades.find((shade) => shade.id === selectedShades[product.id]);
         return (
         <View key={product.id} style={styles.card}>
-          <ProductImage uri={product.imageUrl} category={product.category} recyclingKey={product.id} style={styles.image} compact />
-          <View style={styles.details}>
-            <Text style={styles.brand}>{product.brand}</Text>
-            <Text style={styles.name}>{product.name}</Text>
-            <Text style={styles.notice}>{t(`shop.cat.${product.category}` as TranslationKey)}</Text>
-            <Text style={styles.price}>{t('chat.referencePrice')} {formatKRW(product.priceKRW)}</Text>
-            {showIngredients && product.keyIngredients.length > 0 ? (
-              <>
-                <Text style={styles.notice}>{t('product.keyIngredients')}: {product.keyIngredients.join(', ')}</Text>
-                <Text style={styles.notice}>{t('chat.ui.keyIngredientsNotice')}</Text>
-              </>
+          <View style={styles.productHeader}>
+            <ProductImage uri={product.imageUrl} category={product.category} recyclingKey={product.id} style={styles.image} compact />
+            <View style={styles.details}>
+              <Text style={styles.brand}>{product.brand}</Text>
+              <Text style={styles.name}>{product.name}</Text>
+              <Text style={styles.notice}>{t(`shop.cat.${product.category}` as TranslationKey)}</Text>
+              <Text style={styles.price}>{t('chat.referencePrice')} {formatKRW(product.priceKRW)}</Text>
+            </View>
+          </View>
+          <View style={styles.productBody}>
+            {showIngredients ? (
+              <View style={styles.ingredientBlock}>
+                {product.keyIngredients.length > 0 ? (
+                  <>
+                    <Text style={styles.notice}>{t('product.keyIngredients')}: {product.keyIngredients.join(', ')}</Text>
+                    <Text style={styles.notice}>{t('chat.ui.keyIngredientsNotice')}</Text>
+                  </>
+                ) : <Text style={styles.notice}>{t('chat.ui.ingredientUnavailable')}</Text>}
+              </View>
             ) : null}
+            {conditions.length ? <Text style={styles.sectionTitle}>{t('chat.ui.checkConditions')}</Text> : null}
             {conditions.map((condition, index) => {
               const matches = condition.kind === 'category' && typeof condition.value === 'string'
                 ? product.category === condition.value
@@ -52,7 +61,7 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
                   ? product.priceKRW <= condition.value
                   : undefined;
               return (
-                <Text key={`${condition.kind}-${index}`} style={styles.notice}>
+                <Text key={`${condition.kind}-${index}`} style={[styles.condition, matches === undefined ? styles.conditionUnknown : matches ? styles.conditionMet : styles.conditionNotMet]}>
                   {condition.text} · {t(matches === undefined ? 'chat.conditionUnknown' : matches ? 'chat.conditionMet' : 'chat.conditionNotMet')}
                   {condition.kind === 'maxPrice' ? ` (${t('chat.conditionPriceBasis')})` : ''}
                 </Text>
@@ -78,8 +87,8 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
                   <Pressable
                     accessibilityRole="button"
                     onPress={() => onOpenAr(product.id, selectedShade.id)}
-                    style={({ pressed }) => [styles.open, pressed && styles.pressed]}>
-                    <Text style={styles.link}>{t('chat.trySelectedShade')}</Text>
+                    style={({ pressed }) => [styles.arButton, pressed && styles.pressed]}>
+                    <Text style={styles.arButtonText}>{t('chat.trySelectedShade')}</Text>
                   </Pressable>
                 ) : <Text style={styles.notice}>{t('chat.tryOnAtDetail')}</Text>}
               </>
@@ -101,14 +110,14 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
           <Text style={styles.statusText}>{t('chat.productLoading')}</Text>
         </View>
       ) : failed ? (
-        <View style={styles.status}>
+        <View style={[styles.status, styles.errorStatus]}>
           <Text style={styles.statusText} accessibilityRole="alert">{t('chat.productLoadFailed')}</Text>
           <Pressable accessibilityRole="button" onPress={onRetry} style={styles.retry}>
             <Text style={styles.link}>{t('chat.productRetry')}</Text>
           </Pressable>
         </View>
       ) : missingCount > 0 ? (
-        <Text style={styles.statusText}>{t('chat.productMissing', { count: missingCount })}</Text>
+        <View style={styles.status}><Text style={styles.statusText}>{t('chat.productMissing', { count: missingCount })}</Text></View>
       ) : null}
     </View>
   );
@@ -116,21 +125,32 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
 
 const styles = StyleSheet.create({
   list: { gap: 8, marginTop: 12 },
-  card: { backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderRadius: theme.radius.md, borderWidth: 1, flexDirection: 'row', gap: 10, padding: 10 },
-  image: { width: 72, height: 88, borderRadius: theme.radius.sm },
+  card: { backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderRadius: theme.radius.lg, borderWidth: 1, gap: 12, padding: 12 },
+  productHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  productBody: { gap: 7 },
+  image: { width: 88, height: 98, borderRadius: theme.radius.md },
   details: { flex: 1, gap: 3 },
   brand: { color: theme.colors.inkMuted, fontSize: theme.font.caption, fontWeight: '700' },
   name: { color: theme.colors.ink, fontSize: theme.font.small, fontWeight: '700', lineHeight: 19 },
-  price: { color: theme.colors.ink, fontSize: theme.font.caption },
+  price: { color: theme.colors.ink, fontSize: theme.font.small, fontWeight: '700', marginTop: 3 },
+  ingredientBlock: { backgroundColor: theme.colors.cream, borderRadius: theme.radius.sm, gap: 4, padding: 10 },
+  sectionTitle: { color: theme.colors.ink, fontSize: theme.font.caption, fontWeight: '700', marginTop: 2 },
+  condition: { fontSize: theme.font.caption, lineHeight: 19 },
+  conditionMet: { color: theme.colors.success },
+  conditionNotMet: { color: theme.colors.danger },
+  conditionUnknown: { color: theme.colors.warning },
   notice: { color: theme.colors.inkMuted, fontSize: theme.font.caption, lineHeight: 17 },
   link: { color: theme.colors.rose, fontSize: theme.font.caption, fontWeight: '700' },
-  open: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start', paddingRight: 8 },
+  open: { minHeight: 44, justifyContent: 'center', alignItems: 'center', borderColor: theme.colors.border, borderWidth: 1, borderRadius: theme.radius.pill, paddingHorizontal: 12 },
+  arButton: { minHeight: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.rose, borderRadius: theme.radius.pill, paddingHorizontal: 12 },
+  arButtonText: { color: theme.colors.white, fontSize: theme.font.caption, fontWeight: '700', textAlign: 'center' },
   shades: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   shade: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8, borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.radius.sm },
   shadeSelected: { borderColor: theme.colors.rose, backgroundColor: theme.colors.roseSoft },
   swatch: { width: 16, height: 16, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.border },
   shadeText: { color: theme.colors.ink, fontSize: theme.font.caption },
-  status: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  status: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8, backgroundColor: theme.colors.cream, borderRadius: theme.radius.md, paddingHorizontal: 12, paddingVertical: 8 },
+  errorStatus: { backgroundColor: theme.colors.warningBg },
   statusText: { color: theme.colors.inkMuted, fontSize: theme.font.caption, lineHeight: 18 },
   retry: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 4 },
   pressed: { opacity: 0.8 },
