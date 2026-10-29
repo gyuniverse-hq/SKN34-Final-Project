@@ -19,7 +19,7 @@ import {
   type GestureResponderEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArFaceView } from '@/components/ar/ArFaceView';
+import { ArFaceView, type LightHint } from '@/components/ar/ArFaceView';
 import { PracticePanel } from '@/components/ar/PracticePanel';
 import type { ArStatus } from '@/components/ar/faceTrackerHtml';
 import { SwatchFallback } from '@/components/ar/SwatchFallback';
@@ -99,6 +99,7 @@ export default function ArTryOnScreen() {
   const routeZone = routeSelection.product.data?.makeupZone ?? undefined;
   const compareParam = parseFlag(params.compare);
   const [status, setStatus] = useState<ArStatus>('loading');
+  const [lightHint, setLightHint] = useState<LightHint | null>(null);
   const [arKey, setArKey] = useState(0);
   const [swatchOnly, setSwatchOnly] = useState(false);
   const [compare, setCompare] = useState(compareParam);
@@ -411,7 +412,14 @@ export default function ArTryOnScreen() {
   } else if (cameraActive) {
     stage = (
       <View style={styles.camera}>
-        <ArFaceView key={arKey} makeup={shownMakeup} compare={compare} guide={guide} onStatus={setStatus} />
+        <ArFaceView
+          key={arKey}
+          makeup={shownMakeup}
+          compare={compare}
+          guide={guide}
+          onStatus={setStatus}
+          onLightHint={setLightHint}
+        />
         {compare ? (
           <>
             <View pointerEvents="none" style={[styles.compareLabel, styles.beforeLabel]}>
@@ -440,6 +448,12 @@ export default function ArTryOnScreen() {
                 <Text style={styles.pillBtnText}>{t('ar.viewSwatches')}</Text>
               </Pressable>
             </View>
+          </View>
+        ) : status === 'tracking' && lightHint ? (
+          <View style={styles.hintPill} pointerEvents="none">
+            <Text style={styles.hintText}>
+              {t(lightHint === 'blown' ? 'ar.lightHint.blown' : 'ar.lightHint.low')}
+            </Text>
           </View>
         ) : null}
         <View style={styles.liveBadge} pointerEvents="none">
@@ -930,6 +944,7 @@ const styles = StyleSheet.create({
   noFaceActions: { flexDirection: 'row', gap: 8 },
   pillBtn: { minHeight: 36, paddingHorizontal: 14, justifyContent: 'center', borderRadius: theme.radius.pill, backgroundColor: 'rgba(255,255,255,0.18)' },
   pillBtnText: { color: theme.colors.white, fontSize: theme.font.small, fontWeight: '700' },
+  hintPill: { position: 'absolute', bottom: 64, alignSelf: 'center', backgroundColor: theme.colors.overlay, paddingHorizontal: 14, paddingVertical: 8, borderRadius: theme.radius.pill },
   hintText: { color: theme.colors.white, fontSize: theme.font.small, fontWeight: '600', textAlign: 'center' },
   liveBadge: { position: 'absolute', top: 12, left: 12, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.overlay, paddingHorizontal: 10, paddingVertical: 5, borderRadius: theme.radius.pill },
   demoBadge: { position: 'absolute', top: 44, left: 12, backgroundColor: theme.colors.overlay, paddingHorizontal: 10, paddingVertical: 5, borderRadius: theme.radius.pill },

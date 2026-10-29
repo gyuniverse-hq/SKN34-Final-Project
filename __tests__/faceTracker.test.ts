@@ -15,7 +15,7 @@ describe('face tracker page', () => {
   it('pins the MediaPipe version and keeps the host protocol', () => {
     const script = moduleScript(FACE_TRACKER_HTML);
     expect(script).toContain(`'${MEDIAPIPE_VERSION}'`);
-    for (const token of ["type: 'hello'", "type: 'status'", "msg.type === 'makeup'", "msg.type === 'compare'"]) {
+    for (const token of ["type: 'hello'", "type: 'status'", "type: 'light_hint'", "msg.type === 'makeup'", "msg.type === 'compare'"]) {
       expect(script).toContain(token);
     }
   });
@@ -341,6 +341,31 @@ describe('face tracker page', () => {
     // The apple sits under the pupil (lower-lid point and cheek point); the baked default mask is left as it was.
     expect(script).toContain('let ctr = [lid[0] + (low[0] - lid[0]) * 0.5');
     expect(script).toContain('const blush = layer(() => {');
+  });
+
+  it('gates the uploaded light color by Gray World confidence and snaps when skin Lab jumps', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    expect(script).toContain('gl.uniform3f(u.uLightDir, light.dir[0], light.dir[1], light.dir[2]);');
+    expect(script).toContain('gl.uniform1f(u.uLightStrength, light.strength);');
+    expect(script).toContain('lightChangeDelta: 6');
+    expect(script).toContain('cie76(lab, light.refSkinLab) > TUNING.lightChangeDelta');
+    expect(script).toContain('const kc = light.colorSamples++ === 0 || snap ? 1');
+    expect(script).toContain("type: 'light_hint'");
+    expect(script).toContain('blownFaceFraction: 0.15');
+    const linToLab = (rgb: number[]) => {
+      const x = (0.4124 * rgb[0] + 0.3576 * rgb[1] + 0.1805 * rgb[2]) / 0.95047;
+      const y = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+      const z = (0.0193 * rgb[0] + 0.1192 * rgb[1] + 0.9505 * rgb[2]) / 1.08883;
+      const f = (t: number) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+      const fx = f(x), fy = f(y), fz = f(z);
+      return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)] as const;
+    };
+    const cie76 = (a: readonly number[], b: readonly number[]) =>
+      Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+    const daylight = linToLab([0.42, 0.28, 0.22]);
+    const tungsten = linToLab([0.55, 0.32, 0.18]);
+    expect(cie76(daylight, daylight)).toBe(0);
+    expect(cie76(daylight, tungsten)).toBeGreaterThan(6);
   });
 
   it('locks white balance once the room color settles, at the settled temperature, and follows faster when unlocked', () => {

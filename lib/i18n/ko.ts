@@ -197,6 +197,8 @@ export const ko: Dictionary = {
   'ar.openSettings': '설정 열기',
   'ar.loading': '얼굴 인식을 준비하고 있어요…',
   'ar.noFace': '얼굴을 화면 가운데에 맞춰 주세요',
+  'ar.lightHint.low': '조명을 추정 중이에요. 색이 실제와 다를 수 있어요',
+  'ar.lightHint.blown': '조명이 너무 강해요',
   'ar.unavailable': '이 기기에서는 실시간 체험을 쓸 수 없어 컬러 미리보기로 보여드려요.',
   'ar.live': '실시간 · 녹화 안 함',
   'ar.demoColors': '예시 색 (실제 제품 아님)',

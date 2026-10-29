@@ -197,6 +197,8 @@ export const ja: Dictionary = {
   'ar.openSettings': '設定を開く',
   'ar.loading': '顔認識を準備しています…',
   'ar.noFace': '顔を画面の中央に合わせてください',
+  'ar.lightHint.low': '照明を推定しています。色が実際と違うことがあります',
+  'ar.lightHint.blown': '照明が強すぎます',
   'ar.unavailable': 'この端末ではライブ試着が使えないため、カラープレビューを表示します。',
   'ar.live': 'ライブ · 録画なし',
   'ar.demoColors': 'サンプルカラー（実際の製品ではありません）',

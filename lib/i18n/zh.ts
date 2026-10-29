@@ -197,6 +197,8 @@ export const zh: Dictionary = {
   'ar.openSettings': '打开设置',
   'ar.loading': '正在启动面部识别…',
   'ar.noFace': '请将面部置于画面中央',
+  'ar.lightHint.low': '正在估计光线。颜色可能与实际不同。',
+  'ar.lightHint.blown': '光线太强。',
   'ar.unavailable': '此设备无法使用实时试妆，将显示色彩预览。',
   'ar.live': '实时 · 不录制',
   'ar.demoColors': '示例颜色（非真实产品）',

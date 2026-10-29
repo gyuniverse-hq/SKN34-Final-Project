@@ -208,6 +208,8 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     clipLin: 0.92,              // linear value treated as blown out
     darkLum: 0.02,
     lightConfR2: [0.1, 0.4],    // R² of the normal→brightness fit mapped to confidence 0..1
+    lightChangeDelta: 6,        // CIE76 on mean skin Lab: above this, Gray World snaps (no smoothing)
+    blownFaceFraction: 0.15,    // share of in-frame skin verts blown out → "light too strong"
   };
   // roughness/specular/flake: PBR_DEMO_SPEC 5 starting values, then detail/specular nudged
   // toward finish medians in research/data/reference/lip_texture/lip_texture.sqlite (Pexels/Unsplash
@@ -334,6 +336,18 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     return [toLin(((n >> 16) & 255) / 255), toLin(((n >> 8) & 255) / 255), toLin((n & 255) / 255)];
   }
   function lumOf(r, g, b) { return 0.2126 * r + 0.7152 * g + 0.0722 * b; }
+  // Linear sRGB → CIE Lab (D65). CIE76 is enough here: the page has no ΔE2000, and the threshold is 6.
+  function linToLab(rgb) {
+    const x = (0.4124 * rgb[0] + 0.3576 * rgb[1] + 0.1805 * rgb[2]) / 0.95047;
+    const y = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+    const z = (0.0193 * rgb[0] + 0.1192 * rgb[1] + 0.9505 * rgb[2]) / 1.08883;
+    const f = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+    const fx = f(x), fy = f(y), fz = f(z);
+    return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+  }
+  function cie76(a, b) {
+    return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+  }
 
   // ── One Euro filter over all landmarks (no per-frame allocation) ─────
   const sx = new Float32Array(N_LANDMARKS);
@@ -1475,6 +1489,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     lipMeanLum: 0.12, skinMeanLum: TUNING.skinRefLum, bgFraction: 0, samples: 0,
     lipRed: 0.2, skinRed: 0.2, grain: 0, blur: 1, lipColor: [0.12, 0.06, 0.06], lipUpLow: 1,
     skinColor: [0.42, 0.28, 0.22], colorSamples: 0, colorDelta: 1,
+    snapColor: false, refSkinLab: null, blownFrac: 0,
   };
   let masks = null;
   let lastLightAt = 0;
@@ -1549,6 +1564,12 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     for (const i of skinIn) {
       samples.push([meshNrm[i * 3], meshNrm[i * 3 + 1], meshNrm[i * 3 + 2], lumAt(sx[i], sy[i])]);
     }
+    let blownN = 0;
+    for (const i of skinIn) {
+      const c = linAt(sx[i], sy[i]);
+      if (Math.max(c[0], c[1], c[2]) > TUNING.clipLin) blownN++;
+    }
+    if (skinIn.length) light.blownFrac += k * (blownN / skinIn.length - light.blownFrac);
     const skinLum = trimmedMean(samples.map((s) => s[3]));
     if (lipLum) light.lipMeanLum += k * (lipLum - light.lipMeanLum);
     try {
@@ -1570,7 +1591,12 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     // Bare-skin color: the reference below paint that crosses the lip line onto the skin (overlip).
     const skinCols = skinIn.map((i) => linAt(sx[i], sy[i]));
     const skinColor = [0, 1, 2].map((j) => trimmedMean(skinCols.map((c) => c[j])));
-    if (skinColor.every((v) => v !== null)) for (let j = 0; j < 3; j++) light.skinColor[j] += k * (skinColor[j] - light.skinColor[j]);
+    if (skinColor.every((v) => v !== null)) {
+      for (let j = 0; j < 3; j++) light.skinColor[j] += k * (skinColor[j] - light.skinColor[j]);
+      const lab = linToLab(light.skinColor);
+      if (light.refSkinLab && cie76(lab, light.refSkinLab) > TUNING.lightChangeDelta) light.snapColor = true;
+      light.refSkinLab = lab;
+    }
 
     // Direction and strength only (skin color is not used): brightness ≈ a + b·n, refit without outliers.
     if (samples.length >= 30) {
@@ -1606,7 +1632,8 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
 
     // Color: Gray World over background pixels (segmenter class 0), blown-out and dark pixels excluded.
     const segEvery = wbLocked ? TUNING.segmentEveryMs : TUNING.segmentEveryMsAuto;
-    if (segmenter && now - lastSegmentAt > segEvery && (lastSegmentAt < 0 || fps >= TUNING.segmentMinFps)) {
+    const due = now - lastSegmentAt > segEvery && (lastSegmentAt < 0 || fps >= TUNING.segmentMinFps);
+    if (segmenter && (light.snapColor || due)) {
       lastSegmentAt = now;
       try {
         segmenter.segmentForVideo(video, now, (result) => {
@@ -1629,7 +1656,9 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
             const lo = TUNING.lightColorClamp[0], hi = TUNING.lightColorClamp[1];
             const c = [clamp(r / Y, lo, hi), clamp(g / Y, lo, hi), clamp(bl / Y, lo, hi)];
             const cy = lumOf(c[0], c[1], c[2]);
-            const kc = light.colorSamples++ === 0 ? 1 : wbLocked ? TUNING.lightSmoothing : TUNING.lightSmoothingAuto;
+            const snap = light.snapColor;
+            const kc = light.colorSamples++ === 0 || snap ? 1 : wbLocked ? TUNING.lightSmoothing : TUNING.lightSmoothingAuto;
+            if (snap) light.snapColor = false;
             let delta = 0;
             for (let j = 0; j < 3; j++) {
               const d = c[j] / cy - light.color[j];
@@ -1641,9 +1670,11 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
             const ok = light.bgFraction >= TUNING.bgMinFraction && chroma <= TUNING.bgMaxChroma ? 1 : 0;
             light.colorConf += kc * (ok - light.colorConf);
           }
+          postLightHint();
         });
       } catch (e) { /* segmentation is best-effort */ }
     }
+    postLightHint();
   }
 
   // ── WebGL renderer ───────────────────────────────────────────────────
@@ -2766,6 +2797,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
           filterReady = false;
           resetLidFit();
           setStatus('no-face');
+          if (lastLightHint) { lastLightHint = null; post({ type: 'light_hint', value: null }); }
         }
       } catch (e) { /* skip frame */ }
     }

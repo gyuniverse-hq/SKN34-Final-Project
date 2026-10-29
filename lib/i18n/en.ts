@@ -195,6 +195,8 @@ export const en = {
   'ar.openSettings': 'Open Settings',
   'ar.loading': 'Starting face tracking…',
   'ar.noFace': 'Center your face in the frame',
+  'ar.lightHint.low': 'Estimating the light. Color may not match what you see.',
+  'ar.lightHint.blown': 'The light is too strong.',
   'ar.unavailable': 'Live try-on is unavailable on this device. Showing a color preview instead.',
   'ar.live': 'Live · not recorded',
   'ar.demoColors': 'Sample colors (not real products)',
