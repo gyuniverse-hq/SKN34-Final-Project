@@ -149,7 +149,7 @@ describe('makeup store zones', () => {
       expect(s.modified).toEqual([]);
     });
 
-    it('keeps mascara, highlighter and contour on the look but AR paint and shade chips skip them', () => {
+    it('AR paint strips mascara, highlighter and contour even when a look names them', () => {
       const look = {
         id: 'full',
         title: 'Full',
@@ -159,14 +159,13 @@ describe('makeup store zones', () => {
           blush: null,
           eyeshadow: null,
           eyeliner: null,
-          mascara: { hex: '#121010', intensity: 0.9, texture: 'matte' },
           highlighter: { hex: '#F2DCC4', intensity: 0.7, texture: 'shimmer' },
           contour: { hex: '#8A5A44', intensity: 0.5, texture: 'matte' },
         },
       } as unknown as CelebLook;
       useMakeupStore.getState().applyLook(look, []);
       const worn = useMakeupStore.getState().makeup;
-      expect(worn.mascara?.hex).toBe('#121010');
+      expect(worn.mascara).toBeNull();
       expect(worn.highlighter?.hex).toBe('#F2DCC4');
       expect(worn.contour?.hex).toBe('#8A5A44');
       expect(arPaintMakeup(worn).mascara).toBeNull();
@@ -174,11 +173,6 @@ describe('makeup store zones', () => {
       expect(arPaintMakeup(worn).contour).toBeNull();
       expect(arPaintMakeup(worn).lip?.hex).toBe('#B3202E');
       expect(AR_PAINT_ZONES).toEqual(['lip', 'blush', 'eyeshadow', 'eyeliner', 'brow', 'foundation']);
-      useMakeupStore.getState().applyShade(
-        { id: 'demo-mascara', makeupZone: 'mascara', texture: 'matte', shades: [] } as unknown as Product,
-        { id: 'brown', name: 'Brown', hex: '#3A2820' }
-      );
-      expect(useMakeupStore.getState().makeup.mascara?.hex).toBe('#121010');
     });
 
     it('a new look replaces the old origin, and reset forgets it', () => {

@@ -256,10 +256,7 @@ export const DEMO_LOOKS: CelebLook[] = [
     items: [
       { productId: 'demo-shadow-shimmer', shadeId: 'demo-bronze', step: 'eyes' },
       { productId: 'demo-liner-liquid', shadeId: 'demo-liquid-black', step: 'eyes' },
-      { productId: 'demo-mascara', shadeId: 'demo-mascara-black', step: 'eyes' },
       { productId: 'demo-blush', shadeId: 'demo-peach', step: 'cheeks' },
-      { productId: 'demo-contour', shadeId: 'demo-contour-warm', step: 'cheeks' },
-      { productId: 'demo-highlighter', shadeId: 'demo-hl-champagne', step: 'cheeks' },
       { productId: 'demo-lip-velvet', shadeId: 'demo-red', step: 'lips' },
     ],
     makeup: {
@@ -267,14 +264,11 @@ export const DEMO_LOOKS: CelebLook[] = [
       blush: { hex: '#F08C7A', intensity: 0.5, texture: 'matte' },
       eyeshadow: { hex: '#8A5A44', hexTo: '#3E271E', intensity: 0.7, texture: 'shimmer' },
       eyeliner: { hex: '#0E0C0C', intensity: 1, texture: 'glossy', geometry: { length: 0.3, angle: 15, thickness: 0.06 } },
-      mascara: { hex: '#121010', intensity: 0.9, texture: 'matte', geometry: { length: 1.3, thickness: 1.3, lower: false } },
-      highlighter: { hex: '#F2DCC4', intensity: 0.7, texture: 'shimmer', geometry: { areas: ['nose_bridge', 'under_eye'] } },
-      contour: { hex: '#8A5A44', intensity: 0.5, texture: 'matte' },
     },
-    // Lip, shadow and blush carry the look; the liner, lashes, glow and contour only support them.
+    // Lip, shadow and blush carry the look; the liner only supports them.
     heroZones: ['lip', 'eyeshadow', 'blush'],
-    // Stage: sculpt the face first, then the eyes, then the bold lip last.
-    stepOrder: ['contour', 'highlighter', 'eyeshadow', 'eyeliner', 'mascara', 'blush', 'lip'],
+    // Stage: eyes and cheek, then the bold lip last.
+    stepOrder: ['eyeshadow', 'blush', 'eyeliner', 'lip'],
     tags: [DEMO_TAG, 'bold'],
   },
   {
@@ -330,8 +324,6 @@ export const DEMO_LOOKS: CelebLook[] = [
     items: [
       { productId: 'demo-shadow-gal', shadeId: 'demo-gal-pearl', step: 'eyes' },
       { productId: 'demo-liner-liquid', shadeId: 'demo-liquid-black', step: 'eyes' },
-      { productId: 'demo-mascara', shadeId: 'demo-mascara-black', step: 'eyes' },
-      { productId: 'demo-highlighter', shadeId: 'demo-hl-pearl', step: 'cheeks' },
       { productId: 'demo-lip-gal', shadeId: 'demo-gal-nude', step: 'lips' },
     ],
     makeup: {
@@ -339,11 +331,9 @@ export const DEMO_LOOKS: CelebLook[] = [
       blush: null,
       eyeshadow: { hex: '#F3E9DF', hexTo: '#5A3A2C', intensity: 0.85, texture: 'shimmer' },
       eyeliner: { hex: '#0E0C0C', intensity: 1, texture: 'glossy', geometry: { length: 0.42, angle: 12, thickness: 0.075 } },
-      mascara: { hex: '#121010', intensity: 1, texture: 'matte', geometry: { length: 1.55, thickness: 1.6 } },
-      highlighter: { hex: '#F4D6D6', intensity: 0.8, texture: 'shimmer' },
     },
     // Gal: the eyes are the whole look, so they come first and get the most time.
-    stepOrder: ['eyeshadow', 'eyeliner', 'mascara', 'highlighter', 'lip'],
+    stepOrder: ['eyeliner', 'eyeshadow', 'lip'],
     tags: [DEMO_TAG, 'gal'],
   },
   {
@@ -357,11 +347,8 @@ export const DEMO_LOOKS: CelebLook[] = [
     // Plan values (a1 = how much is covered) map to the app's intensity: contour 0.35 → 0.6, highlighter 0.45 → 0.9,
     // shadow 0.4 → 0.5, liner 0.9 → 0.9, mascara 0.85 → 0.78, cream lip 0.7 → 0.46.
     items: [
-      { productId: 'demo-contour', shadeId: 'demo-contour-warm', step: 'cheeks' },
-      { productId: 'demo-highlighter-satin', shadeId: 'demo-hl-ivory', step: 'cheeks' },
       { productId: 'demo-shadow-semi', shadeId: 'demo-semi-champagne', step: 'eyes' },
       { productId: 'demo-liner-pencil', shadeId: 'demo-liner-black', step: 'eyes' },
-      { productId: 'demo-mascara', shadeId: 'demo-mascara-jet', step: 'eyes' },
       { productId: 'demo-lip-semi', shadeId: 'demo-semi-nude', step: 'lips' },
     ],
     makeup: {
@@ -375,12 +362,9 @@ export const DEMO_LOOKS: CelebLook[] = [
         geometry: { innerPoint: { hex: '#FFFFFF', a1: 0.6, radius: 0.18 } },
       },
       eyeliner: { hex: '#1A1414', intensity: 0.9, texture: 'matte', geometry: { length: 0.35, angle: 12, thickness: 0.072 } },
-      mascara: { hex: '#0E0B0B', intensity: 0.78, texture: 'matte', geometry: { length: 1.5, thickness: 1.4, lower: true } },
-      highlighter: { hex: '#FFF4EC', intensity: 0.9, texture: 'satin', geometry: { areas: ['forehead', 'nose_bridge', 'under_eye'] } },
-      contour: { hex: '#8A5A44', intensity: 0.6, texture: 'matte' },
     },
-    // Semi gal: contour and glow set the face, then the eyes, then the overlip.
-    stepOrder: ['contour', 'highlighter', 'eyeshadow', 'eyeliner', 'mascara', 'lip'],
+    // Semi gal: the eyes, then the overlip.
+    stepOrder: ['eyeshadow', 'eyeliner', 'lip'],
     tags: [DEMO_TAG, 'Y2K', 'festival', 'photoshoot', 'bold'],
   },
   {
@@ -397,8 +381,6 @@ export const DEMO_LOOKS: CelebLook[] = [
       { productId: 'demo-blush-sheer', shadeId: 'demo-peach-coral-cheek', step: 'cheeks' },
       { productId: 'demo-shadow-peach', shadeId: 'demo-peach-coral-lid', step: 'eyes' },
       { productId: 'demo-liner-pencil', shadeId: 'demo-liner-soft-brown', step: 'eyes' },
-      { productId: 'demo-mascara', shadeId: 'demo-mascara-soft', step: 'eyes' },
-      { productId: 'demo-highlighter-satin', shadeId: 'demo-hl-peach-ivory', step: 'cheeks' },
       { productId: 'demo-lip-coral', shadeId: 'demo-coral-tint', step: 'lips' },
     ],
     makeup: {
@@ -411,18 +393,11 @@ export const DEMO_LOOKS: CelebLook[] = [
       },
       eyeshadow: { hex: '#F4A78A', hexTo: '#E38B6F', intensity: 0.44, texture: 'shimmer', geometry: { pearl: 0.2, sparkle: 0 } },
       eyeliner: { hex: '#6B4A3A', intensity: 0.1, texture: 'matte', geometry: { length: 0.08, angle: 5, thickness: 0.036, linerStyle: 'tightline' } },
-      mascara: { hex: '#2A1E1A', intensity: 0.22, texture: 'matte', geometry: { length: 1.1, thickness: 1, lower: false } },
-      highlighter: {
-        hex: '#FFF1E6',
-        intensity: 0.7,
-        texture: 'satin',
-        geometry: { areas: ['nose_bridge', 'under_eye'], intensity: 0.6 },
-      },
     },
     // Lid and cheek share one peach coral: swapping the shadow or the blush product moves the other with it.
     colorLinks: [{ zones: ['eyeshadow', 'blush'], hex: '#F4A78A', followOnChange: true }],
     // Peach: the cheek color comes first and the lids follow it, so both stay one tone.
-    stepOrder: ['blush', 'eyeshadow', 'eyeliner', 'mascara', 'highlighter', 'lip'],
+    stepOrder: ['blush', 'eyeshadow', 'eyeliner', 'lip'],
     tags: [DEMO_TAG, 'spring', 'summer', 'date', 'selfie', 'natural'],
   },
   {
@@ -434,12 +409,9 @@ export const DEMO_LOOKS: CelebLook[] = [
     thumbnailUrl: '',
     tutorialQuery: 'kpop idol snake eye semi smoky makeup tutorial',
     items: [
-      { productId: 'demo-contour', shadeId: 'demo-contour-cool', step: 'cheeks' },
-      { productId: 'demo-highlighter-rose-gold', shadeId: 'demo-hl-rose-gold', step: 'cheeks' },
       { productId: 'demo-blush-cool-pink', shadeId: 'demo-cool-pink', step: 'cheeks' },
       { productId: 'demo-shadow-mauve-taupe', shadeId: 'demo-mauve-taupe', step: 'eyes' },
       { productId: 'demo-liner-liquid', shadeId: 'demo-liquid-black', step: 'eyes' },
-      { productId: 'demo-mascara', shadeId: 'demo-mascara-black', step: 'eyes' },
       { productId: 'demo-lip-cherry-glow', shadeId: 'demo-cherry-rose', step: 'lips' },
     ],
     makeup: {
@@ -453,12 +425,9 @@ export const DEMO_LOOKS: CelebLook[] = [
       // Semi-smoky: the dark second tone sits at the outer corner and along the lower lash line.
       eyeshadow: { hex: '#B08A8C', hexTo: '#4E3B3D', intensity: 0.55, texture: 'matte' },
       eyeliner: { hex: '#0E0C0C', intensity: 1, texture: 'glossy', geometry: { length: 0.38, angle: 18, thickness: 0.05 } },
-      mascara: { hex: '#121010', intensity: 0.85, texture: 'matte', geometry: { length: 1.45, thickness: 1.3, lower: true } },
-      highlighter: { hex: '#F6D9CF', intensity: 0.75, texture: 'shimmer', geometry: { areas: ['forehead', 'nose_bridge'] } },
-      contour: { hex: '#7A6260', intensity: 0.35, texture: 'matte' },
     },
-    // Snake eye (the tutorial's order): eyes, then the flush, contour and glow, lip last.
-    stepOrder: ['eyeshadow', 'eyeliner', 'mascara', 'blush', 'contour', 'highlighter', 'lip'],
+    // Snake eye (the tutorial's order): eyes, then the flush, lip last.
+    stepOrder: ['eyeshadow', 'eyeliner', 'blush', 'lip'],
     tags: [DEMO_TAG, 'idol', 'stage', 'bold'],
   },
 ];

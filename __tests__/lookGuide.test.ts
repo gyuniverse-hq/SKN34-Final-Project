@@ -56,26 +56,20 @@ describe('how-to guide steps', () => {
     );
   });
 
-  it('reads the look extras: two-tone and inner pearl shadow, lower lashes, overlip, wide blush, named glow areas', () => {
+  it('reads the look extras: two-tone and inner pearl shadow, overlip, wide blush', () => {
     const text = (id: string, zone: keyof MakeupState) => {
       const l = look(id);
       return guideText(buildGuideSteps(l.makeup, l.stepOrder).find((s) => s.zone === zone)!, en);
     };
     expect(text('demo-look-semi-gyaru-retro', 'eyeshadow')).toContain(en('looks.guide.eyeshadow.inner'));
     expect(text('demo-look-stage-red', 'eyeshadow')).toContain(en('looks.guide.eyeshadow.twoTone'));
-    expect(text('demo-look-stage-red', 'mascara')).toContain(en('looks.guide.mascara.upperOnly'));
-    expect(text('demo-look-gal-classic', 'mascara')).toContain(en('looks.guide.mascara.long'));
     expect(text('demo-look-semi-gyaru-retro', 'lip')).toContain(en('looks.guide.lip.overlip'));
     expect(text('demo-look-stage-red', 'lip')).toBe(en('looks.guide.lip.matte'));
     expect(text('demo-look-glass-rose', 'lip')).toBe(en('looks.guide.lip.gloss'));
     expect(text('demo-look-snake-eye-idol', 'blush')).toContain(en('looks.guide.blush.wide'));
-    expect(text('demo-look-snake-eye-idol', 'highlighter')).toBe(
-      ['Tap it onto the forehead, the nose bridge where the light lands.', en('looks.guide.amount.strong')].join(' ')
-    );
-    // How much: a faint daily cheek vs a strong stage flush; the peach glow is toned down by its own multiple.
+    // How much: a faint daily cheek vs a strong stage flush.
     expect(text('demo-look-soft-berry', 'blush')).toContain(en('looks.guide.amount.light'));
     expect(text('demo-look-snake-eye-idol', 'blush')).toContain(en('looks.guide.amount.strong'));
-    expect(text('demo-look-soft-peach-coral', 'highlighter')).not.toMatch(/once more|very light/);
   });
 
   it('only uses sentences that exist in every language', () => {

@@ -62,10 +62,9 @@ describe('gal demo look', () => {
 
   it('sets every zone the gal look is made of, with a two-tone shadow and a long wing liner', () => {
     expect(gal).toBeDefined();
-    for (const zone of ['lip', 'eyeshadow', 'eyeliner', 'mascara', 'highlighter'] as const) expect(gal.makeup[zone]).toBeTruthy();
+    for (const zone of ['lip', 'eyeshadow', 'eyeliner'] as const) expect(gal.makeup[zone]).toBeTruthy();
     expect(gal.makeup.eyeshadow?.hexTo).toMatch(HEX);
     expect(gal.makeup.eyeliner?.geometry?.length).toBeGreaterThan(0.18); // longer than the default wing
-    expect(gal.makeup.mascara?.geometry?.thickness).toBeGreaterThan(1); // denser than the default
   });
 
   it('keeps out what the spec rules out: no skin-covering base and no lip drawn outside the lips', () => {
@@ -87,9 +86,9 @@ describe('gal demo look', () => {
 describe('retro and semi gal demo look', () => {
   const semi = DEMO_LOOKS.find((l) => l.id === 'demo-look-semi-gyaru-retro')!;
 
-  it('sets lip with an overlip, a two-tone shadow with an inner pearl, a long liner, full lashes, named highlighter areas and contour', () => {
+  it('sets lip with an overlip, a two-tone shadow with an inner pearl and a long liner', () => {
     expect(semi).toBeDefined();
-    for (const zone of ['lip', 'eyeshadow', 'eyeliner', 'mascara', 'highlighter', 'contour'] as const) expect(semi.makeup[zone]).toBeTruthy();
+    for (const zone of ['lip', 'eyeshadow', 'eyeliner'] as const) expect(semi.makeup[zone]).toBeTruthy();
     const lip = semi.makeup.lip!.geometry!;
     expect(lip.overlip).toBeGreaterThan(0);
     expect(lip.overlip).toBeLessThanOrEqual(0.06);
@@ -98,8 +97,6 @@ describe('retro and semi gal demo look', () => {
     expect(semi.makeup.eyeshadow?.geometry?.innerPoint?.hex).toMatch(HEX);
     expect(semi.makeup.eyeshadow?.hexTo).toMatch(HEX);
     expect(semi.makeup.eyeliner?.geometry?.length).toBeGreaterThan(0.18);
-    expect(semi.makeup.mascara?.geometry?.lower).toBe(true);
-    expect(semi.makeup.highlighter?.geometry?.areas).toEqual(['forehead', 'nose_bridge', 'under_eye']);
     expect(semi.tags).toEqual(expect.arrayContaining(['Y2K', 'festival', 'photoshoot', 'bold']));
   });
 
@@ -126,15 +123,13 @@ describe('soft peach coral demo look', () => {
     expect(peach.makeup.eyeshadow?.hex).toBe(peach.colorLinks![0].hex);
   });
 
-  it('keeps the look light: sheer tint and blush, particle-free shimmer, short liner, no lower lashes, no base', () => {
+  it('keeps the look light: sheer tint and blush, particle-free shimmer, short liner, no base', () => {
     expect(peach.makeup.lip?.texture).toBe('sheer');
     expect(peach.makeup.blush?.texture).toBe('sheer');
     expect(peach.makeup.blush?.geometry?.blushPlacement).toBe('apple');
     expect(peach.makeup.eyeshadow?.geometry?.sparkle).toBe(0);
     expect(peach.makeup.eyeshadow?.geometry?.pearl).toBeGreaterThan(0);
     expect(peach.makeup.eyeliner?.geometry?.length).toBeLessThan(0.18); // shorter than the default wing
-    expect(peach.makeup.mascara?.geometry?.lower).toBe(false);
-    expect(peach.makeup.highlighter?.geometry?.areas).toEqual(['nose_bridge', 'under_eye']);
     expect(Object.keys(peach.makeup)).not.toContain('base');
     expect(peach.tags).toEqual(expect.arrayContaining(['spring', 'summer', 'date', 'selfie', 'natural']));
   });
@@ -143,12 +138,11 @@ describe('soft peach coral demo look', () => {
 describe('snake-eye idol demo look', () => {
   const idol = DEMO_LOOKS.find((l) => l.id === 'demo-look-snake-eye-idol')!;
 
-  it('wears an upturned long wing, a semi-smoky lower lash line, lower lashes and a high under-eye flush', () => {
+  it('wears an upturned long wing, a semi-smoky lower lash line and a high under-eye flush', () => {
     expect(idol).toBeDefined();
     expect(idol.makeup.eyeliner?.geometry?.length).toBeGreaterThan(0.18); // longer than the default wing
     expect(idol.makeup.eyeliner?.geometry?.angle).toBeGreaterThan(15); // and lifted more
     expect(idol.makeup.eyeshadow?.hexTo).toBeDefined();
-    expect(idol.makeup.mascara?.geometry?.lower).toBe(true);
     expect(idol.makeup.blush?.geometry?.blushPlacement).toBe('under_eye');
     expect(idol.makeup.lip?.texture).toBe('glossy');
   });
