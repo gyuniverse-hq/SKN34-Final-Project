@@ -12,6 +12,7 @@ import { theme } from '@/constants/theme';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useProducts } from '@/lib/queries';
+import { useRecentSearchStore } from '@/store/recentSearchStore';
 import {
   parseCategory,
   parseConcerns,
@@ -29,6 +30,7 @@ export default function SearchScreen() {
   const { t } = useI18n();
   const source = parseSearchSource(params.source);
   const [query, setQuery] = useState(paramValue(params.q) ?? '');
+  const addSearch = useRecentSearchStore((s) => s.add);
   const [category, setCategory] = useState<ProductCategory | undefined>(parseCategory(params.category));
   const [concerns, setConcerns] = useState<SkinConcern[]>(parseConcerns(params.concerns));
   const debouncedQuery = useDebouncedValue(query.trim(), 300);
@@ -47,7 +49,7 @@ export default function SearchScreen() {
 
   const header = (
     <View style={styles.header}>
-      <SearchBar value={query} onChangeText={setQuery} placeholder={t('shop.searchPlaceholder')} />
+      <SearchBar value={query} onChangeText={setQuery} placeholder={t('shop.searchPlaceholder')} onSubmit={() => addSearch(query)} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
         <Chip label={t('shop.all')} selected={!category} onPress={() => setCategory(undefined)} />
         {PRODUCT_CATEGORIES.map((c) => (
