@@ -1,7 +1,7 @@
 """raw oliveyoung: 올리브영 수집 원본 22테이블
 
-Revision ID: 0004
-Revises: 0003
+Revision ID: 0005
+Revises: 0004
 Create Date: 2026-10-28
 
 앱 서빙 테이블(products / shades / looks / look_items / stores)은 건드리지 않는다.
@@ -14,8 +14,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision: str = "0004"
-down_revision: str | None = "0003"
+revision: str = "0005"
+down_revision: str | None = "0004"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
