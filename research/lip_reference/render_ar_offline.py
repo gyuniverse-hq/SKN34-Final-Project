@@ -65,7 +65,7 @@ def page_html(page: Path = ROOT / "components/ar/faceTrackerHtml.ts"):
       src.getContext('2d').drawImage(await load(job.frame), 0, 0, W, H);
       for (let i = 0; i < N_LANDMARKS && i < job.x.length; i++) { sx[i] = job.x[i]; sy[i] = job.y[i]; sz[i] = job.z[i]; }
       hasFace = true; updateMesh(W, H);
-      light.samples = 0; lipEdge.samples = 0; lipEdge.conf.fill(0); lipEdge.t.fill(1);
+      light.samples = 0; if (typeof shownLight !== 'undefined') shownLight.t = 0; lipEdge.samples = 0; lipEdge.conf.fill(0); lipEdge.t.fill(1);
       lipThick.upBase = 0; lipThick.lowBase = 0;
       for (let k = 0; k < 6; k++) { sampleScene(k * 500, W, H); measureLipThickness(W, H); measureLipEdge(W, H); }
       makeup = { lip: { hex: job.hex, intensity: job.intensity, texture: job.texture }, blush: null, eyeshadow: null };

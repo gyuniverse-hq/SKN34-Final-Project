@@ -177,7 +177,16 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     appleScale: 0.8,            // the face-point blush (placement / size / softness set) is this much smaller than the baked default
     shadowCrease: 0.6,          // how far toward the brow the shadow reaches (0..1)
     blushCoverage: 0.6,         // coverage = intensity × this
-    foundCoverage: 0.45,        // foundation: thin tint, skin texture kept. YouCam glowIntensity stays 0.
+    // Foundation (10-29): the zone intensity is the coverage slider (0..1). It sets how strongly the layer is put on and
+    // how much of it is opaque pigment (camera shading only, so redness and blotches are covered as far as the product
+    // covers) versus a translucent film that lets the skin's own color through. No sheen, finish or brightening;
+    // YouCam glowIntensity stays 0.
+    foundCoverage: [0.3, 0.85],   // layer strength, sheer → full coverage
+    foundOpaque: [0.15, 0.9],     // opaque pigment share, sheer → full coverage
+    foundHair: [0.3, 0.55],       // brightness / mean skin brightness: below 0.3 no foundation (hair, brows), full above 0.55
+    foundShadeMax: 1.2,           // camera highlights may brighten the pigment this much at most (was 1.6 via powder: a glow)
+    lightDisplaySec: 0.6,         // light color / exposure / skin brightness glide to each new estimate (no 0.5 s steps)
+    skinToneEveryMs: 1500,        // skin tone numbers sent to the app for the shade suggestion
     browCoverage: 1.0,           // EYEBROW_PRESET.baseOpacity. Landmark ring only; no parsing/GAN.
     shadowCoverage: 1.0,        // unused for lid paint; opacity comes from SHADOW_FINISHES
     skinRefLum: 0.34,           // assumed skin reflectance (linear Y) for exposure scaling
@@ -1491,6 +1500,41 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     skinColor: [0.42, 0.28, 0.22], colorSamples: 0, colorDelta: 1,
     snapColor: false, refSkinLab: null, blownFrac: 0,
   };
+  // What the shader is given. The estimates above change every 0.5 s (and snap on a big light change); applied as they are,
+  // every layer covering the face (foundation most of all) stepped brighter or darker. The shown values glide instead.
+  const shownLight = { color: [1, 1, 1], exposure: 1, skinMeanLum: TUNING.skinRefLum, t: 0 };
+  function glideLight(now) {
+    const w = clamp(light.colorConf, 0, 1);
+    const target = [1 + w * (light.color[0] - 1), 1 + w * (light.color[1] - 1), 1 + w * (light.color[2] - 1)];
+    const exposure = clamp(light.skinMeanLum / TUNING.skinRefLum, TUNING.exposureRange[0], TUNING.exposureRange[1]);
+    const dt = shownLight.t ? (now - shownLight.t) / 1000 : Infinity;
+    shownLight.t = now;
+    const k = dt === Infinity ? 1 : 1 - Math.exp(-Math.max(0, dt) / TUNING.lightDisplaySec);
+    for (let j = 0; j < 3; j++) shownLight.color[j] += k * (target[j] - shownLight.color[j]);
+    shownLight.exposure += k * (exposure - shownLight.exposure);
+    shownLight.skinMeanLum += k * (light.skinMeanLum - shownLight.skinMeanLum);
+    return shownLight;
+  }
+  // Skin tone for the shade suggestion: numbers only (AR_SPEC 1-4). The mean bare-skin color with the estimated light
+  // color divided out, in Lab. Camera exposure is not undone (it cannot be without a reference), so L is approximate.
+  let lastSkinToneAt = 0;
+  function postSkinTone(now, nSkin) {
+    if (now - lastSkinToneAt < TUNING.skinToneEveryMs || light.samples < 3 || nSkin < 30) return;
+    lastSkinToneAt = now;
+    const w = clamp(light.colorConf, 0, 1);
+    const lc = [0, 1, 2].map((j) => 1 + w * (light.color[j] - 1));
+    const lab = linToLab([0, 1, 2].map((j) => clamp(light.skinColor[j] / lc[j], 0, 1)));
+    post({ type: 'skin_tone', lab: lab.map((v) => Math.round(v * 10) / 10), conf: Math.round(w * 100) / 100 });
+  }
+  let lastLightHint = undefined;
+  function postLightHint() {
+    let hint = null;
+    if (light.blownFrac >= TUNING.blownFaceFraction) hint = 'blown';
+    else if (light.colorSamples >= 1 && light.colorConf < 0.5) hint = 'low';
+    if (hint === lastLightHint) return;
+    lastLightHint = hint;
+    post({ type: 'light_hint', value: hint });
+  }
   let masks = null;
   let lastLightAt = 0;
   let lastSegmentAt = -1e9;
@@ -1596,6 +1640,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       const lab = linToLab(light.skinColor);
       if (light.refSkinLab && cie76(lab, light.refSkinLab) > TUNING.lightChangeDelta) light.snapColor = true;
       light.refSkinLab = lab;
+      postSkinTone(now, skinIn.length);
     }
 
     // Direction and strength only (skin color is not used): brightness ≈ a + b·n, refit without outliers.
@@ -1720,7 +1765,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     'uniform sampler2D uMask3; uniform vec4 uHlAreas; uniform float uHlLegacy; uniform vec3 uSkinColor;',
     'uniform vec4 uLipCenter; uniform float uCenterHalf; uniform float uCenterHl;',
     'uniform sampler2D uMask2; uniform vec3 uHlAlbedo; uniform float uHlCov; uniform float uHlFlake; uniform vec3 uContourAlbedo; uniform float uContourCov;',
-    'uniform vec3 uFoundAlbedo; uniform float uFoundCov; uniform vec3 uBrowAlbedo; uniform float uBrowCov; uniform float uBrowPowder; uniform float uBrowLift; uniform float uBrowSoft;',
+    'uniform vec3 uFoundAlbedo; uniform float uFoundCov; uniform float uFoundOpaque; uniform float uFoundShadeMax; uniform vec2 uFoundHair; uniform vec3 uBrowAlbedo; uniform float uBrowCov; uniform float uBrowPowder; uniform float uBrowLift; uniform float uBrowSoft;',
     'uniform vec2 uBrowSkin[12]; uniform vec2 uBrowHead[2]; uniform vec2 uBrowTail[2];',
     'uniform vec3 uFaceRough; uniform float uFaceSheen; uniform float uEyeHole; uniform float uPowderTint;',
     'uniform sampler2D uEye; uniform vec4 uEyeRect; uniform vec3 uLinerAlbedo; uniform float uLinerCov; uniform float uLinerAA; uniform float uLinerSoft; uniform vec3 uMascaraAlbedo; uniform float uMascaraCov; uniform float uEyeSoft;',
@@ -1975,7 +2020,16 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '  vec3 col = cam;',
     // Face → eyes → lips, each a product layer over the camera (a mixed product color shaded by the
     // camera brightness), so intensity 0 leaves the pixel as it was.
-    '  if (foundA > 0.002) col = mix(col, powder(cam, uFoundAlbedo), foundA);',
+    // Foundation: opaque share = the product color shaded by the camera (the skin's color variation is covered); translucent
+    // share = the skin filtered by the pigment (its own color shows through). Coverage moves between the two.
+    '  if (foundA > 0.002) {',
+    // The mask is the landmark face oval: bangs over the forehead and the brow hairs past the brow points sit inside it.
+    // Hair is much darker than the face's mean skin, so the layer fades out there (same idea as the brow hair test).
+    '    foundA *= smoothstep(uFoundHair.x, uFoundHair.y, lum(cam) / max(uSkinMeanLum, 1e-3));',
+    '    vec3 pigment = layer(cam, uFoundAlbedo, uSkinMeanLum, uFoundShadeMax);',
+    '    vec3 film = cam * sqrt(clamp(uFoundAlbedo / uPaperWhite, 0.0, 1.0));',
+    '    col = mix(col, mix(film, pigment, uFoundOpaque), foundA);',
+    '  }',
     '  if (contourA > 0.002) col = mix(col, powder(cam, uContourAlbedo), contourA);',
     '  if (blushA > 0.002) col = mix(col, powder(cam, uBlushAlbedo), blushA) + uBlushAlbedo * uLightColor * powderSheen(n, l, v, uFaceRough.x) * blushA;',
     // Highlighter: a little of its light color, then its own sheen and shimmer where the face meets the light.
@@ -2211,7 +2265,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       'uShadow2Albedo', 'uShadow2Cov', 'uInnerAlbedo', 'uInnerCov', 'uMask3', 'uHlAreas', 'uHlLegacy', 'uSkinColor',
       'uLipCenter', 'uCenterHalf', 'uCenterHl', 'uMask2', 'uHlAlbedo', 'uHlCov', 'uHlFlake', 'uContourAlbedo', 'uContourCov', 'uFaceRough', 'uFaceSheen', 'uEyeHole', 'uPowderTint',
       'uEye', 'uEyeRect', 'uLinerAlbedo', 'uLinerCov', 'uLinerAA', 'uLinerSoft', 'uMascaraAlbedo', 'uMascaraCov', 'uEyeSoft',
-      'uFoundAlbedo', 'uFoundCov', 'uBrowAlbedo', 'uBrowCov', 'uBrowPowder', 'uBrowLift', 'uBrowSoft', 'uBrowSkin', 'uBrowHead', 'uBrowTail']);
+      'uFoundAlbedo', 'uFoundCov', 'uFoundOpaque', 'uFoundShadeMax', 'uFoundHair', 'uBrowAlbedo', 'uBrowCov', 'uBrowPowder', 'uBrowLift', 'uBrowSoft', 'uBrowSkin', 'uBrowHead', 'uBrowTail']);
     const bgPos = gl.getAttribLocation(bg.p, 'aPos');
     const aPos = gl.getAttribLocation(mesh.p, 'aPos');
     const aUv = gl.getAttribLocation(mesh.p, 'aUv');
@@ -2429,7 +2483,12 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         gl.uniform1f(u.uMascaraCov, mascara ? 0.5 + 0.45 * clamp01(mascara.intensity) : 0);
         const foundAlb = foundZ ? hexToLinear(foundZ.hex) : [0, 0, 0];
         gl.uniform3f(u.uFoundAlbedo, foundAlb[0], foundAlb[1], foundAlb[2]);
-        gl.uniform1f(u.uFoundCov, foundZ ? clamp01(foundZ.intensity) * TUNING.foundCoverage : 0);
+        const foundC = foundZ ? clamp01(foundZ.intensity) : 0;
+        const span = (r) => r[0] + (r[1] - r[0]) * foundC;
+        gl.uniform1f(u.uFoundCov, foundZ ? span(TUNING.foundCoverage) : 0);
+        gl.uniform1f(u.uFoundOpaque, span(TUNING.foundOpaque));
+        gl.uniform1f(u.uFoundShadeMax, TUNING.foundShadeMax);
+        gl.uniform2f(u.uFoundHair, TUNING.foundHair[0], TUNING.foundHair[1]);
         const browAlb = browZ ? hexToLinear(browZ.hex) : [0, 0, 0];
         gl.uniform3f(u.uBrowAlbedo, browAlb[0], browAlb[1], browAlb[2]);
         gl.uniform1f(u.uBrowCov, browZ ? clamp01(browZ.intensity) * EYEBROW_PRESET.baseOpacity : 0);
@@ -2477,17 +2536,18 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         const lipAlb = lip ? hexToLinear(lip.hex) : [0, 0, 0];
         const blushAlb = blush ? hexToLinear(blush.hex) : [0, 0, 0];
         const eyeAlb = eye ? hexToLinear(eye.hex) : [0, 0, 0];
-        const exposure = clamp(light.skinMeanLum / TUNING.skinRefLum, TUNING.exposureRange[0], TUNING.exposureRange[1]);
+        const shown = glideLight(performance.now());
+        const exposure = shown.exposure;
         gl.uniform1i(u.uVideo, 0);
         gl.uniform1i(u.uMask, 1);
         gl.uniform2f(u.uViewport, W, H);
-        gl.uniform3f(u.uLightColor, light.color[0], light.color[1], light.color[2]);
+        gl.uniform3f(u.uLightColor, shown.color[0], shown.color[1], shown.color[2]);
         gl.uniform3f(u.uLightDir, light.dir[0], light.dir[1], light.dir[2]);
         gl.uniform1f(u.uLightStrength, light.strength);
         gl.uniform1f(u.uLightConf, light.dirConf);
         gl.uniform1f(u.uExposure, exposure);
         gl.uniform1f(u.uLipMeanLum, light.lipMeanLum);
-        gl.uniform1f(u.uSkinMeanLum, light.skinMeanLum);
+        gl.uniform1f(u.uSkinMeanLum, shown.skinMeanLum);
         gl.uniform3f(u.uLipAlbedo, lipAlb[0], lipAlb[1], lipAlb[2]);
         gl.uniform1f(u.uLipCov, lip ? lipCoverage(lip, lipMat) : 0);
         gl.uniform1f(u.uLipRough, lipMat.roughness);
@@ -2796,6 +2856,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
           lipEdge.samples = 0; lipEdge.conf.fill(0);
           filterReady = false;
           resetLidFit();
+          shownLight.t = 0;
           setStatus('no-face');
           if (lastLightHint) { lastLightHint = null; post({ type: 'light_hint', value: null }); }
         }

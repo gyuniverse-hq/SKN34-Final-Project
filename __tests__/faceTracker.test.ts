@@ -245,9 +245,9 @@ describe('face tracker page', () => {
     // Intensity off → zero coverage (pixel untouched).
     expect(script).toContain('gl.uniform1f(u.uHlCov, hl ? clamp01(hl.intensity) * TUNING.hlCoverage * hlGain : 0);');
     expect(script).toContain('gl.uniform1f(u.uContourCov, contourZ ? clamp01(contourZ.intensity) * TUNING.contourCoverage : 0);');
-    expect(script).toContain('gl.uniform1f(u.uFoundCov, foundZ ? clamp01(foundZ.intensity) * TUNING.foundCoverage : 0);');
+    expect(script).toContain('gl.uniform1f(u.uFoundCov, foundZ ? span(TUNING.foundCoverage) : 0);');
     expect(script).toContain('gl.uniform1f(u.uBrowCov, browZ ? clamp01(browZ.intensity) * EYEBROW_PRESET.baseOpacity : 0);');
-    expect(script).toContain('if (foundA > 0.002) col = mix(col, powder(cam, uFoundAlbedo), foundA);');
+    expect(script).toContain('col = mix(col, mix(film, pigment, uFoundOpaque), foundA);');
     expect(script).toContain('baseOpacity: 1.0');
     expect(script).toContain('headDensity: 0.4');
     expect(script).toContain('archDensity: 0.85');
@@ -345,6 +345,9 @@ describe('face tracker page', () => {
 
   it('gates the uploaded light color by Gray World confidence and snaps when skin Lab jumps', () => {
     const script = moduleScript(FACE_TRACKER_HTML);
+    // Untrusted color mixes toward white; direction and strength stay on their own uniforms.
+    expect(script).toContain('const w = clamp(light.colorConf, 0, 1);');
+    expect(script).toContain('1 + w * (light.color[0] - 1)');
     expect(script).toContain('gl.uniform3f(u.uLightDir, light.dir[0], light.dir[1], light.dir[2]);');
     expect(script).toContain('gl.uniform1f(u.uLightStrength, light.strength);');
     expect(script).toContain('lightChangeDelta: 6');
@@ -352,6 +355,13 @@ describe('face tracker page', () => {
     expect(script).toContain('const kc = light.colorSamples++ === 0 || snap ? 1');
     expect(script).toContain("type: 'light_hint'");
     expect(script).toContain('blownFaceFraction: 0.15');
+    const gate = (color: number[], conf: number) => color.map((c) => 1 + conf * (c - 1));
+    const warm = [1.25, 1.05, 0.8];
+    expect(gate(warm, 0)).toEqual([1, 1, 1]);
+    expect(gate(warm, 1)).toEqual(warm);
+    const mid = gate(warm, 0.5);
+    expect(mid[0]).toBeCloseTo(1.125);
+    expect(mid[2]).toBeCloseTo(0.9);
     const linToLab = (rgb: number[]) => {
       const x = (0.4124 * rgb[0] + 0.3576 * rgb[1] + 0.1805 * rgb[2]) / 0.95047;
       const y = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];

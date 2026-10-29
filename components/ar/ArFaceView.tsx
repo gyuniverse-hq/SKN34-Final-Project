@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import type { GuideMessage } from '@/lib/drawGuide';
+import { parseSkinTone, type SkinTone } from '@/lib/foundationMatch';
 import type { MakeupState } from '@/types';
 import { FACE_TRACKER_HTML, type ArStatus } from './faceTrackerHtml';
 
@@ -14,15 +15,17 @@ export interface ArFaceViewProps {
   guide?: GuideMessage | null;
   onStatus: (status: ArStatus) => void;
   onLightHint?: (hint: LightHint | null) => void;
+  /** Measured skin color for the foundation shade suggestion (numbers only). */
+  onSkinTone?: (tone: SkinTone) => void;
 }
 
-export function ArFaceView({ makeup, compare, guide = null, onStatus, onLightHint }: ArFaceViewProps) {
+export function ArFaceView({ makeup, compare, guide = null, onStatus, onLightHint, onSkinTone }: ArFaceViewProps) {
   // react-native-webview의 타입이 제네릭 기본값을 `never`로 잡는 경우가 있어,
   // 메시지/소스에 대해 넉넉한 타입을 명시해 props 타입 추론을 정상화합니다.
   const ref = useRef<WebView<any>>(null);
-  const latest = useRef({ makeup, compare, guide, onLightHint });
+  const latest = useRef({ makeup, compare, guide, onLightHint, onSkinTone });
   useEffect(() => {
-    latest.current = { makeup, compare, guide, onLightHint };
+    latest.current = { makeup, compare, guide, onLightHint, onSkinTone };
   });
 
   const send = useCallback((message: object) => {
@@ -35,7 +38,7 @@ export function ArFaceView({ makeup, compare, guide = null, onStatus, onLightHin
   useEffect(() => send({ type: 'guide', guide }), [guide, send]);
 
   const onMessage = (event: WebViewMessageEvent) => {
-    let message: { type?: string; status?: ArStatus; detail?: string; value?: LightHint | null };
+    let message: { type?: string; status?: ArStatus; detail?: string; value?: LightHint | null; lab?: unknown; conf?: unknown };
     try {
       message = JSON.parse(event.nativeEvent.data);
     } catch {
@@ -51,6 +54,9 @@ export function ArFaceView({ makeup, compare, guide = null, onStatus, onLightHin
     } else if (message.type === 'light_hint') {
       const hint = message.value === 'low' || message.value === 'blown' ? message.value : null;
       latest.current.onLightHint?.(hint);
+    } else if (message.type === 'skin_tone') {
+      const tone = parseSkinTone(message);
+      if (tone) latest.current.onSkinTone?.(tone);
     }
   };
 

@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArFaceView, type LightHint } from '@/components/ar/ArFaceView';
+import { CoverageBar } from '@/components/ar/CoverageBar';
 import { PracticePanel } from '@/components/ar/PracticePanel';
 import type { ArStatus } from '@/components/ar/faceTrackerHtml';
 import { SwatchFallback } from '@/components/ar/SwatchFallback';
@@ -37,6 +38,7 @@ import { guideMessage } from '@/lib/drawGuide';
 import { buildGuideSteps, guideText } from '@/lib/lookGuide';
 import { practiceDrawStep, practiceZones, revealedMakeup, visit } from '@/lib/practice';
 import { useArRouteSelection } from '@/hooks/useArRouteSelection';
+import { MIN_TONE_CONF, rankFoundationShades, type SkinTone } from '@/lib/foundationMatch';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useProducts } from '@/lib/queries';
 import { parseFlag, parseId, productHref, recommendationsHref } from '@/lib/routes';
@@ -100,6 +102,7 @@ export default function ArTryOnScreen() {
   const compareParam = parseFlag(params.compare);
   const [status, setStatus] = useState<ArStatus>('loading');
   const [lightHint, setLightHint] = useState<LightHint | null>(null);
+  const [skinTone, setSkinTone] = useState<SkinTone | null>(null);
   const [arKey, setArKey] = useState(0);
   const [swatchOnly, setSwatchOnly] = useState(false);
   const [compare, setCompare] = useState(compareParam);
@@ -159,7 +162,7 @@ export default function ArTryOnScreen() {
   // Filter chips: only textures / color families present in this zone; families for lips only.
   const textureOptions = useMemo(
     () =>
-      zone === 'blush' || zone === 'eyeshadow'
+      zone === 'blush' || zone === 'eyeshadow' || zone === 'foundation'
         ? []
         : TEXTURES.filter((tx) => zoneSwatches.some(({ product }) => product.texture === tx)),
     [zoneSwatches, zone]
@@ -170,6 +173,14 @@ export default function ArTryOnScreen() {
         ? COLOR_FAMILIES.filter((fm) => zoneSwatches.some(({ shade }) => colorFamily(shade.hex) === fm))
         : [],
     [zoneSwatches, zone]
+  );
+  // Foundation shades closest to the measured skin color, from the shades this tab offers (a color reference only).
+  const foundMatches = useMemo(
+    () =>
+      zone === 'foundation' && skinTone && skinTone.conf >= MIN_TONE_CONF
+        ? rankFoundationShades(skinTone, zoneSwatches).slice(0, 3)
+        : [],
+    [zone, skinTone, zoneSwatches]
   );
   const visibleSwatches = useMemo(
     () =>
@@ -419,6 +430,7 @@ export default function ArTryOnScreen() {
           guide={guide}
           onStatus={setStatus}
           onLightHint={setLightHint}
+          onSkinTone={setSkinTone}
         />
         {compare ? (
           <>
@@ -775,6 +787,51 @@ export default function ArTryOnScreen() {
             <View style={styles.levels}>
               <Chip label={t('ar.off')} selected={!makeup[zone]} onPress={() => clearZone(zone)} />
             </View>
+            {zone === 'foundation' && makeup.foundation ? (
+              <View style={styles.foundBox}>
+                <Text style={styles.foundTitle}>{t('ar.found.coverage')}</Text>
+                <CoverageBar
+                  value={makeup.foundation.intensity}
+                  labels={{ title: t('ar.found.coverage'), low: t('ar.found.sheer'), high: t('ar.found.full') }}
+                  onChange={(v) => setIntensity('foundation', v)}
+                />
+                <Text style={styles.foundNote}>{t('ar.found.coverageNote')}</Text>
+              </View>
+            ) : null}
+            {zone === 'foundation' && zoneSwatches.length > 0 ? (
+              <View style={styles.foundBox}>
+                <Text style={styles.foundTitle}>{t('ar.found.suggest')}</Text>
+                {foundMatches.length === 0 ? (
+                  <Text style={styles.foundNote}>{t('ar.found.suggestWait')}</Text>
+                ) : (
+                  <View style={styles.foundChips}>
+                    {foundMatches.map((m, i) => (
+                      <Chip
+                        key={`${m.product.id}-${m.shade.id}`}
+                        label={`${i === 0 ? '★ ' : ''}${m.shade.name} · ${m.product.name} · ΔE ${m.deltaE.toFixed(0)}`}
+                        selected={
+                          selections.foundation?.productId === m.product.id && selections.foundation?.shadeId === m.shade.id
+                        }
+                        onPress={() => applyShade(m.product, m.shade)}
+                      />
+                    ))}
+                  </View>
+                )}
+                {foundMatches[0] ? (
+                  <Text style={styles.foundNote}>
+                    {t(
+                      foundMatches[0].deltaL > 3
+                        ? 'ar.found.lighter'
+                        : foundMatches[0].deltaL < -3
+                          ? 'ar.found.darker'
+                          : 'ar.found.close',
+                      { d: foundMatches[0].deltaE.toFixed(0) }
+                    )}
+                  </Text>
+                ) : null}
+                <Text style={styles.foundNote}>{t('ar.found.suggestNote')}</Text>
+              </View>
+            ) : null}
             {zone === 'blush' && makeup.blush ? (
               <View style={styles.blushLevel}>
                 <Text style={styles.blushLevelLabel}>{t('ar.light')}</Text>
@@ -989,6 +1046,10 @@ const styles = StyleSheet.create({
   levels: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, flexWrap: 'wrap' },
   levelsLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.inkMuted, marginRight: 4 },
   disclaimer: { marginHorizontal: 16, fontSize: 11, lineHeight: 16, color: theme.colors.inkFaint },
+  foundBox: { marginHorizontal: 16, gap: 6 },
+  foundTitle: { fontSize: 12, fontWeight: '800', color: theme.colors.ink },
+  foundNote: { fontSize: 11, lineHeight: 16, color: theme.colors.inkMuted },
+  foundChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   blushLevel: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16 },
   blushLevelLabel: { fontSize: 11, fontWeight: '700', color: theme.colors.inkMuted },
   blushTrackHit: { flex: 1, height: 28, justifyContent: 'center' },
