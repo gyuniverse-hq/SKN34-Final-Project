@@ -69,12 +69,14 @@ class FakeCatalogStore:
     def __init__(self, bundle: CatalogBundle) -> None:
         self.bundle = bundle
 
-    async def search_products(self, terms, category=None, ids=None):
+    async def search_products(self, terms, category=None, ids=None, tags=None):
         out = self.bundle.products
         if ids is not None:
             out = [p for p in out if p.id in ids]
         if category:
             out = [p for p in out if p.category == category]
+        if tags is not None:
+            out = [p for p in out if set(p.tags) & set(tags)]
         for t in terms:
             out = [p for p in out if t in f"{p.brand} {p.name} {' '.join(p.tags)}".lower()]
         return out
@@ -102,6 +104,10 @@ def catalog_service() -> CatalogService:
 
 @pytest.fixture
 def client(catalog_service: CatalogService) -> TestClient:
+    return client_for(catalog_service)
+
+
+def client_for(catalog_service: CatalogService) -> TestClient:
     app = create_app()
     app.dependency_overrides[get_catalog_service] = lambda: catalog_service
     return TestClient(app)

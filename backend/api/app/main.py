@@ -9,7 +9,7 @@ from app.core.config import get_settings
 from app.core.db import dispose_engine
 from app.core.errors import install_error_handlers
 from app.core.observability import RequestContextMiddleware, configure_logging
-from app.routers import catalog, health, members, shades, tutorials
+from app.routers import catalog, health, idol_looks, members, payments, shades, tutorials
 
 
 @asynccontextmanager
@@ -40,8 +40,10 @@ def create_app() -> FastAPI:
         )
     app.add_middleware(RequestContextMiddleware)
     install_error_handlers(app)
-    for module in (health, catalog, shades, members, tutorials):
+    for module in (health, catalog, idol_looks, shades, members, tutorials):
         app.include_router(module.router)
+    app.include_router(payments.router)
+    app.include_router(payments.api)
     return app
 
 

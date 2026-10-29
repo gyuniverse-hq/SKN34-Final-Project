@@ -60,7 +60,7 @@
   .step-n { display: inline-block; width: 18px; height: 18px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 11px; text-align: center; line-height: 18px; margin-right: 4px; }
 
   .bottom { display: grid; grid-template-columns: 1.15fr 1fr; gap: 14px; }
-  .envs { display: grid; grid-template-columns: 1fr 22px 1fr 22px 1fr; align-items: stretch; }
+  .envs { display: grid; grid-template-columns: 1fr 22px 1fr 22px 1fr 22px 1fr; align-items: stretch; }
   .principles { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
   .principles .box { padding: 7px 10px; }
 
@@ -75,7 +75,7 @@
     <h1>VISHUE <span>시스템 아키텍처</span></h1>
     <div class="sub">외국인 대상 K-뷰티 쇼핑 앱 · 룩 발견 → AR 가상 메이크업 → 세트 장바구니 → 매장 쇼핑 리스트 / 온라인 구매</div>
   </div>
-  <div class="badge">Expo SDK 57 · FastAPI · Kubernetes<small>2026.10.23 기준 · SKN34 Final Project</small></div>
+  <div class="badge">Expo SDK 58 · FastAPI · Kubernetes<small>2026.10.28 기준 · SKN34 Final Project</small></div>
 </header>
 
 <div class="main">
@@ -83,8 +83,8 @@
   <div class="section" style="margin-bottom:0">
     <div class="title"><span class="num">01</span> 사용자 기기 · Expo 앱</div>
     <div class="stack">
-      <div class="box blue"><b>화면 (Expo Router)<span class="tag ok">구현</span></b><p>iOS · Android · Web<br>쇼핑 · 셀럽 룩 · 가상 메이크업 · 장바구니 · 마이</p></div>
-      <div class="box purple"><b>AR 렌더러 · 피부톤 추정<span class="tag ok">구현</span></b><p>MediaPipe 얼굴 랜드마크 · WebGL 립·블러셔·섀도<br>ITA° · MST 단계 · 언더톤을 기기에서 계산</p></div>
+      <div class="box blue"><b>화면 (Expo Router)</b><p>iOS · Android · Web<br>쇼핑 · 셀럽 룩 · 가상 메이크업 · 장바구니 · 마이</p></div>
+      <div class="box purple"><b>AR 렌더러 · 피부톤 추정</b><p>MediaPipe 얼굴 랜드마크 · WebGL 립·블러셔·섀도<br>ITA° · MST 단계 · 언더톤을 기기에서 계산</p></div>
       <div class="box gray"><b>상태 관리</b><p>서버 데이터: react-query · 기기 저장: Zustand<br>(장바구니 · 쇼핑 리스트 · 언어 설정)</p></div>
       <div class="box gray"><b>다국어 · 로그인</b><p>EN · KO · JA · ZH 자동 감지<br>Supabase Auth (이메일 코드 · Google)</p></div>
     </div>
@@ -95,7 +95,7 @@
 
   <!-- 02 Cluster -->
   <div class="cluster">
-    <div class="title"><span class="num">02</span> 백엔드 · Kubernetes (운영: AWS EKS 서울 · 로컬: kind)<span style="margin-left:auto;font-weight:400;color:var(--muted);font-size:12px">노드 2대 · 2개 zone에 Pod 분산 배치</span></div>
+    <div class="title"><span class="num">02</span> 백엔드 · Kubernetes (AWS EKS 서울 · 로컬: kind)<span style="margin-left:auto;font-weight:400;color:var(--muted);font-size:12px">노드 2대 · 2개 zone에 Pod 분산 배치</span></div>
     <div class="cluster-grid">
       <div class="ns">
         <div class="label">envoy-gateway-system</div>
@@ -108,19 +108,19 @@
       <div class="ns">
         <div class="label">namespace: vishue</div>
         <div class="stack">
-          <div class="box green"><b>api · FastAPI<span class="tag ok">구현</span></b><p>카탈로그 · 판매처(네이버) · 튜토리얼(YouTube) · 셰이드 추천(ΔE) · 회원<br>routers → services → repositories · clients → core</p>
+          <div class="box green"><b>api · FastAPI</b><p>카탈로그 · 판매처(네이버) · 튜토리얼(YouTube) · 셰이드 추천(ΔE) · 회원<br>routers → services → repositories · clients → core</p>
             <div class="pods" style="color:var(--green)"><span class="pod">Pod ① zone-a</span><span class="pod">Pod ② zone-b</span><span class="pod">HPA 2~6</span><span class="pod">initContainer: Alembic 마이그레이션</span></div></div>
-          <div class="box purple"><b>chatbot · FastAPI<span class="tag ok">구현</span></b><p>GraphRAG 챗봇 · 사용자당 분당 10회 제한 · LLM 키는 여기만</p>
+          <div class="box purple"><b>chatbot · FastAPI</b><p>GraphRAG 챗봇 · 사용자당 분당 10회 제한 · LLM 키는 여기만</p>
             <div class="pods" style="color:var(--purple)"><span class="pod">Pod ① zone-a</span><span class="pod">Pod ② zone-b</span><span class="pod">HPA 2~4</span></div></div>
           <div class="box orange"><b>sync-graph · CronJob</b><p>30분마다 + 배포 직후 1회 · api HTTP로 카탈로그를 읽어 Neo4j에 복사</p></div>
         </div>
       </div>
       <div class="arrow"><span class="a">→</span></div>
       <div class="ns">
-        <div class="label">데이터 저장소 (운영: 관리형)</div>
+        <div class="label">관리형 데이터 저장소</div>
         <div class="stack">
-          <div class="box blue"><b>PostgreSQL · 원본</b><p>제품 · 셰이드 · 룩 · 매장<br>pg_trgm 검색 인덱스 · api만 접근<br>운영: RDS Multi-AZ</p></div>
-          <div class="box red"><b>Redis</b><p>카탈로그·외부 API 캐시 · 레이트 리밋<br>운영: ElastiCache</p></div>
+          <div class="box blue"><b>PostgreSQL · 원본</b><p>제품 · 셰이드 · 룩 · 매장<br>pg_trgm 검색 인덱스 · api만 접근<br>RDS PostgreSQL 17</p></div>
+          <div class="box red"><b>Redis</b><p>카탈로그·외부 API 캐시 · 레이트 리밋<br>ElastiCache (TLS)</p></div>
           <div class="box purple"><b>Neo4j · 챗봇 전용 사본</b><p>제품–성분–태그–룩 관계 그래프<br>chatbot만 접근 · 운영: AuraDB</p></div>
         </div>
       </div>
@@ -148,7 +148,7 @@
 
 <!-- 04 CI/CD -->
 <div class="section">
-  <div class="title"><span class="num">04</span> CI/CD · GitOps 배포 흐름<span class="hint">develop에서 검증 → main 반영 · kubectl 직접 배포 없음 · 롤백 = revert</span></div>
+  <div class="title"><span class="num">04</span> CI/CD · GitOps 배포 흐름<span class="hint">develop에서 검증 · 운영은 main 반영 후 Argo CD · kubectl 직접 배포 없음 · 롤백 = revert</span></div>
   <div class="pipeline">
     <div class="box"><b><span class="step-n">1</span>PR 생성</b><p>feat/* → develop<br>커밋·PR 컨벤션 v1.3</p></div>
     <div class="arrow"><span class="a">→</span></div>
@@ -156,7 +156,7 @@
     <div class="arrow"><span class="a">→</span></div>
     <div class="box green"><b><span class="step-n">3</span>이미지 발행</b><p>main 병합 시 GHCR<br>불변 태그 sha-xxxxxxx</p></div>
     <div class="arrow"><span class="a">→</span></div>
-    <div class="box orange"><b><span class="step-n">4</span>태그 갱신 PR 자동 생성</b><p>values-prod.yaml<br>병합 = 배포 승인</p></div>
+    <div class="box orange"><b><span class="step-n">4</span>태그 갱신 PR 자동 생성</b><p>values-prod.yaml<br>병합 = 운영 배포 승인</p></div>
     <div class="arrow"><span class="a">→</span></div>
     <div class="box purple"><b><span class="step-n">5</span>Argo CD 동기화</b><p>Helm 차트 렌더링<br>Git과 클러스터 비교</p></div>
     <div class="arrow"><span class="a">→</span></div>
@@ -167,13 +167,15 @@
 <div class="bottom">
   <!-- 05 Environments -->
   <div class="section" style="margin-bottom:0">
-    <div class="title"><span class="num">05</span> 같은 이미지, 세 환경<span class="hint">환경 차이는 설정 파일에만</span></div>
+    <div class="title"><span class="num">05</span> 환경별 배포 구성<span class="hint">코드·Dockerfile은 재사용하고 저장소·배포 방식만 달라짐</span></div>
     <div class="envs">
       <div class="box"><b>Docker Compose · 로컬 개발</b><p>명령 한 줄로 전체 기동<br>nginx 게이트웨이 :8080 (폰 Expo Go 접속)<br>DB 포트는 127.0.0.1에만</p></div>
       <div class="arrow"><span class="a">→</span></div>
+      <div class="box"><b>Render · 팀 공용 개발</b><p>api · chatbot 컨테이너 배포<br>Supabase PostgreSQL · AuraDB Free<br>Redis 없음 · develop CI 후 자동 배포</p></div>
+      <div class="arrow"><span class="a">→</span></div>
       <div class="box"><b>kind · 로컬 쿠버네티스</b><p>운영과 같은 Helm 차트<br>워커 2대 · zone 2개<br>Envoy Gateway · 클러스터 내 DB</p></div>
       <div class="arrow"><span class="a">→</span></div>
-      <div class="box"><b>AWS EKS · 운영</b><p>Argo CD 자동 배포<br>RDS · ElastiCache · AuraDB<br>Secrets Manager</p></div>
+      <div class="box"><b>AWS EKS · 운영</b><p>Argo CD 자동 배포<br>RDS PostgreSQL 17 · ElastiCache · AuraDB<br>Secrets Manager</p></div>
     </div>
   </div>
   <!-- 06 Principles -->
@@ -196,7 +198,6 @@
   <span><i class="sw" style="border-color:var(--green);background:var(--green-bg)"></i>쇼핑 API</span>
   <span><i class="sw" style="border-color:var(--purple);background:var(--purple-bg)"></i>챗봇 · AR</span>
   <span><i class="sw" style="border-color:var(--teal);background:var(--teal-bg)"></i>진입점 · 배포</span>
-  <span><span class="tag ok" style="margin:0 4px 0 0">구현</span>코드·테스트 완료</span>
   <span style="margin-left:auto">VISHUE · SKN34 Final Project</span>
 </div>
 

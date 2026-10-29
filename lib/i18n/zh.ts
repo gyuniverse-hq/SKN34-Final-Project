@@ -1,8 +1,10 @@
 import type { Dictionary } from './en';
+import { flowsZh } from './flows';
 import { skinZh } from './skin';
 
 export const zh: Dictionary = {
   ...skinZh,
+  ...flowsZh,
   "nia.acne.ready": "痤疮研究模型可用 · 将包含在下次分析中",
   "nia.acne.outdated": "此前分析没有痤疮结果。请使用当前模型重新分析。",
   "nia.acne.reanalyze": "包含痤疮重新分析",
@@ -343,8 +345,8 @@ export const zh: Dictionary = {
   'cart.clear': '清空购物车',
   'cart.fromLook': '来自妆容',
 
-  'checkout.title': '购物清单',
-  'checkout.intro': '将购物车保存为带有韩文商品名的购物清单，方便出示给店员。',
+  'checkout.title': '结算',
+  'checkout.intro': '请在支付前确认订单商品。',
   'checkout.chooseStore': '您打算在哪里购买？（可选）',
   'checkout.anyStore': '任意门店',
   'checkout.openMap': '在地图中打开',
@@ -475,4 +477,26 @@ export const zh: Dictionary = {
   'ingredients.searchPlaceholder': '搜索成分（如：烟酰胺）',
   'ingredients.empty': '搜索成分即可查看相关商品。',
   'ingredients.similar': '成分相似的商品',
+  'idol.title': '偶像妆容体验',
+  'idol.subtitle': '请选择已关联的 YouTube 视频。产品在证据审核完成前会显示为未确认。',
+  'idol.details': '查看详情',
+  'idol.mapping.registered': '等待产品审核',
+  'idol.mapping.empty': '暂无已确认产品',
+  'idol.mapping.mapped': '已关联 {count} 件产品',
+  'idol.video': '观看视频',
+  'idol.openYoutube': '在 YouTube 打开',
+  'idol.style': '妆容风格',
+  'idol.products': '相关产品',
+  'idol.noProducts': '此视频尚无已验证产品。',
+  'idol.tryAr': '用 AR 试妆',
+  'idol.before': 'BEFORE',
+  'idol.after': 'AFTER',
+  'idol.compare': '左右对比',
+  'idol.fullAr': '完整 AR',
+  'idol.original': '查看原图',
+  'idol.purchase': '查看产品',
+  'idol.videoUnavailable': '无法获取视频元数据，正在显示已注册的视频 ID。',
+  'idol.verified': '已确认实际使用',
+  'idol.similar': '相似产品推荐',
+  'idol.unverified': '实际产品／色号未确认',
 };

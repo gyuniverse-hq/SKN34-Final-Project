@@ -1,5 +1,6 @@
 import re
 from functools import lru_cache
+from hashlib import sha256
 from typing import Any
 
 import anyio
@@ -13,11 +14,19 @@ from app.core.errors import ApiError
 
 _BEARER = re.compile(r"^Bearer\s+(\S+)\s*$", re.IGNORECASE)
 _ASYMMETRIC = {"RS256", "ES256"}
+_ANONYMOUS_ID = re.compile(r"^[A-Za-z0-9_-]{32,128}$")
 
 
 class AuthUser(BaseModel):
     id: str
     email: str | None
+
+
+class ChatPrincipal(BaseModel):
+    """Authenticated user or non-identifying guest used solely for rate limiting."""
+
+    rate_limit_key: str
+    user: AuthUser | None = None
 
 
 def bearer_token(header: str | None) -> str | None:
@@ -96,3 +105,22 @@ async def require_user(request: Request) -> AuthUser:
     if user is None:
         raise ApiError(401, "Sign in required", "unauthorized")
     return user
+
+
+async def chat_principal(request: Request) -> ChatPrincipal:
+    """Accept signed-in chat users and guests with a random device-local session ID.
+
+    Guest IDs are validated then hashed before reaching the rate limiter; no guest identifier,
+    account data, or conversation history is persisted by this dependency.
+    """
+    token = bearer_token(request.headers.get("authorization"))
+    verifier = get_verifier()
+    claims = await verifier.verify(token) if verifier is not None and token else None
+    user = user_from_claims(claims) if claims else None
+    if user is not None:
+        return ChatPrincipal(rate_limit_key=f"user:{user.id}", user=user)
+
+    anonymous_id = request.headers.get("x-vishue-anonymous-id", "")
+    if not _ANONYMOUS_ID.fullmatch(anonymous_id):
+        raise ApiError(400, "Anonymous session is required", "invalid_request")
+    return ChatPrincipal(rate_limit_key=f"guest:{sha256(anonymous_id.encode('ascii')).hexdigest()}")

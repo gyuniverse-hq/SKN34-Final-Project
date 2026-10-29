@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { AuthInput, AuthScreen, authStyles, FormMessage } from '@/components/auth/AuthForm';
@@ -13,9 +13,11 @@ import {
 } from '@/lib/auth';
 import { notify } from '@/lib/confirm';
 import { useI18n } from '@/lib/i18n';
+import { parseLoginReturnTo } from '@/lib/routes';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
   const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,6 +25,11 @@ export default function LoginScreen() {
   const [googleBusy, setGoogleBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const configured = isAuthConfigured();
+  const finishLogin = () => {
+    const destination = parseLoginReturnTo(returnTo);
+    if (destination) router.replace(`/${destination}`);
+    else router.dismissTo('/my');
+  };
 
   const submit = async () => {
     const address = email.trim();
@@ -30,7 +37,7 @@ export default function LoginScreen() {
     setError(null);
     try {
       await signInWithEmail(address, password);
-      router.dismissTo('/my');
+      finishLogin();
     } catch (e) {
       if (authErrorCode(e) === 'email_not_confirmed') {
         await resendSignupCode(address).catch(() => {});
@@ -47,7 +54,7 @@ export default function LoginScreen() {
     setGoogleBusy(true);
     setError(null);
     try {
-      if (await signInWithGoogle()) router.dismissTo('/my');
+      if (await signInWithGoogle()) finishLogin();
     } catch (e) {
       setError(t(authErrorMessageKey(e)));
     } finally {

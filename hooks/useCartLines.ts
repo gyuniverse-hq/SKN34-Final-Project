@@ -1,31 +1,37 @@
 import { useMemo } from 'react';
+import { resolveShade } from '@/lib/catalog';
 import { useProductsByIds } from '@/lib/queries';
 import { cartLineKey, useCartStore } from '@/store/cartStore';
-import type { CartItem, Product, Shade } from '@/types';
+import type { CartItem, Product } from '@/types';
+import type { CartLineView } from '@/types/view';
 
-export interface CartLine {
-  key: string;
-  item: CartItem;
-  product: Product;
-  shade?: Shade;
-  lineTotal: number;
+export type CartLine = CartLineView & { product: Product };
+
+export function buildCartLines(items: CartItem[], products: Product[] | undefined): CartLineView[] {
+  const byId = new Map((products ?? []).map((p) => [p.id, p]));
+  return items.map((item) => {
+    const product = byId.get(item.productId);
+    const { availability, shade } = resolveShade(product, item.shadeId);
+    const lineTotal = product && availability === 'available' ? product.priceKRW * item.quantity : 0;
+    return { key: cartLineKey(item), item, availability, product, shade, lineTotal };
+  });
 }
 
-/** Joins persisted cart items with live catalog data. Unknown products are skipped. */
+/**
+ * Joins persisted cart items (product + exact shade) with live catalog data. Lines whose product
+ * or shade disappeared stay visible as unavailable so the user can see and remove them.
+ */
 export function useCartLines() {
   const items = useCartStore((s) => s.items);
   const products = useProductsByIds(items.map((i) => i.productId));
 
-  const lines = useMemo<CartLine[]>(() => {
-    const byId = new Map((products.data ?? []).map((p) => [p.id, p]));
-    return items.flatMap((item) => {
-      const product = byId.get(item.productId);
-      if (!product) return [];
-      const shade = product.shades.find((s) => s.id === item.shadeId);
-      return [{ key: cartLineKey(item), item, product, shade, lineTotal: product.priceKRW * item.quantity }];
-    });
-  }, [items, products.data]);
+  const allLines = useMemo(() => buildCartLines(items, products.data), [items, products.data]);
+  const lines = useMemo(
+    () => allLines.filter((l): l is CartLine => l.availability === 'available' && !!l.product),
+    [allLines]
+  );
+  const unavailable = useMemo(() => allLines.filter((l) => l.availability !== 'available'), [allLines]);
 
   const total = lines.reduce((sum, l) => sum + l.lineTotal, 0);
-  return { items, lines, total, query: products };
+  return { items, allLines, lines, unavailable, total, query: products };
 }

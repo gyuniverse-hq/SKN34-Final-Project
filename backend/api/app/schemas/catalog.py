@@ -1,6 +1,6 @@
-from typing import Literal, get_args
+from typing import Any, Literal, get_args
 
-from pydantic import Field
+from pydantic import Field, SerializerFunctionWrapHandler, model_serializer
 
 from app.schemas.base import ApiModel, OmitNoneModel
 
@@ -9,8 +9,12 @@ MakeupZone = Literal["lip", "blush", "eyeshadow", "eyeliner", "mascara", "highli
 Texture = Literal["matte", "velvet", "glossy", "satin", "sheer", "cream", "shimmer"]
 ShadowFinish = Literal["matte", "shimmer", "glitter", "glossy"]
 LookStep = Literal["prep", "base", "eyes", "cheeks", "lips"]
+SkinConcern = Literal[
+    "dryness", "oiliness", "sensitivity", "blemish", "pores", "pigmentation", "wrinkles"
+]
 
 CATEGORIES: tuple[str, ...] = get_args(ProductCategory)
+CONCERNS: tuple[str, ...] = get_args(SkinConcern)
 
 
 class Shade(ApiModel):
@@ -80,7 +84,7 @@ class ZoneGeometry(OmitNoneModel):
 
 
 class ZoneSetting(OmitNoneModel):
-    hex: str
+    hex: str = Field(pattern=r"^#[0-9A-Fa-f]{6}$")
     hex_to: str | None = None
     intensity: float = Field(ge=0, le=1)
     texture: Texture
@@ -98,6 +102,15 @@ class MakeupState(ApiModel):
     contour: ZoneSetting | None = None
     brow: ZoneSetting | None = None
     foundation: ZoneSetting | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_empty_added_zones(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        """The three original zones are always sent; zones added later are left out when empty."""
+        data = handler(self)
+        for key in ("eyeliner", "mascara", "highlighter", "contour", "brow", "foundation"):
+            if data.get(key) is None:
+                data.pop(key, None)
+        return data
 
 
 class ColorLink(ApiModel):

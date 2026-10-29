@@ -33,6 +33,9 @@ async def test_replace_and_search_round_trip():
             assert [p.id for p in await repo.search_products([], "base")] == ["base-1", "base-2"]
             assert [p.id for p in await repo.search_products(["제품", "lip-1"])] == ["lip-1"]
             assert await repo.search_products(["100%"]) == []
+            assert len(await repo.search_products([], tags=["bestseller", "x"])) == 3
+            assert await repo.search_products([], tags=["x"]) == []
+            assert await repo.search_products([], tags=[]) == []
             product = await repo.get_product("base-1")
             assert product == SAMPLE.products[1]
             assert await repo.get_look("look-1") == SAMPLE.looks[0]

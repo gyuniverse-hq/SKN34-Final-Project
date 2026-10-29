@@ -18,6 +18,22 @@ export interface LabColor {
   b: number;
 }
 
+/** Cosmetic care filters for `GET /api/products?concerns=`. Never a medical diagnosis. */
+export type SkinConcern =
+  | 'dryness'
+  | 'oiliness'
+  | 'sensitivity'
+  | 'blemish'
+  | 'pores'
+  | 'pigmentation'
+  | 'wrinkles';
+
+export interface ProductQuery {
+  q?: string;
+  category?: ProductCategory;
+  concerns?: SkinConcern[];
+}
+
 export interface Shade {
   id: string;
   name: string;
@@ -214,6 +230,50 @@ export interface YoutubeVideo {
   publishedAt: string;
 }
 
+/** A verified YouTube-backed look. Product data stays empty until an administrator verifies it. */
+export type VideoAnalysisStatus = 'registered' | 'metadata_unavailable' | 'metadata_ready';
+export type ProductMappingStatus = 'unreviewed' | 'no_verified_products' | 'mapped';
+export type LookProductStatus = 'verified_used' | 'unverified' | 'similar';
+
+export interface IdolVideo {
+  id: string;
+  videoId: string;
+  youtubeUrl: string;
+  startSeconds: number;
+  title: string;
+  channelName: string;
+  thumbnailUrl: string;
+  description: string | null;
+  publishedAt: string | null;
+  makeupLookId: string;
+  analysisStatus: VideoAnalysisStatus;
+  productMappingStatus: ProductMappingStatus;
+}
+
+export interface IdolLookProduct {
+  id: string;
+  makeupZone: MakeupZone;
+  status: LookProductStatus;
+  productId: string | null;
+  shadeId: string | null;
+  sourceType: string | null;
+  sourceUrl: string | null;
+  evidenceText: string | null;
+  verified: boolean;
+  similarityScore: number | null;
+  recommendationReason: string | null;
+}
+
+export interface IdolLook {
+  id: string;
+  displayName: string;
+  styleDescription: string;
+  isPublished: boolean;
+  video: IdolVideo;
+  products: IdolLookProduct[];
+  arSettings: MakeupState;
+}
+
 export interface ShoppingOffer {
   title: string;
   mallName: string;
@@ -227,9 +287,39 @@ export interface ProductOffers {
   offers: ShoppingOffer[];
 }
 
+export type SimilarReason = 'close_color' | 'same_texture' | 'same_category';
+
+export interface SimilarShadeMatch {
+  productId: string;
+  shadeId: string;
+  /** CIEDE2000 distance between official shade colors. */
+  deltaE: number;
+  reasons: SimilarReason[];
+}
+
+/** `GET /api/shades/similar`: ranked by official colors, not by the AR camera image. */
+export interface SimilarShadesResponse {
+  source: { productId: string; shadeId: string; hex: string; makeupZone: MakeupZone };
+  matches: SimilarShadeMatch[];
+  products: Product[];
+}
+
 export interface YoutubeSearchResult {
   configured: boolean;
   videos: YoutubeVideo[];
+}
+
+/** Product reference returned by the authenticated VISHUE chat service. */
+export interface ChatProductRef {
+  id: string;
+  brand: string;
+  name: string;
+  category: string;
+}
+
+export interface ChatResponse {
+  answer: string;
+  products: ChatProductRef[];
 }
 
 export interface AuthUser {
@@ -244,4 +334,10 @@ export interface MeResponse {
 export interface ApiErrorBody {
   error: string;
   code?: string;
+}
+
+export interface CreateOrderResponse {
+  orderId: string;
+  amount: number;
+  checkoutUrl: string;
 }

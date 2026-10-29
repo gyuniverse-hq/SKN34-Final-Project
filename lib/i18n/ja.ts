@@ -1,8 +1,10 @@
 import type { Dictionary } from './en';
+import { flowsJa } from './flows';
 import { skinJa } from './skin';
 
 export const ja: Dictionary = {
   ...skinJa,
+  ...flowsJa,
   "nia.acne.ready": "ニキビ研究モデルが利用可能 · 次の解析に含まれます",
   "nia.acne.outdated": "以前の解析にはニキビの結果がありません。現在のモデルで再解析してください。",
   "nia.acne.reanalyze": "ニキビを含めて再解析",
@@ -344,8 +346,8 @@ export const ja: Dictionary = {
   'cart.clear': 'カートを空にする',
   'cart.fromLook': 'ルックから追加',
 
-  'checkout.title': 'ショッピングリスト',
-  'checkout.intro': 'カートを、店員さんに見せられる韓国語のショッピングリストとして保存します。',
+  'checkout.title': '注文',
+  'checkout.intro': 'お支払い前に注文内容をご確認ください。',
   'checkout.chooseStore': 'どこで買いますか？（任意）',
   'checkout.anyStore': 'どの店舗でも',
   'checkout.openMap': '地図で開く',
@@ -476,4 +478,26 @@ export const ja: Dictionary = {
   'ingredients.searchPlaceholder': '成分を検索（例：ナイアシンアミド）',
   'ingredients.empty': '成分を検索すると該当する商品が表示されます。',
   'ingredients.similar': '似た成分の商品',
+  'idol.title': 'アイドルメイク体験',
+  'idol.subtitle': '公式に紐付けた YouTube 動画を選択してください。根拠の確認前は製品を未確認として表示します。',
+  'idol.details': '詳細を見る',
+  'idol.mapping.registered': '製品確認待ち',
+  'idol.mapping.empty': '確認済み製品なし',
+  'idol.mapping.mapped': '連携済み製品 {count}件',
+  'idol.video': '動画を見る',
+  'idol.openYoutube': 'YouTube で開く',
+  'idol.style': 'メイクスタイル',
+  'idol.products': '関連製品',
+  'idol.noProducts': 'この動画で検証済みの製品はまだありません。',
+  'idol.tryAr': 'ARでメイクを試す',
+  'idol.before': 'BEFORE',
+  'idol.after': 'AFTER',
+  'idol.compare': '左右比較',
+  'idol.fullAr': 'フルAR',
+  'idol.original': '元を見る',
+  'idol.purchase': '製品を見る',
+  'idol.videoUnavailable': '動画メタデータを取得できないため、登録済み動画IDを表示しています。',
+  'idol.verified': '実使用を確認',
+  'idol.similar': '類似製品のおすすめ',
+  'idol.unverified': '実製品・色番未確認',
 };

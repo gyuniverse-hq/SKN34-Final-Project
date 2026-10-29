@@ -41,6 +41,7 @@ final_venv/
 !/data/catalog/
 .claude/
 docs/planning/
+/tmp/
 ~$*
 
 # typescript

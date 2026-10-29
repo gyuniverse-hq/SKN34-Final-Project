@@ -1,22 +1,27 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type {
   CelebLook,
+  IdolLook,
   Product,
-  ProductCategory,
   ProductOffers,
+  ProductQuery,
+  SimilarShadesResponse,
   Store,
   YoutubeSearchResult,
 } from '@/types';
 import { DEV_LOOKS, DEV_TRYON_PRODUCTS, devLookDetail } from '@/lib/devCatalog';
 import { apiGet } from './api';
+import { offlineIdolLook, offlineIdolLooks } from './idolLooks';
 
-export function useProducts(params: { q?: string; category?: ProductCategory } = {}) {
+export function useProducts(params: ProductQuery = {}) {
   const search = new URLSearchParams();
   if (params.q) search.set('q', params.q);
   if (params.category) search.set('category', params.category);
+  const concerns = params.concerns?.join(',') ?? '';
+  if (concerns) search.set('concerns', concerns);
   const qs = search.toString();
   return useQuery({
-    queryKey: ['products', params.q ?? '', params.category ?? 'all'],
+    queryKey: ['products', params.q ?? '', params.category ?? 'all', concerns],
     queryFn: async () => {
       try {
         return await apiGet<{ products: Product[] }>(`/api/products${qs ? `?${qs}` : ''}`);
@@ -70,6 +75,17 @@ export function useProductOffers(id: string | undefined) {
   });
 }
 
+export function useSimilarShades(productId: string | undefined, shadeId: string | undefined, limit = 8) {
+  return useQuery({
+    queryKey: ['similar-shades', productId, shadeId, limit],
+    queryFn: () =>
+      apiGet<SimilarShadesResponse>(
+        `/api/shades/similar?productId=${encodeURIComponent(productId!)}&shadeId=${encodeURIComponent(shadeId!)}&limit=${limit}`
+      ),
+    enabled: !!productId && !!shadeId,
+  });
+}
+
 /** Development: the bundled demo looks stand in when the backend has none or cannot be reached. */
 export function useLooks() {
   return useQuery({
@@ -95,6 +111,36 @@ export function useLook(id: string | undefined) {
       const demo = __DEV__ ? devLookDetail(id!) : null;
       if (demo) return demo;
       return apiGet<{ look: CelebLook; products: Product[] }>(`/api/looks/${encodeURIComponent(id!)}`);
+    },
+    enabled: !!id,
+  });
+}
+
+export function useIdolLooks() {
+  return useQuery({
+    queryKey: ['idol-looks'],
+    queryFn: async () => {
+      try {
+        return await apiGet<{ looks: IdolLook[] }>('/api/idol-looks');
+      } catch {
+        return { looks: offlineIdolLooks };
+      }
+    },
+    select: (d) => d.looks,
+  });
+}
+
+export function useIdolLook(id: string | undefined) {
+  return useQuery({
+    queryKey: ['idol-look', id],
+    queryFn: async () => {
+      try {
+        return await apiGet<{ look: IdolLook; products: Product[] }>(`/api/idol-looks/${encodeURIComponent(id!)}`);
+      } catch {
+        const look = offlineIdolLook(id);
+        if (!look) throw new Error('Idol look not found');
+        return { look, products: [] };
+      }
     },
     enabled: !!id,
   });

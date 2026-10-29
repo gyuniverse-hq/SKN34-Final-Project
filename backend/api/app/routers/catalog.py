@@ -5,6 +5,7 @@ from app.core.http import cache_for
 from app.core.ratelimit import RateLimiter, client_key, get_offer_search_rate_limiter
 from app.schemas.catalog import (
     CATEGORIES,
+    CONCERNS,
     LookDetailResponse,
     LooksResponse,
     ProductResponse,
@@ -24,13 +25,19 @@ async def list_products(
     q: str | None = Query(default=None),
     category: str | None = Query(default=None, max_length=20),
     ids: str | None = Query(default=None, max_length=2000),
+    concerns: str | None = Query(default=None, max_length=200),
     service: CatalogService = Depends(get_catalog_service),
 ) -> ProductsResponse:
     if category and category not in CATEGORIES:
         raise ApiError(400, "Unknown category", "invalid_category")
     id_list = [s.strip() for s in ids.split(",") if s.strip()][:50] if ids else None
+    concern_list = sorted({s.strip() for s in concerns.split(",") if s.strip()}) if concerns else []
+    if any(c not in CONCERNS for c in concern_list):
+        raise ApiError(400, "Unknown skin concern", "invalid_concern")
     query = q.strip()[:80] if q and q.strip() else None
-    products = await service.list_products(q=query, category=category or None, ids=id_list)
+    products = await service.list_products(
+        q=query, category=category or None, ids=id_list, concerns=concern_list or None
+    )
     cache_for(response, 300)
     return ProductsResponse(products=products)
 

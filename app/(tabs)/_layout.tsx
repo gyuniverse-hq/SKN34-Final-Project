@@ -29,7 +29,7 @@ export default function TabLayout() {
       }}>
       <Tabs.Screen
         name="index"
-        options={{ title: t('tabs.shop'), headerShown: false, tabBarIcon: icon('bag-handle', 'bag-handle-outline') }}
+        options={{ title: t('tabs.home'), headerShown: false, tabBarIcon: icon('home', 'home-outline') }}
       />
       <Tabs.Screen
         name="celeb"
@@ -38,6 +38,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="ar"
         options={{ title: t('tabs.tryOn'), headerShown: false, tabBarIcon: icon('scan-circle', 'scan-circle-outline') }}
+      />
+      <Tabs.Screen
+        name="shop"
+        options={{ title: t('tabs.products'), headerShown: false, tabBarIcon: icon('bag-handle', 'bag-handle-outline') }}
       />
       <Tabs.Screen
         name="my"

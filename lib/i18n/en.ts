@@ -1,6 +1,8 @@
+import { flowsEn } from './flows';
 import { skinEn } from './skin';
 export const en = {
   ...skinEn,
+  ...flowsEn,
   "nia.acne.ready": "Acne research model available · included in the next analysis",
   "nia.acne.outdated": "This earlier analysis has no acne result. Analyze again with the currently available model.",
   "nia.acne.reanalyze": "Analyze again including acne",
@@ -342,9 +344,8 @@ export const en = {
   'cart.clear': 'Clear cart',
   'cart.fromLook': 'From a look',
 
-  'checkout.title': 'Shopping list',
-  'checkout.intro':
-    'Save your cart as a shopping list with Korean product names you can show to store staff.',
+  'checkout.title': 'Checkout',
+  'checkout.intro': 'Review your order before payment.',
   'checkout.chooseStore': 'Where will you shop? (optional)',
   'checkout.anyStore': 'Any store',
   'checkout.openMap': 'Open in Maps',
@@ -475,6 +476,28 @@ export const en = {
   'ingredients.searchPlaceholder': 'Search an ingredient (e.g. niacinamide)',
   'ingredients.empty': 'Search an ingredient to see matching products.',
   'ingredients.similar': 'Products with similar ingredients',
+  'idol.title': 'Idol makeup experience',
+  'idol.subtitle': 'Choose an officially linked YouTube video. Products remain unconfirmed until evidence is reviewed.',
+  'idol.details': 'View details',
+  'idol.mapping.registered': 'Product review pending',
+  'idol.mapping.empty': 'No verified products yet',
+  'idol.mapping.mapped': '{count} products connected',
+  'idol.video': 'Watch video',
+  'idol.openYoutube': 'Open YouTube',
+  'idol.style': 'Makeup style',
+  'idol.products': 'Related products',
+  'idol.noProducts': 'No products have been verified for this video yet.',
+  'idol.tryAr': 'Try this look in AR',
+  'idol.before': 'BEFORE',
+  'idol.after': 'AFTER',
+  'idol.compare': 'Split comparison',
+  'idol.fullAr': 'Full AR',
+  'idol.original': 'Original',
+  'idol.purchase': 'View products',
+  'idol.videoUnavailable': 'Video metadata is unavailable. Showing the registered video ID.',
+  'idol.verified': 'Verified used product',
+  'idol.similar': 'Similar product recommendation',
+  'idol.unverified': 'Actual product / shade unconfirmed',
 };
 
 export type TranslationKey = keyof typeof en;

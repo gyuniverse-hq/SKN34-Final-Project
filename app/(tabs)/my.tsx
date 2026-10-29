@@ -14,6 +14,7 @@ import { skinAnalysisEnabled } from '@/lib/skinAnalysis';
 import { clearSkinTimings } from '@/lib/skinProfile';
 import { useSkinProfileStore } from '@/store/skinProfileStore';
 import { useCartStore } from '@/store/cartStore';
+import { useCompareStore } from '@/store/compareStore';
 import { useMakeupStore } from '@/store/makeupStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useShoppingListStore } from '@/store/shoppingListStore';
@@ -43,6 +44,7 @@ export default function MyScreen() {
   const deleteAll = () =>
     confirmAction(t('my.deleteDataConfirm'), t('common.delete'), t('common.cancel'), async () => {
       useCartStore.getState().clear();
+      useCompareStore.getState().clear();
       useShoppingListStore.getState().clear();
       useSettingsStore.getState().reset();
       useMakeupStore.getState().reset();

@@ -1,171 +1,136 @@
-import { useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LookCard } from '@/components/celeb/LookCard';
+import { KStyleCollection, type KStyleCollectionTab } from '@/components/celeb/KStyleCollection';
+import { HomeChatButton } from '@/components/chat/HomeChatButton';
 import { ProductCard } from '@/components/shop/ProductCard';
 import { SearchBar } from '@/components/shop/SearchBar';
 import { ShopHeaderActions } from '@/components/shop/ShopHeaderActions';
-import { Chip } from '@/components/ui/Chip';
-import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateViews';
+import { ActionTile } from '@/components/ui/ActionTile';
+import { InlineState } from '@/components/ui/InlineState';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import { theme } from '@/constants/theme';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
-import { useI18n, type TranslationKey } from '@/lib/i18n';
-import { withDevShopLip } from '@/lib/devCatalog';
-import { useLooks, useProducts } from '@/lib/queries';
-import type { Product, ProductCategory } from '@/types';
+import { useI18n } from '@/lib/i18n';
+import { displayableIdolLooks } from '@/lib/idolLooks';
+import { useIdolLooks, useLooks, useProducts } from '@/lib/queries';
+import { idolLookHref, lookHref, productHref, searchHref } from '@/lib/routes';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-const CATEGORIES: ProductCategory[] = ['lip', 'cheek', 'eye', 'base', 'skincare', 'suncare'];
+const HOME_PRODUCT_LIMIT = 8;
 
-export default function ShopScreen() {
+export default function HomeScreen() {
   const router = useRouter();
   const { t } = useI18n();
   const [query, setQuery] = useState('');
-  const [category, setCategory] = useState<ProductCategory | undefined>();
-  const debouncedQuery = useDebouncedValue(query.trim(), 300);
-
-  const products = useProducts({ q: debouncedQuery || undefined, category });
-  const shopProducts = useMemo(
-    () => withDevShopLip(products.data ?? [], { q: debouncedQuery || undefined, category }),
-    [products.data, debouncedQuery, category]
-  );
+  const [collectionTab, setCollectionTab] = useState<KStyleCollectionTab>('celebrity');
+  const idolLooks = useIdolLooks();
   const looks = useLooks();
-  const showLooks = !debouncedQuery && !category;
+  const products = useProducts();
+  const featuredIdolLooks = displayableIdolLooks(idolLooks.data);
 
-  const renderItem = useCallback(
-    ({ item }: { item: Product }) => (
-      <ProductCard
-        product={item}
-        shadeLabel={t('shop.shadeCount', { count: item.shades.length })}
-        onPress={() => router.push(`/product/${item.id}`)}
-      />
-    ),
-    [router, t]
-  );
+  const submitSearch = () => {
+    const q = query.trim();
+    if (q) router.push(searchHref({ q, source: 'home' }));
+  };
 
-  const header = (
-    <View>
-      <View style={styles.hero}>
-        <View style={styles.heroText}>
-          <Text style={styles.brand} accessibilityRole="header">
-            {t('shop.title')}
-          </Text>
-          <Text style={styles.tagline}>{t('shop.tagline')}</Text>
-        </View>
-        <ShopHeaderActions onOpenCart={() => router.push('/cart')} />
-      </View>
-      <View style={styles.search}>
-        <SearchBar value={query} onChangeText={setQuery} placeholder={t('shop.searchPlaceholder')} />
-      </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-        <Chip label={t('shop.all')} selected={!category} onPress={() => setCategory(undefined)} />
-        {CATEGORIES.map((c) => (
-          <Chip
-            key={c}
-            label={t(`shop.cat.${c}` as TranslationKey)}
-            selected={category === c}
-            onPress={() => setCategory(category === c ? undefined : c)}
-          />
-        ))}
-      </ScrollView>
-
-      <Pressable
-        onPress={() => router.push('/ingredients')}
-        accessibilityRole="button"
-        style={({ pressed }) => [styles.ingredientsLink, pressed && { opacity: 0.85 }]}>
-        <Ionicons name="flask-outline" size={18} color={theme.colors.rose} />
-        <Text style={styles.ingredientsText}>{t('shop.ingredientsLink')}</Text>
-        <Ionicons name="chevron-forward" size={16} color={theme.colors.inkFaint} />
-      </Pressable>
-
-      {showLooks && looks.data?.length ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('shop.featuredLooks')}</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.looks}>
-            {looks.data.map((look) => (
-              <LookCard
-                key={look.id}
-                look={look}
-                width={240}
-                subtitle={t('looks.itemCount', { count: look.items.length })}
-                onPress={() => router.push(`/look/${look.id}`)}
-              />
-            ))}
-          </ScrollView>
-        </View>
-      ) : null}
-
-      <Text style={[styles.sectionTitle, styles.productsTitle]}>{t('shop.products')}</Text>
-    </View>
-  );
+  const refreshing = idolLooks.isRefetching || looks.isRefetching || products.isRefetching;
+  const refresh = () => {
+    idolLooks.refetch();
+    looks.refetch();
+    products.refetch();
+  };
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <FlatList
-        data={shopProducts}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        renderItem={renderItem}
-        ListHeaderComponent={header}
-        contentContainerStyle={styles.list}
+      <ScrollView
+        contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        refreshControl={
-          <RefreshControl
-            refreshing={products.isRefetching}
-            onRefresh={() => {
-              products.refetch();
-              looks.refetch();
-            }}
-            tintColor={theme.colors.rose}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={theme.colors.rose} />}>
+        <View style={styles.header}>
+          <Text style={styles.logo} accessibilityRole="header">
+            VISHUE<Text style={styles.logoDot}>.</Text>
+          </Text>
+          <ShopHeaderActions onOpenCart={() => router.push('/cart')} />
+        </View>
+
+        <KStyleCollection
+          activeTab={collectionTab}
+          idolLooks={featuredIdolLooks}
+          looks={looks.data}
+          idolLoading={idolLooks.isPending}
+          looksLoading={looks.isPending}
+          idolError={idolLooks.isError}
+          looksError={looks.isError}
+          eyebrow={t('home.eyebrow')}
+          title={t('home.collectionTitle')}
+          celebrityLabel={t('home.collectionCelebrity')}
+          styleLabel={t('home.collectionStyle')}
+          viewAllLabel={t('home.viewAll')}
+          emptyMessage={collectionTab === 'celebrity' ? t('home.collectionCelebrityEmpty') : t('looks.empty')}
+          onTabChange={setCollectionTab}
+          onViewAll={() => router.push(collectionTab === 'celebrity' ? '/idol-looks' : '/celeb')}
+          onRetry={() => (collectionTab === 'celebrity' ? idolLooks.refetch() : looks.refetch())}
+          onPressIdol={(look) => router.push(idolLookHref(look.id))}
+          onPressStyle={(look) => router.push(lookHref(look.id))}
+        />
+
+        <View style={styles.search}>
+          <SearchBar value={query} onChangeText={setQuery} onSubmit={submitSearch} placeholder={t('home.searchPlaceholder')} />
+        </View>
+
+        <View style={styles.tiles}>
+          <ActionTile icon="sparkles-outline" title={t('home.looks')} body={t('home.looksBody')} onPress={() => router.push('/celeb')} />
+          <ActionTile icon="scan-outline" title={t('home.ar')} body={t('home.arBody')} onPress={() => router.push('/ar')} />
+          <ActionTile icon="search-outline" title={t('home.search')} body={t('home.searchBody')} onPress={() => router.push('/shop')} />
+          <ActionTile icon="water-outline" title={t('home.skin')} body={t('home.skinBody')} onPress={() => router.push('/skin-consent')} />
+        </View>
+
+        <View style={styles.section}>
+          <SectionHeader
+            eyebrow={t('home.pickEyebrow')}
+            title={t('home.pickTitle')}
+            actionLabel={t('home.viewAll')}
+            onAction={() => router.push('/shop')}
           />
-        }
-        ListEmptyComponent={
-          products.isPending ? (
-            <LoadingState />
+          {products.isPending ? (
+            <InlineState status="loading" />
           ) : products.isError ? (
-            <ErrorState error={products.error} onRetry={() => products.refetch()} />
+            <InlineState status="error" onRetry={() => products.refetch()} />
+          ) : products.data.length === 0 ? (
+            <InlineState status="empty" message={t('shop.emptyCatalog')} />
           ) : (
-            <EmptyState
-              icon={debouncedQuery || category ? 'search-outline' : 'cube-outline'}
-              title={debouncedQuery || category ? t('shop.noResults') : t('shop.emptyCatalog')}
-            />
-          )
-        }
-      />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.productRail}>
+              {products.data.slice(0, HOME_PRODUCT_LIMIT).map((p) => (
+                <View key={p.id} style={styles.productItem}>
+                  <ProductCard
+                    product={p}
+                    shadeLabel={t('shop.shadeCount', { count: p.shades.length })}
+                    onPress={() => router.push(productHref(p.id))}
+                  />
+                </View>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+
+        <Text style={styles.disclaimer}>{t('home.disclaimer')}</Text>
+      </ScrollView>
+      <HomeChatButton label={t('home.chatFab')} hint={t('home.chatFabHint')} onPress={() => router.push('/chat')} />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.surface },
-  list: { paddingHorizontal: 10, paddingBottom: 32 },
-  hero: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 10, paddingTop: 12 },
-  heroText: { flex: 1 },
-  brand: { fontSize: theme.font.h1, fontWeight: '800', color: theme.colors.ink, letterSpacing: -0.5 },
-  tagline: { fontSize: theme.font.small, color: theme.colors.inkMuted, marginTop: 2 },
-  search: { paddingHorizontal: 6, paddingTop: 14, paddingBottom: 10 },
-  chips: { gap: 8, paddingHorizontal: 6, paddingBottom: 6 },
-  section: { marginTop: 18 },
-  sectionTitle: {
-    fontSize: theme.font.title,
-    fontWeight: '800',
-    color: theme.colors.ink,
-    paddingHorizontal: 6,
-    marginBottom: 10,
-  },
-  productsTitle: { marginTop: 22, marginBottom: 4 },
-  looks: { gap: 12, paddingHorizontal: 6 },
-  ingredientsLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginHorizontal: 6,
-    marginTop: 10,
-    padding: 12,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.roseSoft,
-  },
-  ingredientsText: { flex: 1, fontSize: theme.font.small, fontWeight: '700', color: theme.colors.roseDark },
+  content: { padding: theme.spacing.lg, paddingBottom: 104 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  logo: { fontFamily: theme.fontFamily.display, fontSize: 28, fontWeight: '700', color: theme.colors.rose, letterSpacing: -0.5 },
+  logoDot: { color: theme.colors.accent },
+  search: { marginTop: 14 },
+  tiles: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  section: { marginTop: 28 },
+  productRail: { marginHorizontal: -6 },
+  productItem: { width: 168 },
+  disclaimer: { marginTop: 28, fontSize: 11, lineHeight: 16, color: theme.colors.inkFaint },
 });

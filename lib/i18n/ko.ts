@@ -1,8 +1,10 @@
 import type { Dictionary } from './en';
+import { flowsKo } from './flows';
 import { skinKo } from './skin';
 
 export const ko: Dictionary = {
   ...skinKo,
+  ...flowsKo,
   "nia.acne.ready": "여드름 연구 모델 사용 가능 · 다음 분석에 포함됩니다",
   "nia.acne.outdated": "이전 분석에는 여드름 결과가 없습니다. 현재 모델로 다시 분석하세요.",
   "nia.acne.reanalyze": "여드름 포함 다시 분석",
@@ -344,8 +346,8 @@ export const ko: Dictionary = {
   'cart.clear': '장바구니 비우기',
   'cart.fromLook': '룩에서 담음',
 
-  'checkout.title': '쇼핑 리스트',
-  'checkout.intro': '장바구니를 매장 직원에게 보여줄 수 있는 한국어 쇼핑 리스트로 저장해요.',
+  'checkout.title': '주문',
+  'checkout.intro': '결제 전에 주문 상품을 확인해 주세요.',
   'checkout.chooseStore': '어디서 쇼핑하시나요? (선택)',
   'checkout.anyStore': '아무 매장',
   'checkout.openMap': '지도에서 열기',
@@ -476,4 +478,26 @@ export const ko: Dictionary = {
   'ingredients.searchPlaceholder': '성분 검색 (예: 나이아신아마이드)',
   'ingredients.empty': '성분을 검색하면 해당 제품이 표시돼요.',
   'ingredients.similar': '유사 성분 제품',
+  'idol.title': '아이돌 메이크업 체험',
+  'idol.subtitle': '공식 연결된 YouTube 영상을 선택하세요. 제품은 근거 검토 전까지 미확인으로 표시됩니다.',
+  'idol.details': '자세히 보기',
+  'idol.mapping.registered': '제품 검토 대기',
+  'idol.mapping.empty': '확인된 제품 없음',
+  'idol.mapping.mapped': '연결된 제품 {count}개',
+  'idol.video': '영상 보기',
+  'idol.openYoutube': 'YouTube에서 열기',
+  'idol.style': '메이크업 스타일',
+  'idol.products': '관련 제품',
+  'idol.noProducts': '이 영상에서 검증된 제품이 아직 없습니다.',
+  'idol.tryAr': 'AR로 메이크업 해보기',
+  'idol.before': 'BEFORE',
+  'idol.after': 'AFTER',
+  'idol.compare': '반반 비교',
+  'idol.fullAr': '전체 AR',
+  'idol.original': '원본 보기',
+  'idol.purchase': '제품 보기',
+  'idol.videoUnavailable': '영상 메타데이터를 불러오지 못해 등록된 영상 ID를 표시합니다.',
+  'idol.verified': '실제 사용 확인',
+  'idol.similar': '유사 제품 추천',
+  'idol.unverified': '실제 제품·색상 미확인',
 };

@@ -2245,6 +2245,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       render(W, H) {
         if (glCanvas.width !== W || glCanvas.height !== H) { glCanvas.width = W; glCanvas.height = H; }
         gl.viewport(0, 0, W, H);
+        gl.disable(gl.SCISSOR_TEST);
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, videoTex);
 
@@ -2255,6 +2256,11 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         gl.uniform1i(bg.u.uVideo, 0);
         attrib(bgPos, quadBuf, 2);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        // Comparison (before | after): the left half stays the camera image, the makeup is drawn on the right half only.
+        if (compare) {
+          gl.enable(gl.SCISSOR_TEST);
+          gl.scissor(Math.floor(W / 2), 0, W - Math.floor(W / 2), H);
+        }
 
         const lip = makeup.lip, blush = makeup.blush, eye = makeup.eyeshadow;
         const liner = makeup.eyeliner || null;
@@ -2262,7 +2268,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         const foundZ = makeup.foundation || null;
         // Looks still name mascara / highlighter / contour; AR does not paint them (10-27).
         const mascara = null, hl = null, contourZ = null;
-        if (!hasFace || compare || !(lip || blush || eye || liner || browZ || foundZ || mascara || hl || contourZ)) return;
+        if (!hasFace || !(lip || blush || eye || liner || browZ || foundZ || mascara || hl || contourZ)) return;
 
         gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
         gl.bufferSubData(gl.ARRAY_BUFFER, 0, meshPos);
