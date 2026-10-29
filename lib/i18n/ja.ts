@@ -1,6 +1,7 @@
 import type { Dictionary } from './en';
 import { flowsJa } from './flows';
 import { skinJa } from './skin';
+import { skinReportJa } from './skinReport';
 
 export const ja: Dictionary = {
   'discovery.quickTitle': '自分に合うビューティー',
@@ -38,6 +39,7 @@ export const ja: Dictionary = {
   "celebrity.photoCredit": "写真の出典 · 表示に合わせて切り抜き",
   ...skinJa,
   ...flowsJa,
+  ...skinReportJa,
   "nia.acne.ready": "ニキビ研究モデルが利用可能 · 次の解析に含まれます",
   "nia.acne.outdated": "以前の解析にはニキビの結果がありません。現在のモデルで再解析してください。",
   "nia.acne.reanalyze": "ニキビを含めて再解析",

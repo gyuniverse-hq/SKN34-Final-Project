@@ -1,5 +1,6 @@
 import { flowsEn } from './flows';
 import { skinEn } from './skin';
+import { skinReportEn } from './skinReport';
 export const en = {
   'discovery.quickTitle': 'Explore your look',
   'discovery.quickBody': 'Find colors and care that suit you.',
@@ -36,6 +37,7 @@ export const en = {
   "celebrity.photoCredit": "Photo credit · cropped",
   ...skinEn,
   ...flowsEn,
+  ...skinReportEn,
   "nia.acne.ready": "Acne research model available · included in the next analysis",
   "nia.acne.outdated": "This earlier analysis has no acne result. Analyze again with the currently available model.",
   "nia.acne.reanalyze": "Analyze again including acne",
