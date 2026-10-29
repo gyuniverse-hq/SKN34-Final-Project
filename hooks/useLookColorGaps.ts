@@ -2,7 +2,7 @@ import { useQueries } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { withDevTryOnFallback } from '@/lib/devCatalog';
 import { apiGet } from '@/lib/api';
-import { findColorGaps, naverShoppingUrl, type ColorGap, type LookLine, type NearestShade } from '@/lib/lookColors';
+import { findColorGaps, naverShoppingUrl, type ColorGap, type LookLine, type NearestShade } from '@/lib/colorGaps';
 import { useProducts } from '@/lib/queries';
 import type { MakeupState, MakeupZone, ProductOffers, ShoppingOffer } from '@/types';
 

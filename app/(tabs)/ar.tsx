@@ -33,7 +33,7 @@ import { withDevTryOnFallback } from '@/lib/devCatalog';
 import { formatKRW } from '@/lib/format';
 import { LINER_LOOK_IDS, LINER_LOOKS, matchingLinerLook } from '@/lib/linerLooks';
 import { SHADOW_FINISH_IDS, shadowFinishOf } from '@/lib/shadowFinishes';
-import { findColorGaps, recommendShades, type LookLine } from '@/lib/lookColors';
+import { findColorGaps, recommendShades, type LookLine } from '@/lib/colorGaps';
 import { guideMessage } from '@/lib/drawGuide';
 import { buildGuideSteps, guideText } from '@/lib/lookGuide';
 import { practiceDrawStep, practiceZones, revealedMakeup, visit } from '@/lib/practice';

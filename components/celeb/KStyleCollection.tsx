@@ -4,18 +4,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { memo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { InlineState } from '@/components/ui/InlineState';
+import { CelebrityCard } from './CelebrityCard';
+import type { Celebrity } from '@/constants/celebrities';
 import { theme } from '@/constants/theme';
-import type { CelebLook, IdolLook } from '@/types';
+import type { CelebLook } from '@/types';
 
 export type KStyleCollectionTab = 'celebrity' | 'style';
 
 interface Props {
   activeTab: KStyleCollectionTab;
-  idolLooks: IdolLook[] | undefined;
+  celebrities: { celebrity: Celebrity; name: string }[];
   looks: CelebLook[] | undefined;
-  idolLoading: boolean;
   looksLoading: boolean;
-  idolError: boolean;
   looksError: boolean;
   eyebrow: string;
   title: string;
@@ -26,18 +26,16 @@ interface Props {
   onTabChange: (tab: KStyleCollectionTab) => void;
   onViewAll: () => void;
   onRetry: () => void;
-  onPressIdol: (look: IdolLook) => void;
+  onPressCelebrity: (celebrity: Celebrity) => void;
   onPressStyle: (look: CelebLook) => void;
 }
 
 /** Home's high-priority, image-first entry point for K-celebrity and K-style looks. */
 export const KStyleCollection = memo(function KStyleCollection({
   activeTab,
-  idolLooks,
+  celebrities,
   looks,
-  idolLoading,
   looksLoading,
-  idolError,
   looksError,
   eyebrow,
   title,
@@ -48,13 +46,13 @@ export const KStyleCollection = memo(function KStyleCollection({
   onTabChange,
   onViewAll,
   onRetry,
-  onPressIdol,
+  onPressCelebrity,
   onPressStyle,
 }: Props) {
   const isCelebrity = activeTab === 'celebrity';
-  const loading = isCelebrity ? idolLoading : looksLoading;
-  const hasError = isCelebrity ? idolError : looksError;
-  const items = isCelebrity ? idolLooks : looks;
+  const loading = !isCelebrity && looksLoading;
+  const hasError = !isCelebrity && looksError;
+  const isEmpty = isCelebrity ? celebrities.length === 0 : !looks?.length;
   const activeLabel = isCelebrity ? celebrityLabel : styleLabel;
 
   return (
@@ -81,20 +79,14 @@ export const KStyleCollection = memo(function KStyleCollection({
         <InlineState status="loading" />
       ) : hasError ? (
         <InlineState status="error" onRetry={onRetry} />
-      ) : !items?.length ? (
+      ) : isEmpty ? (
         <InlineState status="empty" message={emptyMessage} />
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
           {isCelebrity
-            ? idolLooks?.map((look) => (
-                <CollectionCard
-                  key={look.id}
-                  eyebrow={activeLabel}
-                  title={look.displayName}
-                  description={look.styleDescription}
-                  imageUri={look.video.thumbnailUrl}
-                  onPress={() => onPressIdol(look)}
-                />
+            ? celebrities.map(({ celebrity, name }) => (
+                <CelebrityCard key={celebrity.id} celebrity={celebrity} name={name} label={activeLabel}
+                  onPress={() => onPressCelebrity(celebrity)} />
               ))
             : looks?.map((look) => (
                 <CollectionCard

@@ -26,7 +26,7 @@ export const LookCard = memo(function LookCard({ look, subtitle, onPress, width 
         {MAKEUP_ZONES.map((z) => look.makeup[z])
           .filter((z): z is NonNullable<typeof z> => !!z)
           .map((z, i) => (
-            <View key={i} style={[styles.swatch, { backgroundColor: z.hex }]} />
+            <View key={i} style={[styles.swatch, i > 0 && styles.swatchOverlap, { backgroundColor: z.hex }]} />
           ))}
       </View>
       <View style={styles.body}>
@@ -44,17 +44,18 @@ export const LookCard = memo(function LookCard({ look, subtitle, onPress, width 
 
 const styles = StyleSheet.create({
   card: {
-    height: 220,
+    aspectRatio: 3 / 4,
     borderRadius: theme.radius.lg,
     overflow: 'hidden',
     backgroundColor: theme.colors.surfaceAlt,
     justifyContent: 'flex-end',
   },
   gradient: { position: 'absolute', left: 0, right: 0, bottom: 0, top: '35%' },
-  swatches: { position: 'absolute', top: 12, right: 12, flexDirection: 'row', gap: 4 },
-  swatch: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: theme.colors.white },
-  body: { padding: 14, gap: 2 },
+  swatches: { position: 'absolute', top: 10, left: 10, flexDirection: 'row' },
+  swatch: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: theme.colors.white },
+  swatchOverlap: { marginLeft: -7 },
+  body: { padding: 12, gap: 2 },
   inspiration: { fontSize: 11, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
-  title: { fontSize: 18, color: theme.colors.white, fontWeight: '800' },
+  title: { fontSize: 16, color: theme.colors.white, fontWeight: '800' },
   meta: { fontSize: 12, color: 'rgba(255,255,255,0.8)' },
 });

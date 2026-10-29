@@ -877,7 +877,7 @@ outColor      = vec4(linearToSrgb(addNoise(outLin)), 1.0); // 카메라 노이�
 - 3번에서 서버에 네이버 키가 없거나 조회가 실패하면(`configured: false`·오류) 품절로 단정하지 않고 네이버 쇼핑 검색 링크만 보여 준다. 네이버 쇼핑 API가 이 키로 막혀 있는 경우(SE05)도 같다.
 - 검색어는 색 계열·부위·제형을 한국어로 조합한다(예: `레드 립 벨벳`, `블랙 마스카라`). UI 문구가 아니라 검색 키워드라서 언어와 상관없이 한국어다. 룩에 제품 이름이 없어도 만들 수 있다.
 - 룩의 제품은 있는데 그 셰이드가 매장에서 사라진 경우(`shadeId`가 제품에 없음)도 색을 못 찾은 것으로 보고 세트 담기에서 뺀다.
-- 구현: `lib/lookColors.ts`(판단), `hooks/useLookColorGaps.ts`(카탈로그 + 판매처 조회), `components/look/ColorGaps.tsx`(표시), 백엔드 `OfferService.search_offers`·`GET /api/offers/search`(분당 20회 제한, 6시간 캐시).
+- 구현: `lib/colorGaps.ts`(판단), `hooks/useLookColorGaps.ts`(카탈로그 + 판매처 조회), `components/look/ColorGaps.tsx`(표시), 백엔드 `OfferService.search_offers`·`GET /api/offers/search`(분당 20회 제한, 6시간 캐시).
 - 한계: 양 조절은 밝기·색상각만 본 규칙이며, 실제 제품 발색은 확인하지 않았다.
 
 #### 6-5-11. 카메라 위 그리는 법 가이드 (10-27)
@@ -913,7 +913,7 @@ AR 화면의 "그리는 법" 버튼을 켜면 라이브 얼굴 위에 점선 가
 - **제품 매칭**: 부위가 입은 색을 고른 제품이 없으면(룩 색이 매장에 없음, 색 통일로 따라온 부위) 그 부위 탭에 **"이 색에 가장 가까운 제품"** 카드가 뜬다. 가까운 셰이드와 양 조절(겹쳐 바르기·얇게, 6-5-10)을 보여 주고 "이 제품 입어보기"로 바로 입을 수 있다. 가까운 셰이드가 없으면 룩 화면에서 판매처를 찾으라고 안내한다. 가장 가까운 셰이드는 AR의 "세트 담기"에도 같이 담긴다.
 - 진하기는 제품을 바꾸지 않는다(바르는 양이므로 카드의 양 조절 문구로만 반영).
 - 색 칩은 **실제 제품 셰이드만** 쓴다(원칙 1-1, 1-8). 임의 hex로 제품을 매칭하는 자유 색 선택은 하지 않았다.
-- 구현: `store/makeupStore.ts`(`heroZones`, `modified`, `lookOrigin`, `revertZone`), `app/(tabs)/ar.tsx`, `lib/lookColors.ts`. 백엔드 `CelebLook.heroZones`.
+- 구현: `store/makeupStore.ts`(`heroZones`, `modified`, `lookOrigin`, `revertZone`), `app/(tabs)/ar.tsx`, `lib/colorGaps.ts`. 백엔드 `CelebLook.heroZones`.
 
 #### 6-5-13. AR 탐색 / 상품 고정 (10-27)
 
