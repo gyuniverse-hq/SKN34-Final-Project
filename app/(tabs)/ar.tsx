@@ -274,7 +274,6 @@ export default function ArTryOnScreen() {
     [selections, tryOnProducts]
   );
   const gaps = useMemo(() => findColorGaps(makeup, wornLines, tryOnProducts), [makeup, wornLines, tryOnProducts]);
-  const substitutes = gaps.flatMap((g) => (g.kind === 'nearest' ? [g.nearest] : []));
   const zoneGap = gaps.find((g) => g.zone === zone);
   const selectedLine = useMemo(() => {
     const sel = selections[zone];
@@ -312,7 +311,6 @@ export default function ArTryOnScreen() {
         shadeId: s!.shadeId,
         addedFromLookId: activeLook?.id,
       })),
-      ...substitutes.map((n) => ({ productId: n.product.id, shadeId: n.shade.id, addedFromLookId: activeLook?.id })),
     ]);
     setAdded(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
@@ -928,7 +926,7 @@ export default function ArTryOnScreen() {
                 label={added ? t('looks.viewCart') : t('ar.addSelection')}
                 variant="secondary"
                 icon={added ? 'checkmark' : 'cart-outline'}
-                disabled={selectionItems.length === 0 && substitutes.length === 0}
+                disabled={selectionItems.length === 0}
                 onPress={onAddSelection}
                 style={{ flex: 1 }}
               />

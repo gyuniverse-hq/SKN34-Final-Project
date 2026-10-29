@@ -353,3 +353,8 @@ export interface CreateOrderResponse {
   amount: number;
   checkoutUrl: string;
 }
+
+export interface OrderStatusResponse {
+  orderId: string;
+  status: 'pending' | 'paid';
+}
