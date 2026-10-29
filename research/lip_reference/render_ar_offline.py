@@ -49,7 +49,7 @@ def page_html(page: Path = ROOT / "components/ar/faceTrackerHtml.ts"):
     if "${" in html:
         raise SystemExit("faceTrackerHtml.ts has a template value this tool does not fill")
     html = html.replace("gl.UNSIGNED_BYTE, video);", "gl.UNSIGNED_BYTE, window.__src || video);")
-    for name in ["statsCtx", "grainCtx", "camCtx", "blurCtx", "edgeCropCtx"]:
+    for name in ["statsCtx", "grainCtx", "camCtx", "blurCtx", "edgeCropCtx", "lidCtx"]:
         html = html.replace(name + ".drawImage(video,", name + ".drawImage(window.__src || video,")
     harness = r"""
   (async () => { try {

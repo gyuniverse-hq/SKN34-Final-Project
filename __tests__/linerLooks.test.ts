@@ -1,4 +1,5 @@
-import { LINER_LOOKS, matchingLinerLook } from '@/lib/linerLooks';
+import { FACE_TRACKER_HTML } from '@/components/ar/faceTrackerHtml';
+import { LINER_LOOK_IDS, LINER_LOOKS, matchingLinerLook } from '@/lib/linerLooks';
 import { shadowFinishOf } from '@/lib/shadowFinishes';
 import { useMakeupStore } from '@/store/makeupStore';
 import type { Product, Shade, ZoneSetting } from '@/types';
@@ -6,25 +7,51 @@ import type { Product, Shade, ZoneSetting } from '@/types';
 describe('liner looks', () => {
   beforeEach(() => useMakeupStore.getState().reset());
 
-  it('has the lid wing and the lash-line wing', () => {
-    expect(Object.keys(LINER_LOOKS)).toEqual(['lid', 'line']);
-    expect(matchingLinerLook(LINER_LOOKS.lid)).toBe('lid');
-    expect(matchingLinerLook(LINER_LOOKS.line)).toBe('line');
-    expect(LINER_LOOKS.lid).toMatchObject({ angle: 17, length: 0.25, thickness: 0.15 });
-    expect(LINER_LOOKS.line).toMatchObject({ angle: 24, length: 0.20, thickness: 0.05 });
+  it('has the six styles and no lid wing', () => {
+    expect(Object.keys(LINER_LOOKS)).toEqual(['natural', 'cat_wing', 'puppy', 'smoky', 'gyaru', 'under_point']);
+    expect(Object.keys(LINER_LOOKS)).not.toContain('lid');
+    for (const id of LINER_LOOK_IDS) expect(matchingLinerLook(LINER_LOOKS[id])).toBe(id);
     expect(matchingLinerLook({ angle: 15, length: 0.18, thickness: 0.09 })).toBeNull();
+    // The old lid-wing numbers (17°, 0.25, 0.15) no longer select a chip.
+    expect(matchingLinerLook({ angle: 17, length: 0.25, thickness: 0.15 })).toBeNull();
   });
 
   it('keeps hex when a liner look is patched', () => {
     const shade: Shade = { id: 'black', name: 'Black', hex: '#1A1414' };
     const product = { id: 'liner', makeupZone: 'eyeliner', texture: 'matte', shades: [shade] } as unknown as Product;
     useMakeupStore.getState().applyShade(product, shade);
-    useMakeupStore.getState().patchGeometry('eyeliner', LINER_LOOKS.lid);
+    useMakeupStore.getState().patchGeometry('eyeliner', LINER_LOOKS.cat_wing);
     const liner = useMakeupStore.getState().makeup.eyeliner;
     expect(liner?.hex).toBe('#1A1414');
-    expect(liner?.geometry).toMatchObject(LINER_LOOKS.lid);
+    expect(liner?.geometry).toMatchObject(LINER_LOOKS.cat_wing);
+  });
+});
+
+describe('liner style presets', () => {
+  it('selects each chip after it is patched over another one', () => {
+    const shade: Shade = { id: 'black', name: 'Black', hex: '#1A1414' };
+    const product = { id: 'liner', makeupZone: 'eyeliner', texture: 'matte', shades: [shade] } as unknown as Product;
+    useMakeupStore.getState().reset();
+    useMakeupStore.getState().applyShade(product, shade);
+    for (const from of LINER_LOOK_IDS) {
+      for (const to of LINER_LOOK_IDS) {
+        useMakeupStore.getState().patchGeometry('eyeliner', LINER_LOOKS[from]);
+        useMakeupStore.getState().patchGeometry('eyeliner', LINER_LOOKS[to]);
+        expect(matchingLinerLook(useMakeupStore.getState().makeup.eyeliner?.geometry)).toBe(to);
+      }
+    }
+    expect(LINER_LOOKS.natural.length).toBe(0);
+    expect(LINER_LOOKS.puppy.angle).toBeLessThan(0);
+    expect(LINER_LOOKS.smoky.linerLower).toBe(true);
   });
 
+  it('keeps a look without the new fields drawing as before', () => {
+    // Soft 0 skips the extra read; no linerLower draws no lower band.
+    expect(FACE_TRACKER_HTML).toContain('uLinerSoft > 0.001');
+    expect(FACE_TRACKER_HTML).toContain('liner ? clamp01(linerGeo.linerSoftness || 0) : 0');
+    expect(FACE_TRACKER_HTML).toContain('if (g.linerLower) {');
+    expect(FACE_TRACKER_HTML).toContain('smooth01(0.06, 0.14, lidGap)');
+  });
 });
 
 describe('eyeshadow finish chips', () => {

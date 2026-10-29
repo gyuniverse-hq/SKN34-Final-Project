@@ -67,6 +67,16 @@ class ZoneGeometry(OmitNoneModel):
     angle: float | None = None
     thickness: float | None = None
     liner_style: LinerStyle | None = None
+    liner_softness: float | None = Field(default=None, ge=0, le=1)
+    liner_lower: bool | None = None
+    liner_lower_thickness: float | None = Field(default=None, ge=0.002, le=0.08)
+    upper_line: bool | None = None
+    underline: bool | None = None
+    underline_thickness: float | None = Field(default=None, ge=0, le=0.05)
+    underline_alpha: float | None = Field(default=None, ge=0, le=1)
+    underline_start: float | None = Field(default=None, ge=0, le=1)
+    underline_length: float | None = Field(default=None, ge=0, le=1)
+    underline_join: bool | None = None
     lower: bool | None = None
     overlip: float | None = Field(default=None, ge=0, le=0.06)
     peak_overdraw: float | None = Field(default=None, ge=0, le=0.05)

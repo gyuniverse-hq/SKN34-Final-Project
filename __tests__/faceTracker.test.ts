@@ -126,6 +126,45 @@ describe('face tracker page', () => {
     expect(script).toContain('if (hudOn || guide) drawOverlay(W, H);');
   });
 
+  it('HUD draws upper-lid liner indices with one mirror, liner off or on', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    expect(script).toContain('function drawEyeLinePoints(W, H)');
+    expect(script).toContain('if (hudOn) { drawLipPoints(W, H); drawEyeLinePoints(W, H); }');
+    const hud = script.slice(script.indexOf('function drawEyeLinePoints'), script.indexOf('function drawGuide'));
+    expect(hud).toContain('for (const e of EYE_LINES)');
+    expect(hud).toContain('e.upper.map(toScreen)');
+    expect(hud).toContain('e.lower.map(toScreen)');
+    expect(hud).toContain('const toScreen = (i) => [(1 - sx[i]) * W, sy[i] * H]');
+    expect(hud).not.toMatch(/makeup\.eyeliner|linerLiftY/);
+    expect(hud.match(/1 - sx\[i\]/g)?.length).toBe(1);
+  });
+
+  it('finds the lash line from the camera per eye, with no per-person lift table', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    expect(script).not.toContain('linerLiftY');
+    expect(script).not.toContain('linerDropY');
+    const drawEyes = script.slice(script.indexOf('function drawEyes'), script.indexOf('function updateMesh'));
+    // Landmarks stay raw: the fit moves copies of the lid points, so the mesh and the eye holes do not move.
+    expect(drawEyes).toContain('const P = (i) => [sx[i] * W, sy[i] * H];');
+    expect(drawEyes).toContain('const fit = fitLidLine(EYE_LINES.indexOf(e), e, up, low, eyeW, nUp, fade, W, H, nowMs);');
+    expect(drawEyes).toContain("never changes the eye's size");
+    // Every number is a share of that eye's width; the same values for both eyes.
+    const fitCode = script.slice(script.indexOf('function readEyeCrop'), script.indexOf('function drawEyes'));
+    expect(fitCode).toContain('d[i] * eyeW');
+    expect(fitCode).toContain('const enabled = eyeW >= L.minEyePx && gap >= L.blinkGap && facing >= L.faceZ && fade > 0;');
+    expect(fitCode).toContain('const crop = enabled ? readEyeCrop(');
+    expect(fitCode).not.toMatch(/fetch|XMLHttpRequest|localStorage|sendBeacon/);
+    // Offsets are clamped to the range, and a weak or missing edge falls back to the prior.
+    expect(fitCode).toContain('target[i] = clamp(num / den, lo, hi);');
+    expect(fitCode).toContain('let num = L.priorWeight * prior, den = L.priorWeight;');
+    expect(script).toContain('lo: -0.01, hi: 0.05,');
+    expect(script).toContain('lowD0: 0.005, lowLo: -0.01, lowHi: 0.03');
+    // Face lost: the offsets are dropped, so nobody inherits the last person's lash line.
+    expect(script).toContain('resetLidFit();');
+    const filter = script.slice(script.indexOf('function filterLandmarks'), script.indexOf('function lerp'));
+    expect(filter).not.toContain('lidFit');
+  });
+
   it('draws the lip outline in screen space with sharp corners and smooth sides (10-25 close-ups)', () => {
     const script = moduleScript(FACE_TRACKER_HTML);
     // Redrawn every frame from the smoothed landmarks, not warped through mesh triangles.
@@ -348,9 +387,8 @@ describe('face tracker page', () => {
     expect(blushPow(0.9)).toBeLessThan(blushPow(0.16));
     expect(blushPow(0.9)).toBeCloseTo(0.5);
     expect(blushPow(0.16)).toBeCloseTo(1.7);
-    const linerGloss = (rough: number) => 1 - rough;
-    expect(linerGloss(0.9)).toBeLessThan(0.42);
-    expect(linerGloss(0.16)).toBeGreaterThan(0.42);
+    // Eyeliner has no finish (10-29): matte / glossy no longer change how it renders.
+    expect(script).not.toContain('uLinerGloss');
     expect(script).toContain('flake: 0');
     expect(script).toContain('flake: 1');
     expect(script).toContain('flakeScaleShimmer: 480');
@@ -361,43 +399,38 @@ describe('face tracker page', () => {
     // Blush mask falloff follows face roughness: glossy tightens, matte spreads.
     expect(script).toContain('float blushPow = mix(1.7, 0.5, clamp((uFaceRough.x - 0.16) / 0.74, 0.0, 1.0));');
     expect(script).toContain('blushM = pow(max(blushM, 0.0), blushPow);');
-    // Matte liner (low uLinerGloss) re-reads the same path with a wider kernel; glossy stays sharp.
-    expect(script).toContain('} else if (uEyeRect.x > -1.0 && uLinerGloss < 0.42) {');
-    expect(script).toContain('vec2 lo = uTexel * uEyeSoft * (1.0 + 1.6 * (0.42 - uLinerGloss));');
+    // Every liner is one flat opaque ink (10-29): a half-texel anti-alias read, the core snapped to full coverage,
+    // no matte halo and no gloss sheen; a smudge style only adds a halo and never lowers the core.
+    expect(script).not.toContain('halo');
+    expect(script).toContain('linerR = smoothstep(0.05, 0.45, linerR);');
+    expect(script).toContain('linerR = max(linerR, mix(linerR, min(wide * (1.0 + 2.5 * uLinerSoft), 1.0), uLinerSoft));');
+    expect(script).toContain('col = mix(col, uLinerAlbedo * uLightColor * uExposure, linerA);');
+    expect(script).not.toContain('layer(cam, uLinerAlbedo');
+    expect(script).not.toContain('uLinerCrisp');
     expect(script).toContain('thickness: 0.09');
     expect(script).toContain('function openSpline(p, samples)');
-    // Lash-line chip: thin upper stroke toward the iris, separate lower stroke. No tube mesh.
-    expect(script).toContain('EYELINER_PRESET.lineWing');
-    expect(script).toContain('irisDrop: 0.02');
-    expect(script).toContain('innerShare: 0.55');
-    expect(script).toContain('thickness: 0.05');
-    expect(script).toContain('lowerThickness: 0.05');
-    expect(script).toContain('lowerStart: 0.08');
-    expect(script).toContain('lowerAlpha: 1');
-    expect(script).toContain('lowerEnd: 1,');
-    expect(script).toContain('ltop.push(outer)');
-    expect(script).toContain('function isLineWing(g)');
+    expect(script).not.toContain('EYELINER_PRESET.lineWing');
+    expect(script).not.toContain('function drawLineWing(');
+    expect(script).not.toContain("g.linerShape === 'line'");
+    expect(script).not.toContain('irisDrop');
+    expect(script).not.toContain('lowerThickness');
     expect(script).not.toContain('dualWing');
     expect(script).not.toContain('TubeGeometry');
     expect(script).not.toContain('cleanWing');
     expect(script).not.toContain('slimWing');
     expect(script).not.toContain('sharpWing');
-    // Lid wing: straight lower edge along the wing, Bezier upper edge from the band top to a sharp tip.
-    expect(script).toContain('if (lidWing && len > 0.5 && nC > 3) {');
-    // Lid wing numbers from the preset (reference photo): 17°, length 0.25, thickness 0.15, soft edge, 0.92.
-    expect(script).toContain('angle: 17, length: 0.25, thickness: 0.15,');
-    expect(script).toContain('const joinT = LW.joinT;');
-    expect(script).toContain('const qk = 0.2 + 0.2 * LW.tailTaper;');
-    expect(script).toContain('opacity: 0.97,');
-    expect(script).toContain('innerShare: 0.18, taper: 0.55, downShare: -0.4,');
-    // Upper lines reach into the lash roots and the eye opening clips them: flush on the lid, not above it.
-    expect(script).toContain('const lift = downShare * th * (downShare < 0 ? 1 - smooth01(0.8, 1, t) : 1);');
+    // The lid wing design is gone; one band + wing path serves every style, deep black and never under 1.5 texels.
+    expect(script).not.toContain('lidWing');
+    expect(script).not.toContain('isLidWing');
+    expect(script).not.toContain('linerShape');
+    expect(script).toContain('opacity: 1.0,');
+    expect(script).toContain('minPx: 1.5,');
+    expect(script).toContain('gl.uniform1f(u.uLinerCov, liner ? EYELINER_DARK.opacity : 0);');
+    expect(script).toContain('const th = Math.max(thickOuter * (innerShare + (1 - innerShare) * Math.pow(t, taper)), floorPx);');
     expect(script).not.toContain('uLinerFeather');
     // Blink: eyelid and iris points use their own One Euro values so the liner does not trail the lid.
     expect(script).toContain('eyeSmooth: { minCutoff: 3.0, beta: 200, dCutoff: 6.0 },');
     expect(script).toContain('const a = eyeI ? euroAlpha(ES.minCutoff + ES.beta * speed, dt)');
-    expect(script).toContain('top.splice(0, jA, ...upper);');
-    expect(script).toContain('const downShare = lidWing ? LW.downShare : 0');
     expect(script).not.toContain('(d[0] / dl) * 0.8 * th');
     expect(script).not.toContain('(d[0] / dl) * 0.2 * th');
     expect(script).not.toContain('const lift = 0.3 * thickOuter');

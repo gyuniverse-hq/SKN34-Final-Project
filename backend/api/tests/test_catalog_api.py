@@ -140,3 +140,16 @@ def test_catalog_integrity_rules(mutate, message):
 def test_valid_catalogs_pass():
     validate_catalog(SAMPLE)
     validate_catalog(CatalogBundle())
+
+
+def test_liner_softness_and_lower_line_round_trip_and_stay_in_range():
+    import pytest
+    from pydantic import ValidationError
+
+    from app.schemas.catalog import ZoneGeometry
+
+    raw = {"linerSoftness": 0.4, "linerLower": True, "linerLowerThickness": 0.03}
+    assert ZoneGeometry.model_validate(raw).model_dump() == raw
+    assert ZoneGeometry.model_validate({"thickness": 0.09}).model_dump() == {"thickness": 0.09}
+    with pytest.raises(ValidationError):
+        ZoneGeometry.model_validate({"linerSoftness": 1.5})

@@ -99,6 +99,8 @@ export interface InnerPoint {
  * Eyeliner: length = wing length and thickness = line thickness at the outer corner, both as a share of
  * the eye width, angle = wing angle above the eye axis in degrees (negative = puppy, below the axis),
  * linerStyle = classic_winged | puppy | tightline (omitted: inferred from angle/length).
+ * linerSoftness 0 (crisp) .. 1 (smudged), linerLower = also draw the lower lid line, linerLowerThickness = its
+ * thickness as a share of the eye width (default 0.03). All optional; unset keeps the look as it was.
  * Mascara: length = lash length and thickness = lash density, both as a multiple of the default (1);
  * lower = false leaves the lower lashes out.
  * Lip: overlip = outer line pushed out by this share of the mouth width (0..0.06, the Cupid's-bow peaks by
@@ -118,6 +120,16 @@ export interface ZoneGeometry {
   angle?: number;
   thickness?: number;
   linerStyle?: EyelinerStyle;
+  linerSoftness?: number;
+  linerLower?: boolean;
+  linerLowerThickness?: number;
+  upperLine?: boolean;
+  underline?: boolean;
+  underlineThickness?: number;
+  underlineAlpha?: number;
+  underlineStart?: number;
+  underlineLength?: number;
+  underlineJoin?: boolean;
   lower?: boolean;
   overlip?: number;
   peakOverdraw?: number;
