@@ -10,7 +10,6 @@ import type {
   YoutubeSearchResult,
 } from '@/types';
 import { apiGet } from './api';
-import { offlineIdolLook, offlineIdolLooks } from './idolLooks';
 
 export function useProducts(params: ProductQuery = {}) {
   const search = new URLSearchParams();
@@ -89,13 +88,7 @@ export function useLook(id: string | undefined) {
 export function useIdolLooks() {
   return useQuery({
     queryKey: ['idol-looks'],
-    queryFn: async () => {
-      try {
-        return await apiGet<{ looks: IdolLook[] }>('/api/idol-looks');
-      } catch {
-        return { looks: offlineIdolLooks };
-      }
-    },
+    queryFn: () => apiGet<{ looks: IdolLook[] }>('/api/idol-looks'),
     select: (d) => d.looks,
   });
 }
@@ -103,15 +96,7 @@ export function useIdolLooks() {
 export function useIdolLook(id: string | undefined) {
   return useQuery({
     queryKey: ['idol-look', id],
-    queryFn: async () => {
-      try {
-        return await apiGet<{ look: IdolLook; products: Product[] }>(`/api/idol-looks/${encodeURIComponent(id!)}`);
-      } catch {
-        const look = offlineIdolLook(id);
-        if (!look) throw new Error('Idol look not found');
-        return { look, products: [] };
-      }
-    },
+    queryFn: () => apiGet<{ look: IdolLook; products: Product[] }>(`/api/idol-looks/${encodeURIComponent(id!)}`),
     enabled: !!id,
   });
 }
