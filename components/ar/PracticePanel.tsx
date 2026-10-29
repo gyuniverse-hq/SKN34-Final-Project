@@ -68,7 +68,7 @@ export function PracticePanel({
                 <Ionicons name="checkmark-circle" size={14} color={active ? theme.colors.white : theme.colors.success} />
               ) : null}
               <Text style={[styles.chipText, active && styles.chipTextOn]}>
-                {i + 1}. {step.label}
+                {`${i + 1}. ${step.label}`}
               </Text>
             </Pressable>
           );
