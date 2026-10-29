@@ -1,6 +1,5 @@
 import type { CelebLook, Product, ProductCategory } from '@/types';
 import { DEMO_LOOKS, DEMO_PRODUCTS, DEMO_SHOP_LIP } from './demo';
-import { OLIVEYOUNG_PRODUCTS } from './oliveyoung';
 
 export { DEMO_SHOP_LIP };
 
@@ -19,6 +18,12 @@ export function withDevShopLip(
   if (products.some((p) => p.id === DEMO_SHOP_LIP.id)) return products;
   return [DEMO_SHOP_LIP, ...products];
 }
+
+// The Olive Young catalog is large generated data. It is required only when __DEV__ is true, so the
+// production bundler drops this branch and the file never ships in a release build.
+const OLIVEYOUNG_PRODUCTS: Product[] = __DEV__
+  ? (require('./oliveyoung') as typeof import('./oliveyoung')).OLIVEYOUNG_PRODUCTS
+  : [];
 
 /**
  * Try-on products for testing AR in development when the backend has none (empty seed or no
