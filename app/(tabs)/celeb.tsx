@@ -1,32 +1,39 @@
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { IdolLookCard } from '@/components/celeb/IdolLookCard';
+import { CelebrityAvatar } from '@/components/celeb/CelebrityAvatar';
+import { ColorChip } from '@/components/celeb/ColorChip';
 import { LookCard } from '@/components/celeb/LookCard';
 import { VideoCard } from '@/components/celeb/VideoCard';
 import { SearchBar } from '@/components/shop/SearchBar';
 import { InlineState } from '@/components/ui/InlineState';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { CELEBRITIES } from '@/constants/celebrities';
 import { theme } from '@/constants/theme';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useI18n } from '@/lib/i18n';
-import { displayableIdolLooks } from '@/lib/idolLooks';
-import { idolLookMapping } from '@/lib/lookStatus';
-import { useIdolLooks, useLooks, useTutorials } from '@/lib/queries';
-import { idolLookHref, lookHref } from '@/lib/routes';
+import { availableColorFamilies, COLOR_FAMILY_SWATCH, lookColorFamily, type ColorFamily } from '@/lib/lookColors';
+import { useLooks, useTutorials } from '@/lib/queries';
+import { celebrityHref, lookHref } from '@/lib/routes';
 
-const IDOL_PREVIEW = 3;
+const GRID_GAP = 12;
 
 export default function LooksScreen() {
   const router = useRouter();
   const { t } = useI18n();
-  const idolLooks = useIdolLooks();
+  const { width } = useWindowDimensions();
   const looks = useLooks();
   const [query, setQuery] = useState('');
+  const [colorFamily, setColorFamily] = useState<ColorFamily | null>(null);
   const debounced = useDebouncedValue(query.trim(), 600);
   const tutorials = useTutorials(debounced.length >= 2 ? debounced : undefined, 8);
-  const featuredIdolLooks = displayableIdolLooks(idolLooks.data);
+
+  const allLooks = looks.data ?? [];
+  const families = availableColorFamilies(allLooks);
+  const activeFamily = colorFamily && families.includes(colorFamily) ? colorFamily : null;
+  const visibleLooks = activeFamily ? allLooks.filter((look) => lookColorFamily(look) === activeFamily) : allLooks;
+  const cardWidth = (width - theme.spacing.lg * 2 - GRID_GAP) / 2;
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -39,33 +46,22 @@ export default function LooksScreen() {
 
         <View style={styles.section}>
           <SectionHeader
-            eyebrow={t('home.idolEyebrow')}
+            eyebrow={t('home.collectionCelebrity')}
             title={t('idol.title')}
-            actionLabel={featuredIdolLooks.length > IDOL_PREVIEW ? t('home.viewAll') : undefined}
-            onAction={() => router.push('/idol-looks')}
+            actionLabel={t('home.viewAll')}
+            onAction={() => router.push('/celebrities' as Href)}
           />
-          {idolLooks.isPending ? (
-            <InlineState status="loading" />
-          ) : idolLooks.isError ? (
-            <InlineState status="error" onRetry={() => idolLooks.refetch()} />
-          ) : featuredIdolLooks.length === 0 ? (
-            <InlineState status="empty" message={t('home.collectionCelebrityEmpty')} />
-          ) : (
-            <View style={styles.list}>
-              {featuredIdolLooks.slice(0, IDOL_PREVIEW).map((look) => {
-                const mapping = idolLookMapping(look);
-                return (
-                  <IdolLookCard
-                    key={look.id}
-                    look={look}
-                    statusLabel={t(mapping.key, { count: mapping.count })}
-                    statusTone={mapping.tone}
-                    onPress={() => router.push(idolLookHref(look.id))}
-                  />
-                );
-              })}
-            </View>
-          )}
+          <Text style={styles.sectionSubtitle}>{t('looks.celebritySubtitle')}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.bleed} contentContainerStyle={styles.avatarRail}>
+            {CELEBRITIES.map((celebrity) => (
+              <CelebrityAvatar
+                key={celebrity.id}
+                celebrity={celebrity}
+                name={t(celebrity.nameKey)}
+                onPress={() => router.push(celebrityHref(celebrity.id))}
+              />
+            ))}
+          </ScrollView>
         </View>
 
         <View style={styles.section}>
@@ -74,19 +70,39 @@ export default function LooksScreen() {
             <InlineState status="loading" />
           ) : looks.isError ? (
             <InlineState status="error" onRetry={() => looks.refetch()} />
-          ) : looks.data.length === 0 ? (
+          ) : allLooks.length === 0 ? (
             <InlineState status="empty" message={t('looks.empty')} />
           ) : (
-            <View style={styles.list}>
-              {looks.data.map((look) => (
-                <LookCard
-                  key={look.id}
-                  look={look}
-                  subtitle={t('looks.itemCount', { count: look.items.length })}
-                  onPress={() => router.push(lookHref(look.id))}
-                />
-              ))}
-            </View>
+            <>
+              {families.length > 0 ? (
+                <>
+                  <Text style={styles.sectionSubtitle}>{t('looks.colorSubtitle')}</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.bleed, styles.chipBar]} contentContainerStyle={styles.chipRail}>
+                    <ColorChip label={t('looks.color.all')} selected={!activeFamily} onPress={() => setColorFamily(null)} />
+                    {families.map((family) => (
+                      <ColorChip
+                        key={family}
+                        label={t(`looks.color.${family}`)}
+                        swatch={COLOR_FAMILY_SWATCH[family]}
+                        selected={activeFamily === family}
+                        onPress={() => setColorFamily(family)}
+                      />
+                    ))}
+                  </ScrollView>
+                </>
+              ) : null}
+              <View style={styles.grid}>
+                {visibleLooks.map((look) => (
+                  <LookCard
+                    key={look.id}
+                    look={look}
+                    width={cardWidth}
+                    subtitle={t('looks.itemCount', { count: look.items.length })}
+                    onPress={() => router.push(lookHref(look.id))}
+                  />
+                ))}
+              </View>
+            </>
           )}
         </View>
 
@@ -119,7 +135,12 @@ const styles = StyleSheet.create({
   title: { fontSize: theme.font.h1, fontWeight: '800', color: theme.colors.ink, letterSpacing: -0.5, marginTop: 2 },
   subtitle: { fontSize: theme.font.small, color: theme.colors.inkMuted, marginTop: 4, lineHeight: 19 },
   section: { marginTop: 26 },
-  list: { gap: 14 },
+  sectionSubtitle: { fontSize: theme.font.small, color: theme.colors.inkMuted, lineHeight: 19, marginTop: -6, marginBottom: 12 },
+  bleed: { marginHorizontal: -theme.spacing.lg },
+  avatarRail: { gap: 10, paddingHorizontal: theme.spacing.lg },
+  chipBar: { marginBottom: 14 },
+  chipRail: { gap: 8, paddingHorizontal: theme.spacing.lg },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP },
   results: { marginTop: 8 },
   note: { fontSize: theme.font.small, color: theme.colors.inkMuted, paddingVertical: 12 },
   disclaimer: { fontSize: 11, color: theme.colors.inkFaint, marginTop: 24, lineHeight: 16 },

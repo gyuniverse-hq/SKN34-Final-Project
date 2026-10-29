@@ -11,4 +11,5 @@ export const STORAGE_KEYS = {
   skinProfile: 'kb.skin-profile.v1',
   skinTimings: 'kb.skin-timings.v1',
   chatAnonymousId: 'kb.chat-anonymous-id.v1',
+  recentSearches: 'kb.recent-searches.v1',
 } as const;
