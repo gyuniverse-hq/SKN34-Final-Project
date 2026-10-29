@@ -4,6 +4,12 @@ const STEP_BY_ZONE: Record<MakeupZone, LookItem['step']> = {
   lip: 'lips',
   blush: 'cheeks',
   eyeshadow: 'eyes',
+  eyeliner: 'eyes',
+  mascara: 'eyes',
+  brow: 'eyes',
+  highlighter: 'cheeks',
+  contour: 'cheeks',
+  foundation: 'base',
 };
 
 /** Customer-facing collections show only looks whose video metadata the catalog has verified. */

@@ -9,6 +9,7 @@ import type {
   Store,
   YoutubeSearchResult,
 } from '@/types';
+import { DEV_LOOKS, DEV_TRYON_PRODUCTS, devLookDetail } from '@/lib/devCatalog';
 import { apiGet } from './api';
 
 export function useProducts(params: ProductQuery = {}) {
@@ -20,7 +21,15 @@ export function useProducts(params: ProductQuery = {}) {
   const qs = search.toString();
   return useQuery({
     queryKey: ['products', params.q ?? '', params.category ?? 'all', concerns],
-    queryFn: () => apiGet<{ products: Product[] }>(`/api/products${qs ? `?${qs}` : ''}`),
+    queryFn: async () => {
+      try {
+        return await apiGet<{ products: Product[] }>(`/api/products${qs ? `?${qs}` : ''}`);
+      } catch (error) {
+        if (!__DEV__) throw error;
+        console.warn('[shop] backend unavailable', error);
+        return { products: [] };
+      }
+    },
     select: (d) => d.products,
     placeholderData: keepPreviousData,
   });
@@ -41,7 +50,15 @@ export function useProductsByIds(ids: string[]) {
 export function useProduct(id: string | undefined) {
   return useQuery({
     queryKey: ['product', id],
-    queryFn: () => apiGet<{ product: Product }>(`/api/products/${encodeURIComponent(id!)}`),
+    queryFn: async () => {
+      try {
+        return await apiGet<{ product: Product }>(`/api/products/${encodeURIComponent(id!)}`);
+      } catch (error) {
+        const local = __DEV__ ? DEV_TRYON_PRODUCTS.find((p) => p.id === id) : undefined;
+        if (!local) throw error;
+        return { product: local };
+      }
+    },
     select: (d) => d.product,
     enabled: !!id,
   });
@@ -68,10 +85,20 @@ export function useSimilarShades(productId: string | undefined, shadeId: string 
   });
 }
 
+/** Development: the bundled demo looks stand in when the backend has none or cannot be reached. */
 export function useLooks() {
   return useQuery({
     queryKey: ['looks'],
-    queryFn: () => apiGet<{ looks: CelebLook[] }>('/api/looks'),
+    queryFn: async () => {
+      try {
+        const res = await apiGet<{ looks: CelebLook[] }>('/api/looks');
+        return __DEV__ && res.looks.length === 0 ? { looks: DEV_LOOKS } : res;
+      } catch (error) {
+        if (!__DEV__) throw error;
+        console.warn('[looks] backend unavailable, using demo looks', error);
+        return { looks: DEV_LOOKS };
+      }
+    },
     select: (d) => d.looks,
   });
 }
@@ -79,8 +106,11 @@ export function useLooks() {
 export function useLook(id: string | undefined) {
   return useQuery({
     queryKey: ['look', id],
-    queryFn: () =>
-      apiGet<{ look: CelebLook; products: Product[] }>(`/api/looks/${encodeURIComponent(id!)}`),
+    queryFn: async () => {
+      const demo = __DEV__ ? devLookDetail(id!) : null;
+      if (demo) return demo;
+      return apiGet<{ look: CelebLook; products: Product[] }>(`/api/looks/${encodeURIComponent(id!)}`);
+    },
     enabled: !!id,
   });
 }

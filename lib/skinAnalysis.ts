@@ -1,4 +1,4 @@
-import { requireNativeViewManager, requireOptionalNativeModule } from 'expo-modules-core';
+import { requireNativeView as requireNativeViewManager, requireOptionalNativeModule } from 'expo';
 import { Platform, type ViewProps } from 'react-native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import type { ComponentType } from 'react';

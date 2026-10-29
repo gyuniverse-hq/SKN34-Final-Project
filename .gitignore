@@ -87,3 +87,6 @@ __pycache__/
 *.pth
 *.bin
 /nia-private/
+
+# research data (face photos, measurements, LGD inputs): local only, AR_SPEC 1-13
+research/data/
