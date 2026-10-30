@@ -1,4 +1,4 @@
-from sqlalchemy import Text, cast, delete, select
+from sqlalchemy import Text, cast, delete, select, text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -179,3 +179,15 @@ class CatalogRepository:
                         pickup_available=s.pickup_available,
                     )
                 )
+            await self._session.flush()
+            await self._session.execute(
+                text(
+                    """
+                    UPDATE raw_oy_product AS raw
+                    SET is_in_catalog = EXISTS (
+                        SELECT 1 FROM products AS product
+                        WHERE product.id = 'oy-' || lower(raw.goods_no)
+                    )
+                    """
+                )
+            )
