@@ -76,7 +76,12 @@ def compare(config, task):
             epoch=checkpoint["epoch"] + 1,
             architecture=checkpoint["architecture"],
             unweighted_validation_loss=loss,
-            loss_type="sum_threshold_bce" if ordinal else "multiclass_ce",
+            training_loss=checkpoint.get("loss_spec", {}).get("kind"),
+            loss_type=(
+                "class_weighted_threshold_bce"
+                if ordinal and checkpoint.get("loss_spec", {}).get("kind") == "weighted_coral"
+                else "sum_threshold_bce" if ordinal else "multiclass_ce"
+            ),
             metrics=verified_metrics(truth, predicted, TASKS[task]["classes"]),
         )
         write_json(
