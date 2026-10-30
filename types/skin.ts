@@ -50,10 +50,11 @@ export interface SkinTiming {
 }
 
 export interface SkinAnalysisResult {
-  schema: 'skin-analysis-mobile-v1' | 'skin-analysis-mobile-v2' | 'skin-analysis-server-v1';
+  schema: 'skin-analysis-mobile-v1' | 'skin-analysis-mobile-v2' | 'skin-analysis-mobile-v3' | 'skin-analysis-server-v1';
   skinType?: SkinTypePrediction;
   features: {
-    acne: number;
+    /** Present only in historical results produced with an acne model. */
+    acne?: number;
     pore_grade_cheek_image_left: number;
     pore_grade_cheek_image_right: number;
     pigmentation_grade_forehead: number;
@@ -64,8 +65,8 @@ export interface SkinAnalysisResult {
     wrinkle_grade_eye_image_left: number;
     wrinkle_grade_eye_image_right: number;
   };
-  acneScore: number;
-  acneThreshold: number;
+  acneScore?: number;
+  acneThreshold?: number;
   roiMethod: 'opencv_haar_facebox_proportions_v1' | 'opencv_yunet_facebox_proportions_v1';
   validationStatus: 'experimental_unvalidated';
   preprocessing?: 'opencv4.12-turbojpeg95-wasm-v1' | 'skin-v3-embedded-enhancement' | 'server-native-v1';

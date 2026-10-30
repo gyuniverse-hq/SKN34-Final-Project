@@ -48,7 +48,9 @@ test('browser preprocessing matches reference resize tensors and records the sep
   } finally { image.delete(); detector.delete(); cv.FS_unlink('/web-test-face.xml'); }
 });
 
-test('all five deployed models run with WASM CPU and preserve source logits and decoded results', { timeout: 240000 }, async () => {
+test('only four v3 models run with WASM CPU and preserve source logits and decoded results', { timeout: 240000 }, async () => {
+  assert.deepEqual(manifest.models.map(model => model.indicator), ['pore', 'pigmentation', 'wrinkle', 'skinType']);
+  assert.equal(Object.keys(manifest.assets).some(name => name.includes('acne')), false);
   const ort = require('onnxruntime-web/wasm'); ort.env.wasm.numThreads = 1;
   for (const model of manifest.models) {
     const session = await ort.InferenceSession.create(readFileSync(resolve(assets, model.file)), { executionProviders: ['wasm'] });
@@ -59,9 +61,7 @@ test('all five deployed models run with WASM CPU and preserve source logits and 
       assert.equal(actual.length, model.outputs);
       actual.forEach((value, i) => assert.ok(Math.abs(value - model.expectedLogits[i]) <= 1e-4 + 1e-3 * Math.abs(model.expectedLogits[i])));
       const best = values => values.reduce((at, value, i) => value > values[at] ? i : at, 0);
-      if (model.indicator === 'acne') assert.equal(1 / (1 + Math.exp(-actual[0])) >= model.threshold,
-        1 / (1 + Math.exp(-model.expectedLogits[0])) >= model.threshold);
-      else if (model.indicator === 'skinType') assert.equal(best(actual), best(model.expectedLogits));
+      if (model.indicator === 'skinType') assert.equal(best(actual), best(model.expectedLogits));
       else assert.equal(decodeGrade(actual[0], model.maxGrade), decodeGrade(model.expectedLogits[0], model.maxGrade));
       console.log(`${model.indicator}: WASM reference logits and decision matched`);
     } finally { input.dispose(); if (output) Object.values(output).forEach(value => value.dispose()); await session.release(); }

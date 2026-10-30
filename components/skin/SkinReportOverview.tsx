@@ -35,7 +35,7 @@ export function SkinReportOverview({ report, example, expanded, onExpand, onStar
     <Text style={styles.eyebrow}>{t('report.eyebrow')}</Text>
     <Text style={styles.intro}>{t('report.intro')}</Text>
     <Text style={styles.heading} accessibilityRole="header">{t(`report.type.${report.skinType}`)}</Text>
-    <Text style={styles.caption}>{t(report.skinTypeSource === 'analysis' ? 'report.typeBasisModel' : 'report.typeBasis')}</Text>
+    <Text style={styles.caption}>{t(report.skinTypeSource === 'combined' ? 'report.typeBasisCombined' : report.skinTypeSource === 'analysis' ? 'report.typeBasisModel' : 'report.typeBasis')}</Text>
     <Image source={SKIN_TYPE_IMAGES[report.skinType]} style={styles.hero} resizeMode="contain" accessible={false} />
     <View style={styles.info}>
       <Pressable onPress={onExpand} accessibilityRole="button" accessibilityState={{ expanded }} style={styles.infoHead}>

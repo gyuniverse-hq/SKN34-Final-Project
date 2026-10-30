@@ -13,6 +13,6 @@ export function summarizeSkinResult(features: SkinAnalysisResult['features']) {
     grades: (['pore', 'pigmentation', 'wrinkle'] as const).map(indicator => ({
       indicator, grade: grades[indicator], status: grades[indicator] <= 2 ? 'good' as const : 'care' as const,
     })),
-    acneDetected: features.acne === 1,
+    acneDetected: features.acne === undefined ? null : features.acne === 1,
   };
 }

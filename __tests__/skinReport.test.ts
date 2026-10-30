@@ -57,6 +57,19 @@ it('treats acne as an overall binary result rather than an invented facial area 
   expect(metric).toMatchObject({ value: 1, status: 'care', regions: [{ region: 'overall', value: 1 }] });
 });
 
+it('shows acne as unavailable in new four-model results, never as a normal result', () => {
+  const source = input({ tightness: 0, oiliness: 0 });
+  source.analysis.schema = 'skin-analysis-mobile-v3';
+  source.analysis.skinType = { label: 'dry', probabilities: [.6, .3, .1], roiCount: 3, scoreType: 'mean_uncalibrated_softmax' };
+  delete source.analysis.features.acne;
+  const report = buildSkinReport(source);
+  expect(report).toMatchObject({ skinType: 'balanced', skinTypeSource: 'combined' });
+  expect(report.metrics.find(metric => metric.concern === 'blemish')).toMatchObject({
+    source: 'unavailable', status: 'unknown', value: null, maximum: null, regions: [],
+  });
+  expect(report.concerns).not.toContain('blemish');
+});
+
 it('calculates the explicitly provisional four-week check-in across a year boundary', () => {
   const source = { ...input(), registeredAt: '2026-12-20T12:00:00.000Z' };
   expect(buildSkinReport(source).reviewAt).toBe('2027-01-17T12:00:00.000Z');

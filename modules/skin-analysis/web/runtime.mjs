@@ -9,7 +9,6 @@ const post = message => window.ReactNativeWebView?.postMessage(JSON.stringify(me
 const elapsed = since => performance.now() - since;
 const sleepFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
 const parts = {
-  acne: [['acne', null]],
   pore: [['pore_grade_cheek_image_left', 4], ['pore_grade_cheek_image_right', 5]],
   pigmentation: [['pigmentation_grade_forehead', 0], ['pigmentation_grade_cheek_image_left', 4], ['pigmentation_grade_cheek_image_right', 5]],
   wrinkle: [['wrinkle_grade_forehead', 0], ['wrinkle_grade_glabella', 1], ['wrinkle_grade_eye_image_left', 2], ['wrinkle_grade_eye_image_right', 3]],
@@ -97,7 +96,7 @@ export async function boot(config) {
     try { if (!detector.load('face.xml')) throw new Error('model'); regions = detectRegions(cv, image, detector); }
     finally { detector.delete(); cv.FS_unlink('/face.xml'); }
     const detectionMs = elapsed(detectedAt), features = {}, models = [];
-    let acneScore = 0, acneThreshold = 0, skinType;
+    let skinType;
     for (const model of manifest.models) {
       check(); post({ type: 'progress', indicator: model.indicator }); await sleepFrame();
       const downloadAt = performance.now(); let bytes = await asset(model.file);
@@ -114,16 +113,13 @@ export async function boot(config) {
         const typeLogits = [];
         for (const [key, region] of parts[model.indicator]) {
           check(); const preparedAt = performance.now();
-          const input = await tensor(image, region === null ? null : regions[region]);
+          const input = await tensor(image, regions[region]);
           preprocessingMs += elapsed(preparedAt);
           const inferenceAt = performance.now(), logits = await run(session, input);
           inferenceMs += elapsed(inferenceAt);
           if (logits.length !== model.outputs || logits.some(v => !Number.isFinite(v))) throw new Error('model');
           if (model.indicator === 'skinType') typeLogits.push(logits);
-          else if (model.indicator === 'acne') {
-            acneScore = 1 / (1 + Math.exp(-logits[0])); acneThreshold = model.threshold;
-            features.acne = Number(acneScore >= acneThreshold);
-          } else features[key] = decodeGrade(logits[0], model.maxGrade);
+          else features[key] = decodeGrade(logits[0], model.maxGrade);
         }
         if (model.indicator === 'skinType') skinType = meanSkinType(typeLogits);
         models.push({ indicator: model.indicator, sourceSha256: model.sourceSha256, sha256: model.sha256,
@@ -131,7 +127,7 @@ export async function boot(config) {
       } finally { await session.release(); }
     }
     check();
-    return { regions: regions.map(box => inputCrop(box, image.cols, image.rows)), result: { schema: 'skin-analysis-mobile-v2', features, acneScore, acneThreshold, skinType,
+    return { regions: regions.map(box => inputCrop(box, image.cols, image.rows)), result: { schema: 'skin-analysis-mobile-v3', features, skinType,
       roiMethod: 'opencv_haar_facebox_proportions_v1', validationStatus: 'experimental_unvalidated',
       preprocessing: 'skin-v3-embedded-enhancement',
       timing: { ...config.run, runtime: 'onnxruntime-web-1.30.0/wasm-cpu/threads=1',

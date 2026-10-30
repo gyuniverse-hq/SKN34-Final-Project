@@ -11,17 +11,24 @@ const FEATURE_MAX: Record<keyof SkinAnalysisResult['features'], number> = {
 
 export function validateSkinAnalysis(result: SkinAnalysisResult): void {
   const server = result?.schema === 'skin-analysis-server-v1';
-  const v3 = result?.schema === 'skin-analysis-mobile-v2';
+  const withoutAcne = result?.schema === 'skin-analysis-mobile-v3';
+  const v3 = withoutAcne || result?.schema === 'skin-analysis-mobile-v2';
+  const indicators = withoutAcne ? ['pore', 'pigmentation', 'wrinkle', 'skinType']
+    : v3 ? ['acne', 'pore', 'pigmentation', 'wrinkle', 'skinType'] : ['acne', 'pore', 'pigmentation', 'wrinkle'];
   const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0;
   if ((!server && !v3 && result?.schema !== 'skin-analysis-mobile-v1') || !result.features ||
-      Object.keys(result.features).length !== 10 || Object.entries(FEATURE_MAX).some(([key, max]) => {
+      Object.keys(result.features).length !== (withoutAcne ? 9 : 10) || Object.entries(FEATURE_MAX).some(([key, max]) => {
+        if (withoutAcne && key === 'acne') return false;
         const value = result.features[key as keyof typeof FEATURE_MAX];
-        return !Number.isInteger(value) || value < 0 || value > max;
-      }) || !Number.isFinite(result.acneScore) || result.acneScore < 0 || result.acneScore > 1 ||
-      !Number.isFinite(result.acneThreshold) || !(result.acneThreshold > 0 && result.acneThreshold < 1) ||
-      result.features.acne !== Number(result.acneScore >= result.acneThreshold) ||
+        return typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > max;
+      }) ||
       result.validationStatus !== 'experimental_unvalidated' ||
       !result.timing || !Array.isArray(result.timing.models) || !finite(result.timing.totalMs)) throw new Error('skin.analysisFailed');
+  if (withoutAcne) {
+    if (result.features.acne !== undefined || result.acneScore !== undefined || result.acneThreshold !== undefined) throw new Error('skin.analysisFailed');
+  } else if (!finite(result.acneScore) || result.acneScore > 1 || !finite(result.acneThreshold) ||
+      !(result.acneThreshold > 0 && result.acneThreshold < 1) ||
+      result.features.acne !== Number(result.acneScore >= result.acneThreshold)) throw new Error('skin.analysisFailed');
   if (server) {
     if (result.roiMethod !== 'opencv_yunet_facebox_proportions_v1' || result.preprocessing !== 'server-native-v1' ||
         result.timing.runtime !== 'pytorch-cuda' || !/^[a-f0-9]{64}$/.test(result.timing.bundleVersion) ||
@@ -31,9 +38,8 @@ export function validateSkinAnalysis(result: SkinAnalysisResult): void {
   } else if (result.roiMethod !== 'opencv_haar_facebox_proportions_v1' ||
       (v3 ? result.preprocessing !== 'skin-v3-embedded-enhancement'
         : result.preprocessing !== undefined && result.preprocessing !== 'opencv4.12-turbojpeg95-wasm-v1') ||
-      result.timing.models.length !== (v3 ? 5 : 4) || new Set(result.timing.models.map(model => model.indicator)).size !== (v3 ? 5 : 4) ||
-      !(v3 ? ['acne', 'pore', 'pigmentation', 'wrinkle', 'skinType'] : ['acne', 'pore', 'pigmentation', 'wrinkle'])
-        .every(indicator => result.timing.models.some(model => model.indicator === indicator))) throw new Error('skin.analysisFailed');
+      result.timing.models.length !== indicators.length || new Set(result.timing.models.map(model => model.indicator)).size !== indicators.length ||
+      !indicators.every(indicator => result.timing.models.some(model => model.indicator === indicator))) throw new Error('skin.analysisFailed');
   if (v3) {
     const prediction = result.skinType;
     if (!prediction || prediction.roiCount !== 3 || prediction.scoreType !== 'mean_uncalibrated_softmax' ||

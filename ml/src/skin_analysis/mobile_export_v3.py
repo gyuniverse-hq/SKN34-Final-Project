@@ -1,4 +1,4 @@
-"""Export skin-analysis-v3 with embedded ROI enhancement and the existing acne model."""
+"""Export only the four skin-analysis-v3 models with embedded ROI enhancement."""
 
 import argparse
 import hashlib
@@ -9,6 +9,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+import cv2
 import numpy as np
 import onnx
 import onnxruntime as ort
@@ -18,8 +19,7 @@ from torch import nn
 from torchvision.models import mobilenet_v3_large
 
 from .mobile_enhancement import RoiEnhancement
-from .mobile_export import OUTPUT_ROOT, ROOT, digest
-from .mobile_export import export as legacy_export
+from .mobile_export import OUTPUT_ROOT, ROOT, digest, fixtures
 
 DEFAULT_BUNDLE = ROOT / "ml/runs/skin-analysis-v3/bundle-four-models-20261030"
 CLASSES = ["dry", "balanced", "oily"]
@@ -72,10 +72,7 @@ def export(bundle=DEFAULT_BUNDLE):
         "contrast 1.4, ImageNet normalize"
     ):
         raise ValueError("Unsupported v3 ROI preprocessing")
-    legacy = legacy_export()
-    previous = json.loads((legacy / "manifest.json").read_text(encoding="utf-8"))
-    acne = next(model for model in previous["models"] if model["indicator"] == "acne")
-    fingerprint = ((bundle / "manifest.json").read_bytes() + acne["sha256"].encode()
+    fingerprint = ((bundle / "manifest.json").read_bytes()
                    + Path(__file__).read_bytes()
                    + Path(__file__).with_name("mobile_enhancement.py").read_bytes())
     version = hashlib.sha256(fingerprint).hexdigest()
@@ -88,15 +85,15 @@ def export(bundle=DEFAULT_BUNDLE):
             raise ValueError("Corrupt immutable v3 export")
         return output
     torch.set_num_threads(2)
+    OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="v3-export-", dir=OUTPUT_ROOT) as temporary:
         stage = Path(temporary) / "bundle"
         stage.mkdir()
-        for name in previous["assets"]:
-            if not name.endswith(".onnx") or name == acne["file"]:
-                shutil.copyfile(legacy / name, stage / name)
+        fixture_records = fixtures(stage)
+        shutil.copyfile(Path(cv2.data.haarcascades) / "haarcascade_frontalface_default.xml",
+                        stage / "face.xml")
         shutil.copyfile(ROOT / "docs/licenses/Pillow.txt", stage / "Pillow-LICENSE.txt")
-        fixtures = json.loads((stage / "fixtures.json").read_text(encoding="utf-8"))
-        records = [acne]
+        records = []
         for task, network in models.items():
             print(f"Exporting v3 {task}", file=sys.stderr, flush=True)
             model = nn.Sequential(RoiEnhancement(), network).eval().requires_grad_(False)
@@ -111,7 +108,7 @@ def export(bundle=DEFAULT_BUNDLE):
             options.intra_op_num_threads = 2
             session = ort.InferenceSession(str(path), options, providers=["CPUExecutionProvider"])
             errors = []
-            for fixture in fixtures:
+            for fixture in fixture_records:
                 array = np.fromfile(stage / fixture["tensor"], dtype="<f4").reshape(1, 3, 256, 256)
                 with torch.inference_mode():
                     reference = network(reference_input(array)).numpy()
@@ -139,7 +136,7 @@ def export(bundle=DEFAULT_BUNDLE):
                                 maxExportAbsoluteError=max(errors),
                                 roiEnhancement="pillow-unsharp1-75-contrast1.4-embedded"))
         manifest = dict(
-            schema="skin-analysis-assets-v2", bundleVersion=version, precision="float32",
+            schema="skin-analysis-assets-v3", bundleVersion=version, precision="float32",
             opset=17, preprocessing="skin-preprocessing-v3", pythonRuntime=ort.__version__,
             androidRuntime="1.22.0", roiMethod="opencv_haar_facebox_proportions_v1",
             researchManifestSha256=digest(bundle / "manifest.json"), models=records,

@@ -32,7 +32,7 @@ export function SkinReportDetail({ metrics, active, onChange, preview }: { metri
     <SkinConcernRail concerns={metrics.map((m) => m.concern)} active={active} onChange={onChange} />
     {preview ? <>
       <SkinPreviewPhoto preview={preview} active={active} />
-      <Text style={styles.caption}>{t(active === 'blemish' ? 'report.previewWhole' : metric.source === 'survey' ? 'report.previewSurvey' : 'report.previewNotice')}</Text>
+      <Text style={styles.caption}>{t(metric.source === 'unavailable' ? 'report.unavailableNote' : active === 'blemish' ? 'report.previewWhole' : metric.source === 'survey' ? 'report.previewSurvey' : 'report.previewNotice')}</Text>
     </> : <View style={styles.privacy}>
       <Ionicons name="shield-checkmark-outline" size={28} color={theme.colors.rose} />
       <View style={styles.flex}><Text style={styles.cardTitle}>{t('report.noPhoto')}</Text><Text style={styles.caption}>{t('report.noPhotoBody')}</Text></View>
@@ -40,10 +40,10 @@ export function SkinReportDetail({ metrics, active, onChange, preview }: { metri
     <View style={styles.result}>
       <View style={styles.row}><Ionicons name={REPORT_ICONS[active]} size={28} color={theme.colors.accent} /><Text style={styles.cardTitle}>{t(`concern.${active}` as TranslationKey)}</Text></View>
       <Text style={styles.source}>{t(`report.${metric.source}`)}</Text>
-      <Text style={styles.value}>{metric.value === null ? t('report.unknown') : metric.source === 'survey' ? answer
+      <Text style={styles.value}>{metric.source === 'unavailable' ? t('report.notAnalyzed') : metric.value === null ? t('report.unknown') : metric.source === 'survey' ? answer
         : active === 'blemish' ? t(metric.value === 1 ? 'skin.acneDetected' : 'skin.acneNotDetected') : t('skin.grade', { grade: metric.value })}</Text>
       <Text style={[styles.status, metric.status === 'care' && styles.care]}>{t(`report.${metric.status}`)}</Text>
-      <Text style={styles.body}>{t(metric.source === 'survey' ? 'report.surveyNote' : 'report.modelNote')}</Text>
+      <Text style={styles.body}>{t(metric.source === 'unavailable' ? 'report.unavailableNote' : metric.source === 'survey' ? 'report.surveyNote' : 'report.modelNote')}</Text>
       {metric.source === 'survey' ? <Text style={styles.question}>{t(`skin.question.${question}`)}</Text> : null}
       {metric.value !== null && metric.maximum !== null && active !== 'blemish' ? <Text style={styles.caption}>{t('report.maxGrade', { grade: metric.value, max: metric.maximum })}</Text> : null}
     </View>

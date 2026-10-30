@@ -10,7 +10,7 @@ import type { SkinAnalysisResult, SkinCameraEvent, SkinIndicator, SkinQuestionna
 export function useSkinAnalysis() {
   const [phase, setPhase] = useState<'ready' | 'camera' | 'analysis' | 'survey' | 'saving' | 'done' | 'error'>('ready');
   const [camera, setCamera] = useState<SkinCameraEvent>({ guidance: 'noFace', progress: 0 });
-  const [indicator, setIndicator] = useState<SkinIndicator>('acne');
+  const [indicator, setIndicator] = useState<SkinIndicator>('pore');
   const [result, setResult] = useState<SkinAnalysisResult>();
   const [answers, setAnswers] = useState<Partial<SkinQuestionnaire>>({});
   const [error, setError] = useState<'analysis' | 'storage' | 'model' | 'permission' | 'camera' | 'guide' | null>(null);
@@ -113,7 +113,7 @@ export function useSkinAnalysis() {
     } else if (event.type === 'result') {
       try {
         if (event.result.timing.runId !== webRun.run.runId) throw new Error('Invalid run');
-        if (!['skin-analysis-mobile-v1', 'skin-analysis-mobile-v2'].includes(event.result.schema)) throw new Error('Invalid on-device result');
+        if (!['skin-analysis-mobile-v1', 'skin-analysis-mobile-v2', 'skin-analysis-mobile-v3'].includes(event.result.schema)) throw new Error('Invalid on-device result');
         validateSkinAnalysis(event.result);
         receivedAt.current = performance.now(); setResult(event.result); setPhase('survey');
       } catch { previewAssembler.current?.clear(); pendingPreview.current = null; setError('model'); setPhase('error'); }
@@ -139,6 +139,7 @@ export function useSkinAnalysis() {
     await cancelSkinAnalysis().catch(() => {});
     if (current !== generation.current) return;
     captureClaimed.current = false;
+    setIndicator('pore');
     setAnswers({}); setResult(undefined); setError(null);
     setCamera({ guidance: 'loading', progress: 0 });
     try {

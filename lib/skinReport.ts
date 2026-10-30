@@ -3,6 +3,7 @@ import type { SkinConcern } from '@/types';
 import type { SkinAnswer } from '@/types/skin';
 import type { CareIngredient, SkinRegion, SkinReport, SkinReportInput, SkinReportMetric, SkinSampleProduct } from '@/types/skinReport';
 import { SKIN_CONCERNS } from './routes';
+import { resolveSkinType } from './skinType';
 
 function surveyMetric(concern: SkinConcern, answer: SkinAnswer): SkinReportMetric {
   const known = answer === 0 || answer === 1 || answer === 2;
@@ -27,22 +28,20 @@ export function buildSkinReport(input: SkinReportInput): SkinReport {
     surveyMetric('oiliness', q.oiliness),
     modelMetric('wrinkles', 6, [['forehead', f.wrinkle_grade_forehead], ['glabella', f.wrinkle_grade_glabella], ['leftEye', f.wrinkle_grade_eye_image_left], ['rightEye', f.wrinkle_grade_eye_image_right]]),
     modelMetric('pores', 5, [['leftCheek', f.pore_grade_cheek_image_left], ['rightCheek', f.pore_grade_cheek_image_right]]),
-    modelMetric('blemish', 1, [['overall', f.acne]]),
+    f.acne === undefined ? { concern: 'blemish', source: 'unavailable', status: 'unknown', value: null, maximum: null, regions: [] }
+      : modelMetric('blemish', 1, [['overall', f.acne]]),
     surveyMetric('sensitivity', q.sensitivity),
   ];
-  // Survey-only provisional classification. Unknown never becomes balanced by default.
-  const surveyType = q.tightness === 'unknown' || q.oiliness === 'unknown' ? 'unknown'
-    : q.tightness === 2 && q.oiliness === 2 ? 'combination'
-      : q.tightness === 2 ? 'dry' : q.oiliness === 2 ? 'oily' : 'balanced';
-  const modelType = input.analysis.skinType?.label;
-  const skinType = modelType ?? surveyType;
+  const resolvedType = resolveSkinType(input.analysis.skinType, q);
+  const skinType = resolvedType.type;
   const review = new Date(input.registeredAt);
   review.setUTCDate(review.getUTCDate() + 28);
   const care = metrics.filter((m) => m.status === 'care');
-  return { skinType, skinTypeSource: modelType ? 'analysis' : 'survey', registeredAt: input.registeredAt, reviewAt: review.toISOString(), metrics,
+  return { skinType, skinTypeSource: resolvedType.source, registeredAt: input.registeredAt, reviewAt: review.toISOString(), metrics,
     priorities: [...care, ...metrics.filter((m) => m.status !== 'care')].slice(0, 2),
     concerns: SKIN_CONCERNS.filter((c) => care.some((m) => m.concern === c) ||
-      (modelType === 'dry' && c === 'dryness') || (modelType === 'oily' && c === 'oiliness')) };
+      (resolvedType.source !== 'survey' && skinType === 'dry' && c === 'dryness') ||
+      (resolvedType.source !== 'survey' && skinType === 'oily' && c === 'oiliness')) };
 }
 
 export function ingredientExamples(concern: SkinConcern): readonly CareIngredient[] {

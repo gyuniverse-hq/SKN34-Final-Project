@@ -10,7 +10,7 @@ export type SkinType = 'dry' | 'oily' | 'combination' | 'balanced' | 'unknown';
 export type SkinRegion = 'forehead' | 'leftCheek' | 'rightCheek' | 'glabella' | 'leftEye' | 'rightEye' | 'overall';
 export interface SkinReportMetric {
   concern: SkinConcern;
-  source: 'analysis' | 'survey';
+  source: 'analysis' | 'survey' | 'unavailable';
   status: 'care' | 'good' | 'unknown';
   value: number | null;
   maximum: number | null;
@@ -18,7 +18,7 @@ export interface SkinReportMetric {
 }
 export interface SkinReport {
   skinType: SkinType;
-  skinTypeSource: 'analysis' | 'survey';
+  skinTypeSource: 'analysis' | 'survey' | 'combined';
   registeredAt: string;
   reviewAt: string;
   metrics: SkinReportMetric[];

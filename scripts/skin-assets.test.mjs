@@ -9,14 +9,14 @@ import { validateAssets } from './skin-assets.mjs';
 function bundle(action) {
   const directory = mkdtempSync(join(tmpdir(), 'skin-assets-'));
   try {
-    const manifest = { schema: 'skin-analysis-assets-v2', bundleVersion: 'c'.repeat(64), precision: 'float32',
+    const manifest = { schema: 'skin-analysis-assets-v3', bundleVersion: 'c'.repeat(64), precision: 'float32',
       preprocessing: 'skin-preprocessing-v3', roiMethod: 'opencv_haar_facebox_proportions_v1', models: [], assets: {} };
     const asset = name => {
       writeFileSync(join(directory, name), 'fixture');
       manifest.assets[name] = createHash('sha256').update(readFileSync(join(directory, name))).digest('hex');
     };
     ['face.xml', 'fixtures.json', 'input.f32'].forEach(asset);
-    for (const indicator of ['acne', 'pore', 'pigmentation', 'wrinkle', 'skinType']) {
+    for (const indicator of ['pore', 'pigmentation', 'wrinkle', 'skinType']) {
       const file = `${indicator}.onnx`; asset(file);
       const outputs = indicator === 'skinType' ? 3 : 1;
       manifest.models.push({ indicator, file, sha256: manifest.assets[file], sourceSha256: 'a'.repeat(64),
@@ -32,14 +32,14 @@ function bundle(action) {
 }
 
 test('accepts a complete manifest and blocks modified model files', () => bundle((directory) => {
-  assert.equal(validateAssets(directory).models.length, 5);
+  assert.equal(validateAssets(directory).models.length, 4);
   writeFileSync(join(directory, 'pore.onnx'), 'corrupted');
   assert.throws(() => validateAssets(directory), /Invalid skin asset/);
 }));
-test('blocks missing models, invalid thresholds, and paths escaping the asset bundle', () => bundle((directory, manifest, save) => {
-  manifest.models[0].threshold = 0; save();
+test('blocks missing models, invalid decoders, and paths escaping the asset bundle', () => bundle((directory, manifest, save) => {
+  manifest.models[0].decoder = 'argmax'; save();
   assert.throws(() => validateAssets(directory), /model/);
-  manifest.models[0].threshold = .5;
+  manifest.models[0].decoder = 'sigmoid_grade';
   manifest.assets['../outside.onnx'] = 'a'.repeat(64); save();
   assert.throws(() => validateAssets(directory), /Invalid skin asset/);
   delete manifest.assets['../outside.onnx'];
@@ -51,6 +51,11 @@ test('rejects old classifier outputs and incorrect v3 class ordering', () => bun
   manifest.models[1].outputs = 6; save();
   assert.throws(() => validateAssets(directory), /model/);
   manifest.models[1].outputs = 1;
-  manifest.models[4].classes.reverse(); save();
+  manifest.models[3].classes.reverse(); save();
+  assert.throws(() => validateAssets(directory), /model/);
+}));
+
+test('rejects an acne stage in the current four-model bundle', () => bundle((directory, manifest, save) => {
+  manifest.models[0].indicator = 'acne'; save();
   assert.throws(() => validateAssets(directory), /model/);
 }));

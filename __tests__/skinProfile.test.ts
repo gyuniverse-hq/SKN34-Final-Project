@@ -118,6 +118,14 @@ it('persists v3 skin type probabilities, rejects contradictions, and still reads
   expect(await readSkinProfile()).toEqual(next);
   expect(() => validateSkinAnalysis({ ...next.analysis, skinType: undefined })).toThrow();
   expect(() => validateSkinAnalysis({ ...next.analysis, skinType: { ...next.analysis.skinType!, label: 'oily' } })).toThrow();
+  const current = { ...next, analysis: { ...next.analysis, schema: 'skin-analysis-mobile-v3' as const,
+    features: { ...next.analysis.features }, timing: { ...next.analysis.timing,
+      models: next.analysis.timing.models.filter(model => model.indicator !== 'acne') } } };
+  delete current.analysis.features.acne; delete current.analysis.acneScore; delete current.analysis.acneThreshold;
+  await useSkinProfileStore.getState().save(current);
+  expect(await readSkinProfile()).toEqual(current);
+  expect(() => validateSkinAnalysis({ ...current.analysis, features: { ...current.analysis.features, acne: 0 } })).toThrow();
+  expect(summarizeSkinResult(current.analysis.features).acneDetected).toBeNull();
   await useSkinProfileStore.getState().save(profile());
   expect((await readSkinProfile())!.analysis.schema).toBe('skin-analysis-mobile-v1');
 });
@@ -204,6 +212,7 @@ it('accepts WebView camera results without native inference and ignores events f
   try {
     await act(async () => { await flow.start(); });
     expect(flow.webRun?.run.runId).toBe('web-run');
+    expect(flow.indicator).toBe('pore');
     await act(async () => { flow.onWebEvent({ type: 'captured' }); });
     expect(flow.phase).toBe('analysis');
     const late = flow.onWebEvent;
@@ -212,10 +221,11 @@ it('accepts WebView camera results without native inference and ignores events f
     expect(flow.phase).toBe('ready');
     await act(async () => { await flow.start(); });
     await act(async () => { flow.onWebEvent({ type: 'captured' }); });
-    const web: SkinAnalysisResult = { ...analysis(), schema: 'skin-analysis-mobile-v2', preprocessing: 'skin-v3-embedded-enhancement',
+    const web: SkinAnalysisResult = { ...analysis(), schema: 'skin-analysis-mobile-v3', preprocessing: 'skin-v3-embedded-enhancement',
       skinType: { label: 'oily', probabilities: [.1, .2, .7], roiCount: 3, scoreType: 'mean_uncalibrated_softmax' },
       timing: { ...timing('web-run'), runtime: 'wasm-cpu', memoryPssKb: null } };
-    web.timing.models.push({ ...web.timing.models[0], indicator: 'skinType' });
+    web.timing.models[0] = { ...web.timing.models[0], indicator: 'skinType' };
+    delete web.features.acne; delete web.acneScore; delete web.acneThreshold;
     await act(async () => { flow.onWebEvent({ type: 'result', result: web }); });
     expect(flow.phase).toBe('survey');
     expect(analyzeSkin).not.toHaveBeenCalled();

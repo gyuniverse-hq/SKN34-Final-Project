@@ -50,6 +50,12 @@ describe('skin concern suggestions', () => {
     expect(buildSkinRecommendationRequest(p, []).concerns).toEqual([]);
   });
 
+  it('uses the same 40/60 type decision for recommendation preferences as the report', () => {
+    const p = profile({});
+    p.analysis.skinType = { label: 'dry', probabilities: [.6, .3, .1], roiCount: 3, scoreType: 'mean_uncalibrated_softmax' };
+    expect(buildSkinRecommendationRequest(p).concerns).toEqual([]);
+  });
+
   it('lets the user toggle concerns while keeping canonical order', () => {
     expect(toggleConcern(['pores'], 'dryness')).toEqual(['dryness', 'pores']);
     expect(toggleConcern(['dryness', 'pores'], 'dryness')).toEqual(['pores']);

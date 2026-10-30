@@ -2,6 +2,7 @@ import type { SkinConcern } from '@/types';
 import type { SkinProfile } from '@/types/skin';
 import { SKIN_CONCERNS } from './routes';
 import { summarizeSkinResult } from './skinResult';
+import { resolveSkinType } from './skinType';
 
 /**
  * Filter suggestions from the on-device profile. The user edits them before anything is sent;
@@ -20,8 +21,9 @@ export function suggestConcerns(profile: SkinProfile | null | undefined): SkinCo
   if (tightness === 2) found.add('dryness');
   if (oiliness === 2) found.add('oiliness');
   if (sensitivity === 2) found.add('sensitivity');
-  if (profile.analysis.skinType?.label === 'dry') found.add('dryness');
-  if (profile.analysis.skinType?.label === 'oily') found.add('oiliness');
+  const skinType = resolveSkinType(profile.analysis.skinType, profile.questionnaire);
+  if (skinType.source !== 'survey' && skinType.type === 'dry') found.add('dryness');
+  if (skinType.source !== 'survey' && skinType.type === 'oily') found.add('oiliness');
   return SKIN_CONCERNS.filter((c) => found.has(c));
 }
 
