@@ -7,10 +7,19 @@ import { findColorGaps } from '@/lib/colorGaps';
 import { useCartStore } from '@/store/cartStore';
 import { useMakeupStore } from '@/store/makeupStore';
 
+jest.mock('react-native-safe-area-context', () => {
+  const actual = jest.requireActual('react-native-safe-area-context') as typeof import('react-native-safe-area-context');
+  return { ...actual, useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }) };
+});
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('expo-camera', () => ({ useCameraPermissions: () => [{ granted: false, canAskAgain: true }, jest.fn()] }));
 jest.mock('expo-haptics', () => ({ notificationAsync: jest.fn(() => Promise.resolve()), NotificationFeedbackType: { Success: 'success' } }));
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn(), canGoBack: () => false }), useLocalSearchParams: () => ({}), useFocusEffect: jest.fn() }));
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: jest.fn(), back: jest.fn(), canGoBack: () => false }),
+  useLocalSearchParams: () => ({}),
+  useNavigation: () => ({ setOptions: jest.fn() }),
+  useFocusEffect: jest.fn(),
+}));
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: 'LinearGradient' }));
 jest.mock('@/components/ar/ArFaceView', () => ({ ArFaceView: 'ArFaceView' }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
