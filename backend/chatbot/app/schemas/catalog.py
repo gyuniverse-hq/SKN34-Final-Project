@@ -20,7 +20,7 @@ class CatalogProduct(_CatalogModel):
     name: str
     name_ko: str
     category: str
-    texture: str
+    texture: str | None
     price_krw: int = Field(alias="priceKRW")
     description: str
     key_ingredients: list[str]

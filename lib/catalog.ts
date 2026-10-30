@@ -18,5 +18,5 @@ export function pickShade(product: Product, shadeId: string | undefined): Shade 
 }
 
 export function canTryOn(product: Product): boolean {
-  return !!product.makeupZone && product.shades.length > 0;
+  return !!product.makeupZone && !!product.texture && product.shades.length > 0;
 }

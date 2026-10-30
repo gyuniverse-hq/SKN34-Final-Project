@@ -1,4 +1,4 @@
-from sqlalchemy import Text, cast, delete, select
+from sqlalchemy import Text, cast, delete, select, text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,7 +29,17 @@ def _product(row: ProductRow) -> Product:
         texture=row.texture,
         price_krw=row.price_krw,
         volume=row.volume,
-        shades=[Shade(id=s.id, name=s.name, hex=s.hex) for s in row.shades],
+        shades=[
+            Shade(
+                id=s.id,
+                name=s.name,
+                hex=s.hex,
+                measure_method=s.measure_method,
+                color_source=s.color_source,
+                color_confidence=s.color_confidence,
+            )
+            for s in row.shades
+        ],
         description=row.description,
         key_ingredients=row.key_ingredients,
         tags=row.tags,
@@ -135,7 +145,15 @@ class CatalogRepository:
                         search_keyword=p.search_keyword,
                         search_text=build_search_text(p),
                         shades=[
-                            ShadeRow(id=s.id, position=i, name=s.name, hex=s.hex)
+                            ShadeRow(
+                                id=s.id,
+                                position=i,
+                                name=s.name,
+                                hex=s.hex,
+                                measure_method=s.measure_method,
+                                color_source=s.color_source,
+                                color_confidence=s.color_confidence,
+                            )
                             for i, s in enumerate(p.shades)
                         ],
                     )
@@ -179,3 +197,15 @@ class CatalogRepository:
                         pickup_available=s.pickup_available,
                     )
                 )
+            await self._session.flush()
+            await self._session.execute(
+                text(
+                    """
+                    UPDATE raw_oy_product AS raw
+                    SET is_in_catalog = EXISTS (
+                        SELECT 1 FROM products AS product
+                        WHERE product.id = 'oy-' || lower(raw.goods_no)
+                    )
+                    """
+                )
+            )

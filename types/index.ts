@@ -56,7 +56,8 @@ export interface Product {
   category: ProductCategory;
   /** Null for products that can't be tried on (skincare, base). */
   makeupZone: MakeupZone | null;
-  texture: Texture;
+  /** Unknown for categories where finish is not required. */
+  texture: Texture | null;
   /** Reference retail price in KRW. Live prices come from /api/products/:id/offers. */
   priceKRW: number;
   volume: string;
