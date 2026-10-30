@@ -71,7 +71,7 @@ export interface SkinProfile {
   questionnaire: SkinQuestionnaire;
 }
 
-export type SkinGuidance = 'loading' | 'noFace' | 'multipleFaces' | 'center' | 'distance' | 'forehead' | 'straight' | 'hold' | 'capturing' | 'cameraError';
+export type SkinGuidance = 'loading' | 'openingCamera' | 'loadingGuide' | 'noFace' | 'multipleFaces' | 'center' | 'distance' | 'forehead' | 'straight' | 'hold' | 'capturing' | 'cameraError';
 export interface SkinCameraEvent {
   guidance: SkinGuidance;
   progress: number;
@@ -101,4 +101,4 @@ export type SkinWebEvent = { type: 'camera'; state: SkinCameraEvent }
   | { type: 'preview-end'; runId: string }
   | { type: 'progress'; indicator: SkinIndicator }
   | { type: 'result'; result: SkinAnalysisResult }
-  | { type: 'error'; code: 'photo' | 'permission' | 'model' | 'camera' };
+  | { type: 'error'; code: 'photo' | 'permission' | 'model' | 'camera' | 'guide' };

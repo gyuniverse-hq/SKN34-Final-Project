@@ -57,7 +57,7 @@ export default function SkinAnalysisScreen() {
     </View> : flow.phase === 'survey' || flow.phase === 'saving' ? <SkinSurvey answers={flow.answers} onChange={flow.setAnswers}
       onFinish={() => { void flow.finish(); }} complete={flow.complete} saving={flow.phase === 'saving'} error={flow.error === 'storage'} />
       : flow.phase === 'done' ? <View style={styles.center}><ActivityIndicator color={theme.colors.rose} /></View> : <View style={styles.center}>
-        <Text accessibilityRole="alert" style={styles.body}>{t(flow.error === 'permission' ? 'skin.permissionDenied' : flow.error === 'model' ? 'skin.modelFailed' : flow.error === 'camera' ? 'skin.guidance.cameraError' : 'skin.analysisFailed')}</Text>
+        <Text accessibilityRole="alert" style={styles.body}>{t(flow.error === 'permission' ? 'skin.permissionDenied' : flow.error === 'model' ? 'skin.modelFailed' : flow.error === 'camera' ? 'skin.guidance.cameraError' : flow.error === 'guide' ? 'skin.guideFailed' : 'skin.analysisFailed')}</Text>
         {flow.error === 'permission' && <Button label={t('skin.openSettings')} onPress={() => { void Linking.openSettings(); }} />}
         <Button label={t('skin.retry')} onPress={() => { void begin(); }} />
       </View>}

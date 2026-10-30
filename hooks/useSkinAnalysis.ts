@@ -13,7 +13,7 @@ export function useSkinAnalysis() {
   const [indicator, setIndicator] = useState<SkinIndicator>('acne');
   const [result, setResult] = useState<SkinAnalysisResult>();
   const [answers, setAnswers] = useState<Partial<SkinQuestionnaire>>({});
-  const [error, setError] = useState<'analysis' | 'storage' | 'model' | 'permission' | 'camera' | null>(null);
+  const [error, setError] = useState<'analysis' | 'storage' | 'model' | 'permission' | 'camera' | 'guide' | null>(null);
   const [webRun, setWebRun] = useState<SkinWebRun>();
   const generation = useRef(0);
   const previewAssembler = useRef<SkinPreviewAssembler | null>(null);
@@ -59,9 +59,9 @@ export function useSkinAnalysis() {
 
   // Module imports, model initialization and video startup must not wait forever.
   useEffect(() => {
-    if (phase !== 'camera' || !webRun || camera.guidance !== 'loading') return;
+    if (phase !== 'camera' || !webRun || !['loading', 'openingCamera', 'loadingGuide'].includes(camera.guidance)) return;
     const timeout = setTimeout(() => {
-      setError('model'); setPhase('error');
+      setError(camera.guidance === 'openingCamera' ? 'camera' : camera.guidance === 'loadingGuide' ? 'guide' : 'model'); setPhase('error');
     }, 60000);
     return () => clearTimeout(timeout);
   }, [phase, webRun, camera.guidance]);
@@ -108,7 +108,7 @@ export function useSkinAnalysis() {
     else if (event.type === 'progress') setIndicator(event.indicator);
     else if (event.type === 'error') {
       previewAssembler.current?.clear(); previewAssembler.current = null; pendingPreview.current = null;
-      setError(event.code === 'permission' ? 'permission' : event.code === 'model' ? 'model' : event.code === 'camera' ? 'camera' : 'analysis');
+      setError(event.code === 'photo' ? 'analysis' : event.code);
       setPhase('error');
     } else if (event.type === 'result') {
       try {

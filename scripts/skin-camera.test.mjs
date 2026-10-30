@@ -22,17 +22,17 @@ function cameraEnvironment(getUserMedia) {
   } };
 }
 
-// Node rejects the HTTPS module import after camera playback, without making a request.
+// Node rejects the face-tracker HTTPS import after playback, without making a request.
 const config = { assetsUrl: 'https://invalid.example/skin-runtime/' };
 
-test('opens video before loading analysis dependencies and stops it if loading fails', async () => {
+test('opens video before loading the face guide and stops it if the guide fails', async () => {
   let stopped = false;
   const env = cameraEnvironment(async () => ({ getTracks: () => [{ stop: () => { stopped = true; } }] }));
   try {
     await boot(config);
     assert.deepEqual(env.events, [
-      { type: 'camera', state: { guidance: 'loading', progress: 0 } },
-      'playing', { type: 'error', code: 'model' },
+      { type: 'camera', state: { guidance: 'openingCamera', progress: 0 } },
+      'playing', { type: 'camera', state: { guidance: 'loadingGuide', progress: 0 } }, { type: 'error', code: 'guide' },
     ]);
     assert.equal(stopped, true);
     assert.equal(env.video.srcObject, null);

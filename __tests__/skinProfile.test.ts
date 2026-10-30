@@ -272,6 +272,11 @@ it('waits for camera readiness, times out a stalled startup, and permits a fresh
     expect(flow.phase).toBe('camera');
     await act(async () => { flow.onWebEvent({ type: 'error', code: 'camera' }); });
     expect(flow.error).toBe('camera');
+    await act(async () => { await flow.start(); });
+    await act(async () => { flow.onWebEvent({ type: 'camera', state: { guidance: 'loadingGuide', progress: 0 } }); });
+    await act(async () => { jest.advanceTimersByTime(60000); });
+    expect(flow.phase).toBe('error');
+    expect(flow.error).toBe('guide');
   } finally {
     if (screen) await act(async () => { screen.unmount(); });
     webProperty.restore(); jest.useRealTimers();

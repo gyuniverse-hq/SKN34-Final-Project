@@ -135,18 +135,7 @@ export async function boot(config) {
         imagePreparationMs: 0, validationMs, detectionMs, nativeMs: 0, totalMs: elapsed(capturedAt), memoryPssKb: null, models } } };
   }
 
-  try {
-    post({ type: 'camera', state: { guidance: 'loading', progress: 0 } });
-    // Show live video before downloading/initializing the analysis runtimes.
-    try {
-      const next = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 960 } }, audio: false });
-      if (stopped) { next.getTracks().forEach(track => track.stop()); return; }
-      stream = next; video.srcObject = stream; await video.play(); check();
-    } catch (error) {
-      cleanup();
-      if (error?.message !== 'cancelled') post({ type: 'error', code: error?.name === 'NotAllowedError' ? 'permission' : 'camera' });
-      return;
-    }
+  async function prepareAnalysis() {
     ort = await import(base + 'ort.wasm.min.mjs');
     check();
     await Promise.all([script(base + 'opencv.js'), script(base + 'jpeg.js')]);
@@ -163,6 +152,22 @@ export async function boot(config) {
       new Set(manifest.models.map(model => model.indicator)).size !== 4 || manifest.models.some(model => !parts[model.indicator])) throw new Error('model');
     // Cache API availability/quota varies between WebViews. Cache misses remain explicit in timings.
     cache = window.caches ? await window.caches.open(`skin-web-models-${manifest.bundleVersion}`).catch(() => null) : null;
+    check();
+  }
+
+  try {
+    post({ type: 'camera', state: { guidance: 'openingCamera', progress: 0 } });
+    try {
+      const next = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 960 } }, audio: false });
+      if (stopped) { next.getTracks().forEach(track => track.stop()); return; }
+      stream = next; video.srcObject = stream; await video.play(); check();
+    } catch (error) {
+      cleanup();
+      if (error?.message !== 'cancelled') post({ type: 'error', code: error?.name === 'NotAllowedError' ? 'permission' : 'camera' });
+      return;
+    }
+    // Only face alignment is needed before capture; OpenCV/ONNX/JPEG load afterward.
+    post({ type: 'camera', state: { guidance: 'loadingGuide', progress: 0 } });
     const visionRoot = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1';
     const vision = await import(visionRoot + '/vision_bundle.mjs');
     const files = await vision.FilesetResolver.forVisionTasks(visionRoot + '/wasm');
@@ -193,10 +198,16 @@ export async function boot(config) {
         } catch { /* Numeric analysis can still complete without a preview. */ }
         canvas.width = video.videoWidth; canvas.height = video.videoHeight;
         canvas.getContext('2d', { willReadFrequently: true }).drawImage(video, 0, 0);
-        const image = cv.imread(canvas), captureMs = elapsed(capturedAt);
+        const captureMs = elapsed(capturedAt);
+        let image;
         try {
           stopCamera(); post({ type: 'captured' }); await sleepFrame();
+          const preparationAt = performance.now();
+          await prepareAnalysis();
+          image = cv.imread(canvas);
+          const imagePreparationMs = elapsed(preparationAt);
           const output = await analyze(image, capturedAt, captureMs, capturedAt - openedAt);
+          output.result.timing.imagePreparationMs = imagePreparationMs;
           if (outline) try {
             const dataUrl = canvas.toDataURL('image/jpeg', .8);
             const data = dataUrl.startsWith('data:image/jpeg;base64,') ? dataUrl.slice(23) : '';
@@ -212,8 +223,8 @@ export async function boot(config) {
           check();
           output.result.timing.totalMs = elapsed(capturedAt);
           post({ type: 'result', result: output.result });
-        } finally { image.delete(); cleanup(); }
-      } catch (error) { cleanup(); post({ type: 'error', code: error?.message === 'photo' ? 'photo' : 'model' }); }
+        } finally { image?.delete(); cleanup(); }
+      } catch (error) { cleanup(); if (error?.message !== 'cancelled') post({ type: 'error', code: error?.message === 'photo' ? 'photo' : 'model' }); }
     }
     captureButton.onclick = () => { void capture(); };
     captureButton.disabled = false;
@@ -233,6 +244,6 @@ export async function boot(config) {
     frame();
   } catch (error) {
     cleanup();
-    if (error?.message !== 'cancelled') post({ type: 'error', code: error?.name === 'NotAllowedError' ? 'permission' : 'model' });
+    if (error?.message !== 'cancelled') post({ type: 'error', code: 'guide' });
   }
 }

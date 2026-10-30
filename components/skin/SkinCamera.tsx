@@ -28,7 +28,7 @@ export function SkinCamera({ state, onCapture, webRun, onWebEvent, analyzing = f
           onWebEvent(JSON.parse(event.nativeEvent.data) as SkinWebEvent);
         } catch { failed(); }
       }} onError={failed} onContentProcessDidTerminate={failed} onRenderProcessGone={failed}
-      containerStyle={StyleSheet.absoluteFill} style={styles.webView} renderError={() => <View style={styles.webView} />} /> : <NativeCamera onCapture={onCapture} />}
+      containerStyle={styles.webView} style={styles.webView} renderError={() => <View style={styles.webView} />} /> : <NativeCamera onCapture={onCapture} />}
     {!analyzing && <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <View style={[styles.guide, state.guidance === 'hold' && styles.ready]}>
         <View style={styles.forehead}><Text style={styles.small}>{t('skin.foreheadLine')}</Text></View>
