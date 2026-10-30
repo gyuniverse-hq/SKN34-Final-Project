@@ -45,6 +45,7 @@ services:
       TOSS_CLIENT_KEY: ${TOSS_CLIENT_KEY:-}
       TOSS_SECRET_KEY: ${TOSS_SECRET_KEY:-}
       PAYMENT_WEB_BASE_URL: ${PAYMENT_WEB_BASE_URL:-}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:-}
     depends_on:
       migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }

@@ -67,4 +67,8 @@ allow_indirect_imports = true
 [[tool.importlinter.contracts]]
 name = "Clients do not depend on each other"
 type = "independence"
-modules = ["app.clients.naver_client", "app.clients.youtube_client"]
+modules = [
+    "app.clients.naver_client",
+    "app.clients.youtube_client",
+    "app.clients.supabase_admin_client",
+]
