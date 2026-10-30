@@ -28,11 +28,20 @@ def test_style_looks_endpoint_uses_client_field_names():
 
 
 def test_verified_product_mapping_is_retained_in_api_contract():
-    item = StyleProduct.model_validate({
-        "number": 1, "brand": "A", "name": "B", "option": "C", "category": "lip",
-        "zone": "립", "reviewStatus": "검토 완료", "mappingVerified": True,
-        "catalogProductId": "p1", "catalogShadeId": "s1",
-    })
+    item = StyleProduct.model_validate(
+        {
+            "number": 1,
+            "brand": "A",
+            "name": "B",
+            "option": "C",
+            "category": "lip",
+            "zone": "립",
+            "reviewStatus": "검토 완료",
+            "mappingVerified": True,
+            "catalogProductId": "p1",
+            "catalogShadeId": "s1",
+        }
+    )
     result = item.model_dump(mode="json", by_alias=True)
     assert result["mappingVerified"] is True
     assert result["catalogProductId"] == "p1"

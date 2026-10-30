@@ -51,7 +51,14 @@ def create_app() -> FastAPI:
     app.add_middleware(RequestContextMiddleware)
     install_error_handlers(app)
     for module in (
-        health, catalog, idol_looks, shades, members, tutorials, style_looks, celebrity_videos
+        health,
+        catalog,
+        idol_looks,
+        shades,
+        members,
+        tutorials,
+        style_looks,
+        celebrity_videos,
     ):
         app.include_router(module.router)
     app.include_router(payments.router)

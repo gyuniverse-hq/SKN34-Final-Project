@@ -11,7 +11,13 @@ def test_celebrity_videos_preserve_associations():
     assert len(videos) == 34
     assert len({video.id for video in videos}) == 34
     assert {video.celebrity_id for video in videos} == {
-        "karina", "wonyoung", "sullyoon", "winter", "jennie", "haerin", "wony"
+        "karina",
+        "wonyoung",
+        "sullyoon",
+        "winter",
+        "jennie",
+        "haerin",
+        "wony",
     }
     assert sum(len(video.products) for video in videos) == 711
     for video in videos:
