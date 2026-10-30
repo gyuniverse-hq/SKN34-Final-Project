@@ -102,7 +102,7 @@ class ShadeService:
                 reasons: list[SimilarReason] = []
                 if delta_e <= CLOSE_COLOR_DELTA_E:
                     reasons.append("close_color")
-                if p.texture == product.texture:
+                if p.texture is not None and p.texture == product.texture:
                     reasons.append("same_texture")
                 if p.category == product.category:
                     reasons.append("same_category")

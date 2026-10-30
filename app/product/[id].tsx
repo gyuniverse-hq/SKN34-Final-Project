@@ -129,10 +129,12 @@ export default function ProductDetailScreen() {
             </View>
           ) : null}
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('compare.texture')}</Text>
-            <Text style={styles.hint}>{t(`texture.${p.texture}` as TranslationKey)}</Text>
-          </View>
+          {p.texture ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t('compare.texture')}</Text>
+              <Text style={styles.hint}>{t(`texture.${p.texture}` as TranslationKey)}</Text>
+            </View>
+          ) : null}
 
         </View>
       </ScrollView>

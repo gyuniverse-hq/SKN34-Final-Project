@@ -55,6 +55,33 @@ class CoralLoss(nn.Module):
         )
 
 
+class WeightedCoralLoss(nn.Module):
+    """Class-weighted CORAL threshold BCE with target-class normalization."""
+
+    def __init__(self, weight):
+        super().__init__()
+        weight = torch.as_tensor(weight, dtype=torch.float32).detach().clone()
+        if (
+            weight.ndim != 1
+            or weight.numel() < 2
+            or not torch.isfinite(weight).all()
+            or (weight <= 0).any()
+        ):
+            raise ValueError("Weighted CORAL requires finite positive class weights")
+        self.register_buffer("weight", weight)
+
+    def forward(self, logits, targets):
+        if logits.ndim != 2 or logits.shape[0] != len(targets) or logits.shape[1] < 1:
+            raise ValueError("Expected [N,K-1] cumulative logits and [N] targets")
+        levels = ordinal_levels(targets, logits.shape[1] + 1)
+        per_example = (
+            F.binary_cross_entropy_with_logits(logits.float(), levels, reduction="none")
+            .sum(1)
+        )
+        target_weight = self.weight[targets]
+        return (per_example * target_weight).sum() / target_weight.sum()
+
+
 def decode_coral(logits):
     if logits.ndim != 2 or logits.shape[1] < 1 or not torch.isfinite(logits).all():
         raise ValueError("Expected finite cumulative threshold logits")

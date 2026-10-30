@@ -61,7 +61,10 @@ def load_manifest(config):
     if digest(manifest) != claimed:
         raise ValueError("Smartphone manifest fingerprint mismatch")
     manifest["fingerprint"] = claimed
-    if manifest["schema"] != "nia-smartphone-data-v1" or manifest["preprocessing"] != PREPROCESSING:
+    if manifest["schema"] not in {
+        "nia-smartphone-data-v1",
+        "nia-smartphone-rare-grade-device-mix-v1",
+    } or manifest["preprocessing"] != PREPROCESSING:
         raise ValueError("Incompatible smartphone data contract")
     assert_disjoint(manifest["records"])
     return manifest
@@ -70,8 +73,14 @@ def load_manifest(config):
 def assert_disjoint(records):
     owners = {}
     for record in records:
-        if record["split"] not in {"train", "valid", "test"} or record["device"] != 3:
-            raise ValueError("Only smartphone records and declared splits are allowed")
+        source_device = record.get("source_device", "smartphone")
+        if (
+            record["split"] not in {"train", "valid", "test"}
+            or record["device"] != 3
+            or source_device not in {"smartphone", "digital_camera", "smart_pad"}
+            or (record["split"] != "train" and source_device != "smartphone")
+        ):
+            raise ValueError("Non-phone source images are allowed only in training records")
         for field in ("subject", "group", "image_sha256", "pixel_sha256"):
             key = field, record[field]
             if key in owners and owners[key] != record["split"]:

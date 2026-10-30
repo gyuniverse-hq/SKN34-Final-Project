@@ -10,7 +10,7 @@ import numpy as np
 import torch
 from server.nia.metrics import classification
 from torch import nn
-from torch.utils.data import DataLoader, RandomSampler
+from torch.utils.data import BatchSampler, DataLoader, RandomSampler
 
 from ..dataset import seed_worker
 from ..runtime import capture_rng, cpu_tree, restore_rng, save_checkpoint, seed_all, select_cuda
@@ -28,7 +28,7 @@ from .common import (
     write_json,
 )
 from .coral import ARCHITECTURE as CORAL_ARCHITECTURE
-from .coral import DECODING, CoralLoss, decode_coral
+from .coral import DECODING, CoralLoss, WeightedCoralLoss, decode_coral
 from .data import GradeDataset
 from .losses import ClassBalancedFocalLoss, WeightedFocalLoss, effective_number_weights
 from .ordinal_loss import WeightedOrdinalCdfLoss
@@ -51,7 +51,7 @@ class GradeModel(nn.Module):
             raise ValueError("Finetune scope must be all or layer4")
         self.freeze_bn_stats = freeze_bn_stats
         self.finetune_scope = finetune_scope
-        if finetune_scope == "layer4" and backbone == "efficientnet_b0":
+        if finetune_scope == "layer4" and backbone not in ("resnet18", "resnet50"):
             raise ValueError("layer4 is a ResNet-only policy")
         self.network = build_network(backbone, classes, pretrained, ordinal)
         self.frozen = False
@@ -79,6 +79,89 @@ class GradeModel(nn.Module):
         return self.network(images)
 
 
+class GradeDiverseBatchSampler(BatchSampler):
+    """Use every row once while maximizing distinct grades in each batch."""
+
+    def __init__(self, dataset, batch_size, generator):
+        self.dataset = dataset
+        self.batch_size = batch_size
+        self.generator = generator
+        labels = [dataset.target(record) for record in dataset.records]
+        self.class_indices = {
+            label: torch.tensor(
+                [index for index, target in enumerate(labels) if target == label],
+                dtype=torch.long,
+            )
+            for label in sorted(set(labels))
+        }
+
+    def make_queues(self):
+        return {
+            label: indices[torch.randperm(len(indices), generator=self.generator)].tolist()
+            for label, indices in self.class_indices.items()
+        }
+
+    def __iter__(self):
+        queues = self.make_queues()
+        labels = list(queues)
+        batches = []
+        while any(queues.values()):
+            available = [label for label in labels if queues[label]]
+            tie_order = torch.randperm(len(available), generator=self.generator).tolist()
+            available = [available[index] for index in tie_order]
+            available.sort(key=lambda label: len(queues[label]))
+            distinct = available[: self.batch_size]
+            batch = [queues[label].pop() for label in distinct]
+
+            # Fill large batches only after including every currently available grade.
+            while len(batch) < self.batch_size and any(queues.values()):
+                remaining = [label for label in labels if queues[label]]
+                remaining.sort(key=lambda label: len(queues[label]), reverse=True)
+                batch.append(queues[remaining[0]].pop())
+            batches.append(batch)
+
+        # Shuffle full batches, then keep the sole partial batch last. SAM's
+        # accumulation groups must not be shifted by a short batch mid-epoch.
+        full_batches = [batch for batch in batches if len(batch) == self.batch_size]
+        partial_batches = [batch for batch in batches if len(batch) != self.batch_size]
+        if len(partial_batches) > 1:
+            raise RuntimeError("Grade-diverse sampler produced multiple partial batches")
+        order = torch.randperm(len(full_batches), generator=self.generator).tolist()
+        for index in order:
+            yield full_batches[index]
+        yield from partial_batches
+
+    def __len__(self):
+        return (len(self.dataset) + self.batch_size - 1) // self.batch_size
+
+
+class SqrtOversampleBatchSampler(GradeDiverseBatchSampler):
+    """Keep epoch size fixed and sample classes in proportion to sqrt(count)."""
+
+    def make_queues(self):
+        labels = list(self.class_indices)
+        counts = np.array([len(self.class_indices[label]) for label in labels])
+        target = len(self.dataset) * np.sqrt(counts) / np.sqrt(counts).sum()
+        quotas = np.floor(target).astype(int)
+        for index in np.argsort(-(target - quotas))[: len(self.dataset) - int(quotas.sum())]:
+            quotas[index] += 1
+        queues = {}
+        for label, quota in zip(labels, quotas, strict=True):
+            indices = self.class_indices[label]
+            choices = []
+            while len(choices) < quota:
+                choices.extend(
+                    indices[torch.randperm(len(indices), generator=self.generator)].tolist()
+                )
+            occurrence = {}
+            queues[label] = []
+            for index in choices[:quota]:
+                ordinal = occurrence.get(index, 0)
+                occurrence[index] = ordinal + 1
+                queues[label].append((index, ordinal))
+        return queues
+
+
 def class_weights(labels, classes, cap, exponent=0.5):
     counts = np.bincount(labels, minlength=classes)
     if (
@@ -104,7 +187,8 @@ def criterion_for(labels, classes, settings, device):
             weight = effective_number_weights(counts, settings["cb_beta"])
         else:
             weight = class_weights(
-                labels, classes, settings["class_weight_cap"], settings.get("weight_exponent", 0.5)
+                labels, classes, settings.get("class_weight_cap"),
+                settings.get("weight_exponent", 0.5),
             )
         criterion = nn.CrossEntropyLoss(weight=weight.to(device))
         specification = dict(
@@ -115,7 +199,7 @@ def criterion_for(labels, classes, settings, device):
         )
     elif kind == "weighted_focal":
         weight = class_weights(
-            labels, classes, settings["class_weight_cap"], settings.get("weight_exponent", 0.5)
+            labels, classes, settings.get("class_weight_cap"), settings.get("weight_exponent", 0.5)
         )
         criterion = WeightedFocalLoss(weight, gamma=settings["focal_gamma"]).to(device)
         specification = dict(
@@ -131,7 +215,7 @@ def criterion_for(labels, classes, settings, device):
         )
     elif kind == "weighted_ordinal_cdf":
         weight = class_weights(
-            labels, classes, settings["class_weight_cap"], settings.get("weight_exponent", 0.5)
+            labels, classes, settings.get("class_weight_cap"), settings.get("weight_exponent", 0.5)
         )
         criterion = WeightedOrdinalCdfLoss(weight).to(device)
         specification = dict(
@@ -168,6 +252,20 @@ def criterion_for(labels, classes, settings, device):
             legacy_sqrt_class_weights_used=False,
             threshold_weights="uniform",
         )
+    elif kind == "weighted_coral":
+        weight = class_weights(
+            labels, classes, settings.get("class_weight_cap"), settings.get("weight_exponent", 0.5)
+        )
+        criterion = WeightedCoralLoss(weight).to(device)
+        specification = dict(
+            kind=kind,
+            counts=counts,
+            weights=weight.tolist(),
+            formulation="class_weighted_shared_score_cumulative_binary_thresholds",
+            reduction="sum_target_weighted_threshold_bce / sum_target_weights",
+            weight_exponent=settings.get("weight_exponent", 0.5),
+            class_weight_cap=settings.get("class_weight_cap"),
+        )
     else:
         raise ValueError("Unknown smartphone training loss")
     specification.update(
@@ -179,11 +277,34 @@ def criterion_for(labels, classes, settings, device):
 
 def make_loader(data, settings, generator=None, training=False):
     sampler = None
+    batch_sampler = None
     if settings.get("deterministic_samples"):
         if training:
-            sampler = RandomSampler(data, generator=generator)
+            if settings.get("grade_diverse_batches"):
+                sampler_type = (
+                    SqrtOversampleBatchSampler
+                    if settings.get("sqrt_oversampling")
+                    else GradeDiverseBatchSampler
+                )
+                batch_sampler = sampler_type(
+                    data, settings["batch_size"], generator
+                )
+            else:
+                sampler = RandomSampler(data, generator=generator)
         # Worker base-seed draws must not consume the captured shuffle/model RNG.
         generator = torch.Generator().manual_seed(settings["seed"] + 100000)
+    if batch_sampler is not None:
+        loader = DataLoader(
+            data,
+            batch_sampler=batch_sampler,
+            num_workers=settings["num_workers"],
+            pin_memory=True,
+            persistent_workers=settings["num_workers"] > 0,
+            worker_init_fn=seed_worker,
+            generator=generator,
+        )
+        loader.micro_batch_size = settings["batch_size"]
+        return loader
     return DataLoader(
         data,
         batch_size=settings["batch_size"],
@@ -286,7 +407,7 @@ def verify_crops(manifest):
 def require_coral_gate(config, manifest, task):
     if config["train"].get("study_protocol") == "reselection-v1":
         return  # All three tasks are explicitly preregistered in the new study.
-    if config["train"].get("loss") != "coral" or task == "pore":
+    if config["train"].get("loss") not in ("coral", "weighted_coral") or task == "pore":
         return
     path = Path(config["train"]["output"]) / "pore-comparison.json"
     if task == "all" or not path.is_file():
@@ -314,7 +435,7 @@ def train_task(config, manifest, task, device, resume=None):
     torch.cuda.reset_peak_memory_stats(device)
     classes, mapping, exported_task = classification_contract(settings, task)
     optimizer_spec = optimization_spec(settings)
-    ordinal = settings.get("loss") == "coral"
+    ordinal = settings.get("loss") in ("coral", "weighted_coral")
     output = Path(settings["output"]) / task
     if not resume and output.exists():
         raise FileExistsError("Experiment already exists; choose explicit resume or a new output")
@@ -371,6 +492,7 @@ def train_task(config, manifest, task, device, resume=None):
         training=True,
         target_mapping=mapping,
         training_seed=settings["seed"] if settings.get("deterministic_samples") else None,
+        augmentation=settings.get("augmentation"),
     )
     validation = GradeDataset(manifest, task, "valid", target_mapping=mapping)
     train_loader = make_loader(training, settings, generator, training=True)

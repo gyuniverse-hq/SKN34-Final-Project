@@ -15,11 +15,11 @@ export function resolveVideoProducts(items: VideoProductMapping[], products: Pro
   return items.flatMap((item, index) => {
     if (item.mappingVerified !== true || !parseId(item.catalogProductId) || !parseId(item.catalogShadeId)) return [];
     const product = products.find((candidate) => candidate.id === item.catalogProductId);
-    if (!product?.makeupZone || !isArPaintZone(product.makeupZone) || usedZones.has(product.makeupZone)) return [];
+    if (!product?.makeupZone || !product.texture || !isArPaintZone(product.makeupZone) || usedZones.has(product.makeupZone)) return [];
     const shade = product.shades.find((candidate) => candidate.id === item.catalogShadeId);
     if (!shade || shade.measureMethod === 'placeholder' || shade.colorSource === 'placeholder') return [];
     usedZones.add(product.makeupZone);
-    return [{ index, product, shade, zone: product.makeupZone }];
+    return [{ index, product, shade, zone: product.makeupZone, texture: product.texture }];
   });
 }
 
@@ -45,8 +45,8 @@ export function useVideoTryOn(items: VideoProductMapping[], id: string, title: s
     if (selected.length) {
       const makeup: MakeupState = { lip: null, blush: null, eyeshadow: null };
       const lookItems: LookItem[] = [];
-      for (const { product, shade, zone } of selected) {
-        makeup[zone] = { hex: shade.hex, intensity: DEFAULT_INTENSITY[zone], texture: product.texture };
+      for (const { product, shade, zone, texture } of selected) {
+        makeup[zone] = { hex: shade.hex, intensity: DEFAULT_INTENSITY[zone], texture };
         lookItems.push({ productId: product.id, shadeId: shade.id, step: STEPS[zone]! });
       }
       const look: CelebLook = { id, title, inspiration: '', description: '', thumbnailUrl: '', tutorialQuery: '', items: lookItems, makeup, tags: [] };

@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -27,7 +27,7 @@ class ProductRow(Base):
     name_ko: Mapped[str] = mapped_column(String(200))
     category: Mapped[str] = mapped_column(String(20), index=True)
     makeup_zone: Mapped[str | None] = mapped_column(String(20))
-    texture: Mapped[str] = mapped_column(String(20))
+    texture: Mapped[str | None] = mapped_column(String(20), nullable=True)
     price_krw: Mapped[int] = mapped_column(Integer)
     volume: Mapped[str] = mapped_column(String(50))
     description: Mapped[str] = mapped_column(Text)
@@ -53,6 +53,9 @@ class ShadeRow(Base):
     position: Mapped[int] = mapped_column(Integer, default=0)
     name: Mapped[str] = mapped_column(String(100))
     hex: Mapped[str] = mapped_column(String(7))
+    measure_method: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    color_source: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    color_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
 
 
 class LookRow(Base):

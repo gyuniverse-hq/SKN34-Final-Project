@@ -145,6 +145,8 @@ def validate_catalog(bundle: CatalogBundle) -> None:
         _unique([s.id for s in p.shades], f"product {p.id} shade")
         if p.makeup_zone and not p.shades:
             raise ValueError(f"product {p.id}: try-on products need at least one shade")
+        if p.makeup_zone and p.texture is None:
+            raise ValueError(f"product {p.id}: try-on products need a known texture")
 
     shades = {p.id: {s.id for s in p.shades} for p in bundle.products}
     for look in bundle.looks:

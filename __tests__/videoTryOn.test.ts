@@ -20,15 +20,18 @@ test('uses only verified exact shades, excludes placeholders and chooses one pro
   const eye = product('eye', 'eyeshadow', 'pink');
   const placeholder = product('brow', 'brow', 'brown');
   placeholder.shades[0].measureMethod = 'placeholder';
+  const unknownTexture = product('unknown', 'blush', 'rose');
+  unknownTexture.texture = null;
   const items: VideoProductMapping[] = [
     { catalogProductId: 'lip', catalogShadeId: 'red' },
     { mappingVerified: true, catalogProductId: 'lip', catalogShadeId: 'missing' },
     { mappingVerified: true, catalogProductId: 'lip', catalogShadeId: 'red' },
     { mappingVerified: true, catalogProductId: 'lip', catalogShadeId: 'red' },
     { mappingVerified: true, catalogProductId: 'brow', catalogShadeId: 'brown' },
+    { mappingVerified: true, catalogProductId: 'unknown', catalogShadeId: 'rose' },
     { mappingVerified: true, catalogProductId: 'eye', catalogShadeId: 'pink' },
   ];
-  expect(resolveVideoProducts(items, [lip, eye, placeholder]).map((item) => item.index)).toEqual([2, 5]);
+  expect(resolveVideoProducts(items, [lip, eye, placeholder, unknownTexture]).map((item) => item.index)).toEqual([2, 6]);
 });
 
 test('applies only confirmed products before opening AR; unmatched videos leave selections intact', async () => {

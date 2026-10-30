@@ -4,7 +4,7 @@ import { useHeaderHeight } from 'expo-router/react-navigation';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import {
   ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView,
-  type ScrollViewInstance, StyleSheet, Text, TextInput, View,
+  StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChatProducts } from '@/components/chat/ChatProducts';
@@ -68,7 +68,7 @@ export default function ChatScreen() {
   const headerHeight = useHeaderHeight();
   const { t, language } = useI18n();
   const { mutateAsync, isPending } = useChat();
-  const scrollRef = useRef<ScrollViewInstance>(null);
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
   const sending = useRef(false);
   const serial = useRef(0);

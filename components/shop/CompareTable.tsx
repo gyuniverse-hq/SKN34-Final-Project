@@ -35,7 +35,7 @@ export function CompareTable({ lines, onOpen, onAddToCart, onRemove }: Props) {
                 value={availability === 'shade_unavailable' ? t('catalog.shadeUnavailable') : (shade?.name ?? '—')}
                 swatch={shade?.hex}
               />
-              <Field label={t('compare.texture')} value={t(`texture.${product.texture}` as TranslationKey)} />
+              <Field label={t('compare.texture')} value={product.texture ? t(`texture.${product.texture}` as TranslationKey) : '—'} />
               <Field label={t('compare.volume')} value={product.volume || '—'} />
               <Field label={t('compare.shadeCount')} value={String(product.shades.length)} />
               <Field label={t('product.keyIngredients')} value={product.keyIngredients.join(', ') || '—'} />

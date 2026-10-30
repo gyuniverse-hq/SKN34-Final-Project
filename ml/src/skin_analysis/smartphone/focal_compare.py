@@ -17,12 +17,19 @@ from .data import GradeDataset
 from .train import make_loader, predict, verify_crops
 
 DEFAULT_FOCAL_CONFIG = PROJECT_ROOT / "configs/nia_smartphone_cb_focal.toml"
-LOSS_KEYS = {"loss", "cb_beta", "focal_gamma"}
+LOSS_KEYS = {
+    "loss",
+    "cb_beta",
+    "focal_gamma",
+    "weight_exponent",
+    "class_weight_cap",
+}
 
 
 def require_matched_conditions(config, manifest, baseline):
-    settings = {k: v for k, v in config["train"].items() if k not in LOSS_KEYS | {"output"}}
-    previous = {k: v for k, v in baseline["train_config"].items() if k != "output"}
+    excluded = LOSS_KEYS | {"output"}
+    settings = {k: v for k, v in config["train"].items() if k not in excluded}
+    previous = {k: v for k, v in baseline["train_config"].items() if k not in excluded}
     if (
         settings != previous
         or baseline["manifest_fingerprint"] != manifest["fingerprint"]
