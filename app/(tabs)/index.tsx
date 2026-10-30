@@ -11,6 +11,7 @@ import { useSkinMatchedProducts } from '@/hooks/useSkinMatchedProducts';
 import { useI18n } from '@/lib/i18n';
 import { useStyleLooks, useProducts } from '@/lib/queries';
 import { celebrityHref, productHref } from '@/lib/routes';
+import { styleLookGroupLabel } from '@/lib/styleLookGroups';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
@@ -77,6 +78,8 @@ export default function HomeScreen() {
           onRetry={() => looks.refetch()}
           onPressCelebrity={(celebrity) => router.push(celebrityHref(celebrity.id))}
           onPressStyle={(look) => router.push({ pathname: '/style-look/[id]', params: { id: look.id } } as Href)}
+          groupLabel={(group) => styleLookGroupLabel(group, t)}
+          productLabel={(count) => t('looks.itemCount', { count })}
         />
 
         <View style={styles.section}>

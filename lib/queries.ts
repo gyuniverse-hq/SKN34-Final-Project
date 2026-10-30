@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type {
   CelebLook,
+  CelebrityVideo,
   IdolLook,
   Product,
   ProductOffers,
@@ -99,6 +100,21 @@ export function useStyleLooks() {
       }
     },
     select: (data) => data.looks,
+  });
+}
+
+export function useCelebrityVideos() {
+  return useQuery({
+    queryKey: ['celebrity-videos'],
+    queryFn: async () => {
+      try {
+        return await apiGet<{ videos: CelebrityVideo[] }>('/api/celebrity-videos');
+      } catch (error) {
+        if (!__DEV__ || !(error instanceof ApiError) || (error.status !== 404 && error.status !== 0)) throw error;
+        return { videos: require('./devCatalog/celebrityVideos.json') as CelebrityVideo[] };
+      }
+    },
+    select: (data) => data.videos,
   });
 }
 

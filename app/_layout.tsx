@@ -66,6 +66,7 @@ function RootStack() {
       <Stack.Screen name="idol-look/[id]" options={{ title: '' }} />
       <Stack.Screen name="celebrities/index" options={{ title: '' }} />
       <Stack.Screen name="celebrities/[id]" options={{ title: '' }} />
+      <Stack.Screen name="celebrity-video/[id]" options={{ title: '' }} />
       <Stack.Screen name="search" options={{ title: t('search.title') }} />
       <Stack.Screen name="discover" options={{ title: t('search.title') }} />
       <Stack.Screen name="rankings" options={{ title: t('discovery.ranking') }} />

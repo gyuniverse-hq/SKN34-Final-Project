@@ -99,9 +99,10 @@ export default function ArTryOnScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ compare?: string; productId?: string; shadeId?: string }>();
+  const params = useLocalSearchParams<{ compare?: string; productId?: string; shadeId?: string; video?: string }>();
   const routeProductId = parseId(params.productId);
   const routeShadeId = parseId(params.shadeId);
+  const fromVideo = parseFlag(params.video);
   const { t } = useI18n();
   const { height: windowHeight } = useWindowDimensions();
   const cameraConsent = useSettingsStore((s) => s.cameraConsent);
@@ -227,7 +228,7 @@ export default function ArTryOnScreen() {
 
   const seededLip = useRef(false);
   useEffect(() => {
-    if (fit || seededLip.current || routeProductId) return;
+    if (fit || seededLip.current || routeProductId || fromVideo) return;
     if (MAKEUP_ZONES.some((z) => makeup[z])) {
       seededLip.current = true;
       return;
@@ -236,7 +237,7 @@ export default function ArTryOnScreen() {
     if (!firstLip?.shades[0]) return;
     seededLip.current = true;
     applyShade(firstLip, firstLip.shades[0]);
-  }, [routeProductId, tryOnProducts, makeup, applyShade, fit]);
+  }, [routeProductId, tryOnProducts, makeup, applyShade, fit, fromVideo]);
 
   useFocusEffect(
     useCallback(() => {
@@ -608,6 +609,7 @@ export default function ArTryOnScreen() {
             {t(modified.length > 0 ? 'ar.lookModified' : 'ar.lookApplied', { title: activeLook.title })}
           </Text>
         ) : null}
+        {fromVideo ? <Text style={styles.warnBanner}>{t('videoAr.notice')}</Text> : null}
         {routeSelection.shadeMissing ? (
           <Text style={styles.warnBanner} accessibilityRole="alert">
             {t('catalog.shadeMissingPicked')}
