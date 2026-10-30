@@ -534,6 +534,25 @@ export const ja: Dictionary = {
   'auth.error.invalidEmail': '有効なメールアドレスを入力してください。',
   'auth.error.samePassword': '現在とは異なるパスワードを入力してください。',
   'auth.error.passwordMismatch': 'パスワードが一致しません。',
+  'auth.error.passwordTooShort': 'パスワードは{min}文字以上にしてください。',
+  'auth.passwordHint': '{min}文字以上で入力してください。',
+
+  'consent.title': '規約への同意',
+  'consent.body': 'アカウントを利用するには、必須項目を確認して同意してください。',
+  'consent.all': 'すべてに同意',
+  'consent.terms': '[必須] 利用規約',
+  'consent.privacy': '[必須] 個人情報の収集・利用',
+  'consent.age': '[必須] 14歳以上です',
+  'consent.view': '表示',
+  'consent.submit': '同意して続ける',
+  'consent.failed': '同意内容を保存できませんでした。もう一度お試しください。',
+  'consent.updateApp': '規約が変更されました。アプリを更新してから再度お試しください。',
+
+  'account.delete': 'アカウントを削除',
+  'account.deleteConfirm':
+    'アカウントを削除しますか？ログイン情報と同意記録が削除され、元に戻せません。注文記録は法律に基づき保管され、この端末のデータはご自身で削除するまで残ります。',
+  'account.deleteDone': 'アカウントを削除しました。',
+  'account.deleteUnavailable': '現在アカウントを削除できません。しばらくしてから再度お試しください。',
 
   'signup.title': 'アカウントを作成',
   'signup.subtitle': 'ルックの保存、リワード、メンバーシップを利用できます。',

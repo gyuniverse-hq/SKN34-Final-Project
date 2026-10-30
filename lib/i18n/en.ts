@@ -532,6 +532,25 @@ export const en = {
   'auth.error.invalidEmail': 'Please enter a valid email address.',
   'auth.error.samePassword': 'Choose a password different from your current one.',
   'auth.error.passwordMismatch': 'The passwords do not match.',
+  'auth.error.passwordTooShort': 'Use a password with at least {min} characters.',
+  'auth.passwordHint': 'Use at least {min} characters.',
+
+  'consent.title': 'Agree to continue',
+  'consent.body': 'Please review and agree to the required items to use your account.',
+  'consent.all': 'Agree to all',
+  'consent.terms': '[Required] Terms of Use',
+  'consent.privacy': '[Required] Collection and use of personal information',
+  'consent.age': '[Required] I am 14 years of age or older',
+  'consent.view': 'View',
+  'consent.submit': 'Agree and continue',
+  'consent.failed': 'We could not save your agreement. Please try again.',
+  'consent.updateApp': 'The terms have changed. Please update the app and try again.',
+
+  'account.delete': 'Delete account',
+  'account.deleteConfirm':
+    'Delete your account? Your sign-in and agreement records are deleted and cannot be recovered. Order records are kept as required by law, and data on this device stays until you delete it.',
+  'account.deleteDone': 'Your account was deleted.',
+  'account.deleteUnavailable': 'Account deletion is not available right now. Please try again later.',
 
   'signup.title': 'Create an account',
   'signup.subtitle': 'Save looks, collect rewards and join the membership.',

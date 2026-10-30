@@ -45,17 +45,20 @@ export const API_BASE_URL = resolveApiBaseUrl({
   devHost: __DEV__ ? devServerHost() : null,
 });
 
-/** GET from the backend (`path` starts with /api). Attaches the Supabase access token. */
-export async function apiGet<T>(path: string): Promise<T> {
+/** Sends a request to the backend (`path` starts with /api) with the Supabase access token. */
+async function apiRequest(
+  path: string,
+  init: { method: 'GET' | 'POST' | 'DELETE'; headers?: Record<string, string>; body?: string }
+): Promise<Response> {
   const token = await getAccessToken().catch(() => null);
-  const headers: Record<string, string> = { Accept: 'application/json' };
+  const headers: Record<string, string> = { Accept: 'application/json', ...init.headers };
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   let res: Response;
   try {
-    res = await fetch(`${API_BASE_URL}${path}`, { signal: controller.signal, headers });
+    res = await fetch(`${API_BASE_URL}${path}`, { ...init, signal: controller.signal, headers });
   } catch (error) {
     throw new ApiError(
       error instanceof Error && error.name === 'AbortError' ? 'Request timed out' : 'Network error',
@@ -75,46 +78,27 @@ export async function apiGet<T>(path: string): Promise<T> {
     }
     throw new ApiError(body?.error ?? `Request failed (${res.status})`, res.status, body?.code);
   }
+  return res;
+}
+
+export async function apiGet<T>(path: string): Promise<T> {
+  const res = await apiRequest(path, { method: 'GET' });
   return (await res.json()) as T;
 }
 
-/** POST JSON to the backend and attach the current Supabase access token. */
 export async function apiPost<T>(
   path: string,
   body: unknown,
   options: { headers?: Record<string, string> } = {}
 ): Promise<T> {
-  const token = await getAccessToken().catch(() => null);
-  const headers: Record<string, string> = {
-    Accept: 'application/json',
-    'Content-Type': 'application/json',
-    ...options.headers,
-  };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-  let res: Response;
-  try {
-    res = await fetch(`${API_BASE_URL}${path}`, { method: 'POST', signal: controller.signal, headers, body: JSON.stringify(body) });
-  } catch (error) {
-    throw new ApiError(
-      error instanceof Error && error.name === 'AbortError' ? 'Request timed out' : 'Network error',
-      0,
-      'network'
-    );
-  } finally {
-    clearTimeout(timer);
-  }
-
-  if (!res.ok) {
-    let errorBody: ApiErrorBody | undefined;
-    try {
-      errorBody = (await res.json()) as ApiErrorBody;
-    } catch {
-      // non-JSON error body
-    }
-    throw new ApiError(errorBody?.error ?? `Request failed (${res.status})`, res.status, errorBody?.code);
-  }
+  const res = await apiRequest(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options.headers },
+    body: JSON.stringify(body),
+  });
   return (await res.json()) as T;
+}
+
+export async function apiDelete(path: string): Promise<void> {
+  await apiRequest(path, { method: 'DELETE' });
 }

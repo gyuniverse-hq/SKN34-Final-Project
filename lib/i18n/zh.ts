@@ -533,6 +533,25 @@ export const zh: Dictionary = {
   'auth.error.invalidEmail': '请输入有效的邮箱地址。',
   'auth.error.samePassword': '请设置与当前密码不同的新密码。',
   'auth.error.passwordMismatch': '两次输入的密码不一致。',
+  'auth.error.passwordTooShort': '密码至少需要 {min} 个字符。',
+  'auth.passwordHint': '请输入至少 {min} 个字符。',
+
+  'consent.title': '同意条款',
+  'consent.body': '使用账号前，请确认并同意必选项目。',
+  'consent.all': '全部同意',
+  'consent.terms': '[必选] 使用条款',
+  'consent.privacy': '[必选] 个人信息收集与使用',
+  'consent.age': '[必选] 我已年满 14 周岁',
+  'consent.view': '查看',
+  'consent.submit': '同意并继续',
+  'consent.failed': '未能保存同意记录，请重试。',
+  'consent.updateApp': '条款已更新，请更新应用后重试。',
+
+  'account.delete': '注销账号',
+  'account.deleteConfirm':
+    '确定注销账号吗？登录账号和同意记录将被删除且无法恢复。订单记录将依法保留，本设备上的数据在你手动删除前会继续保留。',
+  'account.deleteDone': '账号已注销。',
+  'account.deleteUnavailable': '暂时无法注销账号，请稍后重试。',
 
   'signup.title': '创建账号',
   'signup.subtitle': '可以保存妆容、累积奖励并加入会员。',
