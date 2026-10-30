@@ -113,7 +113,7 @@ export function useSkinAnalysis() {
     } else if (event.type === 'result') {
       try {
         if (event.result.timing.runId !== webRun.run.runId) throw new Error('Invalid run');
-        if (event.result.schema !== 'skin-analysis-mobile-v1') throw new Error('Invalid on-device result');
+        if (!['skin-analysis-mobile-v1', 'skin-analysis-mobile-v2'].includes(event.result.schema)) throw new Error('Invalid on-device result');
         validateSkinAnalysis(event.result);
         receivedAt.current = performance.now(); setResult(event.result); setPhase('survey');
       } catch { previewAssembler.current?.clear(); pendingPreview.current = null; setError('model'); setPhase('error'); }

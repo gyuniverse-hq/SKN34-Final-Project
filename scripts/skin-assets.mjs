@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, copyFileSync } from 'node:fs';
 import { resolve, relative, isAbsolute, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { validateModelManifest } from '../modules/skin-analysis/web/model-contract.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const target = resolve(root, 'modules/skin-analysis/android/src/main/assets/skin');
@@ -10,27 +11,12 @@ const sha = data => createHash('sha256').update(data).digest('hex');
 
 export function validateAssets(directory) {
   const manifest = JSON.parse(readFileSync(resolve(directory, 'manifest.json'), 'utf8'));
-  if (manifest.schema !== 'skin-analysis-assets-v1' || manifest.precision !== 'float32' ||
-      manifest.preprocessing !== 'skin-preprocessing-v1' || manifest.models?.length !== 4 ||
-      new Set(manifest.models.map(m => m.indicator)).size !== 4 ||
-      !['acne', 'pore', 'pigmentation', 'wrinkle'].every(k => manifest.models.some(m => m.indicator === k))) {
-    throw new Error('Unsupported or incomplete skin model manifest');
-  }
+  validateModelManifest(manifest);
   const required = ['face.xml', 'fixtures.json', ...manifest.models.map(m => m.file)];
   if (required.some(name => !manifest.assets[name])) throw new Error('Manifest is missing required assets');
   for (const [name, expected] of Object.entries(manifest.assets)) {
     if (name !== basename(name) || isAbsolute(name) || sha(readFileSync(resolve(directory, name))) !== expected) {
       throw new Error(`Invalid skin asset: ${name}`);
-    }
-  }
-  for (const model of manifest.models) {
-    if (model.sha256 !== manifest.assets[model.file] || JSON.stringify(model.inputShape) !== '[1,3,256,256]' ||
-        !/^[a-f0-9]{64}$/.test(model.sourceSha256) || !Array.isArray(model.expectedLogits) ||
-        model.expectedLogits.length !== model.outputs || model.expectedLogits.some(v => !Number.isFinite(v)) ||
-        !manifest.assets[model.fixture] || model.input !== 'image' || model.output !== 'logits' ||
-        model.outputs !== (model.indicator === 'acne' ? 1 : model.indicator === 'wrinkle' ? 7 : 6) ||
-        (model.indicator === 'acne' && !(model.threshold > 0 && model.threshold < 1))) {
-      throw new Error(`Invalid model contract: ${model.indicator}`);
     }
   }
   return manifest;
@@ -52,7 +38,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     if (command === 'prepare') {
       const env = { ...process.env, UV_CACHE_DIR: resolve(root, 'ml/.uv-cache') };
       const result = spawnSync('uv', ['run', '--locked', '--project', 'ml', '--group', 'mobile-export',
-        'python', '-m', 'skin_analysis.mobile_export'], { cwd: root, env, encoding: 'utf8', stdio: ['inherit', 'pipe', 'inherit'] });
+        'python', '-m', 'skin_analysis.mobile_export_v3'], { cwd: root, env, encoding: 'utf8', stdio: ['inherit', 'pipe', 'inherit'] });
       if (result.error || result.status !== 0) throw result.error || new Error('Mobile model export failed');
       const source = resolve(result.stdout.trim().split(/\r?\n/).at(-1));
       const rel = relative(resolve(root, 'ml/runs/skin-mobile'), source);

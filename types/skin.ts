@@ -1,4 +1,11 @@
-export type SkinIndicator = 'acne' | 'pore' | 'pigmentation' | 'wrinkle';
+export type SkinIndicator = 'acne' | 'pore' | 'pigmentation' | 'wrinkle' | 'skinType';
+export interface SkinTypePrediction {
+  label: 'dry' | 'balanced' | 'oily';
+  /** Mean uncalibrated softmax in dry / balanced / oily order, not diagnostic confidence. */
+  probabilities: [number, number, number];
+  roiCount: 3;
+  scoreType: 'mean_uncalibrated_softmax';
+}
 export type SkinAnswer = 0 | 1 | 2 | 'unknown';
 export interface SkinQuestionnaire {
   tightness: SkinAnswer;
@@ -43,7 +50,8 @@ export interface SkinTiming {
 }
 
 export interface SkinAnalysisResult {
-  schema: 'skin-analysis-mobile-v1' | 'skin-analysis-server-v1';
+  schema: 'skin-analysis-mobile-v1' | 'skin-analysis-mobile-v2' | 'skin-analysis-server-v1';
+  skinType?: SkinTypePrediction;
   features: {
     acne: number;
     pore_grade_cheek_image_left: number;
@@ -60,7 +68,7 @@ export interface SkinAnalysisResult {
   acneThreshold: number;
   roiMethod: 'opencv_haar_facebox_proportions_v1' | 'opencv_yunet_facebox_proportions_v1';
   validationStatus: 'experimental_unvalidated';
-  preprocessing?: 'opencv4.12-turbojpeg95-wasm-v1' | 'server-native-v1';
+  preprocessing?: 'opencv4.12-turbojpeg95-wasm-v1' | 'skin-v3-embedded-enhancement' | 'server-native-v1';
   timing: SkinTiming;
 }
 

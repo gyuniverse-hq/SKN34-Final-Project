@@ -11,8 +11,9 @@ const FEATURE_MAX: Record<keyof SkinAnalysisResult['features'], number> = {
 
 export function validateSkinAnalysis(result: SkinAnalysisResult): void {
   const server = result?.schema === 'skin-analysis-server-v1';
+  const v3 = result?.schema === 'skin-analysis-mobile-v2';
   const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0;
-  if ((!server && result?.schema !== 'skin-analysis-mobile-v1') || !result.features ||
+  if ((!server && !v3 && result?.schema !== 'skin-analysis-mobile-v1') || !result.features ||
       Object.keys(result.features).length !== 10 || Object.entries(FEATURE_MAX).some(([key, max]) => {
         const value = result.features[key as keyof typeof FEATURE_MAX];
         return !Number.isInteger(value) || value < 0 || value > max;
@@ -28,9 +29,20 @@ export function validateSkinAnalysis(result: SkinAnalysisResult): void {
         ['imagePreparationMs', 'validationMs', 'detectionMs', 'nativeMs', 'memoryPssKb'].some(key =>
           result.timing[key as keyof SkinTiming] !== null)) throw new Error('skin.analysisFailed');
   } else if (result.roiMethod !== 'opencv_haar_facebox_proportions_v1' ||
-      (result.preprocessing !== undefined && result.preprocessing !== 'opencv4.12-turbojpeg95-wasm-v1') ||
-      result.timing.models.length !== 4 || new Set(result.timing.models.map(model => model.indicator)).size !== 4 ||
-      !['acne', 'pore', 'pigmentation', 'wrinkle'].every(indicator => result.timing.models.some(model => model.indicator === indicator))) throw new Error('skin.analysisFailed');
+      (v3 ? result.preprocessing !== 'skin-v3-embedded-enhancement'
+        : result.preprocessing !== undefined && result.preprocessing !== 'opencv4.12-turbojpeg95-wasm-v1') ||
+      result.timing.models.length !== (v3 ? 5 : 4) || new Set(result.timing.models.map(model => model.indicator)).size !== (v3 ? 5 : 4) ||
+      !(v3 ? ['acne', 'pore', 'pigmentation', 'wrinkle', 'skinType'] : ['acne', 'pore', 'pigmentation', 'wrinkle'])
+        .every(indicator => result.timing.models.some(model => model.indicator === indicator))) throw new Error('skin.analysisFailed');
+  if (v3) {
+    const prediction = result.skinType;
+    if (!prediction || prediction.roiCount !== 3 || prediction.scoreType !== 'mean_uncalibrated_softmax' ||
+        !Array.isArray(prediction.probabilities) || prediction.probabilities.length !== 3 ||
+        prediction.probabilities.some(value => !finite(value) || value > 1) ||
+        Math.abs(prediction.probabilities.reduce((a, b) => a + b, 0) - 1) > 1e-5) throw new Error('skin.analysisFailed');
+    const best = prediction.probabilities.reduce((at, value, i) => value > prediction.probabilities[at] ? i : at, 0);
+    if (prediction.label !== ['dry', 'balanced', 'oily'][best]) throw new Error('skin.analysisFailed');
+  } else if (result.skinType !== undefined) throw new Error('skin.analysisFailed');
 }
 
 export async function readSkinProfile(): Promise<SkinProfile | null> {

@@ -108,6 +108,20 @@ it('does not register missing, invalid, or contradictory model outputs', () => {
   expect(() => validateSkinAnalysis(contradictory)).toThrow();
 });
 
+it('persists v3 skin type probabilities, rejects contradictions, and still reads legacy results', async () => {
+  const next = profile();
+  next.analysis.schema = 'skin-analysis-mobile-v2';
+  next.analysis.preprocessing = 'skin-v3-embedded-enhancement';
+  next.analysis.skinType = { label: 'dry', probabilities: [.7, .2, .1], roiCount: 3, scoreType: 'mean_uncalibrated_softmax' };
+  next.analysis.timing.models.push({ ...next.analysis.timing.models[0], indicator: 'skinType' });
+  await useSkinProfileStore.getState().save(next);
+  expect(await readSkinProfile()).toEqual(next);
+  expect(() => validateSkinAnalysis({ ...next.analysis, skinType: undefined })).toThrow();
+  expect(() => validateSkinAnalysis({ ...next.analysis, skinType: { ...next.analysis.skinType!, label: 'oily' } })).toThrow();
+  await useSkinProfileStore.getState().save(profile());
+  expect((await readSkinProfile())!.analysis.schema).toBe('skin-analysis-mobile-v1');
+});
+
 it('serializes concurrent timing writes and deduplicates registration retries', async () => {
   await Promise.all([appendSkinTiming(timing('one')), appendSkinTiming(timing('two')), appendSkinTiming(timing('one'))]);
   expect((await readSkinTimings()).map(row => row.runId)).toEqual(['two', 'one']);
@@ -198,8 +212,10 @@ it('accepts WebView camera results without native inference and ignores events f
     expect(flow.phase).toBe('ready');
     await act(async () => { await flow.start(); });
     await act(async () => { flow.onWebEvent({ type: 'captured' }); });
-    const web = { ...analysis(), preprocessing: 'opencv4.12-turbojpeg95-wasm-v1' as const,
+    const web: SkinAnalysisResult = { ...analysis(), schema: 'skin-analysis-mobile-v2', preprocessing: 'skin-v3-embedded-enhancement',
+      skinType: { label: 'oily', probabilities: [.1, .2, .7], roiCount: 3, scoreType: 'mean_uncalibrated_softmax' },
       timing: { ...timing('web-run'), runtime: 'wasm-cpu', memoryPssKb: null } };
+    web.timing.models.push({ ...web.timing.models[0], indicator: 'skinType' });
     await act(async () => { flow.onWebEvent({ type: 'result', result: web }); });
     expect(flow.phase).toBe('survey');
     expect(analyzeSkin).not.toHaveBeenCalled();
@@ -208,6 +224,7 @@ it('accepts WebView camera results without native inference and ignores events f
     expect(flow.phase).toBe('done');
     expect((await readSkinProfile())?.analysis.preprocessing).toBe(web.preprocessing);
     expect((await readSkinProfile())?.analysis.timing.memoryPssKb).toBeNull();
+    expect((await readSkinProfile())?.analysis.skinType).toEqual(web.skinType);
   } finally { await act(async () => { renderer.unmount(); }); property.restore(); }
 });
 

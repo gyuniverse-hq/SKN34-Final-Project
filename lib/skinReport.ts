@@ -31,15 +31,18 @@ export function buildSkinReport(input: SkinReportInput): SkinReport {
     surveyMetric('sensitivity', q.sensitivity),
   ];
   // Survey-only provisional classification. Unknown never becomes balanced by default.
-  const skinType = q.tightness === 'unknown' || q.oiliness === 'unknown' ? 'unknown'
+  const surveyType = q.tightness === 'unknown' || q.oiliness === 'unknown' ? 'unknown'
     : q.tightness === 2 && q.oiliness === 2 ? 'combination'
       : q.tightness === 2 ? 'dry' : q.oiliness === 2 ? 'oily' : 'balanced';
+  const modelType = input.analysis.skinType?.label;
+  const skinType = modelType ?? surveyType;
   const review = new Date(input.registeredAt);
   review.setUTCDate(review.getUTCDate() + 28);
   const care = metrics.filter((m) => m.status === 'care');
-  return { skinType, registeredAt: input.registeredAt, reviewAt: review.toISOString(), metrics,
+  return { skinType, skinTypeSource: modelType ? 'analysis' : 'survey', registeredAt: input.registeredAt, reviewAt: review.toISOString(), metrics,
     priorities: [...care, ...metrics.filter((m) => m.status !== 'care')].slice(0, 2),
-    concerns: SKIN_CONCERNS.filter((c) => care.some((m) => m.concern === c)) };
+    concerns: SKIN_CONCERNS.filter((c) => care.some((m) => m.concern === c) ||
+      (modelType === 'dry' && c === 'dryness') || (modelType === 'oily' && c === 'oiliness')) };
 }
 
 export function ingredientExamples(concern: SkinConcern): readonly CareIngredient[] {

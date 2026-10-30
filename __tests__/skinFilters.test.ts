@@ -43,6 +43,13 @@ describe('skin concern suggestions', () => {
     expect(suggestConcerns(profile({}, { tightness: 'unknown', oiliness: 2 }))).toEqual(['oiliness']);
   });
 
+  it('uses the v3 skin type as a recommendation preference and permits manual removal', () => {
+    const p = profile({}, { tightness: 'unknown', oiliness: 'unknown' });
+    p.analysis.skinType = { label: 'dry', probabilities: [.7, .2, .1], roiCount: 3, scoreType: 'mean_uncalibrated_softmax' };
+    expect(buildSkinRecommendationRequest(p).concerns).toEqual(['dryness']);
+    expect(buildSkinRecommendationRequest(p, []).concerns).toEqual([]);
+  });
+
   it('lets the user toggle concerns while keeping canonical order', () => {
     expect(toggleConcern(['pores'], 'dryness')).toEqual(['dryness', 'pores']);
     expect(toggleConcern(['dryness', 'pores'], 'dryness')).toEqual(['pores']);

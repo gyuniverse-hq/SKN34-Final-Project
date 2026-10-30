@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { createServer } from 'node:http';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, utimesSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -28,6 +28,13 @@ test('on-device assets are served even with the obsolete server setting and phot
     assert.equal((await fetch(origin + version + '/model.onnx')).status, 200);
     assert.equal((await fetch(origin + 'capture.mjs')).status, 404);
     assert.equal((await fetch(origin + 'runtime.mjs', { method: 'POST' })).status, 405);
+    // Preparing a new bundle while Metro is running must refresh the cached manifest.
+    const nextVersion = 'c'.repeat(64), manifestPath = join(assets, 'manifest.json');
+    writeFileSync(manifestPath, JSON.stringify({ bundleVersion: nextVersion, assets: { 'model.onnx': 'b'.repeat(64) } }));
+    const future = new Date(Date.now() + 1000); utimesSync(manifestPath, future, future);
+    assert.equal((await (await fetch(origin + 'manifest.json')).json()).bundleVersion, nextVersion);
+    assert.equal((await fetch(origin + nextVersion + '/model.onnx')).status, 200);
+    assert.equal((await fetch(origin + version + '/model.onnx')).status, 404);
   } finally {
     server.closeAllConnections(); await new Promise(resolve => server.close(resolve));
     if (old === undefined) delete process.env.EXPO_PUBLIC_SKIN_ANALYSIS_MODE;

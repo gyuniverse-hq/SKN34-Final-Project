@@ -96,8 +96,8 @@ internal class SkinEngine(private val context: Context) {
 
   fun analyze(capture: SkinCapture, firstInProcess: Boolean, progress: (String) -> Unit): Map<String, Any> {
     val token = capture.generation
-    require(manifest.getString("schema") == "skin-analysis-assets-v1" &&
-      manifest.getString("precision") == "float32" && manifest.getString("preprocessing") == "skin-preprocessing-v1")
+    require(manifest.getString("schema") == "skin-analysis-assets-v2" &&
+      manifest.getString("precision") == "float32" && manifest.getString("preprocessing") == "skin-preprocessing-v3")
     require(OpenCVLoader.initLocal()) { "OpenCV initialization failed" }
     val validationAt = SystemClock.elapsedRealtimeNanos()
     validatePreprocessing(token)
@@ -110,15 +110,24 @@ internal class SkinEngine(private val context: Context) {
       val regions = SkinImages.regions(image, assetFile("face.xml").absolutePath)
       val detectionMs = SkinWork.ms(detectedAt)
       val records = manifest.getJSONArray("models")
-      require(records.length() == 4)
+      require(records.length() == 5)
       val features = mutableMapOf<String, Int>()
       val timings = mutableListOf<Map<String, Any>>()
       var score = 0.0; var threshold = 0.0
+      var skinType: Map<String, Any>? = null
       var memoryPss = Debug.getPss()
       for (index in 0 until records.length()) {
         SkinWork.check(token)
         val model = records.getJSONObject(index)
         val indicator = model.getString("indicator")
+        if (indicator != "acne") {
+          require(model.getString("roiEnhancement") == "pillow-unsharp1-75-contrast1.4-embedded")
+          if (indicator == "skinType") {
+            require(model.getString("decoder") == "mean_softmax" &&
+              model.getJSONArray("classes").toString() == "[\"dry\",\"balanced\",\"oily\"]")
+          } else require(model.getString("decoder") == "sigmoid_grade" &&
+            model.getInt("maxGrade") == (if (indicator == "wrinkle") 6 else 5))
+        }
         progress(indicator)
         val loadAt = SystemClock.elapsedRealtimeNanos()
         val path = assetFile(model.getString("file"))
@@ -148,8 +157,10 @@ internal class SkinEngine(private val context: Context) {
                 "pigmentation_grade_cheek_image_left" to 5, "pigmentation_grade_cheek_image_right" to 6)
               "wrinkle" -> listOf("wrinkle_grade_forehead" to 1, "wrinkle_grade_glabella" to 2,
                 "wrinkle_grade_eye_image_left" to 3, "wrinkle_grade_eye_image_right" to 4)
+              "skinType" -> listOf("forehead" to 1, "leftCheek" to 5, "rightCheek" to 6)
               else -> error("Unsupported model")
             }
+            val typeLogits = mutableListOf<FloatArray>()
             for ((key, part) in parts) {
               SkinWork.check(token)
               val prepAt = SystemClock.elapsedRealtimeNanos()
@@ -159,25 +170,30 @@ internal class SkinEngine(private val context: Context) {
               val logits = run(session, input)
               inferenceMs += SkinWork.ms(inferAt)
               SkinWork.check(token)
-              if (indicator == "acne") {
+              if (indicator == "skinType") {
+                require(logits.size == 3)
+                typeLogits.add(logits)
+              } else if (indicator == "acne") {
                 require(logits.size == 1)
                 score = 1.0 / (1.0 + exp(-logits[0].toDouble()))
                 threshold = model.getDouble("threshold")
                 require(threshold > 0 && threshold < 1)
                 features[key] = if (score >= threshold) 1 else 0
               } else {
-                require(logits.size == if (indicator == "wrinkle") 7 else 6)
-                features[key] = logits.indices.maxByOrNull { logits[it] }!!
+                require(logits.size == 1)
+                features[key] = SkinDecoding.grade(logits[0], model.getInt("maxGrade"))
               }
               memoryPss = max(memoryPss, Debug.getPss())
             }
+            if (indicator == "skinType") skinType = SkinDecoding.skinType(typeLogits)
             timings.add(mapOf("indicator" to indicator, "sourceSha256" to model.getString("sourceSha256"),
               "sha256" to model.getString("sha256"), "loadMs" to loadMs, "validationMs" to modelValidationMs,
               "preprocessingMs" to prepMs, "inferenceMs" to inferenceMs))
           }
         }
       }
-      require(features.size == 10 && timings.map { it["indicator"] }.toSet().size == 4)
+      require(features.size == 10 && skinType != null && timings.map { it["indicator"] }.toSet() ==
+        setOf("acne", "pore", "pigmentation", "wrinkle", "skinType"))
       SkinWork.check(token)
       val appInfo = context.packageManager.getPackageInfo(context.packageName, 0)
       val debuggable = context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
@@ -194,8 +210,9 @@ internal class SkinEngine(private val context: Context) {
         "nativeMs" to SkinWork.ms(analyzingAt), "totalMs" to total,
         "memoryPssKb" to memoryPss, "models" to timings)
       // The optional preview is returned only in memory and separated from the persisted result by JS.
-      val result = mutableMapOf<String, Any>("schema" to "skin-analysis-mobile-v1", "features" to features,
+      val result = mutableMapOf<String, Any>("schema" to "skin-analysis-mobile-v2", "features" to features,
         "acneScore" to score, "acneThreshold" to threshold,
+        "skinType" to skinType!!, "preprocessing" to "skin-v3-embedded-enhancement",
         "roiMethod" to "opencv_haar_facebox_proportions_v1", "validationStatus" to "experimental_unvalidated", "timing" to timing)
       if (preview != null) result["preview"] = preview
       return result

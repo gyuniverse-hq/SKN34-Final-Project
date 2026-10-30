@@ -25,7 +25,7 @@
 | --- | --- | --- | --- |
 | 분석 수치 | 저장된 `SkinProfile.analysis.features`의 여드름·모공·색소침착·주름. 최대 부위 등급과 원래 부위별 값 표시 | 현재 모델 응답 계약 유지. 향후 신뢰도·유효 범위를 추가하려면 모델 버전별 스키마·검증 근거 필요 | `lib/skinReport.ts`, `types/skin.ts` |
 | 설문 | 저장된 `tightness`, `oiliness`, `sensitivity`의 0·1·2·unknown | 확장 설문 시 질문 코드, 선택지, 버전, 추천 반영 규칙 | `types/skin.ts`, `components/skin/SkinReportDetail.tsx` |
-| 피부 타입 | **임시**: 당김=2 → 건성, 유분=2 → 지성, 둘 다 2 → 복합성, 둘 다 그 외 → 균형, 하나라도 unknown → 확인 전 | 피부 타입 정의, 설문 점수 기준, 모델과 결합할지 여부 및 검증 | `lib/skinReport.ts: buildSkinReport` |
+| 피부 타입 | 새 v3 결과: 이마·양 볼 모델 softmax 평균으로 건성·중성·지성 표시. 이전 결과만 설문 임시 분류 유지. 건성·지성은 기본 추천 관심사에 반영 | 모델 점수는 미보정·연구용, 복합성은 예측 범위 밖. 실제 사용자 평가 필요 | `lib/skinReport.ts: buildSkinReport`, `lib/skinFilters.ts` |
 | 케어 2항목 | **임시 노출 순서**: 기존 고민 기준에 해당하는 항목 우선. 동률은 화면의 고정 순서. 부족하면 유지 관리·확인 전 항목 표시 | 항목 간 우선순위·동률 정책, 서로 다른 등급 척도를 비교할 수 있는 검증 근거 | `lib/skinReport.ts` |
 | 케어 기준 | 기존 화면 규칙 재사용: 모델 등급 3 이상, 여드름=1, 설문=2. unknown은 정상으로 대체하지 않음 | 모델별 임계값 품질 검증. 중증도·효능·확률 점수로 사용하지 않음 | `lib/skinReport.ts`, 기존 `lib/skinFilters.ts` |
 | 다시 살펴볼 날 | **임시**: 분석일+28일. 예시 안내임을 화면에 표시. 알림·예약 기능 없음 | 제품 정책에 따른 재검사 주기, 필요 시 알림 동의·스케줄 설계 | `lib/skinReport.ts`, `lib/i18n/skinReport.ts` |

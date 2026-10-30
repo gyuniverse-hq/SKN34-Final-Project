@@ -20,6 +20,8 @@ export function suggestConcerns(profile: SkinProfile | null | undefined): SkinCo
   if (tightness === 2) found.add('dryness');
   if (oiliness === 2) found.add('oiliness');
   if (sensitivity === 2) found.add('sensitivity');
+  if (profile.analysis.skinType?.label === 'dry') found.add('dryness');
+  if (profile.analysis.skinType?.label === 'oily') found.add('oiliness');
   return SKIN_CONCERNS.filter((c) => found.has(c));
 }
 

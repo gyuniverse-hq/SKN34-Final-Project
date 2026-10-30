@@ -3,7 +3,7 @@ import type { SkinAnalysisResult, SkinQuestionnaire } from './skin';
 
 export type SkinReportInput = {
   registeredAt: string;
-  analysis: Pick<SkinAnalysisResult, 'features' | 'schema'>;
+  analysis: Pick<SkinAnalysisResult, 'features' | 'schema' | 'skinType'>;
   questionnaire: SkinQuestionnaire;
 };
 export type SkinType = 'dry' | 'oily' | 'combination' | 'balanced' | 'unknown';
@@ -18,6 +18,7 @@ export interface SkinReportMetric {
 }
 export interface SkinReport {
   skinType: SkinType;
+  skinTypeSource: 'analysis' | 'survey';
   registeredAt: string;
   reviewAt: string;
   metrics: SkinReportMetric[];

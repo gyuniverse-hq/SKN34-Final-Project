@@ -28,7 +28,7 @@ PC의 Metro는 `/skin-runtime/`에서 허용된 런타임·모델 파일을 내�
 메모리에서 처리하며 서버 전송·파일 저장을 하지 않습니다. 결과 화면 미리보기용 사진과 영역 좌표는 앱 메모리로 전달되고 화면 이탈 시 삭제됩니다.
 취소·백그라운드 이동 시 WebView와 카메라를 해제하며 기존 등록은 유지합니다.
 얼굴 추적 런타임과 검출 모델은 기존 AR처럼 공개 CDN에서 받습니다. 첫 실행에는 모델
-약 360MB와 실행 자산을 휴대폰으로 내려받기 때문에 PC 연결과 인터넷이 필요합니다.
+약 154MiB와 실행 자산을 휴대폰으로 내려받기 때문에 PC 연결과 인터넷이 필요합니다.
 모델은 Cache API를 사용할 수 있는 WebView에서 해시 확인 후 캐시합니다. 지원·저장 공간에
 따라 캐시가 유지되지 않을 수 있으며 모델별 `cacheHit`와 실제 읽기 시간을 기록합니다.
 Expo Go에서의 이 경로는 완전 오프라인 APK 검증을 대신하지 않습니다.
@@ -41,7 +41,7 @@ WebView에서는 앱 전체 PSS를 얻을 수 없어 `memoryPssKb: null`로 기�
 
 ROI는 기존 OpenCV Haar 얼굴 검출과 비율을 유지하고, 여드름 리사이즈·정규화는 기준 고정
 픽스처와 비교합니다. 웹 libjpeg-turbo 코덱은 OpenCV JPEG와 픽셀 단위로 일치하지 않습니다.
-따라서 `opencv4.12-turbojpeg95-wasm-v1`이라는 별도 실험 전처리 버전과 crop 픽스처의
+따라서 v3 결과는 `skin-v3-embedded-enhancement`로 구분하고 crop 픽스처의
 최대 텐서 차이(`jpegFixtureMaxError`, 현재 약 0.26144)를 기록합니다. 원본 전처리의 완전한
 동일성이나 분석 정확도를 검증한 결과로 해석하지 않습니다. 모델 자체는 동일 입력 텐서에
 대한 WASM 출력·등급·여드름 판정을 원본 PyTorch/ONNX 기준과 비교해 검증합니다.
@@ -50,14 +50,14 @@ ROI는 기존 OpenCV Haar 얼굴 검출과 비율을 유지하고, 여드름 리
 npm run skin:test-web
 ```
 
-이 검사는 실제 WASM 모델 네 개의 기준 출력, 전처리, 자동 촬영 안정 조건, 자산 경로와
+이 검사는 실제 WASM 모델 다섯 개의 기준 출력, 전처리, 자동 촬영 안정 조건, 자산 경로와
 업로드 차단을 확인합니다. 실제 Expo Go 카메라 권한·촬영·메모리와 휴대폰 속도는 실기기에서
 별도로 확인해야 합니다. 이 문서 아래 Android 절차는 네이티브 구현을 시험할 때만 사용합니다.
 
 ## 모델 준비와 빌드
 
-Node.js와 uv가 필요합니다. 원본 모델 묶음은 [모델 인계](model-handoff.md)의
-`ml/runs/nia-smartphone-sam-seed-42/recommendation-bundle/`에 둡니다.
+Node.js와 uv가 필요합니다. v3 원본 모델은 `ml/runs/skin-analysis-v3/bundle-four-models-20261030/`에 둡니다.
+여드름은 기존 [모델 인계](model-handoff.md)의 `ml/runs/nia-smartphone-sam-seed-42/recommendation-bundle/`에서 유지합니다.
 저장소 루트에서 실행합니다.
 
 ```powershell
@@ -69,15 +69,25 @@ npx eas-cli@latest build --platform android --profile development
 ```
 
 `skin:prepare`는 잠금 파일의 `mobile-export` 그룹으로 FP32 ONNX를 변환하고,
-고정 입력 4개에서 PyTorch와 ONNX 출력을 비교합니다. 등급·여드름 판정의 일치와
+고정 입력 4개에서 원본 PyTorch·Pillow와 ONNX 출력을 비교합니다. 등급·피부타입·여드름 판정의 일치와
 수치 오차(`atol=1e-4`, `rtol=1e-3`)를 검증한 결과만 앱 자산으로 복사합니다.
-원본 가중치는 수정하지 않습니다. 출력은 `ml/runs/skin-mobile/<원본-manifest-해시>/`에
+원본 가중치는 수정하지 않습니다. 출력은 `ml/runs/skin-mobile/<소스·변환기-해시>/`에
 보관하며 이미 존재하는 출력은 해시를 다시 확인해 재사용합니다.
 
-앱 자산에는 ONNX 4개, OpenCV 얼굴 검출 파일, 합성 전처리 검증 이미지·텐서,
-검증 manifest만 포함합니다. 가중치는 Git에서 제외하고 `.easignore`가 준비된
+앱 자산에는 ONNX 5개, OpenCV 얼굴 검출 파일, 합성 전처리 검증 이미지·텐서,
+Pillow 라이선스와 검증 manifest가 포함됩니다. 가중치는 Git에서 제외하고 `.easignore`가 준비된
 앱 자산만 EAS 빌드에 포함합니다. EAS 후크와 Android Gradle 작업이 파일 누락·해시
 불일치를 차단합니다. 모델 자산의 빌드 서버 업로드에는 얼굴 사진이 포함되지 않습니다.
+
+### v3 결과 계약
+
+- 모공·색소침착·주름: MobileNetV3-Large 회귀 출력에 sigmoid × 최대 등급(5·5·6)을 적용하고 `floor(score + 0.5)`로 반올림합니다. 분류 argmax를 적용하지 않습니다.
+- ROI의 Pillow 12.3 언샤프(radius 1, 75%, threshold 0)·대비 1.4는 ONNX 그래프에 포함합니다. 브라우저와 Android는 기존 ROI/JPEG 입력을 유지하고 추가 전처리를 중복 적용하지 않습니다. 합성 RGB 픽셀에서 Pillow와 완전 일치를 검사합니다.
+- 피부타입: 이마·좌우 볼의 softmax 확률을 각각 계산한 뒤 평균해 건성·중성·지성 중 하나를 선택합니다. 보정되지 않은 점수이며 복합성은 예측하지 않습니다.
+- `skin-analysis-mobile-v2`는 기존 부위별 등급에 `skinType`(label, probabilities, roiCount=3)을 추가하고 모델 식별자 5개를 검증합니다. 이전 v1·서버 결과는 그대로 읽습니다.
+- 보고서 상단은 모델 피부타입을 표시하며, 건성·지성은 기본 추천 관심사에 반영합니다. 건조·유분·민감 항목의 등급은 설문 답변으로 유지하고 피부타입을 임의의 수분·유분 등급으로 바꾸지 않습니다. 사용자의 수동 관심사 선택이 우선합니다.
+- 기존 얼굴 영역 표시는 유지하고 피부타입 전용 가짜 검출 영역을 추가하지 않습니다. 정확도 개선이나 실제 기기 성능은 이 연결 검증만으로 주장하지 않습니다.
+- 연결 검증: 원본 PyTorch·Pillow ↔ ONNX 출력, 실제 WASM 실행, Kotlin JVM 계산, 앱 저장·보고서·추천 흐름을 검사합니다. Android 전체 APK 빌드와 실제 갤럭시의 v3 촬영·추론 속도·결과는 별도 확인 대상입니다.
 
 개발 APK 설치 후 Metro는 다음처럼 시작합니다.
 

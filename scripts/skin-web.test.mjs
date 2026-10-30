@@ -6,10 +6,12 @@ import { resolve } from 'node:path';
 import { createPreprocessor, detectRegions, inputCrop } from '../modules/skin-analysis/web/preprocessing.mjs';
 import { createJpegRoundTrip } from '../modules/skin-analysis/web/jpeg.mjs';
 import { CaptureGate, previewFace } from '../modules/skin-analysis/web/gate.mjs';
+import { decodeGrade, meanSkinType, validateModelManifest } from '../modules/skin-analysis/web/model-contract.mjs';
 
 const require = createRequire(import.meta.url);
 const assets = resolve('modules/skin-analysis/android/src/main/assets/skin');
 const manifest = JSON.parse(readFileSync(resolve(assets, 'manifest.json')));
+validateModelManifest(manifest);
 const floats = name => { const bytes = readFileSync(resolve(assets, name)); return new Float32Array(bytes.buffer, bytes.byteOffset, bytes.length / 4); };
 
 test('browser preprocessing matches reference resize tensors and records the separate JPEG variant', async () => {
@@ -46,7 +48,7 @@ test('browser preprocessing matches reference resize tensors and records the sep
   } finally { image.delete(); detector.delete(); cv.FS_unlink('/web-test-face.xml'); }
 });
 
-test('all four original models run with the WebAssembly CPU provider and match reference outputs', { timeout: 240000 }, async () => {
+test('all five deployed models run with WASM CPU and preserve source logits and decoded results', { timeout: 240000 }, async () => {
   const ort = require('onnxruntime-web/wasm'); ort.env.wasm.numThreads = 1;
   for (const model of manifest.models) {
     const session = await ort.InferenceSession.create(readFileSync(resolve(assets, model.file)), { executionProviders: ['wasm'] });
@@ -59,10 +61,22 @@ test('all four original models run with the WebAssembly CPU provider and match r
       const best = values => values.reduce((at, value, i) => value > values[at] ? i : at, 0);
       if (model.indicator === 'acne') assert.equal(1 / (1 + Math.exp(-actual[0])) >= model.threshold,
         1 / (1 + Math.exp(-model.expectedLogits[0])) >= model.threshold);
-      else assert.equal(best(actual), best(model.expectedLogits));
+      else if (model.indicator === 'skinType') assert.equal(best(actual), best(model.expectedLogits));
+      else assert.equal(decodeGrade(actual[0], model.maxGrade), decodeGrade(model.expectedLogits[0], model.maxGrade));
       console.log(`${model.indicator}: WASM reference logits and decision matched`);
     } finally { input.dispose(); if (output) Object.values(output).forEach(value => value.dispose()); await session.release(); }
   }
+});
+
+test('v3 grades use sigmoid and half-up rounding; skin type averages per-ROI softmax', () => {
+  assert.equal(decodeGrade(0, 5), 3);
+  assert.equal(decodeGrade(-1000, 5), 0);
+  assert.equal(decodeGrade(1000, 6), 6);
+  const prediction = meanSkinType([[1000, 1000, 1000], [0, 0, 2], [0, 0, 2]]);
+  assert.equal(prediction.label, 'oily');
+  assert.ok(Math.abs(prediction.probabilities.reduce((a, b) => a + b, 0) - 1) < 1e-12);
+  assert.ok(Math.abs(prediction.probabilities[2] - (1 / 3 + 2 * Math.exp(2) / (2 + Math.exp(2))) / 3) < 1e-12);
+  assert.throws(() => meanSkinType([[1, 2, 3]]), /model/);
 });
 
 test('automatic capture requires continuous stability and resets for multiple faces or movement', () => {

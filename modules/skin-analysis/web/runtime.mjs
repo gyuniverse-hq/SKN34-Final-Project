@@ -1,6 +1,7 @@
 import { createPreprocessor, detectRegions, inputCrop } from './preprocessing.mjs';
 import { createJpegRoundTrip } from './jpeg.mjs';
 import { CaptureGate, previewFace } from './gate.mjs';
+import { validateModelManifest, decodeGrade, meanSkinType } from './model-contract.mjs';
 
 const FACE_OVAL = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109];
 const CHUNK_SIZE = 48 * 1024, MAX_PREVIEW_CHARS = 4 * 1024 * 1024;
@@ -12,8 +13,8 @@ const parts = {
   pore: [['pore_grade_cheek_image_left', 4], ['pore_grade_cheek_image_right', 5]],
   pigmentation: [['pigmentation_grade_forehead', 0], ['pigmentation_grade_cheek_image_left', 4], ['pigmentation_grade_cheek_image_right', 5]],
   wrinkle: [['wrinkle_grade_forehead', 0], ['wrinkle_grade_glabella', 1], ['wrinkle_grade_eye_image_left', 2], ['wrinkle_grade_eye_image_right', 3]],
+  skinType: [['forehead', 0], ['leftCheek', 4], ['rightCheek', 5]],
 };
-const argmax = values => values.reduce((best, value, i) => value > values[best] ? i : best, 0);
 function script(url) {
   return new Promise((resolve, reject) => {
     const element = document.createElement('script'); element.src = url;
@@ -96,7 +97,7 @@ export async function boot(config) {
     try { if (!detector.load('face.xml')) throw new Error('model'); regions = detectRegions(cv, image, detector); }
     finally { detector.delete(); cv.FS_unlink('/face.xml'); }
     const detectionMs = elapsed(detectedAt), features = {}, models = [];
-    let acneScore = 0, acneThreshold = 0;
+    let acneScore = 0, acneThreshold = 0, skinType;
     for (const model of manifest.models) {
       check(); post({ type: 'progress', indicator: model.indicator }); await sleepFrame();
       const downloadAt = performance.now(); let bytes = await asset(model.file);
@@ -110,6 +111,7 @@ export async function boot(config) {
         if (actual.length !== model.outputs || actual.some((v, i) => !Number.isFinite(v) || Math.abs(v - model.expectedLogits[i]) > 1e-4 + 1e-3 * Math.abs(model.expectedLogits[i]))) throw new Error('model');
         const modelValidationMs = elapsed(modelValidationAt);
         let preprocessingMs = 0, inferenceMs = 0;
+        const typeLogits = [];
         for (const [key, region] of parts[model.indicator]) {
           check(); const preparedAt = performance.now();
           const input = await tensor(image, region === null ? null : regions[region]);
@@ -117,19 +119,21 @@ export async function boot(config) {
           const inferenceAt = performance.now(), logits = await run(session, input);
           inferenceMs += elapsed(inferenceAt);
           if (logits.length !== model.outputs || logits.some(v => !Number.isFinite(v))) throw new Error('model');
-          if (model.indicator === 'acne') {
+          if (model.indicator === 'skinType') typeLogits.push(logits);
+          else if (model.indicator === 'acne') {
             acneScore = 1 / (1 + Math.exp(-logits[0])); acneThreshold = model.threshold;
             features.acne = Number(acneScore >= acneThreshold);
-          } else features[key] = argmax(logits);
+          } else features[key] = decodeGrade(logits[0], model.maxGrade);
         }
+        if (model.indicator === 'skinType') skinType = meanSkinType(typeLogits);
         models.push({ indicator: model.indicator, sourceSha256: model.sourceSha256, sha256: model.sha256,
           downloadMs, cacheHit: cacheHits.has(model.file), loadMs, validationMs: modelValidationMs, preprocessingMs, inferenceMs });
       } finally { await session.release(); }
     }
     check();
-    return { regions: regions.map(box => inputCrop(box, image.cols, image.rows)), result: { schema: 'skin-analysis-mobile-v1', features, acneScore, acneThreshold,
+    return { regions: regions.map(box => inputCrop(box, image.cols, image.rows)), result: { schema: 'skin-analysis-mobile-v2', features, acneScore, acneThreshold, skinType,
       roiMethod: 'opencv_haar_facebox_proportions_v1', validationStatus: 'experimental_unvalidated',
-      preprocessing: 'opencv4.12-turbojpeg95-wasm-v1',
+      preprocessing: 'skin-v3-embedded-enhancement',
       timing: { ...config.run, runtime: 'onnxruntime-web-1.30.0/wasm-cpu/threads=1',
         bundleVersion: manifest.bundleVersion, alignmentMs, captureMs, startupMs, jpegFixtureMaxError,
         imagePreparationMs: 0, validationMs, detectionMs, nativeMs: 0, totalMs: elapsed(capturedAt), memoryPssKb: null, models } } };
@@ -146,10 +150,7 @@ export async function boot(config) {
     tensor = createPreprocessor(cv, createJpegRoundTrip(jpeg));
     ort.env.wasm.numThreads = 1; ort.env.wasm.wasmPaths = base;
     manifest = JSON.parse(new TextDecoder().decode(await fetchBytes('manifest.json')));
-    if (manifest.schema !== 'skin-analysis-assets-v1' || manifest.precision !== 'float32' || manifest.preprocessing !== 'skin-preprocessing-v1' ||
-      manifest.models.length !== 4 || manifest.models.some(model => model.sha256 !== manifest.assets[model.file] ||
-        JSON.stringify(model.inputShape) !== '[1,3,256,256]' || model.outputs !== (model.indicator === 'acne' ? 1 : model.indicator === 'wrinkle' ? 7 : 6)) ||
-      new Set(manifest.models.map(model => model.indicator)).size !== 4 || manifest.models.some(model => !parts[model.indicator])) throw new Error('model');
+    validateModelManifest(manifest);
     // Cache API availability/quota varies between WebViews. Cache misses remain explicit in timings.
     cache = window.caches ? await window.caches.open(`skin-web-models-${manifest.bundleVersion}`).catch(() => null) : null;
     check();

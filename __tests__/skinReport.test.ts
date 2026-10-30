@@ -27,6 +27,16 @@ it('keeps model grades and survey answers distinct and preserves the original pr
   expect(JSON.stringify(source)).toBe(original);
 });
 
+it('uses the v3 skin type prediction without inventing moisture or oil grades', () => {
+  const source = input({ tightness: 'unknown', oiliness: 'unknown', sensitivity: 2 });
+  source.analysis.schema = 'skin-analysis-mobile-v2';
+  source.analysis.skinType = { label: 'oily', probabilities: [.1, .2, .7], roiCount: 3, scoreType: 'mean_uncalibrated_softmax' };
+  const report = buildSkinReport(source);
+  expect(report).toMatchObject({ skinType: 'oily', skinTypeSource: 'analysis' });
+  expect(report.concerns).toContain('oiliness');
+  expect(report.metrics.find(metric => metric.concern === 'oiliness')).toMatchObject({ source: 'survey', value: null, regions: [] });
+});
+
 it('shows care concerns first without manufacturing a severity comparison across models', () => {
   const report = buildSkinReport(input());
   expect(report.concerns).toEqual(['dryness', 'pores']);
