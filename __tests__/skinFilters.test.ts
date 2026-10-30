@@ -1,4 +1,4 @@
-import { suggestConcerns, toggleConcern } from '@/lib/skinFilters';
+import { careTagsOf, suggestConcerns, toggleConcern } from '@/lib/skinFilters';
 import type { SkinAnalysisResult, SkinProfile, SkinQuestionnaire } from '@/types/skin';
 
 function profile(features: Partial<SkinAnalysisResult['features']>, questionnaire: Partial<SkinQuestionnaire> = {}): SkinProfile {
@@ -45,5 +45,10 @@ describe('skin concern suggestions', () => {
   it('lets the user toggle concerns while keeping canonical order', () => {
     expect(toggleConcern(['pores'], 'dryness')).toEqual(['dryness', 'pores']);
     expect(toggleConcern(['dryness', 'pores'], 'dryness')).toEqual(['pores']);
+  });
+
+  it('keeps only known care tags in display order', () => {
+    expect(careTagsOf(['demo', 'oil-control', 'hydrating', 'pore-care'])).toEqual(['hydrating', 'oil-control', 'pore-care']);
+    expect(careTagsOf(['demo'])).toEqual([]);
   });
 });

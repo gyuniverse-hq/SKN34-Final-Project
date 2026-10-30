@@ -64,7 +64,11 @@ function RootStack() {
       <Stack.Screen name="look/[id]" options={{ title: '' }} />
       <Stack.Screen name="idol-looks" options={{ title: '' }} />
       <Stack.Screen name="idol-look/[id]" options={{ title: '' }} />
+      <Stack.Screen name="celebrities/index" options={{ title: '' }} />
+      <Stack.Screen name="celebrities/[id]" options={{ title: '' }} />
       <Stack.Screen name="search" options={{ title: t('search.title') }} />
+      <Stack.Screen name="discover" options={{ title: t('search.title') }} />
+      <Stack.Screen name="rankings" options={{ title: t('discovery.ranking') }} />
       <Stack.Screen name="compare" options={{ title: t('compare.title') }} />
       <Stack.Screen name="recommendations" options={{ title: t('rec.title') }} />
       <Stack.Screen name="external-link" options={{ title: t('ext.screenTitle'), presentation: 'modal' }} />

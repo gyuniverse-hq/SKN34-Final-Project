@@ -1,9 +1,4 @@
-import {
-  displayableIdolLooks,
-  hasIdolLookArSettings,
-  idolLookAsCelebLook,
-  offlineIdolLooks,
-} from '@/lib/idolLooks';
+import { displayableIdolLooks, hasIdolLookArSettings, idolLookAsCelebLook } from '@/lib/idolLooks';
 import { useMakeupStore } from '@/store/makeupStore';
 import type { IdolLook } from '@/types';
 
@@ -34,21 +29,28 @@ const LOOK: IdolLook = {
   },
 };
 
+const UNVERIFIED_LOOK: IdolLook = {
+  ...LOOK,
+  id: 'LOOK-003',
+  video: { ...LOOK.video, id: 'VIDEO-003', analysisStatus: 'metadata_unavailable' },
+  arSettings: { lip: null, blush: null, eyeshadow: null },
+};
+
 beforeEach(() => useMakeupStore.getState().reset());
 
 describe('idol look AR flow', () => {
   it('shows only verified video metadata in customer-facing collections', () => {
-    expect(displayableIdolLooks([LOOK, offlineIdolLooks[0]])).toEqual([LOOK]);
+    expect(displayableIdolLooks([LOOK, UNVERIFIED_LOOK])).toEqual([LOOK]);
   });
 
-  it('shows named sample videos when no verified metadata is available', () => {
-    expect(displayableIdolLooks([])).toEqual(offlineIdolLooks);
-    expect(offlineIdolLooks.map((look) => look.displayName)).not.toContain(expect.stringMatching(/^YouTube video/));
+  it('shows nothing when no verified metadata is available', () => {
+    expect(displayableIdolLooks([UNVERIFIED_LOOK])).toEqual([]);
+    expect(displayableIdolLooks(undefined)).toEqual([]);
   });
 
   it('enables AR only when at least one preset zone exists', () => {
     expect(hasIdolLookArSettings(LOOK)).toBe(true);
-    expect(hasIdolLookArSettings(offlineIdolLooks[0])).toBe(false);
+    expect(hasIdolLookArSettings(UNVERIFIED_LOOK)).toBe(false);
   });
 
   it('converts and applies all three preset zones to the makeup store', () => {

@@ -87,6 +87,10 @@ export function idolLookHref(lookId: string): Href {
   return { pathname: '/idol-look/[id]', params: { id: lookId } };
 }
 
+export function celebrityHref(id: string): Href {
+  return { pathname: '/celebrities/[id]', params: { id } } as Href;
+}
+
 export function arHref(options: { productId?: string; shadeId?: string; compare?: boolean } = {}): Href {
   return {
     pathname: '/ar',
