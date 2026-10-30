@@ -6,8 +6,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '@/constants/theme';
 import type { YoutubeVideo } from '@/types';
 
-export function openYoutubeVideo(videoId: string) {
-  return WebBrowser.openBrowserAsync(`https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`);
+export function openYoutubeVideo(videoId: string, startSeconds = 0) {
+  const start = Number.isFinite(startSeconds) && startSeconds > 0 ? `&t=${Math.floor(startSeconds)}s` : '';
+  return WebBrowser.openBrowserAsync(`https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}${start}`);
 }
 
 export const VideoCard = memo(function VideoCard({ video }: { video: YoutubeVideo }) {

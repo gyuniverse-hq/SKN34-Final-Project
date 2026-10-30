@@ -18,6 +18,11 @@ export function styleLookGroupLabel(group: string, t: (key: TranslationKey) => s
 const ZONE_LABELS: Record<string, TranslationKey> = {
   '베이스·윤곽': 'styleLooks.zone.base',
   '립': 'styleLooks.zone.lip',
+  '입술': 'styleLooks.zone.lip',
+  '얼굴': 'celebVideo.zone.face',
+  '볼': 'styleLooks.zone.cheek',
+  '메이크업 도구': 'styleLooks.zone.tools',
+  '모발': 'celebVideo.zone.hair',
   '피부': 'styleLooks.zone.skin',
   '아이섀도': 'styleLooks.zone.shadow',
   '아이라인': 'styleLooks.zone.liner',
@@ -32,4 +37,16 @@ const ZONE_LABELS: Record<string, TranslationKey> = {
 export function styleLookZoneLabel(zone: string, t: (key: TranslationKey) => string): string {
   const key = ZONE_LABELS[zone];
   return key ? t(key) : zone;
+}
+
+const SOURCE_LABELS: Record<string, TranslationKey> = {
+  '제품제공': 'celebVideo.source.provided',
+  '직접구매': 'celebVideo.source.purchased',
+  '유료광고': 'celebVideo.source.ad',
+  '선물': 'celebVideo.source.gift',
+};
+
+export function celebrityProductSourceLabel(source: string, t: (key: TranslationKey) => string): string | null {
+  const key = SOURCE_LABELS[source];
+  return key ? t(key) : null;
 }
