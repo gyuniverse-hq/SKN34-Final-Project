@@ -62,7 +62,7 @@ export function SkinCareHighlights({ metrics, onPress }: { metrics: SkinReportMe
       {metrics.map((metric) => <Pressable key={metric.concern} onPress={() => onPress(metric.concern)}
         accessibilityRole="button" accessibilityLabel={`${t(`concern.${metric.concern}` as TranslationKey)}, ${t(`report.${metric.status}`)}`}
         style={[styles.metric, metric.status === 'care' && styles.metricCare]}>
-        <Text style={[styles.status, metric.status === 'care' && styles.statusCare]}>{t(`report.${metric.status}`)}</Text>
+        <Text style={[styles.status, metric.status === 'care' && styles.statusCare, metric.status === 'fair' && styles.statusFair]}>{t(`report.${metric.status}`)}</Text>
         <Text style={styles.metricTitle}>{t(`concern.${metric.concern}` as TranslationKey)}</Text>
         <Text style={styles.caption}>{t(`report.${metric.status}Body`)}</Text>
         <View style={styles.metricFoot}>
@@ -97,6 +97,7 @@ const styles = StyleSheet.create({
   metricCare: { backgroundColor: theme.colors.roseSoft, borderWidth: 1, borderColor: theme.colors.border },
   status: { alignSelf: 'flex-start', fontSize: 11, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 5, backgroundColor: theme.colors.card, borderRadius: 6, color: theme.colors.success },
   statusCare: { color: theme.colors.rose, backgroundColor: theme.colors.card },
+  statusFair: { color: theme.colors.warning, backgroundColor: theme.colors.warningBg },
   metricTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.ink },
   metricFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginTop: 10 },
   source: { fontSize: 10, color: theme.colors.inkFaint },

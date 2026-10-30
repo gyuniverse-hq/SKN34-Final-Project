@@ -29,7 +29,7 @@ it('shows an explicit example only after storage loads and does not request live
   expect(flow.loadFailed).toBe(false);
   expect(flow.example).toBe(true);
   expect(flow.live).toBe(false);
-  expect(flow.selected).toEqual(['dryness', 'pores']);
+  expect(flow.selected).toEqual(['dryness']); // Example pores are grade 3 (fair), not caution.
   expect(useSkinRecommendations).toHaveBeenLastCalledWith(undefined);
 });
 
@@ -45,9 +45,9 @@ it('requests confirmed concern codes only and clears the request when concerns a
   await act(async () => { tree = create(createElement(Probe)); });
   await act(async () => { flow.findProducts(); });
   expect(flow.live).toBe(true);
-  expect(useSkinRecommendations).toHaveBeenLastCalledWith({ concerns: ['dryness', 'pores'], limit: 8 });
-  await act(async () => { flow.toggle('pores'); });
-  expect(flow.selected).toEqual(['dryness']);
+  expect(useSkinRecommendations).toHaveBeenLastCalledWith({ concerns: ['dryness'], limit: 8 });
+  await act(async () => { flow.toggle('dryness'); });
+  expect(flow.selected).toEqual([]);
   expect(flow.live).toBe(false);
   expect(useSkinRecommendations).toHaveBeenLastCalledWith(undefined);
 });

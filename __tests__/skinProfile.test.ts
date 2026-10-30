@@ -61,7 +61,7 @@ it.each([0, 1, 2, 3, 4, 5, 6])('labels grade %i at the good/care boundary withou
   features.wrinkle_grade_eye_image_right = grade;
   const original = { ...features };
   const summary = summarizeSkinResult(features);
-  expect(summary.grades.map(row => row.status)).toEqual(Array(3).fill(grade <= 2 ? 'good' : 'care'));
+  expect(summary.grades.map(row => row.status)).toEqual(Array(3).fill(grade <= 1 ? 'good' : grade <= 3 ? 'fair' : 'care'));
   expect(summary.grades.map(row => row.grade)).toEqual([Math.min(grade, 5), Math.min(grade, 5), grade]);
   expect(features).toEqual(original);
 });
@@ -69,8 +69,8 @@ it.each([0, 1, 2, 3, 4, 5, 6])('labels grade %i at the good/care boundary withou
 it('uses the highest area grade and reports acne only as presence or absence', () => {
   const features = analysis().features;
   expect(summarizeSkinResult(features)).toEqual({ grades: [
-    { indicator: 'pore', grade: 3, status: 'care' },
-    { indicator: 'pigmentation', grade: 3, status: 'care' },
+    { indicator: 'pore', grade: 3, status: 'fair' },
+    { indicator: 'pigmentation', grade: 3, status: 'fair' },
     { indicator: 'wrinkle', grade: 4, status: 'care' },
   ], acneDetected: true });
   features.acne = 0;

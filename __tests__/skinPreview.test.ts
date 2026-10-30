@@ -19,7 +19,7 @@ it('assembles only bounded, ordered, matching preview data', () => {
   expect(() => receiver.push({ type: 'preview-end', runId: 'test' })).toThrow();
 });
 
-it('clips only actual model crops to the face outline and draws no invented survey or acne regions', () => {
+it('clips actual model crops to the face outline and draws no invented survey or acne regions', () => {
   const html = skinPreviewHtml(preview, 'pores');
   expect(html).toContain('clip-path="url(#face)"');
   expect(html).toContain('<polygon points=');
@@ -30,7 +30,19 @@ it('clips only actual model crops to the face outline and draws no invented surv
   expect(html).toMatch(/<rect [^>]*rx="[\d.]+" filter="url\(#feather4\)"/);
   expect((skinPreviewHtml(preview, 'pigmentation').match(/<rect /g) || [])).toHaveLength(3);
   expect((skinPreviewHtml(preview, 'wrinkles').match(/<rect /g) || [])).toHaveLength(4);
-  for (const concern of ['blemish', 'dryness', 'oiliness', 'sensitivity']) expect(skinPreviewHtml(preview, concern)).not.toContain('<rect ');
+  expect((skinPreviewHtml(preview, 'dryness').match(/<rect /g) || [])).toHaveLength(3);
+  for (const concern of ['blemish', 'oiliness', 'sensitivity']) expect(skinPreviewHtml(preview, concern)).not.toContain('<rect ');
   expect(html).toContain("default-src 'none'; img-src data:");
   expect(html).not.toContain('http:');
+});
+
+it('increases crop feathering by 20% and fades before both crop and face clipping', () => {
+  const html = skinPreviewHtml({ ...preview, width: 1000, height: 1000,
+    boxes: Array(6).fill([.1, .1, .3, .3]) }, 'pores');
+  // A 200 px crop: sigma 20 -> 24 px; inset 48 px keeps the blur tail faint at the clip.
+  const cropFilter = html.match(/<filter id="feather4"[^>]*><feGaussianBlur stdDeviation="([\d.]+)"/);
+  expect(Number(cropFilter?.[1])).toBeCloseTo(24);
+  expect(html).toContain('x="148" y="148"');
+  expect(html).toContain('mask="url(#faceFade)"');
+  expect(html).toContain('<feMorphology operator="erode"');
 });

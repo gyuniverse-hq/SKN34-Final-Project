@@ -33,7 +33,7 @@ describe('skin concern suggestions', () => {
 
   it('maps "care" grades, acne and strong survey answers to concern codes', () => {
     const p = profile(
-      { acne: 1, pore_grade_cheek_image_right: 3, wrinkle_grade_glabella: 4 },
+      { acne: 1, pore_grade_cheek_image_right: 4, wrinkle_grade_glabella: 4 },
       { tightness: 2, oiliness: 1, sensitivity: 2 }
     );
     expect(suggestConcerns(p)).toEqual(['dryness', 'sensitivity', 'blemish', 'pores', 'wrinkles']);
@@ -41,6 +41,10 @@ describe('skin concern suggestions', () => {
 
   it('ignores "unknown" survey answers', () => {
     expect(suggestConcerns(profile({}, { tightness: 'unknown', oiliness: 2 }))).toEqual(['oiliness']);
+  });
+
+  it('does not recommend caution care for fair model grades', () => {
+    expect(suggestConcerns(profile({ pore_grade_cheek_image_right: 3, pigmentation_grade_forehead: 2 }))).toEqual([]);
   });
 
   it('uses the v3 skin type as a recommendation preference and permits manual removal', () => {
@@ -70,8 +74,8 @@ describe('skin concern suggestions', () => {
 describe('skin recommendation request', () => {
   it('combines all four model indicators and the three survey answers', () => {
     const p = profile({
-      acne: 1, pore_grade_cheek_image_left: 3,
-      pigmentation_grade_forehead: 3, wrinkle_grade_eye_image_right: 3,
+      acne: 1, pore_grade_cheek_image_left: 4,
+      pigmentation_grade_forehead: 4, wrinkle_grade_eye_image_right: 4,
     }, { tightness: 2, oiliness: 2, sensitivity: 2 });
     expect(buildSkinRecommendationRequest(p)).toEqual({
       concerns: ['dryness', 'oiliness', 'sensitivity', 'blemish', 'pores', 'pigmentation', 'wrinkles'],

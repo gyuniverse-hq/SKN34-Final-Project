@@ -22,7 +22,7 @@ it('keeps model grades and survey answers distinct and preserves the original pr
   const report = buildSkinReport(source);
   expect(report.metrics.find((m) => m.concern === 'dryness')).toMatchObject({ source: 'survey', value: 2, maximum: null, status: 'care', regions: [] });
   expect(report.metrics.find((m) => m.concern === 'oiliness')).toMatchObject({ value: null, status: 'unknown' });
-  expect(report.metrics.find((m) => m.concern === 'pores')).toMatchObject({ source: 'analysis', value: 3, maximum: 5, status: 'care',
+  expect(report.metrics.find((m) => m.concern === 'pores')).toMatchObject({ source: 'analysis', value: 3, maximum: 5, status: 'fair',
     regions: [{ region: 'leftCheek', value: 2 }, { region: 'rightCheek', value: 3 }] });
   expect(JSON.stringify(source)).toBe(original);
 });
@@ -34,14 +34,26 @@ it('uses the v3 skin type prediction without inventing moisture or oil grades', 
   const report = buildSkinReport(source);
   expect(report).toMatchObject({ skinType: 'oily', skinTypeSource: 'analysis' });
   expect(report.concerns).toContain('oiliness');
+  expect(report.metrics.find(metric => metric.concern === 'dryness')).toMatchObject({ source: 'analysis', skinType: 'oily', value: null, maximum: null, regions: [] });
   expect(report.metrics.find(metric => metric.concern === 'oiliness')).toMatchObject({ source: 'survey', value: null, regions: [] });
 });
 
 it('shows care concerns first without manufacturing a severity comparison across models', () => {
   const report = buildSkinReport(input());
-  expect(report.concerns).toEqual(['dryness', 'pores']);
-  expect(report.priorities.map((m) => m.concern)).toEqual(['dryness', 'pores']);
+  expect(report.concerns).toEqual(['dryness']);
+  expect(report.priorities.map((m) => m.concern)).toEqual(['dryness', 'pigmentation']);
 });
+
+it.each([[0, 'good'], [1, 'good'], [2, 'fair'], [3, 'fair'], [4, 'care'], [5, 'care'], [6, 'care']] as const)(
+  'labels grade %s as %s in the report', (grade, status) => {
+    const source = input();
+    source.analysis.features.wrinkle_grade_forehead = grade;
+    source.analysis.features.wrinkle_grade_glabella = 0;
+    source.analysis.features.wrinkle_grade_eye_image_left = 0;
+    source.analysis.features.wrinkle_grade_eye_image_right = 0;
+    expect(buildSkinReport(source).metrics.find(m => m.concern === 'wrinkles')).toMatchObject({ value: grade, status });
+  }
+);
 
 it('does not turn unavailable or invalid model output into a normal grade', () => {
   const source = input();
@@ -64,6 +76,9 @@ it('shows acne as unavailable in new four-model results, never as a normal resul
   delete source.analysis.features.acne;
   const report = buildSkinReport(source);
   expect(report).toMatchObject({ skinType: 'balanced', skinTypeSource: 'combined' });
+  expect(report.metrics.find(metric => metric.concern === 'dryness')).toMatchObject({
+    source: 'combined', skinType: 'balanced', value: null, maximum: null, regions: [],
+  });
   expect(report.metrics.find(metric => metric.concern === 'blemish')).toMatchObject({
     source: 'unavailable', status: 'unknown', value: null, maximum: null, regions: [],
   });

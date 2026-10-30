@@ -4,6 +4,7 @@ import type { SkinAnswer } from '@/types/skin';
 import type { CareIngredient, SkinRegion, SkinReport, SkinReportInput, SkinReportMetric, SkinSampleProduct } from '@/types/skinReport';
 import { SKIN_CONCERNS } from './routes';
 import { resolveSkinType } from './skinType';
+import { skinGradeStatus } from './skinResult';
 
 function surveyMetric(concern: SkinConcern, answer: SkinAnswer): SkinReportMetric {
   const known = answer === 0 || answer === 1 || answer === 2;
@@ -15,15 +16,19 @@ function modelMetric(concern: SkinConcern, maximum: number, values: [SkinRegion,
   const known = values.every(([, v]) => Number.isInteger(v) && v >= 0 && v <= maximum);
   const value = known ? Math.max(...values.map(([, v]) => v)) : null;
   return { concern, source: 'analysis', value, maximum,
-    status: value === null ? 'unknown' : (concern === 'blemish' ? value === 1 : value >= 3) ? 'care' : 'good',
+    status: value === null ? 'unknown' : concern === 'blemish' ? value === 1 ? 'care' : 'good' : skinGradeStatus(value),
     regions: known ? values.map(([region, v]) => ({ region, value: v })) : [] };
 }
 
 export function buildSkinReport(input: SkinReportInput): SkinReport {
   const f = input.analysis.features;
   const q = input.questionnaire;
+  const resolvedType = resolveSkinType(input.analysis.skinType, q);
+  const skinType = resolvedType.type;
   const metrics: SkinReportMetric[] = [
-    surveyMetric('dryness', q.tightness),
+    input.analysis.skinType ? { concern: 'dryness', source: resolvedType.source, skinType,
+      status: skinType === 'dry' ? 'care' : 'good', value: null, maximum: null, regions: [] }
+      : surveyMetric('dryness', q.tightness),
     modelMetric('pigmentation', 5, [['forehead', f.pigmentation_grade_forehead], ['leftCheek', f.pigmentation_grade_cheek_image_left], ['rightCheek', f.pigmentation_grade_cheek_image_right]]),
     surveyMetric('oiliness', q.oiliness),
     modelMetric('wrinkles', 6, [['forehead', f.wrinkle_grade_forehead], ['glabella', f.wrinkle_grade_glabella], ['leftEye', f.wrinkle_grade_eye_image_left], ['rightEye', f.wrinkle_grade_eye_image_right]]),
@@ -32,8 +37,6 @@ export function buildSkinReport(input: SkinReportInput): SkinReport {
       : modelMetric('blemish', 1, [['overall', f.acne]]),
     surveyMetric('sensitivity', q.sensitivity),
   ];
-  const resolvedType = resolveSkinType(input.analysis.skinType, q);
-  const skinType = resolvedType.type;
   const review = new Date(input.registeredAt);
   review.setUTCDate(review.getUTCDate() + 28);
   const care = metrics.filter((m) => m.status === 'care');
