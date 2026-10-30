@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
-import { analyzeSkin, cancelSkinAnalysis, onSkinProgress, createSkinWebRun, skinAnalysisUsesWebView, skinAnalysisServerMode } from '@/lib/skinAnalysis';
-import { SkinCaptureAssembler } from '@/lib/skinCapture';
-import { skinApiUrl, uploadSkinPhoto, validateSkinServerAuth } from '@/lib/skinServer';
+import { analyzeSkin, cancelSkinAnalysis, onSkinProgress, createSkinWebRun, skinAnalysisUsesWebView } from '@/lib/skinAnalysis';
 import { appendSkinTiming, validateSkinAnalysis } from '@/lib/skinProfile';
 import { useSkinProfileStore } from '@/store/skinProfileStore';
 import type { SkinAnalysisResult, SkinCameraEvent, SkinIndicator, SkinQuestionnaire, SkinWebRun, SkinWebEvent } from '@/types/skin';
@@ -13,32 +11,18 @@ export function useSkinAnalysis() {
   const [indicator, setIndicator] = useState<SkinIndicator>('acne');
   const [result, setResult] = useState<SkinAnalysisResult>();
   const [answers, setAnswers] = useState<Partial<SkinQuestionnaire>>({});
-  const [error, setError] = useState<'analysis' | 'storage' | 'model' | 'permission' | 'auth' | 'network' | 'busy' | 'photo' | null>(null);
+  const [error, setError] = useState<'analysis' | 'storage' | 'model' | 'permission' | null>(null);
   const [webRun, setWebRun] = useState<SkinWebRun>();
   const generation = useRef(0);
-  const assembly = useRef<SkinCaptureAssembler | null>(null);
-  const upload = useRef<AbortController | null>(null);
   const captureClaimed = useRef(false);
   const receivedAt = useRef(0);
   const recorded = useRef('');
   const saving = useRef(false);
-  // Never place the test credential in React state, a store, WebView, or persistent storage.
-  const testToken = useRef('');
-  const [testTokenReady, setTestTokenReady] = useState(false);
-  const [testTokenInputKey, setTestTokenInputKey] = useState(0);
-  const setTestToken = useCallback((value: string) => {
-    testToken.current = value;
-    setTestTokenReady(/^[\x21-\x7e]{32,4096}$/.test(value));
-  }, []);
   const save = useSkinProfileStore(s => s.save);
   const renderGeneration = generation.current;
 
   const cancel = useCallback(() => {
-    testToken.current = ''; setTestTokenReady(false);
-    setTestTokenInputKey(key => key + 1);
     generation.current++;
-    assembly.current?.clear(); assembly.current = null;
-    upload.current?.abort(); upload.current = null;
     captureClaimed.current = false;
     void cancelSkinAnalysis().catch(() => {});
     setPhase('ready');
@@ -52,9 +36,7 @@ export function useSkinAnalysis() {
       if (state !== 'active' && !saving.current) cancel();
     });
     return () => {
-      testToken.current = '';
       generation.current++;
-      assembly.current?.clear(); assembly.current = null; upload.current?.abort();
       app.remove(); progress?.remove();
       void cancelSkinAnalysis().catch(() => {});
     };
@@ -80,37 +62,15 @@ export function useSkinAnalysis() {
 
   const onWebEvent = useCallback((event: SkinWebEvent) => {
     if (!webRun || renderGeneration !== generation.current || !['camera', 'analysis'].includes(phase)) return;
-    if (skinAnalysisServerMode && ['capture-start', 'capture-chunk', 'capture-end'].includes(event.type)) {
-      if (captureClaimed.current || !assembly.current) return;
-      try {
-        const photo = assembly.current.push(event as Record<string, unknown>);
-        if (!photo) return;
-        assembly.current = null; captureClaimed.current = true;
-        const current = generation.current, controller = new AbortController();
-        upload.current = controller; setPhase('analysis');
-        const pending = uploadSkinPhoto(photo, webRun.run, controller.signal, undefined, testToken.current);
-        testToken.current = ''; setTestTokenReady(false);
-        void pending.then(next => {
-          if (current !== generation.current) return;
-          validateSkinAnalysis(next); receivedAt.current = performance.now();
-          setResult(next); setPhase('survey');
-        }).catch((failure: { code?: string }) => {
-          if (current !== generation.current) return;
-          setError(failure?.code === 'UNAUTHORIZED' ? 'auth' : failure?.code === 'SERVER_BUSY' ? 'busy'
-            : ['FACE_NOT_FOUND', 'MULTIPLE_FACES', 'FACE_OUT_OF_BOUNDS', 'INVALID_IMAGE', 'INVALID_RESULT'].includes(failure?.code || '') ? 'photo' : 'network');
-          setPhase('error');
-        }).finally(() => { photo.bytes.fill(0); if (upload.current === controller) upload.current = null; });
-      } catch { assembly.current?.clear(); assembly.current = null; setError('photo'); setPhase('error'); }
-      return;
-    }
     if (event.type === 'camera' && phase === 'camera') setCamera(event.state);
     else if (event.type === 'captured') setPhase('analysis');
     else if (event.type === 'progress') setIndicator(event.indicator);
     else if (event.type === 'error') {
       setError(event.code === 'permission' ? 'permission' : event.code === 'model' ? 'model' : 'analysis');
       setPhase('error');
-    } else if (event.type === 'result' && !skinAnalysisServerMode) {
+    } else if (event.type === 'result') {
       try {
+        if (event.result.schema !== 'skin-analysis-mobile-v1') throw new Error('Invalid on-device result');
         validateSkinAnalysis(event.result);
         receivedAt.current = performance.now(); setResult(event.result); setPhase('survey');
       } catch { setError('model'); setPhase('error'); }
@@ -131,24 +91,16 @@ export function useSkinAnalysis() {
 
   const start = async () => {
     const current = ++generation.current;
-    upload.current?.abort(); upload.current = null;
-    assembly.current?.clear(); assembly.current = null;
     await cancelSkinAnalysis().catch(() => {});
     if (current !== generation.current) return;
     captureClaimed.current = false;
     setAnswers({}); setResult(undefined); setError(null);
     setCamera({ guidance: 'noFace', progress: 0 });
     try {
-      if (skinAnalysisServerMode) {
-        skinApiUrl(process.env.EXPO_PUBLIC_SKIN_API_URL);
-        validateSkinServerAuth(testToken.current);
-      }
       const run = skinAnalysisUsesWebView ? createSkinWebRun() : undefined;
-      assembly.current = run?.mode === 'server' ? new SkinCaptureAssembler(run.run.runId + ':jpeg') : null;
       setWebRun(run); setPhase('camera');
-    } catch (failure) {
-      testToken.current = ''; setTestTokenReady(false);
-      setError((failure as { code?: string })?.code === 'UNAUTHORIZED' ? 'auth' : 'network'); setPhase('error');
+    } catch {
+      setError('model'); setPhase('error');
     }
   };
 
@@ -165,6 +117,5 @@ export function useSkinAnalysis() {
     finally { saving.current = false; }
   };
 
-  return { phase, camera, indicator, result, answers, setAnswers, error, complete, start, onCapture, finish, cancel, webRun, onWebEvent,
-    testTokenReady, testTokenInputKey, setTestToken };
+  return { phase, camera, indicator, result, answers, setAnswers, error, complete, start, onCapture, finish, cancel, webRun, onWebEvent };
 }

@@ -8,6 +8,7 @@ Android 전용 네이티브 구현도 보존하지만 Expo Go 실행에 APK 빌�
 
 준비된 자산이 없다면 `npm run skin:prepare`를 먼저 실행합니다. 루트 `.env`에
 `EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS=1`을 설정한 후 다음 명령으로 Expo 서버를 **재시작**합니다.
+기존 `EXPO_PUBLIC_SKIN_ANALYSIS_MODE=server` 설정은 무시되며 사진은 서버에 전송되지 않습니다.
 
 ```powershell
 npm run skin:validate

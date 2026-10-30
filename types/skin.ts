@@ -81,12 +81,10 @@ export interface SkinCameraEvent {
 
 export interface SkinWebRun {
   assetsUrl: string;
-  mode?: 'server' | 'on-device';
   run: { runId: string; processId: string; firstInProcess: boolean; device: string; androidVersion: string; build: string };
 }
 export type SkinWebEvent = { type: 'camera'; state: SkinCameraEvent }
   | { type: 'captured' }
-  | ({ type: 'capture-start' | 'capture-chunk' | 'capture-end'; captureId: string } & Record<string, unknown>)
   | { type: 'progress'; indicator: SkinIndicator }
   | { type: 'result'; result: SkinAnalysisResult }
   | { type: 'error'; code: 'photo' | 'permission' | 'model' };

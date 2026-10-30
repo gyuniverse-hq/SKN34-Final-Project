@@ -9,16 +9,13 @@ import { useSkinAnalysis } from '@/hooks/useSkinAnalysis';
 import { analyzeSkin } from '@/lib/skinAnalysis';
 import * as skinRuntime from '@/lib/skinAnalysis';
 import { uploadSkinPhoto } from '@/lib/skinServer';
-import { TRUSTED_SKIN_API_ORIGIN } from '@/constants/skinServer';
-import { fetch as expoFetch } from 'expo/fetch';
+import { skinWebHtml } from '@/lib/skinWebHtml';
 import { summarizeSkinResult } from '@/lib/skinResult';
-
-jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
 
 jest.mock('@/lib/skinAnalysis', () => ({
   __esModule: true,
   analyzeSkin: jest.fn(), cancelSkinAnalysis: jest.fn(() => Promise.resolve()), onSkinProgress: jest.fn(),
-  skinAnalysisServerMode: false, skinAnalysisUsesWebView: false, createSkinWebRun: jest.fn(),
+  skinAnalysisUsesWebView: false, createSkinWebRun: jest.fn(),
 }));
 
 jest.mock('@/lib/skinServer', () => ({ ...jest.requireActual('@/lib/skinServer'), uploadSkinPhoto: jest.fn() }));
@@ -214,15 +211,12 @@ it('accepts WebView camera results without native inference and ignores events f
 });
 
 
-it('uploads a completed server capture only once and ignores the response after cancellation', async () => {
+it('ignores legacy photo events even if the old server mode is configured', async () => {
   const webProperty = jest.replaceProperty(skinRuntime, 'skinAnalysisUsesWebView', true);
-  const serverProperty = jest.replaceProperty(skinRuntime, 'skinAnalysisServerMode', true);
-  const previous = process.env.EXPO_PUBLIC_SKIN_API_URL;
-  process.env.EXPO_PUBLIC_SKIN_API_URL = TRUSTED_SKIN_API_ORIGIN;
-  jest.mocked(skinRuntime.createSkinWebRun).mockReturnValue({ mode: 'server', assetsUrl: 'http://localhost:8081/skin-runtime/',
-    run: { runId: 'remote', processId: 'session', firstInProcess: true, device: 'test', androidVersion: 'android', build: 'expo-go' } });
-  let resolveResult!: (result: SkinAnalysisResult) => void;
-  jest.mocked(uploadSkinPhoto).mockReturnValue(new Promise(resolve => { resolveResult = resolve; }));
+  const oldMode = process.env.EXPO_PUBLIC_SKIN_ANALYSIS_MODE;
+  process.env.EXPO_PUBLIC_SKIN_ANALYSIS_MODE = 'server';
+  jest.mocked(skinRuntime.createSkinWebRun).mockReturnValue({ assetsUrl: 'http://localhost:8081/skin-runtime/',
+    run: { runId: 'local', processId: 'session', firstInProcess: true, device: 'test', androidVersion: 'android', build: 'expo-go' } });
   let flow!: ReturnType<typeof useSkinAnalysis>;
   function Harness() { flow = useSkinAnalysis(); return null; }
   let renderer!: ReturnType<typeof create>;
@@ -230,78 +224,26 @@ it('uploads a completed server capture only once and ignores the response after 
   try {
     await act(async () => { await flow.start(); });
     await act(async () => { flow.onWebEvent({ type: 'captured' }); });
-    await act(async () => { flow.onWebEvent({ type: 'capture-start', captureId: 'remote:jpeg', mime: 'image/jpeg', byteLength: 3, chunkCount: 1, captureMs: 4, alignmentMs: 1500 }); });
-    await act(async () => { flow.onWebEvent({ type: 'capture-chunk', captureId: 'remote:jpeg', index: 0, data: '/9j/' }); });
-    await act(async () => { flow.onWebEvent({ type: 'capture-end', captureId: 'remote:jpeg' }); });
-    await act(async () => { flow.onWebEvent({ type: 'capture-end', captureId: 'remote:jpeg' }); });
-    expect(uploadSkinPhoto).toHaveBeenCalledTimes(1);
-    const signal = jest.mocked(uploadSkinPhoto).mock.calls[0][2];
-    await act(async () => { flow.cancel(); });
-    expect(signal.aborted).toBe(true);
-    await act(async () => { resolveResult(analysis()); });
-    expect(flow.phase).toBe('ready'); expect(await readSkinTimings()).toEqual([]);
-    expect(useSkinProfileStore.getState().profile).toBeNull();
+    for (const event of [
+      { type: 'capture-start', captureId: 'local:jpeg', mime: 'image/jpeg', byteLength: 3, chunkCount: 1 },
+      { type: 'capture-chunk', captureId: 'local:jpeg', index: 0, data: '/9j/' },
+      { type: 'capture-end', captureId: 'local:jpeg' },
+    ]) await act(async () => { flow.onWebEvent(event as never); });
+    expect(uploadSkinPhoto).not.toHaveBeenCalled();
+    expect(flow.phase).toBe('analysis');
+    await act(async () => { flow.onWebEvent({ type: 'result', result: analysis() }); });
+    expect(flow.phase).toBe('survey');
   } finally {
-    await act(async () => { renderer.unmount(); }); webProperty.restore(); serverProperty.restore();
-    if (previous === undefined) delete process.env.EXPO_PUBLIC_SKIN_API_URL;
-    else process.env.EXPO_PUBLIC_SKIN_API_URL = previous;
+    await act(async () => { renderer.unmount(); }); webProperty.restore();
+    if (oldMode === undefined) delete process.env.EXPO_PUBLIC_SKIN_ANALYSIS_MODE;
+    else process.env.EXPO_PUBLIC_SKIN_ANALYSIS_MODE = oldMode;
   }
 });
 
-it('takes test-auth capture chunks through the upload adapter, survey and storage without saving the credential or JPEG', async () => {
-  const webProperty = jest.replaceProperty(skinRuntime, 'skinAnalysisUsesWebView', true);
-  const serverProperty = jest.replaceProperty(skinRuntime, 'skinAnalysisServerMode', true);
-  const oldUrl = process.env.EXPO_PUBLIC_SKIN_API_URL, oldMode = process.env.EXPO_PUBLIC_SKIN_AUTH_MODE;
-  process.env.EXPO_PUBLIC_SKIN_API_URL = TRUSTED_SKIN_API_ORIGIN;
-  process.env.EXPO_PUBLIC_SKIN_AUTH_MODE = 'test-token';
-  const fixtureToken = 'test-fixture-only-not-a-server-secret';
-  const features = analysis().features;
-  const response = { schema_version: 'skin-recommendation-features-v1', status: 'complete', features,
-    feature_status: Object.fromEntries(Object.keys(features).map(key => [key, 'predicted'])),
-    validation_status: 'experimental_unvalidated', roi_method: 'opencv_yunet_facebox_proportions_v1',
-    acne: { status: 'predicted', label: 1, score: .7, threshold: .5 },
-    execution: { runtime: 'pytorch-cuda', bundleVersion: 'a'.repeat(64), serverMs: 51 } };
-  jest.mocked(expoFetch).mockResolvedValue({ ok: true, url: TRUSTED_SKIN_API_ORIGIN + '/analyze',
-    json: async () => response } as Awaited<ReturnType<typeof expoFetch>>);
-  jest.mocked(uploadSkinPhoto).mockImplementation(jest.requireActual('@/lib/skinServer').uploadSkinPhoto);
-  jest.mocked(skinRuntime.createSkinWebRun).mockReturnValue({ mode: 'server', assetsUrl: 'http://localhost:8081/skin-runtime/',
-    run: { runId: 'test-auth', processId: 'session', firstInProcess: true, device: 'test', androidVersion: 'android', build: 'expo-go' } });
-  let flow!: ReturnType<typeof useSkinAnalysis>;
-  function Harness() { flow = useSkinAnalysis(); return null; }
-  let renderer!: ReturnType<typeof create>;
-  await act(async () => { renderer = create(createElement(Harness)); });
-  try {
-    await act(async () => { await flow.start(); });
-    expect(flow.phase).toBe('error'); expect(flow.error).toBe('auth');
-    expect(skinRuntime.createSkinWebRun).not.toHaveBeenCalled();
-    await act(async () => { flow.cancel(); flow.setTestToken(fixtureToken); });
-    expect(flow.testTokenReady).toBe(true);
-    await act(async () => { await flow.start(); });
-    expect(flow.phase).toBe('camera');
-    await act(async () => { flow.onWebEvent({ type: 'captured' }); });
-    await act(async () => { flow.onWebEvent({ type: 'capture-start', captureId: 'test-auth:jpeg', mime: 'image/jpeg', byteLength: 3, chunkCount: 1, captureMs: 4, alignmentMs: 1500 }); });
-    await act(async () => { flow.onWebEvent({ type: 'capture-chunk', captureId: 'test-auth:jpeg', index: 0, data: '/9j/' }); });
-    await act(async () => { flow.onWebEvent({ type: 'capture-end', captureId: 'test-auth:jpeg' }); });
-    expect(flow.phase).toBe('survey'); expect(flow.testTokenReady).toBe(false);
-    expect(expoFetch).toHaveBeenCalledTimes(1);
-    expect(expoFetch).toHaveBeenCalledWith(TRUSTED_SKIN_API_ORIGIN + '/analyze', expect.objectContaining({
-      headers: expect.objectContaining({ Authorization: 'Bearer ' + fixtureToken }), redirect: 'error',
-    }));
-    await act(async () => { flow.setAnswers({ tightness: 0, oiliness: 'unknown', sensitivity: 2 }); });
-    await act(async () => { await flow.finish(); });
-    expect(flow.phase).toBe('done');
-    const saved = (await readSkinProfile())!.analysis;
-    expect(saved.schema).toBe('skin-analysis-server-v1'); expect(saved.features).toEqual(features);
-    expect(Object.keys(saved.features)).toHaveLength(10);
-    expect(saved.timing.serverMs).toBe(51); expect(saved.timing.requestMs).toEqual(expect.any(Number));
-    expect(saved.timing.models).toEqual([]);
-    const stored = JSON.stringify(await AsyncStorage.multiGet(Object.values(STORAGE_KEYS)));
-    expect(stored).not.toContain(fixtureToken); expect(stored).not.toMatch(/Bearer|base64|data:image/);
-    await act(async () => { flow.cancel(); await flow.start(); });
-    expect(flow.phase).toBe('error'); expect(flow.error).toBe('auth');
-  } finally {
-    await act(async () => { renderer.unmount(); }); webProperty.restore(); serverProperty.restore();
-    if (oldUrl === undefined) delete process.env.EXPO_PUBLIC_SKIN_API_URL; else process.env.EXPO_PUBLIC_SKIN_API_URL = oldUrl;
-    if (oldMode === undefined) delete process.env.EXPO_PUBLIC_SKIN_AUTH_MODE; else process.env.EXPO_PUBLIC_SKIN_AUTH_MODE = oldMode;
-  }
+it('loads only the on-device WebView runtime even with a legacy server-mode configuration', () => {
+  const config = { mode: 'server', assetsUrl: 'http://localhost:8081/skin-runtime/',
+    run: { runId: 'local', processId: 'session', firstInProcess: true, device: 'test', androidVersion: 'android', build: 'expo-go' } };
+  const html = skinWebHtml(config, 'Capture');
+  expect(html).toContain("import(config.assetsUrl+'runtime.mjs')");
+  expect(html).not.toContain('capture.mjs');
 });

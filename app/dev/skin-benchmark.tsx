@@ -4,7 +4,7 @@ import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import { theme } from '@/constants/theme';
 import { useI18n } from '@/lib/i18n';
-import { skinAnalysisSupported, skinAnalysisServerMode } from '@/lib/skinAnalysis';
+import { skinAnalysisSupported } from '@/lib/skinAnalysis';
 import { clearSkinTimings, comparableSkinTimings, readSkinTimings, summarizeSkinTimings } from '@/lib/skinProfile';
 import type { SkinTiming } from '@/types/skin';
 
@@ -21,7 +21,7 @@ export default function SkinBenchmarkScreen() {
   return <ScrollView contentContainerStyle={styles.content}>
     <Stack.Screen options={{ title: t('skin.benchmark') }} />
     {!skinAnalysisSupported ? <Text>{t('skin.unsupported')}</Text> : <>
-      <Text style={styles.body}>{t(skinAnalysisServerMode ? 'skin.serverBenchmarkHelp' : 'skin.benchmarkHelp')}</Text>
+      <Text style={styles.body}>{t('skin.benchmarkHelp')}</Text>
       {[first, repeat].map((group, index) => {
         const stats = summarizeSkinTimings(group);
         return <View key={index} style={styles.card}>

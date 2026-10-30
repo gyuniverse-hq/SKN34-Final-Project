@@ -10,9 +10,8 @@ interface SkinNativeModule {
   addListener(event: 'onProgress', listener: (event: { indicator: SkinIndicator }) => void): { remove(): void };
 }
 
-export const skinAnalysisServerMode = process.env.EXPO_PUBLIC_SKIN_ANALYSIS_MODE !== 'on-device';
 export const skinAnalysisEnabled = process.env.EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS === '1';
-const native = Platform.OS === 'android' && skinAnalysisEnabled && !skinAnalysisServerMode
+const native = Platform.OS === 'android' && skinAnalysisEnabled
   ? requireOptionalNativeModule<SkinNativeModule>('SkinAnalysis') : null;
 const hostUri = Constants.expoConfig?.hostUri;
 export const skinAnalysisUsesWebView = skinAnalysisEnabled && !native && (Constants.executionEnvironment === ExecutionEnvironment.StoreClient || __DEV__) &&
@@ -24,7 +23,7 @@ export function createSkinWebRun(): SkinWebRun {
   if (!skinAnalysisUsesWebView || !hostUri) throw new Error('skin.unsupported');
   const origin = new URL(hostUri.includes('://') ? hostUri : `http://${hostUri}`);
   const firstInProcess = webAttempts++ === 0;
-  return { assetsUrl: `${origin.origin}/skin-runtime/`, mode: skinAnalysisServerMode ? 'server' : 'on-device', run: {
+  return { assetsUrl: `${origin.origin}/skin-runtime/`, run: {
     runId: `${webSessionId}-${webAttempts}`, processId: webSessionId,
     firstInProcess, device: Constants.deviceName || Platform.OS,
     androidVersion: `${Platform.OS} ${Platform.Version}`, build: `${Constants.expoConfig?.version || 'unknown'}:expo-go:${__DEV__ ? 'dev' : 'production-js'}`,
