@@ -47,3 +47,20 @@ it('selects an image result when a hidden survey item is active and leaves legac
     expect(onChange).toHaveBeenCalledWith('pores');
   } finally { await act(async () => { screen.unmount(); }); }
 });
+
+it.each([[0, 'good'], [1, 'good'], [2, 'fair'], [3, 'fair'], [4, 'care'], [5, 'care'], [6, 'care']] as const)(
+  'shows only the %s status without a numeric grade', async (grade, status) => {
+    const report = buildSkinReport({ ...input, analysis: { ...input.analysis, features: {
+      ...input.analysis.features, wrinkle_grade_forehead: grade, wrinkle_grade_glabella: 0,
+      wrinkle_grade_eye_image_left: 0, wrinkle_grade_eye_image_right: 0,
+    } } });
+    let screen!: renderer.ReactTestRenderer;
+    await act(async () => { screen = renderer.create(<SkinReportDetail metrics={report.metrics} active="wrinkles" onChange={jest.fn()} preview={null} />); });
+    try {
+      const texts = screen.root.findAllByType(Text).map(node => node.props.children);
+      expect(texts.filter(text => text === `report.${status}`)).toHaveLength(1);
+      expect(JSON.stringify(texts)).not.toContain('skin.grade');
+      expect(JSON.stringify(texts)).not.toContain('report.maxGrade');
+    } finally { await act(async () => { screen.unmount(); }); }
+  }
+);

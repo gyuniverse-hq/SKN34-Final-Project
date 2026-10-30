@@ -39,9 +39,8 @@ export function SkinReportDetail({ metrics, active, onChange, preview }: { metri
     <View style={styles.result}>
       <View style={styles.row}><Ionicons name={REPORT_ICONS[concern]} size={28} color={theme.colors.accent} /><Text style={styles.cardTitle}>{t(metric.skinType ? 'report.skinType' : `concern.${concern}` as TranslationKey)}</Text></View>
       <Text style={styles.source}>{t(`report.${metric.source}`)}</Text>
-      <Text style={styles.value}>{metric.skinType ? t(`report.type.${metric.skinType}`) : metric.value === null ? t('report.unknown')
-        : concern === 'blemish' ? t(metric.value === 1 ? 'skin.acneDetected' : 'skin.acneNotDetected') : t('skin.grade', { grade: metric.value })}</Text>
-      {!metric.skinType ? <Text style={[styles.status, metric.status === 'care' && styles.care, metric.status === 'fair' && styles.fair]}>{t(`report.${metric.status}`)}</Text> : null}
+      <Text style={styles.value}>{metric.skinType ? t(`report.type.${metric.skinType}`)
+        : concern === 'blemish' && metric.value !== null ? t(metric.value === 1 ? 'skin.acneDetected' : 'skin.acneNotDetected') : t(`report.${metric.status}`)}</Text>
       <Text style={styles.body}>{t(metric.skinType ? metric.source === 'combined' ? 'report.typeBasisCombined' : 'report.typeBasisModel' : 'report.modelNote')}</Text>
     </View>
   </View>;
@@ -56,7 +55,5 @@ const styles = StyleSheet.create({
   chipOn: { backgroundColor: theme.colors.rose, borderColor: theme.colors.rose }, chipText: { fontSize: 13, color: theme.colors.inkMuted }, chipTextOn: { color: theme.colors.white, fontWeight: '700' },
   result: { gap: 16, padding: 24, borderRadius: 18, backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 }, source: { fontSize: 11, color: theme.colors.accent, fontWeight: '700' },
-  value: { fontSize: 30, color: theme.colors.ink, fontWeight: '800' }, status: { alignSelf: 'flex-start', color: theme.colors.success, backgroundColor: theme.colors.chip, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, fontSize: 12, fontWeight: '700' },
-  care: { color: theme.colors.rose, backgroundColor: theme.colors.roseSoft },
-  fair: { color: theme.colors.warning, backgroundColor: theme.colors.warningBg },
+  value: { fontSize: 30, color: theme.colors.ink, fontWeight: '800' },
 });
