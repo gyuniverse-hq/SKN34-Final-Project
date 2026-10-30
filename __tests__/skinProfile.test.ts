@@ -11,6 +11,7 @@ import * as skinRuntime from '@/lib/skinAnalysis';
 import { uploadSkinPhoto } from '@/lib/skinServer';
 import { skinWebHtml } from '@/lib/skinWebHtml';
 import { summarizeSkinResult } from '@/lib/skinResult';
+import { useSkinPreviewStore } from '@/store/skinPreviewStore';
 
 jest.mock('@/lib/skinAnalysis', () => ({
   __esModule: true,
@@ -198,7 +199,7 @@ it('accepts WebView camera results without native inference and ignores events f
     await act(async () => { await flow.start(); });
     await act(async () => { flow.onWebEvent({ type: 'captured' }); });
     const web = { ...analysis(), preprocessing: 'opencv4.12-turbojpeg95-wasm-v1' as const,
-      timing: { ...timing('web'), runtime: 'wasm-cpu', memoryPssKb: null } };
+      timing: { ...timing('web-run'), runtime: 'wasm-cpu', memoryPssKb: null } };
     await act(async () => { flow.onWebEvent({ type: 'result', result: web }); });
     expect(flow.phase).toBe('survey');
     expect(analyzeSkin).not.toHaveBeenCalled();
@@ -231,7 +232,7 @@ it('ignores legacy photo events even if the old server mode is configured', asyn
     ]) await act(async () => { flow.onWebEvent(event as never); });
     expect(uploadSkinPhoto).not.toHaveBeenCalled();
     expect(flow.phase).toBe('analysis');
-    await act(async () => { flow.onWebEvent({ type: 'result', result: analysis() }); });
+    await act(async () => { flow.onWebEvent({ type: 'result', result: { ...analysis(), timing: timing('local') } }); });
     expect(flow.phase).toBe('survey');
   } finally {
     await act(async () => { renderer.unmount(); }); webProperty.restore();
@@ -246,4 +247,53 @@ it('loads only the on-device WebView runtime even with a legacy server-mode conf
   const html = skinWebHtml(config, 'Capture');
   expect(html).toContain("import(config.assetsUrl+'runtime.mjs')");
   expect(html).not.toContain('capture.mjs');
+});
+
+
+it('retains a new photo only in temporary memory after saving and clears it on cancellation', async () => {
+  const webProperty = jest.replaceProperty(skinRuntime, 'skinAnalysisUsesWebView', true);
+  jest.mocked(skinRuntime.createSkinWebRun).mockReturnValue({ assetsUrl: 'http://localhost:8081/skin-runtime/',
+    run: { runId: 'photo-run', processId: 'session', firstInProcess: true, device: 'test', androidVersion: 'android', build: 'expo-go' } });
+  const outline = Array.from({ length: 36 }, (_, i) => [0.5 + .3 * Math.cos(i * Math.PI / 18), 0.5 + .3 * Math.sin(i * Math.PI / 18)] as [number, number]);
+  const boxes = Array.from({ length: 6 }, () => [.1, .1, .5, .5] as [number, number, number, number]);
+  let flow!: ReturnType<typeof useSkinAnalysis>;
+  function Harness() { flow = useSkinAnalysis(); return null; }
+  let renderer!: ReturnType<typeof create>;
+  await act(async () => { renderer = create(createElement(Harness)); });
+  try {
+    await act(async () => { await flow.start(); });
+    await act(async () => { flow.onWebEvent({ type: 'captured' }); });
+    await act(async () => { flow.onWebEvent({ type: 'preview-start', runId: 'photo-run', width: 100, height: 120, outline, boxes, length: 4 }); });
+    await act(async () => { flow.onWebEvent({ type: 'preview-chunk', runId: 'photo-run', index: 0, data: '/9j/' }); });
+    await act(async () => { flow.onWebEvent({ type: 'preview-end', runId: 'photo-run' }); });
+    expect(useSkinPreviewStore.getState().preview).toBeNull();
+    await act(async () => { flow.onWebEvent({ type: 'result', result: { ...analysis(), timing: timing('photo-run') } }); });
+    await act(async () => { flow.setAnswers({ tightness: 0, oiliness: 1, sensitivity: 2 }); });
+    await act(async () => { await flow.finish(); });
+    expect(useSkinPreviewStore.getState().preview?.jpeg).toBe('/9j/');
+    expect(JSON.stringify(await AsyncStorage.multiGet(Object.values(STORAGE_KEYS)))).not.toContain('/9j/');
+    await act(async () => { flow.cancel(); });
+    expect(useSkinPreviewStore.getState().preview).toBeNull();
+  } finally { await act(async () => { renderer.unmount(); }); webProperty.restore(); useSkinPreviewStore.getState().clear(); }
+});
+
+
+it('keeps a native preview out of the persisted analysis result', async () => {
+  const outline = Array.from({ length: 36 }, (_, i) => [0.5 + .3 * Math.cos(i * Math.PI / 18), 0.5 + .3 * Math.sin(i * Math.PI / 18)] as [number, number]);
+  const boxes = Array.from({ length: 6 }, () => [.1, .1, .5, .5] as [number, number, number, number]);
+  jest.mocked(analyzeSkin).mockResolvedValue({ ...analysis(), preview: { width: 100, height: 120, outline, boxes, jpeg: '/9j/' } });
+  let flow!: ReturnType<typeof useSkinAnalysis>;
+  function Harness() { flow = useSkinAnalysis(); return null; }
+  let renderer!: ReturnType<typeof create>;
+  await act(async () => { renderer = create(createElement(Harness)); });
+  try {
+    await act(async () => { await flow.start(); });
+    await act(async () => { flow.onCapture({ guidance: 'capturing', progress: 1, captureId: 'native' }); });
+    expect(flow.phase).toBe('survey');
+    expect(JSON.stringify(flow.result)).not.toContain('/9j/');
+    await act(async () => { flow.setAnswers({ tightness: 0, oiliness: 1, sensitivity: 2 }); });
+    await act(async () => { await flow.finish(); });
+    expect(useSkinPreviewStore.getState().preview?.jpeg).toBe('/9j/');
+    expect(JSON.stringify(await AsyncStorage.multiGet(Object.values(STORAGE_KEYS)))).not.toContain('/9j/');
+  } finally { await act(async () => { renderer.unmount(); }); useSkinPreviewStore.getState().clear(); }
 });

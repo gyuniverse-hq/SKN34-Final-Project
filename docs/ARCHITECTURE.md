@@ -81,7 +81,7 @@ flowchart LR
 기기 내 분석은 `EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS=1`에서 활성화합니다. 이전 서버 모드 환경 변수는 무시합니다.
 모바일 Expo Go에서는 `components/skin/SkinCamera.tsx`의 WebView를 통해
 `modules/skin-analysis/web/`의 카메라·자동 촬영·ONNX Runtime Web CPU 추론을 실행합니다.
-브라우저 런타임은 상위 앱 코드를 import하지 않고 상태·숫자 결과만 메시지로 전달합니다.
+브라우저 런타임은 상위 앱 코드를 import하지 않습니다. 촬영 사진·얼굴 윤곽·입력 영역은 결과 화면 표시를 위해 제한된 청크로 앱 메모리에만 전달합니다.
 `scripts/skin-web-middleware.cjs`는 Metro 개발 서버에서 검증 자산과 웹 실행 코드의
 명시된 파일만 GET/HEAD로 제공합니다. 사진 업로드나 서버 추론을 수행하지 않습니다.
 웹 JPEG 코덱은 원본과 픽셀 단위로 일치하지 않아 별도 실험 전처리 버전으로 기록합니다.
@@ -89,9 +89,8 @@ WebView에서는 PSS를 측정할 수 없어 null을 저장하며 모델 전송 
 앱의 다른 화면과 기존 AR 렌더러는 기존 구조를 유지합니다.
 
 Android 전용 빌드에서는 네이티브 CameraX·ML Kit로 자동 촬영하고 ONNX Runtime CPU로 4개 모델을 순차 실행합니다.
-촬영 JPEG는 네이티브 메모리에서만 유지하며 분석·취소 후 참조를 해제합니다.
-Expo Go에서는 카메라 기기 내 실험에서는 프레임·ROI·텐서를 WebView 내부 메모리에서만 처리하며,
-얼굴 사진·ROI·텐서를 서버나 React Native 메시지 경계로 보내지 않습니다.
+촬영 JPEG는 네이티브 메모리에서 처리하며, 결과 화면의 임시 미리보기만 앱 메모리로 전달합니다.
+Expo Go에서는 사진을 분석 후 결과 화면까지 기기 메모리에서만 임시로 보관하고, 화면 이탈·취소 시 참조를 지웁니다. 사진·ROI·텐서는 서버에 전송하거나 영구 저장하지 않습니다. Android 네이티브 실험 빌드도 같은 조건으로 임시 사진과 ML Kit 얼굴 윤곽을 앱 메모리에 전달합니다.
 숫자 결과와 설문은 `skinProfileStore`를 통해 저장하며, AsyncStorage 쓰기의 성공을
 확인한 뒤 완료를 표시합니다. 측정 기록도 기기에만 저장하고 숫자 메타데이터만 공유합니다.
 네이티브 모듈은 Expo 자동 연결로 포함되며 루트 `android/`·`ios/`를 직접 수정하지 않습니다.

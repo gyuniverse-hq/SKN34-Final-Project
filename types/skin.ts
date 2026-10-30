@@ -83,8 +83,22 @@ export interface SkinWebRun {
   assetsUrl: string;
   run: { runId: string; processId: string; firstInProcess: boolean; device: string; androidVersion: string; build: string };
 }
+export type SkinPoint = [number, number];
+export type SkinBox = [number, number, number, number];
+export interface SkinPreview {
+  runId: string;
+  width: number;
+  height: number;
+  outline: SkinPoint[];
+  boxes: SkinBox[];
+  jpeg: string;
+}
+
 export type SkinWebEvent = { type: 'camera'; state: SkinCameraEvent }
   | { type: 'captured' }
+  | { type: 'preview-start'; runId: string; width: number; height: number; outline: SkinPoint[]; boxes: SkinBox[]; length: number }
+  | { type: 'preview-chunk'; runId: string; index: number; data: string }
+  | { type: 'preview-end'; runId: string }
   | { type: 'progress'; indicator: SkinIndicator }
   | { type: 'result'; result: SkinAnalysisResult }
   | { type: 'error'; code: 'photo' | 'permission' | 'model' };

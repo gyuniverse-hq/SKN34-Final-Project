@@ -2,10 +2,10 @@ import { requireNativeView as requireNativeViewManager, requireOptionalNativeMod
 import { Platform, type ViewProps } from 'react-native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import type { ComponentType } from 'react';
-import type { SkinAnalysisResult, SkinCameraEvent, SkinIndicator, SkinWebRun } from '@/types/skin';
+import type { SkinAnalysisResult, SkinCameraEvent, SkinIndicator, SkinWebRun, SkinPreview } from '@/types/skin';
 
 interface SkinNativeModule {
-  analyzeAsync(captureId: string): Promise<SkinAnalysisResult>;
+  analyzeAsync(captureId: string): Promise<SkinAnalysisResult & { preview?: Omit<SkinPreview, 'runId'> }>;
   cancelAsync(): Promise<void>;
   addListener(event: 'onProgress', listener: (event: { indicator: SkinIndicator }) => void): { remove(): void };
 }

@@ -40,18 +40,24 @@ export function resizePillow(rgb, width, height) {
   return result;
 }
 
+// Actual square input crop used by the model, including image-edge clipping.
+export function inputCrop(bbox, width, height) {
+  const [x1, y1, x2, y2] = bbox;
+  const cx = Math.floor((x1 + x2) / 2), cy = Math.floor((y1 + y2) / 2);
+  const half = Math.floor(Math.max(x2 - x1, y2 - y1) / 2);
+  const left = Math.max(0, cx - half), top = Math.max(0, cy - half);
+  const right = Math.min(width, cx + half), bottom = Math.min(height, cy + half);
+  if (right <= left || bottom <= top) throw new Error('photo');
+  return [left, top, right, bottom];
+}
+
 export function createPreprocessor(cv, jpegRoundTrip) {
   return async function tensor(rgba, bbox = null) {
     const rgb = new cv.Mat();
     cv.cvtColor(rgba, rgb, cv.COLOR_RGBA2RGB);
     try {
       if (!bbox) return normalize(resizePillow(rgb.data, rgb.cols, rgb.rows));
-      const [x1, y1, x2, y2] = bbox;
-      const cx = Math.floor((x1 + x2) / 2), cy = Math.floor((y1 + y2) / 2);
-      const half = Math.floor(Math.max(x2 - x1, y2 - y1) / 2);
-      const left = Math.max(0, cx - half), top = Math.max(0, cy - half);
-      const right = Math.min(rgb.cols, cx + half), bottom = Math.min(rgb.rows, cy + half);
-      if (right <= left || bottom <= top) throw new Error('photo');
+      const [left, top, right, bottom] = inputCrop(bbox, rgb.cols, rgb.rows);
       const crop = rgb.roi(new cv.Rect(left, top, right - left, bottom - top));
       const resized = new cv.Mat();
       try {

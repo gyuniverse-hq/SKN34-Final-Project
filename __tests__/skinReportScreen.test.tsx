@@ -2,8 +2,9 @@ import React from 'react';
 import { StyleSheet, Text } from 'react-native';
 import renderer, { act } from 'react-test-renderer';
 import SkinRecommendationsScreen from '@/app/skin-recommendations';
+import { useSkinPreviewStore } from '@/store/skinPreviewStore';
 
-jest.mock('expo-router', () => ({ Stack: { Screen: () => null }, useRouter: () => ({ push: jest.fn(), replace: jest.fn(), canGoBack: () => false }) }));
+jest.mock('expo-router', () => ({ Stack: { Screen: () => null }, useFocusEffect: (callback: () => void) => require('react').useEffect(callback, [callback]), useRouter: () => ({ push: jest.fn(), replace: jest.fn(), canGoBack: () => false }) }));
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key, language: 'ko' }) }));
@@ -37,4 +38,17 @@ it('opens report information by default and keeps the sticky tabs in a horizonta
     await act(async () => { info!.props.onPress(); });
     expect(JSON.stringify(screen.toJSON())).not.toContain('report.review');
   } finally { await act(async () => { screen.unmount(); }); }
+});
+
+
+it('discards the temporary photo when the report is left', async () => {
+  const point: [number, number] = [.5, .5];
+  const box: [number, number, number, number] = [0, 0, 1, 1];
+  useSkinPreviewStore.getState().setPreview({ runId: 'preview', width: 100, height: 100,
+    outline: Array(36).fill(point), boxes: Array(6).fill(box), jpeg: '/9j/' });
+  let screen!: renderer.ReactTestRenderer;
+  await act(async () => { screen = renderer.create(<SkinRecommendationsScreen />); });
+  expect(useSkinPreviewStore.getState().preview).not.toBeNull();
+  await act(async () => { screen.unmount(); });
+  expect(useSkinPreviewStore.getState().preview).toBeNull();
 });

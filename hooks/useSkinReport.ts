@@ -5,10 +5,12 @@ import { toggleConcern } from '@/lib/skinFilters';
 import { buildSkinReport, ingredientExamples, sampleProductMatches } from '@/lib/skinReport';
 import { buildSkinRecommendationRequest } from '@/lib/skinRecommendations';
 import { useSkinProfileStore } from '@/store/skinProfileStore';
+import { useSkinPreviewStore } from '@/store/skinPreviewStore';
 import type { SkinConcern, SkinRecommendationRequest } from '@/types';
 
 export function useSkinReport() {
   const profile = useSkinProfileStore((s) => s.profile);
+  const preview = useSkinPreviewStore((s) => s.preview);
   const hydrate = useSkinProfileStore((s) => s.hydrate);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -33,6 +35,7 @@ export function useSkinReport() {
   const recommendations = useSkinRecommendations(request);
   return {
     report, selected, activeConcern, setActive, loading, loadFailed,
+    preview: profile && preview?.runId === profile.analysis.timing.runId ? preview : null,
     reload,
     example: profile === null,
     ingredients: ingredientExamples(activeConcern), samples, recommendations, live: request !== undefined,

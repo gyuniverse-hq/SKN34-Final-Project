@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Stack, useRouter } from 'expo-router';
-import { useRef, useState, type ComponentRef } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
+import { AppState, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ConcernPicker } from '@/components/skin/ConcernPicker';
 import { SkinReportDetail } from '@/components/skin/SkinReportDetail';
@@ -18,12 +18,20 @@ import { useSkinReport } from '@/hooks/useSkinReport';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { productHref, searchHref, SKIN_CONCERNS } from '@/lib/routes';
 import type { SkinConcern } from '@/types';
+import { useSkinPreviewStore } from '@/store/skinPreviewStore';
 
 /** Summary → care priorities → solution / numeric details. Examples never enter storage. */
 export default function SkinRecommendationsScreen() {
   const router = useRouter();
   const { t } = useI18n();
   const flow = useSkinReport();
+  useFocusEffect(useCallback(() => () => { useSkinPreviewStore.getState().clear(); }, []));
+  useEffect(() => {
+    const listener = AppState.addEventListener('change', state => {
+      if (state !== 'active') useSkinPreviewStore.getState().clear();
+    });
+    return () => listener.remove();
+  }, []);
   const [tab, setTab] = useState<'solution' | 'results'>('solution');
   const [expanded, setExpanded] = useState(true);
   const [adjusting, setAdjusting] = useState(false);
@@ -94,7 +102,7 @@ export default function SkinRecommendationsScreen() {
           {flow.live ? <Button label={t('report.showSamples')} variant="ghost" onPress={flow.showSamples} /> : null}
           <Button label={t('skinFlow.skip')} variant="ghost" onPress={() => router.push(searchHref({ source: 'skin' }))} />
         </View>
-      </View> : <SkinReportDetail metrics={flow.report.metrics} active={flow.activeConcern} onChange={flow.setActive} />}
+      </View> : <SkinReportDetail metrics={flow.report.metrics} active={flow.activeConcern} onChange={flow.setActive} preview={flow.preview} />}
       <View style={styles.footer}>
         <Notice title={t('skinFlow.notMedicalTitle')} body={t('skinFlow.notMedicalBody')} />
         <Button label={t('report.retake')} variant="secondary" onPress={start} />

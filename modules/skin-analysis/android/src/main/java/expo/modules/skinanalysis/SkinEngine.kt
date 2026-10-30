@@ -181,6 +181,9 @@ internal class SkinEngine(private val context: Context) {
       SkinWork.check(token)
       val appInfo = context.packageManager.getPackageInfo(context.packageName, 0)
       val debuggable = context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
+      // Optional preview creation is part of the wait experienced by the user.
+      val preview = try { SkinImages.preview(image, regions) } catch (_: Exception) { null }
+      SkinWork.check(token)
       val total = SkinWork.ms(capture.startedNs)
       val timing = mapOf("runId" to UUID.randomUUID().toString(), "processId" to SkinWork.processId,
         "firstInProcess" to firstInProcess, "device" to "${Build.MANUFACTURER} ${Build.MODEL}",
@@ -190,9 +193,12 @@ internal class SkinEngine(private val context: Context) {
         "imagePreparationMs" to prepareMs, "validationMs" to validationMs, "detectionMs" to detectionMs,
         "nativeMs" to SkinWork.ms(analyzingAt), "totalMs" to total,
         "memoryPssKb" to memoryPss, "models" to timings)
-      return mapOf("schema" to "skin-analysis-mobile-v1", "features" to features,
+      // The optional preview is returned only in memory and separated from the persisted result by JS.
+      val result = mutableMapOf<String, Any>("schema" to "skin-analysis-mobile-v1", "features" to features,
         "acneScore" to score, "acneThreshold" to threshold,
         "roiMethod" to "opencv_haar_facebox_proportions_v1", "validationStatus" to "experimental_unvalidated", "timing" to timing)
+      if (preview != null) result["preview"] = preview
+      return result
     } finally { image.release() }
   }
 }

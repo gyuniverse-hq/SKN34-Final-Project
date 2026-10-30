@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
-import { createPreprocessor, detectRegions } from '../modules/skin-analysis/web/preprocessing.mjs';
+import { createPreprocessor, detectRegions, inputCrop } from '../modules/skin-analysis/web/preprocessing.mjs';
 import { createJpegRoundTrip } from '../modules/skin-analysis/web/jpeg.mjs';
 import { CaptureGate, previewFace } from '../modules/skin-analysis/web/gate.mjs';
 
@@ -148,4 +148,11 @@ test('asset middleware serves only listed assets, and rejects uploads and traver
   assert.equal(request('/skin-runtime/jpeg.js', 'HEAD').status, 200);
   assert.equal(JSON.parse(request('/skin-runtime/manifest.json').body).bundleVersion, manifest.bundleVersion);
   assert.equal(request('/another-route').status, 418);
+});
+
+
+test('preview coordinates use the exact square crop supplied to model preprocessing', () => {
+  assert.deepEqual(inputCrop([20, 30, 60, 50], 100, 100), [20, 20, 60, 60]);
+  assert.deepEqual(inputCrop([0, 0, 10, 30], 50, 50), [0, 0, 20, 30]);
+  assert.throws(() => inputCrop([0, 0, 0, 0], 50, 50), /photo/);
 });

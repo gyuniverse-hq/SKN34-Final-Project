@@ -5,6 +5,8 @@ import { theme } from '@/constants/theme';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import type { SkinConcern } from '@/types';
 import type { SkinReportMetric } from '@/types/skinReport';
+import type { SkinPreview } from '@/types/skin';
+import { SkinPreviewPhoto } from './SkinPreviewPhoto';
 import { REPORT_ICONS } from './SkinReportOverview';
 
 export function SkinConcernRail({ concerns, active, onChange }: { concerns: readonly SkinConcern[]; active: SkinConcern; onChange: (c: SkinConcern) => void }) {
@@ -17,7 +19,7 @@ export function SkinConcernRail({ concerns, active, onChange }: { concerns: read
   </ScrollView>;
 }
 
-export function SkinReportDetail({ metrics, active, onChange }: { metrics: SkinReportMetric[]; active: SkinConcern; onChange: (c: SkinConcern) => void }) {
+export function SkinReportDetail({ metrics, active, onChange, preview }: { metrics: SkinReportMetric[]; active: SkinConcern; onChange: (c: SkinConcern) => void; preview: SkinPreview | null }) {
   const { t } = useI18n();
   const [regionsVisible, setRegionsVisible] = useState(true);
   const metric = metrics.find((m) => m.concern === active)!;
@@ -27,11 +29,14 @@ export function SkinReportDetail({ metrics, active, onChange }: { metrics: SkinR
   return <View style={styles.content}>
     <Text style={styles.title} accessibilityRole="header">{t('report.details')}</Text>
     <Text style={styles.body}>{t('report.detailBody')}</Text>
-    <View style={styles.privacy}>
+    <SkinConcernRail concerns={metrics.map((m) => m.concern)} active={active} onChange={onChange} />
+    {preview ? <>
+      <SkinPreviewPhoto preview={preview} active={active} />
+      <Text style={styles.caption}>{t(active === 'blemish' ? 'report.previewWhole' : metric.source === 'survey' ? 'report.previewSurvey' : 'report.previewNotice')}</Text>
+    </> : <View style={styles.privacy}>
       <Ionicons name="shield-checkmark-outline" size={28} color={theme.colors.rose} />
       <View style={styles.flex}><Text style={styles.cardTitle}>{t('report.noPhoto')}</Text><Text style={styles.caption}>{t('report.noPhotoBody')}</Text></View>
-    </View>
-    <SkinConcernRail concerns={metrics.map((m) => m.concern)} active={active} onChange={onChange} />
+    </View>}
     <View style={styles.result}>
       <View style={styles.row}><Ionicons name={REPORT_ICONS[active]} size={28} color={theme.colors.accent} /><Text style={styles.cardTitle}>{t(`concern.${active}` as TranslationKey)}</Text></View>
       <Text style={styles.source}>{t(`report.${metric.source}`)}</Text>

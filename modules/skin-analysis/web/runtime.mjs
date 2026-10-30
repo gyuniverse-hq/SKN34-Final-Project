@@ -1,7 +1,9 @@
-import { createPreprocessor, detectRegions } from './preprocessing.mjs';
+import { createPreprocessor, detectRegions, inputCrop } from './preprocessing.mjs';
 import { createJpegRoundTrip } from './jpeg.mjs';
 import { CaptureGate, previewFace } from './gate.mjs';
 
+const FACE_OVAL = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109];
+const CHUNK_SIZE = 48 * 1024, MAX_PREVIEW_CHARS = 4 * 1024 * 1024;
 const post = message => window.ReactNativeWebView?.postMessage(JSON.stringify(message));
 const elapsed = since => performance.now() - since;
 const sleepFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
@@ -125,12 +127,12 @@ export async function boot(config) {
       } finally { await session.release(); }
     }
     check();
-    return { schema: 'skin-analysis-mobile-v1', features, acneScore, acneThreshold,
+    return { regions: regions.map(box => inputCrop(box, image.cols, image.rows)), result: { schema: 'skin-analysis-mobile-v1', features, acneScore, acneThreshold,
       roiMethod: 'opencv_haar_facebox_proportions_v1', validationStatus: 'experimental_unvalidated',
       preprocessing: 'opencv4.12-turbojpeg95-wasm-v1',
       timing: { ...config.run, runtime: 'onnxruntime-web-1.30.0/wasm-cpu/threads=1',
         bundleVersion: manifest.bundleVersion, alignmentMs, captureMs, startupMs, jpegFixtureMaxError,
-        imagePreparationMs: 0, validationMs, detectionMs, nativeMs: 0, totalMs: elapsed(capturedAt), memoryPssKb: null, models } };
+        imagePreparationMs: 0, validationMs, detectionMs, nativeMs: 0, totalMs: elapsed(capturedAt), memoryPssKb: null, models } } };
   }
 
   try {
@@ -168,12 +170,38 @@ export async function boot(config) {
       capturing = true; captureButton.disabled = true;
       try {
         const capturedAt = performance.now();
+        // Capture landmarks from the same video frame as the image, not a prior guide frame.
+        let outline = null;
+        try {
+          const faces = tracker.detectForVideo(video, capturedAt).faceLandmarks;
+          if (faces.length === 1) {
+            const points = FACE_OVAL.map(index => faces[0][index]);
+            if (points.every(p => p && Number.isFinite(p.x) && Number.isFinite(p.y) && p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1)) {
+              outline = points.map(p => [p.x, p.y]);
+            }
+          }
+        } catch { /* Numeric analysis can still complete without a preview. */ }
         canvas.width = video.videoWidth; canvas.height = video.videoHeight;
         canvas.getContext('2d', { willReadFrequently: true }).drawImage(video, 0, 0);
         const image = cv.imread(canvas), captureMs = elapsed(capturedAt);
         try {
           stopCamera(); post({ type: 'captured' }); await sleepFrame();
-          post({ type: 'result', result: await analyze(image, capturedAt, captureMs, capturedAt - openedAt) });
+          const output = await analyze(image, capturedAt, captureMs, capturedAt - openedAt);
+          if (outline) try {
+            const dataUrl = canvas.toDataURL('image/jpeg', .8);
+            const data = dataUrl.startsWith('data:image/jpeg;base64,') ? dataUrl.slice(23) : '';
+            if (data.length && data.length <= MAX_PREVIEW_CHARS) {
+              const boxes = output.regions.map(([l, t, r, b]) => [l / canvas.width, t / canvas.height, r / canvas.width, b / canvas.height]);
+              post({ type: 'preview-start', runId: config.run.runId, width: canvas.width, height: canvas.height, outline, boxes, length: data.length });
+              for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+                check(); post({ type: 'preview-chunk', runId: config.run.runId, index: i / CHUNK_SIZE, data: data.slice(i, i + CHUNK_SIZE) });
+              }
+              post({ type: 'preview-end', runId: config.run.runId });
+            }
+          } catch { /* A preview failure must not replace a valid numeric result. */ }
+          check();
+          output.result.timing.totalMs = elapsed(capturedAt);
+          post({ type: 'result', result: output.result });
         } finally { image.delete(); cleanup(); }
       } catch (error) { cleanup(); post({ type: 'error', code: error?.message === 'photo' ? 'photo' : 'model' }); }
     }
