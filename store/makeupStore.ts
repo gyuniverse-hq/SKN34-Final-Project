@@ -137,14 +137,15 @@ export const useMakeupStore = create<MakeupStore>((set) => ({
 
   applyShade: (product, shade) => {
     const zone = product.makeupZone;
-    if (!zone || !isArPaintZone(zone)) return;
+    const texture = product.texture;
+    if (!zone || !texture || !isArPaintZone(zone)) return;
     set((s) => {
       if (s.fit) return s;
       // Only the color and finish change: the look's shape (wing angle, second shadow tone, ...) stays.
       const prev = s.makeup[zone];
       const next: ZoneSetting = {
         hex: shade.hex,
-        texture: product.texture,
+        texture,
         intensity: prev?.intensity ?? DEFAULT_INTENSITY[zone],
         ...(prev?.hexTo ? { hexTo: prev.hexTo } : {}),
         ...(prev?.geometry ? { geometry: prev.geometry } : {}),
@@ -239,7 +240,8 @@ export const useMakeupStore = create<MakeupStore>((set) => ({
 
   startFit: (product, shade) => {
     const zone = product.makeupZone;
-    if (!zone || !isArPaintZone(zone)) return;
+    const texture = product.texture;
+    if (!zone || !texture || !isArPaintZone(zone)) return;
     set((s) => {
       const origin: FitOrigin = s.fitOrigin ?? {
         makeup: s.makeup,
@@ -253,7 +255,7 @@ export const useMakeupStore = create<MakeupStore>((set) => ({
       };
       const painted: ZoneSetting = {
         hex: shade.hex,
-        texture: product.texture,
+        texture,
         intensity: DEFAULT_INTENSITY[zone],
       };
       return {

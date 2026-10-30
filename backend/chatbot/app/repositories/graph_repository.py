@@ -35,8 +35,9 @@ CLEAR = "MATCH (n) WHERE n:Product OR n:Shade OR n:Ingredient OR n:Tag OR n:Look
 CREATE_PRODUCTS = """
 UNWIND $products AS p
 CREATE (n:Product {id: p.id, brand: p.brand, name: p.name, nameKo: p.nameKo,
-                   category: p.category, texture: p.texture, priceKRW: p.priceKRW,
+                   category: p.category, priceKRW: p.priceKRW,
                    searchText: p.searchText})
+SET n.texture = p.texture
 FOREACH (s IN p.shades | CREATE (n)-[:HAS_SHADE]->(:Shade {id: s.id, name: s.name, hex: s.hex}))
 FOREACH (name IN p.ingredients | MERGE (i:Ingredient {name: name}) CREATE (n)-[:CONTAINS]->(i))
 FOREACH (name IN p.tags | MERGE (t:Tag {name: name}) CREATE (n)-[:TAGGED]->(t))
