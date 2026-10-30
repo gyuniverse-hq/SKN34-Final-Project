@@ -1,6 +1,7 @@
 from app.models.catalog import LookItemRow, LookRow, ProductRow, ShadeRow, StoreRow
 from app.models.idol_look import LookArSettingRow, LookProductRow, MakeupLookRow, YoutubeVideoRow
 from app.models.order import OrderLineRow, OrderRow
+from app.models.raw_mfds_ingredient import RawMfdsIngredientRow
 from app.models.raw_oliveyoung import (
     RawOyBrandRow,
     RawOyCategoryRow,
@@ -35,6 +36,7 @@ __all__ = [
     "OrderLineRow",
     "OrderRow",
     "ProductRow",
+    "RawMfdsIngredientRow",
     "RawOyBrandRow",
     "RawOyCategoryRow",
     "RawOyCrawlLogRow",
