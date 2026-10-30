@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
 
 from app.core.errors import ApiError, UpstreamError
 from app.core.http import cache_for
+from app.core.ratelimit import RateLimiter, client_key, get_offer_search_rate_limiter
 from app.schemas.catalog import (
     CATEGORIES,
     CONCERNS,
@@ -62,6 +63,28 @@ async def get_product_offers(
         raise ApiError(502, "Shopping search is temporarily unavailable", "upstream_error") from exc
     if result is None:
         raise ApiError(404, "Product not found", "not_found")
+    if result.configured:
+        cache_for(response, 1800)
+    return result
+
+
+@router.get("/offers/search", response_model=ProductOffers)
+async def search_offers(
+    request: Request,
+    response: Response,
+    q: str | None = Query(default=None),
+    service: OfferService = Depends(get_offer_service),
+    limiter: RateLimiter = Depends(get_offer_search_rate_limiter),
+) -> ProductOffers:
+    query = (q or "").strip()
+    if not query:
+        raise ApiError(400, "Missing query", "missing_query")
+    if not await limiter.allow(client_key(request)):
+        raise ApiError(429, "Too many searches. Please wait a moment.", "rate_limited")
+    try:
+        result = await service.search_offers(query)
+    except UpstreamError as exc:
+        raise ApiError(502, "Shopping search is temporarily unavailable", "upstream_error") from exc
     if result.configured:
         cache_for(response, 1800)
     return result

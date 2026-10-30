@@ -29,4 +29,27 @@ describe('cartStore', () => {
     setQuantity(cartLineKey({ productId: 'a' }), 0);
     expect(useCartStore.getState().items).toHaveLength(0);
   });
+
+  it('removes only unchanged lines from a confirmed order, preserving new or edited items', () => {
+    const store = useCartStore.getState();
+    store.add({ productId: 'paid', shadeId: '01' }, 2);
+    store.add({ productId: 'edited', shadeId: '02' });
+    store.setPendingPayment({ orderId: 'order-1', userId: 'user-1', items: [...useCartStore.getState().items] });
+    store.add({ productId: 'edited', shadeId: '02' });
+    store.add({ productId: 'new' });
+    store.completePayment('wrong-order');
+    expect(useCartStore.getState().items).toHaveLength(3);
+    store.completePayment('order-1');
+    expect(useCartStore.getState().items.map((item) => [item.productId, item.quantity])).toEqual([['edited', 2], ['new', 1]]);
+    expect(useCartStore.getState().pendingPayment).toBeNull();
+  });
+
+  it('keeps pending payment when clearing the cart, but deletes it when all data is reset', () => {
+    const store = useCartStore.getState();
+    store.setPendingPayment({ orderId: 'order-2', userId: 'user-1', items: [] });
+    store.clear();
+    expect(useCartStore.getState().pendingPayment?.orderId).toBe('order-2');
+    store.reset();
+    expect(useCartStore.getState().pendingPayment).toBeNull();
+  });
 });

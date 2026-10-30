@@ -4,7 +4,11 @@ from fastapi.testclient import TestClient
 
 from app.core.cache import NullCache
 from app.core.errors import UpstreamError
-from app.core.ratelimit import MemoryRateLimiter, get_tutorial_rate_limiter
+from app.core.ratelimit import (
+    MemoryRateLimiter,
+    get_offer_search_rate_limiter,
+    get_tutorial_rate_limiter,
+)
 from app.main import create_app
 from app.schemas.external import Integrations, ShoppingOffer, YoutubeVideo
 from app.services.catalog_service import CatalogService, get_catalog_service
@@ -74,6 +78,8 @@ def make_client(naver=None, youtube=None, limit=20) -> TestClient:
     limiter = MemoryRateLimiter(limit)
     app.dependency_overrides[get_tutorial_service] = lambda: tutorial
     app.dependency_overrides[get_tutorial_rate_limiter] = lambda: limiter
+    offer_limiter = MemoryRateLimiter(limit)
+    app.dependency_overrides[get_offer_search_rate_limiter] = lambda: offer_limiter
     return TestClient(app)
 
 
@@ -104,6 +110,53 @@ def test_offers_use_the_product_search_keyword():
 def test_offer_edge_cases(naver, product, status, body):
     res = make_client(naver=naver).get(f"/api/products/{product}/offers")
     assert (res.status_code, res.json()) == (status, body)
+
+
+def test_offer_search_finds_sellers_for_free_text():
+    naver = FakeNaver()
+    res = make_client(naver=naver).get("/api/offers/search?q=%20velvet%20red%20lip%20")
+    assert res.status_code == 200
+    assert res.headers["cache-control"] == "public, max-age=1800, s-maxage=1800"
+    assert res.json()["configured"] is True
+    assert res.json()["offers"][0]["link"] == "https://s/1"
+    assert naver.calls == 1
+
+
+@pytest.mark.parametrize(
+    ("path", "naver", "limit", "status", "body"),
+    [
+        (
+            "/api/offers/search?q=%20",
+            None,
+            20,
+            400,
+            {"error": "Missing query", "code": "missing_query"},
+        ),
+        (
+            "/api/offers/search?q=red",
+            FakeNaver(configured=False),
+            20,
+            200,
+            {"configured": False, "offers": []},
+        ),
+        (
+            "/api/offers/search?q=red",
+            FakeNaver(error=True),
+            20,
+            502,
+            {"error": "Shopping search is temporarily unavailable", "code": "upstream_error"},
+        ),
+    ],
+)
+def test_offer_search_edge_cases(path, naver, limit, status, body):
+    res = make_client(naver=naver, limit=limit).get(path)
+    assert (res.status_code, res.json()) == (status, body)
+
+
+def test_offer_search_is_rate_limited():
+    client = make_client(limit=1)
+    assert client.get("/api/offers/search?q=red").status_code == 200
+    assert client.get("/api/offers/search?q=red").status_code == 429
 
 
 def test_tutorial_search_builds_query_and_caches_response():

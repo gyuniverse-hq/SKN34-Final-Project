@@ -38,3 +38,5 @@ export const theme = {
     default: { boxShadow: '0 4px 12px rgba(83,47,62,0.08)' },
   }),
 } as const;
+
+export const TAB_BAR_STYLE = { backgroundColor: theme.colors.card, borderTopColor: theme.colors.border };

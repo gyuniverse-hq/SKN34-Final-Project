@@ -1,5 +1,5 @@
 import { displayableIdolLooks, hasIdolLookArSettings, idolLookAsCelebLook } from '@/lib/idolLooks';
-import { useMakeupStore } from '@/store/makeupStore';
+import { MAKEUP_ZONES, useMakeupStore } from '@/store/makeupStore';
 import type { IdolLook } from '@/types';
 
 const LOOK: IdolLook = {
@@ -58,7 +58,8 @@ describe('idol look AR flow', () => {
     useMakeupStore.getState().applyLook(celebLook, []);
 
     const state = useMakeupStore.getState();
-    expect(state.makeup).toEqual(LOOK.arSettings);
+    // The store always holds every zone: the preset's three are applied, the others stay empty.
+    expect(state.makeup).toEqual(Object.fromEntries(MAKEUP_ZONES.map((z) => [z, LOOK.arSettings?.[z] ?? null])));
     expect(state.activeLook).toEqual({ id: LOOK.id, title: LOOK.displayName });
     expect(state.selections).toEqual({});
   });

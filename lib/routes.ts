@@ -3,7 +3,17 @@ import type { MakeupZone, ProductCategory, SkinConcern } from '@/types';
 
 /** Route params carry IDs only. Every screen builds and reads them through these helpers. */
 
-export const MAKEUP_ZONES: readonly MakeupZone[] = ['lip', 'blush', 'eyeshadow'];
+export const MAKEUP_ZONES: readonly MakeupZone[] = [
+  'lip',
+  'blush',
+  'eyeshadow',
+  'eyeliner',
+  'mascara',
+  'highlighter',
+  'contour',
+  'brow',
+  'foundation',
+];
 export const PRODUCT_CATEGORIES: readonly ProductCategory[] = ['lip', 'cheek', 'eye', 'base', 'skincare', 'suncare'];
 export const SKIN_CONCERNS: readonly SkinConcern[] = [
   'dryness',

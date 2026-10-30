@@ -43,7 +43,7 @@ export default function MyScreen() {
 
   const deleteAll = () =>
     confirmAction(t('my.deleteDataConfirm'), t('common.delete'), t('common.cancel'), async () => {
-      useCartStore.getState().clear();
+      useCartStore.getState().reset();
       useCompareStore.getState().clear();
       useShoppingListStore.getState().clear();
       useSettingsStore.getState().reset();

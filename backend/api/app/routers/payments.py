@@ -9,6 +9,7 @@ from app.schemas.payment import (
     ConfirmPaymentRequest,
     CreateOrderRequest,
     CreateOrderResponse,
+    OrderStatus,
     PaymentResult,
 )
 from app.services.payment_service import PaymentService, get_payment_service
@@ -26,6 +27,15 @@ async def create_order(
     return await service.create_order(user.id, body)
 
 
+@api.get("/orders/{order_id}", response_model=OrderStatus)
+async def order_status(
+    order_id: str,
+    user: AuthUser = Depends(require_user),
+    service: PaymentService = Depends(get_payment_service),
+) -> OrderStatus:
+    return await service.order_status(user.id, order_id)
+
+
 @api.post("/confirm", response_model=PaymentResult)
 async def confirm(
     body: ConfirmPaymentRequest, service: PaymentService = Depends(get_payment_service)
@@ -36,7 +46,7 @@ async def confirm(
 @router.get("/pay/success", response_class=HTMLResponse)
 async def success() -> HTMLResponse:
     return HTMLResponse(
-        """<!doctype html><p>결제를 확인하고 있어요…</p><script>(async()=>{const q=new URLSearchParams(location.search);const r=await fetch('/api/payments/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId:q.get('orderId'),paymentKey:q.get('paymentKey'),amount:Number(q.get('amount')),checkoutToken:q.get('token')})});const d=await r.json();location.href=r.ok?d.returnUrl+'?orderId='+encodeURIComponent(d.orderId):'kbeautyar://payment-result?status=failed'})()</script>"""
+        """<!doctype html><p>결제를 확인하고 있어요…</p><script>(async()=>{try{const q=new URLSearchParams(location.search);const r=await fetch('/api/payments/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId:q.get('orderId'),paymentKey:q.get('paymentKey'),amount:Number(q.get('amount')),checkoutToken:q.get('token')})});const d=await r.json();location.href=r.ok?d.returnUrl+'?orderId='+encodeURIComponent(d.orderId):'kbeautyar://payment-result?status=unknown'}catch{location.href='kbeautyar://payment-result?status=unknown'}})()</script>"""
     )
 
 

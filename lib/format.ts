@@ -1,4 +1,6 @@
+/** Prices of 0 mean "not checked yet" (imported products without a price) and render as a dash. */
 export function formatKRW(amount: number): string {
+  if (!amount) return '—';
   return `₩${Math.round(amount).toLocaleString('en-US')}`;
 }
 

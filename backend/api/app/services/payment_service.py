@@ -16,6 +16,7 @@ from app.schemas.payment import (
     ConfirmPaymentRequest,
     CreateOrderRequest,
     CreateOrderResponse,
+    OrderStatus,
     PaymentResult,
     PublicCheckout,
 )
@@ -108,6 +109,12 @@ class PaymentService:
             amount=order.amount_krw,
             checkout_token=token,
         )
+
+    async def order_status(self, user_id: str, order_id: str) -> OrderStatus:
+        order = await self._orders.get(order_id)
+        if order is None or order.user_id != user_id:
+            raise ApiError(404, "Order was not found", "not_found")
+        return OrderStatus(orderId=order.id, status=order.status)
 
     async def confirm(self, body: ConfirmPaymentRequest) -> PaymentResult:
         order = await self._orders.get(body.order_id)
