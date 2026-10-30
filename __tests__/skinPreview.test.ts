@@ -24,6 +24,10 @@ it('clips only actual model crops to the face outline and draws no invented surv
   expect(html).toContain('clip-path="url(#face)"');
   expect(html).toContain('<polygon points=');
   expect((html.match(/<rect /g) || [])).toHaveLength(2);
+  expect(html).toContain('fill-opacity=".45"');
+  expect(html).toContain('<feGaussianBlur');
+  expect(html).toContain('clip-path="url(#crop4)"');
+  expect(html).toMatch(/<rect [^>]*rx="[\d.]+" filter="url\(#feather4\)"/);
   expect((skinPreviewHtml(preview, 'pigmentation').match(/<rect /g) || [])).toHaveLength(3);
   expect((skinPreviewHtml(preview, 'wrinkles').match(/<rect /g) || [])).toHaveLength(4);
   for (const concern of ['blemish', 'dryness', 'oiliness', 'sensitivity']) expect(skinPreviewHtml(preview, concern)).not.toContain('<rect ');

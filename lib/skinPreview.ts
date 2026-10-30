@@ -42,9 +42,16 @@ export class SkinPreviewAssembler {
 export function skinPreviewHtml(preview: SkinPreview, concern: string): string {
   const areas: Record<string, number[]> = { pores: [4, 5], pigmentation: [0, 4, 5], wrinkles: [0, 1, 2, 3] };
   const polygon = preview.outline.map(([x, y]) => `${x * preview.width},${y * preview.height}`).join(' ');
-  const boxes = (areas[concern] ?? []).map(i => {
+  const crops = (areas[concern] ?? []).map(i => {
     const [x1, y1, x2, y2] = preview.boxes[i];
-    return `<rect x="${x1 * preview.width}" y="${y1 * preview.height}" width="${(x2 - x1) * preview.width}" height="${(y2 - y1) * preview.height}"/>`;
-  }).join('');
-  return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'"><style>html,body{margin:0;width:100%;height:100%;overflow:hidden}img,svg{position:absolute;width:100%;height:100%;inset:0}img{object-fit:fill}</style></head><body><img src="data:image/jpeg;base64,${preview.jpeg}"><svg viewBox="0 0 ${preview.width} ${preview.height}" preserveAspectRatio="none"><defs><clipPath id="face"><polygon points="${polygon}"/></clipPath></defs><g clip-path="url(#face)" fill="#d06488" fill-opacity=".35">${boxes}</g></svg></body></html>`;
+    const x = x1 * preview.width, y = y1 * preview.height;
+    const width = (x2 - x1) * preview.width, height = (y2 - y1) * preview.height;
+    const shorter = Math.min(width, height);
+    return {
+      // Clip after blurring so feathering never spreads beyond the model input.
+      definition: `<clipPath id="crop${i}"><path d="M${x},${y}h${width}v${height}h-${width}z"/></clipPath><filter id="feather${i}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${shorter * .1}"/></filter>`,
+      shape: `<g clip-path="url(#crop${i})"><rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${shorter * .4}" filter="url(#feather${i})"/></g>`,
+    };
+  });
+  return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'"><style>html,body{margin:0;width:100%;height:100%;overflow:hidden}img,svg{position:absolute;width:100%;height:100%;inset:0}img{object-fit:fill}</style></head><body><img src="data:image/jpeg;base64,${preview.jpeg}"><svg viewBox="0 0 ${preview.width} ${preview.height}" preserveAspectRatio="none"><defs><clipPath id="face"><polygon points="${polygon}"/></clipPath>${crops.map(crop => crop.definition).join('')}</defs><g clip-path="url(#face)" fill="#d06488" fill-opacity=".45">${crops.map(crop => crop.shape).join('')}</g></svg></body></html>`;
 }
