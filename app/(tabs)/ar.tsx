@@ -2,11 +2,13 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   AppState,
+  BackHandler,
+  LayoutAnimation,
   Linking,
   Platform,
   Pressable,
@@ -14,11 +16,12 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  UIManager,
   useWindowDimensions,
   View,
   type GestureResponderEvent,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArFaceView, type LightHint } from '@/components/ar/ArFaceView';
 import { CoverageBar } from '@/components/ar/CoverageBar';
 import { PracticePanel } from '@/components/ar/PracticePanel';
@@ -27,7 +30,7 @@ import { SwatchFallback } from '@/components/ar/SwatchFallback';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { DEMO_TAG } from '@/constants/demo';
-import { theme } from '@/constants/theme';
+import { TAB_BAR_STYLE, theme } from '@/constants/theme';
 import { COLOR_FAMILIES, colorFamily, type ColorFamily } from '@/lib/colorFamily';
 import { withDevTryOnFallback } from '@/lib/devCatalog';
 import { formatKRW } from '@/lib/format';
@@ -48,6 +51,12 @@ import { useSettingsStore } from '@/store/settingsStore';
 import type { MakeupZone, Texture } from '@/types';
 
 type Mode = 'direct' | 'chat';
+
+const HIDDEN_TAB_BAR_STYLE = { ...TAB_BAR_STYLE, display: 'none' as const, height: 0 };
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const CHAT_EXAMPLES: TranslationKey[] = ['ar.chatExample1', 'ar.chatExample2', 'ar.chatExample3'];
 const TEXTURES: Texture[] = ['matte', 'velvet', 'cream', 'satin', 'sheer', 'glossy', 'shimmer'];
@@ -88,6 +97,8 @@ function useCameraActive() {
 /** `/ar?productId&shadeId&compare=1`: opened from home, a look, or a product ("Try in AR"). */
 export default function ArTryOnScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ compare?: string; productId?: string; shadeId?: string }>();
   const routeProductId = parseId(params.productId);
   const routeShadeId = parseId(params.shadeId);
@@ -116,6 +127,7 @@ export default function ArTryOnScreen() {
   const [recFor, setRecFor] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>('direct');
   const [draft, setDraft] = useState('');
+  const [isFullscreenAR, setIsFullscreenAR] = useState(false);
 
   // Follow new route params (a later "Try in AR" on the already-mounted tab) without an effect.
   const [seenParams, setSeenParams] = useState({ compare: compareParam, zone: routeZone });
@@ -244,6 +256,8 @@ export default function ArTryOnScreen() {
   const isWeb = Platform.OS === 'web';
   const permissionGranted = isWeb || permission?.granted;
   const permissionBlocked = !isWeb && permission && !permission.granted && !permission.canAskAgain;
+  const liveCamera =
+    !!cameraConsent && !!permissionGranted && !permissionBlocked && !swatchOnly && status !== 'unavailable' && status !== 'denied';
 
   const onAllow = async () => {
     setCameraConsent(true);
@@ -356,6 +370,41 @@ export default function ArTryOnScreen() {
     setPeek(false);
   };
 
+  const setMirrorMode = useCallback((next: boolean) => {
+    LayoutAnimation.configureNext({
+      duration: 260,
+      update: { type: LayoutAnimation.Types.easeInEaseOut },
+      create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+      delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+    });
+    setIsFullscreenAR(next);
+  }, []);
+
+  useEffect(() => {
+    navigation.setOptions({ tabBarStyle: isFullscreenAR ? HIDDEN_TAB_BAR_STYLE : TAB_BAR_STYLE });
+    return () => {
+      navigation.setOptions({ tabBarStyle: TAB_BAR_STYLE });
+    };
+  }, [isFullscreenAR, navigation]);
+
+  useEffect(() => {
+    if (!isFullscreenAR) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setMirrorMode(false);
+      return true;
+    });
+    return () => sub.remove();
+  }, [isFullscreenAR, setMirrorMode]);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setIsFullscreenAR(false);
+        navigation.setOptions({ tabBarStyle: TAB_BAR_STYLE });
+      };
+    }, [navigation])
+  );
+
   const currentIntensity = makeup[zone]?.intensity;
   const zoneSelection = selections[zone];
   const openRecommendations = () => {
@@ -466,16 +515,18 @@ export default function ArTryOnScreen() {
             </Text>
           </View>
         ) : null}
-        <View style={styles.liveBadge} pointerEvents="none">
-          <View style={styles.liveDot} />
-          <Text style={styles.liveText}>{t('ar.live')}</Text>
-        </View>
-        {showsDemo ? (
+        {!isFullscreenAR ? (
+          <View style={styles.liveBadge} pointerEvents="none">
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>{t('ar.live')}</Text>
+          </View>
+        ) : null}
+        {showsDemo && !isFullscreenAR ? (
           <View style={styles.demoBadge} pointerEvents="none">
             <Text style={styles.liveText}>{t('ar.demoColors')}</Text>
           </View>
         ) : null}
-        {status !== 'no-face' ? (
+        {status !== 'no-face' && !isFullscreenAR ? (
           <Pressable
             onPress={() => setCompare((value) => !value)}
             accessibilityRole="button"
@@ -493,22 +544,43 @@ export default function ArTryOnScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      <View style={styles.stage}>
+    <SafeAreaView style={styles.screen} edges={isFullscreenAR ? [] : ['top']}>
+      <View style={[styles.stage, isFullscreenAR && styles.stageMirror]}>
         {stage}
-        {router.canGoBack() ? (
+        {isFullscreenAR || router.canGoBack() ? (
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => (isFullscreenAR ? setMirrorMode(false) : router.back())}
             accessibilityRole="button"
             accessibilityLabel={t('common.back')}
             hitSlop={8}
-            style={styles.backBtn}>
+            style={[styles.backBtn, isFullscreenAR && { top: Math.max(10, insets.top + 6) }]}>
             <Ionicons name="chevron-back" size={22} color={theme.colors.white} />
+          </Pressable>
+        ) : null}
+        {isFullscreenAR ? (
+          <Pressable
+            onPress={() => setMirrorMode(false)}
+            accessibilityRole="button"
+            accessibilityLabel={t('ar.mirror.exit')}
+            hitSlop={8}
+            style={[styles.mirrorExpandBtn, { bottom: Math.max(16, insets.bottom + 12) }]}>
+            <Ionicons name="chevron-up" size={22} color={theme.colors.white} />
           </Pressable>
         ) : null}
       </View>
 
+      {isFullscreenAR ? null : (
       <View style={styles.panel}>
+        {liveCamera ? (
+          <Pressable
+            onPress={() => setMirrorMode(true)}
+            accessibilityRole="button"
+            accessibilityLabel={t('ar.mirror.enter')}
+            hitSlop={8}
+            style={styles.mirrorFoldBtn}>
+            <Ionicons name="chevron-down" size={22} color={theme.colors.inkMuted} />
+          </Pressable>
+        ) : null}
         {practicing || fit ? null : (
         <View style={styles.modeRow}>
           {(['direct', 'chat'] as const).map((m) => (
@@ -977,6 +1049,7 @@ export default function ArTryOnScreen() {
         )}
         <Text style={styles.disclaimer}>{t('ar.disclaimer')}</Text>
       </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -984,6 +1057,26 @@ export default function ArTryOnScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.ink },
   stage: { flex: 1, margin: 10, marginBottom: 0, borderRadius: theme.radius.lg, overflow: 'hidden', backgroundColor: theme.colors.black },
+  stageMirror: { margin: 0, borderRadius: 0 },
+  mirrorFoldBtn: {
+    alignSelf: 'center',
+    minWidth: theme.hitTarget,
+    minHeight: 32,
+    marginTop: -6,
+    marginBottom: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mirrorExpandBtn: {
+    position: 'absolute',
+    alignSelf: 'center',
+    width: theme.hitTarget,
+    height: theme.hitTarget,
+    borderRadius: theme.hitTarget / 2,
+    backgroundColor: theme.colors.overlay,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   fill: { flex: 1 },
   camera: { flex: 1, backgroundColor: theme.colors.black },
   consent: { flexGrow: 1, padding: 28, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: theme.colors.surface },

@@ -452,6 +452,8 @@ export const zh: Dictionary = {
   'ar.chatPlaceholder': '输入你的需求',
   'ar.mic': '说话',
   'ar.send': '发送',
+  'ar.mirror.enter': '全屏镜面',
+  'ar.mirror.exit': '打开产品选择',
 
   'login.title': '欢迎来到 VISHUE',
   'login.subtitle': '登录后即可保存妆容、累积奖励并加入会员。',

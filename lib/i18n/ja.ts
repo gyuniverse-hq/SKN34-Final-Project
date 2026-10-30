@@ -453,6 +453,8 @@ export const ja: Dictionary = {
   'ar.chatPlaceholder': 'リクエストを入力',
   'ar.mic': '話す',
   'ar.send': '送信',
+  'ar.mirror.enter': '全画面ミラー',
+  'ar.mirror.exit': '商品パネルを開く',
 
   'login.title': 'VISHUEへようこそ',
   'login.subtitle': 'ログインすると、ルックの保存・特典の獲得・メンバーシップが利用できます。',

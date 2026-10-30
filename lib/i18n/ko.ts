@@ -453,6 +453,8 @@ export const ko: Dictionary = {
   'ar.chatPlaceholder': '요청을 입력하세요',
   'ar.mic': '말하기',
   'ar.send': '보내기',
+  'ar.mirror.enter': '전체 화면 거울',
+  'ar.mirror.exit': '제품 선택 열기',
 
   'login.title': 'VISHUE에 오신 걸 환영해요',
   'login.subtitle': '로그인하면 룩 저장, 보상 적립, 멤버십을 이용할 수 있어요.',

@@ -451,6 +451,8 @@ export const en = {
   'ar.chatPlaceholder': 'Type a request',
   'ar.mic': 'Talk',
   'ar.send': 'Send',
+  'ar.mirror.enter': 'Full-screen mirror',
+  'ar.mirror.exit': 'Show product panel',
 
   'login.title': 'Welcome to VISHUE',
   'login.subtitle': 'Log in to save looks, collect rewards and join the membership.',
