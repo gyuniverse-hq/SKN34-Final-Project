@@ -1,9 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { memo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { InlineState } from '@/components/ui/InlineState';
 import { CelebrityCard } from './CelebrityCard';
+import { StyleLookCard } from './StyleLookCard';
 import type { Celebrity } from '@/constants/celebrities';
 import { theme } from '@/constants/theme';
 import type { StyleLook } from '@/types';
@@ -27,6 +27,8 @@ interface Props {
   onRetry: () => void;
   onPressCelebrity: (celebrity: Celebrity) => void;
   onPressStyle: (look: StyleLook) => void;
+  groupLabel: (group: string) => string;
+  productLabel: (count: number) => string;
 }
 
 /** Home's high-priority, image-first entry point for K-celebrity and K-style looks. */
@@ -47,6 +49,8 @@ export const KStyleCollection = memo(function KStyleCollection({
   onRetry,
   onPressCelebrity,
   onPressStyle,
+  groupLabel,
+  productLabel,
 }: Props) {
   const isCelebrity = activeTab === 'celebrity';
   const loading = !isCelebrity && looksLoading;
@@ -88,11 +92,12 @@ export const KStyleCollection = memo(function KStyleCollection({
                   onPress={() => onPressCelebrity(celebrity)} />
               ))
             : looks?.map((look) => (
-                <CollectionCard
+                <StyleLookCard
                   key={look.id}
-                  eyebrow={activeLabel}
-                  title={look.title}
-                  description={look.tag}
+                  look={look}
+                  groupLabel={groupLabel(look.group)}
+                  productLabel={productLabel(look.products.length)}
+                  width={200}
                   onPress={() => onPressStyle(look)}
                 />
               ))}
@@ -116,42 +121,6 @@ function CollectionTab({ label, selected, onPress }: { label: string; selected: 
   );
 }
 
-function CollectionCard({
-  eyebrow,
-  title,
-  description,
-  onPress,
-}: {
-  eyebrow: string;
-  title: string;
-  description: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${eyebrow}. ${title}. ${description}`}
-      onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
-      <LinearGradient colors={['#B66C7E', '#56333F']} style={StyleSheet.absoluteFill} />
-      <View style={styles.cardCopy}>
-        <Text style={styles.cardEyebrow} numberOfLines={1}>
-          {eyebrow}
-        </Text>
-        <Text style={styles.cardTitle} numberOfLines={2}>
-          {title}
-        </Text>
-        <Text style={styles.cardDescription} numberOfLines={1}>
-          {description}
-        </Text>
-      </View>
-      <View style={styles.cardArrow} pointerEvents="none">
-        <Ionicons name="chevron-forward" size={18} color={theme.colors.white} />
-      </View>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   section: { marginTop: 18 },
   heading: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 },
@@ -165,11 +134,5 @@ const styles = StyleSheet.create({
   tabText: { color: theme.colors.roseDark, fontSize: 13, fontWeight: '800' },
   tabTextSelected: { color: theme.colors.white },
   rail: { gap: 12, paddingRight: 8 },
-  card: { backgroundColor: theme.colors.surfaceAlt, borderRadius: theme.radius.lg, height: 292, overflow: 'hidden', width: 248 },
-  cardCopy: { bottom: 18, left: 18, position: 'absolute', right: 18 },
-  cardEyebrow: { color: 'rgba(255,255,255,0.95)', fontSize: 11, fontWeight: '800', letterSpacing: 0.9 },
-  cardTitle: { color: theme.colors.white, fontSize: theme.font.h2, fontWeight: '900', letterSpacing: -0.6, marginTop: 6 },
-  cardDescription: { color: 'rgba(255,255,255,0.9)', fontSize: theme.font.small, fontWeight: '600', marginTop: 4 },
-  cardArrow: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 22, bottom: 18, height: 44, justifyContent: 'center', position: 'absolute', right: 16, width: 44 },
   pressed: { opacity: 0.9 },
 });
