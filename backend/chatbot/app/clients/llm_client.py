@@ -20,7 +20,9 @@ class LlmClient:
         return bool(self._api_key and self._model)
 
     async def complete(self, messages: list[dict[str, str]]) -> str:
-        payload = {"model": self._model, "messages": messages, "temperature": 0.3}
+        payload = {"model": self._model, "messages": messages}
+        if self._model != "gpt-6-luna":
+            payload["temperature"] = 0.3
         headers = {"Authorization": f"Bearer {self._api_key}"}
         try:
             async with httpx.AsyncClient(timeout=self._timeout) as client:
