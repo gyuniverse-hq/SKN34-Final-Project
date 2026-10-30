@@ -7,10 +7,11 @@ import type {
   ProductQuery,
   SimilarShadesResponse,
   Store,
+  StyleLook,
   YoutubeSearchResult,
 } from '@/types';
 import { DEV_LOOKS, DEV_TRYON_PRODUCTS, devLookDetail } from '@/lib/devCatalog';
-import { apiGet } from './api';
+import { ApiError, apiGet } from './api';
 
 export function useProducts(params: ProductQuery = {}) {
   const search = new URLSearchParams();
@@ -82,6 +83,22 @@ export function useSimilarShades(productId: string | undefined, shadeId: string 
         `/api/shades/similar?productId=${encodeURIComponent(productId!)}&shadeId=${encodeURIComponent(shadeId!)}&limit=${limit}`
       ),
     enabled: !!productId && !!shadeId,
+  });
+}
+
+export function useStyleLooks() {
+  return useQuery({
+    queryKey: ['style-looks'],
+    queryFn: async () => {
+      try {
+        return await apiGet<{ looks: StyleLook[] }>('/api/style-looks');
+      } catch (error) {
+        if (!__DEV__ || !(error instanceof ApiError) || (error.status !== 404 && error.status !== 0)) throw error;
+        const looks = require('./devCatalog/styleLooks.json') as StyleLook[];
+        return { looks };
+      }
+    },
+    select: (data) => data.looks,
   });
 }
 

@@ -176,6 +176,25 @@ export interface MakeupState {
   foundation?: ZoneSetting | null;
 }
 
+export interface StyleLookProduct {
+  number: number;
+  brand: string;
+  name: string;
+  option: string;
+  category: string;
+  zone: string;
+  reviewStatus: string;
+}
+
+export interface StyleLook {
+  id: string;
+  title: string;
+  group: string;
+  tag: string;
+  videoUrl: string;
+  products: StyleLookProduct[];
+}
+
 export interface CelebLook {
   id: string;
   title: string;

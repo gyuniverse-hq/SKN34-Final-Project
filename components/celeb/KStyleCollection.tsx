@@ -1,5 +1,4 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { memo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -7,14 +6,14 @@ import { InlineState } from '@/components/ui/InlineState';
 import { CelebrityCard } from './CelebrityCard';
 import type { Celebrity } from '@/constants/celebrities';
 import { theme } from '@/constants/theme';
-import type { CelebLook } from '@/types';
+import type { StyleLook } from '@/types';
 
 export type KStyleCollectionTab = 'celebrity' | 'style';
 
 interface Props {
   activeTab: KStyleCollectionTab;
   celebrities: { celebrity: Celebrity; name: string }[];
-  looks: CelebLook[] | undefined;
+  looks: StyleLook[] | undefined;
   looksLoading: boolean;
   looksError: boolean;
   eyebrow: string;
@@ -27,7 +26,7 @@ interface Props {
   onViewAll: () => void;
   onRetry: () => void;
   onPressCelebrity: (celebrity: Celebrity) => void;
-  onPressStyle: (look: CelebLook) => void;
+  onPressStyle: (look: StyleLook) => void;
 }
 
 /** Home's high-priority, image-first entry point for K-celebrity and K-style looks. */
@@ -93,8 +92,7 @@ export const KStyleCollection = memo(function KStyleCollection({
                   key={look.id}
                   eyebrow={activeLabel}
                   title={look.title}
-                  description={look.description}
-                  imageUri={look.thumbnailUrl}
+                  description={look.tag}
                   onPress={() => onPressStyle(look)}
                 />
               ))}
@@ -122,13 +120,11 @@ function CollectionCard({
   eyebrow,
   title,
   description,
-  imageUri,
   onPress,
 }: {
   eyebrow: string;
   title: string;
   description: string;
-  imageUri: string;
   onPress: () => void;
 }) {
   return (
@@ -137,8 +133,7 @@ function CollectionCard({
       accessibilityLabel={`${eyebrow}. ${title}. ${description}`}
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
-      <Image source={{ uri: imageUri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
-      <LinearGradient colors={['rgba(20,10,14,0.02)', 'rgba(20,10,14,0.86)']} locations={[0.28, 1]} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#B66C7E', '#56333F']} style={StyleSheet.absoluteFill} />
       <View style={styles.cardCopy}>
         <Text style={styles.cardEyebrow} numberOfLines={1}>
           {eyebrow}

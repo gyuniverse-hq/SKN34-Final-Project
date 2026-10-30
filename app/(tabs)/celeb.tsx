@@ -1,10 +1,8 @@
 import { useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CelebrityAvatar } from '@/components/celeb/CelebrityAvatar';
-import { ColorChip } from '@/components/celeb/ColorChip';
-import { LookCard } from '@/components/celeb/LookCard';
 import { VideoCard } from '@/components/celeb/VideoCard';
 import { SearchBar } from '@/components/shop/SearchBar';
 import { InlineState } from '@/components/ui/InlineState';
@@ -13,27 +11,30 @@ import { CELEBRITIES } from '@/constants/celebrities';
 import { theme } from '@/constants/theme';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useI18n } from '@/lib/i18n';
-import { availableColorFamilies, COLOR_FAMILY_SWATCH, lookColorFamily, type ColorFamily } from '@/lib/lookColors';
-import { useLooks, useTutorials } from '@/lib/queries';
-import { celebrityHref, lookHref } from '@/lib/routes';
+import { useStyleLooks, useTutorials } from '@/lib/queries';
+import { celebrityHref } from '@/lib/routes';
 
-const GRID_GAP = 12;
+const GROUP_LABELS = {
+  '컬러·톤 스타일': 'styleLooks.color',
+  '콘셉트·분위기': 'styleLooks.mood',
+  '시즌·데일리': 'styleLooks.season',
+  '보정·맞춤': 'styleLooks.custom',
+  '데일리·활용': 'styleLooks.daily',
+  '베이스·피부 표현': 'styleLooks.base',
+  '아이 메이크업': 'styleLooks.eye',
+} as const;
 
 export default function LooksScreen() {
   const router = useRouter();
   const { t } = useI18n();
-  const { width } = useWindowDimensions();
-  const looks = useLooks();
+  const looks = useStyleLooks();
   const [query, setQuery] = useState('');
-  const [colorFamily, setColorFamily] = useState<ColorFamily | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const debounced = useDebouncedValue(query.trim(), 600);
   const tutorials = useTutorials(debounced.length >= 2 ? debounced : undefined, 8);
 
   const allLooks = looks.data ?? [];
-  const families = availableColorFamilies(allLooks);
-  const activeFamily = colorFamily && families.includes(colorFamily) ? colorFamily : null;
-  const visibleLooks = activeFamily ? allLooks.filter((look) => lookColorFamily(look) === activeFamily) : allLooks;
-  const cardWidth = (width - theme.spacing.lg * 2 - GRID_GAP) / 2;
+  const groups = [...new Set(allLooks.map((look) => look.group))];
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -74,34 +75,24 @@ export default function LooksScreen() {
             <InlineState status="empty" message={t('looks.empty')} />
           ) : (
             <>
-              {families.length > 0 ? (
-                <>
-                  <Text style={styles.sectionSubtitle}>{t('looks.colorSubtitle')}</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.bleed, styles.chipBar]} contentContainerStyle={styles.chipRail}>
-                    <ColorChip label={t('looks.color.all')} selected={!activeFamily} onPress={() => setColorFamily(null)} />
-                    {families.map((family) => (
-                      <ColorChip
-                        key={family}
-                        label={t(`looks.color.${family}`)}
-                        swatch={COLOR_FAMILY_SWATCH[family]}
-                        selected={activeFamily === family}
-                        onPress={() => setColorFamily(family)}
-                      />
+              {groups.map((group) => {
+                const entries = allLooks.filter((look) => look.group === group);
+                const expanded = expandedGroups.includes(group);
+                return (
+                  <View key={group} style={styles.lookGroup}>
+                    <View style={styles.groupHeader}>
+                      <Text style={styles.groupTitle}>{group in GROUP_LABELS ? t(GROUP_LABELS[group as keyof typeof GROUP_LABELS]) : group}</Text>
+                      {entries.length > 3 ? <Pressable accessibilityRole="button" onPress={() => setExpandedGroups((current) => expanded ? current.filter((value) => value !== group) : [...current, group])}><Text style={styles.groupAction}>{expanded ? t('styleLooks.less') : t('styleLooks.more')}</Text></Pressable> : null}
+                    </View>
+                    {(expanded ? entries : entries.slice(0, 3)).map((look) => (
+                      <Pressable key={look.id} accessibilityRole="button" style={styles.lookRow} onPress={() => router.push({ pathname: '/style-look/[id]', params: { id: look.id } } as Href)}>
+                        <Text style={styles.lookName}>{look.title}</Text>
+                        <Text style={styles.lookMeta}>{t('looks.itemCount', { count: look.products.length })} ›</Text>
+                      </Pressable>
                     ))}
-                  </ScrollView>
-                </>
-              ) : null}
-              <View style={styles.grid}>
-                {visibleLooks.map((look) => (
-                  <LookCard
-                    key={look.id}
-                    look={look}
-                    width={cardWidth}
-                    subtitle={t('looks.itemCount', { count: look.items.length })}
-                    onPress={() => router.push(lookHref(look.id))}
-                  />
-                ))}
-              </View>
+                  </View>
+                );
+              })}
             </>
           )}
         </View>
@@ -138,9 +129,13 @@ const styles = StyleSheet.create({
   sectionSubtitle: { fontSize: theme.font.small, color: theme.colors.inkMuted, lineHeight: 19, marginTop: -6, marginBottom: 12 },
   bleed: { marginHorizontal: -theme.spacing.lg },
   avatarRail: { gap: 10, paddingHorizontal: theme.spacing.lg },
-  chipBar: { marginBottom: 14 },
-  chipRail: { gap: 8, paddingHorizontal: theme.spacing.lg },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP },
+  lookGroup: { marginBottom: 18 },
+  groupHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  groupTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.ink },
+  groupAction: { color: theme.colors.accent, fontWeight: '600' },
+  lookRow: { padding: 14, marginBottom: 6, borderRadius: theme.radius.lg, backgroundColor: theme.colors.surfaceAlt },
+  lookName: { fontSize: 15, fontWeight: '700', color: theme.colors.ink },
+  lookMeta: { fontSize: 12, color: theme.colors.inkMuted, marginTop: 4 },
   results: { marginTop: 8 },
   note: { fontSize: theme.font.small, color: theme.colors.inkMuted, paddingVertical: 12 },
   disclaimer: { fontSize: 11, color: theme.colors.inkFaint, marginTop: 24, lineHeight: 16 },
