@@ -1,7 +1,9 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type {
   CelebLook,
+  CelebrityVideo,
   IdolLook,
+  MeResponse,
   Product,
   ProductOffers,
   ProductQuery,
@@ -9,10 +11,11 @@ import type {
   SkinRecommendationRequest,
   SkinRecommendationResponse,
   Store,
+  StyleLook,
   YoutubeSearchResult,
 } from '@/types';
 import { DEV_LOOKS, DEV_TRYON_PRODUCTS, devLookDetail } from '@/lib/devCatalog';
-import { apiGet, apiPost } from './api';
+import { ApiError, apiGet, apiPost } from './api';
 
 /** Run only after the user confirms the concerns; keep responses out of the shared product cache. */
 export function useSkinRecommendations(request: SkinRecommendationRequest | undefined) {
@@ -22,6 +25,17 @@ export function useSkinRecommendations(request: SkinRecommendationRequest | unde
     enabled: request !== undefined,
     gcTime: 0,
     staleTime: 0,
+  });
+}
+
+export const meQueryKey = (userId?: string) => ['me', userId] as const;
+
+export function useMe(userId: string | undefined) {
+  return useQuery({
+    queryKey: meQueryKey(userId),
+    queryFn: () => apiGet<MeResponse>('/api/me'),
+    enabled: !!userId,
+    retry: 1,
   });
 }
 
@@ -95,6 +109,37 @@ export function useSimilarShades(productId: string | undefined, shadeId: string 
         `/api/shades/similar?productId=${encodeURIComponent(productId!)}&shadeId=${encodeURIComponent(shadeId!)}&limit=${limit}`
       ),
     enabled: !!productId && !!shadeId,
+  });
+}
+
+export function useStyleLooks() {
+  return useQuery({
+    queryKey: ['style-looks'],
+    queryFn: async () => {
+      try {
+        return await apiGet<{ looks: StyleLook[] }>('/api/style-looks');
+      } catch (error) {
+        if (!__DEV__ || !(error instanceof ApiError) || (error.status !== 404 && error.status !== 0)) throw error;
+        const looks = require('./devCatalog/styleLooks.json') as StyleLook[];
+        return { looks };
+      }
+    },
+    select: (data) => data.looks,
+  });
+}
+
+export function useCelebrityVideos() {
+  return useQuery({
+    queryKey: ['celebrity-videos'],
+    queryFn: async () => {
+      try {
+        return await apiGet<{ videos: CelebrityVideo[] }>('/api/celebrity-videos');
+      } catch (error) {
+        if (!__DEV__ || !(error instanceof ApiError) || (error.status !== 404 && error.status !== 0)) throw error;
+        return { videos: require('./devCatalog/celebrityVideos.json') as CelebrityVideo[] };
+      }
+    },
+    select: (data) => data.videos,
   });
 }
 

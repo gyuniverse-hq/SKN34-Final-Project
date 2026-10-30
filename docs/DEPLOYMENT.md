@@ -81,6 +81,7 @@ npx expo start -c
    | --- | --- | --- |
    | vishue-api | `DATABASE_URL` | 1-4에서 만든 주소 |
    | vishue-api | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | 1-5의 Project URL, publishable key |
+   | vishue-api | `SUPABASE_SECRET_KEY` | 같은 화면의 secret key(`sb_secret_...`). 회원 탈퇴에만 씀 (비우면 탈퇴만 503) |
    | vishue-api | `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `YOUTUBE_API_KEY` | 팀 `.env`와 같은 값 (없으면 비워 둠) |
    | vishue-api | `TOSS_CLIENT_KEY`, `TOSS_SECRET_KEY` | Toss 개발자센터의 결제위젯 테스트 키 (비우면 결제만 503) |
    | vishue-api | `PAYMENT_WEB_BASE_URL` | 이 서버의 주소 (`https://vishue-api-xxxx.onrender.com`, 끝에 `/` 없이) |

@@ -27,10 +27,23 @@ CATEGORIES: tuple[str, ...] = get_args(ProductCategory)
 CONCERNS: tuple[str, ...] = get_args(SkinConcern)
 
 
-class Shade(ApiModel):
+class Shade(OmitNoneModel):
     id: str
     name: str
     hex: str = Field(pattern=r"^#[0-9A-Fa-f]{6}$")
+    measure_method: Literal["measured", "user_verified", "estimated", "placeholder"] | None = None
+    color_source: (
+        Literal[
+            "measured",
+            "option_chip",
+            "color_compare",
+            "product_photo",
+            "official_hex",
+            "placeholder",
+        ]
+        | None
+    ) = None
+    color_confidence: float | None = Field(default=None, ge=0, le=1)
 
 
 class Product(ApiModel):
@@ -40,7 +53,7 @@ class Product(ApiModel):
     name_ko: str
     category: ProductCategory
     makeup_zone: MakeupZone | None
-    texture: Texture
+    texture: Texture | None
     price_krw: int = Field(alias="priceKRW", ge=0)
     volume: str
     shades: list[Shade]

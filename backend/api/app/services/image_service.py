@@ -13,6 +13,9 @@ logger = logging.getLogger(__name__)
 IMAGE_CACHE_SECONDS = 24 * 60 * 60
 # Naver rejects bursts (HTTP 429), so cap concurrent upstream lookups.
 LOOKUP_CONCURRENCY = 3
+# A full catalog listing can contain thousands of products; do not make one external
+# shopping request per row. Product detail and small result sets still get live photos.
+MAX_LIST_IMAGE_LOOKUPS = 20
 
 
 class ImageSource(Protocol):
@@ -48,7 +51,7 @@ class ProductImageService:
         return url
 
     async def with_live_images(self, products: list[Product]) -> list[Product]:
-        if not self._source.configured or not products:
+        if not self._source.configured or not products or len(products) > MAX_LIST_IMAGE_LOOKUPS:
             return products
         gate = asyncio.Semaphore(LOOKUP_CONCURRENCY)
 

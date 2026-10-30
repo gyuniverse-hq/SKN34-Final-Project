@@ -9,8 +9,9 @@ import { theme } from '@/constants/theme';
 import { CELEBRITIES } from '@/constants/celebrities';
 import { useSkinMatchedProducts } from '@/hooks/useSkinMatchedProducts';
 import { useI18n } from '@/lib/i18n';
-import { useLooks, useProducts } from '@/lib/queries';
-import { celebrityHref, lookHref, productHref } from '@/lib/routes';
+import { useStyleLooks, useProducts } from '@/lib/queries';
+import { celebrityHref, productHref } from '@/lib/routes';
+import { styleLookGroupLabel } from '@/lib/styleLookGroups';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
@@ -25,7 +26,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { t } = useI18n();
   const [collectionTab, setCollectionTab] = useState<KStyleCollectionTab>('celebrity');
-  const looks = useLooks();
+  const looks = useStyleLooks();
   const products = useProducts();
   const skinMatch = useSkinMatchedProducts();
   const skinTypeLabel = skinMatch.concerns
@@ -33,6 +34,7 @@ export default function HomeScreen() {
     .map((c) => t(`concern.${c}`))
     .join('·');
 
+  const featuredLooks = looks.data?.filter((look, index, all) => all.findIndex((item) => item.group === look.group) === index).slice(0, HOME_LOOK_LIMIT);
   const refreshing = looks.isRefetching || products.isRefetching || skinMatch.products.isRefetching;
   const refresh = () => {
     looks.refetch();
@@ -62,7 +64,7 @@ export default function HomeScreen() {
         <KStyleCollection
           activeTab={collectionTab}
           celebrities={CELEBRITIES.map((celebrity) => ({ celebrity, name: t(celebrity.nameKey) }))}
-          looks={looks.data?.slice(0, HOME_LOOK_LIMIT)}
+          looks={featuredLooks}
           looksLoading={looks.isPending}
           looksError={looks.isError}
           eyebrow={t('home.eyebrow')}
@@ -75,7 +77,9 @@ export default function HomeScreen() {
           onViewAll={() => router.push(collectionTab === 'celebrity' ? '/celebrities' as Href : '/celeb')}
           onRetry={() => looks.refetch()}
           onPressCelebrity={(celebrity) => router.push(celebrityHref(celebrity.id))}
-          onPressStyle={(look) => router.push(lookHref(look.id))}
+          onPressStyle={(look) => router.push({ pathname: '/style-look/[id]', params: { id: look.id } } as Href)}
+          groupLabel={(group) => styleLookGroupLabel(group, t)}
+          productLabel={(count) => t('looks.itemCount', { count })}
         />
 
         <View style={styles.section}>

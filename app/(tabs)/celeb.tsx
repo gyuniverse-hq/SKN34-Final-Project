@@ -1,10 +1,9 @@
 import { useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CelebrityAvatar } from '@/components/celeb/CelebrityAvatar';
-import { ColorChip } from '@/components/celeb/ColorChip';
-import { LookCard } from '@/components/celeb/LookCard';
+import { StyleLookCard } from '@/components/celeb/StyleLookCard';
 import { VideoCard } from '@/components/celeb/VideoCard';
 import { SearchBar } from '@/components/shop/SearchBar';
 import { InlineState } from '@/components/ui/InlineState';
@@ -13,27 +12,23 @@ import { CELEBRITIES } from '@/constants/celebrities';
 import { theme } from '@/constants/theme';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useI18n } from '@/lib/i18n';
-import { availableColorFamilies, COLOR_FAMILY_SWATCH, lookColorFamily, type ColorFamily } from '@/lib/lookColors';
-import { useLooks, useTutorials } from '@/lib/queries';
-import { celebrityHref, lookHref } from '@/lib/routes';
-
-const GRID_GAP = 12;
+import { useStyleLooks, useTutorials } from '@/lib/queries';
+import { celebrityHref } from '@/lib/routes';
+import { styleLookGroupLabel } from '@/lib/styleLookGroups';
 
 export default function LooksScreen() {
   const router = useRouter();
   const { t } = useI18n();
   const { width } = useWindowDimensions();
-  const looks = useLooks();
+  const looks = useStyleLooks();
   const [query, setQuery] = useState('');
-  const [colorFamily, setColorFamily] = useState<ColorFamily | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const debounced = useDebouncedValue(query.trim(), 600);
   const tutorials = useTutorials(debounced.length >= 2 ? debounced : undefined, 8);
 
   const allLooks = looks.data ?? [];
-  const families = availableColorFamilies(allLooks);
-  const activeFamily = colorFamily && families.includes(colorFamily) ? colorFamily : null;
-  const visibleLooks = activeFamily ? allLooks.filter((look) => lookColorFamily(look) === activeFamily) : allLooks;
-  const cardWidth = (width - theme.spacing.lg * 2 - GRID_GAP) / 2;
+  const groups = [...new Set(allLooks.map((look) => look.group))];
+  const cardWidth = Math.max(120, (width - theme.spacing.lg * 2 - 10) / 2);
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -74,34 +69,25 @@ export default function LooksScreen() {
             <InlineState status="empty" message={t('looks.empty')} />
           ) : (
             <>
-              {families.length > 0 ? (
-                <>
-                  <Text style={styles.sectionSubtitle}>{t('looks.colorSubtitle')}</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.bleed, styles.chipBar]} contentContainerStyle={styles.chipRail}>
-                    <ColorChip label={t('looks.color.all')} selected={!activeFamily} onPress={() => setColorFamily(null)} />
-                    {families.map((family) => (
-                      <ColorChip
-                        key={family}
-                        label={t(`looks.color.${family}`)}
-                        swatch={COLOR_FAMILY_SWATCH[family]}
-                        selected={activeFamily === family}
-                        onPress={() => setColorFamily(family)}
-                      />
-                    ))}
-                  </ScrollView>
-                </>
-              ) : null}
-              <View style={styles.grid}>
-                {visibleLooks.map((look) => (
-                  <LookCard
-                    key={look.id}
-                    look={look}
-                    width={cardWidth}
-                    subtitle={t('looks.itemCount', { count: look.items.length })}
-                    onPress={() => router.push(lookHref(look.id))}
-                  />
-                ))}
-              </View>
+              {groups.map((group) => {
+                const entries = allLooks.filter((look) => look.group === group);
+                const expanded = expandedGroups.includes(group);
+                return (
+                  <View key={group} style={styles.lookGroup}>
+                    <View style={styles.groupHeader}>
+                      <View><Text style={styles.groupTitle}>{styleLookGroupLabel(group, t)}</Text><Text style={styles.groupCount}>{t('styleLooks.lookCount', { count: entries.length })}</Text></View>
+                      {entries.length > 2 ? <Pressable accessibilityRole="button" accessibilityState={{ expanded }} hitSlop={8} style={styles.groupButton} onPress={() => setExpandedGroups((current) => expanded ? current.filter((value) => value !== group) : [...current, group])}><Text style={styles.groupAction}>{expanded ? t('styleLooks.less') : t('styleLooks.more')}  ›</Text></Pressable> : null}
+                    </View>
+                    <View style={styles.lookGrid}>
+                      {(expanded ? entries : entries.slice(0, 2)).map((look) => (
+                        <StyleLookCard key={look.id} look={look} groupLabel={styleLookGroupLabel(group, t)} width={cardWidth}
+                          productLabel={t('looks.itemCount', { count: look.products.length })}
+                          onPress={() => router.push({ pathname: '/style-look/[id]', params: { id: look.id } } as Href)} />
+                      ))}
+                    </View>
+                  </View>
+                );
+              })}
             </>
           )}
         </View>
@@ -138,9 +124,13 @@ const styles = StyleSheet.create({
   sectionSubtitle: { fontSize: theme.font.small, color: theme.colors.inkMuted, lineHeight: 19, marginTop: -6, marginBottom: 12 },
   bleed: { marginHorizontal: -theme.spacing.lg },
   avatarRail: { gap: 10, paddingHorizontal: theme.spacing.lg },
-  chipBar: { marginBottom: 14 },
-  chipRail: { gap: 8, paddingHorizontal: theme.spacing.lg },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP },
+  lookGroup: { marginBottom: 26 },
+  groupHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  groupTitle: { fontSize: 17, fontWeight: '800', color: theme.colors.ink },
+  groupCount: { color: theme.colors.inkMuted, fontSize: 12, marginTop: 3 },
+  groupButton: { minHeight: theme.hitTarget, justifyContent: 'center' },
+  groupAction: { color: theme.colors.rose, fontSize: 12, fontWeight: '700' },
+  lookGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   results: { marginTop: 8 },
   note: { fontSize: theme.font.small, color: theme.colors.inkMuted, paddingVertical: 12 },
   disclaimer: { fontSize: 11, color: theme.colors.inkFaint, marginTop: 24, lineHeight: 16 },

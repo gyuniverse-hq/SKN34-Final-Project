@@ -156,6 +156,10 @@ class RawOyProductRow(Base):
     last_collected_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     # 증분 수집에서 목록에서 사라지면 기록한다(행을 지우지 않는다)
     delisted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # seed_catalog 가 서빙 카탈로그 교체와 같은 트랜잭션에서 갱신한다.
+    is_in_catalog: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
 
 
 class RawOyProductNoticeRow(Base):

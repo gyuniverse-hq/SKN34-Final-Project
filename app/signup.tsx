@@ -2,25 +2,35 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { AuthInput, AuthScreen, authStyles, FormMessage } from '@/components/auth/AuthForm';
+import { hasAllConsents, NO_CONSENT, TermsAgreement } from '@/components/auth/TermsAgreement';
 import { Button } from '@/components/ui/Button';
+import { useSaveTermsConsent } from '@/hooks/useTermsConsent';
 import {
   authErrorMessageKey,
+  getCurrentUserId,
   isAuthConfigured,
+  isValidEmail,
+  MIN_PASSWORD_LENGTH,
+  newPasswordError,
   resendSignupCode,
   signUpWithEmail,
   verifySignupCode,
 } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
+import { loginHref, parseLoginReturnTo } from '@/lib/routes';
 
 const MIN_CODE_LENGTH = 6;
 
 export default function SignupScreen() {
   const router = useRouter();
   const { t } = useI18n();
-  const params = useLocalSearchParams<{ email?: string; verify?: string }>();
+  const params = useLocalSearchParams<{ email?: string; verify?: string; returnTo?: string }>();
+  const returnTo = parseLoginReturnTo(params.returnTo);
+  const saveConsent = useSaveTermsConsent();
   const [email, setEmail] = useState(params.email ?? '');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [consent, setConsent] = useState(NO_CONSENT);
   const [code, setCode] = useState('');
   const [step, setStep] = useState<'form' | 'verify'>(params.verify && params.email ? 'verify' : 'form');
   const [busy, setBusy] = useState(false);
@@ -42,22 +52,31 @@ export default function SignupScreen() {
     }
   };
 
+  /** The account exists and is signed in. Consent was given on the form; the gate asks again if saving fails. */
+  const finish = async () => {
+    const userId = await getCurrentUserId();
+    if (userId) await saveConsent(userId).catch(() => {});
+    if (returnTo) router.replace(`/${returnTo}`);
+    else router.dismissTo('/my');
+  };
+
   const submitForm = () => {
-    if (password !== confirm) {
-      setError(t('auth.error.passwordMismatch'));
+    const problem = isValidEmail(address) ? newPasswordError(password, confirm) : 'auth.error.invalidEmail';
+    if (problem) {
+      setError(t(problem, { min: MIN_PASSWORD_LENGTH }));
       return;
     }
     return run(async () => {
       const { needsVerification } = await signUpWithEmail(address, password);
       if (needsVerification) setStep('verify');
-      else router.dismissTo('/my');
+      else await finish();
     });
   };
 
   const submitCode = () =>
     run(async () => {
       await verifySignupCode(address, code.trim());
-      router.dismissTo('/my');
+      await finish();
     });
 
   const resend = () =>
@@ -114,15 +133,21 @@ export default function SignupScreen() {
           secureTextEntry
           autoComplete="new-password"
         />
+        <FormMessage tone="info" text={t('auth.passwordHint', { min: MIN_PASSWORD_LENGTH })} />
+        <TermsAgreement
+          value={consent}
+          onChange={setConsent}
+          onOpenDoc={(doc) => router.push({ pathname: '/legal/[doc]', params: { doc } })}
+        />
         <FormMessage tone="error" text={error} />
         <Button
           label={t('signup.submit')}
           onPress={submitForm}
           loading={busy}
-          disabled={!configured || !address || !password || !confirm}
+          disabled={!configured || !address || !password || !confirm || !hasAllConsents(consent)}
         />
       </View>
-      <Pressable accessibilityRole="button" style={authStyles.link} onPress={() => router.replace('/login')}>
+      <Pressable accessibilityRole="button" style={authStyles.link} onPress={() => router.replace(loginHref(returnTo))}>
         <Text style={authStyles.linkText}>{t('signup.haveAccount')}</Text>
       </Pressable>
     </AuthScreen>

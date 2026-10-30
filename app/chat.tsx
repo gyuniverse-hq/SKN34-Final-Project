@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import type { ComponentRef } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -6,7 +7,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  type ScrollViewInstance,
   StyleSheet,
   Text,
   TextInput,
@@ -31,7 +31,7 @@ export default function ChatScreen() {
   const router = useRouter();
   const { t, language } = useI18n();
   const { mutateAsync, isPending } = useChat();
-  const scrollRef = useRef<ScrollViewInstance>(null);
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [failed, setFailed] = useState(false);

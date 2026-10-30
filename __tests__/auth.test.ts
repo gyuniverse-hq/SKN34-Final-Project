@@ -1,5 +1,31 @@
+import { needsTermsConsent } from '@/lib/account';
 import { AuthFlowError, authErrorMessageKey } from '@/lib/auth/errors';
 import { parseAuthRedirect } from '@/lib/auth/redirect';
+import { isValidEmail, newPasswordError } from '@/lib/auth/validation';
+
+describe('sign-up input checks', () => {
+  it('accepts only addresses with a user, a domain and a dot', () => {
+    expect(isValidEmail(' a@b.co ')).toBe(true);
+    expect(isValidEmail('a@b')).toBe(false);
+    expect(isValidEmail('a b@c.co')).toBe(false);
+    expect(isValidEmail('')).toBe(false);
+  });
+
+  it('reports a short password before a mismatch', () => {
+    expect(newPasswordError('short', 'other')).toBe('auth.error.passwordTooShort');
+    expect(newPasswordError('long-enough', 'different')).toBe('auth.error.passwordMismatch');
+    expect(newPasswordError('long-enough', 'long-enough')).toBeNull();
+  });
+});
+
+describe('needsTermsConsent', () => {
+  it('asks until the current version is agreed', () => {
+    const terms = { version: 'v2', agreedVersion: null, agreedAt: null };
+    expect(needsTermsConsent(terms)).toBe(true);
+    expect(needsTermsConsent({ ...terms, agreedVersion: 'v1', agreedAt: '2026-01-01T00:00:00Z' })).toBe(true);
+    expect(needsTermsConsent({ ...terms, agreedVersion: 'v2', agreedAt: '2026-01-01T00:00:00Z' })).toBe(false);
+  });
+});
 
 describe('parseAuthRedirect', () => {
   it('reads tokens from the fragment', () => {

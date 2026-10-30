@@ -76,7 +76,8 @@ export interface Product {
   category: ProductCategory;
   /** Null for products that can't be tried on (skincare, base). */
   makeupZone: MakeupZone | null;
-  texture: Texture;
+  /** Unknown for categories where finish is not required. */
+  texture: Texture | null;
   /** Reference retail price in KRW. Live prices come from /api/products/:id/offers. */
   priceKRW: number;
   volume: string;
@@ -194,6 +195,53 @@ export interface MakeupState {
   contour?: ZoneSetting | null;
   brow?: ZoneSetting | null;
   foundation?: ZoneSetting | null;
+}
+
+export interface VideoProductMapping {
+  mappingVerified?: boolean;
+  catalogProductId?: string;
+  catalogShadeId?: string;
+}
+
+export interface CelebrityVideoProduct extends VideoProductMapping {
+  number: number;
+  category: string;
+  zone: string;
+  brand: string;
+  name: string;
+  option: string;
+  reviewStatus: string;
+  sourceType: string;
+}
+
+export interface CelebrityVideo {
+  id: string;
+  celebrityId: string;
+  number: number;
+  startSeconds: number;
+  linkStatus: 'metadata_available' | 'needs_review';
+  title: string;
+  channelName: string;
+  products: CelebrityVideoProduct[];
+}
+
+export interface StyleLookProduct extends VideoProductMapping {
+  number: number;
+  brand: string;
+  name: string;
+  option: string;
+  category: string;
+  zone: string;
+  reviewStatus: string;
+}
+
+export interface StyleLook {
+  id: string;
+  title: string;
+  group: string;
+  tag: string;
+  videoUrl: string;
+  products: StyleLookProduct[];
 }
 
 export interface CelebLook {
@@ -359,8 +407,16 @@ export interface AuthUser {
   email: string | null;
 }
 
+export interface TermsStatus {
+  /** Terms version the server currently requires. */
+  version: string;
+  agreedVersion: string | null;
+  agreedAt: string | null;
+}
+
 export interface MeResponse {
   user: AuthUser;
+  terms: TermsStatus;
 }
 
 export interface ApiErrorBody {

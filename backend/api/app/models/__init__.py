@@ -1,6 +1,10 @@
 from app.models.catalog import LookItemRow, LookRow, ProductRow, ShadeRow, StoreRow
 from app.models.idol_look import LookArSettingRow, LookProductRow, MakeupLookRow, YoutubeVideoRow
+from app.models.member import MemberRow
 from app.models.order import OrderLineRow, OrderRow
+from app.models.oy_catalog_category_rule import OyCatalogCategoryRuleRow
+from app.models.oy_mfds_ingredient_map import OyMfdsIngredientMapRow
+from app.models.raw_mfds_ingredient import RawMfdsIngredientRow
 from app.models.raw_oliveyoung import (
     RawOyBrandRow,
     RawOyCategoryRow,
@@ -32,9 +36,13 @@ __all__ = [
     "LookProductRow",
     "LookRow",
     "MakeupLookRow",
+    "MemberRow",
     "OrderLineRow",
     "OrderRow",
+    "OyCatalogCategoryRuleRow",
+    "OyMfdsIngredientMapRow",
     "ProductRow",
+    "RawMfdsIngredientRow",
     "RawOyBrandRow",
     "RawOyCategoryRow",
     "RawOyCrawlLogRow",

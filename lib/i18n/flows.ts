@@ -109,7 +109,7 @@ export const flowsEn = {
   'catalog.shadeUnavailable': 'This shade is no longer available.',
   'catalog.shadeMissingPicked': 'The shade you chose is no longer available, so the first shade is shown.',
 
-  'product.swatchNote': 'Swatches use the official color value. Real color varies with skin tone, lighting and screen.',
+  'product.swatchNote': 'Colors are for reference. Actual appearance varies with skin tone, lighting and screen.',
   'product.similar': 'Similar colors',
 
   'offers.hint': 'Search results from online sellers. Prices and stock are not live; check on the seller page.',
@@ -336,7 +336,7 @@ export const flowsKo: FlowsDictionary = {
   'catalog.shadeUnavailable': '더 이상 찾을 수 없는 호수예요.',
   'catalog.shadeMissingPicked': '선택한 호수를 찾을 수 없어 첫 번째 호수를 보여 드려요.',
 
-  'product.swatchNote': '색상칩은 공식 색상값 기준이에요. 실제 발색은 피부 톤·조명·화면에 따라 달라요.',
+  'product.swatchNote': '색상은 참고용이에요. 실제 발색은 피부 톤·조명·화면에 따라 달라요.',
   'product.similar': '비슷한 색상',
 
   'offers.hint': '온라인 판매처 검색 결과예요. 가격·재고는 실시간이 아니니 판매처에서 확인하세요.',
@@ -561,7 +561,7 @@ export const flowsJa: FlowsDictionary = {
   'catalog.shadeUnavailable': 'この色番はもう見つかりません。',
   'catalog.shadeMissingPicked': '選んだ色番が見つからないため、最初の色番を表示しています。',
 
-  'product.swatchNote': '色見本は公式の色値です。実際の発色は肌の色・照明・画面で変わります。',
+  'product.swatchNote': '色は参考用です。実際の発色は肌の色・照明・画面で変わります。',
   'product.similar': '似た色',
 
   'offers.hint': 'オンライン販売店の検索結果です。価格・在庫はリアルタイムではないため販売店でご確認ください。',
@@ -785,7 +785,7 @@ export const flowsZh: FlowsDictionary = {
   'catalog.shadeUnavailable': '找不到该色号。',
   'catalog.shadeMissingPicked': '找不到你选的色号，已显示第一个色号。',
 
-  'product.swatchNote': '色卡使用官方色值。实际显色会因肤色、光线和屏幕而不同。',
+  'product.swatchNote': '颜色仅供参考。实际显色会因肤色、光线和屏幕而不同。',
   'product.similar': '相近颜色',
 
   'offers.hint': '来自线上卖家的搜索结果。价格和库存非实时，请在卖家页面确认。',

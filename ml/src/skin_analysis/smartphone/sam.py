@@ -59,7 +59,7 @@ def train_epoch(model, loader, optimizer, criterion, device, scaler, effective_b
     if (
         not len(loader.dataset)
         or effective_batch < 1
-        or effective_batch % loader.batch_size
+        or effective_batch % getattr(loader, "micro_batch_size", loader.batch_size)
         or not math.isfinite(rho)
         or rho < 0
     ):
@@ -169,5 +169,11 @@ def train_epoch(model, loader, optimizer, criterion, device, scaler, effective_b
             window = []
             group_seen = 0
             group_target = min(effective_batch, len(loader.dataset) - seen)
+    expected_steps = math.ceil(len(loader.dataset) / effective_batch)
+    if seen != len(loader.dataset) or group_seen or model._sam_steps != expected_steps:
+        raise RuntimeError(
+            f"Incomplete SAM epoch: seen={seen}/{len(loader.dataset)}, "
+            f"pending={group_seen}, steps={model._sam_steps}/{expected_steps}"
+        )
     model._sam_perturbed_loss = perturbed_total / seen
     return total_loss / seen

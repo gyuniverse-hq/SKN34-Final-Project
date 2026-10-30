@@ -1,6 +1,10 @@
+import json
+
 import anyio
+import httpx
 import pytest
 
+from app.clients.llm_client import LlmClient
 from app.core.errors import ApiError, UpstreamError
 from app.schemas.chat import ChatRequest, GraphProduct, SkinHint
 from app.services.chat_service import ChatService, build_messages, extract_terms
@@ -8,6 +12,50 @@ from tests.conftest import FakeLlm
 
 AUTH = {"Authorization": "Bearer ok-1"}
 GUEST = {"X-Vishue-Anonymous-Id": "guest-session-id-0123456789-abcdefghijk"}
+
+
+@pytest.mark.parametrize("model,temperature", [("gpt-6-luna", None), ("gpt-4o-mini", 0.3)])
+def test_llm_request_uses_supported_temperature_for_model(monkeypatch, model, temperature):
+    requests = []
+
+    def respond(request):
+        requests.append(request)
+        return httpx.Response(200, json={"choices": [{"message": {"content": " answer "}}]})
+
+    original_client = httpx.AsyncClient
+    monkeypatch.setattr(
+        httpx,
+        "AsyncClient",
+        lambda **kwargs: original_client(transport=httpx.MockTransport(respond), **kwargs),
+    )
+    messages = [{"role": "user", "content": "hello"}]
+    client = LlmClient("https://llm.example.test/v1", "test-key", model, 30)
+    assert anyio.run(client.complete, messages) == "answer"
+    assert len(requests) == 1
+    request = requests[0]
+    assert str(request.url) == "https://llm.example.test/v1/chat/completions"
+    assert request.headers["Authorization"] == "Bearer test-key"
+    payload = json.loads(request.content)
+    assert payload["model"] == model
+    assert payload["messages"] == messages
+    if temperature is None:
+        assert "temperature" not in payload
+    else:
+        assert payload["temperature"] == temperature
+
+
+def test_llm_http_errors_still_raise_upstream_error(monkeypatch):
+    original_client = httpx.AsyncClient
+    monkeypatch.setattr(
+        httpx,
+        "AsyncClient",
+        lambda **kwargs: original_client(
+            transport=httpx.MockTransport(lambda request: httpx.Response(400)), **kwargs
+        ),
+    )
+    client = LlmClient("https://llm.example.test/v1", "test-key", "gpt-6-luna", 30)
+    with pytest.raises(UpstreamError):
+        anyio.run(client.complete, [{"role": "user", "content": "hello"}])
 
 
 def test_chat_accepts_guests_with_a_valid_anonymous_session(client):
