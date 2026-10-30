@@ -154,3 +154,15 @@ export function externalLinkHref(productId: string, link: string): Href {
 export function loginHref(returnTo?: LoginReturnTo): Href {
   return { pathname: '/login', params: compact({ returnTo }) } as Href;
 }
+
+/** `verifyEmail` opens the code step for an account that signed up but never confirmed. */
+export function signupHref(options: { returnTo?: LoginReturnTo; verifyEmail?: string } = {}): Href {
+  return {
+    pathname: '/signup',
+    params: compact({
+      returnTo: options.returnTo,
+      email: options.verifyEmail,
+      verify: options.verifyEmail ? '1' : undefined,
+    }),
+  } as Href;
+}

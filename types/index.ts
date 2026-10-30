@@ -358,8 +358,16 @@ export interface AuthUser {
   email: string | null;
 }
 
+export interface TermsStatus {
+  /** Terms version the server currently requires. */
+  version: string;
+  agreedVersion: string | null;
+  agreedAt: string | null;
+}
+
 export interface MeResponse {
   user: AuthUser;
+  terms: TermsStatus;
 }
 
 export interface ApiErrorBody {

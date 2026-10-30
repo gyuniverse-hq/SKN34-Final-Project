@@ -498,6 +498,25 @@ export const ko: Dictionary = {
   'auth.error.invalidEmail': '올바른 이메일 주소를 입력해 주세요.',
   'auth.error.samePassword': '지금 쓰는 비밀번호와 다른 비밀번호를 입력해 주세요.',
   'auth.error.passwordMismatch': '비밀번호가 서로 달라요.',
+  'auth.error.passwordTooShort': '비밀번호는 {min}자 이상으로 정해 주세요.',
+  'auth.passwordHint': '{min}자 이상 입력해 주세요.',
+
+  'consent.title': '약관 동의',
+  'consent.body': '계정을 이용하려면 필수 항목을 확인하고 동의해 주세요.',
+  'consent.all': '전체 동의',
+  'consent.terms': '[필수] 이용약관',
+  'consent.privacy': '[필수] 개인정보 수집·이용',
+  'consent.age': '[필수] 만 14세 이상입니다',
+  'consent.view': '보기',
+  'consent.submit': '동의하고 계속하기',
+  'consent.failed': '동의 내용을 저장하지 못했어요. 다시 시도해 주세요.',
+  'consent.updateApp': '약관이 바뀌었어요. 앱을 업데이트한 뒤 다시 시도해 주세요.',
+
+  'account.delete': '회원 탈퇴',
+  'account.deleteConfirm':
+    '탈퇴할까요? 로그인 계정과 약관 동의 기록이 삭제되고 되돌릴 수 없어요. 주문 기록은 법에 따라 보관되고, 이 기기에 저장된 데이터는 직접 삭제하기 전까지 남아 있어요.',
+  'account.deleteDone': '탈퇴가 완료됐어요.',
+  'account.deleteUnavailable': '지금은 탈퇴할 수 없어요. 잠시 후 다시 시도해 주세요.',
 
   'signup.title': '회원가입',
   'signup.subtitle': '룩 저장, 보상 적립, 멤버십을 이용할 수 있어요.',

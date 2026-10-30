@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type {
   CelebLook,
   IdolLook,
+  MeResponse,
   Product,
   ProductOffers,
   ProductQuery,
@@ -12,6 +13,17 @@ import type {
 } from '@/types';
 import { DEV_LOOKS, DEV_TRYON_PRODUCTS, devLookDetail } from '@/lib/devCatalog';
 import { ApiError, apiGet } from './api';
+
+export const meQueryKey = (userId?: string) => ['me', userId] as const;
+
+export function useMe(userId: string | undefined) {
+  return useQuery({
+    queryKey: meQueryKey(userId),
+    queryFn: () => apiGet<MeResponse>('/api/me'),
+    enabled: !!userId,
+    retry: 1,
+  });
+}
 
 export function useProducts(params: ProductQuery = {}) {
   const search = new URLSearchParams();

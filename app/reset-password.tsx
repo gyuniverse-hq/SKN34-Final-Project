@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/Button';
 import {
   authErrorMessageKey,
   isAuthConfigured,
+  isValidEmail,
+  MIN_PASSWORD_LENGTH,
+  newPasswordError,
   sendPasswordResetCode,
   updatePassword,
   verifyRecoveryCode,
@@ -44,16 +47,22 @@ export default function ResetPasswordScreen() {
     }
   };
 
-  const sendCode = () =>
-    run(async () => {
+  const sendCode = () => {
+    if (!isValidEmail(address)) {
+      setError(t('auth.error.invalidEmail'));
+      return;
+    }
+    return run(async () => {
       await sendPasswordResetCode(address);
       if (step === 'reset') setInfo(t('auth.codeResent'));
       setStep('reset');
     });
+  };
 
   const submit = () => {
-    if (password !== confirm) {
-      setError(t('auth.error.passwordMismatch'));
+    const problem = newPasswordError(password, confirm);
+    if (problem) {
+      setError(t(problem, { min: MIN_PASSWORD_LENGTH }));
       return;
     }
     return run(async () => {
@@ -96,6 +105,7 @@ export default function ResetPasswordScreen() {
             secureTextEntry
             autoComplete="new-password"
           />
+          <FormMessage tone="info" text={t('auth.passwordHint', { min: MIN_PASSWORD_LENGTH })} />
           <FormMessage tone="error" text={error} />
           <FormMessage tone="info" text={info} />
           <Button
