@@ -13,7 +13,7 @@ export function useSkinAnalysis() {
   const [indicator, setIndicator] = useState<SkinIndicator>('acne');
   const [result, setResult] = useState<SkinAnalysisResult>();
   const [answers, setAnswers] = useState<Partial<SkinQuestionnaire>>({});
-  const [error, setError] = useState<'analysis' | 'storage' | 'model' | 'permission' | null>(null);
+  const [error, setError] = useState<'analysis' | 'storage' | 'model' | 'permission' | 'camera' | null>(null);
   const [webRun, setWebRun] = useState<SkinWebRun>();
   const generation = useRef(0);
   const previewAssembler = useRef<SkinPreviewAssembler | null>(null);
@@ -57,10 +57,19 @@ export function useSkinAnalysis() {
     };
   }, [cancel]);
 
+  // Module imports, model initialization and video startup must not wait forever.
+  useEffect(() => {
+    if (phase !== 'camera' || !webRun || camera.guidance !== 'loading') return;
+    const timeout = setTimeout(() => {
+      setError('model'); setPhase('error');
+    }, 60000);
+    return () => clearTimeout(timeout);
+  }, [phase, webRun, camera.guidance]);
+
   const onCapture = useCallback((event: SkinCameraEvent) => {
     if (phase !== 'camera' || renderGeneration !== generation.current || captureClaimed.current) return;
     setCamera(event);
-    if (event.guidance === 'cameraError') { setError('analysis'); setPhase('error'); return; }
+    if (event.guidance === 'cameraError') { setError('camera'); setPhase('error'); return; }
     if (!event.captureId) return;
     captureClaimed.current = true;
     const current = generation.current;
@@ -99,7 +108,7 @@ export function useSkinAnalysis() {
     else if (event.type === 'progress') setIndicator(event.indicator);
     else if (event.type === 'error') {
       previewAssembler.current?.clear(); previewAssembler.current = null; pendingPreview.current = null;
-      setError(event.code === 'permission' ? 'permission' : event.code === 'model' ? 'model' : 'analysis');
+      setError(event.code === 'permission' ? 'permission' : event.code === 'model' ? 'model' : event.code === 'camera' ? 'camera' : 'analysis');
       setPhase('error');
     } else if (event.type === 'result') {
       try {
@@ -131,7 +140,7 @@ export function useSkinAnalysis() {
     if (current !== generation.current) return;
     captureClaimed.current = false;
     setAnswers({}); setResult(undefined); setError(null);
-    setCamera({ guidance: 'noFace', progress: 0 });
+    setCamera({ guidance: 'loading', progress: 0 });
     try {
       const run = skinAnalysisUsesWebView ? createSkinWebRun() : undefined;
       previewAssembler.current = run ? new SkinPreviewAssembler(run.run.runId) : null;

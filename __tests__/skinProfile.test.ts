@@ -249,6 +249,35 @@ it('loads only the on-device WebView runtime even with a legacy server-mode conf
   expect(html).not.toContain('capture.mjs');
 });
 
+it('waits for camera readiness, times out a stalled startup, and permits a fresh retry', async () => {
+  jest.useFakeTimers();
+  const webProperty = jest.replaceProperty(skinRuntime, 'skinAnalysisUsesWebView', true);
+  jest.mocked(skinRuntime.createSkinWebRun).mockReturnValue({ assetsUrl: 'http://localhost:8081/skin-runtime/',
+    run: { runId: 'camera-run', processId: 'session', firstInProcess: true, device: 'test', androidVersion: 'android', build: 'expo-go' } });
+  let flow!: ReturnType<typeof useSkinAnalysis>;
+  function Harness() { flow = useSkinAnalysis(); return null; }
+  let screen!: ReturnType<typeof create>;
+  try {
+    await act(async () => { screen = create(createElement(Harness)); });
+    await act(async () => { await flow.start(); });
+    expect(flow.camera.guidance).toBe('loading');
+    await act(async () => { jest.advanceTimersByTime(60000); });
+    expect(flow.phase).toBe('error');
+    expect(flow.error).toBe('model');
+    await act(async () => { flow.onWebEvent({ type: 'camera', state: { guidance: 'noFace', progress: 0 } }); });
+    expect(flow.phase).toBe('error');
+    await act(async () => { await flow.start(); });
+    await act(async () => { flow.onWebEvent({ type: 'camera', state: { guidance: 'noFace', progress: 0 } }); });
+    await act(async () => { jest.advanceTimersByTime(60000); });
+    expect(flow.phase).toBe('camera');
+    await act(async () => { flow.onWebEvent({ type: 'error', code: 'camera' }); });
+    expect(flow.error).toBe('camera');
+  } finally {
+    if (screen) await act(async () => { screen.unmount(); });
+    webProperty.restore(); jest.useRealTimers();
+  }
+});
+
 
 it('retains a new photo only in temporary memory after saving and clears it on cancellation', async () => {
   const webProperty = jest.replaceProperty(skinRuntime, 'skinAnalysisUsesWebView', true);

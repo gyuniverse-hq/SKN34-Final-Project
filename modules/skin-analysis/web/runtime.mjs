@@ -137,7 +137,18 @@ export async function boot(config) {
 
   try {
     post({ type: 'camera', state: { guidance: 'loading', progress: 0 } });
+    // Show live video before downloading/initializing the analysis runtimes.
+    try {
+      const next = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 960 } }, audio: false });
+      if (stopped) { next.getTracks().forEach(track => track.stop()); return; }
+      stream = next; video.srcObject = stream; await video.play(); check();
+    } catch (error) {
+      cleanup();
+      if (error?.message !== 'cancelled') post({ type: 'error', code: error?.name === 'NotAllowedError' ? 'permission' : 'camera' });
+      return;
+    }
     ort = await import(base + 'ort.wasm.min.mjs');
+    check();
     await Promise.all([script(base + 'opencv.js'), script(base + 'jpeg.js')]);
     const cvModule = window.cv;
     if (cvModule instanceof Promise) cv = await cvModule;
@@ -160,8 +171,7 @@ export async function boot(config) {
       runningMode: 'VIDEO', numFaces: 2, minFaceDetectionConfidence: .5, minTrackingConfidence: .5,
     });
     check();
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 960 } }, audio: false });
-    check(); video.srcObject = stream; await video.play(); startupMs = elapsed(startupAt);
+    startupMs = elapsed(startupAt);
     const openedAt = performance.now(), gate = new CaptureGate(); gate.reset();
     let lastVideoTime = -1, capturing = false;
     async function capture() {
@@ -210,7 +220,7 @@ export async function boot(config) {
     async function frame() {
       if (stopped || capturing) return;
       try {
-        if (video.currentTime === lastVideoTime) { setTimeout(frame, 100); return; }
+        if (video.readyState < 2 || !video.videoWidth || !video.videoHeight || video.currentTime === lastVideoTime) { setTimeout(frame, 100); return; }
         lastVideoTime = video.currentTime;
         const now = performance.now(), result = tracker.detectForVideo(video, now);
         const bounds = video.getBoundingClientRect();

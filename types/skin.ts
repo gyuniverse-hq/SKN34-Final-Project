@@ -101,4 +101,4 @@ export type SkinWebEvent = { type: 'camera'; state: SkinCameraEvent }
   | { type: 'preview-end'; runId: string }
   | { type: 'progress'; indicator: SkinIndicator }
   | { type: 'result'; result: SkinAnalysisResult }
-  | { type: 'error'; code: 'photo' | 'permission' | 'model' };
+  | { type: 'error'; code: 'photo' | 'permission' | 'model' | 'camera' };
