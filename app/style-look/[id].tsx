@@ -27,7 +27,7 @@ export default function StyleLookDetail() {
       <Stack.Screen options={{ title: look.title }} />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
-          <StyleLookArtwork group={look.group} />
+          <StyleLookArtwork group={look.group} videoId={look.id} />
           <Text style={styles.heroGroup}>{styleLookGroupLabel(look.group, t)}</Text>
           <View><Text style={styles.tag}>{look.tag}</Text><Text style={styles.title} accessibilityRole="header">{look.title}</Text></View>
         </View>

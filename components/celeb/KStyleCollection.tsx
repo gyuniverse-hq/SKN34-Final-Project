@@ -88,7 +88,7 @@ export const KStyleCollection = memo(function KStyleCollection({
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
           {isCelebrity
             ? celebrities.map(({ celebrity, name }) => (
-                <CelebrityCard key={celebrity.id} celebrity={celebrity} name={name} label={activeLabel}
+                <CelebrityCard key={celebrity.id} celebrity={celebrity} name={name} label={activeLabel} lookbook
                   onPress={() => onPressCelebrity(celebrity)} />
               ))
             : looks?.map((look) => (

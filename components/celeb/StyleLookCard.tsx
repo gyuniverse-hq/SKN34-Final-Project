@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '@/constants/theme';
 import type { StyleLook } from '@/types';
@@ -15,13 +16,19 @@ const PALETTES: Record<string, readonly [string, string]> = {
   '아이 메이크업': ['#A3889A', '#584359'],
 };
 
-export function StyleLookArtwork({ group }: { group: string }) {
+export function StyleLookArtwork({ group, videoId }: { group: string; videoId?: string }) {
+  const [failedVideoId, setFailedVideoId] = useState<string | null>(null);
+  const imageFailed = !!videoId && failedVideoId === videoId;
+  const thumbnail = videoId && /^[A-Za-z0-9_-]{11}$/.test(videoId)
+    ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <LinearGradient colors={PALETTES[group] ?? ['#B77881', '#69434F']} style={StyleSheet.absoluteFill} />
       <View style={styles.circleLarge} />
       <View style={styles.circleSmall} />
       <View style={styles.line} />
+      {thumbnail && !imageFailed ? <Image source={{ uri: thumbnail }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} onError={() => setFailedVideoId(videoId ?? null)} /> : null}
+      {thumbnail && !imageFailed ? <LinearGradient colors={['rgba(20,10,14,0.35)', 'rgba(20,10,14,0.78)']} style={StyleSheet.absoluteFill} /> : null}
     </View>
   );
 }
@@ -38,7 +45,7 @@ export const StyleLookCard = memo(function StyleLookCard({ look, groupLabel, pro
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`${look.title}, ${groupLabel}, ${productLabel}`} onPress={onPress}
       style={({ pressed }) => [styles.card, width !== undefined && { width }, pressed && styles.pressed]}>
-      <StyleLookArtwork group={look.group} />
+      <StyleLookArtwork group={look.group} videoId={look.id} />
       <View style={styles.top}><Text style={styles.topText}>{groupLabel}</Text><Ionicons name="arrow-forward" size={16} color={theme.colors.white} /></View>
       <View style={styles.copy}>
         <Text style={styles.tag} numberOfLines={1}>{look.tag}</Text>
