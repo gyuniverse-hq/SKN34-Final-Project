@@ -2,8 +2,8 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StyleLookArtwork } from '@/components/celeb/StyleLookCard';
 import { openYoutubeVideo } from '@/components/celeb/VideoCard';
+import { YoutubePlayer } from '@/components/celeb/YoutubePlayer';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
 import { useI18n } from '@/lib/i18n';
@@ -26,15 +26,13 @@ export default function StyleLookDetail() {
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <Stack.Screen options={{ title: look.title }} />
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <StyleLookArtwork group={look.group} videoId={look.id} />
-          <Text style={styles.heroGroup}>{styleLookGroupLabel(look.group, t)}</Text>
-          <View><Text style={styles.tag}>{look.tag}</Text><Text style={styles.title} accessibilityRole="header">{look.title}</Text></View>
-        </View>
+        <YoutubePlayer videoId={look.id} title={look.title} />
+        <Text style={styles.heroGroup}>{styleLookGroupLabel(look.group, t)}</Text>
+        <Text style={styles.title} accessibilityRole="header">{look.title}</Text>
+        <Text style={styles.tag}>{look.tag}</Text>
         <Pressable accessibilityRole="link" style={({ pressed }) => [styles.video, pressed && styles.pressed]} onPress={() => { openYoutubeVideo(look.id).catch(() => Alert.alert(t('styleLooks.videoError'))); }}>
-          <View style={styles.play}><Ionicons name="play" size={18} color={theme.colors.white} /></View>
-          <View style={styles.videoCopy}><Text style={styles.videoText}>{t('styleLooks.video')}</Text><Text style={styles.videoHint}>{t('styleLooks.videoHint')}</Text></View>
-          <Ionicons name="open-outline" size={19} color={theme.colors.rose} />
+          <Text style={styles.videoText}>{t('celebVideo.openYoutube')}</Text>
+          <Ionicons name="open-outline" size={15} color={theme.colors.rose} />
         </Pressable>
         <View style={styles.headingRow}><Text style={styles.heading} accessibilityRole="header">{t('styleLooks.products')}</Text><Text style={styles.total}>{t('looks.itemCount', { count: look.products.length })}</Text></View>
         <View style={styles.notice}><Ionicons name="information-circle-outline" size={18} color={theme.colors.rose} /><Text style={styles.noticeText}>{t('styleLooks.unverified')}</Text></View>
@@ -64,15 +62,11 @@ export default function StyleLookDetail() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.surface },
   content: { padding: theme.spacing.lg, paddingBottom: 48 },
-  hero: { minHeight: 230, padding: 22, borderRadius: 24, overflow: 'hidden', justifyContent: 'space-between', backgroundColor: theme.colors.rose },
-  heroGroup: { color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: '700' },
-  title: { fontSize: 27, lineHeight: 35, fontWeight: '800', color: theme.colors.white, marginTop: 6 },
-  tag: { color: 'rgba(255,255,255,0.85)', fontSize: 13 },
-  video: { marginTop: 16, padding: 15, backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderWidth: 1, borderRadius: theme.radius.lg, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  play: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.colors.rose, alignItems: 'center', justifyContent: 'center' },
-  videoCopy: { flex: 1 },
-  videoText: { color: theme.colors.ink, fontSize: 15, fontWeight: '800' },
-  videoHint: { color: theme.colors.inkMuted, fontSize: 12, marginTop: 4 },
+  heroGroup: { color: theme.colors.accent, fontSize: 12, fontWeight: '700', marginTop: 16 },
+  title: { fontSize: 22, lineHeight: 30, fontWeight: '800', color: theme.colors.ink, marginTop: 4 },
+  tag: { color: theme.colors.inkMuted, fontSize: 13, marginTop: 4 },
+  video: { alignSelf: 'flex-start', marginTop: 8, minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  videoText: { color: theme.colors.rose, fontSize: 12, fontWeight: '700' },
   pressed: { opacity: 0.8 },
   headingRow: { marginTop: 32, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   heading: { fontSize: 20, fontWeight: '800', color: theme.colors.ink },

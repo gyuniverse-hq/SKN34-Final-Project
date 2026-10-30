@@ -11,6 +11,7 @@ jest.mock('expo-router', () => ({
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: 'LinearGradient' }));
 jest.mock('@/components/celeb/VideoCard', () => ({ openYoutubeVideo: jest.fn(() => Promise.resolve()) }));
+jest.mock('@/components/celeb/YoutubePlayer', () => ({ YoutubePlayer: 'YoutubePlayer' }));
 jest.mock('@/components/ui/StateViews', () => ({ EmptyState: 'EmptyState', ErrorState: 'ErrorState', LoadingState: 'LoadingState' }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 jest.mock('@/lib/queries', () => ({
@@ -32,6 +33,7 @@ test('groups products by area, marks unknown shades and opens the linked video',
   expect(text).toContain('styleLooks.zone.shadow');
   expect(text).toContain('styleLooks.optionUnknown');
   expect(text).toContain('styleLooks.unverified');
+  expect(screen.root.findByProps({ videoId: 'video-1', title: 'Example look' })).toBeTruthy();
   const video = screen.root.findByProps({ accessibilityRole: 'link' });
   await act(async () => { video.props.onPress(); });
   expect(openYoutubeVideo).toHaveBeenCalledWith('video-1');
