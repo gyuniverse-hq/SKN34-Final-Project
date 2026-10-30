@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 from app.core.cache import NullCache
 from app.main import create_app
 from app.schemas.catalog import CatalogBundle, CelebLook, Product, Store
+from app.schemas.member import MemberRecord
 from app.services.catalog_service import CatalogService, get_catalog_service
 
 
@@ -95,6 +96,35 @@ class FakeCatalogStore:
 
     async def replace_catalog(self, bundle):
         self.bundle = bundle
+
+
+class FakeMembers:
+    """In-memory stand-in for MemberRepository."""
+
+    def __init__(self) -> None:
+        self.rows: dict[str, MemberRecord] = {}
+
+    async def get(self, member_id):
+        return self.rows.get(member_id)
+
+    async def save_terms(self, member_id, version, agreed_at):
+        row = MemberRecord(id=member_id, terms_version=version, terms_agreed_at=agreed_at)
+        self.rows[member_id] = row
+        return row
+
+    async def delete(self, member_id):
+        self.rows.pop(member_id, None)
+
+
+class FakeAccounts:
+    def __init__(self, error: Exception | None = None) -> None:
+        self.deleted: list[str] = []
+        self._error = error
+
+    async def delete_user(self, user_id):
+        if self._error:
+            raise self._error
+        self.deleted.append(user_id)
 
 
 @pytest.fixture

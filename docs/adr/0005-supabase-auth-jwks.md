@@ -1,6 +1,6 @@
 # ADR-0005 인증은 Supabase Auth를 유지하고, 백엔드는 JWKS로 토큰을 검증한다
 
-- 상태: 채택 (2026-10-23)
+- 상태: 채택 (2026-10-23), secret 키 부분은 [ADR-0010](0010-account-deletion-secret-key.md)으로 대체
 
 ## 배경
 

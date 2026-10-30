@@ -2,6 +2,8 @@ import pytest
 
 from app.core import auth
 from app.core.auth import bearer_token, user_from_claims
+from app.services.member_service import MemberService, get_member_service
+from tests.conftest import FakeAccounts, FakeMembers
 
 
 def test_bearer_token_parsing():
@@ -38,7 +40,9 @@ class _Verifier:
 )
 def test_me_requires_a_valid_token(client, monkeypatch, header, status):
     monkeypatch.setattr(auth, "get_verifier", lambda: _Verifier())
+    service = MemberService(FakeMembers(), FakeAccounts())
+    client.app.dependency_overrides[get_member_service] = lambda: service
     res = client.get("/api/me", headers={"Authorization": header} if header else {})
     assert res.status_code == status
     if status == 200:
-        assert res.json() == {"user": {"id": "user-1", "email": None}}
+        assert res.json()["user"] == {"id": "user-1", "email": None}

@@ -23,7 +23,8 @@ gateway:
 
 # Secrets come from AWS Secrets Manager through External Secrets Operator:
 #   vishue/production/api      {"DATABASE_URL": ..., "REDIS_URL": ..., "NAVER_CLIENT_ID": ...,
-#                               "NAVER_CLIENT_SECRET": ..., "YOUTUBE_API_KEY": ...}
+#                               "NAVER_CLIENT_SECRET": ..., "YOUTUBE_API_KEY": ...,
+#                               "SUPABASE_SECRET_KEY": ...}
 #   vishue/production/chatbot  {"NEO4J_PASSWORD": ..., "REDIS_URL": ..., "LLM_API_KEY": ...}
 externalSecrets:
   enabled: true

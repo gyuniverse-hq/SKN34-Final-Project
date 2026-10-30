@@ -11,6 +11,7 @@ locals {
       NAVER_CLIENT_ID     = ""
       NAVER_CLIENT_SECRET = ""
       YOUTUBE_API_KEY     = ""
+      SUPABASE_SECRET_KEY = ""
     }
     "production/chatbot" = {
       REDIS_URL      = "rediss://${local.redis_host}:6379/1"

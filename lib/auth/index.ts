@@ -8,6 +8,7 @@ import { parseAuthRedirect } from './redirect';
 
 export { isAuthConfigured } from './client';
 export { authErrorCode, authErrorMessageKey } from './errors';
+export { isValidEmail, MIN_PASSWORD_LENGTH, newPasswordError } from './validation';
 
 function requireClient() {
   const supabase = getSupabase();
@@ -43,6 +44,13 @@ export async function getAccessToken() {
   if (!supabase) return null;
   const { data } = await supabase.auth.getSession();
   return data.session?.access_token ?? null;
+}
+
+export async function getCurrentUserId() {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user.id ?? null;
 }
 
 export async function signInWithEmail(email: string, password: string) {

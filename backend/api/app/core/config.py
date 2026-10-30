@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     # Public Supabase values, used only to verify access tokens.
     supabase_url: str | None = None
     supabase_publishable_key: str | None = None
+    # Server-only Supabase secret key, used only to delete accounts (ADR-0010).
+    supabase_secret_key: str | None = None
     cors_origins: list[str] = []
     toss_client_key: str | None = None
     toss_secret_key: str | None = None

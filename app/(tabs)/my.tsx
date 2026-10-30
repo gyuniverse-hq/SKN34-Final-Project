@@ -6,6 +6,8 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ListRow } from '@/components/ui/ListRow';
 import { theme } from '@/constants/theme';
+import { deleteAccount } from '@/lib/account';
+import { ApiError } from '@/lib/api';
 import { authErrorMessageKey, signOut, useAuth } from '@/lib/auth';
 import { confirmAction, notify } from '@/lib/confirm';
 import { LANGUAGE_LABELS, LANGUAGES, useI18n, type LanguagePreference } from '@/lib/i18n';
@@ -58,6 +60,20 @@ export default function MyScreen() {
   const logout = () =>
     confirmAction(t('auth.logoutConfirm'), t('auth.logout'), t('common.cancel'), () => {
       signOut().catch((e) => notify(t(authErrorMessageKey(e))));
+    });
+
+  const removeAccount = () =>
+    confirmAction(t('account.deleteConfirm'), t('account.delete'), t('common.cancel'), async () => {
+      try {
+        await deleteAccount();
+      } catch (e) {
+        const unavailable = e instanceof ApiError && e.code === 'account_deletion_unavailable';
+        notify(t(unavailable ? 'account.deleteUnavailable' : 'auth.error.generic'));
+        return;
+      }
+      await signOut().catch(() => {});
+      queryClient.removeQueries({ queryKey: ['me'] });
+      notify(t('account.deleteDone'));
     });
 
   return (
@@ -119,6 +135,9 @@ export default function MyScreen() {
 
       <Section>
         <ListRow icon="trash-outline" label={t('my.deleteData')} destructive onPress={deleteAll} />
+        {user ? (
+          <ListRow icon="person-remove-outline" label={t('account.delete')} destructive onPress={removeAccount} />
+        ) : null}
       </Section>
 
       <Text style={styles.note}>{t('my.dataNote')}</Text>

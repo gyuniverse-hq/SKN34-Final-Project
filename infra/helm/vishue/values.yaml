@@ -74,7 +74,8 @@ networkPolicy:
   gatewayNamespace: envoy-gateway-system
 
 # Secret keys per service (least privilege: the LLM key exists only in the chatbot's Secret).
-#   api:     DATABASE_URL, REDIS_URL, NAVER_CLIENT_ID, NAVER_CLIENT_SECRET, YOUTUBE_API_KEY
+#   api:     DATABASE_URL, REDIS_URL, NAVER_CLIENT_ID, NAVER_CLIENT_SECRET, YOUTUBE_API_KEY,
+#            SUPABASE_SECRET_KEY
 #   chatbot: NEO4J_PASSWORD, REDIS_URL, LLM_API_KEY
 # Keys of in-cluster data stores (see dataStores) are filled by the chart and can be omitted.
 secrets:

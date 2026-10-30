@@ -14,6 +14,7 @@ import {
   productHref,
   recommendationsHref,
   searchHref,
+  signupHref,
 } from '@/lib/routes';
 
 describe('route param parsing', () => {
@@ -97,5 +98,14 @@ describe('route builders pass ids, never names', () => {
 
   it('login return links are limited to the checkout flow', () => {
     expect(loginHref('checkout')).toEqual({ pathname: '/login', params: { returnTo: 'checkout' } });
+  });
+
+  it('sign-up links keep the return target and open the code step only with an email', () => {
+    expect(signupHref()).toEqual({ pathname: '/signup', params: {} });
+    expect(signupHref({ returnTo: 'checkout' })).toEqual({ pathname: '/signup', params: { returnTo: 'checkout' } });
+    expect(signupHref({ returnTo: 'checkout', verifyEmail: 'a@b.co' })).toEqual({
+      pathname: '/signup',
+      params: { returnTo: 'checkout', email: 'a@b.co', verify: '1' },
+    });
   });
 });

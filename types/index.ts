@@ -176,7 +176,35 @@ export interface MakeupState {
   foundation?: ZoneSetting | null;
 }
 
-export interface StyleLookProduct {
+export interface VideoProductMapping {
+  mappingVerified?: boolean;
+  catalogProductId?: string;
+  catalogShadeId?: string;
+}
+
+export interface CelebrityVideoProduct extends VideoProductMapping {
+  number: number;
+  category: string;
+  zone: string;
+  brand: string;
+  name: string;
+  option: string;
+  reviewStatus: string;
+  sourceType: string;
+}
+
+export interface CelebrityVideo {
+  id: string;
+  celebrityId: string;
+  number: number;
+  startSeconds: number;
+  linkStatus: 'metadata_available' | 'needs_review';
+  title: string;
+  channelName: string;
+  products: CelebrityVideoProduct[];
+}
+
+export interface StyleLookProduct extends VideoProductMapping {
   number: number;
   brand: string;
   name: string;
@@ -358,8 +386,16 @@ export interface AuthUser {
   email: string | null;
 }
 
+export interface TermsStatus {
+  /** Terms version the server currently requires. */
+  version: string;
+  agreedVersion: string | null;
+  agreedAt: string | null;
+}
+
 export interface MeResponse {
   user: AuthUser;
+  terms: TermsStatus;
 }
 
 export interface ApiErrorBody {

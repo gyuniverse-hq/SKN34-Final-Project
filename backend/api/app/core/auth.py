@@ -36,7 +36,7 @@ class SupabaseTokenVerifier:
     """Verifies Supabase access tokens locally with the project's JWKS (asymmetric signing keys).
 
     Projects still on the legacy shared secret (HS256) fall back to asking Supabase Auth,
-    the same strategy supabase-js `getClaims()` uses in the Expo API routes.
+    the same strategy supabase-js `getClaims()` uses.
     """
 
     def __init__(self, supabase_url: str, publishable_key: str) -> None:

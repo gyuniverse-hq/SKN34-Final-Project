@@ -35,6 +35,7 @@ erDiagram
 | look_ar_settings | look_id S(32), makeup_zone S(20), hex S(7), intensity F, texture S(20) | 복합 PK(look_id,makeup_zone); look_id FK → makeup_looks CASCADE |
 | orders | id S(64), user_id S(64), amount_krw I, order_name S(100), status S(20), checkout_token_hash S(64), payment_key S(200)? | PK id, payment_key UNIQUE, user_id/status 인덱스; 미커밋 |
 | order_lines | id I, order_id S(64), product_id S(64), shade_id S(64)?, quantity I, unit_price_krw I | PK id 자동 증가; order_id FK → orders CASCADE 및 인덱스; 미커밋 |
+| members | id S(64), terms_version S(32), terms_agreed_at timestamptz | PK id(Supabase 사용자 id, FK 아님); RLS 켜짐(정책 없음) — `0008_members.py` |
 
 그 외 열은 위 `?`가 없는 경우 NOT NULL이다. 상태 enum, 가격·hex 등의 일부 제약은 DB CHECK가 아니라 Pydantic/시드 검증에 있다. 스키마의 모든 제약과 서버 기본값은 마이그레이션 원문이 우선한다. `0002`의 영상 등록과 `0003`의 프리셋은 검증된 실제 사용 제품의 증거가 아니다.
 
@@ -45,7 +46,7 @@ erDiagram
 | PostgreSQL | api가 원본 카탈로그·영상 룩과 작업 트리의 주문을 관리한다. 모델/마이그레이션은 위 표. | 시드 갱신은 `backend/api/app/jobs/seed_catalog.py` 참조. 실제 DB 보존·복구·주문 삭제 규정은 UNKNOWN. |
 | Neo4j | chatbot 사본: `Product`→`HAS_SHADE`→`Shade`, `CONTAINS`→`Ingredient`, `TAGGED`→`Tag`, `Look`→`USES`→`Product`; Product/Look id, Ingredient/Tag name 유일 제약 | `backend/chatbot/app/repositories/graph_repository.py`에서 한 트랜잭션으로 기존 노드 삭제 후 재구성. 실제 동기화 시각은 UNKNOWN. |
 | Redis | 응답 캐시·요청 제한용; 서비스 설정 참조 | TTL 및 가용성은 호출별 구현 참조. 지속 보관 정책 UNKNOWN. |
-| Supabase Auth | 인증 계정 및 토큰의 외부 소유자 | 계정 삭제·보관 정책 UNKNOWN. 앱 저장과 세션은 `lib/auth/` 참조. |
+| Supabase Auth | 인증 계정 및 토큰의 외부 소유자 | 앱의 회원 탈퇴(`DELETE /api/me`)가 계정과 `members` 기록을 삭제하고 주문은 남긴다([ADR-0010](../adr/0010-account-deletion-secret-key.md)). 앱 저장과 세션은 `lib/auth/` 참조. |
 | 기기 저장 | `store/`의 설정·장바구니·피부 수치 등 | 저장 및 개별 삭제 동작은 각 store 참조. 기기 삭제, 백업 정책은 UNKNOWN. 원본 얼굴 이미지 서버 전송은 사용자 지시상 금지. |
 
 ## 4. 목표 설계 제안
