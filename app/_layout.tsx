@@ -76,6 +76,7 @@ function RootStack() {
       <Stack.Screen name="skin-recommendations" options={{ title: t('skinFlow.resultTitle') }} />
       <Stack.Screen name="cart" options={{ title: t('cart.title') }} />
       <Stack.Screen name="checkout" options={{ title: t('checkout.title'), presentation: 'modal' }} />
+      <Stack.Screen name="payment-result" options={{ headerShown: false }} />
       <Stack.Screen name="lists/index" options={{ title: t('list.saved') }} />
       <Stack.Screen name="lists/[id]" options={{ title: t('list.title') }} />
       <Stack.Screen name="legal/[doc]" options={{ title: '' }} />

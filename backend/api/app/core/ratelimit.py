@@ -58,6 +58,13 @@ def get_tutorial_rate_limiter() -> RateLimiter:
     return RedisRateLimiter(client, "tutorials", limit) if client else MemoryRateLimiter(limit)
 
 
+@lru_cache
+def get_offer_search_rate_limiter() -> RateLimiter:
+    limit = get_settings().offer_searches_per_minute
+    client = get_redis()
+    return RedisRateLimiter(client, "offer-search", limit) if client else MemoryRateLimiter(limit)
+
+
 def client_key(request: Request) -> str:
     """Caller IP. uvicorn runs with --proxy-headers, so this is the address the gateway saw."""
     return request.client.host if request.client else "anonymous"

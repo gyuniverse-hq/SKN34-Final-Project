@@ -32,6 +32,11 @@ class PaymentResult(BaseModel):
     return_url: str = Field(alias="returnUrl")
 
 
+class OrderStatus(BaseModel):
+    order_id: str = Field(alias="orderId")
+    status: Literal["pending", "paid"]
+
+
 class PublicCheckout(BaseModel):
     order_id: str
     order_name: str
