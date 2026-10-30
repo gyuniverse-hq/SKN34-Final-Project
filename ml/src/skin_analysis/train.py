@@ -43,7 +43,8 @@ def train_epoch(
 ) -> float:
     model.train()
     optimizer.zero_grad(set_to_none=True)
-    if not len(loader.dataset) or effective_batch % loader.batch_size:
+    micro_batch = getattr(loader, "micro_batch_size", loader.batch_size)
+    if not len(loader.dataset) or micro_batch is None or effective_batch % micro_batch:
         raise ValueError("Nonempty dataset and a micro batch dividing the effective batch required")
     model._amp_overflow_retries = 0
     seen, group_seen, weighted_loss = 0, 0, 0.0
