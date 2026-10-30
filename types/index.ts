@@ -176,7 +176,13 @@ export interface MakeupState {
   foundation?: ZoneSetting | null;
 }
 
-export interface CelebrityVideoProduct {
+export interface VideoProductMapping {
+  mappingVerified?: boolean;
+  catalogProductId?: string;
+  catalogShadeId?: string;
+}
+
+export interface CelebrityVideoProduct extends VideoProductMapping {
   number: number;
   category: string;
   zone: string;
@@ -198,7 +204,7 @@ export interface CelebrityVideo {
   products: CelebrityVideoProduct[];
 }
 
-export interface StyleLookProduct {
+export interface StyleLookProduct extends VideoProductMapping {
   number: number;
   brand: string;
   name: string;

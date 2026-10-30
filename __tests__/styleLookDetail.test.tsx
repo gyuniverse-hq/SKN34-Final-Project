@@ -12,6 +12,7 @@ jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: 'LinearGradient' }));
 jest.mock('@/components/celeb/VideoCard', () => ({ openYoutubeVideo: jest.fn(() => Promise.resolve()) }));
 jest.mock('@/components/celeb/YoutubePlayer', () => ({ YoutubePlayer: 'YoutubePlayer' }));
+jest.mock('@/hooks/useVideoTryOn', () => ({ useVideoTryOn: () => ({ open: jest.fn(), loading: false, error: false, count: 0, selectedIndices: new Set() }) }));
 jest.mock('@/components/ui/StateViews', () => ({ EmptyState: 'EmptyState', ErrorState: 'ErrorState', LoadingState: 'LoadingState' }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 jest.mock('@/lib/queries', () => ({

@@ -1,9 +1,9 @@
 from typing import Literal
 
-from app.schemas.base import ApiModel
+from app.schemas.base import ApiModel, OmitNoneModel
 
 
-class CelebrityVideoProduct(ApiModel):
+class CelebrityVideoProduct(OmitNoneModel):
     number: int
     category: str
     zone: str
@@ -12,6 +12,9 @@ class CelebrityVideoProduct(ApiModel):
     option: str
     review_status: str
     source_type: str
+    mapping_verified: bool | None = None
+    catalog_product_id: str | None = None
+    catalog_shade_id: str | None = None
 
 
 class CelebrityVideo(ApiModel):

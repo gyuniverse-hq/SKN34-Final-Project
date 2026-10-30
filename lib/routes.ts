@@ -101,13 +101,14 @@ export function celebrityHref(id: string): Href {
   return { pathname: '/celebrities/[id]', params: { id } } as Href;
 }
 
-export function arHref(options: { productId?: string; shadeId?: string; compare?: boolean } = {}): Href {
+export function arHref(options: { productId?: string; shadeId?: string; compare?: boolean; video?: boolean } = {}): Href {
   return {
     pathname: '/ar',
     params: compact({
       productId: options.productId,
       shadeId: options.productId ? options.shadeId : undefined,
       compare: options.compare ? '1' : undefined,
+      video: options.video ? '1' : undefined,
     }),
   } as Href;
 }

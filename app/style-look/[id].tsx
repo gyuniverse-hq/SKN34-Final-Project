@@ -3,9 +3,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { openYoutubeVideo } from '@/components/celeb/VideoCard';
+import { VideoTryOn } from '@/components/celeb/VideoTryOn';
 import { YoutubePlayer } from '@/components/celeb/YoutubePlayer';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
+import { useVideoTryOn } from '@/hooks/useVideoTryOn';
 import { useI18n } from '@/lib/i18n';
 import { useStyleLooks } from '@/lib/queries';
 import { parseId } from '@/lib/routes';
@@ -16,9 +18,10 @@ export default function StyleLookDetail() {
   const id = parseId(rawId);
   const { t } = useI18n();
   const query = useStyleLooks();
+  const look = query.data?.find((item) => item.id === id);
+  const ar = useVideoTryOn(look?.products ?? [], `style-${id ?? ''}`, look?.title ?? '');
   if (query.isPending) return <LoadingState />;
   if (query.isError) return <ErrorState error={query.error} onRetry={() => query.refetch()} />;
-  const look = query.data.find((item) => item.id === id);
   if (!look) return <EmptyState icon="search-outline" title={t('common.notFound')} />;
   const zones = [...new Set(look.products.map((product) => product.zone))];
 
@@ -34,6 +37,8 @@ export default function StyleLookDetail() {
           <Text style={styles.videoText}>{t('celebVideo.openYoutube')}</Text>
           <Ionicons name="open-outline" size={15} color={theme.colors.rose} />
         </Pressable>
+        <VideoTryOn label={t('videoAr.button')} loading={ar.loading} onPress={ar.open}
+          message={ar.error ? t('videoAr.error') : ar.count ? t('videoAr.mapped', { count: ar.count }) : t('videoAr.none')} />
         <View style={styles.headingRow}><Text style={styles.heading} accessibilityRole="header">{t('styleLooks.products')}</Text><Text style={styles.total}>{t('looks.itemCount', { count: look.products.length })}</Text></View>
         <View style={styles.notice}><Ionicons name="information-circle-outline" size={18} color={theme.colors.rose} /><Text style={styles.noticeText}>{t('styleLooks.unverified')}</Text></View>
         {zones.map((zone) => {
@@ -47,6 +52,7 @@ export default function StyleLookDetail() {
                   <View style={styles.productCopy}>
                     <Text style={styles.brand}>{product.brand}</Text>
                     <Text style={styles.name}>{product.name}</Text>
+                    {ar.selectedIndices.has(look.products.indexOf(product)) ? <Text style={styles.mapped}>{t('videoAr.selected')}</Text> : null}
                     <Text style={styles.option}>{product.option === '원문에 명시 정보 없음' ? t('styleLooks.optionUnknown') : product.option}</Text>
                   </View>
                 </View>
@@ -84,4 +90,5 @@ const styles = StyleSheet.create({
   brand: { fontSize: 12, color: theme.colors.inkMuted, fontWeight: '600' },
   name: { marginTop: 3, fontSize: 15, lineHeight: 21, fontWeight: '700', color: theme.colors.ink },
   option: { marginTop: 4, fontSize: 12, color: theme.colors.inkMuted },
+  mapped: { marginTop: 4, fontSize: 12, color: theme.colors.success, fontWeight: '700' },
 });

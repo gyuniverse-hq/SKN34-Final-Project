@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.repositories.style_look_repository import StyleLookRepository
+from app.schemas.style_look import StyleProduct
 
 
 def test_style_look_data_preserves_video_and_product_links():
@@ -24,3 +25,15 @@ def test_style_looks_endpoint_uses_client_field_names():
     look = response.json()["looks"][0]
     assert look["videoUrl"].endswith(look["id"])
     assert look["products"][0]["reviewStatus"] == "검토 필요"
+
+
+def test_verified_product_mapping_is_retained_in_api_contract():
+    item = StyleProduct.model_validate({
+        "number": 1, "brand": "A", "name": "B", "option": "C", "category": "lip",
+        "zone": "립", "reviewStatus": "검토 완료", "mappingVerified": True,
+        "catalogProductId": "p1", "catalogShadeId": "s1",
+    })
+    result = item.model_dump(mode="json", by_alias=True)
+    assert result["mappingVerified"] is True
+    assert result["catalogProductId"] == "p1"
+    assert result["catalogShadeId"] == "s1"
