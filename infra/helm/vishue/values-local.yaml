@@ -35,5 +35,6 @@ secrets:
     NAVER_CLIENT_ID: ""
     NAVER_CLIENT_SECRET: ""
     YOUTUBE_API_KEY: ""
+    SUPABASE_SECRET_KEY: ""
   chatbot:
     LLM_API_KEY: ""

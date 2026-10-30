@@ -13,7 +13,7 @@ import {
 } from '@/lib/auth';
 import { notify } from '@/lib/confirm';
 import { useI18n } from '@/lib/i18n';
-import { parseLoginReturnTo } from '@/lib/routes';
+import { parseLoginReturnTo, signupHref } from '@/lib/routes';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -25,8 +25,8 @@ export default function LoginScreen() {
   const [googleBusy, setGoogleBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const configured = isAuthConfigured();
+  const destination = parseLoginReturnTo(returnTo);
   const finishLogin = () => {
-    const destination = parseLoginReturnTo(returnTo);
     if (destination) router.replace(`/${destination}`);
     else router.dismissTo('/my');
   };
@@ -41,7 +41,7 @@ export default function LoginScreen() {
     } catch (e) {
       if (authErrorCode(e) === 'email_not_confirmed') {
         await resendSignupCode(address).catch(() => {});
-        router.replace({ pathname: '/signup', params: { email: address, verify: '1' } });
+        router.replace(signupHref({ returnTo: destination, verifyEmail: address }));
         return;
       }
       setError(t(authErrorMessageKey(e)));
@@ -112,7 +112,7 @@ export default function LoginScreen() {
         style={authStyles.gap}
       />
 
-      <Pressable accessibilityRole="button" style={authStyles.link} onPress={() => router.replace('/signup')}>
+      <Pressable accessibilityRole="button" style={authStyles.link} onPress={() => router.replace(signupHref({ returnTo: destination }))}>
         <Text style={authStyles.linkText}>{t('login.signup')}</Text>
       </Pressable>
     </AuthScreen>

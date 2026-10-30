@@ -5,6 +5,9 @@
  */
 export const LEGAL_LAST_UPDATED = '[YYYY-MM-DD]';
 
+/** Same value as TERMS_VERSION in backend/api member_service.py. Bump both when the terms change. */
+export const TERMS_VERSION = '2026-10-30';
+
 export const PRIVACY_POLICY = `Privacy Policy
 
 Last updated: ${LEGAL_LAST_UPDATED}
@@ -12,7 +15,7 @@ Last updated: ${LEGAL_LAST_UPDATED}
 [Company name] ("we") operates the VISHUE app (the "App"). This policy explains what information the App handles.
 
 1. Account (optional)
-You can use the App without an account. If you create one, we collect your email address. If you sign in with Google, we also receive the name, email address, and profile photo of your Google account. Account data is stored by our authentication provider, Supabase; passwords are stored only in hashed form and we never see them. We use account data only to sign you in and to provide account features such as saved looks and rewards. To delete your account and its data, contact us at [contact email].
+You can use the App without an account. If you create one, we collect your email address. If you sign in with Google, we also receive the name, email address, and profile photo of your Google account. Account data is stored by our authentication provider, Supabase; passwords are stored only in hashed form and we never see them. We use account data only to sign you in and to provide account features such as saved looks and rewards. When you create an account we record which version of these terms you agreed to and when. You can delete your account at any time in My > Delete account; this deletes your sign-in account and agreement record. Order records are kept for the period required by law.
 
 2. Camera (AR try-on)
 If you allow camera access, video from your front camera is processed on your device to locate facial features and draw virtual makeup. Camera images are never recorded, saved, or sent to us or anyone else. To run face tracking, the App downloads the MediaPipe library and model files from Google and jsDelivr content delivery networks; these providers receive standard request information such as your IP address. You can turn camera access off at any time in the App (My > Camera) or in your device settings.

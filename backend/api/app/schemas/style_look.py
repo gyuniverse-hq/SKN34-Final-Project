@@ -1,7 +1,7 @@
-from app.schemas.base import ApiModel
+from app.schemas.base import ApiModel, OmitNoneModel
 
 
-class StyleProduct(ApiModel):
+class StyleProduct(OmitNoneModel):
     number: int
     brand: str
     name: str
@@ -9,6 +9,9 @@ class StyleProduct(ApiModel):
     category: str
     zone: str
     review_status: str
+    mapping_verified: bool | None = None
+    catalog_product_id: str | None = None
+    catalog_shade_id: str | None = None
 
 
 class StyleLook(ApiModel):

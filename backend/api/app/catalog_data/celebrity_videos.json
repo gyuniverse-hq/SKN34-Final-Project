@@ -1,0 +1,7486 @@
+[
+  {
+    "id": "Atr1JHUDBIg",
+    "celebrityId": "karina",
+    "number": 1,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "클리오",
+        "name": "킬커버 파운웨어 쿠션 21C 란제리",
+        "option": "21C 란제리",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "릴리바이레드",
+        "name": "러브빔 치크밤 12호 두근빔",
+        "option": "12호 두근빔",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 3,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "로라메르시에",
+        "name": "트랜스루센트 루스 세팅 파우더",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 4,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "데이지크",
+        "name": "브이컷 블렌딩 쉐딩 2호 쿨블렌딩",
+        "option": "2호 쿨블렌딩",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 5,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "키스미",
+        "name": "헤비로테이션 내추럴 파우더 아이브로우 애쉬브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 6,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "슈에무라",
+        "name": "하드 포뮬라 아이브로우 펜슬 씰브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 7,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "우드버리",
+        "name": "프로 오토 브로우 펜슬 버만브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 8,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "클리오",
+        "name": "프로 아이 팔레트 에어 20호 #매화빛댕기",
+        "option": "#매화빛댕기",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 9,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "바닐라코",
+        "name": "비바이바닐라 무드 온 라인 앤 블렌드 아이라이너 초콜렛마티니",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 10,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "홀리카홀리카",
+        "name": "마이페이브 피스 아이섀도우 투샷아메리카노",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 11,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "아이미",
+        "name": "컷팅 가닥 속눈썹 W형 데일리W, 내추럴W",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 12,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "미샤",
+        "name": "노 리터치 보정 마스카라 투명",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 13,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "클리오",
+        "name": "킬 래쉬 수퍼프루프 마스카라 파인 바닐라블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 14,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "뮤드",
+        "name": "인스파이어 스키니 컬링 마스카라 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 15,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "에뛰드",
+        "name": "컬픽스 마스카라 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 16,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "클리오",
+        "name": "에센셜 블러쉬 탭 M103 #히든로즈",
+        "option": "#히든로즈",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 17,
+        "category": "립",
+        "zone": "입술",
+        "brand": "클리오",
+        "name": "벨벳 립 펜슬 9호 #모카로즈",
+        "option": "#모카로즈",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 18,
+        "category": "립",
+        "zone": "입술",
+        "brand": "에이오유",
+        "name": "매트바 03 슴슴바",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 19,
+        "category": "립",
+        "zone": "입술",
+        "brand": "와이엔엠",
+        "name": "하트 베일 틴트 5호 모브베일",
+        "option": "5호 모브베일",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 20,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "어바웃톤",
+        "name": "블러 파우더 팩트 1.5 쿨페어",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 21,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "디올",
+        "name": "백스테이지 글로우 페이스 팔레트 로즈골드",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 22,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "러브라이너",
+        "name": "리퀴드 아이라이너 다크브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "무대밖 카리나가 많이 하는 데일리 사방트임 메이크업 • 눈2배 확장 자연스럽게 하는 방법 • 클리오 #매화빛댕기 사용해 봄",
+    "channelName": "리선 risun"
+  },
+  {
+    "id": "_s8cClPa93c",
+    "celebrityId": "karina",
+    "number": 2,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "렌즈",
+        "zone": "눈",
+        "brand": "코코뷰",
+        "name": "모브 블루 원데이 (렌즈)",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "립",
+        "zone": "입술",
+        "brand": "얼터너티브스테레오",
+        "name": "립 포션 스티밍 밀크 밤",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 3,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "얼터너티브스테레오",
+        "name": "솝 누드 쿠션 01 아이보리 솝",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 4,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "에뛰드",
+        "name": "더블래스팅 커버 컨실러 팔레트 1호",
+        "option": "1호",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 5,
+        "category": "립",
+        "zone": "입술",
+        "brand": "맥",
+        "name": "스튜디오 픽스 프로 세트+블러 웨리트리스 루즈 파우더 로지 핑크",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 6,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "롬앤",
+        "name": "베러 댄 컨투어 02 그레이 쿨",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 7,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "웨이크메이크",
+        "name": "내추럴 하드 브로우 펜슬 05 내추럴 그레이",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 8,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "클리오",
+        "name": "프로 아이 팔레트 에어 14 영원한 모브를 약속해줘",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 9,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "클리오",
+        "name": "프로 아이 팔레트 에어 12 크리스탈 발바닥",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 10,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "토니모리",
+        "name": "백젤 하이테크 플랫 라이너 01 젤블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 11,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "필리밀리",
+        "name": "포인트 컷팅 속눈썹 01 수퍼롱 (11mm)",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 12,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "디어달리아",
+        "name": "뷰러",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 13,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "메이블린",
+        "name": "뉴욕 스카이 하이 마스카라 01 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 14,
+        "category": "립",
+        "zone": "입술",
+        "brand": "데이지크",
+        "name": "수플레 컬러 팟 14 콜디스트 플럼",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 15,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "헤라",
+        "name": "블러쉬 77 아이시 핑크",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 16,
+        "category": "립",
+        "zone": "입술",
+        "brand": "클리오",
+        "name": "벨벳 립 펜슬 05 소프트 베리",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 17,
+        "category": "립",
+        "zone": "입술",
+        "brand": "헤라",
+        "name": "센슈얼 파우더 매트 립스틱 115 노 프라블럼",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 18,
+        "category": "립",
+        "zone": "입술",
+        "brand": "샤넬",
+        "name": "루즈 알뤼르 벨벳 71 럽터리스트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 19,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "투슬래시포",
+        "name": "스트로빙 페이스 큐브 화이트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "요즘 겨쿨 색조는 이렇게💗 카리나st 겨울 쿨 트루톤 메이크업",
+    "channelName": "김크리스탈 KimCrystal"
+  },
+  {
+    "id": "ryKCE_4DkS0",
+    "celebrityId": "karina",
+    "number": 3,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "로라메르시에",
+        "name": "트랜스루센트 루스 세팅 파우더",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "정샘물",
+        "name": "아티스트 페이스 팔레트 컨투어",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 3,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "슈에무라",
+        "name": "하드포뮬라 아이브로우 펜슬 씰브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 4,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "에스쁘아",
+        "name": "더브로우 컬러 픽싱 카라 토프",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 5,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "네이처리퍼블릭",
+        "name": "프로방스 픽서 팩트 베이지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 6,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "메이크업포에버",
+        "name": "HD 스킨 파우더 파운데이션 1R02",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 7,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "삐아",
+        "name": "에센셜 아이 팔레트 #유어모브",
+        "option": "#유어모브",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 8,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "토니모리",
+        "name": "백젤 아이라이너 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 9,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "홀리카홀리카",
+        "name": "마이페이브 피스 아이섀도우 투샷아메리카노",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 10,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "홀리카홀리카",
+        "name": "마이페이브 피스 아이섀도우 아로마에스프레소",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 11,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "깜빡속눈썹",
+        "name": "가닥속눈썹 1기둥 11mm 띠크",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 12,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "메이블린뉴욕",
+        "name": "하이퍼 샤프 익스트림 라이너 울트라블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 13,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "디어달리아",
+        "name": "파라다이스 드림 프리시젼 프로 리퀴드 아이라이너 느와르",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 14,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "미샤",
+        "name": "노리터치 보정카라 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 15,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "데이지크",
+        "name": "섀도우 팔레트 바이올렛니트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 16,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "에뛰드",
+        "name": "룩 앳 마이 아이즈 200년된초코가게",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 17,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "3CE",
+        "name": "소프트 뮤트 펜슬 라이너 밀크누드",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 18,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "홀리카홀리카",
+        "name": "마이페이브 피스 빔 #하이퍼핑크",
+        "option": "#하이퍼핑크",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 19,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "에뛰드",
+        "name": "컬 픽스 마스카라 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 20,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "뮤드",
+        "name": "인스파이어 스키니 컬링 마스카라 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 21,
+        "category": "립",
+        "zone": "입술",
+        "brand": "바닐라코",
+        "name": "컬러 픽싱 틴트 포피레드",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 22,
+        "category": "립",
+        "zone": "입술",
+        "brand": "하트퍼센트",
+        "name": "도트 온 무드 립 펜슬 살몬베이지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 23,
+        "category": "립",
+        "zone": "입술",
+        "brand": "클리오",
+        "name": "벨벳 립 펜슬 커피브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 24,
+        "category": "립",
+        "zone": "입술",
+        "brand": "롬앤",
+        "name": "블러 퍼지 틴트 언로즈",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 25,
+        "category": "립",
+        "zone": "입술",
+        "brand": "클리오",
+        "name": "허그 블러 틴트 #젠틀허그플럼",
+        "option": "#젠틀허그플럼",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 26,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "클리오",
+        "name": "킬브로우 쉐이핑 파우더 브로우 애쉬쿨브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 27,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "3CE",
+        "name": "페이스 블러쉬 #디렉터블",
+        "option": "#디렉터블",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 28,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "네이밍",
+        "name": "플러피 파우더 블러쉬 야미",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 29,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "디올",
+        "name": "백스테이지 글로우 페이스 팔레트 로즈골드",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 30,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "플린",
+        "name": "라이트캐처 리퀴드 글리터 화이트라이트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 31,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "메이블린뉴욕",
+        "name": "하이퍼 샤프 익스트림 라이너 뮤티드애쉬",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "카리나가 많이 하는 모브빛 쿨톤 사방트임 메이크업 (앞트임, 뒤트임, 밑트임 자세히) aespa KARINA MAKEUP",
+    "channelName": "리선 risun"
+  },
+  {
+    "id": "n5otfjJSSQc",
+    "celebrityId": "karina",
+    "number": 4,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "네이밍",
+        "name": "올데이 마스터 쿠션 23N",
+        "option": "23N",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "키스미",
+        "name": "헤비로테이션 내추럴 파우더 아이브로우 애쉬브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 3,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "우드버리",
+        "name": "프로 오토 브로우 펜슬 코기브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 4,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "릴리바이레드",
+        "name": "러브빔 치크밤 꿀복빔",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 5,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "홀리카홀리카",
+        "name": "마이페이브 피스 컨실러 벚꽃안개",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 6,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "데이지크",
+        "name": "브이컷 블렌딩 쉐딩 쿨블렌딩",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 7,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "투쿨포스쿨",
+        "name": "바이로댕 노즈 쉐딩",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 8,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "디올",
+        "name": "디올쇼 5 꿀뢰르 까나쥬 리미티드 에디션 563 브라운브로카트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 9,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "데이지크",
+        "name": "섀도우 팔레트 바이올렛니트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 10,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "홀리카홀리카",
+        "name": "마이페이브 피스 젤테일 코코아브륄레",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 11,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "토니모리",
+        "name": "백젤 아이라이너 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 12,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "홀리카홀리카",
+        "name": "마이페이브 피스 아이섀도우 투샷아메리카노",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 13,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "아이미",
+        "name": "쏙쏙 가닥 속눈썹",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 14,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "에뛰드",
+        "name": "컬픽스 마스카라 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 15,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "홀리카홀리카",
+        "name": "마이페이브 피스 아이섀도우 베이비타로",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 16,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "데이지크",
+        "name": "섀도우 팔레트 애교살메이커",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 17,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "깜빡",
+        "name": "가닥 속눈썹 언더라이트 블랙 1기둥",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 18,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "뮤드",
+        "name": "볼륨 업 스키니 마스카라 웜블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 19,
+        "category": "립",
+        "zone": "입술",
+        "brand": "에이오유",
+        "name": "매트바 슴슴바",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 20,
+        "category": "립",
+        "zone": "입술",
+        "brand": "더샘",
+        "name": "커버 퍼펙션 립 펜슬 니어",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 21,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "3CE",
+        "name": "샤인 리플렉터 오팔샤워",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 22,
+        "category": "립",
+        "zone": "입술",
+        "brand": "어뮤즈",
+        "name": "젤핏 글로스 로즈크림펄글로스",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 23,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "클리오",
+        "name": "에센셜 블러쉬 탭 쉬폰핑크",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 24,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "오프라",
+        "name": "하이라이터 스타아일랜드",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 25,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "글린트",
+        "name": "하이라이터 밀키문",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 26,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "글린트",
+        "name": "투 샤이니 하이라이터 튀튀머치",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 27,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "러브라이너",
+        "name": "리퀴드 아이라이너 다크브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "올드함 1도 없는 고급미 이렇게 해보세요✨ 현실 응용 가능! 카리나 멧갈라 메이크업 KARINA Met Gala makeup",
+    "channelName": "리선 risun"
+  },
+  {
+    "id": "lJaalzfYyLE",
+    "celebrityId": "karina",
+    "number": 5,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "렌즈",
+        "zone": "눈",
+        "brand": "오렌즈",
+        "name": "러시안 스모키 _그레이",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "데이지크",
+        "name": "브이컷 블렌딩 쉐딩 _02 쿨 블렌딩",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 3,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "맥",
+        "name": "스튜디오 픽스 스컬프트 앤 컨투어 팔레트 _라이트/ 미디엄",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 4,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "수아도르",
+        "name": "바이맹 _31 쉐이딩 브러쉬",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 5,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "맥",
+        "name": "275 미디엄 앵글드 쉐이딩 브러쉬",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 6,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "3CE",
+        "name": "메이크업 픽스 파우더 _페어",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 7,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "오그너스",
+        "name": "_013 쉐도우&쉐이딩 브러쉬",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 8,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "샬롯틸버리",
+        "name": "인스턴트 아이섀도우 팔레트 _필로우 토크 컬렉션",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 9,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "맥",
+        "name": "239 아이 쉐이더 브러쉬",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 10,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "3CE",
+        "name": "멀티 아이 컬러 팔레트 _로지 뮬리",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 11,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "화홍엠",
+        "name": "메이크업 브러쉬 No.255",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 12,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "프로에잇청담",
+        "name": "스테이온 젤아이라이너 _01 딥 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 13,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "아나스타샤",
+        "name": "브러쉬 #3",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 14,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "바비 브라운",
+        "name": "아이 섀도우_에스프레소",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 15,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "정샘물",
+        "name": "마스터클래스 아이섀도우 S 브러쉬",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 16,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "빅토리아조이",
+        "name": "속눈썹 시리즈 옵션 4 _C Curl",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 17,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "모지에스",
+        "name": "언더 속눈썹 6mm",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 18,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "아워글래스",
+        "name": "아치 브로우 마이크로 스컬프팅 펜슬 _웜 블론드",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 19,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "아나스타샤",
+        "name": "브로우 파우더 듀오 _블론드",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 20,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "뽀아레",
+        "name": "아이브로우 브러쉬",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 21,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "디어오운",
+        "name": "무드 컬러링 브로우 마스카라 _1 크리미 블론드",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 22,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "데이지크",
+        "name": "블렌딩 무드 치크 _04 베이지 니트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 23,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "피카소",
+        "name": "시그니처 1014 하이라이터",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 24,
+        "category": "립",
+        "zone": "입술",
+        "brand": "3CE",
+        "name": "벨벳 립 틴트 _더스키 핑크",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 25,
+        "category": "립",
+        "zone": "입술",
+        "brand": "3CE",
+        "name": "소프트 매트 립스틱 _아쥬레 핑크",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 26,
+        "category": "립",
+        "zone": "입술",
+        "brand": "정샘물",
+        "name": "립프레션 글로우래스팅 틴트 _모어 딥 플럼",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 27,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "수아도르",
+        "name": "바이맹 _25 립 브러쉬",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 28,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "클리오",
+        "name": "익스트림 젤프레소 라이너 _05 뮤트 브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 29,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "메이크업포에버",
+        "name": "아쿠아 레지스트 그래픽 펜 _블랙Aqua Resist Graphic Pen _Black",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "[그.그.메] 카리나 메이크업 (22.07.24 인기가요 도깨비불 무대 ver.) aespa KARINA Makeup l 이사배(RISABAE Makeup)",
+    "channelName": "RISABAE"
+  },
+  {
+    "id": "T7ZHzzD7Aog",
+    "celebrityId": "wonyoung",
+    "number": 1,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "렌즈",
+        "zone": "눈",
+        "brand": "유얼리",
+        "name": "플렌토 애쉬 브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "스킨케어·선케어",
+        "zone": "피부",
+        "brand": "참존",
+        "name": "바쿠치올 워터랩 퍼스트 토너 210ml",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "유료광고"
+      },
+      {
+        "number": 3,
+        "category": "스킨케어·선케어",
+        "zone": "피부",
+        "brand": "참존",
+        "name": "바쿠치올 워터랩 부스팅 세럼 45ml",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "유료광고"
+      },
+      {
+        "number": 4,
+        "category": "스킨케어·선케어",
+        "zone": "피부",
+        "brand": "참존",
+        "name": "바쿠치올 워터랩 텐션 크림 50ml",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "유료광고"
+      },
+      {
+        "number": 5,
+        "category": "스킨케어·선케어",
+        "zone": "피부",
+        "brand": "참존",
+        "name": "바쿠치올 워터랩 스틱 클렌저 11g",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "유료광고"
+      },
+      {
+        "number": 6,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "클리오",
+        "name": "킬커버 파운웨어 쿠션 02 란제리",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 7,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "자빈드서울",
+        "name": "윙크 리퀴드 컨실러",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 8,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "IT’S SKIN",
+        "name": "이스스킨 웨딩드레스 톤업 바디 크림",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 9,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "슈어베이스",
+        "name": "누디 스테디 파운데이션 라이블리 린다",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 10,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "아멜리",
+        "name": "스텝베이직 243 마카롱 그레이",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 11,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "투쿨포스쿨",
+        "name": "아트클래스 바이 로댕 쉐딩 02 모던",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 12,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "떨샵",
+        "name": "티안나는 쌍커풀 테이프",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 13,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "딘토",
+        "name": "브로우 디파이너 423 루포",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 14,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "꾸셀",
+        "name": "펜슬 컨실러",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 15,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "어반디케이",
+        "name": "아이 프라이머 포션",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 16,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "로아르",
+        "name": "언더더스타 팔레트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 17,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "페리페라",
+        "name": "심플레인 아이 팔레트 니팅 코랄",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 18,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "투쿨포스쿨",
+        "name": "아트클래스 프로타쥬 펜슬 2호 로지듀",
+        "option": "2호 로지듀",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 19,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "투쿨포스쿨",
+        "name": "아트클래스 프로타쥬 펜슬 1호 샤이닝 린넨",
+        "option": "1호 샤이닝 린넨",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 20,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "노베브",
+        "name": "슬림엣지 듀얼 아이라이너 02 브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "유료광고"
+      },
+      {
+        "number": 21,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "아이미",
+        "name": "속눈썹 33",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 22,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "코스노리",
+        "name": "퍼펙트 세팅 워터프루프 마스카라",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 23,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "퓌",
+        "name": "블러셔 멜로우 05 럽미라이트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 24,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "로아르",
+        "name": "엔젤 룩 듀얼 블러셔",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 25,
+        "category": "립",
+        "zone": "입술",
+        "brand": "나스",
+        "name": "에어 매트 립 컬러 넉아웃",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 26,
+        "category": "립",
+        "zone": "입술",
+        "brand": "컬러그램",
+        "name": "쥬시 블러밤 딸기자두랭",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 27,
+        "category": "립",
+        "zone": "입술",
+        "brand": "아임미미",
+        "name": "아임 립 젤리",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 28,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "네이처리퍼블릭",
+        "name": "프로방스 픽서 팩트 핑크",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 29,
+        "category": "헤어",
+        "zone": "모발",
+        "brand": "아이디얼 포맨",
+        "name": "스타일 킵 워터 스프레이",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 30,
+        "category": "헤어",
+        "zone": "모발",
+        "brand": "투쿨포스쿨",
+        "name": "바이로댕 헤어 쉐이딩 다크 애쉬",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "[ENG, JP] 아이브 장원영 커버 메이크업💖탱글 피부부터 색조, 트위티뱅까지 손민수👸🏻✨화장꿀팁,쿨톤,애프터라이크,참존,얼굴탄력 IVE WONYOUNG COVER MAKEUP",
+    "channelName": "프리따 PRETTA"
+  },
+  {
+    "id": "QyuM7bsnsSE",
+    "celebrityId": "wonyoung",
+    "number": 2,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "터치인솔",
+        "name": "노포어블럼 프라이머 프렙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "루나",
+        "name": "롱래스팅 컨실웨어 쿠션",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 3,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "에뛰드",
+        "name": "재창조 메이커 쉐딩 멀티 스틱 #쿨 쉐딩",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 4,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "에뛰드",
+        "name": "그림자 쉐딩 #3 재조명 #1 재창조",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 5,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "시세이도",
+        "name": "리바이탈에센스 루스 세팅 파우더",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 6,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "맥",
+        "name": "글로우 플레이 블러쉬 #댓츠피치",
+        "option": "#댓츠피치",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 7,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "비디비치",
+        "name": "밀레니얼 글로우 크림 블러시 #02 로지 달리아",
+        "option": "#02",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 8,
+        "category": "립",
+        "zone": "입술",
+        "brand": "누그레이",
+        "name": "세모탭 립앤치크 #토마토 탭",
+        "option": "#토마토",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 9,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "홀리카홀리카",
+        "name": "마이페이브 무드 아이 팔레트 #폴인오트",
+        "option": "#폴인오트",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 10,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "클리오",
+        "name": "샤프 쏘 심플 워터프루프 펜슬라이너 #004 다크브라운",
+        "option": "#004",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 11,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "3CE",
+        "name": "뉴 테이크 아이섀도우 팔레트 #스파클링 홀리데이 에디션",
+        "option": "#스파클링",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 12,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "에뛰드",
+        "name": "2X 쌩얼라이너 #01 소프트 딥 브라운",
+        "option": "#01",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 13,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "코링코",
+        "name": "톡톡하라 노글루 속눈썹 #블라썸",
+        "option": "#블라썸",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 14,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "페리페라",
+        "name": "스피디 펜슬 라이너 #005 N트임로지",
+        "option": "#005",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 15,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "투쿨포스쿨",
+        "name": "아트클래스 프로타주 펜슬 #09 쉬어 누드",
+        "option": "#09",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 16,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "네오젠",
+        "name": "더마로지 엑스트라 볼륨 컬 메탈 마스카라 #브라운",
+        "option": "#브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 17,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "페리페라",
+        "name": "스피디 스키니 브로우 #12 밀키토프 #002 다크브라운",
+        "option": "#12",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 18,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "페리페라",
+        "name": "스피디 스키니 브로우 마스카라 #06 베이지 애쉬",
+        "option": "#06",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 19,
+        "category": "립",
+        "zone": "입술",
+        "brand": "라카",
+        "name": "프루티 립 글로셔너 #702 멜츠",
+        "option": "#702",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 20,
+        "category": "립",
+        "zone": "입술",
+        "brand": "바닐라코",
+        "name": "커버 립 베이스 #풀 그레이",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 21,
+        "category": "립",
+        "zone": "입술",
+        "brand": "에뛰드",
+        "name": "재창조 메이커 오버립 펜슬 #쿨 오버립",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 22,
+        "category": "립",
+        "zone": "입술",
+        "brand": "클리오",
+        "name": "벨벳 립 펜슬 #13 뮤티드 모브 #14 헤이즐넛 토프",
+        "option": "#13",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 23,
+        "category": "렌즈",
+        "zone": "눈",
+        "brand": "오렌즈",
+        "name": "글로이 티어 #브라운",
+        "option": "#브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 24,
+        "category": "립",
+        "zone": "입술",
+        "brand": "에뛰드",
+        "name": "진저슈가 립 세럼 #03 누디 베이지",
+        "option": "#03",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 25,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "컬러그램",
+        "name": "음영 창조 라이너 #02 30%음영 #03 70%음영",
+        "option": "#02",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 26,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "에뛰드 스틱 쉐딩 브러쉬",
+        "name": "ETUDE Stick Shading Brush",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 27,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "피카소 시그니처 1224 아이섀도우",
+        "name": "PICCASSO SIGNATURE 1224 Eyeshadow",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 28,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "에뛰드 그림자 쉐딩 브러쉬 01 턱브러쉬",
+        "name": "ETUDE Contour Brush 01",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 29,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "피카소 207A 브러쉬",
+        "name": "PICCASSO 207A Brush",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 30,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "시세이도 아이래쉬 뷰러",
+        "name": "SEISEIDO Eyelash Curler",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 31,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "글래마이저 V05 브러쉬",
+        "name": "GLAMORIZE V05 Brush",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 32,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "안씨브러쉬",
+        "name": "ANCCI BRUSH Eve304",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 33,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "안씨브러쉬 에보니26",
+        "name": "ANCCI BRUSH Ebony26",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 34,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "피카소 꼴레지오니 799 엣지 아이라이너",
+        "name": "PICCASSO COLLEZIONI 799 Edge Eyeliner",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 35,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "옥희",
+        "name": "OKHEE Wide Concealer & Detail Base Brush PIV06",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 36,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "피카소 시그니처 1219 아이섀도우",
+        "name": "PICCASSO SIGNATURE 1219 Eyeshadow",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 37,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "메이크업포에버 216 브러쉬",
+        "name": "MAKE UP FOR EVER 216 Brush",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "장원영 되는 법. Feat.이번 봄 메이크업 이거 어때요🌷",
+    "channelName": "조효진 Hyojin Cho"
+  },
+  {
+    "id": "B6oaZDmG1yM",
+    "celebrityId": "wonyoung",
+    "number": 3,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "렌즈",
+        "zone": "눈",
+        "brand": "확인 필요",
+        "name": "다비치렌즈 돌체링 그레이",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "브랜드 확인 필요",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 2,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "확인 필요",
+        "name": "떨샵 티안나는 쌍커풀 테이프",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "브랜드 확인 필요",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 3,
+        "category": "스킨케어·선케어",
+        "zone": "피부",
+        "brand": "이니스프리",
+        "name": "비타C 그린티 엔자임 잡티 토닝 세럼",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "유료광고"
+      },
+      {
+        "number": 4,
+        "category": "스킨케어·선케어",
+        "zone": "피부",
+        "brand": "오린힐",
+        "name": "워터리 에어핏 에코 선젤",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 5,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "런드리유",
+        "name": "클리어 디펜스 쿠션 글로우",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 6,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "데이지크",
+        "name": "프로 컨실러 팔레트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 7,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "투쿨포스쿨",
+        "name": "바이로댕 쉐딩",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 8,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "에스쁘아",
+        "name": "더브로우 밸런스 펜슬 3호",
+        "option": "3호",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 9,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "클리오",
+        "name": "프로 아이팔레트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 10,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "클리오",
+        "name": "샤프, 쏘 심플 워터프루프 펜슬라이너 05",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 11,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "삐아",
+        "name": "라스트 오토 젤 아이라이너",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 12,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "더툴랩",
+        "name": "해피림 속눈썹",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 13,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "키스미",
+        "name": "프라임 마스카라 슈퍼 워터프루프 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 14,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "블랙루즈",
+        "name": "철벽 펜라이너 딥브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 15,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "나스",
+        "name": "브로우 퍼펙터 오번-쿨",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 16,
+        "category": "립",
+        "zone": "입술",
+        "brand": "디올",
+        "name": "new 어딕트 립스틱",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 17,
+        "category": "립",
+        "zone": "입술",
+        "brand": "AOU",
+        "name": "글로이 틴트 밤 01 사과밤",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "[ENG] 아이브 장원영 화보 커버 메이크업🧡 피부부터 색조까지 손민수 꿀팁 모음✨ 쌍커풀 테이프, 이니스프리 잡티세럼,클리오 팔레트 IVE WONYOUNG COVER MAKEUP",
+    "channelName": "프리따 PRETTA"
+  },
+  {
+    "id": "LUrxzTdt25E",
+    "celebrityId": "wonyoung",
+    "number": 4,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "스킨케어·선케어",
+        "zone": "피부",
+        "brand": "메디힐",
+        "name": "마데카소사이드 수분 선세럼 흔적 리페어",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 2,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "비디비치",
+        "name": "스킨 일루미네이션 생크림 톤업",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 3,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "시세이도",
+        "name": "리바이탈에센스 스킨 글로우 파운데이션",
+        "option": "160",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 4,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "미샤",
+        "name": "M 퍼펙트 커버 비비크림 EX",
+        "option": "21호",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 5,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "더샘",
+        "name": "커버 퍼펙션 팁컨실러",
+        "option": "그린 베이지 / 브라이트너 / 피치 베이지 / 1.0 클리어 베이지 / 2.0 리치 베이지",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 6,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "어바웃톤",
+        "name": "블러 파우더 팩트",
+        "option": "01 페어",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 7,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "페리페라",
+        "name": "스피디 스키니 브로우",
+        "option": "09 토프 브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 8,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "페리페라",
+        "name": "스피디 스키니 브로우 마스카라",
+        "option": "01 쿨 그레이",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 9,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "페리페라",
+        "name": "브이 쉐딩",
+        "option": "03 그레이쉬쿨",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 10,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "VDL",
+        "name": "치크스테인 블러셔",
+        "option": "11 보헤미안 핑크",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 11,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "맥",
+        "name": "아이섀도우",
+        "option": "로얄랑데부",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 12,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "투에이앤",
+        "name": "베러미 아이팔레트",
+        "option": "19 멜로우로즈",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 13,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "롬앤",
+        "name": "쉬어 구슬 파우더",
+        "option": "02 베리 글로우",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 14,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "로라메르시에",
+        "name": "아티스트 아이래쉬 컬러",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 15,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "캔메이크",
+        "name": "크리미 터치 라이너",
+        "option": "01 딥 블랙",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 16,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "Flower Knows",
+        "name": "Butterfly Cloud Collar Liquid Eyeliner",
+        "option": "Tea Brown / $15.00",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 17,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "맥",
+        "name": "아이섀도우",
+        "option": "에스프레소",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 18,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "Ollio",
+        "name": "노글루 속눈썹 싱글팩 플러스 클리어",
+        "option": "Short 11mm",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 19,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "에뛰드",
+        "name": "컬 픽스 마스카라",
+        "option": "01 블랙",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 20,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "쏘내추럴",
+        "name": "수퍼 픽스 슬림 마스카라",
+        "option": "02 다크 브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 21,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "TEMU",
+        "name": "HERORANGE 화이트 문라이트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 22,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "투쿨포스쿨",
+        "name": "스머징 트임 아이라이너",
+        "option": "2호 퍼지",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 23,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "디올",
+        "name": "백스테이지 글로우 맥시마이저 팔레트",
+        "option": "002 프로스티드 오팔 글로우",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 24,
+        "category": "립",
+        "zone": "입술",
+        "brand": "얼터너티브스테레오",
+        "name": "무드 레이어 스틱",
+        "option": "03 모브 라떼",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 25,
+        "category": "립",
+        "zone": "입술",
+        "brand": "얼터너티브스테레오",
+        "name": "립 포션 카라멜 글레이즈",
+        "option": "09 얼그레이프",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 26,
+        "category": "립",
+        "zone": "입술",
+        "brand": "더마콜",
+        "name": "립 트릿",
+        "option": "7호 서머 크러쉬",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "싹 새로 바뀐🔥 요즘 장원영 메이크업 복붙해봄🦢🤍| 눈매 리프팅되는 아이라인👁️, 깔끔한데 화려한 이목구비 2배 아이돌 메이크업✨",
+    "channelName": "안다 ANDA"
+  },
+  {
+    "id": "ye8zzR8Jrss",
+    "celebrityId": "wonyoung",
+    "number": 5,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "티르티르",
+        "name": "마스크 핏 아우라 쿠션",
+        "option": "21N 아이보리",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 2,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "웨이크메이크",
+        "name": "디파이닝 커버 컨실러",
+        "option": "15호 라이트 아이보리",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 3,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "에스쁘아",
+        "name": "더 브로우 밸런스 펜슬",
+        "option": "라이트 토프",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 4,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "mude",
+        "name": "숄 모먼트 아이섀도우 팔레트",
+        "option": "03 피치 메모리",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 5,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "롬앤",
+        "name": "배러 댄 컨투어",
+        "option": "01 뉴트럴 웜",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 6,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "INGLOT",
+        "name": "메이크업 브러쉬 42T",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 7,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "picasso",
+        "name": "아이미 더블브이컷 가닥 속눈썹 V형",
+        "option": "V33",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 8,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "VICTORIA JOIE",
+        "name": "언더래쉬",
+        "option": "1 V curl",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 9,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "로라메르시에",
+        "name": "아티스트 아이래쉬 컬러",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 10,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "홀리카홀리카",
+        "name": "래쉬 코렉팅 마스카라",
+        "option": "03 롱 익스텐션",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 11,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "스틸라",
+        "name": "스테이 올 데이 워터프루프 리퀴드 아이라이너",
+        "option": "인텐스 블랙",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 12,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "에뛰드",
+        "name": "2X 쌩얼 라이너",
+        "option": "1호 소프트 딥 브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 13,
+        "category": "립",
+        "zone": "입술",
+        "brand": "스틸라",
+        "name": "트라이펙타 메탈리카 립 아이 & 치크 스틱",
+        "option": "키튼",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "유료광고"
+      },
+      {
+        "number": 14,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "스틸라",
+        "name": "매그니피센트 메탈 글리터 앤 글로우 리퀴드 아이섀도우",
+        "option": "키튼 카르마",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "유료광고"
+      },
+      {
+        "number": 15,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "스틸라",
+        "name": "스테이 올 데이 아티스틱 그래픽 라이너",
+        "option": "발레",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "유료광고"
+      },
+      {
+        "number": 16,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "릴리바이레드",
+        "name": "러브빔 치크",
+        "option": "03 상큼빔",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 17,
+        "category": "립",
+        "zone": "입술",
+        "brand": "AMUSE",
+        "name": "립 앤 치크 헬시 밤",
+        "option": "01 복숭아 밤",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 18,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "holyja",
+        "name": "컬러 아이라이너",
+        "option": "화이트 클라우드",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 19,
+        "category": "립",
+        "zone": "입술",
+        "brand": "클리오",
+        "name": "쉬폰 블러 틴트",
+        "option": "20 싱싱한참살구",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 20,
+        "category": "립",
+        "zone": "입술",
+        "brand": "롬앤",
+        "name": "쥬시 래스팅 틴트",
+        "option": "필링 앵두",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "요즘 아이돌 확신의 센터상 메이크업🎤🧡 장원영 인스타 피치퍼즈 메이크업 ꒰ྀི  σ̴̶̷̤ . σ̴̶̷̤  ꒱ྀི🍑✨+ 애교살템 나눔이벤트⸝⁺⊹",
+    "channelName": "안다 ANDA"
+  },
+  {
+    "id": "e1gSkUdG6Bo",
+    "celebrityId": "sullyoon",
+    "number": 1,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "스킨케어·선케어",
+        "zone": "피부",
+        "brand": "메디힐",
+        "name": "마데카소사이드 수분 선세럼 흔적 리페어",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 2,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "시세이도",
+        "name": "리바이탈에센스 스킨 글로우 파운데이션",
+        "option": "160",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 3,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "미샤",
+        "name": "M 퍼펙트 커버 비비크림 EX",
+        "option": "20 쿨 베이지",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 4,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "삐아",
+        "name": "오 스테이 컨실러",
+        "option": "21 라이트",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 5,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "디어에이",
+        "name": "퍼스널 싱글 컨실러",
+        "option": "01 포슬린 / 02 베이지 / 03 매트베이지 / 04 체스트넛 / 05 피치퍼프",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 6,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "페리페라",
+        "name": "브이 쉐딩",
+        "option": "03 그레이쉬쿨",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 7,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "캔메이크",
+        "name": "마시멜로우 피니쉬 파우더",
+        "option": "MI 매트 아이보리 오클",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 8,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "페리페라",
+        "name": "스피디 스키니 브로우 마스카라",
+        "option": "04 애쉬브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 9,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "페리페라",
+        "name": "스피디 스키니 브로우",
+        "option": "11 모카토프 / 03 내추럴 브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 10,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "AMUSE",
+        "name": "꽃 아이 팔레트",
+        "option": "01 꽃복숭아",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 11,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "shimoment",
+        "name": "한올 뷰러",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 12,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "Ollio",
+        "name": "노글루 속눈썹 싱글팩 플러스 클리어",
+        "option": "Short 11mm",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 13,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "에뛰드",
+        "name": "컬 픽스 마스카라",
+        "option": "01 블랙",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 14,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "키스미",
+        "name": "스무스 리퀴드 아이라이너 N",
+        "option": "차콜 브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 15,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "투쿨포스쿨",
+        "name": "스머징 트임 아이라이너",
+        "option": "2호 퍼지",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 16,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "삐아",
+        "name": "레디 투 웨어 아이 섀도우",
+        "option": "09 모태분위기",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 17,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "비디비치",
+        "name": "페탈 글로우 크림 블러시",
+        "option": "08 보타닉 피치",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 18,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "네이밍",
+        "name": "플러피 파우더 블러쉬",
+        "option": "CHIPPY",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 19,
+        "category": "립",
+        "zone": "입술",
+        "brand": "이더앤",
+        "name": "듀이 시럽 틴트",
+        "option": "01 멜트어웨이",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 20,
+        "category": "립",
+        "zone": "입술",
+        "brand": "얼터너티브스테레오",
+        "name": "립 포션 카라멜 글레이즈",
+        "option": "3호 솔티드 핑크",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 21,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "캔메이크",
+        "name": "무뉴토 하이라이터",
+        "option": "02 로즈 쿼츠",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "겨울에 등교하는 학생st☃️ ‘설윤’ 뿌까메이크업 복붙해봄🛼🤍 | 순한 강아지 눈매 만드는 아이메이크업🐩",
+    "channelName": "안다 ANDA"
+  },
+  {
+    "id": "oJeAB4yVOEk",
+    "celebrityId": "sullyoon",
+    "number": 2,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "립",
+        "zone": "입술",
+        "brand": "미샤",
+        "name": "글로우 스킨밤",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 2,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "IPKN",
+        "name": "클리어 핏 파운데이션",
+        "option": "02 바닐라",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 3,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "웨이크메이크",
+        "name": "디파이닝 커버 컨실러",
+        "option": "15 라이트 아이보리",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 4,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "어바웃톤",
+        "name": "블러 파우더 팩트",
+        "option": "01 페어",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 5,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "에스쁘아",
+        "name": "더브로우 밸런스 펜슬",
+        "option": "5호 라이트 브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 6,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "키스미",
+        "name": "헤비로테이션 컬러링 아이브로우",
+        "option": "3호 애쉬 브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 7,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "정샘물",
+        "name": "아티스트 페이스 팔레트",
+        "option": "컨투어",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 8,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "세잔느",
+        "name": "펄 글로우 하이라이트",
+        "option": "04 쉘핑크",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 9,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "릴리바이레드",
+        "name": "무드키보드",
+        "option": "08 라벤더다이얼",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 10,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "삐아",
+        "name": "레디 투 웨어 아이 팔레트",
+        "option": "03 드라이 플라워",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 11,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "클리오",
+        "name": "킬 브로우 쉐이핑 파우더 브로우",
+        "option": "02 애쉬 쿨브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 12,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "로라메르시에",
+        "name": "아티스트 아이래쉬 컬러",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 13,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "피카소",
+        "name": "아이미 브이컷 가닥 속눈썹",
+        "option": "V33",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 14,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "홀리카홀리카",
+        "name": "래쉬 코렉팅 마스카라",
+        "option": "03 롱 익스텐션",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 15,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "VICTORIA JOIE",
+        "name": "Aliamos 미니 컴팩트 인조속눈썹",
+        "option": "C컬 (언더 래쉬)",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 16,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "키스미",
+        "name": "프라임 리퀴드 아이라이너 리치 킵",
+        "option": "01 딥블랙",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 17,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "데이지크",
+        "name": "스탈릿 글리터 파우더",
+        "option": "03 화이트 다이아 / 단종",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 18,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "MAD PEACH",
+        "name": "무드 믹스 크림 블러셔",
+        "option": "코랄 플러쉬",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 19,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "글린트",
+        "name": "베이크드 블러셔",
+        "option": "10 로즈쿼츠",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 20,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "키스미",
+        "name": "히로인메이크 롱 스테이 스무스 젤 펜슬 라이너",
+        "option": "04 애쉬 브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 21,
+        "category": "립",
+        "zone": "입술",
+        "brand": "AOU",
+        "name": "블렌딩 립펜슬",
+        "option": "01 오버",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 22,
+        "category": "립",
+        "zone": "입술",
+        "brand": "IPKN",
+        "name": "퍼피 글로우 틴트",
+        "option": "02 모브문",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 23,
+        "category": "립",
+        "zone": "입술",
+        "brand": "투쿨포스쿨",
+        "name": "베르 컬러 글로스",
+        "option": "5호 레드 오크",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "로판여주 재질💜 설윤 Pocket Locket 메이크업 복붙해봄✨(눈 4배 커지는 아이메이크업👁️) | #복붙메이크업",
+    "channelName": "안다 ANDA"
+  },
+  {
+    "id": "iN0qbxijgDY",
+    "celebrityId": "sullyoon",
+    "number": 3,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "스킨케어·선케어",
+        "zone": "피부",
+        "brand": "디어달리아",
+        "name": "스킨 파라다이스 퓨어 모이스처 선 로션",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 2,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "어바웃톤",
+        "name": "낫띵 벗 누드 파운데이션",
+        "option": "01 FAIR 페어 / 02 LIGHT 라이트* / 03 NATURAL 내추럴",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "유료광고"
+      },
+      {
+        "number": 3,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "어바웃톤",
+        "name": "홀드 온 타이트 컨실러",
+        "option": "01 FAIR 페어* / 02 LIGHT 라이트 / 03 NATURAL 내추럴*",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "유료광고"
+      },
+      {
+        "number": 4,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "어바웃톤",
+        "name": "블러 파우더 팩트",
+        "option": "01 FAIR 페어* / 02 LIGHT 라이트 / 03 NATURAL 내추럴",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "유료광고"
+      },
+      {
+        "number": 5,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "웨이크메이크",
+        "name": "믹스 블러링 볼륨 쉐딩",
+        "option": "02 소프트 쿨",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 6,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "hakit",
+        "name": "레이어 슬림 브로우",
+        "option": "1 소프트 브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 7,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "키스미",
+        "name": "헤비로테이션 컬러링 아이브로우 마이크로",
+        "option": "03 애쉬 브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 8,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "클리오",
+        "name": "프로 아이 팔레트",
+        "option": "15 캔버스 위 봄 햇살",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 9,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "코링코",
+        "name": "톡톡하라 필터 속눈썹",
+        "option": "블랙 12mm",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 10,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "코링코",
+        "name": "막카라 롱래쉬 컬링 마스카라",
+        "option": "01 딥블랙",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 11,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "어바웃톤",
+        "name": "스탠드아웃 펜 아이라이너",
+        "option": "01 블랙 / 02 브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "유료광고"
+      },
+      {
+        "number": 12,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "어바웃톤",
+        "name": "스탠드아웃 젤 아이라이너",
+        "option": "06 베이지",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "유료광고"
+      },
+      {
+        "number": 13,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "어바웃톤",
+        "name": "오마이 글리터 팝",
+        "option": "02 마이 페어리",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "유료광고"
+      },
+      {
+        "number": 14,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "에스쁘아",
+        "name": "리얼 치크업",
+        "option": "치어리 베리",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 15,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "어바웃톤",
+        "name": "고 크레이지 듀이 립스",
+        "option": "01 CORAL IN LOVE 코랄인러브 / 02 STUNNING PINK 스터닝핑크 / 03 TOUCH ORANGE 터치오렌지 / 04 SALTED BRICK 솔티드브릭 / 05 CRASH PLUM 크래쉬플럼",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "유료광고"
+      },
+      {
+        "number": 16,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "미샤",
+        "name": "새틴 하이라이터 이탈프리즘",
+        "option": "터치 오브 라이트",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "NMIXX(엔믹스)-O.O '설윤' 커버메이크업🎀 4세대 여돌 정석 메이크업🎤",
+    "channelName": "안다 ANDA"
+  },
+  {
+    "id": "vJrHRaXTJpE",
+    "celebrityId": "sullyoon",
+    "number": 4,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "렌즈",
+        "zone": "눈",
+        "brand": "앤365",
+        "name": "루미에 딥 브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "투쿨포스쿨",
+        "name": "아트클래스 블랑 드 베이스 1호 클리어블루, 2호 에끌라로즈 & 픽싱 커버 쿠션 2호 아이보리",
+        "option": "1호 클리어블루",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 3,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "안나수이",
+        "name": "UV 비비 크림 SPF50+ PA++++",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 4,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "안나수이",
+        "name": "아이 컬러 컴팩트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 5,
+        "category": "립",
+        "zone": "입술",
+        "brand": "에스쁘아",
+        "name": "아이섀도우 익스클루시브 드립드랍",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 6,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "에뛰드하우스",
+        "name": "컬러 마이 브로우 no.2 라이트 브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 7,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "언리시아",
+        "name": "글리터피디아 아이팔레트 올 오브 코랄핑크",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 8,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "시세이도",
+        "name": "잉크스트로크 아이라이너 BR606 kuromitsu brown",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 9,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "시세이도",
+        "name": "아이래쉬 컬러",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 10,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "필리밀리",
+        "name": "롱래쉬 롱&리프트 블랙 2set",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 11,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "스톤브릭",
+        "name": "블러쉬 파스텔 02인블룸",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 12,
+        "category": "립",
+        "zone": "입술",
+        "brand": "스톤브릭",
+        "name": "워터 클리어 틴트 302바운시코랄",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 13,
+        "category": "립",
+        "zone": "입술",
+        "brand": "맥",
+        "name": "버시컬러 바니쉬 크림 립 스테인 102옵틱스오렌지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "설윤 메이크업🧡엔믹스 o.o 설윤 커버 눈화장/4세대 걸그룹 메이크업/ NMIXX SULLYOON makeup tutorial✨",
+    "channelName": "뷰티인아델라 Beauty in adella"
+  },
+  {
+    "id": "fDqBPI1SaWY",
+    "celebrityId": "winter",
+    "number": 1,
+    "startSeconds": 1582,
+    "products": [
+      {
+        "number": 1,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "어뮤즈",
+        "name": "세라믹 스킨 퍼펙터 파운데이션",
+        "option": "01포슬린",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "렌즈",
+        "zone": "눈",
+        "brand": "렌시스",
+        "name": "악마 원데이 베소 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 3,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "비디비치",
+        "name": "페탈 글로우 크림 블러시",
+        "option": "피오니밀크",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 4,
+        "category": "립",
+        "zone": "입술",
+        "brand": "클리오",
+        "name": "벨벳 립 펜슬",
+        "option": "헤이즐넛 토프",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 5,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "힌스",
+        "name": "시그니처 브로우 펜슬",
+        "option": "P006라이트브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 6,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "디어에이",
+        "name": "0.9mm 아이브로우 01쿨애쉬",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 7,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "페리페라",
+        "name": "스피디 스키니 브로우카라",
+        "option": "토프에쉬",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 8,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "롬앤",
+        "name": "베러 댄 컨투어 셰이딩 02그레이쿨",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 9,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "투크",
+        "name": "원바이 제뉴 마그네틱 아이섀도우",
+        "option": "코튼살몬",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 10,
+        "category": "립",
+        "zone": "입술",
+        "brand": "클리오",
+        "name": "벨벳 립 펜슬",
+        "option": "모카로지",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 11,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "에이프릴스킨",
+        "name": "트임 라이너 02다크브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 12,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "홀리카홀리카",
+        "name": "마이페이브 피브 아이섀도우 에스프레소",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 13,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "홀리카홀리카",
+        "name": "마이페이브 피브 아이글리츠",
+        "option": "위티",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 14,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "하트퍼센트",
+        "name": "도트온 무드 젤 아이라이너 펜슬",
+        "option": "쉬머베이지",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 15,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "Doudourian",
+        "name": "Ddt438-02",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 16,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "두두 페이크 속눈썹",
+        "name": "부분 속눈썹(클러스터 타입)",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 17,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "네오젠",
+        "name": "더마로지 슬림 메탈 마스카라 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 18,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "MINISO 미니소",
+        "name": "골드바 방수 지속 아이라이너 블랙 0.01m",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 19,
+        "category": "립",
+        "zone": "입술",
+        "brand": "컬러그램",
+        "name": "누드 컬러 커버틴트",
+        "option": "웜누디",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 20,
+        "category": "립",
+        "zone": "입술",
+        "brand": "클리오",
+        "name": "쉬폰 블러틴트",
+        "option": "속빨간왕자두",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 21,
+        "category": "립",
+        "zone": "입술",
+        "brand": "얼터너티브스테레오",
+        "name": "립포션 슈가 글레이즈",
+        "option": "모모피치봉",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 22,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "네이밍",
+        "name": "플러피파우더블러쉬",
+        "option": "바쉬풀 / 페이지",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 23,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "바닐라코",
+        "name": "프라임 프라이머 피니쉬 파우더",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 24,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "르브쌍",
+        "name": "아이쉐도우 001",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 25,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "투에이앤",
+        "name": "퓨어글래시 하이라이터",
+        "option": "슈가베일",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 26,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "맥",
+        "name": "프로 브로우 디파이너 팁 브로우 펜슬 1mm",
+        "option": "링거링",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "덜어낼수록 눈이 더 커 보이는 이유 ⸝⸝🧚윈터ver 또렷 청초 아이돌 메이크업",
+    "channelName": "김지유 JIYU KIM"
+  },
+  {
+    "id": "LwMbuZ4yO9A",
+    "celebrityId": "winter",
+    "number": 2,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "비디비치",
+        "name": "스킨 일루미네이션 생크림 톤업",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 2,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "삐아",
+        "name": "오 매트 쿠션",
+        "option": "21 라이트",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 3,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "더샘",
+        "name": "커버 퍼펙션 펜 컨실러",
+        "option": "1.25 라이트 베이지 / 피치 베이지 / 그린 베이지 / 브라이트너",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 4,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "클리오",
+        "name": "킬브로우 슬림 애쉬 브로우카라",
+        "option": "001 애쉬핑크 / 002 라이트애쉬 / 003 내추럴애쉬 / 004 애쉬그레이",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 5,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "우드버리",
+        "name": "프로 오토 브로우 펜슬",
+        "option": "래빗 스모키 / 버만 브라운 / 코기 브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 6,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "웨이크메이크",
+        "name": "스테이 픽서 멀티 컬러 팩트",
+        "option": "01 페일 클리어",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 7,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "어바웃톤",
+        "name": "파우더 팩트 퍼프",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 8,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "웨이크메이크",
+        "name": "믹스 블러링 볼륨 쉐딩",
+        "option": "01 뉴트럴 웜 / 02 뉴트럴 쿨",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 9,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "웨이크메이크",
+        "name": "내추럴 노즈 쉐딩",
+        "option": "01 뉴트럴 웜 / 증정품",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 10,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "웨이크메이크",
+        "name": "쉬어 브리즈 하이라이터",
+        "option": "01 펄리 베이지 / 02 핑크 쉘 / 03 레모니",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 11,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "릴리바이레드",
+        "name": "듀이 핏 팔레트",
+        "option": "01 피치크림 / 02 핑크밀크티 / 03 오트밀",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 12,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "로라메르시에",
+        "name": "아티스트 아이래쉬 컬러",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 13,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "필리밀리",
+        "name": "노글루 포인트 가닥 속눈썹",
+        "option": "01 트리플A / 02 트리플V",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 14,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "에뛰드",
+        "name": "컬 픽스 마스카라",
+        "option": "01 블랙",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 15,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "Play 101 by ETUDE",
+        "name": "엣지 컬 틴트 마스카라",
+        "option": "블랙",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 16,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "키스미",
+        "name": "프라임 리퀴드 아이라이너 리치 킵",
+        "option": "01 딥블랙",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 17,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "바닐라코",
+        "name": "로맨틱 블러쉬 립 앤 치크",
+        "option": "17 베이비 빈",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 18,
+        "category": "립",
+        "zone": "입술",
+        "brand": "컬러그램",
+        "name": "립 크레파스 세트",
+        "option": "01 수줍은 코랄 크레용",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 19,
+        "category": "립",
+        "zone": "입술",
+        "brand": "잉가",
+        "name": "벨벳 슈 틴트",
+        "option": "애프리콧 슈 / 크림베리 슈 / 탠저린 파이",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "올영신상 잔뜩 써보면서🛒 윈터st 느좋 메이크업🍑🩶| 삐아 오매트쿠션 · 웨메 파우더 · 릴바레 팔레트 · 필리밀리 속눈썹 · 바닐라코 립앤치크 · 컬러그램X짱구 · 잉가 벨벳틴트",
+    "channelName": "안다 ANDA"
+  },
+  {
+    "id": "sVOYhmBymX0",
+    "celebrityId": "winter",
+    "number": 3,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "렌즈",
+        "zone": "눈",
+        "brand": "오렌즈",
+        "name": "에버샤인 원데이 그레이",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "에스쁘아",
+        "name": "프로테일러 비글로우 쿠션 뉴클래스 바닐라",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 3,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "에스쁘아",
+        "name": "톤페어링 리퀴드 치크 세레나데",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 4,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "에스쁘아",
+        "name": "톤페어링 치크 비올레타",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 5,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "에스쁘아",
+        "name": "프로 테일러 비 글로우 쉬어 파우더 8g",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 6,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "에스쁘아",
+        "name": "웨크메이크 믹스 블러링 볼륨 쉐딩 02소프트쿨",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 7,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "에스쁘아",
+        "name": "더브로우 이지 쉐이핑 펜슬 4호 라이트브라운",
+        "option": "4호 라이트브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 8,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "힌스",
+        "name": "뉴 뎁스 듀얼 컬러 스틱 3호 웜음영트임",
+        "option": "3호 웜음영트임",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 9,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "에스쁘아",
+        "name": "리얼 아이 팔레트 애프리콧미",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 10,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "샤넬",
+        "name": "르 르쿠르브 실 드 샤넬",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 11,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "토니모리",
+        "name": "백젤 아이라이너 02 브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 12,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "삐아",
+        "name": "라스트 오토 젤 아이라이너 05소울브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 13,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "엘스몰",
+        "name": "바비캔디 11mm",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 14,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "에뛰드",
+        "name": "컬 픽스 마스카라 01 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 15,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "홀리카홀리카",
+        "name": "마이페이브 피스 아이 섀도우 23키티",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 16,
+        "category": "립",
+        "zone": "입술",
+        "brand": "클리오",
+        "name": "벨벳 립펜슬 6바닐라코랄",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 17,
+        "category": "립",
+        "zone": "입술",
+        "brand": "에스쁘아",
+        "name": "플럼피즈 볼륨 밤 3g + 죠 인형 키링 1호 로지라이츠",
+        "option": "1호 로지라이츠",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 18,
+        "category": "립",
+        "zone": "입술",
+        "brand": "에스쁘아",
+        "name": "꾸뛰르 립틴트 블러벨벳 5호 세레나데",
+        "option": "5호 세레나데",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 19,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "에스쁘아",
+        "name": "톤페어링 하이라이터 1호 씨쉘",
+        "option": "1호 씨쉘",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "에스파 윈터❄️느좋 인스타 메이크업 손민수📱(윈터 아이라인•윈터 립•언더 음영)ㅣMINCARONG",
+    "channelName": "민카롱"
+  },
+  {
+    "id": "CsF8xvTZ35g",
+    "celebrityId": "winter",
+    "number": 4,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "클리오",
+        "name": "킬브로우 오토 하드 브로우펜슬ㅣ라이트그레이",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 2,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "더샘",
+        "name": "퍼펙션 트리플 팟 컨실러ㅣ톤업베이지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 3,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "에스쁘아",
+        "name": "더브로우 컬러 픽싱 카라ㅣ베이지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 4,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "어바웃톤",
+        "name": "블러 파우더팩트 ㅣ 쿨페어",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 5,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "웨이크메이크",
+        "name": "소프트블러링 아이팔레트 ㅣ 텐저린 비치 블러링",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 6,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "키스미",
+        "name": "스무스 리퀴드 아이라이너N ㅣ 차콜브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 7,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "메리몽드",
+        "name": "슈퍼트임 펜 아이라이너 ㅣ 얼그레이라떼+ 비비드블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 8,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "필리밀리+깜빡",
+        "name": "퓨어데일리+아이돌아이래쉬 9-11mm",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 9,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "에뛰드",
+        "name": "컬 픽스 마스카라ㅣ가닥볼륨",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 10,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "낫유얼스",
+        "name": "테일리 언더 인조 속눈썹",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 11,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "스틸라",
+        "name": "매그니피센트 메탈글리터&글로우리퀴드아이섀도우ㅣ원더러스트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 12,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "오프라",
+        "name": "미니 하이라이터ㅣ클라우드9+페퍼민트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 13,
+        "category": "립",
+        "zone": "입술",
+        "brand": "클리오",
+        "name": "벨벳 립펜슬 기획 세트 ㅣ 바닐라코랄",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 14,
+        "category": "립",
+        "zone": "입술",
+        "brand": "릴리바이레드",
+        "name": "스윗라이어밀키틴트ㅣ복숭아푸딩인척",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 15,
+        "category": "립",
+        "zone": "입술",
+        "brand": "롬앤",
+        "name": "글래스팅 워터 글로스ㅣ산호크러쉬",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "퍼컬 상관❌윈터가 바꾸고 확 예뻐진 6가지🔍귀여움+청순함 공존 비결, 여백+중안부 축소 화장법",
+    "channelName": "뽀용뇽 l 남다른 뷰티꿀팁"
+  },
+  {
+    "id": "fJldVozYU-w",
+    "celebrityId": "winter",
+    "number": 5,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "바닐라코",
+        "name": "커버리셔스 얼티밋 화이트 쿠션 21 아이보리",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "VDL",
+        "name": "커버 스테인 퍼펙팅 파운데이션 A02",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 3,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "로라메르시에",
+        "name": "트랜스루센트 루스 세팅 파우더",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 4,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "클리오",
+        "name": "킬 브로우 쉐이핑 파우더 브로우 애쉬쿨브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 5,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "페리페라",
+        "name": "스피디 스키니 브로우 토프브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 6,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "메이블린뉴욕",
+        "name": "3D 브로우 젤 마스카라 크림토피",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 7,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "정샘물",
+        "name": "아티스트 페이스 팔레트 컨투어",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 8,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "클리오",
+        "name": "프로 아이 팔레트 에어 11호 #쇼핑하는치즈냥",
+        "option": "#쇼핑하는치즈냥",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 9,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "프로에잇청담",
+        "name": "스테이 온 젤 아이라이너 다크브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 10,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "홀리카홀리카",
+        "name": "마이페이브 피스 아이섀도우 투샷아메리카노",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 11,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "피카소",
+        "name": "가닥속눈썹 V32",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 12,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "미샤",
+        "name": "노 리터치 보정카라",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 13,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "클리오",
+        "name": "샤프 쏘 심플 워터프루프 펜슬 라이너 블랙브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 14,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "클리오",
+        "name": "샤프 쏘 심플 워터프루프 펜슬 라이너 크리미아이보리",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 15,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "홀리카홀리카",
+        "name": "마이페이브 피스 아이섀도우 허니드피치",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 16,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "클리오",
+        "name": "킬 래쉬 수퍼프루프 마스카라 롱컬링",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 17,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "에뛰드",
+        "name": "컬픽스 마스카라 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 18,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "깜빡속눈썹",
+        "name": "가닥속눈썹 언더",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 19,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "홀리카홀리카",
+        "name": "마이페이브 피스빔 슈가리스",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 20,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "데이지크",
+        "name": "블렌딩 레이어 치크 썸머코랄",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 21,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "세잔느",
+        "name": "실크 커버 파우더 라이트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 22,
+        "category": "립",
+        "zone": "입술",
+        "brand": "바닐라코",
+        "name": "스머징 립펜슬 살몬누드",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 23,
+        "category": "립",
+        "zone": "입술",
+        "brand": "페리페라",
+        "name": "워터 베어 틴트 당모피치",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 24,
+        "category": "립",
+        "zone": "입술",
+        "brand": "클리오",
+        "name": "벨벳 립 펜슬 피치베이지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 25,
+        "category": "립",
+        "zone": "입술",
+        "brand": "네이처리퍼블릭",
+        "name": "코튼 멜팅 립 폭닥베이지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 26,
+        "category": "립",
+        "zone": "입술",
+        "brand": "에스쁘아",
+        "name": "꾸뛰르 립글로스 로지빔",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 27,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "디올",
+        "name": "백스테이지 글로우 페이스 팔레트 로즈골드",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "윈터가 많이 하는 힙고양이 트임 메이크업 (바뀐 아이라인, 앞트임 자세히) aespa WINTER MAKEUP",
+    "channelName": "리선 risun"
+  },
+  {
+    "id": "M91d1MT2_MA",
+    "celebrityId": "winter",
+    "number": 6,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "렌즈",
+        "zone": "눈",
+        "brand": "오렌즈",
+        "name": "빅글로이 원데이 브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "네이밍",
+        "name": "루트릿 아이브로우 펜슬 토프 브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 3,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "페리페라",
+        "name": "스피디 스키니 브로우 마스카라 07 토프애쉬",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 4,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "LUMMIR",
+        "name": "루미르 라이트 온 아이즈 섀도우 팔레트 06 7AM 선라이즈 피치",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 5,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "OUTOFOFFICE",
+        "name": "아웃오브오피스 더블엔드 컨투어 펜 01 white",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 6,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "네이밍",
+        "name": "퍼펙테일 아이 디자이닝 슬림 라이너 언더베이지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 7,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "네이밍",
+        "name": "퍼펙테일 아이 디자이닝 듀얼 라이너 옴브레누디",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 8,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "데이지크",
+        "name": "싱글 무드 섀도우 12 너트 쉘",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 9,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "KISS",
+        "name": "ME 키스미 히로인메이크 프라임 리퀴드 아이라이너 02 브라운 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 10,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "블링키",
+        "name": "가닥속눈썹 스윗(9-10mm)",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 11,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "코링코",
+        "name": "톡톡하라 언더속눈썹 (6-7mm)",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 12,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "Milktouch",
+        "name": "밀크터치 아이코닉 마스카라 long",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 13,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "The",
+        "name": "saem 더샘 커버 퍼펙션 듀얼 컨실러 펜슬 02 쿨 듀오",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 14,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "VDL",
+        "name": "치크스테인 리퀴드 블러셔 01 피치리치",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 15,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "컬러그램",
+        "name": "싱글 큐브섀도우 17 베리크림",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 16,
+        "category": "립",
+        "zone": "입술",
+        "brand": "데이지크",
+        "name": "오버 블러 립 펜슬 미니 크림토프",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 17,
+        "category": "립",
+        "zone": "입술",
+        "brand": "데이지크",
+        "name": "쥬시 듀이 글로우 틴트 23 디어니즈",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "최근 행사장 윈터 메이크업 ໒꒱‧₊˚ 가져와떠요 !!",
+    "channelName": "채히 CHAEHEE"
+  },
+  {
+    "id": "3Z13ENeCAqA",
+    "celebrityId": "jennie",
+    "number": 1,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "렌즈",
+        "zone": "눈",
+        "brand": "오렌즈",
+        "name": "아이라이터 글로이 원데이 브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "립",
+        "zone": "입술",
+        "brand": "포트레",
+        "name": "워터 핏 스킨 틴트 ROSE",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 3,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "정샘물",
+        "name": "에센셜 스킨 누더 쿠션 파운데이션 페어라이트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 4,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "아워글래스",
+        "name": "배니쉬 에어브러쉬 컨실러 코튼",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 5,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "원정요",
+        "name": "픽싱 블러 파우더 N01 플레인 핑크",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 6,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "페리페라",
+        "name": "브이 쉐딩 003 그레이쉬쿨",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 7,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "맥",
+        "name": "스컬프트 앤 글로우 듀오",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 8,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "에뛰드",
+        "name": "왓츠인 마이 아이즈 멜론머스크 + 내마음의별로",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 9,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "원정요",
+        "name": "W 데일리 무드업 아이팔레트 02 트렌치 브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 10,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "피카소",
+        "name": "아이미 가닥속눈썹 14호 실루엣",
+        "option": "14호 실루엣",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 11,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "Milktouch",
+        "name": "밀크터치 아이코닉 마스카라 필름 Film",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 12,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "RED",
+        "name": "CHAMBER multi purpose radiant cream RC400",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 13,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "JUDYDOLL",
+        "name": "glow blush 02+04",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 14,
+        "category": "립",
+        "zone": "입술",
+        "brand": "하트퍼센트",
+        "name": "비건뷰티 도트 온 무드 립펜슬 슬림 06로즈베이지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 15,
+        "category": "립",
+        "zone": "입술",
+        "brand": "삐아",
+        "name": "오버 글레이즈 06 땅콩당",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 16,
+        "category": "립",
+        "zone": "입술",
+        "brand": "엔트로피",
+        "name": "참 틴트 스무디 에디션 M4 라즈베리 믹스",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "구독자 메이크업 2탄 : 분위기 있어 보이는 제니 메이크업… 🤍",
+    "channelName": "채히 CHAEHEE"
+  },
+  {
+    "id": "B622IJH5VlM",
+    "celebrityId": "jennie",
+    "number": 2,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "숌",
+        "name": "쿠션 스타터",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "유료광고"
+      },
+      {
+        "number": 2,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "숌",
+        "name": "올데이 딥 커버 쿠션 #01 라이트 바닐라",
+        "option": "#01",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "유료광고"
+      },
+      {
+        "number": 3,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "숌",
+        "name": "올커버리지 컬러 팔레트 #02호",
+        "option": "#02호",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 4,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "숌",
+        "name": "올커버리지 컬러 팔레트 #01호",
+        "option": "#01호",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 5,
+        "category": "립",
+        "zone": "입술",
+        "brand": "하트퍼센트",
+        "name": "도트 온 무드 립펜슬 #02 크리미핑크",
+        "option": "#02",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 6,
+        "category": "립",
+        "zone": "입술",
+        "brand": "하트퍼센트",
+        "name": "도트 온 무드 퓨어 글로우 틴트 #06 무드베이지",
+        "option": "#06",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "ENG)뉴진스,제니st 요즘 유행하는 메이크업!(with.숌 딥커버 쿠션) Jennie, NewJeans Trendy Korean makeup",
+    "channelName": "해니 haeni beauty"
+  },
+  {
+    "id": "aGz8ETjWGDo",
+    "celebrityId": "jennie",
+    "number": 3,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "비디비치",
+        "name": "블루 베리어 워터 베일 미스트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "투크",
+        "name": "결핏 쿠션 [21호 클리어 핏]",
+        "option": "21호 클리어 핏",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 3,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "마루빌츠",
+        "name": "캐모플라지 크림 [14호 피치베이지]",
+        "option": "14호 피치베이지",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 4,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "메이크업포에버",
+        "name": "UHD 루스 파우더",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 5,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "토니모리",
+        "name": "이지터치 케익 아이브로우 [2호 그레이 브라운]",
+        "option": "2호 그레이 브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 6,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "돌체앤가바나(DOLCE",
+        "name": "& GABBANA) 뷰티 - 에버 아이콘 아이팔레트 크롬스타",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 7,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "로라메르시에",
+        "name": "아이섀도우 [캐시미어]",
+        "option": "캐시미어",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 8,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "클리오",
+        "name": "글래스 앤 하이라이터 [2호 말랑 반죽]",
+        "option": "2호 말랑 반죽",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 9,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "네이밍",
+        "name": "퍼펙팅 아이라이너 [딥 차콜]",
+        "option": "딥 차콜",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 10,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "윙키래쉬",
+        "name": "노글루 여우 속눈썹 [7-9mm 블랙]",
+        "option": "7-9mm 블랙",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 11,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "아멜리",
+        "name": "Step Basic 여백카롱 쉐딩 202호",
+        "option": "202호",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 12,
+        "category": "립",
+        "zone": "입술",
+        "brand": "샤넬",
+        "name": "립 앤 치크 밤 [3호 바이탈 베이지]",
+        "option": "3호 바이탈 베이지",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 13,
+        "category": "립",
+        "zone": "입술",
+        "brand": "바이레도",
+        "name": "리퀴드 립스틱 [301 팬텀] (또는 투명 립글로스 대체 가능)",
+        "option": "301 팬텀",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "샤넬 서울쇼 제니 메이크업(ft.고전미 분위기 팁)",
+    "channelName": "문지혜Moonjihae_"
+  },
+  {
+    "id": "vqKNtwb_zmA",
+    "celebrityId": "jennie",
+    "number": 4,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "입생로랑",
+        "name": "러브 컬렉션 뚜쉬 에끌라 글로우 팩트 쿠션 BR20호",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "로라메르시에",
+        "name": "트랜스루센트 루스 세팅 파우더",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 3,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "에스쁘아",
+        "name": "더 브로우 밸런스 펜슬 쿨그레이",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 4,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "페리페라",
+        "name": "브이 쉐딩 03 그레이쉬쿨",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 5,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "에뛰드",
+        "name": "왓츠 인 마이 아이즈 레이디얼그레이",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 6,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "토니모리",
+        "name": "아이톤 싱글 아이섀도우 405호 토프그레이",
+        "option": "405호 토프그레이",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 7,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "토니모리",
+        "name": "아이톤 싱글 아이섀도우 413호 바닐라크림",
+        "option": "413호 바닐라크림",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 8,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "에뛰드",
+        "name": "왓츠 인 마이 아이즈 달달한아샷추",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 9,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "클리오",
+        "name": "샤프 쏘 심플 워터프루프 펜슬라이너 01 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 10,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "투쿨포스쿨",
+        "name": "스머징 트임 라이너 01 헤이즈",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 11,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "코링코",
+        "name": "톡톡하라 노글루 속눈썹 블라썸",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 12,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "에뛰드",
+        "name": "컬 픽스 마스카라 04 가닥볼륨",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 13,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "누즈",
+        "name": "리퀴드 케어 치크 04 포피 브리즈",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 14,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "필리밀리",
+        "name": "워터리 블러셔 브러시 887호",
+        "option": "887호",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 15,
+        "category": "립",
+        "zone": "입술",
+        "brand": "글리프",
+        "name": "휴 스프레드 스틱 01 아우취",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 16,
+        "category": "립",
+        "zone": "입술",
+        "brand": "엔트로피",
+        "name": "블러리 참 틴트 7607C 코랄젬",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 17,
+        "category": "립",
+        "zone": "입술",
+        "brand": "입생로랑",
+        "name": "러브샤인 플럼핑 립 오일 글로스 Shade 04 허니 퓨어 러브",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 18,
+        "category": "립",
+        "zone": "입술",
+        "brand": "에이오유",
+        "name": "블렌딩 립 펜슬 06 아몬드",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 19,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "디올",
+        "name": "백스테이지 글로우 페이스 팔레트 01 유니버셜",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "요즘 셀럽들이 무조건 하는 블러셔 방법!✨️ 2025년 완전 트랜디한 블러셔🤎제니 메이크업으로 정복해보기!(Eng)",
+    "channelName": "헤이즐 Heizle"
+  },
+  {
+    "id": "9NR974brRXU",
+    "celebrityId": "jennie",
+    "number": 5,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "렌즈",
+        "zone": "눈",
+        "brand": "오렌즈",
+        "name": "SCANDI ONE DAY - Hazel",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "립",
+        "zone": "입술",
+        "brand": "맥",
+        "name": "LIP CONDITIONAL 립 컨디셔너 SPF 15",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 3,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "CNP",
+        "name": "PROPOLIS AMPULE MIST 프로폴리스 앰플 미스트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 4,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "꾸셀",
+        "name": "makeup BASE original 베이스 오리지널",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 5,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "디올",
+        "name": "backstage face & body foundation 0N - 0 neutral",
+        "option": "0N",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 6,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "꾸셀",
+        "name": "LIQUID FOUNDATION COLOR - 300 리퀴드 파운데이션 - 300호",
+        "option": "300호",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 7,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "로라메르시에",
+        "name": "mineral finishing powder 미네랄 피니싱 파우더",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 8,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "맥",
+        "name": "EYE SHADOW - SOBA 아이섀도우 소바",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 9,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "맥",
+        "name": "EYE SHADOW - coquette 아이섀도우 코게트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 10,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "슈에무라",
+        "name": "hard formula - seal brown",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 11,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "샌포드",
+        "name": "PRISMACOLOR EBONY - ZET BLACK",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 12,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "MAKE UP FOREVER",
+        "name": "ARTIST COLOR SHADOW - M536 Milk Tea",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 13,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "맥",
+        "name": "HALF LASH CURLER",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 14,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "바비브라운",
+        "name": "EYE SHADOW - TAUPE",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 15,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "맥",
+        "name": "EYE SHADOW - concrete 아이섀도우 콘크리트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 16,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "mitsuyoshi",
+        "name": "MAKEUP EYE LINER PENCIL - black",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 17,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "맥",
+        "name": "EYE SHADOW - espresso 아이섀도우 에스프레소",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 18,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "나스",
+        "name": "SINGLE EYESHADOW - HARDWIRED SHEEN - GALAPAGOS",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 19,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "바비브라운",
+        "name": "EYE SHADOW - rich brown",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 20,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "디올",
+        "name": "SHOW ICONIC OVERCURL",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 21,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "TOM FORD",
+        "name": "Eye Color Quad - Sous Le Sable",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 22,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "맥",
+        "name": "PRO LONGWEAR FLUIDLINE EYE LINER AND BROW GEL - dip down",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 23,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "맥",
+        "name": "PRO LONGWEAR FLUIDLINE EYE LINER AND BROW GEL - black track",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 24,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "바비브라운",
+        "name": "Sheer Finish Pressed Powder - pale yellow",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 25,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "로라메르시에",
+        "name": "Blush Color Infusion - GINGER",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 26,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "CLINIQUE",
+        "name": "CHEEK POP - NUDE POP",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 27,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "맥",
+        "name": "MINERALIZE SKINFINISH NATURAL - MEDIUM DARK",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 28,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "디올",
+        "name": "BACKSTAGE GLOW FACE PALETTE - 001 universal",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 29,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "베네피트",
+        "name": "eye primer - lemon aid",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 30,
+        "category": "립",
+        "zone": "입술",
+        "brand": "스틸라",
+        "name": "Stay All Day® Liquid Lipstick - romanza",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 31,
+        "category": "립",
+        "zone": "입술",
+        "brand": "HERA",
+        "name": "spicy spicy nude gloss - speechless",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 32,
+        "category": "립",
+        "zone": "입술",
+        "brand": "샤넬",
+        "name": "rouge allure ink fusion - 802 beige naturel",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "[블랙핑크] \"블랙핑크 제니 메이크업\" 종결 by 블랙핑크 아티스트 맹쌤ㅣREAL BLACK PINK JENNIE MAKEUPㅣ제니 속눈썹 메이크업  ㅣ제니 립 메이크업",
+    "channelName": "아이엠맹 I AM MAENG"
+  },
+  {
+    "id": "fr75EBX0vXY",
+    "celebrityId": "haerin",
+    "number": 1,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "렌즈",
+        "zone": "눈",
+        "brand": "오렌즈",
+        "name": "무드 그레이 13.4mm",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "선물"
+      },
+      {
+        "number": 2,
+        "category": "스킨케어·선케어",
+        "zone": "피부",
+        "brand": "NUMBUZIN",
+        "name": "넘버즈인 4번 모공제로 깐달걀 토너패드 (70매)",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "선물"
+      },
+      {
+        "number": 3,
+        "category": "스킨케어·선케어",
+        "zone": "피부",
+        "brand": "듀이트리",
+        "name": "어성초 100 크림",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "선물"
+      },
+      {
+        "number": 4,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "ORINHEAL",
+        "name": "오린힐 그린 카밍 베이스 토너",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "선물"
+      },
+      {
+        "number": 5,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "페리페라",
+        "name": "밀크 블러 퓨어 톤업",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 6,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "자빈드서울",
+        "name": "윙크 파운데이션 팩트 22호",
+        "option": "22호",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "유료광고"
+      },
+      {
+        "number": 7,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "자빈드서울",
+        "name": "윙크 리퀴드 컨실러 21 & 23",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "선물"
+      },
+      {
+        "number": 8,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "투쿨포스쿨",
+        "name": "아트클래스 바이로댕 쉐딩 01 클래식 02 모던",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "선물"
+      },
+      {
+        "number": 9,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "릴리바이레드",
+        "name": "스마일리 애굣살 라이너 02 찡긋찡긋",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 10,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "네이처리퍼블릭",
+        "name": "프로방스 펜슬 컨실러 03 네추럴 베이지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "선물"
+      },
+      {
+        "number": 11,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "URBAN DECAY",
+        "name": "어반디케이 아이 프라이머 포션",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "선물"
+      },
+      {
+        "number": 12,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "떨샵",
+        "name": "티 안나는 쌍커풀 테이프",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 13,
+        "category": "립",
+        "zone": "입술",
+        "brand": "EYECROWN",
+        "name": "아이크라운 브로잉쇼 틴트 카라 살몬 블론드",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 14,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "아임미미",
+        "name": "핑크 톤업 팩트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "선물"
+      },
+      {
+        "number": 15,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "데이지크",
+        "name": "섀도우 팔레트 14 피치스퀴즈",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 16,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "3CE",
+        "name": "쓰리씨이 벨벳 리퀴드 블러셔 클래식무드",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 17,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "MAJOLIKA MAJORKAShadow BE286",
+        "name": "마조리카 마조르카 섀도우 BE286",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 18,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "클리오",
+        "name": "샤프 쏘 심플 워터프루프 젤 라이너 브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 19,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "릴리바이레드",
+        "name": "나인투나인 인피니트 마스카라 롱앤컬",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 20,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "딘토",
+        "name": "원바이원 아이 디파이너 인더다크",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 21,
+        "category": "립",
+        "zone": "입술",
+        "brand": "데이지크",
+        "name": "워터 블러 틴트 피치듀",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 22,
+        "category": "헤어",
+        "zone": "모발",
+        "brand": "IDEAL FOR MENHair Spray",
+        "name": "아이디얼 포맨 헤어스프레이 (울트라 세팅)",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "선물"
+      },
+      {
+        "number": 23,
+        "category": "헤어",
+        "zone": "모발",
+        "brand": "아이디얼 포맨",
+        "name": "헤어 왁스 내추럴 하드",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "선물"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "[ENG] 올리브영 세일 추천템으로 뉴진스 해린 커버메이크업🦋💚 자빈드서울 윙크 파운데이션 팩트,데이지크 피치스퀴즈,쿠션추천 NEWJEANS HAERIN COVER MAEKUP",
+    "channelName": "프리따 PRETTA"
+  },
+  {
+    "id": "2npAvbfCwGQ",
+    "celebrityId": "haerin",
+    "number": 2,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "퓌",
+        "name": "모어 무드 아이팔레트 06 모어 댄 로즈",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 2,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "네이밍",
+        "name": "플러피 볼륨 앤 쉐딩 듀오",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 3,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "베네피트",
+        "name": "프리사이슬리 마이 브로우 1 쿨 라이트 블론드",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 4,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "베네피트",
+        "name": "프리사이슬리 마이 브로우 2 웜 골든 블론드",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 5,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "나스",
+        "name": "리플렉팅 프리즈마틱 파우더 인터스텔라",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 6,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "캔메이크",
+        "name": "크리미 터치 라이너 02 미디엄 브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 7,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "마죠리카마죠르카",
+        "name": "섀도우 커스터마이즈 be286",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 8,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "에뛰드",
+        "name": "컬픽스 마스카라 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 9,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "스틸라",
+        "name": "스테이 올데이 듀얼 워터프루프 아이라이너 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 10,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "웨이크메이크",
+        "name": "리얼 애쉬 브러쉬 아이라이너 01 애쉬블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 11,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "투쿨포스쿨",
+        "name": "프로타쥬 팔레트 02 소프티핑크",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 12,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "더샘",
+        "name": "커버 퍼펙션 트리플 팟 컨실러 코렉트 베이지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 13,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "캔메이크",
+        "name": "크리미 터치 라이너 01 딥블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 14,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "캔메이크",
+        "name": "크리미 터치 라이너 11 클라우디 그레이",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 15,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "뮤드",
+        "name": "인스파이어 스키니 컬링 마스카라 01 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 16,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "아워글래스",
+        "name": "앰비언트 스트롭 파우더 인캔디센트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 17,
+        "category": "립",
+        "zone": "입술",
+        "brand": "헤라",
+        "name": "센슈얼 누드 글로스 380 체리쉬",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 18,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "네이밍",
+        "name": "플러피 파우더 블러쉬 베이글",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 19,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "페리페라",
+        "name": "맑게 물든 선샤인치크 24 달방아콩콩해",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 20,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "퓌",
+        "name": "듀얼 애교살 풀 필러 02 디어포지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 21,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "김치시크뷰티",
+        "name": "펄리 곤 와일드 프레스드 하이라이터 01 호프",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 22,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "오프라",
+        "name": "미니 하이라이터 클라우드나인",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "눈 '사방트임'의 정석🐱 뉴진스 해린 메이크업 해보았습니다(스킬 차력쇼 심화ver. / 헤라 체리쉬 영업이었는데요)",
+    "channelName": "코코초 COCOCHO"
+  },
+  {
+    "id": "uWWWVR1rBx4",
+    "celebrityId": "haerin",
+    "number": 3,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "에뛰드",
+        "name": "더블 래스팅 비건 커버 파운데이션 21N1",
+        "option": "21N1",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 2,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "루나",
+        "name": "롱래스팅 팁 컨실러 바닐라",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 3,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "루나",
+        "name": "프로 포토 피니셔 2호 블러파우더",
+        "option": "2호 블러파우더",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 4,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "베네피트",
+        "name": "프리사이슬리 아이브로우 펜슬 3.5호",
+        "option": "5호",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 5,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "페리페라",
+        "name": "잉크 포켓 섀도우 팔레트 3호 가을 낙엽 떨어질 때",
+        "option": "3호 가을 낙엽",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 6,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "더샘",
+        "name": "커버퍼펙션 컨실러 펜슬 내추럴 베이지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 7,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "토니모리",
+        "name": "애교빔 드로잉 펜슬 03 매트브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 8,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "코스노리",
+        "name": "수퍼프루프 피팅 젤 아이라이너 블랙브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 9,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "코스노리",
+        "name": "슈퍼프루프 피팅 브러쉬 아이라이너 블랙브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 10,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "와이츄",
+        "name": "프리미엄 인조 속눈썹 C-2",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 11,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "와이츄",
+        "name": "프리미엄 인조 속눈썹 B-2",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 12,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "에뛰드",
+        "name": "컬 픽스 마스카라 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 13,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "에뛰드",
+        "name": "그림자쉐딩 01호 재창조",
+        "option": "01호 재창조",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 14,
+        "category": "립",
+        "zone": "입술",
+        "brand": "정샘물",
+        "name": "립프레션 글로우래스팅 틴트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 15,
+        "category": "립",
+        "zone": "입술",
+        "brand": "어뮤즈",
+        "name": "젤핏 틴트 07호 카라멜",
+        "option": "07호 카라멜",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 16,
+        "category": "렌즈",
+        "zone": "눈",
+        "brand": "아이로라",
+        "name": "플루토 그레이",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      }
+    ],
+    "linkStatus": "needs_review",
+    "title": "",
+    "channelName": ""
+  },
+  {
+    "id": "hX35-qFGOlc",
+    "celebrityId": "haerin",
+    "number": 4,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "렌즈",
+        "zone": "눈",
+        "brand": "오렌즈",
+        "name": "심포니 그린",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "롬앤",
+        "name": "롬앤X산리오캐릭터즈 누 제로 쿠션 02퓨어 21",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 3,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "데이지크",
+        "name": "아이섀도우 애교살 팔레트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 4,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "데이지크",
+        "name": "프로 컨실러 팔레트 01 커버",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 5,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "데이지크",
+        "name": "브이컷 블렌딩 쉐딩 02 쿨 블렌딩",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 6,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "클리오",
+        "name": "프리즘 에어 하이라이터 골드쉬어",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 7,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "데이지크",
+        "name": "섀도우 팔레트 15 베이지 니트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 8,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "웨이크메이크",
+        "name": "철벽 펜 아이라이너 02 브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 9,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "노베브",
+        "name": "언더 아이 마스터 01 낫띵",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 10,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "키스미",
+        "name": "히로인메이크 롱 업 마스카라 슈퍼 워터프루프 01 딥블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 11,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "데이지크",
+        "name": "블렌딩 무드 치크 07 캔디 베리",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 12,
+        "category": "립",
+        "zone": "입술",
+        "brand": "데이지크",
+        "name": "쥬시 듀이 틴트 01 무드 망고",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 13,
+        "category": "립",
+        "zone": "입술",
+        "brand": "holyja",
+        "name": "물막틴트 오로라 가든",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "뉴진스 해린st 아기 고양이 메이크업💚🐈‍⬛ 흑발에 찰떡!",
+    "channelName": "히니HEENY"
+  },
+  {
+    "id": "QfZNYttIbHY",
+    "celebrityId": "haerin",
+    "number": 5,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "롬앤",
+        "name": "베러 댄 컨투어 셰이딩 02 그레이 쿨",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "에스쁘아",
+        "name": "더브로우 밸런스 펜슬 4호 애쉬 브라운",
+        "option": "4호 애쉬 브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 3,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "페리페라",
+        "name": "스피디 스키니 브로우 마스카라 06 베이지애쉬",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 4,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "하킷",
+        "name": "플로리드 레이어 블러셔 07 블렌딩",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 5,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "힌스",
+        "name": "싱글 아이섀도우 10 빌드온",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 6,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "세잔느",
+        "name": "드로잉 아이존 컨실러 라이트 베이지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 7,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "어바웃톤",
+        "name": "리턴 투 베이직 섀도우 팔레트 03 래디언트 컬러",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 8,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "메이블린",
+        "name": "하이퍼 샤프 라이너 뮤티드 애쉬",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 9,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "깜빡",
+        "name": "가닥속눈썹 10mm thick 1가닥",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 10,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "에뛰드",
+        "name": "컬픽스 마스카라 01 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 11,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "세잔느",
+        "name": "펄 글로우 하이라이트 01 샴페인베이지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 12,
+        "category": "립",
+        "zone": "입술",
+        "brand": "더샘",
+        "name": "커버 퍼펙션 립 펜슬 05 TOFFY",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 13,
+        "category": "립",
+        "zone": "입술",
+        "brand": "투쿨포스쿨",
+        "name": "베르 컬러 글로스 02 휘그몰트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "[ENG] 느낌좋은 베이지 밀크티색감🧋𓈒 ❤︎︎ ࣪ ˖ NJZ 해린 메이크업",
+    "channelName": "채히 CHAEHEE"
+  },
+  {
+    "id": "bp_icRsBlAM",
+    "celebrityId": "haerin",
+    "number": 6,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "스킨케어·선케어",
+        "zone": "피부",
+        "brand": "듀이트리",
+        "name": "픽앤퀵 카밍풀 마스크",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "스틸라",
+        "name": "올인원 컬러 코렉팅 팔레트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 3,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "아임미미",
+        "name": "원더 벨벳 래스팅 쿠션 01 아이보리",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 4,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "웨이크메이크",
+        "name": "믹스 블러링 볼륨 쉐딩 소프트웜",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 5,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "아리따움",
+        "name": "아이돌 브로우 파우더 케익 내추럴브라운 듀오",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 6,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "슈에무라",
+        "name": "하드포뮬라 아콘",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 7,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "클리오",
+        "name": "킬 브로우 오토 하드 브로우 펜슬 라이트브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 8,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "더샘",
+        "name": "커버 퍼펙션 트리플 팟 컨실러 02 컨투어베이지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 9,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "더샘",
+        "name": "커버 퍼펙션 컨실러 펜슬 1.0 클리어베이지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 10,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "웨이크메이크",
+        "name": "소프트 블러링 아이 팔레트 03 선셋블러링",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 11,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "클리오",
+        "name": "수퍼프루프 펜 라이너 킬 브라운 브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 12,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "지베르니",
+        "name": "밀착 펜슬 라이너 헤이즐브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 13,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "더툴랩",
+        "name": "해피림 아이래쉬 내추럴 09·5N",
+        "option": "5N",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 14,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "미샤",
+        "name": "노 리터치 보정 카라",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 15,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "투쿨포스쿨",
+        "name": "아트클래스 매지컬 픽싱 마스카라 다크브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 16,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "맥",
+        "name": "스튜디오 픽스 컨실러 앤 코렉트 팔레트 라이트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 17,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "루나",
+        "name": "롱 래스팅 팁 컨실러 라이트 베이지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 18,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "삐아",
+        "name": "라스트 오토 젤 아이라이너 아몬드베이지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 19,
+        "category": "립",
+        "zone": "입술",
+        "brand": "토니모리",
+        "name": "겟잇틴트 워터풀 버터 02 너티크림",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 20,
+        "category": "립",
+        "zone": "입술",
+        "brand": "페리페라",
+        "name": "맑게 물든 선샤인 치크 19 튤립파티해",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 21,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "페리페라",
+        "name": "맑게 물든 선샤인 치크 18 수줍게인사해",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "[JPN] MZ 그 잡채..뉴진스 해린 메이크업(풀뱅ver.) NewJeans 'OMG' HAERIN MAKEUP ヘリン メイク",
+    "channelName": "리선 risun"
+  },
+  {
+    "id": "mXUMB45414A",
+    "celebrityId": "wony",
+    "number": 1,
+    "startSeconds": 1,
+    "products": [
+      {
+        "number": 1,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "에이프릴스킨",
+        "name": "매직 스노우 쿠션 4.0 21 라이트 베이지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "딘토",
+        "name": "운초 라이트 베일 컬러 코렉터 914 라이트 운초",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 3,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "About Tone",
+        "name": "블러 파우더 팩트 01 페어",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 4,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "에뛰드",
+        "name": "재창조 메이커 _쿨 쉐딩",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 5,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "노베브",
+        "name": "블룸 디테일 쉐딩 팔레트 02 뉴트럴 브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 6,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "Haming",
+        "name": "멀티 컬러링 파우더 블러 P07 디어디어",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 7,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "투에이앤",
+        "name": "- 듀얼 치크 20 소프트 브리즈",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 8,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "Be Aube",
+        "name": "믹스 매치 치크 팔레트 02 쿨 믹스",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 9,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "웨이크메이크",
+        "name": "소프트 블러링 아이팔레트 25 헬시 코랄 블러링",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 10,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "바닐라코",
+        "name": "무드 온 라인 앤 블렌드 아이라이너 BR02 헤이즐 터치",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 11,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "바닐라코",
+        "name": "원더팜 아이 글리터 PE2 팜핑 캔디",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 12,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "클리오",
+        "name": "소프트 블렌딩 섀도우 스틱 M202 그레이 퍼지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 13,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "Revecen",
+        "name": "아이섀도우 001 아이보리",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 14,
+        "category": "립",
+        "zone": "입술",
+        "brand": "퓌",
+        "name": "립앤치크 블러리 푸딩팟 PK06 바닐라 소르베",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 15,
+        "category": "립",
+        "zone": "입술",
+        "brand": "투에이앤",
+        "name": "- 멜팅 온 마이 립글로스 썸머 로즈",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 16,
+        "category": "립",
+        "zone": "입술",
+        "brand": "Dote On Mood",
+        "name": "립 펜슬 슬림 06 로즈 베이지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 17,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "투에이앤",
+        "name": "- 퓨어 글래시 하이라이터 ND01 쉘",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 18,
+        "category": "도구",
+        "zone": "메이크업 도구",
+        "brand": "에뛰드",
+        "name": "라인 픽스 브러쉬 라이너 02 브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 19,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "네오젠",
+        "name": "슬림 메탈 마스카라 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 20,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "릴리바이레드",
+        "name": "스마일리 아이 블렌딩 스틱 _방긋슈가",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 21,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "3CE",
+        "name": "- 아이 스위치 스틱 아이보리 브리즈",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 22,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "Macqueen Newyork",
+        "name": "마이 스트롱 아이브로우 펜슬 소프트 베이지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 23,
+        "category": "립",
+        "zone": "입술",
+        "brand": "하트퍼센트",
+        "name": "도트 온 무드 립 펜슬 슬림 06 로즈베이지",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "\"리센느 원이\" 커버 메이크업 해봤습니다 🎀 잘 부탁드립니다",
+    "channelName": "김지유 JIYU KIM"
+  },
+  {
+    "id": "ZBTdg6qb1YA",
+    "celebrityId": "wony",
+    "number": 2,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "데이지크",
+        "name": "브이컷 블렌딩 쉐딩 쿨블렌딩",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "우드버리",
+        "name": "하드텍스처 아이브로우 하바나브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 3,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "우드버리",
+        "name": "프로 오토 브로우 펜슬 버만브라운",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 4,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "홀리카홀리카",
+        "name": "마이페이브 피스 컨실러 벚꽃안개",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 5,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "릴리바이레드",
+        "name": "러브빔 치크밤 순수빔",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 6,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "로라메르시에",
+        "name": "트랜스루센트 루스 세팅 파우더",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 7,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "투쿨포스쿨",
+        "name": "바이로댕 노즈 쉐딩",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 8,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "클리오",
+        "name": "뮤즈 마스터 팔레트 수놓은핑크",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 9,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "토니모리",
+        "name": "백젤 아이라이너 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 10,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "홀리카홀리카",
+        "name": "마이페이브 피스 젤테일 우드스모크",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 11,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "피카소",
+        "name": "쏙쏙 가닥 속눈썹 라이트9mm, 라이트10mm",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 12,
+        "category": "마스카라",
+        "zone": "속눈썹",
+        "brand": "에뛰드",
+        "name": "컬픽스 마스카라 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 13,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "키보",
+        "name": "더블래스팅 펜 아이라이너 블랙",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 14,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "삐아",
+        "name": "에센셜 아이 팔레트 유어모브",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 15,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "루미르",
+        "name": "온 더 스테이지 리퀴드 글리터 모가나이트",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 16,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "VDL",
+        "name": "치크스테인 블러셔 캔디쿨에이드 듀오",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 17,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "폴앤조",
+        "name": "보떼 베르사유 페이스 컬러 하이라이터 하트플러시",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 18,
+        "category": "립",
+        "zone": "입술",
+        "brand": "에이오유",
+        "name": "매트바 멀멀바",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 19,
+        "category": "립",
+        "zone": "입술",
+        "brand": "페리페라",
+        "name": "무드 글로이 틴트 어쩔체리",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 20,
+        "category": "립",
+        "zone": "입술",
+        "brand": "클리오",
+        "name": "크리스탈 글램 틴트 자개장나비모브",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 21,
+        "category": "립",
+        "zone": "입술",
+        "brand": "클리오",
+        "name": "크리스탈 글램 틴트 하트핑크다이아",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "지금 제일 핫한 리센느 원이가 많이 하는 쿨톤 아이돌 메이크업🩷KPOP IDOL RESCENE Woni makeup",
+    "channelName": "리선 risun"
+  },
+  {
+    "id": "kPslFobuo2k",
+    "celebrityId": "wony",
+    "number": 3,
+    "startSeconds": 0,
+    "products": [
+      {
+        "number": 1,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "바닐라코",
+        "name": "올데이 프렙 톤업 베이스 크림 [35ml]",
+        "option": "35ml",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "미기재"
+      },
+      {
+        "number": 2,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "네이밍",
+        "name": "올데이 마스터 쿠션 [22N]",
+        "option": "22N",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 3,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "TIR TIR",
+        "name": "티르티르 글라이드 앤 하이드 블러링 컨실러 [1N]",
+        "option": "1N",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 4,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "컬러그램",
+        "name": "입체 창조 쉐딩 스틱 [02 쿨톤]",
+        "option": "02 쿨톤",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 5,
+        "category": "쉐딩·하이라이터",
+        "zone": "얼굴",
+        "brand": "노베브",
+        "name": "볼륨 디테일 쉐딩팔레트 [쿨그레이]",
+        "option": "쿨그레이",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 6,
+        "category": "립",
+        "zone": "입술",
+        "brand": "바닐라코",
+        "name": "글로우 베일 립스틱 [PK01 헤더 블랜드]",
+        "option": "PK01 헤더 블랜드",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "유료광고"
+      },
+      {
+        "number": 7,
+        "category": "립",
+        "zone": "입술",
+        "brand": "바닐라코",
+        "name": "글로우 베일 립스틱 [PK02 베리니어]",
+        "option": "PK02 베리니어",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "유료광고"
+      },
+      {
+        "number": 8,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "3CE",
+        "name": "쓰리씨이 멀티 아이 컬러 팔레트 [오토 포커스]",
+        "option": "오토 포커스",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 9,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "에뛰드",
+        "name": "멀티 아이 컬러 팔레트 [오토 포커스]",
+        "option": "오토 포커스",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 10,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "eglips",
+        "name": "이글립스 올 쉐이드 듀얼 브로우 앤 카라 [02 다크브라운]",
+        "option": "02 다크브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 11,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "웨이크메이크",
+        "name": "철벽 펜 아이라이너 [03 다크브라운]",
+        "option": "03 다크브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 12,
+        "category": "아이라이너",
+        "zone": "눈",
+        "brand": "케이트",
+        "name": "핏 레어 젤 펜슬N [BK-1 블랙]",
+        "option": "BK-1 블랙",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 13,
+        "category": "브로우",
+        "zone": "눈썹",
+        "brand": "케이트",
+        "name": "디자이닝 아이로우 [내추럴브라운]",
+        "option": "내추럴브라운",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 14,
+        "category": "베이스",
+        "zone": "얼굴",
+        "brand": "KEEPINTOUCH",
+        "name": "키핀터치 소프트 클라우드 블러 파우더 팩트 [02 라이블리]",
+        "option": "02 라이블리",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      },
+      {
+        "number": 15,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "이더앤",
+        "name": "멀티 글림바",
+        "option": "원본에 별도 옵션 없음",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 16,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "바닐라코",
+        "name": "컬리 스튜디오 노글로 아이래쉬 [02 클린걸]",
+        "option": "02 클린걸",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 17,
+        "category": "속눈썹",
+        "zone": "속눈썹",
+        "brand": "필리밀리",
+        "name": "노글루 포인트 가닥 속눈썹 [06 소프트 언더]",
+        "option": "06 소프트 언더",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 18,
+        "category": "아이섀도우",
+        "zone": "눈",
+        "brand": "삐아",
+        "name": "애교살 펜슬 [03 볼륨 피치]",
+        "option": "03 볼륨 피치",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "제품제공"
+      },
+      {
+        "number": 19,
+        "category": "치크",
+        "zone": "볼",
+        "brand": "나스",
+        "name": "블러쉬 [섹스판타지]",
+        "option": "섹스판타지",
+        "reviewStatus": "원본 기준 정리",
+        "sourceType": "직접구매"
+      }
+    ],
+    "linkStatus": "metadata_available",
+    "title": "왜 예뻐 보일까? 리센느 원이 얼굴 분석&메이크업",
+    "channelName": "쩡유 JJeong U"
+  }
+]

@@ -156,7 +156,8 @@ constants/ · types/           테마, 정적 상수, 공용 타입
 ### 백엔드 주소와 로그인
 
 - `lib/api.ts`가 모든 요청의 기준 주소를 정합니다. `EXPO_PUBLIC_API_BASE_URL`(공개 값)이 있으면 그 주소를 쓰고, 없으면 개발 중에는 Metro를 띄운 PC의 게이트웨이(`http://<PC IP>:8080`)로 보냅니다. 그래서 휴대폰의 Expo Go도 따로 설정하지 않고 로컬 백엔드에 붙습니다. 앱을 빌드할 때는 EAS 환경 변수로 운영 주소를 넣습니다.
-- 로그인은 Supabase Auth를 씁니다. 앱은 `lib/auth`에서 로그인하고 세션을 기기에 저장하며, `lib/api.ts`가 요청마다 액세스 토큰(JWT)을 붙입니다. 백엔드는 `app/core/auth.py`에서 토큰을 검증합니다([ADR-0005](adr/0005-supabase-auth-jwks.md)). Supabase Project URL과 publishable 키는 공개용이라 `EXPO_PUBLIC_`로 앱에 넣지만, secret 키는 넣지 않습니다.
+- 로그인은 Supabase Auth를 씁니다. 앱은 `lib/auth`에서 로그인하고 세션을 기기에 저장하며, `lib/api.ts`가 요청마다 액세스 토큰(JWT)을 붙입니다. 백엔드는 `app/core/auth.py`에서 토큰을 검증합니다([ADR-0005](adr/0005-supabase-auth-jwks.md)). Supabase Project URL과 publishable 키는 공개용이라 `EXPO_PUBLIC_`로 앱에 넣지만, secret 키는 넣지 않습니다. secret 키는 회원 탈퇴(`DELETE /api/me`)를 위해 `backend/api`의 `clients/supabase_admin_client.py`만 읽습니다([ADR-0010](adr/0010-account-deletion-secret-key.md)).
+- 가입할 때 약관 동의를 받고 `POST /api/me/terms`로 `members` 표에 버전과 시각을 남깁니다. Google 첫 로그인처럼 동의 기록이 없거나 약관 버전이 바뀌면 `hooks/useTermsConsent.ts`가 `app/terms-consent.tsx`로 보냅니다. 약관 버전은 `constants/legal.ts`와 `backend/api`의 `member_service.py`에서 같이 올립니다.
 - API 키(네이버, YouTube, LLM)는 백엔드의 `clients/`에서만 읽습니다. 앱 번들에는 들어가지 않습니다.
 
 ## 개발 전용 도구 (피부 분석 연구)
@@ -203,7 +204,7 @@ constants/ · types/           테마, 정적 상수, 공용 타입
 
 | 서비스 | 맡는 것 | 데이터 | 외부 호출 |
 | --- | --- | --- | --- |
-| `backend/api` | 카탈로그(제품·셰이드·룩·매장), 온라인 판매처·제품 이미지, 튜토리얼 검색, 셰이드 추천(CIEDE2000 ΔE), 회원(`/api/me`) | PostgreSQL(원본), Redis(캐시·레이트 리밋) | 네이버 검색 API, YouTube Data API, Supabase Auth(토큰 검증) |
+| `backend/api` | 카탈로그(제품·셰이드·룩·매장), 온라인 판매처·제품 이미지, 튜토리얼 검색, 셰이드 추천(CIEDE2000 ΔE), 회원(`/api/me`: 약관 동의, 탈퇴) | PostgreSQL(원본), Redis(캐시·레이트 리밋) | 네이버 검색 API, YouTube Data API, Supabase Auth(토큰 검증, 계정 삭제) |
 | `backend/chatbot` | 챗봇(`/api/chat`), PostgreSQL → Neo4j 동기화 잡 | Neo4j(사본), Redis(레이트 리밋) | LLM API, `api` 서비스 |
 
 서비스를 둘로 나눈 이유는 [ADR-0001](adr/0001-two-backend-services.md)에 있습니다. LLM 호출은 느리고 비용이 들어서 따로 확장하고 따로 제한해야 합니다. 챗봇 장애가 쇼핑 기능으로 번지지 않아야 하고, LLM 키는 챗봇 Pod에만 있어야 합니다.
@@ -276,7 +277,9 @@ backend/<service>/
 | `GET /api/youtube/search?q=&max=` | api | `{ configured, videos }`, IP당 분당 20회, 12시간 캐시 |
 | `GET /api/looks`, `GET /api/looks/{id}` | api | `{ looks }`, `{ look, products }` |
 | `GET /api/stores` | api | 픽업 가능 매장만 |
-| `GET /api/me` | api | 로그인 필요 |
+| `GET /api/me` | api | 로그인 필요, `{ user, terms: { version, agreedVersion, agreedAt } }` |
+| `POST /api/me/terms` | api | 로그인 필요, `{ version }`이 현재 약관과 다르면 `409 terms_outdated` |
+| `DELETE /api/me` | api | 로그인 필요, Supabase 계정과 동의 기록 삭제 후 204. 주문은 보관. secret 키가 없으면 `503 account_deletion_unavailable` |
 | `POST /api/shades/recommend` | api | `{ skin: { ita?, mst, undertone }, limit }` → ΔE 순위 |
 | `GET /api/shades/similar?productId=&shadeId=&limit=` | api | 같은 부위 셰이드를 공식 색상 ΔE 순으로 `{ source, matches[{ reasons }], products }`. AR 화면 영상·강도는 쓰지 않음 |
 | `POST /api/chat` | chatbot | 로그인 필요, 사용자당 분당 10회 |

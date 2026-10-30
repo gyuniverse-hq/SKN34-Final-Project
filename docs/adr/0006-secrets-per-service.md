@@ -9,7 +9,7 @@
 ## 결정
 
 - 시크릿은 서비스마다 따로 둡니다.
-  - `vishue-api`: `DATABASE_URL`, `REDIS_URL`, `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `YOUTUBE_API_KEY`
+  - `vishue-api`: `DATABASE_URL`, `REDIS_URL`, `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `YOUTUBE_API_KEY`, `SUPABASE_SECRET_KEY`([ADR-0010](0010-account-deletion-secret-key.md))
   - `vishue-chatbot`: `NEO4J_PASSWORD`, `REDIS_URL`, `LLM_API_KEY`
 - 비밀이 아닌 설정(모델 이름, 로그 레벨, Supabase 공개 값)은 ConfigMap에 둡니다. ConfigMap이 바뀌면 checksum 어노테이션 때문에 Pod가 다시 뜹니다.
 - 운영 시크릿의 원본은 AWS Secrets Manager(`vishue/production/api`, `vishue/production/chatbot`)이고, External Secrets Operator가 쿠버네티스 Secret으로 동기화합니다. Git에는 시크릿 값을 커밋하지 않습니다.

@@ -7,6 +7,7 @@ import { findColorGaps } from '@/lib/colorGaps';
 import { useCartStore } from '@/store/cartStore';
 import { useMakeupStore } from '@/store/makeupStore';
 
+let mockRouteParams: { video?: string } = {};
 jest.mock('react-native-safe-area-context', () => {
   const actual = jest.requireActual('react-native-safe-area-context') as typeof import('react-native-safe-area-context');
   return { ...actual, useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }) };
@@ -16,7 +17,7 @@ jest.mock('expo-camera', () => ({ useCameraPermissions: () => [{ granted: false,
 jest.mock('expo-haptics', () => ({ notificationAsync: jest.fn(() => Promise.resolve()), NotificationFeedbackType: { Success: 'success' } }));
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn(), canGoBack: () => false }),
-  useLocalSearchParams: () => ({}),
+  useLocalSearchParams: () => mockRouteParams,
   useNavigation: () => ({ setOptions: jest.fn() }),
   useFocusEffect: jest.fn(),
 }));
@@ -27,6 +28,7 @@ jest.mock('@/hooks/useArRouteSelection', () => ({ useArRouteSelection: () => ({ 
 jest.mock('@/lib/queries', () => ({ useProducts: () => ({ data: require('@/lib/devCatalog/demo').DEMO_PRODUCTS }) }));
 
 it('adds only explicitly selected products even when other look colors have nearby products', async () => {
+  mockRouteParams = {};
   useCartStore.setState({ items: [], pendingPayment: null });
   useMakeupStore.getState().reset();
   const look = DEMO_LOOKS.find((item) => item.items.length > 1)!;
@@ -43,4 +45,14 @@ it('adds only explicitly selected products even when other look colors have near
   await act(async () => { add!.props.onPress(); });
   expect(useCartStore.getState().items.map((item) => item.productId)).toEqual([chosen.id]);
   await act(async () => { screen.unmount(); });
+});
+
+it('does not seed an unrelated lip color when opening AR from a video', async () => {
+  mockRouteParams = { video: '1' };
+  useMakeupStore.getState().reset();
+  let screen!: renderer.ReactTestRenderer;
+  await act(async () => { screen = renderer.create(<ArTryOnScreen />); });
+  expect(useMakeupStore.getState().makeup.lip).toBeNull();
+  await act(async () => { screen.unmount(); });
+  mockRouteParams = {};
 });
