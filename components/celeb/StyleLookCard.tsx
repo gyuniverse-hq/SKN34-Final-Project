@@ -16,7 +16,7 @@ const PALETTES: Record<string, readonly [string, string]> = {
   '아이 메이크업': ['#A3889A', '#584359'],
 };
 
-export function StyleLookArtwork({ group, videoId }: { group: string; videoId?: string }) {
+export function StyleLookArtwork({ group, videoId, dim = true }: { group: string; videoId?: string; dim?: boolean }) {
   const [failedVideoId, setFailedVideoId] = useState<string | null>(null);
   const imageFailed = !!videoId && failedVideoId === videoId;
   const thumbnail = videoId && /^[A-Za-z0-9_-]{11}$/.test(videoId)
@@ -28,7 +28,7 @@ export function StyleLookArtwork({ group, videoId }: { group: string; videoId?: 
       <View style={styles.circleSmall} />
       <View style={styles.line} />
       {thumbnail && !imageFailed ? <Image source={{ uri: thumbnail }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} onError={() => setFailedVideoId(videoId ?? null)} /> : null}
-      {thumbnail && !imageFailed ? <LinearGradient colors={['rgba(20,10,14,0.35)', 'rgba(20,10,14,0.78)']} style={StyleSheet.absoluteFill} /> : null}
+      {thumbnail && !imageFailed && dim ? <LinearGradient colors={['rgba(20,10,14,0.35)', 'rgba(20,10,14,0.78)']} style={StyleSheet.absoluteFill} /> : null}
     </View>
   );
 }

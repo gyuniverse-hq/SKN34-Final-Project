@@ -37,7 +37,7 @@ export default function CelebrityScreen() {
         {query.isPending ? <InlineState status="loading" /> : query.isError ? <InlineState status="error" onRetry={() => query.refetch()} /> : videos.length === 0 ? (
           <InlineState status="empty" message={t('celebrity.videosEmpty')} />
         ) : videos.map((video) => <CelebrityVideoCard key={video.id} videoId={video.id} title={video.title || t('celebVideo.title', { number: video.number })}
-          subtitle={[video.channelName, t('looks.itemCount', { count: video.products.length })].filter(Boolean).join(' · ')}
+          channel={video.channelName} productCount={t('looks.itemCount', { count: video.products.length })}
           onPress={() => router.push({ pathname: '/celebrity-video/[id]', params: { id: video.id } } as Href)} />)}
       </ScrollView>
     </SafeAreaView>
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.surface },
   content: { padding: theme.spacing.lg, paddingBottom: 32, gap: 8 },
   heading: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  portrait: { width: 96, height: 110, borderRadius: theme.radius.md, backgroundColor: theme.colors.surfaceAlt },
+  portrait: { width: 72, height: 80, borderRadius: theme.radius.md, backgroundColor: theme.colors.surfaceAlt },
   headingText: { flex: 1, gap: 4 },
   group: { color: theme.colors.accent, fontWeight: '700', fontSize: theme.font.small },
   title: { color: theme.colors.ink, fontWeight: '800', fontSize: theme.font.h1 },

@@ -24,11 +24,19 @@ jest.mock('@/lib/queries', () => ({
 test('shows video and review details and opens the specified starting point', async () => {
   let screen!: renderer.ReactTestRenderer;
   await act(async () => { screen = renderer.create(<CelebrityVideoDetail />); });
-  const text = screen.root.findAllByType(Text).map((node) => node.props.children);
+  let text = screen.root.findAllByType(Text).map((node) => node.props.children);
   expect(text).toContain('styleLooks.zone.lip');
   expect(text).toContain('styleLooks.zone.eye');
+  expect(text).not.toContain('celebVideo.brandReview');
+  const lip = screen.root.findByProps({ accessibilityLabel: 'styleLooks.zone.lip, looks.itemCount' });
+  expect(lip.props.accessibilityState.expanded).toBe(false);
+  await act(async () => { lip.props.onPress(); });
+  text = screen.root.findAllByType(Text).map((node) => node.props.children);
   expect(text).toContain('celebVideo.brandReview');
   expect(text).toContain('celebVideo.source.provided');
+  expect(lip.props.accessibilityState.expanded).toBe(true);
+  await act(async () => { lip.props.onPress(); });
+  expect(screen.root.findAllByType(Text).map((node) => node.props.children)).not.toContain('celebVideo.brandReview');
   expect(text).toContain('celebVideo.linkUnverified');
   await act(async () => { screen.root.findByProps({ accessibilityRole: 'link' }).props.onPress(); });
   expect(openYoutubeVideo).toHaveBeenCalledWith('video-1', 1582);
