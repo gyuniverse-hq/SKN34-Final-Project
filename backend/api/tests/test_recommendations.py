@@ -42,9 +42,11 @@ def test_ties_are_stable_and_limit_is_applied_after_ranking():
         make_product("a", "skincare", [], tags=["soothing", "hydrating"]),
     ]
     for ordered in (products, list(reversed(products))):
-        body = recommendation_client(ordered).post(
-            "/api/recommendations/skin", json={"concerns": ["sensitivity"], "limit": 2}
-        ).json()
+        body = (
+            recommendation_client(ordered)
+            .post("/api/recommendations/skin", json={"concerns": ["sensitivity"], "limit": 2})
+            .json()
+        )
         assert [m["product"]["id"] for m in body["matches"]] == ["a", "b"]
 
 
@@ -57,9 +59,11 @@ def test_each_supported_concern_uses_the_existing_catalog_tags(concern, tags):
 
 
 def test_empty_catalog_is_explicit_and_does_not_invent_products():
-    body = recommendation_client([]).post(
-        "/api/recommendations/skin", json={"concerns": ["pores"]}
-    ).json()
+    body = (
+        recommendation_client([])
+        .post("/api/recommendations/skin", json={"concerns": ["pores"]})
+        .json()
+    )
     assert body["status"] == "empty_catalog"
     assert body["matches"] == []
 
@@ -73,9 +77,9 @@ def test_no_matches_does_not_fall_back_to_unrelated_products():
 
 def test_no_concerns_does_not_read_the_catalog(catalog_service):
     catalog_service.list_products = AsyncMock(side_effect=AssertionError("unexpected catalog read"))
-    body = client_for(catalog_service).post(
-        "/api/recommendations/skin", json={"concerns": []}
-    ).json()
+    body = (
+        client_for(catalog_service).post("/api/recommendations/skin", json={"concerns": []}).json()
+    )
     assert body["status"] == "no_concerns"
     assert body["matches"] == []
     catalog_service.list_products.assert_not_called()
@@ -87,9 +91,7 @@ def test_ranking_does_not_call_external_image_providers():
         CatalogBundle(products=[make_product("care", "skincare", [], tags=["hydrating"])])
     )
     service = CatalogService(store, NullCache(), 60, images=images)
-    response = client_for(service).post(
-        "/api/recommendations/skin", json={"concerns": ["dryness"]}
-    )
+    response = client_for(service).post("/api/recommendations/skin", json={"concerns": ["dryness"]})
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
     images.with_live_images.assert_not_called()
