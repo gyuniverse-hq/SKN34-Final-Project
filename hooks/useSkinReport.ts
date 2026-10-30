@@ -35,7 +35,6 @@ export function useSkinReport() {
     report, selected, activeConcern, setActive, loading, loadFailed,
     reload,
     example: profile === null,
-    method: profile?.analysis.schema === 'skin-analysis-mobile-v1' ? 'device' as const : 'server' as const,
     ingredients: ingredientExamples(activeConcern), samples, recommendations, live: request !== undefined,
     toggle: (c: SkinConcern) => { setSelection(toggleConcern(selected, c)); setRequest(undefined); },
     showSamples: () => setRequest(undefined),

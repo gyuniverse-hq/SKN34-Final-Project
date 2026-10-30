@@ -15,7 +15,6 @@ import { Notice } from '@/components/ui/Notice';
 import { LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
 import { useSkinReport } from '@/hooks/useSkinReport';
-import { formatDate } from '@/lib/format';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { productHref, searchHref, SKIN_CONCERNS } from '@/lib/routes';
 import type { SkinConcern } from '@/types';
@@ -23,10 +22,10 @@ import type { SkinConcern } from '@/types';
 /** Summary → care priorities → solution / numeric details. Examples never enter storage. */
 export default function SkinRecommendationsScreen() {
   const router = useRouter();
-  const { t, language } = useI18n();
+  const { t } = useI18n();
   const flow = useSkinReport();
   const [tab, setTab] = useState<'solution' | 'results'>('solution');
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [adjusting, setAdjusting] = useState(false);
   const [history, setHistory] = useState(false);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
@@ -52,8 +51,7 @@ export default function SkinRecommendationsScreen() {
         onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); }}>
         <Ionicons name="arrow-back" size={23} color={theme.colors.ink} />
       </Pressable>
-      <View style={styles.headerTitle}><Text style={styles.headerDate}>{formatDate(flow.report.registeredAt, language)}</Text>
-        <Text style={styles.headerLabel}>{t('report.title')}</Text></View>
+      <View style={styles.headerTitle}><Text style={styles.headerLabel}>{t('report.title')}</Text></View>
       <Pressable accessibilityRole="button" accessibilityLabel={t('report.latest')} onPress={() => setHistory(true)} style={styles.iconButton}>
         <Ionicons name="reader-outline" size={23} color={theme.colors.ink} />
       </Pressable>
@@ -62,12 +60,14 @@ export default function SkinRecommendationsScreen() {
       </Pressable>
     </View>
     <ScrollView ref={scroll} style={styles.scroll} contentContainerStyle={styles.page} stickyHeaderIndices={[2]}>
-      <SkinReportOverview report={flow.report} example={flow.example} method={flow.method} expanded={expanded} onExpand={() => setExpanded(!expanded)} onStart={start} />
+      <SkinReportOverview report={flow.report} example={flow.example} expanded={expanded} onExpand={() => setExpanded(!expanded)} onStart={start} />
       <SkinCareHighlights metrics={flow.report.priorities} onPress={showDetail} />
       <View style={styles.tabs} onLayout={(event) => { tabsY.current = event.nativeEvent.layout.y; }}>
-        {(['solution', 'results'] as const).map((id) => <Pressable key={id} onPress={() => switchTab(id)} accessibilityRole="tab" accessibilityState={{ selected: tab === id }} style={[styles.tab, tab === id && styles.tabOn]}>
-          <Text style={[styles.tabLabel, tab === id && styles.tabLabelOn]}>{t(`report.${id}`)}</Text>
-        </Pressable>)}
+        <View style={styles.tabsRow}>
+          {(['solution', 'results'] as const).map((id) => <Pressable key={id} onPress={() => switchTab(id)} accessibilityRole="tab" accessibilityState={{ selected: tab === id }} style={[styles.tab, tab === id && styles.tabOn]}>
+            <Text style={[styles.tabLabel, tab === id && styles.tabLabelOn]}>{t(`report.${id}`)}</Text>
+          </Pressable>)}
+        </View>
       </View>
       {tab === 'solution' ? <View>
         <SkinSolution concerns={SKIN_CONCERNS} active={flow.activeConcern} onChange={flow.setActive} ingredients={flow.ingredients} />
@@ -105,7 +105,7 @@ export default function SkinRecommendationsScreen() {
       <View style={styles.overlay}><View style={styles.dialog} accessibilityViewIsModal>
         <Text style={styles.title}>{t('report.latest')}</Text>
         <Text style={styles.caption}>{t('report.latestBody')}</Text>
-        <Text style={styles.headerLabel}>{formatDate(flow.report.registeredAt, language)}{flow.example ? ` · ${t('report.sample')}` : ''}</Text>
+        <Text style={styles.headerLabel}>{flow.example ? t('report.sample') : t('report.title')}</Text>
         <Button label={t('report.close')} onPress={() => setHistory(false)} />
       </View></View>
     </Modal>
@@ -116,9 +116,10 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.surface }, scroll: { flex: 1 }, page: { width: '100%', maxWidth: 680, alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, minHeight: 64, gap: 2, width: '100%', maxWidth: 680, alignSelf: 'center', borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   iconButton: { width: 44, height: 48, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { flex: 1, alignItems: 'center', gap: 3 }, headerDate: { fontSize: 10, color: theme.colors.inkMuted }, headerLabel: { fontSize: 15, fontWeight: '700', color: theme.colors.ink },
-  tabs: { flexDirection: 'row', paddingHorizontal: 24, gap: 24, backgroundColor: theme.colors.surface, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
-  tab: { flex: 1, alignItems: 'center', paddingVertical: 18, borderBottomWidth: 3, borderBottomColor: 'transparent' }, tabOn: { borderBottomColor: theme.colors.rose },
+  headerTitle: { flex: 1, alignItems: 'center', gap: 3 }, headerLabel: { fontSize: 15, fontWeight: '700', color: theme.colors.ink },
+  tabs: { backgroundColor: theme.colors.surface, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  tabsRow: { flexDirection: 'row', width: '100%', paddingHorizontal: 24, gap: 24 },
+  tab: { flex: 1, minWidth: 0, alignItems: 'center', paddingVertical: 18, borderBottomWidth: 3, borderBottomColor: 'transparent' }, tabOn: { borderBottomColor: theme.colors.rose },
   tabLabel: { fontSize: 15, fontWeight: '600', color: theme.colors.inkFaint }, tabLabelOn: { color: theme.colors.rose, fontWeight: '800' },
   products: { padding: 24, paddingTop: 0, gap: 16 }, title: { color: theme.colors.ink, fontSize: 21, fontWeight: '800', lineHeight: 30 },
   caption: { color: theme.colors.inkMuted, fontSize: 12, lineHeight: 20 }, sampleLabel: { color: theme.colors.accent, fontSize: 11, fontWeight: '800' },

@@ -6,15 +6,23 @@ import { theme } from '@/constants/theme';
 import { formatDate } from '@/lib/format';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import type { SkinConcern } from '@/types';
-import type { SkinReport, SkinReportMetric } from '@/types/skinReport';
+import type { SkinReport, SkinReportMetric, SkinType } from '@/types/skinReport';
+
+const SKIN_TYPE_IMAGES: Record<SkinType, number> = {
+  dry: require('@/assets/images/skin-type-dry.png'),
+  balanced: require('@/assets/images/skin-type-balanced.png'),
+  oily: require('@/assets/images/skin-care-hero.png'),
+  combination: require('@/assets/images/skin-care-hero.png'),
+  unknown: require('@/assets/images/skin-care-hero.png'),
+};
 
 export const REPORT_ICONS: Record<SkinConcern, ComponentProps<typeof Ionicons>['name']> = {
   dryness: 'water-outline', pigmentation: 'sunny-outline', oiliness: 'leaf-outline',
   wrinkles: 'sparkles-outline', pores: 'ellipse-outline', blemish: 'flower-outline', sensitivity: 'shield-checkmark-outline',
 };
 
-export function SkinReportOverview({ report, example, method, expanded, onExpand, onStart }: {
-  report: SkinReport; example: boolean; method: 'server' | 'device';
+export function SkinReportOverview({ report, example, expanded, onExpand, onStart }: {
+  report: SkinReport; example: boolean;
   expanded: boolean; onExpand: () => void; onStart: () => void;
 }) {
   const { t, language } = useI18n();
@@ -28,18 +36,13 @@ export function SkinReportOverview({ report, example, method, expanded, onExpand
     <Text style={styles.intro}>{t('report.intro')}</Text>
     <Text style={styles.heading} accessibilityRole="header">{t(`report.type.${report.skinType}`)}</Text>
     <Text style={styles.caption}>{t('report.typeBasis')}</Text>
-    <Image source={require('@/assets/images/skin-care-hero.png')} style={styles.hero} resizeMode="contain" accessible={false} />
+    <Image source={SKIN_TYPE_IMAGES[report.skinType]} style={styles.hero} resizeMode="contain" accessible={false} />
     <View style={styles.info}>
       <Pressable onPress={onExpand} accessibilityRole="button" accessibilityState={{ expanded }} style={styles.infoHead}>
-        <View style={styles.infoCopy}>
-          <Text style={styles.caption}>{t('report.info')}</Text>
-          <Text style={styles.infoTitle}>{formatDate(report.registeredAt, language)}</Text>
-        </View>
+        <Text style={styles.infoTitle}>{t('report.info')}</Text>
         <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={theme.colors.inkMuted} />
       </Pressable>
       {expanded ? <View style={styles.infoBody}>
-        <View style={styles.infoRow}><Text style={styles.caption}>{t('report.date')}</Text><Text style={styles.copy}>{formatDate(report.registeredAt, language)}</Text></View>
-        <View style={styles.infoRow}><Text style={styles.caption}>{t('report.method')}</Text><Text style={styles.copy}>{t(example ? 'report.exampleMethod' : `report.${method}`)}</Text></View>
         <View style={styles.review}>
           <Ionicons name="calendar-outline" size={18} color={theme.colors.rose} />
           <Text style={styles.reviewText}>{t('report.review', { date: formatDate(report.reviewAt, language) })}</Text>
@@ -81,10 +84,8 @@ const styles = StyleSheet.create({
   copy: { fontSize: 14, lineHeight: 22, color: theme.colors.inkMuted },
   info: { backgroundColor: theme.colors.roseSoft, borderRadius: 18, padding: 18 },
   infoHead: { flexDirection: 'row', alignItems: 'center', minHeight: 44, gap: 12 },
-  infoCopy: { flex: 1, gap: 5 },
-  infoTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.ink },
+  infoTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: theme.colors.ink },
   infoBody: { borderTopWidth: 1, borderTopColor: theme.colors.border, marginTop: 14, paddingTop: 16, gap: 12 },
-  infoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' },
   review: { flexDirection: 'row', gap: 8, padding: 12, borderRadius: 10, backgroundColor: theme.colors.card, alignItems: 'center' },
   reviewText: { flex: 1, fontSize: 12, fontWeight: '600', color: theme.colors.rose },
   example: { padding: 14, backgroundColor: theme.colors.cream, borderRadius: 12, gap: 5, marginBottom: 24 },
