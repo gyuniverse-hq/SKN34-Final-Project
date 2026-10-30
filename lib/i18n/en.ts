@@ -317,6 +317,7 @@ export const en = {
   'looks.curated': 'Curated looks',
   'styleLooks.more': 'See all',
   'celebVideo.title': 'Makeup video {number}',
+  'celebVideo.openYoutube': 'Open in YouTube',
   'celebVideo.zone.face': 'Face',
   'celebVideo.zone.hair': 'Hair',
   'celebVideo.source.provided': 'Provided',

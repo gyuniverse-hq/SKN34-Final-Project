@@ -319,6 +319,7 @@ export const ko: Dictionary = {
   'looks.curated': '큐레이션 룩',
   'styleLooks.more': '전체 보기',
   'celebVideo.title': '메이크업 영상 {number}',
+  'celebVideo.openYoutube': 'YouTube에서 열기',
   'celebVideo.zone.face': '얼굴',
   'celebVideo.zone.hair': '모발',
   'celebVideo.source.provided': '제품 제공',

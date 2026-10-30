@@ -9,6 +9,7 @@ jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('expo-image', () => ({ Image: 'MockImage' }));
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: 'LinearGradient' }));
 jest.mock('@/components/celeb/VideoCard', () => ({ openYoutubeVideo: jest.fn(() => Promise.resolve()) }));
+jest.mock('@/components/celeb/YoutubePlayer', () => ({ YoutubePlayer: 'YoutubePlayer' }));
 jest.mock('@/components/ui/StateViews', () => ({ EmptyState: 'EmptyState', ErrorState: 'ErrorState', LoadingState: 'LoadingState' }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 jest.mock('@/lib/queries', () => ({
@@ -38,6 +39,7 @@ test('shows video and review details and opens the specified starting point', as
   await act(async () => { lip.props.onPress(); });
   expect(screen.root.findAllByType(Text).map((node) => node.props.children)).not.toContain('celebVideo.brandReview');
   expect(text).toContain('celebVideo.linkUnverified');
+  expect(screen.root.findByProps({ videoId: 'video-1', startSeconds: 1582 })).toBeTruthy();
   await act(async () => { screen.root.findByProps({ accessibilityRole: 'link' }).props.onPress(); });
   expect(openYoutubeVideo).toHaveBeenCalledWith('video-1', 1582);
   await act(async () => { screen.unmount(); });

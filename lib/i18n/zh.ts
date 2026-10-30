@@ -319,6 +319,7 @@ export const zh: Dictionary = {
   'looks.curated': '精选妆容',
   'styleLooks.more': '查看全部',
   'celebVideo.title': '化妆视频 {number}',
+  'celebVideo.openYoutube': '在 YouTube 打开',
   'celebVideo.zone.face': '面部',
   'celebVideo.zone.hair': '头发',
   'celebVideo.source.provided': '产品提供',

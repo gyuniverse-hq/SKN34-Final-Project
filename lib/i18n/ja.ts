@@ -319,6 +319,7 @@ export const ja: Dictionary = {
   'looks.curated': 'おすすめルック',
   'styleLooks.more': 'すべて見る',
   'celebVideo.title': 'メイク動画 {number}',
+  'celebVideo.openYoutube': 'YouTubeで開く',
   'celebVideo.zone.face': '顔',
   'celebVideo.zone.hair': 'ヘア',
   'celebVideo.source.provided': '商品提供',

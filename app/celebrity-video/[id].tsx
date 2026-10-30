@@ -3,8 +3,8 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StyleLookArtwork } from '@/components/celeb/StyleLookCard';
 import { openYoutubeVideo } from '@/components/celeb/VideoCard';
+import { YoutubePlayer } from '@/components/celeb/YoutubePlayer';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { CELEBRITIES } from '@/constants/celebrities';
 import { theme } from '@/constants/theme';
@@ -34,18 +34,15 @@ export default function CelebrityVideoDetail() {
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <Stack.Screen options={{ title: t(celebrity.nameKey) }} />
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <StyleLookArtwork group="콘셉트·분위기" videoId={video.id} dim={false} />
-        </View>
+        <YoutubePlayer videoId={video.id} startSeconds={video.startSeconds} title={title} />
         <Text style={styles.title} accessibilityRole="header" accessibilityLabel={title} numberOfLines={canExpandTitle && !titleExpanded ? 2 : undefined}>{title}</Text>
         {canExpandTitle ? <Pressable accessibilityRole="button" accessibilityState={{ expanded: titleExpanded }} onPress={() => setExpandedTitleId(titleExpanded ? null : video.id)} style={styles.titleToggle}><Text style={styles.titleToggleText}>{t(titleExpanded ? 'celebVideo.titleLess' : 'celebVideo.titleMore')}</Text></Pressable> : null}
         {video.channelName ? <Text style={styles.channel}>{video.channelName}</Text> : null}
         {video.linkStatus === 'needs_review' ? <Text style={styles.linkNote}>{t('celebVideo.linkUnverified')}</Text> : null}
         <Pressable accessibilityRole="link" style={({ pressed }) => [styles.video, pressed && styles.pressed]}
           onPress={() => { openYoutubeVideo(video.id, video.startSeconds).catch(() => Alert.alert(t('celebVideo.videoError'))); }}>
-          <View style={styles.play}><Ionicons name="play" size={18} color={theme.colors.white} /></View>
-          <Text style={styles.videoText}>{t('styleLooks.video')}</Text>
-          <Ionicons name="open-outline" size={19} color={theme.colors.rose} />
+          <Text style={styles.videoText}>{t('celebVideo.openYoutube')}</Text>
+          <Ionicons name="open-outline" size={15} color={theme.colors.rose} />
         </Pressable>
         <View style={styles.headingRow}><Text style={styles.heading} accessibilityRole="header">{t('styleLooks.products')}</Text><Text style={styles.total}>{t('looks.itemCount', { count: video.products.length })}</Text></View>
         <View style={styles.notice}><Ionicons name="information-circle-outline" size={16} color={theme.colors.rose} /><Text style={styles.noticeText}>{t('celebVideo.productsNotice')} {t('celebVideo.notice')}</Text></View>
@@ -84,15 +81,13 @@ export default function CelebrityVideoDetail() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.surface },
   content: { padding: theme.spacing.lg, paddingBottom: 48 },
-  hero: { width: '100%', aspectRatio: 16 / 9, borderRadius: 20, overflow: 'hidden', backgroundColor: theme.colors.surfaceAlt },
   title: { fontSize: 18, lineHeight: 25, fontWeight: '800', color: theme.colors.ink, marginTop: 16 },
   titleToggle: { alignSelf: 'flex-start', minHeight: 36, justifyContent: 'center' },
   titleToggleText: { color: theme.colors.rose, fontSize: 12, fontWeight: '700' },
   channel: { color: theme.colors.inkMuted, fontSize: 13, marginTop: 4 },
   linkNote: { marginTop: 10, color: theme.colors.inkMuted, fontSize: 12 },
-  video: { marginTop: 16, paddingHorizontal: 16, minHeight: 52, backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderWidth: 1, borderRadius: theme.radius.lg, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  play: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.rose, alignItems: 'center', justifyContent: 'center' },
-  videoText: { flex: 1, color: theme.colors.ink, fontSize: 14, fontWeight: '800' },
+  video: { alignSelf: 'flex-start', marginTop: 8, minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  videoText: { color: theme.colors.rose, fontSize: 12, fontWeight: '700' },
   pressed: { opacity: 0.8 },
   headingRow: { marginTop: 28, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   heading: { fontSize: 20, fontWeight: '800', color: theme.colors.ink }, total: { fontSize: 12, color: theme.colors.inkMuted },
