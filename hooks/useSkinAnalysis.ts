@@ -1,44 +1,35 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
-import { analyzeSkin, cancelSkinAnalysis, onSkinProgress, createSkinWebRun, skinAnalysisUsesWebView, skinAnalysisServerMode } from '@/lib/skinAnalysis';
-import { SkinCaptureAssembler } from '@/lib/skinCapture';
-import { skinApiUrl, uploadSkinPhoto, validateSkinServerAuth } from '@/lib/skinServer';
+import { analyzeSkin, cancelSkinAnalysis, onSkinProgress, createSkinWebRun, skinAnalysisUsesWebView } from '@/lib/skinAnalysis';
 import { appendSkinTiming, validateSkinAnalysis } from '@/lib/skinProfile';
 import { useSkinProfileStore } from '@/store/skinProfileStore';
-import type { SkinAnalysisResult, SkinCameraEvent, SkinIndicator, SkinQuestionnaire, SkinWebRun, SkinWebEvent } from '@/types/skin';
+import { useSkinPreviewStore } from '@/store/skinPreviewStore';
+import { SkinPreviewAssembler } from '@/lib/skinPreview';
+import type { SkinAnalysisResult, SkinCameraEvent, SkinIndicator, SkinQuestionnaire, SkinWebRun, SkinWebEvent, SkinPreview } from '@/types/skin';
 
 export function useSkinAnalysis() {
   const [phase, setPhase] = useState<'ready' | 'camera' | 'analysis' | 'survey' | 'saving' | 'done' | 'error'>('ready');
   const [camera, setCamera] = useState<SkinCameraEvent>({ guidance: 'noFace', progress: 0 });
-  const [indicator, setIndicator] = useState<SkinIndicator>('acne');
+  const [indicator, setIndicator] = useState<SkinIndicator>('pore');
   const [result, setResult] = useState<SkinAnalysisResult>();
   const [answers, setAnswers] = useState<Partial<SkinQuestionnaire>>({});
-  const [error, setError] = useState<'analysis' | 'storage' | 'model' | 'permission' | 'auth' | 'network' | 'busy' | 'photo' | null>(null);
+  const [error, setError] = useState<'analysis' | 'storage' | 'model' | 'permission' | 'camera' | 'guide' | null>(null);
   const [webRun, setWebRun] = useState<SkinWebRun>();
   const generation = useRef(0);
-  const assembly = useRef<SkinCaptureAssembler | null>(null);
-  const upload = useRef<AbortController | null>(null);
+  const previewAssembler = useRef<SkinPreviewAssembler | null>(null);
+  const pendingPreview = useRef<SkinPreview | null>(null);
+  const previewTransferred = useRef(false);
   const captureClaimed = useRef(false);
   const receivedAt = useRef(0);
   const recorded = useRef('');
   const saving = useRef(false);
-  // Never place the test credential in React state, a store, WebView, or persistent storage.
-  const testToken = useRef('');
-  const [testTokenReady, setTestTokenReady] = useState(false);
-  const [testTokenInputKey, setTestTokenInputKey] = useState(0);
-  const setTestToken = useCallback((value: string) => {
-    testToken.current = value;
-    setTestTokenReady(/^[\x21-\x7e]{32,4096}$/.test(value));
-  }, []);
   const save = useSkinProfileStore(s => s.save);
   const renderGeneration = generation.current;
 
   const cancel = useCallback(() => {
-    testToken.current = ''; setTestTokenReady(false);
-    setTestTokenInputKey(key => key + 1);
     generation.current++;
-    assembly.current?.clear(); assembly.current = null;
-    upload.current?.abort(); upload.current = null;
+    previewAssembler.current?.clear(); previewAssembler.current = null; pendingPreview.current = null;
+    previewTransferred.current = false; useSkinPreviewStore.getState().clear();
     captureClaimed.current = false;
     void cancelSkinAnalysis().catch(() => {});
     setPhase('ready');
@@ -49,28 +40,55 @@ export function useSkinAnalysis() {
   useEffect(() => {
     const progress = onSkinProgress(event => setIndicator(event.indicator));
     const app = AppState.addEventListener('change', state => {
-      if (state !== 'active' && !saving.current) cancel();
+      if (state !== 'active') {
+        if (!saving.current) cancel();
+        else {
+          previewAssembler.current?.clear(); previewAssembler.current = null; pendingPreview.current = null;
+          useSkinPreviewStore.getState().clear();
+        }
+      }
     });
     return () => {
-      testToken.current = '';
       generation.current++;
-      assembly.current?.clear(); assembly.current = null; upload.current?.abort();
+      previewAssembler.current?.clear(); previewAssembler.current = null; pendingPreview.current = null;
+      if (!previewTransferred.current) useSkinPreviewStore.getState().clear();
       app.remove(); progress?.remove();
       void cancelSkinAnalysis().catch(() => {});
     };
   }, [cancel]);
 
+  // Module imports, model initialization and video startup must not wait forever.
+  useEffect(() => {
+    if (phase !== 'camera' || !webRun || !['loading', 'openingCamera', 'loadingGuide'].includes(camera.guidance)) return;
+    const timeout = setTimeout(() => {
+      setError(camera.guidance === 'openingCamera' ? 'camera' : camera.guidance === 'loadingGuide' ? 'guide' : 'model'); setPhase('error');
+    }, 60000);
+    return () => clearTimeout(timeout);
+  }, [phase, webRun, camera.guidance]);
+
   const onCapture = useCallback((event: SkinCameraEvent) => {
     if (phase !== 'camera' || renderGeneration !== generation.current || captureClaimed.current) return;
     setCamera(event);
-    if (event.guidance === 'cameraError') { setError('analysis'); setPhase('error'); return; }
+    if (event.guidance === 'cameraError') { setError('camera'); setPhase('error'); return; }
     if (!event.captureId) return;
     captureClaimed.current = true;
     const current = generation.current;
     setPhase('analysis');
-    void analyzeSkin(event.captureId).then(next => {
+    void analyzeSkin(event.captureId).then(response => {
       if (current !== generation.current) return;
+      const { preview, ...next } = response;
       validateSkinAnalysis(next);
+      if (preview) {
+        try {
+          const receiver = new SkinPreviewAssembler(next.timing.runId);
+          receiver.push({ type: 'preview-start', runId: next.timing.runId, width: preview.width,
+            height: preview.height, outline: preview.outline, boxes: preview.boxes, length: preview.jpeg.length });
+          for (let i = 0; i < preview.jpeg.length; i += 48 * 1024) {
+            receiver.push({ type: 'preview-chunk', runId: next.timing.runId, index: i / (48 * 1024), data: preview.jpeg.slice(i, i + 48 * 1024) });
+          }
+          pendingPreview.current = receiver.push({ type: 'preview-end', runId: next.timing.runId }) ?? null;
+        } catch { pendingPreview.current = null; }
+      }
       receivedAt.current = performance.now();
       setResult(next); setPhase('survey');
     }).catch((failure: { code?: string }) => {
@@ -80,40 +98,25 @@ export function useSkinAnalysis() {
 
   const onWebEvent = useCallback((event: SkinWebEvent) => {
     if (!webRun || renderGeneration !== generation.current || !['camera', 'analysis'].includes(phase)) return;
-    if (skinAnalysisServerMode && ['capture-start', 'capture-chunk', 'capture-end'].includes(event.type)) {
-      if (captureClaimed.current || !assembly.current) return;
-      try {
-        const photo = assembly.current.push(event as Record<string, unknown>);
-        if (!photo) return;
-        assembly.current = null; captureClaimed.current = true;
-        const current = generation.current, controller = new AbortController();
-        upload.current = controller; setPhase('analysis');
-        const pending = uploadSkinPhoto(photo, webRun.run, controller.signal, undefined, testToken.current);
-        testToken.current = ''; setTestTokenReady(false);
-        void pending.then(next => {
-          if (current !== generation.current) return;
-          validateSkinAnalysis(next); receivedAt.current = performance.now();
-          setResult(next); setPhase('survey');
-        }).catch((failure: { code?: string }) => {
-          if (current !== generation.current) return;
-          setError(failure?.code === 'UNAUTHORIZED' ? 'auth' : failure?.code === 'SERVER_BUSY' ? 'busy'
-            : ['FACE_NOT_FOUND', 'MULTIPLE_FACES', 'FACE_OUT_OF_BOUNDS', 'INVALID_IMAGE', 'INVALID_RESULT'].includes(failure?.code || '') ? 'photo' : 'network');
-          setPhase('error');
-        }).finally(() => { photo.bytes.fill(0); if (upload.current === controller) upload.current = null; });
-      } catch { assembly.current?.clear(); assembly.current = null; setError('photo'); setPhase('error'); }
+    if (event.type === 'preview-start' || event.type === 'preview-chunk' || event.type === 'preview-end') {
+      try { pendingPreview.current = previewAssembler.current?.push(event) ?? pendingPreview.current; }
+      catch { previewAssembler.current?.clear(); previewAssembler.current = null; pendingPreview.current = null; }
       return;
     }
     if (event.type === 'camera' && phase === 'camera') setCamera(event.state);
     else if (event.type === 'captured') setPhase('analysis');
     else if (event.type === 'progress') setIndicator(event.indicator);
     else if (event.type === 'error') {
-      setError(event.code === 'permission' ? 'permission' : event.code === 'model' ? 'model' : 'analysis');
+      previewAssembler.current?.clear(); previewAssembler.current = null; pendingPreview.current = null;
+      setError(event.code === 'photo' ? 'analysis' : event.code);
       setPhase('error');
-    } else if (event.type === 'result' && !skinAnalysisServerMode) {
+    } else if (event.type === 'result') {
       try {
+        if (event.result.timing.runId !== webRun.run.runId) throw new Error('Invalid run');
+        if (!['skin-analysis-mobile-v1', 'skin-analysis-mobile-v2', 'skin-analysis-mobile-v3'].includes(event.result.schema)) throw new Error('Invalid on-device result');
         validateSkinAnalysis(event.result);
         receivedAt.current = performance.now(); setResult(event.result); setPhase('survey');
-      } catch { setError('model'); setPhase('error'); }
+      } catch { previewAssembler.current?.clear(); pendingPreview.current = null; setError('model'); setPhase('error'); }
     }
   }, [webRun, phase, renderGeneration]);
 
@@ -131,24 +134,20 @@ export function useSkinAnalysis() {
 
   const start = async () => {
     const current = ++generation.current;
-    upload.current?.abort(); upload.current = null;
-    assembly.current?.clear(); assembly.current = null;
+    previewAssembler.current?.clear(); previewAssembler.current = null; pendingPreview.current = null;
+    previewTransferred.current = false; useSkinPreviewStore.getState().clear();
     await cancelSkinAnalysis().catch(() => {});
     if (current !== generation.current) return;
     captureClaimed.current = false;
+    setIndicator('pore');
     setAnswers({}); setResult(undefined); setError(null);
-    setCamera({ guidance: 'noFace', progress: 0 });
+    setCamera({ guidance: 'loading', progress: 0 });
     try {
-      if (skinAnalysisServerMode) {
-        skinApiUrl(process.env.EXPO_PUBLIC_SKIN_API_URL);
-        validateSkinServerAuth(testToken.current);
-      }
       const run = skinAnalysisUsesWebView ? createSkinWebRun() : undefined;
-      assembly.current = run?.mode === 'server' ? new SkinCaptureAssembler(run.run.runId + ':jpeg') : null;
+      previewAssembler.current = run ? new SkinPreviewAssembler(run.run.runId) : null;
       setWebRun(run); setPhase('camera');
-    } catch (failure) {
-      testToken.current = ''; setTestTokenReady(false);
-      setError((failure as { code?: string })?.code === 'UNAUTHORIZED' ? 'auth' : 'network'); setPhase('error');
+    } catch {
+      setError('model'); setPhase('error');
     }
   };
 
@@ -160,11 +159,15 @@ export function useSkinAnalysis() {
     try {
       await appendSkinTiming(result.timing);
       await save({ version: 1, registeredAt: new Date().toISOString(), analysis: result, questionnaire: answers as SkinQuestionnaire });
+      if (pendingPreview.current?.runId === result.timing.runId) {
+        useSkinPreviewStore.getState().setPreview(pendingPreview.current);
+        previewTransferred.current = true;
+      }
+      pendingPreview.current = null; previewAssembler.current?.clear(); previewAssembler.current = null;
       setPhase('done');
     } catch { setError('storage'); setPhase('survey'); }
     finally { saving.current = false; }
   };
 
-  return { phase, camera, indicator, result, answers, setAnswers, error, complete, start, onCapture, finish, cancel, webRun, onWebEvent,
-    testTokenReady, testTokenInputKey, setTestToken };
+  return { phase, camera, indicator, result, answers, setAnswers, error, complete, start, onCapture, finish, cancel, webRun, onWebEvent };
 }

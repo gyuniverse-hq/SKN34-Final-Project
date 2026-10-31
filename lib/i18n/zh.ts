@@ -1,6 +1,7 @@
 import type { Dictionary } from './en';
 import { flowsZh } from './flows';
 import { skinZh } from './skin';
+import { skinReportZh } from './skinReport';
 
 export const zh: Dictionary = {
   'discovery.quickTitle': '探索适合你的美妆',
@@ -38,6 +39,7 @@ export const zh: Dictionary = {
   "celebrity.photoCredit": "图片来源 · 画面已裁切",
   ...skinZh,
   ...flowsZh,
+  ...skinReportZh,
   "nia.acne.ready": "痤疮研究模型可用 · 将包含在下次分析中",
   "nia.acne.outdated": "此前分析没有痤疮结果。请使用当前模型重新分析。",
   "nia.acne.reanalyze": "包含痤疮重新分析",

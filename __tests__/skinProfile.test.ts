@@ -9,16 +9,14 @@ import { useSkinAnalysis } from '@/hooks/useSkinAnalysis';
 import { analyzeSkin } from '@/lib/skinAnalysis';
 import * as skinRuntime from '@/lib/skinAnalysis';
 import { uploadSkinPhoto } from '@/lib/skinServer';
-import { TRUSTED_SKIN_API_ORIGIN } from '@/constants/skinServer';
-import { fetch as expoFetch } from 'expo/fetch';
+import { skinWebHtml } from '@/lib/skinWebHtml';
 import { summarizeSkinResult } from '@/lib/skinResult';
-
-jest.mock('expo/fetch', () => ({ fetch: jest.fn() }));
+import { useSkinPreviewStore } from '@/store/skinPreviewStore';
 
 jest.mock('@/lib/skinAnalysis', () => ({
   __esModule: true,
   analyzeSkin: jest.fn(), cancelSkinAnalysis: jest.fn(() => Promise.resolve()), onSkinProgress: jest.fn(),
-  skinAnalysisServerMode: false, skinAnalysisUsesWebView: false, createSkinWebRun: jest.fn(),
+  skinAnalysisUsesWebView: false, createSkinWebRun: jest.fn(),
 }));
 
 jest.mock('@/lib/skinServer', () => ({ ...jest.requireActual('@/lib/skinServer'), uploadSkinPhoto: jest.fn() }));
@@ -63,7 +61,7 @@ it.each([0, 1, 2, 3, 4, 5, 6])('labels grade %i at the good/care boundary withou
   features.wrinkle_grade_eye_image_right = grade;
   const original = { ...features };
   const summary = summarizeSkinResult(features);
-  expect(summary.grades.map(row => row.status)).toEqual(Array(3).fill(grade <= 2 ? 'good' : 'care'));
+  expect(summary.grades.map(row => row.status)).toEqual(Array(3).fill(grade <= 1 ? 'good' : grade <= 3 ? 'fair' : 'care'));
   expect(summary.grades.map(row => row.grade)).toEqual([Math.min(grade, 5), Math.min(grade, 5), grade]);
   expect(features).toEqual(original);
 });
@@ -71,8 +69,8 @@ it.each([0, 1, 2, 3, 4, 5, 6])('labels grade %i at the good/care boundary withou
 it('uses the highest area grade and reports acne only as presence or absence', () => {
   const features = analysis().features;
   expect(summarizeSkinResult(features)).toEqual({ grades: [
-    { indicator: 'pore', grade: 3, status: 'care' },
-    { indicator: 'pigmentation', grade: 3, status: 'care' },
+    { indicator: 'pore', grade: 3, status: 'fair' },
+    { indicator: 'pigmentation', grade: 3, status: 'fair' },
     { indicator: 'wrinkle', grade: 4, status: 'care' },
   ], acneDetected: true });
   features.acne = 0;
@@ -108,6 +106,28 @@ it('does not register missing, invalid, or contradictory model outputs', () => {
   const contradictory = analysis();
   contradictory.features.acne = 0;
   expect(() => validateSkinAnalysis(contradictory)).toThrow();
+});
+
+it('persists v3 skin type probabilities, rejects contradictions, and still reads legacy results', async () => {
+  const next = profile();
+  next.analysis.schema = 'skin-analysis-mobile-v2';
+  next.analysis.preprocessing = 'skin-v3-embedded-enhancement';
+  next.analysis.skinType = { label: 'dry', probabilities: [.7, .2, .1], roiCount: 3, scoreType: 'mean_uncalibrated_softmax' };
+  next.analysis.timing.models.push({ ...next.analysis.timing.models[0], indicator: 'skinType' });
+  await useSkinProfileStore.getState().save(next);
+  expect(await readSkinProfile()).toEqual(next);
+  expect(() => validateSkinAnalysis({ ...next.analysis, skinType: undefined })).toThrow();
+  expect(() => validateSkinAnalysis({ ...next.analysis, skinType: { ...next.analysis.skinType!, label: 'oily' } })).toThrow();
+  const current = { ...next, analysis: { ...next.analysis, schema: 'skin-analysis-mobile-v3' as const,
+    features: { ...next.analysis.features }, timing: { ...next.analysis.timing,
+      models: next.analysis.timing.models.filter(model => model.indicator !== 'acne') } } };
+  delete current.analysis.features.acne; delete current.analysis.acneScore; delete current.analysis.acneThreshold;
+  await useSkinProfileStore.getState().save(current);
+  expect(await readSkinProfile()).toEqual(current);
+  expect(() => validateSkinAnalysis({ ...current.analysis, features: { ...current.analysis.features, acne: 0 } })).toThrow();
+  expect(summarizeSkinResult(current.analysis.features).acneDetected).toBeNull();
+  await useSkinProfileStore.getState().save(profile());
+  expect((await readSkinProfile())!.analysis.schema).toBe('skin-analysis-mobile-v1');
 });
 
 it('serializes concurrent timing writes and deduplicates registration retries', async () => {
@@ -192,6 +212,7 @@ it('accepts WebView camera results without native inference and ignores events f
   try {
     await act(async () => { await flow.start(); });
     expect(flow.webRun?.run.runId).toBe('web-run');
+    expect(flow.indicator).toBe('pore');
     await act(async () => { flow.onWebEvent({ type: 'captured' }); });
     expect(flow.phase).toBe('analysis');
     const late = flow.onWebEvent;
@@ -200,8 +221,11 @@ it('accepts WebView camera results without native inference and ignores events f
     expect(flow.phase).toBe('ready');
     await act(async () => { await flow.start(); });
     await act(async () => { flow.onWebEvent({ type: 'captured' }); });
-    const web = { ...analysis(), preprocessing: 'opencv4.12-turbojpeg95-wasm-v1' as const,
-      timing: { ...timing('web'), runtime: 'wasm-cpu', memoryPssKb: null } };
+    const web: SkinAnalysisResult = { ...analysis(), schema: 'skin-analysis-mobile-v3', preprocessing: 'skin-v3-embedded-enhancement',
+      skinType: { label: 'oily', probabilities: [.1, .2, .7], roiCount: 3, scoreType: 'mean_uncalibrated_softmax' },
+      timing: { ...timing('web-run'), runtime: 'wasm-cpu', memoryPssKb: null } };
+    web.timing.models[0] = { ...web.timing.models[0], indicator: 'skinType' };
+    delete web.features.acne; delete web.acneScore; delete web.acneThreshold;
     await act(async () => { flow.onWebEvent({ type: 'result', result: web }); });
     expect(flow.phase).toBe('survey');
     expect(analyzeSkin).not.toHaveBeenCalled();
@@ -210,19 +234,17 @@ it('accepts WebView camera results without native inference and ignores events f
     expect(flow.phase).toBe('done');
     expect((await readSkinProfile())?.analysis.preprocessing).toBe(web.preprocessing);
     expect((await readSkinProfile())?.analysis.timing.memoryPssKb).toBeNull();
+    expect((await readSkinProfile())?.analysis.skinType).toEqual(web.skinType);
   } finally { await act(async () => { renderer.unmount(); }); property.restore(); }
 });
 
 
-it('uploads a completed server capture only once and ignores the response after cancellation', async () => {
+it('ignores legacy photo events even if the old server mode is configured', async () => {
   const webProperty = jest.replaceProperty(skinRuntime, 'skinAnalysisUsesWebView', true);
-  const serverProperty = jest.replaceProperty(skinRuntime, 'skinAnalysisServerMode', true);
-  const previous = process.env.EXPO_PUBLIC_SKIN_API_URL;
-  process.env.EXPO_PUBLIC_SKIN_API_URL = TRUSTED_SKIN_API_ORIGIN;
-  jest.mocked(skinRuntime.createSkinWebRun).mockReturnValue({ mode: 'server', assetsUrl: 'http://localhost:8081/skin-runtime/',
-    run: { runId: 'remote', processId: 'session', firstInProcess: true, device: 'test', androidVersion: 'android', build: 'expo-go' } });
-  let resolveResult!: (result: SkinAnalysisResult) => void;
-  jest.mocked(uploadSkinPhoto).mockReturnValue(new Promise(resolve => { resolveResult = resolve; }));
+  const oldMode = process.env.EXPO_PUBLIC_SKIN_ANALYSIS_MODE;
+  process.env.EXPO_PUBLIC_SKIN_ANALYSIS_MODE = 'server';
+  jest.mocked(skinRuntime.createSkinWebRun).mockReturnValue({ assetsUrl: 'http://localhost:8081/skin-runtime/',
+    run: { runId: 'local', processId: 'session', firstInProcess: true, device: 'test', androidVersion: 'android', build: 'expo-go' } });
   let flow!: ReturnType<typeof useSkinAnalysis>;
   function Harness() { flow = useSkinAnalysis(); return null; }
   let renderer!: ReturnType<typeof create>;
@@ -230,78 +252,109 @@ it('uploads a completed server capture only once and ignores the response after 
   try {
     await act(async () => { await flow.start(); });
     await act(async () => { flow.onWebEvent({ type: 'captured' }); });
-    await act(async () => { flow.onWebEvent({ type: 'capture-start', captureId: 'remote:jpeg', mime: 'image/jpeg', byteLength: 3, chunkCount: 1, captureMs: 4, alignmentMs: 1500 }); });
-    await act(async () => { flow.onWebEvent({ type: 'capture-chunk', captureId: 'remote:jpeg', index: 0, data: '/9j/' }); });
-    await act(async () => { flow.onWebEvent({ type: 'capture-end', captureId: 'remote:jpeg' }); });
-    await act(async () => { flow.onWebEvent({ type: 'capture-end', captureId: 'remote:jpeg' }); });
-    expect(uploadSkinPhoto).toHaveBeenCalledTimes(1);
-    const signal = jest.mocked(uploadSkinPhoto).mock.calls[0][2];
-    await act(async () => { flow.cancel(); });
-    expect(signal.aborted).toBe(true);
-    await act(async () => { resolveResult(analysis()); });
-    expect(flow.phase).toBe('ready'); expect(await readSkinTimings()).toEqual([]);
-    expect(useSkinProfileStore.getState().profile).toBeNull();
+    for (const event of [
+      { type: 'capture-start', captureId: 'local:jpeg', mime: 'image/jpeg', byteLength: 3, chunkCount: 1 },
+      { type: 'capture-chunk', captureId: 'local:jpeg', index: 0, data: '/9j/' },
+      { type: 'capture-end', captureId: 'local:jpeg' },
+    ]) await act(async () => { flow.onWebEvent(event as never); });
+    expect(uploadSkinPhoto).not.toHaveBeenCalled();
+    expect(flow.phase).toBe('analysis');
+    await act(async () => { flow.onWebEvent({ type: 'result', result: { ...analysis(), timing: timing('local') } }); });
+    expect(flow.phase).toBe('survey');
   } finally {
-    await act(async () => { renderer.unmount(); }); webProperty.restore(); serverProperty.restore();
-    if (previous === undefined) delete process.env.EXPO_PUBLIC_SKIN_API_URL;
-    else process.env.EXPO_PUBLIC_SKIN_API_URL = previous;
+    await act(async () => { renderer.unmount(); }); webProperty.restore();
+    if (oldMode === undefined) delete process.env.EXPO_PUBLIC_SKIN_ANALYSIS_MODE;
+    else process.env.EXPO_PUBLIC_SKIN_ANALYSIS_MODE = oldMode;
   }
 });
 
-it('takes test-auth capture chunks through the upload adapter, survey and storage without saving the credential or JPEG', async () => {
+it('loads only the on-device WebView runtime even with a legacy server-mode configuration', () => {
+  const config = { mode: 'server', assetsUrl: 'http://localhost:8081/skin-runtime/',
+    run: { runId: 'local', processId: 'session', firstInProcess: true, device: 'test', androidVersion: 'android', build: 'expo-go' } };
+  const html = skinWebHtml(config, 'Capture');
+  expect(html).toContain("import(config.assetsUrl+'runtime.mjs')");
+  expect(html).not.toContain('capture.mjs');
+});
+
+it('waits for camera readiness, times out a stalled startup, and permits a fresh retry', async () => {
+  jest.useFakeTimers();
   const webProperty = jest.replaceProperty(skinRuntime, 'skinAnalysisUsesWebView', true);
-  const serverProperty = jest.replaceProperty(skinRuntime, 'skinAnalysisServerMode', true);
-  const oldUrl = process.env.EXPO_PUBLIC_SKIN_API_URL, oldMode = process.env.EXPO_PUBLIC_SKIN_AUTH_MODE;
-  process.env.EXPO_PUBLIC_SKIN_API_URL = TRUSTED_SKIN_API_ORIGIN;
-  process.env.EXPO_PUBLIC_SKIN_AUTH_MODE = 'test-token';
-  const fixtureToken = 'test-fixture-only-not-a-server-secret';
-  const features = analysis().features;
-  const response = { schema_version: 'skin-recommendation-features-v1', status: 'complete', features,
-    feature_status: Object.fromEntries(Object.keys(features).map(key => [key, 'predicted'])),
-    validation_status: 'experimental_unvalidated', roi_method: 'opencv_yunet_facebox_proportions_v1',
-    acne: { status: 'predicted', label: 1, score: .7, threshold: .5 },
-    execution: { runtime: 'pytorch-cuda', bundleVersion: 'a'.repeat(64), serverMs: 51 } };
-  jest.mocked(expoFetch).mockResolvedValue({ ok: true, url: TRUSTED_SKIN_API_ORIGIN + '/analyze',
-    json: async () => response } as Awaited<ReturnType<typeof expoFetch>>);
-  jest.mocked(uploadSkinPhoto).mockImplementation(jest.requireActual('@/lib/skinServer').uploadSkinPhoto);
-  jest.mocked(skinRuntime.createSkinWebRun).mockReturnValue({ mode: 'server', assetsUrl: 'http://localhost:8081/skin-runtime/',
-    run: { runId: 'test-auth', processId: 'session', firstInProcess: true, device: 'test', androidVersion: 'android', build: 'expo-go' } });
+  jest.mocked(skinRuntime.createSkinWebRun).mockReturnValue({ assetsUrl: 'http://localhost:8081/skin-runtime/',
+    run: { runId: 'camera-run', processId: 'session', firstInProcess: true, device: 'test', androidVersion: 'android', build: 'expo-go' } });
+  let flow!: ReturnType<typeof useSkinAnalysis>;
+  function Harness() { flow = useSkinAnalysis(); return null; }
+  let screen!: ReturnType<typeof create>;
+  try {
+    await act(async () => { screen = create(createElement(Harness)); });
+    await act(async () => { await flow.start(); });
+    expect(flow.camera.guidance).toBe('loading');
+    await act(async () => { jest.advanceTimersByTime(60000); });
+    expect(flow.phase).toBe('error');
+    expect(flow.error).toBe('model');
+    await act(async () => { flow.onWebEvent({ type: 'camera', state: { guidance: 'noFace', progress: 0 } }); });
+    expect(flow.phase).toBe('error');
+    await act(async () => { await flow.start(); });
+    await act(async () => { flow.onWebEvent({ type: 'camera', state: { guidance: 'noFace', progress: 0 } }); });
+    await act(async () => { jest.advanceTimersByTime(60000); });
+    expect(flow.phase).toBe('camera');
+    await act(async () => { flow.onWebEvent({ type: 'error', code: 'camera' }); });
+    expect(flow.error).toBe('camera');
+    await act(async () => { await flow.start(); });
+    await act(async () => { flow.onWebEvent({ type: 'camera', state: { guidance: 'loadingGuide', progress: 0 } }); });
+    await act(async () => { jest.advanceTimersByTime(60000); });
+    expect(flow.phase).toBe('error');
+    expect(flow.error).toBe('guide');
+  } finally {
+    if (screen) await act(async () => { screen.unmount(); });
+    webProperty.restore(); jest.useRealTimers();
+  }
+});
+
+
+it('retains a new photo only in temporary memory after saving and clears it on cancellation', async () => {
+  const webProperty = jest.replaceProperty(skinRuntime, 'skinAnalysisUsesWebView', true);
+  jest.mocked(skinRuntime.createSkinWebRun).mockReturnValue({ assetsUrl: 'http://localhost:8081/skin-runtime/',
+    run: { runId: 'photo-run', processId: 'session', firstInProcess: true, device: 'test', androidVersion: 'android', build: 'expo-go' } });
+  const outline = Array.from({ length: 36 }, (_, i) => [0.5 + .3 * Math.cos(i * Math.PI / 18), 0.5 + .3 * Math.sin(i * Math.PI / 18)] as [number, number]);
+  const boxes = Array.from({ length: 6 }, () => [.1, .1, .5, .5] as [number, number, number, number]);
   let flow!: ReturnType<typeof useSkinAnalysis>;
   function Harness() { flow = useSkinAnalysis(); return null; }
   let renderer!: ReturnType<typeof create>;
   await act(async () => { renderer = create(createElement(Harness)); });
   try {
     await act(async () => { await flow.start(); });
-    expect(flow.phase).toBe('error'); expect(flow.error).toBe('auth');
-    expect(skinRuntime.createSkinWebRun).not.toHaveBeenCalled();
-    await act(async () => { flow.cancel(); flow.setTestToken(fixtureToken); });
-    expect(flow.testTokenReady).toBe(true);
-    await act(async () => { await flow.start(); });
-    expect(flow.phase).toBe('camera');
     await act(async () => { flow.onWebEvent({ type: 'captured' }); });
-    await act(async () => { flow.onWebEvent({ type: 'capture-start', captureId: 'test-auth:jpeg', mime: 'image/jpeg', byteLength: 3, chunkCount: 1, captureMs: 4, alignmentMs: 1500 }); });
-    await act(async () => { flow.onWebEvent({ type: 'capture-chunk', captureId: 'test-auth:jpeg', index: 0, data: '/9j/' }); });
-    await act(async () => { flow.onWebEvent({ type: 'capture-end', captureId: 'test-auth:jpeg' }); });
-    expect(flow.phase).toBe('survey'); expect(flow.testTokenReady).toBe(false);
-    expect(expoFetch).toHaveBeenCalledTimes(1);
-    expect(expoFetch).toHaveBeenCalledWith(TRUSTED_SKIN_API_ORIGIN + '/analyze', expect.objectContaining({
-      headers: expect.objectContaining({ Authorization: 'Bearer ' + fixtureToken }), redirect: 'error',
-    }));
-    await act(async () => { flow.setAnswers({ tightness: 0, oiliness: 'unknown', sensitivity: 2 }); });
+    await act(async () => { flow.onWebEvent({ type: 'preview-start', runId: 'photo-run', width: 100, height: 120, outline, boxes, length: 4 }); });
+    await act(async () => { flow.onWebEvent({ type: 'preview-chunk', runId: 'photo-run', index: 0, data: '/9j/' }); });
+    await act(async () => { flow.onWebEvent({ type: 'preview-end', runId: 'photo-run' }); });
+    expect(useSkinPreviewStore.getState().preview).toBeNull();
+    await act(async () => { flow.onWebEvent({ type: 'result', result: { ...analysis(), timing: timing('photo-run') } }); });
+    await act(async () => { flow.setAnswers({ tightness: 0, oiliness: 1, sensitivity: 2 }); });
     await act(async () => { await flow.finish(); });
-    expect(flow.phase).toBe('done');
-    const saved = (await readSkinProfile())!.analysis;
-    expect(saved.schema).toBe('skin-analysis-server-v1'); expect(saved.features).toEqual(features);
-    expect(Object.keys(saved.features)).toHaveLength(10);
-    expect(saved.timing.serverMs).toBe(51); expect(saved.timing.requestMs).toEqual(expect.any(Number));
-    expect(saved.timing.models).toEqual([]);
-    const stored = JSON.stringify(await AsyncStorage.multiGet(Object.values(STORAGE_KEYS)));
-    expect(stored).not.toContain(fixtureToken); expect(stored).not.toMatch(/Bearer|base64|data:image/);
-    await act(async () => { flow.cancel(); await flow.start(); });
-    expect(flow.phase).toBe('error'); expect(flow.error).toBe('auth');
-  } finally {
-    await act(async () => { renderer.unmount(); }); webProperty.restore(); serverProperty.restore();
-    if (oldUrl === undefined) delete process.env.EXPO_PUBLIC_SKIN_API_URL; else process.env.EXPO_PUBLIC_SKIN_API_URL = oldUrl;
-    if (oldMode === undefined) delete process.env.EXPO_PUBLIC_SKIN_AUTH_MODE; else process.env.EXPO_PUBLIC_SKIN_AUTH_MODE = oldMode;
-  }
+    expect(useSkinPreviewStore.getState().preview?.jpeg).toBe('/9j/');
+    expect(JSON.stringify(await AsyncStorage.multiGet(Object.values(STORAGE_KEYS)))).not.toContain('/9j/');
+    await act(async () => { flow.cancel(); });
+    expect(useSkinPreviewStore.getState().preview).toBeNull();
+  } finally { await act(async () => { renderer.unmount(); }); webProperty.restore(); useSkinPreviewStore.getState().clear(); }
+});
+
+
+it('keeps a native preview out of the persisted analysis result', async () => {
+  const outline = Array.from({ length: 36 }, (_, i) => [0.5 + .3 * Math.cos(i * Math.PI / 18), 0.5 + .3 * Math.sin(i * Math.PI / 18)] as [number, number]);
+  const boxes = Array.from({ length: 6 }, () => [.1, .1, .5, .5] as [number, number, number, number]);
+  jest.mocked(analyzeSkin).mockResolvedValue({ ...analysis(), preview: { width: 100, height: 120, outline, boxes, jpeg: '/9j/' } });
+  let flow!: ReturnType<typeof useSkinAnalysis>;
+  function Harness() { flow = useSkinAnalysis(); return null; }
+  let renderer!: ReturnType<typeof create>;
+  await act(async () => { renderer = create(createElement(Harness)); });
+  try {
+    await act(async () => { await flow.start(); });
+    await act(async () => { flow.onCapture({ guidance: 'capturing', progress: 1, captureId: 'native' }); });
+    expect(flow.phase).toBe('survey');
+    expect(JSON.stringify(flow.result)).not.toContain('/9j/');
+    await act(async () => { flow.setAnswers({ tightness: 0, oiliness: 1, sensitivity: 2 }); });
+    await act(async () => { await flow.finish(); });
+    expect(useSkinPreviewStore.getState().preview?.jpeg).toBe('/9j/');
+    expect(JSON.stringify(await AsyncStorage.multiGet(Object.values(STORAGE_KEYS)))).not.toContain('/9j/');
+  } finally { await act(async () => { renderer.unmount(); }); useSkinPreviewStore.getState().clear(); }
 });

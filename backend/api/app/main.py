@@ -16,6 +16,7 @@ from app.routers import (
     idol_looks,
     members,
     payments,
+    recommendations,
     shades,
     style_looks,
     tutorials,
@@ -59,6 +60,7 @@ def create_app() -> FastAPI:
         tutorials,
         style_looks,
         celebrity_videos,
+        recommendations,
     ):
         app.include_router(module.router)
     app.include_router(payments.router)

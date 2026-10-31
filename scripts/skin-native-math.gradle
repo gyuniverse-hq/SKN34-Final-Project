@@ -8,11 +8,11 @@ def source = new File(repository, 'modules/skin-analysis/android/src')
 sourceSets {
   main.kotlin {
     srcDir new File(source, 'main/java')
-    include '**/CaptureGate.kt', '**/SkinResampling.kt'
+    include '**/CaptureGate.kt', '**/SkinResampling.kt', '**/SkinDecoding.kt'
   }
   test.kotlin {
     srcDir new File(source, 'test/java')
-    include '**/CaptureGateTest.kt', '**/SkinResamplingTest.kt'
+    include '**/CaptureGateTest.kt', '**/SkinResamplingTest.kt', '**/SkinDecodingTest.kt'
   }
 }
 dependencies { testImplementation 'junit:junit:4.13.2' }

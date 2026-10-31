@@ -1,17 +1,19 @@
-import { createPreprocessor, detectRegions } from './preprocessing.mjs';
+import { createPreprocessor, detectRegions, inputCrop } from './preprocessing.mjs';
 import { createJpegRoundTrip } from './jpeg.mjs';
 import { CaptureGate, previewFace } from './gate.mjs';
+import { validateModelManifest, decodeGrade, meanSkinType } from './model-contract.mjs';
 
+const FACE_OVAL = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109];
+const CHUNK_SIZE = 48 * 1024, MAX_PREVIEW_CHARS = 4 * 1024 * 1024;
 const post = message => window.ReactNativeWebView?.postMessage(JSON.stringify(message));
 const elapsed = since => performance.now() - since;
 const sleepFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
 const parts = {
-  acne: [['acne', null]],
   pore: [['pore_grade_cheek_image_left', 4], ['pore_grade_cheek_image_right', 5]],
   pigmentation: [['pigmentation_grade_forehead', 0], ['pigmentation_grade_cheek_image_left', 4], ['pigmentation_grade_cheek_image_right', 5]],
   wrinkle: [['wrinkle_grade_forehead', 0], ['wrinkle_grade_glabella', 1], ['wrinkle_grade_eye_image_left', 2], ['wrinkle_grade_eye_image_right', 3]],
+  skinType: [['forehead', 0], ['leftCheek', 4], ['rightCheek', 5]],
 };
-const argmax = values => values.reduce((best, value, i) => value > values[best] ? i : best, 0);
 function script(url) {
   return new Promise((resolve, reject) => {
     const element = document.createElement('script'); element.src = url;
@@ -94,7 +96,7 @@ export async function boot(config) {
     try { if (!detector.load('face.xml')) throw new Error('model'); regions = detectRegions(cv, image, detector); }
     finally { detector.delete(); cv.FS_unlink('/face.xml'); }
     const detectionMs = elapsed(detectedAt), features = {}, models = [];
-    let acneScore = 0, acneThreshold = 0;
+    let skinType;
     for (const model of manifest.models) {
       check(); post({ type: 'progress', indicator: model.indicator }); await sleepFrame();
       const downloadAt = performance.now(); let bytes = await asset(model.file);
@@ -108,34 +110,34 @@ export async function boot(config) {
         if (actual.length !== model.outputs || actual.some((v, i) => !Number.isFinite(v) || Math.abs(v - model.expectedLogits[i]) > 1e-4 + 1e-3 * Math.abs(model.expectedLogits[i]))) throw new Error('model');
         const modelValidationMs = elapsed(modelValidationAt);
         let preprocessingMs = 0, inferenceMs = 0;
+        const typeLogits = [];
         for (const [key, region] of parts[model.indicator]) {
           check(); const preparedAt = performance.now();
-          const input = await tensor(image, region === null ? null : regions[region]);
+          const input = await tensor(image, regions[region]);
           preprocessingMs += elapsed(preparedAt);
           const inferenceAt = performance.now(), logits = await run(session, input);
           inferenceMs += elapsed(inferenceAt);
           if (logits.length !== model.outputs || logits.some(v => !Number.isFinite(v))) throw new Error('model');
-          if (model.indicator === 'acne') {
-            acneScore = 1 / (1 + Math.exp(-logits[0])); acneThreshold = model.threshold;
-            features.acne = Number(acneScore >= acneThreshold);
-          } else features[key] = argmax(logits);
+          if (model.indicator === 'skinType') typeLogits.push(logits);
+          else features[key] = decodeGrade(logits[0], model.maxGrade);
         }
+        if (model.indicator === 'skinType') skinType = meanSkinType(typeLogits);
         models.push({ indicator: model.indicator, sourceSha256: model.sourceSha256, sha256: model.sha256,
           downloadMs, cacheHit: cacheHits.has(model.file), loadMs, validationMs: modelValidationMs, preprocessingMs, inferenceMs });
       } finally { await session.release(); }
     }
     check();
-    return { schema: 'skin-analysis-mobile-v1', features, acneScore, acneThreshold,
+    return { regions: regions.map(box => inputCrop(box, image.cols, image.rows)), result: { schema: 'skin-analysis-mobile-v3', features, skinType,
       roiMethod: 'opencv_haar_facebox_proportions_v1', validationStatus: 'experimental_unvalidated',
-      preprocessing: 'opencv4.12-turbojpeg95-wasm-v1',
+      preprocessing: 'skin-v3-embedded-enhancement',
       timing: { ...config.run, runtime: 'onnxruntime-web-1.30.0/wasm-cpu/threads=1',
         bundleVersion: manifest.bundleVersion, alignmentMs, captureMs, startupMs, jpegFixtureMaxError,
-        imagePreparationMs: 0, validationMs, detectionMs, nativeMs: 0, totalMs: elapsed(capturedAt), memoryPssKb: null, models } };
+        imagePreparationMs: 0, validationMs, detectionMs, nativeMs: 0, totalMs: elapsed(capturedAt), memoryPssKb: null, models } } };
   }
 
-  try {
-    post({ type: 'camera', state: { guidance: 'loading', progress: 0 } });
+  async function prepareAnalysis() {
     ort = await import(base + 'ort.wasm.min.mjs');
+    check();
     await Promise.all([script(base + 'opencv.js'), script(base + 'jpeg.js')]);
     const cvModule = window.cv;
     if (cvModule instanceof Promise) cv = await cvModule;
@@ -144,12 +146,25 @@ export async function boot(config) {
     tensor = createPreprocessor(cv, createJpegRoundTrip(jpeg));
     ort.env.wasm.numThreads = 1; ort.env.wasm.wasmPaths = base;
     manifest = JSON.parse(new TextDecoder().decode(await fetchBytes('manifest.json')));
-    if (manifest.schema !== 'skin-analysis-assets-v1' || manifest.precision !== 'float32' || manifest.preprocessing !== 'skin-preprocessing-v1' ||
-      manifest.models.length !== 4 || manifest.models.some(model => model.sha256 !== manifest.assets[model.file] ||
-        JSON.stringify(model.inputShape) !== '[1,3,256,256]' || model.outputs !== (model.indicator === 'acne' ? 1 : model.indicator === 'wrinkle' ? 7 : 6)) ||
-      new Set(manifest.models.map(model => model.indicator)).size !== 4 || manifest.models.some(model => !parts[model.indicator])) throw new Error('model');
+    validateModelManifest(manifest);
     // Cache API availability/quota varies between WebViews. Cache misses remain explicit in timings.
     cache = window.caches ? await window.caches.open(`skin-web-models-${manifest.bundleVersion}`).catch(() => null) : null;
+    check();
+  }
+
+  try {
+    post({ type: 'camera', state: { guidance: 'openingCamera', progress: 0 } });
+    try {
+      const next = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 960 } }, audio: false });
+      if (stopped) { next.getTracks().forEach(track => track.stop()); return; }
+      stream = next; video.srcObject = stream; await video.play(); check();
+    } catch (error) {
+      cleanup();
+      if (error?.message !== 'cancelled') post({ type: 'error', code: error?.name === 'NotAllowedError' ? 'permission' : 'camera' });
+      return;
+    }
+    // Only face alignment is needed before capture; OpenCV/ONNX/JPEG load afterward.
+    post({ type: 'camera', state: { guidance: 'loadingGuide', progress: 0 } });
     const visionRoot = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1';
     const vision = await import(visionRoot + '/vision_bundle.mjs');
     const files = await vision.FilesetResolver.forVisionTasks(visionRoot + '/wasm');
@@ -158,8 +173,7 @@ export async function boot(config) {
       runningMode: 'VIDEO', numFaces: 2, minFaceDetectionConfidence: .5, minTrackingConfidence: .5,
     });
     check();
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 960 } }, audio: false });
-    check(); video.srcObject = stream; await video.play(); startupMs = elapsed(startupAt);
+    startupMs = elapsed(startupAt);
     const openedAt = performance.now(), gate = new CaptureGate(); gate.reset();
     let lastVideoTime = -1, capturing = false;
     async function capture() {
@@ -168,21 +182,53 @@ export async function boot(config) {
       capturing = true; captureButton.disabled = true;
       try {
         const capturedAt = performance.now();
+        // Capture landmarks from the same video frame as the image, not a prior guide frame.
+        let outline = null;
+        try {
+          const faces = tracker.detectForVideo(video, capturedAt).faceLandmarks;
+          if (faces.length === 1) {
+            const points = FACE_OVAL.map(index => faces[0][index]);
+            if (points.every(p => p && Number.isFinite(p.x) && Number.isFinite(p.y) && p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1)) {
+              outline = points.map(p => [p.x, p.y]);
+            }
+          }
+        } catch { /* Numeric analysis can still complete without a preview. */ }
         canvas.width = video.videoWidth; canvas.height = video.videoHeight;
         canvas.getContext('2d', { willReadFrequently: true }).drawImage(video, 0, 0);
-        const image = cv.imread(canvas), captureMs = elapsed(capturedAt);
+        const captureMs = elapsed(capturedAt);
+        let image;
         try {
           stopCamera(); post({ type: 'captured' }); await sleepFrame();
-          post({ type: 'result', result: await analyze(image, capturedAt, captureMs, capturedAt - openedAt) });
-        } finally { image.delete(); cleanup(); }
-      } catch (error) { cleanup(); post({ type: 'error', code: error?.message === 'photo' ? 'photo' : 'model' }); }
+          const preparationAt = performance.now();
+          await prepareAnalysis();
+          image = cv.imread(canvas);
+          const imagePreparationMs = elapsed(preparationAt);
+          const output = await analyze(image, capturedAt, captureMs, capturedAt - openedAt);
+          output.result.timing.imagePreparationMs = imagePreparationMs;
+          if (outline) try {
+            const dataUrl = canvas.toDataURL('image/jpeg', .8);
+            const data = dataUrl.startsWith('data:image/jpeg;base64,') ? dataUrl.slice(23) : '';
+            if (data.length && data.length <= MAX_PREVIEW_CHARS) {
+              const boxes = output.regions.map(([l, t, r, b]) => [l / canvas.width, t / canvas.height, r / canvas.width, b / canvas.height]);
+              post({ type: 'preview-start', runId: config.run.runId, width: canvas.width, height: canvas.height, outline, boxes, length: data.length });
+              for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+                check(); post({ type: 'preview-chunk', runId: config.run.runId, index: i / CHUNK_SIZE, data: data.slice(i, i + CHUNK_SIZE) });
+              }
+              post({ type: 'preview-end', runId: config.run.runId });
+            }
+          } catch { /* A preview failure must not replace a valid numeric result. */ }
+          check();
+          output.result.timing.totalMs = elapsed(capturedAt);
+          post({ type: 'result', result: output.result });
+        } finally { image?.delete(); cleanup(); }
+      } catch (error) { cleanup(); if (error?.message !== 'cancelled') post({ type: 'error', code: error?.message === 'photo' ? 'photo' : 'model' }); }
     }
     captureButton.onclick = () => { void capture(); };
     captureButton.disabled = false;
     async function frame() {
       if (stopped || capturing) return;
       try {
-        if (video.currentTime === lastVideoTime) { setTimeout(frame, 100); return; }
+        if (video.readyState < 2 || !video.videoWidth || !video.videoHeight || video.currentTime === lastVideoTime) { setTimeout(frame, 100); return; }
         lastVideoTime = video.currentTime;
         const now = performance.now(), result = tracker.detectForVideo(video, now);
         const bounds = video.getBoundingClientRect();
@@ -195,6 +241,6 @@ export async function boot(config) {
     frame();
   } catch (error) {
     cleanup();
-    if (error?.message !== 'cancelled') post({ type: 'error', code: error?.name === 'NotAllowedError' ? 'permission' : 'model' });
+    if (error?.message !== 'cancelled') post({ type: 'error', code: 'guide' });
   }
 }

@@ -1,6 +1,7 @@
 import type { Dictionary } from './en';
 import { flowsKo } from './flows';
 import { skinKo } from './skin';
+import { skinReportKo } from './skinReport';
 
 export const ko: Dictionary = {
   'discovery.quickTitle': '나에게 맞는 뷰티',
@@ -38,6 +39,7 @@ export const ko: Dictionary = {
   "celebrity.photoCredit": "사진 출처 · 화면에 맞게 잘림",
   ...skinKo,
   ...flowsKo,
+  ...skinReportKo,
   "nia.acne.ready": "여드름 연구 모델 사용 가능 · 다음 분석에 포함됩니다",
   "nia.acne.outdated": "이전 분석에는 여드름 결과가 없습니다. 현재 모델로 다시 분석하세요.",
   "nia.acne.reanalyze": "여드름 포함 다시 분석",

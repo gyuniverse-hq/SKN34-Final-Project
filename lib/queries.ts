@@ -8,12 +8,25 @@ import type {
   ProductOffers,
   ProductQuery,
   SimilarShadesResponse,
+  SkinRecommendationRequest,
+  SkinRecommendationResponse,
   Store,
   StyleLook,
   YoutubeSearchResult,
 } from '@/types';
 import { DEV_LOOKS, DEV_TRYON_PRODUCTS, devLookDetail } from '@/lib/devCatalog';
-import { ApiError, apiGet } from './api';
+import { ApiError, apiGet, apiPost } from './api';
+
+/** Run only after the user confirms the concerns; keep responses out of the shared product cache. */
+export function useSkinRecommendations(request: SkinRecommendationRequest | undefined) {
+  return useQuery({
+    queryKey: ['skin-recommendations', request?.concerns, request?.limit],
+    queryFn: () => apiPost<SkinRecommendationResponse>('/api/recommendations/skin', request!),
+    enabled: request !== undefined,
+    gcTime: 0,
+    staleTime: 0,
+  });
+}
 
 export const meQueryKey = (userId?: string) => ['me', userId] as const;
 

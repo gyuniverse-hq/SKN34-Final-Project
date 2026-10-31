@@ -1,5 +1,13 @@
 package expo.modules.skinanalysis
 
+import android.graphics.Bitmap
+import android.util.Base64
+import com.google.android.gms.tasks.Tasks
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.face.FaceContour
+import com.google.mlkit.vision.face.FaceDetection
+import com.google.mlkit.vision.face.FaceDetectorOptions
+import org.opencv.android.Utils
 import org.opencv.core.Core
 import org.opencv.core.Mat
 import org.opencv.core.MatOfByte
@@ -9,6 +17,8 @@ import org.opencv.core.Size
 import org.opencv.imgcodecs.Imgcodecs
 import org.opencv.imgproc.Imgproc
 import org.opencv.objdetect.CascadeClassifier
+import java.io.ByteArrayOutputStream
+import java.util.concurrent.TimeUnit
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.round
@@ -61,15 +71,61 @@ internal object SkinImages {
     } finally { small.release(); gray.release(); faces.release() }
   }
 
-  fun tensor(image: Mat, bbox: Rect? = null): FloatArray {
-    if (bbox == null) return SkinResampling.normalize(SkinResampling.resize(rgb(image), image.cols(), image.rows()))
+  // Shared by inference and the preview overlay; coordinates are in the rotated input image.
+  fun inputCrop(bbox: Rect, width: Int, height: Int): Rect {
     val cx = (bbox.x * 2 + bbox.width) / 2
     val cy = (bbox.y * 2 + bbox.height) / 2
     val half = max(bbox.width, bbox.height) / 2
     require(half > 0)
     val left = max(0, cx - half); val top = max(0, cy - half)
-    val right = min(image.cols(), cx + half); val bottom = min(image.rows(), cy + half)
-    val crop = image.submat(Rect(left, top, right - left, bottom - top))
+    val right = min(width, cx + half); val bottom = min(height, cy + half)
+    return Rect(left, top, right - left, bottom - top)
+  }
+
+  /** Optional local-only preview. Failure leaves numeric analysis unaffected. */
+  fun preview(image: Mat, regions: Map<Int, Rect>): Map<String, Any>? {
+    val rgba = Mat()
+    val bitmap = Bitmap.createBitmap(image.cols(), image.rows(), Bitmap.Config.ARGB_8888)
+    try {
+      Imgproc.cvtColor(image, rgba, Imgproc.COLOR_BGR2RGBA)
+      Utils.matToBitmap(rgba, bitmap)
+    } catch (error: Exception) { bitmap.recycle(); throw error }
+    finally { rgba.release() }
+    val detector = try { FaceDetection.getClient(FaceDetectorOptions.Builder()
+      .setContourMode(FaceDetectorOptions.CONTOUR_MODE_ALL).build()) }
+      catch (error: Exception) { bitmap.recycle(); throw error }
+    var task: com.google.android.gms.tasks.Task<List<com.google.mlkit.vision.face.Face>>? = null
+    try {
+      val operation = detector.process(InputImage.fromBitmap(bitmap, 0))
+      task = operation
+      val faces = Tasks.await(operation, 10, TimeUnit.SECONDS)
+      if (faces.size != 1) return null
+      val points = faces[0].getContour(FaceContour.FACE)?.points ?: return null
+      if (points.size != 36) return null
+      val width = image.cols(); val height = image.rows()
+      val outline = points.map { listOf(it.x.toDouble() / width, it.y.toDouble() / height) }
+      if (outline.any { point -> point.any { !it.isFinite() || it < 0 || it > 1 } }) return null
+      val boxes = (1..6).map { index ->
+        val crop = inputCrop(regions.getValue(index), width, height)
+        listOf(crop.x.toDouble() / width, crop.y.toDouble() / height,
+          (crop.x + crop.width).toDouble() / width, (crop.y + crop.height).toDouble() / height)
+      }
+      val out = ByteArrayOutputStream()
+      if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 80, out) || out.size() > 3 * 1024 * 1024) return null
+      return mapOf("width" to width, "height" to height, "outline" to outline, "boxes" to boxes,
+        "jpeg" to Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP))
+    } finally {
+      // Do not recycle the bitmap while ML Kit may still be reading after a timeout.
+      val pending = task
+      if (pending == null || pending.isComplete) { detector.close(); bitmap.recycle() }
+      else pending.addOnCompleteListener { detector.close(); bitmap.recycle() }
+    }
+  }
+
+  fun tensor(image: Mat, bbox: Rect? = null): FloatArray {
+    if (bbox == null) return SkinResampling.normalize(SkinResampling.resize(rgb(image), image.cols(), image.rows()))
+    val bounds = inputCrop(bbox, image.cols(), image.rows())
+    val crop = image.submat(bounds)
     val resized = Mat(); val encoded = MatOfByte()
     var jpeg: Mat? = null
     try {
