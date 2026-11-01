@@ -1,51 +1,52 @@
-import type { CelebLook, Product, ProductCategory } from '@/types';
-import { DEMO_LOOKS, DEMO_PRODUCTS, DEMO_SHOP_LIP } from './demo';
+import type { Product, ProductQuery } from '@/types';
+import { CONCERN_TO_TAGS, type CareTag } from '@/lib/skinFilters';
 
-export { DEMO_SHOP_LIP };
-
-/** Shop list in development: the one AR-check lip, without replacing the AR try-on catalog. */
-export function withDevShopLip(
-  products: Product[],
-  params: { q?: string; category?: ProductCategory } = {}
-): Product[] {
-  if (!__DEV__) return products;
-  const q = (params.q ?? '').trim().toLowerCase();
-  const matchesCategory = !params.category || DEMO_SHOP_LIP.category === params.category;
-  const matchesQuery =
-    !q ||
-    [DEMO_SHOP_LIP.name, DEMO_SHOP_LIP.nameKo, DEMO_SHOP_LIP.brand].some((s) => s.toLowerCase().includes(q));
-  if (!matchesCategory || !matchesQuery) return products;
-  if (products.some((p) => p.id === DEMO_SHOP_LIP.id)) return products;
-  return [DEMO_SHOP_LIP, ...products];
-}
-
-// The Olive Young catalog is large generated data. It is required only when __DEV__ is true, so the
-// production bundler drops this branch and the file never ships in a release build.
-const OLIVEYOUNG_PRODUCTS: Product[] = __DEV__
-  ? (require('./oliveyoung') as typeof import('./oliveyoung')).OLIVEYOUNG_PRODUCTS
+// Snapshot built from the Olive Young makeup v29 CSV. Skincare v1 and makeup v23 are not included.
+// Required only when __DEV__ is true, so a production bundle does not ship this file.
+const OY_CATALOG_PRODUCTS: Product[] = __DEV__
+  ? (require('./oyCatalog.json') as { products: Product[] }).products
   : [];
 
+/** Shop and product pages in development when the API catalog is empty. */
+export const DEV_CATALOG_PRODUCTS: Product[] = OY_CATALOG_PRODUCTS;
+
 /**
- * Try-on products for testing AR in development when the backend has none (empty seed or no
- * local backend running). Olive Young colors are estimates from option chips (measureMethod
- * "estimated"); demo colors are not real products. Never used in production builds.
+ * Try-on products for AR in development when the backend has none. Olive Young hex values
+ * are the stored swatch colors (measureMethod "estimated"). Never used in production builds.
  */
-export const DEV_TRYON_PRODUCTS: Product[] = [...OLIVEYOUNG_PRODUCTS, ...DEMO_PRODUCTS].filter(
-  (p) => p.makeupZone
-);
+export const DEV_TRYON_PRODUCTS: Product[] = OY_CATALOG_PRODUCTS.filter((p) => p.makeupZone);
 
-/** Demo looks for development, shown when the backend has none (the production list is the backend seed). */
-export const DEV_LOOKS: CelebLook[] = DEMO_LOOKS;
-
-/** A demo look with its products, in the same shape as `/api/looks/:id`; null for any other id. */
-export function devLookDetail(id: string): { look: CelebLook; products: Product[] } | null {
-  const look = DEV_LOOKS.find((l) => l.id === id);
-  if (!look) return null;
-  const ids = new Set(look.items.map((i) => i.productId));
-  return { look, products: DEV_TRYON_PRODUCTS.filter((p) => ids.has(p.id)) };
+/**
+ * Backend try-on products. In development, zones the backend has no products for are filled from the development set
+ * (a backend on an older seed served lip / blush / eyeshadow only, so the eyeliner, brow and foundation tabs were empty).
+ */
+export function withDevTryOnFallback(apiTryOn: Product[], isDev: boolean): Product[] {
+  if (!isDev) return apiTryOn;
+  if (!apiTryOn.length) return DEV_TRYON_PRODUCTS;
+  const apiZones = new Set(apiTryOn.map((p) => p.makeupZone));
+  const apiIds = new Set(apiTryOn.map((p) => p.id));
+  const missing = DEV_TRYON_PRODUCTS.filter((p) => !apiZones.has(p.makeupZone) && !apiIds.has(p.id));
+  return missing.length ? apiTryOn.concat(missing) : apiTryOn;
 }
 
-/** Backend try-on products, or the development set when the backend has none. */
-export function withDevTryOnFallback(apiTryOn: Product[], isDev: boolean): Product[] {
-  return apiTryOn.length || !isDev ? apiTryOn : DEV_TRYON_PRODUCTS;
+/** Local catalog when the API returns nothing. Concern filters use cosmetic care tags from product names. */
+export function devCatalogProducts(params: ProductQuery = {}): Product[] {
+  if (!__DEV__) return [];
+  const q = (params.q ?? '').trim().toLowerCase();
+  const careTags = params.concerns?.length
+    ? new Set(params.concerns.flatMap((concern) => CONCERN_TO_TAGS[concern] ?? []))
+    : null;
+  return DEV_CATALOG_PRODUCTS.filter((product) => {
+    if (params.category && product.category !== params.category) return false;
+    if (careTags && !product.tags.some((tag) => careTags.has(tag as CareTag))) return false;
+    if (!q) return true;
+    return [product.name, product.nameKo, product.brand, product.searchKeyword].some((value) =>
+      value.toLowerCase().includes(q)
+    );
+  });
+}
+
+export function devCatalogProduct(id: string): Product | undefined {
+  if (!__DEV__) return undefined;
+  return DEV_CATALOG_PRODUCTS.find((product) => product.id === id);
 }

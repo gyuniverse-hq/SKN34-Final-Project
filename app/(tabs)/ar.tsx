@@ -1,11 +1,14 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as WebBrowser from 'expo-web-browser';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   AppState,
   BackHandler,
   LayoutAnimation,
@@ -32,7 +35,8 @@ import { Chip } from '@/components/ui/Chip';
 import { DEMO_TAG } from '@/constants/demo';
 import { TAB_BAR_STYLE, theme } from '@/constants/theme';
 import { COLOR_FAMILIES, colorFamily, type ColorFamily } from '@/lib/colorFamily';
-import { withDevTryOnFallback } from '@/lib/devCatalog';
+import { adjustMakeupFromChat } from '@/lib/arChatAdjust';
+import { isSafeExternalUrl } from '@/lib/externalLink';
 import { formatKRW } from '@/lib/format';
 import { LINER_LOOK_IDS, LINER_LOOKS, matchingLinerLook } from '@/lib/linerLooks';
 import { SHADOW_FINISH_IDS, shadowFinishOf } from '@/lib/shadowFinishes';
@@ -43,7 +47,7 @@ import { practiceDrawStep, practiceZones, revealedMakeup, visit } from '@/lib/pr
 import { useArRouteSelection } from '@/hooks/useArRouteSelection';
 import { MIN_TONE_CONF, rankFoundationShades, type SkinTone } from '@/lib/foundationMatch';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
-import { useProducts } from '@/lib/queries';
+import { useTryOnProducts } from '@/lib/queries';
 import { parseFlag, parseId, productHref, recommendationsHref } from '@/lib/routes';
 import { useCartStore } from '@/store/cartStore';
 import { AR_PAINT_ZONES, arPaintMakeup, isArPaintZone, MAKEUP_ZONES, useMakeupStore } from '@/store/makeupStore';
@@ -128,6 +132,7 @@ export default function ArTryOnScreen() {
   const [recFor, setRecFor] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>('direct');
   const [draft, setDraft] = useState('');
+  const [chatNote, setChatNote] = useState<TranslationKey | null>(null);
   const [isFullscreenAR, setIsFullscreenAR] = useState(false);
 
   // Follow new route params (a later "Try in AR" on the already-mounted tab) without an effect.
@@ -148,7 +153,6 @@ export default function ArTryOnScreen() {
     applyShade,
     patchGeometry,
     setIntensity,
-    clearZone,
     revertZone,
     fit,
     endFit,
@@ -157,20 +161,39 @@ export default function ArTryOnScreen() {
   const blushTrackWRef = useRef(0);
   const addMany = useCartStore((s) => s.addMany);
   const addToCart = useCartStore((s) => s.add);
-  const products = useProducts();
+  const products = useTryOnProducts();
+  const tryOnProducts = useMemo(() => products.data ?? [], [products.data]);
 
-  // Development: fall back to the bundled Olive Young + demo colors when the backend has no
-  // try-on products, so AR can be tested in Expo Go without a seeded backend.
-  const tryOnProducts = useMemo(
-    () => withDevTryOnFallback((products.data ?? []).filter((p) => p.makeupZone), __DEV__),
-    [products.data]
-  );
+  const sendChat = () => {
+    const text = draft.trim();
+    if (!text) return;
+    const result = adjustMakeupFromChat(text, tryOnProducts, makeup);
+    if (result.kind === 'shade') {
+      applyShade(result.product, result.shade);
+      setZone(result.zone);
+      setChatNote('ar.chatAppliedShade');
+    } else if (result.kind === 'intensity') {
+      setIntensity(result.zone, result.intensity);
+      setZone(result.zone);
+      setChatNote('ar.chatAppliedIntensity');
+    } else {
+      setChatNote('ar.chatNoMatch');
+    }
+    setDraft('');
+  };
   const zoneSwatches = useMemo(
     () =>
       tryOnProducts
         .filter((p) => p.makeupZone === zone)
         .flatMap((p) => p.shades.map((shade) => ({ product: p, shade }))),
     [tryOnProducts, zone]
+  );
+  const selectedTryOn = useMemo(
+    () =>
+      zoneSwatches.find(
+        (item) => selections[zone]?.productId === item.product.id && selections[zone]?.shadeId === item.shade.id
+      ),
+    [zoneSwatches, selections, zone]
   );
   // Filter chips: only textures / color families present in this zone; families for lips only.
   const textureOptions = useMemo(
@@ -270,6 +293,20 @@ export default function ArTryOnScreen() {
     setStatus('loading');
     setArKey((k) => k + 1);
   };
+
+  // The WebView's renderer died: restart only the AR page. A second death within a minute stops the automatic restart
+  // and shows the swatch fallback with the retry button, so a device that cannot run it does not loop.
+  const crashTimes = useRef<number[]>([]);
+  const onArCrash = useCallback(() => {
+    const now = Date.now();
+    crashTimes.current = [...crashTimes.current.filter((at) => now - at < 60_000), now];
+    if (crashTimes.current.length >= 2) {
+      setStatus('unavailable');
+      return;
+    }
+    setStatus('loading');
+    setArKey((k) => k + 1);
+  }, []);
 
   const backToProduct = () => {
     if (router.canGoBack()) router.back();
@@ -476,9 +513,11 @@ export default function ArTryOnScreen() {
           makeup={shownMakeup}
           compare={compare}
           guide={guide}
+          fillPreview={isFullscreenAR}
           onStatus={setStatus}
           onLightHint={setLightHint}
           onSkinTone={setSkinTone}
+          onCrash={onArCrash}
         />
         {compare ? (
           <>
@@ -691,7 +730,11 @@ export default function ArTryOnScreen() {
               ))}
             </ScrollView>
             <View style={styles.chatInputRow}>
-              <Pressable accessibilityRole="button" accessibilityLabel={t('ar.mic')} style={styles.micBtn}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('ar.mic')}
+                onPress={() => Alert.alert(t('ar.mic'), t('ar.micUnavailable'))}
+                style={styles.micBtn}>
                 <Ionicons name="mic" size={22} color={theme.colors.white} />
               </Pressable>
               <TextInput
@@ -701,15 +744,18 @@ export default function ArTryOnScreen() {
                 placeholderTextColor={theme.colors.inkFaint}
                 style={styles.chatInput}
                 returnKeyType="send"
+                onSubmitEditing={sendChat}
               />
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t('ar.send')}
                 disabled={!draft.trim()}
+                onPress={sendChat}
                 style={[styles.sendBtn, !draft.trim() && { opacity: 0.4 }]}>
                 <Ionicons name="arrow-up" size={20} color={theme.colors.white} />
               </Pressable>
             </View>
+            {chatNote ? <Text style={styles.chatBody}>{t(chatNote)}</Text> : null}
           </View>
         ) : (
           <ScrollView
@@ -856,9 +902,50 @@ export default function ArTryOnScreen() {
               })}
             </ScrollView>
 
-            <View style={styles.levels}>
-              <Chip label={t('ar.off')} selected={!makeup[zone]} onPress={() => clearZone(zone)} />
-            </View>
+            {selectedTryOn ? (
+              <View style={styles.productCard}>
+                {selectedTryOn.product.imageUrl ? (
+                  <Image
+                    source={{ uri: selectedTryOn.product.imageUrl }}
+                    style={styles.productImage}
+                    contentFit="cover"
+                    accessibilityLabel={selectedTryOn.product.name}
+                  />
+                ) : (
+                  <View style={[styles.productImage, { backgroundColor: selectedTryOn.shade.hex }]} />
+                )}
+                <View style={styles.productCopy}>
+                  <Text style={styles.matchName} numberOfLines={2}>
+                    {selectedTryOn.product.brand} {selectedTryOn.product.name}
+                  </Text>
+                  <Text style={styles.matchNote} numberOfLines={1}>
+                    {selectedTryOn.shade.name}
+                    {selectedTryOn.product.priceKRW > 0 ? ` · ${formatKRW(selectedTryOn.product.priceKRW)}` : ''}
+                  </Text>
+                  {selectedTryOn.shade.measureMethod === 'estimated' ? (
+                    <Text style={styles.foundNote}>{t('ar.shadeEstimated')}</Text>
+                  ) : null}
+                  <View style={styles.productLinks}>
+                    <Chip
+                      label={t('ar.openProduct')}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/product/[id]',
+                          params: { id: selectedTryOn.product.id, shade: selectedTryOn.shade.id },
+                        })
+                      }
+                    />
+                    {isSafeExternalUrl(selectedTryOn.product.sourceUrl) ? (
+                      <Chip
+                        label={t('ar.openStore')}
+                        onPress={() => WebBrowser.openBrowserAsync(selectedTryOn.product.sourceUrl!)}
+                      />
+                    ) : null}
+                  </View>
+                </View>
+              </View>
+            ) : null}
+
             {zone === 'foundation' && makeup.foundation ? (
               <View style={styles.foundBox}>
                 <Text style={styles.foundTitle}>{t('ar.found.coverage')}</Text>
@@ -1080,7 +1167,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   fill: { flex: 1 },
-  camera: { flex: 1, backgroundColor: theme.colors.black },
+  camera: { flex: 1, backgroundColor: theme.colors.black, overflow: 'hidden' },
   consent: { flexGrow: 1, padding: 28, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: theme.colors.surface },
   consentTitle: { fontSize: theme.font.h2, fontWeight: '800', color: theme.colors.ink, textAlign: 'center', marginBottom: 6 },
   point: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', alignSelf: 'stretch' },
@@ -1136,8 +1223,10 @@ const styles = StyleSheet.create({
   swatch: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)' },
   swatchBrand: { fontSize: 10, color: theme.colors.inkFaint, marginTop: 4 },
   swatchName: { fontSize: 11, color: theme.colors.ink, fontWeight: '600' },
-  levels: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, flexWrap: 'wrap' },
-  levelsLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.inkMuted, marginRight: 4 },
+  productCard: { marginHorizontal: 16, flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  productImage: { width: 56, height: 56, borderRadius: theme.radius.sm },
+  productCopy: { flex: 1, gap: 4 },
+  productLinks: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   disclaimer: { marginHorizontal: 16, fontSize: 11, lineHeight: 16, color: theme.colors.inkFaint },
   foundBox: { marginHorizontal: 16, gap: 6 },
   foundTitle: { fontSize: 12, fontWeight: '800', color: theme.colors.ink },

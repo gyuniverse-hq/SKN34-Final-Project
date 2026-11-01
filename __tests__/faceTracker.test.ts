@@ -15,7 +15,7 @@ describe('face tracker page', () => {
   it('pins the MediaPipe version and keeps the host protocol', () => {
     const script = moduleScript(FACE_TRACKER_HTML);
     expect(script).toContain(`'${MEDIAPIPE_VERSION}'`);
-    for (const token of ["type: 'hello'", "type: 'status'", "type: 'light_hint'", "msg.type === 'makeup'", "msg.type === 'compare'"]) {
+    for (const token of ["type: 'hello'", "type: 'status'", "type: 'light_hint'", "msg.type === 'makeup'", "msg.type === 'compare'", "msg.type === 'preview'"]) {
       expect(script).toContain(token);
     }
   });
@@ -246,6 +246,27 @@ describe('face tracker page', () => {
     expect(script).toContain('gl.uniform1f(u.uHlCov, hl ? clamp01(hl.intensity) * TUNING.hlCoverage * hlGain : 0);');
     expect(script).toContain('gl.uniform1f(u.uContourCov, contourZ ? clamp01(contourZ.intensity) * TUNING.contourCoverage : 0);');
     expect(script).toContain('gl.uniform1f(u.uFoundCov, foundZ ? span(TUNING.foundCoverage) : 0);');
+    expect(FACE_TRACKER_HTML).toContain('object-fit: cover');
+    expect(script).toContain('foundSkinBin[i] = cat[i] === 3 ? 255 : 0;');
+    expect(script).toContain('foundA *= uFoundSkinOn > 0.5 ? texture2D(uFoundSkin, suv).r');
+    expect(script).toContain('foundSegEveryMs: 120');
+    expect(script).toContain('foundSegEveryLowFpsMs: 400');
+    // Forehead: the mesh stops at landmark 10, so a foundation-only cap continues it to the hairline; the skin mask cuts the hair.
+    expect(script).toContain('const FOREHEAD_CAP = [127, 162, 21, 54, 103, 67, 109, 10, 338, 297, 332, 284, 251, 389, 356];');
+    expect(script).toContain('gl.drawElements(gl.TRIANGLES, capIdx.length, gl.UNSIGNED_SHORT, 0);');
+    expect(script).toContain('outputConfidenceMasks: true');
+    expect(script).toContain('foundSegMixRise: 0.12');
+    expect(script).toContain('function openFrontCamera()');
+    expect(script).toContain('height: { ideal: 720, max: 960 }');
+    expect(script).toContain('fps >= TUNING.segmentMinFps || !foundSkinReady');
+    expect(script).not.toContain('blurPass');
+    expect(script).toContain('zoomMin: 1');
+    expect(script).toContain('zoomMax: 4');
+    expect(script).toContain('function applyViewZoom()');
+    expect(script).toContain('pinchStartZoom * (d / pinchStartDist)');
+    expect(script).toContain("canvas.style.transform = t");
+    expect(script).toContain("overlay.style.transform = t");
+    expect(script).not.toContain('aspectRatio: { ideal: 9 / 16 }');
     expect(script).toContain('gl.uniform1f(u.uBrowCov, browZ ? clamp01(browZ.intensity) * EYEBROW_PRESET.baseOpacity : 0);');
     expect(script).toContain('col = mix(col, mix(film, pigment, uFoundOpaque), foundA);');
     expect(script).toContain('baseOpacity: 1.0');
@@ -272,7 +293,7 @@ describe('face tracker page', () => {
     expect(script).toContain('createLinearGradient(h[0], h[1], t[0], t[1])');
     expect(script).not.toContain('mix(col, layer(cam, uBrowAlbedo, uSkinMeanLum, 1.2), browA)');
     expect(script).not.toMatch(/bisenet|huggingface|stable.?diffusion|psgan|face-parsing/i);
-    expect(script).toContain('rgba2[i * 4 + 3] = Math.round(clamp01(inside * (1 - lipShape[i]) * (1 - eyesCut[i]) * (1 - browCut[i])) * 255);');
+    expect(script).toContain('rgba2[i * 4 + 3] = Math.round(clamp01(foundInside * (1 - lipShape[i]) * (1 - eyesCut[i]) * (1 - browCut[i])) * 255);');
     expect(script).toContain('if (browPaint) {');
     expect(script).toContain('path(lower.concat(upper));');
     expect(script).toContain('for (const ids of [BROWS.slice(0, 10), BROWS.slice(10)]) {');
@@ -555,5 +576,14 @@ describe('face tracker page', () => {
     expect(a1).toBeGreaterThan(0.3);
     expect(a1).toBeLessThan(0.75);
     expect(coverage).toBeLessThan(0.8);
+  });
+
+  it('tells the app when WebGL is lost and releases models and camera on pagehide', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    expect(script).toMatch(/webglcontextlost.*type: 'crash'/);
+    expect(script).toContain("addEventListener('pagehide'");
+    expect(script).toContain('landmarker.close()');
+    expect(script).toContain('segmenter.close()');
+    expect(script).toContain('t.stop()');
   });
 });

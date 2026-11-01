@@ -7,6 +7,7 @@ import { openYoutubeVideo } from '@/components/celeb/VideoCard';
 jest.mock('expo-router', () => ({
   Stack: { Screen: () => null },
   useLocalSearchParams: () => ({ id: 'video-1' }),
+  useRouter: () => ({ push: jest.fn(), back: jest.fn(), canGoBack: () => false }),
 }));
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: 'LinearGradient' }));
@@ -16,6 +17,7 @@ jest.mock('@/hooks/useVideoTryOn', () => ({ useVideoTryOn: () => ({ open: jest.f
 jest.mock('@/components/ui/StateViews', () => ({ EmptyState: 'EmptyState', ErrorState: 'ErrorState', LoadingState: 'LoadingState' }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 jest.mock('@/lib/queries', () => ({
+  useProducts: () => ({ data: [] }),
   useStyleLooks: () => ({ isPending: false, isError: false, data: [{
     id: 'video-1', title: 'Example look', tag: '#look', group: '컬러·톤 스타일',
     products: [
