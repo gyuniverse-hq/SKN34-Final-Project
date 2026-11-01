@@ -14,7 +14,12 @@ import type {
   StyleLook,
   YoutubeSearchResult,
 } from '@/types';
-import { DEV_LOOKS, DEV_TRYON_PRODUCTS, devLookDetail } from '@/lib/devCatalog';
+import {
+  DEV_TRYON_PRODUCTS,
+  devCatalogProduct,
+  devCatalogProducts,
+  withDevTryOnFallback,
+} from '@/lib/devCatalog';
 import { ApiError, apiGet, apiPost } from './api';
 
 /** Run only after the user confirms the concerns; keep responses out of the shared product cache. */
@@ -50,11 +55,30 @@ export function useProducts(params: ProductQuery = {}) {
     queryKey: ['products', params.q ?? '', params.category ?? 'all', concerns],
     queryFn: async () => {
       try {
-        return await apiGet<{ products: Product[] }>(`/api/products${qs ? `?${qs}` : ''}`);
+        const data = await apiGet<{ products: Product[] }>(`/api/products${qs ? `?${qs}` : ''}`);
+        if (__DEV__ && data.products.length === 0) return { products: devCatalogProducts(params) };
+        return data;
       } catch (error) {
         if (!__DEV__) throw error;
         console.warn('[shop] backend unavailable', error);
-        return { products: [] };
+        return { products: devCatalogProducts(params) };
+      }
+    },
+    select: (d) => d.products,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useTryOnProducts() {
+  return useQuery({
+    queryKey: ['products', 'try-on'],
+    queryFn: async () => {
+      try {
+        const data = await apiGet<{ products: Product[] }>('/api/products');
+        return { products: withDevTryOnFallback(data.products.filter((product) => product.makeupZone), __DEV__) };
+      } catch (error) {
+        if (!__DEV__) throw error;
+        return { products: DEV_TRYON_PRODUCTS };
       }
     },
     select: (d) => d.products,
@@ -66,8 +90,28 @@ export function useProductsByIds(ids: string[]) {
   const sorted = [...new Set(ids)].sort();
   return useQuery({
     queryKey: ['products', 'ids', sorted.join(',')],
-    queryFn: () =>
-      apiGet<{ products: Product[] }>(`/api/products?ids=${encodeURIComponent(sorted.join(','))}`),
+    queryFn: async () => {
+      try {
+        const data = await apiGet<{ products: Product[] }>(
+          `/api/products?ids=${encodeURIComponent(sorted.join(','))}`
+        );
+        if (__DEV__ && data.products.length === 0) {
+          return { products: sorted.flatMap((id) => {
+            const product = devCatalogProduct(id);
+            return product ? [product] : [];
+          }) };
+        }
+        return data;
+      } catch (error) {
+        if (!__DEV__) throw error;
+        return {
+          products: sorted.flatMap((id) => {
+            const product = devCatalogProduct(id);
+            return product ? [product] : [];
+          }),
+        };
+      }
+    },
     select: (d) => d.products,
     enabled: sorted.length > 0,
     placeholderData: keepPreviousData,
@@ -81,7 +125,7 @@ export function useProduct(id: string | undefined) {
       try {
         return await apiGet<{ product: Product }>(`/api/products/${encodeURIComponent(id!)}`);
       } catch (error) {
-        const local = __DEV__ ? DEV_TRYON_PRODUCTS.find((p) => p.id === id) : undefined;
+        const local = devCatalogProduct(id!);
         if (!local) throw error;
         return { product: local };
       }
@@ -149,12 +193,11 @@ export function useLooks() {
     queryKey: ['looks'],
     queryFn: async () => {
       try {
-        const res = await apiGet<{ looks: CelebLook[] }>('/api/looks');
-        return __DEV__ && res.looks.length === 0 ? { looks: DEV_LOOKS } : res;
+        return await apiGet<{ looks: CelebLook[] }>('/api/looks');
       } catch (error) {
         if (!__DEV__) throw error;
-        console.warn('[looks] backend unavailable, using demo looks', error);
-        return { looks: DEV_LOOKS };
+        console.warn('[looks] backend unavailable', error);
+        return { looks: [] };
       }
     },
     select: (d) => d.looks,
@@ -164,11 +207,7 @@ export function useLooks() {
 export function useLook(id: string | undefined) {
   return useQuery({
     queryKey: ['look', id],
-    queryFn: async () => {
-      const demo = __DEV__ ? devLookDetail(id!) : null;
-      if (demo) return demo;
-      return apiGet<{ look: CelebLook; products: Product[] }>(`/api/looks/${encodeURIComponent(id!)}`);
-    },
+    queryFn: () => apiGet<{ look: CelebLook; products: Product[] }>(`/api/looks/${encodeURIComponent(id!)}`),
     enabled: !!id,
   });
 }

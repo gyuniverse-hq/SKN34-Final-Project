@@ -16,7 +16,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '@/constants/theme';
 import { useChat } from '@/hooks/useChat';
 import { useI18n } from '@/lib/i18n';
-import { productHref } from '@/lib/routes';
+import { canTryOn, pickShade } from '@/lib/catalog';
+import { arHref, productHref } from '@/lib/routes';
+import { useProductsByIds } from '@/lib/queries';
 import type { ChatProductRef } from '@/types';
 import { useRouter } from 'expo-router';
 
@@ -36,6 +38,8 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [failed, setFailed] = useState(false);
   const prompts = [t('ar.chatExample1'), t('ar.chatExample2'), t('ar.chatExample3')];
+  const relatedIds = messages.flatMap((message) => message.products?.map((product) => product.id) ?? []);
+  const relatedCatalog = useProductsByIds(relatedIds);
 
   useEffect(() => {
     if (messages.length) scrollRef.current?.scrollToEnd({ animated: true });
@@ -89,22 +93,36 @@ export default function ChatScreen() {
               {message.products?.length ? (
                 <View style={styles.related}>
                   <Text style={styles.relatedTitle}>{t('chat.relatedProducts')}</Text>
-                  {message.products.map((product) => (
-                    <Pressable
-                      key={product.id}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${product.brand} ${product.name}`}
-                      onPress={() => router.push(productHref(product.id))}
-                      style={({ pressed }) => [styles.product, pressed && styles.pressed]}>
-                      <View style={styles.productCopy}>
-                        <Text style={styles.productBrand}>{product.brand}</Text>
-                        <Text style={styles.productName} numberOfLines={1}>
-                          {product.name}
-                        </Text>
+                  {message.products.map((product) => {
+                    const full = relatedCatalog.data?.find((item) => item.id === product.id);
+                    const shade = full ? pickShade(full, undefined) : undefined;
+                    return (
+                      <View key={product.id}>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`${product.brand} ${product.name}`}
+                          onPress={() => router.push(productHref(product.id))}
+                          style={({ pressed }) => [styles.product, pressed && styles.pressed]}>
+                          <View style={styles.productCopy}>
+                            <Text style={styles.productBrand}>{product.brand}</Text>
+                            <Text style={styles.productName} numberOfLines={1}>
+                              {product.name}
+                            </Text>
+                          </View>
+                          <Ionicons name="chevron-forward" size={18} color={theme.colors.rose} />
+                        </Pressable>
+                        {full && shade && canTryOn(full) ? (
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={t('chat.tryAr')}
+                            onPress={() => router.push(arHref({ productId: full.id, shadeId: shade.id }))}
+                            style={({ pressed }) => [styles.product, pressed && styles.pressed]}>
+                            <Text style={styles.productName}>{t('chat.tryAr')}</Text>
+                          </Pressable>
+                        ) : null}
                       </View>
-                      <Ionicons name="chevron-forward" size={18} color={theme.colors.rose} />
-                    </Pressable>
-                  ))}
+                    );
+                  })}
                 </View>
               ) : null}
             </View>

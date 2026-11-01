@@ -7,8 +7,6 @@ import {
   recommendShades,
   type LookLine,
 } from '@/lib/colorGaps';
-import { DEMO_LOOKS } from '@/lib/devCatalog/demo';
-import { DEV_TRYON_PRODUCTS } from '@/lib/devCatalog';
 import type { MakeupState, Product } from '@/types';
 
 const lipProduct = (id: string, hexes: string[]) =>
@@ -112,29 +110,24 @@ describe('color helpers', () => {
   });
 });
 
-describe('a real look with a product missing from the shop', () => {
-  const stage = DEMO_LOOKS.find((l) => l.id === 'demo-look-stage-red')!;
-  const linesWithout = (productId: string): LookLine[] =>
-    stage.items
-      .filter((i) => i.productId !== productId)
-      .flatMap((i) => {
-        const product = DEV_TRYON_PRODUCTS.find((p) => p.id === i.productId);
-        return product ? [{ product, shade: product.shades.find((sh) => sh.id === i.shadeId) }] : [];
-      });
+describe('a look with a product missing from the shop', () => {
+  const lookMakeup = makeup('#B3202E');
+  const worn = lipProduct('worn-lip', ['#B3202E']);
+  const nearby = lipProduct('nearby-lip', ['#B5222F']);
+  const wornLine: LookLine[] = [{ product: worn, shade: worn.shades[0] }];
 
   it('has no gap when every product is there', () => {
-    expect(findColorGaps(stage.makeup, linesWithout('none'), DEV_TRYON_PRODUCTS)).toEqual([]);
+    expect(findColorGaps(lookMakeup, wornLine, [worn, nearby])).toEqual([]);
   });
 
   it('falls back to another catalog lip shade when the look lipstick is gone', () => {
-    const gaps = findColorGaps(stage.makeup, linesWithout('demo-lip-velvet'), DEV_TRYON_PRODUCTS);
+    const gaps = findColorGaps(lookMakeup, [], [nearby]);
     expect(gaps.map((g) => g.zone)).toEqual(['lip']);
     expect(gaps[0].kind).toBe('nearest');
   });
 
   it('asks the shopping site when the shop has nothing near the color', () => {
-    const noLips = DEV_TRYON_PRODUCTS.filter((p) => p.makeupZone !== 'lip');
-    const gaps = findColorGaps(stage.makeup, linesWithout('demo-lip-velvet'), noLips);
+    const gaps = findColorGaps(lookMakeup, [], []);
     expect(gaps).toEqual([expect.objectContaining({ zone: 'lip', kind: 'search', query: '레드 립 벨벳' })]);
   });
 });

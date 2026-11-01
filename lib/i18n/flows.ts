@@ -21,6 +21,7 @@ export const flowsEn = {
   'chat.signInTitle': 'Sign in to chat',
   'chat.signInBody': 'Log in to ask for K-beauty recommendations tailored to you.',
   'chat.relatedProducts': 'Related products',
+  'chat.tryAr': 'Try in AR',
   'chat.unavailable': 'The chat is unavailable right now. Please try again shortly.',
 
   'cart.checkout': 'Checkout',
@@ -248,6 +249,7 @@ export const flowsKo: FlowsDictionary = {
   'chat.signInTitle': '\ucc57\ubd07\uc744 \uc0ac\uc6a9\ud558\ub824\uba74 \ub85c\uadf8\uc778\ud558\uc138\uc694',
   'chat.signInBody': '\ub9de\ucda4 K-\ubdf0\ud2f0 \ucd94\ucc9c\uc744 \ubc1b\uc73c\ub824\uba74 \ub85c\uadf8\uc778\ud558\uc138\uc694.',
   'chat.relatedProducts': '\uad00\ub828 \uc81c\ud488',
+  'chat.tryAr': 'AR\ub85c \uc785\uc5b4\ubcf4\uae30',
   'chat.unavailable': '\ucc57\ubd07\uc744 \uc9c0\uae08 \uc0ac\uc6a9\ud560 \uc218 \uc5c6\uc5b4\uc694. \uc7a0\uc2dc \ud6c4 \ub2e4\uc2dc \uc2dc\ub3c4\ud574 \uc8fc\uc138\uc694.',
 
   'cart.checkout': '\uc8fc\ubb38\ud558\uae30',
@@ -473,6 +475,7 @@ export const flowsJa: FlowsDictionary = {
   'chat.signInTitle': '\u30c1\u30e3\u30c3\u30c8\u3092\u4f7f\u3046\u306b\u306f\u30ed\u30b0\u30a4\u30f3\u304c\u5fc5\u8981\u3067\u3059',
   'chat.signInBody': '\u3042\u306a\u305f\u306b\u5408\u3063\u305fK\u30d3\u30e5\u30fc\u30c6\u30a3\u30fc\u306e\u304a\u3059\u3059\u3081\u3092\u805e\u304f\u306b\u306f\u30ed\u30b0\u30a4\u30f3\u3057\u3066\u304f\u3060\u3055\u3044\u3002',
   'chat.relatedProducts': '\u95a2\u9023\u88fd\u54c1',
+  'chat.tryAr': 'AR\u3067\u8a66\u3059',
   'chat.unavailable': '\u73fe\u5728\u30c1\u30e3\u30c3\u30c8\u306f\u5229\u7528\u3067\u304d\u307e\u305b\u3093\u3002\u3057\u3070\u3089\u304f\u3057\u3066\u304b\u3089\u3082\u3046\u4e00\u5ea6\u304a\u8a66\u3057\u304f\u3060\u3055\u3044\u3002',
 
   'cart.checkout': '\u8cfc\u5165\u624b\u7d9a\u304d\u3078',
@@ -697,6 +700,7 @@ export const flowsZh: FlowsDictionary = {
   'chat.signInTitle': '\u767b\u5f55\u540e\u4f7f\u7528\u804a\u5929',
   'chat.signInBody': '\u767b\u5f55\u540e\u5373\u53ef\u54a8\u8be2\u9002\u5408\u60a8\u7684 K-\u7f8e\u5986\u63a8\u8350\u3002',
   'chat.relatedProducts': '\u76f8\u5173\u5546\u54c1',
+  'chat.tryAr': 'AR\u8bd5\u5986',
   'chat.unavailable': '\u6682\u65f6\u65e0\u6cd5\u4f7f\u7528\u804a\u5929\u3002\u8bf7\u7a0d\u540e\u518d\u8bd5\u3002',
 
   'cart.checkout': '\u53bb\u7ed3\u7b97',
