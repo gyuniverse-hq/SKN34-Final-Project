@@ -1,0 +1,42 @@
+{
+  "status": "passed",
+  "input": "generated constant RGB sanity image; no Test data",
+  "models": {
+    "pore": {
+      "sha256_verified": true,
+      "tensors_identical": true,
+      "output_shape": [
+        1,
+        1
+      ],
+      "max_absolute_error": 0.0
+    },
+    "pigmentation": {
+      "sha256_verified": true,
+      "tensors_identical": true,
+      "output_shape": [
+        1,
+        1
+      ],
+      "max_absolute_error": 0.0
+    },
+    "wrinkle": {
+      "sha256_verified": true,
+      "tensors_identical": true,
+      "output_shape": [
+        1,
+        1
+      ],
+      "max_absolute_error": 0.0
+    },
+    "skin_type_roi": {
+      "sha256_verified": true,
+      "tensors_identical": true,
+      "output_shape": [
+        1,
+        3
+      ],
+      "max_absolute_error": 0.0
+    }
+  }
+}
