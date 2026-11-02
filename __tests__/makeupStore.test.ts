@@ -9,6 +9,14 @@ describe('makeup store zones', () => {
     for (const zone of MAKEUP_ZONES) expect(makeup[zone]).toBeNull();
   });
 
+  it('keeps a look makeup preset but never records a shade belonging to another product', () => {
+    const product = { id: 'p', makeupZone: 'lip', texture: 'matte', shades: [{ id: '01', name: '01', hex: '#112233' }] } as Product;
+    const look = { id: 'look', title: 'Look', items: [{ productId: 'p', shadeId: 'other', step: 'lips' }], makeup: { lip: { hex: '#112233', intensity: 0.5, texture: 'matte' } } } as unknown as CelebLook;
+    useMakeupStore.getState().applyLook(look, [product]);
+    expect(useMakeupStore.getState().selections.lip).toBeUndefined();
+    expect(useMakeupStore.getState().makeup.lip?.hex).toBe('#112233');
+  });
+
   it('loads a look saved before the newer zones without leaving them undefined', () => {
     const look = {
       id: 'old',

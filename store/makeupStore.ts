@@ -297,7 +297,7 @@ export const useMakeupStore = create<MakeupStore>((rawSet) => {
       const selections: Partial<Record<MakeupZone, ZoneSelection>> = {};
       for (const item of look.items) {
         const product = products.find((p) => p.id === item.productId);
-        if (product?.makeupZone && item.shadeId) {
+        if (product?.makeupZone && item.shadeId && product.shades.some((shade) => shade.id === item.shadeId)) {
           selections[product.makeupZone] = { productId: product.id, shadeId: item.shadeId };
         }
       }

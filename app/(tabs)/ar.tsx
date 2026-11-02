@@ -700,7 +700,7 @@ export default function ArTryOnScreen() {
         {fromVideo ? <Text style={styles.warnBanner}>{t('videoAr.notice')}</Text> : null}
         {routeSelection.shadeMissing ? (
           <Text style={styles.warnBanner} accessibilityRole="alert">
-            {t('catalog.shadeMissingPicked')}
+            {t('chat.selectShade')}
           </Text>
         ) : null}
         {routeSelection.notTryOn ? (
