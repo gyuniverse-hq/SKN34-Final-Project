@@ -95,6 +95,29 @@ describe('face tracker page', () => {
     expect(num('cornerFadeSize')).toBeLessThanOrEqual(0.08);
   });
 
+  it('keeps the foundation on the lower face while the skin mask is a few frames old (11-02 clip of a moving head)', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    const num = (key: string) => Number(script.match(new RegExp(`${key}:\\s*([0-9.]+)`))?.[1]);
+    const pair = (key: string) => script.match(new RegExp(`${key}:\\s*\\[([0-9.]+),\\s*([0-9.]+)\\]`))!.slice(1).map(Number);
+    // Below the eyes the paint follows the landmark outline; the mask clips it only while a hand or hair covers the lower face.
+    expect(script).toContain('skinM = max(skinM, uFoundFloor * (1.0 - smoothstep(uFoundLowerV.x, uFoundLowerV.y, vUv.y)));');
+    expect(script).toContain('if (uCap < 0.5) skinM = max(');           // the forehead cap and the upper face keep the mask
+    expect(script).toContain('gl.uniform1f(u.uFoundFloor, foundZ && foundSkinReady ? TUNING.foundLowerFloor * foundOcc : 0);'); // 0 without a mask
+    expect(num('foundLowerFloor')).toBeGreaterThan(0.5);
+    expect(num('foundLowerFloor')).toBeLessThanOrEqual(1);
+    // v is up (forehead 0.89, eyes 0.62, nose tip 0.45): the lower face ends under the eyes and starts above the nose tip.
+    const [vLo, vHi] = pair('foundLowerV');
+    expect(vHi).toBeLessThan(0.62);
+    expect(vLo).toBeGreaterThan(0.45);
+    // A hand or hair over the cheeks turns the floor off: judged on cheek / chin landmarks, none on the lips or eyes.
+    const ids = script.match(/FOUND_COVER_PTS = \[([0-9, ]+)\]/)![1].split(',').map(Number);
+    expect(ids.length).toBeGreaterThanOrEqual(20);
+    for (const lipOrEye of [0, 13, 14, 17, 61, 291, 33, 133, 159, 145, 263, 362, 386, 374]) expect(ids).not.toContain(lipOrEye);
+    expect(script).toContain('foundOcc = smooth01(TUNING.foundOccCover[0], TUNING.foundOccCover[1], hit / FOUND_COVER_PTS.length);');
+    const [cLo, cHi] = pair('foundOccCover');
+    expect(cLo).toBeLessThan(cHi);
+  });
+
   it('keeps a lip gloss small, soft and in the colour of the lip instead of a white layer on top (11-02 round 2)', () => {
     const script = moduleScript(FACE_TRACKER_HTML);
     const arr = (key: string) => script.match(new RegExp(`${key}:\\s*\\[([0-9., ]+)\\]`))![1].split(',').map(Number);
@@ -281,7 +304,9 @@ describe('face tracker page', () => {
     expect(script).toContain('gl.uniform1f(u.uFoundCov, foundZ ? span(TUNING.foundCoverage) : 0);');
     expect(FACE_TRACKER_HTML).toContain('object-fit: cover');
     expect(script).toContain('foundSkinBin[i] = cat[i] === 3 ? 255 : 0;');
-    expect(script).toContain('foundA *= uFoundSkinOn > 0.5 ? texture2D(uFoundSkin, suv).r');
+    // The skin mask still gates the paint (11-02: below the eyes it gets a floor, see the lower-face test).
+    expect(script).toContain('float skinM = uFoundSkinOn > 0.5 ? texture2D(uFoundSkin, suv).r');
+    expect(script).toContain('foundA *= skinM;');
     expect(script).toContain('foundSegEveryMs: 120');
     expect(script).toContain('foundSegEveryLowFpsMs: 400');
     // Forehead: the mesh stops at landmark 10, so a foundation-only cap continues it to the hairline; the skin mask cuts the hair.
