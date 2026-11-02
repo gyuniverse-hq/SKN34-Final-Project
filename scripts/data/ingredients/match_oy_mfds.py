@@ -12,6 +12,7 @@ import asyncio
 import csv
 import getpass
 import os
+import re
 import ssl
 import unicodedata
 from collections import defaultdict
@@ -19,7 +20,12 @@ from pathlib import Path
 
 import asyncpg
 
-RULE_VERSION = "v1"
+RULE_VERSION = "v2"
+AMOUNT_METHODS = ("amount_suffix_exact", "amount_suffix_synonym")
+AMOUNT_SUFFIX_RE = re.compile(
+    r"\s*\(\s*\d+(?:,\d{3})*(?:\.\d+)?\s*(?:ppm|ppb|%|iu)\s*\)\s*$",
+    re.IGNORECASE,
+)
 MATCH_COLUMNS = (
     "oy_ingredient_id",
     "oy_ingredient_name",
@@ -39,6 +45,15 @@ REVIEW_COLUMNS = (
 def name_key(value: str | None) -> str:
     """Use the same conservative key as the MFDS snapshot loader."""
     return " ".join(unicodedata.normalize("NFKC", value or "").split())
+
+
+def without_trailing_amount(value: str) -> str | None:
+    """Drop only one final parenthesized numeric concentration, never name content."""
+    normalized = name_key(value)
+    amount = AMOUNT_SUFFIX_RE.search(normalized)
+    if amount is None:
+        return None
+    return normalized[: amount.start()].strip() or None
 
 
 def build_candidates(
@@ -89,16 +104,51 @@ def build_candidates(
                     "official_synonym",
                 )
             )
-        else:
+        elif alias_hits:
             alias_hits.sort(key=lambda row: row["ingredient_id"])
-            reason = "ambiguous_synonym" if alias_hits else "no_match"
             review.append(
                 (
                     oy_id,
                     oy_name,
-                    reason,
+                    "ambiguous_synonym",
                     ";".join(str(row["ingredient_id"]) for row in alias_hits),
                     ";".join(row["name_ko"] for row in alias_hits),
+                )
+            )
+        else:
+            base = without_trailing_amount(key)
+            if base is not None and (standard := standards.get(base)) is not None:
+                matches.append(
+                    (
+                        oy_id,
+                        oy_name,
+                        standard["ingredient_id"],
+                        standard["name_ko"],
+                        "amount_suffix_exact",
+                    )
+                )
+                continue
+            amount_hits = list(synonyms.get(base, {}).values()) if base else []
+            if len(amount_hits) == 1:
+                mfds = amount_hits[0]
+                matches.append(
+                    (
+                        oy_id,
+                        oy_name,
+                        mfds["ingredient_id"],
+                        mfds["name_ko"],
+                        "amount_suffix_synonym",
+                    )
+                )
+                continue
+            amount_hits.sort(key=lambda row: row["ingredient_id"])
+            review.append(
+                (
+                    oy_id,
+                    oy_name,
+                    "ambiguous_amount_synonym" if amount_hits else "no_match",
+                    ";".join(str(row["ingredient_id"]) for row in amount_hits),
+                    ";".join(row["name_ko"] for row in amount_hits),
                 )
             )
     return matches, review
@@ -150,13 +200,8 @@ async def run(args: argparse.Namespace) -> None:
             "raw_mfds_ingredient",
             "oy_mfds_ingredient_map",
         ):
-            if (
-                await connection.fetchval("SELECT to_regclass($1)", f"public.{table}")
-                is None
-            ):
-                raise ValueError(
-                    f"public.{table} is missing; apply the latest migration"
-                )
+            if await connection.fetchval("SELECT to_regclass($1)", f"public.{table}") is None:
+                raise ValueError(f"public.{table} is missing; apply the latest migration")
 
         oy_rows = await connection.fetch(
             "SELECT ingredient_id, ingredient_name FROM public.raw_oy_ingredient "
@@ -171,9 +216,7 @@ async def run(args: argparse.Namespace) -> None:
 
         matches, review = build_candidates(oy_rows, mfds_rows)
         if len(matches) + len(review) != len(oy_rows):
-            raise ValueError(
-                "Candidate classification did not cover every Olive Young ingredient"
-            )
+            raise ValueError("Candidate classification did not cover every Olive Young ingredient")
 
         existing = {
             row["oy_ingredient_id"]: row
@@ -189,8 +232,7 @@ async def run(args: argparse.Namespace) -> None:
             if row[0] in existing and existing[row[0]]["mfds_ingredient_id"] != row[2]
         ]
         review.extend(
-            (row[0], row[1], "existing_mapping_differs", str(row[2]), row[3])
-            for row in conflicts
+            (row[0], row[1], "existing_mapping_differs", str(row[2]), row[3]) for row in conflicts
         )
 
         args.report_dir.mkdir(parents=True, exist_ok=True)
@@ -204,15 +246,27 @@ async def run(args: argparse.Namespace) -> None:
             MATCH_COLUMNS,
             [row for row in matches if row[4] == "official_synonym"],
         )
-        write_csv(args.report_dir / "review-required.csv", REVIEW_COLUMNS, review)
-        exact_count = sum(row[4] == "exact_name" for row in matches)
-        print(f"Connected to {args.host}:{args.port}/{args.database}")
-        print(
-            f"Source rows: Olive Young {len(oy_rows):,}; current MFDS {len(mfds_rows):,}"
+        write_csv(
+            args.report_dir / "amount-suffix-candidates.csv",
+            (*MATCH_COLUMNS, "compared_name"),
+            [
+                (*row, without_trailing_amount(row[1]))
+                for row in matches
+                if row[4] in AMOUNT_METHODS
+            ],
         )
+        write_csv(args.report_dir / "review-required.csv", REVIEW_COLUMNS, review)
+        method_counts = {
+            method: sum(row[4] == method for row in matches)
+            for method in ("exact_name", "official_synonym", *AMOUNT_METHODS)
+        }
+        print(f"Connected to {args.host}:{args.port}/{args.database}")
+        print(f"Source rows: Olive Young {len(oy_rows):,}; current MFDS {len(mfds_rows):,}")
         print(
-            f"Candidates: exact name {exact_count:,}; official synonym "
-            f"{len(matches) - exact_count:,}; unmatched or ambiguous "
+            f"Candidates: exact name {method_counts['exact_name']:,}; official synonym "
+            f"{method_counts['official_synonym']:,}; amount suffix exact "
+            f"{method_counts['amount_suffix_exact']:,}; amount suffix synonym "
+            f"{method_counts['amount_suffix_synonym']:,}; unmatched or ambiguous "
             f"{len(oy_rows) - len(matches):,}"
         )
         print(
@@ -223,6 +277,15 @@ async def run(args: argparse.Namespace) -> None:
         if not args.apply:
             print("Preview complete; no database rows were written")
             return
+
+        if any(row[4] in AMOUNT_METHODS for row in new_matches):
+            constraint = await connection.fetchval(
+                "SELECT pg_get_constraintdef(oid) FROM pg_constraint "
+                "WHERE conrelid='public.oy_mfds_ingredient_map'::regclass "
+                "AND conname='ck_oy_mfds_ingredient_map_method'"
+            )
+            if not constraint or not all(method in constraint for method in AMOUNT_METHODS):
+                raise ValueError("Apply Alembic migration 0011 before amount-suffix matches")
 
         async with connection.transaction():
             await connection.execute(
