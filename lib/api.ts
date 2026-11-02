@@ -45,20 +45,32 @@ export const API_BASE_URL = resolveApiBaseUrl({
   devHost: __DEV__ ? devServerHost() : null,
 });
 
+/** A separate chat origin is optional; gateways still use the shared backend origin. */
+export function resolveChatApiBaseUrl(configured: string | undefined, fallback: string): string {
+  return configured?.trim().replace(/\/+$/, '') || fallback;
+}
+
+export const CHAT_API_BASE_URL = resolveChatApiBaseUrl(process.env.EXPO_PUBLIC_CHAT_API_BASE_URL, API_BASE_URL);
+
 /** Sends a request to the backend (`path` starts with /api) with the Supabase access token. */
 async function apiRequest(
   path: string,
-  init: { method: 'GET' | 'POST' | 'DELETE'; headers?: Record<string, string>; body?: string }
+  init: { method: 'GET' | 'POST' | 'DELETE'; headers?: Record<string, string>; body?: string },
+  options: { baseUrl?: string; timeoutMs?: number } = {}
 ): Promise<Response> {
+  const baseUrl = (options.baseUrl ?? API_BASE_URL).replace(/\/+$/, '');
+  if (options.baseUrl && baseUrl !== API_BASE_URL && !/^https?:\/\/[^/@?#\\\s]+(?:\/[^?#\\\s]*)?$/i.test(baseUrl)) {
+    throw new ApiError('Invalid backend URL', 0, 'invalid_base_url');
+  }
   const token = await getAccessToken().catch(() => null);
   const headers: Record<string, string> = { Accept: 'application/json', ...init.headers };
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? TIMEOUT_MS);
   let res: Response;
   try {
-    res = await fetch(`${API_BASE_URL}${path}`, { ...init, signal: controller.signal, headers });
+    res = await fetch(`${baseUrl}${path}`, { ...init, signal: controller.signal, headers });
   } catch (error) {
     throw new ApiError(
       error instanceof Error && error.name === 'AbortError' ? 'Request timed out' : 'Network error',
@@ -89,13 +101,13 @@ export async function apiGet<T>(path: string): Promise<T> {
 export async function apiPost<T>(
   path: string,
   body: unknown,
-  options: { headers?: Record<string, string> } = {}
+  options: { headers?: Record<string, string>; baseUrl?: string; timeoutMs?: number } = {}
 ): Promise<T> {
   const res = await apiRequest(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options.headers },
     body: JSON.stringify(body),
-  });
+  }, options);
   return (await res.json()) as T;
 }
 
