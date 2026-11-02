@@ -70,6 +70,11 @@ function RelatedProducts({ refs, question, category, chatContext, evidence, sele
 }) {
   const router = useRouter();
   const { t } = useI18n();
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
   const ids = [...new Set(refs.map((ref) => ref.id))];
   const query = useProductsByIds(ids);
   // keepPreviousData can belong to another ID set; never display it as this response.
@@ -89,7 +94,7 @@ function RelatedProducts({ refs, question, category, chatContext, evidence, sele
         selectedShades={selectedShades}
         onSelectShade={(productId, shadeId) => {
           // A callback from an old/placeholder card cannot attach another product's shade.
-          if (products.some((p) => p.id === productId && p.shades?.some((s) => s.id === shadeId))) {
+          if (mounted.current && products.some((p) => p.id === productId && p.shades?.some((s) => s.id === shadeId))) {
             onSelectShade(productId, shadeId);
           }
         }}
@@ -98,9 +103,9 @@ function RelatedProducts({ refs, question, category, chatContext, evidence, sele
         loading={query.isPending || query.isPlaceholderData}
         failed={query.isError}
         missingCount={!query.isPending && !query.isPlaceholderData && !query.isError ? ids.length - products.length : 0}
-        onRetry={() => { void query.refetch(); }}
-        onOpenProduct={(id) => router.push(productHref(id))}
-        onOpenAr={(productId, shadeId) => router.push(arHref({ productId, shadeId }))}
+        onRetry={() => { if (mounted.current) void query.refetch(); }}
+        onOpenProduct={(id) => { if (mounted.current) router.push(productHref(id)); }}
+        onOpenAr={(productId, shadeId) => { if (mounted.current) router.push(arHref({ productId, shadeId })); }}
       />
     </View>
   );
@@ -114,8 +119,6 @@ export default function ChatScreen() {
   const lookId = kind === 'video' ? rawLookId && /^[A-Za-z0-9_-]{1,64}$/.test(rawLookId) ? rawLookId : undefined : parseId(params.recipeLookId);
   const initialStyle: ChatStyleContext | undefined = kind && lookId ? { kind, lookId, currentStep: 0 } : undefined;
   const { user, ready } = useAuth();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const serialRef = useRef(0);
   const [identityGeneration, setIdentityGeneration] = useState(0);
   useEffect(() => {
     const client = getSupabase();
@@ -128,7 +131,16 @@ export default function ChatScreen() {
     return () => subscription?.unsubscribe();
   }, []);
   const ownerKey = `${ready ? user?.id ?? 'guest' : 'loading'}:${identityGeneration}`;
-  return <ChatConversation key={`${ownerKey}:${kind ?? ''}:${lookId ?? ''}`} ownerKey={ownerKey} userId={user?.id ?? null} initialStyle={initialStyle}
+  return <ChatOwner key={ownerKey} ownerKey={ownerKey} userId={user?.id ?? null} initialStyle={initialStyle}
+    styleKey={`${kind ?? ''}:${lookId ?? ''}`} ready={ready} />;
+}
+
+function ChatOwner({ ownerKey, userId, ready, initialStyle, styleKey }: {
+  ownerKey: string; userId: string | null; ready: boolean; initialStyle?: ChatStyleContext; styleKey: string;
+}) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const serialRef = useRef(0);
+  return <ChatConversation key={styleKey} ownerKey={ownerKey} userId={userId} initialStyle={initialStyle}
     ready={ready} messages={messages} setMessages={setMessages} serialRef={serialRef} />;
 }
 
@@ -455,7 +467,7 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
                     message.styleRecipe?.recipeId !== activeStyle?.recipeId || message.styleRecipe?.recipeVersion !== activeStyle?.recipeVersion}
                   onStepChange={(index) => {
                     const recipe = message.styleRecipe;
-                    if (!recipe || isPending || index < 0 || index >= recipe.steps.length ||
+                    if (!mounted.current || !recipe || isPending || index < 0 || index >= recipe.steps.length ||
                       message.ownerKey !== ownerKey || message.generation !== generation.current ||
                       recipe.recipeId !== styleContext.current?.recipeId || recipe.recipeVersion !== styleContext.current?.recipeVersion) return;
                     styleRevision.current += 1;
@@ -465,9 +477,9 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
                     setMessages((current) => current.map((item) => item.id === message.id
                       ? { ...item, styleRecipe: { ...recipe, currentStep: index } } : item));
                   }}
-                  onOpenProduct={(id) => router.push(productHref(id))}
-                  onOpenAr={(productId, shadeId) => router.push(arHref({ productId, shadeId }))}
-                  onManualAr={() => router.push(arHref())}
+                  onOpenProduct={(id) => { if (mounted.current) router.push(productHref(id)); }}
+                  onOpenAr={(productId, shadeId) => { if (mounted.current) router.push(arHref({ productId, shadeId })); }}
+                  onManualAr={() => { if (mounted.current) router.push(arHref()); }}
                   heading={t('chat.ui.style')}
                   summary={message.text}
                   browseImage={styleBrowseImage}
@@ -478,7 +490,7 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
                     next: t('chat.result.nextStep'),
                     position: (current, total) => t('chat.result.stepPosition', { current, total }),
                   }}
-                  onBrowse={() => router.push('/style-browse')}
+                  onBrowse={() => { if (mounted.current) router.push('/style-browse'); }}
                 />
               ) : <View style={[styles.message, message.role === 'user' ? styles.userMessage : styles.assistantMessage]}>
                 {message.role === 'assistant' ? (

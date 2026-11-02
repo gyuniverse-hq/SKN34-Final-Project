@@ -20,6 +20,8 @@ const mockProductsByIds = jest.fn();
 const mockPush = jest.fn();
 const mockRefetch = jest.fn();
 const mockAuth = jest.fn((): { user: { id: string } | null; ready: boolean } => ({ user: null, ready: true }));
+let mockAuthListener: ((event: string, session: { user: { id: string } } | null) => void) | undefined;
+let mockSupabaseEnabled = false;
 let mockLanguage = 'ko';
 let mockDictionary: Record<string, string> | undefined;
 
@@ -31,7 +33,13 @@ const beautyContext: BeautyChatContext = {
 
 jest.mock('@/hooks/useChat', () => ({ useChat: () => mockUseChat() }));
 jest.mock('@/lib/auth', () => ({ useAuth: () => mockAuth(), getAccessToken: async () => null }));
-jest.mock('@/lib/auth/client', () => ({ getSupabase: () => null, isAuthConfigured: () => false }));
+jest.mock('@/lib/auth/client', () => ({
+  getSupabase: () => mockSupabaseEnabled ? { auth: { onAuthStateChange: (listener: typeof mockAuthListener) => {
+    mockAuthListener = listener;
+    return { data: { subscription: { unsubscribe: jest.fn() } } };
+  } } } : null,
+  isAuthConfigured: () => false,
+}));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => mockDictionary?.[key] ?? key, language: mockLanguage }) }));
 jest.mock('@/lib/queries', () => ({ useProductsByIds: (ids: string[]) => mockProductsByIds(ids) }));
 jest.mock('@/components/chat/ChatProducts', () => ({ ChatProducts: () => null }));
@@ -69,6 +77,8 @@ beforeEach(() => {
   mockPush.mockReset();
   mockRefetch.mockReset();
   mockAuth.mockReturnValue({ user: null, ready: true });
+  mockAuthListener = undefined;
+  mockSupabaseEnabled = false;
   mockLanguage = 'ko';
   mockDictionary = undefined;
 });
@@ -123,8 +133,12 @@ describe('selected Style recipe flow', () => {
     const view = await renderScreen();
     await submit(view, '이 룩 특징');
     await act(async () => view.root.findByType(StyleRecipeResult).props.onStepChange(1));
+    const oldRecipe = view.root.findByType(StyleRecipeResult).props;
     mockAuth.mockReturnValue({ user: { id: 'new-owner' }, ready: true });
     await act(async () => view.update(createElement(ChatScreen)));
+    expect(view.root.findAllByType(StyleRecipeResult)).toHaveLength(0);
+    await act(async () => { oldRecipe.onOpenProduct('p1'); oldRecipe.onOpenAr('p1', 'p1-01'); oldRecipe.onManualAr(); });
+    expect(mockPush).not.toHaveBeenCalled();
     await submit(view, '이 룩 특징');
     expect(mockMutateAsync.mock.calls.at(-1)[0].styleContext).toEqual({ kind: 'video', lookId: '_video-1', currentStep: 0 });
     await act(async () => view.unmount());
@@ -226,16 +240,35 @@ describe('server session recovery', () => {
   });
 
   it.each([[null, 'A'], ['A', null], ['A', 'B']] as const)(
-    'clears private session references on identity switch %s -> %s', async (from, to) => {
+    'hides old messages, cards and ingredient evidence on identity switch %s -> %s', async (from, to) => {
       mockAuth.mockReturnValue({ user: from ? { id: from } : null, ready: true });
-      mockMutateAsync.mockResolvedValueOnce({ answer: 'Old visible history', products: [], chatContext: context })
+      mockProductsByIds.mockReturnValue({ data: [{ id: 'p1', shades: [{ id: 'p1-01' }] }],
+        isPending: false, isError: false, refetch: mockRefetch });
+      const refs = [{ id: 'p1', brand: 'Old brand', name: 'Old product', category: 'lip' }];
+      const results = [{ productId: 'p1', shadeId: 'p1-01', verdict: 'UNKNOWN', status: 'unknown',
+        mappingStatus: 'candidate', ingredientCoverage: 'unknown', reviewStatus: 'unreviewed',
+        normalizationStatus: 'unverified', ingredients: [], reason: 'mapping_not_verified' }];
+      mockMutateAsync.mockResolvedValueOnce({ answer: 'Old private answer', products: refs,
+        ingredientResults: results, chatContext: { ...context, shadeSelections: { p1: 'p1-01' } } })
         .mockResolvedValueOnce({ answer: 'New owner search', products: [] });
       const view = await renderScreen();
-      await send(view, '추천');
+      await send(view, 'Old private question');
+      expect(view.root.findAllByType(ChatProducts)).toHaveLength(1);
+      expect(view.root.findAllByType(IngredientResult)).toHaveLength(1);
+      const oldCard = view.root.findByType(ChatProducts).props;
+      await act(async () => { oldCard.onSelectShade('p1', 'p1-01'); });
       mockAuth.mockReturnValue({ user: to ? { id: to } : null, ready: true });
       await act(async () => { view.update(createElement(ChatScreen)); });
-      expect(texts(view)).toContain('Old visible history');
-      expect(texts(view)).toContain('chat.session.identityChanged');
+      expect(texts(view)).not.toContain('Old private question');
+      expect(texts(view)).not.toContain('Old private answer');
+      expect(view.root.findAllByType(ChatProducts)).toHaveLength(0);
+      expect(view.root.findAllByType(IngredientResult)).toHaveLength(0);
+      await act(async () => {
+        oldCard.onSelectShade('p1', 'p1-01');
+        oldCard.onOpenProduct('p1');
+        oldCard.onOpenAr('p1', 'p1-01');
+      });
+      expect(mockPush).not.toHaveBeenCalled();
       await send(view, '새 립 검색');
       const fresh = mockMutateAsync.mock.calls[1][0];
       expect(fresh.expectedUserId).toBe(to);
@@ -244,6 +277,36 @@ describe('server session recovery', () => {
       await act(async () => { view.unmount(); });
     }
   );
+
+  it('does not carry failed questions or their retry across an identity switch', async () => {
+    mockAuth.mockReturnValue({ user: { id: 'A' }, ready: true });
+    mockMutateAsync.mockRejectedValueOnce(new ApiError('offline', 0, 'network'));
+    const view = await renderScreen();
+    await send(view, 'private failed question');
+    expect(texts(view)).toContain('chat.ui.retry');
+    mockAuth.mockReturnValue({ user: { id: 'B' }, ready: true });
+    await act(async () => { view.update(createElement(ChatScreen)); });
+    expect(texts(view)).not.toContain('private failed question');
+    expect(texts(view)).not.toContain('chat.ui.retry');
+    expect(view.root.findByType(TextInput).props.value).toBe('');
+    await act(async () => { view.unmount(); });
+  });
+
+  it('preserves the same owner history on token refresh and style route change', async () => {
+    mockSupabaseEnabled = true;
+    mockAuth.mockReturnValue({ user: { id: 'A' }, ready: true });
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'Same owner answer', products: [], chatContext: context });
+    const view = await renderScreen();
+    await act(async () => { mockAuthListener?.('INITIAL_SESSION', { user: { id: 'A' } }); });
+    await send(view, 'Same owner question');
+    await act(async () => { mockAuthListener?.('TOKEN_REFRESHED', { user: { id: 'A' } }); });
+    expect(texts(view)).toContain('Same owner answer');
+    Object.assign(mockRouteParams, { recipeKind: 'video', recipeLookId: '_video-1' });
+    await act(async () => { view.update(createElement(ChatScreen)); });
+    expect(texts(view)).toContain('Same owner question');
+    expect(texts(view)).toContain('Same owner answer');
+    await act(async () => { view.unmount(); });
+  });
 
   it('ignores the previous owner response and allows the new owner to send while it is pending', async () => {
     mockAuth.mockReturnValue({ user: { id: 'A' }, ready: true });
@@ -256,6 +319,7 @@ describe('server session recovery', () => {
     await act(async () => { view.update(createElement(ChatScreen)); });
     await send(view, 'B search');
     await act(async () => { finish({ answer: 'Late A response', products: [], chatContext: context }); });
+    expect(texts(view)).not.toContain('A search');
     expect(texts(view)).not.toContain('Late A response');
     expect(texts(view)).toContain('B answer');
     expect(mockMutateAsync.mock.calls[1][0].chatContext).toBeUndefined();
