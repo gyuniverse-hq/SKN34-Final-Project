@@ -1,3 +1,4 @@
+import { CARE_GOALS } from '@/types/skincare';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
@@ -7,7 +8,6 @@ import { ConcernPicker } from '@/components/skin/ConcernPicker';
 import { SkinReportDetail } from '@/components/skin/SkinReportDetail';
 import { SkinCareHighlights, SkinReportOverview } from '@/components/skin/SkinReportOverview';
 import { SkinSampleProducts } from '@/components/skin/SkinSampleProducts';
-import { SkinSolution } from '@/components/skin/SkinSolution';
 import { ProductLineCard } from '@/components/shop/ProductLineCard';
 import { Button } from '@/components/ui/Button';
 import { InlineState } from '@/components/ui/InlineState';
@@ -15,8 +15,8 @@ import { Notice } from '@/components/ui/Notice';
 import { LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
 import { useSkinReport } from '@/hooks/useSkinReport';
-import { useI18n, type TranslationKey } from '@/lib/i18n';
-import { productHref, searchHref, SKIN_CONCERNS } from '@/lib/routes';
+import { useI18n } from '@/lib/i18n';
+import { productHref, searchHref } from '@/lib/routes';
 import type { SkinConcern } from '@/types';
 import { useSkinPreviewStore } from '@/store/skinPreviewStore';
 
@@ -45,7 +45,7 @@ export default function SkinRecommendationsScreen() {
   const showDetail = (concern: SkinConcern) => {
     flow.setActive(concern); switchTab('results');
   };
-  const start = () => router.push('/skin-consent');
+  const start = () => router.push('/skin-analysis');
   if (flow.loading) return <LoadingState />;
   if (flow.loadFailed) return <SafeAreaView style={styles.screen}>
     <InlineState status="error" message={t('skin.loadFailed')} onRetry={() => { void flow.reload(); }} />
@@ -78,27 +78,35 @@ export default function SkinRecommendationsScreen() {
         </View>
       </View>
       {tab === 'solution' ? <View>
-        <SkinSolution concerns={SKIN_CONCERNS} active={flow.activeConcern} onChange={flow.setActive} ingredients={flow.ingredients} />
+
         <View style={styles.products}>
           <Text style={styles.title} accessibilityRole="header">{t('report.products')}</Text>
           <Pressable onPress={() => setAdjusting(!adjusting)} style={styles.adjust} accessibilityRole="button" accessibilityState={{ expanded: adjusting }}>
             <Text style={styles.link}>{t('report.adjust')}</Text><Ionicons name={adjusting ? 'chevron-up' : 'chevron-down'} size={18} color={theme.colors.rose} />
           </Pressable>
-          {adjusting ? <ConcernPicker concerns={SKIN_CONCERNS} selected={flow.selected} suggested={flow.report.concerns} onToggle={flow.toggle} /> : null}
+          <Text style={styles.title}>{t('skincare.primary')}</Text>
+          <View style={{ gap: 8 }}>{CARE_GOALS.map(g => <Pressable key={g} onPress={() => flow.setPrimary(g)} accessibilityRole="radio" accessibilityState={{ checked: flow.primary === g }} style={styles.adjust}>
+            <Text style={flow.primary === g ? styles.tabLabelOn : styles.tabLabel}>{flow.primary === g ? '● ' : '○ '}{t(`support.priorityChoice.${g}`)}</Text>
+          </Pressable>)}</View>
+          <Text style={styles.caption}>{t('skincare.disclosure')}</Text>
+          <Text style={styles.caption}>{t('skincare.secondary')}</Text>
+          {adjusting ? <ConcernPicker goalLabels concerns={CARE_GOALS.filter(g => g !== flow.primary)} selected={flow.selected} suggested={flow.report.concerns} onToggle={flow.toggle} /> : null}
           {!flow.live ? <>
             <Text style={styles.sampleLabel}>{t('report.sampleProducts')}</Text>
             <Text style={styles.caption}>{t('report.sampleProductsBody')}</Text>
             {flow.samples.length ? <SkinSampleProducts matches={flow.samples} /> : <InlineState status="empty" message={t('skinRec.noConcerns')} />}
           </> : flow.recommendations.isPending ? <InlineState status="loading" />
             : flow.recommendations.isError ? <InlineState status="error" onRetry={() => flow.recommendations.refetch()} />
-              : flow.recommendations.data?.status !== 'ok' ? <InlineState status="empty" message={t(
-                flow.recommendations.data?.status === 'empty_catalog' ? 'skinRec.emptyCatalog'
-                  : flow.recommendations.data?.status === 'no_concerns' ? 'skinRec.noConcerns' : 'skinRec.noMatches'
-              )} /> : flow.recommendations.data.matches.map(({ product, matchedConcerns }) => <ProductLineCard key={product.id} product={product}
-                note={t('skinRec.matched', { count: matchedConcerns.length })}
-                badges={matchedConcerns.map((c) => ({ label: t(`concern.${c}` as TranslationKey), tone: 'brand' }))}
-                onPress={() => router.push(productHref(product.id))} />)}
-          <Button label={t('report.liveProducts')} variant="secondary" disabled={flow.selected.length === 0} loading={flow.recommendations.isFetching} onPress={flow.findProducts} />
+              : <>
+                {flow.recommendations.data?.coverage.filter(c => c.status !== 'ok').map(c => <Text key={c.goal} style={styles.caption}>{t(c.status === 'mapping_unavailable' ? 'skincare.mapping_unavailable' : 'skincare.no_matches', { goal: t(`support.priorityChoice.${c.goal}`) })}</Text>)}
+                {flow.recommendations.data?.matches.map((match, index, matches) => <View key={match.product.id}>
+                  {match.reasonCode === 'secondary' && (index === 0 || matches[index - 1].reasonCode !== 'secondary') ? <Text style={styles.title}>{t('skincare.secondary')}</Text> : null}
+                  <ProductLineCard
+                  product={{ ...match.product, priceKRW: match.priceKRW }} eyebrow={match.optionName}
+                  note={t(match.reasonCode === 'primary' ? 'skincare.reason.primary' : 'skincare.reason.secondary', { goal: t(`support.priorityChoice.${match.targetConcern}`) })}
+                  onPress={() => router.push(productHref(match.product.id))} /></View>)}
+              </>}
+          <Button label={t('report.liveProducts')} variant="secondary" disabled={!flow.primary} loading={flow.recommendations.isFetching} onPress={flow.findProducts} />
           {flow.live ? <Button label={t('report.showSamples')} variant="ghost" onPress={flow.showSamples} /> : null}
           <Button label={t('skinFlow.skip')} variant="ghost" onPress={() => router.push(searchHref({ source: 'skin' }))} />
         </View>

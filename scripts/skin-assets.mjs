@@ -1,9 +1,10 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, copyFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, copyFileSync, writeFileSync, renameSync } from 'node:fs';
 import { resolve, relative, isAbsolute, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { validateModelManifest } from '../modules/skin-analysis/web/model-contract.mjs';
+import { SKIN_MODELS, selectedSkinModel, preparedSkinModel } from './skin-models.cjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const target = resolve(root, 'modules/skin-analysis/android/src/main/assets/skin');
@@ -32,21 +33,43 @@ export function prepareAssets(source) {
   console.log(`Skin assets ready: ${manifest.bundleVersion}`);
 }
 
+export function validateSelectedAssets(directory, model) {
+  const manifest = validateAssets(directory);
+  if (manifest.schema !== model.schema) {
+    throw new Error(`Native assets do not match ${model.name}. Run npm run skin:prepare before building.`);
+  }
+  return manifest;
+}
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const command = process.argv[2];
     if (command === 'prepare') {
+      const selected = selectedSkinModel(root);
       const env = { ...process.env, UV_CACHE_DIR: resolve(root, 'ml/.uv-cache') };
-      const result = spawnSync('uv', ['run', '--locked', '--project', 'ml', '--group', 'mobile-export',
-        'python', '-m', 'skin_analysis.mobile_export_v3'], { cwd: root, env, encoding: 'utf8', stdio: ['inherit', 'pipe', 'inherit'] });
-      if (result.error || result.status !== 0) throw result.error || new Error('Mobile model export failed');
-      const source = resolve(result.stdout.trim().split(/\r?\n/).at(-1));
-      const rel = relative(resolve(root, 'ml/runs/skin-mobile'), source);
-      if (isAbsolute(rel) || rel.startsWith('..')) throw new Error('Unexpected model export directory');
-      prepareAssets(source);
+      const registry = {};
+      for (const [name, model] of Object.entries(SKIN_MODELS)) {
+        const result = spawnSync('uv', ['run', '--locked', '--project', 'ml', '--group', 'mobile-export',
+          'python', '-m', model.exporter], { cwd: root, env, encoding: 'utf8', stdio: ['inherit', 'pipe', 'inherit'] });
+        if (result.error || result.status !== 0) throw result.error || new Error(`Export failed: ${name}`);
+        const source = resolve(result.stdout.trim().split(/\r?\n/).at(-1));
+        const manifest = validateAssets(source);
+        const rel = relative(resolve(root, 'ml/runs/skin-mobile'), source);
+        if (rel !== manifest.bundleVersion || isAbsolute(rel) || manifest.schema !== model.schema) {
+          throw new Error(`Unexpected model export: ${name}`);
+        }
+        registry[name] = manifest.bundleVersion;
+        console.log(`Prepared ${name}: ${manifest.bundleVersion}`);
+      }
+      const registryPath = resolve(root, 'ml/runs/skin-mobile/models.json');
+      writeFileSync(registryPath + '.tmp', JSON.stringify(registry, null, 2) + '\n');
+      renameSync(registryPath + '.tmp', registryPath);
+      prepareAssets(preparedSkinModel(root, selected));
+      console.log(`Selected ${selected.name}. Expo Go switches after restarting the dev server.`);
     } else if (command === 'validate' || (command === 'check-build' && process.env.EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS === '1')) {
       if (!existsSync(resolve(target, 'manifest.json'))) throw new Error('Run npm run skin:prepare before building skin analysis');
-      validateAssets(target);
+      const selected = selectedSkinModel(root);
+      validateSelectedAssets(target, selected);
       console.log('Skin asset hashes and contracts verified.');
     }
   } catch (error) {

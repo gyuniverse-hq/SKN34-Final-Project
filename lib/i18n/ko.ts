@@ -1,9 +1,15 @@
+import { skincareKo } from './skincare';
+import { supportKo } from './skinSupport';
+import { surveyKo } from './survey';
 import type { Dictionary } from './en';
 import { flowsKo } from './flows';
 import { skinKo } from './skin';
 import { skinReportKo } from './skinReport';
 
 export const ko: Dictionary = {
+  ...skincareKo,
+  ...supportKo,
+  ...surveyKo,
   'discovery.quickTitle': '나에게 맞는 뷰티',
   'discovery.quickBody': '나에게 어울리는 컬러와 케어를 찾아보세요.',
   'discovery.tryAr': 'AR 체험하기',

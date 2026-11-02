@@ -79,6 +79,7 @@ flowchart LR
 `lib/skinAnalysis.ts`의 실행 환경 선택 → `modules/skin-analysis/` 순서로 호출합니다.
 모듈은 상위 앱 레이어를 import하지 않으며 TypeScript 레이어 경계를 린트로 검사합니다.
 기기 내 분석은 `EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS=1`에서 활성화합니다. 이전 서버 모드 환경 변수는 무시합니다.
+모델은 루트 환경 설정의 `SKIN_ANALYSIS_MODEL`로 선택합니다(`skin-analysis-v3` / `skin-analysis-v4`, 기본 v4). 두 모델을 `npm run skin:prepare`로 한 번 준비하면 Expo Go는 개발 서버 재시작과 앱 새로고침만으로 전환됩니다. 네이티브 패키지는 선택 변경 후 에셋 준비와 재빌드가 필요합니다.
 모바일 Expo Go에서는 `components/skin/SkinCamera.tsx`의 WebView를 통해
 `modules/skin-analysis/web/`의 카메라·자동 촬영·ONNX Runtime Web CPU 추론을 실행합니다.
 브라우저 런타임은 상위 앱 코드를 import하지 않습니다. 촬영 사진·얼굴 윤곽·입력 영역은 결과 화면 표시를 위해 제한된 청크로 앱 메모리에만 전달합니다.
@@ -88,7 +89,7 @@ flowchart LR
 WebView에서는 PSS를 측정할 수 없어 null을 저장하며 모델 전송 시간과 추론 시간을 구분합니다.
 앱의 다른 화면과 기존 AR 렌더러는 기존 구조를 유지합니다.
 
-기본 모델은 skin-analysis-v3의 모공·색소침착·주름 회귀와 피부타입 분류, 총 4개이며 여드름 분석 단계는 실행하지 않습니다. v3 ROI 전처리는 ONNX에 포함하고 등급은 sigmoid 후 반올림합니다. 피부타입은 이마·양 볼 softmax 평균 측정치 60%와 설문 유형 점수 40%를 합산해 보고서·추천에 동일하게 반영합니다. 이전 저장 결과는 유지합니다.
+기본 모델은 skin-analysis-v4의 모공·색소침착·주름 이진 분류와 피부타입 분류, 총 4개이며 여드름 분석 단계는 실행하지 않습니다. ROI 전처리(Unsharp 75%·Contrast 1.4)는 ONNX에 한 번 포함하고, 이진 sigmoid 점수 0.5 이상을 유의로 판정합니다. v4는 등급을 생성하지 않으며 원본 학습 등급 0~2가 양호, 3 이상이 유의인 모델입니다. 피부타입은 이마·양 볼 softmax 평균과 저장 프로필 버전별 설문 보정 정책을 보고서·추천에 동일하게 반영합니다. 이전 저장 결과는 기존 해석으로 유지합니다.
 Android 전용 빌드에서는 네이티브 CameraX·ML Kit로 자동 촬영하고 ONNX Runtime CPU로 4개 모델을 순차 실행합니다.
 촬영 JPEG는 네이티브 메모리에서 처리하며, 결과 화면의 임시 미리보기만 앱 메모리로 전달합니다.
 Expo Go에서는 사진을 분석 후 결과 화면까지 기기 메모리에서만 임시로 보관하고, 화면 이탈·취소 시 참조를 지웁니다. 사진·ROI·텐서는 서버에 전송하거나 영구 저장하지 않습니다. Android 네이티브 실험 빌드도 같은 조건으로 임시 사진과 ML Kit 얼굴 윤곽을 앱 메모리에 전달합니다.
@@ -308,3 +309,6 @@ backend/<service>/
 | 카탈로그 데이터 | dev는 Git의 `seed/catalog.json`이 원본, 바뀌면 `dev-data` 워크플로가 반영 ([`DATA.md`](DATA.md)) | 크롤링 데이터가 파일 하나로 감당하기 어려워지면 가져오기 방식을 바꿉니다 |
 | 챗봇 LLM | OpenAI 호환 API, 모델은 `LLM_MODEL`로 지정 | 모델 선정은 평가 세트를 만든 뒤에 합니다 |
 | 챗봇 대화 기록 | 저장하지 않음 | 저장하려면 보관 기간과 동의 절차를 먼저 정합니다 |
+
+
+새 기초 추천의 파생 입력·검수 데이터 발행·추적 계약은 [기초 추천 v1](skincare-recommendations.md)을 따른다.

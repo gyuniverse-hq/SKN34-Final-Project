@@ -4,6 +4,12 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SkinDecodingTest {
+  @Test fun binaryProbabilityPreservesTheTrainedThreshold() {
+    assertEquals(0.5, SkinDecoding.probability(0f), 0.0)
+    assertEquals(0.0, SkinDecoding.probability(-1000f), 0.0)
+    assertEquals(1.0, SkinDecoding.probability(1000f), 0.0)
+  }
+
   @Test fun regressionGradesUseSigmoidAndHalfUpRounding() {
     assertEquals(3, SkinDecoding.grade(0f, 5))
     assertEquals(3, SkinDecoding.grade(0f, 6))

@@ -54,7 +54,7 @@
     "skin:validate": "node scripts/skin-assets.mjs validate",
     "skin:android": "expo run:android",
     "skin:test-native-math": "node scripts/skin-native-test.mjs",
-    "skin:test-assets": "node --test scripts/skin-assets.test.mjs",
+    "skin:test-assets": "node --test scripts/skin-assets.test.mjs scripts/skin-models.test.mjs",
     "skin:test-web": "node --test scripts/skin-web.test.mjs",
     "eas-build-post-install": "node scripts/skin-assets.mjs check-build",
     "nia:test": "node scripts/nia-test.mjs",

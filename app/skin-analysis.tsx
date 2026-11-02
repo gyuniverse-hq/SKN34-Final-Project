@@ -1,6 +1,7 @@
 import { Stack, useRouter } from 'expo-router';
 import { useCameraPermissions } from 'expo-camera';
-import { useEffect } from 'react';
+import * as ImagePicker from 'expo-image-picker';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, BackHandler, Linking, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
@@ -16,6 +17,7 @@ export default function SkinAnalysisScreen() {
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const flow = useSkinAnalysis();
+  const [photoError, setPhotoError] = useState(false);
   const { phase, cancel } = flow;
   useEffect(() => {
     if (phase === 'done') router.replace('/skin-recommendations');
@@ -33,6 +35,16 @@ export default function SkinAnalysisScreen() {
     const allowed = permission?.granted || (await requestPermission()).granted;
     if (allowed) await flow.start();
   }
+  async function choosePhoto() {
+    setPhotoError(false);
+    try {
+      const selected = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], base64: true, quality: 0.8 });
+      if (selected.canceled) return;
+      const photo = selected.assets[0]?.base64;
+      if (!photo || photo.length > 16 * 1024 * 1024) { setPhotoError(true); return; }
+      await flow.start(photo);
+    } catch { setPhotoError(true); }
+  }
   return <SafeAreaView edges={['bottom']} style={styles.screen}>
     <Stack.Screen options={{ title: t('skin.title'), headerBackVisible: false, gestureEnabled: false }} />
     {(flow.phase === 'camera' || (flow.phase === 'analysis' && flow.webRun)) && <SkinCamera
@@ -44,10 +56,12 @@ export default function SkinAnalysisScreen() {
       <Text style={styles.body}>{t('skin.instructions')}</Text>
       <Text style={styles.body}>{t('skin.localNotice')}</Text>
       {skinAnalysisUsesWebView && <Text style={styles.help}>{t('skin.expoHelp')}</Text>}
+      {photoError && <Text accessibilityRole="alert" style={styles.body}>{t('skin.photoError')}</Text>}
       {permission && !permission.granted && !permission.canAskAgain ? <>
         <Text style={styles.body}>{t('skin.permissionDenied')}</Text>
         <Button label={t('skin.openSettings')} onPress={() => { void Linking.openSettings(); }} />
       </> : <Button label={t('skin.start')} onPress={() => { void begin(); }} />}
+      {skinAnalysisUsesWebView && <Button label={t('skin.choosePhoto')} variant="secondary" onPress={() => { void choosePhoto(); }} />}
     </View> : flow.phase === 'camera' ? <>
       <Text style={styles.help}>{t('skin.instructions')}</Text>
     </> : flow.phase === 'analysis' ? <View style={styles.center}>
@@ -59,7 +73,9 @@ export default function SkinAnalysisScreen() {
       : flow.phase === 'done' ? <View style={styles.center}><ActivityIndicator color={theme.colors.rose} /></View> : <View style={styles.center}>
         <Text accessibilityRole="alert" style={styles.body}>{t(flow.error === 'permission' ? 'skin.permissionDenied' : flow.error === 'model' ? 'skin.modelFailed' : flow.error === 'camera' ? 'skin.guidance.cameraError' : flow.error === 'guide' ? 'skin.guideFailed' : 'skin.analysisFailed')}</Text>
         {flow.error === 'permission' && <Button label={t('skin.openSettings')} onPress={() => { void Linking.openSettings(); }} />}
+        {photoError && <Text accessibilityRole="alert" style={styles.body}>{t('skin.photoError')}</Text>}
         <Button label={t('skin.retry')} onPress={() => { void begin(); }} />
+        {skinAnalysisUsesWebView && <Button label={t('skin.choosePhoto')} variant="secondary" onPress={() => { void choosePhoto(); }} />}
       </View>}
     {flow.phase !== 'done' && <Button variant="ghost" label={t('common.cancel')} disabled={flow.phase === 'saving'} onPress={leave} />}
   </SafeAreaView>;

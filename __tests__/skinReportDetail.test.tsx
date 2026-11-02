@@ -25,7 +25,7 @@ it('shows only image-backed items, uses the 40/60 skin type, and removes regiona
     expect(tabs.map(tab => tab.findByType(Text).props.children)).toEqual(['report.skinType', 'concern.pigmentation', 'concern.wrinkles', 'concern.pores']);
     const rendered = JSON.stringify(screen.toJSON());
     expect(rendered).toContain('report.type.oily');
-    expect(rendered).toContain('report.typeBasisCombined');
+    expect(rendered).toContain('report.modelNote');
     expect(rendered).not.toContain('report.regions');
     expect(rendered).not.toContain('report.maxGrade');
     expect(rendered).not.toContain('skin.answer');
@@ -42,13 +42,26 @@ it('selects an image result when a hidden survey item is active and leaves legac
     const tabs = screen.root.findAll(node => node.props.accessibilityRole === 'tab' && typeof node.props.onPress === 'function');
     expect(tabs.map(tab => tab.findByType(Text).props.children)).toEqual(['concern.pigmentation', 'concern.wrinkles', 'concern.pores', 'concern.blemish']);
     expect(tabs[0].props.accessibilityState.selected).toBe(true);
-    expect(JSON.stringify(screen.toJSON())).toContain('report.fair');
+    expect(JSON.stringify(screen.toJSON())).toContain('report.good');
     await act(async () => { tabs[2].props.onPress(); });
     expect(onChange).toHaveBeenCalledWith('pores');
   } finally { await act(async () => { screen.unmount(); }); }
 });
 
-it.each([[0, 'good'], [1, 'good'], [2, 'fair'], [3, 'fair'], [4, 'care'], [5, 'care'], [6, 'care']] as const)(
+it('excludes inferred oiliness and unavailable model results from detail tabs', async () => {
+  const report = buildSkinReport({ version: 3, registeredAt: input.registeredAt,
+    analysis: input.analysis, questionnaire: { version: 'skin-support-1', postWashDryness: 'unknown',
+      afternoonTzoneOil: 'marked', cheekState: 'oily', oilOnset: 'within1h',
+      cosmeticReaction: 'repeated', priority: 'sensitivity' } });
+  let screen!: renderer.ReactTestRenderer;
+  await act(async () => { screen = renderer.create(<SkinReportDetail metrics={report.metrics} active="oiliness" onChange={jest.fn()} preview={null} />); });
+  try {
+    const tabs = screen.root.findAll(node => node.props.accessibilityRole === 'tab' && typeof node.props.onPress === 'function');
+    expect(tabs.map(tab => tab.findByType(Text).props.children)).toEqual(['report.skinType', 'concern.pigmentation', 'concern.wrinkles', 'concern.pores']);
+  } finally { await act(async () => { screen.unmount(); }); }
+});
+
+it.each([[0, 'good'], [1, 'good'], [2, 'good'], [3, 'good'], [4, 'care'], [5, 'care'], [6, 'care']] as const)(
   'shows only the %s status without a numeric grade', async (grade, status) => {
     const report = buildSkinReport({ ...input, analysis: { ...input.analysis, features: {
       ...input.analysis.features, wrinkle_grade_forehead: grade, wrinkle_grade_glabella: 0,

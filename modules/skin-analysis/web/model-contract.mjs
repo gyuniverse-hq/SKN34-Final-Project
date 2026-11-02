@@ -2,7 +2,7 @@ export const SKIN_TYPES = ['dry', 'balanced', 'oily'];
 const INDICATORS = ['pore', 'pigmentation', 'wrinkle', 'skinType'];
 
 export function validateModelManifest(manifest) {
-  if (manifest?.schema !== 'skin-analysis-assets-v3' || manifest.precision !== 'float32' ||
+  if (!['skin-analysis-assets-v3', 'skin-analysis-assets-v4'].includes(manifest?.schema) || manifest.precision !== 'float32' ||
       manifest.preprocessing !== 'skin-preprocessing-v3' || !/^[a-f0-9]{64}$/.test(manifest.bundleVersion) ||
       manifest.roiMethod !== 'opencv_haar_facebox_proportions_v1' || manifest.models?.length !== 4 ||
       new Set(manifest.models.map(model => model.indicator)).size !== 4 ||
@@ -15,8 +15,16 @@ export function validateModelManifest(manifest) {
         model.expectedLogits.some(value => !Number.isFinite(value))) throw new Error('model');
     if (model.roiEnhancement !== 'pillow-unsharp1-75-contrast1.4-embedded' ||
         (model.indicator === 'skinType' ? model.decoder !== 'mean_softmax' || JSON.stringify(model.classes) !== JSON.stringify(SKIN_TYPES)
-          : model.decoder !== 'sigmoid_grade' || model.maxGrade !== (model.indicator === 'wrinkle' ? 6 : 5))) throw new Error('model');
+          : manifest.schema === 'skin-analysis-assets-v4'
+            ? model.decoder !== 'sigmoid_binary' || model.threshold !== .5
+            : model.decoder !== 'sigmoid_grade' || model.maxGrade !== (model.indicator === 'wrinkle' ? 6 : 5))) throw new Error('model');
   }
+}
+
+export function decodeBinary(logit) {
+  if (!Number.isFinite(logit)) throw new Error('model');
+  const probability = 1 / (1 + Math.exp(-logit));
+  return { label: probability >= .5 ? 1 : 0, probability };
 }
 
 export function decodeGrade(logit, maximum) {

@@ -1,9 +1,15 @@
+import { skincareJa } from './skincare';
+import { supportJa } from './skinSupport';
+import { surveyJa } from './survey';
 import type { Dictionary } from './en';
 import { flowsJa } from './flows';
 import { skinJa } from './skin';
 import { skinReportJa } from './skinReport';
 
 export const ja: Dictionary = {
+  ...skincareJa,
+  ...supportJa,
+  ...surveyJa,
   'discovery.quickTitle': '自分に合うビューティー',
   'discovery.quickBody': '似合うカラーとケアを見つけましょう。',
   'discovery.tryAr': 'ARで試す',

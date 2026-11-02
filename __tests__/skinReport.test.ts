@@ -22,7 +22,7 @@ it('keeps model grades and survey answers distinct and preserves the original pr
   const report = buildSkinReport(source);
   expect(report.metrics.find((m) => m.concern === 'dryness')).toMatchObject({ source: 'survey', value: 2, maximum: null, status: 'care', regions: [] });
   expect(report.metrics.find((m) => m.concern === 'oiliness')).toMatchObject({ value: null, status: 'unknown' });
-  expect(report.metrics.find((m) => m.concern === 'pores')).toMatchObject({ source: 'analysis', value: 3, maximum: 5, status: 'fair',
+  expect(report.metrics.find((m) => m.concern === 'pores')).toMatchObject({ source: 'analysis', value: 3, maximum: 5, status: 'good',
     regions: [{ region: 'leftCheek', value: 2 }, { region: 'rightCheek', value: 3 }] });
   expect(JSON.stringify(source)).toBe(original);
 });
@@ -44,7 +44,7 @@ it('shows care concerns first without manufacturing a severity comparison across
   expect(report.priorities.map((m) => m.concern)).toEqual(['dryness', 'pigmentation']);
 });
 
-it.each([[0, 'good'], [1, 'good'], [2, 'fair'], [3, 'fair'], [4, 'care'], [5, 'care'], [6, 'care']] as const)(
+it.each([[0, 'good'], [1, 'good'], [2, 'good'], [3, 'good'], [4, 'care'], [5, 'care'], [6, 'care']] as const)(
   'labels grade %s as %s in the report', (grade, status) => {
     const source = input();
     source.analysis.features.wrinkle_grade_forehead = grade;

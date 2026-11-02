@@ -4,6 +4,11 @@ import kotlin.math.exp
 import kotlin.math.floor
 
 internal object SkinDecoding {
+  fun probability(logit: Float): Double {
+    require(logit.isFinite())
+    return 1.0 / (1.0 + exp(-logit.toDouble()))
+  }
+
   fun grade(logit: Float, maximum: Int): Int {
     require(logit.isFinite() && maximum in listOf(5, 6))
     return floor(maximum / (1.0 + exp(-logit.toDouble())) + 0.5).toInt().coerceIn(0, maximum)

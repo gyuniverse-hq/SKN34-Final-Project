@@ -1,9 +1,15 @@
+import { skincareZh } from './skincare';
+import { supportZh } from './skinSupport';
+import { surveyZh } from './survey';
 import type { Dictionary } from './en';
 import { flowsZh } from './flows';
 import { skinZh } from './skin';
 import { skinReportZh } from './skinReport';
 
 export const zh: Dictionary = {
+  ...skincareZh,
+  ...supportZh,
+  ...surveyZh,
   'discovery.quickTitle': '探索适合你的美妆',
   'discovery.quickBody': '发现适合你的色彩与护理。',
   'discovery.tryAr': 'AR 试妆',

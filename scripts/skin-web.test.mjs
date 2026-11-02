@@ -6,10 +6,10 @@ import { resolve } from 'node:path';
 import { createPreprocessor, detectRegions, inputCrop } from '../modules/skin-analysis/web/preprocessing.mjs';
 import { createJpegRoundTrip } from '../modules/skin-analysis/web/jpeg.mjs';
 import { CaptureGate, previewFace } from '../modules/skin-analysis/web/gate.mjs';
-import { decodeGrade, meanSkinType, validateModelManifest } from '../modules/skin-analysis/web/model-contract.mjs';
+import { decodeGrade, decodeBinary, meanSkinType, validateModelManifest } from '../modules/skin-analysis/web/model-contract.mjs';
 
 const require = createRequire(import.meta.url);
-const assets = resolve('modules/skin-analysis/android/src/main/assets/skin');
+const assets = require('./skin-models.cjs').preparedSkinModel(resolve('.'));
 const manifest = JSON.parse(readFileSync(resolve(assets, 'manifest.json')));
 validateModelManifest(manifest);
 const floats = name => { const bytes = readFileSync(resolve(assets, name)); return new Float32Array(bytes.buffer, bytes.byteOffset, bytes.length / 4); };
@@ -48,7 +48,7 @@ test('browser preprocessing matches reference resize tensors and records the sep
   } finally { image.delete(); detector.delete(); cv.FS_unlink('/web-test-face.xml'); }
 });
 
-test('only four v3 models run with WASM CPU and preserve source logits and decoded results', { timeout: 240000 }, async () => {
+test('only four models run with WASM CPU and preserve source logits and decoded results', { timeout: 240000 }, async () => {
   assert.deepEqual(manifest.models.map(model => model.indicator), ['pore', 'pigmentation', 'wrinkle', 'skinType']);
   assert.equal(Object.keys(manifest.assets).some(name => name.includes('acne')), false);
   const ort = require('onnxruntime-web/wasm'); ort.env.wasm.numThreads = 1;
@@ -62,10 +62,19 @@ test('only four v3 models run with WASM CPU and preserve source logits and decod
       actual.forEach((value, i) => assert.ok(Math.abs(value - model.expectedLogits[i]) <= 1e-4 + 1e-3 * Math.abs(model.expectedLogits[i])));
       const best = values => values.reduce((at, value, i) => value > values[at] ? i : at, 0);
       if (model.indicator === 'skinType') assert.equal(best(actual), best(model.expectedLogits));
+      else if (model.decoder === 'sigmoid_binary') assert.equal(decodeBinary(actual[0]).label, decodeBinary(model.expectedLogits[0]).label);
       else assert.equal(decodeGrade(actual[0], model.maxGrade), decodeGrade(model.expectedLogits[0], model.maxGrade));
       console.log(`${model.indicator}: WASM reference logits and decision matched`);
     } finally { input.dispose(); if (output) Object.values(output).forEach(value => value.dispose()); await session.release(); }
   }
+});
+
+test('v4 binary decisions use a fixed 0.5 threshold without inventing grades', () => {
+  assert.deepEqual(decodeBinary(0), { label: 1, probability: .5 });
+  assert.deepEqual(decodeBinary(-1000), { label: 0, probability: 0 });
+  assert.deepEqual(decodeBinary(1000), { label: 1, probability: 1 });
+  assert.equal(decodeBinary(-.001).label, 0);
+  assert.throws(() => decodeBinary(NaN), /model/);
 });
 
 test('v3 grades use sigmoid and half-up rounding; skin type averages per-ROI softmax', () => {
@@ -82,14 +91,33 @@ test('v3 grades use sigmoid and half-up rounding; skin type averages per-ROI sof
 test('automatic capture requires continuous stability and resets for multiple faces or movement', () => {
   const face = { cx: .5, cy: .48, width: .5, top: .2, bottom: .74, frontal: true };
   const gate = new CaptureGate(); gate.reset();
-  for (const at of [0, 300, 600, 900, 1200]) assert.ok(gate.update([face], at).progress < 1);
-  assert.equal(gate.update([face], 1500).progress, 1);
+  for (const at of [0, 300, 600, 900]) assert.ok(gate.update([face], at).progress < 1);
+  assert.equal(gate.update([face], 1200).progress, 1);
   assert.equal(gate.update([face, face], 1600).guidance, 'multipleFaces');
   assert.equal(gate.update([face], 1700).progress, 0);
   gate.update([face], 2000);
-  assert.equal(gate.update([{ ...face, cx: .53 }], 2200).progress, 0);
+  assert.equal(gate.update([{ ...face, cx: .58 }], 2200).progress, 0);
   assert.equal(gate.update([], 2400).guidance, 'noFace');
   assert.equal(gate.update([{ ...face, frontal: false }], 2600).guidance, 'straight');
+});
+
+test('capture holds its lock through small movements and brief framing changes', () => {
+  const face = { cx: .5, cy: .46, width: .5, top: .18, bottom: .74, frontal: true };
+  const gate = new CaptureGate(); gate.reset();
+  assert.equal(gate.update([face], 0).progress, 0);
+  assert.ok(gate.update([{ ...face, cx: .54 }], 300).progress > 0);
+  assert.ok(gate.update([{ ...face, cx: .59 }], 600).progress > 0);
+  assert.ok(gate.update([{ ...face, cx: .64, top: .04 }], 900).progress > 0);
+  assert.equal(gate.update([{ ...face, cx: .64, top: .04 }], 1200).progress, 1);
+  assert.equal(gate.update([], 1300).guidance, 'noFace');
+  assert.equal(gate.update([{ ...face, top: .04 }], 1400).guidance, 'forehead');
+});
+
+test('a long gap releases the capture lock and restores initial framing', () => {
+  const face = { cx: .5, cy: .46, width: .5, top: .18, bottom: .74, frontal: true };
+  const gate = new CaptureGate(); gate.reset();
+  gate.update([face], 0);
+  assert.equal(gate.update([{ ...face, top: .04 }], 700).guidance, 'forehead');
 });
 
 function captureAfterHolding(face) {
@@ -111,6 +139,12 @@ test('automatic capture accepts faces fitting the visible guide across preview a
   }
   assert.deepEqual(captureAfterHolding({ cx: .5, cy: .46, width: .70, top: .12, bottom: .80, frontal: true }),
     { guidance: 'hold', progress: 1 });
+});
+
+test('automatic capture allows a slightly off-center face inside the preview', () => {
+  const face = { cx: .62, cy: .46, width: .70, top: .12, bottom: .80, frontal: true };
+  assert.deepEqual(captureAfterHolding(face), { guidance: 'hold', progress: 1 });
+  assert.equal(captureAfterHolding({ ...face, cx: .66 }).guidance, 'center');
 });
 
 test('automatic capture still rejects small, clipped, and off-center faces', () => {
@@ -162,6 +196,37 @@ test('asset middleware serves only listed assets, and rejects uploads and traver
   assert.equal(request('/skin-runtime/jpeg.js', 'HEAD').status, 200);
   assert.equal(JSON.parse(request('/skin-runtime/manifest.json').body).bundleVersion, manifest.bundleVersion);
   assert.equal(request('/another-route').status, 418);
+});
+
+test('restarting the middleware switches both the manifest and model assets using only the environment', () => {
+  const previous = process.env.SKIN_ANALYSIS_MODEL;
+  try {
+    for (const suffix of ['v3', 'v4']) {
+      process.env.SKIN_ANALYSIS_MODEL = `skin-analysis-${suffix}`;
+      const directory = require('./skin-models.cjs').preparedSkinModel(resolve('.'));
+      const expected = JSON.parse(readFileSync(resolve(directory, 'manifest.json')));
+      const middleware = require('./skin-web-middleware.cjs')(resolve('.'));
+      const request = (url, method = 'GET') => {
+        const response = { status: 200, body: '' };
+        middleware({ url, method }, {
+          setHeader() {}, writeHead(status) { response.status = status; },
+          end(body) { response.body = body; },
+        }, () => { response.status = 418; });
+        return response;
+      };
+      const actual = JSON.parse(request('/skin-runtime/manifest.json').body);
+      assert.equal(actual.schema, `skin-analysis-assets-${suffix}`);
+      assert.equal(actual.bundleVersion, expected.bundleVersion);
+      assert.equal(actual.models[0].decoder, suffix === 'v3' ? 'sigmoid_grade' : 'sigmoid_binary');
+      assert.equal(request(`/skin-runtime/${actual.bundleVersion}/${actual.models[0].file}`, 'HEAD').status, 200);
+      assert.equal(request(`/skin-runtime/${'0'.repeat(64)}/${actual.models[0].file}`, 'HEAD').status, 404);
+    }
+    process.env.SKIN_ANALYSIS_MODEL = 'typo';
+    assert.throws(() => require('./skin-web-middleware.cjs')(resolve('.')), /Unsupported SKIN_ANALYSIS_MODEL/);
+  } finally {
+    if (previous === undefined) delete process.env.SKIN_ANALYSIS_MODEL;
+    else process.env.SKIN_ANALYSIS_MODEL = previous;
+  }
 });
 
 

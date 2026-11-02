@@ -1,3 +1,5 @@
+import { fuseSupportSkinType } from '@/lib/skinSupportFusion';
+import { isCompleteSupportSurvey } from '@/lib/skinSurvey';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { analyzeSkin, cancelSkinAnalysis, onSkinProgress, createSkinWebRun, skinAnalysisUsesWebView } from '@/lib/skinAnalysis';
@@ -5,14 +7,14 @@ import { appendSkinTiming, validateSkinAnalysis } from '@/lib/skinProfile';
 import { useSkinProfileStore } from '@/store/skinProfileStore';
 import { useSkinPreviewStore } from '@/store/skinPreviewStore';
 import { SkinPreviewAssembler } from '@/lib/skinPreview';
-import type { SkinAnalysisResult, SkinCameraEvent, SkinIndicator, SkinQuestionnaire, SkinWebRun, SkinWebEvent, SkinPreview } from '@/types/skin';
+import type { SkinAnalysisResult, SkinCameraEvent, SkinIndicator, SkinSurveyV3, SkinWebRun, SkinWebEvent, SkinPreview } from '@/types/skin';
 
 export function useSkinAnalysis() {
   const [phase, setPhase] = useState<'ready' | 'camera' | 'analysis' | 'survey' | 'saving' | 'done' | 'error'>('ready');
   const [camera, setCamera] = useState<SkinCameraEvent>({ guidance: 'noFace', progress: 0 });
   const [indicator, setIndicator] = useState<SkinIndicator>('pore');
   const [result, setResult] = useState<SkinAnalysisResult>();
-  const [answers, setAnswers] = useState<Partial<SkinQuestionnaire>>({});
+  const [answers, setAnswers] = useState<Partial<SkinSurveyV3>>({ version: 'skin-support-1' });
   const [error, setError] = useState<'analysis' | 'storage' | 'model' | 'permission' | 'camera' | 'guide' | null>(null);
   const [webRun, setWebRun] = useState<SkinWebRun>();
   const generation = useRef(0);
@@ -33,7 +35,7 @@ export function useSkinAnalysis() {
     captureClaimed.current = false;
     void cancelSkinAnalysis().catch(() => {});
     setPhase('ready');
-    setResult(undefined); setAnswers({}); setError(null);
+    setResult(undefined); setAnswers({ version: 'skin-support-1' }); setError(null);
     setWebRun(undefined);
   }, []);
 
@@ -108,14 +110,15 @@ export function useSkinAnalysis() {
     else if (event.type === 'progress') setIndicator(event.indicator);
     else if (event.type === 'error') {
       previewAssembler.current?.clear(); previewAssembler.current = null; pendingPreview.current = null;
+      setWebRun(undefined);
       setError(event.code === 'photo' ? 'analysis' : event.code);
       setPhase('error');
     } else if (event.type === 'result') {
       try {
         if (event.result.timing.runId !== webRun.run.runId) throw new Error('Invalid run');
-        if (!['skin-analysis-mobile-v1', 'skin-analysis-mobile-v2', 'skin-analysis-mobile-v3'].includes(event.result.schema)) throw new Error('Invalid on-device result');
+        if (!['skin-analysis-mobile-v1', 'skin-analysis-mobile-v2', 'skin-analysis-mobile-v3', 'skin-analysis-mobile-v4'].includes(event.result.schema)) throw new Error('Invalid on-device result');
         validateSkinAnalysis(event.result);
-        receivedAt.current = performance.now(); setResult(event.result); setPhase('survey');
+        receivedAt.current = performance.now(); setResult(event.result); setWebRun(undefined); setPhase('survey');
       } catch { previewAssembler.current?.clear(); pendingPreview.current = null; setError('model'); setPhase('error'); }
     }
   }, [webRun, phase, renderGeneration]);
@@ -132,7 +135,7 @@ export function useSkinAnalysis() {
     });
   }, [phase, result]);
 
-  const start = async () => {
+  const start = async (photoBase64?: string) => {
     const current = ++generation.current;
     previewAssembler.current?.clear(); previewAssembler.current = null; pendingPreview.current = null;
     previewTransferred.current = false; useSkinPreviewStore.getState().clear();
@@ -140,10 +143,10 @@ export function useSkinAnalysis() {
     if (current !== generation.current) return;
     captureClaimed.current = false;
     setIndicator('pore');
-    setAnswers({}); setResult(undefined); setError(null);
+    setAnswers({ version: 'skin-support-1' }); setResult(undefined); setError(null);
     setCamera({ guidance: 'loading', progress: 0 });
     try {
-      const run = skinAnalysisUsesWebView ? createSkinWebRun() : undefined;
+      const run = skinAnalysisUsesWebView ? { ...createSkinWebRun(), ...(photoBase64 ? { photoBase64 } : {}) } : undefined;
       previewAssembler.current = run ? new SkinPreviewAssembler(run.run.runId) : null;
       setWebRun(run); setPhase('camera');
     } catch {
@@ -151,14 +154,15 @@ export function useSkinAnalysis() {
     }
   };
 
-  const complete = answers.tightness !== undefined && answers.oiliness !== undefined && answers.sensitivity !== undefined;
+  const complete = isCompleteSupportSurvey(answers);
   const finish = async () => {
-    if (!result || !complete || saving.current) return;
+    if (!result || !isCompleteSupportSurvey(answers) || saving.current) return;
     saving.current = true;
     setPhase('saving'); setError(null);
     try {
       await appendSkinTiming(result.timing);
-      await save({ version: 1, registeredAt: new Date().toISOString(), analysis: result, questionnaire: answers as SkinQuestionnaire });
+      await save({ version: 4, registeredAt: new Date().toISOString(), analysis: result, questionnaire: answers,
+        fusion: fuseSupportSkinType(result.skinType, answers) });
       if (pendingPreview.current?.runId === result.timing.runId) {
         useSkinPreviewStore.getState().setPreview(pendingPreview.current);
         previewTransferred.current = true;

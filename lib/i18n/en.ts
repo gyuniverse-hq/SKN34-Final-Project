@@ -1,7 +1,13 @@
+import { skincareEn } from './skincare';
+import { supportEn } from './skinSupport';
+import { surveyEn } from './survey';
 import { flowsEn } from './flows';
 import { skinEn } from './skin';
 import { skinReportEn } from './skinReport';
 export const en = {
+  ...skincareEn,
+  ...supportEn,
+  ...surveyEn,
   'discovery.quickTitle': 'Explore your look',
   'discovery.quickBody': 'Find colors and care that suit you.',
   'discovery.tryAr': 'Try AR makeup',
