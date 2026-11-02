@@ -94,6 +94,27 @@
 
 정적 검사·Mock/인프라 회귀 및 위 제한된 실제 모델 smoke test는 PASS. 전체 병합 판단은 **CONDITIONAL**: 검수된 실제 성분 자료·Gold 승인·실기기 화질/녹화/공유는 남아 있다. 운영 AR 명령·ACK의 503 제한은 해제하지 않는다. PR 병합·배포는 하지 않는다.
 
+## 독립 재검토 후 추가 수정 (2026-11-03)
+
+기준 HEAD `d1fc475`에서 기존 수정이 누락한 실제 세션 분기를 재현했다. 앞 절의 통과 결과만으로 모든 분기가 해결됐다고 해석하지 않는다.
+
+- **P1:** `ChatService._answer_session`이 `search/catalog`로 해석된 독립 검색에서 `chat_context=None`을 대입해 저장된 성분 조건까지 버렸다. `refine/catalog`와 달리 성분 확인 없이 `recommendations`를 반환했다. 새 세션 통합 회귀는 수정 전 실패했다.
+- **P3:** 저장된 조건을 재사용하는 가격 재검색에서 요청 로컬 성분명은 `None`이었다. 복수 조건의 설명이 `None: ...조건을 충족합니다`로 출력되는 것도 수정 전 재현했다.
+- `backend/chatbot/app/services/chat_service.py`: 새 검색에 빈 후보·범위·선택·호수와 현재 시각을 사용하되, 서버 스냅샷의 성분 조건만 깊은 복사로 보존한다. 삭제된 과거 Catalog 상품이 새 검색을 막지 않으며 가격·카테고리 등 일반 새 검색 초기화와 명시적 `clearFilters: [ingredientConditions]` 해제는 유지한다. 클라이언트가 보낸 조건 삭제는 서버 조건을 덮어쓰지 않는다.
+- `backend/chatbot/app/services/beauty_consultation_service.py`: 실제 근거 응답의 각 성분명과 해당 판정으로 설명을 만든다. 복수 조건을 각각 표시하며 이름이 없는 fallback에서도 `None`을 출력하지 않는다.
+- `backend/chatbot/tests/test_chat_sessions.py`: 실제 `ChatService.answer`와 세션 저장소 경로로 search/refine 분류, 조건 유지·해제, 정확한 호수 미지정 UNKNOWN, 명시 호수 재조회 후 제외 대상 제거, 삭제 상품 복구, 클라이언트 필터 변조 무시, 응답/저장 스냅샷 정합성, 복수 조건 설명·불충족 제외를 검사한다. LLM·Catalog·기본 Redis는 명시적인 테스트 더블이며 실제 모델 판정 품질 검사가 아니다.
+
+검증 명령과 결과:
+
+- 수정 전 `pytest tests/test_chat_sessions.py -k 'ingredient_filter_survives or new_search_keeps_server or persisted_multiple' -q -p no:cacheprovider --tb=short`: **실패 3·통과 1**, 두 결함 재현.
+- 수정 후 `pytest tests/test_chat_sessions.py -q -p no:cacheprovider --tb=short`: **37 통과**.
+- 챗봇 기존 가상환경에서 `python -B -m ruff check . --no-cache`, `ruff format --check . --no-cache`, `lint-imports --no-cache --no-logo`: 모두 통과, 계층 계약 3개 유지. `VISHUE_RUN_REDIS_INTEGRATION=1` 및 `python -B -m pytest -q -p no:cacheprovider --tb=short`: **324 통과**, 실제 격리 Redis/HTTP 시나리오 포함.
+- API 같은 정적 검사·계층 계약 통과. 최초 pytest는 공용 OS 임시 폴더의 WinError 5로 준비 오류 22개(194 통과·2 건너뜀)가 발생했다. 새 작업 전용 OS 임시 경로를 `--basetemp`로 지정하여 테스트를 제외하지 않고 다시 실행: **216 통과·PostgreSQL 필요 2개 건너뜀**.
+- 평가기 unittest **12 통과**, 원본 3개·359건·매니페스트 검증 통과. 원본·기존 미추적 자료는 변경하거나 커밋하지 않는다.
+- 앱 `npm run check -- -- --runInBand --silent --no-cache`: TypeScript·ESLint 및 **63 suites·624 tests 통과**. 새 원격 HEAD의 CI는 이 채팅에도 기록한다.
+
+이번 추가 수정에서 실제 모델 호출·재시도는 **0회**, 추가 추정 비용 **$0**. 이전 8회 포함 누적 사용량 기반 추정 비용 **$0.0005773**, 이전 예약 상한 합계 **$0.03092056**을 그대로 유지하며 $5 예산을 초기화하지 않았다. 청구액은 조회하지 않았다. 에뮬레이터·실기기는 재실행하지 않았으며 앞 절의 제한이 유지된다. 운영 AR/ACK 503 제한·의존성·DB·렌더러·기존 테스트를 변경하지 않는다. 병합·배포는 하지 않는다.
+
 ## 해석상의 제한
 
 - Gold 승인 0건. Mock/평가기 통과를 실제 LLM 품질 또는 AR 화질 통과로 해석하지 않는다.

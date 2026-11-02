@@ -913,7 +913,11 @@ async def _ingredient_consultation(req, plan, catalog, filters):
         elif result.review_status != "verified":
             text = labels[2]
         elif result.verdict in {"MATCH", "NOT_MATCH"}:
-            text = f"{name}: " + labels[5 if result.verdict == "MATCH" else 6]
+            text = "; ".join(
+                f"{c.ingredient_name}: " + labels[5 if c.verdict == "MATCH" else 6]
+                for c in result.conditions
+                if c.ingredient_name and c.verdict in {"MATCH", "NOT_MATCH"}
+            ) or ((f"{name}: " if name else "") + labels[5 if result.verdict == "MATCH" else 6])
         elif not result.verified:
             text = labels[3]
         else:

@@ -18,6 +18,8 @@ from app.repositories.chat_session_repository import ChatSessionRepository, get_
 from app.repositories.graph_repository import GraphRepository
 from app.schemas.chat import (
     ArAckRequest,
+    BeautyContext,
+    BeautyFilters,
     ChatRequest,
     ChatResponse,
     ChatSessionRef,
@@ -457,8 +459,18 @@ class ChatService:
                 409, "A server result set is required; search again", "chat_session_required"
             )
         if slots.intent == "search" and independent:
+            # Reset stale Catalog references, but retain server-owned ingredient constraints.
             req.chat_context = (
-                None  # A fresh search must work even if prior Catalog rows disappeared.
+                BeautyContext(
+                    issued_at=int(time.time()),
+                    filters=BeautyFilters(
+                        ingredient_conditions=state.context.filters.model_copy(
+                            deep=True
+                        ).ingredient_conditions
+                    ),
+                )
+                if state
+                else None
             )
             req.screen_context = None
         elif state and slots.intent != "general":

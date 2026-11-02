@@ -638,7 +638,8 @@ async def test_explicit_catalog_screen_selection_outside_old_results_is_validate
 
 
 @pytest.mark.anyio
-async def test_ingredient_filter_survives_budget_search_and_explicit_clear(setup):
+@pytest.mark.parametrize("catalog_intent", ["refine", "search"])
+async def test_ingredient_filter_survives_budget_search_and_explicit_clear(setup, catalog_intent):
     service, _, _, _ = setup
     calls = []
 
@@ -674,19 +675,123 @@ async def test_ingredient_filter_survives_budget_search_and_explicit_clear(setup
     assert calls[before:] == [("a", "Alcohol", "excludes")]
     assert budget.chat_context.filters.ingredient_conditions[0].ingredient_name == "Alcohol"
     # A full catalog search needs explicit shades again; UNKNOWN must not become a recommendation.
-    service._llm.plan = {"intent": "refine", "scope": "catalog", "maxPriceKRW": 20000}
+    before = len(calls)
+    service._llm.plan = {
+        "intent": catalog_intent,
+        "scope": "catalog",
+        "category": "lip",
+        "maxPriceKRW": 20000,
+    }
     renewed = await service.answer(request(budget.chat_context), "guest:one")
     assert renewed.result_type == "clarification"
     assert next(r for r in renewed.ingredient_results if r.product_id == "b").verdict == "UNKNOWN"
     assert renewed.chat_context.filters.ingredient_conditions
+    assert all(call[1:] == ("Alcohol", "excludes") for call in calls[before:])
+    assert renewed.chat_context.candidate_ids == [p.id for p in renewed.products]
+    stored = await service._sessions.load("guest:one", renewed.chat_context.session)
+    assert stored.context.filters == renewed.chat_context.filters
+    assert stored.context.shade_selections == renewed.chat_context.shade_selections
+    before = len(calls)
+    service._llm.plan["shadeName"] = "03"
+    renewed = await service.answer(
+        request(renewed.chat_context, message="03호로 다시 추천"), "guest:one"
+    )
+    assert renewed.result_type == "recommendations"
+    assert renewed.chat_context.candidate_ids == ["a"]
+    assert calls[before:] == [("a", "Alcohol", "excludes"), ("b", "Alcohol", "excludes")]
+    assert "Alcohol: 검증된 근거로 요청한 성분 조건을 충족합니다." in renewed.answer
     service._llm.plan = {
-        "intent": "refine",
+        "intent": catalog_intent,
         "scope": "catalog",
+        "category": "lip",
+        "maxPriceKRW": 20000,
         "clearFilters": ["ingredientConditions"],
     }
     cleared = await service.answer(request(renewed.chat_context), "guest:one")
     assert [p.id for p in cleared.products] == ["a", "b"]
     assert not cleared.chat_context.filters.ingredient_conditions
+    assert not cleared.ingredient_results
+
+
+@pytest.mark.anyio
+async def test_new_search_keeps_server_conditions_after_old_product_disappears(setup):
+    service, _, repo, _ = setup
+    ctx = (await first(setup)).chat_context.model_copy(deep=True)
+    ctx.shade_selections = {"a": "a-03", "b": "b-03"}
+    service._llm.plan = {
+        "intent": "refine",
+        "scope": "previous",
+        "ingredientName": "Alcohol",
+        "ingredientOperator": "excludes",
+    }
+    filtered = await service.answer(request(ctx), "guest:one")
+    service._catalog.products = [p for p in service._catalog.products if p.id != "a"]
+    tampered = filtered.chat_context.model_copy(deep=True)
+    tampered.filters.ingredient_conditions = []
+    service._llm.plan = {"intent": "search", "scope": "catalog", "category": "lip"}
+    result = await service.answer(request(tampered), "guest:one")
+    assert result.result_type == "clarification" and result.session_status == "stored"
+    assert result.chat_context.candidate_ids == ["b", "c"]
+    assert result.chat_context.filters.max_price_krw is None
+    assert result.chat_context.filters.ingredient_conditions[0].ingredient_name == "Alcohol"
+    assert not result.chat_context.shade_selections
+    assert not result.chat_context.selected_product_id
+    assert all(
+        r.verdict == "UNKNOWN" and r.reason == "shade_required" for r in result.ingredient_results
+    )
+    stored = await repo.load("guest:one", result.chat_context.session)
+    assert stored.context.candidate_ids == [p.id for p in result.products]
+    assert stored.context.filters == result.chat_context.filters
+
+
+@pytest.mark.anyio
+async def test_persisted_multiple_ingredient_conditions_explain_each_actual_verdict(setup):
+    service = setup[0]
+
+    async def ingredients(pid, shade, *, ingredient_name=None, operator="includes"):
+        return CatalogIngredients.model_validate(
+            evidence(
+                pid=pid,
+                shade=shade,
+                name=ingredient_name,
+                operator=operator,
+                ingredients=[{"name": "Water", "sequence": 1}],
+            )
+        )
+
+    service._catalog.get_ingredients = ingredients
+    ctx = (await first(setup)).chat_context.model_copy(deep=True)
+    ctx.shade_selections = {"a": "a-03", "b": "b-03"}
+    for name, operator in [("Water", "includes"), ("Alcohol", "excludes")]:
+        service._llm.plan = {
+            "intent": "refine",
+            "scope": "previous",
+            "ingredientName": name,
+            "ingredientOperator": operator,
+        }
+        ctx = (await service.answer(request(ctx), "guest:one")).chat_context
+    service._llm.plan = {"intent": "refine", "scope": "previous", "maxPriceKRW": 18000}
+    result = await service.answer(request(ctx), "guest:one")
+    assert result.result_type == "recommendations" and [p.id for p in result.products] == ["a"]
+    assert "None" not in result.answer
+    assert "Water: 검증된 근거로 요청한 성분 조건을 충족합니다." in result.answer
+    assert "Alcohol: 검증된 근거로 요청한 성분 조건을 충족합니다." in result.answer
+    assert [
+        (c.ingredient_name, c.operator, c.verdict) for c in result.ingredient_results[0].conditions
+    ] == [
+        ("Water", "includes", "MATCH"),
+        ("Alcohol", "excludes", "MATCH"),
+    ]
+    service._llm.plan = {
+        "intent": "refine",
+        "scope": "previous",
+        "ingredientName": "Alcohol",
+        "ingredientOperator": "includes",
+    }
+    rejected = await service.answer(request(result.chat_context), "guest:one")
+    assert rejected.result_type == "empty" and not rejected.products
+    assert not rejected.chat_context.candidate_ids
+    assert "조건을 충족합니다" not in rejected.answer
 
 
 @pytest.mark.anyio
