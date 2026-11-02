@@ -184,6 +184,21 @@ export interface ZoneSetting {
   geometry?: ZoneGeometry;
 }
 
+export interface ArRenderCommand {
+  commandId: string;
+  renderSeq: number;
+  rendererId: string;
+  makeup: MakeupState;
+  kind?: 'command' | 'restore';
+  restoreId?: string;
+}
+
+export type ArRenderResult = Pick<ArRenderCommand, 'commandId' | 'renderSeq' | 'rendererId'> & {
+  status: 'rendered' | 'failed';
+  kind?: 'command' | 'restore';
+  restoreId?: string;
+};
+
 /** Zones added after the first three are optional, so looks saved without them still load. */
 export interface MakeupState {
   lip: ZoneSetting | null;

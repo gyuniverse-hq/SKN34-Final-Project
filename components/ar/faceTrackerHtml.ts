@@ -76,6 +76,11 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     maskSize: 1024,             // UV mask texture size
     lipFeatherPx: 3,            // UV-space blur radii (≈ screen px at a normal distance)
     lipEdgePx: 2,               // outer lip line: crisp like a real lipstick edge
+    // Screen-space outline softness = lipEdgeBlurK × measured camera blur (px), within [0.5, lipEdgeSoftMax]. 11-02 (survey: edge
+    // 75% "too crisp"): 0.5 → 1.2. Offline, the paint edge was 2.1 px against ~8 px for the photo's own lip edge (0.27×).
+    // The cap keeps a blurry video (blur 4) from smearing: 2.5 px is what 10-22 measured as matching the camera there.
+    lipEdgeBlurK: 1.2,
+    lipEdgeSoftMax: 2.5,
     innerFadeStrength: 0,       // 0 = same coverage to the inner line (no 농도 그라데이션)
     // A real lipstick reaches the mouth corners (10-25 reference photo); 0.12 / 0.35 left the corner
     // tip at 0.22 of the lip's color on 60 real faces, now 0.50 together with lipFill.
@@ -105,17 +110,29 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     formReach: 0.45,            // form blur radius as a share of this lip's thickness
     formFieldPx: 160,           // longest side of the blurred form field
     formTilt: 1.0,              // max tilt of the form normal at the lip line (≈ 45°)
-    lipVolume: 0.6,             // share of the form's Lambert falloff applied to the paint
+    lipVolume: 0.3,             // share of the form's Lambert falloff applied to the paint (was 0.6; 11-02: the camera already carries the lip's own shading, the added form shade read as a dark band along the lower lip)
     seamPx: 0.12,               // closed mouth: seam split width as a share of the lip thickness
-    glossMax: [0.04, 0.85],     // form highlight peak: matte → glossy (by (1 - roughness)³; satin ≈ 0.2)
+    glossMax: [0.04, 0.45],     // form highlight peak: matte → glossy (by (1 - roughness)³; satin ≈ 0.2). Was 0.85: survey 11-02, glossy lips read as plastic (white streak on the lower lip)
     glossGain: 3.0,             // highlight peak = glossMax × skin luminance × this (light sources ≫ skin)
     frontGloss: 0.6,            // share of the peak from the always-present frontal source (screen, room)
     // Flat selfie: the camera has no specular, so keepHl adds nothing and gloss looked like matte
     // (device 10-25). Boost the *form* highlight (already approved 10-25), not a UV sticker.
     // × smoothness² so matte stays dull. When the camera already has a highlight, this is ~1.
-    glossFlat: 1.2,
+    // 11-02: 1.2 → 0.6. Off (0) made a gloss look matte again on a flat selfie (the 10-25 device case), so half of the boost stays.
+    glossFlat: 0.6,
+    // Gloss shape (11-02 round 2). A gloss that reads as a layer on top has a flat-topped patch (the lobe saturates), is near white and
+    // warm-tinted, is added on top (so it washes the colour), spreads over the whole lip and follows the estimated light and exposure.
+    // Measured on the 7 glossy pairs (the gloss layer = render minus the same render with the gloss off): highlight area 20.8% -> 16.8%
+    // of the lip, peak +22.6 -> +15.3 L*, flat-topped share 27% -> 17%, colour kept (chroma x0.79 -> x0.94), 70% -> 79% on the lip centre.
+    // lipSheen 0.25 -> 0.35 and wideGloss 0.3 -> 0.4 put back a broad, faint wet sheen (no hot spot) that the smaller peak had taken
+    // away: lip colour dE median 4.03 -> 3.97 against the real photos.
+    // A screen blend (glossTone[2]) was tried and is off: it adds most to the dark channels of a saturated lip, so it whitens more (x0.70).
+    glossShape: [0.9, 0.7, 0.5, 0.5],  // [lobe width: how far above its start the highlight reaches full (0.35 = flat top, 0.7+ = a peak),
+                                  //  focus on the lip centre 0..1, follow of the skin exposure 0..1, follow of the estimated light direction 0..1]
+    glossTone: [0.15, 0.6, 0],    // [whiteness of the soft falloff around the peak 0..1 (1 = white all over), light colour made neutral 0..1,
+                                  //  screen blend 0..1 (0 = added, 1 = screen: stops at white, keeps the colour)]
     lightSize: [0.35, 0.6],      // light size (roughness units): the source's sharp reflection, the glow around it
-    wideGloss: 0.3,             // glow peak relative to the sharp reflection
+    wideGloss: 0.40,             // glow peak relative to the sharp reflection
     grainMax: 0.2,              // cap on the measured relative camera grain
     blurMax: 4,                 // cap on the measured camera blur (px): sets grain size and mask edge softness
     lipGlint: 1.5,              // glints on lip ridges (absolute), scaled by (1 - roughness)²
@@ -132,10 +149,10 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     hlLocal: 1.15,              // camera highlight must exceed the local 3px mean by this (a peak, not a lit area)
     hlSat: [0.3, 0.55],         // ...and be desaturated: lip color saturation ~0.6, specular ~0.2
     hlBlown: 2.2,               // or be this × lip mean (a wide reflection has no local peak in its middle)
-    opaqueShadeGamma: 0.6,      // large-scale brightness swing kept under fully opaque paint (1 = all, 0 = flat sticker)
+    opaqueShadeGamma: 0.85,     // large-scale brightness swing kept under fully opaque paint (1 = all, 0 = flat sticker). Was 0.6; 0.85 keeps more of the camera's shading and keeps colour ΔE within 4 after the gloss cut
     lowReach: 0.35,             // radius of the large-scale lip brightness, share of the lip thickness
     lipSpecMax: 0.18,           // cap on the added clear-coat highlight (tinted, lower-centre only)
-    lipSheen: 0.25,             // broad clear-coat sheen × (1 - roughness)²; coarse mesh normals miss the narrow peak
+    lipSheen: 0.35,             // broad clear-coat sheen × (1 - roughness)²; coarse mesh normals miss the narrow peak
     hlKeep: [0.15, 1.0],        // camera highlight kept under the paint: matte → glossy (by 1 - roughness); never amplified
     blushFeatherPx: 28,
     // Highlighter and contour (10-25, user request): product color on fixed UV regions only, like
@@ -202,6 +219,13 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     foundEdgeHi: 0.98,            // ... and the value that gets full foundation (smoothstep between: no visible rim)
     foundSkinProb: [0.35, 0.75],  // selfie-multiclass face-skin probability: below no foundation (hair, bangs), full above
     foundTone: [0.18, 0.35],      // chromaticity distance to this face's skin colour: full foundation below, none above (orange / brown bangs the mask missed). Chromaticity only: brightness gates cut highlights into blotches
+    // Lower face (11-02, clip of a moving head): the skin mask is a screen-space texture refreshed every 120 ms (400 ms under 20 fps),
+    // so on a moving head its edge lagged the face and left a bare strip along the cheek (up to 19% of the lower face at 400 ms). Below
+    // the eyes hair and background are rare, so there the paint follows the landmark outline at once and the mask only clips it while a
+    // hand or hair covers the lower face (cover below). Above the eyes (bangs) the mask keeps gating as before.
+    foundLowerFloor: 0.9,         // lower-face paint kept whatever the (possibly stale) mask says, while nothing covers the lower face
+    foundLowerV: [0.50, 0.58],    // atlas v (up = forehead; eyes 0.62, nose tip 0.45): fully lower face below the first, not at all above the second
+    foundOccCover: [0.6, 0.85],   // share of cheek / chin landmarks the mask calls skin: floor off below the first, fully on above the second
     zoomMin: 1,                   // 1x = captured FOV; smaller would letterbox empty sensor
     zoomMax: 4,                   // digital crop of the 720-cap frame; tracking softens past this
     foundShadeMax: 1.2,           // camera highlights may brighten the pigment this much at most (was 1.6 via powder: a glow)
@@ -1688,6 +1712,11 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     foundSkinRgba = new Uint8Array(n * 4);
     foundSkinReady = false;
   }
+  // Cheek and chin landmarks inside the lower face (none on the lips or eyes): the mask is checked there for a hand or hair
+  // covering the face, which turns the lower-face floor (TUNING.foundLowerFloor) off.
+  const FOUND_COVER_PTS = [1, 2, 98, 327, 129, 358, 203, 423, 205, 425, 50, 280, 101, 330, 118, 347, 117, 346, 187, 411, 207, 427, 147, 376, 213, 433, 200, 199, 175, 396];
+  let foundOcc = 0;
+  let foundSegMs = 0;   // moving mean of one segmentation call, ms (HUD)
   // Selfie multiclass: 0 bg, 1 hair, 2 body, 3 face skin, 4 clothes, 5 accessory.
   function applyFoundSkinMask(mask, conf) {
     if (!mask || !renderer) return;
@@ -1712,6 +1741,13 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     } else {
       for (let i = 0; i < n; i++) foundSkinBin[i] = cat[i] === 3 ? 255 : 0;
     }
+    // Is the lower face uncovered? The share of cheek / chin landmarks (current frame) that this fresh mask calls skin.
+    let hit = 0;
+    for (const i of FOUND_COVER_PTS) {
+      const px = clamp(Math.floor(sx[i] * mw), 0, mw - 1), py = clamp(Math.floor(sy[i] * mh), 0, mh - 1);
+      if (foundSkinBin[py * mw + px] > 127) hit++;
+    }
+    foundOcc = smooth01(TUNING.foundOccCover[0], TUNING.foundOccCover[1], hit / FOUND_COVER_PTS.length);
     const first = !foundSkinReady;
     for (let i = 0; i < n; i++) {
       const next = foundSkinBin[i];
@@ -1733,6 +1769,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     segmentBusy = true;
     if (forLight) lastSegmentAt = now;
     if (forSkin) lastFoundSegAt = now;
+    const segT0 = performance.now();
     try {
       segmenter.segmentForVideo(video, now, (result) => {
         segmentBusy = false;
@@ -1774,6 +1811,9 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         }
         postLightHint();
       });
+      // The call (and its callback) runs on this thread: this is how long the frame stood still for it (HUD "seg").
+      const segMs = performance.now() - segT0;
+      foundSegMs = foundSegMs ? foundSegMs + 0.2 * (segMs - foundSegMs) : segMs;
     } catch (e) { segmentBusy = false; }
   }
   function sampleScene(now, W, H) {
@@ -1932,7 +1972,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     'uniform sampler2D uMask3; uniform vec4 uHlAreas; uniform float uHlLegacy; uniform vec3 uSkinColor;',
     'uniform vec4 uLipCenter; uniform float uCenterHalf; uniform float uCenterHl;',
     'uniform sampler2D uMask2; uniform vec3 uHlAlbedo; uniform float uHlCov; uniform float uHlFlake; uniform vec3 uContourAlbedo; uniform float uContourCov;',
-    'uniform vec3 uFoundAlbedo; uniform float uFoundCov; uniform float uFoundOpaque; uniform float uFoundShadeMax; uniform vec2 uFoundHair; uniform vec2 uFoundTone; uniform sampler2D uFoundSkin; uniform float uFoundSkinOn; uniform vec3 uBrowAlbedo; uniform float uBrowCov; uniform float uBrowPowder; uniform float uBrowLift; uniform float uBrowSoft;',
+    'uniform vec3 uFoundAlbedo; uniform float uFoundCov; uniform float uFoundOpaque; uniform float uFoundShadeMax; uniform vec2 uFoundHair; uniform vec2 uFoundTone; uniform sampler2D uFoundSkin; uniform float uFoundSkinOn; uniform float uFoundFloor; uniform vec2 uFoundLowerV; uniform vec3 uBrowAlbedo; uniform float uBrowCov; uniform float uBrowPowder; uniform float uBrowLift; uniform float uBrowSoft;',
     'uniform vec2 uBrowSkin[12]; uniform vec2 uBrowHead[2]; uniform vec2 uBrowTail[2];',
     'uniform vec3 uFaceRough; uniform float uFaceSheen; uniform float uEyeHole; uniform float uCap; uniform float uCapFade; uniform float uPowderTint;',
     'uniform sampler2D uEye; uniform vec4 uEyeRect; uniform vec3 uLinerAlbedo; uniform float uLinerCov; uniform float uLinerAA; uniform float uLinerSoft; uniform vec3 uMascaraAlbedo; uniform float uMascaraCov; uniform float uEyeSoft;',
@@ -1945,7 +1985,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     'uniform float uLumGainMax; uniform float uCreaseCover;',
     'uniform float uLipTranslucent; uniform float uMaskBias; uniform float uLipSheen;',
     'uniform sampler2D uOutline; uniform vec4 uOutlineRect; uniform float uOutlineSoft;',
-    'uniform sampler2D uForm; uniform vec2 uFormStep; uniform float uFormTilt; uniform float uLowPx; uniform float uLipVolume; uniform float uFormOn; uniform vec2 uGlossMax; uniform vec2 uLightSize; uniform float uWideGloss; uniform vec3 uMouthN; uniform float uGlossGain; uniform float uFrontGloss; uniform float uGlossFlat;',
+    'uniform sampler2D uForm; uniform vec2 uFormStep; uniform float uFormTilt; uniform float uLowPx; uniform float uLipVolume; uniform float uFormOn; uniform vec2 uGlossMax; uniform vec2 uLightSize; uniform float uWideGloss; uniform vec3 uMouthN; uniform float uGlossGain; uniform float uFrontGloss; uniform float uGlossFlat; uniform vec4 uGlossShape; uniform vec3 uGlossTone;',
     'uniform float uHlLocal; uniform vec2 uHlSat; uniform float uHlBlown; uniform float uOpaqueShadeGamma; uniform float uLipFill;',
     'float redness(vec3 c) { return (c.r - c.g) / (c.r + c.g + c.b + 1e-4); }',
     // Screen-space lip outline (video coordinates): r = paint area, g = lip form; 0 outside.
@@ -2192,7 +2232,12 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     // share = the skin filtered by the pigment (its own color shows through). Coverage moves between the two.
     '  if (foundA > 0.002) {',
     // Landmark oval includes bangs. Prefer selfie-multiclass face skin (class 3); brightness gate is fallback only.
-    '    foundA *= uFoundSkinOn > 0.5 ? texture2D(uFoundSkin, suv).r : smoothstep(uFoundHair.x, uFoundHair.y, lum(cam) / max(uSkinMeanLum, 1e-3));',
+    '    float skinM = uFoundSkinOn > 0.5 ? texture2D(uFoundSkin, suv).r : smoothstep(uFoundHair.x, uFoundHair.y, lum(cam) / max(uSkinMeanLum, 1e-3));',
+    // Lower face: the mask is a screen-space texture a few frames old, so on a moving head its edge lags the face. Below the eyes the
+    // paint keeps a floor (uFoundFloor, 0 while a hand or hair covers the lower face, and 0 without a mask) and follows the landmark
+    // outline instead. The forehead cap and the upper face keep the mask.
+    '    if (uCap < 0.5) skinM = max(skinM, uFoundFloor * (1.0 - smoothstep(uFoundLowerV.x, uFoundLowerV.y, vUv.y)));',
+    '    foundA *= skinM;',
     // Tone gate: pixels whose colour (chromaticity, not brightness) is far from this face's skin get no foundation: coloured bangs
     // the mask missed. Brightness is left out so highlights and shadows on skin keep their coverage.
     '    float fdC = length(cam / max(lum(cam), 1e-4) - uSkinColor / max(lum(uSkinColor), 1e-4));',
@@ -2370,12 +2415,13 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     // half vector: lower-lip centre and upper-lip ridge under frontal light, shifting with the light.
     // A gloss reflects the light source itself, so its peak follows the scene's brightness (skin
     // luminance), not the diffuse light-strength fit (0.06–0.56 on LaPa: the gloss vanished).
-    '    float glossCap = mix(uGlossMax.x, uGlossMax.y, smooth1 * smooth1 * smooth1) * uSkinMeanLum * uGlossGain;',
+    '    float glossCap = mix(uGlossMax.x, uGlossMax.y, smooth1 * smooth1 * smooth1) * mix(0.25, uSkinMeanLum, uGlossShape.z) * uGlossGain;',
     // Two lobes, each the GGX shape at the finish roughness widened by a light size, peak-normalized:
     // the light source's own sharp reflection (a gloss's near-white spot) and the wide glow around it
     // (a satin's sheen). A rough finish makes both broad and alike. One lobe widened for a big light
     // read as satin on gloss (10-25, LaPa next to a real gloss).
-    '    float nh = max(dot(lipFormN, normalize(lV + v)), 0.0);',
+    '    vec3 lG = normalize(mix(vec3(0.0, 0.25, 1.0), l, uLightConf * uGlossShape.w));',
+    '    float nh = max(dot(lipFormN, normalize(lG + v)), 0.0);',
     // A selfie always has a soft frontal source too (phone screen, the room in front): with a strong
     // side key light no lip normal faces its half vector, but the gloss still catches the front.
     '    float nf = max(dot(lipFormN, normalize(vec3(0.0, 0.3, 1.0) + v)), 0.0);',
@@ -2384,9 +2430,10 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     // The source's reflection has a defined edge (a window or panel is a shape, not a blur); the
     // smoother the finish, the crisper that edge.
     '    float edgeLo = mix(0.0, 0.3, smooth1 * smooth1);',
-    '    float sharpK = smoothstep(edgeLo, edgeLo + 0.35, lobeN(nh, rS)), sharpF = smoothstep(edgeLo, edgeLo + 0.35, lobeN(nf, rS));',
+    '    float edgeHi = min(edgeLo + uGlossShape.x, 1.0);',
+    '    float sharpK = smoothstep(edgeLo, edgeHi, lobeN(nh, rS)), sharpF = smoothstep(edgeLo, edgeHi, lobeN(nf, rS));',
     '    float lobe = max(sharpK + uWideGloss * lobeN(nh, rW), uFrontGloss * (sharpF + uWideGloss * lobeN(nf, rW)));',
-    '    float formSpec = glossCap * lobe * core * uFormOn;',
+    '    float formSpec = glossCap * lobe * core * uFormOn * mix(1.0, exp(-cd * cd), uGlossShape.y);',
     '    float camSpec = hl / max(meanL, 1e-3);',
     '    formSpec *= 1.0 + uGlossFlat * (1.0 - smoothstep(0.02, 0.12, camSpec)) * smooth1 * smooth1;',
     '    float spec = (min(specPbr * uLipSpec * peakMask, uLipSpecMax) * (1.0 - uFormOn) + min(glint, 0.05) + sheen) * cov;',
@@ -2394,9 +2441,11 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     // Gloss is the color brightened toward the light: a clear coat (glossy) reflects the light's own
     // color, a pigmented satin or cream sheen stays the product color (no white band on satin lips).
     '    vec3 hue = uLipAlbedo / max(max(uLipAlbedo.r, max(uLipAlbedo.g, uLipAlbedo.b)), 1e-3);',
-    '    vec3 sheenCol = uLightColor * mix(hue, vec3(1.0), smooth1 * smooth1 * smooth1);',
+    '    float peakness = max(sharpK, sharpF);',
+    '    vec3 sheenCol = mix(uLightColor, vec3(1.0), uGlossTone.y) * mix(hue, vec3(1.0), smooth1 * smooth1 * smooth1 * mix(uGlossTone.x, 1.0, peakness));',
     '    float fl = uLipFlake * flake(vUv, n, l, v) * uLightStrength * core;',
-    '    col += layered + vec3(hl * keepHl) - cam + specTint * spec + sheenCol * formSpec * cov + vec3(fl) * lipM;',
+    '    col += layered + vec3(hl * keepHl) - cam + specTint * spec + vec3(fl) * lipM;',
+    '    col += sheenCol * formSpec * cov * mix(vec3(1.0), vec3(1.0) - clamp(col, 0.0, 1.0), uGlossTone.z);',
     '  }',
     '  gl_FragColor = vec4(toSrgb(col), 1.0);',
     '}',
@@ -2434,12 +2483,12 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       'uLipTranslucent', 'uMaskBias',
       'uSpecFill', 'uLipColor', 'uPaperWhite', 'uRatioMax', 'uLipSpecMax', 'uHlKeep',
       'uLumGainMax', 'uCreaseCover', 'uLipSheen',
-      'uOutline', 'uOutlineRect', 'uOutlineSoft', 'uForm', 'uFormStep', 'uFormTilt', 'uLowPx', 'uLipVolume', 'uFormOn', 'uGlossMax', 'uLightSize', 'uWideGloss', 'uMouthN', 'uGlossGain', 'uFrontGloss', 'uGlossFlat',
+      'uOutline', 'uOutlineRect', 'uOutlineSoft', 'uForm', 'uFormStep', 'uFormTilt', 'uLowPx', 'uLipVolume', 'uFormOn', 'uGlossMax', 'uLightSize', 'uWideGloss', 'uMouthN', 'uGlossGain', 'uFrontGloss', 'uGlossFlat', 'uGlossShape', 'uGlossTone',
       'uHlLocal', 'uHlSat', 'uHlBlown', 'uOpaqueShadeGamma', 'uLipFill',
       'uShadow2Albedo', 'uShadow2Cov', 'uInnerAlbedo', 'uInnerCov', 'uMask3', 'uHlAreas', 'uHlLegacy', 'uSkinColor',
       'uLipCenter', 'uCenterHalf', 'uCenterHl', 'uMask2', 'uHlAlbedo', 'uHlCov', 'uHlFlake', 'uContourAlbedo', 'uContourCov', 'uFaceRough', 'uFaceSheen', 'uEyeHole', 'uCap', 'uCapFade', 'uPowderTint',
       'uEye', 'uEyeRect', 'uLinerAlbedo', 'uLinerCov', 'uLinerAA', 'uLinerSoft', 'uMascaraAlbedo', 'uMascaraCov', 'uEyeSoft',
-      'uFoundAlbedo', 'uFoundCov', 'uFoundOpaque', 'uFoundShadeMax', 'uFoundHair', 'uFoundTone', 'uFoundSkin', 'uFoundSkinOn', 'uBrowAlbedo', 'uBrowCov', 'uBrowPowder', 'uBrowLift', 'uBrowSoft', 'uBrowSkin', 'uBrowHead', 'uBrowTail']);
+      'uFoundAlbedo', 'uFoundCov', 'uFoundOpaque', 'uFoundShadeMax', 'uFoundHair', 'uFoundTone', 'uFoundSkin', 'uFoundSkinOn', 'uFoundFloor', 'uFoundLowerV', 'uBrowAlbedo', 'uBrowCov', 'uBrowPowder', 'uBrowLift', 'uBrowSoft', 'uBrowSkin', 'uBrowHead', 'uBrowTail']);
     const bgPos = gl.getAttribLocation(bg.p, 'aPos');
     const aPos = gl.getAttribLocation(mesh.p, 'aPos');
     const aUv = gl.getAttribLocation(mesh.p, 'aUv');
@@ -2695,6 +2744,8 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         gl.bindTexture(gl.TEXTURE_2D, foundSkinTex);
         gl.uniform1i(u.uFoundSkin, 7);
         gl.uniform1f(u.uFoundSkinOn, foundZ && foundSkinReady ? 1 : 0);
+        gl.uniform1f(u.uFoundFloor, foundZ && foundSkinReady ? TUNING.foundLowerFloor * foundOcc : 0);
+        gl.uniform2f(u.uFoundLowerV, TUNING.foundLowerV[0], TUNING.foundLowerV[1]);
         const browAlb = browZ ? hexToLinear(browZ.hex) : [0, 0, 0];
         gl.uniform3f(u.uBrowAlbedo, browAlb[0], browAlb[1], browAlb[2]);
         gl.uniform1f(u.uBrowCov, browZ ? clamp01(browZ.intensity) * EYEBROW_PRESET.baseOpacity : 0);
@@ -2716,7 +2767,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         if (outlineOn) gl.uniform4f(u.uOutlineRect, outlineRect[0], outlineRect[1], outlineRect[2], outlineRect[3]);
         else gl.uniform4f(u.uOutlineRect, -2, -2, 1, 1);
         // Outline edge as soft as the camera's own blur; volume reach a share of this lip's thickness.
-        gl.uniform1f(u.uOutlineSoft, Math.max(0.5, 0.5 * light.blur));
+        gl.uniform1f(u.uOutlineSoft, clamp(TUNING.lipEdgeBlurK * light.blur, 0.5, TUNING.lipEdgeSoftMax));
         gl.activeTexture(gl.TEXTURE4);
         gl.bindTexture(gl.TEXTURE_2D, formTex);
         if (outlineOn && TUNING.lipForm) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, formCanvas);
@@ -2733,6 +2784,8 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         gl.uniform1f(u.uGlossGain, TUNING.glossGain);
         gl.uniform1f(u.uFrontGloss, TUNING.frontGloss);
         gl.uniform1f(u.uGlossFlat, TUNING.glossFlat);
+        gl.uniform4f(u.uGlossShape, TUNING.glossShape[0], TUNING.glossShape[1], TUNING.glossShape[2], TUNING.glossShape[3]);
+        gl.uniform3f(u.uGlossTone, TUNING.glossTone[0], TUNING.glossTone[1], TUNING.glossTone[2]);
         gl.uniform1f(u.uHlLocal, TUNING.hlLocal);
         gl.uniform1f(u.uHlBlown, TUNING.hlBlown);
         gl.uniform1f(u.uLipFill, TUNING.lipFill);
@@ -3076,7 +3129,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       'fps ' + fps + '  ' + (renderer ? renderer.name : '-') + '  face ' + landmarkerDelegate + '  zoom ' + viewZoom.toFixed(2) + 'x',
       'light rgb ' + light.color.map(f).join(' ') + '  conf ' + f(light.colorConf),
       'bg ' + f(light.bgFraction) + '  seg ' + (segmenter ? 'on' : 'off'),
-      'found ' + (makeup.foundation ? 'on ' + makeup.foundation.hex + ' ' + f(makeup.foundation.intensity || 0) : 'off') + '  mask ' + (foundSkinReady ? 'ready' : 'none') + '  skin cat ' + f(foundSkinStat.cat) + ' prob ' + f(foundSkinStat.prob),
+      'found ' + (makeup.foundation ? 'on ' + makeup.foundation.hex + ' ' + f(makeup.foundation.intensity || 0) : 'off') + '  mask ' + (foundSkinReady ? 'ready' : 'none') + '  skin cat ' + f(foundSkinStat.cat) + ' prob ' + f(foundSkinStat.prob) + '  lower floor ' + f(foundSkinReady ? TUNING.foundLowerFloor * foundOcc : 0) + '  seg call ' + foundSegMs.toFixed(0) + 'ms',
       'dir ' + light.dir.map(f).join(' ') + '  conf ' + f(light.dirConf),
       'strength ' + f(light.strength) + '  lip ' + f(light.lipMeanLum) + '  skin ' + f(light.skinMeanLum),
       'mouth gap ' + f(Math.hypot(sx[13] - sx[14], sy[13] - sy[14]) / Math.max(1e-4, Math.hypot(sx[61] - sx[291], sy[61] - sy[291]))) + (mouthClosed() ? ' closed' : ' open'),

@@ -34,9 +34,7 @@ class JsonLlm(FakeLlm):
 
 class Catalog:
     async def get_product(self, product_id):
-        return SimpleNamespace(
-            id=product_id, makeup_zone="lip", shades=[SimpleNamespace(id="01")]
-        )
+        return SimpleNamespace(id=product_id, makeup_zone="lip", shades=[SimpleNamespace(id="01")])
 
 
 def request_body():

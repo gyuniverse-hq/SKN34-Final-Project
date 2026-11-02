@@ -104,6 +104,23 @@ it('keeps same-intensity NO_CHANGE distinct from a new application', async () =>
   expect(post).toHaveBeenCalledWith('/api/chat/acks', expect.objectContaining({ status: 'NO_CHANGE' }), expect.anything());
 });
 
+it('keeps recording controls and command confirmation connected on the same AR view', async () => {
+  const start = screen.root.findByProps({ accessibilityLabel: 'ar.rec.start' });
+  await act(async () => { start.props.onPress(); });
+  expect(face().props.recording).toBe(true);
+  expect(face().props.onRecorder).toEqual(expect.any(Function));
+
+  await send('립 진하기를 50%로 설정해 줘.');
+  const render = face().props.renderCommand;
+  expect(render).toBeTruthy();
+  expect(face().props.recording).toBe(true);
+  await act(async () => { face().props.onRenderResult({ ...render, status: 'rendered' }); });
+
+  expect(useMakeupStore.getState().makeup.lip!.intensity).toBe(0.5);
+  expect(face().props.recording).toBe(true);
+  expect(post).toHaveBeenCalledWith('/api/chat/acks', expect.objectContaining({ status: 'APPLIED' }), expect.anything());
+});
+
 it('invalidates a delayed proposal when the local blush command is used', async () => {
   let resolve!: (value: any) => void;
   let body: any;

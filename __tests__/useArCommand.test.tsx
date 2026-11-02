@@ -1,4 +1,5 @@
-import { createElement } from 'react';
+import { uuid } from 'expo';
+import { createElement, useLayoutEffect } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { useArCommand } from '@/hooks/useArCommand';
 import { apiPostOwned } from '@/lib/api';
@@ -7,8 +8,6 @@ import type { MakeupZone, Product } from '@/types';
 
 jest.mock('expo', () => ({ uuid: { v4: jest.fn() } }));
 jest.mock('@/lib/api', () => ({ apiPostOwned: jest.fn() }));
-
-import { uuid } from 'expo';
 
 const mockedPost = jest.mocked(apiPostOwned);
 const owned = <T,>(data: T) => ({ data, owner: { kind: 'guest' as const, id: 'anonymous' } });
@@ -21,7 +20,8 @@ let view: ReactTestRenderer;
 const initialOptions = { active: true, enabled: true, activeZone: 'lip' as const, locale: 'ko' as const, rendererId: 'renderer-1' };
 
 function Harness(props: typeof initialOptions & { visibleZones?: MakeupZone[] | null }) {
-  hook = useArCommand(props);
+  const result = useArCommand(props);
+  useLayoutEffect(() => { hook = result; });
   return null;
 }
 

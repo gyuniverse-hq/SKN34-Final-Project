@@ -82,8 +82,8 @@ class IsolatedRedis:
             executable,
             image,
         )
-        self.port = 16380
-        self.name = "vishue-p0-3c-redis"
+        self.port = free_port()
+        self.name = f"vishue-p0-3c-redis-{run_id}"
         self.process = None
         self.client = Redis(
             host="127.0.0.1",

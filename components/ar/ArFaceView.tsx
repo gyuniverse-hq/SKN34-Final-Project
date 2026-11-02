@@ -2,26 +2,12 @@ import { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import type { GuideMessage } from '@/lib/drawGuide';
+import { parseRecorderMessage, type RecorderMessage } from '@/lib/arRecording';
 import { parseSkinTone, type SkinTone } from '@/lib/foundationMatch';
-import type { MakeupState } from '@/types';
+import type { ArRenderCommand, ArRenderResult, MakeupState } from '@/types';
 import { FACE_TRACKER_HTML, type ArStatus } from './faceTrackerHtml';
 
 export type LightHint = 'low' | 'blown';
-
-export interface ArRenderCommand {
-  commandId: string;
-  renderSeq: number;
-  rendererId: string;
-  makeup: MakeupState;
-  kind?: 'command' | 'restore';
-  restoreId?: string;
-}
-
-export type ArRenderResult = Pick<ArRenderCommand, 'commandId' | 'renderSeq' | 'rendererId'> & {
-  status: 'rendered' | 'failed';
-  kind?: 'command' | 'restore';
-  restoreId?: string;
-};
 
 export interface ArFaceViewProps {
   makeup: MakeupState;
@@ -38,17 +24,35 @@ export interface ArFaceViewProps {
   onCrash?: () => void;
   renderCommand?: ArRenderCommand | null;
   onRenderResult?: (result: ArRenderResult) => void;
+  /** Development only (AR_SPEC 1-4, 11-02): record the AR canvas while true. Ignored in a production build. */
+  recording?: boolean;
+  /** Development only: pieces and state of the recording above. */
+  onRecorder?: (message: RecorderMessage) => void;
 }
 
-export function ArFaceView({ makeup, compare, guide = null, fillPreview = false, onCrash, onStatus, onLightHint, onSkinTone, renderCommand = null, onRenderResult }: ArFaceViewProps) {
+export function ArFaceView({ makeup, compare, guide = null, fillPreview = false, recording = false, onStatus, onLightHint, onSkinTone, onCrash, onRecorder, renderCommand = null, onRenderResult }: ArFaceViewProps) {
   // react-native-webview의 타입이 제네릭 기본값을 `never`로 잡는 경우가 있어,
   // 메시지/소스에 대해 넉넉한 타입을 명시해 props 타입 추론을 정상화합니다.
   const ref = useRef<WebView<any>>(null);
   const stateSeq = useRef(0);
-  const latest = useRef({ makeup, compare, guide, fillPreview, onCrash, onLightHint, onSkinTone, renderCommand, onRenderResult });
+  const latest = useRef({ makeup, compare, guide, fillPreview, onLightHint, onSkinTone, onCrash, onRecorder, renderCommand, onRenderResult });
   useEffect(() => {
-    latest.current = { makeup, compare, guide, fillPreview, onCrash, onLightHint, onSkinTone, renderCommand, onRenderResult };
+    latest.current = { makeup, compare, guide, fillPreview, onLightHint, onSkinTone, onCrash, onRecorder, renderCommand, onRenderResult };
   });
+
+  // The recorder is not part of the page: in development it is injected when recording starts (components/ar/recorderScript.ts).
+  const wasRecording = useRef(false);
+  useEffect(() => {
+    if (!__DEV__ || recording === wasRecording.current) return;
+    wasRecording.current = recording;
+    if (recording) {
+      import('./recorderScript').then(({ AR_RECORDER_SCRIPT }) =>
+        ref.current?.injectJavaScript(`${AR_RECORDER_SCRIPT}\nwindow.__kbRec && window.__kbRec.start(); true;`)
+      );
+    } else {
+      ref.current?.injectJavaScript('window.__kbRec && window.__kbRec.stop(); true;');
+    }
+  }, [recording]);
 
   const send = useCallback((message: object) => {
     const payload = JSON.stringify(JSON.stringify(message));
@@ -106,6 +110,9 @@ export function ArFaceView({ makeup, compare, guide = null, fillPreview = false,
       if (tone) latest.current.onSkinTone?.(tone);
     } else if (message.type === 'crash') {
       latest.current.onCrash?.();
+    } else if (__DEV__ && typeof message.type === 'string' && message.type.startsWith('rec_')) {
+      const recorded = parseRecorderMessage(message);
+      if (recorded) latest.current.onRecorder?.(recorded);
     }
   };
 

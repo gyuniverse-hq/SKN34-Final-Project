@@ -25,6 +25,41 @@ def test_corrupted_ingredient_tokens_are_not_linked():
     assert makeup.clean_ingredient("1,2-헥산다이올") == "1,2-헥산다이올"
 
 
+def test_number_commas_are_split_only_at_ingredient_boundaries():
+    """성분명 안의 쉼표(로칸트·천 단위)는 보호하고 성분 경계만 쪼갠다."""
+    # 이름 꼬리가 숫자인 성분 뒤에 로칸트 성분이 오는 경우(유령 성분 '2-헥산다이올'의 원인)
+    assert makeup.ingredient_list(
+        "솔비탄아이소스테아레이트, 폴리솔베이트60, 1,2-헥산다이올, 글리세린"
+    ) == ["솔비탄아이소스테아레이트", "폴리솔베이트60", "1,2-헥산다이올", "글리세린"]
+    assert makeup.ingredient_list("글리세레스-26, 1,2-헥산다이올, 세테아레스-20") == [
+        "글리세레스-26",
+        "1,2-헥산다이올",
+        "세테아레스-20",
+    ]
+    # 이름 중간·앞머리의 로칸트는 쪼개지 않는다
+    for single in (
+        "다이에틸헥실2,6-나프탈레이트",
+        "비스-에톡시다이글라이콜사이클로헥산1,4-다이카복실레이트",
+        "황산톨루엔-2,5-디아민",
+        "2-올레아미도-1,3-옥타데칸다이올",
+    ):
+        assert makeup.ingredient_list(single) == [single]
+    # 함량 표기의 천 단위 구분 쉼표도 성분 경계가 아니다
+    assert makeup.ingredient_list("정제수, 자작나무수액(10,000ppm), 호호바에스터") == [
+        "정제수",
+        "자작나무수액(10,000ppm)",
+        "호호바에스터",
+    ]
+    # 쉼표 주변 공백은 기존과 같이 정규화한다(같은 성분이 두 표기로 갈라지지 않도록)
+    assert makeup.ingredient_list("글리세린, 1, 2-헥산다이올") == ["글리세린", "1,2-헥산다이올"]
+    # 하이픈 없는 변형 표기도 보호한다
+    assert makeup.ingredient_list("정제수, 1,2헥산다이올, 글리세린") == [
+        "정제수",
+        "1,2헥산다이올",
+        "글리세린",
+    ]
+
+
 def test_spf_volume_is_not_treated_as_sun_protection_factor():
     notice = {"main_spec": "모든피부", "usage_guide": ""}
     gift = skincare.skincare_attr(

@@ -571,6 +571,13 @@ export const zh: Dictionary = {
   'ar.openStore': '销售页面',
   'ar.mirror.enter': '全屏镜面',
   'ar.mirror.exit': '打开产品选择',
+  'ar.rec.start': '开始录制',
+  'ar.rec.stop': '结束录制并保存',
+  'ar.rec.on': '录制中 · 仅保存在本设备',
+  'ar.rec.saving': '保存中…',
+  'ar.rec.failed': '无法保存录制内容',
+  'ar.rec.unsupported': '此设备无法录制AR画面',
+  'ar.rec.noShare': '无法打开分享。视频保留在应用缓存中',
 
   'login.title': '欢迎来到 VISHUE',
   'login.subtitle': '登录后即可保存妆容、累积奖励并加入会员。',

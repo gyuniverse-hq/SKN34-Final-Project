@@ -1,12 +1,11 @@
 import { uuid } from 'expo';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { ArRenderCommand, ArRenderResult } from '@/components/ar/ArFaceView';
 import { apiPostOwned, type ArRequestOwner } from '@/lib/api';
 import { pendingArAcks, queueArAck, retryArAcks, subscribeArAcks } from '@/lib/arCommandAck';
 import { revealedMakeup } from '@/lib/practice';
 import type { Language } from '@/lib/i18n';
 import { arPaintMakeup, isArPaintZone, useMakeupStore, type ArOutcome, type ArProposal } from '@/store/makeupStore';
-import type { MakeupZone } from '@/types';
+import type { ArRenderCommand, ArRenderResult, MakeupZone } from '@/types';
 
 type Phase = 'idle' | 'interpreting' | 'proposed' | 'applying' | 'applied' | 'no_change' | 'clarification' | 'rejected' | 'failed' | 'unknown';
 type RestorePhase = 'idle' | 'pending' | 'confirmed' | 'failed' | 'unknown' | 'unavailable';
