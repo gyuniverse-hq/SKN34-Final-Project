@@ -101,6 +101,10 @@ export function celebrityHref(id: string): Href {
   return { pathname: '/celebrities/[id]', params: { id } } as Href;
 }
 
+export function productVideoHref(source: 'celebrity' | 'style', id: string): Href {
+  return { pathname: source === 'celebrity' ? '/celebrity-video/[id]' : '/style-look/[id]', params: { id } } as Href;
+}
+
 export function arHref(options: { productId?: string; shadeId?: string; compare?: boolean; video?: boolean } = {}): Href {
   return {
     pathname: '/ar',
