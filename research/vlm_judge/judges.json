@@ -1,7 +1,7 @@
 {
-  "provider": "gemini",
+  "provider": "openai",
   "model": "",
-  "temperature": 0.4,
+  "temperature": null,
   "repeats": 3,
   "swap_order": true,
   "max_concurrency": 4,

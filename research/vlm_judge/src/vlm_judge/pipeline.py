@@ -58,12 +58,12 @@ def normalized(kind: str, order: list[str], response: dict) -> dict:
     return value
 
 
-def cache_key(task: dict, model: str, prompt: str, image_bytes: list[bytes]) -> str:
+def cache_key(task: dict, model: str, prompt: str, image_bytes: list[bytes], provider: str) -> str:
     h = hashlib.sha256()
     for data in image_bytes:
         h.update(len(data).to_bytes(8, 'big'))
         h.update(data)
-    h.update(json.dumps({'version': PROMPT_VERSION, 'prompt': prompt, 'model': model,
+    h.update(json.dumps({'version': PROMPT_VERSION, 'prompt': prompt, 'model': model, 'provider': provider,
                          'kind': task['kind'], 'repeat': task['repeat'],
                          'order': task['order']}, sort_keys=True).encode())
     return h.hexdigest()
@@ -103,7 +103,7 @@ async def run(data: Path, sets: list[ImageSet], config: dict, client: JudgeClien
                   ['Reference', 'Candidate X', 'Candidate Y'] if kind == 'texture' else
                   ['Candidate'] if kind == 'natural_single' else ['Candidate X', 'Candidate Y'])
         images = list(zip(labels, payload, strict=True))
-        key = cache_key(task, config['model'], prompts[kind], payload)
+        key = cache_key(task, config['model'], prompts[kind], payload, config['provider'])
         cache_file = cache / f'{key}.json'
         result = {**task, 'image_paths': [str(getattr(item, role)) for role in order],
                   'crop': item.meta['crop'], 'cache_hit': False}

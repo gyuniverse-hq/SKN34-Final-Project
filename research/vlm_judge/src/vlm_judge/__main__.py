@@ -8,7 +8,7 @@ from typing import Annotated
 import typer
 
 from vlm_judge.images import discover, import_existing, lip_box, load_image
-from vlm_judge.judge_adapter import GeminiJudge
+from vlm_judge.judge_adapter import OpenAIJudge
 from vlm_judge.pipeline import PROJECT, make_plan, run
 from vlm_judge.report import generate_report
 
@@ -76,7 +76,9 @@ def run_command(data: Path = DEFAULT_DATA, sets: str = '', only: str = 'color,pl
     if not selected or not selected_only or selected_only - {'color', 'placement', 'texture', 'naturalness'}:
         raise typer.BadParameter('No valid sets or unknown --only value')
     cfg = config()
-    client = GeminiJudge(cfg, ROOT_ENV)
+    if cfg.get('provider') != 'openai':
+        raise typer.BadParameter('judges.json provider must be openai')
+    client = OpenAIJudge(cfg, ROOT_ENV)
 
     async def execute():
         await client.verify_model()

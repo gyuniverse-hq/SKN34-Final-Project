@@ -1,6 +1,8 @@
 import asyncio
 import json
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
 from PIL import Image
@@ -8,9 +10,10 @@ from typer.testing import CliRunner
 
 from vlm_judge.__main__ import app
 from vlm_judge.images import discover, import_existing, jpeg, lip_box
-from vlm_judge.judge_adapter import GeminiJudge, JudgeResult
+from vlm_judge.judge_adapter import JudgeResult, OpenAIJudge
 from vlm_judge.pipeline import PROJECT, make_plan, normalized, run
 from vlm_judge.report import human_compare, majority, ordinal, wilson
+from vlm_judge.schemas import Color
 
 
 def config():
@@ -103,9 +106,54 @@ def test_statistics_order_and_blinding(tmp_path):
 
 def test_no_external_permission(monkeypatch):
     monkeypatch.delenv('ALLOW_EXTERNAL_JUDGE', raising=False)
-    monkeypatch.setenv('GEMINI_API_KEY', 'do-not-print')
+    monkeypatch.setenv('OPENAI_API_KEY', 'do-not-print')
     with pytest.raises(RuntimeError, match='ALLOW_EXTERNAL_JUDGE=true'):
-        GeminiJudge(config())
+        OpenAIJudge(config())
+
+
+def test_openai_request_uses_blind_labels_and_structured_output(monkeypatch):
+    monkeypatch.setenv('ALLOW_EXTERNAL_JUDGE', 'true')
+    monkeypatch.setenv('OPENAI_API_KEY', 'fake-local-test-key')
+    judge = OpenAIJudge(config())
+    judge._client.responses.parse = AsyncMock(return_value=SimpleNamespace(
+        output_parsed=Color(color_band='2-4', reason='Similar.'),
+        usage=SimpleNamespace(input_tokens=123, output_tokens=45)))
+    result = asyncio.run(judge.judge('prompt', [('Reference', b'first'), ('Candidate X', b'second')], Color))
+    assert result.value['color_band'] == '2-4'
+    assert (result.input_tokens, result.output_tokens) == (123, 45)
+    params = judge._client.responses.parse.await_args.kwargs
+    assert params['store'] is False and params['text_format'] is Color
+    assert 'temperature' not in params
+    content = params['input'][0]['content']
+    assert [part['type'] for part in content] == ['input_text', 'input_text', 'input_image', 'input_text', 'input_image']
+    assert [content[1]['text'], content[3]['text']] == ['Reference', 'Candidate X']
+    assert content[2]['image_url'] == 'data:image/jpeg;base64,Zmlyc3Q='
+    assert content[4]['image_url'] == 'data:image/jpeg;base64,c2Vjb25k'
+
+
+def test_openai_missing_structured_response_is_not_success(monkeypatch):
+    monkeypatch.setenv('ALLOW_EXTERNAL_JUDGE', 'true')
+    monkeypatch.setenv('OPENAI_API_KEY', 'fake-local-test-key')
+    judge = OpenAIJudge(config())
+    judge._client.responses.parse = AsyncMock(return_value=SimpleNamespace(output_parsed=None, usage=None))
+    with pytest.raises(ValueError, match='no structured response'):
+        asyncio.run(judge.judge('prompt', [('Candidate', b'image')], Color))
+
+
+def test_openai_model_list_check(monkeypatch):
+    monkeypatch.setenv('ALLOW_EXTERNAL_JUDGE', 'true')
+    monkeypatch.setenv('OPENAI_API_KEY', 'fake-local-test-key')
+    judge = OpenAIJudge(config())
+
+    async def listed_models():
+        yield SimpleNamespace(id='fake')
+        yield SimpleNamespace(id='another')
+
+    judge._client.models.list = listed_models
+    asyncio.run(judge.verify_model())
+    judge._config = config() | {'model': 'missing'}
+    with pytest.raises(ValueError, match='another, fake'):
+        asyncio.run(judge.verify_model())
 
 
 def test_human_spearman(tmp_path):

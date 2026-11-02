@@ -5,8 +5,8 @@ description = "Research-only VLM makeup evaluation"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "google-genai>=2.34.0",
     "numpy>=2.4.6",
+    "openai>=3.42.1",
     "pillow>=13.0.0",
     "pydantic>=2",
     "python-dotenv>=1.2.4",
