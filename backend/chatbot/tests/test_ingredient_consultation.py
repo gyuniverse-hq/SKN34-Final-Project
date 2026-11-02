@@ -1,0 +1,540 @@
+"""Synthetic HTTP evidence fixtures; no real ingredient review or paid LLM requests."""
+
+import json
+import time
+from pathlib import Path
+
+import httpx
+import pytest
+from pydantic import ValidationError
+
+from app.clients.catalog_client import CatalogClient, IngredientLookupError
+from app.schemas.chat import BeautyContext, BeautyFilters, ChatRequest, ChatResponse
+from app.services.chat_service import ChatService, get_chat_service
+from tests.test_beauty_consultation import Catalog, PlanLlm
+
+
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
+
+
+def evidence(pid="a", shade="a-03", *, name=None, operator="includes", **changes):
+    data = dict(
+        productId=pid,
+        shadeId=shade,
+        optionId=f"option-{pid}",
+        status="ok",
+        verdict="UNKNOWN",
+        mappingStatus="reproduced",
+        ingredientCoverage="full",
+        reviewStatus="verified",
+        normalizationStatus="verified",
+        ingredients=[{"name": "향료", "sequence": 1}],
+        source="https://synthetic.test/notice",
+        collectedAt="2026-01-01T10:00:00+09:00",
+        sourceVersion="synthetic-v1",
+        sourceFingerprint="synthetic-input",
+        generatorVersion="synthetic-generator",
+        evidenceId=f"synthetic-{pid}",
+        reason="ingredient_present",
+        synthetic=True,
+        conditions=[],
+    )
+    data.update(changes)
+    if name:
+        if "verdict" not in changes:
+            present = name in [i["name"] for i in data["ingredients"]]
+            data["verdict"] = "MATCH" if present == (operator == "includes") else "NOT_MATCH"
+        data["conditions"] = [
+            dict(
+                productId=pid,
+                shadeId=shade,
+                optionId=data["optionId"],
+                condition="ingredient",
+                ingredientName=name,
+                operator=operator,
+                verdict=data["verdict"],
+                reason=data["reason"],
+                evidenceId=data["evidenceId"],
+                synthetic=True,
+            )
+        ]
+    return data
+
+
+def install_http(monkeypatch, handler):
+    original = httpx.AsyncClient
+    monkeypatch.setattr(
+        httpx, "AsyncClient", lambda **kw: original(transport=httpx.MockTransport(handler), **kw)
+    )
+
+
+class IngredientsCatalog(Catalog):
+    def __init__(self, client):
+        super().__init__()
+        self.client = client
+        self.calls = []
+        for p in self.products:
+            p.shades = [p.shades[0].model_copy(update={"id": f"{p.id}-03", "name": "03 Rose"})]
+
+    async def get_ingredients(self, pid, shade, **kwargs):
+        self.calls.append((pid, shade, kwargs))
+        return await self.client.get_ingredients(pid, shade, **kwargs)
+
+
+def context(*, shades=True, **changes):
+    return BeautyContext(
+        issued_at=int(time.time()),
+        filters=BeautyFilters(),
+        candidate_ids=["a", "b"],
+        selected_product_id="a",
+        shade_selections={"a": "a-03", "b": "b-03"} if shades else {},
+        **changes,
+    )
+
+
+def request(ctx=None, locale="ko", **changes):
+    return ChatRequest.model_validate(
+        dict(
+            message="이 상품에 향료가 들어 있어?",
+            request_type="beauty_consultation",
+            chat_context=ctx,
+            locale=locale,
+        )
+        | changes
+    )
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "name,operator,verdict",
+    [
+        ("향료", "includes", "MATCH"),
+        ("향료", "excludes", "NOT_MATCH"),
+        ("나이아신아마이드", "includes", "NOT_MATCH"),
+        ("나이아신아마이드", "excludes", "MATCH"),
+    ],
+)
+async def test_client_verified_evidence_and_query_encoding(monkeypatch, name, operator, verdict):
+    def handler(req):
+        assert req.url.params["shadeId"] == "a-03"
+        assert req.url.params["ingredientName"] == name
+        assert req.url.params["operator"] == operator
+        return httpx.Response(200, json=evidence(name=name, operator=operator))
+
+    install_http(monkeypatch, handler)
+    result = await CatalogClient("http://catalog.test").get_ingredients(
+        "a", "a-03", ingredient_name=name, operator=operator
+    )
+    assert result.verdict == verdict and result.synthetic and result.verified
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "status,body,reason",
+    [
+        (404, {"code": "not_found"}, "product_not_found"),
+        (404, {"code": "shade_not_found"}, "shade_not_found"),
+        (503, {}, "source_unavailable"),
+        (500, {}, "http_error"),
+        (200, {"productId": "a"}, "invalid_response"),
+        (200, evidence(pid="b"), "invalid_response"),
+        (200, evidence(shade="b-03"), "invalid_response"),
+    ],
+)
+async def test_client_error_states(monkeypatch, status, body, reason):
+    install_http(monkeypatch, lambda req: httpx.Response(status, json=body))
+    with pytest.raises(IngredientLookupError) as exc:
+        await CatalogClient("http://catalog.test").get_ingredients("a", "a-03")
+    assert exc.value.reason == reason
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "error,reason",
+    [
+        (httpx.ReadTimeout, "timeout"),
+        (httpx.ConnectError, "network_error"),
+    ],
+)
+async def test_transport_errors(monkeypatch, error, reason):
+    def handler(req):
+        raise error("synthetic", request=req)
+
+    install_http(monkeypatch, handler)
+    with pytest.raises(IngredientLookupError) as exc:
+        await CatalogClient("http://catalog.test").get_ingredients("a", "a-03")
+    assert exc.value.reason == reason
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"reviewStatus": "unreviewed"},
+        {"mappingStatus": "candidate"},
+        {"ingredientCoverage": "partial"},
+        {"normalizationStatus": "unverified"},
+        {"ingredients": [{"name": "향료", "sequence": 2}]},
+        {"sourceVersion": None},
+        {"issues": ["ingredient_list_inconsistent"]},
+    ],
+)
+async def test_unreviewed_or_partial_never_proves_absence(monkeypatch, changes):
+    install_http(
+        monkeypatch,
+        lambda req: httpx.Response(200, json=evidence(name="나이아신아마이드", **changes)),
+    )
+    with pytest.raises(IngredientLookupError, match="invalid_response"):
+        await CatalogClient("http://catalog.test").get_ingredients(
+            "a", "a-03", ingredient_name="나이아신아마이드"
+        )
+
+
+@pytest.mark.anyio
+async def test_partial_presence_can_be_verified(monkeypatch):
+    install_http(
+        monkeypatch,
+        lambda req: httpx.Response(200, json=evidence(name="향료", ingredientCoverage="partial")),
+    )
+    result = await CatalogClient("http://catalog.test").get_ingredients(
+        "a", "a-03", ingredient_name="향료"
+    )
+    assert result.verdict == "MATCH" and not result.complete
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("locale", ["ko", "en", "ja", "zh"])
+async def test_supervisor_reuses_one_interpretation_and_keeps_public_contract(monkeypatch, locale):
+    catalog = IngredientsCatalog(CatalogClient("http://catalog.test"))
+    llm = PlanLlm(intent="detail", ingredientLookup=True, ingredientName="향료", ordinal=2)
+    # Return the exact second product IDs, not a guessed ordinal in the upstream response.
+    install_http(
+        monkeypatch,
+        lambda req: httpx.Response(200, json=evidence(pid="b", shade="b-03", name="향료")),
+    )
+    result = await ChatService(None, llm, catalog).answer(request(context(), locale))
+    assert llm.calls == 1
+    assert [p.id for p in result.products] == ["b"]
+    assert result.ingredient_results[0].verdict == "MATCH"
+    assert {"ko": "충족", "en": "meets", "ja": "満た", "zh": "符合"}[locale] in result.answer
+    assert result.supervisor.result.conditions[0].shade_id == "b-03"
+    assert result.supervisor.result.evidence[0].evidence_id == "synthetic-b"
+    assert result.supervisor.result.application == "not_requested"
+    payload = result.model_dump(mode="json", by_alias=True)
+    assert "supervisor" not in payload and "toolResult" not in payload and "arResult" not in payload
+    assert {"answer", "products", "chatContext", "ingredientResults"} <= payload.keys()
+    assert payload["ingredientResults"][0]["productId"] == payload["products"][0]["id"]
+    assert result.chat_context.shade_selections == {"a": "a-03", "b": "b-03"}
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("locale", ["ko", "en", "ja", "zh"])
+@pytest.mark.parametrize("selection", ["none", "missing_shade", "foreign_shade"])
+async def test_missing_selection_clarifies_without_api_or_first_shade(
+    monkeypatch, locale, selection
+):
+    catalog = IngredientsCatalog(CatalogClient("http://must-not-call.test"))
+    ctx = None if selection == "none" else context(shades=False)
+    if selection == "foreign_shade":
+        ctx.shade_selections = {"a": "b-03"}
+    result = await ChatService(
+        None, PlanLlm(intent="detail", ingredientLookup=True), catalog
+    ).answer(request(ctx, locale))
+    assert result.result_type == "clarification"
+    assert catalog.calls == []
+    assert result.supervisor.result.status == "clarification"
+    assert {"ko": "선택", "en": "Select", "ja": "選んで", "zh": "选择"}[locale] in result.answer
+
+
+@pytest.mark.anyio
+async def test_explicit_shade_then_followup_retains_selection(monkeypatch):
+    install_http(monkeypatch, lambda req: httpx.Response(200, json=evidence()))
+    catalog = IngredientsCatalog(CatalogClient("http://catalog.test"))
+    service = ChatService(
+        None, PlanLlm(intent="detail", ingredientLookup=True, shadeName="03"), catalog
+    )
+    first = await service.answer(request(context(shades=False), message="그 제품 03호 성분은?"))
+    assert catalog.calls[0][:2] == ("a", "a-03")
+    service._llm = PlanLlm(intent="detail", ingredientLookup=True)
+    second = await service.answer(request(first.chat_context))
+    assert second.chat_context.shade_selections["a"] == "a-03"
+    assert len(catalog.calls) == 2
+    service._llm = PlanLlm(intent="price")
+    priced = await service.answer(request(second.chat_context))
+    assert priced.chat_context.shade_selections["a"] == "a-03"
+
+
+@pytest.mark.anyio
+async def test_screen_selection_is_revalidated(monkeypatch):
+    install_http(monkeypatch, lambda req: httpx.Response(200, json=evidence()))
+    catalog = IngredientsCatalog(CatalogClient("http://catalog.test"))
+    result = await ChatService(
+        None, PlanLlm(intent="detail", ingredientLookup=True), catalog
+    ).answer(request(screen_context={"productId": "a", "shadeId": "a-03"}))
+    assert result.products[0].id == "a" and result.ingredient_results[0].verified
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "review,coverage,reason",
+    [
+        ("unreviewed", "unknown", "evidence_not_reviewed"),
+        ("verified", "partial", "absence_not_verifiable"),
+    ],
+)
+async def test_unknown_is_not_empty_or_absence(monkeypatch, review, coverage, reason):
+    install_http(
+        monkeypatch,
+        lambda req: httpx.Response(
+            200,
+            json=evidence(
+                name="향료",
+                status="unknown",
+                verdict="UNKNOWN",
+                reviewStatus=review,
+                ingredientCoverage=coverage,
+                ingredients=[],
+                reason=reason,
+            ),
+        ),
+    )
+    result = await ChatService(
+        None,
+        PlanLlm(intent="detail", ingredientName="향료"),
+        IngredientsCatalog(CatalogClient("http://catalog.test")),
+    ).answer(request(context()))
+    assert result.ingredient_results[0].verdict == "UNKNOWN"
+    assert result.result_type == "clarification" and result.products[0].id == "a"
+
+
+@pytest.mark.anyio
+async def test_fragrance_filter_has_verified_and_unknown_distinct_results(monkeypatch):
+    def handler(req):
+        pid = req.url.path.split("/")[-2]
+        return httpx.Response(
+            200,
+            json=evidence(
+                pid=pid,
+                shade=f"{pid}-03",
+                name="향료",
+                operator="excludes",
+                ingredients=[{"name": "정제수" if pid == "b" else "향료", "sequence": 1}],
+            ),
+        )
+
+    install_http(monkeypatch, handler)
+    service = ChatService(
+        None,
+        PlanLlm(intent="refine", scope="previous", fragranceFree=True),
+        IngredientsCatalog(CatalogClient("http://catalog.test")),
+    )
+    result = await service.answer(request(context()))
+    assert [p.id for p in result.products] == ["b"]
+    assert result.result_type == "recommendations"
+    assert result.ingredient_results[0].verdict == "MATCH"
+    unknown = await service.answer(request(context(shades=False)))
+    assert unknown.result_type == "clarification" and len(unknown.products) == 2
+    assert all(r.verdict == "UNKNOWN" for r in unknown.ingredient_results)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("different", [False, True])
+async def test_comparison_requires_verified_full_lists(monkeypatch, different):
+    def handler(req):
+        pid = req.url.path.split("/")[-2]
+        return httpx.Response(
+            200,
+            json=evidence(
+                pid=pid,
+                shade=f"{pid}-03",
+                ingredients=[
+                    {
+                        "name": "정제수" if different and pid == "b" else "향료",
+                        "sequence": 1,
+                    }
+                ],
+            ),
+        )
+
+    install_http(monkeypatch, handler)
+    service = ChatService(
+        None,
+        PlanLlm(intent="detail", compareOrdinals=[1, 2]),
+        IngredientsCatalog(CatalogClient("http://catalog.test")),
+    )
+    result = await service.answer(request(context()))
+    assert ("차이 있음" if different else "동일") in result.answer
+    assert [p.id for p in result.products] == ["a", "b"]
+    result = await service.answer(request(context(shades=False)))
+    assert "차이를 확정할 수 없습니다" in result.answer
+
+
+@pytest.mark.anyio
+async def test_lookup_failure_survives_supervisor_as_error_not_empty(monkeypatch):
+    install_http(monkeypatch, lambda req: httpx.Response(503, json={}))
+    service = ChatService(
+        None,
+        PlanLlm(intent="detail", ingredientLookup=True),
+        IngredientsCatalog(CatalogClient("http://catalog.test")),
+    )
+    result = await service.answer(request(context()))
+    assert result.supervisor.result.status == "error"
+    assert result.ingredient_results[0].reason == "source_unavailable"
+    assert result.ingredient_results[0].verdict == "ERROR"
+    assert result.result_type != "empty" and "조회 중 오류" in result.answer
+
+
+def test_response_rejects_foreign_product_and_shade():
+    for pid, shade in [("b", "a-03"), ("a", "b-03")]:
+        with pytest.raises(ValidationError):
+            ChatResponse(
+                answer="test",
+                products=[dict(id="a", brand="b", name="a", category="lip")],
+                chat_context=context(),
+                ingredient_results=[evidence(pid=pid, shade=shade)],
+            )
+
+
+def test_chat_http_contract(client, monkeypatch):
+    install_http(monkeypatch, lambda req: httpx.Response(200, json=evidence()))
+    service = ChatService(
+        None,
+        PlanLlm(intent="detail", ingredientLookup=True),
+        IngredientsCatalog(CatalogClient("http://catalog.test")),
+    )
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    response = client.post(
+        "/api/chat",
+        json=request(context()).model_dump(mode="json"),
+        headers={"X-Vishue-Anonymous-Id": "guest-session-0123456789-abcdefghijk"},
+    )
+    assert response.status_code == 200
+    assert response.json()["ingredientResults"][0]["evidenceId"] == "synthetic-a"
+
+
+def test_real_review_report_has_zero_verified_mappings_and_reviews():
+    """Read actual local report only; not a DB/API or ingredient correctness test."""
+    path = Path(__file__).resolve().parents[3] / "reports/ingredients/p0-2b-1-mapping.json"
+    if not path.exists():
+        pytest.skip("Local review artifact unavailable")
+    records = json.loads(path.read_text(encoding="utf-8"))["records"]
+    assert records and not any(r["mappingStatus"] == "reproduced" for r in records)
+    assert not any(r.get("reviewStatus") == "verified" for r in records)
+
+
+@pytest.mark.anyio
+async def test_current_candidate_mapping_remains_unknown_through_entire_path(monkeypatch):
+    install_http(
+        monkeypatch,
+        lambda req: httpx.Response(
+            200,
+            json=evidence(
+                name="향료",
+                status="unknown",
+                verdict="UNKNOWN",
+                mappingStatus="candidate",
+                reviewStatus="unreviewed",
+                ingredientCoverage="unknown",
+                ingredients=[],
+                reason="mapping_not_verified",
+            ),
+        ),
+    )
+    result = await ChatService(
+        None,
+        PlanLlm(intent="detail", ingredientName="향료"),
+        IngredientsCatalog(CatalogClient("http://catalog.test")),
+    ).answer(request(context()))
+    assert result.ingredient_results[0].verdict == "UNKNOWN"
+    assert result.supervisor.result.conditions[0].verdict == "UNKNOWN"
+    assert "매핑이 미확인" in result.answer
+
+
+@pytest.mark.anyio
+async def test_ar_selection_is_read_only_and_product_specific_general_never_uses_graph(monkeypatch):
+    install_http(monkeypatch, lambda req: httpx.Response(200, json=evidence()))
+    catalog = IngredientsCatalog(CatalogClient("http://catalog.test"))
+    llm = PlanLlm(intent="general")  # Conservative guard against a bad interpretation.
+    req = request(
+        ar_context={
+            "screenId": "A-01",
+            "stateVersion": 2,
+            "activeZone": "lip",
+            "supportedActions": ["set_intensity"],
+            "lip": {"productId": "a", "shadeId": "a-03", "intensity": 0.5},
+        }
+    )
+    before = req.ar_context.model_dump()
+    result = await ChatService(None, llm, catalog).answer(req)
+    assert llm.calls == 1 and result.ar_result is None
+    assert req.ar_context.model_dump() == before
+    assert result.supervisor.result.tool == "beauty"
+    assert result.ingredient_results[0].verified
+
+
+@pytest.mark.anyio
+async def test_unknown_fragrance_does_not_replace_later_price_question(monkeypatch):
+    ctx = context()
+    ctx.filters.fragrance_free = True
+    catalog = IngredientsCatalog(CatalogClient("http://must-not-call.test"))
+    result = await ChatService(None, PlanLlm(intent="price"), catalog).answer(request(ctx))
+    assert "15,000" in result.answer and not catalog.calls
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("locale", ["ko", "en", "ja", "zh"])
+@pytest.mark.parametrize(
+    "reason,status",
+    [
+        ("product_not_found", 404),
+        ("shade_not_found", 404),
+        ("source_unavailable", 503),
+    ],
+)
+async def test_lookup_status_user_answers_in_all_locales(monkeypatch, locale, reason, status):
+    code = "not_found" if reason == "product_not_found" else reason
+    install_http(monkeypatch, lambda req: httpx.Response(status, json={"code": code}))
+    result = await ChatService(
+        None,
+        PlanLlm(intent="detail", ingredientLookup=True),
+        IngredientsCatalog(CatalogClient("http://catalog.test")),
+    ).answer(request(context(), locale))
+    assert result.ingredient_results[0].reason == reason
+    assert result.supervisor.result.status == "error" and result.products
+    assert result.result_type != "empty"
+
+
+@pytest.mark.anyio
+async def test_unknown_shade_label_and_colliding_numeric_labels_never_pick_first(monkeypatch):
+    catalog = IngredientsCatalog(CatalogClient("http://must-not-call.test"))
+    catalog.products[0].shades.append(
+        catalog.products[0].shades[0].model_copy(update={"id": "a-03-2", "name": "03 Other"})
+    )
+    for label in ["03", "99"]:
+        result = await ChatService(
+            None, PlanLlm(intent="detail", ingredientLookup=True, shadeName=label), catalog
+        ).answer(request(context(), message=f"그 제품 {label}호 성분은?"))
+        assert result.ingredient_results[0].reason == "shade_required"
+        assert not catalog.calls
+
+
+@pytest.mark.anyio
+async def test_llm_cannot_supply_an_unrequested_valid_shade(monkeypatch):
+    catalog = IngredientsCatalog(CatalogClient("http://must-not-call.test"))
+    result = await ChatService(
+        None, PlanLlm(intent="detail", ingredientLookup=True, shadeName="03"), catalog
+    ).answer(request(context(shades=False)))
+    assert result.result_type == "clarification" and not catalog.calls
+
+
+@pytest.mark.anyio
+async def test_condition_option_mismatch_is_invalid_response(monkeypatch):
+    body = evidence(name="향료")
+    body["conditions"][0]["optionId"] = "another-products-option"
+    install_http(monkeypatch, lambda req: httpx.Response(200, json=body))
+    with pytest.raises(IngredientLookupError, match="invalid_response"):
+        await CatalogClient("http://catalog.test").get_ingredients(
+            "a", "a-03", ingredient_name="향료"
+        )

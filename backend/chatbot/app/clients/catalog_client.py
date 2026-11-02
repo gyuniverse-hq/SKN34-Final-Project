@@ -1,5 +1,6 @@
 import asyncio
 import re
+import unicodedata
 from functools import lru_cache
 from urllib.parse import quote, urlencode
 
@@ -8,7 +9,13 @@ from pydantic import ValidationError
 
 from app.core.config import get_settings
 from app.core.errors import UpstreamError
-from app.schemas.catalog import CatalogLook, CatalogProduct
+from app.schemas.catalog import CatalogIngredients, CatalogLook, CatalogProduct, CatalogStyleLook
+
+
+class IngredientLookupError(UpstreamError):
+    def __init__(self, reason: str):
+        super().__init__(reason)
+        self.reason = reason
 
 
 class CatalogClient:
@@ -60,6 +67,23 @@ class CatalogClient:
     async def fetch_looks(self) -> list[CatalogLook]:
         return [CatalogLook.model_validate(lk) for lk in await self._get("/api/looks", "looks")]
 
+    async def get_style_look(self, kind: str, look_id: str):
+        pattern = r"[A-Za-z0-9_-]{1,64}" if kind == "video" else r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}"
+        if not re.fullmatch(pattern, look_id):
+            return None
+        if kind not in {"video", "catalog"}:
+            return None
+        path = "/api/style-looks" if kind == "video" else "/api/looks"
+        model = CatalogStyleLook if kind == "video" else CatalogLook
+        try:
+            looks = [model.model_validate(row) for row in await self._get(path, "looks")]
+            matches = [look for look in looks if look.id == look_id]
+            if len(matches) > 1:
+                raise ValueError("Duplicate look ID")
+            return matches[0] if matches else None
+        except (ValueError, TypeError) as exc:
+            raise UpstreamError("Invalid style catalog response") from exc
+
     async def get_product(self, product_id: str) -> CatalogProduct | None:
         # Catalog IDs use URL-safe characters; never send path delimiters upstream.
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", product_id):
@@ -73,6 +97,80 @@ class CatalogClient:
             return CatalogProduct.model_validate(res.json()["product"])
         except (httpx.HTTPError, KeyError, ValueError, ValidationError, TypeError) as exc:
             raise UpstreamError("catalog product request failed") from exc
+
+    async def get_ingredients(
+        self,
+        product_id: str,
+        shade_id: str,
+        *,
+        ingredient_name: str | None = None,
+        operator: str = "includes",
+    ) -> CatalogIngredients:
+        params = {"shadeId": shade_id}
+        if ingredient_name:
+            params.update(ingredientName=ingredient_name, operator=operator)
+        path = "/api/products/" + quote(product_id, safe="") + "/ingredients"
+        try:
+            async with httpx.AsyncClient(timeout=self._timeout) as client:
+                res = await client.get(self._base + path, params=params)
+            if res.status_code == 404:
+                code = res.json().get("code")
+                if code not in {"not_found", "shade_not_found"}:
+                    raise ValueError("Unknown not-found response")
+                raise IngredientLookupError(
+                    "shade_not_found" if code == "shade_not_found" else "product_not_found"
+                )
+            if res.status_code == 503:
+                raise IngredientLookupError("source_unavailable")
+            res.raise_for_status()
+            result = CatalogIngredients.model_validate(res.json())
+            if (result.product_id, result.shade_id) != (product_id, shade_id):
+                raise ValueError("Ingredient selection mismatch")
+            if any(
+                (c.product_id, c.shade_id, c.option_id, c.ingredient_name, c.operator)
+                != (product_id, shade_id, result.option_id, ingredient_name, operator)
+                or c.verdict != result.verdict
+                or c.evidence_id != result.evidence_id
+                or c.synthetic != result.synthetic
+                for c in result.conditions
+            ):
+                raise ValueError("Ingredient condition mismatch")
+            if ingredient_name and len(result.conditions) != 1:
+                raise ValueError("Ingredient condition required")
+            if not ingredient_name and (result.conditions or result.verdict != "UNKNOWN"):
+                raise ValueError("Unexpected ingredient condition")
+            if result.verdict in {"MATCH", "NOT_MATCH"}:
+                if not result.verified:
+                    raise ValueError("Unverified ingredient verdict")
+                absent = (operator == "includes" and result.verdict == "NOT_MATCH") or (
+                    operator == "excludes" and result.verdict == "MATCH"
+                )
+                if absent and not result.complete:
+                    raise ValueError("Incomplete absence evidence")
+
+                def normalize(value):
+                    return " ".join(unicodedata.normalize("NFKC", value).casefold().split())
+
+                present = normalize(ingredient_name) in {
+                    normalize(i.name) for i in result.ingredients
+                }
+                expected = "MATCH" if present == (operator == "includes") else "NOT_MATCH"
+                if result.verdict != expected:
+                    raise ValueError("Verdict contradicts ingredient evidence")
+            # Unreviewed upstream rows must not accidentally become public ingredient facts.
+            if result.ingredients and not result.verified:
+                raise ValueError("Unverified ingredient list")
+            return result
+        except IngredientLookupError:
+            raise
+        except httpx.TimeoutException as exc:
+            raise IngredientLookupError("timeout") from exc
+        except httpx.HTTPStatusError as exc:
+            raise IngredientLookupError("http_error") from exc
+        except httpx.RequestError as exc:
+            raise IngredientLookupError("network_error") from exc
+        except (ValueError, TypeError, KeyError) as exc:
+            raise IngredientLookupError("invalid_response") from exc
 
 
 @lru_cache

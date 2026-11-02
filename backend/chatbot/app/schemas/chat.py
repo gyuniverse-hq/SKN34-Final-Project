@@ -4,6 +4,10 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 from pydantic.alias_generators import to_camel
 
+from app.schemas.catalog import CatalogIngredients
+from app.schemas.style_recipe import StyleContext, StyleRecipe
+from app.schemas.supervisor import ScreenContext, SupervisorResult, ToolResult
+
 Locale = Literal["en", "ko", "ja", "zh"]
 
 
@@ -57,6 +61,14 @@ class BeautyFilters(ArModel):
     query: str = Field(default="", max_length=80)
 
 
+class ChatSessionRef(ArModel):
+    session_id: UUID
+    session_token: str = Field(min_length=32, max_length=128, repr=False)
+    result_set_id: UUID
+    state_version: Annotated[int, Field(strict=True, ge=1, le=2**53 - 1)]
+    expires_at: Annotated[int, Field(strict=True, ge=0)]
+
+
 class BeautyContext(ArModel):
     """Client-carried search context; IDs and facts are always rechecked with Catalog."""
 
@@ -66,6 +78,10 @@ class BeautyContext(ArModel):
     candidate_ids: list[ArIdentifier] = Field(default_factory=list, max_length=6)
     scope_ids: list[ArIdentifier] = Field(default_factory=list, max_length=6)
     selected_product_id: ArIdentifier | None = None
+    shade_selections: dict[ArIdentifier, ArIdentifier] = Field(
+        default_factory=dict, max_length=6, exclude_if=lambda v: not v
+    )
+    session: ChatSessionRef | None = Field(default=None, exclude_if=lambda v: v is None)
 
 
 class ProductEvidence(ArModel):
@@ -79,10 +95,14 @@ class ChatRequest(ApiModel):
     message: str = Field(min_length=1, max_length=1000)
     locale: Locale = "en"
     skin: SkinHint | None = None
-    request_type: Literal["chat", "ar_command", "beauty_consultation"] = "chat"
+    request_type: Literal["chat", "ar_command", "beauty_consultation", "style_consultation"] = (
+        "chat"
+    )
     chat_context: BeautyContext | None = None
     request_id: UUID | None = None
     ar_context: ArContext | None = None
+    screen_context: ScreenContext | None = None
+    style_context: StyleContext | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -197,6 +217,14 @@ class ProductRef(ApiModel):
 
 
 class ChatResponse(ApiModel):
+    style_status: Literal["ready", "clarification", "not_found", "error", "unsupported"] | None = (
+        Field(default=None, exclude_if=lambda v: v is None)
+    )
+    style_recipe: StyleRecipe | None = Field(default=None, exclude_if=lambda v: v is None)
+    style_context: StyleContext | None = Field(default=None, exclude_if=lambda v: v is None)
+    # Internal compatibility adapter: existing app JSON and fingerprints stay unchanged.
+    supervisor: SupervisorResult | None = Field(default=None, exclude=True)
+    tool_result: ToolResult | None = Field(default=None, exclude=True)
     answer: str
     products: list[ProductRef]
     ar_result: ArResult | None = Field(default=None, exclude_if=lambda v: v is None)
@@ -205,6 +233,46 @@ class ChatResponse(ApiModel):
         Field(default=None, exclude_if=lambda v: v is None)
     )
     evidence: list[ProductEvidence] | None = Field(default=None, exclude_if=lambda v: v is None)
+    ingredient_results: list[CatalogIngredients] | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
+    session_status: Literal["stored", "unchanged", "unavailable"] | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
+
+    @model_validator(mode="after")
+    def verify_ingredient_references(self) -> Self:
+        ids = [p.id for p in self.products]
+        for result in self.ingredient_results or []:
+            if result.product_id not in ids:
+                raise ValueError("Ingredient evidence outside response products")
+            if result.shade_id and (
+                not self.chat_context
+                or self.chat_context.shade_selections.get(result.product_id) != result.shade_id
+            ):
+                raise ValueError("Ingredient shade outside selected context")
+        return self
+
+
+class ChatSessionState(ArModel):
+    """Redis-only snapshot and one TTL-bound retry response, never a transcript archive."""
+
+    session_id: UUID
+    owner: str
+    owner_kind: Literal["user", "guest"]
+    token_hash: str = Field(repr=False, pattern=r"^[0-9a-f]{64}$")
+    result_set_id: UUID
+    state_version: Annotated[int, Field(strict=True, ge=1, le=2**53 - 1)]
+    context: BeautyContext
+    evidence_refs: list[dict[str, str]] = Field(default_factory=list, max_length=6)
+    created_at: int
+    result_created_at: int
+    expires_at: int
+    last_request_id: UUID
+    last_fingerprint: str
+    last_response: dict
+    last_supervisor: SupervisorResult | None = None
+    last_tool_result: ToolResult | None = None
 
 
 class GraphProduct(ApiModel):

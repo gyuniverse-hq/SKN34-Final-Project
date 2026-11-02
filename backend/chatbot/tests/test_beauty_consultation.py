@@ -120,9 +120,10 @@ async def test_fragrance_requires_full_ingredients_and_can_be_removed_explicitly
         PlanLlm(intent="refine", scope="previous", fragranceFree=True),
         setup,
     )
-    assert refined.products == []
-    assert refined.result_type == "empty"
-    assert "주요 성분만으로 무향료라고 판단하지 않습니다" in refined.answer
+    assert [p.id for p in refined.products] == ["a", "b"]
+    assert refined.result_type == "clarification"
+    assert all(r.verdict == "UNKNOWN" for r in refined.ingredient_results)
+    assert "정확한 호수를 선택" in refined.answer
     assert refined.chat_context.scope_ids == ["a", "b"]
     assert refined.chat_context.filters.max_price_krw == 20000
     relaxed = await beauty.answer_beauty(
