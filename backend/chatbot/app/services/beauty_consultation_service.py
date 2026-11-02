@@ -65,6 +65,10 @@ TEXT = {
         ),
         "reference_price": "Catalog 기준가격: {price}원.",
         "reference_unavailable": "Catalog 기준가격을 확인할 수 없습니다.",
+        "some_price_unavailable": "일부 후보의 기준가격은 미확인입니다.",
+        "fragrance_lowest_unknown": (
+            "무향료 조건을 확인할 수 없어 조건에 맞는 최저가 상품을 확정할 수 없습니다."
+        ),
         "live_unavailable": "오늘의 실제 판매가·판매처·확인 시각은 미확인입니다.",
         "price_source_unknown": "가격 원본 출처와 검수 상태는 미확인입니다.",
         "synthetic_price": "가상 테스트 fixture의 합성 가격이며 실제 상품 가격이 아닙니다.",
@@ -73,8 +77,8 @@ TEXT = {
         "missing": "지정한 상품을 현재 카탈로그에서 확인할 수 없어요. 다시 검색해 주세요.",
         "empty": "현재 카탈로그에서 확인 가능한 조건에 맞는 상품을 찾지 못했어요.",
         "fragrance": (
-            "전성분이 제공되지 않아 향료 무첨가 여부는 미확인입니다. "
-            "주요 성분만으로 무향료라고 판단하지 않습니다."
+            "별도의 검증된 근거가 없어 무향료 여부는 미확인입니다. "
+            "전성분 목록에서 특정 성분명이 없다는 사실만으로 무향료라고 판단하지 않습니다."
         ),
         "found": (
             "현재 카탈로그에서 조건에 맞는 후보 {count}개를 찾았어요. "
@@ -100,6 +104,10 @@ TEXT = {
         ),
         "reference_price": "Catalog reference price: KRW {price}.",
         "reference_unavailable": "Catalog reference price is unavailable.",
+        "some_price_unavailable": "Some candidate reference prices are unavailable.",
+        "fragrance_lowest_unknown": (
+            "The cheapest product meeting the fragrance-free condition cannot be confirmed."
+        ),
         "live_unavailable": "Today's live selling price, seller and verification time are unknown.",
         "price_source_unknown": "Original price source and review status are unknown.",
         "synthetic_price": "Synthetic test fixture price, not a real product price.",
@@ -110,8 +118,8 @@ TEXT = {
         ),
         "empty": "No catalog products could be verified against these conditions.",
         "fragrance": (
-            "Full ingredients are unavailable, so fragrance-free status is unknown. "
-            "Key ingredients alone cannot verify it."
+            "Fragrance-free status is unknown without separately verified evidence. "
+            "The absence of one ingredient name does not establish it."
         ),
         "found": (
             "Found {count} catalog candidates. Refer to their displayed numbers in a follow-up."
@@ -138,6 +146,10 @@ TEXT = {
         ),
         "reference_price": "Catalog参考価格: {price}ウォン。",
         "reference_unavailable": "Catalog参考価格は未確認です。",
+        "some_price_unavailable": "一部候補の参考価格は未確認です。",
+        "fragrance_lowest_unknown": (
+            "無香料の条件を確認できないため、条件に合う最安商品は確定できません。"
+        ),
         "live_unavailable": "今日の実売価格・販売店・確認日時は未確認です。",
         "price_source_unknown": "価格の原典と検証状態は未確認です。",
         "synthetic_price": "テストfixtureの合成価格であり実際の商品価格ではありません。",
@@ -146,7 +158,7 @@ TEXT = {
         "missing": "指定商品を現在のカタログで確認できません。再検索してください。",
         "empty": "条件を確認できる商品が現在のカタログに見つかりませんでした。",
         "fragrance": (
-            "全成分が未提供のため、香料不使用かは未確認です。主要成分だけでは判断しません。"
+            "別途検証された根拠がないため、無香料かは未確認です。特定の成分名がないだけでは判断しません。"
         ),
         "found": "条件に合う候補が{count}件あります。表示番号で追加質問できます。",
         "price": "価格は参考価格で、販売店やオプションによって変わります。",
@@ -164,6 +176,8 @@ TEXT = {
         "session_unavailable": "对话状态未保存，请重新搜索后再引用先前候选。",
         "reference_price": "Catalog参考价格：{price}韩元。",
         "reference_unavailable": "无法确认Catalog参考价格。",
+        "some_price_unavailable": "部分候选产品的参考价格尚未确认。",
+        "fragrance_lowest_unknown": "无法确认无香料条件，因此无法确定符合条件的最低价产品。",
         "live_unavailable": "今日实时售价、商家和核实时间未确认。",
         "price_source_unknown": "价格原始来源和审核状态未确认。",
         "synthetic_price": "这是测试fixture的合成价格，并非真实产品价格。",
@@ -171,7 +185,7 @@ TEXT = {
         "expired": "先前候选列表已过期，请重新提供搜索条件。",
         "missing": "当前目录无法确认所选产品，请重新搜索。",
         "empty": "当前目录中没有可确认符合条件的产品。",
-        "fragrance": "未提供全成分，无法确认是否不含香料，不能仅凭主要成分判断。",
+        "fragrance": "缺少单独验证的证据，无法确认是否无香料；不能仅凭某个成分名称不存在判断。",
         "found": "找到{count}个候选产品，可按显示编号继续提问。",
         "price": "价格为产品参考价格，可能因商家或选项而变化。",
         "moisture": "保湿偏好排序参考产品描述和标签，不保证实际保湿效果。",
@@ -250,7 +264,7 @@ def _reply(answer, context, products=(), result_type="clarification"):
                     ConditionCheck(
                         condition="fragranceFree",
                         verdict="UNKNOWN",
-                        reason="full_ingredients_unavailable",
+                        reason="fragrance_free_evidence_unavailable",
                     )
                 ]
                 if context.filters.fragrance_free
@@ -412,6 +426,20 @@ async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatRes
                 )
             except UpstreamError as exc:
                 raise ApiError(502, "Catalog is temporarily unavailable", "upstream_error") from exc
+            if filters.fragrance_free:
+                # Prior candidates are not proven fragrance-free, even if one price is lower.
+                by_id = {p.id: p for p in candidates if p.id in previous.candidate_ids}
+                unresolved = [
+                    by_id[pid] for pid in dict.fromkeys(previous.candidate_ids) if pid in by_id
+                ]
+                if not unresolved:
+                    return _reply(words["missing"], previous)
+                answer = words["fragrance"] + " " + words["fragrance_lowest_unknown"]
+                if not any(p.price_krw > 0 for p in unresolved):
+                    answer += " " + words["reference_unavailable"]
+                elif any(p.price_krw <= 0 for p in unresolved):
+                    answer += " " + words["some_price_unavailable"]
+                return _reply(answer, previous, unresolved)
             by_id = {
                 p.id: p
                 for p in candidates
@@ -688,10 +716,16 @@ async def _ingredient_consultation(req, plan, catalog):
         value = getattr(plan, field, None)
         if value is not None:
             setattr(context.filters, field, value)
+    defaults = BeautyFilters().model_dump(by_alias=False)
+    aliases = {"maxPriceKRW": "max_price_krw", "fragranceFree": "fragrance_free"}
+    for field in plan.clear_filters:
+        key = aliases.get(field, field)
+        setattr(context.filters, key, defaults[key])
     filtering = plan.intent in {"search", "refine"}
-    fragrance = context.filters.fragrance_free
-    name = plan.ingredient_name or ("향료" if fragrance else None)
-    operator = "excludes" if fragrance else plan.ingredient_operator
+    fragrance_filter = filtering and context.filters.fragrance_free
+    fragrance_only = fragrance_filter and not plan.ingredient_name
+    name = plan.ingredient_name or ("향료" if fragrance_only else None)
+    operator = "excludes" if fragrance_only else plan.ingredient_operator
     if plan.compare_ordinals:
         ordinals = plan.compare_ordinals
         if len(set(ordinals)) != 2 or any(
@@ -765,8 +799,24 @@ async def _ingredient_consultation(req, plan, catalog):
             )
         except IngredientLookupError as exc:
             result = _ingredient_unknown(pid, shade, exc.reason, error=True)
+        else:
+            if fragrance_only and result.status != "error" and result.verdict != "ERROR":
+                # A single ingredient-name result never proves an overall fragrance-free claim.
+                result = result.model_copy(
+                    update={
+                        "status": "unknown",
+                        "verdict": "UNKNOWN",
+                        "reason": "fragrance_free_unverified",
+                        "ingredients": [],
+                        "conditions": [],
+                    }
+                )
         results.append(result)
-    known = bool(results) and all(r.verdict in {"MATCH", "NOT_MATCH"} for r in results)
+    known = (
+        not fragrance_filter
+        and bool(results)
+        and all(r.verdict in {"MATCH", "NOT_MATCH"} for r in results)
+    )
     if filtering and known:
         accepted = {r.product_id for r in results if r.verdict == "MATCH"}
         products = [p for p in products if p.id in accepted]
@@ -774,7 +824,7 @@ async def _ingredient_consultation(req, plan, catalog):
         context.candidate_ids = [p.id for p in products]
         if context.selected_product_id not in context.candidate_ids:
             context.selected_product_id = None
-    complete = bool(results) and all(r.verified for r in results)
+    complete = not fragrance_filter and bool(results) and all(r.verified for r in results)
     lines = []
     for product, result in zip(products, results, strict=True):
         if result.status == "error" or result.verdict == "ERROR":
@@ -786,6 +836,8 @@ async def _ingredient_consultation(req, plan, catalog):
                 )
         elif result.reason == "shade_required":
             text = labels[0]
+        elif result.reason == "fragrance_free_unverified":
+            text = words["fragrance"]
         elif result.mapping_status != "reproduced":
             text = labels[1]
         elif result.review_status != "verified":
@@ -809,6 +861,8 @@ async def _ingredient_consultation(req, plan, catalog):
             lines.append(labels[8].format(result=labels[9 if equal else 10]))
         else:
             lines.append(labels[11])
+    if fragrance_filter and not fragrance_only:
+        lines.append(words["fragrance"])
     if not lines:
         lines.append(words["empty"] if filtering and known else labels[0])
     response = _reply(
@@ -825,12 +879,16 @@ async def _ingredient_consultation(req, plan, catalog):
     tool.status = (
         "error"
         if any(r.status == "error" or r.verdict == "ERROR" for r in results)
-        else ("success" if complete or (filtering and known) else "clarification")
+        else (
+            "partial"
+            if complete and context.filters.fragrance_free
+            else ("success" if complete or (filtering and known) else "clarification")
+        )
     )
     tool.reason = "ingredient_lookup"
-    tool.conditions = [c for c in tool.conditions if c.condition != "fragranceFree"] + [
+    tool.conditions += [
         ConditionCheck(
-            condition="ingredient",
+            condition="fragranceFree" if r.reason == "fragrance_free_unverified" else "ingredient",
             product_id=r.product_id,
             shade_id=r.shade_id,
             evidence_id=r.evidence_id,

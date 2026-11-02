@@ -9,6 +9,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.clients.catalog_client import CatalogClient, IngredientLookupError
+from app.core.errors import ApiError, UpstreamError
 from app.schemas.chat import BeautyContext, BeautyFilters, ChatRequest, ChatResponse
 from app.services.chat_service import ChatService, get_chat_service
 from tests.test_beauty_consultation import Catalog, PlanLlm
@@ -310,7 +311,10 @@ async def test_unknown_is_not_empty_or_absence(monkeypatch, review, coverage, re
 
 
 @pytest.mark.anyio
-async def test_fragrance_filter_has_verified_and_unknown_distinct_results(monkeypatch):
+@pytest.mark.parametrize("locale", ["ko", "en", "ja", "zh"])
+async def test_fragrance_filter_cannot_infer_fragrance_free_from_single_ingredient(
+    monkeypatch, locale
+):
     def handler(req):
         pid = req.url.path.split("/")[-2]
         return httpx.Response(
@@ -330,13 +334,217 @@ async def test_fragrance_filter_has_verified_and_unknown_distinct_results(monkey
         PlanLlm(intent="refine", scope="previous", fragranceFree=True),
         IngredientsCatalog(CatalogClient("http://catalog.test")),
     )
-    result = await service.answer(request(context()))
-    assert [p.id for p in result.products] == ["b"]
-    assert result.result_type == "recommendations"
-    assert result.ingredient_results[0].verdict == "MATCH"
+    result = await service.answer(request(context(), locale))
+    assert [p.id for p in result.products] == ["a", "b"]
+    assert result.result_type == "clarification"
+    assert all(r.verdict == "UNKNOWN" for r in result.ingredient_results)
+    checks = [c for c in result.supervisor.result.conditions if c.condition == "fragranceFree"]
+    assert checks and all(c.verdict == "UNKNOWN" for c in checks)
+    assert all(r.reason == "fragrance_free_unverified" for r in result.ingredient_results)
+    assert all(r.mapping_status == "reproduced" for r in result.ingredient_results)
+    assert {"ko": "무향료", "en": "Fragrance-free", "ja": "無香料", "zh": "无香料"}[
+        locale
+    ] in result.answer
     unknown = await service.answer(request(context(shades=False)))
     assert unknown.result_type == "clarification" and len(unknown.products) == 2
     assert all(r.verdict == "UNKNOWN" for r in unknown.ingredient_results)
+
+
+@pytest.mark.anyio
+async def test_fragrance_and_named_ingredient_are_separate_conditions(monkeypatch):
+    def handler(req):
+        pid = req.url.path.split("/")[-2]
+        assert req.url.params["ingredientName"] == "나이아신아마이드"
+        assert req.url.params["operator"] == "includes"
+        return httpx.Response(
+            200,
+            json=evidence(
+                pid=pid,
+                shade=f"{pid}-03",
+                name="나이아신아마이드",
+                ingredients=[{"name": "나이아신아마이드", "sequence": 1}],
+            ),
+        )
+
+    install_http(monkeypatch, handler)
+    service = ChatService(
+        None,
+        PlanLlm(
+            intent="refine",
+            scope="previous",
+            fragranceFree=True,
+            ingredientLookup=True,
+            ingredientName="나이아신아마이드",
+            ingredientOperator="includes",
+        ),
+        IngredientsCatalog(CatalogClient("http://catalog.test")),
+    )
+    result = await service.answer(
+        request(context(), message="무향료이면서 나이아신아마이드가 있는 제품")
+    )
+    assert [p.id for p in result.products] == ["a", "b"]
+    assert result.result_type == "clarification"
+    checks = result.supervisor.result.conditions
+    assert any(c.condition == "ingredient" and c.verdict == "MATCH" for c in checks)
+    assert any(c.condition == "fragranceFree" and c.verdict == "UNKNOWN" for c in checks)
+    assert "무향료 여부는 미확인" in result.answer
+
+
+@pytest.mark.anyio
+async def test_fragrance_filter_keeps_lookup_errors_distinct_from_unknown(monkeypatch):
+    install_http(monkeypatch, lambda req: httpx.Response(503, json={}))
+    service = ChatService(
+        None,
+        PlanLlm(intent="refine", scope="previous", fragranceFree=True),
+        IngredientsCatalog(CatalogClient("http://catalog.test")),
+    )
+    result = await service.answer(request(context(), message="무향료 제품만 보여줘"))
+    assert result.supervisor.result.status == "error"
+    assert [p.id for p in result.products] == ["a", "b"]
+    assert all(r.verdict == "ERROR" for r in result.ingredient_results)
+    assert all(r.reason == "source_unavailable" for r in result.ingredient_results)
+
+
+@pytest.mark.anyio
+async def test_fragrance_filter_keeps_error_from_successful_http_response(monkeypatch):
+    def handler(req):
+        pid = req.url.path.split("/")[-2]
+        return httpx.Response(
+            200,
+            json=evidence(
+                pid=pid,
+                shade=f"{pid}-03",
+                name="향료",
+                operator="excludes",
+                status="error",
+                verdict="ERROR",
+                mappingStatus="candidate",
+                reviewStatus="unreviewed",
+                ingredientCoverage="unknown",
+                ingredients=[],
+                reason="source_unavailable",
+            ),
+        )
+
+    install_http(monkeypatch, handler)
+    service = ChatService(
+        None,
+        PlanLlm(intent="refine", scope="previous", fragranceFree=True),
+        IngredientsCatalog(CatalogClient("http://catalog.test")),
+    )
+    result = await service.answer(request(context(), message="무향료 제품만 보여줘"))
+    assert result.supervisor.result.status == "error"
+    assert [p.id for p in result.products] == ["a", "b"]
+    assert all(r.status == "error" and r.verdict == "ERROR" for r in result.ingredient_results)
+    assert all(r.reason == "source_unavailable" for r in result.ingredient_results)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("operator", ["includes", "excludes"])
+async def test_fragrance_filter_does_not_override_followup_ingredient_operator(
+    monkeypatch, operator
+):
+    def handler(req):
+        requested = req.url.params["operator"]
+        return httpx.Response(200, json=evidence(name="나이아신아마이드", operator=requested))
+
+    install_http(monkeypatch, handler)
+    catalog = IngredientsCatalog(CatalogClient("http://catalog.test"))
+    ctx = context()
+    ctx.filters.fragrance_free = True
+    service = ChatService(
+        None,
+        PlanLlm(
+            intent="detail",
+            ingredientLookup=True,
+            ingredientName="나이아신아마이드",
+            ingredientOperator=operator,
+        ),
+        catalog,
+    )
+    result = await service.answer(request(ctx, message="이 상품에 나이아신아마이드가 있어?"))
+    assert catalog.calls[0][2]["operator"] == operator
+    assert result.ingredient_results[0].verdict == (
+        "NOT_MATCH" if operator == "includes" else "MATCH"
+    )
+    assert result.chat_context.filters.fragrance_free is True
+
+
+@pytest.mark.anyio
+async def test_fragrance_filter_can_be_removed_after_ingredient_and_price_followup(monkeypatch):
+    def handler(req):
+        return httpx.Response(
+            200, json=evidence(name="나이아신아마이드", operator=req.url.params["operator"])
+        )
+
+    install_http(monkeypatch, handler)
+    catalog = IngredientsCatalog(CatalogClient("http://catalog.test"))
+    ctx = context()
+    ctx.filters.fragrance_free = True
+    service = ChatService(
+        None,
+        PlanLlm(intent="detail", ingredientLookup=True, ingredientName="나이아신아마이드"),
+        catalog,
+    )
+    ingredient = await service.answer(request(ctx, message="나이아신아마이드 들어 있어?"))
+    service._llm = PlanLlm(intent="price", scope="previous")
+    price = await service.answer(request(ingredient.chat_context, message="그 제품 가격은?"))
+    assert price.products[0].id == "a"
+    assert "15,000" in price.answer or "15000" in price.answer
+    assert price.chat_context.filters.fragrance_free is True
+    service._llm = PlanLlm(intent="refine", scope="previous", clearFilters=["fragranceFree"])
+    cleared = await service.answer(request(price.chat_context, message="향료 조건만 빼줘"))
+    assert not cleared.chat_context.filters.fragrance_free
+    assert [p.id for p in cleared.products] == ["a", "b"]
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("price_case", ["known", "missing", "partial"])
+async def test_cheapest_followup_keeps_unverified_fragrance_candidates(price_case):
+    catalog = IngredientsCatalog(CatalogClient("http://catalog.test"))
+    if price_case == "missing":
+        catalog.products = [p.model_copy(update={"price_krw": 0}) for p in catalog.products]
+    elif price_case == "partial":
+        catalog.products = [
+            p.model_copy(update={"price_krw": 0}) if p.id == "b" else p for p in catalog.products
+        ]
+    ctx = context()
+    ctx.filters.fragrance_free = True
+    service = ChatService(
+        None, PlanLlm(intent="detail", scope="previous", selection="lowest_price"), catalog
+    )
+    result = await service.answer(request(ctx, message="이 중 가장 싼 제품은?"))
+    assert result.result_type == "clarification"
+    assert [p.id for p in result.products] == ["a", "b"]
+    assert result.chat_context.candidate_ids == ["a", "b"]
+    assert result.chat_context.filters.fragrance_free is True
+    assert "무향료" in result.answer and "확정" in result.answer
+    assert "15,000" not in result.answer
+    if price_case == "missing":
+        assert "기준가격을 확인할 수 없습니다" in result.answer
+    elif price_case == "partial":
+        assert "일부 후보의 기준가격은 미확인" in result.answer
+    checks = [c for c in result.supervisor.result.conditions if c.condition == "fragranceFree"]
+    assert checks and all(c.verdict == "UNKNOWN" for c in checks)
+
+
+@pytest.mark.anyio
+async def test_cheapest_followup_does_not_treat_catalog_failure_as_missing_price():
+    catalog = IngredientsCatalog(CatalogClient("http://catalog.test"))
+
+    async def broken(**kwargs):
+        raise UpstreamError("synthetic catalog failure")
+
+    catalog.search_products = broken
+    ctx = context()
+    ctx.filters.fragrance_free = True
+    service = ChatService(
+        None, PlanLlm(intent="detail", scope="previous", selection="lowest_price"), catalog
+    )
+    with pytest.raises(ApiError) as exc:
+        await service.answer(request(ctx, message="이 중 가장 싼 제품은?"))
+    assert exc.value.status == 502
+    assert exc.value.code == "upstream_error"
 
 
 @pytest.mark.anyio
