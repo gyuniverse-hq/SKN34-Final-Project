@@ -104,7 +104,7 @@ function RelatedProducts({ refs, question, category, chatContext, evidence, sele
         failed={query.isError}
         missingCount={!query.isPending && !query.isPlaceholderData && !query.isError ? ids.length - products.length : 0}
         onRetry={() => { if (mounted.current) void query.refetch(); }}
-        onOpenProduct={(id) => { if (mounted.current) router.push(productHref(id)); }}
+        onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId)); }}
         onOpenAr={(productId, shadeId) => { if (mounted.current) router.push(arHref({ productId, shadeId })); }}
       />
     </View>
@@ -477,7 +477,7 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
                     setMessages((current) => current.map((item) => item.id === message.id
                       ? { ...item, styleRecipe: { ...recipe, currentStep: index } } : item));
                   }}
-                  onOpenProduct={(id) => { if (mounted.current) router.push(productHref(id)); }}
+                  onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId)); }}
                   onOpenAr={(productId, shadeId) => { if (mounted.current) router.push(arHref({ productId, shadeId })); }}
                   onManualAr={() => { if (mounted.current) router.push(arHref()); }}
                   heading={t('chat.ui.style')}

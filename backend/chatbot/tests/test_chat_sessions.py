@@ -635,3 +635,104 @@ async def test_explicit_catalog_screen_selection_outside_old_results_is_validate
     assert selected.products[0].id == "c" and "25,000" in selected.answer
     assert selected.chat_context.candidate_ids == ["c"]
     assert selected.chat_context.session.result_set_id != ctx.session.result_set_id
+
+
+@pytest.mark.anyio
+async def test_ingredient_filter_survives_budget_search_and_explicit_clear(setup):
+    service, _, _, _ = setup
+    calls = []
+
+    async def ingredients(pid, shade, *, ingredient_name=None, operator="includes"):
+        calls.append((pid, ingredient_name, operator))
+        return CatalogIngredients.model_validate(
+            evidence(
+                pid=pid,
+                shade=shade,
+                name=ingredient_name,
+                operator=operator,
+                ingredients=[{"name": "Alcohol" if pid == "b" else "Water", "sequence": 1}],
+            )
+        )
+
+    service._catalog.get_ingredients = ingredients
+    initial = await first(setup)
+    ctx = initial.chat_context.model_copy(deep=True)
+    ctx.shade_selections = {"a": "a-03", "b": "b-03"}
+    service._llm.plan = {
+        "intent": "refine",
+        "scope": "previous",
+        "ingredientName": "Alcohol",
+        "ingredientOperator": "excludes",
+    }
+    filtered = await service.answer(request(ctx), "guest:one")
+    assert filtered.chat_context.candidate_ids == ["a"]
+    assert filtered.chat_context.shade_selections == {"a": "a-03"}
+    before = len(calls)
+    service._llm.plan = {"intent": "refine", "scope": "previous", "maxPriceKRW": 18000}
+    budget = await service.answer(request(filtered.chat_context), "guest:one")
+    assert budget.chat_context.candidate_ids == ["a"]
+    assert calls[before:] == [("a", "Alcohol", "excludes")]
+    assert budget.chat_context.filters.ingredient_conditions[0].ingredient_name == "Alcohol"
+    # A full catalog search needs explicit shades again; UNKNOWN must not become a recommendation.
+    service._llm.plan = {"intent": "refine", "scope": "catalog", "maxPriceKRW": 20000}
+    renewed = await service.answer(request(budget.chat_context), "guest:one")
+    assert renewed.result_type == "clarification"
+    assert next(r for r in renewed.ingredient_results if r.product_id == "b").verdict == "UNKNOWN"
+    assert renewed.chat_context.filters.ingredient_conditions
+    service._llm.plan = {
+        "intent": "refine",
+        "scope": "catalog",
+        "clearFilters": ["ingredientConditions"],
+    }
+    cleared = await service.answer(request(renewed.chat_context), "guest:one")
+    assert [p.id for p in cleared.products] == ["a", "b"]
+    assert not cleared.chat_context.filters.ingredient_conditions
+
+
+@pytest.mark.anyio
+async def test_price_ingredient_refilter_prunes_foreign_shades_before_session_validation(setup):
+    service, _, repo, _ = setup
+    initial = await first(setup)
+    ctx = initial.chat_context.model_copy(deep=True)
+    ctx.shade_selections = {"a": "a-03", "b": "b-03"}
+    service._llm.plan = {
+        "intent": "refine",
+        "scope": "previous",
+        "ingredientName": "향료",
+        "ingredientOperator": "includes",
+        "maxPriceKRW": 16000,
+    }
+    result = await service.answer(request(ctx), "guest:one")
+    assert result.session_status == "stored" and result.chat_context.candidate_ids == ["a"]
+    assert result.chat_context.shade_selections == {"a": "a-03"}
+    stored = await repo.load("guest:one", result.chat_context.session)
+    assert stored.context.shade_selections == {"a": "a-03"}
+    service._llm.plan = {"intent": "detail", "scope": "previous", "ordinal": 1}
+    assert (await service.answer(request(result.chat_context), "guest:one")).products[0].id == "a"
+
+
+def test_ingredient_conditions_accumulate_and_only_explicit_same_name_replaces():
+    from app.schemas.chat import BeautyContext, BeautyFilters
+    from app.schemas.supervisor import SearchPlan
+    from app.services.beauty_consultation_service import _effective_filters
+
+    context = BeautyContext(issued_at=1000, filters=BeautyFilters())
+    for name, operator in [("Alcohol", "excludes"), ("Water", "includes")]:
+        context.filters = _effective_filters(
+            context, SearchPlan(intent="refine", ingredient_name=name, ingredient_operator=operator)
+        )
+    assert [(c.ingredient_name, c.operator) for c in context.filters.ingredient_conditions] == [
+        ("Alcohol", "excludes"),
+        ("Water", "includes"),
+    ]
+    context.filters = _effective_filters(context, SearchPlan(intent="search", category="lip"))
+    assert len(context.filters.ingredient_conditions) == 2
+    updated = _effective_filters(
+        context,
+        SearchPlan(
+            intent="refine", ingredient_name="ＡＬＣＯＨＯＬ", ingredient_operator="includes"
+        ),
+    )
+    assert len(updated.ingredient_conditions) == 2
+    assert updated.ingredient_conditions[-1].operator == "includes"
+    assert context.filters.ingredient_conditions[0].operator == "excludes"

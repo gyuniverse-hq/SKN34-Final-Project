@@ -89,7 +89,7 @@ test('keeps reviewed instructions and exact product/shade navigation separate fr
   const view = await render(result, { onOpenProduct: open, onOpenAr: ar });
   expect(texts(view)).toContain('Exact synthetic instruction');
   for (const [label, callback, args] of [
-    [en['styleLooks.openProduct'], open, ['p-1']], [en['styleLooks.tryAr'], ar, ['p-1', 'shade-03']],
+    [en['styleLooks.openProduct'], open, ['p-1', 'shade-03']], [en['styleLooks.tryAr'], ar, ['p-1', 'shade-03']],
   ] as const) {
     const button = view.root.findByProps({ accessibilityLabel: label });
     await act(async () => button.props.onPress());

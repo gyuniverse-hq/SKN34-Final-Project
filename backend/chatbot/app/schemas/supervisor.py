@@ -58,8 +58,15 @@ class SearchPlan(SupervisorModel):
     shade_name: str | None = Field(default=None, min_length=1, max_length=128)
     compare_ordinals: list[int] = Field(default_factory=list, max_length=2)
     clear_filters: list[
-        Literal["category", "maxPriceKRW", "fragranceFree", "moisturizing", "query"]
-    ] = Field(default_factory=list, max_length=5)
+        Literal[
+            "category",
+            "maxPriceKRW",
+            "fragranceFree",
+            "moisturizing",
+            "query",
+            "ingredientConditions",
+        ]
+    ] = Field(default_factory=list, max_length=6)
 
 
 class IntentDecision(SupervisorModel):

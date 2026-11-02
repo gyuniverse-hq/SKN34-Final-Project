@@ -518,6 +518,7 @@ export interface BeautyChatFilters {
   fragranceFree: boolean;
   moisturizing: boolean;
   query: string;
+  ingredientConditions?: { ingredientName: string; operator: 'includes' | 'excludes' }[];
 }
 
 /** Ephemeral, client-carried context. The server revalidates all IDs and product facts. */

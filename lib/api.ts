@@ -151,23 +151,55 @@ async function arCredentials(): Promise<OwnedCredentials> {
   }
 }
 
+/** A synchronous identity epoch; token refresh for the same user does not invalidate AR. */
+export function subscribeArIdentityChange(listener: () => void): () => void {
+  const client = getSupabase();
+  if (!client) return () => {};
+  let previous: string | null | undefined;
+  let active = true;
+  const subscription = client.auth.onAuthStateChange((event, session) => {
+    const next = session?.user.id ?? null;
+    if ((previous !== undefined && previous !== next) ||
+        (previous === undefined && event !== 'INITIAL_SESSION' && event !== 'TOKEN_REFRESHED')) listener();
+    previous = next;
+  }).data.subscription;
+  void client.auth.getSession().then(({ data, error }) => {
+    if (active && previous === undefined) {
+      if (error) listener();
+      else previous = data.session?.user.id ?? null;
+    }
+  }).catch(() => { if (active) listener(); });
+  return () => { active = false; subscription.unsubscribe(); };
+}
+
 /** AR calls are bound to the credential actually sent, never to a later login. */
 export async function apiPostOwned<T>(
   path: string,
   body: unknown,
   options: { expectedOwner?: ArRequestOwner; timeoutMs?: number } = {}
 ): Promise<{ data: T; owner: ArRequestOwner }> {
-  const { owner, token } = await arCredentials();
-  if (options.expectedOwner && (owner.kind !== options.expectedOwner.kind || owner.id !== options.expectedOwner.id)) {
-    throw new ApiError('AR request owner changed', 0, 'ar_owner_changed');
+  let changed = false;
+  const unsubscribe = subscribeArIdentityChange(() => { changed = true; });
+  try {
+    const { owner, token } = await arCredentials();
+    if (changed || (options.expectedOwner && (owner.kind !== options.expectedOwner.kind || owner.id !== options.expectedOwner.id))) {
+      throw new ApiError('AR request owner changed', 0, 'ar_owner_changed');
+    }
+    // Do not send the guest ID with a user token: an invalid token must not fall back to guest.
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (owner.kind === 'guest') headers['X-Vishue-Anonymous-Id'] = owner.id;
+    const res = await apiRequest(path, { method: 'POST', headers, body: JSON.stringify(body) }, {
+      baseUrl: CHAT_API_BASE_URL, timeoutMs: options.timeoutMs, fixedToken: { value: token },
+    });
+    const data = (await res.json()) as T;
+    const latest = await arCredentials();
+    if (changed || owner.kind !== latest.owner.kind || owner.id !== latest.owner.id) {
+      throw new ApiError('AR request owner changed', 0, 'ar_owner_changed');
+    }
+    return { data, owner };
+  } finally {
+    unsubscribe();
   }
-  // Do not send the guest ID with a user token: an invalid token must not fall back to guest.
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (owner.kind === 'guest') headers['X-Vishue-Anonymous-Id'] = owner.id;
-  const res = await apiRequest(path, { method: 'POST', headers, body: JSON.stringify(body) }, {
-    baseUrl: CHAT_API_BASE_URL, timeoutMs: options.timeoutMs, fixedToken: { value: token },
-  });
-  return { data: (await res.json()) as T, owner };
 }
 
 /** Pin chat to the credential owner actually sent; AR proposal/ACK behavior stays unchanged. */

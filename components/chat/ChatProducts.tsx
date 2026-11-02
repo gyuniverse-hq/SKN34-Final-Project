@@ -18,7 +18,7 @@ interface Props {
   conditions: ChatCondition[];
   showIngredients: boolean;
   onRetry: () => void;
-  onOpenProduct: (id: string) => void;
+  onOpenProduct: (id: string, shadeId?: string) => void;
   onOpenAr: (productId: string, shadeId: string) => void;
   disabledActions?: boolean;
   previewImage?: number;
@@ -166,7 +166,7 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
                       accessibilityLabel={`${product.brand} ${product.name}, ${t('chat.openProduct')}`}
                       accessibilityState={{ disabled: disabledActions }}
                       disabled={disabledActions}
-                      onPress={disabledActions ? undefined : () => onOpenProduct(product.id)}
+                      onPress={disabledActions ? undefined : () => onOpenProduct(product.id, selectedShade?.id)}
                       style={({ pressed }) => [styles.open, pressed && styles.pressed, disabledActions && styles.disabled]}>
                       <Text style={styles.link}>{t('chat.openProduct')} ›</Text>
                     </Pressable> : null}

@@ -182,7 +182,7 @@ describe('chat product cards', () => {
     expect(textRows(renderer).filter((row) => row === 'chat.tryOnAtDetail')).toHaveLength(1);
     const button = renderer.root.findByProps({ accessibilityLabel: 'Brand Care product, chat.openProduct' });
     await act(async () => { button.props.onPress(); });
-    expect(onOpenProduct).toHaveBeenCalledWith('care-1');
+    expect(onOpenProduct).toHaveBeenCalledWith('care-1', undefined);
     await act(async () => { renderer.unmount(); });
   });
 
@@ -193,6 +193,15 @@ describe('chat product cards', () => {
     expect(textRows(renderer).filter((row) => row === 'chat.trySelectedShade')).toHaveLength(1);
     await act(async () => { buttonWithText(renderer.root, 'chat.trySelectedShade').props.onPress(); });
     expect(onOpenAr).toHaveBeenCalledWith('lip-1', 'shade-1');
+    await act(async () => { renderer.unmount(); });
+  });
+
+  it('passes the selected non-first shade to product details', async () => {
+    const product = { ...lip, shades: [...lip.shades, { id: 'shade-2', name: 'Second', hex: '#445566' }] };
+    const { renderer, onOpenProduct } = await renderProducts({ products: [product] });
+    await act(async () => { buttonWithText(renderer.root, 'Second').props.onPress(); });
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'Brand Lip product, chat.openProduct' }).props.onPress(); });
+    expect(onOpenProduct).toHaveBeenCalledWith('lip-1', 'shade-2');
     await act(async () => { renderer.unmount(); });
   });
 

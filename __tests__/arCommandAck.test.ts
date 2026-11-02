@@ -16,6 +16,12 @@ let subject: string;
 let claimError: Error | null;
 const getSession = jest.fn(async () => ({ data: { session }, error: null }));
 const getClaims = jest.fn(async () => ({ data: { claims: { sub: subject, role: 'authenticated' } }, error: claimError }));
+let authListener: (event: string, nextSession: typeof session) => void;
+const unsubscribeAuth = jest.fn();
+const onAuthStateChange = jest.fn((listener: typeof authListener) => {
+  authListener = listener;
+  return { data: { subscription: { unsubscribe: unsubscribeAuth } } };
+});
 const response = (received = true) => ({ ok: true, json: async () => ({ received }) });
 const flush = () => new Promise<void>((resolve) => setImmediate(resolve));
 
@@ -24,7 +30,7 @@ beforeEach(() => {
   session = null;
   subject = 'user-a';
   claimError = null;
-  jest.mocked(getSupabase).mockReturnValue({ auth: { getSession, getClaims } } as never);
+  jest.mocked(getSupabase).mockReturnValue({ auth: { getSession, getClaims, onAuthStateChange } } as never);
   jest.mocked(isAuthConfigured).mockReturnValue(true);
   jest.mocked(getAnonymousChatId).mockResolvedValue(guest.id);
   jest.mocked(getAccessToken).mockResolvedValue(null);
@@ -38,6 +44,33 @@ it('binds a guest request to its anonymous ID with no Authorization header', asy
   const headers = (jest.mocked(globalThis.fetch).mock.calls[0][1] as RequestInit).headers;
   expect(headers).toMatchObject({ 'X-Vishue-Anonymous-Id': guest.id });
   expect(headers).not.toHaveProperty('Authorization');
+});
+
+it('rejects an in-flight response after A -> B -> A and removes the auth subscription', async () => {
+  session = { access_token: 'token-a', user: { id: 'user-a' } };
+  let release!: (value: Response) => void;
+  globalThis.fetch = jest.fn(() => new Promise<Response>((resolve) => { release = resolve; }));
+  const pending = apiPostOwned('/api/chat', {});
+  await flush();
+  session = { access_token: 'token-b', user: { id: 'user-b' } };
+  authListener('SIGNED_IN', session);
+  session = { access_token: 'token-a', user: { id: 'user-a' } };
+  authListener('SIGNED_IN', session);
+  release(response() as Response);
+  await expect(pending).rejects.toMatchObject({ code: 'ar_owner_changed' });
+  expect(unsubscribeAuth).toHaveBeenCalled();
+});
+
+it('keeps the same principal valid across a token refresh', async () => {
+  session = { access_token: 'token-a', user: { id: 'user-a' } };
+  let release!: (value: Response) => void;
+  globalThis.fetch = jest.fn(() => new Promise<Response>((resolve) => { release = resolve; }));
+  const pending = apiPostOwned('/api/chat', {});
+  await flush();
+  session = { access_token: 'refreshed-a', user: { id: 'user-a' } };
+  authListener('TOKEN_REFRESHED', session);
+  release(response() as Response);
+  await expect(pending).resolves.toMatchObject({ owner: userA });
 });
 
 it('uses a verified token once and does not send a guest fallback with it', async () => {

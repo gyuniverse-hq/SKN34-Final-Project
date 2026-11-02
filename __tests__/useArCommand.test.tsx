@@ -7,7 +7,11 @@ import { useMakeupStore } from '@/store/makeupStore';
 import type { MakeupZone, Product } from '@/types';
 
 jest.mock('expo', () => ({ uuid: { v4: jest.fn() } }));
-jest.mock('@/lib/api', () => ({ apiPostOwned: jest.fn() }));
+let mockIdentityChange: (() => void) | undefined;
+jest.mock('@/lib/api', () => ({ apiPostOwned: jest.fn(), subscribeArIdentityChange: (listener: () => void) => {
+  mockIdentityChange = listener;
+  return () => { mockIdentityChange = undefined; };
+} }));
 
 const mockedPost = jest.mocked(apiPostOwned);
 const owned = <T,>(data: T) => ({ data, owner: { kind: 'guest' as const, id: 'anonymous' } });
@@ -61,6 +65,35 @@ it('commits only after the matching renderer result and sends APPLIED ACK', asyn
   expect(useMakeupStore.getState().makeup.lip!.intensity).toBe(0.5);
   expect(hook.state).toBe('applied');
   expect(mockedPost).toHaveBeenCalledWith('/api/chat/acks', expect.objectContaining({ commandId, status: 'APPLIED' }), expect.anything());
+});
+
+it('rejects an account change while a proposal response is in flight', async () => {
+  let resolve!: (value: unknown) => void;
+  let body: Parameters<typeof proposed>[0];
+  mockedPost.mockImplementation((path, value) => {
+    if (path !== '/api/chat') return Promise.resolve(owned({ received: true }) as never);
+    body = value as typeof body;
+    return new Promise((done) => { resolve = done; }) as never;
+  });
+  const before = useMakeupStore.getState().makeup.lip!.intensity;
+  let sending!: Promise<void>;
+  await act(async () => { sending = hook.send('립 진하기 50%'); await Promise.resolve(); });
+  await act(async () => { mockIdentityChange!(); mockIdentityChange!(); }); // A -> B -> A is stale too.
+  await act(async () => { resolve(owned(proposed(body))); await sending; });
+  expect(hook.renderCommand).toBeNull();
+  expect(useMakeupStore.getState().makeup.lip!.intensity).toBe(before);
+  expect(mockedPost.mock.calls.filter(([path, ack]) => path === '/api/chat/acks' && (ack as { status: string }).status === 'APPLIED')).toHaveLength(0);
+});
+
+it('cancels a pending render on identity change and ignores its late confirmation', async () => {
+  const before = useMakeupStore.getState().makeup.lip!.intensity;
+  await act(async () => { await hook.send('립 진하기 50%'); });
+  const render = hook.renderCommand!;
+  await act(async () => { mockIdentityChange!(); });
+  expect(hook.restoreState).toBe('pending');
+  await act(async () => hook.onRenderResult({ commandId, renderSeq: render.renderSeq, rendererId: render.rendererId, status: 'rendered' }));
+  expect(useMakeupStore.getState().makeup.lip!.intensity).toBe(before);
+  expect(hook.state).toBe('rejected');
 });
 
 it('cancels a pending render when the user changes the intensity', async () => {

@@ -15,6 +15,7 @@ from app.schemas.chat import (
     BeautyFilters,
     ChatRequest,
     ChatResponse,
+    IngredientFilter,
     ProductEvidence,
     ProductRef,
 )
@@ -31,7 +32,8 @@ category: lip | cheek | eye | base | skincare | suncare;
 maxPriceKRW: nonnegative integer KRW ceiling; fragranceFree: boolean;
 moisturizing: boolean (preference); query: explicit product/brand search text;
 selection: lowest_price (only for detail, scope previous, without ordinal).
-ordinal: 1..6; clearFilters: list of category|maxPriceKRW|fragranceFree|moisturizing|query.
+ordinal: 1..6; clearFilters: list of category|maxPriceKRW|fragranceFree|
+moisturizing|query|ingredientConditions.
 For product ingredient questions set ingredientLookup true, intent detail, scope previous.
 ingredientName: explicit ingredient name; ingredientOperator: includes | excludes.
 Use ingredientName for ingredient conditions, never query (query is product/brand text).
@@ -48,6 +50,8 @@ general for general advice/how-to/style.
 "아까 추천 중 향료 없는 것만" means refine, scope previous, fragranceFree true.
 "1만원 이하로 다시 찾아" means refine, scope catalog, maxPriceKRW 10000.
 "향료 조건 빼줘" means refine, clearFilters [fragranceFree].
+"성분 조건 빼줘" means refine, clearFilters [ingredientConditions].
+Prior ingredientConditions remain required until explicitly cleared; omit unchanged conditions.
 "그중 가장 저렴한 제품" means detail, scope previous, selection lowest_price.
 Cheapest/lowest price is a server calculation, never a query word or a guessed ordinal.
 Only explicit brand/product names belong in query, not budget or adjective text.
@@ -212,6 +216,11 @@ def _context(filters, ids, now, *, scope_ids=None, selected=None, shades=None):
 
 
 def _reply(answer, context, products=(), result_type="clarification"):
+    context.shade_selections = {
+        pid: sid for pid, sid in context.shade_selections.items() if pid in context.candidate_ids
+    }
+    if context.selected_product_id not in context.candidate_ids:
+        context.selected_product_id = None
     checks = []
     for product in products:
         if context.filters.category:
@@ -376,10 +385,12 @@ async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatRes
     if plan.intent == "general":
         return None  # Keep the existing general consultation path and prompt.
 
+    effective_filters = _effective_filters(req.chat_context, plan)
     if (
         plan.ingredient_lookup
         or plan.ingredient_name
         or plan.compare_ordinals
+        or (effective_filters.ingredient_conditions and plan.intent in {"search", "refine"})
         or (plan.fragrance_free is True and plan.intent in {"search", "refine"})
         or (plan.intent == "detail" and re.search(r"성분|ingredient|成分", req.message, re.I))
         or (
@@ -390,7 +401,7 @@ async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatRes
             and plan.fragrance_free is not False
         )
     ):
-        return await _ingredient_consultation(req, plan, catalog)
+        return await _ingredient_consultation(req, plan, catalog, effective_filters)
 
     now = int(time.time())
     words = TEXT[req.locale]
@@ -401,16 +412,7 @@ async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatRes
         return _reply(words["expired"], _context(BeautyFilters(), [], now))
     if dependent and not previous:
         return _reply(words["clarify"], _context(BeautyFilters(), [], now))
-    filters = previous.filters.model_copy(deep=True) if dependent and previous else BeautyFilters()
-    changes = plan.model_dump(exclude_none=True, by_alias=False)
-    for field in BeautyFilters.model_fields:
-        if field in changes:
-            setattr(filters, field, changes[field])
-    defaults = BeautyFilters().model_dump(by_alias=False)
-    aliases = {"maxPriceKRW": "max_price_krw", "fragranceFree": "fragrance_free"}
-    for field in plan.clear_filters:
-        name = aliases.get(field, field)
-        setattr(filters, name, defaults[name])
+    filters = effective_filters
 
     if plan.intent in {"detail", "price"}:
         assert previous is not None
@@ -681,7 +683,71 @@ def _shade_label(value):
     return unicodedata.normalize("NFKC", value).casefold().strip()
 
 
-async def _ingredient_consultation(req, plan, catalog):
+def _effective_filters(previous, plan):
+    dependent = plan.intent in {"detail", "price", "refine"} or plan.scope == "previous"
+    filters = previous.filters.model_copy(deep=True) if dependent and previous else BeautyFilters()
+    if previous and not dependent:
+        filters.ingredient_conditions = [
+            c.model_copy() for c in previous.filters.ingredient_conditions
+        ]
+    changes = plan.model_dump(exclude_none=True, by_alias=False)
+    for field in BeautyFilters.model_fields:
+        if field in changes:
+            setattr(filters, field, changes[field])
+    defaults = BeautyFilters().model_dump(by_alias=False)
+    aliases = {
+        "maxPriceKRW": "max_price_krw",
+        "fragranceFree": "fragrance_free",
+        "ingredientConditions": "ingredient_conditions",
+    }
+    for field in plan.clear_filters:
+        key = aliases.get(field, field)
+        setattr(filters, key, defaults[key])
+    if plan.ingredient_name and plan.intent in {"search", "refine"}:
+
+        def normalize(name):
+            return " ".join(unicodedata.normalize("NFKC", name).casefold().split())
+
+        conditions = [
+            c
+            for c in filters.ingredient_conditions
+            if normalize(c.ingredient_name) != normalize(plan.ingredient_name)
+        ]
+        if len(conditions) >= 6:
+            raise ApiError(
+                422, "At most six ingredient conditions are supported", "ingredient_condition_limit"
+            )
+        filters.ingredient_conditions = conditions + [
+            IngredientFilter(
+                ingredient_name=plan.ingredient_name, operator=plan.ingredient_operator
+            )
+        ]
+    return filters
+
+
+def _combine_ingredient_results(results):
+    if len(results) == 1:
+        return results[0]
+    result = results[0].model_copy(deep=True)
+    result.conditions = [check for item in results for check in item.conditions]
+    result.synthetic = any(item.synthetic for item in results)
+    consistent = len({(r.evidence_id, r.source_version) for r in results}) == 1
+    if not consistent or not all(r.verified for r in results):
+        failed = next((r for r in results if r.status == "error" or r.verdict == "ERROR"), None)
+        result.status = "error" if failed else "unknown"
+        result.verdict = "ERROR" if failed else "UNKNOWN"
+        result.reason = failed.reason if failed else "evidence_requires_review"
+        result.ingredients = []
+        return result
+    verdicts = {r.verdict for r in results}
+    result.verdict = (
+        "NOT_MATCH" if "NOT_MATCH" in verdicts else "UNKNOWN" if "UNKNOWN" in verdicts else "MATCH"
+    )
+    result.reason = "verified_evidence"
+    return result
+
+
+async def _ingredient_consultation(req, plan, catalog, filters):
     """Catalog-only subtask of the existing beauty tool, with no additional LLM call."""
     now = int(time.time())
     words, labels = TEXT[req.locale], INGREDIENT_TEXT[req.locale]
@@ -692,6 +758,7 @@ async def _ingredient_consultation(req, plan, catalog):
     if previous is None:
         previous = _context(BeautyFilters(), [], now)
     context = previous.model_copy(deep=True, update={"issued_at": now})
+    context.filters = filters
     # Screen references are caller hints; fetch and validate before using a shade below.
     if screen and screen.product_id and plan.ordinal is None and not plan.compare_ordinals:
         context.selected_product_id = screen.product_id
@@ -712,20 +779,12 @@ async def _ingredient_consultation(req, plan, catalog):
         for pid, shade in context.shade_selections.items()
         if pid in context.candidate_ids
     }
-    for field in BeautyFilters.model_fields:
-        value = getattr(plan, field, None)
-        if value is not None:
-            setattr(context.filters, field, value)
-    defaults = BeautyFilters().model_dump(by_alias=False)
-    aliases = {"maxPriceKRW": "max_price_krw", "fragranceFree": "fragrance_free"}
-    for field in plan.clear_filters:
-        key = aliases.get(field, field)
-        setattr(context.filters, key, defaults[key])
     filtering = plan.intent in {"search", "refine"}
     fragrance_filter = filtering and context.filters.fragrance_free
     fragrance_only = fragrance_filter and not plan.ingredient_name
     name = plan.ingredient_name or ("향료" if fragrance_only else None)
     operator = "excludes" if fragrance_only else plan.ingredient_operator
+    conditions = filters.ingredient_conditions if filtering else []
     if plan.compare_ordinals:
         ordinals = plan.compare_ordinals
         if len(set(ordinals)) != 2 or any(
@@ -794,9 +853,19 @@ async def _ingredient_consultation(req, plan, catalog):
             continue
         context.shade_selections[pid] = shade
         try:
-            result = await catalog.get_ingredients(
-                pid, shade, ingredient_name=name, operator=operator
-            )
+            if conditions:
+                result = _combine_ingredient_results(
+                    [
+                        await catalog.get_ingredients(
+                            pid, shade, ingredient_name=c.ingredient_name, operator=c.operator
+                        )
+                        for c in conditions
+                    ]
+                )
+            else:
+                result = await catalog.get_ingredients(
+                    pid, shade, ingredient_name=name, operator=operator
+                )
         except IngredientLookupError as exc:
             result = _ingredient_unknown(pid, shade, exc.reason, error=True)
         else:
@@ -817,8 +886,9 @@ async def _ingredient_consultation(req, plan, catalog):
         and bool(results)
         and all(r.verdict in {"MATCH", "NOT_MATCH"} for r in results)
     )
-    if filtering and known:
-        accepted = {r.product_id for r in results if r.verdict == "MATCH"}
+    if filtering and not fragrance_filter:
+        # A known failure stays excluded even if another candidate still needs a shade or review.
+        accepted = {r.product_id for r in results if r.verdict != "NOT_MATCH"}
         products = [p for p in products if p.id in accepted]
         results = [r for r in results if r.product_id in accepted]
         context.candidate_ids = [p.id for p in products]

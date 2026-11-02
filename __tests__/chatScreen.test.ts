@@ -396,6 +396,16 @@ describe('ingredient selection and request snapshots', () => {
       { id: 'p1', shades: [{ id: 'p1-01' }] },
     ], isPending: false, isError: false, refetch: mockRefetch });
   }
+  it('passes the chosen shade from chat into the product route', async () => {
+    catalog();
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'Answer', products: refs,
+      chatContext: { ...beautyContext, shadeSelections: { p2: 'p2-04' } } });
+    const view = await renderScreen();
+    await send(view, '립 추천');
+    await act(async () => view.root.findByType(ChatProducts).props.onOpenProduct('p2', 'p2-04'));
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/product/[id]', params: { id: 'p2', shade: 'p2-04' } });
+    await act(async () => view.unmount());
+  });
   const refs = [{ id: 'p1', name: 'First', brand: 'B', category: 'lip' },
     { id: 'p2', name: 'Second', brand: 'B', category: 'lip' }];
 

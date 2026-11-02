@@ -1,6 +1,6 @@
 import { uuid } from 'expo';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { apiPostOwned, type ArRequestOwner } from '@/lib/api';
+import { apiPostOwned, subscribeArIdentityChange, type ArRequestOwner } from '@/lib/api';
 import { pendingArAcks, queueArAck, retryArAcks, subscribeArAcks } from '@/lib/arCommandAck';
 import { revealedMakeup } from '@/lib/practice';
 import type { Language } from '@/lib/i18n';
@@ -9,7 +9,7 @@ import type { ArRenderCommand, ArRenderResult, MakeupZone } from '@/types';
 
 type Phase = 'idle' | 'interpreting' | 'proposed' | 'applying' | 'applied' | 'no_change' | 'clarification' | 'rejected' | 'failed' | 'unknown';
 type RestorePhase = 'idle' | 'pending' | 'confirmed' | 'failed' | 'unknown' | 'unavailable';
-type Command = { requestId: string; sessionId: string; owner: ArRequestOwner; proposal: ArProposal; renderSeq: number; rendererId: string };
+type Command = { requestId: string; sessionId: string; owner: ArRequestOwner; proposal: ArProposal; renderSeq: number; rendererId: string; authEpoch: number };
 type Restore = { cmd: Command; restoreId: string; renderSeq: number; rendererId: string; stateVersion: number; displayKey: string };
 type Options = { active: boolean; enabled: boolean; activeZone: MakeupZone; locale: Language; rendererId: string; visibleZones?: MakeupZone[] | null };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -44,6 +44,7 @@ export function useArCommand(options: Options) {
   const restore = useRef<Restore | null>(null);
   const restoreTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mounted = useRef(false);
+  const authEpoch = useRef(0);
 
   useLayoutEffect(() => { current.current = options; }, [options]);
   useEffect(() => subscribeArAcks(() => setAckPending(pendingArAcks())), []);
@@ -94,6 +95,16 @@ export function useArCommand(options: Options) {
     mounted.current = true;
     return () => { mounted.current = false; };
   }, []);
+
+  useEffect(() => subscribeArIdentityChange(() => {
+    authEpoch.current++;
+    if (command.current) useMakeupStore.getState().cancelArCommand();
+    else {
+      activeRequest.current = null;
+      busy.current = false;
+      if (mounted.current) { setState('idle'); setMessage(''); }
+    }
+  }), []);
 
   useEffect(() => {
     if (!options.active) return;
@@ -172,7 +183,7 @@ export function useArCommand(options: Options) {
     }
     const cmd = command.current;
     if (!cmd || result.commandId !== cmd.proposal.commandId || result.rendererId !== cmd.rendererId || result.renderSeq !== cmd.renderSeq) return;
-    if (!current.current.enabled || current.current.rendererId !== cmd.rendererId || session.current !== cmd.sessionId) {
+    if (authEpoch.current !== cmd.authEpoch || !current.current.enabled || current.current.rendererId !== cmd.rendererId || session.current !== cmd.sessionId) {
       useMakeupStore.getState().cancelArCommand();
       return;
     }
@@ -193,8 +204,9 @@ export function useArCommand(options: Options) {
     activeRequest.current = requestId;
     requestRendererId.current = opts.rendererId;
     const snapshot = useMakeupStore.getState();
+    const epoch = authEpoch.current;
     requestVersion.current = snapshot.arVersion;
-    const isCurrent = () => activeRequest.current === requestId && session.current === sessionId &&
+    const isCurrent = () => authEpoch.current === epoch && activeRequest.current === requestId && session.current === sessionId &&
       mounted.current && current.current.active && current.current.enabled && current.current.rendererId === opts.rendererId &&
       useMakeupStore.getState().arVersion === snapshot.arVersion;
     const selected = snapshot.selections.lip;
@@ -222,7 +234,7 @@ export function useArCommand(options: Options) {
       }
       const proposal = proposalOf(result.actionProposal);
       if (!proposal) throw new Error('Invalid AR proposal');
-      const cmd: Command = { requestId, sessionId, owner, proposal, renderSeq: ++sequence.current, rendererId: opts.rendererId };
+      const cmd: Command = { requestId, sessionId, owner, proposal, renderSeq: ++sequence.current, rendererId: opts.rendererId, authEpoch: epoch };
       if (!isCurrent()) {
         complete(cmd, { status: 'REJECTED', actualStateVersion: useMakeupStore.getState().arVersion });
         return;

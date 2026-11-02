@@ -2,7 +2,7 @@ import type { BeautyChatFilters, ProductCategory } from '@/types';
 import type { TranslationKey } from '@/lib/i18n';
 
 export type ChatCondition = {
-  kind: 'category' | 'maxPrice' | 'fragranceFree' | 'moisturizing';
+  kind: 'category' | 'maxPrice' | 'fragranceFree' | 'moisturizing' | 'ingredient';
   text: string;
   required: boolean;
   value?: ProductCategory | number;
@@ -21,6 +21,8 @@ export function conditionsFromChatFilters(
     text: t('chat.filters.fragranceFree') });
   if (filters.moisturizing) result.push({ kind: 'moisturizing', required: false,
     text: t('chat.filters.moisturizing') });
+  for (const condition of filters.ingredientConditions ?? []) result.push({ kind: 'ingredient', required: true,
+    text: `${condition.ingredientName} · ${t(`chat.ingredient.${condition.operator}`)}` });
   return result;
 }
 

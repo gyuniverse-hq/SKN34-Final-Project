@@ -1,6 +1,13 @@
-import { extractChatConditions } from '@/lib/chatConditions';
+import { conditionsFromChatFilters, extractChatConditions } from '@/lib/chatConditions';
 
 describe('extractChatConditions', () => {
+  it('displays retained ingredient predicates from effective server filters', () => {
+    const conditions = conditionsFromChatFilters({ category: null, maxPriceKRW: null,
+      fragranceFree: false, moisturizing: false, query: '',
+      ingredientConditions: [{ ingredientName: 'Alcohol', operator: 'excludes' }],
+    }, (key) => key);
+    expect(conditions).toEqual([{ kind: 'ingredient', required: true, text: 'Alcohol · chat.ingredient.excludes' }]);
+  });
   it('extracts explicit shopping conditions without changing the message', () => {
     const input = '립 제품 중 2만 원 이하, 향료 없는 제품 추천해줘. 촉촉함 우선';
     expect(extractChatConditions(input)).toEqual([

@@ -46,7 +46,7 @@ jest.mock('@/lib/queries', () => {
   return { useTryOnProducts: () => ({ data: products.filter((p) => p.id === 'oy-a000000120880' || p.makeupZone === 'blush').slice(0, 1000) }) };
 });
 
-jest.mock('@/lib/api', () => ({ apiPostOwned: jest.fn() }));
+jest.mock('@/lib/api', () => ({ apiPostOwned: jest.fn(), subscribeArIdentityChange: () => () => {} }));
 import { apiPostOwned } from '@/lib/api';
 import { AppState, TextInput } from 'react-native';
 const post = jest.mocked(apiPostOwned);

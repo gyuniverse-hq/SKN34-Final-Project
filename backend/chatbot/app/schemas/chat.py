@@ -51,6 +51,11 @@ class ArContext(ArModel):
     lip: ArLipSelection | None
 
 
+class IngredientFilter(ArModel):
+    ingredient_name: str = Field(min_length=1, max_length=500)
+    operator: Literal["includes", "excludes"]
+
+
 class BeautyFilters(ArModel):
     category: Literal["lip", "cheek", "eye", "base", "skincare", "suncare"] | None = None
     max_price_krw: Annotated[int, Field(strict=True, ge=0, le=100_000_000)] | None = Field(
@@ -59,6 +64,7 @@ class BeautyFilters(ArModel):
     fragrance_free: bool = False
     moisturizing: bool = False
     query: str = Field(default="", max_length=80)
+    ingredient_conditions: list[IngredientFilter] = Field(default_factory=list, max_length=6)
 
 
 class ChatSessionRef(ArModel):
