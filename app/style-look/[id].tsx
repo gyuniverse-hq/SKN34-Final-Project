@@ -8,16 +8,16 @@ import { YoutubePlayer } from '@/components/celeb/YoutubePlayer';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
 import { useVideoTryOn } from '@/hooks/useVideoTryOn';
-import { canTryOn } from '@/lib/catalog';
-import { matchCatalogProduct, matchListedShade } from '@/lib/catalogMatch';
+import { matchCatalogProduct, resolveVerifiedCatalogSelection } from '@/lib/catalogMatch';
 import { useI18n } from '@/lib/i18n';
 import { useProducts, useStyleLooks } from '@/lib/queries';
-import { arHref, parseId, productHref } from '@/lib/routes';
+import { arHref, paramValue, productHref } from '@/lib/routes';
 import { styleLookGroupLabel, styleLookZoneLabel } from '@/lib/styleLookGroups';
 
 export default function StyleLookDetail() {
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
-  const id = parseId(rawId);
+  const value = paramValue(rawId);
+  const id = value && /^[A-Za-z0-9_-]{1,64}$/.test(value) ? value : undefined;
   const router = useRouter();
   const { t } = useI18n();
   const query = useStyleLooks();
@@ -39,6 +39,10 @@ export default function StyleLookDetail() {
           {look.title}
         </Text>
         <Text style={styles.tag}>{look.tag}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('chat.style.openGuide')} style={styles.video}
+          onPress={() => router.push({ pathname: '/chat', params: { recipeKind: 'video', recipeLookId: look.id } })}>
+          <Text style={styles.videoText}>{t('chat.style.openGuide')}</Text>
+        </Pressable>
         <Pressable
           accessibilityRole="link"
           style={({ pressed }) => [styles.video, pressed && styles.pressed]}
@@ -75,8 +79,8 @@ export default function StyleLookDetail() {
                 <Text style={styles.zoneCount}>{products.length}</Text>
               </View>
               {products.map((product) => {
-                const matched = matchCatalogProduct(product, catalog.data ?? []);
-                const shade = matched ? matchListedShade(matched, product.option) : undefined;
+                const selection = resolveVerifiedCatalogSelection(product, catalog.data ?? []);
+                const matched = selection?.product ?? matchCatalogProduct(product, catalog.data ?? []);
                 return (
                   <View key={product.number} style={styles.product}>
                     <View style={styles.productNumber}>
@@ -93,17 +97,17 @@ export default function StyleLookDetail() {
                       </Text>
                       {matched ? (
                         <View style={styles.actions}>
-                          <Text style={styles.catalogNote}>{t('styleLooks.matched')}</Text>
+                          <Text style={styles.catalogNote}>{t(selection ? 'styleLooks.matched' : 'styleLooks.unverified')}</Text>
                           <Pressable
                             accessibilityRole="button"
                             onPress={() => router.push(productHref(matched.id))}
                             style={styles.link}>
                             <Text style={styles.linkText}>{t('styleLooks.openProduct')}</Text>
                           </Pressable>
-                          {canTryOn(matched) && shade ? (
+                          {selection ? (
                             <Pressable
                               accessibilityRole="button"
-                              onPress={() => router.push(arHref({ productId: matched.id, shadeId: shade.id }))}
+                              onPress={() => router.push(arHref({ productId: selection.product.id, shadeId: selection.shade.id }))}
                               style={styles.link}>
                               <Text style={styles.linkText}>{t('styleLooks.tryAr')}</Text>
                             </Pressable>

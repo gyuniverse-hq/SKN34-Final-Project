@@ -4,8 +4,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useI18n, type TranslationKey } from '@/lib/i18n';
+import { buildGuideSteps, guideText } from '@/lib/lookGuide';
+import type { ChatStyleRecipe } from '@/types';
 
 export type StyleRecipeResultProps = {
+  result?: ChatStyleRecipe;
+  onStepChange?: (index: number) => void;
+  onOpenProduct?: (productId: string) => void;
+  onOpenAr?: (productId: string, shadeId: string) => void;
+  onManualAr?: () => void;
+  disabled?: boolean;
   heading: string;
   summary: string;
   browseImage: number;
@@ -26,10 +35,23 @@ export type StyleRecipeResultProps = {
   };
 };
 
-export function StyleRecipeResult({ heading, summary, browseImage, browseLabel, onBrowse, recipe, stepsLabel, stepNavigation }: StyleRecipeResultProps) {
+export function StyleRecipeResult({ heading, summary, browseImage, browseLabel, onBrowse, recipe: previewRecipe, result, onStepChange, onOpenProduct, onOpenAr, onManualAr, disabled = false, stepsLabel, stepNavigation }: StyleRecipeResultProps) {
+  const { t } = useI18n();
+  const guides = result?.makeup ? buildGuideSteps({ lip: null, blush: null, eyeshadow: null, ...result.makeup }, result.steps.map((s) => s.zone)) : [];
+  const recipe: StyleRecipeResultProps['recipe'] = result ? {
+    title: result.title,
+    subtitle: t(`chat.style.${result.basis}`),
+    steps: result.steps.map((s) => {
+      const guide = guides.find((g) => g.zone === s.zone);
+      const genericKey = s.zone === 'blush' ? 'looks.guide.blush.apple' : s.zone === 'eyeliner' ? 'looks.guide.eyeliner.tightline' : `looks.guide.${s.zone}`;
+      return { title: s.title, description: s.description ?? (s.guideKey
+        ? guideText(guide ?? { zone: s.zone, textKey: genericKey as TranslationKey, extraKeys: [] }, t) : '') };
+    }),
+  } : previewRecipe;
   const [selectedStep, setSelectedStep] = useState(0);
   const stepCount = recipe?.steps?.length ?? 0;
-  const stepIndex = Math.min(selectedStep, Math.max(0, stepCount - 1));
+  const stepIndex = Math.min(result?.currentStep ?? selectedStep, Math.max(0, stepCount - 1));
+  const changeStep = (index: number) => { if (!disabled) { if (result) onStepChange?.(index); else setSelectedStep(index); } };
   const step = recipe?.steps?.[stepIndex];
   return (
     <View style={styles.container}>
@@ -40,6 +62,14 @@ export function StyleRecipeResult({ heading, summary, browseImage, browseLabel, 
         </View>
         <Text style={styles.answerText}>{summary}</Text>
       </View>
+      {result ? <View style={styles.recipeCopy}>
+        <Text>{t(`chat.style.${result.basis}`)}</Text>
+        {result.reviewStatus !== 'not_applicable' ? <Text>{t(result.reviewStatus === 'verified' ? 'chat.style.reviewed' : 'chat.style.unreviewed')}</Text> : null}
+        {result.synthetic ? <Text>{t('chat.style.synthetic')}</Text> : null}
+        {result.features.map((feature, index) => <Text key={index} style={styles.recipeSubtitle}>{feature}</Text>)}
+        <Text style={styles.recipeSubtitle}>{t('chat.style.source')}: {result.source}</Text>
+        <Text style={styles.recipeSubtitle}>{t('chat.style.version')}: {result.recipeVersion}</Text>
+      </View> : null}
       {recipe ? (
         <View style={styles.recipe}>
           {recipe.image ? (
@@ -79,14 +109,14 @@ export function StyleRecipeResult({ heading, summary, browseImage, browseLabel, 
           {stepCount > 1 ? (
             <View style={styles.stepControls}>
               <Pressable accessibilityRole="button" accessibilityLabel={stepNavigation.previous}
-                accessibilityState={{ disabled: stepIndex === 0 }} disabled={stepIndex === 0}
-                onPress={() => setSelectedStep(stepIndex - 1)} style={[styles.stepControl, stepIndex === 0 && styles.stepControlDisabled]}>
+                accessibilityState={{ disabled: disabled || stepIndex === 0 }} disabled={disabled || stepIndex === 0}
+                onPress={() => changeStep(stepIndex - 1)} style={[styles.stepControl, stepIndex === 0 && styles.stepControlDisabled]}>
                 <Ionicons name="chevron-back" size={18} color={theme.colors.rose} />
                 <Text style={styles.stepControlText}>{stepNavigation.previous}</Text>
               </Pressable>
               <Pressable accessibilityRole="button" accessibilityLabel={stepNavigation.next}
-                accessibilityState={{ disabled: stepIndex === stepCount - 1 }} disabled={stepIndex === stepCount - 1}
-                onPress={() => setSelectedStep(stepIndex + 1)} style={[styles.stepControl, stepIndex === stepCount - 1 && styles.stepControlDisabled]}>
+                accessibilityState={{ disabled: disabled || stepIndex === stepCount - 1 }} disabled={disabled || stepIndex === stepCount - 1}
+                onPress={() => changeStep(stepIndex + 1)} style={[styles.stepControl, stepIndex === stepCount - 1 && styles.stepControlDisabled]}>
                 <Text style={styles.stepControlText}>{stepNavigation.next}</Text>
                 <Ionicons name="chevron-forward" size={18} color={theme.colors.rose} />
               </Pressable>
@@ -94,10 +124,10 @@ export function StyleRecipeResult({ heading, summary, browseImage, browseLabel, 
           ) : null}
         </View>
       ) : null}
-      {recipe?.relatedProducts?.products.length ? (
+      {previewRecipe?.relatedProducts?.products.length && !result ? (
         <View style={styles.relatedProducts}>
-          <Text accessibilityRole="header" style={styles.stepsTitle}>{recipe.relatedProducts.label}</Text>
-          {recipe.relatedProducts.products.map((product, index) => (
+          <Text accessibilityRole="header" style={styles.stepsTitle}>{previewRecipe.relatedProducts.label}</Text>
+          {previewRecipe.relatedProducts.products.map((product, index) => (
             <View key={`${product.name}-${index}`} style={styles.relatedProduct}>
               {product.brand ? <Text style={styles.productBrand}>{product.brand}</Text> : null}
               <Text style={styles.productName}>{product.name}</Text>
@@ -105,6 +135,18 @@ export function StyleRecipeResult({ heading, summary, browseImage, browseLabel, 
           ))}
         </View>
       ) : null}
+      {result ? <View style={styles.relatedProducts}>
+        {result.products.map((product, index) => <View key={index} style={styles.relatedProduct}>
+          <Text style={styles.productName}>{product.label}</Text>
+          <Text>{t(product.mappingStatus === 'verified' ? 'chat.style.mappingVerified' : 'chat.style.mappingUnknown')}</Text>
+          {product.productId && onOpenProduct ? <Pressable accessibilityRole="button" accessibilityLabel={t('styleLooks.openProduct')} style={styles.stepControl}
+            onPress={() => onOpenProduct(product.productId!)}><Text>{t('styleLooks.openProduct')}</Text></Pressable> : null}
+          {product.arEligible && product.catalogValid && product.mappingStatus === 'verified' && product.productId && product.shadeId && onOpenAr ? <Pressable accessibilityRole="button" accessibilityLabel={t('styleLooks.tryAr')} style={styles.stepControl}
+            disabled={disabled} accessibilityState={{ disabled }}
+            onPress={() => { if (!disabled) onOpenAr(product.productId!, product.shadeId!); }}><Text>{t('styleLooks.tryAr')}</Text></Pressable> : null}
+        </View>)}
+        {onManualAr ? <Pressable accessibilityRole="button" accessibilityLabel={t('chat.style.manualAr')} onPress={onManualAr} style={styles.stepControl}><Text>{t('chat.style.manualAr')}</Text></Pressable> : null}
+      </View> : null}
       <Pressable accessibilityRole="button" accessibilityLabel={browseLabel} onPress={onBrowse} style={styles.browse}>
         {!recipe?.image ? <Image source={browseImage} style={styles.browseImage} contentFit="cover" accessible={false} /> : null}
         <View style={styles.browseAction}><Text style={styles.browseText}>{browseLabel} ›</Text></View>

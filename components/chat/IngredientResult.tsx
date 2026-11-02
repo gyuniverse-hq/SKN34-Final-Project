@@ -1,6 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { StyleSheet, Text, View } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useI18n, type TranslationKey } from '@/lib/i18n';
+import type { ChatIngredientResult, ChatProductRef } from '@/types';
 
 export type IngredientResultProps = {
   heading: string;
@@ -15,9 +17,25 @@ export type IngredientResultProps = {
     checks?: { label: string; status: string }[];
   };
   labels: { product: string; ingredients: string; source: string; unknown?: string };
+  results?: ChatIngredientResult[];
+  products?: ChatProductRef[];
+  shadeSelections?: Record<string, string>;
 };
 
-export function IngredientResult({ heading, summary, notice, product, labels }: IngredientResultProps) {
+const reasons: Record<string, string> = {
+  shade_required: 'selection', mapping_not_verified: 'mapping', mapping_not_available: 'mapping',
+  evidence_not_reviewed: 'review', absence_not_verifiable: 'partial',
+  catalog_version_mismatch: 'version', source_version_mismatch: 'version',
+  source_version_unverified: 'version', product_not_found: 'productMissing',
+  shade_not_found: 'shadeMissing', source_unavailable: 'server',
+  timeout: 'network', network_error: 'network', invalid_response: 'invalid',
+  http_error: 'server', ingredient_present: 'present',
+  ingredient_absent_from_verified_list: 'absent', verified_evidence: 'verified',
+  evidence_requires_review: 'review', ingredients_raw_unavailable: 'unknown',
+};
+
+export function IngredientResult({ heading, summary, notice, product, labels, results, products, shadeSelections }: IngredientResultProps) {
+  const { t } = useI18n();
   return (
     <View style={styles.result}>
       <View style={styles.answer}>
@@ -29,6 +47,46 @@ export function IngredientResult({ heading, summary, notice, product, labels }: 
         </View>
         <Text style={styles.summary}>{summary}</Text>
       </View>
+      {results?.map((result, index) => {
+        const target = products?.find((item) => item.id === result.productId);
+        if (!target || (result.shadeId && shadeSelections && shadeSelections[result.productId] !== result.shadeId)) return null;
+        const verified = result.status === 'ok' && result.mappingStatus === 'reproduced' &&
+          result.reviewStatus === 'verified' && result.ingredientCoverage !== 'unknown' &&
+          !!result.shadeId && !!result.optionId && !!result.source && !!result.evidenceId &&
+          !!result.collectedAt && !!result.sourceVersion && !!result.sourceFingerprint &&
+          !!result.generatorVersion && !!result.ingredients?.length && !result.issues?.length;
+        const checks = (result.conditions ?? []).filter((check) => check.productId === result.productId &&
+          check.shadeId === result.shadeId && check.optionId === result.optionId);
+        const complete = verified && result.ingredientCoverage === 'full' &&
+          result.normalizationStatus === 'verified' && result.ingredients.every((item, i) => item.sequence === i + 1);
+        const absenceUnverified = !complete && checks.some((check) =>
+          (check.operator === 'excludes' && check.verdict === 'MATCH') ||
+          (check.operator === 'includes' && check.verdict === 'NOT_MATCH'));
+        const verdict = result.verdict === 'ERROR' || result.status === 'error' ? 'ERROR'
+          : verified && !absenceUnverified ? result.verdict : 'UNKNOWN';
+        return <View key={`${result.productId}-${result.shadeId}-${index}`} style={styles.panel}>
+          <Text style={styles.productName}>{target.brand} {target.name}</Text>
+          <Text style={styles.secondary}>{t('chat.ingredient.shade')}: {result.shadeId ?? t('chat.ingredient.selection')}</Text>
+          <Text accessibilityRole="text" style={styles.label}>{t(`chat.ingredient.${verdict}`)}</Text>
+          {checks.map((check, i) => (
+            <Text key={i} style={styles.secondary}>
+              {check.ingredientName} · {t(`chat.ingredient.${check.operator}`)} · {t(`chat.ingredient.${verdict === 'ERROR' ? 'ERROR' : verified && !absenceUnverified ? check.verdict : 'UNKNOWN'}`)}
+            </Text>
+          ))}
+          <Text style={styles.secondary}>{t('chat.ingredient.coverage')}: {t(`chat.ingredient.${result.ingredientCoverage}`)}</Text>
+          <Text style={styles.secondary}>{t('chat.ingredient.mappingLabel')}: {t(`chat.ingredient.${result.mappingStatus}`)}</Text>
+          <Text style={styles.secondary}>{t('chat.ingredient.reviewLabel')}: {t(`chat.ingredient.${result.reviewStatus}`)}</Text>
+          <Text style={styles.secondary}>{t(`chat.ingredient.${reasons[result.reason] ?? 'unknown'}` as TranslationKey)}</Text>
+          {verified ? <>
+            <Text selectable style={styles.secondary}>{labels.source}: {result.source}</Text>
+            <Text selectable style={styles.secondary}>{t('chat.ingredient.evidence')}: {result.evidenceId}</Text>
+            <Text style={styles.secondary}>{result.collectedAt}</Text>
+            <Text style={styles.label}>{labels.ingredients}</Text>
+            {result.ingredients.map((item, i) => <Text key={i} style={styles.secondary}>{item.sequence ?? '–'}. {item.name}</Text>)}
+          </> : null}
+          {result.synthetic ? <Text style={styles.secondary}>{t('chat.ingredient.synthetic')}</Text> : null}
+        </View>;
+      })}
       {product ? (
         <View style={styles.panel}>
           <Text style={styles.label}>{labels.product}</Text>

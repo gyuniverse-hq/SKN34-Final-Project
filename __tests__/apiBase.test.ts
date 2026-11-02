@@ -27,9 +27,43 @@ describe('resolveApiBaseUrl', () => {
 });
 
 describe('useChat integration', () => {
+  it('round-trips ingredient evidence and exact selections through the real hook and HTTP adapter', async () => {
+    jest.mocked(getAnonymousChatId).mockResolvedValue('anonymous-id');
+    const chatContext = { version: 1 as const, issuedAt: 1000, candidateIds: ['p1', 'p2'],
+      scopeIds: ['p1', 'p2'], selectedProductId: 'p2', shadeSelections: { p2: 'p2-03' },
+      filters: { category: null, maxPriceKRW: null, fragranceFree: false, moisturizing: false, query: '' } };
+    const screenContext = { screenId: 'chat', productId: 'p2', shadeId: 'p2-03' };
+    const reply = { answer: '미확인', products: [], chatContext,
+      ingredientResults: [{ productId: 'p2', shadeId: 'p2-03', verdict: 'UNKNOWN',
+        status: 'unknown', mappingStatus: 'candidate', reviewStatus: 'unreviewed',
+        ingredientCoverage: 'unknown', normalizationStatus: 'unverified',
+        ingredients: [], conditions: [], reason: 'mapping_not_verified' }] };
+    const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true, json: async () => reply,
+    } as Response);
+    const client = new QueryClient({ defaultOptions: { mutations: { retry: false, gcTime: Infinity } } });
+    let sendChat!: ReturnType<typeof useChat>['mutateAsync'];
+    let renderer!: ReactTestRenderer;
+    function Harness() { sendChat = useChat().mutateAsync; return null; }
+    try {
+      await act(async () => { renderer = create(createElement(QueryClientProvider, { client }, createElement(Harness))); });
+      await act(async () => {
+        const result = await sendChat({ message: '두 번째 상품 성분', locale: 'ko', category: 'ingredient', chatContext, screenContext });
+        expect(result).toEqual(reply);
+      });
+      expect(JSON.parse(fetchMock.mock.calls[0][1]!.body as string)).toEqual({
+        message: '두 번째 상품 성분', locale: 'ko', requestType: 'beauty_consultation', chatContext, screenContext,
+        requestId: expect.stringMatching(/^[0-9a-f-]{36}$/i),
+      });
+    } finally {
+      await act(async () => { renderer?.unmount(); });
+      client.clear();
+      jest.restoreAllMocks();
+    }
+  });
+
   it('posts to the chat origin with the anonymous ID and chat-only timeout', async () => {
-    jest.mocked(getAccessToken).mockResolvedValueOnce('access-token');
-    jest.mocked(getAnonymousChatId).mockResolvedValueOnce('anonymous-id');
+    jest.mocked(getAnonymousChatId).mockResolvedValue('anonymous-id');
     const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
       ok: true, json: async () => ({ answer: 'answer', products: [] }),
     } as Response);
@@ -48,9 +82,12 @@ describe('useChat integration', () => {
       await act(async () => { await sendChat({ message: 'hello', locale: 'ko' }); });
       expect(fetchMock).toHaveBeenCalledWith(`${CHAT_API_BASE_URL}/api/chat`, expect.objectContaining({
         method: 'POST',
-        headers: expect.objectContaining({ Authorization: 'Bearer access-token', 'X-Vishue-Anonymous-Id': 'anonymous-id' }),
-        body: JSON.stringify({ message: 'hello', locale: 'ko' }),
+        headers: expect.objectContaining({ 'X-Vishue-Anonymous-Id': 'anonymous-id' }),
+        body: expect.any(String),
       }));
+      expect(JSON.parse(fetchMock.mock.calls[0][1]!.body as string)).toEqual({
+        message: 'hello', locale: 'ko', requestId: expect.stringMatching(/^[0-9a-f-]{36}$/i),
+      });
       expect(timeout).toHaveBeenCalledWith(expect.any(Function), 90000);
     } finally {
       await act(async () => { renderer?.unmount(); });

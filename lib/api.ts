@@ -170,6 +170,51 @@ export async function apiPostOwned<T>(
   return { data: (await res.json()) as T, owner };
 }
 
+/** Pin chat to the credential owner actually sent; AR proposal/ACK behavior stays unchanged. */
+export async function apiPostChat<T>(
+  body: unknown,
+  options: { expectedUserId?: string | null; timeoutMs?: number } = {}
+): Promise<T> {
+  if (typeof body === 'object' && body && 'chatContext' in body &&
+    typeof body.chatContext === 'object' && body.chatContext && 'session' in body.chatContext &&
+    body.chatContext.session && options.expectedUserId === undefined) {
+    throw new ApiError('Chat identity required for session references', 0, 'chat_owner_unavailable');
+  }
+  const client = getSupabase();
+  let changed = false;
+  let boundUserId = options.expectedUserId;
+  const subscription = client?.auth.onAuthStateChange((_event, session) => {
+    if (boundUserId !== undefined && (session?.user.id ?? null) !== boundUserId) changed = true;
+  }).data.subscription;
+  try {
+    const { owner, token } = await arCredentials();
+    boundUserId ??= owner.kind === 'user' ? owner.id : null;
+    if (changed || (options.expectedUserId !== undefined &&
+      (owner.kind === 'user' ? owner.id : null) !== options.expectedUserId)) {
+      throw new ApiError('Chat owner changed', 0, 'chat_owner_changed');
+    }
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (owner.kind === 'guest') headers['X-Vishue-Anonymous-Id'] = owner.id;
+    const response = await apiRequest('/api/chat', { method: 'POST', headers, body: JSON.stringify(body) }, {
+      baseUrl: CHAT_API_BASE_URL, timeoutMs: options.timeoutMs, fixedToken: { value: token },
+    });
+    const data = (await response.json()) as T;
+    const latest = await arCredentials();
+    if (changed || owner.kind !== latest.owner.kind || owner.id !== latest.owner.id) {
+      throw new ApiError('Chat owner changed', 0, 'chat_owner_changed');
+    }
+    return data;
+  } catch (error) {
+    if (changed) throw new ApiError('Chat owner changed', 0, 'chat_owner_changed');
+    if (error instanceof ApiError && error.code === 'ar_owner_unavailable') {
+      throw new ApiError('Chat identity unavailable', 0, 'chat_owner_unavailable');
+    }
+    throw error;
+  } finally {
+    subscription?.unsubscribe();
+  }
+}
+
 export async function apiDelete(path: string): Promise<void> {
   await apiRequest(path, { method: 'DELETE' });
 }

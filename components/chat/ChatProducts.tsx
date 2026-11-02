@@ -24,6 +24,8 @@ interface Props {
   previewImage?: number;
   candidateOrder?: string[];
   evidence?: ChatProductEvidence[];
+  selectedShades?: Record<string, string>;
+  onSelectShade?: (productId: string, shadeId: string) => void;
 }
 
 function conditionMatch(product: Product, condition: ChatCondition): boolean | undefined {
@@ -48,11 +50,20 @@ function candidateStatus(product: Product, required: ChatCondition[]): 'matched'
   return 'matched';
 }
 
-export function ChatProducts({ products, loading, failed, missingCount, conditions, showIngredients, onRetry, onOpenProduct, onOpenAr, disabledActions = false, previewImage, candidateOrder, evidence }: Props) {
+export function ChatProducts({ products, loading, failed, missingCount, conditions, showIngredients, onRetry, onOpenProduct, onOpenAr, disabledActions = false, previewImage, candidateOrder, evidence, selectedShades: controlledShades, onSelectShade }: Props) {
   const { t } = useI18n();
   const [selectedShades, setSelectedShades] = useState<Record<string, string>>({});
   const requiredConditions = conditions.filter((condition) => condition.required);
-  const groups = requiredConditions.length ? [
+  const ordered = candidateOrder ? [...products].sort((a, b) => {
+    const rank = (id: string) => { const i = candidateOrder.indexOf(id); return i < 0 ? candidateOrder.length : i; };
+    return rank(a.id) - rank(b.id);
+  }) : products;
+  // Server numbering must also be the visual order, even across condition groups.
+  const groups = candidateOrder ? ordered.map((product) => ({
+    key: product.id, title: requiredConditions.length
+      ? `chat.ui.candidates${({ matched: 'Matched', unverified: 'Unverified', mismatched: 'Mismatched' } as const)[candidateStatus(product, requiredConditions)]}` as TranslationKey
+      : undefined, products: [product],
+  })) : requiredConditions.length ? [
     { key: 'matched', title: 'chat.ui.candidatesMatched' as TranslationKey, products: products.filter((product) => candidateStatus(product, requiredConditions) === 'matched') },
     { key: 'unverified', title: 'chat.ui.candidatesUnverified' as TranslationKey, products: products.filter((product) => candidateStatus(product, requiredConditions) === 'unverified') },
     { key: 'mismatched', title: 'chat.ui.candidatesMismatched' as TranslationKey, products: products.filter((product) => candidateStatus(product, requiredConditions) === 'mismatched') },
@@ -67,9 +78,10 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
           {group.products.map((product) => {
             const candidateIndex = candidateOrder?.indexOf(product.id) ?? -1;
             const proof = evidence?.find((item) => item.productId === product.id);
-            const validShades = product.shades.filter((shade) => parseId(shade.id) === shade.id);
+            const validShades = parseId(product.id) === product.id
+              ? product.shades.filter((shade) => parseId(shade.id) === shade.id) : [];
             const tryOn = canTryOn(product) && parseId(product.id) === product.id && validShades.length > 0;
-            const selectedShade = validShades.find((shade) => shade.id === selectedShades[product.id]);
+            const selectedShade = validShades.find((shade) => shade.id === (controlledShades ?? selectedShades)[product.id]);
             const productCategory = parseCategory(product.category);
             return (
               <View key={product.id} style={styles.card}>
@@ -123,7 +135,7 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
                       })}
                     </View>
                   ) : null}
-                  {tryOn ? (
+                  {validShades.length > 0 ? (
                     <>
                       <Text style={styles.notice}>{t('chat.selectShade')}</Text>
                       <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.shades}>
@@ -131,15 +143,21 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
                           <Pressable
                             key={shade.id}
                             accessibilityRole="button"
-                            accessibilityState={{ selected: shade.id === selectedShade?.id }}
-                            onPress={() => setSelectedShades((current) => ({ ...current, [product.id]: shade.id }))}
+                            accessibilityLabel={`${product.name}, ${shade.name}`}
+                            accessibilityState={{ selected: shade.id === selectedShade?.id, disabled: disabledActions }}
+                            disabled={disabledActions}
+                            onPress={() => {
+                              if (disabledActions) return;
+                              setSelectedShades((current) => ({ ...current, [product.id]: shade.id }));
+                              onSelectShade?.(product.id, shade.id);
+                            }}
                             style={[styles.shade, shade.id === selectedShade?.id && styles.shadeSelected]}>
                             <View style={[styles.swatch, { backgroundColor: shade.hex }]} />
                             <Text style={styles.shadeText}>{shade.name}</Text>
                           </Pressable>
                         ))}
                       </ScrollView>
-                      {!selectedShade ? <Text style={styles.notice}>{t('chat.tryOnAtDetail')}</Text> : null}
+                      {tryOn && !selectedShade ? <Text style={styles.notice}>{t('chat.tryOnAtDetail')}</Text> : null}
                     </>
                   ) : null}
                   <View style={styles.actions}>

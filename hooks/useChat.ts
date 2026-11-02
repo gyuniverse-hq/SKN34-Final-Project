@@ -1,29 +1,35 @@
 import { useMutation } from '@tanstack/react-query';
-import { apiPost, CHAT_API_BASE_URL } from '@/lib/api';
-import { getAnonymousChatId } from '@/lib/chatIdentity';
-import type { BeautyChatContext, ChatResponse } from '@/types';
+import { uuid } from 'expo';
+import { apiPostChat } from '@/lib/api';
+import type { BeautyChatContext, ChatResponse, ChatScreenContext, ChatStyleContext } from '@/types';
 
 type ChatLocale = 'en' | 'ko' | 'ja' | 'zh';
 const CHAT_TIMEOUT_MS = 90_000;
 
 export function useChat() {
   return useMutation({
-    mutationFn: async ({ message, locale, category, chatContext }: {
+    retry: false,
+    mutationFn: async ({ message, locale, category, chatContext, screenContext, styleContext, requestId, expectedUserId }: {
       message: string; locale: ChatLocale; category?: 'product' | 'ingredient' | 'style';
       chatContext?: BeautyChatContext;
+      screenContext?: ChatScreenContext;
+      styleContext?: ChatStyleContext;
+      requestId?: string;
+      expectedUserId?: string | null;
     }) =>
-      apiPost<ChatResponse>(
-        '/api/chat',
+      apiPostChat<ChatResponse>(
         {
-          message, locale,
+          message, locale, requestId: requestId ?? uuid.v4(),
+          ...(category === 'style' ? { requestType: 'style_consultation',
+            ...(styleContext ? { styleContext: { ...styleContext } } : {}) } : {}),
           ...(category === 'product' || category === 'ingredient'
-            ? { requestType: 'beauty_consultation', ...(chatContext ? { chatContext } : {}) }
+            ? { requestType: 'beauty_consultation', ...(chatContext ? { chatContext } : {}),
+              ...(screenContext ? { screenContext } : {}) }
             : {}),
         },
         {
-          baseUrl: CHAT_API_BASE_URL,
           timeoutMs: CHAT_TIMEOUT_MS,
-          headers: { 'X-Vishue-Anonymous-Id': await getAnonymousChatId() },
+          expectedUserId,
         }
       ),
   });

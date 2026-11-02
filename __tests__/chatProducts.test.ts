@@ -225,9 +225,27 @@ describe('chat product cards', () => {
 
   it('does not offer AR when the product texture is unavailable', async () => {
     const { renderer } = await renderProducts({ products: [{ ...lip, texture: null }] });
-    expect(textRows(renderer)).not.toContain('chat.selectShade');
+    expect(textRows(renderer)).toContain('chat.selectShade'); // Ingredient selection is independent of AR support.
     expect(textRows(renderer)).not.toContain('chat.trySelectedShade');
     expect(textRows(renderer)).toContain('chat.openProduct ›');
+    await act(async () => { renderer.unmount(); });
+  });
+
+  it('keeps server order across condition groups and validates controlled shade ownership', async () => {
+    const second = { ...lip, id: 'lip-2', name: 'Second', category: 'skincare' as const,
+      shades: [{ id: 'second-03', name: '03 Second', hex: '#123456' }] };
+    const onSelectShade = jest.fn();
+    const { renderer, onOpenAr } = await renderProducts({ products: [second, lip],
+      candidateOrder: [second.id, lip.id], onSelectShade,
+      selectedShades: { [lip.id]: 'second-03' },
+    });
+    const rows = textRows(renderer);
+    expect(rows.indexOf('Second')).toBeLessThan(rows.indexOf('Lip product'));
+    expect(rows).toContain('chat.candidateNumber:2');
+    expect(rows).not.toContain('chat.trySelectedShade');
+    await act(async () => { buttonWithText(renderer.root, 'Rose').props.onPress(); });
+    expect(onSelectShade).toHaveBeenCalledWith(lip.id, 'shade-1');
+    expect(onOpenAr).not.toHaveBeenCalled();
     await act(async () => { renderer.unmount(); });
   });
 });

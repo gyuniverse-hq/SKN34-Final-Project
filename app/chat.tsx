@@ -1,8 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { uuid } from 'expo';
 import { Image } from 'expo-image';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useHeaderHeight } from 'expo-router/react-navigation';
-import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import { useEffect, useRef, useState, type ComponentRef, type Dispatch, type SetStateAction, type MutableRefObject } from 'react';
 import {
   ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, View,
@@ -13,11 +14,14 @@ import { IngredientResult } from '@/components/chat/IngredientResult';
 import { StyleRecipeResult } from '@/components/chat/StyleRecipeResult';
 import { theme } from '@/constants/theme';
 import { useChat } from '@/hooks/useChat';
+import { ApiError } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
+import { getSupabase } from '@/lib/auth/client';
 import { conditionsFromChatFilters, extractChatConditions } from '@/lib/chatConditions';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useProductsByIds } from '@/lib/queries';
-import { arHref, productHref } from '@/lib/routes';
-import type { BeautyChatContext, ChatProductEvidence, ChatProductRef, ChatResponse } from '@/types';
+import { arHref, parseId, paramValue, productHref } from '@/lib/routes';
+import type { BeautyChatContext, ChatProductEvidence, ChatProductRef, ChatResponse, ChatScreenContext, ChatStyleContext } from '@/types';
 
 type Category = 'product' | 'ingredient' | 'style';
 type ChatMessage = {
@@ -31,7 +35,24 @@ type ChatMessage = {
   chatContext?: BeautyChatContext;
   evidence?: ChatProductEvidence[];
   resultType?: ChatResponse['resultType'];
+  ingredientResults?: ChatResponse['ingredientResults'];
+  screenContext?: ChatScreenContext;
+  locale?: 'ko' | 'en' | 'ja' | 'zh';
+  errorKey?: TranslationKey;
+  selectionRevision?: number;
+  generation?: number;
+  ownerKey?: string;
+  sessionStatus?: ChatResponse['sessionStatus'];
+  retryable?: boolean;
+  styleRecipe?: ChatResponse['styleRecipe'];
 };
+
+type Submission = Parameters<ReturnType<typeof useChat>['mutateAsync']>[0];
+type RequestSnapshot = { args: Submission; revision: number; generation: number; styleRevision: number };
+
+function displayContext(context?: BeautyChatContext): BeautyChatContext | undefined {
+  return context ? { ...context, session: undefined } : undefined;
+}
 
 const styleBrowseImage = require('@/assets/images/chat/style-recipe.png');
 
@@ -41,9 +62,11 @@ const categories: { id: Category; image: number; label: TranslationKey; caption:
   { id: 'style', image: styleBrowseImage, label: 'chat.ui.style', caption: 'chat.ui.styleCaption', prompts: ['chat.ui.styleQuestion1', 'chat.ui.styleQuestion2', 'chat.ui.styleQuestion3'] },
 ];
 
-function RelatedProducts({ refs, question, category, chatContext, evidence }: {
+function RelatedProducts({ refs, question, category, chatContext, evidence, selectedShades, onSelectShade }: {
   refs: ChatProductRef[]; question: string; category?: Category;
   chatContext?: BeautyChatContext; evidence?: ChatProductEvidence[];
+  selectedShades: Record<string, string>;
+  onSelectShade: (productId: string, shadeId: string) => void;
 }) {
   const router = useRouter();
   const { t } = useI18n();
@@ -62,7 +85,14 @@ function RelatedProducts({ refs, question, category, chatContext, evidence }: {
       <ChatProducts
         products={products}
         conditions={chatContext ? conditionsFromChatFilters(chatContext.filters, t) : extractChatConditions(question)}
-        candidateOrder={chatContext?.candidateIds}
+        candidateOrder={chatContext?.candidateIds ?? ids}
+        selectedShades={selectedShades}
+        onSelectShade={(productId, shadeId) => {
+          // A callback from an old/placeholder card cannot attach another product's shade.
+          if (products.some((p) => p.id === productId && p.shades?.some((s) => s.id === shadeId))) {
+            onSelectShade(productId, shadeId);
+          }
+        }}
         evidence={evidence}
         showIngredients={category === 'ingredient'}
         loading={query.isPending || query.isPlaceholderData}
@@ -77,23 +107,117 @@ function RelatedProducts({ refs, question, category, chatContext, evidence }: {
 }
 
 export default function ChatScreen() {
+  const params = useLocalSearchParams<{ recipeKind?: string; recipeLookId?: string }>();
+  const rawKind = paramValue(params.recipeKind);
+  const kind = rawKind === 'video' || rawKind === 'catalog' ? rawKind : undefined;
+  const rawLookId = paramValue(params.recipeLookId);
+  const lookId = kind === 'video' ? rawLookId && /^[A-Za-z0-9_-]{1,64}$/.test(rawLookId) ? rawLookId : undefined : parseId(params.recipeLookId);
+  const initialStyle: ChatStyleContext | undefined = kind && lookId ? { kind, lookId, currentStep: 0 } : undefined;
+  const { user, ready } = useAuth();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const serialRef = useRef(0);
+  const [identityGeneration, setIdentityGeneration] = useState(0);
+  useEffect(() => {
+    const client = getSupabase();
+    let previous: string | null | undefined;
+    const subscription = client?.auth.onAuthStateChange((_event, session) => {
+      const id = session?.user.id ?? null;
+      if (previous !== undefined && previous !== id) setIdentityGeneration((value) => value + 1);
+      previous = id;
+    }).data.subscription;
+    return () => subscription?.unsubscribe();
+  }, []);
+  const ownerKey = `${ready ? user?.id ?? 'guest' : 'loading'}:${identityGeneration}`;
+  return <ChatConversation key={`${ownerKey}:${kind ?? ''}:${lookId ?? ''}`} ownerKey={ownerKey} userId={user?.id ?? null} initialStyle={initialStyle}
+    ready={ready} messages={messages} setMessages={setMessages} serialRef={serialRef} />;
+}
+
+function ChatConversation({ ownerKey, userId, ready, messages, setMessages, serialRef, initialStyle }: {
+  ownerKey: string; userId: string | null; ready: boolean; messages: ChatMessage[];
+  setMessages: Dispatch<SetStateAction<ChatMessage[]>>; serialRef: MutableRefObject<number>;
+  initialStyle?: ChatStyleContext;
+}) {
   const router = useRouter();
   const headerHeight = useHeaderHeight();
+  const styleContext = useRef<ChatStyleContext | undefined>(initialStyle);
+  const [activeStyle, setActiveStyle] = useState<ChatStyleContext | undefined>(initialStyle);
+  const styleRevision = useRef(0);
   const { t, language } = useI18n();
-  const { mutateAsync, isPending } = useChat();
+  const { mutateAsync, reset: resetMutation } = useChat();
+  const [pendingRequestId, setPendingRequestId] = useState<string>();
+  const isPending = !!pendingRequestId;
+  const [sessionNotice, setSessionNotice] = useState<TranslationKey | undefined>(
+    messages.length ? 'chat.session.identityChanged' : undefined
+  );
+  const mounted = useRef(true);
+  const generation = useRef(0);
+  const [conversationGeneration, setConversationGeneration] = useState(0);
+  const activeRequest = useRef<string | undefined>(undefined);
+  const snapshots = useRef(new Map<string, RequestSnapshot>());
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
   const sending = useRef(false);
   const nearBottom = useRef(true);
-  const serial = useRef(0);
   const beautyContext = useRef<BeautyChatContext | undefined>(undefined);
   const beautyContextTurn = useRef(0);
+  const selection = useRef({ revision: 0, shades: {} as Record<string, string>,
+    changed: {} as Record<string, number>, screen: undefined as ChatScreenContext | undefined });
+  const [selectedShades, setSelectedShades] = useState<Record<string, string>>({});
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [category, setCategory] = useState<Category>('product');
+  const [category, setCategory] = useState<Category>(initialStyle ? 'style' : 'product');
   const [editing, setEditing] = useState(false);
   const selected = categories.find((item) => item.id === category)!;
   const conditions = extractChatConditions(input);
+
+  useEffect(() => {
+    mounted.current = true;
+    const requests = snapshots.current;
+    return () => { mounted.current = false; requests.clear(); };
+  }, []);
+
+  const resetSession = (notice: TranslationKey, keepSelection = false) => {
+    generation.current += 1;
+    setConversationGeneration(generation.current);
+    beautyContext.current = undefined;
+    beautyContextTurn.current = 0;
+    snapshots.current.clear();
+    resetMutation?.();
+    setMessages((current) => current.map((message) => ({ ...message, retryable: false })));
+    if (!keepSelection) {
+      selection.current = { revision: selection.current.revision + 1, shades: {}, changed: {}, screen: undefined };
+      setSelectedShades({});
+    }
+    activeRequest.current = undefined;
+    sending.current = false;
+    setPendingRequestId(undefined);
+    setSessionNotice(notice);
+  };
+
+  const newSearch = () => {
+    resetSession('chat.session.newSearchHint');
+    styleContext.current = undefined;
+    setActiveStyle(undefined);
+    styleRevision.current += 1;
+    setCategory('product');
+    setInput('');
+    inputRef.current?.focus();
+  };
+
+  const selectShade = (productId: string, shadeId: string, message: ChatMessage) => {
+    const current = selection.current;
+    current.revision += 1;
+    current.shades = { ...current.shades, [productId]: shadeId };
+    current.changed[productId] = current.revision;
+    current.screen = { screenId: 'chat', productId, shadeId };
+    const source = beautyContext.current ?? (message.ownerKey === ownerKey &&
+      message.generation === generation.current ? message.chatContext : undefined);
+    // Keep the latest candidate numbering; screenContext can identify an older selected card.
+    if (source?.candidateIds.includes(productId)) {
+      beautyContext.current = { ...source, selectedProductId: productId,
+        shadeSelections: { ...source.shadeSelections, [productId]: shadeId } };
+    } else if (!beautyContext.current) beautyContext.current = source;
+    setSelectedShades(current.shades);
+  };
 
   useEffect(() => {
     const shown = Keyboard.addListener('keyboardDidShow', () => setEditing(true));
@@ -110,35 +234,96 @@ export default function ChatScreen() {
 
   const send = async (textToSend = input, retryId?: string, retryCategory?: Category) => {
     const text = textToSend.trim();
-    if (!text || sending.current || isPending) return;
+    if (!text || sending.current || isPending || !ready) return;
+    const failedMatch = retryId ?? messages.find((message) => message.role === 'user' &&
+      message.failed && message.text === text && snapshots.current.has(message.id))?.id;
+    const original = failedMatch ? snapshots.current.get(failedMatch) : undefined;
+    if (retryId && !original) return;
+    let requestId: string;
+    try { requestId = original?.args.requestId ?? uuid.v4(); }
+    catch { setSessionNotice('chat.session.idUnavailable'); return; }
+    const messageId = failedMatch ?? `user-${++serialRef.current}`;
+    const requestCategory = original?.args.category ?? retryCategory ?? category;
+    const context = beautyContext.current;
+    const snapshot: RequestSnapshot = original ?? {
+      styleRevision: styleRevision.current,
+      generation: generation.current,
+      revision: selection.current.revision,
+      args: {
+        message: text, locale: language, category: requestCategory, requestId, expectedUserId: userId,
+        ...(requestCategory === 'style' && styleContext.current ? { styleContext: { ...styleContext.current } } : {}),
+        ...(context ? { chatContext: { ...context, filters: { ...context.filters },
+          candidateIds: [...context.candidateIds], scopeIds: [...context.scopeIds],
+          ...(context.session ? { session: { ...context.session } } : {}),
+          ...(context.shadeSelections ? { shadeSelections: { ...context.shadeSelections } } : {}) } } : {}),
+        ...(selection.current.screen ? { screenContext: { ...selection.current.screen } } : {}),
+      },
+    };
+    if (snapshot.generation !== generation.current) return;
+    snapshots.current.set(messageId, snapshot);
     sending.current = true;
-    const failedMatch = retryId ?? messages.find((message) => message.role === 'user' && message.failed && message.text === text)?.id;
-    const messageId = failedMatch ?? `user-${++serial.current}`;
-    const requestCategory = retryCategory ?? messages.find((message) => message.id === failedMatch)?.category ?? category;
-    // A retry must use the original question's context, not a later candidate list.
-    const requestContext = failedMatch
-      ? messages.find((message) => message.id === failedMatch)?.chatContext
-      : beautyContext.current;
+    activeRequest.current = requestId;
+    setPendingRequestId(requestId);
     if (input.trim() === text) setInput('');
     if (failedMatch) {
       setMessages((current) => current.map((message) => message.id === messageId ? { ...message, failed: false } : message));
     } else {
       nearBottom.current = true;
       setMessages((current) => [...current, { id: messageId, role: 'user', text,
-        category: requestCategory, chatContext: requestContext }]);
+        category: requestCategory, ownerKey, generation: snapshot.generation }]);
     }
     try {
-      const response = await mutateAsync({ message: text, locale: language, category: requestCategory,
-        ...(requestContext ? { chatContext: requestContext } : {}) });
-      const requestTurn = Number(messageId.slice('user-'.length));
-      if (response.chatContext && requestTurn >= beautyContextTurn.current) {
-        beautyContext.current = response.chatContext;
-        beautyContextTurn.current = requestTurn;
+      const response = await mutateAsync(snapshot.args);
+      if (!mounted.current || generation.current !== snapshot.generation) return;
+      if (requestCategory === 'style' && styleRevision.current === snapshot.styleRevision) {
+        const expected = snapshot.args.styleContext;
+        const next = response.styleContext;
+        if (next && expected && next.kind === expected.kind && next.lookId === expected.lookId) {
+          styleContext.current = { ...next };
+          setActiveStyle({ ...next });
+        }
       }
+      const requestTurn = Number(messageId.slice('user-'.length));
+      if (response.sessionStatus === 'unavailable' && requestTurn >= beautyContextTurn.current) {
+        resetSession('chat.session.unavailable', selection.current.revision > snapshot.revision);
+      } else if (response.chatContext && requestTurn >= beautyContextTurn.current) {
+        const next = response.chatContext;
+        const current = beautyContext.current?.session;
+        const olderVersion = current && next.session?.sessionId === current.sessionId &&
+          next.session.stateVersion < current.stateVersion;
+        if (!olderVersion) {
+          const shades = { ...next.shadeSelections };
+          for (const pid of next.candidateIds) {
+            if ((selection.current.changed[pid] ?? 0) > snapshot.revision) shades[pid] = selection.current.shades[pid];
+          }
+          const latestProduct = selection.current.screen?.productId;
+          beautyContext.current = { ...next,
+            ...(Object.keys(shades).length ? { shadeSelections: shades } : {}),
+            ...(selection.current.revision > snapshot.revision && latestProduct && next.candidateIds.includes(latestProduct)
+              ? { selectedProductId: latestProduct } : {}) };
+          const nextShades = { ...selection.current.shades };
+          for (const pid of next.candidateIds) {
+            if (shades[pid]) nextShades[pid] = shades[pid]; else delete nextShades[pid];
+          }
+          selection.current.shades = nextShades;
+          if (selection.current.revision === snapshot.revision && selection.current.screen &&
+            (!next.candidateIds.includes(selection.current.screen.productId ?? '') ||
+             shades[selection.current.screen.productId ?? ''] !== selection.current.screen.shadeId)) {
+            selection.current.screen = undefined;
+          }
+          setSelectedShades(nextShades);
+          beautyContextTurn.current = requestTurn;
+          setSessionNotice(undefined);
+        }
+      }
+      snapshots.current.delete(messageId);
       const answer: ChatMessage = {
-        id: `assistant-${++serial.current}`, role: 'assistant', text: response.answer,
+        id: `assistant-${++serialRef.current}`, role: 'assistant', text: response.answer,
         products: response.products, question: text, category: requestCategory,
-        chatContext: response.chatContext, evidence: response.evidence, resultType: response.resultType,
+        ownerKey, generation: snapshot.generation, sessionStatus: response.sessionStatus,
+        chatContext: displayContext(response.chatContext), evidence: response.evidence,
+        resultType: response.resultType, ingredientResults: response.ingredientResults,
+        styleRecipe: response.styleRecipe,
       };
       setMessages((current) => {
         const questionIndex = current.findIndex((message) => message.id === messageId);
@@ -146,11 +331,39 @@ export default function ChatScreen() {
           ...current.slice(0, questionIndex + 1), answer, ...current.slice(questionIndex + 1),
         ];
       });
-    } catch {
-      setMessages((current) => current.map((message) => message.id === messageId ? { ...message, failed: true } : message));
+    } catch (error) {
+      if (!mounted.current || generation.current !== snapshot.generation) return;
+      const api = error instanceof ApiError ? error : undefined;
+      const fatal = api && ([403, 409, 410].includes(api.status) ||
+        ['chat_owner_changed', 'chat_owner_unavailable'].includes(api.code ?? ''));
+      const errorKey: TranslationKey = api?.code === 'chat_owner_changed'
+        ? 'chat.session.identityChanged'
+        : api?.code === 'chat_owner_unavailable' ? 'chat.session.identityUnavailable'
+        : api?.status === 403 ? 'chat.session.forbidden'
+          : api?.status === 409 ? 'chat.session.conflict'
+            : api?.status === 410 ? 'chat.session.expired'
+              : api?.status === 503 && api.code?.startsWith('chat_session_') ? 'chat.session.storageError'
+                : api?.code === 'shade_not_found' ? 'chat.ingredient.shadeMissing'
+                  : api?.status === 404 ? 'chat.ingredient.productMissing'
+                    : api?.status === 503 ? 'chat.ingredient.server'
+                      : api?.status === 0 ? 'chat.ingredient.network' : 'chat.ui.error';
+      if (fatal) {
+        const oldTurn = Number(messageId.slice('user-'.length)) < beautyContextTurn.current;
+        if (oldTurn && beautyContext.current?.session && !api?.code?.startsWith('chat_owner_')) {
+          snapshots.current.clear();
+          setMessages((current) => current.map((message) => ({ ...message, retryable: false })));
+          setSessionNotice(errorKey);
+        } else resetSession(errorKey);
+      }
+      setMessages((current) => current.map((message) => message.id === messageId
+        ? { ...message, failed: true, errorKey, retryable: !fatal } : message));
       setInput((current) => current || text);
     } finally {
-      sending.current = false;
+      if (mounted.current && activeRequest.current === requestId) {
+        sending.current = false;
+        activeRequest.current = undefined;
+        setPendingRequestId(undefined);
+      }
     }
   };
 
@@ -215,17 +428,46 @@ export default function ChatScreen() {
               </View>
             </View>
           )}
+          {sessionNotice ? <View style={styles.failure}>
+            <Text accessibilityRole="alert" style={styles.failureText}>{t(sessionNotice)}</Text>
+            <Pressable accessibilityRole="button" onPress={newSearch} style={styles.retry}>
+              <Text style={styles.retryText}>{t('chat.session.newSearch')}</Text>
+            </Pressable>
+          </View> : null}
           {messages.map((message) => (
             <View key={message.id} style={styles.messageGroup}>
-              {message.role === 'assistant' && message.category === 'ingredient' ? (
+              {message.role === 'assistant' && (message.category === 'ingredient' || message.ingredientResults?.length) ? (
                 <IngredientResult
                   heading={t('chat.ui.ingredient')}
                   summary={message.text}
                   notice={t('chat.ui.ingredientGeneralNotice')}
                   labels={{ product: t('chat.result.productInfo'), ingredients: t('chat.result.ingredientList'), source: t('chat.result.source'), unknown: t('chat.conditionUnknown') }}
+                  results={message.ingredientResults}
+                  products={message.products}
+                  shadeSelections={message.chatContext?.shadeSelections}
                 />
               ) : message.role === 'assistant' && message.category === 'style' ? (
                 <StyleRecipeResult
+                  result={message.styleRecipe && message.styleRecipe.recipeId === activeStyle?.recipeId &&
+                    message.styleRecipe.recipeVersion === activeStyle?.recipeVersion
+                    ? { ...message.styleRecipe, currentStep: activeStyle.currentStep } : message.styleRecipe}
+                  disabled={isPending || message.ownerKey !== ownerKey || message.generation !== conversationGeneration ||
+                    message.styleRecipe?.recipeId !== activeStyle?.recipeId || message.styleRecipe?.recipeVersion !== activeStyle?.recipeVersion}
+                  onStepChange={(index) => {
+                    const recipe = message.styleRecipe;
+                    if (!recipe || isPending || index < 0 || index >= recipe.steps.length ||
+                      message.ownerKey !== ownerKey || message.generation !== generation.current ||
+                      recipe.recipeId !== styleContext.current?.recipeId || recipe.recipeVersion !== styleContext.current?.recipeVersion) return;
+                    styleRevision.current += 1;
+                    styleContext.current = { kind: recipe.kind, lookId: recipe.lookId,
+                      recipeId: recipe.recipeId, recipeVersion: recipe.recipeVersion, currentStep: index };
+                    setActiveStyle({ ...styleContext.current });
+                    setMessages((current) => current.map((item) => item.id === message.id
+                      ? { ...item, styleRecipe: { ...recipe, currentStep: index } } : item));
+                  }}
+                  onOpenProduct={(id) => router.push(productHref(id))}
+                  onOpenAr={(productId, shadeId) => router.push(arHref({ productId, shadeId }))}
+                  onManualAr={() => router.push(arHref())}
                   heading={t('chat.ui.style')}
                   summary={message.text}
                   browseImage={styleBrowseImage}
@@ -250,16 +492,21 @@ export default function ChatScreen() {
               {message.failed ? (
                 <View style={styles.failure}>
                   <View style={styles.stateIcon}><Ionicons name="alert-circle-outline" size={22} color={theme.colors.danger} /></View>
-                  <Text style={styles.failureText} accessibilityRole="alert">{t('chat.ui.error')}</Text>
-                  <Pressable accessibilityRole="button" accessibilityState={{ disabled: isPending }} disabled={isPending}
+                  <Text style={styles.failureText} accessibilityRole="alert">{t(message.errorKey ?? 'chat.ui.error')}</Text>
+                  {message.retryable && message.ownerKey === ownerKey ? <Pressable accessibilityRole="button" accessibilityState={{ disabled: isPending }} disabled={isPending}
                     onPress={() => void send(message.text, message.id, message.category)} style={[styles.retry, isPending && styles.retryDisabled]}>
                     <Text style={styles.retryText}>{t('chat.ui.retry')}</Text>
+                  </Pressable> : null}
+                  <Pressable accessibilityRole="button" onPress={newSearch} style={styles.retry}>
+                    <Text style={styles.retryText}>{t('chat.session.newSearch')}</Text>
                   </Pressable>
                 </View>
               ) : null}
               {message.role === 'assistant' && message.products?.length ? <RelatedProducts refs={message.products}
                 question={message.question ?? ''} category={message.category}
-                chatContext={message.chatContext} evidence={message.evidence} /> : null}
+                chatContext={message.chatContext} evidence={message.evidence}
+                selectedShades={selectedShades}
+                onSelectShade={(productId, shadeId) => selectShade(productId, shadeId, message)} /> : null}
               {message.role === 'assistant' && !message.products?.length && message.category === 'product' &&
                 (message.resultType === 'empty' || (!message.resultType && extractChatConditions(message.question ?? '').length)) ? (
                 <View style={styles.emptyState}>
@@ -299,12 +546,12 @@ export default function ChatScreen() {
         </ScrollView>
         <View style={styles.composer}>
           <View style={styles.inputRow}>
-            <TextInput ref={inputRef} accessibilityLabel={t('chat.ui.placeholder')} editable={!isPending} maxLength={1000}
+            <TextInput ref={inputRef} accessibilityLabel={t('chat.ui.placeholder')} editable={!isPending && ready} maxLength={1000}
               multiline onChangeText={setInput} onFocus={() => setEditing(true)} onBlur={() => setEditing(false)}
               placeholder={t('chat.ui.placeholder')} placeholderTextColor={theme.colors.inkFaint}
               style={[styles.input, editing && styles.inputEditing]} value={input} />
             <Pressable accessibilityRole="button" accessibilityLabel={t('chat.ui.send')}
-              accessibilityState={{ disabled: !input.trim() || isPending, busy: isPending }} disabled={!input.trim() || isPending}
+              accessibilityState={{ disabled: !input.trim() || isPending || !ready, busy: isPending }} disabled={!input.trim() || isPending || !ready}
               onPress={() => void send()} style={[styles.send, (!input.trim() || isPending) && styles.sendDisabled]}>
               <Ionicons name="arrow-up" size={20} color={theme.colors.white} />
             </Pressable>
