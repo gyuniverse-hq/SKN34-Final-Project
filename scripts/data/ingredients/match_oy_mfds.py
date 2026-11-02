@@ -2,7 +2,8 @@
 
 Run from backend/api's uv environment. Preview is the default; --apply writes
 confirmed matches. Existing mappings, including manual decisions, are never
-overwritten. Unmatched and ambiguous names remain in a local review CSV.
+overwritten. Unmatched and ambiguous names remain in a local review CSV. Spellings a reviewer
+approved in ingredient_aliases.csv are written as manual matches.
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ import re
 import ssl
 import unicodedata
 from collections import defaultdict
+from datetime import date
 from pathlib import Path
 
 import asyncpg
@@ -33,6 +35,8 @@ MATCH_COLUMNS = (
     "mfds_name_ko",
     "match_method",
 )
+ALIAS_COLUMNS = ("oy_name", "mfds_name", "reviewed_by", "reviewed_at", "review_note")
+DEFAULT_ALIAS_PATH = Path(__file__).resolve().parent / "ingredient_aliases.csv"
 REVIEW_COLUMNS = (
     "oy_ingredient_id",
     "oy_ingredient_name",
@@ -40,6 +44,7 @@ REVIEW_COLUMNS = (
     "mfds_candidate_ids",
     "mfds_candidate_names",
 )
+MANUAL_COLUMNS = (*MATCH_COLUMNS, "reviewed_by", "reviewed_at", "review_note")
 
 
 def name_key(value: str | None) -> str:
@@ -54,6 +59,65 @@ def without_trailing_amount(value: str) -> str | None:
     if amount is None:
         return None
     return normalized[: amount.start()].strip() or None
+
+
+def load_aliases(path: Path) -> dict[str, tuple[str, str, str, str]]:
+    """Read spellings a reviewer approved. Official MFDS data is never edited."""
+    if not path.is_file():
+        return {}
+    aliases: dict[str, tuple[str, str, str, str]] = {}
+    with path.open(encoding="utf-8-sig", newline="") as file:
+        reader = csv.DictReader(file)
+        if tuple(reader.fieldnames or ()) != ALIAS_COLUMNS:
+            raise ValueError(f"Alias file columns must be {ALIAS_COLUMNS}")
+        for line, row in enumerate(reader, 2):
+            oy_key = name_key(row["oy_name"])
+            mfds_key = name_key(row["mfds_name"])
+            reviewer = (row["reviewed_by"] or "").strip()
+            reviewed = (row["reviewed_at"] or "").strip()
+            if not (oy_key and mfds_key and reviewer and reviewed):
+                raise ValueError(f"Alias line {line} needs both names, a reviewer and a date")
+            if oy_key == mfds_key:
+                raise ValueError(f"Alias line {line} repeats the dictionary spelling")
+            if oy_key in aliases:
+                raise ValueError(f"Alias line {line} repeats {row['oy_name']}")
+            date.fromisoformat(reviewed)
+            aliases[oy_key] = (mfds_key, reviewer, reviewed, (row["review_note"] or "").strip())
+    return aliases
+
+
+def apply_aliases(
+    review: list[tuple[int, str, str, str, str]],
+    mfds_rows: list[asyncpg.Record],
+    aliases: dict[str, tuple[str, str, str, str]],
+) -> tuple[list[tuple], list[tuple[int, str, str, str, str]]]:
+    """Resolve only the names a reviewer approved; the rest stay under review."""
+    standards = {row["name_key"]: row for row in mfds_rows}
+    manual: list[tuple] = []
+    remaining: list[tuple[int, str, str, str, str]] = []
+    for row in review:
+        approved = aliases.get(name_key(row[1]))
+        if approved is None:
+            remaining.append(row)
+            continue
+        mfds_key, reviewer, reviewed, note = approved
+        standard = standards.get(mfds_key)
+        if standard is None:
+            remaining.append((row[0], row[1], "alias_target_missing", "", mfds_key))
+            continue
+        manual.append(
+            (
+                row[0],
+                row[1],
+                standard["ingredient_id"],
+                standard["name_ko"],
+                "manual",
+                reviewer,
+                reviewed,
+                note,
+            )
+        )
+    return manual, remaining
 
 
 def build_candidates(
@@ -215,7 +279,9 @@ async def run(args: argparse.Namespace) -> None:
             raise ValueError("Both source ingredient tables must contain rows")
 
         matches, review = build_candidates(oy_rows, mfds_rows)
-        if len(matches) + len(review) != len(oy_rows):
+        # A reviewer's approved spelling is the last resort, after every official rule.
+        manual_matches, review = apply_aliases(review, mfds_rows, load_aliases(args.alias_file))
+        if len(matches) + len(manual_matches) + len(review) != len(oy_rows):
             raise ValueError("Candidate classification did not cover every Olive Young ingredient")
 
         existing = {
@@ -225,10 +291,12 @@ async def run(args: argparse.Namespace) -> None:
                 "FROM public.oy_mfds_ingredient_map"
             )
         }
+        confirmed = [*matches, *(row[:5] for row in manual_matches)]
         new_matches = [row for row in matches if row[0] not in existing]
+        new_manual = [row for row in manual_matches if row[0] not in existing]
         conflicts = [
             row
-            for row in matches
+            for row in confirmed
             if row[0] in existing and existing[row[0]]["mfds_ingredient_id"] != row[2]
         ]
         review.extend(
@@ -255,6 +323,9 @@ async def run(args: argparse.Namespace) -> None:
                 if row[4] in AMOUNT_METHODS
             ],
         )
+        write_csv(
+            args.report_dir / "manual-alias-candidates.csv", MANUAL_COLUMNS, manual_matches
+        )
         write_csv(args.report_dir / "review-required.csv", REVIEW_COLUMNS, review)
         method_counts = {
             method: sum(row[4] == method for row in matches)
@@ -266,12 +337,14 @@ async def run(args: argparse.Namespace) -> None:
             f"Candidates: exact name {method_counts['exact_name']:,}; official synonym "
             f"{method_counts['official_synonym']:,}; amount suffix exact "
             f"{method_counts['amount_suffix_exact']:,}; amount suffix synonym "
-            f"{method_counts['amount_suffix_synonym']:,}; unmatched or ambiguous "
-            f"{len(oy_rows) - len(matches):,}"
+            f"{method_counts['amount_suffix_synonym']:,}; reviewed alias "
+            f"{len(manual_matches):,}; unmatched or ambiguous "
+            f"{len(oy_rows) - len(matches) - len(manual_matches):,}"
         )
         print(
             f"Existing mappings: {len(existing):,}; new confirmed matches: "
-            f"{len(new_matches):,}; existing mapping conflicts: {len(conflicts):,}"
+            f"{len(new_matches) + len(new_manual):,} (reviewed alias {len(new_manual):,}); "
+            f"existing mapping conflicts: {len(conflicts):,}"
         )
         print(f"Review files: {args.report_dir.resolve()}")
         if not args.apply:
@@ -309,6 +382,34 @@ async def run(args: argparse.Namespace) -> None:
                 "SELECT oy_ingredient_id, mfds_ingredient_id, match_method, rule_version "
                 "FROM oy_mfds_match_stage ON CONFLICT (oy_ingredient_id) DO NOTHING"
             )
+            if new_manual:
+                await connection.execute(
+                    "CREATE TEMP TABLE oy_mfds_manual_stage ("
+                    "oy_ingredient_id bigint PRIMARY KEY, mfds_ingredient_id bigint NOT NULL, "
+                    "reviewed_by text NOT NULL, reviewed_at text NOT NULL, review_note text) "
+                    "ON COMMIT DROP"
+                )
+                await connection.copy_records_to_table(
+                    "oy_mfds_manual_stage",
+                    records=[
+                        (row[0], row[2], row[5], row[6], row[7] or None) for row in new_manual
+                    ],
+                    columns=(
+                        "oy_ingredient_id",
+                        "mfds_ingredient_id",
+                        "reviewed_by",
+                        "reviewed_at",
+                        "review_note",
+                    ),
+                )
+                manual_status = await connection.execute(
+                    "INSERT INTO public.oy_mfds_ingredient_map (oy_ingredient_id, "
+                    "mfds_ingredient_id, match_method, reviewed_by, reviewed_at, review_note) "
+                    "SELECT oy_ingredient_id, mfds_ingredient_id, 'manual', reviewed_by, "
+                    "reviewed_at::timestamptz, review_note FROM oy_mfds_manual_stage "
+                    "ON CONFLICT (oy_ingredient_id) DO NOTHING"
+                )
+                print(f"Reviewed aliases: {manual_status}")
         print(f"Committed {status}; existing mappings were preserved")
     finally:
         await connection.close()
@@ -328,6 +429,7 @@ def main() -> None:
         type=Path,
         default=Path.home() / "Downloads" / "ingredient-mapping-review",
     )
+    parser.add_argument("--alias-file", type=Path, default=DEFAULT_ALIAS_PATH)
     parser.add_argument("--apply", action="store_true", help="Write confirmed matches")
     parser.add_argument("--execute-shared", action="store_true")
     asyncio.run(run(parser.parse_args()))
