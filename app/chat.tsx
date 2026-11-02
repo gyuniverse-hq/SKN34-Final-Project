@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
 import { useHeaderHeight } from 'expo-router/react-navigation';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
@@ -8,13 +9,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChatProducts } from '@/components/chat/ChatProducts';
+import { IngredientResult } from '@/components/chat/IngredientResult';
+import { StyleRecipeResult } from '@/components/chat/StyleRecipeResult';
 import { theme } from '@/constants/theme';
 import { useChat } from '@/hooks/useChat';
-import { extractChatConditions } from '@/lib/chatConditions';
+import { conditionsFromChatFilters, extractChatConditions } from '@/lib/chatConditions';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useProductsByIds } from '@/lib/queries';
 import { arHref, productHref } from '@/lib/routes';
-import type { ChatProductRef } from '@/types';
+import type { BeautyChatContext, ChatProductEvidence, ChatProductRef, ChatResponse } from '@/types';
 
 type Category = 'product' | 'ingredient' | 'style';
 type ChatMessage = {
@@ -25,15 +28,23 @@ type ChatMessage = {
   question?: string;
   category?: Category;
   failed?: boolean;
+  chatContext?: BeautyChatContext;
+  evidence?: ChatProductEvidence[];
+  resultType?: ChatResponse['resultType'];
 };
 
-const categories: { id: Category; icon: 'color-palette' | 'leaf' | 'flower'; label: TranslationKey; caption: TranslationKey; prompts: TranslationKey[] }[] = [
-  { id: 'product', icon: 'color-palette', label: 'chat.ui.product', caption: 'chat.ui.productCaption', prompts: ['chat.ui.productQuestion1', 'chat.ui.productQuestion2', 'chat.ui.productQuestion3'] },
-  { id: 'ingredient', icon: 'leaf', label: 'chat.ui.ingredient', caption: 'chat.ui.ingredientCaption', prompts: ['chat.ui.ingredientQuestion1', 'chat.ui.ingredientQuestion2', 'chat.ui.ingredientQuestion3'] },
-  { id: 'style', icon: 'flower', label: 'chat.ui.style', caption: 'chat.ui.styleCaption', prompts: ['chat.ui.styleQuestion1', 'chat.ui.styleQuestion2', 'chat.ui.styleQuestion3'] },
+const styleBrowseImage = require('@/assets/images/chat/style-recipe.png');
+
+const categories: { id: Category; image: number; label: TranslationKey; caption: TranslationKey; prompts: TranslationKey[] }[] = [
+  { id: 'product', image: require('@/assets/images/chat/product-recommendation.png'), label: 'chat.ui.product', caption: 'chat.ui.productCaption', prompts: ['chat.ui.productQuestion1', 'chat.ui.productQuestion2', 'chat.ui.productQuestion3'] },
+  { id: 'ingredient', image: require('@/assets/images/chat/ingredient-consultation.png'), label: 'chat.ui.ingredient', caption: 'chat.ui.ingredientCaption', prompts: ['chat.ui.ingredientQuestion1', 'chat.ui.ingredientQuestion2', 'chat.ui.ingredientQuestion3'] },
+  { id: 'style', image: styleBrowseImage, label: 'chat.ui.style', caption: 'chat.ui.styleCaption', prompts: ['chat.ui.styleQuestion1', 'chat.ui.styleQuestion2', 'chat.ui.styleQuestion3'] },
 ];
 
-function RelatedProducts({ refs, question, category }: { refs: ChatProductRef[]; question: string; category?: Category }) {
+function RelatedProducts({ refs, question, category, chatContext, evidence }: {
+  refs: ChatProductRef[]; question: string; category?: Category;
+  chatContext?: BeautyChatContext; evidence?: ChatProductEvidence[];
+}) {
   const router = useRouter();
   const { t } = useI18n();
   const ids = [...new Set(refs.map((ref) => ref.id))];
@@ -50,7 +61,9 @@ function RelatedProducts({ refs, question, category }: { refs: ChatProductRef[];
       <Text style={styles.relatedTitle}>{t('chat.relatedProducts')}</Text>
       <ChatProducts
         products={products}
-        conditions={extractChatConditions(question)}
+        conditions={chatContext ? conditionsFromChatFilters(chatContext.filters, t) : extractChatConditions(question)}
+        candidateOrder={chatContext?.candidateIds}
+        evidence={evidence}
         showIngredients={category === 'ingredient'}
         loading={query.isPending || query.isPlaceholderData}
         failed={query.isError}
@@ -71,7 +84,10 @@ export default function ChatScreen() {
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
   const sending = useRef(false);
+  const nearBottom = useRef(true);
   const serial = useRef(0);
+  const beautyContext = useRef<BeautyChatContext | undefined>(undefined);
+  const beautyContextTurn = useRef(0);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [category, setCategory] = useState<Category>('product');
@@ -89,12 +105,8 @@ export default function ChatScreen() {
   }, []);
 
   useEffect(() => {
-    if (messages.length) scrollRef.current?.scrollToEnd({ animated: true });
+    if (messages.length && nearBottom.current) scrollRef.current?.scrollToEnd({ animated: true });
   }, [messages.length]);
-
-  useEffect(() => {
-    if (editing && conditions.length) scrollRef.current?.scrollToEnd({ animated: true });
-  }, [editing, conditions.length]);
 
   const send = async (textToSend = input, retryId?: string, retryCategory?: Category) => {
     const text = textToSend.trim();
@@ -103,18 +115,37 @@ export default function ChatScreen() {
     const failedMatch = retryId ?? messages.find((message) => message.role === 'user' && message.failed && message.text === text)?.id;
     const messageId = failedMatch ?? `user-${++serial.current}`;
     const requestCategory = retryCategory ?? messages.find((message) => message.id === failedMatch)?.category ?? category;
+    // A retry must use the original question's context, not a later candidate list.
+    const requestContext = failedMatch
+      ? messages.find((message) => message.id === failedMatch)?.chatContext
+      : beautyContext.current;
     if (input.trim() === text) setInput('');
     if (failedMatch) {
       setMessages((current) => current.map((message) => message.id === messageId ? { ...message, failed: false } : message));
     } else {
-      setMessages((current) => [...current, { id: messageId, role: 'user', text, category: requestCategory }]);
+      nearBottom.current = true;
+      setMessages((current) => [...current, { id: messageId, role: 'user', text,
+        category: requestCategory, chatContext: requestContext }]);
     }
     try {
-      const response = await mutateAsync({ message: text, locale: language });
-      setMessages((current) => [...current, {
+      const response = await mutateAsync({ message: text, locale: language, category: requestCategory,
+        ...(requestContext ? { chatContext: requestContext } : {}) });
+      const requestTurn = Number(messageId.slice('user-'.length));
+      if (response.chatContext && requestTurn >= beautyContextTurn.current) {
+        beautyContext.current = response.chatContext;
+        beautyContextTurn.current = requestTurn;
+      }
+      const answer: ChatMessage = {
         id: `assistant-${++serial.current}`, role: 'assistant', text: response.answer,
         products: response.products, question: text, category: requestCategory,
-      }]);
+        chatContext: response.chatContext, evidence: response.evidence, resultType: response.resultType,
+      };
+      setMessages((current) => {
+        const questionIndex = current.findIndex((message) => message.id === messageId);
+        return questionIndex < 0 ? current : [
+          ...current.slice(0, questionIndex + 1), answer, ...current.slice(questionIndex + 1),
+        ];
+      });
     } catch {
       setMessages((current) => current.map((message) => message.id === messageId ? { ...message, failed: true } : message));
       setInput((current) => current || text);
@@ -128,7 +159,11 @@ export default function ChatScreen() {
       <Stack.Screen options={{ title: messages.length ? t('chat.ui.title') : '' }} />
       <KeyboardAvoidingView style={styles.keyboard} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={headerHeight}>
-        <ScrollView ref={scrollRef} contentContainerStyle={styles.messages} keyboardShouldPersistTaps="handled">
+        <ScrollView ref={scrollRef} contentContainerStyle={styles.messages} keyboardShouldPersistTaps="handled"
+          onScroll={({ nativeEvent }) => {
+            const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
+            nearBottom.current = contentSize.height - (contentOffset.y + layoutMeasurement.height) < 80;
+          }} scrollEventThrottle={16}>
           {!messages.length ? (
             <View style={styles.welcome}>
               {!editing ? (
@@ -145,9 +180,7 @@ export default function ChatScreen() {
                     style={[editing ? styles.categoryChip : styles.category, category === item.id && styles.categorySelected]}>
                     {editing ? <Text style={styles.categoryText}>{t(item.label)}</Text> : (
                       <>
-                        <View style={[styles.categoryArt, item.id === 'ingredient' ? styles.ingredientArt : item.id === 'style' ? styles.styleArt : styles.productArt]}>
-                          <Ionicons name={item.icon} size={34} color={item.id === 'ingredient' ? theme.colors.success : theme.colors.rose} />
-                        </View>
+                        <Image source={item.image} style={styles.categoryArt} contentFit="cover" accessible={false} />
                         <View style={styles.categoryCopy}>
                           <Text style={styles.categoryText}>{t(item.label)}</Text>
                           <Text style={styles.categoryCaption}>{t(item.caption)}</Text>
@@ -183,41 +216,61 @@ export default function ChatScreen() {
             </View>
           )}
           {messages.map((message) => (
-            <View key={message.id} style={[styles.message, message.role === 'user' ? styles.userMessage : styles.assistantMessage]}>
-              {message.role === 'assistant' ? (
-                <View style={styles.answerHeader}>
-                  <View style={styles.answerIcon}><Ionicons name="sparkles" size={14} color={theme.colors.rose} /></View>
-                  <Text style={styles.answerTitle}>{t(message.category === 'ingredient' ? 'chat.ui.ingredient' : message.category === 'style' ? 'chat.ui.style' : 'chat.ui.title')}</Text>
-                </View>
-              ) : null}
-              {message.role === 'assistant' && message.category === 'style' ? (
-                <View style={styles.styleGuide}>
-                  <Ionicons name="flower-outline" size={28} color={theme.colors.rose} />
-                  <Text style={styles.messageText}>{message.text}</Text>
-                </View>
-              ) : <Text style={[styles.messageText, message.role === 'user' && styles.userMessageText]}>{message.text}</Text>}
+            <View key={message.id} style={styles.messageGroup}>
               {message.role === 'assistant' && message.category === 'ingredient' ? (
-                <Text style={styles.ingredientNotice}>{t('chat.ui.ingredientGeneralNotice')}</Text>
-              ) : null}
+                <IngredientResult
+                  heading={t('chat.ui.ingredient')}
+                  summary={message.text}
+                  notice={t('chat.ui.ingredientGeneralNotice')}
+                  labels={{ product: t('chat.result.productInfo'), ingredients: t('chat.result.ingredientList'), source: t('chat.result.source'), unknown: t('chat.conditionUnknown') }}
+                />
+              ) : message.role === 'assistant' && message.category === 'style' ? (
+                <StyleRecipeResult
+                  heading={t('chat.ui.style')}
+                  summary={message.text}
+                  browseImage={styleBrowseImage}
+                  browseLabel={t('chat.ui.styleBrowse')}
+                  stepsLabel={t('chat.result.steps')}
+                  stepNavigation={{
+                    previous: t('chat.result.previousStep'),
+                    next: t('chat.result.nextStep'),
+                    position: (current, total) => t('chat.result.stepPosition', { current, total }),
+                  }}
+                  onBrowse={() => router.push('/style-browse')}
+                />
+              ) : <View style={[styles.message, message.role === 'user' ? styles.userMessage : styles.assistantMessage]}>
+                {message.role === 'assistant' ? (
+                  <View style={styles.answerHeader}>
+                    <View style={styles.answerIcon}><Ionicons name="sparkles" size={14} color={theme.colors.rose} /></View>
+                    <Text style={styles.answerTitle}>{t('chat.ui.title')}</Text>
+                  </View>
+                ) : null}
+                <Text style={[styles.messageText, message.role === 'user' && styles.userMessageText]}>{message.text}</Text>
+              </View>}
               {message.failed ? (
                 <View style={styles.failure}>
+                  <View style={styles.stateIcon}><Ionicons name="alert-circle-outline" size={22} color={theme.colors.danger} /></View>
                   <Text style={styles.failureText} accessibilityRole="alert">{t('chat.ui.error')}</Text>
-                  <Pressable accessibilityRole="button" disabled={isPending} onPress={() => void send(message.text, message.id, message.category)} style={styles.retry}>
+                  <Pressable accessibilityRole="button" accessibilityState={{ disabled: isPending }} disabled={isPending}
+                    onPress={() => void send(message.text, message.id, message.category)} style={[styles.retry, isPending && styles.retryDisabled]}>
                     <Text style={styles.retryText}>{t('chat.ui.retry')}</Text>
                   </Pressable>
                 </View>
               ) : null}
-              {message.role === 'assistant' && message.products?.length ? <RelatedProducts refs={message.products} question={message.question ?? ''} category={message.category} /> : null}
-              {message.role === 'assistant' && !message.products?.length && message.category === 'product' ? (
+              {message.role === 'assistant' && message.products?.length ? <RelatedProducts refs={message.products}
+                question={message.question ?? ''} category={message.category}
+                chatContext={message.chatContext} evidence={message.evidence} /> : null}
+              {message.role === 'assistant' && !message.products?.length && message.category === 'product' &&
+                (message.resultType === 'empty' || (!message.resultType && extractChatConditions(message.question ?? '').length)) ? (
                 <View style={styles.emptyState}>
-                  <Ionicons name="search-outline" size={18} color={theme.colors.inkMuted} />
+                  <View style={styles.stateIcon}><Ionicons name="search-outline" size={22} color={theme.colors.rose} /></View>
                   <Text style={styles.emptyText}>{t('chat.ui.noProducts')}</Text>
+                  {!input.trim() || input === message.question ? (
+                    <Pressable accessibilityRole="button" onPress={() => { setInput(message.question ?? ''); inputRef.current?.focus(); }} style={styles.editQuestion}>
+                      <Text style={styles.linkText}>{t('chat.ui.editQuestion')}</Text>
+                    </Pressable>
+                  ) : null}
                 </View>
-              ) : null}
-              {message.role === 'assistant' && message.category === 'style' ? (
-                <Pressable accessibilityRole="button" onPress={() => router.push('/celeb')} style={styles.styleLink}>
-                  <Text style={styles.linkText}>{t('chat.ui.styleBrowse')} ›</Text>
-                </Pressable>
               ) : null}
             </View>
           ))}
@@ -271,42 +324,40 @@ const styles = StyleSheet.create({
   welcomeTitle: { color: theme.colors.ink, fontSize: theme.font.title, fontWeight: '800', marginTop: 6, textAlign: 'center' },
   welcomeBody: { color: theme.colors.inkMuted, fontSize: theme.font.small, lineHeight: 20, textAlign: 'center' },
   categories: { flexDirection: 'row', gap: 8, marginTop: 14 },
-  category: { flex: 1, minHeight: 130, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.card, borderRadius: theme.radius.md },
+  category: { flex: 1, minHeight: 140, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.card, borderRadius: theme.radius.md },
   categorySelected: { borderColor: theme.colors.rose },
-  categoryArt: { minHeight: 70, alignItems: 'center', justifyContent: 'center' },
-  productArt: { backgroundColor: theme.colors.roseSoft },
-  ingredientArt: { backgroundColor: '#EAF4EE' },
-  styleArt: { backgroundColor: theme.colors.surfaceAlt },
+  categoryArt: { width: '100%', height: 80 },
   categoryCopy: { paddingHorizontal: 8, paddingVertical: 8, gap: 3 },
   categoryText: { color: theme.colors.ink, fontSize: theme.font.caption, fontWeight: '700' },
-  categoryCaption: { color: theme.colors.inkMuted, fontSize: 10, lineHeight: 14 },
+  categoryCaption: { color: theme.colors.inkMuted, fontSize: theme.font.caption, lineHeight: 17 },
   examplesTitle: { color: theme.colors.ink, fontSize: theme.font.small, fontWeight: '700', marginTop: 10 },
   prompt: { minHeight: 44, borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.radius.md, backgroundColor: theme.colors.card, paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
   promptText: { flex: 1, color: theme.colors.ink, fontSize: theme.font.small, lineHeight: 19 },
   categoryChips: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 8 },
   categoryChip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 10, borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.radius.pill },
   contextNotice: { color: theme.colors.inkMuted, fontSize: theme.font.caption, lineHeight: 17, textAlign: 'center' },
+  messageGroup: { alignSelf: 'stretch', gap: 10 },
   message: { borderRadius: theme.radius.md, maxWidth: '94%', paddingHorizontal: 14, paddingVertical: 12 },
   userMessage: { alignSelf: 'flex-end', backgroundColor: theme.colors.roseSoft },
-  assistantMessage: { alignSelf: 'flex-start', backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderWidth: 1 },
+  assistantMessage: { alignSelf: 'flex-start', backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderWidth: 1, paddingVertical: 14 },
   messageText: { color: theme.colors.ink, fontSize: theme.font.body, lineHeight: 22 },
   userMessageText: { color: theme.colors.ink },
   answerHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
   answerIcon: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.roseSoft },
   answerTitle: { color: theme.colors.roseDark, fontSize: theme.font.caption, fontWeight: '700' },
-  styleGuide: { gap: 10, padding: 12, backgroundColor: theme.colors.roseSoft, borderRadius: theme.radius.md },
-  ingredientNotice: { color: theme.colors.inkMuted, fontSize: theme.font.caption, lineHeight: 18, backgroundColor: theme.colors.cream, borderRadius: theme.radius.sm, padding: 10, marginTop: 10 },
-  relatedTitle: { color: theme.colors.inkMuted, fontSize: theme.font.caption, fontWeight: '700', marginTop: 14 },
+  relatedTitle: { color: theme.colors.inkMuted, fontSize: theme.font.caption, fontWeight: '700', marginBottom: 4 },
   note: { color: theme.colors.inkMuted, fontSize: theme.font.caption, lineHeight: 18, marginTop: 8 },
-  styleLink: { minHeight: 44, justifyContent: 'center', alignItems: 'center', marginTop: 12, paddingHorizontal: 12, borderColor: theme.colors.border, borderWidth: 1, borderRadius: theme.radius.pill },
   linkText: { color: theme.colors.rose, fontWeight: '700', fontSize: theme.font.small },
   loading: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  emptyState: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.colors.cream, padding: 10, borderRadius: theme.radius.sm, marginTop: 10 },
-  emptyText: { flex: 1, color: theme.colors.inkMuted, fontSize: theme.font.caption, lineHeight: 18 },
-  failure: { marginTop: 8, borderTopWidth: 1, borderColor: theme.colors.border },
-  failureText: { color: theme.colors.danger, fontSize: theme.font.caption, marginTop: 8 },
-  retry: { minHeight: 44, justifyContent: 'center' },
-  retryText: { color: theme.colors.roseDark, fontWeight: '700', textDecorationLine: 'underline' },
+  emptyState: { alignItems: 'center', gap: 10, backgroundColor: theme.colors.cream, padding: 16, borderRadius: theme.radius.md },
+  stateIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.roseSoft },
+  emptyText: { color: theme.colors.inkMuted, fontSize: theme.font.small, lineHeight: 20, textAlign: 'center' },
+  editQuestion: { minHeight: 44, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: theme.colors.rose, borderRadius: theme.radius.pill, paddingHorizontal: 16 },
+  failure: { alignItems: 'center', gap: 10, padding: 16, backgroundColor: theme.colors.warningBg, borderRadius: theme.radius.md },
+  failureText: { color: theme.colors.danger, fontSize: theme.font.small, lineHeight: 20, textAlign: 'center' },
+  retry: { minHeight: 44, justifyContent: 'center', alignItems: 'center', borderRadius: theme.radius.pill, backgroundColor: theme.colors.rose, paddingHorizontal: 20 },
+  retryDisabled: { opacity: 0.4 },
+  retryText: { color: theme.colors.white, fontWeight: '700', fontSize: theme.font.small },
   composer: { backgroundColor: theme.colors.surface, paddingHorizontal: 12, paddingVertical: 8 },
   conditionArea: { gap: 10, backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderWidth: 1, borderRadius: theme.radius.md, padding: 12 },
   conditionTitle: { color: theme.colors.ink, fontSize: theme.font.small, fontWeight: '700' },

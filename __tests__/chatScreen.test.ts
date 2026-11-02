@@ -2,6 +2,7 @@ import { createElement } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, Text, TextInput } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import ChatScreen from '@/app/chat';
+import type { BeautyChatContext } from '@/types';
 import { ChatProducts } from '@/components/chat/ChatProducts';
 
 jest.setTimeout(20000);
@@ -11,6 +12,12 @@ const mockUseChat = jest.fn(() => ({ mutateAsync: mockMutateAsync, isPending: fa
 const mockProductsByIds = jest.fn();
 const mockPush = jest.fn();
 const mockRefetch = jest.fn();
+
+const beautyContext: BeautyChatContext = {
+  version: 1, issuedAt: 1000, candidateIds: ['p1', 'p2'], scopeIds: ['p1', 'p2'],
+  selectedProductId: null,
+  filters: { category: 'lip', maxPriceKRW: 20000, fragranceFree: false, moisturizing: true, query: '' },
+};
 
 jest.mock('@/hooks/useChat', () => ({ useChat: () => mockUseChat() }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key, language: 'ko' }) }));
@@ -50,6 +57,38 @@ beforeEach(() => {
 });
 
 describe('standalone chat input', () => {
+  it('carries effective filters and candidate order into a follow-up', async () => {
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'Candidates', products: [], chatContext: beautyContext })
+      .mockResolvedValueOnce({ answer: 'Details', products: [] });
+    const renderer = await renderScreen();
+    for (const text of ['2만원 이하 립 추천', '두 번째 제품 자세히']) {
+      await act(async () => { renderer.root.findByType(TextInput).props.onChangeText(text); });
+      await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    }
+    expect(mockMutateAsync.mock.calls[0][0]).toEqual({ message: '2만원 이하 립 추천', locale: 'ko', category: 'product' });
+    expect(mockMutateAsync.mock.calls[1][0]).toEqual({ message: '두 번째 제품 자세히', locale: 'ko', category: 'product', chatContext: beautyContext });
+    await act(async () => { renderer.unmount(); });
+  });
+
+  it('retries with original context without replacing a newer successful candidate list', async () => {
+    const newer = { ...beautyContext, candidateIds: ['new-1'], scopeIds: ['new-1'] };
+    mockMutateAsync.mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce({ answer: 'New list', products: [], chatContext: newer })
+      .mockResolvedValueOnce({ answer: 'Old retry', products: [], chatContext: beautyContext })
+      .mockResolvedValueOnce({ answer: 'Latest', products: [] });
+    const renderer = await renderScreen();
+    for (const text of ['Old question', 'New question']) {
+      await act(async () => { renderer.root.findByType(TextInput).props.onChangeText(text); });
+      await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    }
+    await act(async () => { buttonWithText(renderer.root, 'chat.ui.retry').props.onPress(); });
+    expect(mockMutateAsync.mock.calls[2][0].chatContext).toBeUndefined();
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('그 제품 자세히'); });
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    expect(mockMutateAsync.mock.calls[3][0].chatContext).toEqual(newer);
+    await act(async () => { renderer.unmount(); });
+  });
+
   it('shows the price and moisturizing preference for the English example', async () => {
     const renderer = await renderScreen();
     await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('Recommend a moisturizing lip product under ₩20,000.'); });
@@ -124,6 +163,38 @@ describe('standalone chat input', () => {
     await act(async () => { renderer.unmount(); });
   });
 
+  it('shows the ingredient guidance with its general-information notice', async () => {
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'Ingredient explanation', products: [] });
+    const renderer = await renderScreen();
+    await act(async () => { buttonWithText(renderer.root, 'chat.ui.ingredient').props.onPress(); });
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('Ingredient question'); });
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    const texts = renderer.root.findAllByType(Text).map((item) => item.props.children);
+    expect(texts).toContain('Ingredient explanation');
+    expect(texts).toContain('chat.ui.ingredientGeneralNotice');
+    expect(texts).not.toContain('chat.ui.noProducts');
+    await act(async () => { renderer.unmount(); });
+  });
+
+  it('opens style browsing above chat while keeping the current draft', async () => {
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'Style answer', products: [] });
+    const renderer = await renderScreen();
+    await act(async () => { buttonWithText(renderer.root, 'chat.ui.style').props.onPress(); });
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('Style question'); });
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('Next draft'); });
+    const browseLabel = renderer.root.findAllByType(Text).find((item) =>
+      Array.isArray(item.props.children) && item.props.children[0] === 'chat.ui.styleBrowse');
+    let browseButton = browseLabel?.parent;
+    while (browseButton && typeof browseButton.props.onPress !== 'function') browseButton = browseButton.parent;
+    if (!browseButton) throw new Error('Style browse button not found');
+    await act(async () => { browseButton!.props.onPress(); });
+    expect(mockPush).toHaveBeenCalledWith('/style-browse');
+    expect(renderer.root.findByType(TextInput).props.value).toBe('Next draft');
+    expect(renderer.root.findAllByType(Text).some((item) => item.props.children === 'Style answer')).toBe(true);
+    await act(async () => { renderer.unmount(); });
+  });
+
   it('restores a failed draft and retries without duplicating the user message', async () => {
     mockMutateAsync.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ answer: 'Answer', products: [] });
     const renderer = await renderScreen();
@@ -134,6 +205,62 @@ describe('standalone chat input', () => {
     expect(mockMutateAsync).toHaveBeenCalledTimes(2);
     expect(renderer.root.findAllByType(Text).filter((item) => item.props.children === 'test question')).toHaveLength(1);
     expect(renderer.root.findAllByType(Text).some((item) => item.props.children === 'Answer')).toBe(true);
+    await act(async () => { renderer.unmount(); });
+  });
+
+  it('marks a failed message retry unavailable while another response is pending', async () => {
+    mockMutateAsync.mockRejectedValueOnce(new Error('offline'));
+    const renderer = await renderScreen();
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('test question'); });
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    expect(renderer.root.findByType(TextInput).props.value).toBe('test question');
+    expect(renderer.root.findByProps({ accessibilityRole: 'alert' }).props.children).toBe('chat.ui.error');
+    mockUseChat.mockReturnValue({ mutateAsync: mockMutateAsync, isPending: true });
+    await act(async () => { renderer.update(createElement(ChatScreen)); });
+    const retry = buttonWithText(renderer.root, 'chat.ui.retry');
+    expect(retry.props.disabled).toBe(true);
+    expect(retry.props.accessibilityState).toEqual({ disabled: true });
+    await act(async () => { renderer.unmount(); });
+  });
+
+  it('places an older retried answer immediately after its question', async () => {
+    mockMutateAsync.mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce({ answer: 'Second answer', products: [] })
+      .mockResolvedValueOnce({ answer: 'First answer', products: [] });
+    const renderer = await renderScreen();
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('First question'); });
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('Second question'); });
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    await act(async () => { buttonWithText(renderer.root, 'chat.ui.retry').props.onPress(); });
+    const texts = renderer.root.findAllByType(Text).map((item) => item.props.children);
+    expect(texts.indexOf('First question')).toBeLessThan(texts.indexOf('First answer'));
+    expect(texts.indexOf('First answer')).toBeLessThan(texts.indexOf('Second question'));
+    expect(texts.indexOf('Second question')).toBeLessThan(texts.indexOf('Second answer'));
+    await act(async () => { renderer.unmount(); });
+  });
+
+  it('does not show a product-empty state for a general question in the default tab', async () => {
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'General answer', products: [] });
+    const renderer = await renderScreen();
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('메이크업 방법 알려줘'); });
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    expect(renderer.root.findAllByType(Text).map((item) => item.props.children)).not.toContain('chat.ui.noProducts');
+    await act(async () => { renderer.unmount(); });
+  });
+
+  it('lets the user edit a product question when no products were returned', async () => {
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'No matches', products: [] });
+    const renderer = await renderScreen();
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('립 제품 추천해줘'); });
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    expect(renderer.root.findAllByType(Text).map((item) => item.props.children)).toContain('chat.ui.noProducts');
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('다른 초안'); });
+    expect(renderer.root.findAllByType(Text).map((item) => item.props.children)).not.toContain('chat.ui.editQuestion');
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText(''); });
+    await act(async () => { buttonWithText(renderer.root, 'chat.ui.editQuestion').props.onPress(); });
+    expect(renderer.root.findByType(TextInput).props.value).toBe('립 제품 추천해줘');
+    expect(mockMutateAsync).toHaveBeenCalledTimes(1);
     await act(async () => { renderer.unmount(); });
   });
 
@@ -174,6 +301,8 @@ describe('standalone chat product references', () => {
     expect(props.products).toEqual([found]);
     expect(props.missingCount).toBe(1);
     expect(props.failed).toBe(false);
+    const answer = renderer.root.findAllByType(Text).find((item) => item.props.children === 'Answer');
+    expect(answer?.parent?.findAllByType(ChatProducts)).toHaveLength(0);
     await act(async () => { renderer.unmount(); });
   });
 
@@ -208,6 +337,44 @@ describe('standalone chat product references', () => {
     expect(renderer.root.findByType(TextInput).props.value).toBe('next draft');
     expect(renderer.root.findAllByType(Text).some((item) => item.props.children === 'question')).toBe(true);
     expect(renderer.root.findAllByType(Text).some((item) => item.props.children === 'Answer')).toBe(true);
+    await act(async () => { renderer.unmount(); });
+  });
+});
+
+describe('structured consultation outcomes', () => {
+  it('shows an empty outcome without failure or a retry and preserves follow-up scope', async () => {
+    const empty = { ...beautyContext, candidateIds: [],
+      filters: { ...beautyContext.filters, fragranceFree: true } };
+    mockMutateAsync.mockResolvedValueOnce({ answer: '전성분 미확인', products: [],
+      resultType: 'empty', chatContext: empty })
+      .mockResolvedValueOnce({ answer: 'Restored', products: [], resultType: 'recommendations' });
+    const renderer = await renderScreen();
+    // No keyword heuristic is needed for the server's structured empty result.
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('아까 것 중 향료 없는 것만'); });
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    const texts = renderer.root.findAllByType(Text).map((item) => item.props.children);
+    expect(texts).toContain('전성분 미확인');
+    expect(texts).toContain('chat.ui.noProducts');
+    expect(texts).not.toContain('chat.ui.error');
+    expect(texts).not.toContain('chat.ui.retry');
+    expect(renderer.root.findAllByProps({ accessibilityRole: 'alert' })).toHaveLength(0);
+    expect(mockProductsByIds).not.toHaveBeenCalled();
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('향료 조건만 빼줘.'); });
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    expect(mockMutateAsync.mock.calls[1][0].chatContext).toEqual(empty);
+    await act(async () => { renderer.unmount(); });
+  });
+
+  it('does not turn clarification into a second empty-result message', async () => {
+    mockMutateAsync.mockResolvedValueOnce({ answer: '후보 번호를 알려주세요', products: [],
+      resultType: 'clarification', chatContext: beautyContext });
+    const renderer = await renderScreen();
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('립 제품 중 그 제품 알려줘'); });
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    const texts = renderer.root.findAllByType(Text).map((item) => item.props.children);
+    expect(texts).toContain('후보 번호를 알려주세요');
+    expect(texts).not.toContain('chat.ui.noProducts');
+    expect(texts).not.toContain('chat.ui.retry');
     await act(async () => { renderer.unmount(); });
   });
 });
