@@ -6,6 +6,7 @@ from fastapi import Depends
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.db import get_session
 from app.core.errors import ApiError
 from app.repositories.ingredient_repository import IngredientRepository
@@ -159,6 +160,16 @@ class IngredientService:
                 check.reason = result.reason
             result.conditions = [check]
             result.verdict = check.verdict
+        if get_settings().is_production and (result.synthetic or (evidence and evidence.synthetic)):
+            result.synthetic = True
+            result.status, result.verdict = "unknown", "UNKNOWN"
+            result.review_status = "unreviewed"
+            result.reason = "synthetic_test_only"
+            result.ingredients = []
+            result.evidence_id = None
+            for check in result.conditions:
+                check.verdict, check.reason = "UNKNOWN", "synthetic_test_only"
+                check.evidence_id = None
         return result
 
 

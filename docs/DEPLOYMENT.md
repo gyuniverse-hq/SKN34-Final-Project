@@ -19,6 +19,21 @@ flowchart LR
   Bump -->|병합 = 배포| Argo["Argo CD → EKS 롤링 배포"]
 ```
 
+## 선택적 성분 매핑 파일
+
+성분 조회에는 생성 재현·상품/호수/옵션 소유권·출처 버전·성분 검수가 확인된 `schemaVersion: 1` 매핑 JSON이 필요하다. `candidate`·`ambiguous`·미검수 자료를 `reproduced`/`verified`로 바꾸지 않는다. 로컬 `reports/ingredients/p0-2b-1-mapping.json`은 미검수 후보 자료이며 정상 조회의 증빙이 아니다.
+
+Docker 없이 실행할 때는 `backend/api/.env`의 `INGREDIENT_MAPPING_PATH`에 해당 서버의 절대 파일 경로를 지정한다. 명시적으로 주입한 경로가 환경 설정보다 우선한다. 미설정·누락·형식 오류·지원하지 않는 버전은 명확한 503 코드, 일치하지 않거나 미검수인 근거는 UNKNOWN으로 처리한다.
+
+Compose에서는 루트 `.env`의 `INGREDIENT_MAPPING_SOURCE`에 기존 호스트 파일의 절대 경로를 넣고 선택적 설정을 추가한다.
+
+```bash
+docker compose -f infra/compose/compose.yaml -f infra/compose/compose.ingredients.yaml --env-file .env config --quiet
+docker compose -f infra/compose/compose.yaml -f infra/compose/compose.ingredients.yaml --env-file .env up --build
+```
+
+이 설정은 API 컨테이너의 `/app/runtime/ingredient-mapping.json`에 읽기 전용으로 연결한다. 파일이 없으면 디렉터리를 대신 만들지 않는다. 기존 기본 Compose 실행에는 파일 마운트가 없고 상품 등 다른 기능은 유지된다. 운영 배포의 파일 전달·검수 승인은 별도이며, 이 개발 설정을 운영 리소스에 수동 적용하지 않는다. 합성 근거는 운영 환경에서 검증된 성분 사실로 공개하지 않는다.
+
 ## 1. 팀 공용 dev 서버 (Render)
 
 팀원은 Docker 없이 이 서버에 붙어서 개발합니다. 모두 무료 플랜입니다.

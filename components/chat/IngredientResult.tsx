@@ -31,7 +31,7 @@ const reasons: Record<string, string> = {
   timeout: 'network', network_error: 'network', invalid_response: 'invalid',
   http_error: 'server', ingredient_present: 'present',
   ingredient_absent_from_verified_list: 'absent', verified_evidence: 'verified',
-  evidence_requires_review: 'review', ingredients_raw_unavailable: 'unknown',
+  evidence_requires_review: 'review', ingredients_raw_unavailable: 'unknown', synthetic_test_only: 'review',
 };
 
 export function IngredientResult({ heading, summary, notice, product, labels, results, products, shadeSelections }: IngredientResultProps) {
@@ -50,7 +50,8 @@ export function IngredientResult({ heading, summary, notice, product, labels, re
       {results?.map((result, index) => {
         const target = products?.find((item) => item.id === result.productId);
         if (!target || (result.shadeId && shadeSelections && shadeSelections[result.productId] !== result.shadeId)) return null;
-        const verified = result.status === 'ok' && result.mappingStatus === 'reproduced' &&
+        const syntheticBlocked = !__DEV__ && !!result.synthetic;
+        const verified = !syntheticBlocked && result.status === 'ok' && result.mappingStatus === 'reproduced' &&
           result.reviewStatus === 'verified' && result.ingredientCoverage !== 'unknown' &&
           !!result.shadeId && !!result.optionId && !!result.source && !!result.evidenceId &&
           !!result.collectedAt && !!result.sourceVersion && !!result.sourceFingerprint &&
@@ -75,7 +76,7 @@ export function IngredientResult({ heading, summary, notice, product, labels, re
           ))}
           <Text style={styles.secondary}>{t('chat.ingredient.coverage')}: {t(`chat.ingredient.${result.ingredientCoverage}`)}</Text>
           <Text style={styles.secondary}>{t('chat.ingredient.mappingLabel')}: {t(`chat.ingredient.${result.mappingStatus}`)}</Text>
-          <Text style={styles.secondary}>{t('chat.ingredient.reviewLabel')}: {t(`chat.ingredient.${result.reviewStatus}`)}</Text>
+          <Text style={styles.secondary}>{t('chat.ingredient.reviewLabel')}: {t(`chat.ingredient.${syntheticBlocked ? 'unreviewed' : result.reviewStatus}`)}</Text>
           <Text style={styles.secondary}>{t(`chat.ingredient.${reasons[result.reason] ?? 'unknown'}` as TranslationKey)}</Text>
           {verified ? <>
             <Text selectable style={styles.secondary}>{labels.source}: {result.source}</Text>

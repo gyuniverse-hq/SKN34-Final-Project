@@ -1,10 +1,11 @@
 """Subset of the api service's catalog contract that the graph needs. Unknown fields are ignored."""
 
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
+from app.core.config import get_settings
 from app.schemas.style_recipe import ReviewedRecipe
 
 
@@ -121,10 +122,24 @@ class CatalogIngredients(_CatalogModel):
     conditions: list[IngredientDecision] = Field(default_factory=list)
     synthetic: bool = False
 
+    @model_validator(mode="after")
+    def block_synthetic_public_evidence(self) -> Self:
+        if self.synthetic and get_settings().is_production:
+            self.status, self.verdict = "unknown", "UNKNOWN"
+            self.review_status = "unreviewed"
+            self.reason = "synthetic_test_only"
+            self.ingredients = []
+            self.evidence_id = None
+            for condition in self.conditions:
+                condition.verdict, condition.reason = "UNKNOWN", "synthetic_test_only"
+                condition.evidence_id = None
+        return self
+
     @property
     def verified(self) -> bool:
         return bool(
             self.status == "ok"
+            and not (self.synthetic and get_settings().is_production)
             and self.mapping_status == "reproduced"
             and self.review_status == "verified"
             and self.ingredient_coverage != "unknown"

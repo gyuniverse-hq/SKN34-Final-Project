@@ -2,12 +2,12 @@
 
 import hashlib
 import json
-import os
 from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import Settings
 from app.core.errors import ApiError
 from app.models.catalog import ProductRow, ShadeRow
 from app.models.raw_oliveyoung import (
@@ -49,7 +49,7 @@ class IngredientRepository:
         self._mappings = mappings
         # An explicit artifact avoids dependency on checkout layout, CWD or Docker image depth.
         self._mapping_path = (
-            mapping_path if mapping_path is not None else os.environ.get("INGREDIENT_MAPPING_PATH")
+            mapping_path if mapping_path is not None else Settings().ingredient_mapping_path
         )
 
     async def _rows(self, statement):

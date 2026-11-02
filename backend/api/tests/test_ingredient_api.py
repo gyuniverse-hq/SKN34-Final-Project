@@ -389,3 +389,37 @@ def test_source_and_catalog_version_mismatch_stay_unknown_from_file(client, data
         assert response.status_code == 200
         assert response.json()["verdict"] == "UNKNOWN" and response.json()["reason"] == reason
         setattr(data[-1], field, original)
+
+
+def test_dotenv_mapping_path_is_used_without_exporting_environment(
+    client, data, tmp_path, monkeypatch
+):
+    path = write_artifact(tmp_path, data)
+    monkeypatch.delenv("INGREDIENT_MAPPING_PATH", raising=False)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".env").write_text(f"INGREDIENT_MAPPING_PATH={path.as_posix()}\n", encoding="utf-8")
+    artifact_service(client, data)
+    assert get(client, ingredientName="Water").json()["verdict"] == "MATCH"
+
+
+@pytest.mark.parametrize("synthetic", [True, False])
+def test_production_blocks_only_synthetic_evidence(client, data, monkeypatch, synthetic):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(
+        "app.services.ingredient_service.get_settings", lambda: SimpleNamespace(is_production=True)
+    )
+    data[-1].synthetic = synthetic
+    setup(client, data)
+    response = get(client, ingredientName="Water")
+    body = response.json()
+    assert response.status_code == 200
+    assert body["synthetic"] is synthetic
+    if synthetic:
+        assert body["status"] == "unknown" and body["verdict"] == "UNKNOWN"
+        assert body["reviewStatus"] == "unreviewed" and not body["ingredients"]
+        assert body["reason"] == "synthetic_test_only" and body["evidenceId"] is None
+        assert body["conditions"][0]["verdict"] == "UNKNOWN"
+    else:
+        assert body["status"] == "ok" and body["verdict"] == "MATCH"
+        assert body["reviewStatus"] == "verified" and body["ingredients"]

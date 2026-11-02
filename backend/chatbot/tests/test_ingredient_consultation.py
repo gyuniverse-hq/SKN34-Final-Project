@@ -746,3 +746,37 @@ async def test_condition_option_mismatch_is_invalid_response(monkeypatch):
         await CatalogClient("http://catalog.test").get_ingredients(
             "a", "a-03", ingredient_name="향료"
         )
+
+
+def test_production_never_verifies_synthetic_contract(monkeypatch):
+    from types import SimpleNamespace
+
+    from app.schemas.catalog import CatalogIngredients
+
+    monkeypatch.setattr(
+        "app.schemas.catalog.get_settings", lambda: SimpleNamespace(is_production=True)
+    )
+    result = CatalogIngredients.model_validate(evidence(name="향료"))
+    assert not result.verified and not result.complete
+    assert result.verdict == "UNKNOWN" and result.review_status == "unreviewed"
+    assert not result.ingredients and result.conditions[0].verdict == "UNKNOWN"
+    body = evidence(name="향료", synthetic=False)
+    for condition in body["conditions"]:
+        condition["synthetic"] = False
+    result = CatalogIngredients.model_validate(body)
+    assert result.verified and result.complete
+
+
+@pytest.mark.anyio
+async def test_production_client_sanitizes_synthetic_upstream_facts(monkeypatch):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(
+        "app.schemas.catalog.get_settings", lambda: SimpleNamespace(is_production=True)
+    )
+    install_http(monkeypatch, lambda req: httpx.Response(200, json=evidence(name="향료")))
+    result = await CatalogClient("http://catalog.test").get_ingredients(
+        "a", "a-03", ingredient_name="향료"
+    )
+    assert result.status == "unknown" and result.verdict == "UNKNOWN"
+    assert not result.ingredients and not result.verified

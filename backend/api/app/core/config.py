@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://vishue:vishue@localhost:5432/vishue"
     redis_url: str | None = None
     catalog_cache_seconds: int = 300
+    ingredient_mapping_path: str | None = None
     # External APIs. Unset keys disable the matching feature instead of failing requests.
     naver_client_id: str | None = None
     naver_client_secret: str | None = None

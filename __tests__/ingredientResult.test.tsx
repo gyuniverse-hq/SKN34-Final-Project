@@ -93,3 +93,19 @@ it('does not turn a partial list into an exclusion match', async () => {
   expect(text(view)).toContain(en['chat.ingredient.partial']);
   await act(async () => { view.unmount(); });
 });
+
+it('never publishes synthetic evidence as verified in a production build', async () => {
+  const original = __DEV__;
+  Object.defineProperty(globalThis, '__DEV__', { value: false, configurable: true });
+  try {
+    const view = await render([evidence]);
+    expect(text(view)).toContain(en['chat.ingredient.UNKNOWN']);
+    expect(text(view)).toContain(en['chat.ingredient.synthetic']);
+    expect(text(view)).not.toContain(en['chat.ingredient.MATCH']);
+    expect(text(view)).not.toContain('1. Water');
+    expect(text(view)).not.toContain('fixture://notice');
+    await act(async () => { view.unmount(); });
+  } finally {
+    Object.defineProperty(globalThis, '__DEV__', { value: original, configurable: true });
+  }
+});
