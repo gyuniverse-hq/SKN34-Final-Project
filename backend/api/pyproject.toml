@@ -16,6 +16,10 @@ dependencies = [
 ]
 
 [dependency-groups]
+data = [
+    "pillow>=13.0.0",
+    "requests>=2.34.2",
+]
 dev = [
     "import-linter>=2.15",
     "pytest>=9.1.1",
