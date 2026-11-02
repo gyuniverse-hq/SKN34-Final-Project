@@ -1,4 +1,5 @@
 import { careTagsOf, suggestConcerns, toggleConcern } from '@/lib/skinFilters';
+import { buildSkinRecommendationRequest } from '@/lib/skinRecommendations';
 import type { SkinAnalysisResult, SkinProfile, SkinQuestionnaire } from '@/types/skin';
 
 function profile(features: Partial<SkinAnalysisResult['features']>, questionnaire: Partial<SkinQuestionnaire> = {}): SkinProfile {
@@ -32,7 +33,7 @@ describe('skin concern suggestions', () => {
 
   it('maps "care" grades, acne and strong survey answers to concern codes', () => {
     const p = profile(
-      { acne: 1, pore_grade_cheek_image_right: 3, wrinkle_grade_glabella: 4 },
+      { acne: 1, pore_grade_cheek_image_right: 4, wrinkle_grade_glabella: 4 },
       { tightness: 2, oiliness: 1, sensitivity: 2 }
     );
     expect(suggestConcerns(p)).toEqual(['dryness', 'sensitivity', 'blemish', 'pores', 'wrinkles']);
@@ -40,6 +41,23 @@ describe('skin concern suggestions', () => {
 
   it('ignores "unknown" survey answers', () => {
     expect(suggestConcerns(profile({}, { tightness: 'unknown', oiliness: 2 }))).toEqual(['oiliness']);
+  });
+
+  it('does not recommend caution care for fair model grades', () => {
+    expect(suggestConcerns(profile({ pore_grade_cheek_image_right: 3, pigmentation_grade_forehead: 2 }))).toEqual([]);
+  });
+
+  it('uses the v3 skin type as a recommendation preference and permits manual removal', () => {
+    const p = profile({}, { tightness: 'unknown', oiliness: 'unknown' });
+    p.analysis.skinType = { label: 'dry', probabilities: [.7, .2, .1], roiCount: 3, scoreType: 'mean_uncalibrated_softmax' };
+    expect(buildSkinRecommendationRequest(p).concerns).toEqual(['dryness']);
+    expect(buildSkinRecommendationRequest(p, []).concerns).toEqual([]);
+  });
+
+  it('uses the same 40/60 type decision for recommendation preferences as the report', () => {
+    const p = profile({});
+    p.analysis.skinType = { label: 'dry', probabilities: [.6, .3, .1], roiCount: 3, scoreType: 'mean_uncalibrated_softmax' };
+    expect(buildSkinRecommendationRequest(p).concerns).toEqual([]);
   });
 
   it('lets the user toggle concerns while keeping canonical order', () => {
@@ -50,5 +68,43 @@ describe('skin concern suggestions', () => {
   it('keeps only known care tags in display order', () => {
     expect(careTagsOf(['demo', 'oil-control', 'hydrating', 'pore-care'])).toEqual(['hydrating', 'oil-control', 'pore-care']);
     expect(careTagsOf(['demo'])).toEqual([]);
+  });
+});
+
+describe('skin recommendation request', () => {
+  it('combines all four model indicators and the three survey answers', () => {
+    const p = profile({
+      acne: 1, pore_grade_cheek_image_left: 4,
+      pigmentation_grade_forehead: 4, wrinkle_grade_eye_image_right: 4,
+    }, { tightness: 2, oiliness: 2, sensitivity: 2 });
+    expect(buildSkinRecommendationRequest(p)).toEqual({
+      concerns: ['dryness', 'oiliness', 'sensitivity', 'blemish', 'pores', 'pigmentation', 'wrinkles'],
+      limit: 8,
+    });
+  });
+
+  it('does not manufacture concerns for unknown or mild survey answers', () => {
+    expect(buildSkinRecommendationRequest(profile({}, {
+      tightness: 'unknown', oiliness: 1, sensitivity: 0,
+    })).concerns).toEqual([]);
+    expect(buildSkinRecommendationRequest(null).concerns).toEqual([]);
+  });
+
+  it('respects user removal and manual additions instead of silently restoring model concerns', () => {
+    const p = profile({ acne: 1 }, { sensitivity: 2 });
+    expect(buildSkinRecommendationRequest(p, ['pores', 'pores', 'dryness'])).toEqual({
+      concerns: ['dryness', 'pores'], limit: 8,
+    });
+    expect(buildSkinRecommendationRequest(p, []).concerns).toEqual([]);
+    expect(buildSkinRecommendationRequest(null, ['oiliness']).concerns).toEqual(['oiliness']);
+  });
+
+  it('sends only concern codes, leaving analysis, answers and metadata on the device', () => {
+    const p = profile({ acne: 1 }, { tightness: 2 });
+    const original = JSON.stringify(p);
+    expect(JSON.stringify(buildSkinRecommendationRequest(p))).toBe(
+      '{"concerns":["dryness","blemish"],"limit":8}'
+    );
+    expect(JSON.stringify(p)).toBe(original);
   });
 });

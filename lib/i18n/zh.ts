@@ -1,6 +1,7 @@
 import type { Dictionary } from './en';
 import { flowsZh } from './flows';
 import { skinZh } from './skin';
+import { skinReportZh } from './skinReport';
 
 export const zh: Dictionary = {
   'discovery.quickTitle': '探索适合你的美妆',
@@ -38,6 +39,7 @@ export const zh: Dictionary = {
   "celebrity.photoCredit": "图片来源 · 画面已裁切",
   ...skinZh,
   ...flowsZh,
+  ...skinReportZh,
   "nia.acne.ready": "痤疮研究模型可用 · 将包含在下次分析中",
   "nia.acne.outdated": "此前分析没有痤疮结果。请使用当前模型重新分析。",
   "nia.acne.reanalyze": "包含痤疮重新分析",
@@ -276,7 +278,6 @@ export const zh: Dictionary = {
   'ar.light': '淡',
   'ar.medium': '中',
   'ar.bold': '浓',
-  'ar.off': '关闭',
   'ar.liner.natural': '自然',
   'ar.liner.cat_wing': '猫眼',
   'ar.liner.puppy': '狗狗眼',
@@ -358,6 +359,9 @@ export const zh: Dictionary = {
   'styleLooks.video': '观看原视频',
   'styleLooks.products': '视频中的产品',
   'styleLooks.unverified': '产品信息及商品匹配尚未核实。',
+  'styleLooks.matched': '品牌和名称与目录一致。色号未经确认。',
+  'styleLooks.openProduct': '查看商品',
+  'styleLooks.tryAr': 'AR试妆',
   'styleLooks.color': '色彩与色调',
   'styleLooks.mood': '主题与氛围',
   'styleLooks.season': '季节与日常',
@@ -500,6 +504,13 @@ export const zh: Dictionary = {
   'ar.chatPlaceholder': '输入你的需求',
   'ar.mic': '说话',
   'ar.send': '发送',
+  'ar.chatAppliedShade': '已套用符合请求的目录色号。',
+  'ar.chatAppliedIntensity': '已减弱当前腮红，颜色未改。',
+  'ar.chatNoMatch': '没有符合该请求的目录色号。',
+  'ar.micUnavailable': 'Expo Go 不支持语音输入，请改用文字。',
+  'ar.shadeEstimated': '颜色来自色卡估算，可能与实际显色不同。',
+  'ar.openProduct': '查看商品',
+  'ar.openStore': '销售页面',
   'ar.mirror.enter': '全屏镜面',
   'ar.mirror.exit': '打开产品选择',
 

@@ -1,5 +1,4 @@
 import { DEFAULT_PUPPY_ANGLE, DEFAULT_WING_ANGLE, DRAW_STEPS, eyelinerStyle, guideMessage, stepForZone } from '@/lib/drawGuide';
-import { DEMO_LOOKS } from '@/lib/devCatalog/demo';
 import { translate } from '@/lib/i18n';
 import { LANGUAGES } from '@/lib/i18n/languages';
 
@@ -19,15 +18,17 @@ describe('drawing guide steps', () => {
   });
 
   it('takes the wing angle and length from the look, and falls back to the renderer defaults', () => {
-    const stage = DEMO_LOOKS.find((l) => l.id === 'demo-look-stage-red')!;
-    expect(guideMessage('eyeliner', stage.makeup.eyeliner?.geometry)).toEqual({
+    expect(guideMessage('eyeliner', { length: 0.3, angle: 15 })).toEqual({
       step: 'eyeliner',
       angle: 15,
       length: 0.3,
       style: 'classic_winged',
     });
-    const gal = DEMO_LOOKS.find((l) => l.id === 'demo-look-gal-classic')!;
-    expect(guideMessage('eyeliner', gal.makeup.eyeliner?.geometry)).toMatchObject({ angle: 12, length: 0.42, style: 'classic_winged' });
+    expect(guideMessage('eyeliner', { length: 0.42, angle: 12 })).toMatchObject({
+      angle: 12,
+      length: 0.42,
+      style: 'classic_winged',
+    });
     expect(guideMessage('lip')).toEqual({ step: 'lip', angle: DEFAULT_WING_ANGLE, length: 0.18, style: 'classic_winged' });
   });
 
@@ -39,8 +40,10 @@ describe('drawing guide steps', () => {
     expect(eyelinerStyle({ linerStyle: 'puppy' })).toBe('puppy');
     expect(eyelinerStyle({ angle: -10 })).toBe('puppy');
     expect(guideMessage('eyeliner', { linerStyle: 'puppy' })).toMatchObject({ style: 'puppy', angle: DEFAULT_PUPPY_ANGLE });
-    const peach = DEMO_LOOKS.find((l) => l.id === 'demo-look-soft-peach-coral')!;
-    expect(guideMessage('eyeliner', peach.makeup.eyeliner?.geometry)).toMatchObject({ style: 'tightline', length: 0.08 });
+    expect(guideMessage('eyeliner', { linerStyle: 'tightline', length: 0.08 })).toMatchObject({
+      style: 'tightline',
+      length: 0.08,
+    });
     expect(guideMessage('eyeliner', { length: 0.05 }).style).toBe('tightline');
   });
 

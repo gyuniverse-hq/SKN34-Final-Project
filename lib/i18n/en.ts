@@ -1,5 +1,6 @@
 import { flowsEn } from './flows';
 import { skinEn } from './skin';
+import { skinReportEn } from './skinReport';
 export const en = {
   'discovery.quickTitle': 'Explore your look',
   'discovery.quickBody': 'Find colors and care that suit you.',
@@ -36,6 +37,7 @@ export const en = {
   "celebrity.photoCredit": "Photo credit · cropped",
   ...skinEn,
   ...flowsEn,
+  ...skinReportEn,
   "nia.acne.ready": "Acne research model available · included in the next analysis",
   "nia.acne.outdated": "This earlier analysis has no acne result. Analyze again with the currently available model.",
   "nia.acne.reanalyze": "Analyze again including acne",
@@ -274,7 +276,6 @@ export const en = {
   'ar.light': 'Light',
   'ar.medium': 'Medium',
   'ar.bold': 'Bold',
-  'ar.off': 'Off',
   'ar.liner.natural': 'Natural',
   'ar.liner.cat_wing': 'Cat wing',
   'ar.liner.puppy': 'Puppy',
@@ -356,6 +357,9 @@ export const en = {
   'styleLooks.video': 'Watch the original video',
   'styleLooks.products': 'Products in the video',
   'styleLooks.unverified': 'Product details and catalog matches have not been verified.',
+  'styleLooks.matched': 'A catalog listing matched this brand and name. The shade color is not confirmed.',
+  'styleLooks.openProduct': 'View in shop',
+  'styleLooks.tryAr': 'Try in AR',
   'styleLooks.color': 'Color and tone',
   'styleLooks.mood': 'Concept and mood',
   'styleLooks.season': 'Seasonal and everyday',
@@ -499,6 +503,13 @@ export const en = {
   'ar.chatPlaceholder': 'Type a request',
   'ar.mic': 'Talk',
   'ar.send': 'Send',
+  'ar.chatAppliedShade': 'Applied a catalog shade that matches your request.',
+  'ar.chatAppliedIntensity': 'Softened the current blush. Color is unchanged.',
+  'ar.chatNoMatch': 'No matching catalog shade for that request.',
+  'ar.micUnavailable': 'Voice input is not available in Expo Go. Type the request instead.',
+  'ar.shadeEstimated': 'This color is estimated from a color chip and may differ from the real shade.',
+  'ar.openProduct': 'View product',
+  'ar.openStore': 'Store page',
   'ar.mirror.enter': 'Full-screen mirror',
   'ar.mirror.exit': 'Show product panel',
 

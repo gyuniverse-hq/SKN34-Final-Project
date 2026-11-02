@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
 import { theme } from '@/constants/theme';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
-import { skinAnalysisEnabled, skinAnalysisServerMode, skinAnalysisSupported } from '@/lib/skinAnalysis';
+import { skinAnalysisEnabled, skinAnalysisSupported } from '@/lib/skinAnalysis';
 import { useSkinProfileStore } from '@/store/skinProfileStore';
 
 /** Separate consent before skin capture. Manual concern selection never needs the camera. */
@@ -26,7 +26,7 @@ export default function SkinConsentScreen() {
   const points: TranslationKey[] = [
     'skinFlow.consent.notMedical',
     ...(canCapture
-      ? [skinAnalysisServerMode ? ('skinFlow.consent.serverPhoto' as const) : ('skinFlow.consent.localPhoto' as const)]
+      ? ['skinFlow.consent.localPhoto' as const]
       : []),
     'skinFlow.consent.storedOnDevice',
     'skinFlow.consent.onlyConcerns',

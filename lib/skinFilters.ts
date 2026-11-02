@@ -2,6 +2,7 @@ import type { SkinConcern } from '@/types';
 import type { SkinProfile } from '@/types/skin';
 import { SKIN_CONCERNS } from './routes';
 import { summarizeSkinResult } from './skinResult';
+import { resolveSkinType } from './skinType';
 
 /**
  * Filter suggestions from the on-device profile. The user edits them before anything is sent;
@@ -20,12 +21,25 @@ export function suggestConcerns(profile: SkinProfile | null | undefined): SkinCo
   if (tightness === 2) found.add('dryness');
   if (oiliness === 2) found.add('oiliness');
   if (sensitivity === 2) found.add('sensitivity');
+  const skinType = resolveSkinType(profile.analysis.skinType, profile.questionnaire);
+  if (skinType.source !== 'survey' && skinType.type === 'dry') found.add('dryness');
+  if (skinType.source !== 'survey' && skinType.type === 'oily') found.add('oiliness');
   return SKIN_CONCERNS.filter((c) => found.has(c));
 }
 
 /** Product care tags in display order; must match CONCERN_TAGS in backend/api catalog_service.py. */
 export const CARE_TAGS = ['hydrating', 'soothing', 'oil-control', 'blemish-care', 'pore-care', 'brightening', 'firming'] as const;
 export type CareTag = (typeof CARE_TAGS)[number];
+
+export const CONCERN_TO_TAGS: Record<SkinConcern, readonly CareTag[]> = {
+  dryness: ['hydrating'],
+  oiliness: ['oil-control'],
+  sensitivity: ['soothing'],
+  blemish: ['blemish-care'],
+  pores: ['pore-care'],
+  pigmentation: ['brightening'],
+  wrinkles: ['firming'],
+};
 
 export function careTagsOf(tags: readonly string[]): CareTag[] {
   return CARE_TAGS.filter((tag) => tags.includes(tag));

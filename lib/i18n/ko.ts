@@ -1,6 +1,7 @@
 import type { Dictionary } from './en';
 import { flowsKo } from './flows';
 import { skinKo } from './skin';
+import { skinReportKo } from './skinReport';
 
 export const ko: Dictionary = {
   'discovery.quickTitle': '나에게 맞는 뷰티',
@@ -38,6 +39,7 @@ export const ko: Dictionary = {
   "celebrity.photoCredit": "사진 출처 · 화면에 맞게 잘림",
   ...skinKo,
   ...flowsKo,
+  ...skinReportKo,
   "nia.acne.ready": "여드름 연구 모델 사용 가능 · 다음 분석에 포함됩니다",
   "nia.acne.outdated": "이전 분석에는 여드름 결과가 없습니다. 현재 모델로 다시 분석하세요.",
   "nia.acne.reanalyze": "여드름 포함 다시 분석",
@@ -276,7 +278,6 @@ export const ko: Dictionary = {
   'ar.light': '연하게',
   'ar.medium': '보통',
   'ar.bold': '진하게',
-  'ar.off': '끄기',
   'ar.liner.natural': '내추럴',
   'ar.liner.cat_wing': '캣 윙',
   'ar.liner.puppy': '강아지',
@@ -358,6 +359,9 @@ export const ko: Dictionary = {
   'styleLooks.video': '원본 영상 보기',
   'styleLooks.products': '영상 속 제품',
   'styleLooks.unverified': '제품 정보와 상품 연결은 아직 확인되지 않았어요.',
+  'styleLooks.matched': '브랜드와 제품명이 카탈로그와 같아요. 호수 색은 확인되지 않았어요.',
+  'styleLooks.openProduct': '상품 보기',
+  'styleLooks.tryAr': 'AR로 입어보기',
   'styleLooks.color': '컬러·톤',
   'styleLooks.mood': '콘셉트·분위기',
   'styleLooks.season': '시즌·데일리',
@@ -501,6 +505,13 @@ export const ko: Dictionary = {
   'ar.chatPlaceholder': '요청을 입력하세요',
   'ar.mic': '말하기',
   'ar.send': '보내기',
+  'ar.chatAppliedShade': '요청에 맞는 카탈로그 색을 적용했어요.',
+  'ar.chatAppliedIntensity': '지금 블러셔를 더 연하게 했어요. 색은 그대로예요.',
+  'ar.chatNoMatch': '그 요청에 맞는 카탈로그 색이 없어요.',
+  'ar.micUnavailable': 'Expo Go에서는 음성 입력을 쓸 수 없어요. 글로 적어 주세요.',
+  'ar.shadeEstimated': '색상칩에서 추정한 색이에요. 실제 발색과 다를 수 있어요.',
+  'ar.openProduct': '상품 보기',
+  'ar.openStore': '판매 페이지',
   'ar.mirror.enter': '전체 화면 거울',
   'ar.mirror.exit': '제품 선택 열기',
 

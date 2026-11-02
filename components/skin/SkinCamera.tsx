@@ -28,7 +28,7 @@ export function SkinCamera({ state, onCapture, webRun, onWebEvent, analyzing = f
           onWebEvent(JSON.parse(event.nativeEvent.data) as SkinWebEvent);
         } catch { failed(); }
       }} onError={failed} onContentProcessDidTerminate={failed} onRenderProcessGone={failed}
-      style={StyleSheet.absoluteFill} /> : <NativeCamera onCapture={onCapture} />}
+      containerStyle={styles.webView} style={styles.webView} renderError={() => <View style={styles.webView} />} /> : <NativeCamera onCapture={onCapture} />}
     {!analyzing && <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <View style={[styles.guide, state.guidance === 'hold' && styles.ready]}>
         <View style={styles.forehead}><Text style={styles.small}>{t('skin.foreheadLine')}</Text></View>
@@ -43,6 +43,7 @@ export function SkinCamera({ state, onCapture, webRun, onWebEvent, analyzing = f
 
 const styles = StyleSheet.create({
   frame: { flex: 1, minHeight: 240, backgroundColor: '#111', overflow: 'hidden', borderRadius: 24 },
+  webView: { flex: 1, backgroundColor: '#111' },
   hidden: { position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' },
   // Native camera gate uses these same normalized guide coordinates.
   guide: { position: 'absolute', left: '15%', top: '12%', width: '70%', height: '68%', borderRadius: 240, borderWidth: 3, borderColor: '#fff' },

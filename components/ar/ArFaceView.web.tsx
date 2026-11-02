@@ -3,11 +3,11 @@ import { parseSkinTone } from '@/lib/foundationMatch';
 import type { ArFaceViewProps, LightHint } from './ArFaceView';
 import { FACE_TRACKER_HTML, type ArStatus } from './faceTrackerHtml';
 
-export function ArFaceView({ makeup, compare, guide = null, onStatus, onLightHint, onSkinTone }: ArFaceViewProps) {
+export function ArFaceView({ makeup, compare, guide = null, fillPreview = false, onStatus, onLightHint, onSkinTone }: ArFaceViewProps) {
   const [frame, setFrame] = useState<HTMLIFrameElement | null>(null);
-  const latest = useRef({ makeup, compare, guide, onStatus, onLightHint, onSkinTone });
+  const latest = useRef({ makeup, compare, guide, fillPreview, onStatus, onLightHint, onSkinTone });
   useEffect(() => {
-    latest.current = { makeup, compare, guide, onStatus, onLightHint, onSkinTone };
+    latest.current = { makeup, compare, guide, fillPreview, onStatus, onLightHint, onSkinTone };
   });
 
   const send = useCallback(
@@ -18,6 +18,7 @@ export function ArFaceView({ makeup, compare, guide = null, onStatus, onLightHin
   useEffect(() => send({ type: 'makeup', makeup }), [makeup, send]);
   useEffect(() => send({ type: 'compare', value: compare }), [compare, send]);
   useEffect(() => send({ type: 'guide', guide }), [guide, send]);
+  useEffect(() => send({ type: 'preview', fill: fillPreview }), [fillPreview, send]);
 
   useEffect(() => {
     if (!frame) return;
@@ -33,6 +34,7 @@ export function ArFaceView({ makeup, compare, guide = null, onStatus, onLightHin
         send({ type: 'makeup', makeup: latest.current.makeup });
         send({ type: 'compare', value: latest.current.compare });
         send({ type: 'guide', guide: latest.current.guide });
+        send({ type: 'preview', fill: latest.current.fillPreview });
       } else if (message.type === 'status' && message.status) {
         latest.current.onStatus(message.status);
       } else if (message.type === 'light_hint') {

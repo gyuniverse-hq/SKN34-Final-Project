@@ -1,6 +1,7 @@
 import type { Dictionary } from './en';
 import { flowsJa } from './flows';
 import { skinJa } from './skin';
+import { skinReportJa } from './skinReport';
 
 export const ja: Dictionary = {
   'discovery.quickTitle': '自分に合うビューティー',
@@ -38,6 +39,7 @@ export const ja: Dictionary = {
   "celebrity.photoCredit": "写真の出典 · 表示に合わせて切り抜き",
   ...skinJa,
   ...flowsJa,
+  ...skinReportJa,
   "nia.acne.ready": "ニキビ研究モデルが利用可能 · 次の解析に含まれます",
   "nia.acne.outdated": "以前の解析にはニキビの結果がありません。現在のモデルで再解析してください。",
   "nia.acne.reanalyze": "ニキビを含めて再解析",
@@ -276,7 +278,6 @@ export const ja: Dictionary = {
   'ar.light': '薄め',
   'ar.medium': 'ふつう',
   'ar.bold': '濃いめ',
-  'ar.off': 'オフ',
   'ar.liner.natural': 'ナチュラル',
   'ar.liner.cat_wing': 'キャットウイング',
   'ar.liner.puppy': 'たれ目',
@@ -358,6 +359,9 @@ export const ja: Dictionary = {
   'styleLooks.video': '元の動画を見る',
   'styleLooks.products': '動画内のアイテム',
   'styleLooks.unverified': '商品情報とカタログの照合は未確認です。',
+  'styleLooks.matched': 'ブランドと商品名がカタログと一致しました。色番号は未確認です。',
+  'styleLooks.openProduct': '商品を見る',
+  'styleLooks.tryAr': 'ARで試す',
   'styleLooks.color': 'カラー・トーン',
   'styleLooks.mood': 'コンセプト・雰囲気',
   'styleLooks.season': '季節・デイリー',
@@ -501,6 +505,13 @@ export const ja: Dictionary = {
   'ar.chatPlaceholder': 'リクエストを入力',
   'ar.mic': '話す',
   'ar.send': '送信',
+  'ar.chatAppliedShade': 'リクエストに合うカタログの色を適用しました。',
+  'ar.chatAppliedIntensity': 'チークを弱めました。色は変えていません。',
+  'ar.chatNoMatch': 'そのリクエストに合うカタログの色がありません。',
+  'ar.micUnavailable': 'Expo Goでは音声入力を使えません。文字で入力してください。',
+  'ar.shadeEstimated': 'カラーチップから推定した色です。実際の発色とは異なることがあります。',
+  'ar.openProduct': '商品を見る',
+  'ar.openStore': '販売ページ',
   'ar.mirror.enter': '全画面ミラー',
   'ar.mirror.exit': '商品パネルを開く',
 

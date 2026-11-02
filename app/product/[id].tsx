@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import * as WebBrowser from 'expo-web-browser';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -10,6 +11,7 @@ import { ShadePicker } from '@/components/ui/ShadePicker';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
 import { canTryOn, pickShade } from '@/lib/catalog';
+import { isSafeExternalUrl } from '@/lib/externalLink';
 import { notify } from '@/lib/confirm';
 import { formatKRW } from '@/lib/format';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
@@ -146,6 +148,15 @@ export default function ProductDetailScreen() {
             icon="scan-outline"
             variant="secondary"
             onPress={() => router.push(arHref({ productId: p.id, shadeId: selectedShade?.id }))}
+            style={styles.footerBtn}
+          />
+        ) : null}
+        {p.sourceUrl && isSafeExternalUrl(p.sourceUrl) ? (
+          <Button
+            label={t('ar.openStore')}
+            icon="open-outline"
+            variant="secondary"
+            onPress={() => WebBrowser.openBrowserAsync(p.sourceUrl!)}
             style={styles.footerBtn}
           />
         ) : null}
