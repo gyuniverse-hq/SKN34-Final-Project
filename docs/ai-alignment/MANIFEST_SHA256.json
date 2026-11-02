@@ -19,14 +19,6 @@
     "sha256": "8d84f0cdaab80d6516a3c87ea54b269ac24d7ce147029e68073c5fffbeccd005",
     "bytes": 1127
   },
-  "01_run_1A/__pycache__/evaluate_1a_predictions.cpython-313.pyc": {
-    "sha256": "f5ecfd7d7b1deb3d0cd3afcca2df5bc771c8f6cbf30e7f250ec9e55e74d3516f",
-    "bytes": 10222
-  },
-  "01_run_1A/__pycache__/test_evaluate_1a_predictions.cpython-313.pyc": {
-    "sha256": "0483fa54559d180b4144ab43c14ff358568a92000ed6a53cd563ab36297718f7",
-    "bytes": 5593
-  },
   "01_run_1A/evaluate_1a_predictions.py": {
     "sha256": "be0b45f0a55583af3f754ee421cbf2868087be6a93d3346e20592ebf19646bfc",
     "bytes": 5982
@@ -55,9 +47,13 @@
     "sha256": "47a35d0cf499a62ec8a27a7cad26ab32f8a4f2a1f0e0d22c35efb6f56497b5ac",
     "bytes": 2604
   },
+  "01_run_1A/test_validate_fixture_package.py": {
+    "sha256": "b1c234d37698374bce108510830e4179bb02bba9bda687677ebb90f0e5103cba",
+    "bytes": 1622
+  },
   "01_run_1A/validate_fixture_package.py": {
-    "sha256": "71c7df8f5239e2f89cef7b26e40b59adb9d09ae0b96fe2024c72fbd494ff8859",
-    "bytes": 2654
+    "sha256": "801d763ca123cbb4a151e843f0fd057eaecc92568dac211002428658c427c139",
+    "bytes": 5040
   },
   "01_run_1A/validation_summary.json": {
     "sha256": "f7ac48e59d6e5a13a072c39d3113c433ef686a9b8762d6678671771640f912b3",
@@ -115,16 +111,20 @@
     "sha256": "f6509ceeeb772af6f8c2fa4ef36d8c8364051be64290b8d66e46a280af97370e",
     "bytes": 5627
   },
-  "CODEX_TASK_PROMPT.md": {
-    "sha256": "569025e58fd92d651bdc5d6100da5c10f10880aaff6a4f74f2e4ada55d1e857b",
-    "bytes": 4417
-  },
   "README_FIRST.md": {
-    "sha256": "183413a379a137e5be2497bdcc45621989f71f3a27d5e2a9b88b0a96bb80b63b",
-    "bytes": 4482
+    "sha256": "e949c5f3838e59126dcb18e53543afc36ea8a055ef6dccc854389e9bc6383d0f",
+    "bytes": 7195
   },
   "VALIDATION.json": {
     "sha256": "3a56185fd7b784e6a4dced833d024546421f1859bd537925ea9e86e6f64acc6e",
     "bytes": 692
+  },
+  "VISHUE_AI_Architecture_v1_6.xlsx": {
+    "sha256": "174cd87280882ac7b2b5e916f15a56ad71b3e638debe5235389d5ac8b928db53",
+    "bytes": 78546
+  },
+  "VISHUE_Requirements_v0_6.xlsx": {
+    "sha256": "9fb646bf048e0825cbfe14064faad69e4d839e142d65cc2b7f28d2ee25d93652",
+    "bytes": 116235
   }
 }

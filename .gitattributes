@@ -1,0 +1,6 @@
+# Evaluation hashes must be identical in Windows and Unix checkouts.
+docs/ai-alignment/**/*.json text eol=lf
+docs/ai-alignment/**/*.jsonl text eol=lf
+docs/ai-alignment/**/*.py text eol=lf
+docs/ai-alignment/**/*.md text eol=lf
+docs/ai-alignment/**/*.txt text eol=lf
