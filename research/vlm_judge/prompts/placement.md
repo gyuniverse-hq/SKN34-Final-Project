@@ -1,0 +1,2 @@
+PROMPT_VERSION: vlm-judge-v1
+Compare Candidate with Reference around the lips. Estimate makeup overflow outside the lip and missing coverage inside the lip using none, slight(<=10%), moderate(10-25%), or severe(>25%). Judge edge character, corner fade, and a placement score from 1 to 5. These are visual estimates, not segmentation measurements. Return the required fields and one short English reason.

@@ -1,0 +1,23 @@
+{
+  "provider": "gemini",
+  "model": "",
+  "temperature": 0.4,
+  "repeats": 3,
+  "swap_order": true,
+  "max_concurrency": 4,
+  "timeout_s": 120,
+  "max_retries": 4,
+  "price_per_1m_input_usd": null,
+  "price_per_1m_output_usd": null,
+  "thresholds": {
+    "color_pass_max_band": "2-4",
+    "color_target_band": "<=2",
+    "placement_pass": 4,
+    "texture_win_fraction": 0.5,
+    "naturalness_accuracy_max": 0.65,
+    "naturalness_score_min": 3.5,
+    "human_replace_spearman": 0.6,
+    "human_replace_agreement": 0.75,
+    "human_assist_spearman": 0.3
+  }
+}

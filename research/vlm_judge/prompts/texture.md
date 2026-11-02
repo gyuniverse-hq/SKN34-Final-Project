@@ -1,0 +1,2 @@
+PROMPT_VERSION: vlm-judge-v1
+Compare Candidate X and Candidate Y with Reference. For each choose X, Y, or tie for which is closer to Reference: contrast and volume (including lower-lip light and upper-lip shadow), highlight and gloss strength, and visible vertical creases and lip texture. Also describe each candidate's apparent finish (matte, satin, gloss) and whether it looks plastic. Return the required fields and one short English reason.
