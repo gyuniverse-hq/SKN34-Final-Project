@@ -1,6 +1,9 @@
+import re
 from functools import lru_cache
+from urllib.parse import quote
 
 import httpx
+from pydantic import ValidationError
 
 from app.core.config import get_settings
 from app.core.errors import UpstreamError
@@ -30,6 +33,20 @@ class CatalogClient:
 
     async def fetch_looks(self) -> list[CatalogLook]:
         return [CatalogLook.model_validate(lk) for lk in await self._get("/api/looks", "looks")]
+
+    async def get_product(self, product_id: str) -> CatalogProduct | None:
+        # Catalog IDs use URL-safe characters; never send path delimiters upstream.
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", product_id):
+            return None
+        try:
+            async with httpx.AsyncClient(timeout=self._timeout) as client:
+                res = await client.get(self._base + "/api/products/" + quote(product_id, safe=""))
+            if res.status_code == 404:
+                return None
+            res.raise_for_status()
+            return CatalogProduct.model_validate(res.json()["product"])
+        except (httpx.HTTPError, KeyError, ValueError, ValidationError, TypeError) as exc:
+            raise UpstreamError("catalog product request failed") from exc
 
 
 @lru_cache

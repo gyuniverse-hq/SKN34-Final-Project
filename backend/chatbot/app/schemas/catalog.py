@@ -15,11 +15,14 @@ class CatalogShade(_CatalogModel):
 
 
 class CatalogProduct(_CatalogModel):
+    """keyIngredients is partial information, never a verified full ingredient list."""
+
     id: str
     brand: str
     name: str
     name_ko: str
     category: str
+    makeup_zone: str | None = None
     texture: str | None
     price_krw: int = Field(alias="priceKRW")
     description: str
