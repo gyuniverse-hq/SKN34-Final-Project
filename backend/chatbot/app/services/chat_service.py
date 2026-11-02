@@ -14,6 +14,7 @@ from app.repositories.ar_command_repository import MemoryArRequestRepository, ge
 from app.repositories.graph_repository import GraphRepository
 from app.schemas.chat import ArAckRequest, ChatRequest, ChatResponse, GraphProduct, ProductRef
 from app.services.ar_command_service import propose_ar_command
+from app.services.beauty_consultation_service import answer_beauty
 
 LANGUAGE = {"en": "English", "ko": "Korean", "ja": "Japanese", "zh": "Simplified Chinese"}
 MAX_TERMS = 8
@@ -21,7 +22,12 @@ _WORD = re.compile(r"[\w가-힣ぁ-んァ-ン一-龥]{2,}")
 
 SYSTEM_PROMPT = """You are VISHUE's K-beauty shopping assistant for international visitors.
 Answer in {language}, in at most 5 short sentences.
-Recommend only products from the PRODUCTS list below, by brand and name. If none fit, say so.
+Answer the user's question directly. For general makeup or ingredient questions, do not mention
+product availability unless the user also asks for product recommendations.
+When recommending products, use only products from the PRODUCTS list below, by brand and name.
+If the user asks for product recommendations and none of the listed products fit, say so.
+Ingredient lists are partial key ingredients, not verified full ingredients. An absent fragrance
+entry never proves fragrance-free status. Never invent catalog shades or ingredient coverage.
 Never ask for, describe, or comment on photos or video of the user's face.
 PRODUCTS (JSON): {products}"""
 
@@ -81,6 +87,10 @@ class ChatService:
             )
         if not self._llm.configured:
             raise ApiError(503, "Chatbot is not configured", "chatbot_unavailable")
+        if req.request_type == "beauty_consultation":
+            response = await answer_beauty(req, self._llm, self._catalog)
+            if response is not None:
+                return response
         graph = self._graph if self._graph is not None else GraphRepository(get_driver())
         products = await graph.find_products(extract_terms(req.message))
         try:

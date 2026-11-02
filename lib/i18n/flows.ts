@@ -1,5 +1,12 @@
 /** UI MVP flows: home, search, compare, AR recommendations, external sellers, skin filters. */
 export const flowsEn = {
+  'chat.candidateNumber': 'Candidate {index}',
+  'chat.catalogEvidence': 'Source: Catalog API · product reference price',
+  'chat.keyOnlyEvidence': 'Key ingredients only. Full ingredients and fragrance-free status are unknown.',
+  'chat.noIngredientEvidence': 'Ingredients and fragrance-free status are unknown.',
+  'chat.filters.maxPrice': 'Up to KRW {amount}',
+  'chat.filters.fragranceFree': 'Fragrance-free required',
+  'chat.filters.moisturizing': 'Moisture preferred',
   'ar.command.restorePending': 'Checking restoration of the current AR state…',
   'ar.command.restoreConfirmed': 'The renderer confirmed the restoration request.',
   'ar.command.restoreFailed': 'The renderer could not restore the current state.',
@@ -293,6 +300,13 @@ export const flowsEn = {
 type FlowsDictionary = Record<keyof typeof flowsEn, string>;
 
 export const flowsKo: FlowsDictionary = {
+  'chat.candidateNumber': '후보 {index}',
+  'chat.catalogEvidence': '근거: Catalog API · 상품 기준가격',
+  'chat.keyOnlyEvidence': '주요 성분만 제공됩니다. 전성분과 향료 무첨가 여부는 미확인입니다.',
+  'chat.noIngredientEvidence': '성분과 향료 무첨가 여부는 미확인입니다.',
+  'chat.filters.maxPrice': '{amount}원 이하',
+  'chat.filters.fragranceFree': '향료 무첨가 필수',
+  'chat.filters.moisturizing': '촉촉함 선호',
   'ar.command.restorePending': '현재 AR 상태로 복구되는지 확인하고 있어요…',
   'ar.command.restoreConfirmed': '렌더러가 복구 요청을 확인했어요.',
   'ar.command.restoreFailed': '렌더러가 현재 상태로 복구하지 못했어요.',
@@ -584,6 +598,13 @@ export const flowsKo: FlowsDictionary = {
 };
 
 export const flowsJa: FlowsDictionary = {
+  'chat.candidateNumber': '候補 {index}',
+  'chat.catalogEvidence': '根拠：Catalog API・商品参考価格',
+  'chat.keyOnlyEvidence': '主要成分のみです。全成分と香料不使用かは未確認です。',
+  'chat.noIngredientEvidence': '成分と香料不使用かは未確認です。',
+  'chat.filters.maxPrice': '{amount}ウォン以下',
+  'chat.filters.fragranceFree': '香料不使用が必須',
+  'chat.filters.moisturizing': '保湿優先',
   'ar.command.restorePending': '現在のAR状態への復元を確認しています…',
   'ar.command.restoreConfirmed': 'レンダラーが復元リクエストを確認しました。',
   'ar.command.restoreFailed': 'レンダラーは現在の状態に復元できませんでした。',
@@ -875,6 +896,13 @@ export const flowsJa: FlowsDictionary = {
 };
 
 export const flowsZh: FlowsDictionary = {
+  'chat.candidateNumber': '候选 {index}',
+  'chat.catalogEvidence': '依据：Catalog API·产品参考价格',
+  'chat.keyOnlyEvidence': '仅提供主要成分，全成分和是否不含香料均未确认。',
+  'chat.noIngredientEvidence': '成分和是否不含香料均未确认。',
+  'chat.filters.maxPrice': '不超过{amount}韩元',
+  'chat.filters.fragranceFree': '必须不含香料',
+  'chat.filters.moisturizing': '优先保湿',
   'ar.command.restorePending': '正在确认恢复当前 AR 状态…',
   'ar.command.restoreConfirmed': '渲染器已确认恢复请求。',
   'ar.command.restoreFailed': '渲染器无法恢复当前状态。',

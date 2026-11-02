@@ -400,6 +400,34 @@ export interface ChatProductRef {
 export interface ChatResponse {
   answer: string;
   products: ChatProductRef[];
+  chatContext?: BeautyChatContext;
+  resultType?: 'recommendations' | 'product_detail' | 'clarification' | 'empty';
+  evidence?: ChatProductEvidence[];
+}
+
+export interface BeautyChatFilters {
+  category: ProductCategory | null;
+  maxPriceKRW: number | null;
+  fragranceFree: boolean;
+  moisturizing: boolean;
+  query: string;
+}
+
+/** Ephemeral, client-carried context. The server revalidates all IDs and product facts. */
+export interface BeautyChatContext {
+  version: 1;
+  issuedAt: number;
+  filters: BeautyChatFilters;
+  candidateIds: string[];
+  scopeIds: string[];
+  selectedProductId: string | null;
+}
+
+export interface ChatProductEvidence {
+  productId: string;
+  source: 'catalog_api';
+  ingredientCoverage: 'key_only' | 'unknown';
+  fragranceStatus: 'unknown';
 }
 
 export interface AuthUser {

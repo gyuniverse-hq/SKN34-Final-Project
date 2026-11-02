@@ -1,4 +1,5 @@
-import type { ProductCategory } from '@/types';
+import type { BeautyChatFilters, ProductCategory } from '@/types';
+import type { TranslationKey } from '@/lib/i18n';
 
 export type ChatCondition = {
   kind: 'category' | 'maxPrice' | 'fragranceFree' | 'moisturizing';
@@ -6,6 +7,22 @@ export type ChatCondition = {
   required: boolean;
   value?: ProductCategory | number;
 };
+
+/** Display effective server filters even when the follow-up contains only an ordinal. */
+export function conditionsFromChatFilters(
+  filters: BeautyChatFilters, t: (key: TranslationKey, params?: Record<string, string | number>) => string
+): ChatCondition[] {
+  const result: ChatCondition[] = [];
+  if (filters.category) result.push({ kind: 'category', required: true, value: filters.category,
+    text: t(`shop.cat.${filters.category}`) });
+  if (filters.maxPriceKRW !== null) result.push({ kind: 'maxPrice', required: true,
+    value: filters.maxPriceKRW, text: t('chat.filters.maxPrice', { amount: filters.maxPriceKRW }) });
+  if (filters.fragranceFree) result.push({ kind: 'fragranceFree', required: true,
+    text: t('chat.filters.fragranceFree') });
+  if (filters.moisturizing) result.push({ kind: 'moisturizing', required: false,
+    text: t('chat.filters.moisturizing') });
+  return result;
+}
 
 const CATEGORIES: { value: ProductCategory; pattern: RegExp }[] = [
   { value: 'lip', pattern: /립(?:스틱|틴트|밤|\s*제품)?|\blip(?:stick| tint| balm)?\b|リップ|口红|唇膏|唇釉/i },
@@ -19,7 +36,7 @@ const CATEGORIES: { value: ProductCategory; pattern: RegExp }[] = [
 // Only show filter candidates for explicit shopping requests, never general how-to questions.
 const SHOPPING = /추천|찾아|골라|제품|상품|화장품|\b(?:recommend|suggest|find|shop|product|buy)\b|おすすめ|探して|商品|推荐|找(?:找|一款)?|产品|商品/i;
 const GENERAL_QUESTION = /바르는\s*법|사용\s*방법|화장법|메이크업\s*방법|\bhow\s+(?:to|do|can)\b|使い方|塗り方|怎么用|如何使用/i;
-const NEGATION = /^\s*(?:(?:건|것|제품)(?:은|는)?\s*)?(?:아니|말고|빼|제외|싫|불필요|필요\s*없|는\s*아니|은\s*아니|不要|以外|ではない)/i;
+const NEGATION = /^\s*(?:(?:(?:건|것|제품)(?:은|는)?|은|는|이|가|을|를|도)\s*)?(?:아니|말고|빼|제외|싫|불필요|필요\s*없|는\s*아니|은\s*아니|不要|以外|ではない)/i;
 
 export function extractChatConditions(message: string): ChatCondition[] {
   if (!SHOPPING.test(message) || GENERAL_QUESTION.test(message)) return [];

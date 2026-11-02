@@ -25,6 +25,7 @@ class CatalogProduct(_CatalogModel):
     makeup_zone: str | None = None
     texture: str | None
     price_krw: int = Field(alias="priceKRW")
+    price_evidence: str | None = None
     description: str
     key_ingredients: list[str]
     tags: list[str]

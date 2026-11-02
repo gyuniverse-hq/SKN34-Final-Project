@@ -47,11 +47,40 @@ class ArContext(ArModel):
     lip: ArLipSelection | None
 
 
+class BeautyFilters(ArModel):
+    category: Literal["lip", "cheek", "eye", "base", "skincare", "suncare"] | None = None
+    max_price_krw: Annotated[int, Field(strict=True, ge=0, le=100_000_000)] | None = Field(
+        default=None, alias="maxPriceKRW"
+    )
+    fragrance_free: bool = False
+    moisturizing: bool = False
+    query: str = Field(default="", max_length=80)
+
+
+class BeautyContext(ArModel):
+    """Client-carried search context; IDs and facts are always rechecked with Catalog."""
+
+    version: Literal[1] = 1
+    issued_at: Annotated[int, Field(strict=True, ge=0)]
+    filters: BeautyFilters
+    candidate_ids: list[ArIdentifier] = Field(default_factory=list, max_length=6)
+    scope_ids: list[ArIdentifier] = Field(default_factory=list, max_length=6)
+    selected_product_id: ArIdentifier | None = None
+
+
+class ProductEvidence(ArModel):
+    product_id: str
+    source: Literal["catalog_api"] = "catalog_api"
+    ingredient_coverage: Literal["key_only", "unknown"]
+    fragrance_status: Literal["unknown"] = "unknown"
+
+
 class ChatRequest(ApiModel):
     message: str = Field(min_length=1, max_length=1000)
     locale: Locale = "en"
     skin: SkinHint | None = None
-    request_type: Literal["chat", "ar_command"] = "chat"
+    request_type: Literal["chat", "ar_command", "beauty_consultation"] = "chat"
+    chat_context: BeautyContext | None = None
     request_id: UUID | None = None
     ar_context: ArContext | None = None
 
@@ -59,6 +88,11 @@ class ChatRequest(ApiModel):
     @classmethod
     def ignore_ar_fields_for_chat(cls, data):
         # Older chat clients could send unrecognized fields; keep them inert.
+        if (
+            isinstance(data, dict)
+            and data.get("requestType", data.get("request_type", "chat")) != "beauty_consultation"
+        ):
+            data = {k: v for k, v in data.items() if k not in {"chatContext", "chat_context"}}
         if (
             isinstance(data, dict)
             and data.get("requestType", data.get("request_type", "chat")) == "chat"
@@ -166,7 +200,11 @@ class ChatResponse(ApiModel):
     answer: str
     products: list[ProductRef]
     ar_result: ArResult | None = Field(default=None, exclude_if=lambda v: v is None)
-
+    chat_context: BeautyContext | None = Field(default=None, exclude_if=lambda v: v is None)
+    result_type: Literal["recommendations", "product_detail", "clarification", "empty"] | None = (
+        Field(default=None, exclude_if=lambda v: v is None)
+    )
+    evidence: list[ProductEvidence] | None = Field(default=None, exclude_if=lambda v: v is None)
 
 
 class GraphProduct(ApiModel):

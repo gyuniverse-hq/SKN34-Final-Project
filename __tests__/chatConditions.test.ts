@@ -60,6 +60,20 @@ describe('extractChatConditions', () => {
     expect(extractChatConditions('립 또는 블러셔 제품 추천해줘').filter((c) => c.kind === 'category')).toEqual([]);
   });
 
+  it.each([
+    '립은 빼고 추천해줘',
+    '립 제품은 제외해줘',
+    '립을 빼고 추천해줘',
+  ])('does not present an excluded category as required: %s', (message) => {
+    expect(extractChatConditions(message).some((condition) => condition.kind === 'category')).toBe(false);
+  });
+
+  it('keeps the included category when another category with a particle is excluded', () => {
+    expect(extractChatConditions('립은 빼고 블러셔 제품 추천해줘').filter((condition) => condition.kind === 'category')).toEqual([
+      { kind: 'category', text: '블러셔', required: true, value: 'cheek' },
+    ]);
+  });
+
   it('supports explicit multilingual category and fragrance requests', () => {
     expect(extractChatConditions('香料無添加のリップをおすすめ').map((c) => c.kind)).toEqual(['category', 'fragranceFree']);
     expect(extractChatConditions('推荐不含香料的口红').map((c) => c.kind)).toEqual(['category', 'fragranceFree']);

@@ -146,6 +146,27 @@ def test_prompt_uses_locale_skin_hint_and_only_retrieved_products():
     assert user == {"role": "user", "content": "tint"}
 
 
+@pytest.mark.parametrize(
+    "question", ["소프트 로즈 메이크업 방법 알려줘", "판테놀은 어떤 성분이야?", "립 제품 추천해줘"]
+)
+def test_empty_catalog_instructions_are_sent_with_each_kind_of_question(question):
+    class EmptyGraph:
+        async def find_products(self, terms, limit=6):
+            return []
+
+    llm = FakeLlm()
+
+    async def answer():
+        return await ChatService(EmptyGraph(), llm).answer(ChatRequest(message=question))
+
+    response = anyio.run(answer)
+    system, user = llm.messages
+    assert response.products == []
+    assert user == {"role": "user", "content": question}
+    assert "PRODUCTS (JSON): []" in system["content"]
+    assert "do not mention\nproduct availability unless the user also asks" in system["content"]
+    assert "If the user asks for product recommendations" in system["content"]
+    assert "use only products from the PRODUCTS list" in system["content"]
 
 
 def ar_payload():
