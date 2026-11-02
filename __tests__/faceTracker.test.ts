@@ -64,7 +64,8 @@ describe('face tracker page', () => {
     expect(script).toContain('hlKeep: [0.15, 1.0]');
     expect(script).toContain('float shadeRel = clamp(sLow / meanL, 0.15, 4.0);');
     // A pigmented sheen is the product color brightened; only a clear coat reflects the light's color.
-    expect(script).toContain('vec3 sheenCol = uLightColor * mix(hue, vec3(1.0), smooth1 * smooth1 * smooth1);');
+    // 11-02 round 2: the highlight colour is the (partly neutralised) light colour over a hue-to-white mix, not near-white all over.
+    expect(script).toContain('vec3 sheenCol = mix(uLightColor, vec3(1.0), uGlossTone.y) * mix(hue, vec3(1.0), smooth1 * smooth1 * smooth1 * mix(uGlossTone.x, 1.0, peakness));');
     expect(script).toContain('vec3 specTint = mix(uLipAlbedo, vec3(1.0), 0.16)');
     // Layering stays. No painted-over lip shape, drawn grooves, noise texture, or a normal drawn from
     // a template. The one lip normal allowed is the form built from this person's own outline
@@ -92,6 +93,36 @@ describe('face tracker page', () => {
     // Corners keep only a slight fade at the very tip.
     expect(num('cornerFadeStrength')).toBeLessThanOrEqual(0.15);
     expect(num('cornerFadeSize')).toBeLessThanOrEqual(0.08);
+  });
+
+  it('keeps a lip gloss small, soft and in the colour of the lip instead of a white layer on top (11-02 round 2)', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    const arr = (key: string) => script.match(new RegExp(`${key}:\\s*\\[([0-9., ]+)\\]`))![1].split(',').map(Number);
+    const [width, focus, lumFollow, lightFollow] = arr('glossShape');
+    const [halo, neutral, screen] = arr('glossTone');
+    // A peaked lobe, not a flat-topped patch: the old width of 0.35 saturated the highlight into a uniformly bright plate.
+    expect(width).toBeGreaterThanOrEqual(0.7);
+    // Held to the lip centre, and the exposure and the estimated light direction move it only half as much.
+    expect(focus).toBeGreaterThanOrEqual(0.5);
+    expect(lumFollow).toBeLessThanOrEqual(0.5);
+    expect(lightFollow).toBeLessThanOrEqual(0.5);
+    // Colour kept: the falloff around the peak stays mostly the product's own hue and the warm light colour is made partly neutral.
+    expect(halo).toBeLessThanOrEqual(0.3);
+    expect(neutral).toBeGreaterThanOrEqual(0.4);
+    // No screen blend: on a saturated lip it adds most to the dark channels and whitens more than adding does.
+    expect(screen).toBe(0);
+    expect(script).toContain('float formSpec = glossCap * lobe * core * uFormOn * mix(1.0, exp(-cd * cd), uGlossShape.y);');
+    expect(script).toContain('vec3 lG = normalize(mix(vec3(0.0, 0.25, 1.0), l, uLightConf * uGlossShape.w));');
+    expect(script).toContain('mix(0.25, uSkinMeanLum, uGlossShape.z)');
+  });
+
+  it('softens the paint edge with the camera blur, capped so a blurry video does not smear (11-02 survey)', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    const num = (key: string) => Number(script.match(new RegExp(`${key}:\\s*([0-9.]+)`))?.[1]);
+    // Offline the paint edge was 2.1 px against ~8 px for the photo's own lip edge; 0.5 × blur was too crisp.
+    expect(num('lipEdgeBlurK')).toBeGreaterThanOrEqual(0.8);
+    expect(num('lipEdgeSoftMax')).toBeLessThanOrEqual(3);
+    expect(script).toContain('clamp(TUNING.lipEdgeBlurK * light.blur, 0.5, TUNING.lipEdgeSoftMax)');
   });
 
   it('treats light reflected by the lip as lip, so it carries gloss and creases (device 10-25)', () => {
@@ -192,16 +223,18 @@ describe('face tracker page', () => {
     // also from the always-present frontal source, scaled by scene brightness and finish smoothness.
     expect(script).toContain('float form = max(dot(lipFormN, lV), 0.0) / max(dot(lipBaseN, lV), 0.2);');
     expect(script).toContain('uFrontGloss * (sharpF + uWideGloss * lobeN(nf, rW))');
-    expect(script).toContain('* uSkinMeanLum * uGlossGain');
+    expect(script).toContain('* mix(0.25, uSkinMeanLum, uGlossShape.z) * uGlossGain');
     // Flat selfie: form gloss rises when the camera has no specular; matte (smooth1²) stays dull.
     expect(script).toContain('uGlossFlat * (1.0 - smoothstep(0.02, 0.12, camSpec)) * smooth1 * smooth1');
-    expect(script).toMatch(/glossFlat:\s*1\.2/);
+    // 11-02: 1.2 → 0.6 (survey: gloss read as plastic). Stays above 0, or a gloss looks matte on a flat selfie again (10-25).
+    expect(Number(script.match(/glossFlat:\s*([0-9.]+)/)?.[1])).toBeGreaterThan(0);
     // No pale rim where opaque paint crosses onto skin.
     expect(script).toContain('layered *= mix(1.0, min(1.0, meanL / max(uSkinMeanLum, 1e-3)), skinW * opaqueW);');
     // Matte stays dull: its highlight peak is far below a gloss's.
     const pair = script.match(/glossMax:\s*\[([0-9.]+),\s*([0-9.]+)\]/);
     expect(Number(pair?.[1])).toBeLessThan(0.1);
-    expect(Number(pair?.[2])).toBeGreaterThan(0.5);
+    // Gloss peak 0.85 → 0.45 on 11-02 (survey); it must stay well above a matte's, at least 5×.
+    expect(Number(pair?.[2])).toBeGreaterThan(5 * Number(pair?.[1]));
   });
 
   it('paints the wet inner lip on open mouths and ignores face points outside the frame', () => {
