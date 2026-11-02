@@ -27,6 +27,14 @@ uv run --group data python ..\..\scripts\data\oliveyoung\collect_load_skincare.p
 
 중단된 수집은 같은 명령과 폴더로 다시 실행합니다. 상품 목록 조회나 상세 수집이 하나라도 실패하면 `manifest.json`의 `complete`가 `false`이며 적재를 거부합니다. `ingredient_parse_review` 로그가 있는 상품은 옵션별 성분 연결을 검토합니다.
 
+목록에는 있지만 상세 페이지가 HTTP 404/410을 명확히 반환한 상품은 자동으로 `unavailable`에 기록합니다. 자동 제외가 목록의 1%를 넘으면 상세 주소나 응답 형식이 바뀐 것으로 보고 완료 처리하지 않습니다. HTTP 200인데 상품 JSON이 없거나 접속 확인 화면이 나온 경우는 판매 종료로 추정하지 않습니다. 원인을 직접 확인한 특정 상품만 다음처럼 기록할 수 있습니다. **기존 수집 폴더를 그대로 사용**하며, 완료한 상품은 다시 수집하지 않습니다.
+
+```powershell
+uv run --group data python ..\..\scripts\data\oliveyoung\collect_load_skincare.py --phase collect --mode full --snapshot-dir "C:\Users\Playdata\Downloads\oy-skincare-v2_1-20261102" --confirm-unavailable A000000204392
+```
+
+수동 확인 항목과 자동 제외 항목은 `manifest.json`의 `unavailable`에 근거와 함께 남고, 적재 시 `raw_oy_crawl_log`에 `step=detail_unavailable`로도 기록됩니다. 상품·옵션·성분 행을 만들어 넣지 않습니다. `collected_count + unavailable_count = 목록 상품 수`이고 나머지 오류가 없을 때만 완료됩니다. 수동 확인은 상품번호별로 해야 하며 일반적인 파싱 실패를 일괄 제외하지 않습니다.
+
 전처리 규칙이 바뀐 수집본은 `skincare-v2.1-db` 또는 `makeup-v30.1-db`로 기록합니다. 이전 버전의 완료 폴더를 다시 지정해도 재수집되지 않으므로, 새 규칙으로 수집할 때는 새 `--snapshot-dir`을 사용합니다. 재개 중인 수집본과 현재 스크립트의 버전이 다르면 이어 수집하지 않습니다.
 
 로컬 DB에서 별도로 사전 확인 후 적재:

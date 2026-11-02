@@ -52,9 +52,37 @@ def _finish_run(path: Path, run_id: int, complete: bool, schema: dict) -> None:
         writer.writerows(records)
 
 
-def collect(kind: str, directory: Path, workers: int = 10, mode: str = "full") -> dict:
+def unavailable_records(manifest: dict) -> dict:
+    """Validate auditable exceptions to a complete category listing."""
+    unavailable = manifest.get("unavailable", {})
+    if not isinstance(unavailable, dict):
+        raise TypeError("Snapshot unavailable records must be an object")
+    jobs = [str(job[1]) for job in manifest["jobs"]]
+    if len(jobs) != len(set(jobs)) or not set(unavailable) <= set(jobs):
+        raise ValueError("Unavailable goods must be unique members of the listing")
+    for goods_no, record in unavailable.items():
+        if (
+            not isinstance(record, dict)
+            or record.get("method") not in {"http_404", "http_410", "manual"}
+            or not record.get("reason")
+            or not record.get("confirmed_at")
+        ):
+            raise ValueError(f"Invalid unavailable record: {goods_no}")
+    return unavailable
+
+
+def collect(
+    kind: str,
+    directory: Path,
+    workers: int = 10,
+    mode: str = "full",
+    confirm_unavailable: list[str] | None = None,
+) -> dict:
     if workers < 1 or workers > 16:
         raise ValueError("--workers must be between 1 and 16")
+    confirm_unavailable = confirm_unavailable or []
+    if len(confirm_unavailable) != len(set(confirm_unavailable)):
+        raise ValueError("Duplicate --confirm-unavailable goods number")
     directory = directory.resolve()
     directory.mkdir(parents=True, exist_ok=True)
     manifest_path = directory / "manifest.json"
@@ -76,6 +104,8 @@ def collect(kind: str, directory: Path, workers: int = 10, mode: str = "full") -
                 "kind, mode, or incomplete listing"
             )
         if manifest.get("complete"):
+            if confirm_unavailable:
+                raise ValueError("Cannot change an already completed snapshot")
             print("Snapshot is already complete; no new requests were made")
             return manifest
         jobs = [tuple(item) for item in manifest["jobs"]]
@@ -140,10 +170,25 @@ def collect(kind: str, directory: Path, workers: int = 10, mode: str = "full") -
         )
 
     done = base.load_done()
-    remaining = [(label, no) for label, no in jobs if no not in done]
+    unavailable = unavailable_records(manifest)
+    job_numbers = {no for _, no in jobs}
+    if not set(confirm_unavailable) <= job_numbers - done:
+        raise ValueError("Only listed, unfinished goods can be confirmed unavailable")
+    for goods_no in confirm_unavailable:
+        unavailable[goods_no] = {
+            "method": "manual",
+            "reason": "상품 상세 제공 종료를 사람이 확인함",
+            "confirmed_at": datetime.now().isoformat(timespec="seconds"),
+        }
+    if set(done) & set(unavailable):
+        raise ValueError("A collected product cannot also be unavailable")
+    remaining = [
+        (label, no) for label, no in jobs if no not in done and no not in unavailable
+    ]
     print(
         f"총 {len(jobs)}개 상품 수집 시작 "
-        f"(작업자 {workers}, 기존 완료 {len(done)}, 남은 {len(remaining)})",
+        f"(작업자 {workers}, 기존 완료 {len(done)}, "
+        f"판매 종료 확인 {len(unavailable)}, 남은 {len(remaining)})",
         flush=True,
     )
     failed = {}
@@ -205,6 +250,19 @@ def collect(kind: str, directory: Path, workers: int = 10, mode: str = "full") -
                             f"이미지 {len(rows.get('image', []))}",
                             flush=True,
                         )
+                    except oy.ProductUnavailable as exc:
+                        unavailable[no] = {
+                            "method": f"http_{exc.status_code}",
+                            "reason": str(exc),
+                            "confirmed_at": datetime.now().isoformat(
+                                timespec="seconds"
+                            ),
+                        }
+                        print(
+                            f"   {i:04d}/{len(jobs)} [{label}] {no} 상세 페이지 없음: "
+                            f"HTTP {exc.status_code}",
+                            flush=True,
+                        )
                     except Exception as exc:  # noqa: BLE001 - record per-product failures for resume
                         failed[no] = str(exc)[:300]
                         print(
@@ -228,20 +286,34 @@ def collect(kind: str, directory: Path, workers: int = 10, mode: str = "full") -
         for handle in base._files.values():
             handle.close()
 
+    auto_unavailable = sum(
+        record["method"].startswith("http_") for record in unavailable.values()
+    )
+    auto_limit = max(1, len(jobs) // 100)
+    if auto_unavailable > auto_limit:
+        print(
+            f"자동 제외 {auto_unavailable}건이 목록의 1%를 초과해 완료 처리하지 않습니다. "
+            "상세 주소 또는 응답 규칙을 검토하세요.",
+            flush=True,
+        )
     complete = (
         not interrupted
-        and len(done) == len(jobs)
+        and len(done) + len(unavailable) == len(jobs)
         and not failed
+        and auto_unavailable <= auto_limit
         and not oy.STOP_EVENT.is_set()
     )
     _finish_run(run_csv, run_id, complete, collector.SCHEMA)
     manifest["complete"] = complete
     manifest["collected_count"] = len(done)
+    manifest["unavailable"] = unavailable
+    manifest["unavailable_count"] = len(unavailable)
     manifest["failed"] = failed
     manifest["finished_at"] = datetime.now().isoformat(timespec="seconds")
     _write_manifest(manifest_path, manifest)
     print(
-        f"Collected {len(done)}/{len(jobs)}; complete={complete}; snapshot={directory}"
+        f"Collected {len(done)}/{len(jobs)}; unavailable={len(unavailable)}; "
+        f"complete={complete}; snapshot={directory}"
     )
     return manifest
 
@@ -252,8 +324,15 @@ def main() -> None:
     parser.add_argument("--snapshot-dir", type=Path, required=True)
     parser.add_argument("--workers", type=int, default=10)
     parser.add_argument("--mode", choices=("full", "incremental"), default="full")
+    parser.add_argument("--confirm-unavailable", action="append", default=[])
     args = parser.parse_args()
-    result = collect(args.kind, args.snapshot_dir, args.workers, args.mode)
+    result = collect(
+        args.kind,
+        args.snapshot_dir,
+        args.workers,
+        args.mode,
+        args.confirm_unavailable,
+    )
     if not result["complete"]:
         raise SystemExit(
             "Snapshot incomplete; rerun with the same folder after resolving failures"

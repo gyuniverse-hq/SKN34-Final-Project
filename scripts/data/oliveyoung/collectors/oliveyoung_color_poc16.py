@@ -93,6 +93,14 @@ class RateLimited(RuntimeError):
     pass
 
 
+class ProductUnavailable(RuntimeError):
+    """The official product detail endpoint explicitly returned 404 or 410."""
+
+    def __init__(self, status_code):
+        self.status_code = status_code
+        super().__init__(f"상품 상세 HTTP {status_code}: 페이지 없음")
+
+
 def page_session():
     if not hasattr(_page_thread, "session"):
         _page_thread.session = requests.Session()
@@ -173,6 +181,8 @@ def request(method, url, **kw):
         if r.status_code == 403:
             note_block(url.split("?")[0])
             continue  # 대기한 뒤 같은 요청을 다시 보냄
+        if r.status_code in (404, 410) and "/goods/getGoodsDetail.do" in url:
+            raise ProductUnavailable(r.status_code)
         note_ok()
         r.raise_for_status()
         return r
@@ -288,6 +298,24 @@ def parse_detail(html, goods_no):
         "name": name,
         "options": uniq,
     }
+
+
+def require_product_json(response, detail):
+    """Explain missing product data without treating every parse failure as delisting."""
+    if detail:
+        return
+    title_match = re.search(
+        r"<title[^>]*>(.*?)</title>", response.text, re.IGNORECASE | re.DOTALL
+    )
+    title = (
+        re.sub(r"\s+", " ", title_match.group(1)).strip()[:80] if title_match else ""
+    )
+    if "접속 정보를 확인 중" in response.text or "잠시만 기다리십시오" in title:
+        STOP_EVENT.set()
+        raise RateLimited("상품 상세 페이지에서 접속 확인 화면을 받음")
+    raise RuntimeError(
+        f"상품 JSON 파싱 실패 (HTTP {response.status_code}, 제목={title or '없음'})"
+    )
 
 
 # ───────── 3. 호수 분리 / 색 추출 / Lab ─────────
