@@ -505,6 +505,7 @@ export const en = {
   'ar.send': 'Send',
   'ar.chatAppliedShade': 'Applied a catalog shade that matches your request.',
   'ar.chatAppliedIntensity': 'Softened the current blush. Color is unchanged.',
+  'ar.chatClarify': 'Request one change at a time. For example: Set lip intensity to 50%.',
   'ar.chatNoMatch': 'No matching catalog shade for that request.',
   'ar.micUnavailable': 'Voice input is not available in Expo Go. Type the request instead.',
   'ar.shadeEstimated': 'This color is estimated from a color chip and may differ from the real shade.',

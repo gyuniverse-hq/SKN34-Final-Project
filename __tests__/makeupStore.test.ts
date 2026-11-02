@@ -1,4 +1,4 @@
-import { AR_PAINT_ZONES, arPaintMakeup, MAKEUP_ZONES, useMakeupStore } from '@/store/makeupStore';
+import { AR_PAINT_ZONES, arPaintMakeup, MAKEUP_ZONES, useMakeupStore, type ArProposal } from '@/store/makeupStore';
 import type { CelebLook, Product } from '@/types';
 
 describe('makeup store zones', () => {
@@ -237,5 +237,113 @@ describe('makeup store zones', () => {
       expect(useMakeupStore.getState().makeup.blush?.hex).toBe('#F4A78A');
       expect(useMakeupStore.getState().makeup.lip).toBeNull();
     });
+  });
+});
+
+describe('AR command state', () => {
+  const lip = { id: 'lip-ar', makeupZone: 'lip', texture: 'matte' } as unknown as Product;
+  const blush = { id: 'blush-ar', makeupZone: 'blush', texture: 'cream' } as unknown as Product;
+  const lipShade = { id: 'rose', name: 'Rose', hex: '#C25A6E' };
+  const blushShade = { id: 'coral', name: 'Coral', hex: '#F4A78A' };
+  let serial = 0;
+  let session: string;
+  let request: string;
+  let proposal: ArProposal;
+
+  beforeEach(() => {
+    const store = useMakeupStore.getState();
+    store.endArSession();
+    store.reset();
+    store.applyShade(lip, lipShade);
+    store.applyShade(blush, blushShade);
+    session = `ar-session-${++serial}`;
+    request = `request-${serial}`;
+    store.beginArSession(session);
+    proposal = {
+      commandId: `command-${serial}`, expectedStateVersion: useMakeupStore.getState().arVersion,
+      action: 'set_intensity', zone: 'lip', value: 0.5, productId: lip.id, shadeId: lipShade.id,
+    };
+  });
+
+  it.each([0, 0.5, 1])('applies intensity %s only after render confirmation', (value) => {
+    const store = useMakeupStore.getState();
+    const before = store.makeup;
+    proposal.value = value;
+    expect(store.prepareArCommand(request, session, proposal).status).toBe('PENDING');
+    expect(useMakeupStore.getState().makeup).toEqual(before);
+    const outcome = store.finishArCommand(proposal.commandId, session, 'rendered');
+    expect(outcome).toEqual({ status: 'APPLIED', actualStateVersion: proposal.expectedStateVersion + 1 });
+    const after = useMakeupStore.getState();
+    expect(after.makeup.lip).toEqual({ ...before.lip, intensity: value });
+    expect(after.makeup.blush).toEqual(before.blush);
+    expect(after.selections.lip).toEqual({ productId: lip.id, shadeId: lipShade.id });
+    expect(after.prepareArCommand(request, session, proposal).status).toBe('REJECTED');
+  });
+
+  it('returns NO_CHANGE without changing version when the current value is rendered', () => {
+    const store = useMakeupStore.getState();
+    proposal.value = store.makeup.lip!.intensity;
+    expect(store.prepareArCommand(request, session, proposal).status).toBe('PENDING');
+    expect(store.finishArCommand(proposal.commandId, session, 'rendered')).toEqual({
+      status: 'NO_CHANGE', actualStateVersion: proposal.expectedStateVersion,
+    });
+  });
+
+  it.each(['failed', 'unknown'] as const)('does not change makeup when render is %s', (result) => {
+    const store = useMakeupStore.getState();
+    const before = store.makeup;
+    store.prepareArCommand(request, session, proposal);
+    expect(store.finishArCommand(proposal.commandId, session, result).status).toBe(result === 'failed' ? 'FAILED' : 'UNKNOWN');
+    expect(useMakeupStore.getState().makeup).toEqual(before);
+    expect(useMakeupStore.getState().arVersion).toBe(proposal.expectedStateVersion);
+  });
+
+  it('rejects an old version, wrong selection, invalid number, or locked fit', () => {
+    const store = useMakeupStore.getState();
+    expect(store.prepareArCommand(request, session, { ...proposal, expectedStateVersion: 0 }).status).toBe('REJECTED');
+    expect(store.prepareArCommand(request, session, { ...proposal, shadeId: 'other' }).status).toBe('REJECTED');
+    expect(store.prepareArCommand(request, session, { ...proposal, value: NaN }).status).toBe('REJECTED');
+    store.startFit(lip, lipShade);
+    expect(store.prepareArCommand(request, session, { ...proposal, expectedStateVersion: useMakeupStore.getState().arVersion }).status).toBe('REJECTED');
+  });
+
+  it('prefers a manual change during rendering and refuses a late result', () => {
+    const store = useMakeupStore.getState();
+    store.prepareArCommand(request, session, proposal);
+    store.setIntensity('lip', 0.8);
+    expect(useMakeupStore.getState().pendingArCommand).toBeNull();
+    expect(store.finishArCommand(proposal.commandId, session, 'rendered').status).toBe('REJECTED');
+    expect(useMakeupStore.getState().makeup.lip?.intensity).toBe(0.8);
+    expect(useMakeupStore.getState().arVersion).toBe(proposal.expectedStateVersion + 1);
+  });
+
+  it('rejects a response from an exited or replaced session', () => {
+    const store = useMakeupStore.getState();
+    store.prepareArCommand(request, session, proposal);
+    store.endArSession();
+    store.beginArSession(`${session}-new`);
+    expect(store.finishArCommand(proposal.commandId, session, 'rendered').status).toBe('REJECTED');
+    expect(store.prepareArCommand(request, session, proposal).status).toBe('REJECTED');
+  });
+
+  it('rejects a repeated request even if the server issues another command ID', () => {
+    const store = useMakeupStore.getState();
+    store.prepareArCommand(request, session, proposal);
+    store.finishArCommand(proposal.commandId, session, 'rendered');
+    const next = { ...proposal, commandId: `second-${serial}`, expectedStateVersion: useMakeupStore.getState().arVersion };
+    expect(store.prepareArCommand(request, session, next).status).toBe('REJECTED');
+  });
+
+  it('rejects a server reply after a manual change while the request was in flight', () => {
+    const store = useMakeupStore.getState();
+    store.setIntensity('lip', 0.25);
+    expect(store.prepareArCommand(request, session, proposal).status).toBe('REJECTED');
+    expect(useMakeupStore.getState().makeup.lip?.intensity).toBe(0.25);
+  });
+
+  it('rejects an in-flight proposal when the user reasserts the current intensity', () => {
+    const store = useMakeupStore.getState();
+    store.setIntensity('lip', store.makeup.lip!.intensity);
+    expect(store.prepareArCommand(request, session, proposal).status).toBe('REJECTED');
   });
 });

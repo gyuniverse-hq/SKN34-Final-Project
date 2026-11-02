@@ -507,6 +507,7 @@ export const ko: Dictionary = {
   'ar.send': '보내기',
   'ar.chatAppliedShade': '요청에 맞는 카탈로그 색을 적용했어요.',
   'ar.chatAppliedIntensity': '지금 블러셔를 더 연하게 했어요. 색은 그대로예요.',
+  'ar.chatClarify': '한 번에 하나만 요청해 주세요. 예: 립 진하기를 50%로 설정해 줘.',
   'ar.chatNoMatch': '그 요청에 맞는 카탈로그 색이 없어요.',
   'ar.micUnavailable': 'Expo Go에서는 음성 입력을 쓸 수 없어요. 글로 적어 주세요.',
   'ar.shadeEstimated': '색상칩에서 추정한 색이에요. 실제 발색과 다를 수 있어요.',

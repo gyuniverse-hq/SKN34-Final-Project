@@ -506,6 +506,7 @@ export const zh: Dictionary = {
   'ar.send': '发送',
   'ar.chatAppliedShade': '已套用符合请求的目录色号。',
   'ar.chatAppliedIntensity': '已减弱当前腮红，颜色未改。',
+  'ar.chatClarify': '请一次请求一项修改。例如：将口红强度设为50%。',
   'ar.chatNoMatch': '没有符合该请求的目录色号。',
   'ar.micUnavailable': 'Expo Go 不支持语音输入，请改用文字。',
   'ar.shadeEstimated': '颜色来自色卡估算，可能与实际显色不同。',

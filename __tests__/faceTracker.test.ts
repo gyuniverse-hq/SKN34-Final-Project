@@ -6,7 +6,180 @@ function moduleScript(html: string) {
   return match[1];
 }
 
+type RenderState = { face: boolean; drawn: boolean; lost: boolean; failDraw: boolean; failFilter: boolean; values: number[] };
+
+function renderHarness() {
+  const script = moduleScript(FACE_TRACKER_HTML);
+  const messaging = script.slice(script.indexOf('  function post(message) {'), script.indexOf('  window.__kb'));
+  const frame = script.slice(script.indexOf('  function processFrame(now) {'), script.indexOf('  // Prefer requestVideoFrameCallback'));
+  const state: RenderState = { face: true, drawn: true, lost: false, failDraw: false, failFilter: false, values: [] };
+  const messages: Record<string, unknown>[] = [];
+  const build = new Function('state', 'messages', `
+    let makeup = { lip: null }, pendingRender = null, pendingRestore = null, commandRendererId = null, lastRenderSeq = -1, lastStateSeq = -1;
+    let status = null, hasFace = true, lastFaceAt = 0, lastLightAt = 1, fpsFrames = 0, fpsAt = 0, fps = 0;
+    let landmarker = { detectForVideo: () => ({ faceLandmarks: state.face ? [{}] : [] }) };
+    let renderer = { get lost() { return state.lost; }, upload() {}, render() {
+      if (state.failDraw) throw Error('draw failed');
+      state.values.push(makeup.lip && makeup.lip.intensity);
+      return state.drawn;
+    } };
+    const window = { ReactNativeWebView: { postMessage: (s) => messages.push(JSON.parse(s)) } };
+    const video = { readyState: 2, videoWidth: 100, videoHeight: 100 };
+    const filterLandmarks = () => { if (state.failFilter) throw Error('landmarks failed'); }, updateMesh = () => {}, TUNING = { lightEveryMs: 1000 };
+    const hudOn = false, guide = null;
+    ${messaging}
+    ${frame}
+    return { handleMessage, processFrame };
+  `) as (s: RenderState, m: Record<string, unknown>[]) => {
+    handleMessage: (message: object) => void;
+    processFrame: (now: number) => void;
+  };
+  return { state, messages, ...build(state, messages) };
+}
+
+function renderCommand(value: number, renderSeq = 1, rendererId = 'renderer-1') {
+  return { type: 'render_command', commandId: 'command-1', renderSeq, rendererId, makeup: { lip: { intensity: value } } };
+}
+
+function restoreCommand(value: number | null, renderSeq = 2, rendererId = 'renderer-1', restoreId = 'restore-1') {
+  return { type: 'restore_command', commandId: 'command-1', restoreId, renderSeq, rendererId,
+    makeup: { lip: value === null ? null : { intensity: value } } };
+}
+
 describe('face tracker page', () => {
+  it.each([0, 0.01, 0.5, 1])('acknowledges intensity %s only after a matching face and draw', (value) => {
+    const h = renderHarness();
+    h.handleMessage(renderCommand(value));
+    expect(h.messages).toEqual([]);
+    h.processFrame(2);
+    expect(h.state.values).toEqual([value]);
+    expect(h.messages).toContainEqual({ type: 'render_result', commandId: 'command-1', renderSeq: 1, rendererId: 'renderer-1', status: 'rendered' });
+    h.processFrame(3);
+    expect(h.messages.filter((message) => message.type === 'render_result')).toHaveLength(1);
+  });
+
+  it('bypasses only lip shading at zero and restores it without changing the product', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    const source = script.slice(script.indexOf('  function lipEffectEnabled('), script.indexOf('\n', script.indexOf('  function lipEffectEnabled(')));
+    const enabled = new Function(`${source}; return lipEffectEnabled;`)() as (zone: { intensity: number } | null) => boolean;
+    const product = { productId: 'p1', shadeId: 's1', intensity: 0.5 };
+    expect(enabled(product)).toBe(true);
+    product.intensity = 0;
+    expect(enabled(product)).toBe(false);
+    expect(product).toEqual({ productId: 'p1', shadeId: 's1', intensity: 0 });
+    product.intensity = 0.5;
+    expect(enabled(product)).toBe(true);
+    expect(enabled({ intensity: 0.01 })).toBe(true);
+    expect(enabled({ intensity: 1 })).toBe(true);
+    expect(script).toContain('gl.uniform1f(u.uLipOn, lipEffectEnabled(lip) ? 1 : 0);');
+    expect(script).toContain('float lipZone = m.a * uLipOn;');
+  });
+
+  it('does not let an older makeup message replace a newer command', () => {
+    const h = renderHarness();
+    h.handleMessage({ ...renderCommand(0.5, 2), stateSeq: 2 });
+    h.handleMessage({ type: 'makeup', stateSeq: 1, makeup: { lip: { intensity: 0.3 } } });
+    h.processFrame(2);
+    expect(h.state.values).toEqual([0.5]);
+    expect(h.messages).toContainEqual({ type: 'render_result', commandId: 'command-1', renderSeq: 2, rendererId: 'renderer-1', status: 'rendered' });
+  });
+
+  it('waits for a fresh face and a real lip draw, not stale tracking', () => {
+    const h = renderHarness();
+    h.handleMessage(renderCommand(0.5));
+    h.state.face = false;
+    h.processFrame(2);
+    h.state.face = true;
+    h.state.failFilter = true;
+    h.processFrame(2.5);
+    h.state.failFilter = false;
+    h.state.drawn = false;
+    h.processFrame(3);
+    expect(h.messages.filter((message) => message.type === 'render_result')).toEqual([]);
+    h.state.drawn = true;
+    h.processFrame(4);
+    expect(h.messages.filter((message) => message.type === 'render_result')).toHaveLength(1);
+  });
+
+  it('cancels an old command and refuses older or other-instance messages', () => {
+    const h = renderHarness();
+    h.handleMessage(renderCommand(0.5, 2));
+    h.handleMessage({ type: 'makeup', makeup: { lip: { intensity: 0.3 } } });
+    h.handleMessage(renderCommand(0.5, 1));
+    h.handleMessage(renderCommand(0.5, 3, 'old-renderer'));
+    h.processFrame(2);
+    expect(h.state.values).toEqual([0.3]);
+    expect(h.messages.filter((message) => message.type === 'render_result')).toEqual([]);
+  });
+
+  it.each([0.2, null])('confirms restoration of the latest makeup %s only after a fresh draw', (value) => {
+    const h = renderHarness();
+    h.handleMessage(renderCommand(0.5));
+    h.handleMessage(restoreCommand(value));
+    h.state.face = false;
+    h.processFrame(2);
+    expect(h.messages).toEqual([]);
+    h.state.face = true;
+    h.processFrame(3);
+    expect(h.state.values.at(-1)).toBe(value);
+    expect(h.messages.filter((message) => message.type === 'restore_result')).toEqual([{ type: 'restore_result', commandId: 'command-1', restoreId: 'restore-1',
+      renderSeq: 2, rendererId: 'renderer-1', status: 'rendered' }]);
+  });
+
+  it('draws a replacement frame after a candidate was already drawn', () => {
+    const h = renderHarness();
+    h.handleMessage(renderCommand(0.5));
+    h.processFrame(2);
+    h.handleMessage(restoreCommand(0.2));
+    h.processFrame(3);
+    expect(h.state.values).toEqual([0.5, 0.2]);
+    expect(h.messages.filter((message) => message.type === 'restore_result')).toEqual([
+      { type: 'restore_result', commandId: 'command-1', restoreId: 'restore-1', renderSeq: 2,
+        rendererId: 'renderer-1', status: 'rendered' },
+    ]);
+  });
+
+  it('restores only the newest sequence and ignores old instance and old candidate messages', () => {
+    const h = renderHarness();
+    h.handleMessage({ ...renderCommand(0.5, 1), stateSeq: 1 });
+    h.handleMessage({ ...restoreCommand(0.3, 2), stateSeq: 2 });
+    h.handleMessage({ ...restoreCommand(0.2, 3, 'renderer-1', 'restore-2'), stateSeq: 3 });
+    h.handleMessage({ ...restoreCommand(0.8, 4, 'old-renderer'), stateSeq: 4 });
+    h.handleMessage({ ...restoreCommand(0.1, 4, 'renderer-1', 'restore-3'), stateSeq: 4 });
+    h.processFrame(2);
+    expect(h.state.values).toEqual([0.1]);
+    expect(h.messages.filter((message) => message.type === 'restore_result')).toEqual([{ type: 'restore_result', commandId: 'command-1', restoreId: 'restore-3',
+      renderSeq: 4, rendererId: 'renderer-1', status: 'rendered' }]);
+  });
+
+  it.each(['lost', 'failDraw'] as const)('reports restoration %s without reporting success', (failure) => {
+    const h = renderHarness();
+    h.handleMessage(renderCommand(0.5));
+    h.handleMessage(restoreCommand(0.2));
+    h.state[failure] = true;
+    h.processFrame(2);
+    expect(h.messages.filter((message) => message.type === 'restore_result')).toEqual([{ type: 'restore_result', commandId: 'command-1', restoreId: 'restore-1',
+      renderSeq: 2, rendererId: 'renderer-1', status: 'failed' }]);
+  });
+
+  it('never confirms a pending restore after a newer ordinary makeup update', () => {
+    const h = renderHarness();
+    h.handleMessage({ ...restoreCommand(0.2), stateSeq: 1 });
+    h.handleMessage({ type: 'makeup', stateSeq: 2, makeup: { lip: { intensity: 0.8 } } });
+    h.processFrame(2);
+    expect(h.state.values).toEqual([0.8]);
+    expect(h.messages.filter((message) => message.type === 'restore_result')).toEqual([]);
+  });
+
+  it.each(['lost', 'failDraw'] as const)('reports a %s failure without reporting success', (failure) => {
+    const h = renderHarness();
+    h.handleMessage(renderCommand(0.5));
+    h.state[failure] = true;
+    h.processFrame(2);
+    expect(h.messages.filter((message) => message.type === 'render_result')).toEqual([
+      { type: 'render_result', commandId: 'command-1', renderSeq: 1, rendererId: 'renderer-1', status: 'failed' },
+    ]);
+  });
   it('embeds a syntactically valid script', () => {
     // The page script lives inside a template string, so typecheck/lint never see it.
     expect(() => new Function(moduleScript(FACE_TRACKER_HTML))).not.toThrow();

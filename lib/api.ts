@@ -1,5 +1,7 @@
 import Constants from 'expo-constants';
 import { getAccessToken } from '@/lib/auth';
+import { getSupabase, isAuthConfigured } from '@/lib/auth/client';
+import { getAnonymousChatId } from '@/lib/chatIdentity';
 import type { ApiErrorBody } from '@/types';
 
 export class ApiError extends Error {
@@ -56,13 +58,13 @@ export const CHAT_API_BASE_URL = resolveChatApiBaseUrl(process.env.EXPO_PUBLIC_C
 async function apiRequest(
   path: string,
   init: { method: 'GET' | 'POST' | 'DELETE'; headers?: Record<string, string>; body?: string },
-  options: { baseUrl?: string; timeoutMs?: number } = {}
+  options: { baseUrl?: string; timeoutMs?: number; fixedToken?: { value: string | null } } = {}
 ): Promise<Response> {
   const baseUrl = (options.baseUrl ?? API_BASE_URL).replace(/\/+$/, '');
   if (options.baseUrl && baseUrl !== API_BASE_URL && !/^https?:\/\/[^/@?#\\\s]+(?:\/[^?#\\\s]*)?$/i.test(baseUrl)) {
     throw new ApiError('Invalid backend URL', 0, 'invalid_base_url');
   }
-  const token = await getAccessToken().catch(() => null);
+  const token = options.fixedToken ? options.fixedToken.value : await getAccessToken().catch(() => null);
   const headers: Record<string, string> = { Accept: 'application/json', ...init.headers };
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -109,6 +111,63 @@ export async function apiPost<T>(
     body: JSON.stringify(body),
   }, options);
   return (await res.json()) as T;
+}
+
+/** Identifies the principal used for an AR request; never contains a token. */
+export type ArRequestOwner = { kind: 'guest' | 'user'; id: string };
+
+type OwnedCredentials = { owner: ArRequestOwner; token: string | null };
+
+async function arCredentials(): Promise<OwnedCredentials> {
+  try {
+    const client = getSupabase();
+    if (!client && isAuthConfigured()) throw new Error('Authentication is unavailable');
+    const first = client ? await client.auth.getSession() : null;
+    if (first?.error) throw first.error;
+    const session = first?.data.session ?? null;
+    if (!session) {
+      const id = await getAnonymousChatId();
+      // A sign-in while the anonymous ID was read must not silently switch principals.
+      const latest = client ? await client.auth.getSession() : null;
+      if (latest?.error || latest?.data.session) throw new Error('Authentication changed');
+      return { owner: { kind: 'guest', id }, token: null };
+    }
+    const token = session.access_token;
+    if (!token || !client) throw new Error('Missing access token');
+    const verified = await client.auth.getClaims(token);
+    const claims = verified.data?.claims;
+    if (verified.error || !claims || typeof claims.sub !== 'string' || !claims.sub || claims.role !== 'authenticated' ||
+        !session.user?.id || session.user.id !== claims.sub) {
+      throw new Error('Unverified access token');
+    }
+    // Verify the same token is still current after any asynchronous verification.
+    const latest = await client.auth.getSession();
+    if (latest.error || latest.data.session?.access_token !== token || latest.data.session.user?.id !== claims.sub) {
+      throw new Error('Authentication changed');
+    }
+    return { owner: { kind: 'user', id: claims.sub }, token };
+  } catch {
+    throw new ApiError('Authentication is unavailable', 0, 'ar_owner_unavailable');
+  }
+}
+
+/** AR calls are bound to the credential actually sent, never to a later login. */
+export async function apiPostOwned<T>(
+  path: string,
+  body: unknown,
+  options: { expectedOwner?: ArRequestOwner; timeoutMs?: number } = {}
+): Promise<{ data: T; owner: ArRequestOwner }> {
+  const { owner, token } = await arCredentials();
+  if (options.expectedOwner && (owner.kind !== options.expectedOwner.kind || owner.id !== options.expectedOwner.id)) {
+    throw new ApiError('AR request owner changed', 0, 'ar_owner_changed');
+  }
+  // Do not send the guest ID with a user token: an invalid token must not fall back to guest.
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (owner.kind === 'guest') headers['X-Vishue-Anonymous-Id'] = owner.id;
+  const res = await apiRequest(path, { method: 'POST', headers, body: JSON.stringify(body) }, {
+    baseUrl: CHAT_API_BASE_URL, timeoutMs: options.timeoutMs, fixedToken: { value: token },
+  });
+  return { data: (await res.json()) as T, owner };
 }
 
 export async function apiDelete(path: string): Promise<void> {

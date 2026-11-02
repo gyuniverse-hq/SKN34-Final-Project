@@ -507,6 +507,7 @@ export const ja: Dictionary = {
   'ar.send': '送信',
   'ar.chatAppliedShade': 'リクエストに合うカタログの色を適用しました。',
   'ar.chatAppliedIntensity': 'チークを弱めました。色は変えていません。',
+  'ar.chatClarify': '一度に一つの変更を指定してください。例：リップの強度を50%に設定してください。',
   'ar.chatNoMatch': 'そのリクエストに合うカタログの色がありません。',
   'ar.micUnavailable': 'Expo Goでは音声入力を使えません。文字で入力してください。',
   'ar.shadeEstimated': 'カラーチップから推定した色です。実際の発色とは異なることがあります。',

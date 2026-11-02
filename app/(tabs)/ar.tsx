@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { uuid } from 'expo';
 import { useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
@@ -35,6 +36,7 @@ import { Chip } from '@/components/ui/Chip';
 import { DEMO_TAG } from '@/constants/demo';
 import { TAB_BAR_STYLE, theme } from '@/constants/theme';
 import { COLOR_FAMILIES, colorFamily, type ColorFamily } from '@/lib/colorFamily';
+import { arChatRoute } from '@/lib/arChatRoute';
 import { adjustMakeupFromChat } from '@/lib/arChatAdjust';
 import { isSafeExternalUrl } from '@/lib/externalLink';
 import { formatKRW } from '@/lib/format';
@@ -45,6 +47,7 @@ import { guideMessage } from '@/lib/drawGuide';
 import { buildGuideSteps, guideText } from '@/lib/lookGuide';
 import { practiceDrawStep, practiceZones, revealedMakeup, visit } from '@/lib/practice';
 import { useArRouteSelection } from '@/hooks/useArRouteSelection';
+import { useArCommand } from '@/hooks/useArCommand';
 import { MIN_TONE_CONF, rankFoundationShades, type SkinTone } from '@/lib/foundationMatch';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useTryOnProducts } from '@/lib/queries';
@@ -63,6 +66,24 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 const CHAT_EXAMPLES: TranslationKey[] = ['ar.chatExample1', 'ar.chatExample2', 'ar.chatExample3'];
+const AR_COMMAND_STATUS = {
+  interpreting: 'ar.command.interpreting',
+  proposed: 'ar.command.proposed',
+  applying: 'ar.command.applying',
+  applied: 'ar.command.applied',
+  no_change: 'ar.command.noChange',
+  clarification: 'ar.command.clarification',
+  rejected: 'ar.command.rejected',
+  failed: 'ar.command.failed',
+  unknown: 'ar.command.unknown',
+} as const;
+const AR_RESTORE_STATUS = {
+  pending: 'ar.command.restorePending',
+  confirmed: 'ar.command.restoreConfirmed',
+  failed: 'ar.command.restoreFailed',
+  unknown: 'ar.command.restoreUnknown',
+  unavailable: 'ar.command.restoreUnavailable',
+} as const;
 const TEXTURES: Texture[] = ['matte', 'velvet', 'cream', 'satin', 'sheer', 'glossy', 'shimmer'];
 const BLUSH_INTENSITY_MIN = 0.15;
 const BLUSH_KNOB = 20;
@@ -107,7 +128,7 @@ export default function ArTryOnScreen() {
   const routeProductId = parseId(params.productId);
   const routeShadeId = parseId(params.shadeId);
   const fromVideo = parseFlag(params.video);
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { height: windowHeight } = useWindowDimensions();
   const cameraConsent = useSettingsStore((s) => s.cameraConsent);
   const setCameraConsent = useSettingsStore((s) => s.setCameraConsent);
@@ -164,23 +185,6 @@ export default function ArTryOnScreen() {
   const products = useTryOnProducts();
   const tryOnProducts = useMemo(() => products.data ?? [], [products.data]);
 
-  const sendChat = () => {
-    const text = draft.trim();
-    if (!text) return;
-    const result = adjustMakeupFromChat(text, tryOnProducts, makeup);
-    if (result.kind === 'shade') {
-      applyShade(result.product, result.shade);
-      setZone(result.zone);
-      setChatNote('ar.chatAppliedShade');
-    } else if (result.kind === 'intensity') {
-      setIntensity(result.zone, result.intensity);
-      setZone(result.zone);
-      setChatNote('ar.chatAppliedIntensity');
-    } else {
-      setChatNote('ar.chatNoMatch');
-    }
-    setDraft('');
-  };
   const zoneSwatches = useMemo(
     () =>
       tryOnProducts
@@ -282,6 +286,49 @@ export default function ArTryOnScreen() {
   const permissionBlocked = !isWeb && permission && !permission.granted && !permission.canAskAgain;
   const liveCamera =
     !!cameraConsent && !!permissionGranted && !permissionBlocked && !swatchOnly && status !== 'unavailable' && status !== 'denied';
+  const rendererMounted = !!liveCamera && cameraActive;
+  const rendererId = useMemo(() => [arKey, rendererMounted, uuid.v4()].join(':'), [arKey, rendererMounted]);
+  const commandEnabled = rendererMounted && status === 'tracking' && !fit && !practice && !compare && mode === 'chat';
+  const arCommand = useArCommand({ active: cameraActive, enabled: commandEnabled, activeZone: zone, locale: language, rendererId,
+    visibleZones: practice && activeLook && !peek ? practice.visited : null });
+  const commandBusy = arCommand.state === 'interpreting' || arCommand.state === 'proposed' || arCommand.state === 'applying' || arCommand.restoreState === 'pending';
+  const draftRoute = arChatRoute(draft);
+  const localChatEnabled = !fit && !practice && !compare && mode === 'chat';
+  const canSendCommand = !!draft.trim() &&
+    (draftRoute === 'server' ? commandEnabled && !commandBusy : localChatEnabled);
+  const submittedDraft = useRef<string | null>(null);
+  useEffect(() => { submittedDraft.current = null; }, [draft]);
+  const sendCommand = () => {
+    const text = draft.trim();
+    if (!canSendCommand || submittedDraft.current === text) return;
+    submittedDraft.current = text;
+    const route = arChatRoute(text);
+    if (route === 'server') {
+      setChatNote(null);
+      void arCommand.send(text).finally(() => {
+        if (submittedDraft.current === text) submittedDraft.current = null;
+      });
+      return;
+    }
+    if (route === 'clarification') {
+      setChatNote('ar.chatClarify');
+      return;
+    }
+    // Local commands are user edits: the Store invalidates any outstanding AI proposal.
+    const result = adjustMakeupFromChat(text, tryOnProducts, useMakeupStore.getState().makeup);
+    if (result.kind === 'shade') {
+      applyShade(result.product, result.shade);
+      setZone(result.zone);
+      setChatNote('ar.chatAppliedShade');
+    } else if (result.kind === 'intensity') {
+      setIntensity(result.zone, result.intensity);
+      setZone(result.zone);
+      setChatNote('ar.chatAppliedIntensity');
+    } else {
+      setChatNote('ar.chatNoMatch');
+    }
+    setDraft('');
+  };
 
   const onAllow = async () => {
     setCameraConsent(true);
@@ -511,6 +558,8 @@ export default function ArTryOnScreen() {
         <ArFaceView
           key={arKey}
           makeup={shownMakeup}
+          renderCommand={arCommand.renderCommand}
+          onRenderResult={arCommand.onRenderResult}
           compare={compare}
           guide={guide}
           fillPreview={isFullscreenAR}
@@ -739,23 +788,40 @@ export default function ArTryOnScreen() {
               </Pressable>
               <TextInput
                 value={draft}
-                onChangeText={setDraft}
+                onChangeText={(text) => { submittedDraft.current = null; setDraft(text); }}
                 placeholder={t('ar.chatPlaceholder')}
                 placeholderTextColor={theme.colors.inkFaint}
                 style={styles.chatInput}
                 returnKeyType="send"
-                onSubmitEditing={sendChat}
+                onSubmitEditing={sendCommand}
               />
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t('ar.send')}
-                disabled={!draft.trim()}
-                onPress={sendChat}
-                style={[styles.sendBtn, !draft.trim() && { opacity: 0.4 }]}>
+                disabled={!canSendCommand}
+                onPress={sendCommand}
+                style={[styles.sendBtn, !canSendCommand && { opacity: 0.4 }]}>
                 <Ionicons name="arrow-up" size={20} color={theme.colors.white} />
               </Pressable>
             </View>
             {chatNote ? <Text style={styles.chatBody}>{t(chatNote)}</Text> : null}
+            {draftRoute === 'server' && !commandEnabled && !commandBusy ? <Text style={styles.chatBody}>{t('ar.command.unavailable')}</Text> : null}
+            {arCommand.state !== 'idle' ? (
+              <Text style={styles.chatBody} accessibilityLiveRegion="polite">
+                {arCommand.message || t(AR_COMMAND_STATUS[arCommand.state])}
+              </Text>
+            ) : null}
+            {arCommand.restoreState !== 'idle' ? (
+              <Text style={styles.chatBody} accessibilityLiveRegion="polite">{t(AR_RESTORE_STATUS[arCommand.restoreState])}</Text>
+            ) : null}
+            {arCommand.ackPending ? (
+              <View>
+                <Text style={styles.chatBody}>{t('ar.command.ackPending')}</Text>
+                <Pressable accessibilityRole="button" onPress={() => void arCommand.retryAck()}>
+                  <Text style={styles.chatRetry}>{t('ar.command.retryAck')}</Text>
+                </Pressable>
+              </View>
+            ) : null}
           </View>
         ) : (
           <ScrollView
@@ -1258,6 +1324,7 @@ const styles = StyleSheet.create({
   chat: { paddingHorizontal: 16, gap: 8 },
   chatTitle: { fontSize: theme.font.body, fontWeight: '800', color: theme.colors.ink },
   chatBody: { fontSize: theme.font.small, color: theme.colors.inkMuted, lineHeight: 19 },
+  chatRetry: { fontSize: theme.font.small, color: theme.colors.rose, fontWeight: '700', paddingVertical: 6 },
   chatExamples: { gap: 8, paddingVertical: 4 },
   chatInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   micBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: theme.colors.rose, alignItems: 'center', justifyContent: 'center' },
