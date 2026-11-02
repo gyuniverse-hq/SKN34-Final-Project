@@ -44,6 +44,7 @@ import { findColorGaps, recommendShades, type LookLine } from '@/lib/colorGaps';
 import { guideMessage } from '@/lib/drawGuide';
 import { buildGuideSteps, guideText } from '@/lib/lookGuide';
 import { practiceDrawStep, practiceZones, revealedMakeup, visit } from '@/lib/practice';
+import { useArRecording } from '@/hooks/useArRecording';
 import { useArRouteSelection } from '@/hooks/useArRouteSelection';
 import { MIN_TONE_CONF, rankFoundationShades, type SkinTone } from '@/lib/foundationMatch';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
@@ -161,6 +162,11 @@ export default function ArTryOnScreen() {
   const blushTrackWRef = useRef(0);
   const addMany = useCartStore((s) => s.addMany);
   const addToCart = useCartStore((s) => s.add);
+  // Development only (AR_SPEC 11-02): record the AR view to a clip for evaluation; nothing is uploaded.
+  const recorder = useArRecording((reason) =>
+    Alert.alert(t(reason === 'unsupported' ? 'ar.rec.unsupported' : reason === 'share' ? 'ar.rec.noShare' : 'ar.rec.failed'))
+  );
+  const recordingNow = recorder.state !== 'idle';
   const products = useTryOnProducts();
   const tryOnProducts = useMemo(() => products.data ?? [], [products.data]);
 
@@ -518,6 +524,8 @@ export default function ArTryOnScreen() {
           onLightHint={setLightHint}
           onSkinTone={setSkinTone}
           onCrash={onArCrash}
+          recording={recorder.wanted}
+          onRecorder={recorder.handleMessage}
         />
         {compare ? (
           <>
@@ -555,11 +563,36 @@ export default function ArTryOnScreen() {
             </Text>
           </View>
         ) : null}
-        {!isFullscreenAR ? (
+        {recordingNow ? (
+          // The "not recorded" badge would be false now, so it gives way to this one.
+          <View style={[styles.liveBadge, isFullscreenAR && { top: Math.max(12, insets.top + 8) }]} pointerEvents="none">
+            <View style={[styles.liveDot, styles.recDot]} />
+            <Text style={styles.liveText}>
+              {recorder.state === 'saving'
+                ? t('ar.rec.saving')
+                : `${t('ar.rec.on')} · ${Math.floor(recorder.seconds / 60)}:${String(recorder.seconds % 60).padStart(2, '0')}`}
+            </Text>
+          </View>
+        ) : !isFullscreenAR ? (
           <View style={styles.liveBadge} pointerEvents="none">
             <View style={styles.liveDot} />
             <Text style={styles.liveText}>{t('ar.live')}</Text>
           </View>
+        ) : null}
+        {recorder.available ? (
+          <Pressable
+            onPress={recorder.toggle}
+            disabled={recorder.state === 'saving'}
+            accessibilityRole="button"
+            accessibilityLabel={t(recorder.wanted ? 'ar.rec.stop' : 'ar.rec.start')}
+            hitSlop={8}
+            style={[styles.recordBtn, { bottom: isFullscreenAR ? Math.max(16, insets.bottom + 12) : 14 }]}>
+            {recorder.state === 'saving' ? (
+              <ActivityIndicator color={theme.colors.white} size="small" />
+            ) : (
+              <View style={recorder.wanted ? styles.recordStop : styles.recordDot} />
+            )}
+          </Pressable>
         ) : null}
         {showsDemo && !isFullscreenAR ? (
           <View style={styles.demoBadge} pointerEvents="none">
@@ -1187,6 +1220,10 @@ const styles = StyleSheet.create({
   demoBadge: { position: 'absolute', top: 44, left: 12, backgroundColor: theme.colors.overlay, paddingHorizontal: 10, paddingVertical: 5, borderRadius: theme.radius.pill },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#4ADE80' },
   liveText: { color: theme.colors.white, fontSize: 11, fontWeight: '600' },
+  recDot: { backgroundColor: '#F87171' },
+  recordBtn: { position: 'absolute', left: 14, width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.overlay },
+  recordDot: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#F87171' },
+  recordStop: { width: 16, height: 16, borderRadius: 3, backgroundColor: theme.colors.white },
   compareBtn: { position: 'absolute', bottom: 14, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.overlay, paddingHorizontal: 14, minHeight: 40, borderRadius: theme.radius.pill },
   compareText: { color: theme.colors.white, fontSize: theme.font.small, fontWeight: '600' },
   compareLabel: { position: 'absolute', top: 44, paddingHorizontal: 9, paddingVertical: 5, borderRadius: theme.radius.pill, backgroundColor: theme.colors.overlay },
