@@ -514,6 +514,13 @@ export const ko: Dictionary = {
   'ar.openStore': '판매 페이지',
   'ar.mirror.enter': '전체 화면 거울',
   'ar.mirror.exit': '제품 선택 열기',
+  'ar.rec.start': '녹화 시작',
+  'ar.rec.stop': '녹화 끝내고 저장',
+  'ar.rec.on': '녹화 중 · 이 기기에만 저장',
+  'ar.rec.saving': '저장하는 중…',
+  'ar.rec.failed': '녹화를 저장하지 못했어요',
+  'ar.rec.unsupported': '이 기기에서는 AR 화면을 녹화할 수 없어요',
+  'ar.rec.noShare': '공유를 열 수 없어요. 영상은 앱 캐시에 있어요',
 
   'login.title': 'VISHUE에 오신 걸 환영해요',
   'login.subtitle': '로그인하면 룩 저장, 보상 적립, 멤버십을 이용할 수 있어요.',

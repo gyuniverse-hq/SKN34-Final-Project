@@ -514,6 +514,13 @@ export const ja: Dictionary = {
   'ar.openStore': '販売ページ',
   'ar.mirror.enter': '全画面ミラー',
   'ar.mirror.exit': '商品パネルを開く',
+  'ar.rec.start': '録画を開始',
+  'ar.rec.stop': '録画を終了して保存',
+  'ar.rec.on': '録画中 · この端末にのみ保存',
+  'ar.rec.saving': '保存中…',
+  'ar.rec.failed': '録画を保存できませんでした',
+  'ar.rec.unsupported': 'この端末ではAR画面を録画できません',
+  'ar.rec.noShare': '共有を開けません。動画はアプリのキャッシュにあります',
 
   'login.title': 'VISHUEへようこそ',
   'login.subtitle': 'ログインすると、ルックの保存・特典の獲得・メンバーシップが利用できます。',
