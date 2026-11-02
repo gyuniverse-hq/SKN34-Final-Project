@@ -4,13 +4,53 @@
 
 ## 준비
 
-`research/data/vlm_judge/sets/<세트ID>/`에 같은 인물의 `bare.jpg`(선택), `real.jpg`, `ar.jpg`를 넣는다. PNG도 가능하며 각 역할당 파일 하나만 허용한다. 선택적으로 `meta.json`에 `source`, `finish`, `product`, `skin_group`, `notes`를 넣는다. 서로 다른 조명과 자세는 판단을 왜곡할 수 있다. 사람 설문은 `human/responses.csv`에 `image_id,rater,guess_real,score,regions,reasons`를 넣고 image_id는 `<세트ID>/real` 또는 `<세트ID>/ar`로 지정한다. 이유는 쉼표 또는 세미콜론으로 구분한다.
+### 사진 세 장의 의미
+
+한 세트는 **같은 사람**의 입술을 같은 제품·색으로 비교하기 위한 사진 묶음이다.
+
+| 파일 | 담을 사진 | 필수 여부 |
+|---|---|---|
+| `bare.jpg` | 화장하기 전 맨얼굴 | 선택이지만 네 지표 전체 판정에 필요 |
+| `real.jpg` | 실제 제품을 바른 모습 | 필수 |
+| `ar.jpg` | 같은 맨얼굴에 같은 제품·색의 AR 화장을 적용한 결과 | 필수 |
+
+조명·카메라·각도·표정을 최대한 같게 맞춘다. `bare`에는 다른 사람의 사진이나 다른 촬영 조건의 사진을 대신 넣지 않는다. 사진은 JPG 또는 PNG를 사용할 수 있으며 같은 역할의 파일을 여러 개 넣으면 안 된다.
+
+```text
+research/data/vlm_judge/
+  sets/
+    set01/
+      bare.jpg   # 화장 전; 없으면 일부 비교 불가
+      real.jpg   # 실제 제품 사용
+      ar.jpg     # AR 화장 결과
+    set02/       # 다른 비교 세트가 있다면 같은 방식으로 추가
+      bare.jpg
+      real.jpg
+      ar.jpg
+```
+
+선택적으로 각 세트의 `meta.json`에 `source`, `finish`, `product`, `skin_group`, `notes`를 넣을 수 있다. 피부톤이나 조명이 다른 세트를 추가하면 다양한 조건을 비교하는 데 도움이 된다.
+
+### 사진 두 장만 있을 때와 세 장 모두 있을 때
+
+| 지표 | `real` + `ar` 두 장 | `bare` + `real` + `ar` 세 장 |
+|---|---|---|
+| 색상 일치 | AR과 실제 화장의 색상 차이 **구간은 추정**한다. 맨얼굴보다 가까워졌는지는 알 수 없어 합격 여부는 `자료 없음`이다. | 맨얼굴과 AR 각각의 구간을 비교하고 현재 기준에 따라 판정한다. |
+| 위치·경계 | 입술에서 벗어난 정도·빠진 정도 등을 추정하고 점수를 낸다. | 같은 방식으로 판정한다. |
+| 질감·광택 | `자료 없음`. 현재 도구는 AR과 맨입술 중 어느 쪽이 실제 화장에 더 가까운지 비교하기 때문이다. | 명암·광택·입술 결에서 AR과 맨입술을 각각 비교한다. |
+| 자연스러움 | 두 장을 개별·쌍으로 보고 추정한다. | 같은 방식으로 판정한다. |
+
+따라서 **두 장으로 실행할 수는 있지만 현재 설계에서 네 지표의 합격 여부가 모두 채워지지는 않는다.** 세 장을 넣어도 모든 값은 모델이 사진을 보고 내린 추정이며, 실제 색차나 경계를 기계적으로 측정한 값은 아니다. `real`과 `ar` 두 장만으로 질감을 직접 비교하는 기능은 현재 구현되어 있지 않다.
+
+### 사람 평가를 함께 비교하려면
+
+사람 설문은 선택 사항이다. `research/data/vlm_judge/human/responses.csv`에 `image_id,rater,guess_real,score,regions,reasons`를 넣는다. `image_id`는 `set01/real` 또는 `set01/ar`처럼 입력하고, 이유는 쉼표 또는 세미콜론으로 구분한다. 파일이 없으면 보고서에 `사람 설문 없음`으로 표시된다.
 
 루트 `.env`에 `OPENAI_API_KEY`와 `ALLOW_EXTERNAL_JUDGE=true`를 설정한다. 기존 앱 코드나 공개 환경 변수에 키를 넣지 않는다. `judges.json`의 `model`은 빈 값으로 제공된다. 이미지 입력과 구조화 출력을 모두 지원하고 해당 계정에서 사용할 수 있는 모델 ID를 직접 지정해야 한다. 실행할 때 모델 목록에 ID가 있는지 확인하지만 목록 조회만으로 이미지·구조화 출력 지원을 보장하지는 않는다. 모델 조회도 외부 호출이므로 플래그와 키가 필요하다. `temperature`는 기본값 `null`이면 전송하지 않으며, 사용하는 모델이 지원할 때만 숫자로 설정한다. 단가는 직접 확인한 경우에만 설정하며, 사전 토큰 수가 없어 plan은 비용을 추정하지 않는다.
 
 공식 문서: [이미지 입력](https://developers.openai.com/api/docs/guides/images-vision) · [구조화 출력](https://developers.openai.com/api/docs/guides/structured-outputs). Responses 요청은 `store=false`로 전송한다. 이는 응답 저장 설정이며 외부 전송이나 서비스의 모든 데이터 처리·보존이 없다는 뜻은 아니다.
 
-선택적으로 `uv sync --extra vision`으로 MediaPipe를 설치하고 로컬 Face Landmarker 모델을 준비해 `judges.json`에 `landmarker_model` 경로를 지정한다. 없거나 검출에 실패하면 사진 중앙 아래 절반으로 대체하며 결과에 `fallback`으로 남긴다. 기본 설치는 MediaPipe나 모델을 다운로드하지 않는다.
+선택적으로 `uv sync --extra vision`으로 MediaPipe를 설치하고 로컬 Face Landmarker 모델을 준비해 `judges.json`에 `landmarker_model` 경로를 지정한다. 없거나 검출에 실패하면 입술을 정확히 찾지 못한 상태로 사진 중앙 아래 절반을 대신 잘라 쓰며 결과에 `fallback`으로 남긴다. **대체 크롭이 실제 입술을 충분히 포함하는지 보고서 HTML에서 확인한다.** 그렇지 않으면 색상·경계·질감 판단이 부정확해질 수 있다. 기본 설치는 MediaPipe나 모델을 다운로드하지 않는다.
 
 ## PowerShell 명령
 
@@ -19,15 +59,24 @@ cd research/vlm_judge
 uv sync
 uv run python -m vlm_judge validate --data ../data/vlm_judge
 uv run python -m vlm_judge plan --data ../data/vlm_judge
-uv run python -m vlm_judge import-existing --src ../data/ar_eval_public --data ../data/vlm_judge
 uv run python -m vlm_judge run --data ../data/vlm_judge --seed 42
-uv run python -m vlm_judge report --run ../data/vlm_judge/runs/<실행폴더>
 ```
 
-`import-existing`은 동일 폴더에 `real`과 `ar` 파일이 명시된 세트만 복사한다. 그 외 이름으로 대응 관계를 추측하지 않으며, 같은 ID가 존재하면 중단한다. `--sets a,b`, `--only color,placement,texture,naturalness`, `--no-cache`로 범위를 조정한다. 유효한 세트가 없으면 validate와 plan은 오류로 종료한다. `report`는 네트워크 없이 raw 결과를 다시 집계한다.
+`validate`는 파일과 크롭 방식을 검사하고, `plan`은 예정된 호출 수를 보여 준다. 둘 다 사진을 외부로 보내지 않는다. `run`은 사진을 OpenAI에 전송하고 비용이 발생할 수 있다. 기본 설정에서 1세트는 두 장이면 18회, 세 장이면 27회 판정을 계획한다. 실제 호출 수는 캐시와 재시도에 따라 달라질 수 있다. `plan`은 사전 토큰 수를 모르므로 비용을 계산하지 않는다.
+
+기존 데이터가 **이미 `real`·`ar` 이름으로 같은 폴더에 정리되어 있을 때만** 선택적으로 `uv run python -m vlm_judge import-existing --src ../data/ar_eval_public --data ../data/vlm_judge`를 실행해 복사할 수 있다. 파일 이름으로 대응 관계를 추측하지 않으며, 같은 ID가 존재하면 중단한다. 기존 실행 결과만 다시 집계할 때는 `uv run python -m vlm_judge report --run ../data/vlm_judge/runs/실제_실행폴더명`을 사용한다. 이 명령은 새 사진을 평가하지 않고 네트워크도 사용하지 않는다.
+
+`run`에 `--sets set01,set02`, `--only color,placement,texture,naturalness`, `--no-cache`를 붙여 범위를 조정할 수 있다. 사진을 추가했다면 `report`가 아니라 **`validate` → `plan` → `run`을 다시 실행**한다. 유효한 세트가 없으면 validate와 plan은 오류로 종료한다.
 
 ## 결과와 해석
 
 `runs/<시간>/raw/`에는 블라인드 질문 순서와 원본 응답, 소요 시간 및 토큰이 있다. `per_set.csv`, `summary.json`, `report.md`는 세트별·전체 결과이며 `report.html`은 얼굴 썸네일을 포함한 **비공개 로컬 파일**이다. 캐시는 `runs/.cache/`에 저장된다. 순서 비교의 동률은 승리로 치지 않는다. 반복 응답을 세트별로 먼저 합산하므로 Wilson 구간의 표본 수는 반복 호출 수가 아니다. 이미지의 실제 출처와 비교 기준 일치 여부를 보장하지 않으며 최종 품질 판정에는 사람 검증이 필요하다.
+
+- **`자료 없음`**: 필요한 사진이나 유효한 응답이 부족해 해당 항목을 판정하지 못했다는 뜻이다. 0점이나 불합격과 다르다.
+- **`6–10` 같은 색상 구간**: 사진을 본 VLM의 체감 추정이다. ΔE2000 기기로 측정하거나 공식으로 계산한 숫자가 아니다.
+- **한 세트의 `100%`**: 그 한 세트의 결과를 뜻한다. 반복 질문은 같은 사진에 대한 반복이므로 서로 다른 사람이나 독립 표본의 수가 늘어난 것이 아니다. 더 많은 세트와 사람 평가가 필요하다.
+- **`fallback`**: 입술을 정확히 검출한 것이 아니라 대체 영역을 사용했다는 표시다. HTML의 크롭을 확인한다.
+- **가장 많이 지적된 이유**: 여러 이유의 건수가 같아도 현재 보고서는 하나만 대표로 표시할 수 있다. 상세 이유별 건수를 함께 확인한다.
+- **비용 자료 없음**: 단가가 설정되지 않았거나 비용 산출에 필요한 정보가 부족하다는 뜻이다. 무료 호출이라는 뜻은 아니다.
 
 사람 비교는 이미지당 VLM 중앙 점수와 각 사람 응답을 비교한다. 점수 또는 추측이 부족하면 신뢰 수준은 판단 불가다. 반복 일치율과 순서 바꿈 지표는 질감의 명암 항목과 자연스러움 강제선택을 중심으로 기록한다. 캐시 적중분은 실제 API 토큰 및 지연에 포함하지 않는다.
