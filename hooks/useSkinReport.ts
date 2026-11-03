@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SKIN_REPORT_EXAMPLE } from '@/constants/skinCare';
 import { useSkincareRecommendations } from '@/lib/queries';
 import { toggleConcern } from '@/lib/skinFilters';
-import { buildSkinReport, ingredientExamples, sampleProductMatches } from '@/lib/skinReport';
+import { buildSkinReport, ingredientExamples } from '@/lib/skinReport';
 import { deriveCareGoals, skincareRequest } from '@/lib/skincare';
 import { saveSkincareRecord } from '@/lib/skincareRecord';
 import type { CareGoal, SkincareRequest } from '@/types/skincare';
@@ -37,7 +37,6 @@ export function useSkinReport() {
   const primary = primaryOverride ?? derived.primary;
   const selected = selection ?? derived.secondary;
   const activeConcern = active ?? report.priorities[0].concern;
-  const samples = useMemo(() => sampleProductMatches(primary ? [primary, ...selected] : selected), [primary, selected]);
   const recommendations = useSkincareRecommendations(request);
   useEffect(() => {
     if (request && recommendations.data) {
@@ -49,9 +48,8 @@ export function useSkinReport() {
     preview: profile && preview?.runId === profile.analysis.timing.runId ? preview : null,
     reload,
     example: profile === null,
-    ingredients: ingredientExamples(activeConcern), samples, recommendations, live: request !== undefined,
+    ingredients: ingredientExamples(activeConcern), recommendations, live: request !== undefined,
     toggle: (c: SkinConcern) => { setSelection(toggleConcern(selected, c)); setRequest(undefined); },
-    showSamples: () => setRequest(undefined),
     findProducts: () => {
       if (request) void recommendations.refetch();
       else if (primary) setRequest(skincareRequest(profile, primary, selected as CareGoal[]));

@@ -1,8 +1,8 @@
 import { surveySensitivity } from './skinSurvey';
-import { CARE_INGREDIENTS, SKIN_SAMPLE_PRODUCTS } from '@/constants/skinCare';
+import { CARE_INGREDIENTS } from '@/constants/skinCare';
 import type { SkinConcern } from '@/types';
 import type { SkinAnswer, SkinQuestionnaire } from '@/types/skin';
-import type { CareIngredient, SkinRegion, SkinReport, SkinReportInput, SkinReportMetric, SkinSampleProduct } from '@/types/skinReport';
+import type { CareIngredient, SkinRegion, SkinReport, SkinReportInput, SkinReportMetric } from '@/types/skinReport';
 import { SKIN_CONCERNS } from './routes';
 import { resolveSkinType } from './skinType';
 import { skinGradeStatus } from './skinResult';
@@ -78,11 +78,4 @@ function buildLegacySkinReport(input: Extract<SkinReportInput, { questionnaire: 
 
 export function ingredientExamples(concern: SkinConcern): readonly CareIngredient[] {
   return CARE_INGREDIENTS[concern];
-}
-
-export function sampleProductMatches(concerns: readonly SkinConcern[]): { product: SkinSampleProduct; matchedConcerns: SkinConcern[] }[] {
-  return SKIN_SAMPLE_PRODUCTS.map((product: SkinSampleProduct) => ({ product,
-    matchedConcerns: SKIN_CONCERNS.filter((c) => concerns.includes(c) && product.concerns.includes(c)),
-  })).filter((m) => m.matchedConcerns.length > 0)
-    .sort((a, b) => b.matchedConcerns.length - a.matchedConcerns.length || a.product.id.localeCompare(b.product.id));
 }

@@ -11,10 +11,9 @@ jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key, lang
 jest.mock('@/components/skin/SkinSolution', () => ({ SkinSolution: 'SolutionContent' }));
 jest.mock('@/components/skin/SkinReportDetail', () => ({ SkinReportDetail: 'ResultContent' }));
 jest.mock('@/components/ui/StateViews', () => ({ LoadingState: 'LoadingState' }));
-jest.mock('@/components/skin/SkinSampleProducts', () => ({ SkinSampleProducts: () => null }));
 jest.mock('@/hooks/useSkinReport', () => ({ useSkinReport: () => ({
   report: require('@/lib/skinReport').buildSkinReport(require('@/constants/skinCare').SKIN_REPORT_EXAMPLE), example: false, loading: false, loadFailed: false,
-  activeConcern: 'dryness', selected: ['dryness'], ingredients: [], samples: [], live: false,
+  activeConcern: 'dryness', selected: ['dryness'], ingredients: [], live: false,
   recommendations: { isFetching: false }, setActive: jest.fn(), findProducts: jest.fn(), toggle: jest.fn(),
 }) }));
 
@@ -25,6 +24,8 @@ it('opens report information by default and keeps the sticky tabs in a horizonta
     const info = screen.root.find(node => node.props.accessibilityState?.expanded === true && typeof node.props.onPress === 'function');
     expect(info).toBeDefined();
     expect(JSON.stringify(screen.toJSON())).toContain('report.review');
+    expect(JSON.stringify(screen.toJSON())).toContain('skincare.requestPrompt');
+    expect(JSON.stringify(screen.toJSON())).not.toContain('report.sampleProducts');
     expect(JSON.stringify(screen.toJSON())).not.toContain('report.date');
     expect(JSON.stringify(screen.toJSON())).not.toContain('report.method');
     const tabs = screen.root.findAll(node => node.props.accessibilityRole === 'tab' && typeof node.props.onPress === 'function');
