@@ -872,8 +872,7 @@ def collect(mid_name, goods_no, run_id, image_pool):
     html = resp.text
     g = _enrich_extract(oy.next_data_text(html))
     d = oy.parse_detail(html, goods_no)
-    if not g:
-        raise RuntimeError("상품 JSON 파싱 실패")
+    oy.require_product_json(resp, g)
 
     options = []
     seen_opt = set()
