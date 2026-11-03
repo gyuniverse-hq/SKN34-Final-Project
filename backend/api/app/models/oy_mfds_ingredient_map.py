@@ -12,7 +12,8 @@ class OyMfdsIngredientMapRow(Base):
     __tablename__ = "oy_mfds_ingredient_map"
     __table_args__ = (
         CheckConstraint(
-            "match_method IN ('exact_name', 'official_synonym', 'manual')",
+            "match_method IN ('exact_name', 'official_synonym', "
+            "'amount_suffix_exact', 'amount_suffix_synonym', 'manual')",
             name="ck_oy_mfds_ingredient_map_method",
         ),
         CheckConstraint(

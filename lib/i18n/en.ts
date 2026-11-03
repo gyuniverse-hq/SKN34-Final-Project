@@ -512,6 +512,13 @@ export const en = {
   'ar.openStore': 'Store page',
   'ar.mirror.enter': 'Full-screen mirror',
   'ar.mirror.exit': 'Show product panel',
+  'ar.rec.start': 'Start recording',
+  'ar.rec.stop': 'Stop and save',
+  'ar.rec.on': 'Recording · saved on this device only',
+  'ar.rec.saving': 'Saving…',
+  'ar.rec.failed': 'Could not save the recording',
+  'ar.rec.unsupported': 'This device cannot record the AR view',
+  'ar.rec.noShare': 'Sharing is not available. The clip stays in the app cache',
 
   'login.title': 'Welcome to VISHUE',
   'login.subtitle': 'Log in to save looks, collect rewards and join the membership.',

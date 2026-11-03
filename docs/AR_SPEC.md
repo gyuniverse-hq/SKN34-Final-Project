@@ -608,6 +608,7 @@ export type AppEvent =
   - 저장할 값(조명 보정, 사용자 보정)은 숫자로 호스트에 보내고, 호스트가 `store/calibrationStore.ts`(AsyncStorage)에 저장한다. 앱을 다시 켜면 호스트가 `calibration`·`user_calibration` 메시지로 다시 넣어 준다.
   - 예외: MediaPipe 모듈·모델 파일을 CDN에서 불러오는 것(기존 `import(...)`, `modelAssetPath`)은 그대로 둔다.
   - 디버그용 "렌더 결과 저장"(평가용, 8장)은 페이지가 직접 저장하지 않는다. 방법은 M0-E에서 정하고 개발 모드에서만 켠다(11-1).
+  - **개발 모드 화면 녹화 (11-02 사용자 결정, 이 예외 하나만):** 평가 영상(8장 안정성 측정)을 만들려고 AR 화면의 개발용 녹화 버튼을 둔다. 페이지(`faceTrackerHtml.ts`)에는 녹화 코드가 없고(`__tests__/arRecorder.test.tsx`가 `MediaRecorder`·`captureStream` 없음을 검사), 개발 모드(`__DEV__`)에서 버튼을 누를 때만 `components/ar/recorderScript.ts`를 WebView에 주입한다. 이 스크립트는 WebGL 캔버스(카메라+메이크업, 가이드·HUD 제외)를 오디오 없이 최대 60초 녹화하고, 조각을 base64로 앱에 보낸다. 앱은 이 기기의 캐시 파일에만 쓰고 공유 시트로 내보낸다. **서버·네트워크로 보내지 않는다.** 정식 빌드에는 버튼이 없고, 이 예외의 메시지(`rec_*`)도 개발 모드에서만 처리한다. 녹화 중에는 "녹화 안 함" 배지 대신 "녹화 중 · 이 기기에만 저장" 배지를 보인다. 모든 사용자에게 제공하려면 동의 문구(`ar.consentPoint2`)·배지·약관을 팀이 함께 고쳐야 한다(미결정).
 - MediaPipe GPU 실행이 실패하면 CPU로 바꾸고 `ar_ready.gpu=false`로 알린 뒤 기기 성능 단계를 `low`에서 시작한다(6-11). 현재 페이지에 있는 WebGL → 2D 대체 렌더러는 유지한다.
 
 **서버 호출**
