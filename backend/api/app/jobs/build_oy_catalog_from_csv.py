@@ -11,29 +11,16 @@ from collections import defaultdict
 from pathlib import Path
 
 from app.schemas.catalog import CatalogBundle
-from app.schemas.oy_catalog import ZONE_BY_CATEGORY, OyProductInput, OyShadeInput
+from app.schemas.oy_catalog import (
+    OyProductInput,
+    OyShadeInput,
+    catalog_category,
+    derive_care_tags,
+)
 from app.services.catalog_service import validate_catalog
 from app.services.oy_catalog import build_oy_catalog
 
 csv.field_size_limit(50_000_000)
-
-# Cosmetic care tags from product names (docs/DATA.md). Not medical claims.
-CARE_KEYWORDS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("hydrating", ("수분", "보습", "히알루론", "하이드라", "moist")),
-    ("soothing", ("진정", "시카", "센텔라", "카밍", "cica", "sooth")),
-    ("oil-control", ("피지", "오일컨트롤", "지성", "oil control", "세범")),
-    ("blemish-care", ("트러블", "여드름", "아크네", "acne", "스팟")),
-    ("pore-care", ("모공", "pore")),
-    ("brightening", ("미백", "브라이트", "톤업", "잡티", "비타민c", "비타민 c", "bright")),
-    ("firming", ("주름", "탄력", "레티놀", "콜라겐", "firm", "retinol")),
-)
-
-
-def _care_tags(name: str, category_name: str) -> tuple[str, ...]:
-    if category_name not in {"스킨케어", "선케어"}:
-        return ()
-    blob = name.lower()
-    return tuple(tag for tag, words in CARE_KEYWORDS if any(word.lower() in blob for word in words))
 
 
 def _read(path: Path) -> list[dict[str, str]]:
@@ -53,16 +40,6 @@ def _latest(rows: list[dict[str, str]], key: str) -> dict[str, dict[str, str]]:
         if previous is None or stamp >= previous_stamp:
             chosen[token] = row
     return chosen
-
-
-def _catalog_category(category_name: str, category_path: str) -> str | None:
-    if category_name in ZONE_BY_CATEGORY:
-        return category_name
-    if "선케어" in category_path:
-        return "선케어"
-    if any(part in category_path for part in ("스킨케어", "마스크팩", "클렌징")):
-        return "스킨케어"
-    return None
 
 
 def _products_from_dir(folder: Path) -> list[OyProductInput]:
@@ -106,7 +83,7 @@ def _products_from_dir(folder: Path) -> list[OyProductInput]:
         category = categories.get(product.get("category_no") or "")
         if category is None:
             continue
-        mapped = _catalog_category(category["category_name"], category.get("category_path") or "")
+        mapped = catalog_category(category["category_name"], category.get("category_path") or "")
         if mapped is None:
             continue
         shades: list[OyShadeInput] = []
@@ -139,7 +116,7 @@ def _products_from_dir(folder: Path) -> list[OyProductInput]:
                 volume=notice.get("volume") or None,
                 texture_code=texture.get("texture_code") or None,
                 shades=tuple(shades),
-                care_tags=_care_tags(product["goods_name"], mapped),
+                care_tags=derive_care_tags(product["goods_name"], mapped),
             )
         )
     return built

@@ -1,4 +1,9 @@
-from app.schemas.oy_catalog import OyProductInput, OyShadeInput
+from app.schemas.oy_catalog import (
+    OyProductInput,
+    OyShadeInput,
+    catalog_category,
+    derive_care_tags,
+)
 from app.services.oy_catalog import build_oy_catalog
 
 
@@ -76,3 +81,54 @@ def test_maps_confirmed_hex_and_skips_missing_color_or_price() -> None:
     cream = next(p for p in built.products if p.id == "oy-a000000000005")
     assert cream.makeup_zone is None
     assert "hydrating" in cream.tags
+
+
+def test_leaf_category_is_grouped_from_the_collected_path() -> None:
+    # Collected names are leaves; the group comes from the path.
+    assert catalog_category("크림", "뷰티 > 스킨케어 > 크림 > 크림") == "스킨케어"
+    assert catalog_category("선크림", "뷰티 > 선케어 > 선크림 > 선크림") == "선케어"
+    assert catalog_category("시트 마스크", "뷰티 > 마스크팩 > 시트팩 > 시트 마스크") == "스킨케어"
+    assert (
+        catalog_category("클렌징폼/젤", "뷰티 > 클렌징 > 클렌징폼/젤 > 클렌징폼/젤") == "스킨케어"
+    )
+    # A leaf that is already a serving key keeps its own name.
+    assert catalog_category("립케어", "뷰티 > 메이크업 > 립메이크업 > 립케어") == "립케어"
+    # Makeup leaves with no serving key stay out.
+    assert catalog_category("컨실러", "뷰티 > 메이크업 > 베이스메이크업 > 컨실러") is None
+
+
+def test_care_tags_come_from_the_name_and_only_for_care_groups() -> None:
+    assert derive_care_tags("수분 진정 크림", "스킨케어") == ("hydrating", "soothing")
+    assert derive_care_tags("톤업 선크림", "선케어") == ("brightening",)
+    # A makeup group never gets care tags, whatever the name says.
+    assert derive_care_tags("수분 립틴트", "립틴트") == ()
+    # No keyword means no tag; nothing is guessed.
+    assert derive_care_tags("믹순 병풀 클렌징 폼 150ml", "스킨케어") == ()
+
+
+def test_care_products_keep_an_unknown_texture_and_makeup_does_not() -> None:
+    built = build_oy_catalog(
+        [
+            OyProductInput(
+                goods_no="A000000000010",
+                brand_name="브랜드",
+                goods_name="수분 토너",
+                category_name="스킨케어",
+                care_tags=("hydrating",),
+                shades=(shade(option_id="T-1", hex_code=None, sale_price=15000),),
+            ),
+            OyProductInput(
+                goods_no="A000000000011",
+                brand_name="브랜드",
+                goods_name="제형 없는 쿠션",
+                category_name="쿠션",
+                shades=(shade(option_id="U-1", hex_code=None, sale_price=30000),),
+            ),
+        ]
+    )
+    toner = next(p for p in built.products if p.id == "oy-a000000000010")
+    cushion = next(p for p in built.products if p.id == "oy-a000000000011")
+    assert toner.texture is None
+    assert cushion.texture == "satin"
+    assert built.care_products == 1
+    assert built.care_products_tagged == 1

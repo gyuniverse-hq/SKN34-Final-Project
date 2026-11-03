@@ -33,6 +33,8 @@ async def export(path: Path) -> None:
             "products": len(built.products),
             "ar_products": built.ar_products,
             "ar_shades": built.ar_shades,
+            "care_products": built.care_products,
+            "care_products_tagged": built.care_products_tagged,
             "listed_without_color": built.listed_without_color,
             "skipped_without_price": built.skipped_without_price,
             "skipped_unknown_category": built.skipped_unknown_category,
