@@ -10,6 +10,7 @@ raw_oy_ingredient 와 계보가 달라 쓸 수 없다. 495건을 전수 대조�
 """
 import argparse, asyncio, csv, getpass, importlib.util, os, ssl, sys
 from collections import defaultdict
+from datetime import date
 from pathlib import Path
 
 import asyncpg
@@ -56,6 +57,11 @@ def read_manual(path: Path) -> list[dict]:
             raise SystemExit(f"검수 파일의 link_method 는 manual 또는 group_member 여야 합니다: {r}")
         if not (r["reviewed_by"] and r["reviewed_at"]):
             raise SystemExit(f"검수자와 날짜가 비어 있습니다: {r}")
+        try:
+            # asyncpg 는 date 컬럼에 문자열을 받지 않는다.
+            r["reviewed_at"] = date.fromisoformat(r["reviewed_at"].strip())
+        except ValueError:
+            raise SystemExit(f"reviewed_at 는 YYYY-MM-DD 형식이어야 합니다: {r['reviewed_at']!r}")
     return rows
 
 
@@ -132,7 +138,7 @@ async def main() -> None:
             await conn.executemany(
                 "INSERT INTO public.rec_ingredient_link "
                 "(ingredient_code, oy_ingredient_id, link_method, reviewed_by, reviewed_at, note) "
-                "VALUES ($1, $2, $3, $4, $5::date, $6) "
+                "VALUES ($1, $2, $3, $4, $5, $6) "
                 "ON CONFLICT (ingredient_code, oy_ingredient_id) DO NOTHING",
                 new,
             )
