@@ -452,7 +452,9 @@ describe('face tracker page', () => {
   it('draws eyeliner and mascara from the lid landmarks, following blinks (10-25)', () => {
     const script = moduleScript(FACE_TRACKER_HTML);
     // Screen-space eye canvas, uploaded only while a liner or mascara is on.
-    expect(script).toContain('const mascara = null, hl = null, contourZ = null;');
+    expect(script).toContain('const mascara = null;');
+    expect(script).toContain('const hl = makeup.highlighter || null;');
+    expect(script).toContain('const contourZ = makeup.contour || null;');
     expect(script).toContain('const eyesOn = liner || mascara || innerPt || browZ ? drawEyes(W, H, liner, mascara, eye, browZ) : false;');
     // Wing from the stable corner-to-corner axis (the lid tangent flips while blinking); geometry overridable.
     expect(script).toContain('const wdir = [axis[0] * Math.cos(ang) + nUp[0] * Math.sin(ang), axis[1] * Math.cos(ang) + nUp[1] * Math.sin(ang)];');

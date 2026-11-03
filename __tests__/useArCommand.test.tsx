@@ -248,12 +248,12 @@ it('reports NO_CHANGE after the renderer confirms the existing intensity', async
   expect(mockedPost).toHaveBeenCalledWith('/api/chat/acks', expect.objectContaining({ status: 'NO_CHANGE' }), expect.anything());
 });
 
-it('removes look-only zones from the render candidate while retaining the stored look', async () => {
+it('removes look-only mascara from the render candidate while retaining the stored look', async () => {
   const makeup = useMakeupStore.getState().makeup;
   const lookOnly = { ...makeup.lip! };
   await act(async () => { useMakeupStore.setState({ makeup: { ...makeup, mascara: lookOnly, highlighter: lookOnly, contour: lookOnly } }); });
   await act(async () => { await hook.send('립 진하기 50%'); });
-  expect(hook.renderCommand!.makeup).toEqual(expect.objectContaining({ mascara: null, highlighter: null, contour: null }));
+  expect(hook.renderCommand!.makeup).toEqual(expect.objectContaining({ mascara: null, highlighter: lookOnly, contour: lookOnly }));
   expect(useMakeupStore.getState().makeup).toEqual(expect.objectContaining({ mascara: lookOnly, highlighter: lookOnly, contour: lookOnly }));
 });
 

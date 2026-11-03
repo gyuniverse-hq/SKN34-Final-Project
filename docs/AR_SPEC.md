@@ -766,7 +766,7 @@ outColor      = vec4(linearToSrgb(addNoise(outLin)), 1.0); // 카메라 노이�
 
 **10-27 제형 발림 라벨 (연구, 사용자):** 유튜브 파일은 받지 않는다. `research/finish_labels/`가 영상 ID만 고르고 Gemini 영상 이해로 퍼짐(`wide`/`tight`/`unknown`)·윤기(`dull`/`wet`/`unknown`)·입자(`none`/`fine`/`chunky`/`unknown`)만 읽는다. 다수결(비 unknown 60%)이 지금 셰이더(`blushPow`, `uLinerGloss`, `flakeScaleShimmer`)와 다를 때만 `TUNING`을 바꾼다. 제품 hex·인물 이름·프레임은 저장하지 않는다. AR 런타임은 유튜브·Gemini를 호출하지 않는다. 레시피 추출 전체(M10)는 이 범위가 아니다.
 
-**10-27 (사용자):** AR 시착은 립·블러셔·섀도·아이라인·아이브로우·파운데이션을 칠하고, 마스카라·하이라이터·쉐딩은 카메라와 부위 탭에서 뺀다. 룩 레시피·룩 상세 그림·룩 가이드 문구는 그대로 둔다. 구현: `AR_PAINT_ZONES`·`arPaintMakeup`, 렌더러에서 세 부위를 `null`.
+**10-27 (사용자):** AR 시착은 립·블러셔·섀도·아이라인·아이브로우·파운데이션을 칠하고, 마스카라는 카메라와 부위 탭에서 뺀다. 룩 레시피·룩 상세 그림·룩 가이드 문구는 그대로 둔다. **11-03:** 하이라이터·쉐딩은 다시 칠한다(`AR_PAINT_ZONES`, `lib/arFacePalette.ts`는 하이라이터 부위 칩만). 마스카라는 렌더러에서 `null`.
 
 #### 6-5-5. 룩 프리셋: 갸루 클래식 (10-26)
 
