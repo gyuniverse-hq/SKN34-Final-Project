@@ -1,3 +1,4 @@
+import { readSkincareRecord } from '@/lib/skincareRecord';
 import { Stack, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
@@ -5,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { theme } from '@/constants/theme';
 import { useI18n } from '@/lib/i18n';
 import { skinAnalysisSupported } from '@/lib/skinAnalysis';
-import { clearSkinTimings, comparableSkinTimings, readSkinTimings, summarizeSkinTimings } from '@/lib/skinProfile';
+import { clearSkinTimings, comparableSkinTimings, readSkinProfile, readSkinTimings, summarizeSkinTimings } from '@/lib/skinProfile';
 import type { SkinTiming } from '@/types/skin';
 
 export default function SkinBenchmarkScreen() {
@@ -13,6 +14,7 @@ export default function SkinBenchmarkScreen() {
   const router = useRouter();
   const [rows, setRows] = useState<SkinTiming[]>([]);
   const [failed, setFailed] = useState(false);
+  const [record, setRecord] = useState<string | null>(null);
   const load = useCallback(() => { void readSkinTimings().then(setRows).catch(() => setFailed(true)); }, []);
   useEffect(load, [load]);
   const comparable = comparableSkinTimings(rows);
@@ -51,6 +53,19 @@ export default function SkinBenchmarkScreen() {
         void clearSkinTimings().then(() => setRows([])).catch(() => setFailed(true));
       }} />
     </>}
+    {__DEV__ && <View style={styles.card}>
+      <Button label={t('support.devRecord')} variant="secondary" onPress={() => {
+        if (record !== null) { setRecord(null); return; }
+        void readSkinProfile().then(profile => {
+          if (!profile) { setRecord(t('support.devEmpty')); return; }
+          setRecord(JSON.stringify({ version: profile.version, registeredAt: profile.registeredAt,
+            questionnaire: profile.questionnaire, imageType: profile.analysis.skinType,
+            ...(profile.version === 2 || profile.version === 4 ? { fusion: profile.fusion } : {}) }, null, 2));
+        }).catch(() => setFailed(true));
+      }} />
+      <Button label={t('skincare.devRecord')} onPress={() => { void readSkincareRecord().then(value => setRecord(value ?? t('skincare.devEmpty'))).catch(() => setFailed(true)); }} />
+      {record !== null && <Text selectable>{record}</Text>}
+    </View>}
     {failed && <Text accessibilityRole="alert">{t('skin.storageFailed')}</Text>}
   </ScrollView>;
 }

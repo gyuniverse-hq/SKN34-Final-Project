@@ -20,7 +20,9 @@ export function SkinConcernRail({ concerns, active, onChange, skinType = false }
 
 export function SkinReportDetail({ metrics, active, onChange, preview }: { metrics: SkinReportMetric[]; active: SkinConcern; onChange: (c: SkinConcern) => void; preview: SkinPreview | null }) {
   const { t } = useI18n();
-  const imageMetrics = metrics.filter((m) => m.source === 'analysis' || m.source === 'combined');
+  const imageMetrics = metrics.filter((m) => (m.source === 'analysis' || m.source === 'combined') &&
+    ((m.skinType !== undefined && m.skinType !== 'unknown') || m.regions.length > 0 ||
+      (m.concern === 'blemish' && m.value !== null)));
   // The solution tab may still have a survey-only concern selected.
   const metric = imageMetrics.find((m) => m.concern === active) ?? imageMetrics[0];
   if (!metric) return null;
@@ -41,7 +43,7 @@ export function SkinReportDetail({ metrics, active, onChange, preview }: { metri
       <Text style={styles.source}>{t(`report.${metric.source}`)}</Text>
       <Text style={styles.value}>{metric.skinType ? t(`report.type.${metric.skinType}`)
         : concern === 'blemish' && metric.value !== null ? t(metric.value === 1 ? 'skin.acneDetected' : 'skin.acneNotDetected') : t(`report.${metric.status}`)}</Text>
-      <Text style={styles.body}>{t(metric.skinType ? metric.source === 'combined' ? 'report.typeBasisCombined' : 'report.typeBasisModel' : 'report.modelNote')}</Text>
+      <Text style={styles.body}>{t('report.modelNote')}</Text>
     </View>
   </View>;
 }

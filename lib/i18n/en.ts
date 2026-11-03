@@ -1,7 +1,13 @@
+import { skincareEn } from './skincare';
+import { supportEn } from './skinSupport';
+import { surveyEn } from './survey';
 import { flowsEn } from './flows';
 import { skinEn } from './skin';
 import { skinReportEn } from './skinReport';
 export const en = {
+  ...skincareEn,
+  ...supportEn,
+  ...surveyEn,
   "chat.style.openGuide": "Ask about this look",
   "chat.style.reviewed_recipe": "Reviewed recipe",
   "chat.style.catalog_settings": "General guide from Catalog settings",

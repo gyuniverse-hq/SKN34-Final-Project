@@ -117,7 +117,7 @@ export default function HomeScreen() {
           loading={skinMatch.products.isPending}
           error={skinMatch.products.isError}
           emptyMessage={t('home.skinMatchEmpty')}
-          onAction={() => router.push('/skin-consent')}
+          onAction={() => router.push('/skin-analysis')}
           onRetry={() => skinMatch.products.refetch()}
           onPressProduct={(p) => router.push(productHref(p.id))}
         />

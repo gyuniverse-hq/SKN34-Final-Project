@@ -3,6 +3,7 @@ from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import LookItemRow, LookRow, ProductRow, ShadeRow, StoreRow
+from app.models.skincare import SkincareServingRow
 from app.schemas.catalog import CatalogBundle, CelebLook, LookItem, Product, Shade, Store
 
 
@@ -123,6 +124,8 @@ class CatalogRepository:
     async def replace_catalog(self, bundle: CatalogBundle) -> None:
         """Replaces the whole catalog in one transaction (seed/import)."""
         async with self._session.begin():
+            # A full catalog replacement invalidates the old recommendation projection.
+            await self._session.execute(delete(SkincareServingRow))
             for table in (LookItemRow, LookRow, ShadeRow, ProductRow, StoreRow):
                 await self._session.execute(delete(table))
             for pos, p in enumerate(bundle.products):

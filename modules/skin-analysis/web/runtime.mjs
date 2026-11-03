@@ -1,7 +1,7 @@
 import { createPreprocessor, detectRegions, inputCrop } from './preprocessing.mjs';
 import { createJpegRoundTrip } from './jpeg.mjs';
 import { CaptureGate, previewFace } from './gate.mjs';
-import { validateModelManifest, decodeGrade, meanSkinType } from './model-contract.mjs';
+import { validateModelManifest, decodeGrade, decodeBinary, meanSkinType } from './model-contract.mjs';
 
 const FACE_OVAL = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109];
 const CHUNK_SIZE = 48 * 1024, MAX_PREVIEW_CHARS = 4 * 1024 * 1024;
@@ -95,7 +95,8 @@ export async function boot(config) {
     let regions;
     try { if (!detector.load('face.xml')) throw new Error('model'); regions = detectRegions(cv, image, detector); }
     finally { detector.delete(); cv.FS_unlink('/face.xml'); }
-    const detectionMs = elapsed(detectedAt), features = {}, models = [];
+    const detectionMs = elapsed(detectedAt), features = {}, cautionProbabilities = {}, models = [];
+    const binary = manifest.schema === 'skin-analysis-assets-v4';
     let skinType;
     for (const model of manifest.models) {
       check(); post({ type: 'progress', indicator: model.indicator }); await sleepFrame();
@@ -119,7 +120,11 @@ export async function boot(config) {
           inferenceMs += elapsed(inferenceAt);
           if (logits.length !== model.outputs || logits.some(v => !Number.isFinite(v))) throw new Error('model');
           if (model.indicator === 'skinType') typeLogits.push(logits);
-          else features[key] = decodeGrade(logits[0], model.maxGrade);
+          else if (binary) {
+            const prediction = decodeBinary(logits[0]);
+            features[key] = prediction.label;
+            cautionProbabilities[key] = prediction.probability;
+          } else features[key] = decodeGrade(logits[0], model.maxGrade);
         }
         if (model.indicator === 'skinType') skinType = meanSkinType(typeLogits);
         models.push({ indicator: model.indicator, sourceSha256: model.sourceSha256, sha256: model.sha256,
@@ -127,7 +132,8 @@ export async function boot(config) {
       } finally { await session.release(); }
     }
     check();
-    return { regions: regions.map(box => inputCrop(box, image.cols, image.rows)), result: { schema: 'skin-analysis-mobile-v3', features, skinType,
+    return { regions: regions.map(box => inputCrop(box, image.cols, image.rows)), result: { schema: binary ? 'skin-analysis-mobile-v4' : 'skin-analysis-mobile-v3', features, skinType,
+      ...(binary ? { cautionProbabilities } : {}),
       roiMethod: 'opencv_haar_facebox_proportions_v1', validationStatus: 'experimental_unvalidated',
       preprocessing: 'skin-v3-embedded-enhancement',
       timing: { ...config.run, runtime: 'onnxruntime-web-1.30.0/wasm-cpu/threads=1',
@@ -150,6 +156,58 @@ export async function boot(config) {
     // Cache API availability/quota varies between WebViews. Cache misses remain explicit in timings.
     cache = window.caches ? await window.caches.open(`skin-web-models-${manifest.bundleVersion}`).catch(() => null) : null;
     check();
+  }
+
+  async function processCanvas(capturedAt, captureMs, alignmentMs, outline) {
+    let image;
+    try {
+      stopCamera(); post({ type: 'captured' }); await sleepFrame();
+      const preparationAt = performance.now();
+      await prepareAnalysis();
+      image = cv.imread(canvas);
+      const imagePreparationMs = elapsed(preparationAt);
+      const output = await analyze(image, capturedAt, captureMs, alignmentMs);
+      output.result.timing.imagePreparationMs = imagePreparationMs;
+      if (outline) try {
+        const dataUrl = canvas.toDataURL('image/jpeg', .8);
+        const data = dataUrl.startsWith('data:image/jpeg;base64,') ? dataUrl.slice(23) : '';
+        if (data.length && data.length <= MAX_PREVIEW_CHARS) {
+          const boxes = output.regions.map(([l, t, r, b]) => [l / canvas.width, t / canvas.height, r / canvas.width, b / canvas.height]);
+          post({ type: 'preview-start', runId: config.run.runId, width: canvas.width, height: canvas.height, outline, boxes, length: data.length });
+          for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+            check(); post({ type: 'preview-chunk', runId: config.run.runId, index: i / CHUNK_SIZE, data: data.slice(i, i + CHUNK_SIZE) });
+          }
+          post({ type: 'preview-end', runId: config.run.runId });
+        }
+      } catch { /* A preview failure must not replace a valid numeric result. */ }
+      check();
+      output.result.timing.totalMs = elapsed(capturedAt);
+      post({ type: 'result', result: output.result });
+    } finally { image?.delete(); cleanup(); }
+  }
+
+  if (config.photoBase64) {
+    const capturedAt = performance.now();
+    try {
+      const photo = new Image();
+      await new Promise((resolve, reject) => {
+        photo.onload = resolve; photo.onerror = () => reject(new Error('photo'));
+        photo.src = 'data:image/jpeg;base64,' + config.photoBase64;
+      });
+      config.photoBase64 = '';
+      check();
+      const scale = Math.min(1, 1600 / Math.max(photo.width, photo.height));
+      canvas.width = Math.max(1, Math.round(photo.width * scale));
+      canvas.height = Math.max(1, Math.round(photo.height * scale));
+      canvas.getContext('2d', { willReadFrequently: true }).drawImage(photo, 0, 0, canvas.width, canvas.height);
+      photo.src = '';
+      startupMs = elapsed(startupAt);
+      await processCanvas(capturedAt, elapsed(capturedAt), 0, null);
+    } catch (error) {
+      cleanup();
+      if (error?.message !== 'cancelled') post({ type: 'error', code: error?.message === 'photo' ? 'photo' : 'model' });
+    }
+    return;
   }
 
   try {
@@ -196,31 +254,7 @@ export async function boot(config) {
         canvas.width = video.videoWidth; canvas.height = video.videoHeight;
         canvas.getContext('2d', { willReadFrequently: true }).drawImage(video, 0, 0);
         const captureMs = elapsed(capturedAt);
-        let image;
-        try {
-          stopCamera(); post({ type: 'captured' }); await sleepFrame();
-          const preparationAt = performance.now();
-          await prepareAnalysis();
-          image = cv.imread(canvas);
-          const imagePreparationMs = elapsed(preparationAt);
-          const output = await analyze(image, capturedAt, captureMs, capturedAt - openedAt);
-          output.result.timing.imagePreparationMs = imagePreparationMs;
-          if (outline) try {
-            const dataUrl = canvas.toDataURL('image/jpeg', .8);
-            const data = dataUrl.startsWith('data:image/jpeg;base64,') ? dataUrl.slice(23) : '';
-            if (data.length && data.length <= MAX_PREVIEW_CHARS) {
-              const boxes = output.regions.map(([l, t, r, b]) => [l / canvas.width, t / canvas.height, r / canvas.width, b / canvas.height]);
-              post({ type: 'preview-start', runId: config.run.runId, width: canvas.width, height: canvas.height, outline, boxes, length: data.length });
-              for (let i = 0; i < data.length; i += CHUNK_SIZE) {
-                check(); post({ type: 'preview-chunk', runId: config.run.runId, index: i / CHUNK_SIZE, data: data.slice(i, i + CHUNK_SIZE) });
-              }
-              post({ type: 'preview-end', runId: config.run.runId });
-            }
-          } catch { /* A preview failure must not replace a valid numeric result. */ }
-          check();
-          output.result.timing.totalMs = elapsed(capturedAt);
-          post({ type: 'result', result: output.result });
-        } finally { image?.delete(); cleanup(); }
+        await processCanvas(capturedAt, captureMs, capturedAt - openedAt, outline);
       } catch (error) { cleanup(); if (error?.message !== 'cancelled') post({ type: 'error', code: error?.message === 'photo' ? 'photo' : 'model' }); }
     }
     captureButton.onclick = () => { void capture(); };
