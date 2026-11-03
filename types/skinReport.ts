@@ -47,10 +47,3 @@ export interface SkinReport {
   concerns: SkinConcern[];
 }
 export type CareIngredient = 'hyaluronic' | 'ceramide' | 'squalane' | 'niacinamide' | 'panthenol' | 'centella' | 'salicylic' | 'adenosine';
-export interface SkinSampleProduct {
-  id: string;
-  name: 'serum' | 'cream' | 'cleanser' | 'sun';
-  priceKRW: number;
-  concerns: readonly SkinConcern[];
-  ingredients: readonly CareIngredient[];
-}

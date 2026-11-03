@@ -1,5 +1,5 @@
-import { SKIN_REPORT_EXAMPLE, SKIN_SAMPLE_PRODUCTS } from '@/constants/skinCare';
-import { buildSkinReport, ingredientExamples, sampleProductMatches } from '@/lib/skinReport';
+import { SKIN_REPORT_EXAMPLE } from '@/constants/skinCare';
+import { buildSkinReport, ingredientExamples } from '@/lib/skinReport';
 import type { SkinQuestionnaire } from '@/types/skin';
 import type { SkinReportInput } from '@/types/skinReport';
 
@@ -88,15 +88,6 @@ it('shows acne as unavailable in new four-model results, never as a normal resul
 it('calculates the explicitly provisional four-week check-in across a year boundary', () => {
   const source = { ...input(), registeredAt: '2026-12-20T12:00:00.000Z' };
   expect(buildSkinReport(source).reviewAt).toBe('2027-01-17T12:00:00.000Z');
-});
-
-it('matches fictional products only to selected concerns and never fills an empty selection', () => {
-  expect(sampleProductMatches([])).toEqual([]);
-  const matches = sampleProductMatches(['pores']);
-  expect(matches.map((m) => m.product.id)).toEqual(['sample-cleanser']);
-  expect(matches[0].matchedConcerns).toEqual(['pores']);
-  expect(sampleProductMatches(['dryness', 'sensitivity'])[0].matchedConcerns).toEqual(['dryness', 'sensitivity']);
-  expect(SKIN_SAMPLE_PRODUCTS.every((p) => p.id.startsWith('sample-'))).toBe(true);
 });
 
 it('exposes editable ingredient examples independently of inferred model severity', () => {

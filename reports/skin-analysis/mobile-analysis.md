@@ -56,12 +56,12 @@ npm run skin:test-web
 
 ## 모델 준비와 빌드
 
-Node.js와 uv가 필요합니다. v3 원본은 `ml/runs/skin-analysis-v3/bundle-four-models-20261030/`, v4 원본은 `ml/runs/skin-analysis-v4/bundle/`에 둡니다. `npm run skin:prepare`가 두 버전을 ONNX로 내보내고 선택한 버전을 네이티브 빌드용 에셋으로 복사합니다.
+Node.js와 uv가 필요합니다. 기본 v4 원본은 `ml/runs/skin-analysis-v4/bundle/`에 둡니다. `npm run skin:prepare`는 선택한 버전만 ONNX로 내보내고 네이티브 빌드용 에셋으로 복사하므로 v4 사용에 v3 가중치는 필요하지 않습니다. v3를 별도로 사용하려면 원본을 `ml/runs/skin-analysis-v3/bundle-four-models-20261030/`에 두고 v3를 선택한 뒤 준비합니다.
 현재 분석에서는 여드름 모델을 불러오거나 실행하지 않습니다. 기존 여드름 모델 묶음은 이 내보내기에 필요하지 않습니다.
 
 루트 `.env` 또는 `.env.local`에서 `SKIN_ANALYSIS_MODEL=skin-analysis-v4`로 선택합니다. 지원 값은 `skin-analysis-v3`, `skin-analysis-v4`이며 미설정 시 v4입니다. 빈 값·오타는 오류로 거절합니다. 셸 환경 변수가 파일보다 우선하고, 파일 우선순위는 Expo 설정을 따릅니다.
 
-최초 `npm run skin:prepare` 후에는 Expo Go에서 이 값 변경 → 개발 서버 재시작 → 앱 전체 새로고침으로 전환합니다. 매번 재변환할 필요가 없습니다. 개발 미들웨어가 `ml/runs/skin-mobile/models.json`에 등록한 선택 버전의 manifest와 에셋을 제공합니다. 이 변수는 서버 도구 전용이라 `EXPO_PUBLIC_` 접두사를 붙이지 않습니다. 결과 스키마에 따라 등급/이진 디코더와 보고서 해석도 함께 전환합니다.
+사용할 버전마다 최초에 `npm run skin:prepare`를 실행합니다. 이미 준비한 버전끼리는 Expo Go에서 이 값 변경 → 개발 서버 재시작 → 앱 전체 새로고침으로 전환할 수 있습니다. 개발 미들웨어가 `ml/runs/skin-mobile/models.json`에 등록한 선택 버전의 manifest와 에셋을 제공합니다. 이 변수는 서버 도구 전용이라 `EXPO_PUBLIC_` 접두사를 붙이지 않습니다. 결과 스키마에 따라 등급/이진 디코더와 보고서 해석도 함께 전환합니다.
 
 네이티브 앱은 모델을 APK에 포함하므로 버전 변경 후 `npm run skin:prepare`와 재빌드가 필요합니다. 빌드 검증은 선택 버전과 패키징할 manifest가 다르면 실패합니다. EAS 업로드에는 선택한 모델 에셋만 포함하고 개발용 모델 캐시는 제외합니다.
 저장소 루트에서 실행합니다.

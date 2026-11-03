@@ -79,7 +79,7 @@ flowchart LR
 `lib/skinAnalysis.ts`의 실행 환경 선택 → `modules/skin-analysis/` 순서로 호출합니다.
 모듈은 상위 앱 레이어를 import하지 않으며 TypeScript 레이어 경계를 린트로 검사합니다.
 기기 내 분석은 `EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS=1`에서 활성화합니다. 이전 서버 모드 환경 변수는 무시합니다.
-모델은 루트 환경 설정의 `SKIN_ANALYSIS_MODEL`로 선택합니다(`skin-analysis-v3` / `skin-analysis-v4`, 기본 v4). 두 모델을 `npm run skin:prepare`로 한 번 준비하면 Expo Go는 개발 서버 재시작과 앱 새로고침만으로 전환됩니다. 네이티브 패키지는 선택 변경 후 에셋 준비와 재빌드가 필요합니다.
+모델은 루트 환경 설정의 `SKIN_ANALYSIS_MODEL`로 선택합니다(`skin-analysis-v3` / `skin-analysis-v4`, 기본 v4). `npm run skin:prepare`는 선택한 모델만 준비하며, 다른 버전을 처음 선택할 때는 해당 가중치로 다시 준비해야 합니다. 이미 준비한 버전은 Expo Go에서 개발 서버 재시작과 앱 새로고침으로 전환됩니다. 네이티브 패키지는 선택 변경 후 에셋 준비와 재빌드가 필요합니다.
 모바일 Expo Go에서는 `components/skin/SkinCamera.tsx`의 WebView를 통해
 `modules/skin-analysis/web/`의 카메라·자동 촬영·ONNX Runtime Web CPU 추론을 실행합니다.
 브라우저 런타임은 상위 앱 코드를 import하지 않습니다. 촬영 사진·얼굴 윤곽·입력 영역은 결과 화면 표시를 위해 제한된 청크로 앱 메모리에만 전달합니다.

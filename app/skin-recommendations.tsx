@@ -7,7 +7,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ConcernPicker } from '@/components/skin/ConcernPicker';
 import { SkinReportDetail } from '@/components/skin/SkinReportDetail';
 import { SkinCareHighlights, SkinReportOverview } from '@/components/skin/SkinReportOverview';
-import { SkinSampleProducts } from '@/components/skin/SkinSampleProducts';
 import { SkinSolution } from '@/components/skin/SkinSolution';
 import { ProductLineCard } from '@/components/shop/ProductLineCard';
 import { Button } from '@/components/ui/Button';
@@ -91,15 +90,11 @@ export default function SkinRecommendationsScreen() {
             <View style={styles.goalList}>{CARE_GOALS.map(g => <Pressable key={g} onPress={() => flow.setPrimary(g)} accessibilityRole="radio" accessibilityState={{ checked: flow.primary === g }} style={[styles.goal, flow.primary === g && styles.goalOn]}>
               <Text style={flow.primary === g ? styles.goalTextOn : styles.goalText}>{t(`support.priorityChoice.${g}`)}</Text>
             </Pressable>)}</View>
-            <Text style={styles.caption}>{t('skincare.disclosure')}</Text>
             <Text style={styles.panelTitle}>{t('skincare.secondary')}</Text>
             <ConcernPicker goalLabels concerns={CARE_GOALS.filter(g => g !== flow.primary)} selected={flow.selected} suggested={flow.report.concerns} onToggle={flow.toggle} />
           </View> : null}
-          {!flow.live ? <>
-            <Text style={styles.sampleLabel}>{t('report.sampleProducts')}</Text>
-            <Text style={styles.caption}>{t('report.sampleProductsBody')}</Text>
-            {flow.samples.length ? <SkinSampleProducts matches={flow.samples} /> : <InlineState status="empty" message={t('skinRec.noConcerns')} />}
-          </> : flow.recommendations.isPending ? <InlineState status="loading" />
+          <Text style={styles.caption}>{t('skincare.disclosure')}</Text>
+          {!flow.live ? <Text style={styles.caption}>{t('skincare.requestPrompt')}</Text> : flow.recommendations.isPending ? <InlineState status="loading" />
             : flow.recommendations.isError ? <InlineState status="error" onRetry={() => flow.recommendations.refetch()} />
               : <>
                 {flow.recommendations.data?.coverage.filter(c => c.status !== 'ok').map(c => <Text key={c.goal} style={styles.caption}>{t(c.status === 'mapping_unavailable' ? 'skincare.mapping_unavailable' : 'skincare.no_matches', { goal: t(`support.priorityChoice.${c.goal}`) })}</Text>)}
@@ -111,7 +106,6 @@ export default function SkinRecommendationsScreen() {
                   onPress={() => router.push(productHref(match.product.id))} /></View>)}
               </>}
           <Button label={t('report.liveProducts')} variant="secondary" disabled={!flow.primary} loading={flow.recommendations.isFetching} onPress={flow.findProducts} />
-          {flow.live ? <Button label={t('report.showSamples')} variant="ghost" onPress={flow.showSamples} /> : null}
           <Button label={t('skinFlow.skip')} variant="ghost" onPress={() => router.push(searchHref({ source: 'skin' }))} />
         </View>
       </View> : <SkinReportDetail metrics={flow.report.metrics} active={flow.activeConcern} onChange={flow.setActive} preview={flow.preview} />}
@@ -142,7 +136,7 @@ const styles = StyleSheet.create({
   tab: { flex: 1, minWidth: 0, alignItems: 'center', paddingVertical: 18, borderBottomWidth: 3, borderBottomColor: 'transparent' }, tabOn: { borderBottomColor: theme.colors.rose },
   tabLabel: { fontSize: 15, fontWeight: '600', color: theme.colors.inkFaint }, tabLabelOn: { color: theme.colors.rose, fontWeight: '800' },
   products: { padding: 24, paddingTop: 0, gap: 16 }, title: { color: theme.colors.ink, fontSize: 21, fontWeight: '800', lineHeight: 30 },
-  caption: { color: theme.colors.inkMuted, fontSize: 12, lineHeight: 20 }, sampleLabel: { color: theme.colors.accent, fontSize: 11, fontWeight: '800' },
+  caption: { color: theme.colors.inkMuted, fontSize: 12, lineHeight: 20 },
   adjust: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 44, gap: 10 }, link: { color: theme.colors.rose, fontSize: 13, fontWeight: '700' },
   concernPanel: { gap: 12 }, panelTitle: { color: theme.colors.ink, fontSize: 15, fontWeight: '700' },
   goalList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
