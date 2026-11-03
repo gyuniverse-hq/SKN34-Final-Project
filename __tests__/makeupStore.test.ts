@@ -157,7 +157,7 @@ describe('makeup store zones', () => {
       expect(s.modified).toEqual([]);
     });
 
-    it('AR paint strips mascara, highlighter and contour even when a look names them', () => {
+    it('AR paint strips mascara even when a look names it, and keeps highlighter and contour', () => {
       const look = {
         id: 'full',
         title: 'Full',
@@ -177,10 +177,19 @@ describe('makeup store zones', () => {
       expect(worn.highlighter?.hex).toBe('#F2DCC4');
       expect(worn.contour?.hex).toBe('#8A5A44');
       expect(arPaintMakeup(worn).mascara).toBeNull();
-      expect(arPaintMakeup(worn).highlighter).toBeNull();
-      expect(arPaintMakeup(worn).contour).toBeNull();
+      expect(arPaintMakeup(worn).highlighter?.hex).toBe('#F2DCC4');
+      expect(arPaintMakeup(worn).contour?.hex).toBe('#8A5A44');
       expect(arPaintMakeup(worn).lip?.hex).toBe('#B3202E');
-      expect(AR_PAINT_ZONES).toEqual(['lip', 'blush', 'eyeshadow', 'eyeliner', 'brow', 'foundation']);
+      expect(AR_PAINT_ZONES).toEqual([
+        'lip',
+        'blush',
+        'eyeshadow',
+        'eyeliner',
+        'highlighter',
+        'contour',
+        'brow',
+        'foundation',
+      ]);
     });
 
     it('a new look replaces the old origin, and reset forgets it', () => {
