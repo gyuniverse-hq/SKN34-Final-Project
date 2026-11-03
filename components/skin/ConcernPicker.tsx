@@ -9,11 +9,13 @@ export function ConcernPicker({
   concerns,
   selected,
   suggested,
+  goalLabels = false,
   onToggle,
 }: {
   concerns: readonly SkinConcern[];
   selected: readonly SkinConcern[];
   suggested: readonly SkinConcern[];
+  goalLabels?: boolean;
   onToggle: (concern: SkinConcern) => void;
 }) {
   const { t } = useI18n();
@@ -35,7 +37,7 @@ export function ConcernPicker({
               color={on ? theme.colors.rose : theme.colors.inkFaint}
             />
             <View style={styles.copy}>
-              <Text style={styles.label}>{t(`concern.${c}` as TranslationKey)}</Text>
+              <Text style={styles.label}>{t(`${goalLabels ? 'support.priorityChoice' : 'concern'}.${c}` as TranslationKey)}</Text>
               <Text style={styles.body}>{t(`concern.${c}.body` as TranslationKey)}</Text>
             </View>
             {suggested.includes(c) ? <Text style={styles.suggested}>{t('skinFlow.suggested')}</Text> : null}

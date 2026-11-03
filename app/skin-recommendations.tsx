@@ -1,3 +1,4 @@
+import { CARE_GOALS } from '@/types/skincare';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
@@ -15,7 +16,7 @@ import { Notice } from '@/components/ui/Notice';
 import { LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
 import { useSkinReport } from '@/hooks/useSkinReport';
-import { useI18n, type TranslationKey } from '@/lib/i18n';
+import { useI18n } from '@/lib/i18n';
 import { productHref, searchHref, SKIN_CONCERNS } from '@/lib/routes';
 import type { SkinConcern } from '@/types';
 import { useSkinPreviewStore } from '@/store/skinPreviewStore';
@@ -45,7 +46,7 @@ export default function SkinRecommendationsScreen() {
   const showDetail = (concern: SkinConcern) => {
     flow.setActive(concern); switchTab('results');
   };
-  const start = () => router.push('/skin-consent');
+  const start = () => router.push('/skin-analysis');
   if (flow.loading) return <LoadingState />;
   if (flow.loadFailed) return <SafeAreaView style={styles.screen}>
     <InlineState status="error" message={t('skin.loadFailed')} onRetry={() => { void flow.reload(); }} />
@@ -84,21 +85,32 @@ export default function SkinRecommendationsScreen() {
           <Pressable onPress={() => setAdjusting(!adjusting)} style={styles.adjust} accessibilityRole="button" accessibilityState={{ expanded: adjusting }}>
             <Text style={styles.link}>{t('report.adjust')}</Text><Ionicons name={adjusting ? 'chevron-up' : 'chevron-down'} size={18} color={theme.colors.rose} />
           </Pressable>
-          {adjusting ? <ConcernPicker concerns={SKIN_CONCERNS} selected={flow.selected} suggested={flow.report.concerns} onToggle={flow.toggle} /> : null}
+          {!adjusting && flow.primary ? <Text style={styles.caption}>{t('skincare.primary')}: {t(`support.priorityChoice.${flow.primary}`)}</Text> : null}
+          {adjusting ? <View style={styles.concernPanel}>
+            <Text style={styles.panelTitle}>{t('skincare.primary')}</Text>
+            <View style={styles.goalList}>{CARE_GOALS.map(g => <Pressable key={g} onPress={() => flow.setPrimary(g)} accessibilityRole="radio" accessibilityState={{ checked: flow.primary === g }} style={[styles.goal, flow.primary === g && styles.goalOn]}>
+              <Text style={flow.primary === g ? styles.goalTextOn : styles.goalText}>{t(`support.priorityChoice.${g}`)}</Text>
+            </Pressable>)}</View>
+            <Text style={styles.caption}>{t('skincare.disclosure')}</Text>
+            <Text style={styles.panelTitle}>{t('skincare.secondary')}</Text>
+            <ConcernPicker goalLabels concerns={CARE_GOALS.filter(g => g !== flow.primary)} selected={flow.selected} suggested={flow.report.concerns} onToggle={flow.toggle} />
+          </View> : null}
           {!flow.live ? <>
             <Text style={styles.sampleLabel}>{t('report.sampleProducts')}</Text>
             <Text style={styles.caption}>{t('report.sampleProductsBody')}</Text>
             {flow.samples.length ? <SkinSampleProducts matches={flow.samples} /> : <InlineState status="empty" message={t('skinRec.noConcerns')} />}
           </> : flow.recommendations.isPending ? <InlineState status="loading" />
             : flow.recommendations.isError ? <InlineState status="error" onRetry={() => flow.recommendations.refetch()} />
-              : flow.recommendations.data?.status !== 'ok' ? <InlineState status="empty" message={t(
-                flow.recommendations.data?.status === 'empty_catalog' ? 'skinRec.emptyCatalog'
-                  : flow.recommendations.data?.status === 'no_concerns' ? 'skinRec.noConcerns' : 'skinRec.noMatches'
-              )} /> : flow.recommendations.data.matches.map(({ product, matchedConcerns }) => <ProductLineCard key={product.id} product={product}
-                note={t('skinRec.matched', { count: matchedConcerns.length })}
-                badges={matchedConcerns.map((c) => ({ label: t(`concern.${c}` as TranslationKey), tone: 'brand' }))}
-                onPress={() => router.push(productHref(product.id))} />)}
-          <Button label={t('report.liveProducts')} variant="secondary" disabled={flow.selected.length === 0} loading={flow.recommendations.isFetching} onPress={flow.findProducts} />
+              : <>
+                {flow.recommendations.data?.coverage.filter(c => c.status !== 'ok').map(c => <Text key={c.goal} style={styles.caption}>{t(c.status === 'mapping_unavailable' ? 'skincare.mapping_unavailable' : 'skincare.no_matches', { goal: t(`support.priorityChoice.${c.goal}`) })}</Text>)}
+                {flow.recommendations.data?.matches.map((match, index, matches) => <View key={match.product.id}>
+                  {match.reasonCode === 'secondary' && (index === 0 || matches[index - 1].reasonCode !== 'secondary') ? <Text style={styles.title}>{t('skincare.secondary')}</Text> : null}
+                  <ProductLineCard
+                  product={{ ...match.product, priceKRW: match.priceKRW }} eyebrow={match.optionName}
+                  note={t(match.reasonCode === 'primary' ? 'skincare.reason.primary' : 'skincare.reason.secondary', { goal: t(`support.priorityChoice.${match.targetConcern}`) })}
+                  onPress={() => router.push(productHref(match.product.id))} /></View>)}
+              </>}
+          <Button label={t('report.liveProducts')} variant="secondary" disabled={!flow.primary} loading={flow.recommendations.isFetching} onPress={flow.findProducts} />
           {flow.live ? <Button label={t('report.showSamples')} variant="ghost" onPress={flow.showSamples} /> : null}
           <Button label={t('skinFlow.skip')} variant="ghost" onPress={() => router.push(searchHref({ source: 'skin' }))} />
         </View>
@@ -132,6 +144,11 @@ const styles = StyleSheet.create({
   products: { padding: 24, paddingTop: 0, gap: 16 }, title: { color: theme.colors.ink, fontSize: 21, fontWeight: '800', lineHeight: 30 },
   caption: { color: theme.colors.inkMuted, fontSize: 12, lineHeight: 20 }, sampleLabel: { color: theme.colors.accent, fontSize: 11, fontWeight: '800' },
   adjust: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 44, gap: 10 }, link: { color: theme.colors.rose, fontSize: 13, fontWeight: '700' },
+  concernPanel: { gap: 12 }, panelTitle: { color: theme.colors.ink, fontSize: 15, fontWeight: '700' },
+  goalList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  goal: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.card },
+  goalOn: { borderColor: theme.colors.rose, backgroundColor: theme.colors.roseSoft },
+  goalText: { color: theme.colors.inkMuted, fontSize: 13, fontWeight: '600' }, goalTextOn: { color: theme.colors.rose, fontSize: 13, fontWeight: '700' },
   footer: { padding: 24, gap: 16, borderTopWidth: 1, borderTopColor: theme.colors.border },
   overlay: { flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'center', alignItems: 'center', padding: 24 },
   dialog: { width: '100%', maxWidth: 400, backgroundColor: theme.colors.surface, borderRadius: 20, padding: 24, gap: 20 },

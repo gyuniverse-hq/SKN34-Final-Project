@@ -1,8 +1,14 @@
+import type { SkinSurveyV3 } from '@/types/skin';
+const COMPLETE_SKIN_SURVEY: SkinSurveyV3 = {
+  version: 'skin-support-1', postWashDryness: 'unknown', afternoonTzoneOil: 'marked',
+  cheekState: 'variable', oilOnset: 'unknown', cosmeticReaction: 'repeated', priority: 'dryness',
+};
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { appendSkinTiming, clearSkinTimings, comparableSkinTimings, readSkinProfile, readSkinTimings, summarizeSkinTimings, validateSkinAnalysis } from '@/lib/skinProfile';
 import { STORAGE_KEYS } from '@/lib/storage';
 import { useSkinProfileStore } from '@/store/skinProfileStore';
-import type { SkinAnalysisResult, SkinProfile, SkinTiming } from '@/types/skin';
+import type { SkinAnalysisResult, LegacySkinProfile, SkinTiming } from '@/types/skin';
 import { createElement } from 'react';
 import { act, create } from 'react-test-renderer';
 import { useSkinAnalysis } from '@/hooks/useSkinAnalysis';
@@ -36,7 +42,7 @@ function analysis(): SkinAnalysisResult {
       pigmentation_grade_forehead: 1, pigmentation_grade_cheek_image_left: 2, pigmentation_grade_cheek_image_right: 3,
       wrinkle_grade_forehead: 1, wrinkle_grade_glabella: 2, wrinkle_grade_eye_image_left: 3, wrinkle_grade_eye_image_right: 4 }, timing: timing() };
 }
-function profile(): SkinProfile {
+function profile(): LegacySkinProfile {
   return { version: 1, registeredAt: '2026-10-23T00:00:00Z', analysis: analysis(),
     questionnaire: { tightness: 0, oiliness: 'unknown', sensitivity: 2 } };
 }
@@ -61,7 +67,7 @@ it.each([0, 1, 2, 3, 4, 5, 6])('labels grade %i at the good/care boundary withou
   features.wrinkle_grade_eye_image_right = grade;
   const original = { ...features };
   const summary = summarizeSkinResult(features);
-  expect(summary.grades.map(row => row.status)).toEqual(Array(3).fill(grade <= 1 ? 'good' : grade <= 3 ? 'fair' : 'care'));
+  expect(summary.grades.map(row => row.status)).toEqual(Array(3).fill(grade <= 3 ? 'good' : 'care'));
   expect(summary.grades.map(row => row.grade)).toEqual([Math.min(grade, 5), Math.min(grade, 5), grade]);
   expect(features).toEqual(original);
 });
@@ -69,8 +75,8 @@ it.each([0, 1, 2, 3, 4, 5, 6])('labels grade %i at the good/care boundary withou
 it('uses the highest area grade and reports acne only as presence or absence', () => {
   const features = analysis().features;
   expect(summarizeSkinResult(features)).toEqual({ grades: [
-    { indicator: 'pore', grade: 3, status: 'fair' },
-    { indicator: 'pigmentation', grade: 3, status: 'fair' },
+    { indicator: 'pore', grade: 3, status: 'good' },
+    { indicator: 'pigmentation', grade: 3, status: 'good' },
     { indicator: 'wrinkle', grade: 4, status: 'care' },
   ], acneDetected: true });
   features.acne = 0;
@@ -160,16 +166,17 @@ it('requires all answers, preserves them on a failed write, then completes after
     await act(async () => { await flow.finish(); });
     expect(flow.phase).toBe('survey');
     expect(useSkinProfileStore.getState().profile).toBeNull();
-    await act(async () => { flow.setAnswers({ tightness: 0, oiliness: 'unknown', sensitivity: 2 }); });
+    await act(async () => { flow.setAnswers({ ...COMPLETE_SKIN_SURVEY }); });
     jest.mocked(AsyncStorage.setItem).mockRejectedValueOnce(new Error('disk full'));
     await act(async () => { await flow.finish(); });
     expect(flow.phase).toBe('survey');
     expect(flow.error).toBe('storage');
-    expect(flow.answers.oiliness).toBe('unknown');
+    expect(flow.answers.cosmeticReaction).toBe('repeated');
     expect(useSkinProfileStore.getState().profile).toBeNull();
     await act(async () => { await flow.finish(); });
     expect(flow.phase).toBe('done');
     expect(useSkinProfileStore.getState().profile?.questionnaire).toEqual(flow.answers);
+    expect(useSkinProfileStore.getState().profile?.version).toBe(4);
     expect(useSkinProfileStore.getState().profile?.analysis).toEqual(flow.result);
     const saved = await readSkinProfile();
     await act(async () => { flow.cancel(); });
@@ -177,7 +184,7 @@ it('requires all answers, preserves them on a failed write, then completes after
     expect(await readSkinProfile()).toEqual(saved);
     await act(async () => { await flow.start(); });
     expect(flow.phase).toBe('camera');
-    expect(flow.answers).toEqual({});
+    expect(flow.answers).toEqual({ version: 'skin-support-1' });
     expect(useSkinProfileStore.getState().profile).toEqual(saved);
   } finally { await act(async () => { renderer.unmount(); }); }
 });
@@ -201,7 +208,7 @@ it('ignores a late native result after cancellation', async () => {
   } finally { await act(async () => { renderer.unmount(); }); }
 });
 
-it('accepts WebView camera results without native inference and ignores events from a cancelled run', async () => {
+it.each(['skin-analysis-mobile-v3', 'skin-analysis-mobile-v4'] as const)('accepts %s WebView results without native inference and ignores cancelled runs', async schema => {
   const property = jest.replaceProperty(skinRuntime, 'skinAnalysisUsesWebView', true);
   jest.mocked(skinRuntime.createSkinWebRun).mockReturnValue({ assetsUrl: 'http://localhost:8081/skin-runtime/',
     run: { runId: 'web-run', processId: 'js-session', firstInProcess: true, device: 'test', androidVersion: 'android 36', build: 'expo-go' } });
@@ -221,15 +228,19 @@ it('accepts WebView camera results without native inference and ignores events f
     expect(flow.phase).toBe('ready');
     await act(async () => { await flow.start(); });
     await act(async () => { flow.onWebEvent({ type: 'captured' }); });
-    const web: SkinAnalysisResult = { ...analysis(), schema: 'skin-analysis-mobile-v3', preprocessing: 'skin-v3-embedded-enhancement',
+    const web: SkinAnalysisResult = { ...analysis(), schema, preprocessing: 'skin-v3-embedded-enhancement',
       skinType: { label: 'oily', probabilities: [.1, .2, .7], roiCount: 3, scoreType: 'mean_uncalibrated_softmax' },
       timing: { ...timing('web-run'), runtime: 'wasm-cpu', memoryPssKb: null } };
     web.timing.models[0] = { ...web.timing.models[0], indicator: 'skinType' };
     delete web.features.acne; delete web.acneScore; delete web.acneThreshold;
+    if (schema === 'skin-analysis-mobile-v4') {
+      web.features = Object.fromEntries(Object.keys(web.features).map(key => [key, 1])) as SkinAnalysisResult['features'];
+      web.cautionProbabilities = Object.fromEntries(Object.keys(web.features).map(key => [key, .6])) as SkinAnalysisResult['cautionProbabilities'];
+    }
     await act(async () => { flow.onWebEvent({ type: 'result', result: web }); });
     expect(flow.phase).toBe('survey');
     expect(analyzeSkin).not.toHaveBeenCalled();
-    await act(async () => { flow.setAnswers({ tightness: 0, oiliness: 'unknown', sensitivity: 2 }); });
+    await act(async () => { flow.setAnswers({ ...COMPLETE_SKIN_SURVEY }); });
     await act(async () => { await flow.finish(); });
     expect(flow.phase).toBe('done');
     expect((await readSkinProfile())?.analysis.preprocessing).toBe(web.preprocessing);
@@ -329,7 +340,7 @@ it('retains a new photo only in temporary memory after saving and clears it on c
     await act(async () => { flow.onWebEvent({ type: 'preview-end', runId: 'photo-run' }); });
     expect(useSkinPreviewStore.getState().preview).toBeNull();
     await act(async () => { flow.onWebEvent({ type: 'result', result: { ...analysis(), timing: timing('photo-run') } }); });
-    await act(async () => { flow.setAnswers({ tightness: 0, oiliness: 1, sensitivity: 2 }); });
+    await act(async () => { flow.setAnswers({ ...COMPLETE_SKIN_SURVEY }); });
     await act(async () => { await flow.finish(); });
     expect(useSkinPreviewStore.getState().preview?.jpeg).toBe('/9j/');
     expect(JSON.stringify(await AsyncStorage.multiGet(Object.values(STORAGE_KEYS)))).not.toContain('/9j/');
@@ -352,7 +363,7 @@ it('keeps a native preview out of the persisted analysis result', async () => {
     await act(async () => { flow.onCapture({ guidance: 'capturing', progress: 1, captureId: 'native' }); });
     expect(flow.phase).toBe('survey');
     expect(JSON.stringify(flow.result)).not.toContain('/9j/');
-    await act(async () => { flow.setAnswers({ tightness: 0, oiliness: 1, sensitivity: 2 }); });
+    await act(async () => { flow.setAnswers({ ...COMPLETE_SKIN_SURVEY }); });
     await act(async () => { await flow.finish(); });
     expect(useSkinPreviewStore.getState().preview?.jpeg).toBe('/9j/');
     expect(JSON.stringify(await AsyncStorage.multiGet(Object.values(STORAGE_KEYS)))).not.toContain('/9j/');

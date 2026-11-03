@@ -1,9 +1,15 @@
+import { skincareKo } from './skincare';
+import { supportKo } from './skinSupport';
+import { surveyKo } from './survey';
 import type { Dictionary } from './en';
 import { flowsKo } from './flows';
 import { skinKo } from './skin';
 import { skinReportKo } from './skinReport';
 
 export const ko: Dictionary = {
+  ...skincareKo,
+  ...supportKo,
+  ...surveyKo,
   "chat.style.openGuide": "스타일 화장법 상담",
   "chat.style.reviewed_recipe": "검수된 레시피",
   "chat.style.catalog_settings": "Catalog 설정 기반 일반 가이드",

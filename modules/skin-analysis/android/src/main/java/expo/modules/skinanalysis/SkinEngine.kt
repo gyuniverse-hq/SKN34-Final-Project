@@ -95,7 +95,8 @@ internal class SkinEngine(private val context: Context) {
 
   fun analyze(capture: SkinCapture, firstInProcess: Boolean, progress: (String) -> Unit): Map<String, Any> {
     val token = capture.generation
-    require(manifest.getString("schema") == "skin-analysis-assets-v3" &&
+    val binary = manifest.getString("schema") == "skin-analysis-assets-v4"
+    require((binary || manifest.getString("schema") == "skin-analysis-assets-v3") &&
       manifest.getString("precision") == "float32" && manifest.getString("preprocessing") == "skin-preprocessing-v3")
     require(OpenCVLoader.initLocal()) { "OpenCV initialization failed" }
     val validationAt = SystemClock.elapsedRealtimeNanos()
@@ -111,6 +112,7 @@ internal class SkinEngine(private val context: Context) {
       val records = manifest.getJSONArray("models")
       require(records.length() == 4)
       val features = mutableMapOf<String, Int>()
+      val cautionProbabilities = mutableMapOf<String, Double>()
       val timings = mutableListOf<Map<String, Any>>()
       var skinType: Map<String, Any>? = null
       var memoryPss = Debug.getPss()
@@ -122,7 +124,9 @@ internal class SkinEngine(private val context: Context) {
         if (indicator == "skinType") {
           require(model.getString("decoder") == "mean_softmax" &&
             model.getJSONArray("classes").toString() == "[\"dry\",\"balanced\",\"oily\"]")
-        } else require(model.getString("decoder") == "sigmoid_grade" &&
+        } else if (binary) require(model.getString("decoder") == "sigmoid_binary" &&
+          model.getDouble("threshold") == 0.5)
+        else require(model.getString("decoder") == "sigmoid_grade" &&
           model.getInt("maxGrade") == (if (indicator == "wrinkle") 6 else 5))
         progress(indicator)
         val loadAt = SystemClock.elapsedRealtimeNanos()
@@ -170,7 +174,11 @@ internal class SkinEngine(private val context: Context) {
                 typeLogits.add(logits)
               } else {
                 require(logits.size == 1)
-                features[key] = SkinDecoding.grade(logits[0], model.getInt("maxGrade"))
+                if (binary) {
+                  val probability = SkinDecoding.probability(logits[0])
+                  features[key] = if (probability >= 0.5) 1 else 0
+                  cautionProbabilities[key] = probability
+                } else features[key] = SkinDecoding.grade(logits[0], model.getInt("maxGrade"))
               }
               memoryPss = max(memoryPss, Debug.getPss())
             }
@@ -199,9 +207,10 @@ internal class SkinEngine(private val context: Context) {
         "nativeMs" to SkinWork.ms(analyzingAt), "totalMs" to total,
         "memoryPssKb" to memoryPss, "models" to timings)
       // The optional preview is returned only in memory and separated from the persisted result by JS.
-      val result = mutableMapOf<String, Any>("schema" to "skin-analysis-mobile-v3", "features" to features,
+      val result = mutableMapOf<String, Any>("schema" to (if (binary) "skin-analysis-mobile-v4" else "skin-analysis-mobile-v3"), "features" to features,
         "skinType" to skinType!!, "preprocessing" to "skin-v3-embedded-enhancement",
         "roiMethod" to "opencv_haar_facebox_proportions_v1", "validationStatus" to "experimental_unvalidated", "timing" to timing)
+      if (binary) result["cautionProbabilities"] = cautionProbabilities
       if (preview != null) result["preview"] = preview
       return result
     } finally { image.release() }

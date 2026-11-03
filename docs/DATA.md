@@ -134,8 +134,8 @@ uv run python -m app.jobs.seed_catalog fixtures/demo_catalog.json
 학습 모델이 필요하지 않습니다. 실제 상품 적재 전에도 가짜 저장소로 API·순위·빈 결과를 검증합니다.
 
 - 입력 흐름: 저장된 피부 분석·설문 → 기기에서 고민 코드 제안 → 사용자가 확인·수정 → 추천 요청.
-- 여드름 이진 결과는 `blemish`, 모공·색소침착·주름은 기존 화면의 최고 부위 등급 3 이상일 때
-  각각 `pores`, `pigmentation`, `wrinkles`를 제안합니다. 등급은 실험값이며 가중치로 사용하지 않습니다.
+- 과거 여드름 이진 결과는 `blemish`를 제안합니다. 모공·색소침착·주름은 v4 모델의 부위 중 하나라도 유의(sigmoid ≥ 0.5)일 때
+  각각 `pores`, `pigmentation`, `wrinkles`를 제안합니다. 이전 등급 모델 결과는 최고 부위 등급 4 이상 기준을 유지합니다. 모델 점수·등급은 가중치로 사용하지 않습니다.
 - 설문의 당김·유분·민감도가 2이면 각각 `dryness`, `oiliness`, `sensitivity`를 제안합니다.
   0·1·`unknown`은 자동 제안하지 않으며 사용자가 추가·제거할 수 있습니다. 수분 추론값은 사용하지 않습니다.
 - 요청은 `{ "concerns": ["dryness", "pores"], "limit": 8 }`입니다. `limit`은 1–20이며 기본값은 8입니다.
@@ -157,3 +157,6 @@ DB 없이 확인: `backend/api`에서 `uv run pytest tests/test_recommendations.
 ## Supabase 권한
 
 프로젝트 관리자가 Supabase → Organization → Team에서 초대하고, 데이터 담당자에게는 **Developer** 역할을 줍니다(표 보기와 SQL 실행 가능, 결제·팀원 관리는 불가). 위 규칙대로 대시보드는 확인용으로만 씁니다.
+
+
+새 기초 추천의 파생 입력·검수 데이터 발행·추적 계약은 [기초 추천 v1](skincare-recommendations.md)을 따른다.

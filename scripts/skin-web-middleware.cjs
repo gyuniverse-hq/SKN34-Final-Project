@@ -1,9 +1,14 @@
 // Development assets for on-device skin analysis. No photo uploads are accepted.
 const { createReadStream, readFileSync, existsSync, statSync } = require('node:fs');
 const { resolve, dirname, extname } = require('node:path');
+const { selectedSkinModel, preparedSkinModel } = require('./skin-models.cjs');
 
 module.exports = function skinWebMiddleware(root) {
-  const assets = resolve(root, 'modules/skin-analysis/android/src/main/assets/skin');
+  const model = selectedSkinModel(root);
+  let assets;
+  try { assets = preparedSkinModel(root, model); }
+  catch (error) { throw new Error(`Cannot load ${model.name}. Run npm run skin:prepare.`, { cause: error }); }
+  console.log(`Skin analysis model: ${model.name}`);
   const web = resolve(root, 'modules/skin-analysis/web');
   const ort = dirname(require.resolve('onnxruntime-web/wasm'));
   const files = new Map([

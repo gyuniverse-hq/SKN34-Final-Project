@@ -1,9 +1,15 @@
+import { skincareZh } from './skincare';
+import { supportZh } from './skinSupport';
+import { surveyZh } from './survey';
 import type { Dictionary } from './en';
 import { flowsZh } from './flows';
 import { skinZh } from './skin';
 import { skinReportZh } from './skinReport';
 
 export const zh: Dictionary = {
+  ...skincareZh,
+  ...supportZh,
+  ...surveyZh,
   "chat.style.openGuide": "咨询此妆容的化妆方法",
   "chat.style.reviewed_recipe": "已审核教程",
   "chat.style.catalog_settings": "依据Catalog设置的一般指南",

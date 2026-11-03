@@ -1,3 +1,4 @@
+import { surveySensitivity } from './skinSurvey';
 import type { SkinConcern } from '@/types';
 import type { SkinProfile } from '@/types/skin';
 import { SKIN_CONCERNS } from './routes';
@@ -11,20 +12,29 @@ import { resolveSkinType } from './skinType';
 export function suggestConcerns(profile: SkinProfile | null | undefined): SkinConcern[] {
   if (!profile) return [];
   const found = new Set<SkinConcern>();
-  const summary = summarizeSkinResult(profile.analysis.features);
+  const summary = summarizeSkinResult(profile.analysis.features, profile.analysis.schema);
   for (const { indicator, status } of summary.grades) {
     if (status !== 'care') continue;
     found.add(indicator === 'pore' ? 'pores' : indicator === 'pigmentation' ? 'pigmentation' : 'wrinkles');
   }
   if (summary.acneDetected) found.add('blemish');
-  const { tightness, oiliness, sensitivity } = profile.questionnaire;
-  if (tightness === 2) found.add('dryness');
-  if (oiliness === 2) found.add('oiliness');
-  if (sensitivity === 2) found.add('sensitivity');
-  const skinType = resolveSkinType(profile.analysis.skinType, profile.questionnaire);
+  const skinType = profile.version === 2 || profile.version === 4
+    ? { type: profile.fusion.type, source: 'analysis' }
+    : profile.version === 3 ? { type: profile.analysis.skinType?.label ?? 'unknown', source: 'analysis' }
+      : resolveSkinType(profile.analysis.skinType, profile.questionnaire);
+  if (profile.version === 1) {
+    const { tightness, oiliness, sensitivity } = profile.questionnaire;
+    if (tightness === 2) found.add('dryness');
+    if (oiliness === 2) found.add('oiliness');
+    if (sensitivity === 2) found.add('sensitivity');
+  } else {
+    if (surveySensitivity(profile.questionnaire) === 'care') found.add('sensitivity');
+    found.add(profile.questionnaire.priority);
+  }
   if (skinType.source !== 'survey' && skinType.type === 'dry') found.add('dryness');
   if (skinType.source !== 'survey' && skinType.type === 'oily') found.add('oiliness');
-  return SKIN_CONCERNS.filter((c) => found.has(c));
+  const concerns = SKIN_CONCERNS.filter((c) => found.has(c));
+  return profile.version !== 1 ? [profile.questionnaire.priority, ...concerns.filter(c => c !== profile.questionnaire.priority)] : concerns;
 }
 
 /** Product care tags in display order; must match CONCERN_TAGS in backend/api catalog_service.py. */

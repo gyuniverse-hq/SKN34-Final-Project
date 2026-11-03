@@ -33,13 +33,16 @@ def decode_grade(value, maximum):
 def load_research_model(bundle, task, record):
     path = (bundle / record["file"]).resolve(strict=True)
     if not path.is_relative_to(bundle) or digest(path) != record["sha256"]:
-        raise ValueError(f"Invalid v3 checkpoint: {task}")
+        raise ValueError(f"Invalid checkpoint: {task}")
     if record["architecture"] != "mobilenet_v3_large":
         raise ValueError(f"Unsupported v3 architecture: {task}")
     outputs = 3 if task == "skin_type_roi" else 1
     if task == "skin_type_roi":
         if record["classes"] != ["건성", "중성", "지성"]:
             raise ValueError("Skin type class order changed")
+    elif "threshold" in record:
+        if record["classes"] != ["양호", "유의"] or record["threshold"] != .5:
+            raise ValueError("Unexpected binary output contract")
     elif record["max_grade"] != (6 if task == "wrinkle" else 5):
         raise ValueError("Unexpected grade range")
     model = mobilenet_v3_large(weights=None)
@@ -65,9 +68,15 @@ def export(bundle=DEFAULT_BUNDLE):
     bundle = Path(bundle).resolve(strict=True)
     source = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
     tasks = ("pore", "pigmentation", "wrinkle", "skin_type_roi")
-    if source["schema"] != "skin-research-four-models-v1" or set(source["models"]) != set(tasks):
-        raise ValueError("Incomplete v3 research bundle")
-    if source["grade_preprocessing"] != (
+    binary = source["schema"] == "skin-binary-three-and-roi-type-v1"
+    if (source["schema"] not in ("skin-research-four-models-v1",
+                                 "skin-binary-three-and-roi-type-v1")
+            or set(source["models"]) != set(tasks)):
+        raise ValueError("Incomplete research bundle")
+    if binary and source["preprocessing"] != dict(
+            radius=1., percent=75, threshold=0, contrast_factor=1.4):
+        raise ValueError("Unsupported binary ROI preprocessing")
+    if not binary and source["grade_preprocessing"] != (
         "official square ROI JPEG 256 RGB, unsharp radius 1 percent 75 threshold 0, "
         "contrast 1.4, ImageNet normalize"
     ):
@@ -95,7 +104,7 @@ def export(bundle=DEFAULT_BUNDLE):
         shutil.copyfile(ROOT / "docs/licenses/Pillow.txt", stage / "Pillow-LICENSE.txt")
         records = []
         for task, network in models.items():
-            print(f"Exporting v3 {task}", file=sys.stderr, flush=True)
+            print(f"Exporting {task}", file=sys.stderr, flush=True)
             model = nn.Sequential(RoiEnhancement(), network).eval().requires_grad_(False)
             path = stage / f"{task}.onnx"
             values = np.fromfile(stage / "downsample.f32", dtype="<f4").reshape(1, 3, 256, 256)
@@ -116,6 +125,8 @@ def export(bundle=DEFAULT_BUNDLE):
                 np.testing.assert_allclose(actual, reference, rtol=1e-3, atol=1e-4)
                 if task == "skin_type_roi":
                     assert actual.argmax() == reference.argmax(), "Skin type decision changed"
+                elif binary:
+                    assert (actual.item() >= 0) == (reference.item() >= 0), "Binary label changed"
                 else:
                     maximum = source["models"][task]["max_grade"]
                     assert (decode_grade(actual.item(), maximum)
@@ -129,14 +140,16 @@ def export(bundle=DEFAULT_BUNDLE):
                                 input="image", output="logits", inputShape=[1, 3, 256, 256],
                                 outputs=3 if task == "skin_type_roi" else 1,
                                 decoder=("mean_softmax" if task == "skin_type_roi"
-                                         else "sigmoid_grade"),
+                                         else "sigmoid_binary" if binary else "sigmoid_grade"),
+                                threshold=record.get("threshold"),
                                 maxGrade=record.get("max_grade"),
                                 classes=CLASSES if task == "skin_type_roi" else None,
                                 fixture="downsample.f32", expectedLogits=expected,
                                 maxExportAbsoluteError=max(errors),
                                 roiEnhancement="pillow-unsharp1-75-contrast1.4-embedded"))
         manifest = dict(
-            schema="skin-analysis-assets-v3", bundleVersion=version, precision="float32",
+            schema="skin-analysis-assets-v4" if binary else "skin-analysis-assets-v3",
+            bundleVersion=version, precision="float32",
             opset=17, preprocessing="skin-preprocessing-v3", pythonRuntime=ort.__version__,
             androidRuntime="1.22.0", roiMethod="opencv_haar_facebox_proportions_v1",
             researchManifestSha256=digest(bundle / "manifest.json"), models=records,

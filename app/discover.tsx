@@ -68,7 +68,7 @@ export default function DiscoverScreen() {
             <Pressable style={styles.quickButton} accessibilityRole="button" onPress={() => router.push('/ar')}>
               <Ionicons name="scan-outline" size={20} color={theme.colors.white} /><Text style={styles.quickButtonText}>{t('discovery.tryAr')}</Text>
             </Pressable>
-            <Pressable style={styles.quickButton} accessibilityRole="button" onPress={() => router.push('/skin-consent')}>
+            <Pressable style={styles.quickButton} accessibilityRole="button" onPress={() => router.push('/skin-analysis')}>
               <Ionicons name="water-outline" size={20} color={theme.colors.white} /><Text style={styles.quickButtonText}>{t('discovery.skin')}</Text>
             </Pressable>
           </View>

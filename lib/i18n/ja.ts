@@ -1,9 +1,15 @@
+import { skincareJa } from './skincare';
+import { supportJa } from './skinSupport';
+import { surveyJa } from './survey';
 import type { Dictionary } from './en';
 import { flowsJa } from './flows';
 import { skinJa } from './skin';
 import { skinReportJa } from './skinReport';
 
 export const ja: Dictionary = {
+  ...skincareJa,
+  ...supportJa,
+  ...surveyJa,
   "chat.style.openGuide": "このルックのメイク方法を相談",
   "chat.style.reviewed_recipe": "検証済みレシピ",
   "chat.style.catalog_settings": "Catalog設定に基づく一般ガイド",

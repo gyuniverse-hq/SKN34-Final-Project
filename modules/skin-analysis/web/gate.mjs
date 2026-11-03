@@ -2,21 +2,24 @@ export class CaptureGate {
   reset() { this.since = null; this.previous = null; this.lastAt = null; }
   update(faces, now) {
     const face = faces[0];
+    if (this.lastAt !== null && now - this.lastAt > 600) this.reset();
+    const locked = this.since !== null;
     // Match the displayed guide (70% wide, 68% high, centered at .5/.46).
     // A width-only threshold rejects a correctly framed face in short previews,
     // or forces it outside the forehead/chin limits in tall previews.
     const guideFit = face ? Math.max(face.width / .70, (face.bottom - face.top) / .68) : 0;
     const guidance = !faces.length ? 'noFace' : faces.length !== 1 ? 'multipleFaces'
-      : !face.frontal ? 'straight' : guideFit < .55 || guideFit > 1.10 ? 'distance'
-        : Math.abs(face.cx - .5) > .10 || Math.abs(face.cy - .46) > .12 ||
-          face.cx - face.width / 2 < .05 || face.cx + face.width / 2 > .95 ? 'center'
-          : face.top < .08 || face.top > .32 || face.bottom > .84 ? 'forehead' : 'hold';
+      : !face.frontal ? 'straight' : guideFit < (locked ? .45 : .50) || guideFit > (locked ? 1.20 : 1.15) ? 'distance'
+        : Math.abs(face.cx - .5) > (locked ? .22 : .18) || Math.abs(face.cy - .46) > (locked ? .22 : .18) ||
+          face.cx - face.width / 2 < (locked ? 0 : .01) || face.cx + face.width / 2 > (locked ? 1 : .99) ? 'center'
+          : face.top < (locked ? .02 : .05) || face.top > (locked ? .38 : .35) ||
+            face.bottom > (locked ? .91 : .88) ? 'forehead' : 'hold';
     if (guidance !== 'hold') { this.reset(); return { guidance, progress: 0 }; }
     const last = this.previous;
-    if (!last || Math.abs(face.cx - last.cx) > .02 || Math.abs(face.cy - last.cy) > .02 ||
-      Math.abs(face.width - last.width) > .03 || now - this.lastAt > 600) this.since = now;
+    if (!last || Math.abs(face.cx - last.cx) > .07 || Math.abs(face.cy - last.cy) > .07 ||
+      Math.abs(face.width - last.width) > .08) this.since = now;
     this.previous = face; this.lastAt = now;
-    return { guidance, progress: Math.min(1, (now - this.since) / 1500) };
+    return { guidance, progress: Math.min(1, (now - this.since) / 1200) };
   }
 }
 

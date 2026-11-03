@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { validateAssets } from './skin-assets.mjs';
+import { validateAssets, validateSelectedAssets } from './skin-assets.mjs';
 
 function bundle(action) {
   const directory = mkdtempSync(join(tmpdir(), 'skin-assets-'));
@@ -36,6 +36,11 @@ test('accepts a complete manifest and blocks modified model files', () => bundle
   writeFileSync(join(directory, 'pore.onnx'), 'corrupted');
   assert.throws(() => validateAssets(directory), /Invalid skin asset/);
 }));
+
+test('native builds reject assets prepared for another selected model', () => bundle(directory => {
+  assert.equal(validateSelectedAssets(directory, { name: 'skin-analysis-v3', schema: 'skin-analysis-assets-v3' }).schema, 'skin-analysis-assets-v3');
+  assert.throws(() => validateSelectedAssets(directory, { name: 'skin-analysis-v4', schema: 'skin-analysis-assets-v4' }), /Native assets do not match skin-analysis-v4/);
+}));
 test('blocks missing models, invalid decoders, and paths escaping the asset bundle', () => bundle((directory, manifest, save) => {
   manifest.models[0].decoder = 'argmax'; save();
   assert.throws(() => validateAssets(directory), /model/);
@@ -57,5 +62,16 @@ test('rejects old classifier outputs and incorrect v3 class ordering', () => bun
 
 test('rejects an acne stage in the current four-model bundle', () => bundle((directory, manifest, save) => {
   manifest.models[0].indicator = 'acne'; save();
+  assert.throws(() => validateAssets(directory), /model/);
+}));
+
+test('v4 requires binary decoders and the trained threshold, never the old grade decoder', () => bundle((directory, manifest, save) => {
+  manifest.schema = 'skin-analysis-assets-v4'; save();
+  assert.throws(() => validateAssets(directory), /model/);
+  for (const model of manifest.models.filter(model => model.indicator !== 'skinType')) {
+    model.decoder = 'sigmoid_binary'; model.threshold = .5;
+  }
+  save(); assert.equal(validateAssets(directory).schema, 'skin-analysis-assets-v4');
+  manifest.models[0].threshold = .7; save();
   assert.throws(() => validateAssets(directory), /model/);
 }));

@@ -29,8 +29,10 @@ from app.models.raw_oliveyoung import (
     RawOySurveyQuestionRow,
     RawOyTextureTypeRow,
 )
+from app.models.skincare import SkincareServingRow
 
 __all__ = [
+    "SkincareServingRow",
     "LookArSettingRow",
     "LookItemRow",
     "LookProductRow",

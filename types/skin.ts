@@ -50,8 +50,11 @@ export interface SkinTiming {
 }
 
 export interface SkinAnalysisResult {
-  schema: 'skin-analysis-mobile-v1' | 'skin-analysis-mobile-v2' | 'skin-analysis-mobile-v3' | 'skin-analysis-server-v1';
+  schema: 'skin-analysis-mobile-v1' | 'skin-analysis-mobile-v2' | 'skin-analysis-mobile-v3' | 'skin-analysis-mobile-v4' | 'skin-analysis-server-v1';
   skinType?: SkinTypePrediction;
+  /** v4 only: per-ROI uncalibrated sigmoid scores, not diagnostic confidence. */
+  cautionProbabilities?: Record<Exclude<keyof SkinAnalysisResult['features'], 'acne'>, number>;
+  /** v4 retains the historical ROI keys but stores binary labels (0 good / 1 care), not grades. */
   features: {
     /** Present only in historical results produced with an acne model. */
     acne?: number;
@@ -73,12 +76,91 @@ export interface SkinAnalysisResult {
   timing: SkinTiming;
 }
 
-export interface SkinProfile {
+export interface LegacySkinProfile {
   version: 1;
   registeredAt: string;
   analysis: SkinAnalysisResult;
   questionnaire: SkinQuestionnaire;
 }
+
+export type SosChoice = 'a' | 'b' | 'c' | 'd';
+export type SosQuestion = 'afterWash' | 'selfType' | 'tzoneFrequency' | 'cloggedPores' | 'tzoneOnset' | 'washFrequency';
+export interface SkinSurveyV2 {
+  version: 'sos-bstq-1';
+  afterWash: SosChoice;
+  selfType: SosChoice;
+  tzoneFrequency: SosChoice;
+  cloggedPores: SosChoice;
+  tzoneOnset: SosChoice | 'e';
+  washFrequency: SosChoice | 'e';
+  redBumps: SosChoice;
+  cosmeticReaction: SosChoice | 'e';
+  priority: import('./index').SkinConcern;
+}
+export interface SkinFusionResult {
+  policy: 'sos-oily-v1';
+  settings: { sosMinimum: number; maxGap: number; step: number; maxWeight: number };
+  sosTotal: number;
+  scores: [number, number, number] | null;
+  delta: [number, number, number] | null;
+  type: SkinTypePrediction['label'] | 'unknown';
+  reason: 'no-model' | 'already-oily' | 'low-sos' | 'large-gap' | 'adjusted';
+  weight: number;
+  changed: boolean;
+}
+export interface SkinProfileV2 {
+  version: 2;
+  registeredAt: string;
+  analysis: SkinAnalysisResult;
+  questionnaire: SkinSurveyV2;
+  fusion: SkinFusionResult;
+}
+export interface SkinSurveyV3 {
+  version: 'skin-support-1';
+  postWashDryness: 'none' | 'mild' | 'marked' | 'unknown';
+  afternoonTzoneOil: 'none' | 'slight' | 'marked' | 'unknown';
+  cheekState: 'dry' | 'comfortable' | 'oily' | 'variable' | 'unknown';
+  oilOnset: 'within1h' | 'after1to3h' | 'after3h' | 'notNoticed' | 'unknown';
+  cosmeticReaction: 'none' | 'once' | 'repeated' | 'avoided' | 'notUsed' | 'unknown';
+  priority: import('./index').SkinConcern;
+}
+export interface SkinProfileV3 {
+  version: 3;
+  registeredAt: string;
+  analysis: SkinAnalysisResult;
+  questionnaire: SkinSurveyV3;
+}
+export interface SupportFusionSettings {
+  highSignal: number;
+  lowSignal: number;
+  maxTopGap: number;
+  maxTargetGap: number;
+  maxAdjustment: number;
+  dryPostWashWeight: number;
+  oilTzoneWeight: number;
+}
+export type SupportFusionReason = 'no-model' | 'missing-survey' | 'unsupported-survey' | 'missing-answer' |
+  'invalid-answer' | 'ambiguous-survey' | 'both-high' | 'neutral' | 'model-clear' | 'target-distant' | 'adjusted-dry' | 'adjusted-oily';
+export interface SupportFusionResult {
+  policy: 'support-dry-oily-v1';
+  settings: SupportFusionSettings;
+  signals: { dry: number; oily: number } | null;
+  scores: [number, number, number] | null;
+  delta: [number, number, number] | null;
+  type: SkinTypePrediction['label'] | 'unknown';
+  reason: SupportFusionReason;
+  weight: number;
+  applied: boolean;
+  changed: boolean;
+}
+export interface SkinProfileV4 {
+  version: 4;
+  registeredAt: string;
+  analysis: SkinAnalysisResult;
+  questionnaire: SkinSurveyV3;
+  fusion: SupportFusionResult;
+}
+export type SkinProfile = LegacySkinProfile | SkinProfileV2 | SkinProfileV3 | SkinProfileV4;
 
 export type SkinGuidance = 'loading' | 'openingCamera' | 'loadingGuide' | 'noFace' | 'multipleFaces' | 'center' | 'distance' | 'forehead' | 'straight' | 'hold' | 'capturing' | 'cameraError';
 export interface SkinCameraEvent {
@@ -90,6 +172,7 @@ export interface SkinCameraEvent {
 
 export interface SkinWebRun {
   assetsUrl: string;
+  photoBase64?: string;
   run: { runId: string; processId: string; firstInProcess: boolean; device: string; androidVersion: string; build: string };
 }
 export type SkinPoint = [number, number];
