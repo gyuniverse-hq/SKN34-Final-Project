@@ -4,7 +4,7 @@ import renderer, { act } from 'react-test-renderer';
 import CelebrityVideoDetail from '@/app/celebrity-video/[id]';
 import { openYoutubeVideo } from '@/components/celeb/VideoCard';
 
-jest.mock('expo-router', () => ({ Stack: { Screen: () => null }, useLocalSearchParams: () => ({ id: 'video-1' }) }));
+jest.mock('expo-router', () => ({ Stack: { Screen: () => null }, useLocalSearchParams: () => ({ id: 'video-1' }), useRouter: () => ({ push: jest.fn() }) }));
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('expo-image', () => ({ Image: 'MockImage' }));
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: 'LinearGradient' }));

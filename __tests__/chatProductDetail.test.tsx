@@ -17,7 +17,7 @@ const mockRoute = typeof mockHref === 'object' ? mockHref.params : {};
 jest.mock('expo-router', () => ({ Stack: { Screen: () => null },
   useLocalSearchParams: () => mockRoute, useRouter: () => ({ push: jest.fn(), setParams: jest.fn() }),
 }));
-jest.mock('@/lib/queries', () => ({ useProduct: () => ({ data: mockProduct, isPending: false, isError: false }) }));
+jest.mock('@/lib/queries', () => ({ useProduct: () => ({ data: mockProduct, isPending: false, isError: false }), useProductVideos: () => ({ data: [] }) }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: ({ children }: { children: unknown }) => children }));
 jest.mock('@/components/ui/ProductImage', () => ({ ProductImage: () => null }));

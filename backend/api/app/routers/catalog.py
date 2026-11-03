@@ -16,9 +16,11 @@ from app.schemas.catalog import (
 )
 from app.schemas.external import ProductOffers
 from app.schemas.ingredient import IngredientReadResult
+from app.schemas.product_video import ProductVideosResponse
 from app.services.catalog_service import CatalogService, get_catalog_service
 from app.services.ingredient_service import IngredientService, get_ingredient_service
 from app.services.offer_service import OfferService, get_offer_service
+from app.services.product_video_service import ProductVideoService, get_product_video_service
 
 router = APIRouter(prefix="/api", tags=["catalog"])
 
@@ -86,6 +88,20 @@ async def get_product_offers(
     if result.configured:
         cache_for(response, 1800)
     return result
+
+
+@router.get("/products/{product_id}/videos", response_model=ProductVideosResponse)
+async def get_product_videos(
+    product_id: str,
+    response: Response,
+    service: CatalogService = Depends(get_catalog_service),
+    videos: ProductVideoService = Depends(get_product_video_service),
+) -> ProductVideosResponse:
+    if await service.get_product(product_id) is None:
+        raise ApiError(404, "Product not found", "not_found")
+    result = await videos.videos_for_product(product_id)
+    cache_for(response, 300)
+    return ProductVideosResponse(videos=result)
 
 
 @router.get("/offers/search", response_model=ProductOffers)
