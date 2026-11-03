@@ -37,7 +37,7 @@ export function useSkinReport() {
   const primary = primaryOverride ?? derived.primary;
   const selected = selection ?? derived.secondary;
   const activeConcern = active ?? report.priorities[0].concern;
-  const samples = useMemo(() => sampleProductMatches(selected), [selected]);
+  const samples = useMemo(() => sampleProductMatches(primary ? [primary, ...selected] : selected), [primary, selected]);
   const recommendations = useSkincareRecommendations(request);
   useEffect(() => {
     if (request && recommendations.data) {

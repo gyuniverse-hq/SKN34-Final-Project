@@ -8,6 +8,7 @@ import { ConcernPicker } from '@/components/skin/ConcernPicker';
 import { SkinReportDetail } from '@/components/skin/SkinReportDetail';
 import { SkinCareHighlights, SkinReportOverview } from '@/components/skin/SkinReportOverview';
 import { SkinSampleProducts } from '@/components/skin/SkinSampleProducts';
+import { SkinSolution } from '@/components/skin/SkinSolution';
 import { ProductLineCard } from '@/components/shop/ProductLineCard';
 import { Button } from '@/components/ui/Button';
 import { InlineState } from '@/components/ui/InlineState';
@@ -16,7 +17,7 @@ import { LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
 import { useSkinReport } from '@/hooks/useSkinReport';
 import { useI18n } from '@/lib/i18n';
-import { productHref, searchHref } from '@/lib/routes';
+import { productHref, searchHref, SKIN_CONCERNS } from '@/lib/routes';
 import type { SkinConcern } from '@/types';
 import { useSkinPreviewStore } from '@/store/skinPreviewStore';
 
@@ -78,19 +79,22 @@ export default function SkinRecommendationsScreen() {
         </View>
       </View>
       {tab === 'solution' ? <View>
-
+        <SkinSolution concerns={SKIN_CONCERNS} active={flow.activeConcern} onChange={flow.setActive} ingredients={flow.ingredients} />
         <View style={styles.products}>
           <Text style={styles.title} accessibilityRole="header">{t('report.products')}</Text>
           <Pressable onPress={() => setAdjusting(!adjusting)} style={styles.adjust} accessibilityRole="button" accessibilityState={{ expanded: adjusting }}>
             <Text style={styles.link}>{t('report.adjust')}</Text><Ionicons name={adjusting ? 'chevron-up' : 'chevron-down'} size={18} color={theme.colors.rose} />
           </Pressable>
-          <Text style={styles.title}>{t('skincare.primary')}</Text>
-          <View style={{ gap: 8 }}>{CARE_GOALS.map(g => <Pressable key={g} onPress={() => flow.setPrimary(g)} accessibilityRole="radio" accessibilityState={{ checked: flow.primary === g }} style={styles.adjust}>
-            <Text style={flow.primary === g ? styles.tabLabelOn : styles.tabLabel}>{flow.primary === g ? '● ' : '○ '}{t(`support.priorityChoice.${g}`)}</Text>
-          </Pressable>)}</View>
-          <Text style={styles.caption}>{t('skincare.disclosure')}</Text>
-          <Text style={styles.caption}>{t('skincare.secondary')}</Text>
-          {adjusting ? <ConcernPicker goalLabels concerns={CARE_GOALS.filter(g => g !== flow.primary)} selected={flow.selected} suggested={flow.report.concerns} onToggle={flow.toggle} /> : null}
+          {!adjusting && flow.primary ? <Text style={styles.caption}>{t('skincare.primary')}: {t(`support.priorityChoice.${flow.primary}`)}</Text> : null}
+          {adjusting ? <View style={styles.concernPanel}>
+            <Text style={styles.panelTitle}>{t('skincare.primary')}</Text>
+            <View style={styles.goalList}>{CARE_GOALS.map(g => <Pressable key={g} onPress={() => flow.setPrimary(g)} accessibilityRole="radio" accessibilityState={{ checked: flow.primary === g }} style={[styles.goal, flow.primary === g && styles.goalOn]}>
+              <Text style={flow.primary === g ? styles.goalTextOn : styles.goalText}>{t(`support.priorityChoice.${g}`)}</Text>
+            </Pressable>)}</View>
+            <Text style={styles.caption}>{t('skincare.disclosure')}</Text>
+            <Text style={styles.panelTitle}>{t('skincare.secondary')}</Text>
+            <ConcernPicker goalLabels concerns={CARE_GOALS.filter(g => g !== flow.primary)} selected={flow.selected} suggested={flow.report.concerns} onToggle={flow.toggle} />
+          </View> : null}
           {!flow.live ? <>
             <Text style={styles.sampleLabel}>{t('report.sampleProducts')}</Text>
             <Text style={styles.caption}>{t('report.sampleProductsBody')}</Text>
@@ -140,6 +144,11 @@ const styles = StyleSheet.create({
   products: { padding: 24, paddingTop: 0, gap: 16 }, title: { color: theme.colors.ink, fontSize: 21, fontWeight: '800', lineHeight: 30 },
   caption: { color: theme.colors.inkMuted, fontSize: 12, lineHeight: 20 }, sampleLabel: { color: theme.colors.accent, fontSize: 11, fontWeight: '800' },
   adjust: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 44, gap: 10 }, link: { color: theme.colors.rose, fontSize: 13, fontWeight: '700' },
+  concernPanel: { gap: 12 }, panelTitle: { color: theme.colors.ink, fontSize: 15, fontWeight: '700' },
+  goalList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  goal: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.card },
+  goalOn: { borderColor: theme.colors.rose, backgroundColor: theme.colors.roseSoft },
+  goalText: { color: theme.colors.inkMuted, fontSize: 13, fontWeight: '600' }, goalTextOn: { color: theme.colors.rose, fontSize: 13, fontWeight: '700' },
   footer: { padding: 24, gap: 16, borderTopWidth: 1, borderTopColor: theme.colors.border },
   overlay: { flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'center', alignItems: 'center', padding: 24 },
   dialog: { width: '100%', maxWidth: 400, backgroundColor: theme.colors.surface, borderRadius: 20, padding: 24, gap: 20 },
