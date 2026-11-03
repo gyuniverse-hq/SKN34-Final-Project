@@ -35,6 +35,7 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { DEMO_TAG } from '@/constants/demo';
 import { TAB_BAR_STYLE, theme } from '@/constants/theme';
+import { HIGHLIGHTER_AREAS, toggleHighlighterArea } from '@/lib/arFacePalette';
 import { COLOR_FAMILIES, colorFamily, type ColorFamily } from '@/lib/colorFamily';
 import { arChatRoute } from '@/lib/arChatRoute';
 import { adjustMakeupFromChat } from '@/lib/arChatAdjust';
@@ -56,7 +57,7 @@ import { parseFlag, parseId, productHref, recommendationsHref } from '@/lib/rout
 import { useCartStore } from '@/store/cartStore';
 import { AR_PAINT_ZONES, arPaintMakeup, isArPaintZone, MAKEUP_ZONES, useMakeupStore } from '@/store/makeupStore';
 import { useSettingsStore } from '@/store/settingsStore';
-import type { MakeupZone, Texture } from '@/types';
+import type { HighlightArea, MakeupZone, Texture } from '@/types';
 
 type Mode = 'direct' | 'chat';
 
@@ -64,6 +65,10 @@ const HIDDEN_TAB_BAR_STYLE = { ...TAB_BAR_STYLE, display: 'none' as const, heigh
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+function highlighterAreaOn(areas: HighlightArea[] | undefined, area: HighlightArea) {
+  return !areas || areas.length === 0 || areas.includes(area);
 }
 
 const CHAT_EXAMPLES: TranslationKey[] = ['ar.chatExample1', 'ar.chatExample2', 'ar.chatExample3'];
@@ -208,7 +213,7 @@ export default function ArTryOnScreen() {
   // Filter chips: only textures / color families present in this zone; families for lips only.
   const textureOptions = useMemo(
     () =>
-      zone === 'blush' || zone === 'eyeshadow' || zone === 'foundation'
+      zone === 'blush' || zone === 'eyeshadow' || zone === 'foundation' || zone === 'highlighter' || zone === 'contour'
         ? []
         : TEXTURES.filter((tx) => zoneSwatches.some(({ product }) => product.texture === tx)),
     [zoneSwatches, zone]
@@ -1155,6 +1160,40 @@ export default function ArTryOnScreen() {
                     onPress={() => makeup.eyeshadow && patchGeometry('eyeshadow', { shadowFinish: id })}
                   />
                 ))}
+              </ScrollView>
+            ) : null}
+            {(zone === 'highlighter' && makeup.highlighter) || (zone === 'contour' && makeup.contour) ? (
+              <View style={styles.foundBox}>
+                <CoverageBar
+                  value={zone === 'highlighter' ? makeup.highlighter!.intensity : makeup.contour!.intensity}
+                  labels={{ title: t('ar.intensity'), low: t('ar.light'), high: t('ar.bold') }}
+                  onChange={(v) => setIntensity(zone, v)}
+                />
+              </View>
+            ) : null}
+            {zone === 'highlighter' && makeup.highlighter ? (
+              <ScrollView
+                horizontal
+                nestedScrollEnabled
+                showsHorizontalScrollIndicator={false}
+                style={styles.hScroll}
+                contentContainerStyle={styles.filters}>
+                {HIGHLIGHTER_AREAS.map((area) => {
+                  const selected = highlighterAreaOn(makeup.highlighter?.geometry?.areas, area);
+                  return (
+                    <Chip
+                      key={area}
+                      label={t(`looks.area.${area}` as TranslationKey)}
+                      selected={selected}
+                      onPress={() =>
+                        makeup.highlighter &&
+                        patchGeometry('highlighter', {
+                          areas: toggleHighlighterArea(makeup.highlighter.geometry?.areas, area),
+                        })
+                      }
+                    />
+                  );
+                })}
               </ScrollView>
             ) : null}
             {zone === 'eyeliner' ? (

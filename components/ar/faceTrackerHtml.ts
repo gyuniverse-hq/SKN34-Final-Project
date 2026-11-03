@@ -2657,8 +2657,10 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         const liner = makeup.eyeliner || null;
         const browZ = makeup.brow || null;
         const foundZ = makeup.foundation || null;
-        // Looks still name mascara / highlighter / contour; AR does not paint them (10-27).
-        const mascara = null, hl = null, contourZ = null;
+        // Mascara stays look-only (10-27). Highlighter and contour paint when the AR tab sets them.
+        const mascara = null;
+        const hl = makeup.highlighter || null;
+        const contourZ = makeup.contour || null;
         if (!hasFace) return false;
         if (!(lip || blush || eye || liner || browZ || foundZ || mascara || hl || contourZ)) {
           if ((checkCommand || checkRestore) && gl.getError() !== gl.NO_ERROR) throw new Error('AR render failed');
