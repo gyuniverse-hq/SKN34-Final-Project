@@ -28,6 +28,8 @@ class OyCatalogBuild:
     listed_without_color: int = 0
     skipped_without_price: int = 0
     skipped_unknown_category: int = 0
+    care_products: int = 0
+    care_products_tagged: int = 0
 
 
 def _shade_id(shade: OyShadeInput, used: set[str]) -> str:
@@ -77,9 +79,21 @@ def build_oy_catalog(rows: list[OyProductInput]) -> OyCatalogBuild:
             built.ar_shades += len(shades)
         else:
             built.listed_without_color += 1
+        # Migration 0010 made texture nullable for categories with no texture rule.
+        # Care products are not tried on, so an unknown texture stays unknown.
+        if row.texture_code in TEXTURES:
+            texture = row.texture_code
+        elif category in ("skincare", "suncare"):
+            texture = None
+        else:
+            texture = "satin"
         goods = row.goods_no.strip()
         name = row.goods_name.strip() or goods
         brand = row.brand_name.strip() or "올리브영"
+        if category in ("skincare", "suncare"):
+            built.care_products += 1
+            if row.care_tags:
+                built.care_products_tagged += 1
         built.products.append(
             Product(
                 id=f"oy-{goods.lower()}"[:64],
@@ -88,7 +102,7 @@ def build_oy_catalog(rows: list[OyProductInput]) -> OyCatalogBuild:
                 name_ko=name[:200],
                 category=category,  # type: ignore[arg-type]
                 makeup_zone=paint,  # type: ignore[arg-type]
-                texture=row.texture_code if row.texture_code in TEXTURES else "satin",
+                texture=texture,  # type: ignore[arg-type]
                 price_krw=price,
                 volume=(row.volume or "")[:50],
                 shades=shades,

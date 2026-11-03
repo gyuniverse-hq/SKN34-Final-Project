@@ -1,6 +1,6 @@
 """Read Olive Young raw tables for the serving-catalog export."""
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.raw_oliveyoung import (
@@ -14,7 +14,14 @@ from app.models.raw_oliveyoung import (
     RawOyProductRow,
     RawOyProductTextureRow,
 )
-from app.schemas.oy_catalog import ZONE_BY_CATEGORY, OyProductInput, OyShadeInput
+from app.schemas.oy_catalog import (
+    CARE_PATH_TOKENS,
+    ZONE_BY_CATEGORY,
+    OyProductInput,
+    OyShadeInput,
+    catalog_category,
+    derive_care_tags,
+)
 
 
 class OyCatalogRepository:
@@ -28,6 +35,7 @@ class OyCatalogRepository:
                     RawOyProductRow,
                     RawOyBrandRow.brand_name_ko,
                     RawOyCategoryRow.category_name,
+                    RawOyCategoryRow.category_path,
                     RawOyProductNoticeRow.volume,
                 )
                 .join(RawOyCategoryRow, RawOyCategoryRow.category_no == RawOyProductRow.category_no)
@@ -37,7 +45,15 @@ class OyCatalogRepository:
                     RawOyProductNoticeRow.goods_no == RawOyProductRow.goods_no,
                 )
                 .where(
-                    RawOyCategoryRow.category_name.in_(tuple(ZONE_BY_CATEGORY)),
+                    # Prefilter only. ``catalog_category`` decides the group, so the
+                    # path tokens come from the same constant it reads.
+                    or_(
+                        RawOyCategoryRow.category_name.in_(tuple(ZONE_BY_CATEGORY)),
+                        *(
+                            RawOyCategoryRow.category_path.contains(token, autoescape=True)
+                            for token, _ in CARE_PATH_TOKENS
+                        ),
+                    ),
                     RawOyProductRow.delisted_at.is_(None),
                 )
             )
@@ -127,7 +143,10 @@ class OyCatalogRepository:
                 options_by_goods.setdefault(option.goods_no, []).append(option)
 
         built: list[OyProductInput] = []
-        for product, brand_name, category_name, volume in product_rows:
+        for product, brand_name, category_name, category_path, volume in product_rows:
+            group = catalog_category(category_name or "", category_path or "")
+            if group is None:
+                continue
             shades: list[OyShadeInput] = []
             for option in options_by_goods.get(product.goods_no, []):
                 color = latest_color.get(option.option_id)
@@ -148,12 +167,13 @@ class OyCatalogRepository:
                     goods_no=product.goods_no,
                     brand_name=brand_name or "",
                     goods_name=product.goods_name or "",
-                    category_name=category_name or "",
+                    category_name=group,
                     product_url=product.product_url,
                     image_url=image_by_goods.get(product.goods_no),
                     texture_code=texture.texture_code if texture else None,
                     volume=volume,
                     shades=tuple(shades),
+                    care_tags=derive_care_tags(product.goods_name or "", group),
                 )
             )
         return built
