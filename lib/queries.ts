@@ -8,6 +8,7 @@ import type {
   Product,
   ProductOffers,
   ProductQuery,
+  ProductVideo,
   SimilarShadesResponse,
   SkinRecommendationRequest,
   SkinRecommendationResponse,
@@ -132,6 +133,15 @@ export function useProduct(id: string | undefined) {
       }
     },
     select: (d) => d.product,
+    enabled: !!id,
+  });
+}
+
+export function useProductVideos(id: string | undefined) {
+  return useQuery({
+    queryKey: ['product-videos', id],
+    queryFn: () => apiGet<{ videos: ProductVideo[] }>(`/api/products/${encodeURIComponent(id!)}/videos`),
+    select: (data) => data.videos,
     enabled: !!id,
   });
 }

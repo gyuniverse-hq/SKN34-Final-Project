@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
@@ -15,8 +15,8 @@ import { isSafeExternalUrl } from '@/lib/externalLink';
 import { notify } from '@/lib/confirm';
 import { formatKRW } from '@/lib/format';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
-import { useProduct } from '@/lib/queries';
-import { arHref, parseId, recommendationsHref } from '@/lib/routes';
+import { useProduct, useProductVideos } from '@/lib/queries';
+import { arHref, parseId, productVideoHref, recommendationsHref } from '@/lib/routes';
 import { useCartStore } from '@/store/cartStore';
 import { MAX_COMPARE, useCompareStore } from '@/store/compareStore';
 export default function ProductDetailScreen() {
@@ -26,6 +26,7 @@ export default function ProductDetailScreen() {
   const router = useRouter();
   const { t } = useI18n();
   const product = useProduct(id);
+  const productVideos = useProductVideos(id);
   const addToCart = useCartStore((s) => s.add);
   const addToCompare = useCompareStore((s) => s.add);
   const inCompare = useCompareStore((s) => s.items.some((i) => i.productId === id));
@@ -143,6 +144,20 @@ export default function ProductDetailScreen() {
             </View>
           ) : null}
 
+          {productVideos.data?.length ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t('product.videosTitle')}</Text>
+              {productVideos.data.map((video) => (
+                <Pressable key={`${video.source}-${video.id}-${video.shadeId ?? ''}`}
+                  accessibilityRole="link" style={styles.videoLink}
+                  onPress={() => router.push(productVideoHref(video.source, video.id))}>
+                  <Text style={styles.videoTitle}>{video.title}</Text>
+                  {video.channelName ? <Text style={styles.hint}>{video.channelName}</Text> : null}
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+
         </View>
       </ScrollView>
 
@@ -193,6 +208,8 @@ const styles = StyleSheet.create({
   priceLabel: { fontSize: 12, color: theme.colors.inkFaint },
   section: { marginTop: 22, gap: 8 },
   sectionTitle: { fontSize: theme.font.body, fontWeight: '700', color: theme.colors.ink },
+  videoLink: { minHeight: theme.hitTarget, justifyContent: 'center', paddingVertical: 8 },
+  videoTitle: { color: theme.colors.rose, fontWeight: '700' },
   sectionValue: { fontWeight: '400', color: theme.colors.inkMuted },
   hint: { fontSize: 12, color: theme.colors.inkMuted, lineHeight: 17 },
   inlineActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 },

@@ -1,10 +1,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { openYoutubeVideo } from '@/components/celeb/VideoCard';
 import { VideoTryOn } from '@/components/celeb/VideoTryOn';
+import { VideoProductActions } from '@/components/celeb/VideoProductActions';
 import { YoutubePlayer } from '@/components/celeb/YoutubePlayer';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { CELEBRITIES } from '@/constants/celebrities';
@@ -12,12 +13,13 @@ import { theme } from '@/constants/theme';
 import { useVideoTryOn } from '@/hooks/useVideoTryOn';
 import { useI18n } from '@/lib/i18n';
 import { useCelebrityVideos } from '@/lib/queries';
-import { parseId } from '@/lib/routes';
+import { arHref, parseId, productHref } from '@/lib/routes';
 import { celebrityProductSourceLabel, styleLookZoneLabel } from '@/lib/styleLookGroups';
 
 export default function CelebrityVideoDetail() {
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const id = parseId(rawId);
+  const router = useRouter();
   const { t } = useI18n();
   const query = useCelebrityVideos();
   const [expandedTitleId, setExpandedTitleId] = useState<string | null>(null);
@@ -74,6 +76,9 @@ export default function CelebrityVideoDetail() {
                   {showOption ? <Text style={styles.option}>{option}</Text> : null}
                   {product.reviewStatus === '브랜드 확인 필요' ? <Text style={styles.review}>{t('celebVideo.brandReview')}</Text> : null}
                   {source ? <Text style={styles.option}>{source}</Text> : null}
+                  <VideoProductActions mapping={product} product={product.catalogProductId ? ar.productsById[product.catalogProductId] : undefined}
+                    onProduct={(productId, shadeId) => router.push(productHref(productId, shadeId))}
+                    onTryOn={(productId, shadeId) => router.push(arHref({ productId, shadeId }))} />
                 </View>
               </View>;
             }) : null}

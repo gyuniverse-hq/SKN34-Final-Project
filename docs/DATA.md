@@ -28,6 +28,24 @@ uv run python ../../scripts/data/oliveyoung/build_catalog.py --expect-source 251
 
 ## 1. 파일 형식
 
+### 영상 제품 연결 검수
+
+연예인·스타일 영상의 제품을 `backend/api/seed/catalog.json`과 연결할 때는 `backend/api`에서 아래 순서로 작업한다. 후보는 자동 승인되지 않는다. 승인 전 영상 속 제품과 카탈로그의 브랜드·제품·옵션을 사람이 직접 비교한다.
+
+```bash
+uv run python -m app.jobs.match_video_products
+# seed/source/video_product_mapping_review.csv를 사람이 검수
+uv run python -m app.jobs.apply_video_product_mappings
+uv run python -m app.jobs.apply_video_product_mappings --write
+uv run pytest tests/test_video_product_matching.py tests/test_video_mapping_apply.py tests/test_video_mapping_integrity.py
+```
+
+- `decision`은 사람이 `approve_shade`(제품·셰이드 확인), `approve_product`(제품만 확인), `reject` 또는 빈칸으로 정한다. `reviewer`, `decidedAt`도 기입한다. 제품만 승인하면 AR에서 사용할 셰이드를 추측하지 않는다.
+- 후보 생성 시 기존 검수 결정은 보존한다. 후보·원본 제품 정보·규칙 버전이 바뀌면 `reason`의 `candidate_changed`가 표시되고 승인이 있어도 반영을 거부한다. 새 후보를 다시 검수하고 검수자가 표시를 제거한 후 승인 내용을 갱신한다.
+- 반영 잡은 기본 dry-run이다. 유효하지 않은 상품·셰이드, placeholder 셰이드, 원본 변경, 누락 또는 중복 행이 하나라도 있으면 `--write`를 거부한다. 쓰기 시 서버 JSON과 앱 개발용 사본을 함께 변경한다. `--catalog`로 검수 대상 카탈로그를 바꿀 수 있으나 배포 DB와 동일한 데이터인지 확인해야 한다.
+- `seed/source/brand_aliases.csv`에는 확인된 별칭만 `alias,brand` 형식으로 추가한다. `EXACT_MATCH`는 **검수 후보 상태**이며 사람의 승인이나 측정된 정밀도를 뜻하지 않는다.
+- 영상의 공개·임베드 상태는 `uv run python -m app.jobs.check_curated_videos --output 경로.csv`로 별도 점검할 수 있다. API 키가 없으면 호출하지 않으며 실패 후 `--from 인덱스`로 이어서 확인한다. 원본 JSON을 수정하지 않는다.
+
 `backend/api/seed/catalog.json` 하나에 세 목록이 들어갑니다. 각 항목의 모양은 앱의 [`types/index.ts`](../types/index.ts)에 있는 `Product`, `CelebLook`, `Store`와 같습니다.
 
 ```json

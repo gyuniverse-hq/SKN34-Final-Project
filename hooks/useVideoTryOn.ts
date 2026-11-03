@@ -1,9 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { resolveVerifiedCatalogSelection } from '@/lib/catalogMatch';
 import { apiGet } from '@/lib/api';
 import { arHref, parseId } from '@/lib/routes';
-import { DEFAULT_INTENSITY, useMakeupStore } from '@/store/makeupStore';
+import { DEFAULT_INTENSITY, isArPaintZone, useMakeupStore } from '@/store/makeupStore';
 import type { CelebLook, LookItem, MakeupState, MakeupZone, Product, VideoProductMapping } from '@/types';
 
 const STEPS: Partial<Record<MakeupZone, LookItem['step']>> = {
@@ -14,10 +13,13 @@ const STEPS: Partial<Record<MakeupZone, LookItem['step']>> = {
 export function resolveVideoProducts(items: VideoProductMapping[], products: Product[]) {
   const usedZones = new Set<MakeupZone>();
   return items.flatMap((item, index) => {
-    const selection = resolveVerifiedCatalogSelection(item, products);
-    if (!selection || usedZones.has(selection.zone)) return [];
-    usedZones.add(selection.zone);
-    return [{ index, ...selection }];
+    if (item.mappingVerified !== true || !parseId(item.catalogProductId) || !parseId(item.catalogShadeId)) return [];
+    const product = products.find((candidate) => candidate.id === item.catalogProductId);
+    if (!product?.makeupZone || !product.texture || !isArPaintZone(product.makeupZone) || usedZones.has(product.makeupZone)) return [];
+    const shade = product.shades.find((candidate) => candidate.id === item.catalogShadeId);
+    if (!shade || shade.measureMethod === 'placeholder' || shade.colorSource === 'placeholder') return [];
+    usedZones.add(product.makeupZone);
+    return [{ index, product, shade, zone: product.makeupZone, texture: product.texture }];
   });
 }
 
@@ -25,7 +27,7 @@ export function useVideoTryOn(items: VideoProductMapping[], id: string, title: s
   const router = useRouter();
   const applyLook = useMakeupStore((store) => store.applyLook);
   const endFit = useMakeupStore((store) => store.endFit);
-  const ids = [...new Set(items.flatMap((item) => item.mappingVerified === true && parseId(item.catalogProductId) && parseId(item.catalogShadeId) ? [item.catalogProductId!] : []))].sort();
+  const ids = [...new Set(items.flatMap((item) => item.mappingVerified === true && parseId(item.catalogProductId) ? [item.catalogProductId!] : []))].sort();
   const products = useQuery({
     queryKey: ['video-tryon-products', ids],
     enabled: ids.length > 0,
@@ -52,5 +54,6 @@ export function useVideoTryOn(items: VideoProductMapping[], id: string, title: s
     }
     router.push(arHref(selected.length ? { video: true } : {}));
   };
-  return { open, selectedIndices, count: selected.length, loading: ids.length > 0 && products.isPending, error: products.isError };
+  const productsById = Object.fromEntries((products.data ?? []).map((product) => [product.id, product]));
+  return { open, selectedIndices, productsById, count: selected.length, loading: ids.length > 0 && products.isPending, error: products.isError };
 }

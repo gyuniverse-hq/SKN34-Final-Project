@@ -218,6 +218,15 @@ export interface VideoProductMapping {
   catalogShadeId?: string;
 }
 
+export interface ProductVideo {
+  source: 'celebrity' | 'style';
+  id: string;
+  title: string;
+  channelName: string;
+  celebrityId?: string;
+  shadeId?: string;
+}
+
 export interface CelebrityVideoProduct extends VideoProductMapping {
   number: number;
   category: string;

@@ -9,8 +9,10 @@
 | 카탈로그 | `seed/catalog.json`을 검증 후 PostgreSQL로 교체하는 잡 코드 존재; 환경별 실제 실행은 UNKNOWN | `backend/api/app/jobs/seed_catalog.py`, `backend/api/app/services/catalog_service.py`, `docs/DATA.md` |
 | YouTube 후보 | 공식 API에서 공개·임베드 가능 영상 후보 CSV 수집 코드 존재; 실행은 미검증 | `backend/api/app/jobs/collect_youtube_playlist.py`, `backend/api/app/services/youtube_playlist_service.py` |
 | 영상 제품 | 검토된 별도 CSV를 분해·분류해 비검증 제품 CSV와 이슈 CSV를 생성; DB 적재와 자동 매칭은 확인되지 않음 | `backend/api/app/jobs/normalize_youtube_candidates.py`, `backend/api/seed/source/` |
+| 영상 제품 매핑 | JSON과 시드 카탈로그에서 검수 후보 CSV 생성; 사람이 승인한 항목만 양쪽 JSON에 반영하는 잡 제공. 운영 반영·정밀도는 미측정 | `backend/api/app/jobs/match_video_products.py`, `apply_video_product_mappings.py` |
 | 판매처 | 검색 시 네이버 쇼핑 조회 코드가 존재하며 Olive Young 전체 카탈로그 수집은 확인되지 않음 | `backend/api/app/clients/naver_client.py`, `backend/api/app/services/` |
 | 룩·영상·제품 관계 | `youtube_videos`, `makeup_looks`, `look_products` 등의 DB 모델과 공개 룩 조회 존재; 정규화 CSV에서 이 테이블로의 자동 적재는 확인되지 않음 | `backend/api/app/models/idol_look.py`, `backend/api/app/repositories/idol_look_repository.py` |
+| 상품 → 영상 | 검증된 JSON 매핑만 `GET /api/products/{id}/videos`로 조회; 실제 공개·재생 여부는 별도 점검 필요 | `backend/api/app/services/product_video_service.py`, `check_curated_videos.py` |
 | 그래프 사본 | chatbot 잡이 API 카탈로그를 읽어 Neo4j에 반영하도록 구성; 실제 실행은 UNKNOWN | `backend/chatbot/app/jobs/sync_graph.py`, `backend/chatbot/app/services/graph_sync_service.py` |
 | 개인 분석·추천 | 기기 측 저장 및 추천 요청에 쓰이는 수치와 설문은 코드별로 확인 필요; 중앙 저장·보존기간은 UNKNOWN | `store/`, `lib/`, `types/index.ts` |
 

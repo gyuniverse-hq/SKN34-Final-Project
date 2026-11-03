@@ -4,14 +4,13 @@ import renderer, { act } from 'react-test-renderer';
 import StyleLookDetail from '@/app/style-look/[id]';
 import { openYoutubeVideo } from '@/components/celeb/VideoCard';
 
-import type { Product, StyleLookProduct } from '@/types';
-
 const mockPush = jest.fn();
-const mockOpen = jest.fn();
-let mockCatalog: Product[] = [];
-let mockItems: StyleLookProduct[] | undefined;
-
-beforeEach(() => { mockCatalog = []; mockItems = undefined; mockPush.mockClear(); mockOpen.mockClear(); });
+const mockProductsById = { p1: { id: 'p1', makeupZone: 'lip', texture: 'matte', shades: [{ id: 's1', name: 'Pink', hex: '#112233' }] } };
+const mockLookProducts = [
+  { number: 1, brand: 'A', name: 'Lip', option: '원문에 명시 정보 없음', zone: '립' },
+  { number: 2, brand: 'B', name: 'Shadow', option: '02', zone: '아이섀도' },
+  { number: 3, brand: 'C', name: 'Lip 2', option: '03', zone: '립' },
+];
 
 jest.mock('expo-router', () => ({
   Stack: { Screen: () => null },
@@ -22,18 +21,14 @@ jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: 'LinearGradient' }));
 jest.mock('@/components/celeb/VideoCard', () => ({ openYoutubeVideo: jest.fn(() => Promise.resolve()) }));
 jest.mock('@/components/celeb/YoutubePlayer', () => ({ YoutubePlayer: 'YoutubePlayer' }));
-jest.mock('@/hooks/useVideoTryOn', () => ({ useVideoTryOn: () => ({ open: mockOpen, loading: false, error: false, count: 0, selectedIndices: new Set() }) }));
+jest.mock('@/hooks/useVideoTryOn', () => ({ useVideoTryOn: () => ({ open: jest.fn(), loading: false, error: false, count: 0, selectedIndices: new Set(), productsById: mockProductsById }) }));
 jest.mock('@/components/ui/StateViews', () => ({ EmptyState: 'EmptyState', ErrorState: 'ErrorState', LoadingState: 'LoadingState' }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 jest.mock('@/lib/queries', () => ({
-  useProducts: () => ({ data: mockCatalog }),
+  useProducts: () => ({ data: [] }),
   useStyleLooks: () => ({ isPending: false, isError: false, data: [{
     id: 'video-1', title: 'Example look', tag: '#look', group: '컬러·톤 스타일',
-    products: mockItems ?? [
-      { number: 1, brand: 'A', name: 'Lip', option: '원문에 명시 정보 없음', zone: '립' },
-      { number: 2, brand: 'B', name: 'Shadow', option: '02', zone: '아이섀도' },
-      { number: 3, brand: 'C', name: 'Lip 2', option: '03', zone: '립' },
-    ],
+    products: mockLookProducts,
   }] }),
 }));
 
@@ -52,49 +47,34 @@ test('groups products by area, marks unknown shades and opens the linked video',
   await act(async () => { screen.unmount(); });
 });
 
-const catalogLip: Product = {
-  id: 'real-lip', brand: 'Brand', name: 'Lip Product', nameKo: 'Lip Product', category: 'lip',
-  makeupZone: 'lip', texture: 'matte', priceKRW: 10000, volume: '', description: '',
-  keyIngredients: [], tags: [], imageUrl: '', searchKeyword: '',
-  shades: [{ id: 'first', name: 'First', hex: '#112233' }, { id: 'second', name: 'Second', hex: '#334455' }],
-};
-const listed: StyleLookProduct = { number: 1, brand: 'Brand', name: 'Lip Product', option: 'Second',
-  zone: '립', category: 'lip', reviewStatus: 'unverified' };
-
-test('passes the selected video namespace and exact look ID into style chat', async () => {
-  let view!: renderer.ReactTestRenderer;
-  await act(async () => { view = renderer.create(<StyleLookDetail />); });
-  await act(async () => { buttons(view, 'chat.style.openGuide')[0].props.onPress(); });
-  expect(mockPush).toHaveBeenCalledWith({ pathname: '/chat', params: { recipeKind: 'video', recipeLookId: 'video-1' } });
-  await act(async () => view.unmount());
+test('style detail shows links only for approved products and shade', async () => {
+  Object.assign(mockLookProducts[0], { mappingVerified: true, catalogProductId: 'p1', catalogShadeId: 's1' });
+  mockPush.mockClear();
+  let screen!: renderer.ReactTestRenderer;
+  try {
+    await act(async () => { screen = renderer.create(<StyleLookDetail />); });
+    const text = screen.root.findAllByType(Text).map((node) => node.props.children);
+    expect(text.filter((value) => value === 'videoAr.verifiedProduct')).toHaveLength(1);
+    expect(text.filter((value) => value === 'styleLooks.tryAr')).toHaveLength(1);
+    const buttons = screen.root.findAll((node) => typeof node.type === 'string' && node.props.accessibilityRole === 'button');
+    const action = (label: string) => buttons.find((button) => button.findAllByType(Text).some((node) => node.props.children === label))!;
+    await act(async () => { action('styleLooks.openProduct').props.onClick(); action('styleLooks.tryAr').props.onClick(); });
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/product/[id]', params: { id: 'p1', shade: 's1' } });
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/ar', params: { productId: 'p1', shadeId: 's1' } });
+  } finally {
+    delete (mockLookProducts[0] as Record<string, unknown>).mappingVerified;
+    delete (mockLookProducts[0] as Record<string, unknown>).catalogProductId;
+    delete (mockLookProducts[0] as Record<string, unknown>).catalogShadeId;
+    await act(async () => { screen?.unmount(); });
+  }
 });
 
-function buttons(screen: renderer.ReactTestRenderer, label: string) {
-  return screen.root.findAll((node) => typeof node.props.onPress === 'function').filter((button) =>
-    button.findAllByType(Text).some((text) => text.props.children === label));
-}
-
-test.each(['원문에 명시 정보 없음', 'No such shade', 'Second'])(
-  'name-only product keeps detail/manual selection without automatic AR: %s', async (option) => {
-    mockCatalog = [catalogLip]; mockItems = [{ ...listed, option }];
-    let screen!: renderer.ReactTestRenderer;
-    await act(async () => { screen = renderer.create(<StyleLookDetail />); });
-    expect(buttons(screen, 'styleLooks.tryAr')).toHaveLength(0);
-    expect(screen.root.findAllByType(Text).some((text) => text.props.children === 'videoAr.none')).toBe(true);
-    await act(async () => { buttons(screen, 'styleLooks.openProduct')[0].props.onPress(); });
-    expect(mockPush).toHaveBeenCalledWith({ pathname: '/product/[id]', params: { id: 'real-lip' } });
-    await act(async () => { buttons(screen, 'videoAr.button')[0].props.onPress(); });
-    expect(mockOpen).toHaveBeenCalledTimes(1);
-    expect(screen.root.findAllByType(Text).some((text) => text.props.children === 'styleLooks.matched')).toBe(false);
-    await act(async () => { screen.unmount(); });
-  });
-
-test('verified mapping uses the exact catalog IDs rather than listed names or the first shade', async () => {
-  mockCatalog = [catalogLip]; mockItems = [{ ...listed, name: 'Old display name', mappingVerified: true,
-    catalogProductId: 'real-lip', catalogShadeId: 'second' }];
+test('opens the guide for the exact video', async () => {
+  mockPush.mockClear();
   let screen!: renderer.ReactTestRenderer;
   await act(async () => { screen = renderer.create(<StyleLookDetail />); });
-  await act(async () => { buttons(screen, 'styleLooks.tryAr')[0].props.onPress(); });
-  expect(mockPush).toHaveBeenCalledWith({ pathname: '/ar', params: { productId: 'real-lip', shadeId: 'second' } });
+  const guide = screen.root.findAll((node) => node.props.accessibilityLabel === 'chat.style.openGuide')[0];
+  await act(async () => { guide.props.onPress(); });
+  expect(mockPush).toHaveBeenCalledWith({ pathname: '/chat', params: { recipeKind: 'video', recipeLookId: 'video-1' } });
   await act(async () => { screen.unmount(); });
 });

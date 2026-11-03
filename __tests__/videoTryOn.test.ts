@@ -6,8 +6,11 @@ import type { Product, VideoProductMapping } from '@/types';
 
 const mockPush = jest.fn();
 let mockProducts: Product[] = [];
+let mockQueryOptions: { queryFn: () => Promise<Product[]>; enabled: boolean };
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
-jest.mock('@tanstack/react-query', () => ({ useQuery: () => ({ data: mockProducts, isPending: false, isError: false }) }));
+jest.mock('@tanstack/react-query', () => ({ useQuery: (options: typeof mockQueryOptions) => { mockQueryOptions = options; return { data: mockProducts, isPending: false, isError: false }; } }));
+jest.mock('@/lib/api', () => ({ apiGet: jest.fn(async () => ({ products: [] })) }));
+import { apiGet } from '@/lib/api';
 
 const product = (id: string, zone: Product['makeupZone'], shadeId: string): Product => ({
   id, makeupZone: zone, shades: [{ id: shadeId, name: shadeId, hex: '#112233' }],
@@ -56,4 +59,19 @@ test('applies only confirmed products before opening AR; unmatched videos leave 
   expect(useMakeupStore.getState().activeLook?.id).toBe('video-1');
   await act(async () => { screen.unmount(); });
   useMakeupStore.getState().reset();
+});
+
+test('fetches product-only approvals in chunks and does not fetch unverified IDs', async () => {
+  const items: VideoProductMapping[] = Array.from({ length: 21 }, (_, i) => ({ mappingVerified: true, catalogProductId: `product-${i}` }));
+  items.push({ catalogProductId: 'unverified' });
+  let screen!: renderer.ReactTestRenderer;
+  function Screen() { useVideoTryOn(items, 'video', 'test'); return null; }
+  await act(async () => { screen = renderer.create(React.createElement(Screen)); });
+  expect(mockQueryOptions.enabled).toBe(true);
+  await mockQueryOptions.queryFn();
+  const requests = jest.mocked(apiGet).mock.calls.map(([url]) => String(url));
+  expect(requests).toHaveLength(2);
+  expect(requests.every((url) => !url.includes('unverified'))).toBe(true);
+  expect(requests.map((url) => decodeURIComponent(url).split('ids=')[1].split(',').length).sort()).toEqual([1, 20]);
+  await act(async () => { screen.unmount(); });
 });
