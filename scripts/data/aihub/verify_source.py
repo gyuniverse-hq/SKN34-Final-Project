@@ -72,7 +72,18 @@ def scan_qa(zip_paths, split, stats):
                         stats["seq_filename_mismatch"] += 1
                     m = SEQ_CODE.match(seq)
                     if m:
-                        stats["concern"][m.group(1)] += 1
+                        code = m.group(1)
+                        stats["concern"][code] += 1
+                        # 교차검증 1: ZIP(폴더) 하나에 코드가 하나씩만 들어 있나
+                        stats["zip_codes"].setdefault(zp.name, set()).add(code)
+                        stats["code_zips"].setdefault(code, set()).add(zp.name)
+                        # 교차검증 2: 코드 하나에 원문 라벨이 하나씩만 대응되나
+                        label = str((doc.get("Human_info") or {}).get("Skin Problem Type") or "").strip()
+                        if label:
+                            stats["code_labels"].setdefault(code, set()).add(label)
+                            stats["label_codes"].setdefault(label, set()).add(code)
+                        else:
+                            stats["label_missing"] += 1
                     else:
                         stats["seq_code_unparsed"] += 1
 
@@ -136,7 +147,8 @@ def main() -> None:
         "top_level": collections.Counter(), "unexpected_top_level": collections.Counter(),
         "seq_values": collections.Counter(), "zip_files": {},
         "other_ext": collections.Counter(), "doc_hash": collections.Counter(),
-        "parse_error": [],
+        "parse_error": [], "label_missing": 0,
+        "zip_codes": {}, "code_zips": {}, "code_labels": {}, "label_codes": {},
     }
 
     for split, sub in (("train", "Training"), ("validation", "Validation")):
@@ -177,6 +189,33 @@ def main() -> None:
         if unknown:
             w(f"  문서에 없는 코드: {unknown}")
         w(f"  합계 {sum(stats['concern'].values()):,}")
+
+        w("\n## 교차검증 — SEQ 코드 x 폴더 x 원문 라벨")
+        multi_zip = {z: c for z, c in stats["zip_codes"].items() if len(c) > 1}
+        multi_label = {c: l for c, l in stats["code_labels"].items() if len(l) > 1}
+        cross_label = {l: c for l, c in stats["label_codes"].items() if len(c) > 1}
+        w(f"  코드가 섞인 ZIP          {len(multi_zip):>5}  (0 이어야 정상)")
+        w(f"  라벨이 여럿인 코드        {len(multi_label):>5}  (0 이어야 정상)")
+        w(f"  코드에 걸친 라벨          {len(cross_label):>5}  (0 이어야 정상)")
+        w(f"  원문 라벨이 빈 QA        {stats['label_missing']:>5}")
+        if multi_zip:
+            w("\n  코드가 섞인 ZIP:")
+            for z, codes in sorted(multi_zip.items()):
+                w(f"    {z}  -> {sorted(codes)}")
+        if multi_label:
+            w("\n  라벨이 여럿인 코드:")
+            for c, labels in sorted(multi_label.items()):
+                w(f"    {c}  -> {sorted(labels)}")
+        if cross_label:
+            w("\n  코드에 걸친 라벨:")
+            for l, codes in sorted(cross_label.items()):
+                w(f"    {l!r}  -> {sorted(codes)}")
+        w("\n  코드별 ZIP 과 원문 라벨")
+        w(f"    {'코드':<6}{'ZIP 수':>7}  원문 라벨")
+        for code in sorted(stats["code_labels"]):
+            labels = sorted(stats["code_labels"][code])
+            w(f"    {code:<6}{len(stats['code_zips'].get(code, [])):>7}  "
+              + (labels[0] if len(labels) == 1 else str(labels)))
 
         w("\n## 기본 피부 타입")
         for value, n in stats["skin_type"].most_common():
