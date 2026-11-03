@@ -1,0 +1,365 @@
+{
+  "meta": {
+    "version": "v1.3",
+    "synthetic": true,
+    "notRealProductData": true,
+    "source": "v1.2 synthetic base with v1.3 corrections",
+    "notCurrentAPIContract": true,
+    "change": "corrected ordinary fixture P-A/S-B1; negative E-XC08 retained",
+    "patchedFor": "fixture-audit-2026-10-30",
+    "patchIsSynthetic": true,
+    "productionGoldApproved": false
+  },
+  "users": {
+    "USER-A": {
+      "consent": {
+        "camera": true,
+        "microphone": true,
+        "skin_ml_share": false,
+        "save_preferences": false
+      },
+      "sessionId": "SESSION-A"
+    },
+    "USER-B": {
+      "consent": {
+        "camera": false,
+        "microphone": false,
+        "skin_ml_share": false,
+        "save_preferences": false
+      },
+      "sessionId": "SESSION-B"
+    }
+  },
+  "products": [
+    {
+      "id": "P-A",
+      "name": "가상 립 A",
+      "category": "lip",
+      "finish": "glossy",
+      "priceKRW": 19000,
+      "priceEvidence": "synthetic-price",
+      "fullIngredients": null,
+      "keyIngredients": [
+        "가상 성분 K1"
+      ],
+      "shades": [
+        "S-A1",
+        "S-A2"
+      ],
+      "shadeColorEvidence": {
+        "S-A1": "synthetic-chip",
+        "S-A2": "synthetic-chip"
+      }
+    },
+    {
+      "id": "P-B",
+      "name": "가상 립 B",
+      "category": "lip",
+      "finish": "matte",
+      "priceKRW": 15000,
+      "priceEvidence": "synthetic-price",
+      "fullIngredients": [
+        "Parfum",
+        "Synthetic ingredient B2"
+      ],
+      "keyIngredients": [
+        "Synthetic ingredient B2"
+      ],
+      "shades": [
+        "S-B1",
+        "S-B2"
+      ],
+      "shadeColorEvidence": {
+        "S-B1": "synthetic-chip",
+        "S-B2": "synthetic-chip"
+      }
+    },
+    {
+      "id": "P-C",
+      "name": "가상 립 C",
+      "category": "lip",
+      "finish": "moist",
+      "priceKRW": 22000,
+      "priceEvidence": "synthetic-price",
+      "fullIngredients": [
+        "Synthetic ingredient C1"
+      ],
+      "keyIngredients": [
+        "Synthetic ingredient C1"
+      ],
+      "shades": [
+        "S-C1",
+        "S-C2"
+      ],
+      "shadeColorEvidence": {
+        "S-C1": "synthetic-chip",
+        "S-C2": "synthetic-chip"
+      }
+    },
+    {
+      "id": "P-D",
+      "name": "가상 블러셔 D",
+      "category": "blush",
+      "finish": "soft",
+      "priceKRW": 13000,
+      "priceEvidence": "synthetic-price",
+      "fullIngredients": null,
+      "keyIngredients": [],
+      "shades": [
+        "S-D1",
+        "S-D2"
+      ],
+      "shadeColorEvidence": {}
+    },
+    {
+      "id": "P-E",
+      "name": "가상 쿠션 E",
+      "category": "foundation",
+      "finish": "semi-matte",
+      "priceKRW": 28000,
+      "priceEvidence": "synthetic-price",
+      "fullIngredients": null,
+      "keyIngredients": [],
+      "shades": [
+        "S-E21",
+        "S-E23"
+      ],
+      "shadeColorEvidence": {}
+    }
+  ],
+  "shades": [
+    {
+      "id": "S-A1",
+      "productId": "P-A",
+      "synthetic": true
+    },
+    {
+      "id": "S-A2",
+      "productId": "P-A",
+      "synthetic": true
+    },
+    {
+      "id": "S-B1",
+      "productId": "P-B",
+      "synthetic": true
+    },
+    {
+      "id": "S-B2",
+      "productId": "P-B",
+      "synthetic": true
+    },
+    {
+      "id": "S-C1",
+      "productId": "P-C",
+      "synthetic": true
+    },
+    {
+      "id": "S-C2",
+      "productId": "P-C",
+      "synthetic": true
+    },
+    {
+      "id": "S-D1",
+      "productId": "P-D",
+      "synthetic": true
+    },
+    {
+      "id": "S-D2",
+      "productId": "P-D",
+      "synthetic": true
+    },
+    {
+      "id": "S-E21",
+      "productId": "P-E",
+      "synthetic": true
+    },
+    {
+      "id": "S-E23",
+      "productId": "P-E",
+      "synthetic": true
+    }
+  ],
+  "looks": {
+    "ST-A": {
+      "name": "가상 글로우 룩",
+      "recipeId": "REC-A",
+      "recipeReview": "TEST_ONLY_NOT_PERSON_VERIFIED",
+      "linkedProductId": "P-A",
+      "linkedShadeId": null,
+      "steps": [
+        "테스트 1단계",
+        "테스트 2단계",
+        "테스트 3단계"
+      ]
+    },
+    "ST-B": {
+      "name": "가상 로즈 룩",
+      "recipeId": null,
+      "recipeReview": "NOT_AVAILABLE",
+      "linkedProductId": null,
+      "linkedShadeId": null,
+      "steps": []
+    },
+    "ST-C": {
+      "name": "가상 브라운 룩",
+      "recipeId": "REC-C",
+      "recipeReview": "TEST_ONLY_NOT_PERSON_VERIFIED",
+      "linkedProductId": "P-B",
+      "linkedShadeId": "S-B1",
+      "steps": [
+        "테스트 브라운 1단계",
+        "테스트 브라운 2단계",
+        "테스트 브라운 3단계"
+      ]
+    }
+  },
+  "arStates": {
+    "A1": {
+      "stateVersion": 3,
+      "selectedZone": "lip",
+      "layers": {
+        "lip": {
+          "productId": "P-A",
+          "shadeId": "S-A1",
+          "intensity": 0.3,
+          "finish": "glossy"
+        }
+      },
+      "supportedCommands": [
+        "set_intensity"
+      ]
+    },
+    "A2": {
+      "stateVersion": 1,
+      "selectedZone": null,
+      "layers": {},
+      "supportedCommands": [
+        "set_intensity"
+      ]
+    },
+    "A3": {
+      "stateVersion": 4,
+      "selectedZone": "lip",
+      "layers": {
+        "lip": {
+          "productId": "P-A",
+          "shadeId": "S-A1",
+          "intensity": 0.6,
+          "finish": "glossy"
+        }
+      },
+      "supportedCommands": [
+        "set_intensity"
+      ]
+    },
+    "A_EXT": {
+      "stateVersion": 8,
+      "selectedZone": "blush",
+      "layers": {
+        "lip": {
+          "productId": "P-A",
+          "shadeId": "S-A1",
+          "intensity": 0.3
+        },
+        "blush": {
+          "productId": "P-D",
+          "shadeId": "S-D1",
+          "intensity": 0.4
+        }
+      },
+      "supportedCommands": [
+        "set_intensity",
+        "set_shade",
+        "set_finish",
+        "undo",
+        "apply_look"
+      ]
+    },
+    "A_UNDO_READY": {
+      "stateVersion": 4,
+      "selectedZone": "lip",
+      "layers": {
+        "lip": {
+          "productId": "P-A",
+          "shadeId": "S-A1",
+          "intensity": 0.5,
+          "finish": "glossy"
+        }
+      },
+      "supportedCommands": [
+        "set_intensity",
+        "undo"
+      ],
+      "fixtureOnly": true,
+      "notEvidenceOfImplementation": true
+    }
+  },
+  "resultSets": {
+    "R1": {
+      "owner": "USER-A",
+      "status": "valid",
+      "orderedProductIds": [
+        "P-A",
+        "P-B",
+        "P-C"
+      ]
+    },
+    "R2": {
+      "owner": "USER-A",
+      "status": "expired",
+      "orderedProductIds": [
+        "P-A",
+        "P-B"
+      ]
+    },
+    "R_OTHER": {
+      "owner": "USER-B",
+      "status": "valid",
+      "orderedProductIds": [
+        "P-B",
+        "P-D"
+      ]
+    }
+  },
+  "content": {
+    "MEDIA-OK": {
+      "access": true,
+      "analyzePermission": true,
+      "persistPermission": false,
+      "bodyAvailable": true
+    },
+    "MEDIA-NO": {
+      "access": false,
+      "analyzePermission": false,
+      "persistPermission": false,
+      "bodyAvailable": false
+    },
+    "MEDIA-UNKNOWN": {
+      "access": true,
+      "analyzePermission": null,
+      "persistPermission": null,
+      "bodyAvailable": true
+    }
+  },
+  "settings": {
+    "languages": [
+      "ko",
+      "en",
+      "ja",
+      "zh"
+    ],
+    "defaultLocale": "ko",
+    "cosmeticClaimCanBeVerified": false
+  },
+  "policies": {
+    "relativePercent": "DECISION_REQUIRED",
+    "defaultLipLayer": "DECISION_REQUIRED",
+    "ackProtocol": "DECISION_REQUIRED",
+    "undoScope": "DECISION_REQUIRED",
+    "recommendationTTL": "DECISION_REQUIRED",
+    "multiActionAtomicity": "DECISION_REQUIRED",
+    "multiLangSupport": "DECISION_REQUIRED",
+    "humanGoldApproval": "NOT_APPROVED",
+    "trueModelEval": "NOT_RUN"
+  }
+}

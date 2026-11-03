@@ -184,6 +184,21 @@ export interface ZoneSetting {
   geometry?: ZoneGeometry;
 }
 
+export interface ArRenderCommand {
+  commandId: string;
+  renderSeq: number;
+  rendererId: string;
+  makeup: MakeupState;
+  kind?: 'command' | 'restore';
+  restoreId?: string;
+}
+
+export type ArRenderResult = Pick<ArRenderCommand, 'commandId' | 'renderSeq' | 'rendererId'> & {
+  status: 'rendered' | 'failed';
+  kind?: 'command' | 'restore';
+  restoreId?: string;
+};
+
 /** Zones added after the first three are optional, so looks saved without them still load. */
 export interface MakeupState {
   lip: ZoneSetting | null;
@@ -398,8 +413,131 @@ export interface ChatProductRef {
 }
 
 export interface ChatResponse {
+  styleRecipe?: ChatStyleRecipe;
+  styleContext?: ChatStyleContext;
+  styleStatus?: 'ready' | 'clarification' | 'not_found' | 'error' | 'unsupported';
   answer: string;
   products: ChatProductRef[];
+  chatContext?: BeautyChatContext;
+  resultType?: 'recommendations' | 'product_detail' | 'clarification' | 'empty';
+  evidence?: ChatProductEvidence[];
+  ingredientResults?: ChatIngredientResult[];
+  sessionStatus?: 'stored' | 'unchanged' | 'unavailable';
+}
+
+/** Ephemeral progress hint. The server reloads content and checks recipe identity/version. */
+export interface ChatStyleContext {
+  kind: 'video' | 'catalog';
+  lookId: string;
+  recipeId?: string | null;
+  recipeVersion?: string | null;
+  currentStep: number;
+}
+
+export interface ChatStyleRecipe {
+  lookId: string;
+  sourceLookId: string;
+  kind: 'video' | 'catalog';
+  recipeId: string;
+  recipeVersion: string;
+  title: string;
+  basis: 'reviewed_recipe' | 'catalog_settings' | 'video_metadata';
+  reviewStatus: 'verified' | 'unreviewed' | 'not_applicable';
+  videoAnalyzed: false;
+  synthetic: boolean;
+  source: string;
+  evidenceId?: string | null;
+  features: string[];
+  steps: { order: number; zone: MakeupZone; title: string; description?: string | null; guideKey?: MakeupZone | null }[];
+  currentStep: number;
+  products: { label: string; zone: string; productId?: string | null; shadeId?: string | null;
+    mappingStatus: 'verified' | 'unknown' | 'invalid'; catalogValid: boolean; arEligible: boolean }[];
+  arEligible: boolean;
+  reason: 'reviewed_recipe' | 'catalog_settings' | 'video_not_analyzed' | 'no_steps' | 'recipe_changed';
+  makeup?: Partial<MakeupState> | null;
+}
+
+/** Bearer capability: keep in request state, never display or record in analytics. */
+export interface ChatSessionRef {
+  sessionId: string;
+  sessionToken: string;
+  resultSetId: string;
+  stateVersion: number;
+  expiresAt: number;
+}
+
+export interface ChatScreenContext {
+  screenId?: string | null;
+  productId?: string | null;
+  shadeId?: string | null;
+  lookId?: string | null;
+  styleId?: string | null;
+}
+
+export type IngredientVerdict = 'MATCH' | 'NOT_MATCH' | 'UNKNOWN' | 'ERROR';
+export interface ChatIngredientCondition {
+  productId: string;
+  shadeId: string | null;
+  optionId: string | null;
+  condition: 'ingredient';
+  ingredientName: string;
+  operator: 'includes' | 'excludes';
+  verdict: IngredientVerdict;
+  reason: string;
+  evidenceId?: string | null;
+  synthetic?: boolean;
+}
+
+export interface ChatIngredientResult {
+  productId: string;
+  shadeId: string | null;
+  optionId?: string | null;
+  status: 'ok' | 'unknown' | 'error';
+  verdict: IngredientVerdict;
+  mappingStatus: 'reproduced' | 'candidate' | 'ambiguous' | 'unmapped' | 'mismatch';
+  ingredientCoverage: 'full' | 'partial' | 'unknown';
+  reviewStatus: 'verified' | 'unreviewed' | 'rejected';
+  normalizationStatus: 'verified' | 'unverified';
+  ingredients: { name: string; sequence: number | null }[];
+  source?: string | null;
+  collectedAt?: string | null;
+  collectedAtRaw?: string | null;
+  sourceVersion?: string | null;
+  sourceFingerprint?: string | null;
+  generatorVersion?: string | null;
+  evidenceId?: string | null;
+  reason: string;
+  issues?: string[];
+  conditions?: ChatIngredientCondition[];
+  synthetic?: boolean;
+}
+
+export interface BeautyChatFilters {
+  category: ProductCategory | null;
+  maxPriceKRW: number | null;
+  fragranceFree: boolean;
+  moisturizing: boolean;
+  query: string;
+  ingredientConditions?: { ingredientName: string; operator: 'includes' | 'excludes' }[];
+}
+
+/** Ephemeral, client-carried context. The server revalidates all IDs and product facts. */
+export interface BeautyChatContext {
+  version: 1;
+  issuedAt: number;
+  filters: BeautyChatFilters;
+  candidateIds: string[];
+  scopeIds: string[];
+  selectedProductId: string | null;
+  shadeSelections?: Record<string, string>;
+  session?: ChatSessionRef;
+}
+
+export interface ChatProductEvidence {
+  productId: string;
+  source: 'catalog_api';
+  ingredientCoverage: 'key_only' | 'unknown';
+  fragranceStatus: 'unknown';
 }
 
 export interface AuthUser {

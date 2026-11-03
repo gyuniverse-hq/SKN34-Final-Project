@@ -47,6 +47,7 @@ export function useArRecording(onFail: (reason: RecordingFailure) => void) {
         sink.current?.discard();
         sink.current = new RecordingSink(m.mime);
         startedAt.current = Date.now();
+        setSeconds(0);
         setState('recording');
       } else if (m.type === 'rec_chunk') {
         sink.current?.append(m.data);
@@ -80,10 +81,7 @@ export function useArRecording(onFail: (reason: RecordingFailure) => void) {
   );
 
   useEffect(() => {
-    if (state !== 'recording') {
-      setSeconds(0);
-      return;
-    }
+    if (state !== 'recording') return;
     const timer = setInterval(() => setSeconds(Math.floor((Date.now() - startedAt.current) / 1000)), 500);
     return () => clearInterval(timer);
   }, [state]);
@@ -91,5 +89,5 @@ export function useArRecording(onFail: (reason: RecordingFailure) => void) {
   // Leaving the AR screen ends the page; a half-written clip is dropped.
   useEffect(() => () => void sink.current?.discard(), []);
 
-  return { available, state, wanted, seconds, toggle, handleMessage };
+  return { available, state, wanted, seconds: state === 'recording' ? seconds : 0, toggle, handleMessage };
 }

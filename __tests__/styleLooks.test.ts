@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
+import { createElement } from 'react';
+import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { ApiError, apiGet } from '@/lib/api';
 import { useStyleLooks } from '@/lib/queries';
 
@@ -14,8 +16,15 @@ jest.mock('@/lib/api', () => {
 const mockedUseQuery = jest.mocked(useQuery);
 const mockedApiGet = jest.mocked(apiGet);
 
-function queryFn() {
+function QueryHarness() {
   useStyleLooks();
+  return null;
+}
+
+function queryFn() {
+  let view!: ReactTestRenderer;
+  act(() => { view = create(createElement(QueryHarness)); });
+  act(() => { view.unmount(); });
   return (mockedUseQuery.mock.calls.at(-1)?.[0] as unknown as { queryFn: () => Promise<{ looks: { id: string }[] }> }).queryFn;
 }
 

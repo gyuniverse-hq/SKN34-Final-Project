@@ -316,6 +316,8 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     const layers = Math.max(0.3, clamp01(zone.intensity) * TUNING.layersPerIntensity);
     return 1 - Math.pow(1 - mat.a1, layers);
   }
+  // Keep the selected lip product, but bypass all lip shading at exactly zero intensity.
+  function lipEffectEnabled(zone) { return !!zone && zone.intensity > 0; }
 
   const LIPS_OUTER = [61,185,40,39,37,0,267,269,270,409,291,375,321,405,314,17,84,181,91,146];
   const LIPS_INNER = [78,191,80,81,82,13,312,311,310,415,308,324,318,402,317,14,87,178,88,95];
@@ -341,6 +343,11 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   const overlayCtx = overlay.getContext('2d');
 
   let makeup = { lip: null, blush: null, eyeshadow: null, eyeliner: null, mascara: null, highlighter: null, contour: null, brow: null, foundation: null };
+  let pendingRender = null;
+  let pendingRestore = null;
+  let commandRendererId = null;
+  let lastRenderSeq = -1;
+  let lastStateSeq = -1;
   let compare = false;
   // Drawing guide (AR_SPEC 6-5-11): null, or { step, angle, length, style } from the app.
   let guide = null;
@@ -368,7 +375,35 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     let msg;
     try { msg = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (e) { return; }
     if (!msg || typeof msg !== 'object') return;
-    if (msg.type === 'makeup' && msg.makeup) makeup = msg.makeup;
+    const sequenced = (msg.type === 'makeup' || msg.type === 'render_command' || msg.type === 'restore_command') && Number.isSafeInteger(msg.stateSeq);
+    if (sequenced && msg.stateSeq <= lastStateSeq) return;
+    if (msg.type === 'makeup' && msg.makeup) {
+      if (sequenced) lastStateSeq = msg.stateSeq;
+      makeup = msg.makeup; pendingRender = null; pendingRestore = null;
+    }
+    if ((msg.type === 'render_command' || msg.type === 'restore_command') && typeof msg.commandId === 'string' && msg.commandId &&
+        Number.isSafeInteger(msg.renderSeq) && msg.renderSeq >= 0 && typeof msg.rendererId === 'string' && msg.rendererId) {
+      const restoring = msg.type === 'restore_command';
+      if (restoring && (typeof msg.restoreId !== 'string' || !msg.restoreId)) return;
+      if ((commandRendererId !== null && commandRendererId !== msg.rendererId) || msg.renderSeq <= lastRenderSeq) return;
+      if (sequenced) lastStateSeq = msg.stateSeq;
+      commandRendererId = msg.rendererId;
+      lastRenderSeq = msg.renderSeq;
+      pendingRender = null;
+      pendingRestore = null;
+      const lip = msg.makeup && msg.makeup.lip;
+      const validMakeup = msg.makeup && typeof msg.makeup === 'object';
+      const validLip = lip && typeof lip.intensity === 'number' && Number.isFinite(lip.intensity) && lip.intensity >= 0 && lip.intensity <= 1;
+      const result = { commandId: msg.commandId, renderSeq: msg.renderSeq, rendererId: msg.rendererId };
+      if (restoring) result.restoreId = msg.restoreId;
+      if (!validMakeup || (!restoring && !validLip) || (restoring && lip && !validLip)) {
+        post(Object.assign({ type: restoring ? 'restore_result' : 'render_result', status: 'failed' }, result));
+      } else {
+        makeup = msg.makeup;
+        pendingRender = restoring ? null : result;
+        pendingRestore = restoring ? result : null;
+      }
+    }
     if (msg.type === 'compare') compare = !!msg.value;
     if (msg.type === 'preview') { /* capture already matches the phone screen; cover stays edge-to-edge */ }
     if (msg.type === 'guide') {
@@ -2598,7 +2633,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         gl.bindTexture(gl.TEXTURE_2D, foundSkinTex);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
       },
-      render(W, H) {
+      render(W, H, checkCommand, checkRestore) {
         if (glCanvas.width !== W || glCanvas.height !== H) { glCanvas.width = W; glCanvas.height = H; }
         gl.viewport(0, 0, W, H);
         gl.disable(gl.SCISSOR_TEST);
@@ -2624,7 +2659,11 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         const foundZ = makeup.foundation || null;
         // Looks still name mascara / highlighter / contour; AR does not paint them (10-27).
         const mascara = null, hl = null, contourZ = null;
-        if (!hasFace || !(lip || blush || eye || liner || browZ || foundZ || mascara || hl || contourZ)) return;
+        if (!hasFace) return false;
+        if (!(lip || blush || eye || liner || browZ || foundZ || mascara || hl || contourZ)) {
+          if ((checkCommand || checkRestore) && gl.getError() !== gl.NO_ERROR) throw new Error('AR render failed');
+          return !!checkRestore;
+        }
 
         gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
         gl.bufferSubData(gl.ARRAY_BUFFER, 0, meshPos);
@@ -2773,7 +2812,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         gl.uniform1f(u.uLipRough, lipMat.roughness);
         gl.uniform1f(u.uLipSpec, lipMat.specular);
         gl.uniform1f(u.uLipFlake, lip ? lipMat.flake * TUNING.shimmerFlake * clamp01(lip.intensity) : 0);
-        gl.uniform1f(u.uLipOn, lip ? 1 : 0);
+        gl.uniform1f(u.uLipOn, lipEffectEnabled(lip) ? 1 : 0);
         gl.uniform3f(u.uBlushAlbedo, blushAlb[0], blushAlb[1], blushAlb[2]);
         gl.uniform1f(u.uBlushCov, blush ? clamp01(blush.intensity) * TUNING.blushCoverage : 0);
         const blushGeo = blush && blush.geometry;
@@ -2850,6 +2889,8 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
           gl.drawElements(gl.TRIANGLES, capIdx.length, gl.UNSIGNED_SHORT, 0);
           gl.uniform1f(u.uCap, 0);
         }
+        if ((checkCommand || checkRestore) && gl.getError() !== gl.NO_ERROR) throw new Error('AR render failed');
+        return checkRestore ? (!lip || outlineOn) : !!lip && outlineOn;
       },
     };
   }
@@ -3110,15 +3151,29 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     if (video.readyState < 2) return;
     const W = video.videoWidth, H = video.videoHeight;
     if (!W || !H) return;
-    if (renderer.lost) { setStatus('unavailable', 'webgl context lost'); return; }
-    try { renderer.upload(); } catch (e) { return; }
+    if (renderer.lost) {
+      if (pendingRender || pendingRestore) {
+        post(Object.assign({ type: pendingRestore ? 'restore_result' : 'render_result', status: 'failed' }, pendingRestore || pendingRender));
+        pendingRender = null; pendingRestore = null;
+      }
+      setStatus('unavailable', 'webgl context lost'); return;
+    }
+    try { renderer.upload(); } catch (e) {
+      if (pendingRender || pendingRestore) {
+        post(Object.assign({ type: pendingRestore ? 'restore_result' : 'render_result', status: 'failed' }, pendingRestore || pendingRender));
+        pendingRender = null; pendingRestore = null;
+      }
+      return;
+    }
 
+    let faceThisFrame = false;
     if (landmarker) {
       try {
         const result = landmarker.detectForVideo(video, now);
         const face = result.faceLandmarks && result.faceLandmarks[0];
         if (face) {
           filterLandmarks(face, now / 1000);
+          faceThisFrame = true;
           hasFace = true;
           lastFaceAt = now;
           setStatus('tracking');
@@ -3154,7 +3209,18 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     fpsFrames++;
     if (now - fpsAt >= 1000) { fps = fpsFrames; fpsFrames = 0; fpsAt = now; }
 
-    try { renderer.render(W, H); } catch (e) { /* skip frame */ }
+    try {
+      const frameRendered = renderer.render(W, H, !!pendingRender, !!pendingRestore);
+      if ((pendingRender || pendingRestore) && faceThisFrame && frameRendered && !renderer.lost) {
+        post(Object.assign({ type: pendingRestore ? 'restore_result' : 'render_result', status: 'rendered' }, pendingRestore || pendingRender));
+        pendingRender = null; pendingRestore = null;
+      }
+    } catch (e) {
+      if (pendingRender || pendingRestore) {
+        post(Object.assign({ type: pendingRestore ? 'restore_result' : 'render_result', status: 'failed' }, pendingRestore || pendingRender));
+        pendingRender = null; pendingRestore = null;
+      }
+    }
     if (hudOn || guide) drawOverlay(W, H);
   }
   // Prefer requestVideoFrameCallback (fires once per camera frame, AR_SPEC 6-1); else poll with rAF.

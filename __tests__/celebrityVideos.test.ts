@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
+import { createElement } from 'react';
+import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { ApiError, apiGet } from '@/lib/api';
 import { useCelebrityVideos } from '@/lib/queries';
 
@@ -13,8 +15,15 @@ jest.mock('@/lib/api', () => {
 
 const query = jest.mocked(useQuery);
 const get = jest.mocked(apiGet);
-function queryFn() {
+function QueryHarness() {
   useCelebrityVideos();
+  return null;
+}
+
+function queryFn() {
+  let view!: ReactTestRenderer;
+  act(() => { view = create(createElement(QueryHarness)); });
+  act(() => { view.unmount(); });
   return (query.mock.calls.at(-1)?.[0] as unknown as { queryFn: () => Promise<{ videos: { id: string }[] }> }).queryFn;
 }
 

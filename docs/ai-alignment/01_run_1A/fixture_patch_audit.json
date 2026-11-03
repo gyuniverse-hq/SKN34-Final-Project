@@ -1,0 +1,335 @@
+[
+  {
+    "case_id": "E-PR-06",
+    "kind": "FIXTURE_CORRECTED",
+    "reason": "상품 맥락 누락 테스트에서 이전 추천/AR 참조를 제거해 정확한 재질문 여부를 검사",
+    "old_context": {
+      "userId": "USER-A",
+      "screenId": "P-02",
+      "arStateRef": "A1",
+      "selectedProductId": null,
+      "resultSetId": "R1",
+      "dataMode": "SYNTHETIC"
+    },
+    "new_context": {
+      "userId": "USER-A",
+      "screenId": "P-02",
+      "dataMode": "SYNTHETIC",
+      "selectedProductId": null,
+      "selectedShadeId": null,
+      "resultSetId": null,
+      "arStateRef": null,
+      "activeLookId": null,
+      "activeRecipeId": null,
+      "recipeStep": null,
+      "contextProvenance": "EMPTY_PRODUCT_REFERENCE",
+      "candidateReferences": []
+    },
+    "gold_approved": false,
+    "team_policy_changed": false
+  },
+  {
+    "case_id": "E-ST-03",
+    "kind": "FIXTURE_CORRECTED",
+    "reason": "ST-B는 레시피가 없으므로 REC-A의 잔존 참조 제거",
+    "old_context": {
+      "userId": "USER-A",
+      "screenId": "ST-01",
+      "arStateRef": "A1",
+      "selectedProductId": "P-A",
+      "selectedShadeId": "S-A1",
+      "resultSetId": "R1",
+      "activeLookId": "ST-B",
+      "activeRecipeId": "REC-A",
+      "recipeStep": 1,
+      "dataMode": "SYNTHETIC",
+      "recipeId": null
+    },
+    "new_context": {
+      "userId": "USER-A",
+      "screenId": "ST-01",
+      "arStateRef": "A1",
+      "selectedProductId": "P-A",
+      "selectedShadeId": "S-A1",
+      "resultSetId": "R1",
+      "activeLookId": "ST-B",
+      "activeRecipeId": null,
+      "recipeStep": null,
+      "dataMode": "SYNTHETIC",
+      "recipeId": null,
+      "staleRecipeReferenceAllowed": false,
+      "recipeAvailability": "MISSING"
+    },
+    "gold_approved": false,
+    "team_policy_changed": false
+  },
+  {
+    "case_id": "E-AR-13",
+    "kind": "CONTEXT_CORRECTED_POLICY_PENDING",
+    "reason": "활성 블러셔와 전역 selectedProductId 불일치 해소; 상대 변화폭은 결정하지 않음",
+    "old_context": {
+      "userId": "USER-A",
+      "screenId": "A-01",
+      "arStateRef": "A_EXT",
+      "selectedProductId": "P-A",
+      "selectedShadeId": "S-A1",
+      "resultSetId": "R1",
+      "activeLookId": "ST-A",
+      "activeRecipeId": "REC-A",
+      "recipeStep": 1,
+      "dataMode": "SYNTHETIC",
+      "selectedZone": "blush",
+      "relativeStrengthPolicy": "DECISION_REQUIRED"
+    },
+    "new_context": {
+      "userId": "USER-A",
+      "screenId": "A-01",
+      "arStateRef": "A_EXT",
+      "selectedProductId": "P-D",
+      "selectedShadeId": "S-D1",
+      "resultSetId": "R1",
+      "activeLookId": "ST-A",
+      "activeRecipeId": "REC-A",
+      "recipeStep": 1,
+      "dataMode": "SYNTHETIC",
+      "selectedZone": "blush",
+      "relativeStrengthPolicy": "DECISION_REQUIRED",
+      "activeZone": "blush",
+      "selectedZoneSource": "A_EXT.layers.blush"
+    },
+    "gold_approved": false,
+    "team_policy_changed": false
+  },
+  {
+    "case_id": "E-AR-14",
+    "kind": "FIXTURE_CORRECTED_POLICY_PENDING",
+    "reason": "성공 ACK(v4)의 이전·이후 상태와 현재 v4/0.5를 일치시킴. Undo 범위·버전 정책은 확정 안 함",
+    "old_context": {
+      "userId": "USER-A",
+      "screenId": "A-01",
+      "arStateRef": "A_EXT",
+      "selectedProductId": "P-A",
+      "selectedShadeId": "S-A1",
+      "resultSetId": "R1",
+      "activeLookId": "ST-A",
+      "activeRecipeId": "REC-A",
+      "recipeStep": 1,
+      "dataMode": "SYNTHETIC",
+      "lastAppliedAck": {
+        "success": true,
+        "commandId": "CMD-OLD",
+        "beforeIntensity": 0.3,
+        "afterIntensity": 0.5
+      }
+    },
+    "new_context": {
+      "userId": "USER-A",
+      "screenId": "A-01",
+      "arStateRef": "A_UNDO_READY",
+      "selectedProductId": "P-A",
+      "selectedShadeId": "S-A1",
+      "resultSetId": "R1",
+      "activeLookId": "ST-A",
+      "activeRecipeId": "REC-A",
+      "recipeStep": 1,
+      "dataMode": "SYNTHETIC",
+      "lastAppliedAck": {
+        "success": true,
+        "commandId": "CMD-SYNTH-UNDO-BASE",
+        "appliedVersion": 4,
+        "previousVersion": 3,
+        "before": {
+          "zone": "lip",
+          "productId": "P-A",
+          "shadeId": "S-A1",
+          "intensity": 0.3,
+          "stateVersion": 3
+        },
+        "after": {
+          "zone": "lip",
+          "productId": "P-A",
+          "shadeId": "S-A1",
+          "intensity": 0.5,
+          "stateVersion": 4
+        }
+      },
+      "selectedZone": "lip",
+      "requestStateVersion": 4,
+      "undoAfterSuccessProjection": {
+        "targetIntensity": 0.3,
+        "nextVersionAssumption": 5,
+        "notApprovedContract": true
+      },
+      "undoScopePolicy": "TEAM_DECISION_REQUIRED"
+    },
+    "gold_approved": false,
+    "team_policy_changed": false
+  },
+  {
+    "case_id": "E-ST-01",
+    "kind": "METADATA_CLARIFIED_CONTENT_PENDING",
+    "reason": "합성 레시피 3단계는 실제 사람 검수 데이터가 아님을 명시",
+    "old_context": {
+      "userId": "USER-A",
+      "screenId": "ST-01",
+      "arStateRef": "A1",
+      "selectedProductId": "P-A",
+      "selectedShadeId": "S-A1",
+      "resultSetId": "R1",
+      "activeLookId": "ST-A",
+      "activeRecipeId": "REC-A",
+      "recipeStep": 1,
+      "dataMode": "SYNTHETIC",
+      "recipeId": "REC-A",
+      "recipeSteps": [
+        1,
+        2,
+        3
+      ]
+    },
+    "new_context": {
+      "userId": "USER-A",
+      "screenId": "ST-01",
+      "arStateRef": "A1",
+      "selectedProductId": "P-A",
+      "selectedShadeId": "S-A1",
+      "resultSetId": "R1",
+      "activeLookId": "ST-A",
+      "activeRecipeId": "REC-A",
+      "recipeStep": 1,
+      "dataMode": "SYNTHETIC",
+      "recipeId": "REC-A",
+      "recipeSteps": [
+        1,
+        2,
+        3
+      ],
+      "recipeReview": "TEST_ONLY_NOT_PERSON_VERIFIED",
+      "productionVerifiedRecipe": false,
+      "contentEvidenceScope": "SYNTHETIC_TEST_ONLY"
+    },
+    "gold_approved": false,
+    "team_policy_changed": false
+  },
+  {
+    "case_id": "E-AR-02",
+    "kind": "FIXTURE_ISOLATED_POLICY_PENDING",
+    "reason": "립 미선택 A2가 이전 상품 추천·룩 맥락의 영향을 받지 않도록 격리",
+    "old_context": {
+      "userId": "USER-A",
+      "screenId": "A-01",
+      "arStateRef": "A2",
+      "selectedProductId": null,
+      "selectedShadeId": null,
+      "resultSetId": "R1",
+      "activeLookId": "ST-A",
+      "activeRecipeId": "REC-A",
+      "recipeStep": 1,
+      "dataMode": "SYNTHETIC"
+    },
+    "new_context": {
+      "userId": "USER-A",
+      "screenId": "A-01",
+      "arStateRef": "A2",
+      "selectedProductId": null,
+      "selectedShadeId": null,
+      "dataMode": "SYNTHETIC",
+      "layerExists": false,
+      "productShadeBindingRule": "REQUIRES_REAL_PRODUCT_AND_SHADE"
+    },
+    "gold_approved": false,
+    "team_policy_changed": false
+  },
+  {
+    "case_id": "E-PR-04",
+    "kind": "FIXTURE_ISOLATED_POLICY_PENDING",
+    "reason": "새 상품 검색 테스트에서 이전 선택 상품/목록이 결과에 섞이지 않도록 격리",
+    "old_context": {
+      "userId": "USER-A",
+      "screenId": "P-01",
+      "arStateRef": "A1",
+      "selectedProductId": "P-B",
+      "selectedShadeId": "S-B1",
+      "resultSetId": "R1",
+      "activeLookId": "ST-A",
+      "activeRecipeId": "REC-A",
+      "recipeStep": 1,
+      "dataMode": "SYNTHETIC",
+      "filters": {
+        "priceMaxKRW": 20000,
+        "finish": "moist",
+        "fragranceFree": true
+      },
+      "dataCompleteness": {
+        "price": "fixture_only",
+        "finish": "fixture_only",
+        "fullIngredients": "partial"
+      }
+    },
+    "new_context": {
+      "userId": "USER-A",
+      "screenId": "P-01",
+      "arStateRef": "A1",
+      "selectedProductId": null,
+      "selectedShadeId": null,
+      "resultSetId": null,
+      "activeLookId": "ST-A",
+      "activeRecipeId": "REC-A",
+      "recipeStep": 1,
+      "dataMode": "SYNTHETIC",
+      "filters": {
+        "priceMaxKRW": 20000,
+        "finish": "moist",
+        "fragranceFree": true
+      },
+      "dataCompleteness": {
+        "price": "fixture_only",
+        "finish": "fixture_only",
+        "fullIngredients": "partial"
+      },
+      "searchCandidateScope": "CATALOG_ALL_PRODUCTS",
+      "strictAllConditions": true,
+      "filterRelaxationAuthorized": false
+    },
+    "gold_approved": false,
+    "team_policy_changed": false
+  },
+  {
+    "case_id": "E-ST-07",
+    "kind": "CONTRACT_GUARD_CLARIFIED_PENDING",
+    "reason": "현재 1-A 명령 범위에서는 색상 적용 성공으로 해석하지 않도록 지원 액션과 ACK 부족 표시",
+    "old_context": {
+      "userId": "USER-A",
+      "screenId": "ST-01",
+      "arStateRef": "A1",
+      "selectedProductId": "P-A",
+      "selectedShadeId": null,
+      "resultSetId": "R1",
+      "activeLookId": "ST-A",
+      "activeRecipeId": "REC-A",
+      "recipeStep": 1,
+      "dataMode": "SYNTHETIC",
+      "ack": null
+    },
+    "new_context": {
+      "userId": "USER-A",
+      "screenId": "ST-01",
+      "arStateRef": "A1",
+      "selectedProductId": "P-A",
+      "selectedShadeId": null,
+      "resultSetId": "R1",
+      "activeLookId": "ST-A",
+      "activeRecipeId": "REC-A",
+      "recipeStep": 1,
+      "dataMode": "SYNTHETIC",
+      "ack": null,
+      "supportedActions": [
+        "set_intensity"
+      ],
+      "requiresShadeSelectionBeforeApply": true,
+      "expectedArMutation": false
+    },
+    "gold_approved": false,
+    "team_policy_changed": false
+  }
+]

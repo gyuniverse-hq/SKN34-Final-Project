@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { canTryOn, pickShade } from '@/lib/catalog';
+import { canTryOn } from '@/lib/catalog';
 import { useProduct } from '@/lib/queries';
 import { useMakeupStore } from '@/store/makeupStore';
 
@@ -12,7 +12,7 @@ export function useArRouteSelection(productId: string | undefined, shadeId: stri
   const applyShade = useMakeupStore((s) => s.applyShade);
   const applied = useRef<string | null>(null);
   const data = product.data;
-  const shade = data ? pickShade(data, shadeId) : undefined;
+  const shade = data && data.id === productId && shadeId ? data.shades.find((item) => item.id === shadeId) : undefined;
   const tryOn = data ? canTryOn(data) : false;
 
   useEffect(() => {
@@ -26,7 +26,7 @@ export function useArRouteSelection(productId: string | undefined, shadeId: stri
   return {
     product,
     shade,
-    shadeMissing: !!data && !!shadeId && shade?.id !== shadeId,
+    shadeMissing: !!data && !!productId && !shade,
     notTryOn: !!data && !tryOn,
   };
 }

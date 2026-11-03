@@ -193,6 +193,24 @@ describe('useArRecording', () => {
     expect(h.get()).toMatchObject({ wanted: false, state: 'idle' });
   });
 
+  it('resets elapsed time when stopping and starting another recording', () => {
+    jest.useFakeTimers();
+    const h = mount();
+    try {
+      act(() => h.get().toggle());
+      act(() => h.get().handleMessage({ type: 'rec_state', state: 'recording', mime: 'video/webm' }));
+      act(() => { jest.advanceTimersByTime(2100); });
+      expect(h.get().seconds).toBe(2);
+      act(() => h.get().toggle());
+      expect(h.get()).toMatchObject({ state: 'saving', seconds: 0 });
+      act(() => h.get().handleMessage({ type: 'rec_state', state: 'recording', mime: 'video/webm' }));
+      expect(h.get().seconds).toBe(0);
+    } finally {
+      act(() => h.tree.unmount());
+      jest.useRealTimers();
+    }
+  });
+
   it('tells the screen when the share sheet is not available', async () => {
     share.mockResolvedValue(false);
     const h = mount();
