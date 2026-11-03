@@ -7,22 +7,62 @@
 
 현재 상품정보 수집·활용 문의의 답변이 오지 않았습니다. 새 실수집과 공용 DB 적재는 허용 범위를 확인한 뒤 진행합니다. 로컬 검증에는 합성 테스트 자료를 사용할 수 있습니다.
 
+## 한눈에 보기
+
+```
+[A] 식약처 성분사전 ─ 매칭의 기준
+      (1) scripts/data/mfds/collect_ingredients.py    API -> JSONL (로컬, DB 안 씀)
+      (2) scripts/data/mfds/load_ingredients.py       JSONL -> raw_mfds_ingredient
+
+[B] 올리브영 원본 ─ 비교할 대상
+      (3) collect_load_makeup.py / collect_load_skincare.py
+            --phase collect     스냅샷 CSV + manifest.json
+            --phase preflight   검사만 (읽기 전용)
+            --phase apply       raw_oy_*
+
+                        A, B 모두 끝나야 ↓
+
+[C] 성분 정리
+      (4) repair_split_fragments.py --apply --delete-orphans
+            쪼개진 성분 조각 복구 + 유령 성분 삭제
+      (5) scripts/data/ingredients/match_oy_mfds.py --apply
+            oy_mfds_ingredient_map  (올리브영 성분 ↔ 식약처 표준명)
+
+                                   ↓
+
+[D] 앱 서빙 카탈로그 ─ Git 경유, 사람 검토 필수
+      (6) build_catalog.py      읽기만 -> 로컬 검토 JSON
+      (7) 사람이 검토 -> backend/api/seed/catalog.json
+      (8) PR -> CI 형식·무결성 검사 -> develop 병합
+      (9) Actions(dev-data) -> Supabase products/shades 교체 -> 챗봇 DB 복사
+     (10) 앱 / Supabase 대시보드에서 확인
+```
+
+(2)는 (5)보다 먼저여야 합니다. 매칭할 기준이 없으면 매처가 할 일이 없습니다.
+(4)는 (5)보다 먼저여야 합니다. 조각 상태로 매처를 돌리면 조각이 미매칭으로 쌓입니다.
+
+(1)~(5)는 DB 작업이고 (6) 이후는 서빙 데이터입니다. 서빙 데이터는 `seed/catalog.json`을
+단일 출처로 Git에서 관리하며 배포가 DB에 넣습니다. 수집 스크립트가 앱 서빙 테이블을 직접
+바꾸는 경로는 없습니다. 자세한 내용은 `docs/DATA.md`에 있습니다.
+
 ## 실행 순서
 
-`backend/api`에서 `uv sync --group data`로 수집 전용 `requests`와 `Pillow`를 설치합니다. 비밀번호는 명령어나 `.env`에 적지 않고 프롬프트에 입력합니다. `--snapshot-dir`은 저장소 밖의 새 폴더를 지정합니다.
+`backend/api`에서 `uv sync --group data`로 수집 전용 `requests`와 `Pillow`를 설치합니다. 비밀번호는 명령어나 `.env`에 적지 않고 프롬프트에 입력합니다.
+
+`--snapshot-dir`은 저장소 밖의 전용 폴더 `%USERPROFILE%\oy-snapshots\` 아래에 `<종류>-<수집기 버전>-<날짜>` 형식으로 지정합니다. 예: `skincare-v2-20261103`, `makeup-v30-20261103`. 폴더 이름에 수집기 버전을 넣는 이유는, 전처리 규칙이 바뀐 수집본은 새 폴더를 써야 하는데 `manifest.json`의 `script_version`이 다르면 이어 수집이 거부되기 때문입니다. 스냅샷은 자동으로 삭제되지 않으므로 수집할 때마다 폴더가 쌓입니다.
 
 동시 상품 수집 작업자의 기본값은 기존 수집기와 같은 10입니다. 요청 속도를 조절할 때만 `--workers`를 지정합니다.
 
 한 번에 실행하려면 `--phase run`을 사용합니다. 수집본 CSV와 `manifest.json`을 저장한 뒤, 완전한 수집본만 DB에 연결합니다. 적재 트랜잭션 안에서 CSV 형식과 참조를 검사하고 통과하면 반영합니다. 중단된 수집은 같은 명령과 폴더로 재실행할 수 있습니다.
 
 ```powershell
-uv run --group data python ..\..\scripts\data\oliveyoung\collect_load_skincare.py --phase run --mode full --snapshot-dir "C:\Users\Playdata\Downloads\oy-skincare-run-YYYYMMDD" --database vishue_v29 --port 15432
+uv run --group data python ..\..\scripts\data\oliveyoung\collect_load_skincare.py --phase run --mode full --snapshot-dir "%USERPROFILE%\oy-snapshots\skincare-v2-YYYYMMDD" --database vishue_v29 --port 15432
 ```
 
 공용 DB에서도 `--phase run`을 사용할 수 있지만, `--target shared`와 접속 정보, CA 인증서, `--execute-shared`가 필요합니다. 검수 후 적재하려면 아래처럼 단계를 나누어 실행합니다.
 
 ```powershell
-uv run --group data python ..\..\scripts\data\oliveyoung\collect_load_skincare.py --phase collect --mode full --snapshot-dir "C:\Users\Playdata\Downloads\oy-skincare-run-YYYYMMDD"
+uv run --group data python ..\..\scripts\data\oliveyoung\collect_load_skincare.py --phase collect --mode full --snapshot-dir "%USERPROFILE%\oy-snapshots\skincare-v2-YYYYMMDD"
 ```
 
 중단된 수집은 같은 명령과 폴더로 다시 실행합니다. 상품 목록 조회나 상세 수집이 하나라도 실패하면 `manifest.json`의 `complete`가 `false`이며 적재를 거부합니다. `ingredient_parse_review` 로그가 있는 상품은 옵션별 성분 연결을 검토합니다.
@@ -30,7 +70,7 @@ uv run --group data python ..\..\scripts\data\oliveyoung\collect_load_skincare.p
 목록에는 있지만 상세 페이지가 HTTP 404/410을 명확히 반환한 상품은 자동으로 `unavailable`에 기록합니다. 자동 제외가 목록의 1%를 넘으면 상세 주소나 응답 형식이 바뀐 것으로 보고 완료 처리하지 않습니다. HTTP 200인데 상품 JSON이 없거나 접속 확인 화면이 나온 경우는 판매 종료로 추정하지 않습니다. 원인을 직접 확인한 특정 상품만 다음처럼 기록할 수 있습니다. **기존 수집 폴더를 그대로 사용**하며, 완료한 상품은 다시 수집하지 않습니다.
 
 ```powershell
-uv run --group data python ..\..\scripts\data\oliveyoung\collect_load_skincare.py --phase collect --mode full --snapshot-dir "C:\Users\Playdata\Downloads\oy-skincare-v2_1-20261102" --confirm-unavailable A000000204392
+uv run --group data python ..\..\scripts\data\oliveyoung\collect_load_skincare.py --phase collect --mode full --snapshot-dir "%USERPROFILE%\oy-snapshots\skincare-v2.1-20261102" --confirm-unavailable A000000204392
 ```
 
 수동 확인 항목과 자동 제외 항목은 `manifest.json`의 `unavailable`에 근거와 함께 남고, 적재 시 `raw_oy_crawl_log`에 `step=detail_unavailable`로도 기록됩니다. 상품·옵션·성분 행을 만들어 넣지 않습니다. `collected_count + unavailable_count = 목록 상품 수`이고 나머지 오류가 없을 때만 완료됩니다. 수동 확인은 상품번호별로 해야 하며 일반적인 파싱 실패를 일괄 제외하지 않습니다.
@@ -40,14 +80,46 @@ uv run --group data python ..\..\scripts\data\oliveyoung\collect_load_skincare.p
 로컬 DB에서 별도로 사전 확인 후 적재:
 
 ```powershell
-uv run python ..\..\scripts\data\oliveyoung\collect_load_skincare.py --phase preflight --snapshot-dir "C:\Users\Playdata\Downloads\oy-skincare-run-YYYYMMDD" --database vishue_v29 --port 15432
+uv run python ..\..\scripts\data\oliveyoung\collect_load_skincare.py --phase preflight --snapshot-dir "%USERPROFILE%\oy-snapshots\skincare-v2-YYYYMMDD" --database vishue_v29 --port 15432
 ```
 
 ```powershell
-uv run python ..\..\scripts\data\oliveyoung\collect_load_skincare.py --phase apply --snapshot-dir "C:\Users\Playdata\Downloads\oy-skincare-run-YYYYMMDD" --database vishue_v29 --port 15432
+uv run python ..\..\scripts\data\oliveyoung\collect_load_skincare.py --phase apply --snapshot-dir "%USERPROFILE%\oy-snapshots\skincare-v2-YYYYMMDD" --database vishue_v29 --port 15432
 ```
 
 메이크업은 실행 파일명만 `collect_load_makeup.py`로 바꿉니다. 공용 Supabase DB의 경우 `--target shared`, `--project-ref`, Connect의 Session pooler `--host`/`--port`/`--database`/`--user`, `--ssl-ca-file`을 지정합니다. 실제 쓰기에는 `--phase apply --execute-shared`가 모두 필요합니다. 먼저 같은 인자로 `--phase preflight`를 실행합니다.
+
+## 적재 후 성분 정리
+
+전성분 원문의 줄바꿈은 성분 구분자로 쓰이기 때문에(`INGR_SPLIT`), 긴 성분명이 줄을 넘어간 자리에서 잘려 조각으로 적재됩니다(`징크` + `스테아레이트`). 원문을 전수 측정한 결과 줄바꿈 앞뒤 문자만으로는 줄이 넘어간 자리와 실제 성분 경계를 구분할 수 없었습니다. 양쪽이 성분명 글자인 줄바꿈 13,976건 중 끊어야 하는 경우가 2,693건, 이어야 하는 경우가 1,052건으로 섞여 있습니다. 수집 단계에서는 판단 근거가 없으므로, 적재 후 식약처 표준명 사전으로 판정해 복구합니다.
+
+적재가 끝나면 아래 순서로 실행합니다. 미리보기가 기본이며 `--apply`로만 기록합니다.
+
+조각 복구 미리보기:
+
+```powershell
+uv run python ..\..\scripts\data\oliveyoung\repair_split_fragments.py --target local --database vishue_v29 --port 15432
+```
+
+조각 복구 적용과 유령 성분 삭제:
+
+```powershell
+uv run python ..\..\scripts\data\oliveyoung\repair_split_fragments.py --target local --database vishue_v29 --port 15432 --apply --delete-orphans
+```
+
+성분 매처:
+
+```powershell
+uv run python ..\..\scripts\data\ingredients\match_oy_mfds.py --target local --database vishue_v29 --port 15432 --apply
+```
+
+복구는 같은 옵션에서 `seq`가 연속인 미매칭 조각 2~5개를 묶어, 이어붙인 이름이 식약처 표준명과 일치할 때만 성분 하나로 연결을 교체합니다. 사전으로 확인되지 않는 조각은 건드리지 않습니다. 변경 전 상태는 `--backup-dir`(기본값 `data/repair-backup/`)에 CSV로 남습니다. `--delete-orphans`는 연결이 0개가 된 조각 성분 행을 삭제하며, 이것도 `--apply`와 함께여야 동작합니다.
+
+적재는 성분 연결이 이미 있는 옵션을 건드리지 않습니다(`load_snapshot.py`는 연결이 하나도 없는 옵션에만 성분을 넣습니다). 따라서 복구 대상은 새로 적재된 상품·옵션에서만 생기고, 한 번 복구한 상품은 다시 조각으로 돌아가지 않습니다. 결과가 0건이거나 적게 나오는 것이 정상입니다.
+
+복구를 성분 매처보다 먼저 실행합니다. 조각 상태로 매처를 돌리면 조각이 미매칭으로 쌓입니다.
+
+공용 DB에서는 `--target shared`와 Session pooler 접속 정보, `--ssl-ca-file`이 필요하고 실제 쓰기에는 `--apply --execute-shared`가 모두 필요합니다. 성분 매칭 규칙과 유사어 승인 기준은 `scripts/data/ingredients/README.md`에 있습니다.
 
 ## 동작 및 주의
 
