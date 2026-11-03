@@ -7,7 +7,7 @@
 
 ## 데이터 발행
 
-0011 마이그레이션의 `skincare_serving`은 개인정보 없는 버전별 JSONB 서빙 projection이다.
+0012 마이그레이션의 `skincare_serving`은 개인정보 없는 버전별 JSONB 서빙 projection이다.
 작은 매핑 데이터셋을 한 번에 검증·교체하기 위해 옵션·매핑·논문을 한 행으로 발행한다.
 상품은 동일 트랜잭션에서 upsert하며 기존 상품과 룩은 삭제하지 않는다.
 전체 카탈로그를 교체하는 기존 seed 명령은 오래된 projection을 무효화한다. 이후 다시 발행한다.

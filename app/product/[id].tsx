@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import * as WebBrowser from 'expo-web-browser';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -10,6 +11,7 @@ import { ShadePicker } from '@/components/ui/ShadePicker';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
 import { canTryOn, pickShade } from '@/lib/catalog';
+import { isSafeExternalUrl } from '@/lib/externalLink';
 import { notify } from '@/lib/confirm';
 import { formatKRW } from '@/lib/format';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
@@ -27,7 +29,11 @@ export default function ProductDetailScreen() {
   const addToCart = useCartStore((s) => s.add);
   const addToCompare = useCompareStore((s) => s.add);
   const inCompare = useCompareStore((s) => s.items.some((i) => i.productId === id));
-  const [pickedShadeId, setShadeId] = useState<string | undefined>(requestedShadeId);
+  const [selection, setSelection] = useState({ productId: id, shadeId: requestedShadeId });
+  // An unchanged route shade can be retained from the previous product.
+  const pickedShadeId = selection.productId === id
+    ? selection.shadeId
+    : requestedShadeId === selection.shadeId ? undefined : requestedShadeId;
   const [added, setAdded] = useState(false);
 
   useEffect(() => {
@@ -42,11 +48,12 @@ export default function ProductDetailScreen() {
 
   const p = product.data;
   const selectedShade = pickShade(p, pickedShadeId);
+  const arShade = p.shades.find((shade) => shade.id === pickedShadeId);
   const shadeMissing = !!requestedShadeId && pickedShadeId === requestedShadeId && !p.shades.some((s) => s.id === requestedShadeId);
   const tryOn = canTryOn(p);
 
   const selectShade = (shadeId: string) => {
-    setShadeId(shadeId);
+    setSelection({ productId: id, shadeId });
     router.setParams({ shade: shadeId });
   };
 
@@ -145,7 +152,19 @@ export default function ProductDetailScreen() {
             label={t('product.tryInAr')}
             icon="scan-outline"
             variant="secondary"
-            onPress={() => router.push(arHref({ productId: p.id, shadeId: selectedShade?.id }))}
+            onPress={() => {
+              if (!arShade) { notify(t('chat.selectShade')); return; }
+              router.push(arHref({ productId: p.id, shadeId: arShade.id }));
+            }}
+            style={styles.footerBtn}
+          />
+        ) : null}
+        {p.sourceUrl && isSafeExternalUrl(p.sourceUrl) ? (
+          <Button
+            label={t('ar.openStore')}
+            icon="open-outline"
+            variant="secondary"
+            onPress={() => WebBrowser.openBrowserAsync(p.sourceUrl!)}
             style={styles.footerBtn}
           />
         ) : null}

@@ -41,6 +41,16 @@ export function suggestConcerns(profile: SkinProfile | null | undefined): SkinCo
 export const CARE_TAGS = ['hydrating', 'soothing', 'oil-control', 'blemish-care', 'pore-care', 'brightening', 'firming'] as const;
 export type CareTag = (typeof CARE_TAGS)[number];
 
+export const CONCERN_TO_TAGS: Record<SkinConcern, readonly CareTag[]> = {
+  dryness: ['hydrating'],
+  oiliness: ['oil-control'],
+  sensitivity: ['soothing'],
+  blemish: ['blemish-care'],
+  pores: ['pore-care'],
+  pigmentation: ['brightening'],
+  wrinkles: ['firming'],
+};
+
 export function careTagsOf(tags: readonly string[]): CareTag[] {
   return CARE_TAGS.filter((tag) => tags.includes(tag));
 }

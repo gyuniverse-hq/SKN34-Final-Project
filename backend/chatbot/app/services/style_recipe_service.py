@@ -1,0 +1,416 @@
+"""Deterministic Style Tool: catalog facts and explicit general guides, no video/LLM analysis."""
+
+import json
+import re
+from hashlib import sha256
+from math import isfinite
+
+from app.core.errors import UpstreamError
+from app.schemas.chat import ChatResponse, ProductRef
+from app.schemas.style_recipe import RecipeProduct, RecipeStep, StyleContext, StyleRecipe
+from app.schemas.supervisor import EvidenceRef, ToolResult
+
+ORDER = (
+    "foundation",
+    "brow",
+    "eyeshadow",
+    "eyeliner",
+    "mascara",
+    "blush",
+    "contour",
+    "highlighter",
+    "lip",
+)
+PAINT = {"foundation", "brow", "eyeshadow", "eyeliner", "blush", "lip"}
+NAMES = {
+    "ko": (
+        "베이스",
+        "눈썹",
+        "아이섀도",
+        "아이라인",
+        "마스카라",
+        "블러셔",
+        "윤곽",
+        "하이라이터",
+        "립",
+    ),
+    "en": (
+        "Base",
+        "Brows",
+        "Eyeshadow",
+        "Eyeliner",
+        "Mascara",
+        "Blush",
+        "Contour",
+        "Highlighter",
+        "Lips",
+    ),
+    "ja": (
+        "ベース",
+        "眉",
+        "アイシャドウ",
+        "アイライン",
+        "マスカラ",
+        "チーク",
+        "シェーディング",
+        "ハイライト",
+        "リップ",
+    ),
+    "zh": ("底妆", "眉毛", "眼影", "眼线", "睫毛膏", "腮红", "修容", "高光", "唇妆"),
+}
+TEXT = {
+    "ko": {
+        "zone_missing": (
+            "이 룩에는 확인 가능한 눈 화장 단계가 없습니다. "
+            "다른 룩이나 등록된 단계를 선택해 주세요."
+        ),
+        "choose": "먼저 스타일 화면에서 안내받을 룩을 선택해 주세요.",
+        "missing": "선택한 종류에서 해당 룩을 찾을 수 없습니다. 룩을 다시 선택해 주세요.",
+        "error": "룩 자료를 조회하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        "video": (
+            "제목·태그·제품 부위 메타데이터를 참고한 일반 가이드입니다. 영상 프"
+            "레임을 분석하지 않았으며, 실제 영상의 기법·순서·사용 제품은 확인되"
+            "지 않았습니다."
+        ),
+        "catalog": (
+            "등록된 Catalog 메이크업 설정에 근거한 규칙 "
+            "기반 가이드입니다. 사람이 검수한 영상 레시피는 아"
+            "닙니다."
+        ),
+        "reviewed": "등록된 검수 레시피의 단계와 출처를 안내합니다.",
+        "changed": "룩 또는 레시피 버전이 변경되어 첫 단계로 돌아갔습니다.",
+        "none": "단계 자료가 부족합니다. 영상의 화장 순서를 추측하지 않습니다.",
+        "step": "현재 단계",
+        "synthetic": "테스트용 합성 콘텐츠입니다.",
+        "unsupported": (
+            "현재 단계 안내와 등록 상품 확인을 지원합니다. 상"
+            "품 추천·AR 실행을 함께 완료한 것으로 처리하지 "
+            "않습니다."
+        ),
+    },
+    "en": {
+        "zone_missing": (
+            "This look has no available eye step. Select another look or a listed step."
+        ),
+        "choose": "Choose a look on the style screen first.",
+        "missing": "This look was not found in the selected source. Please select it again.",
+        "error": "Look data could not be retrieved. Please try again later.",
+        "video": (
+            "This is general guidance based on titl"
+            "e, tags and product-area metadata. Vid"
+            "eo frames were not analyzed; the video"
+            "'s actual techniques, order and produc"
+            "ts are unconfirmed."
+        ),
+        "catalog": (
+            "This rule-based guide uses registered "
+            "Catalog makeup settings. It is not a h"
+            "uman-reviewed video recipe."
+        ),
+        "reviewed": "These steps come from the registered reviewed recipe and its source.",
+        "changed": "The look or recipe version changed. Progress returned to the first step.",
+        "none": ("Step information is insufficient. The video's makeup order will not be guessed."),
+        "step": "Current step",
+        "synthetic": "Synthetic test content.",
+        "unsupported": (
+            "Step guidance and registered product r"
+            "eferences are supported. Product recom"
+            "mendation and AR execution have not be"
+            "en completed together."
+        ),
+    },
+    "ja": {
+        "zone_missing": (
+            "このルックには確認できるアイメイク手順がありません。別の"
+            "ルックか登録手順を選んでください。"
+        ),
+        "choose": "まずスタイル画面でルックを選択してください。",
+        "missing": "選択した種類にこのルックがありません。選び直してください。",
+        "error": "ルック資料を取得できませんでした。後でもう一度お試しください。",
+        "video": (
+            "タイトル・タグ・製品部位のメタデータに基づく一般的なガイ"
+            "ドです。動画フレームは解析していません。実際の技法・順序"
+            "・使用製品は未確認です。"
+        ),
+        "catalog": (
+            "登録されたCatalogメイク設定に基づくルール型ガイド"
+            "です。人が検証した動画レシピではありません。"
+        ),
+        "reviewed": "登録された検証済みレシピの手順と出典を案内します。",
+        "changed": "ルックまたはレシピの版が変わったため、最初の手順に戻りました。",
+        "none": "手順の情報が不足しています。動画の順序を推測しません。",
+        "step": "現在の手順",
+        "synthetic": "テスト用の合成コンテンツです。",
+        "unsupported": (
+            "手順案内と登録製品の確認に対応しています。製品推薦とAR"
+            "実行を一括で完了したとは扱いません。"
+        ),
+    },
+    "zh": {
+        "zone_missing": "此妆容没有可确认的眼妆步骤，请选择其他妆容或已列出的步骤。",
+        "choose": "请先在风格页面选择妆容。",
+        "missing": "所选来源中没有此妆容，请重新选择。",
+        "error": "无法查询妆容资料，请稍后重试。",
+        "video": (
+            "这是基于标题、标签和产品部位元数据的一般指南。未分析视频"
+            "帧，视频中的实际技法、顺序和使用产品尚未确认。"
+        ),
+        "catalog": "这是依据已登记Catalog化妆设置生成的规则指南，并非人工审核的视频教程。",
+        "reviewed": "以下步骤来自已登记的审核教程及其来源。",
+        "changed": "妆容或教程版本已改变，已返回第一步。",
+        "none": "步骤资料不足，不会猜测视频的化妆顺序。",
+        "step": "当前步骤",
+        "synthetic": "合成测试内容。",
+        "unsupported": "目前支持步骤指导和已登记产品查询，不会将产品推荐和AR执行视为已一并完成。",
+    },
+}
+
+
+def source_zone(value):
+    value = value.casefold()
+    aliases = {
+        "foundation": ("foundation", "베이스", "파운데이션", "base"),
+        "brow": ("brow", "눈썹", "아이브로"),
+        "eyeshadow": ("shadow", "섀도", "쉐도"),
+        "eyeliner": ("eyeliner", "아이라인", "아이라이너"),
+        "mascara": ("mascara", "마스카라"),
+        "blush": ("blush", "블러셔", "치크", "cheek"),
+        "contour": ("contour", "쉐딩", "셰딩", "윤곽"),
+        "highlighter": ("highlighter", "하이라이터"),
+        "lip": ("lip", "립", "입술"),
+    }
+    return next((zone for zone, terms in aliases.items() if any(t in value for t in terms)), None)
+
+
+async def execute_style(req, catalog):
+    text, context = TEXT[req.locale], req.style_context
+
+    def empty(status, reason, key):
+        return ChatResponse(answer=text[key], products=[], style_status=status), ToolResult(
+            tool="style", status="error" if status == "error" else "clarification", reason=reason
+        )
+
+    if context is None:
+        return empty("clarification", "look_required", "choose")
+    if catalog is None:
+        return empty("error", "catalog_unavailable", "error")
+    try:
+        look = await catalog.get_style_look(context.kind, context.look_id)
+        if look is None:
+            return empty("not_found", "look_not_found", "missing")
+        if look.id != context.look_id:
+            raise UpstreamError("Look identity mismatch")
+        digest = sha256(
+            json.dumps(look.model_dump(mode="json"), sort_keys=True, ensure_ascii=True).encode()
+        ).hexdigest()[:24]
+        recipe_id = f"{context.kind}:{look.id}"
+        recipe = look.recipe
+        if recipe and (recipe.look_id != look.id or recipe.kind != context.kind):
+            raise UpstreamError("Recipe belongs to a different look")
+        reviewed = recipe is not None and recipe.review_status == "verified"
+        names = dict(zip(ORDER, NAMES[req.locale], strict=True))
+        makeup = None
+        if context.kind == "video":
+            basis, notice, source = "video_metadata", "video", look.video_url
+            zones = {source_zone(p.zone + " " + p.category) for p in look.products}
+            features = [v for v in (look.title, look.group, look.tag) if v]
+            order = list(ORDER)
+        else:
+            basis, notice, source = "catalog_settings", "catalog", f"catalog:/api/looks/{look.id}"
+            makeup = {z: look.makeup[z] for z in ORDER if look.makeup.get(z) is not None}
+            for setting in makeup.values():
+                if not isinstance(setting, dict) or not re.fullmatch(
+                    r"#[0-9A-Fa-f]{6}", str(setting.get("hex", ""))
+                ):
+                    raise UpstreamError("Invalid makeup setting")
+                if setting.get("geometry") is not None and not isinstance(
+                    setting["geometry"], dict
+                ):
+                    raise UpstreamError("Invalid makeup geometry")
+                geometry = setting.get("geometry") or {}
+                numeric = [
+                    setting.get("intensity"),
+                    *[
+                        geometry.get(k)
+                        for k in (
+                            "angle",
+                            "length",
+                            "thickness",
+                            "intensity",
+                            "blushSize",
+                            "overlip",
+                        )
+                    ],
+                ]
+                if any(
+                    v is not None
+                    and (isinstance(v, bool) or not isinstance(v, (int, float)) or not isfinite(v))
+                    for v in numeric
+                ):
+                    raise UpstreamError("Invalid guide numbers")
+                areas = geometry.get("areas")
+                if areas is not None and (
+                    not isinstance(areas, list)
+                    or any(a not in ("forehead", "nose_bridge", "under_eye", "chin") for a in areas)
+                ):
+                    raise UpstreamError("Invalid highlighter areas")
+                if geometry.get("blushPlacement") not in (None, "apple", "under_eye", "side"):
+                    raise UpstreamError("Invalid blush placement")
+            zones = set(makeup)
+            order = list(dict.fromkeys([z for z in look.step_order if z in ORDER] + list(ORDER)))
+            features = [
+                look.title,
+                *[f"{names[z]}: {makeup[z]['hex']}" for z in order if z in makeup],
+            ]
+        steps = [
+            RecipeStep(order=i + 1, zone=z, title=names[z], guide_key=z)
+            for i, z in enumerate(z for z in order if z in zones)
+        ]
+        if reviewed:
+            basis, notice, source = "reviewed_recipe", "reviewed", recipe.source
+            steps, features = recipe.steps, recipe.features
+        version = (recipe.version + ":" if reviewed else "guide-v1:") + digest
+        changed = (context.recipe_id is not None and context.recipe_id != recipe_id) or (
+            context.recipe_version is not None and context.recipe_version != version
+        )
+        index = 0 if changed else min(context.current_step, max(0, len(steps) - 1))
+        message = req.message.casefold()
+        eye_request = re.search(r"눈 화장|eye makeup|アイメイク|眼妆", message)
+        if eye_request and not any(s.zone in {"eyeshadow", "eyeliner", "mascara"} for s in steps):
+            return empty("clarification", "eye_step_unavailable", "zone_missing")
+        if not changed:
+            if re.search(r"첫 단계|처음 단계|first step|最初|第一步", message):
+                index = 0
+            elif re.search(r"마지막 단계|last step|最後|最后一步", message):
+                index = max(0, len(steps) - 1)
+            elif re.search(r"다음|next|次|下一", message):
+                index = min(index + 1, max(0, len(steps) - 1))
+            elif re.search(r"이전|previous|前の|上一步", message):
+                index = max(0, index - 1)
+            elif eye_request:
+                index = next(
+                    (
+                        i
+                        for i, s in enumerate(steps)
+                        if s.zone in {"eyeshadow", "eyeliner", "mascara"}
+                    ),
+                    index,
+                )
+        links, refs, cache = [], {}, {}
+        entries = look.products if context.kind == "video" else look.items
+        lip_question = re.search(r"립 제품|lip product|リップ製品|唇部产品", message)
+        for entry in entries:
+            video = context.kind == "video"
+            pid = entry.catalog_product_id if video else entry.product_id
+            sid = entry.catalog_shade_id if video else entry.shade_id
+            verified = entry.mapping_verified if video else True
+            zone = source_zone(entry.zone + " " + entry.category) if video else None
+            if video and lip_question and zone != "lip":
+                continue
+            link = RecipeProduct(
+                label=f"{entry.brand} {entry.name}" if video else pid, zone=zone or "unknown"
+            )
+            if pid and verified:
+                if pid not in cache:
+                    cache[pid] = await catalog.get_product(pid)
+                product = cache[pid]
+                if product is not None and product.id == pid:
+                    link.product_id = product.id
+                    link.label = f"{product.brand} {product.name}"
+                    link.zone = product.makeup_zone or zone or "unknown"
+                    refs[pid] = ProductRef(
+                        id=pid, brand=product.brand, name=product.name, category=product.category
+                    )
+                    shade = next((s for s in product.shades if s.id == sid), None)
+                    if shade is not None:
+                        link.shade_id, link.catalog_valid, link.mapping_status = (
+                            sid,
+                            True,
+                            "verified",
+                        )
+                        link.ar_eligible = bool(
+                            product.makeup_zone in PAINT
+                            and product.texture
+                            in {"matte", "velvet", "glossy", "satin", "sheer", "cream", "shimmer"}
+                            and re.fullmatch(r"#[0-9A-Fa-f]{6}", shade.hex)
+                            and (not video or zone is None or zone == product.makeup_zone)
+                            and shade.measure_method != "placeholder"
+                            and shade.color_source != "placeholder"
+                        )
+                    elif sid:
+                        link.mapping_status = "invalid"
+                else:
+                    link.mapping_status = "invalid"
+            links.append(link)
+        result = StyleRecipe(
+            look_id=look.id,
+            source_look_id=look.id,
+            kind=context.kind,
+            recipe_id=recipe_id,
+            recipe_version=version,
+            title=look.title,
+            basis=basis,
+            review_status="verified"
+            if reviewed
+            else "unreviewed"
+            if context.kind == "video"
+            else "not_applicable",
+            synthetic=recipe.synthetic if reviewed else False,
+            source=source,
+            evidence_id=recipe.evidence_id if reviewed else None,
+            features=features,
+            steps=steps,
+            current_step=index,
+            products=links,
+            ar_eligible=any(p.ar_eligible for p in links),
+            reason="recipe_changed"
+            if changed
+            else "no_steps"
+            if not steps
+            else "reviewed_recipe"
+            if reviewed
+            else "catalog_settings"
+            if context.kind == "catalog"
+            else "video_not_analyzed",
+            makeup=makeup,
+        )
+        answer = text[notice]
+        if result.synthetic:
+            answer += "\n" + text["synthetic"]
+        if changed:
+            answer += "\n" + text["changed"]
+        if not steps:
+            answer += "\n" + text["none"]
+        next_context = StyleContext(
+            kind=context.kind,
+            look_id=look.id,
+            recipe_id=recipe_id,
+            recipe_version=version,
+            current_step=index,
+        )
+        response = ChatResponse(
+            answer=answer,
+            products=list(refs.values()),
+            style_recipe=result,
+            style_context=next_context,
+            style_status="ready",
+        )
+        return response, ToolResult(
+            tool="style",
+            status="success" if reviewed else "partial",
+            product_ids=list(refs),
+            evidence=[
+                EvidenceRef(
+                    product_id=p.product_id,
+                    shade_id=p.shade_id,
+                    source="catalog_api",
+                    verification="verified" if p.catalog_valid else "partial",
+                    reason="catalog_selection_checked_not_video_analysis",
+                )
+                for p in links
+                if p.product_id
+            ],
+            reason=result.reason,
+        )
+    except (UpstreamError, ValueError, TypeError, AttributeError):
+        return empty("error", "style_source_unavailable", "error")

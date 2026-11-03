@@ -1,9 +1,27 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 import ArTryOnScreen from '@/app/(tabs)/ar';
-import { DEMO_PRODUCTS } from '@/lib/devCatalog/demo';
 import { useMakeupStore } from '@/store/makeupStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import type { Product } from '@/types';
+
+const lip: Product = {
+  id: 'oy-lip',
+  brand: 'Brand',
+  name: 'Lip',
+  nameKo: '립',
+  category: 'lip',
+  makeupZone: 'lip',
+  texture: 'satin',
+  priceKRW: 12000,
+  volume: '1',
+  shades: [{ id: 's1', name: 'Red', hex: '#B3202E' }],
+  description: '',
+  keyIngredients: [],
+  tags: [],
+  imageUrl: '',
+  searchKeyword: 'lip',
+};
 
 jest.mock('react-native-safe-area-context', () => {
   const actual = jest.requireActual('react-native-safe-area-context') as typeof import('react-native-safe-area-context');
@@ -36,12 +54,33 @@ jest.mock('expo-linear-gradient', () => ({ LinearGradient: 'LinearGradient' }));
 jest.mock('@/components/ar/ArFaceView', () => ({ ArFaceView: 'ArFaceView' }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 jest.mock('@/hooks/useArRouteSelection', () => ({ useArRouteSelection: () => ({ product: {} }) }));
-jest.mock('@/lib/queries', () => ({ useProducts: () => ({ data: require('@/lib/devCatalog/demo').DEMO_PRODUCTS }) }));
+jest.mock('@/lib/queries', () => {
+  const product = {
+    id: 'oy-lip',
+    brand: 'Brand',
+    name: 'Lip',
+    nameKo: '립',
+    category: 'lip',
+    makeupZone: 'lip',
+    texture: 'satin',
+    priceKRW: 12000,
+    volume: '1',
+    shades: [{ id: 's1', name: 'Red', hex: '#B3202E' }],
+    description: '',
+    keyIngredients: [],
+    tags: [],
+    imageUrl: '',
+    searchKeyword: 'lip',
+  };
+  return {
+    useProducts: () => ({ data: [product] }),
+    useTryOnProducts: () => ({ data: [product] }),
+  };
+});
 
 it('folds the product panel without clearing makeup, then restores the same selection', async () => {
   useMakeupStore.getState().reset();
   useSettingsStore.setState({ cameraConsent: true });
-  const lip = DEMO_PRODUCTS.find((product) => product.makeupZone === 'lip')!;
   const shade = lip.shades[0]!;
   useMakeupStore.getState().applyShade(lip, shade);
 

@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { VideoCard } from '@/components/celeb/VideoCard';
 import { ProductLineCard } from '@/components/shop/ProductLineCard';
@@ -62,6 +62,10 @@ export default function LookDetailScreen() {
             {look.title}
           </Text>
           {look.description ? <Text style={styles.description}>{look.description}</Text> : null}
+          <Pressable accessibilityRole="button" accessibilityLabel={t('chat.style.openGuide')} style={{ minHeight: 44, justifyContent: 'center' }}
+            onPress={() => router.push({ pathname: '/chat', params: { recipeKind: 'catalog', recipeLookId: look.id } })}>
+            <Text>{t('chat.style.openGuide')}</Text>
+          </Pressable>
           <View style={styles.badges}>
             <Badge label={t('badge.vishuePick')} tone="brand" icon="sparkles-outline" />
             {[look.makeup.lip, look.makeup.blush, look.makeup.eyeshadow].some(Boolean) ? (

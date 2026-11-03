@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-30",
+  "source_cumulative_cases": 359,
+  "source_cumulative_sha256": "a517e742a285054166000407f8fa607285a54ccd226af2dd1bc44373f7ba0490",
+  "approval_candidate": 25,
+  "hold": 10,
+  "not_reviewed": 324,
+  "gold_approved": 0,
+  "resolved_inputs_count": 359,
+  "fixture_context_patched": 8,
+  "patch_cases": [
+    "E-PR-06",
+    "E-ST-03",
+    "E-AR-13",
+    "E-AR-14",
+    "E-ST-01",
+    "E-AR-02",
+    "E-PR-04",
+    "E-ST-07"
+  ],
+  "unexpected_product_shade_fk_violations": 0,
+  "intentional_negative_fk_cases": [
+    "E-I-05-E",
+    "E-XC08"
+  ],
+  "contract_cases_1a": 11,
+  "real_llm_runs": 0,
+  "real_ar_runs": 0,
+  "source_U842_verbatim_verified": false,
+  "connected_github_develop_has_arContext": false,
+  "local_codex_worktree_inspected": false,
+  "note": "develop branch schemas/chat.py has no arContext; local Codex worktree may differ. No use of live LLM/API/AR."
+}

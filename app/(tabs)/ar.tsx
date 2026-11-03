@@ -1,11 +1,15 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { uuid } from 'expo';
 import { useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as WebBrowser from 'expo-web-browser';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   AppState,
   BackHandler,
   LayoutAnimation,
@@ -32,7 +36,9 @@ import { Chip } from '@/components/ui/Chip';
 import { DEMO_TAG } from '@/constants/demo';
 import { TAB_BAR_STYLE, theme } from '@/constants/theme';
 import { COLOR_FAMILIES, colorFamily, type ColorFamily } from '@/lib/colorFamily';
-import { withDevTryOnFallback } from '@/lib/devCatalog';
+import { arChatRoute } from '@/lib/arChatRoute';
+import { adjustMakeupFromChat } from '@/lib/arChatAdjust';
+import { isSafeExternalUrl } from '@/lib/externalLink';
 import { formatKRW } from '@/lib/format';
 import { LINER_LOOK_IDS, LINER_LOOKS, matchingLinerLook } from '@/lib/linerLooks';
 import { SHADOW_FINISH_IDS, shadowFinishOf } from '@/lib/shadowFinishes';
@@ -40,10 +46,12 @@ import { findColorGaps, recommendShades, type LookLine } from '@/lib/colorGaps';
 import { guideMessage } from '@/lib/drawGuide';
 import { buildGuideSteps, guideText } from '@/lib/lookGuide';
 import { practiceDrawStep, practiceZones, revealedMakeup, visit } from '@/lib/practice';
+import { useArRecording } from '@/hooks/useArRecording';
 import { useArRouteSelection } from '@/hooks/useArRouteSelection';
+import { useArCommand } from '@/hooks/useArCommand';
 import { MIN_TONE_CONF, rankFoundationShades, type SkinTone } from '@/lib/foundationMatch';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
-import { useProducts } from '@/lib/queries';
+import { useTryOnProducts } from '@/lib/queries';
 import { parseFlag, parseId, productHref, recommendationsHref } from '@/lib/routes';
 import { useCartStore } from '@/store/cartStore';
 import { AR_PAINT_ZONES, arPaintMakeup, isArPaintZone, MAKEUP_ZONES, useMakeupStore } from '@/store/makeupStore';
@@ -59,6 +67,24 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 const CHAT_EXAMPLES: TranslationKey[] = ['ar.chatExample1', 'ar.chatExample2', 'ar.chatExample3'];
+const AR_COMMAND_STATUS = {
+  interpreting: 'ar.command.interpreting',
+  proposed: 'ar.command.proposed',
+  applying: 'ar.command.applying',
+  applied: 'ar.command.applied',
+  no_change: 'ar.command.noChange',
+  clarification: 'ar.command.clarification',
+  rejected: 'ar.command.rejected',
+  failed: 'ar.command.failed',
+  unknown: 'ar.command.unknown',
+} as const;
+const AR_RESTORE_STATUS = {
+  pending: 'ar.command.restorePending',
+  confirmed: 'ar.command.restoreConfirmed',
+  failed: 'ar.command.restoreFailed',
+  unknown: 'ar.command.restoreUnknown',
+  unavailable: 'ar.command.restoreUnavailable',
+} as const;
 const TEXTURES: Texture[] = ['matte', 'velvet', 'cream', 'satin', 'sheer', 'glossy', 'shimmer'];
 const BLUSH_INTENSITY_MIN = 0.15;
 const BLUSH_KNOB = 20;
@@ -103,7 +129,7 @@ export default function ArTryOnScreen() {
   const routeProductId = parseId(params.productId);
   const routeShadeId = parseId(params.shadeId);
   const fromVideo = parseFlag(params.video);
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { height: windowHeight } = useWindowDimensions();
   const cameraConsent = useSettingsStore((s) => s.cameraConsent);
   const setCameraConsent = useSettingsStore((s) => s.setCameraConsent);
@@ -128,6 +154,7 @@ export default function ArTryOnScreen() {
   const [recFor, setRecFor] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>('direct');
   const [draft, setDraft] = useState('');
+  const [chatNote, setChatNote] = useState<TranslationKey | null>(null);
   const [isFullscreenAR, setIsFullscreenAR] = useState(false);
 
   // Follow new route params (a later "Try in AR" on the already-mounted tab) without an effect.
@@ -148,7 +175,6 @@ export default function ArTryOnScreen() {
     applyShade,
     patchGeometry,
     setIntensity,
-    clearZone,
     revertZone,
     fit,
     endFit,
@@ -157,20 +183,27 @@ export default function ArTryOnScreen() {
   const blushTrackWRef = useRef(0);
   const addMany = useCartStore((s) => s.addMany);
   const addToCart = useCartStore((s) => s.add);
-  const products = useProducts();
-
-  // Development: fall back to the bundled Olive Young + demo colors when the backend has no
-  // try-on products, so AR can be tested in Expo Go without a seeded backend.
-  const tryOnProducts = useMemo(
-    () => withDevTryOnFallback((products.data ?? []).filter((p) => p.makeupZone), __DEV__),
-    [products.data]
+  // Development only (AR_SPEC 11-02): record the AR view to a clip for evaluation; nothing is uploaded.
+  const recorder = useArRecording((reason) =>
+    Alert.alert(t(reason === 'unsupported' ? 'ar.rec.unsupported' : reason === 'share' ? 'ar.rec.noShare' : 'ar.rec.failed'))
   );
+  const recordingNow = recorder.state !== 'idle';
+  const products = useTryOnProducts();
+  const tryOnProducts = useMemo(() => products.data ?? [], [products.data]);
+
   const zoneSwatches = useMemo(
     () =>
       tryOnProducts
         .filter((p) => p.makeupZone === zone)
         .flatMap((p) => p.shades.map((shade) => ({ product: p, shade }))),
     [tryOnProducts, zone]
+  );
+  const selectedTryOn = useMemo(
+    () =>
+      zoneSwatches.find(
+        (item) => selections[zone]?.productId === item.product.id && selections[zone]?.shadeId === item.shade.id
+      ),
+    [zoneSwatches, selections, zone]
   );
   // Filter chips: only textures / color families present in this zone; families for lips only.
   const textureOptions = useMemo(
@@ -259,6 +292,49 @@ export default function ArTryOnScreen() {
   const permissionBlocked = !isWeb && permission && !permission.granted && !permission.canAskAgain;
   const liveCamera =
     !!cameraConsent && !!permissionGranted && !permissionBlocked && !swatchOnly && status !== 'unavailable' && status !== 'denied';
+  const rendererMounted = !!liveCamera && cameraActive;
+  const rendererId = useMemo(() => [arKey, rendererMounted, uuid.v4()].join(':'), [arKey, rendererMounted]);
+  const commandEnabled = rendererMounted && status === 'tracking' && !fit && !practice && !compare && mode === 'chat';
+  const arCommand = useArCommand({ active: cameraActive, enabled: commandEnabled, activeZone: zone, locale: language, rendererId,
+    visibleZones: practice && activeLook && !peek ? practice.visited : null });
+  const commandBusy = arCommand.state === 'interpreting' || arCommand.state === 'proposed' || arCommand.state === 'applying' || arCommand.restoreState === 'pending';
+  const draftRoute = arChatRoute(draft);
+  const localChatEnabled = !fit && !practice && !compare && mode === 'chat';
+  const canSendCommand = !!draft.trim() &&
+    (draftRoute === 'server' ? commandEnabled && !commandBusy : localChatEnabled);
+  const submittedDraft = useRef<string | null>(null);
+  useEffect(() => { submittedDraft.current = null; }, [draft]);
+  const sendCommand = () => {
+    const text = draft.trim();
+    if (!canSendCommand || submittedDraft.current === text) return;
+    submittedDraft.current = text;
+    const route = arChatRoute(text);
+    if (route === 'server') {
+      setChatNote(null);
+      void arCommand.send(text).finally(() => {
+        if (submittedDraft.current === text) submittedDraft.current = null;
+      });
+      return;
+    }
+    if (route === 'clarification') {
+      setChatNote('ar.chatClarify');
+      return;
+    }
+    // Local commands are user edits: the Store invalidates any outstanding AI proposal.
+    const result = adjustMakeupFromChat(text, tryOnProducts, useMakeupStore.getState().makeup);
+    if (result.kind === 'shade') {
+      applyShade(result.product, result.shade);
+      setZone(result.zone);
+      setChatNote('ar.chatAppliedShade');
+    } else if (result.kind === 'intensity') {
+      setIntensity(result.zone, result.intensity);
+      setZone(result.zone);
+      setChatNote('ar.chatAppliedIntensity');
+    } else {
+      setChatNote('ar.chatNoMatch');
+    }
+    setDraft('');
+  };
 
   const onAllow = async () => {
     setCameraConsent(true);
@@ -270,6 +346,20 @@ export default function ArTryOnScreen() {
     setStatus('loading');
     setArKey((k) => k + 1);
   };
+
+  // The WebView's renderer died: restart only the AR page. A second death within a minute stops the automatic restart
+  // and shows the swatch fallback with the retry button, so a device that cannot run it does not loop.
+  const crashTimes = useRef<number[]>([]);
+  const onArCrash = useCallback(() => {
+    const now = Date.now();
+    crashTimes.current = [...crashTimes.current.filter((at) => now - at < 60_000), now];
+    if (crashTimes.current.length >= 2) {
+      setStatus('unavailable');
+      return;
+    }
+    setStatus('loading');
+    setArKey((k) => k + 1);
+  }, []);
 
   const backToProduct = () => {
     if (router.canGoBack()) router.back();
@@ -474,11 +564,17 @@ export default function ArTryOnScreen() {
         <ArFaceView
           key={arKey}
           makeup={shownMakeup}
+          renderCommand={arCommand.renderCommand}
+          onRenderResult={arCommand.onRenderResult}
           compare={compare}
           guide={guide}
+          fillPreview={isFullscreenAR}
           onStatus={setStatus}
           onLightHint={setLightHint}
           onSkinTone={setSkinTone}
+          onCrash={onArCrash}
+          recording={recorder.wanted}
+          onRecorder={recorder.handleMessage}
         />
         {compare ? (
           <>
@@ -516,11 +612,36 @@ export default function ArTryOnScreen() {
             </Text>
           </View>
         ) : null}
-        {!isFullscreenAR ? (
+        {recordingNow ? (
+          // The "not recorded" badge would be false now, so it gives way to this one.
+          <View style={[styles.liveBadge, isFullscreenAR && { top: Math.max(12, insets.top + 8) }]} pointerEvents="none">
+            <View style={[styles.liveDot, styles.recDot]} />
+            <Text style={styles.liveText}>
+              {recorder.state === 'saving'
+                ? t('ar.rec.saving')
+                : `${t('ar.rec.on')} · ${Math.floor(recorder.seconds / 60)}:${String(recorder.seconds % 60).padStart(2, '0')}`}
+            </Text>
+          </View>
+        ) : !isFullscreenAR ? (
           <View style={styles.liveBadge} pointerEvents="none">
             <View style={styles.liveDot} />
             <Text style={styles.liveText}>{t('ar.live')}</Text>
           </View>
+        ) : null}
+        {recorder.available ? (
+          <Pressable
+            onPress={recorder.toggle}
+            disabled={recorder.state === 'saving'}
+            accessibilityRole="button"
+            accessibilityLabel={t(recorder.wanted ? 'ar.rec.stop' : 'ar.rec.start')}
+            hitSlop={8}
+            style={[styles.recordBtn, { bottom: isFullscreenAR ? Math.max(16, insets.bottom + 12) : 14 }]}>
+            {recorder.state === 'saving' ? (
+              <ActivityIndicator color={theme.colors.white} size="small" />
+            ) : (
+              <View style={recorder.wanted ? styles.recordStop : styles.recordDot} />
+            )}
+          </Pressable>
         ) : null}
         {showsDemo && !isFullscreenAR ? (
           <View style={styles.demoBadge} pointerEvents="none">
@@ -612,7 +733,7 @@ export default function ArTryOnScreen() {
         {fromVideo ? <Text style={styles.warnBanner}>{t('videoAr.notice')}</Text> : null}
         {routeSelection.shadeMissing ? (
           <Text style={styles.warnBanner} accessibilityRole="alert">
-            {t('catalog.shadeMissingPicked')}
+            {t('chat.selectShade')}
           </Text>
         ) : null}
         {routeSelection.notTryOn ? (
@@ -691,25 +812,49 @@ export default function ArTryOnScreen() {
               ))}
             </ScrollView>
             <View style={styles.chatInputRow}>
-              <Pressable accessibilityRole="button" accessibilityLabel={t('ar.mic')} style={styles.micBtn}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('ar.mic')}
+                onPress={() => Alert.alert(t('ar.mic'), t('ar.micUnavailable'))}
+                style={styles.micBtn}>
                 <Ionicons name="mic" size={22} color={theme.colors.white} />
               </Pressable>
               <TextInput
                 value={draft}
-                onChangeText={setDraft}
+                onChangeText={(text) => { submittedDraft.current = null; setDraft(text); }}
                 placeholder={t('ar.chatPlaceholder')}
                 placeholderTextColor={theme.colors.inkFaint}
                 style={styles.chatInput}
                 returnKeyType="send"
+                onSubmitEditing={sendCommand}
               />
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t('ar.send')}
-                disabled={!draft.trim()}
-                style={[styles.sendBtn, !draft.trim() && { opacity: 0.4 }]}>
+                disabled={!canSendCommand}
+                onPress={sendCommand}
+                style={[styles.sendBtn, !canSendCommand && { opacity: 0.4 }]}>
                 <Ionicons name="arrow-up" size={20} color={theme.colors.white} />
               </Pressable>
             </View>
+            {chatNote ? <Text style={styles.chatBody}>{t(chatNote)}</Text> : null}
+            {draftRoute === 'server' && !commandEnabled && !commandBusy ? <Text style={styles.chatBody}>{t('ar.command.unavailable')}</Text> : null}
+            {arCommand.state !== 'idle' ? (
+              <Text style={styles.chatBody} accessibilityLiveRegion="polite">
+                {arCommand.message || t(AR_COMMAND_STATUS[arCommand.state])}
+              </Text>
+            ) : null}
+            {arCommand.restoreState !== 'idle' ? (
+              <Text style={styles.chatBody} accessibilityLiveRegion="polite">{t(AR_RESTORE_STATUS[arCommand.restoreState])}</Text>
+            ) : null}
+            {arCommand.ackPending ? (
+              <View>
+                <Text style={styles.chatBody}>{t('ar.command.ackPending')}</Text>
+                <Pressable accessibilityRole="button" onPress={() => void arCommand.retryAck()}>
+                  <Text style={styles.chatRetry}>{t('ar.command.retryAck')}</Text>
+                </Pressable>
+              </View>
+            ) : null}
           </View>
         ) : (
           <ScrollView
@@ -856,9 +1001,50 @@ export default function ArTryOnScreen() {
               })}
             </ScrollView>
 
-            <View style={styles.levels}>
-              <Chip label={t('ar.off')} selected={!makeup[zone]} onPress={() => clearZone(zone)} />
-            </View>
+            {selectedTryOn ? (
+              <View style={styles.productCard}>
+                {selectedTryOn.product.imageUrl ? (
+                  <Image
+                    source={{ uri: selectedTryOn.product.imageUrl }}
+                    style={styles.productImage}
+                    contentFit="cover"
+                    accessibilityLabel={selectedTryOn.product.name}
+                  />
+                ) : (
+                  <View style={[styles.productImage, { backgroundColor: selectedTryOn.shade.hex }]} />
+                )}
+                <View style={styles.productCopy}>
+                  <Text style={styles.matchName} numberOfLines={2}>
+                    {selectedTryOn.product.brand} {selectedTryOn.product.name}
+                  </Text>
+                  <Text style={styles.matchNote} numberOfLines={1}>
+                    {selectedTryOn.shade.name}
+                    {selectedTryOn.product.priceKRW > 0 ? ` · ${formatKRW(selectedTryOn.product.priceKRW)}` : ''}
+                  </Text>
+                  {selectedTryOn.shade.measureMethod === 'estimated' ? (
+                    <Text style={styles.foundNote}>{t('ar.shadeEstimated')}</Text>
+                  ) : null}
+                  <View style={styles.productLinks}>
+                    <Chip
+                      label={t('ar.openProduct')}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/product/[id]',
+                          params: { id: selectedTryOn.product.id, shade: selectedTryOn.shade.id },
+                        })
+                      }
+                    />
+                    {isSafeExternalUrl(selectedTryOn.product.sourceUrl) ? (
+                      <Chip
+                        label={t('ar.openStore')}
+                        onPress={() => WebBrowser.openBrowserAsync(selectedTryOn.product.sourceUrl!)}
+                      />
+                    ) : null}
+                  </View>
+                </View>
+              </View>
+            ) : null}
+
             {zone === 'foundation' && makeup.foundation ? (
               <View style={styles.foundBox}>
                 <Text style={styles.foundTitle}>{t('ar.found.coverage')}</Text>
@@ -1080,7 +1266,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   fill: { flex: 1 },
-  camera: { flex: 1, backgroundColor: theme.colors.black },
+  camera: { flex: 1, backgroundColor: theme.colors.black, overflow: 'hidden' },
   consent: { flexGrow: 1, padding: 28, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: theme.colors.surface },
   consentTitle: { fontSize: theme.font.h2, fontWeight: '800', color: theme.colors.ink, textAlign: 'center', marginBottom: 6 },
   point: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', alignSelf: 'stretch' },
@@ -1100,6 +1286,10 @@ const styles = StyleSheet.create({
   demoBadge: { position: 'absolute', top: 44, left: 12, backgroundColor: theme.colors.overlay, paddingHorizontal: 10, paddingVertical: 5, borderRadius: theme.radius.pill },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#4ADE80' },
   liveText: { color: theme.colors.white, fontSize: 11, fontWeight: '600' },
+  recDot: { backgroundColor: '#F87171' },
+  recordBtn: { position: 'absolute', left: 14, width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.overlay },
+  recordDot: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#F87171' },
+  recordStop: { width: 16, height: 16, borderRadius: 3, backgroundColor: theme.colors.white },
   compareBtn: { position: 'absolute', bottom: 14, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.overlay, paddingHorizontal: 14, minHeight: 40, borderRadius: theme.radius.pill },
   compareText: { color: theme.colors.white, fontSize: theme.font.small, fontWeight: '600' },
   compareLabel: { position: 'absolute', top: 44, paddingHorizontal: 9, paddingVertical: 5, borderRadius: theme.radius.pill, backgroundColor: theme.colors.overlay },
@@ -1136,8 +1326,10 @@ const styles = StyleSheet.create({
   swatch: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)' },
   swatchBrand: { fontSize: 10, color: theme.colors.inkFaint, marginTop: 4 },
   swatchName: { fontSize: 11, color: theme.colors.ink, fontWeight: '600' },
-  levels: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, flexWrap: 'wrap' },
-  levelsLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.inkMuted, marginRight: 4 },
+  productCard: { marginHorizontal: 16, flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  productImage: { width: 56, height: 56, borderRadius: theme.radius.sm },
+  productCopy: { flex: 1, gap: 4 },
+  productLinks: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   disclaimer: { marginHorizontal: 16, fontSize: 11, lineHeight: 16, color: theme.colors.inkFaint },
   foundBox: { marginHorizontal: 16, gap: 6 },
   foundTitle: { fontSize: 12, fontWeight: '800', color: theme.colors.ink },
@@ -1169,6 +1361,7 @@ const styles = StyleSheet.create({
   chat: { paddingHorizontal: 16, gap: 8 },
   chatTitle: { fontSize: theme.font.body, fontWeight: '800', color: theme.colors.ink },
   chatBody: { fontSize: theme.font.small, color: theme.colors.inkMuted, lineHeight: 19 },
+  chatRetry: { fontSize: theme.font.small, color: theme.colors.rose, fontWeight: '700', paddingVertical: 6 },
   chatExamples: { gap: 8, paddingVertical: 4 },
   chatInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   micBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: theme.colors.rose, alignItems: 'center', justifyContent: 'center' },

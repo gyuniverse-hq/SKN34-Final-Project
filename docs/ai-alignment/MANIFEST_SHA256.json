@@ -1,0 +1,130 @@
+{
+  "01_run_1A/01_fixture_수정및보류_판정.md": {
+    "sha256": "39a982b1631a841062b8b1f10d0dadb64c2549f708aec21bfb616428e5da6780",
+    "bytes": 4335
+  },
+  "01_run_1A/02_팀에_확인할_질문.md": {
+    "sha256": "ea3eb9369846bb6130d0627004407b3f88c531eccb2fb5c4164184cd30f35d8a",
+    "bytes": 3653
+  },
+  "01_run_1A/03_Codex_1A_Mock_평가_작업지시서.md": {
+    "sha256": "a55f5e4213ae031866e30c0f2b446b3d8005f66d94f4c89fe5067640b62b1042",
+    "bytes": 6832
+  },
+  "01_run_1A/1A_mock_contract_cases_11.jsonl": {
+    "sha256": "50a4bf371d729f5c3d8c9f172be3ad4af1954704db1c27db1ac059f394bca4d9",
+    "bytes": 7261
+  },
+  "01_run_1A/LOCAL_UNITTEST_OUTPUT.txt": {
+    "sha256": "8d84f0cdaab80d6516a3c87ea54b269ac24d7ce147029e68073c5fffbeccd005",
+    "bytes": 1127
+  },
+  "01_run_1A/evaluate_1a_predictions.py": {
+    "sha256": "be0b45f0a55583af3f754ee421cbf2868087be6a93d3346e20592ebf19646bfc",
+    "bytes": 5982
+  },
+  "01_run_1A/fixture_patch_audit.json": {
+    "sha256": "bcb3e91be5c99ac817f99b193116a42de1e26c554c84935e3a769dc8cc4734eb",
+    "bytes": 9517
+  },
+  "01_run_1A/fixtures_world_patched.json": {
+    "sha256": "c560853660a44935fd1a6388b60bae4b94e633f3f9602cc2bd9e2b873e0c4db5",
+    "bytes": 7756
+  },
+  "01_run_1A/optional_subcases_design_only.jsonl": {
+    "sha256": "72ede3f1634a8e5efe9a91eedc7d664e9ad72166800cc8c6c74c6451cd83b70d",
+    "bytes": 1528
+  },
+  "01_run_1A/resolved_inputs_359_fixture_patch.jsonl": {
+    "sha256": "a6d67979b67134bb2ddc9dfd839874f2717c134bd9802d368720cb8d6b51a5b5",
+    "bytes": 347480
+  },
+  "01_run_1A/self_validation.json": {
+    "sha256": "f31249d2e06e2284bb4377403c52447fcafd768c158acb0448e832d18f35a237",
+    "bytes": 655
+  },
+  "01_run_1A/test_evaluate_1a_predictions.py": {
+    "sha256": "47a35d0cf499a62ec8a27a7cad26ab32f8a4f2a1f0e0d22c35efb6f56497b5ac",
+    "bytes": 2604
+  },
+  "01_run_1A/test_validate_fixture_package.py": {
+    "sha256": "b1c234d37698374bce108510830e4179bb02bba9bda687677ebb90f0e5103cba",
+    "bytes": 1622
+  },
+  "01_run_1A/validate_fixture_package.py": {
+    "sha256": "801d763ca123cbb4a151e843f0fd057eaecc92568dac211002428658c427c139",
+    "bytes": 5040
+  },
+  "01_run_1A/validation_summary.json": {
+    "sha256": "f7ac48e59d6e5a13a072c39d3113c433ef686a9b8762d6678671771640f912b3",
+    "bytes": 899
+  },
+  "02_latest_review/VISHUE_hold_resolution_10_20261030.json": {
+    "sha256": "45411a6d4151038e13049e2a6e4534922db37c518291432ac0f2b653cf32f071",
+    "bytes": 10743
+  },
+  "02_latest_review/VISHUE_review_20261030.xlsx": {
+    "sha256": "998638586f0b68b629b3152d7c50994347618c937c447defe3a116e80b876b9a",
+    "bytes": 482148
+  },
+  "02_latest_review/VISHUE_review_cumulative_359_20261030.jsonl": {
+    "sha256": "a517e742a285054166000407f8fa607285a54ccd226af2dd1bc44373f7ba0490",
+    "bytes": 322436
+  },
+  "02_latest_review/VISHUE_review_summary_20261030.md": {
+    "sha256": "e03d680999952aedbb1ecefc7a1be2acfe185db2bd7dbded696b3a71dc5ccaed",
+    "bytes": 17731
+  },
+  "03_future_full_eval/cases_v1.3.jsonl": {
+    "sha256": "82ba90d0cb874915be3af544a913ff8aa71200ef0cba254f1b3a0842b16fb3f5",
+    "bytes": 2078021
+  },
+  "03_future_full_eval/import_and_match_originals_v1.3.py": {
+    "sha256": "afba75c3e8a56698e1e8c6f15a71b172c9c8179cb89a50c8412a5d77b3373855",
+    "bytes": 5188
+  },
+  "03_future_full_eval/legacy_TC46_review_v1.2.jsonl": {
+    "sha256": "2305d9974fa3f1066fd19b53871d887e92cfbcd3977dd8bbf9f5e634bdc282a0",
+    "bytes": 12448
+  },
+  "03_future_full_eval/multiturn_160_turn_review_v1.3.jsonl": {
+    "sha256": "5e9dc90daf40a463a169fd0044e6d035a3dd3a55ed9499852f808f76265625ef",
+    "bytes": 91721
+  },
+  "03_future_full_eval/run_evals_v1.3.py": {
+    "sha256": "9515508980c50e5d0cf8b6989830882733507ab2e49fd3a567e2a571e22b0849",
+    "bytes": 20149
+  },
+  "03_future_full_eval/schema_normalized_prediction_v1.3.json": {
+    "sha256": "c0b7a3605386a8df147d1f8c072d6aed702481b08c850adf9b9654883acafd1d",
+    "bytes": 2589
+  },
+  "03_future_full_eval/source_U842_link_review_v1.3.jsonl": {
+    "sha256": "18d39a6db808b349287a634519c8ce56f033f99d74df89c9b40841fe686edf9f",
+    "bytes": 741824
+  },
+  "03_future_full_eval/source_intent_groups_69.json": {
+    "sha256": "86fadde5310b717a727dff35526244743eb20674229b1b4b4560cb4538fc3c9f",
+    "bytes": 19520
+  },
+  "03_future_full_eval/team_decisions_16.json": {
+    "sha256": "f6509ceeeb772af6f8c2fa4ef36d8c8364051be64290b8d66e46a280af97370e",
+    "bytes": 5627
+  },
+  "README_FIRST.md": {
+    "sha256": "e949c5f3838e59126dcb18e53543afc36ea8a055ef6dccc854389e9bc6383d0f",
+    "bytes": 7195
+  },
+  "VALIDATION.json": {
+    "sha256": "3a56185fd7b784e6a4dced833d024546421f1859bd537925ea9e86e6f64acc6e",
+    "bytes": 692
+  },
+  "VISHUE_AI_Architecture_v1_6.xlsx": {
+    "sha256": "174cd87280882ac7b2b5e916f15a56ad71b3e638debe5235389d5ac8b928db53",
+    "bytes": 78546
+  },
+  "VISHUE_Requirements_v0_6.xlsx": {
+    "sha256": "9fb646bf048e0825cbfe14064faad69e4d839e142d65cc2b7f28d2ee25d93652",
+    "bytes": 116235
+  }
+}

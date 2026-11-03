@@ -1,0 +1,948 @@
+[
+  {
+    "id": "01",
+    "category": "01 시작·설정",
+    "name": "서비스 범위 탐색",
+    "start": "U0001",
+    "end": "U0012",
+    "n": 12,
+    "action": "C001",
+    "features": [
+      "SYS-04"
+    ],
+    "source_group_fingerprint": "52dc1431"
+  },
+  {
+    "id": "02",
+    "category": "01 시작·설정",
+    "name": "선호·환경 프로필",
+    "start": "U0013",
+    "end": "U0024",
+    "n": 12,
+    "action": "C002",
+    "features": [
+      "PERS-03",
+      "SYS-04"
+    ],
+    "source_group_fingerprint": "03b95bb8"
+  },
+  {
+    "id": "03",
+    "category": "01 시작·설정",
+    "name": "음성·언어·접근성",
+    "start": "U0025",
+    "end": "U0036",
+    "n": 12,
+    "action": "C003",
+    "features": [
+      "GLOBAL-01",
+      "AR-01"
+    ],
+    "source_group_fingerprint": "79c0b373"
+  },
+  {
+    "id": "04",
+    "category": "02 AR·룩 조작",
+    "name": "전체 스타일 시작",
+    "start": "U0037",
+    "end": "U0048",
+    "n": 12,
+    "action": "C004",
+    "features": [
+      "LOOK-01",
+      "AR-07"
+    ],
+    "source_group_fingerprint": "eb3d6976"
+  },
+  {
+    "id": "05",
+    "category": "02 AR·룩 조작",
+    "name": "립 색상 선택·조작",
+    "start": "U0049",
+    "end": "U0060",
+    "n": 12,
+    "action": "C005",
+    "features": [
+      "AR-02",
+      "AR-03"
+    ],
+    "source_group_fingerprint": "1d1586a3"
+  },
+  {
+    "id": "06",
+    "category": "02 AR·룩 조작",
+    "name": "립 제형·발림",
+    "start": "U0061",
+    "end": "U0072",
+    "n": 12,
+    "action": "C006",
+    "features": [
+      "AR-03"
+    ],
+    "source_group_fingerprint": "809c259c"
+  },
+  {
+    "id": "07",
+    "category": "02 AR·룩 조작",
+    "name": "블러셔 색·위치",
+    "start": "U0073",
+    "end": "U0084",
+    "n": 12,
+    "action": "C007",
+    "features": [
+      "AR-03",
+      "AR-06"
+    ],
+    "source_group_fingerprint": "3ffd68a3"
+  },
+  {
+    "id": "08",
+    "category": "02 AR·룩 조작",
+    "name": "아이섀도 색·배치",
+    "start": "U0085",
+    "end": "U0096",
+    "n": 12,
+    "action": "C008",
+    "features": [
+      "AR-02",
+      "AR-03"
+    ],
+    "source_group_fingerprint": "91b856f9"
+  },
+  {
+    "id": "09",
+    "category": "02 AR·룩 조작",
+    "name": "아이라인 형태 조작",
+    "start": "U0097",
+    "end": "U0108",
+    "n": 12,
+    "action": "C009",
+    "features": [
+      "AR-02"
+    ],
+    "source_group_fingerprint": "b71a66bf"
+  },
+  {
+    "id": "10",
+    "category": "02 AR·룩 조작",
+    "name": "눈썹 색·모양",
+    "start": "U0109",
+    "end": "U0120",
+    "n": 12,
+    "action": "C010",
+    "features": [
+      "AR-02",
+      "PERS-01"
+    ],
+    "source_group_fingerprint": "8320fe5b"
+  },
+  {
+    "id": "11",
+    "category": "02 AR·룩 조작",
+    "name": "파운데이션·쿠션",
+    "start": "U0121",
+    "end": "U0132",
+    "n": 12,
+    "action": "C011",
+    "features": [
+      "AR-02",
+      "PERS-02"
+    ],
+    "source_group_fingerprint": "038fac0d"
+  },
+  {
+    "id": "12",
+    "category": "02 AR·룩 조작",
+    "name": "쉐딩·하이라이터",
+    "start": "U0133",
+    "end": "U0144",
+    "n": 12,
+    "action": "C012",
+    "features": [
+      "AR-02"
+    ],
+    "source_group_fingerprint": "5f2be0bc"
+  },
+  {
+    "id": "13",
+    "category": "02 AR·룩 조작",
+    "name": "마스카라·속눈썹",
+    "start": "U0145",
+    "end": "U0156",
+    "n": 12,
+    "action": "C013",
+    "features": [
+      "AR-02"
+    ],
+    "source_group_fingerprint": "c9eed078"
+  },
+  {
+    "id": "14",
+    "category": "02 AR·룩 조작",
+    "name": "세부 강도·색상 미세 수정",
+    "start": "U0157",
+    "end": "U0168",
+    "n": 12,
+    "action": "C014",
+    "features": [
+      "AR-03",
+      "AR-04"
+    ],
+    "source_group_fingerprint": "39123e9b"
+  },
+  {
+    "id": "15",
+    "category": "02 AR·룩 조작",
+    "name": "부분 초기화·되돌리기",
+    "start": "U0169",
+    "end": "U0180",
+    "n": 12,
+    "action": "C015",
+    "features": [
+      "AR-04",
+      "SYS-02"
+    ],
+    "source_group_fingerprint": "80f5e47a"
+  },
+  {
+    "id": "16",
+    "category": "02 AR·룩 조작",
+    "name": "한 문장 복합 조작",
+    "start": "U0181",
+    "end": "U0192",
+    "n": 12,
+    "action": "C016",
+    "features": [
+      "AR-06",
+      "SYS-02"
+    ],
+    "source_group_fingerprint": "627ff895"
+  },
+  {
+    "id": "17",
+    "category": "02 AR·룩 조작",
+    "name": "전후·좌우 비교",
+    "start": "U0193",
+    "end": "U0204",
+    "n": 12,
+    "action": "C017",
+    "features": [
+      "SYS-04"
+    ],
+    "source_group_fingerprint": "af3a5d42"
+  },
+  {
+    "id": "18",
+    "category": "02 AR·룩 조작",
+    "name": "사진·영상에서 스타일 추출",
+    "start": "U0205",
+    "end": "U0216",
+    "n": 12,
+    "action": "C018",
+    "features": [
+      "LOOK-08",
+      "LOOK-02"
+    ],
+    "source_group_fingerprint": "5e17c411"
+  },
+  {
+    "id": "19",
+    "category": "02 AR·룩 조작",
+    "name": "K-스타일·셀럽·유행",
+    "start": "U0217",
+    "end": "U0228",
+    "n": 12,
+    "action": "C019",
+    "features": [
+      "LOOK-01",
+      "LOOK-03"
+    ],
+    "source_group_fingerprint": "877c0900"
+  },
+  {
+    "id": "20",
+    "category": "02 AR·룩 조작",
+    "name": "장소·상황별 룩",
+    "start": "U0229",
+    "end": "U0240",
+    "n": 12,
+    "action": "C020",
+    "features": [
+      "LOOK-01",
+      "PERS-04"
+    ],
+    "source_group_fingerprint": "db5c8a2b"
+  },
+  {
+    "id": "21",
+    "category": "03 개인화·적합성",
+    "name": "웜·쿨·뉴트럴 진단 요청",
+    "start": "U0241",
+    "end": "U0252",
+    "n": 12,
+    "action": "C021",
+    "features": [
+      "PERS-01",
+      "PERS-02"
+    ],
+    "source_group_fingerprint": "3e1007cb"
+  },
+  {
+    "id": "22",
+    "category": "03 개인화·적합성",
+    "name": "얼굴형·눈형·비율에 맞춤",
+    "start": "U0253",
+    "end": "U0264",
+    "n": 12,
+    "action": "C022",
+    "features": [
+      "PERS-01",
+      "LOOK-06"
+    ],
+    "source_group_fingerprint": "78d8a2ed"
+  },
+  {
+    "id": "23",
+    "category": "03 개인화·적합성",
+    "name": "피부 상태·컨디션",
+    "start": "U0265",
+    "end": "U0276",
+    "n": 12,
+    "action": "C023",
+    "features": [
+      "PROD-01",
+      "PERS-02"
+    ],
+    "source_group_fingerprint": "584817ce"
+  },
+  {
+    "id": "24",
+    "category": "03 개인화·적합성",
+    "name": "피부톤 다양성·포용성",
+    "start": "U0277",
+    "end": "U0288",
+    "n": 12,
+    "action": "C024",
+    "features": [
+      "PERS-02",
+      "PROD-01"
+    ],
+    "source_group_fingerprint": "863a52d3"
+  },
+  {
+    "id": "25",
+    "category": "03 개인화·적합성",
+    "name": "개인 선호의 조건·금지",
+    "start": "U0289",
+    "end": "U0300",
+    "n": 12,
+    "action": "C025",
+    "features": [
+      "PROD-08",
+      "PERS-03"
+    ],
+    "source_group_fingerprint": "0f41434e"
+  },
+  {
+    "id": "26",
+    "category": "03 개인화·적합성",
+    "name": "조명·환경 조건",
+    "start": "U0301",
+    "end": "U0312",
+    "n": 12,
+    "action": "C026",
+    "features": [
+      "SYS-04"
+    ],
+    "source_group_fingerprint": "06fd132a"
+  },
+  {
+    "id": "27",
+    "category": "04 상품 탐색·검증",
+    "name": "상품명·호수 검색",
+    "start": "U0313",
+    "end": "U0324",
+    "n": 12,
+    "action": "C027",
+    "features": [
+      "PROD-01"
+    ],
+    "source_group_fingerprint": "ac1587fb"
+  },
+  {
+    "id": "28",
+    "category": "04 상품 탐색·검증",
+    "name": "사진·스크린샷에서 제품 식별",
+    "start": "U0325",
+    "end": "U0336",
+    "n": 12,
+    "action": "C028",
+    "features": [
+      "LOOK-08",
+      "PROD-01"
+    ],
+    "source_group_fingerprint": "53c188cf"
+  },
+  {
+    "id": "29",
+    "category": "04 상품 탐색·검증",
+    "name": "색·가격·제형 유사제품",
+    "start": "U0337",
+    "end": "U0348",
+    "n": 12,
+    "action": "C029",
+    "features": [
+      "AR-05",
+      "PROD-04"
+    ],
+    "source_group_fingerprint": "ec366fb4"
+  },
+  {
+    "id": "30",
+    "category": "04 상품 탐색·검증",
+    "name": "실제 컬러·발색 정보",
+    "start": "U0349",
+    "end": "U0360",
+    "n": 12,
+    "action": "C030",
+    "features": [
+      "SYS-04",
+      "PROD-04"
+    ],
+    "source_group_fingerprint": "b186be5e"
+  },
+  {
+    "id": "31",
+    "category": "04 상품 탐색·검증",
+    "name": "제형·성분·기능",
+    "start": "U0361",
+    "end": "U0372",
+    "n": 12,
+    "action": "C031",
+    "features": [
+      "PROD-02",
+      "PROD-03"
+    ],
+    "source_group_fingerprint": "3454e7f3"
+  },
+  {
+    "id": "32",
+    "category": "04 상품 탐색·검증",
+    "name": "지속력·사용감·착색",
+    "start": "U0373",
+    "end": "U0384",
+    "n": 12,
+    "action": "C032",
+    "features": [
+      "PROD-09",
+      "SYS-04"
+    ],
+    "source_group_fingerprint": "73fd0ff4"
+  },
+  {
+    "id": "33",
+    "category": "04 상품 탐색·검증",
+    "name": "제품 간 상세 비교",
+    "start": "U0385",
+    "end": "U0396",
+    "n": 12,
+    "action": "C033",
+    "features": [
+      "PROD-06"
+    ],
+    "source_group_fingerprint": "f51c74f9"
+  },
+  {
+    "id": "34",
+    "category": "04 상품 탐색·검증",
+    "name": "리뷰·근거·광고 신뢰",
+    "start": "U0397",
+    "end": "U0408",
+    "n": 12,
+    "action": "C034",
+    "features": [
+      "PROD-09",
+      "SYS-04"
+    ],
+    "source_group_fingerprint": "7b2b1ec6"
+  },
+  {
+    "id": "35",
+    "category": "04 상품 탐색·검증",
+    "name": "조건 결합 추천",
+    "start": "U0409",
+    "end": "U0420",
+    "n": 12,
+    "action": "C035",
+    "features": [
+      "PROD-01",
+      "PROD-08"
+    ],
+    "source_group_fingerprint": "13d249cc"
+  },
+  {
+    "id": "36",
+    "category": "04 상품 탐색·검증",
+    "name": "상품 조합·교차 추천",
+    "start": "U0421",
+    "end": "U0432",
+    "n": 12,
+    "action": "C036",
+    "features": [
+      "PROD-04",
+      "PROD-06"
+    ],
+    "source_group_fingerprint": "b176eeba"
+  },
+  {
+    "id": "37",
+    "category": "04 상품 탐색·검증",
+    "name": "한국·해외 명칭·호수 변환",
+    "start": "U0433",
+    "end": "U0444",
+    "n": 12,
+    "action": "C037",
+    "features": [
+      "GLOBAL-01",
+      "PROD-06"
+    ],
+    "source_group_fingerprint": "6ec394a1"
+  },
+  {
+    "id": "38",
+    "category": "04 상품 탐색·검증",
+    "name": "구매 전 검증·망설임",
+    "start": "U0445",
+    "end": "U0456",
+    "n": 12,
+    "action": "C038",
+    "features": [
+      "SYS-04",
+      "PROD-04"
+    ],
+    "source_group_fingerprint": "86e0d2c1"
+  },
+  {
+    "id": "39",
+    "category": "05 화장법·학습",
+    "name": "기초 메이크업 용어·순서",
+    "start": "U0457",
+    "end": "U0468",
+    "n": 12,
+    "action": "C039",
+    "features": [
+      "LOOK-06",
+      "LOOK-03"
+    ],
+    "source_group_fingerprint": "8a133be7"
+  },
+  {
+    "id": "40",
+    "category": "05 화장법·학습",
+    "name": "단계별 따라하기 명령",
+    "start": "U0469",
+    "end": "U0480",
+    "n": 12,
+    "action": "C040",
+    "features": [
+      "LOOK-03",
+      "LOOK-04"
+    ],
+    "source_group_fingerprint": "379f6527"
+  },
+  {
+    "id": "41",
+    "category": "05 화장법·학습",
+    "name": "실전 테크닉 세부 질문",
+    "start": "U0481",
+    "end": "U0492",
+    "n": 12,
+    "action": "C041",
+    "features": [
+      "LOOK-06"
+    ],
+    "source_group_fingerprint": "4ea9e6d6"
+  },
+  {
+    "id": "42",
+    "category": "05 화장법·학습",
+    "name": "실패 보정·현실 문제 해결",
+    "start": "U0493",
+    "end": "U0504",
+    "n": 12,
+    "action": "C042",
+    "features": [
+      "LOOK-06",
+      "PROD-09"
+    ],
+    "source_group_fingerprint": "26be6b0a"
+  },
+  {
+    "id": "43",
+    "category": "05 화장법·학습",
+    "name": "K-뷰티 화장 문화·스타일 해설",
+    "start": "U0505",
+    "end": "U0516",
+    "n": 12,
+    "action": "C043",
+    "features": [
+      "LOOK-06",
+      "GLOBAL-01"
+    ],
+    "source_group_fingerprint": "4fcfd3bf"
+  },
+  {
+    "id": "44",
+    "category": "05 화장법·학습",
+    "name": "사진·영상의 화장법 분석",
+    "start": "U0517",
+    "end": "U0528",
+    "n": 12,
+    "action": "C044",
+    "features": [
+      "LOOK-02",
+      "LOOK-05"
+    ],
+    "source_group_fingerprint": "6fcfb866"
+  },
+  {
+    "id": "45",
+    "category": "06 구매·저장·구독",
+    "name": "가격·세일·쿠폰",
+    "start": "U0529",
+    "end": "U0540",
+    "n": 12,
+    "action": "C045",
+    "features": [
+      "SHOP-03"
+    ],
+    "source_group_fingerprint": "8a185d20"
+  },
+  {
+    "id": "46",
+    "category": "06 구매·저장·구독",
+    "name": "장바구니·주문 의도",
+    "start": "U0541",
+    "end": "U0552",
+    "n": 12,
+    "action": "C046",
+    "features": [
+      "SHOP-01"
+    ],
+    "source_group_fingerprint": "b6a5bfa1"
+  },
+  {
+    "id": "47",
+    "category": "06 구매·저장·구독",
+    "name": "해외배송·정품·관세",
+    "start": "U0553",
+    "end": "U0564",
+    "n": 12,
+    "action": "C047",
+    "features": [
+      "GLOBAL-02",
+      "SHOP-03"
+    ],
+    "source_group_fingerprint": "15c82f7b"
+  },
+  {
+    "id": "48",
+    "category": "06 구매·저장·구독",
+    "name": "샘플·정기구독",
+    "start": "U0565",
+    "end": "U0576",
+    "n": 12,
+    "action": "C048",
+    "features": [
+      "SHOP-02"
+    ],
+    "source_group_fingerprint": "dad81ac5"
+  },
+  {
+    "id": "49",
+    "category": "06 구매·저장·구독",
+    "name": "저장·보관함·공유",
+    "start": "U0577",
+    "end": "U0588",
+    "n": 12,
+    "action": "C049",
+    "features": [
+      "SHOP-01"
+    ],
+    "source_group_fingerprint": "dda26d43"
+  },
+  {
+    "id": "50",
+    "category": "06 구매·저장·구독",
+    "name": "반품·교환·고객지원",
+    "start": "U0589",
+    "end": "U0600",
+    "n": 12,
+    "action": "C050",
+    "features": [
+      "SHOP-02"
+    ],
+    "source_group_fingerprint": "8108df09"
+  },
+  {
+    "id": "51",
+    "category": "06 구매·저장·구독",
+    "name": "재구매·소진·새 상품",
+    "start": "U0601",
+    "end": "U0612",
+    "n": 12,
+    "action": "C051",
+    "features": [
+      "SHOP-01",
+      "SHOP-03"
+    ],
+    "source_group_fingerprint": "c66b9b53"
+  },
+  {
+    "id": "52",
+    "category": "07 신뢰·오류·예외",
+    "name": "AR 정확도·실물 불일치",
+    "start": "U0613",
+    "end": "U0624",
+    "n": 12,
+    "action": "C052",
+    "features": [
+      "SYS-04"
+    ],
+    "source_group_fingerprint": "0c6bd134"
+  },
+  {
+    "id": "53",
+    "category": "07 신뢰·오류·예외",
+    "name": "카메라·앱 기술 오류",
+    "start": "U0625",
+    "end": "U0636",
+    "n": 12,
+    "action": "C053",
+    "features": [
+      "SYS-04"
+    ],
+    "source_group_fingerprint": "d70573d7"
+  },
+  {
+    "id": "54",
+    "category": "07 신뢰·오류·예외",
+    "name": "개인정보·얼굴·음성",
+    "start": "U0637",
+    "end": "U0648",
+    "n": 12,
+    "action": "C054",
+    "features": [
+      "SYS-04"
+    ],
+    "source_group_fingerprint": "cbb1ce92"
+  },
+  {
+    "id": "55",
+    "category": "07 신뢰·오류·예외",
+    "name": "멀티턴 맥락 지시어",
+    "start": "U0649",
+    "end": "U0660",
+    "n": 12,
+    "action": "C055",
+    "features": [
+      "AR-04",
+      "SYS-05"
+    ],
+    "source_group_fingerprint": "494032d4"
+  },
+  {
+    "id": "56",
+    "category": "07 신뢰·오류·예외",
+    "name": "모호성·지시 대상 불명",
+    "start": "U0661",
+    "end": "U0672",
+    "n": 12,
+    "action": "C056",
+    "features": [
+      "SYS-04",
+      "SYS-01"
+    ],
+    "source_group_fingerprint": "0de5b2ce"
+  },
+  {
+    "id": "57",
+    "category": "07 신뢰·오류·예외",
+    "name": "부정·충돌·정정 명령",
+    "start": "U0673",
+    "end": "U0684",
+    "n": 12,
+    "action": "C057",
+    "features": [
+      "SYS-04",
+      "AR-03"
+    ],
+    "source_group_fingerprint": "be1a3763"
+  },
+  {
+    "id": "58",
+    "category": "07 신뢰·오류·예외",
+    "name": "정보 부족·추천 불가능",
+    "start": "U0685",
+    "end": "U0696",
+    "n": 12,
+    "action": "C058",
+    "features": [
+      "PROD-01",
+      "SYS-04"
+    ],
+    "source_group_fingerprint": "3c269fb5"
+  },
+  {
+    "id": "59",
+    "category": "07 신뢰·오류·예외",
+    "name": "발화 누락·음성 인식 문제",
+    "start": "U0697",
+    "end": "U0708",
+    "n": 12,
+    "action": "C059",
+    "features": [
+      "AR-01",
+      "SYS-04"
+    ],
+    "source_group_fingerprint": "297d61c0"
+  },
+  {
+    "id": "60",
+    "category": "07 신뢰·오류·예외",
+    "name": "설명 가능성·공정성",
+    "start": "U0709",
+    "end": "U0720",
+    "n": 12,
+    "action": "C060",
+    "features": [
+      "PROD-02",
+      "SYS-04"
+    ],
+    "source_group_fingerprint": "56ab818e"
+  },
+  {
+    "id": "61",
+    "category": "07 신뢰·오류·예외",
+    "name": "피부 이상·의료 영역 경계",
+    "start": "U0721",
+    "end": "U0732",
+    "n": 12,
+    "action": "C061",
+    "features": [
+      "SYS-04",
+      "PROD-03"
+    ],
+    "source_group_fingerprint": "ff13d180"
+  },
+  {
+    "id": "62",
+    "category": "07 신뢰·오류·예외",
+    "name": "지원 범위 밖·엉뚱한 요청",
+    "start": "U0733",
+    "end": "U0744",
+    "n": 12,
+    "action": "C062",
+    "features": [
+      "SYS-04"
+    ],
+    "source_group_fingerprint": "05296b3b"
+  },
+  {
+    "id": "63",
+    "category": "07 신뢰·오류·예외",
+    "name": "복합 요청·일괄 작업",
+    "start": "U0745",
+    "end": "U0756",
+    "n": 12,
+    "action": "C063",
+    "features": [
+      "SYS-01",
+      "SYS-02",
+      "SHOP-01"
+    ],
+    "source_group_fingerprint": "bdb6ceac"
+  },
+  {
+    "id": "64",
+    "category": "07 신뢰·오류·예외",
+    "name": "사용자 불만·이탈 신호",
+    "start": "U0757",
+    "end": "U0768",
+    "n": 12,
+    "action": "C064",
+    "features": [
+      "SYS-04"
+    ],
+    "source_group_fingerprint": "2ef6d2de"
+  },
+  {
+    "id": "65",
+    "category": "08 구어체·탐색",
+    "name": "짧은 감탄·반응·최소 발화",
+    "start": "U0769",
+    "end": "U0788",
+    "n": 20,
+    "action": "C065",
+    "features": [
+      "SYS-04"
+    ],
+    "source_group_fingerprint": "a49525fd"
+  },
+  {
+    "id": "66",
+    "category": "08 구어체·탐색",
+    "name": "검색어형·오타·혼합어",
+    "start": "U0789",
+    "end": "U0806",
+    "n": 18,
+    "action": "C066",
+    "features": [
+      "PROD-01",
+      "GLOBAL-01"
+    ],
+    "source_group_fingerprint": "7d8289cc"
+  },
+  {
+    "id": "67",
+    "category": "08 구어체·탐색",
+    "name": "탐색적 질문·의견 요청",
+    "start": "U0807",
+    "end": "U0818",
+    "n": 12,
+    "action": "C067",
+    "features": [
+      "PERS-02",
+      "PROD-01"
+    ],
+    "source_group_fingerprint": "cd031158"
+  },
+  {
+    "id": "68",
+    "category": "08 구어체·탐색",
+    "name": "상품 페이지 안에서의 질문",
+    "start": "U0819",
+    "end": "U0830",
+    "n": 12,
+    "action": "C068",
+    "features": [
+      "PROD-02",
+      "PROD-03"
+    ],
+    "source_group_fingerprint": "5b002839"
+  },
+  {
+    "id": "69",
+    "category": "08 구어체·탐색",
+    "name": "품질 평가·설문형 대화",
+    "start": "U0831",
+    "end": "U0842",
+    "n": 12,
+    "action": "C069",
+    "features": [
+      "SYS-03",
+      "AR-04"
+    ],
+    "source_group_fingerprint": "60e5aa63"
+  }
+]

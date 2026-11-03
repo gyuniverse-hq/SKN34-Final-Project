@@ -1,0 +1,35 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "title":"VISHUE normalized prediction v1.3",
+  "description":"Offline adapter contract. Model claims and independent observation are separate. JSON Schema + Python runtime checks are both needed.",
+  "type":"object",
+  "required":["case_id","prediction"],
+  "additionalProperties":true,
+  "properties":{
+    "case_id":{"type":"string","pattern":"^E-[A-Za-z0-9-]+$"},
+    "prediction":{
+      "type":"object","required":["status","intent_id","applied","checkoutExecuted","commands"],
+      "additionalProperties":true,
+      "properties":{
+        "status":{"enum":["PROPOSED","INFO","CLARIFICATION","UNSUPPORTED","REJECTED","NO_OP","TOOL_ERROR","PARTIAL","PLAN_READY"]},
+        "intent_id":{"type":"string","pattern":"^\\d{2}$"},
+        "applied":{"type":"boolean"},"checkoutExecuted":{"type":"boolean"},
+        "responseText":{"type":"string"},"responseLocale":{"type":"string"},
+        "commands":{"type":"array","maxItems":20,"items":{"type":"object","required":["targetZone","action"],"properties":{"targetZone":{"type":"string","minLength":1},"action":{"type":"string","minLength":1},"value":{"type":"number"},"expectedStateVersion":{"type":"integer","minimum":0}}}},
+        "selectedProductId":{"type":["string","null"]},"evidenceProductId":{"type":["string","null"]},
+        "recipeStepIds":{"type":"array","items":{"type":"integer"}},
+        "fullIngredientsConfirmed":{"type":"boolean"},"mediaAnalysisCompleted":{"type":"boolean"},
+        "untrustedInstructionsExecuted":{"type":"boolean"},
+        "turns":{"type":"array","items":{"type":"object","required":["turn_index","stateAfter"],"properties":{"turn_index":{"type":"integer","minimum":1},"stateAfter":{"type":"object","required":["sessionId"],"properties":{"sessionId":{"type":"string"}}}}}}
+      }
+    },
+    "observation":{"type":"object","description":"Actual observation supplied separately; untrusted provenance never certifies integration.","properties":{
+      "ack_success":{"type":"boolean"},"checkoutApproved":{"type":"boolean"},"actualApplied":{"type":"boolean"},
+      "actualCheckoutExecuted":{"type":"boolean"},"actualAppliedCount":{"type":"integer","minimum":0},
+      "preStateVersion":{"type":"integer","minimum":0},"postStateVersion":{"type":"integer","minimum":0},
+      "provenance":{"type":"object","required":["origin","traceId","eventId"],"properties":{
+        "origin":{"enum":["app_log","backend_log","ar_event_log"]},"traceId":{"type":"string","minLength":1},"eventId":{"type":"string","minLength":1}
+      }}
+    }}
+  }
+}
