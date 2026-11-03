@@ -29,6 +29,16 @@ from app.models.raw_oliveyoung import (
     RawOySurveyQuestionRow,
     RawOyTextureTypeRow,
 )
+from app.models.recommendation import (
+    RecConcernMatchRow,
+    RecConcernRow,
+    RecEvidenceRow,
+    RecIngredientDictionaryRow,
+    RecIngredientLinkRow,
+    RecManualReviewCandidateRow,
+    RecMappingIngredientRow,
+    RecMappingRow,
+)
 from app.models.skincare import SkincareServingRow
 
 __all__ = [
@@ -45,6 +55,14 @@ __all__ = [
     "OyMfdsIngredientMapRow",
     "ProductRow",
     "RawMfdsIngredientRow",
+    "RecConcernMatchRow",
+    "RecConcernRow",
+    "RecEvidenceRow",
+    "RecIngredientDictionaryRow",
+    "RecIngredientLinkRow",
+    "RecManualReviewCandidateRow",
+    "RecMappingIngredientRow",
+    "RecMappingRow",
     "RawOyBrandRow",
     "RawOyCategoryRow",
     "RawOyCrawlLogRow",
