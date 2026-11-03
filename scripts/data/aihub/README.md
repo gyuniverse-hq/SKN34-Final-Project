@@ -65,10 +65,125 @@ uv run python ..\..\scripts\data\aihub\load_documents.py --data-dir "%DATA%" --d
 uv run python ..\..\scripts\data\aihub\match_sources.py --database vishue_v29 --port 15432 --apply
 ```
 
+추천·주의 성분 언급 적재:
+
+```powershell
+uv run python ..\..\scripts\data\aihub\load_mentions.py --database vishue_v29 --port 15432 --apply
+```
+
+누출·구분자 측정 (집계와 예시를 다른 파일로 씁니다):
+
+```powershell
+uv run python ..\..\scripts\data\aihub\analyze_qa.py --database vishue_v29 --port 15432 --out ..\..\data\aihub-qa-analysis.txt --samples-out ..\..\data\aihub-mention-samples.txt
+```
+
 QA 를 사람이 읽을 수 있게 뽑기 (고민 13종에서 2건씩):
 
 ```powershell
 uv run python ..\..\scripts\data\aihub\browse_qa.py --database vishue_v29 --port 15432 --out ..\..\data\aihub-qa-sample.txt
+```
+
+## ERD
+
+```mermaid
+erDiagram
+    dataset_release ||--o{ qa_case_raw : "배포본"
+    qa_case_raw ||--|| qa_case : "정규화"
+    qa_case_raw ||--o{ qa_source_link : "출처 1~5"
+    qa_case_raw ||--o{ ingredient_mention : "추천·주의 성분"
+    qa_case_raw ||--o{ claim_review : "주장 검수"
+    skin_concern ||--o{ qa_case : "고민 13종"
+    skin_type ||--o{ qa_case : "피부 타입 4종"
+    knowledge_document ||--o{ knowledge_document_file : "파일 경로"
+    knowledge_document ||--o{ qa_source_link : "근거 문서"
+    knowledge_document ||--o{ claim_review : "문서 검수"
+
+    dataset_release {
+        bigserial release_id PK
+        text dataset_id
+        text release_version
+        date received_at
+        text source_sha256
+        text rights_status
+        text storage_region
+    }
+    skin_concern {
+        text concern_code PK
+        text major_category
+        text label_ko
+        text label_en
+    }
+    skin_type {
+        text skin_type_raw PK
+        text skin_type_normalized
+        text display_label_ko
+    }
+    qa_case_raw {
+        text seq PK
+        text split
+        text source_archive
+        text source_file_path
+        text sha256
+        jsonb raw_json
+        bigint release_id FK
+    }
+    qa_case {
+        text seq PK,FK
+        text subject_id
+        text concern_code FK
+        text skin_type_raw FK
+        text question_text
+        text answer_text
+        text recommended_raw
+        text avoid_raw
+        text review_status
+    }
+    qa_source_link {
+        text seq PK,FK
+        smallint source_position PK
+        text quote_raw
+        text source_title_raw
+        text file_name_raw
+        text file_name_raw_2
+        bigint document_id FK
+        text match_status
+    }
+    knowledge_document {
+        bigserial document_id PK
+        text content_sha256 UK
+        text title_raw
+        text publication_year_raw
+        text purpose_raw
+        text cautions_raw
+        text rights_status
+        text review_status
+    }
+    knowledge_document_file {
+        bigserial file_id PK
+        bigint document_id FK
+        text source_file_path UK
+        text file_name
+        text meta_json_path
+        text meta_match_status
+    }
+    ingredient_mention {
+        bigserial mention_id PK
+        text seq FK
+        text mention_type
+        text raw_text
+        text entity_kind
+        bigint mfds_ingredient_id
+        text mapping_review_status
+    }
+    claim_review {
+        bigserial claim_id PK
+        text seq FK
+        bigint document_id FK
+        text support_status
+        text rights_status
+        text reviewer
+        date reviewed_at
+    }
 ```
 
 ## 테이블
@@ -83,7 +198,7 @@ uv run python ..\..\scripts\data\aihub\browse_qa.py --database vishue_v29 --port
 | `knowledge_document_file` | 원본 파일 경로별 레코드 | 6,245 |
 | `skin_concern` | 피부 고민 13종 | 13 |
 | `skin_type` | 기본 피부 타입 4종 | 4 |
-| `ingredient_mention` | 추천·주의 성분 후보 | 0 |
+| `ingredient_mention` | 추천·주의 성분 후보 | 18,062 |
 | `claim_review` | 주장·근거 검수 | 0 |
 
 고민 13종과 피부 타입 4종은 **서로 다른 축**입니다. 합본 분류가 아니며 교차 조건으로
@@ -107,10 +222,15 @@ QA 연결 문서와 같게 두지 않습니다.
 같은 값). 일반 조항보다 좁을 수 있어 문서 단위로 확인해야 합니다. 메타데이터가 없는
 124개 문서는 이용조건을 알 수 없으므로 `rights_status` 를 올리지 않습니다.
 
-**추천·주의 성분은 원문 문자열로만 보존했습니다.** `qa_case.recommended_raw` 와
-`avoid_raw` 입니다. 아직 분해하지 않았습니다. 원문에 원료명, 제품 특성(논코메도제닉),
-의약품명이 섞여 있어 구분자를 측정한 뒤 처리합니다. 추측으로 쪼개면 성분이 아닌 값이
-성분으로 들어갑니다.
+**추천·주의 성분은 쪼개지 않습니다.** 문자열 18,062개를 측정한 결과 구분자 후보를
+무엇으로 바꿔도 문자열당 토큰이 1.0 이었습니다. 쉼표는 633번, 줄바꿈은 1번만 나옵니다.
+**한 문자열이 곧 한 성분**이므로 `ingredient_mention` 에 1:1 로 넣습니다. 쪼개는 규칙을
+만들면 괄호 안 수식어나 학명의 마침표를 잘못 자릅니다.
+
+**`entity_kind` 는 식약처 현행 표준명과 정확히 일치할 때만 `ingredient` 입니다.**
+나머지 74.8% 는 `unknown` 입니다. 영문명·학명·성분군(`레티노이드`, `계면활성제`,
+`파라벤` 등)·수식어 결합 표기를 자동 판정하지 않습니다. 검수 기준과 작업량은
+`docs/AIHUB_REVIEW_CONTRACT.md` 에 있습니다.
 
 **AI-Hub 의 추천 성분은 상품의 전성분이 아닙니다.** 상품 전성분의 정본은
 `raw_oy_option_ingredient` 입니다. `aihub` 는 `products`, `shades`, `raw_oy_*`,

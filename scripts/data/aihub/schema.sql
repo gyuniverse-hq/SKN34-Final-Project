@@ -85,8 +85,13 @@ CREATE TABLE IF NOT EXISTS aihub.qa_case (
     avoid_raw         text,
     -- 검수 수명주기. approved 는 출처 연결과 근거 검토를 통과한 뒤에만 준다.
     review_status     text NOT NULL DEFAULT 'ingested',
+    -- 배제했으면 왜 배제했는지가 남아야 한다. 상태만으로는 사유를 알 수 없다.
+    exclusion_reason  text,
     CONSTRAINT ck_qa_case_review CHECK (
         review_status IN ('ingested', 'needs_review', 'approved', 'rejected', 'rights_blocked')
+    ),
+    CONSTRAINT ck_qa_case_exclusion CHECK (
+        review_status NOT IN ('rejected', 'rights_blocked') OR exclusion_reason IS NOT NULL
     )
 );
 
@@ -123,8 +128,12 @@ CREATE TABLE IF NOT EXISTS aihub.knowledge_document (
     CONSTRAINT ck_knowledge_document_rights CHECK (
         rights_status IN ('pending_confirmation', 'local_only', 'service_approved', 'blocked')
     ),
+    exclusion_reason     text,
     CONSTRAINT ck_knowledge_document_review CHECK (
         review_status IN ('ingested', 'needs_review', 'approved', 'rejected', 'rights_blocked')
+    ),
+    CONSTRAINT ck_knowledge_document_exclusion CHECK (
+        review_status NOT IN ('rejected', 'rights_blocked') OR exclusion_reason IS NOT NULL
     )
 );
 
@@ -138,6 +147,7 @@ CREATE TABLE IF NOT EXISTS aihub.knowledge_document_file (
     -- 연결된 메타데이터 JSON 의 경로. 파일명만으로 확정되지 않으면 연결하지 않는다.
     meta_json_path    text,
     meta_match_status text NOT NULL DEFAULT 'not_attempted',
+    meta_match_reason text,
     CONSTRAINT ck_knowledge_document_file_meta CHECK (
         meta_match_status IN ('matched', 'unmatched', 'ambiguous', 'not_attempted')
     )
@@ -169,6 +179,11 @@ CREATE TABLE IF NOT EXISTS aihub.qa_source_link (
     document_id          bigint REFERENCES aihub.knowledge_document (document_id),
     -- 파일명만으로 연결되지 않으면 근거 없는 연결을 만들지 않고 사유를 남긴다.
     match_status         text NOT NULL DEFAULT 'not_attempted',
+    match_reason         text,
+    -- 파일이 이어진 것과 인용문이 그 문서에 실제로 있는 것은 다르다. 따로 센다.
+    -- .doc 본문을 아직 추출하지 않아 현재는 전부 not_attempted 이다.
+    quote_match_status   text NOT NULL DEFAULT 'not_attempted',
+    quote_match_note     text,
     PRIMARY KEY (seq, source_position),
     CONSTRAINT ck_qa_source_link_position CHECK (source_position BETWEEN 1 AND 5),
     CONSTRAINT ck_qa_source_link_match CHECK (
@@ -177,6 +192,13 @@ CREATE TABLE IF NOT EXISTS aihub.qa_source_link (
     -- 연결됐다고 표시하려면 실제로 문서가 붙어 있어야 한다.
     CONSTRAINT ck_qa_source_link_matched_has_document CHECK (
         match_status <> 'matched' OR document_id IS NOT NULL
+    ),
+    CONSTRAINT ck_qa_source_link_quote CHECK (
+        quote_match_status IN ('matched', 'not_found', 'partial', 'unverifiable', 'not_attempted')
+    ),
+    -- 인용 일치를 판정했으면 어느 문서에 대해 판정한 것인지가 있어야 한다.
+    CONSTRAINT ck_qa_source_link_quote_target CHECK (
+        quote_match_status = 'not_attempted' OR document_id IS NOT NULL
     )
 );
 
@@ -253,3 +275,10 @@ ALTER TABLE aihub.knowledge_document ADD COLUMN IF NOT EXISTS token_count_raw te
 ALTER TABLE aihub.knowledge_document ADD COLUMN IF NOT EXISTS main_keywords_raw text;
 ALTER TABLE aihub.qa_source_link ADD COLUMN IF NOT EXISTS file_name_raw_2 text;
 ALTER TABLE aihub.qa_source_link ADD COLUMN IF NOT EXISTS file_extension_raw_2 text;
+ALTER TABLE aihub.qa_case ADD COLUMN IF NOT EXISTS exclusion_reason text;
+ALTER TABLE aihub.knowledge_document ADD COLUMN IF NOT EXISTS exclusion_reason text;
+ALTER TABLE aihub.qa_source_link ADD COLUMN IF NOT EXISTS match_reason text;
+ALTER TABLE aihub.qa_source_link
+    ADD COLUMN IF NOT EXISTS quote_match_status text NOT NULL DEFAULT 'not_attempted';
+ALTER TABLE aihub.qa_source_link ADD COLUMN IF NOT EXISTS quote_match_note text;
+ALTER TABLE aihub.knowledge_document_file ADD COLUMN IF NOT EXISTS meta_match_reason text;
