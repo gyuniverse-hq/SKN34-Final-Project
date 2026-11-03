@@ -6,6 +6,27 @@ export interface ZoneSelection {
   shadeId: string;
 }
 
+export interface ArProposal {
+  commandId: string;
+  expectedStateVersion: number;
+  action: 'set_intensity';
+  zone: 'lip';
+  value: number;
+  productId: string;
+  shadeId: string;
+}
+
+export type ArOutcome = {
+  status: 'APPLIED' | 'NO_CHANGE' | 'REJECTED' | 'FAILED' | 'UNKNOWN';
+  actualStateVersion: number;
+};
+
+export type PendingArCommand = {
+  requestId: string;
+  sessionId: string;
+  proposal: ArProposal;
+};
+
 /** Product-page try-on: this shade only, until the AR tab is left. Memory only. */
 export interface ProductFit {
   productId: string;
@@ -72,6 +93,20 @@ interface MakeupStore {
   /** Shop try-on: lock to one product shade. Null in the explore tab. */
   fit: ProductFit | null;
   fitOrigin: FitOrigin | null;
+  arVersion: number;
+  arSessionId: string | null;
+  pendingArCommand: PendingArCommand | null;
+  processedArCommands: Record<string, true>;
+  processedArRequests: Record<string, true>;
+  beginArSession: (sessionId: string) => void;
+  endArSession: () => void;
+  prepareArCommand: (
+    requestId: string, sessionId: string, proposal: ArProposal
+  ) => ArOutcome | { status: 'PENDING'; actualStateVersion: number };
+  finishArCommand: (
+    commandId: string, sessionId: string, result: 'rendered' | 'failed' | 'unknown'
+  ) => ArOutcome;
+  cancelArCommand: () => ArOutcome | null;
   applyShade: (product: Product, shade: Shade) => void;
   applyLook: (look: CelebLook, products: Product[]) => void;
   setIntensity: (zone: MakeupZone, intensity: number) => void;
@@ -123,7 +158,25 @@ const EMPTY: MakeupState = {
   foundation: null,
 };
 
-export const useMakeupStore = create<MakeupStore>((set) => ({
+export const useMakeupStore = create<MakeupStore>((rawSet) => {
+  // All existing manual mutations pass this gate, including fit and look restoration.
+  const set = (update: Partial<MakeupStore> | ((state: MakeupStore) => Partial<MakeupStore> | MakeupStore)) => {
+    rawSet((state) => {
+      const patch = typeof update === 'function' ? update(state) : update;
+      if (patch === state) return state;
+      const arFields = ['makeup', 'selections', 'fit', 'fitOrigin', 'activeLook',
+        'colorLinks', 'heroZones', 'stepOrder', 'modified', 'lookOrigin'] as const;
+      const affectsAr = arFields.some((key) => key in patch);
+      if (!affectsAr) return patch;
+      return {
+        ...patch,
+        // Even a repeated value is a later user decision and invalidates an in-flight proposal.
+        arVersion: Math.min(state.arVersion + 1, Number.MAX_SAFE_INTEGER),
+        pendingArCommand: null,
+      };
+    });
+  };
+  return {
   makeup: EMPTY,
   selections: {},
   activeLook: null,
@@ -134,6 +187,76 @@ export const useMakeupStore = create<MakeupStore>((set) => ({
   lookOrigin: null,
   fit: null,
   fitOrigin: null,
+  arVersion: 0,
+  arSessionId: null,
+  pendingArCommand: null,
+  processedArCommands: {},
+  processedArRequests: {},
+
+  beginArSession: (sessionId) => rawSet({ arSessionId: sessionId || null, pendingArCommand: null }),
+  endArSession: () => rawSet({ arSessionId: null, pendingArCommand: null }),
+
+  prepareArCommand: (requestId, sessionId, proposal) => {
+    let outcome: ArOutcome | { status: 'PENDING'; actualStateVersion: number } = {
+      status: 'REJECTED', actualStateVersion: 0,
+    };
+    rawSet((state) => {
+      outcome = { status: 'REJECTED', actualStateVersion: state.arVersion };
+      const selected = state.selections.lip;
+      if (typeof requestId !== 'string' || !requestId || typeof sessionId !== 'string' || !sessionId ||
+          !proposal || typeof proposal !== 'object' || typeof proposal.commandId !== 'string' || !proposal.commandId ||
+          state.processedArRequests[requestId] || state.processedArCommands[proposal.commandId] ||
+          state.pendingArCommand || state.arSessionId !== sessionId || state.fit || !state.makeup.lip ||
+          !Number.isSafeInteger(proposal.expectedStateVersion) || proposal.expectedStateVersion !== state.arVersion ||
+          state.arVersion >= Number.MAX_SAFE_INTEGER || proposal.action !== 'set_intensity' ||
+          proposal.zone !== 'lip' || !Number.isFinite(proposal.value) || proposal.value < 0 || proposal.value > 1 ||
+          !selected || selected.productId !== proposal.productId || selected.shadeId !== proposal.shadeId) return state;
+      outcome = { status: 'PENDING', actualStateVersion: state.arVersion };
+      return {
+        pendingArCommand: { requestId, sessionId, proposal: { ...proposal } },
+        processedArCommands: { ...state.processedArCommands, [proposal.commandId]: true },
+        processedArRequests: { ...state.processedArRequests, [requestId]: true },
+      };
+    });
+    return outcome;
+  },
+
+  finishArCommand: (commandId, sessionId, result) => {
+    let outcome: ArOutcome = { status: 'REJECTED', actualStateVersion: 0 };
+    rawSet((state) => {
+      outcome = { status: 'REJECTED', actualStateVersion: state.arVersion };
+      const pending = state.pendingArCommand;
+      if (!pending || pending.sessionId !== sessionId || pending.proposal.commandId !== commandId) return state;
+      if (result !== 'rendered') {
+        outcome = { status: result === 'failed' ? 'FAILED' : 'UNKNOWN', actualStateVersion: state.arVersion };
+        return { pendingArCommand: null };
+      }
+      const proposal = pending.proposal;
+      const lip = state.makeup.lip;
+      const selected = state.selections.lip;
+      if (state.arSessionId !== sessionId || state.fit || !lip || !selected ||
+          state.arVersion !== proposal.expectedStateVersion || selected.productId !== proposal.productId ||
+          selected.shadeId !== proposal.shadeId) return { pendingArCommand: null };
+      if (lip.intensity === proposal.value) {
+        outcome = { status: 'NO_CHANGE', actualStateVersion: state.arVersion };
+        return { pendingArCommand: null };
+      }
+      const arVersion = state.arVersion + 1;
+      outcome = { status: 'APPLIED', actualStateVersion: arVersion };
+      return { makeup: { ...state.makeup, lip: { ...lip, intensity: proposal.value } }, arVersion, pendingArCommand: null };
+    });
+    return outcome;
+  },
+
+  cancelArCommand: () => {
+    let outcome: ArOutcome | null = null;
+    rawSet((state) => {
+      if (!state.pendingArCommand) return state;
+      outcome = { status: 'REJECTED', actualStateVersion: state.arVersion };
+      return { pendingArCommand: null };
+    });
+    return outcome;
+  },
 
   applyShade: (product, shade) => {
     const zone = product.makeupZone;
@@ -174,7 +297,7 @@ export const useMakeupStore = create<MakeupStore>((set) => ({
       const selections: Partial<Record<MakeupZone, ZoneSelection>> = {};
       for (const item of look.items) {
         const product = products.find((p) => p.id === item.productId);
-        if (product?.makeupZone && item.shadeId) {
+        if (product?.makeupZone && item.shadeId && product.shades.some((shade) => shade.id === item.shadeId)) {
           selections[product.makeupZone] = { productId: product.id, shadeId: item.shadeId };
         }
       }
@@ -298,4 +421,5 @@ export const useMakeupStore = create<MakeupStore>((set) => ({
       fit: null,
       fitOrigin: null,
     }),
-}));
+  };
+});

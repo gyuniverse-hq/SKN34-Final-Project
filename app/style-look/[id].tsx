@@ -11,12 +11,13 @@ import { theme } from '@/constants/theme';
 import { useVideoTryOn } from '@/hooks/useVideoTryOn';
 import { useI18n } from '@/lib/i18n';
 import { useStyleLooks } from '@/lib/queries';
-import { arHref, parseId, productHref } from '@/lib/routes';
+import { arHref, paramValue, productHref } from '@/lib/routes';
 import { styleLookGroupLabel, styleLookZoneLabel } from '@/lib/styleLookGroups';
 
 export default function StyleLookDetail() {
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
-  const id = parseId(rawId);
+  const value = paramValue(rawId);
+  const id = value && /^[A-Za-z0-9_-]{1,64}$/.test(value) ? value : undefined;
   const router = useRouter();
   const { t } = useI18n();
   const query = useStyleLooks();
@@ -37,6 +38,10 @@ export default function StyleLookDetail() {
           {look.title}
         </Text>
         <Text style={styles.tag}>{look.tag}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('chat.style.openGuide')} style={styles.video}
+          onPress={() => router.push({ pathname: '/chat', params: { recipeKind: 'video', recipeLookId: look.id } })}>
+          <Text style={styles.videoText}>{t('chat.style.openGuide')}</Text>
+        </Pressable>
         <Pressable
           accessibilityRole="link"
           style={({ pressed }) => [styles.video, pressed && styles.pressed]}

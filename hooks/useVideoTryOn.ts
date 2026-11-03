@@ -52,7 +52,7 @@ export function useVideoTryOn(items: VideoProductMapping[], id: string, title: s
       const look: CelebLook = { id, title, inspiration: '', description: '', thumbnailUrl: '', tutorialQuery: '', items: lookItems, makeup, tags: [] };
       applyLook(look, selected.map((item) => item.product));
     }
-    router.push(arHref({ video: true }));
+    router.push(arHref(selected.length ? { video: true } : {}));
   };
   const productsById = Object.fromEntries((products.data ?? []).map((product) => [product.id, product]));
   return { open, selectedIndices, productsById, count: selected.length, loading: ids.length > 0 && products.isPending, error: products.isError };

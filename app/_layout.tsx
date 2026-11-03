@@ -62,6 +62,7 @@ function RootStack() {
       }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="chat" options={{ title: t('chat.title') }} />
+      <Stack.Screen name="style-browse" options={{ title: t('tabs.looks') }} />
       <Stack.Screen name="product/[id]" options={{ title: '' }} />
       <Stack.Screen name="look/[id]" options={{ title: '' }} />
       <Stack.Screen name="idol-looks" options={{ title: '' }} />

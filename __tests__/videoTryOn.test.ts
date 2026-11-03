@@ -55,6 +55,8 @@ test('applies only confirmed products before opening AR; unmatched videos leave 
   await act(async () => { screen.update(React.createElement(Screen, { items: [] })); });
   await act(async () => { open(); });
   expect(useMakeupStore.getState().selections.lip).toEqual({ productId: 'lip', shadeId: 'red' });
+  expect(mockPush).toHaveBeenLastCalledWith({ pathname: '/ar', params: {} });
+  expect(useMakeupStore.getState().activeLook?.id).toBe('video-1');
   await act(async () => { screen.unmount(); });
   useMakeupStore.getState().reset();
 });

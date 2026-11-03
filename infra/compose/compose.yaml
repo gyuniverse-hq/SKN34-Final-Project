@@ -37,6 +37,8 @@ services:
     image: vishue-api:dev
     environment:
       <<: *backend-env
+      # Optional read-only artifact: add compose.ingredients.yaml (see docs/DEPLOYMENT.md).
+      INGREDIENT_MAPPING_PATH: ""
       DATABASE_URL: postgresql+asyncpg://vishue:${POSTGRES_PASSWORD:-vishue}@postgres:5432/vishue
       REDIS_URL: redis://redis:6379/0
       NAVER_CLIENT_ID: ${NAVER_CLIENT_ID:-}

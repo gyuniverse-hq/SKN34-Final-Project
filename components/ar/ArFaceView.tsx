@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import type { GuideMessage } from '@/lib/drawGuide';
+import { parseRecorderMessage, type RecorderMessage } from '@/lib/arRecording';
 import { parseSkinTone, type SkinTone } from '@/lib/foundationMatch';
-import type { MakeupState } from '@/types';
+import type { ArRenderCommand, ArRenderResult, MakeupState } from '@/types';
 import { FACE_TRACKER_HTML, type ArStatus } from './faceTrackerHtml';
 
 export type LightHint = 'low' | 'blown';
@@ -21,42 +22,86 @@ export interface ArFaceViewProps {
   onSkinTone?: (tone: SkinTone) => void;
   /** The WebView's renderer process died (out of memory / GPU reset). Without this the whole app exits. */
   onCrash?: () => void;
+  renderCommand?: ArRenderCommand | null;
+  onRenderResult?: (result: ArRenderResult) => void;
+  /** Development only (AR_SPEC 1-4, 11-02): record the AR canvas while true. Ignored in a production build. */
+  recording?: boolean;
+  /** Development only: pieces and state of the recording above. */
+  onRecorder?: (message: RecorderMessage) => void;
 }
 
-export function ArFaceView({ makeup, compare, guide = null, fillPreview = false, onStatus, onLightHint, onSkinTone, onCrash }: ArFaceViewProps) {
+export function ArFaceView({ makeup, compare, guide = null, fillPreview = false, recording = false, onStatus, onLightHint, onSkinTone, onCrash, onRecorder, renderCommand = null, onRenderResult }: ArFaceViewProps) {
   // react-native-webview의 타입이 제네릭 기본값을 `never`로 잡는 경우가 있어,
   // 메시지/소스에 대해 넉넉한 타입을 명시해 props 타입 추론을 정상화합니다.
   const ref = useRef<WebView<any>>(null);
-  const latest = useRef({ makeup, compare, guide, fillPreview, onLightHint, onSkinTone, onCrash });
+  const stateSeq = useRef(0);
+  const latest = useRef({ makeup, compare, guide, fillPreview, onLightHint, onSkinTone, onCrash, onRecorder, renderCommand, onRenderResult });
   useEffect(() => {
-    latest.current = { makeup, compare, guide, fillPreview, onLightHint, onSkinTone, onCrash };
+    latest.current = { makeup, compare, guide, fillPreview, onLightHint, onSkinTone, onCrash, onRecorder, renderCommand, onRenderResult };
   });
+
+  // The recorder is not part of the page: in development it is injected when recording starts (components/ar/recorderScript.ts).
+  const wasRecording = useRef(false);
+  useEffect(() => {
+    if (!__DEV__ || recording === wasRecording.current) return;
+    wasRecording.current = recording;
+    if (recording) {
+      import('./recorderScript').then(({ AR_RECORDER_SCRIPT }) =>
+        ref.current?.injectJavaScript(`${AR_RECORDER_SCRIPT}\nwindow.__kbRec && window.__kbRec.start(); true;`)
+      );
+    } else {
+      ref.current?.injectJavaScript('window.__kbRec && window.__kbRec.stop(); true;');
+    }
+  }, [recording]);
 
   const send = useCallback((message: object) => {
     const payload = JSON.stringify(JSON.stringify(message));
     ref.current?.injectJavaScript(`window.__kb && window.__kb.receive(${payload}); true;`);
   }, []);
 
-  useEffect(() => send({ type: 'makeup', makeup }), [makeup, send]);
+  const sendMakeup = useCallback((current: MakeupState, command: ArRenderCommand | null) => {
+    const sequence = ++stateSeq.current;
+    send(command ? { type: command.kind === 'restore' ? 'restore_command' : 'render_command', ...command, stateSeq: sequence }
+      : { type: 'makeup', makeup: current, stateSeq: sequence });
+  }, [send]);
+
+  useEffect(() => {
+    sendMakeup(makeup, renderCommand);
+  }, [makeup, renderCommand, sendMakeup]);
   useEffect(() => send({ type: 'compare', value: compare }), [compare, send]);
   useEffect(() => send({ type: 'guide', guide }), [guide, send]);
   useEffect(() => send({ type: 'preview', fill: fillPreview }), [fillPreview, send]);
 
   const onMessage = (event: WebViewMessageEvent) => {
-    let message: { type?: string; status?: ArStatus; detail?: string; value?: LightHint | null; lab?: unknown; conf?: unknown };
+    let message: { type?: string; status?: string; detail?: string; value?: LightHint | null; lab?: unknown; conf?: unknown; commandId?: unknown; restoreId?: unknown; renderSeq?: unknown; rendererId?: unknown };
     try {
       message = JSON.parse(event.nativeEvent.data);
     } catch {
       return;
     }
     if (message.type === 'hello') {
-      send({ type: 'makeup', makeup: latest.current.makeup });
+      const command = latest.current.renderCommand;
+      sendMakeup(latest.current.makeup, command);
       send({ type: 'compare', value: latest.current.compare });
       send({ type: 'guide', guide: latest.current.guide });
       send({ type: 'preview', fill: latest.current.fillPreview });
+    } else if (message.type === 'render_result') {
+      const command = latest.current.renderCommand;
+      if (command && command.kind !== 'restore' && message.commandId === command.commandId && message.renderSeq === command.renderSeq &&
+          message.rendererId === command.rendererId && (message.status === 'rendered' || message.status === 'failed')) {
+        latest.current.onRenderResult?.({ commandId: command.commandId, renderSeq: command.renderSeq, rendererId: command.rendererId, status: message.status });
+      }
+    } else if (message.type === 'restore_result') {
+      const command = latest.current.renderCommand;
+      if (command?.kind === 'restore' && command.restoreId && message.commandId === command.commandId &&
+          message.restoreId === command.restoreId && message.renderSeq === command.renderSeq &&
+          message.rendererId === command.rendererId && (message.status === 'rendered' || message.status === 'failed')) {
+        latest.current.onRenderResult?.({ commandId: command.commandId, kind: 'restore', restoreId: command.restoreId,
+          renderSeq: command.renderSeq, rendererId: command.rendererId, status: message.status });
+      }
     } else if (message.type === 'status' && message.status) {
       if (__DEV__ && message.detail) console.warn('[ar]', message.status, message.detail);
-      onStatus(message.status);
+      onStatus(message.status as ArStatus);
     } else if (message.type === 'light_hint') {
       const hint = message.value === 'low' || message.value === 'blown' ? message.value : null;
       latest.current.onLightHint?.(hint);
@@ -65,6 +110,9 @@ export function ArFaceView({ makeup, compare, guide = null, fillPreview = false,
       if (tone) latest.current.onSkinTone?.(tone);
     } else if (message.type === 'crash') {
       latest.current.onCrash?.();
+    } else if (__DEV__ && typeof message.type === 'string' && message.type.startsWith('rec_')) {
+      const recorded = parseRecorderMessage(message);
+      if (recorded) latest.current.onRecorder?.(recorded);
     }
   };
 

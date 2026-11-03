@@ -446,8 +446,31 @@ BULLET_SPLIT = re.compile(
     r"[\s∙·ㆍ・•\n\t\[\]<>{}ㅣ|@]+"
 )  # v29: 쉼표 없는 블록(공백/∙ 구분) 전용
 # '1,2-헥산다이올' 처럼 성분명 안에 든 쉼표는 자르면 안 된다
-PROTECT = re.compile(r"(\d)\s*,\s*(\d)")
 PROTECT_MARK = "\x00"
+# v31: 숫자 체인을 통짜로 찾아 쉼표를 판정한다.
+# 이전 (\d)\s*,\s*(\d) 방식은 양쪽 숫자를 소비해서, '폴리솔베이트60, 1,2-헥산다이올' 처럼
+# 경계 쉼표를 먼저 만나면 바로 뒤의 로칸트(1,2)를 놓치고 '2-헥산다이올' 유령 성분을 만들었다.
+THOUSANDS_GROUP = re.compile(r"\d{1,3}(?:\s*,\s*\d{3})+(?!\d)")  # 함량 표기의 천 단위 구분
+NUMBER_CHAIN = re.compile(r"\d{1,3}(?:\s*,\s*\d{1,3})+")  # 1,2 / 2,6 / 60,1,2
+CHAIN_ATTACHED = re.compile(r"[0-9A-Za-z\uac00-\ud7a3\-]")  # 숫자가 성분명 꼬리에 붙었는지
+
+
+def protect_number_commas(text):
+    """성분명 안의 쉼표(로칸트·천 단위)는 보호하고 성분 경계 쉼표만 남긴다."""
+    joiner = PROTECT_MARK.join
+    text = THOUSANDS_GROUP.sub(
+        lambda m: joiner(re.split(r"\s*,\s*", m.group(0))), text or ""
+    )
+
+    def decide(m):
+        parts = re.split(r"\s*,\s*", m.group(0))
+        prev = text[m.start() - 1] if m.start() else ""
+        # 이름 꼬리 숫자 뒤에 로칸트가 이어지는 경우에만 첫 쉼표를 성분 경계로 본다.
+        if CHAIN_ATTACHED.match(prev) and len(parts) >= 3:
+            return parts[0] + "," + joiner(parts[1:])
+        return joiner(parts)
+
+    return NUMBER_CHAIN.sub(decide, text)
 NUM_PREFIX = re.compile(r"^\s*\d+\s*[.)]\s*")
 ILN_RE = re.compile(r"\s*ILN\s*\d+\s*", re.IGNORECASE)  # v29: ILN 관리번호 제거
 CI_ANY = re.compile(
@@ -542,7 +565,7 @@ def clean_ingredient(tok, on_review=None):
 def ingredient_list(text, exclude=None, on_review=None):
     """exclude: 이 상품의 옵션명·호수명(정규화). '01 웜베이지' 같은 호수 줄이 성분으로 들어가는 걸 막는다."""
     out, seen = [], set()
-    text = PROTECT.sub(r"\1" + PROTECT_MARK + r"\2", text or "")
+    text = protect_number_commas(text)
     # v29: 쉼표 없는 블록(공백/∙ 나열)은 공백 기준으로 쪼갠다(공백 없는 단일 성분명은 그대로 보존)
     toks = (
         BULLET_SPLIT.split(text)
@@ -849,8 +872,7 @@ def collect(mid_name, goods_no, run_id, image_pool):
     html = resp.text
     g = _enrich_extract(oy.next_data_text(html))
     d = oy.parse_detail(html, goods_no)
-    if not g:
-        raise RuntimeError("상품 JSON 파싱 실패")
+    oy.require_product_json(resp, g)
 
     options = []
     seen_opt = set()

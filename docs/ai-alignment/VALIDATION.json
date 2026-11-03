@@ -1,0 +1,20 @@
+{
+  "package_date": "2026-10-31",
+  "review_cases": 359,
+  "review_status_counts": {
+    "APPROVAL_CANDIDATE": 25,
+    "NEEDS_POLICY": 10,
+    "NOT_REVIEWED": 324
+  },
+  "gold_approved": 0,
+  "full_definitions": 359,
+  "ids_identical": true,
+  "source_utterance_links": 842,
+  "source_utterance_original_text_present": 0,
+  "mock_1a_cases": 11,
+  "evaluation_unit_tests_exit_code": 0,
+  "no_actual_llm_or_ar_test_has_been_run": true,
+  "latest_review_identical_to_1a_original_snapshot": true,
+  "worktree_status": "Not inspected by this package; Codex must check locally.",
+  "main_risk": "Source U842 original_text absent; only intent-level linkage. No Gold approvals, no actual 1-A run."
+}

@@ -1,0 +1,162 @@
+[
+  {
+    "id": "D001",
+    "owner": "AR·프론트·LLM",
+    "question": "상대 강도 '20% 연하게'의 뜻이 20%p 감소인지 현재값의 20% 감소인지",
+    "affected": "AR-03 / E-I-14-E",
+    "priority": "P0",
+    "done": "현재 기준+delta 정책 문서화, 정답·경계 사례 3건 검수",
+    "status": "미결정",
+    "risk": "상대 명령 자동 처리 불가"
+  },
+  {
+    "id": "D002",
+    "owner": "AR·프론트",
+    "question": "립 미선택·기본 립 레이어 존재 시 명령 허용 여부",
+    "affected": "E-AR-02 / AR-02",
+    "priority": "P0",
+    "done": "선택 상태·기본 layer와 명령 가능 범위 확정",
+    "status": "미결정",
+    "risk": "재질문 오탐 위험"
+  },
+  {
+    "id": "D003",
+    "owner": "AR·프론트",
+    "question": "ACK 성공·실패·시간초과·늦은 도착 및 revision 증가 정의",
+    "affected": "E-AR-08~10 / XC05",
+    "priority": "P0",
+    "done": "명령 계약, timeout, version, ACK 스키마 검수",
+    "status": "미결정",
+    "risk": "가짜 적용 완료·상태 충돌"
+  },
+  {
+    "id": "D004",
+    "owner": "AR·프론트·백엔드",
+    "question": "requestId·commandId 멱등성 범위와 재시도 기준",
+    "affected": "E-AR-09 / XC06",
+    "priority": "P0",
+    "done": "중복 요청/도구 결과 재전송 테스트 기준 확정",
+    "status": "미결정",
+    "risk": "이중 실행"
+  },
+  {
+    "id": "D005",
+    "owner": "LLM·기획",
+    "question": "모호함 재질문 기준: 화면 선택 부위·활성 productId 우선순위",
+    "affected": "E-AR-05 / 13 / E-PR-06",
+    "priority": "P0",
+    "done": "맥락 우선·질문 최소화 표준 예시 확정",
+    "status": "미결정",
+    "risk": "불필요 재질문/오동작"
+  },
+  {
+    "id": "D006",
+    "owner": "LLM·기획·Product",
+    "question": "복합 조건(가격/성분 제외/촉촉함)이 MVP인지 후속인지",
+    "affected": "E-PR-04 / PROD-08",
+    "priority": "P0",
+    "done": "단계별 지원 범위·동시 조건 개수 확정",
+    "status": "미결정",
+    "risk": "MVP 판정과 기능표 충돌"
+  },
+  {
+    "id": "D007",
+    "owner": "데이터·Product",
+    "question": "향료 없음 판정 근거: 검증 전성분과 제조사 무향료 표시 구분",
+    "affected": "E-PR-01/02/04",
+    "priority": "P0",
+    "done": "전성분 완전성, 제품 옵션 기준, 출처·갱신시점",
+    "status": "미결정",
+    "risk": "무향료 허위 단정"
+  },
+  {
+    "id": "D008",
+    "owner": "데이터·Product",
+    "question": "제품·호수·가격·판매처·색상 식별자와 source version",
+    "affected": "E-PR-07~10 / XC08",
+    "priority": "P0",
+    "done": "fixture 5개 제품·10개 호수 + 검증일·옵션 관계",
+    "status": "미결정",
+    "risk": "상품/호수 환각"
+  },
+  {
+    "id": "D009",
+    "owner": "Style·콘텐츠",
+    "question": "검수 레시피와 일반 팁을 분리해 제공할 정책",
+    "affected": "E-ST-01/03/09",
+    "priority": "P0",
+    "done": "3단계 이상 룩 3종·출처·검수자·revision",
+    "status": "미결정",
+    "risk": "검수된 레시피라고 허위 주장"
+  },
+  {
+    "id": "D010",
+    "owner": "Style·콘텐츠",
+    "question": "영상/이미지 접근과 분석·저장·재배포 권리 구분",
+    "affected": "E-ST-02/08 / LOOK-02",
+    "priority": "P0",
+    "done": "콘텐츠 Gate 허용 행위별 계약·샘플",
+    "status": "미결정",
+    "risk": "권리 없는 자료 추측·저장"
+  },
+  {
+    "id": "D011",
+    "owner": "LLM·프론트",
+    "question": "resultSetId, activeRecipeId, selectedProductId, 만료 TTL 설계",
+    "affected": "E-PR-03/09 / E-ST-09",
+    "priority": "P0",
+    "done": "화면 이동·세션 재접속 정책과 목록 순서 검수",
+    "status": "미결정",
+    "risk": "두 번째 상품 참조 혼동"
+  },
+  {
+    "id": "D012",
+    "owner": "AR·LLM",
+    "question": "부분 성공/원자적 롤백과 연속 Undo 기준",
+    "affected": "XC09 / E-AR-14",
+    "priority": "P1",
+    "done": "다중 부위 실행·부분 실패·Undo 기록 검수",
+    "status": "미결정",
+    "risk": "불일치 AR 화면"
+  },
+  {
+    "id": "D013",
+    "owner": "ML·개인정보·프론트",
+    "question": "사진/피부 결과 공유 동의·철회·원본 전송 경로",
+    "affected": "TC-AI-03-* / XC10",
+    "priority": "P0",
+    "done": "허용 정보와 저장·삭제·접근 제한 정책",
+    "status": "미결정",
+    "risk": "민감정보 유출"
+  },
+  {
+    "id": "D014",
+    "owner": "기획·LLM",
+    "question": "최종 평가에서 자동평가와 사람 검수의 합격 기준",
+    "affected": "SYS-03 / E-*",
+    "priority": "P0",
+    "done": "평가자 2인 검수·불일치 해결·보류셋 기준",
+    "status": "미결정",
+    "risk": "실행 결과의 신뢰도 불명"
+  },
+  {
+    "id": "D015",
+    "owner": "프론트·기획",
+    "question": "LLM 비개입 요청과 채팅→상품 카드→AR 미리보기 화면 동작",
+    "affected": "PROD-05 / XC11",
+    "priority": "P1",
+    "done": "UI 이벤트/화면 ID·키보드 진입 시 선택 상태 계약",
+    "status": "미결정",
+    "risk": "불필요 호출·화면 이동 오동작"
+  },
+  {
+    "id": "D016",
+    "owner": "글로벌·Product",
+    "question": "영어/일본어/중국어 입력 지원, 번역·환율·해외배송 범위",
+    "affected": "F001~F084 / XC12",
+    "priority": "P1",
+    "done": "지원 언어와 배송·가격 확인 데이터 수준 합의",
+    "status": "미결정",
+    "risk": "국외 구매 오안내"
+  }
+]

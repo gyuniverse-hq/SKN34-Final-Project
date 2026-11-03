@@ -68,3 +68,13 @@ test('style detail shows links only for approved products and shade', async () =
     await act(async () => { screen?.unmount(); });
   }
 });
+
+test('opens the guide for the exact video', async () => {
+  mockPush.mockClear();
+  let screen!: renderer.ReactTestRenderer;
+  await act(async () => { screen = renderer.create(<StyleLookDetail />); });
+  const guide = screen.root.findAll((node) => node.props.accessibilityLabel === 'chat.style.openGuide')[0];
+  await act(async () => { guide.props.onPress(); });
+  expect(mockPush).toHaveBeenCalledWith({ pathname: '/chat', params: { recipeKind: 'video', recipeLookId: 'video-1' } });
+  await act(async () => { screen.unmount(); });
+});

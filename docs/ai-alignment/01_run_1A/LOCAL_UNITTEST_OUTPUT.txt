@@ -1,0 +1,15 @@
+
+test_actual_mutation_fails (test_evaluate_1a_predictions.ContractTests.test_actual_mutation_fails) ... ok
+test_all_11_positive_contracts (test_evaluate_1a_predictions.ContractTests.test_all_11_positive_contracts) ... ok
+test_false_success_claim_fails (test_evaluate_1a_predictions.ContractTests.test_false_success_claim_fails) ... ok
+test_invalid_value_fails (test_evaluate_1a_predictions.ContractTests.test_invalid_value_fails) ... ok
+test_missing_command_fails (test_evaluate_1a_predictions.ContractTests.test_missing_command_fails) ... ok
+test_missing_schema_field_fails (test_evaluate_1a_predictions.ContractTests.test_missing_schema_field_fails) ... ok
+test_uninjected_model_error_not_executed (test_evaluate_1a_predictions.ContractTests.test_uninjected_model_error_not_executed) ... ok
+test_unobserved_side_effects_not_pass (test_evaluate_1a_predictions.ContractTests.test_unobserved_side_effects_not_pass) ... ok
+test_unwanted_command_fails (test_evaluate_1a_predictions.ContractTests.test_unwanted_command_fails) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.001s
+
+OK

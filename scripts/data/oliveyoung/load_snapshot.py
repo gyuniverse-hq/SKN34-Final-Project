@@ -16,6 +16,7 @@ import ssl
 from pathlib import Path
 
 import asyncpg
+from collect_snapshot import unavailable_records
 
 LOOKUPS = {
     "brand": "brand_code",
@@ -43,7 +44,11 @@ def _files(directory: Path, kind: str) -> dict[str, tuple[Path, list[str], int]]
         raise ValueError(
             "Snapshot listing is empty or contains duplicate goods numbers"
         )
-    if manifest.get("collected_count") != len(expected):
+    unavailable = unavailable_records(manifest)
+    if manifest.get("unavailable_count", len(unavailable)) != len(unavailable):
+        raise ValueError("Snapshot unavailable count differs from its records")
+    collected = expected - set(unavailable)
+    if manifest.get("collected_count") != len(collected):
         raise ValueError("Snapshot collected count differs from its listing")
     tables = (
         "crawl_run",
@@ -88,10 +93,21 @@ def _files(directory: Path, kind: str) -> dict[str, tuple[Path, list[str], int]]
         files[table] = (path, columns, count)
     with files["product"][0].open(encoding="utf-8-sig", newline="") as source:
         goods = [row["goods_no"] for row in csv.DictReader(source)]
-    if len(goods) != len(expected) or set(goods) != expected:
+    if len(goods) != len(collected) or set(goods) != collected:
         raise ValueError(
-            "Product CSV does not exactly match the completed category listing"
+            "Product CSV does not match the listing minus confirmed unavailable goods"
         )
+    if unavailable:
+        for table, (path, columns, _) in files.items():
+            if "goods_no" not in columns or table == "crawl_log":
+                continue
+            with path.open(encoding="utf-8-sig", newline="") as source:
+                if any(
+                    row["goods_no"] in unavailable for row in csv.DictReader(source)
+                ):
+                    raise ValueError(
+                        f"Confirmed unavailable goods still have {table} CSV rows"
+                    )
     with files["option_ingredient"][0].open(encoding="utf-8-sig", newline="") as source:
         for row in csv.DictReader(source):
             if not row["ingredient_id"]:
@@ -275,7 +291,12 @@ async def _merge_simple(
 
 
 async def _apply(
-    conn: asyncpg.Connection, files: dict, kind: str, run_id: int, mode: str
+    conn: asyncpg.Connection,
+    files: dict,
+    kind: str,
+    run_id: int,
+    mode: str,
+    unavailable: dict,
 ) -> dict:
     await conn.execute("SELECT pg_advisory_xact_lock(20261031, 301)")
     await conn.execute(
@@ -469,6 +490,16 @@ async def _apply(
         "WHERE s.run_id=$1",
         run_id,
     )
+    if unavailable:
+        await conn.executemany(
+            "INSERT INTO public.raw_oy_crawl_log "
+            "(run_id,goods_no,step,status,error_message,logged_at) "
+            "VALUES ($1,$2,'detail_unavailable','confirmed',$3,now())",
+            [
+                (run_id, goods_no, f"{record['method']}: {record['reason']}")
+                for goods_no, record in unavailable.items()
+            ],
+        )
     # Every seen goods number is logged so a later complete run can identify removals.
     await conn.execute(
         "INSERT INTO public.raw_oy_crawl_log (run_id,goods_no,step,status,logged_at) "
@@ -477,11 +508,11 @@ async def _apply(
     )
     previous = await conn.fetchval(
         "SELECT r.run_id FROM public.raw_oy_crawl_run r "
-        "WHERE r.script_version=$1 AND r.status='done' AND r.run_id<>$2 "
+        "WHERE r.script_version LIKE $1 AND r.status='done' AND r.run_id<>$2 "
         "AND EXISTS (SELECT 1 FROM public.raw_oy_crawl_log l "
         "WHERE l.run_id=r.run_id AND l.step='scope_seen') "
         "ORDER BY r.run_id DESC LIMIT 1",
-        "makeup-v30-db" if kind == "makeup" else "skincare-v2-db",
+        "makeup-v%-db" if kind == "makeup" else "skincare-v%-db",
         run_id,
     )
     delisted = 0
@@ -544,7 +575,12 @@ async def load(args: argparse.Namespace) -> None:
             await _stage(conn, files)
             await _validate_stage(conn, files)
             result = await _apply(
-                conn, files, args.kind, manifest["run_id"], manifest["mode"]
+                conn,
+                files,
+                args.kind,
+                manifest["run_id"],
+                manifest["mode"],
+                unavailable_records(manifest),
             )
         print(f"Committed snapshot {manifest['run_id']}: {json.dumps(result)}")
     finally:

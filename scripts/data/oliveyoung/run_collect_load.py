@@ -20,16 +20,31 @@ def run(kind: str) -> None:
     )
     parser.add_argument("--mode", choices=("full", "incremental"), default="full")
     parser.add_argument("--workers", type=int, default=10)
+    parser.add_argument(
+        "--confirm-unavailable",
+        action="append",
+        default=[],
+        metavar="GOODS_NO",
+        help="Manually confirm one listed but inaccessible product as unavailable",
+    )
     from load_snapshot import add_arguments
 
     add_arguments(parser)
     args = parser.parse_args()
+    if args.confirm_unavailable and args.phase not in {"collect", "run"}:
+        parser.error("--confirm-unavailable is only valid during collection")
     if args.phase == "run" and args.target == "shared" and not args.execute_shared:
         parser.error("--phase run --target shared requires --execute-shared")
     if args.phase in {"collect", "run"}:
         from collect_snapshot import collect
 
-        manifest = collect(kind, Path(args.snapshot_dir), args.workers, args.mode)
+        manifest = collect(
+            kind,
+            Path(args.snapshot_dir),
+            args.workers,
+            args.mode,
+            args.confirm_unavailable,
+        )
         if not manifest["complete"]:
             raise SystemExit(
                 "Collection incomplete. Re-run this phase with the same snapshot folder."

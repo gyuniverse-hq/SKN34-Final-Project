@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, Query, Request, Response
+from typing import Literal
+
+from fastapi import APIRouter, Depends, Path, Query, Request, Response
 
 from app.core.errors import ApiError, UpstreamError
 from app.core.http import cache_for
@@ -13,8 +15,10 @@ from app.schemas.catalog import (
     StoresResponse,
 )
 from app.schemas.external import ProductOffers
+from app.schemas.ingredient import IngredientReadResult
 from app.schemas.product_video import ProductVideosResponse
 from app.services.catalog_service import CatalogService, get_catalog_service
+from app.services.ingredient_service import IngredientService, get_ingredient_service
 from app.services.offer_service import OfferService, get_offer_service
 from app.services.product_video_service import ProductVideoService, get_product_video_service
 
@@ -53,6 +57,22 @@ async def get_product(
         raise ApiError(404, "Product not found", "not_found")
     cache_for(response, 300)
     return ProductResponse(product=product)
+
+
+@router.get("/products/{product_id}/ingredients", response_model=IngredientReadResult)
+async def get_product_ingredients(
+    response: Response,
+    product_id: str = Path(min_length=1, max_length=128),
+    shade_id: str | None = Query(default=None, alias="shadeId", min_length=1, max_length=128),
+    option_id: str | None = Query(default=None, alias="optionId", min_length=1, max_length=128),
+    ingredient_name: str | None = Query(
+        default=None, alias="ingredientName", min_length=1, max_length=500
+    ),
+    operator: Literal["includes", "excludes"] = "includes",
+    service: IngredientService = Depends(get_ingredient_service),
+) -> IngredientReadResult:
+    response.headers["Cache-Control"] = "no-store"
+    return await service.get_ingredients(product_id, shade_id, option_id, ingredient_name, operator)
 
 
 @router.get("/products/{product_id}/offers", response_model=ProductOffers)
