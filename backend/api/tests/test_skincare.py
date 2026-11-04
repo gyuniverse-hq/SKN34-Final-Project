@@ -82,12 +82,36 @@ def request(**changes):
         dict(re_review_required=True),
         dict(human_mapping_review="수정필요"),
         dict(ai_paper_review="제외"),
+        dict(evidence_ids=[]),
         dict(mapping_type="combination", ingredient_codes=["A", "B"]),
     ],
 )
 def test_unapproved_mappings_never_rank(change):
     result = recommend(snapshot(mappings=[mapping(**change)]), request())
     assert result.coverage[0].status == "mapping_unavailable"
+    assert result.matches == []
+
+
+def test_db_option_matches_are_required_even_when_ingredients_match():
+    result = recommend(snapshot(options=[option(matched_mapping_ids=[])]), request())
+    assert result.coverage[0].status == "no_matches"
+    assert result.matches == []
+    result = recommend(snapshot(options=[option(matched_mapping_ids=["m"])]), request())
+    assert [m.option_id for m in result.matches] == ["a"]
+
+
+def test_db_match_never_bypasses_complete_ingredients_or_approval():
+    result = recommend(
+        snapshot(options=[option(matched_mapping_ids=["m"], ingredient_codes=[])]), request()
+    )
+    assert result.matches == []
+    result = recommend(
+        snapshot(
+            options=[option(matched_mapping_ids=["m"])],
+            mappings=[mapping(runtime_enabled=False)],
+        ),
+        request(),
+    )
     assert result.matches == []
 
 

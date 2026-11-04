@@ -38,7 +38,7 @@ class IngredientMapping(StrictModel):
     target_concern: Goal | Literal["blemish"]
     mapping_type: Literal["single", "combination"]
     ingredient_codes: list[str] = Field(min_length=1)
-    evidence_ids: list[str] = Field(min_length=1)
+    evidence_ids: list[str]
     mapping_status: str
     human_mapping_review: str
     ai_paper_review: str
@@ -53,6 +53,7 @@ class IngredientMapping(StrictModel):
             and self.target_concern in GOALS
             and self.runtime_enabled
             and self.identity_verified
+            and bool(self.evidence_ids)
             and self.mapping_status == "candidate_after_match"
             and self.human_mapping_review == "승인"
             and self.ai_paper_review == "승인"
@@ -75,6 +76,8 @@ class SkincareOption(StrictModel):
     review_count: int | None = Field(default=None, ge=0, strict=True)
     rating_avg: float | None = Field(default=None, ge=1, le=5)
     source_option_id: str
+    # DB-computed matches; None preserves previously published snapshots.
+    matched_mapping_ids: list[str] | None = None
 
 
 class SkincareSnapshot(StrictModel):
@@ -115,6 +118,10 @@ class SkincareSnapshot(StrictModel):
             ):
                 raise ValueError("Missing ingredient provenance")
         for o in self.options:
+            if o.matched_mapping_ids is not None and not set(o.matched_mapping_ids).issubset(
+                {m.mapping_id for m in self.mappings}
+            ):
+                raise ValueError("Unknown matched mapping ID")
             if o.product.category != "skincare" or o.source_option_id != o.option_id:
                 raise ValueError("Invalid product/option lineage")
             if o.identity_verified and any(

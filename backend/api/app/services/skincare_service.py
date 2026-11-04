@@ -34,7 +34,9 @@ def recommend(
         matches = [
             m
             for m in mappings
-            if m.target_concern in goals and set(m.ingredient_codes).issubset(o.ingredient_codes)
+            if m.target_concern in goals
+            and set(m.ingredient_codes).issubset(o.ingredient_codes)
+            and (o.matched_mapping_ids is None or m.mapping_id in o.matched_mapping_ids)
         ]
         matched = [g for g in goals if any(m.target_concern == g for m in matches)]
         excluded = (
@@ -102,6 +104,7 @@ def recommend(
                         and o.identity_verified
                         and m.identity_verified
                         and set(m.ingredient_codes).issubset(o.ingredient_codes)
+                        and (o.matched_mapping_ids is None or m.mapping_id in o.matched_mapping_ids)
                     ],
                 }
             )

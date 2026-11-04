@@ -9,7 +9,7 @@
 
 0012 마이그레이션의 `skincare_serving`은 개인정보 없는 버전별 JSONB 서빙 projection이다.
 작은 매핑 데이터셋을 한 번에 검증·교체하기 위해 옵션·매핑·논문을 한 행으로 발행한다.
-상품은 동일 트랜잭션에서 upsert하며 기존 상품과 룩은 삭제하지 않는다.
+상품 정보는 `products`와 `shades`에서 읽고 원천 옵션에 연결한다. 발행 시에는 `skincare_serving`만 교체한다.
 전체 카탈로그를 교체하는 기존 seed 명령은 오래된 projection을 무효화한다. 이후 다시 발행한다.
 
 검수 manifest는 실제 운영 DB 확인 후 작성한다. 아래 값은 형식 예시이며 실제 코드·ID가 아니다.
@@ -20,9 +20,6 @@
   "reviewedBy": "reviewer",
   "availableSaleStatuses": ["운영 DB에서 확인한 판매중 코드"],
   "categories": {"검수된 세럼 표준분류 코드": "serum"},
-  "ingredients": {
-    "NIACINAMIDE": {"mfdsIds": [123], "reviewedBy": "reviewer", "source": "검수 근거"}
-  },
   "labels": {
     "상품번호": {"skinTypes": ["dry"], "sensitive": false, "source": "제조사 표기 출처"}
   }
@@ -31,20 +28,25 @@
 
 허용 세부분류는 toner/essence/serum/ampoule/lotion/cream뿐이다.
 세트·마스크·선케어·세정제는 분류 manifest에 포함하지 않는다.
-MFDS ID는 CSV 정수가 아니라 운영 `oy_mfds_ingredient_map`으로 확인한다.
+추천 매핑·근거는 `rec_mapping`, `rec_mapping_ingredient`, `rec_evidence`에서 읽는다.
+성분 연결은 `rec_ingredient_link`를 사용하며 구 전달본 ID나 MFDS ID를 재연결하지 않는다.
+`exact_name` 연결은 DB 이름 일치 규칙을, `manual`·`group_member`는 검수자·날짜를 확인한다.
+후보는 `raw_oy_product.is_in_catalog=true`인 상품으로 한정하고 기존 판매·분류 검수를 적용한다.
+옵션의 `matchedMappingIds`에는 `rec_concern_match`의 일치 결과를 담는다. 성분을 모두 갖추고
+이 결과에도 포함된 매핑만 추천한다. 과거 발행본은 기존 성분 집합 판정을 유지한다.
 미연결 성분은 사용하지 않으며 이름·함량·성분 표기 순서로 효과를 추측하지 않는다.
 
 `backend/api`의 uv 환경에서 실행한다. 첫 두 단계는 운영 DB를 변경하지 않는다.
 
 ```powershell
-uv run python ../../scripts/data/oliveyoung/build_skincare.py mapping.zip reviewed-manifest.json reviewed-bundle.json
+uv run python ../../scripts/data/oliveyoung/build_skincare.py reviewed-manifest.json reviewed-bundle.json
 uv run python -m app.jobs.publish_skincare reviewed-bundle.json
 uv run python -m app.jobs.publish_skincare reviewed-bundle.json --apply
 ```
 
 DB URL은 backend 환경의 DATABASE_URL을 사용한다. 마이그레이션은 기존 배포 절차로 적용한다.
-원본 ZIP의 runtime_enabled=0을 변환 코드에서 변경하지 않는다. 운영 사용 승인은 검수 담당자가
-매핑 데이터에 명시적으로 반영한 후 다시 발행한다. 진정·모공은 승인 매핑 부재로 준비 중일 수 있다.
+DB의 runtime_enabled=false를 변환 코드에서 변경하지 않는다. 운영 사용 승인은 검수 담당자가
+DB 매핑에 명시적으로 반영한 후 다시 생성·발행한다. 근거 논문이 없는 매핑은 노출하지 않는다. 진정·모공은 승인 매핑 부재로 준비 중일 수 있다.
 
 ## 동작과 추적
 

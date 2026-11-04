@@ -27,7 +27,11 @@ async def main():
                 for o in snapshot.options
                 if o.available
                 and o.identity_verified
-                and any(set(m.ingredient_codes).issubset(o.ingredient_codes) for m in active)
+                and any(
+                    set(m.ingredient_codes).issubset(o.ingredient_codes)
+                    and (o.matched_mapping_ids is None or m.mapping_id in o.matched_mapping_ids)
+                    for m in active
+                )
             }
         )
         print(goal, result.coverage[0].status, "activeMappings", len(active), "products", count)

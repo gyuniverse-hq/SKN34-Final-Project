@@ -1,22 +1,19 @@
-"""Read-only build from DB raw rows + reviewed identity/category manifest + mapping ZIP.
+"""Read-only build from DB rec_* mappings + raw rows + reviewed category manifest.
 Run in backend/api's uv environment. Writes only the specified reviewable JSON file.
-Never joins ZIP ingredient integers with operational IDs or activates a mapping.
+Never activates mappings or changes ingredient links. DB matches remain option-specific.
 """
 
 import argparse
 import asyncio
-import csv
 import hashlib
-import io
 import json
-import os
 import sys
-import zipfile
 from pathlib import Path
 
 import asyncpg
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "backend" / "api"))
+from app.core.config import Settings
 from app.schemas.skincare import SkincareSnapshot
 
 
@@ -24,60 +21,77 @@ async def build(args):
     manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
     if not manifest.get("reviewedBy") or not manifest.get("version"):
         raise ValueError("Reviewed manifest with version required")
-    with zipfile.ZipFile(args.mapping_zip) as archive:
-
-        def rows(name):
-            return list(
-                csv.DictReader(io.StringIO(archive.read(name).decode("utf-8-sig")))
-            )
-
-        mappings = rows("recommendation_mapping.csv")
-        evidence = rows("evidence_sources.csv")
     conn = await asyncpg.connect(
-        os.environ["DATABASE_URL"].replace("postgresql+asyncpg://", "postgresql://")
+        Settings().database_url.replace("postgresql+asyncpg://", "postgresql://")
     )
     try:
-        products = await conn.fetch("""SELECT p.*, b.brand_name_ko, n.volume,
-            a.skin_types FROM raw_oy_product p
-            LEFT JOIN raw_oy_brand b USING (brand_code)
-            LEFT JOIN raw_oy_product_notice n USING (goods_no)
-            LEFT JOIN raw_oy_skincare_attr a USING (goods_no)""")
+        # One consistent, read-only view of mapping approvals, links and raw options.
+        await conn.execute("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY")
+        mappings = await conn.fetch("SELECT * FROM rec_mapping ORDER BY mapping_id")
+        evidence = await conn.fetch("SELECT * FROM rec_evidence ORDER BY evidence_id")
+        components = await conn.fetch("""SELECT mapping_id, ingredient_code
+            FROM rec_mapping_ingredient ORDER BY mapping_id, component_order, ingredient_code""")
+        links = await conn.fetch("""SELECT ingredient_code, oy_ingredient_id, link_method,
+            reviewed_by, reviewed_at FROM rec_ingredient_link
+            ORDER BY ingredient_code, oy_ingredient_id""")
+        matches = await conn.fetch("SELECT mapping_id, option_id FROM rec_concern_match")
+        products = await conn.fetch("""SELECT raw.goods_no, raw.std_category_code,
+            raw.sale_status, raw.delisted_at,
+            to_jsonb(c) || jsonb_build_object('shades', COALESCE((
+                SELECT jsonb_agg(to_jsonb(s) ORDER BY s.position, s.id)
+                FROM shades s WHERE s.product_id = c.id
+            ), '[]'::jsonb)) AS catalog_product
+            FROM products c
+            JOIN raw_oy_product raw ON c.id = 'oy-' || lower(raw.goods_no)
+            WHERE c.category = 'skincare' AND raw.is_in_catalog""")
         options = await conn.fetch("""SELECT o.*, s.sale_price, s.is_sold_out
             FROM raw_oy_product_option o JOIN raw_oy_price_snapshot s USING (option_id)
             WHERE s.is_latest = true""")
-        ingredients = await conn.fetch("""SELECT oi.option_id, m.mfds_ingredient_id
+        ingredients = await conn.fetch("""SELECT oi.option_id, l.ingredient_code
             FROM raw_oy_option_ingredient oi
-            JOIN oy_mfds_ingredient_map m ON m.oy_ingredient_id=oi.ingredient_id""")
+            JOIN rec_ingredient_link l ON l.oy_ingredient_id=oi.ingredient_id""")
         reviews = {
             r["goods_no"]: r
-            for r in await conn.fetch(
-                "SELECT * FROM raw_oy_review_summary WHERE is_latest = true"
-            )
+            for r in await conn.fetch("SELECT * FROM raw_oy_review_summary WHERE is_latest = true")
         }
-        images = await conn.fetch(
-            "SELECT goods_no, image_url FROM raw_oy_image WHERE image_type='thumbnail' ORDER BY image_id"
-        )
     finally:
         await conn.close()
-    # Explicit reviewed MFDS IDs; source CSV integers are never used here.
-    identities = manifest["ingredients"]
-    code_ids = {
-        c: set(v["mfdsIds"])
-        for c, v in identities.items()
-        if v.get("reviewedBy") and v.get("source")
+    mapping_codes = {}
+    for row in components:
+        mapping_codes.setdefault(row["mapping_id"], []).append(row["ingredient_code"])
+    # A normalized component list is required; never fall back to the raw text column.
+    if any(not mapping_codes.get(m["mapping_id"]) for m in mappings):
+        raise ValueError("DB mapping has no normalized ingredient components")
+    provenance = {}
+    for row in links:
+        if row["link_method"] != "exact_name" and (
+            not row["reviewed_by"] or not row["reviewed_at"]
+        ):
+            raise ValueError("DB ingredient link is missing manual review provenance")
+        if row["link_method"] not in ("exact_name", "manual", "group_member"):
+            raise ValueError("Unsupported DB ingredient link method")
+        entry = provenance.setdefault(row["ingredient_code"], {"source": [], "reviewedBy": []})
+        entry["source"].append(
+            f"rec_ingredient_link:{row['oy_ingredient_id']}:{row['link_method']}"
+        )
+        entry["reviewedBy"].append(row["reviewed_by"] or "db:exact_name")
+    provenance = {
+        code: {key: "|".join(sorted(set(values))) for key, values in entry.items()}
+        for code, entry in provenance.items()
     }
     option_codes = {}
-    for r in ingredients:
-        for code, ids in code_ids.items():
-            if r["mfds_ingredient_id"] in ids:
-                option_codes.setdefault(r["option_id"], set()).add(code)
-    thumbs = {r["goods_no"]: r["image_url"] for r in images}
+    for row in ingredients:
+        option_codes.setdefault(row["option_id"], set()).add(row["ingredient_code"])
+    option_matches = {}
+    for row in matches:
+        option_matches.setdefault(row["option_id"], set()).add(row["mapping_id"])
     result = []
     skipped = {}
     for p in products:
         sub = manifest["categories"].get(p["std_category_code"])
         if sub is None:
             continue
+        product = json.loads(p["catalog_product"])
         labels = manifest.get("labels", {}).get(p["goods_no"], {})
         review = reviews.get(p["goods_no"])
         for o in options:
@@ -89,8 +103,8 @@ async def build(args):
                 or p["sale_status"] not in manifest["availableSaleStatuses"]
                 or o["is_sold_out"] is not False
                 or not o["sale_price"]
-                or not p["brand_name_ko"]
-                or not p["goods_name"]
+                or not product["brand"]
+                or not product["name"]
             ):
                 skipped[o["option_id"]] = "unavailable_or_incomplete"
                 continue
@@ -100,23 +114,7 @@ async def build(args):
                 count, rating = None, None
             result.append(
                 {
-                    "product": {
-                        "id": "oy-" + p["goods_no"].lower(),
-                        "brand": p["brand_name_ko"],
-                        "name": p["goods_name"],
-                        "nameKo": p["goods_name"],
-                        "category": "skincare",
-                        "makeupZone": None,
-                        "texture": None,
-                        "priceKRW": o["sale_price"],
-                        "volume": p["volume"] or "",
-                        "shades": [],
-                        "description": "",
-                        "keyIngredients": [],
-                        "tags": [],
-                        "imageUrl": thumbs.get(p["goods_no"], ""),
-                        "searchKeyword": p["goods_name"],
-                    },
+                    "product": product,
                     "optionId": o["option_id"],
                     "optionName": o["option_name"] or o["option_id"],
                     "sourceOptionId": o["option_id"],
@@ -125,6 +123,7 @@ async def build(args):
                     "available": True,
                     "identityVerified": True,
                     "ingredientCodes": sorted(option_codes.get(o["option_id"], set())),
+                    "matchedMappingIds": sorted(option_matches.get(o["option_id"], set())),
                     "skinTypes": labels.get("skinTypes", []),
                     "sensitiveLabel": labels.get("sensitive", False),
                     "labelSource": labels.get("source"),
@@ -136,48 +135,40 @@ async def build(args):
         "dataVersion": manifest["version"],
         "sourceManifest": {
             "reviewedBy": manifest["reviewedBy"],
-            "mappingZip": args.mapping_zip.name,
-            "mappingSha256": hashlib.sha256(args.mapping_zip.read_bytes()).hexdigest(),
+            "mappingSource": "rec_mapping+rec_mapping_ingredient+rec_concern_match",
+            "ingredientSource": "rec_ingredient_link",
             "manifestSha256": hashlib.sha256(args.manifest.read_bytes()).hexdigest(),
         },
         "options": result,
-        "evidence": {r["evidence_id"]: r for r in evidence},
-        "ingredientProvenance": {
-            c: {
-                "source": identities[c]["source"],
-                "reviewedBy": identities[c]["reviewedBy"],
-            }
-            for c in code_ids
+        "evidence": {
+            r["evidence_id"]: {k: str(v) for k, v in dict(r).items() if v is not None}
+            for r in evidence
         },
+        "ingredientProvenance": provenance,
         "mappings": [
             {
                 "mappingId": m["mapping_id"],
                 "targetConcern": m["target_concern"],
                 "mappingType": m["mapping_type"],
-                "ingredientCodes": m["ingredient_codes"].split("|"),
-                "evidenceIds": m["evidence_id"].split("|"),
+                "ingredientCodes": mapping_codes[m["mapping_id"]],
+                "evidenceIds": [m["evidence_id"]] if m["evidence_id"] else [],
                 "mappingStatus": m["mapping_status"],
-                "humanMappingReview": m["human_mapping_review"],
-                "aiPaperReview": m["ai_paper_review"],
-                "reReviewRequired": m["re_review_required"] == "1",
-                "runtimeEnabled": m["runtime_enabled"] == "1",
-                "identityVerified": all(
-                    c in code_ids for c in m["ingredient_codes"].split("|")
-                ),
+                "humanMappingReview": m["human_mapping_review"] or "",
+                "aiPaperReview": m["ai_paper_review"] or "",
+                "reReviewRequired": m["re_review_required"],
+                "runtimeEnabled": m["runtime_enabled"],
+                "identityVerified": all(c in provenance for c in mapping_codes[m["mapping_id"]]),
             }
             for m in mappings
         ],
     }
     snapshot = SkincareSnapshot.model_validate(payload)
-    args.output.write_text(
-        snapshot.model_dump_json(by_alias=True, indent=2), encoding="utf-8"
-    )
+    args.output.write_text(snapshot.model_dump_json(by_alias=True, indent=2), encoding="utf-8")
     print(
         json.dumps(
             {
                 "unlinkedCodes": sorted(
-                    {c for m in mappings for c in m["ingredient_codes"].split("|")}
-                    - set(code_ids)
+                    {c for m in mappings for c in mapping_codes[m["mapping_id"]]} - set(provenance)
                 ),
                 "options": len(result),
                 "skipped": skipped,
@@ -190,7 +181,6 @@ async def build(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("mapping_zip", type=Path)
     parser.add_argument("manifest", type=Path)
     parser.add_argument("output", type=Path)
     asyncio.run(build(parser.parse_args()))
