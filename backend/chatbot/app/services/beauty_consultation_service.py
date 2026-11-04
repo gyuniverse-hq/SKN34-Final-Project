@@ -24,9 +24,9 @@ from app.schemas.chat import (
 from app.schemas.supervisor import ConditionCheck, EvidenceRef, SearchPlan, ToolResult
 
 CONTEXT_TTL_SECONDS = 600
-# Keep the old worst-case scan budget: six products, one read plus six conditions each.
+# Evidence-loop budget only; Catalog search and session validation are separate requests.
 INGREDIENT_SEARCH_REQUEST_LIMIT = 6 * (1 + 6)
-# Bound search/refine evidence work to one default Catalog request timeout.
+# This deadline covers per-product evidence work, not the complete chat request.
 INGREDIENT_SEARCH_TIMEOUT_SECONDS = 15
 INGREDIENT_SEARCH_SCOPE = {
     "ko": (
@@ -129,6 +129,9 @@ TEXT = {
         "fragrance_lowest_unknown": (
             "무향료 조건을 확인할 수 없어 조건에 맞는 최저가 상품을 확정할 수 없습니다."
         ),
+        "ingredient_lowest_unknown": (
+            "성분 조건을 확인할 수 없어 조건에 맞는 최저가 상품을 확정할 수 없습니다."
+        ),
         "live_unavailable": "오늘의 실제 판매가·판매처·확인 시각은 미확인입니다.",
         "price_source_unknown": "가격 원본 출처와 검수 상태는 미확인입니다.",
         "synthetic_price": "가상 테스트 fixture의 합성 가격이며 실제 상품 가격이 아닙니다.",
@@ -167,6 +170,9 @@ TEXT = {
         "some_price_unavailable": "Some candidate reference prices are unavailable.",
         "fragrance_lowest_unknown": (
             "The cheapest product meeting the fragrance-free condition cannot be confirmed."
+        ),
+        "ingredient_lowest_unknown": (
+            "The cheapest product meeting the ingredient conditions cannot be confirmed."
         ),
         "live_unavailable": "Today's live selling price, seller and verification time are unknown.",
         "price_source_unknown": "Original price source and review status are unknown.",
@@ -210,6 +216,9 @@ TEXT = {
         "fragrance_lowest_unknown": (
             "無香料の条件を確認できないため、条件に合う最安商品は確定できません。"
         ),
+        "ingredient_lowest_unknown": (
+            "成分条件を確認できないため、条件に合う最安商品は確定できません。"
+        ),
         "live_unavailable": "今日の実売価格・販売店・確認日時は未確認です。",
         "price_source_unknown": "価格の原典と検証状態は未確認です。",
         "synthetic_price": "テストfixtureの合成価格であり実際の商品価格ではありません。",
@@ -238,6 +247,7 @@ TEXT = {
         "reference_unavailable": "无法确认Catalog参考价格。",
         "some_price_unavailable": "部分候选产品的参考价格尚未确认。",
         "fragrance_lowest_unknown": "无法确认无香料条件，因此无法确定符合条件的最低价产品。",
+        "ingredient_lowest_unknown": "无法确认成分条件，因此无法确定符合条件的最低价产品。",
         "live_unavailable": "今日实时售价、商家和核实时间未确认。",
         "price_source_unknown": "价格原始来源和审核状态未确认。",
         "synthetic_price": "这是测试fixture的合成价格，并非真实产品价格。",
@@ -480,12 +490,16 @@ async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatRes
                 return _reply(words["clarify"], previous)
             if not previous.candidate_ids:
                 return _reply(words["no_price"], previous, result_type="empty")
-            try:
-                candidates = await catalog.search_products(
-                    category=filters.category, ids=previous.candidate_ids
-                )
-            except UpstreamError as exc:
-                raise ApiError(502, "Catalog is temporarily unavailable", "upstream_error") from exc
+            candidates = []
+            if not filters.ingredient_conditions or filters.fragrance_free:
+                try:
+                    candidates = await catalog.search_products(
+                        category=filters.category, ids=previous.candidate_ids
+                    )
+                except UpstreamError as exc:
+                    raise ApiError(
+                        502, "Catalog is temporarily unavailable", "upstream_error"
+                    ) from exc
             if filters.fragrance_free:
                 # Prior candidates are not proven fragrance-free, even if one price is lower.
                 by_id = {p.id: p for p in candidates if p.id in previous.candidate_ids}
@@ -500,6 +514,36 @@ async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatRes
                 elif any(p.price_krw <= 0 for p in unresolved):
                     answer += " " + words["some_price_unavailable"]
                 return _reply(answer, previous, unresolved)
+            verified = None
+            if filters.ingredient_conditions:
+                # Recheck facts even after intervening turns that had no ingredient results.
+                check_plan = plan.model_copy(
+                    update={"intent": "refine", "scope": "previous", "selection": None}
+                )
+                check_req = req.model_copy(update={"screen_context": None, "ar_context": None})
+                verified = await _ingredient_consultation(check_req, check_plan, catalog, filters)
+                if verified.result_type == "empty":
+                    return verified
+                if verified.tool_result.status != "success" or not all(
+                    r.verified
+                    and r.verdict == "MATCH"
+                    and all(c.verdict == "MATCH" for c in r.conditions)
+                    for r in verified.ingredient_results or []
+                ):
+                    verified.answer += "\n" + words["ingredient_lowest_unknown"]
+                    verified.result_type = "clarification"
+                    return verified
+                eligible = {r.product_id for r in verified.ingredient_results}
+                try:
+                    candidates = await catalog.search_products(
+                        category=filters.category,
+                        ids=[pid for pid in previous.candidate_ids if pid in eligible],
+                    )
+                except UpstreamError as exc:
+                    raise ApiError(
+                        502, "Catalog is temporarily unavailable", "upstream_error"
+                    ) from exc
+                candidates = [p for p in candidates if p.id in eligible]
             by_id = {
                 p.id: p
                 for p in candidates
@@ -515,7 +559,7 @@ async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatRes
             ]
             answer = words["lowest"].format(price=f"{price:,}", count=len(cheapest))
             answer += "\n" + "\n".join(p.name for p in cheapest) + "\n" + words["price"]
-            return _reply(
+            response = _reply(
                 answer,
                 _context(
                     filters,
@@ -528,6 +572,23 @@ async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatRes
                 cheapest,
                 "product_detail",
             )
+            if verified is not None:
+                ids = {p.id for p in cheapest}
+                response.ingredient_results = [
+                    r for r in verified.ingredient_results if r.product_id in ids
+                ]
+                response.tool_result.evidence = [
+                    e for e in verified.tool_result.evidence if e.product_id in ids
+                ]
+                response.tool_result.conditions += [
+                    c
+                    for c in verified.tool_result.conditions
+                    if c.condition == "ingredient" and c.product_id in ids
+                ]
+                return ChatResponse.model_validate(
+                    response.model_dump() | {"tool_result": response.tool_result}
+                )
+            return response
         selected = await _resolve_product_reference(previous, plan, catalog)
         if not selected or selected not in previous.candidate_ids:
             return _reply(words["clarify"], previous)
