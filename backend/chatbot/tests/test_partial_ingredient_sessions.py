@@ -294,9 +294,18 @@ async def selection_failure_setup(client, change, via):
 @pytest.mark.parametrize("change", ["shade", "selection", "both"])
 @pytest.mark.parametrize("via", ["context", "plan"])
 async def test_all_error_keeps_valid_selection_hints_for_recovery(redis_client, change, via):
-    owner, catalog, llm, repo, service, selected, before, req, target, shade = (
-        await selection_failure_setup(redis_client, change, via)
-    )
+    (
+        owner,
+        catalog,
+        llm,
+        repo,
+        service,
+        selected,
+        before,
+        req,
+        target,
+        shade,
+    ) = await selection_failure_setup(redis_client, change, via)
     failed = await service.answer(req, owner)
     assert failed.tool_result.status == "error"
     assert failed.chat_context.selected_product_id == target
@@ -334,8 +343,8 @@ async def test_all_error_keeps_valid_selection_hints_for_recovery(redis_client, 
 
 @pytest.mark.anyio
 async def test_failed_repeated_search_cannot_reuse_a_cleared_selection(redis_client):
-    owner, catalog, llm, repo, service, selected, before, _, _, _ = (
-        await selection_failure_setup(redis_client, "shade", "context")
+    owner, catalog, llm, repo, service, selected, before, _, _, _ = await selection_failure_setup(
+        redis_client, "shade", "context"
     )
     llm.plan = search_plan().model_dump(by_alias=True, exclude_none=True)
     req = search_request(selected.chat_context)
