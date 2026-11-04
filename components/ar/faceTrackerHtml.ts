@@ -290,6 +290,12 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     clipLin: 0.92,              // linear value treated as blown out
     darkLum: 0.02,
     lightConfR2: [0.1, 0.4],    // R² of the normal→brightness fit mapped to confidence 0..1
+    // Light by matching candidate lights with cast shadows (matchLight) instead of the straight-line fit. Off = old fit.
+    // On since 11-04 (user decision after the phone check). Research use; a commercial release needs a patent review (US 11,030,798).
+    lightMatch: true,
+    lightMatchGrid: 48,         // face height grid cells along the longer side (cast-shadow test)
+    lightMatchMaxVerts: 160,    // skin vertices used (evenly spaced); cost grows with this
+    lightMatchSpread: 0.02,     // R² gap over which a runner-up candidate's weight in the blend falls by e
     lightChangeDelta: 6,        // CIE76 on mean skin Lab: above this, Gray World snaps (no smoothing)
     blownFaceFraction: 0.15,    // share of in-frame skin verts blown out → "light too strong"
   };
@@ -1646,7 +1652,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   const stats = document.createElement('canvas');
   const statsCtx = stats.getContext('2d', { willReadFrequently: true });
   const light = {
-    color: [1, 1, 1], colorConf: 0, dir: [0, 0.3, 0.95], strength: 1, dirConf: 0,
+    color: [1, 1, 1], colorConf: 0, dir: [0, 0.3, 0.95], strength: 1, dirConf: 0, matchR2: -1,
     lipMeanLum: 0.12, skinMeanLum: TUNING.skinRefLum, bgFraction: 0, samples: 0,
     lipRed: 0.2, skinRed: 0.2, grain: 0, blur: 1, lipColor: [0.12, 0.06, 0.06], lipUpLow: 1,
     skinColor: [0.42, 0.28, 0.22], colorSamples: 0, colorDelta: 1,
@@ -1823,6 +1829,139 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     const c = y.map((v, i) => bm * SH_LAMBERT[i] * v);
     c[0] += fit[0] / 0.282095;
     return c;
+  }
+  // Light by matching (after Perfect Corp US 11,030,798, studied for research): shade this face under a fixed set of
+  // candidate lights, cast shadows of the nose, brows and lips included, and keep the candidates whose shading best
+  // matches the camera. The straight-line fit above cannot see cast or attached shadows and pulls side light frontal.
+  function lightGrid(azs, els) {
+    const out = [];
+    for (const el of els) {
+      for (const az of azs) {
+        const e = (el * Math.PI) / 180, a = (az * Math.PI) / 180;
+        const d = [Math.sin(a) * Math.cos(e), Math.sin(e), Math.cos(a) * Math.cos(e)];
+        if (d[2] >= 0.2) out.push(d);
+      }
+    }
+    return out;
+  }
+  const LIGHT_CANDIDATES = lightGrid([-70, -45, -20, 0, 20, 45, 70], [-45, -20, 0, 20, 45, 65]);
+  const LIGHT_REFINE = [-12, -8, -4, 0, 4, 8, 12]; // degrees around the coarse winner
+  // Highest surface z (toward the viewer) per cell of an x/y grid over the face, from the triangles.
+  function faceHeightGrid(pos, tris, res) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, zMax = -Infinity;
+    for (let t = 0; t < tris.length; t++) {
+      const v = tris[t] * 3;
+      x0 = Math.min(x0, pos[v]); x1 = Math.max(x1, pos[v]);
+      y0 = Math.min(y0, pos[v + 1]); y1 = Math.max(y1, pos[v + 1]);
+      zMax = Math.max(zMax, pos[v + 2]);
+    }
+    const cell = Math.max(x1 - x0, y1 - y0, 1e-6) / res;
+    const nx = Math.floor((x1 - x0) / cell) + 1, ny = Math.floor((y1 - y0) / cell) + 1;
+    const h = new Float32Array(nx * ny).fill(-Infinity);
+    for (let t = 0; t < tris.length; t += 3) {
+      const a = tris[t] * 3, b = tris[t + 1] * 3, c = tris[t + 2] * 3;
+      const ax = (pos[a] - x0) / cell, ay = (pos[a + 1] - y0) / cell;
+      const bx = (pos[b] - x0) / cell, by = (pos[b + 1] - y0) / cell;
+      const cx = (pos[c] - x0) / cell, cy = (pos[c + 1] - y0) / cell;
+      const den = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy);
+      if (Math.abs(den) < 1e-9) continue;
+      const i0 = Math.max(0, Math.ceil(Math.min(ax, bx, cx))), i1 = Math.min(nx - 1, Math.floor(Math.max(ax, bx, cx)));
+      const j0 = Math.max(0, Math.ceil(Math.min(ay, by, cy))), j1 = Math.min(ny - 1, Math.floor(Math.max(ay, by, cy)));
+      for (let j = j0; j <= j1; j++) {
+        for (let i = i0; i <= i1; i++) {
+          const w0 = ((by - cy) * (i - cx) + (cx - bx) * (j - cy)) / den;
+          const w1 = ((cy - ay) * (i - cx) + (ax - cx) * (j - cy)) / den;
+          const w2 = 1 - w0 - w1;
+          if (w0 < -1e-4 || w1 < -1e-4 || w2 < -1e-4) continue;
+          const z = w0 * pos[a + 2] + w1 * pos[b + 2] + w2 * pos[c + 2];
+          if (z > h[j * nx + i]) h[j * nx + i] = z;
+        }
+      }
+    }
+    return { h, x0, y0, cell, nx, ny, zMax };
+  }
+  const HORIZON_BINS = 24;
+  // Per vertex and side (azimuth bin), the steepest rise (Δz / x-y distance) of the face toward that side. Light d
+  // reaches the vertex when its own rise d.z / |d.xy| is above it, so one march per side serves every candidate.
+  function horizonSlopes(grid, pos, verts) {
+    const out = new Float32Array(verts.length * HORIZON_BINS);
+    const reach = Math.hypot(grid.nx, grid.ny) * grid.cell;
+    for (let k = 0; k < verts.length; k++) {
+      const v = verts[k] * 3, px = pos[v], py = pos[v + 1], pz = pos[v + 2] + grid.cell;
+      for (let b = 0; b < HORIZON_BINS; b++) {
+        const ang = (2 * Math.PI * b) / HORIZON_BINS, ux = Math.cos(ang), uy = Math.sin(ang);
+        let top = -Infinity;
+        for (let s = 2 * grid.cell; s < reach; s += grid.cell) {
+          if ((grid.zMax - pz) / s <= top) break;
+          const i = Math.round((px + ux * s - grid.x0) / grid.cell), j = Math.round((py + uy * s - grid.y0) / grid.cell);
+          if (i < 0 || j < 0 || i >= grid.nx || j >= grid.ny) break;
+          const slope = (grid.h[j * grid.nx + i] - pz) / s;
+          if (slope > top) top = slope;
+        }
+        out[k * HORIZON_BINS + b] = top;
+      }
+    }
+    return out;
+  }
+  // Coarse candidates, then a finer grid around the winner (the coarse step alone leaves ~8° error).
+  // At most maxVerts evenly spaced vertices: the cost is per vertex and 0.5 s light updates must stay a few ms.
+  function matchLight(grid, pos, nrm, verts, lums, spread, maxVerts) {
+    const stride = Math.max(1, Math.ceil(verts.length / (maxVerts || verts.length)));
+    const vs = verts.filter((_, k) => k % stride === 0), ls = lums.filter((_, k) => k % stride === 0);
+    const hor = horizonSlopes(grid, pos, vs);
+    const coarse = scoreLights(pos, nrm, vs, ls, hor, spread, LIGHT_CANDIDATES);
+    if (!coarse) return null;
+    const az = (Math.atan2(coarse.dir[0], coarse.dir[2]) * 180) / Math.PI;
+    const el = (Math.asin(Math.max(-1, Math.min(1, coarse.dir[1]))) * 180) / Math.PI;
+    const fine = lightGrid(LIGHT_REFINE.map((v) => az + v), LIGHT_REFINE.map((v) => el + v));
+    return scoreLights(pos, nrm, vs, ls, hor, spread, fine) || coarse;
+  }
+  // brightness ≈ a + b · shading(candidate) per vertex; returns the blended best direction, its R² and peak a + b.
+  function scoreLights(pos, nrm, verts, lums, hor, spread, candidates) {
+    const n = verts.length;
+    const shades = candidates.map((d) => {
+      const s = new Float32Array(n);
+      const r = Math.hypot(d[0], d[1]), rise = r < 1e-3 ? Infinity : d[2] / r;
+      const bin = ((Math.round((Math.atan2(d[1], d[0]) / (2 * Math.PI)) * HORIZON_BINS) % HORIZON_BINS) + HORIZON_BINS) % HORIZON_BINS;
+      for (let k = 0; k < n; k++) {
+        const v = verts[k] * 3;
+        const ndl = nrm[v] * d[0] + nrm[v + 1] * d[1] + nrm[v + 2] * d[2];
+        s[k] = ndl > 0 && rise > hor[k * HORIZON_BINS + bin] ? ndl : 0;
+      }
+      return s;
+    });
+    const fitOn = (s, keep) => {
+      let m = 0, sumX = 0, sumY = 0, sumXX = 0, sumXY = 0, sumYY = 0;
+      for (const k of keep) { const x = s[k], y = lums[k]; m++; sumX += x; sumY += y; sumXX += x * x; sumXY += x * y; sumYY += y * y; }
+      const vx = sumXX - (sumX * sumX) / m, vy = sumYY - (sumY * sumY) / m, cxy = sumXY - (sumX * sumY) / m;
+      if (m < 3 || vx < 1e-9 || vy < 1e-12 || cxy <= 0) return null;
+      const b = cxy / vx;
+      return { a: (sumY - b * sumX) / m, b, r2: (cxy * cxy) / (vx * vy) };
+    };
+    const rank = (keep) => {
+      let best = -1, fits = shades.map((s) => fitOn(s, keep));
+      fits.forEach((f, c) => { if (f && (best < 0 || f.r2 > fits[best].r2)) best = c; });
+      return { fits, best };
+    };
+    const all = [];
+    for (let k = 0; k < n; k++) all.push(k);
+    let { fits, best } = rank(all);
+    if (best < 0) return null;
+    // Drop the worst 20% (specular spots, hair, glasses) under the first winner, then rank again.
+    const f0 = fits[best], s0 = shades[best];
+    const resid = all.map((k) => Math.abs(lums[k] - (f0.a + f0.b * s0[k])));
+    const cut = resid.slice().sort((p, q) => p - q)[Math.floor(n * 0.8)];
+    ({ fits, best } = rank(all.filter((k) => resid[k] <= cut)));
+    if (best < 0) return null;
+    const top = fits[best];
+    const dir = [0, 0, 0];
+    fits.forEach((f, c) => {
+      if (!f || f.r2 < top.r2 - 3 * spread) return;
+      const w = Math.exp((f.r2 - top.r2) / spread);
+      for (let j = 0; j < 3; j++) dir[j] += w * candidates[c][j];
+    });
+    const len = Math.hypot(dir[0], dir[1], dir[2]) || 1;
+    return { dir: dir.map((v) => v / len), r2: top.r2, peak: top.a + top.b };
   }
   function ensureFoundSkinBuffers(w, h) {
     if (foundSkinW === w && foundSkinH === h && foundSkinBin) return;
@@ -2102,7 +2241,13 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         light.fitR2 = r2;
         light.fitRel = Math.hypot(fit[1], fit[2], fit[3]) / Math.max(mean, 1e-6);
         let dx = fit[1], dy = fit[2], dz = Math.max(fit[3], 0);
-        const mag = Math.hypot(dx, dy, dz);
+        let mag = Math.hypot(dx, dy, dz), peak = fit[0] + mag;
+        const match = TUNING.lightMatch
+          ? matchLight(faceHeightGrid(scr, FACE_TRIANGLES, TUNING.lightMatchGrid), scr, meshNrm, skinIn, samples.map((s) => s[3]),
+            TUNING.lightMatchSpread, TUNING.lightMatchMaxVerts)
+          : null;
+        light.matchR2 = match ? match.r2 : -1;
+        if (match) { [dx, dy, dz] = match.dir; mag = 1; r2 = match.r2; peak = match.peak; }
         if (mag > 1e-6) {
           dx /= mag; dy /= mag; dz /= mag;
           if (dz < 0.15) { dz = 0.15; const m2 = Math.hypot(dx, dy, dz); dx /= m2; dy /= m2; dz /= m2; }
@@ -2117,7 +2262,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
           conf = Math.max(conf, clamp((light.fitRel - TUNING.lightConfRel[0]) / (TUNING.lightConfRel[1] - TUNING.lightConfRel[0]), 0, 1));
         }
         light.dirConf += k * (conf - light.dirConf);
-        const strength = clamp((fit[0] + mag) / TUNING.skinRefLum, 0.3, 1.5);
+        const strength = clamp(peak / TUNING.skinRefLum, 0.3, 1.5);
         light.strength += k * (strength - light.strength);
       }
     }
@@ -3362,7 +3507,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       'light rgb ' + light.color.map(f).join(' ') + '  conf ' + f(light.colorConf),
       'bg ' + f(light.bgFraction) + '  seg ' + (segmenter ? 'on' : 'off') + (TUNING.lightColorEdge ? '  edge w ' + f(light.colorEdgeW) : ''),
       'found ' + (makeup.foundation ? 'on ' + makeup.foundation.hex + ' ' + f(makeup.foundation.intensity || 0) : 'off') + '  mask ' + (foundSkinReady ? 'ready' : 'none') + '  skin cat ' + f(foundSkinStat.cat) + ' prob ' + f(foundSkinStat.prob) + '  lower floor ' + f(foundSkinReady ? TUNING.foundLowerFloor * foundOcc : 0) + '  seg call ' + foundSegMs.toFixed(0) + 'ms',
-      'dir ' + light.dir.map(f).join(' ') + '  conf ' + f(light.dirConf),
+      'dir ' + light.dir.map(f).join(' ') + '  conf ' + f(light.dirConf) + (TUNING.lightMatch ? '  match r2 ' + f(light.matchR2) : '  fit'),
       'light ms ' + lightMs.toFixed(1) + (TUNING.lightDirGlide ? '  glide on' : '') + (TUNING.lightModel === 'sh9' ? '  sh9 ' + (light.shUsed ? 'fit' : 'linear') : ''),
       'strength ' + f(light.strength) + '  lip ' + f(light.lipMeanLum) + '  skin ' + f(light.skinMeanLum),
       'mouth gap ' + f(Math.hypot(sx[13] - sx[14], sy[13] - sy[14]) / Math.max(1e-4, Math.hypot(sx[61] - sx[291], sy[61] - sy[291]))) + (mouthClosed() ? ' closed' : ' open'),
