@@ -500,16 +500,43 @@ class ChatService:
         response = await self._run_supervisor(req, context, decision)
         result = response.supervisor.result
         ctx = response.chat_context
+        partial_ingredients = bool(response.products) and any(
+            r.product_id in {p.id for p in response.products}
+            and r.status != "error"
+            and r.verdict != "ERROR"
+            for r in response.ingredient_results or []
+        )
         if (
             not ctx
-            or result.status in {"error", "unsupported"}
+            or result.status == "unsupported"
+            or (result.status == "error" and not partial_ingredients)
             or (response.result_type == "clarification" and not response.products)
         ):
             if state and ctx:
                 if not response.products:
                     response.chat_context = state.context.model_copy(deep=True)
-                response.chat_context.session = ref
-                response.session_status = "unchanged"
+                same_result_set = (
+                    response.chat_context.candidate_ids == state.context.candidate_ids
+                    and response.chat_context.scope_ids == state.context.scope_ids
+                    and response.chat_context.filters == state.context.filters
+                    # Positive selection hints replay on retry; None cannot clear a saved selection.
+                    and (
+                        response.chat_context.selected_product_id is not None
+                        or state.context.selected_product_id is None
+                    )
+                )
+                if same_result_set:
+                    response.chat_context.session = ref
+                    response.session_status = "unchanged"
+                else:
+                    # A failed replacement must never label new cards with the old capability.
+                    response.chat_context.session = None
+                    response.session_status = "unavailable"
+                    response.answer += "\n" + TEXT[req.locale]["session_unavailable"]
+            elif ctx and response.products and result.status == "error":
+                ctx.session = None
+                response.session_status = "unavailable"
+                response.answer += "\n" + TEXT[req.locale]["session_unavailable"]
             return response
         try:
             await self._validate_session_context(ctx, None, None)

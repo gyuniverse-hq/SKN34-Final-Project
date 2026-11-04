@@ -77,7 +77,7 @@ def evaluate_ingredient(
         return supported(
             "MATCH" if condition.operator == "includes" else "NOT_MATCH", "ingredient_present"
         )
-    # A missing row proves nothing unless the entire option list and normalization were reviewed.
+    # Keep list-integrity checks separate from unresolved query identity.
     if evidence.ingredient_coverage != "full" or evidence.normalization_status != "verified":
         return supported("UNKNOWN", "absence_not_verifiable")
     sequences = [item.sequence for item in evidence.ingredients]
@@ -87,10 +87,9 @@ def evaluate_ingredient(
         or len(names) != len(set(names))
     ):
         return supported("UNKNOWN", "ingredient_list_inconsistent")
-    return supported(
-        "NOT_MATCH" if condition.operator == "includes" else "MATCH",
-        "ingredient_absent_from_verified_list",
-    )
+    # shortcut: A reviewed list does not resolve query aliases; require a canonical
+    # identity contract before treating a missing name as chemical absence.
+    return supported("UNKNOWN", "ingredient_identity_unresolved")
 
 
 def to_supervisor_condition(result: IngredientDecision) -> dict[str, str | None]:
@@ -160,6 +159,8 @@ class IngredientService:
                 check.reason = result.reason
             result.conditions = [check]
             result.verdict = check.verdict
+            if check.reason == "ingredient_identity_unresolved":
+                result.reason = check.reason
         if get_settings().is_production and (result.synthetic or (evidence and evidence.synthetic)):
             result.synthetic = True
             result.status, result.verdict = "unknown", "UNKNOWN"
