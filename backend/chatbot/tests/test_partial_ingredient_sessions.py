@@ -258,3 +258,101 @@ async def test_partial_ingredient_verification_cannot_claim_lowest(redis_client,
     llm.plan = {"intent": "detail", "scope": "previous", "selection": "lowest_price"}
     result = await service.answer(search_request(first.chat_context), owner)
     assert result.result_type == "clarification" and "15,000" not in result.answer
+
+
+async def selection_failure_setup(client, change, via):
+    catalog = SearchCatalog(2, matches=[0, 1])
+    for product in catalog.products:
+        product.shades.append(
+            product.shades[0].model_copy(update={"id": f"{product.id}-04", "name": "04"})
+        )
+    llm = PlanLlm(**search_plan().model_dump(by_alias=True, exclude_none=True))
+    repo = ChatSessionRepository(client)
+    service = ChatService(None, llm, catalog, sessions=repo)
+    owner = "guest:failed-selection-" + uuid4().hex
+    first = await service.answer(search_request(), owner)
+    llm.plan = {"intent": "price", "scope": "previous", "ordinal": 1}
+    selected = await service.answer(search_request(first.chat_context), owner)
+    before = await repo.load(owner, selected.chat_context.session)
+    context = selected.chat_context.model_copy(deep=True)
+    target = "item-001" if change in {"selection", "both"} else "item-000"
+    shade = f"{target}-04" if change in {"shade", "both"} else f"{target}-shade"
+    llm.plan = {"intent": "detail", "scope": "previous", "ingredientLookup": True}
+    if via == "context":
+        context.selected_product_id = target
+        context.shade_selections[target] = shade
+    else:
+        llm.plan["ordinal"] = 2 if target == "item-001" else 1
+        llm.plan["shadeName"] = "04" if change in {"shade", "both"} else "03"
+    catalog.states = {p.id: "ERROR" for p in catalog.products}
+    req = search_request(context)
+    req.message = ("04" if change in {"shade", "both"} else "03") + " selected ingredients"
+    return owner, catalog, llm, repo, service, selected, before, req, target, shade
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("change", ["shade", "selection", "both"])
+@pytest.mark.parametrize("via", ["context", "plan"])
+async def test_all_error_keeps_valid_selection_hints_for_recovery(redis_client, change, via):
+    owner, catalog, llm, repo, service, selected, before, req, target, shade = (
+        await selection_failure_setup(redis_client, change, via)
+    )
+    failed = await service.answer(req, owner)
+    assert failed.tool_result.status == "error"
+    assert failed.chat_context.selected_product_id == target
+    assert failed.chat_context.shade_selections[target] == shade
+    assert failed.ingredient_results[0].shade_id == shade
+    assert failed.session_status == "unchanged"
+    assert failed.chat_context.session == selected.chat_context.session
+    saved = await repo.load(owner, selected.chat_context.session)
+    assert saved.model_dump() == before.model_dump()
+    retry = await service.answer(req, owner)
+    assert retry.session_status == "unchanged" and retry.ingredient_results[0].shade_id == shade
+    saved = await repo.load(owner, selected.chat_context.session)
+    assert saved.model_dump() == before.model_dump()
+    catalog.states.clear()
+    recovery_req = req
+    if via == "context":
+        llm.plan = {"intent": "detail", "scope": "previous", "ingredientLookup": True}
+        recovery_req = search_request(failed.chat_context)
+    # A separate service instance must revalidate the pending UI hints, not reuse Redis's old shade.
+    worker = ChatService(None, llm, catalog, sessions=ChatSessionRepository(redis_client))
+    recovered = await worker.answer(recovery_req, owner)
+    assert recovered.session_status == "stored"
+    assert recovered.chat_context.selected_product_id == target
+    assert recovered.ingredient_results[0].shade_id == shade
+    saved = await repo.load(owner, recovered.chat_context.session)
+    assert saved.context.shade_selections == recovered.chat_context.shade_selections
+    count = llm.calls
+    cached = await worker.answer(recovery_req, owner)
+    assert cached.model_dump(mode="json") == recovered.model_dump(mode="json")
+    assert llm.calls == count
+    with pytest.raises(ApiError) as exc:
+        await worker.answer(search_request(failed.chat_context), owner)
+    assert exc.value.code == "chat_session_conflict"
+
+
+@pytest.mark.anyio
+async def test_failed_repeated_search_cannot_reuse_a_cleared_selection(redis_client):
+    owner, catalog, llm, repo, service, selected, before, _, _, _ = (
+        await selection_failure_setup(redis_client, "shade", "context")
+    )
+    llm.plan = search_plan().model_dump(by_alias=True, exclude_none=True)
+    req = search_request(selected.chat_context)
+    failed = await service.answer(req, owner)
+    assert failed.tool_result.status == "error" and failed.products
+    assert failed.chat_context.candidate_ids == before.context.candidate_ids
+    assert failed.chat_context.scope_ids == before.context.scope_ids
+    assert failed.chat_context.filters == before.context.filters
+    assert failed.chat_context.selected_product_id is None
+    saved = await repo.load(owner, selected.chat_context.session)
+    assert saved.model_dump() == before.model_dump()
+    assert failed.session_status == "unavailable" and failed.chat_context.session is None
+    llm.plan = {"intent": "price", "scope": "previous"}
+    follow = search_request(failed.chat_context)
+    follow.message = "선택한 상품의 기준가격을 알려줘."
+    with pytest.raises(ApiError) as exc:
+        await service.answer(follow, owner)
+    assert exc.value.code == "chat_session_required"
+    saved = await repo.load(owner, selected.chat_context.session)
+    assert saved.model_dump() == before.model_dump()

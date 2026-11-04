@@ -519,6 +519,11 @@ class ChatService:
                     response.chat_context.candidate_ids == state.context.candidate_ids
                     and response.chat_context.scope_ids == state.context.scope_ids
                     and response.chat_context.filters == state.context.filters
+                    # Positive selection hints replay on retry; None cannot clear a saved selection.
+                    and (
+                        response.chat_context.selected_product_id is not None
+                        or state.context.selected_product_id is None
+                    )
                 )
                 if same_result_set:
                     response.chat_context.session = ref
