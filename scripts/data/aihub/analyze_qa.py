@@ -55,7 +55,7 @@ async def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=15432)
-    p.add_argument("--database", default="vishue_v29")
+    p.add_argument("--database", default="vishue_db")
     p.add_argument("--user", default="vishue")
     p.add_argument("--out", type=Path, required=True, help="집계 결과 (UTF-8)")
     p.add_argument("--samples-out", type=Path, help="사람이 읽을 예시 (UTF-8)")
@@ -77,7 +77,7 @@ async def main() -> None:
         rows = await conn.fetch(
             "SELECT q.seq, q.subject_id, r.split, q.question_text, q.answer_text, "
             "       q.recommended_raw, q.avoid_raw "
-            "FROM aihub.qa_case q JOIN aihub.qa_case_raw r ON r.seq = q.seq"
+            "FROM public.aihub_qa_case q JOIN public.aihub_qa_case_raw r ON r.seq = q.seq"
         )
     finally:
         await conn.close()

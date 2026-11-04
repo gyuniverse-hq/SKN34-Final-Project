@@ -2,7 +2,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { uuid } from 'expo';
 import { useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
@@ -33,6 +32,7 @@ import type { ArStatus } from '@/components/ar/faceTrackerHtml';
 import { SwatchFallback } from '@/components/ar/SwatchFallback';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
+import { ProductImage } from '@/components/ui/ProductImage';
 import { DEMO_TAG } from '@/constants/demo';
 import { TAB_BAR_STYLE, theme } from '@/constants/theme';
 import { HIGHLIGHTER_AREAS, toggleHighlighterArea } from '@/lib/arFacePalette';
@@ -1008,16 +1008,13 @@ export default function ArTryOnScreen() {
 
             {selectedTryOn ? (
               <View style={styles.productCard}>
-                {selectedTryOn.product.imageUrl ? (
-                  <Image
-                    source={{ uri: selectedTryOn.product.imageUrl }}
-                    style={styles.productImage}
-                    contentFit="cover"
-                    accessibilityLabel={selectedTryOn.product.name}
-                  />
-                ) : (
-                  <View style={[styles.productImage, { backgroundColor: selectedTryOn.shade.hex }]} />
-                )}
+                <ProductImage
+                  uri={selectedTryOn.product.imageUrl}
+                  category={selectedTryOn.product.category}
+                  style={styles.productImage}
+                  recyclingKey={selectedTryOn.product.id}
+                  compact
+                />
                 <View style={styles.productCopy}>
                   <Text style={styles.matchName} numberOfLines={2}>
                     {selectedTryOn.product.brand} {selectedTryOn.product.name}

@@ -56,22 +56,22 @@ AI-Hub 「문제성 피부 메이크업 추천 데이터」(datasetSn 71961) 적
 | 07 | 민감성 피부 | 942 | | **합계** | **9,031** |
 
 기본 피부 타입 4종: 복합성 3,632 / 건성 2,117 / 지성 2,091 / 정상 1,191. 문서와 같습니다.
-원본 값 `정상` 과 서비스 표시명 `중성` 은 `aihub.skin_type` 에 분리해 저장했습니다.
+원본 값 `정상` 과 서비스 표시명 `중성` 은 `aihub_skin_type` 에 분리해 저장했습니다.
 
 ## 2. 적재 결과
 
 | 테이블 | 행 수 | 내용 |
 | --- | ---: | --- |
-| `aihub.dataset_release` | 2 | 배포본·이용권한. 재실행 이력 포함, `source_sha256` 동일 |
-| `aihub.qa_case_raw` | 9,031 | QA 원문 JSONB, 파일 경로, 내용 해시 |
-| `aihub.qa_case` | 9,031 | 조회용 정규화 |
-| `aihub.qa_source_link` | 9,181 | 실제 참조가 있는 자리만 |
-| `aihub.knowledge_document` | 3,108 | 내용 해시 기준 고유 문서 |
-| `aihub.knowledge_document_file` | 6,245 | 원본 파일 경로별 |
-| `aihub.skin_concern` | 13 | 고민 축 |
-| `aihub.skin_type` | 4 | 피부 타입 축 |
-| `aihub.ingredient_mention` | 18,062 | 추천 9,031 / 주의 9,031. 고유 표기 4,095종 |
-| `aihub.claim_review` | 0 | 근거 검토 시작 전 |
+| `aihub_dataset_release` | 2 | 배포본·이용권한. 재실행 이력 포함, `source_sha256` 동일 |
+| `aihub_qa_case_raw` | 9,031 | QA 원문 JSONB, 파일 경로, 내용 해시 |
+| `aihub_qa_case` | 9,031 | 조회용 정규화 |
+| `aihub_qa_source_link` | 9,181 | 실제 참조가 있는 자리만 |
+| `aihub_knowledge_document` | 3,108 | 내용 해시 기준 고유 문서 |
+| `aihub_knowledge_document_file` | 6,245 | 원본 파일 경로별 |
+| `aihub_skin_concern` | 13 | 고민 축 |
+| `aihub_skin_type` | 4 | 피부 타입 축 |
+| `aihub_ingredient_mention` | 18,062 | 추천 9,031 / 주의 9,031. 고유 표기 4,095종 |
+| `aihub_claim_review` | 0 | 근거 검토 시작 전 |
 
 원본 추적: 배포본 ZIP 27개를 이름순으로 묶은 SHA-256 을 `dataset_release.source_sha256` 에
 기록했습니다. 바깥 ZIP 이 이미 풀린 상태로 전달되어 내부 ZIP 들로 계산했습니다.

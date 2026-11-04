@@ -24,7 +24,7 @@ CHECKLIST = """\
 
 판단 결과는 둘 중 하나다.
   - 쓸 만하다  -> 검수 등급 구조를 설계하고 근거 검토로 넘어간다
-  - 못 쓰겠다  -> aihub.qa_case / qa_case_raw / qa_source_link 를 비우고 논문만 남긴다
+  - 못 쓰겠다  -> public.aihub_qa_case / qa_case_raw / qa_source_link 를 비우고 논문만 남긴다
 """
 
 SQL = """
@@ -32,10 +32,10 @@ SELECT q.seq, q.concern_code, c.label_ko AS concern_label, c.major_category,
        q.skin_type_raw, t.display_label_ko AS skin_label, r.split,
        q.area_raw, q.concern_label_raw, q.skin_brightness_raw,
        q.question_text, q.answer_text, q.recommended_raw, q.avoid_raw
-FROM aihub.qa_case q
-JOIN aihub.qa_case_raw r ON r.seq = q.seq
-JOIN aihub.skin_concern c ON c.concern_code = q.concern_code
-LEFT JOIN aihub.skin_type t ON t.skin_type_raw = q.skin_type_raw
+FROM public.aihub_qa_case q
+JOIN public.aihub_qa_case_raw r ON r.seq = q.seq
+JOIN public.aihub_skin_concern c ON c.concern_code = q.concern_code
+LEFT JOIN public.aihub_skin_type t ON t.skin_type_raw = q.skin_type_raw
 WHERE ($1::text IS NULL OR q.concern_code = $1)
   AND ($2::text IS NULL OR q.skin_type_raw = $2)
   AND ($3::text IS NULL OR r.split = $3)
@@ -45,7 +45,7 @@ ORDER BY q.concern_code, md5(q.seq || $4::text)
 SOURCE_SQL = """
 SELECT source_position, source_title_raw, author_raw, publisher_raw,
        publication_year_raw, file_name_raw, status_raw, quote_raw, match_status
-FROM aihub.qa_source_link
+FROM public.aihub_qa_source_link
 WHERE seq = $1
 ORDER BY source_position
 """
@@ -74,7 +74,7 @@ async def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=15432)
-    p.add_argument("--database", default="vishue_v29")
+    p.add_argument("--database", default="vishue_db")
     p.add_argument("--user", default="vishue")
     p.add_argument("--concern", help="고민 코드 01~13. 없으면 13종에서 고르게 뽑는다")
     p.add_argument("--skin-type", help="복합성 / 건성 / 지성 / 정상")
@@ -108,7 +108,7 @@ async def main() -> None:
         for r in picked:
             sources[r["seq"]] = await conn.fetch(SOURCE_SQL, r["seq"])
 
-        total = await conn.fetchval("SELECT COUNT(*) FROM aihub.qa_case")
+        total = await conn.fetchval("SELECT COUNT(*) FROM public.aihub_qa_case")
         a.out.parent.mkdir(parents=True, exist_ok=True)
         with a.out.open("w", encoding="utf-8") as fh:
             fh.write("# AI-Hub 질의응답 표본 (적재 판단용)\n\n")

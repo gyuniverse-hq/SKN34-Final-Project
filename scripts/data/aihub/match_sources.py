@@ -38,7 +38,7 @@ async def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=15432)
-    p.add_argument("--database", default="vishue_v29")
+    p.add_argument("--database", default="vishue_db")
     p.add_argument("--user", default="vishue")
     p.add_argument("--apply", action="store_true", help="실제로 기록한다")
     a = p.parse_args()
@@ -51,7 +51,7 @@ async def main() -> None:
         # 파일명 -> 그 이름을 가진 파일들이 가리키는 문서 id 집합
         by_key: dict[str, set[int]] = collections.defaultdict(set)
         for r in await conn.fetch(
-            "SELECT file_name, document_id FROM aihub.knowledge_document_file "
+            "SELECT file_name, document_id FROM public.aihub_knowledge_document_file "
             "WHERE document_id IS NOT NULL"
         ):
             k = key(r["file_name"])
@@ -60,7 +60,7 @@ async def main() -> None:
 
         links = await conn.fetch(
             "SELECT seq, source_position, file_name_raw, file_name_raw_2, match_status "
-            "FROM aihub.qa_source_link ORDER BY seq, source_position"
+            "FROM public.aihub_qa_source_link ORDER BY seq, source_position"
         )
         print(f"  출처 참조 {len(links):,}행")
         filled_2 = sum(1 for r in links if r["file_name_raw_2"])
@@ -104,26 +104,27 @@ async def main() -> None:
 
         async with conn.transaction():
             await conn.executemany(
-                "UPDATE aihub.qa_source_link SET match_status = $1, document_id = $2 "
+                "UPDATE public.aihub_qa_source_link SET match_status = $1, document_id = $2 "
                 "WHERE seq = $3 AND source_position = $4",
                 updates,
             )
         print("\n기록 완료")
         rows = await conn.fetch(
             "SELECT match_status, COUNT(*) AS n, COUNT(document_id) AS linked "
-            "FROM aihub.qa_source_link GROUP BY match_status ORDER BY n DESC"
+            "FROM public.aihub_qa_source_link GROUP BY match_status ORDER BY n DESC"
         )
         for r in rows:
             print(f"  {r['match_status']:<14}{r['n']:>7,}  (문서 연결 {r['linked']:,})")
         reached = await conn.fetchval(
-            "SELECT COUNT(DISTINCT document_id) FROM aihub.qa_source_link "
+            "SELECT COUNT(DISTINCT document_id) FROM public.aihub_qa_source_link "
             "WHERE document_id IS NOT NULL"
         )
-        total_docs = await conn.fetchval("SELECT COUNT(*) FROM aihub.knowledge_document")
+        total_docs = await conn.fetchval("SELECT COUNT(*) FROM public.aihub_knowledge_document")
         qa_with = await conn.fetchval(
-            "SELECT COUNT(DISTINCT seq) FROM aihub.qa_source_link WHERE match_status = 'matched'"
+            "SELECT COUNT(DISTINCT seq) FROM public.aihub_qa_source_link"
+            " WHERE match_status = 'matched'"
         )
-        qa_total = await conn.fetchval("SELECT COUNT(*) FROM aihub.qa_case")
+        qa_total = await conn.fetchval("SELECT COUNT(*) FROM public.aihub_qa_case")
         print(f"\n  QA 가 가리키는 문서   {reached:>7,} / {total_docs:,}")
         print(f"  근거가 연결된 QA      {qa_with:>7,} / {qa_total:,}")
     finally:

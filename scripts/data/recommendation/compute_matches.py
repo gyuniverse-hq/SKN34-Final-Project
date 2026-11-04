@@ -62,7 +62,7 @@ async def main() -> None:
     p.add_argument("--target", choices=("local", "shared"), default="local")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=15432)
-    p.add_argument("--database", default="vishue_v29")
+    p.add_argument("--database", default="vishue_db")
     p.add_argument("--user", default="vishue")
     p.add_argument("--ssl-ca-file")
     p.add_argument("--apply", action="store_true", help="실제로 다시 계산해 기록한다")
