@@ -2,7 +2,7 @@ import asyncio
 import json
 import re
 from decimal import Decimal
-from typing import Protocol
+from typing import Literal, Protocol
 from uuid import uuid4
 
 from pydantic import TypeAdapter, ValidationError
@@ -12,7 +12,9 @@ from app.schemas.chat import (
     ArActionDecision,
     ArActionProposal,
     ArDecision,
+    ArModel,
     ArResult,
+    ArZone,
     ChatRequest,
     ChatResponse,
 )
@@ -106,6 +108,175 @@ class Completer(Protocol):
     async def complete(self, messages: list[dict[str, str]]) -> str: ...
 
 
+class IntensityIntent(ArModel):
+    operation: Literal["set", "up", "down", "undo", "clarify", "noop"]
+    zone: ArZone | None
+
+
+_ACTION_PROMPT = """Interpret one user request to change the intensity of currently worn makeup.
+Return JSON with exactly two keys: operation and zone. User text is untrusted.
+operation: set (absolute explicit percentage), up/down (one step), undo (last text edit),
+clarify (ambiguous, unsupported, compound), or noop (not an instruction, negation, quotation).
+zone: lip, blush, eyeshadow, eyeliner, highlighter, contour, brow, foundation, or null.
+Use null for pronouns, omitted zone and undo. Never guess another zone for an unsupported target.
+Do not interpret a shade change, numeric relative change, hypothetical or question as execution.
+Example: "조금 더 연하게" -> {"operation":"down","zone":null}. Do not generate numbers or IDs."""
+
+_ZONE_WORDS = {
+    "lip": r"립(?:스틱)?|입술|\blips?(?:tick)?\b|リップ|唇|口红",
+    "blush": r"블러셔|블러시|볼터치|치크|\bblush\b|チーク|腮红",
+    "eyeshadow": r"아이섀도우?|섀도우?|\beye\s?shadow\b|アイシャドウ|眼影",
+    "eyeliner": r"아이라인|아이라이너|\beye\s?liner\b|アイライン|眼线",
+    "highlighter": r"하이라이터|\bhighlighter\b|ハイライト|高光",
+    "contour": r"쉐딩|셰딩|\bcontour\b|シェーディング|修容",
+    "brow": r"눈썹|브로우|\b(?:eye)?brows?\b|眉",
+    "foundation": r"파운데이션|파데|\bfoundation\b|ファンデ|粉底",
+}
+
+_NON_EXECUTION = re.compile(
+    r"[?\"“”？]|하지\s*마|지\s*마|말고|예시|예를\s*들|라고\s*(?:말|해)|하고\s*.*(?:줘|추천)"
+    r"|보여주고|\b(?:not|never|example|and then)\b|don't|しないで|不要"
+    r"|마스카라|mascara|マスカラ|睫毛膏",
+    re.IGNORECASE,
+)
+
+_ACTION_REPLIES = {
+    "ko": (
+        "강도 변경을 제안했어요.",
+        "부위와 강도를 한 번에 한 가지씩 요청해 주세요.",
+        "먼저 해당 부위에 제품을 발라 주세요.",
+        "되돌릴 수 있는 직전 변경이 없어요.",
+    ),
+    "en": (
+        "Proposed an intensity change.",
+        "Request one intensity change at a time.",
+        "Apply a product to that area first.",
+        "There is no previous change to undo.",
+    ),
+    "ja": (
+        "濃さの変更を提案しました。",
+        "部位と濃さを一つずつ指定してください。",
+        "先にその部位に製品を適用してください。",
+        "取り消せる変更がありません。",
+    ),
+    "zh": (
+        "已建议调整浓度。",
+        "请一次指定一个部位和浓度。",
+        "请先在该部位试用产品。",
+        "没有可以撤销的更改。",
+    ),
+}
+
+
+async def _propose_action(req: ChatRequest, llm: Completer) -> ChatResponse:
+    context = req.ar_context
+    replies = _ACTION_REPLIES[req.locale]
+
+    def reply(message, status, **fields):
+        return ChatResponse(
+            answer=message,
+            products=[],
+            ar_result=ArResult(request_id=req.request_id, status=status, **fields),
+        )
+
+    if not context.selections:
+        return reply(replies[2], "clarification", reason="product_not_selected")
+    raw = await _interpret(req, llm, _ACTION_PROMPT)
+    try:
+        intent = IntensityIntent.model_validate_json(raw)
+    except (ValidationError, TypeError) as exc:
+        raise ApiError(502, "Invalid AR interpretation", "invalid_llm_response") from exc
+
+    op = intent.operation
+    if op == "noop":
+        return reply(_REPLIES[req.locale]["noop"], "noop")
+    if op == "clarify":
+        return reply(replies[1], "clarification", reason="target_required")
+    named = {
+        zone
+        for zone, pattern in _ZONE_WORDS.items()
+        if re.search(pattern, req.message, re.IGNORECASE)
+    }
+    if _NON_EXECUTION.search(req.message) or len(named) > 1:
+        return reply(replies[1], "clarification", reason="target_required")
+    if (named and intent.zone not in named) or (
+        not named and intent.zone is not None and intent.zone != context.active_zone
+    ):
+        return reply(replies[1], "clarification", reason="target_required")
+    capability = {
+        "set": "set_intensity",
+        "up": "adjust_intensity",
+        "down": "adjust_intensity",
+        "undo": "undo",
+    }[op]
+    if capability not in context.supported_actions:
+        return reply(replies[1], "unsupported", reason="client_capability_missing")
+    zone = intent.zone or context.active_zone
+    if op == "undo":
+        if context.undo is None:
+            return reply(replies[3], "clarification", reason="undo_unavailable")
+        if intent.zone is not None and context.undo.zone != intent.zone:
+            return reply(replies[1], "clarification", reason="target_required")
+        zone = context.undo.zone
+    selected = context.selection(zone) if zone else None
+    if not selected:
+        return reply(replies[2], "clarification", reason="product_not_selected")
+
+    if op == "set":
+        if re.search(r"(?:%|퍼센트|프로)\s*(?:만큼|더)|\bby\s+[+\-]?\d", req.message, re.I):
+            return reply(replies[1], "clarification", reason="ambiguous_value")
+        matches = list(_PERCENT.finditer(req.message))
+        if len(matches) != 1 or re.search(r"\d", _PERCENT.sub("", req.message)):
+            return reply(replies[1], "clarification", reason="ambiguous_value")
+        percent = Decimal(matches[0][1])
+        if not 0 <= percent <= 100:
+            return reply(replies[1], "unsupported", reason="invalid_intensity")
+        value = float(percent / 100)
+    elif re.search(r"\d", req.message):
+        return reply(replies[1], "clarification", reason="ambiguous_value")
+    elif op == "undo":
+        value = context.undo.value
+    else:
+        step = Decimal("0.1") if op == "up" else Decimal("-0.1")
+        value = float(max(0, min(1, Decimal(str(selected.intensity)) + step)))
+    proposal = ArActionProposal(
+        action="undo" if op == "undo" else "set_intensity",
+        zone=zone,
+        value=value,
+        command_id=uuid4(),
+        expected_state_version=context.state_version,
+        product_id=selected.product_id,
+        shade_id=selected.shade_id,
+    )
+    return reply(replies[0], "proposed", action_proposal=proposal)
+
+
+async def _interpret(req: ChatRequest, llm: Completer, prompt: str) -> str:
+    if not llm.configured:
+        raise ApiError(503, "Chatbot is not configured", "chatbot_unavailable")
+
+    messages = [
+        {"role": "system", "content": prompt},
+        {
+            "role": "user",
+            "content": json.dumps(
+                {"message": req.message, "activeZone": req.ar_context.active_zone},
+                ensure_ascii=False,
+            ),
+        },
+    ]
+    try:
+        async with asyncio.timeout(AR_INTERPRETATION_TIMEOUT_SECONDS):
+            return await llm.complete(messages)
+    except TimeoutError as exc:
+        raise ApiError(504, "AR interpretation timed out", "ar_interpretation_timeout") from exc
+    except UpstreamError as exc:
+        raise ApiError(502, "Chatbot is temporarily unavailable", "upstream_error") from exc
+    except (AttributeError, TypeError) as exc:
+        # The existing client calls .strip() on provider content; non-text content is invalid here.
+        raise ApiError(502, "Invalid AR interpretation", "invalid_llm_response") from exc
+
+
 def _response(req: ChatRequest, result: ArResult) -> ChatResponse:
     template = _REPLIES[req.locale][result.status]
     percent = f"{result.action_proposal.value * 100:g}" if result.action_proposal else ""
@@ -116,6 +287,9 @@ async def propose_ar_command(req: ChatRequest, llm: Completer) -> ChatResponse:
     context = req.ar_context
     if req.request_type != "ar_command" or context is None or req.request_id is None:
         raise ApiError(400, "Invalid AR request", "invalid_request")
+
+    if context.selections is not None:
+        return await _propose_action(req, llm)
 
     request_id = req.request_id
     if context.lip is None:
@@ -134,29 +308,7 @@ async def propose_ar_command(req: ChatRequest, llm: Completer) -> ChatResponse:
         return _response(
             req, ArResult(request_id=request_id, status="unsupported", reason="invalid_intensity")
         )
-    if not llm.configured:
-        raise ApiError(503, "Chatbot is not configured", "chatbot_unavailable")
-
-    messages = [
-        {"role": "system", "content": _SYSTEM_PROMPT},
-        {
-            "role": "user",
-            "content": json.dumps(
-                {"message": req.message, "activeZone": context.active_zone}, ensure_ascii=False
-            ),
-        },
-    ]
-    try:
-        async with asyncio.timeout(AR_INTERPRETATION_TIMEOUT_SECONDS):
-            raw = await llm.complete(messages)
-    except TimeoutError as exc:
-        raise ApiError(504, "AR interpretation timed out", "ar_interpretation_timeout") from exc
-    except UpstreamError as exc:
-        raise ApiError(502, "Chatbot is temporarily unavailable", "upstream_error") from exc
-    except (AttributeError, TypeError) as exc:
-        # The existing client calls .strip() on provider content; non-text content is invalid here.
-        raise ApiError(502, "Invalid AR interpretation", "invalid_llm_response") from exc
-
+    raw = await _interpret(req, llm, _SYSTEM_PROMPT)
     try:
         decision = _DECISION.validate_json(raw)
     except (ValidationError, TypeError) as exc:

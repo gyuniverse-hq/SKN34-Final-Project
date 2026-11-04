@@ -306,6 +306,20 @@ describe('AR command state', () => {
     });
   });
 
+  it('invalidates undo after a manual edit, even if a proposal uses the new version', () => {
+    const store = useMakeupStore.getState();
+    const previous = store.makeup.lip!.intensity;
+    expect(store.prepareArCommand(request, session, proposal).status).toBe('PENDING');
+    expect(store.finishArCommand(proposal.commandId, session, 'rendered').status).toBe('APPLIED');
+    expect(useMakeupStore.getState().arUndo).toEqual({ zone: 'lip', value: previous });
+    store.setIntensity('lip', 0.8);
+    const latest = useMakeupStore.getState();
+    expect(latest.arUndo).toBeNull();
+    expect(store.prepareArCommand('second', session, {
+      ...proposal, commandId: 'undo', expectedStateVersion: latest.arVersion, action: 'undo', value: previous,
+    }).status).toBe('REJECTED');
+  });
+
   it.each(['failed', 'unknown'] as const)('does not change makeup when render is %s', (result) => {
     const store = useMakeupStore.getState();
     const before = store.makeup;

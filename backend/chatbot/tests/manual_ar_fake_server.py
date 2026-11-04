@@ -110,6 +110,14 @@ class FakeLlm:
         self.state.model_calls += 1
         text = json.loads(messages[1]["content"])["message"]
         values = _PERCENT.findall(text)
+        if "operation and zone" in messages[0]["content"]:
+            # This test server recognizes only the scripted inputs; it never invokes a model.
+            operation = {"조금 더 연하게": "down", "방금 변경 취소": "undo"}.get(text)
+            if operation is None and len(values) == 1:
+                operation = "set"
+            return json.dumps(
+                {"operation": operation or "clarify", "zone": "lip" if operation == "set" else None}
+            )
         if len(values) != 1:
             reason = "value_required" if not values else "ambiguous_value"
             return json.dumps({"status": "clarification", "reason": reason})

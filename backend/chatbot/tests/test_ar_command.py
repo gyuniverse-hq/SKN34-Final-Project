@@ -52,6 +52,39 @@ def answer(req, model):
     return anyio.run(propose_ar_command, req, model).model_dump(mode="json", by_alias=True)
 
 
+@pytest.mark.parametrize(
+    ("message", "operation", "target", "expected"),
+    [
+        ("블러셔 강도 40%로", "set", "blush", 0.4),
+        ("조금 더 연하게", "down", None, 0.3),
+        ("이거 좀 더 진하게", "up", None, 0.5),
+        ("방금 변경 취소", "undo", None, 0.65),
+        ("블러셔 강도 150%로", "set", "blush", None),
+        ("립 강도 40%로", "set", "lip", None),
+        ("립 강도 40%로", "set", "blush", None),
+        ("블러셔 40%로 설정하지 마", "set", "blush", None),
+    ],
+)
+def test_selected_zone_actions(message, operation, target, expected):
+    req = ar_request(message)
+    context = req.ar_context.model_dump()
+    context.update(
+        activeZone="blush",
+        supportedActions=["set_intensity", "adjust_intensity", "undo"],
+        selections={"blush": {**context["lip"], "intensity": 0.4}},
+        undo={"zone": "blush", "value": 0.65},
+        lip=None,
+    )
+    req.ar_context = type(req.ar_context).model_validate(context)
+    result = answer(req, JsonLlm({"operation": operation, "zone": target}))["arResult"]
+    if expected is None:
+        assert "actionProposal" not in result
+    else:
+        proposal = result["actionProposal"]
+        assert (proposal["zone"], proposal["value"]) == ("blush", expected)
+        assert proposal["action"] == ("undo" if operation == "undo" else "set_intensity")
+
+
 @pytest.mark.parametrize("suffix", ["%", "퍼센트", "프로"])
 @pytest.mark.parametrize("percentage", [0, 50, 100])
 def test_explicit_absolute_percentage_is_normalized_and_bound_to_the_request(suffix, percentage):

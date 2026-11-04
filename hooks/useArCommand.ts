@@ -4,7 +4,7 @@ import { apiPostOwned, subscribeArIdentityChange, type ArRequestOwner } from '@/
 import { pendingArAcks, queueArAck, retryArAcks, subscribeArAcks } from '@/lib/arCommandAck';
 import { revealedMakeup } from '@/lib/practice';
 import type { Language } from '@/lib/i18n';
-import { arPaintMakeup, isArPaintZone, useMakeupStore, type ArOutcome, type ArProposal } from '@/store/makeupStore';
+import { AR_PAINT_ZONES, arPaintMakeup, isArPaintZone, useMakeupStore, type ArOutcome, type ArProposal } from '@/store/makeupStore';
 import type { ArRenderCommand, ArRenderResult, MakeupZone } from '@/types';
 
 type Phase = 'idle' | 'interpreting' | 'proposed' | 'applying' | 'applied' | 'no_change' | 'clarification' | 'rejected' | 'failed' | 'unknown';
@@ -19,7 +19,7 @@ const displayKey = (options: Options) => options.visibleZones ? options.visibleZ
 function proposalOf(value: unknown): ArProposal | null {
   if (!value || typeof value !== 'object') return null;
   const p = value as Record<string, unknown>;
-  if (typeof p.commandId !== 'string' || !UUID.test(p.commandId) || p.action !== 'set_intensity' || p.zone !== 'lip' ||
+  if (typeof p.commandId !== 'string' || !UUID.test(p.commandId) || (p.action !== 'set_intensity' && p.action !== 'undo') || !isArPaintZone(p.zone as MakeupZone) ||
       typeof p.value !== 'number' || !Number.isFinite(p.value) || p.value < 0 || p.value > 1 ||
       typeof p.expectedStateVersion !== 'number' || !Number.isSafeInteger(p.expectedStateVersion) || p.expectedStateVersion < 0 ||
       typeof p.productId !== 'string' || !p.productId || typeof p.shadeId !== 'string' || !p.shadeId) return null;
@@ -28,6 +28,7 @@ function proposalOf(value: unknown): ArProposal | null {
 
 export function useArCommand(options: Options) {
   const [state, setState] = useState<Phase>('idle');
+  const [applied, setApplied] = useState<ArProposal | null>(null);
   const [message, setMessage] = useState('');
   const [renderCommand, setRenderCommand] = useState<ArRenderCommand | null>(null);
   const [restoreState, setRestoreState] = useState<RestorePhase>('idle');
@@ -86,6 +87,7 @@ export function useArCommand(options: Options) {
     if (mounted.current) {
       if (needsRestore) startRestore(cmd);
       else { setRenderCommand(null); setRestoreState('idle'); }
+      setApplied(outcome.status === 'APPLIED' || outcome.status === 'NO_CHANGE' ? cmd.proposal : null);
       setMessage('');
       setState(outcome.status.toLowerCase() as Phase);
     }
@@ -98,6 +100,7 @@ export function useArCommand(options: Options) {
 
   useEffect(() => subscribeArIdentityChange(() => {
     authEpoch.current++;
+    useMakeupStore.setState({ arUndo: null });
     if (command.current) useMakeupStore.getState().cancelArCommand();
     else {
       activeRequest.current = null;
@@ -209,15 +212,19 @@ export function useArCommand(options: Options) {
     const isCurrent = () => authEpoch.current === epoch && activeRequest.current === requestId && session.current === sessionId &&
       mounted.current && current.current.active && current.current.enabled && current.current.rendererId === opts.rendererId &&
       useMakeupStore.getState().arVersion === snapshot.arVersion;
-    const selected = snapshot.selections.lip;
-    const lip = snapshot.makeup.lip;
+    const selections: Partial<Record<MakeupZone, { productId: string; shadeId: string; intensity: number }>> = {};
+    for (const zone of AR_PAINT_ZONES) {
+      const product = snapshot.selections[zone];
+      const layer = snapshot.makeup[zone];
+      if (product && layer) selections[zone] = { ...product, intensity: layer.intensity };
+    }
     try {
       const { data: response, owner } = await apiPostOwned<{ answer?: unknown; arResult?: unknown }>('/api/chat', {
         message: text.trim(), locale: opts.locale, requestType: 'ar_command', requestId,
         arContext: { screenId: 'A-01', stateVersion: snapshot.arVersion,
           activeZone: isArPaintZone(opts.activeZone) ? opts.activeZone : null,
-          supportedActions: ['set_intensity'],
-          lip: selected && lip ? { ...selected, intensity: lip.intensity } : null },
+          supportedActions: ['set_intensity', 'adjust_intensity', 'undo'],
+          selections, undo: snapshot.arUndo, lip: selections.lip ?? null },
       }, { timeoutMs: 90_000 });
       const ar = response?.arResult;
       if (!ar || typeof ar !== 'object') throw new Error('Invalid AR response');
@@ -243,10 +250,11 @@ export function useArCommand(options: Options) {
       if (prepared.status !== 'PENDING') { complete(cmd, prepared); return; }
       command.current = cmd;
       const latest = arPaintMakeup(useMakeupStore.getState().makeup);
-      if (!latest.lip) { command.current = null; complete(cmd, useMakeupStore.getState().cancelArCommand()!); return; }
+      const layer = latest[proposal.zone];
+      if (!layer) { command.current = null; complete(cmd, useMakeupStore.getState().cancelArCommand()!); return; }
       setState('proposed');
-      setRenderCommand({ commandId: proposal.commandId, renderSeq: cmd.renderSeq, rendererId: cmd.rendererId,
-        makeup: { ...latest, lip: { ...latest.lip, intensity: proposal.value } } });
+      setRenderCommand({ zone: proposal.zone, commandId: proposal.commandId, renderSeq: cmd.renderSeq, rendererId: cmd.rendererId,
+        makeup: { ...latest, [proposal.zone]: { ...layer, intensity: proposal.value } } });
       setState('applying');
       timer.current = setTimeout(() => {
         if (command.current !== cmd) return;
@@ -262,5 +270,5 @@ export function useArCommand(options: Options) {
     }
   }, [complete]);
 
-  return { state, message, restoreState, ackPending, send, retryAck: retryArAcks, renderCommand, onRenderResult };
+  return { state, applied, message, restoreState, ackPending, send, retryAck: retryArAcks, renderCommand, onRenderResult };
 }

@@ -33,10 +33,20 @@ class ArModel(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class ArLipSelection(ArModel):
+ArZone = Literal[
+    "lip", "blush", "eyeshadow", "eyeliner", "brow", "foundation", "contour", "highlighter"
+]
+
+
+class ArSelection(ArModel):
     product_id: ArIdentifier
     shade_id: ArIdentifier
     intensity: ArIntensity
+
+
+class ArUndo(ArModel):
+    zone: ArZone
+    value: ArIntensity
 
 
 class ArContext(ArModel):
@@ -44,11 +54,18 @@ class ArContext(ArModel):
 
     screen_id: Literal["A-01"]
     state_version: ArVersion
-    active_zone: Literal["lip", "blush", "eyeshadow", "eyeliner", "brow", "foundation"] | None
+    active_zone: ArZone | None
     supported_actions: list[Annotated[str, StringConstraints(min_length=1, max_length=64)]] = Field(
         max_length=16
     )
-    lip: ArLipSelection | None
+    lip: ArSelection | None
+    selections: dict[ArZone, ArSelection] | None = None
+    undo: ArUndo | None = None
+
+    def selection(self, zone: ArZone) -> ArSelection | None:
+        if self.selections is not None:
+            return self.selections.get(zone)
+        return self.lip if zone == "lip" else None
 
 
 class IngredientFilter(ArModel):
@@ -167,7 +184,10 @@ ArDecision = Annotated[
 ]
 
 
-class ArActionProposal(ArAction):
+class ArActionProposal(ArModel):
+    action: Literal["set_intensity", "undo"]
+    zone: ArZone
+    value: ArIntensity
     command_id: UUID
     expected_state_version: ArVersion
     product_id: ArIdentifier
@@ -181,6 +201,8 @@ class ArResult(ArModel):
     reason: (
         Literal[
             "lip_not_selected",
+            "product_not_selected",
+            "undo_unavailable",
             "target_required",
             "value_required",
             "ambiguous_value",

@@ -454,6 +454,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
 
   let makeup = { lip: null, blush: null, eyeshadow: null, eyeliner: null, mascara: null, highlighter: null, contour: null, brow: null, foundation: null };
   let pendingRender = null;
+  let pendingRenderZone = 'lip';
   let pendingRestore = null;
   let commandRendererId = null;
   let lastRenderSeq = -1;
@@ -501,15 +502,18 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       lastRenderSeq = msg.renderSeq;
       pendingRender = null;
       pendingRestore = null;
-      const lip = msg.makeup && msg.makeup.lip;
+      const zone = restoring || msg.zone === undefined ? 'lip' : msg.zone;
+      const allowedZone = ['lip', 'blush', 'eyeshadow', 'eyeliner', 'highlighter', 'contour', 'brow', 'foundation'].includes(zone);
+      const layer = msg.makeup && msg.makeup[zone];
       const validMakeup = msg.makeup && typeof msg.makeup === 'object';
-      const validLip = lip && typeof lip.intensity === 'number' && Number.isFinite(lip.intensity) && lip.intensity >= 0 && lip.intensity <= 1;
+      const validLayer = layer && Number.isFinite(layer.intensity) && layer.intensity >= 0 && layer.intensity <= 1;
       const result = { commandId: msg.commandId, renderSeq: msg.renderSeq, rendererId: msg.rendererId };
       if (restoring) result.restoreId = msg.restoreId;
-      if (!validMakeup || (!restoring && !validLip) || (restoring && lip && !validLip)) {
+      if (!validMakeup || !allowedZone || ((!restoring || layer) && !validLayer)) {
         post(Object.assign({ type: restoring ? 'restore_result' : 'render_result', status: 'failed' }, result));
       } else {
         makeup = msg.makeup;
+        pendingRenderZone = zone;
         pendingRender = restoring ? null : result;
         pendingRestore = restoring ? result : null;
       }
@@ -3363,7 +3367,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         gl.bindTexture(gl.TEXTURE_2D, foundSkinTex);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
       },
-      render(W, H, checkCommand, checkRestore) {
+      render(W, H, commandZone, checkRestore) {
         if (glCanvas.width !== W || glCanvas.height !== H) { glCanvas.width = W; glCanvas.height = H; }
         gl.viewport(0, 0, W, H);
         gl.disable(gl.SCISSOR_TEST);
@@ -3393,7 +3397,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         const contourZ = makeup.contour || null;
         if (!hasFace) return false;
         if (!(lip || blush || eye || liner || browZ || foundZ || mascara || hl || contourZ)) {
-          if ((checkCommand || checkRestore) && gl.getError() !== gl.NO_ERROR) throw new Error('AR render failed');
+          if ((commandZone || checkRestore) && gl.getError() !== gl.NO_ERROR) throw new Error('AR render failed');
           return !!checkRestore;
         }
 
@@ -3679,8 +3683,9 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
           gl.drawElements(gl.TRIANGLES, capIdx.length, gl.UNSIGNED_SHORT, 0);
           gl.uniform1f(u.uCap, 0);
         }
-        if ((checkCommand || checkRestore) && gl.getError() !== gl.NO_ERROR) throw new Error('AR render failed');
-        return checkRestore ? (!lip || outlineOn) : !!lip && outlineOn;
+        if ((commandZone || checkRestore) && gl.getError() !== gl.NO_ERROR) throw new Error('AR render failed');
+        if (checkRestore) return !lip || outlineOn;
+        return commandZone === 'lip' ? !!lip && outlineOn : !!makeup[commandZone];
       },
     };
   }
@@ -4007,7 +4012,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     if (now - fpsAt >= 1000) { fps = fpsFrames; fpsFrames = 0; fpsAt = now; }
 
     try {
-      const frameRendered = renderer.render(W, H, !!pendingRender, !!pendingRestore);
+      const frameRendered = renderer.render(W, H, pendingRender && pendingRenderZone, !!pendingRestore);
       if ((pendingRender || pendingRestore) && faceThisFrame && frameRendered && !renderer.lost) {
         post(Object.assign({ type: pendingRestore ? 'restore_result' : 'render_result', status: 'rendered' }, pendingRestore || pendingRender));
         pendingRender = null; pendingRestore = null;

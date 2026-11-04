@@ -110,6 +110,10 @@ it('adds only explicitly selected products even when other look colors have near
   expect(findColorGaps(look.makeup, [{ product: lip, shade: chosenShade }], [lip, nearby]).some((gap) => gap.kind === 'nearest')).toBe(true);
   let screen!: renderer.ReactTestRenderer;
   await act(async () => { screen = renderer.create(<ArTryOnScreen />); });
+  await act(async () => {
+    screen.root.findAllByProps({ accessibilityRole: 'tab' })
+      .find((tab) => tab.findAllByProps({ children: 'ar.mode.direct' }).length)!.props.onPress();
+  });
   const add = screen.root.findAllByType(Button).find((button) => button.props.label === 'ar.addSelection');
   expect(add?.props.disabled).toBe(false);
   await act(async () => { add!.props.onPress(); });

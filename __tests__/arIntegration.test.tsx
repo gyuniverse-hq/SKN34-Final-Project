@@ -52,7 +52,7 @@ import { AppState, TextInput } from 'react-native';
 const post = jest.mocked(apiPostOwned);
 let screen: renderer.ReactTestRenderer;
 let serial = 0;
-const owned = (data: unknown) => ({ data, owner: { kind: 'guest', id: 'guest-test' } });
+const owned = <T,>(data: T) => ({ data, owner: { kind: 'guest', id: 'guest-test' } });
 function proposal(body: any) {
   return owned({ answer: '', arResult: { requestId: body.requestId, status: 'proposed',
     actionProposal: { commandId: `aaaaaaaa-aaaa-4aaa-8aaa-${String(++serial).padStart(12, '0')}`, expectedStateVersion: body.arContext.stateVersion,
@@ -121,24 +121,23 @@ it('keeps recording controls and command confirmation connected on the same AR v
   expect(post).toHaveBeenCalledWith('/api/chat/acks', expect.objectContaining({ status: 'APPLIED' }), expect.anything());
 });
 
-it('invalidates a delayed proposal when the local blush command is used', async () => {
+it('invalidates a delayed proposal after a manual blush edit', async () => {
   let resolve!: (value: any) => void;
   let body: any;
   post.mockImplementationOnce((_path, payload) => { body = payload; return new Promise((r) => { resolve = r; }); });
   await send('립 진하기를 50%로 설정해 줘.');
-  const before = useMakeupStore.getState().makeup.blush!.intensity;
-  await send('블러셔를 조금 더 은은하게 해줘');
-  expect(useMakeupStore.getState().makeup.blush!.intensity).toBe(Math.max(0.12, before - 0.18));
+  await act(async () => { useMakeupStore.getState().setIntensity('blush', 0.25); });
+  expect(useMakeupStore.getState().makeup.blush!.intensity).toBe(0.25);
   await act(async () => { resolve(proposal(body)); });
   expect(face().props.renderCommand).toBeNull();
   expect(post.mock.calls.filter(([path]) => path === '/api/chat')).toHaveLength(1);
   expect(post).toHaveBeenCalledWith('/api/chat/acks', expect.objectContaining({ status: 'REJECTED' }), expect.anything());
 });
 
-it('restores latest Store state after a local command cancels a rendered candidate', async () => {
+it('restores latest Store state after a manual edit cancels a rendered candidate', async () => {
   await send('립 진하기를 50%로 설정해 줘.');
   const old = face().props.renderCommand;
-  await send('블러셔를 조금 더 은은하게 해줘');
+  await act(async () => { useMakeupStore.getState().setIntensity('blush', 0.25); });
   const restore = face().props.renderCommand;
   expect(restore.kind).toBe('restore');
   expect(restore.makeup.lip.intensity).toBe(useMakeupStore.getState().makeup.lip!.intensity);
@@ -158,11 +157,14 @@ it('rejects the old candidate when develop WebView crash recovery creates a new 
   expect(post).toHaveBeenCalledWith('/api/chat/acks', expect.objectContaining({ status: 'REJECTED' }), expect.anything());
 });
 
-it('neither executes nor calls the server for a compound request', async () => {
+it('leaves the renderer unchanged when AR Action asks for clarification', async () => {
+  post.mockImplementationOnce(async (_path, body: any) => owned({ arResult: {
+    requestId: body.requestId, status: 'clarification',
+  } }) as never);
   const before = useMakeupStore.getState().makeup;
   await send('코랄 룩 보여주고 립 진하기를 50%로 설정해 줘.');
   expect(useMakeupStore.getState().makeup).toBe(before);
-  expect(post).not.toHaveBeenCalled();
+  expect(face().props.renderCommand).toBeNull();
 });
 
 it('does not execute a local fallback when the server fails, and allows an explicit retry', async () => {
@@ -196,11 +198,34 @@ it('returns from zero to fifty with the same real product, shade, color and text
   }
 });
 
-it('preserves local adjustment without tracking but keeps server execution disabled', async () => {
+it('blocks both relative and absolute changes without tracking', async () => {
   await act(async () => { face().props.onStatus('no-face'); });
   const before = useMakeupStore.getState().makeup.blush!.intensity;
   await send('블러셔를 조금 더 은은하게 해줘');
-  expect(useMakeupStore.getState().makeup.blush!.intensity).toBe(Math.max(0.12, before - 0.18));
+  expect(useMakeupStore.getState().makeup.blush!.intensity).toBe(before);
   await send('립 진하기를 50%로 설정해 줘.');
   expect(post).not.toHaveBeenCalled();
+});
+
+
+it('confirms 40%, a step down, and one undo in the same AR session', async () => {
+  for (const [text, value, undo] of [
+    ['립 강도 40%로', 0.4, false], ['조금 더 연하게', 0.3, false], ['방금 변경 취소', 0.4, true],
+  ] as const) {
+    post.mockImplementationOnce(async (_path, body: any) => {
+      if (undo) expect(body.arContext.undo).toEqual({ zone: 'lip', value: 0.4 });
+      const response = proposal({ ...body, message: String(value * 100) });
+      response.data.arResult.actionProposal.action = undo ? 'undo' : 'set_intensity';
+      return response as never;
+    });
+    await send(text);
+    const render = face().props.renderCommand;
+    expect(render.makeup.lip.intensity).toBe(value);
+    await act(async () => { face().props.onRenderResult({ ...render, status: 'rendered' }); });
+    expect(useMakeupStore.getState().makeup.lip?.intensity).toBe(value);
+    expect(post).toHaveBeenCalledWith('/api/chat/acks', expect.objectContaining({
+      commandId: render.commandId, status: 'APPLIED',
+    }), expect.anything());
+  }
+  expect(useMakeupStore.getState().arUndo).toBeNull();
 });

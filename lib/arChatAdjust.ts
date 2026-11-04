@@ -3,7 +3,6 @@ import type { MakeupState, MakeupZone, Product, Shade } from '@/types';
 
 export type ArChatResult =
   | { kind: 'shade'; zone: MakeupZone; product: Product; shade: Shade }
-  | { kind: 'intensity'; zone: MakeupZone; intensity: number }
   | { kind: 'none' };
 
 type TryOn = { product: Product; shade: Shade };
@@ -26,10 +25,6 @@ function asksLighterLip(text: string): boolean {
   return /연한|연하게|라이터|얇은|light(er)?|薄い|浅/.test(text) && /립|립스틱|lipstick|リップ|口红/.test(text);
 }
 
-function asksSofterBlush(text: string): boolean {
-  return /블러셔|블러시|치크|blush|チーク|腮红/.test(text) && /은은|부드럽게|소프트|soft|やわらか|柔和/.test(text);
-}
-
 function asksCoralLook(text: string): boolean {
   return /코랄|coral|コーラル|珊瑚色/.test(text);
 }
@@ -42,11 +37,6 @@ export function adjustMakeupFromChat(
 ): ArChatResult {
   const query = text.trim().toLowerCase();
   if (!query) return { kind: 'none' };
-
-  if (asksSofterBlush(query)) {
-    if (!makeup.blush) return { kind: 'none' };
-    return { kind: 'intensity', zone: 'blush', intensity: Math.max(0.12, makeup.blush.intensity - 0.18) };
-  }
 
   const lips = lipSwatches(products);
   if (asksLighterLip(query)) {

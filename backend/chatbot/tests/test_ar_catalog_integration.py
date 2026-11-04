@@ -10,6 +10,7 @@ from app.core.ratelimit import MemoryRateLimiter, get_rate_limiter
 from app.repositories.ar_command_repository import MemoryArRequestRepository
 from app.schemas.chat import ChatRequest
 from app.services.chat_service import ChatService, get_chat_service
+from tests.test_ar_command import JsonLlm
 from tests.test_chat import ArTestLlm, ar_payload
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -86,3 +87,33 @@ async def test_foreign_shade_cannot_be_proposed(monkeypatch, collected_lip):
     with pytest.raises(ApiError) as error:
         await service.answer(ChatRequest.model_validate(body), "guest:catalog-test")
     assert error.value.code == "invalid_ar_selection"
+
+
+def test_blush_step_without_lip_via_supervisor(client, monkeypatch):
+    products = json.loads((ROOT / "backend/api/seed/catalog.json").read_text("utf-8"))["products"]
+    product = next(p for p in products if p.get("makeupZone") == "blush" and p["shades"])
+    selection = dict(productId=product["id"], shadeId=product["shades"][0]["id"], intensity=0.4)
+    body = ar_payload()
+    body.update(message="이거 조금 더 연하게")
+    body["arContext"].update(
+        activeZone="blush",
+        lip=None,
+        selections={"blush": selection},
+        supportedActions=["set_intensity", "adjust_intensity", "undo"],
+    )
+    llm = JsonLlm({"operation": "down", "zone": None})
+    service = ChatService(None, llm, catalog(monkeypatch, product), MemoryArRequestRepository())
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    headers = {"X-Vishue-Anonymous-Id": "2b03dd40-20dc-4b8f-9705-6f91461759f0"}
+    response = client.post("/api/chat", json=body, headers=headers)
+    assert response.status_code == 200
+    result = response.json()
+    proposal = result["arResult"]["actionProposal"]
+    assert (proposal["zone"], proposal["productId"], proposal["value"]) == (
+        "blush",
+        product["id"],
+        0.3,
+    )
+    assert result["arResult"]["status"] == "proposed"
+    assert client.post("/api/chat", json=body, headers=headers).json() == result
+    assert llm.calls == 1

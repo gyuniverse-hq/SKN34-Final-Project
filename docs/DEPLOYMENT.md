@@ -102,7 +102,8 @@ npx expo start -c
    | vishue-api | `PAYMENT_WEB_BASE_URL` | 이 서버의 주소 (`https://vishue-api-xxxx.onrender.com`, 끝에 `/` 없이) |
    | vishue-chatbot | `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD` | 2-3의 AuraDB 접속 정보 |
    | vishue-chatbot | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | 1-5와 같은 값 |
-   | vishue-chatbot | `LLM_API_KEY`, `LLM_MODEL` | 챗봇을 켤 때 입력 (비우면 챗봇만 503) |
+   | vishue-chatbot | `LLM_API_KEY`, `LLM_MODEL` | 챗봇과 AR Action에 사용 (비우면 기능이 503을 반환) |
+   | vishue-chatbot | `STT_MODEL`, `TTS_MODEL` | 향후 음성 입력·출력 모델 설정. 음성 기능은 아직 연결되지 않음 |
 
 5. 첫 배포는 5~10분 걸립니다. 끝나면 서버 페이지 위쪽의 주소(`https://vishue-api-xxxx.onrender.com`)를 복사합니다.
 6. 브라우저에서 `<주소>/api/health`가 `{"ok":true,...}`인지 확인합니다. `vishue-api`는 시작할 때 DB 표를 자동으로 만듭니다.

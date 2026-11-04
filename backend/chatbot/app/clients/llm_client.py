@@ -37,3 +37,8 @@ class LlmClient:
 def get_llm_client() -> LlmClient:
     s = get_settings()
     return LlmClient(s.llm_base_url, s.llm_api_key, s.llm_model, s.llm_timeout_seconds)
+
+
+@lru_cache
+def get_ar_llm_client() -> LlmClient:
+    return get_llm_client()

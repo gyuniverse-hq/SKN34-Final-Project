@@ -37,12 +37,12 @@ describe('adjustMakeupFromChat', () => {
     expect(result.shade.hex).toMatch(/^#[0-9A-F]{6}$/i);
   });
 
-  it('softens blush intensity and keeps the color', () => {
+  it('leaves blush intensity adjustments to AR Action', () => {
     const result = adjustMakeupFromChat('블러셔를 조금 더 은은하게 해줘', [lip], {
       ...emptyMakeup,
       blush: { hex: '#E8A0A0', texture: 'sheer', intensity: 0.5 },
     });
-    expect(result).toEqual({ kind: 'intensity', zone: 'blush', intensity: 0.32 });
+    expect(result).toEqual({ kind: 'none' });
   });
 
   it('applies an existing coral catalog shade', () => {

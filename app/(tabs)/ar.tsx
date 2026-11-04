@@ -157,7 +157,7 @@ export default function ArTryOnScreen() {
   const [familyFilter, setFamilyFilter] = useState<ColorFamily | null>(null);
   const [added, setAdded] = useState(false);
   const [recFor, setRecFor] = useState<string | null>(null);
-  const [mode, setMode] = useState<Mode>('direct');
+  const [mode, setMode] = useState<Mode>(__DEV__ ? 'chat' : 'direct');
   const [draft, setDraft] = useState('');
   const [chatNote, setChatNote] = useState<TranslationKey | null>(null);
   const [isFullscreenAR, setIsFullscreenAR] = useState(false);
@@ -331,10 +331,6 @@ export default function ArTryOnScreen() {
       applyShade(result.product, result.shade);
       setZone(result.zone);
       setChatNote('ar.chatAppliedShade');
-    } else if (result.kind === 'intensity') {
-      setIntensity(result.zone, result.intensity);
-      setZone(result.zone);
-      setChatNote('ar.chatAppliedIntensity');
     } else {
       setChatNote('ar.chatNoMatch');
     }
@@ -817,13 +813,6 @@ export default function ArTryOnScreen() {
               ))}
             </ScrollView>
             <View style={styles.chatInputRow}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t('ar.mic')}
-                onPress={() => Alert.alert(t('ar.mic'), t('ar.micUnavailable'))}
-                style={styles.micBtn}>
-                <Ionicons name="mic" size={22} color={theme.colors.white} />
-              </Pressable>
               <TextInput
                 value={draft}
                 onChangeText={(text) => { submittedDraft.current = null; setDraft(text); }}
@@ -847,6 +836,9 @@ export default function ArTryOnScreen() {
             {arCommand.state !== 'idle' ? (
               <Text style={styles.chatBody} accessibilityLiveRegion="polite">
                 {arCommand.message || t(AR_COMMAND_STATUS[arCommand.state])}
+                {(arCommand.state === 'applied' || arCommand.state === 'no_change') && arCommand.applied
+                  ? ' ' + t(`ar.zone.${arCommand.applied.zone}` as TranslationKey) + ' ' +
+                    Number((arCommand.applied.value * 100).toFixed(2)) + '%' : ''}
               </Text>
             ) : null}
             {arCommand.restoreState !== 'idle' ? (
@@ -1400,7 +1392,6 @@ const styles = StyleSheet.create({
   chatRetry: { fontSize: theme.font.small, color: theme.colors.rose, fontWeight: '700', paddingVertical: 6 },
   chatExamples: { gap: 8, paddingVertical: 4 },
   chatInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  micBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: theme.colors.rose, alignItems: 'center', justifyContent: 'center' },
   chatInput: { flex: 1, minHeight: 46, borderRadius: theme.radius.pill, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.card, paddingHorizontal: 16, fontSize: theme.font.body, color: theme.colors.ink },
   sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.ink, alignItems: 'center', justifyContent: 'center' },
 });

@@ -9,7 +9,7 @@ from uuid import NAMESPACE_URL, uuid4, uuid5
 from fastapi import Depends
 
 from app.clients.catalog_client import CatalogClient, get_catalog_client
-from app.clients.llm_client import LlmClient, get_llm_client
+from app.clients.llm_client import LlmClient, get_ar_llm_client, get_llm_client
 from app.core.config import get_settings
 from app.core.errors import ApiError, UpstreamError
 from app.core.graph import get_driver
@@ -96,17 +96,17 @@ def build_messages(req: ChatRequest, products: list[GraphProduct]) -> list[dict[
 
 def resolve_context(req: ChatRequest) -> ResolvedContext:
     beauty, ar = req.chat_context, req.ar_context
-    lip = ar.lip if ar else None
+    selection = ar.selection(ar.active_zone) if ar and ar.active_zone else None
     return ResolvedContext(
         style=req.style_context,
         message=req.message,
         request_type=req.request_type,
         screen=req.screen_context,
         candidate_ids=list(beauty.candidate_ids) if beauty else [],
-        selected_product_id=lip.product_id
-        if lip
+        selected_product_id=selection.product_id
+        if selection
         else (beauty.selected_product_id if beauty else None),
-        selected_shade_id=lip.shade_id if lip else None,
+        selected_shade_id=selection.shade_id if selection else None,
         ar_state_version=ar.state_version if ar else None,
         has_beauty_context=beauty is not None,
         has_ar_context=ar is not None,
@@ -148,7 +148,7 @@ def check_sufficiency(context: ResolvedContext, intent: IntentDecision) -> Suffi
         if not context.has_ar_context:
             missing.append("arContext")
         if not context.selected_product_id or not context.selected_shade_id:
-            missing.append("lipSelection")
+            missing.append("productSelection")
     if (
         intent.slots
         and not context.has_beauty_context
@@ -237,11 +237,11 @@ def verify_response(
             raise ApiError(502, "Unexpected AR request ID", "invalid_tool_result")
         proposal = response.ar_result.action_proposal
         if proposal:
-            lip = req.ar_context.lip if req.ar_context else None
+            selection = req.ar_context.selection(proposal.zone) if req.ar_context else None
             if (
-                not lip
-                or proposal.product_id != lip.product_id
-                or proposal.shade_id != lip.shade_id
+                not selection
+                or proposal.product_id != selection.product_id
+                or proposal.shade_id != selection.shade_id
                 or proposal.expected_state_version != req.ar_context.state_version
             ):
                 raise ApiError(502, "Invalid AR proposal context", "invalid_tool_result")
@@ -255,10 +255,17 @@ class ChatService:
     """Retrieves product candidates and asks the LLM to answer the user's question."""
 
     def __init__(
-        self, graph: GraphReader | None, llm: Completer, catalog=None, requests=None, sessions=None
+        self,
+        graph: GraphReader | None,
+        llm: Completer,
+        catalog=None,
+        requests=None,
+        sessions=None,
+        ar_llm: Completer | None = None,
     ) -> None:
         self._graph = graph
         self._llm = llm
+        self._ar_llm = ar_llm or llm
         self._catalog = catalog
         self._requests = requests
         self._sessions = sessions
@@ -694,7 +701,7 @@ class ChatService:
         )
 
     async def _propose_ar(self, req: ChatRequest) -> ChatResponse:
-        result = await propose_ar_command(req, self._llm)
+        result = await propose_ar_command(req, self._ar_llm)
         proposal = result.ar_result.action_proposal if result.ar_result else None
         if proposal is None:
             return result
@@ -705,10 +712,10 @@ class ChatService:
         if (
             product is None
             or product.id != proposal.product_id
-            or product.makeup_zone != "lip"
+            or product.makeup_zone != proposal.zone
             or not any(shade.id == proposal.shade_id for shade in product.shades)
         ):
-            raise ApiError(422, "Invalid lip product or shade", "invalid_ar_selection")
+            raise ApiError(422, "Invalid AR product or shade", "invalid_ar_selection")
         return result
 
     def acknowledge_ar(self, principal_key: str, ack: ArAckRequest) -> None:
@@ -719,8 +726,9 @@ class ChatService:
 
 def get_chat_service(
     llm: LlmClient = Depends(get_llm_client),
+    ar_llm: LlmClient = Depends(get_ar_llm_client),
     catalog: CatalogClient = Depends(get_catalog_client),
     requests: MemoryArRequestRepository = Depends(get_ar_requests),
     sessions: ChatSessionRepository = Depends(get_chat_sessions),
 ) -> ChatService:
-    return ChatService(None, llm, catalog, requests, sessions)
+    return ChatService(None, llm, catalog, requests, sessions, ar_llm)

@@ -91,6 +91,7 @@ docker compose -f infra/compose/compose.yaml --env-file .env up -d --build   # �
 | `YOUTUBE_API_KEY` | 백엔드 | 튜토리얼 검색 (YouTube Data API v3) |
 | `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` | 백엔드 | 실제 제품 이미지·온라인 최저가 (네이버 쇼핑 검색 API) |
 | `LLM_API_KEY` / `LLM_MODEL` | 백엔드 | 챗봇 |
+| `STT_MODEL` / `TTS_MODEL` | 백엔드 | 향후 음성 입력·출력 모델 설정 (아직 미연결) |
 | `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | 앱·백엔드 | 로그인 (Supabase Auth). 공개용 값이라 앱에 포함됨 |
 | `EXPO_PUBLIC_API_BASE_URL` | 앱 | 백엔드 주소 (공개 값). 개발 중에는 비워 둠 |
 

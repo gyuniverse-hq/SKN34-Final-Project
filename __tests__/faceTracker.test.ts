@@ -15,7 +15,7 @@ function renderHarness() {
   const state: RenderState = { face: true, drawn: true, lost: false, failDraw: false, failFilter: false, values: [] };
   const messages: Record<string, unknown>[] = [];
   const build = new Function('state', 'messages', `
-    let makeup = { lip: null }, pendingRender = null, pendingRestore = null, commandRendererId = null, lastRenderSeq = -1, lastStateSeq = -1;
+    let makeup = { lip: null }, pendingRender = null, pendingRenderZone = null, pendingRestore = null, commandRendererId = null, lastRenderSeq = -1, lastStateSeq = -1;
     let status = null, hasFace = true, lastFaceAt = 0, lastLightAt = 1, fpsFrames = 0, fpsAt = 0, fps = 0;
     let landmarker = { detectForVideo: () => ({ faceLandmarks: state.face ? [{}] : [] }) };
     let renderer = { get lost() { return state.lost; }, upload() {}, render() {
@@ -46,6 +46,14 @@ function restoreCommand(value: number | null, renderSeq = 2, rendererId = 'rende
   return { type: 'restore_command', commandId: 'command-1', restoreId, renderSeq, rendererId,
     makeup: { lip: value === null ? null : { intensity: value } } };
 }
+
+it('acknowledges a blush command after drawing a fresh frame without a lip product', () => {
+  const h = renderHarness();
+  h.handleMessage({ ...renderCommand(0.4), zone: 'blush', makeup: { blush: { intensity: 0.4 } } });
+  expect(h.messages).toEqual([]);
+  h.processFrame(2);
+  expect(h.messages).toContainEqual(expect.objectContaining({ type: 'render_result', status: 'rendered' }));
+});
 
 describe('face tracker page', () => {
   it.each([0, 0.01, 0.5, 1])('acknowledges intensity %s only after a matching face and draw', (value) => {
