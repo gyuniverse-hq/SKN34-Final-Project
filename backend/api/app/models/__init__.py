@@ -1,3 +1,15 @@
+from app.models.aihub import (
+    AihubClaimReviewRow,
+    AihubDatasetReleaseRow,
+    AihubIngredientMentionRow,
+    AihubKnowledgeDocumentFileRow,
+    AihubKnowledgeDocumentRow,
+    AihubQaCaseRawRow,
+    AihubQaCaseRow,
+    AihubQaSourceLinkRow,
+    AihubSkinConcernRow,
+    AihubSkinTypeRow,
+)
 from app.models.catalog import LookItemRow, LookRow, ProductRow, ShadeRow, StoreRow
 from app.models.idol_look import LookArSettingRow, LookProductRow, MakeupLookRow, YoutubeVideoRow
 from app.models.member import MemberRow
@@ -42,6 +54,16 @@ from app.models.recommendation import (
 from app.models.skincare import SkincareServingRow
 
 __all__ = [
+    "AihubClaimReviewRow",
+    "AihubDatasetReleaseRow",
+    "AihubIngredientMentionRow",
+    "AihubKnowledgeDocumentFileRow",
+    "AihubKnowledgeDocumentRow",
+    "AihubQaCaseRawRow",
+    "AihubQaCaseRow",
+    "AihubQaSourceLinkRow",
+    "AihubSkinConcernRow",
+    "AihubSkinTypeRow",
     "SkincareServingRow",
     "LookArSettingRow",
     "LookItemRow",

@@ -15,7 +15,10 @@ AI-Hub 이용정책은 국외 반출에 수행기관 및 한국지능정보사�
 만들면 `dev-data` 워크플로가 공용 DB 에도 테이블을 만들고, 빈 테이블이 있으면 나중에
 누군가 모르고 채울 수 있습니다.
 
-`setup_schema.py` 와 적재 스크립트는 **로컬이 아닌 host 에 연결하지 않습니다.** 공용
+적재 스크립트는 **로컬이 아닌 host 에 연결하지 않습니다.** 다만 테이블 생성은 이제
+alembic 이 하므로 그 가드가 걸리지 않습니다. `alembic upgrade head` 가 도는 곳에는
+빈 `aihub_*` 테이블이 생길 수 있고 공용 DB도 그에 해당합니다. **데이터는 들어가지
+않습니다** — 적재 스크립트가 로컬만 허용하기 때문입니다. 공용
 반영이 허용되면 그때 이 제한을 명시적으로 풉니다.
 
 `aihub` 는 `public` 이 아니므로 `alembic check` 의 비교 대상이 아닙니다(`env.py` 가
@@ -41,46 +44,48 @@ DATA = C:\...\02.문제성 피부 메이크업 추천 데이터\3.개방데이�
 python ..\..\scripts\data\aihub\verify_source.py --data-dir "%DATA%" --out ..\..\data\aihub-source-verify.txt
 ```
 
-스키마 생성 (사전 2종 포함, 재실행 안전):
+테이블 생성. 2026-11-04 부터 alembic 이 만든다. 전용 `aihub` 스키마에서 `public` 의
+`aihub_` 접두사 테이블로 옮겼고, 분류 축 2종(고민 13종, 기본 피부 타입 4종)도
+마이그레이션 `0014` 가 함께 넣는다. `setup_schema.py` 와 `schema.sql` 은 없앴다.
 
 ```powershell
-uv run python ..\..\scripts\data\aihub\setup_schema.py --database vishue_v29 --port 15432 --apply
+uv run alembic upgrade head
 ```
 
 QA 적재:
 
 ```powershell
-uv run python ..\..\scripts\data\aihub\load_qa.py --data-dir "%DATA%" --database vishue_v29 --port 15432 --apply
+uv run python ..\..\scripts\data\aihub\load_qa.py --data-dir "%DATA%" --database vishue_db --port 15432 --apply
 ```
 
 지식 문서 적재:
 
 ```powershell
-uv run python ..\..\scripts\data\aihub\load_documents.py --data-dir "%DATA%" --database vishue_v29 --port 15432 --apply
+uv run python ..\..\scripts\data\aihub\load_documents.py --data-dir "%DATA%" --database vishue_db --port 15432 --apply
 ```
 
 출처를 문서에 연결:
 
 ```powershell
-uv run python ..\..\scripts\data\aihub\match_sources.py --database vishue_v29 --port 15432 --apply
+uv run python ..\..\scripts\data\aihub\match_sources.py --database vishue_db --port 15432 --apply
 ```
 
 추천·주의 성분 언급 적재:
 
 ```powershell
-uv run python ..\..\scripts\data\aihub\load_mentions.py --database vishue_v29 --port 15432 --apply
+uv run python ..\..\scripts\data\aihub\load_mentions.py --database vishue_db --port 15432 --apply
 ```
 
 누출·구분자 측정 (집계와 예시를 다른 파일로 씁니다):
 
 ```powershell
-uv run python ..\..\scripts\data\aihub\analyze_qa.py --database vishue_v29 --port 15432 --out ..\..\data\aihub-qa-analysis.txt --samples-out ..\..\data\aihub-mention-samples.txt
+uv run python ..\..\scripts\data\aihub\analyze_qa.py --database vishue_db --port 15432 --out ..\..\data\aihub-qa-analysis.txt --samples-out ..\..\data\aihub-mention-samples.txt
 ```
 
 QA 를 사람이 읽을 수 있게 뽑기 (고민 13종에서 2건씩):
 
 ```powershell
-uv run python ..\..\scripts\data\aihub\browse_qa.py --database vishue_v29 --port 15432 --out ..\..\data\aihub-qa-sample.txt
+uv run python ..\..\scripts\data\aihub\browse_qa.py --database vishue_db --port 15432 --out ..\..\data\aihub-qa-sample.txt
 ```
 
 ## ERD

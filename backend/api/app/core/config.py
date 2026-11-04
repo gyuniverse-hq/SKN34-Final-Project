@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     env: str = "local"
     log_level: str = "INFO"
-    database_url: str = "postgresql+asyncpg://vishue:vishue@localhost:5432/vishue"
+    database_url: str = "postgresql+asyncpg://vishue:vishue@localhost:5432/vishue_db"
     redis_url: str | None = None
     catalog_cache_seconds: int = 300
     ingredient_mapping_path: str | None = None

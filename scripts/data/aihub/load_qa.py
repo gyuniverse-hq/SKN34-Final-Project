@@ -148,7 +148,7 @@ async def main() -> None:
     p.add_argument("--data-dir", type=Path, required=True, help="'3.개방데이터/1.데이터' 폴더")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=15432)
-    p.add_argument("--database", default="vishue_v29")
+    p.add_argument("--database", default="vishue_db")
     p.add_argument("--user", default="vishue")
     p.add_argument("--received-at", default=str(date.today()), help="원본 수령일 (YYYY-MM-DD)")
     p.add_argument("--release-version", default="v1.2")
@@ -178,7 +178,7 @@ async def main() -> None:
                                 user=a.user, password=pw, ssl=False)
     try:
         for table in ("dataset_release", "qa_case_raw", "qa_case", "qa_source_link"):
-            n = await conn.fetchval(f"SELECT COUNT(*) FROM aihub.{table}")
+            n = await conn.fetchval(f"SELECT COUNT(*) FROM public.aihub_{table}")
             print(f"\n  적재 전 {table:<18}{n:>8,}행" if table == "dataset_release"
                   else f"  적재 전 {table:<18}{n:>8,}행")
         if not a.apply:
@@ -187,7 +187,7 @@ async def main() -> None:
 
         async with conn.transaction():
             release_id = await conn.fetchval(
-                "INSERT INTO aihub.dataset_release "
+                "INSERT INTO public.aihub_dataset_release "
                 "(dataset_id, dataset_name, release_version, received_at, source_archive, "
                 " source_sha256, rights_status, storage_region, rights_note) "
                 "VALUES ($1, $2, $3, $4, $5, $6, 'local_only', 'kr-local', $7) "
@@ -197,14 +197,14 @@ async def main() -> None:
                 "국외 반출 합의 없음. 국내 로컬 보관만 허용. docs/AIHUB_DATA_RIGHTS.md 참조",
             )
             await conn.executemany(
-                "INSERT INTO aihub.qa_case_raw "
+                "INSERT INTO public.aihub_qa_case_raw "
                 "(seq, split, source_archive, source_file_path, sha256, raw_json, release_id) "
                 "VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7) "
                 "ON CONFLICT (seq) DO NOTHING",
                 [row + (release_id,) for row in raw_rows],
             )
             await conn.executemany(
-                "INSERT INTO aihub.qa_case "
+                "INSERT INTO public.aihub_qa_case "
                 "(seq, subject_id, concern_code, concern_label_raw, skin_type_raw, "
                 " skin_brightness_raw, area_raw, question_text, answer_text, "
                 " recommended_raw, avoid_raw) "
@@ -213,7 +213,7 @@ async def main() -> None:
                 case_rows,
             )
             await conn.executemany(
-                "INSERT INTO aihub.qa_source_link "
+                "INSERT INTO public.aihub_qa_source_link "
                 "(seq, source_position, quote_raw, source_title_raw, author_raw, publisher_raw, "
                 " publication_year_raw, file_name_raw, file_extension_raw, "
                 " file_name_raw_2, file_extension_raw_2, status_raw) "
@@ -234,14 +234,14 @@ async def main() -> None:
             )
         print(f"\n기록 완료 (release_id {release_id})")
         for table in ("dataset_release", "qa_case_raw", "qa_case", "qa_source_link"):
-            n = await conn.fetchval(f"SELECT COUNT(*) FROM aihub.{table}")
+            n = await conn.fetchval(f"SELECT COUNT(*) FROM public.aihub_{table}")
             print(f"  {table:<20}{n:>8,}행")
         print("\n== 적재 후 대조 ==")
         for label, sql, expect in (
-            ("고민 코드 13종", "SELECT COUNT(DISTINCT concern_code) FROM aihub.qa_case", 13),
-            ("피부 타입 4종", "SELECT COUNT(DISTINCT skin_type_raw) FROM aihub.qa_case", 4),
-            ("고유 대상자", "SELECT COUNT(DISTINCT subject_id) FROM aihub.qa_case", None),
-            ("출처 미연결", "SELECT COUNT(*) FROM aihub.qa_source_link "
+            ("고민 코드 13종", "SELECT COUNT(DISTINCT concern_code) FROM public.aihub_qa_case", 13),
+            ("피부 타입 4종", "SELECT COUNT(DISTINCT skin_type_raw) FROM public.aihub_qa_case", 4),
+            ("고유 대상자", "SELECT COUNT(DISTINCT subject_id) FROM public.aihub_qa_case", None),
+            ("출처 미연결", "SELECT COUNT(*) FROM public.aihub_qa_source_link "
                           "WHERE match_status = 'not_attempted'", len(link_rows)),
         ):
             n = await conn.fetchval(sql)

@@ -13,19 +13,19 @@ AI 담당이 전달한 매핑 데이터셋을 `rec_*` 테이블에 적재하고,
 전달본 적재:
 
 ```powershell
-uv run python ..\..\scripts\data\recommendation\load_mapping.py --target local --database vishue_v29 --port 15432 --apply
+uv run python ..\..\scripts\data\recommendation\load_mapping.py --target local --database vishue_db --port 15432 --apply
 ```
 
 성분 코드를 수집 성분에 연결:
 
 ```powershell
-uv run python ..\..\scripts\data\recommendation\link_ingredients.py --target local --database vishue_v29 --port 15432 --apply
+uv run python ..\..\scripts\data\recommendation\link_ingredients.py --target local --database vishue_db --port 15432 --apply
 ```
 
 상품 옵션별 성분 일치 계산:
 
 ```powershell
-uv run python ..\..\scripts\data\recommendation\compute_matches.py --target local --database vishue_v29 --port 15432 --apply
+uv run python ..\..\scripts\data\recommendation\compute_matches.py --target local --database vishue_db --port 15432 --apply
 ```
 
 성분 데이터가 바뀌면(수집·조각 복구·성분 매처 이후) 마지막 단계를 다시 실행합니다.
@@ -67,7 +67,7 @@ uv run python ..\..\scripts\data\recommendation\compute_matches.py --target loca
 `verify_bridge_ids.py`로 합니다.
 
 ```powershell
-uv run python ..\..\scripts\data\recommendation\verify_bridge_ids.py --target local --database vishue_v29 --port 15432
+uv run python ..\..\scripts\data\recommendation\verify_bridge_ids.py --target local --database vishue_db --port 15432
 ```
 
 그래서 연결은 `rec_ingredient_dictionary.name_ko`를 수집기와 같은 정규화로 맞춰

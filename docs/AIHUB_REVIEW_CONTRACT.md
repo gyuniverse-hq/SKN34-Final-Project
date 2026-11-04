@@ -173,8 +173,8 @@ AI-Hub 데이터의 검수 상태 전환 규칙과, 지식 조회를 쓰는 쪽�
 
 ```sql
 SELECT COUNT(*) AS approved_cases
-FROM aihub.qa_case q
-JOIN aihub.skin_type t ON t.skin_type_raw = q.skin_type_raw
+FROM public.aihub_qa_case q
+JOIN public.aihub_skin_type t ON t.skin_type_raw = q.skin_type_raw
 WHERE t.skin_type_normalized = 'combination'
   AND q.concern_code = '05'
   AND q.review_status = 'approved';
@@ -219,7 +219,7 @@ WHERE t.skin_type_normalized = 'combination'
 검수자는 DB 에서 직접 읽습니다. 조회 API 를 거치지 않습니다.
 
 ```powershell
-uv run python ..\..\scripts\data\aihub\browse_qa.py --database vishue_v29 --port 15432 --concern 05 --limit 10 --out ..\..\data\aihub-qa-05.txt
+uv run python ..\..\scripts\data\aihub\browse_qa.py --database vishue_db --port 15432 --concern 05 --limit 10 --out ..\..\data\aihub-qa-05.txt
 ```
 
 출력 파일은 저장소에 커밋하지 않습니다(`data/` 는 추적되지 않습니다).

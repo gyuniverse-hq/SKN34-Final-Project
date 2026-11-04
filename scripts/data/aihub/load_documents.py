@@ -105,7 +105,7 @@ async def main() -> None:
     p.add_argument("--data-dir", type=Path, required=True, help="'3.개방데이터/1.데이터' 폴더")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=15432)
-    p.add_argument("--database", default="vishue_v29")
+    p.add_argument("--database", default="vishue_db")
     p.add_argument("--user", default="vishue")
     p.add_argument("--apply", action="store_true", help="실제로 기록한다")
     a = p.parse_args()
@@ -165,7 +165,7 @@ async def main() -> None:
                                 user=a.user, password=pw, ssl=False)
     try:
         for table in ("knowledge_document", "knowledge_document_file"):
-            n = await conn.fetchval(f"SELECT COUNT(*) FROM aihub.{table}")
+            n = await conn.fetchval(f"SELECT COUNT(*) FROM public.aihub_{table}")
             print(f"\n  적재 전 {table:<26}{n:>8,}행")
         if not a.apply:
             print("\n미리보기입니다. 기록하려면 --apply 를 붙이세요.")
@@ -184,7 +184,7 @@ async def main() -> None:
                     m.get("purpose"), m.get("cautions"),
                 ))
             await conn.executemany(
-                "INSERT INTO aihub.knowledge_document "
+                "INSERT INTO public.aihub_knowledge_document "
                 "(content_sha256, title_raw, author_raw, publisher_raw, publication_year_raw, "
                 " status_raw, source_type_raw, language_raw, country_raw, application_raw, "
                 " token_count_raw, main_keywords_raw, purpose_raw, cautions_raw) "
@@ -195,7 +195,7 @@ async def main() -> None:
             id_by_hash = {
                 r["content_sha256"]: r["document_id"]
                 for r in await conn.fetch(
-                    "SELECT document_id, content_sha256 FROM aihub.knowledge_document"
+                    "SELECT document_id, content_sha256 FROM public.aihub_knowledge_document"
                 )
             }
             # 2) 파일 경로별 레코드. 메타 연결 상태를 파일 단위로 남긴다.
@@ -216,7 +216,7 @@ async def main() -> None:
                     id_by_hash[digest], path, name, ext, size, meta_path, status,
                 ))
             await conn.executemany(
-                "INSERT INTO aihub.knowledge_document_file "
+                "INSERT INTO public.aihub_knowledge_document_file "
                 "(document_id, source_file_path, file_name, file_extension, byte_size, "
                 " meta_json_path, meta_match_status) "
                 "VALUES ($1,$2,$3,$4,$5,$6,$7) "
@@ -226,23 +226,23 @@ async def main() -> None:
 
         print("\n기록 완료")
         for table in ("knowledge_document", "knowledge_document_file"):
-            n = await conn.fetchval(f"SELECT COUNT(*) FROM aihub.{table}")
+            n = await conn.fetchval(f"SELECT COUNT(*) FROM public.aihub_{table}")
             print(f"  {table:<28}{n:>8,}행")
         print("\n== 적재 후 대조 ==")
         rows = await conn.fetch(
-            "SELECT meta_match_status, COUNT(*) AS n FROM aihub.knowledge_document_file "
+            "SELECT meta_match_status, COUNT(*) AS n FROM public.aihub_knowledge_document_file "
             "GROUP BY meta_match_status ORDER BY n DESC"
         )
         for r in rows:
             print(f"  파일 메타연결 {r['meta_match_status']:<14}{r['n']:>8,}")
         titled = await conn.fetchval(
-            "SELECT COUNT(*) FROM aihub.knowledge_document WHERE title_raw IS NOT NULL"
+            "SELECT COUNT(*) FROM public.aihub_knowledge_document WHERE title_raw IS NOT NULL"
         )
         rights = await conn.fetchval(
-            "SELECT COUNT(*) FROM aihub.knowledge_document "
+            "SELECT COUNT(*) FROM public.aihub_knowledge_document "
             "WHERE purpose_raw IS NOT NULL OR cautions_raw IS NOT NULL"
         )
-        total = await conn.fetchval("SELECT COUNT(*) FROM aihub.knowledge_document")
+        total = await conn.fetchval("SELECT COUNT(*) FROM public.aihub_knowledge_document")
         print(f"  제목이 있는 문서       {titled:>8,} / {total:,}")
         print(f"  이용조건이 있는 문서   {rights:>8,} / {total:,}")
     finally:

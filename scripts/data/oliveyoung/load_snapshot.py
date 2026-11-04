@@ -593,7 +593,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--project-ref")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=15432)
-    parser.add_argument("--database", default="vishue_v29")
+    parser.add_argument("--database", default="vishue_db")
     parser.add_argument("--user", default="vishue")
     parser.add_argument("--ssl-ca-file")
     parser.add_argument("--apply", action="store_true")
