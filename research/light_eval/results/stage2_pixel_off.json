@@ -1,0 +1,6 @@
+{
+ "baseline": "research/light_eval/_tmp/ablation/current_ar (stage 1, md5 8248814a)",
+ "switch_off": "research\\light_eval\\_tmp\\stage2_off_ar",
+ "pairs": 20,
+ "identical": 20
+}

@@ -1,0 +1,30 @@
+{
+ "page": "C:\\Users\\playdata2\\SKN34-Final-Project\\components\\ar\\faceTrackerHtml.ts",
+ "results": [
+  {
+   "name": "p01_day_00_m01_0",
+   "nSamples": 218,
+   "first": {
+    "dir": [
+     0.19067366597050942,
+     0.9703627452306349,
+     0.1484577238604734
+    ],
+    "conf": 1,
+    "strength": 1.5,
+    "skinMeanLum": 0.27643543722339553
+   },
+   "last": {
+    "dir": [
+     0.19067366597050942,
+     0.9703627452306349,
+     0.1484577238604734
+    ],
+    "conf": 1,
+    "strength": 1.5,
+    "skinMeanLum": 0.27643543722339553
+   }
+  }
+ ],
+ "call_ms_pc_headless": 2.667303999963527
+}

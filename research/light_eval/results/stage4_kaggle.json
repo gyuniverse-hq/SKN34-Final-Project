@@ -1,0 +1,90 @@
+{
+ "linear (stage1 current)": {
+  "pairs": 20,
+  "dE_median": 3.9696156221656826,
+  "dE_mean": 4.165056636508636,
+  "wins_spread": 9,
+  "wins_hi": 12,
+  "wins_ssim": 6,
+  "spread_median": 3.47198486328125,
+  "hi_median": 4.04046630859375,
+  "ssim_median": 0.712561371628404
+ },
+ "robust": {
+  "pairs": 20,
+  "dE_median": 3.885585298373786,
+  "dE_mean": 4.165918371777641,
+  "wins_spread": 9,
+  "wins_hi": 12,
+  "wins_ssim": 7,
+  "spread_median": 3.47198486328125,
+  "hi_median": 4.04046630859375,
+  "ssim_median": 0.7127755719777696
+ },
+ "sh9": {
+  "pairs": 20,
+  "dE_median": 4.112852836427987,
+  "dE_mean": 4.441364843881229,
+  "wins_spread": 7,
+  "wins_hi": 11,
+  "wins_ssim": 9,
+  "spread_median": 3.76983642578125,
+  "hi_median": 4.7867431640625,
+  "ssim_median": 0.7175695721027623
+ },
+ "sh9_robust": {
+  "pairs": 20,
+  "dE_median": 4.112852836427987,
+  "dE_mean": 4.441749720960179,
+  "wins_spread": 7,
+  "wins_hi": 11,
+  "wins_ssim": 9,
+  "spread_median": 3.76983642578125,
+  "hi_median": 4.7867431640625,
+  "ssim_median": 0.7166161966776443
+ },
+ "sh9_ridge1.0": {
+  "pairs": 20,
+  "dE_median": 4.130095411219727,
+  "dE_mean": 4.405958035664911,
+  "wins_spread": 7,
+  "wins_hi": 10,
+  "wins_ssim": 10,
+  "spread_median": 3.67828369140625,
+  "hi_median": 4.0416259765625,
+  "ssim_median": 0.7111674043342139
+ },
+ "sh9_lambert": {
+  "pairs": 20,
+  "dE_median": 4.244832463341198,
+  "dE_mean": 4.446647329009125,
+  "wins_spread": 7,
+  "wins_hi": 12,
+  "wins_ssim": 9,
+  "spread_median": 3.81927490234375,
+  "hi_median": 3.4593505859375,
+  "ssim_median": 0.7112533416803409
+ },
+ "sh9_lambert_no_size": {
+  "pairs": 20,
+  "dE_median": 4.234928990918991,
+  "dE_mean": 4.3836977750392965,
+  "wins_spread": 7,
+  "wins_hi": 12,
+  "wins_ssim": 9,
+  "spread_median": 3.83453369140625,
+  "hi_median": 3.73687744140625,
+  "ssim_median": 0.7175066737633604
+ },
+ "sh9_lambert_dir_only": {
+  "pairs": 20,
+  "dE_median": 3.9345137787878737,
+  "dE_mean": 4.1521071565452035,
+  "wins_spread": 11,
+  "wins_hi": 12,
+  "wins_ssim": 7,
+  "spread_median": 2.75848388671875,
+  "hi_median": 3.73687744140625,
+  "ssim_median": 0.7141189493232629
+ }
+}

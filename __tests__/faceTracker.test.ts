@@ -632,6 +632,164 @@ describe('face tracker page', () => {
     expect(cie76(daylight, tungsten)).toBeGreaterThan(6);
   });
 
+  it('glides the light direction only behind its switch and snaps the estimate past the snap angle', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    expect(script).toContain('lightDirGlide: false,');
+    expect(script).toContain('lightDirSec: 0.4,');
+    expect(script).toContain('lightDirSnapDeg: 25,');
+    // Switch off: the shader still gets the 0.5 s estimate exactly as before.
+    expect(script).toContain('gl.uniform1f(u.uLightConf, light.dirConf);');
+    expect(script).toContain('gl.uniform3f(u.uLightDir, shown.dir[0], shown.dir[1], shown.dir[2]);');
+    expect(script).toContain('const kd = TUNING.lightDirGlide && turn > TUNING.lightDirSnapDeg ? 1 : k;');
+    expect(script).toContain("'light ms ' + lightMs.toFixed(1)");
+
+    const glideSrc = script.slice(script.indexOf('  function glideLight(now) {'), script.indexOf('    return shownLight;\n  }') + '    return shownLight;\n  }'.length);
+    const run = (glideOn: boolean) =>
+      new Function('glideOn', `
+        const TUNING = { lightDirGlide: glideOn, lightDirSec: 0.4, lightDisplaySec: 0.6, skinRefLum: 0.34, exposureRange: [0.2, 1.6] };
+        const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+        const light = { color: [1, 1, 1], colorConf: 0, dir: [1, 0, 0], strength: 1.5, dirConf: 1, skinMeanLum: 0.34, sh: [1, 0, 0, 0, 0, 0, 0, 0, 0] };
+        const shownLight = { color: [1, 1, 1], exposure: 1, skinMeanLum: 0.34, dir: [0, 0, 1], strength: 1, conf: 0, sh: [1, 0, 0, 0, 0, 0, 0, 0, 0], t: 0 };
+        ${glideSrc}
+        glideLight(1000);
+        light.dir = [0, 0, 1];
+        const steps = [];
+        for (let t = 1000 + 1000 / 30; t < 1500; t += 1000 / 30) steps.push(glideLight(t).dir[2]);
+        return { steps, shown: shownLight };
+      `)(glideOn) as { steps: number[]; shown: { dir: number[]; strength: number; conf: number } };
+
+    const off = run(false);
+    expect(off.shown.dir).toEqual([0, 0, 1]);
+    expect(off.shown.conf).toBe(0);
+    const on = run(true);
+    // A face just found (t = 0) jumps; after that each frame moves part of the way, never all at once.
+    expect(on.shown.strength).toBeCloseTo(1.5);
+    expect(on.shown.conf).toBeCloseTo(1);
+    expect(on.steps[0]).toBeGreaterThan(0);
+    expect(on.steps[0]).toBeLessThan(0.3);
+    expect(on.steps.every((z, i) => i === 0 || z >= on.steps[i - 1])).toBe(true);
+    expect(on.steps[on.steps.length - 1]).toBeGreaterThan(0.6);
+  });
+
+  it('fits the light with Huber IRLS only behind its switch, and mixes in the relative signal for confidence', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    expect(script).toContain('lightRobust: false,');
+    expect(script).toContain('lightHuberC: 1.345,');
+    expect(script).toContain('lightConfRel: [0.3, 0.6],');
+    // Switch off: the 20% cut and the R²-only confidence stay as they were.
+    expect(script).toContain('const cut = resid.slice().sort((p, q) => p - q)[Math.floor(resid.length * 0.8)];');
+    expect(script).toContain('let conf = clamp((r2 - TUNING.lightConfR2[0]) / (TUNING.lightConfR2[1] - TUNING.lightConfR2[0]), 0, 1);');
+    expect(script).toContain('if (TUNING.lightRobust) {\n          conf = Math.max(conf,');
+
+    const src = script.slice(script.indexOf('  function solve4(A, b) {'), script.indexOf('  function ensureFoundSkinBuffers('));
+    const res = new Function(`
+      const TUNING = { lightHuberC: 1.345, lightIrlsIters: 4 };
+      ${src}
+      // Lambert skin lit from 45° to the side, plus a few blown specular dots facing the camera.
+      const L = [Math.SQRT1_2, 0, Math.SQRT1_2];
+      const samples = [];
+      let seed = 7;
+      const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+      for (let i = 0; i < 200; i++) {
+        const t = rnd() * Math.PI * 0.9 - Math.PI * 0.45, p = rnd() * Math.PI * 0.8 - Math.PI * 0.4;
+        const n = [Math.sin(t) * Math.cos(p), Math.sin(p), Math.cos(t) * Math.cos(p)];
+        let y = 0.1 + 0.3 * Math.max(0, n[0] * L[0] + n[1] * L[1] + n[2] * L[2]);
+        if (i % 12 === 0 && n[2] > 0.8) y = 0.95;
+        samples.push([n[0], n[1], n[2], y]);
+      }
+      const ang = (f) => {
+        const m = Math.hypot(f[1], f[2], f[3]);
+        return Math.acos((f[1] * L[0] + f[2] * L[1] + f[3] * L[2]) / m) * 180 / Math.PI;
+      };
+      const plain = fitLight(samples);
+      const rob = fitLightRobust(samples);
+      return { plain: ang(plain), robust: ang(rob.fit), same: fitLight(samples, samples.map(() => 1)).every((v, i) => Math.abs(v - plain[i]) < 1e-12) };
+    `)() as { plain: number; robust: number; same: boolean };
+    expect(res.same).toBe(true);
+    expect(res.robust).toBeLessThan(res.plain);
+  });
+
+  it('fits SH9 light only behind lightModel, falls back to the linear fit, and keeps the linear shader path', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    expect(script).toContain("lightModel: 'linear',");
+    expect(script).toContain("if (TUNING.lightModel === 'sh9') {");
+    // Linear: the lip volume ratio and the gloss light size are set exactly as before.
+    expect(script).toContain('float form = max(dot(lipFormN, lV), 0.0) / max(dot(lipBaseN, lV), 0.2);');
+    expect(script).toContain('if (uLightModel > 0.5) {');
+    expect(script).toContain('gl.uniform2f(u.uLightSize, TUNING.lightSize[0], TUNING.lightSize[1]);');
+    expect(script).toContain("gl.uniform1f(u.uLightModel, TUNING.lightModel === 'sh9' && TUNING.lightShVolume ? 1 : 0);");
+    expect(script).toContain('lightShVolume: false,');
+    expect(script).toContain('lightShSizeSpread: 0,');
+
+    const src = script.slice(script.indexOf('  function solve4(A, b) {'), script.indexOf('  function ensureFoundSkinBuffers('));
+    const res = new Function(`
+      const TUNING = { lightHuberC: 1.345, lightIrlsIters: 4, lightShIters: 6, lightShMinSamples: 60, lightShMaxCond: 1e5 };
+      ${src}
+      const ev = symEigen([[2, 1, 0], [1, 2, 0], [0, 0, 5]]).sort((p, q) => p - q);
+      // Lambert skin plus ambient on front-facing normals, lit 60° from the side: the shadowed cheek is flat, which tilts a
+      // straight-line fit toward the side.
+      const L = [Math.sin(Math.PI / 3), 0, Math.cos(Math.PI / 3)];
+      const samples = [];
+      let seed = 11;
+      const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+      while (samples.length < 300) {
+        const x = rnd() * 2 - 1, y = rnd() * 2 - 1;
+        if (x * x + y * y > 1 - 0.35 * 0.35) continue;
+        const n = [x, y, Math.sqrt(1 - x * x - y * y)];
+        samples.push([n[0], n[1], n[2], 0.06 + 0.3 * Math.max(0, n[0] * L[0] + n[1] * L[1] + n[2] * L[2])]);
+      }
+      const ang = (f) => Math.acos(Math.min(1, (f[1] * L[0] + f[2] * L[1] + f[3] * L[2]) / Math.hypot(f[1], f[2], f[3]))) * 180 / Math.PI;
+      const lin = fitLight(samples);
+      const lam = fitLightLambert(samples);
+      const sh = lambertToSH([0.06, 0.3 * L[0], 0.3 * L[1], 0.3 * L[2]]);
+      const shAt = (n) => shBasis(n[0], n[1], n[2]).reduce((s, v, i) => s + v * sh[i], 0);
+      return { ev, lin: ang(lin), lam: ang(lam.fit), cond: lam.cond, few: fitLightLambert(samples.slice(0, 59)),
+               peak: shAt(L), away: shAt([-L[0], -L[1], -L[2]]) };
+    `)() as { ev: number[]; lin: number; lam: number; cond: number; few: unknown; peak: number; away: number };
+    expect(res.ev[0]).toBeCloseTo(1, 6);
+    expect(res.ev[1]).toBeCloseTo(3, 6);
+    expect(res.ev[2]).toBeCloseTo(5, 6);
+    expect(res.cond).toBeGreaterThan(1);
+    expect(res.few).toBeNull();
+    expect(res.lin).toBeGreaterThan(5);
+    expect(res.lam).toBeLessThan(0.5);
+    // SH9 of ambient + clamped cosine: about 0.06 + 0.3 toward the light, about the ambient facing away.
+    expect(res.peak).toBeCloseTo(0.36, 1);
+    expect(Math.abs(res.away - 0.06)).toBeLessThan(0.03);
+  });
+
+  it('mixes Gray-Edge into the background light color only behind its switch', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    expect(script).toContain('lightColorEdge: false,');
+    expect(script).toContain('lightColorEdgeMix: [0.25, 0.75],');
+    // Off: the Gray World estimate and the one-color check on the raw sums, as before.
+    expect(script).toContain('let est = [r / Y, g / Y, bl / Y];');
+    expect(script).toContain('let chroma = Math.max(r, g, bl) / Math.max(1e-6, Math.min(r, g, bl));');
+    expect(script).toContain('if (TUNING.lightColorEdge && eY > 0) {');
+
+    const src = script.slice(script.indexOf('  function bgColorSums('), script.indexOf('  function runSegmenter('));
+    const sums = (edge: boolean) =>
+      new Function('edge', `
+        const TUNING = { lightColorEdge: edge, clipLin: 0.92, darkLum: 0.02 };
+        function toLin(c) { return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+        function lumOf(r, g, b) { return 0.2126 * r + 0.7152 * g + 0.0722 * b; }
+        ${src}
+        // 3 x 1 frame: two background pixels side by side, the third is the person (class 3).
+        const data = new Uint8ClampedArray([200, 100, 100, 255, 100, 200, 100, 255, 100, 100, 200, 255]);
+        return bgColorSums(new Uint8Array([0, 0, 3]), 3, 1, data, 3, 1);
+      `)(edge) as { r: number; g: number; bl: number; n: number; er: number; eg: number; eb: number };
+    const toLin = (c: number) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+    const off = sums(false), on = sums(true);
+    expect(off.n).toBe(2);
+    expect(off.r).toBeCloseTo(toLin(200 / 255) + toLin(100 / 255), 6);
+    expect([off.er, off.eg, off.eb]).toEqual([0, 0, 0]);
+    expect([on.r, on.g, on.bl, on.n]).toEqual([off.r, off.g, off.bl, off.n]);
+    // One pair of neighbours; the person pixel is left out.
+    expect(on.er).toBeCloseTo(toLin(200 / 255) - toLin(100 / 255), 6);
+    expect(on.eg).toBeCloseTo(toLin(200 / 255) - toLin(100 / 255), 6);
+    expect(on.eb).toBeCloseTo(0, 6);
+  });
+
   it('locks white balance once the room color settles, at the settled temperature, and follows faster when unlocked', () => {
     const script = moduleScript(FACE_TRACKER_HTML);
     // No fixed 2 s timer: the lock waits for a tracked face and two background color estimates that agree.

@@ -95,3 +95,4 @@ __pycache__/
 
 # research data (face photos, measurements, LGD inputs): local only, AR_SPEC 1-13
 research/data/
+research/light_eval/_tmp/
