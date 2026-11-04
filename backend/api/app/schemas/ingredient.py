@@ -17,9 +17,37 @@ class IngredientSelection(IngredientModel):
     option_id: str | None = Field(default=None, min_length=1, max_length=128)
 
 
+class IngredientIdentity(IngredientModel):
+    mfds_ingredient_id: int = Field(strict=True, gt=0)
+    name_ko: str = Field(min_length=1)
+    source_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    match_method: Literal[
+        "standard_name",
+        "english_name",
+        "official_synonym",
+        "exact_name",
+        "amount_suffix_exact",
+        "amount_suffix_synonym",
+        "manual",
+    ]
+    rule_version: str | None = None
+    reviewed_by: str | None = None
+    reviewed_at: AwareDatetime | None = None
+
+    @model_validator(mode="after")
+    def require_provenance(self) -> Self:
+        if self.match_method == "manual":
+            if not self.reviewed_by or not self.reviewed_at:
+                raise ValueError("Manual identity requires a reviewer and timestamp")
+        elif not self.rule_version:
+            raise ValueError("Identity requires a rule version")
+        return self
+
+
 class IngredientEntry(IngredientModel):
     name: str = Field(min_length=1, max_length=500)
     sequence: int | None = Field(default=None, strict=True, ge=1)
+    identity: IngredientIdentity | None = None
 
 
 class IngredientEvidence(IngredientSelection):
@@ -63,6 +91,7 @@ class IngredientDecision(IngredientSelection):
     reason: str
     evidence_id: str | None = None
     synthetic: bool = False
+    query_identity: IngredientIdentity | None = None
 
 
 class IngredientMapping(IngredientSelection):

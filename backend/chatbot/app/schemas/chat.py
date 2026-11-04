@@ -270,7 +270,7 @@ class ChatSessionState(ArModel):
     result_set_id: UUID
     state_version: Annotated[int, Field(strict=True, ge=1, le=2**53 - 1)]
     context: BeautyContext
-    evidence_refs: list[dict[str, str]] = Field(default_factory=list, max_length=6)
+    evidence_refs: list[dict[str, str | None]] = Field(default_factory=list, max_length=6)
     created_at: int
     result_created_at: int
     expires_at: int

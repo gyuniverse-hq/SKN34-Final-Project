@@ -484,6 +484,17 @@ export interface ChatScreenContext {
 }
 
 export type IngredientVerdict = 'MATCH' | 'NOT_MATCH' | 'UNKNOWN' | 'ERROR';
+export interface IngredientIdentity {
+  mfdsIngredientId: number;
+  nameKo: string;
+  sourceHash: string;
+  matchMethod: 'standard_name' | 'english_name' | 'official_synonym' | 'exact_name' |
+    'amount_suffix_exact' | 'amount_suffix_synonym' | 'manual';
+  ruleVersion?: string | null;
+  reviewedBy?: string | null;
+  reviewedAt?: string | null;
+}
+
 export interface ChatIngredientCondition {
   productId: string;
   shadeId: string | null;
@@ -495,6 +506,7 @@ export interface ChatIngredientCondition {
   reason: string;
   evidenceId?: string | null;
   synthetic?: boolean;
+  queryIdentity?: IngredientIdentity | null;
 }
 
 export interface ChatIngredientResult {
@@ -507,7 +519,7 @@ export interface ChatIngredientResult {
   ingredientCoverage: 'full' | 'partial' | 'unknown';
   reviewStatus: 'verified' | 'unreviewed' | 'rejected';
   normalizationStatus: 'verified' | 'unverified';
-  ingredients: { name: string; sequence: number | null }[];
+  ingredients: { name: string; sequence: number | null; identity?: IngredientIdentity | null }[];
   source?: string | null;
   collectedAt?: string | null;
   collectedAtRaw?: string | null;

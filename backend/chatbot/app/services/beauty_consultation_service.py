@@ -88,6 +88,9 @@ ordinal: 1..6; clearFilters: list of category|maxPriceKRW|fragranceFree|
 moisturizing|query|ingredientConditions.
 For product ingredient questions set ingredientLookup true, intent detail, scope previous.
 ingredientName: explicit ingredient name; ingredientOperator: includes | excludes.
+ingredientConditions: list of {ingredientName: string, operator: includes | excludes}.
+For multiple ingredient constraints, include every condition in ingredientConditions,
+including detail questions. Never silently omit one. Use at most six conditions.
 Use ingredientName for ingredient conditions, never query (query is product/brand text).
 For ingredient filtering use search/refine with ingredientLookup true and ingredientName.
 shadeName: explicitly requested shade label only; never invent IDs or select a shade.
@@ -455,6 +458,7 @@ async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatRes
     if (
         plan.ingredient_lookup
         or plan.ingredient_name
+        or plan.ingredient_conditions
         or plan.compare_ordinals
         or (effective_filters.ingredient_conditions and plan.intent in {"search", "refine"})
         or (plan.fragrance_free is True and plan.intent in {"search", "refine"})
@@ -836,6 +840,32 @@ async def _resolve_product_reference(context, plan, catalog):
     return selected
 
 
+def _plan_conditions(plan):
+    additions = [
+        IngredientFilter(ingredient_name=c.ingredient_name, operator=c.operator)
+        for c in plan.ingredient_conditions
+    ]
+    if plan.ingredient_name:
+        additions.append(
+            IngredientFilter(
+                ingredient_name=plan.ingredient_name, operator=plan.ingredient_operator
+            )
+        )
+    conditions = {}
+    for condition in additions:
+        key = " ".join(unicodedata.normalize("NFKC", condition.ingredient_name).casefold().split())
+        if key in conditions and conditions[key].operator != condition.operator:
+            raise ApiError(
+                422, "Conflicting ingredient conditions", "conflicting_ingredient_conditions"
+            )
+        conditions[key] = condition
+    if len(conditions) > 6:
+        raise ApiError(
+            422, "At most six ingredient conditions are supported", "ingredient_condition_limit"
+        )
+    return list(conditions.values())
+
+
 def _effective_filters(previous, plan):
     dependent = plan.intent in {"detail", "price", "refine"} or plan.scope == "previous"
     filters = previous.filters.model_copy(deep=True) if dependent and previous else BeautyFilters()
@@ -854,27 +884,25 @@ def _effective_filters(previous, plan):
         setattr(filters, key, defaults[key])
     changes = plan.model_dump(exclude_none=True, by_alias=False)
     for field in BeautyFilters.model_fields:
+        if field == "ingredient_conditions":
+            continue  # Merge conditions below; an omitted list must retain session constraints.
         if field in changes and not (field == "query" and plan.intent in {"detail", "price"}):
             setattr(filters, field, changes[field])
-    if plan.ingredient_name and plan.intent in {"search", "refine"}:
+    additions = _plan_conditions(plan)
+    if additions and plan.intent in {"search", "refine"}:
 
         def normalize(name):
             return " ".join(unicodedata.normalize("NFKC", name).casefold().split())
 
-        conditions = [
-            c
-            for c in filters.ingredient_conditions
-            if normalize(c.ingredient_name) != normalize(plan.ingredient_name)
-        ]
-        if len(conditions) >= 6:
+        # A new constraint replaces the same named condition, preserving unrelated conditions.
+        conditions = {normalize(c.ingredient_name): c for c in filters.ingredient_conditions}
+        for addition in additions:
+            conditions[normalize(addition.ingredient_name)] = addition
+        if len(conditions) > 6:
             raise ApiError(
                 422, "At most six ingredient conditions are supported", "ingredient_condition_limit"
             )
-        filters.ingredient_conditions = conditions + [
-            IngredientFilter(
-                ingredient_name=plan.ingredient_name, operator=plan.ingredient_operator
-            )
-        ]
+        filters.ingredient_conditions = list(conditions.values())
     return filters
 
 
@@ -899,7 +927,10 @@ def _combine_ingredient_results(results):
                     r.source_version,
                     r.source_fingerprint,
                     r.generator_version,
-                    tuple((i.name, i.sequence) for i in r.ingredients),
+                    tuple(
+                        (i.name, i.sequence, i.identity.model_dump_json() if i.identity else None)
+                        for i in r.ingredients
+                    ),
                 )
                 for r in results
             }
@@ -959,10 +990,12 @@ async def _ingredient_consultation(req, plan, catalog, filters):
     }
     filtering = plan.intent in {"search", "refine"}
     fragrance_filter = filtering and context.filters.fragrance_free
-    fragrance_only = fragrance_filter and not plan.ingredient_name
+    fragrance_only = (
+        fragrance_filter and not plan.ingredient_name and not plan.ingredient_conditions
+    )
     name = plan.ingredient_name or ("향료" if fragrance_only else None)
     operator = "excludes" if fragrance_only else plan.ingredient_operator
-    conditions = filters.ingredient_conditions if filtering else []
+    conditions = filters.ingredient_conditions if filtering else _plan_conditions(plan)
     if plan.compare_ordinals:
         if plan.query is not None:
             return _reply(labels[0], context)
@@ -1047,13 +1080,16 @@ async def _ingredient_consultation(req, plan, catalog, filters):
                             if re.match(rf"^{re.escape(code[1])}(?:\D|$)", _shade_label(s.name))
                         ]
                     shade = matches[0] if len(matches) == 1 else None
-                if not shade or shade not in {s.id for s in product.shades}:
+                if (
+                    product.shades and (not shade or shade not in {s.id for s in product.shades})
+                ) or (not product.shades and (shade is not None or plan.shade_name)):
                     context.shade_selections.pop(pid, None)
                     products.append(product)
                     results.append(_ingredient_unknown(pid, None, "shade_required"))
                     retained += bool(fragrance_filter)
                     continue
-                context.shade_selections[pid] = shade
+                if shade is not None:
+                    context.shade_selections[pid] = shade
                 try:
                     if conditions:
                         result = _combine_ingredient_results(
