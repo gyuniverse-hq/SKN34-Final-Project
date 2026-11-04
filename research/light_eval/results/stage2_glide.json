@@ -1,0 +1,45 @@
+{
+ "page": "C:\\Users\\playdata2\\SKN34-Final-Project\\components\\ar\\faceTrackerHtml.ts",
+ "fps": 30,
+ "lightEveryMs": 500,
+ "lightSmoothing": 0.35,
+ "lightDirSec": 0.4,
+ "lightDirSnapDeg": 25,
+ "cases": {
+  "step_30deg": {
+   "note": "the fit turns 30° once at t = 0 and stays",
+   "old": {
+    "totalDeg": 29.999999999999993,
+    "maxFrameStepDeg": 10.404174607816408,
+    "t90Sec": 2.5
+   },
+   "new": {
+    "totalDeg": 29.999999999999993,
+    "maxFrameStepDeg": 2.3141018699077542,
+    "t90Sec": 0.9000000000000004
+   }
+  },
+  "step_15deg": {
+   "note": "the fit turns 15° once at t = 0 and stays",
+   "old": {
+    "totalDeg": 14.999999999999996,
+    "maxFrameStepDeg": 5.238235821648578,
+    "t90Sec": 2.5
+   },
+   "new": {
+    "totalDeg": 14.999999999999996,
+    "maxFrameStepDeg": 0.41837527004024594,
+    "t90Sec": 2.9333333333333353
+   }
+  },
+  "flip_30deg_every_500ms": {
+   "note": "the fit alternates between two directions 30° apart every 0.5 s",
+   "old": {
+    "maxFrameStepDeg": 10.404174607816408
+   },
+   "new": {
+    "maxFrameStepDeg": 2.3141018699077542
+   }
+  }
+ }
+}

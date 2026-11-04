@@ -1,0 +1,6 @@
+{
+ "reference": "research\\light_eval\\_tmp\\ablation\\current_ar",
+ "render": "research\\light_eval\\_tmp\\final2_off_ar",
+ "pairs": 20,
+ "identical": 20
+}
