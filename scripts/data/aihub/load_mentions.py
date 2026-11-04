@@ -63,7 +63,7 @@ async def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=15432)
-    p.add_argument("--database", default="vishue_v29")
+    p.add_argument("--database", default="vishue_db")
     p.add_argument("--user", default="vishue")
     p.add_argument("--apply", action="store_true", help="실제로 기록한다")
     a = p.parse_args()
@@ -81,7 +81,7 @@ async def main() -> None:
             ) if n
         }
         rows = await conn.fetch(
-            "SELECT seq, recommended_raw, avoid_raw FROM aihub.qa_case "
+            "SELECT seq, recommended_raw, avoid_raw FROM public.aihub_qa_case "
             "WHERE recommended_raw IS NOT NULL OR avoid_raw IS NOT NULL"
         )
 
@@ -113,7 +113,7 @@ async def main() -> None:
         for k, c in shapes.most_common():
             print(f"    {k:<20}{c:>8,}  ({c / len(mentions) * 100:5.1f}%)")
 
-        before = await conn.fetchval("SELECT COUNT(*) FROM aihub.ingredient_mention")
+        before = await conn.fetchval("SELECT COUNT(*) FROM public.aihub_ingredient_mention")
         print(f"\n  적재 전 ingredient_mention {before:>8,}행")
         if not a.apply:
             print("\n미리보기입니다. 기록하려면 --apply 를 붙이세요.")
@@ -121,21 +121,22 @@ async def main() -> None:
 
         async with conn.transaction():
             await conn.executemany(
-                "INSERT INTO aihub.ingredient_mention "
+                "INSERT INTO public.aihub_ingredient_mention "
                 "(seq, mention_type, raw_text, entity_kind) VALUES ($1, $2, $3, $4) "
                 "ON CONFLICT DO NOTHING",
                 mentions,
             )
-        after = await conn.fetchval("SELECT COUNT(*) FROM aihub.ingredient_mention")
+        after = await conn.fetchval("SELECT COUNT(*) FROM public.aihub_ingredient_mention")
         print(f"\n기록 완료. ingredient_mention {after:,}행")
         for r in await conn.fetch(
             "SELECT mention_type, entity_kind, COUNT(*) AS n "
-            "FROM aihub.ingredient_mention GROUP BY mention_type, entity_kind "
+            "FROM public.aihub_ingredient_mention GROUP BY mention_type, entity_kind "
             "ORDER BY mention_type, n DESC"
         ):
             print(f"  {r['mention_type']:<12}{r['entity_kind']:<14}{r['n']:>8,}")
         mapped = await conn.fetchval(
-            "SELECT COUNT(*) FROM aihub.ingredient_mention WHERE mfds_ingredient_id IS NOT NULL"
+            "SELECT COUNT(*) FROM public.aihub_ingredient_mention"
+            " WHERE mfds_ingredient_id IS NOT NULL"
         )
         print(f"  식약처 id 가 채워진 행 {mapped:,}  (사람 승인 전이므로 0 이어야 정상)")
     finally:

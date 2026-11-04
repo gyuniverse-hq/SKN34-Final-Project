@@ -5,7 +5,7 @@
 해당합니다.
 
 - 측정일: 2026-11-03
-- 대상: 데이터 담당 로컬 PostgreSQL `vishue_v29`, 공용 Supabase `products`
+- 대상: 데이터 담당 로컬 PostgreSQL `vishue_db`, 공용 Supabase `products`
 - 재현: `backend/api` 에서 `uv run python -m app.jobs.export_oy_catalog`
 
 ## 1. 적재 결과

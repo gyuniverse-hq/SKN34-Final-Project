@@ -56,7 +56,7 @@
 한 번에 실행하려면 `--phase run`을 사용합니다. 수집본 CSV와 `manifest.json`을 저장한 뒤, 완전한 수집본만 DB에 연결합니다. 적재 트랜잭션 안에서 CSV 형식과 참조를 검사하고 통과하면 반영합니다. 중단된 수집은 같은 명령과 폴더로 재실행할 수 있습니다.
 
 ```powershell
-uv run --group data python ..\..\scripts\data\oliveyoung\collect_load_skincare.py --phase run --mode full --snapshot-dir "%USERPROFILE%\oy-snapshots\skincare-v2-YYYYMMDD" --database vishue_v29 --port 15432
+uv run --group data python ..\..\scripts\data\oliveyoung\collect_load_skincare.py --phase run --mode full --snapshot-dir "%USERPROFILE%\oy-snapshots\skincare-v2-YYYYMMDD" --database vishue_db --port 15432
 ```
 
 공용 DB에서도 `--phase run`을 사용할 수 있지만, `--target shared`와 접속 정보, CA 인증서, `--execute-shared`가 필요합니다. 검수 후 적재하려면 아래처럼 단계를 나누어 실행합니다.
@@ -80,11 +80,11 @@ uv run --group data python ..\..\scripts\data\oliveyoung\collect_load_skincare.p
 로컬 DB에서 별도로 사전 확인 후 적재:
 
 ```powershell
-uv run python ..\..\scripts\data\oliveyoung\collect_load_skincare.py --phase preflight --snapshot-dir "%USERPROFILE%\oy-snapshots\skincare-v2-YYYYMMDD" --database vishue_v29 --port 15432
+uv run python ..\..\scripts\data\oliveyoung\collect_load_skincare.py --phase preflight --snapshot-dir "%USERPROFILE%\oy-snapshots\skincare-v2-YYYYMMDD" --database vishue_db --port 15432
 ```
 
 ```powershell
-uv run python ..\..\scripts\data\oliveyoung\collect_load_skincare.py --phase apply --snapshot-dir "%USERPROFILE%\oy-snapshots\skincare-v2-YYYYMMDD" --database vishue_v29 --port 15432
+uv run python ..\..\scripts\data\oliveyoung\collect_load_skincare.py --phase apply --snapshot-dir "%USERPROFILE%\oy-snapshots\skincare-v2-YYYYMMDD" --database vishue_db --port 15432
 ```
 
 메이크업은 실행 파일명만 `collect_load_makeup.py`로 바꿉니다. 공용 Supabase DB의 경우 `--target shared`, `--project-ref`, Connect의 Session pooler `--host`/`--port`/`--database`/`--user`, `--ssl-ca-file`을 지정합니다. 실제 쓰기에는 `--phase apply --execute-shared`가 모두 필요합니다. 먼저 같은 인자로 `--phase preflight`를 실행합니다.
@@ -98,19 +98,19 @@ uv run python ..\..\scripts\data\oliveyoung\collect_load_skincare.py --phase app
 조각 복구 미리보기:
 
 ```powershell
-uv run python ..\..\scripts\data\oliveyoung\repair_split_fragments.py --target local --database vishue_v29 --port 15432
+uv run python ..\..\scripts\data\oliveyoung\repair_split_fragments.py --target local --database vishue_db --port 15432
 ```
 
 조각 복구 적용과 유령 성분 삭제:
 
 ```powershell
-uv run python ..\..\scripts\data\oliveyoung\repair_split_fragments.py --target local --database vishue_v29 --port 15432 --apply --delete-orphans
+uv run python ..\..\scripts\data\oliveyoung\repair_split_fragments.py --target local --database vishue_db --port 15432 --apply --delete-orphans
 ```
 
 성분 매처:
 
 ```powershell
-uv run python ..\..\scripts\data\ingredients\match_oy_mfds.py --target local --database vishue_v29 --port 15432 --apply
+uv run python ..\..\scripts\data\ingredients\match_oy_mfds.py --target local --database vishue_db --port 15432 --apply
 ```
 
 복구는 같은 옵션에서 `seq`가 연속인 미매칭 조각 2~5개를 묶어, 이어붙인 이름이 식약처 표준명과 일치할 때만 성분 하나로 연결을 교체합니다. 사전으로 확인되지 않는 조각은 건드리지 않습니다. 변경 전 상태는 `--backup-dir`(기본값 `data/repair-backup/`)에 CSV로 남습니다. `--delete-orphans`는 연결이 0개가 된 조각 성분 행을 삭제하며, 이것도 `--apply`와 함께여야 동작합니다.

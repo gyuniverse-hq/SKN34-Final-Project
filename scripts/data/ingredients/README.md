@@ -18,13 +18,13 @@
 미리보기:
 
 ```powershell
-uv run python ..\..\scripts\data\ingredients\match_oy_mfds.py --target local --database vishue_v29 --port 15432
+uv run python ..\..\scripts\data\ingredients\match_oy_mfds.py --target local --database vishue_db --port 15432
 ```
 
 기록:
 
 ```powershell
-uv run python ..\..\scripts\data\ingredients\match_oy_mfds.py --target local --database vishue_v29 --port 15432 --apply
+uv run python ..\..\scripts\data\ingredients\match_oy_mfds.py --target local --database vishue_db --port 15432 --apply
 ```
 
 매칭되지 않거나 후보가 여러 개인 이름은 `--report-dir`(기본값
