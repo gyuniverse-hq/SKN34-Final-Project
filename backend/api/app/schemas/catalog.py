@@ -1,7 +1,8 @@
 from typing import Any, Literal, get_args
 
-from pydantic import Field, SerializerFunctionWrapHandler, model_serializer
+from pydantic import Field, SerializerFunctionWrapHandler, field_validator, model_serializer
 
+from app.core.oliveyoung_image import public_oliveyoung_image_url
 from app.schemas.base import ApiModel, OmitNoneModel
 
 ProductCategory = Literal["lip", "cheek", "eye", "base", "skincare", "suncare"]
@@ -62,6 +63,11 @@ class Product(ApiModel):
     tags: list[str]
     image_url: str
     search_keyword: str
+
+    @field_validator("image_url")
+    @classmethod
+    def _oliveyoung_thumbnail_path(cls, value: str) -> str:
+        return public_oliveyoung_image_url(value)
 
 
 class LookItem(OmitNoneModel):
