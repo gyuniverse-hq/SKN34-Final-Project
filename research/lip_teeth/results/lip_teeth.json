@@ -1,0 +1,151 @@
+{
+  "changed": 24,
+  "open_share": 0.15,
+  "face_px": 600,
+  "by": {
+    "off|open|pale": {
+      "mouth_px": 0.1354,
+      "teeth_painted": 0.183,
+      "spill": 0.1691,
+      "miss": 0.0752,
+      "iou": 0.6575,
+      "n": 78,
+      "n_teeth": 66
+    },
+    "off|open|red": {
+      "mouth_px": 0.1165,
+      "teeth_painted": 0.1576,
+      "spill": 0.154,
+      "miss": 0.1317,
+      "iou": 0.6532,
+      "n": 78,
+      "n_teeth": 66
+    },
+    "off|closed|pale": {
+      "mouth_px": 0.0008,
+      "teeth_painted": null,
+      "spill": 0.1706,
+      "miss": 0.05,
+      "iou": 0.7873,
+      "n": 24,
+      "n_teeth": 0
+    },
+    "off|closed|red": {
+      "mouth_px": 0.0008,
+      "teeth_painted": null,
+      "spill": 0.1475,
+      "miss": 0.1131,
+      "iou": 0.758,
+      "n": 24,
+      "n_teeth": 0
+    },
+    "guard|open|pale": {
+      "mouth_px": 0.1209,
+      "teeth_painted": 0.1565,
+      "spill": 0.1727,
+      "miss": 0.0957,
+      "iou": 0.6556,
+      "n": 78,
+      "n_teeth": 66
+    },
+    "guard|open|red": {
+      "mouth_px": 0.104,
+      "teeth_painted": 0.1316,
+      "spill": 0.1563,
+      "miss": 0.1491,
+      "iou": 0.6509,
+      "n": 78,
+      "n_teeth": 66
+    },
+    "guard|closed|pale": {
+      "mouth_px": 0.0008,
+      "teeth_painted": null,
+      "spill": 0.1707,
+      "miss": 0.0522,
+      "iou": 0.7852,
+      "n": 24,
+      "n_teeth": 0
+    },
+    "guard|closed|red": {
+      "mouth_px": 0.0008,
+      "teeth_painted": null,
+      "spill": 0.1477,
+      "miss": 0.117,
+      "iou": 0.7542,
+      "n": 24,
+      "n_teeth": 0
+    },
+    "guard+inner|open|pale": {
+      "mouth_px": 0.1234,
+      "teeth_painted": 0.1425,
+      "spill": 0.1722,
+      "miss": 0.0971,
+      "iou": 0.6525,
+      "n": 78,
+      "n_teeth": 66
+    },
+    "guard+inner|open|red": {
+      "mouth_px": 0.1051,
+      "teeth_painted": 0.1134,
+      "spill": 0.1559,
+      "miss": 0.1495,
+      "iou": 0.6496,
+      "n": 78,
+      "n_teeth": 66
+    },
+    "guard+inner|closed|pale": {
+      "mouth_px": 0.0008,
+      "teeth_painted": null,
+      "spill": 0.1707,
+      "miss": 0.0522,
+      "iou": 0.7852,
+      "n": 24,
+      "n_teeth": 0
+    },
+    "guard+inner|closed|red": {
+      "mouth_px": 0.0008,
+      "teeth_painted": null,
+      "spill": 0.1477,
+      "miss": 0.117,
+      "iou": 0.7542,
+      "n": 24,
+      "n_teeth": 0
+    },
+    "all|open|pale": {
+      "mouth_px": 0.1275,
+      "teeth_painted": 0.1426,
+      "spill": 0.1532,
+      "miss": 0.109,
+      "iou": 0.658,
+      "n": 78,
+      "n_teeth": 66
+    },
+    "all|open|red": {
+      "mouth_px": 0.109,
+      "teeth_painted": 0.1123,
+      "spill": 0.1338,
+      "miss": 0.1627,
+      "iou": 0.6545,
+      "n": 78,
+      "n_teeth": 66
+    },
+    "all|closed|pale": {
+      "mouth_px": 0.0008,
+      "teeth_painted": null,
+      "spill": 0.152,
+      "miss": 0.063,
+      "iou": 0.7935,
+      "n": 24,
+      "n_teeth": 0
+    },
+    "all|closed|red": {
+      "mouth_px": 0.0008,
+      "teeth_painted": null,
+      "spill": 0.128,
+      "miss": 0.1319,
+      "iou": 0.7573,
+      "n": 24,
+      "n_teeth": 0
+    }
+  }
+}

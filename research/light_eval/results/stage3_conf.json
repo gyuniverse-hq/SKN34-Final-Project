@@ -1,0 +1,99 @@
+{
+ "runs": [
+  "research\\light_eval\\results\\stage3_synth_on.json",
+  "research\\light_eval\\results\\stage3_synth_spec_on.json"
+ ],
+ "n": 1620,
+ "r2_p10_p90": [
+  0.4939554744357932,
+  0.9653088629309378
+ ],
+ "rel_p10_p90": [
+  0.7701200453659344,
+  1.3059264680278015
+ ],
+ "raw": {
+  "r2": {
+   "light": 0.914143327775879,
+   "medium": 0.8996984029058985,
+   "dark": 0.8064956641610664
+  },
+  "rel": {
+   "light": 1.0072348251398608,
+   "medium": 1.0133102689343099,
+   "dark": 1.0600931632953774
+  }
+ },
+ "candidates": {
+  "r2 today (0.1..0.4)": {
+   "spearman_conf_err": -0.05197230553230154,
+   "median_by_albedo": {
+    "light": 1.0,
+    "medium": 1.0,
+    "dark": 1.0
+   },
+   "err_trusted_half": 7.302466133872895,
+   "err_other_half": 5.871191352416871
+  },
+  "r2 (p10..p90)": {
+   "spearman_conf_err": -0.15330655810255134,
+   "median_by_albedo": {
+    "light": 0.8914497351585586,
+    "medium": 0.860804098100347,
+    "dark": 0.6630697844839886
+   },
+   "err_trusted_half": 6.542740541242425,
+   "err_other_half": 6.63091694504734
+  },
+  "rel": {
+   "spearman_conf_err": -0.21217690292209826,
+   "median_by_albedo": {
+    "light": 0.44253814389896373,
+    "medium": 0.4538770221532903,
+    "dark": 0.5411900747454035
+   },
+   "err_trusted_half": 5.957889711593201,
+   "err_other_half": 7.215767774696564
+  },
+  "min": {
+   "spearman_conf_err": -0.26652045188532963,
+   "median_by_albedo": {
+    "light": 0.4394443342527179,
+    "medium": 0.3452713361313454,
+    "dark": 0.08264921981664103
+   },
+   "err_trusted_half": 5.958163389014988,
+   "err_other_half": 7.215494097274778
+  },
+  "product": {
+   "spearman_conf_err": -0.30111058795782414,
+   "median_by_albedo": {
+    "light": 0.3267099633437644,
+    "medium": 0.26013119270673624,
+    "dark": 0.0602682075283216
+   },
+   "err_trusted_half": 5.973123952742107,
+   "err_other_half": 7.200533533547659
+  },
+  "max": {
+   "spearman_conf_err": -0.22053366348864098,
+   "median_by_albedo": {
+    "light": 0.9289782981843464,
+    "medium": 0.9246016744948523,
+    "dark": 0.8843052248524597
+   },
+   "err_trusted_half": 5.499783574507538,
+   "err_other_half": 7.673873911782228
+  },
+  "mean": {
+   "spearman_conf_err": -0.26302557624022077,
+   "median_by_albedo": {
+    "light": 0.6224274205538219,
+    "medium": 0.5956520670601733,
+    "dark": 0.5
+   },
+   "err_trusted_half": 5.859104010177247,
+   "err_other_half": 7.314553476112519
+  }
+ }
+}

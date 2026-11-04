@@ -49,19 +49,28 @@ interface FitOrigin {
   lookOrigin: LookOrigin | null;
 }
 
-/** Every zone a look can name. Look recipes, look cards, and look guides keep mascara / highlighter / contour. */
+/** Every zone a look can name. Look recipes, look cards, and look guides still keep mascara. */
 export const MAKEUP_ZONES: MakeupZone[] = ['lip', 'blush', 'eyeshadow', 'eyeliner', 'mascara', 'highlighter', 'contour', 'brow', 'foundation'];
 
-/** Zones the AR camera paints and the AR panel can pick. The three look-only zones stay in look data. */
-export const AR_PAINT_ZONES: MakeupZone[] = ['lip', 'blush', 'eyeshadow', 'eyeliner', 'brow', 'foundation'];
+/** Zones the AR camera paints and the AR panel can pick. Mascara stays look-only. */
+export const AR_PAINT_ZONES: MakeupZone[] = [
+  'lip',
+  'blush',
+  'eyeshadow',
+  'eyeliner',
+  'highlighter',
+  'contour',
+  'brow',
+  'foundation',
+];
 
 export function isArPaintZone(zone: MakeupZone): boolean {
   return AR_PAINT_ZONES.includes(zone);
 }
 
-/** Face paint for the camera: look-only zones are stored, never drawn. */
+/** Face paint for the camera: mascara is stored on the look, never drawn. */
 export function arPaintMakeup(makeup: MakeupState): MakeupState {
-  return { ...makeup, mascara: null, highlighter: null, contour: null };
+  return { ...makeup, mascara: null };
 }
 
 export const DEFAULT_INTENSITY: Record<MakeupZone, number> = {

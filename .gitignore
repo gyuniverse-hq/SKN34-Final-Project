@@ -35,6 +35,7 @@ yarn-error.*
 .env*.local
 
 # personal / local-only files
+infra/compose/compose.local.yaml
 final_venv/
 /data/*
 !/data/catalog/
@@ -95,3 +96,4 @@ __pycache__/
 
 # research data (face photos, measurements, LGD inputs): local only, AR_SPEC 1-13
 research/data/
+research/light_eval/_tmp/

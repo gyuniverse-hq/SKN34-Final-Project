@@ -4,6 +4,7 @@ import { useState, type ComponentProps } from 'react';
 import { StyleSheet, Text, View, type ImageStyle, type StyleProp, type ViewStyle } from 'react-native';
 import { theme } from '@/constants/theme';
 import { useI18n } from '@/lib/i18n';
+import { publicProductImageUrl } from '@/lib/productImageUrl';
 import type { ProductCategory } from '@/types';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -30,8 +31,9 @@ interface Props {
 export function ProductImage({ uri, category, style, recyclingKey, compact }: Props) {
   const { t } = useI18n();
   const [failedUri, setFailedUri] = useState<string | null>(null);
+  const src = publicProductImageUrl(uri);
 
-  if (!uri || failedUri === uri) {
+  if (!src || failedUri === src) {
     return (
       <View
         style={[styles.placeholder, style as StyleProp<ViewStyle>]}
@@ -45,12 +47,12 @@ export function ProductImage({ uri, category, style, recyclingKey, compact }: Pr
   }
   return (
     <Image
-      source={{ uri }}
+      source={{ uri: src }}
       style={style}
       contentFit="cover"
       transition={150}
       recyclingKey={recyclingKey}
-      onError={() => setFailedUri(uri)}
+      onError={() => setFailedUri(src)}
     />
   );
 }

@@ -113,8 +113,8 @@ def request(ctx=None, locale="ko", **changes):
     [
         ("향료", "includes", "MATCH"),
         ("향료", "excludes", "NOT_MATCH"),
-        ("나이아신아마이드", "includes", "NOT_MATCH"),
-        ("나이아신아마이드", "excludes", "MATCH"),
+        ("나이아신아마이드", "includes", "UNKNOWN"),
+        ("나이아신아마이드", "excludes", "UNKNOWN"),
     ],
 )
 async def test_client_verified_evidence_and_query_encoding(monkeypatch, name, operator, verdict):
@@ -446,7 +446,14 @@ async def test_fragrance_filter_does_not_override_followup_ingredient_operator(
 ):
     def handler(req):
         requested = req.url.params["operator"]
-        return httpx.Response(200, json=evidence(name="나이아신아마이드", operator=requested))
+        return httpx.Response(
+            200,
+            json=evidence(
+                name="나이아신아마이드",
+                operator=requested,
+                ingredients=[{"name": "나이아신아마이드", "sequence": 1}],
+            ),
+        )
 
     install_http(monkeypatch, handler)
     catalog = IngredientsCatalog(CatalogClient("http://catalog.test"))
@@ -465,7 +472,7 @@ async def test_fragrance_filter_does_not_override_followup_ingredient_operator(
     result = await service.answer(request(ctx, message="이 상품에 나이아신아마이드가 있어?"))
     assert catalog.calls[0][2]["operator"] == operator
     assert result.ingredient_results[0].verdict == (
-        "NOT_MATCH" if operator == "includes" else "MATCH"
+        "MATCH" if operator == "includes" else "NOT_MATCH"
     )
     assert result.chat_context.filters.fragrance_free is True
 

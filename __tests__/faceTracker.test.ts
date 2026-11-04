@@ -26,6 +26,7 @@ function renderHarness() {
     const window = { ReactNativeWebView: { postMessage: (s) => messages.push(JSON.parse(s)) } };
     const video = { readyState: 2, videoWidth: 100, videoHeight: 100 };
     const filterLandmarks = () => { if (state.failFilter) throw Error('landmarks failed'); }, updateMesh = () => {}, TUNING = { lightEveryMs: 1000 };
+    const wantSkinMask = () => false, occGate = { lip: 1, eye: 1, cheek: 1 };
     const hudOn = false, guide = null;
     ${messaging}
     ${frame}
@@ -217,8 +218,10 @@ describe('face tracker page', () => {
     expect(script).toContain('float desat = 1.0 - smoothstep(uHlSat.x, uHlSat.y, camSat);');
     expect(script).toContain('hlPeak = max(camL0 - uHlLocal * wideL, 0.0) * desat;');
     // Narrow reflections (creases, ridges) are surface detail for every finish; the wide wet shine of
-    // the bare lip only survives a smooth finish (a matte pigment covers it).
-    expect(script).toContain('float hl = min(hlCap, max(hlPeak, hlWide * smoothT)) * core;');
+    // the bare lip only survives a smooth finish (a matte pigment covers it). 11-03: the lip's small
+    // sparkles count by being whiter than their neighbours, not white (on a red lip they stay pinkish).
+    expect(script).toContain('float hl = max(min(hlCap, max(hlPeak, hlWide * smoothT)), hlSpark * uHlSparkle) * core;');
+    expect(script).toContain('* smoothstep(0.0, 0.1, satR - camSat);');
     // Opaque paint may lighten the lip (cap only for see-through finishes), hides bare-lip patches
     // partly, and never clips a light shade to white.
     expect(script).toContain('float gainCap = mix(uRatioMax, uLumGainMax, uLipTranslucent * (1.0 - cov))');
@@ -241,17 +244,34 @@ describe('face tracker page', () => {
     expect(script).toContain('vec3 sheenCol = mix(uLightColor, vec3(1.0), uGlossTone.y) * mix(hue, vec3(1.0), smooth1 * smooth1 * smooth1 * mix(uGlossTone.x, 1.0, peakness));');
     expect(script).toContain('vec3 specTint = mix(uLipAlbedo, vec3(1.0), 0.16)');
     // Layering stays. No painted-over lip shape, drawn grooves, noise texture, or a normal drawn from
-    // a template. The one lip normal allowed is the form built from this person's own outline
-    // (lipFormN, 10-25 user request: finish highlights must appear even when the camera shows none).
-    for (const synthetic of ['formShape', 'sin(across', 'lipN ', 'lipN=', 'vnoise', 'uPigmentHeadroom']) {
+    // a template or an image file. Lip normals come only from this person: the form built from the
+    // own outline (lipFormN, 10-25) and, on top of it, the camera's own lip lines read live from the
+    // 4 neighbours (lipDetailN, 11-03 user decision: the shine must follow the lip's texture).
+    for (const synthetic of ['formShape', 'sin(across', 'lipN ', 'lipN=', 'vnoise', 'uPigmentHeadroom', 'uNormalMap', 'uBumpMap']) {
       expect(script).not.toContain(synthetic);
     }
+    expect(script).toContain('lipDG = vec2(lum(c1) - lum(c2), lum(c3) - lum(c4)) / max(lN, 1e-4);');
+    expect(script).toContain('lipDetailN = normalize(lipFormN + vec3(dT.x, dT.y, 0.0));');
+    // 11-03 (5 still faces): the shine follows the lip's lines through the camera's own crease shading
+    // (cavity), sparkles stay; the tilted normal, its satin mix and anisotropy did not help and stay off.
+    expect(script).toContain('float cav = pow(clamp(camL / max(wideL, 1e-4), 0.3, 2.0), uGlossCavity); formSpec *= cav; sheen *= cav;');
+    expect(script).toContain('glossCavity: 2,');
+    expect(script).toContain('hlSparkle: 1,');
+    expect(script).toContain('lipDetail: 0,');
+    expect(script).toContain('wideDetail: 0,');
+    expect(script).toContain('glossAniso: 0,');
     // Sheen never fully turns off when the light direction is untrusted.
     expect(script).toContain('specFill');
     expect(script).toContain('max(uLightConf, uSpecFill)');
     // The outer edge comes from the screen-space outline, never from a per-pixel redness test that
-    // grew lumps along the line at close range (10-25).
-    expect(script).toContain('lipM = m.r * inside;');
+    // grew lumps along the line at close range (10-25). 11-03: teeth near the inner line are taken out
+    // (the landmark inner line can lie on them): far less red than this person's bare lip and not the dark
+    // cavity, inside the mouth zone only. 11-04: shaded teeth count (no "brighter than the lip"); a thin band
+    // only needs its neighbours along the mouth, and only inside the drawn ring of an open mouth.
+    expect(script).toContain('lipM = m.r * inside * (1.0 - teethW);');
+    expect(script).toContain('float redT = max(redness(cam), uMouthOpen * zone.x > 0.5 ? rA : redN);');
+    expect(script).toContain('teethW = smoothstep(uTeethFirm.x, uTeethFirm.y, raw) * zone.y;');
+    expect(script).toContain('teethBright: [0.3, 0.5],');
     expect(script).not.toContain('uBandGrow');
     expect(script).not.toContain('uEdge');
   });
@@ -289,6 +309,26 @@ describe('face tracker page', () => {
     expect(script).toContain('foundOcc = smooth01(TUNING.foundOccCover[0], TUNING.foundOccCover[1], hit / FOUND_COVER_PTS.length);');
     const [cLo, cHi] = pair('foundOccCover');
     expect(cLo).toBeLessThan(cHi);
+  });
+
+  it('clips lip, eye and cheek paint where a hand or object covers the region, and leaves bangs / foundation alone', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    expect(script).toContain('makeupOcclusion: true');
+    expect(script).toContain('function wantSkinMask()');
+    expect(script).toContain('TUNING.makeupOcclusion && occMakeupOn()');
+    expect(script).toContain('if (wantSkinMask())');
+    expect(script).toContain('occPointOk(cat, allowAccessory)');
+    expect(script).toContain('return cat === 3 || (allowAccessory && cat === 5)');
+    expect(script).toContain('glideOcc(\'eye\', occVisShare(OCC_EYE_PTS, cat, mw, mh, true))');
+    expect(script).toContain('glideOcc(\'lip\', occVisShare(OCC_LIP_PTS, cat, mw, mh, false))');
+    expect(script).toContain('lipM *= mix(occSkin, 1.0, uOccGate.x);');
+    expect(script).toContain('blushA *= mix(occSkin, 1.0, uOccGate.z);');
+    expect(script).toContain('shadowA *= mix(occSkin, 1.0, uOccGate.y);');
+    expect(script).toContain('gl.uniform1f(u.uOccOn, occOn ? 1 : 0);');
+    expect(script).not.toContain('foundA *= mix(occSkin');
+    expect(script).toContain('gl.uniform1f(u.uFoundSkinOn, foundZ && foundSkinReady ? 1 : 0);');
+    expect(script).toContain('OCC_LIP_PTS = LIPS_OUTER');
+    expect(script).toContain('OCC_EYE_PTS = EYES[0].contour.concat(EYES[1].contour)');
   });
 
   it('keeps a lip gloss small, soft and in the colour of the lip instead of a white layer on top (11-02 round 2)', () => {
@@ -418,7 +458,7 @@ describe('face tracker page', () => {
     // Volume = Lambert of the form under the estimated light; highlight = sharp source reflection + glow,
     // also from the always-present frontal source, scaled by scene brightness and finish smoothness.
     expect(script).toContain('float form = max(dot(lipFormN, lV), 0.0) / max(dot(lipBaseN, lV), 0.2);');
-    expect(script).toContain('uFrontGloss * (sharpF + uWideGloss * lobeN(nf, rW))');
+    expect(script).toContain('uFrontGloss * (sharpF + uWideGloss * wF)');
     expect(script).toContain('* mix(0.25, uSkinMeanLum, uGlossShape.z) * uGlossGain');
     // Flat selfie: form gloss rises when the camera has no specular; matte (smooth1²) stays dull.
     expect(script).toContain('uGlossFlat * (1.0 - smoothstep(0.02, 0.12, camSpec)) * smooth1 * smooth1');
@@ -436,7 +476,8 @@ describe('face tracker page', () => {
   it('paints the wet inner lip on open mouths and ignores face points outside the frame', () => {
     const script = moduleScript(FACE_TRACKER_HTML);
     // Inner line moved into the mouth by openness (LaPa: 13% of open-mouth lip lay inside it).
-    expect(script).toContain('const inner = lipRing(LIPS_INNER, INNER_FIXED, W, H, LIPS_OUTER, mouthClosed() ? 0 : inset);');
+    expect(script).toContain('const fixedInset = mouthClosed() ? 0 : inset;');
+    expect(script).toContain('? LIPS_INNER.map((_, j) => (lipInner.conf[j] >= 0.5 ? lipInner.t[j] : fixedInset)) : fixedInset);');
     expect(script).toContain('innerInset: [0.05, 0.2]');
     // Close-ups: vertices outside the frame never feed the light estimate.
     expect(script).toContain('const skinIn = masks.skinVerts.filter((i) => meshNrm[i * 3 + 2] >= 0.35 && inFrame(i));');
@@ -452,7 +493,9 @@ describe('face tracker page', () => {
   it('draws eyeliner and mascara from the lid landmarks, following blinks (10-25)', () => {
     const script = moduleScript(FACE_TRACKER_HTML);
     // Screen-space eye canvas, uploaded only while a liner or mascara is on.
-    expect(script).toContain('const mascara = null, hl = null, contourZ = null;');
+    expect(script).toContain('const mascara = null;');
+    expect(script).toContain('const hl = makeup.highlighter || null;');
+    expect(script).toContain('const contourZ = makeup.contour || null;');
     expect(script).toContain('const eyesOn = liner || mascara || innerPt || browZ ? drawEyes(W, H, liner, mascara, eye, browZ) : false;');
     // Wing from the stable corner-to-corner axis (the lid tangent flips while blinking); geometry overridable.
     expect(script).toContain('const wdir = [axis[0] * Math.cos(ang) + nUp[0] * Math.sin(ang), axis[1] * Math.cos(ang) + nUp[1] * Math.sin(ang)];');
@@ -628,6 +671,289 @@ describe('face tracker page', () => {
     const tungsten = linToLab([0.55, 0.32, 0.18]);
     expect(cie76(daylight, daylight)).toBe(0);
     expect(cie76(daylight, tungsten)).toBeGreaterThan(6);
+  });
+
+  it('glides the light direction only behind its switch and snaps the estimate past the snap angle', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    expect(script).toContain('lightDirGlide: false,');
+    expect(script).toContain('lightDirSec: 0.4,');
+    expect(script).toContain('lightDirSnapDeg: 25,');
+    // Switch off: the shader still gets the 0.5 s estimate exactly as before.
+    expect(script).toContain('gl.uniform1f(u.uLightConf, light.dirConf);');
+    expect(script).toContain('gl.uniform3f(u.uLightDir, shown.dir[0], shown.dir[1], shown.dir[2]);');
+    expect(script).toContain('const kd = TUNING.lightDirGlide && turn > TUNING.lightDirSnapDeg ? 1 : k;');
+    expect(script).toContain("'light ms ' + lightMs.toFixed(1)");
+
+    const glideSrc = script.slice(script.indexOf('  function glideLight(now) {'), script.indexOf('    return shownLight;\n  }') + '    return shownLight;\n  }'.length);
+    const run = (glideOn: boolean) =>
+      new Function('glideOn', `
+        const TUNING = { lightDirGlide: glideOn, lightDirSec: 0.4, lightDisplaySec: 0.6, skinRefLum: 0.34, exposureRange: [0.2, 1.6] };
+        const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+        const light = { color: [1, 1, 1], colorConf: 0, dir: [1, 0, 0], strength: 1.5, dirConf: 1, skinMeanLum: 0.34, sh: [1, 0, 0, 0, 0, 0, 0, 0, 0] };
+        const shownLight = { color: [1, 1, 1], exposure: 1, skinMeanLum: 0.34, dir: [0, 0, 1], strength: 1, conf: 0, sh: [1, 0, 0, 0, 0, 0, 0, 0, 0], t: 0 };
+        ${glideSrc}
+        glideLight(1000);
+        light.dir = [0, 0, 1];
+        const steps = [];
+        for (let t = 1000 + 1000 / 30; t < 1500; t += 1000 / 30) steps.push(glideLight(t).dir[2]);
+        return { steps, shown: shownLight };
+      `)(glideOn) as { steps: number[]; shown: { dir: number[]; strength: number; conf: number } };
+
+    const off = run(false);
+    expect(off.shown.dir).toEqual([0, 0, 1]);
+    expect(off.shown.conf).toBe(0);
+    const on = run(true);
+    // A face just found (t = 0) jumps; after that each frame moves part of the way, never all at once.
+    expect(on.shown.strength).toBeCloseTo(1.5);
+    expect(on.shown.conf).toBeCloseTo(1);
+    expect(on.steps[0]).toBeGreaterThan(0);
+    expect(on.steps[0]).toBeLessThan(0.3);
+    expect(on.steps.every((z, i) => i === 0 || z >= on.steps[i - 1])).toBe(true);
+    expect(on.steps[on.steps.length - 1]).toBeGreaterThan(0.6);
+  });
+
+  it('fits the light with Huber IRLS only behind its switch, and mixes in the relative signal for confidence', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    expect(script).toContain('lightRobust: false,');
+    expect(script).toContain('lightHuberC: 1.345,');
+    expect(script).toContain('lightConfRel: [0.3, 0.6],');
+    // Switch off: the 20% cut and the R²-only confidence stay as they were.
+    expect(script).toContain('const cut = resid.slice().sort((p, q) => p - q)[Math.floor(resid.length * 0.8)];');
+    expect(script).toContain('let conf = clamp((r2 - TUNING.lightConfR2[0]) / (TUNING.lightConfR2[1] - TUNING.lightConfR2[0]), 0, 1);');
+    expect(script).toContain('if (TUNING.lightRobust) {\n          conf = Math.max(conf,');
+
+    const src = script.slice(script.indexOf('  function solve4(A, b) {'), script.indexOf('  function ensureFoundSkinBuffers('));
+    const res = new Function(`
+      const TUNING = { lightHuberC: 1.345, lightIrlsIters: 4 };
+      ${src}
+      // Lambert skin lit from 45° to the side, plus a few blown specular dots facing the camera.
+      const L = [Math.SQRT1_2, 0, Math.SQRT1_2];
+      const samples = [];
+      let seed = 7;
+      const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+      for (let i = 0; i < 200; i++) {
+        const t = rnd() * Math.PI * 0.9 - Math.PI * 0.45, p = rnd() * Math.PI * 0.8 - Math.PI * 0.4;
+        const n = [Math.sin(t) * Math.cos(p), Math.sin(p), Math.cos(t) * Math.cos(p)];
+        let y = 0.1 + 0.3 * Math.max(0, n[0] * L[0] + n[1] * L[1] + n[2] * L[2]);
+        if (i % 12 === 0 && n[2] > 0.8) y = 0.95;
+        samples.push([n[0], n[1], n[2], y]);
+      }
+      const ang = (f) => {
+        const m = Math.hypot(f[1], f[2], f[3]);
+        return Math.acos((f[1] * L[0] + f[2] * L[1] + f[3] * L[2]) / m) * 180 / Math.PI;
+      };
+      const plain = fitLight(samples);
+      const rob = fitLightRobust(samples);
+      return { plain: ang(plain), robust: ang(rob.fit), same: fitLight(samples, samples.map(() => 1)).every((v, i) => Math.abs(v - plain[i]) < 1e-12) };
+    `)() as { plain: number; robust: number; same: boolean };
+    expect(res.same).toBe(true);
+    expect(res.robust).toBeLessThan(res.plain);
+  });
+
+  it('fits SH9 light only behind lightModel, falls back to the linear fit, and keeps the linear shader path', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    expect(script).toContain("lightModel: 'linear',");
+    expect(script).toContain("if (TUNING.lightModel === 'sh9') {");
+    // Linear: the lip volume ratio and the gloss light size are set exactly as before.
+    expect(script).toContain('float form = max(dot(lipFormN, lV), 0.0) / max(dot(lipBaseN, lV), 0.2);');
+    expect(script).toContain('if (uLightModel > 0.5) {');
+    expect(script).toContain('gl.uniform2f(u.uLightSize, TUNING.lightSize[0], TUNING.lightSize[1]);');
+    expect(script).toContain("gl.uniform1f(u.uLightModel, TUNING.lightModel === 'sh9' && TUNING.lightShVolume ? 1 : 0);");
+    expect(script).toContain('lightShVolume: false,');
+    expect(script).toContain('lightShSizeSpread: 0,');
+
+    const src = script.slice(script.indexOf('  function solve4(A, b) {'), script.indexOf('  function ensureFoundSkinBuffers('));
+    const res = new Function(`
+      const TUNING = { lightHuberC: 1.345, lightIrlsIters: 4, lightShIters: 6, lightShMinSamples: 60, lightShMaxCond: 1e5 };
+      ${src}
+      const ev = symEigen([[2, 1, 0], [1, 2, 0], [0, 0, 5]]).sort((p, q) => p - q);
+      // Lambert skin plus ambient on front-facing normals, lit 60° from the side: the shadowed cheek is flat, which tilts a
+      // straight-line fit toward the side.
+      const L = [Math.sin(Math.PI / 3), 0, Math.cos(Math.PI / 3)];
+      const samples = [];
+      let seed = 11;
+      const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+      while (samples.length < 300) {
+        const x = rnd() * 2 - 1, y = rnd() * 2 - 1;
+        if (x * x + y * y > 1 - 0.35 * 0.35) continue;
+        const n = [x, y, Math.sqrt(1 - x * x - y * y)];
+        samples.push([n[0], n[1], n[2], 0.06 + 0.3 * Math.max(0, n[0] * L[0] + n[1] * L[1] + n[2] * L[2])]);
+      }
+      const ang = (f) => Math.acos(Math.min(1, (f[1] * L[0] + f[2] * L[1] + f[3] * L[2]) / Math.hypot(f[1], f[2], f[3]))) * 180 / Math.PI;
+      const lin = fitLight(samples);
+      const lam = fitLightLambert(samples);
+      const sh = lambertToSH([0.06, 0.3 * L[0], 0.3 * L[1], 0.3 * L[2]]);
+      const shAt = (n) => shBasis(n[0], n[1], n[2]).reduce((s, v, i) => s + v * sh[i], 0);
+      return { ev, lin: ang(lin), lam: ang(lam.fit), cond: lam.cond, few: fitLightLambert(samples.slice(0, 59)),
+               peak: shAt(L), away: shAt([-L[0], -L[1], -L[2]]) };
+    `)() as { ev: number[]; lin: number; lam: number; cond: number; few: unknown; peak: number; away: number };
+    expect(res.ev[0]).toBeCloseTo(1, 6);
+    expect(res.ev[1]).toBeCloseTo(3, 6);
+    expect(res.ev[2]).toBeCloseTo(5, 6);
+    expect(res.cond).toBeGreaterThan(1);
+    expect(res.few).toBeNull();
+    expect(res.lin).toBeGreaterThan(5);
+    expect(res.lam).toBeLessThan(0.5);
+    // SH9 of ambient + clamped cosine: about 0.06 + 0.3 toward the light, about the ambient facing away.
+    expect(res.peak).toBeCloseTo(0.36, 1);
+    expect(Math.abs(res.away - 0.06)).toBeLessThan(0.03);
+  });
+
+  it('mixes Gray-Edge into the background light color only behind its switch', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    expect(script).toContain('lightColorEdge: false,');
+    expect(script).toContain('lightColorEdgeMix: [0.25, 0.75],');
+    // Off: the Gray World estimate and the one-color check on the raw sums, as before.
+    expect(script).toContain('let est = [r / Y, g / Y, bl / Y];');
+    expect(script).toContain('let chroma = Math.max(r, g, bl) / Math.max(1e-6, Math.min(r, g, bl));');
+    expect(script).toContain('if (TUNING.lightColorEdge && eY > 0) {');
+
+    const src = script.slice(script.indexOf('  function bgColorSums('), script.indexOf('  function runSegmenter('));
+    const sums = (edge: boolean) =>
+      new Function('edge', `
+        const TUNING = { lightColorEdge: edge, clipLin: 0.92, darkLum: 0.02 };
+        function toLin(c) { return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+        function lumOf(r, g, b) { return 0.2126 * r + 0.7152 * g + 0.0722 * b; }
+        ${src}
+        // 3 x 1 frame: two background pixels side by side, the third is the person (class 3).
+        const data = new Uint8ClampedArray([200, 100, 100, 255, 100, 200, 100, 255, 100, 100, 200, 255]);
+        return bgColorSums(new Uint8Array([0, 0, 3]), 3, 1, data, 3, 1);
+      `)(edge) as { r: number; g: number; bl: number; n: number; er: number; eg: number; eb: number };
+    const toLin = (c: number) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+    const off = sums(false), on = sums(true);
+    expect(off.n).toBe(2);
+    expect(off.r).toBeCloseTo(toLin(200 / 255) + toLin(100 / 255), 6);
+    expect([off.er, off.eg, off.eb]).toEqual([0, 0, 0]);
+    expect([on.r, on.g, on.bl, on.n]).toEqual([off.r, off.g, off.bl, off.n]);
+    // One pair of neighbours; the person pixel is left out.
+    expect(on.er).toBeCloseTo(toLin(200 / 255) - toLin(100 / 255), 6);
+    expect(on.eg).toBeCloseTo(toLin(200 / 255) - toLin(100 / 255), 6);
+    expect(on.eb).toBeCloseTo(0, 6);
+  });
+
+  it('keeps the open-mouth paint off the teeth: guard band, camera inner line, outer line pulled in only', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    expect(script).toContain('lipTeethGuard: true,');
+    expect(script).toContain('lipInnerMeasure: true,');
+    expect(script).toContain('lipEdgePull: true,');
+    // Guard: only inside the inner-line band (outline G, drawn after the lip form read G).
+    expect(script).toContain("'      lipM *= 1.0 - band * max(notRed * pale * flatL, dark);',");
+    expect(script.indexOf('if (TUNING.lipForm) drawLipForm(srcW, srcH);')).toBeLessThan(script.indexOf("c.globalCompositeOperation = 'multiply';"));
+    // Pull-in never pushes the outer line out.
+    expect(script).toContain('return j % 10 === 0 || lipEdge.conf[r] <= 0.5 || t >= 1 ? 0 : -Math.min(1 - t, TUNING.lipEdgePullMax);');
+
+    const ring = script.slice(script.indexOf('  function lipRing('), script.indexOf('  // Cubic curve through the ring'));
+    const inner = script.slice(script.indexOf('  const lipInner = {'), script.indexOf('  // Lip outline in screen space'));
+    const run = new Function(`
+      const TUNING = { lipOutlineSmooth: 0, lipInnerEveryMs: 100, refineMinContrast: 0.02, teethDark: 0.3, innerInset: [0.05, 0.2] };
+      const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+      const toLin = (c) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+      const lumOf = (r, g, b) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      // 20 outer / inner points: upper lip y 0.4 -> 0.5, lower lip y 0.8 -> 0.7, x 0.3..0.7.
+      const LIPS_OUTER = Array.from({ length: 20 }, (_, j) => j), LIPS_INNER = Array.from({ length: 20 }, (_, j) => 20 + j);
+      const sx = new Array(40).fill(0), sy = new Array(40).fill(0);
+      for (let j = 0; j < 20; j++) {
+        const up = j <= 10, x = 0.3 + 0.4 * (up ? j / 10 : (20 - j) / 10);
+        sx[j] = x; sx[20 + j] = x;
+        sy[j] = up ? 0.4 : 0.8; sy[20 + j] = up ? 0.5 : 0.7;
+      }
+      let closed = false;
+      const mouthClosed = () => closed;
+      const light = { lipRed: 0.5, skinRed: 0.1, lipMeanLum: 0.1 };
+      const video = {};
+      // Camera: lip red up to 0.1 of the thickness past each inner point, white teeth between.
+      const edgeCrop = { width: 0, height: 0 };
+      const edgeCropCtx = { drawImage() {}, getImageData: () => {
+        const d = new Uint8ClampedArray(edgeCrop.width * edgeCrop.height * 4);
+        for (let y = 0; y < edgeCrop.height; y++) for (let x = 0; x < edgeCrop.width; x++) {
+          const ny = 0.4 + (0.4 * (y + 0.5)) / edgeCrop.height, lip = ny < 0.51 || ny > 0.69, k = (y * edgeCrop.width + x) * 4;
+          d[k] = lip ? 200 : 240; d[k + 1] = lip ? 40 : 240; d[k + 2] = lip ? 40 : 240; d[k + 3] = 255;
+        }
+        return { data: d };
+      } };
+      ${ring}
+      ${inner}
+      measureLipInner(1000, 1000, 1000);
+      measureLipInner(1000, 1000, 1050);
+      const conf1 = Array.from(lipInner.conf);
+      measureLipInner(1000, 1000, 1200);
+      const t = Array.from(lipInner.t), conf = Array.from(lipInner.conf);
+      closed = true;
+      measureLipInner(1000, 1000, 1400);
+      const confClosed = Array.from(lipInner.conf);
+      // Per-point inset: point 1 moves 0.1 of its thickness away from its partner, the others stay.
+      const moved = lipRing([0, 1, 2], [], 1, 1, [20, 21, 22], [0, 0.1, 0]);
+      return { t, conf, conf1, confClosed, moved };
+    `)() as { t: number[]; conf: number[]; conf1: number[]; confClosed: number[]; moved: number[][] };
+    // Corners are not measured; the others find the lip end about 0.1 into the mouth, within one step.
+    expect(run.conf[0]).toBe(0);
+    expect(run.conf[10]).toBe(0);
+    for (const j of [1, 5, 9, 11, 15, 19]) {
+      expect(run.t[j]).toBeGreaterThan(0.05);
+      expect(run.t[j]).toBeLessThan(0.15);
+      expect(run.conf[j]).toBeGreaterThanOrEqual(0.5);
+    }
+    // A second call within lipInnerEveryMs is skipped.
+    expect(run.conf1[1]).toBe(0.5);
+    expect(run.confClosed.every((c) => c === 0)).toBe(true);
+    expect(run.moved[0][0]).toBeCloseTo(0.3, 6);
+    expect(run.moved[0][1]).toBeCloseTo(0.4, 6);
+    expect(run.moved[2][1]).toBeCloseTo(0.4, 6);
+    expect(run.moved[1][1]).toBeCloseTo(0.4 + 0.1 * (0.4 - 0.5), 6);
+  });
+
+  it('sizes lid grains on screen, flashes glitter toward a fixed light, and fades both while blinking', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    expect(script).toContain('lidSparkle: true,');
+    // Off: the old grains, flakes and cell scales.
+    expect(script).toContain("'  float rad = 0.16;',");
+    expect(script).toContain("'      float spec = lidFlake(vUv, n, l, v);',");
+    expect(script).toContain('gl.uniform1f(u.uShadowFlakeScale, isGlitter ? TUNING.glitterScale : TUNING.shimmerScale);');
+    // Glitter does not read the estimated light direction; shimmer reads it only through its confidence.
+    const glint = script.slice(script.indexOf("'float lidGlint("), script.indexOf("'float shadowSheen("));
+    expect(glint).not.toMatch(/\bl\b/);
+    expect(script).toContain("'      vec3 lS = normalize(mix(vec3(0.0, 0.25, 1.0), l, uLightConf));',");
+
+    const src = script.slice(script.indexOf('  const lidSparkle = {'), script.indexOf('  function drawEyes('));
+    const run = new Function(`
+      const TUNING = { lidOpenGap: [0.08, 0.18] };
+      // One triangle (corners 0, 8 and point 17 above corner 0): 0.1 / 0.05 UV and 100 / 50 px, a uniform 1000 px per UV.
+      const EYE_LINES = [{ upper: [0, 1, 2, 3, 4, 5, 6, 7, 8], lower: [0, 9, 10, 11, 12, 13, 14, 15, 8] }];
+      const N_MESH = 18, FACE_TRIANGLES = [0, 8, 17];
+      const FACE_UV = new Array(36).fill(0);
+      FACE_UV[16] = 0.1; FACE_UV[35] = -0.05;
+      const sx = new Array(18).fill(0.5), sy = new Array(18).fill(0.5);
+      sx[17] = 0.4; sy[17] = 0.45;
+      const clamp01 = (v) => Math.max(0, Math.min(1, v));
+      function lerp(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]; }
+      function dist(a, b) { return Math.hypot(b[0] - a[0], b[1] - a[1]); }
+      ${src}
+      // A 100 px eye on a 1000 px frame, lids 30 px apart, then nearly closed (5 px).
+      const setEye = (gapPx) => {
+        sx[0] = 0.4; sx[8] = 0.5;
+        for (const i of [3, 5]) { sx[i] = 0.45; sy[i] = 0.5 - gapPx / 2000; }
+        for (const i of [11, 13]) { sx[i] = 0.45; sy[i] = 0.5 + gapPx / 2000; }
+      };
+      setEye(30);
+      const open = Object.assign({}, lidSparkleState(1000, 1000));
+      setEye(5);
+      const shut = Object.assign({}, lidSparkleState(1000, 1000));
+      setEye(30);
+      const metric = Array.from(fillLidMetric(1000, 1000, 100).slice(0, 3));
+      sx[17] = 0.45;
+      const sheared = Array.from(fillLidMetric(1000, 1000, 100).slice(0, 3));
+      return { open, shut, metric, sheared };
+    `)() as { open: { pxPerUv: number; open: number }; shut: { pxPerUv: number; open: number }; metric: number[]; sheared: number[] };
+    // 100 px over 0.1 UV: 1000 px per UV.
+    expect(run.open.pxPerUv).toBeCloseTo(1000, 3);
+    // 100 cells per UV: 10 px a cell, no stretch (metric 100 * identity); a sheared triangle is not round.
+    expect(run.metric[0]).toBeCloseTo(100, 3);
+    expect(run.metric[1]).toBeCloseTo(0, 3);
+    expect(run.metric[2]).toBeCloseTo(100, 3);
+    expect(Math.abs(run.sheared[1])).toBeGreaterThan(10);
+    expect(run.open.open).toBe(1);
+    expect(run.shut.open).toBe(0);
+    expect(run.shut.pxPerUv).toBeCloseTo(1000, 3);
   });
 
   it('locks white balance once the room color settles, at the settled temperature, and follows faster when unlocked', () => {

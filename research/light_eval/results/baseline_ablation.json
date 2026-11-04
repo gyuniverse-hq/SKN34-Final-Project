@@ -1,0 +1,27 @@
+{
+ "current": {
+  "pairs": 20,
+  "dE_median": 3.9696156221656826,
+  "dE_mean": 4.165056636508636,
+  "wins_spread": 9,
+  "wins_hi": 12,
+  "wins_ssim": 6,
+  "spread_median": 3.47198486328125,
+  "hi_median": 4.04046630859375,
+  "ssim_median": 0.712561371628404
+ },
+ "conf0": {
+  "pairs": 20,
+  "dE_median": 4.34091926812639,
+  "dE_mean": 4.348056256375255,
+  "wins_spread": 8,
+  "wins_hi": 10,
+  "wins_ssim": 7,
+  "spread_median": 3.9459228515625,
+  "hi_median": 4.37359619140625,
+  "ssim_median": 0.717379280579806
+ },
+ "page": "C:\\Users\\playdata2\\SKN34-Final-Project\\components\\ar\\faceTrackerHtml.ts",
+ "sampleScene_call_ms_pc_headless": 2.667303999963527,
+ "sampleScene_ms_note": "PC headless Chrome + SwiftShader, 300 calls vs 0, median of 3; not a phone figure"
+}

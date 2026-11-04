@@ -82,7 +82,7 @@ uv run pytest tests/test_video_product_matching.py tests/test_video_mapping_appl
 | `texture` | `matte`, `velvet`, `glossy`, `satin`, `sheer`, `cream`, `shimmer` 중 하나. 제형 미확인 상품은 `null`; AR 체험 상품은 제형이 있어야 합니다 |
 | `shades[].hex` | `#` + 16진수 6자리 (예: `#B5555E`) |
 | `searchKeyword` | 네이버 쇼핑에서 이 제품이 잘 찾아지는 한국어 검색어 (판매처·이미지 검색에 씀) |
-| `imageUrl` | `raw_oy_image`에서 상품별 대표 `thumbnail` URL을 사용합니다. 이미지 파일 자체는 저장하지 않으며 URL이 없거나 로드에 실패하면 앱이 중립 이미지를 보여 줍니다 |
+| `imageUrl` | `raw_oy_image`에서 상품별 대표 `thumbnail` URL을 사용합니다. 이미지 파일 자체는 저장하지 않습니다. 수집 URL의 `thumbnails10/`(슬래시 없음)은 CDN이 403을 주므로 앱·API가 `thumbnails/10/`로 바꿉니다. URL이 없거나 로드에 실패하면 앱이 중립 이미지를 보여 줍니다 |
 | `tags` (피부 고민) | 앱의 피부 고민 필터는 아래 케어 태그로 제품을 찾습니다. 해당하는 제품에만 붙이고, 효능을 단정하는 태그는 만들지 않습니다 |
 
 | 피부 고민 코드 | 제품 태그 |

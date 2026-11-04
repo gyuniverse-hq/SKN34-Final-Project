@@ -157,6 +157,13 @@ class CatalogClient:
                 expected = "MATCH" if present == (operator == "includes") else "NOT_MATCH"
                 if result.verdict != expected:
                     raise ValueError("Verdict contradicts ingredient evidence")
+                if absent:
+                    # A legacy API's name-only absence cannot establish ingredient identity.
+                    result.verdict = "UNKNOWN"
+                    result.reason = "ingredient_identity_unresolved"
+                    for condition in result.conditions:
+                        condition.verdict = "UNKNOWN"
+                        condition.reason = result.reason
             # Unreviewed upstream rows must not accidentally become public ingredient facts.
             if result.ingredients and not result.verified:
                 raise ValueError("Unverified ingredient list")

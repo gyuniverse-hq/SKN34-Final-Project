@@ -31,7 +31,7 @@ class CatalogProduct(_CatalogModel):
     category: str
     makeup_zone: str | None = None
     texture: str | None
-    price_krw: int = Field(alias="priceKRW")
+    price_krw: int = Field(alias="priceKRW", strict=True)
     price_evidence: str | None = None
     description: str
     key_ingredients: list[str]
