@@ -25,7 +25,7 @@ function renderHarness() {
     } };
     const window = { ReactNativeWebView: { postMessage: (s) => messages.push(JSON.parse(s)) } };
     const video = { readyState: 2, videoWidth: 100, videoHeight: 100 };
-    const filterLandmarks = () => { if (state.failFilter) throw Error('landmarks failed'); }, updateMesh = () => {}, TUNING = { lightEveryMs: 1000 };
+    const filterLandmarks = () => { if (state.failFilter) throw Error('landmarks failed'); return true; }, updateMesh = () => {}, TUNING = { lightEveryMs: 1000 };
     const wantSkinMask = () => false, occGate = { lip: 1, eye: 1, cheek: 1 };
     const hudOn = false, guide = null;
     ${messaging}
@@ -56,6 +56,29 @@ it('acknowledges a blush command after drawing a fresh frame without a lip produ
 });
 
 describe('face tracker page', () => {
+  it('recovers the landmark filter after a non-finite GPU frame', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    const filter = script.slice(script.indexOf('  const sx = new Float32Array'), script.indexOf('  // ── UV masks:'));
+    const createFilter = new Function(`
+      const N_MESH = 468, N_LANDMARKS = 478;
+      const LIPS_OUTER = [61, 291], LIPS_INNER = [13, 14], EYES = [], EYE_LINES = [];
+      const FACE_UV = Array.from({ length: 956 }, (_, i) => i / 956);
+      const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+      const TUNING = { smoothDCutoff: 2, smoothMinCutoff: 1.5, smoothBeta: 25, eyeSmooth: { dCutoff: 6, minCutoff: 3, beta: 200 } };
+      ${filter}
+      return { filterLandmarks, sx, sy, sz };
+    `) as () => { filterLandmarks: (face: { x: number; y: number; z: number }[], t: number) => boolean; sx: Float32Array; sy: Float32Array; sz: Float32Array };
+    const f = createFilter();
+    const face = Array.from({ length: 478 }, (_, i) => ({ x: i / 1000, y: 0.4, z: 0 }));
+    expect(f.filterLandmarks(face, 1)).toBe(true);
+    face[10].x = NaN;
+    expect(f.filterLandmarks(face, 1.03)).toBe(false);
+    face[10].x = 0.01;
+    expect(f.filterLandmarks(face, 1.06)).toBe(true);
+    expect([...f.sx, ...f.sy, ...f.sz].every(Number.isFinite)).toBe(true);
+    expect(f.sx[10]).toBeCloseTo(0.01);
+  });
+
   it.each([0, 0.01, 0.5, 1])('acknowledges intensity %s only after a matching face and draw', (value) => {
     const h = renderHarness();
     h.handleMessage(renderCommand(value));
