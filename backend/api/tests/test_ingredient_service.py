@@ -60,11 +60,11 @@ def evaluate(evidence, name="Panthenol", operator="includes"):
     [
         ("Panthenol", "includes", "MATCH"),
         ("Panthenol", "excludes", "NOT_MATCH"),
-        ("Fragrance", "includes", "NOT_MATCH"),
-        ("Fragrance", "excludes", "MATCH"),
+        ("Fragrance", "includes", "UNKNOWN"),
+        ("Fragrance", "excludes", "UNKNOWN"),
     ],
 )
-def test_presence_and_verified_absence(evidence, name, operator, expected):
+def test_presence_and_unresolved_absence(evidence, name, operator, expected):
     result = evaluate(evidence, name, operator)
     assert result.verdict == expected
     assert result.evidence_id == "SYNTHETIC:evidence-1" and result.synthetic
@@ -108,7 +108,7 @@ def test_option_specific_facts_and_foreign_product_selection(evidence):
     req = condition().model_copy(update={"option_id": other.option_id, "shade_id": other.shade_id})
     assert (
         evaluate_ingredient(req, IngredientLookupResult(status="ok", evidence=other)).verdict
-        == "NOT_MATCH"
+        == "UNKNOWN"
     )
     for change in [
         {"product_id": "foreign"},

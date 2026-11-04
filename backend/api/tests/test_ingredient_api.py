@@ -90,9 +90,9 @@ def get(client, **params):
 
 
 @pytest.mark.parametrize(
-    "name,op,verdict", [("Panthenol", "includes", "MATCH"), ("Fragrance", "excludes", "MATCH")]
+    "name,op,verdict", [("Panthenol", "includes", "MATCH"), ("Fragrance", "excludes", "UNKNOWN")]
 )
-def test_verified_presence_absence_and_order(client, data, name, op, verdict):
+def test_verified_presence_unresolved_absence_and_order(client, data, name, op, verdict):
     session = setup(client, data)
     response = get(client, ingredientName=name, operator=op)
     assert response.status_code == 200
