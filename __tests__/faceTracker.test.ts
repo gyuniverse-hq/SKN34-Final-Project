@@ -217,8 +217,10 @@ describe('face tracker page', () => {
     expect(script).toContain('float desat = 1.0 - smoothstep(uHlSat.x, uHlSat.y, camSat);');
     expect(script).toContain('hlPeak = max(camL0 - uHlLocal * wideL, 0.0) * desat;');
     // Narrow reflections (creases, ridges) are surface detail for every finish; the wide wet shine of
-    // the bare lip only survives a smooth finish (a matte pigment covers it).
-    expect(script).toContain('float hl = min(hlCap, max(hlPeak, hlWide * smoothT)) * core;');
+    // the bare lip only survives a smooth finish (a matte pigment covers it). 11-03: the lip's small
+    // sparkles count by being whiter than their neighbours, not white (on a red lip they stay pinkish).
+    expect(script).toContain('float hl = max(min(hlCap, max(hlPeak, hlWide * smoothT)), hlSpark * uHlSparkle) * core;');
+    expect(script).toContain('* smoothstep(0.0, 0.1, satR - camSat);');
     // Opaque paint may lighten the lip (cap only for see-through finishes), hides bare-lip patches
     // partly, and never clips a light shade to white.
     expect(script).toContain('float gainCap = mix(uRatioMax, uLumGainMax, uLipTranslucent * (1.0 - cov))');
@@ -241,17 +243,34 @@ describe('face tracker page', () => {
     expect(script).toContain('vec3 sheenCol = mix(uLightColor, vec3(1.0), uGlossTone.y) * mix(hue, vec3(1.0), smooth1 * smooth1 * smooth1 * mix(uGlossTone.x, 1.0, peakness));');
     expect(script).toContain('vec3 specTint = mix(uLipAlbedo, vec3(1.0), 0.16)');
     // Layering stays. No painted-over lip shape, drawn grooves, noise texture, or a normal drawn from
-    // a template. The one lip normal allowed is the form built from this person's own outline
-    // (lipFormN, 10-25 user request: finish highlights must appear even when the camera shows none).
-    for (const synthetic of ['formShape', 'sin(across', 'lipN ', 'lipN=', 'vnoise', 'uPigmentHeadroom']) {
+    // a template or an image file. Lip normals come only from this person: the form built from the
+    // own outline (lipFormN, 10-25) and, on top of it, the camera's own lip lines read live from the
+    // 4 neighbours (lipDetailN, 11-03 user decision: the shine must follow the lip's texture).
+    for (const synthetic of ['formShape', 'sin(across', 'lipN ', 'lipN=', 'vnoise', 'uPigmentHeadroom', 'uNormalMap', 'uBumpMap']) {
       expect(script).not.toContain(synthetic);
     }
+    expect(script).toContain('lipDG = vec2(lum(c1) - lum(c2), lum(c3) - lum(c4)) / max(lN, 1e-4);');
+    expect(script).toContain('lipDetailN = normalize(lipFormN + vec3(dT.x, dT.y, 0.0));');
+    // 11-03 (5 still faces): the shine follows the lip's lines through the camera's own crease shading
+    // (cavity), sparkles stay; the tilted normal, its satin mix and anisotropy did not help and stay off.
+    expect(script).toContain('float cav = pow(clamp(camL / max(wideL, 1e-4), 0.3, 2.0), uGlossCavity); formSpec *= cav; sheen *= cav;');
+    expect(script).toContain('glossCavity: 2,');
+    expect(script).toContain('hlSparkle: 1,');
+    expect(script).toContain('lipDetail: 0,');
+    expect(script).toContain('wideDetail: 0,');
+    expect(script).toContain('glossAniso: 0,');
     // Sheen never fully turns off when the light direction is untrusted.
     expect(script).toContain('specFill');
     expect(script).toContain('max(uLightConf, uSpecFill)');
     // The outer edge comes from the screen-space outline, never from a per-pixel redness test that
-    // grew lumps along the line at close range (10-25).
-    expect(script).toContain('lipM = m.r * inside;');
+    // grew lumps along the line at close range (10-25). 11-03: teeth near the inner line are taken out
+    // (the landmark inner line can lie on them): far less red than this person's bare lip and not the dark
+    // cavity, inside the mouth zone only. 11-04: shaded teeth count (no "brighter than the lip"); a thin band
+    // only needs its neighbours along the mouth, and only inside the drawn ring of an open mouth.
+    expect(script).toContain('lipM = m.r * inside * (1.0 - teethW);');
+    expect(script).toContain('float redT = max(redness(cam), uMouthOpen * zone.x > 0.5 ? rA : redN);');
+    expect(script).toContain('teethW = smoothstep(uTeethFirm.x, uTeethFirm.y, raw) * zone.y;');
+    expect(script).toContain('teethBright: [0.3, 0.5],');
     expect(script).not.toContain('uBandGrow');
     expect(script).not.toContain('uEdge');
   });
@@ -418,7 +437,7 @@ describe('face tracker page', () => {
     // Volume = Lambert of the form under the estimated light; highlight = sharp source reflection + glow,
     // also from the always-present frontal source, scaled by scene brightness and finish smoothness.
     expect(script).toContain('float form = max(dot(lipFormN, lV), 0.0) / max(dot(lipBaseN, lV), 0.2);');
-    expect(script).toContain('uFrontGloss * (sharpF + uWideGloss * lobeN(nf, rW))');
+    expect(script).toContain('uFrontGloss * (sharpF + uWideGloss * wF)');
     expect(script).toContain('* mix(0.25, uSkinMeanLum, uGlossShape.z) * uGlossGain');
     // Flat selfie: form gloss rises when the camera has no specular; matte (smooth1²) stays dull.
     expect(script).toContain('uGlossFlat * (1.0 - smoothstep(0.02, 0.12, camSpec)) * smooth1 * smooth1');

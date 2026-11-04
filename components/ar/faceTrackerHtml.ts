@@ -133,6 +133,25 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
                                   //  screen blend 0..1 (0 = added, 1 = screen: stops at white, keeps the colour)]
     lightSize: [0.35, 0.6],      // light size (roughness units): the source's sharp reflection, the glow around it
     wideGloss: 0.40,             // glow peak relative to the sharp reflection
+    // Lip detail normal (11-03, user decision: the lip's own texture has to show in the shine). This person's wrinkles, read live
+    // from the camera with the 4 neighbours that already give the local mean (no extra samples), tilt the form normal: brightness
+    // relative to the local mean is taken as height (ridges light, creases dark). Nothing is drawn or stored. Off: on 5 still faces
+    // the tilt (±1.5, ±4) did not make the shine follow the lip's lines (correlation inside the shine −0.06…0.13); glossCavity did.
+    lipDetail: 0,                // 0 = off (form normal only)
+    lipDetailTilt: 4.0,          // tilt per unit of relative brightness step across 3 px (saturates at 45°)
+    lipDetailNoise: [1.5, 3.0],  // relative step below camera grain × first is ignored, full above grain × second
+    lipDetailGrainMin: 0.01,     // grain floor for those thresholds (a clean still image measures ~0)
+    lipDetailMouthPx: [70, 120], // mouth width (px) over which it fades in; on a smaller mouth the wrinkles are under a pixel
+    // A narrow crease hides its floor from the light (brightness-as-height left a ridge top and a crease floor both untilted, lit
+    // alike): the gloss and sheen are scaled by (camera / 3 px surround)^this, so they brighten on the lip's ridges and dim in its
+    // creases. 5 still faces, 2 vs 0: correlation of the shine with the bare lip's lines inside the shine gloss −0.05 → 0.41,
+    // satin 0.03 → 0.62; lip-core mean colour ΔE2000 ≤ 0.15. 0 = off.
+    glossCavity: 2,
+    wideDetail: 0,               // share of the detail normal in the broad glow and sheen (satin's look); 0 = smooth form only (needs lipDetail)
+    // Unresolved vertical lip lines spread the reflection across the mouth: the GGX lobes get a larger roughness along the mouth
+    // axis than across it (area kept: αx = α(1 + k), αy = α / (1 + k)). 0 = isotropic. Off: 0.6 on top of wideDetail 0.5 lowered
+    // the shine-follows-lines correlation (gloss 0.08 → 0.06, satin 0.19 → 0.13) and moved a matte's mean colour most (ΔE 0.56).
+    glossAniso: 0,
     grainMax: 0.2,              // cap on the measured relative camera grain
     blurMax: 4,                 // cap on the measured camera blur (px): sets grain size and mask edge softness
     lipGlint: 1.5,              // glints on lip ridges (absolute), scaled by (1 - roughness)²
@@ -145,10 +164,30 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     lumGainMax: 1.15,           // estimated chip hex may not make the lip brighter than bare × this
     creaseCover: 0.15,          // matte pigment collects in creases (+), gloss thins on ridges (−)
     mouthClosedGap: 0.06,       // inner-lip gap / mouth width below which the mouth hole is painted
+    // Teeth (11-03): on a slightly open mouth the landmark inner line can lie on the teeth (a still face: upper and lower inner
+    // points 0–4 px apart, page gap 0.050 of the width, while ~9 px of teeth show), so the outline painted them red. Within
+    // teethReach × the mean lip thickness of the inner line (or inside it), a patch whose 4 neighbours at 1.5 px are together
+    // far less red than this person's bare lip, and bright, is left unpainted. A lip sparkle (1–2 px peak) or the seam of closed
+    // lips (1–2 px line) has lip around it. Redness, not saturation: under warm light teeth are yellowish and as saturated as a
+    // pale lip (0.39–0.47 vs lips 0.73–0.89), but their redness was 0.07–0.26 × the lip median and the lip's 10th percentile 0.46–0.73 ×.
+    // 5 still faces, painted teeth off → on: 25% → 1%, 9% → 2%, 100% → 46% (the rest: upper teeth in the upper lip's red-tinted
+    // shade); inner lip unpainted ≤ 1%. [0.6, 0.8] took that face to 14–23% but left 2–6% of the inner lip of a pale pink lip bare.
+    teeth: 1,                   // 0 = off
+    teethRed: [0.45, 0.65],     // neighbours' redness / bare-lip redness: teeth below the first, lip above the second
+    // 11-04 (device, slightly open mouth): teeth in the upper lip's shade are darker than the lip, so "brighter than the lip"
+    // kept them painted. Brightness now only keeps the dark mouth cavity out; redness decides.
+    teethBright: [0.3, 0.5],    // neighbours' brightness / lip mean: below the first the dark mouth (painted as before)
+    teethFirm: [0.2, 0.6],      // a half-sure teeth pixel was half painted (pink teeth): rescale so a likely one is left bare
+    teethReach: 0.5,
     lipRayOutlier: 0.2,         // a lip-edge ray this far (share of lip) from its neighbours' median is skipped
     hlLocal: 1.15,              // camera highlight must exceed the local 3px mean by this (a peak, not a lit area)
     hlSat: [0.3, 0.55],         // ...and be desaturated: lip color saturation ~0.6, specular ~0.2
     hlBlown: 2.2,               // or be this × lip mean (a wide reflection has no local peak in its middle)
+    // 11-03: the lip's small wet sparkles along its lines are reflections too, though few reach diffuseCap × the lip mean or the
+    // absolute hlSat test. Left in the color they turned into brighter red, lost in a saturated paint (5 still faces: a gloss kept
+    // 24% of them, the most lined lip 1%). With this share, a spot above its surround (hlLocal) and whiter than its neighbours is a
+    // reflection whatever its height; hlKeep still decides by finish how much of it stays on top of the paint. 0 = before 11-03.
+    hlSparkle: 1,
     opaqueShadeGamma: 0.85,     // large-scale brightness swing kept under fully opaque paint (1 = all, 0 = flat sticker). Was 0.6; 0.85 keeps more of the camera's shading and keeps colour ΔE within 4 after the gloss cut
     lowReach: 0.35,             // radius of the large-scale lip brightness, share of the lip thickness
     lipSpecMax: 0.18,           // cap on the added clear-coat highlight (tinted, lower-centre only)
@@ -290,6 +329,12 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     clipLin: 0.92,              // linear value treated as blown out
     darkLum: 0.02,
     lightConfR2: [0.1, 0.4],    // R² of the normal→brightness fit mapped to confidence 0..1
+    // Light by matching candidate lights with cast shadows (matchLight) instead of the straight-line fit. Off = old fit.
+    // On since 11-04 (user decision after the phone check). Research use; a commercial release needs a patent review (US 11,030,798).
+    lightMatch: true,
+    lightMatchGrid: 48,         // face height grid cells along the longer side (cast-shadow test)
+    lightMatchMaxVerts: 160,    // skin vertices used (evenly spaced); cost grows with this
+    lightMatchSpread: 0.02,     // R² gap over which a runner-up candidate's weight in the blend falls by e
     lightChangeDelta: 6,        // CIE76 on mean skin Lab: above this, Gray World snaps (no smoothing)
     blownFaceFraction: 0.15,    // share of in-frame skin verts blown out → "light too strong"
   };
@@ -1040,6 +1085,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     formStep[0] = srcW / fw; formStep[1] = 2 * r + 1;
   }
   const outlineRect = [0, 0, 1, 1];
+  const innerRingPx = new Float32Array(40); // the drawn inner lip ring, video px (teeth test)
   // Ring positions that stay put while smoothing: mouth corners (both rings) and the Cupid's bow (outer).
   const OUTER_FIXED = [0, 4, 5, 6, 10];
   const INNER_FIXED = [0, 10];
@@ -1131,6 +1177,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     const s = clamp((open - 0.1) / 0.4, 0, 1);
     const inset = TUNING.innerInset[0] + (TUNING.innerInset[1] - TUNING.innerInset[0]) * s * s * (3 - 2 * s);
     const inner = lipRing(LIPS_INNER, INNER_FIXED, W, H, LIPS_OUTER, mouthClosed() ? 0 : inset);
+    for (let i = 0; i < 20; i++) { innerRingPx[2 * i] = inner[i][0]; innerRingPx[2 * i + 1] = inner[i][1]; }
     if (!mouthClosed()) {
       // Open mouth: the inner curve is a hole (teeth, tongue) in both.
       c.fillStyle = '#000';
@@ -1646,7 +1693,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   const stats = document.createElement('canvas');
   const statsCtx = stats.getContext('2d', { willReadFrequently: true });
   const light = {
-    color: [1, 1, 1], colorConf: 0, dir: [0, 0.3, 0.95], strength: 1, dirConf: 0,
+    color: [1, 1, 1], colorConf: 0, dir: [0, 0.3, 0.95], strength: 1, dirConf: 0, matchR2: -1,
     lipMeanLum: 0.12, skinMeanLum: TUNING.skinRefLum, bgFraction: 0, samples: 0,
     lipRed: 0.2, skinRed: 0.2, grain: 0, blur: 1, lipColor: [0.12, 0.06, 0.06], lipUpLow: 1,
     skinColor: [0.42, 0.28, 0.22], colorSamples: 0, colorDelta: 1,
@@ -1823,6 +1870,139 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     const c = y.map((v, i) => bm * SH_LAMBERT[i] * v);
     c[0] += fit[0] / 0.282095;
     return c;
+  }
+  // Light by matching (after Perfect Corp US 11,030,798, studied for research): shade this face under a fixed set of
+  // candidate lights, cast shadows of the nose, brows and lips included, and keep the candidates whose shading best
+  // matches the camera. The straight-line fit above cannot see cast or attached shadows and pulls side light frontal.
+  function lightGrid(azs, els) {
+    const out = [];
+    for (const el of els) {
+      for (const az of azs) {
+        const e = (el * Math.PI) / 180, a = (az * Math.PI) / 180;
+        const d = [Math.sin(a) * Math.cos(e), Math.sin(e), Math.cos(a) * Math.cos(e)];
+        if (d[2] >= 0.2) out.push(d);
+      }
+    }
+    return out;
+  }
+  const LIGHT_CANDIDATES = lightGrid([-70, -45, -20, 0, 20, 45, 70], [-45, -20, 0, 20, 45, 65]);
+  const LIGHT_REFINE = [-12, -8, -4, 0, 4, 8, 12]; // degrees around the coarse winner
+  // Highest surface z (toward the viewer) per cell of an x/y grid over the face, from the triangles.
+  function faceHeightGrid(pos, tris, res) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, zMax = -Infinity;
+    for (let t = 0; t < tris.length; t++) {
+      const v = tris[t] * 3;
+      x0 = Math.min(x0, pos[v]); x1 = Math.max(x1, pos[v]);
+      y0 = Math.min(y0, pos[v + 1]); y1 = Math.max(y1, pos[v + 1]);
+      zMax = Math.max(zMax, pos[v + 2]);
+    }
+    const cell = Math.max(x1 - x0, y1 - y0, 1e-6) / res;
+    const nx = Math.floor((x1 - x0) / cell) + 1, ny = Math.floor((y1 - y0) / cell) + 1;
+    const h = new Float32Array(nx * ny).fill(-Infinity);
+    for (let t = 0; t < tris.length; t += 3) {
+      const a = tris[t] * 3, b = tris[t + 1] * 3, c = tris[t + 2] * 3;
+      const ax = (pos[a] - x0) / cell, ay = (pos[a + 1] - y0) / cell;
+      const bx = (pos[b] - x0) / cell, by = (pos[b + 1] - y0) / cell;
+      const cx = (pos[c] - x0) / cell, cy = (pos[c + 1] - y0) / cell;
+      const den = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy);
+      if (Math.abs(den) < 1e-9) continue;
+      const i0 = Math.max(0, Math.ceil(Math.min(ax, bx, cx))), i1 = Math.min(nx - 1, Math.floor(Math.max(ax, bx, cx)));
+      const j0 = Math.max(0, Math.ceil(Math.min(ay, by, cy))), j1 = Math.min(ny - 1, Math.floor(Math.max(ay, by, cy)));
+      for (let j = j0; j <= j1; j++) {
+        for (let i = i0; i <= i1; i++) {
+          const w0 = ((by - cy) * (i - cx) + (cx - bx) * (j - cy)) / den;
+          const w1 = ((cy - ay) * (i - cx) + (ax - cx) * (j - cy)) / den;
+          const w2 = 1 - w0 - w1;
+          if (w0 < -1e-4 || w1 < -1e-4 || w2 < -1e-4) continue;
+          const z = w0 * pos[a + 2] + w1 * pos[b + 2] + w2 * pos[c + 2];
+          if (z > h[j * nx + i]) h[j * nx + i] = z;
+        }
+      }
+    }
+    return { h, x0, y0, cell, nx, ny, zMax };
+  }
+  const HORIZON_BINS = 24;
+  // Per vertex and side (azimuth bin), the steepest rise (Δz / x-y distance) of the face toward that side. Light d
+  // reaches the vertex when its own rise d.z / |d.xy| is above it, so one march per side serves every candidate.
+  function horizonSlopes(grid, pos, verts) {
+    const out = new Float32Array(verts.length * HORIZON_BINS);
+    const reach = Math.hypot(grid.nx, grid.ny) * grid.cell;
+    for (let k = 0; k < verts.length; k++) {
+      const v = verts[k] * 3, px = pos[v], py = pos[v + 1], pz = pos[v + 2] + grid.cell;
+      for (let b = 0; b < HORIZON_BINS; b++) {
+        const ang = (2 * Math.PI * b) / HORIZON_BINS, ux = Math.cos(ang), uy = Math.sin(ang);
+        let top = -Infinity;
+        for (let s = 2 * grid.cell; s < reach; s += grid.cell) {
+          if ((grid.zMax - pz) / s <= top) break;
+          const i = Math.round((px + ux * s - grid.x0) / grid.cell), j = Math.round((py + uy * s - grid.y0) / grid.cell);
+          if (i < 0 || j < 0 || i >= grid.nx || j >= grid.ny) break;
+          const slope = (grid.h[j * grid.nx + i] - pz) / s;
+          if (slope > top) top = slope;
+        }
+        out[k * HORIZON_BINS + b] = top;
+      }
+    }
+    return out;
+  }
+  // Coarse candidates, then a finer grid around the winner (the coarse step alone leaves ~8° error).
+  // At most maxVerts evenly spaced vertices: the cost is per vertex and 0.5 s light updates must stay a few ms.
+  function matchLight(grid, pos, nrm, verts, lums, spread, maxVerts) {
+    const stride = Math.max(1, Math.ceil(verts.length / (maxVerts || verts.length)));
+    const vs = verts.filter((_, k) => k % stride === 0), ls = lums.filter((_, k) => k % stride === 0);
+    const hor = horizonSlopes(grid, pos, vs);
+    const coarse = scoreLights(pos, nrm, vs, ls, hor, spread, LIGHT_CANDIDATES);
+    if (!coarse) return null;
+    const az = (Math.atan2(coarse.dir[0], coarse.dir[2]) * 180) / Math.PI;
+    const el = (Math.asin(Math.max(-1, Math.min(1, coarse.dir[1]))) * 180) / Math.PI;
+    const fine = lightGrid(LIGHT_REFINE.map((v) => az + v), LIGHT_REFINE.map((v) => el + v));
+    return scoreLights(pos, nrm, vs, ls, hor, spread, fine) || coarse;
+  }
+  // brightness ≈ a + b · shading(candidate) per vertex; returns the blended best direction, its R² and peak a + b.
+  function scoreLights(pos, nrm, verts, lums, hor, spread, candidates) {
+    const n = verts.length;
+    const shades = candidates.map((d) => {
+      const s = new Float32Array(n);
+      const r = Math.hypot(d[0], d[1]), rise = r < 1e-3 ? Infinity : d[2] / r;
+      const bin = ((Math.round((Math.atan2(d[1], d[0]) / (2 * Math.PI)) * HORIZON_BINS) % HORIZON_BINS) + HORIZON_BINS) % HORIZON_BINS;
+      for (let k = 0; k < n; k++) {
+        const v = verts[k] * 3;
+        const ndl = nrm[v] * d[0] + nrm[v + 1] * d[1] + nrm[v + 2] * d[2];
+        s[k] = ndl > 0 && rise > hor[k * HORIZON_BINS + bin] ? ndl : 0;
+      }
+      return s;
+    });
+    const fitOn = (s, keep) => {
+      let m = 0, sumX = 0, sumY = 0, sumXX = 0, sumXY = 0, sumYY = 0;
+      for (const k of keep) { const x = s[k], y = lums[k]; m++; sumX += x; sumY += y; sumXX += x * x; sumXY += x * y; sumYY += y * y; }
+      const vx = sumXX - (sumX * sumX) / m, vy = sumYY - (sumY * sumY) / m, cxy = sumXY - (sumX * sumY) / m;
+      if (m < 3 || vx < 1e-9 || vy < 1e-12 || cxy <= 0) return null;
+      const b = cxy / vx;
+      return { a: (sumY - b * sumX) / m, b, r2: (cxy * cxy) / (vx * vy) };
+    };
+    const rank = (keep) => {
+      let best = -1, fits = shades.map((s) => fitOn(s, keep));
+      fits.forEach((f, c) => { if (f && (best < 0 || f.r2 > fits[best].r2)) best = c; });
+      return { fits, best };
+    };
+    const all = [];
+    for (let k = 0; k < n; k++) all.push(k);
+    let { fits, best } = rank(all);
+    if (best < 0) return null;
+    // Drop the worst 20% (specular spots, hair, glasses) under the first winner, then rank again.
+    const f0 = fits[best], s0 = shades[best];
+    const resid = all.map((k) => Math.abs(lums[k] - (f0.a + f0.b * s0[k])));
+    const cut = resid.slice().sort((p, q) => p - q)[Math.floor(n * 0.8)];
+    ({ fits, best } = rank(all.filter((k) => resid[k] <= cut)));
+    if (best < 0) return null;
+    const top = fits[best];
+    const dir = [0, 0, 0];
+    fits.forEach((f, c) => {
+      if (!f || f.r2 < top.r2 - 3 * spread) return;
+      const w = Math.exp((f.r2 - top.r2) / spread);
+      for (let j = 0; j < 3; j++) dir[j] += w * candidates[c][j];
+    });
+    const len = Math.hypot(dir[0], dir[1], dir[2]) || 1;
+    return { dir: dir.map((v) => v / len), r2: top.r2, peak: top.a + top.b };
   }
   function ensureFoundSkinBuffers(w, h) {
     if (foundSkinW === w && foundSkinH === h && foundSkinBin) return;
@@ -2102,7 +2282,13 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         light.fitR2 = r2;
         light.fitRel = Math.hypot(fit[1], fit[2], fit[3]) / Math.max(mean, 1e-6);
         let dx = fit[1], dy = fit[2], dz = Math.max(fit[3], 0);
-        const mag = Math.hypot(dx, dy, dz);
+        let mag = Math.hypot(dx, dy, dz), peak = fit[0] + mag;
+        const match = TUNING.lightMatch
+          ? matchLight(faceHeightGrid(scr, FACE_TRIANGLES, TUNING.lightMatchGrid), scr, meshNrm, skinIn, samples.map((s) => s[3]),
+            TUNING.lightMatchSpread, TUNING.lightMatchMaxVerts)
+          : null;
+        light.matchR2 = match ? match.r2 : -1;
+        if (match) { [dx, dy, dz] = match.dir; mag = 1; r2 = match.r2; peak = match.peak; }
         if (mag > 1e-6) {
           dx /= mag; dy /= mag; dz /= mag;
           if (dz < 0.15) { dz = 0.15; const m2 = Math.hypot(dx, dy, dz); dx /= m2; dy /= m2; dz /= m2; }
@@ -2117,7 +2303,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
           conf = Math.max(conf, clamp((light.fitRel - TUNING.lightConfRel[0]) / (TUNING.lightConfRel[1] - TUNING.lightConfRel[0]), 0, 1));
         }
         light.dirConf += k * (conf - light.dirConf);
-        const strength = clamp((fit[0] + mag) / TUNING.skinRefLum, 0.3, 1.5);
+        const strength = clamp(peak / TUNING.skinRefLum, 0.3, 1.5);
         light.strength += k * (strength - light.strength);
       }
     }
@@ -2190,6 +2376,19 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     'uniform sampler2D uOutline; uniform vec4 uOutlineRect; uniform float uOutlineSoft;',
     'uniform sampler2D uForm; uniform vec2 uFormStep; uniform float uFormTilt; uniform float uLowPx; uniform float uLipVolume; uniform float uFormOn; uniform vec2 uGlossMax; uniform vec2 uLightSize; uniform float uWideGloss; uniform vec3 uMouthN; uniform float uGlossGain; uniform float uFrontGloss; uniform float uGlossFlat; uniform vec4 uGlossShape; uniform vec3 uGlossTone;',
     'uniform float uHlLocal; uniform vec2 uHlSat; uniform float uHlBlown; uniform float uOpaqueShadeGamma; uniform float uLipFill;',
+    'uniform float uLipDetail; uniform vec2 uDetailNoise; uniform float uHlSparkle; uniform float uWideDetail; uniform float uGlossAniso; uniform float uGlossCavity;',
+    'uniform vec2 uInner[20]; uniform float uTeethReach; uniform vec2 uTeethRed; uniform vec2 uTeethBright; uniform vec2 uTeethFirm; uniform float uTeethOn; uniform float uMouthOpen;',
+    // x: 1 inside the drawn inner lip ring; y: 1 inside or near it, fading to 0 at uTeethReach px outside (video px).
+    'vec2 mouthZone(vec2 p) {',
+    '  float d = 1e9; bool inside = false;',
+    '  for (int i = 0; i < 20; i++) {',
+    '    vec2 a = uInner[i]; vec2 b = i < 19 ? uInner[i + 1] : uInner[0];',
+    '    vec2 ab = b - a; float t = clamp(dot(p - a, ab) / max(dot(ab, ab), 1e-4), 0.0, 1.0);',
+    '    d = min(d, length(p - a - ab * t));',
+    '    if ((a.y > p.y) != (b.y > p.y) && p.x < (b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x) inside = !inside;',
+    '  }',
+    '  return inside ? vec2(1.0) : vec2(0.0, 1.0 - smoothstep(0.5 * uTeethReach, uTeethReach, d));',
+    '}',
     'float redness(vec3 c) { return (c.r - c.g) / (c.r + c.g + c.b + 1e-4); }',
     // Screen-space lip outline (video coordinates): r = paint area, g = lip form; 0 outside.
     'vec2 outline2(vec2 s) {',
@@ -2235,6 +2434,14 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '  return 0.282095 * uLightSH[0] + 0.488603 * (uLightSH[1] * n.y + uLightSH[2] * n.z + uLightSH[3] * n.x)',
     '    + 1.092548 * (uLightSH[4] * n.x * n.y + uLightSH[5] * n.y * n.z + uLightSH[7] * n.x * n.z)',
     '    + 0.315392 * uLightSH[6] * (3.0 * n.z * n.z - 1.0) + 0.546274 * uLightSH[8] * (n.x * n.x - n.y * n.y);',
+    '}',
+    // lobeN with roughness r(1 + k) along the tangent t and r / (1 + k) across it (peak 1, same as lobeN at k = 0).
+    'float lobeA(vec3 nn, vec3 t, vec3 h, float r, float k) {',
+    '  float a = max(r * r, 1e-2);',
+    '  vec3 tt = normalize(t - nn * dot(nn, t)); vec3 bb = cross(nn, tt);',
+    '  float hx = dot(h, tt) / (a * (1.0 + k)), hy = dot(h, bb) * (1.0 + k) / a, hz = dot(h, nn);',
+    '  float q = 1.0 / max(hx * hx + hy * hy + hz * hz, 1e-4);',
+    '  return hz > 0.0 ? q * q : 0.0;',
     '}',
     // Flakes are fixed to UV cells so they stay on the face when the head turns.
     'float flake(vec2 uv, vec3 n, vec3 l, vec3 v) {',
@@ -2371,10 +2578,11 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '  if (lipZone + blushA + shadowA + hlA + contourA + linerA + mascaraA + darkA + innerA + foundA + browA < 0.002) discard;',
     '  vec3 cam = toLin(texture2D(uVideo, suv).rgb);',
     '  vec3 n = normalize(vNormal); vec3 v = vec3(0.0, 0.0, 1.0); vec3 l = normalize(uLightDir);',
-    '  float lipM = 0.0; float lipEdgeW = 0.0; float redN = 0.0; vec3 lipFormN = n; vec3 lipBaseN = n; vec3 camN = cam;',
+    '  float lipM = 0.0; float lipEdgeW = 0.0; float redN = 0.0; vec3 lipFormN = n; vec3 lipBaseN = n; vec3 lipDetailN = n; vec3 camN = cam;',
+    '  vec2 lipDG = vec2(0.0);',
     '  float skinRefW = 0.0; float lipDepth = 0.0;',
     '  float lN = lum(cam);',
-    '  float wideL = lN; float hlCap = 0.0; float hlPeak = 0.0; float hlWide = 0.0;',
+    '  float wideL = lN; float hlCap = 0.0; float hlPeak = 0.0; float hlWide = 0.0; float hlSpark = 0.0;',
     '  if (lipZone > 0.002) {',
     // Neighbors: local mean brightness (lip volume vs. wrinkles) and a denoised color for the edge test.
     '    vec2 o = uTexel * 1.5;',
@@ -2385,8 +2593,11 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '    lN = 0.25 * (lum(c1) + lum(c2) + lum(c3) + lum(c4));',
     '    redN = redness(c1 + c2 + c3 + c4);',
     '    camN = 0.2 * (cam + c1 + c2 + c3 + c4);',
-    '    wideL = 0.25 * (lum(toLin(texture2D(uVideo, suv + uTexel * 3.0).rgb)) + lum(toLin(texture2D(uVideo, suv - uTexel * 3.0).rgb))',
-    '      + lum(toLin(texture2D(uVideo, suv + vec2(uTexel.x, -uTexel.y) * 3.0).rgb)) + lum(toLin(texture2D(uVideo, suv + vec2(-uTexel.x, uTexel.y) * 3.0).rgb)));',
+    // Relative brightness step across 3 px (video coordinates, like the form gradient below): the lip's own lines.
+    '    lipDG = vec2(lum(c1) - lum(c2), lum(c3) - lum(c4)) / max(lN, 1e-4);',
+    '    vec3 e1 = toLin(texture2D(uVideo, suv + uTexel * 3.0).rgb), e2 = toLin(texture2D(uVideo, suv - uTexel * 3.0).rgb);',
+    '    vec3 e3 = toLin(texture2D(uVideo, suv + vec2(uTexel.x, -uTexel.y) * 3.0).rgb), e4 = toLin(texture2D(uVideo, suv + vec2(-uTexel.x, uTexel.y) * 3.0).rgb);',
+    '    wideL = 0.25 * (lum(e1) + lum(e2) + lum(e3) + lum(e4));',
     // Light reflected by the lip: brighter than the lip and desaturated, and either a peak over the
     // local 3px mean or a wide reflection far above the lip mean. It is white, not red, but it is
     // still lip: it keeps the paint, and below it becomes the gloss and crease detail (device 10-25:
@@ -2398,21 +2609,41 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '    hlCap = max(camL0 - uDiffuseCap * meanL0, 0.0) * desat;',
     // Peak: narrow reflection on a ridge or crease edge (the lip surface). Wide: the bare lip's wet shine.
     '    hlPeak = max(camL0 - uHlLocal * wideL, 0.0) * desat;',
+    // Sparkle: a small spot brighter than its 3 px surround and whiter than its 4 neighbours. On a red lip a reflection is still
+    // pinkish (median linear saturation 0.4–0.8 on 5 still faces), so the absolute hlSat test missed 95% of them on a lined lip.
+    '    vec3 cR = c1 + c2 + c3 + c4;',
+    '    float satR = (max(cR.r, max(cR.g, cR.b)) - min(cR.r, min(cR.g, cR.b))) / max(max(cR.r, max(cR.g, cR.b)), 1e-4);',
+    '    hlSpark = max(camL0 - wideL, 0.0) * smoothstep(1.0, uHlLocal, camL0 / max(wideL, 1e-4)) * smoothstep(0.0, 0.1, satR - camSat);',
     '    hlWide = max(camL0 - uHlBlown * meanL0, 0.0) * desat;',
+    // Teeth near the inner line: pale and bright at 1.5 px and 3 px alike (TUNING.teeth).
+    '    float teethW = 0.0;',
+    '    if (uTeethOn > 0.5) {',
+    '      vec2 zone = mouthZone(suv * uViewport);',
+    '      if (zone.y > 0.01) {',
+    // A thin teeth band (a few px tall) has lip above and below it, so the 4-neighbour mean stays red. Inside the drawn
+    // inner ring of an open mouth, the two neighbours along the mouth are enough; elsewhere (the lip side, closed lips with
+    // their thin seam, a wet lower-lip streak) all four must be pale. The pixel itself must be pale too.
+    '        vec2 ax = uLipCenter.zw * uTexel * 1.5;',
+    '        float rA = max(redness(toLin(texture2D(uVideo, suv + ax).rgb)), redness(toLin(texture2D(uVideo, suv - ax).rgb)));',
+    '        float redT = max(redness(cam), uMouthOpen * zone.x > 0.5 ? rA : redN);',
+    '        float raw = (1.0 - smoothstep(uTeethRed.x * uLipRed, uTeethRed.y * uLipRed, redT)) * smoothstep(uTeethBright.x, uTeethBright.y, lN / meanL0);',
+    '        teethW = smoothstep(uTeethFirm.x, uTeethFirm.y, raw) * zone.y;',
+    '      }',
+    '    }',
     // Outer edge and open-mouth hole from the screen-space outline, softened as much as the camera
     // image is blurred; the UV mask only adds the inner and corner fades. No per-pixel redness test:
     // at close range it grew lumps along the line (10-25). Reflections are inside the outline, so lip.
     '    vec2 so = uTexel * uOutlineSoft;',
     '    float inside = (2.0 * outlineAt(suv) + outlineAt(suv + vec2(so.x, 0.0)) + outlineAt(suv - vec2(so.x, 0.0))',
     '      + outlineAt(suv + vec2(0.0, so.y)) + outlineAt(suv - vec2(0.0, so.y))) / 6.0;',
-    '    lipM = m.r * inside;',
+    '    lipM = m.r * inside * (1.0 - teethW);',
     // Overlip: the part of the paint outside the landmark outline lies on skin, not lip. Its share
     // (0 on the lip, 1 on the band) picks the bare-skin reference below, and highlights seen there are
     // skin shine, not lip shine.
     '    float insideBase = (2.0 * baseOutlineAt(suv) + baseOutlineAt(suv + vec2(so.x, 0.0)) + baseOutlineAt(suv - vec2(so.x, 0.0))',
     '      + baseOutlineAt(suv + vec2(0.0, so.y)) + baseOutlineAt(suv - vec2(0.0, so.y))) / 6.0;',
     '    skinRefW = clamp((inside - insideBase) / max(inside, 1e-3), 0.0, 1.0);',
-    '    hlCap *= 1.0 - skinRefW; hlPeak *= 1.0 - skinRefW; hlWide *= 1.0 - skinRefW;',
+    '    hlCap *= 1.0 - skinRefW; hlPeak *= 1.0 - skinRefW; hlWide *= 1.0 - skinRefW; hlSpark *= 1.0 - skinRefW;',
     // Lip form: the blurred form field says how deep inside each lip (1 deep inside, ~0.5 on its line)
     // and its slope points into the lip, so each lip is a rounded body whose normal tilts outward
     // toward its line (≈ 1 at the line, scaled by the rise width). Video coordinates run left and down
@@ -2431,6 +2662,11 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '      lipBaseN = normalize(vec3(n.x, mix(uMouthN.y, n.y, 0.3), n.z));',
     '      vec2 tilt = grad * inversesqrt(1.0 + dot(grad, grad)) * uFormTilt * uFormOn;',
     '      lipFormN = normalize(lipBaseN + vec3(tilt.x, tilt.y, 0.0));',
+    // Detail: the camera's own lip lines on top of the form. Off near the outline and the inner line, where the step is lip vs
+    // skin or teeth, and below the camera grain, where it is noise.
+    '      vec2 dT = lipDG * uLipDetail * smoothstep(uDetailNoise.x, uDetailNoise.y, length(lipDG)) * smoothstep(0.55, 0.8, h0) * uFormOn;',
+    '      dT *= inversesqrt(1.0 + dot(dT, dT));',
+    '      lipDetailN = normalize(lipFormN + vec3(dT.x, dT.y, 0.0));',
     '    }',
     '  }',
     '  if (lipM + blushA + shadowA + hlA + contourA + linerA + mascaraA + darkA + innerA + foundA + browA < 0.002) discard;',
@@ -2565,7 +2801,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     // every finish as surface detail), or a wide one far above the lip mean: the bare lip's wet shine,
     // which a matte pigment covers and a gloss keeps, so it counts by smoothness. A broadly brighter
     // (paler or lit) lower lip is diffuse shading, kept under the paint (device 10-25 white film).
-    '    float hl = min(hlCap, max(hlPeak, hlWide * smoothT)) * core;',
+    '    float hl = max(min(hlCap, max(hlPeak, hlWide * smoothT)), hlSpark * uHlSparkle) * core;',
     '    vec3 camDiffuse = cam * (1.0 - hl / camL);',
     // Texture detail: matte fills creases a little (pulls toward the local mean), gloss keeps them.
     '    float fill = 1.0 + (lN / camL - 1.0) * (1.0 - uLipDetailGain) * cov;',
@@ -2626,7 +2862,9 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '    float lightMix = max(uLightConf, uSpecFill);',
     '    float specPbr = ggx(n, l, v, uLipRough) * max(dot(n, l), 0.0) * uLightStrength * uExposure * uSkinRef * lightMix;',
     '    float peakMask = pow(max(dot(n, normalize(l + v)), 0.0), mix(28.0, 64.0, uLipRough)) * core;',
-    '    float sheen = pow(max(dot(lipFormN, normalize(l + v)), 0.0), mix(4.0, 10.0, smooth1)) * smooth1 * smooth1 * uLipSheen * lightMix * core;',
+    // Broad glow and sheen: the smooth form, or part of the lip's own lines with it (wideDetail).
+    '    vec3 lipMidN = uWideDetail > 0.0 ? normalize(mix(lipFormN, lipDetailN, uWideDetail)) : lipFormN;',
+    '    float sheen = pow(max(dot(lipMidN, normalize(l + v)), 0.0), mix(4.0, 10.0, smooth1)) * smooth1 * smooth1 * uLipSheen * lightMix * core;',
     // Finish highlight on the lip form: GGX at the finish's roughness, the light's color and strength,
     // capped from a matte's faint sheen to a gloss's near-white streak. Lands where the form faces the
     // half vector: lower-lip centre and upper-lip ridge under frontal light, shifting with the light.
@@ -2638,21 +2876,27 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     // (a satin's sheen). A rough finish makes both broad and alike. One lobe widened for a big light
     // read as satin on gloss (10-25, LaPa next to a real gloss).
     '    vec3 lG = normalize(mix(vec3(0.0, 0.25, 1.0), l, uLightConf * uGlossShape.w));',
-    '    float nh = max(dot(lipFormN, normalize(lG + v)), 0.0);',
+    // The sharp reflection sits on the lip's own lines (detail normal); the glow around it on lipMidN.
     // A selfie always has a soft frontal source too (phone screen, the room in front): with a strong
     // side key light no lip normal faces its half vector, but the gloss still catches the front.
-    '    float nf = max(dot(lipFormN, normalize(vec3(0.0, 0.3, 1.0) + v)), 0.0);',
+    '    vec3 hK = normalize(lG + v), hF = normalize(vec3(0.0, 0.3, 1.0) + v);',
     '    float rS = sqrt(uLipRough * uLipRough + uLightSize.x * uLightSize.x);',
     '    float rW = sqrt(uLipRough * uLipRough + uLightSize.y * uLightSize.y);',
+    '    vec3 mT = vec3(uLipCenter.zw, 0.0);',
+    '    float sK = uGlossAniso > 0.0 ? lobeA(lipDetailN, mT, hK, rS, uGlossAniso) : lobeN(max(dot(lipDetailN, hK), 0.0), rS);',
+    '    float sF = uGlossAniso > 0.0 ? lobeA(lipDetailN, mT, hF, rS, uGlossAniso) : lobeN(max(dot(lipDetailN, hF), 0.0), rS);',
+    '    float wK = uGlossAniso > 0.0 ? lobeA(lipMidN, mT, hK, rW, uGlossAniso) : lobeN(max(dot(lipMidN, hK), 0.0), rW);',
+    '    float wF = uGlossAniso > 0.0 ? lobeA(lipMidN, mT, hF, rW, uGlossAniso) : lobeN(max(dot(lipMidN, hF), 0.0), rW);',
     // The source's reflection has a defined edge (a window or panel is a shape, not a blur); the
     // smoother the finish, the crisper that edge.
     '    float edgeLo = mix(0.0, 0.3, smooth1 * smooth1);',
     '    float edgeHi = min(edgeLo + uGlossShape.x, 1.0);',
-    '    float sharpK = smoothstep(edgeLo, edgeHi, lobeN(nh, rS)), sharpF = smoothstep(edgeLo, edgeHi, lobeN(nf, rS));',
-    '    float lobe = max(sharpK + uWideGloss * lobeN(nh, rW), uFrontGloss * (sharpF + uWideGloss * lobeN(nf, rW)));',
+    '    float sharpK = smoothstep(edgeLo, edgeHi, sK), sharpF = smoothstep(edgeLo, edgeHi, sF);',
+    '    float lobe = max(sharpK + uWideGloss * wK, uFrontGloss * (sharpF + uWideGloss * wF));',
     '    float formSpec = glossCap * lobe * core * uFormOn * mix(1.0, exp(-cd * cd), uGlossShape.y);',
     '    float camSpec = hl / max(meanL, 1e-3);',
     '    formSpec *= 1.0 + uGlossFlat * (1.0 - smoothstep(0.02, 0.12, camSpec)) * smooth1 * smooth1;',
+    '    if (uGlossCavity > 0.0) { float cav = pow(clamp(camL / max(wideL, 1e-4), 0.3, 2.0), uGlossCavity); formSpec *= cav; sheen *= cav; }',
     '    float spec = (min(specPbr * uLipSpec * peakMask, uLipSpecMax) * (1.0 - uFormOn) + min(glint, 0.05) + sheen) * cov;',
     '    vec3 specTint = mix(uLipAlbedo, vec3(1.0), 0.16);',
     // Gloss is the color brightened toward the light: a clear coat (glossy) reflects the light's own
@@ -2701,7 +2945,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       'uSpecFill', 'uLipColor', 'uPaperWhite', 'uRatioMax', 'uLipSpecMax', 'uHlKeep',
       'uLumGainMax', 'uCreaseCover', 'uLipSheen',
       'uOutline', 'uOutlineRect', 'uOutlineSoft', 'uForm', 'uFormStep', 'uFormTilt', 'uLowPx', 'uLipVolume', 'uFormOn', 'uGlossMax', 'uLightSize', 'uWideGloss', 'uMouthN', 'uGlossGain', 'uFrontGloss', 'uGlossFlat', 'uGlossShape', 'uGlossTone',
-      'uHlLocal', 'uHlSat', 'uHlBlown', 'uOpaqueShadeGamma', 'uLipFill',
+      'uHlLocal', 'uHlSat', 'uHlBlown', 'uOpaqueShadeGamma', 'uLipFill', 'uLipDetail', 'uDetailNoise', 'uHlSparkle', 'uWideDetail', 'uGlossAniso', 'uGlossCavity', 'uInner', 'uTeethReach', 'uTeethRed', 'uTeethBright', 'uTeethFirm', 'uTeethOn', 'uMouthOpen',
       'uShadow2Albedo', 'uShadow2Cov', 'uInnerAlbedo', 'uInnerCov', 'uMask3', 'uHlAreas', 'uHlLegacy', 'uSkinColor',
       'uLipCenter', 'uCenterHalf', 'uCenterHl', 'uMask2', 'uHlAlbedo', 'uHlCov', 'uHlFlake', 'uContourAlbedo', 'uContourCov', 'uFaceRough', 'uFaceSheen', 'uEyeHole', 'uCap', 'uCapFade', 'uPowderTint',
       'uEye', 'uEyeRect', 'uLinerAlbedo', 'uLinerCov', 'uLinerAA', 'uLinerSoft', 'uMascaraAlbedo', 'uMascaraCov', 'uEyeSoft',
@@ -3086,6 +3330,22 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         const mAx = (sx[291] - sx[61]) * W, mAy = (sy[291] - sy[61]) * H, mLen = Math.hypot(mAx, mAy) || 1;
         gl.uniform4f(u.uLipCenter, ((sx[0] + sx[17]) / 2) * W, ((sy[0] + sy[17]) / 2) * H, mAx / mLen, mAy / mLen);
         gl.uniform1f(u.uCenterHalf, TUNING.lipCenterWidth * mLen);
+        const [dPx0, dPx1] = TUNING.lipDetailMouthPx;
+        const dSize = clamp01((mLen - dPx0) / (dPx1 - dPx0));
+        gl.uniform1f(u.uLipDetail, TUNING.lipDetail * TUNING.lipDetailTilt * dSize * dSize * (3 - 2 * dSize));
+        const dGrain = Math.max(light.grain, TUNING.lipDetailGrainMin);
+        gl.uniform2f(u.uDetailNoise, TUNING.lipDetailNoise[0] * dGrain, TUNING.lipDetailNoise[1] * dGrain);
+        gl.uniform1f(u.uHlSparkle, TUNING.hlSparkle);
+        gl.uniform1f(u.uWideDetail, TUNING.wideDetail);
+        gl.uniform1f(u.uGlossAniso, TUNING.glossAniso);
+        gl.uniform1f(u.uGlossCavity, TUNING.glossCavity);
+        gl.uniform1f(u.uTeethOn, TUNING.teeth && outlineOn ? 1 : 0);
+        gl.uniform2fv(u.uInner, innerRingPx);
+        gl.uniform1f(u.uTeethReach, Math.max(1, TUNING.teethReach * 0.5 * (lipThick.up + lipThick.low)));
+        gl.uniform2f(u.uTeethRed, TUNING.teethRed[0], TUNING.teethRed[1]);
+        gl.uniform2f(u.uTeethBright, TUNING.teethBright[0], TUNING.teethBright[1]);
+        gl.uniform2f(u.uTeethFirm, TUNING.teethFirm[0], TUNING.teethFirm[1]);
+        gl.uniform1f(u.uMouthOpen, mouthClosed() ? 0 : 1);
         gl.uniform1f(u.uCenterHl, lip && lip.geometry && lip.geometry.centerHighlight ? clamp(lip.geometry.centerHighlight, 0, 0.5) : 0);
         gl.uniform1f(u.uPaperWhite, TUNING.paperWhite);
         gl.uniform1f(u.uRatioMax, TUNING.ratioMax);
@@ -3362,7 +3622,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       'light rgb ' + light.color.map(f).join(' ') + '  conf ' + f(light.colorConf),
       'bg ' + f(light.bgFraction) + '  seg ' + (segmenter ? 'on' : 'off') + (TUNING.lightColorEdge ? '  edge w ' + f(light.colorEdgeW) : ''),
       'found ' + (makeup.foundation ? 'on ' + makeup.foundation.hex + ' ' + f(makeup.foundation.intensity || 0) : 'off') + '  mask ' + (foundSkinReady ? 'ready' : 'none') + '  skin cat ' + f(foundSkinStat.cat) + ' prob ' + f(foundSkinStat.prob) + '  lower floor ' + f(foundSkinReady ? TUNING.foundLowerFloor * foundOcc : 0) + '  seg call ' + foundSegMs.toFixed(0) + 'ms',
-      'dir ' + light.dir.map(f).join(' ') + '  conf ' + f(light.dirConf),
+      'dir ' + light.dir.map(f).join(' ') + '  conf ' + f(light.dirConf) + (TUNING.lightMatch ? '  match r2 ' + f(light.matchR2) : '  fit'),
       'light ms ' + lightMs.toFixed(1) + (TUNING.lightDirGlide ? '  glide on' : '') + (TUNING.lightModel === 'sh9' ? '  sh9 ' + (light.shUsed ? 'fit' : 'linear') : ''),
       'strength ' + f(light.strength) + '  lip ' + f(light.lipMeanLum) + '  skin ' + f(light.skinMeanLum),
       'mouth gap ' + f(Math.hypot(sx[13] - sx[14], sy[13] - sy[14]) / Math.max(1e-4, Math.hypot(sx[61] - sx[291], sy[61] - sy[291]))) + (mouthClosed() ? ' closed' : ' open'),
