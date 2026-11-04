@@ -1,0 +1,6 @@
+{
+  "what": "hw01 20 pairs, research/lip_reference/hw01_compare.py medians; off = lipTeethGuard, lipInnerMeasure, lipEdgePull all false; on = all true (the offline renderer does not call measureLipInner, so the inner line is the fixed inset; mostly closed mouths)",
+  "off": { "dE": 3.97, "dL_spread": 3.47, "dL_hi": 4.04, "ssim": 0.713 },
+  "on": { "dE": 3.82, "dL_spread": 4.00, "dL_hi": 3.88, "ssim": 0.709 },
+  "bare": { "dE": 7.12, "dL_spread": 3.50, "dL_hi": 6.99, "ssim": 0.708 }
+}
