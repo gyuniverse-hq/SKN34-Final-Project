@@ -1,0 +1,40 @@
+# kind cluster:
+#   helm upgrade --install vishue infra/helm/vishue -n vishue --create-namespace -f infra/helm/vishue/values-local.yaml
+env: local
+
+image:
+  registry: ""
+  tag: dev
+  # Images are built locally and loaded with `kind load docker-image`.
+  pullPolicy: Never
+
+api:
+  replicas: 1
+  autoscaling: { enabled: false }
+
+chatbot:
+  replicas: 1
+  autoscaling: { enabled: false }
+
+syncGraph:
+  schedule: "*/10 * * * *"
+
+podDisruptionBudget:
+  enabled: false
+
+dataStores:
+  postgres: { enabled: true }
+  redis: { enabled: true }
+  neo4j: { enabled: true }
+
+# External API keys only; data store connections are wired by the chart.
+# Pass real keys with --set secrets.api.NAVER_CLIENT_ID=... / secrets.chatbot.LLM_API_KEY=...
+secrets:
+  create: true
+  api:
+    NAVER_CLIENT_ID: ""
+    NAVER_CLIENT_SECRET: ""
+    YOUTUBE_API_KEY: ""
+    SUPABASE_SECRET_KEY: ""
+  chatbot:
+    LLM_API_KEY: ""

@@ -1,0 +1,167 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useQueryClient } from '@tanstack/react-query';
+import Constants from 'expo-constants';
+import { useRouter } from 'expo-router';
+import { useEffect, useState, type ReactNode } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ListRow } from '@/components/ui/ListRow';
+import { theme } from '@/constants/theme';
+import { deleteAccount } from '@/lib/account';
+import { ApiError } from '@/lib/api';
+import { authErrorMessageKey, signOut, useAuth } from '@/lib/auth';
+import { confirmAction, notify } from '@/lib/confirm';
+import { LANGUAGE_LABELS, LANGUAGES, useI18n, type LanguagePreference } from '@/lib/i18n';
+import { STORAGE_KEYS } from '@/lib/storage';
+import { skinAnalysisEnabled } from '@/lib/skinAnalysis';
+import { clearSkinTimings } from '@/lib/skinProfile';
+import { useSkinProfileStore } from '@/store/skinProfileStore';
+import { useCartStore } from '@/store/cartStore';
+import { useCompareStore } from '@/store/compareStore';
+import { useMakeupStore } from '@/store/makeupStore';
+import { useSettingsStore } from '@/store/settingsStore';
+import { useShoppingListStore } from '@/store/shoppingListStore';
+
+export default function MyScreen() {
+  const router = useRouter();
+  const { t } = useI18n();
+  const queryClient = useQueryClient();
+  const language = useSettingsStore((s) => s.language);
+  const setLanguage = useSettingsStore((s) => s.setLanguage);
+  const cameraConsent = useSettingsStore((s) => s.cameraConsent);
+  const setCameraConsent = useSettingsStore((s) => s.setCameraConsent);
+  const listCount = useShoppingListStore((s) => s.lists.length);
+  const { user } = useAuth();
+  const profile = useSkinProfileStore(s => s.profile);
+  const hydrate = useSkinProfileStore(s => s.hydrate);
+  const [skinLoadFailed, setSkinLoadFailed] = useState(false);
+  useEffect(() => {
+    if (skinAnalysisEnabled) void hydrate().catch(() => setSkinLoadFailed(true));
+  }, [hydrate]);
+
+  const options: { value: LanguagePreference; label: string }[] = [
+    { value: 'system', label: t('my.languageSystem') },
+    ...LANGUAGES.map((l) => ({ value: l as LanguagePreference, label: LANGUAGE_LABELS[l] })),
+  ];
+
+  const deleteAll = () =>
+    confirmAction(t('my.deleteDataConfirm'), t('common.delete'), t('common.cancel'), async () => {
+      useCartStore.getState().reset();
+      useCompareStore.getState().clear();
+      useShoppingListStore.getState().clear();
+      useSettingsStore.getState().reset();
+      useMakeupStore.getState().reset();
+      queryClient.clear();
+      await clearSkinTimings();
+      await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
+      useSkinProfileStore.getState().reset();
+      notify(t('my.deleteDataDone'));
+    });
+
+  const logout = () =>
+    confirmAction(t('auth.logoutConfirm'), t('auth.logout'), t('common.cancel'), () => {
+      signOut().catch((e) => notify(t(authErrorMessageKey(e))));
+    });
+
+  const removeAccount = () =>
+    confirmAction(t('account.deleteConfirm'), t('account.delete'), t('common.cancel'), async () => {
+      try {
+        await deleteAccount();
+      } catch (e) {
+        const unavailable = e instanceof ApiError && e.code === 'account_deletion_unavailable';
+        notify(t(unavailable ? 'account.deleteUnavailable' : 'auth.error.generic'));
+        return;
+      }
+      await signOut().catch(() => {});
+      queryClient.removeQueries({ queryKey: ['me'] });
+      notify(t('account.deleteDone'));
+    });
+
+  return (
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      {skinAnalysisEnabled && <Section title={t('skin.title')}>
+        <ListRow icon="scan-outline" label={t(profile ? 'skin.registerAgain' : 'skin.title')}
+          value={profile ? new Date(profile.registeredAt).toLocaleDateString() : undefined}
+          onPress={() => router.push('/skin-analysis')} />
+        <ListRow icon="speedometer-outline" label={t('skin.benchmark')} onPress={() => router.push('/dev/skin-benchmark')} />
+        {skinLoadFailed && !profile && <Text accessibilityRole="alert" style={styles.note}>{t('skin.loadFailed')}</Text>}
+        <Text style={styles.note}>{t('skin.deleteNotice')}</Text>
+      </Section>}
+      <Section title={t('my.account')}>
+        {user ? (
+          <>
+            <ListRow icon="person-circle-outline" label={t('auth.signedInAs', { email: user.email ?? '' })} />
+            <ListRow icon="log-out-outline" label={t('auth.logout')} onPress={logout} />
+          </>
+        ) : (
+          <ListRow icon="log-in-outline" label={t('my.login')} onPress={() => router.push('/login')} />
+        )}
+        <ListRow icon="star-outline" label={t('my.membership')} onPress={() => router.push('/membership')} />
+        <ListRow icon="ticket-outline" label={t('my.rewards')} onPress={() => router.push('/rewards')} />
+        <ListRow icon="heart-outline" label={t('my.saved')} onPress={() => router.push('/saved')} />
+        <ListRow icon="flask-outline" label={t('my.ingredients')} onPress={() => router.push('/ingredients')} />
+      </Section>
+
+      <Section title={t('my.language')}>
+        {options.map((o) => (
+          <ListRow
+            key={o.value}
+            icon={o.value === 'system' ? 'phone-portrait-outline' : 'language-outline'}
+            label={o.label}
+            selected={language === o.value}
+            onPress={() => setLanguage(o.value)}
+          />
+        ))}
+      </Section>
+
+      <Section>
+        <ListRow
+          icon="list-outline"
+          label={t('my.lists')}
+          value={listCount ? String(listCount) : undefined}
+          onPress={() => router.push('/lists')}
+        />
+        <ListRow
+          icon="camera-outline"
+          label={t('my.camera')}
+          value={cameraConsent ? t('my.cameraOn') : t('my.cameraOff')}
+          onPress={cameraConsent ? () => setCameraConsent(false) : undefined}
+        />
+      </Section>
+
+      <Section>
+        <ListRow icon="shield-checkmark-outline" label={t('my.privacy')} onPress={() => router.push('/legal/privacy')} />
+        <ListRow icon="document-text-outline" label={t('my.terms')} onPress={() => router.push('/legal/terms')} />
+      </Section>
+
+      <Section>
+        <ListRow icon="trash-outline" label={t('my.deleteData')} destructive onPress={deleteAll} />
+        {user ? (
+          <ListRow icon="person-remove-outline" label={t('account.delete')} destructive onPress={removeAccount} />
+        ) : null}
+      </Section>
+
+      <Text style={styles.note}>{t('my.dataNote')}</Text>
+      <Text style={styles.note}>
+        {t('my.version')} {Constants.expoConfig?.version ?? '—'}
+      </Text>
+    </ScrollView>
+  );
+}
+
+function Section({ title, children }: { title?: string; children: ReactNode }) {
+  return (
+    <View style={styles.section}>
+      {title ? <Text style={styles.sectionTitle}>{title}</Text> : null}
+      <View style={styles.card}>{children}</View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: theme.colors.surface },
+  content: { padding: theme.spacing.lg, paddingBottom: 40 },
+  section: { marginBottom: 20 },
+  sectionTitle: { fontSize: 12, fontWeight: '700', color: theme.colors.inkMuted, marginBottom: 8, marginLeft: 4, textTransform: 'uppercase' },
+  card: { borderRadius: theme.radius.md, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.border },
+  note: { fontSize: 12, color: theme.colors.inkFaint, textAlign: 'center', marginTop: 6 },
+});

@@ -1,0 +1,7 @@
+# Cluster-wide, applied once per cluster (kind and EKS) after installing Envoy Gateway.
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: eg
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller

@@ -1,0 +1,27 @@
+# EKS: follows main. A merge to main publishes images, then a bump PR updates values-prod.yaml;
+# merging that PR is the deploy. Rollback = revert the bump commit.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vishue-prod
+  namespace: argocd
+spec:
+  project: vishue
+  source:
+    repoURL: https://github.com/gyuniverse-hq/SKN34-Final-Project.git
+    targetRevision: main
+    path: infra/helm/vishue
+    helm:
+      releaseName: vishue
+      valueFiles: [values-prod.yaml]
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vishue
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions: [CreateNamespace=true]
+    retry:
+      limit: 3
+      backoff: { duration: 30s, factor: 2, maxDuration: 5m }

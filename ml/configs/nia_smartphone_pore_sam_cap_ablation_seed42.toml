@@ -1,0 +1,31 @@
+# Pore-only cap ablation: same protocol as today's SAM candidate, uncapped.
+[data]
+root = "../data/028.한국인 피부상태 측정 데이터"
+output = "runs/nia-smartphone-data-v1-seed-42"
+
+[train]
+output = "runs/nia-pore-sam-cap-ablation/uncapped-seed-42"
+seed = 42
+device_uuid = "GPU-9ed09563-0d58-cdc7-f6bc-b2c84d8da0e3"
+batch_size = 16
+effective_batch = 16
+num_workers = 4
+freeze_epochs = 2
+finetune_epochs = 18
+head_lr = 0.001
+finetune_head_lr = 0.0001
+backbone_lr = 0.00001
+weight_decay = 0.0001
+patience = 6
+amp = true
+class_weight_cap = "none" # The runner maps this explicit ablation value to Python None.
+weight_exponent = 0.5
+fixed_epochs = true
+selection = "macro_f1_mae"
+study_protocol = "pore-sam-cap-ablation-v1"
+record_train_metrics = true
+deterministic_samples = true
+backbone = "resnet50"
+loss = "weighted_cross_entropy"
+optimizer = "sam_adamw"
+sam_rho = 0.05

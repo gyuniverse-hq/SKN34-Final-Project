@@ -1,0 +1,12 @@
+# Optional: add after compose.yaml; INGREDIENT_MAPPING_SOURCE must be an existing absolute host file.
+services:
+  api:
+    environment:
+      INGREDIENT_MAPPING_PATH: /app/runtime/ingredient-mapping.json
+    volumes:
+      - type: bind
+        source: ${INGREDIENT_MAPPING_SOURCE:?Set INGREDIENT_MAPPING_SOURCE to an existing mapping JSON file}
+        target: /app/runtime/ingredient-mapping.json
+        read_only: true
+        bind:
+          create_host_path: false

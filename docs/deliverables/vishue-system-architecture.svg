@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1200" viewBox="0 0 1920 1200" role="img" aria-labelledby="title description">
+  <title id="title">VISHUE 운영 시스템 구성도</title>
+  <desc id="description">Expo 모바일 앱, AWS EKS의 FastAPI API와 챗봇, RDS PostgreSQL, ElastiCache, Neo4j AuraDB 및 외부 서비스를 연결한 VISHUE 운영 아키텍처</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#7A1F3D"/></marker>
+    <marker id="arrowGray" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#59636F"/></marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#17202A" flood-opacity=".14"/></filter>
+    <style>
+      .bg { fill:#F8F6F5; } .title { font:700 34px 'Malgun Gothic','Noto Sans KR',sans-serif; fill:#311521; }
+      .sub { font:400 16px 'Malgun Gothic','Noto Sans KR',sans-serif; fill:#59636F; }
+      .section { font:700 18px 'Malgun Gothic','Noto Sans KR',sans-serif; fill:#7A1F3D; }
+      .boxTitle { font:700 19px 'Malgun Gothic','Noto Sans KR',sans-serif; fill:#2C1B22; }
+      .body { font:400 15px 'Malgun Gothic','Noto Sans KR',sans-serif; fill:#3F4750; }
+      .small { font:400 13px 'Malgun Gothic','Noto Sans KR',sans-serif; fill:#59636F; }
+      .tag { font:700 13px 'Malgun Gothic','Noto Sans KR',sans-serif; fill:#7A1F3D; }
+      .flow { font:700 13px 'Malgun Gothic','Noto Sans KR',sans-serif; fill:#59636F; }
+      .panel { fill:#FFFFFF; stroke:#E9DFE3; stroke-width:2; } .aws { fill:#FFF9FA; stroke:#C76B86; stroke-width:2.5; }
+      .node { fill:#FFFFFF; stroke:#D6C5CC; stroke-width:1.7; } .store { fill:#FFFBEC; stroke:#D9B85C; stroke-width:1.7; }
+      .external { fill:#F2F7FF; stroke:#8AA6CA; stroke-width:1.7; } .line { fill:none; stroke:#7A1F3D; stroke-width:2.4; marker-end:url(#arrow); }
+      .softline { fill:none; stroke:#59636F; stroke-width:1.8; stroke-dasharray:6 5; marker-end:url(#arrowGray); }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1920" height="1200"/>
+  <text x="70" y="70" class="title">VISHUE — 운영 시스템 구성도</text>
+  <text x="70" y="102" class="sub">실제 구현 및 운영 계획 기준 · 모바일 AR 메이크업 · 카탈로그 · GraphRAG 챗봇</text>
+  <rect x="1512" y="47" width="325" height="45" rx="22" fill="#F7E8ED"/>
+  <text x="1540" y="76" class="tag">운영 배포 예정 · AWS ap-northeast-2</text>
+
+  <!-- User device -->
+  <rect x="60" y="155" width="395" height="710" rx="24" class="panel" filter="url(#shadow)"/>
+  <text x="88" y="198" class="section">사용자 기기 · iOS / Android / Web</text>
+  <rect x="88" y="225" width="338" height="170" rx="16" class="node"/>
+  <text x="110" y="262" class="boxTitle">Expo React Native 앱</text>
+  <text x="110" y="292" class="body">Expo Router · React Query · Zustand</text>
+  <text x="110" y="318" class="body">YouTube 룩 · 제품 · 구매 연결</text>
+  <text x="110" y="351" class="small">HTTPS JSON + Supabase Access Token</text>
+  <rect x="88" y="427" width="338" height="220" rx="16" fill="#FFF5F7" stroke="#C76B86" stroke-width="1.7"/>
+  <text x="110" y="466" class="boxTitle">기기 내 AR / 피부 분석</text>
+  <text x="110" y="497" class="body">Camera + WebView + MediaPipe</text>
+  <text x="110" y="524" class="body">Face Landmarker · ITA° · MST</text>
+  <text x="110" y="551" class="body">립 · 치크 · 아이섀도 렌더링</text>
+  <text x="110" y="588" class="tag">얼굴 영상·이미지는 서버 전송 금지</text>
+  <text x="110" y="614" class="small">피부톤 수치만 셰이드 추천 API에 전달</text>
+  <rect x="88" y="680" width="338" height="145" rx="16" class="external"/>
+  <text x="110" y="719" class="boxTitle">Supabase Auth</text>
+  <text x="110" y="748" class="body">이메일 코드 · Google 로그인</text>
+  <text x="110" y="777" class="small">JWT 발급 · 백엔드 JWKS 검증</text>
+
+  <!-- Deployment pipeline -->
+  <rect x="510" y="150" width="1345" height="105" rx="20" class="panel"/>
+  <text x="540" y="187" class="section">배포 흐름 · GitOps</text>
+  <rect x="740" y="169" width="180" height="62" rx="12" class="node"/><text x="775" y="207" class="boxTitle">GitHub Actions</text>
+  <rect x="1000" y="169" width="165" height="62" rx="12" class="node"/><text x="1038" y="207" class="boxTitle">GHCR 이미지</text>
+  <rect x="1245" y="169" width="175" height="62" rx="12" class="node"/><text x="1280" y="207" class="boxTitle">태그 갱신 PR</text>
+  <rect x="1500" y="169" width="240" height="62" rx="12" fill="#FFF5F7" stroke="#C76B86" stroke-width="1.7"/><text x="1557" y="207" class="boxTitle">Argo CD → EKS</text>
+  <path d="M920 200 H1000" class="line"/><path d="M1165 200 H1245" class="line"/><path d="M1420 200 H1500" class="line"/>
+
+  <!-- AWS -->
+  <rect x="510" y="290" width="930" height="700" rx="26" class="aws" filter="url(#shadow)"/>
+  <text x="542" y="335" class="section">AWS 운영 환경 · VPC / EKS 클러스터</text>
+  <text x="542" y="360" class="small">EKS 노드 2대, 2개 AZ · Terraform으로 인프라 관리 · Helm + Argo CD 배포</text>
+
+  <rect x="548" y="395" width="350" height="110" rx="16" class="node"/>
+  <text x="574" y="434" class="boxTitle">Envoy Gateway</text>
+  <text x="574" y="462" class="body">/api/* → api · /api/chat → chatbot</text>
+  <text x="574" y="486" class="small">TLS 종단 · 단일 API 진입점</text>
+
+  <rect x="548" y="550" width="350" height="185" rx="16" class="node"/>
+  <text x="574" y="589" class="boxTitle">vishue-api · FastAPI</text>
+  <text x="574" y="618" class="body">카탈로그 · 제품/셰이드 · 룩</text>
+  <text x="574" y="645" class="body">판매처 · YouTube 메타데이터</text>
+  <text x="574" y="672" class="body">셰이드 추천 · 회원 API</text>
+  <text x="574" y="707" class="small">Alembic initContainer · /healthz · /readyz</text>
+
+  <rect x="975" y="550" width="420" height="185" rx="16" class="node"/>
+  <text x="1002" y="589" class="boxTitle">vishue-chatbot · FastAPI</text>
+  <text x="1002" y="618" class="body">Neo4j 기반 GraphRAG 챗봇</text>
+  <text x="1002" y="645" class="body">외부 LLM API 호출 · 응답 합성</text>
+  <text x="1002" y="672" class="body">API 서비스 HTTP 계약으로 카탈로그 조회</text>
+  <text x="1002" y="707" class="small">현재 LangGraph·MCP·자체 LLM 서버는 미도입</text>
+
+  <rect x="548" y="790" width="350" height="150" rx="16" class="node"/>
+  <text x="574" y="829" class="boxTitle">sync-graph · CronJob</text>
+  <text x="574" y="858" class="body">배포 후 1회 + 30분 주기</text>
+  <text x="574" y="885" class="body">API → Neo4j 단방향 동기화</text>
+  <text x="574" y="913" class="small">Neo4j 직접 수정 금지</text>
+
+  <rect x="975" y="790" width="420" height="150" rx="16" fill="#F6F9FD" stroke="#8AA6CA" stroke-width="1.7"/>
+  <text x="1002" y="829" class="boxTitle">AWS Secrets Manager</text>
+  <text x="1002" y="858" class="body">API 키 · DB 연결값 · LLM 설정</text>
+  <text x="1002" y="885" class="body">External Secrets Operator → K8s Secret</text>
+  <text x="1002" y="913" class="small">앱 번들·Git 저장소에 비밀값 미포함</text>
+
+  <!-- Datastores -->
+  <rect x="1490" y="290" width="365" height="700" rx="26" class="panel" filter="url(#shadow)"/>
+  <text x="1520" y="335" class="section">관리형 데이터 / 외부 연동</text>
+  <rect x="1520" y="380" width="305" height="125" rx="16" class="store"/>
+  <text x="1545" y="419" class="boxTitle">Amazon RDS PostgreSQL 17</text>
+  <text x="1545" y="448" class="body">제품 · 셰이드 · 룩 · 매장</text>
+  <text x="1545" y="475" class="small">원본 데이터 · api만 쓰기 권한</text>
+  <rect x="1520" y="535" width="305" height="112" rx="16" class="store"/>
+  <text x="1545" y="574" class="boxTitle">ElastiCache Redis</text>
+  <text x="1545" y="603" class="body">캐시 · 레이트 리밋 · TLS</text>
+  <rect x="1520" y="677" width="305" height="112" rx="16" class="store"/>
+  <text x="1545" y="716" class="boxTitle">Neo4j AuraDB</text>
+  <text x="1545" y="745" class="body">챗봇 전용 그래프 사본</text>
+  <rect x="1520" y="819" width="305" height="130" rx="16" class="external"/>
+  <text x="1545" y="858" class="boxTitle">외부 API</text>
+  <text x="1545" y="886" class="body">YouTube Data · 네이버 쇼핑</text>
+  <text x="1545" y="914" class="body">LLM API (챗봇 추론)</text>
+
+  <!-- Flow lines -->
+  <path d="M426 310 H475 V450 H548" class="line"/>
+  <text x="462" y="433" class="flow">HTTPS</text>
+  <path d="M723 505 V550" class="line"/>
+  <path d="M898 450 H975 V550" class="line"/>
+  <path d="M898 600 H930 V520 H1470 V442 H1520" class="line"/>
+  <path d="M898 640 H945 V535 H1470 V591 H1520" class="line"/>
+  <path d="M1185 735 V790" class="line"/>
+  <path d="M898 865 H1470 V733 H1520" class="line"/>
+  <path d="M1395 642 H1470 V884 H1520" class="line"/>
+  <path d="M1395 610 H1470 V733 H1520" class="line"/>
+  <path d="M723 790 V735" class="softline"/>
+  <text x="742" y="754" class="flow">API HTTP 동기화</text>
+  <path d="M975 855 H930 V700 H898" class="softline"/>
+  <path d="M1185 790 V735" class="softline"/>
+  <text x="1204" y="755" class="flow">시크릿 주입</text>
+
+  <!-- Footer -->
+  <rect x="60" y="1040" width="1795" height="105" rx="20" fill="#311521"/>
+  <text x="92" y="1081" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="18" font-weight="700" fill="#FFFFFF">운영 원칙</text>
+  <text x="92" y="1112" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="15" fill="#F6D9E2">① 얼굴 영상은 기기 내에서만 처리  ② PostgreSQL이 카탈로그 원본  ③ Neo4j는 API를 통한 읽기 전용 사본  ④ 배포는 Terraform · Helm · Argo CD GitOps</text>
+</svg>

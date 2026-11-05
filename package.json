@@ -1,0 +1,90 @@
+{
+  "name": "final_project",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "dependencies": {
+    "@cornerstonejs/codec-libjpeg-turbo-8bit": "1.2.8",
+    "@expo/ui": "~58.0.24",
+    "@expo/vector-icons": "^15.0.2",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@supabase/supabase-js": "^2.118.0",
+    "@tanstack/react-query": "^5.104.3",
+    "@techstark/opencv-js": "4.12.0-release.1",
+    "expo": "^58.0.20",
+    "expo-camera": "~58.0.13",
+    "expo-constants": "~58.0.0",
+    "expo-dev-client": "~58.0.16",
+    "expo-file-system": "~58.0.13",
+    "expo-font": "~58.0.0",
+    "expo-haptics": "~58.0.0",
+    "expo-image": "~58.0.0",
+    "expo-image-picker": "~58.0.0",
+    "expo-linear-gradient": "~58.0.0",
+    "expo-linking": "~58.0.0",
+    "expo-localization": "~58.0.0",
+    "expo-router": "~58.0.27",
+    "expo-sharing": "~58.0.21",
+    "expo-splash-screen": "~58.0.0",
+    "expo-status-bar": "~58.0.0",
+    "expo-symbols": "~58.0.4",
+    "expo-web-browser": "~58.0.7",
+    "onnxruntime-web": "1.30.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native": "0.88.0",
+    "react-native-reanimated": "4.7.1",
+    "react-native-safe-area-context": "~5.10.1",
+    "react-native-screens": "~4.30.0",
+    "react-native-web": "~0.21.4",
+    "react-native-webview": "14.0.1",
+    "react-native-worklets": "0.13.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@types/jest": "30.0.0",
+    "@types/react": "~19.3.0",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~58.0.0",
+    "jest": "~30.5.2",
+    "jest-expo": "~58.0.0",
+    "pngjs": "^7.0.0",
+    "react-test-renderer": "19.3.0",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "skin:prepare": "node scripts/skin-assets.mjs prepare",
+    "skin:validate": "node scripts/skin-assets.mjs validate",
+    "skin:android": "expo run:android",
+    "skin:test-native-math": "node scripts/skin-native-test.mjs",
+    "skin:test-assets": "node --test scripts/skin-assets.test.mjs scripts/skin-models.test.mjs",
+    "skin:test-web": "node --test scripts/skin-web.test.mjs",
+    "eas-build-post-install": "node scripts/skin-assets.mjs check-build",
+    "nia:test": "node scripts/nia-test.mjs",
+    "start": "expo start --go",
+    "android": "expo start --android --go",
+    "ios": "expo start --ios --go",
+    "web": "expo start --web",
+    "lint": "expo lint",
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "check": "npm run typecheck && npm run lint && npm test",
+    "client": "expo start --go",
+    "skin:test-client": "node --test scripts/skin-client.test.mjs"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "roots": [
+      "<rootDir>/__tests__"
+    ],
+    "setupFiles": [
+      "./jest.setup.ts"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/.expo/",
+      "/ml/runs/",
+      "/nia-private/"
+    ]
+  },
+  "private": true
+}

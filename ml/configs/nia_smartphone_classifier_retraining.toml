@@ -1,0 +1,25 @@
+# Frozen trained WCE+SAM backbone; reinitialized balanced six-class head.
+[data]
+root = "../data/028.한국인 피부상태 측정 데이터"
+output = "runs/nia-smartphone-data-v1-seed-42"
+seed = 42
+folds = 7
+valid_fold = 1
+test_fold = 0
+
+[train]
+output = "runs/nia-smartphone-classifier-retraining-seed-42"
+classes = 6
+seed = 42
+device_uuid = "GPU-9ed09563-0d58-cdc7-f6bc-b2c84d8da0e3"
+batch_size = 16
+effective_batch = 16
+num_workers = 4
+epochs = 20
+patience = 6
+head_lr = 0.001
+weight_decay = 0.0001
+amp = true
+loss = "unweighted_cross_entropy"
+optimizer = "sam_adamw"
+sam_rho = 0.05

@@ -1,0 +1,31 @@
+{
+  "validated": true,
+  "original_cases": 359,
+  "unchanged_review_records": 359,
+  "context_patched": 8,
+  "context_patch_ids": [
+    "E-AR-02",
+    "E-AR-13",
+    "E-AR-14",
+    "E-PR-04",
+    "E-PR-06",
+    "E-ST-01",
+    "E-ST-03",
+    "E-ST-07"
+  ],
+  "expected_negative_fk": [
+    "E-I-05-E",
+    "E-XC08"
+  ],
+  "unexpected_fk_errors": 0,
+  "1a_mock_candidates": 11,
+  "review_states": {
+    "APPROVAL_CANDIDATE": 25,
+    "NEEDS_POLICY": 10,
+    "NOT_REVIEWED": 324
+  },
+  "gold_approved": 0,
+  "real_llm_test_count": 0,
+  "real_ar_test_count": 0,
+  "source_cumulative_sha256": "a517e742a285054166000407f8fa607285a54ccd226af2dd1bc44373f7ba0490"
+}

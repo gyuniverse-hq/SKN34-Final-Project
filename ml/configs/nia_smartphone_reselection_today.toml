@@ -1,0 +1,20 @@
+[today]
+protocol = "reselection-today-v1"
+base_config = "configs/nia_smartphone_reselection.toml"
+output = "runs/nia-reselection-today-v1"
+reuse_study = "runs/nia-reselection-v1-verified"
+reports = "../reports/skin-analysis"
+seeds = [17, 42]
+training_deadline = "2026-10-24T23:00:00+09:00"
+report_deadline = "2026-10-24T23:30:00+09:00"
+pair_safety_factor = 1.15
+max_attempts = 2
+
+# Conservative startup-inclusive estimates; replace with measured bucket medians.
+[estimated_minutes]
+pore_adamw = 8.5
+pore_sam_adamw = 16.0
+pigmentation_adamw = 14.0
+pigmentation_sam_adamw = 32.0
+wrinkle_adamw = 15.0
+wrinkle_sam_adamw = 36.0

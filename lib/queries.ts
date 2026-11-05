@@ -1,0 +1,268 @@
+import type { SkincareRequest, SkincareResponse } from '@/types/skincare';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import type {
+  CelebLook,
+  CelebrityVideo,
+  IdolLook,
+  MeResponse,
+  Product,
+  ProductOffers,
+  ProductQuery,
+  ProductVideo,
+  SimilarShadesResponse,
+  SkinRecommendationRequest,
+  SkinRecommendationResponse,
+  Store,
+  StyleLook,
+  YoutubeSearchResult,
+} from '@/types';
+import {
+  DEV_TRYON_PRODUCTS,
+  devCatalogProduct,
+  devCatalogProducts,
+  withDevTryOnFallback,
+} from '@/lib/devCatalog';
+import { ApiError, apiGet, apiPost } from './api';
+
+/** Run only after the user confirms the concerns; keep responses out of the shared product cache. */
+export function useSkinRecommendations(request: SkinRecommendationRequest | undefined) {
+  return useQuery({
+    queryKey: ['skin-recommendations', request?.concerns, request?.limit],
+    queryFn: () => apiPost<SkinRecommendationResponse>('/api/recommendations/skin', request!),
+    enabled: request !== undefined,
+    gcTime: 0,
+    staleTime: 0,
+  });
+}
+
+export const meQueryKey = (userId?: string) => ['me', userId] as const;
+
+export function useMe(userId: string | undefined) {
+  return useQuery({
+    queryKey: meQueryKey(userId),
+    queryFn: () => apiGet<MeResponse>('/api/me'),
+    enabled: !!userId,
+    retry: 1,
+  });
+}
+
+export function useProducts(params: ProductQuery = {}) {
+  const search = new URLSearchParams();
+  if (params.q) search.set('q', params.q);
+  if (params.category) search.set('category', params.category);
+  const concerns = params.concerns?.join(',') ?? '';
+  if (concerns) search.set('concerns', concerns);
+  const qs = search.toString();
+  return useQuery({
+    queryKey: ['products', params.q ?? '', params.category ?? 'all', concerns],
+    queryFn: async () => {
+      try {
+        const data = await apiGet<{ products: Product[] }>(`/api/products${qs ? `?${qs}` : ''}`);
+        if (__DEV__ && data.products.length === 0) return { products: devCatalogProducts(params) };
+        return data;
+      } catch (error) {
+        if (!__DEV__) throw error;
+        console.warn('[shop] backend unavailable', error);
+        return { products: devCatalogProducts(params) };
+      }
+    },
+    select: (d) => d.products,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useTryOnProducts() {
+  return useQuery({
+    queryKey: ['products', 'try-on'],
+    queryFn: async () => {
+      try {
+        const data = await apiGet<{ products: Product[] }>('/api/products');
+        return { products: withDevTryOnFallback(data.products.filter((product) => product.makeupZone), __DEV__) };
+      } catch (error) {
+        if (!__DEV__) throw error;
+        return { products: DEV_TRYON_PRODUCTS };
+      }
+    },
+    select: (d) => d.products,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useProductsByIds(ids: string[]) {
+  const sorted = [...new Set(ids)].sort();
+  return useQuery({
+    queryKey: ['products', 'ids', sorted.join(',')],
+    queryFn: async () => {
+      try {
+        const data = await apiGet<{ products: Product[] }>(
+          `/api/products?ids=${encodeURIComponent(sorted.join(','))}`
+        );
+        if (__DEV__ && data.products.length === 0) {
+          return { products: sorted.flatMap((id) => {
+            const product = devCatalogProduct(id);
+            return product ? [product] : [];
+          }) };
+        }
+        return data;
+      } catch (error) {
+        if (!__DEV__) throw error;
+        return {
+          products: sorted.flatMap((id) => {
+            const product = devCatalogProduct(id);
+            return product ? [product] : [];
+          }),
+        };
+      }
+    },
+    select: (d) => d.products,
+    enabled: sorted.length > 0,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useProduct(id: string | undefined) {
+  return useQuery({
+    queryKey: ['product', id],
+    queryFn: async () => {
+      try {
+        return await apiGet<{ product: Product }>(`/api/products/${encodeURIComponent(id!)}`);
+      } catch (error) {
+        const local = devCatalogProduct(id!);
+        if (!local) throw error;
+        return { product: local };
+      }
+    },
+    select: (d) => d.product,
+    enabled: !!id,
+  });
+}
+
+export function useProductVideos(id: string | undefined) {
+  return useQuery({
+    queryKey: ['product-videos', id],
+    queryFn: () => apiGet<{ videos: ProductVideo[] }>(`/api/products/${encodeURIComponent(id!)}/videos`),
+    select: (data) => data.videos,
+    enabled: !!id,
+  });
+}
+
+export function useProductOffers(id: string | undefined) {
+  return useQuery({
+    queryKey: ['offers', id],
+    queryFn: () => apiGet<ProductOffers>(`/api/products/${encodeURIComponent(id!)}/offers`),
+    enabled: !!id,
+    staleTime: 30 * 60 * 1000,
+    retry: 1,
+  });
+}
+
+export function useSimilarShades(productId: string | undefined, shadeId: string | undefined, limit = 8) {
+  return useQuery({
+    queryKey: ['similar-shades', productId, shadeId, limit],
+    queryFn: () =>
+      apiGet<SimilarShadesResponse>(
+        `/api/shades/similar?productId=${encodeURIComponent(productId!)}&shadeId=${encodeURIComponent(shadeId!)}&limit=${limit}`
+      ),
+    enabled: !!productId && !!shadeId,
+  });
+}
+
+export function useStyleLooks() {
+  return useQuery({
+    queryKey: ['style-looks'],
+    queryFn: async () => {
+      try {
+        return await apiGet<{ looks: StyleLook[] }>('/api/style-looks');
+      } catch (error) {
+        if (!__DEV__ || !(error instanceof ApiError) || (error.status !== 404 && error.status !== 0)) throw error;
+        const looks = require('./devCatalog/styleLooks.json') as StyleLook[];
+        return { looks };
+      }
+    },
+    select: (data) => data.looks,
+  });
+}
+
+export function useCelebrityVideos() {
+  return useQuery({
+    queryKey: ['celebrity-videos'],
+    queryFn: async () => {
+      try {
+        return await apiGet<{ videos: CelebrityVideo[] }>('/api/celebrity-videos');
+      } catch (error) {
+        if (!__DEV__ || !(error instanceof ApiError) || (error.status !== 404 && error.status !== 0)) throw error;
+        return { videos: require('./devCatalog/celebrityVideos.json') as CelebrityVideo[] };
+      }
+    },
+    select: (data) => data.videos,
+  });
+}
+
+/** Development: the bundled demo looks stand in when the backend has none or cannot be reached. */
+export function useLooks() {
+  return useQuery({
+    queryKey: ['looks'],
+    queryFn: async () => {
+      try {
+        return await apiGet<{ looks: CelebLook[] }>('/api/looks');
+      } catch (error) {
+        if (!__DEV__) throw error;
+        console.warn('[looks] backend unavailable', error);
+        return { looks: [] };
+      }
+    },
+    select: (d) => d.looks,
+  });
+}
+
+export function useLook(id: string | undefined) {
+  return useQuery({
+    queryKey: ['look', id],
+    queryFn: () => apiGet<{ look: CelebLook; products: Product[] }>(`/api/looks/${encodeURIComponent(id!)}`),
+    enabled: !!id,
+  });
+}
+
+export function useIdolLooks() {
+  return useQuery({
+    queryKey: ['idol-looks'],
+    queryFn: () => apiGet<{ looks: IdolLook[] }>('/api/idol-looks'),
+    select: (d) => d.looks,
+  });
+}
+
+export function useIdolLook(id: string | undefined) {
+  return useQuery({
+    queryKey: ['idol-look', id],
+    queryFn: () => apiGet<{ look: IdolLook; products: Product[] }>(`/api/idol-looks/${encodeURIComponent(id!)}`),
+    enabled: !!id,
+  });
+}
+
+export function useStores() {
+  return useQuery({
+    queryKey: ['stores'],
+    queryFn: () => apiGet<{ stores: Store[] }>('/api/stores'),
+    select: (d) => d.stores,
+    staleTime: 60 * 60 * 1000,
+  });
+}
+
+export function useTutorials(query: string | undefined, max = 6) {
+  return useQuery({
+    queryKey: ['tutorials', query, max],
+    queryFn: () =>
+      apiGet<YoutubeSearchResult>(
+        `/api/youtube/search?q=${encodeURIComponent(query!)}&max=${max}`
+      ),
+    enabled: !!query && query.trim().length >= 2,
+    staleTime: 60 * 60 * 1000,
+    retry: 1,
+  });
+}
+
+export function useSkincareRecommendations(request: SkincareRequest | undefined) {
+  return useQuery({ queryKey: ['skincare-recommendations', request],
+    queryFn: () => apiPost<SkincareResponse>('/api/recommendations/skincare', request!),
+    enabled: request !== undefined, gcTime: 0, staleTime: 0 });
+}

@@ -1,0 +1,19 @@
+# Limits what the VISHUE Applications may deploy: this repository, the vishue namespace only.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: vishue
+  namespace: argocd
+spec:
+  description: VISHUE backend
+  sourceRepos:
+    - https://github.com/gyuniverse-hq/SKN34-Final-Project.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: vishue
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"

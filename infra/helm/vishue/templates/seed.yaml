@@ -1,0 +1,47 @@
+{{- if .Values.seedOnDeploy }}
+{{- $name := printf "%s-api" (include "vishue.fullname" .) -}}
+# Replaces the catalog with backend/api/seed/catalog.json (baked into the api image) after each
+# release, then clears cached listings. For environments where Git is the catalog's source of truth.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "vishue.fullname" . }}-seed-catalog
+  labels:
+    {{- include "vishue.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        {{- include "vishue.selector" (dict "root" $ "component" "seed") | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      {{- include "vishue.imagePullSecrets" $ | nindent 6 }}
+      {{- include "vishue.podSecurityContext" . | nindent 6 }}
+      containers:
+        - name: seed
+          image: {{ include "vishue.image" (dict "root" $ "name" .Values.api.image) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "-m", "app.jobs.seed_catalog", "seed/catalog.json"]
+          {{- include "vishue.envFrom" (dict "name" $name) | nindent 10 }}
+          {{- with (include "vishue.apiStoreEnv" (dict "root" $) | trim) }}
+          env:
+            {{- . | nindent 12 }}
+          {{- end }}
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 512Mi }
+          {{- include "vishue.containerSecurityContext" . | nindent 10 }}
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 16Mi
+{{- end }}

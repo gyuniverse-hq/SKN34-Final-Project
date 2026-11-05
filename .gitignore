@@ -1,0 +1,99 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env
+.env*.local
+
+# personal / local-only files
+infra/compose/compose.local.yaml
+final_venv/
+/data/*
+!/data/catalog/
+.claude/
+docs/planning/
+/tmp/
+~$*
+
+# typescript
+*.tsbuildinfo
+
+# terraform (commit .terraform.lock.hcl, never state)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+
+# python (backend/)
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+
+# generated native folders
+/ios
+/android
+
+# Independent Python ML project
+/ml/.venv/
+/ml/data/
+/ml/runs/
+/ml/.pytest_cache/
+/ml/.ruff_cache/
+/ml/.uv-cache/
+/ml/.socket-tmp/
+/.gradle-local/
+/modules/skin-analysis/android/src/main/assets/skin/
+/modules/skin-analysis/android/build/
+/ml/**/__pycache__/
+/ml/configs/evidence.local.json
+/ml/configs/*.local.csv
+
+# Original NIA evaluation resources (local only)
+/server/nia/.venv/
+/server/nia/config.local.json
+**/__pycache__/
+*.pyc
+*.pt
+*.pth
+*.bin
+/nia-private/
+
+# Olive Young collector scratch outputs; snapshots should normally live outside the repository.
+/scripts/data/oliveyoung/collectors/out_*/
+/scripts/data/oliveyoung/collectors/*.done
+/scripts/data/oliveyoung/collectors/*.csv
+
+# research data (face photos, measurements, LGD inputs): local only, AR_SPEC 1-13
+research/data/
+research/light_eval/_tmp/

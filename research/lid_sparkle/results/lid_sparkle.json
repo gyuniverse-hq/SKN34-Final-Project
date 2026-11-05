@@ -1,0 +1,35 @@
+{
+  "hex": "#A8785C",
+  "grain_thr_levels": 6,
+  "faces": 8,
+  "by": {
+    "shimmer_off": {
+      "grains_per_face": 272.625,
+      "grain_area_px_median": 1.0,
+      "survive_0.5px": 0.21167839065950259,
+      "flash_change_3deg": 0.9600108225108226,
+      "px_per_uv": null
+    },
+    "glitter_off": {
+      "grains_per_face": 566.5,
+      "grain_area_px_median": 1.0,
+      "survive_0.5px": 0.36696297331856054,
+      "flash_change_3deg": 0.9613234160358846,
+      "px_per_uv": null
+    },
+    "shimmer_on": {
+      "grains_per_face": 284.25,
+      "grain_area_px_median": 4.0,
+      "survive_0.5px": 0.9057141454225339,
+      "flash_change_3deg": 0.7222268791345279,
+      "px_per_uv": 765.9994512210733
+    },
+    "glitter_on": {
+      "grains_per_face": 110.75,
+      "grain_area_px_median": 6.0,
+      "survive_0.5px": 0.9687629527507312,
+      "flash_change_3deg": 0.47772381188541024,
+      "px_per_uv": 765.9994512210733
+    }
+  }
+}

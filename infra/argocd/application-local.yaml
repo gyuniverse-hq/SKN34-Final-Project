@@ -1,0 +1,23 @@
+# kind: follows develop. Images are loaded into kind by hand (`kind load docker-image`).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vishue-local
+  namespace: argocd
+spec:
+  project: vishue
+  source:
+    repoURL: https://github.com/gyuniverse-hq/SKN34-Final-Project.git
+    targetRevision: develop
+    path: infra/helm/vishue
+    helm:
+      releaseName: vishue
+      valueFiles: [values-local.yaml]
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vishue
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions: [CreateNamespace=true]

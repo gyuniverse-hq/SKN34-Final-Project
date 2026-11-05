@@ -1,0 +1,30 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "types": ["jest"],
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "backend",
+    "ml",
+    "nia-private",
+    "final_venv",
+    "tmp",
+    ".gradle-local",
+    "data/028.한국인 피부상태 측정 데이터",
+    "data/14.안면부 피부질환 이미지 합성데이터",
+    "data/Skin-Problem-MultiLabel"
+  ],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
+}

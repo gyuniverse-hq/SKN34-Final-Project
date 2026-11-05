@@ -1,0 +1,151 @@
+import { fuseSupportSkinType } from './skinSupportFusion';
+import { isCompleteSkinSurvey, scoreSos, isCompleteSupportSurvey } from './skinSurvey';
+import { fuseSkinType } from './skinFusion';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from './storage';
+import type { SkinAnalysisResult, SkinProfile, SkinTiming } from '@/types/skin';
+
+const FEATURE_MAX: Record<keyof SkinAnalysisResult['features'], number> = {
+  acne: 1, pore_grade_cheek_image_left: 5, pore_grade_cheek_image_right: 5,
+  pigmentation_grade_forehead: 5, pigmentation_grade_cheek_image_left: 5,
+  pigmentation_grade_cheek_image_right: 5, wrinkle_grade_forehead: 6,
+  wrinkle_grade_glabella: 6, wrinkle_grade_eye_image_left: 6, wrinkle_grade_eye_image_right: 6,
+};
+
+export function validateSkinAnalysis(result: SkinAnalysisResult): void {
+  const server = result?.schema === 'skin-analysis-server-v1';
+  const binary = result?.schema === 'skin-analysis-mobile-v4';
+  const withoutAcne = binary || result?.schema === 'skin-analysis-mobile-v3';
+  const v3 = withoutAcne || result?.schema === 'skin-analysis-mobile-v2';
+  const indicators = withoutAcne ? ['pore', 'pigmentation', 'wrinkle', 'skinType']
+    : v3 ? ['acne', 'pore', 'pigmentation', 'wrinkle', 'skinType'] : ['acne', 'pore', 'pigmentation', 'wrinkle'];
+  const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0;
+  if ((!server && !v3 && result?.schema !== 'skin-analysis-mobile-v1') || !result.features ||
+      Object.keys(result.features).length !== (withoutAcne ? 9 : 10) || Object.entries(FEATURE_MAX).some(([key, max]) => {
+        if (withoutAcne && key === 'acne') return false;
+        const value = result.features[key as keyof typeof FEATURE_MAX];
+        return typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > (binary ? 1 : max);
+      }) ||
+      result.validationStatus !== 'experimental_unvalidated' ||
+      !result.timing || !Array.isArray(result.timing.models) || !finite(result.timing.totalMs)) throw new Error('skin.analysisFailed');
+  if (withoutAcne) {
+    if (result.features.acne !== undefined || result.acneScore !== undefined || result.acneThreshold !== undefined) throw new Error('skin.analysisFailed');
+  } else if (!finite(result.acneScore) || result.acneScore > 1 || !finite(result.acneThreshold) ||
+      !(result.acneThreshold > 0 && result.acneThreshold < 1) ||
+      result.features.acne !== Number(result.acneScore >= result.acneThreshold)) throw new Error('skin.analysisFailed');
+  if (server) {
+    if (result.roiMethod !== 'opencv_yunet_facebox_proportions_v1' || result.preprocessing !== 'server-native-v1' ||
+        result.timing.runtime !== 'pytorch-cuda' || !/^[a-f0-9]{64}$/.test(result.timing.bundleVersion) ||
+        !finite(result.timing.requestMs) || !finite(result.timing.serverMs) || result.timing.models.length !== 0 ||
+        ['imagePreparationMs', 'validationMs', 'detectionMs', 'nativeMs', 'memoryPssKb'].some(key =>
+          result.timing[key as keyof SkinTiming] !== null)) throw new Error('skin.analysisFailed');
+  } else if (result.roiMethod !== 'opencv_haar_facebox_proportions_v1' ||
+      (v3 ? result.preprocessing !== 'skin-v3-embedded-enhancement'
+        : result.preprocessing !== undefined && result.preprocessing !== 'opencv4.12-turbojpeg95-wasm-v1') ||
+      result.timing.models.length !== indicators.length || new Set(result.timing.models.map(model => model.indicator)).size !== indicators.length ||
+      !indicators.every(indicator => result.timing.models.some(model => model.indicator === indicator))) throw new Error('skin.analysisFailed');
+  if (binary) {
+    const scores = result.cautionProbabilities;
+    if (!scores || Object.keys(scores).length !== 9 || Object.keys(FEATURE_MAX).some(key => {
+      if (key === 'acne') return false;
+      const roi = key as keyof typeof scores, score = scores[roi];
+      return !finite(score) || score > 1 || result.features[roi] !== (score >= .5 ? 1 : 0);
+    })) throw new Error('skin.analysisFailed');
+  } else if (result.cautionProbabilities !== undefined) throw new Error('skin.analysisFailed');
+  if (v3) {
+    const prediction = result.skinType;
+    if (!prediction || prediction.roiCount !== 3 || prediction.scoreType !== 'mean_uncalibrated_softmax' ||
+        !Array.isArray(prediction.probabilities) || prediction.probabilities.length !== 3 ||
+        prediction.probabilities.some(value => !finite(value) || value > 1) ||
+        Math.abs(prediction.probabilities.reduce((a, b) => a + b, 0) - 1) > 1e-5) throw new Error('skin.analysisFailed');
+    const best = prediction.probabilities.reduce((at, value, i) => value > prediction.probabilities[at] ? i : at, 0);
+    if (prediction.label !== ['dry', 'balanced', 'oily'][best]) throw new Error('skin.analysisFailed');
+  } else if (result.skinType !== undefined) throw new Error('skin.analysisFailed');
+}
+
+export async function readSkinProfile(): Promise<SkinProfile | null> {
+  const raw = await AsyncStorage.getItem(STORAGE_KEYS.skinProfile);
+  if (!raw) return null;
+  const profile: SkinProfile = JSON.parse(raw);
+  validateSkinProfile(profile);
+  return profile;
+}
+
+export function validateSkinProfile(profile: SkinProfile): void {
+  validateSkinAnalysis(profile?.analysis);
+  if (!Number.isFinite(Date.parse(profile.registeredAt))) throw new Error('skin.storageFailed');
+  if (profile.version === 1) {
+    if (!profile.questionnaire || ['tightness', 'oiliness', 'sensitivity'].some(key =>
+      ![0, 1, 2, 'unknown'].includes(profile.questionnaire[key as keyof typeof profile.questionnaire]))) throw new Error('skin.storageFailed');
+  } else if (profile.version === 2) {
+    if (!isCompleteSkinSurvey(profile.questionnaire)) throw new Error('skin.storageFailed');
+    // Dispatch by the stored policy; future policies must keep this v1 implementation available.
+    if (profile.fusion?.policy !== 'sos-oily-v1') throw new Error('skin.storageFailed');
+    const expected = fuseSkinType(profile.analysis.skinType, scoreSos(profile.questionnaire));
+    const actual = profile.fusion;
+    if (actual.policy !== expected.policy || actual.sosTotal !== expected.sosTotal || actual.type !== expected.type ||
+        actual.reason !== expected.reason || actual.changed !== expected.changed || actual.weight !== expected.weight ||
+        !actual.settings || Object.entries(expected.settings).some(([key, value]) => actual.settings[key as keyof typeof actual.settings] !== value) ||
+        (['scores', 'delta'] as const).some(key => {
+          const values = actual[key], wanted = expected[key];
+          return wanted === null ? values !== null : !Array.isArray(values) || values.length !== 3 ||
+            values.some((value, i) => !Number.isFinite(value) || Math.abs(value - wanted[i]) > 1e-10);
+        })) throw new Error('skin.storageFailed');
+  } else if (profile.version === 3) {
+    if (!isCompleteSupportSurvey(profile.questionnaire) || 'fusion' in profile) throw new Error('skin.storageFailed');
+  } else if (profile.version === 4) {
+    if (!isCompleteSupportSurvey(profile.questionnaire) || profile.fusion?.policy !== 'support-dry-oily-v1' || !profile.fusion.settings ||
+        !matchesFusionSnapshot(profile.fusion, fuseSupportSkinType(profile.analysis.skinType, profile.questionnaire, profile.fusion.settings))) throw new Error('skin.storageFailed');
+  } else throw new Error('skin.storageFailed');
+}
+
+export async function writeSkinProfile(profile: SkinProfile) {
+  validateSkinProfile(profile);
+  await AsyncStorage.setItem(STORAGE_KEYS.skinProfile, JSON.stringify(profile));
+}
+
+let timingWrites: Promise<unknown> = Promise.resolve();
+export async function readSkinTimings(): Promise<SkinTiming[]> {
+  const raw = await AsyncStorage.getItem(STORAGE_KEYS.skinTimings);
+  const rows = raw ? JSON.parse(raw) : [];
+  if (!Array.isArray(rows)) throw new Error('skin.storageFailed');
+  return rows;
+}
+
+export function appendSkinTiming(timing: SkinTiming) {
+  const pending = timingWrites.catch(() => {}).then(async () => {
+    const previous = await readSkinTimings();
+    const next = [...previous.filter(row => row.runId !== timing.runId), timing].slice(-100);
+    await AsyncStorage.setItem(STORAGE_KEYS.skinTimings, JSON.stringify(next));
+  });
+  timingWrites = pending;
+  return pending;
+}
+
+export function clearSkinTimings() {
+  const pending = timingWrites.catch(() => {}).then(() => AsyncStorage.removeItem(STORAGE_KEYS.skinTimings));
+  timingWrites = pending;
+  return pending;
+}
+
+export function comparableSkinTimings(rows: SkinTiming[]) {
+  const last = rows.at(-1);
+  return last ? rows.filter(row => row.device === last.device && row.build === last.build &&
+    row.runtime === last.runtime && row.bundleVersion === last.bundleVersion && row.androidVersion === last.androidVersion) : [];
+}
+
+export function summarizeSkinTimings(rows: SkinTiming[]) {
+  const values = rows.map(row => row.totalMs).sort((a, b) => a - b);
+  const n = values.length;
+  return n ? { count: n, min: values[0], max: values[n - 1], median: (values[Math.floor((n - 1) / 2)] + values[Math.floor(n / 2)]) / 2 } : null;
+}
+
+/** Compare saved numeric evidence with the frozen policy; never replace saved outcomes on load. */
+function matchesFusionSnapshot(actual: unknown, expected: unknown): boolean {
+  if (typeof expected === 'number') return typeof actual === 'number' && Number.isFinite(actual) && Math.abs(actual - expected) <= 1e-10;
+  if (expected === null || typeof expected !== 'object') return actual === expected;
+  if (!actual || typeof actual !== 'object' || Array.isArray(actual) !== Array.isArray(expected)) return false;
+  const a = actual as Record<string, unknown>, e = expected as Record<string, unknown>;
+  return Object.keys(a).length === Object.keys(e).length && Object.keys(e).every(key =>
+    Object.hasOwn(a, key) && matchesFusionSnapshot(a[key], e[key]));
+}

@@ -1,0 +1,32 @@
+# Pore first; expand only after validation gate. Never auto-activate candidates.
+[data]
+root = "../data/028.한국인 피부상태 측정 데이터"
+output = "runs/nia-smartphone-data-v1-seed-42"
+seed = 42
+folds = 7
+valid_fold = 1
+test_fold = 0
+
+[train]
+output = "runs/nia-smartphone-coral-seed-42"
+seed = 42
+device_uuid = "GPU-9ed09563-0d58-cdc7-f6bc-b2c84d8da0e3"
+batch_size = 32
+effective_batch = 32
+num_workers = 4
+freeze_epochs = 2
+finetune_epochs = 18
+head_lr = 0.001
+finetune_head_lr = 0.0001
+backbone_lr = 0.00001
+weight_decay = 0.0001
+patience = 6
+amp = true
+# Retained only to check baseline conditions; unused by original unweighted CORAL.
+class_weight_cap = 4.0
+loss = "coral"
+
+[comparison]
+baseline = "runs/nia-smartphone-seed-42"
+focal = "runs/nia-smartphone-cb-focal-seed-42"
+policy = "macro_f1_improves_accuracy_not_lower_high_grade_recall_improves"

@@ -1,0 +1,237 @@
+{
+  "products": [
+    {
+      "id": "demo-velvet-tint",
+      "brand": "VISHUE Demo",
+      "name": "Demo Velvet Tint",
+      "nameKo": "데모 벨벳 틴트",
+      "category": "lip",
+      "makeupZone": "lip",
+      "texture": "velvet",
+      "priceKRW": 12000,
+      "volume": "4g",
+      "shades": [
+        { "id": "01", "name": "01 Rose Fig", "hex": "#B5505E" },
+        { "id": "02", "name": "02 Coral Sunset", "hex": "#D9675A" },
+        { "id": "03", "name": "03 Plum Night", "hex": "#7E3346" }
+      ],
+      "description": "Demo data for local UI testing. Not a real product.",
+      "keyIngredients": [],
+      "tags": ["demo"],
+      "imageUrl": "",
+      "searchKeyword": "VISHUE 데모 벨벳 틴트"
+    },
+    {
+      "id": "demo-glow-gloss",
+      "brand": "VISHUE Demo",
+      "name": "Demo Glow Gloss",
+      "nameKo": "데모 글로우 글로스",
+      "category": "lip",
+      "makeupZone": "lip",
+      "texture": "glossy",
+      "priceKRW": 14000,
+      "volume": "3.5g",
+      "shades": [
+        { "id": "01", "name": "01 Peach Glass", "hex": "#E58C7A" },
+        { "id": "02", "name": "02 Rose Glass", "hex": "#C9636F" }
+      ],
+      "description": "Demo data for local UI testing. Not a real product.",
+      "keyIngredients": [],
+      "tags": ["demo"],
+      "imageUrl": "",
+      "searchKeyword": "VISHUE 데모 글로우 글로스"
+    },
+    {
+      "id": "demo-matte-stick",
+      "brand": "VISHUE Demo",
+      "name": "Demo Matte Stick",
+      "nameKo": "데모 매트 스틱",
+      "category": "lip",
+      "makeupZone": "lip",
+      "texture": "matte",
+      "priceKRW": 16000,
+      "volume": "3g",
+      "shades": [
+        { "id": "01", "name": "01 Brick", "hex": "#A2463A" },
+        { "id": "02", "name": "02 Rosewood", "hex": "#B05A63" }
+      ],
+      "description": "Demo data for local UI testing. Not a real product.",
+      "keyIngredients": [],
+      "tags": ["demo"],
+      "imageUrl": "",
+      "searchKeyword": "VISHUE 데모 매트 스틱"
+    },
+    {
+      "id": "demo-cream-blush",
+      "brand": "VISHUE Demo",
+      "name": "Demo Cream Blush",
+      "nameKo": "데모 크림 블러셔",
+      "category": "cheek",
+      "makeupZone": "blush",
+      "texture": "cream",
+      "priceKRW": 15000,
+      "volume": "5g",
+      "shades": [
+        { "id": "01", "name": "01 Peach", "hex": "#F2A08B" },
+        { "id": "02", "name": "02 Pink", "hex": "#EE8FA0" }
+      ],
+      "description": "Demo data for local UI testing. Not a real product.",
+      "keyIngredients": [],
+      "tags": ["demo"],
+      "imageUrl": "",
+      "searchKeyword": "VISHUE 데모 크림 블러셔"
+    },
+    {
+      "id": "demo-powder-blush",
+      "brand": "VISHUE Demo",
+      "name": "Demo Powder Blush",
+      "nameKo": "데모 파우더 블러셔",
+      "category": "cheek",
+      "makeupZone": "blush",
+      "texture": "matte",
+      "priceKRW": 13000,
+      "volume": "4g",
+      "shades": [
+        { "id": "01", "name": "01 Coral", "hex": "#E98A74" },
+        { "id": "02", "name": "02 Mauve", "hex": "#C28490" }
+      ],
+      "description": "Demo data for local UI testing. Not a real product.",
+      "keyIngredients": [],
+      "tags": ["demo"],
+      "imageUrl": "",
+      "searchKeyword": "VISHUE 데모 파우더 블러셔"
+    },
+    {
+      "id": "demo-eye-palette",
+      "brand": "VISHUE Demo",
+      "name": "Demo Eye Palette",
+      "nameKo": "데모 아이 팔레트",
+      "category": "eye",
+      "makeupZone": "eyeshadow",
+      "texture": "shimmer",
+      "priceKRW": 24000,
+      "volume": "8g",
+      "shades": [
+        { "id": "01", "name": "01 Rose Brown", "hex": "#A86F68" },
+        { "id": "02", "name": "02 Soft Peach", "hex": "#D9A08A" }
+      ],
+      "description": "Demo data for local UI testing. Not a real product.",
+      "keyIngredients": [],
+      "tags": ["demo"],
+      "imageUrl": "",
+      "searchKeyword": "VISHUE 데모 아이 팔레트"
+    },
+    {
+      "id": "demo-cushion",
+      "brand": "VISHUE Demo",
+      "name": "Demo Satin Cushion",
+      "nameKo": "데모 새틴 쿠션",
+      "category": "base",
+      "makeupZone": null,
+      "texture": "satin",
+      "priceKRW": 28000,
+      "volume": "15g",
+      "shades": [
+        { "id": "13", "name": "13 Fair", "hex": "#F3DCC8" },
+        { "id": "21", "name": "21 Light", "hex": "#EBCDB0" },
+        { "id": "23", "name": "23 Medium", "hex": "#D9B391" }
+      ],
+      "description": "Demo data for local UI testing. Not a real product.",
+      "keyIngredients": [],
+      "tags": ["demo", "oil-control"],
+      "imageUrl": "",
+      "searchKeyword": "VISHUE 데모 쿠션"
+    },
+    {
+      "id": "demo-hydra-serum",
+      "brand": "VISHUE Demo",
+      "name": "Demo Hydra Serum",
+      "nameKo": "데모 하이드라 세럼",
+      "category": "skincare",
+      "makeupZone": null,
+      "texture": "sheer",
+      "priceKRW": 22000,
+      "volume": "30ml",
+      "shades": [],
+      "description": "Demo data for local UI testing. Not a real product.",
+      "keyIngredients": ["Panthenol", "Hyaluronic Acid"],
+      "tags": ["demo", "hydrating", "soothing"],
+      "imageUrl": "",
+      "searchKeyword": "VISHUE 데모 세럼"
+    },
+    {
+      "id": "demo-pore-toner",
+      "brand": "VISHUE Demo",
+      "name": "Demo Pore Toner",
+      "nameKo": "데모 포어 토너",
+      "category": "skincare",
+      "makeupZone": null,
+      "texture": "sheer",
+      "priceKRW": 18000,
+      "volume": "150ml",
+      "shades": [],
+      "description": "Demo data for local UI testing. Not a real product.",
+      "keyIngredients": ["Salicylic Acid"],
+      "tags": ["demo", "pore-care", "oil-control", "blemish-care"],
+      "imageUrl": "",
+      "searchKeyword": "VISHUE 데모 토너"
+    },
+    {
+      "id": "demo-bright-cream",
+      "brand": "VISHUE Demo",
+      "name": "Demo Bright Cream",
+      "nameKo": "데모 브라이트 크림",
+      "category": "skincare",
+      "makeupZone": null,
+      "texture": "cream",
+      "priceKRW": 26000,
+      "volume": "50ml",
+      "shades": [],
+      "description": "Demo data for local UI testing. Not a real product.",
+      "keyIngredients": ["Niacinamide", "Adenosine"],
+      "tags": ["demo", "brightening", "firming"],
+      "imageUrl": "",
+      "searchKeyword": "VISHUE 데모 크림"
+    },
+    {
+      "id": "demo-sun-fluid",
+      "brand": "VISHUE Demo",
+      "name": "Demo Sun Fluid",
+      "nameKo": "데모 선 플루이드",
+      "category": "suncare",
+      "makeupZone": null,
+      "texture": "sheer",
+      "priceKRW": 19000,
+      "volume": "50ml",
+      "shades": [],
+      "description": "Demo data for local UI testing. Not a real product.",
+      "keyIngredients": [],
+      "tags": ["demo", "soothing"],
+      "imageUrl": "",
+      "searchKeyword": "VISHUE 데모 선 플루이드"
+    }
+  ],
+  "looks": [
+    {
+      "id": "demo-coral-glow",
+      "title": "Demo Coral Glow",
+      "inspiration": "VISHUE demo look",
+      "description": "Demo look for local UI testing. Products are fictional.",
+      "thumbnailUrl": "",
+      "tutorialQuery": "coral glow makeup",
+      "items": [
+        { "productId": "demo-cushion", "shadeId": "21", "step": "base" },
+        { "productId": "demo-eye-palette", "shadeId": "02", "step": "eyes" },
+        { "productId": "demo-cream-blush", "shadeId": "01", "step": "cheeks" },
+        { "productId": "demo-glow-gloss", "shadeId": "01", "step": "lips" }
+      ],
+      "makeup": {
+        "lip": { "hex": "#E58C7A", "intensity": 0.6, "texture": "glossy" },
+        "blush": { "hex": "#F2A08B", "intensity": 0.45, "texture": "cream" },
+        "eyeshadow": { "hex": "#D9A08A", "intensity": 0.4, "texture": "shimmer" }
+      },
+      "tags": ["demo"]
+    }
+  ],
+  "stores": []
+}

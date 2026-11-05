@@ -1,0 +1,78 @@
+This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
+
+## Expo has changed — do not trust your training data
+
+Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:
+
+1. Read the major version of the `expo` package in `package.json`.
+2. Fetch the matching versioned docs: `https://docs.expo.dev/versions/v<major>.0.0/`
+3. For anything else, fetch https://docs.expo.dev/llms.txt — an index of all Expo docs with corrections to common LLM misconceptions. Follow its links to the specific page you need; never answer from memory.
+
+## Commands
+
+Use `bunx` instead of `npx` if the project uses bun (`bun.lock` present).
+
+```bash
+npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — resolves SDK-compatible versions
+npx expo start              # start the dev server
+npx expo lint               # lint
+npx tsc --noEmit            # typecheck
+npx expo-doctor             # diagnose dependency and config issues
+npx expo install --fix      # fix incompatible package versions
+```
+
+Run lint and typecheck before declaring any task done.
+
+## Navigation & Routing
+
+- Use **Expo Router** for all navigation. Routes live in `app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `app/`.
+- Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
+- Docs: https://docs.expo.dev/router/introduction.md
+
+## Building with EAS
+
+Use EAS to build, sign, and submit the app in the cloud (`eas build`, `eas submit`) and to ship over-the-air updates (`eas update`) — no local Xcode or Android Studio required. Run EAS CLI as `bunx eas-cli <command>` in Bun projects, or `npx eas-cli@latest <command>` otherwise; substitute that for bare `eas` in docs examples.
+Docs: https://docs.expo.dev/eas/index.md
+
+## Rules
+
+- If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
+- Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
+- Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+
+## This project
+
+- Expo SDK 58; the team tests on **Expo Go**, so do not add libraries with custom native code unless the team agrees to move to a development build.
+- Layout: screens and API routes in `app/` (`app/api/**/*+api.ts` run on the server), server-only logic in `server/`, shared types in `types/index.ts`, catalog data in `data/catalog/`, UI components in `components/`, screen-level composed hooks in `hooks/`, Zustand stores in `store/`, data hooks and helpers in `lib/`.
+- Layered architecture: `docs/ARCHITECTURE.md` is authoritative. Upper layers import only lower layers; never import upward, and never import `server/` or `data/` from client code.
+  - Client: `app/` screens → `hooks/`, `components/` → `lib/`, `store/` → `constants/`, `types/`. Fetch data only in screens or `hooks/`; components receive data via props. `components/ui/` must not read `store/` or `lib/queries`.
+  - Server: `app/api/` routes (parse, validate, respond) → `server/services/` (business logic) → `server/repositories/` (data access) and `server/clients/` (external APIs; the only place API keys are used) → `server/lib/` (http, cache, env). Routes must not reach repositories, clients, or `data/` directly.
+  - Enforced by `no-restricted-imports` in `eslint.config.js`: import other folders via the `@/` alias (no `../`); `./` only within the same folder, and never between `server/clients/` files. Update the doc and the lint config together.
+  - Backend (see "백엔드" in `docs/ARCHITECTURE.md`, decisions in `docs/adr/`): two FastAPI services, `backend/api` (catalog, shade recommendation, members; owns PostgreSQL) and `backend/chatbot` (chat, PostgreSQL → Neo4j sync job; owns Neo4j). Each is its own **uv** project (add packages with `uv add`, never `pip install`; commit `uv.lock`; run via `uv run`). Layering `jobs/`, `routers/` → `services/` → `repositories/`, `clients/` → `models/` → `schemas/` → `core/`, enforced by import-linter (`uv run lint-imports`). The chatbot reads the catalog only through the api's HTTP contract, never PostgreSQL directly. Backend JSON matches `types/index.ts` (camelCase, `{ error, code }` errors).
+  - Infra: `infra/compose/` (local stack), `infra/helm/vishue/` (one chart; `values-local.yaml` for kind, `values-prod.yaml` for EKS), `infra/argocd/`, `infra/platform/` (cluster-wide prerequisites). Deploys are GitOps: never `kubectl apply` app resources by hand. See `docs/DEPLOYMENT.md`.
+  - Never send face video or images to any server. Shade recommendation receives only on-device skin tone values (ITA°, MST level, undertone).
+  - Repository functions stay `async` even over static data so a DB can replace them without touching callers. Name files `<subject><Layer>.ts` (e.g. `catalogService.ts`, `naverClient.ts`).
+- API keys are read only by server code (`server/`, `app/api/`) from `.env`. Never prefix secrets with `EXPO_PUBLIC_` and never commit `.env`.
+  - Only exception: the Supabase Project URL and publishable key are public by design and ship in the app as `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Never put the Supabase secret / `service_role` key in the app or under `EXPO_PUBLIC_`. Only `backend/api` holds it (`SUPABASE_SECRET_KEY`, read only in `app/clients/supabase_admin_client.py` for account deletion; `docs/adr/0010-account-deletion-secret-key.md`).
+- Auth: Supabase Auth through `lib/auth` (email + code verification, Google via browser redirect; Apple is not connected yet). Read the session with `useAuth()`, never copy it into a Zustand store. `lib/api.ts` attaches the access token; the backends verify it in `backend/*/app/core/auth.py`.
+ - Members: terms consent is recorded with `POST /api/me/terms` (sign-up, or `app/terms-consent.tsx` via `hooks/useTermsConsent.ts`), account deletion is `DELETE /api/me`. When the terms change, bump `TERMS_VERSION` in `constants/legal.ts` and `backend/api/app/services/member_service.py` together.
+- UI text goes through `lib/i18n`. Add every new key to all four dictionaries (`en`, `ko`, `ja`, `zh`); typecheck fails if one is missing.
+- The AR renderer is an HTML string in `components/ar/faceTrackerHtml.ts`; typecheck and lint do not see its script, so run `npm test` after editing it.
+- Run `npm run check` (typecheck + lint + tests) before committing. For backend changes, also run `uv run ruff check . && uv run lint-imports && uv run pytest` in each changed `backend/<service>/`; for chart changes, `helm lint infra/helm/vishue -f infra/helm/vishue/values-<env>.yaml`.
+- AR 가상 메이크업, 제품 추천, 대화형 조정, 평가·숙제 실험 작업은 `docs/AR_SPEC.md`를 따른다. 작업 전에 0-A 진행 방법, 1장(절대 원칙), 해당 마일스톤·모듈 절을 먼저 읽고, 원칙과 충돌하면 구현 전에 보고한다.
+- **입술에 색을 올릴 때는 스티커가 아니라 직접 바른 것처럼 보여야 한다** (`docs/AR_SPEC.md` 6-5-3). 고른 색이 입술 주름·윗입술 그늘·아랫입술 볼륨을 따라가고, 제형에 맞는 윤기가 있어야 한다. 입술 전체에 같은 밝기의 불투명 색을 덮는 결과(Expo Go 2026-10-22 캡처)는 실패다. 색 값 자체는 바꾸지 말고, 명암·결·반사로 해결한다. 숫자만 조금 바꿔 화면이 그대로면 고친 것으로 치지 않는다.
+- 진행 상태는 `docs/AR_PROGRESS.md`에 있다. 새 세션에서는 이 파일을 먼저 읽고, 0-A 절차대로 다음 마일스톤을 이어서 진행한다.
+
+## Git & GitHub conventions (v1.3 summary)
+
+The authoritative collaboration convention is `CONTRIBUTING.md` (v1.3). The GitHub PR template is `.github/PULL_REQUEST_TEMPLATE.md`. Keep this summary consistent with the team convention.
+
+- Do not push directly to `main` or `develop`; use PRs. Start normal work branches from the latest `develop` and target `develop`.
+- Name branches `<type>/<description>`, with lowercase English words separated by hyphens (e.g. `feat/user-login`, `fix/token-expired`). **Do not append sequence numbers or GitHub Issue numbers.** GitHub Issues are optional, not a prerequisite for branching.
+- Branch types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `hotfix`. Branch `hotfix/*` from `main` and apply the fix back to `develop` as well.
+- Commit message: `<type>: <description>` with a lowercase English type, Korean description, and **no scope** (e.g. `feat: 로그인 API 구현`, not `feat(auth): ...`).
+- Commit types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `style`, `build`, `ci`.
+- Make atomic commits by logical purpose, not by file count. Keep related implementation and tests together; separate unrelated changes without artificially splitting a cohesive change.
+- Check the diff and run relevant tests before committing. Never claim a test passed unless it was actually run.
+- PR title follows the same scope-free message format. PR body **must contain '변경 사항' and '영향 범위'**. Under 영향 범위, identify real affected directory paths with a short explanation. Add test results, related GitHub Issues, screenshots, or deployment notes only when relevant.
+- Do not force-push shared branches or overwrite another contributor's changes. Delete merged work branches.
