@@ -4,7 +4,7 @@ env: production
 image:
   registry: ghcr.io/gyuniverse-hq
   # Updated by the image workflow's pull request on every merge to main.
-  tag: ""
+  tag: "sha-9e8999d"
 
 supabase:
   url: ""             # set before first deploy: https://<project>.supabase.co
