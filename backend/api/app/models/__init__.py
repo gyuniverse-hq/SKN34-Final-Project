@@ -51,7 +51,7 @@ from app.models.recommendation import (
     RecMappingIngredientRow,
     RecMappingRow,
 )
-from app.models.skincare import SkincareServingRow
+from app.models.skincare import SkincareRefreshStateRow, SkincareServingRow
 
 __all__ = [
     "AihubClaimReviewRow",
@@ -65,6 +65,7 @@ __all__ = [
     "AihubSkinConcernRow",
     "AihubSkinTypeRow",
     "SkincareServingRow",
+    "SkincareRefreshStateRow",
     "LookArSettingRow",
     "LookItemRow",
     "LookProductRow",

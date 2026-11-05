@@ -1,5 +1,6 @@
+import asyncio
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,13 +22,27 @@ from app.routers import (
     style_looks,
     tutorials,
 )
+from app.services.skincare_refresh_service import run_refresh_loop
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    yield
-    await dispose_engine()
-    await close_redis()
+    settings = get_settings()
+    enabled = settings.skincare_refresh_enabled
+    if enabled is None:
+        enabled = not settings.is_production
+    task = (
+        asyncio.create_task(run_refresh_loop()) if enabled else None
+    )
+    try:
+        yield
+    finally:
+        if task:
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
+        await dispose_engine()
+        await close_redis()
 
 
 def create_app() -> FastAPI:
