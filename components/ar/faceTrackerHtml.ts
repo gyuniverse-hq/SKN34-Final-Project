@@ -592,10 +592,6 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   }
   function filterLandmarks(face, t) {
     const n = Math.min(N_LANDMARKS, face.length);
-    if (n < N_MESH || face.slice(0, n).some((p) => !p || !Number.isFinite(p.x) || !Number.isFinite(p.y) || !Number.isFinite(p.z))) {
-      filterReady = false;
-      return false;
-    }
     if (!mouthW) mouthW = mouthWeights();
     if (!eyePt) eyePt = eyePoints();
     let cx = 0, cy = 0, mx = 0, my = 0;
@@ -627,7 +623,6 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       }
     }
     for (let i = 0; i < n; i++) { sx[i] = ax(i) + ox[i]; sy[i] = ay(i) + oy[i]; }
-    return true;
   }
 
   // ── UV masks: painted once (R = lips, G = blush, B = eyeshadow) ──────
@@ -3975,7 +3970,8 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       try {
         const result = landmarker.detectForVideo(video, now);
         const face = result.faceLandmarks && result.faceLandmarks[0];
-        if (face && filterLandmarks(face, now / 1000)) {
+        if (face) {
+          filterLandmarks(face, now / 1000);
           faceThisFrame = true;
           hasFace = true;
           lastFaceAt = now;
