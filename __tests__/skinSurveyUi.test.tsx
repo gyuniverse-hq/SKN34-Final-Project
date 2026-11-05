@@ -36,7 +36,7 @@ it('requires six answers and accepts explicit unknown choices', async () => {
       await act(async () => { screen.root.findAllByType(Button).find(button => button.props.label === 'support.next')!.props.onPress(); });
     }
     expect(screen.root.findAll(node => node.props.accessibilityRole === 'radio').map(node => node.props.accessibilityLabel))
-      .toEqual(['support.priorityChoice.dryness', 'support.priorityChoice.sensitivity', 'support.priorityChoice.pigmentation', 'support.priorityChoice.wrinkles', 'support.priorityChoice.pores']);
+      .toEqual(['support.priorityChoice.dryness', 'support.priorityChoice.sensitivity', 'support.priorityChoice.pigmentation', 'support.priorityChoice.wrinkles', 'support.priorityChoice.pores', 'support.priorityChoice.oiliness', 'support.priorityChoice.blemish']);
     expect(screen.root.findAllByType(Button).find(button => button.props.label === 'skin.viewResult')!.props.disabled).toBe(true);
     await act(async () => { screen.root.findAll(node => node.props.accessibilityRole === 'radio' && node.props.accessibilityLabel === 'support.priorityChoice.pores')[0].props.onPress(); });
     expect(screen.root.findAllByType(Button).find(button => button.props.label === 'skin.viewResult')!.props.disabled).toBe(false);

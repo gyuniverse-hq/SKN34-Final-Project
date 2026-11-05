@@ -34,4 +34,4 @@ export const SUPPORT_QUESTIONS = ['postWashDryness', 'afternoonTzoneOil', 'cheek
 // Keep legacy answers readable; new entries use the narrower set shown in the survey.
 export const SUPPORT_REACTION_CHOICES = ['none', 'once', 'repeated', 'unknown'] as const;
 // Care-goal labels map onto the existing concern codes used by recommendations.
-export const SUPPORT_PRIORITY_CONCERNS = ['dryness', 'sensitivity', 'pigmentation', 'wrinkles', 'pores'] as const;
+export const SUPPORT_PRIORITY_CONCERNS = ['dryness', 'sensitivity', 'pigmentation', 'wrinkles', 'pores', 'oiliness', 'blemish'] as const;

@@ -7,9 +7,9 @@ from pydantic import ConfigDict, Field, model_validator
 from app.schemas.base import ApiModel
 from app.schemas.catalog import Product
 
-Goal = Literal["dryness", "sensitivity", "pigmentation", "wrinkles", "pores"]
+Goal = Literal["dryness", "sensitivity", "pigmentation", "wrinkles", "pores", "oiliness", "blemish"]
 SkinType = Literal["dry", "balanced", "oily", "unknown"]
-GOALS = ("dryness", "sensitivity", "pigmentation", "wrinkles", "pores")
+GOALS = ("dryness", "sensitivity", "pigmentation", "wrinkles", "pores", "oiliness", "blemish")
 
 
 class StrictModel(ApiModel):
@@ -18,7 +18,7 @@ class StrictModel(ApiModel):
 
 class SkincareRequest(StrictModel):
     primary_goal: Goal
-    secondary_goals: list[Goal] = Field(default_factory=list, max_length=5)
+    secondary_goals: list[Goal] = Field(default_factory=list, max_length=6)
     skin_type: SkinType = "unknown"
     irritation_signal: Literal["caution", "none", "unknown"] = "unknown"
     goal_policy_version: Literal["care-goals-v1"]
@@ -35,7 +35,7 @@ class SkincareRequest(StrictModel):
 
 class IngredientMapping(StrictModel):
     mapping_id: str
-    target_concern: Goal | Literal["blemish"]
+    target_concern: Goal
     mapping_type: Literal["single", "combination"]
     ingredient_codes: list[str] = Field(min_length=1)
     evidence_ids: list[str]

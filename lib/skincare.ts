@@ -12,6 +12,10 @@ export function deriveCareGoals(profile: SkinProfile | null) {
     if (report?.metrics.some(m => m.concern === g && m.status === 'care')) add(g, 'analysis');
   }
   if (report?.skinType === 'dry') add('dryness', 'skin-type');
+  for (const g of ['oiliness', 'blemish'] as const) {
+    const metric = report?.metrics.find(m => m.concern === g && m.status === 'care');
+    if (metric) add(g, metric.source);
+  }
   let irritationSignal: SkincareRequest['irritationSignal'] = 'unknown';
   let primary: CareGoal | undefined;
   if (profile) {

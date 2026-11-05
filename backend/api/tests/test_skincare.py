@@ -92,6 +92,25 @@ def test_unapproved_mappings_never_rank(change):
     assert result.matches == []
 
 
+@pytest.mark.parametrize("goal", ["oiliness", "blemish"])
+def test_new_goals_require_approved_mappings(goal):
+    req = request(primary_goal=goal)
+    assert recommend(snapshot(mappings=[]), req).coverage[0].status == "mapping_unavailable"
+    rejected = mapping(target_concern=goal, re_review_required=True)
+    assert recommend(snapshot(mappings=[rejected]), req).coverage[0].status == "mapping_unavailable"
+    approved = mapping(target_concern=goal)
+    result = recommend(snapshot(mappings=[approved]), req)
+    assert result.coverage[0].status == "ok"
+    assert [item.product.id for item in result.matches] == ["a"]
+
+
+def test_all_six_other_goals_can_be_requested():
+    req = request(
+        secondary_goals=["sensitivity", "pigmentation", "wrinkles", "pores", "oiliness", "blemish"]
+    )
+    assert len(req.secondary_goals) == 6
+
+
 def test_db_option_matches_are_required_even_when_ingredients_match():
     result = recommend(snapshot(options=[option(matched_mapping_ids=[])]), request())
     assert result.coverage[0].status == "no_matches"
@@ -173,7 +192,7 @@ def test_trace_is_explicit_and_combination_is_same_option_only():
         {"analysis": {}},
         {"limit": True},
         {"rating": 5},
-        {"primary_goal": "oiliness"},
+        {"primary_goal": "unsupported"},
     ],
 )
 def test_invalid_private_inputs(extra):

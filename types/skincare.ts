@@ -1,5 +1,5 @@
 import type { Product } from './index';
-export const CARE_GOALS = ['dryness', 'sensitivity', 'pigmentation', 'wrinkles', 'pores'] as const;
+export const CARE_GOALS = ['dryness', 'sensitivity', 'pigmentation', 'wrinkles', 'pores', 'oiliness', 'blemish'] as const;
 export type CareGoal = typeof CARE_GOALS[number];
 export interface SkincareRequest {
   primaryGoal: CareGoal; secondaryGoals: CareGoal[];

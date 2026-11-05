@@ -32,8 +32,8 @@ raw_oy_* + 검수 manifest ─ 상품·가격·분류┘
 
 | 필드 | 형식 | 필수 | 의미 |
 |---|---|---:|---|
-| `primaryGoal` | enum | 예 | 주목표: `dryness`, `sensitivity`, `pigmentation`, `wrinkles`, `pores` |
-| `secondaryGoals` | enum 배열, 최대 5 | 아니요 | 보조목표. 주목표 중복을 제거하고 표준 목표 순서로 정규화 |
+| `primaryGoal` | enum | 예 | 주목표: `dryness`, `sensitivity`, `pigmentation`, `wrinkles`, `pores`, `oiliness`, `blemish` |
+| `secondaryGoals` | enum 배열, 최대 6 | 아니요 | 보조목표. 주목표 중복을 제거하고 표준 목표 순서로 정규화 |
 | `skinType` | enum | 아니요 | `dry`, `balanced`, `oily`, `unknown`; 미지정은 `unknown` |
 | `irritationSignal` | enum | 아니요 | `caution`, `none`, `unknown`; 미지정은 `unknown` |
 | `goalPolicyVersion` | 문자열 | 예 | 현재 허용값 `care-goals-v1` |
@@ -133,6 +133,8 @@ uv run python -m app.jobs.publish_skincare reviewed-bundle.json --apply
 | `ok` | 적격 매핑으로 후보 상품을 찾았다. |
 
 빈 결과만으로 어느 DB 컬럼이나 검수 플래그가 원인인지 단정하지 않는다. 개발 추적 또는 DB 점검으로 매핑 제외 이유를 확인한다.
+
+`oiliness`, `blemish`도 요청할 수 있지만, 적격한 검수 매핑이 없는 동안에는 `mapping_unavailable`이다. 매핑 승인 상태는 요청 범위 확장으로 변경하지 않는다.
 
 ## 9. 이번 버전의 미포함 항목
 

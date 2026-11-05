@@ -22,3 +22,9 @@ it('preserves unknown and permits manual care without model', () => {
   expect(deriveCareGoals(null).skinType).toBe('unknown');
   expect(skincareRequest(null, 'pores', []).primaryGoal).toBe('pores');
 });
+it('supports oiliness and blemish goals while keeping missing analysis unknown', () => {
+  expect(skincareRequest(null, 'oiliness', ['blemish']).secondaryGoals).toEqual(['blemish']);
+  expect(skincareRequest(null, 'blemish', ['oiliness']).primaryGoal).toBe('blemish');
+  const noAcne = { ...profile, analysis: { ...profile.analysis, features: { ...profile.analysis.features, acne: undefined } } };
+  expect(deriveCareGoals(noAcne).secondary).not.toContain('blemish');
+});
