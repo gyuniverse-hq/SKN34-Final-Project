@@ -140,7 +140,7 @@ describe('apiPost backend selection', () => {
     await apiPost('/api/chat', {}, { baseUrl: '' });
     expect(fetchMock.mock.calls[0][0]).toBe(`${API_BASE_URL}/api/payments`);
     expect(fetchMock.mock.calls[1][0]).toBe('/api/chat');
-    expect(timeout).toHaveBeenCalledWith(expect.any(Function), 12000);
+    expect(timeout).toHaveBeenCalledWith(expect.any(Function), 30000);
   });
 
   it('uses the shared origin and access token for account deletion', async () => {
