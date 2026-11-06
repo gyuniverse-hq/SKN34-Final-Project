@@ -157,9 +157,7 @@ def test_missing_lip_selection_does_not_call_the_model():
 def test_absolute_highlighter_placement_is_bound_to_the_closed_style():
     req = ar_request("하이라이터를 콧대로 설정해 줘.")
     req.ar_context.supported_actions = ["set_intensity", "set_geometry"]
-    req.ar_context.highlighter = ArLipSelection(
-        product_id="hl-1", shade_id="glow", intensity=0.5
-    )
+    req.ar_context.highlighter = ArLipSelection(product_id="hl-1", shade_id="glow", intensity=0.5)
     model = JsonLlm(
         {
             "status": "proposed",
@@ -181,9 +179,7 @@ def test_absolute_highlighter_placement_is_bound_to_the_closed_style():
 
 def test_geometry_without_client_capability_does_not_propose():
     req = ar_request("하이라이터를 콧대로 설정해 줘.")
-    req.ar_context.highlighter = ArLipSelection(
-        product_id="hl-1", shade_id="glow", intensity=0.5
-    )
+    req.ar_context.highlighter = ArLipSelection(product_id="hl-1", shade_id="glow", intensity=0.5)
     model = JsonLlm(
         {
             "status": "proposed",

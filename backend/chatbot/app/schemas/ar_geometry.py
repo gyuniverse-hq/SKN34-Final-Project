@@ -153,9 +153,7 @@ STYLE_WORDS: dict[str, tuple[tuple[str, tuple[str, ...]], ...]] = {
 }
 
 _VALUE = r"[+\-]?\d+(?:\.\d+)?\s*(?:%|퍼센트|프로|percent\b)"
-_ZONE_ALT = "|".join(
-    re.escape(word) for zone in GeometryZone for word in ZONE_WORDS[zone]
-)
+_ZONE_ALT = "|".join(re.escape(word) for zone in GeometryZone for word in ZONE_WORDS[zone])
 _STYLE_ALT = "|".join(
     sorted(
         {re.escape(word) for pairs in STYLE_WORDS.values() for _, words in pairs for word in words},
