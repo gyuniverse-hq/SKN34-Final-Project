@@ -5,6 +5,14 @@ it.each([0, 1, 50, 100])('routes absolute lip %s percent only to the server', (p
 });
 
 it.each([
+  '하이라이터를 콧대로 설정해 줘.',
+  'Set highlighter to nose tip',
+])('routes an absolute placement style to the server: %s', (text) => {
+  expect(arChatRoute(text)).toBe('server');
+});
+
+it.each([
+  '하이라이터 콧대', '쉐딩 턱선', '아이라인 캣윙',
   '립스틱 좀 더 연한 거 없어?', '블러셔를 조금 더 은은하게 해줘', '코랄 룩 보여줘',
   'Is there a lighter lipstick?', 'Make the blush a little softer', 'Show me a coral look',
   'もう少し薄い色のリップはある？', 'チークをもう少しやわらかくして', 'コーラルのルックを見せて',

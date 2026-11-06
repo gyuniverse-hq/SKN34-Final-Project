@@ -50,7 +50,9 @@ export default function CelebrityVideoDetail() {
           <Ionicons name="open-outline" size={15} color={theme.colors.rose} />
         </Pressable>
         <VideoTryOn label={t('videoAr.button')} loading={ar.loading} onPress={ar.open}
-          message={ar.error ? t('videoAr.error') : ar.count ? t('videoAr.mapped', { count: ar.count }) : t('videoAr.none')} />
+          message={ar.error ? t('videoAr.error') : ar.count
+            ? `${t('videoAr.mapped', { count: ar.count })}${ar.missingCore?.length ? ` ${t('videoAr.matchMissing')}` : ''}`
+            : t('videoAr.none')} />
         <View style={styles.headingRow}><Text style={styles.heading} accessibilityRole="header">{t('styleLooks.products')}</Text><Text style={styles.total}>{t('looks.itemCount', { count: video.products.length })}</Text></View>
         <View style={styles.notice}><Ionicons name="information-circle-outline" size={16} color={theme.colors.rose} /><Text style={styles.noticeText}>{t('celebVideo.productsNotice')} {t('celebVideo.notice')}</Text></View>
         {zones.map((zone) => {

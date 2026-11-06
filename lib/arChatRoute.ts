@@ -1,3 +1,5 @@
+import { isClosedLocalArChat } from './arChatAdjust';
+
 // Only complete, single requests can enter either execution path.
 const value = String.raw`[+\-]?\d+(?:\.\d+)?\s*(?:%|퍼센트|프로|percent\b)`;
 const absolute = [
@@ -23,9 +25,17 @@ const local = [
   /^给我看看珊瑚色妆容[。]?$/,
 ];
 
+const geometryAbsolute = [
+  /^(?:하이라이터|쉐딩|셰이딩|컨투어|아이라인|아이라이너|블러셔|아이섀도|립|입술)\s*[을를]?\s*.+\s*(?:으로|로)\s*(?:설정(?:해\s*(?:줘(?:요)?|주세요)|하세요)?|(?:변경|조절)해\s*(?:줘(?:요)?|주세요)|(?:해|맞춰|바꿔)\s*(?:줘(?:요)?|주세요))[.!。]?$/i,
+  /^(?:please\s+)?set\s+(?:the\s+)?(?:highlighter|contour|eyeliner|blush|eyeshadow|lips?)\s+to\s+.+(?:\s+please)?[.!]?$/i,
+];
+
 export function arChatRoute(text: string): 'server' | 'local' | 'clarification' {
   const query = text.trim();
+  const hasPercent = new RegExp(value, 'i').test(query);
   if (absolute.some((pattern) => pattern.test(query))) return 'server';
+  if (!hasPercent && geometryAbsolute.some((pattern) => pattern.test(query))) return 'server';
   if (local.some((pattern) => pattern.test(query))) return 'local';
+  if (!hasPercent && isClosedLocalArChat(query)) return 'local';
   return 'clarification';
 }
