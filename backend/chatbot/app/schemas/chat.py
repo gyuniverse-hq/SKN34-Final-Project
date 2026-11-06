@@ -4,6 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 from pydantic.alias_generators import to_camel
 
+from app.schemas.ar_geometry import STYLE_IDS
 from app.schemas.catalog import CatalogIngredients
 from app.schemas.style_recipe import StyleContext, StyleRecipe
 from app.schemas.supervisor import ScreenContext, SupervisorResult, ToolResult
@@ -44,11 +45,30 @@ class ArContext(ArModel):
 
     screen_id: Literal["A-01"]
     state_version: ArVersion
-    active_zone: Literal["lip", "blush", "eyeshadow", "eyeliner", "brow", "foundation"] | None
+    active_zone: (
+        Literal[
+            "lip",
+            "blush",
+            "eyeshadow",
+            "eyeliner",
+            "highlighter",
+            "contour",
+            "brow",
+            "foundation",
+            "mascara",
+        ]
+        | None
+    )
     supported_actions: list[Annotated[str, StringConstraints(min_length=1, max_length=64)]] = Field(
         max_length=16
     )
     lip: ArLipSelection | None
+    highlighter: ArLipSelection | None = None
+    contour: ArLipSelection | None = None
+    blush: ArLipSelection | None = None
+    eyeshadow: ArLipSelection | None = None
+    eyeliner: ArLipSelection | None = None
+    mascara: ArLipSelection | None = None
 
 
 class IngredientFilter(ArModel):
@@ -136,10 +156,33 @@ class ChatRequest(ApiModel):
         return self
 
 
-class ArAction(ArModel):
+class ArIntensityAction(ArModel):
     action: Literal["set_intensity"]
     zone: Literal["lip"]
     value: ArIntensity
+
+
+class ArGeometryAction(ArModel):
+    action: Literal["set_geometry"]
+    zone: Literal[
+        "highlighter",
+        "contour",
+        "eyeliner",
+        "blush",
+        "eyeshadow",
+        "lip",
+        "mascara",
+    ]
+    style: Annotated[str, StringConstraints(min_length=1, max_length=64)]
+
+    @model_validator(mode="after")
+    def style_belongs_to_zone(self) -> Self:
+        if self.style not in STYLE_IDS.get(self.zone, ()):
+            raise ValueError("style is not allowed for zone")
+        return self
+
+
+ArAction = Annotated[ArIntensityAction | ArGeometryAction, Field(discriminator="action")]
 
 
 class ArActionDecision(ArModel):
@@ -167,11 +210,24 @@ ArDecision = Annotated[
 ]
 
 
-class ArActionProposal(ArAction):
+class ArIntensityProposal(ArIntensityAction):
     command_id: UUID
     expected_state_version: ArVersion
     product_id: ArIdentifier
     shade_id: ArIdentifier
+
+
+class ArGeometryProposal(ArGeometryAction):
+    command_id: UUID
+    expected_state_version: ArVersion
+    product_id: ArIdentifier
+    shade_id: ArIdentifier
+    geometry: dict[str, object]
+
+
+ArActionProposal = Annotated[
+    ArIntensityProposal | ArGeometryProposal, Field(discriminator="action")
+]
 
 
 class ArResult(ArModel):
@@ -190,6 +246,7 @@ class ArResult(ArModel):
             "compound_request",
             "client_capability_missing",
             "invalid_intensity",
+            "zone_not_selected",
         ]
         | None
     ) = Field(default=None, exclude_if=lambda v: v is None)

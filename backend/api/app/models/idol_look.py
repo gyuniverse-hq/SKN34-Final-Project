@@ -1,4 +1,17 @@
-from sqlalchemy import Boolean, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from typing import Any
+
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
@@ -64,3 +77,7 @@ class LookArSettingRow(Base):
     hex: Mapped[str] = mapped_column(String(7))
     intensity: Mapped[float] = mapped_column(Float)
     texture: Mapped[str] = mapped_column(String(20))
+    # ZoneGeometry as camelCase JSON (style templates, areas); None means the app's default shape.
+    geometry: Mapped[dict[str, Any] | None] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql"), nullable=True
+    )

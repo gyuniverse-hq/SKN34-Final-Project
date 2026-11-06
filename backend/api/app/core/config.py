@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     naver_client_id: str | None = None
     naver_client_secret: str | None = None
     youtube_api_key: str | None = None
+    # Only the recipe batch (app/jobs/extract_look_recipe.py) uses Gemini; the app never calls it.
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-3.6-flash"
     tutorial_searches_per_minute: int = 20
     offer_searches_per_minute: int = 20
     # Public Supabase values, used only to verify access tokens.

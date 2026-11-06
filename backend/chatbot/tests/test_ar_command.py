@@ -6,7 +6,7 @@ import anyio
 import pytest
 
 from app.core.errors import ApiError, UpstreamError
-from app.schemas.chat import ChatRequest
+from app.schemas.chat import ArLipSelection, ChatRequest
 from app.services import ar_command_service
 from app.services.ar_command_service import propose_ar_command
 from tests.conftest import FakeLlm
@@ -152,6 +152,71 @@ def test_missing_lip_selection_does_not_call_the_model():
         "reason": "lip_not_selected",
     }
     assert model.calls == 0
+
+
+def test_absolute_highlighter_placement_is_bound_to_the_closed_style():
+    req = ar_request("하이라이터를 콧대로 설정해 줘.")
+    req.ar_context.supported_actions = ["set_intensity", "set_geometry"]
+    req.ar_context.highlighter = ArLipSelection(
+        product_id="hl-1", shade_id="glow", intensity=0.5
+    )
+    model = JsonLlm(
+        {
+            "status": "proposed",
+            "action": {"action": "set_geometry", "zone": "highlighter", "style": "nose_tip"},
+        }
+    )
+
+    result = answer(req, model)["arResult"]
+
+    assert result["status"] == "proposed"
+    assert result["actionProposal"]["action"] == "set_geometry"
+    assert result["actionProposal"]["zone"] == "highlighter"
+    assert result["actionProposal"]["style"] == "nose_tip"
+    assert result["actionProposal"]["geometry"] == {"hlStyle": "nose_tip"}
+    assert result["actionProposal"]["productId"] == "hl-1"
+    assert result["actionProposal"]["shadeId"] == "glow"
+    assert "value" not in result["actionProposal"]
+
+
+def test_geometry_without_client_capability_does_not_propose():
+    req = ar_request("하이라이터를 콧대로 설정해 줘.")
+    req.ar_context.highlighter = ArLipSelection(
+        product_id="hl-1", shade_id="glow", intensity=0.5
+    )
+    model = JsonLlm(
+        {
+            "status": "proposed",
+            "action": {"action": "set_geometry", "zone": "highlighter", "style": "nose_tip"},
+        }
+    )
+
+    result = answer(req, model)["arResult"]
+
+    assert result == {
+        "requestId": str(req.request_id),
+        "status": "unsupported",
+        "reason": "client_capability_missing",
+    }
+
+
+def test_geometry_needs_the_painted_zone_selection():
+    req = ar_request("하이라이터를 콧대로 설정해 줘.")
+    req.ar_context.supported_actions = ["set_intensity", "set_geometry"]
+    model = JsonLlm(
+        {
+            "status": "proposed",
+            "action": {"action": "set_geometry", "zone": "highlighter", "style": "nose_tip"},
+        }
+    )
+
+    result = answer(req, model)["arResult"]
+
+    assert result == {
+        "requestId": str(req.request_id),
+        "status": "clarification",
+        "reason": "zone_not_selected",
+    }
 
 
 def test_client_capabilities_do_not_expand_server_action_allowlist():
