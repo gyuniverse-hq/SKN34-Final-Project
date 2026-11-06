@@ -93,14 +93,16 @@ def recommend(
                     "excluded": excluded,
                     "sortKey": key,
                     "mappingIds": [m.mapping_id for m in matches],
-                    "evidenceIds": sorted({e for m in matches for e in m.evidence_ids}),
+                    "evidenceIds": sorted(
+                        {link.evidence_id for m in matches for link in m.evidence}
+                    ),
                     "ingredients": sorted({c for m in matches for c in m.ingredient_codes}),
                     "combinationMatches": [
                         m.mapping_id
                         for m in snapshot.mappings
                         if m.mapping_type == "combination"
+                        and m.eligible()
                         and o.identity_verified
-                        and m.identity_verified
                         and set(m.ingredient_codes).issubset(o.ingredient_codes)
                     ],
                 }
@@ -128,9 +130,9 @@ def recommend(
                     "mappingId": m.mapping_id,
                     "eligible": m.eligible(),
                     "runtimeEnabled": m.runtime_enabled,
-                    "status": m.mapping_status,
-                    "identityVerified": m.identity_verified,
-                    "reReviewRequired": m.re_review_required,
+                    "applicabilityScope": m.applicability_scope,
+                    "mappingType": m.mapping_type,
+                    "evidenceIds": [link.evidence_id for link in m.evidence],
                 }
                 for m in snapshot.mappings
             ]

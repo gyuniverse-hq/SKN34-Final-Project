@@ -49,7 +49,7 @@ it('requests confirmed concern codes only and clears the request when concerns a
   expect(flow.live).toBe(true);
   expect(useSkincareRecommendations).toHaveBeenLastCalledWith(expect.objectContaining({
     primaryGoal: 'dryness', secondaryGoals: ['pores'], skinType: 'unknown', irritationSignal: 'unknown',
-    goalPolicyVersion: 'care-goals-v1', limit: 8,
+    goalPolicyVersion: 'care-goals-v2', limit: 8,
   }));
   expect(useSkincareRecommendations).toHaveBeenLastCalledWith(expect.not.objectContaining({ questionnaire: expect.anything() }));
   await act(async () => { flow.toggle('pores'); });

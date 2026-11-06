@@ -34,5 +34,5 @@ export function skincareRequest(profile: SkinProfile | null, primaryGoal: CareGo
   const derived = deriveCareGoals(profile);
   return { primaryGoal, secondaryGoals: CARE_GOALS.filter(g => g !== primaryGoal && secondary.includes(g)),
     skinType: derived.skinType, irritationSignal: derived.irritationSignal,
-    goalPolicyVersion: 'care-goals-v1', limit: 8, ...(__DEV__ ? { includeTrace: true } : {}) };
+    goalPolicyVersion: 'care-goals-v2', limit: 8, ...(__DEV__ ? { includeTrace: true } : {}) };
 }

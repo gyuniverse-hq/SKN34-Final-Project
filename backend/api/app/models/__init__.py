@@ -41,15 +41,21 @@ from app.models.raw_oliveyoung import (
     RawOySurveyQuestionRow,
     RawOyTextureTypeRow,
 )
+from app.models.raw_youtube_product import (
+    RawYtProductMentionRow,
+    RawYtProductRow,
+    YtOyProductMatchRow,
+)
 from app.models.recommendation import (
     RecConcernMatchRow,
     RecConcernRow,
     RecEvidenceRow,
     RecIngredientDictionaryRow,
     RecIngredientLinkRow,
-    RecManualReviewCandidateRow,
+    RecMappingEvidenceRow,
     RecMappingIngredientRow,
     RecMappingRow,
+    RecommendationLegacyArchiveRow,
 )
 from app.models.skincare import SkincareServingRow
 
@@ -77,14 +83,17 @@ __all__ = [
     "OyMfdsIngredientMapRow",
     "ProductRow",
     "RawMfdsIngredientRow",
+    "RawYtProductMentionRow",
+    "RawYtProductRow",
     "RecConcernMatchRow",
     "RecConcernRow",
     "RecEvidenceRow",
     "RecIngredientDictionaryRow",
     "RecIngredientLinkRow",
-    "RecManualReviewCandidateRow",
     "RecMappingIngredientRow",
+    "RecMappingEvidenceRow",
     "RecMappingRow",
+    "RecommendationLegacyArchiveRow",
     "RawOyBrandRow",
     "RawOyCategoryRow",
     "RawOyCrawlLogRow",
@@ -110,4 +119,5 @@ __all__ = [
     "ShadeRow",
     "StoreRow",
     "YoutubeVideoRow",
+    "YtOyProductMatchRow",
 ]

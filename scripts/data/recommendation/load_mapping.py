@@ -1,190 +1,395 @@
-"""추천 매핑 전달본을 rec_* 테이블에 적재한다. 미리보기가 기본이며 --apply 로만 기록한다.
+"""Validate and load only evidence-backed v0.3 recommendation rules.
 
-전달본 7개 파일 중 6개를 적재한다. ingredient_id_bridge.csv 는 구 수집본 ID 라서
-적재하지 않는다(현재 raw_oy_ingredient 와 전수 대조 결과 일치 0건). 성분 코드와 수집
-성분의 연결은 link_ingredients.py 가 이름을 근거로 rec_ingredient_link 에 만든다.
-
-등급 컬럼(mapping_status, human_mapping_review, ai_paper_review, re_review_required,
-runtime_enabled)은 거르지 않고 그대로 넣는다. 소비하는 쪽이 판단한다.
-
-이 스크립트는 전달본 6개 테이블만 upsert 하며, 이 저장소가 계산한 rec_ingredient_link
-와 rec_concern_match 는 건드리지 않는다.
-backend/api 에서 uv run python 으로 실행.
+Required CSVs: recommendation_reason.csv, evidence_sources.csv,
+ingredient_dictionary.csv, recommendation_mapping.csv, mapping_ingredients.csv,
+and mapping_evidence.csv. There is intentionally no manual-review queue file.
+Preview is the default; --apply replaces the operational rule snapshot.
 """
-import argparse, asyncio, csv, getpass, os, ssl
+
+import argparse
+import asyncio
+import csv
+import getpass
+import json
+import os
+import ssl
+from collections import defaultdict
 from pathlib import Path
 
 import asyncpg
 
-DEFAULT_DIR = Path.home() / "Downloads" / "VISHUE_DB_추천매핑_요구사항정합_v1_2_1"
-
-MAPPING_STATUSES = {
-    "candidate_after_match", "research_only", "support_only", "formula_evidence_only",
-    "excluded_treatment_scope", "excluded_wrong_endpoint", "excluded_context_mismatch",
+DEFAULT_DIR = Path.home() / "Downloads" / "VISHUE_Recommendation_v0_3"
+CONCERNS = {"dryness", "sensitivity", "pigmentation", "wrinkles", "pores", "blemish", "oiliness"}
+STUDY_TYPES = {
+    "human_intervention",
+    "human_observational",
+    "in_vitro",
+    "animal",
+    "method_validation",
+    "review",
+    "other",
 }
+SCOPES = {"ingredient_level", "formula_specific"}
 
 
-def read_csv(path: Path) -> list[dict]:
+def read_csv(path: Path, required: set[str]) -> list[dict[str, str]]:
     if not path.is_file():
-        raise SystemExit(f"파일이 없습니다: {path}")
-    with path.open(encoding="utf-8-sig", newline="") as fh:
-        return list(csv.DictReader(fh))
+        raise SystemExit(f"Required file missing: {path}")
+    with path.open(encoding="utf-8-sig", newline="") as stream:
+        reader = csv.DictReader(stream)
+        missing = required - set(reader.fieldnames or ())
+        if missing:
+            raise SystemExit(f"{path.name}: required columns missing: {sorted(missing)}")
+        return [{key: (value or "").strip() for key, value in row.items()} for row in reader]
 
 
-def flag(value: str) -> bool:
-    """'1'/'0' 표기를 참/거짓으로 바꾼다."""
-    v = (value or "").strip().lower()
-    if v in ("1", "true", "y", "yes"):
+def flag(value: str, label: str) -> bool:
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "y", "yes"}:
         return True
-    if v in ("0", "", "false", "n", "no"):
+    if normalized in {"0", "false", "n", "no"}:
         return False
-    raise SystemExit(f"참/거짓으로 읽을 수 없는 값: {value!r}")
+    raise ValueError(f"{label}: expected true/false, got {value!r}")
 
 
-def check_integrity(src: dict[str, list[dict]]) -> None:
-    """적재 전에 전달본 안의 참조가 모두 맞는지 확인한다."""
-    concerns = {r["target_concern"] for r in src["reason"]}
-    evidences = {r["evidence_id"] for r in src["evidence"]}
-    codes = {r["ingredient_code"] for r in src["dictionary"]}
-    mappings = {r["mapping_id"] for r in src["mapping"]}
-    problems = []
-    for r in src["mapping"]:
-        if r["target_concern"] not in concerns:
-            problems.append(f"{r['mapping_id']}: 없는 target_concern {r['target_concern']}")
-        if r["evidence_id"] and r["evidence_id"] not in evidences:
-            problems.append(f"{r['mapping_id']}: 없는 evidence_id {r['evidence_id']}")
-        if r["mapping_status"] not in MAPPING_STATUSES:
-            problems.append(f"{r['mapping_id']}: 모르는 mapping_status {r['mapping_status']}")
-        if r["mapping_type"] not in ("single", "combination"):
-            problems.append(f"{r['mapping_id']}: 모르는 mapping_type {r['mapping_type']}")
-    for r in src["mapping_ingredients"]:
-        if r["mapping_id"] not in mappings:
-            problems.append(f"구성 성분 행: 없는 mapping_id {r['mapping_id']}")
-        if r["ingredient_code"] not in codes:
-            problems.append(f"구성 성분 행: 없는 ingredient_code {r['ingredient_code']}")
-    for r in src["manual"]:
-        if r["ingredient_code"] not in codes:
-            problems.append(f"보류 후보: 없는 ingredient_code {r['ingredient_code']}")
-    if problems:
-        print("전달본 참조 오류:")
-        for p in problems[:20]:
-            print("  -", p)
-        raise SystemExit(f"참조 오류 {len(problems)}건. 적재를 중단합니다.")
-
-
-async def connect(a):
-    sslc: ssl.SSLContext | bool = False
-    if a.target == "shared":
-        if not a.ssl_ca_file:
-            raise SystemExit("--ssl-ca-file 이 필요합니다")
-        if a.apply and not a.execute_shared:
-            raise SystemExit("공용 DB 기록에는 --apply 와 --execute-shared 가 모두 필요합니다")
-        sslc = ssl.create_default_context(cafile=a.ssl_ca_file)
-        pw = getpass.getpass("Shared PostgreSQL password: ")
-    else:
-        pw = os.environ.get("POSTGRES_PASSWORD") or getpass.getpass("Local PostgreSQL password: ")
-    return await asyncpg.connect(host=a.host, port=a.port, database=a.database,
-                                user=a.user, password=pw, ssl=sslc)
-
-
-async def upsert(conn, table: str, keys: tuple[str, ...], columns: tuple[str, ...], rows: list[tuple]):
-    """기본키가 같으면 갱신한다. 삭제는 하지 않는다."""
-    if not rows:
-        return 0
-    placeholders = ", ".join(f"${i + 1}" for i in range(len(columns)))
-    updates = ", ".join(f"{c} = EXCLUDED.{c}" for c in columns if c not in keys)
-    sql = (
-        f"INSERT INTO public.{table} ({', '.join(columns)}) VALUES ({placeholders}) "
-        f"ON CONFLICT ({', '.join(keys)}) DO UPDATE SET {updates}"
-        if updates
-        else f"INSERT INTO public.{table} ({', '.join(columns)}) VALUES ({placeholders}) "
-             f"ON CONFLICT ({', '.join(keys)}) DO NOTHING"
-    )
-    await conn.executemany(sql, rows)
-    return len(rows)
-
-
-async def main() -> None:
-    p = argparse.ArgumentParser()
-    p.add_argument("--dir", type=Path, default=DEFAULT_DIR, help="전달본 폴더")
-    p.add_argument("--target", choices=("local", "shared"), default="local")
-    p.add_argument("--host", default="127.0.0.1")
-    p.add_argument("--port", type=int, default=15432)
-    p.add_argument("--database", default="vishue_db")
-    p.add_argument("--user", default="vishue")
-    p.add_argument("--ssl-ca-file")
-    p.add_argument("--apply", action="store_true", help="실제로 기록한다")
-    p.add_argument("--execute-shared", action="store_true")
-    a = p.parse_args()
-
-    src = {
-        "reason": read_csv(a.dir / "recommendation_reason.csv"),
-        "evidence": read_csv(a.dir / "evidence_sources.csv"),
-        "dictionary": read_csv(a.dir / "ingredient_dictionary.csv"),
-        "mapping": read_csv(a.dir / "recommendation_mapping.csv"),
-        "mapping_ingredients": read_csv(a.dir / "mapping_ingredients.csv"),
-        "manual": read_csv(a.dir / "manual_review_candidates.csv"),
+def load_sources(folder: Path) -> dict[str, list[dict[str, str]]]:
+    return {
+        "concerns": read_csv(
+            folder / "recommendation_reason.csv",
+            {"target_concern", "display_label", "recommendation_reason"},
+        ),
+        "evidence": read_csv(
+            folder / "evidence_sources.csv",
+            {
+                "evidence_id",
+                "pmid",
+                "title",
+                "source_url",
+                "study_limit",
+                "study_type",
+                "publication_year",
+            },
+        ),
+        "dictionary": read_csv(
+            folder / "ingredient_dictionary.csv", {"ingredient_code", "name_ko", "inci_name"}
+        ),
+        "mappings": read_csv(
+            folder / "recommendation_mapping.csv",
+            {
+                "mapping_id",
+                "mapping_type",
+                "target_concern",
+                "applicability_scope",
+                "runtime_enabled",
+            },
+        ),
+        "ingredients": read_csv(
+            folder / "mapping_ingredients.csv", {"mapping_id", "ingredient_code", "component_order"}
+        ),
+        "evidence_links": read_csv(
+            folder / "mapping_evidence.csv",
+            {
+                "mapping_id",
+                "evidence_id",
+                "supported_endpoint",
+                "study_conditions",
+                "applicability_note",
+            },
+        ),
     }
-    print(f"전달본: {a.dir}")
-    for k, v in src.items():
-        print(f"  {k:<20} {len(v):>4}행")
-    check_integrity(src)
-    print("전달본 참조 정합성 통과")
 
-    plan = [
-        ("rec_concern", ("target_concern",),
-         ("target_concern", "display_label", "recommendation_reason"),
-         [(r["target_concern"], r["display_label"], r["recommendation_reason"])
-          for r in src["reason"]]),
-        ("rec_evidence", ("evidence_id",),
-         ("evidence_id", "pmid", "title", "source_url", "ai_paper_review", "study_limit"),
-         [(r["evidence_id"], r["pmid"] or None, r["title"] or None, r["source_url"] or None,
-           r["ai_paper_review"] or None, r["study_limit"] or None) for r in src["evidence"]]),
-        ("rec_ingredient_dictionary", ("ingredient_code",),
-         ("ingredient_code", "name_ko", "inci_name", "source_match_status"),
-         [(r["ingredient_code"], r["name_ko"], r["inci_name"] or None,
-           r["source_match_status"] or None) for r in src["dictionary"]]),
-        ("rec_mapping", ("mapping_id",),
-         ("mapping_id", "mapping_type", "target_concern", "ingredient_codes", "evidence_id",
-          "mapping_status", "human_mapping_review", "ai_paper_review", "re_review_required",
-          "runtime_enabled", "requirements_scope"),
-         [(r["mapping_id"], r["mapping_type"], r["target_concern"], r["ingredient_codes"] or None,
-           r["evidence_id"] or None, r["mapping_status"], r["human_mapping_review"] or None,
-           r["ai_paper_review"] or None, flag(r["re_review_required"]),
-           flag(r["runtime_enabled"]), r["requirements_scope"] or None) for r in src["mapping"]]),
-        ("rec_mapping_ingredient", ("mapping_id", "ingredient_code"),
-         ("mapping_id", "ingredient_code", "component_order"),
-         [(r["mapping_id"], r["ingredient_code"], int(r["component_order"]))
-          for r in src["mapping_ingredients"]]),
-        ("rec_manual_review_candidate", ("ingredient_code", "source_name"),
-         ("ingredient_code", "source_name", "source_ingredient_id", "review_reason", "approved"),
-         [(r["ingredient_code"], r["source_name"],
-           int(r["ingredient_id"]) if r["ingredient_id"].strip().isdigit() else None,
-           r["review_reason"] or None, flag(r["approved"])) for r in src["manual"]]),
-    ]
 
-    enabled = [r for r in src["mapping"] if flag(r["runtime_enabled"])]
-    print(f"\nruntime_enabled 가 참인 매핑: {len(enabled)}건 (전달본은 0건이어야 정상)")
+def validate_and_normalize(src: dict[str, list[dict[str, str]]]):
+    errors = []
+    concerns = {r["target_concern"] for r in src["concerns"]}
+    evidence_by_id = {r["evidence_id"]: r for r in src["evidence"]}
+    codes = {r["ingredient_code"] for r in src["dictionary"]}
+    maps_by_id = {r["mapping_id"]: r for r in src["mappings"]}
+    if len(concerns) != len(src["concerns"]):
+        errors.append("duplicate concern code")
+    if concerns - CONCERNS:
+        errors.append(f"unsupported concerns: {sorted(concerns - CONCERNS)}")
+    if len(evidence_by_id) != len(src["evidence"]):
+        errors.append("duplicate evidence_id")
+    if len(codes) != len(src["dictionary"]):
+        errors.append("duplicate ingredient_code")
+    if len(maps_by_id) != len(src["mappings"]):
+        errors.append("duplicate mapping_id")
 
-    conn = await connect(a)
+    for row in src["evidence"]:
+        if not row["title"] or not row["source_url"]:
+            errors.append(f"{row['evidence_id']}: title/source_url required")
+        if row["study_type"] not in STUDY_TYPES:
+            errors.append(f"{row['evidence_id']}: invalid or missing study_type")
+        if row["publication_year"]:
+            try:
+                year = int(row["publication_year"])
+                if not 1800 <= year <= 2200:
+                    raise ValueError
+            except ValueError:
+                errors.append(f"{row['evidence_id']}: invalid publication_year")
+
+    components = defaultdict(list)
+    for row in src["ingredients"]:
+        if row["mapping_id"] not in maps_by_id:
+            errors.append(f"ingredient row references unknown mapping {row['mapping_id']}")
+        if row["ingredient_code"] not in codes:
+            errors.append(f"{row['mapping_id']}: unknown ingredient code {row['ingredient_code']}")
+        try:
+            order = int(row["component_order"])
+            if order < 1:
+                raise ValueError
+        except ValueError:
+            errors.append(f"{row['mapping_id']}: component_order must be >= 1")
+            continue
+        components[row["mapping_id"]].append((order, row["ingredient_code"]))
+
+    links = defaultdict(list)
+    seen_mapping_evidence = {}
+    for row in src["evidence_links"]:
+        if row["mapping_id"] not in maps_by_id:
+            errors.append(f"evidence row references unknown mapping {row['mapping_id']}")
+        if row["evidence_id"] not in evidence_by_id:
+            errors.append(f"{row['mapping_id']}: unknown evidence {row['evidence_id']}")
+        if not row["supported_endpoint"]:
+            errors.append(f"{row['mapping_id']}/{row['evidence_id']}: supported_endpoint required")
+        try:
+            conditions = json.loads(row["study_conditions"] or "{}")
+            if not isinstance(conditions, dict):
+                raise TypeError("must be a JSON object")
+            row["_conditions"] = conditions
+        except (json.JSONDecodeError, TypeError) as exc:
+            errors.append(
+                f"{row['mapping_id']}/{row['evidence_id']}: invalid study_conditions: {exc}"
+            )
+            row["_conditions"] = {}
+        links[row["mapping_id"]].append(row)
+        pair = (row["mapping_id"], row["evidence_id"])
+        claim = (row["supported_endpoint"], row["study_conditions"], row["applicability_note"])
+        if pair in seen_mapping_evidence and seen_mapping_evidence[pair] != claim:
+            errors.append(
+                f"{row['mapping_id']}/{row['evidence_id']}: conflicting duplicate evidence claims"
+            )
+        seen_mapping_evidence[pair] = claim
+
+    parsed_mappings = {}
+    for row in src["mappings"]:
+        mid = row["mapping_id"]
+        items = sorted(components[mid])
+        member_codes = [code for _, code in items]
+        unique_codes = set(member_codes)
+        kind = row["mapping_type"]
+        concern = row["target_concern"]
+        scope = row["applicability_scope"]
+        if concern not in concerns:
+            errors.append(f"{mid}: missing concern definition for {concern}")
+        if scope not in SCOPES:
+            errors.append(f"{mid}: invalid applicability_scope {scope!r}")
+        if (
+            (kind == "single" and len(unique_codes) != 1)
+            or (kind == "combination" and len(unique_codes) < 2)
+            or kind not in {"single", "combination"}
+        ):
+            errors.append(f"{mid}: mapping_type does not match distinct ingredient count")
+        if len(unique_codes) != len(member_codes):
+            errors.append(f"{mid}: duplicate ingredient_code in composition")
+        if not links[mid]:
+            errors.append(f"{mid}: at least one evidence link is required")
+        try:
+            runtime = flag(row["runtime_enabled"], f"{mid}.runtime_enabled")
+        except ValueError as exc:
+            errors.append(str(exc))
+            runtime = False
+        parsed_mappings[mid] = {
+            "mapping_id": mid,
+            "mapping_type": kind,
+            "target_concern": concern,
+            "applicability_scope": scope,
+            "runtime_enabled": runtime,
+            "ingredient_codes": member_codes,
+        }
+
+    # Consolidate repeated rules; one canonical mapping keeps all evidence links.
+    groups = defaultdict(list)
+    for mid, mapping in parsed_mappings.items():
+        signature = (
+            mapping["target_concern"],
+            mapping["applicability_scope"],
+            tuple(sorted(mapping["ingredient_codes"])),
+        )
+        groups[signature].append(mid)
+    canonical_for = {}
+    normalized = []
+    for mids in groups.values():
+        canonical = min(mids)
+        combined = dict(parsed_mappings[canonical])
+        combined["runtime_enabled"] = any(parsed_mappings[mid]["runtime_enabled"] for mid in mids)
+        combined["source_mapping_ids"] = mids
+        normalized.append(combined)
+        for mid in mids:
+            canonical_for[mid] = canonical
+
+    merged_evidence_claims = {}
+    for source_id, canonical_id in canonical_for.items():
+        for row in links[source_id]:
+            key = (canonical_id, row["evidence_id"])
+            claim = (row["supported_endpoint"], row["_conditions"], row["applicability_note"])
+            if key in merged_evidence_claims and merged_evidence_claims[key] != claim:
+                errors.append(
+                    f"merged rule {canonical_id}/{row['evidence_id']}: conflicting endpoint/conditions"
+                )
+            merged_evidence_claims[key] = claim
+
+    if errors:
+        print("Input validation failed:")
+        for error in errors[:40]:
+            print(" -", error)
+        raise SystemExit(
+            f"Stopped with {len(errors)} validation issue(s); no database writes were made"
+        )
+    return normalized, canonical_for, components, links, evidence_by_id
+
+
+async def connect(args):
+    ssl_context: ssl.SSLContext | bool = False
+    if args.target == "shared":
+        if not args.ssl_ca_file:
+            raise SystemExit("--ssl-ca-file required for shared target")
+        if args.apply and not args.execute_shared:
+            raise SystemExit("Shared writes require both --apply and --execute-shared")
+        ssl_context = ssl.create_default_context(cafile=args.ssl_ca_file)
+        password = getpass.getpass("Shared PostgreSQL password: ")
+    else:
+        password = os.environ.get("POSTGRES_PASSWORD") or getpass.getpass(
+            "Local PostgreSQL password: "
+        )
+    return await asyncpg.connect(
+        host=args.host,
+        port=args.port,
+        database=args.database,
+        user=args.user,
+        password=password,
+        ssl=ssl_context,
+    )
+
+
+async def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dir", type=Path, default=DEFAULT_DIR)
+    parser.add_argument("--target", choices=("local", "shared"), default="local")
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--port", type=int, default=15432)
+    parser.add_argument("--database", default="vishue_db")
+    parser.add_argument("--user", default="vishue")
+    parser.add_argument("--ssl-ca-file")
+    parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--execute-shared", action="store_true")
+    args = parser.parse_args()
+
+    src = load_sources(args.dir)
+    mappings, _, components, evidence_links, _ = validate_and_normalize(src)
+    print(
+        f"Validated: concerns {len(src['concerns'])}, studies {len(src['evidence'])}, "
+        f"ingredients {len(src['dictionary'])}, unique rules {len(mappings)}"
+    )
+    print(
+        f"Evidence links: {sum(len(v) for v in evidence_links.values())}; "
+        f"runtime-enabled ingredient-level rules: "
+        f"{sum(m['runtime_enabled'] and m['applicability_scope'] == 'ingredient_level' for m in mappings)}"
+    )
+
+    conn = await connect(args)
     try:
-        print("\n== 적재 전 행 수 ==")
-        for table, *_ in plan:
-            n = await conn.fetchval(f"SELECT COUNT(*) FROM public.{table}")
-            print(f"  {table:<30} {n:>5,}")
-        if not a.apply:
-            print("\n미리보기입니다. 기록하려면 --apply 를 붙이세요.")
+        old_kill_switches = {
+            row["mapping_id"]: row["runtime_enabled"]
+            for row in await conn.fetch("SELECT mapping_id, runtime_enabled FROM rec_mapping")
+        }
+        counts = {
+            table: await conn.fetchval(f"SELECT COUNT(*) FROM public.{table}")
+            for table in ("rec_concern", "rec_evidence", "rec_ingredient_dictionary", "rec_mapping")
+        }
+        print("Existing rows:", counts)
+        if not args.apply:
+            print("Preview only; no rows were written")
             return
+
         async with conn.transaction():
-            for table, keys, columns, rows in plan:
-                n = await upsert(conn, table, keys, columns, rows)
-                print(f"  {table:<30} {n:>5,}행 upsert")
-        print("\n== 적재 후 행 수 ==")
-        for table, *_ in plan:
-            n = await conn.fetchval(f"SELECT COUNT(*) FROM public.{table}")
-            print(f"  {table:<30} {n:>5,}")
+            for row in src["concerns"]:
+                await conn.execute(
+                    """INSERT INTO rec_concern VALUES ($1,$2,$3)
+                    ON CONFLICT (target_concern) DO UPDATE SET display_label=EXCLUDED.display_label,
+                    recommendation_reason=EXCLUDED.recommendation_reason""",
+                    row["target_concern"],
+                    row["display_label"],
+                    row["recommendation_reason"],
+                )
+            for row in src["evidence"]:
+                await conn.execute(
+                    """INSERT INTO rec_evidence (evidence_id,pmid,title,source_url,study_limit,study_type,publication_year)
+                    VALUES ($1,$2,$3,$4,$5,$6,$7)
+                    ON CONFLICT (evidence_id) DO UPDATE SET pmid=EXCLUDED.pmid,title=EXCLUDED.title,
+                    source_url=EXCLUDED.source_url,study_limit=EXCLUDED.study_limit,
+                    study_type=EXCLUDED.study_type,publication_year=EXCLUDED.publication_year""",
+                    row["evidence_id"],
+                    row["pmid"] or None,
+                    row["title"],
+                    row["source_url"],
+                    row["study_limit"] or None,
+                    row["study_type"],
+                    int(row["publication_year"]) if row["publication_year"] else None,
+                )
+            for row in src["dictionary"]:
+                await conn.execute(
+                    """INSERT INTO rec_ingredient_dictionary VALUES ($1,$2,$3)
+                    ON CONFLICT (ingredient_code) DO UPDATE SET name_ko=EXCLUDED.name_ko,inci_name=EXCLUDED.inci_name""",
+                    row["ingredient_code"],
+                    row["name_ko"],
+                    row["inci_name"] or None,
+                )
+
+            await conn.execute("DELETE FROM rec_concern_match")
+            await conn.execute("DELETE FROM rec_mapping_evidence")
+            await conn.execute("DELETE FROM rec_mapping_ingredient")
+            await conn.execute("DELETE FROM rec_mapping")
+            for mapping in mappings:
+                enabled = mapping["runtime_enabled"] and all(
+                    old_kill_switches.get(source_id, True)
+                    for source_id in mapping["source_mapping_ids"]
+                )
+                await conn.execute(
+                    "INSERT INTO rec_mapping VALUES ($1,$2,$3,$4,$5)",
+                    mapping["mapping_id"],
+                    mapping["mapping_type"],
+                    mapping["target_concern"],
+                    mapping["applicability_scope"],
+                    enabled,
+                )
+                for order, code in sorted(components[mapping["mapping_id"]]):
+                    await conn.execute(
+                        "INSERT INTO rec_mapping_ingredient VALUES ($1,$2,$3)",
+                        mapping["mapping_id"],
+                        code,
+                        order,
+                    )
+                for source_id in mapping["source_mapping_ids"]:
+                    for row in evidence_links[source_id]:
+                        await conn.execute(
+                            """INSERT INTO rec_mapping_evidence
+                            (mapping_id,evidence_id,supported_endpoint,study_conditions,applicability_note)
+                            VALUES ($1,$2,$3,$4::jsonb,$5)
+                            ON CONFLICT (mapping_id,evidence_id) DO NOTHING""",
+                            mapping["mapping_id"],
+                            row["evidence_id"],
+                            row["supported_endpoint"],
+                            json.dumps(row["_conditions"], ensure_ascii=False),
+                            row["applicability_note"] or None,
+                        )
+        print(
+            f"Committed {len(mappings)} validated unique mapping rules; prior kill switches preserved"
+        )
     finally:
         await conn.close()
 
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

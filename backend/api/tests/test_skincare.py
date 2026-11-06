@@ -20,14 +20,10 @@ def mapping(**changes):
                 mapping_id="m",
                 target_concern="dryness",
                 mapping_type="single",
+                applicability_scope="ingredient_level",
                 ingredient_codes=["A"],
-                evidence_ids=["e"],
-                mapping_status="candidate_after_match",
-                human_mapping_review="승인",
-                ai_paper_review="승인",
-                re_review_required=False,
+                evidence=[{"evidenceId": "e", "supportedEndpoint": "test endpoint"}],
                 runtime_enabled=True,
-                identity_verified=True,
             )
             | changes
         )
@@ -59,17 +55,24 @@ def snapshot(options=None, mappings=None):
         source_manifest={"source": "fixture"},
         mappings=mappings if mappings is not None else [mapping()],
         options=options if options is not None else [option()],
-        evidence={"e": {"title": "test"}},
+        evidence={
+            "e": {
+                "evidenceId": "e",
+                "title": "test",
+                "sourceUrl": "https://example.test",
+                "studyType": "other",
+            }
+        },
         ingredient_provenance={
-            "A": {"source": "reviewed", "reviewedBy": "tester"},
-            "B": {"source": "reviewed", "reviewedBy": "tester"},
+            "A": [{"linkMethod": "exact_name", "linkedAt": "2026-01-01T00:00:00Z"}],
+            "B": [{"linkMethod": "exact_name", "linkedAt": "2026-01-01T00:00:00Z"}],
         },
     )
 
 
 def request(**changes):
     return SkincareRequest(
-        **(dict(primary_goal="dryness", goal_policy_version="care-goals-v1") | changes)
+        **(dict(primary_goal="dryness", goal_policy_version="care-goals-v2") | changes)
     )
 
 
@@ -77,12 +80,7 @@ def request(**changes):
     "change",
     [
         dict(runtime_enabled=False),
-        dict(identity_verified=False),
-        dict(mapping_status="research_only"),
-        dict(re_review_required=True),
-        dict(human_mapping_review="수정필요"),
-        dict(ai_paper_review="제외"),
-        dict(mapping_type="combination", ingredient_codes=["A", "B"]),
+        dict(applicability_scope="formula_specific"),
     ],
 )
 def test_unapproved_mappings_never_rank(change):
@@ -149,7 +147,7 @@ def test_trace_is_explicit_and_combination_is_same_option_only():
         {"analysis": {}},
         {"limit": True},
         {"rating": 5},
-        {"primary_goal": "oiliness"},
+        {"primary_goal": "invalid_goal"},
     ],
 )
 def test_invalid_private_inputs(extra):

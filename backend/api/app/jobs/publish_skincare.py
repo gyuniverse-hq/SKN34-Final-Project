@@ -1,4 +1,4 @@
-"""Validate a reviewed serving bundle; dry-run by default. Never enables mappings."""
+"""Validate a v0.3 serving bundle; dry-run by default. Never enables mappings."""
 
 import argparse
 import asyncio
@@ -18,7 +18,7 @@ async def main():
     for goal in GOALS:
         result = recommend(
             snapshot,
-            SkincareRequest(primary_goal=goal, goal_policy_version="care-goals-v1", limit=20),
+            SkincareRequest(primary_goal=goal, goal_policy_version="care-goals-v2", limit=20),
         )
         active = [m for m in snapshot.mappings if m.eligible() and m.target_concern == goal]
         count = len(
