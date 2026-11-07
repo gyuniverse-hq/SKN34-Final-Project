@@ -1,0 +1,141 @@
+{
+  "criteria_version": "v2.1",
+  "inputs": {
+    "criteria": "criteria_v2.1.json",
+    "lapa": "/tmp/mx/baseline_landmarks.csv",
+    "lapa_prev": null,
+    "subset": null,
+    "lip": "/tmp/audit/head/cmp_normal.csv",
+    "floor": "data/skin_floor.csv",
+    "key": "/tmp/audit/key.csv",
+    "survey": "/tmp/audit/survey",
+    "exclude": [
+      "전진영",
+      "전진영5"
+    ],
+    "out": "results/result_v2.1_2026-11-03_head-895bae24.json"
+  },
+  "skin_floor": 2.8953723412889456,
+  "items": {
+    "color": {
+      "status": "not_valid",
+      "conditions": [
+        {
+          "id": "color_at",
+          "status": "not_valid",
+          "measured": 3.85584869259106,
+          "line": "<= 1.8 (Paravina 2015 AT; Lagouvardo 2018 1.81)",
+          "note": "skin floor 2.90 >= 1.8: photo pairs differ more than the line before any makeup"
+        },
+        {
+          "id": "color_beats_bare",
+          "status": "pass",
+          "measured": 15,
+          "line": ">= 15/20 (sign test p<0.05)",
+          "note": "p = 0.0207"
+        }
+      ],
+      "report_only": {
+        "n": 20,
+        "median dE bare": 7.210015925417464,
+        "share dE<=1.8": 0.05
+      }
+    },
+    "position": {
+      "status": "fail",
+      "conditions": [
+        {
+          "id": "lip_f1_sota",
+          "status": "fail",
+          "measured": 0.8397688707046452,
+          "line": ">= 0.887 (SegFace AAAI 2025 best U-lip)",
+          "note": "dataset IoU 0.724"
+        },
+        {
+          "id": "lip_no_regression",
+          "status": "not_measured",
+          "measured": null,
+          "line": "needs --lapa-prev",
+          "note": ""
+        }
+      ],
+      "report_only": {
+        "n": 1840,
+        "mean per-image IoU": 0.7051064014081286,
+        "median per-image IoU": 0.7329507738936847,
+        "dataset IoU": 0.7237944660342491,
+        "images IoU<0.2": 23,
+        "mean spill": 0.16105424095942672,
+        "mean miss": 0.1940537074905689,
+        "median boundary error / mouth width": 0.014128010836814102
+      }
+    },
+    "texture": {
+      "status": "fail",
+      "conditions": [
+        {
+          "id": "tex_spread",
+          "status": "fail",
+          "measured": 8,
+          "line": ">= 15/20 (sign test p<0.05)",
+          "note": "p = 0.8684"
+        },
+        {
+          "id": "tex_hi",
+          "status": "fail",
+          "measured": 11,
+          "line": ">= 15/20 (sign test p<0.05)",
+          "note": "p = 0.4119"
+        },
+        {
+          "id": "tex_ssim",
+          "status": "fail",
+          "measured": 6,
+          "line": ">= 15/20 (sign test p<0.05)",
+          "note": "p = 0.9793"
+        }
+      ]
+    },
+    "naturalness": {
+      "status": "fail",
+      "conditions": [
+        {
+          "id": "nat_indistinguishable",
+          "status": "fail",
+          "measured": 0.8666666666666667,
+          "line": "90% CI upper < 0.6 with >= 194 judgments",
+          "note": "90% CI 0.700-1.000. even the lower 90% bound is above the line: clearly distinguishable"
+        },
+        {
+          "id": "nat_score",
+          "status": "fail",
+          "measured": 2.213786007013434,
+          "line": "Cohen d (real - AR) 90% CI upper < 0.2",
+          "note": "90% CI 1.11-4.81. even the lower 90% bound is above the line"
+        }
+      ],
+      "report_only": {
+        "raters": 5,
+        "pair judgments": 30,
+        "needed judgments": 194,
+        "unknown ids": 0,
+        "simple accuracy": 0.8666666666666667,
+        "balanced accuracy": 0.8666666666666667,
+        "sensitivity": 1.0,
+        "specificity": 0.7333333333333333,
+        "d_prime": 2.456840359026002,
+        "criterion_c": -0.6054944563029132,
+        "AR-answer rate": 0.6333333333333333,
+        "mean score real": 4.466666666666667,
+        "mean score AR": 1.9333333333333333,
+        "per-rater accuracy": {
+          "김대호": 1.0,
+          "김종민": 0.8333333333333334,
+          "김현지": 1.0,
+          "홍지윤": 0.5,
+          "황호순": 1.0
+        }
+      }
+    }
+  }
+}

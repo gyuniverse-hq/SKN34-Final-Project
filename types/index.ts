@@ -140,7 +140,23 @@ export interface InnerPoint {
  */
 export type EyelinerStyle = 'classic_winged' | 'puppy' | 'tightline';
 
+/**
+ * One bunch of attached false lashes (look camera only, drawn with the mascara).
+ * u: 0 inner corner → 1 outer corner. mm: strand length. spread: root spacing across the bunch (share of the lid).
+ * converge: 0 = tips fan out, 1 = tips meet (A-shape). lift: curl strength, 1 = same as the natural mascara lashes.
+ */
+export interface FalseLashCluster {
+  edge: 'upper' | 'lower';
+  u: number;
+  mm: number;
+  strands: number;
+  spread: number;
+  converge: number;
+  lift: number;
+}
+
 export interface ZoneGeometry {
+  falseLash?: FalseLashCluster[];
   length?: number;
   angle?: number;
   thickness?: number;
