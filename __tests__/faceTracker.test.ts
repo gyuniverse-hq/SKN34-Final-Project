@@ -426,7 +426,10 @@ describe('face tracker page', () => {
     // Offsets are clamped to the range, and a weak or missing edge falls back to the prior.
     expect(fitCode).toContain('target[i] = clamp(num / den, lo, hi);');
     expect(fitCode).toContain('let num = L.priorWeight * prior, den = L.priorWeight;');
-    expect(script).toContain('lo: -0.01, hi: 0.05,');
+    // 11-07: no upward bias: the line stays on the lid points unless the lash line is read, and rises at most 1.5%.
+    expect(script).toContain('d0: 0,');
+    expect(script).toContain('lo: -0.04, hi: 0.015,');
+    expect(script).toContain('if (side.ready && side.measured && side.offS < L.holdS) { side.active = false; side.conf.fill(0); return side.x; }');
     expect(script).toContain('lowD0: 0.005, lowLo: -0.01, lowHi: 0.03');
     // Face lost: the offsets are dropped, so nobody inherits the last person's lash line.
     expect(script).toContain('resetLidFit();');
@@ -491,6 +494,20 @@ describe('face tracker page', () => {
     // Raw anchors (mouth centre near the mouth, face centre elsewhere); One Euro only on the offsets.
     expect(script).toContain('const x = face[i].x - ax(i), y = face[i].y - ay(i);');
     expect(script).toContain('for (let i = 0; i < n; i++) { sx[i] = ax(i) + ox[i]; sy[i] = ay(i) + oy[i]; }');
+  });
+
+  it('keeps the eye canvas opaque: the brow is its own texture, never packed into alpha (11-06 /ar-debug)', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    // A 2D canvas stores premultiplied colour: alpha 0 outside the brow wiped liner (r) and mascara (g) in every look
+    // with a brow (phone and headless both reported a0 'lost'). The brow canvas goes up on texture unit 9 instead.
+    expect(script).not.toContain('putImageData(packed');
+    expect(script).not.toContain('eyeC.a');
+    expect(script).not.toMatch(/eyeAt\([^)]*\)\.a/);
+    expect(script).toContain("'float browAt(vec2 s) {',");
+    expect(script).toContain("texture2D(uBrowTex, p).g");
+    expect(script).toContain("'uEye', 'uBrowTex', 'uEyeRect',");
+    expect(script).toContain('if (eyesOn && browZ) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, browCanvas);');
+    expect(script).toContain('gl.uniform1i(u.uBrowTex, 9);');
   });
 
   it('draws eyeliner and mascara from the lid landmarks, following blinks (10-25)', () => {
@@ -574,7 +591,7 @@ describe('face tracker page', () => {
     expect(script).toContain('if (browPaint) {');
     expect(script).toContain('pathOn(browCtx, lower.concat(upper));');
     expect(script).toContain('vec4 eyeAt(vec2 s) {');
-    expect(script).toContain('float browG = eyeC.a;');
+    expect(script).toContain('float browG = uEyeRect.x > -1.0 ? browAt(suv) : 0.0;');
     expect(script).toContain('for (const ids of [BROWS.slice(0, 10), BROWS.slice(10)]) {');
     expect(script).not.toContain('0.07 * eyeW');
     // Translucent powder tints the skin (no ashy patch on deep skin); no skin smoothing anywhere.
@@ -593,11 +610,16 @@ describe('face tracker page', () => {
     expect(script).toContain('darkA = 0.0; innerA = 0.0; foundA = 0.0; browA = 0.0; }');
     // Mascara length and density come from geometry (defaults 1, clamped), never random per frame.
     expect(script).toContain("const mg = Object.assign({ length: 1, thickness: 1 }, mascara.geometry || {});");
-    expect(script).toContain('const nLash = clamp(Math.round(TUNING.lashCount * mg.thickness), 12, 72);');
-    expect(script).toContain('const mid = [root[0] + dir[0] * 0.45 * L + curl[0] * 0.22 * L, root[1] + dir[1] * 0.45 * L + curl[1] * 0.22 * L];');
-    expect(script).toContain('const cc = map([mid[0] + curl[0] * 0.28 * L, mid[1] + curl[1] * 0.28 * L]);');
-    expect(script).toContain('const pull = [(cx - own[0]) * 0.18 * clamp01(mascara.intensity), (cy - own[1]) * 0.18 * clamp01(mascara.intensity)];');
-    expect(script).toContain('const L = eyeW * TUNING.lashLength * lengthen * (0.42 + 0.58 * Math.min(1, u)) * (0.85 + 0.3 * seeded(i + 100));');
+    // 11-07 natural mascara lash: few strands, tapered C-curve ribbons fading to the tip, faint lash line and lower lashes.
+    expect(script).toContain('const nLash = clamp(Math.round(TUNING.lashCount * mg.thickness), 8, 24);');
+    expect(script).toContain('lashCount: 14,');
+    expect(script).toContain('const hw = 0.5 * Math.max(0.9, w * k) * Math.pow(1 - t, 0.9);');
+    expect(script).toContain('const g = Math.round(255 * (1 - TUNING.lashTipFade * (t0 + t1) * 0.5));');
+    expect(script).toContain('const pull = [(cx - own[0]) * TUNING.lashClump * clamp01(mascara.intensity), (cy - own[1]) * TUNING.lashClump * clamp01(mascara.intensity)];');
+    expect(script).toContain('const L = eyeW * TUNING.lashLength * lengthen * prof * (0.78 + 0.34 * seeded(i + 100)) * wisp;');
+    expect(script).toContain('c.lineWidth = Math.max(0.6, TUNING.lashLineWidth * eyeW * k);');
+    expect(script).not.toContain('0.035 * eyeW * k');
+    expect(script).not.toContain('smoothstep(0.05, 0.45, lashG)');
     expect(script).not.toMatch(/Math\.random\(/);
     // Highlighter also covers the forehead centre and under the eyes.
     expect(script).toContain('ellipse(fc, [fc[0] + 1, fc[1]], 0.9 * fw, 0.5 * fw, 0.55);');
@@ -626,7 +648,7 @@ describe('face tracker page', () => {
     const script = moduleScript(FACE_TRACKER_HTML);
     expect(script).toContain('const ip = shadow && shadow.geometry && shadow.geometry.innerPoint;');
     expect(script).toContain('const len = Math.min(g.length * eyeW, 0.8 * dist(outer, edgeP));');
-    expect(script).toContain('const nLow = mg.lower === false ? 0 : Math.round(nLash / 3);');
+    expect(script).toContain('const nLow = mg.lower === false ? 0 : Math.round(nLash / 4);');
     // Named areas come from mask 3; with none named the default mask (and its pixels) is used.
     expect(script).toContain('float hlMask = uHlLegacy > 0.5 ? m2.r : clamp(dot(m3, uHlAreas), 0.0, 1.0);');
     expect(script).toContain("gl.uniform1f(u.uHlLegacy, hlAreas ? 0 : 1);");

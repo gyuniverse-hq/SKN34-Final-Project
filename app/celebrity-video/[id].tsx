@@ -11,6 +11,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateViews
 import { CELEBRITIES } from '@/constants/celebrities';
 import { theme } from '@/constants/theme';
 import { useVideoTryOn } from '@/hooks/useVideoTryOn';
+import { demoCelebrityVideo } from '@/lib/demoLookBundle';
 import { useI18n } from '@/lib/i18n';
 import { useCelebrityVideos } from '@/lib/queries';
 import { arHref, parseId, productHref } from '@/lib/routes';
@@ -24,10 +25,11 @@ export default function CelebrityVideoDetail() {
   const query = useCelebrityVideos();
   const [expandedTitleId, setExpandedTitleId] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<{ id: string; zones: string[] }>({ id: '', zones: [] });
-  const video = query.data?.find((item) => item.id === id);
+  // The six demo looks ship in the app: show them at once, then the API copy when it arrives.
+  const video = query.data?.find((item) => item.id === id) ?? demoCelebrityVideo(id);
   const ar = useVideoTryOn(video?.products ?? [], `celebrity-${id ?? ''}`, video?.title || t('celebVideo.title', { number: video?.number ?? 0 }));
-  if (query.isPending) return <LoadingState />;
-  if (query.isError) return <ErrorState error={query.error} onRetry={() => query.refetch()} />;
+  if (query.isPending && !video) return <LoadingState />;
+  if (query.isError && !video) return <ErrorState error={query.error} onRetry={() => query.refetch()} />;
   const celebrity = CELEBRITIES.find((item) => item.id === video?.celebrityId);
   if (!video || !celebrity) return <EmptyState icon="search-outline" title={t('common.notFound')} />;
   const title = video.title || t('celebVideo.title', { number: video.number });
