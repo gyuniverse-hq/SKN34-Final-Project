@@ -5,7 +5,7 @@ const HEX = /^#[0-9A-F]{6}$/i;
 describe('development try-on fallback', () => {
   it('uses Olive Young try-on products in development when the backend has none', () => {
     type P = { makeupZone?: string | null; shades: { hex: string }[] };
-    const oyTryOn = DEV_CATALOG_PRODUCTS.filter((p: P) => p.makeupZone);
+    const oyTryOn = DEV_CATALOG_PRODUCTS.filter((p: P) => p.makeupZone && p.makeupZone !== 'mascara');
     expect(DEV_TRYON_PRODUCTS).toHaveLength(oyTryOn.length);
     expect(DEV_TRYON_PRODUCTS.every((p: P) => p.makeupZone)).toBe(true);
     expect(DEV_TRYON_PRODUCTS.every((p) => !p.id.startsWith('demo-'))).toBe(true);
@@ -17,7 +17,7 @@ describe('development try-on fallback', () => {
     expect(DEV_TRYON_PRODUCTS.some((p: P) => p.shades.some((s) => HEX.test(s.hex)))).toBe(true);
     expect(withDevTryOnFallback([], true)).toBe(DEV_TRYON_PRODUCTS);
     expect(withDevTryOnFallback([], false)).toEqual([]);
-    const full = ['lip', 'blush', 'eyeshadow', 'eyeliner', 'brow', 'foundation'].map(
+    const full = ['lip', 'blush', 'eyeshadow', 'eyeliner', 'brow', 'foundation', 'highlighter', 'contour'].map(
       (zone) => DEV_TRYON_PRODUCTS.find((p) => p.makeupZone === zone)!
     );
     expect(withDevTryOnFallback(full, true)).toBe(full);

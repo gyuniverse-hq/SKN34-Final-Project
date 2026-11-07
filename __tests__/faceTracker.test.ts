@@ -28,6 +28,8 @@ function renderHarness() {
     const filterLandmarks = () => { if (state.failFilter) throw Error('landmarks failed'); }, updateMesh = () => {}, TUNING = { lightEveryMs: 1000 };
     const wantSkinMask = () => false, occGate = { lip: 1, eye: 1, cheek: 1 };
     const hudOn = false, guide = null;
+    let renderErrors = 0, renderErrLast = '';   // the render's catch records the error it used to swallow
+    const console = { error: () => {} };
     ${messaging}
     ${frame}
     return { handleMessage, processFrame };
@@ -326,7 +328,7 @@ describe('face tracker page', () => {
     expect(script).toContain('shadowA *= mix(occSkin, 1.0, uOccGate.y);');
     expect(script).toContain('gl.uniform1f(u.uOccOn, occOn ? 1 : 0);');
     expect(script).not.toContain('foundA *= mix(occSkin');
-    expect(script).toContain('gl.uniform1f(u.uFoundSkinOn, foundZ && foundSkinReady ? 1 : 0);');
+    expect(script).toContain('gl.uniform1f(u.uFoundSkinOn, (foundZ || jawShadeOn) && foundSkinReady ? 1 : 0);');
     expect(script).toContain('OCC_LIP_PTS = LIPS_OUTER');
     expect(script).toContain('OCC_EYE_PTS = EYES[0].contour.concat(EYES[1].contour)');
   });
@@ -441,6 +443,7 @@ describe('face tracker page', () => {
     expect(script).toContain('for (const w of [k, -1.06 * k])');
     // Open mouth: the inner curve is the hole; closed: the gap is painted.
     expect(script).toContain('if (!mouthClosed()) {');
+    expect(script).toContain("float inside = mix(soft, o0, uMouthOpen * (1.0 - smoothstep(0.18, 0.55, o0)));");
     // The A2 measured outline is gone (worse than landmarks on 200 real faces).
     expect(script).not.toContain('drawLipShape');
   });
@@ -477,8 +480,8 @@ describe('face tracker page', () => {
     const script = moduleScript(FACE_TRACKER_HTML);
     // Inner line moved into the mouth by openness (LaPa: 13% of open-mouth lip lay inside it).
     expect(script).toContain('const fixedInset = mouthClosed() ? 0 : inset;');
-    expect(script).toContain('? LIPS_INNER.map((_, j) => (lipInner.conf[j] >= 0.5 ? lipInner.t[j] : fixedInset)) : fixedInset);');
-    expect(script).toContain('innerInset: [0.05, 0.2]');
+    expect(script).toContain('? LIPS_INNER.map((_, j) => Math.max(fixedInset, lipInner.conf[j] >= 0.5 ? lipInner.t[j] : fixedInset)) : fixedInset);');
+    expect(script).toContain('innerInset: [0.12, 0.28]');
     // Close-ups: vertices outside the frame never feed the light estimate.
     expect(script).toContain('const skinIn = masks.skinVerts.filter((i) => meshNrm[i * 3 + 2] >= 0.35 && inFrame(i));');
   });
@@ -493,7 +496,7 @@ describe('face tracker page', () => {
   it('draws eyeliner and mascara from the lid landmarks, following blinks (10-25)', () => {
     const script = moduleScript(FACE_TRACKER_HTML);
     // Screen-space eye canvas, uploaded only while a liner or mascara is on.
-    expect(script).toContain('const mascara = null;');
+    expect(script).toContain('const mascara = makeup.mascara || null;');
     expect(script).toContain('const hl = makeup.highlighter || null;');
     expect(script).toContain('const contourZ = makeup.contour || null;');
     expect(script).toContain('const eyesOn = liner || mascara || innerPt || browZ ? drawEyes(W, H, liner, mascara, eye, browZ) : false;');
@@ -516,7 +519,7 @@ describe('face tracker page', () => {
     expect(script).toContain('const inside = clamp01((faceFill[i] - 0.5) * 2);');
     // Intensity off → zero coverage (pixel untouched).
     expect(script).toContain('gl.uniform1f(u.uHlCov, hl ? clamp01(hl.intensity) * TUNING.hlCoverage * hlGain : 0);');
-    expect(script).toContain('gl.uniform1f(u.uContourCov, contourZ ? clamp01(contourZ.intensity) * TUNING.contourCoverage : 0);');
+    expect(script).toContain("gl.uniform1f(u.uContourCov, contourZ ? clamp01(contourZ.intensity) * (jawShade ? 0.85 : TUNING.contourCoverage) : 0);");
     expect(script).toContain('gl.uniform1f(u.uFoundCov, foundZ ? span(TUNING.foundCoverage) : 0);');
     expect(FACE_TRACKER_HTML).toContain('object-fit: cover');
     expect(script).toContain('foundSkinBin[i] = cat[i] === 3 ? 255 : 0;');
@@ -569,7 +572,9 @@ describe('face tracker page', () => {
     expect(script).not.toMatch(/bisenet|huggingface|stable.?diffusion|psgan|face-parsing/i);
     expect(script).toContain('rgba2[i * 4 + 3] = Math.round(clamp01(foundInside * (1 - lipShape[i]) * (1 - eyesCut[i]) * (1 - browCut[i])) * 255);');
     expect(script).toContain('if (browPaint) {');
-    expect(script).toContain('path(lower.concat(upper));');
+    expect(script).toContain('pathOn(browCtx, lower.concat(upper));');
+    expect(script).toContain('vec4 eyeAt(vec2 s) {');
+    expect(script).toContain('float browG = eyeC.a;');
     expect(script).toContain('for (const ids of [BROWS.slice(0, 10), BROWS.slice(10)]) {');
     expect(script).not.toContain('0.07 * eyeW');
     // Translucent powder tints the skin (no ashy patch on deep skin); no skin smoothing anywhere.
@@ -589,6 +594,10 @@ describe('face tracker page', () => {
     // Mascara length and density come from geometry (defaults 1, clamped), never random per frame.
     expect(script).toContain("const mg = Object.assign({ length: 1, thickness: 1 }, mascara.geometry || {});");
     expect(script).toContain('const nLash = clamp(Math.round(TUNING.lashCount * mg.thickness), 12, 72);');
+    expect(script).toContain('const mid = [root[0] + dir[0] * 0.45 * L + curl[0] * 0.22 * L, root[1] + dir[1] * 0.45 * L + curl[1] * 0.22 * L];');
+    expect(script).toContain('const cc = map([mid[0] + curl[0] * 0.28 * L, mid[1] + curl[1] * 0.28 * L]);');
+    expect(script).toContain('const pull = [(cx - own[0]) * 0.18 * clamp01(mascara.intensity), (cy - own[1]) * 0.18 * clamp01(mascara.intensity)];');
+    expect(script).toContain('const L = eyeW * TUNING.lashLength * lengthen * (0.42 + 0.58 * Math.min(1, u)) * (0.85 + 0.3 * seeded(i + 100));');
     expect(script).not.toMatch(/Math\.random\(/);
     // Highlighter also covers the forehead centre and under the eyes.
     expect(script).toContain('ellipse(fc, [fc[0] + 1, fc[1]], 0.9 * fw, 0.5 * fw, 0.55);');
@@ -845,7 +854,7 @@ describe('face tracker page', () => {
     const ring = script.slice(script.indexOf('  function lipRing('), script.indexOf('  // Cubic curve through the ring'));
     const inner = script.slice(script.indexOf('  const lipInner = {'), script.indexOf('  // Lip outline in screen space'));
     const run = new Function(`
-      const TUNING = { lipOutlineSmooth: 0, lipInnerEveryMs: 100, refineMinContrast: 0.02, teethDark: 0.3, innerInset: [0.05, 0.2] };
+      const TUNING = { lipOutlineSmooth: 0, lipInnerEveryMs: 100, refineMinContrast: 0.02, teethDark: 0.3, innerInset: [0.12, 0.28] };
       const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
       const toLin = (c) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
       const lumOf = (r, g, b) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
@@ -889,8 +898,8 @@ describe('face tracker page', () => {
     expect(run.conf[0]).toBe(0);
     expect(run.conf[10]).toBe(0);
     for (const j of [1, 5, 9, 11, 15, 19]) {
-      expect(run.t[j]).toBeGreaterThan(0.05);
-      expect(run.t[j]).toBeLessThan(0.15);
+      expect(run.t[j]).toBeGreaterThanOrEqual(0.119);
+      expect(run.t[j]).toBeLessThan(0.16);
       expect(run.conf[j]).toBeGreaterThanOrEqual(0.5);
     }
     // A second call within lipInnerEveryMs is skipped.

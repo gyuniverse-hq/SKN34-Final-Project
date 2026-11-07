@@ -14,7 +14,7 @@ export const DEV_CATALOG_PRODUCTS: Product[] = OY_CATALOG_PRODUCTS;
  * Try-on products for AR in development when the backend has none. Olive Young hex values
  * are the stored swatch colors (measureMethod "estimated"). Never used in production builds.
  */
-export const DEV_TRYON_PRODUCTS: Product[] = OY_CATALOG_PRODUCTS.filter((p) => p.makeupZone);
+export const DEV_TRYON_PRODUCTS: Product[] = OY_CATALOG_PRODUCTS.filter((p) => p.makeupZone && p.makeupZone !== 'mascara');
 
 /**
  * Backend try-on products. In development, zones the backend has no products for are filled from the development set
@@ -25,7 +25,9 @@ export function withDevTryOnFallback(apiTryOn: Product[], isDev: boolean): Produ
   if (!apiTryOn.length) return DEV_TRYON_PRODUCTS;
   const apiZones = new Set(apiTryOn.map((p) => p.makeupZone));
   const apiIds = new Set(apiTryOn.map((p) => p.id));
-  const missing = DEV_TRYON_PRODUCTS.filter((p) => !apiZones.has(p.makeupZone) && !apiIds.has(p.id));
+  const missing = DEV_TRYON_PRODUCTS.filter((p) => (
+    p.makeupZone && p.makeupZone !== 'mascara' && !apiZones.has(p.makeupZone) && !apiIds.has(p.id)
+  ));
   return missing.length ? apiTryOn.concat(missing) : apiTryOn;
 }
 

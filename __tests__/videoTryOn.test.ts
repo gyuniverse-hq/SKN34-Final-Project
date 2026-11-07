@@ -18,6 +18,16 @@ const product = (id: string, zone: Product['makeupZone'], shadeId: string): Prod
   priceKRW: 0, volume: '', description: '', keyIngredients: [], tags: [], imageUrl: '', searchKeyword: '',
 });
 
+test('paints a verified highlighter without dropping other AR zones', () => {
+  const lip = product('lip', 'lip', 'red');
+  const highlight = product('hl', 'highlighter', 'glow');
+  const items: VideoProductMapping[] = [
+    { mappingVerified: true, catalogProductId: 'lip', catalogShadeId: 'red' },
+    { mappingVerified: true, catalogProductId: 'hl', catalogShadeId: 'glow' },
+  ];
+  expect(resolveVideoProducts(items, [lip, highlight]).map((item) => item.zone)).toEqual(['lip', 'highlighter']);
+});
+
 test('uses only verified exact shades, excludes placeholders and chooses one product per zone', () => {
   const lip = product('lip', 'lip', 'red');
   const eye = product('eye', 'eyeshadow', 'pink');
@@ -61,6 +71,19 @@ test('applies only confirmed products before opening AR; unmatched videos leave 
   useMakeupStore.getState().reset();
 });
 
+test('look try-on lists unmatched core zones instead of claiming a full seven-layer set', async () => {
+  mockProducts = [product('lip', 'lip', 'red')];
+  let missing!: string[];
+  function Screen() {
+    missing = useVideoTryOn([{ mappingVerified: true, catalogProductId: 'lip', catalogShadeId: 'red' }], 'video-1', 'Test').missingCore;
+    return null;
+  }
+  let screen!: renderer.ReactTestRenderer;
+  await act(async () => { screen = renderer.create(React.createElement(Screen)); });
+  expect(missing).toEqual(['foundation', 'brow', 'eyeshadow', 'eyeliner', 'mascara', 'blush']);
+  await act(async () => { screen.unmount(); });
+});
+
 test('fetches product-only approvals in chunks and does not fetch unverified IDs', async () => {
   const items: VideoProductMapping[] = Array.from({ length: 21 }, (_, i) => ({ mappingVerified: true, catalogProductId: `product-${i}` }));
   items.push({ catalogProductId: 'unverified' });
@@ -74,4 +97,49 @@ test('fetches product-only approvals in chunks and does not fetch unverified IDs
   expect(requests.every((url) => !url.includes('unverified'))).toBe(true);
   expect(requests.map((url) => decodeURIComponent(url).split('ids=')[1].split(',').length).sort()).toEqual([1, 20]);
   await act(async () => { screen.unmount(); });
+});
+
+test('applies catalog shades for the six demo looks without treating them as mappingVerified', async () => {
+  useMakeupStore.getState().reset();
+  mockPush.mockClear();
+  const contour = product('oy-a000000201055', 'contour', '02-2');
+  const mascara = product('oy-a000000255697', 'mascara', '01');
+  mockProducts = [contour, mascara];
+  let open!: () => void;
+  function Screen() {
+    open = useVideoTryOn([], 'style-ZAozXs-ZZik', 'Strawberry').open;
+    return null;
+  }
+  let screen!: renderer.ReactTestRenderer;
+  await act(async () => { screen = renderer.create(React.createElement(Screen)); });
+  await act(async () => { open(); });
+  expect(useMakeupStore.getState().makeup.contour?.hex).toBe('#112233');
+  expect(useMakeupStore.getState().makeup.mascara?.hex).toBe('#112233');
+  expect(useMakeupStore.getState().makeup.mascara?.geometry).toEqual({
+    length: 1.28, thickness: 0.78, lower: true,
+  });
+  expect(useMakeupStore.getState().makeup.mascara?.intensity).toBe(0.72);
+  expect(useMakeupStore.getState().selections.contour).toEqual({ productId: 'oy-a000000201055', shadeId: '02-2' });
+  expect(useMakeupStore.getState().selections.mascara).toEqual({ productId: 'oy-a000000255697', shadeId: '01' });
+  expect(mockPush).toHaveBeenCalledWith({ pathname: '/ar', params: { video: '1' } });
+  await act(async () => { screen.unmount(); });
+  useMakeupStore.getState().reset();
+});
+
+test('peach look mascara uses the fine lash shape without lower lashes', async () => {
+  useMakeupStore.getState().reset();
+  mockProducts = [product('oy-a000000205718', 'mascara', 'a000000205718-006')];
+  let open!: () => void;
+  function Screen() {
+    open = useVideoTryOn([], 'style-kWI7_DkDjZ0', 'Peach').open;
+    return null;
+  }
+  let screen!: renderer.ReactTestRenderer;
+  await act(async () => { screen = renderer.create(React.createElement(Screen)); });
+  await act(async () => { open(); });
+  expect(useMakeupStore.getState().makeup.mascara?.geometry).toEqual({
+    length: 1.12, thickness: 0.72, lower: false,
+  });
+  await act(async () => { screen.unmount(); });
+  useMakeupStore.getState().reset();
 });

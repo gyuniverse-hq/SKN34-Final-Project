@@ -102,6 +102,9 @@ export interface LookItem {
 }
 
 export type HighlightArea = 'forehead' | 'nose_bridge' | 'under_eye' | 'chin';
+/** Placement templates for the face-fit highlighter and shading (ids only; no template means today's shape). */
+export type HighlighterStyle = 'natural_cheek' | 'glass_c_zone' | 'nose_tip' | 'under_eye_smile' | 'cupid_bow' | 'forehead_center';
+export type ContourStyle = 'jawline' | 'nose';
 
 /** Where the blush sits: on the cheekbone apple, closer to the eye, or out toward the ear. */
 export type BlushPlacement = 'apple' | 'under_eye' | 'side';
@@ -133,6 +136,7 @@ export interface InnerPoint {
  * Blush: blushPlacement, blushSize (multiple of the default size) and blushSoftness (0 hard edge .. 1 very soft)
  * make the cheek ellipse follow the face points instead of the default shape.
  * Highlighter: areas = only these regions (default: the standard set), intensity = multiple of its strength.
+ * hlStyle / contourStyle = placement template of the highlighter / shading (absent = the standard shape).
  */
 export type EyelinerStyle = 'classic_winged' | 'puppy' | 'tightline';
 
@@ -157,6 +161,8 @@ export interface ZoneGeometry {
   centerHighlight?: number;
   innerPoint?: InnerPoint;
   areas?: HighlightArea[];
+  hlStyle?: HighlighterStyle;
+  contourStyle?: ContourStyle;
   pearl?: number;
   sparkle?: number;
   glitter?: boolean;

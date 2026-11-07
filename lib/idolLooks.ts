@@ -18,7 +18,12 @@ export function displayableIdolLooks(looks: IdolLook[] | undefined): IdolLook[] 
 }
 
 export function hasIdolLookArSettings(look: IdolLook): boolean {
-  return Boolean(look.arSettings.lip || look.arSettings.blush || look.arSettings.eyeshadow);
+  const settings = look.arSettings;
+  return Boolean(
+    settings.lip || settings.blush || settings.eyeshadow || settings.eyeliner ||
+    settings.highlighter || settings.contour || settings.brow || settings.foundation ||
+    settings.mascara
+  );
 }
 
 export function idolLookAsCelebLook(look: IdolLook): CelebLook {

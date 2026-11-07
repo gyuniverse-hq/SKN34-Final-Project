@@ -56,7 +56,9 @@ export default function StyleLookDetail() {
           loading={ar.loading}
           onPress={ar.open}
           message={
-            ar.error ? t('videoAr.error') : ar.count ? t('videoAr.mapped', { count: ar.count }) : t('videoAr.none')
+            ar.error ? t('videoAr.error') : ar.count
+              ? `${t('videoAr.mapped', { count: ar.count })}${ar.missingCore?.length ? ` ${t('videoAr.matchMissing')}` : ''}`
+              : t('videoAr.none')
           }
         />
         <View style={styles.headingRow}>
