@@ -148,9 +148,7 @@ def compare_catalog_projection(
         for r in graph_products
         if r.get("id") is not None
     }
-    source_l = {
-        look.id: (look.title, _look_items(look), _counts(look.tags)) for look in looks
-    }
+    source_l = {look.id: (look.title, _look_items(look), _counts(look.tags)) for look in looks}
     graph_l = {
         r["id"]: (
             r.get("title"),
