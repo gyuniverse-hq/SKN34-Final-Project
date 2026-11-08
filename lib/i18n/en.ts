@@ -730,6 +730,13 @@ export const en = {
   'idol.verified': 'Verified used product',
   'idol.similar': 'Similar product recommendation',
   'idol.unverified': 'Actual product / shade unconfirmed',
+  'chat.carousel.previous': "Previous product",
+  'chat.carousel.next': "Next product",
+  'chat.carousel.choose': "Select this product",
+  'chat.carousel.chosen': "Selected product",
+  'chat.carousel.ordinal': "",
+  'chat.carousel.ingredient': "Does this product contain fragrance?",
+  'chat.carousel.details': "Tell me more about this product",
 };
 
 export type TranslationKey = keyof typeof en;
