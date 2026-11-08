@@ -129,6 +129,9 @@ def test_key_ingredients_empty_stays_unverified_even_when_parity_passes():
     product = PRODUCT.model_copy(update={"key_ingredients": []})
     _, looks, rows, gls = catalog_rows()
     rows[0]["keyIngredients"] = []
+    rows[0]["searchText"] = " ".join(
+        [product.brand, product.name, product.name_ko, product.description, *product.tags]
+    ).lower()
     result = report(
         source_products=[product], source_looks=looks, graph_products=rows, graph_looks=gls
     )
