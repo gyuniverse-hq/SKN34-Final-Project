@@ -30,6 +30,23 @@ ORDER BY score DESC, p.id
 LIMIT $limit
 """
 
+# Read-only audit of the *legacy* Catalog projection, not verified full ingredients.
+# Keep independent OPTIONAL MATCH stages to avoid cross-products between edges.
+CATALOG_AUDIT_PRODUCTS = """
+MATCH (p:Product)
+OPTIONAL MATCH (p)-[:HAS_SHADE]->(s:Shade)
+WITH p, collect(s.id) AS shadeIds
+OPTIONAL MATCH (p)-[:CONTAINS]->(i:Ingredient)
+WITH p, shadeIds, collect(i.name) AS keyIngredients
+OPTIONAL MATCH (p)-[:TAGGED]->(t:Tag)
+RETURN p.id AS id, p.brand AS brand, p.name AS name, p.nameKo AS nameKo,
+       p.category AS category, p.texture AS texture, p.priceKRW AS priceKRW,
+       shadeIds, keyIngredients, collect(t.name) AS tags
+ORDER BY id
+"""
+
+CATALOG_AUDIT_LOOKS = "MATCH (l:Look) RETURN l.id AS id ORDER BY id"
+
 CLEAR = "MATCH (n) WHERE n:Product OR n:Shade OR n:Ingredient OR n:Tag OR n:Look DETACH DELETE n"
 
 CREATE_PRODUCTS = """
@@ -67,6 +84,19 @@ class GraphRepository:
             FIND_PRODUCTS, terms=terms, limit=limit, routing_=RoutingControl.READ
         )
         return [GraphProduct.model_validate(r.data()) for r in result.records]
+
+    async def audit_catalog_products(self) -> list[dict[str, Any]]:
+        """Read the legacy graph projection without treating keyIngredients as full INCI."""
+        result = await self._driver.execute_query(
+            CATALOG_AUDIT_PRODUCTS, routing_=RoutingControl.READ
+        )
+        return [r.data() for r in result.records]
+
+    async def audit_catalog_look_ids(self) -> list[str]:
+        result = await self._driver.execute_query(
+            CATALOG_AUDIT_LOOKS, routing_=RoutingControl.READ
+        )
+        return [r["id"] for r in result.records]
 
     async def ensure_schema(self) -> None:
         for statement in SCHEMA:
