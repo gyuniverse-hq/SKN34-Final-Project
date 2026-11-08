@@ -228,3 +228,11 @@ def test_image_search_is_used_when_shopping_has_no_https_image():
 
     service = ProductImageService(NoOffers(), NullCache())
     assert anyio.run(service.find_image, "tint") == "https://shopping-phinf.pstatic.net/x.jpg"
+
+
+def test_youtube_product_does_not_take_a_generic_shopping_image():
+    product = SAMPLE.products[0].model_copy(
+        update={"id": "yt-example", "tags": ["youtube", "립메이크업"], "image_url": ""}
+    )
+    service = ProductImageService(FakeNaver(), NullCache())
+    assert anyio.run(service.with_live_images, [product]) == [product]
