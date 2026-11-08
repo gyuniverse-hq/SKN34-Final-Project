@@ -434,6 +434,36 @@ describe('ingredient selection and request snapshots', () => {
     await act(async () => { renderer.unmount(); });
   });
 
+
+  it('uses an explicitly selected product for follow-up even without a shade', async () => {
+    catalog();
+    const stored = { ...beautyContext, session: {
+      sessionId: '10000000-0000-4000-8000-000000000001',
+      sessionToken: 'SYNTHETIC_CAPABILITY_NEVER_DISPLAY_12345678',
+      resultSetId: '10000000-0000-4000-8000-000000000002',
+      stateVersion: 1, expiresAt: 9999999999,
+    } };
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'Candidates', products: refs, chatContext: stored, sessionStatus: 'stored' })
+      .mockResolvedValueOnce({ answer: 'Choose a shade to check ingredients', products: [], chatContext: stored });
+    const renderer = await renderScreen();
+    await send(renderer, '립 추천');
+    const candidates = renderer.root.findByType(ChatProducts).props;
+    expect(typeof candidates.onSelectProduct).toBe('function');
+    await act(async () => { candidates.onSelectProduct('p2'); });
+    expect(renderer.root.findAllByType(Text).some((n) => n.props.children === 'chat.carousel.chosen')).toBe(true);
+    await act(async () => {
+      buttonWithText(renderer.root, 'chat.carousel.ingredient').props.onPress();
+    });
+    const request = mockMutateAsync.mock.calls[1][0];
+    expect(request.category).toBe('ingredient');
+    expect(request.chatContext.selectedProductId).toBe('p2');
+    expect(request.chatContext.candidateIds).toEqual(['p1', 'p2']);
+    expect(request.screenContext).toEqual({ screenId: 'chat', productId: 'p2' });
+    expect(request.chatContext.session).toEqual(stored.session);
+    expect(JSON.stringify(renderer.toJSON())).not.toContain(stored.session.sessionToken);
+    await act(async () => { renderer.unmount(); });
+  });
+
   it('keeps retry snapshots and a later user shade against an older server response', async () => {
     catalog();
     mockMutateAsync.mockResolvedValueOnce({ answer: 'Candidates', products: refs, chatContext: beautyContext })
