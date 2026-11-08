@@ -189,7 +189,6 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
   const [input, setInput] = useState('');
   const [category, setCategory] = useState<Category>(initialStyle ? 'style' : 'product');
   const [editing, setEditing] = useState(false);
-  const selected = categories.find((item) => item.id === category)!;
   const conditions = extractChatConditions(input);
 
   useEffect(() => {
@@ -425,34 +424,40 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
                   <Text style={styles.welcomeBody}>{t('chat.ui.welcomeBody')}</Text>
                 </>
               ) : null}
-              <View style={editing ? styles.categoryChips : styles.categories}>
-                {categories.map((item) => (
-                  <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`${t(item.label)}, ${t(item.caption)}`}
-                    accessibilityState={{ selected: category === item.id }} onPress={() => setCategory(item.id)}
-                    style={[editing ? styles.categoryChip : styles.category, category === item.id && styles.categorySelected]}>
-                    {editing ? <Text style={styles.categoryText}>{t(item.label)}</Text> : (
-                      <>
-                        <Image source={item.image} style={styles.categoryArt} contentFit="cover" accessible={false} />
-                        <View style={styles.categoryCopy}>
-                          <Text style={styles.categoryText}>{t(item.label)}</Text>
-                          <Text style={styles.categoryCaption}>{t(item.caption)}</Text>
-                        </View>
-                      </>
-                    )}
-                  </Pressable>
-                ))}
-              </View>
               {!editing ? (
                 <>
-                  <Text style={styles.examplesTitle}>{t('chat.ui.examples')}</Text>
-                  {selected.prompts.map((prompt) => (
-                    <Pressable key={prompt} accessibilityRole="button" onPress={() => { setInput(t(prompt)); inputRef.current?.focus(); }} style={styles.prompt}>
-                      <Text style={styles.promptText}>{t(prompt)}</Text>
-                      <Ionicons name="arrow-forward" size={16} color={theme.colors.rose} />
+                  <Text style={styles.problemHeading}>{t('chat.welcome.ask')}</Text>
+                  <View style={styles.problemPrompts}>
+                    {([
+                      { id: 'product' as Category, text: 'chat.welcome.promptA' as TranslationKey, icon: 'heart-outline' as const },
+                      { id: 'ingredient' as Category, text: 'chat.welcome.promptB' as TranslationKey, icon: 'flask-outline' as const },
+                      { id: 'style' as Category, text: 'chat.welcome.promptC' as TranslationKey, icon: 'color-palette-outline' as const },
+                      { id: 'product' as Category, text: 'chat.welcome.promptD' as TranslationKey, icon: 'sparkles-outline' as const },
+                    ]).map((prompt) => (
+                      <Pressable key={prompt.text} accessibilityRole="button" accessibilityLabel={t(prompt.text)}
+                        onPress={() => { setCategory(prompt.id); setInput(t(prompt.text)); inputRef.current?.focus(); }}
+                        style={styles.problemPrompt}>
+                        <View style={styles.problemIcon}><Ionicons name={prompt.icon} size={20} color={theme.colors.rose} /></View>
+                        <Text style={styles.problemText}>{t(prompt.text)}</Text>
+                        <Ionicons name="arrow-forward" size={16} color={theme.colors.rose} />
+                      </Pressable>
+                    ))}
+                  </View>
+                  <Text style={styles.problemHint}>{t('chat.welcome.chooseHint')}</Text>
+                </>
+              ) : (
+                <View style={styles.categoryChips}>
+                  {categories.map((item) => (
+                    <Pressable key={item.id} accessibilityRole="button"
+                      accessibilityLabel={`${t(item.label)}, ${t(item.caption)}`}
+                      accessibilityState={{ selected: category === item.id }}
+                      onPress={() => setCategory(item.id)}
+                      style={[styles.categoryChip, category === item.id && styles.categorySelected]}>
+                      <Text style={styles.categoryText}>{t(item.label)}</Text>
                     </Pressable>
                   ))}
-                </>
-              ) : null}
+                </View>
+              )}
             </View>
           ) : (
             <View>
@@ -635,6 +640,14 @@ const styles = StyleSheet.create({
   welcomeIcon: { alignSelf: 'center', alignItems: 'center', justifyContent: 'center', width: 48, height: 48, borderRadius: 24, backgroundColor: theme.colors.roseSoft },
   welcomeTitle: { color: theme.colors.ink, fontSize: theme.font.title, fontWeight: '800', marginTop: 6, textAlign: 'center' },
   welcomeBody: { color: theme.colors.inkMuted, fontSize: theme.font.small, lineHeight: 20, textAlign: 'center' },
+  problemHeading: { marginTop: 16, marginBottom: 4, color: theme.colors.ink, fontWeight: '700', fontSize: theme.font.body },
+  problemPrompts: { gap: 9 },
+  problemPrompt: { minHeight: 70, flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 14, paddingVertical: 12, borderRadius: theme.radius.lg, borderColor: theme.colors.border, borderWidth: 1,
+    backgroundColor: theme.colors.card },
+  problemIcon: { height: 38, width: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.roseSoft },
+  problemText: { flex: 1, color: theme.colors.ink, fontSize: theme.font.small, fontWeight: '600', lineHeight: 20 },
+  problemHint: { marginTop: 4, color: theme.colors.inkMuted, fontSize: theme.font.caption, lineHeight: 18 },
   categories: { flexDirection: 'row', gap: 8, marginTop: 14 },
   category: { flex: 1, minHeight: 140, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.card, borderRadius: theme.radius.md },
   categorySelected: { borderColor: theme.colors.rose },
