@@ -2,6 +2,7 @@ import { createElement } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { ChatProducts } from '@/components/chat/ChatProducts';
+import { ProductCompareSheet } from '@/components/chat/ProductCompareSheet';
 import { ProductImage } from '@/components/ui/ProductImage';
 import type { ChatCondition } from '@/lib/chatConditions';
 import type { Product } from '@/types';
@@ -257,6 +258,30 @@ describe('chat product cards', () => {
     expect(onOpenAr).not.toHaveBeenCalled();
     await act(async () => { renderer.unmount(); });
   });
+  it('opens a comparison sheet without changing candidate selection or server order', async () => {
+    const onSelectProduct = jest.fn();
+    const { renderer } = await renderProducts({
+      products: [lip, care],
+      candidateOrder: [care.id, lip.id],
+      selectedProductId: lip.id,
+      onSelectProduct,
+    });
+    expect(renderer.root.findByType(ProductCompareSheet).props.visible).toBe(false);
+    await act(async () => {
+      renderer.root.findByProps({ accessibilityLabel: 'chat.compare.open' }).props.onPress();
+    });
+    const compare = renderer.root.findByType(ProductCompareSheet);
+    expect(compare.props.visible).toBe(true);
+    expect(compare.props.products.map((product: Product) => product.id)).toEqual(['care-1', 'lip-1']);
+    expect(compare.props.selectedProductId).toBe('lip-1');
+    expect(onSelectProduct).not.toHaveBeenCalled();
+    await act(async () => { compare.props.onSelectProduct('care-1'); });
+    expect(onSelectProduct).toHaveBeenCalledWith('care-1');
+    await act(async () => { renderer.root.findByType(ProductCompareSheet).props.onClose(); });
+    expect(renderer.root.findByType(ProductCompareSheet).props.visible).toBe(false);
+    await act(async () => { renderer.unmount(); });
+  });
+
   it('renders candidates in a horizontal carousel and never selects on swipe', async () => {
     const onSelectProduct = jest.fn();
     const { renderer } = await renderProducts({
