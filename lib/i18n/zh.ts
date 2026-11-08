@@ -7,6 +7,15 @@ import { skinZh } from './skin';
 import { skinReportZh } from './skinReport';
 
 export const zh: Dictionary = {
+  'chat.ingredient.resultFor': "所选商品 · 成分核查",
+  'chat.ingredient.showDetails': "查看依据与成分列表",
+  'chat.ingredient.hideDetails': "收起依据详情",
+  'chat.ingredient.noVerifiedList': "暂无已核实的成分列表。",
+  'chat.style.basisLabel': "妆容步骤依据",
+  'chat.style.showSource': "查看来源与版本",
+  'chat.style.hideSource': "收起来源详情",
+  'chat.style.showSteps': "查看全部步骤",
+  'chat.style.hideSteps': "收起全部步骤",
   'chat.compare.close': "关闭对比",
   'chat.compare.title': "对比推荐商品",
   'chat.compare.count': "{count}款商品",
