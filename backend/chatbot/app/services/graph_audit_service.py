@@ -30,6 +30,16 @@ def _product_fields(product: Any) -> dict[str, Any]:
         "category": product.category,
         "texture": product.texture,
         "priceKRW": product.price_krw,
+        "searchText": " ".join(
+            [
+                product.brand,
+                product.name,
+                product.name_ko,
+                product.description,
+                *product.tags,
+                *product.key_ingredients,
+            ]
+        ).lower(),
     }
 
 
@@ -119,7 +129,7 @@ def compare_catalog_projection(
     }
     graph_p = {
         r["id"]: (
-            {key: r.get(key) for key in ("brand", "name", "nameKo", "category", "texture", "priceKRW")},
+            {key: r.get(key) for key in ("brand", "name", "nameKo", "category", "texture", "priceKRW", "searchText")},
             _graph_shades(r),
             _counts(r.get("keyIngredients") or []),
             _counts(r.get("tags") or []),
