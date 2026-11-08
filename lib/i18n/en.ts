@@ -757,6 +757,15 @@ export const en = {
   'chat.welcome.promptD': "I can't decide which makeup look to try.",
   'chat.welcome.ask': "Ask me anything about beauty",
   'chat.welcome.chooseHint': "Choose a question to fill the message box. Consultation type follows the chosen example.",
+  'chat.ingredient.resultFor': "Ingredient check · selected product",
+  'chat.ingredient.showDetails': "Show evidence and ingredient list",
+  'chat.ingredient.hideDetails': "Hide evidence details",
+  'chat.ingredient.noVerifiedList': "Verified ingredient list is unavailable.",
+  'chat.style.basisLabel': "Recipe evidence",
+  'chat.style.showSource': "Show source and version",
+  'chat.style.hideSource': "Hide source and version",
+  'chat.style.showSteps': "View all steps",
+  'chat.style.hideSteps': "Hide all steps",
 };
 
 export type TranslationKey = keyof typeof en;
