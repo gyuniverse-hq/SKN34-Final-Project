@@ -55,6 +55,8 @@ test.each([en, ko, ja, zh])('localizes metadata provenance and real guide text w
   expect(copy).toContain(dictionary['chat.style.video_metadata']);
   expect(copy).toContain(dictionary['chat.style.unreviewed']);
   expect(copy).toContain(dictionary['chat.style.mappingUnknown']);
+  expect(copy).toContain(dictionary['chat.style.basisLabel']);
+  expect(copy).toContain(dictionary['chat.style.showSource']);
   expect(copy).toContain(dictionary['looks.guide.eyeshadow']);
   expect(copy).not.toContain(dictionary['chat.style.reviewed']);
   expect(copy).not.toMatch(/looks\.guide\.|\{angle\}/);
@@ -114,5 +116,27 @@ test('Catalog look entry carries its namespace and preserves the existing full-l
   expect(mockPush).toHaveBeenCalledWith({ pathname: '/chat', params: { recipeKind: 'catalog', recipeLookId: 'catalog-1' } });
   await act(async () => view.root.findByProps({ label: en['looks.applyInAr'] }).props.onPress());
   expect(mockApplyLook).toHaveBeenCalledWith(mockLook, []);
+  await act(async () => view.unmount());
+});
+
+
+test('expands source details and step overview without changing controlled recipe progress', async () => {
+  mockDictionary = en;
+  const onStepChange = jest.fn();
+  const view = await render(fixture, { onStepChange });
+  expect(texts(view)).not.toContain('fixture:metadata');
+  expect(texts(view)).toContain(en['chat.style.showSteps']);
+  await act(async () => {
+    view.root.findByProps({ accessibilityLabel: en['chat.style.showSource'] }).props.onPress();
+  });
+  expect(texts(view)).toContain('fixture:metadata');
+  await act(async () => {
+    view.root.findByProps({ accessibilityLabel: en['chat.style.showSteps'] }).props.onPress();
+  });
+  const second = view.root.findByProps({ accessibilityLabel: 'Fixture lips' });
+  await act(async () => second.props.onPress());
+  expect(onStepChange).toHaveBeenCalledWith(1);
+  expect(texts(view)).toContain('Fixture eyes');
+  expect(texts(view)).toContain(en['chat.style.unreviewed']);
   await act(async () => view.unmount());
 });
