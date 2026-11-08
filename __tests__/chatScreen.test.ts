@@ -643,7 +643,7 @@ describe('standalone chat input', () => {
   it('shows the ingredient guidance with its general-information notice', async () => {
     mockMutateAsync.mockResolvedValueOnce({ answer: 'Ingredient explanation', products: [] });
     const renderer = await renderScreen();
-    await act(async () => { buttonWithText(renderer.root, 'chat.ui.ingredient').props.onPress(); });
+    await act(async () => { buttonWithText(renderer.root, 'chat.welcome.promptB').props.onPress(); });
     await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('Ingredient question'); });
     await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
     const texts = renderer.root.findAllByType(Text).map((item) => item.props.children);
@@ -656,7 +656,7 @@ describe('standalone chat input', () => {
   it('opens style browsing above chat while keeping the current draft', async () => {
     mockMutateAsync.mockResolvedValueOnce({ answer: 'Style answer', products: [] });
     const renderer = await renderScreen();
-    await act(async () => { buttonWithText(renderer.root, 'chat.ui.style').props.onPress(); });
+    await act(async () => { buttonWithText(renderer.root, 'chat.welcome.promptC').props.onPress(); });
     await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('Style question'); });
     await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
     await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('Next draft'); });
