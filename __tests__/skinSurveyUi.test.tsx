@@ -36,7 +36,7 @@ it('requires six answers and accepts explicit unknown choices', async () => {
       await act(async () => { screen.root.findAllByType(Button).find(button => button.props.label === 'support.next')!.props.onPress(); });
     }
     expect(screen.root.findAll(node => node.props.accessibilityRole === 'radio').map(node => node.props.accessibilityLabel))
-      .toEqual(['support.priorityChoice.dryness', 'support.priorityChoice.sensitivity', 'support.priorityChoice.pigmentation', 'support.priorityChoice.wrinkles', 'support.priorityChoice.pores', 'support.priorityChoice.oiliness', 'support.priorityChoice.blemish']);
+      .toEqual(['support.priorityChoice.dryness', 'support.priorityChoice.sensitivity', 'support.priorityChoice.blemish', 'support.priorityChoice.pores', 'support.priorityChoice.pigmentation', 'support.priorityChoice.wrinkles']);
     expect(screen.root.findAllByType(Button).find(button => button.props.label === 'skin.viewResult')!.props.disabled).toBe(true);
     await act(async () => { screen.root.findAll(node => node.props.accessibilityRole === 'radio' && node.props.accessibilityLabel === 'support.priorityChoice.pores')[0].props.onPress(); });
     expect(screen.root.findAllByType(Button).find(button => button.props.label === 'skin.viewResult')!.props.disabled).toBe(false);
@@ -44,6 +44,24 @@ it('requires six answers and accepts explicit unknown choices', async () => {
     expect(screen.root.findAll(node => node.props.accessibilityRole === 'radio' && node.props.accessibilityLabel === 'support.cosmeticReaction.unknown')[0].props.accessibilityState.checked).toBe(true);
   } finally { await act(async () => screen.unmount()); }
 });
+it('shows a previously saved oiliness priority as the balance selection', async () => {
+  const q: SkinSurveyV3 = { version: 'skin-support-1', postWashDryness: 'unknown',
+    afternoonTzoneOil: 'unknown', cheekState: 'unknown', oilOnset: 'unknown',
+    cosmeticReaction: 'unknown', priority: 'oiliness' };
+  let screen!: renderer.ReactTestRenderer;
+  await act(async () => { screen = renderer.create(<SkinSurvey answers={q} onChange={jest.fn()}
+    onFinish={jest.fn()} complete saving={false} error={false} />); });
+  try {
+    for (let i = 0; i < 5; i++) {
+      await act(async () => { screen.root.findAllByType(Button).find(button => button.props.label === 'support.next')!.props.onPress(); });
+    }
+    const balance = screen.root.find(node => node.props.accessibilityRole === 'radio' &&
+      node.props.accessibilityLabel === 'support.priorityChoice.dryness');
+    expect(balance.props.accessibilityState.checked).toBe(true);
+    expect(isCompleteSupportSurvey(q)).toBe(true);
+  } finally { await act(async () => screen.unmount()); }
+});
+
 it('keeps score comparison collapsed while showing image and survey provenance', async () => {
   const raw: SkinTypePrediction = { label: 'dry', probabilities: [.5, .05, .45], roiCount: 3, scoreType: 'mean_uncalibrated_softmax' };
   let screen!: renderer.ReactTestRenderer;

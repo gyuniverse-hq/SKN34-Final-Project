@@ -1,4 +1,4 @@
-import type { SkincareRequest, SkincareResponse } from '@/types/skincare';
+import type { HybridRequest, HybridResponse } from '@/types/skincare';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type {
   CelebLook,
@@ -261,8 +261,8 @@ export function useTutorials(query: string | undefined, max = 6) {
   });
 }
 
-export function useSkincareRecommendations(request: SkincareRequest | undefined) {
+export function useSkincareRecommendations(request: HybridRequest | undefined) {
   return useQuery({ queryKey: ['skincare-recommendations', request],
-    queryFn: () => apiPost<SkincareResponse>('/api/recommendations/skincare', request!),
+    queryFn: () => apiPost<HybridResponse>('/api/recommendations/skincare/v2', request!),
     enabled: request !== undefined, gcTime: 0, staleTime: 0 });
 }

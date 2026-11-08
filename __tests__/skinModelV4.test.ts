@@ -33,9 +33,9 @@ it('persists binary evidence and uses any caution ROI consistently in the report
   const restored = await readSkinProfile();
   expect(restored).toEqual(source);
   const report = buildSkinReport(source);
-  expect(report.metrics.find(m => m.concern === 'pores')).toMatchObject({ status: 'care', value: 1, maximum: 1 });
-  expect(report.metrics.find(m => m.concern === 'wrinkles')).toMatchObject({ status: 'care', value: 1, maximum: 1 });
-  expect(report.metrics.find(m => m.concern === 'pigmentation')).toMatchObject({ status: 'good', value: 0, maximum: 1 });
+  expect(report.metrics.find(m => m.concern === 'pores')).toMatchObject({ status: 'care', value: 1, maximum: 1, modelScore: .5 });
+  expect(report.metrics.find(m => m.concern === 'wrinkles')).toMatchObject({ status: 'care', value: 1, maximum: 1, modelScore: .5 });
+  expect(report.metrics.find(m => m.concern === 'pigmentation')).toMatchObject({ status: 'good', value: 0, maximum: 1, modelScore: .1 });
   expect(report.metrics.find(m => m.concern === 'blemish')).toMatchObject({ status: 'unknown' });
   expect(buildSkinRecommendationRequest(restored)).toEqual({ concerns: ['dryness', 'pores', 'wrinkles'], limit: 8 });
 });

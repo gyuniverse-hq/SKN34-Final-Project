@@ -27,7 +27,7 @@ export function SkinSurvey({ answers, onChange, onFinish, complete, saving, erro
       {step === 0 && <Text style={styles.notice}>{t('support.notice')}</Text>}
       <View accessibilityRole="radiogroup" style={styles.options}>
         {options.map(answer => {
-          const isSelected = selected === answer;
+          const isSelected = selected === answer || (key === 'priority' && selected === 'oiliness' && answer === 'dryness');
           const label = key === 'priority' ? t(`support.priorityChoice.${answer}` as TranslationKey) : t(`support.${key}.${answer}` as TranslationKey);
           return <Pressable key={answer} accessibilityRole="radio" accessibilityState={{ checked: isSelected, disabled: saving }}
             accessibilityLabel={label} disabled={saving} onPress={() => onChange({ ...answers, [key]: answer })}
