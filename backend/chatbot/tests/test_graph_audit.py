@@ -38,8 +38,7 @@ def catalog_rows():
         "title": look.title,
         "tags": list(look.tags),
         "items": [
-            {"productId": i.product_id, "shadeId": i.shade_id, "step": i.step}
-            for i in look.items
+            {"productId": i.product_id, "shadeId": i.shade_id, "step": i.step} for i in look.items
         ],
     }
     return [product], [look], [gp], [gl]
@@ -130,7 +129,9 @@ def test_key_ingredients_empty_stays_unverified_even_when_parity_passes():
     product = PRODUCT.model_copy(update={"key_ingredients": []})
     _, looks, rows, gls = catalog_rows()
     rows[0]["keyIngredients"] = []
-    result = report(source_products=[product], source_looks=looks, graph_products=rows, graph_looks=gls)
+    result = report(
+        source_products=[product], source_looks=looks, graph_products=rows, graph_looks=gls
+    )
     assert result["status"] == "PASS"
     assert result["catalogContainsAnyKeyIngredients"] is False
     assert result["fullIngredientEvidenceVerified"] is False
