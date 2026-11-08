@@ -3,9 +3,10 @@
 Input: build_set.py manifest, local Face Landmarker and existing BiSeNet ONNX.
 Output: research/data/ar_model_compare/a/smoke/metrics.csv and local mask PNGs.
 Run: research/ar_evaluation/.venv/Scripts/python.exe research/ar_model_compare/run_a.py
-BiSeNet's 19-class layout and ImageNet normalization are assumptions, not verified provenance.
+The BiSeNet SHA-256 and 19-class card have been checked; see research/reports/ar_model_compare.md.
 """
 import csv
+import hashlib
 import json
 import re
 import time
@@ -42,6 +43,8 @@ def run():
     out = DATA / "a/smoke"; out.mkdir(parents=True, exist_ok=True)
     with (DATA / "set/manifest.csv").open(encoding="utf-8", newline="") as f:
         inputs = list(csv.DictReader(f))
+    if hashlib.sha256(ONNX.read_bytes()).hexdigest() != "0d9bd318e46987c3bdbfacae9e2c0f461cae1c6ac6ea6d43bbe541a91727e33f":
+        raise ValueError("BiSeNet checksum differs from documented artifact")
     opts = vision.FaceLandmarkerOptions(base_options=BaseOptions(model_asset_path=str(MODEL)), num_faces=1)
     face = vision.FaceLandmarker.create_from_options(opts)
     net = ort.InferenceSession(str(ONNX), providers=["CPUExecutionProvider"])
@@ -65,8 +68,8 @@ def run():
         frame = (frame - np.array([.485,.456,.406],np.float32)) / np.array([.229,.224,.225],np.float32)
         tensor = np.ascontiguousarray(frame.transpose(2,0,1)[None])
         start = time.perf_counter(); output = net.run(None, {net.get_inputs()[0].name: tensor}); elapsed = (time.perf_counter()-start)*1000
-        # Timing only: model provenance and class mapping are not documented in the local artifact.
-        rows.append({"id": item["id"], "model": "bisenet_r18", "device": "cpu", "inference_ms": round(elapsed, 3), "detected": "unverified", "iou": "", "boundary_px": "", "note": f"preprocessing assumed; output shape {list(output[0].shape)}; classes unverified"})
+        # Timing only: a nonempty semantic prediction is not a verified detection without GT.
+        rows.append({"id": item["id"], "model": "bisenet_r18", "device": "cpu", "inference_ms": round(elapsed, 3), "detected": "unverified", "iou": "", "boundary_px": "", "note": f"checksum and preprocessing checked; output shape {list(output[0].shape)}; no GT"})
         # The existing renderer captures two different frames; movement and the threshold
         # can contribute false changes. This is a smoke mask, not a segmentation prediction.
         render_dir = ROOT / "research/data/lip_texture/renders/ar_model_compare_b"
@@ -82,7 +85,7 @@ def run():
     with (out / "metrics.csv").open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=rows[0].keys()); writer.writeheader(); writer.writerows(rows)
     summary = {"status": "smoke_only_no_ground_truth", "source": "research/data/ar_model_compare/a/smoke/metrics.csv",
-               "providers": ort.get_available_providers(), "comparability": "CPU times include first-run initialization and were not measured on a phone; BiSeNet preprocessing is unverified.",
+               "providers": ort.get_available_providers(), "comparability": "CPU times include first-run initialization and were not measured on a phone; preprocessing and class mapping have been checked separately.",
                "models": {name: {"images": len([r for r in rows if r["model"] == name]),
                                   "inference_ms_median": float(np.median([r["inference_ms"] for r in rows if r["model"] == name]))}
                           for name in ("mediapipe_landmarker", "bisenet_r18")}}
