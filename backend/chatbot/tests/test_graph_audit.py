@@ -1,7 +1,6 @@
 """Legacy graph parity tests; synthetic, offline, no writes or paid APIs."""
 
 from copy import deepcopy
-from types import SimpleNamespace
 
 import pytest
 
