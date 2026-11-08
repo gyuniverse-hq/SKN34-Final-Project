@@ -55,8 +55,10 @@ export function ProductCompareSheet({
             </Pressable>
           </View>
           <Text style={styles.notice}>{t('chat.compare.notice')}</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}
-            testID="chat-product-compare-columns" contentContainerStyle={styles.columns}>
+          <ScrollView style={styles.comparisonScroll} nestedScrollEnabled
+            contentContainerStyle={styles.comparisonVertical}>
+            <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false}
+              testID="chat-product-compare-columns" contentContainerStyle={styles.columns}>
             {ordered.map((product) => {
               const index = candidateOrder?.indexOf(product.id) ?? -1;
               const proof = evidence?.find((item) => item.productId === product.id);
@@ -110,6 +112,7 @@ export function ProductCompareSheet({
                 ) : null}
               </View>;
             })}
+            </ScrollView>
           </ScrollView>
           <Text style={styles.footer}>{t('chat.compare.footer')}</Text>
         </View>
@@ -130,6 +133,8 @@ const styles = StyleSheet.create({
   closeButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.colors.roseSoft, alignItems: 'center', justifyContent: 'center' },
   closeIcon: { color: theme.colors.roseDark, fontSize: 26, lineHeight: 30 },
   notice: { color: theme.colors.inkMuted, fontSize: theme.font.caption, lineHeight: 18, marginHorizontal: 18, marginBottom: 14 },
+  comparisonScroll: { flexShrink: 1 },
+  comparisonVertical: { paddingBottom: 8 },
   columns: { gap: 10, paddingHorizontal: 18, paddingBottom: 8 },
   column: { width: 184, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.card, borderRadius: 16, overflow: 'hidden', padding: 12, gap: 12 },
   selectedColumn: { borderColor: theme.colors.rose },
