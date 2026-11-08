@@ -29,6 +29,8 @@ interface Props {
   /** Explicit selection is independent of swiping between candidates. */
   onSelectProduct?: (productId: string) => void;
   selectedProductId?: string | null;
+  /** Product IDs in this response, not all candidates retained from previous turns. */
+  expectedIds?: string[];
 }
 
 function conditionMatch(product: Product, condition: ChatCondition): boolean | undefined {
@@ -53,7 +55,7 @@ function candidateStatus(product: Product, required: ChatCondition[]): 'matched'
   return 'matched';
 }
 
-export function ChatProducts({ products, loading, failed, missingCount, conditions, showIngredients, onRetry, onOpenProduct, onOpenAr, disabledActions = false, previewImage, candidateOrder, evidence, selectedShades: controlledShades, onSelectShade, onSelectProduct, selectedProductId }: Props) {
+export function ChatProducts({ products, loading, failed, missingCount, conditions, showIngredients, onRetry, onOpenProduct, onOpenAr, disabledActions = false, previewImage, candidateOrder, evidence, selectedShades: controlledShades, onSelectShade, onSelectProduct, selectedProductId, expectedIds }: Props) {
   const { t } = useI18n();
   const [selectedShades, setSelectedShades] = useState<Record<string, string>>({});
   const requiredConditions = conditions.filter((condition) => condition.required);
@@ -74,9 +76,21 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
 
   // Preserve the original server candidate order/ordinal across condition groups.
   // Each product receives its own slide; swiping never changes selectedProductId.
-  const slides = groups.flatMap((group) => group.products.map((product) => ({
+  const loadedSlides = groups.flatMap((group) => group.products.map((product) => ({
     key: product.id, title: group.title, products: [product],
   })));
+  const orderedExpected = expectedIds
+    ? [...new Set(expectedIds)].sort((a, b) => {
+        const rank = (id: string) => {
+          const index = candidateOrder?.indexOf(id) ?? -1;
+          return index < 0 ? Number.MAX_SAFE_INTEGER : index;
+        };
+        return rank(a) - rank(b);
+      })
+    : undefined;
+  const slides = orderedExpected
+    ? orderedExpected.map((id) => loadedSlides.find((slide) => slide.key === id) ?? { key: id, title: undefined, products: [] })
+    : loadedSlides;
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = Math.min(312, Math.max(224, screenWidth - 96));
   const slideStep = cardWidth + 12;
@@ -122,6 +136,13 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
       {slides.map((group) => (
         <View key={group.key} style={[styles.group, { width: cardWidth }]}>
           {group.title ? <Text style={styles.groupTitle}>{t(group.title)}</Text> : null}
+          {!group.products.length ? <View style={styles.missingCard}>
+            <Text style={styles.carouselCount}>{candidateOrder?.includes(group.key)
+              ? t('chat.candidateNumber', { index: candidateOrder.indexOf(group.key) + 1 })
+              : t('chat.conditionUnknown')}</Text>
+            <Text style={styles.notice}>{loading ? t('chat.productLoading') : failed
+              ? t('chat.productLoadFailed') : t('chat.productMissing', { count: 1 })}</Text>
+          </View> : null}
           {group.products.map((product) => {
             const candidateIndex = candidateOrder?.indexOf(product.id) ?? -1;
             const proof = evidence?.find((item) => item.productId === product.id);
@@ -268,6 +289,7 @@ const styles = StyleSheet.create({
   list: { gap: 8, marginTop: 12 },
   group: { gap: 10 },
   carouselRail: { gap: 12, paddingRight: 24 },
+  missingCard: { minHeight: 160, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.cream, borderRadius: theme.radius.lg, padding: 16, gap: 12, justifyContent: 'center' },
   carouselHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 34 },
   carouselCount: { color: theme.colors.roseDark, fontSize: theme.font.caption, fontWeight: '700' },
   carouselNavigation: { flexDirection: 'row', gap: 8 },
