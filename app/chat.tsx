@@ -62,11 +62,13 @@ const categories: { id: Category; image: number; label: TranslationKey; caption:
   { id: 'style', image: styleBrowseImage, label: 'chat.ui.style', caption: 'chat.ui.styleCaption', prompts: ['chat.ui.styleQuestion1', 'chat.ui.styleQuestion2', 'chat.ui.styleQuestion3'] },
 ];
 
-function RelatedProducts({ refs, question, category, chatContext, evidence, selectedShades, onSelectShade }: {
+function RelatedProducts({ refs, question, category, chatContext, evidence, selectedShades, onSelectShade, onSelectProduct, selectedProductId }: {
   refs: ChatProductRef[]; question: string; category?: Category;
   chatContext?: BeautyChatContext; evidence?: ChatProductEvidence[];
   selectedShades: Record<string, string>;
   onSelectShade: (productId: string, shadeId: string) => void;
+  onSelectProduct?: (productId: string) => void;
+  selectedProductId?: string | null;
 }) {
   const router = useRouter();
   const { t } = useI18n();
@@ -92,6 +94,11 @@ function RelatedProducts({ refs, question, category, chatContext, evidence, sele
         conditions={chatContext ? conditionsFromChatFilters(chatContext.filters, t) : extractChatConditions(question)}
         candidateOrder={chatContext?.candidateIds ?? ids}
         selectedShades={selectedShades}
+        selectedProductId={selectedProductId}
+        onSelectProduct={(productId) => {
+          // Old message cards may remain visible; only the live server candidate set is selectable.
+          if (mounted.current && products.some((p) => p.id === productId)) onSelectProduct?.(productId);
+        }}
         onSelectShade={(productId, shadeId) => {
           // A callback from an old/placeholder card cannot attach another product's shade.
           if (mounted.current && products.some((p) => p.id === productId && p.shades?.some((s) => s.id === shadeId))) {
@@ -175,6 +182,7 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
   const selection = useRef({ revision: 0, shades: {} as Record<string, string>,
     changed: {} as Record<string, number>, screen: undefined as ChatScreenContext | undefined });
   const [selectedShades, setSelectedShades] = useState<Record<string, string>>({});
+  const [chosenProductId, setChosenProductId] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [category, setCategory] = useState<Category>(initialStyle ? 'style' : 'product');
   const [editing, setEditing] = useState(false);
@@ -198,6 +206,7 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
     if (!keepSelection) {
       selection.current = { revision: selection.current.revision + 1, shades: {}, changed: {}, screen: undefined };
       setSelectedShades({});
+      setChosenProductId(null);
     }
     activeRequest.current = undefined;
     sending.current = false;
@@ -215,6 +224,17 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
     inputRef.current?.focus();
   };
 
+  const selectProduct = (productId: string, message: ChatMessage) => {
+    if (message.ownerKey !== ownerKey || message.generation !== generation.current) return;
+    const current = beautyContext.current;
+    if (!current?.session || !current.candidateIds.includes(productId)) return;
+    selection.current.revision += 1;
+    const shadeId = selection.current.shades[productId];
+    selection.current.screen = { screenId: 'chat', productId, ...(shadeId ? { shadeId } : {}) };
+    beautyContext.current = { ...current, selectedProductId: productId };
+    setChosenProductId(productId);
+  };
+
   const selectShade = (productId: string, shadeId: string, message: ChatMessage) => {
     const current = selection.current;
     current.revision += 1;
@@ -229,6 +249,7 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
         shadeSelections: { ...source.shadeSelections, [productId]: shadeId } };
     } else if (!beautyContext.current) beautyContext.current = source;
     setSelectedShades(current.shades);
+    if (source?.candidateIds.includes(productId)) setChosenProductId(productId);
   };
 
   useEffect(() => {
@@ -324,6 +345,7 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
             selection.current.screen = undefined;
           }
           setSelectedShades(nextShades);
+          setChosenProductId(beautyContext.current.selectedProductId ?? null);
           beautyContextTurn.current = requestTurn;
           setSessionNotice(undefined);
         }
@@ -518,6 +540,8 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
                 question={message.question ?? ''} category={message.category}
                 chatContext={message.chatContext} evidence={message.evidence}
                 selectedShades={selectedShades}
+                selectedProductId={chosenProductId}
+                onSelectProduct={(productId) => selectProduct(productId, message)}
                 onSelectShade={(productId, shadeId) => selectShade(productId, shadeId, message)} /> : null}
               {message.role === 'assistant' && !message.products?.length && message.category === 'product' &&
                 (message.resultType === 'empty' || (!message.resultType && extractChatConditions(message.question ?? '').length)) ? (
@@ -557,6 +581,31 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
           ) : null}
         </ScrollView>
         <View style={styles.composer}>
+          {chosenProductId && beautyContext.current?.session &&
+            beautyContext.current.candidateIds.includes(chosenProductId) ? (
+            <View style={styles.selectionBar}>
+              <View style={styles.selectionInfo}>
+                <Text style={styles.selectionLabel}>{t('chat.carousel.chosen')}</Text>
+                <Text style={styles.selectionName} numberOfLines={1}>
+                  {beautyContext.current.candidateIds.indexOf(chosenProductId) + 1}{t('chat.carousel.ordinal')}
+                  {' · '}
+                  {messages.flatMap((item) => item.products ?? []).find((p) => p.id === chosenProductId)?.name ?? chosenProductId}
+                </Text>
+              </View>
+              <Pressable accessibilityRole="button" accessibilityLabel={t('chat.carousel.ingredient')}
+                accessibilityState={{ disabled: isPending || !ready }}
+                disabled={isPending || !ready} onPress={() => void send(t('chat.carousel.ingredient'), undefined, 'ingredient')}
+                style={styles.selectionAction}>
+                <Text style={styles.selectionActionText}>{t('chat.carousel.ingredient')}</Text>
+              </Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel={t('chat.carousel.details')}
+                accessibilityState={{ disabled: isPending || !ready }}
+                disabled={isPending || !ready} onPress={() => void send(t('chat.carousel.details'), undefined, 'product')}
+                style={styles.selectionAction}>
+                <Text style={styles.selectionActionText}>{t('chat.carousel.details')}</Text>
+              </Pressable>
+            </View>
+          ) : null}
           <View style={styles.inputRow}>
             <TextInput ref={inputRef} accessibilityLabel={t('chat.ui.placeholder')} editable={!isPending && ready} maxLength={1000}
               multiline onChangeText={setInput} onFocus={() => setEditing(true)} onBlur={() => setEditing(false)}
@@ -618,6 +667,12 @@ const styles = StyleSheet.create({
   retryDisabled: { opacity: 0.4 },
   retryText: { color: theme.colors.white, fontWeight: '700', fontSize: theme.font.small },
   composer: { backgroundColor: theme.colors.surface, paddingHorizontal: 12, paddingVertical: 8 },
+  selectionBar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, paddingBottom: 8 },
+  selectionInfo: { flexGrow: 1, flexShrink: 1, minWidth: 104 },
+  selectionLabel: { color: theme.colors.roseDark, fontSize: theme.font.caption, fontWeight: '700' },
+  selectionName: { color: theme.colors.ink, fontSize: theme.font.small },
+  selectionAction: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.radius.pill, minHeight: theme.hitTarget, paddingHorizontal: 9, justifyContent: 'center', backgroundColor: theme.colors.card },
+  selectionActionText: { color: theme.colors.roseDark, fontSize: theme.font.caption, fontWeight: '700' },
   conditionArea: { gap: 10, backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderWidth: 1, borderRadius: theme.radius.md, padding: 12 },
   conditionTitle: { color: theme.colors.ink, fontSize: theme.font.small, fontWeight: '700' },
   conditionGroup: { gap: 5 },
