@@ -49,6 +49,8 @@ export function StyleRecipeResult({ heading, summary, browseImage, browseLabel, 
     }),
   } : previewRecipe;
   const [selectedStep, setSelectedStep] = useState(0);
+  const [showAllSteps, setShowAllSteps] = useState(false);
+  const [showSourceDetails, setShowSourceDetails] = useState(false);
   const stepCount = recipe?.steps?.length ?? 0;
   const stepIndex = Math.min(result?.currentStep ?? selectedStep, Math.max(0, stepCount - 1));
   const changeStep = (index: number) => { if (!disabled) { if (result) onStepChange?.(index); else setSelectedStep(index); } };
@@ -62,13 +64,34 @@ export function StyleRecipeResult({ heading, summary, browseImage, browseLabel, 
         </View>
         <Text style={styles.answerText}>{summary}</Text>
       </View>
-      {result ? <View style={styles.recipeCopy}>
-        <Text>{t(`chat.style.${result.basis}`)}</Text>
-        {result.reviewStatus !== 'not_applicable' ? <Text>{t(result.reviewStatus === 'verified' ? 'chat.style.reviewed' : 'chat.style.unreviewed')}</Text> : null}
-        {result.synthetic ? <Text>{t('chat.style.synthetic')}</Text> : null}
-        {result.features.map((feature, index) => <Text key={index} style={styles.recipeSubtitle}>{feature}</Text>)}
-        <Text style={styles.recipeSubtitle}>{t('chat.style.source')}: {result.source}</Text>
-        <Text style={styles.recipeSubtitle}>{t('chat.style.version')}: {result.recipeVersion}</Text>
+      {result ? <View style={styles.provenanceCard}>
+        <View style={styles.provenanceHeader}>
+          <View style={styles.provenanceHeaderText}>
+            <Text style={styles.provenanceEyebrow}>{t('chat.style.basisLabel')}</Text>
+            <Text style={styles.provenanceName}>{t(`chat.style.${result.basis}`)}</Text>
+          </View>
+          <View style={[styles.reviewTag, result.reviewStatus === 'verified' && styles.reviewTagVerified]}>
+            <Text style={styles.reviewTagText}>{t(result.reviewStatus === 'verified' ? 'chat.style.reviewed' : 'chat.style.unreviewed')}</Text>
+          </View>
+        </View>
+        {result.synthetic ? <Text style={styles.provenanceWarning}>{t('chat.style.synthetic')}</Text> : null}
+        {result.features.length ? <View style={styles.featureRow}>
+          {result.features.map((feature, index) => <Text key={index} style={styles.featureTag}>{feature}</Text>)}
+        </View> : null}
+        <Pressable accessibilityRole="button"
+          accessibilityLabel={t(showSourceDetails ? 'chat.style.hideSource' : 'chat.style.showSource')}
+          accessibilityState={{ expanded: showSourceDetails }}
+          onPress={() => setShowSourceDetails((current) => !current)}
+          style={styles.sourceToggle}>
+          <Text style={styles.sourceToggleText}>{t(showSourceDetails ? 'chat.style.hideSource' : 'chat.style.showSource')}</Text>
+          <Ionicons name={showSourceDetails ? 'chevron-up' : 'chevron-down'} size={17} color={theme.colors.rose}/>
+        </Pressable>
+        {showSourceDetails ? <View style={styles.sourceDetails}>
+          <Text style={styles.recipeSubtitle}>{t('chat.style.source')}: {result.source}</Text>
+          <Text style={styles.recipeSubtitle}>{t('chat.style.version')}: {result.recipeVersion}</Text>
+          {!result.videoAnalyzed && result.kind === 'video' ?
+            <Text style={styles.provenanceWarning}>{t('chat.style.unreviewed')}</Text> : null}
+        </View> : null}
       </View> : null}
       {recipe ? (
         <View style={styles.recipe}>
@@ -94,6 +117,9 @@ export function StyleRecipeResult({ heading, summary, browseImage, browseLabel, 
             <Text accessibilityRole="header" style={styles.stepsTitle}>{stepsLabel}</Text>
             <Text accessibilityLiveRegion="polite" style={styles.stepPosition}>{stepNavigation.position(stepIndex + 1, stepCount)}</Text>
           </View>
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${((stepIndex + 1) / stepCount) * 100}%` }]} />
+          </View>
           <View style={styles.step}>
             {step.image ? (
               <View style={styles.stepVisual}>
@@ -106,6 +132,27 @@ export function StyleRecipeResult({ heading, summary, browseImage, browseLabel, 
               <Text style={styles.stepDescription}>{step.description}</Text>
             </View>
           </View>
+          {stepCount > 1 ? <View style={styles.stepOverview}>
+            <Pressable accessibilityRole="button"
+              accessibilityLabel={t(showAllSteps ? 'chat.style.hideSteps' : 'chat.style.showSteps')}
+              accessibilityState={{ expanded: showAllSteps }}
+              onPress={() => setShowAllSteps((current) => !current)}
+              style={styles.stepOutlineToggle}>
+              <Text style={styles.stepOutlineToggleText}>{t(showAllSteps ? 'chat.style.hideSteps' : 'chat.style.showSteps')}</Text>
+              <Ionicons name={showAllSteps ? 'chevron-up' : 'chevron-down'} size={17} color={theme.colors.rose}/>
+            </Pressable>
+            {showAllSteps ? <View style={styles.stepOutline}>
+              {recipe?.steps?.map((item, index) => (
+                <Pressable key={index} accessibilityRole="button" accessibilityLabel={item.title}
+                  accessibilityState={{ selected: stepIndex === index, disabled }}
+                  disabled={disabled} onPress={() => changeStep(index)}
+                  style={[styles.stepOutlineItem, stepIndex === index && styles.stepOutlineSelected]}>
+                  <Text style={styles.stepOutlineNumber}>{index + 1}</Text>
+                  <Text style={styles.stepOutlineText}>{item.title}</Text>
+                </Pressable>
+              ))}
+            </View> : null}
+          </View> : null}
           {stepCount > 1 ? (
             <View style={styles.stepControls}>
               <Pressable accessibilityRole="button" accessibilityLabel={stepNavigation.previous}
@@ -166,6 +213,22 @@ const styles = StyleSheet.create({
   recipeHero: { minHeight: 240, justifyContent: 'flex-end' },
   recipeImage: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   recipeCopy: { gap: 4, padding: 14 },
+  provenanceCard: { gap: 12, padding: 14, borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.radius.lg, backgroundColor: theme.colors.card },
+  provenanceHeader: { flexDirection: 'row', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 },
+  provenanceHeaderText: { flex: 1, gap: 4, minWidth: 120 },
+  provenanceEyebrow: { color: theme.colors.rose, fontSize: theme.font.caption, fontWeight: '700' },
+  provenanceName: { color: theme.colors.ink, fontSize: theme.font.small, lineHeight: 20, fontWeight: '700' },
+  reviewTag: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: theme.radius.pill, backgroundColor: theme.colors.warningBg, maxWidth: '100%' },
+  reviewTagVerified: { backgroundColor: theme.colors.roseSoft },
+  reviewTagText: { fontSize: theme.font.caption, color: theme.colors.roseDark, fontWeight: '700', lineHeight: 18 },
+  provenanceWarning: { color: theme.colors.warning, fontSize: theme.font.caption, lineHeight: 19 },
+  featureRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  featureTag: { color: theme.colors.roseDark, backgroundColor: theme.colors.roseSoft, overflow: 'hidden',
+    borderRadius: theme.radius.pill, fontSize: theme.font.caption, paddingHorizontal: 10, paddingVertical: 6 },
+  sourceToggle: { minHeight: theme.hitTarget, flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.radius.md, paddingHorizontal: 12 },
+  sourceToggleText: { color: theme.colors.rose, fontWeight: '700', fontSize: theme.font.small },
+  sourceDetails: { gap: 5, backgroundColor: theme.colors.cream, padding: 12, borderRadius: theme.radius.md },
   recipeOverlay: { gap: 4, paddingHorizontal: 14, paddingTop: 32, paddingBottom: 14 },
   overlayText: { color: theme.colors.white },
   recipeTitle: { color: theme.colors.ink, fontSize: theme.font.title, fontWeight: '800' },
@@ -174,6 +237,18 @@ const styles = StyleSheet.create({
   stepsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   stepsTitle: { color: theme.colors.ink, fontSize: theme.font.small, fontWeight: '700' },
   stepPosition: { color: theme.colors.inkMuted, fontSize: theme.font.caption },
+  progressTrack: { height: 5, borderRadius: 3, backgroundColor: theme.colors.roseSoft, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 3, backgroundColor: theme.colors.rose },
+  stepOverview: { gap: 8 },
+  stepOutlineToggle: { minHeight: theme.hitTarget, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.md, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  stepOutlineToggleText: { color: theme.colors.rose, fontWeight: '700', fontSize: theme.font.small },
+  stepOutline: { gap: 6 },
+  stepOutlineItem: { minHeight: theme.hitTarget, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1,
+    borderColor: theme.colors.border, borderRadius: theme.radius.md, paddingHorizontal: 12, backgroundColor: theme.colors.card },
+  stepOutlineSelected: { borderColor: theme.colors.rose, backgroundColor: theme.colors.roseSoft },
+  stepOutlineNumber: { fontSize: theme.font.caption, fontWeight: '800', color: theme.colors.rose },
+  stepOutlineText: { flex: 1, fontSize: theme.font.small, fontWeight: '600', color: theme.colors.ink },
   step: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 12, borderColor: theme.colors.border, borderWidth: 1, borderRadius: theme.radius.md, backgroundColor: theme.colors.card },
   stepNumber: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.roseSoft },
   stepNumberText: { color: theme.colors.rose, fontSize: theme.font.caption, fontWeight: '700' },
