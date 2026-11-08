@@ -70,9 +70,9 @@ export function StyleRecipeResult({ heading, summary, browseImage, browseLabel, 
             <Text style={styles.provenanceEyebrow}>{t('chat.style.basisLabel')}</Text>
             <Text style={styles.provenanceName}>{t(`chat.style.${result.basis}`)}</Text>
           </View>
-          <View style={[styles.reviewTag, result.reviewStatus === 'verified' && styles.reviewTagVerified]}>
+          {result.reviewStatus !== 'not_applicable' ? <View style={[styles.reviewTag, result.reviewStatus === 'verified' && styles.reviewTagVerified]}>
             <Text style={styles.reviewTagText}>{t(result.reviewStatus === 'verified' ? 'chat.style.reviewed' : 'chat.style.unreviewed')}</Text>
-          </View>
+          </View> : null}
         </View>
         {result.synthetic ? <Text style={styles.provenanceWarning}>{t('chat.style.synthetic')}</Text> : null}
         {result.features.length ? <View style={styles.featureRow}>
