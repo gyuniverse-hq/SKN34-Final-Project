@@ -120,7 +120,6 @@ function IngredientEvidenceCard({ result, target, labels }: {
 }
 
 export function IngredientResult({ heading, summary, notice, product, labels, results, products, shadeSelections }: IngredientResultProps) {
-  const { t } = useI18n();
   return (
     <View style={styles.result}>
       <View style={styles.answer}>
