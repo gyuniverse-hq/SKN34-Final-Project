@@ -2,7 +2,7 @@ import { useRef, useState, type ComponentRef } from 'react';
 import { Image } from 'expo-image';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { ProductImage } from '@/components/ui/ProductImage';
-import { ProductCompareSheet } from '@/components/chat/ProductCompareSheet';
+import { ProductCompareSheet } from './ProductCompareSheet';
 import { theme } from '@/constants/theme';
 import { canTryOn } from '@/lib/catalog';
 import type { ChatCondition } from '@/lib/chatConditions';
