@@ -4,8 +4,7 @@
 적재하지 않는다(현재 raw_oy_ingredient 와 전수 대조 결과 일치 0건). 성분 코드와 수집
 성분의 연결은 link_ingredients.py 가 이름을 근거로 rec_ingredient_link 에 만든다.
 
-등급 컬럼(mapping_status, human_mapping_review, ai_paper_review, re_review_required,
-runtime_enabled)은 거르지 않고 그대로 넣는다. 소비하는 쪽이 판단한다.
+근거·검수 등급은 원문대로 적재한다. 운영 승인과 파생 runtime_enabled는 발행 경로에서 관리한다.
 
 이 스크립트는 전달본 6개 테이블만 upsert 하며, 이 저장소가 계산한 rec_ingredient_link
 와 rec_concern_match 는 건드리지 않는다.
@@ -147,11 +146,11 @@ async def main() -> None:
         ("rec_mapping", ("mapping_id",),
          ("mapping_id", "mapping_type", "target_concern", "ingredient_codes", "evidence_id",
           "mapping_status", "human_mapping_review", "ai_paper_review", "re_review_required",
-          "runtime_enabled", "requirements_scope"),
+          "requirements_scope"),
          [(r["mapping_id"], r["mapping_type"], r["target_concern"], r["ingredient_codes"] or None,
            r["evidence_id"] or None, r["mapping_status"], r["human_mapping_review"] or None,
            r["ai_paper_review"] or None, flag(r["re_review_required"]),
-           flag(r["runtime_enabled"]), r["requirements_scope"] or None) for r in src["mapping"]]),
+           r["requirements_scope"] or None) for r in src["mapping"]]),
         ("rec_mapping_ingredient", ("mapping_id", "ingredient_code"),
          ("mapping_id", "ingredient_code", "component_order"),
          [(r["mapping_id"], r["ingredient_code"], int(r["component_order"]))

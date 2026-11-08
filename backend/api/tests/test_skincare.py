@@ -1,3 +1,5 @@
+# These historical fixtures exercise the ranking core; policy tests use the public entry points.
+
 from unittest.mock import AsyncMock
 
 import pytest
@@ -9,7 +11,7 @@ from app.schemas.skincare import (
     SkincareRequest,
     SkincareSnapshot,
 )
-from app.services.skincare_service import recommend
+from app.services.skincare_service import _recommend_unfiltered as recommend
 from tests.conftest import make_product
 
 

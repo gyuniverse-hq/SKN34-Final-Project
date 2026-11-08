@@ -1,3 +1,10 @@
+# v0.3 운영 경로
+
+Alembic 0018은 `backend/api/seed/recommendation_v03/`을 사용한다. 0019 적용 후에는
+`load_cosing.py`로 별도 전달받은 CosIng CSV를 적재한다. 적재와 발행은
+[추천 발행 절차](../../../docs/skincare-recommendations.md)를 따른다.
+아래 적재기와 수동 연결 절차는 0017 이하의 구 스키마 전용이다.
+
 # 피부 고민별 성분 추천 매핑
 
 AI 담당이 전달한 매핑 데이터셋을 `rec_*` 테이블에 적재하고, 추천 성분 코드를 수집

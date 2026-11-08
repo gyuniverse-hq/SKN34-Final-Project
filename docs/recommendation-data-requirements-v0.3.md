@@ -1,5 +1,7 @@
 # 추천 시스템 데이터 요구사항 정의서 v0.3
 
+이 문서는 v1 도입 당시의 계약이다. 현재 운영 승인·발행과 v2 앱/API 계약은 [기초 화장품 추천](./skincare-recommendations.md)을 따른다.
+
 - 기준: `추천_시스템_데이터_요구사항_정의서_v0.2.md`, `VISHUE_Recommendation_Schema.md`, 현재 API·DB 연동 코드
 - 범위: 기초 화장품 성분 기반 추천(`/api/recommendations/skincare`)
 - 상태: DB 테이블 계약과 추천 입력·출력 정의. 실제 DB의 최신 행 값과 운영 활성 상태는 별도 확인한다.

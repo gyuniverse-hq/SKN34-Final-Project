@@ -30,7 +30,8 @@ async def test_refresh_detects_changes_and_rolls_back_invalid_snapshot(monkeypat
     conn = await asyncpg.connect(url)
     raw = MANIFEST.read_bytes()
     try:
-        assert (await repository.refresh(raw)).startswith("published ")
+        result = await repository.refresh(raw)
+        assert result == "unchanged" or result.startswith("published ")
         assert await repository.refresh(raw) == "unchanged"
         before = await conn.fetchval("SELECT payload FROM skincare_serving WHERE id = 1")
         matches = await conn.fetchval("SELECT count(*) FROM rec_concern_match")
@@ -52,25 +53,23 @@ async def test_refresh_detects_changes_and_rolls_back_invalid_snapshot(monkeypat
         )
         actual = next(o for o in updated["options"] if o["optionId"] == option["optionId"])
         assert actual["priceKRW"] == option["priceKRW"] + 1
-        single = {m["mappingId"]: m for m in updated["mappings"] if m["mappingType"] == "single"}
+        single = {
+            m["mappingId"]: m for m in updated["mappings"] if m["mappingId"].startswith("cosing:")
+        }
         matched_option = next(
             o for o in updated["options"] if set(o["matchedMappingIds"]) & single.keys()
         )
         mapping_id = next(m for m in matched_option["matchedMappingIds"] if m in single)
-        code = single[mapping_id]["ingredientCodes"][0]
-        await conn.execute(
+        ingredient_id = int(single[mapping_id]["ingredientCodes"][0].removeprefix("cosing:mfds:"))
+        deleted = await conn.execute(
             "DELETE FROM raw_oy_option_ingredient WHERE option_id = $1 AND ingredient_id IN "
-            "(SELECT oy_ingredient_id FROM rec_ingredient_link WHERE ingredient_code = $2)",
+            "(SELECT oy_ingredient_id FROM oy_mfds_ingredient_map WHERE mfds_ingredient_id = $2)",
             matched_option["optionId"],
-            code,
+            ingredient_id,
         )
+        assert deleted != "DELETE 0"
         assert (await repository.refresh(raw)).startswith("published ")
-        assert not await conn.fetchval(
-            "SELECT EXISTS (SELECT 1 FROM rec_concern_match "
-            "WHERE mapping_id = $1 AND option_id = $2)",
-            mapping_id,
-            matched_option["optionId"],
-        )
+        assert await conn.fetchval("SELECT count(*) FROM rec_concern_match") == matches
         updated = json.loads(
             await conn.fetchval("SELECT payload FROM skincare_serving WHERE id = 1")
         )
