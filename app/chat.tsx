@@ -91,14 +91,15 @@ function RelatedProducts({ refs, question, category, chatContext, evidence, sele
       <Text style={styles.relatedTitle}>{t('chat.relatedProducts')}</Text>
       <ChatProducts
         products={products}
+        expectedIds={ids}
         conditions={chatContext ? conditionsFromChatFilters(chatContext.filters, t) : extractChatConditions(question)}
         candidateOrder={chatContext?.candidateIds ?? ids}
         selectedShades={selectedShades}
         selectedProductId={selectedProductId}
-        onSelectProduct={(productId) => {
+        onSelectProduct={onSelectProduct ? (productId) => {
           // Old message cards may remain visible; only the live server candidate set is selectable.
-          if (mounted.current && products.some((p) => p.id === productId)) onSelectProduct?.(productId);
-        }}
+          if (mounted.current && products.some((p) => p.id === productId)) onSelectProduct(productId);
+        } : undefined}
         onSelectShade={(productId, shadeId) => {
           // A callback from an old/placeholder card cannot attach another product's shade.
           if (mounted.current && products.some((p) => p.id === productId && p.shades?.some((s) => s.id === shadeId))) {
@@ -541,7 +542,7 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
                 chatContext={message.chatContext} evidence={message.evidence}
                 selectedShades={selectedShades}
                 selectedProductId={chosenProductId}
-                onSelectProduct={(productId) => selectProduct(productId, message)}
+                onSelectProduct={beautyContext.current?.session ? (productId) => selectProduct(productId, message) : undefined}
                 onSelectShade={(productId, shadeId) => selectShade(productId, shadeId, message)} /> : null}
               {message.role === 'assistant' && !message.products?.length && message.category === 'product' &&
                 (message.resultType === 'empty' || (!message.resultType && extractChatConditions(message.question ?? '').length)) ? (
