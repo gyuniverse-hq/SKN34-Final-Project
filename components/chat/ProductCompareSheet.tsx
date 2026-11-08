@@ -41,7 +41,7 @@ export function ProductCompareSheet({
       accessibilityViewIsModal>
       <View style={styles.backdrop}>
         <Pressable accessibilityRole="button" accessibilityLabel={t('chat.compare.close')}
-          onPress={onClose} style={StyleSheet.absoluteFillObject} />
+          onPress={onClose} style={StyleSheet.absoluteFill} />
         <View style={styles.sheet}>
           <View style={styles.handle} />
           <View style={styles.header}>
