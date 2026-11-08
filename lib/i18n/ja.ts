@@ -7,6 +7,13 @@ import { skinJa } from './skin';
 import { skinReportJa } from './skinReport';
 
 export const ja: Dictionary = {
+  'chat.carousel.previous': "前の商品",
+  'chat.carousel.next': "次の商品",
+  'chat.carousel.choose': "この商品を選ぶ",
+  'chat.carousel.chosen': "選択した商品",
+  'chat.carousel.ordinal': "番",
+  'chat.carousel.ingredient': "この商品の成分は？",
+  'chat.carousel.details': "この商品について詳しく教えて",
   ...skincareJa,
   ...supportJa,
   ...surveyJa,
