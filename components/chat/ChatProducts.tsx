@@ -2,6 +2,7 @@ import { useRef, useState, type ComponentRef } from 'react';
 import { Image } from 'expo-image';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { ProductImage } from '@/components/ui/ProductImage';
+import { ProductCompareSheet } from '@/components/chat/ProductCompareSheet';
 import { theme } from '@/constants/theme';
 import { canTryOn } from '@/lib/catalog';
 import type { ChatCondition } from '@/lib/chatConditions';
@@ -58,6 +59,7 @@ function candidateStatus(product: Product, required: ChatCondition[]): 'matched'
 export function ChatProducts({ products, loading, failed, missingCount, conditions, showIngredients, onRetry, onOpenProduct, onOpenAr, disabledActions = false, previewImage, candidateOrder, evidence, selectedShades: controlledShades, onSelectShade, onSelectProduct, selectedProductId, expectedIds }: Props) {
   const { t } = useI18n();
   const [selectedShades, setSelectedShades] = useState<Record<string, string>>({});
+  const [compareOpen, setCompareOpen] = useState(false);
   const requiredConditions = conditions.filter((condition) => condition.required);
   const ordered = candidateOrder ? [...products].sort((a, b) => {
     const rank = (id: string) => { const i = candidateOrder.indexOf(id); return i < 0 ? candidateOrder.length : i; };
@@ -266,6 +268,22 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
         </View>
       ))}
       </ScrollView>
+      {ordered.length >= 2 ? <Pressable accessibilityRole="button"
+        accessibilityLabel={t('chat.compare.open')}
+        onPress={() => setCompareOpen(true)} style={styles.compareOpen}>
+        <Text style={styles.compareOpenText}>{t('chat.compare.open')}</Text>
+        <Text style={styles.compareArrow}>↗</Text>
+      </Pressable> : null}
+      <ProductCompareSheet
+        visible={compareOpen}
+        products={ordered}
+        candidateOrder={candidateOrder}
+        evidence={evidence}
+        selectedProductId={selectedProductId}
+        onSelectProduct={onSelectProduct}
+        disabledActions={disabledActions}
+        onClose={() => setCompareOpen(false)}
+      />
       {loading ? (
         <View style={styles.status} accessibilityRole="progressbar" accessibilityLabel={t('chat.productLoading')}>
           <ActivityIndicator color={theme.colors.rose} size="small" />
@@ -289,6 +307,10 @@ const styles = StyleSheet.create({
   list: { gap: 8, marginTop: 12 },
   group: { gap: 10 },
   carouselRail: { gap: 12, paddingRight: 24 },
+  compareOpen: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.radius.md, paddingHorizontal: 14,
+    minHeight: theme.hitTarget, backgroundColor: theme.colors.card, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  compareOpenText: { color: theme.colors.roseDark, fontSize: theme.font.small, fontWeight: '700' },
+  compareArrow: { color: theme.colors.rose, fontSize: 18 },
   missingCard: { minHeight: 160, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.cream, borderRadius: theme.radius.lg, padding: 16, gap: 12, justifyContent: 'center' },
   carouselHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 34 },
   carouselCount: { color: theme.colors.roseDark, fontSize: theme.font.caption, fontWeight: '700' },
