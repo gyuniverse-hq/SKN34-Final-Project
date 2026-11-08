@@ -45,7 +45,15 @@ RETURN p.id AS id, p.brand AS brand, p.name AS name, p.nameKo AS nameKo,
 ORDER BY id
 """
 
-CATALOG_AUDIT_LOOKS = "MATCH (l:Look) RETURN l.id AS id ORDER BY id"
+CATALOG_AUDIT_LOOKS = """
+MATCH (l:Look)
+OPTIONAL MATCH (l)-[r:USES]->(p:Product)
+WITH l, collect(CASE WHEN p IS NULL THEN null ELSE
+     {productId: p.id, shadeId: r.shadeId, step: r.step} END) AS items
+OPTIONAL MATCH (l)-[:TAGGED]->(t:Tag)
+RETURN l.id AS id, l.title AS title, items, collect(t.name) AS tags
+ORDER BY id
+"""
 
 CLEAR = "MATCH (n) WHERE n:Product OR n:Shade OR n:Ingredient OR n:Tag OR n:Look DETACH DELETE n"
 
@@ -92,11 +100,11 @@ class GraphRepository:
         )
         return [r.data() for r in result.records]
 
-    async def audit_catalog_look_ids(self) -> list[str]:
+    async def audit_catalog_looks(self) -> list[dict[str, Any]]:
         result = await self._driver.execute_query(
             CATALOG_AUDIT_LOOKS, routing_=RoutingControl.READ
         )
-        return [r["id"] for r in result.records]
+        return [r.data() for r in result.records]
 
     async def ensure_schema(self) -> None:
         for statement in SCHEMA:
