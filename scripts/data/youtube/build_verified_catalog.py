@@ -105,6 +105,11 @@ def category_tag(category: str) -> str:
     return (category.split(">")[-1].strip() or category.split(">", 1)[0].strip())[:80]
 
 
+def optional_source_text(value: str | None) -> str:
+    text = (value or "").strip()
+    return "" if text.casefold() == "n" else text
+
+
 async def build(args: argparse.Namespace) -> None:
     reviewed = read_review(args.reviewed)
     raw_selection = read_raw_selection(args.raw_selection)
@@ -194,7 +199,9 @@ async def build(args: argparse.Namespace) -> None:
         name = raw["product_name"].strip()
         if not name:
             raise ValueError(f"Missing source product name: {product_id}")
-        option = (raw["option_name"] or "").strip()
+        option = optional_source_text(raw["option_name"])
+        volume = optional_source_text(raw["volume"])
+        description = optional_source_text(raw["description"])
         display_name = (
             name
             if not option or option.casefold() in name.casefold()
@@ -213,9 +220,9 @@ async def build(args: argparse.Namespace) -> None:
                 "makeupZone": None,
                 "texture": None,
                 "priceKRW": price,
-                "volume": raw["volume"] or "",
+                "volume": volume,
                 "shades": [],
-                "description": raw["description"] or "",
+                "description": description,
                 "keyIngredients": [],
                 "tags": [
                     "youtube",
