@@ -101,9 +101,7 @@ class GraphRepository:
         return [r.data() for r in result.records]
 
     async def audit_catalog_looks(self) -> list[dict[str, Any]]:
-        result = await self._driver.execute_query(
-            CATALOG_AUDIT_LOOKS, routing_=RoutingControl.READ
-        )
+        result = await self._driver.execute_query(CATALOG_AUDIT_LOOKS, routing_=RoutingControl.READ)
         return [r.data() for r in result.records]
 
     async def ensure_schema(self) -> None:
