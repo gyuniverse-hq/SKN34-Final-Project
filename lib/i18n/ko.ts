@@ -7,6 +7,13 @@ import { skinKo } from './skin';
 import { skinReportKo } from './skinReport';
 
 export const ko: Dictionary = {
+  'chat.carousel.previous': "이전 제품",
+  'chat.carousel.next': "다음 제품",
+  'chat.carousel.choose': "이 제품 선택",
+  'chat.carousel.chosen': "선택한 제품",
+  'chat.carousel.ordinal': "번",
+  'chat.carousel.ingredient': "이 제품 성분은?",
+  'chat.carousel.details': "이 제품 자세히 알려줘",
   ...skincareKo,
   ...supportKo,
   ...surveyKo,
