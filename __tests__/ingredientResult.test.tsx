@@ -47,6 +47,11 @@ it.each([['en', en], ['ko', ko], ['ja', ja], ['zh', zh]] as const)(
     expect(text(view)).toContain(dictionary['chat.ingredient.includes']);
     expect(text(view)).toContain(dictionary['chat.ingredient.synthetic']);
     expect(text(view)).toContain('p2-03');
+    expect(text(view)).not.toContain('fixture://notice');
+    expect(text(view)).not.toContain('1. Water');
+    await act(async () => {
+      view.root.findByProps({ accessibilityLabel: dictionary['chat.ingredient.showDetails'] }).props.onPress();
+    });
     expect(text(view)).toContain('fixture://notice');
     expect(text(view)).toContain('1. Water');
     expect(view.root.findAllByType(Text).every((node) => node.props.numberOfLines === undefined)).toBe(true);
@@ -79,6 +84,10 @@ it('does not display unreviewed lists or foreign-product evidence', async () => 
   const view = await render([{ ...evidence, mappingStatus: 'candidate', reviewStatus: 'unreviewed' },
     { ...evidence, productId: 'other', ingredients: [{ name: 'Foreign ingredient', sequence: 1 }] }]);
   expect(text(view)).toContain(en['chat.ingredient.UNKNOWN']);
+  await act(async () => {
+    view.root.findAllByProps({ accessibilityLabel: en['chat.ingredient.showDetails'] })[0].props.onPress();
+  });
+  expect(text(view)).toContain(en['chat.ingredient.noVerifiedList']);
   expect(text(view)).not.toContain('1. Water');
   expect(text(view)).not.toContain('Foreign ingredient');
   await act(async () => { view.unmount(); });
@@ -108,4 +117,19 @@ it('never publishes synthetic evidence as verified in a production build', async
   } finally {
     Object.defineProperty(globalThis, '__DEV__', { value: original, configurable: true });
   }
+});
+
+it('toggles disclosure and never reveals unreviewed ingredient evidence', async () => {
+  const view = await render([{ ...evidence, mappingStatus: 'candidate', reviewStatus: 'unreviewed' }]);
+  const show = view.root.findByProps({ accessibilityLabel: en['chat.ingredient.showDetails'] });
+  expect(show.props.accessibilityState.expanded).toBe(false);
+  await act(async () => { show.props.onPress(); });
+  const hide = view.root.findByProps({ accessibilityLabel: en['chat.ingredient.hideDetails'] });
+  expect(hide.props.accessibilityState.expanded).toBe(true);
+  expect(text(view)).toContain(en['chat.ingredient.noVerifiedList']);
+  expect(text(view)).not.toContain('fixture://notice');
+  expect(text(view)).not.toContain('1. Water');
+  await act(async () => { hide.props.onPress(); });
+  expect(view.root.findByProps({ accessibilityLabel: en['chat.ingredient.showDetails'] }).props.accessibilityState.expanded).toBe(false);
+  await act(async () => view.unmount());
 });
