@@ -617,13 +617,26 @@ describe('standalone chat input', () => {
     keyboardListener.mockRestore();
   });
 
-  it('changes category examples and fills the draft without sending', async () => {
+  it('fills the draft from a problem-first example and selects a compatible consultation route', async () => {
     const renderer = await renderScreen();
-    await act(async () => { buttonWithText(renderer.root, 'chat.ui.ingredient').props.onPress(); });
-    expect(buttonWithText(renderer.root, 'chat.ui.ingredientQuestion1')).toBeTruthy();
-    await act(async () => { buttonWithText(renderer.root, 'chat.ui.ingredientQuestion1').props.onPress(); });
-    expect(renderer.root.findByType(TextInput).props.value).toBe('chat.ui.ingredientQuestion1');
+    expect(buttonWithText(renderer.root, 'chat.welcome.promptA')).toBeTruthy();
+    expect(buttonWithText(renderer.root, 'chat.welcome.promptB')).toBeTruthy();
+    await act(async () => { buttonWithText(renderer.root, 'chat.welcome.promptB').props.onPress(); });
+    expect(renderer.root.findByType(TextInput).props.value).toBe('chat.welcome.promptB');
     expect(mockMutateAsync).not.toHaveBeenCalled();
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'Ingredient guidance', products: [] });
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    expect(mockMutateAsync.mock.calls[0][0].category).toBe('ingredient');
+    await act(async () => { renderer.unmount(); });
+  });
+
+  it('allows style example to fill the draft and route to style consultation', async () => {
+    const renderer = await renderScreen();
+    await act(async () => { buttonWithText(renderer.root, 'chat.welcome.promptC').props.onPress(); });
+    expect(renderer.root.findByType(TextInput).props.value).toBe('chat.welcome.promptC');
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'Style guidance', products: [] });
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    expect(mockMutateAsync.mock.calls[0][0].category).toBe('style');
     await act(async () => { renderer.unmount(); });
   });
 
