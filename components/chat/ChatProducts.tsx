@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Image } from 'expo-image';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { ProductImage } from '@/components/ui/ProductImage';
 import { theme } from '@/constants/theme';
 import { canTryOn } from '@/lib/catalog';
@@ -26,6 +26,9 @@ interface Props {
   evidence?: ChatProductEvidence[];
   selectedShades?: Record<string, string>;
   onSelectShade?: (productId: string, shadeId: string) => void;
+  /** Explicit selection is independent of swiping between candidates. */
+  onSelectProduct?: (productId: string) => void;
+  selectedProductId?: string | null;
 }
 
 function conditionMatch(product: Product, condition: ChatCondition): boolean | undefined {
@@ -50,7 +53,7 @@ function candidateStatus(product: Product, required: ChatCondition[]): 'matched'
   return 'matched';
 }
 
-export function ChatProducts({ products, loading, failed, missingCount, conditions, showIngredients, onRetry, onOpenProduct, onOpenAr, disabledActions = false, previewImage, candidateOrder, evidence, selectedShades: controlledShades, onSelectShade }: Props) {
+export function ChatProducts({ products, loading, failed, missingCount, conditions, showIngredients, onRetry, onOpenProduct, onOpenAr, disabledActions = false, previewImage, candidateOrder, evidence, selectedShades: controlledShades, onSelectShade, onSelectProduct, selectedProductId }: Props) {
   const { t } = useI18n();
   const [selectedShades, setSelectedShades] = useState<Record<string, string>>({});
   const requiredConditions = conditions.filter((condition) => condition.required);
@@ -69,11 +72,55 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
     { key: 'mismatched', title: 'chat.ui.candidatesMismatched' as TranslationKey, products: products.filter((product) => candidateStatus(product, requiredConditions) === 'mismatched') },
   ] : [{ key: 'all', title: undefined, products }];
 
+  // Preserve the original server candidate order/ordinal across condition groups.
+  // Each product receives its own slide; swiping never changes selectedProductId.
+  const slides = groups.flatMap((group) => group.products.map((product) => ({
+    key: product.id, title: group.title, products: [product],
+  })));
+  const { width: screenWidth } = useWindowDimensions();
+  const cardWidth = Math.min(312, Math.max(224, screenWidth - 96));
+  const slideStep = cardWidth + 12;
+  const carouselRef = useRef<ScrollView>(null);
+  const [viewedIndex, setViewedIndex] = useState(0);
+  const currentIndex = Math.min(viewedIndex, Math.max(0, slides.length - 1));
+  const goTo = (index: number) => {
+    const next = Math.max(0, Math.min(index, slides.length - 1));
+    setViewedIndex(next);
+    carouselRef.current?.scrollTo?.({ x: next * slideStep, animated: true });
+  };
+
   return (
     <View style={styles.list}>
       {conditions.length && products.length ? <Text style={styles.notice}>{t('chat.ui.partialConditionsNotice' as TranslationKey)}</Text> : null}
-      {groups.filter((group) => group.products.length > 0).map((group) => (
-        <View key={group.key} style={styles.group}>
+      {slides.length > 0 ? (
+        <View style={styles.carouselHeader}>
+          <Text style={styles.carouselCount}>{currentIndex + 1} / {slides.length}</Text>
+          <View style={styles.carouselNavigation}>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('chat.carousel.previous')}
+              disabled={currentIndex === 0} accessibilityState={{ disabled: currentIndex === 0 }}
+              onPress={() => goTo(currentIndex - 1)} style={styles.carouselArrow}>
+              <Text style={styles.carouselArrowText}>‹</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('chat.carousel.next')}
+              disabled={currentIndex === slides.length - 1} accessibilityState={{ disabled: currentIndex === slides.length - 1 }}
+              onPress={() => goTo(currentIndex + 1)} style={styles.carouselArrow}>
+              <Text style={styles.carouselArrowText}>›</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+      <ScrollView ref={carouselRef} horizontal
+        testID="chat-products-carousel"
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={slideStep}
+        decelerationRate="fast"
+        contentContainerStyle={styles.carouselRail}
+        onMomentumScrollEnd={({ nativeEvent }) => {
+          const index = Math.round(nativeEvent.contentOffset.x / slideStep);
+          setViewedIndex(Math.max(0, Math.min(index, slides.length - 1)));
+        }}>
+      {slides.map((group) => (
+        <View key={group.key} style={[styles.group, { width: cardWidth }]}>
           {group.title ? <Text style={styles.groupTitle}>{t(group.title)}</Text> : null}
           {group.products.map((product) => {
             const candidateIndex = candidateOrder?.indexOf(product.id) ?? -1;
@@ -84,7 +131,7 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
             const selectedShade = validShades.find((shade) => shade.id === (controlledShades ?? selectedShades)[product.id]);
             const productCategory = parseCategory(product.category);
             return (
-              <View key={product.id} style={styles.card}>
+              <View key={product.id} style={[styles.card, selectedProductId === product.id && styles.cardSelected]}>
                 <View style={styles.productHeader}>
                   {disabledActions && previewImage ? <Image source={previewImage} style={styles.image} contentFit="cover" accessible={false} /> :
                     <ProductImage uri={product.imageUrl} category={productCategory} recyclingKey={product.id} style={styles.image} />}
@@ -160,6 +207,17 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
                       {tryOn && !selectedShade ? <Text style={styles.notice}>{t('chat.tryOnAtDetail')}</Text> : null}
                     </>
                   ) : null}
+                  {onSelectProduct ? <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${t('chat.carousel.choose')}: ${product.name}`}
+                    accessibilityState={{ selected: selectedProductId === product.id, disabled: disabledActions }}
+                    disabled={disabledActions}
+                    onPress={disabledActions ? undefined : () => onSelectProduct(product.id)}
+                    style={[styles.selectProduct, selectedProductId === product.id && styles.selectProductActive, disabledActions && styles.disabled]}>
+                    <Text style={[styles.selectProductText, selectedProductId === product.id && styles.selectProductTextActive]}>
+                      {t(selectedProductId === product.id ? 'chat.carousel.chosen' : 'chat.carousel.choose')}
+                    </Text>
+                  </Pressable> : null}
                   <View style={styles.actions}>
                     {parseId(product.id) === product.id ? <Pressable
                       accessibilityRole="button"
@@ -186,6 +244,7 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
           })}
         </View>
       ))}
+      </ScrollView>
       {loading ? (
         <View style={styles.status} accessibilityRole="progressbar" accessibilityLabel={t('chat.productLoading')}>
           <ActivityIndicator color={theme.colors.rose} size="small" />
@@ -208,8 +267,19 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
 const styles = StyleSheet.create({
   list: { gap: 8, marginTop: 12 },
   group: { gap: 10 },
+  carouselRail: { gap: 12, paddingRight: 24 },
+  carouselHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 34 },
+  carouselCount: { color: theme.colors.roseDark, fontSize: theme.font.caption, fontWeight: '700' },
+  carouselNavigation: { flexDirection: 'row', gap: 8 },
+  carouselArrow: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.roseSoft, alignItems: 'center', justifyContent: 'center' },
+  carouselArrowText: { color: theme.colors.rose, fontSize: 23, lineHeight: 28 },
   groupTitle: { color: theme.colors.ink, fontSize: theme.font.small, fontWeight: '700', marginTop: 4 },
   card: { backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderRadius: theme.radius.lg, borderWidth: 1, gap: 10, padding: 12 },
+  cardSelected: { borderColor: theme.colors.rose, borderWidth: 2 },
+  selectProduct: { borderColor: theme.colors.rose, borderWidth: 1, minHeight: theme.hitTarget, borderRadius: theme.radius.pill, justifyContent: 'center', alignItems: 'center' },
+  selectProductActive: { backgroundColor: theme.colors.rose },
+  selectProductText: { color: theme.colors.rose, fontWeight: '700', fontSize: theme.font.small },
+  selectProductTextActive: { color: theme.colors.white },
   productHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   productBody: { gap: 7 },
   image: { width: 92, height: 104, borderRadius: theme.radius.md, backgroundColor: theme.colors.roseSoft },
