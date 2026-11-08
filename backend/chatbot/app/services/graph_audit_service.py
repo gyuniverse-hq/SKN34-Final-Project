@@ -110,7 +110,7 @@ def compare_catalog_projection(
 
     source_product_ids = [p.id for p in products]
     graph_product_ids = [r.get("id") for r in graph_products]
-    source_look_ids = [l.id for l in looks]
+    source_look_ids = [look.id for look in looks]
     graph_look_ids = [r.get("id") for r in graph_looks]
     duplicates = {
         "catalogProducts": sorted(k for k, n in _counts(source_product_ids).items() if n > 1),
@@ -148,7 +148,9 @@ def compare_catalog_projection(
         for r in graph_products
         if r.get("id") is not None
     }
-    source_l = {l.id: (l.title, _look_items(l), _counts(l.tags)) for l in looks}
+    source_l = {
+        look.id: (look.title, _look_items(look), _counts(look.tags)) for look in looks
+    }
     graph_l = {
         r["id"]: (
             r.get("title"),
@@ -166,7 +168,7 @@ def compare_catalog_projection(
     actual_key_edges = sum(len(r.get("keyIngredients") or []) for r in graph_products)
     expected_tag_edges = sum(len(p.tags) for p in products)
     actual_tag_edges = sum(len(r.get("tags") or []) for r in graph_products)
-    look_usage_count = sum(len(l.items) for l in looks)
+    look_usage_count = sum(len(look.items) for look in looks)
     graph_look_usage_count = sum(len(r.get("items") or []) for r in graph_looks)
     edge_counts = {
         "shadeEdges": {"source": expected_shades, "graph": actual_shades},
