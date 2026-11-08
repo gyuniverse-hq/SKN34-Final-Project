@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ComponentRef } from 'react';
 import { Image } from 'expo-image';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { ProductImage } from '@/components/ui/ProductImage';
@@ -94,7 +94,7 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = Math.min(312, Math.max(224, screenWidth - 96));
   const slideStep = cardWidth + 12;
-  const carouselRef = useRef<ScrollView>(null);
+  const carouselRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const [viewedIndex, setViewedIndex] = useState(0);
   const currentIndex = Math.min(viewedIndex, Math.max(0, slides.length - 1));
   const goTo = (index: number) => {
