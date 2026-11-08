@@ -7,6 +7,15 @@ import { skinKo } from './skin';
 import { skinReportKo } from './skinReport';
 
 export const ko: Dictionary = {
+  'chat.ingredient.resultFor': "선택한 제품 · 성분 확인",
+  'chat.ingredient.showDetails': "근거와 성분 목록 보기",
+  'chat.ingredient.hideDetails': "근거 상세 접기",
+  'chat.ingredient.noVerifiedList': "검증된 성분 목록이 없습니다.",
+  'chat.style.basisLabel': "레시피 근거",
+  'chat.style.showSource': "출처와 버전 보기",
+  'chat.style.hideSource': "출처 상세 접기",
+  'chat.style.showSteps': "전체 단계 보기",
+  'chat.style.hideSteps': "전체 단계 접기",
   'chat.compare.close': "비교 닫기",
   'chat.compare.title': "추천 제품 한눈에 비교",
   'chat.compare.count': "제품 {count}개",
