@@ -129,7 +129,18 @@ def compare_catalog_projection(
     }
     graph_p = {
         r["id"]: (
-            {key: r.get(key) for key in ("brand", "name", "nameKo", "category", "texture", "priceKRW", "searchText")},
+            {
+                key: r.get(key)
+                for key in (
+                    "brand",
+                    "name",
+                    "nameKo",
+                    "category",
+                    "texture",
+                    "priceKRW",
+                    "searchText",
+                )
+            },
             _graph_shades(r),
             _counts(r.get("keyIngredients") or []),
             _counts(r.get("tags") or []),
@@ -137,9 +148,7 @@ def compare_catalog_projection(
         for r in graph_products
         if r.get("id") is not None
     }
-    source_l = {
-        l.id: (l.title, _look_items(l), _counts(l.tags)) for l in looks
-    }
+    source_l = {l.id: (l.title, _look_items(l), _counts(l.tags)) for l in looks}
     graph_l = {
         r["id"]: (
             r.get("title"),
