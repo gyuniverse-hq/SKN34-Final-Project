@@ -1,0 +1,33 @@
+<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>립 자연스러움 비교</title>
+<style>body{font:16px system-ui;max-width:900px;margin:2em auto;padding:0 1em}section{display:flex;gap:1em}figure{flex:1;margin:0}img{width:100%;image-rendering:auto}button{font:inherit;padding:.8em;margin:.3em}</style>
+<h1>어느 쪽이 실제로 바른 립 같나요?</h1>
+<p>인터넷 연결 없이 사용합니다. 아래에서 생성된 rating 폴더의 이미지를 모두 선택하세요. 파일명과 평가자 이름은 화면에 표시하지 않습니다.</p>
+<input id="files" type="file" accept="image/png" multiple webkitdirectory>
+<p id="progress">이미지를 선택해 주세요.</p><section><figure><figcaption>A</figcaption><img id="a"></figure><figure><figcaption>B</figcaption><img id="b"></figure></section>
+<div><button data-answer="A">A</button><button data-answer="B">B</button><button data-answer="tie">모르겠음</button></div><button id="download" disabled>결과 CSV 저장</button>
+<script>
+const byId = id => document.getElementById(id), files = byId('files');
+let trials = [], results = [], at = 0, session = crypto.randomUUID();
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const r = new Uint32Array(1); crypto.getRandomValues(r); const j = r[0] % (i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+files.onchange = () => {
+ const map = new Map([...files.files].map(f => [f.name, f])); trials = []; results = []; at = 0; session = crypto.randomUUID();
+ for (const [name, file] of map) {
+  if (!name.endsWith('__current.png')) continue;
+  const prefix = name.slice(0, -'current.png'.length);
+  for (const candidate of ['detail','wide','anisotropic','sticker','real']) {
+   const other = map.get(prefix + candidate + '.png'); if (!other) continue;
+   const swap = crypto.getRandomValues(new Uint8Array(1))[0] % 2 === 1;
+   trials.push({prefix, candidate, swap, a: swap ? other : file, b: swap ? file : other});
+  }
+ }
+ shuffle(trials); show();
+};
+function show() {
+ const t = trials[at]; byId('progress').textContent = t ? `${at + 1} / ${trials.length}` : (trials.length ? '평가를 마쳤습니다.' : '비교할 이미지 쌍이 없습니다.');
+ for (const side of ['a','b']) { const img = byId(side); if (img.dataset.url) URL.revokeObjectURL(img.dataset.url); if (t) { img.dataset.url = URL.createObjectURL(t[side]); img.src = img.dataset.url; } else { img.removeAttribute('src'); delete img.dataset.url; } }
+ byId('download').disabled = !results.length;
+}
+document.querySelectorAll('[data-answer]').forEach(b => b.onclick = () => { const t = trials[at]; if (!t) return; const answer = b.dataset.answer; const winner = answer === 'tie' ? 'tie' : ((answer === 'A') !== t.swap ? 'current' : t.candidate); results.push([session,t.prefix.slice(0,-2),t.candidate,winner]); at++; show(); });
+byId('download').onclick = () => { const csv = ['evaluator_id,pair,candidate,winner', ...results.map(row => row.map(x => '"' + x.replaceAll('"','""') + '"').join(','))].join('\n'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'})); a.download = 'lip-rating.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href),1000); };
+</script></html>

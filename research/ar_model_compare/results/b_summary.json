@@ -1,0 +1,109 @@
+{
+  "status": "exploratory_no_real_reference",
+  "unit": "face x shade",
+  "pairs": 25,
+  "source": "research/data/ar_model_compare/b/current/metrics.csv",
+  "note": "No ground-truth lip mask; landmark polygon intersected with rendered pixel change >24, then eroded 3% of lip width. gl_corr computed only for current; edge_w_pct not measured.",
+  "medians": {
+    "bare": {
+      "L_spread": 29.671630859375,
+      "flat_frac": 0.33266264252179745,
+      "texture": 1.9433915615081787,
+      "upper_lower_L": 0.7457354068756104,
+      "hl_area_pct": 4.43213296398892,
+      "hl_peak": 21.5087890625,
+      "hl_lower_frac": 1.0,
+      "tex_ratio": 1.0,
+      "tex_corr": 1.0
+    },
+    "sticker": {
+      "L_spread": 0.0,
+      "flat_frac": 1.0,
+      "texture": 0.0443066842854023,
+      "upper_lower_L": 1.0,
+      "hl_area_pct": 0.0,
+      "hl_peak": 0.0,
+      "tex_ratio": 0.1930748178668188,
+      "tex_corr": 0.09982126844086281
+    },
+    "current": {
+      "L_spread": 22.0196533203125,
+      "flat_frac": 0.37161084529505584,
+      "texture": 1.5920214653015137,
+      "upper_lower_L": 0.8447960615158081,
+      "hl_area_pct": 2.714681440443213,
+      "hl_peak": 14.114013671875,
+      "hl_lower_frac": 1.0,
+      "tex_ratio": 0.9781261968217827,
+      "tex_corr": 0.9186209843553943,
+      "gl_corr": 0.4532442405137305
+    },
+    "detail": {
+      "L_spread": 21.9512939453125,
+      "flat_frac": 0.36717827626918537,
+      "texture": 1.5978028774261475,
+      "upper_lower_L": 0.8450677394866943,
+      "hl_area_pct": 2.770083102493075,
+      "hl_peak": 14.2442626953125,
+      "hl_lower_frac": 1.0,
+      "tex_ratio": 0.992605613312905,
+      "tex_corr": 0.9166664517087264
+    },
+    "wide": {
+      "L_spread": 21.9482421875,
+      "flat_frac": 0.37161084529505584,
+      "texture": 1.5902982950210571,
+      "upper_lower_L": 0.8347347974777222,
+      "hl_area_pct": 2.3923444976076556,
+      "hl_peak": 14.718505859375,
+      "hl_lower_frac": 1.0,
+      "tex_ratio": 0.9802403509129669,
+      "tex_corr": 0.9176395858296587
+    },
+    "anisotropic": {
+      "L_spread": 22.80029296875,
+      "flat_frac": 0.3708133971291866,
+      "texture": 1.6162779331207275,
+      "upper_lower_L": 0.8316932916641235,
+      "hl_area_pct": 2.548476454293629,
+      "hl_peak": 14.55169677734375,
+      "hl_lower_frac": 1.0,
+      "tex_ratio": 0.9747162433756258,
+      "tex_corr": 0.9178807363624067
+    }
+  },
+  "current_proximity_to_bare_not_realism": {
+    "L_spread": {
+      "median": 0.7624153498871332,
+      "n": 25
+    },
+    "flat_frac": {
+      "median": 0.9512195121951219,
+      "n": 25
+    },
+    "texture": {
+      "median": 0.8862511893639223,
+      "n": 25
+    },
+    "upper_lower_L": {
+      "median": 0.6903448839734725,
+      "n": 25
+    },
+    "hl_area_pct": {
+      "median": 0.7500000000000001,
+      "n": 21
+    },
+    "hl_peak": {
+      "median": 0.6622645794007862,
+      "n": 25
+    },
+    "tex_ratio": {
+      "median": 0.8046405835429691,
+      "n": 25
+    },
+    "tex_corr": {
+      "median": 0.9032774460070263,
+      "n": 25
+    }
+  }
+}

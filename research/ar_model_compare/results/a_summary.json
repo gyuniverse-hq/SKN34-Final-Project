@@ -1,0 +1,23 @@
+{
+  "status": "smoke_only_no_ground_truth",
+  "source": "research/data/ar_model_compare/a/smoke/metrics.csv",
+  "providers": [
+    "AzureExecutionProvider",
+    "CPUExecutionProvider"
+  ],
+  "comparability": "CPU times include first-run initialization and were not measured on a phone; BiSeNet preprocessing is unverified.",
+  "models": {
+    "mediapipe_landmarker": {
+      "images": 5,
+      "inference_ms_median": 10.195
+    },
+    "bisenet_r18": {
+      "images": 5,
+      "inference_ms_median": 124.503
+    },
+    "app_render": {
+      "images": 5,
+      "inference_ms_median": null
+    }
+  }
+}
