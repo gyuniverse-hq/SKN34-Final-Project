@@ -7,6 +7,13 @@ import { skinZh } from './skin';
 import { skinReportZh } from './skinReport';
 
 export const zh: Dictionary = {
+  'chat.carousel.previous': "上一件商品",
+  'chat.carousel.next': "下一件商品",
+  'chat.carousel.choose': "选择此商品",
+  'chat.carousel.chosen': "已选商品",
+  'chat.carousel.ordinal': "号",
+  'chat.carousel.ingredient': "这款产品含有哪些成分？",
+  'chat.carousel.details': "详细介绍这款产品",
   ...skincareZh,
   ...supportZh,
   ...surveyZh,
