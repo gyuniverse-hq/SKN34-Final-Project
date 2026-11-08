@@ -19,6 +19,16 @@ def catalog_rows():
         "category": product.category,
         "texture": product.texture,
         "priceKRW": product.price_krw,
+        "searchText": " ".join(
+            [
+                product.brand,
+                product.name,
+                product.name_ko,
+                product.description,
+                *product.tags,
+                *product.key_ingredients,
+            ]
+        ).lower(),
         "shades": [{"id": s.id, "name": s.name, "hex": s.hex} for s in product.shades],
         "keyIngredients": list(product.key_ingredients),
         "tags": list(product.tags),
@@ -59,6 +69,7 @@ def test_exact_projection_only_passes_as_legacy_copy():
     [
         (("name",), "Invented product"),
         (("priceKRW",), 99999),
+        (("searchText",), "wrong search corpus"),
         (("shades", 0, "name"), "wrong shade"),
         (("shades", 0, "hex"), "#FFFFFF"),
         (("keyIngredients", 0), "Fragrance"),
