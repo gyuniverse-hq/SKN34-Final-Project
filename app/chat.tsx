@@ -184,6 +184,8 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
     changed: {} as Record<string, number>, screen: undefined as ChatScreenContext | undefined });
   const [selectedShades, setSelectedShades] = useState<Record<string, string>>({});
   const [chosenProductId, setChosenProductId] = useState<string | null>(null);
+  // Render from React state; refs remain exclusive to callbacks and effects.
+  const [sessionCandidateIds, setSessionCandidateIds] = useState<string[]>([]);
   const [input, setInput] = useState('');
   const [category, setCategory] = useState<Category>(initialStyle ? 'style' : 'product');
   const [editing, setEditing] = useState(false);
@@ -201,6 +203,7 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
     setConversationGeneration(generation.current);
     beautyContext.current = undefined;
     beautyContextTurn.current = 0;
+    setSessionCandidateIds([]);
     snapshots.current.clear();
     resetMutation?.();
     setMessages((current) => current.map((message) => ({ ...message, retryable: false })));
@@ -347,6 +350,7 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
           }
           setSelectedShades(nextShades);
           setChosenProductId(beautyContext.current.selectedProductId ?? null);
+          setSessionCandidateIds(next.session ? [...next.candidateIds] : []);
           beautyContextTurn.current = requestTurn;
           setSessionNotice(undefined);
         }
@@ -542,7 +546,7 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
                 chatContext={message.chatContext} evidence={message.evidence}
                 selectedShades={selectedShades}
                 selectedProductId={chosenProductId}
-                onSelectProduct={beautyContext.current?.session ? (productId) => selectProduct(productId, message) : undefined}
+                onSelectProduct={sessionCandidateIds.length ? (productId) => selectProduct(productId, message) : undefined}
                 onSelectShade={(productId, shadeId) => selectShade(productId, shadeId, message)} /> : null}
               {message.role === 'assistant' && !message.products?.length && message.category === 'product' &&
                 (message.resultType === 'empty' || (!message.resultType && extractChatConditions(message.question ?? '').length)) ? (
@@ -582,13 +586,12 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
           ) : null}
         </ScrollView>
         <View style={styles.composer}>
-          {chosenProductId && beautyContext.current?.session &&
-            beautyContext.current.candidateIds.includes(chosenProductId) ? (
+          {chosenProductId && sessionCandidateIds.includes(chosenProductId) ? (
             <View style={styles.selectionBar}>
               <View style={styles.selectionInfo}>
                 <Text style={styles.selectionLabel}>{t('chat.carousel.chosen')}</Text>
                 <Text style={styles.selectionName} numberOfLines={1}>
-                  {beautyContext.current.candidateIds.indexOf(chosenProductId) + 1}{t('chat.carousel.ordinal')}
+                  {sessionCandidateIds.indexOf(chosenProductId) + 1}{t('chat.carousel.ordinal')}
                   {' · '}
                   {messages.flatMap((item) => item.products ?? []).find((p) => p.id === chosenProductId)?.name ?? chosenProductId}
                 </Text>
