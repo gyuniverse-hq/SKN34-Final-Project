@@ -35,13 +35,13 @@ LIMIT $limit
 CATALOG_AUDIT_PRODUCTS = """
 MATCH (p:Product)
 OPTIONAL MATCH (p)-[:HAS_SHADE]->(s:Shade)
-WITH p, collect(s.id) AS shadeIds
+WITH p, collect(s {.id, .name, .hex}) AS shades
 OPTIONAL MATCH (p)-[:CONTAINS]->(i:Ingredient)
-WITH p, shadeIds, collect(i.name) AS keyIngredients
+WITH p, shades, collect(i.name) AS keyIngredients
 OPTIONAL MATCH (p)-[:TAGGED]->(t:Tag)
 RETURN p.id AS id, p.brand AS brand, p.name AS name, p.nameKo AS nameKo,
        p.category AS category, p.texture AS texture, p.priceKRW AS priceKRW,
-       shadeIds, keyIngredients, collect(t.name) AS tags
+       shades, keyIngredients, collect(t.name) AS tags
 ORDER BY id
 """
 
