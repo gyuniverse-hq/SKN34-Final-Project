@@ -7,6 +7,15 @@ import { skinJa } from './skin';
 import { skinReportJa } from './skinReport';
 
 export const ja: Dictionary = {
+  'chat.ingredient.resultFor': "選択した商品・成分確認",
+  'chat.ingredient.showDetails': "根拠と成分を見る",
+  'chat.ingredient.hideDetails': "根拠を閉じる",
+  'chat.ingredient.noVerifiedList': "確認済みの成分リストはありません。",
+  'chat.style.basisLabel': "レシピの根拠",
+  'chat.style.showSource': "出典と版を見る",
+  'chat.style.hideSource': "出典を閉じる",
+  'chat.style.showSteps': "すべての手順を見る",
+  'chat.style.hideSteps': "手順を閉じる",
   'chat.compare.close': "比較を閉じる",
   'chat.compare.title': "おすすめ商品を比較",
   'chat.compare.count': "{count}商品",
