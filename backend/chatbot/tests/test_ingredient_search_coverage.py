@@ -278,8 +278,9 @@ async def test_seventh_result_session_ordinal_and_retry():
 
 
 @pytest.mark.anyio
-async def test_fragrance_unknown_keeps_public_scope_bounded_even_with_named_mismatch():
+async def test_fragrance_unknown_keeps_public_scope_bounded():
     catalog = SearchCatalog(13)
+    catalog.states = {p.id: "UNKNOWN" for p in catalog.products}
     context = BeautyContext(
         issued_at=1000, filters=BeautyFilters(category="lip", fragrance_free=True)
     )
