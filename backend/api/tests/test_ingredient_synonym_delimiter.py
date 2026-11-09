@@ -51,7 +51,6 @@ def test_amount_suffix_does_not_promote_broken_alias_fragments():
     assert not _current_link(mapped_row("2-헥산다이올(10ppm)", "amount_suffix_synonym"))
 
 
-
 @pytest.mark.parametrize(
     ("synonym_raw", "aliases"),
     [
