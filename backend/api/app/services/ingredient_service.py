@@ -188,7 +188,8 @@ class IngredientService:
                 check.reason = result.reason
             result.conditions = [check]
             result.verdict = check.verdict
-            if check.reason == "ingredient_identity_unresolved":
+            if check.verdict in {"UNKNOWN", "ERROR"}:
+                # Keep the public summary consistent with the condition-level decision.
                 result.reason = check.reason
         if get_settings().is_production and (result.synthetic or (evidence and evidence.synthetic)):
             result.synthetic = True
