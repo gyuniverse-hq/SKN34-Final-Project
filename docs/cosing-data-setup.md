@@ -16,13 +16,13 @@
 
 | 파일 | 전달 방법 | 역할 |
 | --- | --- | --- |
-| `scripts/test/cosing_collect.py` | 재수집이 필요한 팀원에게 별도 전달 | 식약처 성분 조회, CosIng 검색, CSV 내보내기 |
-| `scripts/test/cosing_query_compare.py` | 수집기와 같은 디렉터리에 별도 전달 | 수집기가 쓰는 검색 주소, 요청 생성과 이름 비교 함수 제공 |
+| `scripts/data/recommendation/cosing_collect.py` | Git | 식약처 성분 조회, CosIng 검색, CSV 내보내기 |
+| `scripts/data/recommendation/cosing_query_compare.py` | Git | 수집기가 쓰는 검색 주소, 요청 생성과 이름 비교 함수 제공 |
 | `scripts/data/recommendation/load_cosing.py` | Git | CSV 검증, 적재 미리보기 및 적용 |
 | `backend/api/alembic/versions/`와 `backend/api/seed/recommendation_v03/identity.json` | Git | develop 마이그레이션 이력 + CosIng `0018`, 발행 출처 정책 |
 | `cosing_ingredients.csv`, `cosing_function_tags.csv` | 같은 버전의 검수본을 별도 전달 | 성분별 조회 결과 및 기능 태그별 고민 분류 |
 
-수집기 두 파일은 현재 기능 커밋에 포함되지 않았다. 재수집할 때는 두 파일을 함께 받아 같은 상대 경로에 둔다. 수집 CSV, 체크포인트, 보고서, 로컬 덤프, 발행용 JSON은 `tmp/` 등 Git에 올리지 않는 위치에 보관한다.
+수집 CSV, 체크포인트, 보고서, 로컬 덤프, 발행용 JSON은 `tmp/` 등 Git에 올리지 않는 위치에 보관한다.
 
 ## 1. CosIng 데이터 수집
 
@@ -30,7 +30,7 @@
 
 ```powershell
 $env:COSING_SEARCH_API_KEY = Read-Host 'CosIng 검색 API 키' -MaskInput
-uv run --group data python ../../scripts/test/cosing_collect.py --output-dir ../../tmp/cosing --delay 2
+uv run --group data python ../../scripts/data/recommendation/cosing_collect.py --output-dir ../../tmp/cosing --delay 2
 ```
 
 - 대상 환경이 다르면 `--container`, `--database`, `--user`를 지정한다. `--delay`는 최소 2초다.
