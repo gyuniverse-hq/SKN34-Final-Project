@@ -223,3 +223,25 @@ async def test_conflicting_same_utterance_conditions_are_not_silently_replaced()
     with pytest.raises(ApiError) as exc:
         await execute_beauty(search_request(), plan, SearchCatalog(1))
     assert exc.value.code == "conflicting_ingredient_conditions"
+
+
+
+@pytest.mark.anyio
+async def test_fragrance_and_ingredient_constraints_exclude_known_mismatches():
+    # Fragrance-free is still UNKNOWN; a proven ingredient failure must not
+    # appear as a candidate or consume a slot ahead of later matches.
+    catalog = SearchCatalog(3, matches=[2])
+    catalog.states = {"item-001": "UNKNOWN"}
+    plan = SearchPlan(
+        intent="search",
+        category="lip",
+        shadeName="03",
+        fragranceFree=True,
+        ingredientConditions=[dict(ingredientName="Niacinamide", operator="includes")],
+    )
+    response = await execute_beauty(search_request(), plan, catalog)
+    assert [product.id for product in response.products] == ["item-001", "item-002"]
+    assert [result.verdict for result in response.ingredient_results] == ["UNKNOWN", "MATCH"]
+    assert response.chat_context.candidate_ids == ["item-001", "item-002"]
+    assert response.result_type == "clarification"
+    assert response.chat_context.filters.fragrance_free
