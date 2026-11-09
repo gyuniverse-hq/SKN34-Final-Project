@@ -1,9 +1,8 @@
-"""Regression: MFDS aliases use ^, and commas can belong to chemical names."""
+"""Regression: MFDS aliases mix delimiters; chemical commas remain part of names."""
 
 import pytest
 
 from app.repositories.ingredient_identity_repository import (
-    OFFICIAL_SYNONYM_SEPARATOR,
     _current_link,
     _official_synonyms,
 )
@@ -26,7 +25,6 @@ def mapped_row(raw_name: str, method: str = "official_synonym"):
 
 
 def test_caret_synonyms_preserve_embedded_commas():
-    assert OFFICIAL_SYNONYM_SEPARATOR == r"\s*\^\s*"
     assert _official_synonyms("1,2-헥산다이올^둘째동의어") == {
         "1,2-헥산다이올",
         "둘째동의어",
@@ -51,3 +49,35 @@ def test_comma_fragments_are_not_validated_aliases(raw_name, expected):
 def test_amount_suffix_does_not_promote_broken_alias_fragments():
     assert _current_link(mapped_row("1,2-헥산다이올(10ppm)", "amount_suffix_synonym"))
     assert not _current_link(mapped_row("2-헥산다이올(10ppm)", "amount_suffix_synonym"))
+
+
+
+@pytest.mark.parametrize(
+    ("synonym_raw", "aliases"),
+    [
+        ("카카오씨드버터,코코아버터", {"카카오씨드버터", "코코아버터"}),
+        ("1,2-헥산디올", {"1,2-헥산디올"}),
+        ("4,4-디메칠-1,3-옥사졸리딘,다이메틸옥사졸리딘",
+         {"4,4-디메칠-1,3-옥사졸리딘", "다이메틸옥사졸리딘"}),
+        ("N,N-디메틸아민,폴리머", {"N,N-디메틸아민", "폴리머"}),
+        ("Water,Aqua", {"Water", "Aqua"}),
+        ("1,2-헥산디올^카카오씨드버터,코코아버터",
+         {"1,2-헥산디올", "카카오씨드버터", "코코아버터"}),
+    ],
+)
+def test_mixed_delimiters_keep_whole_chemical_names(synonym_raw, aliases):
+    assert _official_synonyms(synonym_raw) == aliases
+
+
+def test_real_existing_fragment_mapping_is_not_reissued():
+    current = list(mapped_row("2-헥산다이올"))
+    current[10] = "1,2-헥산다이올"
+    assert not _current_link(tuple(current))
+    current[8] = "1,2-헥산다이올"
+    assert _current_link(tuple(current))
+
+
+def test_legacy_comma_alias_still_validates():
+    current = list(mapped_row("코코아버터"))
+    current[10] = "카카오씨드버터,코코아버터"
+    assert _current_link(tuple(current))
