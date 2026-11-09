@@ -1123,7 +1123,9 @@ async def _ingredient_consultation(req, plan, catalog, filters):
                         )
                 products.append(product)
                 results.append(result)
-                retained += fragrance_filter or result.verdict == "MATCH"
+                # Unknown fragrance still needs review, but a known ingredient failure
+                # must not consume one of the six visible candidate slots.
+                retained += result.verdict != "NOT_MATCH" if fragrance_filter else result.verdict == "MATCH"
     except TimeoutError:
         if not filtering:
             raise
@@ -1135,8 +1137,8 @@ async def _ingredient_consultation(req, plan, catalog, filters):
         and (filtering or bool(results))
         and all(r.verdict in {"MATCH", "NOT_MATCH"} for r in results)
     )
-    if filtering and not fragrance_filter:
-        # A known failure stays excluded even if another candidate still needs a shade or review.
+    if filtering:
+        # Exclude proven ingredient failures even while fragrance-free status is unknown.
         accepted = {r.product_id for r in results if r.verdict != "NOT_MATCH"}
         products = [p for p in products if p.id in accepted]
         results = [r for r in results if r.product_id in accepted]
