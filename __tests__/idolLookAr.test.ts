@@ -51,6 +51,10 @@ describe('idol look AR flow', () => {
   it('enables AR only when at least one preset zone exists', () => {
     expect(hasIdolLookArSettings(LOOK)).toBe(true);
     expect(hasIdolLookArSettings(UNVERIFIED_LOOK)).toBe(false);
+    expect(hasIdolLookArSettings({
+      ...LOOK,
+      arSettings: { lip: null, blush: null, eyeshadow: null, highlighter: LOOK.arSettings.lip },
+    })).toBe(true);
   });
 
   it('converts and applies all three preset zones to the makeup store', () => {

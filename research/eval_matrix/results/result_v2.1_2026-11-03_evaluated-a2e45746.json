@@ -1,0 +1,76 @@
+{
+  "criteria_version": "v2.1",
+  "inputs": {
+    "criteria": "criteria_v2.1.json",
+    "lapa": null,
+    "lapa_prev": null,
+    "subset": null,
+    "lip": "/mnt/user-data/outputs/matrix_data/cond_normal.csv",
+    "floor": "data/skin_floor.csv",
+    "key": null,
+    "survey": null,
+    "exclude": [],
+    "out": "results/result_v2.1_2026-11-03_evaluated-a2e45746.json"
+  },
+  "skin_floor": 2.8953723412889456,
+  "items": {
+    "color": {
+      "status": "not_valid",
+      "conditions": [
+        {
+          "id": "color_at",
+          "status": "not_valid",
+          "measured": 3.6473150163089785,
+          "line": "<= 1.8 (Paravina 2015 AT; Lagouvardo 2018 1.81)",
+          "note": "skin floor 2.90 >= 1.8: photo pairs differ more than the line before any makeup"
+        },
+        {
+          "id": "color_beats_bare",
+          "status": "pass",
+          "measured": 17,
+          "line": ">= 15/20 (sign test p<0.05)",
+          "note": "p = 0.0013"
+        }
+      ],
+      "report_only": {
+        "n": 20,
+        "median dE bare": 7.210015925417464,
+        "share dE<=1.8": 0.05
+      }
+    },
+    "position": {
+      "status": "not_measured",
+      "conditions": []
+    },
+    "texture": {
+      "status": "fail",
+      "conditions": [
+        {
+          "id": "tex_spread",
+          "status": "fail",
+          "measured": 9,
+          "line": ">= 15/20 (sign test p<0.05)",
+          "note": "p = 0.7483"
+        },
+        {
+          "id": "tex_hi",
+          "status": "fail",
+          "measured": 9,
+          "line": ">= 15/20 (sign test p<0.05)",
+          "note": "p = 0.7483"
+        },
+        {
+          "id": "tex_ssim",
+          "status": "fail",
+          "measured": 4,
+          "line": ">= 15/20 (sign test p<0.05)",
+          "note": "p = 0.9987"
+        }
+      ]
+    },
+    "naturalness": {
+      "status": "not_measured",
+      "conditions": []
+    }
+  }
+}

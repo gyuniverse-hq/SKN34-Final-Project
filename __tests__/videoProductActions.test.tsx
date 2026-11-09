@@ -42,7 +42,8 @@ test('product-only approval links product but never guesses a shade', async () =
 
 test('unverified, absent, mismatched or placeholder data cannot offer an AR button', async () => {
   const unverified = await render({ catalogProductId: 'p1', catalogShadeId: 's1' });
-  expect(unverified.screen.root.findAllByType(Text)).toHaveLength(0);
+  expect(unverified.screen.root.findAllByType(Text).map((node) => node.props.children)).toEqual(['videoAr.similarProduct']);
+  expect(buttons(unverified.screen)).toHaveLength(0);
   const missing = await render({ mappingVerified: true, catalogProductId: 'p1' }, { ...product, id: 'other' });
   expect(missing.screen.root.findAllByType(Text)).toHaveLength(0);
   const wrong = await render({ mappingVerified: true, catalogProductId: 'p1', catalogShadeId: 'wrong' });

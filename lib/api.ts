@@ -95,8 +95,8 @@ async function apiRequest(
   return res;
 }
 
-export async function apiGet<T>(path: string): Promise<T> {
-  const res = await apiRequest(path, { method: 'GET' });
+export async function apiGet<T>(path: string, options: { timeoutMs?: number } = {}): Promise<T> {
+  const res = await apiRequest(path, { method: 'GET' }, options);
   return (await res.json()) as T;
 }
 

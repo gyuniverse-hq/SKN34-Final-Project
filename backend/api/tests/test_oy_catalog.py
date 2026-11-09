@@ -97,6 +97,53 @@ def test_leaf_category_is_grouped_from_the_collected_path() -> None:
     assert catalog_category("컨실러", "뷰티 > 메이크업 > 베이스메이크업 > 컨실러") is None
 
 
+def test_highlighter_and_shading_leaves_are_tried_on_in_their_own_zones() -> None:
+    # They were left out for lack of a serving key, though the raw data has them with swatch colors.
+    for leaf, zone in (("하이라이터", "highlighter"), ("쉐이딩", "contour")):
+        assert catalog_category(leaf, f"뷰티 > 메이크업 > 베이스메이크업 > {leaf}") == leaf
+        built = build_oy_catalog(
+            [
+                OyProductInput(
+                    goods_no="A000000000020",
+                    brand_name="브랜드",
+                    goods_name=f"{leaf} 듀오",
+                    category_name=leaf,
+                    shades=(
+                        shade(option_id="H-1", shade_name="뉴트럴", hex_code="#C1AAA0"),
+                        shade(option_id="H-2", shade_name="색 없음", hex_code=None),
+                    ),
+                )
+            ]
+        )
+        product = built.products[0]
+        assert product.category == "cheek"
+        assert product.makeup_zone == zone
+        # Only the shade with a stored hex is offered; a name is never turned into a color.
+        assert [s.hex for s in product.shades] == ["#C1AAA0"]
+        assert built.ar_products == 1 and built.skipped_unknown_category == 0
+
+
+def test_mascara_leaf_is_tried_on_when_a_hex_exists() -> None:
+    built = build_oy_catalog(
+        [
+            OyProductInput(
+                goods_no="A000000000021",
+                brand_name="브랜드",
+                goods_name="마스카라",
+                category_name="마스카라",
+                shades=(
+                    shade(option_id="M-1", shade_name="블랙", hex_code="#121010"),
+                    shade(option_id="M-2", shade_name="색 없음", hex_code=None),
+                ),
+            )
+        ]
+    )
+    product = built.products[0]
+    assert product.category == "eye"
+    assert product.makeup_zone == "mascara"
+    assert [s.hex for s in product.shades] == ["#121010"]
+
+
 def test_care_tags_come_from_the_name_and_only_for_care_groups() -> None:
     assert derive_care_tags("수분 진정 크림", "스킨케어") == ("hydrating", "soothing")
     assert derive_care_tags("톤업 선크림", "선케어") == ("brightening",)
