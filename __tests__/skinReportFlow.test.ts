@@ -33,8 +33,6 @@ it('shows an explicit example only after storage loads and does not request live
   expect(flow.loadFailed).toBe(false);
   expect(flow.example).toBe(true);
   expect(flow.live).toBe(false);
-  expect(flow.selected).toEqual([]);
-  expect(flow.primary).toBeUndefined();
   expect(useSkincareRecommendations).toHaveBeenLastCalledWith(undefined);
 });
 
@@ -46,20 +44,13 @@ it('preserves a storage failure for the screen error state rather than hiding it
   expect(useSkincareRecommendations).toHaveBeenLastCalledWith(undefined);
 });
 
-it('automatically requests products after hydration and updates when goals change', async () => {
+it('automatically requests products using only derived profile signals', async () => {
   mockProfile = { ...SKIN_REPORT_EXAMPLE, analysis: { ...SKIN_REPORT_EXAMPLE.analysis, timing: { runId: 'test' } } } as SkinProfile;
   await act(async () => { tree = create(createElement(Probe)); });
   expect(flow.live).toBe(true);
-  expect(useSkincareRecommendations).toHaveBeenLastCalledWith(expect.objectContaining({ primaryGoal: 'dryness' }));
-  await act(async () => { flow.setPrimary('dryness'); flow.toggle('pores'); });
-  expect(useSkincareRecommendations).toHaveBeenLastCalledWith(expect.objectContaining({
-    primaryGoal: 'dryness', secondaryGoals: ['pores'],
-  }));
-  expect(useSkincareRecommendations).toHaveBeenLastCalledWith(expect.not.objectContaining({ questionnaire: expect.anything() }));
-  await act(async () => { flow.toggle('pores'); });
-  expect(flow.selected).toEqual([]);
-  expect(flow.live).toBe(true);
-  expect(useSkincareRecommendations).toHaveBeenLastCalledWith(expect.objectContaining({ secondaryGoals: [] }));
+  const request = jest.mocked(useSkincareRecommendations).mock.lastCall?.[0];
+  expect(Object.keys(request ?? {}).sort()).toEqual(['detectedConcerns', 'irritationSignal', 'skinType']);
+  expect(request?.detectedConcerns).toContainEqual({ goal: 'dryness', sources: ['survey'] });
 });
 
 it('allows a successful retry after a storage error', async () => {

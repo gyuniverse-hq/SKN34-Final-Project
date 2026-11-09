@@ -16,11 +16,10 @@ export interface SkincareResponse {
 }
 
 export type DetectionSource = 'analysis' | 'survey' | 'skinType';
-export interface HybridRequest {
-  primaryGoal: CareGoal;
-  secondaryGoals: CareGoal[];
-  balanceGoal?: 'primary' | 'secondary';
+export interface SkincareProfileRequest {
   detectedConcerns: { goal: CareGoal; sources: DetectionSource[] }[];
+  /** Mobile v4 ROI maxima; uncalibrated scores, not severity or efficacy probabilities. */
+  analysisScores?: Partial<Record<'pores' | 'pigmentation' | 'wrinkles', number>>;
   skinType: SkincareRequest['skinType'];
   irritationSignal: SkincareRequest['irritationSignal'];
 }
@@ -29,12 +28,12 @@ export interface HybridMatch {
   optionId: string;
   optionName: string;
   priceKRW: number;
-  reasons: { goal: CareGoal; sources: ('primary' | 'secondary' | 'skinProfile' | DetectionSource)[];
+  reasons: { goal: CareGoal; sources: ('primary' | 'secondary' | 'skinProfile' | 'concern' | 'analysisSupport' | DetectionSource)[];
     ingredientCodes?: string[]; evidenceLevel?: 'ingredient_presence';
     evidenceSources?: ('research_mapping' | 'cosing_function')[] }[];
 }
 export interface HybridResponse {
-  strategyVersion: 'skincare-hybrid-v2' | 'skincare-hybrid-v2-survey-v1' | 'skincare-hybrid-v2-survey-v2' | 'skincare-hybrid-v2-survey-v3' | 'skincare-hybrid-v2-coverage-v1' | 'skincare-hybrid-v2-blend-v1' | 'skincare-hybrid-v2-diversity-v1' | 'skincare-hybrid-v2-cosing-balance-v1' | 'skincare-hybrid-v2-cosing-only-v1';
+  strategyVersion: 'skincare-v4' | 'skincare-hybrid-v2' | 'skincare-hybrid-v2-survey-v1' | 'skincare-hybrid-v2-survey-v2' | 'skincare-hybrid-v2-survey-v3' | 'skincare-hybrid-v2-coverage-v1' | 'skincare-hybrid-v2-blend-v1' | 'skincare-hybrid-v2-diversity-v1' | 'skincare-hybrid-v2-cosing-balance-v1' | 'skincare-hybrid-v2-cosing-only-v1';
   dataVersion: string | null;
   coverage: SkincareResponse['coverage'];
   overallTop5: HybridMatch[];

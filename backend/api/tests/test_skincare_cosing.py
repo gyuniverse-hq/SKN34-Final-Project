@@ -1,7 +1,17 @@
 """CosIng signals must remain distinct from research evidence and option identity."""
 
-from app.schemas.skincare import CosingMapping, HybridRequest, SkincareSnapshot
-from app.services.skincare_service import recommend, recommend_hybrid
+from unittest.mock import AsyncMock
+
+from fastapi.testclient import TestClient
+
+from app.main import create_app
+from app.schemas.skincare import GOALS, CosingMapping, HybridRequest, SkincareSnapshot
+from app.services.skincare_service import (
+    SkincareService,
+    get_skincare_service,
+    recommend,
+    recommend_hybrid,
+)
 from tests.test_skincare import option, request, snapshot
 from tests.test_skincare_hybrid import reviewed
 
@@ -31,6 +41,35 @@ def test_cosing_candidate_has_distinct_source_and_no_fabricated_study():
     result = recommend_hybrid(data, HybridRequest(primaryGoal="dryness"))
     assert [match.option_id for match in result.overall_top5] == ["a"]
     assert result.overall_top5[0].reasons[0].evidence_sources == ["cosing_function"]
+
+
+def test_v4_uses_profile_only_for_ai_picks_and_always_returns_browse_groups():
+    mappings = [cosing(mapping_id=goal, target_concern=goal) for goal in GOALS]
+    options = [option(goal, matched_mapping_ids=[goal]) for goal in GOALS]
+    options.append(option("shared", matched_mapping_ids=["dryness", "oiliness"]))
+    repo = AsyncMock()
+    repo.read.return_value = snapshot(options, mappings)
+    app = create_app()
+    app.dependency_overrides[get_skincare_service] = lambda: SkincareService(repo)
+    client = TestClient(app)
+    url = "/api/recommendations/skincare/v4"
+    response = client.post(url, json={
+        "detectedConcerns": [{"goal": "pores", "sources": ["analysis"]}],
+    })
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    data = response.json()
+    assert data["strategyVersion"] == "skincare-v4"
+    assert [item["optionId"] for item in data["overallTop5"]] == ["pores"]
+    assert set(data["byConcern"]) == set(GOALS)
+    assert data["byConcern"]["wrinkles"][0]["reasons"][0]["sources"] == ["concern"]
+    assert len(data["balanceMatches"]) == 3
+
+    empty = client.post(url, json={}).json()
+    assert empty["overallTop5"] == []
+    assert empty["byConcern"]["wrinkles"] == data["byConcern"]["wrinkles"]
+    assert client.post(url, json={"primaryGoal": "pores"}).status_code == 400
+    assert client.post(url, json={"photo": "raw"}).status_code == 400
 
 
 def test_cosing_does_not_use_another_options_ingredient_or_inactive_mapping():

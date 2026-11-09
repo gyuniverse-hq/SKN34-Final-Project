@@ -298,7 +298,10 @@ class SkincareResponse(ApiModel):
 
 
 DetectionSource = Literal["analysis", "survey", "skinType"]
-MatchSource = Literal["primary", "secondary", "analysis", "survey", "skinType", "skinProfile"]
+MatchSource = Literal[
+    "primary", "secondary", "analysis", "survey", "skinType", "skinProfile", "concern",
+    "analysisSupport",
+]
 
 
 class DetectedConcern(StrictModel):
@@ -306,12 +309,20 @@ class DetectedConcern(StrictModel):
     sources: list[DetectionSource] = Field(min_length=1, max_length=3)
 
 
-class HybridRequest(StrictModel):
-    primary_goal: Goal
-    secondary_goals: list[Goal] = Field(default_factory=list, max_length=6)
+class SkincareProfileRequest(StrictModel):
     detected_concerns: list[DetectedConcern] = Field(default_factory=list, max_length=7)
+    # Only the three mobile-v4 binary models share a verified 0.5 decision threshold.
+    analysis_scores: dict[
+        Literal["pores", "pigmentation", "wrinkles"],
+        Annotated[float, Field(ge=0, le=1, strict=True, allow_inf_nan=False)],
+    ] = Field(default_factory=dict)
     skin_type: SkinType = "unknown"
     irritation_signal: Literal["caution", "none", "unknown"] = "unknown"
+
+
+class HybridRequest(SkincareProfileRequest):
+    primary_goal: Goal
+    secondary_goals: list[Goal] = Field(default_factory=list, max_length=6)
     balance_goal: Literal["primary", "secondary"] | None = None
 
     @model_validator(mode="after")
@@ -346,7 +357,7 @@ class HybridMatch(ApiModel):
 
 class HybridResponse(ApiModel):
     strategy_version: Literal[
-        "skincare-hybrid-v2-cosing-only-v1"
+        "skincare-hybrid-v2-cosing-only-v1", "skincare-v4"
     ] = "skincare-hybrid-v2-cosing-only-v1"
     data_version: str | None
     coverage: list[GoalCoverage]

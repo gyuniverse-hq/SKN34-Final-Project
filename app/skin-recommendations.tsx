@@ -5,8 +5,7 @@ import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
 import { AppState, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ConcernPicker } from '@/components/skin/ConcernPicker';
-import { SkinReportDetail } from '@/components/skin/SkinReportDetail';
+import { SkinConcernRail, SkinReportDetail } from '@/components/skin/SkinReportDetail';
 import { SkinCareHighlights, SkinReportOverview } from '@/components/skin/SkinReportOverview';
 import { SkinRoutine, SkinSolution } from '@/components/skin/SkinSolution';
 import { ProductLineCard } from '@/components/shop/ProductLineCard';
@@ -35,9 +34,8 @@ export default function SkinRecommendationsScreen() {
     return () => listener.remove();
   }, []);
   const [tab, setTab] = useState<'solution' | 'results'>('solution');
-  const [recommendationTab, setRecommendationTab] = useState<'overall' | 'selected' | 'detected'>('overall');
+  const [browseGoal, setBrowseGoal] = useState<CareGoal>('dryness');
   const [expanded, setExpanded] = useState(true);
-  const [adjusting, setAdjusting] = useState(false);
   const [history, setHistory] = useState(false);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const tabsY = useRef(0);
@@ -59,6 +57,8 @@ export default function SkinRecommendationsScreen() {
       eyebrow={match.optionName} note={note}
       onPress={() => router.push(productHref(match.product.id))} />;
   }
+  const data = flow.recommendations.data;
+  const browseGroup = data && displayCareGroups(data).find(group => group.goal === browseGoal);
   if (flow.loading) return <LoadingState />;
   if (flow.loadFailed) return <SafeAreaView style={styles.screen}>
     <InlineState status="error" message={t('skin.loadFailed')} onRetry={() => { void flow.reload(); }} />
@@ -94,43 +94,24 @@ export default function SkinRecommendationsScreen() {
         <SkinSolution concerns={SUPPORT_PRIORITY_CONCERNS} active={displayCareGoal(flow.activeConcern)} onChange={flow.setActive} ingredients={flow.ingredients} />
         <View style={styles.products}>
           <Text style={styles.title} accessibilityRole="header">{t('report.products')}</Text>
-          <Pressable onPress={() => setAdjusting(!adjusting)} style={styles.adjust} accessibilityRole="button" accessibilityState={{ expanded: adjusting }}>
-            <Text style={styles.link}>{t('report.adjust')}</Text><Ionicons name={adjusting ? 'chevron-up' : 'chevron-down'} size={18} color={theme.colors.rose} />
-          </Pressable>
-          {!adjusting && flow.primary ? <Text style={styles.caption}>{t('skincare.primary')}: {t(`support.priorityChoice.${flow.primary}`)}</Text> : null}
-          {adjusting ? <View style={styles.concernPanel}>
-            <Text style={styles.panelTitle}>{t('skincare.primary')}</Text>
-            <View style={styles.goalList}>{SUPPORT_PRIORITY_CONCERNS.map(g => <Pressable key={g} onPress={() => flow.setPrimary(g)} accessibilityRole="radio" accessibilityState={{ checked: flow.primary === g }} style={[styles.goal, flow.primary === g && styles.goalOn]}>
-              <Text style={flow.primary === g ? styles.goalTextOn : styles.goalText}>{t(`support.priorityChoice.${g}`)}</Text>
-            </Pressable>)}</View>
-            <Text style={styles.panelTitle}>{t('skincare.secondary')}</Text>
-            <ConcernPicker goalLabels concerns={SUPPORT_PRIORITY_CONCERNS.filter(g => g !== flow.primary)} selected={flow.selected} suggested={flow.suggested} onToggle={flow.toggle} />
-          </View> : null}
           <Text style={styles.caption}>{t('skincare.disclosure')}</Text>
-          {!flow.live ? <Text style={styles.caption}>{t('skincare.requestPrompt')}</Text> : flow.recommendations.isPending ? <InlineState status="loading" />
+          {!flow.live ? <Text style={styles.caption}>{t('skincare.requestPrompt')}</Text>
+            : flow.recommendations.isPending ? <InlineState status="loading" />
             : flow.recommendations.isError ? <InlineState status="error" onRetry={() => flow.recommendations.refetch()} />
-              : <>
-                <View style={styles.recommendationTabs}>
-                  {(['overall', 'selected', 'detected'] as const).map(id => <Pressable key={id} onPress={() => setRecommendationTab(id)} accessibilityRole="button" accessibilityState={{ selected: recommendationTab === id }} style={[styles.recommendationTab, recommendationTab === id && styles.goalOn]}>
-                    <Text style={[styles.recommendationTabLabel, recommendationTab === id ? styles.goalTextOn : styles.goalText]}>{t(`skincare.tab.${id}`)}</Text>
-                  </Pressable>)}
+              : data && <>
+                <View style={styles.concernPanel}>
+                  <Text style={styles.panelTitle} accessibilityRole="header">{t('skincare.aiTop5')}</Text>
+                  {data.overallTop5.length ? <>
+                    <Text style={styles.caption}>{t('skincare.aiDescription')}</Text>
+                    {data.overallTop5.map(match => productCard(match))}
+                  </> : <Text style={styles.caption}>{t('skincare.emptyAi')}</Text>}
                 </View>
-                {recommendationTab === 'overall' && Boolean(flow.recommendations.data?.overallTop5.length) && <>
-                  <Text style={styles.panelTitle}>{t('skincare.overall')}</Text>
-                  <Text style={styles.caption}>{t('skincare.overallBlend')}</Text>
-                  {flow.recommendations.data?.overallTop5.map(match => productCard(match))}
-                </>}
-                {recommendationTab === 'overall' && !flow.recommendations.data?.overallTop5.length && <Text style={styles.caption}>{t('skincare.emptyOverall')}</Text>}
-                {recommendationTab !== 'overall' && flow.recommendations.data && (() => {
-                  const goals = recommendationTab === 'selected' ? [flow.primary, ...flow.selected] : flow.suggested;
-                  const groups = displayCareGroups(flow.recommendations.data).filter(c => goals.includes(c.goal));
-                  if (!groups.length) return <Text style={styles.caption}>{t(recommendationTab === 'selected' ? 'skincare.emptySelected' : 'skincare.emptyDetected')}</Text>;
-                  return groups.map(({ goal, matches, status }) =>
-                  <View key={goal} style={styles.concernPanel}>
-                    <Text style={styles.panelTitle}>{t('skincare.group', { goal: t(`support.priorityChoice.${goal}`) })}</Text>
-                    {status === 'ok' ? matches.map(match => productCard(match, goal)) : <Text style={styles.caption}>{t(status === 'mapping_unavailable' ? 'skincare.mapping_unavailable' : 'skincare.no_matches', { goal: t(`support.priorityChoice.${goal}`) })}</Text>}
-                  </View>);
-                })()}
+                <View style={styles.concernPanel}>
+                  <Text style={styles.panelTitle} accessibilityRole="header">{t('skincare.concernTop5')}</Text>
+                  <SkinConcernRail concerns={SUPPORT_PRIORITY_CONCERNS} active={browseGoal} onChange={setBrowseGoal} goalLabels />
+                  {browseGroup?.status === 'ok' ? browseGroup.matches.map(match => productCard(match, browseGoal))
+                    : <Text style={styles.caption}>{t(browseGroup?.status === 'no_matches' ? 'skincare.no_matches' : 'skincare.mapping_unavailable', { goal: t(`support.priorityChoice.${browseGoal}`) })}</Text>}
+                </View>
               </>}
           <Button label={t('skinFlow.skip')} variant="ghost" onPress={() => router.push(searchHref({ source: 'skin' }))} />
         </View>
@@ -164,15 +145,7 @@ const styles = StyleSheet.create({
   tabLabel: { fontSize: 15, fontWeight: '600', color: theme.colors.inkFaint }, tabLabelOn: { color: theme.colors.rose, fontWeight: '800' },
   products: { padding: 24, paddingTop: 0, gap: 16 }, title: { color: theme.colors.ink, fontSize: 21, fontWeight: '800', lineHeight: 30 },
   caption: { color: theme.colors.inkMuted, fontSize: 12, lineHeight: 20 },
-  adjust: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 44, gap: 10 }, link: { color: theme.colors.rose, fontSize: 13, fontWeight: '700' },
   concernPanel: { gap: 12 }, panelTitle: { color: theme.colors.ink, fontSize: 15, fontWeight: '700' },
-  goalList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  recommendationTabs: { flexDirection: 'row', gap: 8 },
-  recommendationTab: { flex: 1, minWidth: 0, minHeight: 44, justifyContent: 'center', paddingHorizontal: 4, paddingVertical: 6, borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.radius.md },
-  recommendationTabLabel: { textAlign: 'center' },
-  goal: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.card },
-  goalOn: { borderColor: theme.colors.rose, backgroundColor: theme.colors.roseSoft },
-  goalText: { color: theme.colors.inkMuted, fontSize: 13, fontWeight: '600' }, goalTextOn: { color: theme.colors.rose, fontSize: 13, fontWeight: '700' },
   footer: { padding: 24, gap: 16, borderTopWidth: 1, borderTopColor: theme.colors.border },
   overlay: { flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'center', alignItems: 'center', padding: 24 },
   dialog: { width: '100%', maxWidth: 400, backgroundColor: theme.colors.surface, borderRadius: 20, padding: 24, gap: 20 },

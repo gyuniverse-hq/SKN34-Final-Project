@@ -1,5 +1,5 @@
 import { SKIN_REPORT_EXAMPLE } from '@/constants/skinCare';
-import { deriveCareGoals, displayCareGoal, displayCareGroups, skincareRequest } from '@/lib/skincare';
+import { deriveCareGoals, displayCareGoal, displayCareGroups } from '@/lib/skincare';
 import { buildSkinReport } from '@/lib/skinReport';
 import type { SkinAnalysisResult, SkinProfileV3 } from '@/types/skin';
 import type { HybridResponse } from '@/types/skincare';
@@ -8,9 +8,9 @@ const profile: SkinProfileV3 = { version: 3, registeredAt: SKIN_REPORT_EXAMPLE.r
     features: { ...SKIN_REPORT_EXAMPLE.analysis.features, pore_grade_cheek_image_left: 0, pore_grade_cheek_image_right: 0 } } as SkinAnalysisResult,
   questionnaire: { version: 'skin-support-1', postWashDryness: 'marked', afternoonTzoneOil: 'marked',
     cheekState: 'dry', oilOnset: 'within1h', cosmeticReaction: 'repeated', priority: 'wrinkles' } };
-it('keeps user priority and includes only concerns marked for care in the report', () => {
+it('includes only concerns marked for care, independently of stored survey priority', () => {
   const result = deriveCareGoals(profile);
-  expect(result.primary).toBe('wrinkles');
+  expect(deriveCareGoals({ ...profile, questionnaire: { ...profile.questionnaire, priority: 'pores' } })).toEqual(result);
   expect(result.detectedConcerns).toEqual(expect.arrayContaining([
     { goal: 'sensitivity', sources: ['survey'] },
   ]));
@@ -20,7 +20,6 @@ it('keeps user priority and includes only concerns marked for care in the report
   expect(result.detectedConcerns.map(c => c.goal).sort()).toEqual(
     buildSkinReport(profile).metrics.filter(m => m.status === 'care').map(m => m.concern).sort(),
   );
-  expect(skincareRequest(profile, 'wrinkles', []).secondaryGoals).toEqual([]);
   expect(result.skinType).toBe('unknown');
 });
 it('includes mobile v4 care results once and excludes good results and the chosen goal', () => {
@@ -30,29 +29,52 @@ it('includes mobile v4 care results once and excludes good results and the chose
       wrinkle_grade_forehead: 0, wrinkle_grade_glabella: 0,
       wrinkle_grade_eye_image_left: 0, wrinkle_grade_eye_image_right: 0,
       pore_grade_cheek_image_left: 1, pore_grade_cheek_image_right: 1 } } };
-  const req = skincareRequest(mixed, 'wrinkles', []);
+  const req = deriveCareGoals(mixed);
   expect(req.detectedConcerns).toContainEqual({ goal: 'pores', sources: ['analysis'] });
   expect(req.detectedConcerns.filter(c => c.goal === 'pores')).toHaveLength(1);
   expect(req.detectedConcerns.map(c => c.goal)).not.toContain('wrinkles');
   expect(req.detectedConcerns.map(c => c.goal)).not.toContain('pigmentation');
 });
-it('transmits only derived information and canonical goals', () => {
-  const req = skincareRequest(profile, 'wrinkles', ['dryness','dryness','wrinkles']);
-  expect(req.secondaryGoals).toEqual(['dryness', 'oiliness']);
-  expect(req.balanceGoal).toBe('secondary');
-  expect(req).not.toHaveProperty('analysis'); expect(req).not.toHaveProperty('questionnaire');
+it('transmits only derived profile information and preserves unknown values', () => {
+  expect(Object.keys(deriveCareGoals(profile)).sort()).toEqual(['detectedConcerns', 'irritationSignal', 'skinType']);
+  expect(deriveCareGoals(null)).toEqual({ detectedConcerns: [], irritationSignal: 'unknown', skinType: 'unknown' });
 });
-it('preserves unknown and permits manual care without model', () => {
-  expect(deriveCareGoals(null).skinType).toBe('unknown');
-  expect(skincareRequest(null, 'pores', []).primaryGoal).toBe('pores');
-});
-it('supports oiliness and blemish goals while keeping missing analysis unknown', () => {
-  expect(skincareRequest(null, 'oiliness', ['blemish']).secondaryGoals).toEqual(['blemish']);
-  expect(skincareRequest(null, 'oiliness', ['blemish']).balanceGoal).toBe('primary');
-  expect(skincareRequest(null, 'blemish', ['oiliness']).primaryGoal).toBe('blemish');
-  expect(skincareRequest(null, 'blemish', ['oiliness']).secondaryGoals).toEqual(['dryness', 'oiliness']);
+it('keeps missing acne analysis out of detected concerns', () => {
   const noAcne = { ...profile, analysis: { ...profile.analysis, features: { ...profile.analysis.features, acne: undefined } } };
   expect(deriveCareGoals(noAcne).detectedConcerns.map(c => c.goal)).not.toContain('blemish');
+});
+
+function scoredProfile(): SkinProfileV3 {
+  const features = Object.fromEntries(Object.keys(profile.analysis.features)
+    .filter(key => key !== 'acne').map(key => [key, 0])) as SkinAnalysisResult['features'];
+  const cautionProbabilities = Object.fromEntries(Object.keys(features).map(key => [key, 0.1])) as
+    NonNullable<SkinAnalysisResult['cautionProbabilities']>;
+  cautionProbabilities.pore_grade_cheek_image_left = 0.9;
+  cautionProbabilities.pigmentation_grade_forehead = 0.45;
+  features.pore_grade_cheek_image_left = 1;
+  return { ...profile, analysis: { ...profile.analysis, features, cautionProbabilities } };
+}
+
+it('sends ROI maxima for both good and care analyses without changing their status', () => {
+  const input = scoredProfile();
+  const result = deriveCareGoals(input);
+  expect(result.analysisScores).toEqual({ pores: 0.9, pigmentation: 0.45, wrinkles: 0.1 });
+  expect(result.detectedConcerns.map(c => c.goal)).toContain('pores');
+  expect(result.detectedConcerns.map(c => c.goal)).not.toContain('pigmentation');
+  expect(buildSkinReport(input).metrics.find(m => m.concern === 'pigmentation')?.status).toBe('good');
+  expect(Object.keys(result).sort()).toEqual(['analysisScores', 'detectedConcerns', 'irritationSignal', 'skinType']);
+});
+
+it('does not invent scores for legacy models or incomplete and invalid ROIs', () => {
+  const input = scoredProfile();
+  const legacy = { ...input, analysis: { ...input.analysis, schema: 'skin-analysis-mobile-v3' as const } };
+  expect(deriveCareGoals(legacy).analysisScores).toBeUndefined();
+  for (const value of [undefined, NaN, Infinity, -0.1, 1.1]) {
+    const invalid = { ...input, analysis: { ...input.analysis, cautionProbabilities: {
+      ...input.analysis.cautionProbabilities!, pore_grade_cheek_image_left: value,
+    } as NonNullable<SkinAnalysisResult['cautionProbabilities']> } };
+    expect(deriveCareGoals(invalid).analysisScores).toEqual({ pigmentation: 0.45, wrinkles: 0.1 });
+  }
 });
 
 it('combines balance results without duplicate products and keeps a usable coverage status', () => {
@@ -66,7 +88,6 @@ it('combines balance results without duplicate products and keeps a usable cover
   expect(displayCareGroups(response)).toEqual([
     { goal: 'dryness', status: 'ok', matches: [first, second] },
   ]);
-  expect(skincareRequest(null, 'dryness', []).balanceGoal).toBe('primary');
 });
 
 it('shows up to five distinct products for each concern and for balance', () => {

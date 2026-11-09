@@ -20,7 +20,7 @@ export function SkinSupportSummary({ assessment }: { assessment: NonNullable<Ski
       <Text style={styles.body}>{t(`support.${key}`)}</Text>
       <Text style={styles.body}>{t(`support.${key}.${q[key]}` as TranslationKey)}</Text>
     </View>)}
-    <Text style={styles.body}>{t('support.priorityAnswer', { concern: t(`concern.${q.priority}`) })}</Text>
+    {q.priority && <Text style={styles.body}>{t('support.priorityAnswer', { concern: t(`concern.${q.priority}`) })}</Text>}
     <Text style={styles.body}>{t('support.careNote')}</Text>
     {raw && <>
       <Pressable accessibilityRole="button" accessibilityState={{ expanded }} onPress={() => setExpanded(!expanded)} style={styles.button}>

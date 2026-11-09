@@ -65,14 +65,14 @@ export function buildSkinReport(input: SkinReportInput): SkinReport {
     { concern: 'sensitivity', source: 'survey', status: surveySensitivity(q), value: null, maximum: null, regions: [] },
   ];
   const care = metrics.filter(m => m.status === 'care');
-  const priority = metrics.find(m => m.concern === q.priority)!;
+  const priority = metrics.find(m => m.concern === q.priority);
   const review = new Date(input.registeredAt); review.setUTCDate(review.getUTCDate() + 28);
   return { skinType, skinTypeSource: source, registeredAt: input.registeredAt, reviewAt: review.toISOString(), metrics,
     ...(input.version === 2
       ? { assessment: { fusion: input.fusion, raw: input.analysis.skinType, questionnaire: input.questionnaire } }
       : { supportAssessment: { raw: input.analysis.skinType, questionnaire: input.questionnaire, ...(input.version === 4 ? { fusion: input.fusion } : {}) } }),
-    priorities: [priority, ...care.filter(m => m !== priority), ...metrics.filter(m => m !== priority && m.status !== 'care')].slice(0, 2),
-    concerns: [q.priority, ...SKIN_CONCERNS.filter(c => c !== q.priority && care.some(m => m.concern === c))] };
+    priorities: [...(priority ? [priority] : []), ...care.filter(m => m !== priority), ...metrics.filter(m => m !== priority && m.status !== 'care')].slice(0, 2),
+    concerns: [...(q.priority ? [q.priority] : []), ...SKIN_CONCERNS.filter(c => c !== q.priority && care.some(m => m.concern === c))] };
 }
 
 function buildLegacySkinReport(input: Extract<SkinReportInput, { questionnaire: SkinQuestionnaire }>): SkinReport {

@@ -7,6 +7,7 @@ from fastapi import Depends
 
 from app.repositories.skincare_repository import SkincareRepository, get_skincare_repository
 from app.schemas.skincare import (
+    GOALS,
     ConcernReason,
     CosingMapping,
     GoalCoverage,
@@ -15,6 +16,7 @@ from app.schemas.skincare import (
     HybridResponse,
     IngredientMapping,
     SkincareMatch,
+    SkincareProfileRequest,
     SkincareRequest,
     SkincareResponse,
     SkincareSnapshot,
@@ -31,6 +33,9 @@ COMPLEMENT_WEIGHT = 1.0
 # Initial diversification policy; evaluate against the frozen prior strategy.
 REDUNDANCY_WEIGHT = 0.5
 RARITY_FLOOR = 0.05
+# Mobile-v4 model contract; near-boundary inclusion is an initial recommendation policy.
+ANALYSIS_CARE_THRESHOLD = 0.5
+ANALYSIS_SUPPORT_MIN = 0.35
 
 
 def ingredient_weights(snapshot):
@@ -89,7 +94,7 @@ def survey_baselines(options):
     return {signal: total / counts[signal] for signal, total in totals.items()}
 
 
-def survey_adjustment(option, req, baselines):
+def survey_adjustment(option, req, baselines, *, focus_goals=None):
     signals = []
     if req.skin_type in ("dry", "oily"):
         signals.append((req.skin_type, 1))
@@ -99,8 +104,12 @@ def survey_adjustment(option, req, baselines):
         "pigmentation": "brighteningFirming",
         "wrinkles": "brighteningFirming",
     }
-    if req.primary_goal in goal_signal and getattr(req, "balance_goal", None) != "primary":
-        signals.append((goal_signal[req.primary_goal], 1))
+    if focus_goals is None:
+        primary = getattr(req, "primary_goal", None)
+        focus_goals = () if getattr(req, "balance_goal", None) == "primary" else (primary,)
+    signals.extend((signal, 1) for signal in sorted({
+        goal_signal[goal] for goal in focus_goals if goal in goal_signal
+    }))
     if req.irritation_signal == "caution":
         signals.extend((("gentle", 1), ("irritating", -1)))
     if not signals:
@@ -133,9 +142,9 @@ def adjusted_rating(option, baseline):
     return (n * option.rating_avg + REVIEW_PRIOR * baseline) / (n + REVIEW_PRIOR)
 
 
-def review_sort_score(option, req, rating_mean, survey_means):
+def review_sort_score(option, req, rating_mean, survey_means, *, focus_goals=None):
     return (adjusted_rating(option, rating_mean) or 0) + SURVEY_WEIGHT * survey_adjustment(
-        option, req, survey_means
+        option, req, survey_means, focus_goals=focus_goals
     )
 
 
@@ -325,7 +334,7 @@ def skin_care_goals(req):
 
 def balance_preference(req):
     """Prioritize oil or moisture only when exactly one relevant signal applies."""
-    if not req.balance_goal:
+    if isinstance(req, HybridRequest) and not req.balance_goal:
         return None
     oil_care = any(c.goal == "oiliness" for c in req.detected_concerns)
     dry_skin = req.skin_type == "dry"
@@ -335,17 +344,13 @@ def balance_preference(req):
 
 
 def display_goal(goal, req):
-    return "balance" if req.balance_goal and goal in ("dryness", "oiliness") else goal
+    merge_balance = not isinstance(req, HybridRequest) or req.balance_goal
+    return "balance" if merge_balance and goal in ("dryness", "oiliness") else goal
 
 
-def balanced_overall(ranked, req, support, weights):
+def balanced_overall(ranked, req, support, weights, intents):
     """Soft relevance plus diminishing complement value, without category quotas."""
-    remaining = list(ranked)
-    intents = {req.primary_goal, *req.secondary_goals}
-    intents.update(c.goal for c in req.detected_concerns)
-    intents.update(skin_care_goals(req))
-    if req.balance_goal:
-        intents.update(("dryness", "oiliness"))
+    remaining = [row for row in ranked if row[1] & intents]
     groups = {display_goal(goal, req) for goal in intents}
     counts = dict.fromkeys(groups, 0)
     preferred = balance_preference(req)
@@ -377,7 +382,8 @@ def balanced_overall(ranked, req, support, weights):
                 - REDUNDANCY_WEIGHT * similarity
             )
             priority = int(
-                req.balance_goal == "primary" and preferred is not None and preferred not in matched
+                isinstance(req, HybridRequest) and req.balance_goal == "primary"
+                and preferred is not None and preferred not in matched
             )
             return priority, -score, row[0]
 
@@ -390,14 +396,61 @@ def balanced_overall(ranked, req, support, weights):
     return selected
 
 
+def profile_goal_weights(req):
+    """Policy priorities, never calibrated severity or diagnosis probabilities."""
+    priorities = dict.fromkeys(skin_care_goals(req), 1.0)
+    for concern in req.detected_concerns:
+        priorities[concern.goal] = 1.0
+    for goal, score in req.analysis_scores.items():
+        if score >= ANALYSIS_SUPPORT_MIN:
+            priorities[goal] = max(priorities.get(goal, 0), score / ANALYSIS_CARE_THRESHOLD)
+    return priorities
+
+
+def balanced_profile_overall(ranked, req, support, weights, priorities):
+    """Greedy weighted function coverage with diminishing returns per display concern."""
+    remaining = [row for row in ranked if row[1] & priorities.keys()]
+    covered = dict.fromkeys({display_goal(goal, req) for goal in priorities}, 0.0)
+    selected = []
+
+    def contributions(row):
+        fit, coverage = {}, {}
+        for goal in sorted(row[1] & priorities.keys()):
+            group = display_goal(goal, req)
+            strength = support[row[2].option_id][0][goal]
+            fit[group] = max(fit.get(group, 0), priorities[goal] * strength)
+            coverage[group] = max(coverage.get(group, 0), strength)
+        return fit, coverage
+
+    while remaining and len(selected) < 5:
+        def key(row):
+            fit, _ = contributions(row)
+            marginal = sum(value / (1 + covered[group]) for group, value in fit.items())
+            similarity = max((
+                support_similarity(support[row[2].option_id], support[s[2].option_id], weights)
+                for s in selected
+            ), default=0.0)
+            # Reviews are only in row[0], after relevance and composition diversity.
+            return -round(marginal, 12), -round(sum(fit.values()), 12), similarity, row[0]
+
+        best = min(remaining, key=key)
+        selected.append(best)
+        for group, strength in contributions(best)[1].items():
+            covered[group] += strength
+        remaining = [row for row in remaining if row[2].product.id != best[2].product.id]
+    return selected
+
+
 def _recommend_hybrid_unfiltered(
-    snapshot: SkincareSnapshot | None, req: HybridRequest
+    snapshot: SkincareSnapshot | None, req: SkincareProfileRequest
 ) -> HybridResponse:
-    primary = {req.primary_goal}
-    if req.balance_goal == "primary":
+    manual = isinstance(req, HybridRequest)
+    primary = {req.primary_goal} if manual else set()
+    secondary = set(req.secondary_goals) - primary if manual else set()
+    if manual and req.balance_goal == "primary":
         primary.update(("dryness", "oiliness"))
     sources = {goal: ["primary"] for goal in sorted(primary)}
-    for goal in req.secondary_goals:
+    for goal in req.secondary_goals if manual else ():
         sources.setdefault(goal, ["secondary"])
     for concern in req.detected_concerns:
         reasons = sources.setdefault(concern.goal, [])
@@ -406,6 +459,17 @@ def _recommend_hybrid_unfiltered(
                 reasons.append(source)
     for goal in sorted(skin_care_goals(req)):
         sources.setdefault(goal, []).append("skinProfile")
+    priorities = {} if manual else profile_goal_weights(req)
+    for goal in sorted(priorities):
+        if goal not in sources:
+            sources[goal] = [
+                "analysis" if req.analysis_scores[goal] >= ANALYSIS_CARE_THRESHOLD
+                else "analysisSupport"
+            ]
+    intents = set(sources)
+    if not manual:
+        for goal in GOALS:
+            sources.setdefault(goal, ["concern"])
     active = (
         {
             m.mapping_id: m
@@ -419,10 +483,17 @@ def _recommend_hybrid_unfiltered(
     survey_means = survey_baselines(snapshot.options) if snapshot else {}
     weights, breadth = ingredient_weights(snapshot) if snapshot else ({}, {})
     support = {}
+    # Coverage of the configured functions, not ingredient quantity or clinical efficacy.
+    concern_functions = defaultdict(set)
+    option_functions = {}
+    if not manual:
+        for mapping in active.values():
+            if isinstance(mapping, CosingMapping):
+                concern_functions[mapping.target_concern].update(mapping.function_names)
     reason_codes = {}
     reason_evidence_sources = {}
     ranked = []
-    secondary = set(req.secondary_goals) - primary
+    secondary -= primary
     detected = {c.goal for c in req.detected_concerns}
     preferred = balance_preference(req)
 
@@ -449,24 +520,40 @@ def _recommend_hybrid_unfiltered(
         if not goals:
             continue
         strengths = {}
+        option_functions[option.option_id] = defaultdict(set)
         reason_codes[option.option_id] = defaultdict(set)
         reason_evidence_sources[option.option_id] = defaultdict(set)
         codes, evidence = set(), set()
         for mapping in applied:
+            if not manual and isinstance(mapping, CosingMapping):
+                option_functions[option.option_id][mapping.target_concern].update(
+                    mapping.function_names
+                )
             reason_codes[option.option_id][mapping.target_concern].update(mapping.ingredient_codes)
             reason_evidence_sources[option.option_id][mapping.target_concern].add(
                 "cosing_function" if isinstance(mapping, CosingMapping) else "research_mapping"
             )
-            strength = min(weights.get(c, 0) / breadth.get(c, 1) for c in mapping.ingredient_codes)
-            strengths[mapping.target_concern] = max(
-                strengths.get(mapping.target_concern, 0), strength
-            )
-            codes.update(mapping.ingredient_codes)
-            evidence.update(mapping.evidence_ids)
+            if manual:
+                strength = min(
+                    weights.get(c, 0) / breadth.get(c, 1) for c in mapping.ingredient_codes
+                )
+                strengths[mapping.target_concern] = max(
+                    strengths.get(mapping.target_concern, 0), strength
+                )
+            if mapping.target_concern in intents:
+                codes.update(mapping.ingredient_codes)
+                evidence.update(mapping.evidence_ids)
+        if not manual:
+            strengths = {
+                goal: len(functions) / len(concern_functions[goal])
+                for goal, functions in option_functions[option.option_id].items()
+            }
         support[option.option_id] = (
             strengths, set(option.ingredient_codes) & set(weights), codes, evidence
         )
-        review_score = review_sort_score(option, req, baseline, survey_means)
+        review_score = review_sort_score(
+            option, req, baseline, survey_means, focus_goals=None if manual else intents
+        )
         key = (
             -int(bool(primary & goals)),
             -len({display_goal(g, req) for g in goals & secondary}),
@@ -494,16 +581,30 @@ def _recommend_hybrid_unfiltered(
             ],
         )
 
+    overall_rows = (
+        balanced_overall(ranked, req, support, weights, intents) if manual else
+        balanced_profile_overall(ranked, req, support, weights, priorities)
+    )
     overall = [
-        match_for(goals, option)
-        for _, goals, option, _ in balanced_overall(ranked, req, support, weights)
+        match_for(goals & intents, option)
+        for _, goals, option, _ in overall_rows
     ]
-    def concern_matches(target_goals, review_profile, priority=None):
+
+    def concern_matches(target_goals, focus_goals, priority=None):
         def order(row):
             _, goals, option, _ = row
-            score = review_sort_score(option, review_profile, baseline, survey_means)
+            score = review_sort_score(
+                option, req, baseline, survey_means, focus_goals=focus_goals
+            )
             misses_priority = priority is not None and priority not in goals
-            return (misses_priority, *profile_order(option, score))
+            # Equal weight per goal keeps the merged moisture/oil tab balanced even
+            # when those goals have different numbers of configured functions.
+            fit = sum(
+                len(option_functions[option.option_id][goal]) / len(concern_functions[goal])
+                if concern_functions[goal] else 0.0
+                for goal in sorted(target_goals)
+            ) / len(target_goals) if not manual else 0.0
+            return (misses_priority, -fit, *profile_order(option, score))
 
         eligible = (row for row in ranked if row[1] & target_goals)
         products = {}
@@ -515,19 +616,14 @@ def _recommend_hybrid_unfiltered(
                 break
         return list(products.values())
 
-    groups = {
-        goal: concern_matches(
-            {goal}, req.model_copy(update={"primary_goal": goal, "balance_goal": None})
-        )
-        for goal in sources
-    }
+    groups = {goal: concern_matches({goal}, {goal}) for goal in sources}
     balance_matches = None
-    if req.balance_goal:
+    if not manual or req.balance_goal:
         # The combined list uses shared skin and review signals without a single-goal bonus.
-        balance_profile = req.model_copy(update={"balance_goal": "primary"})
-        balance_matches = concern_matches({"dryness", "oiliness"}, balance_profile, preferred)
+        balance_matches = concern_matches({"dryness", "oiliness"}, (), preferred)
     active_goals = {m.target_concern for m in active.values()}
     return HybridResponse(
+        strategy_version="skincare-hybrid-v2-cosing-only-v1" if manual else "skincare-v4",
         data_version=snapshot.data_version if snapshot else None,
         overall_top5=overall,
         by_concern=groups,
@@ -590,7 +686,7 @@ class SkincareService:
     async def recommend(self, req: SkincareRequest, trace_allowed=False):
         return recommend(await self.repository.read(), req, trace_allowed)
 
-    async def recommend_hybrid(self, req: HybridRequest):
+    async def recommend_hybrid(self, req: SkincareProfileRequest):
         return recommend_hybrid(await self.repository.read(), req)
 
     async def publish(self, snapshot: SkincareSnapshot):

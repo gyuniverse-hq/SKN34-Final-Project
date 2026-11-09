@@ -22,6 +22,7 @@ export function suggestConcerns(profile: SkinProfile | null | undefined): SkinCo
     ? { type: profile.fusion.type, source: 'analysis' }
     : profile.version === 3 ? { type: profile.analysis.skinType?.label ?? 'unknown', source: 'analysis' }
       : resolveSkinType(profile.analysis.skinType, profile.questionnaire);
+  const priority = profile.version === 1 ? undefined : profile.questionnaire.priority;
   if (profile.version === 1) {
     const { tightness, oiliness, sensitivity } = profile.questionnaire;
     if (tightness === 2) found.add('dryness');
@@ -29,12 +30,12 @@ export function suggestConcerns(profile: SkinProfile | null | undefined): SkinCo
     if (sensitivity === 2) found.add('sensitivity');
   } else {
     if (surveySensitivity(profile.questionnaire) === 'care') found.add('sensitivity');
-    found.add(profile.questionnaire.priority);
+    if (priority) found.add(priority);
   }
   if (skinType.source !== 'survey' && skinType.type === 'dry') found.add('dryness');
   if (skinType.source !== 'survey' && skinType.type === 'oily') found.add('oiliness');
   const concerns = SKIN_CONCERNS.filter((c) => found.has(c));
-  return profile.version !== 1 ? [profile.questionnaire.priority, ...concerns.filter(c => c !== profile.questionnaire.priority)] : concerns;
+  return priority ? [priority, ...concerns.filter(c => c !== priority)] : concerns;
 }
 
 /** Product care tags in display order; must match CONCERN_TAGS in backend/api catalog_service.py. */
