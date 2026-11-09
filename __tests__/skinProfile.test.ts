@@ -166,7 +166,9 @@ it('requires all answers, preserves them on a failed write, then completes after
     await act(async () => { await flow.finish(); });
     expect(flow.phase).toBe('survey');
     expect(useSkinProfileStore.getState().profile).toBeNull();
-    await act(async () => { flow.setAnswers({ ...COMPLETE_SKIN_SURVEY }); });
+    const questionnaire = { ...COMPLETE_SKIN_SURVEY };
+    delete questionnaire.priority;
+    await act(async () => { flow.setAnswers(questionnaire); });
     jest.mocked(AsyncStorage.setItem).mockRejectedValueOnce(new Error('disk full'));
     await act(async () => { await flow.finish(); });
     expect(flow.phase).toBe('survey');

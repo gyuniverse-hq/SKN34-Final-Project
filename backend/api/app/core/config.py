@@ -13,11 +13,16 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://vishue:vishue@localhost:5432/vishue_db"
     redis_url: str | None = None
     catalog_cache_seconds: int = 300
+    skincare_refresh_enabled: bool | None = None
+    skincare_refresh_interval_seconds: int = 60
     ingredient_mapping_path: str | None = None
     # External APIs. Unset keys disable the matching feature instead of failing requests.
     naver_client_id: str | None = None
     naver_client_secret: str | None = None
     youtube_api_key: str | None = None
+    # Only the recipe batch (app/jobs/extract_look_recipe.py) uses Gemini; the app never calls it.
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-3.6-flash"
     tutorial_searches_per_minute: int = 20
     offer_searches_per_minute: int = 20
     # Public Supabase values, used only to verify access tokens.

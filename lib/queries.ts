@@ -1,4 +1,4 @@
-import type { SkincareRequest, SkincareResponse } from '@/types/skincare';
+import type { HybridResponse, SkincareProfileRequest } from '@/types/skincare';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type {
   CelebLook,
@@ -22,6 +22,7 @@ import {
   devCatalogProducts,
   withDevTryOnFallback,
 } from '@/lib/devCatalog';
+import { DEMO_CELEBRITY_VIDEOS, DEMO_STYLE_LOOKS } from '@/lib/demoLookBundle';
 import { ApiError, apiGet, apiPost } from './api';
 
 /** Run only after the user confirms the concerns; keep responses out of the shared product cache. */
@@ -167,14 +168,19 @@ export function useSimilarShades(productId: string | undefined, shadeId: string 
   });
 }
 
+/** Look lists answer within 10 s even when the server sleeps or hangs (the six demo looks must always open). */
+const LOOK_LIST_TIMEOUT_MS = 8000;
+
 export function useStyleLooks() {
   return useQuery({
     queryKey: ['style-looks'],
     queryFn: async () => {
       try {
-        return await apiGet<{ looks: StyleLook[] }>('/api/style-looks');
+        return await apiGet<{ looks: StyleLook[] }>('/api/style-looks', { timeoutMs: LOOK_LIST_TIMEOUT_MS });
       } catch (error) {
-        if (!__DEV__ || !(error instanceof ApiError) || (error.status !== 404 && error.status !== 0)) throw error;
+        if (!(error instanceof ApiError) || (error.status !== 404 && error.status !== 0)) throw error;
+        // No answer: development shows the local copy of every look, every build keeps the six demo looks.
+        if (!__DEV__) return { looks: DEMO_STYLE_LOOKS };
         const looks = require('./devCatalog/styleLooks.json') as StyleLook[];
         return { looks };
       }
@@ -188,9 +194,11 @@ export function useCelebrityVideos() {
     queryKey: ['celebrity-videos'],
     queryFn: async () => {
       try {
-        return await apiGet<{ videos: CelebrityVideo[] }>('/api/celebrity-videos');
+        return await apiGet<{ videos: CelebrityVideo[] }>('/api/celebrity-videos', { timeoutMs: LOOK_LIST_TIMEOUT_MS });
       } catch (error) {
-        if (!__DEV__ || !(error instanceof ApiError) || (error.status !== 404 && error.status !== 0)) throw error;
+        if (!(error instanceof ApiError) || (error.status !== 404 && error.status !== 0)) throw error;
+        // No answer: development shows the local copy of every video, every build keeps the six demo looks.
+        if (!__DEV__) return { videos: DEMO_CELEBRITY_VIDEOS };
         return { videos: require('./devCatalog/celebrityVideos.json') as CelebrityVideo[] };
       }
     },
@@ -261,8 +269,8 @@ export function useTutorials(query: string | undefined, max = 6) {
   });
 }
 
-export function useSkincareRecommendations(request: SkincareRequest | undefined) {
-  return useQuery({ queryKey: ['skincare-recommendations', request],
-    queryFn: () => apiPost<SkincareResponse>('/api/recommendations/skincare', request!),
+export function useSkincareRecommendations(request: SkincareProfileRequest | undefined) {
+  return useQuery({ queryKey: ['skincare-recommendations', 'v4', request],
+    queryFn: () => apiPost<HybridResponse>('/api/recommendations/skincare/v4', request!),
     enabled: request !== undefined, gcTime: 0, staleTime: 0 });
 }

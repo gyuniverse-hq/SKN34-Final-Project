@@ -1,0 +1,242 @@
+{
+  "criteria_version": "v2.0",
+  "inputs": {
+    "criteria": "criteria_v2.json",
+    "lapa": "/tmp/mx/baseline_landmarks.csv",
+    "subset": "/mnt/user-data/uploads/SKN34-Final-Project/research/data/reference/lapa/eval/a2_subset200.json",
+    "lip": "/mnt/user-data/outputs/matrix_data/cond_normal.csv",
+    "floor": "data/skin_floor.csv",
+    "key": "/tmp/audit/key.csv",
+    "survey": "/tmp/audit/survey",
+    "exclude": [
+      "전진영",
+      "전진영5"
+    ],
+    "out": "results/result_2026-11-03_evaluated-a2e45746.json"
+  },
+  "items": {
+    "color": {
+      "status": "not_valid",
+      "conditions": [
+        {
+          "id": "color_dE_median",
+          "metric": "median(dE)",
+          "op": "<=",
+          "value": 1.5,
+          "stage": "final",
+          "measured": 3.6473150163089785,
+          "status": "not_valid"
+        },
+        {
+          "id": "color_dE_share",
+          "metric": "share(dE <= 1.5)",
+          "op": ">=",
+          "value": 0.8,
+          "stage": "final",
+          "measured": 0.0,
+          "status": "not_valid"
+        },
+        {
+          "id": "color_beats_bare",
+          "metric": "share(dE_ar < dE_bare)",
+          "op": ">=",
+          "value": 0.5,
+          "stage": "sanity",
+          "measured": 0.85,
+          "status": "pass"
+        }
+      ]
+    },
+    "position": {
+      "status": "fail",
+      "conditions": [
+        {
+          "id": "lip_iou_mean_final",
+          "metric": "mean(iou)",
+          "op": ">=",
+          "value": 0.9,
+          "stage": "final",
+          "measured": 0.7319377776416371,
+          "status": "fail"
+        },
+        {
+          "id": "lip_iou_mean_milestone",
+          "metric": "mean(iou)",
+          "op": ">=",
+          "value": 0.8,
+          "stage": "milestone",
+          "measured": 0.7319377776416371,
+          "status": "fail"
+        },
+        {
+          "id": "boundary_share",
+          "metric": "share(bnd_mean_rel <= 0.015)",
+          "op": ">=",
+          "value": 0.85,
+          "stage": "final",
+          "measured": 0.655,
+          "status": "fail"
+        },
+        {
+          "id": "spill_mean",
+          "metric": "mean(spill)",
+          "op": "<=",
+          "value": 0.05,
+          "stage": "final",
+          "definition": "|pred - gt| / |pred|",
+          "measured": 0.14193374749924634,
+          "status": "fail"
+        },
+        {
+          "id": "miss_mean",
+          "metric": "mean(miss)",
+          "op": "<=",
+          "value": 0.08,
+          "stage": "final",
+          "definition": "|gt - pred| / |gt|",
+          "measured": 0.17029034574094482,
+          "status": "fail"
+        }
+      ]
+    },
+    "texture": {
+      "status": "fail",
+      "conditions": [
+        {
+          "id": "texture_pairs",
+          "metric": "count(pair passes)",
+          "op": ">=",
+          "value": 16,
+          "of": 20,
+          "stage": "final",
+          "measured": 7,
+          "status": "fail"
+        },
+        {
+          "id": "texture_ssim_pairs",
+          "metric": "count(ssim_ar > ssim_bare)",
+          "op": ">=",
+          "value": 14,
+          "of": 20,
+          "stage": "final",
+          "measured": 4,
+          "status": "fail"
+        }
+      ]
+    },
+    "naturalness": {
+      "status": "fail",
+      "conditions": [
+        {
+          "id": "nat_ba",
+          "metric": "balanced accuracy (pair photos)",
+          "op": "<=",
+          "value": 0.55,
+          "stage": "final",
+          "measured": 0.8666666666666667,
+          "status": "fail"
+        },
+        {
+          "id": "nat_ba_ci_upper",
+          "metric": "95% CI upper of BA, rater-cluster bootstrap",
+          "op": "<=",
+          "value": 0.6,
+          "stage": "final",
+          "measured": 1.0,
+          "status": "fail"
+        },
+        {
+          "id": "nat_score",
+          "metric": "VISHUE score = 6 - mean(survey score of AR pair photos)",
+          "op": "<=",
+          "value": 1.5,
+          "stage": "final",
+          "measured": 4.066666666666666,
+          "status": "fail"
+        },
+        {
+          "id": "nat_raters",
+          "metric": "valid raters",
+          "op": ">=",
+          "value": 20,
+          "stage": "final",
+          "measured": 5,
+          "status": "fail"
+        }
+      ]
+    }
+  },
+  "stats": {
+    "position": {
+      "n": 200,
+      "mean(iou)": 0.7319377776416371,
+      "median(iou)": 0.7526597386942047,
+      "p10(iou)": 0.5881011598966733,
+      "share(iou>=0.80)": 0.285,
+      "share(iou>=0.90)": 0.005,
+      "count(iou<0.2)": 0,
+      "mean(spill)": 0.14193374749924634,
+      "median(spill)": 0.12466428428502739,
+      "mean(miss)": 0.17029034574094482,
+      "median(miss)": 0.15656998849758544,
+      "share(bnd_mean_rel <= 0.015)": 0.655,
+      "share(bnd_mean_rel <= 0.02)": 0.775,
+      "median(bnd_mean_rel)": 0.011728407164972983
+    },
+    "color": {
+      "n": 20,
+      "median(dE)": 3.6473150163089785,
+      "share(dE <= 1.5)": 0.0,
+      "share(dE_ar < dE_bare)": 0.85,
+      "median(dE_bare)": 7.210015925417464
+    },
+    "texture": {
+      "n": 20,
+      "count(pair passes)": 7,
+      "count(ssim_ar > ssim_bare)": 4
+    },
+    "naturalness": {
+      "raters": 5,
+      "judgments": 50,
+      "pair_judgments": 30,
+      "unknown_image_ids": 0,
+      "simple accuracy (pair photos)": 0.8666666666666667,
+      "balanced accuracy (pair photos)": 0.8666666666666667,
+      "sensitivity": 1.0,
+      "specificity": 0.7333333333333333,
+      "95% CI upper of BA, rater-cluster bootstrap": 1.0,
+      "95% CI lower of BA, rater-cluster bootstrap": 0.7,
+      "AR-answer rate (pair)": 0.6333333333333333,
+      "d_prime": 2.456840359026002,
+      "criterion_c": -0.6054944563029132,
+      "VISHUE score = 6 - mean(survey score of AR pair photos)": 4.066666666666666,
+      "valid raters": 5,
+      "per_rater_accuracy": {
+        "김대호": 1.0,
+        "김종민": 0.8333333333333334,
+        "김현지": 1.0,
+        "홍지윤": 0.5,
+        "황호순": 1.0
+      }
+    }
+  },
+  "extra": {
+    "position_full_set": {
+      "n": 1840,
+      "mean(iou)": 0.7051064014081286,
+      "median(iou)": 0.7329507738936847,
+      "p10(iou)": 0.5606233241770849,
+      "share(iou>=0.80)": 0.21630434782608696,
+      "share(iou>=0.90)": 0.004891304347826087,
+      "count(iou<0.2)": 23,
+      "mean(spill)": 0.16105424095942672,
+      "median(spill)": 0.1284521676170698,
+      "mean(miss)": 0.1940537074905689,
+      "median(miss)": 0.1733904000802501,
+      "share(bnd_mean_rel <= 0.015)": 0.5380434782608695,
+      "share(bnd_mean_rel <= 0.02)": 0.6918478260869565,
+      "median(bnd_mean_rel)": 0.014128010836814102
+    },
+    "color_measurement_floor_median_skin_dE": 2.8953723412889456
+  }
+}

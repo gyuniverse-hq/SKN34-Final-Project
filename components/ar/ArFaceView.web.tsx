@@ -1,14 +1,15 @@
 import { createElement, useCallback, useEffect, useRef, useState } from 'react';
+import { parseFaceFit, parseFaceFitStatus, parseFaceShape } from '@/lib/faceFit';
 import { parseSkinTone } from '@/lib/foundationMatch';
 import type { ArFaceViewProps, LightHint } from './ArFaceView';
 import { FACE_TRACKER_HTML, type ArStatus } from './faceTrackerHtml';
 
-export function ArFaceView({ makeup, compare, guide = null, fillPreview = false, onStatus, onLightHint, onSkinTone, renderCommand = null, onRenderResult }: ArFaceViewProps) {
+export function ArFaceView({ makeup, compare, guide = null, fillPreview = false, onStatus, onLightHint, onSkinTone, onFaceFit, onFaceFitStatus, renderCommand = null, onRenderResult }: ArFaceViewProps) {
   const [frame, setFrame] = useState<HTMLIFrameElement | null>(null);
   const stateSeq = useRef(0);
-  const latest = useRef({ makeup, compare, guide, fillPreview, onStatus, onLightHint, onSkinTone, renderCommand, onRenderResult });
+  const latest = useRef({ makeup, compare, guide, fillPreview, onStatus, onLightHint, onSkinTone, onFaceFit, onFaceFitStatus, renderCommand, onRenderResult });
   useEffect(() => {
-    latest.current = { makeup, compare, guide, fillPreview, onStatus, onLightHint, onSkinTone, renderCommand, onRenderResult };
+    latest.current = { makeup, compare, guide, fillPreview, onStatus, onLightHint, onSkinTone, onFaceFit, onFaceFitStatus, renderCommand, onRenderResult };
   });
 
   const send = useCallback(
@@ -33,7 +34,7 @@ export function ArFaceView({ makeup, compare, guide = null, fillPreview = false,
     if (!frame) return;
     const onMessage = (event: MessageEvent) => {
       if (event.source !== frame.contentWindow || typeof event.data !== 'string') return;
-      let message: { type?: string; status?: string; value?: LightHint | null; lab?: unknown; conf?: unknown; commandId?: unknown; restoreId?: unknown; renderSeq?: unknown; rendererId?: unknown };
+      let message: { type?: string; status?: string; value?: LightHint | null; lab?: unknown; conf?: unknown; rec?: unknown; state?: unknown; shape?: unknown; commandId?: unknown; restoreId?: unknown; renderSeq?: unknown; rendererId?: unknown };
       try {
         message = JSON.parse(event.data);
       } catch {
@@ -67,6 +68,12 @@ export function ArFaceView({ makeup, compare, guide = null, fillPreview = false,
       } else if (message.type === 'skin_tone') {
         const tone = parseSkinTone(message);
         if (tone) latest.current.onSkinTone?.(tone);
+      } else if (message.type === 'face_fit') {
+        const hints = parseFaceFit(message);
+        if (hints) latest.current.onFaceFit?.(hints, parseFaceShape(message));
+      } else if (message.type === 'face_fit_status') {
+        const status = parseFaceFitStatus(message);
+        if (status) latest.current.onFaceFitStatus?.(status);
       }
     };
     window.addEventListener('message', onMessage);

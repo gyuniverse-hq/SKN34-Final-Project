@@ -41,6 +41,7 @@ describe('catalog availability', () => {
     expect(canTryOn(p)).toBe(true);
     expect(canTryOn(product('b', [], { makeupZone: null, category: 'skincare' }))).toBe(false);
     expect(canTryOn(product('c', []))).toBe(false);
+    expect(canTryOn(product('m', ['black'], { makeupZone: 'mascara' }))).toBe(false);
   });
 });
 

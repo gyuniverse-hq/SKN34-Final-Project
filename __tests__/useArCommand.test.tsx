@@ -67,6 +67,26 @@ it('commits only after the matching renderer result and sends APPLIED ACK', asyn
   expect(mockedPost).toHaveBeenCalledWith('/api/chat/acks', expect.objectContaining({ commandId, status: 'APPLIED' }), expect.anything());
 });
 
+it('applies a geometry proposal after render while advertising intensity and undo', async () => {
+  const product = { id: 'hl-product', makeupZone: 'highlighter', texture: 'shimmer' } as unknown as Product;
+  useMakeupStore.getState().applyShade(product, shade);
+  mockedPost.mockImplementation(async (path, body) => {
+    if (path !== '/api/chat') return owned({ received: true }) as never;
+    const request = body as { requestId: string; arContext: { stateVersion: number; supportedActions: string[] } };
+    expect(request.arContext.supportedActions).toEqual(expect.arrayContaining(['set_intensity', 'undo', 'set_geometry']));
+    return owned({ arResult: { requestId: request.requestId, status: 'proposed', actionProposal: {
+      commandId, expectedStateVersion: request.arContext.stateVersion, action: 'set_geometry', zone: 'highlighter',
+      style: 'nose_tip', geometry: { hlStyle: 'nose_tip' }, productId: product.id, shadeId: shade.id,
+    } } }) as never;
+  });
+  await act(async () => { await hook.send('하이라이터를 콧대로 설정해 줘'); });
+  expect(hook.state).toBe('applying');
+  const render = hook.renderCommand!;
+  expect(render.zone).toBe('highlighter');
+  await act(async () => { hook.onRenderResult({ commandId, renderSeq: render.renderSeq, rendererId: render.rendererId, status: 'rendered' }); });
+  expect(useMakeupStore.getState().makeup.highlighter?.geometry?.hlStyle).toBe('nose_tip');
+});
+
 it('rejects an account change while a proposal response is in flight', async () => {
   let resolve!: (value: unknown) => void;
   let body: Parameters<typeof proposed>[0];
@@ -248,12 +268,12 @@ it('reports NO_CHANGE after the renderer confirms the existing intensity', async
   expect(mockedPost).toHaveBeenCalledWith('/api/chat/acks', expect.objectContaining({ status: 'NO_CHANGE' }), expect.anything());
 });
 
-it('removes look-only mascara from the render candidate while retaining the stored look', async () => {
+it('paints look mascara on the camera while keeping explore chips off mascara', async () => {
   const makeup = useMakeupStore.getState().makeup;
   const lookOnly = { ...makeup.lip! };
   await act(async () => { useMakeupStore.setState({ makeup: { ...makeup, mascara: lookOnly, highlighter: lookOnly, contour: lookOnly } }); });
   await act(async () => { await hook.send('립 진하기 50%'); });
-  expect(hook.renderCommand!.makeup).toEqual(expect.objectContaining({ mascara: null, highlighter: lookOnly, contour: lookOnly }));
+  expect(hook.renderCommand!.makeup).toEqual(expect.objectContaining({ mascara: lookOnly, highlighter: lookOnly, contour: lookOnly }));
   expect(useMakeupStore.getState().makeup).toEqual(expect.objectContaining({ mascara: lookOnly, highlighter: lookOnly, contour: lookOnly }));
 });
 

@@ -157,7 +157,7 @@ describe('makeup store zones', () => {
       expect(s.modified).toEqual([]);
     });
 
-    it('AR paint strips mascara even when a look names it, and keeps highlighter and contour', () => {
+    it('AR paint keeps look mascara, highlighter and contour, and explore chips still omit mascara', () => {
       const look = {
         id: 'full',
         title: 'Full',
@@ -167,16 +167,17 @@ describe('makeup store zones', () => {
           blush: null,
           eyeshadow: null,
           eyeliner: null,
+          mascara: { hex: '#121010', intensity: 0.7, texture: 'matte' },
           highlighter: { hex: '#F2DCC4', intensity: 0.7, texture: 'shimmer' },
           contour: { hex: '#8A5A44', intensity: 0.5, texture: 'matte' },
         },
       } as unknown as CelebLook;
       useMakeupStore.getState().applyLook(look, []);
       const worn = useMakeupStore.getState().makeup;
-      expect(worn.mascara).toBeNull();
+      expect(worn.mascara?.hex).toBe('#121010');
       expect(worn.highlighter?.hex).toBe('#F2DCC4');
       expect(worn.contour?.hex).toBe('#8A5A44');
-      expect(arPaintMakeup(worn).mascara).toBeNull();
+      expect(arPaintMakeup(worn).mascara?.hex).toBe('#121010');
       expect(arPaintMakeup(worn).highlighter?.hex).toBe('#F2DCC4');
       expect(arPaintMakeup(worn).contour?.hex).toBe('#8A5A44');
       expect(arPaintMakeup(worn).lip?.hex).toBe('#B3202E');
@@ -190,6 +191,9 @@ describe('makeup store zones', () => {
         'brow',
         'foundation',
       ]);
+      useMakeupStore.getState().clearLookMascara();
+      expect(useMakeupStore.getState().makeup.mascara).toBeNull();
+      expect(useMakeupStore.getState().makeup.lip?.hex).toBe('#B3202E');
     });
 
     it('a new look replaces the old origin, and reset forgets it', () => {
@@ -265,7 +269,7 @@ describe('AR command state', () => {
   let serial = 0;
   let session: string;
   let request: string;
-  let proposal: ArProposal;
+  let proposal: Extract<ArProposal, { action: 'set_intensity' }>;
 
   beforeEach(() => {
     const store = useMakeupStore.getState();
@@ -376,5 +380,24 @@ describe('AR command state', () => {
     const store = useMakeupStore.getState();
     store.setIntensity('lip', store.makeup.lip!.intensity);
     expect(store.prepareArCommand(request, session, proposal).status).toBe('REJECTED');
+  });
+
+  it('applies highlighter placement after render confirmation without changing hex', () => {
+    const store = useMakeupStore.getState();
+    const highlighter = { id: 'hl-ar', makeupZone: 'highlighter', texture: 'shimmer' } as unknown as Product;
+    const hlShade = { id: 'glow', name: 'Glow', hex: '#F2E6DC' };
+    store.applyShade(highlighter, hlShade);
+    const before = useMakeupStore.getState().makeup.highlighter;
+    const geometryProposal: ArProposal = {
+      commandId: `geo-${serial}`, expectedStateVersion: useMakeupStore.getState().arVersion,
+      action: 'set_geometry', zone: 'highlighter', style: 'nose_tip', geometry: { hlStyle: 'nose_tip' },
+      productId: highlighter.id, shadeId: hlShade.id,
+    };
+    expect(store.prepareArCommand(`geo-req-${serial}`, session, geometryProposal).status).toBe('PENDING');
+    expect(useMakeupStore.getState().makeup.highlighter).toEqual(before);
+    expect(store.finishArCommand(geometryProposal.commandId, session, 'rendered')).toEqual({
+      status: 'APPLIED', actualStateVersion: geometryProposal.expectedStateVersion + 1,
+    });
+    expect(useMakeupStore.getState().makeup.highlighter).toEqual({ ...before, geometry: { hlStyle: 'nose_tip' } });
   });
 });

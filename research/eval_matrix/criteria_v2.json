@@ -1,0 +1,54 @@
+{
+  "version": "v2.0",
+  "date": "2026-11-03",
+  "source_doc": "VISHUE AR 평가 매트릭스 v2.0",
+  "note": "All thresholds are VISHUE team-proposed internal targets, not published AR-makeup pass lines. 'milestone' = 1차 개발 목표 (never reported as pass of the item).",
+  "status_values": {
+    "pass": "all final conditions met on the fixed evaluation set",
+    "fail": "measured and below the final threshold",
+    "in_progress": "milestone met but final threshold not met (reported, never counted as pass)",
+    "not_measured": "required data/statistic not available in this run",
+    "not_valid": "measured, but the measurement floor of the data is above the threshold, so pass/fail cannot be decided with this data"
+  },
+  "items": {
+    "color": {
+      "data": "lip_pairs (hw01_compare.py csv, method=ar)",
+      "conditions": [
+        {"id": "color_dE_median", "metric": "median(dE)", "op": "<=", "value": 1.5, "stage": "final"},
+        {"id": "color_dE_share", "metric": "share(dE <= 1.5)", "op": ">=", "value": 0.80, "stage": "final"},
+        {"id": "color_beats_bare", "metric": "share(dE_ar < dE_bare)", "op": ">=", "value": 0.5, "stage": "sanity"}
+      ],
+      "validity": {"metric": "median skin-ring dE between bare and real photo", "rule": "if floor > 1.5 the dE<=1.5 conditions are not_valid"}
+    },
+    "position": {
+      "data": "LaPa test lip masks (eval_lapa.py baseline_landmarks.csv), detected faces only",
+      "aggregate": "per-image IoU, arithmetic mean (macro)",
+      "sets": {"main": "subset200 (subset200.json)", "full": "all detected LaPa test images"},
+      "conditions": [
+        {"id": "lip_iou_mean_final", "metric": "mean(iou)", "op": ">=", "value": 0.90, "stage": "final"},
+        {"id": "lip_iou_mean_milestone", "metric": "mean(iou)", "op": ">=", "value": 0.80, "stage": "milestone"},
+        {"id": "boundary_share", "metric": "share(bnd_mean_rel <= 0.015)", "op": ">=", "value": 0.85, "stage": "final"},
+        {"id": "spill_mean", "metric": "mean(spill)", "op": "<=", "value": 0.05, "stage": "final", "definition": "|pred - gt| / |pred|"},
+        {"id": "miss_mean", "metric": "mean(miss)", "op": "<=", "value": 0.08, "stage": "final", "definition": "|gt - pred| / |gt|"}
+      ]
+    },
+    "texture": {
+      "data": "lip_pairs (hw01_compare.py csv, methods ar and bare)",
+      "pair_rule": "pair passes when >= 2 of 3 are closer to real than bare: dL_spread_ar < dL_spread_bare, dL_hi_ar < dL_hi_bare, ssim_ar > ssim_bare (ties count as not closer)",
+      "conditions": [
+        {"id": "texture_pairs", "metric": "count(pair passes)", "op": ">=", "value": 16, "of": 20, "stage": "final"},
+        {"id": "texture_ssim_pairs", "metric": "count(ssim_ar > ssim_bare)", "op": ">=", "value": 14, "of": 20, "stage": "final"}
+      ]
+    },
+    "naturalness": {
+      "data": "blind survey csv + key.csv; pair photos only for discrimination; AR creator excluded",
+      "conditions": [
+        {"id": "nat_ba", "metric": "balanced accuracy (pair photos)", "op": "<=", "value": 0.55, "stage": "final"},
+        {"id": "nat_ba_ci_upper", "metric": "95% CI upper of BA, rater-cluster bootstrap", "op": "<=", "value": 0.60, "stage": "final"},
+        {"id": "nat_score", "metric": "VISHUE score = 6 - mean(survey score of AR pair photos)", "op": "<=", "value": 1.5, "stage": "final"},
+        {"id": "nat_raters", "metric": "valid raters", "op": ">=", "value": 20, "stage": "final"}
+      ],
+      "also_report": ["sensitivity (AR called AR)", "specificity (REAL called REAL)", "AR-answer rate", "d_prime", "criterion_c", "per-rater accuracy"]
+    }
+  }
+}

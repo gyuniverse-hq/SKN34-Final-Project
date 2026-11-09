@@ -9,6 +9,7 @@ import { YoutubePlayer } from '@/components/celeb/YoutubePlayer';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
 import { useVideoTryOn } from '@/hooks/useVideoTryOn';
+import { demoStyleLook } from '@/lib/demoLookBundle';
 import { useI18n } from '@/lib/i18n';
 import { useStyleLooks } from '@/lib/queries';
 import { arHref, paramValue, productHref } from '@/lib/routes';
@@ -21,10 +22,11 @@ export default function StyleLookDetail() {
   const router = useRouter();
   const { t } = useI18n();
   const query = useStyleLooks();
-  const look = query.data?.find((item) => item.id === id);
+  // The six demo looks ship in the app: show them at once, then the API copy when it arrives.
+  const look = query.data?.find((item) => item.id === id) ?? demoStyleLook(id);
   const ar = useVideoTryOn(look?.products ?? [], `style-${id ?? ''}`, look?.title ?? '');
-  if (query.isPending) return <LoadingState />;
-  if (query.isError) return <ErrorState error={query.error} onRetry={() => query.refetch()} />;
+  if (query.isPending && !look) return <LoadingState />;
+  if (query.isError && !look) return <ErrorState error={query.error} onRetry={() => query.refetch()} />;
   if (!look) return <EmptyState icon="search-outline" title={t('common.notFound')} />;
   const zones = [...new Set(look.products.map((product) => product.zone))];
 
@@ -56,7 +58,9 @@ export default function StyleLookDetail() {
           loading={ar.loading}
           onPress={ar.open}
           message={
-            ar.error ? t('videoAr.error') : ar.count ? t('videoAr.mapped', { count: ar.count }) : t('videoAr.none')
+            ar.error ? t('videoAr.error') : ar.count
+              ? `${t('videoAr.mapped', { count: ar.count })}${ar.missingCore?.length ? ` ${t('videoAr.matchMissing')}` : ''}`
+              : t('videoAr.none')
           }
         />
         <View style={styles.headingRow}>

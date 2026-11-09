@@ -4,8 +4,9 @@ import { apiPostOwned, subscribeArIdentityChange, type ArRequestOwner } from '@/
 import { pendingArAcks, queueArAck, retryArAcks, subscribeArAcks } from '@/lib/arCommandAck';
 import { revealedMakeup } from '@/lib/practice';
 import type { Language } from '@/lib/i18n';
-import { AR_PAINT_ZONES, arPaintMakeup, isArPaintZone, useMakeupStore, type ArOutcome, type ArProposal } from '@/store/makeupStore';
-import type { ArRenderCommand, ArRenderResult, MakeupZone } from '@/types';
+import { geometryFromStyle } from '@/lib/zoneRecipe';
+import { AR_PAINT_ZONES, arPaintMakeup, isArPaintZone, isLookPaintZone, useMakeupStore, type ArOutcome, type ArProposal } from '@/store/makeupStore';
+import type { ArRenderCommand, ArRenderResult, MakeupZone, ZoneGeometry } from '@/types';
 
 type Phase = 'idle' | 'interpreting' | 'proposed' | 'applying' | 'applied' | 'no_change' | 'clarification' | 'rejected' | 'failed' | 'unknown';
 type RestorePhase = 'idle' | 'pending' | 'confirmed' | 'failed' | 'unknown' | 'unavailable';
@@ -16,14 +17,34 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const RENDER_TIMEOUT_MS = 6000;
 const displayKey = (options: Options) => options.visibleZones ? options.visibleZones.join('|') : '*';
 
+function sameGeometry(left: ZoneGeometry, right: unknown): boolean {
+  if (!right || typeof right !== 'object') return false;
+  return JSON.stringify(left, Object.keys(left).sort()) === JSON.stringify(right, Object.keys(left).sort());
+}
+
 function proposalOf(value: unknown): ArProposal | null {
   if (!value || typeof value !== 'object') return null;
   const p = value as Record<string, unknown>;
-  if (typeof p.commandId !== 'string' || !UUID.test(p.commandId) || (p.action !== 'set_intensity' && p.action !== 'undo') || !isArPaintZone(p.zone as MakeupZone) ||
-      typeof p.value !== 'number' || !Number.isFinite(p.value) || p.value < 0 || p.value > 1 ||
+  if (typeof p.commandId !== 'string' || !UUID.test(p.commandId) ||
       typeof p.expectedStateVersion !== 'number' || !Number.isSafeInteger(p.expectedStateVersion) || p.expectedStateVersion < 0 ||
       typeof p.productId !== 'string' || !p.productId || typeof p.shadeId !== 'string' || !p.shadeId) return null;
-  return p as unknown as ArProposal;
+  if ((p.action === 'set_intensity' || p.action === 'undo') && isArPaintZone(p.zone as MakeupZone) &&
+      typeof p.value === 'number' && Number.isFinite(p.value) && p.value >= 0 && p.value <= 1) {
+    return p as unknown as ArProposal;
+  }
+  if (p.action === 'set_geometry' && typeof p.zone === 'string' && isLookPaintZone(p.zone as MakeupZone) &&
+      typeof p.style === 'string' && p.style) {
+    const geometry = geometryFromStyle(p.zone as MakeupZone, p.style);
+    if (!geometry || !sameGeometry(geometry, p.geometry)) return null;
+    return { ...p, geometry } as unknown as ArProposal;
+  }
+  return null;
+}
+
+function zoneSnap(snapshot: ReturnType<typeof useMakeupStore.getState>, zone: MakeupZone) {
+  const selected = snapshot.selections[zone];
+  const painted = snapshot.makeup[zone];
+  return selected && painted ? { productId: selected.productId, shadeId: selected.shadeId, intensity: painted.intensity } : null;
 }
 
 export function useArCommand(options: Options) {
@@ -223,8 +244,11 @@ export function useArCommand(options: Options) {
         message: text.trim(), locale: opts.locale, requestType: 'ar_command', requestId,
         arContext: { screenId: 'A-01', stateVersion: snapshot.arVersion,
           activeZone: isArPaintZone(opts.activeZone) ? opts.activeZone : null,
-          supportedActions: ['set_intensity', 'adjust_intensity', 'undo'],
-          selections, undo: snapshot.arUndo, lip: selections.lip ?? null },
+          supportedActions: ['set_intensity', 'adjust_intensity', 'undo', 'set_geometry'],
+          selections, undo: snapshot.arUndo, lip: zoneSnap(snapshot, 'lip'),
+          highlighter: zoneSnap(snapshot, 'highlighter'), contour: zoneSnap(snapshot, 'contour'),
+          blush: zoneSnap(snapshot, 'blush'), eyeshadow: zoneSnap(snapshot, 'eyeshadow'),
+          eyeliner: zoneSnap(snapshot, 'eyeliner'), mascara: zoneSnap(snapshot, 'mascara') },
       }, { timeoutMs: 90_000 });
       const ar = response?.arResult;
       if (!ar || typeof ar !== 'object') throw new Error('Invalid AR response');
@@ -252,9 +276,9 @@ export function useArCommand(options: Options) {
       const latest = arPaintMakeup(useMakeupStore.getState().makeup);
       const layer = latest[proposal.zone];
       if (!layer) { command.current = null; complete(cmd, useMakeupStore.getState().cancelArCommand()!); return; }
+      const updated = proposal.action === 'set_geometry' ? { ...layer, geometry: { ...layer.geometry, ...proposal.geometry } } : { ...layer, intensity: proposal.value };
       setState('proposed');
-      setRenderCommand({ zone: proposal.zone, commandId: proposal.commandId, renderSeq: cmd.renderSeq, rendererId: cmd.rendererId,
-        makeup: { ...latest, [proposal.zone]: { ...layer, intensity: proposal.value } } });
+      setRenderCommand({ zone: proposal.zone, commandId: proposal.commandId, renderSeq: cmd.renderSeq, rendererId: cmd.rendererId, makeup: { ...latest, [proposal.zone]: updated } });
       setState('applying');
       timer.current = setTimeout(() => {
         if (command.current !== cmd) return;

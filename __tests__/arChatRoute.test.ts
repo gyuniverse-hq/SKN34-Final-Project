@@ -1,14 +1,26 @@
 import { arChatRoute } from '@/lib/arChatRoute';
 
+it.each(['하이라이터 좀 더 연하게', '쉐딩 더 진하게', '조금 더 연하게'])('routes intensity actions to the server: %s', (text) => {
+  expect(arChatRoute(text)).toBe('server');
+});
+
 it.each([0, 1, 50, 100])('routes absolute lip %s percent only to the server', (percent) => {
   expect(arChatRoute(`립 진하기를 ${percent}%로 설정해 줘.`)).toBe('server');
 });
 
 it.each([
-  '립스틱 좀 더 연한 거 없어?', '코랄 룩 보여줘',
-  'Is there a lighter lipstick?', 'Show me a coral look',
-  'もう少し薄い色のリップはある？', 'コーラルのルックを見せて',
-  '有没有颜色更浅一点的口红？', '给我看看珊瑚色妆容',
+  '하이라이터를 콧대로 설정해 줘.',
+  'Set highlighter to nose tip',
+])('routes an absolute placement style to the server: %s', (text) => {
+  expect(arChatRoute(text)).toBe('server');
+});
+
+it.each([
+  '하이라이터 콧대', '쉐딩 턱선', '아이라인 캣윙',
+  '립스틱 좀 더 연한 거 없어?', '블러셔를 조금 더 은은하게 해줘', '코랄 룩 보여줘',
+  'Is there a lighter lipstick?', 'Make the blush a little softer', 'Show me a coral look',
+  'もう少し薄い色のリップはある？', 'チークをもう少しやわらかくして', 'コーラルのルックを見せて',
+  '有没有颜色更浅一点的口红？', '腮红再柔和一点', '给我看看珊瑚色妆容',
 ])('preserves the single local request: %s', (text) => {
   expect(arChatRoute(text)).toBe('local');
 });

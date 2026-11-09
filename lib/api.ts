@@ -1,8 +1,8 @@
-import Constants from 'expo-constants';
 import { getAccessToken } from '@/lib/auth';
 import { getSupabase, isAuthConfigured } from '@/lib/auth/client';
 import { getAnonymousChatId } from '@/lib/chatIdentity';
 import type { ApiErrorBody } from '@/types';
+import Constants from 'expo-constants';
 
 export class ApiError extends Error {
   constructor(
@@ -15,7 +15,7 @@ export class ApiError extends Error {
   }
 }
 
-const TIMEOUT_MS = 12000;
+const TIMEOUT_MS = 30000;
 
 /** Local backend gateway: infra/compose nginx, or a port-forward to the kind cluster. */
 const DEV_GATEWAY_PORT = 8080;
@@ -95,8 +95,8 @@ async function apiRequest(
   return res;
 }
 
-export async function apiGet<T>(path: string): Promise<T> {
-  const res = await apiRequest(path, { method: 'GET' });
+export async function apiGet<T>(path: string, options: { timeoutMs?: number } = {}): Promise<T> {
+  const res = await apiRequest(path, { method: 'GET' }, options);
   return (await res.json()) as T;
 }
 
