@@ -56,6 +56,9 @@
 - `verified_non_oy_products.csv`에는 공식 페이지에서 가격과 상품 사진까지 확인한 행을 기록함. 검증된 이미지·가격이 있는 기존 상품은 이 값을 유지함.
 - `non_oy_source_price.csv`에는 올리브영 미입점 브랜드로 확인되고 상품을 식별할 수 있으며 원본 가격이 양수인 행의 ID와 앱 카테고리를 기록함. 이 경로는 원본 가격을 사용하고 이미지 URL을 비움. `추정 정가`는 `price_estimated` 태그를 추가함. 가격이 없는 행, 소도구, 하나의 행에 두 상품이 섞인 경우, 중복 표기와 상품을 식별하기 어려운 행은 넣지 않음.
 - `build_verified_catalog.py --output <검토용 JSON 경로>`는 원본 유튜브 ID와 DB 값을 대조하고, 이미 올리브영 상품에 확정 연결된 행을 거부함. 기존 시드에 선택된 상품만 더한 검토용 JSON을 만들며 DB에는 쓰지 않음.
+- `non_product_exclusions.csv`에는 상품명이 구매 기록이나 영상 설명 문장으로만 남아 상품을 특정할 수 없는 원본 ID를 수동 검토 후 기록함. `build_verified_catalog.py`는 raw-selection에서 이 ID를 제외하고, 원본 DB의 브랜드·상품명이 제외 목록과 바뀌었으면 중단함. `raw_yt_product` 원본은 삭제하거나 수정하지 않음.
+- `filter_non_products.py`는 로컬 `raw_yt_product`를 조회해 이미 올리브영 매칭·카탈로그 연결·서빙 적재된 제품을 제외한 뒤, 명백한 비상품과 검토 후보를 나눔. 자동 제외 기준은 상품명에 `직접`, `..`, `ㅠㅠ`, `왜 단종`, `제 최애`, `대체 가능합니다`, `생각`, `것 같`, `느낌`, `같아요`, `제품`, `렌즈`가 포함되거나 브랜드명에 `렌즈`가 포함된 경우임. `..`는 연속 마침표 두 개를 뜻함. 브랜드·상품명에 렌즈가 있으면 콘택트렌즈 항목으로 자동 제외함.
+- 기본 `--phase preview`는 Downloads에 자동 제외 후보 `youtube-non-product-auto-exclusions.csv`와 수동 검수 목록 `youtube-non-product-review.csv`를 생성하며 DB와 제외 목록 모두 수정하지 않음. 자동 제외 후보 CSV를 먼저 확인한 뒤 `--phase apply`를 실행하면 자동 제외를 `non_product_exclusions.csv`에 추가함. 수동 검수 CSV에서 `decision`을 `exclude` 또는 `keep`으로 선택하고 `--review-decisions <검수 CSV>`를 함께 지정하면 직접 `exclude`로 판정한 행도 추가함. 검수 CSV를 지정하지 않은 `apply`는 자동 제외만 반영함. 이 작업도 DB 원본을 삭제하거나 변경하지 않음.
 - 앱 `category`는 `lip`/`cheek`/`eye`/`base` 등으로 변환하고 `tags`에는 `youtube`와 원본의 세부 카테고리를 보관함. `name`, `nameKo`, `description`, `volume`, `priceKRW`는 원본 값을 사용함. `position`과 `search_text`는 시드 적재기가 생성하고, `searchKeyword`는 브랜드와 상품명으로 생성함.
 - 색상·제형이 비어 있으면 `makeupZone`을 `null`로 둠. 앱의 AR 상품은 검증된 색상과 제형을 모두 요구함. 유튜브 상품의 빈 이미지 URL은 실시간 쇼핑 이미지 검색으로 채우지 않음.
 - 검토용 JSON과 기존 `backend/api/seed/catalog.json`의 차이를 확인한 뒤 시드 파일에 반영하고 `app.jobs.seed_catalog`로 로컬 DB에 적재함. 전체 시드 적재는 기존 서빙 카탈로그를 교체하므로 변경 건수와 기존 시드 보존을 먼저 확인할 것.
