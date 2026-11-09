@@ -22,12 +22,16 @@ from pathlib import Path
 
 import asyncpg
 
-RULE_VERSION = "v2"
+RULE_VERSION = "v3"
 AMOUNT_METHODS = ("amount_suffix_exact", "amount_suffix_synonym")
 AMOUNT_SUFFIX_RE = re.compile(
     r"\s*\(\s*\d+(?:,\d{3})*(?:\.\d+)?\s*(?:ppm|ppb|%|iu)\s*\)\s*$",
     re.IGNORECASE,
 )
+# Keep delimiter interpretation consistent with the read-only IngredientIdentityRepository.
+# The code change does not update mappings; data owners must review a preview before --apply.
+OFFICIAL_SYNONYM_SEPARATOR = r"\s*(?:\^|(?<![0-9A-Za-z]),|,(?![0-9A-Za-z])|,(?=[A-Za-z]{2,}))\s*"
+
 MATCH_COLUMNS = (
     "oy_ingredient_id",
     "oy_ingredient_name",
@@ -50,6 +54,15 @@ MANUAL_COLUMNS = (*MATCH_COLUMNS, "reviewed_by", "reviewed_at", "review_note")
 def name_key(value: str | None) -> str:
     """Use the same conservative key as the MFDS snapshot loader."""
     return " ".join(unicodedata.normalize("NFKC", value or "").split())
+
+
+def official_synonyms(value: str | None) -> set[str]:
+    """Read mixed MFDS aliases, preserving chemical locants such as 1,2- and N,N-."""
+    return {
+        normalized
+        for alias in re.split(OFFICIAL_SYNONYM_SEPARATOR, value or "")
+        if (normalized := name_key(alias))
+    }
 
 
 def without_trailing_amount(value: str) -> str | None:
@@ -126,11 +139,8 @@ def build_candidates(
     standards = {row["name_key"]: row for row in mfds_rows}
     synonyms: dict[str, dict[int, asyncpg.Record]] = defaultdict(dict)
     for row in mfds_rows:
-        # '/' occurs inside valid chemical names; only commas separate aliases.
-        for alias in (row["synonym_raw"] or "").replace("，", ",").split(","):
-            alias_key = name_key(alias)
-            if alias_key:
-                synonyms[alias_key][row["ingredient_id"]] = row
+        for alias_key in official_synonyms(row["synonym_raw"]):
+            synonyms[alias_key][row["ingredient_id"]] = row
 
     matches: list[tuple[int, str, int, str, str]] = []
     review: list[tuple[int, str, str, str, str]] = []
