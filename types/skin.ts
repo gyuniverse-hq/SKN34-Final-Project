@@ -122,7 +122,8 @@ export interface SkinSurveyV3 {
   cheekState: 'dry' | 'comfortable' | 'oily' | 'variable' | 'unknown';
   oilOnset: 'within1h' | 'after1to3h' | 'after3h' | 'notNoticed' | 'unknown';
   cosmeticReaction: 'none' | 'once' | 'repeated' | 'avoided' | 'notUsed' | 'unknown';
-  priority: import('./index').SkinConcern;
+  /** Retained for previously saved surveys. */
+  priority?: import('./index').SkinConcern;
 }
 export interface SkinProfileV3 {
   version: 3;

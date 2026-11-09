@@ -11,6 +11,12 @@ from app.models.aihub import (
     AihubSkinTypeRow,
 )
 from app.models.catalog import LookItemRow, LookRow, ProductRow, ShadeRow, StoreRow
+from app.models.cosing import (
+    CosingFunctionRow,
+    CosingIngredientLookupRow,
+    FunctionConcernRow,
+    IngredientFunctionRow,
+)
 from app.models.idol_look import LookArSettingRow, LookProductRow, MakeupLookRow, YoutubeVideoRow
 from app.models.member import MemberRow
 from app.models.order import OrderLineRow, OrderRow
@@ -70,6 +76,10 @@ __all__ = [
     "AihubQaSourceLinkRow",
     "AihubSkinConcernRow",
     "AihubSkinTypeRow",
+    "CosingFunctionRow",
+    "CosingIngredientLookupRow",
+    "FunctionConcernRow",
+    "IngredientFunctionRow",
     "SkincareServingRow",
     "LookArSettingRow",
     "LookItemRow",

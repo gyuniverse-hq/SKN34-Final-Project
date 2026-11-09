@@ -105,8 +105,9 @@ function supportProfile(): SkinProfileV3 {
 }
 it('accepts explicit unknowns but rejects missing, legacy and invalid support responses', () => {
   expect(isCompleteSupportSurvey(supportAnswers)).toBe(true);
+  expect(isCompleteSupportSurvey({ ...supportAnswers, priority: undefined })).toBe(true);
   for (const key of Object.keys(supportAnswers)) {
-    expect(isCompleteSupportSurvey({ ...supportAnswers, [key]: undefined })).toBe(false);
+    if (key !== 'priority') expect(isCompleteSupportSurvey({ ...supportAnswers, [key]: undefined })).toBe(false);
     expect(isCompleteSupportSurvey({ ...supportAnswers, [key]: 'invalid' })).toBe(false);
   }
   expect(isCompleteSupportSurvey({ ...supportAnswers, oilOnset: 'notNoticed', cheekState: 'variable', cosmeticReaction: 'notUsed' })).toBe(true);

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import { theme } from '@/constants/theme';
-import { SUPPORT_QUESTIONS, SUPPORT_CHOICES, SUPPORT_REACTION_CHOICES, SUPPORT_PRIORITY_CONCERNS } from '@/constants/skinSurvey';
+import { SUPPORT_QUESTIONS, SUPPORT_CHOICES, SUPPORT_REACTION_CHOICES } from '@/constants/skinSurvey';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import type { SkinSurveyV3 } from '@/types/skin';
 
@@ -12,10 +12,9 @@ export function SkinSurvey({ answers, onChange, onFinish, complete, saving, erro
 }) {
   const { t } = useI18n();
   const [step, setStep] = useState(0);
-  const total = SUPPORT_QUESTIONS.length + 1;
-  const key = step < SUPPORT_QUESTIONS.length ? SUPPORT_QUESTIONS[step] : 'priority';
-  const options: readonly string[] = key === 'priority' ? SUPPORT_PRIORITY_CONCERNS
-    : key === 'cosmeticReaction' ? SUPPORT_REACTION_CHOICES : SUPPORT_CHOICES[key];
+  const total = SUPPORT_QUESTIONS.length;
+  const key = SUPPORT_QUESTIONS[step];
+  const options: readonly string[] = key === 'cosmeticReaction' ? SUPPORT_REACTION_CHOICES : SUPPORT_CHOICES[key];
   const selected = answers[key];
   return <View style={styles.screen}>
     <View style={styles.progress} accessibilityRole="progressbar" accessibilityValue={{ min: 1, max: total, now: step + 1 }}>
@@ -23,12 +22,12 @@ export function SkinSurvey({ answers, onChange, onFinish, complete, saving, erro
     </View>
     <ScrollView key={step} style={styles.scroll} contentContainerStyle={styles.content}>
       <View style={styles.number}><Text style={styles.numberText}>{step + 1}</Text></View>
-      <Text style={styles.label} accessibilityRole="header">{key === 'priority' ? t('support.priority') : t(`support.${key}`)}</Text>
+      <Text style={styles.label} accessibilityRole="header">{t(`support.${key}`)}</Text>
       {step === 0 && <Text style={styles.notice}>{t('support.notice')}</Text>}
       <View accessibilityRole="radiogroup" style={styles.options}>
         {options.map(answer => {
           const isSelected = selected === answer;
-          const label = key === 'priority' ? t(`support.priorityChoice.${answer}` as TranslationKey) : t(`support.${key}.${answer}` as TranslationKey);
+          const label = t(`support.${key}.${answer}` as TranslationKey);
           return <Pressable key={answer} accessibilityRole="radio" accessibilityState={{ checked: isSelected, disabled: saving }}
             accessibilityLabel={label} disabled={saving} onPress={() => onChange({ ...answers, [key]: answer })}
             style={[styles.option, isSelected && styles.optionSelected]}>

@@ -8,13 +8,15 @@ jest.mock('expo-router', () => ({ Stack: { Screen: () => null }, useFocusEffect:
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key, language: 'ko' }) }));
-jest.mock('@/components/skin/SkinSolution', () => ({ SkinSolution: 'SolutionContent' }));
-jest.mock('@/components/skin/SkinReportDetail', () => ({ SkinReportDetail: 'ResultContent' }));
+jest.mock('@/components/skin/SkinSolution', () => ({ SkinSolution: 'SolutionContent', SkinRoutine: 'RoutineContent' }));
+jest.mock('@/components/skin/SkinReportDetail', () => ({ SkinReportDetail: 'ResultContent', SkinConcernRail: 'ConcernRail' }));
 jest.mock('@/components/ui/StateViews', () => ({ LoadingState: 'LoadingState' }));
+let mockResults: object | undefined;
+jest.mock('@/components/shop/ProductLineCard', () => ({ ProductLineCard: 'ProductCard' }));
 jest.mock('@/hooks/useSkinReport', () => ({ useSkinReport: () => ({
   report: require('@/lib/skinReport').buildSkinReport(require('@/constants/skinCare').SKIN_REPORT_EXAMPLE), example: false, loading: false, loadFailed: false,
-  activeConcern: 'dryness', selected: ['dryness'], ingredients: [], live: false,
-  recommendations: { isFetching: false }, setActive: jest.fn(), findProducts: jest.fn(), toggle: jest.fn(),
+  activeConcern: 'dryness', ingredients: [], live: Boolean(mockResults),
+  recommendations: { isFetching: false, data: mockResults }, setActive: jest.fn(),
 }) }));
 
 it('opens report information by default and keeps the sticky tabs in a horizontal inner row', async () => {
@@ -25,6 +27,9 @@ it('opens report information by default and keeps the sticky tabs in a horizonta
     expect(info).toBeDefined();
     expect(JSON.stringify(screen.toJSON())).toContain('report.review');
     expect(JSON.stringify(screen.toJSON())).toContain('skincare.requestPrompt');
+    const rendered = JSON.stringify(screen.toJSON());
+    expect(rendered.indexOf('SolutionContent')).toBeLessThan(rendered.indexOf('report.products'));
+    expect(rendered.indexOf('report.products')).toBeLessThan(rendered.indexOf('RoutineContent'));
     expect(JSON.stringify(screen.toJSON())).not.toContain('report.sampleProducts');
     expect(JSON.stringify(screen.toJSON())).not.toContain('report.date');
     expect(JSON.stringify(screen.toJSON())).not.toContain('report.method');
@@ -42,6 +47,29 @@ it('opens report information by default and keeps the sticky tabs in a horizonta
 });
 
 
+it('keeps AI recommendations visible while browsing all six concerns', async () => {
+  const first = { product: { id: 'a' }, optionName: 'Option A', priceKRW: 100,
+    reasons: [{ goal: 'pores', sources: ['analysis'] }] };
+  const second = { ...first, product: { id: 'b' }, optionName: 'Option B',
+    reasons: [{ goal: 'wrinkles', sources: ['concern'] }] };
+  mockResults = { overallTop5: [first], byConcern: { pores: [first], wrinkles: [second] },
+    coverage: [{ goal: 'pores', status: 'ok' }, { goal: 'wrinkles', status: 'ok' }] };
+  let screen!: renderer.ReactTestRenderer;
+  try {
+    await act(async () => { screen = renderer.create(<SkinRecommendationsScreen />); });
+    const cards = () => screen.root.findAll(n => String(n.type) === 'ProductCard');
+    const rail = () => screen.root.find(node => String(node.type) === 'ConcernRail');
+    expect(rail().props.concerns).toEqual(['dryness', 'sensitivity', 'blemish', 'pores', 'pigmentation', 'wrinkles']);
+    expect(cards().map(c => c.props.note)).toEqual(['skincare.reason.analysis']);
+    await act(async () => { rail().props.onChange('wrinkles'); });
+    expect(cards().map(c => c.props.note)).toEqual(['skincare.reason.analysis', 'skincare.reason.concern']);
+    expect(cards().map(c => c.props.eyebrow)).toEqual(['Option A', 'Option B']);
+  } finally {
+    mockResults = undefined;
+    await act(async () => { screen?.unmount(); });
+  }
+});
+
 it('discards the temporary photo when the report is left', async () => {
   const point: [number, number] = [.5, .5];
   const box: [number, number, number, number] = [0, 0, 1, 1];
@@ -52,4 +80,22 @@ it('discards the temporary photo when the report is left', async () => {
   expect(useSkinPreviewStore.getState().preview).not.toBeNull();
   await act(async () => { screen.unmount(); });
   expect(useSkinPreviewStore.getState().preview).toBeNull();
+});
+
+it('still shows the combined balance list when the profile has no AI recommendations', async () => {
+  const first = { product: { id: 'a' }, optionName: 'Option A', priceKRW: 100,
+    reasons: [{ goal: 'dryness', sources: ['concern'] }, { goal: 'oiliness', sources: ['concern'] }] };
+  mockResults = { overallTop5: [], byConcern: { dryness: [first], oiliness: [first] },
+    balanceMatches: [first], coverage: [{ goal: 'dryness', status: 'ok' }, { goal: 'oiliness', status: 'ok' }] };
+  let screen!: renderer.ReactTestRenderer;
+  try {
+    await act(async () => { screen = renderer.create(<SkinRecommendationsScreen />); });
+    expect(JSON.stringify(screen.toJSON())).toContain('skincare.emptyAi');
+    const cards = screen.root.findAll(node => String(node.type) === 'ProductCard');
+    expect(cards).toHaveLength(1);
+    expect(cards[0].props.note).toBe('skincare.reason.concern');
+  } finally {
+    mockResults = undefined;
+    await act(async () => { screen?.unmount(); });
+  }
 });
