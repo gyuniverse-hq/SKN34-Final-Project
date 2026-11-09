@@ -17,7 +17,10 @@ QUERY_RULE = "mfds-query-v1"
 AMOUNT_SUFFIX = re.compile(r"\s*\(\s*\d+(?:,\d{3})*(?:\.\d+)?\s*(?:ppm|ppb|%|iu)\s*\)\s*$", re.I)
 
 
-OFFICIAL_SYNONYM_SEPARATOR = r"\s*\^\s*"
+# Current MFDS snapshots contain both caret-delimited and legacy comma-delimited names.
+# Do not split numeric locants (1,2-) or letter locants (N,N-).
+# Keep this in sync with scripts/data/ingredients/match_oy_mfds.py.
+OFFICIAL_SYNONYM_SEPARATOR = r"\s*(?:\^|(?<![0-9A-Za-z]),|,(?![0-9A-Za-z])|,(?=[A-Za-z]{2,}))\s*"
 
 
 def _name(value):
@@ -25,8 +28,12 @@ def _name(value):
 
 
 def _official_synonyms(value: str | None) -> set[str]:
-    """MFDS synonym_raw uses caret separators; commas can be part of chemical names."""
-    return {normalized for alias in (value or "").split("^") if (normalized := _name(alias))}
+    """Parse mixed alias delimiters while preserving chemical comma notation."""
+    return {
+        normalized
+        for alias in re.split(OFFICIAL_SYNONYM_SEPARATOR, value or "")
+        if (normalized := _name(alias))
+    }
 
 
 def _current_link(row):
