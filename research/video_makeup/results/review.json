@@ -1,0 +1,23 @@
+{
+  "_how": "Open research/data/video_makeup/<videoId>/overlay_<pair>.png (before | after aligned | magenta = liner, green = blush, red cross = blush centre, dots = AR apple / under_eye / side). Set check to ok or bad and by to your name; summary.py shows it. Re-check after timeline.py or measure.py picks new frames.",
+  "i4SZIHG76RI": {
+    "eyeliner": {"check": "ok", "by": "assistant", "frames": [382.38, 528.53], "note": "wings on both eyes; a pencil in the before frame does not touch the liner area; smoky shadow drawn in between (beforeGap 87 s)"},
+    "blush": {"check": "ok", "by": "assistant", "frames": [270.27, 337.34], "note": "both cheeks near the apple dot"},
+    "final": {"check": "ok", "by": "assistant", "frames": [175.18, 529.53], "note": "a shading stick over the nose in the before frame; liner and blush still read; values match the earlier pair (0.32 · 13°, apple 0.70)"}
+  },
+  "D-xHHFN2iLU": {
+    "final": {"check": "ok", "by": "assistant", "frames": [251.0, 653.0], "note": "bare face vs finished; drooping liner and outer-cheek blush as on screen"}
+  },
+  "qva4jpp0tYs": {
+    "eyeliner": {"check": "ok", "by": "assistant", "frames": [288.0, 568.0], "note": "long upturned wings on both eyes; before frame looks down (eye check passed); blush green there is not used"}
+  },
+  "TzwB0xglsAo": {
+    "final": {"check": "bad", "by": "assistant", "frames": [77.0, 697.0], "note": "a tool over the right cheek in the after frame makes a green blob; left green is a red under-eye shadow, not blush"}
+  },
+  "Mvy0fr98Fds": {
+    "final": {"check": "bad", "by": "assistant", "frames": [12.01, 618.62], "note": "the before frame is an intro of a different look"}
+  },
+  "bU19zKvM7h8": {
+    "eyeliner": {"check": "bad", "by": "assistant", "frames": [55.05, 75.08], "note": "almost nothing changes in 20 s; the numbers are noise"}
+  }
+}

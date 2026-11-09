@@ -1,0 +1,594 @@
+[
+  {
+    "review": "-",
+    "videoId": "BD_3e4xCwi8",
+    "title": "앞트임 교정 메이크업",
+    "pair": "blush",
+    "source": "rise",
+    "before": 9.01,
+    "after": 26.03,
+    "occlusion": 0.0039,
+    "eyesDiffer": false,
+    "usable": false,
+    "eyeliner": null,
+    "nearestChip": null,
+    "eyeGap": null,
+    "shadowHeight": null,
+    "blush": null
+  },
+  {
+    "review": "-",
+    "videoId": "BD_3e4xCwi8",
+    "title": "앞트임 교정 메이크업",
+    "pair": "final",
+    "source": null,
+    "before": 51.05,
+    "after": 594.59,
+    "occlusion": 0.0235,
+    "eyesDiffer": false,
+    "usable": false,
+    "eyeliner": {
+      "length": 0.359,
+      "angle": 2.45,
+      "thickness": 0.015,
+      "linerSoftness": 0.295,
+      "linerLower": false
+    },
+    "nearestChip": "cat_wing",
+    "eyeGap": {
+      "length": 0.035,
+      "angle": 4.9,
+      "thickness": 0.03
+    },
+    "shadowHeight": 0.0,
+    "blush": null
+  },
+  {
+    "review": "bad (assistant)",
+    "videoId": "bU19zKvM7h8",
+    "title": "애교살 강조 메이크업",
+    "pair": "eyeliner",
+    "source": "rise",
+    "before": 55.05,
+    "after": 75.08,
+    "occlusion": 0.0003,
+    "eyesDiffer": false,
+    "usable": true,
+    "eyeliner": {
+      "length": 0.089,
+      "angle": 17.35,
+      "thickness": 0.0,
+      "linerSoftness": 0.365,
+      "linerLower": false
+    },
+    "nearestChip": "natural",
+    "eyeGap": {
+      "length": 0.179,
+      "angle": 34.7,
+      "thickness": 0.0
+    },
+    "shadowHeight": 0.21,
+    "blush": null
+  },
+  {
+    "review": "-",
+    "videoId": "bU19zKvM7h8",
+    "title": "애교살 강조 메이크업",
+    "pair": "blush",
+    "source": "rise",
+    "before": 52.05,
+    "after": 70.07,
+    "occlusion": 0.0011,
+    "eyesDiffer": false,
+    "usable": false,
+    "eyeliner": null,
+    "nearestChip": null,
+    "eyeGap": null,
+    "shadowHeight": null,
+    "blush": null
+  },
+  {
+    "review": "-",
+    "videoId": "D-xHHFN2iLU",
+    "title": "아이돌 속눈썹 강조 메이크업",
+    "pair": "eyeliner",
+    "source": "captions",
+    "before": 437.0,
+    "after": 575.0,
+    "occlusion": 0.0567,
+    "eyesDiffer": false,
+    "usable": false,
+    "eyeliner": {
+      "length": 0.151,
+      "angle": 9.55,
+      "thickness": 0.0,
+      "linerSoftness": 0.28,
+      "linerLower": false
+    },
+    "nearestChip": "natural",
+    "eyeGap": {
+      "length": 0.303,
+      "angle": 19.1,
+      "thickness": 0.0
+    },
+    "shadowHeight": 0.36,
+    "blush": null
+  },
+  {
+    "review": "-",
+    "videoId": "D-xHHFN2iLU",
+    "title": "아이돌 속눈썹 강조 메이크업",
+    "pair": "blush",
+    "source": "rise",
+    "before": 248.0,
+    "after": 273.0,
+    "occlusion": 0.0242,
+    "eyesDiffer": false,
+    "usable": false,
+    "eyeliner": {
+      "length": 0.379,
+      "angle": 12.25,
+      "thickness": 0.0,
+      "linerSoftness": 0.37,
+      "linerLower": false
+    },
+    "nearestChip": "cat_wing",
+    "eyeGap": {
+      "length": 0.478,
+      "angle": 16.9,
+      "thickness": 0.0
+    },
+    "shadowHeight": 0.0,
+    "blush": {
+      "blushPlacement": "side",
+      "blushSize": 0.58,
+      "blushSoftness": 1.0
+    }
+  },
+  {
+    "review": "ok (assistant)",
+    "videoId": "D-xHHFN2iLU",
+    "title": "아이돌 속눈썹 강조 메이크업",
+    "pair": "final",
+    "source": null,
+    "before": 251.0,
+    "after": 653.0,
+    "occlusion": 0.012,
+    "eyesDiffer": false,
+    "usable": true,
+    "eyeliner": {
+      "length": 0.323,
+      "angle": -9.6,
+      "thickness": 0.06,
+      "linerSoftness": 0.19,
+      "linerLower": false
+    },
+    "nearestChip": "puppy",
+    "eyeGap": {
+      "length": 0.019,
+      "angle": 8.0,
+      "thickness": 0.12
+    },
+    "shadowHeight": 0.07,
+    "blush": {
+      "blushPlacement": "side",
+      "blushSize": 0.67,
+      "blushSoftness": 0.98
+    }
+  },
+  {
+    "review": "-",
+    "videoId": "HPMfv3YbqWU",
+    "title": "출퇴근 스모키 메이크업",
+    "pair": "eyeliner",
+    "source": "captions",
+    "before": 752.75,
+    "after": 817.82,
+    "occlusion": 0.0985,
+    "eyesDiffer": false,
+    "usable": false,
+    "eyeliner": null,
+    "nearestChip": null,
+    "eyeGap": null,
+    "shadowHeight": null,
+    "blush": null
+  },
+  {
+    "review": "-",
+    "videoId": "HPMfv3YbqWU",
+    "title": "출퇴근 스모키 메이크업",
+    "pair": "blush",
+    "source": "captions",
+    "before": 613.61,
+    "after": 637.64,
+    "occlusion": 0.0238,
+    "eyesDiffer": false,
+    "usable": false,
+    "eyeliner": null,
+    "nearestChip": null,
+    "eyeGap": null,
+    "shadowHeight": null,
+    "blush": {
+      "blushPlacement": "side",
+      "blushSize": 0.64,
+      "blushSoftness": 0.92
+    }
+  },
+  {
+    "review": "-",
+    "videoId": "HPMfv3YbqWU",
+    "title": "출퇴근 스모키 메이크업",
+    "pair": "final",
+    "source": null,
+    "before": 231.23,
+    "after": 1078.08,
+    "occlusion": 0.1623,
+    "eyesDiffer": false,
+    "usable": false,
+    "eyeliner": {
+      "length": 0.534,
+      "angle": 4.45,
+      "thickness": 0.0,
+      "linerSoftness": 0.13,
+      "linerLower": false
+    },
+    "nearestChip": "cat_wing",
+    "eyeGap": {
+      "length": 0.382,
+      "angle": 16.3,
+      "thickness": 0.0
+    },
+    "shadowHeight": 0.4,
+    "blush": {
+      "blushPlacement": "side",
+      "blushSize": 0.42,
+      "blushSoftness": 0.97
+    }
+  },
+  {
+    "review": "ok (assistant)",
+    "videoId": "i4SZIHG76RI",
+    "title": "스모키 눈확장 메이크업",
+    "pair": "eyeliner",
+    "source": "chapters",
+    "before": 382.38,
+    "after": 528.53,
+    "occlusion": 0.0051,
+    "eyesDiffer": false,
+    "usable": true,
+    "eyeliner": {
+      "length": 0.218,
+      "angle": 10.45,
+      "thickness": 0.0,
+      "linerSoftness": 0.355,
+      "linerLower": false
+    },
+    "nearestChip": "cat_wing",
+    "eyeGap": {
+      "length": 0.053,
+      "angle": 0.1,
+      "thickness": 0.0
+    },
+    "shadowHeight": 0.06,
+    "blush": null
+  },
+  {
+    "review": "ok (assistant)",
+    "videoId": "i4SZIHG76RI",
+    "title": "스모키 눈확장 메이크업",
+    "pair": "blush",
+    "source": "chapters",
+    "before": 270.27,
+    "after": 337.34,
+    "occlusion": 0.0036,
+    "eyesDiffer": false,
+    "usable": true,
+    "eyeliner": null,
+    "nearestChip": null,
+    "eyeGap": null,
+    "shadowHeight": null,
+    "blush": {
+      "blushPlacement": "apple",
+      "blushSize": 0.75,
+      "blushSoftness": 0.94
+    }
+  },
+  {
+    "review": "ok (assistant)",
+    "videoId": "i4SZIHG76RI",
+    "title": "스모키 눈확장 메이크업",
+    "pair": "final",
+    "source": null,
+    "before": 175.18,
+    "after": 529.53,
+    "occlusion": 0.0079,
+    "eyesDiffer": false,
+    "usable": true,
+    "eyeliner": {
+      "length": 0.354,
+      "angle": 12.6,
+      "thickness": 0.065,
+      "linerSoftness": 0.185,
+      "linerLower": false
+    },
+    "nearestChip": "cat_wing",
+    "eyeGap": {
+      "length": 0.022,
+      "angle": 10.0,
+      "thickness": 0.13
+    },
+    "shadowHeight": 0.36,
+    "blush": {
+      "blushPlacement": "apple",
+      "blushSize": 0.75,
+      "blushSoftness": 0.98
+    }
+  },
+  {
+    "review": "-",
+    "videoId": "Mvy0fr98Fds",
+    "title": "내추럴 눈확장 메이크업",
+    "pair": "eyeliner",
+    "source": "captions",
+    "before": 162.16,
+    "after": 302.3,
+    "occlusion": 0.0102,
+    "eyesDiffer": false,
+    "usable": true,
+    "eyeliner": {
+      "length": 0.0,
+      "angle": 0.0,
+      "thickness": 0.03,
+      "linerSoftness": 0.45,
+      "linerLower": false
+    },
+    "nearestChip": "natural",
+    "eyeGap": null,
+    "shadowHeight": 0.08,
+    "blush": null
+  },
+  {
+    "review": "-",
+    "videoId": "Mvy0fr98Fds",
+    "title": "내추럴 눈확장 메이크업",
+    "pair": "blush",
+    "source": "captions",
+    "before": 502.5,
+    "after": 597.6,
+    "occlusion": 0.0115,
+    "eyesDiffer": false,
+    "usable": false,
+    "eyeliner": null,
+    "nearestChip": null,
+    "eyeGap": null,
+    "shadowHeight": null,
+    "blush": null
+  },
+  {
+    "review": "bad (assistant)",
+    "videoId": "Mvy0fr98Fds",
+    "title": "내추럴 눈확장 메이크업",
+    "pair": "final",
+    "source": null,
+    "before": 12.01,
+    "after": 618.62,
+    "occlusion": 0.0118,
+    "eyesDiffer": false,
+    "usable": true,
+    "eyeliner": {
+      "length": 0.057,
+      "angle": -10.25,
+      "thickness": 0.0,
+      "linerSoftness": 0.595,
+      "linerLower": false
+    },
+    "nearestChip": "natural",
+    "eyeGap": {
+      "length": 0.114,
+      "angle": 20.5,
+      "thickness": 0.0
+    },
+    "shadowHeight": 0.0,
+    "blush": null
+  },
+  {
+    "review": "-",
+    "videoId": "pNgxrvlyGXs",
+    "title": "자연스러운 앞트임 메이크업",
+    "pair": "blush",
+    "source": "captions",
+    "before": 457.46,
+    "after": 500.5,
+    "occlusion": 0.0207,
+    "eyesDiffer": false,
+    "usable": false,
+    "eyeliner": {
+      "length": 0.0,
+      "angle": 0.0,
+      "thickness": 0.0,
+      "linerSoftness": 0.68,
+      "linerLower": false
+    },
+    "nearestChip": "natural",
+    "eyeGap": null,
+    "shadowHeight": 0.0,
+    "blush": null
+  },
+  {
+    "review": "-",
+    "videoId": "pNgxrvlyGXs",
+    "title": "자연스러운 앞트임 메이크업",
+    "pair": "final",
+    "source": null,
+    "before": 56.06,
+    "after": 554.55,
+    "occlusion": 0.0276,
+    "eyesDiffer": false,
+    "usable": false,
+    "eyeliner": null,
+    "nearestChip": null,
+    "eyeGap": null,
+    "shadowHeight": null,
+    "blush": null
+  },
+  {
+    "review": "ok (assistant)",
+    "videoId": "qva4jpp0tYs",
+    "title": "도우인 눈확장 메이크업",
+    "pair": "eyeliner",
+    "source": "captions",
+    "before": 288.0,
+    "after": 568.0,
+    "occlusion": 0.0126,
+    "eyesDiffer": false,
+    "usable": true,
+    "eyeliner": {
+      "length": 0.377,
+      "angle": 21.05,
+      "thickness": 0.005,
+      "linerSoftness": 0.24,
+      "linerLower": true
+    },
+    "nearestChip": "gyaru",
+    "eyeGap": {
+      "length": 0.0,
+      "angle": 5.1,
+      "thickness": 0.01
+    },
+    "shadowHeight": 0.0,
+    "blush": null
+  },
+  {
+    "review": "-",
+    "videoId": "qva4jpp0tYs",
+    "title": "도우인 눈확장 메이크업",
+    "pair": "blush",
+    "source": "captions",
+    "before": 190.0,
+    "after": 261.0,
+    "occlusion": 0.0179,
+    "eyesDiffer": false,
+    "usable": false,
+    "eyeliner": {
+      "length": 0.0,
+      "angle": 0.0,
+      "thickness": 0.0,
+      "linerSoftness": 0.67,
+      "linerLower": false
+    },
+    "nearestChip": "natural",
+    "eyeGap": null,
+    "shadowHeight": 0.0,
+    "blush": {
+      "blushPlacement": "apple",
+      "blushSize": 0.9,
+      "blushSoftness": 0.97
+    }
+  },
+  {
+    "review": "-",
+    "videoId": "qva4jpp0tYs",
+    "title": "도우인 눈확장 메이크업",
+    "pair": "final",
+    "source": null,
+    "before": 261.0,
+    "after": 632.0,
+    "occlusion": 0.0249,
+    "eyesDiffer": false,
+    "usable": false,
+    "eyeliner": {
+      "length": 0.411,
+      "angle": 17.8,
+      "thickness": 0.155,
+      "linerSoftness": 0.25,
+      "linerLower": true
+    },
+    "nearestChip": "gyaru",
+    "eyeGap": {
+      "length": 0.023,
+      "angle": 2.8,
+      "thickness": 0.09
+    },
+    "shadowHeight": 0.22,
+    "blush": {
+      "blushPlacement": "apple",
+      "blushSize": 0.4,
+      "blushSoftness": 1.0
+    }
+  },
+  {
+    "review": "-",
+    "videoId": "TzwB0xglsAo",
+    "title": "사방트임 눈확장 메이크업",
+    "pair": "eyeliner",
+    "source": "chapters",
+    "before": 215.0,
+    "after": 304.0,
+    "occlusion": 0.0242,
+    "eyesDiffer": false,
+    "usable": false,
+    "eyeliner": {
+      "length": 0.039,
+      "angle": -14.3,
+      "thickness": 0.0,
+      "linerSoftness": 0.61,
+      "linerLower": false
+    },
+    "nearestChip": "natural",
+    "eyeGap": {
+      "length": 0.078,
+      "angle": 28.6,
+      "thickness": 0.0
+    },
+    "shadowHeight": 0.04,
+    "blush": {
+      "blushPlacement": "side",
+      "blushSize": 0.7,
+      "blushSoftness": 0.92
+    }
+  },
+  {
+    "review": "-",
+    "videoId": "TzwB0xglsAo",
+    "title": "사방트임 눈확장 메이크업",
+    "pair": "blush",
+    "source": "rise",
+    "before": 16.0,
+    "after": 45.0,
+    "occlusion": 0.013,
+    "eyesDiffer": false,
+    "usable": false,
+    "eyeliner": null,
+    "nearestChip": null,
+    "eyeGap": null,
+    "shadowHeight": null,
+    "blush": null
+  },
+  {
+    "review": "bad (assistant)",
+    "videoId": "TzwB0xglsAo",
+    "title": "사방트임 눈확장 메이크업",
+    "pair": "final",
+    "source": null,
+    "before": 77.0,
+    "after": 697.0,
+    "occlusion": 0.0146,
+    "eyesDiffer": false,
+    "usable": true,
+    "eyeliner": {
+      "length": 0.223,
+      "angle": 33.0,
+      "thickness": 0.0,
+      "linerSoftness": 0.38,
+      "linerLower": false
+    },
+    "nearestChip": "cat_wing",
+    "eyeGap": null,
+    "shadowHeight": 0.0,
+    "blush": {
+      "blushPlacement": "under_eye",
+      "blushSize": 0.53,
+      "blushSoftness": 0.98
+    }
+  }
+]
