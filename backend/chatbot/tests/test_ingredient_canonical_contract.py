@@ -225,7 +225,6 @@ async def test_conflicting_same_utterance_conditions_are_not_silently_replaced()
     assert exc.value.code == "conflicting_ingredient_conditions"
 
 
-
 @pytest.mark.anyio
 async def test_fragrance_and_ingredient_constraints_exclude_known_mismatches():
     # Fragrance-free is still UNKNOWN; a proven ingredient failure must not
