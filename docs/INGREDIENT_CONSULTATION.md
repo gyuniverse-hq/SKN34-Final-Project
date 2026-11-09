@@ -6,11 +6,17 @@ explicitly unknown. No database migration or shared-data update is part of this 
 
 ## Evidence contract
 
-- MFDS `synonym_raw` uses `^` as a delimiter. Commas within chemical names
-  (e.g., `1,2-헥산다이올`) must remain intact. The separate
-  `scripts/data/ingredients/match_oy_mfds.py` importer still uses the older
-  comma split and needs a data-team review before new mappings are computed.
-  This restoration changes no existing DB mappings or review status.
+- The current MFDS table mixes `^` and legacy comma-separated synonyms.
+  Both read-only API and `scripts/data/ingredients/match_oy_mfds.py` now
+  parse these formats consistently, without splitting chemical locants such
+  as `1,2-헥산디올` or `N,N-`. This is a conservative compatibility rule,
+  not blanket authority to treat arbitrary commas as separators.
+  The importer remains preview-only unless the data owner approves `--apply`.
+  This PR does not write to shared DB mappings or change review states.
+- A read-only audit of the existing shared DB found 528 `official_synonym`
+  links: 527 pass the mixed-delimiter check, while OY ID 2974 (`2-헥산디올`)
+  linked to MFDS ID 4840 (`1,2-헥산디올`) remains invalid. Preserve that
+  mapping as unresolved until reviewed. Rerun the audit for fresh DB snapshots.
 
 - Product/shade → raw option mapping still requires a reproduced generator run,
   matching catalog and source versions, reviewed evidence, and original provenance.
@@ -23,8 +29,8 @@ explicitly unknown. No database migration or shared-data update is part of this 
   Automatic links are rechecked against the current official name/synonym and
   conservative trailing-amount rule. Manual links lack a reviewed dictionary hash
   in the current DB schema and remain unresolved until that versioned review exists.
-- Queries resolve against current official Korean/English names, official caret-
-  separated synonyms, or confirmed Olive Young aliases. Multiple distinct candidate
+- Queries resolve against current official Korean/English names, validated mixed-
+  delimiter official synonyms, or confirmed Olive Young aliases. Multiple distinct candidate
   IDs remain unresolved. Each condition returns its optional `queryIdentity`.
 - Literal reviewed presence remains supported. Canonical presence additionally
   requires the same ID and dictionary source hash. Absence requires a reviewed,
@@ -51,6 +57,7 @@ independent evaluation. Mock plans verify execution; they do not prove LLM extra
 | Product/option change | Check the second product / switch to another shade | Re-fetch selected evidence; no stale option verdict |
 | No shade | Check ingredients of this colorless serum | Null shade accepted only when catalog has no shades and artifact provides reviewed option |
 | Compound follow-up | Add Z / now exclude X / remove ingredient constraints | Merge, replace same named constraint, explicit clear, six-condition limit |
+| Ingredient + fragrance | Find X-containing fragrance-free products | Exclude verified X-mismatches, retain X-unknown separately; fragrance stays unverified |
 | Missing mapping | Raw row exists but option artifact is candidate | UNKNOWN; do not promote candidate or expose unreviewed rows as facts |
 | Partial identity/list | One unresolved ingredient, missing sequence or partial coverage | Presence may be established; absence remains UNKNOWN |
 | Identity conflict | Ambiguous alias, retired standard, mismatched source hash | UNKNOWN or rejected malformed contract; no chemical-family inference |
