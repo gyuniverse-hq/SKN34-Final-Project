@@ -13,7 +13,12 @@
 파생 테이블이므로 --apply 는 전체를 다시 계산한다(기존 행 삭제 후 삽입).
 미리보기가 기본. backend/api 에서 uv run python 으로 실행.
 """
-import argparse, asyncio, getpass, os, ssl
+
+import argparse
+import asyncio
+import getpass
+import os
+import ssl
 from collections import defaultdict
 
 import asyncpg
@@ -29,9 +34,12 @@ GROUP BY oi.option_id
 HAVING COUNT(DISTINCT l.ingredient_code) = $2
 """
 
-COUNT_SQL = """
+COUNT_SQL = (
+    """
 WITH matched AS (
-""" + MATCH_SQL + """
+"""
+    + MATCH_SQL
+    + """
 )
 SELECT COUNT(*) AS options,
        COUNT(DISTINCT po.goods_no) AS products,
@@ -40,6 +48,7 @@ FROM matched m
 JOIN public.raw_oy_product_option po ON po.option_id = m.option_id
 LEFT JOIN public.raw_oy_product pr ON pr.goods_no = po.goods_no
 """
+)
 
 
 async def connect(a):
@@ -53,8 +62,9 @@ async def connect(a):
         pw = getpass.getpass("Shared PostgreSQL password: ")
     else:
         pw = os.environ.get("POSTGRES_PASSWORD") or getpass.getpass("Local PostgreSQL password: ")
-    return await asyncpg.connect(host=a.host, port=a.port, database=a.database,
-                                user=a.user, password=pw, ssl=sslc)
+    return await asyncpg.connect(
+        host=a.host, port=a.port, database=a.database, user=a.user, password=pw, ssl=sslc
+    )
 
 
 async def main() -> None:
@@ -72,8 +82,7 @@ async def main() -> None:
     conn = await connect(a)
     try:
         mappings = await conn.fetch(
-            "SELECT mapping_id, mapping_type, target_concern, mapping_status, "
-            "re_review_required, runtime_enabled "
+            "SELECT mapping_id, mapping_type, target_concern, applicability_scope, runtime_enabled "
             "FROM public.rec_mapping ORDER BY mapping_id"
         )
         if not mappings:
@@ -105,7 +114,7 @@ async def main() -> None:
         print(f"\n매핑 {len(mappings)}건 중 계산 가능 {len(computable)}건, 건너뜀 {len(skipped)}건")
 
         print("\n== 계산 가능 ==")
-        header = f"  {'매핑':<6}{'유형':<12}{'고민':<14}{'성분':<3}{'옵션':>8}{'상품':>8}{'카탈로그':>9}  등급"
+        header = f"  {'매핑':<14}{'유형':<12}{'고민':<14}{'적용범위':<20}{'성분':<3}{'옵션':>8}{'상품':>8}{'카탈로그':>9}  운영"
         print(header)
         total_rows = 0
         results = []
@@ -113,17 +122,19 @@ async def main() -> None:
             row = await conn.fetchrow(COUNT_SQL, codes, len(codes))
             total_rows += row["options"]
             results.append((m, codes, row))
-            flags = m["mapping_status"]
-            if m["re_review_required"]:
-                flags += " /재검수"
-            print(f"  {m['mapping_id']:<6}{m['mapping_type']:<12}{m['target_concern']:<14}"
-                  f"{len(codes):<3}{row['options']:>8,}{row['products']:>8,}"
-                  f"{row['catalog_products']:>9,}  {flags}")
+            print(
+                f"  {m['mapping_id']:<14}{m['mapping_type']:<12}{m['target_concern']:<14}"
+                f"{m['applicability_scope']:<20}{len(codes):<3}{row['options']:>8,}"
+                f"{row['products']:>8,}{row['catalog_products']:>9,}  "
+                f"{'enabled' if m['runtime_enabled'] else 'disabled'}"
+            )
 
         if skipped:
             print("\n== 건너뜀 ==")
             for m, reason in skipped:
-                print(f"  {m['mapping_id']:<6}{m['mapping_type']:<12}{m['target_concern']:<14}{reason}")
+                print(
+                    f"  {m['mapping_id']:<6}{m['mapping_type']:<12}{m['target_concern']:<14}{reason}"
+                )
 
         print(f"\n기록할 행 수 합계: {total_rows:,}")
         if not a.apply:
@@ -139,7 +150,9 @@ async def main() -> None:
                     "INSERT INTO public.rec_concern_match (mapping_id, option_id) "
                     "SELECT $3, option_id FROM (" + MATCH_SQL + ") s "
                     "ON CONFLICT (mapping_id, option_id) DO NOTHING",
-                    codes, len(codes), m["mapping_id"],
+                    codes,
+                    len(codes),
+                    m["mapping_id"],
                 )
         total = await conn.fetchval("SELECT COUNT(*) FROM public.rec_concern_match")
         print(f"기록 완료. rec_concern_match 총 {total:,}행")

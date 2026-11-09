@@ -7,14 +7,10 @@ from datetime import UTC, datetime
 import asyncpg
 
 from app.core.config import get_settings
-from app.repositories.skincare_build_repository import SEED, build_snapshot
+from app.repositories.skincare_build_repository import build_snapshot
 from app.schemas.skincare import SkincareSnapshot
 
 LOCK_ID = 7_284_732
-
-MATCH_SQL = (SEED / "match.sql").read_text(encoding="utf-8")
-LINK_SQL = (SEED / "link.sql").read_text(encoding="utf-8").replace(":policy", "$1")
-
 
 async def read_preview(raw_manifest: bytes):
     url = get_settings().database_url.replace("postgresql+asyncpg://", "postgresql://")

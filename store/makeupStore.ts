@@ -6,15 +6,16 @@ export interface ZoneSelection {
   shadeId: string;
 }
 
-export interface ArProposal {
+type ArProposalBase = {
   commandId: string;
   expectedStateVersion: number;
-  action: 'set_intensity';
-  zone: 'lip';
-  value: number;
   productId: string;
   shadeId: string;
-}
+};
+
+export type ArProposal =
+  | (ArProposalBase & { action: 'set_intensity'; zone: 'lip'; value: number })
+  | (ArProposalBase & { action: 'set_geometry'; zone: MakeupZone; style: string; geometry: ZoneGeometry });
 
 export type ArOutcome = {
   status: 'APPLIED' | 'NO_CHANGE' | 'REJECTED' | 'FAILED' | 'UNKNOWN';
@@ -52,7 +53,7 @@ interface FitOrigin {
 /** Every zone a look can name. Look recipes, look cards, and look guides still keep mascara. */
 export const MAKEUP_ZONES: MakeupZone[] = ['lip', 'blush', 'eyeshadow', 'eyeliner', 'mascara', 'highlighter', 'contour', 'brow', 'foundation'];
 
-/** Zones the AR camera paints and the AR panel can pick. Mascara stays look-only. */
+/** Zones the AR panel can pick. Mascara is look/video only (no explore chip). */
 export const AR_PAINT_ZONES: MakeupZone[] = [
   'lip',
   'blush',
@@ -64,13 +65,39 @@ export const AR_PAINT_ZONES: MakeupZone[] = [
   'foundation',
 ];
 
+/** Camera paint for celebrity/style looks: AR chips plus mascara. */
+export const LOOK_PAINT_ZONES: MakeupZone[] = [...AR_PAINT_ZONES, 'mascara'];
+
 export function isArPaintZone(zone: MakeupZone): boolean {
   return AR_PAINT_ZONES.includes(zone);
 }
 
-/** Face paint for the camera: mascara is stored on the look, never drawn. */
+export function isLookPaintZone(zone: MakeupZone): boolean {
+  return LOOK_PAINT_ZONES.includes(zone);
+}
+
+const GEOMETRY_KEYS = new Set<string>([
+  'length', 'angle', 'thickness', 'linerStyle', 'linerSoftness', 'linerLower', 'linerLowerThickness',
+  'upperLine', 'underline', 'underlineThickness', 'underlineAlpha', 'underlineStart', 'underlineLength',
+  'underlineJoin', 'lower', 'overlip', 'peakOverdraw', 'centerHighlight', 'areas', 'hlStyle',
+  'contourStyle', 'pearl', 'sparkle', 'glitter', 'shadowFinish', 'blushPlacement', 'blushSize',
+  'blushSoftness', 'intensity',
+]);
+
+function geometrySnapshot(geometry: ZoneGeometry | undefined): string {
+  const keys = Object.keys(geometry ?? {}).sort();
+  return JSON.stringify(geometry ?? {}, keys);
+}
+
+function isCommandGeometry(value: unknown): value is ZoneGeometry {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || 'innerPoint' in value) return false;
+  const keys = Object.keys(value);
+  return keys.length > 0 && keys.every((key) => GEOMETRY_KEYS.has(key));
+}
+
+/** Face paint for the camera. Mascara is included when a look or video set it. */
 export function arPaintMakeup(makeup: MakeupState): MakeupState {
-  return { ...makeup, mascara: null };
+  return makeup;
 }
 
 export const DEFAULT_INTENSITY: Record<MakeupZone, number> = {
@@ -80,7 +107,7 @@ export const DEFAULT_INTENSITY: Record<MakeupZone, number> = {
   eyeliner: 0.85,
   mascara: 0.7,
   highlighter: 0.5,
-  contour: 0.4,
+  contour: 0.55,
   brow: 0.7,
   foundation: 0.45,
 };
@@ -127,6 +154,8 @@ interface MakeupStore {
   /** Paint only this product shade; snapshot the current face to restore when the AR tab is left. */
   startFit: (product: Product, shade: Shade) => void;
   endFit: () => void;
+  /** Look-only mascara: drop it when leaving the look camera. */
+  clearLookMascara: () => void;
   reset: () => void;
 }
 
@@ -211,14 +240,19 @@ export const useMakeupStore = create<MakeupStore>((rawSet) => {
     };
     rawSet((state) => {
       outcome = { status: 'REJECTED', actualStateVersion: state.arVersion };
-      const selected = state.selections.lip;
+      const zone = proposal?.zone;
+      const selected = zone ? state.selections[zone] : undefined;
+      const painted = zone ? state.makeup[zone] : undefined;
+      const intensityOk = proposal?.action === 'set_intensity' && proposal.zone === 'lip' &&
+        Number.isFinite(proposal.value) && proposal.value >= 0 && proposal.value <= 1;
+      const geometryOk = proposal?.action === 'set_geometry' && isLookPaintZone(proposal.zone) &&
+        typeof proposal.style === 'string' && proposal.style && isCommandGeometry(proposal.geometry);
       if (typeof requestId !== 'string' || !requestId || typeof sessionId !== 'string' || !sessionId ||
           !proposal || typeof proposal !== 'object' || typeof proposal.commandId !== 'string' || !proposal.commandId ||
           state.processedArRequests[requestId] || state.processedArCommands[proposal.commandId] ||
-          state.pendingArCommand || state.arSessionId !== sessionId || state.fit || !state.makeup.lip ||
+          state.pendingArCommand || state.arSessionId !== sessionId || state.fit || !painted ||
           !Number.isSafeInteger(proposal.expectedStateVersion) || proposal.expectedStateVersion !== state.arVersion ||
-          state.arVersion >= Number.MAX_SAFE_INTEGER || proposal.action !== 'set_intensity' ||
-          proposal.zone !== 'lip' || !Number.isFinite(proposal.value) || proposal.value < 0 || proposal.value > 1 ||
+          state.arVersion >= Number.MAX_SAFE_INTEGER || (!intensityOk && !geometryOk) ||
           !selected || selected.productId !== proposal.productId || selected.shadeId !== proposal.shadeId) return state;
       outcome = { status: 'PENDING', actualStateVersion: state.arVersion };
       return {
@@ -241,18 +275,32 @@ export const useMakeupStore = create<MakeupStore>((rawSet) => {
         return { pendingArCommand: null };
       }
       const proposal = pending.proposal;
-      const lip = state.makeup.lip;
-      const selected = state.selections.lip;
-      if (state.arSessionId !== sessionId || state.fit || !lip || !selected ||
+      const painted = state.makeup[proposal.zone];
+      const selected = state.selections[proposal.zone];
+      if (state.arSessionId !== sessionId || state.fit || !painted || !selected ||
           state.arVersion !== proposal.expectedStateVersion || selected.productId !== proposal.productId ||
           selected.shadeId !== proposal.shadeId) return { pendingArCommand: null };
-      if (lip.intensity === proposal.value) {
+      if (proposal.action === 'set_intensity') {
+        if (painted.intensity === proposal.value) {
+          outcome = { status: 'NO_CHANGE', actualStateVersion: state.arVersion };
+          return { pendingArCommand: null };
+        }
+        const arVersion = state.arVersion + 1;
+        outcome = { status: 'APPLIED', actualStateVersion: arVersion };
+        return { makeup: { ...state.makeup, lip: { ...painted, intensity: proposal.value } }, arVersion, pendingArCommand: null };
+      }
+      const nextGeometry = { ...painted.geometry, ...proposal.geometry };
+      if (geometrySnapshot(painted.geometry) === geometrySnapshot(nextGeometry)) {
         outcome = { status: 'NO_CHANGE', actualStateVersion: state.arVersion };
         return { pendingArCommand: null };
       }
       const arVersion = state.arVersion + 1;
       outcome = { status: 'APPLIED', actualStateVersion: arVersion };
-      return { makeup: { ...state.makeup, lip: { ...lip, intensity: proposal.value } }, arVersion, pendingArCommand: null };
+      return {
+        makeup: { ...state.makeup, [proposal.zone]: { ...painted, geometry: nextGeometry } },
+        arVersion,
+        pendingArCommand: null,
+      };
     });
     return outcome;
   },
@@ -415,6 +463,15 @@ export const useMakeupStore = create<MakeupStore>((rawSet) => {
         modified: origin.modified,
         lookOrigin: origin.lookOrigin,
       };
+    }),
+
+  clearLookMascara: () =>
+    set((s) => {
+      if (s.fit || !s.makeup.mascara) return s;
+      const selections = { ...s.selections };
+      delete selections.mascara;
+      const makeup = { ...s.makeup, mascara: null };
+      return { makeup, selections, modified: modifiedZones(makeup, selections, s.lookOrigin) };
     }),
 
   reset: () =>

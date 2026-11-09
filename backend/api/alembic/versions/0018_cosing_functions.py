@@ -5,13 +5,26 @@ from sqlalchemy.dialects import postgresql
 
 from alembic import op
 
-revision = "0019"
-down_revision = "0018"
+revision = "0018"
+down_revision = "0017"
 branch_labels = None
 depends_on = None
 
 
 def upgrade():
+    # Add missing shared concern codes without replacing existing research data.
+    op.execute(sa.text("""
+        INSERT INTO rec_concern (target_concern, display_label, recommendation_reason)
+        VALUES
+        ('dryness', '보습', 'CosIng 기능과 사용자 정의 보습 분류를 참고한 정보입니다.'),
+        ('oiliness', '유분·피지', 'CosIng 기능과 사용자 정의 유분 분류를 참고한 정보입니다.'),
+        ('sensitivity', '진정', 'CosIng 기능과 사용자 정의 진정 분류를 참고한 정보입니다.'),
+        ('pigmentation', '톤·잡티', 'CosIng 기능과 사용자 정의 톤·잡티 분류를 참고한 정보입니다.'),
+        ('wrinkles', '주름', 'CosIng 기능과 사용자 정의 주름 분류를 참고한 정보입니다.'),
+        ('pores', '모공', 'CosIng 기능과 사용자 정의 모공 분류를 참고한 정보입니다.'),
+        ('blemish', '트러블', 'CosIng 기능과 사용자 정의 트러블 분류를 참고한 정보입니다.')
+        ON CONFLICT (target_concern) DO NOTHING
+    """))
     op.create_table(
         "cosing_function",
         sa.Column("function_id", sa.BigInteger(), sa.Identity(), primary_key=True),
@@ -81,6 +94,7 @@ def upgrade():
 
 
 def downgrade():
+    # Shared codes can be referenced by research data; preserve them on downgrade.
     op.drop_table("function_concern")
     op.drop_table("ingredient_function")
     op.drop_table("cosing_ingredient_lookup")

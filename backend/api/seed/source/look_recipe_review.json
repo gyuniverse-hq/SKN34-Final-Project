@@ -1,0 +1,2018 @@
+[
+  {
+    "video_id": "Atr1JHUDBIg",
+    "look_id": null,
+    "recipe": {
+      "video_id": "Atr1JHUDBIg",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "blush",
+          "start_seconds": 40,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "contour",
+          "start_seconds": 111,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "brow",
+          "start_seconds": 131,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "eyeshadow",
+          "start_seconds": 235,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "eyeliner",
+          "start_seconds": 288,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 6,
+          "zone": "mascara",
+          "start_seconds": 431,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 7,
+          "zone": "lip",
+          "start_seconds": 534,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 8,
+          "zone": "foundation",
+          "start_seconds": 554,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 9,
+          "zone": "highlighter",
+          "start_seconds": 658,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "_s8cClPa93c",
+    "look_id": null,
+    "recipe": {
+      "video_id": "_s8cClPa93c",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "lip",
+          "start_seconds": 90,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "foundation",
+          "start_seconds": 108,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "contour",
+          "start_seconds": 235,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "brow",
+          "start_seconds": 320,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "eyeliner",
+          "start_seconds": 624,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 6,
+          "zone": "mascara",
+          "start_seconds": 707,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "ryKCE_4DkS0",
+    "look_id": null,
+    "recipe": {
+      "video_id": "ryKCE_4DkS0",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "brow",
+          "start_seconds": 42,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "eyeshadow",
+          "start_seconds": 185,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "eyeliner",
+          "start_seconds": 247,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "mascara",
+          "start_seconds": 353,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "lip",
+          "start_seconds": 579,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 6,
+          "zone": "blush",
+          "start_seconds": 693,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 7,
+          "zone": "highlighter",
+          "start_seconds": 748,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "T7ZHzzD7Aog",
+    "look_id": null,
+    "recipe": {
+      "video_id": "T7ZHzzD7Aog",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "foundation",
+          "start_seconds": 353,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "brow",
+          "start_seconds": 449,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "contour",
+          "start_seconds": 449,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "eyeshadow",
+          "start_seconds": 759,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "blush",
+          "start_seconds": 1199,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 6,
+          "zone": "lip",
+          "start_seconds": 1244,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "B6oaZDmG1yM",
+    "look_id": null,
+    "recipe": {
+      "video_id": "B6oaZDmG1yM",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "foundation",
+          "start_seconds": 428,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "contour",
+          "start_seconds": 428,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "brow",
+          "start_seconds": 582,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "eyeshadow",
+          "start_seconds": 618,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "mascara",
+          "start_seconds": 742,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 6,
+          "zone": "lip",
+          "start_seconds": 815,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "sVOYhmBymX0",
+    "look_id": null,
+    "recipe": {
+      "video_id": "sVOYhmBymX0",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "foundation",
+          "start_seconds": 124,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "blush",
+          "start_seconds": 172,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "contour",
+          "start_seconds": 259,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "brow",
+          "start_seconds": 308,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "eyeliner",
+          "start_seconds": 548,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 6,
+          "zone": "mascara",
+          "start_seconds": 663,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 7,
+          "zone": "eyeshadow",
+          "start_seconds": 696,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 8,
+          "zone": "lip",
+          "start_seconds": 726,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 9,
+          "zone": "highlighter",
+          "start_seconds": 847,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "CsF8xvTZ35g",
+    "look_id": null,
+    "recipe": {
+      "video_id": "CsF8xvTZ35g",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "brow",
+          "start_seconds": 226,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "contour",
+          "start_seconds": 312,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "eyeliner",
+          "start_seconds": 503,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "mascara",
+          "start_seconds": 503,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "highlighter",
+          "start_seconds": 928,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 6,
+          "zone": "lip",
+          "start_seconds": 1029,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "fJldVozYU-w",
+    "look_id": null,
+    "recipe": {
+      "video_id": "fJldVozYU-w",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "brow",
+          "start_seconds": 94,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "contour",
+          "start_seconds": 178,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "eyeliner",
+          "start_seconds": 306,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "blush",
+          "start_seconds": 572,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "lip",
+          "start_seconds": 629,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "vqKNtwb_zmA",
+    "look_id": null,
+    "recipe": {
+      "video_id": "vqKNtwb_zmA",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "foundation",
+          "start_seconds": 103,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "brow",
+          "start_seconds": 273,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "contour",
+          "start_seconds": 328,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "eyeshadow",
+          "start_seconds": 598,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "mascara",
+          "start_seconds": 941,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 6,
+          "zone": "blush",
+          "start_seconds": 1102,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 7,
+          "zone": "lip",
+          "start_seconds": 1527,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "fr75EBX0vXY",
+    "look_id": null,
+    "recipe": {
+      "video_id": "fr75EBX0vXY",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "foundation",
+          "start_seconds": 316,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "contour",
+          "start_seconds": 616,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "brow",
+          "start_seconds": 907,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "blush",
+          "start_seconds": 1034,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "lip",
+          "start_seconds": 1382,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "bp_icRsBlAM",
+    "look_id": null,
+    "recipe": {
+      "video_id": "bp_icRsBlAM",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "foundation",
+          "start_seconds": 69,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "brow",
+          "start_seconds": 404,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "eyeshadow",
+          "start_seconds": 467,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "lip",
+          "start_seconds": 801,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "blush",
+          "start_seconds": 843,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "mXUMB45414A",
+    "look_id": null,
+    "recipe": {
+      "video_id": "mXUMB45414A",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "contour",
+          "start_seconds": 361,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "blush",
+          "start_seconds": 1181,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "brow",
+          "start_seconds": 1379,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "eyeshadow",
+          "start_seconds": 1446,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "mascara",
+          "start_seconds": 1966,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 6,
+          "zone": "lip",
+          "start_seconds": 2089,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 7,
+          "zone": "highlighter",
+          "start_seconds": 2168,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "ZBTdg6qb1YA",
+    "look_id": null,
+    "recipe": {
+      "video_id": "ZBTdg6qb1YA",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "foundation",
+          "start_seconds": 138,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "blush",
+          "start_seconds": 138,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "contour",
+          "start_seconds": 186,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "eyeshadow",
+          "start_seconds": 213,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "eyeliner",
+          "start_seconds": 264,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 6,
+          "zone": "mascara",
+          "start_seconds": 355,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 7,
+          "zone": "highlighter",
+          "start_seconds": 509,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 8,
+          "zone": "lip",
+          "start_seconds": 532,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "1qj6SactPVM",
+    "look_id": null,
+    "recipe": {
+      "video_id": "1qj6SactPVM",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "foundation",
+          "start_seconds": 689,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "contour",
+          "start_seconds": 1195,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "blush",
+          "start_seconds": 2028,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "eyeshadow",
+          "start_seconds": 2388,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "eyeliner",
+          "start_seconds": 2847,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 6,
+          "zone": "mascara",
+          "start_seconds": 3494,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 7,
+          "zone": "brow",
+          "start_seconds": 3801,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 8,
+          "zone": "lip",
+          "start_seconds": 4026,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 9,
+          "zone": "highlighter",
+          "start_seconds": 4221,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "AG03mUj4vnY",
+    "look_id": null,
+    "recipe": {
+      "video_id": "AG03mUj4vnY",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "foundation",
+          "start_seconds": 176,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "contour",
+          "start_seconds": 176,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "blush",
+          "start_seconds": 1007,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "eyeshadow",
+          "start_seconds": 1064,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "highlighter",
+          "start_seconds": 1333,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "DiDEgRAin9g",
+    "look_id": null,
+    "recipe": {
+      "video_id": "DiDEgRAin9g",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "brow",
+          "start_seconds": 457,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "blush",
+          "start_seconds": 552,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "contour",
+          "start_seconds": 666,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "highlighter",
+          "start_seconds": 666,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "eyeshadow",
+          "start_seconds": 945,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 6,
+          "zone": "lip",
+          "start_seconds": 1363,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "wVBx7ZbXV0U",
+    "look_id": null,
+    "recipe": {
+      "video_id": "wVBx7ZbXV0U",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "foundation",
+          "start_seconds": 57,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "contour",
+          "start_seconds": 376,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "blush",
+          "start_seconds": 590,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "brow",
+          "start_seconds": 649,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "eyeshadow",
+          "start_seconds": 718,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 6,
+          "zone": "mascara",
+          "start_seconds": 1116,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 7,
+          "zone": "lip",
+          "start_seconds": 1190,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 8,
+          "zone": "highlighter",
+          "start_seconds": 1245,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "mcA6C14VuTU",
+    "look_id": null,
+    "recipe": {
+      "video_id": "mcA6C14VuTU",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "foundation",
+          "start_seconds": 109,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "contour",
+          "start_seconds": 452,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "blush",
+          "start_seconds": 744,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "eyeshadow",
+          "start_seconds": 791,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "eyeliner",
+          "start_seconds": 1005,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 6,
+          "zone": "mascara",
+          "start_seconds": 1086,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 7,
+          "zone": "brow",
+          "start_seconds": 1232,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 8,
+          "zone": "lip",
+          "start_seconds": 1296,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 9,
+          "zone": "highlighter",
+          "start_seconds": 1337,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "eNjGTODEnn0",
+    "look_id": null,
+    "recipe": {
+      "video_id": "eNjGTODEnn0",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "foundation",
+          "start_seconds": 210,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "contour",
+          "start_seconds": 334,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "blush",
+          "start_seconds": 440,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "brow",
+          "start_seconds": 531,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "eyeshadow",
+          "start_seconds": 590,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 6,
+          "zone": "eyeliner",
+          "start_seconds": 631,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 7,
+          "zone": "mascara",
+          "start_seconds": 833,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 8,
+          "zone": "lip",
+          "start_seconds": 894,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 9,
+          "zone": "highlighter",
+          "start_seconds": 972,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "ju33PTn20CA",
+    "look_id": null,
+    "recipe": {
+      "video_id": "ju33PTn20CA",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "foundation",
+          "start_seconds": 225,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "contour",
+          "start_seconds": 584,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "eyeshadow",
+          "start_seconds": 751,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "mascara",
+          "start_seconds": 1081,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "eyeliner",
+          "start_seconds": 1141,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 6,
+          "zone": "brow",
+          "start_seconds": 1208,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 7,
+          "zone": "blush",
+          "start_seconds": 1259,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 8,
+          "zone": "lip",
+          "start_seconds": 1335,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 9,
+          "zone": "highlighter",
+          "start_seconds": 1497,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "i4SZIHG76RI",
+    "look_id": null,
+    "recipe": {
+      "video_id": "i4SZIHG76RI",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "foundation",
+          "start_seconds": 72,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "highlighter",
+          "start_seconds": 118,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "contour",
+          "start_seconds": 166,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "brow",
+          "start_seconds": 272,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "blush",
+          "start_seconds": 284,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 6,
+          "zone": "eyeshadow",
+          "start_seconds": 323,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 7,
+          "zone": "eyeliner",
+          "start_seconds": 469,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 8,
+          "zone": "mascara",
+          "start_seconds": 469,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 9,
+          "zone": "lip",
+          "start_seconds": 532,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "4QR0tre9yBI",
+    "look_id": null,
+    "recipe": {
+      "video_id": "4QR0tre9yBI",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "foundation",
+          "start_seconds": 339,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "eyeshadow",
+          "start_seconds": 604,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "blush",
+          "start_seconds": 753,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "eyeliner",
+          "start_seconds": 1004,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "mascara",
+          "start_seconds": 1098,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 6,
+          "zone": "brow",
+          "start_seconds": 1151,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 7,
+          "zone": "lip",
+          "start_seconds": 1223,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 8,
+          "zone": "highlighter",
+          "start_seconds": 1299,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "duuYlEDy0qU",
+    "look_id": null,
+    "recipe": {
+      "video_id": "duuYlEDy0qU",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "foundation",
+          "start_seconds": 83,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 2,
+          "zone": "contour",
+          "start_seconds": 247,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 3,
+          "zone": "blush",
+          "start_seconds": 368,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 4,
+          "zone": "eyeshadow",
+          "start_seconds": 476,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 5,
+          "zone": "eyeliner",
+          "start_seconds": 743,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 6,
+          "zone": "brow",
+          "start_seconds": 826,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 7,
+          "zone": "mascara",
+          "start_seconds": 826,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 8,
+          "zone": "lip",
+          "start_seconds": 908,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        },
+        {
+          "order": 9,
+          "zone": "highlighter",
+          "start_seconds": 993,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  },
+  {
+    "video_id": "TzwB0xglsAo",
+    "look_id": null,
+    "recipe": {
+      "video_id": "TzwB0xglsAo",
+      "model": "description-rules",
+      "runs": 1,
+      "steps": [
+        {
+          "order": 1,
+          "zone": "eyeliner",
+          "start_seconds": 242,
+          "style": null,
+          "intensity": null,
+          "product_family": null,
+          "votes": 1,
+          "runs": 1
+        }
+      ],
+      "review_status": "unreviewed"
+    },
+    "approved": false,
+    "reviewer": null
+  }
+]

@@ -36,6 +36,7 @@ import { ProductImage } from '@/components/ui/ProductImage';
 import { DEMO_TAG } from '@/constants/demo';
 import { TAB_BAR_STYLE, theme } from '@/constants/theme';
 import { HIGHLIGHTER_AREAS, toggleHighlighterArea } from '@/lib/arFacePalette';
+import { HIGHLIGHTER_STYLE_IDS, type FaceFitHint, type FaceFitStatus, type FaceShape } from '@/lib/faceFit';
 import { COLOR_FAMILIES, colorFamily, type ColorFamily } from '@/lib/colorFamily';
 import { arChatRoute } from '@/lib/arChatRoute';
 import { adjustMakeupFromChat } from '@/lib/arChatAdjust';
@@ -146,6 +147,18 @@ export default function ArTryOnScreen() {
   const [status, setStatus] = useState<ArStatus>('loading');
   const [lightHint, setLightHint] = useState<LightHint | null>(null);
   const [skinTone, setSkinTone] = useState<SkinTone | null>(null);
+  const [faceFitHints, setFaceFitHints] = useState<FaceFitHint[] | null>(null);
+  const [faceShape, setFaceShape] = useState<FaceShape | null>(null);
+  const [faceFitStatus, setFaceFitStatus] = useState<FaceFitStatus>('default');
+  const onFaceFit = useCallback((hints: FaceFitHint[], shape: FaceShape | null) => {
+    setFaceFitHints(hints);
+    setFaceShape(shape);
+  }, []);
+  const onFaceFitStatus = useCallback((status: FaceFitStatus) => {
+    setFaceFitStatus(status);
+    // A new measurement (someone else in front, or no result yet): the old shape no longer applies.
+    if (status !== 'personalized') setFaceShape(null);
+  }, []);
   const [arKey, setArKey] = useState(0);
   const [swatchOnly, setSwatchOnly] = useState(false);
   const [compare, setCompare] = useState(compareParam);
@@ -183,6 +196,7 @@ export default function ArTryOnScreen() {
     revertZone,
     fit,
     endFit,
+    clearLookMascara,
   } = useMakeupStore();
   const [blushTrackW, setBlushTrackW] = useState(0);
   const blushTrackWRef = useRef(0);
@@ -282,8 +296,9 @@ export default function ArTryOnScreen() {
       setStatus('loading');
       return () => {
         endFit();
+        clearLookMascara();
       };
-    }, [endFit])
+    }, [endFit, clearLookMascara])
   );
 
   useEffect(() => {
@@ -335,6 +350,10 @@ export default function ArTryOnScreen() {
       setIntensity(result.zone, result.intensity);
       setZone(result.zone);
       setChatNote('ar.chatAppliedIntensity');
+    } else if (result.kind === 'geometry') {
+      patchGeometry(result.zone, result.geometry);
+      setZone(result.zone);
+      setChatNote('ar.chatAppliedGeometry');
     } else {
       setChatNote('ar.chatNoMatch');
     }
@@ -577,6 +596,8 @@ export default function ArTryOnScreen() {
           onStatus={setStatus}
           onLightHint={setLightHint}
           onSkinTone={setSkinTone}
+          onFaceFit={onFaceFit}
+          onFaceFitStatus={onFaceFitStatus}
           onCrash={onArCrash}
           recording={recorder.wanted}
           onRecorder={recorder.handleMessage}
@@ -1192,6 +1213,48 @@ export default function ArTryOnScreen() {
                   );
                 })}
               </ScrollView>
+            ) : null}
+            {zone === 'highlighter' && makeup.highlighter ? (
+              <>
+                <ScrollView
+                  horizontal
+                  nestedScrollEnabled
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.hScroll}
+                  contentContainerStyle={styles.filters}>
+                  <Chip
+                    label={t('ar.style.default')}
+                    selected={!makeup.highlighter?.geometry?.hlStyle}
+                    onPress={() => patchGeometry('highlighter', { hlStyle: undefined })}
+                  />
+                  {HIGHLIGHTER_STYLE_IDS.map((id) => (
+                    <Chip
+                      key={id}
+                      label={t(`ar.hlStyle.${id}` as TranslationKey)}
+                      selected={makeup.highlighter?.geometry?.hlStyle === id}
+                      onPress={() => patchGeometry('highlighter', { hlStyle: id })}
+                    />
+                  ))}
+                </ScrollView>
+                {faceFitHints ? (
+                  <Text style={styles.noProducts}>
+                    {faceFitHints.map((hint) => t(`ar.faceFit.${hint}` as TranslationKey)).join(' ')}
+                  </Text>
+                ) : null}
+              </>
+            ) : null}
+            {/* Shading: the colour alone decides; the jawline and the nose bridge are always painted together. */}
+            {zone === 'contour' && makeup.contour ? (
+              <>
+                <Text style={styles.noProducts}>{t('ar.contourPlacement.auto')}</Text>
+                {/* Never waits: the default shading is on the screen while the face shape is analysed. */}
+                <Text style={styles.noProducts}>
+                  {faceFitStatus === 'personalized' && faceShape
+                    ? t('ar.faceShape.result', { name: t(`ar.faceShape.name.${faceShape}` as TranslationKey) }) +
+                      ' · ' + t(`ar.faceShape.rule.${faceShape}` as TranslationKey)
+                    : t(faceFitStatus === 'fallback' ? 'ar.faceShape.fallback' : faceFitStatus === 'analyzing' ? 'ar.faceShape.analyzing' : 'ar.faceShape.default')}
+                </Text>
+              </>
             ) : null}
             {zone === 'eyeliner' ? (
               <ScrollView

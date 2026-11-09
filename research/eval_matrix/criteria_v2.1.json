@@ -1,0 +1,61 @@
+{
+  "version": "v2.1",
+  "date": "2026-11-03",
+  "principle": "Every pass line comes from a published threshold, a published benchmark on the same dataset, or a statistical test with a computed sample size. No team-chosen numbers. Metrics without such a source are reported, not judged.",
+  "status_values": {
+    "pass": "measured, valid, and meets the evidence-based line",
+    "fail": "measured, valid, and does not meet the line",
+    "not_valid": "measured, but this data cannot decide (measurement floor above the line, or too few samples for the test)",
+    "not_measured": "the input for this item was not given",
+    "report_only": "no published pass line exists; the value is reported for tracking only"
+  },
+  "items": {
+    "color": {
+      "metric": "CIEDE2000 between mean Lab of the inner lip, AR render vs real applied photo (hw01_compare.py)",
+      "conditions": [
+        {"id": "color_at", "rule": "median(dE00) <= 1.8", "value": 1.8,
+         "source": "Paravina et al. 2015, J Esthet Restor Dent 27 S1-S9 (doi 10.1111/jerd.12149): 50:50% acceptability threshold dE00 = 1.8; consistent with Lagouvardo et al. 2018, J Prosthodont Res 62(4) 503-508: simulated facial skin on a screen, 90 observers, 50% acceptability dE*ab = 1.81"},
+        {"id": "color_beats_bare", "rule": "AR closer to real than bare in >= 15 of 20 pairs (one-sided sign test p < 0.05)", "alpha": 0.05,
+         "source": "exact binomial sign test"}
+      ],
+      "validity": {"rule": "median skin-ring dE00 between bare and real photo < 1.8, else not_valid",
+                   "why": "skin around the lips is untouched by lipstick; its difference is the photo-to-photo lighting gap that no render can remove"}
+    },
+    "position": {
+      "metric": "dataset-level lip F1 (Dice) = 2*sum(intersection) / (sum(pred)+sum(gt)) over the LaPa test images, upper+lower lip as one region (same aggregation as face-parsing papers)",
+      "conditions": [
+        {"id": "lip_f1_sota", "rule": "dataset F1 >= 0.887 (IoU >= 0.797)", "value": 0.887,
+         "source": "SegFace, AAAI 2025 (arXiv 2412.08647) Table 1(a): best published LaPa F1 U-lip 88.7-88.8, L-lip 90.5 (448/512 px)"},
+        {"id": "lip_no_regression", "rule": "per-image IoU not significantly lower than the previous version (paired Wilcoxon, one-sided p < 0.05 means fail)", "alpha": 0.05,
+         "source": "paired Wilcoxon signed-rank test", "needs": "--lapa-prev"}
+      ],
+      "reference": {"LaPa paper model (BASS, AAAI 2020)": {"u_lip_f1": 0.844, "l_lip_f1": 0.857}},
+      "report_only": ["mean per-image IoU", "boundary error / mouth width", "spill", "miss"],
+      "caveat": "Published models run on a server at 448-512 px and score upper and lower lip separately; VISHUE runs on the phone in real time and scores both lips as one region. The comparison is approximate."
+    },
+    "texture": {
+      "metric": "per pair, AR vs bare against the real photo: dL_spread (lower better), dL_hi (lower better), SSIM (higher better)",
+      "conditions": [
+        {"id": "tex_spread", "rule": "AR better than bare in >= 15/20 (one-sided sign test p < 0.05)", "alpha": 0.05, "metric": "dL_spread"},
+        {"id": "tex_hi", "rule": "same for highlight", "alpha": 0.05, "metric": "dL_hi"},
+        {"id": "tex_ssim", "rule": "same for SSIM", "alpha": 0.05, "metric": "ssim"}
+      ],
+      "pass": "all three significant (no multiple-comparison inflation of a pass)",
+      "source": "exact binomial sign test; SSIM: Wang et al. 2004 IEEE TIP",
+      "caveat": "dL_spread and dL_hi are VISHUE-designed proxies; their link to perceived gloss is only supported by the small survey so far"
+    },
+    "naturalness": {
+      "metric": "blind real-vs-AR test on paired photos, AR:real = 1:1",
+      "design": {"min_pair_judgments": 194,
+                 "why": "smallest effect of interest = Cohen's small effect h = 0.20 (accuracy 60% vs 50%); alpha 0.05 two-sided, power 0.80 -> 194 judgments",
+                 "source": "Cohen 1988 effect-size conventions; ITU-T P.910 (2026) subjective test design"},
+      "conditions": [
+        {"id": "nat_indistinguishable", "rule": "upper bound of the 90% CI of accuracy (rater-cluster bootstrap) < 0.60 (equivalence to chance within h = 0.2)", "value": 0.60,
+         "source": "equivalence (TOST) logic; same real-vs-synthetic design as Nightingale & Farid 2022 PNAS (315 people, 48.2%)"},
+        {"id": "nat_score", "rule": "real-minus-AR naturalness score, Cohen's d upper 90% CI bound < 0.2", "value": 0.2,
+         "source": "ITU-T P.910 hidden-reference comparison; Cohen 1988 small effect d = 0.2"}
+      ],
+      "also_report": ["simple accuracy", "balanced accuracy", "sensitivity", "specificity", "d_prime", "criterion_c", "AR-answer rate", "per-rater accuracy"]
+    }
+  }
+}

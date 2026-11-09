@@ -1,4 +1,4 @@
-"""Import the collected CosIng CSVs into an empty local 0019 schema.
+"""Import the collected CosIng CSVs into empty CosIng tables (develop + 0018).
 
 Set DATABASE_URL to a local PostgreSQL URL. Run with --input-dir pointing to
 the collection directory; add --apply to write. Existing rows are never

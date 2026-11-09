@@ -1,9 +1,9 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.idol_look import MakeupLookRow, YoutubeVideoRow
+from app.models.idol_look import LookArSettingRow, MakeupLookRow, YoutubeVideoRow
 from app.repositories.catalog_repository import CatalogRepository
-from app.schemas.catalog import MakeupState, ZoneSetting
+from app.schemas.catalog import MakeupState, ZoneGeometry, ZoneSetting
 from app.schemas.external import YoutubeVideoMetadata
 from app.schemas.idol_look import IdolLook, IdolLookProduct, IdolVideo
 
@@ -12,7 +12,10 @@ def _look(row: MakeupLookRow) -> IdolLook:
     video = row.video
     settings = {
         setting.makeup_zone: ZoneSetting(
-            hex=setting.hex, intensity=setting.intensity, texture=setting.texture
+            hex=setting.hex,
+            intensity=setting.intensity,
+            texture=setting.texture,
+            geometry=ZoneGeometry.model_validate(setting.geometry) if setting.geometry else None,
         )
         for setting in row.ar_settings
     }
@@ -55,6 +58,12 @@ def _look(row: MakeupLookRow) -> IdolLook:
             lip=settings.get("lip"),
             blush=settings.get("blush"),
             eyeshadow=settings.get("eyeshadow"),
+            eyeliner=settings.get("eyeliner"),
+            mascara=settings.get("mascara"),
+            highlighter=settings.get("highlighter"),
+            contour=settings.get("contour"),
+            brow=settings.get("brow"),
+            foundation=settings.get("foundation"),
         ),
     )
 
@@ -95,3 +104,12 @@ class IdolLookRepository:
         if look:
             look.display_name = row.title
         await self._session.commit()
+
+    async def merge_geometry(self, look_id: str, zone: str, geometry: dict) -> bool:
+        """Merge geometry into a look zone setting; False when the look has none for the zone."""
+        row = await self._session.get(LookArSettingRow, (look_id, zone))
+        if row is None:
+            return False
+        row.geometry = {**(row.geometry or {}), **geometry}
+        await self._session.commit()
+        return True

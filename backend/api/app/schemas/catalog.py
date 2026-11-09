@@ -79,6 +79,15 @@ class LookItem(OmitNoneModel):
 HighlightArea = Literal["forehead", "nose_bridge", "under_eye", "chin"]
 BlushPlacement = Literal["apple", "under_eye", "side"]
 LinerStyle = Literal["classic_winged", "puppy", "tightline"]
+HighlighterStyle = Literal[
+    "natural_cheek",
+    "glass_c_zone",
+    "nose_tip",
+    "under_eye_smile",
+    "cupid_bow",
+    "forehead_center",
+]
+ContourStyle = Literal["jawline", "nose"]
 
 
 class InnerPoint(ApiModel):
@@ -112,6 +121,8 @@ class ZoneGeometry(OmitNoneModel):
     center_highlight: float | None = Field(default=None, ge=0, le=0.3)
     inner_point: InnerPoint | None = None
     areas: list[HighlightArea] | None = None
+    hl_style: HighlighterStyle | None = None
+    contour_style: ContourStyle | None = None
     pearl: float | None = Field(default=None, ge=0, le=0.5)
     sparkle: float | None = Field(default=None, ge=0, le=1)
     glitter: bool | None = None

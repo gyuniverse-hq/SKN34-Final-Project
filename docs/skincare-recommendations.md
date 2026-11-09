@@ -201,12 +201,11 @@ CosIng 조회가 단일 후보로 확인된 `accepted` 성분만 쓰며, 식약�
 `evidenceSources`는 `cosing_function`이다. 기존 연구 기반 매핑과 근거 자료는 DB에 보존하지만 추천과 발행 스냅샷에는 포함하지 않는다. 이는 성분에
 분류된 기능이 있다는 표시이며 제품의 효능이나 사용 결과를 검증한 것은 아니다.
 
-0018은 추천 원천을 8개 테이블로 교체한다. 개편 전 추천 테이블과 `skincare_serving`을
-먼저 백업한다. 데이터가 있는 DB에서는 `alembic -x replace_recommendations=v0.3 upgrade 0018`
-명령을 명시적으로 사용한다. 기존 발행기를 먼저 중지하고 새 API를 배포한다. 되돌릴 때는
-기존 추천 스키마와 데이터를 백업에서 복구하고 버전에 맞는 API로 전환한다.
-
-0019는 CosIng 조회 결과, 기능 태그, 성분–기능과 기능–고민 연결을 위한 테이블을 생성한다.
+develop의 `0015`~`0017` 이력을 유지하고 새 `0018_cosing_functions.py`를 연결한다.
+이 `0018`은 CosIng 조회 결과, 기능 태그, 성분–기능과 기능–고민 연결 테이블 4개를 생성하고
+누락된 고민 코드만 보충한다. 기존 연구 매핑·고민 문구·발행본은 유지하며 연구 데이터 시드는 적재하지 않는다.
+개발 중의 별도 `0019` DB와는 이전 이력부터 다르므로 단순 `stamp`로 전환하지 않는다.
+기존 DB를 보존하고 develop 기준 별도 DB에서 검증·적재하는 절차는 `docs/cosing-data-setup.md`를 따른다.
 마이그레이션을 적용한 로컬 DB에 식약처 성분을 먼저 적재하고, 별도 전달받은
 `cosing_ingredients.csv`와 `cosing_function_tags.csv`를 같은 디렉터리에 둔다.
 `DATABASE_URL`을 로컬 PostgreSQL로 설정한 뒤 `backend/api`에서 실행한다.

@@ -100,7 +100,9 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     // beak corners, and the 256 px UV redness band grew lumps). Drawn each frame from the landmarks.
     lipOutlinePx: 512,          // longest side of the outline crop texture
     lipOutlineSmooth: 0.5,      // Taubin smoothing of the landmark ring (corners and Cupid's bow fixed)
-    innerInset: [0.05, 0.2],    // open mouth: inner line moved into the mouth (share of lip thickness), slightly → wide open
+    // Open mouth: keep the hole at least this far into the mouth so the inner landmark (often on the teeth)
+    // is not the paint edge. Upper bound still matches the measured wet line.
+    innerInset: [0.12, 0.28],
     // Open mouth over the teeth (device 11-04: the inset above and the reflection rule painted the front teeth). Each off
     // = as before. Guard: along the inner line only, pixels that look like teeth or the dark mouth lose the paint.
     lipTeethGuard: true,
@@ -211,24 +213,66 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     // Highlighter and contour (10-25, user request): product color on fixed UV regions only, like
     // blush. Intensity 0 leaves the image untouched; no shape change (AR_SPEC 1-2, 1-3).
     hlFeatherPx: 18,
-    contourFeatherPx: 28,
-    faceEdgeFadePx: 36,         // contour / highlighter fade-out width inside the face outline (UV px)
+    contourFeatherPx: 22,
+    faceEdgeFadePx: 28,         // contour / highlighter fade-out width inside the face outline (UV px)
     hlCoverage: 0.5,
-    contourCoverage: 0.55,
+    contourCoverage: 0.8,
+    // Face-fit placement (11-04, plan step 1). Off: highlighter and shading keep today's fixed UV shape, pixel for pixel.
+    // On: the style template named by geometry.hlStyle / contourStyle is drawn, with length and width nudged by this
+    // person's measured face ratios. Position only; no shape change of the face (AR_SPEC 1-3).
+    faceFit: true,              // identical to off until a style is picked (no hlStyle / contourStyle = default layers)
+    // 11-06 (user: "personalized within 3 s or keep the default"): the shading is drawn from the first tracked frame; this analysis only
+    // refines it. With the shading on, the skin segmenter runs every ~120 ms and the page drops to ~8-15 fps, so the old 24 frontal frames
+    // took 2-5 s or more. The landmarks themselves are averaged (centred and scaled by the face width) and the features are computed
+    // once: averaging per-frame features keeps the noise bias of the angles (offline jitter test, 1 px: 8 averaged landmark frames keep
+    // the noise-free top class 72% vs 63% for 8 and 62% for 24 averaged features).
+    faceFitFrames: 10,          // frontal frames averaged before the measurement is frozen
+    faceFitYaw: [0.85, 1.18],   // nose-to-left-cheek over nose-to-right-cheek distance accepted as frontal
+    faceFitRollDeg: 10,         // head roll accepted as frontal (same gate as the offline fit)
+    faceFitDeadlineMs: 2000,    // from the first measured frame: after this, finish with what there is (at least faceFitMinFrames)
+    faceFitMinFrames: 4,
+    faceFitYawLoose: [0.75, 1.33], // after the deadline with too few frontal frames: wider pose gate (outside the fitted data range)
+    faceFitRollLooseDeg: 15,
+    faceFitGiveUpMs: 3000,      // no result by then: status 'fallback' (the default shading stays), the analysis keeps retrying quietly
+    // Default -> personalized shading: built in slices (jobBudgetMs per frame) and mixed over contourFadeMs on the GPU (stepped repaints
+    // on a device with fewer than 9 texture units).
+    // 11-06 (device: nothing showed): the shading is the default one (jawline + nose) unless these are switched on. Both stay off until
+    // they have been measured on a phone (CPU 4x throttled in the headless check is a floor, not a phone).
+    shadePersonalize: false,    // face-shape analysis, status messages and the default -> personalized transition
+    cheekHollow: false,         // the soft hollow under the cheekbone (never seen on a device yet)
+    jobBudgetMs: 4,
+    contourFadeMs: 450,
+    // Face shape (11-06): standardise + softmax of 8 landmark features, fitted offline on 3816 frontal photos of a Roboflow face-shape set
+    // (research/face_shape/RESULTS.md: test accuracy 0.61, top-2 0.86; labels are subjective). Numbers only, the same as
+    // research/face_shape/model.json (a test compares them). The result is shown as a name, never as a probability.
+    faceShapeModel: {"classes":["round","square","oblong","heart","oval"],"features":["faceLong","cheekWide","foreheadW","jawEarW","chinW","jawAngle","jawCurve","chinAngle"],"mean":[1.20543,1.24502,0.84773,0.95218,0.22551,164.68174,0.25651,160.11759],"std":[0.06576,0.03559,0.03253,0.01554,0.00868,2.01147,0.0168,1.15891],"W":[[-2.1166,1.4686,0.19,1.1422,0.337,-0.8474,-0.2016,-0.3215],[-1.2095,-0.7381,0.6794,0.4241,-0.4102,-0.8209,-0.5715,0.4463],[3.048,-0.7666,-1.0887,-1.1375,0.2199,0.6361,0.1643,0.2482],[0.1487,-0.2028,0.4767,-0.1455,-0.1601,0.8346,0.4826,-0.1809],[0.1294,0.2389,-0.2574,-0.2833,0.0134,0.1976,0.1262,-0.192]],"b":[0.1137,-0.8464,-0.8428,0.6111,0.9644]},
+    // Volume (11-04, plan step 2). Off: flat masks, pixel-identical. On: the shading deepens where the surface turns
+    // away and the highlighter strengthens where it faces the camera / light. Light direction counts only as far as
+    // the estimate is trusted (uLightConf); it over-reads side light, so it is blended in, never relied on.
+    hlContourVolume: false,
+    volumeGain: [0.6, 0.5],     // contour deepening, highlighter strengthening (share of the product's own strength)
+    volumeLight: 0.7,           // how much of the facing term may come from the light direction at full confidence
+    faceFitRefs: { cheekWide: 1.2, faceLong: 1.35 }, // heuristic neutral ratios (not validated on a dataset)
     // Two-tone shadow (10-26 gal look): the second color fades in at the outer corner and along the
     // lower lash line; each eye's masks come from its own lid landmarks.
     shadow2Coverage: 0.8,
     shadow2Feather: 14,
-    powderTint: 0.6,            // blush / contour: share that tints the skin (translucent) instead of covering it
+    powderTint: 0.4,            // blush / contour: share that tints the skin (translucent) instead of covering it
     faceSheen: 0.5,             // finish sheen on blush / shadow / highlighter: peak × skin luminance, by smoothness
     // Eyeliner and mascara: drawn in screen space each frame from the lid landmarks (thin lines
     // must follow the lid exactly; a UV line warps per mesh triangle).
-    eyeCanvasPx: 512,
+    eyeCanvasPx: 768,
+    eyeCanvasScale: 2,          // eye canvas texels per video pixel (11-06: 1 px lash strands were stretched and soft on the phone screen)
     // Lid fit: the liner is placed on the lash line the camera shows, per eye and per frame, as offsets from the
     // MediaPipe lid points in eye widths. No per-person table: every number is a share of that eye's width.
     lidFit: {
-      d0: 0.02,                 // upper line: offset used where the camera shows no edge (the lid points sit on the lid margin)
-      lo: -0.01, hi: 0.05,      // upper offset range
+      // 11-07 /ar-debug (liner and lashes floated above the eye, phone captures): the MediaPipe upper lid points sit on
+      // the eye's top edge (phone HUD and the user's frontal capture: cyan points on the edge), but the fit lifted the line
+      // above them: prior +0.02 when no edge is read, and up to +0.05 when the strongest "dark below, bright above" edge
+      // was a lid fold or the shadow's edge (user capture: d +0.03, skin gap between the line and the eye). The line now
+      // stays on the points unless the camera shows the lash line, and may rise only a little.
+      d0: 0,                    // upper line: offset used where the camera shows no edge (the lid points are on the edge)
+      lo: -0.04, hi: 0.015,     // upper offset range (was -0.01 .. 0.05)
       lowD0: 0.005, lowLo: -0.01, lowHi: 0.03, lowTrust: 0.6, // lower line: same idea, downward, trusted less
       span: 0.06,               // profile read this far each side of a lid point
       samples: 17, tangent: 0.03, // profile samples and the tangent spread averaged per sample
@@ -239,15 +283,27 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       faceZ: 0.35,              // eye normal z below which the read is off (turned head)
       minCutoff: 1.0, beta: 5, dCutoff: 1.0, // One Euro on the offsets (eye-width units)
       staleS: 0.5,              // no read for this long: restart from the first new value
+      holdS: 4,                 // read switched off (head turned, small eye): keep the last measured line this long instead of the prior
       cropPx: 128,              // crop width read per eye
     },
     linerLowerThickness: 0.03,  // lower liner band, share of the eye width (geometry.linerLowerThickness)
     liner: { length: 0.18, angle: 15, thickness: 0.09 }, // defaults: wing length / eye width, degrees, outer thickness / eye width
     linerInnerThin: 0.3,        // inner-corner thickness as a share of the outer thickness
-    lashCount: 32,              // mascara strands per upper lid
-    lashLength: 0.1,            // longest strand, share of the eye width (front view foreshortens lashes)
-    lashWidth: 0.012,           // strand width, share of the eye width
-    lowerLash: 0.4,             // lower lashes: length share of the upper
+    // Mascara lashes (11-07 /ar-debug, user: "a black comb, not a mascara lash"; target = sparse wispy natural mascara
+    // lash). Fewer, thinner strands that taper to nothing and fade toward the tip, a soft C curl, a faint lash line.
+    lashCount: 14,              // mascara strands per upper lid (was 32: the comb)
+    lashLength: 0.12,           // longest strand, share of the eye width (front view foreshortens lashes)
+    lashWidth: 0.009,           // strand ROOT width, share of the eye width; tapers to 0 at the tip (was 0.018 with round caps)
+    lashTipFade: 0.6,           // strand darkness lost from root to tip (root darker, tip lighter)
+    lashClump: 0.06,            // tip pull toward the 3-strand group (was 0.18: strands read as one black patch)
+    lashLineWidth: 0.012,       // lash line at the roots, share of the eye width (was 0.035 at full strength: a thick band)
+    lashLineAlpha: 0.4,
+    lowerLash: 0.3,             // lower lashes: length share of the upper
+    lowerLashAlpha: 0.22,       // lower lashes stay barely there (was 0.5)
+    // Attached lashes: eye-width share per mm. 11-06: 0.0125 made a 10 mm bunch as long as the mascara-lengthened natural
+    // strands (0.125 vs 0.119 eye widths, Karina look), so the bunches vanished among them. 0.018 puts them ~1.5x past.
+    falseLashMm: 0.018,
+    falseLashWidth: 1.2,        // bunch root width, multiple of lashWidth (11-07: 1.7 read as thick spikes)
     shadowFeatherPx: 10,
     blushSize: [0.17, 0.11],    // ellipse radii relative to the UV face width
     appleScale: 0.8,            // the face-point blush (placement / size / softness set) is this much smaller than the baked default
@@ -267,6 +323,12 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     foundEdgeFadePx: 90,          // foundation-only outline fade (UV px, box blur ~ this wide); the contour fade stays at faceEdgeFadePx
     foundEdgeLo: 0.5,             // blurred outline value that still gets 0 foundation (0.5 = the mesh outline itself: the product is 0 exactly where the mesh ends)
     foundCapLen: 2.2,             // forehead cap above the mesh (which stops mid-forehead): height × (brow centre 9 → mesh top 10); 1.2 ended below the hairline on a high forehead (horizontal seam)
+    // Jawline shading (11-05 /ar-debug): one UV ribbon (JAW_RIBBON). The skin mask cuts hair / neck / background, but it is a few
+    // frames old: on a jaw side that the fresh mask saw fully uncovered, the paint keeps this floor so a lagging mask edge does
+    // not punch skin-coloured gaps into the band. 0 = mask only.
+    jawLowerFloor: 0.9,
+    jawSkirt: 0.06,               // skirt past the mesh jaw outline, share of the face width (234–454); the skin mask cuts it. 0 = off
+    contourDebug: false,          // dev only: paint the final shading alpha magenta (mesh ribbon after all gates)
     foundCapFade: 0.6,            // cap share that is full; it fades to 0 above this (fallback when the skin mask is off: brightness gate only)
     foundCapFadeMasked: 0.9,      // same, while the skin mask is on: the mask cuts hair / background, so only the last tenth of the cap fades
     foundEdgeHi: 0.98,            // ... and the value that gets full foundation (smoothstep between: no visible rim)
@@ -663,6 +725,36 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   }
   function boxBlur(src, S, r) { return boxBlurRect(src, S, S, r); }
   // Two box passes (≈ a smooth bell) over a W × H field.
+  function* boxBlurGen(src, W, H, r) {
+    if (r < 1) return src;
+    let a = src;
+    const b = new Float32Array(W * H);
+    const w = 2 * r + 1;
+    for (let pass = 0; pass < 2; pass++) {
+      for (let y = 0; y < H; y++) {
+        const row = y * W;
+        let acc = 0;
+        for (let x = -r; x <= r; x++) acc += a[row + clamp(x, 0, W - 1)];
+        for (let x = 0; x < W; x++) {
+          b[row + x] = acc / w;
+          acc += a[row + Math.min(W - 1, x + r + 1)] - a[row + Math.max(0, x - r)];
+        }
+        if ((y & 31) === 31) yield;
+      }
+      const c = pass === 0 ? new Float32Array(W * H) : a;
+      for (let x = 0; x < W; x++) {
+        let acc = 0;
+        for (let y = -r; y <= r; y++) acc += b[clamp(y, 0, H - 1) * W + x];
+        for (let y = 0; y < H; y++) {
+          c[y * W + x] = acc / w;
+          acc += b[Math.min(H - 1, y + r + 1) * W + x] - b[Math.max(0, y - r) * W + x];
+        }
+        if ((x & 31) === 31) yield;
+      }
+      a = c;
+    }
+    return a;
+  }
   function boxBlurRect(src, W, H, r) {
     if (r < 1) return src;
     let a = src;
@@ -690,6 +782,229 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       a = c;
     }
     return a;
+  }
+  // ── Face-fit style templates (data, like LINER_LOOKS). Right side in UV; side:true mirrors it. ──
+  // ell: center = lerp of two landmarks (c: [a, b, mix]), toward = landmark, a / b = radii, in units of a reference length.
+  // stroke: landmark chain, w = width. fit names a measured multiplier. ref: cheek | eye | nose | mouth | jaw.
+  const HL_TEMPLATES = {
+    natural_cheek: [{ t: 'ell', side: true, c: [111, 143, 0.3], to: 34, a: 0.45, b: 0.14, ref: 'cheek', alpha: 0.85, fit: 'cheekLen' }],
+    glass_c_zone: [{ t: 'stroke', side: true, ids: [34, 143, 111, 117], w: 0.2, ref: 'cheek', alpha: 0.7, fit: 'cheekLen' }],
+    nose_tip: [
+      { t: 'stroke', ids: [168, 6, 197, 195, 5], w: 0.9, ref: 'nose', alpha: 1 },
+      { t: 'ell', c: [4, 4, 0], to: 5, a: 0.6, b: 0.5, ref: 'nose', alpha: 1 },
+    ],
+    under_eye_smile: [{ t: 'ell', side: true, c: [145, 205, 0.35], to: 33, a: 0.5, b: 0.22, ref: 'eye', alpha: 0.65 }],
+    cupid_bow: [{ t: 'ell', c: [0, 164, 0.55], to: 0, a: 0.45, b: 0.18, ref: 'eye', alpha: 1 }],
+    forehead_center: [{ t: 'ell', c: [151, 9, 0.3], to: 8, a: 0.9, b: 0.5, ref: 'eye', alpha: 0.6 }],
+  };
+  // Shading styles (11-04, user list): where the product goes only. The face itself is never reshaped (AR_SPEC 1-3).
+  const CONTOUR_TEMPLATES = {
+    // Filled band from the jaw outline inward on the skin (not a single stroke). Extra chin / angle / side
+    // patches follow measured ratios only.
+    // Jawline: one continuous ribbon (JAW_RIBBON), not drawTemplate band (11-05 ribbon rewrite).
+    jawline: [{ t: 'ribbon' }],
+    // From the triangle under the brow head down both sides of the bridge, with a light touch around the tip.
+    // Nose: not drawn by drawTemplate. Bridge sidewall + alar groove ribbon (NOSE_SHADE, noseShade in paintMasks).
+    nose: [{ t: 'noseShade' }],
+  };
+  // Jawline shading (11-05 /ar-debug). Before: a straight-edged UV band from 132, two ellipses (jaw angle toward 132, chin
+  // centre) and a screen-space quad from 132 toward the ear and 42% in toward the cheek (50 / 280). They met at 132 with
+  // different profiles, the quad doubled the paint inside the mesh with hard edges (the angular patch on the cheek), and the
+  // band's inner edge kinked at every landmark. Now: the jaw outline (one side, mirrored) is smoothed, and each atlas pixel
+  // gets weight(t) × fade(distance / reach(t)): full on the outline, fading inward, from 0 under the ear to the chin.
+  const JAW_RIBBON = {
+    ids: [93, 132, 58, 172, 136, 150, 149, 176, 148, 152],
+    weight: [0, 0.75, 1, 1, 1, 0.95, 0.9, 0.8, 0.72, 0.68],     // strength along the jaw: fades in under the ear
+    reach: [1.0, 1.6, 1.8, 1.8, 1.6, 1.4, 1.2, 1.05, 0.95, 0.9], // inward reach × jaw reference length (123–147)
+    core: 0.22,                                                  // share of the reach kept at full strength
+  };
+  // Runs a generator to the end (the sliced jobs step the same generators a few ms per frame).
+  function drive(g) { let r = g.next(); while (!r.done) r = g.next(); return r.value; }
+  // Soft ribbon along a landmark chain, max-combined into out (S × S). Self-contained (tests run it on the real atlas).
+  function* ribbonFieldGen(P, weight, reach, core, S, out) {
+    const ss = (a, b, x) => { const r = Math.min(1, Math.max(0, (x - a) / (b - a))); return r * r * (3 - 2 * r); };
+    // Catmull-Rom through the chain: no corner at any landmark, so the inner edge has no kinks.
+    const Q = [], Wt = [], Rc = [];
+    const n = P.length, SUB = 8;
+    for (let i = 0; i < n - 1; i++) {
+      const p0 = P[Math.max(0, i - 1)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(n - 1, i + 2)];
+      for (let s = 0; s < SUB; s++) {
+        const t = s / SUB, t2 = t * t, t3 = t2 * t;
+        const f = (a, b, c, d) => 0.5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (3 * b - a - 3 * c + d) * t3);
+        Q.push([f(p0[0], p1[0], p2[0], p3[0]), f(p0[1], p1[1], p2[1], p3[1])]);
+        const e = t * t * (3 - 2 * t);
+        Wt.push(weight[i] + (weight[i + 1] - weight[i]) * e);
+        Rc.push(reach[i] + (reach[i + 1] - reach[i]) * e);
+      }
+    }
+    Q.push(P[n - 1]); Wt.push(weight[n - 1]); Rc.push(reach[n - 1]);
+    // Distance on a coarse node grid (every STEP px), each segment visiting only the nodes within its own reach, then
+    // bilinear up to S: the field is smooth, and a per-pixel search over every segment took > 1 s.
+    const STEP = 4, G = Math.ceil(S / STEP) + 1, m = Q.length - 1;
+    const bestD = new Float32Array(G * G).fill(1e18), bestW = new Float32Array(G * G), bestR = new Float32Array(G * G);
+    let gx0 = G, gy0 = G, gx1 = -1, gy1 = -1;
+    for (let j = 0; j < m; j++) {
+      const ax = Q[j][0], ay = Q[j][1], dx = Q[j + 1][0] - ax, dy = Q[j + 1][1] - ay;
+      const ll = dx * dx + dy * dy, rr = Math.max(Rc[j], Rc[j + 1]);
+      const sx0 = Math.max(0, Math.floor((Math.min(ax, ax + dx) - rr) / STEP)), sx1 = Math.min(G - 1, Math.ceil((Math.max(ax, ax + dx) + rr) / STEP));
+      const sy0 = Math.max(0, Math.floor((Math.min(ay, ay + dy) - rr) / STEP)), sy1 = Math.min(G - 1, Math.ceil((Math.max(ay, ay + dy) + rr) / STEP));
+      if (sx0 < gx0) gx0 = sx0; if (sy0 < gy0) gy0 = sy0; if (sx1 > gx1) gx1 = sx1; if (sy1 > gy1) gy1 = sy1;
+      for (let gy = sy0; gy <= sy1; gy++) {
+        for (let gx = sx0; gx <= sx1; gx++) {
+          const px = gx * STEP, py = gy * STEP;
+          let u = ll > 0 ? ((px - ax) * dx + (py - ay) * dy) / ll : 0;
+          u = u < 0 ? 0 : u > 1 ? 1 : u;
+          const ex = ax + dx * u - px, ey = ay + dy * u - py, d2 = ex * ex + ey * ey, g = gy * G + gx;
+          if (d2 < bestD[g]) { bestD[g] = d2; bestW[g] = Wt[j] + (Wt[j + 1] - Wt[j]) * u; bestR[g] = Rc[j] + (Rc[j + 1] - Rc[j]) * u; }
+        }
+      }
+      yield;
+    }
+    if (gx1 < 0) return out;
+    const A = new Float32Array(G * G);
+    for (let gy = gy0; gy <= gy1; gy++) {
+      for (let gx = gx0; gx <= gx1; gx++) {
+        const g = gy * G + gx;
+        if (bestD[g] > 1e17) continue;
+        const r = Math.sqrt(bestD[g]) / Math.max(bestR[g], 1e-3);
+        A[g] = r >= 1 ? 0 : bestW[g] * (1 - ss(core, 1, r));
+      }
+    }
+    for (let y = gy0 * STEP; y <= Math.min(S - 1, gy1 * STEP); y++) {
+      const fy = y / STEP, iy = Math.min(G - 2, Math.floor(fy)), ty = fy - iy;
+      for (let x = gx0 * STEP; x <= Math.min(S - 1, gx1 * STEP); x++) {
+        const fx = x / STEP, ix = Math.min(G - 2, Math.floor(fx)), tx = fx - ix, g = iy * G + ix;
+        const a = (A[g] * (1 - tx) + A[g + 1] * tx) * (1 - ty) + (A[g + G] * (1 - tx) + A[g + G + 1] * tx) * ty;
+        const k = y * S + x;
+        if (a > out[k]) out[k] = a;
+      }
+      if ((y & 31) === 31) yield;
+    }
+    return out;
+  }
+  function ribbonField(P, weight, reach, core, S, out) { return drive(ribbonFieldGen(P, weight, reach, core, S, out)); }
+  // end ribbonField
+  let jawRibbonMs = 0;  // last jawline ribbon paint time (HUD); runs once per style / measurement change, not per frame
+  // Nose shading (11-06, device capture: the old stroke 55-193-122-196-3-51-45 converged on the bridge and the tip, so it
+  // read as a line on the bridge and never reached the groove beside the nostril wing). Now one soft ribbon that starts under
+  // the brow head, runs down the side wall of the bridge (between the bridge edge 122/196/3/51 and the base of the side wall
+  // 245/174/236/134), then wraps the outside of the nostril wing in the alar groove (131 -> 49 -> 102 -> 64 -> 98).
+  // A cut keeps the bridge centre (the slim highlight line), the nostril wing, the nostrils and the philtrum clean.
+  const NOSE_SHADE = {
+    // [a, b, t] = lerp(landmark a, landmark b, t) in the atlas.
+    // Groove points sit just outside the nostril wing (toward 129 / 203): on the wing outline itself the cut erased half of them.
+    pts: [[193, 55, 0.4], [193, 245, 0.15], [122, 245, 0.35], [196, 174, 0.4], [3, 236, 0.45], [51, 134, 0.5],
+      [131, 220, 0.2], [49, 129, 0.2], [102, 129, 0.25], [64, 203, 0.3], [98, 203, 0.28]],
+    weight: [0, 0.5, 0.75, 0.82, 0.85, 0.85, 0.85, 0.9, 0.9, 0.7, 0],
+    // × bridge width (6-122). Wide on the side wall (a soft area, not a line), narrower in the groove so it stays off the cheek.
+    reach: [0.9, 1.1, 1.25, 1.25, 1.2, 1.1, 0.95, 0.8, 0.75, 0.7, 0.6],
+    core: 0.12,
+    cut: [45, 220, 115, 48, 64, 98, 97, 2, 1, 4],   // nostril wing + nostrils + columella + top of the philtrum (one side)
+    mid: [168, 6, 197, 195, 5, 4],                   // bridge centre line, kept as the slim highlight
+    midWidth: 0.6,                                   // × bridge width
+    cutFeather: 0.6,                                 // × bridge width: the groove edge fades instead of cutting
+  };
+  // Cheek hollow (11-06): the soft hollow under the cheekbone, from in front of the ear toward the mouth corner and fading out well
+  // before it (137 -> 147 -> 187 -> 207). The jaw ribbon is the band below, the blush / highlighter zone the one above.
+  const CHEEK_SHADE = {
+    pts: [[137, 227, 0.15], [147, 123, 0.1], [187, 147, 0.05], [207, 187, 0.05], [206, 207, 0.4]],
+    weight: [0.25, 0.7, 0.75, 0.55, 0],
+    reach: [0.7, 0.85, 0.85, 0.75, 0.6],   // x jaw reference length (123-147)
+    core: 0.15,
+  };
+  // begin faceShape
+  // Face shape from the landmarks (11-06): 8 scale-free features, same definition as research/face_shape/features.py.
+  // Coordinates are pixels (x * W, y * H, z * W). Left chain = one jaw side, right chain = its mirror.
+  const FS_LEFT = [132, 58, 172, 136, 150, 149, 176, 148, 152];
+  const FS_RIGHT = [361, 288, 397, 365, 379, 378, 400, 377, 152];
+  function faceShapeFeatures(sx, sy, sz, W, H) {
+    const P = (i) => [sx[i] * W, sy[i] * H, sz[i] * W];
+    const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+    const len = (v) => Math.hypot(v[0], v[1], v[2]);
+    const d = (a, b) => len(sub(P(a), P(b)));
+    const angle = (a, b, c) => {
+      const u = sub(P(a), P(b)), v = sub(P(c), P(b));
+      const cs = (u[0] * v[0] + u[1] * v[1] + u[2] * v[2]) / Math.max(1e-9, len(u) * len(v));
+      return Math.acos(Math.max(-1, Math.min(1, cs))) * 180 / Math.PI;
+    };
+    const width = d(234, 454), jaw = d(172, 397);
+    let angSum = 0, curveSum = 0;
+    for (const chain of [FS_LEFT, FS_RIGHT]) {
+      angSum += angle(chain[1], chain[2], chain[4]);
+      let mx = 0, sum = 0;
+      for (let k = 1; k < chain.length - 1; k++) {
+        const t = 180 - angle(chain[k - 1], chain[k], chain[k + 1]);
+        mx = Math.max(mx, t); sum += t;
+      }
+      curveSum += mx / Math.max(1e-6, sum);
+    }
+    return {
+      faceLong: d(10, 152) / width, cheekWide: width / jaw, foreheadW: d(54, 284) / width, jawEarW: d(132, 361) / width,
+      chinW: d(148, 377) / jaw, jawAngle: angSum / 2, jawCurve: curveSum / 2, chinAngle: angle(148, 152, 377),
+    };
+  }
+  function shapeProbs(model, f) {
+    const z = model.features.map((k, i) => (f[k] - model.mean[i]) / model.std[i]);
+    const logit = model.W.map((row, c) => row.reduce((s, w, i) => s + w * z[i], model.b[c]));
+    const m = Math.max.apply(null, logit);
+    const e = logit.map((v) => Math.exp(v - m));
+    const sum = e.reduce((a, b) => a + b, 0);
+    return e.map((v) => v / sum);
+  }
+  // Shading by face shape, as multipliers on the base shape of each part (the user's table, first values: to be tuned on a device).
+  // jaw: per jaw part [ear, angle, mid, chin]; nose / cheek: one weight and one reach. The rules are blended by the class
+  // probabilities, so a doubtful reading moves the shading a little and never flips it.
+  const JAW_SHAPE_GROUP = [0, 1, 1, 1, 2, 2, 3, 3, 3, 3];
+  const SHAPE_RULES = {
+    round: { jaw: { w: [1, 1, 1, 1], r: [1.5, 1.35, 1.2, 1], core: 0.6, start: 0.35 }, nose: { w: 1, r: 1.1 }, cheek: { w: 1, r: 1.2 } },
+    square: { jaw: { w: [1, 0.8, 1, 1], r: [1.3, 1.5, 1.2, 1], core: 0.5, start: 0 }, nose: { w: 1, r: 1 }, cheek: { w: 0.85, r: 1.1 } },
+    oblong: { jaw: { w: [1, 1, 0.9, 0.55], r: [1, 1, 0.9, 0.7], core: 1, start: 0 }, nose: { w: 0.9, r: 0.95 }, cheek: { w: 0.8, r: 0.9 } },
+    heart: { jaw: { w: [0.9, 0.9, 0.8, 0.3], r: [1, 1.1, 0.9, 0.6], core: 1, start: 0 }, nose: { w: 1.05, r: 1 }, cheek: { w: 0.9, r: 0.95 } },
+    oval: { jaw: { w: [0.75, 0.75, 0.75, 0.75], r: [1, 1, 1, 1], core: 1, start: 0 }, nose: { w: 0.85, r: 1 }, cheek: { w: 0.75, r: 1 } },
+  };
+  // part: 'jaw' | 'nose' | 'cheek'. t: 0 = the default shape, 1 = fully personalized (anything between is an exact mix).
+  function shadeProfile(part, classes, probs, t) {
+    if (t === undefined) t = 1;
+    const base = part === 'jaw' ? JAW_RIBBON : part === 'nose' ? NOSE_SHADE : CHEEK_SHADE;
+    const weight = base.weight.slice(), reach = base.reach.slice();
+    let core = base.core;
+    if (probs && t > 0) {
+      if (part === 'jaw') {
+        const mw = [0, 0, 0, 0], mr = [0, 0, 0, 0];
+        let mc = 0, ms = 0;
+        classes.forEach((c, k) => {
+          const R = SHAPE_RULES[c].jaw;
+          for (let g = 0; g < 4; g++) { mw[g] += probs[k] * R.w[g]; mr[g] += probs[k] * R.r[g]; }
+          mc += probs[k] * R.core;
+          ms += probs[k] * R.start;
+        });
+        for (let i = 0; i < weight.length; i++) {
+          weight[i] *= 1 + t * (mw[JAW_SHAPE_GROUP[i]] - 1);
+          reach[i] *= 1 + t * (mr[JAW_SHAPE_GROUP[i]] - 1);
+        }
+        weight[0] = t * ms;   // where the shading starts under the ear (round faces: higher up the side cheek)
+        core *= 1 + t * (mc - 1);
+      } else {
+        let mw = 0, mr = 0;
+        classes.forEach((c, k) => { const R = SHAPE_RULES[c][part]; mw += probs[k] * R.w; mr += probs[k] * R.r; });
+        for (let i = 0; i < weight.length; i++) { weight[i] *= 1 + t * (mw - 1); reach[i] *= 1 + t * (mr - 1); }
+      }
+    }
+    return { weight, reach, core };
+  }
+  // end faceShape
+  // Measured ratios of this face -> multipliers for the templates, and placement-text keys.
+  function faceFitFrom(r) {
+    const R = TUNING.faceFitRefs;
+    const wide = r.cheekWide - R.cheekWide, long = r.faceLong - R.faceLong;
+    const rec = [];
+    if (wide > 0.08) rec.push('cheek_wide'); else if (wide < -0.08) rec.push('cheek_narrow');
+    if (long > 0.1) rec.push('face_long'); else if (long < -0.1) rec.push('face_short');
+    if (!rec.length) rec.push('balanced');
+    const fit = {
+      cheekLen: clamp(1 - 0.8 * wide, 0.75, 1.2),
+    };
+    return { fit, rec };
   }
   function paintMasks() {
     const S = TUNING.maskSize;
@@ -801,6 +1116,42 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       c.beginPath(); c.ellipse(0, 0, rMajor, rMinor, 0, 0, Math.PI * 2); c.fill(); c.restore();
     }
     const noseW = dist(U(6), U(122));
+    const refLen = { cheek: dist(U(117), U(34)), eye: dist(U(33), U(133)), nose: noseW, mouth: dist(U(0), U(164)), jaw: dist(U(123), U(147)) };
+    function drawTemplate(list, fit) {
+      c.fillStyle = '#fff'; c.strokeStyle = '#fff';
+      for (const e of list) {
+        const k = refLen[e.ref] * (e.fit && fit ? fit[e.fit] : 1);
+        const once = () => {
+          if (e.t === 'band' && e.ids) {
+            const o = U(e.toward || 4);
+            const outer = e.ids.map(U);
+            const inner = e.ids.map((id, j) => {
+              const base = e.insets ? e.insets[j] : e.inset;
+              const fk = e.insetFit && e.insetFit[j];
+              const w = fk && fit && fit[fk] != null ? fit[fk] : (e.fit && fit && fit[e.fit] ? fit[e.fit] : 1);
+              return lerp(U(id), o, base * w);
+            });
+            c.globalAlpha = e.alpha;
+            c.beginPath();
+            outer.forEach((q, i) => (i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1])));
+            inner.slice().reverse().forEach((q) => c.lineTo(q[0], q[1]));
+            c.closePath();
+            c.fill();
+          } else if (e.t === 'stroke' && e.inset) {
+            // Points pulled toward a landmark inside the face: a stroke on the outline itself falls in the edge fade.
+            const o = U(e.toward || 4);
+            c.globalAlpha = e.alpha; c.lineWidth = e.w * k; c.lineCap = 'round'; c.lineJoin = 'round';
+            c.beginPath(); e.ids.map((i) => lerp(U(i), o, e.inset)).forEach((q, i) => (i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]))); c.stroke();
+          } else if (e.t === 'stroke') polyStroke(e.ids, e.w * k, e.alpha);
+          else {
+            const a = U(e.c[0]), b = U(e.c[1]), ctr = lerp(a, b, e.c[2]), to = U(e.to);
+            ellipse(ctr, to, e.a * k, e.b * refLen[e.ref], e.alpha);
+          }
+        };
+        if (e.side) bothSides(once); else once();
+      }
+      c.globalAlpha = 1;
+    }
     const highlight = layer(() => {
       c.fillStyle = '#fff'; c.strokeStyle = '#fff';
       bothSides(() => {
@@ -942,7 +1293,171 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       if (at(lip, i) > 0.6) lipVerts.push(i);
       else if (at(lip, i) < 0.01 && at(shadow, i) < 0.01 && !excluded.has(i)) skinVerts.push(i);
     }
-    return { size: S, rgba, rgba2, rgba3, lipVerts, skinVerts };
+    // Jawline ribbon on both sides (the right one mirrored about the face midline, like bothSides). Its outer edge is the
+    // mesh outline itself, so it is not multiplied by the outline fade (the darkest part sits on the jaw).
+    // ── Shading zone masks (11-06). Every part is a generator that yields every ~1-3 ms of phone time: the personalized mask is
+    // built a few ms per frame (stepJob) while the default shading keeps showing, and the sync wrappers (used by the other styles
+    // and by the tests) drive the very same code to the end. ──
+    function* layerGen(draw, feather) {
+      c.globalCompositeOperation = 'source-over';
+      c.clearRect(0, 0, S, S);
+      draw();
+      const d = c.getImageData(0, 0, S, S).data;
+      const out = new Float32Array(S * S);
+      for (let i = 0; i < S * S; i++) { out[i] = d[i * 4 + 3] / 255; if ((i & 0x7fff) === 0x7fff) yield; }
+      return yield* boxBlurGen(out, S, S, Math.round(feather / 2));
+    }
+    // Same as layerGen for a shape that lives in one rectangle (x0, y0, w, h; padded by the caller to at least the blur radius):
+    // only that part is read back and blurred, in short steps. Returns { x0, y0, w, h, data }.
+    function* layerRectGen(draw, feather, x0, y0, w, h) {
+      c.globalCompositeOperation = 'source-over';
+      c.clearRect(0, 0, S, S);
+      draw();
+      const d = c.getImageData(x0, y0, w, h).data;
+      yield;
+      const out = new Float32Array(w * h);
+      for (let i = 0; i < w * h; i++) { out[i] = d[i * 4 + 3] / 255; if ((i & 0x7fff) === 0x7fff) yield; }
+      return { x0, y0, w, h, data: yield* boxBlurGen(out, w, h, Math.round(feather / 2)) };
+    }
+    // One part on both sides (the right side mirrored about the face midline, like bothSides), max-combined into out.
+    function* ribbonPair(side, prof, unit, out) {
+      const reach = prof.reach.map((v) => v * unit);
+      yield* ribbonFieldGen(side, prof.weight, reach, prof.core, S, out);
+      yield* ribbonFieldGen(side.map((q) => [2 * midU - q[0], q[1]]), prof.weight, reach, prof.core, S, out);
+      return out;
+    }
+    function* noseShadeGen(prof) {
+      const R = NOSE_SHADE, nw = refLen.nose, out = new Float32Array(S * S);
+      yield* ribbonPair(R.pts.map((q) => lerp(U(q[0]), U(q[1]), q[2])), prof, nw, out);
+      // The cut (nostril wing, nostrils, philtrum top, bridge centre line) lives in this rectangle: both sides + the line + the blur.
+      const pad = Math.ceil(R.midWidth * nw + R.cutFeather * nw) + 8;
+      let bx0 = S, by0 = S, bx1 = 0, by1 = 0;
+      for (const id of R.cut.concat(R.mid)) {
+        const q = U(id);
+        for (const x of [q[0], 2 * midU - q[0]]) { bx0 = Math.min(bx0, x); bx1 = Math.max(bx1, x); }
+        by0 = Math.min(by0, q[1]); by1 = Math.max(by1, q[1]);
+      }
+      const rx0 = Math.max(0, Math.floor(bx0 - pad)), ry0 = Math.max(0, Math.floor(by0 - pad));
+      const rw = Math.min(S, Math.ceil(bx1 + pad)) - rx0, rh = Math.min(S, Math.ceil(by1 + pad)) - ry0;
+      const cut = yield* layerRectGen(() => {
+        c.fillStyle = '#fff'; c.strokeStyle = '#fff';
+        bothSides(() => {
+          c.beginPath(); R.cut.map(U).forEach((q, i) => (i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]))); c.closePath(); c.fill();
+        });
+        polyStroke(R.mid, R.midWidth * nw, 1);
+        c.globalAlpha = 1;
+      }, Math.round(R.cutFeather * nw), rx0, ry0, rw, rh);
+      for (let y = 0; y < cut.h; y++) {
+        const o = (cut.y0 + y) * S + cut.x0, r = y * cut.w;
+        for (let x = 0; x < cut.w; x++) out[o + x] *= 1 - cut.data[r + x];
+        if ((y & 15) === 15) yield;
+      }
+      return out;
+    }
+    // Its outer edge is the mesh outline itself, so it is not multiplied by the outline fade (the darkest part sits on the jaw).
+    function* jawRibbonGen(prof) {
+      return yield* ribbonPair(JAW_RIBBON.ids.map(U), prof, refLen.jaw, new Float32Array(S * S));
+    }
+    function* cheekShadeGen(prof) {
+      return yield* ribbonPair(CHEEK_SHADE.pts.map((q) => lerp(U(q[0]), U(q[1]), q[2])), prof, refLen.jaw, new Float32Array(S * S));
+    }
+    const shapeClasses = () => TUNING.faceShapeModel.classes;
+    const fitBlend = (fit) => (fit && fit.blend != null ? fit.blend : 1);
+    function jawRibbon(fit) { return drive(jawRibbonGen(shadeProfile('jaw', shapeClasses(), fit && fit.shapeP, fitBlend(fit)))); }
+    function noseShade(fit) { return drive(noseShadeGen(shadeProfile('nose', shapeClasses(), fit && fit.shapeP, fitBlend(fit)))); }
+    function cheekShade(fit) { return drive(cheekShadeGen(shadeProfile('cheek', shapeClasses(), fit && fit.shapeP, fitBlend(fit)))); }
+    // The whole shading channel (jaw ribbon + nose + cheek hollow) as G values 0-255. fit null = the default shape.
+    function* autoGen(fit) {
+      const cls = shapeClasses(), probs = fit && fit.shapeP;
+      const jk = yield* jawRibbonGen(shadeProfile('jaw', cls, probs, 1));
+      const nk = yield* noseShadeGen(shadeProfile('nose', cls, probs, 1));
+      const ck = TUNING.cheekHollow ? yield* cheekShadeGen(shadeProfile('cheek', cls, probs, 1)) : null;
+      const g = new Uint8Array(S * S);
+      // One strength drives the whole channel (the jawline's 0.85 x intensity), so nose and cheek are scaled to contourCoverage.
+      const scale = Math.min(1, TUNING.contourCoverage / 0.85);
+      for (let i = 0; i < S * S; i++) {
+        const inside = clamp01((faceFill[i] - 0.5) * 2);
+        // The ribbon skips the outline fade; the nose bridge and the cheek hollow keep it.
+        g[i] = Math.round(clamp01(Math.max(jk[i], (ck ? Math.max(nk[i], ck[i]) : nk[i]) * inside * scale)) * 255);
+        if ((i & 0x7fff) === 0x7fff) yield;
+      }
+      return g;
+    }
+    // Default shading (no face measurement) and personalized shading (from the measured face shape); one background job at a time.
+    let autoDefaultG = null, autoPersonalG = null, autoG = null, job = null, lastJob = null, rgba2Prev = null;
+    function startJob(label, gen) { job = { label, gen, ms: 0, steps: 0, maxStep: 0 }; }
+    function stepJob(budgetMs) {
+      if (!job) return;
+      const t0 = performance.now();
+      let r = { done: false };
+      try {
+        do {
+          const s0 = performance.now();
+          r = job.gen.next();
+          const d = performance.now() - s0;
+          if (d > job.maxStep) job.maxStep = d;
+          job.steps++;
+        } while (!r.done && performance.now() - t0 < budgetMs);
+      } catch (e) { job = null; lastJob = { label: 'error', ms: 0, steps: 0 }; return; }
+      job.ms += performance.now() - t0;
+      if (r.done) {
+        if (job.label === 'default') autoDefaultG = r.value; else autoPersonalG = r.value;
+        jawRibbonMs = job.ms;
+        lastJob = { label: job.label, ms: job.ms, steps: job.steps, maxStep: job.maxStep };
+        job = null;
+      }
+    }
+    // The default shading is needed from the first tracked frame: if the idle job has not finished it is built now (never waits).
+    function ensureDefault() {
+      if (!autoDefaultG) {
+        const t0 = performance.now();
+        if (job && job.label === 'default') { const j = job; job = null; autoDefaultG = drive(j.gen); }   // finish the idle job
+        else autoDefaultG = drive(autoGen(null));
+        lastJob = { label: 'default (built on the spot)', ms: performance.now() - t0, steps: 0, maxStep: performance.now() - t0 };
+        jawRibbonMs = lastJob.ms;
+      }
+      return autoDefaultG;
+    }
+    function currentAuto() { if (!autoG) autoG = ensureDefault(); return autoG; }
+    function writeG(g) { for (let i = 0; i < S * S; i++) rgba2[i * 4 + 1] = g[i]; }
+    function startPersonal(fit) { autoPersonalG = null; startJob('personal', autoGen(fit)); }
+    function setAuto(kind) { autoG = kind === 'personal' && autoPersonalG ? autoPersonalG : ensureDefault(); writeG(autoG); }
+    function blendAuto(t) {
+      const a = ensureDefault(), b = autoPersonalG || a, g = new Uint8Array(S * S);
+      for (let i = 0; i < S * S; i++) g[i] = Math.round(a[i] + (b[i] - a[i]) * t);
+      autoG = g; writeG(g);
+    }
+    function snapshotPrev() { if (!rgba2Prev) rgba2Prev = new Uint8Array(rgba2.length); rgba2Prev.set(rgba2); return rgba2Prev; }
+    // Face-fit: redraw only the highlighter (R) and shading (G) channels of mask 2 for a style and measured fit.
+    // A style that is absent keeps the default layer; the caller re-uploads rgba2.
+    function repaintHlContour(hlStyle, contourStyle, fit) {
+      const hlT = hlStyle && HL_TEMPLATES[hlStyle], coT = contourStyle && CONTOUR_TEMPLATES[contourStyle];
+      const h = hlT ? layer(() => drawTemplate(hlT, fit), TUNING.hlFeatherPx) : highlight;
+      // 'auto' (the shading zone, 11-06): jawline ribbon + nose + cheek hollow together, whatever style a look or chat message named.
+      // The mask is the cached one (default, or the personalized one once it is ready): a highlighter change never recomputes it.
+      if (contourStyle === 'auto') {
+        const g = currentAuto();
+        for (let i = 0; i < S * S; i++) {
+          const inside = clamp01((faceFill[i] - 0.5) * 2);
+          rgba2[i * 4] = Math.round(clamp01(h[i] * inside) * 255);
+          rgba2[i * 4 + 1] = g[i];
+        }
+        return;
+      }
+      const jawEdge = !!(coT && coT[0] && coT[0].t === 'ribbon');
+      const k = jawEdge ? jawRibbon(fit) : contourStyle === 'nose' ? noseShade(fit) : coT ? layer(() => drawTemplate(coT, fit), TUNING.contourFeatherPx) : contour;
+      for (let i = 0; i < S * S; i++) {
+        const inside = clamp01((faceFill[i] - 0.5) * 2);
+        rgba2[i * 4] = Math.round(clamp01(h[i] * inside) * 255);
+        rgba2[i * 4 + 1] = Math.round(clamp01(k[i] * (jawEdge ? 1 : inside)) * 255);
+      }
+    }
+    return {
+      size: S, rgba, rgba2, rgba3, lipVerts, skinVerts, repaintHlContour,
+      stepJob, startJob, startDefault: () => { if (!autoDefaultG && !job) startJob('default', autoGen(null)); }, startPersonal,
+      personalReady: () => !!autoPersonalG, setAuto, blendAuto, snapshotPrev,
+      jobInfo: () => ({ running: job ? job.label : '', last: lastJob, defaultReady: !!autoDefaultG }),
+    };
   }
 
   // ── Mesh (positions, normals) ────────────────────────────────────────
@@ -959,6 +1474,20 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     capUv[i * 4] = 0; capUv[i * 4 + 1] = Math.min(1, CAP_W[i] / 0.5);
     capUv[i * 4 + 2] = 1; capUv[i * 4 + 3] = Math.min(1, CAP_W[i] / 0.5);
     if (i < NC - 1) { const a = 2 * i, b = a + 1, c = a + 2, d = a + 3; capIdx.push(a, c, b, b, c, d); }
+  }
+  // Jawline skirt (11-05): LaPa labels show face skin continuing past the mesh outline on the near jaw of a turned head
+  // (median 2–6% of the face width at 132–136, frontal < 2%), a bare strip right beside the darkest shading. The skirt
+  // continues the ribbon outward from the outline only (never inside the mesh, so the paint is never doubled), starting at
+  // the ribbon's own weight at each landmark and fading out; the skin mask alone decides where it lands.
+  const NSK = 7;
+  const JAW_SKIRT = [JAW_RIBBON.ids.slice(0, NSK), [323, 361, 288, 397, 365, 379, 378]];
+  const JAW_SKIRT_W = JAW_RIBBON.weight.slice(0, NSK).map((v, i) => (i === NSK - 1 ? 0 : v));
+  const jawPos = new Float32Array(2 * NSK * 2 * 3);
+  const jawNrm = new Float32Array(2 * NSK * 2 * 3);
+  const jawUv = new Float32Array(2 * NSK * 2 * 2);
+  const jawIdx = [];
+  for (let side = 0; side < 2; side++) {
+    for (let i = 0; i < NSK - 1; i++) { const a = (side * NSK + i) * 2, b = a + 1, c = a + 2, d = a + 3; jawIdx.push(a, c, b, b, c, d); }
   }
   const meshPos = new Float32Array(N_MESH * 3);
   const meshNrm = new Float32Array(N_MESH * 3);
@@ -1127,7 +1656,8 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         else if (last !== null && ++miss >= 2) break;
       }
       const ok = last !== null;
-      const found = ok ? clamp(last, -0.15, maxT) : 0;
+      // Never a negative inset: that would pull the hole onto the teeth. Miss → the openness floor.
+      const found = ok ? clamp(last, TUNING.innerInset[0], maxT) : TUNING.innerInset[0];
       const k = lipInner.conf[j] > 0 ? 0.5 : 1;
       if (ok) lipInner.t[j] = k === 1 ? found : lipInner.t[j] + k * (found - lipInner.t[j]);
       lipInner.conf[j] += 0.5 * ((ok ? 1 : 0) - lipInner.conf[j]);
@@ -1268,7 +1798,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     const inset = TUNING.innerInset[0] + (TUNING.innerInset[1] - TUNING.innerInset[0]) * s * s * (3 - 2 * s);
     const fixedInset = mouthClosed() ? 0 : inset;
     const inner = lipRing(LIPS_INNER, INNER_FIXED, W, H, LIPS_OUTER, TUNING.lipInnerMeasure && !mouthClosed()
-      ? LIPS_INNER.map((_, j) => (lipInner.conf[j] >= 0.5 ? lipInner.t[j] : fixedInset)) : fixedInset);
+      ? LIPS_INNER.map((_, j) => Math.max(fixedInset, lipInner.conf[j] >= 0.5 ? lipInner.t[j] : fixedInset)) : fixedInset);
     for (let i = 0; i < 20; i++) { innerRingPx[2 * i] = inner[i][0]; innerRingPx[2 * i + 1] = inner[i][1]; }
     if (!mouthClosed()) {
       // Open mouth: the inner curve is a hole (teeth, tongue) in both.
@@ -1314,6 +1844,8 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   for (const e of EYES) for (let j = 1; j < e.contour.length - 1; j++) EYE_HOLE_TRIANGLES.push(e.contour[0], e.contour[j], e.contour[j + 1]);
   const eyeCanvas = document.createElement('canvas');
   const eyeCtx = eyeCanvas.getContext('2d');
+  const browCanvas = document.createElement('canvas');
+  const browCtx = browCanvas.getContext('2d');
   const eyeRect = [0, 0, 1, 1];
   // Deterministic per-strand jitter: the same lash keeps its length and angle every frame.
   function seeded(i) { const x = Math.sin(i * 12.9898 + 4.1) * 43758.5453; return x - Math.floor(x); }
@@ -1350,12 +1882,12 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   const lidCtx = lidCanvas.getContext('2d', { willReadFrequently: true });
   let lidLum = new Float32Array(128 * 128);
   function newLidSide() {
-    return { x: new Float32Array(9), dx: new Float32Array(9), conf: new Float32Array(9), ready: false, active: false };
+    return { x: new Float32Array(9), dx: new Float32Array(9), conf: new Float32Array(9), ready: false, active: false, offS: 0, measured: false };
   }
   const lidFit = [{ up: newLidSide(), low: newLidSide(), t: 0 }, { up: newLidSide(), low: newLidSide(), t: 0 }];
   const lidHud = ['-', '-'];
   let lidFitMs = 0;
-  function resetLidFit() { for (const f of lidFit) { f.up.ready = false; f.low.ready = false; f.t = 0; } }
+  function resetLidFit() { for (const f of lidFit) { f.up.ready = false; f.low.ready = false; f.up.measured = false; f.low.measured = false; f.t = 0; } }
   // Luminance (0..255) of the crop around one eye; the crop is read from the video frame once per eye per frame.
   function readEyeCrop(pts, eyeW, W, H) {
     const L = TUNING.lidFit;
@@ -1383,9 +1915,15 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   // edge inside [lo, hi]. Upper line (rise = true): dark to bright going up, the top of the dark iris / lash band where
   // the lid skin starts (measured on LaPa: at the eye centre the iris is dark right below the lid point). Lower line:
   // bright to dark going down, where the sclera ends. Weak edges get a low confidence. Offsets are blended with the
-  // neighbours and a prior, then One Euro filtered. enabled = false eases back to the prior.
+  // neighbours and a prior, then One Euro filtered. enabled = false keeps the last measured line for holdS (11-07: a
+  // turned head used to drop back to the prior, which floats above a hooded lid), then eases back to the prior.
   function fitLidSide(side, pts, outDir, eyeW, crop, enabled, prior, lo, hi, trust, dt, rise) {
     const L = TUNING.lidFit, n = pts.length, M = L.samples;
+    if (enabled && crop) side.offS = 0;
+    else {
+      side.offS += dt;
+      if (side.ready && side.measured && side.offS < L.holdS) { side.active = false; side.conf.fill(0); return side.x; }
+    }
     const raw = new Float32Array(n), conf = new Float32Array(n), prof = new Float32Array(M);
     if (enabled && crop) {
       for (let i = 1; i < n - 1; i++) {
@@ -1442,6 +1980,9 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     }
     side.ready = true;
     side.active = enabled && !!crop;
+    let confSum = 0;
+    for (let i = 0; i < n; i++) confSum += conf[i];
+    if (side.active && confSum / n > 0.15) side.measured = true;   // a real edge was read (not just the prior)
     return side.x;
   }
   // Moves the 9 upper and 9 lower lid points to the camera's lash line. Returns new arrays; the landmarks stay put.
@@ -1533,11 +2074,18 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     x0 -= pad; x1 += pad; y0 -= pad; y1 += pad;
     const srcW = x1 - x0, srcH = y1 - y0;
     if (srcW < 16 || srcH < 8) return false;
-    const cw = Math.min(TUNING.eyeCanvasPx, Math.ceil(srcW)), ch = Math.max(4, Math.ceil((cw * srcH) / srcW));
+    const cw = Math.min(TUNING.eyeCanvasPx, Math.ceil(srcW * TUNING.eyeCanvasScale)), ch = Math.max(4, Math.ceil((cw * srcH) / srcW));
     if (eyeCanvas.width !== cw || eyeCanvas.height !== ch) { eyeCanvas.width = cw; eyeCanvas.height = ch; }
+    if (browPaint && (browCanvas.width !== cw || browCanvas.height !== ch)) { browCanvas.width = cw; browCanvas.height = ch; }
     const k = cw / srcW;
     const map = (q) => [(q[0] - x0) * k, (q[1] - y0) * k];
-    const path = (pts) => { eyeCtx.beginPath(); pts.map(map).forEach((q, i) => (i ? eyeCtx.lineTo(q[0], q[1]) : eyeCtx.moveTo(q[0], q[1]))); };
+    const pathOn = (ctx, pts) => { ctx.beginPath(); pts.map(map).forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); };
+    const path = (pts) => pathOn(eyeCtx, pts);
+    if (browPaint) {
+      browCtx.globalCompositeOperation = 'source-over'; browCtx.globalAlpha = 1;
+      browCtx.fillStyle = '#000'; browCtx.fillRect(0, 0, cw, ch);
+      browCtx.globalCompositeOperation = 'lighter';
+    }
     const c = eyeCtx;
     c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
     c.fillStyle = '#000'; c.fillRect(0, 0, cw, ch);
@@ -1623,6 +2171,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       }
       if (browPaint) {
         // Landmarks stay put. Fill slides a fixed distance toward the lid. No per-frame camera read.
+        // Drawn on a side canvas so G stays mascara and A carries the brow (looks can wear both).
         const lower0 = e.brow.map(P);
         const upper0 = EYES[EYE_LINES.indexOf(e)].brow.slice().reverse().map(P);
         const lowC = centroid(lower0), upC = centroid(upper0);
@@ -1640,15 +2189,16 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         const vx = tail[0] - head[0], vy = tail[1] - head[1];
         const d2 = vx * vx + vy * vy || 1;
         const archT = clamp01(((arch[0] - head[0]) * vx + (arch[1] - head[1]) * vy) / d2);
-        const gB = c.createLinearGradient(h[0], h[1], t[0], t[1]);
+        const gB = browCtx.createLinearGradient(h[0], h[1], t[0], t[1]);
         const gStop = (d) => 'rgb(0,' + Math.round(clamp01(d) * 255) + ',0)';
         gB.addColorStop(0, gStop(EYEBROW_PRESET.headDensity));
         gB.addColorStop(archT, gStop(EYEBROW_PRESET.archDensity));
         gB.addColorStop(1, gStop(EYEBROW_PRESET.tailDensity));
-        c.fillStyle = gB;
-        path(lower.concat(upper));
-        c.closePath();
-        c.fill();
+        browCtx.globalAlpha = fade;
+        browCtx.fillStyle = gB;
+        pathOn(browCtx, lower.concat(upper));
+        browCtx.closePath();
+        browCtx.fill();
       }
       const ip = shadow && shadow.geometry && shadow.geometry.innerPoint;
       if (ip) {
@@ -1665,7 +2215,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       if (mascara) {
         const mg = Object.assign({ length: 1, thickness: 1 }, mascara.geometry || {});
         const lengthen = (0.75 + 0.5 * clamp01(mascara.intensity)) * clamp(mg.length, 0.5, 2.5);
-        const nLash = clamp(Math.round(TUNING.lashCount * mg.thickness), 12, 72);
+        const nLash = clamp(Math.round(TUNING.lashCount * mg.thickness), 8, 24);
         c.strokeStyle = '#0f0'; c.lineCap = 'round'; c.lineJoin = 'round';
         // Open eye: lashes rise from the margin and curl up. Closed: they hang down over the lid.
         const gap = dist(lerp(up[3], up[5], 0.5), lerp(low[3], low[5], 0.5)) / eyeW;
@@ -1673,31 +2223,51 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         const lashUp = [nUp[0] * (2 * openness - 1), nUp[1] * (2 * openness - 1)];
         const lashUpLen = Math.hypot(lashUp[0], lashUp[1]) || 1;
         const lu = Math.abs(2 * openness - 1) < 0.2 ? [-nUp[0], -nUp[1]] : [lashUp[0] / lashUpLen, lashUp[1] / lashUpLen];
-        // A strand: thick root half, thin tip (mascara coats the base), with the tip pulled toward
-        // its clump. Front view foreshortens lashes, so they read short.
+        // A strand (11-07): one smooth C curve (quadratic Bezier, control lifted in the curl direction, so it bends up when
+        // open and down when closed) filled as a ribbon whose width tapers from the root to 0 at the tip, and whose
+        // darkness fades toward the tip (root darker, like a coated lash). No round caps, no straight root segment.
+        const STRAND_SEG = 6;
         const strand = (root, dir, curl, L, w, pull) => {
-          const mid = [root[0] + dir[0] * 0.5 * L, root[1] + dir[1] * 0.5 * L];
-          const end = [root[0] + dir[0] * L + curl[0] * 0.35 * L + pull[0], root[1] + dir[1] * L + curl[1] * 0.35 * L + pull[1]];
-          const r = map(root), m = map(mid), e2 = map(end), cc = map(lerp(mid, end, 0.3));
-          c.lineWidth = Math.max(0.8, w * k);
-          c.beginPath(); c.moveTo(r[0], r[1]); c.lineTo(m[0], m[1]); c.stroke();
-          c.lineWidth = Math.max(0.5, 0.45 * w * k);
-          c.beginPath(); c.moveTo(m[0], m[1]); c.quadraticCurveTo(cc[0], cc[1], e2[0], e2[1]); c.stroke();
+          const ctrl = [root[0] + dir[0] * 0.55 * L + curl[0] * 0.3 * L, root[1] + dir[1] * 0.55 * L + curl[1] * 0.3 * L];
+          const end = [root[0] + dir[0] * 0.85 * L + curl[0] * 0.5 * L + pull[0], root[1] + dir[1] * 0.85 * L + curl[1] * 0.5 * L + pull[1]];
+          const P0 = map(root), P1 = map(ctrl), P2 = map(end);
+          const at = (t) => [(1 - t) * (1 - t) * P0[0] + 2 * (1 - t) * t * P1[0] + t * t * P2[0], (1 - t) * (1 - t) * P0[1] + 2 * (1 - t) * t * P1[1] + t * t * P2[1]];
+          const side = (t) => {
+            const dx = 2 * (1 - t) * (P1[0] - P0[0]) + 2 * t * (P2[0] - P1[0]), dy = 2 * (1 - t) * (P1[1] - P0[1]) + 2 * t * (P2[1] - P1[1]);
+            const n = Math.hypot(dx, dy) || 1;
+            const hw = 0.5 * Math.max(0.9, w * k) * Math.pow(1 - t, 0.9);
+            return [(-dy / n) * hw, (dx / n) * hw];
+          };
+          for (let s2 = 0; s2 < STRAND_SEG; s2++) {
+            const t0 = s2 / STRAND_SEG, t1 = (s2 + 1) / STRAND_SEG;
+            const a0 = at(t0), a1 = at(t1), n0 = side(t0), n1 = side(t1);
+            const g = Math.round(255 * (1 - TUNING.lashTipFade * (t0 + t1) * 0.5));
+            c.fillStyle = 'rgb(0,' + g + ',0)';
+            c.beginPath();
+            c.moveTo(a0[0] + n0[0], a0[1] + n0[1]); c.lineTo(a1[0] + n1[0], a1[1] + n1[1]);
+            c.lineTo(a1[0] - n1[0], a1[1] - n1[1]); c.lineTo(a0[0] - n0[0], a0[1] - n0[1]);
+            c.closePath(); c.fill();
+          }
         };
         const along = (pts, u) => {
           const f = u * (pts.length - 1), j = Math.min(pts.length - 2, Math.floor(f));
           return lerp(pts[j], pts[j + 1], f - j);
         };
         // Upper lashes inner (u = 0) → outer corner (u = 1): uneven spacing, fanning outward,
-        // longest past the middle, tips gathered in clumps of about three.
+        // longer toward the outer corner, tips only lightly gathered.
         const upIn = up.slice().reverse(), lowIn = low.slice().reverse();
         const nUpper = nLash;
         const tips = [];
         for (let i = 0; i < nUpper; i++) {
           const u = clamp(0.06 + (0.94 * (i + 0.6 * (seeded(i + 300) - 0.5))) / (nUpper - 1), 0.04, 1);
-          const th = ((u - 0.35) * 50 * Math.PI) / 180 + (seeded(i) - 0.5) * 0.3;
+          // Fan: inner lashes lean toward the nose a little, outer ones spread outward more (11-07: 62 deg over the lid).
+          const th = ((u - 0.4) * 62 * Math.PI) / 180 + (seeded(i) - 0.5) * 0.22;
           const dir = [lu[0] * Math.cos(th) + axis[0] * Math.sin(th), lu[1] * Math.cos(th) + axis[1] * Math.sin(th)];
-          const L = eyeW * TUNING.lashLength * lengthen * (0.5 + 0.5 * Math.sin(Math.PI * Math.min(1, u * 1.15))) * (0.8 + 0.4 * seeded(i + 100));
+          // Length: short at the inner corner, clear in the middle, a little longer at the outer corner; uneven, with an
+          // occasional longer wisp (fixed per strand index, so nothing moves between frames).
+          const prof = 0.45 + 0.55 * smooth01(0, 0.7, Math.min(1, u)) + (u > 0.75 ? 0.08 : 0);
+          const wisp = seeded(i + 500) > 0.8 ? 1.15 : 1;
+          const L = eyeW * TUNING.lashLength * lengthen * prof * (0.78 + 0.34 * seeded(i + 100)) * wisp;
           tips.push({ root: along(upIn, u), dir, L });
         }
         for (let i = 0; i < nUpper; i++) {
@@ -1706,27 +2276,54 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
           for (let j = g; j < gEnd; j++) { cx += tips[j].root[0] + tips[j].dir[0] * tips[j].L; cy += tips[j].root[1] + tips[j].dir[1] * tips[j].L; }
           cx /= gEnd - g; cy /= gEnd - g;
           const t0 = tips[i], own = [t0.root[0] + t0.dir[0] * t0.L, t0.root[1] + t0.dir[1] * t0.L];
-          const pull = [(cx - own[0]) * 0.5 * clamp01(mascara.intensity), (cy - own[1]) * 0.5 * clamp01(mascara.intensity)];
+          const pull = [(cx - own[0]) * TUNING.lashClump * clamp01(mascara.intensity), (cy - own[1]) * TUNING.lashClump * clamp01(mascara.intensity)];
           strand(t0.root, t0.dir, lu, t0.L, eyeW * TUNING.lashWidth, pull);
         }
         // Lower lashes: few, short, faint, pointing down (only when the eye is open).
-        c.globalAlpha = fade * 0.5 * openness;
-        const nLow = mg.lower === false ? 0 : Math.round(nLash / 3);
+        c.globalAlpha = fade * TUNING.lowerLashAlpha * openness;
+        const nLow = mg.lower === false ? 0 : Math.round(nLash / 4);
         for (let i = 0; i < nLow && openness > 0; i++) {
           const u = 0.3 + (0.65 * (i + 0.5 * (seeded(i + 400) - 0.5))) / (nLow - 1);
           const th = ((u - 0.4) * 40 * Math.PI) / 180;
           const dir = [-nUp[0] * Math.cos(th) + axis[0] * Math.sin(th), -nUp[1] * Math.cos(th) + axis[1] * Math.sin(th)];
           const L = eyeW * TUNING.lashLength * TUNING.lowerLash * lengthen * (0.7 + 0.3 * seeded(i + 200));
-          strand(along(lowIn, u), dir, [-nUp[0], -nUp[1]], L, 0.7 * eyeW * TUNING.lashWidth, [0, 0]);
+          strand(along(lowIn, u), dir, [-nUp[0] * 0.5, -nUp[1] * 0.5], L, 0.6 * eyeW * TUNING.lashWidth, [0, 0]);
+        }
+        // Attached lashes from the look video: bunches of strands, tips gathered by converge (A-shape).
+        if (Array.isArray(mg.falseLash)) {
+          for (const cl of mg.falseLash) {
+            const isLower = cl.edge === 'lower';
+            if (isLower && openness <= 0) continue;
+            c.globalAlpha = isLower ? fade * 0.85 * openness : fade;
+            const edgePts = isLower ? lowIn : upIn;
+            const n = clamp(Math.round(cl.strands), 1, 8);
+            for (let j = 0; j < n; j++) {
+              const t = n > 1 ? j / (n - 1) - 0.5 : 0;
+              const uu = clamp(cl.u + t * cl.spread, 0.04, 1);
+              const thBase = isLower ? ((uu - 0.4) * 40 * Math.PI) / 180 : ((uu - 0.35) * 50 * Math.PI) / 180;
+              const th = thBase + t * (0.25 - 0.55 * clamp01(cl.converge));
+              const base = isLower ? [-nUp[0], -nUp[1]] : lu;
+              const dir = [base[0] * Math.cos(th) + axis[0] * Math.sin(th), base[1] * Math.cos(th) + axis[1] * Math.sin(th)];
+              const L = eyeW * TUNING.falseLashMm * clamp(cl.mm, 3, 16) * (0.94 + 0.12 * seeded(j + 600 + Math.round(cl.u * 100)));
+              const curl = [base[0] * clamp(cl.lift, 0, 1.5), base[1] * clamp(cl.lift, 0, 1.5)];
+              strand(along(edgePts, uu), dir, curl, L, eyeW * TUNING.lashWidth * TUNING.falseLashWidth * (isLower ? 0.7 : 1), [0, 0]);
+            }
+          }
         }
         // Lash line: the coated roots darken and thicken the upper lid margin (the most visible
         // mascara change at selfie distance).
-        c.globalAlpha = fade;
-        c.lineWidth = Math.max(1, 0.035 * eyeW * k);
+        c.globalAlpha = fade * TUNING.lashLineAlpha;
+        c.strokeStyle = '#0f0';
+        c.lineWidth = Math.max(0.6, TUNING.lashLineWidth * eyeW * k);
         path(up.slice(0, -1)); c.stroke();
+        c.globalAlpha = fade;
       }
     }
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+    // The brow stays on its own canvas (green) and goes up as its own texture (uBrowTex). 11-06 /ar-debug: it used to be
+    // packed into this canvas's alpha with putImageData. A 2D canvas stores premultiplied colour, so every texel outside
+    // the brow (alpha 0) lost its liner (r) and mascara (g) on the phone WebView: no liner or lashes in any look with a
+    // brow, while desktop Chrome kept the colour (the headless repro showed them). This canvas now stays opaque.
     eyeRect[0] = x0 / W; eyeRect[1] = y0 / H; eyeRect[2] = srcW / W; eyeRect[3] = srcH / H;
     return true;
   }
@@ -1801,6 +2398,28 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         capPos[k + 1] = 1 - 2 * (r ? qy : sy[v]);
         capPos[k + 2] = clamp(sz[v], -0.99, 0.99);
         capNrm[k] = meshNrm[v * 3]; capNrm[k + 1] = meshNrm[v * 3 + 1]; capNrm[k + 2] = meshNrm[v * 3 + 2];
+      }
+    }
+    // Jawline skirt: each outline point and one pushed out along the outline's normal (pixels, away from the nose tip).
+    // aUv = (0 at the outline → 1 outside, ribbon weight × this side's turn fade, the same fade the mesh paint gets).
+    const skirt = Math.hypot((sx[234] - sx[454]) * W, (sy[234] - sy[454]) * H) * TUNING.jawSkirt;
+    const yaw = (sz[234] - sz[454]) / Math.max(1e-4, Math.abs(sx[234] - sx[454]));
+    for (let side = 0; side < 2; side++) {
+      const ids = JAW_SKIRT[side], vis = 1 - smooth01(0.08, 0.25, side ? -yaw : yaw);
+      for (let i = 0; i < NSK; i++) {
+        const v = ids[i], p = ids[Math.max(0, i - 1)], q = ids[Math.min(NSK - 1, i + 1)];
+        let nx = (sy[q] - sy[p]) * H, ny = -(sx[q] - sx[p]) * W;
+        const nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl;
+        if (nx * (sx[v] - sx[4]) * W + ny * (sy[v] - sy[4]) * H < 0) { nx = -nx; ny = -ny; }
+        const ox = sx[v] + (nx * skirt) / W, oy = sy[v] + (ny * skirt) / H;
+        for (let r = 0; r < 2; r++) {
+          const k = (side * NSK + i) * 2 + r;
+          jawPos[k * 3] = 1 - 2 * (r ? ox : sx[v]);
+          jawPos[k * 3 + 1] = 1 - 2 * (r ? oy : sy[v]);
+          jawPos[k * 3 + 2] = clamp(sz[v], -0.99, 0.99);
+          jawNrm[k * 3] = meshNrm[v * 3]; jawNrm[k * 3 + 1] = meshNrm[v * 3 + 1]; jawNrm[k * 3 + 2] = meshNrm[v * 3 + 2];
+          jawUv[k * 2] = r; jawUv[k * 2 + 1] = JAW_SKIRT_W[i] * vis;
+        }
       }
     }
   }
@@ -1906,6 +2525,100 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     lastLightHint = hint;
     post({ type: 'light_hint', value: hint });
   }
+  // ── Face-fit measurement (11-04): this person's ratios from the landmarks, frontal frames only, then frozen ──
+  // Errors of the side jobs around the render (measure / repaint / shade) are counted and shown in the HUD; they never abort the frame.
+  let guardErrors = 0, guardLast = '', renderErrors = 0, renderErrLast = '';
+  // HUD 'eye' line (11-06 /ar-debug: look mascara and lashes not seen on the phone): which eye paint reached this page and
+  // whether the eye canvas was drawn this frame. 'build' tells a stale Expo Go bundle apart from a renderer fault.
+  const EYE_HUD_BUILD = '1107-lid-onpts';
+  const eyeDbg = { liner: '-', mascara: '-', lashes: 0, on: false, cw: 0, ch: 0 };
+  // Does this browser's 2D canvas keep a colour written with alpha 0? 'lost' = the old brow packing wiped liner/mascara.
+  const alphaZeroColor = (() => {
+    try {
+      const t = document.createElement('canvas'); t.width = t.height = 1;
+      const tc = t.getContext('2d');
+      tc.putImageData(new ImageData(new Uint8ClampedArray([0, 200, 0, 0]), 1, 1), 0, 0);
+      return tc.getImageData(0, 0, 1, 1).data[1] > 100 ? 'kept' : 'lost';
+    } catch (e) { return 'n/a'; }
+  })();
+  function guard(label, fn) {
+    try { return fn(); } catch (e) {
+      guardErrors++; guardLast = label + ': ' + (e && e.message);
+      if (guardErrors <= 3) console.error('AR ' + guardLast);
+      return undefined;
+    }
+  }
+  let faceFitAcc = null, faceFitState = null, faceFitSeenAt = 0, faceFitKey = 'default';
+  let faceFitMs = 0, faceFitUsed = '';   // HUD: how long the last measurement took and how many frames it used
+  // default (nothing measured yet) / analyzing / personalized / fallback (no result in time: the default shading stays, retrying)
+  let faceFitStatus = 'default';
+  function setFaceFitStatus(st) {
+    if (!TUNING.shadePersonalize || st === faceFitStatus) return;
+    faceFitStatus = st;
+    post({ type: 'face_fit_status', state: st });
+  }
+  function d3(a, b) { return Math.hypot(sx[a] - sx[b], sy[a] - sy[b], sz[a] - sz[b]); }
+  // Only adds numbers: it never draws and never blocks the render (the shading is already on the screen when this runs).
+  // W / H are the frame size in pixels, passed in by the render call: 11-06 they were read as globals, the ReferenceError aborted
+  // every frame and the catch around the render swallowed it, so no shading was drawn at all.
+  function faceFitStep(now, W, H) {
+    if (faceFitState && now - faceFitSeenAt > 2500) { faceFitState = null; faceFitAcc = null; setFaceFitStatus('default'); } // someone else may be in front
+    faceFitSeenAt = now;
+    if (faceFitState) return;
+    // A face that left mid-measurement starts over (else its old start time would trip the deadline at once).
+    if (faceFitAcc && now - faceFitAcc.lastAt > 1000) faceFitAcc = null;
+    // No result in time: keep the default shading, say so, and start a fresh window (a frontal glance later still personalizes).
+    if (faceFitAcc && now - faceFitAcc.startAt > TUNING.faceFitGiveUpMs) { faceFitAcc = null; setFaceFitStatus('fallback'); }
+    if (!faceFitAcc) faceFitAcc = { n: 0, startAt: now, lastAt: now, rejected: 0, loose: false, x: new Float64Array(468), y: new Float64Array(468), z: new Float64Array(468) };
+    if (faceFitStatus === 'default') setFaceFitStatus('analyzing');
+    const acc = faceFitAcc;
+    acc.lastAt = now;
+    const late = now - acc.startAt >= TUNING.faceFitDeadlineMs;
+    acc.loose = late && acc.n < TUNING.faceFitMinFrames;
+    // Pixel-scaled distances, like the offline fit (research/face_shape/features.py pose_ok): yaw by nose-to-ear, and head roll.
+    const pd = (a, b) => Math.hypot((sx[a] - sx[b]) * W, (sy[a] - sy[b]) * H, (sz[a] - sz[b]) * W);
+    const side = pd(1, 234) / Math.max(1e-6, pd(1, 454));
+    const yawGate = acc.loose ? TUNING.faceFitYawLoose : TUNING.faceFitYaw;
+    const roll = Math.abs(Math.atan2((sy[454] - sy[234]) * H, Math.abs((sx[454] - sx[234]) * W))) * 180 / Math.PI;
+    const width = pd(234, 454);
+    const frontal = side >= yawGate[0] && side <= yawGate[1] && roll <= (acc.loose ? TUNING.faceFitRollLooseDeg : TUNING.faceFitRollDeg) &&
+      width > 1e-4 && pd(172, 397) > 1e-4;
+    if (frontal) {
+      // Landmarks centred on their mean and divided by the face width (pixels), so a head that drifts or moves closer between
+      // frames does not smear the average. The features are ratios and angles, so this changes nothing else.
+      let cx = 0, cy = 0, cz = 0;
+      for (let i = 0; i < 468; i++) { cx += sx[i] * W; cy += sy[i] * H; cz += sz[i] * W; }
+      cx /= 468; cy /= 468; cz /= 468;
+      for (let i = 0; i < 468; i++) {
+        acc.x[i] += (sx[i] * W - cx) / width; acc.y[i] += (sy[i] * H - cy) / width; acc.z[i] += (sz[i] * W - cz) / width;
+      }
+      acc.n++;
+    } else acc.rejected++;
+    if (!(acc.n >= TUNING.faceFitFrames || (late && acc.n >= TUNING.faceFitMinFrames))) return;
+    const ax = new Float64Array(468), ay = new Float64Array(468), az = new Float64Array(468);
+    for (let i = 0; i < 468; i++) { ax[i] = acc.x[i] / acc.n; ay[i] = acc.y[i] / acc.n; az[i] = acc.z[i] / acc.n; }
+    const mean = faceShapeFeatures(ax, ay, az, 1, 1);
+    faceFitMs = now - acc.startAt;
+    faceFitUsed = acc.n + (acc.loose ? ' loose' : '');
+    const ratios = { cheekWide: mean.cheekWide, faceLong: mean.faceLong };
+    const out = faceFitFrom(ratios);
+    const rounded = { cheekWide: Math.round(ratios.cheekWide * 100) / 100, faceLong: Math.round(ratios.faceLong * 100) / 100 };
+    if (!TUNING.shadePersonalize) {
+      // Placement hints only (the shading is the default one): no face-shape analysis, no status, no shape.
+      faceFitState = { ratios, fit: out.fit, rec: out.rec, shape: null, conf: 0, probs: null };
+      post({ type: 'face_fit', ratios: rounded, rec: out.rec });
+      return;
+    }
+    const probs = shapeProbs(TUNING.faceShapeModel, mean);
+    let top = 0;
+    for (let k = 1; k < probs.length; k++) if (probs[k] > probs[top]) top = k;
+    const shape = TUNING.faceShapeModel.classes[top], conf = probs[top];
+    out.fit.shapeP = probs;
+    faceFitState = { ratios, fit: out.fit, rec: out.rec, shape, conf, probs };
+    setFaceFitStatus('personalized');
+    // Keys only: the probability stays on the device (HUD).
+    post({ type: 'face_fit', ratios: rounded, rec: out.rec, shape });
+  }
   let masks = null;
   let lastLightAt = 0;
   let lightMs = 0;
@@ -1916,6 +2629,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   let foundSkinW = 0;
   let foundSkinH = 0;
   let foundSkinBin = null;
+  let foundSkinCat = null;
   let foundSkinPrev = null;
   let foundSkinRgba = null;
   const foundSkinStat = { cat: 0, prob: -1 }; // HUD: face-skin share of the frame (category / probability mask, -1 = not used)
@@ -2167,11 +2881,12 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     return { dir: dir.map((v) => v / len), r2: top.r2, peak: top.a + top.b };
   }
   function ensureFoundSkinBuffers(w, h) {
-    if (foundSkinW === w && foundSkinH === h && foundSkinBin) return;
+    if (foundSkinW === w && foundSkinH === h && foundSkinBin && foundSkinCat) return;
     foundSkinW = w;
     foundSkinH = h;
     const n = w * h;
     foundSkinBin = new Uint8Array(n);
+    foundSkinCat = new Uint8Array(n);
     foundSkinPrev = new Float32Array(n);
     foundSkinRgba = new Uint8Array(n * 4);
     foundSkinReady = false;
@@ -2183,6 +2898,9 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   const OCC_EYE_PTS = EYES[0].contour.concat(EYES[1].contour);
   const OCC_CHEEK_PTS = [50, 280, 116, 345, 205, 425, 123, 352, 147, 376, 187, 411];
   let foundOcc = 0;
+  // Jaw outline points per side (UV x < 0.5 first), for the jawline shading floor.
+  const JAW_COVER_PTS = [[132, 58, 172, 136, 150, 149, 176, 148], [361, 288, 397, 365, 379, 378, 400, 377]];
+  const jawOcc = [0, 0];
   const occGate = { lip: 1, eye: 1, cheek: 1 };
   let foundSegMs = 0;   // moving mean of one segmentation call, ms (HUD)
   // Selfie multiclass: 0 bg, 1 hair, 2 body, 3 face skin, 4 clothes, 5 accessory.
@@ -2199,6 +2917,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     for (let i = 0; i < n; i++) { if (cat[i] === 3) catSkin++; if (prob && prob[i] > 0.5) probSkin++; }
     if (prob && probSkin < 0.5 * catSkin) prob = null;
     foundSkinStat.cat = catSkin / n; foundSkinStat.prob = prob ? probSkin / n : -1;
+    foundSkinCat.set(cat);
     if (prob) {
       // Soft skin share: smoothstep over the face-skin probability, then also zero where hair (1) clearly wins.
       const lo = TUNING.foundSkinProb[0], hi = TUNING.foundSkinProb[1];
@@ -2216,6 +2935,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       if (foundSkinBin[py * mw + px] > 127) hit++;
     }
     foundOcc = smooth01(TUNING.foundOccCover[0], TUNING.foundOccCover[1], hit / FOUND_COVER_PTS.length);
+    updateJawOcc(mw, mh);
     const first = !foundSkinReady;
     for (let i = 0; i < n; i++) {
       const next = foundSkinBin[i];
@@ -2232,11 +2952,26 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     updateOccGates(mw, mh, cat);
     renderer.uploadFoundSkin(foundSkinRgba, mw, mh);
   }
+  // Jawline floor per side (uJawFloor): the fresh mask must call every jaw point (pulled 15% toward the cheek, off the
+  // mask's soft rim) face skin before the floor turns on; hair or a hand over that jaw turns it off at the next mask.
+  function updateJawOcc(mw, mh) {
+    for (let side = 0; side < 2; side++) {
+      const cheek = side ? 280 : 50;
+      let hit = 0;
+      for (const i of JAW_COVER_PTS[side]) {
+        const qx = sx[i] + (sx[cheek] - sx[i]) * 0.15, qy = sy[i] + (sy[cheek] - sy[i]) * 0.15;
+        const px = clamp(Math.floor(qx * mw), 0, mw - 1), py = clamp(Math.floor(qy * mh), 0, mh - 1);
+        if (foundSkinBin[py * mw + px] > 127) hit++;
+      }
+      jawOcc[side] = smooth01(0.8, 1.0, hit / JAW_COVER_PTS[side].length);
+    }
+  }
   function occMakeupOn() {
     return !!(makeup.lip || makeup.blush || makeup.eyeshadow || makeup.eyeliner || makeup.mascara || makeup.highlighter || makeup.contour);
   }
   function wantSkinMask() {
-    return !!(makeup.foundation || (TUNING.makeupOcclusion && occMakeupOn()));
+    const jawline = !!makeup.contour;
+    return !!(makeup.foundation || jawline || (TUNING.makeupOcclusion && occMakeupOn()));
   }
   function occPointOk(cat, allowAccessory) {
     return cat === 3 || (allowAccessory && cat === 5);
@@ -2556,11 +3291,15 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     'uniform vec3 uShadow2Albedo; uniform float uShadow2Cov; uniform vec3 uInnerAlbedo; uniform float uInnerCov;',
     'uniform sampler2D uMask3; uniform vec4 uHlAreas; uniform float uHlLegacy; uniform vec3 uSkinColor;',
     'uniform vec4 uLipCenter; uniform float uCenterHalf; uniform float uCenterHl;',
-    'uniform sampler2D uMask2; uniform vec3 uHlAlbedo; uniform float uHlCov; uniform float uHlFlake; uniform vec3 uContourAlbedo; uniform float uContourCov;',
+    'uniform sampler2D uMask2; uniform vec3 uHlAlbedo; uniform float uHlCov; uniform float uHlFlake; uniform vec3 uContourAlbedo; uniform float uContourCov; uniform vec2 uVolume; uniform float uVolLight;',
+    // Default -> personalized shading: the previous mask (unit 8) mixed in for contourFadeMs. Absent on a device with < 9 texture units.
+    '#ifdef XFADE',
+    'uniform sampler2D uMask2Prev; uniform float uContourMix;',
+    '#endif',
     'uniform vec3 uFoundAlbedo; uniform float uFoundCov; uniform float uFoundOpaque; uniform float uFoundShadeMax; uniform vec2 uFoundHair; uniform vec2 uFoundTone; uniform sampler2D uFoundSkin; uniform float uFoundSkinOn; uniform float uFoundFloor; uniform vec2 uFoundLowerV; uniform float uOccOn; uniform vec3 uOccGate; uniform vec3 uBrowAlbedo; uniform float uBrowCov; uniform float uBrowPowder; uniform float uBrowLift; uniform float uBrowSoft;',
     'uniform vec2 uBrowSkin[12]; uniform vec2 uBrowHead[2]; uniform vec2 uBrowTail[2];',
-    'uniform vec3 uFaceRough; uniform float uFaceSheen; uniform float uEyeHole; uniform float uCap; uniform float uCapFade; uniform float uPowderTint;',
-    'uniform sampler2D uEye; uniform vec4 uEyeRect; uniform vec3 uLinerAlbedo; uniform float uLinerCov; uniform float uLinerAA; uniform float uLinerSoft; uniform vec3 uMascaraAlbedo; uniform float uMascaraCov; uniform float uEyeSoft;',
+    'uniform vec3 uFaceRough; uniform float uFaceSheen; uniform float uEyeHole; uniform float uCap; uniform float uCapFade; uniform float uPowderTint; uniform vec2 uJawFloor; uniform float uContourDebug; uniform float uJawCap; uniform float uJawCullOn; uniform float uJawYaw;',
+    'uniform sampler2D uEye; uniform sampler2D uBrowTex; uniform vec4 uEyeRect; uniform vec3 uLinerAlbedo; uniform float uLinerCov; uniform float uLinerAA; uniform float uLinerSoft; uniform vec3 uMascaraAlbedo; uniform float uMascaraCov; uniform float uEyeSoft;',
     'uniform float uSpecMax; uniform float uFlakeDensity; uniform float uFlakeScale;',
     'uniform vec2 uTexel; uniform float uLipRed; uniform float uSkinRed; uniform float uRefine;',
     'uniform float uLipDetailGain; uniform float uLipGlint; uniform float uGlintThreshold;',
@@ -2598,10 +3337,15 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '  vec2 p = (s - uOutlineRect.xy) / uOutlineRect.zw;',
     '  return (p.x < 0.0 || p.y < 0.0 || p.x > 1.0 || p.y > 1.0) ? 0.0 : texture2D(uOutline, p).b;',
     '}',
-    // Screen-space eye canvas (video coordinates): r = eyeliner, g = mascara or brow (AR mascara is off), b = inner-corner pearl.
-    'vec3 eyeAt(vec2 s) {',
+    // Screen-space eye canvas (video coordinates): r = eyeliner, g = mascara, b = inner-corner pearl, a = brow.
+    'vec4 eyeAt(vec2 s) {',
     '  vec2 p = (s - uEyeRect.xy) / uEyeRect.zw;',
-    '  return (p.x < 0.0 || p.y < 0.0 || p.x > 1.0 || p.y > 1.0) ? vec3(0.0) : texture2D(uEye, p).rgb;',
+    '  return (p.x < 0.0 || p.y < 0.0 || p.x > 1.0 || p.y > 1.0) ? vec4(0.0) : texture2D(uEye, p);',
+    '}',
+    // Brow paint: its own canvas (green), same rectangle as the eye canvas.
+    'float browAt(vec2 s) {',
+    '  vec2 p = (s - uEyeRect.xy) / uEyeRect.zw;',
+    '  return (p.x < 0.0 || p.y < 0.0 || p.x > 1.0 || p.y > 1.0) ? 0.0 : texture2D(uBrowTex, p).g;',
     '}',
     'float formAt(vec2 s) {',
     '  vec2 p = (s - uOutlineRect.xy) / uOutlineRect.zw;',
@@ -2764,13 +3508,28 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '  vec4 m2 = texture2D(uMask2, vUv, uMaskBias);',
     '  vec4 m3 = texture2D(uMask3, vUv, uMaskBias);',
     '  float hlMask = uHlLegacy > 0.5 ? m2.r : clamp(dot(m3, uHlAreas), 0.0, 1.0);',
-    '  float hlA = hlMask * uHlCov; float contourA = m2.g * uContourCov; float darkA = m2.b * uShadow2Cov;',
+    '  float cg = m2.g;',
+    '#ifdef XFADE',
+    '  if (uContourMix < 0.999) cg = mix(texture2D(uMask2Prev, vUv, uMaskBias).g, m2.g, uContourMix);',
+    '#endif',
+    '  float hlA = hlMask * uHlCov; float contourA = cg * uContourCov; float darkA = m2.b * uShadow2Cov;',
+    // Turned head: the far jaw's UV stretches onto the near cheek. Drop that side. Nose shading stays (uJawCullOn is 0).
+    '  if (uJawCullOn > 0.5) {',
+    // Jaw part of the atlas = all but the nose box (|u - 0.5| < 0.14, v > 0.34): the nose shading wraps the nostril wing down to
+    // v 0.41, and the jaw ribbon never comes within |u - 0.5| < 0.3 above v 0.3. The turn cull and the floor must not touch the nose.
+    '    float jawZone = 1.0 - smoothstep(0.28, 0.34, vUv.y) * (1.0 - smoothstep(0.14, 0.18, abs(vUv.x - 0.5)));',
+    '    float hideL = smoothstep(0.08, 0.25, uJawYaw) * (1.0 - smoothstep(0.42, 0.52, vUv.x));',
+    '    float hideR = smoothstep(0.08, 0.25, -uJawYaw) * smoothstep(0.48, 0.58, vUv.x);',
+    '    contourA *= 1.0 - max(hideL, hideR) * jawZone;',
+    // Skin mask cuts hair / neck / background; uJawFloor keeps a lagging mask edge from emptying an uncovered jaw side.
+    '    if (uFoundSkinOn > 0.5) contourA *= mix(1.0, max(texture2D(uFoundSkin, suv).r, vUv.x < 0.5 ? uJawFloor.x : uJawFloor.y), jawZone);',
+    '  }',
     '  float foundA = m2.a * uFoundCov;',
-    // Softened by the camera's own blur like the lip outline: crisp 1 px lashes on a soft phone image
-    // read as pasted on.
+    // Softened by the camera's own blur like the lip outline. Now used only by the inner-corner pearl (b); the lashes (g) and
+    // the liner (r) are read sharp below (11-06, user: no blur on the lashes).
     // 3×3 binomial at the measured blur width (5 taps at half of it still left lashes crisp on a
     // σ 2.5 px blurred frame); only read where the eye canvas is on.
-    '  vec3 eyeC = vec3(0.0);',
+    '  vec4 eyeC = vec4(0.0);',
     '  if (uEyeRect.x > -1.0) {',
     '    vec2 eo = uTexel * uEyeSoft;',
     '    eyeC = 4.0 * eyeAt(suv)',
@@ -2796,16 +3555,34 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     // The wide read alone would just fade a thin line; boost it so the spread pigment stays dark near the line.
     '    linerR = max(linerR, mix(linerR, min(wide * (1.0 + 2.5 * uLinerSoft), 1.0), uLinerSoft));',
     '  }',
-    '  float linerA = linerR * uLinerCov; float mascaraA = eyeC.g * uMascaraCov; float innerA = eyeC.b * uInnerCov;',
-    '  float browG = eyeC.g;',
+    // Mascara and attached lashes (11-06, user: no camera blur, sharp): the camera-matched read above cut a 1 px strand
+    // to a quarter of its darkness (headless: mascara on vs off darkened no pixel by 40/255). Same read as the liner:
+    // half-texel anti-aliasing against stair steps only (no widening), then a texel the strand covers past about half is opaque.
+    '  float lashG = 0.0;',
+    '  if (uEyeRect.x > -1.0) {',
+    '    vec2 lo = uTexel * uLinerAA;',
+    '    lashG = (4.0 * eyeAt(suv).g + eyeAt(suv + vec2(lo.x, 0.0)).g + eyeAt(suv - vec2(lo.x, 0.0)).g + eyeAt(suv + vec2(0.0, lo.y)).g + eyeAt(suv - vec2(0.0, lo.y)).g) / 8.0;',
+    '    lashG = min(1.0, lashG * 1.35);',   // 11-07: no opaque snap (it made every strand a blunt black line)
+    '  }',
+    '  float linerA = linerR * uLinerCov; float mascaraA = lashG * uMascaraCov; float innerA = eyeC.b * uInnerCov;',
+    '  float browG = uEyeRect.x > -1.0 ? browAt(suv) : 0.0;',
     '  if (uBrowCov > 0.0 && uEyeRect.x > -1.0) {',
     '    vec2 bo = uTexel * uBrowSoft;',
-    '    browG = (4.0 * eyeC.g + 2.0 * (eyeAt(suv + vec2(bo.x, 0.0)).g + eyeAt(suv - vec2(bo.x, 0.0)).g + eyeAt(suv + vec2(0.0, bo.y)).g + eyeAt(suv - vec2(0.0, bo.y)).g)',
-    '      + eyeAt(suv + bo).g + eyeAt(suv - bo).g + eyeAt(suv + vec2(bo.x, -bo.y)).g + eyeAt(suv + vec2(-bo.x, bo.y)).g) / 16.0;',
+    '    browG = (4.0 * browAt(suv) + 2.0 * (browAt(suv + vec2(bo.x, 0.0)) + browAt(suv - vec2(bo.x, 0.0)) + browAt(suv + vec2(0.0, bo.y)) + browAt(suv - vec2(0.0, bo.y)))',
+    '      + browAt(suv + bo) + browAt(suv - bo) + browAt(suv + vec2(bo.x, -bo.y)) + browAt(suv + vec2(-bo.x, bo.y))) / 16.0;',
     '  }',
     '  float browA = browG * uBrowCov * mix(0.9, 1.0, clamp(normalize(vNormal).z, 0.0, 1.0));',
     // Eye-opening triangles carry only lashes (no shadow feather or lip band on the eyeball).
-    '  if (uCap > 0.5) { m = vec4(0.0); blushA = 0.0; shadowA = 0.0; lipZone = 0.0; hlA = 0.0; contourA = 0.0; linerA = 0.0; mascaraA = 0.0; darkA = 0.0; innerA = 0.0; browA = 0.0; foundA = vUv.y * (1.0 - smoothstep(uCapFade, 1.0, vUv.x)) * uFoundCov; }',
+    '  if (uCap > 0.5) {',
+    '    m = vec4(0.0); blushA = 0.0; shadowA = 0.0; lipZone = 0.0; hlA = 0.0; contourA = 0.0; linerA = 0.0; mascaraA = 0.0; darkA = 0.0; innerA = 0.0; browA = 0.0;',
+    '    foundA = vUv.y * (1.0 - smoothstep(uCapFade, 1.0, vUv.x)) * uFoundCov;',
+    '  }',
+    // Jawline skirt (outside the mesh): ribbon weight at the outline (vUv.y), fading outward (vUv.x); face skin only, no floor.
+    '  if (uJawCap > 0.5) {',
+    '    m = vec4(0.0); blushA = 0.0; shadowA = 0.0; lipZone = 0.0; hlA = 0.0; linerA = 0.0; mascaraA = 0.0; darkA = 0.0; innerA = 0.0; browA = 0.0; foundA = 0.0;',
+    '    contourA = vUv.y * (1.0 - smoothstep(0.35, 1.0, vUv.x)) * uContourCov;',
+    '    contourA *= uFoundSkinOn > 0.5 ? texture2D(uFoundSkin, suv).r : 0.0;',
+    '  }',
     '  if (uEyeHole > 0.5) { blushA = 0.0; shadowA = 0.0; lipZone = 0.0; hlA = 0.0; contourA = 0.0; linerA = 0.0; darkA = 0.0; innerA = 0.0; foundA = 0.0; browA = 0.0; }',
     '  if (lipZone + blushA + shadowA + hlA + contourA + linerA + mascaraA + darkA + innerA + foundA + browA < 0.002) discard;',
     '  vec3 cam = toLin(texture2D(uVideo, suv).rgb);',
@@ -2860,14 +3637,24 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '        float redT = max(redness(cam), uMouthOpen * zone.x > 0.5 ? rA : redN);',
     '        float raw = (1.0 - smoothstep(uTeethRed.x * uLipRed, uTeethRed.y * uLipRed, redT)) * smoothstep(uTeethBright.x, uTeethBright.y, lN / meanL0);',
     '        teethW = smoothstep(uTeethFirm.x, uTeethFirm.y, raw) * zone.y;',
+    '        if (uMouthOpen * zone.x > 0.5) {',
+    '          float hiC = max(cam.r, max(cam.g, cam.b));',
+    '          float satC = (hiC - min(cam.r, min(cam.g, cam.b))) / max(hiC, 1e-4);',
+    '          float holePale = 1.0 - smoothstep(uTeethSat.x, uTeethSat.y, satC);',
+    '          float holeNotRed = 1.0 - smoothstep(uTeethRed.x * uLipRed, uTeethRed.y * uLipRed, redness(cam));',
+    '          teethW = max(teethW, holePale * holeNotRed);',
+    '        }',
     '      }',
     '    }',
     // Outer edge and open-mouth hole from the screen-space outline, softened as much as the camera
     // image is blurred; the UV mask only adds the inner and corner fades. No per-pixel redness test:
     // at close range it grew lumps along the line (10-25). Reflections are inside the outline, so lip.
     '    vec2 so = uTexel * uOutlineSoft;',
-    '    float inside = (2.0 * outlineAt(suv) + outlineAt(suv + vec2(so.x, 0.0)) + outlineAt(suv - vec2(so.x, 0.0))',
+    '    float o0 = outlineAt(suv);',
+    '    float soft = (2.0 * o0 + outlineAt(suv + vec2(so.x, 0.0)) + outlineAt(suv - vec2(so.x, 0.0))',
     '      + outlineAt(suv + vec2(0.0, so.y)) + outlineAt(suv - vec2(0.0, so.y))) / 6.0;',
+    // Open mouth: do not let the 5-tap average smear paint into the hole (teeth / inner mouth).
+    '    float inside = mix(soft, o0, uMouthOpen * (1.0 - smoothstep(0.18, 0.55, o0)));',
     '    lipM = m.r * inside * (1.0 - teethW);',
     // Open mouth, along the inner line only (outline G): teeth (redness under the lip/skin midpoint, pale, not a small
     // peak like a lip reflection) and the dark mouth come out of the paint.
@@ -2918,7 +3705,8 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '  if (uOccOn > 0.5) {',
     '    float occSkin = texture2D(uFoundSkin, suv).r;',
     '    lipM *= mix(occSkin, 1.0, uOccGate.x);',
-    '    blushA *= mix(occSkin, 1.0, uOccGate.z); hlA *= mix(occSkin, 1.0, uOccGate.z); contourA *= mix(occSkin, 1.0, uOccGate.z);',
+    '    blushA *= mix(occSkin, 1.0, uOccGate.z); hlA *= mix(occSkin, 1.0, uOccGate.z);',
+    '    contourA *= mix(occSkin, 1.0, uOccGate.z);',
     '    shadowA *= mix(occSkin, 1.0, uOccGate.y); linerA *= mix(occSkin, 1.0, uOccGate.y); mascaraA *= mix(occSkin, 1.0, uOccGate.y);',
     '    darkA *= mix(occSkin, 1.0, uOccGate.y); innerA *= mix(occSkin, 1.0, uOccGate.y);',
     '  }',
@@ -2947,7 +3735,12 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '    vec3 film = cam * sqrt(clamp(uFoundAlbedo / uPaperWhite, 0.0, 1.0));',
     '    col = mix(col, mix(film, pigment, uFoundOpaque), foundA);',
     '  }',
+    // Volume: 0 where the surface turns away, 1 where it faces the camera (blended toward the light by trust in it).
+    '  float volFace = mix(clamp(n.z, 0.0, 1.0), clamp(dot(n, l), 0.0, 1.0), uLightConf * uVolLight);',
+    '  contourA *= clamp(1.0 + uVolume.x * (0.7 - volFace), 0.6, 1.5);',
+    '  hlA *= clamp(1.0 + uVolume.y * (volFace - 0.7), 0.7, 1.4);',
     '  if (contourA > 0.002) col = mix(col, powder(cam, uContourAlbedo), contourA);',
+    '  if (uContourDebug > 0.5) col = mix(col, uJawCap > 0.5 ? vec3(0.0, 1.0, 1.0) : vec3(1.0, 0.0, 1.0), clamp(contourA * 1.25, 0.0, 1.0));',
     '  if (blushA > 0.002) col = mix(col, powder(cam, uBlushAlbedo), blushA) + uBlushAlbedo * uLightColor * powderSheen(n, l, v, uFaceRough.x) * blushA;',
     // Highlighter: a little of its light color, then its own sheen and shimmer where the face meets the light.
     '  if (hlA > 0.002) {',
@@ -3199,7 +3992,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       return { p, u };
     }
     const bg = program(BG_VERT, BG_FRAG, ['uVideo']);
-    const mesh = program(MESH_VERT, MESH_FRAG, ['uVideo', 'uMask', 'uViewport', 'uLightColor', 'uLightDir', 'uLightSH', 'uLightModel',
+    const MESH_UNIFORMS = ['uVideo', 'uMask', 'uViewport', 'uLightColor', 'uLightDir', 'uLightSH', 'uLightModel',
       'uLightStrength', 'uLightConf', 'uExposure', 'uLipMeanLum', 'uSkinMeanLum', 'uLipAlbedo', 'uLipCov',
       'uLipRough', 'uLipSpec', 'uLipFlake', 'uLipOn', 'uBlushAlbedo', 'uBlushCov', 'uBlushDyn', 'uBlushE0', 'uBlushR0', 'uBlushE1', 'uBlushR1', 'uBlushInner', 'uPearl', 'uShadowAlbedo', 'uShadowCov',
       'uShadowFlake', 'uShadowFlakeScale', 'uShadowFlakeDensity', 'uShadowSpec',
@@ -3213,9 +4006,16 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       'uHlLocal', 'uHlSat', 'uHlBlown', 'uOpaqueShadeGamma', 'uLipFill', 'uLipDetail', 'uDetailNoise', 'uHlSparkle', 'uWideDetail', 'uGlossAniso', 'uGlossCavity', 'uInner', 'uTeethReach', 'uTeethRed', 'uTeethBright', 'uTeethFirm', 'uTeethOn', 'uMouthOpen',
       'uTeethGuard', 'uTeethSat', 'uTeethDark',
       'uShadow2Albedo', 'uShadow2Cov', 'uInnerAlbedo', 'uInnerCov', 'uMask3', 'uHlAreas', 'uHlLegacy', 'uSkinColor',
-      'uLipCenter', 'uCenterHalf', 'uCenterHl', 'uMask2', 'uHlAlbedo', 'uHlCov', 'uHlFlake', 'uContourAlbedo', 'uContourCov', 'uFaceRough', 'uFaceSheen', 'uEyeHole', 'uCap', 'uCapFade', 'uPowderTint',
-      'uEye', 'uEyeRect', 'uLinerAlbedo', 'uLinerCov', 'uLinerAA', 'uLinerSoft', 'uMascaraAlbedo', 'uMascaraCov', 'uEyeSoft',
-      'uFoundAlbedo', 'uFoundCov', 'uFoundOpaque', 'uFoundShadeMax', 'uFoundHair', 'uFoundTone', 'uFoundSkin', 'uFoundSkinOn', 'uFoundFloor', 'uFoundLowerV', 'uOccOn', 'uOccGate', 'uBrowAlbedo', 'uBrowCov', 'uBrowPowder', 'uBrowLift', 'uBrowSoft', 'uBrowSkin', 'uBrowHead', 'uBrowTail']);
+      'uLipCenter', 'uCenterHalf', 'uCenterHl', 'uMask2', 'uHlAlbedo', 'uHlCov', 'uHlFlake', 'uContourAlbedo', 'uContourCov', 'uVolume', 'uVolLight', 'uFaceRough', 'uFaceSheen', 'uEyeHole', 'uCap', 'uCapFade', 'uPowderTint', 'uJawFloor', 'uContourDebug', 'uJawCap', 'uJawCullOn', 'uJawYaw',
+      'uEye', 'uBrowTex', 'uEyeRect', 'uLinerAlbedo', 'uLinerCov', 'uLinerAA', 'uLinerSoft', 'uMascaraAlbedo', 'uMascaraCov', 'uEyeSoft',
+      'uFoundAlbedo', 'uFoundCov', 'uFoundOpaque', 'uFoundShadeMax', 'uFoundHair', 'uFoundTone', 'uFoundSkin', 'uFoundSkinOn', 'uFoundFloor', 'uFoundLowerV', 'uOccOn', 'uOccGate', 'uBrowAlbedo', 'uBrowCov', 'uBrowPowder', 'uBrowLift', 'uBrowSoft', 'uBrowSkin', 'uBrowHead', 'uBrowTail', 'uMask2Prev', 'uContourMix'];
+    // The cross-fade needs a 9th fragment texture unit (the spec minimum is 8; phones report 16). If the variant does not compile or
+    // link the plain program is used and the shading changes in stepped repaints instead: never a black screen.
+    let mesh = null, xfadeOn = false;
+    if (TUNING.shadePersonalize && gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS) >= 9) {
+      try { mesh = program(MESH_VERT, '#define XFADE' + NL + MESH_FRAG, MESH_UNIFORMS); xfadeOn = true; } catch (e) { mesh = null; }
+    }
+    if (!mesh) mesh = program(MESH_VERT, MESH_FRAG, MESH_UNIFORMS);
     const bgPos = gl.getAttribLocation(bg.p, 'aPos');
     const aPos = gl.getAttribLocation(mesh.p, 'aPos');
     const aUv = gl.getAttribLocation(mesh.p, 'aUv');
@@ -3240,6 +4040,10 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     const capNrmBuf = buffer(gl.ARRAY_BUFFER, capNrm, gl.DYNAMIC_DRAW);
     const capUvBuf = buffer(gl.ARRAY_BUFFER, capUv, gl.STATIC_DRAW);
     const capIdxBuf = buffer(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(capIdx), gl.STATIC_DRAW);
+    const jawPosBuf = buffer(gl.ARRAY_BUFFER, jawPos, gl.DYNAMIC_DRAW);
+    const jawNrmBuf = buffer(gl.ARRAY_BUFFER, jawNrm, gl.DYNAMIC_DRAW);
+    const jawUvBuf = buffer(gl.ARRAY_BUFFER, jawUv, gl.DYNAMIC_DRAW);
+    const jawIdxBuf = buffer(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(jawIdx), gl.STATIC_DRAW);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
 
     const videoTex = gl.createTexture();
@@ -3271,6 +4075,57 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
+    // Previous shading mask for the cross-fade (unit 8): the same data as mask 2 until a transition starts.
+    const mask2PrevTex = xfadeOn ? gl.createTexture() : null;
+    function uploadPrev(data) {
+      gl.activeTexture(gl.TEXTURE8);
+      gl.bindTexture(gl.TEXTURE_2D, mask2PrevTex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, masks.size, masks.size, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.activeTexture(gl.TEXTURE0);
+    }
+    if (xfadeOn) uploadPrev(masks.rgba2);
+    function uploadMask2() {
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D, mask2Tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, masks.size, masks.size, 0, gl.RGBA, gl.UNSIGNED_BYTE, masks.rgba2);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.activeTexture(gl.TEXTURE0);
+    }
+    // Default -> personalized shading (11-06). The default is already on the screen; a measured face shape starts a background job
+    // (a few ms per frame) and, when it is done, the mask changes over contourFadeMs: a GPU mix of the previous and the new mask, or
+    // (fewer than 9 texture units) three stepped repaints. Nothing here waits for the analysis; a failed analysis changes nothing.
+    const shade = { fitFor: null, phase: 'default', fadeAt: 0, step: 0 };
+    function shadeStep(now) {
+      if (shade.fitFor !== faceFitState) {
+        shade.fitFor = faceFitState;
+        if (faceFitState) { masks.startPersonal(faceFitState.fit); shade.phase = 'building'; }
+      }
+      if (shade.phase === 'building' && masks.personalReady()) {
+        shade.fadeAt = now; shade.step = 0;
+        if (xfadeOn) { uploadPrev(masks.snapshotPrev()); masks.setAuto('personal'); uploadMask2(); shade.phase = 'fading'; }
+        else shade.phase = 'stepping';
+      }
+      if (shade.phase === 'stepping') {
+        const want = Math.min(3, Math.ceil(3 * (now - shade.fadeAt) / Math.max(1, TUNING.contourFadeMs)));
+        if (want > shade.step) {
+          if (want >= 3) masks.setAuto('personal'); else masks.blendAuto(want / 3);
+          uploadMask2(); shade.step = want;
+        }
+        if (shade.step >= 3) shade.phase = 'personalized';
+      }
+      if (shade.phase === 'fading' && now - shade.fadeAt >= TUNING.contourFadeMs) shade.phase = 'personalized';
+    }
+    function contourMix(now) {
+      if (shade.phase !== 'fading') return 1;
+      const t = Math.min(1, Math.max(0, (now - shade.fadeAt) / Math.max(1, TUNING.contourFadeMs)));
+      return t * t * (3 - 2 * t);
+    }
+
     // Selectable highlighter areas (mask 3), painted once.
     const mask3Tex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE6);
@@ -3291,6 +4146,17 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    // Brow canvas (green), its own texture so the eye canvas never needs an alpha channel.
+    const browTex = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE9);
+    gl.bindTexture(gl.TEXTURE_2D, browTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.activeTexture(gl.TEXTURE0);
 
     // Blurred lip form field, refreshed with the outline.
     const formTex = gl.createTexture();
@@ -3350,6 +4216,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
 
     return {
       name: version,
+      shadeInfo: () => ({ phase: shade.phase, xfade: xfadeOn, mix: contourMix(performance.now()), job: masks ? masks.jobInfo() : null }),
       get lost() { return lost; },
       // Snapshot the current camera frame before detection, so image and landmarks are the same frame.
       upload() {
@@ -3387,11 +4254,31 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         const liner = makeup.eyeliner || null;
         const browZ = makeup.brow || null;
         const foundZ = makeup.foundation || null;
-        // Mascara stays look-only (10-27). Highlighter and contour paint when the AR tab sets them.
-        const mascara = null;
+        // Mascara paints on celebrity/style looks. Explore chips never set it.
+        const mascara = makeup.mascara || null;
         const hl = makeup.highlighter || null;
         const contourZ = makeup.contour || null;
+        // The shading jobs (default warm-up, personalized mask) run a few ms per frame, with or without a face.
+        if (masks && masks.stepJob) masks.stepJob(TUNING.jobBudgetMs);
         if (!hasFace) return false;
+        if (TUNING.faceFit && (hl || contourZ)) {
+          guard('measure', () => faceFitStep(performance.now(), W, H));
+          const hlStyle = hl && hl.geometry && hl.geometry.hlStyle || '';
+          const coStyle = contourZ ? 'auto' : '';
+          const key = hlStyle + '|' + coStyle + '|' + (faceFitState ? faceFitState.rec.join() : 'none');
+          if (key !== faceFitKey && masks && masks.repaintHlContour) {
+            faceFitKey = key;
+            guard('repaint', () => {
+              masks.repaintHlContour(hlStyle, coStyle, faceFitState ? faceFitState.fit : null);
+              gl.activeTexture(gl.TEXTURE2);
+              gl.bindTexture(gl.TEXTURE_2D, mask2Tex);
+              gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, masks.size, masks.size, 0, gl.RGBA, gl.UNSIGNED_BYTE, masks.rgba2);
+              gl.generateMipmap(gl.TEXTURE_2D);
+              gl.activeTexture(gl.TEXTURE0);
+            });
+          }
+          if (TUNING.shadePersonalize && contourZ && masks) guard('shade', () => shadeStep(performance.now()));
+        }
         if (!(lip || blush || eye || liner || browZ || foundZ || mascara || hl || contourZ)) {
           if ((checkCommand || checkRestore) && gl.getError() !== gl.NO_ERROR) throw new Error('AR render failed');
           return !!checkRestore;
@@ -3417,16 +4304,33 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         gl.activeTexture(gl.TEXTURE2);
         gl.bindTexture(gl.TEXTURE_2D, mask2Tex);
         gl.uniform1i(u.uMask2, 2);
+        if (mask2PrevTex) {
+          gl.activeTexture(gl.TEXTURE8);
+          gl.bindTexture(gl.TEXTURE_2D, mask2PrevTex);
+          gl.uniform1i(u.uMask2Prev, 8);
+          gl.activeTexture(gl.TEXTURE0);
+          gl.uniform1f(u.uContourMix, contourMix(performance.now()));
+        }
         const innerPt = eye && eye.geometry && eye.geometry.innerPoint ? eye.geometry.innerPoint : null;
         const eyesOn = liner || mascara || innerPt || browZ ? drawEyes(W, H, liner, mascara, eye, browZ) : false;
+        eyeDbg.liner = liner ? liner.hex : '-'; eyeDbg.mascara = mascara ? mascara.hex : '-';
+        eyeDbg.lashes = mascara && mascara.geometry && Array.isArray(mascara.geometry.falseLash) ? mascara.geometry.falseLash.length : 0;
+        eyeDbg.on = !!eyesOn; eyeDbg.cw = eyeCanvas.width; eyeDbg.ch = eyeCanvas.height;
         gl.activeTexture(gl.TEXTURE5);
         gl.bindTexture(gl.TEXTURE_2D, eyeTex);
         if (eyesOn) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, eyeCanvas);
         gl.uniform1i(u.uEye, 5);
+        gl.activeTexture(gl.TEXTURE9);
+        gl.bindTexture(gl.TEXTURE_2D, browTex);
+        if (eyesOn && browZ) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, browCanvas);
+        gl.uniform1i(u.uBrowTex, 9);
+        gl.activeTexture(gl.TEXTURE5);   // leave the active unit as before this texture existed
         if (eyesOn) gl.uniform4f(u.uEyeRect, eyeRect[0], eyeRect[1], eyeRect[2], eyeRect[3]);
         else gl.uniform4f(u.uEyeRect, -2, -2, 1, 1);
         gl.uniform1f(u.uEyeHole, 0);
         gl.uniform1f(u.uCap, 0);
+        gl.uniform1f(u.uContourDebug, TUNING.contourDebug ? 1 : 0);
+        gl.uniform1f(u.uJawCap, 0);
         // With the skin mask the hairline is cut per pixel, so the cap's own top fade moves up out of the visible forehead.
         gl.uniform1f(u.uCapFade, foundZ && foundSkinReady ? TUNING.foundCapFadeMasked : TUNING.foundCapFade);
         gl.uniform1f(u.uEyeSoft, Math.max(0.6, 0.9 * light.blur));
@@ -3451,18 +4355,21 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         gl.uniform1f(u.uHlCov, hl ? clamp01(hl.intensity) * TUNING.hlCoverage * hlGain : 0);
         gl.uniform1f(u.uHlFlake, hl ? hlMat.flake * TUNING.shimmerFlake * clamp01(hl.intensity) : 0);
         gl.uniform3f(u.uContourAlbedo, contourAlb[0], contourAlb[1], contourAlb[2]);
-        gl.uniform1f(u.uContourCov, contourZ ? clamp01(contourZ.intensity) * TUNING.contourCoverage : 0);
+        gl.uniform2f(u.uVolume, TUNING.hlContourVolume ? TUNING.volumeGain[0] : 0, TUNING.hlContourVolume ? TUNING.volumeGain[1] : 0);
+        gl.uniform1f(u.uVolLight, TUNING.volumeLight);
+        const jawShade = !!contourZ;
+        gl.uniform1f(u.uContourCov, contourZ ? clamp01(contourZ.intensity) * (jawShade ? 0.85 : TUNING.contourCoverage) : 0);
         const eyeFinish = shadowFinish(eye);
         gl.uniform3f(u.uFaceRough, blushMat.roughness, eyeFinish.roughness, hlMat.roughness);
         gl.uniform1f(u.uFaceSheen, TUNING.faceSheen);
-        gl.uniform1f(u.uPowderTint, TUNING.powderTint);
+        gl.uniform1f(u.uPowderTint, jawShade ? 0.32 : TUNING.powderTint);
         gl.uniform3f(u.uLinerAlbedo, linerAlb[0], linerAlb[1], linerAlb[2]);
         const linerGeo = liner ? Object.assign({}, TUNING.liner, liner.geometry || {}) : null;
         gl.uniform1f(u.uLinerCov, liner ? EYELINER_DARK.opacity : 0);
         gl.uniform1f(u.uLinerAA, 0.5);
         gl.uniform1f(u.uLinerSoft, liner ? clamp01(linerGeo.linerSoftness || 0) : 0);
         gl.uniform3f(u.uMascaraAlbedo, mascaraAlb[0], mascaraAlb[1], mascaraAlb[2]);
-        gl.uniform1f(u.uMascaraCov, mascara ? 0.5 + 0.45 * clamp01(mascara.intensity) : 0);
+        gl.uniform1f(u.uMascaraCov, mascara ? 0.55 + 0.35 * clamp01(mascara.intensity) : 0);
         const foundAlb = foundZ ? hexToLinear(foundZ.hex) : [0, 0, 0];
         gl.uniform3f(u.uFoundAlbedo, foundAlb[0], foundAlb[1], foundAlb[2]);
         const foundC = foundZ ? clamp01(foundZ.intensity) : 0;
@@ -3475,7 +4382,14 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         gl.activeTexture(gl.TEXTURE7);
         gl.bindTexture(gl.TEXTURE_2D, foundSkinTex);
         gl.uniform1i(u.uFoundSkin, 7);
-        gl.uniform1f(u.uFoundSkinOn, foundZ && foundSkinReady ? 1 : 0);
+        const jawShadeOn = !!contourZ;
+        const jawSpan = Math.max(1e-4, Math.abs(sx[234] - sx[454]));
+        const jawYaw = (sz[234] - sz[454]) / jawSpan;
+        gl.uniform1f(u.uJawCullOn, jawShadeOn ? 1 : 0);
+        gl.uniform1f(u.uJawYaw, jawYaw);
+        gl.uniform1f(u.uFoundSkinOn, (foundZ || jawShadeOn) && foundSkinReady ? 1 : 0);
+        const jawFloor = jawShadeOn && foundSkinReady ? TUNING.jawLowerFloor : 0;
+        gl.uniform2f(u.uJawFloor, jawFloor * jawOcc[0], jawFloor * jawOcc[1]);
         gl.uniform1f(u.uFoundFloor, foundZ && foundSkinReady ? TUNING.foundLowerFloor * foundOcc : 0);
         gl.uniform2f(u.uFoundLowerV, TUNING.foundLowerV[0], TUNING.foundLowerV[1]);
         const occOn = TUNING.makeupOcclusion && foundSkinReady && occMakeupOn();
@@ -3678,6 +4592,24 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, capIdxBuf);
           gl.drawElements(gl.TRIANGLES, capIdx.length, gl.UNSIGNED_SHORT, 0);
           gl.uniform1f(u.uCap, 0);
+        }
+        // Jawline skirt past the mesh outline (both sides; a turned-away side carries weight 0 and is discarded).
+        if (jawShadeOn && foundSkinReady && TUNING.jawSkirt > 0) {
+          gl.uniform1f(u.uEyeHole, 0);
+          gl.uniform1f(u.uJawCap, 1);
+          gl.bindBuffer(gl.ARRAY_BUFFER, jawPosBuf);
+          gl.bufferSubData(gl.ARRAY_BUFFER, 0, jawPos);
+          gl.bindBuffer(gl.ARRAY_BUFFER, jawNrmBuf);
+          gl.bufferSubData(gl.ARRAY_BUFFER, 0, jawNrm);
+          gl.bindBuffer(gl.ARRAY_BUFFER, jawUvBuf);
+          gl.bufferSubData(gl.ARRAY_BUFFER, 0, jawUv);
+          attrib(aPos, jawPosBuf, 3);
+          attrib(aUv, jawUvBuf, 2);
+          attrib(aNormal, jawNrmBuf, 3);
+          if (aLidM >= 0) { gl.disableVertexAttribArray(aLidM); gl.vertexAttrib3f(aLidM, 1, 0, 1); }
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, jawIdxBuf);
+          gl.drawElements(gl.TRIANGLES, jawIdx.length, gl.UNSIGNED_SHORT, 0);
+          gl.uniform1f(u.uJawCap, 0);
         }
         if ((checkCommand || checkRestore) && gl.getError() !== gl.NO_ERROR) throw new Error('AR render failed');
         return checkRestore ? (!lip || outlineOn) : !!lip && outlineOn;
@@ -3912,6 +4844,16 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   document.addEventListener('touchend', onPinchEnd);
   document.addEventListener('touchcancel', onPinchEnd);
   document.addEventListener('dblclick', toggleHud);
+  function faceHud() {
+    if (!TUNING.shadePersonalize) return 'default (personalize off)';
+    return faceFitStatus + ' ' + (faceFitState ? faceFitState.shape + ' ' + faceFitState.conf.toFixed(2) + ' in ' + (faceFitMs / 1000).toFixed(1) + 's/' + faceFitUsed + 'f' : 'measuring ' + (faceFitAcc ? faceFitAcc.n + '/' + TUNING.faceFitFrames + ' rej ' + faceFitAcc.rejected : '-'));
+  }
+  function shadeHud() {
+    const i = renderer && renderer.shadeInfo ? renderer.shadeInfo() : null;
+    if (!i) return '-';
+    const j = i.job || {};
+    return i.phase + (i.xfade ? ' xfade ' + i.mix.toFixed(2) : ' stepped') + ' job ' + (j.running || (j.last ? j.last.label + ' ' + j.last.ms.toFixed(0) + 'ms/' + j.last.steps + ' worst ' + j.last.maxStep.toFixed(1) : 'idle')) + (j.defaultReady ? '' : ' (default building)');
+  }
   function updateHud() {
     if (!hudOn) return;
     const f = (v) => v.toFixed(2);
@@ -3920,6 +4862,9 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       'light rgb ' + light.color.map(f).join(' ') + '  conf ' + f(light.colorConf),
       'bg ' + f(light.bgFraction) + '  seg ' + (segmenter ? 'on' : 'off') + (TUNING.lightColorEdge ? '  edge w ' + f(light.colorEdgeW) : ''),
       'found ' + (makeup.foundation ? 'on ' + makeup.foundation.hex + ' ' + f(makeup.foundation.intensity || 0) : 'off') + '  mask ' + (foundSkinReady ? 'ready' : 'none') + '  skin cat ' + f(foundSkinStat.cat) + ' prob ' + f(foundSkinStat.prob) + '  lower floor ' + f(foundSkinReady ? TUNING.foundLowerFloor * foundOcc : 0) + '  seg call ' + foundSegMs.toFixed(0) + 'ms',
+      'jaw ' + (makeup.contour ? 'shade ' + faceHud() + '  mask ' + shadeHud() + '  floor L ' + f(jawOcc[0]) + ' R ' + f(jawOcc[1]) + '  yaw ' + f((sz[234] - sz[454]) / Math.max(1e-4, Math.abs(sx[234] - sx[454]))) + (TUNING.contourDebug ? '  debug' : '') : 'off'),
+      (guardErrors || renderErrors ? 'ERR guard ' + guardErrors + ' (' + guardLast + ')  render ' + renderErrors + ' (' + renderErrLast + ')' : 'err none'),
+      'eye build ' + EYE_HUD_BUILD + '  liner ' + eyeDbg.liner + '  mascara ' + eyeDbg.mascara + ' lash ' + eyeDbg.lashes + '  a0 ' + alphaZeroColor + '  canvas ' + (eyeDbg.on ? eyeDbg.cw + 'x' + eyeDbg.ch : 'off'),
       'occ ' + (TUNING.makeupOcclusion ? 'on lip ' + f(occGate.lip) + ' eye ' + f(occGate.eye) + ' cheek ' + f(occGate.cheek) : 'off'),
       'dir ' + light.dir.map(f).join(' ') + '  conf ' + f(light.dirConf) + (TUNING.lightMatch ? '  match r2 ' + f(light.matchR2) : '  fit'),
       'light ms ' + lightMs.toFixed(1) + (TUNING.lightDirGlide ? '  glide on' : '') + (TUNING.lightModel === 'sh9' ? '  sh9 ' + (light.shUsed ? 'fit' : 'linear') : ''),
@@ -4013,6 +4958,9 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         pendingRender = null; pendingRestore = null;
       }
     } catch (e) {
+      // Was silent: an exception here means nothing is drawn this frame. Keep the message for the HUD (and the console, once).
+      renderErrors++;
+      if (renderErrLast !== String(e && e.message)) { renderErrLast = String(e && e.message); console.error('AR render: ' + renderErrLast); }
       if (pendingRender || pendingRestore) {
         post(Object.assign({ type: pendingRestore ? 'restore_result' : 'render_result', status: 'failed' }, pendingRestore || pendingRender));
         pendingRender = null; pendingRestore = null;
@@ -4135,6 +5083,8 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
 
     try {
       masks = paintMasks();
+      // The default shading is built in idle slices, so choosing a shading colour finds it ready (else it is built on the spot).
+      masks.startDefault();
       renderer = createGLRenderer();
     } catch (e) {
       renderer = null;

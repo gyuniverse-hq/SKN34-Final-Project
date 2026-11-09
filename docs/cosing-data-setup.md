@@ -5,7 +5,7 @@
 ```text
 식약처 성분 스냅샷 → CosIng 조회 → CSV 2개
                                       ↓
-로컬 PostgreSQL → Alembic 0019 → CSV 검증·적재 → 추천 발행 → API 확인
+로컬 PostgreSQL → develop 기준 Alembic 0018 → CSV 검증·적재 → 추천 발행 → API 확인
 ```
 
 ## 준비물과 전달 파일
@@ -19,7 +19,7 @@
 | `scripts/test/cosing_collect.py` | 재수집이 필요한 팀원에게 별도 전달 | 식약처 성분 조회, CosIng 검색, CSV 내보내기 |
 | `scripts/test/cosing_query_compare.py` | 수집기와 같은 디렉터리에 별도 전달 | 수집기가 쓰는 검색 주소, 요청 생성과 이름 비교 함수 제공 |
 | `scripts/data/recommendation/load_cosing.py` | Git | CSV 검증, 적재 미리보기 및 적용 |
-| `backend/api/alembic/versions/0016`~`0019` 마이그레이션과 `backend/api/seed/recommendation_v03/` | Git | 스키마 이력과 `0018` 필수 시드 |
+| `backend/api/alembic/versions/`와 `backend/api/seed/recommendation_v03/identity.json` | Git | develop 마이그레이션 이력 + CosIng `0018`, 발행 출처 정책 |
 | `cosing_ingredients.csv`, `cosing_function_tags.csv` | 같은 버전의 검수본을 별도 전달 | 성분별 조회 결과 및 기능 태그별 고민 분류 |
 
 수집기 두 파일은 현재 기능 커밋에 포함되지 않았다. 재수집할 때는 두 파일을 함께 받아 같은 상대 경로에 둔다. 수집 CSV, 체크포인트, 보고서, 로컬 덤프, 발행용 JSON은 `tmp/` 등 Git에 올리지 않는 위치에 보관한다.
@@ -57,6 +57,11 @@ uv run --group data python ../../scripts/test/cosing_collect.py --output-dir ../
 
 ## 2. 로컬 DB 마이그레이션
 
+**개발 중 사용한 별도 `0019` DB에는 이 명령을 실행하지 않는다.** 과거 브랜치의
+`0015`~`0018`과 develop의 같은 번호는 내용이 다르다. 파일명 변경이나 `alembic stamp 0018`은
+스키마를 변환하지 않는다. 기존 로컬 DB·덤프는 보존하고 develop 기준의 별도 DB에서 아래 절차를
+진행한다. 기존 DB 전환은 실제 스키마와 데이터를 대조한 별도 작업으로 처리한다.
+
 `DATABASE_URL`을 대상 로컬 DB로 설정한다. 아래는 기본 Docker 호스트 포트 기준 예시다. 비밀번호에는 실제 로컬 값을 URL 인코딩해 사용하고 키와 접속 문자열은 Git에 올리지 않는다.
 
 ```powershell
@@ -67,26 +72,25 @@ uv run alembic heads
 
 | 리비전 | 역할 |
 | --- | --- |
-| `0016` | 구 추천 갱신 상태 테이블과 트리거 제거 |
-| `0017` | 기존 활성 상태와 운영 검수 상태 분리 |
-| `0018` | 추천 근거 스키마 교체 및 버전 고정 시드 설치 |
-| `0019` | `cosing_ingredient_lookup`, `cosing_function`, `ingredient_function`, `function_concern` 생성 |
+| `0015` | develop의 YouTube 상품 테이블 |
+| `0016` | develop의 검증된 추천 규칙 스키마 및 기존 데이터 보관소 |
+| `0017` | develop의 룩 AR geometry 컬럼 |
+| `0018` | `cosing_ingredient_lookup`, `cosing_function`, `ingredient_function`, `function_concern` 생성 및 누락된 7개 고민 코드 보충 |
 
-신규 DB 또는 교체 대상 추천 테이블이 비어 있는 DB에서는 다음을 실행한다. 이미 `0018`이라면 `0019`만 적용된다.
+신규 DB 또는 develop 이력의 DB에서 다음을 실행한다. 이미 develop `0017`이면 새 `0018`만 적용된다.
+`0018`은 기존 고민 문구·연구 매핑·발행본을 교체하지 않는다. `0016` 이전 DB라면 develop의
+`0016` 자체가 기존 연구 데이터를 보관소로 옮기고 이전 발행본을 비우므로 전체 백업 후 적용한다.
 
 ```powershell
-uv run alembic upgrade 0019
+uv run alembic upgrade 0018
 uv run alembic current
 ```
 
-**기존 추천 데이터가 있는 DB에서 `0018`을 처음 적용하는 경우**, 기존 발행기를 먼저 중지하고 추천 테이블과 `skincare_serving`을 포함해 DB를 백업한다. `0018`은 구 추천 데이터를 교체하므로, 해당 로컬 DB에 교체를 의도한 경우에만 명시적으로 실행한다.
-
-```powershell
-uv run alembic -x replace_recommendations=v0.3 upgrade 0019
-uv run alembic current
-```
-
-`0018`을 되돌려야 할 때는 사전 백업에서 복구한다. `0019` 도달 여부를 확인한 뒤 적재로 넘어간다.
+신규 `0018`에는 연구 매핑 교체 옵션이나 연구 데이터 시드가 필요하지 않다. CosIng 적재에는
+대상 DB의 `raw_mfds_ingredient`와 CSV의 성분 ID·이름이 일치해야 하며, 추천 발행에는 기존
+올리브영 상품·옵션·성분 연결 데이터도 필요하다. 스키마만 생성하면 원천 데이터가 채워지는 것은 아니다.
+`0018` downgrade는 CosIng 테이블 4개만 삭제하고 공유 고민 코드는 보존한다.
+현재 리비전이 `0018`임을 확인한 뒤 적재로 넘어간다.
 
 ## 3. CSV 미리보기와 적재
 
