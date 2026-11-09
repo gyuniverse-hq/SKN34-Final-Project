@@ -62,7 +62,8 @@ async def build_snapshot(conn, manifest, manifest_sha256, stats=None):
     options = await conn.fetch("""SELECT o.*, s.sale_price, s.is_sold_out
         FROM raw_oy_product_option o JOIN raw_oy_price_snapshot s USING (option_id)
         WHERE s.is_latest = true""")
-    cosing_links = await conn.fetch("""SELECT oi.option_id, m.mfds_ingredient_id,
+    cosing_links = await conn.fetch(
+        """SELECT oi.option_id, m.mfds_ingredient_id,
         m.oy_ingredient_id, m.match_method AS oy_match_method, m.rule_version,
         m.reviewed_by, cl.match_method AS cosing_match_method, cl.query_name,
         cl.substance_id, mf.name_en, fc.target_concern,
@@ -85,7 +86,9 @@ async def build_snapshot(conn, manifest, manifest_sha256, stats=None):
         GROUP BY oi.option_id, m.mfds_ingredient_id, m.oy_ingredient_id, m.match_method,
         m.rule_version, m.reviewed_by, cl.match_method, cl.query_name,
         cl.substance_id, mf.name_en, fc.target_concern""",
-        manifest["availableSaleStatuses"], list(manifest["categories"]))
+        manifest["availableSaleStatuses"],
+        list(manifest["categories"]),
+    )
     reviews = {
         r["goods_no"]: r
         for r in await conn.fetch("SELECT * FROM raw_oy_review_summary WHERE is_latest = true")
@@ -135,10 +138,15 @@ async def build_snapshot(conn, manifest, manifest_sha256, stats=None):
         cosing_mappings[mapping_id]["functionNames"].update(row["function_names"])
         option_codes.setdefault(row["option_id"], set()).add(code)
         option_matches.setdefault(row["option_id"], set()).add(mapping_id)
-    provenance.update({
-        code: {"source": "|".join(sorted(sources)), "ruleVersion": "cosing-ingredient-functions-v1"}
-        for code, sources in cosing_provenance.items()
-    })
+    provenance.update(
+        {
+            code: {
+                "source": "|".join(sorted(sources)),
+                "ruleVersion": "cosing-ingredient-functions-v1",
+            }
+            for code, sources in cosing_provenance.items()
+        }
+    )
     options_by_goods = {}
     for option in options:
         options_by_goods.setdefault(option["goods_no"], []).append(option)

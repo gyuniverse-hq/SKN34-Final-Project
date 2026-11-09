@@ -53,9 +53,12 @@ def test_v4_uses_profile_only_for_ai_picks_and_always_returns_browse_groups():
     app.dependency_overrides[get_skincare_service] = lambda: SkincareService(repo)
     client = TestClient(app)
     url = "/api/recommendations/skincare/v4"
-    response = client.post(url, json={
-        "detectedConcerns": [{"goal": "pores", "sources": ["analysis"]}],
-    })
+    response = client.post(
+        url,
+        json={
+            "detectedConcerns": [{"goal": "pores", "sources": ["analysis"]}],
+        },
+    )
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     data = response.json()
@@ -143,20 +146,38 @@ def test_concern_rankings_match_single_goal_requests_even_when_candidates_overla
     pores = cosing(mapping_id="pores", target_concern="pores")
     sensitive = cosing(mapping_id="sensitivity", target_concern="sensitivity")
     shared = [
-        option(str(i), matched_mapping_ids=["pores", "sensitivity"],
-               rating_avg=4.0, review_count=500)
+        option(
+            str(i), matched_mapping_ids=["pores", "sensitivity"], rating_avg=4.0, review_count=500
+        )
         for i in range(5)
     ]
-    data = snapshot(shared + [
-        option("pores-only", matched_mapping_ids=["pores"], rating_avg=5.0, review_count=500),
-        option("sensitive-only", matched_mapping_ids=["sensitivity"],
-               rating_avg=4.0, review_count=500, survey_ratios={"soothing": 1.0}),
-        option("low-soothing", matched_mapping_ids=["sensitivity"],
-               rating_avg=4.0, review_count=500, survey_ratios={"soothing": 0.0}),
-    ], [pores, sensitive])
-    combined = recommend_hybrid(data, HybridRequest(
-        primaryGoal="pores", detectedConcerns=[{"goal": "sensitivity", "sources": ["analysis"]}]
-    ))
+    data = snapshot(
+        shared
+        + [
+            option("pores-only", matched_mapping_ids=["pores"], rating_avg=5.0, review_count=500),
+            option(
+                "sensitive-only",
+                matched_mapping_ids=["sensitivity"],
+                rating_avg=4.0,
+                review_count=500,
+                survey_ratios={"soothing": 1.0},
+            ),
+            option(
+                "low-soothing",
+                matched_mapping_ids=["sensitivity"],
+                rating_avg=4.0,
+                review_count=500,
+                survey_ratios={"soothing": 0.0},
+            ),
+        ],
+        [pores, sensitive],
+    )
+    combined = recommend_hybrid(
+        data,
+        HybridRequest(
+            primaryGoal="pores", detectedConcerns=[{"goal": "sensitivity", "sources": ["analysis"]}]
+        ),
+    )
     for goal, first in (("pores", "pores-only"), ("sensitivity", "sensitive-only")):
         single = recommend_hybrid(data, HybridRequest(primaryGoal=goal))
         ids = [match.option_id for match in combined.by_concern[goal]]
@@ -169,8 +190,10 @@ def test_balance_prioritizes_oil_or_dryness_and_treats_conflicting_signals_equal
     dry = cosing(mapping_id="dry", target_concern="dryness", ingredient_codes=["A"])
     oil = cosing(mapping_id="oil", target_concern="oiliness", ingredient_codes=["B"])
     data = snapshot(
-        [option("a-dry", matched_mapping_ids=["dry"]),
-         option("z-oil", ingredient_codes=["B"], matched_mapping_ids=["oil"])],
+        [
+            option("a-dry", matched_mapping_ids=["dry"]),
+            option("z-oil", ingredient_codes=["B"], matched_mapping_ids=["oil"]),
+        ],
         [dry, oil],
     )
     base = {"primaryGoal": "dryness", "balanceGoal": "primary"}

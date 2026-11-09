@@ -107,9 +107,10 @@ def survey_adjustment(option, req, baselines, *, focus_goals=None):
     if focus_goals is None:
         primary = getattr(req, "primary_goal", None)
         focus_goals = () if getattr(req, "balance_goal", None) == "primary" else (primary,)
-    signals.extend((signal, 1) for signal in sorted({
-        goal_signal[goal] for goal in focus_goals if goal in goal_signal
-    }))
+    signals.extend(
+        (signal, 1)
+        for signal in sorted({goal_signal[goal] for goal in focus_goals if goal in goal_signal})
+    )
     if req.irritation_signal == "caution":
         signals.extend((("gentle", 1), ("irritating", -1)))
     if not signals:
@@ -382,8 +383,10 @@ def balanced_overall(ranked, req, support, weights, intents):
                 - REDUNDANCY_WEIGHT * similarity
             )
             priority = int(
-                isinstance(req, HybridRequest) and req.balance_goal == "primary"
-                and preferred is not None and preferred not in matched
+                isinstance(req, HybridRequest)
+                and req.balance_goal == "primary"
+                and preferred is not None
+                and preferred not in matched
             )
             return priority, -score, row[0]
 
@@ -423,13 +426,17 @@ def balanced_profile_overall(ranked, req, support, weights, priorities):
         return fit, coverage
 
     while remaining and len(selected) < 5:
+
         def key(row):
             fit, _ = contributions(row)
             marginal = sum(value / (1 + covered[group]) for group, value in fit.items())
-            similarity = max((
-                support_similarity(support[row[2].option_id], support[s[2].option_id], weights)
-                for s in selected
-            ), default=0.0)
+            similarity = max(
+                (
+                    support_similarity(support[row[2].option_id], support[s[2].option_id], weights)
+                    for s in selected
+                ),
+                default=0.0,
+            )
             # Reviews are only in row[0], after relevance and composition diversity.
             return -round(marginal, 12), -round(sum(fit.values()), 12), similarity, row[0]
 
@@ -463,7 +470,8 @@ def _recommend_hybrid_unfiltered(
     for goal in sorted(priorities):
         if goal not in sources:
             sources[goal] = [
-                "analysis" if req.analysis_scores[goal] >= ANALYSIS_CARE_THRESHOLD
+                "analysis"
+                if req.analysis_scores[goal] >= ANALYSIS_CARE_THRESHOLD
                 else "analysisSupport"
             ]
     intents = set(sources)
@@ -549,7 +557,10 @@ def _recommend_hybrid_unfiltered(
                 for goal, functions in option_functions[option.option_id].items()
             }
         support[option.option_id] = (
-            strengths, set(option.ingredient_codes) & set(weights), codes, evidence
+            strengths,
+            set(option.ingredient_codes) & set(weights),
+            codes,
+            evidence,
         )
         review_score = review_sort_score(
             option, req, baseline, survey_means, focus_goals=None if manual else intents
@@ -582,28 +593,30 @@ def _recommend_hybrid_unfiltered(
         )
 
     overall_rows = (
-        balanced_overall(ranked, req, support, weights, intents) if manual else
-        balanced_profile_overall(ranked, req, support, weights, priorities)
+        balanced_overall(ranked, req, support, weights, intents)
+        if manual
+        else balanced_profile_overall(ranked, req, support, weights, priorities)
     )
-    overall = [
-        match_for(goals & intents, option)
-        for _, goals, option, _ in overall_rows
-    ]
+    overall = [match_for(goals & intents, option) for _, goals, option, _ in overall_rows]
 
     def concern_matches(target_goals, focus_goals, priority=None):
         def order(row):
             _, goals, option, _ = row
-            score = review_sort_score(
-                option, req, baseline, survey_means, focus_goals=focus_goals
-            )
+            score = review_sort_score(option, req, baseline, survey_means, focus_goals=focus_goals)
             misses_priority = priority is not None and priority not in goals
             # Equal weight per goal keeps the merged moisture/oil tab balanced even
             # when those goals have different numbers of configured functions.
-            fit = sum(
-                len(option_functions[option.option_id][goal]) / len(concern_functions[goal])
-                if concern_functions[goal] else 0.0
-                for goal in sorted(target_goals)
-            ) / len(target_goals) if not manual else 0.0
+            fit = (
+                sum(
+                    len(option_functions[option.option_id][goal]) / len(concern_functions[goal])
+                    if concern_functions[goal]
+                    else 0.0
+                    for goal in sorted(target_goals)
+                )
+                / len(target_goals)
+                if not manual
+                else 0.0
+            )
             return (misses_priority, -fit, *profile_order(option, score))
 
         eligible = (row for row in ranked if row[1] & target_goals)
@@ -650,21 +663,26 @@ def cosing_only(snapshot: SkincareSnapshot | None) -> SkincareSnapshot | None:
     ids = {m.mapping_id for m in mappings}
     codes = {code for m in mappings for code in m.ingredient_codes}
     options = [
-        o.model_copy(update={
-            "ingredient_codes": [c for c in o.ingredient_codes if c in codes],
-            "matched_mapping_ids": [m for m in o.matched_mapping_ids or () if m in ids],
-        })
+        o.model_copy(
+            update={
+                "ingredient_codes": [c for c in o.ingredient_codes if c in codes],
+                "matched_mapping_ids": [m for m in o.matched_mapping_ids or () if m in ids],
+            }
+        )
         for o in snapshot.options
     ]
-    return snapshot.model_copy(update={
-        "mappings": mappings,
-        "options": options,
-        "evidence": {},
-        "ingredient_provenance": {
-            code: provenance for code, provenance in snapshot.ingredient_provenance.items()
-            if code in codes
-        },
-    })
+    return snapshot.model_copy(
+        update={
+            "mappings": mappings,
+            "options": options,
+            "evidence": {},
+            "ingredient_provenance": {
+                code: provenance
+                for code, provenance in snapshot.ingredient_provenance.items()
+                if code in codes
+            },
+        }
+    )
 
 
 def recommend(snapshot, req, trace_allowed=False):

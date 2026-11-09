@@ -155,8 +155,14 @@ def test_sources_deduplicated_and_user_goal_not_scored_twice():
 
 def test_fastapi_v2_wire_contract_and_private_input_rejection():
     repo = AsyncMock()
-    cosing = CosingMapping(mapping_id="m", target_concern="dryness", ingredient_codes=["A"],
-                           function_names=["HUMECTANT"], substance_id="42", match_method="exact")
+    cosing = CosingMapping(
+        mapping_id="m",
+        target_concern="dryness",
+        ingredient_codes=["A"],
+        function_names=["HUMECTANT"],
+        substance_id="42",
+        match_method="exact",
+    )
     repo.read.return_value = snapshot([option(matched_mapping_ids=["m"])], [cosing])
     app = create_app()
     app.dependency_overrides[get_skincare_service] = lambda: SkincareService(repo)

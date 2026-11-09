@@ -28,16 +28,37 @@ def inputs(directory):
     tag["모공 케어"] = "1"
     write_csv(tags, fields, [tag])
     fields = [
-        "ingredient_id", "name_ko", "input_inci", "mfds_cas", "status", "method",
-        "query_name", "http_status", "response_count", "returned_inci", "cosing_cas",
-        "substance_id", "function_names", "detail", "updated_at",
+        "ingredient_id",
+        "name_ko",
+        "input_inci",
+        "mfds_cas",
+        "status",
+        "method",
+        "query_name",
+        "http_status",
+        "response_count",
+        "returned_inci",
+        "cosing_cas",
+        "substance_id",
+        "function_names",
+        "detail",
+        "updated_at",
     ]
     row = dict.fromkeys(fields, "")
     row.update(
-        ingredient_id="1", name_ko="성분", input_inci="Example", status="accepted",
-        method="exact", query_name="EXAMPLE", http_status="200", response_count="1",
-        returned_inci='["EXAMPLE"]', cosing_cas="[]", substance_id="42",
-        function_names='["ANTI-SEBUM"]', updated_at="2026-11-07T00:00:00+00:00",
+        ingredient_id="1",
+        name_ko="성분",
+        input_inci="Example",
+        status="accepted",
+        method="exact",
+        query_name="EXAMPLE",
+        http_status="200",
+        response_count="1",
+        returned_inci='["EXAMPLE"]',
+        cosing_cas="[]",
+        substance_id="42",
+        function_names='["ANTI-SEBUM"]',
+        updated_at="2026-11-07T00:00:00+00:00",
     )
     write_csv(directory / "cosing_ingredients.csv", fields, [row])
     return row, fields

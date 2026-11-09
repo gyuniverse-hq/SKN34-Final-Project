@@ -31,9 +31,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     enabled = settings.skincare_refresh_enabled
     if enabled is None:
         enabled = not settings.is_production
-    task = (
-        asyncio.create_task(run_refresh_loop()) if enabled else None
-    )
+    task = asyncio.create_task(run_refresh_loop()) if enabled else None
     try:
         yield
     finally:

@@ -13,7 +13,8 @@ depends_on = None
 
 def upgrade():
     # Add missing shared concern codes without replacing existing research data.
-    op.execute(sa.text("""
+    op.execute(
+        sa.text("""
         INSERT INTO rec_concern (target_concern, display_label, recommendation_reason)
         VALUES
         ('dryness', '보습', 'CosIng 기능과 사용자 정의 보습 분류를 참고한 정보입니다.'),
@@ -24,7 +25,8 @@ def upgrade():
         ('pores', '모공', 'CosIng 기능과 사용자 정의 모공 분류를 참고한 정보입니다.'),
         ('blemish', '트러블', 'CosIng 기능과 사용자 정의 트러블 분류를 참고한 정보입니다.')
         ON CONFLICT (target_concern) DO NOTHING
-    """))
+    """)
+    )
     op.create_table(
         "cosing_function",
         sa.Column("function_id", sa.BigInteger(), sa.Identity(), primary_key=True),

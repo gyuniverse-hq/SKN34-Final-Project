@@ -174,10 +174,14 @@ class CosingMapping(StrictModel):
         return []
 
     def blockers(self):
-        return [reason for reason, valid in {
-            "runtime_disabled": self.runtime_enabled,
-            "unverified_identity": self.identity_verified,
-        }.items() if not valid]
+        return [
+            reason
+            for reason, valid in {
+                "runtime_disabled": self.runtime_enabled,
+                "unverified_identity": self.identity_verified,
+            }.items()
+            if not valid
+        ]
 
     def eligible(self):
         return not self.blockers()
@@ -299,7 +303,13 @@ class SkincareResponse(ApiModel):
 
 DetectionSource = Literal["analysis", "survey", "skinType"]
 MatchSource = Literal[
-    "primary", "secondary", "analysis", "survey", "skinType", "skinProfile", "concern",
+    "primary",
+    "secondary",
+    "analysis",
+    "survey",
+    "skinType",
+    "skinProfile",
+    "concern",
     "analysisSupport",
 ]
 
@@ -356,9 +366,9 @@ class HybridMatch(ApiModel):
 
 
 class HybridResponse(ApiModel):
-    strategy_version: Literal[
-        "skincare-hybrid-v2-cosing-only-v1", "skincare-v4"
-    ] = "skincare-hybrid-v2-cosing-only-v1"
+    strategy_version: Literal["skincare-hybrid-v2-cosing-only-v1", "skincare-v4"] = (
+        "skincare-hybrid-v2-cosing-only-v1"
+    )
     data_version: str | None
     coverage: list[GoalCoverage]
     overall_top5: list[HybridMatch]

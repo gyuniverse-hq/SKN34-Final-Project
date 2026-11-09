@@ -12,6 +12,7 @@ from app.schemas.skincare import SkincareSnapshot
 
 LOCK_ID = 7_284_732
 
+
 async def read_preview(raw_manifest: bytes):
     url = get_settings().database_url.replace("postgresql+asyncpg://", "postgresql://")
     conn = await asyncpg.connect(url)

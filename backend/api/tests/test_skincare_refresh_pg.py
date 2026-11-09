@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 from types import SimpleNamespace
+from uuid import uuid4
 
 import asyncpg
 import pytest
@@ -29,7 +30,72 @@ async def test_refresh_detects_changes_and_rolls_back_invalid_snapshot(monkeypat
     url = URL.replace("postgresql+asyncpg://", "postgresql://")
     conn = await asyncpg.connect(url)
     raw = MANIFEST.read_bytes()
+    suffix = uuid4().hex
+    goods = f"test-{suffix}"
+    options = [f"{goods}-1", f"{goods}-2"]
+    previous = await conn.fetchrow(
+        "SELECT data_version, payload FROM skincare_serving WHERE id = 1"
+    )
+    oy_id = mfds_id = function_id = None
     try:
+        await conn.execute(
+            "INSERT INTO products (id, brand, name, name_ko, category, price_krw, volume, "
+            "description, key_ingredients, tags, image_url, search_keyword, search_text) "
+            "VALUES ($1, 'test', 'test', 'test', 'skincare', 100, '1', '', '[]', '[]', '', '', '')",
+            f"oy-{goods}",
+        )
+        await conn.execute(
+            "INSERT INTO raw_oy_product (goods_no, std_category_code, sale_status, is_in_catalog) "
+            "VALUES ($1, '크림', '정상', true)",
+            goods,
+        )
+        for option_id in options:
+            await conn.execute(
+                "INSERT INTO raw_oy_product_option (option_id, goods_no, option_name) "
+                "VALUES ($1, $2, 'test')",
+                option_id,
+                goods,
+            )
+            await conn.execute(
+                "INSERT INTO raw_oy_price_snapshot (option_id, sale_price, is_sold_out, is_latest) "
+                "VALUES ($1, 100, false, true)",
+                option_id,
+            )
+        oy_id = await conn.fetchval(
+            "INSERT INTO raw_oy_ingredient (ingredient_name, ingredient_norm) "
+            "VALUES ('test', $1) RETURNING ingredient_id",
+            suffix,
+        )
+        mfds_id = await conn.fetchval(
+            "INSERT INTO raw_mfds_ingredient (name_ko, name_key, name_en, source_payload, "
+            "source_hash, first_seen_at, last_seen_at, is_current) "
+            "VALUES ('test', $1, 'TEST', '{}', $2, now(), now(), true) RETURNING ingredient_id",
+            suffix,
+            "0" * 64,
+        )
+        await conn.execute(
+            "INSERT INTO oy_mfds_ingredient_map "
+            "(oy_ingredient_id, mfds_ingredient_id, match_method, rule_version) "
+            "VALUES ($1, $2, 'exact_name', 'test')",
+            oy_id,
+            mfds_id,
+        )
+        await conn.executemany(
+            "INSERT INTO raw_oy_option_ingredient (option_id, ingredient_id) VALUES ($1, $2)",
+            [(option_id, oy_id) for option_id in options],
+        )
+        function_id = await conn.fetchval(
+            "INSERT INTO cosing_function (function_name) VALUES ($1) RETURNING function_id",
+            suffix,
+        )
+        await conn.execute(
+            "INSERT INTO cosing_ingredient_lookup "
+            "(ingredient_id, status, match_method, query_name, substance_id) "
+            "VALUES ($1, 'accepted', 'exact', 'TEST', 'test')",
+            mfds_id,
+        )
+        await conn.execute("INSERT INTO ingredient_function VALUES ($1, $2)", mfds_id, function_id)
+        await conn.execute("INSERT INTO function_concern VALUES ($1, 'pores')", function_id)
         result = await repository.refresh(raw)
         assert result == "unchanged" or result.startswith("published ")
         assert await repository.refresh(raw) == "unchanged"
@@ -79,4 +145,37 @@ async def test_refresh_detects_changes_and_rolls_back_invalid_snapshot(monkeypat
             await conn.execute("SELECT pg_advisory_xact_lock($1)", repository.LOCK_ID)
             assert await repository.refresh(raw) == "busy"
     finally:
+        if function_id is not None:
+            await conn.execute("DELETE FROM function_concern WHERE function_id = $1", function_id)
+            await conn.execute(
+                "DELETE FROM ingredient_function WHERE function_id = $1", function_id
+            )
+            await conn.execute("DELETE FROM cosing_function WHERE function_id = $1", function_id)
+        if mfds_id is not None:
+            await conn.execute(
+                "DELETE FROM cosing_ingredient_lookup WHERE ingredient_id = $1", mfds_id
+            )
+        if oy_id is not None:
+            await conn.execute(
+                "DELETE FROM raw_oy_option_ingredient WHERE ingredient_id = $1", oy_id
+            )
+            await conn.execute(
+                "DELETE FROM oy_mfds_ingredient_map WHERE oy_ingredient_id = $1", oy_id
+            )
+            await conn.execute("DELETE FROM raw_oy_ingredient WHERE ingredient_id = $1", oy_id)
+        if mfds_id is not None:
+            await conn.execute("DELETE FROM raw_mfds_ingredient WHERE ingredient_id = $1", mfds_id)
+        await conn.execute(
+            "DELETE FROM raw_oy_price_snapshot WHERE option_id = ANY($1::text[])", options
+        )
+        await conn.execute("DELETE FROM raw_oy_product_option WHERE goods_no = $1", goods)
+        await conn.execute("DELETE FROM raw_oy_product WHERE goods_no = $1", goods)
+        await conn.execute("DELETE FROM products WHERE id = $1", f"oy-{goods}")
+        await conn.execute("DELETE FROM skincare_serving WHERE id = 1")
+        if previous:
+            await conn.execute(
+                "INSERT INTO skincare_serving (id, data_version, payload) VALUES (1, $1, $2)",
+                previous["data_version"],
+                previous["payload"],
+            )
         await conn.close()

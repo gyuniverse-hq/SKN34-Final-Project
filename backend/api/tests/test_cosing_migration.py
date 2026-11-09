@@ -57,22 +57,32 @@ def test_upgrade_and_downgrade_preserve_existing_data_and_concern_labels():
             migration.upgrade()
             assert set(sa.inspect(conn).get_table_names(schema=schema)) >= TABLES
             assert conn.scalar(sa.text("SELECT count(*) FROM rec_concern")) == 7
-            assert conn.execute(sa.text(
-                "SELECT display_label, recommendation_reason FROM rec_concern "
-                "WHERE target_concern='pores'"
-            )).one() == ("preserved label", "preserved reason")
-            conn.execute(sa.text(
-                "INSERT INTO cosing_function (function_name) VALUES ('ASTRINGENT')"
-            ))
-            conn.execute(sa.text(
-                "INSERT INTO cosing_ingredient_lookup (ingredient_id, status, match_method) "
-                "VALUES (42, 'accepted', 'exact')"
-            ))
+            assert conn.execute(
+                sa.text(
+                    "SELECT display_label, recommendation_reason FROM rec_concern "
+                    "WHERE target_concern='pores'"
+                )
+            ).one() == ("preserved label", "preserved reason")
+            conn.execute(
+                sa.text("INSERT INTO cosing_function (function_name) VALUES ('ASTRINGENT')")
+            )
+            conn.execute(
+                sa.text(
+                    "INSERT INTO cosing_ingredient_lookup (ingredient_id, status, match_method) "
+                    "VALUES (42, 'accepted', 'exact')"
+                )
+            )
             conn.execute(sa.text("INSERT INTO ingredient_function VALUES (42, 1)"))
             conn.execute(sa.text("INSERT INTO function_concern VALUES (1, 'pores')"))
-            assert conn.scalar(sa.text(
-                "SELECT count(*) FROM ingredient_function JOIN function_concern USING(function_id)"
-            )) == 1
+            assert (
+                conn.scalar(
+                    sa.text(
+                        "SELECT count(*) FROM ingredient_function "
+                        "JOIN function_concern USING(function_id)"
+                    )
+                )
+                == 1
+            )
             migration.downgrade()
             assert not TABLES & set(sa.inspect(conn).get_table_names(schema=schema))
             assert conn.scalar(sa.text("SELECT mapping_id FROM rec_mapping")) == "existing-research"
