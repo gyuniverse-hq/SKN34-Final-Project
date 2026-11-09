@@ -775,7 +775,7 @@ outColor      = vec4(linearToSrgb(addNoise(outLin)), 1.0); // 카메라 노이�
 
 **YouCam Makeup VTO 숫자만 (라이브 호출 없음).** 분석·리프트·트랜스퍼·룩 결과 이미지는 쓰지 않는다. 키는 `research/youcam/`·repo `.env`의 `YOUCAM_API_KEY`만. `colorIntensity` 0–100은 `ZoneSetting.intensity` 0–1. 립 `fullness`·`wrinkless` 0, 블러셔 `glowStrength` 0, 섀도 `shimmerIntensity` 50 → `sparkleLift` 0.5, 아이라인 쉬머·메탈 → `uLinerGloss`, 눈썹 색만, 파운데이션 `glowIntensity` 0. 정지 비교 페이로드는 `research/youcam/youcam_vto.py`.
 
-**10-27 제형 발림 라벨 (연구, 사용자):** 유튜브 파일은 받지 않는다. `research/finish_labels/`가 영상 ID만 고르고 Gemini 영상 이해로 퍼짐(`wide`/`tight`/`unknown`)·윤기(`dull`/`wet`/`unknown`)·입자(`none`/`fine`/`chunky`/`unknown`)만 읽는다. 다수결(비 unknown 60%)이 지금 셰이더(`blushPow`, `uLinerGloss`, `flakeScaleShimmer`)와 다를 때만 `TUNING`을 바꾼다. 제품 hex·인물 이름·프레임은 저장하지 않는다. AR 런타임은 유튜브·Gemini를 호출하지 않는다. 레시피 추출 전체(M10)는 이 범위가 아니다.
+**10-27 제형 발림 라벨 (연구, 사용자):** 유튜브 파일은 받지 않는다(이 연구의 범위. 11-08 모양 측정 연구는 6-12의 예외를 따른다). `research/finish_labels/`가 영상 ID만 고르고 Gemini 영상 이해로 퍼짐(`wide`/`tight`/`unknown`)·윤기(`dull`/`wet`/`unknown`)·입자(`none`/`fine`/`chunky`/`unknown`)만 읽는다. 다수결(비 unknown 60%)이 지금 셰이더(`blushPow`, `uLinerGloss`, `flakeScaleShimmer`)와 다를 때만 `TUNING`을 바꾼다. 제품 hex·인물 이름·프레임은 저장하지 않는다. AR 런타임은 유튜브·Gemini를 호출하지 않는다. 레시피 추출 전체(M10)는 이 범위가 아니다.
 
 **10-27 (사용자):** AR 시착은 립·블러셔·섀도·아이라인·아이브로우·파운데이션을 칠하고, 마스카라는 카메라와 부위 탭에서 뺀다. 룩 레시피·룩 상세 그림·룩 가이드 문구는 그대로 둔다. **11-03:** 하이라이터·쉐딩은 다시 칠한다(`AR_PAINT_ZONES`, `lib/arFacePalette.ts`는 하이라이터 부위 칩만). **11-04:** 마스카라는 연예인·스타일 룩(시연 6선 포함)의 카메라에만 칠한다. AR 탐색 칩·상품 시착은 마스카라를 고르지 않는다.
 
@@ -1146,6 +1146,7 @@ penalty = min(6, 1.2 × 축에서 떨어진 칸 수),  shimmer ↔ 다른 제형
 
 **A. 유튜브 영상 (사전 작업, 룩마다 한 번)**
 1. YouTube Data API로 룩마다 영상 약 10개 선정(영상 다운로드 금지, ID·제목·채널만 저장, 30일마다 갱신).
+   - **예외 (11-08 사용자 결정, 배포하지 않는 프로젝트):** 화장법 모양 측정 연구(`research/video_makeup/`)만 개발자 PC에서 영상을 내려받아(yt-dlp, 영상만·1080p 이하) 전후 프레임을 뽑는다. 영상·프레임·겹침 이미지는 `research/data/video_makeup/`(git 제외)에만 두고, 저장소에는 코드와 측정 숫자(아이라인 길이·각도·두께, 블러셔 위치·크기·번짐)만 남긴다. 앱·서버·AR 페이지는 여전히 영상을 내려받거나 프레임을 저장하지 않는다. 사용자 얼굴 영상은 이 예외와 무관하다(1-4 그대로).
 2. Gemini 영상 이해 + 구조화 출력: `RecipeStep` 스키마를 response schema로 강제. 부위·기법·색 계열은 **고정 선택지**에서만, 불확실하면 `"unknown"`.
 3. `server/recipe/vote.ts`: 단계 등장 비율 60% 이상 필수, 30~60% 선택(`optional`), 30% 미만 제외. 색 계열은 다수결, HEX는 팀 팔레트에서 지정.
 4. 결과 `Recipe`(`source: "youtube_vote"`)를 저장. 인물 이름은 내부 검색 키워드로만, `conceptName`에는 넣지 않는다.
