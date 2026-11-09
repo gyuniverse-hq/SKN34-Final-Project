@@ -17,6 +17,7 @@ from app.models.raw_oliveyoung import (
     RawOyProductOptionRow,
     RawOyProductRow,
 )
+from app.repositories.ingredient_identity_repository import IngredientIdentityRepository
 from app.schemas.ingredient import (
     IngredientEntry,
     IngredientEvidence,
@@ -124,9 +125,9 @@ class IngredientRepository:
         response = IngredientReadResult(
             product_id=product_id, shade_id=shade_id, reason="shade_required"
         )
-        if shade_id is None:
+        if shade_id is None and shades:
             return response
-        if shade_id not in {s[0] for s in shades}:
+        if shade_id is not None and shade_id not in {s[0] for s in shades}:
             raise ApiError(404, "Shade not found", "shade_not_found")
         mapping = self._mapping(product_id, shade_id)
         if mapping is None:
@@ -227,8 +228,11 @@ class IngredientRepository:
         response.reason = "evidence_not_reviewed"
         if mapping.review_status != "verified":
             return response
+        identities = await IngredientIdentityRepository(self._session).for_entries(
+            [row[0] for row in rows]
+        )
         entries = [
-            IngredientEntry(name=row[1], sequence=row[2])
+            IngredientEntry(name=row[1], sequence=row[2], identity=identities.get(row[0]))
             for row in rows
             if row[1] and (row[2] is None or row[2] > 0)
         ]
@@ -253,3 +257,6 @@ class IngredientRepository:
         response.evidence = evidence
         response.reason = "verified_evidence" if not response.issues else "evidence_requires_review"
         return response
+
+    async def resolve_identity(self, name: str):
+        return await IngredientIdentityRepository(self._session).resolve(name)

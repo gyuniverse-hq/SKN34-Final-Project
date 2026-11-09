@@ -13,6 +13,7 @@ from app.repositories.ingredient_repository import IngredientRepository
 from app.schemas.ingredient import (
     IngredientCondition,
     IngredientDecision,
+    IngredientIdentity,
     IngredientLookupResult,
     IngredientReadResult,
 )
@@ -24,7 +25,9 @@ def normalize_ingredient_name(value: str) -> str:
 
 
 def evaluate_ingredient(
-    condition: IngredientCondition, lookup: IngredientLookupResult
+    condition: IngredientCondition,
+    lookup: IngredientLookupResult,
+    query_identity: IngredientIdentity | None = None,
 ) -> IngredientDecision:
     def decision(verdict, reason, *, evidence_id=None, synthetic=False):
         return IngredientDecision(
@@ -37,6 +40,7 @@ def evaluate_ingredient(
             reason=reason,
             evidence_id=evidence_id,
             synthetic=synthetic,
+            query_identity=query_identity,
         )
 
     if lookup.status == "error":
@@ -45,7 +49,7 @@ def evaluate_ingredient(
         return decision("UNKNOWN", "evidence_not_found")
     evidence = lookup.evidence
     assert evidence is not None  # enforced by the lookup contract
-    if not condition.shade_id or not condition.option_id:
+    if not condition.option_id:
         return decision("UNKNOWN", "selection_required", synthetic=evidence.synthetic)
     if (condition.product_id, condition.shade_id, condition.option_id) != (
         evidence.product_id,
@@ -73,7 +77,15 @@ def evaluate_ingredient(
     names = [normalize_ingredient_name(item.name) for item in evidence.ingredients]
     if not target or not all(names):
         return supported("UNKNOWN", "invalid_ingredient_name")
-    if target in names:
+    if target in names or (
+        query_identity is not None
+        and any(
+            item.identity is not None
+            and item.identity.mfds_ingredient_id == query_identity.mfds_ingredient_id
+            and item.identity.source_hash == query_identity.source_hash
+            for item in evidence.ingredients
+        )
+    ):
         return supported(
             "MATCH" if condition.operator == "includes" else "NOT_MATCH", "ingredient_present"
         )
@@ -87,9 +99,16 @@ def evaluate_ingredient(
         or len(names) != len(set(names))
     ):
         return supported("UNKNOWN", "ingredient_list_inconsistent")
-    # shortcut: A reviewed list does not resolve query aliases; require a canonical
-    # identity contract before treating a missing name as chemical absence.
-    return supported("UNKNOWN", "ingredient_identity_unresolved")
+    if query_identity is None or any(item.identity is None for item in evidence.ingredients):
+        return supported("UNKNOWN", "ingredient_identity_unresolved")
+    if any(
+        item.identity.mfds_ingredient_id == query_identity.mfds_ingredient_id
+        for item in evidence.ingredients
+    ):
+        return supported("UNKNOWN", "ingredient_identity_version_mismatch")
+    return supported(
+        "NOT_MATCH" if condition.operator == "includes" else "MATCH", "ingredient_absent"
+    )
 
 
 def to_supervisor_condition(result: IngredientDecision) -> dict[str, str | None]:
@@ -152,7 +171,17 @@ class IngredientService:
                 if evidence
                 else IngredientLookupResult(status="not_found")
             )
-            check = evaluate_ingredient(condition, lookup)
+            try:
+                identity = (
+                    await self._repository.resolve_identity(ingredient_name)
+                    if evidence and not result.issues
+                    else None
+                )
+            except SQLAlchemyError as exc:
+                raise ApiError(
+                    503, "Ingredient identity source unavailable", "ingredient_lookup_failed"
+                ) from exc
+            check = evaluate_ingredient(condition, lookup, identity)
             if result.issues:
                 check.verdict, check.reason = "UNKNOWN", "evidence_requires_review"
             elif evidence is None:

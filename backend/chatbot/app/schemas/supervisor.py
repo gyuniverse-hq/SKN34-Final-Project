@@ -40,6 +40,11 @@ class ResolvedContext(SupervisorModel):
     state_source: Literal["client_hint", "server_session"] = "client_hint"
 
 
+class IngredientPlanCondition(SupervisorModel):
+    ingredient_name: str = Field(min_length=1, max_length=500)
+    operator: Literal["includes", "excludes"]
+
+
 class SearchPlan(SupervisorModel):
     intent: Literal["search", "refine", "detail", "price", "general"]
     scope: Literal["catalog", "previous"] = "catalog"
@@ -55,6 +60,7 @@ class SearchPlan(SupervisorModel):
     ingredient_name: str | None = Field(default=None, min_length=1, max_length=500)
     ingredient_operator: Literal["includes", "excludes"] = "includes"
     ingredient_lookup: bool = False
+    ingredient_conditions: list[IngredientPlanCondition] = Field(default_factory=list, max_length=6)
     shade_name: str | None = Field(default=None, min_length=1, max_length=128)
     compare_ordinals: list[int] = Field(default_factory=list, max_length=2)
     clear_filters: list[

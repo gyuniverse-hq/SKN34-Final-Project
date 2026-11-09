@@ -79,7 +79,7 @@ def data():
 
 def setup(client, data, pages=None):
     p, shades, raw, entries, mapping = data
-    session = Session(pages if pages is not None else [[p], shades, [raw], entries])
+    session = Session(pages if pages is not None else [[p], shades, [raw], entries, [], []])
     service = IngredientService(IngredientRepository(session, [mapping]))
     client.app.dependency_overrides[get_ingredient_service] = lambda: service
     return session
@@ -100,8 +100,8 @@ def test_verified_presence_unresolved_absence_and_order(client, data, name, op, 
     assert body["optionId"] == "fixture-opt-B" and body["mappingStatus"] == "reproduced"
     assert body["verdict"] == verdict and body["synthetic"]
     assert [i["sequence"] for i in body["ingredients"]] == [1, 2]
-    assert "evidence" not in body and len(session.statements) == 4
-    assert "ORDER BY raw_oy_option_ingredient.seq" in str(session.statements[-1])
+    assert "evidence" not in body and len(session.statements) == 6
+    assert "ORDER BY raw_oy_option_ingredient.seq" in str(session.statements[3])
     assert response.headers["cache-control"] == "no-store"
 
 
@@ -223,7 +223,7 @@ def test_default_review_artifact_keeps_collected_catalog_unknown(client):
 
 def artifact_service(client, data, path=None):
     product, shades, raw, entries, _ = data
-    session = Session([[product], shades, [raw], entries])
+    session = Session([[product], shades, [raw], entries, [], []])
     service = IngredientService(IngredientRepository(session, mapping_path=path))
     client.app.dependency_overrides[get_ingredient_service] = lambda: service
     return session

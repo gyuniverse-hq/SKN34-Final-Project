@@ -19,6 +19,7 @@ from app.services.ingredient_service import IngredientService, get_ingredient_se
 from tests.conftest import FakeCatalogStore, make_product
 from tests.test_ingredient_api import Session
 from tests.test_ingredient_api import data as data
+from tests.test_ingredient_canonical_identity import row
 
 CHAT_SCRIPT = r"""
 import json, sys, time
@@ -32,7 +33,8 @@ class Llm:
     calls = 0
     async def complete(self, messages):
         self.calls += 1
-        return json.dumps({"intent":"detail", "ingredientLookup":True, "ingredientName":"Water"})
+        return json.dumps({"intent":"detail", "ingredientLookup":True,
+                           "ingredientName":sys.argv[2]})
 
 class Service(ChatService):
     result = None
@@ -63,6 +65,7 @@ with TestClient(app) as client:
     "state,verdict,status",
     [
         ("verified", "MATCH", "success"),
+        ("canonical_alias", "MATCH", "success"),
         ("candidate", "UNKNOWN", "clarification"),
         ("configuration_error", "ERROR", "error"),
     ],
@@ -101,7 +104,19 @@ def test_api_client_beauty_supervisor_chat_json_over_http(
     sessions = []
 
     def ingredient_service():
-        session = Session([[product], shades, [raw], entries])
+        identity_pages = (
+            [
+                [row(1, oy=1), row(2, oy=2)],
+                [
+                    (1, "standard-1", "english-1", "alias-1"),
+                    (2, "standard-2", "english-2", "alias-2"),
+                ],
+                [row(1, oy=1) + (False, False, True)],
+            ]
+            if state == "canonical_alias"
+            else [[], []]
+        )
+        session = Session([[product], shades, [raw], entries, *identity_pages])
         sessions.append(session)
         return IngredientService(
             IngredientRepository(
@@ -128,7 +143,14 @@ def test_api_client_beauty_supervisor_chat_json_over_http(
                 threading.Event().wait(0.01)
             assert server.started, "Synthetic Catalog HTTP server did not start"
             result = subprocess.run(
-                [str(python), "-B", "-c", CHAT_SCRIPT, f"http://127.0.0.1:{port}"],
+                [
+                    str(python),
+                    "-B",
+                    "-c",
+                    CHAT_SCRIPT,
+                    f"http://127.0.0.1:{port}",
+                    "Aqua" if state == "canonical_alias" else "Water",
+                ],
                 cwd=chatbot,
                 env=os.environ | {"ENV": "local", "LLM_API_KEY": ""},
                 capture_output=True,
@@ -148,4 +170,5 @@ def test_api_client_beauty_supervisor_chat_json_over_http(
     assert body["ingredientResults"][0]["verdict"] == verdict
     assert body["ingredientResults"][0]["productId"] == body["products"][0]["id"]
     assert "supervisor" not in body and "toolResult" not in body and "arResult" not in body
-    assert sessions and len(sessions[0].statements) == (4 if state == "verified" else 2)
+    expected_queries = 7 if state == "canonical_alias" else 6 if state == "verified" else 2
+    assert sessions and len(sessions[0].statements) == expected_queries
