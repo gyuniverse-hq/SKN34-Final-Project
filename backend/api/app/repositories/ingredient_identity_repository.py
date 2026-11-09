@@ -124,9 +124,9 @@ class IngredientIdentityRepository:
                     or_(
                         _key(Mfds.name_ko).in_(names),
                         _key(Mfds.name_en).in_(names),
-                        func.regexp_split_to_array(_key(Mfds.synonym_raw), OFFICIAL_SYNONYM_SEPARATOR).op("&&")(
-                            array(names).cast(ARRAY(Text))
-                        ),
+                        func.regexp_split_to_array(
+                            _key(Mfds.synonym_raw), OFFICIAL_SYNONYM_SEPARATOR
+                        ).op("&&")(array(names).cast(ARRAY(Text))),
                     ),
                 )
                 .execution_options(autoflush=False)
@@ -150,7 +150,8 @@ class IngredientIdentityRepository:
         official = or_(
             _key(Mfds.name_ko) == target,
             _key(Mfds.name_en) == target,
-            target == any_(func.regexp_split_to_array(_key(Mfds.synonym_raw), OFFICIAL_SYNONYM_SEPARATOR)),
+            target
+            == any_(func.regexp_split_to_array(_key(Mfds.synonym_raw), OFFICIAL_SYNONYM_SEPARATOR)),
         )
         rows = (
             await self._session.execute(
