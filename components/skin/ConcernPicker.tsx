@@ -38,7 +38,7 @@ export function ConcernPicker({
             />
             <View style={styles.copy}>
               <Text style={styles.label}>{t(`${goalLabels ? 'support.priorityChoice' : 'concern'}.${c}` as TranslationKey)}</Text>
-              <Text style={styles.body}>{t(`concern.${c}.body` as TranslationKey)}</Text>
+              <Text style={styles.body}>{t(goalLabels && c === 'dryness' ? 'support.balanceBody' : `concern.${c}.body` as TranslationKey)}</Text>
             </View>
             {suggested.includes(c) ? <Text style={styles.suggested}>{t('skinFlow.suggested')}</Text> : null}
           </Pressable>
