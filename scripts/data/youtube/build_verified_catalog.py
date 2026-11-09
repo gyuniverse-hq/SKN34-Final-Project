@@ -40,6 +40,12 @@ FIELDS = (
     "verified_at",
 )
 RAW_FIELDS = ("yt_product_id", "category")
+EXCLUSION_FIELDS = (
+    "yt_product_id",
+    "brand_name",
+    "product_name",
+    "exclusion_reason",
+)
 SERVING_CATEGORIES = {"lip", "cheek", "eye", "base", "skincare", "suncare"}
 
 
@@ -84,7 +90,27 @@ def read_review(path: Path) -> list[dict[str, str]]:
     return rows
 
 
-def read_raw_selection(path: Path) -> list[dict[str, str]]:
+def read_exclusions(path: Path) -> dict[str, dict[str, str]]:
+    with path.open(encoding="utf-8-sig", newline="") as stream:
+        reader = csv.DictReader(stream)
+        if tuple(reader.fieldnames or ()) != EXCLUSION_FIELDS:
+            raise ValueError(f"Expected exclusion CSV columns: {EXCLUSION_FIELDS}")
+        rows = list(reader)
+    exclusions = {row["yt_product_id"]: row for row in rows}
+    if len(exclusions) != len(rows):
+        raise ValueError("Duplicate YouTube product IDs in exclusion CSV")
+    for row in rows:
+        if (
+            not row["yt_product_id"].startswith("yt-")
+            or not row["exclusion_reason"].strip()
+        ):
+            raise ValueError(f"Invalid exclusion row: {row['yt_product_id']}")
+    return exclusions
+
+
+def read_raw_selection(
+    path: Path, excluded_ids: set[str]
+) -> tuple[list[dict[str, str]], int]:
     with path.open(encoding="utf-8-sig", newline="") as stream:
         reader = csv.DictReader(stream)
         if tuple(reader.fieldnames or ()) != RAW_FIELDS:
@@ -93,12 +119,14 @@ def read_raw_selection(path: Path) -> list[dict[str, str]]:
     ids = [row["yt_product_id"] for row in rows]
     if len(ids) != len(set(ids)):
         raise ValueError("Duplicate YouTube product IDs in raw selection")
+    skipped = sum(row["yt_product_id"] in excluded_ids for row in rows)
+    rows = [row for row in rows if row["yt_product_id"] not in excluded_ids]
     for row in rows:
         if not row["yt_product_id"].startswith("yt-"):
             raise ValueError(f"Invalid YouTube product ID: {row['yt_product_id']}")
         if row["category"] not in SERVING_CATEGORIES:
             raise ValueError(f"Invalid serving category: {row['category']}")
-    return rows
+    return rows, skipped
 
 
 def category_tag(category: str) -> str:
@@ -112,10 +140,16 @@ def optional_source_text(value: str | None) -> str:
 
 async def build(args: argparse.Namespace) -> None:
     reviewed = read_review(args.reviewed)
-    raw_selection = read_raw_selection(args.raw_selection)
+    exclusions = read_exclusions(args.excluded_products)
+    if {row["yt_product_id"] for row in reviewed} & exclusions.keys():
+        raise ValueError("Reviewed product is listed as a non-product exclusion")
+    raw_selection, excluded_count = read_raw_selection(
+        args.raw_selection, set(exclusions)
+    )
     selected_ids = [row["yt_product_id"] for row in reviewed + raw_selection]
     if len(selected_ids) != len(set(selected_ids)):
         raise ValueError("A product is selected in both reviewed files")
+    source_check_ids = list(dict.fromkeys([*selected_ids, *exclusions]))
     password = os.environ.get("POSTGRES_PASSWORD") or getpass.getpass(
         "Local PostgreSQL password: "
     )
@@ -135,7 +169,7 @@ async def build(args: argparse.Namespace) -> None:
                     "SELECT yt_product_id, brand_name, product_name, option_name, category, "
                     "price_krw, price_type, volume, description FROM raw_yt_product "
                     "WHERE yt_product_id = ANY($1::text[])",
-                    selected_ids,
+                    source_check_ids,
                 )
             }
             already_oy = {
@@ -148,6 +182,16 @@ async def build(args: argparse.Namespace) -> None:
             }
     finally:
         await conn.close()
+
+    for product_id, exclusion in exclusions.items():
+        raw = source.get(product_id)
+        if raw is None:
+            raise ValueError(f"Excluded source product is missing: {product_id}")
+        if (raw["brand_name"], raw["product_name"]) != (
+            exclusion["brand_name"],
+            exclusion["product_name"],
+        ):
+            raise ValueError(f"Excluded source identity changed: {product_id}")
 
     additions = []
     for row in reviewed:
@@ -250,7 +294,9 @@ async def build(args: argparse.Namespace) -> None:
     )
     print(
         f"Selected non-OY products: {len(reviewed)} with verified assets, "
-        f"{len(raw_selection)} with source prices; catalog products: {len(base['products'])}"
+        f"{len(raw_selection)} with source prices; non-product exclusions: "
+        f"{len(exclusions)} in manifest, {excluded_count} skipped from selection; "
+        f"catalog products: {len(base['products'])}"
     )
     print(f"Wrote review catalog: {args.output}; no database rows were written")
 
@@ -266,6 +312,11 @@ def main() -> None:
         "--raw-selection",
         type=Path,
         default=Path(__file__).with_name("non_oy_source_price.csv"),
+    )
+    parser.add_argument(
+        "--excluded-products",
+        type=Path,
+        default=Path(__file__).with_name("non_product_exclusions.csv"),
     )
     parser.add_argument("--base", type=Path, default=API_ROOT / "seed" / "catalog.json")
     parser.add_argument("--output", type=Path, required=True)
