@@ -93,11 +93,10 @@ function painted(makeup: MakeupState, zone: MakeupZone): boolean {
 /** Closed-set style/intensity/shade phrases that the AR screen may run locally. */
 export function isClosedLocalArChat(text: string): boolean {
   const query = text.trim().toLowerCase();
-  if (!query || /하지\s*마|don't|do not|말고/.test(query)) return false;
+  if (!query || /하지\s*마|don't|do not|말고/.test(query) || asksSofterBlush(query)) return false;
   const styles = styleHits(query);
   const intensity = intensityHit(query);
   const intents = [
-    asksSofterBlush(query),
     asksLighterLip(query),
     asksCoralLook(query),
     styles.length === 1 && !intensity,

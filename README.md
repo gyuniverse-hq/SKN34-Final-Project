@@ -436,12 +436,6 @@ cd backend/api && uv run ruff check . && uv run lint-imports && uv run pytest
 | `LLM_API_KEY` · `LLM_MODEL` · `LLM_BASE_URL` | chatbot | 상담 챗봇 |
 | `EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS` · `SKIN_ANALYSIS_MODEL` | 앱 | 기기 내 피부 분석 활성화와 모델 선택 |
 
-> 🔐 서버 키에는 절대 `EXPO_PUBLIC_` 접두어를 붙이지 않습니다. 붙이면 앱 번들에 노출됩니다. `.env`는 커밋하지 않습니다.
-
----
-
-## 🔭 7. 결론 및 향후 계획 (Conclusion & Roadmap)
-
 | 변수 | 읽는 곳 | 용도 |
 | --- | --- | --- |
 | `YOUTUBE_API_KEY` | 백엔드 | 튜토리얼 검색 (YouTube Data API v3) |
@@ -450,6 +444,13 @@ cd backend/api && uv run ruff check . && uv run lint-imports && uv run pytest
 | `STT_MODEL` / `TTS_MODEL` | 백엔드 | 향후 음성 입력·출력 모델 설정 (아직 미연결) |
 | `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | 앱·백엔드 | 로그인 (Supabase Auth). 공개용 값이라 앱에 포함됨 |
 | `EXPO_PUBLIC_API_BASE_URL` | 앱 | 백엔드 주소 (공개 값). 개발 중에는 비워 둠 |
+
+> 🔐 서버 키에는 절대 `EXPO_PUBLIC_` 접두어를 붙이지 않습니다. 붙이면 앱 번들에 노출됩니다. `.env`는 커밋하지 않습니다.
+
+---
+
+## 🔭 7. 결론 및 향후 계획 (Conclusion & Roadmap)
+
 ### 7-1. 프로젝트 회고 — 기술적 이슈와 해결
 
 | 이슈 | 원인 | 해결 및 개선 방향 |
