@@ -1125,7 +1125,9 @@ async def _ingredient_consultation(req, plan, catalog, filters):
                 results.append(result)
                 # Unknown fragrance still needs review, but a known ingredient failure
                 # must not consume one of the six visible candidate slots.
-                retained += result.verdict != "NOT_MATCH" if fragrance_filter else result.verdict == "MATCH"
+                retained += (
+                    result.verdict != "NOT_MATCH" if fragrance_filter else result.verdict == "MATCH"
+                )
     except TimeoutError:
         if not filtering:
             raise
