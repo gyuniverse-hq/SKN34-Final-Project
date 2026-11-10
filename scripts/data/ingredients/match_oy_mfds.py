@@ -22,6 +22,15 @@ from pathlib import Path
 
 import asyncpg
 
+from app.core.ingredient_alias_approval import (
+    APPROVAL_COLUMNS,
+    OFFICIAL_SYNONYM_SEPARATOR,
+    approved_synonym,
+    load_approved_aliases,
+    official_synonyms as canonical_synonyms,
+    source_single_alias,
+)
+
 RULE_VERSION = "v3"
 AMOUNT_METHODS = ("amount_suffix_exact", "amount_suffix_synonym")
 AMOUNT_SUFFIX_RE = re.compile(
@@ -30,7 +39,6 @@ AMOUNT_SUFFIX_RE = re.compile(
 )
 # Keep delimiter interpretation consistent with the read-only IngredientIdentityRepository.
 # The code change does not update mappings; data owners must review a preview before --apply.
-OFFICIAL_SYNONYM_SEPARATOR = r"\s*(?:\^|(?<![0-9A-Za-z]),|,(?![0-9A-Za-z])|,(?=[A-Za-z]{2,}))\s*"
 
 MATCH_COLUMNS = (
     "oy_ingredient_id",
@@ -49,13 +57,6 @@ REVIEW_COLUMNS = (
     "mfds_candidate_names",
 )
 MANUAL_COLUMNS = (*MATCH_COLUMNS, "reviewed_by", "reviewed_at", "review_note")
-APPROVAL_COLUMNS = (
-    "mfds_ingredient_id",
-    "candidate_alias",
-    "source_hash",
-    "reviewed_by",
-    "reviewed_at",
-)
 ALIAS_REVIEW_COLUMNS = (
     "mfds_ingredient_id",
     "mfds_name_ko",
@@ -74,11 +75,7 @@ def name_key(value: str | None) -> str:
 
 def official_synonyms(value: str | None) -> set[str]:
     """Read mixed MFDS aliases, preserving chemical locants such as 1,2- and N,N-."""
-    return {
-        normalized
-        for alias in re.split(OFFICIAL_SYNONYM_SEPARATOR, name_key(value))
-        if (normalized := name_key(alias))
-    }
+    return canonical_synonyms(value)
 
 
 def build_alias_review_rows(mfds_rows: list[asyncpg.Record]) -> list[tuple]:
@@ -92,7 +89,7 @@ def build_alias_review_rows(mfds_rows: list[asyncpg.Record]) -> list[tuple]:
     review = []
     for row in mfds_rows:
         raw = row["synonym_raw"] or ""
-        if not ("^" in raw or "," in raw):
+        if not raw.strip():
             continue
         for alias in sorted(official_synonyms(raw), key=lambda value: (value.casefold(), value)):
             competing = sorted(identities[alias.casefold()] - {row["ingredient_id"]})
@@ -104,7 +101,11 @@ def build_alias_review_rows(mfds_rows: list[asyncpg.Record]) -> list[tuple]:
                     raw,
                     alias,
                     ";".join(map(str, competing)),
-                    "ambiguous" if competing else "review_required",
+                    "ambiguous"
+                    if competing
+                    else "source_backed"
+                    if source_single_alias(raw, alias)
+                    else "review_required",
                 )
             )
     return sorted(review, key=lambda item: (item[0], item[4].casefold(), item[4]))
@@ -127,6 +128,7 @@ def load_approved_synonyms(
         for row in mfds_rows
         for alias in official_synonyms(row["synonym_raw"])
         if owners[alias.casefold()] == {row["ingredient_id"]}
+        and not source_single_alias(row["synonym_raw"], alias)
     }
     approved = set()
     with path.open(encoding="utf-8-sig", newline="") as file:
@@ -171,7 +173,10 @@ def select_approved_matches(
         key = (match[2], name_key(base).casefold(), mfds["source_hash"])
         if (
             match[4] in {"official_synonym", "amount_suffix_synonym"}
-            and key in approved
+            and approved_synonym(
+                mfds["synonym_raw"], base, mfds["ingredient_id"],
+                mfds["source_hash"], frozenset(approved)
+            )
         ):
             eligible.append(match)
         else:
@@ -491,6 +496,29 @@ async def run(args: argparse.Namespace) -> None:
             print("Preview complete; no database rows were written")
             return
 
+        # Keep a local, human-readable receipt even when the source CSV is rotated.
+        approval_metadata = {}
+        if args.apply and args.approvals_file:
+            with args.approvals_file.open(encoding="utf-8-sig", newline="") as file:
+                for record in csv.DictReader(file):
+                    approval_metadata[
+                        (
+                            int(record["mfds_ingredient_id"]),
+                            name_key(record["candidate_alias"]).casefold(),
+                            record["source_hash"],
+                        )
+                    ] = (record["reviewed_by"].strip(), record["reviewed_at"].strip())
+        audit_rows = []
+        for match in new_matches:
+            mfds = next(row for row in mfds_rows if row["ingredient_id"] == match[2])
+            base = without_trailing_amount(match[1]) if match[4] in AMOUNT_METHODS else match[1]
+            reviewer, reviewed = approval_metadata.get(
+                (match[2], name_key(base).casefold(), mfds["source_hash"]), ("", "")
+            )
+            audit_rows.append(
+                (*match, mfds["source_hash"], reviewer, reviewed)
+            )
+
         if any(row[4] in AMOUNT_METHODS for row in new_matches):
             constraint = await connection.fetchval(
                 "SELECT pg_get_constraintdef(oid) FROM pg_constraint "
@@ -504,22 +532,48 @@ async def run(args: argparse.Namespace) -> None:
             await connection.execute(
                 "CREATE TEMP TABLE oy_mfds_match_stage ("
                 "oy_ingredient_id bigint PRIMARY KEY, mfds_ingredient_id bigint NOT NULL, "
-                "match_method text NOT NULL, rule_version text NOT NULL) ON COMMIT DROP"
+                "match_method text NOT NULL, rule_version text NOT NULL, "
+                "reviewed_by text, reviewed_at timestamptz, review_note text) ON COMMIT DROP"
             )
             await connection.copy_records_to_table(
                 "oy_mfds_match_stage",
-                records=[(row[0], row[2], row[4], RULE_VERSION) for row in new_matches],
+                records=[
+                    (
+                        row[0],
+                        row[2],
+                        row[4],
+                        RULE_VERSION,
+                        approval_metadata.get(
+                            (row[2], name_key(without_trailing_amount(row[1]) or row[1]).casefold(),
+                             next(m["source_hash"] for m in mfds_rows if m["ingredient_id"] == row[2])),
+                            (None, None),
+                        )[0],
+                        approval_metadata.get(
+                            (row[2], name_key(without_trailing_amount(row[1]) or row[1]).casefold(),
+                             next(m["source_hash"] for m in mfds_rows if m["ingredient_id"] == row[2])),
+                            (None, None),
+                        )[1],
+                        "mfds_source_hash="
+                        + next(m["source_hash"] for m in mfds_rows if m["ingredient_id"] == row[2]),
+                    )
+                    for row in new_matches
+                ],
                 columns=(
                     "oy_ingredient_id",
                     "mfds_ingredient_id",
                     "match_method",
                     "rule_version",
+                    "reviewed_by",
+                    "reviewed_at",
+                    "review_note",
                 ),
             )
             status = await connection.execute(
                 "INSERT INTO public.oy_mfds_ingredient_map "
-                "(oy_ingredient_id, mfds_ingredient_id, match_method, rule_version) "
-                "SELECT oy_ingredient_id, mfds_ingredient_id, match_method, rule_version "
+                "(oy_ingredient_id, mfds_ingredient_id, match_method, rule_version, "
+                "reviewed_by, reviewed_at, review_note) "
+                "SELECT oy_ingredient_id, mfds_ingredient_id, match_method, rule_version, "
+                "reviewed_by, reviewed_at, review_note "
                 "FROM oy_mfds_match_stage ON CONFLICT (oy_ingredient_id) DO NOTHING"
             )
             if new_manual:
@@ -550,6 +604,11 @@ async def run(args: argparse.Namespace) -> None:
                     "ON CONFLICT (oy_ingredient_id) DO NOTHING"
                 )
                 print(f"Reviewed aliases: {manual_status}")
+        write_csv(
+            args.report_dir / "applied-mfds-approvals.csv",
+            (*MATCH_COLUMNS, "source_hash", "reviewed_by", "reviewed_at"),
+            audit_rows,
+        )
         print(f"Committed {status}; existing mappings were preserved")
     finally:
         await connection.close()
