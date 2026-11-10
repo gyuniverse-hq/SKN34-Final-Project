@@ -38,10 +38,7 @@ def official_synonyms(value: str | None) -> set[str]:
 def source_single_alias(value: str | None, alias: str) -> bool:
     """Only an unsplit original MFDS value is trusted without manual approval."""
     tokens = official_synonyms(value)
-    return (
-        len(tokens) == 1
-        and normalize_name(value).casefold() == normalize_name(alias).casefold()
-    )
+    return len(tokens) == 1 and normalize_name(value).casefold() == normalize_name(alias).casefold()
 
 
 @lru_cache(maxsize=16)
