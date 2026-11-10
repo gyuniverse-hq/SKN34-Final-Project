@@ -275,3 +275,38 @@ async def test_english_amount_product_link_requires_unique_dictionary_owner(comp
         standards.append((83, "standard-83", "english-83", "english-82"))
     repo = IngredientIdentityRepository(Session([[tuple(mapped)], standards]))
     assert set(await repo.for_entries([101])) == (set() if competing else {101})
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "name,official_id,other_id",
+    [
+        ("마카다미아씨오일", 18275, 90),
+        ("캐모마일꽃오일", 2957, 18237),
+    ],
+)
+async def test_unreviewed_official_alias_collision_stays_unresolved(name, official_id, other_id):
+    official = list(row(official_id, method="exact_name"))
+    official[1] = name
+    official[8] = name
+    other = list(row(other_id, method="official_synonym"))
+    other[8] = name
+    other[10] = name
+    standards = [
+        (official_id, name, "official-english", ""),
+        (other_id, "other-standard", "other-english", name),
+    ]
+
+    # An explicit dictionary query can name the official owner.
+    query = IngredientIdentityRepository(
+        Session([[tuple(official) + (True, False, True), tuple(other) + (False, False, True)]])
+    )
+    assert (await query.resolve(name)).mfds_ingredient_id == official_id
+
+    # A product label may also denote the competing raw material.
+    entry = IngredientIdentityRepository(Session([[tuple(official)], standards]))
+    assert await entry.for_entries([101]) == {}
+
+    # A link to the competing ID cannot become a confirmed synonym either.
+    other_entry = IngredientIdentityRepository(Session([[tuple(other)], standards]))
+    assert await other_entry.for_entries([101]) == {}
