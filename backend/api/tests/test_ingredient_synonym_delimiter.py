@@ -84,7 +84,36 @@ def test_fullwidth_numeric_locant_is_not_split():
     assert _official_synonyms("１,２-헥산디올") == {"1,2-헥산디올"}
 
 
-def test_legacy_comma_alias_still_validates():
+def test_unreviewed_split_alias_does_not_validate_existing_link(monkeypatch):
+    from app.repositories import ingredient_identity_repository as repository
+
+    monkeypatch.setattr(repository, "_approvals", lambda: frozenset())
     current = list(mapped_row("코코아버터"))
     current[10] = "카카오씨드버터,코코아버터"
-    assert _current_link(tuple(current))
+    assert not repository._current_link(tuple(current))
+    monkeypatch.setattr(
+        repository,
+        "_approvals",
+        lambda: frozenset({(82, "코코아버터", "a" * 64)}),
+    )
+    assert repository._current_link(tuple(current))
+
+
+def test_single_verbatim_official_synonym_needs_no_manual_approval(monkeypatch):
+    from app.repositories import ingredient_identity_repository as repository
+
+    monkeypatch.setattr(repository, "_approvals", lambda: frozenset())
+    current = list(mapped_row("1,2-헥산디올"))
+    current[10] = "1,2-헥산디올"
+    assert repository._current_link(tuple(current))
+
+
+def test_legacy_comma_alias_still_validates_with_review(monkeypatch):
+    from app.repositories import ingredient_identity_repository as repository
+
+    monkeypatch.setattr(
+        repository, "_approvals", lambda: frozenset({(82, "코코아버터", "a" * 64)})
+    )
+    current = list(mapped_row("코코아버터"))
+    current[10] = "카카오씨드버터,코코아버터"
+    assert repository._current_link(tuple(current))
