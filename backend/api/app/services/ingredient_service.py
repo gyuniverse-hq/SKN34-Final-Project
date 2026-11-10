@@ -9,6 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.db import get_session
 from app.core.errors import ApiError
+from app.core.ingredient_alias_approval import (
+    IngredientApprovalError,
+    get_ingredient_alias_approvals,
+)
 from app.repositories.ingredient_repository import IngredientRepository
 from app.schemas.ingredient import (
     IngredientCondition,
@@ -136,7 +140,12 @@ class IngredientService:
         if ingredient_name is not None and not ingredient_name.strip():
             raise ApiError(400, "Ingredient name is required", "invalid_ingredient")
         try:
+            get_ingredient_alias_approvals()
             result = await self._repository.lookup(product_id, shade_id, option_id)
+        except IngredientApprovalError as exc:
+            raise ApiError(
+                503, "Ingredient approval file unavailable", "ingredient_alias_approvals_invalid"
+            ) from exc
         except SQLAlchemyError as exc:
             raise ApiError(
                 503, "Ingredient source unavailable", "ingredient_lookup_failed"

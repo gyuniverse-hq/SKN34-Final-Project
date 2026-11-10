@@ -8,10 +8,12 @@ import threading
 import time
 from pathlib import Path
 
+import httpx
 import pytest
 import uvicorn
 
 from app.core.cache import NullCache
+from app.core.config import get_settings
 from app.repositories.ingredient_repository import IngredientRepository
 from app.schemas.catalog import CatalogBundle
 from app.services.catalog_service import CatalogService, get_catalog_service
@@ -68,6 +70,8 @@ with TestClient(app) as client:
         ("canonical_alias", "MATCH", "success"),
         ("candidate", "UNKNOWN", "clarification"),
         ("configuration_error", "ERROR", "error"),
+        ("approval_missing", "ERROR", "error"),
+        ("approval_damaged", "ERROR", "error"),
     ],
 )
 def test_api_client_beauty_supervisor_chat_json_over_http(
@@ -81,6 +85,8 @@ def test_api_client_beauty_supervisor_chat_json_over_http(
 ):
     chatbot = Path(__file__).resolve().parents[2] / "chatbot"
     python = chatbot / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    if configured_python := os.environ.get("VISHUE_CHATBOT_TEST_PYTHON"):
+        python = Path(configured_python)
     if not python.exists():
         pytest.skip("Existing chatbot virtualenv is required; no dependency installation")
     product, shades, raw, entries, mapping = data
@@ -102,16 +108,28 @@ def test_api_client_beauty_supervisor_chat_json_over_http(
     )
     monkeypatch.delenv("INGREDIENT_MAPPING_PATH", raising=False)
     sessions = []
+    monkeypatch.setattr(get_settings(), "skincare_refresh_enabled", False)
+    invalid_approval = state.startswith("approval_")
+    approval_path = tmp_path / "approval.csv"
+    if state == "approval_damaged":
+        approval_path.write_bytes(
+            b'mfds_ingredient_id,candidate_alias,source_hash,reviewed_by,reviewed_at\n1,"unclosed'
+        )
+    monkeypatch.setattr(
+        get_settings(),
+        "ingredient_alias_approvals_path",
+        str(approval_path) if invalid_approval else None,
+    )
 
     def ingredient_service():
         identity_pages = (
             [
                 [row(1, oy=1), row(2, oy=2)],
                 [
-                    (1, "standard-1", "english-1", "alias-1"),
+                    (1, "standard-1", "english-1", "Aqua"),
                     (2, "standard-2", "english-2", "alias-2"),
                 ],
-                [row(1, oy=1) + (False, False, True)],
+                [(*row(1, oy=1)[:10], "Aqua", False, False, True)],
             ]
             if state == "canonical_alias"
             else [[], []]
@@ -142,6 +160,15 @@ def test_api_client_beauty_supervisor_chat_json_over_http(
             while not server.started and thread.is_alive() and time.monotonic() < deadline:
                 threading.Event().wait(0.01)
             assert server.started, "Synthetic Catalog HTTP server did not start"
+            if invalid_approval:
+                base = f"http://127.0.0.1:{port}"
+                with httpx.Client(base_url=base) as http:
+                    response = http.get(
+                        "/api/products/oy-fixture/ingredients", params={"shadeId": "01-2"}
+                    )
+                    assert response.status_code == 503
+                    assert response.json()["code"] == "ingredient_alias_approvals_invalid"
+                    assert http.get("/api/products").status_code == 200
             result = subprocess.run(
                 [
                     str(python),
@@ -171,4 +198,8 @@ def test_api_client_beauty_supervisor_chat_json_over_http(
     assert body["ingredientResults"][0]["productId"] == body["products"][0]["id"]
     assert "supervisor" not in body and "toolResult" not in body and "arResult" not in body
     expected_queries = 7 if state == "canonical_alias" else 6 if state == "verified" else 2
-    assert sessions and len(sessions[0].statements) == expected_queries
+    if invalid_approval:
+        assert sessions and all(not session.statements for session in sessions)
+        assert body["ingredientResults"][0]["reason"] == "source_unavailable"
+    else:
+        assert sessions and len(sessions[0].statements) == expected_queries

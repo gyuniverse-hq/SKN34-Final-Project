@@ -238,3 +238,40 @@ async def test_api_resolve_accepts_approved_split_alias(monkeypatch):
     found = await IngredientIdentityRepository(session).resolve("코코아버터")
     assert found is not None and found.mfds_ingredient_id == 82
     assert found.match_method == "official_synonym"
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "query,flags,method",
+    [
+        ("standard-82", (True, False, True), "standard_name"),
+        ("english-82", (False, True, True), "english_name"),
+    ],
+)
+async def test_official_query_keeps_priority_over_another_ids_synonym(query, flags, method):
+    standard = row(82, oy=None)
+    alias = (*row(83, oy=None)[:10], f"{query}^other")
+    session = Session([[alias + (False, False, True), standard + flags]])
+    found = await IngredientIdentityRepository(session).resolve(query)
+    assert found is not None and (found.mfds_ingredient_id, found.match_method) == (82, method)
+
+
+@pytest.mark.anyio
+async def test_approved_alias_cannot_hide_competing_unapproved_id(monkeypatch):
+    from app.repositories import ingredient_identity_repository as repository
+
+    monkeypatch.setattr(repository, "_approvals", lambda: frozenset({(82, "shared", "a" * 64)}))
+    rows = [(*row(i, oy=None)[:10], f"shared^alias-{i}", False, False, True) for i in (82, 83)]
+    assert await IngredientIdentityRepository(Session([rows])).resolve("shared") is None
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("competing", [False, True])
+async def test_english_amount_product_link_requires_unique_dictionary_owner(competing):
+    mapped = list(row(82, method="amount_suffix_exact"))
+    mapped[8] = "English-82(10ppm)"
+    standards = [(82, "standard-82", "english-82", "alias-82")]
+    if competing:
+        standards.append((83, "standard-83", "english-83", "english-82"))
+    repo = IngredientIdentityRepository(Session([[tuple(mapped)], standards]))
+    assert set(await repo.for_entries([101])) == (set() if competing else {101})

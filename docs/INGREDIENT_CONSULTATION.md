@@ -20,11 +20,16 @@ explicitly unknown. No database migration or shared-data update is part of this 
   - For new `official_synonym` / `amount_suffix_synonym` matches, pass a separate
     `--approvals-file` CSV with `mfds_ingredient_id,candidate_alias,source_hash,reviewed_by,reviewed_at`.
     Stale or ambiguous approvals fail; unapproved new automatic matches cause
-    `--apply` to abort before DB mutation. `amount_suffix_exact` is withheld.
+    `--apply` to abort before DB mutation. `amount_suffix_exact` needs no alias
+    approval when stripping one supported trailing numeric concentration
+    (`ppm`, `ppb`, `%`, or `IU`) yields a unique official Korean or English name.
   - Configure the same read-only CSV for API using the absolute environment path
     `INGREDIENT_ALIAS_APPROVALS_PATH`. Without a file, split aliases stay unresolved
-    while source-backed names remain available. Invalid files fail closed rather
-    than becoming trusted. Restart the API after updating the mounted CSV.
+    while source-backed names remain available. A configured missing, unreadable
+    or malformed CSV returns HTTP 503 with `ingredient_alias_approvals_invalid`
+    from the ingredient endpoint. The chatbot reports `source_unavailable`
+    (`ERROR`); ordinary catalog endpoints are unaffected. Restart the API after
+    updating the mounted CSV.
   - A successful apply stores the reviewer, review timestamp and source hash
     (`review_note`) in the existing `oy_mfds_ingredient_map` columns, and exports
     a timestamped `applied-mfds-approvals-*.csv` receipt. Retain the original signed-off CSV
@@ -47,10 +52,16 @@ explicitly unknown. No database migration or shared-data update is part of this 
   stay unresolved. No fuzzy matching or model-generated identity is used.
   Automatic links are rechecked against the current official name/synonym and
   conservative trailing-amount rule. Manual links lack a reviewed dictionary hash
-  in the current DB schema and remain unresolved until that versioned review exists.
+  in the current DB schema and remain unresolved. A future manual-link contract
+  must bind the reviewed Olive Young spelling and target MFDS ID to the reviewed
+  dictionary hash, reviewer, and review date, and reject stale or conflicting links.
 - Queries resolve against current official Korean/English names, validated mixed-
-  delimiter official synonyms, or confirmed Olive Young aliases. Multiple distinct candidate
-  IDs remain unresolved. Each condition returns its optional `queryIdentity`.
+  delimiter official synonyms, or confirmed Olive Young aliases. An explicit
+  Korean or English official-name query uses its sole official owner, even if
+  another ID lists the name as an alias. Duplicate official owners stay
+  unresolved. Product entries, automatic matching and alias approvals require
+  one owner across Korean names, English names, and all aliases, including
+  unapproved split aliases. Each condition returns its optional `queryIdentity`.
 - Literal reviewed presence remains supported. Canonical presence additionally
   requires the same ID and dictionary source hash. Absence requires a reviewed,
   complete, normalized, sequential and unique list, identities for **every** entry,

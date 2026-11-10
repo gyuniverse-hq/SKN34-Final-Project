@@ -1,19 +1,21 @@
 """Read-only canonical identity lookup; never infers product/option ownership."""
 
-import re
-import unicodedata
-
 from pydantic import ValidationError
 from sqlalchemy import Text, any_, func, literal_column, or_, select
 from sqlalchemy.dialects.postgresql import ARRAY, array
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import get_settings
 from app.core.ingredient_alias_approval import (
     OFFICIAL_SYNONYM_SEPARATOR,
     approved_synonym,
-    load_approved_aliases,
+    dictionary_name_keys,
+    get_ingredient_alias_approvals,
+    official_name_keys,
     official_synonyms,
+    without_trailing_amount,
+)
+from app.core.ingredient_alias_approval import (
+    normalize_name as _name,
 )
 from app.models.oy_mfds_ingredient_map import OyMfdsIngredientMapRow as Link
 from app.models.raw_mfds_ingredient import RawMfdsIngredientRow as Mfds
@@ -21,11 +23,6 @@ from app.models.raw_oliveyoung import RawOyIngredientRow as Oy
 from app.schemas.ingredient import IngredientIdentity
 
 QUERY_RULE = "mfds-query-v1"
-AMOUNT_SUFFIX = re.compile(r"\s*\(\s*\d+(?:,\d{3})*(?:\.\d+)?\s*(?:ppm|ppb|%|iu)\s*\)\s*$", re.I)
-
-
-def _name(value):
-    return " ".join(unicodedata.normalize("NFKC", value or "").split())
 
 
 def _official_synonyms(value: str | None) -> set[str]:
@@ -34,30 +31,24 @@ def _official_synonyms(value: str | None) -> set[str]:
 
 
 def _approvals():
-    return load_approved_aliases(get_settings().ingredient_alias_approvals_path)
-
-
-def _current_link(row):
-    method, original = row[4], _name(row[8])
-    if method in {"amount_suffix_exact", "amount_suffix_synonym"}:
-        amount = AMOUNT_SUFFIX.search(original)
-        if amount is None:
-            return False
-        original = original[: amount.start()].strip()
-    if method in {"exact_name", "amount_suffix_exact"}:
-        return bool(original) and original == _name(row[1])
-    if method in {"official_synonym", "amount_suffix_synonym"}:
-        return bool(original) and approved_synonym(row[10], original, row[0], row[2], _approvals())
-    # Manual rows currently have no reviewed dictionary hash: never reissue them
-    # as verified identities for a possibly changed snapshot.
-    return False
+    return get_ingredient_alias_approvals()
 
 
 def _link_name(row):
     value = _name(row[8])
     if row[4] in {"amount_suffix_exact", "amount_suffix_synonym"}:
-        value = AMOUNT_SUFFIX.sub("", value).strip()
+        value = without_trailing_amount(value) or ""
     return value.lower()
+
+
+def _current_link(row):
+    method, original = row[4], _link_name(row)
+    if method in {"exact_name", "amount_suffix_exact"}:
+        return original in official_name_keys(row[1], row[9])
+    if method in {"official_synonym", "amount_suffix_synonym"}:
+        return bool(original) and approved_synonym(row[10], original, row[0], row[2], _approvals())
+    # Manual rows lack a reviewed dictionary hash and cannot prove current identity.
+    return False
 
 
 def _key(column):
@@ -141,9 +132,7 @@ class IngredientIdentityRepository:
         ).all()
         identities = {name: set() for name in names}
         for standard in standards:
-            labels = [standard[1], standard[2], *_official_synonyms(standard[3])]
-            for label in labels:
-                key = _name(label).lower()
+            for key in dictionary_name_keys(standard[1], standard[2], standard[3]):
                 if key in identities:
                     identities[key].add(standard[0])
         return {
@@ -153,7 +142,7 @@ class IngredientIdentityRepository:
         }
 
     async def resolve(self, name: str) -> IngredientIdentity | None:
-        target = " ".join(unicodedata.normalize("NFKC", name).lower().split())
+        target = _name(name).lower()
         official = or_(
             _key(Mfds.name_ko) == target,
             _key(Mfds.name_en) == target,
@@ -172,41 +161,27 @@ class IngredientIdentityRepository:
                 .execution_options(autoflush=False)
             )
         ).all()
-        # An unapproved split alias can still make the name ambiguous.
-        if len({row[0] for row in rows if row[13]}) > 1:
+        # An explicit official name can identify the sole official owner. Raw
+        # product links still require uniqueness across all dictionary names.
+        official_names = [row for row in rows if row[11] or row[12]]
+        if official_names:
+            if len({row[0] for row in official_names}) != 1:
+                return None
+            row = official_names[0]
+            return _identity(row, "standard_name" if row[11] else "english_name")
+
+        aliases = [row for row in rows if row[13]]
+        if aliases:
+            # Unapproved aliases still count as competitors and never fall back to OY.
+            if len({row[0] for row in aliases}) != 1:
+                return None
+            row = aliases[0]
+            if approved_synonym(row[10], target, row[0], row[2], _approvals()):
+                return _identity(row, "official_synonym")
             return None
 
-        # SQL finds possible names; a split alias is not evidence until explicitly
-        # approved against this exact MFDS source hash. Legacy OY-only names are
-        # preserved for their separately verified mapping path.
-        approvals = _approvals()
-        rows = [
-            row
-            for row in rows
-            if row[11]
-            or row[12]
-            or (row[13] and approved_synonym(row[10], target, row[0], row[2], approvals))
-            or (not row[13] and _name(row[8]).casefold() == target)
-        ]
-        if len({row[0] for row in rows}) != 1:
-            return None
-        if not any(row[11] or row[12] or row[13] for row in rows):
-            # An OY-only alias (including an amount suffix) needs the same current
-            # base-name uniqueness check used for product entries.
-            links = await self.for_entries([row[3] for row in rows if row[3] is not None])
-            resolved = {identity.mfds_ingredient_id: identity for identity in links.values()}
-            return next(iter(resolved.values())) if len(resolved) == 1 else None
-        candidates = {}
-        for row in rows:
-            method = (
-                "standard_name"
-                if row[11]
-                else "english_name"
-                if row[12]
-                else "official_synonym"
-                if row[13]
-                else None
-            )
-            if (identity := _identity(row, method)) is not None:
-                candidates[identity.mfds_ingredient_id] = identity
-        return next(iter(candidates.values())) if len(candidates) == 1 else None
+        # OY-only names (including amount suffixes) use the product-link policy.
+        ids = [row[3] for row in rows if row[3] is not None and _name(row[8]).lower() == target]
+        links = await self.for_entries(ids)
+        resolved = {identity.mfds_ingredient_id: identity for identity in links.values()}
+        return next(iter(resolved.values())) if len(resolved) == 1 else None
