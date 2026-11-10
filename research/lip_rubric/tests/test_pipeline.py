@@ -31,6 +31,8 @@ def test_identity_split_and_mirror():
     rows=[{'face_id':str(i),'human_label':'bare' if i<24 else 'lipstick','ita_bin':str(i%3)} for i in range(36)]
     split=assign_splits(rows,42); assert split==assign_splits(rows,42)
     assert set(split.values())=={'test','pool'}
+    assert sum(split[r['face_id']]=='test' for r in rows if r['human_label']=='bare')==7
+    assert sum(split[r['face_id']]=='test' for r in rows if r['human_label']=='lipstick')==4
     assert np.allclose(mirrored_ring({'x':[2,7],'y':[3,4]},[0,1],10),[[7,3],[2,4]])
 
 

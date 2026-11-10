@@ -49,20 +49,23 @@ def reviewed_faces(rows, seed):
 
 def assign_splits(selected, seed):
     """Identity-grouped approximate stratification; tiny strata cannot all be balanced."""
-    rnd = random.Random(seed); by_stratum=defaultdict(list)
-    for row in selected: by_stratum[(row['human_label'],row.get('ita_bin','unknown'))].append(row['face_id'])
-    groups = list(by_stratum.values())
-    for g in groups: rnd.shuffle(g)
-    target = max(1, round(len(selected)*.30)); test=set()
-    while len(test)<target:
-        candidates=[g for g in groups if g and len(g)>1]
-        if not candidates: candidates=[g for g in groups if g]
-        if not candidates: break
-        group=max(candidates,key=len); test.add(group.pop())
+    rnd = random.Random(seed); test=set()
     for label in ('bare', 'lipstick'):
-        ids=[r['face_id'] for r in selected if r['human_label']==label]
-        if not any(i in test for i in ids): test.add(ids[0])
-        if all(i in test for i in ids): test.remove(ids[-1])
+        by_stratum=defaultdict(list)
+        for row in selected:
+            if row['human_label']==label:
+                by_stratum[row.get('ita_bin','unknown')].append(row['face_id'])
+        if not by_stratum: continue
+        for group in by_stratum.values(): rnd.shuffle(group)
+        total=sum(map(len,by_stratum.values()))
+        target=min(total-1,max(1,round(total*.30))) if total>1 else 0
+        allocations={name:0 for name in by_stratum}
+        for _ in range(target):
+            available=[name for name,group in by_stratum.items() if allocations[name]<len(group)]
+            # Allocate to the stratum with the largest remaining proportional deficit.
+            name=max(sorted(available),key=lambda x: target*len(by_stratum[x])/total-allocations[x])
+            allocations[name]+=1
+        for name,count in allocations.items(): test.update(by_stratum[name][:count])
     return {r['face_id']:('test' if r['face_id'] in test else 'pool') for r in selected}
 
 
