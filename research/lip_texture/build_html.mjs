@@ -9,7 +9,10 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const require = createRequire(import.meta.url);
 const ts = require(join(root, 'node_modules', 'typescript'));
-const tmp = join(root, 'research', 'data', 'lip_texture', 'build');
+const dataArg = process.argv.indexOf('--data-dir');
+if (dataArg >= 0 && !process.argv[dataArg + 1]) throw new Error('--data-dir requires a path');
+const dataDir = dataArg >= 0 ? resolve(process.argv[dataArg + 1]) : join(root, 'research', 'data', 'lip_texture');
+const tmp = join(dataDir, 'build');
 mkdirSync(tmp, { recursive: true });
 
 for (const name of ['faceUV', 'faceTrackerHtml']) {
@@ -18,5 +21,5 @@ for (const name of ['faceUV', 'faceTrackerHtml']) {
   writeFileSync(join(tmp, `${name}.js`), out.outputText);
 }
 const { FACE_TRACKER_HTML } = require(join(tmp, 'faceTrackerHtml.js'));
-writeFileSync(join(root, 'research', 'data', 'lip_texture', 'page.html'), FACE_TRACKER_HTML);
+writeFileSync(join(dataDir, 'page.html'), FACE_TRACKER_HTML);
 console.log('page.html', FACE_TRACKER_HTML.length);

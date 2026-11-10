@@ -1,0 +1,19 @@
+{
+  "vlm": {
+    "model_id": "Qwen/Qwen2.5-VL-7B-Instruct",
+    "revision": null,
+    "license": "Apache-2.0 (모델 카드 확인: 2026-11-10; 사용 전 재확인)",
+    "model_card": "https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct",
+    "quantization": "4bit",
+    "generation": {"do_sample": false, "max_new_tokens": 900}
+  },
+  "embedding": {
+    "model_id": "openai/clip-vit-base-patch32",
+    "revision": null,
+    "license": "확인 안 됨",
+    "model_card": "https://huggingface.co/openai/clip-vit-base-patch32"
+  },
+  "neighbors": 3,
+  "retry_count": 2,
+  "seed": 42
+}

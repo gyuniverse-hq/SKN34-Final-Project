@@ -45,11 +45,12 @@ def detect(lm: vision.FaceLandmarker, rgb: np.ndarray) -> np.ndarray | None:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--face-width", type=float, default=0.55, help="face oval width / frame width")
+    ap.add_argument("--data-dir", type=Path, default=DATA, help="input/output directory")
     args = ap.parse_args()
-    out = DATA / "faces"
+    out = args.data_dir / "faces"
     out.mkdir(parents=True, exist_ok=True)
     lm = landmarker()
-    for src in sorted((DATA / "src").glob("*.jpg")):
+    for src in sorted((args.data_dir / "src").glob("*.jpg")):
         bgr = cv2.imread(str(src))
         rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
         pts = detect(lm, rgb)
