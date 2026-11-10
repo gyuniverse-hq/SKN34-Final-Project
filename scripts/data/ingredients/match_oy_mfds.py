@@ -17,16 +17,13 @@ import re
 import ssl
 import unicodedata
 from collections import defaultdict
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import asyncpg
 
 from app.core.ingredient_alias_approval import (
-    APPROVAL_COLUMNS,
-    OFFICIAL_SYNONYM_SEPARATOR,
     approved_synonym,
-    load_approved_aliases,
     official_synonyms as canonical_synonyms,
     source_single_alias,
 )
@@ -508,15 +505,23 @@ async def run(args: argparse.Namespace) -> None:
                             record["source_hash"],
                         )
                     ] = (record["reviewed_by"].strip(), record["reviewed_at"].strip())
+        mfds_by_id = {row["ingredient_id"]: row for row in mfds_rows}
         audit_rows = []
+        stage_records = []
         for match in new_matches:
-            mfds = next(row for row in mfds_rows if row["ingredient_id"] == match[2])
+            mfds = mfds_by_id[match[2]]
             base = without_trailing_amount(match[1]) if match[4] in AMOUNT_METHODS else match[1]
             reviewer, reviewed = approval_metadata.get(
                 (match[2], name_key(base).casefold(), mfds["source_hash"]), ("", "")
             )
-            audit_rows.append(
-                (*match, mfds["source_hash"], reviewer, reviewed)
+            audit_rows.append((*match, mfds["source_hash"], reviewer, reviewed))
+            stage_records.append(
+                (
+                    match[0], match[2], match[4], RULE_VERSION,
+                    reviewer or None,
+                    datetime.fromisoformat(reviewed).replace(tzinfo=UTC) if reviewed else None,
+                    "mfds_source_hash=" + mfds["source_hash"],
+                )
             )
 
         if any(row[4] in AMOUNT_METHODS for row in new_matches):
@@ -537,27 +542,7 @@ async def run(args: argparse.Namespace) -> None:
             )
             await connection.copy_records_to_table(
                 "oy_mfds_match_stage",
-                records=[
-                    (
-                        row[0],
-                        row[2],
-                        row[4],
-                        RULE_VERSION,
-                        approval_metadata.get(
-                            (row[2], name_key(without_trailing_amount(row[1]) or row[1]).casefold(),
-                             next(m["source_hash"] for m in mfds_rows if m["ingredient_id"] == row[2])),
-                            (None, None),
-                        )[0],
-                        approval_metadata.get(
-                            (row[2], name_key(without_trailing_amount(row[1]) or row[1]).casefold(),
-                             next(m["source_hash"] for m in mfds_rows if m["ingredient_id"] == row[2])),
-                            (None, None),
-                        )[1],
-                        "mfds_source_hash="
-                        + next(m["source_hash"] for m in mfds_rows if m["ingredient_id"] == row[2]),
-                    )
-                    for row in new_matches
-                ],
+                records=stage_records,
                 columns=(
                     "oy_ingredient_id",
                     "mfds_ingredient_id",
