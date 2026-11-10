@@ -198,3 +198,28 @@ def test_missing_approval_file_does_not_trust_split_aliases():
     approved = load_approved_aliases(None)
     assert not approved_synonym("카카오씨드버터,코코아버터", "코코아버터", 200, "a" * 64, approved)
     assert approved_synonym("1,2-헥산디올", "1,2-헥산디올", 200, "a" * 64, approved)
+
+
+def test_alias_colliding_with_other_official_english_name_is_ambiguous():
+    mfds = [
+        dict(
+            ingredient_id=200,
+            name_ko="첫번째",
+            name_en="First Name",
+            name_key="첫번째",
+            synonym_raw="SecondName,첫번째별칭",
+            source_hash="a" * 64,
+        ),
+        dict(
+            ingredient_id=201,
+            name_ko="두번째",
+            name_en="SecondName",
+            name_key="두번째",
+            synonym_raw="두번째별칭",
+            source_hash="b" * 64,
+        ),
+    ]
+    queue = matcher.build_alias_review_rows(mfds)
+    first = [row for row in queue if row[0] == 200 and row[4] == "SecondName"]
+    assert len(first) == 1 and first[0][6] == "ambiguous"
+    assert first[0][5] == "201"
