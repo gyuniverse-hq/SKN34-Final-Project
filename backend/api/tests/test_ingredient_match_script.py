@@ -170,3 +170,43 @@ def test_conflicting_alias_cannot_be_approved(tmp_path):
 def test_unicode_normalization_before_delimiter_split():
     assert matcher.official_synonyms("１,２-헥산디올") == {"1,2-헥산디올"}
     assert matcher.official_synonyms("Ｎ,Ｎ-성분,나머지") == {"N,N-성분", "나머지"}
+
+
+def test_runtime_approval_file_is_versioned_and_immutable_to_source_changes(tmp_path):
+    import csv
+
+    from app.core.ingredient_alias_approval import (
+        approved_synonym,
+        load_approved_aliases,
+    )
+
+    source = tmp_path / "approved.csv"
+    with source.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(matcher.APPROVAL_COLUMNS)
+        writer.writerow((200, "코코아버터", "a" * 64, "human-review", "2026-11-10"))
+    approved = load_approved_aliases(str(source))
+    assert approved_synonym(
+        "카카오씨드버터,코코아버터", "코코아버터", 200, "a" * 64, approved
+    )
+    assert not approved_synonym(
+        "카카오씨드버터,코코아버터", "코코아버터", 200, "b" * 64, approved
+    )
+    assert not approved_synonym(
+        "카카오씨드버터,코코아버터", "다른별칭", 200, "a" * 64, approved
+    )
+    assert not approved_synonym(
+        "카카오씨드버터,코코아버터", "코코아버터", 201, "a" * 64, approved
+    )
+
+
+def test_missing_approval_file_does_not_trust_split_aliases():
+    from app.core.ingredient_alias_approval import approved_synonym, load_approved_aliases
+
+    approved = load_approved_aliases(None)
+    assert not approved_synonym(
+        "카카오씨드버터,코코아버터", "코코아버터", 200, "a" * 64, approved
+    )
+    assert approved_synonym(
+        "1,2-헥산디올", "1,2-헥산디올", 200, "a" * 64, approved
+    )
