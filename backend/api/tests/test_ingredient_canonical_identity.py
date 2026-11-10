@@ -210,3 +210,31 @@ async def test_amount_alias_query_rechecks_current_base_identity_before_absence(
         query,
     )
     assert check.verdict == ("UNKNOWN" if competing else "MATCH")
+
+
+@pytest.mark.anyio
+async def test_api_resolve_rejects_unreviewed_split_alias(monkeypatch):
+    from app.repositories import ingredient_identity_repository as repository
+
+    monkeypatch.setattr(repository, "_approvals", lambda: frozenset())
+    original = list(row(82, oy=None, method=None, rule=None))
+    original[10] = "코코아버터,카카오씨드버터"
+    session = Session([[tuple(original) + (False, False, True)]])
+    assert await IngredientIdentityRepository(session).resolve("코코아버터") is None
+
+
+@pytest.mark.anyio
+async def test_api_resolve_accepts_approved_split_alias(monkeypatch):
+    from app.repositories import ingredient_identity_repository as repository
+
+    monkeypatch.setattr(
+        repository,
+        "_approvals",
+        lambda: frozenset({(82, "코코아버터", "a" * 64)}),
+    )
+    original = list(row(82, oy=None, method=None, rule=None))
+    original[10] = "코코아버터,카카오씨드버터"
+    session = Session([[tuple(original) + (False, False, True)]])
+    found = await IngredientIdentityRepository(session).resolve("코코아버터")
+    assert found is not None and found.mfds_ingredient_id == 82
+    assert found.match_method == "official_synonym"
