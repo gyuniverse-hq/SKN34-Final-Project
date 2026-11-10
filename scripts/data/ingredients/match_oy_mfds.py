@@ -17,6 +17,7 @@ import re
 import ssl
 import unicodedata
 from collections import defaultdict
+from collections.abc import Collection
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -24,9 +25,12 @@ import asyncpg
 
 from app.core.ingredient_alias_approval import (
     APPROVAL_COLUMNS,
+    ApprovalKey,
     approved_synonym,
-    official_synonyms as canonical_synonyms,
     source_single_alias,
+)
+from app.core.ingredient_alias_approval import (
+    official_synonyms as canonical_synonyms,
 )
 
 RULE_VERSION = "v3"
@@ -114,10 +118,10 @@ def build_alias_review_rows(mfds_rows: list[asyncpg.Record]) -> list[tuple]:
 
 def load_approved_synonyms(
     path: Path | None, mfds_rows: list[asyncpg.Record]
-) -> set[tuple[int, str, str]]:
-    """Validate reviewed alias identities against this exact MFDS snapshot."""
+) -> dict[ApprovalKey, tuple[str, str]]:
+    """Validate approvals against this MFDS snapshot and keep their audit metadata."""
     if path is None:
-        return set()
+        return {}
     dictionary = {row["ingredient_id"]: row for row in mfds_rows}
     owners: dict[str, set[int]] = defaultdict(set)
     for row in mfds_rows:
@@ -134,7 +138,7 @@ def load_approved_synonyms(
         if owners[alias.casefold()] == {row["ingredient_id"]}
         and not source_single_alias(row["synonym_raw"], alias)
     }
-    approved = set()
+    approved = {}
     with path.open(encoding="utf-8-sig", newline="") as file:
         reader = csv.DictReader(file)
         if tuple(reader.fieldnames or ()) != APPROVAL_COLUMNS:
@@ -158,15 +162,16 @@ def load_approved_synonyms(
                 or key in approved
             ):
                 raise ValueError(f"Unverified or duplicate approval at row {line}")
-            approved.add(key)
+            approved[key] = (reviewer, reviewed)
     return approved
 
 
 def select_approved_matches(
-    matches: list[tuple], mfds_rows: list[asyncpg.Record], approved: set[tuple[int, str, str]]
+    matches: list[tuple], mfds_rows: list[asyncpg.Record], approved: Collection[ApprovalKey]
 ) -> tuple[list[tuple], list[tuple]]:
     """Allow exact names by default; require a reviewed current alias for other methods."""
     dictionary = {row["ingredient_id"]: row for row in mfds_rows}
+    approved_keys = frozenset(approved)
     eligible, withheld = [], []
     for match in matches:
         if match[4] == "exact_name":
@@ -174,13 +179,8 @@ def select_approved_matches(
             continue
         mfds = dictionary[match[2]]
         base = without_trailing_amount(match[1]) if match[4] in AMOUNT_METHODS else match[1]
-        key = (match[2], name_key(base).casefold(), mfds["source_hash"])
-        if (
-            match[4] in {"official_synonym", "amount_suffix_synonym"}
-            and approved_synonym(
-                mfds["synonym_raw"], base, mfds["ingredient_id"],
-                mfds["source_hash"], frozenset(approved)
-            )
+        if match[4] in {"official_synonym", "amount_suffix_synonym"} and approved_synonym(
+            mfds["synonym_raw"], base, mfds["ingredient_id"], mfds["source_hash"], approved_keys
         ):
             eligible.append(match)
         else:
@@ -428,9 +428,9 @@ async def run(args: argparse.Namespace) -> None:
         new_matches = [row for row in matches if row[0] not in existing]
         # Fail closed for automatic synonym/amount matching. A preview is never approval.
         # Keep these rows in the report; --apply must not silently promote them.
-        approved = load_approved_synonyms(args.approvals_file, mfds_rows) if args.apply else set()
+        approvals = load_approved_synonyms(args.approvals_file, mfds_rows) if args.apply else {}
         if args.apply:
-            new_matches, withheld = select_approved_matches(new_matches, mfds_rows, approved)
+            new_matches, withheld = select_approved_matches(new_matches, mfds_rows, approvals)
             if withheld:
                 raise ValueError(
                     f"{len(withheld)} unapproved automatic matches; review the candidates "
@@ -500,31 +500,22 @@ async def run(args: argparse.Namespace) -> None:
             print("Preview complete; no database rows were written")
             return
 
-        # Keep a local, human-readable receipt even when the source CSV is rotated.
-        approval_metadata = {}
-        if args.apply and args.approvals_file:
-            with args.approvals_file.open(encoding="utf-8-sig", newline="") as file:
-                for record in csv.DictReader(file):
-                    approval_metadata[
-                        (
-                            int(record["mfds_ingredient_id"]),
-                            name_key(record["candidate_alias"]).casefold(),
-                            record["source_hash"],
-                        )
-                    ] = (record["reviewed_by"].strip(), record["reviewed_at"].strip())
         mfds_by_id = {row["ingredient_id"]: row for row in mfds_rows}
         audit_rows = []
         stage_records = []
         for match in new_matches:
             mfds = mfds_by_id[match[2]]
             base = without_trailing_amount(match[1]) if match[4] in AMOUNT_METHODS else match[1]
-            reviewer, reviewed = approval_metadata.get(
+            reviewer, reviewed = approvals.get(
                 (match[2], name_key(base).casefold(), mfds["source_hash"]), ("", "")
             )
             audit_rows.append((*match, mfds["source_hash"], reviewer, reviewed))
             stage_records.append(
                 (
-                    match[0], match[2], match[4], RULE_VERSION,
+                    match[0],
+                    match[2],
+                    match[4],
+                    RULE_VERSION,
                     reviewer or None,
                     datetime.fromisoformat(reviewed).replace(tzinfo=UTC) if reviewed else None,
                     "mfds_source_hash=" + mfds["source_hash"],

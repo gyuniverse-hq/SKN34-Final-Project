@@ -172,6 +172,10 @@ class IngredientIdentityRepository:
                 .execution_options(autoflush=False)
             )
         ).all()
+        # An unapproved split alias can still make the name ambiguous.
+        if len({row[0] for row in rows if row[13]}) > 1:
+            return None
+
         # SQL finds possible names; a split alias is not evidence until explicitly
         # approved against this exact MFDS source hash. Legacy OY-only names are
         # preserved for their separately verified mapping path.
