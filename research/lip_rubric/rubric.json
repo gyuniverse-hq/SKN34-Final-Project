@@ -1,0 +1,37 @@
+{
+  "version": "lip-rubric-v1-boundary-revised",
+  "title": "립 자연스러움 채점표",
+  "questions": [
+    {"id":"q1","title":"결(질감)","checks":[
+      {"id":"q1_1","text":"입술 세로 주름이 보인다","na_allowed":false},
+      {"id":"q1_2","text":"주름이 색에 묻혀 뭉개지지 않았다","na_allowed":false},
+      {"id":"q1_3","text":"페인트나 플라스틱 같은 매끈한 평면감이 없다","na_allowed":false},
+      {"id":"q1_4","text":"입술의 노이즈와 흐림이 주변 피부와 같다 (입술만 유난히 선명하거나 매끈하지 않다)","na_allowed":false},
+      {"id":"q1_5","text":"입술 안에서 결이 끊기거나 얼룩진 곳이 없다","na_allowed":false}]},
+    {"id":"q2","title":"명암","checks":[
+      {"id":"q2_1","text":"윗입술이 아랫입술보다 어둡다 (윗입술 그늘)","na_allowed":false},
+      {"id":"q2_2","text":"아랫입술 가운데가 볼록하게 밝다","na_allowed":false},
+      {"id":"q2_3","text":"입꼬리 쪽으로 갈수록 어두워진다","na_allowed":false},
+      {"id":"q2_4","text":"입술 전체가 같은 밝기로 덮여 있지 않다","na_allowed":false},
+      {"id":"q2_5","text":"입술의 밝은 쪽이 얼굴 조명 방향과 맞는다","na_allowed":false}]},
+    {"id":"q3","title":"윤기 (제형 일치)","checks":[
+      {"id":"q3_1","text":"반사가 있는지 없는지가 제형과 맞는다 (매트는 거의 없고, 글로시는 뚜렷함)","na_allowed":false},
+      {"id":"q3_2","text":"반사가 아랫입술 볼록한 곳이나 윗입술 산처럼 튀어나온 곳에 있다","na_allowed":{"finish":["matte"]}},
+      {"id":"q3_3","text":"반사 방향이 얼굴 조명과 맞는다","na_allowed":{"finish":["matte"]}},
+      {"id":"q3_4","text":"반사가 흰 점 한 덩어리가 아니라 주름을 따라 결이 있다","na_allowed":{"finish":["matte"]}},
+      {"id":"q3_5","text":"반사 때문에 색이 하얗게 날아가지 않았다","na_allowed":false}]},
+    {"id":"q4","title":"경계의 시각적 자연스러움","checks":[
+      {"id":"q4_1","text":"입술 가장자리의 색 전환이 부자연스럽게 날카롭지 않다","na_allowed":false},
+      {"id":"q4_2","text":"입술 가장자리의 흐림이 주변 영상의 선명도와 어울린다","na_allowed":false},
+      {"id":"q4_3","text":"입술 윤곽을 따라 색 전환이 갑자기 끊기거나 들쭉날쭉하지 않다","na_allowed":false},
+      {"id":"q4_4","text":"입꼬리 주변의 색 전환이 부드럽고 자연스럽다","na_allowed":false},
+      {"id":"q4_5","text":"입술 안쪽 경계가 주변 입술 표현과 자연스럽게 이어진다","na_allowed":false}]},
+    {"id":"q5","title":"밀착감 (전체 인상)","checks":[
+      {"id":"q5_1","text":"색이 입술 위에 떠 있지 않고 입술의 일부처럼 보인다","na_allowed":false},
+      {"id":"q5_2","text":"작은 화면(폰 크기)으로 볼 때 어색하지 않다","na_allowed":false},
+      {"id":"q5_3","text":"확대해서 볼 때도 어색하지 않다","na_allowed":false},
+      {"id":"q5_4","text":"얼굴 조명이나 색온도와 입술의 분위기가 어울린다","na_allowed":false},
+      {"id":"q5_5","text":"실제 사진 속 립 메이크업이라고 믿을 수 있다","na_allowed":false}]}
+  ],
+  "overall":{"question":"전체적으로 입술이 얼마나 자연스럽게 보이나요?","scale":{"5":"실제로 바른 것처럼 보인다","4":"자세히 보면 살짝 어색하다","3":"어색한 부분이 바로 보이지만 바른 느낌은 있다","2":"대부분 어색하거나 떠 보인다","1":"스티커처럼 칠한 것 같다"}}
+}
