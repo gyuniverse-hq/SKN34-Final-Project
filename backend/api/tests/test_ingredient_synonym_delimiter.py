@@ -49,10 +49,12 @@ def test_comma_fragments_are_not_validated_aliases(raw_name, expected, monkeypat
     monkeypatch.setattr(
         repository,
         "_approvals",
-        lambda: frozenset({
-            (82, "1,2-헥산다이올", "a" * 64),
-            (82, "둘째동의어", "a" * 64),
-        }),
+        lambda: frozenset(
+            {
+                (82, "1,2-헥산다이올", "a" * 64),
+                (82, "둘째동의어", "a" * 64),
+            }
+        ),
     )
     assert _current_link(mapped_row(raw_name)) is expected
 
@@ -127,9 +129,7 @@ def test_single_verbatim_official_synonym_needs_no_manual_approval(monkeypatch):
 def test_legacy_comma_alias_still_validates_with_review(monkeypatch):
     from app.repositories import ingredient_identity_repository as repository
 
-    monkeypatch.setattr(
-        repository, "_approvals", lambda: frozenset({(82, "코코아버터", "a" * 64)})
-    )
+    monkeypatch.setattr(repository, "_approvals", lambda: frozenset({(82, "코코아버터", "a" * 64)}))
     current = list(mapped_row("코코아버터"))
     current[10] = "카카오씨드버터,코코아버터"
     assert repository._current_link(tuple(current))
