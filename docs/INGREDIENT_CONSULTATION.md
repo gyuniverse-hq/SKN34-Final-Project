@@ -11,7 +11,12 @@ explicitly unknown. No database migration or shared-data update is part of this 
   parse these formats consistently, without splitting chemical locants such
   as `1,2-헥산디올` or `N,N-`. This is a conservative compatibility rule,
   not blanket authority to treat arbitrary commas as separators.
-  The importer remains preview-only unless the data owner approves `--apply`.
+  The importer produces `mfds-alias-review.csv` with candidate aliases,
+  original `synonym_raw`, MFDS IDs, source hashes and collisions; every row
+  remains `review_required` or `ambiguous` until independently reviewed.
+  The importer is preview-only by default; data-owner approval is required
+  before any `--apply` command. CI checks parser and report creation using
+  offline synthetic rows, without connecting to PostgreSQL.
   This PR does not write to shared DB mappings or change review states.
 - A read-only audit of the existing shared DB found 528 `official_synonym`
   links: 527 pass the mixed-delimiter check, while OY ID 2974 (`2-헥산디올`)
@@ -58,6 +63,7 @@ independent evaluation. Mock plans verify execution; they do not prove LLM extra
 | No shade | Check ingredients of this colorless serum | Null shade accepted only when catalog has no shades and artifact provides reviewed option |
 | Compound follow-up | Add Z / now exclude X / remove ingredient constraints | Merge, replace same named constraint, explicit clear, six-condition limit |
 | Ingredient + fragrance | Find X-containing fragrance-free products | Exclude verified X-mismatches, retain X-unknown separately; fragrance stays unverified |
+| Fragrance follow-up | Add fragrance-free to a previous X-ingredient search | Keep and recheck inherited X condition without fabricating a fragrance match |
 | Missing mapping | Raw row exists but option artifact is candidate | UNKNOWN; do not promote candidate or expose unreviewed rows as facts |
 | Partial identity/list | One unresolved ingredient, missing sequence or partial coverage | Presence may be established; absence remains UNKNOWN |
 | Identity conflict | Ambiguous alias, retired standard, mismatched source hash | UNKNOWN or rejected malformed contract; no chemical-family inference |
