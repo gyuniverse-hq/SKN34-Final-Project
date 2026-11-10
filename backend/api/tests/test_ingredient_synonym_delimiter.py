@@ -80,6 +80,10 @@ def test_real_existing_fragment_mapping_is_not_reissued():
     assert _current_link(tuple(current))
 
 
+def test_fullwidth_numeric_locant_is_not_split():
+    assert _official_synonyms("１,２-헥산디올") == {"1,2-헥산디올"}
+
+
 def test_legacy_comma_alias_still_validates():
     current = list(mapped_row("코코아버터"))
     current[10] = "카카오씨드버터,코코아버터"
