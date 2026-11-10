@@ -49,6 +49,13 @@ REVIEW_COLUMNS = (
     "mfds_candidate_names",
 )
 MANUAL_COLUMNS = (*MATCH_COLUMNS, "reviewed_by", "reviewed_at", "review_note")
+APPROVAL_COLUMNS = (
+    "mfds_ingredient_id",
+    "candidate_alias",
+    "source_hash",
+    "reviewed_by",
+    "reviewed_at",
+)
 ALIAS_REVIEW_COLUMNS = (
     "mfds_ingredient_id",
     "mfds_name_ko",
@@ -69,7 +76,7 @@ def official_synonyms(value: str | None) -> set[str]:
     """Read mixed MFDS aliases, preserving chemical locants such as 1,2- and N,N-."""
     return {
         normalized
-        for alias in re.split(OFFICIAL_SYNONYM_SEPARATOR, value or "")
+        for alias in re.split(OFFICIAL_SYNONYM_SEPARATOR, name_key(value))
         if (normalized := name_key(alias))
     }
 
@@ -101,6 +108,70 @@ def build_alias_review_rows(mfds_rows: list[asyncpg.Record]) -> list[tuple]:
                 )
             )
     return sorted(review, key=lambda item: (item[0], item[4].casefold(), item[4]))
+
+
+def load_approved_synonyms(
+    path: Path | None, mfds_rows: list[asyncpg.Record]
+) -> set[tuple[int, str, str]]:
+    """Validate reviewed alias identities against this exact MFDS snapshot."""
+    if path is None:
+        return set()
+    dictionary = {row["ingredient_id"]: row for row in mfds_rows}
+    candidates = build_alias_review_rows(mfds_rows)
+    possible = {
+        (row[0], name_key(row[4]).casefold(), row[2]): row
+        for row in candidates
+        if row[6] == "review_required"
+    }
+    approved = set()
+    with path.open(encoding="utf-8-sig", newline="") as file:
+        reader = csv.DictReader(file)
+        if tuple(reader.fieldnames or ()) != APPROVAL_COLUMNS:
+            raise ValueError("Approval columns are invalid")
+        for line, record in enumerate(reader, 2):
+            try:
+                mfds_id = int(record["mfds_ingredient_id"])
+                alias = name_key(record["candidate_alias"]).casefold()
+                fingerprint = record["source_hash"]
+                reviewer = (record["reviewed_by"] or "").strip()
+                reviewed = (record["reviewed_at"] or "").strip()
+                date.fromisoformat(reviewed)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"Invalid approval row {line}") from exc
+            key = (mfds_id, alias, fingerprint)
+            if (
+                not alias
+                or not reviewer
+                or mfds_id not in dictionary
+                or key not in possible
+                or key in approved
+            ):
+                raise ValueError(f"Unverified or duplicate approval at row {line}")
+            approved.add(key)
+    return approved
+
+
+def select_approved_matches(
+    matches: list[tuple], mfds_rows: list[asyncpg.Record], approved: set[tuple[int, str, str]]
+) -> tuple[list[tuple], list[tuple]]:
+    """Allow exact names by default; require a reviewed current alias for other methods."""
+    dictionary = {row["ingredient_id"]: row for row in mfds_rows}
+    eligible, withheld = [], []
+    for match in matches:
+        if match[4] == "exact_name":
+            eligible.append(match)
+            continue
+        mfds = dictionary[match[2]]
+        base = without_trailing_amount(match[1]) if match[4] in AMOUNT_METHODS else match[1]
+        key = (match[2], name_key(base).casefold(), mfds["source_hash"])
+        if (
+            match[4] in {"official_synonym", "amount_suffix_synonym"}
+            and key in approved
+        ):
+            eligible.append(match)
+        else:
+            withheld.append(match)
+    return eligible, withheld
 
 
 def without_trailing_amount(value: str) -> str | None:
@@ -341,6 +412,16 @@ async def run(args: argparse.Namespace) -> None:
         }
         confirmed = [*matches, *(row[:5] for row in manual_matches)]
         new_matches = [row for row in matches if row[0] not in existing]
+        # Fail closed for automatic synonym/amount matching. A preview is never approval.
+        # Keep these rows in the report; --apply must not silently promote them.
+        approved = load_approved_synonyms(args.approvals_file, mfds_rows) if args.apply else set()
+        if args.apply:
+            new_matches, withheld = select_approved_matches(new_matches, mfds_rows, approved)
+            if withheld:
+                raise ValueError(
+                    f"{len(withheld)} unapproved automatic matches; review the candidates "
+                    "and supply --approvals-file before applying"
+                )
         new_manual = [row for row in manual_matches if row[0] not in existing]
         conflicts = [
             row
@@ -484,6 +565,10 @@ def main() -> None:
         default=Path.home() / "Downloads" / "ingredient-mapping-review",
     )
     parser.add_argument("--alias-file", type=Path, default=DEFAULT_ALIAS_PATH)
+    parser.add_argument(
+        "--approvals-file", type=Path,
+        help="Reviewed alias approvals (current MFDS ID, alias and source hash)",
+    )
     parser.add_argument("--apply", action="store_true", help="Write confirmed matches")
     parser.add_argument("--execute-shared", action="store_true")
     asyncio.run(run(parser.parse_args()))
