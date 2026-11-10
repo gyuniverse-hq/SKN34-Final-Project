@@ -23,6 +23,7 @@ from pathlib import Path
 import asyncpg
 
 from app.core.ingredient_alias_approval import (
+    APPROVAL_COLUMNS,
     approved_synonym,
     official_synonyms as canonical_synonyms,
     source_single_alias,
