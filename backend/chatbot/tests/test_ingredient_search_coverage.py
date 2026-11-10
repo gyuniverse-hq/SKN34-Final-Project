@@ -308,6 +308,20 @@ async def test_unknown_slots_do_not_hide_a_later_match_or_claim_complete_certain
 
 
 @pytest.mark.anyio
+async def test_fragrance_unknown_candidates_do_not_hide_later_verified_match():
+    catalog = SearchCatalog(7, matches=[6])
+    catalog.states = {f"item-{i:03d}": "UNKNOWN" for i in range(6)}
+    plan = search_plan().model_copy(update={"fragrance_free": True})
+    response = await beauty.execute_beauty(search_request(), plan, catalog)
+    assert "item-006" in catalog.product_calls
+    assert len(response.products) == len(response.ingredient_results) == 6
+    assert response.ingredient_results[-1].verdict == "MATCH"
+    assert "item-006" in response.chat_context.candidate_ids
+    assert response.tool_result.status == "partial"
+    assert response.chat_context.filters.fragrance_free
+
+
+@pytest.mark.anyio
 async def test_search_never_selects_a_first_shade_without_an_explicit_label():
     catalog = SearchCatalog(7, matches=[6])
     plan = search_plan().model_copy(update={"shade_name": None})
