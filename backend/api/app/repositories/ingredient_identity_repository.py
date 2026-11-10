@@ -47,9 +47,7 @@ def _current_link(row):
     if method in {"exact_name", "amount_suffix_exact"}:
         return bool(original) and original == _name(row[1])
     if method in {"official_synonym", "amount_suffix_synonym"}:
-        return bool(original) and approved_synonym(
-            row[10], original, row[0], row[2], _approvals()
-        )
+        return bool(original) and approved_synonym(row[10], original, row[0], row[2], _approvals())
     # Manual rows currently have no reviewed dictionary hash: never reissue them
     # as verified identities for a possibly changed snapshot.
     return False
