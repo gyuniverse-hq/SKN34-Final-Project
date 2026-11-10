@@ -188,9 +188,9 @@ class IngredientService:
                 check.reason = result.reason
             result.conditions = [check]
             result.verdict = check.verdict
-            if check.verdict in {"UNKNOWN", "ERROR"}:
-                # Keep the public summary consistent with the condition-level decision.
-                result.reason = check.reason
+            # The status continues to represent evidence availability; the reason
+            # reflects this specific question, for both verified and unknown verdicts.
+            result.reason = check.reason
         if get_settings().is_production and (result.synthetic or (evidence and evidence.synthetic)):
             result.synthetic = True
             result.status, result.verdict = "unknown", "UNKNOWN"
