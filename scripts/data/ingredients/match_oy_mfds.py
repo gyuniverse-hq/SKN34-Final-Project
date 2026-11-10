@@ -117,11 +117,16 @@ def load_approved_synonyms(
     if path is None:
         return set()
     dictionary = {row["ingredient_id"]: row for row in mfds_rows}
-    candidates = build_alias_review_rows(mfds_rows)
+    owners: dict[str, set[int]] = defaultdict(set)
+    for row in mfds_rows:
+        owners[name_key(row["name_ko"]).casefold()].add(row["ingredient_id"])
+        for alias in official_synonyms(row["synonym_raw"]):
+            owners[alias.casefold()].add(row["ingredient_id"])
     possible = {
-        (row[0], name_key(row[4]).casefold(), row[2]): row
-        for row in candidates
-        if row[6] == "review_required"
+        (row["ingredient_id"], alias.casefold(), row["source_hash"])
+        for row in mfds_rows
+        for alias in official_synonyms(row["synonym_raw"])
+        if owners[alias.casefold()] == {row["ingredient_id"]}
     }
     approved = set()
     with path.open(encoding="utf-8-sig", newline="") as file:
