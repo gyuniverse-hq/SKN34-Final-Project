@@ -81,6 +81,9 @@ def build_alias_review_rows(mfds_rows: list[asyncpg.Record]) -> list[tuple]:
     identities: dict[str, set[int]] = defaultdict(set)
     for row in mfds_rows:
         identities[name_key(row["name_ko"]).casefold()].add(row["ingredient_id"])
+        english_name = name_key(row["name_en"] if "name_en" in row.keys() else None).casefold()
+        if english_name:
+            identities[english_name].add(row["ingredient_id"])
         for alias in official_synonyms(row["synonym_raw"]):
             identities[alias.casefold()].add(row["ingredient_id"])
 
@@ -119,6 +122,9 @@ def load_approved_synonyms(
     owners: dict[str, set[int]] = defaultdict(set)
     for row in mfds_rows:
         owners[name_key(row["name_ko"]).casefold()].add(row["ingredient_id"])
+        english_name = name_key(row["name_en"] if "name_en" in row.keys() else None).casefold()
+        if english_name:
+            owners[english_name].add(row["ingredient_id"])
         for alias in official_synonyms(row["synonym_raw"]):
             owners[alias.casefold()].add(row["ingredient_id"])
     possible = {
@@ -399,7 +405,7 @@ async def run(args: argparse.Namespace) -> None:
             "ORDER BY ingredient_id"
         )
         mfds_rows = await connection.fetch(
-            "SELECT ingredient_id, name_ko, name_key, synonym_raw, source_hash "
+            "SELECT ingredient_id, name_ko, name_en, name_key, synonym_raw, source_hash "
             "FROM public.raw_mfds_ingredient WHERE is_current ORDER BY ingredient_id"
         )
         if not oy_rows or not mfds_rows:
