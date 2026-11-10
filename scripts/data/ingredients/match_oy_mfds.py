@@ -590,8 +590,13 @@ async def run(args: argparse.Namespace) -> None:
                     "ON CONFLICT (oy_ingredient_id) DO NOTHING"
                 )
                 print(f"Reviewed aliases: {manual_status}")
+        # Never overwrite an earlier approval receipt. Preserve each apply run's
+        # reviewer and source-hash evidence for external, access-controlled archiving.
+        receipt_name = "applied-mfds-approvals-" + datetime.now(UTC).strftime(
+            "%Y%m%dT%H%M%S%fZ"
+        ) + ".csv"
         write_csv(
-            args.report_dir / "applied-mfds-approvals.csv",
+            args.report_dir / receipt_name,
             (*MATCH_COLUMNS, "source_hash", "reviewed_by", "reviewed_at"),
             audit_rows,
         )
