@@ -244,3 +244,46 @@ async def test_fragrance_and_ingredient_constraints_exclude_known_mismatches():
     assert response.chat_context.candidate_ids == ["item-001", "item-002"]
     assert response.result_type == "clarification"
     assert response.chat_context.filters.fragrance_free
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("operator", "matching_ids", "expected_ids"),
+    [
+        ("includes", [0, 2], ["item-000", "item-002"]),
+        ("excludes", [1], ["item-000", "item-002"]),
+    ],
+)
+async def test_fragrance_followup_rechecks_inherited_ingredient_condition(
+    operator, matching_ids, expected_ids
+):
+    catalog = SearchCatalog(3, matches=matching_ids)
+    first = await execute_beauty(
+        search_request(),
+        SearchPlan(
+            intent="search",
+            category="lip",
+            shadeName="03",
+            ingredientName="Niacinamide",
+            ingredientOperator=operator,
+        ),
+        catalog,
+    )
+    assert [p.id for p in first.products] == expected_ids
+    catalog.ingredient_calls.clear()
+    second = await execute_beauty(
+        search_request(first.chat_context),
+        SearchPlan(intent="refine", scope="previous", fragranceFree=True),
+        catalog,
+    )
+    assert [p.id for p in second.products] == expected_ids
+    assert second.chat_context.candidate_ids == expected_ids
+    assert all(
+        len(item.conditions) == 1
+        and item.conditions[0].ingredient_name == "Niacinamide"
+        and item.conditions[0].operator == operator
+        for item in second.ingredient_results
+    )
+    assert {name for _, name in catalog.ingredient_calls} == {"Niacinamide"}
+    assert second.chat_context.filters.fragrance_free
+    assert second.result_type == "clarification"
