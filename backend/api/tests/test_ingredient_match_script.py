@@ -81,3 +81,76 @@ def test_review_queue_retains_raw_hash_and_detects_collisions():
     assert any(row[2] == "c" * 64 and row[4] == "1,2-헥산디올" for row in rows)
     assert not any(row[4] == "2-헥산디올" for row in rows)
     assert all(row[6] != "verified" for row in rows)
+
+
+def test_unapproved_synonym_cannot_be_promoted_to_database():
+    mfds = [
+        dict(
+            ingredient_id=200,
+            name_ko="카카오씨버터",
+            name_key="카카오씨버터",
+            synonym_raw="카카오씨드버터,코코아버터",
+            source_hash="a" * 64,
+        )
+    ]
+    candidates = [(1, "코코아버터", 200, "카카오씨버터", "official_synonym")]
+    approved, withheld = matcher.select_approved_matches(candidates, mfds, set())
+    assert approved == [] and withheld == candidates
+
+
+def test_approval_is_bound_to_current_source_hash_and_exact_identity(tmp_path):
+    import csv
+
+    mfds = [
+        dict(
+            ingredient_id=200,
+            name_ko="카카오씨버터",
+            name_key="카카오씨버터",
+            synonym_raw="카카오씨드버터,코코아버터",
+            source_hash="a" * 64,
+        )
+    ]
+    path = tmp_path / "approved.csv"
+    with path.open("w", encoding="utf-8", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(matcher.APPROVAL_COLUMNS)
+        writer.writerow((200, "코코아버터", "a" * 64, "reviewer", "2026-11-10"))
+    approved = matcher.load_approved_synonyms(path, mfds)
+    candidates = [(1, "코코아버터", 200, "카카오씨버터", "official_synonym")]
+    assert matcher.select_approved_matches(candidates, mfds, approved) == (candidates, [])
+    mfds[0]["source_hash"] = "b" * 64
+    with pytest.raises(ValueError, match="Unverified"):
+        matcher.load_approved_synonyms(path, mfds)
+
+
+def test_conflicting_alias_cannot_be_approved(tmp_path):
+    import csv
+
+    mfds = [
+        dict(
+            ingredient_id=200,
+            name_ko="카카오씨버터",
+            name_key="카카오씨버터",
+            synonym_raw="공통별칭",
+            source_hash="a" * 64,
+        ),
+        dict(
+            ingredient_id=201,
+            name_ko="다른성분",
+            name_key="다른성분",
+            synonym_raw="공통별칭",
+            source_hash="b" * 64,
+        ),
+    ]
+    path = tmp_path / "approved.csv"
+    with path.open("w", encoding="utf-8", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(matcher.APPROVAL_COLUMNS)
+        writer.writerow((200, "공통별칭", "a" * 64, "reviewer", "2026-11-10"))
+    with pytest.raises(ValueError, match="Unverified"):
+        matcher.load_approved_synonyms(path, mfds)
+
+
+def test_unicode_normalization_before_delimiter_split():
+    assert matcher.official_synonyms("１,２-헥산디올") == {"1,2-헥산디올"}
+    assert matcher.official_synonyms("Ｎ,Ｎ-성분,나머지") == {"N,N-성분", "나머지"}
