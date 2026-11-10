@@ -14,9 +14,14 @@ explicitly unknown. No database migration or shared-data update is part of this 
   The importer produces `mfds-alias-review.csv` with candidate aliases,
   original `synonym_raw`, MFDS IDs, source hashes and collisions; every row
   remains `review_required` or `ambiguous` until independently reviewed.
-  The importer is preview-only by default; data-owner approval is required
-  before any `--apply` command. CI checks parser and report creation using
-  offline synthetic rows, without connecting to PostgreSQL.
+  The importer is preview-only by default. Any new automatic
+  `official_synonym` / `amount_suffix_synonym` match requires a separate
+  `--approvals-file` CSV containing the reviewed current MFDS ID, exact alias,
+  current `source_hash`, reviewer and review date. Conflicting or stale approvals
+  fail validation; unapproved matches make `--apply` fail before DB writes.
+  `amount_suffix_exact` matches are also withheld from automatic application.
+  The review queue alone is not an approvals file. CI checks the approval guard,
+  parser and review report using offline synthetic rows, without DB writes.
   This PR does not write to shared DB mappings or change review states.
 - A read-only audit of the existing shared DB found 528 `official_synonym`
   links: 527 pass the mixed-delimiter check, while OY ID 2974 (`2-헥산디올`)
@@ -42,6 +47,10 @@ explicitly unknown. No database migration or shared-data update is part of this 
   complete, normalized, sequential and unique list, identities for **every** entry,
   a resolved query, and no contradictory identity version. Missing evidence never
   becomes a claim of absence or general fragrance-free status.
+- When filtering ingredients and fragrance together, a limited scan continues past
+  unverified candidates to find verified `MATCH` results before taking up to
+  six display slots; unknown results are retained explicitly if slots remain.
+  The same request-count and deadline budgets still apply.
 - A catalog product with no shades can use a reviewed artifact record with
   `shadeId: null` and a verified option. Products with shades still require selection;
   no shade or option is invented or silently selected.
