@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 
-
 SCRIPT_PATH = Path(__file__).resolve().parents[3] / "scripts/data/ingredients/match_oy_mfds.py"
 spec = importlib.util.spec_from_file_location("ingredient_match_script", SCRIPT_PATH)
 assert spec and spec.loader
