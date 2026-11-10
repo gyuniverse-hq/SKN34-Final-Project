@@ -99,6 +99,10 @@ def test_verified_presence_unresolved_absence_and_order(client, data, name, op, 
     body = response.json()
     assert body["optionId"] == "fixture-opt-B" and body["mappingStatus"] == "reproduced"
     assert body["verdict"] == verdict and body["synthetic"]
+    assert body["reason"] == body["conditions"][0]["reason"]
+    assert body["reason"] == (
+        "ingredient_present" if verdict == "MATCH" else "ingredient_identity_unresolved"
+    )
     assert [i["sequence"] for i in body["ingredients"]] == [1, 2]
     assert "evidence" not in body and len(session.statements) == 6
     assert "ORDER BY raw_oy_option_ingredient.seq" in str(session.statements[3])
