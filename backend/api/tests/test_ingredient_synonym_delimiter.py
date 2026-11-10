@@ -42,11 +42,27 @@ def test_caret_synonyms_preserve_embedded_commas():
         ("2-헥산다이올", False),
     ],
 )
-def test_comma_fragments_are_not_validated_aliases(raw_name, expected):
+def test_comma_fragments_are_not_validated_aliases(raw_name, expected, monkeypatch):
+    from app.repositories import ingredient_identity_repository as repository
+
+    # Only approved whole aliases are allowed; chemical fragments remain invalid.
+    monkeypatch.setattr(
+        repository,
+        "_approvals",
+        lambda: frozenset({
+            (82, "1,2-헥산다이올", "a" * 64),
+            (82, "둘째동의어", "a" * 64),
+        }),
+    )
     assert _current_link(mapped_row(raw_name)) is expected
 
 
-def test_amount_suffix_does_not_promote_broken_alias_fragments():
+def test_amount_suffix_does_not_promote_broken_alias_fragments(monkeypatch):
+    from app.repositories import ingredient_identity_repository as repository
+
+    monkeypatch.setattr(
+        repository, "_approvals", lambda: frozenset({(82, "1,2-헥산다이올", "a" * 64)})
+    )
     assert _current_link(mapped_row("1,2-헥산다이올(10ppm)", "amount_suffix_synonym"))
     assert not _current_link(mapped_row("2-헥산다이올(10ppm)", "amount_suffix_synonym"))
 
