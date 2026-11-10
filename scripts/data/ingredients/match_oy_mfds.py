@@ -49,6 +49,15 @@ REVIEW_COLUMNS = (
     "mfds_candidate_names",
 )
 MANUAL_COLUMNS = (*MATCH_COLUMNS, "reviewed_by", "reviewed_at", "review_note")
+ALIAS_REVIEW_COLUMNS = (
+    "mfds_ingredient_id",
+    "mfds_name_ko",
+    "source_hash",
+    "synonym_raw",
+    "candidate_alias",
+    "competing_mfds_ids",
+    "review_status",
+)
 
 
 def name_key(value: str | None) -> str:
@@ -63,6 +72,35 @@ def official_synonyms(value: str | None) -> set[str]:
         for alias in re.split(OFFICIAL_SYNONYM_SEPARATOR, value or "")
         if (normalized := name_key(alias))
     }
+
+
+def build_alias_review_rows(mfds_rows: list[asyncpg.Record]) -> list[tuple]:
+    """Deterministic review queue; splitting a name never approves an identity."""
+    identities: dict[str, set[int]] = defaultdict(set)
+    for row in mfds_rows:
+        identities[name_key(row["name_ko"]).casefold()].add(row["ingredient_id"])
+        for alias in official_synonyms(row["synonym_raw"]):
+            identities[alias.casefold()].add(row["ingredient_id"])
+
+    review = []
+    for row in mfds_rows:
+        raw = row["synonym_raw"] or ""
+        if not ("^" in raw or "," in raw):
+            continue
+        for alias in sorted(official_synonyms(raw), key=lambda value: (value.casefold(), value)):
+            competing = sorted(identities[alias.casefold()] - {row["ingredient_id"]})
+            review.append(
+                (
+                    row["ingredient_id"],
+                    row["name_ko"],
+                    row["source_hash"],
+                    raw,
+                    alias,
+                    ";".join(map(str, competing)),
+                    "ambiguous" if competing else "review_required",
+                )
+            )
+    return sorted(review, key=lambda item: (item[0], item[4].casefold(), item[4]))
 
 
 def without_trailing_amount(value: str) -> str | None:
@@ -282,7 +320,7 @@ async def run(args: argparse.Namespace) -> None:
             "ORDER BY ingredient_id"
         )
         mfds_rows = await connection.fetch(
-            "SELECT ingredient_id, name_ko, name_key, synonym_raw "
+            "SELECT ingredient_id, name_ko, name_key, synonym_raw, source_hash "
             "FROM public.raw_mfds_ingredient WHERE is_current ORDER BY ingredient_id"
         )
         if not oy_rows or not mfds_rows:
@@ -337,6 +375,12 @@ async def run(args: argparse.Namespace) -> None:
             args.report_dir / "manual-alias-candidates.csv", MANUAL_COLUMNS, manual_matches
         )
         write_csv(args.report_dir / "review-required.csv", REVIEW_COLUMNS, review)
+        # This is an audit queue only, not an approved mapping or a DB mutation.
+        write_csv(
+            args.report_dir / "mfds-alias-review.csv",
+            ALIAS_REVIEW_COLUMNS,
+            build_alias_review_rows(mfds_rows),
+        )
         method_counts = {
             method: sum(row[4] == method for row in matches)
             for method in ("exact_name", "official_synonym", *AMOUNT_METHODS)
