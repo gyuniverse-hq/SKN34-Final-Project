@@ -1086,7 +1086,7 @@ async def _ingredient_consultation(req, plan, catalog, filters):
                     context.shade_selections.pop(pid, None)
                     products.append(product)
                     results.append(_ingredient_unknown(pid, None, "shade_required"))
-                    retained += bool(fragrance_filter)
+                    retained += bool(fragrance_filter and not conditions)
                     continue
                 if shade is not None:
                     context.shade_selections[pid] = shade
@@ -1123,10 +1123,13 @@ async def _ingredient_consultation(req, plan, catalog, filters):
                         )
                 products.append(product)
                 results.append(result)
-                # Unknown fragrance still needs review, but a known ingredient failure
-                # must not consume one of the six visible candidate slots.
+                # When ingredient conditions are present, keep scanning for six verified
+                # matches instead of letting six UNKNOWN fragrance candidates hide later hits.
+                # Fragrance-only searches still stop at six unresolved candidates.
                 retained += (
-                    result.verdict != "NOT_MATCH" if fragrance_filter else result.verdict == "MATCH"
+                    result.verdict != "NOT_MATCH"
+                    if fragrance_filter and not conditions
+                    else result.verdict == "MATCH"
                 )
     except TimeoutError:
         if not filtering:
