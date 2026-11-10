@@ -186,27 +186,15 @@ def test_runtime_approval_file_is_versioned_and_immutable_to_source_changes(tmp_
         writer.writerow(matcher.APPROVAL_COLUMNS)
         writer.writerow((200, "코코아버터", "a" * 64, "human-review", "2026-11-10"))
     approved = load_approved_aliases(str(source))
-    assert approved_synonym(
-        "카카오씨드버터,코코아버터", "코코아버터", 200, "a" * 64, approved
-    )
-    assert not approved_synonym(
-        "카카오씨드버터,코코아버터", "코코아버터", 200, "b" * 64, approved
-    )
-    assert not approved_synonym(
-        "카카오씨드버터,코코아버터", "다른별칭", 200, "a" * 64, approved
-    )
-    assert not approved_synonym(
-        "카카오씨드버터,코코아버터", "코코아버터", 201, "a" * 64, approved
-    )
+    assert approved_synonym("카카오씨드버터,코코아버터", "코코아버터", 200, "a" * 64, approved)
+    assert not approved_synonym("카카오씨드버터,코코아버터", "코코아버터", 200, "b" * 64, approved)
+    assert not approved_synonym("카카오씨드버터,코코아버터", "다른별칭", 200, "a" * 64, approved)
+    assert not approved_synonym("카카오씨드버터,코코아버터", "코코아버터", 201, "a" * 64, approved)
 
 
 def test_missing_approval_file_does_not_trust_split_aliases():
     from app.core.ingredient_alias_approval import approved_synonym, load_approved_aliases
 
     approved = load_approved_aliases(None)
-    assert not approved_synonym(
-        "카카오씨드버터,코코아버터", "코코아버터", 200, "a" * 64, approved
-    )
-    assert approved_synonym(
-        "1,2-헥산디올", "1,2-헥산디올", 200, "a" * 64, approved
-    )
+    assert not approved_synonym("카카오씨드버터,코코아버터", "코코아버터", 200, "a" * 64, approved)
+    assert approved_synonym("1,2-헥산디올", "1,2-헥산디올", 200, "a" * 64, approved)
