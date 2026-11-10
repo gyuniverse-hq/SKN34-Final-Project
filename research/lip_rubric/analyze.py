@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 
 from aggregate import parse_ratings
-from common import DATA, HERE, checks, cluster_bootstrap, load_json, read_csv, spearman
+from common import DATA, HERE, checks, cluster_bootstrap, load_json, read_csv, spearman, write_csv
 
 
 def classify(b, c, human, b_ci, difference_ci, order_ok):
@@ -77,8 +77,33 @@ def compare(ratings_path, key_path, rubric_path, judge_path, rater_files, output
     return report
 
 
+def analyze_db(con, output, run_id=None):
+    from aggregate import aggregate_db
+    output=Path(output); result_dir=output.parent; aggregate_db(con,result_dir); export=result_dir/'db_export'
+    ids=[r[0] for r in con.execute("SELECT DISTINCT run_id FROM judge_scores ORDER BY run_id")]
+    if run_id is None:
+        if len(ids)!=1: raise ValueError('정확한 judge --run-id를 지정하세요')
+        run_id=ids[0]
+    rows=[json.loads(r['metadata_json']) for r in con.execute('SELECT metadata_json FROM judge_scores WHERE run_id=?',(run_id,))]
+    if not rows: raise ValueError('judge run missing')
+    judge_file=export/'judge_results.csv'; write_csv(judge_file,rows)
+    raters=sorted(export.glob('R[0-9]*.csv'))
+    result=compare(result_dir/'ratings.csv',export/'key.csv',HERE/'rubric.json',judge_file,raters,output)
+    ratings={r['image_id']:r for r in read_csv(result_dir/'ratings.csv') if r['kind']=='render'}
+    metrics={}
+    for row in con.execute('SELECT image_id,metric,value,metric_version,run_id FROM code_metrics WHERE value IS NOT NULL'):
+        r=dict(row)
+        if r['image_id'] in ratings: metrics.setdefault((r['metric'],r['metric_version'],r['run_id']),[]).append((ratings[r['image_id']],r['value']))
+    result['human_code_correlations']=[{'metric':m,'metric_version':v,'run_id':run,'n':len(pairs),'question_spearman':{f'q{i}':spearman([float(a[f'q{i}_mean']) for a,b in pairs if a[f'q{i}_mean']!=''],[b for a,b in pairs if a[f'q{i}_mean']!='']) for i in range(1,6)}} for (m,v,run),pairs in metrics.items()]
+    result['decision_status']='예비 판정'; result['source_database']=con.execute('PRAGMA database_list').fetchone()[2]
+    output.write_text(json.dumps(result,ensure_ascii=False,indent=2,allow_nan=False),encoding='utf8'); return result
+
+
 def main():
-    p=argparse.ArgumentParser(); p.add_argument('--ratings',type=Path,default=DATA/'results/ratings.csv'); p.add_argument('--key',type=Path,default=DATA/'pack/key.csv'); p.add_argument('--rubric',type=Path,default=HERE/'rubric.json'); p.add_argument('--judge',type=Path,default=DATA/'results/judge_results.csv'); p.add_argument('--raters',nargs='+',type=Path,required=True); p.add_argument('--output',type=Path,default=DATA/'results/judge_summary.json'); a=p.parse_args(); compare(a.ratings,a.key,a.rubric,a.judge,a.raters,a.output)
+    import db
+    p=argparse.ArgumentParser(); p.add_argument('--db',type=Path,default=db.DB); p.add_argument('--run-id'); p.add_argument('--output',type=Path,default=DATA/'results/judge_summary.json'); a=p.parse_args()
+    with db.connect(a.db) as con: report=analyze_db(con,a.output,a.run_id)
+    print(report['decision'])
 
 
 if __name__=='__main__': main()

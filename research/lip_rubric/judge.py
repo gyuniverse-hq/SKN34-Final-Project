@@ -48,7 +48,7 @@ def prompt(rubric, item):
            f"제형: {item['finish']}; 입 상태: {item['mouth']}",
            '아래 각 항목을 pass=1, fail=0으로 평가하세요. na는 허용된 조건에만 사용하세요.']
     for q in rubric['questions']:
-        lines.append(q['title'])
+        lines.append(q['title']+' — '+q['hint'])
         for c in q['checks']:
             lines.append(f"{c['id']}: {c['text']}" + (' [na 허용]' if allows_na(c,item['finish']) else ''))
     lines.append(rubric['overall']['question'])
@@ -117,10 +117,11 @@ def embed_crops(rows, root, config):
     return vectors
 
 
-FIELDS=['run_id','image_id','face_id','method','repeat','status','checks_json','overall','total','questions_json','reason','neighbors','elapsed_seconds','attempts','error','model_id','model_revision','embedding_model_id','embedding_revision','datetime_utc','gpu','quantization','k']
+FIELDS=['run_id','rubric_version','image_id','face_id','method','repeat','status','checks_json','overall','total','questions_json','reason','neighbors','elapsed_seconds','attempts','error','model_id','model_revision','embedding_model_id','embedding_revision','datetime_utc','gpu','quantization','k']
 
 
 def run(root, output, config, rubric, adapter, embeddings, mock=False):
+    if rubric.get('version') != 'lip-rubric-v2': raise ValueError('v2 rubric required')
     root=Path(root); output=Path(output); output.parent.mkdir(parents=True,exist_ok=True)
     meta=read_csv(root/'meta.csv'); ratings={r['image_id']:r for r in read_csv(root/'ratings.csv')}
     records=[dict(r,**{k:v for k,v in ratings[r['image_id']].items() if k not in r}) for r in meta if r['image_id'] in ratings]
@@ -159,7 +160,7 @@ def run(root, output, config, rubric, adapter, embeddings, mock=False):
                     result={'checks':predicted,'overall':None,'total':float(np.mean([float(r['total_mean']) for r in neighbor_rows])),'questions':q,'reason':'이웃 평균'}
                 else:
                     result,attempts,err=generate_valid(adapter,rubric,target,[root/'images'/f"{target['image_id']}_full.png",root/'images'/f"{target['image_id']}_crop.png"],examples,int(config['retry_count']))
-                row={'run_id':run_id,'image_id':target['image_id'],'face_id':target['face_id'],'method':method,'repeat':repeat,'status':'ok' if result else 'failed',
+                row={'run_id':run_id,'rubric_version':rubric['version'],'image_id':target['image_id'],'face_id':target['face_id'],'method':method,'repeat':repeat,'status':'ok' if result else 'failed',
                     'checks_json':json.dumps(result['checks'],ensure_ascii=False) if result else '', 'overall':result['overall'] if result else '',
                     'total':result['total'] if result else '', 'questions_json':json.dumps(result['questions']) if result else '',
                     'reason':result['reason'] if result else '', 'neighbors':json.dumps([r['image_id'] for r in neighbor_rows] if method!='A' else []),

@@ -12,6 +12,8 @@ from common import DATA, HERE, ROOT, load_json, read_csv, sha256
 def make_pack(pack, ratings_path, dataset, output):
     pack, dataset, output = map(Path, (pack, dataset, output))
     manifest = load_json(pack / 'manifest.json')
+    if load_json(pack / 'rating_pack/rubric.json').get('version')!='lip-rubric-v2':
+        raise ValueError('v2 rubric required')
     keys = read_csv(pack / 'key.csv')
     ratings = read_csv(ratings_path)
     originals = {r['random_id']: r for r in keys if not r['repeat_of']}
@@ -21,6 +23,8 @@ def make_pack(pack, ratings_path, dataset, output):
         raise ValueError('ratings missing or duplicated')
     if any(r['image_id'] not in originals for r in ratings):
         raise ValueError('rating does not match an original image')
+    if {r['image_id'] for r in ratings} != set(originals):
+        raise ValueError('모든 원본 이미지에 최소 한 명의 v2 본 채점이 필요합니다')
     for r in ratings:
         key = originals[r['image_id']]
         if any(r.get(k) != key.get(k) for k in ('face_id', 'split', 'kind', 'finish', 'mouth')):
@@ -65,16 +69,23 @@ def make_pack(pack, ratings_path, dataset, output):
     print(f'{output}: SHA-256 {sha256(output)}')
 
 
+def export_db(con, output):
+    from aggregate import aggregate_db
+    bad=con.execute("SELECT COUNT(*) FROM images WHERE source!='LaPa' OR source_split!='test'").fetchone()[0]
+    if bad: raise ValueError('LaPa test 이외의 출처가 발견되었습니다')
+    packs=con.execute("SELECT pack_path FROM packs WHERE rubric_version='lip-rubric-v2'").fetchall()
+    if len(packs)!=1: raise ValueError('정확히 하나의 v2 채점 묶음이 필요합니다')
+    aggregate_db(con,DATA/'results')
+    make_pack(Path(packs[0]['pack_path']),DATA/'results/ratings.csv',ROOT/'research/data/LaPa/test',output)
+
+
 def main():
+    import db
     p = argparse.ArgumentParser()
-    p.add_argument('--pack', type=Path, default=DATA / 'pack')
-    p.add_argument('--ratings', type=Path, default=DATA / 'results/ratings.csv')
-    p.add_argument('--dataset', type=Path, default=ROOT / 'research/data/LaPa/test')
+    p.add_argument('--db', type=Path, default=db.DB)
     p.add_argument('--output', type=Path, default=DATA / 'colab_pack.zip')
     a = p.parse_args()
-    if a.dataset.resolve() != (ROOT / 'research/data/LaPa/test').resolve():
-        raise ValueError('로컬 LaPa test 경로만 허용합니다')
-    make_pack(a.pack, a.ratings, a.dataset, a.output)
+    with db.connect(a.db) as con: export_db(con,a.output)
 
 
 if __name__ == '__main__': main()

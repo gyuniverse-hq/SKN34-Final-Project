@@ -18,6 +18,7 @@ RUBRIC=load_json(HERE/'rubric.json')
 
 def test_rubric_and_score():
     items=checks(RUBRIC); assert len(items)==25 and len({c['id'] for c in items})==25
+    assert RUBRIC['version']=='lip-rubric-v2' and all(q['hint'] for q in RUBRIC['questions'])
     assert {c['id'] for c in items if c['na_allowed']}=={'q3_2','q3_3','q3_4'}
     values={c['id']:1 for c in items}; values.update({f'q3_{i}':'na' for i in (2,3,4)})
     assert score(RUBRIC,values,'matte')['total']==5
@@ -46,6 +47,7 @@ def test_known_agreements():
 def test_blind_html():
     html=(HERE/'rating/index.html').read_text(encoding='utf8')
     assert all(word not in html for word in ('lapa_stem','shade','kind'))
+    assert all(word not in html and word not in json.dumps(RUBRIC,ensure_ascii=False) for word in ('통과','미통과','잘 모르겠'))
     assert 'https://' not in html and 'http://' not in html
 
 
@@ -71,6 +73,7 @@ def test_decisions():
 
 def test_non_lapa_rejected(tmp_path):
     p=tmp_path/'pack'; (p/'rating_pack').mkdir(parents=True)
+    (p/'rating_pack/rubric.json').write_text(json.dumps(RUBRIC),encoding='utf8')
     (p/'rating_pack/pack.json').write_text('{}'); (p/'manifest.json').write_text(json.dumps({'pack_sha256':__import__('hashlib').sha256(b'{}').hexdigest()}))
     write_csv(p/'key.csv',[{'random_id':'a','repeat_of':'','lapa_stem':'a','source':'other','source_split':'test','face_id':'1','split':'test','kind':'real','finish':'satin','mouth':'closed'}])
     write_csv(tmp_path/'ratings.csv',[{'image_id':'a','face_id':'1','split':'test','kind':'real','finish':'satin','mouth':'closed'}])
@@ -112,7 +115,11 @@ def test_rating_page_file_url(tmp_path):
     duplicate='f'*32
     for suffix in ('full','crop'): shutil.copyfile(images/f'{0:032x}_{suffix}.png',images/f'{duplicate}_{suffix}.png')
     items.append({'id':duplicate,'finish':'satin','mouth':'closed','is_repeat':True})
-    (folder/'pack.json').write_text(json.dumps({'items':items}),encoding='utf8')
+    practice=folder/'practice';practice.mkdir(); practices=[]
+    for i in range(3):
+        ident=f'p{i}'; practices.append({'id':ident,'finish':'satin','mouth':'closed'})
+        for suffix in ('full','crop'): Image.new('RGB',(8,8),(0,i,5)).save(practice/f'{ident}_{suffix}.png')
+    (folder/'pack.json').write_text(json.dumps({'items':items,'practice':practices}),encoding='utf8')
     with sync_playwright() as p:
         browser=p.chromium.launch(executable_path=r'C:\Program Files\Google\Chrome\Application\chrome.exe',headless=True)
         page=browser.new_page(); errors=[]; page.on('pageerror',lambda e:errors.append(str(e))); page.goto((folder/'index.html').as_uri())
@@ -120,6 +127,18 @@ def test_rating_page_file_url(tmp_path):
         page.wait_for_selector('#app:not([hidden])'); assert '연습' in page.locator('#progressLabel').inner_text()
         state=page.evaluate("JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.startsWith('lip-rubric:'))))")
         assert abs(state['mainOrder'].index(f'{0:032x}')-state['mainOrder'].index(duplicate))>=16
-        page.locator('#items .line').first.get_by_text('통과',exact=True).click()
-        assert page.locator('#items .line').first.get_by_text('통과',exact=True).get_attribute('aria-pressed')=='true'
+        page.locator('#items .line').first.get_by_text('예',exact=True).click()
+        assert page.locator('#items .line').first.get_by_text('예',exact=True).get_attribute('aria-pressed')=='true'
+        page.keyboard.press('n')
+        assert page.locator('#items .line').nth(1).get_by_text('아니오',exact=True).get_attribute('aria-pressed')=='true'
+        for trial in range(4):
+            for i in range(25):
+                line=page.locator('#items .line').nth(i)
+                if line.get_by_text('예',exact=True).get_attribute('aria-pressed')!='true' and line.get_by_text('아니오',exact=True).get_attribute('aria-pressed')!='true': line.get_by_text('예',exact=True).click()
+            page.locator('#overall button').first.click()
+            if trial<3: page.locator('#next').click()
+        assert '본 채점' in page.locator('#progressLabel').inner_text()
+        with page.expect_download() as download_info: page.locator('#export').click()
+        export=download_info.value.path().read_text(encoding='utf-8-sig')
+        assert 'lip-rubric-v2' in export and len(export.splitlines())==2
         assert not errors; browser.close()

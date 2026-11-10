@@ -10,6 +10,7 @@ from common import DATA, HERE, checks, cluster_bootstrap, icc2, krippendorff_alp
 
 
 def parse_ratings(files, key, rubric, pack_path=None):
+    if rubric.get('version')!='lip-rubric-v2': raise ValueError('v2 rubric required')
     by_rater = {}; issues = []; versions = set(); hashes = set()
     for path in sorted(map(Path, files), key=lambda p: (p.stat().st_mtime_ns, str(p))):
         rows = read_csv(path)
@@ -129,11 +130,51 @@ def aggregate(files, key_path, rubric_path, output_dir, pack_path=None):
     return summary
 
 
+def aggregate_db(con, output, pack_id=None):
+    output=Path(output); export=output/'db_export'; export.mkdir(parents=True,exist_ok=True)
+    stored=con.execute("SELECT json FROM rubric_versions WHERE version='lip-rubric-v2'").fetchone()
+    if stored is None or json.loads(stored['json'])!=load_json(HERE/'rubric.json'): raise ValueError('DB와 현재 채점표가 다릅니다')
+    packs=[r[0] for r in con.execute("SELECT pack_id FROM packs WHERE rubric_version='lip-rubric-v2'")]
+    if pack_id is None:
+        if len(packs)!=1: raise ValueError('여러 묶음이 있으면 --pack-id를 지정하세요')
+        pack_id=packs[0]
+    if pack_id not in packs: raise ValueError('v2 pack id not found')
+    images=[dict(r) for r in con.execute('SELECT * FROM images WHERE pack_id=?',(pack_id,))]
+    if not images: raise ValueError('v2 pack not imported')
+    keys=[dict(r,random_id=r['image_id'],repeat_of=r['repeat_of'] or '') for r in images]; key_path=export/'key.csv'; write_csv(key_path,keys)
+    ids={r['image_id']:r for r in images}; raters=defaultdict(list)
+    for row in con.execute("SELECT h.* FROM human_ratings h JOIN images i USING(image_id) WHERE h.rubric_version='lip-rubric-v2' AND h.rater_id != 'R0' AND i.pack_id=?",(pack_id,)):
+        r=dict(row); image=ids[r['image_id']]; answers=json.loads(r['checks_json'])
+        raters[r['rater_id']].append(dict(rater_id=r['rater_id'],image_id=r['image_id'],is_repeat=int(bool(image['repeat_of'])),order_index=r['order_index'],overall=r['overall'],seconds=r['seconds'],note=r['note'],pack_hash=image['pack_id'],rubric_version='lip-rubric-v2',**answers))
+    if not raters: raise ValueError('본 채점 평가자 데이터가 없습니다')
+    files=[]
+    for who,rows in sorted(raters.items()):
+        path=export/(who+'.csv'); write_csv(path,rows); files.append(path)
+    summary=aggregate(files,key_path,HERE/'rubric.json',output)
+    summary['source_database']=con.execute('PRAGMA database_list').fetchone()[2]
+    (output/'human_summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2,allow_nan=False),encoding='utf8')
+    return summary
+
+
+def pilot_report(path, count=54):
+    import numpy as np
+    rows=read_csv(path)
+    if not rows or {r.get('rubric_version') for r in rows}!={'lip-rubric-v2'} or {r.get('rater_id','').upper() for r in rows}!={'R0'}: raise ValueError('v2 R0 pilot CSV required')
+    times=[float(r['seconds']) for r in rows if r.get('overall') and all(r.get(c['id']) for c in checks(load_json(HERE/'rubric.json')))]
+    if len(times)<10: raise ValueError('10장 이상 완료해야 합니다')
+    q=np.percentile(times,[25,50,75]).tolist(); minutes=q[1]*count/60
+    result={'n':len(times),'q1_seconds':q[0],'median_seconds':q[1],'q3_seconds':q[2],'estimated_minutes':minutes,'count':count,'source':str(path)}
+    if minutes>45: result['options']=['build_pack --bare 14 등으로 이미지 수를 줄이기','질문 15개 버전 검토']
+    return result
+
+
 def main():
-    p = argparse.ArgumentParser(); p.add_argument('ratings', nargs='+', type=Path)
-    p.add_argument('--key',type=Path,default=DATA/'pack/key.csv'); p.add_argument('--rubric',type=Path,default=HERE/'rubric.json')
-    p.add_argument('--pack',type=Path,default=DATA/'pack/rating_pack/pack.json'); p.add_argument('--output',type=Path,default=DATA/'results')
-    a=p.parse_args(); result=aggregate(a.ratings,a.key,a.rubric,a.output,a.pack); print(json.dumps({"raters":result['rater_count'],"output":str(a.output)},ensure_ascii=False))
+    import db
+    p=argparse.ArgumentParser(); p.add_argument('--db',type=Path,default=db.DB); p.add_argument('--pack-id'); p.add_argument('--output',type=Path,default=DATA/'results'); p.add_argument('--pilot',type=Path); p.add_argument('--count',type=int,default=54)
+    a=p.parse_args()
+    if a.pilot: print(json.dumps(pilot_report(a.pilot,a.count),ensure_ascii=False,indent=2)); return
+    with db.connect(a.db) as con: result=aggregate_db(con,a.output,a.pack_id)
+    print(json.dumps({'raters':result['rater_count'],'output':str(a.output)},ensure_ascii=False))
 
 
 if __name__=='__main__': main()
