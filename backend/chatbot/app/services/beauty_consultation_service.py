@@ -1263,7 +1263,9 @@ async def _ingredient_consultation(req, plan, catalog, filters):
         if counts["ERROR"]
         else (
             "partial"
-            if scan_limited or (display_limited and fragrance_filter) or (complete and fragrance_filter)
+            if scan_limited
+            or (display_limited and fragrance_filter)
+            or (complete and fragrance_filter)
             else (
                 "success"
                 if (not filtering and complete) or (filtering and known)
