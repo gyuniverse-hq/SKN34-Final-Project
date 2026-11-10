@@ -30,9 +30,9 @@ def _name(value):
 def _official_synonyms(value: str | None) -> set[str]:
     """Parse mixed alias delimiters while preserving chemical comma notation."""
     return {
-        normalized
-        for alias in re.split(OFFICIAL_SYNONYM_SEPARATOR, value or "")
-        if (normalized := _name(alias))
+        alias
+        for part in re.split(OFFICIAL_SYNONYM_SEPARATOR, _name(value))
+        if (alias := _name(part))
     }
 
 
