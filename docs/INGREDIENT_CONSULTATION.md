@@ -11,17 +11,26 @@ explicitly unknown. No database migration or shared-data update is part of this 
   parse these formats consistently, without splitting chemical locants such
   as `1,2-헥산디올` or `N,N-`. This is a conservative compatibility rule,
   not blanket authority to treat arbitrary commas as separators.
-  The importer produces `mfds-alias-review.csv` with candidate aliases,
-  original `synonym_raw`, MFDS IDs, source hashes and collisions; every row
-  remains `review_required` or `ambiguous` until independently reviewed.
-  The importer is preview-only by default. Any new automatic
-  `official_synonym` / `amount_suffix_synonym` match requires a separate
-  `--approvals-file` CSV containing the reviewed current MFDS ID, exact alias,
-  current `source_hash`, reviewer and review date. Conflicting or stale approvals
-  fail validation; unapproved matches make `--apply` fail before DB writes.
-  `amount_suffix_exact` matches are also withheld from automatic application.
-  The review queue alone is not an approvals file. CI checks the approval guard,
-  parser and review report using offline synthetic rows, without DB writes.
+  The importer produces `mfds-alias-review.csv` for every non-empty
+  `synonym_raw` value, including the previously omitted single aliases. Each
+  row retains MFDS ID, original source string, source hash, competing IDs and
+  `source_backed` / `review_required` / `ambiguous` status.
+  - Exact official Korean/English names and single unsplit dictionary synonyms
+    remain source-backed. Split aliases require an approved, version-bound row.
+  - For new `official_synonym` / `amount_suffix_synonym` matches, pass a separate
+    `--approvals-file` CSV with `mfds_ingredient_id,candidate_alias,source_hash,reviewed_by,reviewed_at`.
+    Stale or ambiguous approvals fail; unapproved new automatic matches cause
+    `--apply` to abort before DB mutation. `amount_suffix_exact` is withheld.
+  - Configure the same read-only CSV for API using the absolute environment path
+    `INGREDIENT_ALIAS_APPROVALS_PATH`. Without a file, split aliases stay unresolved
+    while source-backed names remain available. Invalid files fail closed rather
+    than becoming trusted. Restart the API after updating the mounted CSV.
+  - A successful apply stores the reviewer, review timestamp and source hash
+    (`review_note`) in the existing `oy_mfds_ingredient_map` columns, and exports
+    an `applied-mfds-approvals.csv` receipt. Retain the original signed-off CSV
+    and receipt in versioned, access-controlled storage for audit. Neither a
+    preview CSV nor code tests constitute human review.
+  CI exercises the parser, approval guard and review queue on synthetic inputs.
   This PR does not write to shared DB mappings or change review states.
 - A read-only audit of the existing shared DB found 528 `official_synonym`
   links: 527 pass the mixed-delimiter check, while OY ID 2974 (`2-헥산디올`)
