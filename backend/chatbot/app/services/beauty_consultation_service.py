@@ -990,12 +990,12 @@ async def _ingredient_consultation(req, plan, catalog, filters):
     }
     filtering = plan.intent in {"search", "refine"}
     fragrance_filter = filtering and context.filters.fragrance_free
-    fragrance_only = (
-        fragrance_filter and not plan.ingredient_name and not plan.ingredient_conditions
-    )
+    conditions = filters.ingredient_conditions if filtering else _plan_conditions(plan)
+    # A follow-up can inherit ingredient conditions without repeating them in the plan.
+    # Never replace those evaluations with a synthetic fragrance-only UNKNOWN.
+    fragrance_only = fragrance_filter and not conditions
     name = plan.ingredient_name or ("향료" if fragrance_only else None)
     operator = "excludes" if fragrance_only else plan.ingredient_operator
-    conditions = filters.ingredient_conditions if filtering else _plan_conditions(plan)
     if plan.compare_ordinals:
         if plan.query is not None:
             return _reply(labels[0], context)
