@@ -82,6 +82,23 @@ def test_review_queue_retains_raw_hash_and_detects_collisions():
     assert all(row[6] != "verified" for row in rows)
 
 
+def test_review_queue_lists_single_official_alias_without_requiring_approval():
+    mfds = [
+        dict(
+            ingredient_id=200,
+            name_ko="판테놀",
+            name_key="판테놀",
+            synonym_raw="덱스판테놀",
+            source_hash="a" * 64,
+        )
+    ]
+    rows = matcher.build_alias_review_rows(mfds)
+    assert len(rows) == 1
+    assert rows[0][4] == "덱스판테놀" and rows[0][6] == "source_backed"
+    candidates = [(1, "덱스판테놀", 200, "판테놀", "official_synonym")]
+    assert matcher.select_approved_matches(candidates, mfds, set()) == (candidates, [])
+
+
 def test_unapproved_synonym_cannot_be_promoted_to_database():
     mfds = [
         dict(
