@@ -8,6 +8,13 @@ from sqlalchemy import Text, any_, func, literal_column, or_, select
 from sqlalchemy.dialects.postgresql import ARRAY, array
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
+from app.core.ingredient_alias_approval import (
+    OFFICIAL_SYNONYM_SEPARATOR,
+    approved_synonym,
+    load_approved_aliases,
+    official_synonyms,
+)
 from app.models.oy_mfds_ingredient_map import OyMfdsIngredientMapRow as Link
 from app.models.raw_mfds_ingredient import RawMfdsIngredientRow as Mfds
 from app.models.raw_oliveyoung import RawOyIngredientRow as Oy
@@ -17,23 +24,17 @@ QUERY_RULE = "mfds-query-v1"
 AMOUNT_SUFFIX = re.compile(r"\s*\(\s*\d+(?:,\d{3})*(?:\.\d+)?\s*(?:ppm|ppb|%|iu)\s*\)\s*$", re.I)
 
 
-# Current MFDS snapshots contain both caret-delimited and legacy comma-delimited names.
-# Do not split numeric locants (1,2-) or letter locants (N,N-).
-# Keep this in sync with scripts/data/ingredients/match_oy_mfds.py.
-OFFICIAL_SYNONYM_SEPARATOR = r"\s*(?:\^|(?<![0-9A-Za-z]),|,(?![0-9A-Za-z])|,(?=[A-Za-z]{2,}))\s*"
-
-
 def _name(value):
     return " ".join(unicodedata.normalize("NFKC", value or "").split())
 
 
 def _official_synonyms(value: str | None) -> set[str]:
-    """Parse mixed alias delimiters while preserving chemical comma notation."""
-    return {
-        alias
-        for part in re.split(OFFICIAL_SYNONYM_SEPARATOR, _name(value))
-        if (alias := _name(part))
-    }
+    """Retain the compatibility import for the reviewed split-alias parser."""
+    return official_synonyms(value)
+
+
+def _approvals():
+    return load_approved_aliases(get_settings().ingredient_alias_approvals_path)
 
 
 def _current_link(row):
@@ -46,8 +47,9 @@ def _current_link(row):
     if method in {"exact_name", "amount_suffix_exact"}:
         return bool(original) and original == _name(row[1])
     if method in {"official_synonym", "amount_suffix_synonym"}:
-        aliases = _official_synonyms(row[10])
-        return bool(original) and original in aliases
+        return bool(original) and approved_synonym(
+            row[10], original, row[0], row[2], _approvals()
+        )
     # Manual rows currently have no reviewed dictionary hash: never reissue them
     # as verified identities for a possibly changed snapshot.
     return False
@@ -172,9 +174,21 @@ class IngredientIdentityRepository:
                 .execution_options(autoflush=False)
             )
         ).all()
+        # SQL finds possible names; a split alias is not evidence until explicitly
+        # approved against this exact MFDS source hash. Legacy OY-only names are
+        # preserved for their separately verified mapping path.
+        approvals = _approvals()
+        rows = [
+            row
+            for row in rows
+            if row[11]
+            or row[12]
+            or (row[13] and approved_synonym(row[10], target, row[0], row[2], approvals))
+            or (not row[13] and _name(row[8]).casefold() == target)
+        ]
         if len({row[0] for row in rows}) != 1:
             return None
-        if not any(row[13] for row in rows):
+        if not any(row[11] or row[12] or row[13] for row in rows):
             # An OY-only alias (including an amount suffix) needs the same current
             # base-name uniqueness check used for product entries.
             links = await self.for_entries([row[3] for row in rows if row[3] is not None])
