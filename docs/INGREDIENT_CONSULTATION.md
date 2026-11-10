@@ -27,7 +27,7 @@ explicitly unknown. No database migration or shared-data update is part of this 
     than becoming trusted. Restart the API after updating the mounted CSV.
   - A successful apply stores the reviewer, review timestamp and source hash
     (`review_note`) in the existing `oy_mfds_ingredient_map` columns, and exports
-    an `applied-mfds-approvals.csv` receipt. Retain the original signed-off CSV
+    a timestamped `applied-mfds-approvals-*.csv` receipt. Retain the original signed-off CSV
     and receipt in versioned, access-controlled storage for audit. Neither a
     preview CSV nor code tests constitute human review.
   CI exercises the parser, approval guard and review queue on synthetic inputs.
