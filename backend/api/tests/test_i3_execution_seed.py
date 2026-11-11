@@ -119,3 +119,91 @@ class OccupiedSession:
 def test_occupied_database_is_never_reset():
     with pytest.raises(ValueError, match="not an empty"):
         asyncio.run(seed.assert_empty(OccupiedSession()))
+
+
+@pytest.mark.parametrize(
+    "scenario,approval,support,rights",
+    [
+        ("Q02", "approved", "direct", "service_approved"),
+        ("E01", "approved", "direct", "service_approved"),
+        ("E04", "approved", "direct", "service_approved"),
+        ("M05", "approved", "direct", "service_approved"),
+        ("E05", "limited_approved", "limited", "service_approved"),
+        ("E03", "approved", "direct", "local_only"),
+    ],
+)
+def test_seed_creates_review_matching_claim_approval(
+    scenario, approval, support, rights, monkeypatch
+):
+    # Stop at the actual ORM review row before any publication or artifact write.
+    captured = []
+
+    class ReviewCaptured(Exception):
+        pass
+
+    class Result:
+        def one(self):
+            return object()
+
+        def all(self):
+            return []
+
+    class Session:
+        def __init__(self, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+        def add(self, row):
+            captured.append(row)
+            if isinstance(row, seed.AihubClaimReviewRow):
+                raise ReviewCaptured
+
+        def add_all(self, rows):
+            for row in rows:
+                self.add(row)
+
+        async def flush(self):
+            pass
+
+        async def execute(self, statement):
+            return Result()
+
+    class ConnectionContext:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+        async def commit(self):
+            pass
+
+    class Engine:
+        def connect(self):
+            return ConnectionContext()
+
+        async def dispose(self):
+            pass
+
+    async def no_op(*args):
+        pass
+
+    monkeypatch.setattr(seed, "create_async_engine", lambda *args, **kwargs: Engine())
+    monkeypatch.setattr(seed, "AsyncSession", Session)
+    monkeypatch.setattr(seed, "verify_server", no_op)
+    monkeypatch.setattr(seed, "assert_empty", no_op)
+    monkeypatch.setattr(seed, "_source_version", lambda *args: "synthetic-version")
+    with pytest.raises(ReviewCaptured):
+        asyncio.run(seed.seed_database(URL, TOKEN, seed.ALLOWED_MAPPING, scenario))
+
+    claim = next(row for row in captured if isinstance(row, seed.AihubClaimVersionRow))
+    review = next(row for row in captured if isinstance(row, seed.AihubClaimReviewRow))
+    release = next(row for row in captured if isinstance(row, seed.AihubDatasetReleaseRow))
+    assert (claim.approval_status, review.support_status, release.rights_status) == (
+        approval, support, rights
+    )

@@ -396,7 +396,7 @@ async def seed_database(
                     review = AihubClaimReviewRow(
                         claim_version_id=claim.claim_version_id,
                         document_id=source.document_id,
-                        support_status="limited",
+                        support_status="limited" if limited else "direct",
                         rights_status="service_approved",
                         source_locator="synthetic",
                         study_type="synthetic",
