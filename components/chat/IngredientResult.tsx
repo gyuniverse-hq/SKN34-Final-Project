@@ -49,7 +49,10 @@ export function IngredientResult({ heading, summary, notice, product, labels, re
       </View>
       {results?.map((result, index) => {
         const target = products?.find((item) => item.id === result.productId);
-        if (!target || (result.shadeId && shadeSelections && shadeSelections[result.productId] !== result.shadeId)) return null;
+        const selectedShade = shadeSelections?.[result.productId];
+        if (!target || (result.shadeId && shadeSelections && selectedShade !== result.shadeId)) return null;
+        // The API only verifies null shades for products without catalog shades.
+        const shadeValid = result.shadeId === null ? !selectedShade : !!result.shadeId;
         const syntheticBlocked = !__DEV__ && !!result.synthetic;
         const direct = result.mappingStatus === 'directly_reviewed';
         const provenance = direct
@@ -59,7 +62,7 @@ export function IngredientResult({ heading, summary, notice, product, labels, re
         const blockingIssue = result.issues?.some((issue) => !direct || issue !== 'source_timezone_unknown');
         const verified = !syntheticBlocked && result.status === 'ok' && provenance &&
           result.reviewStatus === 'verified' && result.ingredientCoverage !== 'unknown' &&
-          !!result.shadeId && !!result.optionId && !!result.source && !!result.evidenceId &&
+          shadeValid && !!result.optionId && !!result.source && !!result.evidenceId &&
           !!result.sourceVersion && !!result.ingredients?.length && !blockingIssue;
         const checks = (result.conditions ?? []).filter((check) => check.productId === result.productId &&
           check.shadeId === result.shadeId && check.optionId === result.optionId);
@@ -72,7 +75,9 @@ export function IngredientResult({ heading, summary, notice, product, labels, re
           : verified && !absenceUnverified ? result.verdict : 'UNKNOWN';
         return <View key={`${result.productId}-${result.shadeId}-${index}`} style={styles.panel}>
           <Text style={styles.productName}>{target.brand} {target.name}</Text>
-          <Text style={styles.secondary}>{t('chat.ingredient.shade')}: {result.shadeId ?? t('chat.ingredient.selection')}</Text>
+          {(!verified || result.shadeId !== null) && (
+            <Text style={styles.secondary}>{t('chat.ingredient.shade')}: {result.shadeId ?? t('chat.ingredient.selection')}</Text>
+          )}
           <Text accessibilityRole="text" style={styles.label}>{t(`chat.ingredient.${verdict}`)}</Text>
           {checks.map((check, i) => (
             <Text key={i} style={styles.secondary}>

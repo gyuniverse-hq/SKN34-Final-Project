@@ -24,12 +24,12 @@ const evidence: ChatIngredientResult = {
     reason: 'ingredient_present' }],
 };
 
-async function render(results?: ChatIngredientResult[]) {
+async function render(results?: ChatIngredientResult[], shadeSelections?: Record<string, string>) {
   let view!: ReactTestRenderer;
   await act(async () => { view = create(createElement(IngredientResult, {
     heading: 'Ingredients', summary: 'Original server answer', notice: 'Information',
     labels: { product: 'Product', ingredients: 'Ingredients', source: 'Source' },
-    products: [product], results,
+    products: [product], results, shadeSelections,
   })); });
   return view;
 }
@@ -123,4 +123,41 @@ it.each([false, true])('accepts direct review only without blocking issues (%s)'
   if (blocked) expect(text(view)).not.toContain('1. Water');
   else expect(text(view)).toContain('1. Water');
   await act(async () => { view.unmount(); });
+});
+
+
+const colorlessEvidence: ChatIngredientResult = {
+  ...evidence,
+  shadeId: null,
+  conditions: [{ ...evidence.conditions![0], shadeId: null }],
+};
+
+it.each(['MATCH', 'NOT_MATCH'] as const)('shows verified %s for a colorless product', async (verdict) => {
+  const view = await render([{ ...colorlessEvidence, verdict,
+    conditions: [{ ...colorlessEvidence.conditions![0], verdict,
+      operator: verdict === 'MATCH' ? 'includes' : 'excludes' }],
+  }], {});
+  expect(text(view)).toContain(en[`chat.ingredient.${verdict}`]);
+  expect(text(view)).toContain('1. Water');
+  expect(text(view)).not.toContain(en['chat.ingredient.selection']);
+  await act(async () => { view.unmount(); });
+});
+
+it.each([
+  [{ reviewStatus: 'unreviewed' } as const, {}],
+  [{ optionId: null }, {}],
+  [{}, { p2: 'p2-03' }],
+] as const)('withholds colorless evidence when review, option or shade validation fails', async (changes, selections) => {
+  const view = await render([{ ...colorlessEvidence, ...changes }], selections);
+  expect(text(view)).toContain(en['chat.ingredient.UNKNOWN']);
+  expect(text(view)).not.toContain('1. Water');
+  await act(async () => { view.unmount(); });
+});
+
+it('shows evidence only for the selected shade when a shade is supplied', async () => {
+  const view = await render([evidence], { p2: 'p2-03' });
+  const stale = await render([evidence], { p2: 'p2-04' });
+  expect(text(view)).toContain('1. Water');
+  expect(text(stale)).not.toContain('1. Water');
+  await act(async () => { view.unmount(); stale.unmount(); });
 });
