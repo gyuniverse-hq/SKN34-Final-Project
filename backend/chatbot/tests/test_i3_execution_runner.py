@@ -316,7 +316,8 @@ async def test_cleanup_failure_preserves_actual_observations(monkeypatch):
     from tests import i3_execution_runner as runner
 
     monkeypatch.setattr(
-        runner, "start_environment",
+        runner,
+        "start_environment",
         lambda: ("run", "project", {}, ["owned"], {}, 1000, 1001),
     )
     manifest = {

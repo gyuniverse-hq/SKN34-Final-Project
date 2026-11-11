@@ -87,11 +87,19 @@ def check_commits():
         raise RuntimeError("SUT checkout differs from pinned #229 commit")
     if command(["git", "-C", SUT_ROOT, "status", "--porcelain", "--untracked-files=no"]):
         raise RuntimeError("SUT tracked files are modified")
-    command([
-        "git", "-C", EVAL_ROOT, "diff", "--quiet", EVAL_SHA, "--",
-        "backend/chatbot/tests/i3_eval_adapter.py",
-        "backend/chatbot/tests/run_i3_eval.py",
-    ])
+    command(
+        [
+            "git",
+            "-C",
+            EVAL_ROOT,
+            "diff",
+            "--quiet",
+            EVAL_SHA,
+            "--",
+            "backend/chatbot/tests/i3_eval_adapter.py",
+            "backend/chatbot/tests/run_i3_eval.py",
+        ]
+    )
     for relative in (
         "docs/ai-alignment/04_i3_eval/cases.candidate.jsonl",
         "docs/ai-alignment/04_i3_eval/fixtures.synthetic.json",

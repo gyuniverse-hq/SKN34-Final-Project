@@ -205,5 +205,7 @@ def test_seed_creates_review_matching_claim_approval(
     review = next(row for row in captured if isinstance(row, seed.AihubClaimReviewRow))
     release = next(row for row in captured if isinstance(row, seed.AihubDatasetReleaseRow))
     assert (claim.approval_status, review.support_status, release.rights_status) == (
-        approval, support, rights
+        approval,
+        support,
+        rights,
     )
