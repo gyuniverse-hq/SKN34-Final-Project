@@ -287,3 +287,30 @@ async def test_fragrance_followup_rechecks_inherited_ingredient_condition(
     assert {name for _, name in catalog.ingredient_calls} == {"Niacinamide"}
     assert second.chat_context.filters.fragrance_free
     assert second.result_type == "clarification"
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "extra_issue,expected", [(None, "MATCH"), ("ingredient_list_inconsistent", "UNKNOWN")]
+)
+async def test_direct_review_only_ignores_source_timezone_warning(
+    monkeypatch, extra_issue, expected
+):
+    body = evidence(name="Panthenol", ingredients=[{"name": "Panthenol", "sequence": 1}])
+    body.update(
+        mappingStatus="directly_reviewed",
+        collectedAt=None,
+        sourceFingerprint=None,
+        generatorVersion=None,
+        reviewedAt="2026-11-10T12:00:00Z",
+        reviewRef="fixture://review",
+        issues=["source_timezone_unknown"] + ([extra_issue] if extra_issue else []),
+    )
+    if extra_issue:
+        body.update(status="unknown", verdict="UNKNOWN", ingredients=[])
+        body["conditions"][0]["verdict"] = "UNKNOWN"
+    install_http(monkeypatch, lambda req: httpx.Response(200, json=body))
+    result = await CatalogClient("http://fixture.test").get_ingredients(
+        "a", "a-03", ingredient_name="Panthenol"
+    )
+    assert result.verdict == expected

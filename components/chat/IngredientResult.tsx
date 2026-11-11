@@ -51,11 +51,16 @@ export function IngredientResult({ heading, summary, notice, product, labels, re
         const target = products?.find((item) => item.id === result.productId);
         if (!target || (result.shadeId && shadeSelections && shadeSelections[result.productId] !== result.shadeId)) return null;
         const syntheticBlocked = !__DEV__ && !!result.synthetic;
-        const verified = !syntheticBlocked && result.status === 'ok' && result.mappingStatus === 'reproduced' &&
+        const direct = result.mappingStatus === 'directly_reviewed';
+        const provenance = direct
+          ? !!result.reviewedAt && !!result.reviewRef?.trim()
+          : result.mappingStatus === 'reproduced' && !!result.collectedAt &&
+            !!result.sourceFingerprint && !!result.generatorVersion;
+        const blockingIssue = result.issues?.some((issue) => !direct || issue !== 'source_timezone_unknown');
+        const verified = !syntheticBlocked && result.status === 'ok' && provenance &&
           result.reviewStatus === 'verified' && result.ingredientCoverage !== 'unknown' &&
           !!result.shadeId && !!result.optionId && !!result.source && !!result.evidenceId &&
-          !!result.collectedAt && !!result.sourceVersion && !!result.sourceFingerprint &&
-          !!result.generatorVersion && !!result.ingredients?.length && !result.issues?.length;
+          !!result.sourceVersion && !!result.ingredients?.length && !blockingIssue;
         const checks = (result.conditions ?? []).filter((check) => check.productId === result.productId &&
           check.shadeId === result.shadeId && check.optionId === result.optionId);
         const complete = verified && result.ingredientCoverage === 'full' &&
@@ -81,7 +86,7 @@ export function IngredientResult({ heading, summary, notice, product, labels, re
           {verified ? <>
             <Text selectable style={styles.secondary}>{labels.source}: {result.source}</Text>
             <Text selectable style={styles.secondary}>{t('chat.ingredient.evidence')}: {result.evidenceId}</Text>
-            <Text style={styles.secondary}>{result.collectedAt}</Text>
+            <Text style={styles.secondary}>{result.collectedAt ?? result.collectedAtRaw}</Text>
             <Text style={styles.label}>{labels.ingredients}</Text>
             {result.ingredients.map((item, i) => <Text key={i} style={styles.secondary}>{item.sequence ?? '–'}. {item.name}</Text>)}
           </> : null}

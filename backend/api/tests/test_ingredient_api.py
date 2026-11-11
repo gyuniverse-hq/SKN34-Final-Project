@@ -427,3 +427,46 @@ def test_production_blocks_only_synthetic_evidence(client, data, monkeypatch, sy
     else:
         assert body["status"] == "ok" and body["verdict"] == "MATCH"
         assert body["reviewStatus"] == "verified" and body["ingredients"]
+
+
+@pytest.mark.parametrize(
+    "change,expected",
+    [
+        ({}, "MATCH"),
+        ({"review_ref": None}, "UNKNOWN"),
+        ({"source_version": "stale"}, "UNKNOWN"),
+        ({"catalog_fingerprint": "stale"}, "UNKNOWN"),
+        ({"review_status": "unreviewed"}, "UNKNOWN"),
+        ({"option_id": "different"}, "UNKNOWN"),
+    ],
+)
+def test_direct_review_accepts_unknown_source_timezone_only_with_bound_evidence(
+    client, data, change, expected
+):
+    product, shades, raw, entries, mapping = data
+    reviewed_at = raw[9]
+    raw = (*raw[:9], reviewed_at.replace(tzinfo=None), raw[10])
+    fields = dict(
+        mapping_status="directly_reviewed",
+        mapping_method="direct_review",
+        source_fingerprint=None,
+        generator_version=None,
+        generation_record_id=None,
+        source_version=fingerprint([list(raw), [list(r) for r in entries]]),
+        reviewed_by="fixture reviewer",
+        reviewed_at=reviewed_at,
+        review_ref="fixture://review",
+    )
+    fields.update(change)
+    mapping = mapping.model_copy(update=fields)
+    setup(client, (product, shades, raw, entries, mapping))
+    response = get(client, ingredientName="Panthenol", optionId="fixture-opt-B")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["verdict"] == expected
+    if expected == "MATCH":
+        assert body["status"] == "ok"
+        assert body["issues"] == ["source_timezone_unknown"]
+        assert body["collectedAt"] is None
+        assert body["collectedAtRaw"] == raw[9].isoformat()
+        assert body["reviewRef"] == "fixture://review"

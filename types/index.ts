@@ -537,7 +537,7 @@ export interface ChatIngredientResult {
   optionId?: string | null;
   status: 'ok' | 'unknown' | 'error';
   verdict: IngredientVerdict;
-  mappingStatus: 'reproduced' | 'candidate' | 'ambiguous' | 'unmapped' | 'mismatch';
+  mappingStatus: 'reproduced' | 'directly_reviewed' | 'candidate' | 'ambiguous' | 'unmapped' | 'mismatch';
   ingredientCoverage: 'full' | 'partial' | 'unknown';
   reviewStatus: 'verified' | 'unreviewed' | 'rejected';
   normalizationStatus: 'verified' | 'unverified';
@@ -545,6 +545,8 @@ export interface ChatIngredientResult {
   source?: string | null;
   collectedAt?: string | null;
   collectedAtRaw?: string | null;
+  reviewedAt?: string | null;
+  reviewRef?: string | null;
   sourceVersion?: string | null;
   sourceFingerprint?: string | null;
   generatorVersion?: string | null;

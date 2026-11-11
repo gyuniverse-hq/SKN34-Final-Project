@@ -42,8 +42,15 @@ explicitly unknown. No database migration or shared-data update is part of this 
   linked to MFDS ID 4840 (`1,2-헥산디올`) remains invalid. Preserve that
   mapping as unresolved until reviewed. Rerun the audit for fresh DB snapshots.
 
-- Product/shade → raw option mapping still requires a reproduced generator run,
-  matching catalog and source versions, reviewed evidence, and original provenance.
+- Product/shade to raw option mapping accepts generator replay or direct review.
+  Direct review uses `mappingStatus: directly_reviewed` and `mappingMethod: direct_review`.
+  Record `reviewedBy`, timezone-aware `reviewedAt`, and `reviewRef` pointing to
+  the recorded option and disclosure comparison. Set `reviewStatus: verified`
+  only after checking that the disclosure covers the selected option. Both paths
+  require matching catalog and source versions and active option ownership.
+  On the direct review path, an unknown source timezone is reported as
+  `source_timezone_unknown`. The original value stays in `collectedAtRaw`,
+  and `reviewedAt` records the separate review time.
   `oy_mfds_ingredient_map` only establishes ingredient identity; it cannot establish
   product/option ownership or full-list coverage.
 - Raw ingredient `name` and `sequence` remain unchanged. Optional `identity` carries

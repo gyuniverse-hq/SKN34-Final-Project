@@ -14,7 +14,7 @@ import uvicorn
 
 from app.core.cache import NullCache
 from app.core.config import get_settings
-from app.repositories.ingredient_repository import IngredientRepository
+from app.repositories.ingredient_repository import IngredientRepository, fingerprint
 from app.schemas.catalog import CatalogBundle
 from app.services.catalog_service import CatalogService, get_catalog_service
 from app.services.ingredient_service import IngredientService, get_ingredient_service
@@ -67,6 +67,7 @@ with TestClient(app) as client:
     "state,verdict,status",
     [
         ("verified", "MATCH", "success"),
+        ("direct_review", "MATCH", "success"),
         ("canonical_alias", "MATCH", "success"),
         ("candidate", "UNKNOWN", "clarification"),
         ("configuration_error", "ERROR", "error"),
@@ -90,6 +91,15 @@ def test_api_client_beauty_supervisor_chat_json_over_http(
     if not python.exists():
         pytest.skip("Existing chatbot virtualenv is required; no dependency installation")
     product, shades, raw, entries, mapping = data
+    if state == "direct_review":
+        mapping.mapping_status = "directly_reviewed"
+        mapping.mapping_method = "direct_review"
+        mapping.reviewed_by = "Fixture reviewer"
+        mapping.reviewed_at = raw[9]
+        mapping.review_ref = "fixture://review"
+        mapping.generation_record_id = mapping.generator_version = mapping.source_fingerprint = None
+        raw = (*raw[:9], raw[9].replace(tzinfo=None), raw[10])
+        mapping.source_version = fingerprint([list(raw), [list(r) for r in entries]])
     if state == "candidate":
         mapping.mapping_status = "candidate"
         mapping.review_status = "unreviewed"
@@ -195,9 +205,14 @@ def test_api_client_beauty_supervisor_chat_json_over_http(
     assert output["toolStatus"] == status and output["application"] == "not_requested"
     body = output["body"]
     assert body["ingredientResults"][0]["verdict"] == verdict
+    if state == "direct_review":
+        assert body["ingredientResults"][0]["mappingStatus"] == "directly_reviewed"
+        assert body["ingredientResults"][0]["issues"] == ["source_timezone_unknown"]
     assert body["ingredientResults"][0]["productId"] == body["products"][0]["id"]
     assert "supervisor" not in body and "toolResult" not in body and "arResult" not in body
-    expected_queries = 7 if state == "canonical_alias" else 6 if state == "verified" else 2
+    expected_queries = (
+        7 if state == "canonical_alias" else 6 if state in {"verified", "direct_review"} else 2
+    )
     if invalid_approval:
         assert sessions and all(not session.statements for session in sessions)
         assert body["ingredientResults"][0]["reason"] == "source_unavailable"

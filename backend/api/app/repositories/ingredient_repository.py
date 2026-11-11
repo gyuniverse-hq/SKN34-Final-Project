@@ -141,10 +141,19 @@ class IngredientRepository:
             response.mapping_status = "mismatch"
             response.reason = "catalog_version_mismatch"
             return response
-        if mapping.mapping_status != "reproduced":
+        direct = mapping.mapping_status == "directly_reviewed"
+        if not direct and mapping.mapping_status != "reproduced":
             response.reason = "mapping_not_verified"
             return response
-        if (
+        if direct and (
+            mapping.mapping_method != "direct_review"
+            or not mapping.reviewed_by
+            or not mapping.reviewed_at
+            or not mapping.review_ref
+        ):
+            response.reason = "direct_review_incomplete"
+            return response
+        if not direct and (
             not mapping.source_fingerprint
             or not mapping.generation_record_id
             or not mapping.generator_version
@@ -245,6 +254,8 @@ class IngredientRepository:
             source="option_ingredients",
             source_ref=raw[0][7],
             collected_at=aware,
+            reviewed_at=mapping.reviewed_at if direct else None,
+            review_ref=mapping.review_ref if direct else None,
             mapping_status="verified",
             review_status=mapping.review_status,
             ingredient_coverage=mapping.ingredient_coverage,
@@ -255,7 +266,10 @@ class IngredientRepository:
             evidence.ingredient_coverage = "partial"
             evidence.normalization_status = "unverified"
         response.evidence = evidence
-        response.reason = "verified_evidence" if not response.issues else "evidence_requires_review"
+        warnings = {"source_timezone_unknown"} if direct else set()
+        response.reason = (
+            "evidence_requires_review" if set(response.issues) - warnings else "verified_evidence"
+        )
         return response
 
     async def resolve_identity(self, name: str):

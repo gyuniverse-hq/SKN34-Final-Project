@@ -73,7 +73,9 @@ def evaluate_ingredient(
         return supported("UNKNOWN", "not_product_ingredient_evidence")
     if evidence.review_status != "verified":
         return supported("UNKNOWN", "evidence_not_reviewed")
-    if not evidence.source_ref or evidence.collected_at is None:
+    if not evidence.source_ref or not (
+        evidence.collected_at or (evidence.reviewed_at and evidence.review_ref)
+    ):
         return supported("UNKNOWN", "provenance_incomplete")
     if evidence.ingredient_coverage == "unknown" or not evidence.ingredients:
         return supported("UNKNOWN", "ingredients_unavailable")
@@ -150,6 +152,9 @@ class IngredientService:
             raise ApiError(
                 503, "Ingredient source unavailable", "ingredient_lookup_failed"
             ) from exc
+        blocking_issues = set(result.issues) - (
+            {"source_timezone_unknown"} if result.mapping_status == "directly_reviewed" else set()
+        )
         evidence = result.evidence
         if evidence is not None:
             result.ingredient_coverage = evidence.ingredient_coverage
@@ -158,11 +163,12 @@ class IngredientService:
             result.source = evidence.source_ref
             result.collected_at = evidence.collected_at
             result.evidence_id = evidence.evidence_id
-            # Naive source timestamps and inconsistent rows cannot become verified public facts.
+            result.reviewed_at = evidence.reviewed_at
+            result.review_ref = evidence.review_ref
             if (
-                not result.issues
+                not blocking_issues
                 and evidence.source_ref
-                and evidence.collected_at
+                and (evidence.collected_at or (evidence.reviewed_at and evidence.review_ref))
                 and evidence.ingredients
             ):
                 result.ingredients = evidence.ingredients
@@ -183,7 +189,7 @@ class IngredientService:
             try:
                 identity = (
                     await self._repository.resolve_identity(ingredient_name)
-                    if evidence and not result.issues
+                    if evidence and not blocking_issues
                     else None
                 )
             except SQLAlchemyError as exc:
@@ -191,7 +197,7 @@ class IngredientService:
                     503, "Ingredient identity source unavailable", "ingredient_lookup_failed"
                 ) from exc
             check = evaluate_ingredient(condition, lookup, identity)
-            if result.issues:
+            if blocking_issues:
                 check.verdict, check.reason = "UNKNOWN", "evidence_requires_review"
             elif evidence is None:
                 check.reason = result.reason

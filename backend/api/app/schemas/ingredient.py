@@ -57,6 +57,8 @@ class IngredientEvidence(IngredientSelection):
     source: Literal["product_notice", "option_ingredients", "mfds_dictionary", "key_ingredients"]
     source_ref: str | None = Field(default=None, max_length=2048)
     collected_at: AwareDatetime | None = None
+    reviewed_at: AwareDatetime | None = None
+    review_ref: str | None = Field(default=None, min_length=1, max_length=2048)
     review_status: Literal["verified", "unreviewed", "rejected"] = "unreviewed"
     mapping_status: Literal["verified", "unverified", "ambiguous"] = "unverified"
     normalization_status: Literal["verified", "unverified"] = "unverified"
@@ -95,8 +97,13 @@ class IngredientDecision(IngredientSelection):
 
 
 class IngredientMapping(IngredientSelection):
+    reviewed_by: str | None = Field(default=None, min_length=1, max_length=128)
+    reviewed_at: AwareDatetime | None = None
+    review_ref: str | None = Field(default=None, min_length=1, max_length=2048)
     goods_no: str | None = None
-    mapping_status: Literal["reproduced", "candidate", "ambiguous", "unmapped", "mismatch"]
+    mapping_status: Literal[
+        "reproduced", "directly_reviewed", "candidate", "ambiguous", "unmapped", "mismatch"
+    ]
     mapping_method: str
     generation_record_id: str | None = None
     source_fingerprint: str | None = None
@@ -113,15 +120,17 @@ class IngredientMapping(IngredientSelection):
 class IngredientReadResult(IngredientSelection):
     status: Literal["ok", "unknown"] = "unknown"
     verdict: Literal["MATCH", "NOT_MATCH", "UNKNOWN", "ERROR"] = "UNKNOWN"
-    mapping_status: Literal["reproduced", "candidate", "ambiguous", "unmapped", "mismatch"] = (
-        "unmapped"
-    )
+    mapping_status: Literal[
+        "reproduced", "directly_reviewed", "candidate", "ambiguous", "unmapped", "mismatch"
+    ] = "unmapped"
     ingredient_coverage: Literal["full", "partial", "unknown"] = "unknown"
     review_status: Literal["verified", "unreviewed", "rejected"] = "unreviewed"
     normalization_status: Literal["verified", "unverified"] = "unverified"
     ingredients: list[IngredientEntry] = Field(default_factory=list)
     source: str | None = None
     collected_at: AwareDatetime | None = None
+    reviewed_at: AwareDatetime | None = None
+    review_ref: str | None = Field(default=None, min_length=1, max_length=2048)
     collected_at_raw: str | None = None
     source_version: str | None = None
     source_fingerprint: str | None = None

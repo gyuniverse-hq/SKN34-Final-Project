@@ -924,6 +924,8 @@ def _combine_ingredient_results(results):
                     r.normalization_status,
                     r.source,
                     r.collected_at,
+                    r.reviewed_at,
+                    r.review_ref,
                     r.source_version,
                     r.source_fingerprint,
                     r.generator_version,
@@ -1189,7 +1191,7 @@ async def _ingredient_consultation(req, plan, catalog, filters):
             text = labels[0]
         elif result.reason == "fragrance_free_unverified":
             text = words["fragrance"]
-        elif result.mapping_status != "reproduced":
+        elif result.mapping_status not in {"reproduced", "directly_reviewed"}:
             text = labels[1]
         elif result.review_status != "verified":
             text = labels[2]

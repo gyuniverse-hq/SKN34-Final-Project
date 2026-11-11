@@ -135,13 +135,17 @@ class CatalogIngredients(_CatalogModel):
     option_id: str | None = None
     status: Literal["ok", "unknown", "error"]
     verdict: Literal["MATCH", "NOT_MATCH", "UNKNOWN", "ERROR"]
-    mapping_status: Literal["reproduced", "candidate", "ambiguous", "unmapped", "mismatch"]
+    mapping_status: Literal[
+        "reproduced", "directly_reviewed", "candidate", "ambiguous", "unmapped", "mismatch"
+    ]
     ingredient_coverage: Literal["full", "partial", "unknown"]
     review_status: Literal["verified", "unreviewed", "rejected"]
     normalization_status: Literal["verified", "unverified"]
     ingredients: list[IngredientEntry]
     source: str | None = None
     collected_at: AwareDatetime | None = None
+    reviewed_at: AwareDatetime | None = None
+    review_ref: str | None = None
     collected_at_raw: str | None = None
     source_version: str | None = None
     source_fingerprint: str | None = None
@@ -167,21 +171,30 @@ class CatalogIngredients(_CatalogModel):
 
     @property
     def verified(self) -> bool:
+        direct = self.mapping_status == "directly_reviewed"
+        if direct:
+            provenance = self.reviewed_at and self.review_ref and self.review_ref.strip()
+            blocking_issues = set(self.issues) - {"source_timezone_unknown"}
+        else:
+            provenance = (
+                self.mapping_status == "reproduced"
+                and self.collected_at
+                and self.source_fingerprint
+                and self.generator_version
+            )
+            blocking_issues = set(self.issues)
         return bool(
             self.status == "ok"
             and not (self.synthetic and get_settings().is_production)
-            and self.mapping_status == "reproduced"
+            and provenance
             and self.review_status == "verified"
             and self.ingredient_coverage != "unknown"
             and self.option_id
             and self.source
-            and self.collected_at
             and self.evidence_id
             and self.source_version
-            and self.source_fingerprint
-            and self.generator_version
             and self.ingredients
-            and not self.issues
+            and not blocking_issues
         )
 
     @property

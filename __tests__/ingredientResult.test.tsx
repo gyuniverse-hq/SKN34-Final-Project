@@ -109,3 +109,18 @@ it('never publishes synthetic evidence as verified in a production build', async
     Object.defineProperty(globalThis, '__DEV__', { value: original, configurable: true });
   }
 });
+
+
+it.each([false, true])('accepts direct review only without blocking issues (%s)', async (blocked) => {
+  const view = await render([{ ...evidence, mappingStatus: 'directly_reviewed',
+    collectedAt: null, collectedAtRaw: '2026-10-27T18:06:42',
+    sourceFingerprint: null, generatorVersion: null,
+    reviewedAt: '2026-11-11T00:00:00Z', reviewRef: 'fixture://review',
+    issues: blocked ? ['source_timezone_unknown', 'ingredient_list_inconsistent'] : ['source_timezone_unknown'],
+  }]);
+  expect(text(view)).toContain(en['chat.ingredient.directly_reviewed']);
+  expect(text(view)).toContain(en[blocked ? 'chat.ingredient.UNKNOWN' : 'chat.ingredient.MATCH']);
+  if (blocked) expect(text(view)).not.toContain('1. Water');
+  else expect(text(view)).toContain('1. Water');
+  await act(async () => { view.unmount(); });
+});
