@@ -250,6 +250,28 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     // direction (round: vertical forehead / chin; oblong: horizontal; square / heart: round forehead and the under-eye
     // triangle), drawn into mask 2 R. Off: the old fixed mask (and mask 3 for named areas).
     hlFaceLayout: true,
+    // 11-11 (user: "the forehead highlighter is a white circle"). Cause (code): the highlight (1) mixed 35% toward the product
+    // colour (a pale patch with the shape of the mask), (2) ADDED near-white light (product + 30% white, scaled by a broad GGX
+    // lobe) inside that same mask, (3) added a 1-px white spark per ~1.5% of UV cells (480 cells/unit = about one video pixel
+    // at phone size: single white dots), and nothing looked at how bright the skin already was.
+    // hlNatural on: the camera pixel is lifted in proportion to itself (its own colour and texture stay, never a white add), with
+    // headroom (bright skin / a bright room gets less, nothing clips), a faint product tint, a soft lobe sheen in the pixel's own
+    // colour, round soft glints instead of 1-px dots, and the forehead stays off hair and bangs (skin mask). Off = the old look.
+    hlNatural: true,
+    hlLift: 0.45,               // brightening of a pixel at full mask (x the mask, which peaks around 0.15 at the default strength)
+    hlHeadroom: [0.72, 0.93],   // the pixel's display brightness (0..1): full lift below the first, none at the second (nothing blows out)
+    hlRelief: [1.1, 1.8],       // pixel brightness / the face's mean: above the first the lift fades (up to 60% less at the second: a bright room)
+    hlTint: 0.10,               // share of the product colour's hue mixed in (0 = the lift keeps the skin colour exactly)
+    hlGloss: 0.45,              // soft lobe sheen, in the pixel's own colour (x lobe x mask)
+    hlGlintScale: 170,          // glint cells per UV unit (about 2.5 video px at phone size; was 480 = 1 px dots)
+    hlGlintDensity: 0.965,      // share of cells without a glint
+    hlGlint: 0.35,              // glint strength (x pixel colour, never white)
+    // 11-11 (user: "too faint to see; keep the light end of the slider as it is now, make the dark end as strong as the older look"):
+    // natural mode maps the slider to this range of the old linear strength (0.5 = the faint look of the first natural build, 1.1 = about
+    // the old composite's default strength, whose peak was ~1.6x the faint one). Slider 0 stays off (untouched pixels, AR_SPEC 1-2);
+    // it ramps in over the first 5% so the first step does not jump.
+    hlSlider: [0.5, 1.1],
+    hlForeheadSkin: [0.45, 0.8], // forehead only: face-skin probability below the first = no highlight (bangs, hair), full above
     contourCoverage: 0.8,
     // Face-fit placement (11-04, plan step 1). Off: highlighter and shading keep today's fixed UV shape, pixel for pixel.
     // On: the style template named by geometry.hlStyle / contourStyle is drawn, with length and width nudged by this
@@ -1642,12 +1664,30 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       const on = (a) => areas.indexOf(a) >= 0;
       const u = (v) => v * S;
       const up = (q) => [q[0], q[1] + 1], side = (q) => [q[0] + 1, q[1]];
+      // A soft blob: alpha falls off smoothly to 0 at the rim (radial gradient, ~Gaussian), so no ellipse edge is ever drawn.
+      const soft = (ctr, toward, rx, ry, alpha) => {
+        c.save(); c.translate(ctr[0], ctr[1]); c.rotate(Math.atan2(toward[1] - ctr[1], toward[0] - ctr[0])); c.scale(rx, ry);
+        const g = c.createRadialGradient(0, 0, 0, 0, 0, 1);
+        g.addColorStop(0, 'rgba(255,255,255,' + alpha + ')');
+        g.addColorStop(0.25, 'rgba(255,255,255,' + alpha * 0.82 + ')');
+        g.addColorStop(0.5, 'rgba(255,255,255,' + alpha * 0.45 + ')');
+        g.addColorStop(0.75, 'rgba(255,255,255,' + alpha * 0.14 + ')');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        c.fillStyle = g; c.beginPath(); c.arc(0, 0, 1, 0, Math.PI * 2); c.fill(); c.restore();
+      };
       if (on('forehead')) {
-        const f = lerp(U(151), U(10), 0.25);
-        // Round / oval: vertical (the face looks a little longer); oblong / gaunt: wide and low; square / heart: a round spot.
-        if (shape === 'round' || shape === 'oval') ellipse(f, up(f), u(0.055), u(0.033), 0.8);
-        else if (shape === 'oblong' || shape === 'gaunt') ellipse(f, side(f), u(0.085), u(0.026), shape === 'gaunt' ? 0.6 : 0.75);
-        else ellipse(f, side(f), u(0.042), u(0.042), shape === 'heart' ? 0.5 : 0.75);
+        // Wide and low on the forehead (never a round spot), two overlapping soft blobs of different size and place so the
+        // brightest part has no centre to read as a shape: a broad main one and a smaller one a little up and off to one side.
+        // Round / oval: taller; oblong / gaunt: wider; square / heart: between. Strength is low: the shader adds only light.
+        // The highlight only exists on the mesh, which ends at landmark 10 (v 0.893): the blobs fade to 0 before it (a blob running
+        // past it was cut there, the steepest edge in the headless check), and well above the brows (v 0.744).
+        const f = lerp(U(151), U(10), 0.15);
+        const wide = shape === 'oblong' || shape === 'gaunt' ? 1.25 : shape === 'round' || shape === 'oval' ? 0.95 : 1.1;
+        const tall = shape === 'round' || shape === 'oval' ? 1.15 : 0.9;
+        const a = shape === 'heart' ? 0.5 : shape === 'gaunt' ? 0.6 : 0.7;
+        soft(f, side(f), u(0.15) * wide, u(0.05) * tall, a);
+        const f2 = [f[0] + u(0.026), f[1] - u(0.008)];
+        soft(f2, side(f2), u(0.09) * wide, u(0.035) * tall, a * 0.7);
       }
       if (on('nose_bridge')) {
         // T-zone: the bridge and the tip.
@@ -2864,7 +2904,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   let guardErrors = 0, guardLast = '', renderErrors = 0, renderErrLast = '';
   // HUD 'eye' line (11-06 /ar-debug: look mascara and lashes not seen on the phone): which eye paint reached this page and
   // whether the eye canvas was drawn this frame. 'build' tells a stale Expo Go bundle apart from a renderer fault.
-  const EYE_HUD_BUILD = '1111-lash-visible';
+  const EYE_HUD_BUILD = '1111-hl-slider';
   const eyeDbg = { liner: '-', mascara: '-', lashes: 0, on: false, cw: 0, ch: 0 };
   // Blink (11-08): MediaPipe blendshape eyeBlinkRight/Left (0 open .. 1 closed) per EYE_LINES entry (0 = subject's right
   // eye, landmarks 33/133; 1 = left). NaN until the model returns blendshapes; drawing then falls back to the lid gap.
@@ -3671,6 +3711,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     'uniform vec3 uShadow2Albedo; uniform float uShadow2Cov; uniform vec3 uInnerAlbedo; uniform float uInnerCov;',
     'uniform sampler2D uMask3; uniform vec4 uHlAreas; uniform float uHlLegacy; uniform vec3 uSkinColor;',
     'uniform vec4 uLipCenter; uniform float uCenterHalf; uniform float uCenterHl;',
+    'uniform float uHlNat; uniform vec3 uHlLift; uniform vec3 uHlGloss; uniform vec2 uHlHead; uniform vec2 uHlRel; uniform vec2 uHlSkin; uniform float uHlSkinOn; uniform float uHlGlintScale; uniform float uHlGlintDensity;',
     'uniform sampler2D uMask2; uniform vec3 uHlAlbedo; uniform float uHlCov; uniform float uHlFlake; uniform vec3 uContourAlbedo; uniform float uContourCov; uniform vec2 uVolume; uniform float uVolLight;',
     // Default -> personalized shading: the previous mask (unit 8) mixed in for contourFadeMs. Absent on a device with < 9 texture units.
     '#ifdef XFADE',
@@ -3895,6 +3936,12 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '  if (uContourMix < 0.999) cg = mix(texture2D(uMask2Prev, vUv, uMaskBias).g, m2.g, uContourMix);',
     '#endif',
     '  float hlA = hlMask * uHlCov; float contourA = cg * uContourCov; float darkA = m2.b * uShadow2Cov;',
+    // Forehead only (atlas v above the brows): bangs and hair are not skin, the highlight stays off them. Read where this face
+    // point was when the mask was made (fuv), like the other mask reads. Cheeks and nose keep their own occlusion gate below.
+    '  if (uHlNat > 0.5 && uHlSkinOn > 0.5) {',
+    '    float hlForehead = smoothstep(0.745, 0.775, vUv.y);',
+    '    hlA *= mix(1.0, smoothstep(uHlSkin.x, uHlSkin.y, texture2D(uFoundSkin, fuv).r), hlForehead);',
+    '  }',
     // Turned head: the far jaw's UV stretches onto the near cheek. Drop that side. Nose shading stays (uJawCullOn is 0).
     '  if (uJawCullOn > 0.5) {',
     // Jaw part of the atlas = all but the nose box (|u - 0.5| < 0.14, v > 0.34): the nose shading wraps the nostril wing down to
@@ -4125,7 +4172,27 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '  if (uContourDebug > 0.5) col = mix(col, uJawCap > 0.5 ? vec3(0.0, 1.0, 1.0) : vec3(1.0, 0.0, 1.0), clamp(contourA * 1.25, 0.0, 1.0));',
     '  if (blushA > 0.002) col = mix(col, powder(cam, uBlushAlbedo), blushA) + uBlushAlbedo * uLightColor * powderSheen(n, l, v, uFaceRough.x) * blushA;',
     // Highlighter: a little of its light color, then its own sheen and shimmer where the face meets the light.
-    '  if (hlA > 0.002) {',
+    '  if (hlA > 0.002 && uHlNat > 0.5) {',
+    // Natural: light on the skin, not paint on top of it. The lift multiplies the pixel (its colour and fine texture stay), is
+    // smaller where the skin is already bright relative to the face (bright room, a real highlight, no blown-out patch), and the
+    // sheen / glints are the pixel's own colour, slightly desaturated: never a white add.
+    '    float skinRel = lum(col) / max(uSkinMeanLum, 1e-3);',
+    '    float room = (1.0 - smoothstep(uHlHead.x, uHlHead.y, pow(max(lum(col), 1e-4), 0.4545))) * (1.0 - 0.6 * smoothstep(uHlRel.x, uHlRel.y, skinRel));',
+    '    float lobe = powderSheen(n, l, v, uFaceRough.z);',
+    '    vec3 hue = clamp(uHlAlbedo / max(lum(uHlAlbedo), 1e-3), 0.0, 2.0);',
+    '    col *= 1.0 + hlA * room * uHlLift.x * mix(vec3(1.0), hue, uHlLift.y);',
+    '    vec3 soft = mix(col, vec3(lum(col)), 0.35);',
+    '    col += soft * lobe * hlA * room * uHlGloss.x;',
+    '    vec2 gc = floor(vUv * uHlGlintScale);',
+    '    float gh = hash(gc);',
+    '    if (uHlFlake > 0.0 && gh >= uHlGlintDensity) {',
+    '      vec2 gf = fract(vUv * uHlGlintScale) - vec2(0.3 + 0.4 * hash(gc + 2.7), 0.3 + 0.4 * hash(gc + 5.3));',
+    '      float gr = 1.0 - smoothstep(0.1, 0.5, length(gf));',
+    '      vec3 fn = normalize(n + (vec3(hash(gc + 1.3), hash(gc + 7.1), hash(gc + 3.7)) - 0.5) * 0.9);',
+    '      float gs = pow(max(dot(fn, normalize(l + v)), 0.0), 20.0);',
+    '      col += soft * uHlGloss.y * uHlFlake * gr * gs * hlA * room;',
+    '    }',
+    '  } else if (hlA > 0.002) {',
     '    col = mix(col, layer(cam, uHlAlbedo, uSkinMeanLum, 1.6), 0.35 * hlA);',
     '    col += mix(uHlAlbedo, vec3(1.0), 0.3) * uLightColor * powderSheen(n, l, v, uFaceRough.z) * hlA + vec3(uHlFlake * flake(vUv, n, l, v) * uLightStrength) * hlA;',
     '  }',
@@ -4435,7 +4502,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       'uHlLocal', 'uHlSat', 'uHlBlown', 'uOpaqueShadeGamma', 'uLipFill', 'uLipDetail', 'uDetailNoise', 'uHlSparkle', 'uWideDetail', 'uGlossAniso', 'uGlossCavity', 'uInner', 'uTeethReach', 'uTeethRed', 'uTeethBright', 'uTeethFirm', 'uTeethOn', 'uMouthOpen',
       'uTeethGuard', 'uTeethSat', 'uTeethDark',
       'uShadow2Albedo', 'uShadow2Cov', 'uInnerAlbedo', 'uInnerCov', 'uMask3', 'uHlAreas', 'uHlLegacy', 'uSkinColor',
-      'uLipCenter', 'uCenterHalf', 'uCenterHl', 'uMask2', 'uHlAlbedo', 'uHlCov', 'uHlFlake', 'uContourAlbedo', 'uContourCov', 'uVolume', 'uVolLight', 'uFaceRough', 'uFaceSheen', 'uEyeHole', 'uCap', 'uCapFade', 'uPowderTint', 'uJawFloor', 'uContourDebug', 'uJawCap', 'uJawCullOn', 'uJawYaw',
+      'uLipCenter', 'uCenterHalf', 'uCenterHl', 'uMask2', 'uHlAlbedo', 'uHlCov', 'uHlFlake', 'uHlNat', 'uHlLift', 'uHlGloss', 'uHlHead', 'uHlRel', 'uHlSkin', 'uHlSkinOn', 'uHlGlintScale', 'uHlGlintDensity', 'uContourAlbedo', 'uContourCov', 'uVolume', 'uVolLight', 'uFaceRough', 'uFaceSheen', 'uEyeHole', 'uCap', 'uCapFade', 'uPowderTint', 'uJawFloor', 'uContourDebug', 'uJawCap', 'uJawCullOn', 'uJawYaw',
       'uEye', 'uBrowTex', 'uEyeRect', 'uLinerAlbedo', 'uLinerCov', 'uLinerAA', 'uLinerSoft', 'uMascaraAlbedo', 'uMascaraCov', 'uEyeSoft',
       'uFoundAlbedo', 'uFoundCov', 'uFoundOpaque', 'uFoundShadeMax', 'uFoundHair', 'uFoundTone', 'uFoundSkin', 'uFoundSkinOn', 'uSegWarp', 'uFoundFloor', 'uFoundLowerV', 'uOccOn', 'uOccGate', 'uBrowAlbedo', 'uBrowCov', 'uBrowPowder', 'uBrowLift', 'uBrowSoft', 'uBrowSkin', 'uBrowHead', 'uBrowTail', 'uMask2Prev', 'uContourMix'];
     // The cross-fade needs a 9th fragment texture unit (the spec minimum is 8; phones report 16). If the variant does not compile or
@@ -4800,8 +4867,19 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         gl.uniform4f(u.uHlAreas, hasArea('forehead'), hasArea('nose_bridge'), hasArea('under_eye'), hasArea('chin'));
         gl.uniform3f(u.uHlAlbedo, hlAlb[0], hlAlb[1], hlAlb[2]);
         const hlGain = hl && hl.geometry && hl.geometry.intensity != null ? clamp01(hl.geometry.intensity) : 1;
-        gl.uniform1f(u.uHlCov, hl ? clamp01(hl.intensity) * TUNING.hlCoverage * hlGain : 0);
-        gl.uniform1f(u.uHlFlake, hl ? hlMat.flake * TUNING.shimmerFlake * clamp01(hl.intensity) : 0);
+        const hlI = hl ? clamp01(hl.intensity) : 0;
+        const hlS = !TUNING.hlNatural ? hlI : hlI <= 0 ? 0 : (TUNING.hlSlider[0] + (TUNING.hlSlider[1] - TUNING.hlSlider[0]) * hlI) * Math.min(1, hlI / 0.05);
+        gl.uniform1f(u.uHlCov, hl ? hlS * TUNING.hlCoverage * hlGain : 0);
+        gl.uniform1f(u.uHlFlake, hl ? hlMat.flake * TUNING.shimmerFlake * hlS : 0);
+        gl.uniform1f(u.uHlNat, TUNING.hlNatural ? 1 : 0);
+        gl.uniform3f(u.uHlLift, TUNING.hlLift, TUNING.hlTint, 0);
+        gl.uniform3f(u.uHlGloss, TUNING.hlGloss, TUNING.hlGlint, 0);
+        gl.uniform2f(u.uHlHead, TUNING.hlHeadroom[0], TUNING.hlHeadroom[1]);
+        gl.uniform2f(u.uHlRel, TUNING.hlRelief[0], TUNING.hlRelief[1]);
+        gl.uniform2f(u.uHlSkin, TUNING.hlForeheadSkin[0], TUNING.hlForeheadSkin[1]);
+        gl.uniform1f(u.uHlSkinOn, hl && foundSkinReady ? 1 : 0);
+        gl.uniform1f(u.uHlGlintScale, TUNING.hlGlintScale);
+        gl.uniform1f(u.uHlGlintDensity, TUNING.hlGlintDensity);
         gl.uniform3f(u.uContourAlbedo, contourAlb[0], contourAlb[1], contourAlb[2]);
         gl.uniform2f(u.uVolume, TUNING.hlContourVolume ? TUNING.volumeGain[0] : 0, TUNING.hlContourVolume ? TUNING.volumeGain[1] : 0);
         gl.uniform1f(u.uVolLight, TUNING.volumeLight);
