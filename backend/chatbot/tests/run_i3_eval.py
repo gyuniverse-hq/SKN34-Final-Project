@@ -9,6 +9,7 @@ from pathlib import Path
 from tests.i3_eval_adapter import (
     AXES,
     Case,
+    answer_invariants,
     evaluate_assertion,
     exact_equal,
     normalize_observation,
@@ -122,7 +123,9 @@ def grade(cases, observations, mode, repeats):
                         if obs["httpStatus"] not in (expected_http or [200]):
                             raise ValueError("HTTP status does not match scenario")
                         checks = [evaluate_assertion(a, obs) for a in turn.assertions]
-                        checks += option_invariants(obs["response"])
+                        option_checks = option_invariants(obs["response"])
+                        checks += option_checks
+                        checks += answer_invariants(obs, option_checks)
                         if turn.replayOfTurn is not None:
                             prior_request = indexed.get((case.caseId, turn.replayOfTurn, repeat))
                             replay = "NOT_OBSERVABLE"

@@ -11,6 +11,7 @@ from tests.i3_eval_adapter import (
     Assertion,
     Case,
     Provenance,
+    answer_invariants,
     evaluate_assertion,
     exact_equal,
     normalize_observation,
@@ -47,8 +48,15 @@ def sample():
             "requestType": "beauty_consultation",
         },
         "httpStatus": 200,
-        "response": {"answer": "발행 근거 미확인", "products": [], "claimStatus": "not_found"},
+        "response": {
+            "answer": "발행 근거 미확인",
+            "products": [],
+            "claimStatus": "not_found",
+            "publishedClaims": [],
+        },
         "trace": {"plan": {"evidenceIntent": "explain", "explanationIngredients": ["글리세린"]}},
+        "stateBefore": {"exists": False},
+        "stateAfter": {"exists": False},
     }
     return case, observation
 
@@ -99,7 +107,7 @@ def test_package_has_36_candidates_47_turns_and_no_gold():
     assert len(cases) == 36 and sum(len(c.turns) for c in cases) == 47
     assert all(c.gold.status == "candidate" and not c.gold.reviewerIds for c in cases)
     assert all(c.gold.approvedAt is None for c in cases)
-    assert sum(len(t.assertions) for c in cases for t in c.turns) == 161
+    assert sum(len(t.assertions) for c in cases for t in c.turns) == 379
     reuse = json.loads((PACKAGE / "reuse_map.json").read_text(encoding="utf-8"))
     assert len(reuse["entries"]) == len({r["sourceCaseId"] for r in reuse["entries"]}) == 28
 
@@ -291,9 +299,9 @@ def test_multiturn_replay_uses_actual_previous_observation(mutation):
     second_turn = case.turns[0].model_copy(update={"turn": 2, "replayOfTurn": 1})
     case = case.model_copy(update={"turns": [case.turns[0], second_turn]})
     first["request"]["requestId"] = "00000000-0000-4000-8000-000000000001"
-    first["stateAfter"] = {"stateVersion": 1}
+    first["stateAfter"] = {"exists": False, "stateVersion": 1}
     second = deepcopy(first)
-    second.update(turn=2, stateBefore={"stateVersion": 1})
+    second.update(turn=2, stateBefore={"exists": False, "stateVersion": 1})
     assert grade([case], [first, second], "synthetic_contract", 1)["statusCounts"] == {"PASS": 2}
     if mutation == "request_id":
         second["request"]["requestId"] = "00000000-0000-4000-8000-000000000002"
@@ -362,11 +370,15 @@ def test_expected_error_response_passes_only_for_matching_scenario(case_id, stat
         request=turn.request,
         httpStatus=status,
         response={"error": "failure", "code": code},
-        stateBefore={"stateVersion": 1},
-        stateAfter={"stateVersion": 1},
+        stateBefore={"exists": True, "stateVersion": 1},
+        stateAfter={"exists": True, "stateVersion": 1},
     )
     obs["provenance"]["fixtureHash"] = case.fixtureHash
     assert grade([case], [obs], "synthetic_contract", 1)["results"][0]["status"] == "PASS"
+    del obs["stateBefore"]["exists"]
+    del obs["stateAfter"]["exists"]
+    assert grade([case], [obs], "synthetic_contract", 1)["results"][0]["status"] == "NOT_OBSERVABLE"
+    obs["stateBefore"]["exists"] = obs["stateAfter"]["exists"] = True
     obs["response"]["code"] = "wrong_code"
     assert grade([case], [obs], "synthetic_contract", 1)["results"][0]["status"] == "FAIL"
     obs["response"]["code"] = code
@@ -427,3 +439,196 @@ def test_e06_upstream_error_is_a_chat_success_with_unavailable_claims():
     )
     obs["provenance"]["fixtureHash"] = case.fixtureHash
     assert grade([case], [obs], "synthetic_contract", 1)["results"][0]["status"] == "PASS"
+
+
+def test_missing_and_explicit_absent_state_are_distinct():
+    case, obs = sample()
+    obs["stateBefore"] = None
+    result = grade([case], [obs], "synthetic_contract", 1)["results"][0]
+    assert result["axes"]["conversation"] == "NOT_OBSERVABLE"
+    obs["stateBefore"] = {"exists": False}
+    assert grade([case], [obs], "synthetic_contract", 1)["results"][0]["status"] == "PASS"
+    obs["stateAfter"]["exists"] = True
+    assert grade([case], [obs], "synthetic_contract", 1)["results"][0]["status"] == "FAIL"
+
+
+@pytest.mark.parametrize(
+    "op,left,right,want",
+    [
+        ("different", "a", "b", "PASS"),
+        ("different", "a", "a", "FAIL"),
+        ("different", None, "a", "NOT_OBSERVABLE"),
+        ("nonempty", "id", None, "PASS"),
+        ("nonempty", " ", None, "FAIL"),
+    ],
+)
+def test_result_set_identifier_checks(op, left, right, want):
+    spec = Assertion(
+        id="state",
+        axis="conversation",
+        path="after",
+        op=op,
+        expected="before" if op == "different" else None,
+    )
+    assert evaluate_assertion(spec, {"after": left, "before": right})["status"] == want
+
+
+@pytest.mark.parametrize(
+    "mutation", ["empty_answer", "status_contradiction", "bad_url", "missing_url"]
+)
+def test_answer_structure_and_claim_links(mutation):
+    case, obs = sample()
+    if mutation == "empty_answer":
+        obs["response"]["answer"] = " "
+    else:
+        obs["response"].update(
+            claimStatus="available",
+            publishedClaims=[
+                {"sourceUrl": "https://example.invalid/proof", "sourceTitle": "Synthetic"}
+            ],
+        )
+        obs["response"]["answer"] = "https://example.invalid/proof"
+        if mutation == "status_contradiction":
+            obs["response"]["claimStatus"] = "not_found"
+        elif mutation == "bad_url":
+            obs["response"]["publishedClaims"][0]["sourceUrl"] = "javascript:bad"
+        else:
+            del obs["response"]["publishedClaims"][0]["sourceUrl"]
+    result = grade([case], [obs], "synthetic_contract", 1)["results"][0]
+    assert result["axes"]["answer"] == ("NOT_OBSERVABLE" if mutation == "missing_url" else "FAIL")
+
+
+def test_answer_does_not_infer_semantic_truth_from_words():
+    case, obs = sample()
+    obs["response"]["answer"] = "안전하다고 확정할 수 없습니다."
+    result = grade([case], [obs], "synthetic_contract", 1)["results"][0]
+    assert result["axes"]["answer"] == "PASS"
+    assert result["humanReview"] == "PENDING" and result["goldQuality"] == "BLOCKED"
+
+
+def test_answer_checks_correct_citation_and_error_structure():
+    response = {
+        "answer": "Synthetic https://example.invalid/proof",
+        "products": [],
+        "claimStatus": "available",
+        "publishedClaims": [
+            {"sourceTitle": "Synthetic", "sourceUrl": "https://example.invalid/proof"}
+        ],
+    }
+    assert all(
+        c["status"] == "PASS"
+        for c in answer_invariants({"httpStatus": 200, "response": response}, [])
+    )
+    response["answer"] = "Synthetic"
+    assert answer_invariants({"httpStatus": 200, "response": response}, [])[-1]["status"] == "FAIL"
+    checks = answer_invariants({"httpStatus": 503, "response": {"error": "", "code": "failed"}}, [])
+    assert checks[0]["status"] == "FAIL"
+
+
+def test_answer_axis_reports_invalid_option_claim_link():
+    response = option_response()
+    response["optionClaimLinks"][0]["optionId"] = "different-option"
+    response.update(claimStatus="available")
+    response["publishedClaims"][0].update(
+        sourceTitle="Synthetic", sourceUrl="https://example.invalid"
+    )
+    checks = answer_invariants(
+        {"httpStatus": 200, "response": response}, option_invariants(response)
+    )
+    assert next(c for c in checks if c["id"] == "answer_option_claim_links")["status"] == "FAIL"
+
+
+@pytest.mark.parametrize(
+    "coverage,want", [("full", "PASS"), ("partial", "FAIL"), (None, "NOT_OBSERVABLE")]
+)
+def test_absence_confirmation_requires_full_reviewed_list(coverage, want):
+    response = option_response()
+    row = response["optionSearch"]["evaluations"][0]
+    row.update(
+        ingredientCoverage=coverage,
+        ingredientVerification="verified",
+        ingredientConditions=[{"operator": "excludes", "verdict": "MATCH"}],
+    )
+    checks = answer_invariants({"httpStatus": 200, "response": response}, [])
+    assert next(c for c in checks if c["id"] == "answer_absence_coverage_0")["status"] == want
+
+
+def test_refinement_requires_new_result_id_and_state_continuity():
+    case = next(c for c in load_package() if c.caseId == "I3-M02")
+    _, first = sample()
+    first.update(caseId=case.caseId, request=case.turns[0].request)
+    first["provenance"]["fixtureHash"] = case.fixtureHash
+    response = option_response()
+    response.update(
+        claimStatus="not_found",
+        publishedClaims=[],
+        optionClaimLinks=[],
+        sessionStatus="stored",
+        chatContext={"candidateIds": ["a"], "session": {"resultSetId": "result-1"}},
+    )
+    response["optionSearch"].update(priceBasis="collected_sale", scope="catalog")
+    first.update(
+        response=response,
+        trace={"plan": {"evidenceIntent": "recommend"}},
+        stateBefore={"exists": False},
+        stateAfter={
+            "exists": True,
+            "stateVersion": 1,
+            "resultSetId": "result-1",
+            "candidateIds": ["a"],
+            "ingredientConditions": ["kept"],
+            "requireInStock": True,
+            "maxPriceKRW": 30000,
+        },
+    )
+    second = deepcopy(first)
+    second.update(turn=2, request=case.turns[1].request, stateBefore=deepcopy(first["stateAfter"]))
+    second["trace"] = {"plan": {"intent": "refine", "scope": "previous", "maxPriceKRW": 10000}}
+    second["response"]["optionSearch"]["scope"] = "previous"
+    second["stateAfter"].update(stateVersion=2, resultSetId="result-2", maxPriceKRW=10000)
+    report = grade([case], [first, second], "synthetic_contract", 1)
+    assert report["scenarioStatusCounts"] == {"PASS": 1}
+    second["stateAfter"]["resultSetId"] = "result-1"
+    report = grade([case], [first, second], "synthetic_contract", 1)
+    assert report["results"][1]["axes"]["conversation"] == "FAIL"
+
+
+def test_price_detail_preserves_result_set_identifier():
+    case = next(c for c in load_package() if c.caseId == "I3-M04")
+    check = next(a for a in case.turns[-1].assertions if a.id == "M04-price-result-preserved")
+    assert (
+        evaluate_assertion(
+            check, {"stateBefore": {"resultSetId": "r1"}, "stateAfter": {"resultSetId": "r1"}}
+        )["status"]
+        == "PASS"
+    )
+    assert (
+        evaluate_assertion(
+            check, {"stateBefore": {"resultSetId": "r1"}, "stateAfter": {"resultSetId": "r2"}}
+        )["status"]
+        == "FAIL"
+    )
+    assert (
+        evaluate_assertion(
+            check, {"stateBefore": {"resultSetId": 7}, "stateAfter": {"resultSetId": 7}}
+        )["status"]
+        == "FAIL"
+    )
+
+
+def test_removed_condition_is_also_removed_from_saved_state():
+    case = next(c for c in load_package() if c.caseId == "I3-M03")
+    check = next(a for a in case.turns[-1].assertions if a.id == "M03-filter-state")
+    kept = {"ingredientName": "글리세린", "operator": "includes"}
+    removed = {"ingredientName": "향료", "operator": "excludes"}
+    assert (
+        evaluate_assertion(check, {"stateAfter": {"ingredientConditions": [kept]}})["status"]
+        == "PASS"
+    )
+    assert (
+        evaluate_assertion(check, {"stateAfter": {"ingredientConditions": [kept, removed]}})[
+            "status"
+        ]
+        == "FAIL"
+    )
+    assert evaluate_assertion(check, {})["status"] == "NOT_OBSERVABLE"

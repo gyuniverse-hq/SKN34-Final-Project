@@ -23,7 +23,7 @@ class Assertion(StrictModel):
     id: str = Field(min_length=1)
     axis: Literal["interpretation", "retrieval", "ingredient", "option", "conversation", "answer"]
     path: str = Field(min_length=1)
-    op: Literal["eq", "contains", "empty", "lte", "same", "increment"]
+    op: Literal["eq", "contains", "empty", "lte", "same", "different", "increment", "nonempty"]
     expected: Any
     critical: bool = False
 
@@ -164,11 +164,21 @@ def evaluate_assertion(spec, observation):
     actual = get_path(observation, spec.path)
     if actual is MISSING:
         return {"id": spec.id, "axis": spec.axis, "status": "NOT_OBSERVABLE"}
-    other = get_path(observation, spec.expected) if spec.op in {"same", "increment"} else None
+    other = (
+        get_path(observation, spec.expected)
+        if spec.op in {"same", "different", "increment"}
+        else None
+    )
     if other is MISSING:
         return {"id": spec.id, "axis": spec.axis, "status": "NOT_OBSERVABLE"}
-    if spec.op in {"same", "increment"} and (actual is None or other is None):
+    if spec.op in {"same", "different", "increment"} and (actual is None or other is None):
         return {"id": spec.id, "axis": spec.axis, "status": "NOT_OBSERVABLE"}
+    if (
+        spec.path.endswith(".resultSetId")
+        and spec.op in {"same", "different"}
+        and not all(isinstance(value, str) and value.strip() for value in (actual, other))
+    ):
+        return {"id": spec.id, "axis": spec.axis, "status": "FAIL", "critical": spec.critical}
     if spec.op == "eq":
         passed = exact_equal(actual, spec.expected)
     elif spec.op == "contains":
@@ -180,6 +190,10 @@ def evaluate_assertion(spec, observation):
         passed = passed and actual <= spec.expected
     elif spec.op == "same":
         passed = exact_equal(actual, other)
+    elif spec.op == "different":
+        passed = not exact_equal(actual, other)
+    elif spec.op == "nonempty":
+        passed = isinstance(actual, str) and bool(actual.strip())
     else:
         passed = type(actual) is int and type(other) is int and actual == other + 1
     return {
@@ -323,3 +337,80 @@ def option_invariants(response):
         }
     )
     return results
+
+
+def answer_invariants(obs, option_checks):
+    """Check observable structure and citations, not the meaning of natural language."""
+    from urllib.parse import urlsplit
+
+    response = obs["response"]
+    checks = []
+
+    def add(name, status):
+        checks.append({"id": name, "axis": "answer", "status": status, "critical": True})
+
+    if obs["httpStatus"] != 200:
+        valid = bool(response["error"].strip() and response["code"].strip())
+        add("answer_error_structure", "PASS" if valid else "FAIL")
+        return checks
+
+    add("answer_nonempty", "PASS" if response["answer"].strip() else "FAIL")
+    join = next((c for c in option_checks if c["id"] == "claim_join"), None)
+    if join:
+        add("answer_option_claim_links", join["status"])
+    search = response.get("optionSearch")
+    if isinstance(search, dict) and isinstance(search.get("evaluations"), list):
+        for index, row in enumerate(search["evaluations"]):
+            if not isinstance(row, dict) or not isinstance(row.get("ingredientConditions"), list):
+                continue
+            absent = any(
+                isinstance(c, dict)
+                and c.get("operator") == "excludes"
+                and c.get("verdict") == "MATCH"
+                for c in row["ingredientConditions"]
+            )
+            if absent:
+                coverage, verification = (
+                    row.get("ingredientCoverage"),
+                    row.get("ingredientVerification"),
+                )
+                if coverage is None or verification is None:
+                    add(f"answer_absence_coverage_{index}", "NOT_OBSERVABLE")
+                else:
+                    valid = coverage == "full" and verification == "verified"
+                    add(f"answer_absence_coverage_{index}", "PASS" if valid else "FAIL")
+    status = response.get("claimStatus", MISSING)
+    claims = response.get("publishedClaims", MISSING)
+    if status is MISSING and claims is MISSING:
+        return checks
+    if status is MISSING or claims is MISSING:
+        add("answer_claim_status", "NOT_OBSERVABLE")
+        return checks
+    if status not in {"available", "not_found", "unavailable"} or not isinstance(claims, list):
+        add("answer_claim_status", "FAIL")
+        return checks
+    consistent = bool(claims) == (status == "available")
+    add("answer_claim_status", "PASS" if consistent else "FAIL")
+    if not claims:
+        return checks
+    if any(not isinstance(c, dict) for c in claims):
+        add("answer_citations", "FAIL")
+        return checks
+    if any("sourceUrl" not in c or "sourceTitle" not in c for c in claims):
+        add("answer_citations", "NOT_OBSERVABLE")
+        return checks
+    for claim in claims:
+        url, title = claim["sourceUrl"], claim["sourceTitle"]
+        if not isinstance(url, str) or not isinstance(title, str) or not title.strip():
+            add("answer_citations", "FAIL")
+            return checks
+        parsed = urlsplit(url)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            add("answer_citations", "FAIL")
+            return checks
+        # Explanation responses explicitly print the citation; option cards need not.
+        if "optionSearch" not in response and url not in response["answer"]:
+            add("answer_citations", "FAIL")
+            return checks
+    add("answer_citations", "PASS")
+    return checks

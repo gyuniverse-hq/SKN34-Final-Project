@@ -32,7 +32,9 @@
             "empty",
             "lte",
             "same",
-            "increment"
+            "different",
+            "increment",
+            "nonempty"
           ],
           "title": "Op",
           "type": "string"
