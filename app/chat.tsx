@@ -299,10 +299,11 @@ function ChatConversation({ record, onRecent, onNew }: {
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
   const nearBottom = useRef(true);
-  const [category, setCategoryState] = useState(record.view.category);
+  const { category } = view;
   const setCategory = (next: Category) => {
+    if (!owned() || categoryRef.current === next) return;
     categoryRef.current = next;
-    setCategoryState(next);
+    refresh();
   };
   const [editing, setEditing] = useState(false);
   const conditions = extractChatConditions(input);
@@ -433,10 +434,13 @@ function ChatConversation({ record, onRecent, onNew }: {
     const context = generalMakeup ? undefined : beautyContextRef.current;
     const focusedProduct = generalMakeup ? undefined : selectionRef.current.screen ?? entryProductRef.current;
     const lastReply = messages.at(-1);
-    const comparing = /비교|차이|compare|比較|对比|比较/i;
+    const comparing = /비교|차이|\bcompar(?:e|ison)\b|\bdiffer(?:s|ent|ence|ences)?\b|比較|違い|对比|比较|区别/i;
     const comparisonTarget = !!focusedProduct?.productId && lastReply?.resultType === 'clarification' &&
-      comparing.test(lastReply.question ?? '') && !shopping && !technique && !/[?？]/.test(text);
-    const screen = comparisonTarget ? { ...focusedProduct, screenId: 'product-comparison' } : focusedProduct;
+      comparing.test(lastReply.question ?? '') && !comparing.test(text) && !shopping && !technique && !/[?？]/.test(text);
+    const ingredientComparison = /성분|향료|\bingredients?\b|\bfragrance\b|成分|香料/i.test(lastReply?.question ?? '');
+    const screen = comparisonTarget ? {
+      ...focusedProduct, screenId: ingredientComparison ? 'product-ingredient-comparison' : 'product-comparison',
+    } : focusedProduct;
     const snapshot: ChatRequestSnapshot = original ?? {
       automatic,
       generalMakeup,

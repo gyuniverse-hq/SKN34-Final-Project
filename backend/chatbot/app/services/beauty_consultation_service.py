@@ -99,6 +99,9 @@ For multiple ingredient constraints, include every condition in ingredientCondit
 including detail questions. Never silently omit one. Use at most six conditions.
 Use ingredientName for ingredient conditions, never query (query is product/brand text).
 For ingredient filtering use search/refine with ingredientLookup true and ingredientName.
+When lookProfile is provided, use it as context only. Set query to a product or brand
+explicitly named by the user, using the user's exact wording. Never use a look title,
+style description or an inferred brand as query.
 shadeName: explicitly requested shade label only; never invent IDs or select a shade.
 compareOrdinals: exactly two explicitly referenced candidate numbers (1..6) for ingredients.
 When comparing the current product with one other product, use intent detail.
@@ -369,7 +372,7 @@ def _reply(answer, context, products=(), result_type="clarification"):
     )
 
 
-def _matches(product: CatalogProduct, filters: BeautyFilters) -> bool:
+def _matches(product: CatalogProduct, filters: BeautyFilters, *, identity_only=False) -> bool:
     # The current Catalog contract provides keyIngredients, not verified full ingredients.
     if filters.fragrance_free:
         return False
@@ -380,6 +383,8 @@ def _matches(product: CatalogProduct, filters: BeautyFilters) -> bool:
     ):
         return False
     if filters.query:
+        if identity_only:
+            return _matches_product_name(product, filters.query)
         source = " ".join(
             [
                 product.brand,
@@ -394,14 +399,32 @@ def _matches(product: CatalogProduct, filters: BeautyFilters) -> bool:
     return True
 
 
+def _search_matches(products, filters, *, identity_only):
+    products = list(products)
+    if identity_only and filters.query:
+        # A catalog brand named in a look query must match the brand field.
+        query = _shade_label(filters.query)
+        brands = {_shade_label(p.brand) for p in products if p.brand.strip()}
+        required_brand = max(
+            (brand for brand in brands if re.search(rf"(?<!\w){re.escape(brand)}(?!\w)", query)),
+            key=lambda brand: (len(brand), brand),
+            default=None,
+        )
+        if required_brand:
+            products = [p for p in products if _shade_label(p.brand) == required_brand]
+    return [p for p in products if _matches(p, filters, identity_only=identity_only)]
+
+
 def _moisture_rank(product):
     text = " ".join([product.description, *product.tags]).casefold()
     return bool(re.search(r"촉촉|보습|hydrat|moisturi|保湿", text))
 
 
 _COMPARE = re.compile(
-    r"비교|차이(?:가|점)|\bcompare\b|\bdifference between\b|比較|違い|对比|比较|区别", re.I
+    r"비교|차이|\bcompar(?:e|ison)\b|\bdiffer(?:s|ent|ence|ences)?\b|比較|違い|对比|比较|区别", re.I
 )
+COMPARISON_SCREENS = ("product-comparison", "product-ingredient-comparison")
+_INGREDIENT_TOPIC = re.compile(r"성분|향료|\bingredients?\b|\bfragrance\b|成分|香料", re.I)
 _REFERENCE_ONLY = re.compile(
     r"(?:다른|이|그|저)\s*(?:상품|제품)|(?:another|other"
     r"|this|that) product|他の商品|この商品|其他产品|这款",
@@ -437,7 +460,7 @@ def direct_comparison(req, plan):
         )
         and (
             _COMPARE.search(req.message)
-            or (req.screen_context and req.screen_context.screen_id == "product-comparison")
+            or (req.screen_context and req.screen_context.screen_id in COMPARISON_SCREENS)
         )
         and (
             (req.screen_context and req.screen_context.product_id)
@@ -480,7 +503,7 @@ async def _compare_product(req, plan, catalog):
     context = previous or _context(BeautyFilters(), [product_id], now, selected=product_id)
     clarify, unverified = _COMPARISON_COPY[req.locale]
     pending_target = (
-        screen and screen.screen_id == "product-comparison" and not _COMPARE.search(req.message)
+        screen and screen.screen_id in COMPARISON_SCREENS and not _COMPARE.search(req.message)
     )
     target = _comparison_name(req.message, req.message if pending_target else plan.query)
     ordinal = plan.ordinal
@@ -512,18 +535,62 @@ async def _compare_product(req, plan, catalog):
     if candidate is None or candidate.id == current.id:
         return _reply(unverified, context)
 
+    if (screen and screen.screen_id == "product-ingredient-comparison") or _INGREDIENT_TOPIC.search(
+        req.message
+    ):
+        return await _compare_product_ingredients(req, catalog, context, current, candidate)
+
     words = TEXT[req.locale]
-    lines = [
-        f"{p.brand} {p.name} — "
-        + (
-            words["reference_price"].format(price=f"{p.price_krw:,}")
-            if p.price_krw > 0
-            else words["reference_unavailable"]
-        )
-        for p in (current, candidate)
-    ]
     # A comparison is informational; it cannot silently replace or renumber existing candidates.
-    return _reply("\n".join(lines), context, result_type="product_detail")
+    return _reply(
+        "\n\n".join(_price_summary(p, words) for p in (current, candidate)),
+        context,
+        result_type="product_detail",
+    )
+
+
+def _price_summary(product, words):
+    reference = (
+        words["reference_price"].format(price=f"{product.price_krw:,}")
+        if product.price_krw > 0
+        else words["reference_unavailable"]
+    )
+    provenance = words[
+        "synthetic_price" if product.price_evidence == "synthetic-price" else "price_source_unknown"
+    ]
+    return f"{product.brand} {product.name}\n{reference}\n{words['live_unavailable']} {provenance}"
+
+
+async def _compare_product_ingredients(req, catalog, context, current, candidate):
+    labels = INGREDIENT_TEXT[req.locale]
+    screen = req.screen_context
+    selected = dict(context.shade_selections)
+    if screen and screen.product_id and screen.shade_id:
+        selected[screen.product_id] = screen.shade_id
+    targets = [(p, selected.get(p.id)) for p in (current, candidate)]
+    missing = [p.name for p, shade in targets if p.shades and shade not in {s.id for s in p.shades}]
+    if missing:
+        return _reply(f"{', '.join(missing)}. {labels[0]}", context)
+
+    lists = []
+    for product, shade in targets:
+        try:
+            result = await catalog.get_ingredients(product.id, shade)
+        except IngredientLookupError:
+            return _reply(labels[11], context)
+        if (
+            (result.product_id, result.shade_id) != (product.id, shade)
+            or not result.complete
+            or result.synthetic
+        ):
+            return _reply(labels[11], context)
+        lists.append([ingredient.name for ingredient in result.ingredients])
+    names = " / ".join(p.name for p in (current, candidate))
+    return _reply(
+        f"{names}\n{labels[8].format(result=labels[9 if lists[0] == lists[1] else 10])}",
+        context,
+        result_type="product_detail",
+    )
 
 
 async def interpret_beauty(req: ChatRequest, llm, look_profile=None) -> SearchPlan:
@@ -759,20 +826,7 @@ async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatRes
             f"{words['fragrance']} {words['price']}"
         )
         if plan.intent == "price":
-            reference = (
-                words["reference_price"].format(price=f"{product.price_krw:,}")
-                if product.price_krw > 0
-                else words["reference_unavailable"]
-            )
-            provenance = words[
-                "synthetic_price"
-                if product.price_evidence == "synthetic-price"
-                else "price_source_unknown"
-            ]
-            answer = (
-                f"{product.brand} {product.name}\n{reference}\n"
-                f"{words['live_unavailable']} {provenance}"
-            )
+            answer = _price_summary(product, words)
         return _reply(
             answer,
             _context(
@@ -804,7 +858,9 @@ async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatRes
         raise ApiError(502, "Catalog is temporarily unavailable", "upstream_error") from exc
     # IDs remain catalog-owned; deduplicate before numbering the visible candidate list.
     unique = {p.id: p for p in products if scope_ids is None or p.id in scope_ids}
-    products = [p for p in unique.values() if _matches(p, filters)]
+    products = _search_matches(
+        unique.values(), filters, identity_only=req.style_context is not None
+    )
     order = {pid: i for i, pid in enumerate(scope_ids or [])}
     products.sort(
         key=lambda p: (-int(filters.moisturizing and _moisture_rank(p)), order.get(p.id, 0), p.id)
@@ -1217,7 +1273,11 @@ async def _ingredient_consultation(req, plan, catalog, filters):
             raise ApiError(502, "Catalog is temporarily unavailable", "upstream_error") from exc
         base_filters = context.filters.model_copy(update={"fragrance_free": False})
         rows = {
-            p.id: p for p in rows if (scope is None or p.id in scope) and _matches(p, base_filters)
+            p.id: p
+            for p in _search_matches(
+                rows, base_filters, identity_only=req.style_context is not None
+            )
+            if scope is None or p.id in scope
         }
         order = {pid: index for index, pid in enumerate(scope or [])}
         target_ids = sorted(

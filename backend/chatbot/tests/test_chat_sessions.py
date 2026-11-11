@@ -710,6 +710,129 @@ async def test_named_comparison_resolves_verified_target_without_replacing_sessi
 
 
 @pytest.mark.anyio
+async def test_named_ingredient_comparison_does_not_fall_back_to_prices(setup):
+    service, _, _, _ = setup
+    service._catalog.products[1].name = "퓌 글로스"
+    initial = (await first(setup)).chat_context
+    screen = {"screenId": "product-detail", "productId": "a", "shadeId": "a-03"}
+    service._llm.plan = {"intent": "detail", "query": "퓌 글로스"}
+    reply = await service.answer(
+        request(initial, message="이 제품과 퓌 글로스의 성분 차이를 비교해줘", screen=screen),
+        "guest:one",
+    )
+    assert reply.result_type == "clarification"
+    assert "호수" in reply.answer
+    assert "15,000" not in reply.answer and "19,000" not in reply.answer
+    assert reply.chat_context.candidate_ids == initial.candidate_ids
+    assert reply.chat_context.selected_product_id == initial.selected_product_id
+    assert reply.chat_context.session.result_set_id == initial.session.result_set_id
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("data", ["unverified", "synthetic", "verified"])
+async def test_ingredient_comparison_requires_both_exact_reviewed_lists(setup, data):
+    service, _, _, _ = setup
+    catalog = service._catalog
+    catalog.products[1].name = "퓌 글로스"
+    first_reply = await first(setup)
+    context = first_reply.chat_context.model_copy(
+        update={"selected_product_id": "a", "shade_selections": {"a": "a-03", "b": "b-03"}}
+    )
+
+    async def get_ingredients(pid, shade):
+        catalog.ingredient_calls.append((pid, shade))
+        return CatalogIngredients.model_validate(
+            evidence(
+                pid=pid,
+                shade=shade,
+                synthetic=data == "synthetic",
+                reviewStatus="unreviewed" if data == "unverified" and pid == "b" else "verified",
+            )
+        )
+
+    catalog.get_ingredients = get_ingredients
+    service._llm.plan = {"intent": "detail", "query": "퓌 글로스"}
+    reply = await service.answer(
+        request(
+            context,
+            message="퓌 글로스",
+            screen={"screenId": "product-ingredient-comparison", "productId": "a"},
+        ),
+        "guest:one",
+    )
+    assert catalog.ingredient_calls and catalog.ingredient_calls[0] == ("a", "a-03"), reply.answer
+    if data == "verified":
+        assert reply.result_type == "product_detail"
+        assert "검증된 전체 목록 비교: 동일" in reply.answer
+        assert catalog.ingredient_calls == [("a", "a-03"), ("b", "b-03")]
+    else:
+        assert reply.result_type == "clarification"
+        assert "차이를 확정할 수 없습니다" in reply.answer
+    assert "15,000" not in reply.answer and "19,000" not in reply.answer
+    assert reply.chat_context.candidate_ids == context.candidate_ids
+
+
+@pytest.mark.anyio
+async def test_comparison_leaves_a_previously_selected_candidate_in_place(setup):
+    service, _, _, _ = setup
+    service._catalog.products[1].name = "퓌 글로스"
+    initial = await first(setup)
+    service._llm.plan = {"intent": "price", "scope": "previous", "ordinal": 2}
+    selected = await service.answer(request(initial.chat_context, message="2번 가격"), "guest:one")
+    context = selected.chat_context
+    assert context.selected_product_id == "b"
+    service._llm.plan = {"intent": "detail", "query": "퓌 글로스"}
+    comparison = await service.answer(
+        request(context, message="퓌 글로스와 가격 비교", screen={"productId": "c"}),
+        "guest:one",
+    )
+    assert "25,000" in comparison.answer and "19,000" in comparison.answer
+    assert comparison.chat_context.candidate_ids == context.candidate_ids
+    assert comparison.chat_context.selected_product_id == "b"
+    assert comparison.chat_context.session.result_set_id == context.session.result_set_id
+
+
+@pytest.mark.anyio
+async def test_ingredient_comparison_does_not_guess_an_ambiguous_product(setup):
+    service, _, _, _ = setup
+    catalog = service._catalog
+    catalog.products[1].name = "퓌 글로스 핑크"
+    catalog.products[2].name = "퓌 글로스 레드"
+    context = (await first(setup)).chat_context
+    service._llm.plan = {"intent": "detail", "query": "퓌 글로스"}
+    reply = await service.answer(
+        request(context, message="퓌 글로스와 성분 비교", screen={"productId": "a"}), "guest:one"
+    )
+    assert reply.result_type == "clarification"
+    assert "정확한 제품명" in reply.answer
+    assert not catalog.ingredient_calls
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("locale", ["ko", "en", "ja", "zh"])
+async def test_price_comparison_labels_the_provenance_for_each_product(setup, locale):
+    from app.services.beauty_consultation_service import TEXT
+
+    service, _, _, _ = setup
+    catalog = service._catalog
+    catalog.products[0].price_evidence = "synthetic-price"
+    catalog.products[1].name = "Fwee Gloss"
+    catalog.products[1].price_krw = 0
+    initial = (await first(setup)).chat_context
+    screen = {"screenId": "product-detail", "productId": "a"}
+    service._llm.plan = {"intent": "detail", "query": "Fwee Gloss"}
+    req = request(initial, message="Compare the price with Fwee Gloss", screen=screen)
+    reply = await service.answer(req.model_copy(update={"locale": locale}), "guest:one")
+    words = TEXT[locale]
+    synthetic, missing = reply.answer.split("\n\n")
+    assert words["synthetic_price"] in synthetic
+    assert words["live_unavailable"] in synthetic
+    assert words["synthetic_price"] not in missing
+    assert words["reference_unavailable"] in missing
+    assert words["price_source_unknown"] in missing
+
+
+@pytest.mark.anyio
 async def test_explicit_catalog_screen_selection_outside_old_results_is_validated(setup):
     service = setup[0]
     ctx = (await first(setup)).chat_context

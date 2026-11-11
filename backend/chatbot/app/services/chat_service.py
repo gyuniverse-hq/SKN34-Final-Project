@@ -2,6 +2,7 @@ import json
 import re
 import secrets
 import time
+import unicodedata
 from hashlib import sha256
 from typing import Protocol
 from uuid import NAMESPACE_URL, uuid4, uuid5
@@ -39,6 +40,7 @@ from app.schemas.supervisor import (
 )
 from app.services.ar_command_service import propose_ar_command
 from app.services.beauty_consultation_service import (
+    COMPARISON_SCREENS,
     TEXT,
     direct_comparison,
     execute_beauty,
@@ -141,6 +143,35 @@ def look_shopping_category(message):
     )
 
 
+def _look_search_followup(message: str) -> bool:
+    return bool(
+        _SHOPPING.search(message)
+        and re.search(
+            r"다시|그중|아까|\bagain\b|\bfrom those\b|もう一度|もう一回|再推荐|重新推荐",
+            message,
+            re.I,
+        )
+    )
+
+
+def _grounded_look_query(message, look_title, query):
+    if not query or not query.strip():
+        return None
+
+    def normalized(text):
+        return " ".join(unicodedata.normalize("NFKC", text).casefold().split())
+
+    text, title, name = map(normalized, (message, look_title, query))
+    text = re.sub(
+        r"(?:룩|스타일)(?:의)?\s*(?:이름|제목)[이가은는]?\s+.+?(?:인데|이고|이라고|[,.!?])",
+        " ",
+        text,
+    )
+    if title:
+        text = text.replace(title, " ")
+    return query.strip() if name in text else None
+
+
 def route_intent(context: ResolvedContext) -> IntentDecision:
     """Conservative routing hints; dedicated AR parsing still validates execution intent."""
     text = context.message.casefold()
@@ -151,10 +182,12 @@ def route_intent(context: ResolvedContext) -> IntentDecision:
         intent = "compound"
     elif context.request_type == "ar_command":
         intent = "ar"
-    elif context.style is not None and look_shopping_category(text):
+    elif context.style is not None and (
+        look_shopping_category(text) or (context.has_beauty_context and _look_search_followup(text))
+    ):
         intent = "product"
     elif context.request_type in {"beauty_consultation", "style_consultation"} and (
-        (context.screen and context.screen.screen_id == "product-comparison")
+        (context.screen and context.screen.screen_id in COMPARISON_SCREENS)
         or (
             _PRODUCT_FACT.search(text)
             and (
@@ -167,6 +200,7 @@ def route_intent(context: ResolvedContext) -> IntentDecision:
         intent = (
             "ingredient"
             if re.search(r"성분|향료|ingredient|fragrance|成分|香料", text)
+            or (context.screen and context.screen.screen_id == "product-ingredient-comparison")
             else "product"
         )
     elif (
@@ -344,7 +378,11 @@ class ChatService:
         return await self._run_supervisor(req, context, decision)
 
     async def _interpret_beauty(self, req):
+        previous = req.chat_context
+        followup = bool(previous and _look_search_followup(req.message))
         category = look_shopping_category(req.message) if req.style_context else None
+        if req.style_context and followup and not category:
+            category = previous.filters.category
         if not category:
             return await interpret_beauty(req, self._llm)
         if self._catalog is None:
@@ -372,9 +410,12 @@ class ChatService:
                     "compare_ordinals": [],
                 }
             )
-        elif not req.chat_context and plan.scope == "previous":
+        if followup:
+            plan = plan.model_copy(update={"intent": "refine", "scope": "previous"})
+        elif not previous and plan.scope == "previous":
             plan = plan.model_copy(update={"intent": "search", "scope": "catalog"})
-        return plan.model_copy(update={"category": category, "query": None})
+        query = _grounded_look_query(req.message, look.title, plan.query)
+        return plan.model_copy(update={"category": category, "query": query})
 
     async def _run_supervisor(
         self, req: ChatRequest, context: ResolvedContext, decision: IntentDecision
@@ -473,7 +514,7 @@ class ChatService:
         if (
             select_screen
             and screen
-            and screen.screen_id in {"product-detail", "product-comparison"}
+            and screen.screen_id in ("product-detail", *COMPARISON_SCREENS)
             and screen.product_id
         ):
             context.selected_product_id = screen.product_id
@@ -594,7 +635,7 @@ class ChatService:
         elif state and slots.intent != "general":
             if (
                 req.screen_context
-                and req.screen_context.screen_id not in {"product-detail", "product-comparison"}
+                and req.screen_context.screen_id not in ("product-detail", *COMPARISON_SCREENS)
                 and req.screen_context.product_id in req.chat_context.candidate_ids
                 and incoming.chat_context.selected_product_id
                 and incoming.chat_context.selected_product_id != req.screen_context.product_id
@@ -605,8 +646,18 @@ class ChatService:
                     req.chat_context,
                     incoming.chat_context,
                     req.screen_context,
-                    select_screen=comparing
-                    or (not slots.ordinal and not slots.compare_ordinals and not slots.selection),
+                    select_screen=(
+                        bool(
+                            not req.chat_context.selected_product_id
+                            and not incoming.chat_context.selected_product_id
+                            and req.screen_context
+                            and req.screen_context.product_id in req.chat_context.candidate_ids
+                        )
+                        if comparing
+                        else not slots.ordinal
+                        and not slots.compare_ordinals
+                        and not slots.selection
+                    ),
                 )
             except UpstreamError as exc:
                 raise ApiError(502, "Catalog validation failed", "upstream_error") from exc
@@ -792,7 +843,12 @@ class ChatService:
             response = await execute_beauty(req, decision.slots, self._catalog)
             if response is None or response.tool_result is None:
                 raise ApiError(502, "Missing catalog result", "invalid_tool_result")
-            if req.style_context and look_shopping_category(req.message) and response.products:
+            if (
+                req.style_context
+                and decision.slots.intent in {"search", "refine"}
+                and (look_shopping_category(req.message) or _look_search_followup(req.message))
+                and response.products
+            ):
                 response.answer += (
                     "\n"
                     + {

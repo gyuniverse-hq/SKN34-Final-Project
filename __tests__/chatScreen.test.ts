@@ -302,6 +302,29 @@ describe('server session recovery', () => {
     await act(async () => view.unmount());
   });
 
+  it('persists category and unsent draft in one room without sending or altering another room', async () => {
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'General answer', products: [], chatContext: context });
+    const view = await renderScreen();
+    await send(view, '립 추천');
+    const general = useChatConversationStore.getState().latest.general;
+    await act(async () => view.root.findByType(TextInput).props.onChangeText('unsent draft'));
+    await act(async () => buttonWithText(view.root, 'chat.ui.ingredient').props.onPress());
+    const saved = useChatConversationStore.getState().conversations[general].view;
+    expect(saved.category).toBe('ingredient');
+    expect(saved.sessionExpiry).toBe(context.session?.expiresAt);
+
+    Object.assign(mockRouteParams, { productId: 'p1' });
+    await act(async () => view.update(createElement(ChatScreen)));
+    const other = useChatConversationStore.getState().latest['product:p1'];
+    expect(useChatConversationStore.getState().conversations[other].view.category).toBe('product');
+    Object.assign(mockRouteParams, { productId: undefined });
+    await act(async () => view.update(createElement(ChatScreen)));
+    expect(buttonWithText(view.root, 'chat.ui.ingredient').props.accessibilityState.selected).toBe(true);
+    expect(view.root.findByType(TextInput).props.value).toBe('unsent draft');
+    expect(mockMutateAsync).toHaveBeenCalledTimes(1);
+    await act(async () => view.unmount());
+  });
+
   it('keeps late replies in their source room and restores them from recent chats after a fresh chat', async () => {
     let finish!: (response: unknown) => void;
     mockMutateAsync.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }))
@@ -342,6 +365,21 @@ describe('server session recovery', () => {
       screenContext: { screenId: 'product-comparison', productId: 'p1', shadeId: 'p1-02' },
     });
     expect(texts(view)).toContain('p1 15,000원 · p2 19,000원');
+    await act(async () => view.unmount());
+  });
+
+  it.each(['다른 제품과 성분 비교해줘', 'Ingredient comparison with another product'])(
+    'keeps ingredient comparison intent when only the other product name follows %s', async (question) => {
+    Object.assign(mockRouteParams, { productId: 'p1', shadeId: 'p1-02' });
+    mockMutateAsync.mockResolvedValueOnce({ answer: '어떤 제품과 비교할까요?', products: [], resultType: 'clarification' })
+      .mockResolvedValueOnce({ answer: '검증된 전체 목록이 부족해요.', products: [], resultType: 'clarification' });
+    const view = await renderScreen();
+    await send(view, question);
+    await send(view, 'Fwee Gloss');
+    expect(mockMutateAsync.mock.calls[1][0].screenContext).toEqual({
+      screenId: 'product-ingredient-comparison', productId: 'p1', shadeId: 'p1-02',
+    });
+    expect(texts(view)).toContain('검증된 전체 목록이 부족해요.');
     await act(async () => view.unmount());
   });
 
