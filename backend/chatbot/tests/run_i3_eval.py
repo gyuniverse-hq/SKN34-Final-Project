@@ -114,6 +114,13 @@ def grade(cases, observations, mode, repeats):
                                 obs["request"][key], value
                             ):
                                 raise ValueError("Executed request differs from candidate request")
+                        expected_http = [
+                            a.expected
+                            for a in turn.assertions
+                            if a.path == "httpStatus" and a.op == "eq"
+                        ]
+                        if obs["httpStatus"] not in (expected_http or [200]):
+                            raise ValueError("HTTP status does not match scenario")
                         checks = [evaluate_assertion(a, obs) for a in turn.assertions]
                         checks += option_invariants(obs["response"])
                         if turn.replayOfTurn is not None:

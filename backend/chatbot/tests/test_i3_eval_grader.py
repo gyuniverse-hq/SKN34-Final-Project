@@ -68,7 +68,12 @@ def option_response():
                     "productId": "a",
                     "optionId": "a-1",
                     "verdict": "MATCH",
-                    "budget": {"verdict": "MATCH"},
+                    "budget": {
+                        "verdict": "MATCH",
+                        "priceBasis": "collected_sale",
+                        "maxPriceKRW": 20000,
+                        "reason": "within budget",
+                    },
                     "ingredientConditions": [],
                     "ingredientEvidenceId": "e-1",
                     "ingredientSourceVersion": "v1",
@@ -94,6 +99,7 @@ def test_package_has_36_candidates_47_turns_and_no_gold():
     assert len(cases) == 36 and sum(len(c.turns) for c in cases) == 47
     assert all(c.gold.status == "candidate" and not c.gold.reviewerIds for c in cases)
     assert all(c.gold.approvedAt is None for c in cases)
+    assert sum(len(t.assertions) for c in cases for t in c.turns) == 161
     reuse = json.loads((PACKAGE / "reuse_map.json").read_text(encoding="utf-8"))
     assert len(reuse["entries"]) == len({r["sourceCaseId"] for r in reuse["entries"]}) == 28
 
@@ -308,3 +314,116 @@ def test_unlinked_citations_and_unspecified_card_purpose_fail():
     assert option_invariants(response)[-1]["status"] == "FAIL"
     del response["resultType"]
     assert option_invariants(response)[0]["status"] == "FAIL"
+
+
+@pytest.mark.parametrize("status", [409, 503])
+def test_unexpected_http_error_cannot_pass_with_leftover_success_fields(status):
+    case, obs = sample()
+    obs["httpStatus"] = status
+    obs["response"].update(error="failure", code="upstream_error")
+    assert grade([case], [obs], "synthetic_contract", 1)["results"][0]["status"] == "FAIL"
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("ingredientConditions", [None]),
+        ("ingredientConditions", [{}]),
+        ("ingredientConditions", {"verdict": "MATCH"}),
+        ("ingredientConditions", [{"verdict": "INVALID"}]),
+        ("otherConditions", [None]),
+        ("budget", {}),
+        ("budget", []),
+    ],
+)
+def test_malformed_option_conditions_fail_without_aborting_other_cases(field, value):
+    case, obs = sample()
+    malformed = deepcopy(obs)
+    malformed["response"] = option_response()
+    malformed["response"]["optionSearch"]["evaluations"][0][field] = value
+    other = deepcopy(obs)
+    other["repeat"] = 2
+    report = grade([case], [malformed, other], "synthetic_contract", 2)
+    assert report["results"][0]["status"] == "FAIL"
+    assert report["results"][1]["status"] == "PASS"
+
+
+@pytest.mark.parametrize(
+    "case_id,status,code",
+    [("I3-M06", 409, "chat_evidence_changed"), ("I3-M07", 503, "claim_lookup_failed")],
+)
+def test_expected_error_response_passes_only_for_matching_scenario(case_id, status, code):
+    original = next(c for c in load_package() if c.caseId == case_id)
+    turn = original.turns[-1].model_copy(update={"turn": 1, "replayOfTurn": None})
+    case = original.model_copy(update={"turns": [turn]})
+    _, obs = sample()
+    obs.update(
+        caseId=case_id,
+        request=turn.request,
+        httpStatus=status,
+        response={"error": "failure", "code": code},
+        stateBefore={"stateVersion": 1},
+        stateAfter={"stateVersion": 1},
+    )
+    obs["provenance"]["fixtureHash"] = case.fixtureHash
+    assert grade([case], [obs], "synthetic_contract", 1)["results"][0]["status"] == "PASS"
+    obs["response"]["code"] = "wrong_code"
+    assert grade([case], [obs], "synthetic_contract", 1)["results"][0]["status"] == "FAIL"
+    obs["response"]["code"] = code
+    obs["httpStatus"] = 409 if status == 503 else 503
+    assert grade([case], [obs], "synthetic_contract", 1)["results"][0]["status"] == "FAIL"
+
+
+def test_valid_ingredient_and_other_conditions_and_null_budget_are_preserved():
+    response = option_response()
+    row = response["optionSearch"]["evaluations"][0]
+    row.update(
+        budget=None,
+        ingredientConditions=[
+            {
+                "productId": "a",
+                "optionId": "a-1",
+                "shadeId": None,
+                "condition": "ingredient",
+                "ingredientName": "글리세린",
+                "operator": "includes",
+                "verdict": "MATCH",
+                "reason": "found",
+            }
+        ],
+        otherConditions=[{"condition": "stock", "verdict": "MATCH", "reason": "in stock"}],
+    )
+    assert all(c["status"] == "PASS" for c in option_invariants(response))
+
+
+@pytest.mark.parametrize(
+    "key,value",
+    [
+        ("ingredientConditions", None),
+        ("ingredientConditions", [{"verdict": "MATCH"}]),
+        ("otherConditions", [{"verdict": "MATCH"}]),
+    ],
+)
+def test_incomplete_nested_condition_fails(key, value):
+    case, obs = sample()
+    obs["response"] = option_response()
+    obs["response"]["optionSearch"]["evaluations"][0][key] = value
+    assert grade([case], [obs], "synthetic_contract", 1)["results"][0]["status"] == "FAIL"
+
+
+def test_e06_upstream_error_is_a_chat_success_with_unavailable_claims():
+    case = next(c for c in load_package() if c.caseId == "I3-E06")
+    _, obs = sample()
+    obs.update(
+        caseId=case.caseId,
+        request=case.turns[0].request,
+        response={
+            "answer": "조회 실패",
+            "products": [],
+            "publishedClaims": [],
+            "claimStatus": "unavailable",
+        },
+        trace={"plan": {"evidenceIntent": "explain"}, "claimResponses": [{"httpStatus": 503}]},
+    )
+    obs["provenance"]["fixtureHash"] = case.fixtureHash
+    assert grade([case], [obs], "synthetic_contract", 1)["results"][0]["status"] == "PASS"

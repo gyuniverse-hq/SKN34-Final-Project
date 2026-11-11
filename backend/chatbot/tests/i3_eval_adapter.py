@@ -150,8 +150,13 @@ def normalize_observation(raw):
             for p in response["products"]
         ):
             raise ValueError("Invalid product reference")
-    elif not isinstance(response.get("code"), str) or not isinstance(response.get("error"), str):
-        raise ValueError("Error response requires error/code")
+        if "error" in response or "code" in response:
+            raise ValueError("Successful chat cannot contain error fields")
+    else:
+        if not isinstance(response.get("code"), str) or not isinstance(response.get("error"), str):
+            raise ValueError("Error response requires error/code")
+        if "answer" in response or "products" in response:
+            raise ValueError("Error response cannot contain success fields")
     return data
 
 
@@ -194,7 +199,10 @@ def option_invariants(response):
         return [{"id": "option_shape", "axis": "option", "status": "FAIL", "critical": True}]
     rows = search["evaluations"]
     if any(
-        not isinstance(r, dict) or not all(k in r for k in ("productId", "optionId", "verdict"))
+        not isinstance(r, dict)
+        or not isinstance(r.get("productId"), str)
+        or not isinstance(r.get("optionId"), str)
+        or not isinstance(r.get("verdict"), str)
         for r in rows
     ):
         return [{"id": "option_rows", "axis": "option", "status": "FAIL", "critical": True}]
@@ -221,9 +229,51 @@ def option_invariants(response):
             passed = passed and row["verdict"] == "MATCH"
     for row in rows:
         passed = passed and row["verdict"] in {"MATCH", "NOT_MATCH", "UNKNOWN", "ERROR"}
-        conditions = row.get("ingredientConditions", []) + row.get("otherConditions", [])
-        if row.get("budget") is not None:
-            conditions = [row["budget"], *conditions]
+        ingredient_conditions = row.get("ingredientConditions")
+        other_conditions = row.get("otherConditions", [])
+        if "budget" not in row:
+            raise ValueError("Option budget field is required")
+        budget = row.get("budget")
+        if not isinstance(ingredient_conditions, list) or not isinstance(other_conditions, list):
+            raise ValueError("Option conditions must be arrays")
+        if budget is not None and not isinstance(budget, dict):
+            raise ValueError("Option budget must be an object or null")
+        conditions = (
+            ingredient_conditions + other_conditions + ([budget] if budget is not None else [])
+        )
+        if any(
+            not isinstance(c, dict)
+            or not isinstance(c.get("verdict"), str)
+            or c["verdict"] not in {"MATCH", "NOT_MATCH", "UNKNOWN", "ERROR"}
+            for c in conditions
+        ):
+            raise ValueError("Invalid option condition verdict")
+        if any(
+            c.get("condition") != "ingredient"
+            or not isinstance(c.get("productId"), str)
+            or "shadeId" not in c
+            or "optionId" not in c
+            or (c["shadeId"] is not None and not isinstance(c["shadeId"], str))
+            or (c["optionId"] is not None and not isinstance(c["optionId"], str))
+            or not isinstance(c.get("reason"), str)
+            or not isinstance(c.get("ingredientName"), str)
+            or not c["ingredientName"]
+            or c.get("operator") not in {"includes", "excludes"}
+            for c in ingredient_conditions
+        ):
+            raise ValueError("Invalid ingredient condition")
+        if any(
+            c.get("condition") not in {"fragrance_free", "product_query", "stock"}
+            or not isinstance(c.get("reason"), str)
+            for c in other_conditions
+        ):
+            raise ValueError("Invalid other condition")
+        if budget is not None and (
+            budget.get("priceBasis") not in {"current_sale", "collected_sale"}
+            or type(budget.get("maxPriceKRW")) is not int
+            or not isinstance(budget.get("reason"), str)
+        ):
+            raise ValueError("Invalid budget condition")
         if any(c.get("verdict") == "NOT_MATCH" for c in conditions):
             passed = passed and row["verdict"] == "NOT_MATCH"
         if row["verdict"] == "MATCH":
@@ -243,6 +293,10 @@ def option_invariants(response):
         return results
     if not isinstance(links, list) or not isinstance(claims, list):
         raise ValueError("Claim collections must be arrays")
+    if any(not isinstance(c, dict) or not isinstance(c.get("publicationId"), str) for c in claims):
+        raise ValueError("Invalid claim citation")
+    if any(not isinstance(link, dict) for link in links):
+        raise ValueError("Invalid claim link")
     citations = {c["publicationId"] for c in claims}
     card_pairs = {(p["id"], p.get("optionId")) for p in cards}
     passed = len(citations) == len(claims)
