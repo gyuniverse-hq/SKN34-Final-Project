@@ -24,7 +24,7 @@ import oliveyoung_color_poc16 as oy
 import oliveyoung_erd_v30 as base
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SCRIPT_VERSION = "skincare-v2.1"
+SCRIPT_VERSION = "skincare-v2.2-observation"
 SAMPLE_TOTAL = (
     None  # None = 소분류별 전체 상품. 숫자를 넣으면 소분류당 그 개수까지만 (시험용)
 )
@@ -434,6 +434,13 @@ def collect(mid_name, goods_no, run_id):
                 "is_representative": o.get("representFlag", ""),
                 "collected_at": now,
             }
+        )
+        out["option_ingredient_observation"].append(
+            base.ingredient_observation(
+                ingredients_raw, options, dict(o, goodsNumber=goods_no), now,
+                out["product"][0].get("product_url") or "",
+                notice.get("volume") or "",
+            )
         )
         added = set()
         for seq, iname in enumerate(per_shade.get(no) or common, 1):

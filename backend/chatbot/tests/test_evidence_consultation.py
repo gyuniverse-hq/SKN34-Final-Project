@@ -421,6 +421,97 @@ async def test_redis_retries_revalidate_publication_and_fail_closed(setup):
     assert exc.value.code == "chat_evidence_changed"
 
 
+@pytest.mark.parametrize("change", ["version", "evidence", "conditions", "failure"])
+async def test_cached_option_answer_revalidates_observation_without_replacing_candidates(
+    setup, change
+):
+    service, catalog, llm = setup
+    # No publication is required for this invalidation: an option fact alone can go stale.
+    catalog.claims.clear()
+    initial = await first(service)
+    llm.plan = {"intent": "detail", "scope": "previous", "ordinal": 2}
+    request = chat("두 번째 제품 자세히", initial.chat_context)
+    detail = await service.answer(request, OWNER)
+    assert (await service.answer(request, OWNER)).answer == detail.answer
+    original = catalog.search_options
+
+    async def changed(lookup):
+        if change == "failure":
+            raise UpstreamError("synthetic outage")
+        page = await original(lookup)
+        row = [*page.matches, *page.excluded, *page.unconfirmed][0]
+        if change == "version":
+            row.ingredients.review.source_version = "changed-original-hash"
+        elif change == "evidence":
+            row.ingredients.review.evidence_id = None
+        else:
+            row.ingredients.review.review_status = "unreviewed"
+            row.ingredients.review.ingredient_coverage = "unknown"
+        return page
+
+    catalog.search_options = changed
+    with pytest.raises(ApiError) as exc:
+        await service.answer(request, OWNER)
+    assert exc.value.code == (
+        "option_evidence_lookup_failed" if change == "failure" else "chat_option_evidence_changed"
+    )
+    catalog.search_options = original
+    retried = await service.answer(request, OWNER)
+    assert retried.chat_context.candidate_ids == ["a", "b"]
+    assert retried.chat_context.filters == detail.chat_context.filters
+
+
+@pytest.mark.skipif(not os.getenv("G_TEST_REDIS_URL"), reason="requires dedicated G Redis")
+async def test_real_redis_does_not_replay_changed_option_original():
+    url = os.environ["G_TEST_REDIS_URL"]
+    assert urlsplit(url).hostname == "127.0.0.1" and urlsplit(url).port == 16389
+    redis = Redis.from_url(url)
+    catalog = FixtureCatalog()
+    llm = PlanLlm(**CAPTURED)
+    service = ChatService(NoGraph(), llm, catalog, sessions=ChatSessionRepository(redis))
+    owner = "guest:g-real-redis-" + str(uuid4())
+    try:
+        initial = await service.answer(chat(MESSAGE + " (수집 당시 가격 기준)"), owner)
+        llm.plan = {"intent": "detail", "scope": "previous", "ordinal": 2}
+        request = chat("두 번째 제품 자세히", initial.chat_context)
+        detail = await service.answer(request, owner)
+        assert (await service.answer(request, owner)).answer == detail.answer
+        catalog.options = [("a", "a-01", 9000, True, HASH)]
+        with pytest.raises(ApiError, match="Option evidence changed"):
+            await service.answer(request, owner)
+        assert await redis.ping()
+    finally:
+        await redis.aclose()
+
+
+async def test_cached_legacy_product_ingredient_route_also_revalidates_original():
+    from unittest.mock import AsyncMock
+
+    from app.schemas.catalog import OptionLookup
+    from app.schemas.chat import ChatResponse
+
+    catalog = FixtureCatalog()
+    review = catalog.option(
+        catalog.options[0], OptionLookup(category_id="cream")
+    ).ingredients.review
+    response = ChatResponse(
+        answer="Synthetic",
+        products=[dict(id="a", brand="Fixture", name="A", category="skincare")],
+        ingredient_results=[review],
+    )
+    current = review.model_copy(deep=True)
+    catalog.get_ingredients = AsyncMock(return_value=current)
+    await evidence_service.revalidate_option_evidence(response, catalog)
+    current.source_version = "changed-option-original"
+    with pytest.raises(ApiError) as exc:
+        await evidence_service.revalidate_option_evidence(response, catalog)
+    assert exc.value.code == "chat_option_evidence_changed"
+    catalog.get_ingredients = AsyncMock(side_effect=UpstreamError("synthetic failure"))
+    with pytest.raises(ApiError) as exc:
+        await evidence_service.revalidate_option_evidence(response, catalog)
+    assert exc.value.code == "option_evidence_lookup_failed"
+
+
 @pytest.mark.parametrize("stop", ["page_limit", "lookup_failed", "time_limit"])
 async def test_pagination_never_claims_global_absence(setup, monkeypatch, stop):
     service, catalog, _ = setup

@@ -32,6 +32,7 @@ v24 기반. 수집 범위·이미지·색·발색판정·로그는 v24 그대로
 """
 
 import csv
+import hashlib
 import json
 import os
 import re
@@ -42,6 +43,7 @@ import unicodedata
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from functools import lru_cache
 
 import oliveyoung_applied_judge_v1 as judge  # 판정 기준값 · 계산 공용
 import oliveyoung_color_poc16 as oy
@@ -55,7 +57,7 @@ REPORT = os.path.join(OUT_DIR, "수집가능성_리포트.txt")
 
 SAMPLE_PER_CATEGORY = None  # 중분류별 표본 수. None 이면 전체 2,491개
 WORKERS = 10  # 차단을 겪어 낮춘 값. 더 낮추려면 6~8
-SCRIPT_VERSION = "v30.1"
+SCRIPT_VERSION = "v30.2-observation"
 BASE = oy.BASE
 
 
@@ -233,6 +235,12 @@ TEXTURE_TYPE_ROWS = [
 ]
 
 # 이번 실행에서 값이 비어도 '수집 실패'가 아닌 칸 (리포트에서 따로 표시)
+OBSERVATION_VERSION = "oy-occurrences-v1"
+SCHEMA["option_ingredient_observation"] = [
+    "option_id", "source_version", "collected_at", "source_url", "raw_text",
+    "raw_sha256", "parser_version", "ownership_status", "completeness", "entries",
+]
+
 EXPECTED_BLANK = {
     ("texture_type", "ar_gloss"): "AR 렌더링 수치 – 팀이 정할 값",
     ("texture_type", "ar_matte"): "AR 렌더링 수치 – 팀이 정할 값",
@@ -560,6 +568,110 @@ def clean_ingredient(tok, on_review=None):
     if not norm(n):  # 함량 표기만 남은 토큰은 성분이 아니다.
         return ""
     return n
+
+
+def observation_version(record):
+    """Content-addressed version; CSV serialization and DB IDs are not source identity."""
+    payload = {k: record[k] for k in SCHEMA["option_ingredient_observation"] if k != "source_version"}
+    if isinstance(payload["entries"], str):
+        payload["entries"] = json.loads(payload["entries"])
+    return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True,
+                                     separators=(",", ":")).encode()).hexdigest()
+
+
+@lru_cache(maxsize=8)
+def _source_occurrences(raw):
+    """Tokenize each immutable product notice once; never share mutable option entries."""
+    raw = raw or ""
+    heads, line_offset = [], 0
+    for line in raw.splitlines(keepends=True):
+        # Bound header matching; \s in the legacy regex can otherwise span thousands
+        # of blank lines. Offsets still address the complete, untouched disclosure.
+        leading = len(line) - len(line.lstrip())
+        prefix = line[leading:leading + 512]
+        marked = MARKED_HEADER_RE.match(prefix)
+        header = marked or HEADER_RE.match(prefix)
+        if header:
+            title = header.group(1) if marked else (header.group(1) or header.group(2))
+            heads.append((line_offset + leading, line_offset + leading + header.end(), title.strip()))
+        line_offset += len(line)
+    # Preserve all blocks, including unassigned prefixes and gifts. Never merge their entries.
+    blocks = []
+    cursor, label = 0, None
+    for start, end, title in heads:
+        if start > cursor:
+            blocks.append((cursor, start, label))
+        cursor, label = end, title
+    blocks.append((cursor, len(raw), label))
+    entries, dropped = [], False
+    for block_no, (start, end, title) in enumerate(blocks, 1):
+        begin, depth = start, 0
+        spans = []
+        for i in range(start, end):
+            ch = raw[i]
+            if ch in "(（":
+                depth += 1
+            elif ch in ")）":
+                depth = max(0, depth - 1)
+            decimal_comma = (ch == "," and i > start and i + 1 < end
+                             and raw[i-1].isdigit() and raw[i+1].isdigit())
+            if depth == 0 and ch in ",;\n\rㆍ•" and not decimal_comma:
+                spans.append((begin, i))
+                begin = i + 1
+        spans.append((begin, end))
+        for left, right in spans:
+            token = raw[left:right]
+            lo = left + len(token) - len(token.lstrip())
+            hi = right - len(token) + len(token.rstrip())
+            name = raw[lo:hi]
+            if not name:
+                continue
+            if len(name) > 256:
+                dropped = True
+                continue  # Keep raw_text; oversized unresolved spans require manual review.
+            clean = clean_ingredient(name)
+            if not clean:
+                dropped = True
+                continue
+            # Cleaning may identify an ingredient but never replaces its displayed source.
+            dropped |= clean != name
+            entries.append(dict(name=name, ingredient_norm=norm(clean), sequence=len(entries)+1,
+                                block=block_no, component=title, source_start=lo, source_end=hi))
+    return heads, blocks, entries, dropped
+
+
+def ingredient_observation(raw, options, option, collected_at, source_url, volume=""):
+    """Preserve occurrences BEFORE normalization/dedup; ambiguous ownership stays unknown.
+
+    Positions are Unicode code-point offsets [start,end) in the unmodified raw_text.
+    A shared product notice is not proof of ownership for a multi-option/set product.
+    """
+    raw = raw or ""
+    heads, blocks, source_entries, dropped = _source_occurrences(raw)
+    entries = [dict(entry) for entry in source_entries]
+    composite = bool(re.search(r"세트|증정|기획|교차|묶음|본품|\+|/", str(option.get("optionName") or "") + " " + str(volume)))
+    ownership = "option" if len(options) == 1 and not heads and not composite and raw else "unknown"
+    # Ingredient normalization removes amounts/CI codes; it must not identify an option.
+    def option_label(value):
+        return re.sub(r"\s+", "", unicodedata.normalize("NFKC", value)).casefold()
+
+    exact_blocks = [i for i, (_, _, title) in enumerate(blocks, 1)
+                    if title and option_label(title) == option_label(str(option.get("optionName") or "").strip("[]"))]
+    exact = len(exact_blocks) == 1 and not composite
+    if exact:
+        entries = [e for e in entries if e["block"] == exact_blocks[0]]
+        for sequence, entry in enumerate(entries, 1):
+            entry["sequence"] = sequence
+        ownership = "option"
+    record = dict(option_id=str(option.get("goodsNumber") or "") + "-" + str(option.get("optionNumber") or ""),
+                  collected_at=str(collected_at), source_url=source_url, raw_text=raw,
+                  raw_sha256=hashlib.sha256(raw.encode()).hexdigest(), parser_version=OBSERVATION_VERSION,
+                  ownership_status=ownership,
+                  completeness="complete" if entries and not dropped and (not heads or exact) else "partial" if raw else "unknown",
+                  entries=entries)
+    record["source_version"] = observation_version(record)
+    record["entries"] = json.dumps(entries, ensure_ascii=False, separators=(",", ":"))
+    return record
 
 
 def ingredient_list(text, exclude=None, on_review=None):
@@ -1163,6 +1275,13 @@ def collect(mid_name, goods_no, run_id, image_pool):
                 "is_representative": o.get("representFlag", ""),
                 "collected_at": now,
             }
+        )
+        out["option_ingredient_observation"].append(
+            ingredient_observation(
+                ingredients_raw, options, dict(o, goodsNumber=goods_no), now,
+                out["product"][0].get("product_url") or "",
+                notice.get("volume") or "",
+            )
         )
         added = set()  # v29: (option,ingredient) 유일성
         for seq, iname in enumerate(per_shade.get(no) or common, 1):

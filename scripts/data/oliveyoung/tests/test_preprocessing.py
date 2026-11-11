@@ -21,6 +21,67 @@ import oliveyoung_erd_v30 as makeup
 import oliveyoung_skincare_v2 as skincare
 
 
+@pytest.mark.parametrize("raw", [
+    "정제수,살리실릭애씨드(0.44%),살리실릭애씨드,살리실릭애씨드(1%)",
+    "세라마이드엔피(1.215ppm),세라마이드엔피,세라마이드엔피(1.215ppm)",
+])
+def test_observation_keeps_every_original_occurrence(raw):
+    option = dict(goodsNumber="SYNTHETIC", optionNumber="001", optionName="크림 80ml")
+    record = makeup.ingredient_observation(raw, [option], option, "2026-11-02 10:00:00", "fixture://only")
+    entries = json.loads(record["entries"])
+    assert [e["name"] for e in entries] == raw.split(",")
+    assert [e["sequence"] for e in entries] == list(range(1, len(entries)+1))
+    assert all(raw[e["source_start"]:e["source_end"]] == e["name"] for e in entries)
+    assert record["ownership_status"] == "option"
+    loader.validate_observation(record)
+    assert record == makeup.ingredient_observation(raw, [option], option, "2026-11-02 10:00:00", "fixture://only")
+
+
+def test_observation_preserves_set_blocks_without_assigning_them():
+    raw = "[본품]\n정제수,판테놀\n[증정품]\n정제수,살리실릭애씨드(0.44%)"
+    option = dict(goodsNumber="SYNTHETIC", optionNumber="001", optionName="본품+증정")
+    record = makeup.ingredient_observation(raw, [option], option, "2026-11-02 10:00:00", "fixture://only")
+    entries = json.loads(record["entries"])
+    assert record["ownership_status"] == "unknown"
+    assert {e["component"] for e in entries} == {"본품", "증정품"}
+    assert sum(e["name"] == "정제수" for e in entries) == 2
+    loader.validate_observation(record)
+
+
+def test_exact_option_header_owns_only_its_original_block():
+    options = [dict(goodsNumber="SYNTHETIC", optionNumber=str(i), optionName=name)
+               for i, name in enumerate(("01 First", "02 Second"), 1)]
+    raw = "[01 First]\nWater,Salicylic Acid(0.44%)\n[02 Second]\nWater,Salicylic Acid"
+    observations = [makeup.ingredient_observation(raw, options, o, "2026-11-02 10:00:00",
+                                                "fixture://only") for o in options]
+    assert all(o["ownership_status"] == "option" for o in observations)
+    assert json.loads(observations[0]["entries"])[1]["name"] == "Salicylic Acid(0.44%)"
+    assert json.loads(observations[1]["entries"])[1]["name"] == "Salicylic Acid"
+    assert observations[0]["source_version"] != observations[1]["source_version"]
+    for observation in observations:
+        loader.validate_observation(observation)
+
+
+def test_option_header_amount_mismatch_cannot_claim_ownership():
+    option = dict(goodsNumber="SYNTHETIC", optionNumber="001", optionName="Cream(0.44%)")
+    record = makeup.ingredient_observation(
+        "[Cream(1%)]\nWater,Salicylic Acid(1%)", [option], option,
+        "2026-11-02 10:00:00", "fixture://only",
+    )
+    assert record["ownership_status"] == "unknown"
+    assert record["completeness"] == "partial"
+
+
+def test_observation_missing_or_tampered_source_is_never_repaired():
+    option = dict(goodsNumber="SYNTHETIC", optionNumber="001", optionName="크림")
+    missing = makeup.ingredient_observation("", [option], option, "2026-11-02 10:00:00", "fixture://only")
+    assert json.loads(missing["entries"]) == [] and missing["completeness"] == "unknown"
+    original = makeup.ingredient_observation("살리실릭애씨드", [option], option, "2026-11-02 10:00:00", "fixture://only")
+    changed = dict(original, raw_text="살리실릭애씨드(0.44%)")
+    with pytest.raises(ValueError, match="hash mismatch"):
+        loader.validate_observation(changed)
+
+
 def test_corrupted_ingredient_tokens_are_not_linked():
     invalid = (
         "펜타에리스리틸테트라-다이-T\x02부틸하이드록시하이드로신나메이트",

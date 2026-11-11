@@ -6,16 +6,16 @@ from collections import defaultdict
 from pathlib import Path
 
 from pydantic import ValidationError
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from app.core.config import Settings
 from app.core.errors import ApiError
 from app.models.catalog import ProductRow, ShadeRow
 from app.models.raw_oliveyoung import (
-    RawOyIngredientRow,
-    RawOyOptionIngredientRow,
+    RawOyOptionIngredientObservationRow,
     RawOyProductNoticeRow,
     RawOyProductOptionRow,
     RawOyProductRow,
@@ -69,19 +69,19 @@ def _option_source():
     )
 
 
-def _ingredient_rows():
-    return (
-        select(
-            RawOyOptionIngredientRow.ingredient_id,
-            RawOyIngredientRow.ingredient_name,
-            RawOyOptionIngredientRow.seq,
-        )
-        .outerjoin(
-            RawOyIngredientRow,
-            RawOyIngredientRow.ingredient_id == RawOyOptionIngredientRow.ingredient_id,
-        )
-        .order_by(RawOyOptionIngredientRow.seq, RawOyOptionIngredientRow.ingredient_id)
-    )
+def _observation_gate(result, observation, raw):
+    if observation is None:
+        result.reason = "option_original_unavailable"
+    elif observation.ownership_status != "option":
+        result.reason = "component_ownership_unverified"
+    elif not observation.raw_text or observation.raw_text != raw[8]:
+        result.reason = "observation_source_mismatch"
+    elif observation.completeness != "complete":
+        result.reason = "observation_incomplete"
+    else:
+        return True
+    result.issues.append("observation_requires_review")
+    return False
 
 
 def _validate_mapping(result, mapping, zone, texture, shades, requested_option) -> bool:
@@ -143,8 +143,15 @@ def _validate_source(result, mapping, raw) -> bool:
     return True
 
 
-def _source_version(raw, rows) -> str:
-    return fingerprint([list(raw), [list(row) for row in rows]])
+def _source_version(raw, rows, observation=None) -> str:
+    return fingerprint(
+        [
+            "oy-option-observation-v1",
+            observation.source_version if observation else "missing",
+            list(raw),
+            [list(row) for row in rows],
+        ]
+    )
 
 
 def _prepare_evidence(result, mapping, raw, rows, version) -> None:
@@ -275,6 +282,36 @@ class IngredientRepository:
             )
         return matches[0] if len(matches) == 1 else None
 
+    async def _observations(self, option_ids):
+        model = RawOyOptionIngredientObservationRow
+        history = aliased(model)
+        latest_time = (
+            select(func.max(history.collected_at))
+            .where(history.option_id == model.option_id)
+            .correlate(model)
+            .scalar_subquery()
+        )
+        records = await self._rows(
+            select(model)
+            .where(model.option_id.in_(option_ids), model.collected_at == latest_time)
+            .order_by(model.option_id, model.collected_at.desc(), model.source_version)
+        )
+        latest, ambiguous = {}, set()
+        for (observation,) in records:
+            prior = latest.get(observation.option_id)
+            if prior is None:
+                latest[observation.option_id] = observation
+            elif prior.collected_at == observation.collected_at:
+                ambiguous.add(observation.option_id)
+        # Equal collection times with different bodies have no defensible 'latest' winner.
+        for option_id in ambiguous:
+            latest.pop(option_id)
+        rows = {
+            oid: [(e.get("ingredient_id"), e["name"], e["sequence"]) for e in o.entries]
+            for oid, o in latest.items()
+        }
+        return latest, rows
+
     async def lookup(
         self, product_id: str, shade_id: str | None, option_id: str | None = None
     ) -> IngredientReadResult:
@@ -309,10 +346,13 @@ class IngredientRepository:
         )
         if not _validate_source(response, mapping, raw[0] if raw else None):
             return response
-        rows = await self._rows(
-            _ingredient_rows().where(RawOyOptionIngredientRow.option_id == mapping.option_id)
-        )
-        _prepare_evidence(response, mapping, raw[0], rows, _source_version(raw[0], rows))
+        observations, rows_by_option = await self._observations([mapping.option_id])
+        observation = observations.get(mapping.option_id)
+        rows = rows_by_option.get(mapping.option_id, [])
+        response.source_version = _source_version(raw[0], rows, observation)
+        if not _observation_gate(response, observation, raw[0]):
+            return response
+        _prepare_evidence(response, mapping, raw[0], rows, response.source_version)
         if response.evidence is not None:
             identities = await IngredientIdentityRepository(self._session).for_entries(
                 [row[0] for row in rows]
@@ -341,29 +381,29 @@ class IngredientRepository:
             )
             if _owns_option(selections[row[0]], row)
         }
-        rows_by_option = defaultdict(list)
-        for row in await self._rows(
-            _ingredient_rows()
-            .add_columns(RawOyOptionIngredientRow.option_id)
-            .where(RawOyOptionIngredientRow.option_id.in_(option_ids))
-        ):
-            rows_by_option[row[3]].append(row[:3])
+        observations, rows_by_option = await self._observations(option_ids)
         for option_id, raw in sources.items():
-            rows = rows_by_option[option_id]
+            observation = observations.get(option_id)
+            rows = rows_by_option.get(option_id, [])
+            version = _source_version(raw, rows, observation)
+            result[option_id].review.source_version = version
             result[option_id].observed = ObservedOptionLabel(
-                source_url=raw[7],
-                collected_at_raw=raw[9].isoformat() if raw[9] else None,
-                source_version=_source_version(raw, rows),
+                source_url=observation.source_url if observation else raw[7],
+                collected_at_raw=observation.collected_at.isoformat() if observation else None,
+                source_version=version,
+                observation_version=observation.source_version if observation else None,
+                raw_sha256=observation.raw_sha256 if observation else None,
+                ownership_status=observation.ownership_status if observation else "unknown",
+                completeness=observation.completeness if observation else "unknown",
                 has_product_notice=bool(raw[8] and raw[8].strip()),
                 parsed_row_count=len(rows),
                 displayed_ingredients=[
-                    DisplayedIngredient(name=name, sequence=seq)
-                    for _, name, seq in rows
-                    if name and name.strip()
-                ],
+                    DisplayedIngredient.model_validate(e) for e in observation.entries
+                ]
+                if observation
+                else [],
             )
-            if rows:
-                result[option_id].review.reason = "mapping_not_available"
+            _observation_gate(result[option_id].review, observation, raw)
 
         try:
             records = self._mapping_records()
@@ -386,6 +426,8 @@ class IngredientRepository:
                 review.reason = "ambiguous_option_review"
                 continue
             [mapping] = candidates
+            if not _observation_gate(review, observations.get(option_id), sources[option_id]):
+                continue
             review.mapping_status = mapping.mapping_status
             review.synthetic = mapping.synthetic
             if mapping.review_status == "verified":

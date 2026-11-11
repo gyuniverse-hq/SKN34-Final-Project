@@ -10,6 +10,7 @@ import argparse
 import asyncio
 import csv
 import getpass
+import hashlib
 import json
 import os
 import ssl
@@ -78,6 +79,8 @@ def _files(directory: Path, kind: str) -> dict[str, tuple[Path, list[str], int]]
             "image_applied",
         )
     )
+    if manifest.get("observation_version"):
+        tables += ("option_ingredient_observation",)
     files = {}
     csv.field_size_limit(100_000_000)
     for table in tables:
@@ -121,7 +124,92 @@ def _files(directory: Path, kind: str) -> dict[str, tuple[Path, list[str], int]]
         ]
     if len(runs) != 1 or runs[0]["status"] != "done":
         raise ValueError("The crawl-run record is not complete")
+    if "option_ingredient_observation" in files:
+        import oliveyoung_erd_v30 as collector
+
+        if manifest["observation_version"] != collector.OBSERVATION_VERSION:
+            raise ValueError("Unsupported observation version")
+        with files["product_option"][0].open(encoding="utf-8-sig", newline="") as source:
+            options = {r["option_id"] for r in csv.DictReader(source)}
+        with files["option_ingredient_observation"][0].open(encoding="utf-8-sig", newline="") as source:
+            observations = list(csv.DictReader(source))
+        if len(observations) != len(options) or {r["option_id"] for r in observations} != options:
+            raise ValueError("Exactly one observation is required for every collected option")
+        def records(table, key):
+            with files[table][0].open(encoding="utf-8-sig", newline="") as stream:
+                return {row[key]: row for row in csv.DictReader(stream)}
+
+        option_rows = records("product_option", "option_id")
+        notices = records("product_notice", "goods_no")
+        products = records("product", "goods_no")
+        grouped = {}
+        for option in option_rows.values():
+            grouped.setdefault(option["goods_no"], []).append(dict(
+                goodsNumber=option["goods_no"], optionNumber=option["option_no"],
+                optionName=option["option_name"],
+            ))
+        for record in observations:
+            validate_observation(record)
+            option = option_rows[record["option_id"]]
+            goods = option["goods_no"]
+            notice = notices.get(goods, {})
+            expected = collector.ingredient_observation(
+                notice.get("ingredients_raw", ""), grouped[goods],
+                dict(goodsNumber=goods, optionNumber=option["option_no"], optionName=option["option_name"]),
+                option["collected_at"], products[goods].get("product_url") or "",
+                notice.get("volume") or "",
+            )
+            if record != expected:
+                raise ValueError("Observation does not reproduce its collected option and notice")
     return files
+
+
+def validate_observation(record):
+    import oliveyoung_erd_v30 as collector
+
+    raw = record["raw_text"]
+    if record["raw_sha256"] != hashlib.sha256(raw.encode()).hexdigest():
+        raise ValueError("Observation raw hash mismatch")
+    if record["source_version"] != collector.observation_version(record):
+        raise ValueError("Observation source version mismatch")
+    entries = json.loads(record["entries"]) if isinstance(record["entries"], str) else record["entries"]
+    previous_end = 0
+    for seq, entry in enumerate(entries, 1):
+        start, end = entry["source_start"], entry["source_end"]
+        if (entry["sequence"] != seq or not previous_end <= start < end <= len(raw)
+                or raw[start:end] != entry["name"]
+                or collector.norm(collector.clean_ingredient(entry["name"])) != entry["ingredient_norm"]):
+            raise ValueError("Observation occurrence is not supported by its original text")
+        previous_end = end
+
+
+async def _apply_observations(conn, files):
+    if "option_ingredient_observation" not in files:
+        return  # Legacy CSVs remain loadable, but never manufacture observations.
+    cols = files["option_ingredient_observation"][1]
+    # Source identities may repeat. Only the identity dictionary is deduplicated.
+    await conn.execute("""
+        INSERT INTO raw_oy_ingredient(ingredient_name, ingredient_norm)
+        SELECT DISTINCT ON (entry->>'ingredient_norm')
+               entry->>'ingredient_norm', entry->>'ingredient_norm'
+        FROM stg_option_ingredient_observation s
+        CROSS JOIN LATERAL jsonb_array_elements(s.entries) entry
+        WHERE coalesce(entry->>'ingredient_norm','') <> ''
+        ORDER BY entry->>'ingredient_norm' ON CONFLICT(ingredient_norm) DO NOTHING
+    """)
+    selected = ["s." + c for c in cols]
+    selected[cols.index("entries")] = """coalesce((
+        SELECT jsonb_agg(entry || jsonb_build_object('ingredient_id', i.ingredient_id)
+                         ORDER BY (entry->>'sequence')::int)
+        FROM jsonb_array_elements(s.entries) entry
+        JOIN raw_oy_ingredient i ON i.ingredient_norm=entry->>'ingredient_norm'
+    ), '[]'::jsonb)"""
+    await conn.execute(
+        f"INSERT INTO raw_oy_option_ingredient_observation ({','.join(cols)}) "
+        f"SELECT {','.join(selected)} FROM stg_option_ingredient_observation s "
+        "JOIN raw_oy_product_option o ON o.option_id=s.option_id "
+        "ON CONFLICT(option_id,source_version) DO NOTHING"
+    )
 
 
 def _connection_args(args: argparse.Namespace) -> dict:
@@ -188,6 +276,7 @@ async def _stage(conn: asyncpg.Connection, files: dict) -> None:
             format="csv",
             header=True,
             encoding="UTF8",
+            force_not_null=["raw_text", "source_url"] if table == "option_ingredient_observation" else None,
         )
         if int(result.rsplit(" ", 1)[-1]) != count:
             raise ValueError(f"CSV row count changed during stage copy: {table}")
@@ -210,6 +299,10 @@ async def _stage(conn: asyncpg.Connection, files: dict) -> None:
                 )
             ]
         for column in text_columns:
+            if table == "option_ingredient_observation" or (
+                table == "product_notice" and column == "ingredients_raw"
+            ):
+                continue  # Source offsets/hashes refer to unmodified disclosure text.
             await conn.execute(
                 f"UPDATE stg_{table} SET {column}=replace({column}, '■', '') "
                 f"WHERE {column} LIKE '%■%'"
@@ -482,6 +575,7 @@ async def _apply(
         "WHERE e.option_id=oi.option_id) GROUP BY oi.option_id,i.ingredient_id "
         "ON CONFLICT(option_id,ingredient_id) DO NOTHING"
     )
+    await _apply_observations(conn, files)
     await conn.execute("DELETE FROM public.raw_oy_crawl_log WHERE run_id=$1", run_id)
     cols = [c for c in files["crawl_log"][1] if c != "log_id"]
     await conn.execute(

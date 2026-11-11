@@ -133,6 +133,7 @@ def collect(
             "mode": mode,
             "run_id": run_id,
             "script_version": script_version,
+            "observation_version": base.OBSERVATION_VERSION,
             "listing_complete": True,
             "complete": False,
             "jobs": jobs,

@@ -32,9 +32,31 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
+
+
+class RawOyOptionIngredientObservationRow(Base):
+    """Immutable source occurrence list, independent of shared ingredient labels."""
+
+    __tablename__ = "raw_oy_option_ingredient_observation"
+    __table_args__ = (Index("ix_oy_observation_latest", "option_id", "collected_at"),)
+
+    option_id: Mapped[str] = mapped_column(
+        ForeignKey("raw_oy_product_option.option_id"), primary_key=True
+    )
+    source_version: Mapped[str] = mapped_column(Text, primary_key=True)
+    collected_at: Mapped[datetime] = mapped_column(DateTime)
+    source_url: Mapped[str] = mapped_column(Text)
+    raw_text: Mapped[str] = mapped_column(Text)
+    raw_sha256: Mapped[str] = mapped_column(Text)
+    parser_version: Mapped[str] = mapped_column(Text)
+    ownership_status: Mapped[str] = mapped_column(Text)
+    completeness: Mapped[str] = mapped_column(Text)
+    entries: Mapped[list] = mapped_column(JSONB)
+
 
 # ───────────────────────── 수집 실행 / 코드 테이블 ─────────────────────────
 

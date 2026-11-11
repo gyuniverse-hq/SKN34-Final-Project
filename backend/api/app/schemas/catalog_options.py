@@ -70,6 +70,10 @@ class OptionPrice(ApiModel):
 class DisplayedIngredient(ApiModel):
     name: str
     sequence: int | None
+    block: int | None = None
+    component: str | None = None
+    source_start: int | None = None
+    source_end: int | None = None
 
 
 class ObservedOptionLabel(ApiModel):
@@ -80,6 +84,10 @@ class ObservedOptionLabel(ApiModel):
     has_product_notice: bool
     parsed_row_count: int
     displayed_ingredients: list[DisplayedIngredient]
+    observation_version: str | None = None
+    raw_sha256: str | None = None
+    ownership_status: Literal["option", "unknown"] = "unknown"
+    completeness: Literal["complete", "partial", "unknown"] = "unknown"
 
 
 class OptionIngredientInformation(ApiModel):

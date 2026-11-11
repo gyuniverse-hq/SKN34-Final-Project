@@ -249,6 +249,106 @@ async def revalidate_claims(response, scope, catalog):
         raise ApiError(409, "Published evidence changed; ask again", "chat_evidence_changed")
 
 
+async def revalidate_option_evidence(response, catalog):
+    """Redis is conversation history, never an authoritative ingredient snapshot."""
+    legacy = []
+    for result in response.ingredient_results or []:
+        checks = [c for c in result.conditions if c.verdict in {"MATCH", "NOT_MATCH"}]
+        if checks or result.verified:
+            legacy.append((result, checks or [None]))
+    if legacy:
+        if catalog is None:
+            raise ApiError(503, "Option evidence unavailable", "option_evidence_lookup_failed")
+        if sum(len(checks) for _, checks in legacy) > MAX_CARDS:
+            raise ApiError(409, "Option search must be refreshed", "chat_option_evidence_changed")
+        try:
+            async with asyncio.timeout(OPTION_DEADLINE):
+                for old, checks in legacy:
+                    for condition in checks:
+                        current = await catalog.get_ingredients(
+                            old.product_id,
+                            old.shade_id,
+                            ingredient_name=condition.ingredient_name if condition else None,
+                            operator=condition.operator if condition else "includes",
+                        )
+                        if current.status == "error" or current.verdict == "ERROR":
+                            raise ApiError(
+                                503, "Option evidence unavailable", "option_evidence_lookup_failed"
+                            )
+                        fields = (
+                            "option_id",
+                            "source_version",
+                            "evidence_id",
+                            "ingredients",
+                            "review_status",
+                            "ingredient_coverage",
+                            "normalization_status",
+                        )
+                        if any(getattr(current, key) != getattr(old, key) for key in fields) or (
+                            condition is not None and current.conditions != [condition]
+                        ):
+                            raise ApiError(
+                                409, "Option evidence changed", "chat_option_evidence_changed"
+                            )
+        except (UpstreamError, TimeoutError) as exc:
+            raise ApiError(
+                503, "Option evidence unavailable", "option_evidence_lookup_failed"
+            ) from exc
+    search = response.option_search
+    if search is None or not search.evaluations:
+        return
+    if catalog is None or not search.category_id:
+        raise ApiError(503, "Option evidence unavailable", "option_evidence_lookup_failed")
+    # Bound retry work; large stored searches must be run again, not served stale.
+    if len(search.evaluations) > MAX_CARDS:
+        raise ApiError(409, "Option search must be refreshed", "chat_option_evidence_changed")
+    try:
+        async with asyncio.timeout(OPTION_DEADLINE):
+            for old in search.evaluations:
+                request = OptionLookup(
+                    category_id=search.category_id,
+                    product_id=old.product_id,
+                    option_id=old.option_id,
+                    price_basis=search.price_basis,
+                    limit=1,
+                    max_price_krw=old.budget.max_price_krw if old.budget else None,
+                    ingredient_conditions=[
+                        OptionFilter(ingredient_name=c.ingredient_name, operator=c.operator)
+                        for c in old.ingredient_conditions
+                    ],
+                )
+                page = await catalog.search_options(request)
+                rows = [*page.matches, *page.excluded, *page.unconfirmed]
+                if page.scope.options_with_lookup_errors:
+                    raise ApiError(
+                        503, "Option evidence unavailable", "option_evidence_lookup_failed"
+                    )
+                if (
+                    len(rows) != 1
+                    or rows[0].option_id != old.option_id
+                    or rows[0].product_id != old.product_id
+                ):
+                    raise ApiError(409, "Option evidence changed", "chat_option_evidence_changed")
+                row = rows[0]
+                review = row.ingredients.review
+                if row.ingredients.error_code:
+                    raise ApiError(
+                        503, "Option evidence unavailable", "option_evidence_lookup_failed"
+                    )
+                if (
+                    review.source_version != old.ingredient_source_version
+                    or review.evidence_id != old.ingredient_evidence_id
+                    or ("verified" if review.verified else "unknown") != old.ingredient_verification
+                    or review.ingredient_coverage != old.ingredient_coverage
+                    or review.conditions != old.ingredient_conditions
+                    or row.price != old.price
+                    or row.budget_condition != old.budget
+                ):
+                    raise ApiError(409, "Option evidence changed", "chat_option_evidence_changed")
+    except (UpstreamError, TimeoutError) as exc:
+        raise ApiError(503, "Option evidence unavailable", "option_evidence_lookup_failed") from exc
+
+
 async def _category(catalog, label):
     requested = _normalized(label)
     terms = CREAM if requested in CREAM else {requested}

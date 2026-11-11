@@ -7,13 +7,65 @@ from pathlib import Path
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.models.raw_oliveyoung import RawOyOptionIngredientObservationRow
 from app.repositories.ingredient_repository import (
     IngredientRepository,
+    _source_version,
     catalog_fingerprint,
     fingerprint,
 )
 from app.schemas.ingredient import IngredientMapping
 from app.services.ingredient_service import IngredientService, get_ingredient_service
+
+
+def observation_fixture(raw, entries):
+    """Explicit synthetic source occurrences; never a production legacy fallback."""
+    return RawOyOptionIngredientObservationRow(
+        option_id=raw[0],
+        source_version=fingerprint(["synthetic-observation", raw[8], entries]),
+        raw_text=raw[8],
+        raw_sha256="a" * 64,
+        source_url=raw[7],
+        collected_at=raw[9],
+        parser_version="synthetic-v1",
+        ownership_status="option",
+        completeness="complete",
+        entries=[
+            dict(
+                ingredient_norm=name.upper(),
+                ingredient_id=key,
+                name=name,
+                sequence=seq,
+                block=1,
+                component=None,
+                source_start=0,
+                source_end=len(name),
+            )
+            for key, name, seq in entries
+        ],
+    )
+
+
+def observation_fingerprint(raw, entries):
+    return _source_version(raw, entries, observation_fixture(raw, entries))
+
+
+def observation_pages(pages):
+    """Upgrade the shared synthetic SQL fixtures to the observation query contract."""
+    pages = list(pages)
+    for i, page in enumerate(pages[:-1]):
+        if (
+            isinstance(page, list)
+            and len(page) == 1
+            and isinstance(page[0], tuple)
+            and len(page[0]) == 11
+        ):
+            entries = pages[i + 1]
+            if i == 2 and isinstance(entries, list) and all(len(e) == 3 for e in entries):
+                obs = observation_fixture(page[0], entries)
+                pages[i + 1 : i + 2] = [[(obs,)]]
+            break
+    return pages
 
 
 class Rows:
@@ -26,7 +78,7 @@ class Rows:
 
 class Session:
     def __init__(self, pages):
-        self.pages, self.statements = list(pages), []
+        self.pages, self.statements = observation_pages(pages), []
 
     async def execute(self, stmt):
         assert stmt.is_select and stmt.get_execution_options()["autoflush"] is False
@@ -34,7 +86,15 @@ class Session:
         value = self.pages.pop(0)
         if isinstance(value, Exception):
             raise value
-        assert all(len(row) == len(stmt.selected_columns) for row in value)
+        assert all(
+            len(row)
+            == (
+                1
+                if "raw_oy_option_ingredient_observation" in str(stmt)
+                else len(stmt.selected_columns)
+            )
+            for row in value
+        )
         return Rows(value)
 
 
@@ -68,7 +128,7 @@ def data():
         sourceFingerprint="SYNTHETIC:source",
         generatorVersion="SYNTHETIC:generator",
         catalogFingerprint=catalog_fingerprint(*product, shades),
-        sourceVersion=fingerprint([list(raw), [list(r) for r in entries]]),
+        sourceVersion=observation_fingerprint(raw, entries),
         reviewStatus="verified",
         ingredientCoverage="full",
         normalizationStatus="verified",
@@ -105,7 +165,7 @@ def test_verified_presence_unresolved_absence_and_order(client, data, name, op, 
     )
     assert [i["sequence"] for i in body["ingredients"]] == [1, 2]
     assert "evidence" not in body and len(session.statements) == 6
-    assert "ORDER BY raw_oy_option_ingredient.seq" in str(session.statements[3])
+    assert "raw_oy_option_ingredient_observation.collected_at DESC" in str(session.statements[3])
     assert response.headers["cache-control"] == "no-store"
 
 
@@ -168,13 +228,13 @@ def test_reviewed_partial_presence_and_unknown_absence(client, data):
 def test_sequence_gap_and_naive_source_time_require_review(client, data):
     p, shades, raw, entries, mapping = data
     entries = [(1, "Water", 1), (2, "Panthenol", 3)]
-    mapping.source_version = fingerprint([list(raw), [list(r) for r in entries]])
+    mapping.source_version = observation_fingerprint(raw, entries)
     setup(client, (p, shades, raw, entries, mapping))
     body = get(client, ingredientName="Water").json()
     assert "ingredient_list_inconsistent" in body["issues"] and body["verdict"] == "UNKNOWN"
     naive = raw[9].replace(tzinfo=None)
     raw = (*raw[:9], naive, raw[10])
-    mapping.source_version = fingerprint([list(raw), [list(r) for r in entries]])
+    mapping.source_version = observation_fingerprint(raw, entries)
     setup(client, (p, shades, raw, entries, mapping))
     body = get(client).json()
     assert body["collectedAt"] is None and body["collectedAtRaw"] == naive.isoformat()
@@ -452,7 +512,7 @@ def test_direct_review_accepts_unknown_source_timezone_only_with_bound_evidence(
         source_fingerprint=None,
         generator_version=None,
         generation_record_id=None,
-        source_version=fingerprint([list(raw), [list(r) for r in entries]]),
+        source_version=observation_fingerprint(raw, entries),
         reviewed_by="fixture reviewer",
         reviewed_at=reviewed_at,
         review_ref="fixture://review",

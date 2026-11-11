@@ -18,7 +18,6 @@ from app.repositories.ingredient_identity_repository import IngredientIdentityRe
 from app.repositories.ingredient_repository import (
     IngredientRepository,
     catalog_fingerprint,
-    fingerprint,
 )
 from app.schemas.catalog_options import (
     CollectedOptionPrice,
@@ -36,6 +35,7 @@ from app.schemas.ingredient import (
 )
 from app.services.catalog_option_service import CatalogOptionService, get_catalog_option_service
 from app.services.ingredient_service import IngredientService
+from tests.test_ingredient_api import observation_fingerprint, observation_fixture
 
 PATH = "/api/catalog/options/search"
 CREAM = OptionCategory(
@@ -318,7 +318,7 @@ async def test_repository_batches_verified_options_and_checks_versions_and_owner
             CAPTURE,
             None,
             "https://example.test",
-            "synthetic disclosure",
+            "글리세린" if option_id == "first" else "향료",
             CAPTURE,
             None,
         )
@@ -337,7 +337,7 @@ async def test_repository_batches_verified_options_and_checks_versions_and_owner
             reviewed_at=CAPTURE,
             review_ref="fixture",
             catalog_fingerprint=catalog_fingerprint(PRODUCT, None, None, []),
-            source_version=fingerprint([list(raw), [list(row) for row in rows]]),
+            source_version=observation_fingerprint(raw, rows),
             review_status="verified",
             ingredient_coverage="full",
             normalization_status="verified",
@@ -350,7 +350,10 @@ async def test_repository_batches_verified_options_and_checks_versions_and_owner
     repository._rows = AsyncMock(
         side_effect=[
             [first, second, foreign],
-            [(*first_rows[0], "first"), (*second_rows[0], "second")],
+            [
+                (observation_fixture(first, first_rows),),
+                (observation_fixture(second, second_rows),),
+            ],
             [(PRODUCT, None, None)],
             [],
         ]
@@ -371,6 +374,56 @@ async def test_repository_batches_verified_options_and_checks_versions_and_owner
 
 
 REAL_URL = os.environ.get("TEST_CATALOG_SNAPSHOT_URL")
+
+
+@pytest.mark.anyio
+async def test_product_and_option_paths_read_the_same_versioned_original(monkeypatch):
+    raw = (
+        "fixture-001",
+        "FIXTURE",
+        None,
+        "single",
+        None,
+        CAPTURE,
+        None,
+        "https://example.test",
+        "글리세린,글리세린",
+        CAPTURE,
+        None,
+    )
+    rows = [(1, "글리세린", 1), (1, "글리세린", 2)]
+    observation = observation_fixture(raw, rows)
+    mapping = IngredientMapping(
+        product_id=PRODUCT,
+        option_id=raw[0],
+        goods_no="FIXTURE",
+        mapping_status="directly_reviewed",
+        mapping_method="direct_review",
+        reviewed_by="synthetic",
+        reviewed_at=CAPTURE,
+        review_ref="fixture://review",
+        catalog_fingerprint=catalog_fingerprint(PRODUCT, None, None, []),
+        source_version=observation_fingerprint(raw, rows),
+        review_status="verified",
+        ingredient_coverage="full",
+        normalization_status="verified",
+        synthetic=True,
+    )
+    monkeypatch.setattr(
+        IngredientIdentityRepository, "for_entries", AsyncMock(return_value={1: GLYCERIN})
+    )
+    direct = IngredientRepository(None, mappings=[mapping])
+    direct._rows = AsyncMock(side_effect=[[(PRODUCT, None, None)], [], [raw], [(observation,)]])
+    batch = IngredientRepository(None, mappings=[mapping])
+    batch._rows = AsyncMock(side_effect=[[raw], [(observation,)], [(PRODUCT, None, None)], []])
+    single = await direct.lookup(PRODUCT, None, raw[0])
+    option = (await batch.lookup_options({raw[0]: PRODUCT}))[raw[0]]
+    assert single.source_version == option.review.source_version
+    assert single.evidence == option.review.evidence
+    assert [e.sequence for e in single.evidence.ingredients] == [1, 2]
+    assert [e.name for e in option.observed.displayed_ingredients] == ["글리세린", "글리세린"]
+
+
 REAL_CREAM = "1000001000100150001"
 
 
@@ -435,13 +488,15 @@ def test_real_snapshot_cream_options_and_bounded_query_count(monkeypatch, tmp_pa
     data = search(productId=product_id, maxPriceKRW=50000, priceBasis="collected_sale")
     assert data["scope"]["exhaustive"]
     rows = {row["optionId"]: row for row in data["matches"] + data["excluded"]}
-    for suffix, sale, count in (("001", 84600, 58), ("002", 40610, 69), ("003", 54990, 0)):
+    for suffix, sale in (("001", 84600), ("002", 40610), ("003", 54990)):
         row = rows[f"A000000257838-{suffix}"]
         assert row["productId"] == product_id
         assert row["price"]["collected"]["salePriceKRW"] == sale
         assert row["price"]["currentSalePriceKRW"] is None
         assert row["price"]["currentStockStatus"] == "unknown"
-        assert row["ingredients"]["observed"]["parsedRowCount"] == count
+        assert row["ingredients"]["observed"]["parsedRowCount"] == 0
+        assert row["ingredients"]["observed"]["observationVersion"] is None
+        assert row["ingredients"]["observed"]["displayedIngredients"] == []
         assert row["ingredients"]["review"]["reviewStatus"] == "unreviewed"
     options = list(rows.values())
     assert (

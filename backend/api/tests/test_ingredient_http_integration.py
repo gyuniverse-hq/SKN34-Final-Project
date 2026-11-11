@@ -14,12 +14,12 @@ import uvicorn
 
 from app.core.cache import NullCache
 from app.core.config import get_settings
-from app.repositories.ingredient_repository import IngredientRepository, fingerprint
+from app.repositories.ingredient_repository import IngredientRepository
 from app.schemas.catalog import CatalogBundle
 from app.services.catalog_service import CatalogService, get_catalog_service
 from app.services.ingredient_service import IngredientService, get_ingredient_service
 from tests.conftest import FakeCatalogStore, make_product
-from tests.test_ingredient_api import Session
+from tests.test_ingredient_api import Session, observation_fingerprint
 from tests.test_ingredient_api import data as data
 from tests.test_ingredient_canonical_identity import row
 
@@ -99,7 +99,7 @@ def test_api_client_beauty_supervisor_chat_json_over_http(
         mapping.review_ref = "fixture://review"
         mapping.generation_record_id = mapping.generator_version = mapping.source_fingerprint = None
         raw = (*raw[:9], raw[9].replace(tzinfo=None), raw[10])
-        mapping.source_version = fingerprint([list(raw), [list(r) for r in entries]])
+        mapping.source_version = observation_fingerprint(raw, entries)
     if state == "candidate":
         mapping.mapping_status = "candidate"
         mapping.review_status = "unreviewed"

@@ -49,6 +49,7 @@ from app.services.evidence_consultation_service import (
     option_requested,
     recommend_options,
     revalidate_claims,
+    revalidate_option_evidence,
 )
 from app.services.style_recipe_service import TEXT as STYLE_TEXT
 from app.services.style_recipe_service import execute_style
@@ -381,6 +382,7 @@ class ChatService:
     async def _cached_session_response(self, state):
         response = ChatResponse.model_validate(state.last_response)
         await revalidate_claims(response, state.last_claim_context, self._catalog)
+        await revalidate_option_evidence(response, self._catalog)
         response.supervisor = state.last_supervisor
         response.tool_result = state.last_tool_result
         return response
