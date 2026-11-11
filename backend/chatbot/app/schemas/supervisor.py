@@ -5,9 +5,10 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
+from app.schemas.catalog import ClaimContext, PriceBasis
 from app.schemas.style_recipe import StyleContext
 
-ToolName = Literal["beauty", "graph_chat", "ar_command", "style", "knowledge"]
+ToolName = Literal["beauty", "graph_chat", "ar_command", "style", "knowledge", "option_search"]
 
 
 class SupervisorModel(BaseModel):
@@ -64,6 +65,13 @@ class SearchPlan(SupervisorModel):
     ingredient_conditions: list[IngredientPlanCondition] = Field(default_factory=list, max_length=6)
     shade_name: str | None = Field(default=None, min_length=1, max_length=128)
     compare_ordinals: list[int] = Field(default_factory=list, max_length=2)
+    evidence_intent: Literal["explain", "recommend"] | None = None
+    option_category: str | None = Field(default=None, min_length=1, max_length=80)
+    explanation_ingredients: list[str] = Field(default_factory=list, max_length=6)
+    explanation_use: Literal["explain", "avoid"] = "explain"
+    claim_context: ClaimContext | None = None
+    option_price_basis: PriceBasis | None = None
+    require_in_stock: bool | None = None
     clear_filters: list[
         Literal[
             "category",
@@ -127,4 +135,4 @@ class SupervisorResult(SupervisorModel):
     intent: IntentDecision
     plan: TaskPlan
     result: ToolResult
-    unavailable_tools: list[ToolName] = Field(default_factory=lambda: ["knowledge"])
+    unavailable_tools: list[ToolName] = Field(default_factory=list)

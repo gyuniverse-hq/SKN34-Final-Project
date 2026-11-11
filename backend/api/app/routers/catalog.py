@@ -19,11 +19,16 @@ from app.schemas.catalog_options import (
     OptionSearchRequest,
     OptionSearchResponse,
 )
+from app.schemas.claim_publication import ClaimSearchRequest, ClaimSearchResponse
 from app.schemas.external import ProductOffers
 from app.schemas.ingredient import IngredientReadResult
 from app.schemas.product_video import ProductVideosResponse
 from app.services.catalog_option_service import CatalogOptionService, get_catalog_option_service
 from app.services.catalog_service import CatalogService, get_catalog_service
+from app.services.claim_publication_service import (
+    ClaimPublicationService,
+    get_claim_publication_service,
+)
 from app.services.ingredient_service import IngredientService, get_ingredient_service
 from app.services.offer_service import OfferService, get_offer_service
 from app.services.product_video_service import ProductVideoService, get_product_video_service
@@ -46,6 +51,16 @@ async def search_catalog_options(
     response: Response,
     service: CatalogOptionService = Depends(get_catalog_option_service),
 ) -> OptionSearchResponse:
+    response.headers["Cache-Control"] = "no-store"
+    return await service.search(search)
+
+
+@router.post("/catalog/ingredient-claims/search", response_model=ClaimSearchResponse)
+async def search_ingredient_claims(
+    search: ClaimSearchRequest,
+    response: Response,
+    service: ClaimPublicationService = Depends(get_claim_publication_service),
+) -> ClaimSearchResponse:
     response.headers["Cache-Control"] = "no-store"
     return await service.search(search)
 

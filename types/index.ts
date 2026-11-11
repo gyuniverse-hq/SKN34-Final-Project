@@ -441,6 +441,78 @@ export interface ChatProductRef {
   brand: string;
   name: string;
   category: string;
+  optionId?: string;
+  optionName?: string;
+}
+
+export type ChatOptionVerdict = 'MATCH' | 'NOT_MATCH' | 'UNKNOWN' | 'ERROR';
+export type ChatOptionPriceBasis = 'current_sale' | 'collected_sale';
+
+type ChatOptionDecision = {
+  verdict: ChatOptionVerdict;
+  reason: string;
+  evidenceId?: string | null;
+};
+
+export interface ChatOptionSearch {
+  status: 'matches' | 'no_matches' | 'unconfirmed' | 'search_incomplete' | 'partial_failure' | 'unsupported_category';
+  categoryId: string | null;
+  scope: 'catalog' | 'previous' | 'selected_option';
+  priceBasis: ChatOptionPriceBasis;
+  candidateCount: number | null;
+  evaluatedCount: number;
+  pages: number;
+  exhaustive: boolean;
+  stopReason: string;
+  evaluations: {
+    productId: string;
+    optionId: string;
+    optionName: string | null;
+    verdict: ChatOptionVerdict;
+    price: {
+      referencePriceKRW: number | null;
+      currentSalePriceKRW: number | null;
+      currentStockStatus: 'in_stock' | 'sold_out' | 'unknown';
+      collected: {
+        evidenceId: string;
+        source: 'oliveyoung_price_snapshot';
+        sourceUrl: string | null;
+        salePriceKRW: number | null;
+        collectedAtRaw: string | null;
+        stockStatus: 'in_stock' | 'sold_out' | 'unknown';
+      } | null;
+    };
+    budget: (ChatOptionDecision & { priceBasis: ChatOptionPriceBasis; maxPriceKRW: number }) | null;
+    ingredientConditions: (ChatOptionDecision & {
+      ingredientName: string; operator: 'includes' | 'excludes';
+    })[];
+    ingredientVerification: 'verified' | 'unknown' | 'error';
+    ingredientCoverage: 'full' | 'partial' | 'unknown';
+    ingredientEvidenceId: string | null;
+    ingredientSourceVersion: string | null;
+    ingredientError: string | null;
+    otherConditions: (ChatOptionDecision & { condition: 'fragrance_free' | 'product_query' | 'stock' })[];
+  }[];
+}
+
+export interface ChatPublishedClaim {
+  publicationId: string;
+  revision: number;
+  ingredient: { mfdsIngredientId: number; sourceHash: string };
+  ingredientName: string;
+  summary: string;
+  use: 'explain' | 'rank' | 'avoid';
+  scope: {
+    concerns: string[];
+    targets: string[];
+    formulations: string[];
+    concentrationMinPct: number | null;
+    concentrationMaxPct: number | null;
+  };
+  sourceTitle: string;
+  sourceUrl: string;
+  sourceVersion: string;
+  studyType: string;
 }
 
 export interface ChatResponse {
@@ -454,6 +526,17 @@ export interface ChatResponse {
   evidence?: ChatProductEvidence[];
   ingredientResults?: ChatIngredientResult[];
   sessionStatus?: 'stored' | 'unchanged' | 'unavailable';
+  optionSearch?: ChatOptionSearch;
+  claimStatus?: 'available' | 'not_found' | 'unavailable';
+  publishedClaims?: ChatPublishedClaim[];
+  optionClaimLinks?: {
+    publicationId: string;
+    productId: string;
+    optionId: string;
+    ingredientEvidenceId: string;
+    ingredientSourceVersion: string;
+    finishedProductEfficacy: 'unverified';
+  }[];
 }
 
 /** Ephemeral progress hint. The server reloads content and checks recipe identity/version. */

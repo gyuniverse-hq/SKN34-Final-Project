@@ -76,20 +76,21 @@ function RelatedProducts({ refs, question, category, chatContext, evidence, sele
     return () => { mounted.current = false; };
   }, []);
   const ids = [...new Set(refs.map((ref) => ref.id))];
+  const exactOptions = refs.some((ref) => ref.optionId);
   const query = useProductsByIds(ids);
   // keepPreviousData can belong to another ID set; never display it as this response.
   const data = query.isPlaceholderData ? [] : query.data ?? [];
   const byId = new Map(data.map((product) => [product.id, product]));
   const products = ids.flatMap((id) => {
     const product = byId.get(id);
-    return product ? [product] : [];
+    return product ? [exactOptions ? { ...product, shades: [] } : product] : [];
   });
   return (
     <View>
       <Text style={styles.relatedTitle}>{t('chat.relatedProducts')}</Text>
       <ChatProducts
         products={products}
-        conditions={chatContext ? conditionsFromChatFilters(chatContext.filters, t) : extractChatConditions(question)}
+        conditions={exactOptions ? [] : chatContext ? conditionsFromChatFilters(chatContext.filters, t) : extractChatConditions(question)}
         candidateOrder={chatContext?.candidateIds ?? ids}
         selectedShades={selectedShades}
         onSelectShade={(productId, shadeId) => {
@@ -99,13 +100,13 @@ function RelatedProducts({ refs, question, category, chatContext, evidence, sele
           }
         }}
         evidence={evidence}
-        showIngredients={category === 'ingredient'}
+        showIngredients={!exactOptions && category === 'ingredient'}
         loading={query.isPending || query.isPlaceholderData}
         failed={query.isError}
         missingCount={!query.isPending && !query.isPlaceholderData && !query.isError ? ids.length - products.length : 0}
         onRetry={() => { if (mounted.current) void query.refetch(); }}
-        onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId)); }}
-        onOpenAr={(productId, shadeId) => { if (mounted.current) router.push(arHref({ productId, shadeId })); }}
+        onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, exactOptions ? undefined : shadeId)); }}
+        onOpenAr={(productId, shadeId) => { if (mounted.current && !exactOptions) router.push(arHref({ productId, shadeId })); }}
       />
     </View>
   );
