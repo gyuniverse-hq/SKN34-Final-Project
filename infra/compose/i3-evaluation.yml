@@ -1,0 +1,41 @@
+# Isolated I-3 evaluation only. Always supply a unique Compose project and run ID.
+services:
+  postgres:
+    image: postgres:17-alpine
+    pull_policy: never
+    environment:
+      POSTGRES_DB: i3_eval
+      POSTGRES_USER: i3_eval
+      POSTGRES_PASSWORD: i3_eval
+      PGDATA: /var/lib/postgresql/data/pgdata
+    command: ["postgres", "-c", "i3_eval.run_id=${I3_EVAL_RUN_ID:?Set an isolated run ID}"]
+    labels:
+      io.vishue.i3-eval.run-id: "${I3_EVAL_RUN_ID:?Set an isolated run ID}"
+      io.vishue.i3-eval.purpose: synthetic-only
+    ports:
+      - "127.0.0.1::5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U i3_eval -d i3_eval"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    restart: "no"
+  redis:
+    image: redis:7-alpine
+    pull_policy: never
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    labels:
+      io.vishue.i3-eval.run-id: "${I3_EVAL_RUN_ID:?Set an isolated run ID}"
+      io.vishue.i3-eval.purpose: synthetic-only
+    ports:
+      - "127.0.0.1::6379"
+    tmpfs:
+      - /data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    restart: "no"

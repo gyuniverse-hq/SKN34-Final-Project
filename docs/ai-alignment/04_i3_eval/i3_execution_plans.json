@@ -1,0 +1,289 @@
+{
+  "version": 1,
+  "planner": "test_double",
+  "note": "Independently authored input to the test interpreter; never model accuracy or Gold. Cases not listed are blocked.",
+  "cases": {
+    "I3-Q01": [
+      {
+        "intent": "general",
+        "evidenceIntent": "explain",
+        "explanationIngredients": [
+          "글리세린"
+        ]
+      }
+    ],
+    "I3-Q02": [
+      {
+        "intent": "general",
+        "evidenceIntent": "explain",
+        "explanationIngredients": [
+          "글리세린"
+        ],
+        "explanationUse": "avoid"
+      }
+    ],
+    "I3-Q03": [
+      {
+        "intent": "search",
+        "evidenceIntent": "recommend",
+        "optionCategory": "크림",
+        "category": "skincare",
+        "maxPriceKRW": 20000,
+        "ingredientConditions": [
+          {
+            "ingredientName": "글리세린",
+            "operator": "includes"
+          },
+          {
+            "ingredientName": "향료",
+            "operator": "excludes"
+          }
+        ]
+      }
+    ],
+    "I3-E01": [
+      {
+        "intent": "general",
+        "evidenceIntent": "explain",
+        "explanationIngredients": [
+          "글리세린"
+        ]
+      }
+    ],
+    "I3-E02": [
+      {
+        "intent": "general",
+        "evidenceIntent": "explain",
+        "explanationIngredients": [
+          "글리세린"
+        ]
+      }
+    ],
+    "I3-E04": [
+      {
+        "intent": "general",
+        "evidenceIntent": "explain",
+        "explanationIngredients": [
+          "글리세린"
+        ],
+        "explanationUse": "avoid"
+      }
+    ],
+    "I3-E06": [
+      {
+        "intent": "general",
+        "evidenceIntent": "explain",
+        "explanationIngredients": [
+          "글리세린"
+        ]
+      }
+    ],
+    "I3-O01": [
+      {
+        "intent": "search",
+        "evidenceIntent": "recommend",
+        "optionCategory": "크림",
+        "category": "skincare",
+        "maxPriceKRW": 20000
+      }
+    ],
+    "I3-O02": [
+      {
+        "intent": "search",
+        "evidenceIntent": "recommend",
+        "optionCategory": "크림",
+        "category": "skincare",
+        "maxPriceKRW": 20000,
+        "optionPriceBasis": "collected_sale"
+      }
+    ],
+    "I3-O03": [
+      {
+        "intent": "search",
+        "evidenceIntent": "recommend",
+        "optionCategory": "크림",
+        "category": "skincare",
+        "maxPriceKRW": 20000,
+        "optionPriceBasis": "collected_sale"
+      }
+    ],
+    "I3-O04": [
+      {
+        "intent": "search",
+        "evidenceIntent": "recommend",
+        "optionCategory": "크림",
+        "category": "skincare",
+        "requireInStock": true
+      }
+    ],
+    "I3-O05": [
+      {
+        "intent": "search",
+        "evidenceIntent": "recommend",
+        "optionCategory": "크림",
+        "category": "skincare",
+        "maxPriceKRW": 20000,
+        "optionPriceBasis": "collected_sale",
+        "ingredientConditions": [
+          {
+            "ingredientName": "향료",
+            "operator": "excludes"
+          }
+        ]
+      }
+    ],
+    "I3-O06": [
+      {
+        "intent": "search",
+        "evidenceIntent": "recommend",
+        "optionCategory": "크림",
+        "category": "skincare",
+        "maxPriceKRW": 20000,
+        "optionPriceBasis": "collected_sale",
+        "ingredientConditions": [
+          {
+            "ingredientName": "글리세린",
+            "operator": "includes"
+          },
+          {
+            "ingredientName": "향료",
+            "operator": "excludes"
+          }
+        ]
+      }
+    ],
+    "I3-O08": [
+      {
+        "intent": "search",
+        "evidenceIntent": "recommend",
+        "optionCategory": "크림",
+        "category": "skincare",
+        "maxPriceKRW": 1,
+        "optionPriceBasis": "collected_sale"
+      }
+    ],
+    "I3-O09": [
+      {
+        "intent": "search",
+        "evidenceIntent": "recommend",
+        "optionCategory": "크림",
+        "category": "skincare"
+      }
+    ],
+    "I3-O10": [
+      {
+        "intent": "search",
+        "evidenceIntent": "recommend",
+        "optionCategory": "분류 Z"
+      }
+    ],
+    "I3-M01": [
+      {
+        "intent": "search",
+        "evidenceIntent": "recommend",
+        "optionCategory": "크림",
+        "category": "skincare",
+        "maxPriceKRW": 30000,
+        "optionPriceBasis": "collected_sale",
+        "ingredientConditions": [
+          {
+            "ingredientName": "글리세린",
+            "operator": "includes"
+          },
+          {
+            "ingredientName": "향료",
+            "operator": "excludes"
+          }
+        ]
+      },
+      {
+        "intent": "detail",
+        "scope": "previous",
+        "ordinal": 2
+      }
+    ],
+    "I3-M02": [
+      {
+        "intent": "search",
+        "evidenceIntent": "recommend",
+        "optionCategory": "크림",
+        "category": "skincare",
+        "maxPriceKRW": 30000,
+        "optionPriceBasis": "collected_sale",
+        "requireInStock": true,
+        "ingredientConditions": [
+          {
+            "ingredientName": "글리세린",
+            "operator": "includes"
+          },
+          {
+            "ingredientName": "향료",
+            "operator": "excludes"
+          }
+        ]
+      },
+      {
+        "intent": "refine",
+        "scope": "previous",
+        "maxPriceKRW": 10000
+      }
+    ],
+    "I3-M05": [
+      {
+        "intent": "search",
+        "evidenceIntent": "recommend",
+        "optionCategory": "크림",
+        "category": "skincare",
+        "maxPriceKRW": 30000,
+        "optionPriceBasis": "collected_sale",
+        "ingredientConditions": [
+          {
+            "ingredientName": "글리세린",
+            "operator": "includes"
+          },
+          {
+            "ingredientName": "향료",
+            "operator": "excludes"
+          }
+        ]
+      },
+      {
+        "intent": "detail",
+        "scope": "previous",
+        "ordinal": 1
+      },
+      {
+        "intent": "detail",
+        "scope": "previous",
+        "ordinal": 1
+      }
+    ],
+    "I3-I02": [
+      {
+        "intent": "detail",
+        "scope": "previous",
+        "ordinal": 1,
+        "ingredientConditions": [
+          {
+            "ingredientName": "향료",
+            "operator": "excludes"
+          }
+        ]
+      }
+    ]
+  },
+  "bootstraps": {
+    "I3-I02": {
+      "message": "수집 당시 3만원 이하 크림 후보를 보여줘",
+      "plan": {
+        "intent": "search",
+        "scope": "catalog",
+        "evidenceIntent": "recommend",
+        "optionCategory": "크림",
+        "category": "skincare",
+        "maxPriceKRW": 30000,
+        "optionPriceBasis": "collected_sale"
+      }
+    }
+  }
+}
