@@ -54,3 +54,12 @@ export type ChatRequestSnapshot = {
   generation: number;
   styleRevision: number;
 };
+
+// The owner key includes the authentication epoch, even when the same user logs in again.
+export type ConversationTarget = { id: string; ownerKey: string };
+export type ChatRequestTicket = ConversationTarget & {
+  messageId: string;
+  requestId: string;
+  generation: number;
+  attempt: number;
+};

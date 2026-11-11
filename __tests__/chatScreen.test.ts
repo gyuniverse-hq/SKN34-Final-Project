@@ -213,7 +213,14 @@ describe('selected Style recipe flow', () => {
       styleRecipe: { ...recipe, currentStep: 0 }, styleContext: { ...context, currentStep: 0 }, styleStatus: 'ready' });
     const view = await renderScreen();
     expect(mockMutateAsync.mock.calls[0][0]).toMatchObject({ category: 'style', styleContext: { kind: 'video', lookId: '_video-1', currentStep: 0 } });
+    const roomId = useChatConversationStore.getState().latest['look:video:_video-1'];
+    const beforeStep = useChatConversationStore.getState().conversations[roomId];
+    Object.freeze(beforeStep.conversation.styleContext);
+    Object.freeze(beforeStep.messages[1].styleRecipe);
     await act(async () => view.root.findByType(StyleRecipeResult).props.onStepChange(1));
+    expect(beforeStep.conversation.styleContext?.currentStep).toBe(0);
+    expect(beforeStep.messages[1].styleRecipe?.currentStep).toBe(0);
+    expect(useChatConversationStore.getState().conversations[roomId].messages).not.toBe(beforeStep.messages);
     expect(view.root.findByType(StyleRecipeResult).props.result.currentStep).toBe(1);
     await submit(view, '눈 화장부터 알려줘');
     expect(mockMutateAsync.mock.calls[1][0].styleContext).toEqual({ ...context, currentStep: 1 });
@@ -307,9 +314,17 @@ describe('server session recovery', () => {
     const view = await renderScreen();
     await send(view, '립 추천');
     const general = useChatConversationStore.getState().latest.general;
+    const beforeEdit = useChatConversationStore.getState().conversations[general];
+    const changed = jest.fn();
+    const unsubscribe = useChatConversationStore.subscribe(changed);
     await act(async () => view.root.findByType(TextInput).props.onChangeText('unsent draft'));
     await act(async () => buttonWithText(view.root, 'chat.ui.ingredient').props.onPress());
     const saved = useChatConversationStore.getState().conversations[general].view;
+    expect(changed).toHaveBeenCalledTimes(2);
+    expect(beforeEdit.conversation.draft).toBe('');
+    expect(beforeEdit.conversation.category).toBe('product');
+    expect(useChatConversationStore.getState().conversations[general].conversation).not.toBe(beforeEdit.conversation);
+    unsubscribe();
     expect(saved.category).toBe('ingredient');
     expect(saved.sessionExpiry).toBe(context.session?.expiresAt);
 
