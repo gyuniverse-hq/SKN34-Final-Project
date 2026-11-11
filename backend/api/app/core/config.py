@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     skincare_refresh_enabled: bool | None = None
     skincare_refresh_interval_seconds: int = 60
     ingredient_mapping_path: str | None = None
+    ingredient_alias_approvals_path: str | None = None
     # External APIs. Unset keys disable the matching feature instead of failing requests.
     naver_client_id: str | None = None
     naver_client_secret: str | None = None

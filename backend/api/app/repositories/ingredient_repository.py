@@ -17,6 +17,7 @@ from app.models.raw_oliveyoung import (
     RawOyProductOptionRow,
     RawOyProductRow,
 )
+from app.repositories.ingredient_identity_repository import IngredientIdentityRepository
 from app.schemas.ingredient import (
     IngredientEntry,
     IngredientEvidence,
@@ -124,9 +125,9 @@ class IngredientRepository:
         response = IngredientReadResult(
             product_id=product_id, shade_id=shade_id, reason="shade_required"
         )
-        if shade_id is None:
+        if shade_id is None and shades:
             return response
-        if shade_id not in {s[0] for s in shades}:
+        if shade_id is not None and shade_id not in {s[0] for s in shades}:
             raise ApiError(404, "Shade not found", "shade_not_found")
         mapping = self._mapping(product_id, shade_id)
         if mapping is None:
@@ -140,10 +141,19 @@ class IngredientRepository:
             response.mapping_status = "mismatch"
             response.reason = "catalog_version_mismatch"
             return response
-        if mapping.mapping_status != "reproduced":
+        direct = mapping.mapping_status == "directly_reviewed"
+        if not direct and mapping.mapping_status != "reproduced":
             response.reason = "mapping_not_verified"
             return response
-        if (
+        if direct and (
+            mapping.mapping_method != "direct_review"
+            or not mapping.reviewed_by
+            or not mapping.reviewed_at
+            or not mapping.review_ref
+        ):
+            response.reason = "direct_review_incomplete"
+            return response
+        if not direct and (
             not mapping.source_fingerprint
             or not mapping.generation_record_id
             or not mapping.generator_version
@@ -227,8 +237,11 @@ class IngredientRepository:
         response.reason = "evidence_not_reviewed"
         if mapping.review_status != "verified":
             return response
+        identities = await IngredientIdentityRepository(self._session).for_entries(
+            [row[0] for row in rows]
+        )
         entries = [
-            IngredientEntry(name=row[1], sequence=row[2])
+            IngredientEntry(name=row[1], sequence=row[2], identity=identities.get(row[0]))
             for row in rows
             if row[1] and (row[2] is None or row[2] > 0)
         ]
@@ -241,6 +254,8 @@ class IngredientRepository:
             source="option_ingredients",
             source_ref=raw[0][7],
             collected_at=aware,
+            reviewed_at=mapping.reviewed_at if direct else None,
+            review_ref=mapping.review_ref if direct else None,
             mapping_status="verified",
             review_status=mapping.review_status,
             ingredient_coverage=mapping.ingredient_coverage,
@@ -251,5 +266,11 @@ class IngredientRepository:
             evidence.ingredient_coverage = "partial"
             evidence.normalization_status = "unverified"
         response.evidence = evidence
-        response.reason = "verified_evidence" if not response.issues else "evidence_requires_review"
+        warnings = {"source_timezone_unknown"} if direct else set()
+        response.reason = (
+            "evidence_requires_review" if set(response.issues) - warnings else "verified_evidence"
+        )
         return response
+
+    async def resolve_identity(self, name: str):
+        return await IngredientIdentityRepository(self._session).resolve(name)

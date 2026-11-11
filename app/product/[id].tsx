@@ -10,13 +10,14 @@ import { ProductImage } from '@/components/ui/ProductImage';
 import { ShadePicker } from '@/components/ui/ShadePicker';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
+import { HomeChatButton } from '@/components/chat/HomeChatButton';
 import { canTryOn, pickShade } from '@/lib/catalog';
 import { isSafeExternalUrl } from '@/lib/externalLink';
 import { notify } from '@/lib/confirm';
 import { formatKRW } from '@/lib/format';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useProduct, useProductVideos } from '@/lib/queries';
-import { arHref, parseId, productVideoHref, recommendationsHref } from '@/lib/routes';
+import { arHref, chatHref, parseId, productVideoHref, recommendationsHref } from '@/lib/routes';
 import { useCartStore } from '@/store/cartStore';
 import { MAX_COMPARE, useCompareStore } from '@/store/compareStore';
 export default function ProductDetailScreen() {
@@ -72,94 +73,98 @@ export default function ProductDetailScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <Stack.Screen options={{ title: p.brand }} />
-      <ScrollView contentContainerStyle={styles.content}>
-        <ProductImage uri={p.imageUrl} category={p.category} style={styles.hero} recyclingKey={p.id} />
-        <View style={styles.body}>
-          <Text style={styles.brand}>{p.brand}</Text>
-          <Text style={styles.name} accessibilityRole="header">
-            {p.name}
-          </Text>
-          <Text style={styles.nameKo}>{p.nameKo}</Text>
-          <View style={styles.priceRow}>
-            <Text style={styles.price}>{formatKRW(p.priceKRW)}</Text>
-            <Text style={styles.priceLabel}>
-              {t('product.referencePrice')} · {t('product.size')} {p.volume}
+      <View style={styles.scrollArea}>
+        <ScrollView contentContainerStyle={styles.content}>
+          <ProductImage uri={p.imageUrl} category={p.category} style={styles.hero} recyclingKey={p.id} />
+          <View style={styles.body}>
+            <Text style={styles.brand}>{p.brand}</Text>
+            <Text style={styles.name} accessibilityRole="header">
+              {p.name}
             </Text>
-          </View>
-
-          {p.shades.length > 0 ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
-                {t('product.shades')}
-                {selectedShade ? <Text style={styles.sectionValue}>  {selectedShade.name}</Text> : null}
+            <Text style={styles.nameKo}>{p.nameKo}</Text>
+            <View style={styles.priceRow}>
+              <Text style={styles.price}>{formatKRW(p.priceKRW)}</Text>
+              <Text style={styles.priceLabel}>
+                {t('product.referencePrice')} · {t('product.size')} {p.volume}
               </Text>
-              {shadeMissing ? <Notice tone="warning" body={t('catalog.shadeMissingPicked')} /> : null}
-              <ShadePicker shades={p.shades} selectedId={selectedShade?.id} onSelect={(s) => selectShade(s.id)} />
-              <Text style={styles.hint}>{t('product.swatchNote')}</Text>
             </View>
-          ) : null}
 
-          <View style={styles.inlineActions}>
-            {tryOn && selectedShade ? (
+            {p.shades.length > 0 ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>
+                  {t('product.shades')}
+                  {selectedShade ? <Text style={styles.sectionValue}>  {selectedShade.name}</Text> : null}
+                </Text>
+                {shadeMissing ? <Notice tone="warning" body={t('catalog.shadeMissingPicked')} /> : null}
+                <ShadePicker shades={p.shades} selectedId={selectedShade?.id} onSelect={(s) => selectShade(s.id)} />
+                <Text style={styles.hint}>{t('product.swatchNote')}</Text>
+              </View>
+            ) : null}
+
+            <View style={styles.inlineActions}>
+              {tryOn && selectedShade ? (
+                <Button
+                  label={t('product.similar')}
+                  icon="color-filter-outline"
+                  variant="secondary"
+                  compact
+                  onPress={() =>
+                    router.push(recommendationsHref({ productId: p.id, shadeId: selectedShade.id, zone: p.makeupZone ?? undefined }))
+                  }
+                  style={styles.inlineBtn}
+                />
+              ) : null}
               <Button
-                label={t('product.similar')}
-                icon="color-filter-outline"
+                label={inCompare ? t('compare.view') : t('compare.add')}
+                icon="git-compare-outline"
                 variant="secondary"
                 compact
-                onPress={() =>
-                  router.push(recommendationsHref({ productId: p.id, shadeId: selectedShade.id, zone: p.makeupZone ?? undefined }))
-                }
+                onPress={onCompare}
                 style={styles.inlineBtn}
               />
+            </View>
+
+            {p.description ? <Text style={styles.description}>{p.description}</Text> : null}
+
+            {p.keyIngredients.length > 0 ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{t('product.keyIngredients')}</Text>
+                <View style={styles.tags}>
+                  {p.keyIngredients.map((ing) => (
+                    <View key={ing} style={styles.tag}>
+                      <Text style={styles.tagText}>{ing}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
             ) : null}
-            <Button
-              label={inCompare ? t('compare.view') : t('compare.add')}
-              icon="git-compare-outline"
-              variant="secondary"
-              compact
-              onPress={onCompare}
-              style={styles.inlineBtn}
-            />
-          </View>
 
-          {p.description ? <Text style={styles.description}>{p.description}</Text> : null}
+            {p.texture ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{t('compare.texture')}</Text>
+                <Text style={styles.hint}>{t(`texture.${p.texture}` as TranslationKey)}</Text>
+              </View>
+            ) : null}
 
-          {p.keyIngredients.length > 0 ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('product.keyIngredients')}</Text>
-              <View style={styles.tags}>
-                {p.keyIngredients.map((ing) => (
-                  <View key={ing} style={styles.tag}>
-                    <Text style={styles.tagText}>{ing}</Text>
-                  </View>
+            {productVideos.data?.length ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{t('product.videosTitle')}</Text>
+                {productVideos.data.map((video) => (
+                  <Pressable key={`${video.source}-${video.id}-${video.shadeId ?? ''}`}
+                    accessibilityRole="link" style={styles.videoLink}
+                    onPress={() => router.push(productVideoHref(video.source, video.id))}>
+                    <Text style={styles.videoTitle}>{video.title}</Text>
+                    {video.channelName ? <Text style={styles.hint}>{video.channelName}</Text> : null}
+                  </Pressable>
                 ))}
               </View>
-            </View>
-          ) : null}
+            ) : null}
 
-          {p.texture ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('compare.texture')}</Text>
-              <Text style={styles.hint}>{t(`texture.${p.texture}` as TranslationKey)}</Text>
-            </View>
-          ) : null}
-
-          {productVideos.data?.length ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('product.videosTitle')}</Text>
-              {productVideos.data.map((video) => (
-                <Pressable key={`${video.source}-${video.id}-${video.shadeId ?? ''}`}
-                  accessibilityRole="link" style={styles.videoLink}
-                  onPress={() => router.push(productVideoHref(video.source, video.id))}>
-                  <Text style={styles.videoTitle}>{video.title}</Text>
-                  {video.channelName ? <Text style={styles.hint}>{video.channelName}</Text> : null}
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
-
-        </View>
-      </ScrollView>
+          </View>
+        </ScrollView>
+        <HomeChatButton label={t('home.chatFab')} hint={t('home.chatFabHint')}
+          onPress={() => router.push(chatHref({ productId: p.id, shadeId: arShade?.id }))} />
+      </View>
 
       <View style={styles.footer}>
         {tryOn ? (
@@ -197,7 +202,8 @@ export default function ProductDetailScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.surface },
-  content: { paddingBottom: 24 },
+  scrollArea: { flex: 1 },
+  content: { paddingBottom: 94 },
   hero: { width: '100%', aspectRatio: 1, backgroundColor: theme.colors.surfaceAlt },
   body: { padding: theme.spacing.xl, gap: 4 },
   brand: { fontSize: 12, color: theme.colors.accent, fontWeight: '800', letterSpacing: 0.5 },

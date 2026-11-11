@@ -34,6 +34,15 @@ docker compose -f infra/compose/compose.yaml -f infra/compose/compose.ingredient
 
 이 설정은 API 컨테이너의 `/app/runtime/ingredient-mapping.json`에 읽기 전용으로 연결한다. 파일이 없으면 디렉터리를 대신 만들지 않는다. 기존 기본 Compose 실행에는 파일 마운트가 없고 상품 등 다른 기능은 유지된다. 운영 배포의 파일 전달·검수 승인은 별도이며, 이 개발 설정을 운영 리소스에 수동 적용하지 않는다. 합성 근거는 운영 환경에서 검증된 성분 사실로 공개하지 않는다.
 
+분리 동의어 승인 CSV를 받은 경우 루트 `.env`의 `INGREDIENT_ALIAS_APPROVALS_SOURCE`에 해당 호스트 파일의 절대 경로를 지정하고 다음 설정을 추가한다.
+
+```bash
+docker compose -f infra/compose/compose.yaml -f infra/compose/compose.ingredients.yaml -f infra/compose/compose.ingredient-approvals.yaml --env-file .env config --quiet
+docker compose -f infra/compose/compose.yaml -f infra/compose/compose.ingredients.yaml -f infra/compose/compose.ingredient-approvals.yaml --env-file .env up -d --build
+```
+
+승인 CSV는 API 컨테이너에서 읽기 전용으로 연결되며 `INGREDIENT_ALIAS_APPROVALS_PATH`가 자동으로 지정된다. 승인 CSV를 교체한 후에는 같은 설정으로 `up -d --force-recreate api`를 실행한다. 이 설정을 추가하지 않으면 분리 동의어는 미승인으로 처리된다.
+
 ## 1. 팀 공용 dev 서버 (Render)
 
 팀원은 Docker 없이 이 서버에 붙어서 개발합니다. 모두 무료 플랜입니다.

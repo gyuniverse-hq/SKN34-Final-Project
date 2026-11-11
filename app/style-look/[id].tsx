@@ -8,11 +8,12 @@ import { VideoProductActions } from '@/components/celeb/VideoProductActions';
 import { YoutubePlayer } from '@/components/celeb/YoutubePlayer';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
+import { HomeChatButton } from '@/components/chat/HomeChatButton';
 import { useVideoTryOn } from '@/hooks/useVideoTryOn';
 import { demoStyleLook } from '@/lib/demoLookBundle';
 import { useI18n } from '@/lib/i18n';
 import { useStyleLooks } from '@/lib/queries';
-import { arHref, paramValue, productHref } from '@/lib/routes';
+import { arHref, chatHref, paramValue, productHref } from '@/lib/routes';
 import { styleLookGroupLabel, styleLookZoneLabel } from '@/lib/styleLookGroups';
 
 export default function StyleLookDetail() {
@@ -40,10 +41,6 @@ export default function StyleLookDetail() {
           {look.title}
         </Text>
         <Text style={styles.tag}>{look.tag}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel={t('chat.style.openGuide')} style={styles.video}
-          onPress={() => router.push({ pathname: '/chat', params: { recipeKind: 'video', recipeLookId: look.id } })}>
-          <Text style={styles.videoText}>{t('chat.style.openGuide')}</Text>
-        </Pressable>
         <Pressable
           accessibilityRole="link"
           style={({ pressed }) => [styles.video, pressed && styles.pressed]}
@@ -108,13 +105,15 @@ export default function StyleLookDetail() {
           );
         })}
       </ScrollView>
+      <HomeChatButton label={t('home.chatFab')} hint={t('home.chatFabHint')}
+        onPress={() => router.push(chatHref({ recipeKind: 'video', recipeLookId: look.id }))} />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.surface },
-  content: { padding: theme.spacing.lg, paddingBottom: 48 },
+  content: { padding: theme.spacing.lg, paddingBottom: 94 },
   heroGroup: { color: theme.colors.accent, fontSize: 12, fontWeight: '700', marginTop: 16 },
   title: { fontSize: 22, lineHeight: 30, fontWeight: '800', color: theme.colors.ink, marginTop: 4 },
   tag: { color: theme.colors.inkMuted, fontSize: 13, marginTop: 4 },
