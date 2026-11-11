@@ -60,6 +60,7 @@ class SearchPlan(SupervisorModel):
     ingredient_name: str | None = Field(default=None, min_length=1, max_length=500)
     ingredient_operator: Literal["includes", "excludes"] = "includes"
     ingredient_lookup: bool = False
+    persist_ingredient_conditions: bool = Field(default=False, strict=True)
     ingredient_conditions: list[IngredientPlanCondition] = Field(default_factory=list, max_length=6)
     shade_name: str | None = Field(default=None, min_length=1, max_length=128)
     compare_ordinals: list[int] = Field(default_factory=list, max_length=2)

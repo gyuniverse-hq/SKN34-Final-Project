@@ -841,3 +841,40 @@ def test_ingredient_conditions_accumulate_and_only_explicit_same_name_replaces()
     assert len(updated.ingredient_conditions) == 2
     assert updated.ingredient_conditions[-1].operator == "includes"
     assert context.filters.ingredient_conditions[0].operator == "excludes"
+
+
+def test_detail_ingredient_changes_replace_clear_and_respect_limit():
+    from app.core.errors import ApiError
+    from app.schemas.chat import BeautyContext, BeautyFilters, IngredientFilter
+    from app.schemas.supervisor import SearchPlan
+    from app.services.beauty_consultation_service import _effective_filters
+
+    context = BeautyContext(
+        issued_at=1000,
+        filters=BeautyFilters(
+            ingredient_conditions=[
+                IngredientFilter(ingredient_name=f"Ingredient {i}", operator="excludes")
+                for i in range(6)
+            ]
+        ),
+    )
+    detail = SearchPlan(
+        intent="detail",
+        persistIngredientConditions=True,
+        ingredientName="ingredient 0",
+        ingredientOperator="includes",
+    )
+    replacement = _effective_filters(context, detail)
+    assert len(replacement.ingredient_conditions) == 6
+    assert replacement.ingredient_conditions[0].operator == "includes"
+    seventh = detail.model_copy(update={"ingredient_name": "New"})
+    with pytest.raises(ApiError) as exc:
+        _effective_filters(context, seventh)
+    assert exc.value.code == "ingredient_condition_limit"
+    cleared = _effective_filters(
+        context,
+        seventh.model_copy(
+            update={"clear_filters": ["ingredientConditions"]},
+        ),
+    )
+    assert [c.ingredient_name for c in cleared.ingredient_conditions] == ["New"]

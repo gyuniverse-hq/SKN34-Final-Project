@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from app.clients.catalog_client import IngredientLookupError
 from app.core.errors import ApiError, UpstreamError
-from app.schemas.catalog import CatalogIngredients, CatalogProduct
+from app.schemas.catalog import CatalogIngredients, CatalogProduct, IngredientDecision
 from app.schemas.chat import (
     BeautyContext,
     BeautyFilters,
@@ -89,6 +89,11 @@ moisturizing|query|ingredientConditions.
 For product ingredient questions set ingredientLookup true, intent detail, scope previous.
 ingredientName: explicit ingredient name; ingredientOperator: includes | excludes.
 ingredientConditions: list of {ingredientName: string, operator: includes | excludes}.
+persistIngredientConditions: true only when a detail request explicitly adds or changes
+a search constraint. A question about whether one product contains an ingredient is
+a one-time lookup; omit this field.
+"두 번째 제품에서 B 성분도 제외해줘" means detail, ordinal 2, excludes B,
+persistIngredientConditions true. "이 제품에 B 성분 있어?" is detail without persistence.
 For multiple ingredient constraints, include every condition in ingredientConditions,
 including detail questions. Never silently omit one. Use at most six conditions.
 Use ingredientName for ingredient conditions, never query (query is product/brand text).
@@ -866,6 +871,10 @@ def _plan_conditions(plan):
     return list(conditions.values())
 
 
+def _persists_detail_conditions(plan):
+    return plan.intent == "detail" and plan.persist_ingredient_conditions
+
+
 def _effective_filters(previous, plan):
     dependent = plan.intent in {"detail", "price", "refine"} or plan.scope == "previous"
     filters = previous.filters.model_copy(deep=True) if dependent and previous else BeautyFilters()
@@ -889,7 +898,7 @@ def _effective_filters(previous, plan):
         if field in changes and not (field == "query" and plan.intent in {"detail", "price"}):
             setattr(filters, field, changes[field])
     additions = _plan_conditions(plan)
-    if additions and plan.intent in {"search", "refine"}:
+    if additions and (plan.intent in {"search", "refine"} or _persists_detail_conditions(plan)):
 
         def normalize(name):
             return " ".join(unicodedata.normalize("NFKC", name).casefold().split())
@@ -909,7 +918,9 @@ def _effective_filters(previous, plan):
 def _combine_ingredient_results(results):
     if len(results) == 1:
         return results[0]
-    result = results[0].model_copy(deep=True)
+    verified = [item for item in results if item.verified]
+    violation = next((item for item in verified if item.verdict == "NOT_MATCH"), None)
+    result = (violation or results[0]).model_copy(deep=True)
     result.conditions = [check for item in results for check in item.conditions]
     result.synthetic = any(item.synthetic for item in results)
     consistent = (
@@ -934,13 +945,15 @@ def _combine_ingredient_results(results):
                         for i in r.ingredients
                     ),
                 )
-                for r in results
+                for r in verified
             }
         )
         == 1
     )
     failed = next((r for r in results if r.status == "error" or r.verdict == "ERROR"), None)
-    if failed or not consistent or not all(r.verified for r in results):
+    if violation is not None and consistent and result.verified:
+        return result
+    if failed or not consistent or len(verified) != len(results):
         result.status = "error" if failed else "unknown"
         result.verdict = "ERROR" if failed else "UNKNOWN"
         result.reason = failed.reason if failed else "evidence_requires_review"
@@ -955,6 +968,35 @@ def _combine_ingredient_results(results):
         if result.verdict == "UNKNOWN"
         else "verified_evidence"
     )
+    return result
+
+
+async def _lookup_ingredient_condition(catalog, pid, shade, condition):
+    try:
+        result = await catalog.get_ingredients(
+            pid, shade, ingredient_name=condition.ingredient_name, operator=condition.operator
+        )
+        if (result.product_id, result.shade_id) != (pid, shade):
+            raise IngredientLookupError("invalid_response")
+    except IngredientLookupError as exc:
+        result = _ingredient_unknown(pid, shade, exc.reason, error=True)
+    if not result.conditions and result.verdict == "ERROR":
+        result.conditions = [
+            IngredientDecision(
+                product_id=pid,
+                shade_id=shade,
+                option_id=result.option_id,
+                condition="ingredient",
+                ingredient_name=condition.ingredient_name,
+                operator=condition.operator,
+                verdict="ERROR",
+                reason=result.reason,
+                evidence_id=result.evidence_id,
+                synthetic=result.synthetic,
+            )
+        ]
+    if result.verdict in {"MATCH", "NOT_MATCH"} and not result.verified:
+        return _ingredient_unknown(pid, shade, "evidence_requires_review")
     return result
 
 
@@ -992,7 +1034,11 @@ async def _ingredient_consultation(req, plan, catalog, filters):
     }
     filtering = plan.intent in {"search", "refine"}
     fragrance_filter = filtering and context.filters.fragrance_free
-    conditions = filters.ingredient_conditions if filtering else _plan_conditions(plan)
+    conditions = (
+        filters.ingredient_conditions
+        if filtering or _persists_detail_conditions(plan)
+        else _plan_conditions(plan)
+    )
     # A follow-up can inherit ingredient conditions without repeating them in the plan.
     # Never replace those evaluations with a synthetic fragrance-only UNKNOWN.
     fragrance_only = fragrance_filter and not conditions
@@ -1045,7 +1091,9 @@ async def _ingredient_consultation(req, plan, catalog, filters):
         scan_ids = target_ids[: INGREDIENT_SEARCH_REQUEST_LIMIT // cost_per_product]
     retained = 0
     try:
-        async with asyncio.timeout(INGREDIENT_SEARCH_TIMEOUT_SECONDS if filtering else None):
+        async with asyncio.timeout(
+            INGREDIENT_SEARCH_TIMEOUT_SECONDS if filtering else None
+        ) as deadline:
             for pid in scan_ids:
                 if filtering and retained >= 6:
                     break
@@ -1094,17 +1142,22 @@ async def _ingredient_consultation(req, plan, catalog, filters):
                     context.shade_selections[pid] = shade
                 try:
                     if conditions:
-                        result = _combine_ingredient_results(
-                            [
-                                await catalog.get_ingredients(
-                                    pid,
-                                    shade,
-                                    ingredient_name=c.ingredient_name,
-                                    operator=c.operator,
+                        checks = []
+                        try:
+                            for condition in conditions:
+                                checks.append(
+                                    await _lookup_ingredient_condition(
+                                        catalog, pid, shade, condition
+                                    )
                                 )
-                                for c in conditions
-                            ]
-                        )
+                        except asyncio.CancelledError:
+                            if deadline.expired() and checks:
+                                completed = _combine_ingredient_results(checks)
+                                if completed.verified and completed.verdict == "NOT_MATCH":
+                                    products.append(product)
+                                    results.append(completed)
+                            raise
+                        result = _combine_ingredient_results(checks)
                     else:
                         result = await catalog.get_ingredients(
                             pid, shade, ingredient_name=name, operator=operator
