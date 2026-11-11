@@ -664,21 +664,57 @@ def _ingredient_difference(locale, products, results):
     if len(results) != 2 or not all(r.complete and not r.synthetic for r in results):
         return labels[11], False
 
-    names = [
-        {" ".join(_shade_label(i.name).split()): i.name for i in r.ingredients} for r in results
-    ]
+    source_hashes = {}
+    for result in results:
+        for entry in result.ingredients:
+            if entry.identity is not None:
+                ingredient_id = entry.identity.mfds_ingredient_id
+                source_hash = entry.identity.source_hash
+                if source_hashes.setdefault(ingredient_id, source_hash) != source_hash:
+                    return labels[11], False
+
+    if any(entry.identity is None for result in results for entry in result.ingredients):
+        names = [
+            {" ".join(_shade_label(entry.name).split()): entry.name for entry in result.ingredients}
+            for result in results
+        ]
+        summary_template, only = {
+            "ko": (
+                "표기명 비교: {result}. 표준 ID가 빠져 성분 구성은 확인할 수 없습니다.",
+                "{name}에만 있는 표기명: {ingredients}",
+            ),
+            "en": (
+                "Label comparison: {result}. Missing standard IDs prevent confirming composition.",
+                "Labels only on {name}: {ingredients}",
+            ),
+            "ja": (
+                "表示名の比較：{result}。標準IDが不足しているため成分構成は確認できません。",
+                "{name}にのみ記載された表示名：{ingredients}",
+            ),
+            "zh": (
+                "标示名称比较：{result}。标准 ID 不完整，无法确认成分组成。",
+                "仅 {name} 标示的名称：{ingredients}",
+            ),
+        }[locale]
+    else:
+        names = [
+            {entry.identity.mfds_ingredient_id: entry.name for entry in result.ingredients}
+            for result in results
+        ]
+        summary_template = labels[8]
+        only = {
+            "ko": "{name}에만 있는 성분: {ingredients}",
+            "en": "Ingredients only in {name}: {ingredients}",
+            "ja": "{name}にのみ含まれる成分：{ingredients}",
+            "zh": "仅 {name} 含有的成分：{ingredients}",
+        }[locale]
+
     left, right = names
     equal = left.keys() == right.keys()
-    summary = labels[8].format(result=labels[9 if equal else 10])
+    summary = summary_template.format(result=labels[9 if equal else 10])
     if equal:
         return summary, True
 
-    only = {
-        "ko": "{name}에만 있는 성분: {ingredients}",
-        "en": "Ingredients only in {name}: {ingredients}",
-        "ja": "{name}にのみ含まれる成分：{ingredients}",
-        "zh": "仅 {name} 含有的成分：{ingredients}",
-    }[locale]
     lines = [summary]
     for product, own, other in zip(products, names, reversed(names), strict=True):
         difference = ", ".join(name for key, name in own.items() if key not in other)

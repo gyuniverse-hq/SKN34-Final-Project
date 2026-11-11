@@ -808,7 +808,8 @@ async def test_ingredient_comparison_requires_both_exact_reviewed_lists(setup, d
     assert catalog.ingredient_calls and catalog.ingredient_calls[0] == ("a", "a-03"), reply.answer
     if data == "verified":
         assert reply.result_type == "product_detail"
-        assert "검증된 전체 목록 비교: 동일" in reply.answer
+        assert "표기명 비교: 동일" in reply.answer
+        assert "성분 구성은 확인할 수 없습니다" in reply.answer
         assert catalog.ingredient_calls == [("a", "a-03"), ("b", "b-03")]
     else:
         assert reply.result_type == "clarification"

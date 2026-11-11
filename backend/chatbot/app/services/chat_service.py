@@ -144,6 +144,13 @@ def look_shopping_category(message):
 
 
 def _look_search_followup(message: str) -> bool:
+    # A price constraint can refine the previous search without a recommendation verb.
+    upper_limit = re.search(
+        r"\d[\d,만천백십\s]*(?:원|krw|won|ウォン|韩元)\s*(?:이하|미만|以下|以内)"
+        r"|\b(?:under|at most|up to)\s*(?:(?:₩|krw\s*)\d[\d,]*|\d[\d,]*\s*(?:krw|won)\b)",
+        message,
+        re.I,
+    )
     price_change = (
         re.search(r"\d", message)
         and re.search(
@@ -154,7 +161,8 @@ def _look_search_followup(message: str) -> bool:
         )
     )
     return bool(
-        price_change
+        (upper_limit and not message.rstrip().endswith(("?", "？")))
+        or price_change
         or (
             _SHOPPING.search(message)
             and re.search(

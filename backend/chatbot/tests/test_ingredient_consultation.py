@@ -614,13 +614,59 @@ async def test_comparison_requires_verified_full_lists(monkeypatch, case):
         assert "차이를 확정할 수 없습니다" in result.answer
     elif case == "different":
         assert "차이 있음" in result.answer
-        assert "a에만 있는 성분: 향료" in result.answer
-        assert "b에만 있는 성분: 글리세린" in result.answer
+        assert "a에만 있는 표기명: 향료" in result.answer
+        assert "b에만 있는 표기명: 글리세린" in result.answer
     else:
         assert "동일" in result.answer
     assert [p.id for p in result.products] == ["a", "b"]
     result = await service.answer(request(context(shades=False)))
     assert "차이를 확정할 수 없습니다" in result.answer
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("left", "right", "expected", "forbidden"),
+    [
+        (("글리세린", 101), ("Glycerin", 101), "비교: 동일", "차이 있음"),
+        (("성분 A", 101), ("성분 B", 102), "b에만 있는 성분: 성분 B", "비교: 동일"),
+        (("같은 표기", 101), ("같은 표기", 102), "차이 있음", "비교: 동일"),
+        (("글리세린", None), ("글리세린", None), "표기명 비교: 동일", "전체 목록 비교: 동일"),
+        (("글리세린", 101), ("Glycerin", None), "표기명 비교: 차이 있음", "있는 성분:"),
+        (("글리세린", 101), ("Glycerin", 101, "b"), "차이를 확정할 수 없습니다", "비교: 동일"),
+    ],
+)
+async def test_comparison_respects_verified_mfds_identity(
+    monkeypatch, left, right, expected, forbidden
+):
+    def handler(req):
+        pid = req.url.path.split("/")[-2]
+        name, mfds_id, *fingerprint = left if pid == "a" else right
+        entry = {"name": name, "sequence": 1}
+        if mfds_id is not None:
+            entry["identity"] = {
+                "mfdsIngredientId": mfds_id,
+                "nameKo": "표준명",
+                "sourceHash": (fingerprint[0] if fingerprint else "a") * 64,
+                "matchMethod": "official_synonym",
+                "ruleVersion": "fixture-v1",
+            }
+        return httpx.Response(
+            200,
+            json=evidence(pid=pid, shade=f"{pid}-03", synthetic=False, ingredients=[entry]),
+        )
+
+    install_http(monkeypatch, handler)
+    service = ChatService(
+        None,
+        PlanLlm(intent="detail", compareOrdinals=[1, 2]),
+        IngredientsCatalog(CatalogClient("http://catalog.test")),
+    )
+    ctx = context()
+    result = await service.answer(request(ctx))
+    assert expected in result.answer
+    assert forbidden not in result.answer
+    assert [p.id for p in result.products] == ["a", "b"]
+    assert result.chat_context == ctx
 
 
 @pytest.mark.anyio

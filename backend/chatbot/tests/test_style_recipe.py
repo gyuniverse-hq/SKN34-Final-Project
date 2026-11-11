@@ -314,7 +314,13 @@ async def test_look_shopping_grounds_product_query_in_the_request(message, query
 
 @pytest.mark.anyio
 @pytest.mark.parametrize(
-    "question", ["그중 1만 8천원 이하로 다시 추천해줘", "1만 8천원 이하로 바꿔줘"]
+    "question",
+    [
+        "그중 1만 8천원 이하로 다시 추천해줘",
+        "1만 8천원 이하로 바꿔줘",
+        "1만 8천원 이하로 해줘",
+        "그럼 18,000원 이하만",
+    ],
 )
 async def test_look_budget_followup_keeps_the_grounded_brand_and_recipe_step(question):
     from app.repositories.chat_session_repository import ChatSessionRepository
@@ -351,6 +357,8 @@ async def test_look_budget_followup_keeps_the_grounded_brand_and_recipe_step(que
         18000,
         True,
     )
+    assert filters == first.chat_context.filters.model_copy(update={"max_price_krw": 18000})
+    assert followup.chat_context.session.session_id == first.chat_context.session.session_id
     assert followup.style_context is None and req.style_context.current_step == 2
 
 
