@@ -144,12 +144,24 @@ def look_shopping_category(message):
 
 
 def _look_search_followup(message: str) -> bool:
-    return bool(
-        _SHOPPING.search(message)
+    price_change = (
+        re.search(r"\d", message)
         and re.search(
-            r"다시|그중|아까|\bagain\b|\bfrom those\b|もう一度|もう一回|再推荐|重新推荐",
-            message,
-            re.I,
+            r"원|이하|미만|예산|krw|won|under|budget|ウォン|以下|以内|预算|韩元", message, re.I
+        )
+        and re.search(
+            r"바꿔|변경|낮춰|올려|맞춰|change|lower|raise|set|変更|変えて|改成|换成", message, re.I
+        )
+    )
+    return bool(
+        price_change
+        or (
+            _SHOPPING.search(message)
+            and re.search(
+                r"다시|그중|아까|\bagain\b|\bfrom those\b|もう一度|もう一回|再推荐|重新推荐",
+                message,
+                re.I,
+            )
         )
     )
 
@@ -669,6 +681,10 @@ class ChatService:
         response = await self._run_supervisor(req, context, decision)
         result = response.supervisor.result
         ctx = response.chat_context
+        if state and comparing and req.screen_context and req.screen_context.ingredient_comparison:
+            response.chat_context = state.context.model_copy(deep=True, update={"session": ref})
+            response.session_status = "unchanged"
+            return response
         partial_ingredients = bool(response.products) and any(
             r.product_id in {p.id for p in response.products}
             and r.status != "error"

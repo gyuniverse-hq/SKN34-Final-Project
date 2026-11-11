@@ -229,6 +229,33 @@ async def test_style_followup_answers_technique_without_moving_the_step(question
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    "question",
+    ["아이라인이 번지지 않게 하는 방법 알려줘", "다음 단계에서 아이라인이 번질 때 대처법 알려줘"],
+)
+async def test_style_smudge_question_is_general_advice_and_keeps_step(question):
+    catalog = StyleCatalog()
+    first = await ask(catalog)
+    current = first.style_context.model_copy(update={"current_step": 1})
+    reply = await ask(catalog, question, current)
+    assert reply.style_context.current_step == 1
+    assert "번짐" in reply.answer and "유분" in reply.answer
+    assert "일반 팁" in reply.answer and "영상" in reply.answer
+    assert (await ask(catalog, "다음 단계", current)).style_context.current_step == 2
+
+
+@pytest.mark.anyio
+async def test_question_about_unverified_video_technique_does_not_move_recipe():
+    catalog = StyleCatalog()
+    first = await ask(catalog)
+    current = first.style_context.model_copy(update={"current_step": 1})
+    reply = await ask(catalog, "영상에서 다음 단계의 아이라인이 번지지 않게 하는 방법은?", current)
+    assert reply.style_context.current_step == 1
+    assert "확인되지 않았습니다" in reply.answer
+    assert "유분" not in reply.answer
+
+
+@pytest.mark.anyio
 async def test_look_shopping_uses_validated_catalog_context_without_moving_recipe():
     from tests.test_beauty_consultation import PlanLlm
 
@@ -286,7 +313,10 @@ async def test_look_shopping_grounds_product_query_in_the_request(message, query
 
 
 @pytest.mark.anyio
-async def test_look_budget_followup_keeps_the_grounded_brand_and_recipe_step():
+@pytest.mark.parametrize(
+    "question", ["그중 1만 8천원 이하로 다시 추천해줘", "1만 8천원 이하로 바꿔줘"]
+)
+async def test_look_budget_followup_keeps_the_grounded_brand_and_recipe_step(question):
     from app.repositories.chat_session_repository import ChatSessionRepository
     from tests.test_beauty_consultation import PlanLlm
     from tests.test_chat_sessions import RedisDouble
@@ -307,7 +337,7 @@ async def test_look_budget_followup_keeps_the_grounded_brand_and_recipe_step():
     followup = await service.answer(
         req.model_copy(
             update={
-                "message": "그중 1만 8천원 이하로 다시 추천해줘",
+                "message": question,
                 "chat_context": first.chat_context,
             }
         ),

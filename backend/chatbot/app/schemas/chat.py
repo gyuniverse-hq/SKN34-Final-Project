@@ -7,7 +7,7 @@ from pydantic.alias_generators import to_camel
 from app.schemas.ar_geometry import STYLE_IDS
 from app.schemas.catalog import CatalogIngredients
 from app.schemas.style_recipe import StyleContext, StyleRecipe
-from app.schemas.supervisor import ScreenContext, SupervisorResult, ToolResult
+from app.schemas.supervisor import IngredientComparison, ScreenContext, SupervisorResult, ToolResult
 
 Locale = Literal["en", "ko", "ja", "zh"]
 
@@ -304,6 +304,9 @@ class ChatResponse(ApiModel):
     evidence: list[ProductEvidence] | None = Field(default=None, exclude_if=lambda v: v is None)
     ingredient_results: list[CatalogIngredients] | None = Field(
         default=None, exclude_if=lambda v: v is None
+    )
+    ingredient_comparison: IngredientComparison | None = Field(
+        default=None, exclude_if=lambda value: value is None
     )
     fragrance_search_summary: FragranceSearchSummary | None = Field(
         default=None, exclude_if=lambda v: v is None

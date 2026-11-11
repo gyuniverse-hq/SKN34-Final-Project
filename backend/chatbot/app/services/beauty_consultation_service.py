@@ -22,7 +22,13 @@ from app.schemas.chat import (
     ProductEvidence,
     ProductRef,
 )
-from app.schemas.supervisor import ConditionCheck, EvidenceRef, SearchPlan, ToolResult
+from app.schemas.supervisor import (
+    ConditionCheck,
+    EvidenceRef,
+    IngredientComparison,
+    SearchPlan,
+    ToolResult,
+)
 
 CONTEXT_TTL_SECONDS = 600
 # Evidence-loop budget only; Catalog search and session validation are separate requests.
@@ -514,6 +520,12 @@ async def _compare_product(req, plan, catalog):
         and _comparison_ordinal(req.message, ordinal)
         else None
     )
+    continuation = _ingredient_comparison_continuation(req)
+    if continuation:
+        if continuation.current_product_id != product_id:
+            return _reply(clarify, context)
+        target_id = continuation.target_product_id
+        target = None
     if not target and not target_id:
         return _reply(clarify, context)
 
@@ -538,7 +550,9 @@ async def _compare_product(req, plan, catalog):
     if (screen and screen.screen_id == "product-ingredient-comparison") or _INGREDIENT_TOPIC.search(
         req.message
     ):
-        return await _compare_product_ingredients(req, catalog, context, current, candidate)
+        return await _compare_product_ingredients(
+            req, catalog, context, current, candidate, continuation
+        )
 
     words = TEXT[req.locale]
     # A comparison is informational; it cannot silently replace or renumber existing candidates.
@@ -561,39 +575,120 @@ def _price_summary(product, words):
     return f"{product.brand} {product.name}\n{reference}\n{words['live_unavailable']} {provenance}"
 
 
-async def _compare_product_ingredients(req, catalog, context, current, candidate):
+def _ingredient_comparison_continuation(req):
+    screen = req.screen_context
+    if screen and screen.screen_id == "product-ingredient-comparison":
+        return screen.ingredient_comparison
+    return None
+
+
+def _match_comparison_shade(product, message):
+    label = _shade_label(message)
+    exact = [shade.id for shade in product.shades if _shade_label(shade.name) == label]
+    if exact:
+        return exact[0] if len(exact) == 1 else None
+    number = re.fullmatch(r"#?\s*(\d{1,6})\s*(?:호|番|号)?(?:로|으로)?", label)
+    if not number:
+        return None
+    matches = [
+        shade.id
+        for shade in product.shades
+        if (prefix := re.match(r"(\d{1,6})(?!\d)", _shade_label(shade.name)))
+        and int(prefix[1]) == int(number[1])
+    ]
+    return matches[0] if len(matches) == 1 else None
+
+
+async def _compare_product_ingredients(req, catalog, context, current, candidate, continuation):
     labels = INGREDIENT_TEXT[req.locale]
     screen = req.screen_context
     selected = dict(context.shade_selections)
+    if continuation:
+        for product, saved in (
+            (current, continuation.current_shade_id),
+            (candidate, continuation.target_shade_id),
+        ):
+            if saved and any(shade.id == saved for shade in product.shades):
+                selected[product.id] = saved
     if screen and screen.product_id and screen.shade_id:
         selected[screen.product_id] = screen.shade_id
-    targets = [(p, selected.get(p.id)) for p in (current, candidate)]
-    missing = [p.name for p, shade in targets if p.shades and shade not in {s.id for s in p.shades}]
-    if missing:
-        return _reply(f"{', '.join(missing)}. {labels[0]}", context)
+    if continuation:
+        pending_product = current if continuation.awaiting == "current" else candidate
+        selected[pending_product.id] = _match_comparison_shade(pending_product, req.message)
 
-    lists = []
-    for product, shade in targets:
+    def validated_shade(product):
+        shade = selected.get(product.id)
+        return shade if any(option.id == shade for option in product.shades) else None
+
+    current_shade, target_shade = map(validated_shade, (current, candidate))
+    for product, shade, side in (
+        (current, current_shade, "current"),
+        (candidate, target_shade, "target"),
+    ):
+        if product.shades and shade is None:
+            prompt = {
+                "ko": "{name}의 정확한 호수 이름이나 번호를 입력해 주세요.",
+                "en": "Enter the exact shade name or number for {name}.",
+                "ja": "{name} の正確な色名または色番を入力してください。",
+                "zh": "请输入 {name} 的准确色名或色号。",
+            }[req.locale]
+            response = _reply(prompt.format(name=product.name), context)
+            response.ingredient_comparison = IngredientComparison(
+                current_product_id=current.id,
+                target_product_id=candidate.id,
+                current_shade_id=current_shade,
+                target_shade_id=target_shade,
+                awaiting=side,
+            )
+            return response
+
+    results = []
+    for product, shade in ((current, current_shade), (candidate, target_shade)):
         try:
             result = await catalog.get_ingredients(product.id, shade)
         except IngredientLookupError:
             return _reply(labels[11], context)
-        if (
-            (result.product_id, result.shade_id) != (product.id, shade)
-            or not result.complete
-            or result.synthetic
-        ):
+        if (result.product_id, result.shade_id) != (product.id, shade):
             return _reply(labels[11], context)
-        lists.append([ingredient.name for ingredient in result.ingredients])
-    names = " / ".join(p.name for p in (current, candidate))
+        results.append(result)
+    comparison, verified = _ingredient_difference(req.locale, (current, candidate), results)
     return _reply(
-        f"{names}\n{labels[8].format(result=labels[9 if lists[0] == lists[1] else 10])}",
+        f"{current.name} / {candidate.name}\n{comparison}",
         context,
-        result_type="product_detail",
+        result_type="product_detail" if verified else "clarification",
     )
 
 
+def _ingredient_difference(locale, products, results):
+    labels = INGREDIENT_TEXT[locale]
+    if len(results) != 2 or not all(r.complete and not r.synthetic for r in results):
+        return labels[11], False
+
+    names = [
+        {" ".join(_shade_label(i.name).split()): i.name for i in r.ingredients} for r in results
+    ]
+    left, right = names
+    equal = left.keys() == right.keys()
+    summary = labels[8].format(result=labels[9 if equal else 10])
+    if equal:
+        return summary, True
+
+    only = {
+        "ko": "{name}에만 있는 성분: {ingredients}",
+        "en": "Ingredients only in {name}: {ingredients}",
+        "ja": "{name}にのみ含まれる成分：{ingredients}",
+        "zh": "仅 {name} 含有的成分：{ingredients}",
+    }[locale]
+    lines = [summary]
+    for product, own, other in zip(products, names, reversed(names), strict=True):
+        difference = ", ".join(name for key, name in own.items() if key not in other)
+        lines.append(only.format(name=product.name, ingredients=difference or "—"))
+    return "\n".join(lines), True
+
+
 async def interpret_beauty(req: ChatRequest, llm, look_profile=None) -> SearchPlan:
+    if _ingredient_comparison_continuation(req):
+        return SearchPlan(intent="detail")
     if not llm.configured:
         raise ApiError(503, "Chatbot is not configured", "chatbot_unavailable")
     try:
@@ -1508,13 +1603,8 @@ async def _ingredient_consultation(req, plan, catalog, filters):
             text += " " + labels[12]
         lines.append(f"{product.brand} {product.name}: {text}")
     if plan.compare_ordinals:
-        if len(results) == 2 and all(r.complete for r in results):
-            equal = [i.name for i in results[0].ingredients] == [
-                i.name for i in results[1].ingredients
-            ]
-            lines.append(labels[8].format(result=labels[9 if equal else 10]))
-        else:
-            lines.append(labels[11])
+        comparison, _ = _ingredient_difference(req.locale, products, results)
+        lines.append(comparison)
     if fragrance_filter and not fragrance_only:
         lines.append(words["fragrance"])
     if not lines and not scan_limited:

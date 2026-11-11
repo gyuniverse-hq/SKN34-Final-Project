@@ -287,7 +287,7 @@ TIPS = {
 }
 
 _ADVICE = re.compile(
-    r"어떻게|하려면|하면|도구|팁|자연스럽|쉽게|무슨 브러시|how"
+    r"어떻게|하려면|하면|도구|팁|자연스럽|쉽게|브러시|방법|요령|대처법|\bhow\b"
     r"|tips?|which brush|what (?:tool|brush)"
     r"|自然に|コツ|道具|どう|怎么|怎样|如何|工具|自然",
     re.I,
@@ -302,8 +302,23 @@ _ADVICE_ZONES = {
 }
 
 
+_SMUDGING = re.compile(r"번지|번져|번짐|번질|smudg|transfer|にじ|滲|晕染|晕开|脱妆", re.I)
+_EYELINER_SMUDGE_TIP = {
+    "ko": "아이라인 번짐을 줄이려면 눈가 유분을 먼저 가볍게 닦고, 얇게 그린 뒤 완전히 말려 주세요.",
+    "en": "To reduce smudging, gently blot oil around the eye, draw a thin line, and let it dry.",
+    "ja": "にじみを防ぐには、目元の皮脂を軽く押さえ、細く描いてしっかり乾かします。",
+    "zh": "想减少眼线晕染，可以先轻轻吸去眼周油脂，画细一点并等它完全干透。",
+}
+_GENERAL_TIP_NOTICE = {
+    "ko": "일반 팁입니다. 영상에서 이 방법을 썼는지는 확인되지 않았습니다.",
+    "en": "This is a general tip. Its use in the video has not been verified.",
+    "ja": "一般的なコツです。動画で使われた方法かどうかは未確認です。",
+    "zh": "这是一般技巧，尚未确认视频中是否采用了这种方法。",
+}
+
+
 def style_advice(message, steps, index, locale, followup):
-    if not _ADVICE.search(message) or re.search(
+    if not (_ADVICE.search(message) or _SMUDGING.search(message)) or re.search(
         r"영상에서|in the video|動画では|视频里", message, re.I
     ):
         return None
@@ -312,6 +327,8 @@ def style_advice(message, steps, index, locale, followup):
         steps[index].zone if steps and followup else None,
     )
     zone = "cheek" if zone == "blush" else zone
+    if zone == "eyeliner" and _SMUDGING.search(message):
+        return _EYELINER_SMUDGE_TIP[locale]
     return TIPS[locale].get(zone)
 
 
@@ -418,7 +435,8 @@ async def execute_style(req, catalog):
         eye_request = re.search(r"눈 화장|eye makeup|アイメイク|眼妆", message)
         if eye_request and not any(s.zone in {"eyeshadow", "eyeliner", "mascara"} for s in steps):
             return empty("clarification", "eye_step_unavailable", "zone_missing")
-        if not changed:
+        tip = style_advice(message, steps, index, req.locale, context.recipe_id is not None)
+        if not changed and not tip and not _ADVICE.search(message):
             if re.search(
                 r"첫 단계|처음 단계|처음부터|first step|from the beginning|最初|第一步|从头",
                 message,
@@ -519,8 +537,9 @@ async def execute_style(req, catalog):
             else "video_not_analyzed",
             makeup=makeup,
         )
-        tip = style_advice(message, steps, index, req.locale, context.recipe_id is not None)
         answer = tip or text[notice]
+        if tip and context.kind == "video":
+            answer += "\n" + _GENERAL_TIP_NOTICE[req.locale]
         if result.synthetic:
             answer += "\n" + text["synthetic"]
         if changed:

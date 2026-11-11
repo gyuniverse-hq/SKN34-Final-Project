@@ -729,6 +729,51 @@ async def test_named_ingredient_comparison_does_not_fall_back_to_prices(setup):
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("with_session", [False, True])
+async def test_direct_ingredient_comparison_resumes_after_target_shade_input(setup, with_session):
+    service, redis, _, _ = setup
+    catalog = service._catalog
+    catalog.products[1].name = "퓌 글로스"
+    screen = {"screenId": "product-detail", "productId": "a", "shadeId": "a-03"}
+    initial = (await first(setup)).chat_context if with_session else None
+    writes_before = redis.writes
+    service._llm.plan = {"intent": "detail", "query": "퓌 글로스"}
+    pending = await service.answer(
+        request(initial, message="이 제품과 퓌 글로스의 성분 비교", screen=screen), "guest:one"
+    )
+    assert pending.result_type == "clarification" and "호수" in pending.answer
+    continuation = pending.model_dump(mode="json")["ingredientComparison"]
+    assert continuation["targetProductId"] == "b" and continuation["awaiting"] == "target"
+    assert not catalog.ingredient_calls and redis.writes == writes_before
+
+    async def ingredients(pid, shade):
+        catalog.ingredient_calls.append((pid, shade))
+        return CatalogIngredients.model_validate(evidence(pid=pid, shade=shade, synthetic=False))
+
+    catalog.get_ingredients = ingredients
+    followup = {
+        **screen,
+        "screenId": "product-ingredient-comparison",
+        "ingredientComparison": continuation,
+    }
+    invalid = await service.answer(request(initial, message="99호", screen=followup), "guest:one")
+    assert invalid.ingredient_comparison.awaiting == "target" and not catalog.ingredient_calls
+    reply = await service.answer(request(initial, message="03호", screen=followup), "guest:one")
+    assert reply.result_type == "product_detail" and "동일" in reply.answer
+    assert catalog.ingredient_calls == [("a", "a-03"), ("b", "b-03")]
+    if with_session:
+        assert reply.chat_context.candidate_ids == initial.candidate_ids
+        assert reply.chat_context.selected_product_id == initial.selected_product_id
+        assert reply.chat_context.shade_selections == initial.shade_selections
+        assert reply.chat_context.session == initial.session
+        assert redis.writes == writes_before
+    else:
+        assert reply.chat_context.candidate_ids == ["a"]
+        assert reply.chat_context.selected_product_id == "a"
+        assert "b" not in reply.chat_context.shade_selections
+
+
+@pytest.mark.anyio
 @pytest.mark.parametrize("data", ["unverified", "synthetic", "verified"])
 async def test_ingredient_comparison_requires_both_exact_reviewed_lists(setup, data):
     service, _, _, _ = setup

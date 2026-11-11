@@ -437,9 +437,11 @@ function ChatConversation({ record, onRecent, onNew }: {
     const comparing = /비교|차이|\bcompar(?:e|ison)\b|\bdiffer(?:s|ent|ence|ences)?\b|比較|違い|对比|比较|区别/i;
     const comparisonTarget = !!focusedProduct?.productId && lastReply?.resultType === 'clarification' &&
       comparing.test(lastReply.question ?? '') && !comparing.test(text) && !shopping && !technique && !/[?？]/.test(text);
+    const pendingComparison = lastReply?.ingredientComparison;
     const ingredientComparison = /성분|향료|\bingredients?\b|\bfragrance\b|成分|香料/i.test(lastReply?.question ?? '');
     const screen = comparisonTarget ? {
       ...focusedProduct, screenId: ingredientComparison ? 'product-ingredient-comparison' : 'product-comparison',
+      ...(pendingComparison?.currentProductId === focusedProduct?.productId ? { ingredientComparison: pendingComparison } : {}),
     } : focusedProduct;
     const snapshot: ChatRequestSnapshot = original ?? {
       automatic,
@@ -532,6 +534,7 @@ function ChatConversation({ record, onRecent, onNew }: {
         chatContext: displayContext(response.chatContext), evidence: response.evidence,
         resultType: response.resultType, ingredientResults: response.ingredientResults,
         fragranceSearchSummary: response.fragranceSearchSummary,
+        ingredientComparison: response.ingredientComparison,
         styleRecipe: response.styleRecipe,
       };
       setMessages((current) => {

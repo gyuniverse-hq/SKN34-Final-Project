@@ -579,8 +579,8 @@ async def test_cheapest_followup_does_not_treat_catalog_failure_as_missing_price
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("different", [False, True])
-async def test_comparison_requires_verified_full_lists(monkeypatch, different):
+@pytest.mark.parametrize("case", ["same", "reordered", "different", "synthetic"])
+async def test_comparison_requires_verified_full_lists(monkeypatch, case):
     def handler(req):
         pid = req.url.path.split("/")[-2]
         return httpx.Response(
@@ -588,11 +588,17 @@ async def test_comparison_requires_verified_full_lists(monkeypatch, different):
             json=evidence(
                 pid=pid,
                 shade=f"{pid}-03",
+                synthetic=case == "synthetic",
                 ingredients=[
-                    {
-                        "name": "정제수" if different and pid == "b" else "향료",
-                        "sequence": 1,
-                    }
+                    {"name": name, "sequence": i}
+                    for i, name in enumerate(
+                        ["정제수", "향료"]
+                        if case == "reordered" and pid == "b"
+                        else ["정제수", "글리세린"]
+                        if case == "different" and pid == "b"
+                        else ["향료", "정제수"],
+                        1,
+                    )
                 ],
             ),
         )
@@ -604,7 +610,14 @@ async def test_comparison_requires_verified_full_lists(monkeypatch, different):
         IngredientsCatalog(CatalogClient("http://catalog.test")),
     )
     result = await service.answer(request(context()))
-    assert ("차이 있음" if different else "동일") in result.answer
+    if case == "synthetic":
+        assert "차이를 확정할 수 없습니다" in result.answer
+    elif case == "different":
+        assert "차이 있음" in result.answer
+        assert "a에만 있는 성분: 향료" in result.answer
+        assert "b에만 있는 성분: 글리세린" in result.answer
+    else:
+        assert "동일" in result.answer
     assert [p.id for p in result.products] == ["a", "b"]
     result = await service.answer(request(context(shades=False)))
     assert "차이를 확정할 수 없습니다" in result.answer

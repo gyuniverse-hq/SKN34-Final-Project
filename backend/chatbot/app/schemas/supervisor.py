@@ -14,7 +14,20 @@ class SupervisorModel(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
 
 
+class IngredientComparison(SupervisorModel):
+    model_config = ConfigDict(serialize_by_alias=True)
+
+    current_product_id: str = Field(min_length=1, max_length=128)
+    target_product_id: str = Field(min_length=1, max_length=128)
+    current_shade_id: str | None = Field(default=None, max_length=128)
+    target_shade_id: str | None = Field(default=None, max_length=128)
+    awaiting: Literal["current", "target"]
+
+
 class ScreenContext(SupervisorModel):
+    ingredient_comparison: IngredientComparison | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     screen_id: str | None = Field(default=None, max_length=64)
     product_id: str | None = Field(default=None, max_length=128)
     shade_id: str | None = Field(default=None, max_length=128)

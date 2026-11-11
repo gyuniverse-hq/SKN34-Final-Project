@@ -383,6 +383,23 @@ describe('server session recovery', () => {
     await act(async () => view.unmount());
   });
 
+  it('sends a shade answer with the resolved comparison target', async () => {
+    Object.assign(mockRouteParams, { productId: 'p1', shadeId: 'p1-02' });
+    const ingredientComparison = {
+      currentProductId: 'p1', targetProductId: 'p2', currentShadeId: 'p1-02', awaiting: 'target',
+    };
+    mockMutateAsync.mockResolvedValueOnce({
+      answer: '퓌 글로스의 호수를 알려 주세요.', products: [], resultType: 'clarification', ingredientComparison,
+    }).mockResolvedValueOnce({ answer: 'Verified comparison', products: [], resultType: 'product_detail' });
+    const view = await renderScreen();
+    await send(view, '퓌 글로스와 성분 비교해줘');
+    await send(view, '03호');
+    expect(mockMutateAsync.mock.calls[1][0].screenContext).toEqual({
+      screenId: 'product-ingredient-comparison', productId: 'p1', shadeId: 'p1-02', ingredientComparison,
+    });
+    await act(async () => view.unmount());
+  });
+
   it('starts a new product room with its selected shade and no automatic request', async () => {
     Object.assign(mockRouteParams, { productId: 'p1', shadeId: 'p1-02' });
     mockMutateAsync.mockResolvedValueOnce({ answer: 'Price: ₩15000', products: [], chatContext: context });
