@@ -19,17 +19,24 @@
 """
 
 from datetime import date, datetime
+from uuid import UUID
 
 from sqlalchemy import (
+    ARRAY,
     BigInteger,
     CheckConstraint,
     Date,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
+    Integer,
     SmallInteger,
     Text,
+    UniqueConstraint,
+    Uuid,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -39,6 +46,9 @@ from app.core.db import Base
 RIGHTS = "('pending_confirmation', 'local_only', 'service_approved', 'blocked')"
 REVIEW = "('ingested', 'needs_review', 'approved', 'rejected', 'rights_blocked')"
 MATCH = "('matched', 'unmatched', 'ambiguous', 'not_attempted')"
+REVIEW_PROGRESS = "('not_started', 'in_progress', 'completed')"
+CLAIM_DECISIONS = "('approved', 'limited_approved', 'on_hold', 'excluded')"
+LEGACY_SUPPORT = "('pending', 'direct', 'indirect', 'insufficient', 'contradicting')"
 
 
 class AihubDatasetReleaseRow(Base):
@@ -112,6 +122,9 @@ class AihubQaCaseRow(Base):
     __tablename__ = "aihub_qa_case"
     __table_args__ = (
         CheckConstraint(f"review_status IN {REVIEW}", name="ck_aihub_qa_case_review"),
+        CheckConstraint(
+            f"review_progress IN {REVIEW_PROGRESS}", name="ck_aihub_qa_case_review_progress"
+        ),
         # 배제했으면 왜 배제했는지가 남아야 한다. 상태만으로는 사유를 알 수 없다.
         CheckConstraint(
             "review_status NOT IN ('rejected', 'rights_blocked') OR exclusion_reason IS NOT NULL",
@@ -140,9 +153,10 @@ class AihubQaCaseRow(Base):
     # 추천·주의 성분은 원문 문자열로 보존한다. 분해한 후보는 aihub_ingredient_mention 에 있다.
     recommended_raw: Mapped[str | None] = mapped_column(Text, nullable=True)
     avoid_raw: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # 검수 수명주기. approved 는 출처 연결과 근거 검토를 통과한 뒤에만 준다.
+    # 이전 적재 및 검수 기록. 서비스 승인 판정에는 사용하지 않는다.
     review_status: Mapped[str] = mapped_column(Text, server_default="ingested", nullable=False)
     exclusion_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    review_progress: Mapped[str] = mapped_column(Text, server_default="not_started", nullable=False)
 
 
 class AihubKnowledgeDocumentRow(Base):
@@ -156,10 +170,19 @@ class AihubKnowledgeDocumentRow(Base):
             "review_status NOT IN ('rejected', 'rights_blocked') OR exclusion_reason IS NOT NULL",
             name="ck_aihub_knowledge_document_exclusion",
         ),
+        CheckConstraint(
+            "(source_identifier IS NULL AND source_version IS NULL) OR "
+            "(source_identifier IS NOT NULL AND btrim(source_identifier) <> '' "
+            "AND source_version IS NOT NULL AND btrim(source_version) <> '')",
+            name="ck_aihub_document_source_version",
+        ),
+        UniqueConstraint("source_identifier", "source_version", name="uq_aihub_document_version"),
     )
 
     document_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     content_sha256: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    source_identifier: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_version: Mapped[str | None] = mapped_column(Text, nullable=True)
     title_raw: Mapped[str | None] = mapped_column(Text, nullable=True)
     author_raw: Mapped[str | None] = mapped_column(Text, nullable=True)
     publisher_raw: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -268,6 +291,7 @@ class AihubIngredientMentionRow(Base):
 
     __tablename__ = "aihub_ingredient_mention"
     __table_args__ = (
+        UniqueConstraint("seq", "mention_type", "raw_text", name="uq_aihub_ingredient_mention_raw"),
         CheckConstraint(
             "mention_type IN ('recommended', 'avoid')", name="ck_aihub_ingredient_mention_type"
         ),
@@ -304,13 +328,78 @@ class AihubIngredientMentionRow(Base):
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
+class AihubClaimVersionRow(Base):
+    """주장과 적용 범위의 개정본. 검수 결과 변경은 새 개정본으로 남긴다."""
+
+    __tablename__ = "aihub_claim_version"
+    __table_args__ = (
+        UniqueConstraint("claim_key", "revision", name="uq_aihub_claim_revision"),
+        CheckConstraint(
+            "revision > 0 AND btrim(canonical_text) <> '' "
+            "AND jsonb_typeof(applicability) = 'object'",
+            name="ck_aihub_claim_version_content",
+        ),
+        CheckConstraint(
+            "(review_progress IN ('not_started', 'in_progress') AND approval_status IS NULL "
+            "AND reviewer IS NULL AND reviewed_at IS NULL AND decision_reason IS NULL) OR "
+            f"(review_progress = 'completed' AND approval_status IS NOT NULL "
+            f"AND approval_status IN {CLAIM_DECISIONS} "
+            "AND reviewer IS NOT NULL AND btrim(reviewer) <> '' AND reviewed_at IS NOT NULL "
+            "AND decision_reason IS NOT NULL AND btrim(decision_reason) <> '')",
+            name="ck_aihub_claim_version_decision",
+        ),
+        CheckConstraint(
+            "array_position(approved_uses, NULL) IS NULL "
+            "AND approved_uses <@ ARRAY['explain', 'rank', 'avoid']::text[] "
+            "AND (CASE WHEN approval_status IN ('approved', 'limited_approved') "
+            "THEN cardinality(approved_uses) > 0 ELSE cardinality(approved_uses) = 0 END) "
+            "AND (approval_status IS DISTINCT FROM 'limited_approved' "
+            "OR applicability <> '{}'::jsonb)",
+            name="ck_aihub_claim_version_uses",
+        ),
+    )
+
+    claim_version_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    claim_key: Mapped[UUID] = mapped_column(Uuid, nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    canonical_text: Mapped[str] = mapped_column(Text, nullable=False)
+    applicability: Mapped[dict] = mapped_column(
+        JSONB, server_default=text("'{}'::jsonb"), nullable=False
+    )
+    review_progress: Mapped[str] = mapped_column(Text, server_default="not_started", nullable=False)
+    approval_status: Mapped[str | None] = mapped_column(Text, nullable=True)
+    approved_uses: Mapped[list[str]] = mapped_column(
+        ARRAY(Text), server_default=text("'{}'::text[]"), nullable=False
+    )
+    reviewer: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    decision_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class AihubQaClaimRow(Base):
+    """원본 QA에서 개정본을 찾는 연결. 같은 주장을 여러 QA에서 재사용한다."""
+
+    __tablename__ = "aihub_qa_claim"
+    __table_args__ = (
+        CheckConstraint("btrim(answer_locator) <> ''", name="ck_aihub_qa_claim_locator"),
+        Index("ix_aihub_qa_claim_version", "claim_version_id"),
+    )
+
+    seq: Mapped[str] = mapped_column(Text, ForeignKey("aihub_qa_case.seq"), primary_key=True)
+    claim_version_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("aihub_claim_version.claim_version_id"), primary_key=True
+    )
+    answer_locator: Mapped[str] = mapped_column(Text, nullable=False)
+
+
 class AihubClaimReviewRow(Base):
     """주장·근거 검수. parsed 나 source_matched 가 자동으로 승인이 되지 않는다."""
 
     __tablename__ = "aihub_claim_review"
     __table_args__ = (
         CheckConstraint(
-            "support_status IN ('pending', 'direct', 'indirect', 'insufficient', 'contradicting')",
+            f"support_status IN {LEGACY_SUPPORT} OR "
+            "(claim_version_id IS NOT NULL AND support_status IN ('limited', 'unverifiable'))",
             name="ck_aihub_claim_review_support",
         ),
         CheckConstraint(f"rights_status IN {RIGHTS}", name="ck_aihub_claim_review_rights"),
@@ -323,8 +412,35 @@ class AihubClaimReviewRow(Base):
             "support_status = 'pending' OR (reviewer IS NOT NULL AND reviewed_at IS NOT NULL)",
             name="ck_aihub_claim_review_reviewed",
         ),
+        ForeignKeyConstraint(
+            ["seq", "claim_version_id"],
+            ["aihub_qa_claim.seq", "aihub_qa_claim.claim_version_id"],
+            name="fk_aihub_claim_review_qa_claim",
+        ),
+        ForeignKeyConstraint(
+            ["seq", "source_position"],
+            ["aihub_qa_source_link.seq", "aihub_qa_source_link.source_position"],
+            name="fk_aihub_claim_review_source_position",
+        ),
+        CheckConstraint(
+            "(source_position IS NULL OR (seq IS NOT NULL AND claim_version_id IS NOT NULL)) "
+            "AND (claim_version_id IS NULL OR document_id IS NOT NULL "
+            "OR source_position IS NOT NULL)",
+            name="ck_aihub_claim_review_version_source",
+        ),
+        CheckConstraint(
+            "claim_version_id IS NULL OR support_status = 'pending' OR "
+            "(reviewer IS NOT NULL AND btrim(reviewer) <> '' "
+            "AND notes IS NOT NULL AND btrim(notes) <> '' "
+            "AND (support_status IN ('insufficient', 'unverifiable') OR "
+            "(document_id IS NOT NULL AND source_locator IS NOT NULL "
+            "AND btrim(source_locator) <> '' AND study_type IS NOT NULL "
+            "AND btrim(study_type) <> '')))",
+            name="ck_aihub_claim_review_version_finding",
+        ),
         Index("ix_aihub_claim_seq", "seq"),
         Index("ix_aihub_claim_document", "document_id"),
+        Index("ix_aihub_claim_review_version", "claim_version_id"),
     )
 
     claim_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
@@ -334,6 +450,14 @@ class AihubClaimReviewRow(Base):
     document_id: Mapped[int | None] = mapped_column(
         BigInteger, ForeignKey("aihub_knowledge_document.document_id"), nullable=True
     )
+    claim_version_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey("aihub_claim_version.claim_version_id", name="fk_aihub_claim_review_version"),
+        nullable=True,
+    )
+    source_position: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    source_locator: Mapped[str | None] = mapped_column(Text, nullable=True)
+    study_type: Mapped[str | None] = mapped_column(Text, nullable=True)
     claim_ref: Mapped[str | None] = mapped_column(Text, nullable=True)
     support_status: Mapped[str] = mapped_column(Text, server_default="pending", nullable=False)
     rights_status: Mapped[str] = mapped_column(
