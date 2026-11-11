@@ -65,6 +65,8 @@ export interface Shade {
   /** 0..1 confidence of the color extraction, when the source reports one. */
   colorConfidence?: number;
   colorCheckedAt?: string;
+  /** Optional research-derived application characteristics for this exact shade. */
+  applicationProfile?: ApplicationProfile;
 }
 
 export interface Product {
@@ -228,6 +230,28 @@ export interface ZoneCare {
   tint: number;
 }
 
+/** Bounded renderer controls; omitted fields retain the existing texture defaults. */
+export interface ApplicationProfileOverrides {
+  material?: Partial<Record<'a1' | 'translucent' | 'detail' | 'roughness' | 'specular', number>>;
+  shadowFinish?: Partial<Record<'opacity' | 'roughness' | 'sparkleDensity' | 'specular', number>>;
+  /** Multiplies the existing coverage, preserving the user's intensity control. */
+  coverageMultiplier?: number;
+}
+
+/** Video-fit evidence must include a separate validation comparison. */
+export interface ApplicationProfile {
+  source: 'video-fit';
+  videoId: string;
+  fitFrameSeconds: number;
+  validationFrameSeconds: number;
+  validationView: 'different-angle';
+  fitErrorBefore: number;
+  fitErrorAfter: number;
+  validationErrorBefore: number;
+  validationErrorAfter: number;
+  overrides: ApplicationProfileOverrides;
+}
+
 export interface ZoneSetting {
   hex: string;
   /** Set only on a lip oil / balm product. */
@@ -238,6 +262,7 @@ export interface ZoneSetting {
   intensity: number;
   texture: Texture;
   geometry?: ZoneGeometry;
+  applicationProfile?: ApplicationProfileOverrides;
 }
 
 export interface ArRenderCommand {

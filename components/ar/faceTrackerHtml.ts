@@ -511,6 +511,26 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     glitter: { opacity: 0.3,  roughness: 0.2, sparkleDensity: 0.75, specular: 0.95 },
     glossy:  { opacity: 0.25, roughness: 0.05, sparkleDensity: 0.0, specular: 0.9 },
   };
+  // Video-fit overrides affect only explicitly profiled products. Without an
+  // override, retain the original material object and exact coverage value.
+  const MATERIAL_PROFILE_RANGES = { a1: [0, 1], translucent: [0, 1], detail: [0, 2], roughness: [0.02, 1], specular: [0, 2] };
+  const SHADOW_PROFILE_RANGES = { opacity: [0, 1], roughness: [0.02, 1], sparkleDensity: [0, 1], specular: [0, 2] };
+  function applyProfileValues(base, overrides, ranges) {
+    if (!overrides || typeof overrides !== 'object') return base;
+    let result = null;
+    for (const key of Object.keys(ranges)) {
+      const value = overrides[key];
+      if (typeof value !== 'number' || !Number.isFinite(value)) continue;
+      if (!result) result = Object.assign({}, base);
+      result[key] = clamp(value, ranges[key][0], ranges[key][1]);
+    }
+    return result || base;
+  }
+  function profileCoverage(zone, original) {
+    const multiplier = zone && zone.applicationProfile && zone.applicationProfile.coverageMultiplier;
+    if (typeof multiplier !== 'number' || !Number.isFinite(multiplier)) return original;
+    return clamp01(original * clamp(multiplier, 0, 2));
+  }
   // Brow: product hex on the person's landmark ring. Hair alpha is the camera, not a stock map.
   // Liner: every style is the same band + wing from the geometry numbers (lib/linerLooks.ts). The line is one
   // flat, fully opaque ink (10-29): no matte smudge ring, no gloss sheen, no camera shading, and nothing under it
@@ -4636,16 +4656,20 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     }
     function material(zone) {
       if (zone && zone.care && MATERIALS[zone.care.kind]) return MATERIALS[zone.care.kind];
-      return MATERIALS[zone && zone.texture] || MATERIALS.matte;
+      const base = MATERIALS[zone && zone.texture] || MATERIALS.matte;
+      const profile = zone && zone.applicationProfile;
+      return applyProfileValues(base, profile && profile.material, MATERIAL_PROFILE_RANGES);
     }
     function shadowFinish(zone) {
       if (!zone) return SHADOW_FINISHES.matte;
       const g = zone.geometry || {};
-      if (SHADOW_FINISHES[g.shadowFinish]) return SHADOW_FINISHES[g.shadowFinish];
-      if (g.sparkle != null && g.sparkle <= 0) return SHADOW_FINISHES.matte;
-      if (zone.texture === 'shimmer') return SHADOW_FINISHES.shimmer;
-      if (zone.texture === 'glossy') return SHADOW_FINISHES.glossy;
-      return SHADOW_FINISHES.matte;
+      let base = SHADOW_FINISHES.matte;
+      if (SHADOW_FINISHES[g.shadowFinish]) base = SHADOW_FINISHES[g.shadowFinish];
+      else if (g.sparkle != null && g.sparkle <= 0) base = SHADOW_FINISHES.matte;
+      else if (zone.texture === 'shimmer') base = SHADOW_FINISHES.shimmer;
+      else if (zone.texture === 'glossy') base = SHADOW_FINISHES.glossy;
+      const profile = zone.applicationProfile;
+      return applyProfileValues(base, profile && profile.shadowFinish, SHADOW_PROFILE_RANGES);
     }
 
     return {
@@ -4801,12 +4825,14 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         gl.uniform3f(u.uHlAlbedo, hlAlb[0], hlAlb[1], hlAlb[2]);
         const hlGain = hl && hl.geometry && hl.geometry.intensity != null ? clamp01(hl.geometry.intensity) : 1;
         gl.uniform1f(u.uHlCov, hl ? clamp01(hl.intensity) * TUNING.hlCoverage * hlGain : 0);
+        if (hl && hl.applicationProfile) gl.uniform1f(u.uHlCov, profileCoverage(hl, clamp01(hl.intensity) * TUNING.hlCoverage * hlGain));
         gl.uniform1f(u.uHlFlake, hl ? hlMat.flake * TUNING.shimmerFlake * clamp01(hl.intensity) : 0);
         gl.uniform3f(u.uContourAlbedo, contourAlb[0], contourAlb[1], contourAlb[2]);
         gl.uniform2f(u.uVolume, TUNING.hlContourVolume ? TUNING.volumeGain[0] : 0, TUNING.hlContourVolume ? TUNING.volumeGain[1] : 0);
         gl.uniform1f(u.uVolLight, TUNING.volumeLight);
         const jawShade = !!contourZ;
         gl.uniform1f(u.uContourCov, contourZ ? clamp01(contourZ.intensity) * (jawShade ? 0.85 : TUNING.contourCoverage) : 0);
+        if (contourZ && contourZ.applicationProfile) gl.uniform1f(u.uContourCov, profileCoverage(contourZ, clamp01(contourZ.intensity) * (jawShade ? 0.85 : TUNING.contourCoverage)));
         const eyeFinish = shadowFinish(eye);
         gl.uniform3f(u.uFaceRough, blushMat.roughness, eyeFinish.roughness, hlMat.roughness);
         gl.uniform1f(u.uFaceSheen, TUNING.faceSheen);
@@ -4814,15 +4840,18 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         gl.uniform3f(u.uLinerAlbedo, linerAlb[0], linerAlb[1], linerAlb[2]);
         const linerGeo = liner ? Object.assign({}, TUNING.liner, liner.geometry || {}) : null;
         gl.uniform1f(u.uLinerCov, liner ? EYELINER_DARK.opacity : 0);
+        if (liner && liner.applicationProfile) gl.uniform1f(u.uLinerCov, profileCoverage(liner, EYELINER_DARK.opacity));
         gl.uniform1f(u.uLinerAA, 0.5);
         gl.uniform1f(u.uLinerSoft, liner ? clamp01(linerGeo.linerSoftness || 0) : 0);
         gl.uniform3f(u.uMascaraAlbedo, mascaraAlb[0], mascaraAlb[1], mascaraAlb[2]);
         gl.uniform1f(u.uMascaraCov, mascara ? 0.55 + 0.35 * clamp01(mascara.intensity) : 0);
+        if (mascara && mascara.applicationProfile) gl.uniform1f(u.uMascaraCov, profileCoverage(mascara, 0.55 + 0.35 * clamp01(mascara.intensity)));
         const foundAlb = foundZ ? hexToLinear(foundZ.hex) : [0, 0, 0];
         gl.uniform3f(u.uFoundAlbedo, foundAlb[0], foundAlb[1], foundAlb[2]);
         const foundC = foundZ ? clamp01(foundZ.intensity) : 0;
         const span = (r) => r[0] + (r[1] - r[0]) * foundC;
         gl.uniform1f(u.uFoundCov, foundZ ? span(TUNING.foundCoverage) : 0);
+        if (foundZ && foundZ.applicationProfile) gl.uniform1f(u.uFoundCov, profileCoverage(foundZ, span(TUNING.foundCoverage)));
         gl.uniform1f(u.uFoundOpaque, span(TUNING.foundOpaque));
         gl.uniform1f(u.uFoundShadeMax, TUNING.foundShadeMax);
         gl.uniform2f(u.uFoundHair, TUNING.foundHair[0], TUNING.foundHair[1]);
@@ -4847,6 +4876,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         const browAlb = browZ ? hexToLinear(browZ.hex) : [0, 0, 0];
         gl.uniform3f(u.uBrowAlbedo, browAlb[0], browAlb[1], browAlb[2]);
         gl.uniform1f(u.uBrowCov, browZ ? clamp01(browZ.intensity) * EYEBROW_PRESET.baseOpacity : 0);
+        if (browZ && browZ.applicationProfile) gl.uniform1f(u.uBrowCov, profileCoverage(browZ, clamp01(browZ.intensity) * EYEBROW_PRESET.baseOpacity));
         gl.uniform1f(u.uBrowPowder, EYEBROW_PRESET.powder);
         gl.uniform1f(u.uBrowLift, EYEBROW_PRESET.lift);
         if (browZ) {
@@ -4924,6 +4954,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         gl.uniform1f(u.uSkinMeanLum, shown.skinMeanLum);
         gl.uniform3f(u.uLipAlbedo, lipAlb[0], lipAlb[1], lipAlb[2]);
         gl.uniform1f(u.uLipCov, lip ? lipCoverage(lip, lipMat) : 0);
+        if (lip && lip.applicationProfile) gl.uniform1f(u.uLipCov, profileCoverage(lip, lipCoverage(lip, lipMat)));
         const careMat = careAny ? material(careAny) : null;
         gl.uniform1f(u.uLipGlossCov, lip ? (careOver ? Math.max(lipCoverage(lip, lipMat), lipGlossCoverage(careOver, careMat)) : lipGlossCoverage(lip, lipMat)) : 0);
         gl.uniform1f(u.uGlossRough, careOver ? Math.min(lipMat.roughness, careMat.roughness) : lipMat.roughness);
@@ -4936,6 +4967,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         gl.uniform1f(u.uLipOn, lipEffectEnabled(lip) ? 1 : 0);
         gl.uniform3f(u.uBlushAlbedo, blushAlb[0], blushAlb[1], blushAlb[2]);
         gl.uniform1f(u.uBlushCov, blush ? clamp01(blush.intensity) * TUNING.blushCoverage : 0);
+        if (blush && blush.applicationProfile) gl.uniform1f(u.uBlushCov, profileCoverage(blush, clamp01(blush.intensity) * TUNING.blushCoverage));
         const blushGeo = blush && blush.geometry;
         const blushDyn = !!(blushGeo && (blushGeo.blushPlacement || blushGeo.blushSize != null || blushGeo.blushSoftness != null));
         gl.uniform1f(u.uBlushDyn, blushDyn ? 1 : 0);
@@ -4949,6 +4981,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         }
         gl.uniform3f(u.uShadowAlbedo, eyeAlb[0], eyeAlb[1], eyeAlb[2]);
         gl.uniform1f(u.uShadowCov, eye ? clamp01(eye.intensity) * eyeFinish.opacity : 0);
+        if (eye && eye.applicationProfile) gl.uniform1f(u.uShadowCov, profileCoverage(eye, clamp01(eye.intensity) * eyeFinish.opacity));
         const eg = eye && eye.geometry;
         gl.uniform1f(u.uShadowFlake, eye && eyeFinish.sparkleDensity > 0 ? clamp01(eye.intensity) : 0);
         const isGlitter = eyeFinish.sparkleDensity >= 0.7;

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { apiGet } from '@/lib/api';
+import { applicationProfileFor, validatedApplicationProfile } from '@/lib/applicationProfiles';
 import { devCatalogProduct } from '@/lib/devCatalog';
 import { demoLookProduct } from '@/lib/demoLookBundle';
 import { demoLookSlots } from '@/lib/demoLookAr';
@@ -136,12 +137,14 @@ export function useVideoTryOn(items: VideoProductMapping[], id: string, title: s
         const mascara = zone === 'mascara' && style && style in MASCARA_LOOKS
           ? MASCARA_LOOKS[style as MascaraLookId]
           : null;
+        const applicationProfile = applicationProfileFor(product.id, shade.id) ?? validatedApplicationProfile(shade.applicationProfile);
         makeup[zone] = {
           hex: shade.hex,
           intensity: mascara?.intensity ?? DEFAULT_INTENSITY[zone],
           texture,
           ...(geometry ? { geometry } : {}),
           ...(hexTo ? { hexTo } : {}),
+          ...(applicationProfile ? { applicationProfile } : {}),
         };
         lookItems.push({ productId: product.id, shadeId: shade.id, step: STEPS[zone] });
       }
