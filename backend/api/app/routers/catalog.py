@@ -14,15 +14,40 @@ from app.schemas.catalog import (
     ProductsResponse,
     StoresResponse,
 )
+from app.schemas.catalog_options import (
+    OptionCategoriesResponse,
+    OptionSearchRequest,
+    OptionSearchResponse,
+)
 from app.schemas.external import ProductOffers
 from app.schemas.ingredient import IngredientReadResult
 from app.schemas.product_video import ProductVideosResponse
+from app.services.catalog_option_service import CatalogOptionService, get_catalog_option_service
 from app.services.catalog_service import CatalogService, get_catalog_service
 from app.services.ingredient_service import IngredientService, get_ingredient_service
 from app.services.offer_service import OfferService, get_offer_service
 from app.services.product_video_service import ProductVideoService, get_product_video_service
 
 router = APIRouter(prefix="/api", tags=["catalog"])
+
+
+@router.get("/catalog/categories", response_model=OptionCategoriesResponse)
+async def list_option_categories(
+    response: Response,
+    service: CatalogOptionService = Depends(get_catalog_option_service),
+) -> OptionCategoriesResponse:
+    response.headers["Cache-Control"] = "no-store"
+    return await service.categories()
+
+
+@router.post("/catalog/options/search", response_model=OptionSearchResponse)
+async def search_catalog_options(
+    search: OptionSearchRequest,
+    response: Response,
+    service: CatalogOptionService = Depends(get_catalog_option_service),
+) -> OptionSearchResponse:
+    response.headers["Cache-Control"] = "no-store"
+    return await service.search(search)
 
 
 @router.get("/products", response_model=ProductsResponse)
