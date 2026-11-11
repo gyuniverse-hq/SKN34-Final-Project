@@ -1,237 +1,192 @@
-# AI-Hub Review Status and Knowledge Query Contract
+# AIHub I-1 데이터 검수 계약
 
-AI-Hub 데이터의 검수 상태 전환 규칙과, 지식 조회를 쓰는 쪽에 주는 계약입니다.
-`VISHUE_AIHUB_DB_Handoff_20261102` 요청서의 **2단계 산출물**입니다.
+AIHub 71961 「문제성 피부 메이크업 추천 데이터」의 등록, 근거 검수, 발행 기준을 정의합니다.
+검수자는 국내 로컬 PostgreSQL에서 전체 QA 목록과 개별 검수 기록을 조회하고 관리할 수 있습니다.
+보관 범위와 원문 접근 기준은 [데이터 이용권한 결정](AIHUB_DATA_RIGHTS.md)을 따릅니다.
+원본 구조와 적재 경로는 [적재 README](../scripts/data/aihub/README.md)에 있습니다.
 
-**이 문서는 설계이며 서비스 활성화가 아닙니다.** 현재 승인된 자료는 0건이고 조회
-인터페이스는 구현되어 있지 않습니다.
+## 1. 등록과 검수 상태
 
-- 저장·권한 결정: `docs/AIHUB_DATA_RIGHTS.md`
-- 적재 결과: `docs/AIHUB_INGEST_REPORT.md`
-- 스키마와 실행: `scripts/data/aihub/README.md`
-
-## 1. 상태 축이 네 개입니다
-
-한 축에 몰아넣지 않았습니다. 섞으면 "원본이 읽혔다" 와 "근거가 검증됐다" 를 구분할 수
-없게 됩니다.
-
-| 축 | 컬럼 | 대상 |
+| 대상 | 저장 위치 | 식별자와 상태 |
 | --- | --- | --- |
-| QA 검수 | `qa_case.review_status` | 상담 사례 9,031건 |
-| 문서 검수 | `knowledge_document.review_status` | 지식 문서 3,108건 |
-| 이용권한 | `knowledge_document.rights_status`, `dataset_release.rights_status` | 문서·배포본 |
-| 성분 표기 검수 | `ingredient_mention.mapping_review_status` | 성분 언급 18,062건 |
-| 주장·근거 판정 | `claim_review.support_status` | 개별 주장 |
+| 배포본과 원본 QA | `aihub_dataset_release`, `aihub_qa_case_raw` | 배포본 해시, 원본 `SEQ`, 분할, QA별 SHA-256. 등록 시 배포본 권리는 `local_only` |
+| 전체 검수 목록 | `aihub_qa_case` | 원본 `SEQ`, 고민 유형 코드 13종, `review_progress` |
+| 원본 출처 | `aihub_qa_source_link` | `(seq, source_position)`와 파일 연결 결과. `quote_match_status`는 인용 확인 결과 |
+| 문서 개정본 | `aihub_knowledge_document` | `document_id`와 내용 SHA-256. 판본이 식별되면 `(source_identifier, source_version)`으로 묶음 |
+| 주장 개정본 | `aihub_claim_version` | 논리 ID `claim_key`, 개정 번호 `revision`, 물리 ID `claim_version_id`, 적용 조건 및 허용 용도 |
+| QA와 주장의 관계 | `aihub_qa_claim` | `(seq, claim_version_id)`, 원본 안의 위치 `answer_locator`. QA 하나에 여러 주장, 주장 하나에 여러 QA 연결 가능 |
+| 개별 근거 판정 | `aihub_claim_review` | `claim_id`로 검수 기록 식별. 주장 개정본, 원본 출처 자리, 검토한 문서 개정본, 위치와 연구 유형 기록 |
 
-### 요청서의 두 목록을 어떻게 대응시켰는지
+QA와 주장에는 진행 상태가 각각 있습니다. `not_started`에서 시작하고, 작업을 시작하면
+`in_progress`, 검토가 끝나면 `completed`로 기록합니다. QA의 완료는 답변의 주장 식별과
+검토 기록이 끝났음을 표시합니다. 기존 `qa_case.review_status`와 이전 근거 기록은
+이력과 호환성을 위해 보존합니다.
 
-요청서에 상태 목록이 둘 있습니다. 01 문서의 검수 수명주기와 03 문서의 보고용 품질
-상태입니다. 아래처럼 해석했습니다. **AI 담당 확인이 필요한 부분입니다.**
+주장 승인 결과인 `approval_status`는 진행 상태가 완료되기 전까지 비어 있습니다.
+완료 시 검수자, 검수 시각, 사유와 함께 `approved`, `limited_approved`, `on_hold`,
+`excluded` 중 하나를 기록합니다. 승인·제한 승인은 `explain`, `rank`, `avoid` 중
+허용한 용도를 지정합니다. 제한 승인에는 대상, 사용 부위, 제형, 농도 등 근거의 적용
+조건을 구조화해 남깁니다. 보류·제외의 허용 용도는 빈 배열입니다.
 
-| 03 문서의 품질 상태 | 이 설계에서 | 근거 |
-| --- | --- | --- |
-| `parsed` | 컬럼 없음 | 9,031건 전부 파싱 성공이라 구분이 무의미 |
-| `source_matched` | `qa_source_link.match_status = 'matched'` 로 유도 | QA 단위가 아니라 출처 자리 단위 속성 |
-| `claim_review_pending` | `claim_review.support_status = 'pending'` | |
-| `evidence_approved` | `qa_case.review_status = 'approved'` | |
-| `blocked` | `review_status = 'rejected'` 또는 `'rights_blocked'` | 사유를 구분하기 위해 둘로 나눔 |
-
-## 2. 전환 규칙
-
-### QA 검수 (`qa_case.review_status`)
-
-| 상태 | 뜻 | 다음으로 가는 조건 |
-| --- | --- | --- |
-| `ingested` | 원본만 보존 | 기본값. 적재 자체는 승인이 아님 |
-| `needs_review` | 검토 대상으로 지정 | 사람이 검토 대기열에 올림 |
-| `approved` | 사용 조건과 근거 검증 통과 | 아래 네 조건을 **모두** 충족 |
-| `rejected` | 사용하지 않음 | 주제 불일치·근거 격차 등으로 판정 |
-| `rights_blocked` | 권리 미확정·불가 | 연결 문서의 `rights_status` 가 승인 아님 |
-
-`approved` 로 올리는 조건입니다. 하나라도 빠지면 올리지 않습니다.
-
-1. `qa_source_link` 에 `match_status = 'matched'` 인 출처가 하나 이상 있다
-2. 그 출처의 문서가 `rights_status = 'service_approved'` 이다
-3. 그 QA 에 대한 `claim_review.support_status` 가 `direct` 또는 `indirect` 이고,
-   `reviewer` 와 `reviewed_at` 이 채워져 있다
-4. 배포본의 `dataset_release.rights_status` 가 `service_approved` 이다
-
-**`parsed` 나 `source_matched` 가 자동으로 `approved` 가 되는 규칙을 만들지 않습니다.**
-출처가 연결됐다는 것은 파일이 이어졌다는 뜻이지 그 문서가 주장을 입증한다는 뜻이
-아닙니다.
-
-### 문서 검수 (`knowledge_document`)
-
-`rights_status` 는 `pending_confirmation` 에서 시작합니다. `service_approved` 로
-올리려면 두 가지가 필요합니다.
-
-1. `purpose_raw` 와 `cautions_raw` 가 있고, 그 내용이 서비스 이용을 막지 않는다
-2. 배포본 수준의 이용권한이 확인되었다
-
-**메타데이터가 없는 문서 124개는 이용조건을 확인할 수 없으므로 올리지 않습니다.**
-
-**QA 가 참조하지 않는 문서 1,878개(전체의 60%)는 QA 를 통한 검증 경로가 없습니다.**
-고유 문서 3,108개 중 QA 가 가리키는 것은 1,230개입니다. 이 문서들을 QA 연결 문서와
-같은 등급으로 두지 않습니다.
-
-### 성분 표기 검수 (`ingredient_mention`)
-
-| 상태 | 뜻 |
+| 근거 판정 | 의미 |
 | --- | --- |
-| `pending` | 분류·검수 전. 기본값 |
-| `approved` | 사람이 원료로 확정하고 식약처 성분에 연결 |
-| `rejected` | 원료가 아니거나 연결 불가로 판정 |
+| `pending` | 아직 근거를 판정하지 않음 |
+| `direct` | 해당 조건의 주장을 직접 뒷받침 |
+| `limited` | 일부 대상·제형·조건에서 뒷받침 |
+| `indirect` | 다른 대상·제형 등에서 관련성을 제시 |
+| `insufficient` | 판단할 근거가 부족함 |
+| `contradicting` | 해당 주장을 반박하는 근거가 있음 |
+| `unverifiable` | 출처를 찾을 수 없거나 본문을 확인할 수 없음 |
 
-`entity_kind` 는 식약처 현행 표준명과 정확히 일치할 때만 `ingredient` 이고 나머지는
-`unknown` 입니다. 영문명·학명·성분군·수식어가 붙은 표기를 자동 판정하지 않습니다.
+`direct`, `limited`, `indirect`, `contradicting`에는 검토한 문서 ID, 문서 내 위치,
+연구 유형이 필요합니다. 판정에는 검수자, 날짜, 한계나 사유를 담은 메모가 필요합니다.
+원본 출처가 미연결이면 문서 ID 없이 해당 출처 자리에 `pending`을 기록할 수 있습니다.
+`match_status`, `support_status`, `approval_status`, `rights_status`는 각각 따로 판정합니다.
 
-`mfds_ingredient_id` 는 `mapping_review_status = 'approved'` 이고 `reviewer` 와
-`reviewed_at` 이 있을 때만 채울 수 있습니다. 테이블 제약으로 강제합니다.
+동일 주장을 다시 검토하거나 문구·조건·근거를 바꾸면 같은 `claim_key`에 다음
+`revision`을 추가합니다. 새 개정본은 미승인으로 시작하며, 연결할 QA와 근거를 새
+개정본에 기록합니다. 같은 자료의 새 판본은 다른 문서 ID에 같은 `source_identifier`와
+새 `source_version`을 기록합니다. 근거 검수는 매칭 결과가 갱신된 뒤에도 검토 당시의
+`document_id`와 내용 해시로 추적합니다. 검수 전인 원본 문서는 확인 가능한 버전 정보가
+생길 때까지 두 버전 필드를 비워 둡니다.
 
-### 주장·근거 판정 (`claim_review`)
+성분 표기 검수는 기존 `aihub_ingredient_mention.mapping_review_status`를 사용합니다.
+성분 ID를 연결하려면 검수자와 검수 날짜가 포함된 승인 기록이 필요합니다.
 
-| 상태 | 뜻 |
-| --- | --- |
-| `pending` | 판정 전 |
-| `direct` | 근거 문서가 그 주장을 직접 입증 |
-| `indirect` | 관련은 있으나 직접 입증은 아님 |
-| `insufficient` | 근거가 부족 |
-| `contradicting` | 근거가 주장과 상충 |
+## 2. 로컬 등록과 검증
 
-표본 검증 26건에서 실제로 나온 판정 유형을 그대로 씁니다. `pending` 이 아니면
-`reviewer` 와 `reviewed_at` 이 반드시 있어야 하며 제약으로 강제합니다.
-
-## 3. 지식 조회 계약
-
-구현 전 설계이며 서버 API 가 준비되었다는 뜻이 아닙니다.
-
-조회하는 쪽에 주는 식별자는 다음과 같습니다. **원문 발췌는 주지 않습니다.**
-
-| 필드 | 출처 |
-| --- | --- |
-| `caseId` | `qa_case.seq` |
-| `skinType` | `skin_type.skin_type_normalized` (4종) |
-| `skinConcern` | `skin_concern.concern_code` (13종) |
-| `evidenceId` | `knowledge_document.document_id` |
-| `sourceTitle` | `knowledge_document.title_raw` |
-| `sourceYear` | `knowledge_document.publication_year_raw` |
-| `sourceType` | `knowledge_document.source_type_raw` |
-| `supportStatus` | `claim_review.support_status` |
-| `rightsStatus` | `knowledge_document.rights_status` |
-| `reviewedAt` | `claim_review.reviewed_at` |
-| `studyLimit` | 근거의 한계. 문서 메타에 있으면 함께 |
-
-응답 상태는 네 가지입니다.
-
-| `status` | 조건 |
-| --- | --- |
-| `approved_evidence` | 승인된 근거가 있음 |
-| `no_match` | 조건에 맞는 사례가 없음 |
-| `evidence_pending` | 사례는 있으나 근거 검증 전 |
-| `rights_blocked` | 이용권한 미확정 또는 불가 |
-
-**현재는 모든 질의가 `evidence_pending` 또는 `rights_blocked` 입니다.** 승인된 자료가
-0건이기 때문입니다.
-
-조회 대상은 `review_status = 'approved'` 인 QA 와 `rights_status = 'service_approved'`
-인 문서로 한정합니다. 그 외는 조회 결과에 포함하지 않습니다.
-
-**제품 정보는 이 경로로 주지 않습니다.** 상품·호수·가격·전성분의 정본은 `products`,
-`shades`, `raw_oy_option_ingredient` 입니다. AI-Hub 의 추천 성분이 상품 전성분을
-대체하지 않으며, 전성분이 미확보된 상품에 대해 '해당 성분 없음' 으로 단정하지 않습니다.
-
-## 3-1. 샘플 조회 결과 (마스킹)
-
-**원문 발췌를 포함하지 않습니다.** 인용문(`quote_raw`)과 질문·답변 본문은 조회 결과에
-넣지 않으며, 이 문서에도 싣지 않습니다. 내부 식별자와 검수 상태만 오갑니다.
-
-### 지금 상태에서 실제로 나오는 응답
-
-조건: 복합성 피부, 홍조(`05`), 볼 부위.
-
-```json
-{
-  "status": "evidence_pending",
-  "intent": "makeup_advice",
-  "skinType": { "value": "combination", "source": "user_report" },
-  "skinConcerns": ["05"],
-  "facts": [],
-  "evidence": [],
-  "rightsStatus": "pending_confirmation",
-  "limitations": [
-    "근거 검증 전",
-    "이용권한 확인 전"
-  ]
-}
-```
-
-`facts` 와 `evidence` 가 빈 이유는 조회할 자료가 없어서가 아니라 **승인된 자료가 0건**
-이기 때문입니다. 해당 조건의 QA 는 실제로 존재하며 `review_status = 'ingested'` 입니다.
-
-조회 대상을 세는 질의입니다. 이 값이 0 이 아니게 되려면 §2 의 `approved` 조건 네 가지를
-모두 통과해야 합니다.
-
-```sql
-SELECT COUNT(*) AS approved_cases
-FROM public.aihub_qa_case q
-JOIN public.aihub_skin_type t ON t.skin_type_raw = q.skin_type_raw
-WHERE t.skin_type_normalized = 'combination'
-  AND q.concern_code = '05'
-  AND q.review_status = 'approved';
-```
-
-### 승인 이후에 나올 모양
-
-아직 발생하지 않은 응답의 형태입니다. 값은 자리표시자입니다.
-
-```json
-{
-  "status": "approved_evidence",
-  "intent": "makeup_advice",
-  "skinType": { "value": "combination", "source": "user_report" },
-  "skinConcerns": ["05"],
-  "facts": [
-    { "caseId": "<qa_case.seq>", "reviewedAt": "<claim_review.reviewed_at>" }
-  ],
-  "evidence": [
-    {
-      "evidenceId": "<knowledge_document.document_id>",
-      "sourceTitle": "<knowledge_document.title_raw>",
-      "sourceYear": "<knowledge_document.publication_year_raw>",
-      "sourceType": "<knowledge_document.source_type_raw>",
-      "supportStatus": "direct",
-      "rightsStatus": "service_approved",
-      "studyLimit": "<근거의 한계. 있으면 그대로>"
-    }
-  ],
-  "rightsStatus": "service_approved",
-  "limitations": [
-    "상담 사례이며 의학적 진단이 아님"
-  ]
-}
-```
-
-`supportStatus` 가 `indirect` 인 근거는 `limitations` 에 그 사실을 적습니다.
-`insufficient` 와 `contradicting` 은 `evidence` 에 넣지 않습니다.
-
-### 사람이 원문을 확인하는 경로
-
-검수자는 DB 에서 직접 읽습니다. 조회 API 를 거치지 않습니다.
+`backend/api`에서 격리한 PostgreSQL을 `DATABASE_URL`로 지정하고
+`uv run alembic current`, `uv run alembic heads`로 이력을 확인합니다.
+`develop`의 `0018` 다음 리비전은 `aihub_claim_review_v1`입니다. 앞선 별도 이력의
+`0019`는 이 리비전과 다르므로 대상의 리비전이 `0019`라면 이력을 먼저 대조합니다.
+기존 성분 언급에 동일한 `(seq, mention_type, raw_text)`가 여러 번 저장된 DB는 중복
+행의 검수 기록을 대조한 뒤 마이그레이션을 재시도해야 합니다. 마이그레이션은 해당
+상태에서 행을 보존하고 중단합니다. 다운그레이드도 I-1 검수나 문서 버전 기록이
+있으면 중단합니다.
 
 ```powershell
-uv run python ..\..\scripts\data\aihub\browse_qa.py --database vishue_db --port 15432 --concern 05 --limit 10 --out ..\..\data\aihub-qa-05.txt
+uv run alembic upgrade head
+uv run --group data python ..\..\scripts\data\aihub\analyze_qa.py --register "$dataDir" --port 15434 --database vishue_i1 --user vishue_i1
+uv run python ..\..\scripts\data\aihub\analyze_qa.py --port 15434 --database vishue_i1 --user vishue_i1 --inventory --verify-release
 ```
 
-출력 파일은 저장소에 커밋하지 않습니다(`data/` 는 추적되지 않습니다).
+`$dataDir`에는 본인이 받은 AIHub `3.개방데이터\1.데이터` 경로를 지정합니다.
+`--register`는 기존 `load_all.py`를 이용해 QA, 문서, 출처 매칭, 성분 언급을 등록합니다.
+동일한 ZIP 집합을 다시 지정하면 기존 배포본을 재사용합니다. 이미 끝난 단계는 건너뛰고,
+실패해 남은 단계는 재시도합니다. 서로 다른 원본 해시나 기존 배포본 중복이 있으면
+이력을 확인할 수 있도록 중단합니다. 최초 등록과 재등록의 진입점으로 `--register`를
+사용합니다.
+
+배포본 1건은 동일한 ZIP 집합의 등록 이력 1건을 뜻합니다. 등록된 배포본의 권리는
+`local_only`입니다. 주장 승인은 검수 결과에서 따로 집계하며, 서비스 발행은 명시적인
+후속 작업입니다.
+
+`--verify-release` 검증은 DB를 읽어 초기 적재 기준과 대조하며 불일치 시 종료 코드 1을
+반환합니다. 검수 중에 문서 판본을 추가하거나 출처를 교정하면 현재 집계가 초기 기준과
+달라질 수 있습니다.
+
+기준은 QA 9,031건(학습 8,031, 검증 1,000), 출처 참조 9,181개(연결 8,957, 미연결
+224), 고유 문서 3,108개, 문서 파일 6,245개, 성분 언급 18,062개입니다. 문서가 연결된 QA는 8,821건,
+연결 문서가 없는 QA는 210건입니다. 진행 상태와 주장 승인 건수는 작업 중 달라질 수
+있어서 집계에 표시하고 기준 건수 대조에서는 제외합니다.
+
+`--inventory --list`는 전체 QA의 ID, 분할, 배포본, 유형, 진행 상태와 출처 연결 여부를
+출력합니다. `--qa SEQ`를 반복하면 지정한 QA의 출처와 주장별 개정 이력을 함께 볼 수
+있습니다. 응답에는 원본 본문과 발췌를 포함하지 않습니다.
+
+```powershell
+uv run python ..\..\scripts\data\aihub\analyze_qa.py --port 15434 --database vishue_i1 --user vishue_i1 --inventory --qa "$qaSeq"
+```
+
+권한 있는 검수자는 원문을 국내 로컬 DB에서 직접 확인하고 같은 트랜잭션으로 기록을
+남깁니다. 아래는 psql에서 `seq`, `claim_key`(UUID), `canonical_text`,
+`answer_locator`, `source_position` 변수를 설정한 뒤 최초 검수 후보를 저장하는 예입니다.
+개정본을 추가할 때는 기존 논리 ID를 쓰고 개정 번호를 늘립니다. 여러 작업자가 같은
+주장을 개정하면 `(claim_key, revision)` 고유 제약에 맞춰 최신 개정 번호를 다시 확인합니다.
+
+```sql
+BEGIN;
+WITH version AS (
+    INSERT INTO public.aihub_claim_version (claim_key, revision, canonical_text)
+    VALUES (:'claim_key'::uuid, 1, :'canonical_text')
+    RETURNING claim_version_id
+), qa_claim AS (
+    INSERT INTO public.aihub_qa_claim (seq, claim_version_id, answer_locator)
+    SELECT :'seq', claim_version_id, :'answer_locator' FROM version
+    RETURNING seq, claim_version_id
+)
+INSERT INTO public.aihub_claim_review (seq, claim_version_id, source_position, document_id)
+SELECT qc.seq, qc.claim_version_id, s.source_position, s.document_id
+FROM qa_claim qc
+JOIN public.aihub_qa_source_link s ON s.seq = qc.seq
+WHERE s.source_position = :'source_position'::smallint;
+
+UPDATE public.aihub_qa_case
+SET review_progress = 'in_progress'
+WHERE seq = :'seq' AND review_progress = 'not_started';
+COMMIT;
+```
+
+검수 후에는 `aihub_claim_review`에 출처별 판정·검수 근거를 기록하고
+`aihub_claim_version`의 진행 상태와 승인 결과를 함께 갱신합니다. 판정이 끝난 개정본의
+결론을 바꾸려면 새 개정본을 만듭니다. 검수자의 쓰기 경로는 I-1에서 로컬 SQL입니다.
+
+### 격리 DB 복구 확인
+
+본인에게 이용 권한이 있는 국내 격리 환경에서, 비어 있는 별도 DB에 원본과 검수 기록을
+함께 복구합니다. 아래 명령은 로컬 검증 컨테이너 내부에서 백업을 스트리밍합니다.
+
+```powershell
+docker exec vishue-i1-postgres sh -ec 'createdb -U vishue_i1 vishue_i1_restore && pg_dump -U vishue_i1 -Fc vishue_i1 | pg_restore -U vishue_i1 -d vishue_i1_restore --exit-on-error --no-owner --no-privileges'
+uv run python ..\..\scripts\data\aihub\analyze_qa.py --port 15434 --database vishue_i1_restore --user vishue_i1 --inventory --verify-release
+```
+
+복구본의 Alembic 리비전, 배포본 수와 권리, QA 진행 상태, 주장 개정과 근거 판정을
+원본 DB와 대조합니다. 복구본에 같은 ZIP 집합으로 `--register`를 실행하면 기존 배포본을
+재사용합니다. 원본 자료, 덤프와 접속 정보는 국내의 접근 통제된 저장소에만 보관합니다.
+
+## 3. I-3의 승인된 주장 조회 계약
+
+서비스 조회의 입력은 고민 코드, 적용 조건, 사용 용도입니다. 발행 대상에는 다음 조건이
+모두 필요합니다.
+
+1. `claim_key`의 최신 개정본이 `completed`이며 `approved` 또는 `limited_approved`입니다.
+   요청 용도가 `approved_uses`에 있고, 요청 조건이 그 개정본의 `applicability`에 들어갑니다.
+2. 같은 개정본에 문서 ID, 문서 내 위치, 연구 유형, 한계가 검수된 근거가 있습니다. 직접
+   근거를 기본으로 쓰고, 제한·간접 근거는 검수자가 명시한 적용 조건과 허용 용도 안에서
+   제시합니다. 상충하는 근거가 발견되면 새 개정본에서 재검토합니다.
+3. 연결된 배포본, 사용하려는 문서 개정본과 근거에 `service_approved` 권리가 확인됩니다.
+   권리 확인에는 발행하려는 요약·서지정보의 사용 목적과 범위도 포함합니다.
+4. 해당 `claim_version_id`와 근거 ID를 명시적으로 발행 대상으로 등록합니다. 검수 승인
+   이후에 수행하는 발행 작업이며 I-3에서 구현합니다.
+
+발행 결과의 `facts`는 승인된 요약, `claimKey`, `revision`, `approvedUses`,
+`applicability`, `reviewedAt`을 담습니다. `evidence`는 발행이 허용된 서지 정보,
+`documentId`, `sourceVersion`, `supportStatus`, 연구 유형과 한계를 담습니다.
+서비스 응답에서 원본 QA ID, 대상자 ID, 질문·답변 원문, 인용문, 파일 경로는 제외합니다.
+원본 자료의 본문 색인이나 외부 전송은 별도의 이용권한 확인을 거칩니다.
+
+| 조회 상태 | 뜻 |
+| --- | --- |
+| `approved_evidence` | 조건에 맞는 승인·발행 개정본이 있음 |
+| `no_match` | 조건에 맞는 후보가 없음 |
+| `evidence_pending` | 근거·검수·발행 확인이 남아 있음 |
+| `rights_blocked` | 사용 권리가 미확정이거나 사용 제한에 해당함 |
+
+I-2는 기존 카탈로그를 정본으로 상품 ID, 옵션 ID, 전성분 출처, 옵션별 전성분 확보 여부의
+계약을 정합니다. 전성분이 미확보된 상품·옵션의 성분 포함 여부는 미확인으로 전달합니다.
+I-3은 승인·발행 근거와 I-2 계약을 상담에 연결하고 근거 부족 및 미확인 데이터의 응답을
+검증합니다.
 
 ## 4. 검수 후보와 작업량
 
-측정된 수치입니다. 검수는 건수가 아니라 고유 표기·고유 문서 단위로 합니다.
+기존 적재 환경에서 측정한 수치입니다. 표기 분류와 문서 확인은 고유 항목을 묶어
+진행할 수 있습니다. 주장에 대한 판단은 각 주장 개정본과 연결된 근거에 남깁니다.
 
 | 대상 | 전체 | 실제 검수 단위 |
 | --- | ---: | ---: |
 | 성분 표기 | 18,062건 | **고유 4,095종** |
-| 그중 식약처 표준명 일치 | 4,560건 (25.2%) | 자동 분류됨 |
+| 그중 식약처 표준명 일치 | 4,560건 (25.2%) | 표준명 일치 후보 |
 | 그 밖의 표기 | 13,502건 (74.8%) | 사람 판정 필요 |
 | 지식 문서 | 3,108개 | QA 참조 **1,230개** 우선 |
 | QA 사례 | 9,031건 | 근거 연결된 **8,821건** |
@@ -241,7 +196,7 @@ uv run python ..\..\scripts\data\aihub\browse_qa.py --database vishue_db --port 
 | 모양 | 건수 | 비율 | 판정 방법 |
 | --- | ---: | ---: | --- |
 | 영문·학명만 | 5,679 | 31.4% | 영문명·학명을 한글 표준명에 대응. 자동 매칭 금지 |
-| 식약처 표준명 일치 | 4,560 | 25.2% | 완료 |
+| 식약처 표준명 일치 | 4,560 | 25.2% | 표준명 일치 후보 |
 | 한글 단일어 | 3,508 | 19.4% | 표기 변형 또는 성분군 |
 | 한글+공백 | 3,063 | 17.0% | 수식어 결합 가능성 |
 | 한글+괄호 | 1,185 | 6.6% | 괄호 안이 수식어인지 다른 이름인지 |
@@ -273,18 +228,9 @@ uv run python ..\..\scripts\data\aihub\browse_qa.py --database vishue_db --port 
 추천 성분과 주의 성분이 같은 문자열인 QA 가 4건 있습니다. 요청서의 기존 자동 검사
 결과와 같습니다.
 
-## 6. 서비스가 활성화되지 않았다는 근거
+## 6. I-1에서 관리하는 범위
 
-| 항목 | 현재 |
-| --- | --- |
-| `qa_case.review_status = 'approved'` | **0건** (전부 `ingested`) |
-| `knowledge_document.rights_status = 'service_approved'` | **0건** |
-| `claim_review` 행 수 | **0** |
-| `ingredient_mention.mfds_ingredient_id` 가 채워진 행 | **0** |
-| 공용 DB 의 `aihub` 스키마 | **없음** (생성하지 않음) |
-| 원본·발췌를 읽는 API·서비스 코드 | 없음 |
-| 벡터 색인·임베딩 | 없음 |
-
-조회 인터페이스는 설계만 있고 구현되어 있지 않습니다. 활성화는 국외 반출 또는 국내
-보관 위치 확정, 데이터셋 개별 이용조건 확인, 근거 검토 통과를 모두 거친 뒤 별도
-작업으로 분리합니다.
+I-1은 QA 9,031건의 국내 로컬 등록과 전체 상태 조회, 그리고 개별 주장·출처 개정본의
+검수 기록 저장을 제공합니다. 주장 검수는 검수자가 시작하며 등록과 동시에 생성되는
+승인·발행 기록은 없습니다. 검수 승인, 권리 확인, 발행은 각각 별도 결정입니다.
+I-2에서는 상품·옵션 계약을 정하고 I-3에서는 승인 지식 조회를 상담에 연결합니다.
