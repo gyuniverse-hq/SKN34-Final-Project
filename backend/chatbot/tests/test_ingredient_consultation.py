@@ -335,7 +335,10 @@ async def test_fragrance_filter_cannot_infer_fragrance_free_from_single_ingredie
         IngredientsCatalog(CatalogClient("http://catalog.test")),
     )
     result = await service.answer(request(context(), locale))
-    assert [p.id for p in result.products] == ["a", "b"]
+    assert [p.id for p in result.products] == ["b"]
+    assert result.chat_context.candidate_ids == ["b"]
+    assert result.fragrance_search_summary.checked == result.fragrance_search_summary.total == 2
+    assert result.fragrance_search_summary.verified_product_ids == []
     assert result.result_type == "clarification"
     assert all(r.verdict == "UNKNOWN" for r in result.ingredient_results)
     checks = [c for c in result.supervisor.result.conditions if c.condition == "fragranceFree"]
@@ -351,17 +354,31 @@ async def test_fragrance_filter_cannot_infer_fragrance_free_from_single_ingredie
 
 
 @pytest.mark.anyio
-async def test_fragrance_and_named_ingredient_are_separate_conditions(monkeypatch):
+@pytest.mark.parametrize("operator", ["includes", "excludes"])
+async def test_fragrance_and_named_ingredient_are_separate_conditions(monkeypatch, operator):
     def handler(req):
         pid = req.url.path.split("/")[-2]
         assert req.url.params["ingredientName"] == "나이아신아마이드"
-        assert req.url.params["operator"] == "includes"
+        assert req.url.params["operator"] == operator
+        if operator == "excludes" and pid == "b":
+            return httpx.Response(
+                200,
+                json=evidence(
+                    pid=pid,
+                    shade=f"{pid}-03",
+                    name="나이아신아마이드",
+                    operator=operator,
+                    verdict="UNKNOWN",
+                    reason="ingredient_identity_unresolved",
+                ),
+            )
         return httpx.Response(
             200,
             json=evidence(
                 pid=pid,
                 shade=f"{pid}-03",
                 name="나이아신아마이드",
+                operator=operator,
                 ingredients=[{"name": "나이아신아마이드", "sequence": 1}],
             ),
         )
@@ -375,17 +392,24 @@ async def test_fragrance_and_named_ingredient_are_separate_conditions(monkeypatc
             fragranceFree=True,
             ingredientLookup=True,
             ingredientName="나이아신아마이드",
-            ingredientOperator="includes",
+            ingredientOperator=operator,
         ),
         IngredientsCatalog(CatalogClient("http://catalog.test")),
     )
-    result = await service.answer(
-        request(context(), message="무향료이면서 나이아신아마이드가 있는 제품")
+    message = (
+        "무향료이면서 나이아신아마이드가 있는 제품"
+        if operator == "includes"
+        else "무향료이면서 나이아신아마이드가 없는 제품"
     )
-    assert [p.id for p in result.products] == ["a", "b"]
+    result = await service.answer(request(context(), message=message))
+    expected = ["a", "b"] if operator == "includes" else ["b"]
+    assert [p.id for p in result.products] == expected
+    assert result.chat_context.candidate_ids == expected
+    assert result.chat_context.filters.fragrance_free
     assert result.result_type == "clarification"
     checks = result.supervisor.result.conditions
-    assert any(c.condition == "ingredient" and c.verdict == "MATCH" for c in checks)
+    expected_verdict = "MATCH" if operator == "includes" else "UNKNOWN"
+    assert any(c.condition == "ingredient" and c.verdict == expected_verdict for c in checks)
     assert any(c.condition == "fragranceFree" and c.verdict == "UNKNOWN" for c in checks)
     assert "무향료 여부는 미확인" in result.answer
 

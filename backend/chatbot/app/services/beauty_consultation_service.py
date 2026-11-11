@@ -17,6 +17,7 @@ from app.schemas.chat import (
     BeautyFilters,
     ChatRequest,
     ChatResponse,
+    FragranceSearchSummary,
     IngredientFilter,
     ProductEvidence,
     ProductRef,
@@ -100,6 +101,9 @@ Use ingredientName for ingredient conditions, never query (query is product/bran
 For ingredient filtering use search/refine with ingredientLookup true and ingredientName.
 shadeName: explicitly requested shade label only; never invent IDs or select a shade.
 compareOrdinals: exactly two explicitly referenced candidate numbers (1..6) for ingredients.
+When comparing the current product with one other product, use intent detail.
+Set query to the other product name as written in the message, never the current product.
+For one candidate number use ordinal. If no other target is named, omit query and ordinal.
 For general ingredient knowledge use general; the dedicated Knowledge Tool is unavailable.
 Use search for a new shopping request, refine for changed or added prior conditions,
 detail for product details/ingredients, price for a single previously listed product's price,
@@ -395,7 +399,134 @@ def _moisture_rank(product):
     return bool(re.search(r"촉촉|보습|hydrat|moisturi|保湿", text))
 
 
-async def interpret_beauty(req: ChatRequest, llm) -> SearchPlan:
+_COMPARE = re.compile(
+    r"비교|차이(?:가|점)|\bcompare\b|\bdifference between\b|比較|違い|对比|比较|区别", re.I
+)
+_REFERENCE_ONLY = re.compile(
+    r"(?:다른|이|그|저)\s*(?:상품|제품)|(?:another|other"
+    r"|this|that) product|他の商品|この商品|其他产品|这款",
+    re.I,
+)
+_COMPARISON_COPY = {
+    "ko": (
+        "어떤 제품과 비교할까요? 비교할 제품명을 알려 주세요.",
+        "비교할 제품을 카탈로그에서 하나로 확인하지 "
+        "못했어요. 브랜드와 정확한 제품명을 알려 주세요.",
+    ),
+    "en": (
+        "Which product would you like to compare it with? Please give me its name.",
+        "I couldn’t identify one matching catalog product."
+        " Please give the brand and exact product name.",
+    ),
+    "ja": (
+        "どの商品と比較しますか？商品名を教えてください。",
+        "比較する商品をカタログで特定できませんでした。ブランドと正確な商品名を教えてください。",
+    ),
+    "zh": (
+        "想和哪款产品比较？请告诉我产品名称。",
+        "在商品目录中无法唯一确认对比产品。请提供品牌和准确的产品名称。",
+    ),
+}
+
+
+def direct_comparison(req, plan):
+    return bool(
+        not (
+            len(set(plan.compare_ordinals)) == 2
+            and all(_comparison_ordinal(req.message, n) for n in plan.compare_ordinals)
+        )
+        and (
+            _COMPARE.search(req.message)
+            or (req.screen_context and req.screen_context.screen_id == "product-comparison")
+        )
+        and (
+            (req.screen_context and req.screen_context.product_id)
+            or (req.chat_context and req.chat_context.selected_product_id)
+        )
+    )
+
+
+def _comparison_ordinal(message, ordinal):
+    return bool(
+        re.search(
+            rf"(?<!\d){ordinal}(?!\d)\s*(?:번|番|号)|(?:#|no\.\s*|product\s*){ordinal}(?!\d)",
+            message,
+            re.I,
+        )
+    )
+
+
+def _comparison_name(message, query):
+    quoted = re.search(r'["“「]([^"”」]{2,80})["”」]', message)
+    target = (query or (quoted.group(1) if quoted else "")).strip()
+
+    def normalize(text):
+        return " ".join(unicodedata.normalize("NFKC", text).casefold().split())
+
+    if (
+        len(target) < 2
+        or _REFERENCE_ONLY.fullmatch(target)
+        or normalize(target) not in normalize(message)
+    ):
+        return None
+    return target
+
+
+async def _compare_product(req, plan, catalog):
+    now = int(time.time())
+    screen = req.screen_context
+    previous = req.chat_context
+    product_id = (screen.product_id if screen else None) or previous.selected_product_id
+    context = previous or _context(BeautyFilters(), [product_id], now, selected=product_id)
+    clarify, unverified = _COMPARISON_COPY[req.locale]
+    pending_target = (
+        screen and screen.screen_id == "product-comparison" and not _COMPARE.search(req.message)
+    )
+    target = _comparison_name(req.message, req.message if pending_target else plan.query)
+    ordinal = plan.ordinal
+    target_id = (
+        context.candidate_ids[ordinal - 1]
+        if ordinal is not None
+        and ordinal <= len(context.candidate_ids)
+        and _comparison_ordinal(req.message, ordinal)
+        else None
+    )
+    if not target and not target_id:
+        return _reply(clarify, context)
+
+    current = await catalog.get_product(product_id)
+    if current is None or current.id != product_id:
+        return _reply(TEXT[req.locale]["missing"], context)
+    if target_id:
+        candidate = await catalog.get_product(target_id)
+        if candidate is not None and (
+            candidate.id != target_id or (target and not _matches_product_name(candidate, target))
+        ):
+            candidate = None
+    else:
+        rows = await catalog.search_products(q=target)
+        candidates = {p.id: p for p in rows if p.id == target or _matches_product_name(p, target)}
+        candidate = candidates.get(target)
+        if candidate is None and len(candidates) == 1:
+            candidate = next(iter(candidates.values()))
+    if candidate is None or candidate.id == current.id:
+        return _reply(unverified, context)
+
+    words = TEXT[req.locale]
+    lines = [
+        f"{p.brand} {p.name} — "
+        + (
+            words["reference_price"].format(price=f"{p.price_krw:,}")
+            if p.price_krw > 0
+            else words["reference_unavailable"]
+        )
+        for p in (current, candidate)
+    ]
+    # A comparison is informational; it cannot silently replace or renumber existing candidates.
+    return _reply("\n".join(lines), context, result_type="product_detail")
+
+
+async def interpret_beauty(req: ChatRequest, llm, look_profile=None) -> SearchPlan:
     if not llm.configured:
         raise ApiError(503, "Chatbot is not configured", "chatbot_unavailable")
     try:
@@ -410,6 +541,7 @@ async def interpret_beauty(req: ChatRequest, llm) -> SearchPlan:
                             "context": req.chat_context.model_dump(mode="json")
                             if req.chat_context
                             else None,
+                            **({"lookProfile": look_profile} if look_profile else {}),
                             "screenContext": req.screen_context.model_dump(mode="json")
                             if req.screen_context
                             else None,
@@ -428,6 +560,15 @@ async def interpret_beauty(req: ChatRequest, llm) -> SearchPlan:
         plan.intent != "detail" or plan.scope != "previous" or plan.ordinal is not None
     ):
         raise ApiError(502, "Invalid price selection", "invalid_chat_plan")
+    if direct_comparison(req, plan):
+        return plan.model_copy(
+            update={
+                "intent": "detail",
+                "scope": "catalog",
+                "selection": None,
+                "compare_ordinals": [],
+            }
+        )
     # A product-specific ingredient question must never fall back to generative graph facts.
     if (
         plan.intent == "general"
@@ -456,6 +597,8 @@ async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatRes
     """Execute an already validated interpretation without another LLM call."""
     if catalog is None:
         raise ApiError(503, "Catalog is not configured", "catalog_unavailable")
+    if direct_comparison(req, plan):
+        return await _compare_product(req, plan, catalog)
     if plan.intent == "general":
         return None  # Keep the existing general consultation path and prompt.
 
@@ -1142,8 +1285,9 @@ async def _ingredient_consultation(req, plan, catalog, filters):
                 ) or (not product.shades and (shade is not None or plan.shade_name)):
                     context.shade_selections.pop(pid, None)
                     products.append(product)
-                    results.append(_ingredient_unknown(pid, None, "shade_required"))
-                    retained += bool(fragrance_filter and not conditions)
+                    reason = "shade_required" if product.shades else "no_registered_shades"
+                    results.append(_ingredient_unknown(pid, None, reason))
+                    retained += bool(fragrance_only)
                     continue
                 if shade is not None:
                     context.shade_selections[pid] = shade
@@ -1172,7 +1316,11 @@ async def _ingredient_consultation(req, plan, catalog, filters):
                 except IngredientLookupError as exc:
                     result = _ingredient_unknown(pid, shade, exc.reason, error=True)
                 else:
-                    if fragrance_only and result.status != "error" and result.verdict != "ERROR":
+                    if (
+                        fragrance_only
+                        and result.status != "error"
+                        and result.verdict not in {"ERROR", "NOT_MATCH"}
+                    ):
                         # One ingredient-name result cannot prove an overall fragrance-free claim.
                         result = result.model_copy(
                             update={
@@ -1238,8 +1386,10 @@ async def _ingredient_consultation(req, plan, catalog, filters):
             for r in results
         )
     )
-    lines = []
-    for product, result in zip(products, results, strict=True):
+    lines = [words["fragrance"]] if fragrance_only else []
+    if fragrance_only and any(result.reason == "shade_required" for result in results):
+        lines.append(labels[0])
+    for product, result in () if fragrance_only else zip(products, results, strict=True):
         if result.conditions and (
             len(result.conditions) > 1 or result.verified or result.status == "error"
         ):
@@ -1268,7 +1418,7 @@ async def _ingredient_consultation(req, plan, catalog, filters):
                     " "
                     + INGREDIENT_ISSUES[result.reason][["ko", "en", "ja", "zh"].index(req.locale)]
                 )
-        elif result.reason == "shade_required":
+        elif result.reason in {"shade_required", "no_registered_shades"}:
             text = labels[0]
         elif result.reason == "fragrance_free_unverified":
             text = words["fragrance"]
@@ -1340,6 +1490,10 @@ async def _ingredient_consultation(req, plan, catalog, filters):
     )
     # Public facts and private execution metadata are separate but share exact references.
     response.ingredient_results = results
+    if fragrance_only:
+        response.fragrance_search_summary = FragranceSearchSummary(
+            checked=checked, total=len(target_ids)
+        )
     tool = response.tool_result
     tool.status = (
         "error"

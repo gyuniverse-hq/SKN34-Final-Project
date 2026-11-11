@@ -20,6 +20,7 @@ export type StyleRecipeResultProps = {
   browseImage: number;
   browseLabel: string;
   onBrowse: () => void;
+  chooseLook?: React.ReactNode;
   stepsLabel: string;
   stepNavigation: {
     previous: string;
@@ -35,12 +36,11 @@ export type StyleRecipeResultProps = {
   };
 };
 
-export function StyleRecipeResult({ heading, summary, browseImage, browseLabel, onBrowse, recipe: previewRecipe, result, onStepChange, onOpenProduct, onOpenAr, onManualAr, disabled = false, stepsLabel, stepNavigation }: StyleRecipeResultProps) {
+export function StyleRecipeResult({ heading, summary, browseImage, browseLabel, onBrowse, chooseLook, recipe: previewRecipe, result, onStepChange, onOpenProduct, onOpenAr, onManualAr, disabled = false, stepsLabel, stepNavigation }: StyleRecipeResultProps) {
   const { t } = useI18n();
   const guides = result?.makeup ? buildGuideSteps({ lip: null, blush: null, eyeshadow: null, ...result.makeup }, result.steps.map((s) => s.zone)) : [];
   const recipe: StyleRecipeResultProps['recipe'] = result ? {
     title: result.title,
-    subtitle: t(`chat.style.${result.basis}`),
     steps: result.steps.map((s) => {
       const guide = guides.find((g) => g.zone === s.zone);
       const genericKey = s.zone === 'blush' ? 'looks.guide.blush.apple' : s.zone === 'eyeliner' ? 'looks.guide.eyeliner.tightline' : `looks.guide.${s.zone}`;
@@ -51,47 +51,19 @@ export function StyleRecipeResult({ heading, summary, browseImage, browseLabel, 
   const [selectedStep, setSelectedStep] = useState(0);
   const [showAllSteps, setShowAllSteps] = useState(false);
   const [showSourceDetails, setShowSourceDetails] = useState(false);
+  const [showProducts, setShowProducts] = useState(false);
   const stepCount = recipe?.steps?.length ?? 0;
   const stepIndex = Math.min(result?.currentStep ?? selectedStep, Math.max(0, stepCount - 1));
   const changeStep = (index: number) => { if (!disabled) { if (result) onStepChange?.(index); else setSelectedStep(index); } };
   const step = recipe?.steps?.[stepIndex];
   return (
     <View style={styles.container}>
-      <View style={styles.answer}>
+      {!step ? <View style={styles.answer}>
         <View style={styles.answerHeader}>
           <View style={styles.answerIcon}><Ionicons name="sparkles" size={14} color={theme.colors.rose} /></View>
           <Text style={styles.answerTitle}>{heading}</Text>
         </View>
         <Text style={styles.answerText}>{summary}</Text>
-      </View>
-      {result ? <View style={styles.provenanceCard}>
-        <View style={styles.provenanceHeader}>
-          <View style={styles.provenanceHeaderText}>
-            <Text style={styles.provenanceEyebrow}>{t('chat.style.basisLabel')}</Text>
-            <Text style={styles.provenanceName}>{t(`chat.style.${result.basis}`)}</Text>
-          </View>
-          {result.reviewStatus !== 'not_applicable' ? <View style={[styles.reviewTag, result.reviewStatus === 'verified' && styles.reviewTagVerified]}>
-            <Text style={styles.reviewTagText}>{t(result.reviewStatus === 'verified' ? 'chat.style.reviewed' : 'chat.style.unreviewed')}</Text>
-          </View> : null}
-        </View>
-        {result.synthetic ? <Text style={styles.provenanceWarning}>{t('chat.style.synthetic')}</Text> : null}
-        {result.features.length ? <View style={styles.featureRow}>
-          {result.features.map((feature, index) => <Text key={index} style={styles.featureTag}>{feature}</Text>)}
-        </View> : null}
-        <Pressable accessibilityRole="button"
-          accessibilityLabel={t(showSourceDetails ? 'chat.style.hideSource' : 'chat.style.showSource')}
-          accessibilityState={{ expanded: showSourceDetails }}
-          onPress={() => setShowSourceDetails((current) => !current)}
-          style={styles.sourceToggle}>
-          <Text style={styles.sourceToggleText}>{t(showSourceDetails ? 'chat.style.hideSource' : 'chat.style.showSource')}</Text>
-          <Ionicons name={showSourceDetails ? 'chevron-up' : 'chevron-down'} size={17} color={theme.colors.rose}/>
-        </Pressable>
-        {showSourceDetails ? <View style={styles.sourceDetails}>
-          <Text style={styles.recipeSubtitle}>{t('chat.style.source')}: {result.source}</Text>
-          <Text style={styles.recipeSubtitle}>{t('chat.style.version')}: {result.recipeVersion}</Text>
-          {!result.videoAnalyzed && result.kind === 'video' ?
-            <Text style={styles.provenanceWarning}>{t('chat.style.unreviewed')}</Text> : null}
-        </View> : null}
       </View> : null}
       {recipe ? (
         <View style={styles.recipe}>
@@ -171,6 +143,36 @@ export function StyleRecipeResult({ heading, summary, browseImage, browseLabel, 
           ) : null}
         </View>
       ) : null}
+      {result ? <View style={styles.provenanceCard}>
+        <View style={styles.provenanceHeader}>
+          <View style={styles.provenanceHeaderText}>
+            <Text style={styles.provenanceEyebrow}>{t('chat.style.basisLabel')}</Text>
+            <Text style={styles.provenanceName}>{t(`chat.style.${result.basis}`)}</Text>
+          </View>
+          {result.reviewStatus !== 'not_applicable' ? <View style={[styles.reviewTag, result.reviewStatus === 'verified' && styles.reviewTagVerified]}>
+            <Text style={styles.reviewTagText}>{t(result.reviewStatus === 'verified' ? 'chat.style.reviewed' : 'chat.style.unreviewed')}</Text>
+          </View> : null}
+        </View>
+        {result.synthetic ? <Text style={styles.provenanceWarning}>{t('chat.style.synthetic')}</Text> : null}
+        {showSourceDetails && result.features.length ? <View style={styles.featureRow}>
+          {result.features.map((feature, index) => <Text key={index} style={styles.featureTag}>{feature}</Text>)}
+        </View> : null}
+        <Pressable accessibilityRole="button"
+          accessibilityLabel={t(showSourceDetails ? 'chat.style.hideSource' : 'chat.style.showSource')}
+          accessibilityState={{ expanded: showSourceDetails }}
+          onPress={() => setShowSourceDetails((current) => !current)}
+          style={styles.sourceToggle}>
+          <Text style={styles.sourceToggleText}>{t(showSourceDetails ? 'chat.style.hideSource' : 'chat.style.showSource')}</Text>
+          <Ionicons name={showSourceDetails ? 'chevron-up' : 'chevron-down'} size={17} color={theme.colors.rose}/>
+        </Pressable>
+        {showSourceDetails ? <View style={styles.sourceDetails}>
+          {step ? <Text style={styles.recipeSubtitle}>{summary}</Text> : null}
+          <Text style={styles.recipeSubtitle}>{t('chat.style.source')}: {result.source}</Text>
+          <Text style={styles.recipeSubtitle}>{t('chat.style.version')}: {result.recipeVersion}</Text>
+          {!result.videoAnalyzed && result.kind === 'video' ?
+            <Text style={styles.provenanceWarning}>{t('chat.style.unreviewed')}</Text> : null}
+        </View> : null}
+      </View> : null}
       {previewRecipe?.relatedProducts?.products.length && !result ? (
         <View style={styles.relatedProducts}>
           <Text accessibilityRole="header" style={styles.stepsTitle}>{previewRecipe.relatedProducts.label}</Text>
@@ -182,7 +184,13 @@ export function StyleRecipeResult({ heading, summary, browseImage, browseLabel, 
           ))}
         </View>
       ) : null}
-      {result ? <View style={styles.relatedProducts}>
+      {result && (result.products.length > 0 || onManualAr) ? <Pressable accessibilityRole="button" accessibilityLabel={t('chat.style.referenceProducts')}
+        accessibilityState={{ expanded: showProducts }}
+        onPress={() => setShowProducts((open) => !open)} style={styles.sourceToggle}>
+        <Text style={styles.sourceToggleText}>{t('chat.style.referenceProducts')}</Text>
+        <Ionicons name={showProducts ? 'chevron-up' : 'chevron-down'} size={17} color={theme.colors.rose} />
+      </Pressable> : null}
+      {result && showProducts ? <View style={styles.relatedProducts}>
         {result.products.map((product, index) => <View key={index} style={styles.relatedProduct}>
           <Text style={styles.productName}>{product.label}</Text>
           <Text>{t(product.mappingStatus === 'verified' ? 'chat.style.mappingVerified' : 'chat.style.mappingUnknown')}</Text>
@@ -194,10 +202,11 @@ export function StyleRecipeResult({ heading, summary, browseImage, browseLabel, 
         </View>)}
         {onManualAr ? <Pressable accessibilityRole="button" accessibilityLabel={t('chat.style.manualAr')} onPress={onManualAr} style={styles.stepControl}><Text>{t('chat.style.manualAr')}</Text></Pressable> : null}
       </View> : null}
-      <Pressable accessibilityRole="button" accessibilityLabel={browseLabel} onPress={onBrowse} style={styles.browse}>
-        {!recipe?.image ? <Image source={browseImage} style={styles.browseImage} contentFit="cover" accessible={false} /> : null}
+      {chooseLook}
+      {!result ? <Pressable accessibilityRole="button" accessibilityLabel={browseLabel} onPress={onBrowse} style={styles.browse}>
+        {!recipe ? <Image source={browseImage} style={styles.browseImage} contentFit="cover" accessible={false} /> : null}
         <View style={styles.browseAction}><Text style={styles.browseText}>{browseLabel} ›</Text></View>
-      </Pressable>
+      </Pressable> : null}
     </View>
   );
 }

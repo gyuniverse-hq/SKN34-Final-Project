@@ -20,12 +20,12 @@ export function useChat() {
       apiPostChat<ChatResponse>(
         {
           message, locale, requestId: requestId ?? uuid.v4(),
-          ...(category === 'style' ? { requestType: 'style_consultation',
-            ...(styleContext ? { styleContext: { ...styleContext } } : {}) } : {}),
-          ...(category === 'product' || category === 'ingredient'
-            ? { requestType: 'beauty_consultation', ...(chatContext ? { chatContext } : {}),
-              ...(screenContext ? { screenContext } : {}) }
+          ...(category || chatContext || screenContext || styleContext
+            ? { requestType: category === 'style' && !chatContext ? 'style_consultation' : 'beauty_consultation' }
             : {}),
+          ...(styleContext ? { styleContext } : {}),
+          ...(chatContext ? { chatContext } : {}),
+          ...(screenContext ? { screenContext } : {}),
         },
         {
           timeoutMs: CHAT_TIMEOUT_MS,

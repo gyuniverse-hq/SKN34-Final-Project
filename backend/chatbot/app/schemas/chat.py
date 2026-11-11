@@ -279,6 +279,12 @@ class ProductRef(ApiModel):
     category: str
 
 
+class FragranceSearchSummary(ApiModel):
+    checked: int = Field(ge=0)
+    total: int = Field(ge=0)
+    verified_product_ids: list[ArIdentifier] = Field(default_factory=list)
+
+
 class ChatResponse(ApiModel):
     style_status: Literal["ready", "clarification", "not_found", "error", "unsupported"] | None = (
         Field(default=None, exclude_if=lambda v: v is None)
@@ -297,6 +303,9 @@ class ChatResponse(ApiModel):
     )
     evidence: list[ProductEvidence] | None = Field(default=None, exclude_if=lambda v: v is None)
     ingredient_results: list[CatalogIngredients] | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
+    fragrance_search_summary: FragranceSearchSummary | None = Field(
         default=None, exclude_if=lambda v: v is None
     )
     session_status: Literal["stored", "unchanged", "unavailable"] | None = Field(

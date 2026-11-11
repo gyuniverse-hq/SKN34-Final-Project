@@ -618,6 +618,98 @@ def test_loopback_http_search_then_ordinal_with_mock_redis(client, setup):
 
 
 @pytest.mark.anyio
+async def test_product_detail_can_start_ingredient_chat_without_recommendation_session(setup):
+    service, _, _, _ = setup
+    service._llm.plan = {"intent": "detail", "ingredientLookup": True, "ingredientName": "향료"}
+
+    async def ask(product_id, shade_id=None):
+        screen = {"screenId": "product-detail", "productId": product_id}
+        if shade_id:
+            screen["shadeId"] = shade_id
+        return await service.answer(
+            request(message="이 제품 향료 성분은?", screen=screen), "guest:one"
+        )
+
+    first = await ask("a", "a-03")
+    second = await ask("b", "b-03")
+    assert first.ingredient_results[0].product_id == "a"
+    assert second.ingredient_results[0].product_id == "b"
+    assert first.chat_context.session.session_id != second.chat_context.session.session_id
+    assert service._catalog.ingredient_calls == [("a", "a-03"), ("b", "b-03")]
+
+    unknown = await ask("a")
+    assert unknown.ingredient_results[0].verdict == "UNKNOWN"
+    assert unknown.ingredient_results[0].shade_id is None
+    with pytest.raises(ApiError) as exc:
+        await ask("a", "b-03")
+    assert exc.value.code == "invalid_chat_selection"
+    assert service._catalog.ingredient_calls == [("a", "a-03"), ("b", "b-03")]
+
+
+def test_product_detail_first_question_respects_explicit_shade_over_screen_hint(client, setup):
+    service, _, _, _ = setup
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    product = service._catalog.products[0]
+    product.shades.append(product.shades[0].model_copy(update={"id": "a-05", "name": "05"}))
+    service._llm.plan = {
+        "intent": "detail",
+        "ingredientLookup": True,
+        "ingredientName": "향료",
+        "shadeName": "05",
+    }
+    reply = client.post(
+        "/api/chat",
+        headers={"Authorization": "Bearer ok-member"},
+        json={
+            "requestType": "beauty_consultation",
+            "requestId": str(uuid4()),
+            "locale": "ko",
+            "message": "이 제품 05호에 향료 들어 있어?",
+            "screenContext": {"screenId": "product-detail", "productId": "a", "shadeId": "a-03"},
+        },
+    )
+    assert reply.status_code == 200
+    evidence = reply.json()["ingredientResults"][0]
+    assert (evidence["productId"], evidence["shadeId"]) == ("a", "a-05")
+    assert service._catalog.ingredient_calls == [("a", "a-05")]
+
+
+@pytest.mark.anyio
+async def test_named_comparison_resolves_verified_target_without_replacing_session_candidates(
+    setup,
+):
+    service, _, _, _ = setup
+    catalog = service._catalog
+    catalog.products[0].name = "Torriden Essence"
+    catalog.products[1].name = "Fwee Gloss"
+    initial = (await first(setup)).chat_context
+    screen = {"screenId": "product-detail", "productId": "a", "shadeId": "a-03"}
+    service._llm.plan = {"intent": "general", "query": "Fwee Gloss"}
+
+    missing = await service.answer(
+        request(initial, message="다른 제품과 비교해줘", screen=screen), "guest:one"
+    )
+    assert missing.result_type == "clarification"
+    assert "어떤 제품과 비교할까요?" in missing.answer
+    assert "Fwee Gloss" not in missing.answer and missing.products == []
+
+    for msg, sid in [
+        ("Fwee Gloss와 비교해줘", "product-detail"),
+        ("Fwee Gloss", "product-comparison"),
+    ]:
+        reply = await service.answer(
+            request(initial, message=msg, screen={**screen, "screenId": sid}), "guest:one"
+        )
+        assert "Torriden Essence" in reply.answer and "Fwee Gloss" in reply.answer
+        assert "15,000" in reply.answer and "19,000" in reply.answer
+        assert reply.chat_context.candidate_ids == initial.candidate_ids
+        assert reply.chat_context.selected_product_id == "a"
+        assert reply.chat_context.shade_selections == {"a": "a-03"}
+        assert reply.chat_context.session.result_set_id == initial.session.result_set_id
+        initial = reply.chat_context
+
+
+@pytest.mark.anyio
 async def test_explicit_catalog_screen_selection_outside_old_results_is_validated(setup):
     service = setup[0]
     ctx = (await first(setup)).chat_context

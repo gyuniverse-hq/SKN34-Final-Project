@@ -29,6 +29,11 @@ export type LoginReturnTo = 'checkout';
 
 type RawParam = string | string[] | undefined;
 
+export function chatHref(target?: { recipeKind: 'video' | 'catalog'; recipeLookId: string } |
+  { productId: string; shadeId?: string }): Href {
+  return target ? { pathname: '/chat', params: target } : '/chat';
+}
+
 /** Same limit as the backend's id columns. */
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 

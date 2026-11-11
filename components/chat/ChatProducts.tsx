@@ -32,6 +32,8 @@ interface Props {
   selectedProductId?: string | null;
   /** Product IDs in this response, not all candidates retained from previous turns. */
   expectedIds?: string[];
+  fragrance?: 'verified' | 'unknown';
+  onOpenEvidence?: (productId: string) => void;
 }
 
 function conditionMatch(product: Product, condition: ChatCondition): boolean | undefined {
@@ -56,7 +58,7 @@ function candidateStatus(product: Product, required: ChatCondition[]): 'matched'
   return 'matched';
 }
 
-export function ChatProducts({ products, loading, failed, missingCount, conditions, showIngredients, onRetry, onOpenProduct, onOpenAr, disabledActions = false, previewImage, candidateOrder, evidence, selectedShades: controlledShades, onSelectShade, onSelectProduct, selectedProductId, expectedIds }: Props) {
+export function ChatProducts({ products, loading, failed, missingCount, conditions, showIngredients, onRetry, onOpenProduct, onOpenAr, disabledActions = false, previewImage, candidateOrder, evidence, selectedShades: controlledShades, onSelectShade, onSelectProduct, selectedProductId, expectedIds, fragrance, onOpenEvidence }: Props) {
   const { t } = useI18n();
   const [selectedShades, setSelectedShades] = useState<Record<string, string>>({});
   const [compareOpen, setCompareOpen] = useState(false);
@@ -167,12 +169,19 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
                   </View>
                 </View>
                 <View style={styles.productBody}>
-                  {proof ? <View style={styles.ingredientBlock}>
+                  {fragrance ? <View style={styles.ingredientBlock}>
+                    <Text style={styles.notice}>{t(fragrance === 'verified' ? 'chat.ingredient.fragranceVerified' : 'chat.ingredient.fragranceUnknown')}</Text>
+                    {fragrance === 'verified' && selectedShade ? <Text style={styles.notice}>{selectedShade.name}</Text> : null}
+                    {onOpenEvidence ? <Pressable accessibilityRole="button" onPress={() => onOpenEvidence(product.id)} style={styles.open}>
+                      <Text style={styles.notice}>{t('chat.ingredient.showDetails')}</Text>
+                    </Pressable> : null}
+                  </View> : null}
+                  {!fragrance && proof ? <View style={styles.ingredientBlock}>
                     <Text style={styles.notice}>{t('chat.catalogEvidence')}</Text>
                     <Text style={styles.notice}>{t(proof.ingredientCoverage === 'key_only'
                       ? 'chat.keyOnlyEvidence' : 'chat.noIngredientEvidence')}</Text>
                   </View> : null}
-                  {showIngredients ? (
+                  {!fragrance && showIngredients ? (
                     <View style={styles.ingredientBlock}>
                       {product.keyIngredients.length > 0 ? (
                         <>
@@ -182,7 +191,7 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
                       ) : <Text style={styles.notice}>{t('chat.ui.ingredientUnavailable')}</Text>}
                     </View>
                   ) : null}
-                  {conditions.length ? (
+                  {!fragrance && conditions.length ? (
                     <View style={styles.conditionPanel}>
                       <Text style={styles.sectionTitle}>{t('chat.ui.checkConditions')}</Text>
                       {conditions.map((condition, index) => {
@@ -205,7 +214,7 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
                       })}
                     </View>
                   ) : null}
-                  {validShades.length > 0 ? (
+                  {fragrance !== 'verified' && validShades.length > 0 ? (
                     <>
                       <Text style={styles.notice}>{t('chat.selectShade')}</Text>
                       <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.shades}>

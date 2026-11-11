@@ -453,6 +453,7 @@ export interface ChatResponse {
   resultType?: 'recommendations' | 'product_detail' | 'clarification' | 'empty';
   evidence?: ChatProductEvidence[];
   ingredientResults?: ChatIngredientResult[];
+  fragranceSearchSummary?: { checked: number; total: number; verifiedProductIds: string[] };
   sessionStatus?: 'stored' | 'unchanged' | 'unavailable';
 }
 

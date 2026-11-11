@@ -21,9 +21,11 @@ export type IngredientResultProps = {
   results?: ChatIngredientResult[];
   products?: ChatProductRef[];
   shadeSelections?: Record<string, string>;
+  evidenceOnly?: boolean;
 };
 
 const reasons: Record<string, string> = {
+  no_registered_shades: 'noRegisteredShades', fragrance_free_unverified: 'fragranceUnknown',
   shade_required: 'selection', mapping_not_verified: 'mapping', mapping_not_available: 'mapping',
   evidence_not_reviewed: 'review', absence_not_verifiable: 'partial',
   catalog_version_mismatch: 'version', source_version_mismatch: 'version',
@@ -37,14 +39,15 @@ const reasons: Record<string, string> = {
 };
 
 /** Only expose checked ingredient data when the existing server evidence contract permits it. */
-function IngredientEvidenceCard({ result, target, labels, selectedShade }: {
+function IngredientEvidenceCard({ result, target, labels, selectedShade, initiallyExpanded }: {
   result: ChatIngredientResult;
   target: ChatProductRef;
   labels: IngredientResultProps['labels'];
   selectedShade?: string;
+  initiallyExpanded?: boolean;
 }) {
   const { t } = useI18n();
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(initiallyExpanded ?? false);
   const syntheticBlocked = !__DEV__ && !!result.synthetic;
   const direct = result.mappingStatus === 'directly_reviewed';
   const provenance = direct
@@ -79,7 +82,7 @@ function IngredientEvidenceCard({ result, target, labels, selectedShade }: {
     <View style={styles.verdictCard}>
       <View style={styles.verdictHeader}>
         <View style={styles.identity}>
-          <Text style={styles.caption}>{t('chat.ingredient.resultFor')}</Text>
+          <Text style={styles.caption}>{t(initiallyExpanded ? 'chat.ingredient.results' : 'chat.ingredient.resultFor')}</Text>
           <Text style={styles.productName}>{target.brand} {target.name}</Text>
           {(!verified || result.shadeId !== null) && (
             <Text style={styles.secondary}>{t('chat.ingredient.shade')}: {result.shadeId ?? t('chat.ingredient.selection')}</Text>
@@ -142,21 +145,22 @@ function IngredientEvidenceCard({ result, target, labels, selectedShade }: {
   );
 }
 
-export function IngredientResult({ heading, summary, notice, product, labels, results, products, shadeSelections }: IngredientResultProps) {
+export function IngredientResult({ heading, summary, notice, product, labels, results, products, shadeSelections, evidenceOnly }: IngredientResultProps) {
   return (
     <View style={styles.result}>
-      <View style={styles.answer}>
+      {!evidenceOnly ? <View style={styles.answer}>
         <View style={styles.answerHeader}>
           <View style={styles.answerIcon}><Ionicons name="flask-outline" size={15} color={theme.colors.rose} /></View>
           <Text style={styles.answerTitle}>{heading}</Text>
         </View>
         <Text style={styles.summary}>{summary}</Text>
-      </View>
+      </View> : null}
       {results?.map((result, index) => {
         const target = products?.find((item) => item.id === result.productId);
         if (!target || (result.shadeId && shadeSelections && shadeSelections[result.productId] !== result.shadeId)) return null;
         return <IngredientEvidenceCard key={`${result.productId}-${result.shadeId}-${index}`}
-          target={target} result={result} labels={labels} selectedShade={shadeSelections?.[result.productId]} />;
+          target={target} result={result} labels={labels} selectedShade={shadeSelections?.[result.productId]}
+          initiallyExpanded={evidenceOnly} />;
       })}
       {product ? <View style={styles.panel}>
         <Text style={styles.label}>{labels.product}</Text>
