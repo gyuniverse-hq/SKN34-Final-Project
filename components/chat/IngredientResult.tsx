@@ -30,7 +30,8 @@ const reasons: Record<string, string> = {
   shade_not_found: 'shadeMissing', source_unavailable: 'server',
   timeout: 'network', network_error: 'network', invalid_response: 'invalid',
   http_error: 'server', ingredient_present: 'present',
-  ingredient_absent_from_verified_list: 'absent', verified_evidence: 'verified',
+  ingredient_absent: 'absent', ingredient_absent_from_verified_list: 'absent',
+  verified_evidence: 'verified',
   evidence_requires_review: 'review', ingredients_raw_unavailable: 'unknown', synthetic_test_only: 'review',
 };
 

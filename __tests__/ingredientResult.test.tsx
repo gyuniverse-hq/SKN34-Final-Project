@@ -161,3 +161,28 @@ it('shows evidence only for the selected shade when a shade is supplied', async 
   expect(text(stale)).not.toContain('1. Water');
   await act(async () => { view.unmount(); stale.unmount(); });
 });
+
+
+describe.each([['en', en], ['ko', ko], ['ja', ja], ['zh', zh]] as const)(
+  'verified ingredient absence in %s',
+  (_locale, dictionary) => {
+    it.each([['includes', 'NOT_MATCH'], ['excludes', 'MATCH']] as const)(
+      'shows the absence explanation for %s with verdict %s',
+      async (operator, verdict) => {
+        mockI18n.mockReturnValue({ t: (key: keyof typeof en) => dictionary[key] });
+        const view = await render([{
+          ...colorlessEvidence, verdict, reason: 'ingredient_absent',
+          conditions: [{
+            ...colorlessEvidence.conditions![0], ingredientName: 'Glycerin',
+            operator, verdict, reason: 'ingredient_absent',
+          }],
+        }], {});
+        expect(text(view)).toContain(dictionary[`chat.ingredient.${verdict}`]);
+        expect(text(view)).toContain(dictionary[`chat.ingredient.${operator}`]);
+        expect(text(view)).toContain(dictionary['chat.ingredient.absent']);
+        expect(text(view)).not.toContain(dictionary['chat.ingredient.unknown']);
+        await act(async () => { view.unmount(); });
+      }
+    );
+  }
+);
