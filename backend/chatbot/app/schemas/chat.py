@@ -5,7 +5,16 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_vali
 from pydantic.alias_generators import to_camel
 
 from app.schemas.ar_geometry import STYLE_IDS
-from app.schemas.catalog import CatalogIngredients
+from app.schemas.catalog import (
+    BudgetDecision,
+    CatalogIngredients,
+    CatalogOptionPrice,
+    ClaimCitation,
+    ClaimContext,
+    IngredientDecision,
+    PriceBasis,
+    Verdict,
+)
 from app.schemas.style_recipe import StyleContext, StyleRecipe
 from app.schemas.supervisor import ScreenContext, SupervisorResult, ToolResult
 
@@ -277,6 +286,67 @@ class ProductRef(ApiModel):
     brand: str
     name: str
     category: str
+    option_id: str | None = Field(default=None, exclude_if=lambda v: v is None)
+    option_name: str | None = Field(default=None, exclude_if=lambda v: v is None)
+
+
+class OptionConversation(ArModel):
+    category_id: str
+    price_basis: PriceBasis
+    claim_context: ClaimContext = Field(default_factory=ClaimContext)
+    selections: dict[ArIdentifier, ArIdentifier] = Field(default_factory=dict, max_length=6)
+    require_in_stock: bool = False
+
+
+class OptionCondition(ApiModel):
+    condition: Literal["fragrance_free", "product_query", "stock"]
+    verdict: Verdict
+    reason: str
+
+
+class OptionEvaluation(ApiModel):
+    product_id: str
+    option_id: str
+    option_name: str | None
+    verdict: Verdict
+    price: CatalogOptionPrice
+    budget: BudgetDecision | None
+    ingredient_conditions: list[IngredientDecision]
+    ingredient_verification: Literal["verified", "unknown", "error"]
+    ingredient_coverage: Literal["full", "partial", "unknown"]
+    ingredient_evidence_id: str | None
+    ingredient_source_version: str | None
+    ingredient_error: str | None
+    other_conditions: list[OptionCondition] = Field(default_factory=list)
+
+
+class OptionSearchResult(ApiModel):
+    status: Literal[
+        "matches",
+        "no_matches",
+        "unconfirmed",
+        "search_incomplete",
+        "partial_failure",
+        "unsupported_category",
+    ]
+    category_id: str | None
+    scope: Literal["catalog", "previous", "selected_option"]
+    price_basis: PriceBasis
+    candidate_count: int | None
+    evaluated_count: int
+    pages: int
+    exhaustive: bool
+    stop_reason: str
+    evaluations: list[OptionEvaluation] = Field(max_length=128)
+
+
+class OptionClaimLink(ApiModel):
+    publication_id: UUID
+    product_id: str
+    option_id: str
+    ingredient_evidence_id: str
+    ingredient_source_version: str
+    finished_product_efficacy: Literal["unverified"] = "unverified"
 
 
 class ChatResponse(ApiModel):
@@ -288,6 +358,8 @@ class ChatResponse(ApiModel):
     # Internal compatibility adapter: existing app JSON and fingerprints stay unchanged.
     supervisor: SupervisorResult | None = Field(default=None, exclude=True)
     tool_result: ToolResult | None = Field(default=None, exclude=True)
+    option_context: OptionConversation | None = Field(default=None, exclude=True)
+    claim_context: ClaimContext | None = Field(default=None, exclude=True)
     answer: str
     products: list[ProductRef]
     ar_result: ArResult | None = Field(default=None, exclude_if=lambda v: v is None)
@@ -297,6 +369,16 @@ class ChatResponse(ApiModel):
     )
     evidence: list[ProductEvidence] | None = Field(default=None, exclude_if=lambda v: v is None)
     ingredient_results: list[CatalogIngredients] | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
+    option_search: OptionSearchResult | None = Field(default=None, exclude_if=lambda v: v is None)
+    published_claims: list[ClaimCitation] | None = Field(
+        default=None, exclude_if=lambda v: v is None, max_length=24
+    )
+    claim_status: Literal["available", "not_found", "unavailable"] | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
+    option_claim_links: list[OptionClaimLink] | None = Field(
         default=None, exclude_if=lambda v: v is None
     )
     session_status: Literal["stored", "unchanged", "unavailable"] | None = Field(
@@ -336,6 +418,8 @@ class ChatSessionState(ArModel):
     last_response: dict
     last_supervisor: SupervisorResult | None = None
     last_tool_result: ToolResult | None = None
+    option_context: OptionConversation | None = None
+    last_claim_context: ClaimContext | None = None
 
 
 class GraphProduct(ApiModel):

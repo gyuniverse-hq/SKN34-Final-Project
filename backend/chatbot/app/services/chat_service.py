@@ -32,6 +32,7 @@ from app.schemas.supervisor import (
     EvidenceRef,
     IntentDecision,
     ResolvedContext,
+    SearchPlan,
     Sufficiency,
     SupervisorResult,
     TaskPlan,
@@ -43,6 +44,12 @@ from app.services.beauty_consultation_service import (
     execute_beauty,
     interpret_beauty,
 )
+from app.services.evidence_consultation_service import (
+    explain_ingredients,
+    option_requested,
+    recommend_options,
+    revalidate_claims,
+)
 from app.services.style_recipe_service import TEXT as STYLE_TEXT
 from app.services.style_recipe_service import execute_style
 
@@ -52,8 +59,10 @@ _WORD = re.compile(r"[\w가-힣ぁ-んァ-ン一-龥]{2,}")
 
 SYSTEM_PROMPT = """You are VISHUE's K-beauty shopping assistant for international visitors.
 Answer in {language}, in at most 5 short sentences.
-Answer the user's question directly. For general makeup or ingredient questions, do not mention
+Answer the user's question directly. For general makeup questions, do not mention
 product availability unless the user also asks for product recommendations.
+If asked about ingredient efficacy, safety or suitability, direct the user to
+the ingredient consultation. Graph tags and ingredient lists cannot establish those claims.
 When recommending products, use only products from the PRODUCTS list below, by brand and name.
 If the user asks for product recommendations and none of the listed products fit, say so.
 Ingredient lists are partial key ingredients, not verified full ingredients. An absent fragrance
@@ -132,7 +141,9 @@ def route_intent(context: ResolvedContext) -> IntentDecision:
         )
     ):
         intent = "style"
-    elif re.search(r"성분|ingredient|成分", text):
+    elif re.search(
+        r"성분|효능|부작용|(?:피부|화장품).*효과|ingredient|side effects?|成分|効能|功效", text
+    ):
         intent = "ingredient"
     elif context.request_type == "beauty_consultation":
         intent = "product"
@@ -171,11 +182,15 @@ def build_plan(
         return TaskPlan(
             tasks=["style"], stop_reason="clarify_in_tool" if not sufficiency.ready else None
         )
+    if intent.slots and intent.slots.evidence_intent == "explain":
+        return TaskPlan(tasks=["knowledge"])
     if intent.slots and intent.slots.intent != "general":
         # The existing Beauty executor owns TTL, ordinal and localized clarification semantics.
         return TaskPlan(
             tasks=["beauty"], stop_reason=("clarify_in_tool" if not sufficiency.ready else None)
         )
+    if intent.intent == "ingredient":
+        return TaskPlan(tasks=["knowledge"])
     return TaskPlan(tasks=["graph_chat"])
 
 
@@ -224,6 +239,21 @@ def verify_response(
         check.verdict == "NOT_MATCH" for check in result.conditions
     ):
         raise ApiError(502, "Recommendation violates filters", "invalid_tool_result")
+    if result.tool == "option_search":
+        checked = (
+            {
+                (item.product_id, item.option_id): item.verdict
+                for item in response.option_search.evaluations
+            }
+            if response.option_search
+            else {}
+        )
+        if any(
+            (p.id, p.option_id) not in checked
+            or (response.result_type == "recommendations" and checked[p.id, p.option_id] != "MATCH")
+            for p in response.products
+        ):
+            raise ApiError(502, "Invalid option result", "invalid_tool_result")
     if (
         result.tool == "beauty"
         and response.chat_context is not None
@@ -286,7 +316,11 @@ class ChatService:
         return await self._run_supervisor(req, context, decision)
 
     async def _run_supervisor(
-        self, req: ChatRequest, context: ResolvedContext, decision: IntentDecision
+        self,
+        req: ChatRequest,
+        context: ResolvedContext,
+        decision: IntentDecision,
+        option_context=None,
     ) -> ChatResponse:
         # AR can clarify missing selection without an LLM.
         if (
@@ -294,6 +328,7 @@ class ChatService:
             and req.request_type != "ar_command"
             and req.request_type != "style_consultation"
             and decision.intent != "style"
+            and decision.intent != "ingredient"
         ):
             raise ApiError(503, "Chatbot is not configured", "chatbot_unavailable")
         if req.request_type == "beauty_consultation" and decision.intent not in {
@@ -310,13 +345,25 @@ class ChatService:
                 raise
             if decision.slots.intent != "general":
                 decision.intent = "ingredient" if decision.intent == "ingredient" else "product"
+        elif decision.intent == "ingredient" and decision.slots is None:
+            decision.slots = (
+                await interpret_beauty(req, self._llm)
+                if self._catalog is not None and self._llm.configured
+                else SearchPlan(intent="general")
+            )
         sufficient = check_sufficiency(context, decision)
         plan = build_plan(context, decision, sufficient)
+        if (
+            decision.slots
+            and "knowledge" not in plan.tasks
+            and option_requested(req, decision.slots, option_context)
+        ):
+            plan = TaskPlan(tasks=["option_search"], stop_reason=plan.stop_reason)
         tool = (
             plan.tasks[0] if plan.tasks else "ar_command" if decision.intent == "ar" else "beauty"
         )
         try:
-            response, result = await self.execute_tool(req, decision, plan)
+            response, result = await self.execute_tool(req, decision, plan, option_context)
             return verify_response(req, decision, plan, response, result)
         except UpstreamError as exc:
             error = ApiError(502, "Chatbot is temporarily unavailable", "upstream_error")
@@ -331,9 +378,9 @@ class ChatService:
             )
             raise
 
-    @staticmethod
-    def _cached_session_response(state):
+    async def _cached_session_response(self, state):
         response = ChatResponse.model_validate(state.last_response)
+        await revalidate_claims(response, state.last_claim_context, self._catalog)
         response.supervisor = state.last_supervisor
         response.tool_result = state.last_tool_result
         return response
@@ -413,7 +460,7 @@ class ChatService:
                 if state.last_request_id == request_id:
                     if state.last_fingerprint != fingerprint:
                         raise ApiError(409, "Request ID content changed", "chat_request_conflict")
-                    return self._cached_session_response(state)
+                    return await self._cached_session_response(state)
                 if (
                     ref.state_version != state.state_version
                     or ref.result_set_id != state.result_set_id
@@ -497,7 +544,9 @@ class ChatService:
             context.state_source = "server_session"
             context.session_version = state.state_version
             context.result_set_id = str(state.result_set_id)
-        response = await self._run_supervisor(req, context, decision)
+        response = await self._run_supervisor(
+            req, context, decision, state.option_context if state else None
+        )
         result = response.supervisor.result
         ctx = response.chat_context
         partial_ingredients = bool(response.products) and any(
@@ -608,6 +657,14 @@ class ChatService:
             last_response=response.model_dump(mode="json"),
             last_supervisor=response.supervisor,
             last_tool_result=response.tool_result,
+            option_context=(
+                response.option_context
+                if result.tool == "option_search"
+                else state.option_context
+                if state and not renewed and ctx.scope_ids == state.context.scope_ids
+                else None
+            ),
+            last_claim_context=response.claim_context,
         )
         try:
             await repo.commit(snapshot, state.state_version if state else None)
@@ -615,7 +672,7 @@ class ChatService:
             if state and exc.status == 409:
                 winner = await repo.load(owner, ref)
                 if winner.last_request_id == request_id and winner.last_fingerprint == fingerprint:
-                    return self._cached_session_response(winner)
+                    return await self._cached_session_response(winner)
             if exc.code != "chat_session_unavailable" or state:
                 raise
             # A fresh independent answer can survive an outage, but is explicitly not persisted.
@@ -631,7 +688,7 @@ class ChatService:
         return response
 
     async def execute_tool(
-        self, req: ChatRequest, decision: IntentDecision, plan: TaskPlan
+        self, req: ChatRequest, decision: IntentDecision, plan: TaskPlan, option_context=None
     ) -> tuple[ChatResponse, ToolResult]:
         if not plan.tasks or len(plan.tasks) > 1:
             if req.request_type == "style_consultation":
@@ -678,10 +735,11 @@ class ChatService:
         if tool == "style":
             return await execute_style(req, self._catalog)
         if tool == "knowledge":
-            return (
-                ChatResponse(answer=TEXT[req.locale]["clarify"], products=[]),
-                ToolResult(tool=tool, status="unsupported", reason="tool_unavailable"),
+            return await explain_ingredients(
+                req, decision.slots or SearchPlan(intent="general"), self._catalog
             )
+        if tool == "option_search":
+            return await recommend_options(req, decision.slots, self._catalog, option_context)
         if tool != "graph_chat":
             raise ApiError(503, "Tool is not implemented", "tool_unavailable")
         graph = self._graph if self._graph is not None else GraphRepository(get_driver())

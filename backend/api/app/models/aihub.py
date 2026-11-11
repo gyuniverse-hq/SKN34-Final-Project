@@ -24,6 +24,7 @@ from uuid import UUID
 from sqlalchemy import (
     ARRAY,
     BigInteger,
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
@@ -466,3 +467,49 @@ class AihubClaimReviewRow(Base):
     reviewer: Mapped[str | None] = mapped_column(Text, nullable=True)
     reviewed_at: Mapped[date | None] = mapped_column(Date, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class AihubClaimPublicationRow(Base):
+    """Explicit publication of one reviewed statement with one versioned source."""
+
+    __tablename__ = "aihub_claim_publication"
+    __table_args__ = (
+        Index(
+            "uq_aihub_active_publication",
+            "claim_version_id",
+            unique=True,
+            postgresql_where=text("revoked_at IS NULL"),
+        ),
+        Index("ix_aihub_publication_ingredient", "ingredient_id"),
+        Index("ix_aihub_publication_review", "source_review_id"),
+        CheckConstraint(
+            "mfds_source_hash ~ '^[0-9a-f]{64}$' AND btrim(summary) <> '' "
+            "AND btrim(source_title) <> '' AND btrim(publisher) <> '' "
+            "AND (revoked_at IS NULL OR revoked_at >= published_at)",
+            name="ck_aihub_publication_content",
+        ),
+    )
+
+    publication_id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    claim_version_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("aihub_claim_version.claim_version_id"), nullable=False
+    )
+    source_review_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("aihub_claim_review.claim_id"), nullable=False
+    )
+    release_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("aihub_dataset_release.release_id"), nullable=False
+    )
+    ingredient_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("raw_mfds_ingredient.ingredient_id"), nullable=False
+    )
+    mfds_source_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    summary: Mapped[str] = mapped_column(Text, nullable=False)
+    source_title: Mapped[str] = mapped_column(Text, nullable=False)
+    source_url: Mapped[str] = mapped_column(Text, nullable=False)
+    publisher: Mapped[str] = mapped_column(Text, nullable=False)
+    published_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    test_only: Mapped[bool] = mapped_column(Boolean, server_default=text("false"), nullable=False)

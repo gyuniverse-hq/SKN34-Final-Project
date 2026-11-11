@@ -1,8 +1,9 @@
 """Subset of the api service's catalog contract that the graph needs. Unknown fields are ignored."""
 
 from typing import Literal, Self
+from uuid import UUID
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, HttpUrl, model_validator
 from pydantic.alias_generators import to_camel
 
 from app.core.config import get_settings
@@ -207,3 +208,131 @@ class CatalogIngredients(_CatalogModel):
             and [i.sequence for i in self.ingredients] == list(range(1, len(names) + 1))
             and len(set(names)) == len(names)
         )
+
+
+Verdict = Literal["MATCH", "NOT_MATCH", "UNKNOWN", "ERROR"]
+PriceBasis = Literal["current_sale", "collected_sale"]
+ClaimUse = Literal["explain", "rank", "avoid"]
+
+
+class ClaimContext(_CatalogModel):
+    concern: str | None = Field(default=None, min_length=1, max_length=80)
+    target: str | None = Field(default=None, min_length=1, max_length=80)
+    formulation: str | None = Field(default=None, min_length=1, max_length=80)
+    concentration_pct: float | None = Field(default=None, ge=0, le=100)
+
+
+class ClaimIngredientKey(_CatalogModel):
+    mfds_ingredient_id: int = Field(gt=0, strict=True)
+    source_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class ClaimCitation(_CatalogModel):
+    publication_id: UUID
+    revision: int
+    ingredient: ClaimIngredientKey
+    ingredient_name: str
+    summary: str = Field(min_length=1, max_length=1200)
+    use: ClaimUse
+    scope: dict
+    source_title: str
+    source_url: HttpUrl
+    source_version: str
+    study_type: str
+
+
+class ClaimLookup(_CatalogModel):
+    use: ClaimUse
+    context: ClaimContext
+    ingredient_names: list[str] = Field(default_factory=list)
+    ingredients: list[ClaimIngredientKey] = Field(default_factory=list)
+    publication_ids: list[UUID] = Field(default_factory=list)
+
+
+class ClaimSearchResult(_CatalogModel):
+    claims: list[ClaimCitation] = Field(max_length=24)
+
+
+class OptionCategory(_CatalogModel):
+    category_id: str
+    parent_id: str | None = None
+    name: str | None
+    path: str | None
+
+
+class OptionCategories(_CatalogModel):
+    categories: list[OptionCategory]
+
+
+class OptionFilter(_CatalogModel):
+    ingredient_name: str
+    operator: Literal["includes", "excludes"]
+
+
+class OptionLookup(_CatalogModel):
+    category_id: str
+    product_id: str | None = None
+    option_id: str | None = None
+    max_price_krw: int | None = Field(default=None, alias="maxPriceKRW")
+    price_basis: PriceBasis = "current_sale"
+    ingredient_conditions: list[OptionFilter] = Field(default_factory=list)
+    offset: int = Field(default=0, ge=0)
+    limit: int = Field(default=32, ge=1, le=32)
+
+
+class CollectedOptionPrice(_CatalogModel):
+    evidence_id: str
+    source: Literal["oliveyoung_price_snapshot"]
+    source_url: str | None
+    sale_price_krw: int | None = Field(alias="salePriceKRW")
+    collected_at_raw: str | None
+    stock_status: Literal["in_stock", "sold_out", "unknown"]
+
+
+class CatalogOptionPrice(_CatalogModel):
+    reference_price_krw: int | None = Field(alias="referencePriceKRW")
+    collected: CollectedOptionPrice | None
+    current_sale_price_krw: int | None = Field(alias="currentSalePriceKRW")
+    current_stock_status: Literal["in_stock", "sold_out", "unknown"]
+
+
+class BudgetDecision(_CatalogModel):
+    price_basis: PriceBasis
+    max_price_krw: int = Field(alias="maxPriceKRW")
+    verdict: Verdict
+    reason: str
+    evidence_id: str | None = None
+
+
+class OptionIngredientReview(_CatalogModel):
+    review: CatalogIngredients
+    error_code: str | None = None
+
+
+class CatalogOption(_CatalogModel):
+    product_id: str
+    product_name: str
+    catalog_category: str
+    category: OptionCategory
+    option_id: str
+    option_name: str | None
+    price: CatalogOptionPrice
+    ingredients: OptionIngredientReview
+    budget_condition: BudgetDecision | None
+    required_verdict: Verdict
+
+
+class OptionPageScope(_CatalogModel):
+    request: OptionLookup
+    category: OptionCategory
+    candidate_count: int = Field(ge=0)
+    evaluated_count: int = Field(ge=0, le=32)
+    next_offset: int | None = Field(ge=0)
+    options_with_lookup_errors: int = Field(ge=0, le=32)
+
+
+class OptionPage(_CatalogModel):
+    scope: OptionPageScope
+    matches: list[CatalogOption] = Field(max_length=32)
+    excluded: list[CatalogOption] = Field(max_length=32)
+    unconfirmed: list[CatalogOption] = Field(max_length=32)

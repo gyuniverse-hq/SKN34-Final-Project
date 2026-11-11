@@ -59,6 +59,48 @@ function buttonWithText(root: ReactTestInstance, text: string) {
   return button;
 }
 
+describe('published ingredient evidence and exact option cards', () => {
+  async function send(view: ReactTestRenderer, text: string) {
+    await act(async () => view.root.findByType(TextInput).props.onChangeText(text));
+    await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress());
+  }
+
+  it('displays the source text for an explanation without loading product cards', async () => {
+    mockMutateAsync.mockResolvedValueOnce({
+      answer: 'Published ingredient summary · source', products: [], claimStatus: 'available',
+    });
+    const view = await renderScreen();
+    await send(view, '글리세린 성분 설명');
+    expect(view.root.findAllByType(ChatProducts)).toHaveLength(0);
+    expect(view.root.findAllByType(Text).some((node) =>
+      node.props.children === 'Published ingredient summary · source')).toBe(true);
+    await act(async () => view.unmount());
+  });
+
+  it('keeps the option in the response and avoids evaluating its budget against the reference price', async () => {
+    mockProductsByIds.mockReturnValue({
+      data: [{ id: 'p1', priceKRW: 1000, shades: [{ id: 'other-shade' }] }],
+      isPending: false, isError: false, refetch: mockRefetch,
+    });
+    mockMutateAsync.mockResolvedValueOnce({
+      answer: '크림 · 본품 50 ml', products: [{
+        id: 'p1', brand: 'Fixture', name: 'Cream', category: 'skincare',
+        optionId: 'p1-02', optionName: '본품 50 ml',
+      }],
+      chatContext: beautyContext, claimStatus: 'available',
+    });
+    const view = await renderScreen();
+    await send(view, '2만원 이하 크림 추천');
+    const props = view.root.findByType(ChatProducts).props;
+    expect(props.conditions).toEqual([]);
+    expect(props.products[0].shades).toEqual([]);
+    expect(props.showIngredients).toBe(false);
+    await act(async () => props.onOpenProduct('p1', 'other-shade'));
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/product/[id]', params: { id: 'p1' } });
+    await act(async () => view.unmount());
+  });
+});
+
 async function renderScreen(): Promise<ReactTestRenderer> {
   let renderer!: ReactTestRenderer;
   await act(async () => {

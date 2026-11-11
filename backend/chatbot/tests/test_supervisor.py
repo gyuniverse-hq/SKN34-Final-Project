@@ -78,20 +78,22 @@ async def test_missing_reference_and_unknown_ingredients_are_not_fabricated():
 
 
 @pytest.mark.anyio
-async def test_legacy_general_and_knowledge_keep_graph_path():
-    for text, intent in [
-        ("hello", "general"),
-        ("성분 설명해줘", "ingredient"),
-    ]:
-        graph, llm = FakeGraph(), FakeLlm()
-        result = await ChatService(graph, llm).answer(ChatRequest(message=text))
-        assert result.answer == "Try Rom&nd Juicy Tint."
-        assert graph.terms
-        assert result.supervisor.intent.intent == intent
-        assert result.supervisor.result.tool == "graph_chat"
-        assert result.supervisor.result.status == "partial"
-        assert result.supervisor.unavailable_tools == ["knowledge"]
-        assert result.supervisor.result.application == "not_requested"
+async def test_general_keeps_graph_path_and_ingredient_explanation_uses_knowledge():
+    graph, llm = FakeGraph(), FakeLlm()
+    result = await ChatService(graph, llm).answer(ChatRequest(message="hello"))
+    assert result.answer == "Try Rom&nd Juicy Tint."
+    assert graph.terms
+    assert result.supervisor.intent.intent == "general"
+    assert result.supervisor.result.tool == "graph_chat"
+    assert result.supervisor.result.status == "partial"
+    assert result.supervisor.result.application == "not_requested"
+
+    graph = FakeGraph()
+    result = await ChatService(graph, llm).answer(ChatRequest(message="성분 설명해줘"))
+    assert not graph.terms and result.products == []
+    assert result.supervisor.intent.intent == "ingredient"
+    assert result.supervisor.result.tool == "knowledge"
+    assert result.claim_status == "not_found"
 
 
 @pytest.mark.anyio
@@ -191,14 +193,13 @@ def test_response_verifier_rejects_invented_refs_and_ar_on_read_paths():
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("tool", ["knowledge"])
-async def test_unimplemented_tools_return_unsupported_without_model_calls(tool):
+async def test_knowledge_without_ingredient_identity_does_not_call_model():
     llm = PlanLlm(intent="general")
     service = ChatService(FakeGraph(), llm, Catalog())
     req = ChatRequest(message="hello")
     decision = route_intent(resolve_context(req))
-    response, result = await service.execute_tool(req, decision, TaskPlan(tasks=[tool]))
-    assert result.status == "unsupported" and result.reason == "tool_unavailable"
+    response, result = await service.execute_tool(req, decision, TaskPlan(tasks=["knowledge"]))
+    assert result.status == "success" and result.reason == "claim_not_found"
     assert response.products == [] and llm.calls == 0
 
 

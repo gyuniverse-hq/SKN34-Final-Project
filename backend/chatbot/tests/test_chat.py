@@ -146,9 +146,7 @@ def test_prompt_uses_locale_skin_hint_and_only_retrieved_products():
     assert user == {"role": "user", "content": "tint"}
 
 
-@pytest.mark.parametrize(
-    "question", ["소프트 로즈 메이크업 방법 알려줘", "판테놀은 어떤 성분이야?", "립 제품 추천해줘"]
-)
+@pytest.mark.parametrize("question", ["소프트 로즈 메이크업 방법 알려줘", "립 제품 추천해줘"])
 def test_empty_catalog_instructions_are_sent_with_each_kind_of_question(question):
     class EmptyGraph:
         async def find_products(self, terms, limit=6):
@@ -167,6 +165,14 @@ def test_empty_catalog_instructions_are_sent_with_each_kind_of_question(question
     assert "do not mention\nproduct availability unless the user also asks" in system["content"]
     assert "If the user asks for product recommendations" in system["content"]
     assert "use only products from the PRODUCTS list" in system["content"]
+
+
+def test_ingredient_explanation_never_uses_graph_or_generated_advice(client, graph, llm):
+    response = client.post("/api/chat", json={"message": "판테놀은 어떤 성분이야?"}, headers=AUTH)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["claimStatus"] == "not_found" and body["publishedClaims"] == []
+    assert body["products"] == [] and not graph.terms and not llm.messages
 
 
 def ar_payload():
@@ -228,23 +234,29 @@ def ar_client(client, graph):
 
 
 @pytest.mark.parametrize("request_type", [None, "chat"])
-def test_ar_context_does_not_change_general_chat_routing(client, graph, request_type):
+@pytest.mark.parametrize("question", ["립 제품 추천해줘", "지금 바른 립의 성분 알려줘."])
+def test_ar_context_does_not_change_general_chat_routing(client, graph, request_type, question):
     payload = ar_payload()
-    payload["message"] = "지금 바른 립의 성분 알려줘."
+    payload["message"] = question
     if request_type is None:
         payload.pop("requestType")
     else:
         payload["requestType"] = request_type
     response = client.post("/api/chat", json=payload, headers=AUTH)
     assert response.status_code == 200
-    assert set(response.json()) == {"answer", "products"}
-    assert graph.terms
+    body = response.json()
+    assert "arResult" not in body
+    if "성분" in question:
+        assert body["claimStatus"] == "not_found" and body["products"] == [] and not graph.terms
+    else:
+        assert set(body) == {"answer", "products"} and graph.terms
 
 
 @pytest.mark.parametrize("request_type", [None, "chat"])
-def test_general_chat_ignores_invalid_ar_only_fields(client, graph, request_type):
+@pytest.mark.parametrize("question", ["립 제품 추천해줘", "립 성분 알려줘"])
+def test_general_chat_ignores_invalid_ar_only_fields(client, graph, request_type, question):
     payload = {
-        "message": "립 성분 알려줘",
+        "message": question,
         "arContext": {"unexpected": "legacy ignored"},
         "requestId": "not-a-uuid",
     }
@@ -252,8 +264,12 @@ def test_general_chat_ignores_invalid_ar_only_fields(client, graph, request_type
         payload["requestType"] = request_type
     response = client.post("/api/chat", json=payload, headers=AUTH)
     assert response.status_code == 200
-    assert set(response.json()) == {"answer", "products"}
-    assert graph.terms
+    body = response.json()
+    assert "arResult" not in body
+    if "성분" in question:
+        assert body["claimStatus"] == "not_found" and body["products"] == [] and not graph.terms
+    else:
+        assert set(body) == {"answer", "products"} and graph.terms
 
 
 def test_ar_http_proposes_valid_catalog_selection_without_graph(ar_client):

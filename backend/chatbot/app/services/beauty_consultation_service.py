@@ -98,9 +98,22 @@ For multiple ingredient constraints, include every condition in ingredientCondit
 including detail questions. Never silently omit one. Use at most six conditions.
 Use ingredientName for ingredient conditions, never query (query is product/brand text).
 For ingredient filtering use search/refine with ingredientLookup true and ingredientName.
+An exclusion of the exact ingredient name 향료 belongs in ingredientConditions.
+Only a fragrance-group or fragrance-free request sets fragranceFree.
 shadeName: explicitly requested shade label only; never invent IDs or select a shade.
 compareOrdinals: exactly two explicitly referenced candidate numbers (1..6) for ingredients.
-For general ingredient knowledge use general; the dedicated Knowledge Tool is unavailable.
+For an ingredient explanation without a product request, use intent general,
+evidenceIntent explain, and explanationIngredients (at most six exact ingredient names).
+Set explanationUse avoid only when the user explicitly asks whether to avoid an ingredient.
+For shopping by a skincare concern or an exact retail category such as cream, set
+evidenceIntent recommend and optionCategory to the exact category named by the user.
+Never infer a retail category from a concern alone. For a named product detail, comparison,
+makeup shade or general how-to keep the corresponding existing intent.
+claimContext can contain concern, target, formulation, concentrationPct only when
+the user explicitly stated them. Omit guesses about applicability or product concentrations.
+optionPriceBasis: collected_sale only for explicitly historical/captured sale prices,
+current_sale for an explicit switch to current prices. Ordinary budgets default to current.
+requireInStock: true only for an explicit in-stock requirement, false to clear it.
 Use search for a new shopping request, refine for changed or added prior conditions,
 detail for product details/ingredients, price for a single previously listed product's price,
 general for general advice/how-to/style.
@@ -407,7 +420,7 @@ async def interpret_beauty(req: ChatRequest, llm) -> SearchPlan:
                     "content": json.dumps(
                         {
                             "message": req.message,
-                            "context": req.chat_context.model_dump(mode="json")
+                            "context": req.chat_context.model_dump(mode="json", exclude={"session"})
                             if req.chat_context
                             else None,
                             "screenContext": req.screen_context.model_dump(mode="json")

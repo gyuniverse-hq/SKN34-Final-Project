@@ -9,13 +9,27 @@ from pydantic import ValidationError
 
 from app.core.config import get_settings
 from app.core.errors import UpstreamError
-from app.schemas.catalog import CatalogIngredients, CatalogLook, CatalogProduct, CatalogStyleLook
+from app.schemas.catalog import (
+    CatalogIngredients,
+    CatalogLook,
+    CatalogProduct,
+    CatalogStyleLook,
+    ClaimLookup,
+    ClaimSearchResult,
+    OptionCategories,
+    OptionLookup,
+    OptionPage,
+)
 
 
 class IngredientLookupError(UpstreamError):
     def __init__(self, reason: str):
         super().__init__(reason)
         self.reason = reason
+
+
+class UnsupportedOptionCategory(UpstreamError):
+    pass
 
 
 class CatalogClient:
@@ -40,6 +54,39 @@ class CatalogClient:
         return [
             CatalogProduct.model_validate(p) for p in await self._get("/api/products", "products")
         ]
+
+    async def option_categories(self) -> OptionCategories:
+        return await self._evidence_request("GET", "/api/catalog/categories", OptionCategories)
+
+    async def search_options(self, request: OptionLookup) -> OptionPage:
+        return await self._evidence_request(
+            "POST", "/api/catalog/options/search", OptionPage, request
+        )
+
+    async def search_claims(self, request: ClaimLookup) -> ClaimSearchResult:
+        return await self._evidence_request(
+            "POST", "/api/catalog/ingredient-claims/search", ClaimSearchResult, request
+        )
+
+    async def _evidence_request(self, method, path, schema, request=None):
+        try:
+            body = (
+                request.model_dump(mode="json", by_alias=True, exclude_none=True)
+                if request
+                else None
+            )
+            async with httpx.AsyncClient(timeout=min(8, self._timeout)) as client:
+                response = await client.request(method, self._base + path, json=body)
+            if (
+                path == "/api/catalog/options/search"
+                and response.status_code == 400
+                and response.json().get("code") == "unsupported_category"
+            ):
+                raise UnsupportedOptionCategory("Unsupported catalog category")
+            response.raise_for_status()
+            return schema.model_validate(response.json())
+        except (httpx.HTTPError, ValidationError, ValueError, AttributeError) as exc:
+            raise UpstreamError(f"Catalog evidence request failed: {path}") from exc
 
     async def search_products(
         self, *, category: str | None = None, q: str = "", ids: list[str] | None = None
