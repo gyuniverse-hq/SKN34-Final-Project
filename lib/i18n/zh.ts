@@ -81,6 +81,7 @@ export const zh: Dictionary = {
   'chat.ingredient.partial': "部分资料 — 无法确定成分不存在。",
   'chat.ingredient.unknown': "证据不足",
   'chat.ingredient.mappingLabel': "映射状态",
+  'chat.ingredient.directly_reviewed': "已直接核验",
   'chat.ingredient.reproduced': "已确认生成过程重现",
   'chat.ingredient.candidate': "未验证候选",
   'chat.ingredient.ambiguous': "映射不明确",

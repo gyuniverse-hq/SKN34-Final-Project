@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { theme } from '@/constants/theme';
 import { formatDate } from '@/lib/format';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
+import { displayCareGoal } from '@/lib/skincare';
 import type { SkinConcern } from '@/types';
 import type { SkinReport, SkinReportMetric, SkinType } from '@/types/skinReport';
 
@@ -53,17 +54,24 @@ export function SkinReportOverview({ report, example, expanded, onExpand, onStar
   </View>;
 }
 
-export function SkinCareHighlights({ metrics, onPress }: { metrics: SkinReportMetric[]; onPress: (concern: SkinConcern) => void }) {
+export function SkinCareHighlights({ metrics, allMetrics = metrics, onPress }: { metrics: SkinReportMetric[]; allMetrics?: SkinReportMetric[]; onPress: (concern: SkinConcern) => void }) {
   const { t } = useI18n();
+  const grouped = new Map<SkinConcern, SkinReportMetric>();
+  const priority = { good: 0, unknown: 1, care: 2 } as const;
+  for (const metric of [...metrics, ...allMetrics]) {
+    const goal = displayCareGoal(metric.concern);
+    const current = grouped.get(goal);
+    if (!current || priority[metric.status] > priority[current.status]) grouped.set(goal, metric);
+  }
   return <View style={styles.section}>
     <Text style={styles.sectionTitle} accessibilityRole="header">{t('report.priority')}</Text>
     <Text style={styles.copy}>{t('report.priorityBody')}</Text>
     <View style={styles.grid}>
-      {metrics.map((metric) => <Pressable key={metric.concern} onPress={() => onPress(metric.concern)}
-        accessibilityRole="button" accessibilityLabel={`${t(`concern.${metric.concern}` as TranslationKey)}, ${t(`report.${metric.status}`)}`}
+      {[...grouped.entries()].slice(0, 2).map(([goal, metric]) => <Pressable key={goal} onPress={() => onPress(metric.concern)}
+        accessibilityRole="button" accessibilityLabel={`${t(`support.priorityChoice.${goal}` as TranslationKey)}, ${t(`report.${metric.status}`)}`}
         style={[styles.metric, metric.status === 'care' && styles.metricCare]}>
         <Text style={[styles.status, metric.status === 'care' && styles.statusCare]}>{t(`report.${metric.status}`)}</Text>
-        <Text style={styles.metricTitle}>{t(`concern.${metric.concern}` as TranslationKey)}</Text>
+        <Text style={styles.metricTitle}>{t(`support.priorityChoice.${goal}` as TranslationKey)}</Text>
         <Text style={styles.caption}>{t(`report.${metric.status}Body`)}</Text>
         <View style={styles.metricFoot}>
           <Text style={styles.source}>{t(`report.${metric.source}`)}</Text>

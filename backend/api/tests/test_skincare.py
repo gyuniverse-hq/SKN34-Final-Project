@@ -1,3 +1,5 @@
+# These historical fixtures exercise the ranking core; policy tests use the public entry points.
+
 from unittest.mock import AsyncMock
 
 import pytest
@@ -9,7 +11,7 @@ from app.schemas.skincare import (
     SkincareRequest,
     SkincareSnapshot,
 )
-from app.services.skincare_service import recommend
+from app.services.skincare_service import _recommend_unfiltered as recommend
 from tests.conftest import make_product
 
 
@@ -20,10 +22,14 @@ def mapping(**changes):
                 mapping_id="m",
                 target_concern="dryness",
                 mapping_type="single",
-                applicability_scope="ingredient_level",
                 ingredient_codes=["A"],
-                evidence=[{"evidenceId": "e", "supportedEndpoint": "test endpoint"}],
+                evidence_ids=["e"],
+                mapping_status="candidate_after_match",
+                human_mapping_review="승인",
+                ai_paper_review="승인",
+                re_review_required=False,
                 runtime_enabled=True,
+                identity_verified=True,
             )
             | changes
         )
@@ -55,24 +61,17 @@ def snapshot(options=None, mappings=None):
         source_manifest={"source": "fixture"},
         mappings=mappings if mappings is not None else [mapping()],
         options=options if options is not None else [option()],
-        evidence={
-            "e": {
-                "evidenceId": "e",
-                "title": "test",
-                "sourceUrl": "https://example.test",
-                "studyType": "other",
-            }
-        },
+        evidence={"e": {"title": "test"}},
         ingredient_provenance={
-            "A": [{"linkMethod": "exact_name", "linkedAt": "2026-01-01T00:00:00Z"}],
-            "B": [{"linkMethod": "exact_name", "linkedAt": "2026-01-01T00:00:00Z"}],
+            "A": {"source": "reviewed", "reviewedBy": "tester"},
+            "B": {"source": "reviewed", "reviewedBy": "tester"},
         },
     )
 
 
 def request(**changes):
     return SkincareRequest(
-        **(dict(primary_goal="dryness", goal_policy_version="care-goals-v2") | changes)
+        **(dict(primary_goal="dryness", goal_policy_version="care-goals-v1") | changes)
     )
 
 
@@ -80,12 +79,60 @@ def request(**changes):
     "change",
     [
         dict(runtime_enabled=False),
-        dict(applicability_scope="formula_specific"),
+        dict(identity_verified=False),
+        dict(mapping_status="research_only"),
+        dict(re_review_required=True),
+        dict(human_mapping_review="수정필요"),
+        dict(ai_paper_review="제외"),
+        dict(evidence_ids=[]),
+        dict(mapping_type="combination", ingredient_codes=["A", "B"]),
     ],
 )
 def test_unapproved_mappings_never_rank(change):
     result = recommend(snapshot(mappings=[mapping(**change)]), request())
     assert result.coverage[0].status == "mapping_unavailable"
+    assert result.matches == []
+
+
+@pytest.mark.parametrize("goal", ["oiliness", "blemish"])
+def test_new_goals_require_approved_mappings(goal):
+    req = request(primary_goal=goal)
+    assert recommend(snapshot(mappings=[]), req).coverage[0].status == "mapping_unavailable"
+    rejected = mapping(target_concern=goal, re_review_required=True)
+    assert recommend(snapshot(mappings=[rejected]), req).coverage[0].status == "mapping_unavailable"
+    approved = mapping(target_concern=goal)
+    result = recommend(snapshot(mappings=[approved]), req)
+    assert result.coverage[0].status == "ok"
+    assert [item.product.id for item in result.matches] == ["a"]
+
+
+def test_all_six_other_goals_can_be_requested():
+    req = request(
+        secondary_goals=["sensitivity", "pigmentation", "wrinkles", "pores", "oiliness", "blemish"]
+    )
+    assert len(req.secondary_goals) == 6
+
+
+def test_db_option_matches_are_required_even_when_ingredients_match():
+    result = recommend(snapshot(options=[option(matched_mapping_ids=[])]), request())
+    assert result.coverage[0].status == "no_matches"
+    assert result.matches == []
+    result = recommend(snapshot(options=[option(matched_mapping_ids=["m"])]), request())
+    assert [m.option_id for m in result.matches] == ["a"]
+
+
+def test_db_match_never_bypasses_complete_ingredients_or_approval():
+    result = recommend(
+        snapshot(options=[option(matched_mapping_ids=["m"], ingredient_codes=[])]), request()
+    )
+    assert result.matches == []
+    result = recommend(
+        snapshot(
+            options=[option(matched_mapping_ids=["m"])],
+            mappings=[mapping(runtime_enabled=False)],
+        ),
+        request(),
+    )
     assert result.matches == []
 
 
@@ -147,7 +194,7 @@ def test_trace_is_explicit_and_combination_is_same_option_only():
         {"analysis": {}},
         {"limit": True},
         {"rating": 5},
-        {"primary_goal": "invalid_goal"},
+        {"primary_goal": "unsupported"},
     ],
 )
 def test_invalid_private_inputs(extra):

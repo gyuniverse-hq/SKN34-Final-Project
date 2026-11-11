@@ -43,6 +43,7 @@ export const en = {
   'chat.ingredient.partial': "Partial data — absence cannot be established.",
   'chat.ingredient.unknown': "Insufficient evidence",
   'chat.ingredient.mappingLabel': "Mapping status",
+  'chat.ingredient.directly_reviewed': "Direct review confirmed",
   'chat.ingredient.reproduced': "Generator replay confirmed",
   'chat.ingredient.candidate': "Unverified candidate",
   'chat.ingredient.ambiguous': "Ambiguous mapping",

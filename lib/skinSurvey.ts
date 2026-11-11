@@ -24,6 +24,7 @@ export function isCompleteSupportSurvey(value: unknown): value is SkinSurveyV3 {
   if (!value || typeof value !== 'object') return false;
   const q = value as SkinSurveyV3;
   return q.version === SKIN_SUPPORT_VERSION && SUPPORT_QUESTIONS.every(key =>
-    (SUPPORT_CHOICES[key] as readonly unknown[]).includes(q[key])) && SKIN_CONCERNS.includes(q.priority) &&
+    (SUPPORT_CHOICES[key] as readonly unknown[]).includes(q[key])) &&
+    (q.priority === undefined || SKIN_CONCERNS.includes(q.priority)) &&
     Object.keys(q).every(key => key === 'version' || key === 'priority' || (SUPPORT_QUESTIONS as readonly string[]).includes(key));
 }

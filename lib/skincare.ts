@@ -1,38 +1,69 @@
 import type { SkinProfile } from '@/types/skin';
-import { CARE_GOALS, type CareGoal, type SkincareRequest } from '@/types/skincare';
+import { CARE_GOALS, type CareGoal, type DetectionSource, type HybridMatch, type HybridResponse, type SkincareProfileRequest } from '@/types/skincare';
 import { buildSkinReport } from './skinReport';
 import { surveySensitivity } from './skinSurvey';
 
-/** Initial service heuristics. Raw answers and image scores never enter the request. */
-export function deriveCareGoals(profile: SkinProfile | null) {
-  const sources: Partial<Record<CareGoal, string[]>> = {};
-  const add = (g: CareGoal, source: string) => { (sources[g] ??= []).push(source); };
-  const report = profile ? buildSkinReport(profile) : null;
-  for (const g of ['pigmentation', 'wrinkles', 'pores'] as const) {
-    if (report?.metrics.some(m => m.concern === g && m.status === 'care')) add(g, 'analysis');
+/** One display category represents the two distinct internal care goals. */
+export function displayCareGoal(goal: CareGoal): CareGoal {
+  return goal === 'oiliness' ? 'dryness' : goal;
+}
+
+/** Merge the two internal balance results without duplicating a product. */
+export function displayCareGroups(response: HybridResponse) {
+  const groups = new Map<CareGoal, { goal: CareGoal; status: HybridResponse['coverage'][number]['status']; matches: HybridMatch[] }>();
+  const order = { mapping_unavailable: 0, no_matches: 1, ok: 2 } as const;
+  for (const item of response.coverage) {
+    const goal = displayCareGoal(item.goal);
+    const group = groups.get(goal) ?? { goal, status: item.status, matches: [] };
+    if (order[item.status] > order[group.status]) group.status = item.status;
+    for (const match of response.byConcern[item.goal] ?? []) {
+      if (group.matches.length < 5 && !group.matches.some(m => m.product.id === match.product.id)) group.matches.push(match);
+    }
+    groups.set(goal, group);
   }
-  if (report?.skinType === 'dry') add('dryness', 'skin-type');
-  let irritationSignal: SkincareRequest['irritationSignal'] = 'unknown';
-  let primary: CareGoal | undefined;
-  if (profile) {
-    const q = profile.questionnaire;
+  const balance = groups.get('dryness');
+  if (balance && response.balanceMatches) balance.matches = response.balanceMatches.slice(0, 5);
+  return [...groups.values()];
+}
+
+export function deriveCareGoals(profile: SkinProfile | null): SkincareProfileRequest {
+  const report = profile && buildSkinReport(profile);
+  const sources = new Map<CareGoal, Set<DetectionSource>>();
+  function add(goal: CareGoal, source: DetectionSource) {
+    const found = sources.get(goal) ?? new Set<DetectionSource>();
+    found.add(source);
+    sources.set(goal, found);
+  }
+  for (const metric of report?.metrics ?? []) {
+    if (metric.status !== 'care' || metric.source === 'unavailable') continue;
+    if (metric.source === 'survey' || metric.source === 'combined') add(metric.concern, 'survey');
+    if (metric.source !== 'survey') {
+      add(metric.concern, ['dryness', 'oiliness'].includes(metric.concern) ? 'skinType' : 'analysis');
+    }
+  }
+  let irritationSignal: SkincareProfileRequest['irritationSignal'] = 'unknown';
+  const q = profile?.questionnaire;
+  if (q) {
     if ('version' in q) {
-      if (CARE_GOALS.includes(q.priority as CareGoal)) { primary = q.priority as CareGoal; add(primary, 'user'); }
       const sensitivity = surveySensitivity(q);
       irritationSignal = sensitivity === 'care' ? 'caution' : sensitivity === 'good' ? 'none' : 'unknown';
-      if (q.version === 'skin-support-1' && (q.postWashDryness === 'marked' || q.cheekState === 'dry')) add('dryness', 'survey');
     } else {
       irritationSignal = q.sensitivity === 2 ? 'caution' : q.sensitivity === 0 ? 'none' : 'unknown';
-      if (q.tightness === 2) add('dryness', 'survey');
     }
-    if (irritationSignal === 'caution') add('sensitivity', 'survey');
   }
-  return { primary, secondary: CARE_GOALS.filter(g => g !== primary && sources[g]), sources,
-    skinType: report?.skinType === 'combination' ? 'unknown' as const : report?.skinType ?? 'unknown', irritationSignal };
-}
-export function skincareRequest(profile: SkinProfile | null, primaryGoal: CareGoal, secondary: readonly CareGoal[]): SkincareRequest {
-  const derived = deriveCareGoals(profile);
-  return { primaryGoal, secondaryGoals: CARE_GOALS.filter(g => g !== primaryGoal && secondary.includes(g)),
-    skinType: derived.skinType, irritationSignal: derived.irritationSignal,
-    goalPolicyVersion: 'care-goals-v2', limit: 8, ...(__DEV__ ? { includeTrace: true } : {}) };
+  const detectedConcerns = CARE_GOALS.filter(g => sources.has(g))
+    .map(goal => ({ goal, sources: [...sources.get(goal)!] }));
+  const analysisScores: NonNullable<SkincareProfileRequest['analysisScores']> = {};
+  if (profile?.analysis.schema === 'skin-analysis-mobile-v4') {
+    for (const metric of report?.metrics ?? []) {
+      if ((metric.concern === 'pores' || metric.concern === 'pigmentation' || metric.concern === 'wrinkles') &&
+          metric.status !== 'unknown' && metric.modelScore !== undefined &&
+          Number.isFinite(metric.modelScore) && metric.modelScore >= 0 && metric.modelScore <= 1) {
+        analysisScores[metric.concern] = metric.modelScore;
+      }
+    }
+  }
+  return { detectedConcerns, irritationSignal,
+    ...(Object.keys(analysisScores).length ? { analysisScores } : {}),
+    skinType: report?.skinType === 'combination' ? 'unknown' as const : report?.skinType ?? 'unknown' };
 }

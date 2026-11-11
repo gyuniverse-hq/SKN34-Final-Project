@@ -8,17 +8,20 @@ import threading
 import time
 from pathlib import Path
 
+import httpx
 import pytest
 import uvicorn
 
 from app.core.cache import NullCache
-from app.repositories.ingredient_repository import IngredientRepository
+from app.core.config import get_settings
+from app.repositories.ingredient_repository import IngredientRepository, fingerprint
 from app.schemas.catalog import CatalogBundle
 from app.services.catalog_service import CatalogService, get_catalog_service
 from app.services.ingredient_service import IngredientService, get_ingredient_service
 from tests.conftest import FakeCatalogStore, make_product
 from tests.test_ingredient_api import Session
 from tests.test_ingredient_api import data as data
+from tests.test_ingredient_canonical_identity import row
 
 CHAT_SCRIPT = r"""
 import json, sys, time
@@ -32,7 +35,8 @@ class Llm:
     calls = 0
     async def complete(self, messages):
         self.calls += 1
-        return json.dumps({"intent":"detail", "ingredientLookup":True, "ingredientName":"Water"})
+        return json.dumps({"intent":"detail", "ingredientLookup":True,
+                           "ingredientName":sys.argv[2]})
 
 class Service(ChatService):
     result = None
@@ -63,8 +67,12 @@ with TestClient(app) as client:
     "state,verdict,status",
     [
         ("verified", "MATCH", "success"),
+        ("direct_review", "MATCH", "success"),
+        ("canonical_alias", "MATCH", "success"),
         ("candidate", "UNKNOWN", "clarification"),
         ("configuration_error", "ERROR", "error"),
+        ("approval_missing", "ERROR", "error"),
+        ("approval_damaged", "ERROR", "error"),
     ],
 )
 def test_api_client_beauty_supervisor_chat_json_over_http(
@@ -78,9 +86,20 @@ def test_api_client_beauty_supervisor_chat_json_over_http(
 ):
     chatbot = Path(__file__).resolve().parents[2] / "chatbot"
     python = chatbot / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    if configured_python := os.environ.get("VISHUE_CHATBOT_TEST_PYTHON"):
+        python = Path(configured_python)
     if not python.exists():
         pytest.skip("Existing chatbot virtualenv is required; no dependency installation")
     product, shades, raw, entries, mapping = data
+    if state == "direct_review":
+        mapping.mapping_status = "directly_reviewed"
+        mapping.mapping_method = "direct_review"
+        mapping.reviewed_by = "Fixture reviewer"
+        mapping.reviewed_at = raw[9]
+        mapping.review_ref = "fixture://review"
+        mapping.generation_record_id = mapping.generator_version = mapping.source_fingerprint = None
+        raw = (*raw[:9], raw[9].replace(tzinfo=None), raw[10])
+        mapping.source_version = fingerprint([list(raw), [list(r) for r in entries]])
     if state == "candidate":
         mapping.mapping_status = "candidate"
         mapping.review_status = "unreviewed"
@@ -99,9 +118,33 @@ def test_api_client_beauty_supervisor_chat_json_over_http(
     )
     monkeypatch.delenv("INGREDIENT_MAPPING_PATH", raising=False)
     sessions = []
+    monkeypatch.setattr(get_settings(), "skincare_refresh_enabled", False)
+    invalid_approval = state.startswith("approval_")
+    approval_path = tmp_path / "approval.csv"
+    if state == "approval_damaged":
+        approval_path.write_bytes(
+            b'mfds_ingredient_id,candidate_alias,source_hash,reviewed_by,reviewed_at\n1,"unclosed'
+        )
+    monkeypatch.setattr(
+        get_settings(),
+        "ingredient_alias_approvals_path",
+        str(approval_path) if invalid_approval else None,
+    )
 
     def ingredient_service():
-        session = Session([[product], shades, [raw], entries])
+        identity_pages = (
+            [
+                [row(1, oy=1), row(2, oy=2)],
+                [
+                    (1, "standard-1", "english-1", "Aqua"),
+                    (2, "standard-2", "english-2", "alias-2"),
+                ],
+                [(*row(1, oy=1)[:10], "Aqua", False, False, True)],
+            ]
+            if state == "canonical_alias"
+            else [[], []]
+        )
+        session = Session([[product], shades, [raw], entries, *identity_pages])
         sessions.append(session)
         return IngredientService(
             IngredientRepository(
@@ -127,8 +170,24 @@ def test_api_client_beauty_supervisor_chat_json_over_http(
             while not server.started and thread.is_alive() and time.monotonic() < deadline:
                 threading.Event().wait(0.01)
             assert server.started, "Synthetic Catalog HTTP server did not start"
+            if invalid_approval:
+                base = f"http://127.0.0.1:{port}"
+                with httpx.Client(base_url=base) as http:
+                    response = http.get(
+                        "/api/products/oy-fixture/ingredients", params={"shadeId": "01-2"}
+                    )
+                    assert response.status_code == 503
+                    assert response.json()["code"] == "ingredient_alias_approvals_invalid"
+                    assert http.get("/api/products").status_code == 200
             result = subprocess.run(
-                [str(python), "-B", "-c", CHAT_SCRIPT, f"http://127.0.0.1:{port}"],
+                [
+                    str(python),
+                    "-B",
+                    "-c",
+                    CHAT_SCRIPT,
+                    f"http://127.0.0.1:{port}",
+                    "Aqua" if state == "canonical_alias" else "Water",
+                ],
                 cwd=chatbot,
                 env=os.environ | {"ENV": "local", "LLM_API_KEY": ""},
                 capture_output=True,
@@ -146,6 +205,16 @@ def test_api_client_beauty_supervisor_chat_json_over_http(
     assert output["toolStatus"] == status and output["application"] == "not_requested"
     body = output["body"]
     assert body["ingredientResults"][0]["verdict"] == verdict
+    if state == "direct_review":
+        assert body["ingredientResults"][0]["mappingStatus"] == "directly_reviewed"
+        assert body["ingredientResults"][0]["issues"] == ["source_timezone_unknown"]
     assert body["ingredientResults"][0]["productId"] == body["products"][0]["id"]
     assert "supervisor" not in body and "toolResult" not in body and "arResult" not in body
-    assert sessions and len(sessions[0].statements) == (4 if state == "verified" else 2)
+    expected_queries = (
+        7 if state == "canonical_alias" else 6 if state in {"verified", "direct_review"} else 2
+    )
+    if invalid_approval:
+        assert sessions and all(not session.statements for session in sessions)
+        assert body["ingredientResults"][0]["reason"] == "source_unavailable"
+    else:
+        assert sessions and len(sessions[0].statements) == expected_queries

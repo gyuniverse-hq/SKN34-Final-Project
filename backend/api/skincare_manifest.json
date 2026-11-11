@@ -1,0 +1,15 @@
+{
+  "reviewedBy": "codex-automated-category-and-name-filter",
+  "excludedNamePattern": "세트|기획|더블|듀오|트리오|증정|리필|마스크|마스크팩|슬리핑팩|패드|선크림|선케어|클렌징|1\\s*\\+\\s*1|2\\s*\\+\\s*1|\\+",
+  "labels": {},
+  "categories": {
+    "에센스": "essence",
+    "스킨/토너": "toner",
+    "크림": "cream",
+    "로션": "lotion"
+  },
+  "version": "local-20261104-conservative-v1",
+  "availableSaleStatuses": [
+    "정상"
+  ]
+}

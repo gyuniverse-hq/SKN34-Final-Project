@@ -81,6 +81,7 @@ export const ko: Dictionary = {
   'chat.ingredient.partial': "일부 자료 — 성분 부재는 확정할 수 없습니다.",
   'chat.ingredient.unknown': "근거 부족",
   'chat.ingredient.mappingLabel': "매핑 상태",
+  'chat.ingredient.directly_reviewed': "직접 검수 확인",
   'chat.ingredient.reproduced': "생성 경로 재현 확인",
   'chat.ingredient.candidate': "미검증 후보",
   'chat.ingredient.ambiguous': "매핑 모호",

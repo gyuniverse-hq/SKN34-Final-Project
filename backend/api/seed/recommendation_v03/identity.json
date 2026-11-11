@@ -1,0 +1,387 @@
+{
+  "version": "v0.3-identity-supplement-20261105-r1",
+  "rules": [
+    {
+      "ingredient_code": "4_BUTYLRESORCINOL",
+      "canonical_name": "4-부틸레조시놀",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "4_HEXYLRESORCINOL",
+      "canonical_name": "헥실레조시놀",
+      "exact_name_auto_link": false,
+      "reason": "제공 스키마가 4_HEXYLRESORCINOL↔헥실레조시놀의 동일 INCI를 판정 보류하고 있어 그 상태를 유지함.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "needs_specification"
+    },
+    {
+      "ingredient_code": "ACETYL_GLUCOSAMINE",
+      "canonical_name": "아세틸글루코사민",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "ALOE_BARBADENSIS_EXTRACT",
+      "canonical_name": "알로에베라추출물",
+      "exact_name_auto_link": false,
+      "reason": "시험의 동결건조 알로에 추출물과 원료의 부위·제조 규격 확인 필요.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "needs_specification"
+    },
+    {
+      "ingredient_code": "ASCORBIC_ACID",
+      "canonical_name": "아스코빅애씨드",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "CAMELLIA_SINENSIS_EXTRACT",
+      "canonical_name": "녹차추출물",
+      "exact_name_auto_link": false,
+      "reason": "녹차의 추출 부위·성분 표준화·제조 규격 확인 필요.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "needs_specification"
+    },
+    {
+      "ingredient_code": "CAPRYLOYL_SALICYLIC_ACID",
+      "canonical_name": "카프릴로일살리실릭애씨드",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "CENTELLA_ASIATICA_EXTRACT",
+      "canonical_name": "병풀추출물",
+      "exact_name_auto_link": false,
+      "reason": "시험 추출물의 추출 방법·표준화 성분/규격과 일반 병풀추출물의 동등성 확인 필요.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "needs_specification"
+    },
+    {
+      "ingredient_code": "CERAMIDE_EOP",
+      "canonical_name": "세라마이드이오피",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "no_exact_name_in_snapshot"
+    },
+    {
+      "ingredient_code": "CERAMIDE_NP",
+      "canonical_name": "세라마이드엔피",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "no_exact_name_in_snapshot"
+    },
+    {
+      "ingredient_code": "CHOLESTEROL",
+      "canonical_name": "콜레스테롤",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "DEXPANTHENOL",
+      "canonical_name": "덱스판테놀",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "ECTOIN",
+      "canonical_name": "엑토인",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "EPIGALLOCATECHIN_GALLATE",
+      "canonical_name": "에피갈로카테킨갈레이트",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "GLYCERIN",
+      "canonical_name": "글리세린",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "GLYCOLIC_ACID",
+      "canonical_name": "글라이콜릭애씨드",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "HYALURONIC_ACID",
+      "canonical_name": "하이알루로닉애씨드",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "ISOBUTYLAMIDO_THIAZOLYL_RESORCINOL",
+      "canonical_name": "아이소부틸아미도티아졸릴레조시놀",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "LACTOSE",
+      "canonical_name": "락토오스",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "L_CARNITINE",
+      "canonical_name": "L-카르니틴",
+      "exact_name_auto_link": false,
+      "reason": "원본 카르니틴에는 L형 표시가 없어 시험물질 L-carnitine과의 동일성 확인 필요.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "needs_specification"
+    },
+    {
+      "ingredient_code": "NELUMBO_NUCIFERA_EXTRACT",
+      "canonical_name": "연꽃추출물",
+      "exact_name_auto_link": false,
+      "reason": "연꽃의 추출 부위·성분 표준화·제조 규격 확인 필요.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "needs_specification"
+    },
+    {
+      "ingredient_code": "NIACINAMIDE",
+      "canonical_name": "나이아신아마이드",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "OXIDIZED_GLUTATHIONE",
+      "canonical_name": "옥시다이즈드글루타티온",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "PALMITOYL_PENTAPEPTIDE_4",
+      "canonical_name": "팔미토일펜타펩타이드-4",
+      "exact_name_auto_link": false,
+      "reason": "확보 근거는 pal-KTTKS 시험. 기존 검토의 공급원·서열·순수 펩타이드 기준량 확인 조건을 유지함.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "needs_specification"
+    },
+    {
+      "ingredient_code": "PETROLATUM",
+      "canonical_name": "페트롤라툼",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "RESVERATROL",
+      "canonical_name": "레스베라트롤",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "RETINOL",
+      "canonical_name": "레티놀",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "RETINYL_RETINOATE",
+      "canonical_name": "레티닐레티노에이트",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "no_exact_name_in_snapshot"
+    },
+    {
+      "ingredient_code": "SAFFLOWER_SEED_OIL",
+      "canonical_name": "잇꽃씨오일",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "SALICYLIC_ACID",
+      "canonical_name": "살리실릭애씨드",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "no_exact_name_in_snapshot"
+    },
+    {
+      "ingredient_code": "SODIUM_ASCORBYL_PHOSPHATE",
+      "canonical_name": "소듐아스코빌포스페이트",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "no_exact_name_in_snapshot"
+    },
+    {
+      "ingredient_code": "SODIUM_HYALURONATE",
+      "canonical_name": "소듐하이알루로네이트",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "TEA_TREE_LEAF_OIL",
+      "canonical_name": "티트리잎오일",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "TRANEXAMIC_ACID",
+      "canonical_name": "트라넥사믹애씨드",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "UREA",
+      "canonical_name": "우레아",
+      "exact_name_auto_link": true,
+      "reason": "유일한 완전 일치만 연결. 농도·괄호·접미어·이성질체는 삭제하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "BAKUCHIOL",
+      "canonical_name": "바쿠치올",
+      "exact_name_auto_link": true,
+      "reason": "정확한 원료명 또는 명시된 검증 별칭만 연결. 연구 농도나 판매 제품 효능은 추정하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "GLUCONOLACTONE",
+      "canonical_name": "글루코노락톤",
+      "exact_name_auto_link": true,
+      "reason": "정확한 원료명 또는 명시된 검증 별칭만 연결. 연구 농도나 판매 제품 효능은 추정하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "GLYCYRRHIZA_GLABRA_ROOT_EXTRACT",
+      "canonical_name": "스페인감초뿌리추출물",
+      "exact_name_auto_link": false,
+      "reason": "G. glabra 뿌리 추출물의 제조·표준화 규격이 원전과 연결되는지 자료로 확인 필요. 이름만으로 자동 연결하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "needs_specification"
+    },
+    {
+      "ingredient_code": "GLUTATHIONE",
+      "canonical_name": "글루타티온",
+      "exact_name_auto_link": true,
+      "reason": "정확한 원료명 또는 명시된 검증 별칭만 연결. 연구 농도나 판매 제품 효능은 추정하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "ACETYL_ZINGERONE",
+      "canonical_name": "아세틸진저론",
+      "exact_name_auto_link": true,
+      "reason": "정확한 원료명 또는 명시된 검증 별칭만 연결. 연구 농도나 판매 제품 효능은 추정하지 않음.",
+      "normalization": "NFC + strip only; case-sensitive; no punctuation stripping",
+      "source_policy_status": "exact_name_candidate_unverified_live"
+    },
+    {
+      "ingredient_code": "SERINE",
+      "exact_name_auto_link": true,
+      "reason": "정확한 이름은 구성 일치에만 사용. 연구 이온쌍/배합비/제형이 같다는 판단이 아님."
+    },
+    {
+      "ingredient_code": "ARGININE",
+      "exact_name_auto_link": true,
+      "reason": "정확한 이름은 구성 일치에만 사용. 연구 이온쌍/배합비/제형이 같다는 판단이 아님."
+    },
+    {
+      "ingredient_code": "SODIUM_MANNOSE_PHOSPHATE",
+      "exact_name_auto_link": false,
+      "reason": "일반 명칭만으로 6-인산 원료 규격을 확인할 수 없어 자동 연결하지 않음."
+    },
+    {
+      "ingredient_code": "MANNOSE",
+      "exact_name_auto_link": true,
+      "reason": "정확한 이름은 구성 일치에만 사용. 연구 이온쌍/배합비/제형이 같다는 판단이 아님."
+    },
+    {
+      "ingredient_code": "LYSINE",
+      "exact_name_auto_link": true,
+      "reason": "정확한 이름은 구성 일치에만 사용. 연구 이온쌍/배합비/제형이 같다는 판단이 아님."
+    },
+    {
+      "ingredient_code": "PROLINE",
+      "exact_name_auto_link": true,
+      "reason": "정확한 이름은 구성 일치에만 사용. 연구 이온쌍/배합비/제형이 같다는 판단이 아님."
+    },
+    {
+      "ingredient_code": "COPPER_SULFATE",
+      "exact_name_auto_link": true,
+      "reason": "정확한 이름은 구성 일치에만 사용. 연구 이온쌍/배합비/제형이 같다는 판단이 아님."
+    },
+    {
+      "ingredient_code": "LACTIC_ACID",
+      "exact_name_auto_link": true,
+      "reason": "정확한 이름은 구성 일치에만 사용. 연구 이온쌍/배합비/제형이 같다는 판단이 아님."
+    },
+    {
+      "ingredient_code": "PROPANEDIOL",
+      "exact_name_auto_link": true,
+      "reason": "정확한 이름은 구성 일치에만 사용. 연구 이온쌍/배합비/제형이 같다는 판단이 아님."
+    },
+    {
+      "ingredient_code": "LECITHIN",
+      "exact_name_auto_link": true,
+      "reason": "정확한 이름은 구성 일치에만 사용. 연구 이온쌍/배합비/제형이 같다는 판단이 아님."
+    }
+  ],
+  "verified_aliases": [
+    {
+      "ingredient_code": "GLUCONOLACTONE",
+      "source_name": "글루코노락톤(5%)",
+      "basis": "원본 성분 사전의 정확한 문자열. 물질명을 바꾸지 않는 농도 주석 표기로 한정하여 화학 성분 동일성만 연결.",
+      "limit": "14% 임상 시험과 함량이 같다는 뜻이 아니며, 이 문자열의 5%를 검증된 판매 옵션 농도로 저장하지 않는다. 다른 괄호를 일반 정규식으로 제거하지 않는다.",
+      "source": "raw_oy_ingredient_202611042139.csv; PMID 1303072 uses gluconolactone, not a derivative"
+    }
+  ],
+  "verified_group_members": [],
+  "description": "신제품마다 검수 대기를 만들지 않는다. 규격이 필요한 연결은 자료가 없으면 미연결로 남긴다. 단순 현재 미발견 상태는 미래의 완전 일치 연결을 금지하지 않는다.",
+  "combination_scope_note": "구성 연결 규칙이며 특정 제형의 효능 검증 또는 IPA 형성 확인 규칙이 아님. 태그가 붙은 프롤린은 임의 정규화하지 않음."
+}

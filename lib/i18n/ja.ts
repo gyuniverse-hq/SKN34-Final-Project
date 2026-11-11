@@ -81,6 +81,7 @@ export const ja: Dictionary = {
   'chat.ingredient.partial': "部分資料 — 成分の不在は断定できません。",
   'chat.ingredient.unknown': "根拠不足",
   'chat.ingredient.mappingLabel': "対応状態",
+  'chat.ingredient.directly_reviewed': "直接確認済み",
   'chat.ingredient.reproduced': "生成経路の再現確認",
   'chat.ingredient.candidate': "未検証の候補",
   'chat.ingredient.ambiguous': "対応が曖昧",

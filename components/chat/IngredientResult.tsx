@@ -31,27 +31,41 @@ const reasons: Record<string, string> = {
   shade_not_found: 'shadeMissing', source_unavailable: 'server',
   timeout: 'network', network_error: 'network', invalid_response: 'invalid',
   http_error: 'server', ingredient_present: 'present',
-  ingredient_absent_from_verified_list: 'absent', verified_evidence: 'verified',
+  ingredient_absent: 'absent', ingredient_absent_from_verified_list: 'absent',
+  verified_evidence: 'verified',
   evidence_requires_review: 'review', ingredients_raw_unavailable: 'unknown', synthetic_test_only: 'review',
 };
 
 /** Only expose checked ingredient data when the existing server evidence contract permits it. */
-function IngredientEvidenceCard({ result, target, labels }: {
+function IngredientEvidenceCard({ result, target, labels, selectedShade }: {
   result: ChatIngredientResult;
   target: ChatProductRef;
   labels: IngredientResultProps['labels'];
+  selectedShade?: string;
 }) {
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
   const syntheticBlocked = !__DEV__ && !!result.synthetic;
-  const verified = !syntheticBlocked && result.status === 'ok' && result.mappingStatus === 'reproduced' &&
+  const direct = result.mappingStatus === 'directly_reviewed';
+  const provenance = direct
+    ? !!result.reviewedAt && !!result.reviewRef?.trim()
+    : result.mappingStatus === 'reproduced' && !!result.collectedAt &&
+      !!result.sourceFingerprint && !!result.generatorVersion;
+  const blockingIssue = result.issues?.some((issue) => !direct || issue !== 'source_timezone_unknown');
+  const shadeValid = result.shadeId === null ? !selectedShade : !!result.shadeId;
+  const evidenceVerified = !syntheticBlocked && provenance &&
     result.reviewStatus === 'verified' && result.ingredientCoverage !== 'unknown' &&
-    !!result.shadeId && !!result.optionId && !!result.source && !!result.evidenceId &&
-    !!result.collectedAt && !!result.sourceVersion && !!result.sourceFingerprint &&
-    !!result.generatorVersion && !!result.ingredients?.length && !result.issues?.length;
-  const checks = (result.conditions ?? []).filter((check) => check.productId === result.productId &&
-    check.shadeId === result.shadeId && check.optionId === result.optionId);
-  const complete = verified && result.ingredientCoverage === 'full' &&
+    shadeValid && !!result.optionId && !!result.source && !!result.evidenceId &&
+    !!result.sourceVersion && !!result.ingredients?.length && !blockingIssue;
+  const verified = result.status === 'ok' && evidenceVerified;
+  const checks = (result.conditions ?? []).filter((check) => {
+    if (check.productId !== result.productId || check.shadeId !== result.shadeId) return false;
+    if (check.optionId === null) {
+      return (check.verdict === 'ERROR' || check.verdict === 'UNKNOWN') && !check.evidenceId;
+    }
+    return !!result.optionId && check.optionId === result.optionId;
+  });
+  const complete = evidenceVerified && result.ingredientCoverage === 'full' &&
     result.normalizationStatus === 'verified' && result.ingredients.every((item, i) => item.sequence === i + 1);
   const absenceUnverified = !complete && checks.some((check) =>
     (check.operator === 'excludes' && check.verdict === 'MATCH') ||
@@ -67,7 +81,9 @@ function IngredientEvidenceCard({ result, target, labels }: {
         <View style={styles.identity}>
           <Text style={styles.caption}>{t('chat.ingredient.resultFor')}</Text>
           <Text style={styles.productName}>{target.brand} {target.name}</Text>
-          <Text style={styles.secondary}>{t('chat.ingredient.shade')}: {result.shadeId ?? t('chat.ingredient.selection')}</Text>
+          {(!verified || result.shadeId !== null) && (
+            <Text style={styles.secondary}>{t('chat.ingredient.shade')}: {result.shadeId ?? t('chat.ingredient.selection')}</Text>
+          )}
         </View>
         <View style={[styles.verdictIcon, verdictStyle]}>
           <Ionicons name={verdict === 'MATCH' ? 'checkmark-circle-outline' :
@@ -79,15 +95,22 @@ function IngredientEvidenceCard({ result, target, labels }: {
       </View>
       <Text accessibilityRole="text" style={styles.verdictTitle}>{t(`chat.ingredient.${verdict}`)}</Text>
       {checks.length ? <View style={styles.checkGroup}>
-        {checks.map((check, i) => (
-          <View key={i} style={styles.checkLine}>
-            <Text style={styles.checkName}>{check.ingredientName} · {t(`chat.ingredient.${check.operator}`)}</Text>
-            <Text style={styles.checkVerdict}>
-              {t(`chat.ingredient.${verdict === 'ERROR' ? 'ERROR' :
-                verified && !absenceUnverified ? check.verdict : 'UNKNOWN'}`)}
-            </Text>
-          </View>
-        ))}
+        {checks.map((check, i) => {
+          const absence = (check.operator === 'excludes' && check.verdict === 'MATCH') ||
+            (check.operator === 'includes' && check.verdict === 'NOT_MATCH');
+          const verifiedCondition = evidenceVerified && check.optionId === result.optionId &&
+            !!check.evidenceId && check.evidenceId === result.evidenceId && (!absence || complete);
+          const conditionVerdict = check.verdict === 'ERROR' || check.verdict === 'UNKNOWN'
+            ? check.verdict : verifiedCondition ? check.verdict : 'UNKNOWN';
+          const detail = conditionVerdict === 'ERROR' || conditionVerdict === 'UNKNOWN'
+            ? t(`chat.ingredient.${reasons[check.reason] ?? 'unknown'}` as TranslationKey) : null;
+          return (
+            <View key={i} style={styles.checkLine}>
+              <Text style={styles.checkName}>{check.ingredientName} · {t(`chat.ingredient.${check.operator}`)}</Text>
+              <Text style={styles.checkVerdict}>{t(`chat.ingredient.${conditionVerdict}`)}{detail ? ` · ${detail}` : ''}</Text>
+            </View>
+          );
+        })}
       </View> : null}
       <Text style={styles.reason}>{t(`chat.ingredient.${reasons[result.reason] ?? 'unknown'}` as TranslationKey)}</Text>
       <View style={styles.coverageLine}>
@@ -107,7 +130,7 @@ function IngredientEvidenceCard({ result, target, labels }: {
         {verified ? <>
           <Text selectable style={styles.secondary}>{labels.source}: {result.source}</Text>
           <Text selectable style={styles.secondary}>{t('chat.ingredient.evidence')}: {result.evidenceId}</Text>
-          <Text style={styles.secondary}>{result.collectedAt}</Text>
+          <Text style={styles.secondary}>{result.collectedAt ?? result.collectedAtRaw}</Text>
           <Text style={styles.label}>{labels.ingredients}</Text>
           {result.ingredients.map((item, i) => (
             <Text key={i} style={styles.secondary}>{item.sequence ?? '–'}. {item.name}</Text>
@@ -133,7 +156,7 @@ export function IngredientResult({ heading, summary, notice, product, labels, re
         const target = products?.find((item) => item.id === result.productId);
         if (!target || (result.shadeId && shadeSelections && shadeSelections[result.productId] !== result.shadeId)) return null;
         return <IngredientEvidenceCard key={`${result.productId}-${result.shadeId}-${index}`}
-          target={target} result={result} labels={labels} />;
+          target={target} result={result} labels={labels} selectedShade={shadeSelections?.[result.productId]} />;
       })}
       {product ? <View style={styles.panel}>
         <Text style={styles.label}>{labels.product}</Text>
