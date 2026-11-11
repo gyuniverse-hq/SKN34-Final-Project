@@ -12,7 +12,9 @@ v1 담당자 시범 완료 10장의 장당 시간 중앙값 170.5초, 최소 39�
 - 본 채점의 얼굴 단위 분할: pool 17명, test 8명. 원본 기준 test는 렌더 12장, 스티커 2장, 실제 기준 2장이다. 출처: `research/data/lip_rubric/pack/key.csv`.
 - 고정 벤치마크 SHA-256: `99d553a9b74a44bdd3bfc7aa0d2126108afe145ec60e9ff17c6434793a327489`. 출처: `research/data/lip_rubric/benchmark/benchmark_v1.json`. 생성 시 Git 작업 트리가 dirty였으며 렌더러 커밋·파일별 해시를 `research/data/lip_rubric/pack/manifest.json`에 기록했다.
 - 코드 지표: 원본 50장 × 6개 지표로 300개 항목을 DB에 기록했다. 맨입술 기준이 없는 실제 사진의 상관 등은 null이다. 출처: `research/data/lip_rubric/eval.db`의 `code_metrics`. 판정은 하지 않는다.
-- v2 사람 시범 채점, 팀원 본 채점: 미실행.
+- v2 담당자 시범: 완료 10장, 중앙값 192.5초, 사분위 119초·299.5초. 54장 단순 환산 173.25분이며 대기 시간이 포함될 수 있다. 사용자는 이 시간을 확인한 뒤 기존 구성을 유지하기로 했다. 출처: `research/data/lip_rubric/pilot/R0_v2_ratings.csv`. R0는 본 평가와 RAG에서 제외한다.
+- 가이드는 R0의 pool 사진 5장을 바탕으로 만들었고 이 사진들은 본 채점에도 등장하므로 pool 평가에 선입견을 줄 수 있다. test 사진은 가이드에서 제외했다. 시범에서 예시가 없었던 5개 문항의 '아니오'는 이미지 없이 남겼다. 출처: `research/data/lip_rubric/pilot/v2_guide_info.json`.
+- v2 팀원 본 채점: 미실행.
 - v2 Colab과 실제 VLM 채점, 렌더러 점수: 미실행.
 - 코드 지표는 탐색적 보고만 한다. 정의와 한계: `research/lip_rubric/metrics.py`. L* 95–5 분위 폭, 중앙값 ±3 L* 비율, 고주파 표준편차, 맨입술 고주파 상관, 국소 반사 비율, 법선 방향 L*/채도 10–90% 전이 폭을 입 너비로 정규화한 값이다. 조명과 해상도에 영향을 받으며 임의 합격 기준은 없다.
 - VLM 비교는 얼굴 단위 부트스트랩과 사람 기준선, 이웃 평균을 사용하되 작은 검증 표본이므로 예비 판정이다. 결과 파일을 실행 후에만 인용한다.
