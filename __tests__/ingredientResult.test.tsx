@@ -21,7 +21,7 @@ const evidence: ChatIngredientResult = {
   reason: 'ingredient_present', synthetic: true,
   conditions: [{ productId: 'p2', shadeId: 'p2-03', optionId: 'synthetic-option',
     ingredientName: 'Water', operator: 'includes', condition: 'ingredient', verdict: 'MATCH',
-    reason: 'ingredient_present' }],
+    reason: 'ingredient_present', evidenceId: 'fixture-evidence' }],
 };
 
 async function render(results?: ChatIngredientResult[], shadeSelections?: Record<string, string>) {
@@ -186,3 +186,80 @@ describe.each([['en', en], ['ko', ko], ['ja', ja], ['zh', zh]] as const)(
     );
   }
 );
+
+describe.each([['en', en], ['ko', ko], ['ja', ja], ['zh', zh]] as const)(
+  'compound lookup failure in %s',
+  (_locale, dictionary) => {
+    it.each([false, true])('shows a separate error for matching selection (colorless=%s)', async (colorless) => {
+      mockI18n.mockReturnValue({ t: (key: keyof typeof en) => dictionary[key] });
+      const shadeId = colorless ? null : 'p2-03';
+      const result: ChatIngredientResult = {
+        ...evidence, shadeId, verdict: 'NOT_MATCH',
+        conditions: [
+          { ...evidence.conditions![0], shadeId, ingredientName: 'A', operator: 'excludes',
+            verdict: 'NOT_MATCH', evidenceId: 'fixture-evidence' },
+          { ...evidence.conditions![0], shadeId, ingredientName: 'B', operator: 'excludes',
+            optionId: null, verdict: 'ERROR', reason: 'timeout', evidenceId: null },
+        ],
+      };
+      const view = await render([result], colorless ? {} : { p2: 'p2-03' });
+      const rows = text(view).split('\n');
+      expect(rows.find(row => row.startsWith('A ·'))).toContain(dictionary['chat.ingredient.NOT_MATCH']);
+      expect(rows.find(row => row.startsWith('B ·'))).toContain(dictionary['chat.ingredient.ERROR']);
+      expect(rows.find(row => row.startsWith('B ·'))).toContain(dictionary['chat.ingredient.network']);
+      await act(async () => { view.unmount(); });
+    });
+  }
+);
+
+it('rejects foreign selection, mismatched options and unverifiable null-option conditions', async () => {
+  const base = evidence.conditions![0];
+  const view = await render([{ ...evidence, verdict: 'NOT_MATCH', conditions: [
+    { ...base, ingredientName: 'A', verdict: 'NOT_MATCH', evidenceId: 'fixture-evidence' },
+    { ...base, ingredientName: 'B', optionId: null, verdict: 'ERROR', reason: 'source_unavailable', evidenceId: null },
+    { ...base, ingredientName: 'Foreign product', productId: 'other', optionId: null, verdict: 'ERROR' },
+    { ...base, ingredientName: 'Foreign shade', shadeId: 'other', optionId: null, verdict: 'ERROR' },
+    { ...base, ingredientName: 'Foreign option', optionId: 'other', verdict: 'MATCH' },
+    { ...base, ingredientName: 'Unproven match', optionId: null, verdict: 'MATCH' },
+    { ...base, ingredientName: 'Fake error evidence', optionId: null, evidenceId: 'fabricated', verdict: 'ERROR' },
+    { ...base, ingredientName: 'Unknown', verdict: 'UNKNOWN', reason: 'evidence_requires_review' },
+  ] }], { p2: 'p2-03' });
+  const rows = text(view).split('\n');
+  expect(rows.find(row => row.startsWith('B ·'))).toContain(en['chat.ingredient.server']);
+  expect(rows.find(row => row.startsWith('Unknown ·'))).toContain(en['chat.ingredient.UNKNOWN']);
+  for (const name of ['Foreign product', 'Foreign shade', 'Foreign option', 'Unproven match', 'Fake error evidence']) {
+    expect(text(view)).not.toContain(name);
+  }
+  await act(async () => { view.unmount(); });
+});
+
+
+it.each([
+  ['error', 'ERROR', 'ERROR', 'timeout'],
+  ['unknown', 'UNKNOWN', 'UNKNOWN', 'evidence_requires_review'],
+] as const)('retains independently verified match beside %s', async (status, verdict, conditionVerdict, reason) => {
+  const view = await render([{ ...evidence, status, verdict, reason,
+    conditions: [
+      { ...evidence.conditions![0], ingredientName: 'A', evidenceId: 'fixture-evidence' },
+      { ...evidence.conditions![0], ingredientName: 'B', optionId: null, evidenceId: null,
+        verdict: conditionVerdict, reason },
+    ],
+  }], { p2: 'p2-03' });
+  const rows = text(view).split('\n');
+  expect(rows.find(row => row.startsWith('A ·'))).toContain(en['chat.ingredient.MATCH']);
+  expect(rows.find(row => row.startsWith('B ·'))).toContain(en[`chat.ingredient.${conditionVerdict}`]);
+  expect(rows.find(row => row.startsWith('B ·'))).toContain(en[
+    conditionVerdict === 'ERROR' ? 'chat.ingredient.network' : 'chat.ingredient.review'
+  ]);
+  await act(async () => { view.unmount(); });
+});
+
+it('does not confirm an individual verdict with a mismatched evidence ID', async () => {
+  const view = await render([{ ...evidence, conditions: [
+    { ...evidence.conditions![0], ingredientName: 'A', evidenceId: 'foreign-evidence' },
+  ] }], { p2: 'p2-03' });
+  const row = text(view).split('\n').find(value => value.startsWith('A ·'));
+  expect(row).toContain(en['chat.ingredient.UNKNOWN']);
+  expect(row).not.toContain(en['chat.ingredient.MATCH']);
+  await act(async () => { view.unmount(); });
+});

@@ -920,7 +920,7 @@ def _combine_ingredient_results(results):
         return results[0]
     verified = [item for item in results if item.verified]
     violation = next((item for item in verified if item.verdict == "NOT_MATCH"), None)
-    result = (violation or results[0]).model_copy(deep=True)
+    result = (violation or (verified[0] if verified else results[0])).model_copy(deep=True)
     result.conditions = [check for item in results for check in item.conditions]
     result.synthetic = any(item.synthetic for item in results)
     consistent = (
@@ -957,7 +957,14 @@ def _combine_ingredient_results(results):
         result.status = "error" if failed else "unknown"
         result.verdict = "ERROR" if failed else "UNKNOWN"
         result.reason = failed.reason if failed else "evidence_requires_review"
-        result.ingredients = []
+        if not verified or not consistent:
+            result.ingredients = []
+            if not consistent:
+                for condition in result.conditions:
+                    if condition.verdict in {"MATCH", "NOT_MATCH"}:
+                        condition.verdict = "UNKNOWN"
+                        condition.reason = "evidence_requires_review"
+                        condition.evidence_id = None
         return result
     verdicts = {r.verdict for r in results}
     result.verdict = (
@@ -980,7 +987,9 @@ async def _lookup_ingredient_condition(catalog, pid, shade, condition):
             raise IngredientLookupError("invalid_response")
     except IngredientLookupError as exc:
         result = _ingredient_unknown(pid, shade, exc.reason, error=True)
-    if not result.conditions and result.verdict == "ERROR":
+    if result.verdict in {"MATCH", "NOT_MATCH"} and not result.verified:
+        result = _ingredient_unknown(pid, shade, "evidence_requires_review")
+    if not result.conditions and result.verdict in {"ERROR", "UNKNOWN"}:
         result.conditions = [
             IngredientDecision(
                 product_id=pid,
@@ -989,14 +998,12 @@ async def _lookup_ingredient_condition(catalog, pid, shade, condition):
                 condition="ingredient",
                 ingredient_name=condition.ingredient_name,
                 operator=condition.operator,
-                verdict="ERROR",
+                verdict=result.verdict,
                 reason=result.reason,
                 evidence_id=result.evidence_id,
                 synthetic=result.synthetic,
             )
         ]
-    if result.verdict in {"MATCH", "NOT_MATCH"} and not result.verified:
-        return _ingredient_unknown(pid, shade, "evidence_requires_review")
     return result
 
 
@@ -1233,7 +1240,28 @@ async def _ingredient_consultation(req, plan, catalog, filters):
     )
     lines = []
     for product, result in zip(products, results, strict=True):
-        if result.status == "error" or result.verdict == "ERROR":
+        if result.conditions and (
+            len(result.conditions) > 1 or result.verified or result.status == "error"
+        ):
+            locale_index = ["ko", "en", "ja", "zh"].index(req.locale)
+            parts = []
+            for condition in result.conditions:
+                if condition.verdict == "ERROR":
+                    message = labels[4]
+                    issue = INGREDIENT_ISSUES.get(condition.reason)
+                    if issue:
+                        message += " " + issue[locale_index]
+                else:
+                    message = labels[
+                        5
+                        if condition.verdict == "MATCH"
+                        else 6
+                        if condition.verdict == "NOT_MATCH"
+                        else 13
+                    ]
+                parts.append(f"{condition.ingredient_name}: {message}")
+            text = "; ".join(parts)
+        elif result.status == "error" or result.verdict == "ERROR":
             text = labels[4]
             if result.reason in INGREDIENT_ISSUES:
                 text += (

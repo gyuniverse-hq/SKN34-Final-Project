@@ -878,3 +878,65 @@ def test_detail_ingredient_changes_replace_clear_and_respect_limit():
         ),
     )
     assert [c.ingredient_name for c in cleared.ingredient_conditions] == ["New"]
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("persist", [True, False])
+async def test_detail_lookup_error_saves_only_explicit_persistent_conditions(setup, persist):
+    from tests.test_ingredient_search_coverage import SearchCatalog, search_request
+
+    service, redis, repo, _ = setup
+    catalog = SearchCatalog(2)
+    original = catalog.get_ingredients
+
+    async def lookup(pid, shade, *, ingredient_name=None, operator="includes"):
+        if ingredient_name == "B":
+            raise IngredientLookupError("timeout")
+        return await original(pid, shade, ingredient_name=ingredient_name, operator=operator)
+
+    catalog.get_ingredients = lookup
+    service._catalog = catalog
+    service._llm.plan = {
+        "intent": "search",
+        "category": "lip",
+        "shadeName": "03",
+        "ingredientName": "A",
+        "ingredientOperator": "excludes",
+    }
+    initial = await service.answer(search_request(), "guest:one")
+    assert initial.session_status == "stored"
+    assert initial.chat_context.candidate_ids == ["item-000", "item-001"]
+    service._llm.plan = {
+        "intent": "detail",
+        "scope": "previous",
+        "ordinal": 2,
+        "ingredientName": "B",
+        "ingredientOperator": "excludes",
+        "persistIngredientConditions": persist,
+    }
+    follow = search_request(initial.chat_context)
+    response = await service.answer(follow, "guest:one")
+    assert response.ingredient_results[0].verdict == "ERROR"
+    assert response.chat_context.session is not None
+    expected = ["A", "B"] if persist else ["A"]
+    stored = await repo.load("guest:one", response.chat_context.session)
+    assert [c.ingredient_name for c in stored.context.filters.ingredient_conditions] == expected
+    assert stored.context.candidate_ids == ["item-000", "item-001"]
+    if persist:
+        assert stored.context.selected_product_id == "item-001"
+        calls, writes = service._llm.calls, redis.writes
+        retry = await service.answer(follow, "guest:one")
+        assert retry.model_dump(mode="json") == response.model_dump(mode="json")
+        assert (service._llm.calls, redis.writes) == (calls, writes)
+    else:
+        assert response.session_status == "unchanged"
+    with pytest.raises(ApiError):
+        await repo.load("guest:other", response.chat_context.session)
+    service._llm.plan = {"intent": "refine", "scope": "previous", "maxPriceKRW": 20000}
+    catalog.ingredient_calls.clear()
+    result = await service.answer(search_request(response.chat_context), "guest:one")
+    assert [
+        c.ingredient_name for c in result.chat_context.filters.ingredient_conditions
+    ] == expected
+    assert result.chat_context.filters.max_price_krw == 20000
+    assert {name for _, name in catalog.ingredient_calls} == {"A"}
