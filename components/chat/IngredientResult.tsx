@@ -30,7 +30,8 @@ const reasons: Record<string, string> = {
   shade_not_found: 'shadeMissing', source_unavailable: 'server',
   timeout: 'network', network_error: 'network', invalid_response: 'invalid',
   http_error: 'server', ingredient_present: 'present',
-  ingredient_absent_from_verified_list: 'absent', verified_evidence: 'verified',
+  ingredient_absent: 'absent', ingredient_absent_from_verified_list: 'absent',
+  verified_evidence: 'verified',
   evidence_requires_review: 'review', ingredients_raw_unavailable: 'unknown', synthetic_test_only: 'review',
 };
 
@@ -49,31 +50,57 @@ export function IngredientResult({ heading, summary, notice, product, labels, re
       </View>
       {results?.map((result, index) => {
         const target = products?.find((item) => item.id === result.productId);
-        if (!target || (result.shadeId && shadeSelections && shadeSelections[result.productId] !== result.shadeId)) return null;
+        const selectedShade = shadeSelections?.[result.productId];
+        if (!target || (result.shadeId && shadeSelections && selectedShade !== result.shadeId)) return null;
+        // The API only verifies null shades for products without catalog shades.
+        const shadeValid = result.shadeId === null ? !selectedShade : !!result.shadeId;
         const syntheticBlocked = !__DEV__ && !!result.synthetic;
-        const verified = !syntheticBlocked && result.status === 'ok' && result.mappingStatus === 'reproduced' &&
+        const direct = result.mappingStatus === 'directly_reviewed';
+        const provenance = direct
+          ? !!result.reviewedAt && !!result.reviewRef?.trim()
+          : result.mappingStatus === 'reproduced' && !!result.collectedAt &&
+            !!result.sourceFingerprint && !!result.generatorVersion;
+        const blockingIssue = result.issues?.some((issue) => !direct || issue !== 'source_timezone_unknown');
+        const evidenceVerified = !syntheticBlocked && provenance &&
           result.reviewStatus === 'verified' && result.ingredientCoverage !== 'unknown' &&
-          !!result.shadeId && !!result.optionId && !!result.source && !!result.evidenceId &&
-          !!result.collectedAt && !!result.sourceVersion && !!result.sourceFingerprint &&
-          !!result.generatorVersion && !!result.ingredients?.length && !result.issues?.length;
-        const checks = (result.conditions ?? []).filter((check) => check.productId === result.productId &&
-          check.shadeId === result.shadeId && check.optionId === result.optionId);
-        const complete = verified && result.ingredientCoverage === 'full' &&
+          shadeValid && !!result.optionId && !!result.source && !!result.evidenceId &&
+          !!result.sourceVersion && !!result.ingredients?.length && !blockingIssue;
+        const verified = result.status === 'ok' && evidenceVerified;
+        const checks = (result.conditions ?? []).filter((check) => {
+          if (check.productId !== result.productId || check.shadeId !== result.shadeId) return false;
+          if (check.optionId === null) {
+            return (check.verdict === 'ERROR' || check.verdict === 'UNKNOWN') && !check.evidenceId;
+          }
+          return !!result.optionId && check.optionId === result.optionId;
+        });
+        const evidenceComplete = evidenceVerified && result.ingredientCoverage === 'full' &&
           result.normalizationStatus === 'verified' && result.ingredients.every((item, i) => item.sequence === i + 1);
-        const absenceUnverified = !complete && checks.some((check) =>
+        const absenceUnverified = !evidenceComplete && checks.some((check) =>
           (check.operator === 'excludes' && check.verdict === 'MATCH') ||
           (check.operator === 'includes' && check.verdict === 'NOT_MATCH'));
         const verdict = result.verdict === 'ERROR' || result.status === 'error' ? 'ERROR'
           : verified && !absenceUnverified ? result.verdict : 'UNKNOWN';
         return <View key={`${result.productId}-${result.shadeId}-${index}`} style={styles.panel}>
           <Text style={styles.productName}>{target.brand} {target.name}</Text>
-          <Text style={styles.secondary}>{t('chat.ingredient.shade')}: {result.shadeId ?? t('chat.ingredient.selection')}</Text>
+          {(!verified || result.shadeId !== null) && (
+            <Text style={styles.secondary}>{t('chat.ingredient.shade')}: {result.shadeId ?? t('chat.ingredient.selection')}</Text>
+          )}
           <Text accessibilityRole="text" style={styles.label}>{t(`chat.ingredient.${verdict}`)}</Text>
-          {checks.map((check, i) => (
-            <Text key={i} style={styles.secondary}>
-              {check.ingredientName} · {t(`chat.ingredient.${check.operator}`)} · {t(`chat.ingredient.${verdict === 'ERROR' ? 'ERROR' : verified && !absenceUnverified ? check.verdict : 'UNKNOWN'}`)}
-            </Text>
-          ))}
+          {checks.map((check, i) => {
+            const absence = (check.operator === 'excludes' && check.verdict === 'MATCH') ||
+              (check.operator === 'includes' && check.verdict === 'NOT_MATCH');
+            const verifiedCondition = evidenceVerified && check.optionId === result.optionId &&
+              !!check.evidenceId && check.evidenceId === result.evidenceId && (!absence || evidenceComplete);
+            const conditionVerdict = check.verdict === 'ERROR' || check.verdict === 'UNKNOWN'
+              ? check.verdict : verifiedCondition ? check.verdict : 'UNKNOWN';
+            const detail = conditionVerdict === 'ERROR' || conditionVerdict === 'UNKNOWN'
+              ? t(`chat.ingredient.${reasons[check.reason] ?? 'unknown'}` as TranslationKey) : null;
+            return (
+              <Text key={i} style={styles.secondary}>
+                {check.ingredientName} · {t(`chat.ingredient.${check.operator}`)} · {t(`chat.ingredient.${conditionVerdict}`)}{detail ? ` · ${detail}` : ''}
+              </Text>
+            );
+          })}
           <Text style={styles.secondary}>{t('chat.ingredient.coverage')}: {t(`chat.ingredient.${result.ingredientCoverage}`)}</Text>
           <Text style={styles.secondary}>{t('chat.ingredient.mappingLabel')}: {t(`chat.ingredient.${result.mappingStatus}`)}</Text>
           <Text style={styles.secondary}>{t('chat.ingredient.reviewLabel')}: {t(`chat.ingredient.${syntheticBlocked ? 'unreviewed' : result.reviewStatus}`)}</Text>
@@ -81,7 +108,7 @@ export function IngredientResult({ heading, summary, notice, product, labels, re
           {verified ? <>
             <Text selectable style={styles.secondary}>{labels.source}: {result.source}</Text>
             <Text selectable style={styles.secondary}>{t('chat.ingredient.evidence')}: {result.evidenceId}</Text>
-            <Text style={styles.secondary}>{result.collectedAt}</Text>
+            <Text style={styles.secondary}>{result.collectedAt ?? result.collectedAtRaw}</Text>
             <Text style={styles.label}>{labels.ingredients}</Text>
             {result.ingredients.map((item, i) => <Text key={i} style={styles.secondary}>{item.sequence ?? '–'}. {item.name}</Text>)}
           </> : null}

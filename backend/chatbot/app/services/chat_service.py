@@ -506,10 +506,25 @@ class ChatService:
             and r.verdict != "ERROR"
             for r in response.ingredient_results or []
         )
+        # An explicit detail filter change belongs to the existing search session
+        # even if one ingredient lookup fails. Keep failed searches and unrelated
+        # tool errors on their existing no-commit path.
+        persist_failed_detail = bool(
+            state
+            and ctx
+            and response.products
+            and result.tool == "beauty"
+            and slots.intent == "detail"
+            and slots.persist_ingredient_conditions
+            and (slots.ingredient_name or slots.ingredient_conditions)
+            and ctx.candidate_ids == state.context.candidate_ids
+            and ctx.scope_ids == state.context.scope_ids
+            and all(p.id in state.context.candidate_ids for p in response.products)
+        )
         if (
             not ctx
             or result.status == "unsupported"
-            or (result.status == "error" and not partial_ingredients)
+            or (result.status == "error" and not partial_ingredients and not persist_failed_detail)
             or (response.result_type == "clarification" and not response.products)
         ):
             if state and ctx:
