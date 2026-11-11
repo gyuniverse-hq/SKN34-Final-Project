@@ -1,0 +1,204 @@
+{
+  "version": 1,
+  "sourceCount": 359,
+  "selectedCount": 28,
+  "selectionIsExhaustive": false,
+  "entries": [
+    {
+      "sourceCaseId": "E-PR-06",
+      "reviewStatus": "NEEDS_POLICY",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "Q",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-I-35-N",
+      "reviewStatus": "NOT_REVIEWED",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "Q",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-F014",
+      "reviewStatus": "NOT_REVIEWED",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "Q",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-F019",
+      "reviewStatus": "NOT_REVIEWED",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "E",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-F047",
+      "reviewStatus": "NOT_REVIEWED",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "E",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-PR-01",
+      "reviewStatus": "APPROVAL_CANDIDATE",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "I",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-PR-02",
+      "reviewStatus": "APPROVAL_CANDIDATE",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "I",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-PR-05",
+      "reviewStatus": "APPROVAL_CANDIDATE",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "I",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-I-25-N",
+      "reviewStatus": "NOT_REVIEWED",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "I",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-I-25-E",
+      "reviewStatus": "NOT_REVIEWED",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "I",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-I-31-N",
+      "reviewStatus": "NOT_REVIEWED",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "I",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-I-31-E",
+      "reviewStatus": "NOT_REVIEWED",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "I",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-I-33-N",
+      "reviewStatus": "NOT_REVIEWED",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "I",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-I-33-E",
+      "reviewStatus": "NOT_REVIEWED",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "I",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-F063",
+      "reviewStatus": "NOT_REVIEWED",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "I",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-F075",
+      "reviewStatus": "NOT_REVIEWED",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "I",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-PR-04",
+      "reviewStatus": "NEEDS_POLICY",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "O",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-PR-10",
+      "reviewStatus": "APPROVAL_CANDIDATE",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "O",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-I-35-E",
+      "reviewStatus": "NOT_REVIEWED",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "O",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-PR-09",
+      "reviewStatus": "APPROVAL_CANDIDATE",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "M",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-M-03",
+      "reviewStatus": "NOT_REVIEWED",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "M",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-M-11",
+      "reviewStatus": "NOT_REVIEWED",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "M",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-M-13",
+      "reviewStatus": "NOT_REVIEWED",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "M",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-M-17",
+      "reviewStatus": "NOT_REVIEWED",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "M",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-M-24",
+      "reviewStatus": "NOT_REVIEWED",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "M",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-M-29",
+      "reviewStatus": "NOT_REVIEWED",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "M",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-M-33",
+      "reviewStatus": "NOT_REVIEWED",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "M",
+      "goldApproved": false
+    },
+    {
+      "sourceCaseId": "E-M-38",
+      "reviewStatus": "NOT_REVIEWED",
+      "reuse": "질문 목적과 금지 조건 참고; 정답/원문/가상 상품 승계 안 함",
+      "targetGroup": "M",
+      "goldApproved": false
+    }
+  ]
+}

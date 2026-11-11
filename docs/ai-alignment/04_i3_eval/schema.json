@@ -1,0 +1,451 @@
+{
+  "$defs": {
+    "Assertion": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "axis": {
+          "enum": [
+            "interpretation",
+            "retrieval",
+            "ingredient",
+            "option",
+            "conversation",
+            "answer"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "eq",
+            "contains",
+            "empty",
+            "lte",
+            "same",
+            "increment"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "expected": {
+          "title": "Expected"
+        },
+        "critical": {
+          "default": false,
+          "title": "Critical",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "axis",
+        "path",
+        "op",
+        "expected"
+      ],
+      "title": "Assertion",
+      "type": "object"
+    },
+    "Case": {
+      "additionalProperties": false,
+      "properties": {
+        "recordType": {
+          "const": "case",
+          "default": "case",
+          "title": "Recordtype",
+          "type": "string"
+        },
+        "caseId": {
+          "pattern": "^I3-(Q0[1-6]|E0[1-6]|I0[1-6]|O(0[1-9]|10)|M0[1-8])$",
+          "title": "Caseid",
+          "type": "string"
+        },
+        "caseVersion": {
+          "minimum": 1,
+          "title": "Caseversion",
+          "type": "integer"
+        },
+        "sourceCaseIds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sourcecaseids",
+          "type": "array"
+        },
+        "questionProvenance": {
+          "const": "newly_authored",
+          "title": "Questionprovenance",
+          "type": "string"
+        },
+        "contractRef": {
+          "title": "Contractref",
+          "type": "string"
+        },
+        "gold": {
+          "$ref": "#/$defs/Gold"
+        },
+        "fixtureRef": {
+          "title": "Fixtureref",
+          "type": "string"
+        },
+        "fixtureHash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Fixturehash",
+          "type": "string"
+        },
+        "realEvidenceRequiredForPositiveContent": {
+          "title": "Realevidencerequiredforpositivecontent",
+          "type": "boolean"
+        },
+        "variants": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Variants",
+          "type": "array"
+        },
+        "turns": {
+          "items": {
+            "$ref": "#/$defs/Turn"
+          },
+          "minItems": 1,
+          "title": "Turns",
+          "type": "array"
+        }
+      },
+      "required": [
+        "caseId",
+        "caseVersion",
+        "sourceCaseIds",
+        "questionProvenance",
+        "contractRef",
+        "gold",
+        "fixtureRef",
+        "fixtureHash",
+        "realEvidenceRequiredForPositiveContent",
+        "variants",
+        "turns"
+      ],
+      "title": "Case",
+      "type": "object"
+    },
+    "Gold": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "const": "candidate",
+          "default": "candidate",
+          "title": "Status",
+          "type": "string"
+        },
+        "reviewerIds": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 0,
+          "title": "Reviewerids",
+          "type": "array"
+        },
+        "approvedAt": {
+          "default": null,
+          "title": "Approvedat",
+          "type": "null"
+        }
+      },
+      "title": "Gold",
+      "type": "object"
+    },
+    "Observation": {
+      "additionalProperties": false,
+      "properties": {
+        "recordType": {
+          "const": "observation",
+          "default": "observation",
+          "title": "Recordtype",
+          "type": "string"
+        },
+        "runId": {
+          "minLength": 1,
+          "title": "Runid",
+          "type": "string"
+        },
+        "caseId": {
+          "title": "Caseid",
+          "type": "string"
+        },
+        "turn": {
+          "minimum": 1,
+          "title": "Turn",
+          "type": "integer"
+        },
+        "repeat": {
+          "minimum": 1,
+          "title": "Repeat",
+          "type": "integer"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "request": {
+          "additionalProperties": true,
+          "title": "Request",
+          "type": "object"
+        },
+        "httpStatus": {
+          "maximum": 599,
+          "minimum": 100,
+          "title": "Httpstatus",
+          "type": "integer"
+        },
+        "response": {
+          "additionalProperties": true,
+          "title": "Response",
+          "type": "object"
+        },
+        "trace": {
+          "additionalProperties": true,
+          "title": "Trace",
+          "type": "object"
+        },
+        "stateBefore": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Statebefore"
+        },
+        "stateAfter": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stateafter"
+        }
+      },
+      "required": [
+        "runId",
+        "caseId",
+        "turn",
+        "repeat",
+        "provenance",
+        "request",
+        "httpStatus",
+        "response"
+      ],
+      "title": "Observation",
+      "type": "object"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "enum": [
+            "synthetic_contract",
+            "real_llm"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "planner": {
+          "enum": [
+            "fixture",
+            "real_llm"
+          ],
+          "title": "Planner",
+          "type": "string"
+        },
+        "dataKind": {
+          "enum": [
+            "synthetic",
+            "actual_unpublished",
+            "actual_published"
+          ],
+          "title": "Datakind",
+          "type": "string"
+        },
+        "sutCommit": {
+          "pattern": "^[a-f0-9]{40}$",
+          "title": "Sutcommit",
+          "type": "string"
+        },
+        "model": {
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "promptHash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Prompthash",
+          "type": "string"
+        },
+        "fixtureHash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Fixturehash",
+          "type": "string"
+        },
+        "dataSnapshotHash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Datasnapshothash",
+          "type": "string"
+        },
+        "dictionaryHash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Dictionaryhash",
+          "type": "string"
+        },
+        "executionRef": {
+          "minLength": 1,
+          "title": "Executionref",
+          "type": "string"
+        },
+        "executedAt": {
+          "minLength": 1,
+          "title": "Executedat",
+          "type": "string"
+        },
+        "settings": {
+          "additionalProperties": true,
+          "title": "Settings",
+          "type": "object"
+        }
+      },
+      "required": [
+        "mode",
+        "planner",
+        "dataKind",
+        "sutCommit",
+        "model",
+        "promptHash",
+        "fixtureHash",
+        "dataSnapshotHash",
+        "dictionaryHash",
+        "executionRef",
+        "executedAt",
+        "settings"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    },
+    "Turn": {
+      "additionalProperties": false,
+      "properties": {
+        "turn": {
+          "minimum": 1,
+          "title": "Turn",
+          "type": "integer"
+        },
+        "replayOfTurn": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Replayofturn"
+        },
+        "request": {
+          "additionalProperties": true,
+          "title": "Request",
+          "type": "object"
+        },
+        "expectedIntent": {
+          "additionalProperties": true,
+          "title": "Expectedintent",
+          "type": "object"
+        },
+        "requiredConditions": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Requiredconditions",
+          "type": "array"
+        },
+        "allowedResponses": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Allowedresponses",
+          "type": "array"
+        },
+        "forbiddenResponses": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Forbiddenresponses",
+          "type": "array"
+        },
+        "expectedState": {
+          "minLength": 1,
+          "title": "Expectedstate",
+          "type": "string"
+        },
+        "assertions": {
+          "items": {
+            "$ref": "#/$defs/Assertion"
+          },
+          "minItems": 1,
+          "title": "Assertions",
+          "type": "array"
+        },
+        "humanCriteria": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Humancriteria",
+          "type": "array"
+        }
+      },
+      "required": [
+        "turn",
+        "request",
+        "expectedIntent",
+        "requiredConditions",
+        "allowedResponses",
+        "forbiddenResponses",
+        "expectedState",
+        "assertions",
+        "humanCriteria"
+      ],
+      "title": "Turn",
+      "type": "object"
+    }
+  },
+  "anyOf": [
+    {
+      "$ref": "#/$defs/Case"
+    },
+    {
+      "$ref": "#/$defs/Observation"
+    }
+  ]
+}

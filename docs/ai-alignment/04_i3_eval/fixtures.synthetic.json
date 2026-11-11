@@ -1,0 +1,863 @@
+{
+  "version": 1,
+  "synthetic": true,
+  "productionEvidence": false,
+  "notice": "논리 검증 전용. 과학적 사실, 실제 승인, 이용허락 증거가 아님. QA 원문 없음.",
+  "clock": "2026-11-11T00:00:00Z",
+  "dictionary": {
+    "sourceHash": "synthetic-dictionary-v1",
+    "ingredients": [
+      {
+        "mfdsIngredientId": "SYN-G",
+        "name": "글리세린"
+      },
+      {
+        "mfdsIngredientId": "SYN-F",
+        "name": "향료"
+      },
+      {
+        "mfdsIngredientId": "SYN-A",
+        "name": "성분 A"
+      }
+    ]
+  },
+  "baseOptions": [
+    {
+      "productId": "syn-a",
+      "optionId": "syn-a-01",
+      "collectedSalePriceKRW": 20000,
+      "collectedAtRaw": "2026-11-10 09:00",
+      "currentSalePriceKRW": null,
+      "currentStockStatus": "unknown",
+      "ingredientEvidenceId": "syn-evidence-a",
+      "ingredientSourceVersion": "syn-label-v1",
+      "coverage": "full",
+      "verification": "verified",
+      "ingredientIds": [
+        "SYN-G"
+      ],
+      "sourceHash": "synthetic-dictionary-v1"
+    },
+    {
+      "productId": "syn-b",
+      "optionId": "syn-b-01",
+      "collectedSalePriceKRW": 20001,
+      "collectedAtRaw": "2026-11-10 09:00",
+      "currentSalePriceKRW": null,
+      "currentStockStatus": "unknown",
+      "ingredientEvidenceId": "syn-evidence-b",
+      "ingredientSourceVersion": "syn-label-v1",
+      "coverage": "full",
+      "verification": "verified",
+      "ingredientIds": [
+        "SYN-G",
+        "SYN-F"
+      ],
+      "sourceHash": "synthetic-dictionary-v1"
+    }
+  ],
+  "basePublication": {
+    "publicationId": "00000000-0000-4000-8000-000000000001",
+    "synthetic": true,
+    "ingredientId": "SYN-G",
+    "sourceHash": "synthetic-dictionary-v1",
+    "approval": "approved",
+    "published": true,
+    "revoked": false,
+    "rights": "synthetic_test_only",
+    "uses": [
+      "explain",
+      "rank"
+    ],
+    "summary": "합성 설명: 실제 효능 근거가 아닙니다.",
+    "sourceTitle": "Synthetic test citation",
+    "sourceUrl": "https://example.invalid/i3-synthetic"
+  },
+  "scenarios": {
+    "Q01": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "성분명 식별",
+        "발행 없음"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {}
+    },
+    "Q02": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "basePublication",
+      "preconditions": [
+        "회피 용도",
+        "explain만 허용"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {
+        "publication.uses": [
+          "explain"
+        ]
+      }
+    },
+    "Q03": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "포함/제외/예산/크림 네 조건",
+        "현재가 없음"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {}
+    },
+    "Q04": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "선택과 후보 맥락 없음"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {}
+    },
+    "Q05": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "동일 성분의 모순 조건"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {}
+    },
+    "Q06": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "영어",
+        "원화",
+        "향료 제외",
+        "현재가 없음"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {}
+    },
+    "E01": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "basePublication",
+      "preconditions": [
+        "합성 explain 발행",
+        "적용 범위 일치"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {}
+    },
+    "E02": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "미승인 또는 미발행"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {}
+    },
+    "E03": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "local_only",
+        "원문은 fixture에 포함하지 않음"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {
+        "publication.rights": "local_only"
+      }
+    },
+    "E04": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "basePublication",
+      "preconditions": [
+        "explain만 허용"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {
+        "publication.uses": [
+          "explain"
+        ]
+      }
+    },
+    "E05": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "basePublication",
+      "preconditions": [
+        "합성 제한 승인: 성인/크림/2~5%",
+        "A 이름 등록"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {
+        "publication.ingredientId": "SYN-A",
+        "publication.applicability": {
+          "target": "성인",
+          "formulation": "크림",
+          "concentrationMinPct": 2,
+          "concentrationMaxPct": 5
+        }
+      }
+    },
+    "E06": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "근거 API 503"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {
+        "claims.httpStatus": 503
+      }
+    },
+    "I01": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "basePublication",
+      "preconditions": [
+        "부분 검수 표에 글리세린 존재"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "two_candidates"
+        }
+      ],
+      "overrides": {
+        "syn-a-01.coverage": "partial"
+      }
+    },
+    "I02": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "부분 검수 표에 향료 없음"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "two_candidates"
+        }
+      ],
+      "overrides": {
+        "syn-a-01.coverage": "partial"
+      }
+    },
+    "I03": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "basePublication",
+      "preconditions": [
+        "검수 full 표",
+        "표준명 전체 확인",
+        "향료 없음"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "two_candidates"
+        }
+      ],
+      "overrides": {}
+    },
+    "I04": {
+      "baseOptions": [
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "향료 존재",
+        "제외 필수"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "two_candidates"
+        }
+      ],
+      "overrides": {}
+    },
+    "I05": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "basePublication",
+      "preconditions": [
+        "합성 승인 별칭",
+        "현행 MFDS ID와 해시"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "two_candidates"
+        }
+      ],
+      "overrides": {
+        "dictionary.aliases": [
+          {
+            "alias": "별칭 성분 A",
+            "ingredientId": "SYN-A",
+            "approved": true
+          }
+        ]
+      }
+    },
+    "I06": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "같은 상품의 다른 옵션",
+        "성분 근거 버전 다름"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "two_candidates"
+        }
+      ],
+      "overrides": {
+        "comparison": [
+          {
+            "productId": "syn-a",
+            "optionId": "syn-a-02",
+            "ingredientSourceVersion": "syn-label-v2",
+            "ingredientIds": [
+              "SYN-F"
+            ]
+          }
+        ]
+      }
+    },
+    "O01": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "수집가만 있음"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {}
+    },
+    "O02": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "옵션 a=20000 b=20001",
+        "수집 시각 있음"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {}
+    },
+    "O03": {
+      "baseOptions": [
+        "syn-a-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "가격 null 또는 수집 시각 null"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {
+        "syn-a-01.collectedSalePriceKRW": null
+      }
+    },
+    "O04": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "과거 판매 가능",
+        "현재 재고 unknown"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {}
+    },
+    "O05": {
+      "baseOptions": [
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "가격 20001",
+        "성분 UNKNOWN"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {
+        "syn-b-01.verification": "unknown"
+      }
+    },
+    "O06": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "동일 상품 두 옵션: 싼 것은 향료 존재",
+        "없는 것은 비쌈"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {
+        "syn-a-01.ingredientIds": [
+          "SYN-G",
+          "SYN-F"
+        ],
+        "syn-b-01.productId": "syn-a",
+        "syn-b-01.ingredientIds": [
+          "SYN-G"
+        ]
+      }
+    },
+    "O07": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "basePublication",
+      "preconditions": [
+        "합성 rank 발행",
+        "정확한 옵션 성분 ID/해시"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {}
+    },
+    "O08": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "전수 2개",
+        "모두 가격 위반",
+        "미확인/오류 없음"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {}
+    },
+    "O09": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "160개 옵션",
+        "128개에서 중단"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {
+        "generateOptions": {
+          "count": 160,
+          "productId": "syn-a",
+          "optionPrefix": "syn-page-",
+          "collectedSalePriceKRW": 90000,
+          "limitPerPage": 32
+        }
+      }
+    },
+    "O10": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "분류 Z 없음"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        }
+      ],
+      "overrides": {}
+    },
+    "M01": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "서버 후보 a,b",
+        "클라이언트 순서 b,a 변조"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        },
+        {
+          "action": "followup",
+          "contextFromTurn": 1,
+          "mutation": "reverse_client_candidate_ids_only"
+        }
+      ],
+      "overrides": {
+        "syn-b-01.ingredientIds": [
+          "SYN-G"
+        ]
+      }
+    },
+    "M02": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "성분/수집가/재고 조건 유지",
+        "이전 범위"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        },
+        {
+          "action": "followup",
+          "contextFromTurn": 1
+        }
+      ],
+      "overrides": {
+        "syn-b-01.ingredientIds": [
+          "SYN-G"
+        ],
+        "syn-a-01.currentStockStatus": "in_stock",
+        "syn-b-01.currentStockStatus": "in_stock",
+        "syn-a-01.collectedSalePriceKRW": 9000
+      }
+    },
+    "M03": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "글리세린 포함",
+        "향료 제외",
+        "예산 유지"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        },
+        {
+          "action": "followup",
+          "contextFromTurn": 1
+        }
+      ],
+      "overrides": {
+        "syn-b-01.ingredientIds": [
+          "SYN-G"
+        ]
+      }
+    },
+    "M04": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "이전 수집가 검색"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        },
+        {
+          "action": "followup",
+          "contextFromTurn": 1
+        }
+      ],
+      "overrides": {
+        "syn-b-01.ingredientIds": [
+          "SYN-G"
+        ]
+      }
+    },
+    "M05": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "basePublication",
+      "preconditions": [
+        "동일 요청 ID/본문/기준 상태 2회",
+        "근거 유효"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        },
+        {
+          "action": "followup",
+          "contextFromTurn": 1
+        },
+        {
+          "action": "replay",
+          "requestFromTurn": 2,
+          "mutation": "none"
+        }
+      ],
+      "overrides": {
+        "syn-b-01.ingredientIds": [
+          "SYN-G"
+        ]
+      }
+    },
+    "M06": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "basePublication",
+      "preconditions": [
+        "이전 응답 근거 철회 후 같은 요청 재전송"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        },
+        {
+          "action": "followup",
+          "contextFromTurn": 1
+        },
+        {
+          "action": "replay",
+          "requestFromTurn": 2,
+          "mutation": "revoke_publication"
+        }
+      ],
+      "overrides": {
+        "syn-b-01.ingredientIds": [
+          "SYN-G"
+        ]
+      }
+    },
+    "M07": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "basePublication",
+      "preconditions": [
+        "재응답 근거 재검증 503"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        },
+        {
+          "action": "followup",
+          "contextFromTurn": 1
+        },
+        {
+          "action": "replay",
+          "requestFromTurn": 2,
+          "mutation": "claims_503"
+        }
+      ],
+      "overrides": {
+        "syn-b-01.ingredientIds": [
+          "SYN-G"
+        ]
+      }
+    },
+    "M08": {
+      "baseOptions": [
+        "syn-a-01",
+        "syn-b-01"
+      ],
+      "publication": "none",
+      "preconditions": [
+        "낡은 세션 stateVersion",
+        "유효 소유자"
+      ],
+      "turnSetup": [
+        {
+          "action": "reset",
+          "sessionSeed": "none"
+        },
+        {
+          "action": "followup",
+          "contextFromTurn": 1,
+          "mutation": "stale_state_version"
+        }
+      ],
+      "overrides": {
+        "syn-b-01.ingredientIds": [
+          "SYN-G"
+        ]
+      }
+    }
+  }
+}
