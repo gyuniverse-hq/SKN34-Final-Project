@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from app.clients.catalog_client import IngredientLookupError
 from app.core.errors import ApiError, UpstreamError
-from app.schemas.catalog import CatalogIngredients, CatalogProduct
+from app.schemas.catalog import CatalogIngredients, CatalogProduct, IngredientDecision
 from app.schemas.chat import (
     BeautyContext,
     BeautyFilters,
@@ -88,6 +88,14 @@ ordinal: 1..6; clearFilters: list of category|maxPriceKRW|fragranceFree|
 moisturizing|query|ingredientConditions.
 For product ingredient questions set ingredientLookup true, intent detail, scope previous.
 ingredientName: explicit ingredient name; ingredientOperator: includes | excludes.
+ingredientConditions: list of {ingredientName: string, operator: includes | excludes}.
+persistIngredientConditions: true only when a detail request explicitly adds or changes
+a search constraint. A question about whether one product contains an ingredient is
+a one-time lookup; omit this field.
+"두 번째 제품에서 B 성분도 제외해줘" means detail, ordinal 2, excludes B,
+persistIngredientConditions true. "이 제품에 B 성분 있어?" is detail without persistence.
+For multiple ingredient constraints, include every condition in ingredientConditions,
+including detail questions. Never silently omit one. Use at most six conditions.
 Use ingredientName for ingredient conditions, never query (query is product/brand text).
 For ingredient filtering use search/refine with ingredientLookup true and ingredientName.
 shadeName: explicitly requested shade label only; never invent IDs or select a shade.
@@ -455,6 +463,7 @@ async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatRes
     if (
         plan.ingredient_lookup
         or plan.ingredient_name
+        or plan.ingredient_conditions
         or plan.compare_ordinals
         or (effective_filters.ingredient_conditions and plan.intent in {"search", "refine"})
         or (plan.fragrance_free is True and plan.intent in {"search", "refine"})
@@ -836,6 +845,36 @@ async def _resolve_product_reference(context, plan, catalog):
     return selected
 
 
+def _plan_conditions(plan):
+    additions = [
+        IngredientFilter(ingredient_name=c.ingredient_name, operator=c.operator)
+        for c in plan.ingredient_conditions
+    ]
+    if plan.ingredient_name:
+        additions.append(
+            IngredientFilter(
+                ingredient_name=plan.ingredient_name, operator=plan.ingredient_operator
+            )
+        )
+    conditions = {}
+    for condition in additions:
+        key = " ".join(unicodedata.normalize("NFKC", condition.ingredient_name).casefold().split())
+        if key in conditions and conditions[key].operator != condition.operator:
+            raise ApiError(
+                422, "Conflicting ingredient conditions", "conflicting_ingredient_conditions"
+            )
+        conditions[key] = condition
+    if len(conditions) > 6:
+        raise ApiError(
+            422, "At most six ingredient conditions are supported", "ingredient_condition_limit"
+        )
+    return list(conditions.values())
+
+
+def _persists_detail_conditions(plan):
+    return plan.intent == "detail" and plan.persist_ingredient_conditions
+
+
 def _effective_filters(previous, plan):
     dependent = plan.intent in {"detail", "price", "refine"} or plan.scope == "previous"
     filters = previous.filters.model_copy(deep=True) if dependent and previous else BeautyFilters()
@@ -854,34 +893,34 @@ def _effective_filters(previous, plan):
         setattr(filters, key, defaults[key])
     changes = plan.model_dump(exclude_none=True, by_alias=False)
     for field in BeautyFilters.model_fields:
+        if field == "ingredient_conditions":
+            continue  # Merge conditions below; an omitted list must retain session constraints.
         if field in changes and not (field == "query" and plan.intent in {"detail", "price"}):
             setattr(filters, field, changes[field])
-    if plan.ingredient_name and plan.intent in {"search", "refine"}:
+    additions = _plan_conditions(plan)
+    if additions and (plan.intent in {"search", "refine"} or _persists_detail_conditions(plan)):
 
         def normalize(name):
             return " ".join(unicodedata.normalize("NFKC", name).casefold().split())
 
-        conditions = [
-            c
-            for c in filters.ingredient_conditions
-            if normalize(c.ingredient_name) != normalize(plan.ingredient_name)
-        ]
-        if len(conditions) >= 6:
+        # A new constraint replaces the same named condition, preserving unrelated conditions.
+        conditions = {normalize(c.ingredient_name): c for c in filters.ingredient_conditions}
+        for addition in additions:
+            conditions[normalize(addition.ingredient_name)] = addition
+        if len(conditions) > 6:
             raise ApiError(
                 422, "At most six ingredient conditions are supported", "ingredient_condition_limit"
             )
-        filters.ingredient_conditions = conditions + [
-            IngredientFilter(
-                ingredient_name=plan.ingredient_name, operator=plan.ingredient_operator
-            )
-        ]
+        filters.ingredient_conditions = list(conditions.values())
     return filters
 
 
 def _combine_ingredient_results(results):
     if len(results) == 1:
         return results[0]
-    result = results[0].model_copy(deep=True)
+    verified = [item for item in results if item.verified]
+    violation = next((item for item in verified if item.verdict == "NOT_MATCH"), None)
+    result = (violation or (verified[0] if verified else results[0])).model_copy(deep=True)
     result.conditions = [check for item in results for check in item.conditions]
     result.synthetic = any(item.synthetic for item in results)
     consistent = (
@@ -896,22 +935,36 @@ def _combine_ingredient_results(results):
                     r.normalization_status,
                     r.source,
                     r.collected_at,
+                    r.reviewed_at,
+                    r.review_ref,
                     r.source_version,
                     r.source_fingerprint,
                     r.generator_version,
-                    tuple((i.name, i.sequence) for i in r.ingredients),
+                    tuple(
+                        (i.name, i.sequence, i.identity.model_dump_json() if i.identity else None)
+                        for i in r.ingredients
+                    ),
                 )
-                for r in results
+                for r in verified
             }
         )
         == 1
     )
     failed = next((r for r in results if r.status == "error" or r.verdict == "ERROR"), None)
-    if failed or not consistent or not all(r.verified for r in results):
+    if violation is not None and consistent and result.verified:
+        return result
+    if failed or not consistent or len(verified) != len(results):
         result.status = "error" if failed else "unknown"
         result.verdict = "ERROR" if failed else "UNKNOWN"
         result.reason = failed.reason if failed else "evidence_requires_review"
-        result.ingredients = []
+        if not verified or not consistent:
+            result.ingredients = []
+            if not consistent:
+                for condition in result.conditions:
+                    if condition.verdict in {"MATCH", "NOT_MATCH"}:
+                        condition.verdict = "UNKNOWN"
+                        condition.reason = "evidence_requires_review"
+                        condition.evidence_id = None
         return result
     verdicts = {r.verdict for r in results}
     result.verdict = (
@@ -922,6 +975,35 @@ def _combine_ingredient_results(results):
         if result.verdict == "UNKNOWN"
         else "verified_evidence"
     )
+    return result
+
+
+async def _lookup_ingredient_condition(catalog, pid, shade, condition):
+    try:
+        result = await catalog.get_ingredients(
+            pid, shade, ingredient_name=condition.ingredient_name, operator=condition.operator
+        )
+        if (result.product_id, result.shade_id) != (pid, shade):
+            raise IngredientLookupError("invalid_response")
+    except IngredientLookupError as exc:
+        result = _ingredient_unknown(pid, shade, exc.reason, error=True)
+    if result.verdict in {"MATCH", "NOT_MATCH"} and not result.verified:
+        result = _ingredient_unknown(pid, shade, "evidence_requires_review")
+    if not result.conditions and result.verdict in {"ERROR", "UNKNOWN"}:
+        result.conditions = [
+            IngredientDecision(
+                product_id=pid,
+                shade_id=shade,
+                option_id=result.option_id,
+                condition="ingredient",
+                ingredient_name=condition.ingredient_name,
+                operator=condition.operator,
+                verdict=result.verdict,
+                reason=result.reason,
+                evidence_id=result.evidence_id,
+                synthetic=result.synthetic,
+            )
+        ]
     return result
 
 
@@ -959,10 +1041,16 @@ async def _ingredient_consultation(req, plan, catalog, filters):
     }
     filtering = plan.intent in {"search", "refine"}
     fragrance_filter = filtering and context.filters.fragrance_free
-    fragrance_only = fragrance_filter and not plan.ingredient_name
+    conditions = (
+        filters.ingredient_conditions
+        if filtering or _persists_detail_conditions(plan)
+        else _plan_conditions(plan)
+    )
+    # A follow-up can inherit ingredient conditions without repeating them in the plan.
+    # Never replace those evaluations with a synthetic fragrance-only UNKNOWN.
+    fragrance_only = fragrance_filter and not conditions
     name = plan.ingredient_name or ("향료" if fragrance_only else None)
     operator = "excludes" if fragrance_only else plan.ingredient_operator
-    conditions = filters.ingredient_conditions if filtering else []
     if plan.compare_ordinals:
         if plan.query is not None:
             return _reply(labels[0], context)
@@ -1010,7 +1098,9 @@ async def _ingredient_consultation(req, plan, catalog, filters):
         scan_ids = target_ids[: INGREDIENT_SEARCH_REQUEST_LIMIT // cost_per_product]
     retained = 0
     try:
-        async with asyncio.timeout(INGREDIENT_SEARCH_TIMEOUT_SECONDS if filtering else None):
+        async with asyncio.timeout(
+            INGREDIENT_SEARCH_TIMEOUT_SECONDS if filtering else None
+        ) as deadline:
             for pid in scan_ids:
                 if filtering and retained >= 6:
                     break
@@ -1047,26 +1137,34 @@ async def _ingredient_consultation(req, plan, catalog, filters):
                             if re.match(rf"^{re.escape(code[1])}(?:\D|$)", _shade_label(s.name))
                         ]
                     shade = matches[0] if len(matches) == 1 else None
-                if not shade or shade not in {s.id for s in product.shades}:
+                if (
+                    product.shades and (not shade or shade not in {s.id for s in product.shades})
+                ) or (not product.shades and (shade is not None or plan.shade_name)):
                     context.shade_selections.pop(pid, None)
                     products.append(product)
                     results.append(_ingredient_unknown(pid, None, "shade_required"))
-                    retained += bool(fragrance_filter)
+                    retained += bool(fragrance_filter and not conditions)
                     continue
-                context.shade_selections[pid] = shade
+                if shade is not None:
+                    context.shade_selections[pid] = shade
                 try:
                     if conditions:
-                        result = _combine_ingredient_results(
-                            [
-                                await catalog.get_ingredients(
-                                    pid,
-                                    shade,
-                                    ingredient_name=c.ingredient_name,
-                                    operator=c.operator,
+                        checks = []
+                        try:
+                            for condition in conditions:
+                                checks.append(
+                                    await _lookup_ingredient_condition(
+                                        catalog, pid, shade, condition
+                                    )
                                 )
-                                for c in conditions
-                            ]
-                        )
+                        except asyncio.CancelledError:
+                            if deadline.expired() and checks:
+                                completed = _combine_ingredient_results(checks)
+                                if completed.verified and completed.verdict == "NOT_MATCH":
+                                    products.append(product)
+                                    results.append(completed)
+                            raise
+                        result = _combine_ingredient_results(checks)
                     else:
                         result = await catalog.get_ingredients(
                             pid, shade, ingredient_name=name, operator=operator
@@ -1087,7 +1185,14 @@ async def _ingredient_consultation(req, plan, catalog, filters):
                         )
                 products.append(product)
                 results.append(result)
-                retained += fragrance_filter or result.verdict == "MATCH"
+                # When ingredient conditions are present, keep scanning for six verified
+                # matches instead of letting six UNKNOWN fragrance candidates hide later hits.
+                # Fragrance-only searches still stop at six unresolved candidates.
+                retained += (
+                    result.verdict != "NOT_MATCH"
+                    if fragrance_filter and not conditions
+                    else result.verdict == "MATCH"
+                )
     except TimeoutError:
         if not filtering:
             raise
@@ -1099,8 +1204,8 @@ async def _ingredient_consultation(req, plan, catalog, filters):
         and (filtering or bool(results))
         and all(r.verdict in {"MATCH", "NOT_MATCH"} for r in results)
     )
-    if filtering and not fragrance_filter:
-        # A known failure stays excluded even if another candidate still needs a shade or review.
+    if filtering:
+        # Exclude proven ingredient failures even while fragrance-free status is unknown.
         accepted = {r.product_id for r in results if r.verdict != "NOT_MATCH"}
         products = [p for p in products if p.id in accepted]
         results = [r for r in results if r.product_id in accepted]
@@ -1135,7 +1240,28 @@ async def _ingredient_consultation(req, plan, catalog, filters):
     )
     lines = []
     for product, result in zip(products, results, strict=True):
-        if result.status == "error" or result.verdict == "ERROR":
+        if result.conditions and (
+            len(result.conditions) > 1 or result.verified or result.status == "error"
+        ):
+            locale_index = ["ko", "en", "ja", "zh"].index(req.locale)
+            parts = []
+            for condition in result.conditions:
+                if condition.verdict == "ERROR":
+                    message = labels[4]
+                    issue = INGREDIENT_ISSUES.get(condition.reason)
+                    if issue:
+                        message += " " + issue[locale_index]
+                else:
+                    message = labels[
+                        5
+                        if condition.verdict == "MATCH"
+                        else 6
+                        if condition.verdict == "NOT_MATCH"
+                        else 13
+                    ]
+                parts.append(f"{condition.ingredient_name}: {message}")
+            text = "; ".join(parts)
+        elif result.status == "error" or result.verdict == "ERROR":
             text = labels[4]
             if result.reason in INGREDIENT_ISSUES:
                 text += (
@@ -1146,7 +1272,7 @@ async def _ingredient_consultation(req, plan, catalog, filters):
             text = labels[0]
         elif result.reason == "fragrance_free_unverified":
             text = words["fragrance"]
-        elif result.mapping_status != "reproduced":
+        elif result.mapping_status not in {"reproduced", "directly_reviewed"}:
             text = labels[1]
         elif result.review_status != "verified":
             text = labels[2]
@@ -1220,7 +1346,9 @@ async def _ingredient_consultation(req, plan, catalog, filters):
         if counts["ERROR"]
         else (
             "partial"
-            if scan_limited or (complete and context.filters.fragrance_free)
+            if scan_limited
+            or (display_limited and fragrance_filter)
+            or (complete and fragrance_filter)
             else (
                 "success"
                 if (not filtering and complete) or (filtering and known)

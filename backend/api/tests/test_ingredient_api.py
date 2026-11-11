@@ -79,7 +79,7 @@ def data():
 
 def setup(client, data, pages=None):
     p, shades, raw, entries, mapping = data
-    session = Session(pages if pages is not None else [[p], shades, [raw], entries])
+    session = Session(pages if pages is not None else [[p], shades, [raw], entries, [], []])
     service = IngredientService(IngredientRepository(session, [mapping]))
     client.app.dependency_overrides[get_ingredient_service] = lambda: service
     return session
@@ -99,9 +99,13 @@ def test_verified_presence_unresolved_absence_and_order(client, data, name, op, 
     body = response.json()
     assert body["optionId"] == "fixture-opt-B" and body["mappingStatus"] == "reproduced"
     assert body["verdict"] == verdict and body["synthetic"]
+    assert body["reason"] == body["conditions"][0]["reason"]
+    assert body["reason"] == (
+        "ingredient_present" if verdict == "MATCH" else "ingredient_identity_unresolved"
+    )
     assert [i["sequence"] for i in body["ingredients"]] == [1, 2]
-    assert "evidence" not in body and len(session.statements) == 4
-    assert "ORDER BY raw_oy_option_ingredient.seq" in str(session.statements[-1])
+    assert "evidence" not in body and len(session.statements) == 6
+    assert "ORDER BY raw_oy_option_ingredient.seq" in str(session.statements[3])
     assert response.headers["cache-control"] == "no-store"
 
 
@@ -223,7 +227,7 @@ def test_default_review_artifact_keeps_collected_catalog_unknown(client):
 
 def artifact_service(client, data, path=None):
     product, shades, raw, entries, _ = data
-    session = Session([[product], shades, [raw], entries])
+    session = Session([[product], shades, [raw], entries, [], []])
     service = IngredientService(IngredientRepository(session, mapping_path=path))
     client.app.dependency_overrides[get_ingredient_service] = lambda: service
     return session
@@ -423,3 +427,46 @@ def test_production_blocks_only_synthetic_evidence(client, data, monkeypatch, sy
     else:
         assert body["status"] == "ok" and body["verdict"] == "MATCH"
         assert body["reviewStatus"] == "verified" and body["ingredients"]
+
+
+@pytest.mark.parametrize(
+    "change,expected",
+    [
+        ({}, "MATCH"),
+        ({"review_ref": None}, "UNKNOWN"),
+        ({"source_version": "stale"}, "UNKNOWN"),
+        ({"catalog_fingerprint": "stale"}, "UNKNOWN"),
+        ({"review_status": "unreviewed"}, "UNKNOWN"),
+        ({"option_id": "different"}, "UNKNOWN"),
+    ],
+)
+def test_direct_review_accepts_unknown_source_timezone_only_with_bound_evidence(
+    client, data, change, expected
+):
+    product, shades, raw, entries, mapping = data
+    reviewed_at = raw[9]
+    raw = (*raw[:9], reviewed_at.replace(tzinfo=None), raw[10])
+    fields = dict(
+        mapping_status="directly_reviewed",
+        mapping_method="direct_review",
+        source_fingerprint=None,
+        generator_version=None,
+        generation_record_id=None,
+        source_version=fingerprint([list(raw), [list(r) for r in entries]]),
+        reviewed_by="fixture reviewer",
+        reviewed_at=reviewed_at,
+        review_ref="fixture://review",
+    )
+    fields.update(change)
+    mapping = mapping.model_copy(update=fields)
+    setup(client, (product, shades, raw, entries, mapping))
+    response = get(client, ingredientName="Panthenol", optionId="fixture-opt-B")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["verdict"] == expected
+    if expected == "MATCH":
+        assert body["status"] == "ok"
+        assert body["issues"] == ["source_timezone_unknown"]
+        assert body["collectedAt"] is None
+        assert body["collectedAtRaw"] == raw[9].isoformat()
+        assert body["reviewRef"] == "fixture://review"
