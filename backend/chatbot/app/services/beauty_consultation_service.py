@@ -673,7 +673,10 @@ def _ingredient_difference(locale, products, results):
                 if source_hashes.setdefault(ingredient_id, source_hash) != source_hash:
                     return labels[11], False
 
-    if any(entry.identity is None for result in results for entry in result.ingredients):
+    identities_complete = all(
+        entry.identity is not None for result in results for entry in result.ingredients
+    )
+    if not identities_complete:
         names = [
             {" ".join(_shade_label(entry.name).split()): entry.name for entry in result.ingredients}
             for result in results
@@ -713,13 +716,13 @@ def _ingredient_difference(locale, products, results):
     equal = left.keys() == right.keys()
     summary = summary_template.format(result=labels[9 if equal else 10])
     if equal:
-        return summary, True
+        return summary, identities_complete
 
     lines = [summary]
     for product, own, other in zip(products, names, reversed(names), strict=True):
         difference = ", ".join(name for key, name in own.items() if key not in other)
         lines.append(only.format(name=product.name, ingredients=difference or "—"))
-    return "\n".join(lines), True
+    return "\n".join(lines), identities_complete
 
 
 async def interpret_beauty(req: ChatRequest, llm, look_profile=None) -> SearchPlan:
@@ -767,6 +770,8 @@ async def interpret_beauty(req: ChatRequest, llm, look_profile=None) -> SearchPl
                 "compare_ordinals": [],
             }
         )
+    if plan.compare_ordinals and plan.intent in {"search", "refine"}:
+        plan = plan.model_copy(update={"intent": "detail", "scope": "previous"})
     # A product-specific ingredient question must never fall back to generative graph facts.
     if (
         plan.intent == "general"
@@ -1639,7 +1644,8 @@ async def _ingredient_consultation(req, plan, catalog, filters):
             text += " " + labels[12]
         lines.append(f"{product.brand} {product.name}: {text}")
     if plan.compare_ordinals:
-        comparison, _ = _ingredient_difference(req.locale, products, results)
+        comparison, verified_comparison = _ingredient_difference(req.locale, products, results)
+        complete = complete and verified_comparison
         lines.append(comparison)
     if fragrance_filter and not fragrance_only:
         lines.append(words["fragrance"])

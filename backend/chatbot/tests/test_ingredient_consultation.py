@@ -579,8 +579,17 @@ async def test_cheapest_followup_does_not_treat_catalog_failure_as_missing_price
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("case", ["same", "reordered", "different", "synthetic"])
-async def test_comparison_requires_verified_full_lists(monkeypatch, case):
+@pytest.mark.parametrize(
+    ("case", "intent"),
+    [
+        ("same", "detail"),
+        ("reordered", "detail"),
+        ("different", "detail"),
+        ("synthetic", "detail"),
+        ("same", "refine"),
+    ],
+)
+async def test_comparison_requires_verified_full_lists(monkeypatch, case, intent):
     def handler(req):
         pid = req.url.path.split("/")[-2]
         return httpx.Response(
@@ -606,10 +615,14 @@ async def test_comparison_requires_verified_full_lists(monkeypatch, case):
     install_http(monkeypatch, handler)
     service = ChatService(
         None,
-        PlanLlm(intent="detail", compareOrdinals=[1, 2]),
+        PlanLlm(intent=intent, compareOrdinals=[1, 2]),
         IngredientsCatalog(CatalogClient("http://catalog.test")),
     )
-    result = await service.answer(request(context()))
+    ctx = context()
+    result = await service.answer(request(ctx))
+    assert result.chat_context.model_dump(exclude={"issued_at"}) == ctx.model_dump(
+        exclude={"issued_at"}
+    )
     if case == "synthetic":
         assert "차이를 확정할 수 없습니다" in result.answer
     elif case == "different":
@@ -619,8 +632,12 @@ async def test_comparison_requires_verified_full_lists(monkeypatch, case):
     else:
         assert "동일" in result.answer
     assert [p.id for p in result.products] == ["a", "b"]
+    assert result.result_type == "clarification"
+    assert result.supervisor.result.status == "clarification"
     result = await service.answer(request(context(shades=False)))
     assert "차이를 확정할 수 없습니다" in result.answer
+    assert result.result_type == "clarification"
+    assert result.supervisor.result.status == "clarification"
 
 
 @pytest.mark.anyio
@@ -665,8 +682,13 @@ async def test_comparison_respects_verified_mfds_identity(
     result = await service.answer(request(ctx))
     assert expected in result.answer
     assert forbidden not in result.answer
+    verified = left[1] is not None and right[1] is not None and len(right) == 2
+    assert result.result_type == ("product_detail" if verified else "clarification")
+    assert result.supervisor.result.status == ("success" if verified else "clarification")
     assert [p.id for p in result.products] == ["a", "b"]
-    assert result.chat_context == ctx
+    assert result.chat_context.model_dump(exclude={"issued_at"}) == ctx.model_dump(
+        exclude={"issued_at"}
+    )
 
 
 @pytest.mark.anyio

@@ -759,7 +759,8 @@ async def test_direct_ingredient_comparison_resumes_after_target_shade_input(set
     invalid = await service.answer(request(initial, message="99호", screen=followup), "guest:one")
     assert invalid.ingredient_comparison.awaiting == "target" and not catalog.ingredient_calls
     reply = await service.answer(request(initial, message="03호", screen=followup), "guest:one")
-    assert reply.result_type == "product_detail" and "동일" in reply.answer
+    assert reply.result_type == "clarification" and "표기명 비교: 동일" in reply.answer
+    assert reply.supervisor.result.status == "clarification"
     assert catalog.ingredient_calls == [("a", "a-03"), ("b", "b-03")]
     if with_session:
         assert reply.chat_context.candidate_ids == initial.candidate_ids
@@ -774,7 +775,9 @@ async def test_direct_ingredient_comparison_resumes_after_target_shade_input(set
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("data", ["unverified", "synthetic", "verified"])
+@pytest.mark.parametrize(
+    "data", ["unverified", "synthetic", "missing_identity", "hash_conflict", "verified"]
+)
 async def test_ingredient_comparison_requires_both_exact_reviewed_lists(setup, data):
     service, _, _, _ = setup
     catalog = service._catalog
@@ -786,10 +789,20 @@ async def test_ingredient_comparison_requires_both_exact_reviewed_lists(setup, d
 
     async def get_ingredients(pid, shade):
         catalog.ingredient_calls.append((pid, shade))
+        entry = {"name": "향료", "sequence": 1}
+        if data != "missing_identity" or pid == "a":
+            entry["identity"] = {
+                "mfdsIngredientId": 101,
+                "nameKo": "향료",
+                "sourceHash": ("b" if data == "hash_conflict" and pid == "b" else "a") * 64,
+                "matchMethod": "exact_name",
+                "ruleVersion": "fixture-v1",
+            }
         return CatalogIngredients.model_validate(
             evidence(
                 pid=pid,
                 shade=shade,
+                ingredients=[entry],
                 synthetic=data == "synthetic",
                 reviewStatus="unreviewed" if data == "unverified" and pid == "b" else "verified",
             )
@@ -808,12 +821,17 @@ async def test_ingredient_comparison_requires_both_exact_reviewed_lists(setup, d
     assert catalog.ingredient_calls and catalog.ingredient_calls[0] == ("a", "a-03"), reply.answer
     if data == "verified":
         assert reply.result_type == "product_detail"
-        assert "표기명 비교: 동일" in reply.answer
-        assert "성분 구성은 확인할 수 없습니다" in reply.answer
-        assert catalog.ingredient_calls == [("a", "a-03"), ("b", "b-03")]
+        assert reply.supervisor.result.status == "success"
+        assert "검증된 전체 목록 비교: 동일" in reply.answer
     else:
         assert reply.result_type == "clarification"
-        assert "차이를 확정할 수 없습니다" in reply.answer
+        assert reply.supervisor.result.status == "clarification"
+        if data == "missing_identity":
+            assert "표기명 비교: 동일" in reply.answer
+            assert "성분 구성은 확인할 수 없습니다" in reply.answer
+        else:
+            assert "차이를 확정할 수 없습니다" in reply.answer
+    assert catalog.ingredient_calls == [("a", "a-03"), ("b", "b-03")]
     assert "15,000" not in reply.answer and "19,000" not in reply.answer
     assert reply.chat_context.candidate_ids == context.candidate_ids
 
