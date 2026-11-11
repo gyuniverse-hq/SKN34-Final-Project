@@ -10,7 +10,8 @@ export const HIGHLIGHTER_STYLE_IDS: HighlighterStyle[] = [
 ];
 export const CONTOUR_STYLE_IDS: ContourStyle[] = ['jawline', 'nose'];
 
-/** Placement hints for the measured face. Keys carry no face-shape names (AR_SPEC 6-5-4). */
+/** Placement hints for the measured face (ratio words, not face-shape names). The shape name travels separately (`parseFaceShape`):
+ * the shading and, since 11-11, the highlighter panel show it (AR_SPEC 6-5-4). */
 export type FaceFitHint = 'cheek_wide' | 'cheek_narrow' | 'face_long' | 'face_short' | 'balanced';
 const HINTS: readonly FaceFitHint[] = ['cheek_wide', 'cheek_narrow', 'face_long', 'face_short', 'balanced'];
 

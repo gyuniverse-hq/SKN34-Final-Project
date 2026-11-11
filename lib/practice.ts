@@ -23,6 +23,8 @@ export function revealedMakeup(makeup: MakeupState, visited: MakeupZone[]): Make
   const on = new Set(visited);
   const out = { ...makeup };
   for (const zone of ALL_ZONES) out[zone] = on.has(zone) ? (makeup[zone] ?? null) : null;
+  // The lip oil / balm layer shows with the lip step.
+  out.lipCare = on.has('lip') ? (makeup.lipCare ?? null) : null;
   return out;
 }
 

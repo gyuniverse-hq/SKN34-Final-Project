@@ -35,9 +35,14 @@ import { Chip } from '@/components/ui/Chip';
 import { ProductImage } from '@/components/ui/ProductImage';
 import { DEMO_TAG } from '@/constants/demo';
 import { TAB_BAR_STYLE, theme } from '@/constants/theme';
-import { HIGHLIGHTER_AREAS, toggleHighlighterArea } from '@/lib/arFacePalette';
+import {
+  effectiveHighlighterAreas,
+  HIGHLIGHT_FACES,
+  HIGHLIGHTER_AREAS,
+  highlighterFaceOf,
+  toggleHighlighterArea,
+} from '@/lib/arFacePalette';
 import { HIGHLIGHTER_STYLE_IDS, type FaceFitHint, type FaceFitStatus, type FaceShape } from '@/lib/faceFit';
-import { COLOR_FAMILIES, colorFamily, type ColorFamily } from '@/lib/colorFamily';
 import { arChatRoute } from '@/lib/arChatRoute';
 import { adjustMakeupFromChat } from '@/lib/arChatAdjust';
 import { isSafeExternalUrl } from '@/lib/externalLink';
@@ -56,9 +61,10 @@ import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useTryOnProducts } from '@/lib/queries';
 import { parseFlag, parseId, productHref, recommendationsHref } from '@/lib/routes';
 import { useCartStore } from '@/store/cartStore';
-import { AR_PAINT_ZONES, arPaintMakeup, isArPaintZone, MAKEUP_ZONES, useMakeupStore } from '@/store/makeupStore';
+import { isLipBaseCare, LIP_TEXTURE_CHIPS, lipCareKind, lipTextureChip } from '@/lib/lipCare';
+import { AR_PAINT_ZONES, arPaintMakeup, isArPaintZone, useMakeupStore } from '@/store/makeupStore';
 import { useSettingsStore } from '@/store/settingsStore';
-import type { HighlightArea, MakeupZone, Texture } from '@/types';
+import type { HighlightFace, MakeupZone, Texture } from '@/types';
 
 type Mode = 'direct' | 'chat';
 
@@ -66,10 +72,6 @@ const HIDDEN_TAB_BAR_STYLE = { ...TAB_BAR_STYLE, display: 'none' as const, heigh
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
-}
-
-function highlighterAreaOn(areas: HighlightArea[] | undefined, area: HighlightArea) {
-  return !areas || areas.length === 0 || areas.includes(area);
 }
 
 const CHAT_EXAMPLES: TranslationKey[] = ['ar.chatExample1', 'ar.chatExample2', 'ar.chatExample3'];
@@ -159,6 +161,9 @@ export default function ArTryOnScreen() {
     // A new measurement (someone else in front, or no result yet): the old shape no longer applies.
     if (status !== 'personalized') setFaceShape(null);
   }, []);
+  // One name per face shape in both panels (shading and highlighter); gaunt is a highlighter-only pick.
+  const hlFaceName = (face: HighlightFace) =>
+    t((face === 'gaunt' ? 'ar.hlFace.name.gaunt' : `ar.faceShape.name.${face}`) as TranslationKey);
   const [arKey, setArKey] = useState(0);
   const [swatchOnly, setSwatchOnly] = useState(false);
   const [compare, setCompare] = useState(compareParam);
@@ -167,7 +172,8 @@ export default function ArTryOnScreen() {
   const [practice, setPractice] = useState<{ index: number; visited: MakeupZone[] } | null>(null);
   const [peek, setPeek] = useState(false);
   const [textureFilter, setTextureFilter] = useState<Texture | null>(null);
-  const [familyFilter, setFamilyFilter] = useState<ColorFamily | null>(null);
+  // Lip tab: null = colour lips, otherwise the 립케어 chip is open on 'all' / 'oil' / 'balm'.
+  const [careChip, setCareChip] = useState<'all' | 'oil' | 'balm' | null>(null);
   const [added, setAdded] = useState(false);
   const [recFor, setRecFor] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>('direct');
@@ -186,11 +192,14 @@ export default function ArTryOnScreen() {
   const {
     makeup,
     selections,
+    careSelection,
     activeLook,
     heroZones,
     stepOrder,
     modified,
     applyShade,
+    clearZone,
+    clearLipCare,
     patchGeometry,
     setIntensity,
     revertZone,
@@ -210,12 +219,33 @@ export default function ArTryOnScreen() {
   const products = useTryOnProducts();
   const tryOnProducts = useMemo(() => products.data ?? [], [products.data]);
 
+  // Colour lips: oils / balms live under the 립케어 chip, and lip skincare (essence, serum, mask) is not in the AR lip tab at all.
+  const colorProducts = useMemo(
+    () => tryOnProducts.filter((p) => p.makeupZone !== 'lip' || (lipCareKind(p) === null && !isLipBaseCare(p))),
+    [tryOnProducts]
+  );
   const zoneSwatches = useMemo(
     () =>
-      tryOnProducts
+      colorProducts
         .filter((p) => p.makeupZone === zone)
         .flatMap((p) => p.shades.map((shade) => ({ product: p, shade }))),
+    [colorProducts, zone]
+  );
+  const careSwatches = useMemo(
+    () =>
+      zone !== 'lip'
+        ? []
+        : tryOnProducts
+            .filter((p) => p.makeupZone === 'lip' && lipCareKind(p) !== null)
+            .flatMap((p) => p.shades.map((shade) => ({ product: p, shade }))),
     [tryOnProducts, zone]
+  );
+  const selectedCare = useMemo(
+    () =>
+      careSelection
+        ? careSwatches.find((i) => i.product.id === careSelection.productId && i.shade.id === careSelection.shadeId) ?? null
+        : null,
+    [careSwatches, careSelection]
   );
   const selectedTryOn = useMemo(
     () =>
@@ -229,14 +259,10 @@ export default function ArTryOnScreen() {
     () =>
       zone === 'blush' || zone === 'eyeshadow' || zone === 'foundation' || zone === 'highlighter' || zone === 'contour'
         ? []
-        : TEXTURES.filter((tx) => zoneSwatches.some(({ product }) => product.texture === tx)),
-    [zoneSwatches, zone]
-  );
-  const familyOptions = useMemo(
-    () =>
-      zone === 'lip'
-        ? COLOR_FAMILIES.filter((fm) => zoneSwatches.some(({ shade }) => colorFamily(shade.hex) === fm))
-        : [],
+        : zone === 'lip'
+          ? // Four finish chips: velvet sits with matte, satin with cream, sheer with glossy.
+            LIP_TEXTURE_CHIPS.filter((tx) => zoneSwatches.some(({ product }) => lipTextureChip(product.texture) === tx))
+          : TEXTURES.filter((tx) => zoneSwatches.some(({ product }) => product.texture === tx)),
     [zoneSwatches, zone]
   );
   // Foundation shades closest to the measured skin color, from the shades this tab offers (a color reference only).
@@ -247,14 +273,17 @@ export default function ArTryOnScreen() {
         : [],
     [zone, skinTone, zoneSwatches]
   );
+  const careOpen = zone === 'lip' && careChip !== null;
   const visibleSwatches = useMemo(
     () =>
-      zoneSwatches.filter(
-        ({ product, shade }) =>
-          (!textureFilter || product.texture === textureFilter) &&
-          (!familyFilter || colorFamily(shade.hex) === familyFilter)
-      ),
-    [zoneSwatches, textureFilter, familyFilter]
+      careOpen
+        ? careSwatches.filter(({ product }) => careChip === 'all' || lipCareKind(product) === careChip)
+        : zoneSwatches.filter(
+            ({ product }) =>
+              !textureFilter ||
+              (zone === 'lip' ? lipTextureChip(product.texture) === textureFilter : product.texture === textureFilter)
+          ),
+    [careOpen, careChip, careSwatches, zoneSwatches, zone, textureFilter]
   );
 
   const showsDemo = useMemo(
@@ -273,23 +302,11 @@ export default function ArTryOnScreen() {
       const open = heroZones.find(isArPaintZone) ?? 'lip';
       setZone(open);
       setTextureFilter(null);
-      setFamilyFilter(null);
     }
   }
   if (!isArPaintZone(zone)) setZone('lip');
 
-  const seededLip = useRef(false);
-  useEffect(() => {
-    if (fit || seededLip.current || routeProductId || fromVideo) return;
-    if (MAKEUP_ZONES.some((z) => makeup[z])) {
-      seededLip.current = true;
-      return;
-    }
-    const firstLip = tryOnProducts.find((p) => p.makeupZone === 'lip');
-    if (!firstLip?.shades[0]) return;
-    seededLip.current = true;
-    applyShade(firstLip, firstLip.shades[0]);
-  }, [routeProductId, tryOnProducts, makeup, applyShade, fit, fromVideo]);
+  // No lip is applied on entry (11-10, user): until a shade is picked the camera shows the user's own lips.
 
   useFocusEffect(
     useCallback(() => {
@@ -390,7 +407,7 @@ export default function ArTryOnScreen() {
     else if (routeProductId) router.push(productHref(routeProductId, routeShadeId));
   };
 
-  const selectionItems = Object.values(selections).filter(Boolean);
+  const selectionItems = [...Object.values(selections).filter(Boolean), ...(careSelection ? [careSelection] : [])];
   // A zone wearing a color that no chosen product has (a look color the shop lacks, a linked zone):
   // the nearest shade of the shop stands in for it, in the card below and in the set.
   const wornLines = useMemo(
@@ -402,7 +419,7 @@ export default function ArTryOnScreen() {
       }),
     [selections, tryOnProducts]
   );
-  const gaps = useMemo(() => findColorGaps(makeup, wornLines, tryOnProducts), [makeup, wornLines, tryOnProducts]);
+  const gaps = useMemo(() => findColorGaps(makeup, wornLines, colorProducts), [makeup, wornLines, colorProducts]);
   const zoneGap = gaps.find((g) => g.zone === zone);
   const selectedLine = useMemo(() => {
     const sel = selections[zone];
@@ -421,8 +438,8 @@ export default function ArTryOnScreen() {
   const recs = useMemo(() => {
     if (!showRecs || !zoneHex) return [];
     const sel = selections[zone];
-    return recommendShades(zoneHex, zone, tryOnProducts, sel ?? null);
-  }, [showRecs, zoneHex, zone, tryOnProducts, selections]);
+    return recommendShades(zoneHex, zone, colorProducts, sel ?? null);
+  }, [showRecs, zoneHex, zone, colorProducts, selections]);
   const onAddFit = () => {
     if (!fit) return;
     addToCart({ productId: fit.productId, shadeId: fit.shadeId });
@@ -901,7 +918,7 @@ export default function ArTryOnScreen() {
                   onPress={() => {
                     setZone(z);
                     setTextureFilter(null);
-                    setFamilyFilter(null);
+                    setCareChip(null);
                   }}
                   accessibilityRole="tab"
                   accessibilityState={{ selected: zone === z }}
@@ -926,38 +943,54 @@ export default function ArTryOnScreen() {
             ) : zoneSwatches.length === 0 && !products.isPending ? (
               <Text style={styles.noProducts}>{t('ar.noProducts')}</Text>
             ) : null}
-            {textureOptions.length + familyOptions.length > 1 ? (
+            {(zone === 'lip' ? textureOptions.length + careSwatches.length > 0 : textureOptions.length > 1) ? (
               <ScrollView
                 horizontal
                 nestedScrollEnabled
                 showsHorizontalScrollIndicator={false}
                 style={styles.hScroll}
                 contentContainerStyle={styles.filters}>
-                <Chip
-                  label={t('ar.filter.all')}
-                  selected={!textureFilter && !familyFilter}
-                  onPress={() => {
-                    setTextureFilter(null);
-                    setFamilyFilter(null);
-                  }}
-                />
+                {/* Lip: five chips only (finish x4 + 립케어); press a chip again to show everything. Other zones keep 전체. */}
+                {zone !== 'lip' ? (
+                  <Chip
+                    label={t('ar.filter.all')}
+                    selected={!textureFilter}
+                    onPress={() => setTextureFilter(null)}
+                  />
+                ) : null}
                 {textureOptions.map((tx) => (
                   <Chip
                     key={tx}
                     label={t(`ar.texture.${tx}` as TranslationKey)}
-                    selected={textureFilter === tx}
-                    onPress={() => setTextureFilter(textureFilter === tx ? null : tx)}
+                    selected={textureFilter === tx && !careOpen}
+                    onPress={() => {
+                      setCareChip(null);
+                      setTextureFilter(textureFilter === tx ? null : tx);
+                    }}
                   />
                 ))}
-                {familyOptions.length ? <View style={styles.filterDivider} /> : null}
-                {familyOptions.map((fm) => (
+                {zone === 'lip' && careSwatches.length > 0 ? (
                   <Chip
-                    key={fm}
-                    label={t(`ar.family.${fm}` as TranslationKey)}
-                    selected={familyFilter === fm}
-                    onPress={() => setFamilyFilter(familyFilter === fm ? null : fm)}
+                    label={t('ar.chip.lipCare')}
+                    selected={careOpen}
+                    onPress={() => {
+                      setTextureFilter(null);
+                      setCareChip(careOpen ? null : 'all');
+                    }}
                   />
-                ))}
+                ) : null}
+                {/* Inside 립케어 only: oil or balm (press again for both). */}
+                {careOpen ? <View style={styles.filterDivider} /> : null}
+                {careOpen
+                  ? (['oil', 'balm'] as const).map((k) => (
+                      <Chip
+                        key={k}
+                        label={t(k === 'oil' ? 'ar.care.oil' : 'ar.care.balm')}
+                        selected={careChip === k}
+                        onPress={() => setCareChip(careChip === k ? 'all' : k)}
+                      />
+                    ))
+                  : null}
               </ScrollView>
             ) : null}
             {zoneSwatches.length > 0 && visibleSwatches.length === 0 ? (
@@ -1000,13 +1033,20 @@ export default function ArTryOnScreen() {
               style={styles.hScroll}
               contentContainerStyle={styles.swatches}>
               {visibleSwatches.map(({ product, shade }) => {
-                const selected =
-                  selections[zone]?.productId === product.id && selections[zone]?.shadeId === shade.id;
+                const selected = careOpen
+                  ? careSelection?.productId === product.id && careSelection?.shadeId === shade.id
+                  : selections[zone]?.productId === product.id && selections[zone]?.shadeId === shade.id;
                 return (
                   <Pressable
                     key={`${product.id}-${shade.id}`}
                     onPress={() => {
-                      applyShade(product, shade);
+                      // Pressing the worn shade again takes it off (the bare lip / face shows); another shade replaces it.
+                      if (selected) {
+                        if (careOpen) clearLipCare();
+                        else clearZone(zone);
+                      } else {
+                        applyShade(product, shade);
+                      }
                       Haptics.selectionAsync().catch(() => {});
                     }}
                     accessibilityRole="button"
@@ -1044,6 +1084,11 @@ export default function ArTryOnScreen() {
                     {selectedTryOn.shade.name}
                     {selectedTryOn.product.priceKRW > 0 ? ` · ${formatKRW(selectedTryOn.product.priceKRW)}` : ''}
                   </Text>
+                  {zone === 'lip' && selectedTryOn.product.texture ? (
+                    <Text style={styles.foundNote} numberOfLines={1}>
+                      {t('ar.textureLabel')}: {t(`ar.texture.${selectedTryOn.product.texture}` as TranslationKey)}
+                    </Text>
+                  ) : null}
                   {selectedTryOn.shade.measureMethod === 'estimated' ? (
                     <Text style={styles.foundNote}>{t('ar.shadeEstimated')}</Text>
                   ) : null}
@@ -1063,6 +1108,39 @@ export default function ArTryOnScreen() {
                         onPress={() => WebBrowser.openBrowserAsync(selectedTryOn.product.sourceUrl!)}
                       />
                     ) : null}
+                  </View>
+                </View>
+              </View>
+            ) : null}
+
+            {zone === 'lip' && selectedCare ? (
+              <View style={styles.productCard}>
+                <ProductImage
+                  uri={selectedCare.product.imageUrl}
+                  category={selectedCare.product.category}
+                  style={styles.productImage}
+                  recyclingKey={selectedCare.product.id}
+                  compact
+                />
+                <View style={styles.productCopy}>
+                  <Text style={styles.matchName} numberOfLines={2}>
+                    {selectedCare.product.brand} {selectedCare.product.name}
+                  </Text>
+                  <Text style={styles.matchNote} numberOfLines={1}>
+                    {t(lipCareKind(selectedCare.product) === 'oil' ? 'ar.care.oil' : 'ar.care.balm')}
+                    {selectedTryOn ? ` · ${t('ar.care.over')}` : ''}
+                    {selectedCare.product.priceKRW > 0 ? ` · ${formatKRW(selectedCare.product.priceKRW)}` : ''}
+                  </Text>
+                  <View style={styles.productLinks}>
+                    <Chip
+                      label={t('ar.openProduct')}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/product/[id]',
+                          params: { id: selectedCare.product.id, shade: selectedCare.shade.id },
+                        })
+                      }
+                    />
                   </View>
                 </View>
               </View>
@@ -1093,7 +1171,12 @@ export default function ArTryOnScreen() {
                         selected={
                           selections.foundation?.productId === m.product.id && selections.foundation?.shadeId === m.shade.id
                         }
-                        onPress={() => applyShade(m.product, m.shade)}
+                        onPress={() => {
+                          const worn =
+                            selections.foundation?.productId === m.product.id && selections.foundation?.shadeId === m.shade.id;
+                          if (worn) clearZone('foundation');
+                          else applyShade(m.product, m.shade);
+                        }}
                       />
                     ))}
                   </View>
@@ -1190,29 +1273,69 @@ export default function ArTryOnScreen() {
               </View>
             ) : null}
             {zone === 'highlighter' && makeup.highlighter ? (
-              <ScrollView
-                horizontal
-                nestedScrollEnabled
-                showsHorizontalScrollIndicator={false}
-                style={styles.hScroll}
-                contentContainerStyle={styles.filters}>
-                {HIGHLIGHTER_AREAS.map((area) => {
-                  const selected = highlighterAreaOn(makeup.highlighter?.geometry?.areas, area);
-                  return (
+              <>
+                {/* Face type (11-11): auto = the measured shape (oval until measured); a pick sets the regions below. */}
+                <ScrollView
+                  horizontal
+                  nestedScrollEnabled
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.hScroll}
+                  contentContainerStyle={styles.filters}>
+                  <Chip
+                    label={
+                      faceShape
+                        ? t('ar.hlFace.autoWith', { name: hlFaceName(faceShape) })
+                        : t('ar.hlFace.auto')
+                    }
+                    selected={!makeup.highlighter.geometry?.hlStyle && !makeup.highlighter.geometry?.hlFace}
+                    onPress={() => patchGeometry('highlighter', { hlFace: undefined, areas: undefined, hlStyle: undefined })}
+                  />
+                  {HIGHLIGHT_FACES.map((face) => (
                     <Chip
-                      key={area}
-                      label={t(`looks.area.${area}` as TranslationKey)}
-                      selected={selected}
+                      key={face}
+                      label={hlFaceName(face)}
+                      selected={!makeup.highlighter?.geometry?.hlStyle && makeup.highlighter?.geometry?.hlFace === face}
                       onPress={() =>
-                        makeup.highlighter &&
                         patchGeometry('highlighter', {
-                          areas: toggleHighlighterArea(makeup.highlighter.geometry?.areas, area),
+                          hlFace: !makeup.highlighter?.geometry?.hlStyle && makeup.highlighter?.geometry?.hlFace === face ? undefined : face,
+                          areas: undefined,
+                          hlStyle: undefined,
                         })
                       }
                     />
-                  );
-                })}
-              </ScrollView>
+                  ))}
+                </ScrollView>
+                <Text style={styles.noProducts}>
+                  {t(`ar.hlFace.tip.${highlighterFaceOf(makeup.highlighter.geometry, faceShape)}` as TranslationKey)}
+                </Text>
+                {/* Regions: exactly what is painted (the face type's set until one is toggled). A style chip below draws its own
+                    template instead, so while one is on no region shows as painted; a region or face chip turns the style off. */}
+                <ScrollView
+                  horizontal
+                  nestedScrollEnabled
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.hScroll}
+                  contentContainerStyle={styles.filters}>
+                  {HIGHLIGHTER_AREAS.map((area) => {
+                    const painted = effectiveHighlighterAreas(makeup.highlighter?.geometry, faceShape);
+                    const styleOn = !!makeup.highlighter?.geometry?.hlStyle;
+                    return (
+                      <Chip
+                        key={area}
+                        label={t(`looks.area.${area}` as TranslationKey)}
+                        selected={!styleOn && painted.includes(area)}
+                        onPress={() =>
+                          patchGeometry('highlighter', {
+                            // From a style: back to the face-type layout with this region on. Otherwise: on / off.
+                            areas: styleOn && painted.includes(area) ? painted : toggleHighlighterArea(painted, area),
+                            hlStyle: undefined,
+                          })
+                        }
+                      />
+                    );
+                  })}
+                </ScrollView>
+              </>
             ) : null}
             {zone === 'highlighter' && makeup.highlighter ? (
               <>

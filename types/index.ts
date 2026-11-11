@@ -101,7 +101,13 @@ export interface LookItem {
   step: 'prep' | 'base' | 'eyes' | 'cheeks' | 'lips';
 }
 
-export type HighlightArea = 'forehead' | 'nose_bridge' | 'under_eye' | 'chin';
+/** Highlighter regions: forehead centre, nose T-zone, under-eye triangle, philtrum, chin tip, cheekbone (11-11). */
+export type HighlightArea = 'forehead' | 'nose_bridge' | 'under_eye' | 'chin' | 'philtrum' | 'cheekbone';
+/**
+ * Face type the highlighter layout follows (11-11 user reference chart): the five shapes the page can measure, plus
+ * gaunt (볼살이 적은 타입), which only the user can pick. It sets which regions are on and their shape and direction.
+ */
+export type HighlightFace = 'round' | 'square' | 'oblong' | 'oval' | 'heart' | 'gaunt';
 /** Placement templates for the face-fit highlighter and shading (ids only; no template means today's shape). */
 export type HighlighterStyle = 'natural_cheek' | 'glass_c_zone' | 'nose_tip' | 'under_eye_smile' | 'cupid_bow' | 'forehead_center';
 export type ContourStyle = 'jawline' | 'nose';
@@ -135,7 +141,8 @@ export interface InnerPoint {
  * sparkle 0 still means matte (no particles) for older looks. glitter bool is unused.
  * Blush: blushPlacement, blushSize (multiple of the default size) and blushSoftness (0 hard edge .. 1 very soft)
  * make the cheek ellipse follow the face points instead of the default shape.
- * Highlighter: areas = only these regions (default: the standard set), intensity = multiple of its strength.
+ * Highlighter: areas = only these regions (default: the set the face type recommends), hlFace = face type the layout
+ * follows (absent = measured on the page, oval until measured), intensity = multiple of its strength.
  * hlStyle / contourStyle = placement template of the highlighter / shading (absent = the standard shape).
  */
 export type EyelinerStyle = 'classic_winged' | 'puppy' | 'tightline';
@@ -157,6 +164,24 @@ export interface FalseLashCluster {
 
 export interface ZoneGeometry {
   falseLash?: FalseLashCluster[];
+  /**
+   * Mascara lash shape read from the look video (research/lash_ref/looks.json). All optional; unset = renderer default.
+   * lashCount: strands per upper lid (6..40). lashSweep: bend toward the outer corner (0 = straight). lashClump: tip pull
+   * toward the 3-strand group (0..0.5). lashFan: spread over the lid in degrees (0 = parallel). lashJitter: 0 evenly
+   * spaced and equal length .. 1.5 uneven. lowerLen / lowerAlpha: lower lash length / opacity multiple. lashWidth: strand width multiple.
+   */
+  lashCount?: number;
+  lashSweep?: number;
+  lashClump?: number;
+  lashFan?: number;
+  lashJitter?: number;
+  lowerLen?: number;
+  lowerAlpha?: number;
+  /** Lower lash strands per eye (0..12); unset = a quarter of the upper count, at most 8. */
+  lowerCount?: number;
+  /** Attached bunch length multiple (falseLash). */
+  falseLashLen?: number;
+  lashWidth?: number;
   length?: number;
   angle?: number;
   thickness?: number;
@@ -177,6 +202,7 @@ export interface ZoneGeometry {
   centerHighlight?: number;
   innerPoint?: InnerPoint;
   areas?: HighlightArea[];
+  hlFace?: HighlightFace;
   hlStyle?: HighlighterStyle;
   contourStyle?: ContourStyle;
   pearl?: number;
@@ -196,8 +222,16 @@ export interface ColorLink {
   followOnChange: boolean;
 }
 
+/** Lip oil / balm family (lib/lipCare.ts): drawn see-through with the shine kept; tint 0..1 = how much of the chip colour may show. */
+export interface ZoneCare {
+  kind: 'oil' | 'balm';
+  tint: number;
+}
+
 export interface ZoneSetting {
   hex: string;
+  /** Set only on a lip oil / balm product. */
+  care?: ZoneCare;
   /** Second color of a two-tone eyeshadow: fades in at the outer corner and along the lower lash line. */
   hexTo?: string;
   /** 0..1 */
@@ -232,6 +266,8 @@ export interface MakeupState {
   contour?: ZoneSetting | null;
   brow?: ZoneSetting | null;
   foundation?: ZoneSetting | null;
+  /** Lip oil / balm layer worn over `lip` (or over the bare lip). Its `care` field says which and how much colour may show. */
+  lipCare?: ZoneSetting | null;
 }
 
 export interface VideoProductMapping {

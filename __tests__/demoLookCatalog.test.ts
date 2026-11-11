@@ -1,6 +1,9 @@
 import { DEMO_LOOK_AR } from '@/lib/demoLookAr';
 import { DEMO_CELEBRITY_VIDEOS, DEMO_LOOK_PRODUCTS, DEMO_STYLE_LOOKS } from '@/lib/demoLookBundle';
 import { FALSE_LASH_LOOKS } from '@/lib/falseLashLooks';
+import { LOOK_LINERS, type LookLinerId } from '@/lib/linerLooks';
+import { mascaraGeometry, type MascaraLookId } from '@/lib/mascaraLooks';
+import { geometryFromStyle } from '@/lib/zoneRecipe';
 import type { Product } from '@/types';
 
 const nodeFs = jest.requireActual('fs') as { readFileSync: (path: string, encoding: string) => string };
@@ -52,23 +55,64 @@ describe('demo look coverage', () => {
 
   test('false lashes only ride on mascara slots and use known presets', () => {
     const lashes = Object.values(DEMO_LOOK_AR).flat().filter((slot) => slot.lashes);
-    expect(lashes).toHaveLength(6);
+    // 11-09: only 딸기 토끼상 shows attached bunches in its video; the others use a measured strand shape instead.
+    expect(lashes).toHaveLength(1);
     for (const slot of lashes) {
       expect(slot.zone).toBe('mascara');
       expect(FALSE_LASH_LOOKS[slot.lashes!]).toBeDefined();
-      expect(['video', 'recommended']).toContain(slot.lashSource);
+      expect(['video', 'recommended', 'measured']).toContain(slot.lashSource);
     }
   });
 
-  test('looks whose video lists no false lashes are marked recommended, never video', () => {
-    const recommended = Object.entries(DEMO_LOOK_AR)
-      .filter(([, list]) => list.some((slot) => slot.lashSource === 'recommended'))
-      .map(([lookId]) => lookId)
-      .sort();
-    expect(recommended).toEqual(['4QR0tre9yBI', 'ZAozXs-ZZik']);
-    const mascaraLashes = (lookId: string) => DEMO_LOOK_AR[lookId].find((slot) => slot.zone === 'mascara')?.lashes;
-    expect(mascaraLashes('ZAozXs-ZZik')).toBe('upper');
-    expect(mascaraLashes('4QR0tre9yBI')).toBe('upper_dense');
+  test('every demo look carries a mascara shape read from its video close-ups and eye photo', () => {
+    const style = (lookId: string) => DEMO_LOOK_AR[lookId].find((slot) => slot.zone === 'mascara')?.style as MascaraLookId;
+    expect(style('ZAozXs-ZZik')).toBe('spiky_long');
+    expect(style('4QR0tre9yBI')).toBe('short_light');
+    expect(style('kWI7_DkDjZ0')).toBe('fine_short');
+    expect(style('n5otfjJSSQc')).toBe('thin_lower');
+    expect(style('e1gSkUdG6Bo')).toBe('long_fan');
+    expect(style('fDqBPI1SaWY')).toBe('fine_dense');
+    // the six shapes differ from each other: no look collapses into another one's lashes
+    expect(new Set(Object.keys(DEMO_LOOK_AR).map((id) => JSON.stringify(mascaraGeometry(style(id)!)))).size).toBe(6);
+  });
+
+  test('the 설윤 lashes fan out and curl (the straight comb is gone); the fine looks are denser, the light ones sparser', () => {
+    const fan = mascaraGeometry('long_fan');
+    expect(fan.lashSweep).toBeGreaterThan(0);
+    expect(fan.lashFan).toBeGreaterThan(40);
+    expect(fan.lower).toBe(true);
+    expect(mascaraGeometry('fine_dense').lashCount).toBeGreaterThan(fan.lashCount!);
+    expect(mascaraGeometry('short_light').lashCount).toBeLessThan(fan.lashCount!);
+    // 카리나·청초 show small pointed bunches in the eye photos (clump above the old 0.04 / 0.02)
+    expect(mascaraGeometry('thin_lower').lashClump).toBeGreaterThanOrEqual(0.12);
+    expect(mascaraGeometry('fine_short').lashClump).toBeGreaterThanOrEqual(0.1);
+  });
+
+  test('five demo looks carry the liner shape read from their eye photos; 청초 물복숭아 has no liner', () => {
+    const liner = (lookId: string) => DEMO_LOOK_AR[lookId].find((slot) => slot.zone === 'eyeliner');
+    expect(liner('kWI7_DkDjZ0')).toBeUndefined();
+    const want: Record<string, LookLinerId> = {
+      'ZAozXs-ZZik': 'strawberry_droop', '4QR0tre9yBI': 'yearend_brown', n5otfjJSSQc: 'karina_wing',
+      e1gSkUdG6Bo: 'sullyoon_wing', fDqBPI1SaWY: 'winter_wing',
+    };
+    for (const [lookId, id] of Object.entries(want)) {
+      expect({ lookId, style: liner(lookId)?.style }).toEqual({ lookId, style: id });
+      expect(geometryFromStyle('eyeliner', id)).toEqual(LOOK_LINERS[id]);
+    }
+    // ranges the renderer draws as a real line (thickness / eye width, wing / eye width, degrees)
+    for (const g of Object.values(LOOK_LINERS)) {
+      expect(g.thickness).toBeGreaterThanOrEqual(0.04);
+      expect(g.thickness).toBeLessThanOrEqual(0.15);
+      expect(g.length).toBeGreaterThanOrEqual(0);
+      expect(g.length).toBeLessThanOrEqual(0.35);
+      expect(g.angle).toBeGreaterThanOrEqual(-15);
+      expect(g.angle).toBeLessThanOrEqual(25);
+    }
+    // the five shapes differ, and 설윤 has the boldest, longest wing; 딸기 droops
+    expect(new Set(Object.values(LOOK_LINERS).map((g) => JSON.stringify(g))).size).toBe(5);
+    expect(LOOK_LINERS.sullyoon_wing.thickness!).toBeGreaterThan(LOOK_LINERS.karina_wing.thickness!);
+    expect(LOOK_LINERS.sullyoon_wing.length!).toBeGreaterThan(LOOK_LINERS.karina_wing.length!);
+    expect(LOOK_LINERS.strawberry_droop.angle).toBeLessThan(0);
   });
 
   test('the false lash set is the seven YouCam eyelash types', () => {
