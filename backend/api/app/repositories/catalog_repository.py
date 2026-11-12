@@ -2,6 +2,7 @@ from sqlalchemy import Text, cast, delete, select, text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.models import (
     LookItemRow,
     LookRow,
@@ -10,6 +11,7 @@ from app.models import (
     StoreRow,
     YtCatalogProductLinkRow,
 )
+from app.models.admin import ProductAdminStateRow
 from app.models.skincare import SkincareServingRow
 from app.schemas.catalog import CatalogBundle, CelebLook, LookItem, Product, Shade, Store
 
@@ -101,6 +103,14 @@ class CatalogRepository:
     ) -> list[Product]:
         """`tags` matches products carrying any of them; an empty list matches nothing."""
         stmt = select(ProductRow).order_by(ProductRow.position, ProductRow.id)
+        if get_settings().admin_enabled:
+            stmt = stmt.where(
+                ~ProductRow.id.in_(
+                    select(ProductAdminStateRow.product_id).where(
+                        ProductAdminStateRow.is_visible.is_(False)
+                    )
+                )
+            )
         if ids is not None:
             stmt = stmt.where(ProductRow.id.in_(ids))
         if category:
@@ -113,6 +123,10 @@ class CatalogRepository:
         return [_product(r) for r in rows]
 
     async def get_product(self, product_id: str) -> Product | None:
+        if get_settings().admin_enabled:
+            state = await self._session.get(ProductAdminStateRow, product_id)
+            if state and not state.is_visible:
+                return None
         row = await self._session.get(ProductRow, product_id)
         return _product(row) if row else None
 
@@ -131,6 +145,28 @@ class CatalogRepository:
     async def replace_catalog(self, bundle: CatalogBundle) -> None:
         """Replaces the whole catalog in one transaction (seed/import)."""
         async with self._session.begin():
+            admin_exists = await self._session.scalar(
+                text("SELECT to_regclass('public.product_admin_state') IS NOT NULL")
+            )
+            admin_states = []
+            if admin_exists:
+                # Same lock as paid/cancel/state edits: snapshot the latest stock.
+                await self._session.execute(text("SELECT pg_advisory_xact_lock(7284732)"))
+                admin_states = (
+                    (
+                        await self._session.execute(
+                            select(
+                                ProductAdminStateRow.product_id,
+                                ProductAdminStateRow.is_visible,
+                                ProductAdminStateRow.stock,
+                                ProductAdminStateRow.updated_by,
+                                ProductAdminStateRow.updated_at,
+                            )
+                        )
+                    )
+                    .mappings()
+                    .all()
+                )
             # Product rows are deleted and recreated below. Preserve reviewed source
             # links across that full replacement so the DB cascade does not erase them.
             link_table_exists = await self._session.scalar(
@@ -186,6 +222,10 @@ class CatalogRepository:
                     )
                 )
             await self._session.flush()
+            live_ids = {p.id for p in bundle.products}
+            for state in admin_states:
+                if state["product_id"] in live_ids:
+                    self._session.add(ProductAdminStateRow(**dict(state)))
             for link in yt_catalog_links:
                 self._session.add(
                     YtCatalogProductLinkRow(

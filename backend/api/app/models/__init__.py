@@ -1,3 +1,4 @@
+from app.models.admin import AdminAuditLogRow, EvalRunRow, ProductAdminStateRow, StaffRoleRow
 from app.models.aihub import (
     AihubClaimReviewRow,
     AihubDatasetReleaseRow,
@@ -73,6 +74,10 @@ from app.models.recommendation_feedback import (
 from app.models.skincare import SkincareServingRow
 
 __all__ = [
+    "AdminAuditLogRow",
+    "EvalRunRow",
+    "ProductAdminStateRow",
+    "StaffRoleRow",
     "AihubClaimReviewRow",
     "AihubDatasetReleaseRow",
     "AihubIngredientMentionRow",

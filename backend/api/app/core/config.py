@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     env: str = "local"
+    admin_enabled: bool = False
     log_level: str = "INFO"
     database_url: str = "postgresql+asyncpg://vishue:vishue@localhost:5432/vishue_db"
     redis_url: str | None = None

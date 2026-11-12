@@ -1,5 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.order import OrderLineRow, OrderRow
 
@@ -13,7 +14,9 @@ class OrderRepository:
         await self._session.commit()
 
     async def get(self, order_id: str) -> OrderRow | None:
-        return await self._session.scalar(select(OrderRow).where(OrderRow.id == order_id))
+        return await self._session.scalar(
+            select(OrderRow).options(selectinload(OrderRow.lines)).where(OrderRow.id == order_id)
+        )
 
     async def mark_paid(self, order: OrderRow, payment_key: str) -> None:
         order.status = "paid"

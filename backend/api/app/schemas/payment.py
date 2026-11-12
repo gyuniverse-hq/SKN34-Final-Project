@@ -34,7 +34,7 @@ class PaymentResult(BaseModel):
 
 class OrderStatus(BaseModel):
     order_id: str = Field(alias="orderId")
-    status: Literal["pending", "paid"]
+    status: Literal["pending", "paid", "preparing", "shipped", "delivered", "canceled"]
 
 
 class PublicCheckout(BaseModel):

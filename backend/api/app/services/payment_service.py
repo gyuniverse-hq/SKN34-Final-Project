@@ -11,6 +11,7 @@ from app.core.db import get_session
 from app.core.errors import ApiError
 from app.models.order import OrderRow
 from app.repositories.catalog_repository import CatalogRepository
+from app.repositories.inventory_repository import InventoryRepository
 from app.repositories.order_repository import OrderRepository
 from app.schemas.payment import (
     ConfirmPaymentRequest,
@@ -20,6 +21,7 @@ from app.schemas.payment import (
     PaymentResult,
     PublicCheckout,
 )
+from app.services.inventory_service import InventoryService
 
 
 class CatalogStore(Protocol):
@@ -44,6 +46,7 @@ class PaymentService:
         catalog: CatalogStore,
         approver: PaymentApprover,
         settings: Settings,
+        inventory: InventoryService | None = None,
     ) -> None:
         self._orders, self._catalog, self._approver, self._settings = (
             orders,
@@ -51,11 +54,14 @@ class PaymentService:
             approver,
             settings,
         )
+        self._inventory = inventory
 
     async def create_order(self, user_id: str, body: CreateOrderRequest) -> CreateOrderResponse:
         if not (self._settings.toss_client_key and self._settings.payment_web_base_url):
             raise ApiError(503, "Payments are not configured", "payment_unavailable")
         lines, total = [], 0
+        if self._inventory:
+            await self._inventory.check_order(body.lines)
         for request_line in body.lines:
             product = await self._catalog.get_product(request_line.product_id)
             if product is None or (
@@ -117,6 +123,11 @@ class PaymentService:
         return OrderStatus(orderId=order.id, status=order.status)
 
     async def confirm(self, body: ConfirmPaymentRequest) -> PaymentResult:
+        if self._inventory:
+            await self._inventory.confirm(body, _digest(body.checkout_token), self._approver)
+            return PaymentResult(
+                orderId=body.order_id, status="paid", returnUrl=self._settings.payment_return_url
+            )
         order = await self._orders.get(body.order_id)
         if order is None or not secrets.compare_digest(
             order.checkout_token_hash, _digest(body.checkout_token)
@@ -142,4 +153,5 @@ def get_payment_service(session: AsyncSession = Depends(get_session)) -> Payment
         CatalogRepository(session),
         TossPaymentsClient(settings.toss_secret_key),
         settings,
+        InventoryService(InventoryRepository(session)) if settings.admin_enabled else None,
     )
