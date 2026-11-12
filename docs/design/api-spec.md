@@ -32,7 +32,7 @@ AdminProduct는 id·name·brand·category·priceKRW·isVisible·stock·shadeCoun
 
 EvalRun은 id·kind·createdAt·rendererCommit·rendererDirty·rubricVersion·metricVersion·benchmarkSha256·summaryJson이다. EvalCreate는 id와 createdAt을 제외한 필드다. summaryJson 허용 키·중첩 계약과 금지 자료는 [ERD](admin-web-erd.md) 및 Pydantic 스키마를 따른다. rendererCommit·kind·benchmarkSha256·정규화된 summaryJson의 결합 digest로 멱등 처리한다. 얼굴 자료나 개별 이미지 해시는 없다.
 
-ADMIN_ENABLED=true이면 기존 `/api/payments/orders`가 수량 부족 시 409 out_of_stock을 반환한다. `/api/payments/confirm`은 잠금 아래 재확인하고 재고 차감·paid·구매 이벤트를 한 트랜잭션으로 저장한다. 기존 URL·요청·성공 응답 형식은 유지한다. 상태 조회는 확장된 주문 상태도 반환한다.
+ADMIN_ENABLED=true이면 기존 `/api/payments/orders`가 수량 부족 시 409 out_of_stock을 반환한다. `/api/payments/confirm`은 잠금 아래 재확인하고 재고 차감·paid·구매 이벤트를 한 트랜잭션으로 저장한다. 기존 URL·요청·성공 응답 형식은 유지한다. 모바일 결제 상태 조회는 paid·preparing·shipped·delivered 모두 paid로 반환해 기존 성공 판정을 유지한다. 취소는 canceled로 반환한다. 관리자 주문 조회는 실제 배송 상태를 반환한다.
 
 | Method · endpoint | 인증 | 입력 | 성공 응답 | 주요 오류 | 모듈 · 상태 |
 |---|---|---|---|---|---|

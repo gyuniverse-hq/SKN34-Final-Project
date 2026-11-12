@@ -120,7 +120,13 @@ class PaymentService:
         order = await self._orders.get(order_id)
         if order is None or order.user_id != user_id:
             raise ApiError(404, "Order was not found", "not_found")
-        return OrderStatus(orderId=order.id, status=order.status)
+        # Mobile checkout treats only `paid` as success; fulfillment is an admin concern.
+        payment_status = (
+            "paid"
+            if order.status in ("paid", "preparing", "shipped", "delivered")
+            else order.status
+        )
+        return OrderStatus(orderId=order.id, status=payment_status)
 
     async def confirm(self, body: ConfirmPaymentRequest) -> PaymentResult:
         if self._inventory:

@@ -1,6 +1,6 @@
 # 관리자 웹 로컬 구현 검토 전달서
 
-기준일: 2026-11-12. `feat/admin-web`, 최신 develop `fbf41c8`에서 분기. 공용 DB 접속·적용, 실제 평가 게시, 외부 결제 취소, Render/EKS 배포는 하지 않았다.
+기준일: 2026-11-13. `feat/admin-web`, 최신 develop `fbf41c8`에서 분기. 공용 DB 접속·적용, 실제 평가 게시, 외부 결제 취소, Render/EKS 배포는 하지 않았다.
 
 ## DB 담당자 리뷰 필요
 
@@ -15,6 +15,8 @@ product_admin_state는 CASCADE FK다. 시드가 상품을 모두 삭제하므로
 ## 결제 담당자 리뷰 필요
 
 ADMIN_ENABLED=true일 때 생성 시 합산 수량을 검사하고 확정 시 잠금 아래 재검사한다. 토스 승인 → 재고 차감 → paid/paid_at → purchase_confirmed → 한 DB commit 순서다. 중복 확정은 다시 차감하지 않는다. 토스 호출에 안정된 Idempotency-Key를 사용한다. 관리자 취소는 토스 성공 후 상태 변경·실제 차감량 복원·감사를 commit한다. 취소 실패/결과 불명은 502 payment_cancel_failed와 rollback이다.
+
+모바일 `app/checkout.tsx`는 paid만 성공으로 판단하므로 결제 상태 조회에서는 paid·preparing·shipped·delivered를 paid로 정규화한다. 관리자 조회는 실제 배송 상태를 유지한다. 모바일 코드는 읽기만 했으며 배송 상태별 호환성 테스트 4개를 추가했다.
 
 외부 결제와 DB commit은 원자적이지 않다. 외부 성공 뒤 DB가 지속적으로 실패하거나 멱등 보존 기간이 지나면 토스 대조·환불/운영자 조정이 필요하다. 배송 연동·부분 취소·쿠폰·정산·회원 관리·실제 VLM 자동 판정은 범위 밖이다.
 
@@ -32,7 +34,7 @@ AR 집계는 `publish_eval.py --dry-run`으로 생성했다. HTTP 게시 도구�
 
 - 일회용 Docker PostgreSQL 17, `vishue-admin-review-pg`, loopback **127.0.0.1:15439**, 별도 admin_review DB. DATABASE_URL을 명시했고 기존 .env 값을 사용하지 않았다. API 통합 테스트는 추가 격리 스키마에서 실행했다.
 - 빈 DB upgrade head, downgrade -1 → upgrade head 왕복, alembic check, 단일 0021 head: 통과.
-- backend/api Ruff·import-linter: 통과. 전체 pytest 482 passed·9 skipped. 관리자 테스트는 49개(36개 상태 조합 포함)이며 동시 결제 경합도 검증했다. 기존 테스트 임시 폴더의 Windows 권한/부모 폴더 문제는 checkout의 tmp 아래 basetemp를 명시해 해결했다.
+- backend/api Ruff·import-linter: 통과. 전체 pytest 486 passed·9 skipped. 관리자 테스트는 49개(36개 상태 조합 포함)이며 동시 결제 경합도 검증했다. 기존 테스트 임시 폴더의 Windows 권한/부모 폴더 문제는 checkout의 tmp 아래 basetemp를 명시해 해결했다.
 - admin lint·typecheck·Vitest 8개·build: 통과. 최대 JS chunk 약 515KB(압축 약 150KB)의 빌드 권고가 남아 있다. root npm run check의 타입·린트는 통과했다. 병렬 Jest는 기존 테스트 2개가 시간 초과했으나 npm test -- --runInBand에서 76 suites·1,001 tests가 모두 통과했다. 테스트 제한·코드는 완화하지 않았다.
 - Helm local·prod lint: 통과(icon 권고만). 관리자 Docker build와 읽기 전용·비루트 실행, `/orders/any` SPA 새로고침·`/config.js` HTTP 200 확인. 실제 클러스터 배포·브라우저 시각 검사는 미실행.
 - 원래 연구 작업 공간의 기존 pytest 15개, 새 게시 도구 테스트 2개가 통과했다. v2 dry-run payload는 엄격한 스키마를 통과했다. 실제 API 업로드는 하지 않았다.
