@@ -1,6 +1,6 @@
 /** Domain types shared by the app (client) and API routes (server). */
 
-export type ProductCategory = 'lip' | 'cheek' | 'eye' | 'base' | 'skincare' | 'suncare';
+export type ProductCategory = 'lip' | 'cheek' | 'eye' | 'base' | 'skincare' | 'suncare' | 'tool';
 
 export type MakeupZone = 'lip' | 'blush' | 'eyeshadow' | 'eyeliner' | 'mascara' | 'highlighter' | 'contour' | 'brow' | 'foundation';
 
@@ -453,6 +453,8 @@ export interface ChatResponse {
   resultType?: 'recommendations' | 'product_detail' | 'clarification' | 'empty';
   evidence?: ChatProductEvidence[];
   ingredientResults?: ChatIngredientResult[];
+  ingredientComparison?: ChatIngredientComparison;
+  fragranceSearchSummary?: { checked: number; total: number; verifiedProductIds: string[] };
   sessionStatus?: 'stored' | 'unchanged' | 'unavailable';
 }
 
@@ -497,7 +499,16 @@ export interface ChatSessionRef {
   expiresAt: number;
 }
 
+export interface ChatIngredientComparison {
+  currentProductId: string;
+  targetProductId: string;
+  currentShadeId?: string | null;
+  targetShadeId?: string | null;
+  awaiting: 'current' | 'target';
+}
+
 export interface ChatScreenContext {
+  ingredientComparison?: ChatIngredientComparison;
   screenId?: string | null;
   productId?: string | null;
   shadeId?: string | null;
@@ -506,6 +517,17 @@ export interface ChatScreenContext {
 }
 
 export type IngredientVerdict = 'MATCH' | 'NOT_MATCH' | 'UNKNOWN' | 'ERROR';
+export interface IngredientIdentity {
+  mfdsIngredientId: number;
+  nameKo: string;
+  sourceHash: string;
+  matchMethod: 'standard_name' | 'english_name' | 'official_synonym' | 'exact_name' |
+    'amount_suffix_exact' | 'amount_suffix_synonym' | 'manual';
+  ruleVersion?: string | null;
+  reviewedBy?: string | null;
+  reviewedAt?: string | null;
+}
+
 export interface ChatIngredientCondition {
   productId: string;
   shadeId: string | null;
@@ -517,6 +539,7 @@ export interface ChatIngredientCondition {
   reason: string;
   evidenceId?: string | null;
   synthetic?: boolean;
+  queryIdentity?: IngredientIdentity | null;
 }
 
 export interface ChatIngredientResult {
@@ -525,14 +548,16 @@ export interface ChatIngredientResult {
   optionId?: string | null;
   status: 'ok' | 'unknown' | 'error';
   verdict: IngredientVerdict;
-  mappingStatus: 'reproduced' | 'candidate' | 'ambiguous' | 'unmapped' | 'mismatch';
+  mappingStatus: 'reproduced' | 'directly_reviewed' | 'candidate' | 'ambiguous' | 'unmapped' | 'mismatch';
   ingredientCoverage: 'full' | 'partial' | 'unknown';
   reviewStatus: 'verified' | 'unreviewed' | 'rejected';
   normalizationStatus: 'verified' | 'unverified';
-  ingredients: { name: string; sequence: number | null }[];
+  ingredients: { name: string; sequence: number | null; identity?: IngredientIdentity | null }[];
   source?: string | null;
   collectedAt?: string | null;
   collectedAtRaw?: string | null;
+  reviewedAt?: string | null;
+  reviewRef?: string | null;
   sourceVersion?: string | null;
   sourceFingerprint?: string | null;
   generatorVersion?: string | null;

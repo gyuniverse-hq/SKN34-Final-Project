@@ -50,6 +50,7 @@ from app.models.raw_oliveyoung import (
 from app.models.raw_youtube_product import (
     RawYtProductMentionRow,
     RawYtProductRow,
+    YtCatalogProductLinkRow,
     YtOyProductMatchRow,
 )
 from app.models.recommendation import (
@@ -62,6 +63,12 @@ from app.models.recommendation import (
     RecMappingIngredientRow,
     RecMappingRow,
     RecommendationLegacyArchiveRow,
+)
+from app.models.recommendation_feedback import (
+    RecommendationCandidateRow,
+    RecommendationImpressionRow,
+    RecommendationRequestRow,
+    UserBehaviorEventRow,
 )
 from app.models.skincare import SkincareServingRow
 
@@ -103,7 +110,11 @@ __all__ = [
     "RecMappingIngredientRow",
     "RecMappingEvidenceRow",
     "RecMappingRow",
+    "RecommendationCandidateRow",
+    "RecommendationImpressionRow",
     "RecommendationLegacyArchiveRow",
+    "RecommendationRequestRow",
+    "UserBehaviorEventRow",
     "RawOyBrandRow",
     "RawOyCategoryRow",
     "RawOyCrawlLogRow",
@@ -130,4 +141,5 @@ __all__ = [
     "StoreRow",
     "YoutubeVideoRow",
     "YtOyProductMatchRow",
+    "YtCatalogProductLinkRow",
 ]

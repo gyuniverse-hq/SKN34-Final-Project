@@ -101,12 +101,12 @@ class CatalogClient:
     async def get_ingredients(
         self,
         product_id: str,
-        shade_id: str,
+        shade_id: str | None,
         *,
         ingredient_name: str | None = None,
         operator: str = "includes",
     ) -> CatalogIngredients:
-        params = {"shadeId": shade_id}
+        params = {"shadeId": shade_id} if shade_id is not None else {}
         if ingredient_name:
             params.update(ingredientName=ingredient_name, operator=operator)
         path = "/api/products/" + quote(product_id, safe="") + "/ingredients"
@@ -154,16 +154,36 @@ class CatalogClient:
                 present = normalize(ingredient_name) in {
                     normalize(i.name) for i in result.ingredients
                 }
+                identity = result.conditions[0].query_identity
+                canonical_present = identity is not None and any(
+                    i.identity is not None
+                    and i.identity.mfds_ingredient_id == identity.mfds_ingredient_id
+                    and i.identity.source_hash == identity.source_hash
+                    for i in result.ingredients
+                )
+                present = present or canonical_present
                 expected = "MATCH" if present == (operator == "includes") else "NOT_MATCH"
                 if result.verdict != expected:
                     raise ValueError("Verdict contradicts ingredient evidence")
                 if absent:
-                    # A legacy API's name-only absence cannot establish ingredient identity.
-                    result.verdict = "UNKNOWN"
-                    result.reason = "ingredient_identity_unresolved"
-                    for condition in result.conditions:
-                        condition.verdict = "UNKNOWN"
-                        condition.reason = result.reason
+                    unresolved = identity is None or any(
+                        i.identity is None for i in result.ingredients
+                    )
+                    version_mismatch = identity is not None and any(
+                        i.identity is not None
+                        and i.identity.mfds_ingredient_id == identity.mfds_ingredient_id
+                        for i in result.ingredients
+                    )
+                    if unresolved or version_mismatch:
+                        result.verdict = "UNKNOWN"
+                        result.reason = (
+                            "ingredient_identity_unresolved"
+                            if unresolved
+                            else "ingredient_identity_version_mismatch"
+                        )
+                        for condition in result.conditions:
+                            condition.verdict = "UNKNOWN"
+                            condition.reason = result.reason
             # Unreviewed upstream rows must not accidentally become public ingredient facts.
             if result.ingredients and not result.verified:
                 raise ValueError("Unverified ingredient list")

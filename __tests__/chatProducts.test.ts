@@ -1,7 +1,8 @@
 import { createElement } from 'react';
-import { Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { ChatProducts } from '@/components/chat/ChatProducts';
+import { ProductCompareSheet } from '@/components/chat/ProductCompareSheet';
 import { ProductImage } from '@/components/ui/ProductImage';
 import type { ChatCondition } from '@/lib/chatConditions';
 import type { Product } from '@/types';
@@ -257,4 +258,82 @@ describe('chat product cards', () => {
     expect(onOpenAr).not.toHaveBeenCalled();
     await act(async () => { renderer.unmount(); });
   });
+  it('opens a comparison sheet without changing candidate selection or server order', async () => {
+    const onSelectProduct = jest.fn();
+    const { renderer } = await renderProducts({
+      products: [lip, care],
+      candidateOrder: [care.id, lip.id],
+      selectedProductId: lip.id,
+      onSelectProduct,
+    });
+    expect(renderer.root.findByType(ProductCompareSheet).props.visible).toBe(false);
+    await act(async () => {
+      renderer.root.findByProps({ accessibilityLabel: 'chat.compare.open' }).props.onPress();
+    });
+    const compare = renderer.root.findByType(ProductCompareSheet);
+    expect(compare.props.visible).toBe(true);
+    expect(compare.props.products.map((product: Product) => product.id)).toEqual(['care-1', 'lip-1']);
+    expect(compare.props.selectedProductId).toBe('lip-1');
+    expect(onSelectProduct).not.toHaveBeenCalled();
+    await act(async () => { compare.props.onSelectProduct('care-1'); });
+    expect(onSelectProduct).toHaveBeenCalledWith('care-1');
+    await act(async () => { renderer.root.findByType(ProductCompareSheet).props.onClose(); });
+    expect(renderer.root.findByType(ProductCompareSheet).props.visible).toBe(false);
+    await act(async () => { renderer.unmount(); });
+  });
+
+  it('renders candidates in a horizontal carousel and never selects on swipe', async () => {
+    const onSelectProduct = jest.fn();
+    const { renderer } = await renderProducts({
+      products: [lip, care], candidateOrder: [care.id, lip.id],
+      onSelectProduct, selectedProductId: null,
+    });
+    const carousel = renderer.root.findByProps({ testID: 'chat-products-carousel' });
+    expect(carousel.type).toBe(ScrollView);
+    expect(carousel.props.horizontal).toBe(true);
+    expect(carousel.props.snapToInterval).toBeGreaterThan(0);
+    expect(textRows(renderer)).toContain('1 / 2');
+    await act(async () => {
+      carousel.props.onMomentumScrollEnd({ nativeEvent: { contentOffset: { x: carousel.props.snapToInterval } } });
+    });
+    expect(textRows(renderer)).toContain('2 / 2');
+    expect(onSelectProduct).not.toHaveBeenCalled();
+    await act(async () => {
+      renderer.root.findByProps({ accessibilityLabel: 'chat.carousel.choose: Care product' }).props.onPress();
+    });
+    expect(onSelectProduct).toHaveBeenCalledWith('care-1');
+    await act(async () => { renderer.unmount(); });
+  });
+
+  it('keeps the original server candidate positions when a referenced product is missing', async () => {
+    const { renderer } = await renderProducts({
+      products: [lip], candidateOrder: [care.id, lip.id],
+      expectedIds: [care.id, lip.id], missingCount: 1,
+    });
+    expect(textRows(renderer)).toContain('1 / 2');
+    expect(textRows(renderer)).toContain('chat.candidateNumber:1');
+    expect(textRows(renderer)).toContain('chat.candidateNumber:2');
+    expect(textRows(renderer)).toContain('chat.productMissing');
+    const carousel = renderer.root.findByProps({ testID: 'chat-products-carousel' });
+    await act(async () => {
+      carousel.props.onMomentumScrollEnd({ nativeEvent: { contentOffset: { x: carousel.props.snapToInterval } } });
+    });
+    expect(textRows(renderer)).toContain('2 / 2');
+    await act(async () => { renderer.unmount(); });
+  });
+
+  it('does not expose explicit product selection in a disabled preview', async () => {
+    const onSelectProduct = jest.fn();
+    const { renderer } = await renderProducts({
+      products: [lip], candidateOrder: [lip.id],
+      selectedProductId: null, onSelectProduct, disabledActions: true,
+    });
+    const choose = renderer.root.findByProps({ accessibilityLabel: 'chat.carousel.choose: Lip product' });
+    expect(choose.props.disabled).toBe(true);
+    expect(choose.props.accessibilityState.disabled).toBe(true);
+    expect(choose.props.onPress).toBeUndefined();
+    expect(onSelectProduct).not.toHaveBeenCalled();
+    await act(async () => { renderer.unmount(); });
+  });
+
 });

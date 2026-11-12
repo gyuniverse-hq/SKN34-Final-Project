@@ -56,6 +56,10 @@ class ProductImageService:
         gate = asyncio.Semaphore(LOOKUP_CONCURRENCY)
 
         async def enrich(p: Product) -> Product:
+            # YouTube research products only receive an image after a product-specific
+            # review. A generic shopping search can select a logo or another shade.
+            if "youtube" in p.tags:
+                return p
             async with gate:
                 try:
                     url = await self.find_image(p.search_keyword)
