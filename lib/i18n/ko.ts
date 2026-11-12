@@ -335,6 +335,7 @@ export const ko: Dictionary = {
   'shop.cat.base': '베이스',
   'shop.cat.skincare': '스킨케어',
   'shop.cat.suncare': '선케어',
+  'shop.cat.tool': '메이크업 도구',
   'shop.featuredLooks': '인기 룩',
   'shop.products': '제품',
   'shop.noResults': '검색 결과가 없어요.',

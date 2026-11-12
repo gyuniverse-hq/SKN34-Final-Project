@@ -335,6 +335,7 @@ export const zh: Dictionary = {
   'shop.cat.base': '底妆',
   'shop.cat.skincare': '护肤',
   'shop.cat.suncare': '防晒',
+  'shop.cat.tool': '化妆工具',
   'shop.featuredLooks': '热门妆容',
   'shop.products': '商品',
   'shop.noResults': '没有符合条件的商品。',

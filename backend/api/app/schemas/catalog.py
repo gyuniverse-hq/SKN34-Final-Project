@@ -5,7 +5,7 @@ from pydantic import Field, SerializerFunctionWrapHandler, field_validator, mode
 from app.core.oliveyoung_image import public_oliveyoung_image_url
 from app.schemas.base import ApiModel, OmitNoneModel
 
-ProductCategory = Literal["lip", "cheek", "eye", "base", "skincare", "suncare"]
+ProductCategory = Literal["lip", "cheek", "eye", "base", "skincare", "suncare", "tool"]
 MakeupZone = Literal[
     "lip",
     "blush",

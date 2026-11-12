@@ -97,3 +97,4 @@ __pycache__/
 # research data (face photos, measurements, LGD inputs): local only, AR_SPEC 1-13
 research/data/
 research/light_eval/_tmp/
+/scripts/data/youtube/non_oy_source_price_review_2026-11-08.csv

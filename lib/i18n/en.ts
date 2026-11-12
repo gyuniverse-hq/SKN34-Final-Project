@@ -297,6 +297,7 @@ export const en = {
   'shop.cat.base': 'Base',
   'shop.cat.skincare': 'Skincare',
   'shop.cat.suncare': 'Sun',
+  'shop.cat.tool': 'Tools',
   'shop.featuredLooks': 'Trending looks',
   'shop.products': 'Products',
   'shop.noResults': 'No products match your search.',

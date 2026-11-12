@@ -2,7 +2,14 @@ from sqlalchemy import Text, cast, delete, select, text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import LookItemRow, LookRow, ProductRow, ShadeRow, StoreRow
+from app.models import (
+    LookItemRow,
+    LookRow,
+    ProductRow,
+    ShadeRow,
+    StoreRow,
+    YtCatalogProductLinkRow,
+)
 from app.models.skincare import SkincareServingRow
 from app.schemas.catalog import CatalogBundle, CelebLook, LookItem, Product, Shade, Store
 
@@ -124,6 +131,23 @@ class CatalogRepository:
     async def replace_catalog(self, bundle: CatalogBundle) -> None:
         """Replaces the whole catalog in one transaction (seed/import)."""
         async with self._session.begin():
+            # Product rows are deleted and recreated below. Preserve reviewed source
+            # links across that full replacement so the DB cascade does not erase them.
+            link_table_exists = await self._session.scalar(
+                text("SELECT to_regclass('public.yt_catalog_product_link') IS NOT NULL")
+            )
+            yt_catalog_links = []
+            if link_table_exists:
+                yt_catalog_links = (
+                    await self._session.execute(
+                        select(
+                            YtCatalogProductLinkRow.source_yt_product_id,
+                            YtCatalogProductLinkRow.serving_product_id,
+                            YtCatalogProductLinkRow.link_type,
+                            YtCatalogProductLinkRow.evidence_url,
+                        )
+                    )
+                ).all()
             # A full catalog replacement invalidates the old recommendation projection.
             await self._session.execute(delete(SkincareServingRow))
             for table in (LookItemRow, LookRow, ShadeRow, ProductRow, StoreRow):
@@ -162,6 +186,15 @@ class CatalogRepository:
                     )
                 )
             await self._session.flush()
+            for link in yt_catalog_links:
+                self._session.add(
+                    YtCatalogProductLinkRow(
+                        source_yt_product_id=link.source_yt_product_id,
+                        serving_product_id=link.serving_product_id,
+                        link_type=link.link_type,
+                        evidence_url=link.evidence_url,
+                    )
+                )
             for pos, look in enumerate(bundle.looks):
                 self._session.add(
                     LookRow(

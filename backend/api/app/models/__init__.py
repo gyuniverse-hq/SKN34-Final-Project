@@ -50,6 +50,7 @@ from app.models.raw_oliveyoung import (
 from app.models.raw_youtube_product import (
     RawYtProductMentionRow,
     RawYtProductRow,
+    YtCatalogProductLinkRow,
     YtOyProductMatchRow,
 )
 from app.models.recommendation import (
@@ -130,4 +131,5 @@ __all__ = [
     "StoreRow",
     "YoutubeVideoRow",
     "YtOyProductMatchRow",
+    "YtCatalogProductLinkRow",
 ]
