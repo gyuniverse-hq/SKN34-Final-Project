@@ -64,6 +64,12 @@ from app.models.recommendation import (
     RecMappingRow,
     RecommendationLegacyArchiveRow,
 )
+from app.models.recommendation_feedback import (
+    RecommendationCandidateRow,
+    RecommendationImpressionRow,
+    RecommendationRequestRow,
+    UserBehaviorEventRow,
+)
 from app.models.skincare import SkincareServingRow
 
 __all__ = [
@@ -104,7 +110,11 @@ __all__ = [
     "RecMappingIngredientRow",
     "RecMappingEvidenceRow",
     "RecMappingRow",
+    "RecommendationCandidateRow",
+    "RecommendationImpressionRow",
     "RecommendationLegacyArchiveRow",
+    "RecommendationRequestRow",
+    "UserBehaviorEventRow",
     "RawOyBrandRow",
     "RawOyCategoryRow",
     "RawOyCrawlLogRow",
