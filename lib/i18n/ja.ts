@@ -335,6 +335,7 @@ export const ja: Dictionary = {
   'shop.cat.base': 'ベース',
   'shop.cat.skincare': 'スキンケア',
   'shop.cat.suncare': 'UVケア',
+  'shop.cat.tool': 'メイク道具',
   'shop.featuredLooks': '人気のルック',
   'shop.products': '商品',
   'shop.noResults': '該当する商品がありません。',

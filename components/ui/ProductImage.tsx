@@ -16,6 +16,7 @@ const ICONS: Record<ProductCategory, IconName> = {
   base: 'water-outline',
   skincare: 'flask-outline',
   suncare: 'sunny-outline',
+  tool: 'brush-outline',
 };
 
 interface Props {

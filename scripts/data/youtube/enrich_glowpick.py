@@ -484,6 +484,16 @@ class GlowpickClient:
         response.raise_for_status()
         return _parse_products(response.json())
 
+    def search_page(self, query: str) -> str:
+        """Fetch Glowpick's browser-facing keyword results page as API fallback."""
+        response = self._request(
+            "GET",
+            f"{BASE_URL}/searches/keywords?{urlencode({'search': query})}",
+        )
+        response.raise_for_status()
+        response.encoding = "utf-8"
+        return response.text
+
     def detail(self, product_id: int) -> dict:
         response = self._request("GET", f"{BASE_URL}/products/{product_id}")
         response.raise_for_status()
