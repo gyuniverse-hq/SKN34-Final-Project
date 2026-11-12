@@ -1,4 +1,5 @@
 import { skincareKo } from './skincare';
+import { comparisonKo } from './recommendationComparison';
 import { supportKo } from './skinSupport';
 import { surveyKo } from './survey';
 import type { Dictionary } from './en';
@@ -43,6 +44,7 @@ export const ko: Dictionary = {
   'chat.carousel.ordinal': "번",
   'chat.carousel.ingredient': "이 제품 성분은?",
   'chat.carousel.details': "이 제품 자세히 알려줘",
+  ...comparisonKo,
   ...skincareKo,
   ...supportKo,
   ...surveyKo,

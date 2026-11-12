@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     skincare_refresh_interval_seconds: int = 60
     ingredient_mapping_path: str | None = None
     ingredient_alias_approvals_path: str | None = None
+    recommendation_comparison_enabled: bool = False
+    recommendation_v2_bundle: str | None = None
+    recommendation_v1_url: str = "http://127.0.0.1:8080"
+    recommendation_v1_revision: str | None = None
     # External APIs. Unset keys disable the matching feature instead of failing requests.
     naver_client_id: str | None = None
     naver_client_secret: str | None = None

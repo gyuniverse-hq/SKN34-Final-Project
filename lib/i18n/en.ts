@@ -1,10 +1,12 @@
 import { skincareEn } from './skincare';
+import { comparisonEn } from './recommendationComparison';
 import { supportEn } from './skinSupport';
 import { surveyEn } from './survey';
 import { flowsEn } from './flows';
 import { skinEn } from './skin';
 import { skinReportEn } from './skinReport';
 export const en = {
+  ...comparisonEn,
   ...skincareEn,
   ...supportEn,
   ...surveyEn,

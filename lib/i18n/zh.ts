@@ -1,4 +1,5 @@
 import { skincareZh } from './skincare';
+import { comparisonZh } from './recommendationComparison';
 import { supportZh } from './skinSupport';
 import { surveyZh } from './survey';
 import type { Dictionary } from './en';
@@ -43,6 +44,7 @@ export const zh: Dictionary = {
   'chat.carousel.ordinal': "号",
   'chat.carousel.ingredient': "这款产品含有哪些成分？",
   'chat.carousel.details': "详细介绍这款产品",
+  ...comparisonZh,
   ...skincareZh,
   ...supportZh,
   ...surveyZh,

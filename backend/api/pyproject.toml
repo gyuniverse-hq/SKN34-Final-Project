@@ -8,6 +8,7 @@ dependencies = [
     "asyncpg>=0.32.0",
     "fastapi>=0.161.1",
     "httpx>=0.28.1",
+    "numpy>=2.5.4",
     "pydantic-settings>=2.16.1",
     "pyjwt[crypto]>=2.15.1",
     "redis>=8.1.0",
@@ -24,6 +25,9 @@ dev = [
     "import-linter>=2.15",
     "pytest>=9.1.1",
     "ruff>=0.17.2",
+]
+recommendation = [
+    "catboost>=1.2.10",
 ]
 
 [tool.uv]
@@ -75,4 +79,5 @@ modules = [
     "app.clients.naver_client",
     "app.clients.youtube_client",
     "app.clients.supabase_admin_client",
+    "app.clients.recommendation_v1_client",
 ]
