@@ -14,5 +14,6 @@
 | [0008](0008-aws-environments.md) | AWS EKS에 운영(RDS)을 두고, 인프라는 Terraform으로 관리한다 | 운영 부분 채택, dev 부분은 0009로 대체 |
 | [0009](0009-render-dev-environment.md) | 팀 공용 개발 서버는 Render(무료) + Supabase + AuraDB Free로 둔다 | 채택 |
 | [0010](0010-account-deletion-secret-key.md) | 회원 탈퇴를 위해 `api`만 Supabase secret 키를 가진다 | 채택 |
+| [0011](0011-admin-web.md) | 독립 관리자 웹, 직원 권한·감사 로그, 숫자 평가 요약 | 로컬 구현, DB·결제 검토 대기 |
 
 형식: 배경(왜 결정이 필요했나) → 결정 → 결과(얻는 것, 감수하는 것).
