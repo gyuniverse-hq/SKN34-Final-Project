@@ -1,6 +1,6 @@
 /** Domain types shared by the app (client) and API routes (server). */
 
-export type ProductCategory = 'lip' | 'cheek' | 'eye' | 'base' | 'skincare' | 'suncare';
+export type ProductCategory = 'lip' | 'cheek' | 'eye' | 'base' | 'skincare' | 'suncare' | 'tool';
 
 export type MakeupZone = 'lip' | 'blush' | 'eyeshadow' | 'eyeliner' | 'mascara' | 'highlighter' | 'contour' | 'brow' | 'foundation';
 

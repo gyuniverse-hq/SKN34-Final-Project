@@ -14,7 +14,7 @@ export const MAKEUP_ZONES: readonly MakeupZone[] = [
   'brow',
   'foundation',
 ];
-export const PRODUCT_CATEGORIES: readonly ProductCategory[] = ['lip', 'cheek', 'eye', 'base', 'skincare', 'suncare'];
+export const PRODUCT_CATEGORIES: readonly ProductCategory[] = ['lip', 'cheek', 'eye', 'base', 'skincare', 'suncare', 'tool'];
 export const SKIN_CONCERNS: readonly SkinConcern[] = [
   'dryness',
   'oiliness',

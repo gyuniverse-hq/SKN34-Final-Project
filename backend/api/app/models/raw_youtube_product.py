@@ -12,6 +12,7 @@ from sqlalchemy import (
     Identity,
     Index,
     Integer,
+    String,
     Text,
     text,
 )
@@ -119,3 +120,30 @@ class YtOyProductMatchRow(Base):
     decision_status: Mapped[str] = mapped_column(Text, server_default="candidate", nullable=False)
     reviewer: Mapped[str | None] = mapped_column(Text)
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class YtCatalogProductLinkRow(Base):
+    """Reviewed links from researched YouTube IDs to serving catalog products."""
+
+    __tablename__ = "yt_catalog_product_link"
+    __table_args__ = (
+        CheckConstraint(
+            "link_type IN ('direct', 'merged', 'split', 'corrected')",
+            name="ck_yt_catalog_product_link_type",
+        ),
+        Index("ix_yt_catalog_product_link_serving", "serving_product_id"),
+    )
+
+    source_yt_product_id: Mapped[str] = mapped_column(
+        Text,
+        ForeignKey("raw_yt_product.yt_product_id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    serving_product_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("products.id", ondelete="CASCADE"), primary_key=True
+    )
+    link_type: Mapped[str] = mapped_column(Text, nullable=False)
+    evidence_url: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=text("now()"), nullable=False
+    )
