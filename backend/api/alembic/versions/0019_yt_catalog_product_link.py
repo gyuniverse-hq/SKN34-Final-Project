@@ -46,9 +46,7 @@ def upgrade() -> None:
                 ["raw_yt_product.yt_product_id"],
                 ondelete="CASCADE",
             ),
-            sa.ForeignKeyConstraint(
-                ["serving_product_id"], ["products.id"], ondelete="CASCADE"
-            ),
+            sa.ForeignKeyConstraint(["serving_product_id"], ["products.id"], ondelete="CASCADE"),
             sa.PrimaryKeyConstraint(
                 "source_yt_product_id",
                 "serving_product_id",

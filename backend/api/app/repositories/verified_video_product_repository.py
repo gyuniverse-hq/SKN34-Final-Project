@@ -82,8 +82,7 @@ class VerifiedVideoProductRepository:
         if product_id is not None:
             curated = curated.where(ProductRow.id == product_id)
         links.extend(
-            VerifiedVideoProductLink(*row)
-            for row in (await self._session.execute(curated)).all()
+            VerifiedVideoProductLink(*row) for row in (await self._session.execute(curated)).all()
         )
 
         # A verified YouTube-only item uses its raw research ID as its serving ID.
