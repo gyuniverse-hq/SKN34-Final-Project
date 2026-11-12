@@ -1,11 +1,17 @@
 import { FACE_TRACKER_HTML } from '@/components/ar/faceTrackerHtml';
-import { applicationProfileFor, validatedApplicationProfile } from '@/lib/applicationProfiles';
-import type { ApplicationProfile } from '@/types';
+import { applicationProfileFor, lookApplicationProfileFor, validatedApplicationProfile, validatedLookApplicationProfile } from '@/lib/applicationProfiles';
+import type { ApplicationProfile, LookApplicationProfile } from '@/types';
 
 const evidence: ApplicationProfile = {
   source: 'video-fit', videoId: 'example', fitFrameSeconds: 10, validationFrameSeconds: 20, validationView: 'different-angle',
   fitErrorBefore: 10, fitErrorAfter: 8, validationErrorBefore: 12, validationErrorAfter: 9,
   overrides: { material: { a1: 0.4 }, coverageMultiplier: 0.8 },
+};
+
+const lookEvidence: LookApplicationProfile = {
+  source: 'video-fit', videoId: '4QR0tre9yBI', fitFrame: 'final.png', validationFrame: 'left.png', validationView: 'left',
+  fitErrorBefore: 10, fitErrorAfter: 8, validationErrorBefore: 12, validationErrorAfter: 9,
+  overrides: { coverageMultiplier: 0.8 }, geometry: { blushSize: 0.9 },
 };
 
 function rendererProfileHarness() {
@@ -42,6 +48,21 @@ describe('application profile evidence', () => {
     expect(validatedApplicationProfile({ ...evidence, validationFrameSeconds: 10 })).toBeUndefined();
     expect(validatedApplicationProfile({ ...evidence, validationView: 'same-angle' as 'different-angle' })).toBeUndefined();
     expect(validatedApplicationProfile({ ...evidence, fitErrorAfter: NaN })).toBeUndefined();
+  });
+
+  it('requires a distinct scene and improvement for look profiles', () => {
+    expect(lookApplicationProfileFor('4QR0tre9yBI', 'blush')).toBeUndefined();
+    expect(validatedLookApplicationProfile(lookEvidence)).toEqual(lookEvidence);
+    expect(validatedLookApplicationProfile({ ...lookEvidence, validationView: 'open' })).toEqual({ ...lookEvidence, validationView: 'open' });
+    expect(validatedLookApplicationProfile({ ...lookEvidence, validationFrame: 'final.png' })).toBeUndefined();
+    expect(validatedLookApplicationProfile({ ...lookEvidence, fitErrorAfter: 10 })).toBeUndefined();
+    expect(validatedLookApplicationProfile({ ...lookEvidence, validationErrorAfter: 12 })).toBeUndefined();
+    expect(validatedLookApplicationProfile({ ...lookEvidence, validationView: 'same-angle' as 'left' })).toBeUndefined();
+    expect(validatedLookApplicationProfile(lookEvidence, 'lip')).toBeUndefined();
+    const lip = { ...lookEvidence, lipOpenValidation: { frame: 'open.png', errorBefore: 10, errorAfter: 8 } };
+    expect(validatedLookApplicationProfile(lip, 'lip')).toEqual(lip);
+    expect(validatedLookApplicationProfile({ ...lip, lipOpenValidation: { ...lip.lipOpenValidation, errorAfter: 10 } }, 'lip')).toBeUndefined();
+    expect(validatedLookApplicationProfile({ ...lip, validationView: 'open' }, 'lip')).toBeUndefined();
   });
 });
 

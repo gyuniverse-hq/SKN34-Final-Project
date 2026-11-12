@@ -1,7 +1,33 @@
-import type { ApplicationProfile, ApplicationProfileOverrides } from '@/types';
+import type { ApplicationProfile, ApplicationProfileOverrides, LookApplicationProfile, MakeupZone } from '@/types';
 
 /** No video-derived profile is shipped until fitting and different-angle validation both improve. */
 export const APPLICATION_PROFILES: Readonly<Record<string, ApplicationProfile>> = {};
+
+/** Look + zone profiles are deliberately empty until a separate scene validates the fit. */
+export const LOOK_APPLICATION_PROFILES: Readonly<Record<string, LookApplicationProfile>> = {};
+
+export function validatedLookApplicationProfile(profile: LookApplicationProfile | undefined, zone?: MakeupZone): LookApplicationProfile | undefined {
+  if (!profile || profile.source !== 'video-fit' || !profile.videoId || !profile.fitFrame ||
+      !profile.validationFrame || profile.fitFrame === profile.validationFrame || !profile.overrides ||
+      !['left', 'right', 'open'].includes(profile.validationView)) return undefined;
+  const values = [profile.fitErrorBefore, profile.fitErrorAfter, profile.validationErrorBefore, profile.validationErrorAfter];
+  if (values.some((value) => !Number.isFinite(value) || value < 0) ||
+      profile.fitErrorAfter >= profile.fitErrorBefore || profile.validationErrorAfter >= profile.validationErrorBefore) return undefined;
+  if (zone && profile.validationView === 'open') return undefined; // An open-mouth frame cannot replace an angle check.
+  if (zone === 'lip') {
+    const open = profile.lipOpenValidation;
+    if (!open?.frame || open.frame === profile.fitFrame || open.frame === profile.validationFrame ||
+        !Number.isFinite(open.errorBefore) || !Number.isFinite(open.errorAfter) ||
+        open.errorBefore < 0 || open.errorAfter < 0 || open.errorAfter >= open.errorBefore) return undefined;
+  }
+  return profile;
+}
+
+export function lookApplicationProfileFor(videoId: string, zone: MakeupZone): LookApplicationProfile | undefined {
+  const key = `${videoId}:${zone}`;
+  const profile = Object.prototype.hasOwnProperty.call(LOOK_APPLICATION_PROFILES, key) ? LOOK_APPLICATION_PROFILES[key] : undefined;
+  return profile?.videoId === videoId ? validatedLookApplicationProfile(profile, zone) : undefined;
+}
 
 export function validatedApplicationProfile(profile: ApplicationProfile | undefined): ApplicationProfileOverrides | undefined {
   if (!profile || profile.source !== 'video-fit' || profile.validationView !== 'different-angle' ||

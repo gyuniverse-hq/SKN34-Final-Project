@@ -252,6 +252,23 @@ export interface ApplicationProfile {
   overrides: ApplicationProfileOverrides;
 }
 
+/** Scene labels are identifiers, not timestamps: manually captured filenames may have inaccurate times. */
+export interface LookApplicationProfile {
+  source: 'video-fit';
+  videoId: string;
+  fitFrame: string;
+  validationFrame: string;
+  validationView: 'left' | 'right' | 'open';
+  fitErrorBefore: number;
+  fitErrorAfter: number;
+  validationErrorBefore: number;
+  validationErrorAfter: number;
+  overrides: ApplicationProfileOverrides;
+  geometry?: ZoneGeometry;
+  /** Lip looks also need a separate open-mouth comparison in addition to the angle view. */
+  lipOpenValidation?: { frame: string; errorBefore: number; errorAfter: number };
+}
+
 export interface ZoneSetting {
   hex: string;
   /** Set only on a lip oil / balm product. */
