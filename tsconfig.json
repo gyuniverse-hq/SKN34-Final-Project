@@ -10,6 +10,7 @@
     }
   },
   "exclude": [
+    "admin",
     "node_modules",
     "backend",
     "ml",

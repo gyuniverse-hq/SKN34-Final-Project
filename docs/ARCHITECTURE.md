@@ -56,6 +56,10 @@ flowchart LR
 
 ## 저장소 구성
 
+관리자 웹은 `admin/`의 독립 Vite·React 앱이다. `src/App.tsx`·`pages/` → `src/api/client.ts`·`types.ts` 계층으로 `/api/admin/*`를 호출한다. 모바일 코드·backend·research를 import하지 않는다. 루트 tsconfig·ESLint에서 제외하며 루트 Jest의 기존 `__tests__/` roots로 격리한다. 자체 TypeScript·ESLint·Vitest 설정을 쓴다. [ADR-0011](adr/0011-admin-web.md)을 따른다.
+
+관리자 백엔드는 `routers/admin.py` → `services/admin_service.py`, `admin_auth_service.py`, `inventory_service.py` → `repositories/admin_repository.py`, `inventory_repository.py` 및 `clients/toss_client.py` → 모델·스키마·core 순서다. `core/auth.py`의 토큰 검증을 재사용하되 직원 DB 조회는 서비스에 둔다. `ADMIN_ENABLED=false`는 관리자 API를 끈다. 새 서버 배포 전 확장 migration 적용은 필요하다.
+
 | 영역 | 위치 | 역할 |
 | --- | --- | --- |
 | 앱 | `app/`, `components/`, `hooks/`, `lib/`, `store/`, `constants/`, `types/` | Expo Go·웹에서 도는 클라이언트 |
