@@ -14,7 +14,20 @@ class SupervisorModel(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
 
 
+class IngredientComparison(SupervisorModel):
+    model_config = ConfigDict(serialize_by_alias=True)
+
+    current_product_id: str = Field(min_length=1, max_length=128)
+    target_product_id: str = Field(min_length=1, max_length=128)
+    current_shade_id: str | None = Field(default=None, max_length=128)
+    target_shade_id: str | None = Field(default=None, max_length=128)
+    awaiting: Literal["current", "target"]
+
+
 class ScreenContext(SupervisorModel):
+    ingredient_comparison: IngredientComparison | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     screen_id: str | None = Field(default=None, max_length=64)
     product_id: str | None = Field(default=None, max_length=128)
     shade_id: str | None = Field(default=None, max_length=128)
@@ -40,6 +53,11 @@ class ResolvedContext(SupervisorModel):
     state_source: Literal["client_hint", "server_session"] = "client_hint"
 
 
+class IngredientPlanCondition(SupervisorModel):
+    ingredient_name: str = Field(min_length=1, max_length=500)
+    operator: Literal["includes", "excludes"]
+
+
 class SearchPlan(SupervisorModel):
     intent: Literal["search", "refine", "detail", "price", "general"]
     scope: Literal["catalog", "previous"] = "catalog"
@@ -55,6 +73,8 @@ class SearchPlan(SupervisorModel):
     ingredient_name: str | None = Field(default=None, min_length=1, max_length=500)
     ingredient_operator: Literal["includes", "excludes"] = "includes"
     ingredient_lookup: bool = False
+    persist_ingredient_conditions: bool = Field(default=False, strict=True)
+    ingredient_conditions: list[IngredientPlanCondition] = Field(default_factory=list, max_length=6)
     shade_name: str | None = Field(default=None, min_length=1, max_length=128)
     compare_ordinals: list[int] = Field(default_factory=list, max_length=2)
     clear_filters: list[

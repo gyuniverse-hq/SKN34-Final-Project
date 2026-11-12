@@ -7,7 +7,7 @@ from pydantic.alias_generators import to_camel
 from app.schemas.ar_geometry import STYLE_IDS
 from app.schemas.catalog import CatalogIngredients
 from app.schemas.style_recipe import StyleContext, StyleRecipe
-from app.schemas.supervisor import ScreenContext, SupervisorResult, ToolResult
+from app.schemas.supervisor import IngredientComparison, ScreenContext, SupervisorResult, ToolResult
 
 Locale = Literal["en", "ko", "ja", "zh"]
 
@@ -279,6 +279,12 @@ class ProductRef(ApiModel):
     category: str
 
 
+class FragranceSearchSummary(ApiModel):
+    checked: int = Field(ge=0)
+    total: int = Field(ge=0)
+    verified_product_ids: list[ArIdentifier] = Field(default_factory=list)
+
+
 class ChatResponse(ApiModel):
     style_status: Literal["ready", "clarification", "not_found", "error", "unsupported"] | None = (
         Field(default=None, exclude_if=lambda v: v is None)
@@ -297,6 +303,12 @@ class ChatResponse(ApiModel):
     )
     evidence: list[ProductEvidence] | None = Field(default=None, exclude_if=lambda v: v is None)
     ingredient_results: list[CatalogIngredients] | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
+    ingredient_comparison: IngredientComparison | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    fragrance_search_summary: FragranceSearchSummary | None = Field(
         default=None, exclude_if=lambda v: v is None
     )
     session_status: Literal["stored", "unchanged", "unavailable"] | None = Field(
@@ -327,7 +339,7 @@ class ChatSessionState(ArModel):
     result_set_id: UUID
     state_version: Annotated[int, Field(strict=True, ge=1, le=2**53 - 1)]
     context: BeautyContext
-    evidence_refs: list[dict[str, str]] = Field(default_factory=list, max_length=6)
+    evidence_refs: list[dict[str, str | None]] = Field(default_factory=list, max_length=6)
     created_at: int
     result_created_at: int
     expires_at: int

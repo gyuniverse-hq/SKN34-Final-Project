@@ -1,9 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { uuid } from 'expo';
-import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useHeaderHeight } from 'expo-router/react-navigation';
-import { useEffect, useRef, useState, type ComponentRef, type Dispatch, type SetStateAction, type MutableRefObject } from 'react';
+import { useEffect, useEffectEvent, useRef, useState, type ComponentRef } from 'react';
 import {
   ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, View,
@@ -11,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChatProducts } from '@/components/chat/ChatProducts';
 import { IngredientResult } from '@/components/chat/IngredientResult';
+import { RecentConversations } from '@/components/chat/RecentConversations';
 import { StyleRecipeResult } from '@/components/chat/StyleRecipeResult';
 import { theme } from '@/constants/theme';
 import { useChat } from '@/hooks/useChat';
@@ -19,40 +19,13 @@ import { useAuth } from '@/lib/auth';
 import { getSupabase } from '@/lib/auth/client';
 import { conditionsFromChatFilters, extractChatConditions } from '@/lib/chatConditions';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
-import { useProductsByIds } from '@/lib/queries';
+import { useLook, useProduct, useProductsByIds, useStyleLooks } from '@/lib/queries';
 import { arHref, parseId, paramValue, productHref } from '@/lib/routes';
-import type { BeautyChatContext, ChatProductEvidence, ChatProductRef, ChatResponse, ChatScreenContext, ChatStyleContext } from '@/types';
+import { isChatSessionExpired, useChatConversationStore, type ConversationRecord } from '@/store/chatConversationStore';
+import type { ChatCategory as Category, ChatMessage, ChatRequestSnapshot, ConversationEntry } from '@/types/chatConversation';
+import type { BeautyChatContext, ChatProductEvidence, ChatProductRef } from '@/types';
 
-type Category = 'product' | 'ingredient' | 'style';
-type ChatMessage = {
-  id: string;
-  role: 'user' | 'assistant';
-  text: string;
-  products?: ChatProductRef[];
-  question?: string;
-  category?: Category;
-  failed?: boolean;
-  chatContext?: BeautyChatContext;
-  evidence?: ChatProductEvidence[];
-  resultType?: ChatResponse['resultType'];
-  ingredientResults?: ChatResponse['ingredientResults'];
-  screenContext?: ChatScreenContext;
-  locale?: 'ko' | 'en' | 'ja' | 'zh';
-  errorKey?: TranslationKey;
-  selectionRevision?: number;
-  generation?: number;
-  ownerKey?: string;
-  sessionStatus?: ChatResponse['sessionStatus'];
-  retryable?: boolean;
-  styleRecipe?: ChatResponse['styleRecipe'];
-};
-
-type Submission = Parameters<ReturnType<typeof useChat>['mutateAsync']>[0];
-type RequestSnapshot = { args: Submission; revision: number; generation: number; styleRevision: number };
-
-function displayContext(context?: BeautyChatContext): BeautyChatContext | undefined {
-  return context ? { ...context, session: undefined } : undefined;
-}
+let observedAuthClient: ReturnType<typeof getSupabase>;
 
 const styleBrowseImage = require('@/assets/images/chat/style-recipe.png');
 
@@ -62,11 +35,15 @@ const categories: { id: Category; image: number; label: TranslationKey; caption:
   { id: 'style', image: styleBrowseImage, label: 'chat.ui.style', caption: 'chat.ui.styleCaption', prompts: ['chat.ui.styleQuestion1', 'chat.ui.styleQuestion2', 'chat.ui.styleQuestion3'] },
 ];
 
-function RelatedProducts({ refs, question, category, chatContext, evidence, selectedShades, onSelectShade }: {
+function RelatedProducts({ refs, question, category, chatContext, evidence, selectedShades, onSelectShade, onSelectProduct, selectedProductId, fragrance, onOpenEvidence }: {
   refs: ChatProductRef[]; question: string; category?: Category;
   chatContext?: BeautyChatContext; evidence?: ChatProductEvidence[];
   selectedShades: Record<string, string>;
   onSelectShade: (productId: string, shadeId: string) => void;
+  onSelectProduct?: (productId: string) => void;
+  selectedProductId?: string | null;
+  fragrance?: 'verified' | 'unknown';
+  onOpenEvidence?: (id: string) => void;
 }) {
   const router = useRouter();
   const { t } = useI18n();
@@ -75,6 +52,7 @@ function RelatedProducts({ refs, question, category, chatContext, evidence, sele
     mounted.current = true;
     return () => { mounted.current = false; };
   }, []);
+
   const ids = [...new Set(refs.map((ref) => ref.id))];
   const query = useProductsByIds(ids);
   // keepPreviousData can belong to another ID set; never display it as this response.
@@ -86,12 +64,20 @@ function RelatedProducts({ refs, question, category, chatContext, evidence, sele
   });
   return (
     <View>
-      <Text style={styles.relatedTitle}>{t('chat.relatedProducts')}</Text>
+      {!fragrance ? <Text style={styles.relatedTitle}>{t('chat.relatedProducts')}</Text> : null}
       <ChatProducts
         products={products}
+        fragrance={fragrance}
+        onOpenEvidence={onOpenEvidence}
+        expectedIds={ids}
         conditions={chatContext ? conditionsFromChatFilters(chatContext.filters, t) : extractChatConditions(question)}
         candidateOrder={chatContext?.candidateIds ?? ids}
         selectedShades={selectedShades}
+        selectedProductId={selectedProductId}
+        onSelectProduct={onSelectProduct ? (productId) => {
+          // Old message cards may remain visible; only the live server candidate set is selectable.
+          if (mounted.current && products.some((p) => p.id === productId)) onSelectProduct(productId);
+        } : undefined}
         onSelectShade={(productId, shadeId) => {
           // A callback from an old/placeholder card cannot attach another product's shade.
           if (mounted.current && products.some((p) => p.id === productId && p.shades?.some((s) => s.id === shadeId))) {
@@ -111,125 +97,239 @@ function RelatedProducts({ refs, question, category, chatContext, evidence, sele
   );
 }
 
+function FragranceSearchResult({ message, ...actions }: {
+  message: ChatMessage;
+} & Pick<Parameters<typeof RelatedProducts>[0], 'selectedShades' | 'selectedProductId' | 'onSelectProduct' | 'onSelectShade'>) {
+  const { t } = useI18n();
+  const [showUnverified, setShowUnverified] = useState(false);
+  const [evidenceId, setEvidenceId] = useState<string>();
+  const summary = message.fragranceSearchSummary;
+  if (!summary) return null;
+  const refs = message.products ?? [];
+  const verified = refs.filter((item) => summary.verifiedProductIds.includes(item.id));
+  const unverified = refs.filter((item) => !summary.verifiedProductIds.includes(item.id));
+  const filters = message.chatContext?.filters;
+  const conditions = filters ? conditionsFromChatFilters(filters, t).map((condition) => condition.text) : [];
+  const shared = { ...actions, question: message.question ?? '', chatContext: message.chatContext,
+    evidence: message.evidence, onOpenEvidence: (id: string) => setEvidenceId((current) => current === id ? undefined : id) };
+  return <View style={styles.conditionArea}>
+    <Text style={styles.conditionTitle}>{t('chat.ingredient.fragranceSummary', {
+      total: summary.total, checked: summary.checked, matches: verified.length,
+    })}</Text>
+    {conditions.length ? <Text style={styles.note}>{conditions.join(' · ')}</Text> : null}
+    {verified.length ? <RelatedProducts {...shared} refs={verified} fragrance="verified"
+      selectedShades={message.chatContext?.shadeSelections ?? {}} /> : null}
+    {unverified.length ? <>
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded: showUnverified }}
+        onPress={() => { setShowUnverified((visible) => !visible); setEvidenceId(undefined); }} style={styles.retry}>
+        <Text style={styles.retryText}>{t('chat.ingredient.showUnverified')} ({unverified.length})</Text>
+      </Pressable>
+      {showUnverified ? <RelatedProducts {...shared} refs={unverified} fragrance="unknown" /> : null}
+    </> : null}
+    {evidenceId ? <IngredientResult evidenceOnly heading={t('chat.ui.ingredient')} summary="" notice=""
+      labels={{ product: t('chat.result.productInfo'), ingredients: t('chat.result.ingredientList'),
+        source: t('chat.result.source'), unknown: t('chat.conditionUnknown') }}
+      results={message.ingredientResults?.filter((item) => item.productId === evidenceId)}
+      products={refs.filter((item) => item.id === evidenceId)} shadeSelections={message.chatContext?.shadeSelections} /> : null}
+  </View>;
+}
+
 export default function ChatScreen() {
-  const params = useLocalSearchParams<{ recipeKind?: string; recipeLookId?: string }>();
+  const params = useLocalSearchParams<{ recipeKind?: string; recipeLookId?: string; productId?: string; shadeId?: string }>();
   const rawKind = paramValue(params.recipeKind);
   const kind = rawKind === 'video' || rawKind === 'catalog' ? rawKind : undefined;
   const rawLookId = paramValue(params.recipeLookId);
   const lookId = kind === 'video' ? rawLookId && /^[A-Za-z0-9_-]{1,64}$/.test(rawLookId) ? rawLookId : undefined : parseId(params.recipeLookId);
-  const initialStyle: ChatStyleContext | undefined = kind && lookId ? { kind, lookId, currentStep: 0 } : undefined;
+  const productId = kind && lookId ? undefined : parseId(params.productId);
+  const shadeId = parseId(params.shadeId);
   const { user, ready } = useAuth();
-  const [identityGeneration, setIdentityGeneration] = useState(0);
+  const userId = user?.id ?? null;
+  const identity = useChatConversationStore((state) => state.identity);
+  const rooms = useChatConversationStore((state) => state.conversations);
+  const routeKey = JSON.stringify([userId, kind, lookId, productId, shadeId]);
+  const [active, setActive] = useState<{ routeKey: string; id?: string }>();
+  const setActiveId = (id?: string) => setActive({ routeKey, id });
+  const [recentVisible, setRecentVisible] = useState(false);
+  const { t } = useI18n();
+
   useEffect(() => {
     const client = getSupabase();
-    let previous: string | null | undefined;
-    const subscription = client?.auth.onAuthStateChange((_event, session) => {
-      const id = session?.user.id ?? null;
-      if (previous !== undefined && previous !== id) setIdentityGeneration((value) => value + 1);
-      previous = id;
-    }).data.subscription;
-    return () => subscription?.unsubscribe();
-  }, []);
-  const ownerKey = `${ready ? user?.id ?? 'guest' : 'loading'}:${identityGeneration}`;
-  return <ChatOwner key={ownerKey} ownerKey={ownerKey} userId={user?.id ?? null} initialStyle={initialStyle}
-    styleKey={`${kind ?? ''}:${lookId ?? ''}`} ready={ready} />;
+    const store = useChatConversationStore.getState();
+    if (client && observedAuthClient !== client) {
+      observedAuthClient = client;
+      // Observe logout even after the chat route has been closed.
+      client.auth.onAuthStateChange((_event, session) => {
+        if (observedAuthClient === client) store.activate(session?.user.id ?? null);
+      });
+    }
+    if (!ready) return;
+    if (store.identity?.userId !== userId) store.activate(userId);
+    const entry: ConversationEntry = kind && lookId ? { type: 'look', kind, lookId }
+      : productId ? { type: 'product', productId, shadeId } : { type: 'general' };
+    let current = true;
+    void Promise.resolve().then(() => {
+      if (!current || useChatConversationStore.getState().identity?.userId !== userId) return;
+      setActive({ routeKey, id: store.open(entry) });
+      setRecentVisible(false);
+    });
+    return () => { current = false; };
+  }, [ready, userId, kind, lookId, productId, shadeId, routeKey]);
+
+  const record = ready && identity?.userId === userId && active?.routeKey === routeKey && active.id ? rooms[active.id] : undefined;
+  if (!record) return <SafeAreaView style={styles.screen} edges={['bottom']}>
+    <ActivityIndicator />
+    <TextInput editable={false} onChangeText={() => {}} />
+    <Pressable accessibilityLabel={t('chat.ui.send')} disabled onPress={() => {}} />
+  </SafeAreaView>;
+
+  const startNew = () => {
+    if (useChatConversationStore.getState().conversations[record.conversation.id]?.conversation.ownerKey !== record.conversation.ownerKey) return;
+    const { subject } = record.conversation;
+    const product = record.view.linkedProduct;
+    const style = record.view.activeStyle;
+    const entry = subject.type === 'product'
+      ? { ...subject, shadeId: product?.productId === subject.productId ? product?.shadeId ?? undefined
+        : record.conversation.entryProduct?.shadeId ?? undefined }
+      : subject;
+    const focus = subject.type === 'general'
+      ? { product: product?.productId ? { ...product, screenId: 'product-detail' } : undefined, style }
+      : undefined;
+    setActiveId(useChatConversationStore.getState().open(entry, true, focus));
+    setRecentVisible(false);
+  };
+  return <>
+    <ChatConversation key={record.conversation.id} record={record}
+      onRecent={() => setRecentVisible(true)} onNew={startNew} />
+    {recentVisible ? <RecentConversations rooms={Object.values(rooms)} activeId={record.conversation.id}
+      onClose={() => setRecentVisible(false)} onNew={startNew}
+      onSelect={(id) => {
+        if (useChatConversationStore.getState().resume(id)) setActiveId(id);
+        setRecentVisible(false);
+      }}
+      renderSubject={(item) => {
+        const { subject } = item.conversation;
+        if (subject.type === 'look') return subject.kind === 'video'
+          ? <VideoEntryLabel id={subject.lookId} /> : <CatalogEntryLabel id={subject.lookId} />;
+        if (subject.type === 'product') return <ProductEntryLabel id={subject.productId} showShade={false} />;
+        return null;
+      }} /> : null}
+  </>;
 }
 
-function ChatOwner({ ownerKey, userId, ready, initialStyle, styleKey }: {
-  ownerKey: string; userId: string | null; ready: boolean; initialStyle?: ChatStyleContext; styleKey: string;
-}) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const serialRef = useRef(0);
-  return <ChatConversation key={styleKey} ownerKey={ownerKey} userId={userId} initialStyle={initialStyle}
-    ready={ready} messages={messages} setMessages={setMessages} serialRef={serialRef} />;
+function VideoEntryLabel({ id }: { id: string }) {
+  const query = useStyleLooks();
+  return <EntryLabel name={query.data?.find((look) => look.id === id)?.title} />;
 }
 
-function ChatConversation({ ownerKey, userId, ready, messages, setMessages, serialRef, initialStyle }: {
-  ownerKey: string; userId: string | null; ready: boolean; messages: ChatMessage[];
-  setMessages: Dispatch<SetStateAction<ChatMessage[]>>; serialRef: MutableRefObject<number>;
-  initialStyle?: ChatStyleContext;
+function CatalogEntryLabel({ id }: { id: string }) {
+  const query = useLook(id);
+  return <EntryLabel name={query.data?.look.id === id ? query.data.look.title : undefined} />;
+}
+
+function ProductEntryLabel({ id, shadeId, showShade = true }: { id: string; shadeId?: string | null; showShade?: boolean }) {
+  const query = useProduct(id);
+  const product = query.data;
+  const shade = product?.shades?.find((item) => item.id === shadeId)?.name;
+  const { t } = useI18n();
+  if (product?.id !== id) return <EntryLabel name={query.isError && query.error instanceof ApiError && query.error.status === 404
+    ? t('chat.ingredient.productMissing') : undefined} />;
+  return <EntryLabel name={showShade ? `${product.name} · ${shade ?? t('chat.room.shadeUnselected')}` : product.name} />;
+}
+
+function EntryLabel({ name }: { name?: string }) {
+  const { t } = useI18n();
+  return name ? <Text numberOfLines={2} style={styles.entryLabel}>{t('chat.entry.context', { name })}</Text> : null;
+}
+
+function InlineStyleLookPicker({ question, onSelect }: { question: string; onSelect: (id: string) => void }) {
+  const { t } = useI18n();
+  const query = useStyleLooks();
+  const [expanded, setExpanded] = useState(false);
+  const looks = query.data ?? [];
+  const zone = [/립|입술|\blips?\b|リップ|唇/i, /아이라인|눈 화장|\beye(?:liner|s)?\b|アイメイク|眼妆/i,
+    /볼터치|블러셔|\bblush\b|チーク|腮红/i].find((pattern) => pattern.test(question));
+  const matching = zone ? looks.filter((look) => look.products.some((product) => zone.test(product.zone)))
+    : /룩|look|ルック|妆容/i.test(question) ? looks : [];
+  if (!matching.length && !query.isError) return null;
+  if (!expanded) return <Pressable accessibilityRole="button" onPress={() => setExpanded(true)} style={styles.retry}>
+    <Text style={styles.retryText}>{t('chat.style.chooseInline')}</Text>
+  </Pressable>;
+  return <View style={styles.conditionArea}>
+    {query.isPending ? <ActivityIndicator /> : null}
+    {query.isError ? <Pressable accessibilityRole="button" onPress={() => void query.refetch()} style={styles.retry}>
+      <Text style={styles.retryText}>{t('chat.ui.retry')}</Text>
+    </Pressable> : null}
+    {matching.slice(0, 6).map((look) => (
+      <Pressable key={look.id} accessibilityRole="button" onPress={() => onSelect(look.id)} style={styles.retry}>
+        <Text style={styles.retryText}>{look.title}</Text>
+      </Pressable>
+    ))}
+  </View>;
+}
+
+function ChatConversation({ record, onRecent, onNew }: {
+  record: ConversationRecord;
+  onRecent: () => void;
+  onNew: () => void;
 }) {
+  const { conversation, messages, view } = record;
+  const { pending: isPending, notice: sessionNotice, activeStyle, linkedProduct, generation: conversationGeneration,
+    selectedShades, chosenProductId, sessionCandidateIds, draft: input, sessionExpiry } = view;
   const router = useRouter();
   const headerHeight = useHeaderHeight();
-  const styleContext = useRef<ChatStyleContext | undefined>(initialStyle);
-  const [activeStyle, setActiveStyle] = useState<ChatStyleContext | undefined>(initialStyle);
-  const styleRevision = useRef(0);
+  const { ownerKey, userId, subject } = conversation;
+  const target = { id: conversation.id, ownerKey };
   const { t, language } = useI18n();
-  const { mutateAsync, reset: resetMutation } = useChat();
-  const [pendingRequestId, setPendingRequestId] = useState<string>();
-  const isPending = !!pendingRequestId;
-  const [sessionNotice, setSessionNotice] = useState<TranslationKey | undefined>(
-    messages.length ? 'chat.session.identityChanged' : undefined
-  );
+  const { mutateAsync } = useChat();
   const mounted = useRef(true);
-  const generation = useRef(0);
-  const [conversationGeneration, setConversationGeneration] = useState(0);
-  const activeRequest = useRef<string | undefined>(undefined);
-  const snapshots = useRef(new Map<string, RequestSnapshot>());
+  const store = useChatConversationStore.getState;
+  const currentRoom = () => store().conversations[target.id]?.conversation;
+  const owned = () => store().identity?.key === ownerKey && currentRoom()?.ownerKey === ownerKey;
+  const setInput = (value: string) => store().setDraft(target, value);
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
-  const sending = useRef(false);
   const nearBottom = useRef(true);
-  const beautyContext = useRef<BeautyChatContext | undefined>(undefined);
-  const beautyContextTurn = useRef(0);
-  const selection = useRef({ revision: 0, shades: {} as Record<string, string>,
-    changed: {} as Record<string, number>, screen: undefined as ChatScreenContext | undefined });
-  const [selectedShades, setSelectedShades] = useState<Record<string, string>>({});
-  const [input, setInput] = useState('');
-  const [category, setCategory] = useState<Category>(initialStyle ? 'style' : 'product');
+  const { category } = view;
+  const setCategory = (next: Category) => store().setCategory(target, next);
   const [editing, setEditing] = useState(false);
-  const selected = categories.find((item) => item.id === category)!;
   const conditions = extractChatConditions(input);
 
   useEffect(() => {
     mounted.current = true;
-    const requests = snapshots.current;
-    return () => { mounted.current = false; requests.clear(); };
+    return () => { mounted.current = false; };
   }, []);
 
-  const resetSession = (notice: TranslationKey, keepSelection = false) => {
-    generation.current += 1;
-    setConversationGeneration(generation.current);
-    beautyContext.current = undefined;
-    beautyContextTurn.current = 0;
-    snapshots.current.clear();
-    resetMutation?.();
-    setMessages((current) => current.map((message) => ({ ...message, retryable: false })));
-    if (!keepSelection) {
-      selection.current = { revision: selection.current.revision + 1, shades: {}, changed: {}, screen: undefined };
-      setSelectedShades({});
+  const resetSession = (key: TranslationKey, keepSelection = false) => store().resetSession(target, key, keepSelection);
+
+  const expireSession = useEffectEvent(() => {
+    const room = currentRoom();
+    const ref = room?.beautyContext?.session;
+    if (!room?.request && ref && isChatSessionExpired(ref.expiresAt)) resetSession('chat.session.expired');
+  });
+  useEffect(() => {
+    if (!sessionExpiry || isPending) return;
+    const delay = sessionExpiry * 1000 - Date.now();
+    if (delay <= 0) expireSession();
+    else if (delay <= 2_147_483_647) {
+      const timer = setTimeout(() => expireSession(), delay);
+      return () => clearTimeout(timer);
     }
-    activeRequest.current = undefined;
-    sending.current = false;
-    setPendingRequestId(undefined);
-    setSessionNotice(notice);
-  };
+  }, [sessionExpiry, isPending]);
 
   const newSearch = () => {
     resetSession('chat.session.newSearchHint');
-    styleContext.current = undefined;
-    setActiveStyle(undefined);
-    styleRevision.current += 1;
-    setCategory('product');
+    if (subject.type === 'general') store().setStyle(target);
     setInput('');
     inputRef.current?.focus();
   };
 
-  const selectShade = (productId: string, shadeId: string, message: ChatMessage) => {
-    const current = selection.current;
-    current.revision += 1;
-    current.shades = { ...current.shades, [productId]: shadeId };
-    current.changed[productId] = current.revision;
-    current.screen = { screenId: 'chat', productId, shadeId };
-    const source = beautyContext.current ?? (message.ownerKey === ownerKey &&
-      message.generation === generation.current ? message.chatContext : undefined);
-    // Keep the latest candidate numbering; screenContext can identify an older selected card.
-    if (source?.candidateIds.includes(productId)) {
-      beautyContext.current = { ...source, selectedProductId: productId,
-        shadeSelections: { ...source.shadeSelections, [productId]: shadeId } };
-    } else if (!beautyContext.current) beautyContext.current = source;
-    setSelectedShades(current.shades);
+  const clearFocus = () => {
+    if (activeStyle && category === 'style') store().setStyle(target);
+    else store().clearProduct(target);
   };
+
+  const selectProduct = (productId: string, message: ChatMessage) => store().selectProduct(target, productId, message);
+  const selectShade = (productId: string, shadeId: string, message: ChatMessage) => store().selectShade(target, productId, shadeId, message);
 
   useEffect(() => {
     const shown = Keyboard.addListener('keyboardDidShow', () => setEditing(true));
@@ -244,107 +344,73 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
     if (messages.length && nearBottom.current) scrollRef.current?.scrollToEnd({ animated: true });
   }, [messages.length]);
 
-  const send = async (textToSend = input, retryId?: string, retryCategory?: Category) => {
+  const send = async (textToSend = input, retryId?: string, retryCategory?: Category, automatic = false) => {
     const text = textToSend.trim();
-    if (!text || sending.current || isPending || !ready) return;
+    if (!text || !owned() || currentRoom()?.request) return;
+    let room = currentRoom()!;
+    const expired = room.beautyContext?.session;
+    if (expired && isChatSessionExpired(expired.expiresAt)) {
+      resetSession('chat.session.expired');
+      room = currentRoom()!;
+      if (retryId) return;
+    }
     const failedMatch = retryId ?? messages.find((message) => message.role === 'user' &&
-      message.failed && message.text === text && snapshots.current.has(message.id))?.id;
-    const original = failedMatch ? snapshots.current.get(failedMatch) : undefined;
+      message.failed && message.text === text && room.snapshots.has(message.id))?.id;
+    const original = failedMatch ? room.snapshots.get(failedMatch) : undefined;
     if (retryId && !original) return;
     let requestId: string;
     try { requestId = original?.args.requestId ?? uuid.v4(); }
-    catch { setSessionNotice('chat.session.idUnavailable'); return; }
-    const messageId = failedMatch ?? `user-${++serialRef.current}`;
-    const requestCategory = original?.args.category ?? retryCategory ?? category;
-    const context = beautyContext.current;
-    const snapshot: RequestSnapshot = original ?? {
-      styleRevision: styleRevision.current,
-      generation: generation.current,
-      revision: selection.current.revision,
+    catch { store().setNotice(target, 'chat.session.idUnavailable'); return; }
+    const lookReference = /이\s*(?:룩|스타일)|\bthis (?:look|style)\b|このルック|这个妆容/i.test(text);
+    const shopping = /추천|구매|가격|얼마|비교|성분|향료|recommend|price|compare|ingredient|fragrance|おすすめ|比較|価格|推荐|比较|价格|成分|香料/i.test(text);
+    const makeupTopic = /립|입술|아이라인|블러셔|아이섀도|화장|메이크업|\b(?:lip|lips|makeup|eyeliner|blush|eyeshadow)\b|メイク|リップ|化妆|唇|眼妆/i.test(text);
+    const technique = /어떻게|방법|하는\s*법|하는\s*거|바르는\s*법|\bhow\b|やり方|方法|怎么|如何/i.test(text);
+    const generalMakeup = original?.generalMakeup ??
+      (!retryCategory && !room.styleContext && !lookReference && !shopping && makeupTopic && technique);
+    const requestCategory = original?.args.category ?? retryCategory ??
+      (generalMakeup ? 'product' : lookReference ? 'style' : room.category);
+    const context = generalMakeup ? undefined : room.beautyContext;
+    const focusedProduct = generalMakeup ? undefined : room.selection.screen ?? room.entryProduct;
+    const lastReply = messages.at(-1);
+    const comparing = /비교|차이|\bcompar(?:e|ison)\b|\bdiffer(?:s|ent|ence|ences)?\b|比較|違い|对比|比较|区别/i;
+    const comparisonTarget = !!focusedProduct?.productId && lastReply?.resultType === 'clarification' &&
+      comparing.test(lastReply.question ?? '') && !comparing.test(text) && !shopping && !technique && !/[?？]/.test(text);
+    const pendingComparison = lastReply?.ingredientComparison;
+    const ingredientComparison = /성분|향료|\bingredients?\b|\bfragrance\b|成分|香料/i.test(lastReply?.question ?? '');
+    const screen = comparisonTarget ? {
+      ...focusedProduct, screenId: ingredientComparison ? 'product-ingredient-comparison' : 'product-comparison',
+      ...(pendingComparison?.currentProductId === focusedProduct?.productId ? { ingredientComparison: pendingComparison } : {}),
+    } : focusedProduct;
+    const snapshot: ChatRequestSnapshot = original ?? {
+      automatic,
+      generalMakeup,
+      styleRevision: room.styleRevision,
+      generation: room.generation,
+      revision: room.selection.revision,
       args: {
         message: text, locale: language, category: requestCategory, requestId, expectedUserId: userId,
-        ...(requestCategory === 'style' && styleContext.current ? { styleContext: { ...styleContext.current } } : {}),
+        ...(!generalMakeup && room.styleContext
+          ? { styleContext: { ...room.styleContext } } : {}),
         ...(context ? { chatContext: { ...context, filters: { ...context.filters },
           candidateIds: [...context.candidateIds], scopeIds: [...context.scopeIds],
           ...(context.session ? { session: { ...context.session } } : {}),
           ...(context.shadeSelections ? { shadeSelections: { ...context.shadeSelections } } : {}) } } : {}),
-        ...(selection.current.screen ? { screenContext: { ...selection.current.screen } } : {}),
+        ...(screen ? { screenContext: { ...screen } } : {}),
       },
     };
-    if (snapshot.generation !== generation.current) return;
-    snapshots.current.set(messageId, snapshot);
-    sending.current = true;
-    activeRequest.current = requestId;
-    setPendingRequestId(requestId);
-    if (input.trim() === text) setInput('');
-    if (failedMatch) {
-      setMessages((current) => current.map((message) => message.id === messageId ? { ...message, failed: false } : message));
-    } else {
-      nearBottom.current = true;
-      setMessages((current) => [...current, { id: messageId, role: 'user', text,
-        category: requestCategory, ownerKey, generation: snapshot.generation }]);
-    }
+    const ticket = store().beginRequest(target, snapshot, failedMatch);
+    if (!ticket) return;
+    if (!failedMatch) nearBottom.current = true;
     try {
       const response = await mutateAsync(snapshot.args);
-      if (!mounted.current || generation.current !== snapshot.generation) return;
-      if (requestCategory === 'style' && styleRevision.current === snapshot.styleRevision) {
-        const expected = snapshot.args.styleContext;
-        const next = response.styleContext;
-        if (next && expected && next.kind === expected.kind && next.lookId === expected.lookId) {
-          styleContext.current = { ...next };
-          setActiveStyle({ ...next });
-        }
+      if (snapshot.automatic && response.styleStatus === 'error') throw new ApiError(response.answer, 503);
+      const expectedStyle = snapshot.args.styleContext;
+      const actualRecipe = response.styleRecipe;
+      if (actualRecipe && (!expectedStyle || actualRecipe.kind !== expectedStyle.kind || actualRecipe.lookId !== expectedStyle.lookId)) {
+        throw new ApiError('Recipe does not match the requested look', 502);
       }
-      const requestTurn = Number(messageId.slice('user-'.length));
-      if (response.sessionStatus === 'unavailable' && requestTurn >= beautyContextTurn.current) {
-        resetSession('chat.session.unavailable', selection.current.revision > snapshot.revision);
-      } else if (response.chatContext && requestTurn >= beautyContextTurn.current) {
-        const next = response.chatContext;
-        const current = beautyContext.current?.session;
-        const olderVersion = current && next.session?.sessionId === current.sessionId &&
-          next.session.stateVersion < current.stateVersion;
-        if (!olderVersion) {
-          const shades = { ...next.shadeSelections };
-          for (const pid of next.candidateIds) {
-            if ((selection.current.changed[pid] ?? 0) > snapshot.revision) shades[pid] = selection.current.shades[pid];
-          }
-          const latestProduct = selection.current.screen?.productId;
-          beautyContext.current = { ...next,
-            ...(Object.keys(shades).length ? { shadeSelections: shades } : {}),
-            ...(selection.current.revision > snapshot.revision && latestProduct && next.candidateIds.includes(latestProduct)
-              ? { selectedProductId: latestProduct } : {}) };
-          const nextShades = { ...selection.current.shades };
-          for (const pid of next.candidateIds) {
-            if (shades[pid]) nextShades[pid] = shades[pid]; else delete nextShades[pid];
-          }
-          selection.current.shades = nextShades;
-          if (selection.current.revision === snapshot.revision && selection.current.screen &&
-            (!next.candidateIds.includes(selection.current.screen.productId ?? '') ||
-             shades[selection.current.screen.productId ?? ''] !== selection.current.screen.shadeId)) {
-            selection.current.screen = undefined;
-          }
-          setSelectedShades(nextShades);
-          beautyContextTurn.current = requestTurn;
-          setSessionNotice(undefined);
-        }
-      }
-      snapshots.current.delete(messageId);
-      const answer: ChatMessage = {
-        id: `assistant-${++serialRef.current}`, role: 'assistant', text: response.answer,
-        products: response.products, question: text, category: requestCategory,
-        ownerKey, generation: snapshot.generation, sessionStatus: response.sessionStatus,
-        chatContext: displayContext(response.chatContext), evidence: response.evidence,
-        resultType: response.resultType, ingredientResults: response.ingredientResults,
-        styleRecipe: response.styleRecipe,
-      };
-      setMessages((current) => {
-        const questionIndex = current.findIndex((message) => message.id === messageId);
-        return questionIndex < 0 ? current : [
-          ...current.slice(0, questionIndex + 1), answer, ...current.slice(questionIndex + 1),
-        ];
-      });
+      store().completeRequest(ticket, response, comparisonTarget && lastReply?.question ? lastReply.question : text);
     } catch (error) {
-      if (!mounted.current || generation.current !== snapshot.generation) return;
       const api = error instanceof ApiError ? error : undefined;
       const fatal = api && ([403, 409, 410].includes(api.status) ||
         ['chat_owner_changed', 'chat_owner_unavailable'].includes(api.code ?? ''));
@@ -359,29 +425,36 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
                   : api?.status === 404 ? 'chat.ingredient.productMissing'
                     : api?.status === 503 ? 'chat.ingredient.server'
                       : api?.status === 0 ? 'chat.ingredient.network' : 'chat.ui.error';
-      if (fatal) {
-        const oldTurn = Number(messageId.slice('user-'.length)) < beautyContextTurn.current;
-        if (oldTurn && beautyContext.current?.session && !api?.code?.startsWith('chat_owner_')) {
-          snapshots.current.clear();
-          setMessages((current) => current.map((message) => ({ ...message, retryable: false })));
-          setSessionNotice(errorKey);
-        } else resetSession(errorKey);
-      }
-      setMessages((current) => current.map((message) => message.id === messageId
-        ? { ...message, failed: true, errorKey, retryable: !fatal } : message));
-      setInput((current) => current || text);
-    } finally {
-      if (mounted.current && activeRequest.current === requestId) {
-        sending.current = false;
-        activeRequest.current = undefined;
-        setPendingRequestId(undefined);
-      }
+      store().failRequest(ticket, errorKey, !!fatal, !!api?.code?.startsWith('chat_owner_'));
     }
   };
 
+  const bootstrapLook = useEffectEvent(() => {
+    if (currentRoom()?.bootstrap === 'not-started') void send(t('chat.room.recipePrompt'), undefined, 'style', true);
+  });
+  useEffect(() => {
+    if (subject.type === 'look') bootstrapLook();
+  }, [subject]);
+
+  const visibleMessages = messages.filter((message) => !message.automatic || message.failed);
+  const canSelect = (message: ChatMessage) => sessionCandidateIds.length > 0 &&
+    message.generation === conversationGeneration && message.resultSetId === view.resultSetId;
+
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <Stack.Screen options={{ title: messages.length ? t('chat.ui.title') : '' }} />
+      <Stack.Screen options={{
+        title: subject.type === 'look' ? (messages.findLast((item) => item.styleRecipe)?.styleRecipe?.title ?? t('chat.room.look'))
+          : subject.type === 'product' ? t('chat.room.product') : t('chat.ui.title'),
+        headerRight: () => (
+        <View style={styles.headerActions}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('chat.room.recent')} onPress={onRecent} style={styles.headerAction}>
+            <Ionicons name="time-outline" size={22} color={theme.colors.roseDark} />
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('chat.session.newConversation')} onPress={onNew} style={styles.headerAction}>
+            <Ionicons name="add" size={25} color={theme.colors.roseDark} />
+          </Pressable>
+        </View>
+      ) }} />
       <KeyboardAvoidingView style={styles.keyboard} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={headerHeight}>
         <ScrollView ref={scrollRef} contentContainerStyle={styles.messages} keyboardShouldPersistTaps="handled"
@@ -389,7 +462,24 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
             const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
             nearBottom.current = contentSize.height - (contentOffset.y + layoutMeasurement.height) < 80;
           }} scrollEventThrottle={16}>
-          {!messages.length ? (
+          {!messages.length && !isPending && subject.type !== 'general' ? <View style={styles.targetWelcome}>
+            <Text accessibilityRole="header" style={styles.welcomeTitle}>{t(subject.type === 'look' ? 'chat.room.look' : 'chat.room.product')}</Text>
+            {subject.type === 'look' ? subject.kind === 'video' ? <VideoEntryLabel id={subject.lookId} /> : <CatalogEntryLabel id={subject.lookId} />
+              : <ProductEntryLabel id={subject.productId} shadeId={linkedProduct?.shadeId} />}
+            <Text style={styles.welcomeBody}>{t('chat.welcome.ask')}</Text>
+            {(subject.type === 'look'
+              ? ['chat.room.recipePrompt', 'chat.room.lookTip', 'chat.room.lookProduct'] as const
+              : ['chat.carousel.ingredient', 'chat.carousel.details', 'chat.room.pricePrompt', 'chat.room.comparePrompt'] as const).map((key) =>
+              <Pressable key={key} accessibilityRole="button" style={styles.problemPrompt}
+                onPress={() => {
+                  if (key === 'chat.room.comparePrompt') { setInput(t(key)); inputRef.current?.focus(); }
+                  else void send(t(key), undefined, subject.type === 'look' ? 'style' : key === 'chat.carousel.ingredient' ? 'ingredient' : 'product');
+                }}>
+                <Text style={styles.problemText}>{t(key)}</Text>
+                <Ionicons name="arrow-forward" size={16} color={theme.colors.rose} />
+              </Pressable>)}
+          </View> : null}
+          {!messages.length && subject.type === 'general' ? (
             <View style={styles.welcome}>
               {!editing ? (
                 <>
@@ -398,46 +488,52 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
                   <Text style={styles.welcomeBody}>{t('chat.ui.welcomeBody')}</Text>
                 </>
               ) : null}
-              <View style={editing ? styles.categoryChips : styles.categories}>
-                {categories.map((item) => (
-                  <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`${t(item.label)}, ${t(item.caption)}`}
-                    accessibilityState={{ selected: category === item.id }} onPress={() => setCategory(item.id)}
-                    style={[editing ? styles.categoryChip : styles.category, category === item.id && styles.categorySelected]}>
-                    {editing ? <Text style={styles.categoryText}>{t(item.label)}</Text> : (
-                      <>
-                        <Image source={item.image} style={styles.categoryArt} contentFit="cover" accessible={false} />
-                        <View style={styles.categoryCopy}>
-                          <Text style={styles.categoryText}>{t(item.label)}</Text>
-                          <Text style={styles.categoryCaption}>{t(item.caption)}</Text>
-                        </View>
-                      </>
-                    )}
-                  </Pressable>
-                ))}
-              </View>
               {!editing ? (
                 <>
-                  <Text style={styles.examplesTitle}>{t('chat.ui.examples')}</Text>
-                  {selected.prompts.map((prompt) => (
-                    <Pressable key={prompt} accessibilityRole="button" onPress={() => { setInput(t(prompt)); inputRef.current?.focus(); }} style={styles.prompt}>
-                      <Text style={styles.promptText}>{t(prompt)}</Text>
-                      <Ionicons name="arrow-forward" size={16} color={theme.colors.rose} />
+                  <Text style={styles.problemHeading}>{t('chat.welcome.ask')}</Text>
+                  <View style={styles.problemPrompts}>
+                    {([
+                      { id: 'product' as Category, text: 'chat.welcome.promptA' as TranslationKey, icon: 'heart-outline' as const },
+                      { id: 'ingredient' as Category, text: 'chat.welcome.promptB' as TranslationKey, icon: 'flask-outline' as const },
+                      { id: 'style' as Category, text: 'chat.welcome.promptC' as TranslationKey, icon: 'color-palette-outline' as const },
+                      { id: 'product' as Category, text: 'chat.welcome.promptD' as TranslationKey, icon: 'sparkles-outline' as const },
+                    ]).map((prompt) => (
+                      <Pressable key={prompt.text} accessibilityRole="button" accessibilityLabel={t(prompt.text)}
+                        onPress={() => { setCategory(prompt.id); setInput(t(prompt.text)); inputRef.current?.focus(); }}
+                        style={styles.problemPrompt}>
+                        <View style={styles.problemIcon}><Ionicons name={prompt.icon} size={20} color={theme.colors.rose} /></View>
+                        <Text style={styles.problemText}>{t(prompt.text)}</Text>
+                        <Ionicons name="arrow-forward" size={16} color={theme.colors.rose} />
+                      </Pressable>
+                    ))}
+                  </View>
+                  <Text style={styles.problemHint}>{t('chat.welcome.chooseHint')}</Text>
+                </>
+              ) : (
+                <View style={styles.categoryChips}>
+                  {categories.map((item) => (
+                    <Pressable key={item.id} accessibilityRole="button"
+                      accessibilityLabel={`${t(item.label)}, ${t(item.caption)}`}
+                      accessibilityState={{ selected: category === item.id }}
+                      onPress={() => setCategory(item.id)}
+                      style={[styles.categoryChip, category === item.id && styles.categorySelected]}>
+                      <Text style={styles.categoryText}>{t(item.label)}</Text>
                     </Pressable>
                   ))}
-                </>
-              ) : null}
+                </View>
+              )}
             </View>
           ) : (
             <View>
-              {!editing ? <Text style={styles.contextNotice}>{t('chat.ui.contextNotice')}</Text> : null}
-              <View style={styles.categoryChips}>
+              {messages.length && !editing && subject.type === 'general' ? <Text style={styles.contextNotice}>{t('chat.ui.contextNotice')}</Text> : null}
+              {subject.type === 'general' ? <View style={styles.categoryChips}>
                 {categories.map((item) => (
                   <Pressable key={item.id} accessibilityRole="button" accessibilityState={{ selected: category === item.id }}
                     onPress={() => setCategory(item.id)} style={[styles.categoryChip, category === item.id && styles.categorySelected]}>
                     <Text style={styles.categoryText}>{t(item.label)}</Text>
                   </Pressable>
                 ))}
-              </View>
+              </View> : null}
             </View>
           )}
           {sessionNotice ? <View style={styles.failure}>
@@ -446,9 +542,13 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
               <Text style={styles.retryText}>{t('chat.session.newSearch')}</Text>
             </Pressable>
           </View> : null}
-          {messages.map((message) => (
+          {visibleMessages.map((message, messageIndex) => (
             <View key={message.id} style={styles.messageGroup}>
-              {message.role === 'assistant' && (message.category === 'ingredient' || message.ingredientResults?.length) ? (
+              {message.role === 'assistant' && message.fragranceSearchSummary ? (
+                <FragranceSearchResult message={message} selectedShades={selectedShades} selectedProductId={chosenProductId}
+                  onSelectProduct={canSelect(message) ? (productId) => selectProduct(productId, message) : undefined}
+                  onSelectShade={(productId, shadeId) => selectShade(productId, shadeId, message)} />
+              ) : message.role === 'assistant' && !message.styleRecipe && (message.category === 'ingredient' || message.ingredientResults?.length) ? (
                 <IngredientResult
                   heading={t('chat.ui.ingredient')}
                   summary={message.text}
@@ -458,24 +558,18 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
                   products={message.products}
                   shadeSelections={message.chatContext?.shadeSelections}
                 />
-              ) : message.role === 'assistant' && message.category === 'style' ? (
+              ) : message.role === 'assistant' && message.styleRecipe && !visibleMessages.slice(0, messageIndex).some((item) =>
+                item.styleRecipe?.recipeId === message.styleRecipe?.recipeId && item.styleRecipe?.recipeVersion === message.styleRecipe?.recipeVersion) ? (
+                <>
+                {message.text && message.styleRecipe.steps.length ? <View style={[styles.message, styles.assistantMessage]}><Text style={styles.messageText}>{message.text}</Text></View> : null}
                 <StyleRecipeResult
                   result={message.styleRecipe && message.styleRecipe.recipeId === activeStyle?.recipeId &&
                     message.styleRecipe.recipeVersion === activeStyle?.recipeVersion
                     ? { ...message.styleRecipe, currentStep: activeStyle.currentStep } : message.styleRecipe}
-                  disabled={isPending || message.ownerKey !== ownerKey || message.generation !== conversationGeneration ||
+                  disabled={isPending || message.ownerKey !== ownerKey ||
                     message.styleRecipe?.recipeId !== activeStyle?.recipeId || message.styleRecipe?.recipeVersion !== activeStyle?.recipeVersion}
                   onStepChange={(index) => {
-                    const recipe = message.styleRecipe;
-                    if (!mounted.current || !recipe || isPending || index < 0 || index >= recipe.steps.length ||
-                      message.ownerKey !== ownerKey || message.generation !== generation.current ||
-                      recipe.recipeId !== styleContext.current?.recipeId || recipe.recipeVersion !== styleContext.current?.recipeVersion) return;
-                    styleRevision.current += 1;
-                    styleContext.current = { kind: recipe.kind, lookId: recipe.lookId,
-                      recipeId: recipe.recipeId, recipeVersion: recipe.recipeVersion, currentStep: index };
-                    setActiveStyle({ ...styleContext.current });
-                    setMessages((current) => current.map((item) => item.id === message.id
-                      ? { ...item, styleRecipe: { ...recipe, currentStep: index } } : item));
+                    if (mounted.current) store().setRecipeStep(target, message.id, index);
                   }}
                   onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId)); }}
                   onOpenAr={(productId, shadeId) => { if (mounted.current) router.push(arHref({ productId, shadeId })); }}
@@ -492,6 +586,7 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
                   }}
                   onBrowse={() => { if (mounted.current) router.push('/style-browse'); }}
                 />
+                </>
               ) : <View style={[styles.message, message.role === 'user' ? styles.userMessage : styles.assistantMessage]}>
                 {message.role === 'assistant' ? (
                   <View style={styles.answerHeader}>
@@ -501,25 +596,33 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
                 ) : null}
                 <Text style={[styles.messageText, message.role === 'user' && styles.userMessageText]}>{message.text}</Text>
               </View>}
+              {subject.type === 'general' && message.role === 'assistant' && message.category === 'style' && !message.styleRecipe
+                ? <InlineStyleLookPicker question={message.question ?? ''} onSelect={(lookId) => {
+                  if (!mounted.current || !owned() || currentRoom()?.request) return;
+                  store().setStyle(target, { kind: 'video', lookId, currentStep: 0 });
+                  void send(t('chat.room.recipePrompt'), undefined, 'style');
+                }} /> : null}
               {message.failed ? (
                 <View style={styles.failure}>
                   <View style={styles.stateIcon}><Ionicons name="alert-circle-outline" size={22} color={theme.colors.danger} /></View>
-                  <Text style={styles.failureText} accessibilityRole="alert">{t(message.errorKey ?? 'chat.ui.error')}</Text>
+                  <Text style={styles.failureText} accessibilityRole="alert">{t((message.errorKey ?? 'chat.ui.error') as TranslationKey)}</Text>
                   {message.retryable && message.ownerKey === ownerKey ? <Pressable accessibilityRole="button" accessibilityState={{ disabled: isPending }} disabled={isPending}
                     onPress={() => void send(message.text, message.id, message.category)} style={[styles.retry, isPending && styles.retryDisabled]}>
                     <Text style={styles.retryText}>{t('chat.ui.retry')}</Text>
                   </Pressable> : null}
-                  <Pressable accessibilityRole="button" onPress={newSearch} style={styles.retry}>
+                  {!message.automatic ? <Pressable accessibilityRole="button" onPress={newSearch} style={styles.retry}>
                     <Text style={styles.retryText}>{t('chat.session.newSearch')}</Text>
-                  </Pressable>
+                  </Pressable> : null}
                 </View>
               ) : null}
-              {message.role === 'assistant' && message.products?.length ? <RelatedProducts refs={message.products}
+              {message.role === 'assistant' && !message.fragranceSearchSummary && message.products?.length ? <RelatedProducts refs={message.products}
                 question={message.question ?? ''} category={message.category}
                 chatContext={message.chatContext} evidence={message.evidence}
                 selectedShades={selectedShades}
+                selectedProductId={chosenProductId}
+                onSelectProduct={canSelect(message) ? (productId) => selectProduct(productId, message) : undefined}
                 onSelectShade={(productId, shadeId) => selectShade(productId, shadeId, message)} /> : null}
-              {message.role === 'assistant' && !message.products?.length && message.category === 'product' &&
+              {message.role === 'assistant' && !message.fragranceSearchSummary && !message.products?.length && message.category === 'product' &&
                 (message.resultType === 'empty' || (!message.resultType && extractChatConditions(message.question ?? '').length)) ? (
                 <View style={styles.emptyState}>
                   <View style={styles.stateIcon}><Ionicons name="search-outline" size={22} color={theme.colors.rose} /></View>
@@ -557,13 +660,54 @@ function ChatConversation({ ownerKey, userId, ready, messages, setMessages, seri
           ) : null}
         </ScrollView>
         <View style={styles.composer}>
+          {(messages.length > 0 || subject.type === 'general') && (linkedProduct?.productId || (activeStyle && category === 'style')) ? <View style={styles.targetRow}>
+            <View style={styles.selectionInfo}>
+              {activeStyle && (subject.type === 'look' || category === 'style')
+                ? activeStyle.kind === 'video' ? <VideoEntryLabel id={activeStyle.lookId} /> : <CatalogEntryLabel id={activeStyle.lookId} />
+                : linkedProduct?.productId ? <ProductEntryLabel id={linkedProduct.productId} shadeId={linkedProduct.shadeId} /> : null}
+            </View>
+            {subject.type === 'general' ? <Pressable accessibilityRole="button" accessibilityLabel={t('chat.room.clearFocus')}
+              onPress={clearFocus} style={styles.headerAction}><Ionicons name="close" size={20} color={theme.colors.roseDark} /></Pressable> : null}
+          </View> : null}
+          {messages.length > 0 && subject.type === 'product' && linkedProduct?.productId ? <View style={styles.selectionBar}>
+            {([['chat.carousel.ingredient', 'ingredient'], ['chat.carousel.details', 'product'], ['chat.room.compare', 'product']] as const).map(([key, kind]) =>
+              <Pressable key={key} accessibilityRole="button" accessibilityLabel={t(key)} disabled={isPending}
+                onPress={() => {
+                  if (key === 'chat.room.compare') { setInput(t('chat.room.comparePrompt')); inputRef.current?.focus(); }
+                  else void send(t(key), undefined, kind);
+                }} style={styles.selectionAction}><Text style={styles.selectionActionText}>{t(key)}</Text></Pressable>)}
+          </View> : null}
+          {subject.type !== 'product' && category !== 'style' && chosenProductId && sessionCandidateIds.includes(chosenProductId) ? (
+            <View style={styles.selectionBar}>
+              <View style={styles.selectionInfo}>
+                <Text style={styles.selectionLabel}>{t('chat.carousel.chosen')}</Text>
+                <Text style={styles.selectionName} numberOfLines={1}>
+                  {sessionCandidateIds.indexOf(chosenProductId) + 1}{t('chat.carousel.ordinal')}
+                  {' · '}
+                  {messages.flatMap((item) => item.products ?? []).find((p) => p.id === chosenProductId)?.name ?? chosenProductId}
+                </Text>
+              </View>
+              <Pressable accessibilityRole="button" accessibilityLabel={t('chat.carousel.ingredient')}
+                accessibilityState={{ disabled: isPending }}
+                disabled={isPending} onPress={() => void send(t('chat.carousel.ingredient'), undefined, 'ingredient')}
+                style={styles.selectionAction}>
+                <Text style={styles.selectionActionText}>{t('chat.carousel.ingredient')}</Text>
+              </Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel={t('chat.carousel.details')}
+                accessibilityState={{ disabled: isPending }}
+                disabled={isPending} onPress={() => void send(t('chat.carousel.details'), undefined, 'product')}
+                style={styles.selectionAction}>
+                <Text style={styles.selectionActionText}>{t('chat.carousel.details')}</Text>
+              </Pressable>
+            </View>
+          ) : null}
           <View style={styles.inputRow}>
-            <TextInput ref={inputRef} accessibilityLabel={t('chat.ui.placeholder')} editable={!isPending && ready} maxLength={1000}
+            <TextInput ref={inputRef} accessibilityLabel={t('chat.ui.placeholder')} editable={!isPending} maxLength={1000}
               multiline onChangeText={setInput} onFocus={() => setEditing(true)} onBlur={() => setEditing(false)}
               placeholder={t('chat.ui.placeholder')} placeholderTextColor={theme.colors.inkFaint}
               style={[styles.input, editing && styles.inputEditing]} value={input} />
             <Pressable accessibilityRole="button" accessibilityLabel={t('chat.ui.send')}
-              accessibilityState={{ disabled: !input.trim() || isPending || !ready, busy: isPending }} disabled={!input.trim() || isPending || !ready}
+              accessibilityState={{ disabled: !input.trim() || isPending, busy: isPending }} disabled={!input.trim() || isPending}
               onPress={() => void send()} style={[styles.send, (!input.trim() || isPending) && styles.sendDisabled]}>
               <Ionicons name="arrow-up" size={20} color={theme.colors.white} />
             </Pressable>
@@ -582,6 +726,14 @@ const styles = StyleSheet.create({
   welcomeIcon: { alignSelf: 'center', alignItems: 'center', justifyContent: 'center', width: 48, height: 48, borderRadius: 24, backgroundColor: theme.colors.roseSoft },
   welcomeTitle: { color: theme.colors.ink, fontSize: theme.font.title, fontWeight: '800', marginTop: 6, textAlign: 'center' },
   welcomeBody: { color: theme.colors.inkMuted, fontSize: theme.font.small, lineHeight: 20, textAlign: 'center' },
+  problemHeading: { marginTop: 16, marginBottom: 4, color: theme.colors.ink, fontWeight: '700', fontSize: theme.font.body },
+  problemPrompts: { gap: 9 },
+  problemPrompt: { minHeight: 70, flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 14, paddingVertical: 12, borderRadius: theme.radius.lg, borderColor: theme.colors.border, borderWidth: 1,
+    backgroundColor: theme.colors.card },
+  problemIcon: { height: 38, width: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.roseSoft },
+  problemText: { flex: 1, color: theme.colors.ink, fontSize: theme.font.small, fontWeight: '600', lineHeight: 20 },
+  problemHint: { marginTop: 4, color: theme.colors.inkMuted, fontSize: theme.font.caption, lineHeight: 18 },
   categories: { flexDirection: 'row', gap: 8, marginTop: 14 },
   category: { flex: 1, minHeight: 140, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.card, borderRadius: theme.radius.md },
   categorySelected: { borderColor: theme.colors.rose },
@@ -595,6 +747,7 @@ const styles = StyleSheet.create({
   categoryChips: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 8 },
   categoryChip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 10, borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.radius.pill },
   contextNotice: { color: theme.colors.inkMuted, fontSize: theme.font.caption, lineHeight: 17, textAlign: 'center' },
+  entryLabel: { color: theme.colors.roseDark, fontSize: theme.font.caption, paddingHorizontal: 10 },
   messageGroup: { alignSelf: 'stretch', gap: 10 },
   message: { borderRadius: theme.radius.md, maxWidth: '94%', paddingHorizontal: 14, paddingVertical: 12 },
   userMessage: { alignSelf: 'flex-end', backgroundColor: theme.colors.roseSoft },
@@ -617,7 +770,17 @@ const styles = StyleSheet.create({
   retry: { minHeight: 44, justifyContent: 'center', alignItems: 'center', borderRadius: theme.radius.pill, backgroundColor: theme.colors.rose, paddingHorizontal: 20 },
   retryDisabled: { opacity: 0.4 },
   retryText: { color: theme.colors.white, fontWeight: '700', fontSize: theme.font.small },
+  headerActions: { flexDirection: 'row' },
+  headerAction: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' },
+  targetWelcome: { backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderWidth: 1, borderRadius: theme.radius.lg, padding: 16, gap: 10 },
+  targetRow: { flexDirection: 'row', alignItems: 'center', minHeight: 35, marginBottom: 4 },
   composer: { backgroundColor: theme.colors.surface, paddingHorizontal: 12, paddingVertical: 8 },
+  selectionBar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, paddingBottom: 8 },
+  selectionInfo: { flexGrow: 1, flexShrink: 1, minWidth: 104 },
+  selectionLabel: { color: theme.colors.roseDark, fontSize: theme.font.caption, fontWeight: '700' },
+  selectionName: { color: theme.colors.ink, fontSize: theme.font.small },
+  selectionAction: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.radius.pill, minHeight: theme.hitTarget, paddingHorizontal: 9, justifyContent: 'center', backgroundColor: theme.colors.card },
+  selectionActionText: { color: theme.colors.roseDark, fontSize: theme.font.caption, fontWeight: '700' },
   conditionArea: { gap: 10, backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderWidth: 1, borderRadius: theme.radius.md, padding: 12 },
   conditionTitle: { color: theme.colors.ink, fontSize: theme.font.small, fontWeight: '700' },
   conditionGroup: { gap: 5 },

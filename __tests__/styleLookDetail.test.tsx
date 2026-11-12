@@ -1,6 +1,8 @@
-import React from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Text } from 'react-native';
-import renderer, { act } from 'react-test-renderer';
+import { HomeChatButton } from '@/components/chat/HomeChatButton';
+import React from 'react';
+import renderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 import StyleLookDetail from '@/app/style-look/[id]';
 import { openYoutubeVideo } from '@/components/celeb/VideoCard';
 
@@ -13,7 +15,7 @@ const mockLookProducts = [
 ];
 
 jest.mock('expo-router', () => ({
-  Stack: { Screen: () => null },
+  Stack: { Screen: ({ options }: { options: { headerRight?: () => unknown } }) => options.headerRight?.() ?? null },
   useLocalSearchParams: () => ({ id: 'video-1' }),
   useRouter: () => ({ push: mockPush, back: jest.fn(), canGoBack: () => false }),
 }));
@@ -73,8 +75,47 @@ test('opens the guide for the exact video', async () => {
   mockPush.mockClear();
   let screen!: renderer.ReactTestRenderer;
   await act(async () => { screen = renderer.create(<StyleLookDetail />); });
-  const guide = screen.root.findAll((node) => node.props.accessibilityLabel === 'chat.style.openGuide')[0];
+  const guide = screen.root.findAll((node) => node.props.accessibilityLabel === 'home.chatFab')[0];
   await act(async () => { guide.props.onPress(); });
   expect(mockPush).toHaveBeenCalledWith({ pathname: '/chat', params: { recipeKind: 'video', recipeLookId: 'video-1' } });
   await act(async () => { screen.unmount(); });
+});
+
+
+test('the AI button saves a bounded relative drag, suppresses navigation and can reset', async () => {
+  const open = jest.fn();
+  let view!: ReactTestRenderer;
+  await act(async () => { view = renderer.create(React.createElement(HomeChatButton, { label: 'AI test', hint: 'Open', onPress: open })); });
+  const button = () => {
+    const item = view.root.findAll((node) => node.props.accessibilityLabel === 'AI test' && typeof node.props.onLongPress === 'function')[0];
+    if (!item) throw new Error('AI button gesture handlers were not rendered');
+    return item;
+  };
+  const layout = (width: number, height: number) => {
+    const item = view.root.findAll((node) => typeof node.props.onLayout === 'function')[0];
+    if (!item) throw new Error('AI button layout handler was not rendered');
+    item.props.onLayout({ nativeEvent: { layout: { width, height } } });
+  };
+  await act(async () => layout(300, 500));
+  const start = { nativeEvent: { pageX: 250, pageY: 400 } };
+  const end = { nativeEvent: { pageX: -1000, pageY: -1000, touches: [{}] } };
+  await act(async () => {
+    button().props.onTouchStart(start);
+    button().props.onLongPress();
+    button().props.onTouchMove(end);
+    button().props.onTouchEnd();
+    button().props.onPress();
+  });
+  const storageKey = 'vishue.chat.fab-position.v1';
+  expect(open).not.toHaveBeenCalled();
+  expect(JSON.parse((await AsyncStorage.getItem(storageKey))!)).toEqual({ x: 0, y: 0 });
+  await act(async () => view.unmount());
+  await act(async () => { view = renderer.create(React.createElement(HomeChatButton, { label: 'AI test', hint: 'Open', onPress: open })); });
+  await act(async () => layout(400, 310));
+  expect(button().props.style({ pressed: false })[1]).toMatchObject({ left: 18, top: 18 });
+  await act(async () => button().props.onAccessibilityAction({ nativeEvent: { actionName: 'resetPosition' } }));
+  expect(JSON.parse((await AsyncStorage.getItem(storageKey))!)).toEqual({ x: 1, y: 1 });
+  await act(async () => { button().props.onTouchStart(start); button().props.onTouchEnd(); button().props.onPress(); });
+  expect(open).toHaveBeenCalledTimes(1);
+  await act(async () => view.unmount());
 });

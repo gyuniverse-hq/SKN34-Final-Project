@@ -13,21 +13,35 @@ import asyncio
 import csv
 import getpass
 import os
-import re
 import ssl
-import unicodedata
 from collections import defaultdict
-from datetime import date
+from collections.abc import Collection
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import asyncpg
 
-RULE_VERSION = "v2"
-AMOUNT_METHODS = ("amount_suffix_exact", "amount_suffix_synonym")
-AMOUNT_SUFFIX_RE = re.compile(
-    r"\s*\(\s*\d+(?:,\d{3})*(?:\.\d+)?\s*(?:ppm|ppb|%|iu)\s*\)\s*$",
-    re.IGNORECASE,
+from app.core.ingredient_alias_approval import (
+    ApprovalKey,
+    approved_synonym,
+    dictionary_name_keys,
+    official_name_keys,
+    read_approval_records,
+    source_single_alias,
+    without_trailing_amount,
 )
+from app.core.ingredient_alias_approval import (
+    normalize_name as name_key,
+)
+from app.core.ingredient_alias_approval import (
+    official_synonyms as canonical_synonyms,
+)
+
+RULE_VERSION = "v3"
+AMOUNT_METHODS = ("amount_suffix_exact", "amount_suffix_synonym")
+# Keep delimiter interpretation consistent with the read-only IngredientIdentityRepository.
+# The code change does not update mappings; data owners must review a preview before --apply.
+
 MATCH_COLUMNS = (
     "oy_ingredient_id",
     "oy_ingredient_name",
@@ -45,20 +59,102 @@ REVIEW_COLUMNS = (
     "mfds_candidate_names",
 )
 MANUAL_COLUMNS = (*MATCH_COLUMNS, "reviewed_by", "reviewed_at", "review_note")
+ALIAS_REVIEW_COLUMNS = (
+    "mfds_ingredient_id",
+    "mfds_name_ko",
+    "source_hash",
+    "synonym_raw",
+    "candidate_alias",
+    "competing_mfds_ids",
+    "review_status",
+)
 
 
-def name_key(value: str | None) -> str:
-    """Use the same conservative key as the MFDS snapshot loader."""
-    return " ".join(unicodedata.normalize("NFKC", value or "").split())
+def official_synonyms(value: str | None) -> set[str]:
+    """Read mixed MFDS aliases, preserving chemical locants such as 1,2- and N,N-."""
+    return canonical_synonyms(value)
 
 
-def without_trailing_amount(value: str) -> str | None:
-    """Drop only one final parenthesized numeric concentration, never name content."""
-    normalized = name_key(value)
-    amount = AMOUNT_SUFFIX_RE.search(normalized)
-    if amount is None:
-        return None
-    return normalized[: amount.start()].strip() or None
+def dictionary_index(mfds_rows: list[asyncpg.Record]) -> dict[str, dict[int, asyncpg.Record]]:
+    index = defaultdict(dict)
+    for row in mfds_rows:
+        for key in dictionary_name_keys(row["name_ko"], row.get("name_en"), row["synonym_raw"]):
+            index[key][row["ingredient_id"]] = row
+    return index
+
+
+def build_alias_review_rows(mfds_rows: list[asyncpg.Record]) -> list[tuple]:
+    """Deterministic review queue; splitting a name never approves an identity."""
+    identities = dictionary_index(mfds_rows)
+
+    review = []
+    for row in mfds_rows:
+        raw = row["synonym_raw"] or ""
+        if not raw.strip():
+            continue
+        for alias in sorted(official_synonyms(raw), key=lambda value: (value.casefold(), value)):
+            competing = sorted(identities[alias.lower()].keys() - {row["ingredient_id"]})
+            review.append(
+                (
+                    row["ingredient_id"],
+                    row["name_ko"],
+                    row["source_hash"],
+                    raw,
+                    alias,
+                    ";".join(map(str, competing)),
+                    "ambiguous"
+                    if competing
+                    else "source_backed"
+                    if source_single_alias(raw, alias)
+                    else "review_required",
+                )
+            )
+    return sorted(review, key=lambda item: (item[0], item[4].casefold(), item[4]))
+
+
+def load_approved_synonyms(
+    path: Path | None, mfds_rows: list[asyncpg.Record]
+) -> dict[ApprovalKey, tuple[str, str]]:
+    """Validate approvals against this MFDS snapshot and keep their audit metadata."""
+    if path is None:
+        return {}
+    owners = dictionary_index(mfds_rows)
+    possible = {
+        (row["ingredient_id"], alias.lower(), row["source_hash"])
+        for row in mfds_rows
+        for alias in official_synonyms(row["synonym_raw"])
+        if owners[alias.lower()].keys() == {row["ingredient_id"]}
+        and not source_single_alias(row["synonym_raw"], alias)
+    }
+    approved = read_approval_records(path)
+    if approved.keys() - possible:
+        raise ValueError("Unverified or stale approval against the current MFDS dictionary")
+    return approved
+
+
+def select_approved_matches(
+    matches: list[tuple], mfds_rows: list[asyncpg.Record], approved: Collection[ApprovalKey]
+) -> tuple[list[tuple], list[tuple]]:
+    """Allow only unique current official names or source-backed/approved aliases."""
+    owners = dictionary_index(mfds_rows)
+    approved_keys = frozenset(approved)
+    eligible, withheld = [], []
+    for match in matches:
+        _, name, mfds_id, _, method = match
+        base = without_trailing_amount(name) if method in AMOUNT_METHODS else name
+        key = name_key(base).lower()
+        hits = owners.get(key, {})
+        valid = False
+        if hits.keys() == {mfds_id}:
+            mfds = hits[mfds_id]
+            if method in {"exact_name", "amount_suffix_exact"}:
+                valid = key in official_name_keys(mfds["name_ko"], mfds.get("name_en"))
+            elif method in {"official_synonym", "amount_suffix_synonym"}:
+                valid = approved_synonym(
+                    mfds["synonym_raw"], key, mfds_id, mfds["source_hash"], approved_keys
+                )
+        (eligible if valid else withheld).append(match)
+    return eligible, withheld
 
 
 def load_aliases(path: Path) -> dict[str, tuple[str, str, str, str]]:
@@ -97,7 +193,7 @@ def apply_aliases(
     remaining: list[tuple[int, str, str, str, str]] = []
     for row in review:
         approved = aliases.get(name_key(row[1]))
-        if approved is None:
+        if approved is None or row[2] in {"ambiguous_synonym", "ambiguous_amount_synonym"}:
             remaining.append(row)
             continue
         mfds_key, reviewer, reviewed, note = approved
@@ -123,98 +219,43 @@ def apply_aliases(
 def build_candidates(
     oy_rows: list[asyncpg.Record], mfds_rows: list[asyncpg.Record]
 ) -> tuple[list[tuple[int, str, int, str, str]], list[tuple[int, str, str, str, str]]]:
-    standards = {row["name_key"]: row for row in mfds_rows}
-    synonyms: dict[str, dict[int, asyncpg.Record]] = defaultdict(dict)
-    for row in mfds_rows:
-        # '/' occurs inside valid chemical names; only commas separate aliases.
-        for alias in (row["synonym_raw"] or "").replace("，", ",").split(","):
-            alias_key = name_key(alias)
-            if alias_key:
-                synonyms[alias_key][row["ingredient_id"]] = row
-
+    owners = dictionary_index(mfds_rows)
     matches: list[tuple[int, str, int, str, str]] = []
     review: list[tuple[int, str, str, str, str]] = []
     for oy in oy_rows:
         oy_id = oy["ingredient_id"]
         oy_name = oy["ingredient_name"] or ""
-        key = name_key(oy_name)
+        key = name_key(oy_name).lower()
         if not key:
             review.append((oy_id, oy_name, "empty_name", "", ""))
             continue
 
-        # An exact official standard name takes precedence over all synonyms.
-        standard = standards.get(key)
-        if standard is not None:
-            matches.append(
-                (
-                    oy_id,
-                    oy_name,
-                    standard["ingredient_id"],
-                    standard["name_ko"],
-                    "exact_name",
-                )
-            )
-            continue
-
-        alias_hits = list(synonyms.get(key, {}).values())
-        if len(alias_hits) == 1:
-            mfds = alias_hits[0]
-            matches.append(
-                (
-                    oy_id,
-                    oy_name,
-                    mfds["ingredient_id"],
-                    mfds["name_ko"],
-                    "official_synonym",
-                )
-            )
-        elif alias_hits:
-            alias_hits.sort(key=lambda row: row["ingredient_id"])
+        hits = owners.get(key)
+        amount = False
+        if not hits and (base := without_trailing_amount(key)) is not None:
+            key, amount = base, True
+            hits = owners.get(key)
+        if not hits:
+            review.append((oy_id, oy_name, "no_match", "", ""))
+        elif len(hits) > 1:
+            competing = sorted(hits)
             review.append(
                 (
                     oy_id,
                     oy_name,
-                    "ambiguous_synonym",
-                    ";".join(str(row["ingredient_id"]) for row in alias_hits),
-                    ";".join(row["name_ko"] for row in alias_hits),
+                    "ambiguous_amount_synonym" if amount else "ambiguous_synonym",
+                    ";".join(map(str, competing)),
+                    ";".join(hits[ingredient_id]["name_ko"] for ingredient_id in competing),
                 )
             )
         else:
-            base = without_trailing_amount(key)
-            if base is not None and (standard := standards.get(base)) is not None:
-                matches.append(
-                    (
-                        oy_id,
-                        oy_name,
-                        standard["ingredient_id"],
-                        standard["name_ko"],
-                        "amount_suffix_exact",
-                    )
-                )
-                continue
-            amount_hits = list(synonyms.get(base, {}).values()) if base else []
-            if len(amount_hits) == 1:
-                mfds = amount_hits[0]
-                matches.append(
-                    (
-                        oy_id,
-                        oy_name,
-                        mfds["ingredient_id"],
-                        mfds["name_ko"],
-                        "amount_suffix_synonym",
-                    )
-                )
-                continue
-            amount_hits.sort(key=lambda row: row["ingredient_id"])
-            review.append(
-                (
-                    oy_id,
-                    oy_name,
-                    "ambiguous_amount_synonym" if amount_hits else "no_match",
-                    ";".join(str(row["ingredient_id"]) for row in amount_hits),
-                    ";".join(row["name_ko"] for row in amount_hits),
-                )
-            )
+            mfds = next(iter(hits.values()))
+            is_official = key in official_name_keys(mfds["name_ko"], mfds.get("name_en"))
+            if amount:
+                method = "amount_suffix_exact" if is_official else "amount_suffix_synonym"
+            else:
+                method = "exact_name" if is_official else "official_synonym"
+            matches.append((oy_id, oy_name, mfds["ingredient_id"], mfds["name_ko"], method))
     return matches, review
 
 
@@ -272,7 +313,7 @@ async def run(args: argparse.Namespace) -> None:
             "ORDER BY ingredient_id"
         )
         mfds_rows = await connection.fetch(
-            "SELECT ingredient_id, name_ko, name_key, synonym_raw "
+            "SELECT ingredient_id, name_ko, name_en, name_key, synonym_raw, source_hash "
             "FROM public.raw_mfds_ingredient WHERE is_current ORDER BY ingredient_id"
         )
         if not oy_rows or not mfds_rows:
@@ -293,6 +334,16 @@ async def run(args: argparse.Namespace) -> None:
         }
         confirmed = [*matches, *(row[:5] for row in manual_matches)]
         new_matches = [row for row in matches if row[0] not in existing]
+        # Fail closed for automatic synonym/amount matching. A preview is never approval.
+        # Keep these rows in the report; --apply must not silently promote them.
+        approvals = load_approved_synonyms(args.approvals_file, mfds_rows) if args.apply else {}
+        if args.apply:
+            new_matches, withheld = select_approved_matches(new_matches, mfds_rows, approvals)
+            if withheld:
+                raise ValueError(
+                    f"{len(withheld)} unapproved automatic matches; review the candidates "
+                    "and supply --approvals-file before applying"
+                )
         new_manual = [row for row in manual_matches if row[0] not in existing]
         conflicts = [
             row
@@ -327,6 +378,12 @@ async def run(args: argparse.Namespace) -> None:
             args.report_dir / "manual-alias-candidates.csv", MANUAL_COLUMNS, manual_matches
         )
         write_csv(args.report_dir / "review-required.csv", REVIEW_COLUMNS, review)
+        # This is an audit queue only, not an approved mapping or a DB mutation.
+        write_csv(
+            args.report_dir / "mfds-alias-review.csv",
+            ALIAS_REVIEW_COLUMNS,
+            build_alias_review_rows(mfds_rows),
+        )
         method_counts = {
             method: sum(row[4] == method for row in matches)
             for method in ("exact_name", "official_synonym", *AMOUNT_METHODS)
@@ -342,7 +399,7 @@ async def run(args: argparse.Namespace) -> None:
             f"{len(oy_rows) - len(matches) - len(manual_matches):,}"
         )
         print(
-            f"Existing mappings: {len(existing):,}; new confirmed matches: "
+            f"Existing mappings: {len(existing):,}; new candidates: "
             f"{len(new_matches) + len(new_manual):,} (reviewed alias {len(new_manual):,}); "
             f"existing mapping conflicts: {len(conflicts):,}"
         )
@@ -350,6 +407,28 @@ async def run(args: argparse.Namespace) -> None:
         if not args.apply:
             print("Preview complete; no database rows were written")
             return
+
+        mfds_by_id = {row["ingredient_id"]: row for row in mfds_rows}
+        audit_rows = []
+        stage_records = []
+        for match in new_matches:
+            mfds = mfds_by_id[match[2]]
+            base = without_trailing_amount(match[1]) if match[4] in AMOUNT_METHODS else match[1]
+            reviewer, reviewed = approvals.get(
+                (match[2], name_key(base).lower(), mfds["source_hash"]), ("", "")
+            )
+            audit_rows.append((*match, mfds["source_hash"], reviewer, reviewed))
+            stage_records.append(
+                (
+                    match[0],
+                    match[2],
+                    match[4],
+                    RULE_VERSION,
+                    reviewer or None,
+                    datetime.fromisoformat(reviewed).replace(tzinfo=UTC) if reviewed else None,
+                    "mfds_source_hash=" + mfds["source_hash"],
+                )
+            )
 
         if any(row[4] in AMOUNT_METHODS for row in new_matches):
             constraint = await connection.fetchval(
@@ -364,22 +443,28 @@ async def run(args: argparse.Namespace) -> None:
             await connection.execute(
                 "CREATE TEMP TABLE oy_mfds_match_stage ("
                 "oy_ingredient_id bigint PRIMARY KEY, mfds_ingredient_id bigint NOT NULL, "
-                "match_method text NOT NULL, rule_version text NOT NULL) ON COMMIT DROP"
+                "match_method text NOT NULL, rule_version text NOT NULL, "
+                "reviewed_by text, reviewed_at timestamptz, review_note text) ON COMMIT DROP"
             )
             await connection.copy_records_to_table(
                 "oy_mfds_match_stage",
-                records=[(row[0], row[2], row[4], RULE_VERSION) for row in new_matches],
+                records=stage_records,
                 columns=(
                     "oy_ingredient_id",
                     "mfds_ingredient_id",
                     "match_method",
                     "rule_version",
+                    "reviewed_by",
+                    "reviewed_at",
+                    "review_note",
                 ),
             )
             status = await connection.execute(
                 "INSERT INTO public.oy_mfds_ingredient_map "
-                "(oy_ingredient_id, mfds_ingredient_id, match_method, rule_version) "
-                "SELECT oy_ingredient_id, mfds_ingredient_id, match_method, rule_version "
+                "(oy_ingredient_id, mfds_ingredient_id, match_method, rule_version, "
+                "reviewed_by, reviewed_at, review_note) "
+                "SELECT oy_ingredient_id, mfds_ingredient_id, match_method, rule_version, "
+                "reviewed_by, reviewed_at, review_note "
                 "FROM oy_mfds_match_stage ON CONFLICT (oy_ingredient_id) DO NOTHING"
             )
             if new_manual:
@@ -410,6 +495,16 @@ async def run(args: argparse.Namespace) -> None:
                     "ON CONFLICT (oy_ingredient_id) DO NOTHING"
                 )
                 print(f"Reviewed aliases: {manual_status}")
+        # Never overwrite an earlier approval receipt. Preserve each apply run's
+        # reviewer and source-hash evidence for external, access-controlled archiving.
+        receipt_name = "applied-mfds-approvals-" + datetime.now(UTC).strftime(
+            "%Y%m%dT%H%M%S%fZ"
+        ) + ".csv"
+        write_csv(
+            args.report_dir / receipt_name,
+            (*MATCH_COLUMNS, "source_hash", "reviewed_by", "reviewed_at"),
+            audit_rows,
+        )
         print(f"Committed {status}; existing mappings were preserved")
     finally:
         await connection.close()
@@ -430,6 +525,10 @@ def main() -> None:
         default=Path.home() / "Downloads" / "ingredient-mapping-review",
     )
     parser.add_argument("--alias-file", type=Path, default=DEFAULT_ALIAS_PATH)
+    parser.add_argument(
+        "--approvals-file", type=Path,
+        help="Reviewed alias approvals (current MFDS ID, alias and source hash)",
+    )
     parser.add_argument("--apply", action="store_true", help="Write confirmed matches")
     parser.add_argument("--execute-shared", action="store_true")
     asyncio.run(run(parser.parse_args()))

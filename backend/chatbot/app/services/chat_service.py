@@ -2,6 +2,7 @@ import json
 import re
 import secrets
 import time
+import unicodedata
 from hashlib import sha256
 from typing import Protocol
 from uuid import NAMESPACE_URL, uuid4, uuid5
@@ -39,7 +40,9 @@ from app.schemas.supervisor import (
 )
 from app.services.ar_command_service import propose_ar_command
 from app.services.beauty_consultation_service import (
+    COMPARISON_SCREENS,
     TEXT,
+    direct_comparison,
     execute_beauty,
     interpret_beauty,
 )
@@ -113,19 +116,117 @@ def resolve_context(req: ChatRequest) -> ResolvedContext:
     )
 
 
+_SHOPPING = re.compile(r"추천|구매|recommend|buy|おすすめ|推荐|购买", re.I)
+_LOOK_REFERENCE = re.compile(
+    r"이\s*(?:룩|스타일)|\bthis (?:look|style)\b|このルック|这个妆容", re.I
+)
+_PRODUCT_FACT = re.compile(
+    r"가격|얼마|성분|향료|비교|price|ingredient|fragrance|compare|価格|成分|比較|价格|香料|对比",
+    re.I,
+)
+_SHOPPING_ZONES = {
+    "lip": r"립|입술 제품|lip(?:stick| product| tint)?|リップ|唇",
+    "eye": r"아이라이너|아이섀도|마스카라|eyeliner|eyeshadow|mascara|アイシャドウ|眼影|眼线",
+    "cheek": r"블러셔|볼터치|blush|チーク|腮红",
+    "base": r"파운데이션|쿠션|foundation|ファンデ|粉底",
+}
+
+
+def look_shopping_category(message):
+    if not _SHOPPING.search(message) or re.search(
+        r"브러시|면봉|도구|brush|tool|綿棒|刷子|工具", message, re.I
+    ):
+        return None
+    return next(
+        (zone for zone, pattern in _SHOPPING_ZONES.items() if re.search(pattern, message, re.I)),
+        None,
+    )
+
+
+def _look_search_followup(message: str) -> bool:
+    # A price constraint can refine the previous search without a recommendation verb.
+    upper_limit = re.search(
+        r"\d[\d,만천백십\s]*(?:원|krw|won|ウォン|韩元)\s*(?:이하|미만|以下|以内)"
+        r"|\b(?:under|at most|up to)\s*(?:(?:₩|krw\s*)\d[\d,]*|\d[\d,]*\s*(?:krw|won)\b)",
+        message,
+        re.I,
+    )
+    price_change = (
+        re.search(r"\d", message)
+        and re.search(
+            r"원|이하|미만|예산|krw|won|under|budget|ウォン|以下|以内|预算|韩元", message, re.I
+        )
+        and re.search(
+            r"바꿔|변경|낮춰|올려|맞춰|change|lower|raise|set|変更|変えて|改成|换成", message, re.I
+        )
+    )
+    return bool(
+        (upper_limit and not message.rstrip().endswith(("?", "？")))
+        or price_change
+        or (
+            _SHOPPING.search(message)
+            and re.search(
+                r"다시|그중|아까|\bagain\b|\bfrom those\b|もう一度|もう一回|再推荐|重新推荐",
+                message,
+                re.I,
+            )
+        )
+    )
+
+
+def _grounded_look_query(message, look_title, query):
+    if not query or not query.strip():
+        return None
+
+    def normalized(text):
+        return " ".join(unicodedata.normalize("NFKC", text).casefold().split())
+
+    text, title, name = map(normalized, (message, look_title, query))
+    text = re.sub(
+        r"(?:룩|스타일)(?:의)?\s*(?:이름|제목)[이가은는]?\s+.+?(?:인데|이고|이라고|[,.!?])",
+        " ",
+        text,
+    )
+    if title:
+        text = text.replace(title, " ")
+    return query.strip() if name in text else None
+
+
 def route_intent(context: ResolvedContext) -> IntentDecision:
     """Conservative routing hints; dedicated AR parsing still validates execution intent."""
     text = context.message.casefold()
-    shopping = re.search(r"추천|recommend|おすすめ|推荐", text)
+    shopping = _SHOPPING.search(text)
     execution = re.search(r"발라|적용해|설정해|조절해|apply|set .*intensity|塗って|涂上", text)
     intent = "general"
     if shopping and execution:
         intent = "compound"
     elif context.request_type == "ar_command":
         intent = "ar"
+    elif context.style is not None and (
+        look_shopping_category(text) or (context.has_beauty_context and _look_search_followup(text))
+    ):
+        intent = "product"
+    elif context.request_type in {"beauty_consultation", "style_consultation"} and (
+        (context.screen and context.screen.screen_id in COMPARISON_SCREENS)
+        or (
+            _PRODUCT_FACT.search(text)
+            and (
+                context.style is not None
+                or (context.screen and context.screen.product_id)
+                or context.selected_product_id
+            )
+        )
+    ):
+        intent = (
+            "ingredient"
+            if re.search(r"성분|향료|ingredient|fragrance|成分|香料", text)
+            or (context.screen and context.screen.screen_id == "product-ingredient-comparison")
+            else "product"
+        )
     elif (
         context.request_type == "style_consultation"
-        or (context.request_type == "chat" and context.style is not None)
+        or context.style is not None
+        or _LOOK_REFERENCE.search(text)
         or (
             context.request_type != "beauty_consultation"
             and re.search(r"레시피|스타일|이 룩|이 스타일|recipe|style|レシピ|妆容", text)
@@ -264,10 +365,21 @@ class ChatService:
         self._sessions = sessions
 
     async def answer(self, req: ChatRequest, principal_key: str | None = None) -> ChatResponse:
-        if req.request_type == "beauty_consultation" and self._sessions is not None:
-            return await self._answer_session(req, principal_key)
         context = resolve_context(req)
         decision = route_intent(context)
+        if req.request_type == "style_consultation" and decision.intent in {
+            "product",
+            "ingredient",
+        }:
+            req = req.model_copy(update={"request_type": "beauty_consultation"})
+            context = resolve_context(req)
+            decision = route_intent(context)
+        if (
+            req.request_type == "beauty_consultation"
+            and decision.intent != "style"
+            and self._sessions is not None
+        ):
+            return await self._answer_session(req, principal_key)
         if req.request_type == "ar_command":
             # Preserve production closure and idempotency before invoking any tool or LLM.
             if get_settings().is_production:
@@ -284,6 +396,46 @@ class ChatService:
                 lambda: self._run_supervisor(req, context, decision),
             )
         return await self._run_supervisor(req, context, decision)
+
+    async def _interpret_beauty(self, req):
+        previous = req.chat_context
+        followup = bool(previous and _look_search_followup(req.message))
+        category = look_shopping_category(req.message) if req.style_context else None
+        if req.style_context and followup and not category:
+            category = previous.filters.category
+        if not category:
+            return await interpret_beauty(req, self._llm)
+        if self._catalog is None:
+            raise ApiError(503, "Catalog is not configured", "catalog_unavailable")
+        style = req.style_context
+        try:
+            look = await self._catalog.get_style_look(style.kind, style.look_id)
+        except UpstreamError as exc:
+            raise ApiError(502, "Look is temporarily unavailable", "upstream_error") from exc
+        if look is None or look.id != style.look_id:
+            raise ApiError(404, "Look is unavailable", "style_look_not_found")
+        profile = {
+            "title": look.title,
+            "category": category,
+            "basis": "catalog metadata; not video analysis",
+        }
+        plan = await interpret_beauty(req, self._llm, profile)
+        if plan.intent not in {"search", "refine"}:
+            plan = plan.model_copy(
+                update={
+                    "intent": "search",
+                    "scope": "catalog",
+                    "ordinal": None,
+                    "selection": None,
+                    "compare_ordinals": [],
+                }
+            )
+        if followup:
+            plan = plan.model_copy(update={"intent": "refine", "scope": "previous"})
+        elif not previous and plan.scope == "previous":
+            plan = plan.model_copy(update={"intent": "search", "scope": "catalog"})
+        query = _grounded_look_query(req.message, look.title, plan.query)
+        return plan.model_copy(update={"category": category, "query": query})
 
     async def _run_supervisor(
         self, req: ChatRequest, context: ResolvedContext, decision: IntentDecision
@@ -304,7 +456,7 @@ class ChatService:
                 raise ApiError(503, "Catalog is not configured", "catalog_unavailable")
             try:
                 if decision.slots is None:
-                    decision.slots = await interpret_beauty(req, self._llm)
+                    decision.slots = await self._interpret_beauty(req)
             except ApiError as exc:
                 exc.supervisor_result = ToolResult(tool="beauty", status="error", reason=exc.code)
                 raise
@@ -379,6 +531,17 @@ class ChatService:
                     raise ApiError(422, "Invalid selected shade", "invalid_chat_selection")
                 if pid in context.candidate_ids:
                     context.shade_selections[pid] = sid
+        if (
+            select_screen
+            and screen
+            and screen.screen_id in ("product-detail", *COMPARISON_SCREENS)
+            and screen.product_id
+        ):
+            context.selected_product_id = screen.product_id
+            if screen.shade_id:
+                context.shade_selections[screen.product_id] = screen.shade_id
+            else:
+                context.shade_selections.pop(screen.product_id, None)
         return context
 
     async def _answer_session(self, incoming: ChatRequest, owner: str | None):
@@ -430,10 +593,12 @@ class ChatService:
         decision = route_intent(context)
         if decision.intent == "compound":
             return await self._run_supervisor(req, context, decision)
-        decision.slots = await interpret_beauty(req, self._llm)
+        decision.slots = await self._interpret_beauty(req)
         slots = decision.slots
+        comparing = direct_comparison(req, slots)
         independent = (
             slots.intent == "general"
+            or (comparing and req.screen_context and req.screen_context.product_id)
             or (
                 slots.intent == "search"
                 and slots.scope == "catalog"
@@ -442,9 +607,10 @@ class ChatService:
                 and not slots.selection
             )
             or (
-                slots.intent == "detail"
+                slots.intent in {"detail", "price"}
                 and req.screen_context
                 and req.screen_context.product_id
+                and (slots.intent == "detail" or req.screen_context.screen_id == "product-detail")
                 and not slots.ordinal
                 and not slots.compare_ordinals
                 and not slots.selection
@@ -458,7 +624,20 @@ class ChatService:
             raise ApiError(
                 409, "A server result set is required; search again", "chat_session_required"
             )
-        if slots.intent == "search" and independent:
+        if (
+            not state
+            and req.screen_context
+            and (req.screen_context.screen_id == "product-detail" or comparing)
+            and independent
+            and slots.intent in {"detail", "price"}
+        ):
+            req.chat_context = await self._validate_session_context(
+                BeautyContext(issued_at=int(time.time()), filters=BeautyFilters()),
+                None,
+                req.screen_context,
+                select_screen=True,
+            )
+        elif slots.intent == "search" and independent:
             # Reset stale Catalog references, but retain server-owned ingredient constraints.
             req.chat_context = (
                 BeautyContext(
@@ -476,6 +655,7 @@ class ChatService:
         elif state and slots.intent != "general":
             if (
                 req.screen_context
+                and req.screen_context.screen_id not in ("product-detail", *COMPARISON_SCREENS)
                 and req.screen_context.product_id in req.chat_context.candidate_ids
                 and incoming.chat_context.selected_product_id
                 and incoming.chat_context.selected_product_id != req.screen_context.product_id
@@ -486,9 +666,18 @@ class ChatService:
                     req.chat_context,
                     incoming.chat_context,
                     req.screen_context,
-                    select_screen=not slots.ordinal
-                    and not slots.compare_ordinals
-                    and not slots.selection,
+                    select_screen=(
+                        bool(
+                            not req.chat_context.selected_product_id
+                            and not incoming.chat_context.selected_product_id
+                            and req.screen_context
+                            and req.screen_context.product_id in req.chat_context.candidate_ids
+                        )
+                        if comparing
+                        else not slots.ordinal
+                        and not slots.compare_ordinals
+                        and not slots.selection
+                    ),
                 )
             except UpstreamError as exc:
                 raise ApiError(502, "Catalog validation failed", "upstream_error") from exc
@@ -500,16 +689,35 @@ class ChatService:
         response = await self._run_supervisor(req, context, decision)
         result = response.supervisor.result
         ctx = response.chat_context
+        if state and comparing and req.screen_context and req.screen_context.ingredient_comparison:
+            response.chat_context = state.context.model_copy(deep=True, update={"session": ref})
+            response.session_status = "unchanged"
+            return response
         partial_ingredients = bool(response.products) and any(
             r.product_id in {p.id for p in response.products}
             and r.status != "error"
             and r.verdict != "ERROR"
             for r in response.ingredient_results or []
         )
+        # An explicit detail filter change belongs to the existing search session
+        # even if one ingredient lookup fails. Keep failed searches and unrelated
+        # tool errors on their existing no-commit path.
+        persist_failed_detail = bool(
+            state
+            and ctx
+            and response.products
+            and result.tool == "beauty"
+            and slots.intent == "detail"
+            and slots.persist_ingredient_conditions
+            and (slots.ingredient_name or slots.ingredient_conditions)
+            and ctx.candidate_ids == state.context.candidate_ids
+            and ctx.scope_ids == state.context.scope_ids
+            and all(p.id in state.context.candidate_ids for p in response.products)
+        )
         if (
             not ctx
             or result.status == "unsupported"
-            or (result.status == "error" and not partial_ingredients)
+            or (result.status == "error" and not partial_ingredients and not persist_failed_detail)
             or (response.result_type == "clarification" and not response.products)
         ):
             if state and ctx:
@@ -659,6 +867,33 @@ class ChatService:
             response = await execute_beauty(req, decision.slots, self._catalog)
             if response is None or response.tool_result is None:
                 raise ApiError(502, "Missing catalog result", "invalid_tool_result")
+            if (
+                req.style_context
+                and decision.slots.intent in {"search", "refine"}
+                and (look_shopping_category(req.message) or _look_search_followup(req.message))
+                and response.products
+            ):
+                response.answer += (
+                    "\n"
+                    + {
+                        "ko": (
+                            "룩의 제목과 상품 카테고리를 참고한 후보예요. "
+                            "영상 속 사용 제품이나 색상은 확인되지 않았어요."
+                        ),
+                        "en": (
+                            "These are catalog candidates based on the look title and category."
+                            " The products and shades used in the video are unverified."
+                        ),
+                        "ja": (
+                            "ルック名と商品カテゴリを参考にした候補です。"
+                            "動画で使われた商品や色番は未確認です。"
+                        ),
+                        "zh": (
+                            "这些是参考妆容标题与商品类别的目录候选。"
+                            "视频中使用的产品和色号未经确认。"
+                        ),
+                    }[req.locale]
+                )
             return response, response.tool_result
         if tool == "style":
             return await execute_style(req, self._catalog)

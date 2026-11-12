@@ -11,17 +11,24 @@ from pydantic import ValidationError
 
 from app.clients.catalog_client import IngredientLookupError
 from app.core.errors import ApiError, UpstreamError
-from app.schemas.catalog import CatalogIngredients, CatalogProduct
+from app.schemas.catalog import CatalogIngredients, CatalogProduct, IngredientDecision
 from app.schemas.chat import (
     BeautyContext,
     BeautyFilters,
     ChatRequest,
     ChatResponse,
+    FragranceSearchSummary,
     IngredientFilter,
     ProductEvidence,
     ProductRef,
 )
-from app.schemas.supervisor import ConditionCheck, EvidenceRef, SearchPlan, ToolResult
+from app.schemas.supervisor import (
+    ConditionCheck,
+    EvidenceRef,
+    IngredientComparison,
+    SearchPlan,
+    ToolResult,
+)
 
 CONTEXT_TTL_SECONDS = 600
 # Evidence-loop budget only; Catalog search and session validation are separate requests.
@@ -88,10 +95,24 @@ ordinal: 1..6; clearFilters: list of category|maxPriceKRW|fragranceFree|
 moisturizing|query|ingredientConditions.
 For product ingredient questions set ingredientLookup true, intent detail, scope previous.
 ingredientName: explicit ingredient name; ingredientOperator: includes | excludes.
+ingredientConditions: list of {ingredientName: string, operator: includes | excludes}.
+persistIngredientConditions: true only when a detail request explicitly adds or changes
+a search constraint. A question about whether one product contains an ingredient is
+a one-time lookup; omit this field.
+"두 번째 제품에서 B 성분도 제외해줘" means detail, ordinal 2, excludes B,
+persistIngredientConditions true. "이 제품에 B 성분 있어?" is detail without persistence.
+For multiple ingredient constraints, include every condition in ingredientConditions,
+including detail questions. Never silently omit one. Use at most six conditions.
 Use ingredientName for ingredient conditions, never query (query is product/brand text).
 For ingredient filtering use search/refine with ingredientLookup true and ingredientName.
+When lookProfile is provided, use it as context only. Set query to a product or brand
+explicitly named by the user, using the user's exact wording. Never use a look title,
+style description or an inferred brand as query.
 shadeName: explicitly requested shade label only; never invent IDs or select a shade.
 compareOrdinals: exactly two explicitly referenced candidate numbers (1..6) for ingredients.
+When comparing the current product with one other product, use intent detail.
+Set query to the other product name as written in the message, never the current product.
+For one candidate number use ordinal. If no other target is named, omit query and ordinal.
 For general ingredient knowledge use general; the dedicated Knowledge Tool is unavailable.
 Use search for a new shopping request, refine for changed or added prior conditions,
 detail for product details/ingredients, price for a single previously listed product's price,
@@ -357,7 +378,7 @@ def _reply(answer, context, products=(), result_type="clarification"):
     )
 
 
-def _matches(product: CatalogProduct, filters: BeautyFilters) -> bool:
+def _matches(product: CatalogProduct, filters: BeautyFilters, *, identity_only=False) -> bool:
     # The current Catalog contract provides keyIngredients, not verified full ingredients.
     if filters.fragrance_free:
         return False
@@ -368,6 +389,8 @@ def _matches(product: CatalogProduct, filters: BeautyFilters) -> bool:
     ):
         return False
     if filters.query:
+        if identity_only:
+            return _matches_product_name(product, filters.query)
         source = " ".join(
             [
                 product.brand,
@@ -382,12 +405,329 @@ def _matches(product: CatalogProduct, filters: BeautyFilters) -> bool:
     return True
 
 
+def _search_matches(products, filters, *, identity_only):
+    products = list(products)
+    if identity_only and filters.query:
+        # A catalog brand named in a look query must match the brand field.
+        query = _shade_label(filters.query)
+        brands = {_shade_label(p.brand) for p in products if p.brand.strip()}
+        required_brand = max(
+            (brand for brand in brands if re.search(rf"(?<!\w){re.escape(brand)}(?!\w)", query)),
+            key=lambda brand: (len(brand), brand),
+            default=None,
+        )
+        if required_brand:
+            products = [p for p in products if _shade_label(p.brand) == required_brand]
+    return [p for p in products if _matches(p, filters, identity_only=identity_only)]
+
+
 def _moisture_rank(product):
     text = " ".join([product.description, *product.tags]).casefold()
     return bool(re.search(r"촉촉|보습|hydrat|moisturi|保湿", text))
 
 
-async def interpret_beauty(req: ChatRequest, llm) -> SearchPlan:
+_COMPARE = re.compile(
+    r"비교|차이|\bcompar(?:e|ison)\b|\bdiffer(?:s|ent|ence|ences)?\b|比較|違い|对比|比较|区别", re.I
+)
+COMPARISON_SCREENS = ("product-comparison", "product-ingredient-comparison")
+_INGREDIENT_TOPIC = re.compile(r"성분|향료|\bingredients?\b|\bfragrance\b|成分|香料", re.I)
+_REFERENCE_ONLY = re.compile(
+    r"(?:다른|이|그|저)\s*(?:상품|제품)|(?:another|other"
+    r"|this|that) product|他の商品|この商品|其他产品|这款",
+    re.I,
+)
+_COMPARISON_COPY = {
+    "ko": (
+        "어떤 제품과 비교할까요? 비교할 제품명을 알려 주세요.",
+        "비교할 제품을 카탈로그에서 하나로 확인하지 "
+        "못했어요. 브랜드와 정확한 제품명을 알려 주세요.",
+    ),
+    "en": (
+        "Which product would you like to compare it with? Please give me its name.",
+        "I couldn’t identify one matching catalog product."
+        " Please give the brand and exact product name.",
+    ),
+    "ja": (
+        "どの商品と比較しますか？商品名を教えてください。",
+        "比較する商品をカタログで特定できませんでした。ブランドと正確な商品名を教えてください。",
+    ),
+    "zh": (
+        "想和哪款产品比较？请告诉我产品名称。",
+        "在商品目录中无法唯一确认对比产品。请提供品牌和准确的产品名称。",
+    ),
+}
+
+
+def direct_comparison(req, plan):
+    return bool(
+        not (
+            len(set(plan.compare_ordinals)) == 2
+            and all(_comparison_ordinal(req.message, n) for n in plan.compare_ordinals)
+        )
+        and (
+            _COMPARE.search(req.message)
+            or (req.screen_context and req.screen_context.screen_id in COMPARISON_SCREENS)
+        )
+        and (
+            (req.screen_context and req.screen_context.product_id)
+            or (req.chat_context and req.chat_context.selected_product_id)
+        )
+    )
+
+
+def _comparison_ordinal(message, ordinal):
+    return bool(
+        re.search(
+            rf"(?<!\d){ordinal}(?!\d)\s*(?:번|番|号)|(?:#|no\.\s*|product\s*){ordinal}(?!\d)",
+            message,
+            re.I,
+        )
+    )
+
+
+def _comparison_name(message, query):
+    quoted = re.search(r'["“「]([^"”」]{2,80})["”」]', message)
+    target = (query or (quoted.group(1) if quoted else "")).strip()
+
+    def normalize(text):
+        return " ".join(unicodedata.normalize("NFKC", text).casefold().split())
+
+    if (
+        len(target) < 2
+        or _REFERENCE_ONLY.fullmatch(target)
+        or normalize(target) not in normalize(message)
+    ):
+        return None
+    return target
+
+
+async def _compare_product(req, plan, catalog):
+    now = int(time.time())
+    screen = req.screen_context
+    previous = req.chat_context
+    product_id = (screen.product_id if screen else None) or previous.selected_product_id
+    context = previous or _context(BeautyFilters(), [product_id], now, selected=product_id)
+    clarify, unverified = _COMPARISON_COPY[req.locale]
+    pending_target = (
+        screen and screen.screen_id in COMPARISON_SCREENS and not _COMPARE.search(req.message)
+    )
+    target = _comparison_name(req.message, req.message if pending_target else plan.query)
+    ordinal = plan.ordinal
+    target_id = (
+        context.candidate_ids[ordinal - 1]
+        if ordinal is not None
+        and ordinal <= len(context.candidate_ids)
+        and _comparison_ordinal(req.message, ordinal)
+        else None
+    )
+    continuation = _ingredient_comparison_continuation(req)
+    if continuation:
+        if continuation.current_product_id != product_id:
+            return _reply(clarify, context)
+        target_id = continuation.target_product_id
+        target = None
+    if not target and not target_id:
+        return _reply(clarify, context)
+
+    current = await catalog.get_product(product_id)
+    if current is None or current.id != product_id:
+        return _reply(TEXT[req.locale]["missing"], context)
+    if target_id:
+        candidate = await catalog.get_product(target_id)
+        if candidate is not None and (
+            candidate.id != target_id or (target and not _matches_product_name(candidate, target))
+        ):
+            candidate = None
+    else:
+        rows = await catalog.search_products(q=target)
+        candidates = {p.id: p for p in rows if p.id == target or _matches_product_name(p, target)}
+        candidate = candidates.get(target)
+        if candidate is None and len(candidates) == 1:
+            candidate = next(iter(candidates.values()))
+    if candidate is None or candidate.id == current.id:
+        return _reply(unverified, context)
+
+    if (screen and screen.screen_id == "product-ingredient-comparison") or _INGREDIENT_TOPIC.search(
+        req.message
+    ):
+        return await _compare_product_ingredients(
+            req, catalog, context, current, candidate, continuation
+        )
+
+    words = TEXT[req.locale]
+    # A comparison is informational; it cannot silently replace or renumber existing candidates.
+    return _reply(
+        "\n\n".join(_price_summary(p, words) for p in (current, candidate)),
+        context,
+        result_type="product_detail",
+    )
+
+
+def _price_summary(product, words):
+    reference = (
+        words["reference_price"].format(price=f"{product.price_krw:,}")
+        if product.price_krw > 0
+        else words["reference_unavailable"]
+    )
+    provenance = words[
+        "synthetic_price" if product.price_evidence == "synthetic-price" else "price_source_unknown"
+    ]
+    return f"{product.brand} {product.name}\n{reference}\n{words['live_unavailable']} {provenance}"
+
+
+def _ingredient_comparison_continuation(req):
+    screen = req.screen_context
+    if screen and screen.screen_id == "product-ingredient-comparison":
+        return screen.ingredient_comparison
+    return None
+
+
+def _match_comparison_shade(product, message):
+    label = _shade_label(message)
+    exact = [shade.id for shade in product.shades if _shade_label(shade.name) == label]
+    if exact:
+        return exact[0] if len(exact) == 1 else None
+    number = re.fullmatch(r"#?\s*(\d{1,6})\s*(?:호|番|号)?(?:로|으로)?", label)
+    if not number:
+        return None
+    matches = [
+        shade.id
+        for shade in product.shades
+        if (prefix := re.match(r"(\d{1,6})(?!\d)", _shade_label(shade.name)))
+        and int(prefix[1]) == int(number[1])
+    ]
+    return matches[0] if len(matches) == 1 else None
+
+
+async def _compare_product_ingredients(req, catalog, context, current, candidate, continuation):
+    labels = INGREDIENT_TEXT[req.locale]
+    screen = req.screen_context
+    selected = dict(context.shade_selections)
+    if continuation:
+        for product, saved in (
+            (current, continuation.current_shade_id),
+            (candidate, continuation.target_shade_id),
+        ):
+            if saved and any(shade.id == saved for shade in product.shades):
+                selected[product.id] = saved
+    if screen and screen.product_id and screen.shade_id:
+        selected[screen.product_id] = screen.shade_id
+    if continuation:
+        pending_product = current if continuation.awaiting == "current" else candidate
+        selected[pending_product.id] = _match_comparison_shade(pending_product, req.message)
+
+    def validated_shade(product):
+        shade = selected.get(product.id)
+        return shade if any(option.id == shade for option in product.shades) else None
+
+    current_shade, target_shade = map(validated_shade, (current, candidate))
+    for product, shade, side in (
+        (current, current_shade, "current"),
+        (candidate, target_shade, "target"),
+    ):
+        if product.shades and shade is None:
+            prompt = {
+                "ko": "{name}의 정확한 호수 이름이나 번호를 입력해 주세요.",
+                "en": "Enter the exact shade name or number for {name}.",
+                "ja": "{name} の正確な色名または色番を入力してください。",
+                "zh": "请输入 {name} 的准确色名或色号。",
+            }[req.locale]
+            response = _reply(prompt.format(name=product.name), context)
+            response.ingredient_comparison = IngredientComparison(
+                current_product_id=current.id,
+                target_product_id=candidate.id,
+                current_shade_id=current_shade,
+                target_shade_id=target_shade,
+                awaiting=side,
+            )
+            return response
+
+    results = []
+    for product, shade in ((current, current_shade), (candidate, target_shade)):
+        try:
+            result = await catalog.get_ingredients(product.id, shade)
+        except IngredientLookupError:
+            return _reply(labels[11], context)
+        if (result.product_id, result.shade_id) != (product.id, shade):
+            return _reply(labels[11], context)
+        results.append(result)
+    comparison, verified = _ingredient_difference(req.locale, (current, candidate), results)
+    return _reply(
+        f"{current.name} / {candidate.name}\n{comparison}",
+        context,
+        result_type="product_detail" if verified else "clarification",
+    )
+
+
+def _ingredient_difference(locale, products, results):
+    labels = INGREDIENT_TEXT[locale]
+    if len(results) != 2 or not all(r.complete and not r.synthetic for r in results):
+        return labels[11], False
+
+    source_hashes = {}
+    for result in results:
+        for entry in result.ingredients:
+            if entry.identity is not None:
+                ingredient_id = entry.identity.mfds_ingredient_id
+                source_hash = entry.identity.source_hash
+                if source_hashes.setdefault(ingredient_id, source_hash) != source_hash:
+                    return labels[11], False
+
+    identities_complete = all(
+        entry.identity is not None for result in results for entry in result.ingredients
+    )
+    if not identities_complete:
+        names = [
+            {" ".join(_shade_label(entry.name).split()): entry.name for entry in result.ingredients}
+            for result in results
+        ]
+        summary_template, only = {
+            "ko": (
+                "표기명 비교: {result}. 표준 ID가 빠져 성분 구성은 확인할 수 없습니다.",
+                "{name}에만 있는 표기명: {ingredients}",
+            ),
+            "en": (
+                "Label comparison: {result}. Missing standard IDs prevent confirming composition.",
+                "Labels only on {name}: {ingredients}",
+            ),
+            "ja": (
+                "表示名の比較：{result}。標準IDが不足しているため成分構成は確認できません。",
+                "{name}にのみ記載された表示名：{ingredients}",
+            ),
+            "zh": (
+                "标示名称比较：{result}。标准 ID 不完整，无法确认成分组成。",
+                "仅 {name} 标示的名称：{ingredients}",
+            ),
+        }[locale]
+    else:
+        names = [
+            {entry.identity.mfds_ingredient_id: entry.name for entry in result.ingredients}
+            for result in results
+        ]
+        summary_template = labels[8]
+        only = {
+            "ko": "{name}에만 있는 성분: {ingredients}",
+            "en": "Ingredients only in {name}: {ingredients}",
+            "ja": "{name}にのみ含まれる成分：{ingredients}",
+            "zh": "仅 {name} 含有的成分：{ingredients}",
+        }[locale]
+
+    left, right = names
+    equal = left.keys() == right.keys()
+    summary = summary_template.format(result=labels[9 if equal else 10])
+    if equal:
+        return summary, identities_complete
+
+    lines = [summary]
+    for product, own, other in zip(products, names, reversed(names), strict=True):
+        difference = ", ".join(name for key, name in own.items() if key not in other)
+        lines.append(only.format(name=product.name, ingredients=difference or "—"))
+    return "\n".join(lines), identities_complete
+
+
+async def interpret_beauty(req: ChatRequest, llm, look_profile=None) -> SearchPlan:
+    if _ingredient_comparison_continuation(req):
+        return SearchPlan(intent="detail")
     if not llm.configured:
         raise ApiError(503, "Chatbot is not configured", "chatbot_unavailable")
     try:
@@ -402,6 +742,7 @@ async def interpret_beauty(req: ChatRequest, llm) -> SearchPlan:
                             "context": req.chat_context.model_dump(mode="json")
                             if req.chat_context
                             else None,
+                            **({"lookProfile": look_profile} if look_profile else {}),
                             "screenContext": req.screen_context.model_dump(mode="json")
                             if req.screen_context
                             else None,
@@ -420,6 +761,17 @@ async def interpret_beauty(req: ChatRequest, llm) -> SearchPlan:
         plan.intent != "detail" or plan.scope != "previous" or plan.ordinal is not None
     ):
         raise ApiError(502, "Invalid price selection", "invalid_chat_plan")
+    if direct_comparison(req, plan):
+        return plan.model_copy(
+            update={
+                "intent": "detail",
+                "scope": "catalog",
+                "selection": None,
+                "compare_ordinals": [],
+            }
+        )
+    if plan.compare_ordinals and plan.intent in {"search", "refine"}:
+        plan = plan.model_copy(update={"intent": "detail", "scope": "previous"})
     # A product-specific ingredient question must never fall back to generative graph facts.
     if (
         plan.intent == "general"
@@ -448,6 +800,8 @@ async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatRes
     """Execute an already validated interpretation without another LLM call."""
     if catalog is None:
         raise ApiError(503, "Catalog is not configured", "catalog_unavailable")
+    if direct_comparison(req, plan):
+        return await _compare_product(req, plan, catalog)
     if plan.intent == "general":
         return None  # Keep the existing general consultation path and prompt.
 
@@ -455,6 +809,7 @@ async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatRes
     if (
         plan.ingredient_lookup
         or plan.ingredient_name
+        or plan.ingredient_conditions
         or plan.compare_ordinals
         or (effective_filters.ingredient_conditions and plan.intent in {"search", "refine"})
         or (plan.fragrance_free is True and plan.intent in {"search", "refine"})
@@ -607,20 +962,7 @@ async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatRes
             f"{words['fragrance']} {words['price']}"
         )
         if plan.intent == "price":
-            reference = (
-                words["reference_price"].format(price=f"{product.price_krw:,}")
-                if product.price_krw > 0
-                else words["reference_unavailable"]
-            )
-            provenance = words[
-                "synthetic_price"
-                if product.price_evidence == "synthetic-price"
-                else "price_source_unknown"
-            ]
-            answer = (
-                f"{product.brand} {product.name}\n{reference}\n"
-                f"{words['live_unavailable']} {provenance}"
-            )
+            answer = _price_summary(product, words)
         return _reply(
             answer,
             _context(
@@ -652,7 +994,9 @@ async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatRes
         raise ApiError(502, "Catalog is temporarily unavailable", "upstream_error") from exc
     # IDs remain catalog-owned; deduplicate before numbering the visible candidate list.
     unique = {p.id: p for p in products if scope_ids is None or p.id in scope_ids}
-    products = [p for p in unique.values() if _matches(p, filters)]
+    products = _search_matches(
+        unique.values(), filters, identity_only=req.style_context is not None
+    )
     order = {pid: i for i, pid in enumerate(scope_ids or [])}
     products.sort(
         key=lambda p: (-int(filters.moisturizing and _moisture_rank(p)), order.get(p.id, 0), p.id)
@@ -836,6 +1180,36 @@ async def _resolve_product_reference(context, plan, catalog):
     return selected
 
 
+def _plan_conditions(plan):
+    additions = [
+        IngredientFilter(ingredient_name=c.ingredient_name, operator=c.operator)
+        for c in plan.ingredient_conditions
+    ]
+    if plan.ingredient_name:
+        additions.append(
+            IngredientFilter(
+                ingredient_name=plan.ingredient_name, operator=plan.ingredient_operator
+            )
+        )
+    conditions = {}
+    for condition in additions:
+        key = " ".join(unicodedata.normalize("NFKC", condition.ingredient_name).casefold().split())
+        if key in conditions and conditions[key].operator != condition.operator:
+            raise ApiError(
+                422, "Conflicting ingredient conditions", "conflicting_ingredient_conditions"
+            )
+        conditions[key] = condition
+    if len(conditions) > 6:
+        raise ApiError(
+            422, "At most six ingredient conditions are supported", "ingredient_condition_limit"
+        )
+    return list(conditions.values())
+
+
+def _persists_detail_conditions(plan):
+    return plan.intent == "detail" and plan.persist_ingredient_conditions
+
+
 def _effective_filters(previous, plan):
     dependent = plan.intent in {"detail", "price", "refine"} or plan.scope == "previous"
     filters = previous.filters.model_copy(deep=True) if dependent and previous else BeautyFilters()
@@ -854,34 +1228,34 @@ def _effective_filters(previous, plan):
         setattr(filters, key, defaults[key])
     changes = plan.model_dump(exclude_none=True, by_alias=False)
     for field in BeautyFilters.model_fields:
+        if field == "ingredient_conditions":
+            continue  # Merge conditions below; an omitted list must retain session constraints.
         if field in changes and not (field == "query" and plan.intent in {"detail", "price"}):
             setattr(filters, field, changes[field])
-    if plan.ingredient_name and plan.intent in {"search", "refine"}:
+    additions = _plan_conditions(plan)
+    if additions and (plan.intent in {"search", "refine"} or _persists_detail_conditions(plan)):
 
         def normalize(name):
             return " ".join(unicodedata.normalize("NFKC", name).casefold().split())
 
-        conditions = [
-            c
-            for c in filters.ingredient_conditions
-            if normalize(c.ingredient_name) != normalize(plan.ingredient_name)
-        ]
-        if len(conditions) >= 6:
+        # A new constraint replaces the same named condition, preserving unrelated conditions.
+        conditions = {normalize(c.ingredient_name): c for c in filters.ingredient_conditions}
+        for addition in additions:
+            conditions[normalize(addition.ingredient_name)] = addition
+        if len(conditions) > 6:
             raise ApiError(
                 422, "At most six ingredient conditions are supported", "ingredient_condition_limit"
             )
-        filters.ingredient_conditions = conditions + [
-            IngredientFilter(
-                ingredient_name=plan.ingredient_name, operator=plan.ingredient_operator
-            )
-        ]
+        filters.ingredient_conditions = list(conditions.values())
     return filters
 
 
 def _combine_ingredient_results(results):
     if len(results) == 1:
         return results[0]
-    result = results[0].model_copy(deep=True)
+    verified = [item for item in results if item.verified]
+    violation = next((item for item in verified if item.verdict == "NOT_MATCH"), None)
+    result = (violation or (verified[0] if verified else results[0])).model_copy(deep=True)
     result.conditions = [check for item in results for check in item.conditions]
     result.synthetic = any(item.synthetic for item in results)
     consistent = (
@@ -896,22 +1270,36 @@ def _combine_ingredient_results(results):
                     r.normalization_status,
                     r.source,
                     r.collected_at,
+                    r.reviewed_at,
+                    r.review_ref,
                     r.source_version,
                     r.source_fingerprint,
                     r.generator_version,
-                    tuple((i.name, i.sequence) for i in r.ingredients),
+                    tuple(
+                        (i.name, i.sequence, i.identity.model_dump_json() if i.identity else None)
+                        for i in r.ingredients
+                    ),
                 )
-                for r in results
+                for r in verified
             }
         )
         == 1
     )
     failed = next((r for r in results if r.status == "error" or r.verdict == "ERROR"), None)
-    if failed or not consistent or not all(r.verified for r in results):
+    if violation is not None and consistent and result.verified:
+        return result
+    if failed or not consistent or len(verified) != len(results):
         result.status = "error" if failed else "unknown"
         result.verdict = "ERROR" if failed else "UNKNOWN"
         result.reason = failed.reason if failed else "evidence_requires_review"
-        result.ingredients = []
+        if not verified or not consistent:
+            result.ingredients = []
+            if not consistent:
+                for condition in result.conditions:
+                    if condition.verdict in {"MATCH", "NOT_MATCH"}:
+                        condition.verdict = "UNKNOWN"
+                        condition.reason = "evidence_requires_review"
+                        condition.evidence_id = None
         return result
     verdicts = {r.verdict for r in results}
     result.verdict = (
@@ -922,6 +1310,35 @@ def _combine_ingredient_results(results):
         if result.verdict == "UNKNOWN"
         else "verified_evidence"
     )
+    return result
+
+
+async def _lookup_ingredient_condition(catalog, pid, shade, condition):
+    try:
+        result = await catalog.get_ingredients(
+            pid, shade, ingredient_name=condition.ingredient_name, operator=condition.operator
+        )
+        if (result.product_id, result.shade_id) != (pid, shade):
+            raise IngredientLookupError("invalid_response")
+    except IngredientLookupError as exc:
+        result = _ingredient_unknown(pid, shade, exc.reason, error=True)
+    if result.verdict in {"MATCH", "NOT_MATCH"} and not result.verified:
+        result = _ingredient_unknown(pid, shade, "evidence_requires_review")
+    if not result.conditions and result.verdict in {"ERROR", "UNKNOWN"}:
+        result.conditions = [
+            IngredientDecision(
+                product_id=pid,
+                shade_id=shade,
+                option_id=result.option_id,
+                condition="ingredient",
+                ingredient_name=condition.ingredient_name,
+                operator=condition.operator,
+                verdict=result.verdict,
+                reason=result.reason,
+                evidence_id=result.evidence_id,
+                synthetic=result.synthetic,
+            )
+        ]
     return result
 
 
@@ -959,10 +1376,16 @@ async def _ingredient_consultation(req, plan, catalog, filters):
     }
     filtering = plan.intent in {"search", "refine"}
     fragrance_filter = filtering and context.filters.fragrance_free
-    fragrance_only = fragrance_filter and not plan.ingredient_name
+    conditions = (
+        filters.ingredient_conditions
+        if filtering or _persists_detail_conditions(plan)
+        else _plan_conditions(plan)
+    )
+    # A follow-up can inherit ingredient conditions without repeating them in the plan.
+    # Never replace those evaluations with a synthetic fragrance-only UNKNOWN.
+    fragrance_only = fragrance_filter and not conditions
     name = plan.ingredient_name or ("향료" if fragrance_only else None)
     operator = "excludes" if fragrance_only else plan.ingredient_operator
-    conditions = filters.ingredient_conditions if filtering else []
     if plan.compare_ordinals:
         if plan.query is not None:
             return _reply(labels[0], context)
@@ -986,7 +1409,11 @@ async def _ingredient_consultation(req, plan, catalog, filters):
             raise ApiError(502, "Catalog is temporarily unavailable", "upstream_error") from exc
         base_filters = context.filters.model_copy(update={"fragrance_free": False})
         rows = {
-            p.id: p for p in rows if (scope is None or p.id in scope) and _matches(p, base_filters)
+            p.id: p
+            for p in _search_matches(
+                rows, base_filters, identity_only=req.style_context is not None
+            )
+            if scope is None or p.id in scope
         }
         order = {pid: index for index, pid in enumerate(scope or [])}
         target_ids = sorted(
@@ -1010,7 +1437,9 @@ async def _ingredient_consultation(req, plan, catalog, filters):
         scan_ids = target_ids[: INGREDIENT_SEARCH_REQUEST_LIMIT // cost_per_product]
     retained = 0
     try:
-        async with asyncio.timeout(INGREDIENT_SEARCH_TIMEOUT_SECONDS if filtering else None):
+        async with asyncio.timeout(
+            INGREDIENT_SEARCH_TIMEOUT_SECONDS if filtering else None
+        ) as deadline:
             for pid in scan_ids:
                 if filtering and retained >= 6:
                     break
@@ -1047,26 +1476,35 @@ async def _ingredient_consultation(req, plan, catalog, filters):
                             if re.match(rf"^{re.escape(code[1])}(?:\D|$)", _shade_label(s.name))
                         ]
                     shade = matches[0] if len(matches) == 1 else None
-                if not shade or shade not in {s.id for s in product.shades}:
+                if (
+                    product.shades and (not shade or shade not in {s.id for s in product.shades})
+                ) or (not product.shades and (shade is not None or plan.shade_name)):
                     context.shade_selections.pop(pid, None)
                     products.append(product)
-                    results.append(_ingredient_unknown(pid, None, "shade_required"))
-                    retained += bool(fragrance_filter)
+                    reason = "shade_required" if product.shades else "no_registered_shades"
+                    results.append(_ingredient_unknown(pid, None, reason))
+                    retained += bool(fragrance_only)
                     continue
-                context.shade_selections[pid] = shade
+                if shade is not None:
+                    context.shade_selections[pid] = shade
                 try:
                     if conditions:
-                        result = _combine_ingredient_results(
-                            [
-                                await catalog.get_ingredients(
-                                    pid,
-                                    shade,
-                                    ingredient_name=c.ingredient_name,
-                                    operator=c.operator,
+                        checks = []
+                        try:
+                            for condition in conditions:
+                                checks.append(
+                                    await _lookup_ingredient_condition(
+                                        catalog, pid, shade, condition
+                                    )
                                 )
-                                for c in conditions
-                            ]
-                        )
+                        except asyncio.CancelledError:
+                            if deadline.expired() and checks:
+                                completed = _combine_ingredient_results(checks)
+                                if completed.verified and completed.verdict == "NOT_MATCH":
+                                    products.append(product)
+                                    results.append(completed)
+                            raise
+                        result = _combine_ingredient_results(checks)
                     else:
                         result = await catalog.get_ingredients(
                             pid, shade, ingredient_name=name, operator=operator
@@ -1074,7 +1512,11 @@ async def _ingredient_consultation(req, plan, catalog, filters):
                 except IngredientLookupError as exc:
                     result = _ingredient_unknown(pid, shade, exc.reason, error=True)
                 else:
-                    if fragrance_only and result.status != "error" and result.verdict != "ERROR":
+                    if (
+                        fragrance_only
+                        and result.status != "error"
+                        and result.verdict not in {"ERROR", "NOT_MATCH"}
+                    ):
                         # One ingredient-name result cannot prove an overall fragrance-free claim.
                         result = result.model_copy(
                             update={
@@ -1087,7 +1529,14 @@ async def _ingredient_consultation(req, plan, catalog, filters):
                         )
                 products.append(product)
                 results.append(result)
-                retained += fragrance_filter or result.verdict == "MATCH"
+                # When ingredient conditions are present, keep scanning for six verified
+                # matches instead of letting six UNKNOWN fragrance candidates hide later hits.
+                # Fragrance-only searches still stop at six unresolved candidates.
+                retained += (
+                    result.verdict != "NOT_MATCH"
+                    if fragrance_filter and not conditions
+                    else result.verdict == "MATCH"
+                )
     except TimeoutError:
         if not filtering:
             raise
@@ -1099,8 +1548,8 @@ async def _ingredient_consultation(req, plan, catalog, filters):
         and (filtering or bool(results))
         and all(r.verdict in {"MATCH", "NOT_MATCH"} for r in results)
     )
-    if filtering and not fragrance_filter:
-        # A known failure stays excluded even if another candidate still needs a shade or review.
+    if filtering:
+        # Exclude proven ingredient failures even while fragrance-free status is unknown.
         accepted = {r.product_id for r in results if r.verdict != "NOT_MATCH"}
         products = [p for p in products if p.id in accepted]
         results = [r for r in results if r.product_id in accepted]
@@ -1133,20 +1582,43 @@ async def _ingredient_consultation(req, plan, catalog, filters):
             for r in results
         )
     )
-    lines = []
-    for product, result in zip(products, results, strict=True):
-        if result.status == "error" or result.verdict == "ERROR":
+    lines = [words["fragrance"]] if fragrance_only else []
+    if fragrance_only and any(result.reason == "shade_required" for result in results):
+        lines.append(labels[0])
+    for product, result in () if fragrance_only else zip(products, results, strict=True):
+        if result.conditions and (
+            len(result.conditions) > 1 or result.verified or result.status == "error"
+        ):
+            locale_index = ["ko", "en", "ja", "zh"].index(req.locale)
+            parts = []
+            for condition in result.conditions:
+                if condition.verdict == "ERROR":
+                    message = labels[4]
+                    issue = INGREDIENT_ISSUES.get(condition.reason)
+                    if issue:
+                        message += " " + issue[locale_index]
+                else:
+                    message = labels[
+                        5
+                        if condition.verdict == "MATCH"
+                        else 6
+                        if condition.verdict == "NOT_MATCH"
+                        else 13
+                    ]
+                parts.append(f"{condition.ingredient_name}: {message}")
+            text = "; ".join(parts)
+        elif result.status == "error" or result.verdict == "ERROR":
             text = labels[4]
             if result.reason in INGREDIENT_ISSUES:
                 text += (
                     " "
                     + INGREDIENT_ISSUES[result.reason][["ko", "en", "ja", "zh"].index(req.locale)]
                 )
-        elif result.reason == "shade_required":
+        elif result.reason in {"shade_required", "no_registered_shades"}:
             text = labels[0]
         elif result.reason == "fragrance_free_unverified":
             text = words["fragrance"]
-        elif result.mapping_status != "reproduced":
+        elif result.mapping_status not in {"reproduced", "directly_reviewed"}:
             text = labels[1]
         elif result.review_status != "verified":
             text = labels[2]
@@ -1172,13 +1644,9 @@ async def _ingredient_consultation(req, plan, catalog, filters):
             text += " " + labels[12]
         lines.append(f"{product.brand} {product.name}: {text}")
     if plan.compare_ordinals:
-        if len(results) == 2 and all(r.complete for r in results):
-            equal = [i.name for i in results[0].ingredients] == [
-                i.name for i in results[1].ingredients
-            ]
-            lines.append(labels[8].format(result=labels[9 if equal else 10]))
-        else:
-            lines.append(labels[11])
+        comparison, verified_comparison = _ingredient_difference(req.locale, products, results)
+        complete = complete and verified_comparison
+        lines.append(comparison)
     if fragrance_filter and not fragrance_only:
         lines.append(words["fragrance"])
     if not lines and not scan_limited:
@@ -1214,13 +1682,19 @@ async def _ingredient_consultation(req, plan, catalog, filters):
     )
     # Public facts and private execution metadata are separate but share exact references.
     response.ingredient_results = results
+    if fragrance_only:
+        response.fragrance_search_summary = FragranceSearchSummary(
+            checked=checked, total=len(target_ids)
+        )
     tool = response.tool_result
     tool.status = (
         "error"
         if counts["ERROR"]
         else (
             "partial"
-            if scan_limited or (complete and context.filters.fragrance_free)
+            if scan_limited
+            or (display_limited and fragrance_filter)
+            or (complete and fragrance_filter)
             else (
                 "success"
                 if (not filtering and complete) or (filtering and known)

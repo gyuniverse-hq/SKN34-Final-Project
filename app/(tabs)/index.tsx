@@ -1,5 +1,4 @@
 import { KStyleCollection, type KStyleCollectionTab } from '@/components/celeb/KStyleCollection';
-import { HomeChatButton } from '@/components/chat/HomeChatButton';
 import { ProductCard } from '@/components/shop/ProductCard';
 import { ShopHeaderActions } from '@/components/shop/ShopHeaderActions';
 import { SkinMatchSection } from '@/components/skin/SkinMatchSection';
@@ -124,7 +123,6 @@ export default function HomeScreen() {
 
         <Text style={styles.disclaimer}>{t('home.disclaimer')}</Text>
       </ScrollView>
-      <HomeChatButton label={t('home.chatFab')} hint={t('home.chatFabHint')} onPress={() => router.push('/chat')} />
     </SafeAreaView>
   );
 }
