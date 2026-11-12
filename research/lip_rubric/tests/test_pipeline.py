@@ -10,7 +10,7 @@ from common import checks, icc2, krippendorff_alpha, load_json, read_csv, score,
 from aggregate import aggregate
 from analyze import classify, compare
 from build_pack import assign_splits, mirrored_ring
-from judge import MockJudge, generate_valid, retrieve, run
+from judge import MockJudge, generate_valid, knn_leave_one_face_out, retrieve, run
 from make_colab_pack import make_pack
 
 RUBRIC=load_json(HERE/'rubric.json')
@@ -62,6 +62,19 @@ def test_mock_retrieval_retry():
             return super().generate(*a)
     result,attempts,error=generate_valid(Retry(RUBRIC),RUBRIC,query,[],[],2)
     assert result['total']==5 and attempts==2 and error==''
+
+
+def test_knn_leave_one_face_out():
+    records=[{'image_id':f'r{i}','face_id':f'f{i//2}','kind':'render','finish':'satin','total_mean':str(i)} for i in range(8)]
+    records.append({'image_id':'s','face_id':'f9','kind':'sticker','finish':'satin','total_mean':'0'})
+    embeddings={r['image_id']:np.array([1.0,float(r['total_mean'])+1]) for r in records}
+    report=knn_leave_one_face_out(records,embeddings,3)
+    assert report['n']==8 and report['k']==3
+    for p in report['predictions']:
+        face=p['face_id']
+        assert len(p['neighbors'])==3 and 's' not in p['neighbors']
+        assert all(next(r for r in records if r['image_id']==n)['face_id']!=face for n in p['neighbors'])
+    assert report['spearman'] is not None and report['mae']>=0
 
 
 def test_decisions():

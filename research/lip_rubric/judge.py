@@ -11,7 +11,7 @@ from pathlib import Path
 
 import numpy as np
 
-from common import allows_na, checks, load_json, read_csv, score, sha256
+from common import allows_na, checks, cluster_bootstrap, load_json, read_csv, score, sha256, spearman
 
 
 def retrieve(query, pool, embeddings, k=3):
@@ -24,6 +24,21 @@ def retrieve(query, pool, embeddings, k=3):
     candidates.sort(key=lambda x:(-x[0],x[1]))
     if len(candidates)<k: raise ValueError('not enough eligible pool examples')
     return [x[2] for x in candidates[:k]]
+
+
+def knn_leave_one_face_out(records, embeddings, k=3, kind='render'):
+    """Predict each image's human total as the mean of its k most similar rated images of other faces, over all splits."""
+    rows=[r for r in records if r['kind']==kind]
+    predictions=[]
+    for target in rows:
+        neighbors=retrieve(target,rows,embeddings,k)
+        predictions.append({'image_id':target['image_id'],'face_id':target['face_id'],'finish':target['finish'],
+                            'human_total':float(target['total_mean']),'predicted_total':float(np.mean([float(r['total_mean']) for r in neighbors])),
+                            'neighbors':[r['image_id'] for r in neighbors]})
+    observations=[{'face_id':p['face_id'],'x':p['human_total'],'y':p['predicted_total']} for p in predictions]
+    boot=cluster_bootstrap(observations,lambda rs:spearman([r['x'] for r in rs],[r['y'] for r in rs]))
+    mae=float(np.mean([abs(p['human_total']-p['predicted_total']) for p in predictions])) if predictions else None
+    return {'kind':kind,'k':k,'n':len(predictions),'spearman':boot['estimate'],'spearman_ci95':boot['ci95'],'mae':mae,'predictions':predictions}
 
 
 def parse_response(text, rubric, finish):
@@ -173,16 +188,30 @@ def run(root, output, config, rubric, adapter, embeddings, mock=False):
 
 
 def main():
-    p=argparse.ArgumentParser(); p.add_argument('--pack',required=True,type=Path); p.add_argument('--output',required=True,type=Path); p.add_argument('--mock',action='store_true')
+    p=argparse.ArgumentParser(); p.add_argument('--pack',required=True,type=Path); p.add_argument('--output',type=Path); p.add_argument('--mock',action='store_true')
+    p.add_argument('--knn-output',type=Path,help='leave-one-face-out nearest-k mean over all rendered images (JSON)')
+    p.add_argument('--knn-only',action='store_true',help='write --knn-output and skip the VLM')
     a=p.parse_args(); config=load_json(a.pack/'judges.json'); rubric=load_json(a.pack/'rubric.json')
-    if not a.mock and (not config['vlm'].get('revision') or not config['embedding'].get('revision')):
-        raise ValueError('모델 카드와 라이선스를 확인한 뒤 judges.json에 두 모델의 정확한 revision을 입력하세요')
+    if a.knn_only and not a.knn_output: p.error('--knn-only requires --knn-output')
+    if not a.knn_only and not a.output: p.error('--output is required unless --knn-only')
+    needed=['embedding'] if a.knn_only else ['embedding','vlm']
+    if not a.mock and not all(config[name].get('revision') for name in needed):
+        raise ValueError('모델 카드와 라이선스를 확인한 뒤 judges.json에 사용하는 모델의 정확한 revision을 입력하세요')
     ratings=read_csv(a.pack/'ratings.csv'); meta=read_csv(a.pack/'meta.csv'); ids={r['image_id'] for r in ratings}
     items=[r for r in meta if r['image_id'] in ids]
     if a.mock:
-        rng=random.Random(config.get('seed',42)); embeddings={r['image_id']:np.array([rng.random() for _ in range(16)]) for r in items}; adapter=MockJudge(rubric)
+        rng=random.Random(config.get('seed',42)); embeddings={r['image_id']:np.array([rng.random() for _ in range(16)]) for r in items}
     else:
-        embeddings=embed_crops(items,a.pack,config['embedding']); adapter=QwenJudge(config['vlm'])
+        embeddings=embed_crops(items,a.pack,config['embedding'])
+    if a.knn_output:
+        by_id={r['image_id']:r for r in ratings}; records=[dict(r,**{k:v for k,v in by_id[r['image_id']].items() if k not in r}) for r in items]
+        report=knn_leave_one_face_out(records,embeddings,int(config['neighbors']))
+        report['embedding_model_id']='mock' if a.mock else config['embedding']['model_id']
+        report['embedding_revision']='mock' if a.mock else config['embedding']['revision']
+        a.knn_output.parent.mkdir(parents=True,exist_ok=True); a.knn_output.write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf8')
+        print(f"knn n={report['n']} spearman={report['spearman']} ci95={report['spearman_ci95']} mae={report['mae']}")
+        if a.knn_only: return
+    adapter=MockJudge(rubric) if a.mock else QwenJudge(config['vlm'])
     print(run(a.pack,a.output,config,rubric,adapter,embeddings,a.mock))
 
 

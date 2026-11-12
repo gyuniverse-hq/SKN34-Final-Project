@@ -16,7 +16,7 @@ PowerShell에서 저장소 루트 기준입니다. 먼저 `$py = 'research/ar_ev
 6. `rating_pack` 폴더만 압축해 R1~R5 등 팀원에게 전달합니다. `key.csv`, 원본 이름, 매니페스트, DB는 전달하지 않습니다.
 7. `& $py research/lip_rubric/db.py init` 후 `& $py research/lip_rubric/db.py import-pack research/data/lip_rubric/pack`을 실행합니다. `& $py research/lip_rubric/db.py import-ratings <R1_CSV>`를 사람마다 실행하고 `& $py research/lip_rubric/aggregate.py`로 집계합니다. 같은 CSV는 중복 반영하지 않고 재제출은 최신 파일만 사용하며 이력은 보관합니다. v1 CSV와 R0는 거부합니다.
 8. `& $py research/lip_rubric/metrics.py`로 판정 없는 코드 지표를 측정합니다. `& $py research/lip_rubric/db.py export-colab`으로 출처를 검증한 v2 묶음과 SHA-256을 만듭니다.
-9. `colab/lip_judge.ipynb`를 비공개 Drive와 Colab GPU에서 실행합니다. 모델 카드의 라이선스와 정확한 리비전을 먼저 확인하세요. 임베딩 모델 라이선스는 확인 안 됨입니다. 결과 CSV를 내려받아 `& $py research/lip_rubric/db.py import-judge <CSV>`로 넣고 `& $py research/lip_rubric/analyze.py`로 분석합니다. 여러 실행이 있으면 `--run-id`를 지정합니다.
+9. `colab/lip_judge.ipynb`를 비공개 Drive와 Colab GPU에서 실행합니다. `judges.json`에는 2026-11-12에 확인한 두 모델의 리비전이 들어 있으니 실행 전에 모델 카드를 다시 확인하세요. CLIP은 모델 카드에 라이선스 표기가 없고 배포 서비스 사용이 범위 밖이므로 이 연구 실험에만 씁니다. 노트북 4단계는 VLM 없이 "비슷한 3장의 사람 평균" 방식을 렌더 전체에서 시험합니다(`judge.py --knn-output <JSON> --knn-only`). 결과 CSV를 내려받아 `& $py research/lip_rubric/db.py import-judge <CSV>`로 넣고 `& $py research/lip_rubric/analyze.py`로 분석합니다. 여러 실행이 있으면 `--run-id`를 지정합니다.
 10. 렌더러 수정 전후 고정 사진을 재측정할 때 `& $py research/lip_rubric/bench.py --benchmark research/data/lip_rubric/benchmark/benchmark_v1.json --label before`를 실행합니다. 다음 측정 때 `--compare <이전_run_id>`를 추가합니다. 데이터가 작으면 차이의 신뢰구간을 함께 보고하며 합격 판정은 하지 않습니다.
 
 ## 팀원 안내
