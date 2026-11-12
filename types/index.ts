@@ -453,6 +453,8 @@ export interface ChatResponse {
   resultType?: 'recommendations' | 'product_detail' | 'clarification' | 'empty';
   evidence?: ChatProductEvidence[];
   ingredientResults?: ChatIngredientResult[];
+  ingredientComparison?: ChatIngredientComparison;
+  fragranceSearchSummary?: { checked: number; total: number; verifiedProductIds: string[] };
   sessionStatus?: 'stored' | 'unchanged' | 'unavailable';
 }
 
@@ -497,7 +499,16 @@ export interface ChatSessionRef {
   expiresAt: number;
 }
 
+export interface ChatIngredientComparison {
+  currentProductId: string;
+  targetProductId: string;
+  currentShadeId?: string | null;
+  targetShadeId?: string | null;
+  awaiting: 'current' | 'target';
+}
+
 export interface ChatScreenContext {
+  ingredientComparison?: ChatIngredientComparison;
   screenId?: string | null;
   productId?: string | null;
   shadeId?: string | null;

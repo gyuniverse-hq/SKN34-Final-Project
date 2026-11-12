@@ -62,6 +62,40 @@ describe('useChat integration', () => {
     }
   });
 
+  it('serializes the request ID, style progress, product and candidate context together', async () => {
+    jest.mocked(getAnonymousChatId).mockResolvedValue('anonymous-id');
+    const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true, json: async () => ({ answer: 'Catalog comparison', products: [] }),
+    } as Response);
+    const client = new QueryClient({ defaultOptions: { mutations: { retry: false, gcTime: Infinity } } });
+    let sendChat!: ReturnType<typeof useChat>['mutateAsync'];
+    let renderer!: ReactTestRenderer;
+    function Harness() { sendChat = useChat().mutateAsync; return null; }
+    try {
+      await act(async () => { renderer = create(createElement(QueryClientProvider, { client }, createElement(Harness))); });
+      const request = {
+        message: '이 룩에 어울리는 립 추천해줘', locale: 'ko' as const, category: 'style' as const,
+        requestId: 'e528637e-b153-40f4-a3b1-c058d1c450ad', expectedUserId: null,
+        styleContext: { kind: 'video' as const, lookId: 'look-a', recipeId: 'recipe-a', recipeVersion: 'v1', currentStep: 3 },
+        screenContext: { screenId: 'product-detail', productId: 'p1', shadeId: 'p1-03' },
+        chatContext: { version: 1 as const, issuedAt: 1000, candidateIds: ['p1'], scopeIds: ['p1'],
+          selectedProductId: 'p1', filters: { category: null, maxPriceKRW: null, fragranceFree: false, moisturizing: false, query: '' } },
+      };
+      await act(async () => { await sendChat(request); await sendChat(request); });
+      const payloads = fetchMock.mock.calls.map((call) => JSON.parse(call[1]!.body as string));
+      expect(payloads[0]).toMatchObject({
+        requestType: 'beauty_consultation', requestId: request.requestId, screenContext: request.screenContext,
+        styleContext: request.styleContext, chatContext: request.chatContext,
+      });
+      expect(payloads[1]).toEqual(payloads[0]);
+      expect(payloads[0]).not.toHaveProperty('expectedUserId');
+    } finally {
+      await act(async () => { renderer?.unmount(); });
+      client.clear();
+      jest.restoreAllMocks();
+    }
+  });
+
   it('posts to the chat origin with the anonymous ID and chat-only timeout', async () => {
     jest.mocked(getAnonymousChatId).mockResolvedValue('anonymous-id');
     const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
