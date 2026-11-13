@@ -31,6 +31,12 @@ export function CoverageBar({ value, labels, onChange }: CoverageBarProps) {
         accessibilityRole="adjustable"
         accessibilityLabel={labels.title}
         accessibilityValue={{ min: 0, max: 100, now: Math.round(t * 100) }}
+        accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+        onAccessibilityAction={(e) => {
+          if (e.nativeEvent.actionName === 'increment' || e.nativeEvent.actionName === 'decrement') {
+            onChange(Math.min(1, Math.max(0, value + (e.nativeEvent.actionName === 'increment' ? 0.05 : -0.05))));
+          }
+        }}
         style={styles.hit}
         onLayout={(e) => {
           trackWRef.current = e.nativeEvent.layout.width;
@@ -52,12 +58,12 @@ export function CoverageBar({ value, labels, onChange }: CoverageBarProps) {
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16 },
   label: { fontSize: 11, fontWeight: '700', color: theme.colors.inkMuted },
-  hit: { flex: 1, height: 28, justifyContent: 'center' },
+  hit: { flex: 1, height: 44, justifyContent: 'center' },
   track: { height: 6, borderRadius: 3, backgroundColor: theme.colors.border },
   fill: { position: 'absolute', left: 0, height: 6, borderRadius: 3, backgroundColor: theme.colors.ink },
   knob: {
     position: 'absolute',
-    top: 4,
+    top: 12,
     width: KNOB,
     height: KNOB,
     borderRadius: KNOB / 2,

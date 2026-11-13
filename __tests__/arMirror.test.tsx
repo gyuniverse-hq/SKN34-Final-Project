@@ -89,6 +89,7 @@ it('folds the product panel without clearing makeup, then restores the same sele
     screen = renderer.create(<ArTryOnScreen />);
   });
 
+  await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.arc.tools' }).props.onPress(); });
   const fold = screen.root.findByProps({ accessibilityLabel: 'ar.mirror.enter' });
   await act(async () => {
     fold.props.onPress();
@@ -103,6 +104,8 @@ it('folds the product panel without clearing makeup, then restores the same sele
     screen.root.findByProps({ accessibilityLabel: 'ar.mirror.exit' }).props.onPress();
   });
 
+  expect(screen.root.findByProps({ accessibilityLabel: 'ar.arc.tools' })).toBeTruthy();
+  await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.arc.tools' }).props.onPress(); });
   expect(screen.root.findByProps({ accessibilityLabel: 'ar.mirror.enter' })).toBeTruthy();
   expect(useMakeupStore.getState().selections.lip).toEqual({ productId: lip.id, shadeId: shade.id });
   await act(async () => {
