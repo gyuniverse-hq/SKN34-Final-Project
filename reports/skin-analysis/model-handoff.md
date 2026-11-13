@@ -1,3 +1,5 @@
+> 2026-11-12: NIA SAM 구형 번들과 `nia:test` 실행기는 사용자 요청으로 폐기했다. 아래는 과거 기록이며 현재 모바일 분석은 v3/v4를 사용한다. [보존·정리 범위](../../docs/recommendation-v2-artifacts.md)를 참고한다.
+
 # 네 항목 피부 분석 모델 인계
 
 ## pull 후 테스트 페이지 실행 (Windows x64)

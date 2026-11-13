@@ -1,4 +1,5 @@
 import { skincareZh } from './skincare';
+import { comparisonZh } from './recommendationComparison';
 import { supportZh } from './skinSupport';
 import { surveyZh } from './survey';
 import type { Dictionary } from './en';
@@ -7,6 +8,40 @@ import { skinZh } from './skin';
 import { skinReportZh } from './skinReport';
 
 export const zh: Dictionary = {
+  'ar.arc.compareShort': '对比',
+  'ar.arc.mirrorShort': '镜子',
+  'ar.arc.infoShort': '说明',
+  'ar.arc.compare': '前后对比',
+  'ar.arc.tools': "工具",
+  'ar.arc.info': "AR说明",
+  'ar.arc.palette': "色彩盘",
+  'ar.arc.swipe': "左右滑动探索色号",
+  'ar.arc.hold': "点击或长按切换部位",
+  'ar.arc.release': '滑动选择 · 松开应用',
+  'ar.arc.zones': "切换化妆部位",
+  'ar.arc.anchor': "基准色",
+  'ar.arc.direction': "颜色变化方向",
+  'ar.arc.pickShade': "请选择色号",
+  'ar.arc.light': "淡",
+  'ar.arc.strong': "浓",
+
+  'ar.explore.free': "自由探索",
+  'ar.explore.nearby': "探索相近色",
+  'ar.explore.pickFirst': "先选择一款产品颜色，即可探索相近色。",
+  'ar.explore.anchor': "基准色 · 点击重新试妆",
+  'ar.explore.applyAnchor': "重新试用基准色",
+  'ar.explore.back': "上个基准",
+  'ar.explore.similar': "相似颜色",
+  'ar.explore.lighter': "稍微更亮",
+  'ar.explore.darker': "稍微更暗",
+  'ar.explore.muted': "更柔和",
+  'ar.explore.vivid': "更鲜明",
+  'ar.explore.allTextures': "全部质地",
+  'ar.explore.results': "{count}款产品 · 按颜色接近程度排序",
+  'ar.explore.basis': "以收录的颜色为准，实际显色和质地可能不同。",
+  'ar.explore.empty': "没有符合此方向和质地的产品。请选择其他方向、质地，或返回自由探索。",
+  'ar.explore.preview': "正在试用的颜色",
+  'ar.explore.rebase': "以此颜色继续探索",
   'chat.ingredient.resultFor': "所选商品 · 成分核查",
   'chat.ingredient.showDetails': "查看依据与成分列表",
   'chat.ingredient.hideDetails': "收起依据详情",
@@ -43,6 +78,7 @@ export const zh: Dictionary = {
   'chat.carousel.ordinal': "号",
   'chat.carousel.ingredient': "这款产品含有哪些成分？",
   'chat.carousel.details': "详细介绍这款产品",
+  ...comparisonZh,
   ...skincareZh,
   ...supportZh,
   ...surveyZh,
@@ -660,7 +696,10 @@ export const zh: Dictionary = {
   'ar.chatExample1': '有没有颜色更浅一点的口红？',
   'ar.chatExample2': '腮红再柔和一点',
   'ar.chatExample3': '给我看看珊瑚色妆容',
-  'ar.chatPlaceholder': '输入你的需求',
+  'ar.chatSuggestion.lip': '寻找更浅的唇色',
+  'ar.chatSuggestion.blush': '腮红更柔和',
+  'ar.chatSuggestion.coral': '珊瑚色妆容',
+  'ar.chatPlaceholder': '说说你想做的调整',
   'ar.mic': '说话',
   'ar.send': '发送',
   'ar.chatAppliedShade': '已套用符合请求的目录色号。',

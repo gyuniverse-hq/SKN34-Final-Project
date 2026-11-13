@@ -66,8 +66,8 @@ class RecommendationRequestRow(Base):
     catalog_version: Mapped[str | None] = mapped_column(Text)
     catalog_digest: Mapped[str | None] = mapped_column(Text)
     policy_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
-    model_manifest: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
-    recommendation_evidence: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    model_manifest: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
+    recommendation_evidence: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
     failure_code: Mapped[str | None] = mapped_column(Text)
 
 
