@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 import { AccessGate, Workspace } from "./App";
 import { OrderActions } from "./pages/Commerce";
+import { LocalConsent } from "./LocalConsent";
 import {
   compareRuns,
   comparisonVerdict,
@@ -28,6 +29,22 @@ const order: Order = {
   nextStatuses: ["preparing", "canceled"],
 };
 describe("권한과 운영 화면", () => {
+  it("로컬 회원 등록은 필수 동의를 직접 선택해야 진행한다", async () => {
+    const register = vi.fn().mockResolvedValue(undefined);
+    render(<LocalConsent onRegister={register} />);
+    const button = screen.getByRole("button", {
+      name: "동의하고 로컬 회원 등록",
+    });
+    expect(button).toBeDisabled();
+    fireEvent.click(screen.getByRole("checkbox", { name: /이용약관/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /개인정보/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /만 14세/ }));
+    fireEvent.click(button);
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "로컬 회원 등록이 끝났습니다",
+    );
+    expect(register).toHaveBeenCalledOnce();
+  });
   it("로그인 전에는 이메일 코드 로그인을 표시한다", () => {
     render(
       <AccessGate ready signedIn={false} forbidden={false}>

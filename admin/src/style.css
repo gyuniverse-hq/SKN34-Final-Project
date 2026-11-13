@@ -377,6 +377,21 @@ dialog button {
   gap: 18px;
   margin: 35px 0;
 }
+.local-consent {
+  margin: 25px 0;
+  padding: 20px;
+  background: #faf8f9;
+  border-radius: 8px;
+}
+.local-consent label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 14px 0;
+}
+.local-consent label a {
+  margin-left: auto;
+}
 details {
   padding: 18px 0;
   border-bottom: 1px solid #eee;

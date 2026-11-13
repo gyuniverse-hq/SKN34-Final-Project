@@ -13,10 +13,38 @@ const url = config?.supabaseUrl || import.meta.env.VITE_SUPABASE_URL;
 const key =
   config?.supabasePublishableKey ||
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const apiBase = config?.apiBaseUrl || import.meta.env.VITE_API_BASE_URL || "";
 export const supabase = url && key ? createClient(url, key) : null;
 export const isDemo =
   import.meta.env.DEV &&
   new URLSearchParams(window.location.search).get("demo") === "1";
+// This helper never runs in a published build or against a remote API.
+export const localAccountSetup =
+  import.meta.env.DEV &&
+  ["localhost", "127.0.0.1"].includes(window.location.hostname) &&
+  ["http://localhost:8000", "http://127.0.0.1:8000"].includes(apiBase);
+
+export async function registerLocalConsent(): Promise<void> {
+  if (!localAccountSetup || !supabase)
+    throw new Error("로컬 설정을 확인해 주세요.");
+  const token = (await supabase.auth.getSession()).data.session?.access_token;
+  if (!token) throw new Error("다시 로그인해 주세요.");
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  };
+  const account = await fetch(`${apiBase}/api/me`, { headers });
+  if (!account.ok) throw new Error("로컬 회원 정보를 확인하지 못했습니다.");
+  const record: { terms?: { version?: string } } = await account.json();
+  if (!record.terms?.version)
+    throw new Error("약관 버전을 확인하지 못했습니다.");
+  const saved = await fetch(`${apiBase}/api/me/terms`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ version: record.terms.version }),
+  });
+  if (!saved.ok) throw new Error("로컬 회원 등록을 완료하지 못했습니다.");
+}
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -46,17 +74,14 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     return demoResponse(path) as T;
   }
   const token = (await supabase?.auth.getSession())?.data.session?.access_token;
-  const response = await fetch(
-    `${config?.apiBaseUrl || import.meta.env.VITE_API_BASE_URL || ""}/api/admin${path}`,
-    {
-      ...init,
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...init.headers,
-      },
+  const response = await fetch(`${apiBase}/api/admin${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...init.headers,
     },
-  );
+  });
   const data = await response.json();
   if (!response.ok)
     throw new ApiError(

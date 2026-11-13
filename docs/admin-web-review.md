@@ -24,7 +24,7 @@ ADMIN_ENABLED=true일 때 생성 시 합산 수량을 검사하고 확정 시 �
 
 ## 로컬 사용
 
-`admin/`에서 `npm ci`, `npm run dev`. `http://127.0.0.1:5173/?demo=1`은 개발 전용 조회 미리보기다. 상품·주문은 예시, AR 숫자는 2026-11-12 v2 5명 집계다. 별도의 DB나 Supabase 연결 없이 볼 수 있다. 실제 연결은 [배포 안내](DEPLOYMENT.md)를 따른다.
+`admin/`에서 `npm ci`, `npm run dev`. `http://127.0.0.1:5173/?demo=1`은 개발 전용 조회 미리보기다. 상품·주문은 예시, AR 숫자는 2026-11-12 v2 5명 집계다. 별도의 DB나 Supabase 연결 없이 볼 수 있다. 실제 연결은 [배포 안내](DEPLOYMENT.md)를 따른다. 개발 서버에서 로컬 API에 연결한 경우에만 권한 없음 화면에서 본인이 약관을 확인하고 동의하여 로컬 회원 기록을 만들 수 있다. 관리자 권한은 별도로 운영자 잡이 부여하며 이 보조 화면은 운영 빌드에 들어가지 않는다.
 
 실제 로그인은 기존 Supabase 이메일+코드, 서버 직원 역할 검사다. 프런트엔드는 공개 URL·publishable 키만 갖는다. viewer는 변경 버튼·감사 메뉴가 없고 서버도 변경을 거부한다. API는 [명세](design/api-spec.md)에 11개 경로와 권한·응답·오류를 기록했다. 입력·출력 모델은 `backend/api/app/schemas/admin.py`, 프런트 타입은 `admin/src/api/types.ts`다.
 
@@ -35,7 +35,7 @@ AR 집계는 `publish_eval.py --dry-run`으로 생성했다. HTTP 게시 도구�
 - 일회용 Docker PostgreSQL 17, `vishue-admin-review-pg`, loopback **127.0.0.1:15439**, 별도 admin_review DB. DATABASE_URL을 명시했고 기존 .env 값을 사용하지 않았다. API 통합 테스트는 추가 격리 스키마에서 실행했다.
 - 빈 DB upgrade head, downgrade -1 → upgrade head 왕복, alembic check, 단일 0021 head: 통과.
 - backend/api Ruff·import-linter: 통과. 전체 pytest 486 passed·9 skipped. 관리자 테스트는 49개(36개 상태 조합 포함)이며 동시 결제 경합도 검증했다. 기존 테스트 임시 폴더의 Windows 권한/부모 폴더 문제는 checkout의 tmp 아래 basetemp를 명시해 해결했다.
-- admin lint·typecheck·Vitest 8개·build: 통과. 최대 JS chunk 약 515KB(압축 약 150KB)의 빌드 권고가 남아 있다. root npm run check의 타입·린트는 통과했다. 병렬 Jest는 기존 테스트 2개가 시간 초과했으나 npm test -- --runInBand에서 76 suites·1,001 tests가 모두 통과했다. 테스트 제한·코드는 완화하지 않았다.
+- admin lint·typecheck·Vitest 10개·build: 통과. 최대 JS chunk 약 515KB(압축 약 150KB)의 빌드 권고가 남아 있다. root npm run check의 타입·린트는 통과했다. 병렬 Jest는 기존 테스트 2개가 시간 초과했으나 npm test -- --runInBand에서 76 suites·1,001 tests가 모두 통과했다. 테스트 제한·코드는 완화하지 않았다.
 - Helm local·prod lint: 통과(icon 권고만). 관리자 Docker build와 읽기 전용·비루트 실행, `/orders/any` SPA 새로고침·`/config.js` HTTP 200 확인. 실제 클러스터 배포·브라우저 시각 검사는 미실행.
 - 원래 연구 작업 공간의 기존 pytest 15개, 새 게시 도구 테스트 2개가 통과했다. v2 dry-run payload는 엄격한 스키마를 통과했다. 실제 API 업로드는 하지 않았다.
 

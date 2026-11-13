@@ -2,7 +2,13 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, Navigate, NavLink, Route, Routes } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, ApiError, isDemo, supabase } from "./api/client";
+import {
+  api,
+  ApiError,
+  isDemo,
+  localAccountSetup,
+  supabase,
+} from "./api/client";
 import type { Staff } from "./api/types";
 const Orders = lazy(() =>
   import("./pages/Commerce").then((m) => ({ default: m.Orders })),
@@ -16,6 +22,11 @@ const AuditLog = lazy(() =>
 const Evaluations = lazy(() =>
   import("./pages/Evaluations").then((m) => ({ default: m.Evaluations })),
 );
+const LocalConsent = import.meta.env.DEV
+  ? lazy(() =>
+      import("./LocalConsent").then((m) => ({ default: m.LocalConsent })),
+    )
+  : null;
 
 export function AccessGate({
   ready,
@@ -40,6 +51,11 @@ export function AccessGate({
         <p>
           직원 권한이 등록되지 않았습니다. 운영자에게 권한 등록을 요청해 주세요.
         </p>
+        {localAccountSetup && LocalConsent && (
+          <Suspense fallback={<p>불러오는 중…</p>}>
+            <LocalConsent />
+          </Suspense>
+        )}
         <button onClick={() => void supabase?.auth.signOut()}>
           다른 계정으로 로그인
         </button>
