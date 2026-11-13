@@ -35,7 +35,7 @@ AR 집계는 `publish_eval.py --dry-run`으로 생성했다. HTTP 게시 도구�
 - 일회용 Docker PostgreSQL 17, `vishue-admin-review-pg`, loopback **127.0.0.1:15439**, 별도 admin_review DB. DATABASE_URL을 명시했고 기존 .env 값을 사용하지 않았다. API 통합 테스트는 추가 격리 스키마에서 실행했다.
 - 빈 DB upgrade head, downgrade -1 → upgrade head 왕복, alembic check, 단일 0021 head: 통과.
 - backend/api Ruff·import-linter: 통과. 전체 pytest 486 passed·9 skipped. 관리자 테스트는 49개(36개 상태 조합 포함)이며 동시 결제 경합도 검증했다. 기존 테스트 임시 폴더의 Windows 권한/부모 폴더 문제는 checkout의 tmp 아래 basetemp를 명시해 해결했다.
-- admin lint·typecheck·Vitest 10개·build: 통과. 최대 JS chunk 약 515KB(압축 약 150KB)의 빌드 권고가 남아 있다. root npm run check의 타입·린트는 통과했다. 병렬 Jest는 기존 테스트 2개가 시간 초과했으나 npm test -- --runInBand에서 76 suites·1,001 tests가 모두 통과했다. 테스트 제한·코드는 완화하지 않았다.
+- admin lint·typecheck·Vitest 13개·build: 통과. 로그인 요청 오류는 안전한 오류 코드에 따라 안내하며 계정을 자동 생성하지 않는다. 최대 JS chunk 약 517KB(압축 약 150KB)의 빌드 권고가 남아 있다. root npm run check의 타입·린트는 통과했다. 병렬 Jest는 기존 테스트 2개가 시간 초과했으나 npm test -- --runInBand에서 76 suites·1,001 tests가 모두 통과했다. 테스트 제한·코드는 완화하지 않았다.
 - Helm local·prod lint: 통과(icon 권고만). 관리자 Docker build와 읽기 전용·비루트 실행, `/orders/any` SPA 새로고침·`/config.js` HTTP 200 확인. 실제 클러스터 배포·브라우저 시각 검사는 미실행.
 - 원래 연구 작업 공간의 기존 pytest 15개, 새 게시 도구 테스트 2개가 통과했다. v2 dry-run payload는 엄격한 스키마를 통과했다. 실제 API 업로드는 하지 않았다.
 

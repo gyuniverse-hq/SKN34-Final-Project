@@ -10,6 +10,7 @@ import {
   supabase,
 } from "./api/client";
 import type { Staff } from "./api/types";
+import { loginErrorMessage } from "./api/authErrors";
 const Orders = lazy(() =>
   import("./pages/Commerce").then((m) => ({ default: m.Orders })),
 );
@@ -78,15 +79,19 @@ function Login() {
     setError("");
     try {
       const { error: issue } = sent
-        ? await supabase.auth.verifyOtp({ email, token: code, type: "email" })
+        ? await supabase.auth.verifyOtp({
+            email: email.trim(),
+            token: code.trim(),
+            type: "email",
+          })
         : await supabase.auth.signInWithOtp({
-            email,
+            email: email.trim(),
             options: { shouldCreateUser: false },
           });
       if (issue) throw issue;
       setSent(true);
-    } catch {
-      setError("로그인 요청에 실패했습니다. 이메일과 코드를 확인해 주세요.");
+    } catch (issue) {
+      setError(loginErrorMessage(issue, sent));
     } finally {
       setBusy(false);
     }
