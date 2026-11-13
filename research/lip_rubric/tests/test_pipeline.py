@@ -8,9 +8,9 @@ import pytest
 HERE=Path(__file__).resolve().parents[1]; sys.path.insert(0,str(HERE))
 from common import checks, icc2, krippendorff_alpha, load_json, read_csv, score, write_csv
 from aggregate import aggregate
-from analyze import classify, compare
+from analyze import classify, compare, kind_order_ok
 from build_pack import assign_splits, mirrored_ring
-from judge import MockJudge, generate_valid, knn_leave_one_face_out, retrieve, run
+from judge import MockJudge, generate_valid, knn_leave_one_face_out, parse_response, retrieve, run
 from make_colab_pack import make_pack
 
 RUBRIC=load_json(HERE/'rubric.json')
@@ -64,6 +64,14 @@ def test_mock_retrieval_retry():
     assert result['total']==5 and attempts==2 and error==''
 
 
+def test_parse_response_wrapped_json():
+    body=json.dumps({'checks':{c['id']:1 for c in checks(RUBRIC)},'overall':4,'reason':'자연스러움'},ensure_ascii=False)
+    for text in (body, '```json\n'+body+'\n```', '평가 결과입니다.\n'+body+'\n이상입니다.'):
+        assert parse_response(text,RUBRIC,'satin')['total']==5
+    with pytest.raises(ValueError):
+        parse_response('JSON을 만들 수 없습니다',RUBRIC,'satin')
+
+
 def test_knn_leave_one_face_out():
     records=[{'image_id':f'r{i}','face_id':f'f{i//2}','kind':'render','finish':'satin','total_mean':str(i)} for i in range(8)]
     records.append({'image_id':'s','face_id':'f9','kind':'sticker','finish':'satin','total_mean':'0'})
@@ -82,6 +90,9 @@ def test_decisions():
     assert classify(.6,.5,.7,[.1,.8],[-.1,.3],True)=='보조만'
     assert classify(.2,.3,.7,[-.1,.5],[-.3,.1],False)=='쓰지 않음'
     assert classify(None,.3,.7,None,None,False)=='판정 불가'
+    assert not kind_order_ok({'sticker':4.9,'render':4.98,'real':5.0},0.0)
+    assert kind_order_ok({'sticker':1.3,'render':3.2,'real':3.6},0.625)
+    assert not kind_order_ok({'sticker':None,'render':3.2,'real':3.6},0.9)
 
 
 def test_non_lapa_rejected(tmp_path):

@@ -41,8 +41,16 @@ def knn_leave_one_face_out(records, embeddings, k=3, kind='render'):
     return {'kind':kind,'k':k,'n':len(predictions),'spearman':boot['estimate'],'spearman_ci95':boot['ci95'],'mae':mae,'predictions':predictions}
 
 
+def extract_json(text):
+    """Return the first JSON object in a model reply that may wrap it in a code fence or prose."""
+    start=text.find('{')
+    if start<0: raise ValueError('no JSON object in response')
+    obj,_=json.JSONDecoder().raw_decode(text[start:])
+    return obj
+
+
 def parse_response(text, rubric, finish):
-    obj=json.loads(text)
+    obj=extract_json(text)
     if not isinstance(obj,dict) or set(obj)!= {'checks','overall','reason'} or not isinstance(obj['checks'],dict):
         raise ValueError('invalid JSON object fields')
     expected={c['id'] for c in checks(rubric)}
@@ -105,14 +113,15 @@ class QwenJudge:
 
 
 def generate_valid(adapter, rubric, item, images, examples, retries):
-    error=''
+    error=''; excerpt=''
     for attempt in range(retries+1):
+        answer=''
         try:
             answer=adapter.generate(prompt(rubric,item)+(f'\n이전 응답 오류: {error}. JSON만 다시 출력하세요.' if error else ''),images,examples,item)
             return parse_response(answer,rubric,item['finish']),attempt+1,''
         except (ValueError,TypeError,json.JSONDecodeError) as exc:
-            error=str(exc)
-    return None,retries+1,error
+            error=str(exc); excerpt=' '.join(str(answer).split())[:200]
+    return None,retries+1,f'{error} | 응답 앞부분: {excerpt}'
 
 
 def embed_crops(rows, root, config):
@@ -148,7 +157,7 @@ def run(root, output, config, rubric, adapter, embeddings, mock=False):
     run_id=hashlib.sha256(provenance.encode()).hexdigest()
     existing=read_csv(output) if output.exists() else []
     if existing and any(r['run_id']!=run_id for r in existing): raise ValueError('output contains a different experiment; use a new path')
-    done={(r['image_id'],r['method'],int(r['repeat'])) for r in existing}
+    done={(r['image_id'],r['method'],int(r['repeat'])) for r in existing if r['status']=='ok'}
     gpu='mock'
     if not mock:
         import torch

@@ -22,6 +22,13 @@ def classify(b, c, human, b_ci, difference_ci, order_ok):
     return '쓰지 않음'
 
 
+def kind_order_ok(means, triples_fraction):
+    """Sticker < render < real by mean AND in most (sticker, render, real) triples, so near-equal means do not pass."""
+    if any(means.get(k) is None for k in ('sticker','render','real')) or triples_fraction is None:
+        return False
+    return means['sticker']<means['render']<means['real'] and triples_fraction>0.5
+
+
 def compare(ratings_path, key_path, rubric_path, judge_path, rater_files, output):
     rubric = load_json(rubric_path); keys = {r['random_id']:r for r in read_csv(key_path)}
     ratings = {r['image_id']:r for r in read_csv(ratings_path) if r['split'] == 'test'}
@@ -54,7 +61,8 @@ def compare(ratings_path, key_path, rubric_path, judge_path, rater_files, output
         kinds={kind:[float(p['total']) for h,p in pairs if h['kind']==kind] for kind in ('sticker','render','real')}
         triples=list(itertools.product(kinds['sticker'],kinds['render'],kinds['real']))
         means={k:statistics.mean(v) if v else None for k,v in kinds.items()}
-        order_ok=all(means[k] is not None for k in means) and means['sticker']<means['render']<means['real']
+        triples_fraction=sum(a<b<c for a,b,c in triples)/len(triples) if triples else None
+        order_ok=kind_order_ok(means,triples_fraction)
         repeats=[]
         for image in pred:
             rs=[r for r in result_rows if r['image_id']==image and r['method']==method and r['repeat'] in ('1','2','3') and r['status']=='ok']
@@ -63,7 +71,7 @@ def compare(ratings_path, key_path, rubric_path, judge_path, rater_files, output
                 for a,b in itertools.combinations(rs,2):
                     x,y=json.loads(a['checks_json']),json.loads(b['checks_json']); agreements.extend(x[c['id']]==y[c['id']] for c in checks(rubric))
                 repeats.append({'image_id':image,'total_std':float(np.std([float(r['total']) for r in rs])), 'check_agreement':statistics.mean(agreements)})
-        methods[method]={'n':len(pairs),'spearman':corr,'spearman_ci95':ci,'mae':statistics.mean(abs(x-y) for x,y in zip(xs,ys)) if pairs else None,'question_spearman':qs,'check_agreement':agreement,'kind_means':means,'order_of_kind_means':order_ok,'ordered_triples_fraction':sum(a<b<c for a,b,c in triples)/len(triples) if triples else None,'ordered_triples_n':len(triples),'repeats':repeats}
+        methods[method]={'n':len(pairs),'spearman':corr,'spearman_ci95':ci,'mae':statistics.mean(abs(x-y) for x,y in zip(xs,ys)) if pairs else None,'question_spearman':qs,'check_agreement':agreement,'kind_means':means,'order_of_kind_means':order_ok,'ordered_triples_fraction':triples_fraction,'ordered_triples_n':len(triples),'repeats':repeats}
     ids=sorted(set(paired['B']) & set(paired['C']) & set(ratings)); obs=[{'face_id':ratings[i]['face_id'],'id':i} for i in ids]
     def difference(rows):
         h=[float(ratings[r['id']]['total_mean']) for r in rows]; b=[float(paired['B'][r['id']]['total']) for r in rows]; c=[float(paired['C'][r['id']]['total']) for r in rows]

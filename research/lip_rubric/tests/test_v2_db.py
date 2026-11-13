@@ -69,8 +69,18 @@ def test_db_mock_end_to_end(tmp_path):
     fake=tmp_path/'mockpack';fake.mkdir(); ratings=read_csv(tmp_path/'results/ratings.csv');write_csv(fake/'ratings.csv',ratings)
     write_csv(fake/'meta.csv',[{'image_id':r['random_id'],'face_id':r['face_id'],'split':r['split'],'kind':r['kind'],'finish':r['finish'],'mouth':r['mouth']} for r in keys])
     vectors={r['random_id']:np.array([1.,i+1]) for i,r in enumerate(keys)}; judgefile=tmp_path/'judge.csv'
-    run(fake,judgefile,load_json(HERE/'judges.json'),RUBRIC,MockJudge(RUBRIC),vectors,True); db.import_judge(con,judgefile);db.import_judge(con,judgefile)
+
+    class FailZeroShot(MockJudge):
+        def generate(self, text, images, examples, item):
+            return 'not json' if not examples else super().generate(text, images, examples, item)
+    config=load_json(HERE/'judges.json')
+    run(fake,judgefile,config,RUBRIC,FailZeroShot(RUBRIC),vectors,True); db.import_judge(con,judgefile)
+    assert con.execute("select count(*) from judge_scores where method='zero_shot' and valid=0").fetchone()[0]==9
+    retry=MockJudge(RUBRIC); run(fake,judgefile,config,RUBRIC,retry,vectors,True)
+    assert retry.calls==9
+    db.import_judge(con,judgefile);db.import_judge(con,judgefile)
     assert con.execute('select count(*) from judge_scores').fetchone()[0]==54
+    assert con.execute('select count(*) from judge_scores where valid=0').fetchone()[0]==0
     result=analyze_db(con,tmp_path/'results/summary.json'); assert result['decision']=='판정 불가'
     for run_id,offset in [('old',0),('new',1)]:
         con.execute('insert into runs(run_id,kind,started_at) values(?,?,?)',(run_id,'bench','2026'))

@@ -112,7 +112,12 @@ def import_judge(con, file):
             rubric=con.execute('SELECT rubric_version FROM packs WHERE pack_id=?',(meta['pack_id'],)).fetchone()
             if not rubric or rubric['rubric_version']!=VERSION: raise ValueError('v2 pack required')
             con.execute('INSERT OR IGNORE INTO runs VALUES(?,?,?,?,?,?,?,?,?,?)',(r['run_id'],'judge',None,None,None,None,None,None,now(),json.dumps({'source':str(file),'sha256':sha256(file)})))
-            con.execute('INSERT OR IGNORE INTO judge_scores VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(r['run_id'],r['image_id'],methods[r['method']],int(r['repeat']),r['model_id'],r['model_revision'],int(r['k']),r['checks_json'],float(r['overall']) if r['overall'] else None,float(r['total']) if r['total'] else None,r['reason'],float(r['elapsed_seconds']),int(r['status']=='ok'),r['questions_json'],json.dumps(r)))
+            # A retried row that succeeded replaces the earlier failed row; a valid row is never overwritten.
+            con.execute('INSERT INTO judge_scores VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(run_id,image_id,method,repeat_index) DO UPDATE SET '
+                        'model_id=excluded.model_id,revision=excluded.revision,k=excluded.k,checks_json=excluded.checks_json,overall=excluded.overall,total=excluded.total,'
+                        'reason=excluded.reason,latency_s=excluded.latency_s,valid=excluded.valid,questions_json=excluded.questions_json,metadata_json=excluded.metadata_json '
+                        'WHERE judge_scores.valid=0 AND excluded.valid=1',
+                        (r['run_id'],r['image_id'],methods[r['method']],int(r['repeat']),r['model_id'],r['model_revision'],int(r['k']),r['checks_json'],float(r['overall']) if r['overall'] else None,float(r['total']) if r['total'] else None,r['reason'],float(r['elapsed_seconds']),int(r['status']=='ok'),r['questions_json'],json.dumps(r)))
 
 
 def main():
