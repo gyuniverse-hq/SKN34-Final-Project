@@ -1,4 +1,8 @@
 export const comparisonEn = {
+  'comparison.historyOn': 'Signed-in comparisons, visible recommendations and product actions are recorded for V2 evaluation.',
+  'comparison.historyOff': 'Sign in to record V2 recommendation history. Guest comparisons are not saved.',
+  'comparison.feedbackFailed': 'Some recommendation responses could not be saved. Product actions remain available.',
+  'comparison.openProduct': 'View product',
   'comparison.reviewScope': 'Reviews combine rating, review count and the selected concern’s answer. Skin-type and irritation answers are excluded.',
   'comparison.expansionPreview': '{count} concern candidates; first 20 shown. Full list in JSON.',
   'comparison.sharedSource': 'ML shared tag', 'comparison.concernSource': 'Concern tag',
@@ -32,6 +36,10 @@ export const comparisonEn = {
 };
 type Keys = keyof typeof comparisonEn;
 export const comparisonKo: Record<Keys, string> = {
+  'comparison.historyOn': '로그인 상태에서는 V2 평가를 위해 비교 실행, 추천 노출, 상품 반응을 기록합니다.',
+  'comparison.historyOff': '로그인하면 V2 추천 기록을 저장합니다. 비회원 비교는 저장하지 않습니다.',
+  'comparison.feedbackFailed': '일부 추천 반응을 저장하지 못했습니다. 상품 기능은 계속 이용할 수 있습니다.',
+  'comparison.openProduct': '상품 보기',
   'comparison.reviewScope': '리뷰 보정에는 평점·리뷰 수·선택된 피부고민 응답비율을 반영합니다. 피부타입·자극도 응답은 섞지 않습니다.',
   'comparison.expansionPreview': '고민 후보 {count}개 중 처음 20개 표시 · 전체 목록은 JSON에서 확인',
   'comparison.sharedSource': 'ML 태그 연결', 'comparison.concernSource': '고민 태그 연결',
@@ -58,6 +66,10 @@ export const comparisonKo: Record<Keys, string> = {
   'comparison.disabled': '개발 환경에서만 사용할 수 있습니다.', 'comparison.status': '실행 상태: {status}', 'comparison.unknown': '확인 불가',
 };
 export const comparisonJa: Record<Keys, string> = {
+  'comparison.historyOn': 'ログイン中はV2評価のため、比較実行・推薦表示・商品への操作を記録します。',
+  'comparison.historyOff': 'ログインするとV2推薦履歴を保存します。ゲストの比較は保存しません。',
+  'comparison.feedbackFailed': '一部の推薦への反応を保存できませんでした。商品機能は引き続き使えます。',
+  'comparison.openProduct': '商品を見る',
   'comparison.reviewScope': 'レビュー補正は評価・レビュー数・選択された悩みの回答率を使用します。肌タイプ・刺激の回答は含みません。',
   'comparison.expansionPreview': '候補{count}件の先頭20件。全件はJSONで確認。',
   'comparison.sharedSource': 'ML共有タグ', 'comparison.concernSource': '悩みタグ',
@@ -78,6 +90,10 @@ export const comparisonJa: Record<Keys, string> = {
   'comparison.analyze': '肌解析を開く', 'comparison.disabled': '開発環境専用です。', 'comparison.status': '実行状態: {status}', 'comparison.unknown': '不明',
 };
 export const comparisonZh: Record<Keys, string> = {
+  'comparison.historyOn': '登录后将记录对比、推荐曝光和商品操作，用于V2评估。',
+  'comparison.historyOff': '登录后可保存V2推荐记录，访客对比不会保存。',
+  'comparison.feedbackFailed': '部分推荐反馈未能保存，商品功能仍可使用。',
+  'comparison.openProduct': '查看商品',
   'comparison.reviewScope': '评价调整使用评分、评价数量及所选皮肤问题的回答比例，不混入肤质或刺激度回答。',
   'comparison.expansionPreview': '共{count}个候选，显示前20个。完整列表见JSON。',
   'comparison.sharedSource': 'ML共享标签', 'comparison.concernSource': '问题标签',

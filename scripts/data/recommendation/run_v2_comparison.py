@@ -1,4 +1,4 @@
-"""Local comparison API / smoke checks. Reads Docker config; never changes containers or DB."""
+"""Local comparison API / smoke checks. Signed-in recorded runs write V2 feedback history."""
 
 import argparse
 import csv
@@ -27,6 +27,10 @@ def docker_settings():
         ("postgresql+asyncpg", authority, url.path, url.query, url.fragment)
     )
     os.environ["RECOMMENDATION_V1_REVISION"] = api["Image"]
+    # Reuse only public token-verification settings; never copy the admin secret key.
+    for key in ("SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY"):
+        if values.get(key):
+            os.environ.setdefault(key, values[key])
 
 
 def main():

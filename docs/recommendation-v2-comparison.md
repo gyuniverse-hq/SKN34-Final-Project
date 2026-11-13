@@ -6,8 +6,8 @@
 [현재 재학습 방법](../scripts/data/recommendation/README.md)을 기준으로 실행한다.
 
 지속 개선을 위한 추천 요청·후보·실제 노출·사용자 반응 기록은
-[V2 개선용 ERD·명세](recommendation-v2-feedback-erd.md)에 정리했다. 담당자 협의용 설계이며
-현재 정책11, 실행 코드, DB 및 사용자 행동 수집을 변경한 것은 아니다.
+[V2 개선용 ERD·명세](recommendation-v2-feedback-erd.md)에 정리했다. 2026-11-13부터
+로그인한 개발 비교는 0020의 요청·후보·노출·반응 테이블에 연결한다. 정책11의 순위 계산은 유지한다.
 
 모델·학습 원문과 아래 실험별 산출물 경로는 로컬 자료이며 Git에 포함하지 않는다.
 새 clone에서는 인계 문서에 명시한 모델 번들·DB를 별도로 준비해야 실제 비교를 실행할 수 있다.
@@ -22,7 +22,7 @@
 # 최초 1회: 기존 모델을 native CatBoost로 내보내고 793건 예측 일치를 확인한다.
 uv run --project ml --group recommendation python scripts/data/recommendation/export_v2_bundle.py --output ml/data/recommendation-v2/serving-bundle-20261111
 
-# 비교 API. 기존 Docker API나 DB를 변경하지 않는다.
+# 비교 API. 로그인한 비교의 추천·반응 이력을 로컬 DB에 저장한다.
 uv run --project backend/api --group recommendation python scripts/data/recommendation/run_v2_comparison.py --docker-local
 
 # 다른 터미널: PC 로컬 비교 화면
@@ -34,6 +34,13 @@ npm exec expo start -- --web --port 8083 --localhost
 앱에서 피부 분석 → 결과 화면 하단 **V1 / V2 추천 비교**로 진입한다. 또는 개발 웹에서 `/dev/recommendation-comparison`을 연다. 연령대와 성별만 입력하고 저장된 v4 분석을 사용한다. 고민 선택 화면은 없다. 버튼을 누른 시점의 입력이 결과에 함께 표시되며 입력 수정만으로 이전 결과가 새 입력의 결과인 것처럼 바뀌지 않는다.
 
 PC에서는 `http://localhost:8083/dev/recommendation-comparison`으로 접속한다. 기본 비교 API는 Metro와 같은 호스트의 8082 포트이며 실행기는 `127.0.0.1`에만 바인딩한다. 따라서 휴대폰에서의 접근은 아직 지원하지 않는다. 다른 개발 API가 준비되면 `EXPO_PUBLIC_RECOMMENDATION_COMPARE_URL`로 주소를 지정할 수 있다. 웹 CORS는 기본 localhost/127.0.0.1의 8081·8083을 허용하며, 다른 주소는 `CORS_ORIGINS`로 명시한다. 개인 개발 환경에서만 실행한다. API는 `ENV=local/development/test`와 `RECOMMENDATION_COMPARISON_ENABLED=true`가 모두 필요하며 production에서는 404다. 개발 실행기는 access log를 끄며 요청 본문은 저장하지 않는다. 결과 JSON은 화면에서 확인·복사할 수 있다.
+
+로그인 이력 저장에는 같은 Supabase 프로젝트의 `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`,
+약관 동의가 완료된 회원과 DB 마이그레이션 `0020`이 필요하다. `--docker-local`은 실행 중인 API에서
+공개 인증 설정 두 개도 읽어 온다. 관리자 secret key는 가져오지 않는다. 실행기 자체가 마이그레이션을
+적용하지는 않으므로 다른 환경은 기존 배포 절차로 준비한다. 위의 "요청 본문 미저장"은 비회원 비교와
+접근 로그에 해당하며, 로그인한 비교는 검증된 숫자·범주 입력을 `input_snapshot`에 저장한다.
+8082가 다른 프로세스에 사용 중이면 `--port`와 앱의 `EXPO_PUBLIC_RECOMMENDATION_COMPARE_URL`을 함께 맞춘다.
 
 ## 실제 입력 계약과 제한
 

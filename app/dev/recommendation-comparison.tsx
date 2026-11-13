@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRecommendationComparison } from '@/hooks/useRecommendationComparison';
+import { useRecommendationFeedback } from '@/hooks/useRecommendationFeedback';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { Button } from '@/components/ui/Button';
 import { theme } from '@/constants/theme';
@@ -15,13 +16,17 @@ export default function RecommendationComparisonScreen() {
   const router = useRouter();
   const flow = useRecommendationComparison();
   const [evidence, setEvidence] = useState(false);
-  const result = flow.mutation.data;
+  const result = flow.result;
+  const { viewportRef, refresh, setCard, href, failed } = useRecommendationFeedback(result, flow.userId);
   if (!__DEV__) return <Text>{t('comparison.disabled')}</Text>;
   return <SafeAreaView style={styles.screen}>
     <Stack.Screen options={{ title: t('comparison.title') }} />
-    <ScrollView contentContainerStyle={styles.content}>
+    <View ref={viewportRef} collapsable={false} style={{ flex: 1 }} onLayout={refresh}>
+    <ScrollView contentContainerStyle={styles.content} onScroll={refresh} scrollEventThrottle={100}>
       <Text style={styles.heading}>{t('comparison.title')}</Text>
       <Text>{t('comparison.intro')}</Text>
+      <Text>{t(flow.userId ? 'comparison.historyOn' : 'comparison.historyOff')}</Text>
+      {failed ? <Text accessibilityRole="alert">{t('comparison.feedbackFailed')}</Text> : null}
       <Text style={styles.notice}>{t('comparison.limitations')}</Text>
       <Text style={styles.label}>{t('comparison.age')}</Text>
       <View style={styles.choices}>{AGES.map(age => <Pressable key={age} accessibilityRole="radio"
@@ -74,14 +79,16 @@ export default function RecommendationComparisonScreen() {
             <Text>{t('comparison.reviewScope')}</Text>
             {!result.v2.reviewAppliedProducts ? <Text style={styles.notice}>{t('comparison.reviewMissing')}</Text> : null}
             <Text style={styles.label}>{t('comparison.products')}</Text>
-            {result.v2.matches.map(item => <View key={item.productId} style={styles.card}>
+            {result.v2.matches.map(item => <View key={item.productId} style={styles.card}
+              ref={node => setCard(item, node)} collapsable={false}>
               <Text style={styles.label}>{item.rank}. {item.productName}</Text>
               <Text selectable>{item.optionId}</Text>
               <Text>{t('comparison.direct')}: {item.directIngredientIds.join(', ') || t('comparison.none')}</Text>
               <Text>{t('comparison.related')}: {item.expandedIngredientIds.join(', ') || t('comparison.none')}</Text>
               <Text>{t('comparison.rank', { before: item.rankBeforeReview, after: item.rank })}</Text>
               <Text>{t('comparison.scoreParts', { base: item.ingredientContribution.toFixed(4), review: item.reviewContribution.toFixed(4), diversity: item.diversityPenalty.toFixed(4) })}</Text>
-              <Text selectable>{JSON.stringify(item.review)}</Text>
+              {evidence ? <Text selectable>{JSON.stringify(item.review)}</Text> : null}
+              <Button label={t('comparison.openProduct')} variant="secondary" onPress={() => router.push(href(item))} />
             </View>)}
           </View>
         </View>
@@ -89,6 +96,7 @@ export default function RecommendationComparisonScreen() {
         {evidence ? <Text selectable style={styles.small}>{JSON.stringify(result, null, 2)}</Text> : null}
       </> : null}
     </ScrollView>
+    </View>
   </SafeAreaView>;
 }
 

@@ -19,6 +19,7 @@ export interface ExpandedIngredient extends ComparisonIngredient {
   origins: { seedId: number; functions: string[]; similarity: number }[];
 }
 export interface ComparisonProduct {
+  candidateId?: string;
   productId: string; productName: string; optionId: string;
   directIngredientIds: number[]; expandedIngredientIds: number[];
   rank: number; rankBeforeReview: number;
@@ -65,6 +66,7 @@ export interface ComparisonProduct {
   diversityPenalty: number; selectionScore: number;
 }
 export interface RecommendationComparisonResult {
+  history?: { requestId: string; sessionId: string };
   input: RecommendationComparisonInput; inputHash: string;
   targetConcern: ComparisonGoal; goalPolicy: string;
   sameSnapshot: boolean; overlapProductIds: string[]; limitations: string[];

@@ -24,7 +24,7 @@ class ComparisonService:
         self.repository = repository
         self.settings = settings
 
-    async def compare(self, body: ComparisonInput) -> dict:
+    async def compare(self, body: ComparisonInput, *, audit: dict | None = None) -> dict:
         goal = target_goal(body)
         request = {
             "primaryGoal": goal,
@@ -67,7 +67,12 @@ class ComparisonService:
             )
             try:
                 v2_result = await run_in_threadpool(
-                    recommend_v2, body, goal, catalog, self.settings.recommendation_v2_bundle or ""
+                    recommend_v2,
+                    body,
+                    goal,
+                    catalog,
+                    self.settings.recommendation_v2_bundle or "",
+                    **({"audit": audit} if audit is not None else {}),
                 )
             except Exception as error:
                 # A visible per-branch failure preserves the other result; no fake fallback.

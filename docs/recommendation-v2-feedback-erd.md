@@ -1,13 +1,25 @@
 # V2 지속 개선을 위한 추천·반응 이력 ERD — 담당자 전달용
 
-기준일: 2026-11-12. **설계 검토용이며 DB·마이그레이션·코드에는 미적용**.
+기준일: 2026-11-13. **0020 마이그레이션과 개발용 피부 분석 V2 비교 경로에 이력 수집을 연결했다.**
 목적은 현재 V2의 추천 근거와 사용자 반응을 연결해 성분 예측·제품 연결·리뷰 보정·주/보조 고민 비중의 개선 대상을 찾고, 정책 변경 전후를 평가하는 것이다.
 현재 추천 흐름은 [V2 비교 설계](recommendation-v2-comparison.md)를 따른다.
 별도 선호 모델, 자동 재학습·배포, 새로운 순위 결합식은 이번 범위에 포함하지 않는다.
 
+## 현재 구현 범위
+
+- 비회원 `POST /api/dev/recommendations/compare`는 저장하지 않는다. 로그인한 비교 화면은 `/compare/recorded`에 `{sessionId, input}`을 보낸다. 회원은 검증된 토큰에서 결정하고, 약관 동의로 생성된 `members` 행이 필요하다. 입력·정책·모델과 **제품 중복 제거 전 적격 옵션 전체**를 저장한다. 응답에는 `history.requestId/sessionId`, 최종 후보에는 `candidateId`를 붙인다. 순위 계산은 유지한다.
+- 요청은 `running → completed/failed`로 기록한다. 후보 저장과 완료 처리는 한 트랜잭션이다. 계산 실패는 제한된 코드만 기록하며, 프로세스 중단으로 남은 `running`은 성공으로 간주하지 않는다. 저장 실패를 비회원 실행으로 조용히 우회하지 않는다.
+- `POST /api/dev/recommendations/impressions`: 실제 스크롤 영역에서 카드 면적 50% 이상이 500ms 유지되면 `half-visible-500ms-v1`, 그 전에 상품을 눌러 진입하면 `direct-interaction-v1`로 구분한다. 화면 이탈·백그라운드에서는 시간을 누적하지 않는다. 같은 후보·화면 인스턴스의 노출은 한 번만 저장한다.
+- `POST /api/dev/recommendations/events`: 추천에서 진입한 상품 상세의 `product_view`, `cart_add`, `outbound_click`을 연결한다. 노출 저장 완료 후 반응을 전송하며 사용자·세션·제품·옵션의 일치를 검증한다. 현재 장바구니는 제품 단위이므로 `cart_add`의 `optionId`는 `null`, `context_snapshot.scope`는 `product`다. 수량 상한 때문에 수량이 늘지 않으면 기록하지 않는다.
+- 클라이언트는 UUID·시각을 유지하여 통신 실패를 한 번 재시도한다. 같은 UUID·같은 내용은 멱등 처리하고 다른 내용은 409다. 상세 화면 귀속은 메모리에만 두므로 새로고침·앱 재시작으로 잃은 연결을 임의로 복원하지 않는다. 저장 실패는 화면에 표시한다.
+- 모두 기존 개발 환경/활성화 조건을 유지한다. AR 색상 추천 및 운영 피부 추천에는 연결하지 않았다. 구매 확정·저장/취소 등 나머지 이벤트, 오프라인 영속 큐, 자동 재학습은 아직 구현하지 않았다. 아래 ERD는 이 확장 범위까지 포함한 설계다.
+- nullable JSONB 모델은 `none_as_null=True`로 매핑한다. 실패 시 모델 정보가 없으면 SQL `NULL`로 저장해 0020의 객체 제약을 지킨다. 마이그레이션 자체는 수정하지 않았다.
+
+검증: `RECOMMENDATION_FEEDBACK_MIGRATION_TEST_URL`을 지정한 PostgreSQL 테스트는 임의 스키마와 외부 트랜잭션을 사용하고 전체를 롤백한다. 후보 저장, 소유권, 비노출 후보 거부, 중복/충돌, 선행 노출 없는 반응 거부, 실패 기록 및 회원 삭제 연쇄를 검사한다.
+
 ## 1. 변경 범위 요약
 
-**신규 4개 테이블을 제안한다.** 기존 상품·성분·COSING·리뷰 테이블은 재사용한다.
+**0020에서 신규 4개 테이블을 추가했다.** 기존 상품·성분·COSING·리뷰 테이블은 재사용한다.
 
 | 구분 | 테이블 | 목적 |
 |---|---|---|
@@ -58,7 +70,7 @@ erDiagram
     }
     requests["recommendation_requests (신규)"] {
         uuid request_id PK
-        varchar member_id FK "nullable"
+        varchar member_id FK "필수, 0020"
         uuid session_id
         timestamptz requested_at
         jsonb input_snapshot
@@ -151,7 +163,7 @@ JSONB는 구조가 자유로운 원문 저장소가 아니다. 필드 허용 목
 | 컬럼 | 타입 / NULL | 의미 |
 |---|---|---|
 | `request_id` | uuid / PK | 서버가 생성하는 추천 요청 ID |
-| `member_id` | varchar(64) / NULL, FK | 로그인 회원. 요청 본문의 임의 ID가 아니라 인증 결과 사용 |
+| `member_id` | varchar(64) / NOT NULL, FK | 로그인 회원. 요청 본문의 임의 ID가 아니라 인증 결과 사용. 0020은 비회원 요청 저장을 지원하지 않음 |
 | `session_id` | uuid | 요청·행동 연결용 세션. 기기 영구 식별자를 의미하지 않음 |
 | `requested_at`, `completed_at` | timestamptz / 완료 시각만 NULL | 서버 요청·완료 시각 |
 | `status`, `environment` | text | 요청 진행/성공/실패와 운영/개발/시험 구분 |

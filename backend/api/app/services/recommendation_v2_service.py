@@ -604,6 +604,7 @@ def rank_products(
     review_policy: str = "suitability",
     suitability_lambda: float = POLICY["suitabilityLambda"],
     secondary: dict | None = None,
+    audit: dict | None = None,
 ):
     if secondary and (
         secondary["goal"] not in GOAL_ORDER
@@ -790,6 +791,27 @@ def rank_products(
     score_only, _ = select(review_mix_weight, False)
     before_rank = {row["productId"]: i + 1 for i, row in enumerate(before + rest_before)}
     unique = after + rest_after
+    if audit is not None:
+        # Preserve every eligible option before product deduplication, without changing ranking.
+        options = {o.option_id: o for o in catalog.options}
+        selected = {r["optionId"]: {**r, "rank": i + 1} for i, r in enumerate(after)}
+        audit["candidates"] = [
+            {
+                **r,
+                "score": (1 - review_mix_weight) * r["ingredientScore"]
+                + review_mix_weight * r["review"]["normalizedScore"],
+                **selected.get(r["optionId"], {}),
+                "catalogOption": options[r["optionId"]].model_dump(mode="json"),
+            }
+            for r in rows
+        ]
+        audit["catalog"] = {
+            "version": catalog.version,
+            "digest": catalog.digest,
+            "sourceManifest": catalog.source_manifest,
+            "functionsById": catalog.functions_by_id,
+            "functionsByConcern": catalog.functions_by_concern,
+        }
     return {
         "matches": [
             {**r, "rank": i + 1, "rankBeforeReview": before_rank[r["productId"]]}
@@ -831,6 +853,7 @@ def recommend_v2(
     bundle: str,
     *,
     enable_secondary=True,
+    audit: dict | None = None,
 ):
     seeds, model = predict_seeds(body, goal, bundle)
     related, skipped = expand(seeds, catalog, goal)
@@ -875,6 +898,7 @@ def recommend_v2(
             catalog,
             goal,
             secondary=secondary,
+            audit=audit,
             skin_type={
                 "건성": "dry",
                 "중성": "balanced",
