@@ -1,6 +1,20 @@
 from functools import lru_cache
+from pathlib import Path
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def model_project_root(api_root: Path) -> Path:
+    # Source checkout: <repository>/backend/api. Docker ships only the API at /app.
+    return (
+        api_root.parent.parent
+        if api_root.name == "api" and api_root.parent.name == "backend"
+        else api_root
+    )
+
+
+PROJECT_ROOT = model_project_root(Path(__file__).resolve().parents[2])
 
 
 class Settings(BaseSettings):
@@ -18,7 +32,10 @@ class Settings(BaseSettings):
     ingredient_mapping_path: str | None = None
     ingredient_alias_approvals_path: str | None = None
     recommendation_comparison_enabled: bool = False
-    recommendation_v2_bundle: str | None = None
+    recommendation_model: str = Field(
+        default="recommend-cat-v2", pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    )
+    recommendation_models_dir: Path = PROJECT_ROOT / "ml/runs"
     recommendation_v1_url: str = "http://127.0.0.1:8080"
     recommendation_v1_revision: str | None = None
     # External APIs. Unset keys disable the matching feature instead of failing requests.
@@ -40,6 +57,19 @@ class Settings(BaseSettings):
     toss_secret_key: str | None = None
     payment_web_base_url: str | None = None
     payment_return_url: str = "kbeautyar://payment-result"
+
+    @property
+    def recommendation_bundle_path(self) -> Path:
+        # Resolve relative roots against the repository, never the process working directory.
+        root = self.recommendation_models_dir
+        if not root.is_absolute():
+            root = PROJECT_ROOT / root
+        return root.resolve() / self.recommendation_model / "bundle"
+
+    @property
+    def recommendation_v2_bundle(self) -> str:
+        """Local comparison scripts can still read the resolved path; selection is by name."""
+        return str(self.recommendation_bundle_path)
 
     @property
     def is_production(self) -> bool:

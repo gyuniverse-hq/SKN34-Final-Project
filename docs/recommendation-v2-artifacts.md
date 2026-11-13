@@ -1,6 +1,6 @@
 # V2 모델·데이터 인계와 구버전 정리
 
-기준일: 2026-11-12. Git에는 실행 코드·테스트·재학습 도구·설계 문서를 공유한다.
+기준일: 2026-11-13. Git에는 실행 코드·테스트·재학습 도구·설계 문서를 공유한다.
 모델 가중치, 학습 원문, 검수 결정 원본, 개인별 분석 메타데이터와 실험 산출물은 로컬에 보존하며 커밋하지 않는다.
 따라서 새 clone만으로 실제 CatBoost 추론이나 재학습이 가능하지는 않다.
 
@@ -8,24 +8,30 @@
 
 | 목적 | 로컬 기본 경로 | 필요한 파일 |
 |---|---|---|
-| V2 추론 | `ml/data/recommendation-v2/serving-bundle-20261111/` | `model.cbm`, `manifest.json` |
+| V2 추론 | `ml/runs/recommend-cat-v2/bundle/` | `model.cbm`, `manifest.json` |
 | 재학습 | `ml/experiments/recommendation-v2-image-feature-replacement-20261111/` | `training.jsonl`, `validation.jsonl`, `test.jsonl`, `protocol.json` |
 | 입력·정답 사전 | `ml/data/recommendation-v2/catboost-skin-condition-20261111/` | `encoding_metadata.json` |
 | 기존 모델 회귀 검증 | 위 재학습 경로의 `image/` | `test_predictions.npz` 및 최종 테스트셋 |
 | 로컬 API smoke 사례 추출 | `ml/data/recommendation-v2/model-ready-20261111/` | `x_metadata.csv` |
 
 실행 담당자가 승인된 별도 경로로 전달받아 배치한다. 이 저장소에 다운로드 주소나 원본 데이터를 공개하지 않는다.
-V2 추론 서비스는 `RECOMMENDATION_V2_BUNDLE`로 번들 경로를 지정하며 manifest의 모델 SHA-256, 입력 순서, 범주 및 80성분 ID 계약을 검증한다.
+V2 추론 서비스는 `RECOMMENDATION_MODEL=recommend-cat-v2`로 모델 이름을 지정한다.
+기본 위치는 피부 분석 원본과 같은 `ml/runs/<모델 이름>/bundle/`이며, 서버 마운트 경로는
+`RECOMMENDATION_MODELS_DIR`로 바꿀 수 있다. 두 파일을 함께 전달하며 `manifest.json`의 `version`은 선택한 모델 이름과 같아야 한다.
+이름·모델 SHA-256·입력 순서·범주·80성분 ID 계약을 검증하며 파일이 없거나 계약이 다르면 다른 모델로 대체하지 않는다.
+기존 경로 지정 변수 `RECOMMENDATION_V2_BUNDLE`은 더 이상 사용하지 않는다.
 재학습 도구는 `--source`, `--schema`, `--output`으로 다른 경로를 지정할 수 있다.
 서비스 코드의 리뷰 사전분포는 고정 계수이므로 과거 실험 JSON을 요청마다 읽지 않는다.
 
 DB에는 발행된 스킨케어 카탈로그와 원본 성분·COSING·리뷰 자료가 필요하다.
-비교 도구는 기존 V1 API를 별도 HTTP로 호출하며 DB를 읽기 전용으로 사용한다.
-마이그레이션 번호만으로 테이블·데이터 준비를 판단하지 않는다. 현재 로컬 DB에는 적용 기록 `0019`와 실제 누락 스키마의 불일치가 확인되어 별도 조치가 필요하다.
-이번 변경에는 DB 복원·stamp·upgrade·신규 이력 테이블 적용을 포함하지 않는다.
+비교 도구는 기존 V1 API를 별도 HTTP로 호출하며 카탈로그는 읽기 전용으로 조회한다.
+로그인한 비교의 추천·반응 기록에는 `0020`이 필요하며 현재 로컬 DB에는 적용되어 있다.
+모델 이름·배치 경로 변경에는 추가 DB 마이그레이션이 없다.
 
 ## 현재 모델과 검증 범위
 
+- `recommend-cat-v2`는 기존 `replacement-catboost-20261111`의 가중치를 그대로 사용한다. 기존 로컬 번들은 보존했다.
+- 새 manifest의 `version`은 `recommend-cat-v2`, `sourceVersion`은 기존 이름이다. `model.cbm`의 SHA-256은 `1f1e8453ae5d7c10f5f6b205a2bc1c6a574ba966b8a6d64d7e39cb12ab1b6b2f`다.
 - CatBoost 입력: 연령대·성별·피부타입·대상 고민·모공·주름·톤의 7개 범주형 값.
 - 정답: DB 성분 ID에 대응하는 80열 멀티핫. 추론은 상위 5성분을 사용한다.
 - 최종 5,289행: 학습 3,702 / 검증 794 / 테스트 793. 원본·이미지 그룹 중복을 고려한 분할을 유지한다.

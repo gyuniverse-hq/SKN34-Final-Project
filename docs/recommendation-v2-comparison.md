@@ -18,9 +18,38 @@
 
 저장소 루트 PowerShell에서 실행한다. Docker의 기존 `vishue` 스택이 켜져 있어야 한다.
 
+루트 `.env`에서 피부 분석과 추천 모델을 각각 선택한다.
+
+```dotenv
+SKIN_ANALYSIS_MODEL=skin-analysis-v4
+RECOMMENDATION_MODEL=recommend-cat-v2
+# 별도 서버 볼륨을 사용할 때만 지정 (기본: 저장소/ml/runs)
+# RECOMMENDATION_MODELS_DIR=/models
+```
+
+별도 전달받은 모델 파일은 아래에 둔다. 두 모델 모두 `ml/runs/` 아래에 보관하며 Git에는 포함하지 않는다.
+
+```text
+ml/runs/
+  skin-analysis-v4/bundle/   # 기존 피부 분석 원본
+  recommend-cat-v2/bundle/
+    model.cbm
+    manifest.json
+```
+
+비교 실행기는 피부 모델 설정과 같은 순서로 `.env`, `.env.development`, `.env.local`,
+`.env.development.local`을 읽는다(뒤의 파일 우선, 셸 환경 변수가 최우선).
+`NODE_ENV=production`이면 development 대신 production 파일을 읽지만 운영 비교 API는 계속 비활성이다.
+다른 모델로 바꿀 때는 동일한 입력·성분 계약의 번들을 `ml/runs/<모델 이름>/bundle/`에 배치하고
+`RECOMMENDATION_MODEL`을 변경한 뒤 **비교 API를 재시작**한다. 이름은 영문 소문자·숫자·하이픈을 사용한다.
+manifest의 `version`도 모델 이름과 같아야 한다. 파일 누락·이름/해시 불일치는 V2 오류로 표시하며 다른 모델로 자동 전환하지 않는다.
+FastAPI를 직접 실행할 때는 `backend/api/.env` 또는 프로세스 환경 변수에 같은 설정을 넣는다.
+`RECOMMENDATION_MODELS_DIR`의 상대 경로는 저장소 루트 기준이며, Docker처럼 API만 배포한 경우 API 루트 기준이다.
+추천 모델은 서버에서만 로드하므로 앱의 `skin:prepare`나 모바일 에셋에 포함하지 않는다.
+
 ```powershell
 # 최초 1회: 기존 모델을 native CatBoost로 내보내고 793건 예측 일치를 확인한다.
-uv run --project ml --group recommendation python scripts/data/recommendation/export_v2_bundle.py --output ml/data/recommendation-v2/serving-bundle-20261111
+uv run --project ml --group recommendation python scripts/data/recommendation/export_v2_bundle.py --model-name recommend-cat-v2
 
 # 비교 API. 로그인한 비교의 추천·반응 이력을 로컬 DB에 저장한다.
 uv run --project backend/api --group recommendation python scripts/data/recommendation/run_v2_comparison.py --docker-local
@@ -29,7 +58,7 @@ uv run --project backend/api --group recommendation python scripts/data/recommen
 npm exec expo start -- --web --port 8083 --localhost
 ```
 
-내보낸 번들이 이미 있으면 첫 명령을 반복할 필요가 없다. `--docker-local`은 실행 중인 컨테이너 설정을 메모리에서 읽어 PostgreSQL의 로컬 공개 포트에 연결하며, 접속 문자열을 출력하지 않는다. 기존 Docker를 사용하지 않을 때는 backend의 `DATABASE_URL`, `RECOMMENDATION_V1_URL`, `RECOMMENDATION_V2_BUNDLE`을 설정하고 해당 옵션을 생략한다.
+별도 전달받았거나 내보낸 번들이 이미 있으면 첫 명령을 실행하지 않는다. 내보내기는 재학습 자료가 있는 담당자용이다. `--docker-local`은 실행 중인 컨테이너 설정을 메모리에서 읽어 PostgreSQL의 로컬 공개 포트에 연결하며, 접속 문자열을 출력하지 않는다. 기존 Docker를 사용하지 않을 때는 backend의 `DATABASE_URL`, `RECOMMENDATION_V1_URL`, `RECOMMENDATION_MODEL`을 설정하고 해당 옵션을 생략한다.
 
 앱에서 피부 분석 → 결과 화면 하단 **V1 / V2 추천 비교**로 진입한다. 또는 개발 웹에서 `/dev/recommendation-comparison`을 연다. 연령대와 성별만 입력하고 저장된 v4 분석을 사용한다. 고민 선택 화면은 없다. 버튼을 누른 시점의 입력이 결과에 함께 표시되며 입력 수정만으로 이전 결과가 새 입력의 결과인 것처럼 바뀌지 않는다.
 

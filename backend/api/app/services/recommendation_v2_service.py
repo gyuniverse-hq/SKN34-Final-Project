@@ -854,7 +854,12 @@ def recommend_v2(
     *,
     enable_secondary=True,
     audit: dict | None = None,
+    model_name: str | None = None,
 ):
+    if model_name is not None:
+        _, manifest = load_bundle(bundle)
+        if manifest["version"] != model_name:
+            raise ValueError("recommendation_model_name_mismatch")
     seeds, model = predict_seeds(body, goal, bundle)
     related, skipped = expand(seeds, catalog, goal)
     second_goal = secondary_goal(body, goal) if enable_secondary else None

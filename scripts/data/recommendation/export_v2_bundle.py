@@ -3,11 +3,8 @@
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
-
-import joblib
-import numpy as np
-from catboost import CatBoostClassifier
 
 ROOT = Path(__file__).resolve().parents[3]
 EXPERIMENT = (
@@ -19,7 +16,18 @@ SCHEMA = (
 )
 
 
-def export(output, experiment=EXPERIMENT, schema_path=SCHEMA):
+def bundle_destination(model_name, output=None):
+    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", model_name):
+        raise ValueError("Model name must use lowercase letters, digits and hyphens")
+    return Path(output) if output is not None else ROOT / "ml/runs" / model_name / "bundle"
+
+
+def export(output=None, experiment=EXPERIMENT, schema_path=SCHEMA, model_name="recommend-cat-v2"):
+    import joblib
+    import numpy as np
+    from catboost import CatBoostClassifier
+
+    output = bundle_destination(model_name, output)
     if output.exists():
         raise ValueError("Choose a new bundle directory")
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
@@ -48,7 +56,7 @@ def export(output, experiment=EXPERIMENT, schema_path=SCHEMA):
     categories = {k: schema["categories"][k] for k in features[:4]}
     categories.update({k: ["양호", "주의"] for k in features[4:]})
     manifest = {
-        "version": "replacement-catboost-20261111",
+        "version": model_name,
         "features": features,
         "labels": schema["labels"],
         "categories": categories,
@@ -74,8 +82,9 @@ def export(output, experiment=EXPERIMENT, schema_path=SCHEMA):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--model-name", default="recommend-cat-v2")
+    parser.add_argument("--output", type=Path, help="Default: ml/runs/<model-name>/bundle")
     parser.add_argument("--experiment", type=Path, default=EXPERIMENT)
     parser.add_argument("--schema", type=Path, default=SCHEMA)
     args = parser.parse_args()
-    export(args.output, args.experiment, args.schema)
+    export(args.output, args.experiment, args.schema, args.model_name)

@@ -12,6 +12,24 @@ from urllib.parse import urlsplit, urlunsplit
 ROOT = Path(__file__).resolve().parents[3]
 
 
+def configure_model_environment(root=ROOT):
+    """Read the same project dotenv priority as skin-models.cjs; export model settings only."""
+    from app.core.config import Settings
+
+    mode = "production" if os.environ.get("NODE_ENV") == "production" else "development"
+    settings = Settings(
+        _env_file=(
+            root / ".env",
+            root / f".env.{mode}",
+            root / ".env.local",
+            root / f".env.{mode}.local",
+        ),
+        _env_file_encoding="utf-8",
+    )
+    os.environ["RECOMMENDATION_MODEL"] = settings.recommendation_model
+    os.environ["RECOMMENDATION_MODELS_DIR"] = str(settings.recommendation_models_dir)
+
+
 def docker_settings():
     api, db = json.loads(
         subprocess.check_output(
@@ -44,10 +62,8 @@ def main():
         docker_settings()
     os.environ["ENV"] = "local"
     os.environ["RECOMMENDATION_COMPARISON_ENABLED"] = "true"
-    os.environ.setdefault(
-        "RECOMMENDATION_V2_BUNDLE",
-        str(ROOT / "ml/data/recommendation-v2/serving-bundle-20261111"),
-    )
+    sys.path.insert(0, str(ROOT / "backend/api"))
+    configure_model_environment()
     os.environ.setdefault(
         "CORS_ORIGINS",
         json.dumps(
@@ -59,10 +75,10 @@ def main():
             ]
         ),
     )
-    sys.path.insert(0, str(ROOT / "backend/api"))
     if args.smoke_output:
-        from app.main import create_app
         from fastapi.testclient import TestClient
+
+        from app.main import create_app
 
         if args.smoke_output.exists():
             raise ValueError("Choose a new smoke output path")
@@ -123,7 +139,9 @@ def main():
         args.smoke_output.write_text(
             json.dumps(
                 {
-                    "purpose": "integration smoke, source metadata examples, not user-photo validation",
+                    "purpose": (
+                        "integration smoke, source metadata examples, not user-photo validation"
+                    ),
                     "results": results,
                 },
                 ensure_ascii=False,

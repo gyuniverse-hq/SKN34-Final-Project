@@ -153,7 +153,7 @@ def test_survey_ratio_without_respondents_and_unique_products():
 def test_v1_failure_preserves_v2_and_snapshot_mismatch_is_explicit():
     repo = AsyncMock()
     repo.read.return_value = catalog()
-    settings = Settings(recommendation_v2_bundle="test")
+    settings = Settings(recommendation_model="recommend-cat-v2", recommendation_models_dir="test")
     with (
         patch(
             "app.services.recommendation_comparison_service.fetch_v1",
@@ -266,7 +266,7 @@ def test_bundle_reproduces_saved_predictions_when_local_artifact_is_available():
     from app.services.recommendation_v2_service import load_bundle
 
     root = Path(__file__).resolve().parents[3]
-    bundle = root / "ml/data/recommendation-v2/serving-bundle-20261111"
+    bundle = Settings(recommendation_model="recommend-cat-v2").recommendation_bundle_path
     experiment = root / "ml/experiments/recommendation-v2-image-feature-replacement-20261111"
     if not all(
         path.exists()

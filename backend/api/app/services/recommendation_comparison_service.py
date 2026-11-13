@@ -71,7 +71,8 @@ class ComparisonService:
                     body,
                     goal,
                     catalog,
-                    self.settings.recommendation_v2_bundle or "",
+                    str(self.settings.recommendation_bundle_path),
+                    model_name=self.settings.recommendation_model,
                     **({"audit": audit} if audit is not None else {}),
                 )
             except Exception as error:

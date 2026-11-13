@@ -5,9 +5,12 @@
 
 ## 로컬 보존 데이터 (Git 미포함)
 
+실행용 모델은 `ml/runs/recommend-cat-v2/bundle/`의 `model.cbm`·`manifest.json`이다.
+피부 분석 원본 `ml/runs/skin-analysis-v4/bundle/`과 같은 위치 체계를 사용하며 둘 다 별도 전달한다.
+루트 `.env`의 `RECOMMENDATION_MODEL=recommend-cat-v2`로 선택하고 비교 API를 재시작한다.
+
 | 경로 (ml/data/recommendation-v2 아래) | 역할 |
 |---|---|
-| serving-bundle-20261111 | 실행용 CatBoost model.cbm·manifest |
 | curated-20261111-service-concerns | 최종 서비스 고민 변환 및 검수 데이터 |
 | curated-20261111-user-ingredient-policy | 사용자 확정 성분 규칙·제외·추정 라벨 및 검수 근거 |
 | run-20261110-final | 원본 라벨 전처리 스냅샷; 원문 재검토용 |
@@ -31,12 +34,13 @@
 ```powershell
 uv run --project ml --group recommendation python -m scripts.data.recommendation.train_v2_final --check-only
 uv run --project ml --group recommendation python -m scripts.data.recommendation.train_v2_final --output ml/experiments/새-V2-학습
-uv run --project ml --group recommendation python scripts/data/recommendation/export_v2_bundle.py --experiment ml/experiments/새-V2-학습 --output ml/data/recommendation-v2/새-서빙번들
+uv run --project ml --group recommendation python scripts/data/recommendation/export_v2_bundle.py --experiment ml/experiments/새-V2-학습 --model-name recommend-cat-v3
 ```
 
 `tqdm`으로 학습 반복 수를 표시한다. 결과에는 P@5·Recall@5·Precision·Recall·macro-F1 등 지표,
 성분별 지표, 검증/테스트 확률, 입력 해시 및 모델 저장 후 예측 검증이 포함된다.
-모델 업데이트를 자동으로 운영에 반영하지 않는다. 현재 서빙 번들은 정리 전과 동일하다.
+내보내기는 `ml/runs/<model-name>/bundle/`에 저장하며 기존 경로를 덮어쓰지 않는다(`--output`으로 별도 지정 가능).
+모델 업데이트를 자동으로 운영에 반영하지 않는다. 현재 `recommend-cat-v2`의 가중치는 기존 모델과 동일하다.
 P@5는 성분 정답과의 일치도이며 제품 효능이나 사용 만족의 정확도가 아니다.
 이전에도 관찰한 테스트셋이므로 새 독립 평가로 주장하지 않는다.
 
