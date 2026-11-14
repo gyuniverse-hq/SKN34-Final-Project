@@ -128,3 +128,44 @@ flowchart TD
 ### 변경 이력
 
 - 2026-11-15: VAI-D-013 언어 범위 및 구조 중립성 연결. 기존 멀티모달·Supervisor·전문 Agent 아키텍처는 변경 없음.
+
+## 9. 2-6 팀 책임과 물리 서비스 배치 (2026-11-15)
+
+> **ACCEPTED-USER:** 일반 LLM 담당과 AR·AR 내부 AI 담당의 **개발 책임을 구분**한다. **REVIEW-CONCLUSION:** 논리적 모듈 경계는 설계할 수 있으나 **별도 서버/배포 분리는 확정하지 않는다**. [03 공동 인계 계약](03-execution-contracts.md)과 [04 현행 차이](04-gap-analysis-and-2-5.md) 참고.
+
+### 9-1. 역할과 개발 소유권
+
+| 시스템·역할 | 직접 구현 책임 | 공동으로 확인할 내용 |
+| --- | --- | --- |
+| **일반 LLM 담당** | K-뷰티 자유 대화, LangGraph Supervisor·일반 상담 전용 Agent·Tool·RAG·근거 검증, 일반 대화/추천 State, AR 인계 요청·복귀 맥락 소비 | AR 체험 제안·옵션 확인, 반환 이벤트 검증·대화 연속성 |
+| **AR 화면·기능 담당** | AR 화면·렌더·제품/호수 적용·기기 상태, 실제 결과·Undo·Restore | app ↔ AR Handoff 수락, 결과·상태 버전·오류 |
+| **AR 내부 AI 담당** | AR 전용 LLM, STT·TTS, 음성/텍스트 AR 명령 해석과 관련 실행 로직 | 일반 AI와의 최소 맥락 전달, 명령 결과·ACK 의미, 음성 인터페이스 |
+| **앱/백엔드/데이터/보안 기타** | **담당 확인 전**. 상담 카드/UI·공통 라우터·Catalog 데이터·미디어 등 자동으로 일반 LLM 담당으로 지정 금지 | 파일 소유·권한·변경 주체 합의 |
+
+일반 LLM의 Supervisor는 **AR AI를 강제로 자신의 LangGraph 하위 노드로 구현하지 않는다**. 복합 대화에서 AR 화면이 필요하면 독립 AR 담당 시스템으로 **Handoff**하고, 사용자 의사·상품·룩 참조 및 최종 검증 상태만 사용한다. AR AI 내부의 기기/서버 혼합 STT 방식은 **AR AI 담당의 기술 선택과 팀 검증**을 거친다. C 혼합 구조 = 기기·서버 STT 두 구현을 1차에 동시에 개발한다는 뜻이 아니다.
+
+### 9-2. 논리 경계와 물리 배치의 대안
+
+| 선택 | 서비스 배치 | 장점 | 한계 | 상태 |
+| --- | --- | --- | --- | --- |
+| A. **현재 chatbot 유지 + 내부 모듈/라우터 책임 분리** | 동일 `backend/chatbot` FastAPI, 필요 시 구별된 서비스/모듈 어댑터 | `/api/chat` 및 기존 인증/배포·앱 이동 경로와 호환성 높음 | 같은 배포/장애 도메인, 공통 코드 변경 협의 | **우선 추천, PROPOSED** |
+| B. 일반 LLM과 AR AI 별도 서비스 | 인증된 내부 API/이벤트 버스로 연동 | 독립 배포/확장·장애 격리 | 신규 인증/배포/운영·이벤트 정확성·추가 지연 | **미결정/후속 검토** |
+| C. AR 전용 AI도 일반 LangGraph에 단일화 | 단일 Supervisor가 음성·AR 내부 로직 관리 | 단일 라우팅 | 팀 소유권·내부 자율성과 충돌, 결합도 증가 | **비추천** |
+
+기존 `backend/chatbot/app/routers/chat.py`는 `POST /api/chat`와 `POST /api/chat/acks`, `ChatService.execute_tool`은 `ar_command`와 일반 상담을 함께 담당하는 **현행 코드 사실**이다. 서비스 분리를 설계 확정/구현 완료로 기록하지 않는다. 팀 Discord 2026-11-04의 인계 공지에는 기존 ChatService·Supervisor 구조 보존과 책임 협의 제안이 있으며, AR 담당의 최종 서비스 분리·모듈 소유 승인 결과는 이번 확인에서 미확인.
+
+### 9-3. 2-7에서 파일별 변경 책임 협의
+
+| 파일·영역 | 현행 코드 | 권장 협의 주체 |
+| --- | --- | --- |
+| `backend/chatbot/app/services/chat_service.py`, `schemas/chat.py`, `schemas/supervisor.py` | 공용 일반·AR 파이프라인/메시지 계약 | **일반 LLM 통합 담당 + AR AI 담당 공동 리뷰**, 단일 변경 PR의 책임자 지정 필요 |
+| `backend/chatbot/app/routers/chat.py`, Gateway 라우팅 | 공용 `/api/chat` 및 ACK | **공동 계약**; 최종 소유자 미확정 |
+| `app/(tabs)/ar.tsx`, `hooks/useArRouteSelection.ts`, `store/makeupStore.ts`, `ArFaceView.tsx` | AR 화면·상태·렌더 | **AR 기능 담당**과 앱 담당 협의 |
+| `hooks/useArCommand.ts`, `lib/arChatRoute.ts`, `lib/arChatAdjust.ts`, `lib/arCommandAck.ts` | AR 전용 자연어·명령·ACK | **AR AI + AR 기능 담당** 사이 수정·검증 경계 합의 |
+| `app/chat.tsx`, `components/chat/ChatProducts.tsx`, `lib/routes.ts` | 일반 상담 UI·상품 카드·화면 간 이동 | **공용 앱/UI 담당 확인 필요**. 일반 LLM 담당으로 자동 할당하지 않음 |
+| 한국어 STT·TTS와 `app.json` 녹음 권한 | 신규 AR 음성 입력·출력, 앱 빌드·권한 | AR AI + 앱/배포·보안 담당 공동 협의 |
+
+**개발 운영 원칙:** 일반 LLM은 독립적인 수직 기능 하나씩 최신 develop에서 개발→테스트·관련 E2E→리뷰→병합. AR·AR AI 팀은 독립 진행 가능하되 **공유 파일/인터페이스는 동시 충돌 수정 전 계약 합의**하고, 공동 통합 테스트를 별도 수행한다.
+
+### 변경 이력
+- 2026-11-15: 일반 LLM / AR / AR AI의 소유권과 물리 배치 여부를 분리. 기존 14개 사용자 능력·12개 대표 시나리오 및 2서비스 ADR은 변경하지 않음. **2-6 논리 설계 검토 종료**, 세부 팀 소유권·서비스 배치는 OPEN.
