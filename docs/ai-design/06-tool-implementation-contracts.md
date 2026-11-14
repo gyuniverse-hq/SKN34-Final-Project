@@ -1,6 +1,6 @@
 # VISHUE AI — Tool 상세 입력·출력·권한·검증 계약 (2-5 개발 계약 초안)
 
-> 상태: **PROPOSED — 계약안 v0.1, 2026-11-15**. 2-5 상세 검토 중이며 팀 승인·구현·실행 검증이 아님.  
+> 상태: **PROPOSED — 계약안 v0.1, 2026-11-15**. 2-5 **논리 설계 검토 종료** 상태이며 기술 계약은 PROPOSED, 팀 승인·구현·실행 검증은 미완료.  
 > 개발 비교 기준: `develop d1cf4868f74d2ff6db188bf2c7646146f3ec72ad`.  
 > 상위 개념: [05 Tool·근거·데이터 접근](05-tool-evidence-data-contract.md). 기존 [API 원본 계약](../INGREDIENT_CONSULTATION.md), [아키텍처/ADR](../ARCHITECTURE.md), [오류·실행 상태](03-execution-contracts.md)를 대체하지 않음.
 
