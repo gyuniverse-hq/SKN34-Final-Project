@@ -6,6 +6,7 @@ import { HomeChatButton } from '@/components/chat/HomeChatButton';
 import { TAB_BAR_STYLE, theme } from '@/constants/theme';
 import { useI18n } from '@/lib/i18n';
 import { chatHref } from '@/lib/routes';
+import { useMakeupStore } from '@/store/makeupStore';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -46,6 +47,20 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="ar"
+        listeners={({ navigation }) => ({
+          tabPress: (event) => {
+            const state = navigation.getState();
+            if (state.routes[state.index]?.name !== 'index') return;
+
+            // A direct home entry starts a fresh try-on, including when the AR tab
+            // retains parameters from an earlier video or product visit.
+            event.preventDefault();
+            useMakeupStore.getState().reset();
+            navigation.navigate('ar', {
+              video: undefined, productId: undefined, shadeId: undefined, compare: undefined,
+            }, { merge: false });
+          },
+        })}
         options={{ title: t('tabs.tryOn'), headerShown: false, tabBarIcon: icon('scan-circle', 'scan-circle-outline') }}
       />
       <Tabs.Screen
