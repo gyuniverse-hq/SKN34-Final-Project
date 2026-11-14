@@ -31,8 +31,16 @@ def manifest(features):
 def test_numeric_inputs_keep_the_training_order_and_raw_precision():
     request = body(scores={"pores": 0.9137, "pigmentation": 0.2742, "wrinkles": 0.6329})
     assert feature_values(request, "pores", FEATURES + SCORE_FEATURES) == [
-        "30대", "여성", "지성", "모공케어", "주의", "주의", "양호",
-        0.9137, 0.6329, 0.2742,
+        "30대",
+        "여성",
+        "지성",
+        "모공케어",
+        "주의",
+        "주의",
+        "양호",
+        0.9137,
+        0.6329,
+        0.2742,
     ]
     assert len(feature_values(request, "pores")) == 7
     with pytest.raises(ValueError, match="invalid_model_features"):

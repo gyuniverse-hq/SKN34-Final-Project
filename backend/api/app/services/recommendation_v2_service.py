@@ -137,9 +137,8 @@ def load_bundle(path: str):
         raise ValueError("invalid_model_bundle")
     model = CatBoostClassifier()
     model.load_model(str(model_path))
-    if (
-        model.get_cat_feature_indices() != list(range(7))
-        or len(model.feature_names_) != len(manifest["features"])
+    if model.get_cat_feature_indices() != list(range(7)) or len(model.feature_names_) != len(
+        manifest["features"]
     ):
         raise ValueError("invalid_model_features")
     return model, manifest
