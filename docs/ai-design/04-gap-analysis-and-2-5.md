@@ -91,3 +91,14 @@
 - **G-18** 추가: 한·영·일 기존 서비스 기획과 중국어까지 존재하는 코드 로케일의 차이. 출시·LLM·STT·TTS·AR 음성별 지원 범위를 **OPEN-LANG-01**로 미결정 처리.
 - 2-5의 구체 Tool 연결·응답·검증·오류·권한·테스트 계약은 [06 구현 계약](06-tool-implementation-contracts.md)에 추가. 본 충돌 문서의 기존 근거·판단은 교체하지 않았음.
 - 신규 상태는 **PROPOSED / CODE-INSPECTED**, 실제 배포 또는 E2E 통과 아님.
+
+## 7. 한국어 우선 결정과 데이터 동기화 추가 대조 (2026-11-15)
+
+- **VAI-D-013 (ACCEPTED-USER)**: 한국어(`ko`) 1차 구현·평가 언어 확정. 14개 능력·12개 시나리오와 기존 `en/ja/zh` 로케일 코드는 변경하지 않음.
+- **G-18 / OPEN-LANG-01 부분 해소**: 기존 한·영·일 목표 vs 코드상의 `en/ko/ja/zh` 로케일 차이는 유지. 한국어 AI 구현·평가 범위는 확정했으나 `en/ja/zh`의 실제 자유 대화·음성·AR 지원 시점·출시 범위는 미결정. [07 언어 계약](07-ko-first-language-and-evaluation.md).
+- **G-19 / DB 동기화 검토**: 현행 `GraphSyncService.sync()`는 Catalog API 전체 상품·룩 조회 후 Neo4j `replace_catalog()` 전체 교체; 원본 소스 스냅샷·그래프 버전·권리 철회 전파와 벡터 색인 동기화는 새 목표 계약에 맞게 상세화 필요.
+- **G-20 / 성분 관계 오해**: `graph_sync_service.py`가 `key_ingredients`를 그래프 Ingredient 관계로 저장하는 것은 **검수된 전성분**의 존재/부재 증거가 아니다. 옵션별 검수·원본 버전은 Catalog API에서 재확인해야 함.
+- **G-21 / 옵션 검색 데이터**: raw 옵션·가격 스냅샷은 존재하지만 현재 공개 `GET /api/products`는 옵션별 복합 가격·성분 필터를 직접 제공하지 않음. 가격 `is_latest`는 수집 관측상 최신이지 실시간 판매가 보증이 아님.
+- G-19~21의 기술 검토·대안·미실행 테스트는 [08 옵션·근거·DB 동기화 계약](08-option-search-evidence-and-sync.md)을 기준으로 한다. 기존 G-01~18 판단은 삭제·철회하지 않음.
+
+**구분:** 정적 코드 확인(EXISTING-CODE) / 새 API·색인 계약(PROPOSED) / 한국어 범위 채택(ACCEPTED-USER) / 운영 DB·실제 조회·STT/TTS·E2E(NOT TESTED). 본 변경은 코드/기존 ADR에 적용된 것이 아니다.
