@@ -102,3 +102,17 @@
 - G-19~21의 기술 검토·대안·미실행 테스트는 [08 옵션·근거·DB 동기화 계약](08-option-search-evidence-and-sync.md)을 기준으로 한다. 기존 G-01~18 판단은 삭제·철회하지 않음.
 
 **구분:** 정적 코드 확인(EXISTING-CODE) / 새 API·색인 계약(PROPOSED) / 한국어 범위 채택(ACCEPTED-USER) / 운영 DB·실제 조회·STT/TTS·E2E(NOT TESTED). 본 변경은 코드/기존 ADR에 적용된 것이 아니다.
+
+## 8. 2-6 공유 코드/서비스 배치의 추가 차이 (2026-11-15)
+
+| 항목 | 현재 코드 근거 | 새 책임·연동 목표 | 상태 |
+| --- | --- | --- | --- |
+| G-22 | `backend/chatbot/app/routers/chat.py`는 `POST /api/chat` 및 `POST /api/chat/acks` 공용; `ChatService.execute_tool`은 일반/AR 분기 | 일반 LLM/AR AI **개발 담당은 분리**, 같은 FastAPI 서비스 유지 가능. 별도 서비스 배치 미결정 | **공동 코드 소유·변경 승인 필요** |
+| G-23 | `app/chat.tsx`의 `onOpenAr`와 `lib/routes.ts::arHref`는 `productId/shadeId`로 AR 이동; `useArRouteSelection`은 Catalog 재조회 | 기본 이동 경로 보존, 최소 `handoffId`와 AR 측 **검증된 결과 이벤트**로 일반 상담 복귀 맥락 추가 | **Handoff B 우선, 이벤트 구현 미확인** |
+| G-24 | `lib/arCommandAck.ts`는 JS 프로세스 메모리 Outbox; `useArCommand`과 `makeupStore`는 일부 상태 검증/실패 복원 | AR에서 실제 렌더·ACK/Undo/Restore 상태를 소유하고 일반 AI에는 **읽기 전용 결과** 전달 | **영속·세션 만료 복구 미구현, AR 담당 협의 필요** |
+| G-25 | 현재 `ChatRequest`는 일반/AR 요청 타입이 공용이며 일반 요청은 일부 AR 입력 무시, 클라이언트 AR 제안은 변경으로 확정되지 않음 | 구형 요청 호환과 새로운 Handoff/응답 `schemaVersion` 어댑터, 팀별 담당 범위·계약 테스트 | **공용 파일 단일 변경 책임자 확정 필요** |
+
+기존 2서비스 ADR(API/Chatbot), 현재 `backend/chatbot` 배치는 유지한다. 팀이 승인하기 전 AR AI 서비스 분리·새 엔드포인트·음성 엔진을 기존 구현 또는 확정 결정으로 기록하지 않는다. **일반 LLM만 기능별 순차 구현·테스트·PR 병합**하며 AR/AR AI 팀은 독립 작업 가능하되 공용 인터페이스 변경은 사전 합의와 관련 통합 E2E가 필수이다.
+
+### 변경 기록
+- 2026-11-15: G-22~25 공유 라우트·앱 인계·ACK·스키마 차이 및 책임·물리 서비스 분리의 미결정 상태 추가. 기존 G-01~21과 2-5 설계 종료 결론 유지.
