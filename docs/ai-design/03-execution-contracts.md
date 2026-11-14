@@ -331,3 +331,95 @@ type ArHandoffEventV1 = {
 
 ### 변경 이력
 - 2026-11-15: 2-6 담당 책임 정정·Handoff B 우선 검토·최소 이벤트/권한/멱등성/버전·이벤트 유실/취소 테스트 및 종료 경계 정리. 기존 2-2~2-4 State·동시성 정책 유지.
+
+## 14. 2-7 실제 구현·공동 통합을 위한 실행·소유권·PR 계약
+
+> **REVIEW-CONCLUSION 2026-11-15**: 수직 기능별 일반 LLM 순차 PR과 AR/AR AI 독립 개발 및 명시적 공동 계약이 현재 코드베이스에서 **조건부 구현 가능**하다. 팀 승인/코드·자동 시험/실제 LLM·DB·기기 E2E는 별도다. 사용자 결정 VAI-D-001~017 유지, 신규 기술 선택은 승인 전 OPEN.
+
+### 14-1. 실제 서비스 경계와 공유 변경 충돌
+
+현행 `backend/chatbot`에는 일반 채팅 `/api/chat`, AR `ar_command`, `/api/chat/acks`, `ChatService`와 공통 `ChatRequest/ChatResponse`·`Supervisor`가 결합되어 있다. **별도 서비스 없이 모듈 책임을 구분하는 A가 기본 추천안**이며, AR AI 담당과 운영팀의 의견·배포 요구/장애 격리 필요를 확인한 뒤만 분리 여부를 선택한다.
+
+| 변경 가능 경계 | 현재 의존성/충돌 위험 | 구현 시 제안 규칙 |
+| --- | --- | --- |
+| `backend/chatbot/app/routers/chat.py` | 일반/AR가 같은 진입점과 인증·rate limit 공유 | 외부 URI/JSON 의미 호환, 공용 변경은 작업 PR 1개·일반/AR AI 공동 리뷰 |
+| `backend/chatbot/app/services/chat_service.py` | AR 제안/일반 beauty/style/graph/세션이 1개 모듈에 집중 | 일반 LangGraph 전환은 **AR 명령 기존 라우트·ACK 호출을 그대로 살리는 adapter** 우선. 공유 서비스 삭제/재배치 전 AR 담당 리뷰 |
+| `backend/chatbot/app/schemas/chat.py`·`schemas/supervisor.py` | 공용 요청/응답 DTO·상태 코드, AR context 분기 | 스키마 버전/구버전 payload·필드 호환 계약 검사. PR 단일 작성자 지정, 일반/AR AI 필수 리뷰 |
+| `backend/chatbot/app/services/ar_command_service.py`·`repositories/ar_command_repository.py` | AR 전용 LLM 처리·상태·ACK | **AR AI 담당** 구현. 일반 LLM PR에서 임의 변경 금지 |
+| `hooks/useArCommand.ts`·`store/makeupStore.ts`·`lib/arCommandAck.ts` | 앱 로컬 명령 상태/렌더 ACK·메모리 outbox | **AR/AR AI 담당** 구현. 일반 LLM은 인증된 결과 이벤트를 소비 |
+| `app/chat.tsx`·`components/chat/ChatProducts.tsx`·`lib/routes.ts` | 검증된 카드·상품→AR 이동·대화방 선택 | 프론트 코드 소유자 **미확정**. 일반 LLM은 API/결과 스키마, AR 담당은 AR 입구 검증에 대한 리뷰 |
+| Catalog `backend/api` | 정본 상품/호수/전성분/수집가, 별도 API 서비스 | API·데이터 담당 소유. 챗봇이 직접 PG에 접근하거나 외부 option 매핑을 만들지 않음 |
+| 영속 Checkpointer/챗봇 Memory | 신규 DB·권한·마이그레이션 충돌 | 서비스 소유권/접속·삭제·복구 ADR 선행. Catalog PostgreSQL 소유권(ADR-0002) 위반 금지 |
+
+**공유 코드 변경 게이트:** (1) 변경 제안·기존 계약/기능 영향, (2) 새 API·스키마/호환성 테스트, (3) 공유 수정의 단일 주체와 일반/AR/프론트/API 필수 리뷰 확인, (4) 관련 AR/일반 회귀, (5) 병합·기준선 갱신, (6) 다른 담당 브랜치 rebase·공동 E2E. 모든 팀의 코드를 강제로 직렬화하지는 않는다. 소유자 없는 파일은 담당을 임의 배정하지 않고 `OPEN-OWNER-01` 유지.
+
+### 14-2. 일반 LLM만 적용하는 수직 순차 PR 전략 (PROPOSED)
+
+모든 새 일반 LLM 주 작업은 **그 작업 시작 시 최신 `develop`에서 분기**, 앞선 **의존 일반 LLM PR이 자동 검사·관련 E2E·리뷰·병합을 완료한 뒤** 다음 작업 시작. AR·AR AI는 독립 개발 가능하나 공유 API 영향은 사전 계약·공동 검증한다.
+
+| 우선순위 | 실제 사용자 행동을 포함한 최소 수직 PR 경계 | 의존성 및 구현·시험 통과 조건 |
+| --- | --- | --- |
+| G1 | **한국어 자유 상품 상담 첫 실행 경로**: 일반 질문 → LangGraph Supervisor 최소 경로 → Catalog API 상품 조회·검증 → 기존 채팅 앱의 실제 상품 응답 | 현재 `/api/chat` 계약/AR 분기 보존; 임의 상품·실시간가 생성 금지; 실제 API/DB 연동·앱 응답 E2E + 일반/AR 회귀. **LangGraph 라이브러리 설치만으로 완료 금지** |
+| G2 | **같은 대화에서 조건 변경·상품 지시어**: "두 번째 상품" / "조건 바꿔줘" → State → 재검증된 결과 | G1 병합 필수. `resultSetId`·선택 순서·`requestId` 중복·오래된 응답·세션 만료 시험. 초기 단기 State는 영속 보증 아님 |
+| G3 | **실제 선택한 상품·옵션의 성분 질문** → 검수 원본·부재·동의어/권리·오류·후속 질문 | G2 + Catalog 원본·옵션 검증/자료 가용성. `excludes+MATCH=조건 충족`, 전성분 미완전은 UNKNOWN, 오류는 ERROR, 승인 없는 원문 사용 금지 |
+| G4 | **옵션 복합 검색**: 예산·제형·성분 → 확인된 상품/참고 후보/제외 카드를 같은 응답에서 구분 | G3 + Catalog 담당 실제 옵션 검색 API/선별 이식·검증 계약 선행. \`priceBasis/observedAt\`, `ELIGIBLE/REFERENCE_ONLY/EXCLUDED`, 실옵션/권한/검색범위 시험 |
+| G5 | **허용된 K-뷰티 지식 자유 질문**: Knowledge/RAG·출처 근거·제약 안내 | G1의 일반 상담 경로 + 3단계 허용 자료/지식 검수·임베딩 기준. AIHub 권리 미확정 시 승인 자료로 가장하지 않음. 별도 지식자료 사용 가능할 때 개발 |
+| G6 | **룩·메이크업 코칭**: 실제 룩 선택 → 확인된 단계·제품/AR 제안 | G1 + 3단계 레시피/룩 실제 서빙 자료. 일반 팁·영상 메타·검수된 레시피를 분리하고 앱 화면 E2E |
+| G7 | **대화방 재개·동의 기반 기억**: 새로 접속→이전 사용자 선택/동의 정보만 재사용·수정/삭제 | G2 + 챗봇 영속 Checkpointer/DB 권한 ADR·삭제/동의 계약. **Redis 600초는 장기 기억이 아님**; 장기 기억과 현재 thread 분리 |
+| G8 | **복합 자유 대화**: 질문 정정→여러 Tool/Agent 의존·부분 성공→실제 카드/레시피 | G3~G7 중 필요한 기능의 병합에 의존. `Send/Command/Subgraph` 남용 없이 의존 DAG·재시도/중복/권한/상태 검증. 단일 거대 PR 금지 |
+| G9a~c | **피부·미디어·AR 복귀의 각 독립 수직 연동**: 각각 입력→권한→관련 Tool/외부 기능→일반 답변 | 타 담당 API/미디어 원본 권한/인계 이벤트 **사전 합의** 후 독립 PR 분리; 실제 담당 기능은 AR·미디어·피부 팀이 구현. 공동 E2E 확인 |
+
+**주의:** 순서는 **권장 의존성 지도이지 확정 PR 번호/팀 합의/일정이 아님**. 독립 지식/룩의 데이터가 먼저 확보되면 G5/G6 시점을 조정할 수 있다. G9a~c는 서로 독립적인 완료 기준을 갖는 별도 PR 후보이며 하나의 큰 구현 PR로 묶지 않는다. 첫 G1은 최신 `develop`·공유 API 계약/리뷰 책임·실제 Catalog 사용 가능성·가벼운 평가 기준이 준비된 이후 착수한다.
+
+### 14-3. 개발 상태와 PR 병합 게이트
+
+| 상태 필드 | 증거 | 마감/이행 원칙 |
+| --- | --- | --- |
+| `DESIGN_REVIEWED` | 기능·시나리오·입출력·실패·권한·완료 조건 문서 | 팀 승인과 별개 |
+| `TEAM_CONTRACT_APPROVED` | 실제 API/공유 소유자·리뷰/마이그레이션/권한 협의 기록 | 공용 파일·팀 간 통합 변경 착수 전 선결 |
+| `CODE_IMPLEMENTED` | 독립 branch/commit/PR에서 변경 | 코드 존재로 실사용 완료 주장 금지 |
+| `AUTO_TEST_PASSED` | 실제 단위·통합·CI 로그·커밋 | 실패·skip·mock 여부 기록 |
+| `REAL_INTEGRATION_VERIFIED` | 실제 Catalog API·원본 DB·실제 LLM/허용 RAG 연결·데이터 버전 | 합성 모델/모의 API와 구분 |
+| `DEVICE_E2E_VERIFIED` 또는 `NOT_APPLICABLE` | 해당 기능의 실제 Android/iOS 앱·AR·음성 작동 결과 | 기기 불필요 기능도 앱 카드 연동은 실제 환경 검증 필요 |
+| `REVIEW_APPROVED` | 일반/AR/프론트/API 담당 필수 리뷰 | 필요한 승인 누락 시 병합 금지 |
+| `MERGED_TO_DEVELOP` | 정확한 병합 커밋 및 재검증 결과 | 의존 일반 LLM 작업의 후속 시작 기준 |
+
+공유 계약 변경 PR은 기존 일반 상담·AR 명령·`/api/chat/acks`·앱 라우트의 **회귀 테스트(regression test)**, 보안·권한·게스트·세션 만료 및 실제 결과 시퀀스를 자동/실환경에 맞춰 기록한다. 병합 후 첫 요청·후속질문/중복/오류 회귀를 확인한다. **과거 PR #227~#232는 Closed·미병합**, 코드·데이터·평가 자산을 선별 diff로 최신 기준에 이식하고 해당 PR을 재개·병합하지 않는다.
+
+### 14-4. 팀 개발 독립성·의존성
+
+```mermaid
+flowchart TB
+    CONTRACT["공동 API/Handoff 계약·소유/리뷰 합의"]
+    G1["일반 LLM G1 수직 상품 상담 PR"]
+    G2["일반 LLM G2 멀티턴·결과 참조 PR"]
+    G3["일반 LLM G3 성분 검증 PR"]
+    G4["일반 LLM 후속 G4~G9: 종속 기능별 순차 병합"]
+    AR["AR 화면·상태·렌더 담당: 독립 개발"]
+    ARAI["AR 전용 LLM·STT·TTS 담당: 독립 개발"]
+    DATA["Catalog/검수 데이터 담당: 원본·API"]
+    JOIN["공동 Handoff·응답 계약/실행 결과 연동"]
+    E2E["실제 앱·Catalog·일반 LLM·AR/AR AI 공동 E2E"]
+    CONTRACT --> G1 --> G2 --> G3 --> G4
+    CONTRACT --> AR
+    CONTRACT --> ARAI
+    CONTRACT --> DATA
+    G4 --> JOIN
+    AR --> JOIN
+    ARAI --> JOIN
+    DATA --> JOIN
+    JOIN --> E2E
+```
+
+AR/AR AI팀의 자체 구현·PR은 일반 LLM G1~G9 전체 병합을 기다릴 필요가 없으나 **공동 변경·인계 기능은 관련 양측 버전·계약 검증이 완료돼야 병합 가능**하다. 다른 팀의 독립 서비스 코드까지 일반 LLM 담당이 직접 수정하도록 지정하지 않는다.
+
+### 14-5. 2-7에서 닫을 것과 3~5단계 인계
+
+- **2-7 설계 검토 종료 기준:** 전체 능력/시나리오 매핑, 서비스 소유권·공유 인터페이스, 최소 안전 Handoff, 일반 LLM 수직 PR 의존성, 기술 OPEN·실제 검증 공백을 식별. 이는 구현 명세를 개발자에게 무조건 확정 승인한 상태와 다르다.
+- **3단계 선결:** 실제 상품/옵션 전성분·현재가·룩/영상 레시피·동의 미디어/AIHub 권리, VectorDB/임베딩·Graph 동기화와 한국어 검색 품질 기준. 출처가 불허된 지식의 임베딩/외부 LLM 전달 금지.
+- **4단계 선결:** G1부터 순차 PR별 한국어 자동 테스트·실제 데이터·모델·앱 E2E 평가셋/합격 기준. AR/한국어 STT·TTS는 AR AI/기기 담당의 독립 기기 평가 및 공동 복귀 시퀀스.
+- **5단계 선결:** 팀에 확인한 공유 파일/엔드포인트 오너·리뷰 책임, 첫 수직 G1 scope/feature flag·호환성/되돌리기·branch·Issue·완료 조건. Catalog/AR 팀의 독립 PR과 공동 Handoff 변경 일정은 조정하되 불필요하게 전부 직렬화하지 않음.
+- **운영 선택 OPEN:** 별도 AR AI 배포 여부, 챗봇 Checkpointer 영속 DB·권한/삭제 ADR, Event Outbox/At-least-once·재시도/TTL, 제3자 STT/미디어 전송, 실제 API/DB·LLM/Vector/Neo4j 지연·비용·모니터링의 정량 조건.
+
+### 변경 이력
+- 2026-11-15: G1~G9 수직 PR 의존성·일반 LLM 순차/AR 독립 작업, 공유 파일 변경 게이트와 단계 3~5 선결 인계·통합 검증 상태 체계를 일괄 추가. 코드 및 기존 사용자 결정 변경 없음.
