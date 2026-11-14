@@ -19,6 +19,9 @@ ZONES = ('lip', 'blush', 'eyeshadow', 'eyeliner', 'mascara', 'highlighter', 'con
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--video', help='only render this video ID')
+    parser.add_argument('--state', choices=('app', 'shown'), default='app',
+                        help='app = store state (baseline/); shown = with the video look finish (look_mode/)')
+    parser.add_argument('--all-only', action='store_true', help='render only the full look')
     args = parser.parse_args()
     spec = importlib.util.spec_from_file_location('offline_renderer', ROOT / 'research/lip_texture/render.py')
     helper = importlib.util.module_from_spec(spec)
@@ -26,7 +29,8 @@ def main():
     html = (DATA / 'page.html').read_text(encoding='utf-8').replace('const TUNING = {', 'const TUNING = window.__TUNING = {', 1)
     for frames_path in sorted(DATA.glob('*/frames.json')):
         frames = json.loads(frames_path.read_text(encoding='utf-8'))
-        if args.video and frames['videoId'] != args.video:
+        frames.setdefault('videoId', frames_path.parent.name)
+        if args.video and frames_path.parent.name != args.video:
             continue
         bare = frames['selected']['bare']
         if not bare:
@@ -38,8 +42,8 @@ def main():
             buffer = io.BytesIO()
             padded.save(buffer, format='PNG')
             face = buffer.getvalue()
-        makeup = json.loads((directory / 'app_makeup.json').read_text(encoding='utf-8'))['makeup']
-        out = directory / 'baseline'
+        makeup = json.loads((directory / f'{args.state}_makeup.json').read_text(encoding='utf-8'))['makeup']
+        out = directory / ('baseline' if args.state == 'app' else 'look_mode')
         out.mkdir(exist_ok=True)
         with sync_playwright() as pw:
             browser = pw.chromium.launch(executable_path=helper.CHROME, headless=True,
@@ -56,7 +60,7 @@ def main():
                 page.evaluate("() => Object.assign(window.__TUNING, {lightEveryMs: 1e12, segmentEveryMs: 1e12, segmentEveryMsAuto: 1e12})")
                 time.sleep(2)
                 helper.shot(page, out / 'off.png')
-                for seq, name in enumerate(('all', *ZONES), 1):
+                for seq, name in enumerate(('all',) if args.all_only else ('all', *ZONES), 1):
                     if name != 'all' and not makeup.get(name):
                         continue
                     state = makeup if name == 'all' else {zone: makeup.get(zone) if zone == name else None for zone in ZONES}
