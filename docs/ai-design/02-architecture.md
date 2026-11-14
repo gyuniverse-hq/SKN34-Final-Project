@@ -169,3 +169,101 @@ flowchart TD
 
 ### 변경 이력
 - 2026-11-15: 일반 LLM / AR / AR AI의 소유권과 물리 배치 여부를 분리. 기존 14개 사용자 능력·12개 대표 시나리오 및 2서비스 ADR은 변경하지 않음. **2-6 논리 설계 검토 종료**, 세부 팀 소유권·서비스 배치는 OPEN.
+
+## 10. 2-7 전체 아키텍처 구현 적합성 검토 (2026-11-15)
+
+> **REVIEW-CONCLUSION — 목표 설계 검토 완료, 팀 기술 승인 및 실제 구현·통합 검증 미완료.** 기준: `develop d1cf4868f74d2ff6db188bf2c7646146f3ec72ad`. 사용자 결정 VAI-D-001~017, C01~C14 및 S01~S12 **변경 없음**. 이 평가는 **구조적으로 연결 가능한 능력**과 **현재 동작하는 기능**을 명확히 구별한다.
+
+### 10-1. 최종 권장 목표 배치
+
+```mermaid
+flowchart TD
+    APP["Expo/React Native: 채팅/상품/룩/AR/피부·미디어"]
+    GW["기존 Gateway·인증"]
+    GEN["일반 LLM 모듈 (backend/chatbot 내부 우선)<br/>LangGraph Supervisor + Agent/Tool + 체크포인터"]
+    ARAI["AR 전용 AI 모듈 (같은 chatbot 가능)<br/>AR LLM·STT·TTS: 다른 담당"]
+    AR["AR 화면·기기 상태/렌더·ACK: AR 담당"]
+    HAND["공동 인계 계약: ID/권한/상태·결과/중복"]
+    API["backend/api: Catalog API·검증 데이터 정본"]
+    PG[("Catalog PostgreSQL")]
+    NEO[("Neo4j 파생 관계 검색")]
+    VEC[("Vector Search: 허용 자료만")]
+    GSTATE[("챗봇 전용 영속 Checkpointer/Memory (제안)")]
+    REDIS[("Redis 단기 세션·캐시")]
+    APP <--> GW
+    GW <--> GEN
+    GW <--> ARAI
+    APP <--> AR
+    GEN <--> HAND
+    ARAI <--> HAND
+    AR <--> HAND
+    GEN <--> API
+    ARAI --> API
+    API --> PG
+    GEN --> NEO
+    GEN --> VEC
+    GEN <--> GSTATE
+    GEN <--> REDIS
+```
+
+- 본 그림의 일반 LLM/AR AI는 **논리적 책임 경계**로, 물리적으로 별도 FastAPI/Pod를 배포하라는 결정이 아니다. 기존 `backend/chatbot` 유지 + 내부 구현 소유권 분리 **우선 추천**, 팀 결정 전 OPEN-SERVICE-01.
+- API→Catalog PostgreSQL 원본 소유, chatbot→Neo4j 사본 및 Redis는 ADR-0001/0002 유지. 챗봇 별도 영속 Checkpointer DB의 물리적 소유·권한은 ADR 결정 전 미구현.
+- AR 실제 성공은 앱·기기 렌더러/AR 소유 상태가 결정한다. 일반 LLM은 인계 결과만 읽고 **상품·성분은 Catalog API에서 재조회**한다.
+- 영상/이미지·피부/음성은 사용자 승인 목적·미디어 접근권한과 담당 시스템의 실행 계약이 있어야 한다. 데이터 권리와 모델 품질은 단계 3/4에서 실증한다.
+
+### 10-2. 14개 능력: 설계 경로·현재 코드 공백
+
+| ID | 목표 아키텍처에서 담당·연결 경로 | 현재 코드 수준 및 구현/검증 공백 |
+| --- | --- | --- |
+| C01 자유 K-뷰티 대화 | 일반 Supervisor→일반 LLM·허용 Knowledge Tool | **부분 코드**: 현재 규칙 분기/그래프 제품 맥락. 자유 질문 품질·출처 검증 미완 |
+| C02 개인화 | 현재 State + 동의 장기 Memory + 프로필/보유 Tool | **부분 코드/미구현**: 앱 피부 프로필은 존재, 명시 동의 장기 상담 기억·서버 변경/삭제 미구현 |
+| C03 상품 탐색·추천 | Product Agent·Catalog Tool·조건 검증 | **부분 코드**: 기본 검색 가능, 옵션별 현재가/전성분 복합 조건·후보 구분 API 미구현 |
+| C04 비교·대체 | Product 비교·선택 상태·보유 제품 Tool | **부분 코드**: 비교 일부, 보유 제품 기록·검증 연결 및 실제 옵션 상태 부족 |
+| C05 성분·피부 고민 | Ingredient Tool·검수 원본/버전 + Knowledge | **부분 코드/자료 차단**: 전성분 승인·현재 옵션 정합/지식 권리 미해결; `keyIngredients`는 부분 목록 |
+| C06 스타일·룩 | Style Agent·Catalog/스타일 룩 Tool | **부분 코드**: 룩/스타일 메타 조회, 검수 레시피 커버리지·실제 연결 검증 부족 |
+| C07 화장법 코칭 | Style Recipe + 일반 Knowledge Tool | **부분 코드**: 일반 규칙형 가이드와 실제 검수 영상 레시피 분리 필요 |
+| C08 수정화장·문제 해결 | 자유 상담 + 기술·지식 검색·근거 | **계획/부분 답변**: 전용 근거셋·자유 문제해결 E2E 미검증 |
+| C09 AR 체험·제어 | 일반→AR Handoff, AR/AR AI가 실제 실행·Undo/Restore | **부분 코드**: AR 렌더/명령/ACK 일부, 반환 Handoff·영속 실행·실기기 통합 미검증 |
+| C10 연속·장기 대화 | LangGraph thread·Checkpointer + Redis 단기 후보 + 명시적 이전 방 조회 | **부분 코드**: 현재 앱 방·Redis 최대 600초, 영속 그래프/장기 기억 미구현 |
+| C11 복합 작업 | Supervisor·Task DAG·Subgraph·Send/Command | **미구현**: 현행 `TaskPlan.tasks` 최대 2개·복합 요청 중단 |
+| C12 다국어·음성 | 한국어 우선, AR AI STT/TTS 어댑터·다국어 확장 | **코드 일부/실기기 미검증**: 네 UI 로케일 코드 존재, STT/TTS·AR 음성 첫 경로 미확정 |
+| C13 이미지·영상 | 동의 기반 Media Tool·Visual 분석·룩/레시피 | **미구현/부분 UI**: 영상 메타 존재, 일반 `ChatRequest`는 텍스트 중심·미디어 분석 근거 미구현 |
+| C14 피부 분석 연계 | 동의된 피부 분석 결과→일반 상담 Tool | **앱 코드 일부**: 별도 피부 분석 기능·프로필, 일반 LLM 권한 있는 결과 재사용·품질 E2E 미확인 |
+
+**판단:** C01~C14 전부 논리적인 구성요소·연동·미구현 경계를 특정할 수 있으므로 **설계상 경로 누락은 없음**. 그러나 **14개 전체 기능 구현·실사용 지원·팀 승인 완료는 아님**. 이 중 일부는 자료·사용권한·기기 기능·공동 API 구현을 반드시 전제한다.
+
+### 10-3. 12개 사용자 시나리오: 검증할 실제 여정과 관문
+
+| ID | 핵심 사용자 여정 / 책임 | 코드·데이터·통합 관문 |
+| --- | --- | --- |
+| S01 | 한국어 입문 질문→일반 답변·필요 질문 (일반 LLM) | K-뷰티 자유질문 평가, 근거와 일반 설명 구분 |
+| S02 | 상황·취향 질문→스타일 탐색 (일반 LLM + Style) | 취향 State·검수된 룩/스타일 연결 |
+| S03 | 가격·제형·상품 검색→비교·조건 변경 (일반 LLM·Catalog·앱 UI) | 가격 basis/관측시각, 옵션 검색, 실제 후보 카드 분리 |
+| S04 | 상품 호수 성분 질문→추가 제외 질문 (일반 LLM·성분 Tool) | 검수 전성분·`excludes` operator-relative 판정·sourceVersion |
+| S05 | 룩·영상 선택→단계별 화장법 (Style·Visual) | 승인 레시피/영상 관찰 자료, 일반 가이드 구분 |
+| S06 | 보유 제품 대체→상품 추가 (일반 LLM·동의 Memory) | 실제 보유 제품 저장·삭제·호수/기존 제품 검증 |
+| S07 | 수정화장 문제 설명→자세한 코칭 (일반 LLM·Knowledge) | 허용 근거·실제 질문 다양성·오류 안전 안내 |
+| S08 | 상담→AR 적용·취소·Undo→복귀 (일반→AR/AR AI→일반) | 실제 렌더/ACK/오래된 이벤트/중복/복귀 E2E |
+| S09 | 복합·장기 질문→병렬/순차 Tool 및 목표 정정 (Supervisor) | LangGraph 멀티태스크·Checkpointer·재계획 |
+| S10 | 한국어 음성→AR AI STT·명령·TTS·취소 (AR AI/AR) | Android/iOS 기기 STT 1차 단일 경로 선택·실기기 |
+| S11 | 피부 분석 동의→결과와 상담 연결 (피부/일반 LLM) | 결과 정확도 한계·사용 동의·기기/모델 버전 |
+| S12 | 사진·영상 업로드→분석→스타일/상품/AR (미디어·일반/AR) | 명시 동의·영상 구간 출처·실제 업로드/모델·Handoff |
+
+**판단:** S01~S12는 기존 14개 능력과 모두 대응하고 구현·E2E 관문을 지정할 수 있다. **질문 화이트리스트나 Agent 수를 의미하지 않는다.** 현재 모든 시나리오가 실기기 검증 완료됐다는 결론은 낼 수 없다.
+
+### 10-4. 아키텍처 적합성 최종 검토
+
+| 평가 관점 | 결론 | 결정·검증 범위 |
+| --- | --- | --- |
+| 사용자 목표 커버리지 | **PASS — 논리 설계 범위** | 14개 능력·12개 시나리오의 책임/경로/검증 관문 식별. 실사용 기능 PASS 아님 |
+| 기존 서비스·DB 소유권 | **CONDITIONAL PASS** | 기존 Gateway + API/Chatbot, Catalog HTTP 정본 유지. Checkpointer 소유권 ADR 미확정 |
+| LangGraph·Agent·Tool 현실성 | **CONDITIONAL PASS** | 기존 규칙 경로와 병행/교체 가능하나 LangGraph·Checkpointer·동적 Task DAG 미구현 |
+| 일반 LLM↔AR AI 통합 가능성 | **CONDITIONAL PASS** | 기존 AR route 호환. Handoff 이벤트·권한·공유 코드 오너·실제 E2E 미확정 |
+| RAG·근거 안전성 | **BLOCKED for approved source** | 권리·발행 전 AIHub 원문 서비스 RAG 불가. Catalog 검증 데이터/허용 지식 별도 실사 |
+| 한국어 음성·멀티모달 | **NOT VERIFIED** | AR AI/미디어 담당과 기기·권한·모델/동의 테스트 필요 |
+| 운영/평가 준비 | **NOT VERIFIED** | Checkpointer·시퀀스·지연/비용/민감 로그·실측 목표는 단계 3~5 및 구현에서 수행 |
+
+**최종:** 2-7은 **목표 아키텍처의 설계 검토를 완료한 기준선**으로 종료 가능. **팀 기술 승인·개별 PR 구현·통합 E2E와 운영 검증은 미완료**, 단계 3~5가 실제 개발 시작을 위한 조건을 구체화한다.
+
+### 변경 이력
+- 2026-11-15: 2-7 전체 아키텍처 구성도·C01~C14/S01~S12 커버리지·현행 코드/데이터 관문·조건부 적합성 판단 추가. 사용자 확정 정책·기존 ADR/서비스 배치 변경 없음.
