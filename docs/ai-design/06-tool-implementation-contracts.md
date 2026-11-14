@@ -303,3 +303,110 @@ class IngredientCheckData(BaseModel):
 - 1차 평가 한국어(`ko`) 확정에 따라 기존 TC-22의 네 언어 동시 검증을 후속 TC-22-I18N-FOLLOWUP으로 이동. 한국어 구조 불변조건 TC-KO-STRUCTURE-01 추가.
 - 14개 능력·12개 시나리오, Tool의 기존 API 경로·판정 계약·검수 조건은 변경하지 않음.
 - 실제 옵션별 검색·원본/그래프/벡터 동기화 검토는 [08 옵션·근거·색인 계약](08-option-search-evidence-and-sync.md)에 별도 기록. 기술 선택·테스트 결과는 아직 PROPOSED.
+
+## 12. 2-5 완료 시 개발자 전달용 계약 (PROPOSED)
+
+아래는 [08 가격 판정·결과 분리](08-option-search-evidence-and-sync.md)의 구현 우선 불변조건이다. 상단 `ProductFact.price_kind` 등의 기존 예시는 **최소 데이터 설명용**이며, 실제로 개발할 때 아래의 가격 조건·근거 범위와 후보 그룹 검증을 반드시 포함해야 한다.
+
+```python
+# 목표 모델을 설명하기 위한 계약 예시. 현재 API 코드가 아니다.
+from datetime import datetime
+from typing import Literal
+from pydantic import BaseModel, ConfigDict, Field
+
+Verdict = Literal["MATCH", "NOT_MATCH", "UNKNOWN", "ERROR"]
+CandidateGroup = Literal["ELIGIBLE", "REFERENCE_ONLY", "EXCLUDED"]
+
+class PricePredicate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    requested_basis: Literal[
+        "current_offer", "catalog_reference", "historical_snapshot"
+    ]
+    max_price_krw: int = Field(ge=0)
+    currency: Literal["KRW"] = "KRW"
+    requested_observation_at: datetime | None = None
+
+class PriceEvidence(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    observed_basis: Literal[
+        "catalog_reference", "collected_snapshot",
+        "merchant_offer_observed", "checkout_confirmed"
+    ]
+    amount_krw: int = Field(ge=0)
+    observed_at: datetime | None = None
+    checked_at: datetime
+    source_ref: str
+    source_version: str | None = None
+    product_id: str
+    option_id: str | None = None
+
+class PriceCheck(BaseModel):
+    predicate: PricePredicate
+    verdict: Verdict
+    evidence: PriceEvidence | None = None
+    reason: str
+    freshness_policy_ref: str | None = None
+
+class CandidateVerdict(BaseModel):
+    product_id: str
+    shade_id: str | None = None
+    option_id: str | None = None
+    group: CandidateGroup
+    mandatory_conditions: dict[str, Verdict]
+    price_check: PriceCheck | None = None
+    # 성분·스타일·상품 근거는 각 ToolResult / EvidencePointer로 참조
+    evidence_refs: list[str] = Field(default_factory=list)
+
+class SearchGroups(BaseModel):
+    eligible_items: list[CandidateVerdict] = Field(default_factory=list)
+    reference_candidates: list[CandidateVerdict] = Field(default_factory=list)
+    excluded_items: list[CandidateVerdict] = Field(default_factory=list)
+    checked_scope: dict
+    result_set_id: str
+    result_set_version: int = Field(ge=1)
+```
+
+**서버 검증기 구현 시 강제할 내용**: `PriceCheck.verdict=MATCH/NOT_MATCH`는 요청 basis와 관측 basis의 정책상 호환성, 관측 시각 유효성, 요청 product/option 귀속, 금액 비교, 근거 출처가 일치해야만 허용한다. 그 밖에는 `UNKNOWN`, 조회 실패는 `ERROR`이다. `observed_at`은 비어 있을 수 있으므로 '현재 제안가 검증'에는 반드시 필요하고, `checked_at`으로 대체할 수 없다.
+
+**최종 그룹 검증기**: 한 개라도 필수 조건 `NOT_MATCH` → `EXCLUDED`; 모두 `MATCH` → `ELIGIBLE`; 나머지 `UNKNOWN/ERROR` → `REFERENCE_ONLY`. `ERROR` 내역과 요청한 `priceBasis`, `checkedScope`를 보존한다. 모든 조건에서 에러가 발생해 검증된 후보가 하나도 없다면 사용자에게 시스템 오류를 안내한다.
+
+서버가 사용자 권한/서비스 자격·도구 허용 범위/데이터 권리를 주입하고, 언어는 `inputLanguage/responseLocale`로만 다룬다. 가격·성분 검증 코드를 LLM 프롬프트 안에서 구현하지 않는다.
+
+### 12-1. 권한 매트릭스·fail-closed 기준
+
+| Tool 그룹 | 필요한 권한/동의 | 권한·소스 검증 실패 시 |
+| --- | --- | --- |
+| 공용 Catalog 상품·룩 조회 | API의 공개 상품 조회 정책·요청 제한, 서버간 호출 자격 | 데이터 부족·서비스 오류로 안내, 신뢰하지 않은 Graph 결과를 상품 사실로 대체 금지 |
+| 성분 검수 조회 | 유효 상품/옵션 ID, 검수·원본 상태. 서버가 반환 허용한 자료만 사용 | 미검수·미완전 → `UNKNOWN`, 서버 오류 → `ERROR` |
+| 지식·Graph·Vector | 서비스 이용권한·검수·발행·요청자 범위 사전 확인, 응답 시 재확인 | 승인 상태 확인 불가면 **해당 지식 사용 중단(fail-closed)**. 승인 안 된 인용·외부 LLM 제공 금지 |
+| 현재 대화 | thread 소유자·임시 게스트 capability·만료 검사 | 타인 이력 노출 금지, 만료 시 재개/로그인 안내 |
+| 과거 대화·장기 기억 | 인증/소유자/명시적 이전 대화 요청, 저장·삭제는 사용자가 동의한 범위 | 요청 없는 과거 방 검색·자동 영구 저장 금지 |
+| 피부·사용자 미디어 | 목적별 동의·접근 허가·유효기간·외부 모델 전달 정책 | 조회·전송·분석 중단, 삭제/권한 철회 정책 적용 |
+| AR 실제 행동 | 최신 사용자 의사·실제 앱 상태·`actionId`·`arStateVersion`·지원 기능 | 제안만 반환하거나 실행 실패/불명확 보고. 렌더 성공 추정 금지 |
+
+로그·관측에는 access token·얼굴 원본·비공개 대화 본문·원문 권리 미확정 자료를 기본적으로 싣지 않는다. 서비스간 인증 방식, 게스트 영속 허용 범위, 미디어 삭제 시점은 2-6/2-7에서 확정한다.
+
+### 12-2. 오류와 재시도
+
+- `401/403`은 임의 자격 승격/추측 검색 금지, `409`은 올바른 `requestId`/예상 버전 확인, `410`은 만료된 검색 맥락으로 명확히 안내.
+- `429/502/503`의 읽기 작업은 제한 재시도·부분 결과 가능하나 실패를 자료 부재로 바꾸지 않는다.
+- `UNKNOWN`은 확인 부족, `ERROR`는 검증 시도 실패로 별도 반환.
+- 외부 부작용(AR/저장/삭제)은 타임아웃 후 **새 `actionId`를 만들어 재실행 금지**. 실제 상태와 기존 결과를 조사한다. 구체 ACK/Undo는 2-6에서 확정한다.
+
+### 12-3. 2-5 종료 검토용 추가 테스트 (미실행)
+
+| ID | 조건·행동 | 기대 결과 |
+| --- | --- | --- |
+| TC-PRICE-01 | 현재가 요청 + 유효한 과거 수집가 18,000원 | `UNKNOWN`, 현재 2만원 이하 `MATCH` 불가 |
+| TC-PRICE-02 | 같은 옵션의 같은 수집 시점·basis를 명시한 질의 | 해당 과거 조건에서만 `MATCH/NOT_MATCH` 가능 |
+| TC-PRICE-03 | 가격 API 장애인데 카탈로그 참고가 존재 | `ERROR` 별도 보존, 참고가를 현재가로 승격하지 않음 |
+| TC-PRICE-04 | 구매 가능 가격의 관측 시각이 허용 정책보다 오래됨 | `UNKNOWN`, `checkedAt`으로 `observedAt` 덮지 않음 |
+| TC-GROUP-01 | 가격 MATCH, 향료 제외 UNKNOWN | `REFERENCE_ONLY`로 분리, "무향료·2만원 이하" 추천 금지 |
+| TC-GROUP-02 | 검수된 향료 존재로 excludes NOT_MATCH + 다른 조건 ERROR | `EXCLUDED` 유지, 실패 정보 따로 기록 |
+| TC-RIGHTS-01 | 권리 철회됐으나 Graph/Vector 이전 색인에 남음 | 조회 전/반환 전 권한 게이트에서 사용 금지 |
+| TC-AUTH-01 | 다른 사용자 장기 기억/미디어 참조 | `FORBIDDEN`, LLM 프롬프트 유출 없음 |
+| TC-CACHE-01 | 원본 버전 변경·색인 교체 실패 | 오래된 캐시·색인을 승인된 최신 자료로 오인하지 않음 |
+
+### 변경 기록
+
+- 2026-11-15: 2-5 종료 검토에 따라 가격 basis/observedAt 엄격 판정, ELIGIBLE/REFERENCE_ONLY/EXCLUDED 분리, 권한 매트릭스·복구/오류/테스트 보강. **기술 계약은 PROPOSED, 개발/실행 검증은 미완료**.
