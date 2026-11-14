@@ -66,6 +66,9 @@ import { useArCommand } from '@/hooks/useArCommand';
 import { MIN_TONE_CONF, rankFoundationShades, type SkinTone } from '@/lib/foundationMatch';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useTryOnProducts } from '@/lib/queries';
+import { demoLookVideoId } from '@/lib/demoLookAr';
+import { LOOK_STRENGTH_MAX, LOOK_STRENGTH_MIN, videoLookMakeup } from '@/lib/videoLookMakeup';
+import { hasVideoLookStyle } from '@/lib/videoLookStyles';
 import { parseFlag, parseId, productHref, recommendationsHref } from '@/lib/routes';
 import { useCartStore } from '@/store/cartStore';
 import { isLipBaseCare, LIP_TEXTURE_CHIPS, lipCareKind, lipTextureChip } from '@/lib/lipCare';
@@ -515,10 +518,18 @@ export default function ArTryOnScreen() {
   );
   const practiceIndex = practice ? Math.min(practice.index, zonesOfSteps.length - 1) : 0;
   const practiceZone = zonesOfSteps[practiceIndex] ?? null;
+  // Video look finish strength (1 = the look's tuned values), kept per look so a new look starts from 1.
+  const [lookStrengthPick, setLookStrengthPick] = useState<{ lookId: string | null; value: number }>({ lookId: null, value: 1 });
+  const lookStrength = lookStrengthPick.lookId === (activeLook?.id ?? null) ? lookStrengthPick.value : 1;
+  const setLookStrength = (value: number) => setLookStrengthPick({ lookId: activeLook?.id ?? null, value });
+  const lookFinishOn = fromVideo && !fit && !routeProductId && !!activeLook && hasVideoLookStyle(demoLookVideoId(activeLook.id));
   const shownMakeup = useMemo(() => {
     const face = practicing && !peek && practice ? revealedMakeup(makeup, practice.visited) : makeup;
-    return arPaintMakeup(face);
-  }, [practicing, peek, practice, makeup]);
+    return videoLookMakeup(arPaintMakeup(face), {
+      fromVideo, cameraActive, fittingProduct: !!fit || !!routeProductId,
+      lookId: activeLook?.id ?? null, modified, strength: lookStrength,
+    });
+  }, [practicing, peek, practice, makeup, fromVideo, cameraActive, fit, routeProductId, activeLook?.id, modified, lookStrength]);
   const guide = useMemo(() => {
     const step = practicing && !peek ? practiceDrawStep(practiceZone) : null;
     return step ? guideMessage(step, wing) : null;
@@ -774,6 +785,16 @@ export default function ArTryOnScreen() {
           </Text>
         ) : null}
         {fromVideo ? <Text style={styles.warnBanner}>{t('videoAr.notice')}</Text> : null}
+        {lookFinishOn ? (
+          <View style={styles.foundBox}>
+            <Text style={styles.foundTitle}>{t('videoAr.lookStrength')} · {Math.round(lookStrength * 100)}%</Text>
+            <CoverageBar
+              value={(lookStrength - LOOK_STRENGTH_MIN) / (LOOK_STRENGTH_MAX - LOOK_STRENGTH_MIN)}
+              labels={{ title: t('videoAr.lookStrength'), low: t('videoAr.lookStrengthLow'), high: t('videoAr.lookStrengthHigh') }}
+              onChange={(value) => setLookStrength(LOOK_STRENGTH_MIN + value * (LOOK_STRENGTH_MAX - LOOK_STRENGTH_MIN))}
+            />
+          </View>
+        ) : null}
         {routeSelection.shadeMissing ? (
           <Text style={styles.warnBanner} accessibilityRole="alert">
             {t('chat.selectShade')}
