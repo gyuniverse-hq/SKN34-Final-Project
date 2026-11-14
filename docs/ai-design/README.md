@@ -14,6 +14,7 @@ VISHUE를 **K-뷰티 중심 자유 대화형 AI**로 설계한다. 사용자가 
 - [03 실행 계약·상태·복구·협력](03-execution-contracts.md): **2-2~2-4 설계안**. 정확한 스키마와 운영 정책은 아직 미승인.
 - [DECISIONS 결정 로그](DECISIONS.md): 채택한 원칙, 대안, 확인 날짜, 추후 변경 사항.
 - [04 기존 문서 대조·충돌·2-5 인계](04-gap-analysis-and-2-5.md): 현행 코드와 문서의 차이, 검증 범위, 다음 검토 항목.
+- [05 Tool·근거·데이터 접근 설계](05-tool-evidence-data-contract.md): **2-5 시작, PROPOSED**. Tool Registry·증거·권한·검색 계층의 첫 상세 설계안.
 
 이 폴더는 기존 [시스템 아키텍처](../ARCHITECTURE.md), [기술 ADR](../adr/README.md), [AI 평가 원본](../ai-alignment/README_FIRST.md), [AR 명세](../AR_SPEC.md), [성분 상담 계약](../INGREDIENT_CONSULTATION.md)을 대체하지 않는다. 기존 규칙을 변경해야 할 때는 해당 담당자·팀의 결정과 별도 ADR이 선행되어야 한다.
 
@@ -43,7 +44,7 @@ VISHUE를 **K-뷰티 중심 자유 대화형 AI**로 설계한다. 사용자가 
 | 6 | 구현·지속 통합 | 새 목표 아키텍처 기준 미착수 |
 | 7 | 실제 E2E·사용자 평가 | 새 목표 아키텍처 기준 미착수 |
 
-2-5는 Tool·근거 검증·PostgreSQL/Neo4j/VectorDB 접근의 상세 계약, 2-6은 앱·AR·음성, 2-7은 통합 시퀀스·운영·승인이다. 본 문서화 완료 이후 2-5를 시작하되 **2단계 전체를 완료 처리하지 않는다**.
+2-5는 [첫 설계안 작성 중](05-tool-evidence-data-contract.md)인 Tool·근거 검증·PostgreSQL/Neo4j/VectorDB 접근의 상세 계약, 2-6은 앱·AR·음성, 2-7은 통합 시퀀스·운영·승인이다. 본 문서화 완료 이후 2-5를 시작하되 **2단계 전체를 완료 처리하지 않는다**.
 
 ## 변경·승인 흐름
 
