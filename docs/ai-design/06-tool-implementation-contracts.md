@@ -410,3 +410,22 @@ class SearchGroups(BaseModel):
 ### 변경 기록
 
 - 2026-11-15: 2-5 종료 검토에 따라 가격 basis/observedAt 엄격 판정, ELIGIBLE/REFERENCE_ONLY/EXCLUDED 분리, 권한 매트릭스·복구/오류/테스트 보강. **기술 계약은 PROPOSED, 개발/실행 검증은 미완료**.
+
+## 13. 2-6 앱 상담 카드의 검증 결과 표현 인계 (2026-11-15)
+
+> **PROPOSED UI/스키마 계약, 미구현**. 일반 LLM의 ToolResult·가격/성분 사실 검증과 **공용 앱 프론트 담당**의 실제 렌더 구현을 분리한다. 현재 카드 UI는 `components/chat/ChatProducts.tsx`에서 제품의 `priceKRW`로 조건 비교를 수행하므로, 현재가·옵션별 전성분 검증을 대신할 수 없다.
+
+| 서버 결과 | 앱 표현 의미 | 동작 |
+| --- | --- | --- |
+| `ELIGIBLE` | 모든 **필수 조건**에서 올바른 가격 basis·관측시각·출처·상품/옵션 귀속에 따른 `MATCH` 확인 | '요청 조건 충족 확인' 영역, 근거·기준 시각 표시, 상품/AR 선택은 AR 별도 검증 |
+| `REFERENCE_ONLY` | **실상품/옵션 존재·귀속 확인**, 확정된 필수조건 위반은 없고 일부 필수조건 `UNKNOWN/ERROR` | '추가 확인이 필요한 참고 후보'; 미확인 조건·조회 오류를 **구별** 표시. 조건 충족이라는 문구 금지 |
+| `EXCLUDED` | 검증된 필수조건 `NOT_MATCH` 하나 이상 | 조건 불일치로 기본 추천에서 제외·조회 확장 시 근거 표시 가능 |
+| `INVALID_IDENTITY/NOT_FOUND` | 상품·옵션 소유 관계 불명·폐기·삭제 | **세 후보 그룹에 넣지 않음**. 상품 선택/AR 체험 불가·재조회/수정 안내 |
+| `GLOBAL_ERROR` | 필수 검색 API 전체 실패, 검증 가능한 후보 없음 | 빈 추천을 '일치 상품 없음'으로 표현 금지. 오류·재시도/텍스트 안내 |
+
+**공유 계약:** `productId/shadeId/optionId`, `resultSetId/version`, `conditionId/operator/verdict`, `priceBasis/observedAt/checkedAt`, `evidenceId/sourceVersion`, `errorCode/retryable`, `checkedScope/exhaustive`의 구조화 필드를 사용한다. 후보 그룹은 서버 검증 결과가 확정하고 앱은 원문 의미를 바꾸지 않는다. 화면 표시 및 접근성 문구는 언어별 UI 리소스를 사용하되 1차 AI 평가/개발은 한국어. AR '체험하기'는 실상품/셰이드/AR 지원 여부가 검증된 경우에만 제안하고 근거 부족을 숨기지 않는다.
+
+**코드/소유권 경계:** 일반 LLM은 검증된 결과·근거 계약과 Tool 연결을 책임진다. `app/chat.tsx`·`components/chat/ChatProducts.tsx`·`lib/routes.ts` 등 공용 앱 변경 담당은 **확인 필요**다. AR 실행 상태 및 실제 기기 렌더는 AR/AR AI 담당. [03 Handoff 계약](03-execution-contracts.md)을 통해 실제 선택 맥락을 인계한다.
+
+### 변경 기록
+- 2026-11-15: 2-6 앱 카드 표현·실제품/옵션 검증·전체 조회 실패/필수 근거 오류 구분 및 소유권 경계 인계. 기존 2-5 근거·가격 판정 계약은 변경하지 않음.
