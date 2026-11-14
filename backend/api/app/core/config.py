@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     ingredient_alias_approvals_path: str | None = None
     recommendation_comparison_enabled: bool = False
     recommendation_model: str = Field(
-        default="recommend-cat-v2", pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        default="recommend-cat-v3", pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
     )
     recommendation_models_dir: Path = PROJECT_ROOT / "ml/runs"
     recommendation_v1_url: str = "http://127.0.0.1:8080"

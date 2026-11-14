@@ -67,7 +67,15 @@ __pycache__/
 # Independent Python ML project
 /ml/.venv/
 /ml/data/
-/ml/runs/
+/ml/runs/*
+# Share only the approved recommendation V3 serving bundle.
+!/ml/runs/recommend-cat-v3/
+/ml/runs/recommend-cat-v3/*
+!/ml/runs/recommend-cat-v3/bundle/
+/ml/runs/recommend-cat-v3/bundle/*
+!/ml/runs/recommend-cat-v3/bundle/model.cbm
+!/ml/runs/recommend-cat-v3/bundle/manifest.json
+!/ml/runs/recommend-cat-v3/bundle/README.md
 /ml/experiments/
 /reports/recommendation-v2/
 /scripts/data/recommendation/curation_decisions.json

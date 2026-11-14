@@ -34,17 +34,17 @@ def test_default_and_named_models_share_the_skin_model_parent_without_cwd_depend
 ):
     monkeypatch.chdir(tmp_path)
     settings = Settings(_env_file=None)
-    assert settings.recommendation_bundle_path == PROJECT_ROOT / "ml/runs/recommend-cat-v2/bundle"
-    changed = Settings(_env_file=None, recommendation_model="recommend-cat-v3")
-    assert changed.recommendation_bundle_path == PROJECT_ROOT / "ml/runs/recommend-cat-v3/bundle"
+    assert settings.recommendation_bundle_path == PROJECT_ROOT / "ml/runs/recommend-cat-v3/bundle"
+    changed = Settings(_env_file=None, recommendation_model="recommend-cat-v2")
+    assert changed.recommendation_bundle_path == PROJECT_ROOT / "ml/runs/recommend-cat-v2/bundle"
     assert changed.recommendation_v2_bundle == str(changed.recommendation_bundle_path)
     relative = Settings(_env_file=None, recommendation_models_dir="custom-models")
     assert (
         relative.recommendation_bundle_path
-        == PROJECT_ROOT / "custom-models/recommend-cat-v2/bundle"
+        == PROJECT_ROOT / "custom-models/recommend-cat-v3/bundle"
     )
     mounted = Settings(_env_file=None, recommendation_models_dir=tmp_path)
-    assert mounted.recommendation_bundle_path == tmp_path / "recommend-cat-v2/bundle"
+    assert mounted.recommendation_bundle_path == tmp_path / "recommend-cat-v3/bundle"
 
 
 @pytest.mark.parametrize("name", ["", "../outside", "bad/name", "bad\\name", "UPPER", " leading"])

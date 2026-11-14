@@ -3,11 +3,12 @@
 2026-11-12 정리 후 기준. 과거 단계별 데이터와 비교 전용 코드는 폐기하고 현재 모델과 재학습 자료를 유지한다.
 변경 과정·성능·삭제 목록은 [모델·데이터 인계 및 정리 요약](../../../docs/recommendation-v2-artifacts.md)에 있다.
 
-## 로컬 보존 데이터 (Git 미포함)
+## 실행 모델과 로컬 보존 데이터
 
-실행용 모델은 `ml/runs/recommend-cat-v2/bundle/`의 `model.cbm`·`manifest.json`이다.
-피부 분석 원본 `ml/runs/skin-analysis-v4/bundle/`과 같은 위치 체계를 사용하며 둘 다 별도 전달한다.
-루트 `.env`의 `RECOMMENDATION_MODEL=recommend-cat-v2`로 선택하고 비교 API를 재시작한다.
+실행용 V3의 `model.cbm`·`manifest.json`·설명서는 `ml/runs/recommend-cat-v3/bundle/`에 Git으로 동봉한다.
+기본 추천 모델은 V3다. 기존 환경변수에 V2가 있으면 `RECOMMENDATION_MODEL=recommend-cat-v3`로 변경하고 API를 재시작한다.
+모델 입력·평가·팀 적용 방법은 [V3 번들 설명서](../../../ml/runs/recommend-cat-v3/bundle/README.md)를 따른다.
+피부 분석 원본은 기존 별도 인계 방식을 유지한다. 아래 데이터·재학습 절은 기존 V2 보존 기록이며 V3 추론에는 필요하지 않다.
 
 | 경로 (ml/data/recommendation-v2 아래) | 역할 |
 |---|---|

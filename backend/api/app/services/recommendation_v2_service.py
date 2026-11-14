@@ -13,6 +13,7 @@ from app.services.rating_score_service import ALPHA, DRAWS, MU, K, conservative_
 GOAL_ORDER = ("pores", "pigmentation", "wrinkles")
 CONCERNS = {"pores": "모공케어", "pigmentation": "톤잡티 케어", "wrinkles": "주름 케어"}
 FEATURES = ["age_group", "gender", "skin_type", "primary_concern", "pore", "wrinkle", "tone"]
+SCORE_FEATURES = ["pore_score", "wrinkle_score", "pigmentation_score"]
 GOAL_SURVEY_SIGNALS = {
     "dryness": "hydrating",
     "sensitivity": "soothing",
@@ -92,11 +93,17 @@ def secondary_goal(body: ComparisonInput, primary: str) -> str | None:
     return goal if scores[goal] >= POLICY["secondaryThreshold"] else None
 
 
-def feature_values(body: ComparisonInput, goal: str) -> list[str]:
+def feature_values(
+    body: ComparisonInput, goal: str, features: list[str] | None = None
+) -> list[str | float]:
+    features = FEATURES if features is None else features
+    if features not in (FEATURES, FEATURES + SCORE_FEATURES):
+        raise ValueError("invalid_model_features")
+
     def state(score):
         return "주의" if score >= 0.5 else "양호"
 
-    return [
+    values: list[str | float] = [
         body.age_group,
         body.gender,
         body.skin_type,
@@ -105,6 +112,9 @@ def feature_values(body: ComparisonInput, goal: str) -> list[str]:
         state(body.scores.wrinkles),
         state(body.scores.pigmentation),
     ]
+    if features == FEATURES + SCORE_FEATURES:
+        values.extend([body.scores.pores, body.scores.wrinkles, body.scores.pigmentation])
+    return values
 
 
 @lru_cache(maxsize=2)
@@ -115,7 +125,11 @@ def load_bundle(path: str):
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     model_path = root / "model.cbm"
     if (
-        manifest["features"] != FEATURES
+        manifest["features"] not in (FEATURES, FEATURES + SCORE_FEATURES)
+        or (
+            manifest["features"] == FEATURES + SCORE_FEATURES
+            and manifest.get("numericFeatures") != SCORE_FEATURES
+        )
         or len(manifest["labels"]) != 80
         or len({label["db_id"] for label in manifest["labels"]}) != 80
         or manifest["modelSha256"] != hashlib.sha256(model_path.read_bytes()).hexdigest()
@@ -123,15 +137,19 @@ def load_bundle(path: str):
         raise ValueError("invalid_model_bundle")
     model = CatBoostClassifier()
     model.load_model(str(model_path))
-    if model.get_cat_feature_indices() != list(range(7)):
+    if (
+        model.get_cat_feature_indices() != list(range(7))
+        or len(model.feature_names_) != len(manifest["features"])
+    ):
         raise ValueError("invalid_model_features")
     return model, manifest
 
 
 def predict_seeds(body: ComparisonInput, goal: str, bundle_path: str):
     model, manifest = load_bundle(bundle_path)
-    values = feature_values(body, goal)
-    for feature, value in zip(FEATURES, values, strict=True):
+    features = manifest["features"]
+    values = feature_values(body, goal, features)
+    for feature, value in zip(FEATURES, values[:7], strict=True):
         if value not in manifest["categories"][feature]:
             raise ValueError("unsupported_model_category")
     probabilities = list(model.predict_proba([values], thread_count=2)[0])
@@ -150,7 +168,7 @@ def predict_seeds(body: ComparisonInput, goal: str, bundle_path: str):
     return seeds, {
         "version": manifest["version"],
         "sha256": manifest["modelSha256"],
-        "features": dict(zip(FEATURES, values, strict=True)),
+        "features": dict(zip(features, values, strict=True)),
         "trainingContract": manifest["trainingContract"],
     }
 
