@@ -23,6 +23,9 @@
 | VAI-D-012 | **최신 develop 기반, 기존 #227~#232 병합 없이 종료하고 필요한 자산만 선별 재사용** | 종전 PR의 복잡한 의존 관계와 새 오케스트레이터 계약의 충돌 방지 | 기존 PR 순서대로 병합, 기존 성과 전부 폐기 | 2026-11-15 | [04](04-gap-analysis-and-2-5.md) |
 | VAI-D-013 | **1차 AI 구현·평가 언어는 한국어(`ko`)만 우선**; 기존 `en`·`ja`·`zh` 코드 유지, 다국어 확장 가능 구조 | 4개 언어 동시 자유 상담·상품·성분·스타일·AR·STT/TTS 구현과 검증 부담을 분리하면서 장래 확장 보존 | 4개 언어 동시 구현·검증, 언어별로 부분 출시, 기존 3개 언어 모두 1차 구현 | 2026-11-15 (기록일) | [01](01-user-experience.md), [07](07-ko-first-language-and-evaluation.md), [06](06-tool-implementation-contracts.md) |
 | VAI-D-014 | **설계와 문서화를 분리**: 일반 논의는 채팅, 세부 단계 검토 완료 시 기존 GitHub 문서 일괄 갱신, Notion은 전체 2단계 완료/팀 공유 시점 갱신 | 문서 수정/검증에 설계 대화가 반복 중단되는 문제 방지, 결정 누락은 대화 상태 및 단계 종료 시 갱신으로 관리 | 대화마다 GitHub/Notion 즉시 수정, 문서 작업을 전부 마지막에 몰아서 처리 | 2026-11-15 (기록일) | [README](README.md), [05](05-tool-evidence-data-contract.md) |
+| VAI-D-015 | **구현 책임 분리:** 일반 LLM·LangGraph·Tool·RAG는 일반 LLM 담당, AR 화면/렌더/상태는 AR 담당, AR 내부 LLM·STT·TTS·음성 명령은 AR AI 담당, 공동 Handoff·결과·권한은 공동 계약 | 제품의 14개 능력·12개 시나리오를 유지하면서 사용자 전체 설계 책임과 실코드 담당 혼동 방지 | 일반 LLM 담당에게 모든 AR·음성 구현을 할당 / AR 기능을 AI 범위에서 제외 | 2026-11-15 (기록일) | [02](02-architecture.md), [03](03-execution-contracts.md), [07](07-ko-first-language-and-evaluation.md) |
+| VAI-D-016 | **일반 LLM은 수직 기능별 순차 개발·독립 PR 검증·병합**, AR·AR AI는 독립 병렬 개발 가능; 공통 변경은 사전 계약·공동 E2E | 과거 #227~#232의 중첩 코드·의존 PR 재발 방지하면서 AR 담당 개발 속도 유지 | 일반·AR 전체를 하나씩 직렬화 / 의존 기능을 무제한 병렬 구현 | 2026-11-15 (기록일) | [02](02-architecture.md), [03](03-execution-contracts.md) |
+| VAI-D-017 | **한국어 STT는 기기·서버 교체 가능한 C 혼합 구조**, 첫 구현은 담당자가 검증한 하나의 경로만 선택. 서버 STT는 첫 후보일 뿐 최종 선택 아님 | 기기·OS별 정확도/지연/권한과 서버 비용·개인정보 처리 비교, 불필요한 동시 구현 방지 | 기기 인식만 고정 / 서버 STT만 고정 / 1차에 양쪽 동시 개발 | 2026-11-15 (기록일) | [07](07-ko-first-language-and-evaluation.md), [03](03-execution-contracts.md) |
 
 이 결정은 사용자와의 설계 대화에서 확정한 **제품·설계 원칙**이지 팀 전체에서 최종 합의하거나 실행한 근거는 아니다. `VAI-D-011`의 "멀티에이전트 고려"는 전문 Agent 수·구체 노드 배치까지 확정했다는 뜻이 아니다.
 
@@ -46,6 +49,8 @@
 | 기존 한·영·일 3개 기획 vs `en/ko/ja/zh` 4개 코드 로케일 | **OPEN-LANG-01 (부분 해소)** | **1차 언어 `ko`는 VAI-D-013으로 확정**. `en`·`ja`·`zh`의 AI/AR 음성/STT/TTS 지원 시점·출시 수준과 언어별 E2E는 **미결정**; UI 로케일 코드는 유지. [07](07-ko-first-language-and-evaluation.md) |
 | 14개 능력·12개 시나리오의 설계 적합성 평가 | **REVIEW-CONCLUSION** | 설계 검토자가 구조적으로 충분하다고 판단. 채택된 사용자 목표의 범위와 별개이며 실행 품질·팀 승인 아님 |
 | 1차 한국어 구현·평가 범위 | **ACCEPTED-USER (VAI-D-013)** | 14개 능력/12개 시나리오 유지, 지원 가능한 AI 기능의 첫 검증 언어는 `ko`. 한국어 STT/TTS는 2-6에서 기술 가능성·실기기 확인 필요 |
+| **2-6 책임 분리·순차 개발·STT 혼합 방향** | **ACCEPTED-USER (VAI-D-015~017)** | 개발자별 구현 담당 분리, 공동 Handoff와 AR/일반 LLM E2E 별도 수행 |
+| **2-6 기존 서비스 배치·Handoff B 최소 인계** | **REVIEW-CONCLUSION / PROPOSED** | 같은 `backend/chatbot` 유지 우선, 서비스 분리/최종 담당자 합의 미확정. [02](02-architecture.md)·[03](03-execution-contracts.md) |
 | 실제 API 대응형 Tool 입출력·오류·권한 계약 | **PROPOSED (2-5 설계 검토 종료)** | [05 종료 기준](05-tool-evidence-data-contract.md)·[06 개발 계약](06-tool-implementation-contracts.md)·[08 가격/색인](08-option-search-evidence-and-sync.md). 팀 기술 승인·구현/시험은 별개 |
 
 ## 변경 이력
@@ -84,3 +89,23 @@
 | --- | --- | --- |
 | 2026-11-15 | 사용자 지시로 **VAI-D-014** 문서 갱신 주기 등록 | GitHub는 세부 단계 종료 일괄, Notion은 2단계 완료/팀 공유 위주 |
 | 2026-11-15 | 2-5 설계 검토 종료 평가 | 기술 상세 선택은 OPEN, API·AR·RAG 구현·실제 검증은 미완료 |
+
+## 2-6 설계 검토 종료 기록 (2026-11-15)
+
+- **REVIEW-CONCLUSION:** 일반 LLM ↔ AR/AR AI 경계, 기존 앱의 `productId/shadeId` 이동 경로, 최소 Handoff 요청·검증된 복귀 이벤트, 소유권/중복/버전/결과 유실·취소 불변조건, STT 구현 책임과 공동 E2E 인계를 충분한 **2-6 논리 설계 검토 완료 조건**으로 판단한다. **팀의 최종 기술 승인·코드 구현·실기기 결과를 뜻하지 않는다**.
+- **ACCEPTED-USER:** VAI-D-015(실개발 책임), VAI-D-016(일반 LLM 수직 개발·PR 순차 병합, AR 독립 병렬), VAI-D-017(STT 혼합 구조 + 최초 단일 경로).
+- **OPEN-INT-01:** 기존 `arHref` 이동에 `handoffId`를 URL로 추가할지, 앱 공유 State/서버 조회로 연결할지. URL만으로 소유권 증명 금지.
+- **OPEN-INT-02:** AR 결과 이벤트 전달/영속성·인증/게스트·중복/이벤트 순서·오래된 상태의 실제 저장 경로 및 재시작 복구.
+- **OPEN-SERVICE-01:** 기존 `backend/chatbot` 내부 모듈 유지(우선 추천) vs 물리 서비스 분리; AR AI 담당/운영팀 의견·측정 후 결정.
+- **OPEN-OWNER-01:** `/api/chat`, 공통 Pydantic 스키마, `chat_service.py`, 앱 라우트 및 카드 공유 코드의 **변경 PR 책임자/리뷰어**. 2-7에서 합의.
+- **OPEN-STT-01:** AR AI 담당자가 한국어 기기/서버 STT 중 실제 1차 경로·TTS 공급자와 앱 권한을 검증해 선택.
+- **기존 결론 유지:** 가격 basis·observedAt에 한정된 `MATCH`, `ELIGIBLE/REFERENCE_ONLY/EXCLUDED`, 실상품/옵션 확인 없는 참고 카드 금지, 출처·권리·근거 검증.
+- **절차:** 2-6 설계 검토 종료 후 기존 GitHub 문서를 일괄 반영했고, Notion은 전체 2단계 완료/팀 공유가 필요할 때만 갱신한다.
+
+### 2-6 변경 이력
+
+| 기록일 | 변경 | 상태 |
+| --- | --- | --- |
+| 2026-11-15 | VAI-D-015~017 추가 및 담당/서비스 배치/음성 범위 분리 | 사용자 결정 반영, 서비스 구조 OPEN |
+| 2026-11-15 | 기존 AR 라우팅 호환 Handoff B 논리 계약과 예외·권한·검증 사례 추가 | 기술 상세안 PROPOSED, 실행 테스트 미실행 |
+| 2026-11-15 | 2-6 설계 검토 종료 판단 및 2-7 공유 코드 소유/PR 책임 인계 | REVIEW-CONCLUSION, 팀 승인·병합 미완료 |
