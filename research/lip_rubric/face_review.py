@@ -77,11 +77,11 @@ PAGE = """<!doctype html><html lang="ko"><meta charset="utf-8"><title>LaPa 얼�
 .keys{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}button{font:inherit;padding:10px 14px;border:1px solid #999;border-radius:8px;background:#fff;cursor:pointer}
 button.on{background:#253d65;color:#fff}.muted{color:#666;font-size:13px}</style>
 <h1>LaPa 얼굴 표시</h1>
-<p class="muted">입술에 화장이 없으면 맨입술, 립 제품을 바른 것이 보이면 립스틱(제형까지), 입술이 가려졌거나 흐리거나 얼굴이 아니면 제외. 키보드: B 맨입술 · M 립스틱 매트 · S 립스틱 새틴 · G 립스틱 글로시 · U 립스틱 제형 모름 · X 제외 · ← 이전. 자동 저장됩니다.</p>
+<p class="muted">B 맨입술: 입술이 원래 피부색에 가깝고 테두리가 자연스럽게 흐려짐. L 립 바름: 입술색이 주변보다 확실히 진하거나 선명하고 테두리가 또렷함, 번들거리는 코팅이 보임. X 제외: 잘 모르겠음, 입술이 가려짐, 너무 흐리거나 작음. 헷갈리면 X를 누르면 됩니다(맨입술만 충분하면 됩니다). ← 이전. 자동 저장됩니다.</p>
 <p id="progress"></p><div class="photos"><img id="lip" alt="입술 확대"><img id="face" alt="얼굴 전체"></div>
 <div class="keys" id="keys"></div><button id="export">CSV 내보내기</button> <span id="msg" class="muted"></span>
 <script>
-const ITEMS=__ITEMS__;const KEY='lapa-face-review-v3';const OPTS=[['b','맨입술','bare',''],['m','립스틱 매트','lipstick','matte'],['s','립스틱 새틴','lipstick','satin'],['g','립스틱 글로시','lipstick','glossy'],['u','립스틱 제형 모름','lipstick','unknown'],['x','제외','exclude','']];
+const ITEMS=__ITEMS__;const KEY='lapa-face-review-v3';const OPTS=[['b','맨입술','bare',''],['l','립 바름','lipstick','unknown'],['x','제외 / 모르겠음','exclude','']];
 let st=JSON.parse(localStorage.getItem(KEY)||'{"i":0,"a":{}}');const $=id=>document.getElementById(id);
 function save(){localStorage.setItem(KEY,JSON.stringify(st))}
 function show(){const it=ITEMS[Math.min(st.i,ITEMS.length-1)];const done=Object.keys(st.a).length;$('progress').textContent=(st.i<ITEMS.length?(st.i+1)+' / '+ITEMS.length:'끝')+' · 표시 완료 '+done;
