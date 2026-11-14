@@ -61,6 +61,7 @@ Docs: https://docs.expo.dev/eas/index.md
 - Run `npm run check` (typecheck + lint + tests) before committing. For backend changes, also run `uv run ruff check . && uv run lint-imports && uv run pytest` in each changed `backend/<service>/`; for chart changes, `helm lint infra/helm/vishue -f infra/helm/vishue/values-<env>.yaml`.
 - AR 가상 메이크업, 제품 추천, 대화형 조정, 평가·숙제 실험 작업은 `docs/AR_SPEC.md`를 따른다. 작업 전에 0-A 진행 방법, 1장(절대 원칙), 해당 마일스톤·모듈 절을 먼저 읽고, 원칙과 충돌하면 구현 전에 보고한다.
 - **입술에 색을 올릴 때는 스티커가 아니라 직접 바른 것처럼 보여야 한다** (`docs/AR_SPEC.md` 6-5-3). 고른 색이 입술 주름·윗입술 그늘·아랫입술 볼륨을 따라가고, 제형에 맞는 윤기가 있어야 한다. 입술 전체에 같은 밝기의 불투명 색을 덮는 결과(Expo Go 2026-10-22 캡처)는 실패다. 제품 AR에서는 제품 색 값을 바꾸지 않고 명암·결·반사로 해결한다. 룩 AR에서는 별도로 기록한 룩 색을 사용한다. 숫자만 조금 바꿔 화면이 그대로면 고친 것으로 치지 않는다.
+- **영상 룩 AR(영상 상세에서 `video: true`로 진입)은 원칙보다 영상 완성 얼굴 재현 품질을 우선한다** (2026-11-13 사용자 결정). 룩별 렌더 전용 색·모양·보정(소프트 라이트 블러셔, 피부 톤·잡티 정리, 물광)은 `lib/videoLookStyles.ts`에 두고 `lib/videoLookMakeup.ts`가 그리기 직전에만 입힌다. 제품·장바구니·제품 AR은 바꾸지 않는다. 지금은 설윤 뿌까(`e1gSkUdG6Bo`)만 있고, 다른 룩은 확인 후 추가한다.
 - 진행 상태는 `docs/AR_PROGRESS.md`에 있다. 새 세션에서는 이 파일을 먼저 읽고, 0-A 절차대로 다음 마일스톤을 이어서 진행한다.
 
 ## Git & GitHub conventions (v1.3 summary)
