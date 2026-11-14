@@ -215,3 +215,119 @@ Handoff 시 반드시 `fromAgent`, `toAgent`, `taskId`, `reason`, `contextRefs`,
 ### 변경 이력
 
 - 2026-11-15: VAI-D-013 언어 중립 식별자·상태·Agent/Tool 계약의 설명 추가. 기존 식별자·State·동시성·복구 정책 변경 없음.
+
+## 13. 2-6 일반 LLM ↔ AR·AR AI Handoff 최소 계약 (2026-11-15)
+
+> **REVIEW-CONCLUSION:** 기본안 B = **기존 앱 이동 + 최소한의 검증된 AR 결과 이벤트**. 물리 서비스 분리·이벤트 전달 수단/저장소·팀 소유권은 아직 PROPOSED/OPEN. AR 실행 상태·음성은 AR/AR AI가 소유. 일반 LLM은 AR 렌더 성공을 자체 확정하지 않는다.
+
+### 13-1. 현재 연결을 보존하는 단계적 접근
+
+1. 기존 `lib/routes.ts::arHref({productId,shadeId})` → `/ar` 및 `useArRouteSelection`의 상품·호수 재조회 경로는 유지한다. 인계 ID는 별도 앱 인계 기록/불투명한 참조로 연계 가능하지만 **URL 인자를 사용자 인증·실행 승인 근거로 사용하지 않는다**.
+2. 일반 상담에서 선택한 결과 집합·실제 옵션·룩 참조를 **필요한 것만** 인계한다. `ELIGIBLE/REFERENCE_ONLY`는 추천 근거의 판정이지 AR 렌더링 가능성 보증이 아니다. 상품·옵션 소유관계와 AR 지원 여부를 AR에서 재검증한다.
+3. AR 시스템에서 단순 진입 확인/선택/실제 렌더 확정은 **서로 다른 이벤트**로 보고, 사용자가 일반 상담으로 돌아갈 때 최신 검증 결과·실패 상태를 전달한다. 성공 이벤트가 없으면 단순 AR 탭 진입만으로 '적용 완료'라고 말하지 않는다.
+4. 앱 내부 초기 연계로 시작할 수 있지만 앱 재시작·다중 기기·영속 복귀가 요구되면 **서버의 인증된 결과 이벤트 저장/조회**를 별도로 구현해야 한다. 단순 앱 라우트 파라미터로 영속·정확히 한 번 처리를 보증하지 못한다. 전송 경로/endpoint은 팀 합의 전 미정.
+
+### 13-2. 인계 요청 데이터 계약 (개념 예시)
+
+```typescript
+type HandoffRequestV1 = {
+  schemaVersion: "1";
+  handoffId: string;                  // 고유 UUID, 같은 인계 재시도에 유지
+  from: "general_ai";
+  to: "ar";
+  intent: "try_on" | "open_look" | "continue_consultation";
+  origin: {
+    threadId: string; turnId: string; requestId: string;
+    resultSetId?: string; resultSetVersion?: number;
+  };
+  selection?: {
+    productId?: string; shadeId?: string;
+    lookId?: string; lookKind?: "catalog" | "video";
+    candidateGroup?: "ELIGIBLE" | "REFERENCE_ONLY";
+  };
+  responseLocale: string;             // 1차 ko; 식별 ID의 일부가 아님
+  issuedAt: string;
+  expiresAt?: string;
+};
+```
+
+- `handoffId`/`origin.threadId`는 상관관계 참조일 뿐 소유권 토큰·개인정보 전체 이력·실행 권한이 아니다.
+- 실제 소유권은 앱 인증 사용자/검증된 게스트 범위와 서버측 Handoff 기록·유효기간에서 판정한다. 다른 사용자 방/AR 세션 데이터 조회 금지.
+- 실상품/호수/룩 ID 및 선택된 결과 집합 버전은 Catalog/소유 서비스에서 재검증한다.
+- 기존 `/ar` URL은 상품·호수 이동을 유지하되 전체 인계 데이터는 URL에 넣지 않는다. route의 `handoffId` 추가 여부, 로컬 store vs 서버 조회는 **OPEN-INT-01**.
+
+### 13-3. AR → 일반 LLM 결과 이벤트(개념 예시)
+
+```typescript
+type ArHandoffEventV1 = {
+  schemaVersion: "1";
+  eventId: string;                   // 동일 이벤트 재전송 시 불변
+  handoffId: string;
+  originThreadId: string;
+  arSessionId: string;
+  arEventSeq: number;                // AR 세션 내 단조 증가
+  eventType: "SELECTION_VALIDATED" | "RENDER_RESULT" |
+             "UNDO_RESULT" | "RESTORE_RESULT" | "SESSION_EXIT";
+  arStateVersion: number;
+  actual: { productId?: string; shadeId?: string; lookId?: string;
+            zone?: string; intensity?: number };
+  renderStatus?: "APPLIED" | "NO_CHANGE" | "REJECTED" | "FAILED" | "UNKNOWN";
+  ackDeliveryStatus?: "PENDING" | "DELIVERED" | "FAILED" | "NOT_REQUIRED";
+  occurredAt: string;
+};
+```
+
+**주의:** `SELECTION_VALIDATED`는 AR 카탈로그 선택 상태의 검증이고 **`RENDER_RESULT(APPLIED)`가 아니다**. 현재 `useArRouteSelection`은 진입 시 `applyShade`를 호출하지만, 기존 AI 명령용 `useArCommand`와 동일한 영속 ACK 경로를 거친다고 볼 수 없다. 결과 진실성 검증 방식/이벤트 발행 주체는 AR 담당과 구현 전 합의가 필요하다.
+
+**상태의 소유권:** AR 측은 `arStateVersion`, 실제 렌더·현재 적용 제품/호수·Undo/Restore 결과를 확정한다. 일반 LLM은 검증된 이벤트로 '방금 체험한 제품'을 참조하고 Catalog에서 해당 제품·성분·가격을 **다시 조회**한다. AR 렌더 이벤트가 검증되더라도 상품 무향료·현재가 조건까지 자동 보증하지 않는다.
+
+### 13-4. 중복·순서·오래된 상태·권한
+
+| 상황 | 수신·조정 규칙 |
+| --- | --- |
+| 동일 `handoffId` 재사용 | 같은 요청·사용자·payload fingerprint면 동일 Handoff 반환. 다른 선택으로 동일 ID 재사용하면 CONFLICT |
+| 동일 `eventId` 재전송 | 소유자/인계 ID 검증 후 동일 결과 반환, 중복 상담 메시지·장기 기억 저장 금지 |
+| `arEventSeq` 뒤집힘 또는 `arStateVersion` 더 오래됨 | 최신 AR 상태를 덮어쓰지 않고 이전 기록으로만 보존·거부 |
+| 기존 대화방을 벗어나 목표 변경 | 사용자의 최신 `turnId`/`planVersion` 우선. 늦게 온 AR 결과를 자동 현재 답변에 주입하지 않음 |
+| AR 앱·서버 ACK 유실 | 렌더 상태와 ACK 전달 상태 분리, **같은 commandId/actionId·eventId**로 결과 조회/재전송. 명령 재실행 금지 |
+| 이벤트가 영영 도달하지 않음 | 일반 LLM은 적용 성공 추정 금지. 사용자에게 상태 확인 안내 또는 AR 측 상태 조회 |
+| 사용자 계정 변경/로그아웃·게스트 세션 만료 | 소유권 재검사, 다른 계정 인계 결과 반영/노출 금지 |
+| 카메라·미디어 동의 철회 | 권한 없는 프레임/원본·분석 결과를 Handoff에 포함하거나 다시 노출 금지 |
+| 복원·Undo 이벤트 | 이전 성공 결과/대상 버전 연결, 실제 결과 도착 전 '복원됨' 확정 금지 |
+
+**정확히 한 번 전송을 약속하지 않는다.** at-least-once 전송 + `(owner,eventId)` 유일성·인계/순서 검사 및 소유자 인증의 **멱등성 처리**를 우선 검토. `eventSeq`는 동일 AR session에서 단조증가하되 각도·부위 상태를 덮어쓸 때는 AR 측의 최신 확정 `arStateVersion`가 기준이다. 식별 ID·에러 코드·전달 문맥은 한국어/다국어에 종속되지 않는다.
+
+### 13-5. 사용자 경험과 취소
+
+- 일반 상담에서 'AR로 체험' 버튼 → `arHref` 제품·호수 전달 → AR이 재조회·권한·실제 적용 가능성 확인. 제품 추천의 `REFERENCE_ONLY`라도 **실상품/옵션 존재·소유관계가 확인되고 AR 지원**이면 체험은 가능, 근거 없는 무향료/현재가 성공 표시 금지.
+- AR에서 선택·조절 → 기기 상태 결과 → 사용자가 일반 상담으로 복귀 → 검증된 이벤트를 토대로 '방금 적용해본 제품' 참조 및 새 상품·성분 조회. **전체 AR 대화·STT 음성 원본·카메라 프레임을 자동 공유하지 않는다.**
+- 사용자가 복귀 전에 목표를 바꾸면, 이전 이벤트가 늦게 와도 새 대화의 선택을 덮어쓰지 않는다. AR 실행 중 취소는 AR 담당이 실제 실행 여부 확인/Undo·Restore를 수행하며, 일반 LLM은 상황을 설명·다음 상담으로 연결한다.
+- 이벤트 공유는 현재 대화/명시적 과거 대화 B, 동의한 장기 기억 정책과 별개. **장기 보관 자동 저장 금지**. 앱에서 현재 탭 상태를 참조하는 것도 사용자 권한과 기능 목적 범위 내에서 수행한다.
+
+### 13-6. 최소 검증 시나리오 (계획, 실행 미확인)
+
+| ID | 사용자 여정·주입 상황 | 기대 결과 |
+| --- | --- | --- |
+| HAND-01 | 일반 챗봇 추천에서 유효한 상품·호수로 AR 진입 | 기존 URL 동작 보존, AR에서 실제 상품/호수 재검증 |
+| HAND-02 | 잘못된 상품/호수·다른 상품 호수를 URL/이벤트로 주입 | AR 선택 거부, 일반 AI에 적용 성공 표시 금지 |
+| HAND-03 | 참고 후보(전성분 미확인)를 AR 체험 | 상품·옵션 검증이 있으면 AR 사용 가능, '무향료 확인' 문구 없음 |
+| HAND-04 | AR에 진입만 했음 | 렌더 APPLIED/ACK 성공으로 잘못 승격하지 않음 |
+| HAND-05 | AR 렌더 완료 후 일반 챗봇 복귀하여 성분 질문 | 동일 product/shade 확인 후 Catalog에서 성분 재검증 |
+| HAND-06 | 같은 `eventId` 중복 전송 | 단일 결과 반영, 중복 메시지/저장/새 AR 실행 없음 |
+| HAND-07 | 이전 `arEventSeq` 및 다른 `arStateVersion` 늦게 도착 | 최신 확정 상태 유지, 요청 변경 후 답변 덮어쓰기 금지 |
+| HAND-08 | ACK/이벤트 전송 실패·앱 재시작 | 미확정 시 UNKNOWN, 인계 결과 재조회/재전송. 중복 AR 적용 금지 |
+| HAND-09 | 다른 사용자/게스트 범위에서 인계 이벤트 접근 | FORBIDDEN, 원본 대화/미디어 정보 미노출 |
+| HAND-10 | 한국어 STT 명령·TTS·앱 조작 중 취소 | 입력 취소·TTS 중단은 AR Undo와 혼동하지 않고 각 담당의 상태 계약 준수 |
+| HAND-11 | 영상·카메라·음성 동의 거부/철회 | 인계 범위 밖 원본/개인정보를 전달하지 않음, 가능한 텍스트·스와치 UI 제공 |
+| HAND-12 | AR AI 일시 중단, 일반 AI 사용 가능 | 일반 상담 독립 지속, AR 기능 가용성/상태만 안내 |
+
+**이 테스트들은 공동 개발/실기기 검증의 목표 계약이며 실제 테스트를 수행한 것은 아니다.**
+
+### 13-7. 2-6 논리 설계 종료 경계
+
+**종료 판단 가능한 설계 결과:** 일반/AR/AR AI 구현 책임, 서비스 분리 OPEN, 기존 화면 이동 호환 최소 인계·복귀 이벤트, 소유권/중복/버전/권한/오류/Undo/ACK 불변조건, 담당별 독립 검증/통합 E2E 계획, 한국어 STT C 혼합 구조의 담당 분리.
+
+**후속 이관:** 2-7 실제 서버 분리 여부·공유 코드 소유/PR 절차·이벤트 운송/영속성·운영 장애/성능·팀 승인; 3단계 데이터/Vector/인덱스; 4단계 한국어 기능/실기기 평가 임계치; 5~6단계 실제 기능별 코드 구현. **팀 공동 인터페이스 승인과 코드 구현/자동 테스트·실기기는 미완료**.
+
+### 변경 이력
+- 2026-11-15: 2-6 담당 책임 정정·Handoff B 우선 검토·최소 이벤트/권한/멱등성/버전·이벤트 유실/취소 테스트 및 종료 경계 정리. 기존 2-2~2-4 State·동시성 정책 유지.
