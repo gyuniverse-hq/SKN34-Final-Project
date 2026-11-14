@@ -65,6 +65,8 @@ export interface Shade {
   /** 0..1 confidence of the color extraction, when the source reports one. */
   colorConfidence?: number;
   colorCheckedAt?: string;
+  /** Optional research-derived application characteristics for this exact shade. */
+  applicationProfile?: ApplicationProfile;
 }
 
 export interface Product {
@@ -101,7 +103,13 @@ export interface LookItem {
   step: 'prep' | 'base' | 'eyes' | 'cheeks' | 'lips';
 }
 
-export type HighlightArea = 'forehead' | 'nose_bridge' | 'under_eye' | 'chin';
+/** Highlighter regions: forehead centre, nose T-zone, under-eye triangle, philtrum, chin tip, cheekbone (11-11). */
+export type HighlightArea = 'forehead' | 'nose_bridge' | 'under_eye' | 'chin' | 'philtrum' | 'cheekbone';
+/**
+ * Face type the highlighter layout follows (11-11 user reference chart): the five shapes the page can measure, plus
+ * gaunt (볼살이 적은 타입), which only the user can pick. It sets which regions are on and their shape and direction.
+ */
+export type HighlightFace = 'round' | 'square' | 'oblong' | 'oval' | 'heart' | 'gaunt';
 /** Placement templates for the face-fit highlighter and shading (ids only; no template means today's shape). */
 export type HighlighterStyle = 'natural_cheek' | 'glass_c_zone' | 'nose_tip' | 'under_eye_smile' | 'cupid_bow' | 'forehead_center';
 export type ContourStyle = 'jawline' | 'nose';
@@ -135,7 +143,8 @@ export interface InnerPoint {
  * sparkle 0 still means matte (no particles) for older looks. glitter bool is unused.
  * Blush: blushPlacement, blushSize (multiple of the default size) and blushSoftness (0 hard edge .. 1 very soft)
  * make the cheek ellipse follow the face points instead of the default shape.
- * Highlighter: areas = only these regions (default: the standard set), intensity = multiple of its strength.
+ * Highlighter: areas = only these regions (default: the set the face type recommends), hlFace = face type the layout
+ * follows (absent = measured on the page, oval until measured), intensity = multiple of its strength.
  * hlStyle / contourStyle = placement template of the highlighter / shading (absent = the standard shape).
  */
 export type EyelinerStyle = 'classic_winged' | 'puppy' | 'tightline';
@@ -157,6 +166,24 @@ export interface FalseLashCluster {
 
 export interface ZoneGeometry {
   falseLash?: FalseLashCluster[];
+  /**
+   * Mascara lash shape read from the look video (research/lash_ref/looks.json). All optional; unset = renderer default.
+   * lashCount: strands per upper lid (6..40). lashSweep: bend toward the outer corner (0 = straight). lashClump: tip pull
+   * toward the 3-strand group (0..0.5). lashFan: spread over the lid in degrees (0 = parallel). lashJitter: 0 evenly
+   * spaced and equal length .. 1.5 uneven. lowerLen / lowerAlpha: lower lash length / opacity multiple. lashWidth: strand width multiple.
+   */
+  lashCount?: number;
+  lashSweep?: number;
+  lashClump?: number;
+  lashFan?: number;
+  lashJitter?: number;
+  lowerLen?: number;
+  lowerAlpha?: number;
+  /** Lower lash strands per eye (0..12); unset = a quarter of the upper count, at most 8. */
+  lowerCount?: number;
+  /** Attached bunch length multiple (falseLash). */
+  falseLashLen?: number;
+  lashWidth?: number;
   length?: number;
   angle?: number;
   thickness?: number;
@@ -177,6 +204,7 @@ export interface ZoneGeometry {
   centerHighlight?: number;
   innerPoint?: InnerPoint;
   areas?: HighlightArea[];
+  hlFace?: HighlightFace;
   hlStyle?: HighlighterStyle;
   contourStyle?: ContourStyle;
   pearl?: number;
@@ -196,14 +224,89 @@ export interface ColorLink {
   followOnChange: boolean;
 }
 
+/** Lip oil / balm family (lib/lipCare.ts): drawn see-through with the shine kept; tint 0..1 = how much of the chip colour may show. */
+export interface ZoneCare {
+  kind: 'oil' | 'balm';
+  tint: number;
+}
+
+/** Bounded renderer controls; omitted fields retain the existing texture defaults. */
+export interface ApplicationProfileOverrides {
+  material?: Partial<Record<'a1' | 'translucent' | 'detail' | 'roughness' | 'specular', number>>;
+  shadowFinish?: Partial<Record<'opacity' | 'roughness' | 'sparkleDensity' | 'specular', number>>;
+  /** Multiplies the existing coverage, preserving the user's intensity control. */
+  coverageMultiplier?: number;
+  /** Video look only (blush): soft-light blend at this gain on the blush coverage instead of the powder layer. */
+  softLight?: number;
+  /** Video look only (foundation): skin graded toward `tint` by soft light (`tone` 0..1) and small dark spots evened (`clean` 0..1). */
+  skin?: { tint: string; tone: number; clean: number };
+  /** Video look only (highlighter): screen-blended glow at this gain on the highlighter coverage. */
+  glow?: number;
+  /** Video look lip: inner color strength fading at the outer edge, and central lower-lip wet reflection. */
+  lipGradient?: number;
+  lipGloss?: number;
+  /** Video look only: a joined Bezier wing instead of the polygon tail. */
+  linerTaper?: number;
+  /** Video look only: cubic, individually curled and tapered lash ribbons (0..1). */
+  lashCurl?: number;
+  /** Video look only: wider, skin-colour-rejected blemish ring, 8 additional camera samples (0..1). */
+  skinWide?: number;
+  /** Video look only: softly feathered pearl band just below the lower lash line (0..1). */
+  underEyePearl?: number;
+  /** Video look only (foundation): frequency-separated tone evening, fine texture kept (0..1). */
+  skinEven?: number;
+  /** Video look only: colour-blend gain of the blush hue on its coverage (0..8), and of the lip hue on the inner lip (0..1). */
+  blushColor?: number;
+  lipColor?: number;
+  /** Video look only: small pigment correction above a measured skin warmth threshold (both 0..1). */
+  skinAdapt?: number;
+  skinWarmth?: number;
+}
+
+/** Video-fit evidence must include a separate validation comparison. */
+export interface ApplicationProfile {
+  source: 'video-fit';
+  videoId: string;
+  fitFrameSeconds: number;
+  validationFrameSeconds: number;
+  validationView: 'different-angle';
+  fitErrorBefore: number;
+  fitErrorAfter: number;
+  validationErrorBefore: number;
+  validationErrorAfter: number;
+  overrides: ApplicationProfileOverrides;
+}
+
+/** Scene labels are identifiers, not timestamps: manually captured filenames may have inaccurate times. */
+export interface LookApplicationProfile {
+  source: 'video-fit';
+  videoId: string;
+  fitFrame: string;
+  validationFrame: string;
+  validationView: 'left' | 'right' | 'open';
+  fitErrorBefore: number;
+  fitErrorAfter: number;
+  validationErrorBefore: number;
+  validationErrorAfter: number;
+  overrides: ApplicationProfileOverrides;
+  /** Optional color for rendering the video look only; the selected product's shade remains unchanged. */
+  lookHex?: string;
+  geometry?: ZoneGeometry;
+  /** Lip looks also need a separate open-mouth comparison in addition to the angle view. */
+  lipOpenValidation?: { frame: string; errorBefore: number; errorAfter: number };
+}
+
 export interface ZoneSetting {
   hex: string;
+  /** Set only on a lip oil / balm product. */
+  care?: ZoneCare;
   /** Second color of a two-tone eyeshadow: fades in at the outer corner and along the lower lash line. */
   hexTo?: string;
   /** 0..1 */
   intensity: number;
   texture: Texture;
   geometry?: ZoneGeometry;
+  applicationProfile?: ApplicationProfileOverrides;
 }
 
 export interface ArRenderCommand {
@@ -232,6 +335,8 @@ export interface MakeupState {
   contour?: ZoneSetting | null;
   brow?: ZoneSetting | null;
   foundation?: ZoneSetting | null;
+  /** Lip oil / balm layer worn over `lip` (or over the bare lip). Its `care` field says which and how much colour may show. */
+  lipCare?: ZoneSetting | null;
 }
 
 export interface VideoProductMapping {

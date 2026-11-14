@@ -161,7 +161,7 @@ export function OpenArcPalette({ items, selected, label, hint, onSelect }: Props
             <Pressable key={slot} accessibilityRole="button" accessibilityLabel={item.product.brand + ' ' + item.product.name + ' ' + item.shade.name}
               accessibilityState={{ selected: active }}
               aria-hidden={outsideArc} accessibilityElementsHidden={outsideArc} importantForAccessibility={outsideArc ? 'no-hide-descendants' : 'auto'}
-              disabled={outsideArc} onPress={() => snap(slot)}
+              disabled={outsideArc} onPress={() => { if (active) onSelect(item); else snap(slot); }}
               style={[styles.hit, placement]} />
           );
         })}
