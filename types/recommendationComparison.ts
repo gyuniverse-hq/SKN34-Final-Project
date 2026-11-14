@@ -84,10 +84,10 @@ export interface RecommendationComparisonResult {
     secondaryRecommendation?: {
       goal: ComparisonGoal; coreIngredients: ComparisonIngredient[];
       expandedIngredients: ExpandedIngredient[];
-      model: { version: string; sha256: string; features: Record<string, string> };
+      model: { version: string; sha256: string; features: Record<string, string | number> };
     } | null;
     candidateProducts?: number; candidateOptions?: number; reviewAppliedProducts?: number; shortfall?: number;
     excludedProducts?: number;
-    model?: { version: string; sha256: string; features: Record<string, string> };
+    model?: { version: string; sha256: string; features: Record<string, string | number> };
   };
 }

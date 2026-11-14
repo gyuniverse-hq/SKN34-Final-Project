@@ -4,3 +4,7 @@ docs/ai-alignment/**/*.jsonl text eol=lf
 docs/ai-alignment/**/*.py text eol=lf
 docs/ai-alignment/**/*.md text eol=lf
 docs/ai-alignment/**/*.txt text eol=lf
+
+# Native CatBoost weights must retain the manifest SHA-256 on every platform.
+ml/runs/recommend-cat-v3/bundle/model.cbm binary
+ml/runs/recommend-cat-v3/bundle/manifest.json text eol=lf
