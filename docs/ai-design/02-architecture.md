@@ -114,3 +114,17 @@ flowchart TD
 - 2-5: Tool·Evidence·권한·DB/검색 경계를 명세하고 Agent 도구별 검증 수준 확정.
 - 2-6: 앱·AR·STT/TTS·이미지·영상 실제 요청/응답/ACK 설계.
 - 2-7: 시퀀스 다이어그램과 고장·보안·성능·실제 평가 근거로 목표 아키텍처의 구현 적합성 승인.
+
+## 8. 언어 중립 아키텍처 및 1차 한국어 정책 (VAI-D-013)
+
+- **사용자 확정:** 1차 AI 개발·검증은 `ko`, 목표 능력 C01~C14·시나리오 S01~S12·기존 UI `en/ko/ja/zh` 코드는 보존. `en/ja/zh`의 AI/STT/TTS/AR 음성 제공 시점은 미정.
+- **목표 설계(미구현):** LangGraph의 상태 ID, TaskPlan, Tool 이름·입력/출력, Agent Handoff, 근거·검수 상태·옵션 ID는 `locale`와 독립. 필요 시 `inputLanguage`, `responseLocale`, `sourceLanguage` 분리. 텍스트 설명과 UI 문구만 현지화한다.
+- **2-6 인계:** 한국어 STT/TTS/AR 음성 먼저 실기기 검증, 현재 `app.json`의 Android 녹음 권한 차단과 Expo Go/네이티브 엔진·동의·오디오 보관 방식 검토. 기능 미구현인 언어 UI는 자동 언어 변경 없이 안내와 사용자 선택 경로 검토.
+- **3단계 인계:** 한국어 의미 검색·정확 매칭·동의어·임베딩 품질 우선, 향후 동일 근거 ID에 `contentLanguage`·모델·색인 버전을 추가 가능한 구조.
+- **평가:** TC-KO-STRUCTURE-01을 1차 계약 테스트로, 기존 TC-22는 TC-22-I18N-FOLLOWUP(후속 언어 평가)으로 이동. 모두 미실행 계획.
+
+상세 정책·미결정 사항은 [07 한국어 우선](07-ko-first-language-and-evaluation.md) 참조.
+
+### 변경 이력
+
+- 2026-11-15: VAI-D-013 언어 범위 및 구조 중립성 연결. 기존 멀티모달·Supervisor·전문 Agent 아키텍처는 변경 없음.
