@@ -106,7 +106,7 @@ C10·C11은 특정 메뉴에 한정하지 않는 공통 능력이며 C12는 전 
 | UI 로케일 | `lib/i18n/languages.ts`의 `LANGUAGES=['en','ko','ja','zh']`, `lib/i18n/index.ts`의 네 사전·영어 대체 문구 | **EXISTING-CODE**. 전 화면 번역 품질·실기기 UI·버튼 동작의 E2E 미확인 |
 | 앱 로케일 리소스 | `app.json`의 `ko`, `ja`, `zh-Hans`; 영어는 기본 | **EXISTING-CODE**. `zh`와 `zh-Hans`의 어댑터·단말 언어 설정 동작 점검 필요 |
 | 챗봇 요청 | `backend/chatbot/app/schemas/chat.py`의 `Locale=Literal['en','ko','ja','zh']` | **EXISTING-CODE**. AI 최초 구현·평가 범위는 `ko` 확정. 네 언어의 자유·복합 대화 품질 통과는 미확인 |
-| 스타일·AR 설명 | `style_recipe_service.py`에 네 언어 문구, AR_SPEC §로케일 네 사전§ 규칙 | **부분 기반 존재**. 의미 일치·전체 기능 경로·품질 미확인 |
+| 스타일·AR 설명 | `style_recipe_service.py`에 네 언어 문구, AR_SPEC `로케일 네 사전` 규칙 | **부분 기반 존재**. 의미 일치·전체 기능 경로·품질 미확인 |
 | STT(음성 입력) | `docs/design/functional-spec.md`는 계획(PLANNED)으로 표기, `app.json`은 Android 녹음 권한 차단 | **미검증/지원 범위 미결정**. 언어별 엔진·동의·권한·테스트 필요 |
 | TTS(음성 출력) | 전체 음성 상담의 실제 TTS 배포·언어별 검증 증빙 없음 | **미검증/지원 범위 미결정**. 언어별 음성 품질·중단/재생 UI 필요 |
 
