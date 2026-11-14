@@ -1,4 +1,5 @@
 import { skincareJa } from './skincare';
+import { comparisonJa } from './recommendationComparison';
 import { supportJa } from './skinSupport';
 import { surveyJa } from './survey';
 import type { Dictionary } from './en';
@@ -7,6 +8,40 @@ import { skinJa } from './skin';
 import { skinReportJa } from './skinReport';
 
 export const ja: Dictionary = {
+  'ar.arc.compareShort': '比較',
+  'ar.arc.mirrorShort': 'ミラー',
+  'ar.arc.infoShort': 'ご案内',
+  'ar.arc.compare': 'ビフォー・アフター比較',
+  'ar.arc.tools': "ツール",
+  'ar.arc.info': "ARについて",
+  'ar.arc.palette': "カラーパレット",
+  'ar.arc.swipe': "左右にスワイプして色を探す",
+  'ar.arc.hold': "タップまたは長押しで部位を変更",
+  'ar.arc.release': 'スライドで選択・離して適用',
+  'ar.arc.zones': "メイク部位を変更",
+  'ar.arc.anchor': "基準の色",
+  'ar.arc.direction': "色の変化方向",
+  'ar.arc.pickShade': "色を選んでください",
+  'ar.arc.light': "薄く",
+  'ar.arc.strong': "濃く",
+
+  'ar.explore.free': "自由に探す",
+  'ar.explore.nearby': "近い色を探す",
+  'ar.explore.pickFirst': "商品カラーを選ぶと、近い色を探せます。",
+  'ar.explore.anchor': "基準の色 · タップでもう一度試す",
+  'ar.explore.applyAnchor': "基準の色をもう一度試す",
+  'ar.explore.back': "前の基準",
+  'ar.explore.similar': "似た色",
+  'ar.explore.lighter': "少し明るく",
+  'ar.explore.darker': "少し暗く",
+  'ar.explore.muted': "落ち着いた色",
+  'ar.explore.vivid': "鮮やかに",
+  'ar.explore.allTextures': "すべての質感",
+  'ar.explore.results': "{count}商品 · 色が近い順",
+  'ar.explore.basis': "登録カラーを基準にしています。実際の発色・質感とは異なる場合があります。",
+  'ar.explore.empty': "この方向・質感に合う商品はありません。別の方向・質感を選ぶか、自由に探すに戻ってください。",
+  'ar.explore.preview': "試している色",
+  'ar.explore.rebase': "この色の周りを探す",
   'chat.ingredient.resultFor': "選択した商品・成分確認",
   'chat.ingredient.showDetails': "根拠と成分を見る",
   'chat.ingredient.hideDetails': "根拠を閉じる",
@@ -43,6 +78,7 @@ export const ja: Dictionary = {
   'chat.carousel.ordinal': "番",
   'chat.carousel.ingredient': "この商品の成分は？",
   'chat.carousel.details': "この商品について詳しく教えて",
+  ...comparisonJa,
   ...skincareJa,
   ...supportJa,
   ...surveyJa,
@@ -677,7 +713,10 @@ export const ja: Dictionary = {
   'ar.chatExample1': 'もう少し薄い色のリップはある？',
   'ar.chatExample2': 'チークをもう少しやわらかくして',
   'ar.chatExample3': 'コーラルのルックを見せて',
-  'ar.chatPlaceholder': 'リクエストを入力',
+  'ar.chatSuggestion.lip': '薄い色のリップ',
+  'ar.chatSuggestion.blush': 'チークをやわらかく',
+  'ar.chatSuggestion.coral': 'コーラルルック',
+  'ar.chatPlaceholder': '変えたいことを教えてください',
   'ar.mic': '話す',
   'ar.send': '送信',
   'ar.chatAppliedShade': 'リクエストに合うカタログの色を適用しました。',

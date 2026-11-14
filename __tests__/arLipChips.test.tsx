@@ -56,19 +56,22 @@ const swatch = (screen: renderer.ReactTestRenderer, id: string) =>
     (n) => typeof n.props.accessibilityLabel === 'string' && n.props.accessibilityLabel.endsWith(` ${id}`) && typeof n.props.onPress === 'function'
   )[0];
 
-describe('AR lip tab chips (11-10 user: five chips only)', () => {
+describe('AR lip tab chips in the tools sheet', () => {
   beforeEach(() => useMakeupStore.getState().reset());
 
-  it('shows only 매트·크림·글로시·쉬머·립케어: no 전체, no colour-family chips', async () => {
+  it('shows finish and care chips alongside the colour-family filters', async () => {
     let screen!: renderer.ReactTestRenderer;
     await act(async () => { screen = renderer.create(<ArTryOnScreen />); });
-    expect(filterChips(screen)).toEqual(['ar.texture.matte', 'ar.texture.cream', 'ar.texture.glossy', 'ar.texture.shimmer', 'ar.chip.lipCare']);
+    await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.arc.tools' }).props.onPress(); });
+    expect(filterChips(screen)).toEqual(expect.arrayContaining(['ar.texture.matte', 'ar.texture.cream', 'ar.texture.glossy', 'ar.texture.shimmer', 'ar.chip.lipCare']));
+    expect(filterChips(screen).some((label) => label.startsWith('ar.family.'))).toBe(true);
     await act(async () => { screen.unmount(); });
   });
 
   it('groups velvet with matte, satin with cream, sheer with glossy and leaves lip skincare out', async () => {
     let screen!: renderer.ReactTestRenderer;
     await act(async () => { screen = renderer.create(<ArTryOnScreen />); });
+    await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.arc.tools' }).props.onPress(); });
     expect(swatch(screen, 'essence')).toBeUndefined();
     expect(swatch(screen, 'oil')).toBeUndefined();
     const matte = screen.root.findAllByType(Chip).find((c) => c.props.label === 'ar.texture.matte')!;
@@ -82,10 +85,11 @@ describe('AR lip tab chips (11-10 user: five chips only)', () => {
   it('opens 립오일·립밤 only inside 립케어', async () => {
     let screen!: renderer.ReactTestRenderer;
     await act(async () => { screen = renderer.create(<ArTryOnScreen />); });
+    await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.arc.tools' }).props.onPress(); });
     const care = screen.root.findAllByType(Chip).find((c) => c.props.label === 'ar.chip.lipCare')!;
     await act(async () => { care.props.onPress(); });
     expect(filterChips(screen)).toEqual([
-      'ar.texture.matte', 'ar.texture.cream', 'ar.texture.glossy', 'ar.texture.shimmer', 'ar.chip.lipCare', 'ar.care.oil', 'ar.care.balm',
+      'ar.filter.all', 'ar.texture.matte', 'ar.texture.cream', 'ar.texture.glossy', 'ar.texture.shimmer', 'ar.chip.lipCare', 'ar.care.oil', 'ar.care.balm',
     ]);
     expect(swatch(screen, 'oil')).toBeDefined();
     expect(swatch(screen, 'balm')).toBeDefined();

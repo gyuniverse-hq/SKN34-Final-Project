@@ -37,6 +37,9 @@ mobile-export = [
     "onnx>=1.23.2",
     "onnxruntime>=1.31.0",
 ]
+recommendation = [
+    "catboost>=1.2.10",
+]
 
 [tool.uv]
 environments = ["sys_platform == 'win32' and platform_machine == 'AMD64'"]
