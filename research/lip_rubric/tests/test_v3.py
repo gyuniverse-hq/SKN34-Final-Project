@@ -54,6 +54,22 @@ def test_plan_balances_defects():
     assert len({it['shade'] for it in items}) == 5
 
 
+def test_ab_summary_consistency_and_scores():
+    from ab_results import summarize
+    key = {
+        'ab1': {'pair_id': 'ab1', 'left': 'c', 'right': 'd', 'face_id': 'f', 'split': 'pool', 'left_variant': 'current', 'left_level': '',
+                'right_variant': 'sticker_blend', 'right_level': 'strong', 'repeat_of': ''},
+        'ab2': {'pair_id': 'ab2', 'left': 'd', 'right': 'c', 'face_id': 'f', 'split': 'pool', 'left_variant': 'sticker_blend', 'left_level': 'strong',
+                'right_variant': 'current', 'right_level': '', 'repeat_of': 'ab1'},
+        'ab3': {'pair_id': 'ab3', 'left': 'c', 'right': 'e', 'face_id': 'f', 'split': 'pool', 'left_variant': 'current', 'left_level': '',
+                'right_variant': 'texture_loss', 'right_level': 'light', 'repeat_of': ''},
+    }
+    answers = {'ab1': {'choice': 'left'}, 'ab2': {'choice': 'right'}, 'ab3': {'choice': 'same'}}
+    s, bt, _ = summarize(key, answers)
+    assert s['repeat_consistency'] == 1 and s['current_vs_defect']['sticker_blend:strong']['current_wins'] == 1
+    assert s['current_vs_defect']['texture_loss:light']['same'] == 1 and bt['c'] > bt['d']
+
+
 def test_ab_template_placeholders():
     html = (HERE / 'rating/ab.html').read_text(encoding='utf8')
     assert html.count('__PAIRS__') == 1 and html.count('__PACK__') == 1 and 'http' not in html
