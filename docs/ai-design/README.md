@@ -2,7 +2,7 @@
 
 > 기준일: 2026-11-15 (KST)  
 > 설계 출발점: develop d1cf4868f74d2ff6db188bf2c7646146f3ec72ad (2026-11-14 22:19 KST)  
-> 문서 상태: **1단계 사용자 경험 범위 확정 / 2-1~2-4 설계안 문서화 완료(기술 승인 전) / 현재 2-5 상세 설계 진행 중**  
+> 문서 상태: **1단계 사용자 경험 범위 확정 / 2-1~2-4 설계안 문서화 완료(기술 승인 전) / 2-5 계약 설계 검토 종료(기술 승인 전) / 다음 2-6 인계 준비**  
 > 승인 범위: 사용자와의 설계 대화에서 채택된 원칙. **팀 승인·코드 구현·운영 검증을 의미하지 않는다.**
 
 ## 문서의 목적과 권위
@@ -15,9 +15,9 @@ VISHUE를 **K-뷰티 중심 자유 대화형 AI**로 설계한다. 사용자가 
 - [DECISIONS 결정 로그](DECISIONS.md): 채택한 원칙, 대안, 확인 날짜, 추후 변경 사항.
 - [04 기존 문서 대조·충돌·2-5 인계](04-gap-analysis-and-2-5.md): 현행 코드와 문서의 차이, 검증 범위, 다음 검토 항목.
 - [05 Tool·근거·데이터 접근 설계](05-tool-evidence-data-contract.md): 2-5 개념·원칙 설계안.
-- [06 Tool 구현 계약 상세](06-tool-implementation-contracts.md): **2-5 진행 중, PROPOSED**. 실제 API 매핑·Pydantic 입출력·검증·오류·권한·TC.
+- [06 Tool 구현 계약 상세](06-tool-implementation-contracts.md): **2-5 설계 검토 종료, 기술 계약 PROPOSED**. 실제 API 매핑·Pydantic 입출력·검증·오류·권한·TC.
 - [07 한국어 우선·다국어 확장·평가](07-ko-first-language-and-evaluation.md): **1차 `ko` 사용자 확정**, 그 외 언어 지원 시점 OPEN.
-- [08 옵션 복합 검색·근거 검증·DB 동기화](08-option-search-evidence-and-sync.md): **2-5 진행 중, PROPOSED**. 현행 코드/옵션 스키마/Neo4j 색인 차이와 개발안.
+- [08 옵션 복합 검색·근거 검증·DB 동기화](08-option-search-evidence-and-sync.md): **2-5 설계 검토 종료, 구현 PROPOSED**. 현행 코드/옵션 스키마/Neo4j 색인 차이와 개발안.
 
 이 폴더는 기존 [시스템 아키텍처](../ARCHITECTURE.md), [기술 ADR](../adr/README.md), [AI 평가 원본](../ai-alignment/README_FIRST.md), [AR 명세](../AR_SPEC.md), [성분 상담 계약](../INGREDIENT_CONSULTATION.md)을 대체하지 않는다. 기존 규칙을 변경해야 할 때는 해당 담당자·팀의 결정과 별도 ADR이 선행되어야 한다.
 
@@ -42,14 +42,14 @@ VISHUE를 **K-뷰티 중심 자유 대화형 AI**로 설계한다. 사용자가 
 | --- | --- | --- |
 | 0 | develop 기준 기존 자산 및 #227~#232 재사용 분석 | 1차 분석, 파일별 통합·마이그레이션 검증 미완 |
 | 1 | 사용자 경험·대표 시나리오 | **ACCEPTED-USER: 14개 능력, 12개 시나리오** |
-| 2 | LangGraph·Agent·Tool·실행 계약 | **현재 2-5**. 2-4 설계안 기록 완료(기술 계약 승인/구현 아님), 2-5 Tool 상세 계약 검토 중 |
+| 2 | LangGraph·Agent·Tool·실행 계약 | **2-5 논리 계약 설계 검토 종료(2026-11-15), 다음 2-6 예정**. 기술 계약 팀 승인·실제 구현·실기기 검증 미완 |
 | 3 | 상품·성분·스타일·미디어·RAG 데이터 설계 | 예정: 한국어 검색·임베딩 품질 우선, 이후 언어 확장 고려 |
 | 4 | 평가·완료 기준 설계 | 예정: **1차 `ko` 필수**, 기존 네 언어 TC-22 후속 평가 분리·수치 승인 필요 |
 | 5 | GitHub Issues·PR·협업 설계 | 예정 |
 | 6 | 구현·지속 통합 | 새 목표 아키텍처 기준 미착수 |
 | 7 | 실제 E2E·사용자 평가 | 새 목표 아키텍처 기준 미착수 |
 
-2-5는 [원칙 설계](05-tool-evidence-data-contract.md)와 [구현 가능한 계약 초안](06-tool-implementation-contracts.md)을 대조하며 Tool·근거 검증·PostgreSQL/Neo4j/VectorDB 접근을 구체화하는 **현재 진행 단계**다. 2-6은 앱·AR·음성, 2-7은 통합 시퀀스·운영·승인이다. **2-4는 설계안 문서화까지 완료됐으나 기술 승인·구현은 완료되지 않았고, 2단계 전체도 미완료**다.
+2-5는 [설계 검토 종료 기준](05-tool-evidence-data-contract.md)·[구현 계약](06-tool-implementation-contracts.md)·[가격/색인 불변조건](08-option-search-evidence-and-sync.md)으로 **논리 설계 검토를 마무리**했다. `ELIGIBLE/REFERENCE_ONLY/EXCLUDED`, 가격 basis/observedAt, 권리·철회·동기화 및 2-6/2-7/3단계 인계를 명시했다. 2-6은 앱·AR·음성, 2-7은 통합 시퀀스·운영·승인이다. **2-4는 설계안 문서화까지 완료됐으나 기술 승인·구현은 완료되지 않았고, 2단계 전체도 미완료**다.
 
 ## 변경·승인 흐름
 
@@ -79,3 +79,17 @@ VISHUE를 **K-뷰티 중심 자유 대화형 AI**로 설계한다. 사용자가 
 | --- | --- | --- |
 | 2026-11-15 | VAI-D-013: 1차 한국어(`ko`) AI 구현·평가 확정, 다국어 확장 보존 | 07 언어 정책·S10/C12 유지·TC-22 후속 분리; 그 외 `en/ja/zh` AI 지원 시점 미결정 |
 | 2026-11-15 | 08 옵션 복합 검색·근거 검증·Neo4j/Vector 동기화 계약 추가 | 2-5 PROPOSED, 현재 API·DB 변경/실제 데이터 검증 없음 |
+
+## 2026-11-15 2-5 단계 종료 기록
+
+| 구분 | 상태·근거 |
+| --- | --- |
+| **2-5 논리 설계 검토** | **REVIEW-CONCLUSION: 종료 판단**. [05 종료 기준](05-tool-evidence-data-contract.md), [06 Tool 세부 검증](06-tool-implementation-contracts.md), [08 가격·색인·근거 규칙](08-option-search-evidence-and-sync.md) |
+| 사용자 채택 제품 정책 | **ACCEPTED-USER VAI-D-001~013** 유지, 추가 사용자 선택 없이 계약 검토만 진행 |
+| 신규 문서 운영 결정 | [DECISIONS: VAI-D-014](DECISIONS.md) 설계·문서화 분리, 세부 단계 종료 시 일괄 GitHub 반영 |
+| 새 API·DB·검색 엔진 | **PROPOSED / OPEN**: 구현 방식·실제 데이터·성능·색인·운영 환경에 대한 팀 결정과 평가 필요 |
+| 코드·테스트·실기기 | **NOT IMPLEMENTED/NOT TESTED**: 이번 단계 문서 검토가 실제 성공을 뜻하지 않음 |
+| 다음 | **2-6** 앱·AR·음성 및 상태 표시. 2-7·3단계 선택 사항은 [05](05-tool-evidence-data-contract.md)에 인계 |
+| Notion | 전체 2단계 종료 또는 팀 공유 필요 시 갱신. 이번 2-5 문서 반영에서는 미수정 |
+
+**변경 이력:** 2026-11-15 2-5 논리 계약 검토 마무리 후 기존 05·06·08·README·결정 로그에 한 번에 반영. `develop` 및 기존 기능 코드 수정 없음.
