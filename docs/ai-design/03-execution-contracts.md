@@ -200,3 +200,18 @@ Handoff 시 반드시 `fromAgent`, `toAgent`, `taskId`, `reason`, `contextRefs`,
 7. 각 Agent의 분리가 실제 상담 품질을 개선하는지 검증할 평가 설계.
 
 다음 [2-5 인계와 충돌 목록](04-gap-analysis-and-2-5.md)에서 Tool·권한·출처 계약을 상세화한다.
+
+## 12. 언어 중립 State·협력 불변조건 (1차 `ko`)
+
+- **ACCEPTED-USER:** VAI-D-013으로 첫 구현·평가 언어만 한국어 지정. 이전의 14개 능력과 12개 시나리오·동의 기억·동시 요청 C·과거 대화 B는 그대로 유지.
+- **PROPOSED:** `threadId/turnId/requestId/planId/taskId/actionId/stateVersion/arStateVersion`와 Agent의 `taskId/dependsOn/status/toolName`, Tool 검증 코드, Product/Ingredient ID는 언어 중립. 한국어 제품명·사용자 문장을 ID/키로 쓰지 않음.
+- `inputLanguage`, `responseLocale`, `sourceLanguage` 등은 사용자 원문 언어와 응답 언어를 구분하기 위한 메타데이터로 전달하고, 오래된 클라이언트의 `locale`는 기존 API 버전 어댑터로 보존한다. 언어 추가가 Checkpointer/영속 저장 스키마의 핵심 식별자를 바꾸지 않도록 한다.
+- 관련 입력·출력 현지화는 Supervisor/Response Composer 경계에 두고, 전문 Agent 결과·근거·숫자·상태 코드는 언어와 독립적으로 검증한다.
+- 한국어 STT가 늦거나 실패한 경우 텍스트 대체를 제공하며, 기기 실제 명령의 부작용 상태는 언어와 무관하게 명령 ID·ACK로 확인한다.
+- `en/ja/zh` 확장 시 LangGraph 그래프·Tool을 새로 만들지 않고 언어별 이해·검색·안내·음성·평가를 교차 확장할 수 있도록 계약을 유지한다.
+
+참고: [07 한국어 우선·지원 안내](07-ko-first-language-and-evaluation.md), [06 실제 Tool 계약](06-tool-implementation-contracts.md). 
+
+### 변경 이력
+
+- 2026-11-15: VAI-D-013 언어 중립 식별자·상태·Agent/Tool 계약의 설명 추가. 기존 식별자·State·동시성·복구 정책 변경 없음.
