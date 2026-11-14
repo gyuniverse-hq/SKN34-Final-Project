@@ -236,6 +236,31 @@ export interface ApplicationProfileOverrides {
   shadowFinish?: Partial<Record<'opacity' | 'roughness' | 'sparkleDensity' | 'specular', number>>;
   /** Multiplies the existing coverage, preserving the user's intensity control. */
   coverageMultiplier?: number;
+  /** Video look only (blush): soft-light blend at this gain on the blush coverage instead of the powder layer. */
+  softLight?: number;
+  /** Video look only (foundation): skin graded toward `tint` by soft light (`tone` 0..1) and small dark spots evened (`clean` 0..1). */
+  skin?: { tint: string; tone: number; clean: number };
+  /** Video look only (highlighter): screen-blended glow at this gain on the highlighter coverage. */
+  glow?: number;
+  /** Video look lip: inner color strength fading at the outer edge, and central lower-lip wet reflection. */
+  lipGradient?: number;
+  lipGloss?: number;
+  /** Video look only: a joined Bezier wing instead of the polygon tail. */
+  linerTaper?: number;
+  /** Video look only: cubic, individually curled and tapered lash ribbons (0..1). */
+  lashCurl?: number;
+  /** Video look only: wider, skin-colour-rejected blemish ring, 8 additional camera samples (0..1). */
+  skinWide?: number;
+  /** Video look only: softly feathered pearl band just below the lower lash line (0..1). */
+  underEyePearl?: number;
+  /** Video look only (foundation): frequency-separated tone evening, fine texture kept (0..1). */
+  skinEven?: number;
+  /** Video look only: colour-blend gain of the blush hue on its coverage (0..8), and of the lip hue on the inner lip (0..1). */
+  blushColor?: number;
+  lipColor?: number;
+  /** Video look only: small pigment correction above a measured skin warmth threshold (both 0..1). */
+  skinAdapt?: number;
+  skinWarmth?: number;
 }
 
 /** Video-fit evidence must include a separate validation comparison. */
@@ -264,6 +289,8 @@ export interface LookApplicationProfile {
   validationErrorBefore: number;
   validationErrorAfter: number;
   overrides: ApplicationProfileOverrides;
+  /** Optional color for rendering the video look only; the selected product's shade remains unchanged. */
+  lookHex?: string;
   geometry?: ZoneGeometry;
   /** Lip looks also need a separate open-mouth comparison in addition to the angle view. */
   lipOpenValidation?: { frame: string; errorBefore: number; errorAfter: number };

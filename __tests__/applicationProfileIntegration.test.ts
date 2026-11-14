@@ -104,3 +104,28 @@ test('look profile takes precedence over the product and merges geometry without
     useMakeupStore.getState().reset();
   }
 });
+
+test('a render-only look color profile does not change stored product makeup', async () => {
+  useMakeupStore.getState().reset();
+  const spy = jest.spyOn(profiles, 'lookApplicationProfileFor').mockImplementation((videoId, zone) => (
+    videoId === 'e1gSkUdG6Bo' && zone === 'lip' ? {
+      source: 'video-fit', videoId, fitFrame: 'fit', validationFrame: 'left', validationView: 'left',
+      fitErrorBefore: 20, fitErrorAfter: 10, validationErrorBefore: 20, validationErrorAfter: 10,
+      lipOpenValidation: { frame: 'open', errorBefore: 20, errorAfter: 10 },
+      lookHex: '#BA5F6A', overrides: { coverageMultiplier: 0.5 },
+    } : undefined
+  ));
+  let open!: () => void;
+  function Screen() { open = useVideoTryOn([], 'celebrity-e1gSkUdG6Bo', 'Look').open; return null; }
+  let screen!: renderer.ReactTestRenderer;
+  try {
+    await act(async () => { screen = renderer.create(React.createElement(Screen)); });
+    await act(async () => { open(); });
+    expect(useMakeupStore.getState().makeup.lip?.hex).toBe('#E77671');
+    expect(useMakeupStore.getState().makeup.lip?.applicationProfile).toBeUndefined();
+  } finally {
+    if (screen) await act(async () => { screen.unmount(); });
+    spy.mockRestore();
+    useMakeupStore.getState().reset();
+  }
+});

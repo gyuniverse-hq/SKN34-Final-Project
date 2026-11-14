@@ -3,13 +3,17 @@ import type { ApplicationProfile, ApplicationProfileOverrides, LookApplicationPr
 /** No video-derived profile is shipped until fitting and different-angle validation both improve. */
 export const APPLICATION_PROFILES: Readonly<Record<string, ApplicationProfile>> = {};
 
-/** Look + zone profiles are deliberately empty until a separate scene validates the fit. */
+/**
+ * Measured, validated look profiles. Video looks tuned by eye live in lib/videoLookStyles.ts (the Sullyoon lip candidate
+ * #8D4A50 that used to sit here was replaced there on 2026-11-13).
+ */
 export const LOOK_APPLICATION_PROFILES: Readonly<Record<string, LookApplicationProfile>> = {};
 
 export function validatedLookApplicationProfile(profile: LookApplicationProfile | undefined, zone?: MakeupZone): LookApplicationProfile | undefined {
   if (!profile || profile.source !== 'video-fit' || !profile.videoId || !profile.fitFrame ||
       !profile.validationFrame || profile.fitFrame === profile.validationFrame || !profile.overrides ||
       !['left', 'right', 'open'].includes(profile.validationView)) return undefined;
+  if (profile.lookHex !== undefined && !/^#[0-9a-f]{6}$/i.test(profile.lookHex)) return undefined;
   const values = [profile.fitErrorBefore, profile.fitErrorAfter, profile.validationErrorBefore, profile.validationErrorAfter];
   if (values.some((value) => !Number.isFinite(value) || value < 0) ||
       profile.fitErrorAfter >= profile.fitErrorBefore || profile.validationErrorAfter >= profile.validationErrorBefore) return undefined;

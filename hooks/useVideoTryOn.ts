@@ -135,11 +135,13 @@ export function useVideoTryOn(items: VideoProductMapping[], id: string, title: s
         const base = style ? geometryFromStyle(zone, style) : null;
         const initialGeometry = zone === 'mascara' && lashes ? { ...base, falseLash: falseLashClusters(lashes) } : base;
         const lookProfile = lookApplicationProfileFor(demoLookVideoId(id), zone);
-        const geometry = lookProfile?.geometry ? { ...initialGeometry, ...lookProfile.geometry } : initialGeometry;
+        // A look-specific color profile belongs exclusively to the video renderer, not the product state.
+        const storedProfile = lookProfile?.lookHex ? undefined : lookProfile;
+        const geometry = storedProfile?.geometry ? { ...initialGeometry, ...storedProfile.geometry } : initialGeometry;
         const mascara = zone === 'mascara' && style && style in MASCARA_LOOKS
           ? MASCARA_LOOKS[style as MascaraLookId]
           : null;
-        const applicationProfile = lookProfile?.overrides ?? applicationProfileFor(product.id, shade.id) ?? validatedApplicationProfile(shade.applicationProfile);
+        const applicationProfile = storedProfile?.overrides ?? applicationProfileFor(product.id, shade.id) ?? validatedApplicationProfile(shade.applicationProfile);
         makeup[zone] = {
           hex: shade.hex,
           intensity: mascara?.intensity ?? DEFAULT_INTENSITY[zone],

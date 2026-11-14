@@ -56,6 +56,7 @@ describe('application profile evidence', () => {
     expect(validatedLookApplicationProfile({ ...lookEvidence, validationView: 'open' })).toEqual({ ...lookEvidence, validationView: 'open' });
     expect(validatedLookApplicationProfile({ ...lookEvidence, validationFrame: 'final.png' })).toBeUndefined();
     expect(validatedLookApplicationProfile({ ...lookEvidence, fitErrorAfter: 10 })).toBeUndefined();
+    expect(validatedLookApplicationProfile({ ...lookEvidence, lookHex: 'bad-color' })).toBeUndefined();
     expect(validatedLookApplicationProfile({ ...lookEvidence, validationErrorAfter: 12 })).toBeUndefined();
     expect(validatedLookApplicationProfile({ ...lookEvidence, validationView: 'same-angle' as 'left' })).toBeUndefined();
     expect(validatedLookApplicationProfile(lookEvidence, 'lip')).toBeUndefined();
