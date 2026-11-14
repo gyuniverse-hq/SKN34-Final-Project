@@ -261,9 +261,17 @@ class IngredientCheckData(BaseModel):
 | TC-19 | 동일 ID로 다른 payload | Tool/Action 호출 | 충돌로 거부 |
 | TC-20 | 사용자가 목표 변경 | 오래된 planVersion 결과 도착 | 현재 선택·AR 상태 덮어쓰기 금지 |
 | TC-21 | Neo4j/Vector 검색 결과의 상품 ID가 폐기됨 | Graph/RAG 후보 재조회 | Catalog 최신 검증 불일치면 카드 반환 금지 |
-| TC-22 | zh/ko/ja/en UI 번역 존재 | 각 언어에서 동일 Tool 사실 질의 | 언어별 사실/JSON 구조 동일, 실제 상담 품질·STT/TTS는 별도 평가 필요 |
+| TC-22-I18N-FOLLOWUP | `en/ja/zh` UI 번역·Chat 로케일 타입 존재 | **후속 확장 평가**에서 각 언어의 동일 사실 질의·AR·음성 확인 | **1차 필수 한국어 평가에서 제외**. 시점·통과 기준 OPEN-LANG-01, [07](07-ko-first-language-and-evaluation.md) |
+| TC-KO-STRUCTURE-01 | 1차 한국어 Tool 실행·API 계약 | 한국어 발화·동일 식별자·스키마 상태·근거·가격·성분 값 검증 | **1차 필수 검사 계획**: 결과 구조·식별자와 근거 상태가 응답 언어에 종속되지 않음. 다국어 품질 통과 주장이 아님 |
 
 이 표는 **시험 계획**이고 실행 통과 증빙이 아니다. 테스트용 `synthetic` 식별자·근거를 실데이터로 승격하지 않는다. 실제 Catalog 옵션·성분·레시피 표본·권한 있는 지식의 확보 여부는 3단계 데이터 실사 후 확정한다.
+
+### 1차/후속 언어 평가 분리
+
+- **VAI-D-013 (ACCEPTED-USER)**: 한국어(`ko`)가 1차 AI 구현·평가 언어. Tool 요청·응답·DB ID/상태/근거 스키마에는 `ko` 문자열을 식별키로 사용하지 않는다.
+- 예전 **TC-22를 TC-22-I18N-FOLLOWUP으로 이관**해 `en/ja/zh` AI/STT/TTS 품질은 1차 합격 조건에서 제외한다. 한국어 자체의 구조 불변 검사는 `TC-KO-STRUCTURE-01`로 별도 계획한다. 테스트를 실행한 것은 아니다.
+- 미지원 AI 언어의 앱 안내·한국어 상담으로의 선택적 진입은 [07](07-ko-first-language-and-evaluation.md)의 **OPEN-LANG-02 (PROPOSED)** 정책을 따른다. 자동으로 앱 전체 언어를 전환하지 않는다.
+- 1차 `ko`를 우선하지만 `inputLanguage/responseLocale/sourceLanguage`는 필요시 구분하고 각 Tool·Agent의 표준 필드는 언어 중립으로 유지한다.
 
 ## 9. 결정·담당자 합의가 필요한 기술 선택
 
@@ -289,3 +297,9 @@ class IngredientCheckData(BaseModel):
 6. AR Action Ledger·STT/TTS는 2-6, 저장소 물리 배치·평가 지표는 2-7·3~4단계로 인계.
 
 2-5 상세 계약의 **검토·합의가 끝난 뒤에만** Issue·PR 단위의 작업 명세로 전환한다.
+
+## 11. 2026-11-15 변경 기록
+
+- 1차 평가 한국어(`ko`) 확정에 따라 기존 TC-22의 네 언어 동시 검증을 후속 TC-22-I18N-FOLLOWUP으로 이동. 한국어 구조 불변조건 TC-KO-STRUCTURE-01 추가.
+- 14개 능력·12개 시나리오, Tool의 기존 API 경로·판정 계약·검수 조건은 변경하지 않음.
+- 실제 옵션별 검색·원본/그래프/벡터 동기화 검토는 [08 옵션·근거·색인 계약](08-option-search-evidence-and-sync.md)에 별도 기록. 기술 선택·테스트 결과는 아직 PROPOSED.
