@@ -435,6 +435,7 @@ cd backend/api && uv run ruff check . && uv run lint-imports && uv run pytest
 | `SUPABASE_SECRET_KEY` | api 전용 | 회원 탈퇴 |
 | `LLM_API_KEY` · `LLM_MODEL` · `LLM_BASE_URL` | chatbot | 상담 챗봇 |
 | `EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS` · `SKIN_ANALYSIS_MODEL` | 앱 | 기기 내 피부 분석 활성화와 모델 선택 |
+| `RECOMMENDATION_MODEL` · `RECOMMENDATION_MODELS_DIR` | api | 추천 모델 선택(기본 `recommend-cat-v2`)과 모델 루트(기본 `ml/runs/`). [별도 모델 배치·실행](docs/recommendation-v2-comparison.md#실행) |
 
 > 🔐 서버 키에는 절대 `EXPO_PUBLIC_` 접두어를 붙이지 않습니다. 붙이면 앱 번들에 노출됩니다. `.env`는 커밋하지 않습니다.
 

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { LIP_CARE_INTENSITY, lipCareFor } from '@/lib/lipCare';
 import type { CelebLook, ColorLink, MakeupState, MakeupZone, Product, Shade, ZoneGeometry, ZoneSetting } from '@/types';
 
 export interface ZoneSelection {
@@ -42,6 +43,7 @@ interface LookOrigin {
 interface FitOrigin {
   makeup: MakeupState;
   selections: Partial<Record<MakeupZone, ZoneSelection>>;
+  careSelection: ZoneSelection | null;
   activeLook: { id: string; title: string } | null;
   colorLinks: ColorLink[];
   heroZones: MakeupZone[];
@@ -79,7 +81,7 @@ export function isLookPaintZone(zone: MakeupZone): boolean {
 const GEOMETRY_KEYS = new Set<string>([
   'length', 'angle', 'thickness', 'linerStyle', 'linerSoftness', 'linerLower', 'linerLowerThickness',
   'upperLine', 'underline', 'underlineThickness', 'underlineAlpha', 'underlineStart', 'underlineLength',
-  'underlineJoin', 'lower', 'overlip', 'peakOverdraw', 'centerHighlight', 'areas', 'hlStyle',
+  'underlineJoin', 'lower', 'overlip', 'peakOverdraw', 'centerHighlight', 'areas', 'hlFace', 'hlStyle',
   'contourStyle', 'pearl', 'sparkle', 'glitter', 'shadowFinish', 'blushPlacement', 'blushSize',
   'blushSoftness', 'intensity',
 ]);
@@ -115,6 +117,8 @@ export const DEFAULT_INTENSITY: Record<MakeupZone, number> = {
 interface MakeupStore {
   makeup: MakeupState;
   selections: Partial<Record<MakeupZone, ZoneSelection>>;
+  /** The lip oil / balm worn over the colour lip (makeup.lipCare). Separate from selections: it layers, it never replaces. */
+  careSelection: ZoneSelection | null;
   activeLook: { id: string; title: string } | null;
   /** Links of the applied look: zones that keep one shared color while the user swaps products. */
   colorLinks: ColorLink[];
@@ -149,6 +153,8 @@ interface MakeupStore {
   /** Merge shape fields (liner wing, shadow gradient). Hex and texture stay. */
   patchGeometry: (zone: MakeupZone, geometry: ZoneGeometry) => void;
   clearZone: (zone: MakeupZone) => void;
+  /** Take the lip oil / balm off; the colour lip stays. */
+  clearLipCare: () => void;
   /** Put a zone (and the zones linked to it) back to the look's color and product, keeping the user's intensity. */
   revertZone: (zone: MakeupZone) => void;
   /** Paint only this product shade; snapshot the current face to restore when the AR tab is left. */
@@ -202,7 +208,7 @@ export const useMakeupStore = create<MakeupStore>((rawSet) => {
     rawSet((state) => {
       const patch = typeof update === 'function' ? update(state) : update;
       if (patch === state) return state;
-      const arFields = ['makeup', 'selections', 'fit', 'fitOrigin', 'activeLook',
+      const arFields = ['makeup', 'selections', 'careSelection', 'fit', 'fitOrigin', 'activeLook',
         'colorLinks', 'heroZones', 'stepOrder', 'modified', 'lookOrigin'] as const;
       const affectsAr = arFields.some((key) => key in patch);
       if (!affectsAr) return patch;
@@ -217,6 +223,7 @@ export const useMakeupStore = create<MakeupStore>((rawSet) => {
   return {
   makeup: EMPTY,
   selections: {},
+  careSelection: null,
   activeLook: null,
   colorLinks: [],
   heroZones: [],
@@ -318,7 +325,18 @@ export const useMakeupStore = create<MakeupStore>((rawSet) => {
   applyShade: (product, shade) => {
     const zone = product.makeupZone;
     const texture = product.texture;
-    if (!zone || !texture || !isArPaintZone(zone)) return;
+    if (!zone || !isArPaintZone(zone)) return;
+    // A lip oil / balm is a layer over the colour lip: it replaces the other care product (oil <-> balm), never the colour.
+    const care = zone === 'lip' ? lipCareFor(product, shade) : undefined;
+    if (care) {
+      set((s) => {
+        if (s.fit) return s;
+        const layer: ZoneSetting = { hex: shade.hex, texture: texture ?? 'glossy', intensity: LIP_CARE_INTENSITY, care };
+        return { makeup: { ...s.makeup, lipCare: layer }, careSelection: { productId: product.id, shadeId: shade.id } };
+      });
+      return;
+    }
+    if (!texture) return;
     set((s) => {
       if (s.fit) return s;
       // Only the color and finish change: the look's shape (wing angle, second shadow tone, ...) stays.
@@ -359,9 +377,22 @@ export const useMakeupStore = create<MakeupStore>((rawSet) => {
         }
       }
       const makeup = { ...EMPTY, ...look.makeup };
+      // A look's lip made of a care product (oil / balm) becomes the care layer, drawn see-through like a picked one.
+      let careSelection: ZoneSelection | null = null;
+      const lipSel = selections.lip;
+      const lipProduct = lipSel ? products.find((p) => p.id === lipSel.productId) : undefined;
+      const lipShade = lipProduct?.shades.find((sh) => sh.id === lipSel?.shadeId);
+      const lipCare = makeup.lip && lipProduct && lipShade ? lipCareFor(lipProduct, lipShade) : undefined;
+      if (makeup.lip && lipCare && lipSel) {
+        makeup.lipCare = { ...makeup.lip, intensity: LIP_CARE_INTENSITY, care: lipCare };
+        makeup.lip = null;
+        careSelection = lipSel;
+        delete selections.lip;
+      }
       return {
         makeup,
         selections,
+        careSelection,
         activeLook: { id: look.id, title: look.title },
         colorLinks: look.colorLinks ?? [],
         heroZones: look.heroZones ?? [],
@@ -399,6 +430,12 @@ export const useMakeupStore = create<MakeupStore>((rawSet) => {
       return { makeup, selections, modified: modifiedZones(makeup, selections, s.lookOrigin) };
     }),
 
+  clearLipCare: () =>
+    set((s) => {
+      if (s.fit || !s.makeup.lipCare) return s;
+      return { makeup: { ...s.makeup, lipCare: null }, careSelection: null };
+    }),
+
   revertZone: (zone) =>
     set((s) => {
       if (s.fit) return s;
@@ -421,11 +458,14 @@ export const useMakeupStore = create<MakeupStore>((rawSet) => {
   startFit: (product, shade) => {
     const zone = product.makeupZone;
     const texture = product.texture;
-    if (!zone || !texture || !isArPaintZone(zone)) return;
+    if (!zone || !isArPaintZone(zone)) return;
+    const care = zone === 'lip' ? lipCareFor(product, shade) : undefined;
+    if (!texture && !care) return;
     set((s) => {
       const origin: FitOrigin = s.fitOrigin ?? {
         makeup: s.makeup,
         selections: s.selections,
+        careSelection: s.careSelection,
         activeLook: s.activeLook,
         colorLinks: s.colorLinks,
         heroZones: s.heroZones,
@@ -433,9 +473,19 @@ export const useMakeupStore = create<MakeupStore>((rawSet) => {
         modified: s.modified,
         lookOrigin: s.lookOrigin,
       };
+      if (care) {
+        // Fitting a care product: it goes over the user's current colour lip (the other zones stay as they were).
+        const layer: ZoneSetting = { hex: shade.hex, texture: texture ?? 'glossy', intensity: LIP_CARE_INTENSITY, care };
+        return {
+          fit: { productId: product.id, shadeId: shade.id },
+          fitOrigin: origin,
+          makeup: { ...origin.makeup, lipCare: layer },
+          careSelection: { productId: product.id, shadeId: shade.id },
+        };
+      }
       const painted: ZoneSetting = {
         hex: shade.hex,
-        texture,
+        texture: texture!,
         intensity: DEFAULT_INTENSITY[zone],
       };
       return {
@@ -456,6 +506,7 @@ export const useMakeupStore = create<MakeupStore>((rawSet) => {
         fitOrigin: null,
         makeup: origin.makeup,
         selections: origin.selections,
+        careSelection: origin.careSelection,
         activeLook: origin.activeLook,
         colorLinks: origin.colorLinks,
         heroZones: origin.heroZones,
@@ -478,6 +529,7 @@ export const useMakeupStore = create<MakeupStore>((rawSet) => {
     set({
       makeup: EMPTY,
       selections: {},
+      careSelection: null,
       activeLook: null,
       colorLinks: [],
       heroZones: [],

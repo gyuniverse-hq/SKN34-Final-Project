@@ -23,6 +23,10 @@ from app.models.order import OrderLineRow, OrderRow
 from app.models.oy_catalog_category_rule import OyCatalogCategoryRuleRow
 from app.models.oy_mfds_ingredient_map import OyMfdsIngredientMapRow
 from app.models.raw_mfds_ingredient import RawMfdsIngredientRow
+from app.models.raw_official_product import (
+    RawOfficialProductOptionRow,
+    RawOfficialProductRow,
+)
 from app.models.raw_oliveyoung import (
     RawOyBrandRow,
     RawOyCategoryRow,
@@ -100,6 +104,8 @@ __all__ = [
     "OyMfdsIngredientMapRow",
     "ProductRow",
     "RawMfdsIngredientRow",
+    "RawOfficialProductOptionRow",
+    "RawOfficialProductRow",
     "RawYtProductMentionRow",
     "RawYtProductRow",
     "RecConcernMatchRow",

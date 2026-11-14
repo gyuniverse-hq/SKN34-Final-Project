@@ -119,22 +119,22 @@ test('applies catalog shades for the six demo looks without treating them as map
   expect(useMakeupStore.getState().makeup.contour?.hex).toBe('#112233');
   expect(useMakeupStore.getState().makeup.mascara?.hex).toBe('#112233');
   expect(useMakeupStore.getState().makeup.mascara?.geometry).toMatchObject({
-    length: 1.28, thickness: 0.78, lower: true,
+    length: 1.25, thickness: 0.6, lower: true, lashCount: 10, lowerLen: 2.4, lowerCount: 7,   // spiky_long, video close-ups + eye photo (11-11)
   });
-  expect(useMakeupStore.getState().makeup.mascara?.intensity).toBe(0.72);
+  expect(useMakeupStore.getState().makeup.mascara?.intensity).toBe(0.8);
   expect(useMakeupStore.getState().selections.contour).toEqual({ productId: 'oy-a000000201055', shadeId: '02-2' });
   expect(useMakeupStore.getState().selections.mascara).toEqual({ productId: 'oy-a000000198027', shadeId: '01' });
   const eyeshadow = useMakeupStore.getState().makeup.eyeshadow;
   expect(eyeshadow?.hex).toBe('#112233');
   expect(eyeshadow?.hexTo).toBe('#112233');
   expect(useMakeupStore.getState().lookOrigin?.makeup.eyeshadow?.hexTo).toBe('#112233');
-  expect(useMakeupStore.getState().makeup.mascara?.geometry?.falseLash).toHaveLength(6);   // upper (YouCam "Upper", recommended, not from the video)
+  expect(useMakeupStore.getState().makeup.mascara?.geometry?.falseLash).toHaveLength(5);   // wispies (YouCam "Wispies"): the video shows long spiky bunches
   expect(mockPush).toHaveBeenCalledWith({ pathname: '/ar', params: { video: '1' } });
   await act(async () => { screen.unmount(); });
   useMakeupStore.getState().reset();
 });
 
-test('peach look mascara uses the fine lash shape without lower lashes', async () => {
+test('peach look mascara is a thin short fan with faint lower lashes and no attached bunches', async () => {
   useMakeupStore.getState().reset();
   mockProducts = [product('oy-a000000205718', 'mascara', 'a000000205718-006')];
   let open!: () => void;
@@ -146,9 +146,8 @@ test('peach look mascara uses the fine lash shape without lower lashes', async (
   await act(async () => { screen = renderer.create(React.createElement(Screen)); });
   await act(async () => { open(); });
   const geometry = useMakeupStore.getState().makeup.mascara?.geometry;
-  expect(geometry).toMatchObject({ length: 1.12, thickness: 0.72, lower: false });
-  expect(geometry?.falseLash).toHaveLength(5);   // wispies (YouCam "Wispies")
-  expect(geometry?.falseLash?.map((cluster) => cluster.mm)).toEqual([9, 11, 9, 12, 10]);
+  expect(geometry).toMatchObject({ length: 1.3, thickness: 0.9, lower: true, lashCount: 16, lowerLen: 1.9, lowerCount: 4 });   // 11-11 eye photo: pointed bunches (lashClump 0.3)
+  expect(geometry?.falseLash).toBeUndefined();   // the video shows plain strands, no bunches
   await act(async () => { screen.unmount(); });
   useMakeupStore.getState().reset();
 });
@@ -176,7 +175,8 @@ describe('dead backend (development)', () => {
     const makeup = useMakeupStore.getState().makeup;
     expect(makeup.lip?.hex).toBe('#9E5C52');
     expect(makeup.eyeshadow?.hexTo).toBeTruthy();
-    expect(makeup.mascara?.geometry?.falseLash).toHaveLength(9);   // upper_lower (YouCam "Upper&Lower")
+    expect(makeup.mascara?.geometry).toMatchObject({ lashCount: 22, lowerLen: 3, lowerAlpha: 4, lowerCount: 8 });   // thin_lower: the lower lashes are clearly drawn
+    expect(makeup.mascara?.geometry?.falseLash).toBeUndefined();
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/ar', params: { video: '1' } });
     await act(async () => { screen.unmount(); });
     useMakeupStore.getState().reset();

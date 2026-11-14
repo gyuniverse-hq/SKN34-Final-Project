@@ -110,6 +110,7 @@ it('adds only explicitly selected products even when other look colors have near
   expect(findColorGaps(look.makeup, [{ product: lip, shade: chosenShade }], [lip, nearby]).some((gap) => gap.kind === 'nearest')).toBe(true);
   let screen!: renderer.ReactTestRenderer;
   await act(async () => { screen = renderer.create(<ArTryOnScreen />); });
+  await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.arc.tools' }).props.onPress(); });
   const add = screen.root.findAllByType(Button).find((button) => button.props.label === 'ar.addSelection');
   expect(add?.props.disabled).toBe(false);
   await act(async () => { add!.props.onPress(); });
@@ -125,4 +126,19 @@ it('does not seed an unrelated lip color when opening AR from a video', async ()
   expect(useMakeupStore.getState().makeup.lip).toBeNull();
   await act(async () => { screen.unmount(); });
   mockRouteParams = {};
+});
+
+
+it('adds only the current arc shade without adding other applied zones', async () => {
+  mockRouteParams = {};
+  useCartStore.setState({ items: [], pendingPayment: null });
+  useMakeupStore.getState().reset();
+  useMakeupStore.getState().applyShade(lip, lip.shades[0]);
+  useMakeupStore.getState().applyShade(nearby, nearby.shades[0]);
+  let screen!: renderer.ReactTestRenderer;
+  await act(async () => { screen = renderer.create(<ArTryOnScreen />); });
+  await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.addThisProduct' }).props.onPress(); });
+  expect(useCartStore.getState().items).toEqual([{ productId: lip.id, shadeId: 's1', quantity: 1 }]);
+  expect(useMakeupStore.getState().selections.eyeshadow?.productId).toBe(nearby.id);
+  await act(async () => { screen.unmount(); });
 });

@@ -88,7 +88,7 @@ describe('face-fit page', () => {
 
   it('redraws only when the style or the measurement changes, and reuses the cached shading mask for the highlighter', () => {
     expect(script).toContain('if (key !== faceFitKey && masks && masks.repaintHlContour)');
-    expect(script).toContain('const h = hlT ? layer(() => drawTemplate(hlT, fit), TUNING.hlFeatherPx) : highlight;');
+    expect(script).toContain('const h = hlT ? layer(() => drawTemplate(hlT, fit), TUNING.hlFeatherPx) : layout ? layer(() => drawHlFace(layout.shape, layout.areas), TUNING.hlFeatherPx) : highlight;');
     expect(script).toContain('const g = currentAuto();');
     expect(script).toContain("const k = jawEdge ? jawRibbon(fit) : contourStyle === 'nose' ? noseShade(fit) : coT ? layer(() => drawTemplate(coT, fit), TUNING.contourFeatherPx) : contour;");
   });
@@ -123,12 +123,12 @@ describe('face-fit page', () => {
     expect(script).toContain('const JAW_SKIRT = [JAW_RIBBON.ids.slice(0, NSK), [323, 361, 288, 397, 365, 379, 378]];');
     expect(script).toContain('const JAW_SKIRT_W = JAW_RIBBON.weight.slice(0, NSK).map((v, i) => (i === NSK - 1 ? 0 : v));');
     expect(script).toContain('if (nx * (sx[v] - sx[4]) * W + ny * (sy[v] - sy[4]) * H < 0) { nx = -nx; ny = -ny; }');
-    expect(script).toContain('contourA *= uFoundSkinOn > 0.5 ? texture2D(uFoundSkin, suv).r : 0.0;');
+    expect(script).toContain('contourA *= uFoundSkinOn > 0.5 ? texture2D(uFoundSkin, fuv).r : 0.0;');
     expect(script).toContain('if (jawShadeOn && foundSkinReady && TUNING.jawSkirt > 0)');
     expect(script).toContain('rgba2[i * 4] = Math.round(clamp01(h[i] * inside) * 255);');
     expect(script).toContain('if (uJawCullOn > 0.5)');
     expect(script).toContain('const jawYaw = (sz[234] - sz[454]) / jawSpan;');
-    expect(script).toContain('contourA *= mix(1.0, max(texture2D(uFoundSkin, suv).r, vUv.x < 0.5 ? uJawFloor.x : uJawFloor.y), jawZone);');
+    expect(script).toContain('contourA *= mix(1.0, max(texture2D(uFoundSkin, fuv).r, vUv.x < 0.5 ? uJawFloor.x : uJawFloor.y), jawZone);');
     expect(script).toContain('gl.uniform2f(u.uJawFloor, jawFloor * jawOcc[0], jawFloor * jawOcc[1]);');
     expect(script).toContain('jawOcc[side] = smooth01(0.8, 1.0, hit / JAW_COVER_PTS[side].length);');
     expect(script).toContain('const jawline = !!makeup.contour;');
@@ -169,7 +169,7 @@ describe('face-fit page', () => {
     expect(script).toContain("'    float jawZone = 1.0 - smoothstep(0.28, 0.34, vUv.y) * (1.0 - smoothstep(0.14, 0.18, abs(vUv.x - 0.5)));',");
     expect(script).toContain("'    contourA *= 1.0 - max(hideL, hideR) * jawZone;',");
     // The skin-mask gate (with its lagging-mask floor) applies in the jaw zone only: the nose bridge is never cut by it.
-    expect(script).toContain('contourA *= mix(1.0, max(texture2D(uFoundSkin, suv).r, vUv.x < 0.5 ? uJawFloor.x : uJawFloor.y), jawZone);');
+    expect(script).toContain('contourA *= mix(1.0, max(texture2D(uFoundSkin, fuv).r, vUv.x < 0.5 ? uJawFloor.x : uJawFloor.y), jawZone);');
     const ss = (a: number, b: number, x: number) => { const r = Math.min(1, Math.max(0, (x - a) / (b - a))); return r * r * (3 - 2 * r); };
     const jawZone = (u: number, v: number) => 1 - ss(0.28, 0.34, v) * (1 - ss(0.14, 0.18, Math.abs(u - 0.5)));
     const nose = partMask('nose').at, jaw = partMask('jaw').at, cheek = partMask('cheek').at;
@@ -185,7 +185,7 @@ describe('face-fit page', () => {
 
   // ── the auto repaint, run as written in the page with small stand-ins ──
   function repaintWith(contourStyle: string) {
-    const a = script.indexOf('    function repaintHlContour(hlStyle, contourStyle, fit) {');
+    const a = script.indexOf('    function repaintHlContour(hlStyle, contourStyle, fit, layout) {');
     const b = script.indexOf('    return {\n      size: S, rgba, rgba2, rgba3, lipVerts, skinVerts, repaintHlContour,');
     const calls = { layer: 0, jaw: 0, nose: 0, auto: 0 };
     const autoField = new Uint8Array([230, 100, 0, 77]);
@@ -386,18 +386,19 @@ describe('face-fit page', () => {
   }
   const states = (h: ReturnType<typeof measureHarness>) => h.posted.map((m: { type: string; state?: string }) => m.state).filter(Boolean);
 
-  it('is off by default: only the placement hints are measured, no analysis, no status, no shape, no work', () => {
+  it('is off by default for the shading: placement hints and the shape name (highlighter only, 11-11), no status, no shading work', () => {
     const h = measureHarness();
     expect(h.TUNING.shadePersonalize).toBe(false);
     setFace(h, (parity as ParityCase[])[0]);
     let t = 1000;
     while (!h.state() && t < 10000) { h.step(t); t += 125; }
     expect(h.state()).not.toBeNull();
-    expect(h.state().shape).toBeNull();
+    // 11-11: the shape is read for the highlighter layout; the shading gets no class probabilities (shapeP) from it.
+    expect(['round', 'square', 'oblong', 'heart', 'oval']).toContain(h.state().shape);
     expect(h.state().fit.shapeP).toBeUndefined();
     expect(h.status()).toBe('default');
     expect(h.posted.map((m: { type: string }) => m.type)).toEqual(['face_fit']);
-    expect(Object.keys(h.posted[0]).sort()).toEqual(['ratios', 'rec', 'type']);
+    expect(Object.keys(h.posted[0]).sort()).toEqual(['ratios', 'rec', 'shape', 'type']);
     // A face that is never frontal still never produces a status (nothing to wait for, nothing to show).
     const g = measureHarness();
     setFace(g, (parity as ParityCase[])[0], 0.06);
@@ -549,7 +550,18 @@ describe('face-fit page', () => {
     // The highlighter keeps its style and area chips, and both zones keep their intensity bar.
     expect(tsx).toContain('HIGHLIGHTER_STYLE_IDS.map');
     expect(tsx).toContain('HIGHLIGHTER_AREAS.map');
-    expect(tsx).toContain('toggleHighlighterArea(makeup.highlighter.geometry?.areas, area)');
+    expect(tsx).toContain('toggleHighlighterArea(painted, area)');
+    // 11-11: face-type chips (auto + six types) set the regions; the region chips show exactly what is painted.
+    expect(tsx).toContain('HIGHLIGHT_FACES.map');
+    expect(tsx).toContain('const painted = effectiveHighlighterAreas(makeup.highlighter?.geometry, faceShape);');
+    expect(tsx).toContain("patchGeometry('highlighter', { hlFace: undefined, areas: undefined, hlStyle: undefined })");
+    for (const dict of [en, ko, ja, zh] as Record<string, string>[]) {
+      for (const key of ['ar.hlFace.auto', 'ar.hlFace.autoWith', 'looks.area.philtrum', 'looks.area.cheekbone']) expect(dict[key]).toBeTruthy();
+      for (const face of ['round', 'square', 'oblong', 'oval', 'heart', 'gaunt']) expect(dict['ar.hlFace.tip.' + face]).toBeTruthy();
+      // One name per face shape in the shading and the highlighter panels: the highlighter reads the shading's keys (11-11 user).
+      expect(dict['ar.hlFace.name.gaunt']).toBeTruthy();
+      for (const face of ['round', 'square', 'oblong', 'oval', 'heart']) expect(Object.keys(dict)).not.toContain('ar.hlFace.name.' + face);
+    }
     expect(tsx).toContain("value={zone === 'highlighter' ? makeup.highlighter!.intensity : makeup.contour!.intensity}");
     for (const dict of [en, ko, ja, zh] as Record<string, string>[]) {
       for (const key of ['contourPlacement.auto', 'faceShape.default', 'faceShape.analyzing', 'faceShape.fallback', 'faceShape.result']) expect(dict['ar.' + key]).toBeTruthy();

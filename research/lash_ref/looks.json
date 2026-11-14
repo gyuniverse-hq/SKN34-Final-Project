@@ -1,0 +1,171 @@
+{
+  "_method": "Visual reading of finished-look close-ups (both eyes cropped by scan.py + pick_sharp.py, MediaPipe Face Landmarker). Ratios are share of the eye width and are estimates (about +-30%), not pixel-exact. Video frames stay out of the repository; only these numbers are kept.",
+  "_date": "2026-11-09",
+  "looks": {
+    "ZAozXs-ZZik": {
+      "name": "딸기 토끼상",
+      "evidence": [
+        "4348s",
+        "5044s"
+      ],
+      "upperLength": 0.28,
+      "density": "sparse",
+      "clump": "spiky",
+      "curl": "up",
+      "lower": {
+        "present": true,
+        "length": 0.12,
+        "style": "spiky"
+      },
+      "note": "7-8 long spiky bunches, wide gaps, doll-like; lower lashes spiky too (480p source)",
+      "photo_11_11": {
+        "photo": 3,
+        "liner": {
+          "thickness": 0.07,
+          "wing": 0.06,
+          "angle": -8,
+          "softness": 0.45,
+          "id": "strawberry_droop"
+        },
+        "mascara_id": "spiky_long",
+        "note": "photo: spiky bunches with lower lashes mixed in; thin smudged line, end droops"
+      }
+    },
+    "4QR0tre9yBI": {
+      "name": "연말 수상템",
+      "evidence": [
+        "1287s"
+      ],
+      "upperLength": 0.12,
+      "density": "sparse",
+      "clump": "none",
+      "curl": "c",
+      "lower": {
+        "present": true,
+        "length": 0.05,
+        "style": "faint"
+      },
+      "note": "short, light, barely visible; bare at 911s. Linked 'upper_dense' (dense) does not match",
+      "photo_11_11": {
+        "photo": 4,
+        "liner": {
+          "thickness": 0.06,
+          "wing": 0.1,
+          "angle": 8,
+          "softness": 0.3,
+          "id": "yearend_brown"
+        },
+        "mascara_id": "short_light",
+        "note": "photo: short, light lashes; thin brown short wing"
+      }
+    },
+    "kWI7_DkDjZ0": {
+      "name": "청초 물복숭아",
+      "evidence": [
+        "1176s"
+      ],
+      "upperLength": 0.14,
+      "density": "normal",
+      "clump": "none",
+      "curl": "c",
+      "lower": {
+        "present": true,
+        "length": 0.06,
+        "style": "faint"
+      },
+      "note": "thin short fan, light; lower very faint",
+      "photo_11_11": {
+        "photo": 2,
+        "liner": null,
+        "mascara_id": "fine_short",
+        "note": "photo: fringe covers the brows; medium thin strands in small pointed bunches; no liner"
+      }
+    },
+    "n5otfjJSSQc": {
+      "name": "카리나 멧갈라",
+      "evidence": [
+        "235s"
+      ],
+      "upperLength": 0.2,
+      "density": "normal",
+      "clump": "separate",
+      "curl": "c",
+      "lower": {
+        "present": true,
+        "length": 0.1,
+        "style": "thin"
+      },
+      "note": "medium thin separated strands, lower lashes clearly visible",
+      "photo_11_11": {
+        "photo": 5,
+        "liner": {
+          "thickness": 0.09,
+          "wing": 0.14,
+          "angle": 8,
+          "softness": 0.2,
+          "id": "karina_wing"
+        },
+        "mascara_id": "thin_lower",
+        "note": "photo: separated strands with small pointed bunches; lower lashes clearly drawn"
+      }
+    },
+    "e1gSkUdG6Bo": {
+      "name": "설윤 뿌까",
+      "evidence": [
+        "1059s"
+      ],
+      "upperLength": 0.25,
+      "density": "dense",
+      "clump": "comb",
+      "curl": "straight",
+      "lower": {
+        "present": false,
+        "length": 0,
+        "style": "none"
+      },
+      "note": "about 14 evenly spaced parallel straight strands per eye (attached-lash comb); winged liner is strong",
+      "photo_11_11": {
+        "photo": 1,
+        "liner": {
+          "thickness": 0.13,
+          "wing": 0.28,
+          "angle": 18,
+          "softness": 0.1,
+          "id": "sullyoon_wing"
+        },
+        "mascara_id": "long_fan",
+        "note": "photo: bold long upswept wing; long dense curled fan, a few fine lower lashes at the outer corner (replaces the straight comb)"
+      }
+    },
+    "fDqBPI1SaWY": {
+      "name": "윈터 또렷 청초",
+      "evidence": [
+        "482s",
+        "1336s"
+      ],
+      "upperLength": 0.17,
+      "density": "dense",
+      "clump": "none",
+      "curl": "c",
+      "lower": {
+        "present": true,
+        "length": 0.06,
+        "style": "faint"
+      },
+      "note": "thin hair-like dense lashes, soft, no bunches; lower faint; winged liner",
+      "photo_11_11": {
+        "photo": 6,
+        "liner": {
+          "thickness": 0.07,
+          "wing": 0.12,
+          "angle": 12,
+          "softness": 0.25,
+          "id": "winter_wing"
+        },
+        "mascara_id": "fine_dense",
+        "note": "photo: thin dense hair-like lashes, soft; thin dark-brown short wing"
+      }
+    }
+  },
+  "_photo_2026-11-11": "User eye photos of the six looks (11-11, photos not kept in the repository): numbers below are visual estimates (about +-30%) read from those photos and applied in lib/mascaraLooks.ts and lib/linerLooks.ts LOOK_LINERS. liner: thickness = outer thickness / eye width, wing = length / eye width, angle in degrees."
+}
