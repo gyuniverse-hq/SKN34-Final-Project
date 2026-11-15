@@ -47,6 +47,10 @@ def assert_sanitized(value):
 def capture(case, variant, environment, required, executable, evidence_root):
     run_id = uuid4().hex
     request = {"case": case, "variantId": variant, "environment": environment, "runId": run_id}
+    identity = {
+        "caseId": case["caseId"], "caseRevision": case["caseRevision"], "variantId": variant,
+        "environment": environment, "runId": run_id,
+    }
     try:
         command = (
             [sys.executable, "-B", str(executable)]
@@ -66,15 +70,20 @@ def capture(case, variant, environment, required, executable, evidence_root):
         observation = data["observation"]
         artifacts = data["artifacts"]
         assert_sanitized(data)
-        expected = {
-            "caseId": case["caseId"],
-            "caseRevision": case["caseRevision"],
-            "variantId": variant,
-            "environment": environment,
-            "runId": run_id,
-        }
+        expected = identity
         if any(observation.get(field) != value for field, value in expected.items()):
             raise ValueError("Driver observation does not match run")
+        if observation.get("status") in {
+            "BLOCKED_DEPENDENCY", "BLOCKED_DATA", "BLOCKED_FIXTURE", "BLOCKED_RIGHTS", "BLOCKED"
+        }:
+            if (
+                not isinstance(observation.get("blockedReason"), str)
+                or not observation["blockedReason"].strip()
+            ):
+                raise ValueError("Missing blocked reason")
+            return observation
+        if observation.get("status") == "FAIL" and not observation.get("failureReason"):
+            raise ValueError("Missing failure reason")
         if set(artifacts) != set(required):
             raise ValueError("Driver did not capture the required artifacts")
         if any(not isinstance(content, dict) or not content for content in artifacts.values()):
@@ -100,16 +109,10 @@ def capture(case, variant, environment, required, executable, evidence_root):
                 json.dumps(envelope, ensure_ascii=False), encoding="utf-8"
             )
         return observation
-    except (OSError, subprocess.SubprocessError, ValueError, TypeError, KeyError):
-        return {
-            "caseId": case["caseId"],
-            "caseRevision": case["caseRevision"],
-            "variantId": variant,
-            "environment": environment,
-            "runId": run_id,
-            "status": "BLOCKED_DEPENDENCY",
-            "blockedReason": "driver_or_evidence_failed",
-        }
+    except (OSError, subprocess.SubprocessError):
+        return identity | {"status": "BLOCKED_DEPENDENCY", "blockedReason": "driver_unavailable"}
+    except (ValueError, TypeError, KeyError):
+        return identity | {"status": "NOT_RUN", "blockedReason": "invalid_or_missing_evidence"}
 
 
 def main():

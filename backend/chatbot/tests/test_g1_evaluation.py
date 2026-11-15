@@ -233,8 +233,44 @@ def test_cat14_review_is_bound_to_the_actual_run_and_response(tmp_path):
     artifact["content"]["response"]["answer"] = "변조된 응답"
     (tmp_path / "response_snapshot.json").write_text(json.dumps(artifact), encoding="utf-8")
     assert report(observation, [review])["status"] == "NOT_RUN"
+    write_evidence(observation)
     assert report(observation, [review | {"semanticReviewStatus": "FAIL"}])["status"] == "FAIL"
-    assert (
-        report(observation | {"response": {"answer": " ", "products": []}}, [review])["status"]
-        == "FAIL"
-    )
+    invalid = observation | {"response": {"answer": " ", "products": []}}
+    assert report(invalid, [review])["status"] == "NOT_RUN"
+    write_evidence(invalid)
+    assert report(invalid, [review])["status"] == "FAIL"
+
+    failure = observation | {"status": "FAIL", "failureReason": "actual execution failed"}
+    write_evidence(failure)
+    assert report(failure, [review])["status"] == "FAIL"
+
+
+def test_collector_distinguishes_failure_blocking_and_missing_evidence(tmp_path, monkeypatch):
+    cases, _ = load_contract()
+    case = next(c for c in cases if c["caseId"] == "G1-GEN-01")
+    required = case["evidenceByEnvironment"]["E0"]["requiredArtifacts"]
+    result = {}
+
+    def run(command, *, input, **kwargs):
+        request = json.loads(input)
+        identity = {
+            "caseId": case["caseId"], "caseRevision": case["caseRevision"],
+            "variantId": request["variantId"], "environment": request["environment"],
+            "runId": request["runId"],
+        }
+        return SimpleNamespace(stdout=json.dumps({
+            "observation": identity | result.get("observation", {}),
+            "artifacts": result.get("artifacts", {}),
+        }))
+
+    monkeypatch.setattr("tests.collect_g1_observations.subprocess.run", run)
+    result.update(observation={"status": "BLOCKED_DATA", "blockedReason": "fixture drift"})
+    row = capture(case, "default", "E0", required, tmp_path / "driver.py", tmp_path)
+    assert row["status"] == "BLOCKED_DATA"
+    result.update(observation={"status": "FAIL", "failureReason": "assertion failed"})
+    row = capture(case, "default", "E0", required, tmp_path / "driver.py", tmp_path)
+    assert row["status"] == "NOT_RUN"
+    result["artifacts"] = {name: {"capture": "observed failure"} for name in required}
+    row = capture(case, "default", "E0", required, tmp_path / "driver.py", tmp_path)
+    assert row["status"] == "FAIL"
+    assert all((tmp_path / ref).is_file() for ref in row["evidenceRefs"].values())
