@@ -1,4 +1,4 @@
-"""Collect supported E1 search cases against real Catalog HTTP and read-only PostgreSQL.
+"""Collect supported E1 cases against real Catalog HTTP and read-only PostgreSQL.
 
 The model plan and auth are explicitly fixtures. Unsupported cases are NOT_RUN, not copied
 from a smoke run. PostgreSQL is read only by the independent evaluation helper process.
@@ -14,6 +14,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
+from pydantic import ValidationError
 
 ROOT = Path(__file__).resolve().parents[3]
 CHATBOT = ROOT / "backend/chatbot"
@@ -24,6 +25,7 @@ from app.core.auth import ChatPrincipal, chat_principal  # noqa: E402
 from app.core.config import get_settings  # noqa: E402
 from app.core.ratelimit import MemoryRateLimiter, get_rate_limiter  # noqa: E402
 from app.main import create_app  # noqa: E402
+from app.schemas.chat import ChatResponse  # noqa: E402
 from app.services.chat_service import ChatService, get_chat_service  # noqa: E402
 
 SUPPORTED = {
@@ -32,6 +34,8 @@ SUPPORTED = {
     "G1-CAT-07",
     "G1-CAT-08",
     "G1-CAT-09",
+    "G1-CAT-11",
+    "G1-CAT-12",
     "G1-CAT-14",
     "G1-RUN-01",
     "G1-UI-01",
@@ -43,12 +47,15 @@ class FixtureModel:
 
     def __init__(self, case):
         args = case["expected"].get("allowedArgs", {})
+        self.detail = case.get("caseId") in {"G1-CAT-11", "G1-CAT-12"}
         self.arguments = {}
         if args.get("category"):
             self.arguments["category"] = args["category"]
         if args.get("q"):
             self.arguments["query"] = args["q"]
-        if not self.arguments:
+        if self.detail:
+            self.arguments = {"intent": "detail"}
+        elif not self.arguments:
             self.arguments["category"] = "lip"
         self.calls = 0
 
@@ -66,7 +73,11 @@ class FixtureModel:
                                 "id": "e1-fixture-call",
                                 "type": "function",
                                 "function": {
-                                    "name": "catalog_search_products",
+                                    "name": (
+                                        "catalog_get_product_detail"
+                                        if self.detail
+                                        else "catalog_search_products"
+                                    ),
                                     "arguments": json.dumps(self.arguments, ensure_ascii=False),
                                 },
                             }
@@ -141,6 +152,64 @@ def catalog_rows_match_db(ids, catalog_products, db_products, db_shades):
         ):
             return False
     return True
+
+
+def detail_ownership_matches(fixture, db):
+    """Verify the two pinned products and their distinct shade ownership in PostgreSQL."""
+    target, foreign = fixture["productId"], fixture["foreignProductId"]
+    target_shade, foreign_shade = fixture["shadeId"], fixture["foreignShadeId"]
+    pairs = [(row["product_id"], row["id"]) for row in db["shades"]]
+    product_ids = [row["id"] for row in db["products"]]
+    return (
+        target != foreign
+        and target_shade != foreign_shade
+        and product_ids.count(target) == 1
+        and product_ids.count(foreign) == 1
+        and pairs.count((target, target_shade)) == 1
+        and pairs.count((foreign, foreign_shade)) == 1
+        and (target, foreign_shade) not in pairs
+    )
+
+
+def response_shade_pairs(payload):
+    """Measure shade-bearing structured response fields rather than inferring from products."""
+    context = payload.get("chatContext") or {}
+    pairs = [
+        {"productId": product_id, "shadeId": shade_id}
+        for product_id, shade_id in context.get("shadeSelections", {}).items()
+    ]
+    for item in payload.get("ingredientResults") or []:
+        if item.get("shadeId"):
+            pairs.append({"productId": item["productId"], "shadeId": item["shadeId"]})
+    return pairs
+
+
+def detail_response_failure(case_id, payload, fixture):
+    """Record unsafe detail results as FAIL; never repair the observed response."""
+    try:
+        response = ChatResponse.model_validate(payload)
+    except (TypeError, ValidationError, ValueError):
+        return "invalid_chat_response"
+    if not response.answer.strip():
+        return "empty_chat_response"
+    context = payload.get("chatContext") or {}
+    if case_id == "G1-CAT-11" and (payload.get("resultType") != "empty" or payload.get("products")):
+        return "nonexistent_product_exposed"
+    if case_id == "G1-CAT-12" and (
+        payload.get("resultType") != "clarification"
+        or payload.get("products")
+        or payload.get("evidence")
+        or payload.get("ingredientResults")
+        or payload.get("ingredientComparison")
+        or payload.get("arResult")
+        or context.get("candidateIds")
+        or context.get("scopeIds")
+        or context.get("selectedProductId")
+        or context.get("shadeSelections")
+        or fixture["foreignShadeName"] in response.answer
+    ):
+        return "foreign_shade_exposed_or_not_clarified"
+    return None
 
 
 async def run(item):
@@ -225,6 +294,15 @@ async def run(item):
         "locale": inputs["locale"],
         "requestType": entry.get("requestType", inputs["requestType"]),
     }
+    if inputs.get("screenContext"):
+        screen = dict(inputs["screenContext"])
+        for key, value in screen.items():
+            if isinstance(value, str) and value.startswith("${FIXTURE.") and value.endswith("}"):
+                name = value.removeprefix("${FIXTURE.").removesuffix("}")
+                if name not in fv:
+                    return blocked("fixture_screen_value_missing", "BLOCKED_DATA")
+                screen[key] = fv[name]
+        body["screenContext"] = screen
     events = []
     original = httpx.AsyncClient.send
     origin = httpx.URL(base)
@@ -236,13 +314,19 @@ async def run(item):
             origin.host,
             origin.port,
         ):
+            is_detail = request.url.path.startswith("/api/products/")
             event = {
-                "name": "catalog.search_products",
+                "name": "catalog.get_product_detail" if is_detail else "catalog.search_products",
                 "method": request.method,
-                "path": request.url.path,
+                "path": "/api/products/{productId}" if is_detail else request.url.path,
+                "actualPath": request.url.path,
                 "status": response.status_code,
                 "query": dict(request.url.params),
             }
+            if is_detail:
+                event["productId"] = request.url.path.removeprefix("/api/products/")
+                if response.status_code == 200:
+                    event["returnedProduct"] = response.json()["product"]
             if request.url.path == "/api/products" and response.status_code == 200:
                 event["returnedProducts"] = response.json()["products"]
                 event["returnedProductIds"] = [p["id"] for p in event["returnedProducts"]]
@@ -260,20 +344,52 @@ async def run(item):
         httpx.AsyncClient.send = original
     payload = response.json()
     ids = [p["id"] for p in payload.get("products", [])]
+    screen_id = (body.get("screenContext") or {}).get("productId")
     db = await asyncio.to_thread(
-        pg_read, list(dict.fromkeys(ids + [fv["productId"], fv["foreignProductId"]]))
+        pg_read,
+        list(
+            dict.fromkeys(
+                ids + [fv["productId"], fv["foreignProductId"]] + ([screen_id] if screen_id else [])
+            )
+        ),
     )
     if db.get("status") != "OK":
         return blocked(
             db.get("reason", "postgres_preflight_failed"), db.get("status", "BLOCKED_DEPENDENCY")
         )
     products = {p["id"]: p for p in db["products"]}
+    is_detail = case["caseId"] in {"G1-CAT-11", "G1-CAT-12"}
+    details = [event for event in events if event["name"] == "catalog.get_product_detail"]
+    if is_detail and (len(details) != 1 or details[0].get("productId") != screen_id):
+        return blocked("detail_request_not_observed", "NOT_RUN")
+    if case["caseId"] == "G1-CAT-11" and screen_id in products:
+        return blocked("nonexistent_fixture_id_exists_in_postgres", "BLOCKED_DATA")
+    if case["caseId"] == "G1-CAT-12" and not detail_ownership_matches(fv, db):
+        return blocked("shade_ownership_fixture_mismatch", "BLOCKED_DATA")
     search_events = [event for event in events if "returnedProducts" in event]
     catalog_rows = [row for event in search_events for row in event["returnedProducts"]]
     selected_rows = [row for row in catalog_rows if row["id"] in ids]
-    verified = product_identity_matches(
-        payload.get("products", []), db["products"]
-    ) and catalog_rows_match_db(ids, selected_rows, db["products"], db["shades"])
+    verified = product_identity_matches(payload.get("products", []), db["products"])
+    if is_detail:
+        if details[0]["status"] == 200:
+            selected_rows = [details[0]["returnedProduct"]]
+            verified = verified and catalog_rows_match_db(
+                [screen_id], selected_rows, db["products"], db["shades"]
+            )
+        elif details[0]["status"] == 404:
+            # A hallucinated chat response is a feature failure, not DB drift.
+            verified = screen_id not in products
+        else:
+            # A live HTTP error is a feature failure; preserve the actual trace for grading.
+            verified = True
+        if case["caseId"] == "G1-CAT-12":
+            verified = verified and catalog_rows_match_db(
+                [fv["productId"], fv["foreignProductId"]], [t, f], db["products"], db["shades"]
+            )
+    else:
+        verified = verified and catalog_rows_match_db(
+            ids, selected_rows, db["products"], db["shades"]
+        )
     if not verified:
         return blocked("returned_catalog_data_disagrees_with_db", "BLOCKED_DATA")
     commit = (
@@ -308,6 +424,16 @@ async def run(item):
     search_events = [event for event in events if "returnedProductIds" in event]
     if len(search_events) == 1:
         observation["catalogResultCount"] = len(search_events[0]["returnedProductIds"])
+    if is_detail:
+        observation["screenProductId"] = screen_id
+        observation["responseShadePairs"] = response_shade_pairs(payload)
+        observation["sourceShadePairs"] = [
+            {"productId": row["product_id"], "shadeId": row["id"]}
+            for row in db["shades"]
+            if row["product_id"] == screen_id
+        ]
+        if details[0]["status"] == 404:
+            observation["catalogResultCount"] = 0
     args = case["expected"].get("allowedArgs", {})
     if args.get("category"):
         observation["expectedCategory"] = args["category"]
@@ -317,6 +443,12 @@ async def run(item):
         observation.update(
             status="FAIL", failureReason=f"chat_endpoint_http_{response.status_code}"
         )
+    if is_detail and details[0]["status"] not in {200, 404}:
+        observation.update(status="FAIL", failureReason=f"catalog_http_{details[0]['status']}")
+    if is_detail and response.status_code < 400:
+        reason = detail_response_failure(case["caseId"], payload, fv)
+        if reason:
+            observation.update(status="FAIL", failureReason=reason)
     common = {
         "runId": run_id,
         "gitCommit": commit,
