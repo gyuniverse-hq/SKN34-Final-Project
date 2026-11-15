@@ -72,18 +72,37 @@ def _requires_catalog_search(message: str) -> bool:
     )
 
 
-def tint_and_lipstick_explanation(message: str) -> str | None:
-    if (
-        "틴트" in message
-        and "립스틱" in message
-        and re.search(r"차이|어떻게\s*달라|뭐가\s*달라|비교", message)
-    ):
-        return (
-            "틴트는 입술에 얇게 펴 바르기 쉽고 착색이 남는 제품이 많아요. "
-            "립스틱은 색을 표면에 고르게 얹어 한 번에 또렷하게 발색하기 쉬워요. "
-            "착색과 마무리감은 제품마다 달라요."
+def requests_general_explanation(message: str) -> bool:
+    return bool(
+        re.search(
+            r"차이|비교|어떻게\s*달라|뭐가\s*달라|설명|뭐야|무엇|사용법|어떻게\s*바르", message
         )
-    return None
+    )
+
+
+async def explain_general_question(request: ChatRequest, llm) -> str:
+    """Explain the general question without sending Catalog descriptions to the model."""
+    try:
+        answer = await llm.complete(
+            [
+                {
+                    "role": "system",
+                    "content": (
+                        "사용자의 질문에서 뷰티 개념이나 사용법만 한국어로 설명하세요. "
+                        "브랜드, 상품명, 가격, 성분 검증이나 진단을 언급하지 마세요. "
+                        "구매나 AR 실행도 언급하지 마세요. "
+                        "상품 결과가 뒤따르므로 상품을 추천하지 않겠다는 말은 하지 마세요. "
+                        "모르는 사실을 단정하지 말고 제품별 차이가 있으면 알려주세요."
+                    ),
+                },
+                {"role": "user", "content": request.message},
+            ]
+        )
+    except UpstreamError as exc:
+        raise ApiError(502, "Chatbot is temporarily unavailable", "upstream_error") from exc
+    if not isinstance(answer, str) or not answer.strip():
+        raise ApiError(502, "Invalid G1 model explanation", "invalid_tool_result")
+    return answer.strip()
 
 
 async def choose_g1_turn(request: ChatRequest, complete_with_tools) -> G1ModelTurn:

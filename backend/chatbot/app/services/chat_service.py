@@ -55,7 +55,8 @@ from app.services.g1_model_service import (
     DETAIL_TOOL,
     G1ModelTurn,
     choose_g1_turn,
-    tint_and_lipstick_explanation,
+    explain_general_question,
+    requests_general_explanation,
 )
 from app.services.product_consultation_graph import SupervisorRuntime, product_supervisor
 from app.services.style_recipe_service import TEXT as STYLE_TEXT
@@ -599,10 +600,13 @@ class ChatService:
                     catalog_tool_call_id.reset(token)
                 if response is None or response.tool_result is None:
                     raise ApiError(502, "Missing catalog result", "invalid_tool_result")
-                if decision.slots.intent == "search":
-                    explanation = tint_and_lipstick_explanation(req.message)
-                    if explanation:
-                        response.answer = f"{explanation}\n\n{response.answer}"
+                if (
+                    decision.slots.intent == "search"
+                    and model_turn
+                    and requests_general_explanation(req.message)
+                ):
+                    explanation = await explain_general_question(req, self._llm)
+                    response.answer = f"{explanation}\n\n{response.answer}"
                 result = response.tool_result
             else:
                 if model_turn and model_turn.tool_call_id:

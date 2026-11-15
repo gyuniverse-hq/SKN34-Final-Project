@@ -368,7 +368,7 @@ function ChatConversation({ record, onRecent, onNew }: {
     const generalMakeup = original?.generalMakeup ??
       (!retryCategory && !room.styleContext && !lookReference && !shopping && makeupTopic && technique);
     const requestCategory = original?.args.category ?? retryCategory ??
-      (generalMakeup ? 'product' : lookReference ? 'style' : room.category);
+      (generalMakeup && room.category ? 'product' : lookReference ? 'style' : room.category);
     const context = generalMakeup ? undefined : room.beautyContext;
     const focusedProduct = generalMakeup ? undefined : room.selection.screen ?? room.entryProduct;
     const lastReply = messages.at(-1);
@@ -622,7 +622,7 @@ function ChatConversation({ record, onRecent, onNew }: {
                 selectedProductId={chosenProductId}
                 onSelectProduct={canSelect(message) ? (productId) => selectProduct(productId, message) : undefined}
                 onSelectShade={(productId, shadeId) => selectShade(productId, shadeId, message)} /> : null}
-              {message.role === 'assistant' && !message.fragranceSearchSummary && !message.products?.length && message.category === 'product' &&
+              {message.role === 'assistant' && !message.fragranceSearchSummary && !message.products?.length && (message.category === 'product' || message.category === undefined) &&
                 (message.resultType === 'empty' || (!message.resultType && extractChatConditions(message.question ?? '').length)) ? (
                 <View style={styles.emptyState}>
                   <View style={styles.stateIcon}><Ionicons name="search-outline" size={22} color={theme.colors.rose} /></View>

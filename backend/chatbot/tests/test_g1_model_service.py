@@ -105,6 +105,23 @@ async def test_explicit_shopping_requires_search_and_mixed_request_explains(
             calls.append("GET")
             return httpx.Response(200, json={"products": [row("a")]})
         payload = json.loads(req.content)
+        if "tools" not in payload:
+            calls.append("explain")
+            return httpx.Response(
+                200,
+                json={
+                    "choices": [
+                        {
+                            "message": {
+                                "content": (
+                                    "틴트는 착색이 남을 수 있고 "
+                                    "립스틱은 표면에서 또렷하게 발색돼요."
+                                )
+                            }
+                        }
+                    ]
+                },
+            )
         calls.append(payload.get("tool_choice", "auto"))
         if len(calls) == 1 or mode == "refuses":
             choice = {"finish_reason": "stop", "message": {"content": "인기 립을 추천합니다."}}
@@ -156,5 +173,70 @@ async def test_explicit_shopping_requires_search_and_mixed_request_explains(
         if mode == "mixed":
             assert "틴트" in result.answer and "립스틱" in result.answer
             assert "착색" in result.answer and "발색" in result.answer
-        assert len(calls) == 3 and calls[-1] == "GET"
+        assert calls[-2:] == ["GET", "explain"] if mode == "mixed" else calls[-1] == "GET"
     assert calls[1] == {"type": "function", "function": {"name": "catalog_search_products"}}
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "message,explanation",
+    [
+        (
+            "매트와 글로시 차이를 설명하고 립 제품도 추천해줘",
+            "매트는 빛 반사가 적고 글로시는 윤기가 있어요.",
+        ),
+        (
+            "쿠션과 파운데이션은 뭐가 달라? 입문용 제품 보여줘",
+            "쿠션은 간편하게 덧바르기 좋고 파운데이션은 도구와 양을 조절하기 쉬워요.",
+        ),
+    ],
+)
+async def test_explanation_and_catalog_search_for_other_questions(
+    monkeypatch, message, explanation
+):
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", True)
+    calls = []
+
+    def handler(req):
+        if req.method == "GET":
+            calls.append("catalog")
+            return httpx.Response(200, json={"products": [row("a")]})
+        payload = json.loads(req.content)
+        if "tools" not in payload:
+            calls.append("explanation")
+            return httpx.Response(200, json={"choices": [{"message": {"content": explanation}}]})
+        calls.append("model")
+        return httpx.Response(
+            200,
+            json={
+                "id": "completion-fixture",
+                "model": "model-fixture",
+                "choices": [
+                    {
+                        "finish_reason": "tool_calls",
+                        "message": {
+                            "tool_calls": [
+                                {
+                                    "id": "call_fixture",
+                                    "type": "function",
+                                    "function": {
+                                        "name": "catalog_search_products",
+                                        "arguments": '{"category":"lip"}',
+                                    },
+                                }
+                            ]
+                        },
+                    }
+                ],
+            },
+        )
+
+    service = ChatService(
+        None,
+        LlmClient("http://provider.test/v1", "fixture", "gpt-6-luna", 5),
+        catalog_client(monkeypatch, handler),
+    )
+    result = await service.answer(ChatRequest(message=message, locale="ko"))
+    assert explanation in result.answer
+    assert [p.id for p in result.products] == ["a"]
+    assert calls == ["model", "catalog", "explanation"]

@@ -43,7 +43,7 @@ function createChatConversation(userId: string | null, ownerKey: string, entry: 
     styleRevision: 0,
     entryProduct: screenForEntry(entry) ?? focus?.product,
     snapshots: new Map<string, ChatRequestSnapshot>(),
-    category: (entry.type === 'look' || focus?.style ? 'style' : 'product') as ChatCategory,
+    category: (entry.type === 'look' || focus?.style ? 'style' : entry.type === 'product' || focus?.product ? 'product' : undefined) as ChatCategory | undefined,
   };
 }
 
@@ -181,7 +181,7 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
     setStyle: (target, value) => { change(target, (room) => {
       room.styleContext = value ? { ...value } : undefined;
       room.styleRevision += 1;
-      room.category = value ? 'style' : 'product';
+      room.category = value ? 'style' : room.subject.type === 'product' || room.entryProduct ? 'product' : undefined;
     }); },
     clearProduct: (target) => { change(target, (room, record) => {
       room.entryProduct = undefined;
@@ -300,7 +300,7 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
           products: snapshot.generalMakeup && !response.resultType ? [] : response.products,
           question,
           category: response.styleRecipe || snapshot.generalMakeup ? 'style'
-            : response.resultType === 'recommendations' || response.resultType === 'product_detail' ? 'product' : snapshot.args.category,
+            : response.resultType === 'recommendations' || response.resultType === 'product_detail' || response.resultType === 'empty' ? 'product' : snapshot.args.category,
           ownerKey: room.ownerKey, generation: snapshot.generation, sessionStatus: response.sessionStatus,
           resultSetId: response.chatContext?.session?.resultSetId,
           screenContext: snapshot.args.screenContext,
