@@ -2,7 +2,7 @@ import re
 import unicodedata
 
 from app.clients.catalog_client import CatalogClient
-from app.core.errors import ApiError, UpstreamError
+from app.core.errors import UpstreamError
 from app.schemas.catalog import CatalogProduct
 
 
@@ -19,6 +19,10 @@ def validate_catalog_product(product: CatalogProduct) -> None:
         or any(shade.product_id not in {None, product.id} for shade in product.shades)
     ):
         raise UpstreamError("Invalid Catalog product or shade identity")
+
+
+class InvalidShadeSelection(Exception):
+    """A requested shade was not found on the verified Catalog product."""
 
 
 class G1CatalogTool:
@@ -69,5 +73,5 @@ class G1CatalogTool:
     ) -> CatalogProduct | None:
         product = await self.get_product(product_id)
         if product and shade_id and all(shade.id != shade_id for shade in product.shades):
-            raise ApiError(422, "Invalid screen selection", "invalid_chat_selection")
+            raise InvalidShadeSelection
         return product

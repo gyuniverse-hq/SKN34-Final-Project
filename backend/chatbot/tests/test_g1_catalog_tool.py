@@ -3,10 +3,12 @@ import pytest
 
 from app.clients.catalog_client import CatalogClient
 from app.core.config import get_settings
-from app.core.errors import ApiError, UpstreamError
+from app.core.errors import UpstreamError
+from app.core.ratelimit import MemoryRateLimiter, get_rate_limiter
+from app.main import create_app
 from app.schemas.chat import ChatRequest
-from app.services.chat_service import ChatService
-from app.services.g1_catalog_tool import G1CatalogTool
+from app.services.chat_service import ChatService, get_chat_service
+from app.services.g1_catalog_tool import G1CatalogTool, InvalidShadeSelection
 from tests.test_beauty_consultation import PlanLlm, product
 
 
@@ -139,6 +141,84 @@ async def test_detail_verifies_screen_shade_ownership(monkeypatch):
         catalog_client(monkeypatch, lambda _: httpx.Response(200, json={"product": row("a")}))
     )
     assert (await tool.get_product_detail("a", "real-shade")).id == "a"
-    with pytest.raises(ApiError) as caught:
+    with pytest.raises(InvalidShadeSelection):
         await tool.get_product_detail("a", "foreign-shade")
-    assert (caught.value.status, caught.value.code) == (422, "invalid_chat_selection")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("kind", ["chat", "beauty_consultation"])
+@pytest.mark.parametrize("enabled", [True, False])
+async def test_foreign_screen_shade_returns_safe_clarification(monkeypatch, kind, enabled):
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", enabled)
+    calls = []
+    real_async_client = httpx.AsyncClient
+
+    def handler(request):
+        calls.append(request.url.path)
+        return httpx.Response(200, json={"product": row("a")})
+
+    class DetailLlm(PlanLlm):
+        async def complete_with_tools(self, messages, tools, *, required_tool=None):
+            return {
+                "id": "fixture-completion",
+                "model": "fixture-model",
+                "choices": [
+                    {
+                        "finish_reason": "tool_calls",
+                        "message": {
+                            "tool_calls": [
+                                {
+                                    "id": "fixture-call",
+                                    "type": "function",
+                                    "function": {
+                                        "name": "catalog_get_product_detail",
+                                        "arguments": "{}",
+                                    },
+                                }
+                            ]
+                        },
+                    }
+                ],
+            }, 1
+
+    class EmptyGraph:
+        async def find_products(self, terms):
+            return []
+
+    service = ChatService(
+        EmptyGraph(), DetailLlm(intent="detail"), catalog_client(monkeypatch, handler)
+    )
+    app = create_app()
+    from app.core.auth import ChatPrincipal, chat_principal
+
+    app.dependency_overrides[get_chat_service] = lambda: service
+    app.dependency_overrides[chat_principal] = lambda: ChatPrincipal(rate_limit_key="fixture")
+    app.dependency_overrides[get_rate_limiter] = lambda: MemoryRateLimiter(limit=100)
+    payload = {
+        "message": "현재 선택한 05호가 어떤 색이야?",
+        "requestType": kind,
+        "locale": "ko",
+        "screenContext": {"screenId": "product-detail", "productId": "a", "shadeId": "05"},
+    }
+    async with real_async_client(
+        transport=httpx.ASGITransport(app=app), base_url="http://chat.test"
+    ) as client:
+        response = await client.post("/api/chat", json=payload)
+        valid = None
+        if enabled:
+            payload["screenContext"]["shadeId"] = "real-shade"
+            valid = await client.post("/api/chat", json=payload)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["answer"] and body["products"] == []
+    if enabled:
+        assert body.get("resultType") == "clarification"
+        assert "05" not in body["answer"]
+        context = body.get("chatContext") or {}
+        assert not context.get("selectedProductId")
+        assert not context.get("shadeSelections")
+        assert valid.status_code == 200
+        valid_body = valid.json()
+        assert valid_body["resultType"] == "product_detail"
+        assert valid_body["chatContext"]["shadeSelections"] == {"a": "real-shade"}
+        assert calls == ["/api/products/a", "/api/products/a"]

@@ -29,6 +29,7 @@ from app.schemas.supervisor import (
     SearchPlan,
     ToolResult,
 )
+from app.services.g1_catalog_tool import InvalidShadeSelection
 
 CONTEXT_TTL_SECONDS = 600
 # Evidence-loop budget only; Catalog search and session validation are separate requests.
@@ -831,7 +832,14 @@ async def execute_beauty(
     previous = req.chat_context
     screen = req.screen_context
     if g1 and screen and screen.product_id and plan.intent in {"detail", "price"}:
-        product = await catalog.get_product_detail(screen.product_id, screen.shade_id)
+        try:
+            product = await catalog.get_product_detail(screen.product_id, screen.shade_id)
+        except InvalidShadeSelection:
+            return _reply(
+                "선택한 색상이 이 상품에 속하는지 확인할 수 없어요. "
+                "상품과 색상을 다시 선택해 주세요.",
+                _context(effective_filters, [], now),
+            )
         if product is None:
             return _reply(
                 words["missing"], _context(effective_filters, [], now), result_type="empty"

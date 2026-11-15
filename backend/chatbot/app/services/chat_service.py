@@ -796,6 +796,9 @@ class ChatService:
             and (req.screen_context.screen_id == "product-detail" or comparing)
             and independent
             and slots.intent in {"detail", "price"}
+            # The G1 detail tool validates product and shade before selecting them.
+            # Let it return a clarification for a mismatched screen shade.
+            and not (model_turn and model_turn.tool_name == DETAIL_TOOL)
         ):
             req.chat_context = await self._validate_session_context(
                 BeautyContext(issued_at=int(time.time()), filters=BeautyFilters()),
