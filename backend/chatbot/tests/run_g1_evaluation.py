@@ -229,9 +229,14 @@ def evaluate(cases, observations, registry, reviews=(), *, evidence_root=None):
         if blocker:
             status = blocker
         elif evidence_ok and (
-            "FAIL" in statuses or human_status == "FAIL" or invalid_answer
-            or (evidence_ok and observed.get("status") == "FAIL"
-                and _nonblank(observed.get("failureReason")))
+            "FAIL" in statuses
+            or human_status == "FAIL"
+            or invalid_answer
+            or (
+                evidence_ok
+                and observed.get("status") == "FAIL"
+                and _nonblank(observed.get("failureReason"))
+            )
         ):
             status = "FAIL"
         elif human_status == "BLOCKED":

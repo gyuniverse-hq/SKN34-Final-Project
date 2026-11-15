@@ -48,8 +48,11 @@ def capture(case, variant, environment, required, executable, evidence_root):
     run_id = uuid4().hex
     request = {"case": case, "variantId": variant, "environment": environment, "runId": run_id}
     identity = {
-        "caseId": case["caseId"], "caseRevision": case["caseRevision"], "variantId": variant,
-        "environment": environment, "runId": run_id,
+        "caseId": case["caseId"],
+        "caseRevision": case["caseRevision"],
+        "variantId": variant,
+        "environment": environment,
+        "runId": run_id,
     }
     try:
         command = (
@@ -74,7 +77,11 @@ def capture(case, variant, environment, required, executable, evidence_root):
         if any(observation.get(field) != value for field, value in expected.items()):
             raise ValueError("Driver observation does not match run")
         if observation.get("status") in {
-            "BLOCKED_DEPENDENCY", "BLOCKED_DATA", "BLOCKED_FIXTURE", "BLOCKED_RIGHTS", "BLOCKED"
+            "BLOCKED_DEPENDENCY",
+            "BLOCKED_DATA",
+            "BLOCKED_FIXTURE",
+            "BLOCKED_RIGHTS",
+            "BLOCKED",
         }:
             if (
                 not isinstance(observation.get("blockedReason"), str)

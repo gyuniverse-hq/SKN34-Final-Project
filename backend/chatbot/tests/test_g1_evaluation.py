@@ -254,14 +254,20 @@ def test_collector_distinguishes_failure_blocking_and_missing_evidence(tmp_path,
     def run(command, *, input, **kwargs):
         request = json.loads(input)
         identity = {
-            "caseId": case["caseId"], "caseRevision": case["caseRevision"],
-            "variantId": request["variantId"], "environment": request["environment"],
+            "caseId": case["caseId"],
+            "caseRevision": case["caseRevision"],
+            "variantId": request["variantId"],
+            "environment": request["environment"],
             "runId": request["runId"],
         }
-        return SimpleNamespace(stdout=json.dumps({
-            "observation": identity | result.get("observation", {}),
-            "artifacts": result.get("artifacts", {}),
-        }))
+        return SimpleNamespace(
+            stdout=json.dumps(
+                {
+                    "observation": identity | result.get("observation", {}),
+                    "artifacts": result.get("artifacts", {}),
+                }
+            )
+        )
 
     monkeypatch.setattr("tests.collect_g1_observations.subprocess.run", run)
     result.update(observation={"status": "BLOCKED_DATA", "blockedReason": "fixture drift"})
