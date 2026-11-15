@@ -10,10 +10,17 @@ from app.schemas.chat import ChatRequest
 from app.schemas.supervisor import SearchPlan, SupervisorModel
 
 logger = logging.getLogger(__name__)
-PROMPT_VERSION = "g1-ko-v1"
+PROMPT_VERSION = "g1-ko-v2"
 SEARCH_TOOL = "catalog_search_products"
 DETAIL_TOOL = "catalog_get_product_detail"
 _PROVIDER_ID = re.compile(r"[A-Za-z0-9._:-]{1,128}\Z")
+_PRODUCT = re.compile(
+    r"제품|상품|화장품|틴트|틴투|립|파운데이션|쿠션|블러셔|아이섀도|선크림|스킨케어"
+)
+_SEARCH_REQUEST = re.compile(
+    r"추천\s*(?:해|부탁|[?!.]*$)|찾아\s*줘|보여\s*줘|검색해|골라\s*줘|살\s*만한"
+)
+_NO_SEARCH = re.compile(r"(?:추천|검색|조회)(?:은|는|을)?\s*(?:하지\s*마|말고|없이|빼|안)|설명만")
 
 SYSTEM_PROMPT = """한국어로 K-뷰티 상담을 하세요. 간결하고 구체적인 팁을 주세요.
 일반 설명이나 사용법 질문에는 상품을 조회하지 말고 답하세요. 애매하면 한 가지를 되물으세요.
@@ -57,27 +64,60 @@ class G1ModelTurn:
     tool_name: str | None = None
 
 
+def _requires_catalog_search(message: str) -> bool:
+    return bool(
+        _PRODUCT.search(message)
+        and _SEARCH_REQUEST.search(message)
+        and not _NO_SEARCH.search(message)
+    )
+
+
+def tint_and_lipstick_explanation(message: str) -> str | None:
+    if (
+        "틴트" in message
+        and "립스틱" in message
+        and re.search(r"차이|어떻게\s*달라|뭐가\s*달라|비교", message)
+    ):
+        return (
+            "틴트는 입술에 얇게 펴 바르기 쉽고 착색이 남는 제품이 많아요. "
+            "립스틱은 색을 표면에 고르게 얹어 한 번에 또렷하게 발색하기 쉬워요. "
+            "착색과 마무리감은 제품마다 달라요."
+        )
+    return None
+
+
 async def choose_g1_turn(request: ChatRequest, complete_with_tools) -> G1ModelTurn:
     screen = request.screen_context
     tools = [_tool(SEARCH_TOOL, "카탈로그 상품 검색", CatalogSearchArgs)]
     if screen and screen.product_id:
         tools.append(_tool(DETAIL_TOOL, "현재 화면 상품의 색상·가격·성분 조회", CatalogDetailArgs))
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": request.message},
+    ]
+    required_search = _requires_catalog_search(request.message)
     try:
-        result, duration = await complete_with_tools(
-            [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": request.message},
-            ],
-            tools,
-        )
+        result, duration = await complete_with_tools(messages, tools)
+        choice = result["choices"][0]
+        if (
+            required_search
+            and choice["finish_reason"] == "stop"
+            and not choice["message"].get("tool_calls")
+        ):
+            logger.info("g1_catalog_tool_retry", extra={"reason": "required_search_missing"})
+            result, duration = await complete_with_tools(messages, tools, required_tool=SEARCH_TOOL)
     except UpstreamError as exc:
         raise ApiError(502, "Chatbot is temporarily unavailable", "upstream_error") from exc
+    except (AttributeError, IndexError, KeyError, TypeError) as exc:
+        raise ApiError(502, "Invalid G1 model response", "invalid_tool_result") from exc
 
     try:
         choice = result["choices"][0]
         message = choice["message"]
         calls = message.get("tool_calls") or []
         if not calls and choice["finish_reason"] == "stop":
+            if required_search:
+                raise ValueError("The requested product search requires a Catalog tool call")
             answer = message["content"].strip()
             if not answer:
                 raise ValueError("Empty G1 answer")
@@ -94,6 +134,8 @@ async def choose_g1_turn(request: ChatRequest, complete_with_tools) -> G1ModelTu
             ):
                 raise ValueError("Invalid G1 tool call")
             args = call["function"]["arguments"]
+            if required_search and name != SEARCH_TOOL:
+                raise ValueError("Expected the Catalog search tool")
             if name == SEARCH_TOOL:
                 search = CatalogSearchArgs.model_validate_json(args)
                 if not search.category and not (search.query or "").strip():
@@ -121,6 +163,7 @@ async def choose_g1_turn(request: ChatRequest, complete_with_tools) -> G1ModelTu
             "model_id": model_id,
             "model_response_id": response_id,
             "prompt_version": PROMPT_VERSION,
+            "request_type": request.request_type,
             "input_tokens": token_counts[0] if type(token_counts[0]) is int else None,
             "output_tokens": token_counts[1] if type(token_counts[1]) is int else None,
             "duration_ms": duration,

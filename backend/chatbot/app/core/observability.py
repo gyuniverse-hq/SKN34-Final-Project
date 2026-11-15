@@ -7,6 +7,7 @@ from contextvars import ContextVar
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 request_id_var: ContextVar[str] = ContextVar("request_id", default="-")
+catalog_tool_call_id: ContextVar[str | None] = ContextVar("catalog_tool_call_id", default=None)
 
 _RESERVED = set(vars(logging.makeLogRecord({})))
 

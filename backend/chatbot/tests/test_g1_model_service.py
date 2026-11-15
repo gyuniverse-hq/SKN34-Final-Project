@@ -8,12 +8,18 @@ from app.core.config import get_settings
 from app.core.errors import ApiError
 from app.schemas.chat import ChatRequest
 from app.services.chat_service import ChatService
+from app.services.g1_model_service import _requires_catalog_search
 from tests.test_g1_catalog_tool import catalog_client, row
 
 
 @pytest.fixture
 def anyio_backend():
     return "asyncio"
+
+
+@pytest.mark.parametrize("message", ["립 제품 추천 기준 알려줘", "제품 추천하지 말고 설명만 해줘"])
+def test_information_requests_do_not_force_catalog(message):
+    assert not _requires_catalog_search(message)
 
 
 @pytest.mark.anyio
@@ -83,3 +89,72 @@ async def test_g1_provider_tool_protocol_and_catalog_boundary(monkeypatch, varia
     if variant in {"chat", "beauty_consultation"}:
         expected.append(("GET", "/api/products"))
     assert observations == expected
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("kind", ["chat", "beauty_consultation"])
+@pytest.mark.parametrize("mode", ["retry", "refuses", "mixed"])
+async def test_explicit_shopping_requires_search_and_mixed_request_explains(
+    monkeypatch, kind, mode
+):
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", True)
+    calls = []
+
+    def handler(req):
+        if req.method == "GET":
+            calls.append("GET")
+            return httpx.Response(200, json={"products": [row("a")]})
+        payload = json.loads(req.content)
+        calls.append(payload.get("tool_choice", "auto"))
+        if len(calls) == 1 or mode == "refuses":
+            choice = {"finish_reason": "stop", "message": {"content": "인기 립을 추천합니다."}}
+        else:
+            choice = {
+                "finish_reason": "tool_calls",
+                "message": {
+                    "tool_calls": [
+                        {
+                            "id": "call_fixture",
+                            "type": "function",
+                            "function": {
+                                "name": "catalog_search_products",
+                                "arguments": '{"category":"lip"}',
+                            },
+                        }
+                    ]
+                },
+            }
+        return httpx.Response(
+            200,
+            json={
+                "id": "completion-fixture",
+                "model": "model-fixture",
+                "choices": [choice],
+            },
+        )
+
+    service = ChatService(
+        None,
+        LlmClient("http://provider.test/v1", "fixture", "gpt-6-luna", 5),
+        catalog_client(monkeypatch, handler),
+    )
+    message = (
+        "틴트랑 립스틱 차이 짧게 설명하고 입문용 립도 보여줘"
+        if mode == "mixed"
+        else "립 제품 추천해 주세요"
+    )
+    request = ChatRequest(message=message, request_type=kind, locale="ko")
+    if mode == "refuses":
+        with pytest.raises(ApiError) as exc:
+            await service.answer(request)
+        assert exc.value.code == "invalid_tool_result"
+        assert len(calls) == 2
+    else:
+        result = await service.answer(request)
+        assert [p.id for p in result.products] == ["a"]
+        assert "인기 립을 추천합니다" not in result.answer
+        if mode == "mixed":
+            assert "틴트" in result.answer and "립스틱" in result.answer
+            assert "착색" in result.answer and "발색" in result.answer
+        assert len(calls) == 3 and calls[-1] == "GET"
+    assert calls[1] == {"type": "function", "function": {"name": "catalog_search_products"}}

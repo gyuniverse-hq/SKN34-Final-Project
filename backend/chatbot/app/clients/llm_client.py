@@ -33,7 +33,9 @@ class LlmClient:
         except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
             raise UpstreamError("LLM request failed") from exc
 
-    async def complete_with_tools(self, messages, tools) -> tuple[dict, float]:
+    async def complete_with_tools(
+        self, messages, tools, *, required_tool=None
+    ) -> tuple[dict, float]:
         payload = {
             "model": self._model,
             "messages": messages,
@@ -44,6 +46,8 @@ class LlmClient:
         if self._model == "gpt-6-luna":
             # This model accepts Chat Completions function tools with reasoning disabled.
             payload["reasoning_effort"] = "none"
+        if required_tool:
+            payload["tool_choice"] = {"type": "function", "function": {"name": required_tool}}
         started = perf_counter()
         try:
             async with httpx.AsyncClient(timeout=self._timeout) as client:

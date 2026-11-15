@@ -16,6 +16,7 @@ from app.clients.llm_client import LlmClient, get_llm_client
 from app.core.config import get_settings
 from app.core.errors import ApiError, UpstreamError
 from app.core.graph import get_driver
+from app.core.observability import catalog_tool_call_id
 from app.repositories.ar_command_repository import MemoryArRequestRepository, get_ar_requests
 from app.repositories.chat_session_repository import ChatSessionRepository, get_chat_sessions
 from app.repositories.graph_repository import GraphRepository
@@ -50,7 +51,12 @@ from app.services.beauty_consultation_service import (
     interpret_beauty,
 )
 from app.services.g1_catalog_tool import G1CatalogTool
-from app.services.g1_model_service import DETAIL_TOOL, G1ModelTurn, choose_g1_turn
+from app.services.g1_model_service import (
+    DETAIL_TOOL,
+    G1ModelTurn,
+    choose_g1_turn,
+    tint_and_lipstick_explanation,
+)
 from app.services.product_consultation_graph import SupervisorRuntime, product_supervisor
 from app.services.style_recipe_service import TEXT as STYLE_TEXT
 from app.services.style_recipe_service import execute_style
@@ -586,9 +592,17 @@ class ChatService:
                 result = ToolResult(tool="graph_chat", status="success")
             elif g1_catalog and tool == "beauty":
                 catalog = G1CatalogTool(self._catalog, decision.slots.query or "")
-                response = await execute_beauty(req, decision.slots, catalog, g1=True)
+                token = catalog_tool_call_id.set(model_turn.tool_call_id if model_turn else None)
+                try:
+                    response = await execute_beauty(req, decision.slots, catalog, g1=True)
+                finally:
+                    catalog_tool_call_id.reset(token)
                 if response is None or response.tool_result is None:
                     raise ApiError(502, "Missing catalog result", "invalid_tool_result")
+                if decision.slots.intent == "search":
+                    explanation = tint_and_lipstick_explanation(req.message)
+                    if explanation:
+                        response.answer = f"{explanation}\n\n{response.answer}"
                 result = response.tool_result
             else:
                 if model_turn and model_turn.tool_call_id:
