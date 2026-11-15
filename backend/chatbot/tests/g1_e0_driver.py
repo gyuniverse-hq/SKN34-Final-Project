@@ -10,7 +10,18 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SUPPORTED = {"G1-CAT-01", "G1-CAT-03", "G1-CAT-09", "G1-CAT-14"}
+SUPPORTED = {
+    "G1-GEN-02",
+    "G1-GEN-04",
+    "G1-GEN-05",
+    "G1-GEN-06",
+    "G1-GEN-10",
+    "G1-CAT-01",
+    "G1-CAT-03",
+    "G1-CAT-09",
+    "G1-CAT-14",
+    "G1-REG-01",
+}
 
 
 def run(item):
@@ -88,6 +99,8 @@ def run(item):
         observation["expectedCategory"] = allowed["category"]
     if case["caseId"] == "G1-CAT-03":
         observation["expectedBrand"] = allowed["q"]
+    if observed.get("routeIntent") is not None:
+        observation["routeIntent"] = observed["routeIntent"]
     if result.returncode:
         observation.update(status="FAIL", failureReason="pytest_case_failed")
     common = {
@@ -120,6 +133,7 @@ def run(item):
                 "httpStatus": observed["httpStatus"],
                 "response": observed["response"],
                 "catalogHttp": observed["events"],
+                "routeIntent": observed.get("routeIntent"),
             },
         },
     }

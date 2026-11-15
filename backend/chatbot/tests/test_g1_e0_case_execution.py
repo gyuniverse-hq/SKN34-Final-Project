@@ -15,8 +15,39 @@ from app.core.config import get_settings
 from app.core.ratelimit import MemoryRateLimiter, get_rate_limiter
 from app.main import create_app
 from app.services.chat_service import ChatService, get_chat_service
+from tests.conftest import FakeGraph, FakeLlm
 from tests.g1_e1_live_driver import FixtureModel
 from tests.test_g1_catalog_tool import row
+
+
+class GeneralFixtureModel:
+    configured = True
+
+    def __init__(self):
+        self.calls = 0
+
+    async def complete_with_tools(self, messages, tools, **kwargs):
+        self.calls += 1
+        return {
+            "id": "e0-general-completion",
+            "model": "e0-general-fixture",
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "message": {"content": "피부 상태와 원하는 표현에 맞춰 가볍게 시작해 보세요."},
+                }
+            ],
+        }, 0
+
+
+class LegacyFixtureModel(FakeLlm):
+    def __init__(self):
+        super().__init__()
+        self.calls = 0
+
+    async def complete(self, messages):
+        self.calls += 1
+        return await super().complete(messages)
 
 
 @pytest.mark.anyio
@@ -24,11 +55,29 @@ from tests.test_g1_catalog_tool import row
 async def test_case_observation(monkeypatch):
     item = json.loads(base64.b64decode(os.environ["G1_E0_CASE"]).decode("utf-8"))
     case, variant, run_id = item["case"], item["variantId"], item["runId"]
-    model = FixtureModel(case)
-    get_settings().g1_supervisor_enabled = True
+    is_general = case["caseId"].startswith("G1-GEN-")
+    is_legacy = case["caseId"] == "G1-REG-01"
+    model = (
+        LegacyFixtureModel()
+        if is_legacy
+        else GeneralFixtureModel()
+        if is_general
+        else FixtureModel(case)
+    )
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", not is_legacy)
     app = create_app()
+    route = []
+    original_choose = ChatService._choose_g1_turn
+
+    async def observe_choose(service, request):
+        turn = await original_choose(service, request)
+        if turn:
+            route.append(turn.plan.intent)
+        return turn
+
+    monkeypatch.setattr(ChatService, "_choose_g1_turn", observe_choose)
     app.dependency_overrides[get_chat_service] = lambda: ChatService(
-        None, model, CatalogClient("http://g1-e0-catalog.invalid")
+        FakeGraph() if is_legacy else None, model, CatalogClient("http://g1-e0-catalog.invalid")
     )
     app.dependency_overrides[chat_principal] = lambda: ChatPrincipal(rate_limit_key="guest:g1-e0")
     app.dependency_overrides[get_rate_limiter] = lambda: MemoryRateLimiter(100)
@@ -72,6 +121,7 @@ async def test_case_observation(monkeypatch):
         "events": events,
         "fixtureProductIds": [p["id"] for p in products],
         "modelCalls": model.calls,
+        "routeIntent": route[0] if len(route) == 1 else None,
     }
     await asyncio.to_thread(
         Path(os.environ["G1_E0_CAPTURE"]).write_text,
