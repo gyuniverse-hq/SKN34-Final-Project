@@ -40,6 +40,23 @@ describe('video look finish in the renderer', () => {
       .toEqual({ tint: [1, 128 / 255, 0], tone: 1, clean: 0 });
   });
 
+  it('keeps video look glow active in both natural and legacy highlighter paths', () => {
+    const html = FACE_TRACKER_HTML;
+    const naturalStart = html.indexOf("'  if (hlA > 0.002 && uHlNat > 0.5) {',");
+    const legacyStart = html.indexOf("'  } else if (hlA > 0.002) {',", naturalStart);
+    const shadowStart = html.indexOf("'  if (shadowA > 0.002) {',", legacyStart);
+    expect(naturalStart).toBeGreaterThan(-1);
+    expect(legacyStart).toBeGreaterThan(naturalStart);
+    expect(shadowStart).toBeGreaterThan(legacyStart);
+    for (const branch of [html.slice(naturalStart, legacyStart), html.slice(legacyStart, shadowStart)]) {
+      expect(branch).toContain("'    if (uHlGlow > 0.001) {',");
+      expect(branch).toContain("'      float gm = glowMask(suv, lN);',");
+      expect(branch).toContain('hlA * uHlGlow');
+    }
+    expect(lookHelpers().profileGain({ applicationProfile: { glow: 0.6 } }, 'glow', 4)).toBeCloseTo(0.6);
+    expect(lookHelpers().profileGain({ applicationProfile: {} }, 'glow', 4)).toBe(0);
+  });
+
   it('adapts only warm skin with valid look controls, keeping pigment luminance and the Sullyoon reference', () => {
     const h = lookHelpers(), pigment = [0.4, 0.12, 0.18];
     const zone = { applicationProfile: { skinAdapt: 0.8, skinWarmth: 0.28 } };
