@@ -1,6 +1,18 @@
 import json
+from types import SimpleNamespace
 
-from tests.run_g1_evaluation import CONTRACT, PREDICATES, evaluate, grade, read_jsonl
+import pytest
+
+from tests.collect_g1_observations import assert_sanitized, capture
+from tests.run_g1_evaluation import (
+    CONTRACT,
+    PREDICATES,
+    content_digest,
+    evaluate,
+    grade,
+    observation_digest,
+    read_jsonl,
+)
 
 
 def load_contract():
@@ -54,7 +66,7 @@ def test_observations_cannot_promote_mock_to_real_or_skip_unimplemented_predicat
 
     assert report(source)["predicates"]["trace.catalog_called"] == "NOT_RUN"
     result = report(source | {"environment": "E0"})
-    assert result["predicates"]["trace.catalog_called"] == "PASS"
+    assert result["predicates"]["trace.catalog_called"] == "NOT_RUN"
     assert result["status"] == "NOT_RUN"
 
 
@@ -86,10 +98,43 @@ def test_e2_can_grade_synthetic_principals_only_on_observed_redis():
         return result["predicates"]["session.foreign_owner_denied"]
 
     assert verdict(source) == "NOT_RUN"
-    assert verdict(source | {"realRedisConnected": True}) == "PASS"
+    assert verdict(source | {"realRedisConnected": True}) == "NOT_RUN"
 
 
-def test_cat14_review_is_bound_to_the_actual_run_and_response():
+def test_collector_binds_driver_output_and_rejects_secrets(tmp_path, monkeypatch):
+    cases, registry = load_contract()
+    case = next(c for c in cases if c["caseId"] == "G1-GEN-01")
+    required = case["evidenceByEnvironment"]["E0"]["requiredArtifacts"]
+
+    def run(command, *, input, **kwargs):
+        request = json.loads(input)
+        obs = {
+            "caseId": case["caseId"],
+            "caseRevision": case["caseRevision"],
+            "variantId": request["variantId"],
+            "environment": request["environment"],
+            "runId": request["runId"],
+            "response": {"answer": "예시", "products": []},
+        }
+        return SimpleNamespace(
+            stdout=json.dumps(
+                {
+                    "observation": obs,
+                    "artifacts": {name: {"capture": "fixture"} for name in required},
+                }
+            )
+        )
+
+    monkeypatch.setattr("tests.collect_g1_observations.subprocess.run", run)
+    row = capture(case, "default", "E0", required, tmp_path / "driver.py", tmp_path)
+    assert row["runId"] and len(row["evidenceRefs"]) == len(required)
+    assert all((tmp_path / ref).is_file() for ref in row["evidenceRefs"].values())
+    with pytest.raises(ValueError, match="Sensitive"):
+        assert_sanitized({"sessionToken": "private"})
+    assert_sanitized({"prompt_tokens": 12})
+
+
+def test_cat14_review_is_bound_to_the_actual_run_and_response(tmp_path):
     cases, registry = load_contract()
     case = next(case for case in cases if case["caseId"] == "G1-CAT-14")
     binding = json.loads((CONTRACT / "g1_manifest_PROPOSED.json").read_text(encoding="utf-8"))[
@@ -104,7 +149,7 @@ def test_cat14_review_is_bound_to_the_actual_run_and_response():
         "runId": "run-cat14",
         "llmModelId": "test-model",
         "llmModelVersion": "version-1",
-        "responseEvidenceRef": "capture/response",
+        "responseEvidenceRef": "response_snapshot.json",
         "requestId": "request-1",
         "response": {
             "answer": "틴트는 착색이 남는 경우가 많고 립스틱은 표면에 또렷하게 발색돼요.",
@@ -126,7 +171,7 @@ def test_cat14_review_is_bound_to_the_actual_run_and_response():
             ],
         },
         "evidenceRefs": {
-            name: "capture/" + name
+            name: name + ".json"
             for name in case["evidenceByEnvironment"]["E3"]["requiredArtifacts"]
         },
     }
@@ -136,7 +181,7 @@ def test_cat14_review_is_bound_to_the_actual_run_and_response():
         "runId": "run-cat14",
         "modelId": "test-model",
         "modelVersion": "version-1",
-        "responseEvidenceRef": "capture/response",
+        "responseEvidenceRef": "response_snapshot.json",
         "reviewer": "fixture-reviewer",
         "evaluatedAt": "2026-11-15T00:00:00Z",
         "semanticReviewStatus": "PASS",
@@ -145,9 +190,30 @@ def test_cat14_review_is_bound_to_the_actual_run_and_response():
         "blockingFinding_yes_no": "NO",
     }
 
+    def write_evidence(row):
+        for name, path in row["evidenceRefs"].items():
+            artifact = {
+                "caseId": row["caseId"],
+                "caseRevision": row["caseRevision"],
+                "variantId": "default",
+                "environment": row["environment"],
+                "runId": row["runId"],
+                "observationSha256": observation_digest(row),
+                "artifactType": name,
+                "content": {"response": row["response"]}
+                if name == "response_snapshot"
+                else {"observed": True},
+            }
+            artifact["contentSha256"] = content_digest(artifact["content"])
+            (tmp_path / path).write_text(json.dumps(artifact), encoding="utf-8")
+
+    write_evidence(observation)
+
     def report(row, reviews=()):
         return next(
-            r for r in evaluate([case], [row], registry, reviews) if r["environment"] == "E3"
+            r
+            for r in evaluate([case], [row], registry, reviews, evidence_root=tmp_path)
+            if r["environment"] == "E3"
         )
 
     assert report(observation)["status"] == "NOT_RUN"
@@ -155,6 +221,18 @@ def test_cat14_review_is_bound_to_the_actual_run_and_response():
     assert report(observation, [review])["status"] == "PASS"
     assert report(observation | {"fixtureRowSha256": "drift"}, [review])["status"] == "BLOCKED_DATA"
     assert report(observation | {"evidenceRefs": {}}, [review])["status"] == "NOT_RUN"
+    (tmp_path / "response_snapshot.json").unlink()
+    assert report(observation, [review])["status"] == "NOT_RUN"
+    write_evidence(observation)
+    artifact = json.loads((tmp_path / "response_snapshot.json").read_text(encoding="utf-8"))
+    artifact["runId"] = "different-run"
+    (tmp_path / "response_snapshot.json").write_text(json.dumps(artifact), encoding="utf-8")
+    assert report(observation, [review])["status"] == "NOT_RUN"
+    write_evidence(observation)
+    artifact = json.loads((tmp_path / "response_snapshot.json").read_text(encoding="utf-8"))
+    artifact["content"]["response"]["answer"] = "변조된 응답"
+    (tmp_path / "response_snapshot.json").write_text(json.dumps(artifact), encoding="utf-8")
+    assert report(observation, [review])["status"] == "NOT_RUN"
     assert report(observation, [review | {"semanticReviewStatus": "FAIL"}])["status"] == "FAIL"
     assert (
         report(observation | {"response": {"answer": " ", "products": []}}, [review])["status"]

@@ -2,7 +2,9 @@
 
 import argparse
 import csv
+import hashlib
 import json
+import sys
 from pathlib import Path
 
 from tests.g1_eval_predicates import PREDICATES
@@ -37,6 +39,69 @@ def required_runs(cases):
 
 def _nonblank(value):
     return isinstance(value, str) and bool(value.strip())
+
+
+def observation_digest(observation):
+    """Bind evidence to the observation without creating a circular reference."""
+    payload = {key: value for key, value in observation.items() if key != "evidenceRefs"}
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def content_digest(content):
+    canonical = json.dumps(content, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def verify_evidence(observation, key, required_artifacts, evidence_root):
+    """Require local evidence JSON whose identity, artifact type and digest match the run."""
+    if evidence_root is None or not evidence_root.is_dir():
+        return False
+    root = evidence_root.resolve(strict=True)
+    refs = observation.get("evidenceRefs")
+    if not isinstance(refs, dict):
+        return False
+    identity = {
+        "caseId": key[0],
+        "variantId": key[1],
+        "environment": key[2],
+        "caseRevision": observation.get("caseRevision"),
+        "runId": observation.get("runId"),
+        "observationSha256": observation_digest(observation),
+    }
+    for artifact_type in required_artifacts:
+        ref = refs.get(artifact_type)
+        if not _nonblank(ref):
+            return False
+        try:
+            path = (root / ref).resolve(strict=True)
+            path.relative_to(root)
+            if not path.is_file() or path.stat().st_size > 10_000_000:
+                return False
+            artifact = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(artifact, dict) or any(
+                artifact.get(field) != value for field, value in identity.items()
+            ):
+                return False
+            if artifact.get("artifactType") != artifact_type:
+                return False
+            content = artifact.get("content")
+            if not isinstance(content, dict) or not content:
+                return False
+            if artifact.get("contentSha256") != content_digest(content):
+                return False
+            if artifact_type == "response_snapshot" and content.get("response") != observation.get(
+                "response"
+            ):
+                return False
+            if (
+                artifact_type == "response_snapshot"
+                and observation.get("responseEvidenceRef") != ref
+            ):
+                return False
+        except (OSError, RuntimeError, ValueError, TypeError):
+            return False
+    return True
 
 
 def grade(name, observation):
@@ -92,7 +157,7 @@ def _human_status(case, key, observation, reviews):
     return "PASS" if len(passing) >= required else "NOT_RUN"
 
 
-def evaluate(cases, observations, registry, reviews=()):
+def evaluate(cases, observations, registry, reviews=(), *, evidence_root=None):
     if PREDICATES.keys() != registry:
         raise ValueError("Predicates do not match the pinned registry")
     by_key = {}
@@ -143,6 +208,16 @@ def evaluate(cases, observations, registry, reviews=()):
         statuses = set(results.values())
         human_status = _human_status(case, key, observed, reviews) if human else None
         refs = observed.get("evidenceRefs", {}) if observed else {}
+        evidence_ok = bool(
+            observed and verify_evidence(observed, key, required_artifacts, evidence_root)
+        )
+        if not evidence_ok:
+            results = {
+                name: "NOT_RUN" if value == "PASS" else value for name, value in results.items()
+            }
+            statuses = set(results.values())
+            if human_status == "PASS":
+                human_status = "NOT_RUN"
         response = observed.get("response") if observed else None
         answer = response.get("answer") if isinstance(response, dict) else None
         invalid_answer = bool(
@@ -165,6 +240,7 @@ def evaluate(cases, observations, registry, reviews=()):
             or not _nonblank(observed.get("runId"))
             or observed.get("caseRevision") != case["caseRevision"]
             or not all(_nonblank(refs.get(name)) for name in required_artifacts)
+            or not evidence_ok
         ):
             status = "NOT_RUN"
         else:
@@ -184,12 +260,63 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--observations", type=Path)
     parser.add_argument("--human-review", type=Path)
+    parser.add_argument("--evidence-root", type=Path)
+    parser.add_argument("--review-template", action="store_true")
     args = parser.parse_args()
     cases = read_jsonl(CONTRACT / "g1_cases_PROPOSED.jsonl")
     registry = json.loads(
         (CONTRACT / "g1_predicate_registry_PROPOSED.json").read_text(encoding="utf-8")
     )
     observations = read_jsonl(args.observations) if args.observations else []
+    if args.review_template:
+        fields = [
+            "caseId",
+            "runId",
+            "modelId",
+            "modelVersion",
+            "evaluatedAt",
+            "reviewer",
+            "environmentId",
+            "responseEvidenceRef",
+            "coreGateRequired_yes_no",
+            "coreRequirementsMet_yes_no",
+            "missingCoreRequirements",
+            "semanticReviewStatus",
+            "semanticReviewNotes",
+            "blockingFinding_yes_no",
+            "blockingReason",
+        ]
+        writer = csv.DictWriter(sys.stdout, fieldnames=fields)
+        writer.writeheader()
+        for key, _, human, required, case in required_runs(cases):
+            if not human:
+                continue
+            matching = [
+                o
+                for o in observations
+                if (o.get("caseId"), o.get("variantId", "default"), o.get("environment")) == key
+                and o.get("caseRevision") == case["caseRevision"]
+            ]
+            observed = matching[0] if len(matching) == 1 else {}
+            if not (
+                observed
+                and observed.get("isMock") is False
+                and observed.get("isSynthetic") is False
+                and verify_evidence(observed, key, required, args.evidence_root)
+            ):
+                observed = {}
+            writer.writerow(
+                {
+                    "caseId": key[0],
+                    "environmentId": key[2],
+                    "coreGateRequired_yes_no": "YES",
+                    "runId": observed.get("runId", ""),
+                    "modelId": observed.get("llmModelId", ""),
+                    "modelVersion": observed.get("llmModelVersion", ""),
+                    "responseEvidenceRef": observed.get("responseEvidenceRef", ""),
+                }
+            )
+        return
     reviews = []
     if args.human_review:
         with args.human_review.open(encoding="utf-8-sig", newline="") as handle:
@@ -199,6 +326,7 @@ def main():
         observations,
         {entry["name"] for entry in registry["predicates"]},
         reviews,
+        evidence_root=args.evidence_root,
     ):
         print(json.dumps(result, ensure_ascii=False))
 

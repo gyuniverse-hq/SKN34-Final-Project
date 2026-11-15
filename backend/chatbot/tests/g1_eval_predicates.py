@@ -66,6 +66,8 @@ def _model_valid(model, payload):
 
 def _response_valid(o):
     response = o["response"]
+    if not isinstance(response, dict) or "answer" not in response or "products" not in response:
+        raise KeyError("missing response fields")
     return (
         _model_valid(ChatResponse, response)
         and isinstance(response["answer"], str)
@@ -132,6 +134,7 @@ def _source_products(o):
 
 
 def _owned_shades(o):
+    _text(o["sourceSnapshotId"])
     return _shade_pairs(o, "responseShadePairs") <= _shade_pairs(o, "sourceShadePairs")
 
 
@@ -207,17 +210,40 @@ def _verified_catalog_ids(o):
     return set(ids) <= source if ids else _empty(o)
 
 
+def _category_matches(o):
+    products = _items(o["response"]["products"])
+    expected = _text(o["expectedCategory"])
+    return all(p["category"] == expected for p in products) if products else _empty(o)
+
+
+def _brand_matches(o):
+    products = _items(o["response"]["products"])
+    expected = _text(o["expectedBrand"])
+    return all(p["brand"] == expected for p in products) if products else _empty(o)
+
+
+def _revalidate_screen(o):
+    if not _detail_called(o):
+        return False
+    if not _ok(o):
+        return _error(o)
+    ids = _public_ids(o)
+    if not ids:
+        return _response_valid(o) and o["response"]["resultType"] == "empty"
+    return ids == [_text(o["screenProductId"])]
+
+
+def _auth_matches(o):
+    actual = _items(o["auth"]["results"])
+    baseline = _items(o["auth"]["baselineResults"])
+    if not actual or not baseline:
+        raise KeyError("missing auth observations")
+    return actual == baseline
+
+
 PREDICATES = {
-    "catalog.category_matches": lambda o: (
-        all(
-            p["category"] == _text(o["expectedCategory"]) for p in _items(o["response"]["products"])
-        )
-        and bool(_text(o["expectedCategory"]))
-    ),
-    "catalog.ids_match_brand": lambda o: (
-        all(p["brand"] == _text(o["expectedBrand"]) for p in _items(o["response"]["products"]))
-        and bool(_text(o["expectedBrand"]))
-    ),
+    "catalog.category_matches": _category_matches,
+    "catalog.ids_match_brand": _brand_matches,
     "catalog.duplicate_ids_not_exposed": lambda o: (
         _error(o) if not _ok(o) else (_response_valid(o) and _distinct(_public_ids(o)))
     ),
@@ -230,10 +256,7 @@ PREDICATES = {
         and o["catalogPreflight"]["httpStatus"] == 200
         and not _items(o["catalogPreflight"]["productIds"])
     ),
-    "catalog.revalidate_screen_id": lambda o: (
-        _detail_called(o)
-        and (_error(o) if not _ok(o) else set(_public_ids(o)) <= {_text(o["screenProductId"])})
-    ),
+    "catalog.revalidate_screen_id": _revalidate_screen,
     "catalog.shades_belong_to_product": _owned_shades,
     "catalog.texture_matches_if_claimed": lambda o: _claims_supported(o, "texture"),
     "error.invalid_json_rejected": lambda o: _fault(o, "invalid_json"),
@@ -255,7 +278,7 @@ PREDICATES = {
         and o["request"]["body"]["requestType"] == "ar_command"
         and _response_valid(o)
     ),
-    "reg.auth_unchanged": lambda o: _same(o["auth"]["results"], o["auth"]["baselineResults"]),
+    "reg.auth_unchanged": _auth_matches,
     "reg.legacy_chat_works": lambda o: (
         _ok(o) and _response_valid(o) and o["request"]["body"].get("requestType", "chat") == "chat"
     ),
@@ -274,7 +297,7 @@ PREDICATES = {
     "response.no_unrequested_product_ids": lambda o: not _public_ids(o),
     "response.no_unverified_ingredient_claim": lambda o: _claims_supported(o, "ingredient"),
     "response.no_unverified_product_ids": lambda o: (
-        set(_public_ids(o)) <= _source_products(o) if _ok(o) else _error(o)
+        _verified_catalog_ids(o) if _ok(o) else _error(o)
     ),
     "response.no_verified_moisture_without_evidence": lambda o: _claims_supported(o, "moisture"),
     "response.schema_valid": _response_valid,
