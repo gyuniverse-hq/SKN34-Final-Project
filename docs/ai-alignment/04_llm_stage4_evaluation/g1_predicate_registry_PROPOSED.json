@@ -1,0 +1,361 @@
+{
+  "predicateRegistryStatus": "SPEC_ONLY_NOT_IMPLEMENTED",
+  "predicates": [
+    {
+      "name": "catalog.category_matches",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "catalog.duplicate_ids_not_exposed",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "catalog.ids_match_brand",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "catalog.mismatched_id_rejected",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "catalog.mismatched_shade_rejected",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "catalog.preflight_empty",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "catalog.returned_ids_exist",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "catalog.revalidate_screen_id",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "catalog.screen_id_matches",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "catalog.shades_belong_to_product",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "catalog.texture_matches_if_claimed",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "error.invalid_json_rejected",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "error.no_fake_success",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "error.timeout_not_empty",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "error.upstream_not_empty",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "graph.langgraph_executed",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "http.status_429",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "ingredient.no_false_absence",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "llm.invalid_plan_rejected",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "price.basis_not_current_unless_verified",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "reg.ack_does_not_fake_apply",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "reg.ar_ack_endpoint_unchanged",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "reg.ar_proposal_valid",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "reg.ar_schema_unchanged",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "reg.auth_unchanged",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "reg.legacy_chat_works",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "reg.legacy_request_id_behavior_recorded",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "reg.no_unacked_application_claim",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "response.empty_not_fabricated",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "response.no_fake_action_success",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "response.no_fake_sale_status",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "response.no_fragrance_free_assertion",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "response.no_mismatched_shade",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "response.no_unrequested_product_ids",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "response.no_unverified_ingredient_claim",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "response.no_unverified_product_ids",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "response.no_verified_moisture_without_evidence",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "response.schema_valid",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "route.intent_general",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "route.intent_product",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "run.is_mock_false",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "run.real_llm_responded",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "security.no_cross_user_leak",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "security.no_internal_debug_fields",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "security.tool_text_not_instruction",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "session.exact_retry_preserves_result",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "session.foreign_owner_denied",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "session.no_double_commit",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "session.request_id_conflict_rejected",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "trace.catalog_called",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "trace.catalog_search_not_called",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "trace.no_ar_execution",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "trace.no_memory_write",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "trace.no_tool_after_rate_limit",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "trace.no_unapproved_calls",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "trace.no_unapproved_knowledge",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "trace.no_unrelated_category",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "trace.no_unrequested_media",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "trace.no_unrequested_write",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "trace.no_unverified_success",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "trace.product_detail_called",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "trace.tool_http_joined",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "ui.card_navigation_matches",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "ui.cards_match_ids",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "ui.empty_state",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "ui.empty_vs_error_distinct",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "ui.no_false_price_match",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "ui.retry_no_stale_cards",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "ui.shade_ownership",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    },
+    {
+      "name": "ui.unknown_condition_visible",
+      "target": "run observation + trace / schema / snapshot",
+      "requiresAdapter": true
+    }
+  ],
+  "registeredCount": 70,
+  "implementedPredicateCount": 0,
+  "evaluationFunctionModule": null,
+  "environmentMappingRule": "Every appliesTo environment must be declared required or optional for the same case; every required env has one or more predicates. This is only static metadata validation.",
+  "contentContractRule": "For humanGate required cases, substantive answer core is independently checked by a human on E3; schema-only checks cannot pass core counseling.",
+  "verdictPolicy": "When no runnable function/observation for a predicate: NOT_RUN, never PASS. This file is a registry, not runnable assertions."
+}
