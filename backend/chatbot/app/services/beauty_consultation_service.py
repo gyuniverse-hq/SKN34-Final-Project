@@ -796,7 +796,9 @@ async def answer_beauty(req: ChatRequest, llm, catalog) -> ChatResponse | None:
     return await execute_beauty(req, await interpret_beauty(req, llm), catalog)
 
 
-async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatResponse | None:
+async def execute_beauty(
+    req: ChatRequest, plan: SearchPlan, catalog, *, g1: bool = False
+) -> ChatResponse | None:
     """Execute an already validated interpretation without another LLM call."""
     if catalog is None:
         raise ApiError(503, "Catalog is not configured", "catalog_unavailable")
@@ -806,7 +808,7 @@ async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatRes
         return None  # Keep the existing general consultation path and prompt.
 
     effective_filters = _effective_filters(req.chat_context, plan)
-    if (
+    if not g1 and (
         plan.ingredient_lookup
         or plan.ingredient_name
         or plan.ingredient_conditions
@@ -827,6 +829,34 @@ async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatRes
     now = int(time.time())
     words = TEXT[req.locale]
     previous = req.chat_context
+    screen = req.screen_context
+    if g1 and screen and screen.product_id and plan.intent in {"detail", "price"}:
+        product = await catalog.get_product_detail(screen.product_id, screen.shade_id)
+        if product is None:
+            return _reply(
+                words["missing"], _context(effective_filters, [], now), result_type="empty"
+            )
+        if plan.intent == "price" or re.search(r"가격|얼마", req.message):
+            answer = _price_summary(product, words)
+        elif re.search(r"성분|향료|알레르기", req.message):
+            answer = "검수된 전성분이 없어 해당 성분이나 알레르기 안전 여부는 확인할 수 없어요."
+        else:
+            shades = [shade.name for shade in product.shades]
+            answer = f"{product.brand} {product.name}의 확인된 색상: " + (
+                ", ".join(shades) if shades else words["unknown"]
+            )
+        return _reply(
+            answer,
+            _context(
+                effective_filters,
+                [product.id],
+                now,
+                selected=product.id,
+                shades={product.id: screen.shade_id} if screen.shade_id else None,
+            ),
+            [product],
+            "product_detail",
+        )
     dependent = plan.intent in {"detail", "price", "refine"} or plan.scope == "previous"
     fresh = previous and 0 <= now - previous.issued_at <= CONTEXT_TTL_SECONDS
     if dependent and previous and not fresh:
@@ -994,8 +1024,9 @@ async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatRes
         raise ApiError(502, "Catalog is temporarily unavailable", "upstream_error") from exc
     # IDs remain catalog-owned; deduplicate before numbering the visible candidate list.
     unique = {p.id: p for p in products if scope_ids is None or p.id in scope_ids}
+    confirmed_filters = filters.model_copy(update={"fragrance_free": False}) if g1 else filters
     products = _search_matches(
-        unique.values(), filters, identity_only=req.style_context is not None
+        unique.values(), confirmed_filters, identity_only=g1 or req.style_context is not None
     )
     order = {pid: i for i, pid in enumerate(scope_ids or [])}
     products.sort(
@@ -1005,6 +1036,8 @@ async def execute_beauty(req: ChatRequest, plan: SearchPlan, catalog) -> ChatRes
     ids = [p.id for p in products]
     context = _context(filters, ids, now, scope_ids=scope_ids)
     answer = words["found"].format(count=len(products)) if products else words["empty"]
+    if g1 and products and filters.fragrance_free:
+        answer = f"카탈로그에서 참고할 후보 {len(products)}개를 찾았어요."
     if filters.fragrance_free:
         answer += " " + words["fragrance"]
     if products:
