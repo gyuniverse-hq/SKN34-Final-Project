@@ -151,3 +151,16 @@ VISHUE를 **K-뷰티 중심 자유 대화형 AI**로 설계한다. 사용자가 
 - **5단계 시작:** 최신 `develop`·실 Catalog HTTP/데이터·공통 `/api/chat`/`ChatService` 및 AR ACK 오너·프론트 카드/가격 표현·실제 LLM 설정·E0/E1/E3/E5 및 AR 회귀 증빙을 확인한 후 G1 착수. 기술/데이터 미확정 사항은 협의 항목이지 기존 14개 능력 축소 근거가 아니다.
 - **문서 기준:** [07 전체 평가 L2](07-ko-first-language-and-evaluation.md), [03 5단계 G1 착수](03-execution-contracts.md), [DECISIONS](DECISIONS.md). 기존 0~3단계의 과거 기록은 당시 판단으로 유지한다. Notion은 팀 공유 시점의 링크·진행 요약만 갱신.
 
+
+## 현재 상태와 상세 평가 원본 (2026-11-15 최종 대조)
+
+> **현재 유효 상태:** 0단계 실사 1차 / 1단계 14개 능력·12개 시나리오 사용자 확정 / 2·3단계 논리 설계 검토 종료 / **4단계 L2 평가 설계 검토 종료 / 5단계 G1 착수 준비**. 과거의 ‘다음 3단계’, ‘4단계 예정’, ‘AIHub 개발 보류’ 등 문구는 **각 당시 단계의 기록**이며 현재 결정을 덮어쓰지 않는다. 결정 변경 내역은 [DECISIONS](DECISIONS.md)의 D3-01 및 VAI-D-018을 따른다.
+
+**상세 평가 원본 저장 위치:** `docs/ai-alignment/04_llm_stage4_evaluation/` — [평가 계약 보존 PR #243](https://github.com/gyuniverse-hq/SKN34-Final-Project/pull/243) (Draft, #241과 별도). **#243 병합 전에는 아래 상대 링크가 `develop`에 존재하지 않을 수 있으므로 PR #243 브랜치에서 확인**한다.
+
+- [4-1 평가 환경·Test Case/Test Run·증빙 계약](../ai-alignment/04_llm_stage4_evaluation/4-1_평가환경_데이터계약.md): E0~E7의 환경별 실제/Mock·권리·실행 증빙과 미실행/차단 판정.
+- [G1 47개 최종 사례 JSONL](../ai-alignment/04_llm_stage4_evaluation/g1_cases_PROPOSED.jsonl) · [70개 predicate 명세](../ai-alignment/04_llm_stage4_evaluation/g1_predicate_registry_PROPOSED.json) · [fixture/버전 manifest](../ai-alignment/04_llm_stage4_evaluation/g1_manifest_PROPOSED.json).
+- [G1 상세 정답·합격 기준](../ai-alignment/04_llm_stage4_evaluation/G1_4-2_평가_정답_합격기준_검토안.md) · [사람 평가 CSV](../ai-alignment/04_llm_stage4_evaluation/g1_human_review_TEMPLATE.csv) · [정적 구조 전용 검사기](../ai-alignment/04_llm_stage4_evaluation/validate_cases_STRUCTURE_ONLY.py).
+- [G2~G9a~c 대표 계약 38개 JSONL](../ai-alignment/04_llm_stage4_evaluation/g2_g9_38_cases_L2_CLOSED_NOT_RUN.jsonl) — 해당 G단계 착수 전 실데이터 fixture·Gold·임계치 확정.
+
+**원본의 상태:** G1 CAT-09/CAT-14는 `revision=1`, `caseRevision=2`; G1 47개/70 predicate(구현 0), G2~G9 38개 L2 설계 계약. 신규 실제 평가/Gold/팀 승인/자동 실행 준비 완료로 표기 금지. 프로젝트 고정 연결 식별자를 평가 manifest에서 `${CATALOG_OBSERVED_ENV_REF}`로 정제했으며 실제 접속 문자열·키·토큰·AIHub 원문을 포함하지 않는다.

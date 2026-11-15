@@ -188,3 +188,20 @@
 ### 변경 기록
 - 2026-11-15: 4단계 L2 논리 평가 설계 종료, G1/후속 85개 논리 사례 커버리지 및 평가 실행·Gold/팀 승인 상태 분리. 사람 평가 31→조건별 분류, G2/G5 판정, E0~E7 상태 정합성 정리. 이 문서 변경은 코드/DB/서비스 테스트가 아니다.
 
+
+## 12. Codex 재사용용 평가 원본 및 실행 상태 (4단계 L2 종료)
+
+상세 평가 명세는 이 문서에서 다시 복사하지 않고 **[PR #243의 평가 자료 8개](https://github.com/gyuniverse-hq/SKN34-Final-Project/pull/243)**를 참조한다. 저장 경로는 `docs/ai-alignment/04_llm_stage4_evaluation/`이며 PR #243이 아직 병합되지 않았다면 `develop`에서 상대 링크가 바로 열리지 않을 수 있다.
+
+| 평가 구성 | 상세 원본 | 상태 |
+| --- | --- | --- |
+| 4-1 평가 환경·데이터·실행 증빙 | [4-1 환경·Test Case/Test Run](../ai-alignment/04_llm_stage4_evaluation/4-1_평가환경_데이터계약.md) | L2 설계 검토 종료, 실행 미실시 |
+| G1 사용자 질문·정답 | [47 사례 JSONL](../ai-alignment/04_llm_stage4_evaluation/g1_cases_PROPOSED.jsonl) · [질문·정답 본문](../ai-alignment/04_llm_stage4_evaluation/G1_4-2_평가_정답_합격기준_검토안.md) | CAT-09/CAT-14 `caseRevision=2`; Gold 미승인 |
+| G1 평가기 입출력·판정 명세 | [70 predicate](../ai-alignment/04_llm_stage4_evaluation/g1_predicate_registry_PROPOSED.json) · [fixture manifest](../ai-alignment/04_llm_stage4_evaluation/g1_manifest_PROPOSED.json) | 명세 70/구현 0, 환경·실행 전 필수 gate |
+| G1 사람 평가 | [사람 평가 CSV](../ai-alignment/04_llm_stage4_evaluation/g1_human_review_TEMPLATE.csv) | 응답·run 연결 후 채점, 사전 PASS 아님 |
+| G1 구조 검사 | [정적 검증기](../ai-alignment/04_llm_stage4_evaluation/validate_cases_STRUCTURE_ONLY.py) | **구조만 검사**, 실제 Tool/API/LLM/AR 테스트가 아님 |
+| G2~G9 대표 평가 | [38개 L2 계약 JSONL](../ai-alignment/04_llm_stage4_evaluation/g2_g9_38_cases_L2_CLOSED_NOT_RUN.jsonl) | 후속 G별 fixture/실행기/Gold 미확정 |
+
+**필수 판정:** `required / conditional / notApplicable`을 분리하고, 필수 환경의 `NOT_RUN / BLOCKED_DATA / BLOCKED_RIGHTS / BLOCKED_DEPENDENCY`를 PASS/N/A로 승격하지 않는다. G2-E01은 403/410/409 세 재현 하위시험, G5-B02는 평가 QA 정답 누출과 정답 근거 문서 정상 검색을 구분한다. 기본 사용자 요구 충족(P0)과 설명 자연스러움(P1)은 별개로 관리한다.
+
+첫 구현 G1은 기존 `/api/chat`, `ChatService`, AR·ACK 기능을 보호하고, 실제 LangGraph·Catalog Tool·LLM·앱의 사용자 응답까지 증명해야 한다. G2~G9 및 AR·AR AI 팀 독립 범위에 대한 완성을 G1 병합 조건으로 앞당기지 않는다.
