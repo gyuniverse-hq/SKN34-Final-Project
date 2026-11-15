@@ -18,6 +18,7 @@ import subprocess
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import unquote
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 LOCAL_ENV = Path(__file__).resolve().parents[3] / ".env.local"
@@ -50,6 +51,7 @@ class Capture(logging.Handler):
             "catalog_http",
             "g1_catalog_tool_result",
             "g1_catalog_tool_retry",
+            "g1_model_tool_rejected",
         }:
             fields = (
                 "model_id",
@@ -173,9 +175,11 @@ def catalog_http_observer(base, records):
         entry = None
         if is_catalog:
             path = request.url.path
+            product_id = None
             if path == "/api/products":
                 name = "catalog.search_products"
             elif path.startswith("/api/products/") and path.count("/") == 3:
+                product_id = unquote(path.rsplit("/", 1)[-1])
                 path, name = "/api/products/{productId}", "catalog.get_product_detail"
             else:
                 name = "catalog.other"
@@ -186,6 +190,8 @@ def catalog_http_observer(base, records):
                 "callId": catalog_tool_call_id.get(),
                 "category": request.url.params.get("category"),
             }
+            if product_id is not None:
+                entry["productId"] = product_id
         try:
             result = await original(client, request, *args, **kwargs)
         except Exception:

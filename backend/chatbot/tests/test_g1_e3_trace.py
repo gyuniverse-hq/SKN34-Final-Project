@@ -75,6 +75,7 @@ async def test_catalog_observer_records_http_and_call_identity_without_headers(m
                 "http://catalog.local/api/products?category=lip",
                 headers={"Authorization": "not-recorded"},
             )
+            await client.get("http://catalog.local/api/products/test-product")
             await client.get("http://unrelated.local/api/products")
     finally:
         catalog_tool_call_id.reset(token)
@@ -86,5 +87,14 @@ async def test_catalog_observer_records_http_and_call_identity_without_headers(m
             "callId": "call-123",
             "category": "lip",
             "status": 200,
-        }
+        },
+        {
+            "name": "catalog.get_product_detail",
+            "method": "GET",
+            "path": "/api/products/{productId}",
+            "productId": "test-product",
+            "callId": "call-123",
+            "category": None,
+            "status": 200,
+        },
     ]

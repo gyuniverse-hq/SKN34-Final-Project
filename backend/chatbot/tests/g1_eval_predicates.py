@@ -210,7 +210,24 @@ def _empty(o):
 def _verified_catalog_ids(o):
     ids = _public_ids(o)
     source = _source_products(o)
-    return set(ids) <= source if ids else _empty(o)
+    return set(ids) <= source if ids else (_empty(o) or _detail_not_found(o, source))
+
+
+def _detail_not_found(o, source):
+    if not (_ok(o) and _response_valid(o) and o["response"]["resultType"] == "empty"):
+        return False
+    if source or _measured(o["catalogResultCount"]) != 0:
+        return False
+    target = _text(o["screenProductId"])
+    return any(
+        _text(span["productId"]) == target
+        and span["status"] == 404
+        and span["method"] == "GET"
+        and span["name"] == "catalog.get_product_detail"
+        and span["path"] == "/api/products/{productId}"
+        for span in _trace(o, "catalogHttp")
+        if span.get("name") == "catalog.get_product_detail"
+    )
 
 
 def _category_matches(o):
