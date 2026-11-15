@@ -4453,6 +4453,12 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '      float gs = pow(max(dot(fn, normalize(l + v)), 0.0), 20.0);',
     '      col += soft * uHlGloss.y * uHlFlake * gr * gs * hlA * room;',
     '    }',
+    // Video-look glow remains independent of the natural product highlighter. At zero the product path is unchanged.
+    '    if (uHlGlow > 0.001) {',
+    '      float gm = glowMask(suv, lN);',
+    '      col = mix(col, vec3(1.0) - (vec3(1.0) - col) * (vec3(1.0) - uHlAlbedo), clamp(hlA * uHlGlow * mix(0.3, 1.0, gm), 0.0, 1.0));',
+    '      col += uLightColor * (0.35 * gm * gm) * hlA * uHlGlow;',
+    '    }',
     '  } else if (hlA > 0.002) {',
     '    col = mix(col, layer(cam, uHlAlbedo, uSkinMeanLum, 1.6), 0.35 * hlA);',
     '    if (uHlGlow > 0.001) {',
