@@ -178,6 +178,9 @@ def evaluate(cases, observations, registry, reviews=(), *, evidence_root=None):
         observed = by_key.get(key)
         blocker = observed.get("status") if observed else None
         blocked_reason = None
+        if observed and observed.get("status") == "NOT_RUN":
+            blocked_reason = observed.get("blockedReason")
+            observed = None
         if blocker not in BLOCKED or not observed.get("blockedReason"):
             blocker = None
         if blocker:

@@ -273,6 +273,12 @@ def test_collector_distinguishes_failure_blocking_and_missing_evidence(tmp_path,
     result.update(observation={"status": "BLOCKED_DATA", "blockedReason": "fixture drift"})
     row = capture(case, "default", "E0", required, tmp_path / "driver.py", tmp_path)
     assert row["status"] == "BLOCKED_DATA"
+    result.update(observation={"status": "NOT_RUN", "blockedReason": "case_not_implemented"})
+    row = capture(case, "default", "E0", required, tmp_path / "driver.py", tmp_path)
+    assert row["status"] == "NOT_RUN" and row["blockedReason"] == "case_not_implemented"
+    _, registry = load_contract()
+    verdict = next(r for r in evaluate([case], [row], registry) if r["environment"] == "E0")
+    assert verdict["status"] == "NOT_RUN" and verdict["blockedReason"] == "case_not_implemented"
     result.update(observation={"status": "FAIL", "failureReason": "assertion failed"})
     row = capture(case, "default", "E0", required, tmp_path / "driver.py", tmp_path)
     assert row["status"] == "NOT_RUN"

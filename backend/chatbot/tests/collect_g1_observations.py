@@ -76,6 +76,13 @@ def capture(case, variant, environment, required, executable, evidence_root):
         expected = identity
         if any(observation.get(field) != value for field, value in expected.items()):
             raise ValueError("Driver observation does not match run")
+        if observation.get("status") == "NOT_RUN":
+            if (
+                not isinstance(observation.get("blockedReason"), str)
+                or not observation["blockedReason"].strip()
+            ):
+                raise ValueError("Missing not-run reason")
+            return observation
         if observation.get("status") in {
             "BLOCKED_DEPENDENCY",
             "BLOCKED_DATA",

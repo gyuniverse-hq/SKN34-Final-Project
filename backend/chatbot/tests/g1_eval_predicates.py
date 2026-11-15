@@ -77,7 +77,10 @@ def _response_valid(o):
 
 def _trace(o, key):
     trace = o["trace"]
-    if trace["complete"] is not True or not _same(trace["requestId"], o["requestId"]):
+    complete = trace.get("complete") is True
+    domains = trace.get("completeDomains", [])
+    domain_complete = isinstance(domains, list) and key in domains
+    if not (complete or domain_complete) or not _same(trace["requestId"], o["requestId"]):
         raise KeyError("trace is incomplete or belongs to a different request")
     return _items(trace[key])
 
