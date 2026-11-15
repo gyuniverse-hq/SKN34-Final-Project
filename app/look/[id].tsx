@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { VideoCard } from '@/components/celeb/VideoCard';
 import { ProductLineCard } from '@/components/shop/ProductLineCard';
@@ -11,11 +11,12 @@ import { Notice } from '@/components/ui/Notice';
 import { ProductImage } from '@/components/ui/ProductImage';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
+import { HomeChatButton } from '@/components/chat/HomeChatButton';
 import { canTryOn, resolveShade } from '@/lib/catalog';
 import { formatKRW } from '@/lib/format';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useLook, useTutorials } from '@/lib/queries';
-import { arHref, parseId, productHref } from '@/lib/routes';
+import { arHref, chatHref, parseId, productHref } from '@/lib/routes';
 import { useCartStore } from '@/store/cartStore';
 import { useMakeupStore } from '@/store/makeupStore';
 
@@ -54,85 +55,85 @@ export default function LookDetailScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <Stack.Screen options={{ title: look.title }} />
-      <ScrollView contentContainerStyle={styles.content}>
-        <ProductImage uri={look.thumbnailUrl} style={styles.hero} />
-        <View style={styles.body}>
-          {look.inspiration ? <Text style={styles.inspiration}>{look.inspiration}</Text> : null}
-          <Text style={styles.title} accessibilityRole="header">
-            {look.title}
-          </Text>
-          {look.description ? <Text style={styles.description}>{look.description}</Text> : null}
-          <Pressable accessibilityRole="button" accessibilityLabel={t('chat.style.openGuide')} style={{ minHeight: 44, justifyContent: 'center' }}
-            onPress={() => router.push({ pathname: '/chat', params: { recipeKind: 'catalog', recipeLookId: look.id } })}>
-            <Text>{t('chat.style.openGuide')}</Text>
-          </Pressable>
-          <View style={styles.badges}>
-            <Badge label={t('badge.vishuePick')} tone="brand" icon="sparkles-outline" />
-            {[look.makeup.lip, look.makeup.blush, look.makeup.eyeshadow].some(Boolean) ? (
-              <Badge label={t('looks.arReady')} tone="neutral" icon="scan-outline" />
-            ) : null}
-          </View>
-          <View style={styles.gap} />
-          <Notice tone="neutral" body={t('looks.pickNotice')} />
-
-          <Text style={styles.sectionTitle} accessibilityRole="header">
-            {t('looks.productsInLook')}
-          </Text>
-          {lines.length === 0 ? <Text style={styles.note}>{t('looks.noProducts')}</Text> : null}
-          <View style={styles.list}>
-            {lines.map(({ item, product, shade }) => {
-              const key = `${product.id}::${shade?.id ?? ''}`;
-              const actions = [
-                ...(canTryOn(product)
-                  ? [{ label: t('rec.tryThis'), icon: 'scan-outline' as const, onPress: () => router.push(arHref({ productId: product.id, shadeId: shade?.id })) }]
-                  : []),
-                {
-                  label: addedLine === key ? t('product.added') : t('product.addToCart'),
-                  icon: addedLine === key ? ('checkmark' as const) : ('cart-outline' as const),
-                  variant: 'primary' as const,
-                  onPress: () => {
-                    add({ productId: product.id, shadeId: shade?.id, addedFromLookId: look.id });
-                    setAddedLine(key);
-                  },
-                },
-              ];
-              return (
-                <ProductLineCard
-                  key={`${item.step}-${key}`}
-                  product={product}
-                  shade={shade}
-                  eyebrow={t(`looks.step.${item.step}` as TranslationKey)}
-                  onPress={() => router.push(productHref(product.id, shade?.id))}
-                  actions={actions}
-                />
-              );
-            })}
-          </View>
-          {missingCount > 0 ? <Text style={styles.note}>{t('looks.missingProducts', { count: missingCount })}</Text> : null}
-          {lines.length > 0 ? (
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>{t('looks.setTotal')}</Text>
-              <Text style={styles.totalValue}>{formatKRW(total)}</Text>
+      <View style={styles.scrollArea}>
+        <ScrollView contentContainerStyle={styles.content}>
+          <ProductImage uri={look.thumbnailUrl} style={styles.hero} />
+          <View style={styles.body}>
+            {look.inspiration ? <Text style={styles.inspiration}>{look.inspiration}</Text> : null}
+            <Text style={styles.title} accessibilityRole="header">
+              {look.title}
+            </Text>
+            {look.description ? <Text style={styles.description}>{look.description}</Text> : null}
+            <View style={styles.badges}>
+              <Badge label={t('badge.vishuePick')} tone="brand" icon="sparkles-outline" />
+              {[look.makeup.lip, look.makeup.blush, look.makeup.eyeshadow].some(Boolean) ? (
+                <Badge label={t('looks.arReady')} tone="neutral" icon="scan-outline" />
+              ) : null}
             </View>
-          ) : null}
+            <View style={styles.gap} />
+            <Notice tone="neutral" body={t('looks.pickNotice')} />
 
-          {tutorials.data?.configured !== false ? (
-            <>
-              <Text style={styles.sectionTitle}>{t('looks.tutorials')}</Text>
-              {tutorials.isPending && tutorials.fetchStatus !== 'idle' ? (
-                <ActivityIndicator color={theme.colors.rose} style={{ marginVertical: 12 }} />
-              ) : tutorials.isError ? (
-                <Text style={styles.note}>{t('looks.tutorialsUnavailable')}</Text>
-              ) : tutorials.data?.videos.length === 0 ? (
-                <Text style={styles.note}>{t('looks.noTutorials')}</Text>
-              ) : (
-                tutorials.data?.videos.map((video) => <VideoCard key={video.videoId} video={video} />)
-              )}
-            </>
-          ) : null}
-          <Text style={styles.disclaimer}>{t('looks.disclaimer')}</Text>
-        </View>
-      </ScrollView>
+            <Text style={styles.sectionTitle} accessibilityRole="header">
+              {t('looks.productsInLook')}
+            </Text>
+            {lines.length === 0 ? <Text style={styles.note}>{t('looks.noProducts')}</Text> : null}
+            <View style={styles.list}>
+              {lines.map(({ item, product, shade }) => {
+                const key = `${product.id}::${shade?.id ?? ''}`;
+                const actions = [
+                  ...(canTryOn(product)
+                    ? [{ label: t('rec.tryThis'), icon: 'scan-outline' as const, onPress: () => router.push(arHref({ productId: product.id, shadeId: shade?.id })) }]
+                    : []),
+                  {
+                    label: addedLine === key ? t('product.added') : t('product.addToCart'),
+                    icon: addedLine === key ? ('checkmark' as const) : ('cart-outline' as const),
+                    variant: 'primary' as const,
+                    onPress: () => {
+                      add({ productId: product.id, shadeId: shade?.id, addedFromLookId: look.id });
+                      setAddedLine(key);
+                    },
+                  },
+                ];
+                return (
+                  <ProductLineCard
+                    key={`${item.step}-${key}`}
+                    product={product}
+                    shade={shade}
+                    eyebrow={t(`looks.step.${item.step}` as TranslationKey)}
+                    onPress={() => router.push(productHref(product.id, shade?.id))}
+                    actions={actions}
+                  />
+                );
+              })}
+            </View>
+            {missingCount > 0 ? <Text style={styles.note}>{t('looks.missingProducts', { count: missingCount })}</Text> : null}
+            {lines.length > 0 ? (
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>{t('looks.setTotal')}</Text>
+                <Text style={styles.totalValue}>{formatKRW(total)}</Text>
+              </View>
+            ) : null}
+
+            {tutorials.data?.configured !== false ? (
+              <>
+                <Text style={styles.sectionTitle}>{t('looks.tutorials')}</Text>
+                {tutorials.isPending && tutorials.fetchStatus !== 'idle' ? (
+                  <ActivityIndicator color={theme.colors.rose} style={{ marginVertical: 12 }} />
+                ) : tutorials.isError ? (
+                  <Text style={styles.note}>{t('looks.tutorialsUnavailable')}</Text>
+                ) : tutorials.data?.videos.length === 0 ? (
+                  <Text style={styles.note}>{t('looks.noTutorials')}</Text>
+                ) : (
+                  tutorials.data?.videos.map((video) => <VideoCard key={video.videoId} video={video} />)
+                )}
+              </>
+            ) : null}
+            <Text style={styles.disclaimer}>{t('looks.disclaimer')}</Text>
+          </View>
+        </ScrollView>
+        <HomeChatButton label={t('home.chatFab')} hint={t('home.chatFabHint')}
+          onPress={() => router.push(chatHref({ recipeKind: 'catalog', recipeLookId: look.id }))} />
+      </View>
 
       <View style={styles.footer}>
         <Button
@@ -158,7 +159,8 @@ export default function LookDetailScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.surface },
-  content: { paddingBottom: 24 },
+  scrollArea: { flex: 1 },
+  content: { paddingBottom: 94 },
   hero: { width: '100%', height: 280, backgroundColor: theme.colors.surfaceAlt },
   body: { padding: theme.spacing.xl },
   inspiration: { fontSize: 12, fontWeight: '700', color: theme.colors.accent },

@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
 // The contents of this function only run in Node.js environments and
 // do not have access to the DOM or browser APIs.
 export default function Root({ children }: { children: ReactNode }) {
-  const { htmlAttributes, headNodes, bodyAttributes, bodyNodes } = useServerDocumentContext();
+  const { htmlAttributes, bodyAttributes, headNodes, bodyNodes } = useServerDocumentContext();
   return (
     <html lang="en" {...htmlAttributes}>
       <head>
@@ -23,6 +23,7 @@ export default function Root({ children }: { children: ReactNode }) {
         {/* Using raw CSS styles as an escape-hatch to ensure the background color never flickers in dark-mode. */}
         <style dangerouslySetInnerHTML={{ __html: responsiveBackground }} />
         {headNodes}
+        {/* Add any additional <head> elements that you want globally available on web... */}
       </head>
       <body {...bodyAttributes}>{children}{bodyNodes}</body>
     </html>

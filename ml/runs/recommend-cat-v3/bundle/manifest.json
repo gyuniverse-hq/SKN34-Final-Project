@@ -1,0 +1,571 @@
+{
+  "version": "recommend-cat-v3",
+  "features": [
+    "age_group",
+    "gender",
+    "skin_type",
+    "primary_concern",
+    "pore",
+    "wrinkle",
+    "tone",
+    "pore_score",
+    "wrinkle_score",
+    "pigmentation_score"
+  ],
+  "labels": [
+    {
+      "column": 0,
+      "label_id": "mfds:26",
+      "db_id": 26,
+      "name": "리치씨추출물"
+    },
+    {
+      "column": 1,
+      "label_id": "mfds:27",
+      "db_id": 27,
+      "name": "리치추출물"
+    },
+    {
+      "column": 2,
+      "label_id": "mfds:223",
+      "db_id": 223,
+      "name": "1-메틸하이단토인-2-이미드"
+    },
+    {
+      "column": 3,
+      "label_id": "mfds:316",
+      "db_id": 316,
+      "name": "미네랄솔트"
+    },
+    {
+      "column": 4,
+      "label_id": "mfds:419",
+      "db_id": 419,
+      "name": "카나다발삼추출물"
+    },
+    {
+      "column": 5,
+      "label_id": "mfds:540",
+      "db_id": 540,
+      "name": "병풀추출물"
+    },
+    {
+      "column": 6,
+      "label_id": "mfds:811",
+      "db_id": 811,
+      "name": "살리실릭애씨드"
+    },
+    {
+      "column": 7,
+      "label_id": "mfds:867",
+      "db_id": 867,
+      "name": "서양자두추출물"
+    },
+    {
+      "column": 8,
+      "label_id": "mfds:1184",
+      "db_id": 1184,
+      "name": "소듐티오설페이트"
+    },
+    {
+      "column": 9,
+      "label_id": "mfds:1715",
+      "db_id": 1715,
+      "name": "아세틸헥사펩타이드-1"
+    },
+    {
+      "column": 10,
+      "label_id": "mfds:1716",
+      "db_id": 1716,
+      "name": "아세틸헥사펩타이드-8"
+    },
+    {
+      "column": 11,
+      "label_id": "mfds:1813",
+      "db_id": 1813,
+      "name": "안디로바씨오일"
+    },
+    {
+      "column": 12,
+      "label_id": "mfds:1834",
+      "db_id": 1834,
+      "name": "알로에베라잎즙"
+    },
+    {
+      "column": 13,
+      "label_id": "mfds:1835",
+      "db_id": 1835,
+      "name": "알로에베라잎즙가루"
+    },
+    {
+      "column": 14,
+      "label_id": "mfds:1836",
+      "db_id": 1836,
+      "name": "알로에베라잎추출물"
+    },
+    {
+      "column": 15,
+      "label_id": "mfds:1838",
+      "db_id": 1838,
+      "name": "알로에신"
+    },
+    {
+      "column": 16,
+      "label_id": "mfds:1876",
+      "db_id": 1876,
+      "name": "알부민추출물"
+    },
+    {
+      "column": 17,
+      "label_id": "mfds:1900",
+      "db_id": 1900,
+      "name": "알클록사"
+    },
+    {
+      "column": 18,
+      "label_id": "mfds:1938",
+      "db_id": 1938,
+      "name": "나이아신아마이드"
+    },
+    {
+      "column": 19,
+      "label_id": "mfds:1978",
+      "db_id": 1978,
+      "name": "쑥잎추출물"
+    },
+    {
+      "column": 20,
+      "label_id": "mfds:1999",
+      "db_id": 1999,
+      "name": "약모밀추출물"
+    },
+    {
+      "column": 21,
+      "label_id": "mfds:2327",
+      "db_id": 2327,
+      "name": "용담뿌리추출물"
+    },
+    {
+      "column": 22,
+      "label_id": "mfds:2339",
+      "db_id": 2339,
+      "name": "우엉뿌리추출물"
+    },
+    {
+      "column": 23,
+      "label_id": "mfds:2591",
+      "db_id": 2591,
+      "name": "자두추출물"
+    },
+    {
+      "column": 24,
+      "label_id": "mfds:2630",
+      "db_id": 2630,
+      "name": "우슬추출물"
+    },
+    {
+      "column": 25,
+      "label_id": "mfds:2810",
+      "db_id": 2810,
+      "name": "개똥쑥추출물"
+    },
+    {
+      "column": 26,
+      "label_id": "mfds:3137",
+      "db_id": 3137,
+      "name": "퀴노아꽃/잎추출물"
+    },
+    {
+      "column": 27,
+      "label_id": "mfds:3187",
+      "db_id": 3187,
+      "name": "키위수"
+    },
+    {
+      "column": 28,
+      "label_id": "mfds:3192",
+      "db_id": 3192,
+      "name": "키위추출물"
+    },
+    {
+      "column": 29,
+      "label_id": "mfds:3198",
+      "db_id": 3198,
+      "name": "키틴"
+    },
+    {
+      "column": 30,
+      "label_id": "mfds:3228",
+      "db_id": 3228,
+      "name": "4-터피네올"
+    },
+    {
+      "column": 31,
+      "label_id": "mfds:3266",
+      "db_id": 3266,
+      "name": "쓴풀추출물"
+    },
+    {
+      "column": 32,
+      "label_id": "mfds:3288",
+      "db_id": 3288,
+      "name": "밤부사 불가리스수"
+    },
+    {
+      "column": 33,
+      "label_id": "mfds:3299",
+      "db_id": 3299,
+      "name": "밤부사 불가리스잎/줄기추출물"
+    },
+    {
+      "column": 34,
+      "label_id": "mfds:3321",
+      "db_id": 3321,
+      "name": "밤부사 불가리스추출물"
+    },
+    {
+      "column": 35,
+      "label_id": "mfds:3440",
+      "db_id": 3440,
+      "name": "티트리잎오일"
+    },
+    {
+      "column": 36,
+      "label_id": "mfds:3442",
+      "db_id": 3442,
+      "name": "댕댕이나무열매즙"
+    },
+    {
+      "column": 37,
+      "label_id": "mfds:3500",
+      "db_id": 3500,
+      "name": "판테놀"
+    },
+    {
+      "column": 38,
+      "label_id": "mfds:3667",
+      "db_id": 3667,
+      "name": "1,10-데칸다이올"
+    },
+    {
+      "column": 39,
+      "label_id": "mfds:4590",
+      "db_id": 4590,
+      "name": "10-하이드록시데카노익애씨드"
+    },
+    {
+      "column": 40,
+      "label_id": "mfds:4785",
+      "db_id": 4785,
+      "name": "하이알루로닉애씨드"
+    },
+    {
+      "column": 41,
+      "label_id": "mfds:4834",
+      "db_id": 4834,
+      "name": "헥사펩타이드-2"
+    },
+    {
+      "column": 42,
+      "label_id": "mfds:4836",
+      "db_id": 4836,
+      "name": "헥사펩타이드-3"
+    },
+    {
+      "column": 43,
+      "label_id": "mfds:4837",
+      "db_id": 4837,
+      "name": "헥사펩타이드-9"
+    },
+    {
+      "column": 44,
+      "label_id": "mfds:4839",
+      "db_id": 4839,
+      "name": "헥사펩타이드-11"
+    },
+    {
+      "column": 45,
+      "label_id": "mfds:4925",
+      "db_id": 4925,
+      "name": "황"
+    },
+    {
+      "column": 46,
+      "label_id": "mfds:4928",
+      "db_id": 4928,
+      "name": "황기뿌리추출물"
+    },
+    {
+      "column": 47,
+      "label_id": "mfds:5075",
+      "db_id": 5075,
+      "name": "호스래디시뿌리추출물"
+    },
+    {
+      "column": 48,
+      "label_id": "mfds:5152",
+      "db_id": 5152,
+      "name": "고본뿌리추출물"
+    },
+    {
+      "column": 49,
+      "label_id": "mfds:5422",
+      "db_id": 5422,
+      "name": "카멜그라스잎/줄기추출물"
+    },
+    {
+      "column": 50,
+      "label_id": "mfds:5448",
+      "db_id": 5448,
+      "name": "레티놀"
+    },
+    {
+      "column": 51,
+      "label_id": "mfds:5652",
+      "db_id": 5652,
+      "name": "오갈피나무뿌리추출물"
+    },
+    {
+      "column": 52,
+      "label_id": "mfds:5684",
+      "db_id": 5684,
+      "name": "아줄렌"
+    },
+    {
+      "column": 53,
+      "label_id": "mfds:6051",
+      "db_id": 6051,
+      "name": "아세틸헥사펩타이드-7"
+    },
+    {
+      "column": 54,
+      "label_id": "mfds:6259",
+      "db_id": 6259,
+      "name": "트라넥사믹애씨드"
+    },
+    {
+      "column": 55,
+      "label_id": "mfds:6645",
+      "db_id": 6645,
+      "name": "2-O-에틸아스코빅애씨드"
+    },
+    {
+      "column": 56,
+      "label_id": "mfds:6779",
+      "db_id": 6779,
+      "name": "고추냉이뿌리추출물"
+    },
+    {
+      "column": 57,
+      "label_id": "mfds:6901",
+      "db_id": 6901,
+      "name": "여주열매추출물"
+    },
+    {
+      "column": 58,
+      "label_id": "mfds:7098",
+      "db_id": 7098,
+      "name": "사철쑥잎추출물"
+    },
+    {
+      "column": 59,
+      "label_id": "mfds:7103",
+      "db_id": 7103,
+      "name": "호스래디시페록시다아제"
+    },
+    {
+      "column": 60,
+      "label_id": "mfds:7308",
+      "db_id": 7308,
+      "name": "밤부사 불가리스싹추출물"
+    },
+    {
+      "column": 61,
+      "label_id": "mfds:7681",
+      "db_id": 7681,
+      "name": "밤부사 불가리스잎추출물"
+    },
+    {
+      "column": 62,
+      "label_id": "mfds:7780",
+      "db_id": 7780,
+      "name": "바쿠치올"
+    },
+    {
+      "column": 63,
+      "label_id": "mfds:7833",
+      "db_id": 7833,
+      "name": "리치씨가루"
+    },
+    {
+      "column": 64,
+      "label_id": "mfds:8408",
+      "db_id": 8408,
+      "name": "여주추출물"
+    },
+    {
+      "column": 65,
+      "label_id": "mfds:8441",
+      "db_id": 8441,
+      "name": "퀴노아추출물"
+    },
+    {
+      "column": 66,
+      "label_id": "mfds:8523",
+      "db_id": 8523,
+      "name": "2,3-부탄다이올"
+    },
+    {
+      "column": 67,
+      "label_id": "mfds:8781",
+      "db_id": 8781,
+      "name": "두릅나무뿌리추출물"
+    },
+    {
+      "column": 68,
+      "label_id": "mfds:9517",
+      "db_id": 9517,
+      "name": "레틴알"
+    },
+    {
+      "column": 69,
+      "label_id": "mfds:9773",
+      "db_id": 9773,
+      "name": "서양톱풀오일"
+    },
+    {
+      "column": 70,
+      "label_id": "mfds:10105",
+      "db_id": 10105,
+      "name": "석창포추출물"
+    },
+    {
+      "column": 71,
+      "label_id": "mfds:11455",
+      "db_id": 11455,
+      "name": "아디픽애씨드/다이글라이콜크로스폴리머"
+    },
+    {
+      "column": 72,
+      "label_id": "mfds:11733",
+      "db_id": 11733,
+      "name": "비터아몬드씨추출물"
+    },
+    {
+      "column": 73,
+      "label_id": "mfds:15497",
+      "db_id": 15497,
+      "name": "개똥쑥잎추출물"
+    },
+    {
+      "column": 74,
+      "label_id": "mfds:15670",
+      "db_id": 15670,
+      "name": "알로에잎즙가루"
+    },
+    {
+      "column": 75,
+      "label_id": "mfds:15874",
+      "db_id": 15874,
+      "name": "고삼추출물"
+    },
+    {
+      "column": 76,
+      "label_id": "mfds:16135",
+      "db_id": 16135,
+      "name": "알로에베라추출물"
+    },
+    {
+      "column": 77,
+      "label_id": "mfds:18377",
+      "db_id": 18377,
+      "name": "3-O-에틸아스코빅애씨드"
+    },
+    {
+      "column": 78,
+      "label_id": "mfds:18470",
+      "db_id": 18470,
+      "name": "용담추출물"
+    },
+    {
+      "column": 79,
+      "label_id": "mfds:19516",
+      "db_id": 19516,
+      "name": "랑샷잎추출물"
+    }
+  ],
+  "categories": {
+    "age_group": [
+      "10대",
+      "20대",
+      "30대",
+      "40대",
+      "50대",
+      "60대"
+    ],
+    "gender": [
+      "남성",
+      "여성"
+    ],
+    "skin_type": [
+      "건성",
+      "복합성",
+      "중성",
+      "지성"
+    ],
+    "primary_concern": [
+      "모공케어",
+      "유수분밸런스",
+      "주름 케어",
+      "진정 케어",
+      "톤잡티 케어",
+      "트러블 케어"
+    ],
+    "pore": [
+      "양호",
+      "주의"
+    ],
+    "wrinkle": [
+      "양호",
+      "주의"
+    ],
+    "tone": [
+      "양호",
+      "주의"
+    ]
+  },
+  "numericFeatures": [
+    "pore_score",
+    "wrinkle_score",
+    "pigmentation_score"
+  ],
+  "numericRanges": {
+    "pore_score": [
+      0.0,
+      1.0
+    ],
+    "wrinkle_score": [
+      0.0,
+      1.0
+    ],
+    "pigmentation_score": [
+      0.0,
+      1.0
+    ]
+  },
+  "sourceSha256": "5df5c38dab6cd4bd1af029c023d8e5f32ac066197b6cd57c2e923299ca2fb0eb",
+  "modelSha256": "9ff5c76348efb934911a3179b6a221dd9b7afc2ce3a559ceceef8158a25f9c37",
+  "schemaSha256": "dbff71ad28394582c29191e056f90703b8f1f64676212ba4e2a0f3ea3c2742ff",
+  "verifiedTestRows": 792,
+  "sourceExperiment": "ml\\experiments\\recommendation-v2-score-weight-ablation-20261114",
+  "sourceVariant": "scores",
+  "trainingContract": {
+    "analysisBundle": "skin-analysis-v4",
+    "categories": "양호/주의",
+    "threshold": 0.5,
+    "scoreKind": "binary_caution_probability",
+    "aggregation": "mean-cheeks-pore-tone-eyes-wrinkle-v1",
+    "roiMethod": "occlusion_anchored_visible_roi_v2",
+    "mobileEquivalenceValidated": false
+  }
+}

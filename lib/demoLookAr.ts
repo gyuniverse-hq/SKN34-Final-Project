@@ -1,4 +1,5 @@
 import type { FalseLashLookId } from '@/lib/falseLashLooks';
+import type { LookLinerId } from '@/lib/linerLooks';
 import type { MascaraLookId } from '@/lib/mascaraLooks';
 import type { MakeupZone } from '@/types';
 
@@ -13,12 +14,18 @@ export type DemoLookSlot = {
    */
   match: 'video' | 'similar';
   video?: string;
-  /** Closed mascara shape from the video product type (not measured from frames). */
-  style?: MascaraLookId;
+  /**
+   * Mascara shape (mascara slot) or liner shape (eyeliner slot). The six demo looks use shapes read from the video close-ups
+   * and, since 11-11, the eye photos (lib/mascaraLooks.ts, lib/linerLooks.ts LOOK_LINERS, research/lash_ref/looks.json).
+   */
+  style?: MascaraLookId | LookLinerId;
   /** Attached lashes (mascara slot only). */
   lashes?: FalseLashLookId;
-  /** 'video' = the video lists this false-lash product; 'recommended' = the video lists none, a user-picked style. */
-  lashSource?: 'video' | 'recommended';
+  /**
+   * 'video' = the video lists this false-lash product; 'recommended' = the video lists none, a user-picked style;
+   * 'measured' = a preset chosen after reading the video's finished-look close-ups (research/lash_ref/looks.json).
+   */
+  lashSource?: 'video' | 'recommended' | 'measured';
   /** Eyeshadow second color (outer corner and lower lash line), from the video's second shadow. */
   to?: { productId: string; shadeId: string };
 };
@@ -43,9 +50,9 @@ export const DEMO_LOOK_AR: Record<string, DemoLookSlot[]> = {
       video: '웨이크메이크 소프트 블러링 아이 팔레트 25 헬씨 코랄블러링',
       to: { productId: 'oy-a000000174309', shadeId: 'a000000174309-027' },
     },
-    { zone: 'eyeliner', productId: 'oy-a000000199182', shadeId: '05', match: 'video', video: '투쿨포스쿨 아트클래스 스머징 트임라이너 05 포쉬' },
+    { zone: 'eyeliner', productId: 'oy-a000000199182', shadeId: '05', match: 'video', video: '투쿨포스쿨 아트클래스 스머징 트임라이너 05 포쉬', style: 'strawberry_droop' },
     // Video SKU (neozen slim metal black) has no stored hex; the closest black mascara in the catalog.
-    { zone: 'mascara', productId: 'oy-a000000198027', shadeId: '01', match: 'similar', video: '네오젠 더마로지 슬림 메탈 마스카라 블랙', style: 'slim', lashes: 'upper', lashSource: 'recommended' },
+    { zone: 'mascara', productId: 'oy-a000000198027', shadeId: '01', match: 'similar', video: '네오젠 더마로지 슬림 메탈 마스카라 블랙', style: 'spiky_long', lashes: 'wispies', lashSource: 'measured' },
     { zone: 'lip', productId: 'oy-a000000230581', shadeId: '14', match: 'video', video: '컬러그램 탕후루 탱글 틴트 14호 잔망피치' },
   ],
   // 연말 수상템 활용
@@ -57,8 +64,8 @@ export const DEMO_LOOK_AR: Record<string, DemoLookSlot[]> = {
     { zone: 'brow', productId: 'oy-a000000219593', shadeId: '8', match: 'video', video: '키스미 헤비 로테이션 컬러링 브로우 8호' },
     // Reference: 투쿨포스쿨 프로타주 02 로지듀 #D68D91 (stored under eyeliner).
     { zone: 'eyeshadow', productId: 'oy-a000000219570', shadeId: '104', match: 'similar', video: '투쿨포스쿨 프로타주 펜슬 02 로지듀 (+웨이크메이크 02 생기블러링)' },
-    { zone: 'eyeliner', productId: 'oy-a000000203438', shadeId: '02', match: 'video', video: '키스미 히로인 스무스 리퀴드 아이라이너 02 브라운' },
-    { zone: 'mascara', productId: 'oy-a000000198027', shadeId: '01', match: 'similar', video: '클리오 킬래쉬 수퍼프루프 마스카라', style: 'long', lashes: 'upper_dense', lashSource: 'recommended' },
+    { zone: 'eyeliner', productId: 'oy-a000000203438', shadeId: '02', match: 'video', video: '키스미 히로인 스무스 리퀴드 아이라이너 02 브라운', style: 'yearend_brown' },
+    { zone: 'mascara', productId: 'oy-a000000198027', shadeId: '01', match: 'similar', video: '클리오 킬래쉬 수퍼프루프 마스카라', style: 'short_light' },
     { zone: 'lip', productId: 'oy-a000000241210', shadeId: '03', match: 'video', video: '롬앤 쥬시래스팅 틴트 베어그레이프' },
   ],
   // 청초 물복숭아
@@ -73,7 +80,7 @@ export const DEMO_LOOK_AR: Record<string, DemoLookSlot[]> = {
       to: { productId: 'oy-a000000174309', shadeId: 'a000000174309-133' },
     },
     // Video SKU (클리오 킬 래쉬 파인 03 뮤트얼그레이) has no stored hex; closest soft black.
-    { zone: 'mascara', productId: 'oy-a000000205718', shadeId: 'a000000205718-006', match: 'similar', video: '클리오 킬 래쉬 슈퍼프루프 마스카라 파인 03 뮤트얼그레이', style: 'fine', lashes: 'wispies', lashSource: 'video' },
+    { zone: 'mascara', productId: 'oy-a000000205718', shadeId: 'a000000205718-006', match: 'similar', video: '클리오 킬 래쉬 슈퍼프루프 마스카라 파인 03 뮤트얼그레이', style: 'fine_short' },
     { zone: 'lip', productId: 'oy-a000000201123', shadeId: '219', match: 'video', video: '딘토 블러글로이 립 틴트 219 아베 마리아' },
   ],
   // 카리나 멧갈라
@@ -87,8 +94,8 @@ export const DEMO_LOOK_AR: Record<string, DemoLookSlot[]> = {
       zone: 'eyeshadow', productId: 'oy-a000000174309', shadeId: 'a000000174309-057', match: 'video', video: '홀리카홀리카 마이페이브 피스 아이섀도우 베이비타로',
       to: { productId: 'oy-a000000174309', shadeId: 'a000000174309-011' },
     },
-    { zone: 'eyeliner', productId: 'oy-a000000171017', shadeId: '01', match: 'video', video: '토니모리 백젤 아이라이너 블랙' },
-    { zone: 'mascara', productId: 'oy-a000000185925', shadeId: '02', match: 'similar', video: '뮤드 볼륨 업 스키니 마스카라 웜블랙 (+에뛰드 컬픽스 블랙)', style: 'volume_skinny', lashes: 'upper_lower', lashSource: 'video' },
+    { zone: 'eyeliner', productId: 'oy-a000000171017', shadeId: '01', match: 'video', video: '토니모리 백젤 아이라이너 블랙', style: 'karina_wing' },
+    { zone: 'mascara', productId: 'oy-a000000185925', shadeId: '02', match: 'similar', video: '뮤드 볼륨 업 스키니 마스카라 웜블랙 (+에뛰드 컬픽스 블랙)', style: 'thin_lower' },
     { zone: 'lip', productId: 'oy-a000000229303', shadeId: '03', match: 'video', video: '에이오유 매트바 슴슴바' },
   ],
   // 설윤 뿌까
@@ -100,8 +107,8 @@ export const DEMO_LOOK_AR: Record<string, DemoLookSlot[]> = {
     { zone: 'blush', productId: 'oy-a000000225392', shadeId: '8', match: 'video', video: '비디비치 페탈 글로우 크림 블러시 08 보타닉 피치' },
     { zone: 'brow', productId: 'oy-a000000138671', shadeId: '03', match: 'video', video: '페리페라 스피디 스키니 브로우 03 내추럴 브라운' },
     { zone: 'eyeshadow', productId: 'oy-a000000168405', shadeId: '09', match: 'video', video: '삐아 레디 투 웨어 아이 섀도우 09 모태분위기' },
-    { zone: 'eyeliner', productId: 'oy-a000000185974', shadeId: 'a000000185974-010', match: 'video', video: '키스미 스무스 리퀴드 아이라이너 N 차콜 브라운' },
-    { zone: 'mascara', productId: 'oy-a000000185925', shadeId: '02', match: 'similar', video: '에뛰드 컬 픽스 마스카라 01 블랙', style: 'long_curl', lashes: 'natural', lashSource: 'video' },
+    { zone: 'eyeliner', productId: 'oy-a000000185974', shadeId: 'a000000185974-010', match: 'video', video: '키스미 스무스 리퀴드 아이라이너 N 차콜 브라운', style: 'sullyoon_wing' },
+    { zone: 'mascara', productId: 'oy-a000000185925', shadeId: '02', match: 'similar', video: '에뛰드 컬 픽스 마스카라 01 블랙', style: 'long_fan' },
     { zone: 'lip', productId: 'oy-a000000233656', shadeId: '01', match: 'video', video: '이더앤 듀이 시럽 틴트 01 멜트어웨이' },
   ],
   // 윈터 또렷 청초
@@ -117,8 +124,8 @@ export const DEMO_LOOK_AR: Record<string, DemoLookSlot[]> = {
       to: { productId: 'oy-a000000174309', shadeId: 'a000000174309-027' },
     },
     // Reference: 에이프릴스킨 트임 라이너 02 다크브라운; the catalog has no 에이프릴스킨 liner.
-    { zone: 'eyeliner', productId: 'oy-a000000185974', shadeId: 'a000000185974-010', match: 'similar', video: '에이프릴스킨 트임 라이너 02 다크브라운' },
-    { zone: 'mascara', productId: 'oy-a000000198027', shadeId: '01', match: 'similar', video: '네오젠 더마로지 슬림 메탈 마스카라 블랙', style: 'slim', lashes: 'winged', lashSource: 'video' },
+    { zone: 'eyeliner', productId: 'oy-a000000185974', shadeId: 'a000000185974-010', match: 'similar', video: '에이프릴스킨 트임 라이너 02 다크브라운', style: 'winter_wing' },
+    { zone: 'mascara', productId: 'oy-a000000198027', shadeId: '01', match: 'similar', video: '네오젠 더마로지 슬림 메탈 마스카라 블랙', style: 'fine_dense' },
     { zone: 'lip', productId: 'oy-a000000223676', shadeId: '02', match: 'video', video: '컬러그램 누드 컬러 커버틴트 웜누디' },
   ],
 };

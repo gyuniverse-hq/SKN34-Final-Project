@@ -17,9 +17,37 @@ class IngredientSelection(IngredientModel):
     option_id: str | None = Field(default=None, min_length=1, max_length=128)
 
 
+class IngredientIdentity(IngredientModel):
+    mfds_ingredient_id: int = Field(strict=True, gt=0)
+    name_ko: str = Field(min_length=1)
+    source_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    match_method: Literal[
+        "standard_name",
+        "english_name",
+        "official_synonym",
+        "exact_name",
+        "amount_suffix_exact",
+        "amount_suffix_synonym",
+        "manual",
+    ]
+    rule_version: str | None = None
+    reviewed_by: str | None = None
+    reviewed_at: AwareDatetime | None = None
+
+    @model_validator(mode="after")
+    def require_provenance(self) -> Self:
+        if self.match_method == "manual":
+            if not self.reviewed_by or not self.reviewed_at:
+                raise ValueError("Manual identity requires a reviewer and timestamp")
+        elif not self.rule_version:
+            raise ValueError("Identity requires a rule version")
+        return self
+
+
 class IngredientEntry(IngredientModel):
     name: str = Field(min_length=1, max_length=500)
     sequence: int | None = Field(default=None, strict=True, ge=1)
+    identity: IngredientIdentity | None = None
 
 
 class IngredientEvidence(IngredientSelection):
@@ -29,6 +57,8 @@ class IngredientEvidence(IngredientSelection):
     source: Literal["product_notice", "option_ingredients", "mfds_dictionary", "key_ingredients"]
     source_ref: str | None = Field(default=None, max_length=2048)
     collected_at: AwareDatetime | None = None
+    reviewed_at: AwareDatetime | None = None
+    review_ref: str | None = Field(default=None, min_length=1, max_length=2048)
     review_status: Literal["verified", "unreviewed", "rejected"] = "unreviewed"
     mapping_status: Literal["verified", "unverified", "ambiguous"] = "unverified"
     normalization_status: Literal["verified", "unverified"] = "unverified"
@@ -63,11 +93,17 @@ class IngredientDecision(IngredientSelection):
     reason: str
     evidence_id: str | None = None
     synthetic: bool = False
+    query_identity: IngredientIdentity | None = None
 
 
 class IngredientMapping(IngredientSelection):
+    reviewed_by: str | None = Field(default=None, min_length=1, max_length=128)
+    reviewed_at: AwareDatetime | None = None
+    review_ref: str | None = Field(default=None, min_length=1, max_length=2048)
     goods_no: str | None = None
-    mapping_status: Literal["reproduced", "candidate", "ambiguous", "unmapped", "mismatch"]
+    mapping_status: Literal[
+        "reproduced", "directly_reviewed", "candidate", "ambiguous", "unmapped", "mismatch"
+    ]
     mapping_method: str
     generation_record_id: str | None = None
     source_fingerprint: str | None = None
@@ -84,15 +120,17 @@ class IngredientMapping(IngredientSelection):
 class IngredientReadResult(IngredientSelection):
     status: Literal["ok", "unknown"] = "unknown"
     verdict: Literal["MATCH", "NOT_MATCH", "UNKNOWN", "ERROR"] = "UNKNOWN"
-    mapping_status: Literal["reproduced", "candidate", "ambiguous", "unmapped", "mismatch"] = (
-        "unmapped"
-    )
+    mapping_status: Literal[
+        "reproduced", "directly_reviewed", "candidate", "ambiguous", "unmapped", "mismatch"
+    ] = "unmapped"
     ingredient_coverage: Literal["full", "partial", "unknown"] = "unknown"
     review_status: Literal["verified", "unreviewed", "rejected"] = "unreviewed"
     normalization_status: Literal["verified", "unverified"] = "unverified"
     ingredients: list[IngredientEntry] = Field(default_factory=list)
     source: str | None = None
     collected_at: AwareDatetime | None = None
+    reviewed_at: AwareDatetime | None = None
+    review_ref: str | None = Field(default=None, min_length=1, max_length=2048)
     collected_at_raw: str | None = None
     source_version: str | None = None
     source_fingerprint: str | None = None

@@ -1,0 +1,12 @@
+# Optional: add after compose.yaml when using a reviewed MFDS approval CSV.
+services:
+  api:
+    environment:
+      INGREDIENT_ALIAS_APPROVALS_PATH: /app/runtime/ingredient-alias-approvals.csv
+    volumes:
+      - type: bind
+        source: ${INGREDIENT_ALIAS_APPROVALS_SOURCE:?Set INGREDIENT_ALIAS_APPROVALS_SOURCE to an existing approval CSV file}
+        target: /app/runtime/ingredient-alias-approvals.csv
+        read_only: true
+        bind:
+          create_host_path: false

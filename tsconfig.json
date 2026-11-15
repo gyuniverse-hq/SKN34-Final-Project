@@ -16,6 +16,7 @@
     "nia-private",
     "final_venv",
     "tmp",
+    "research/data",
     ".gradle-local",
     "data/028.한국인 피부상태 측정 데이터",
     "data/14.안면부 피부질환 이미지 합성데이터",

@@ -166,6 +166,23 @@ TEXT = {
 }
 
 
+GRADIENT_LIP_GUIDE = {
+    "ko": (
+        "입술 전체에 연한 색을 얇게 바르고, 진한 색은 입술 안쪽에만 찍어 주세요. "
+        "손가락이나 면봉으로 색이 만나는 경계를 가볍게 두드려 풀어 주세요."
+    ),
+    "en": (
+        "Apply a thin layer of a light shade over the lips. Dab a deeper shade on the inner lips, "
+        "then tap the boundary lightly with a fingertip or cotton swab to blend it."
+    ),
+    "ja": (
+        "唇全体に淡い色を薄く塗り、内側だけに濃い色をのせます。"
+        "色の境目を指先や綿棒で軽くたたいてぼかします。"
+    ),
+    "zh": "先在整个唇部薄涂浅色，再把深色点涂在唇内侧，用指尖或棉签轻拍晕开两色的交界。",
+}
+
+
 def source_zone(value):
     value = value.casefold()
     aliases = {
@@ -182,6 +199,139 @@ def source_zone(value):
     return next((zone for zone, terms in aliases.items() if any(t in value for t in terms)), None)
 
 
+# General techniques, independent of what the source video actually shows.
+TIPS = {
+    "ko": {
+        "eyeliner": (
+            "얇은 펜슬로 속눈썹 뿌리 사이를 짧은 점으로 채워 보세요. 눈을 뜬 "
+            "상태에서 꼬리 길이를 확인하고, 면봉으로 끝을 살짝 풀면 경계가 부드러워져요."
+        ),
+        "eyeshadow": (
+            "작은 블렌딩 브러시에 색을 조금만 묻혀 눈두덩 바깥쪽부터 얇게 "
+            "올리세요. 깨끗한 브러시로 경계를 작게 원을 그리며 펴 주세요."
+        ),
+        "lip": (
+            "입술 안쪽에 색을 조금씩 올리고 손가락이나 립 브러시로 바깥쪽을 "
+            "향해 두드리세요. 더 진하게 하고 싶으면 안쪽만 한 번 덧발라요."
+        ),
+        "cheek": (
+            "브러시의 여분을 털고 뺨에 색을 조금씩 올리세요. 깨끗한 "
+            "스펀지로 가장자리를 톡톡 두드리면 경계가 자연스러워져요."
+        ),
+        "mascara": (
+            "브러시 끝의 여분을 닦고 속눈썹 뿌리부터 얇게 쓸어 올리세요."
+            " 마르기 전에 깨끗한 스크루 브러시로 뭉친 부분을 풀어 주세요."
+        ),
+        "base": (
+            "스펀지로 얼굴 중앙부터 얇게 펴고 필요한 부분에만 "
+            "조금씩 덧발라요. 턱과 헤어라인의 경계도 두드려 정리하세요."
+        ),
+    },
+    "en": {
+        "eyeliner": (
+            "Use a fine pencil to dot between the upper lashes. Check the "
+            "tail with your eye open, then soften its edge with a cotton swab."
+        ),
+        "eyeshadow": (
+            "Use a small blending brush and build a thin layer from the "
+            "outer lid. Soften the edge with a clean brush in small circles."
+        ),
+        "lip": (
+            "Tap a little color onto the inner lips and blend outward with a fingertip "
+            "or lip brush. Add another layer only to the center for more depth."
+        ),
+        "cheek": (
+            "Tap excess blush off the brush and build color slowly."
+            " Press a clean sponge over the edges to soften them."
+        ),
+        "mascara": (
+            "Wipe excess off the wand, brush from the roots, and "
+            "separate clumps with a clean spoolie before they dry."
+        ),
+        "base": (
+            "Use a sponge to spread a thin layer from the center of the face,"
+            " build only where needed, and tap along the jaw and hairline."
+        ),
+    },
+    "ja": {
+        "eyeliner": (
+            "細いペンシルでまつ毛の間を点で埋めます。"
+            "目を開けて目尻の長さを確認し、綿棒で端をぼかします。"
+        ),
+        "eyeshadow": (
+            "小さなブラシで目尻側から薄く重ね、"
+            "きれいなブラシで境目を小さく円を描くようにぼかします。"
+        ),
+        "lip": (
+            "唇の内側に少量をのせ、指やリップブラシで外側へぼかします。"
+            "濃くしたいときは中央だけ重ねます。"
+        ),
+        "cheek": "ブラシの粉を落としてから少しずつ色をのせ、きれいなスポンジで境目をぼかします。",
+        "mascara": (
+            "ブラシの余分を拭き取り、根元から薄く塗ります。"
+            "乾く前に清潔なスクリューブラシで毛束をほぐします。"
+        ),
+        "base": (
+            "スポンジで顔の中央から薄く広げ、必要な所だけ重ねます。"
+            "あごと生え際の境目も軽くたたきます。"
+        ),
+    },
+    "zh": {
+        "eyeliner": "用细眼线笔在上睫毛根部点涂填空。睁眼确认眼尾长度，再用棉签轻轻晕开边缘。",
+        "eyeshadow": "用小号晕染刷从眼尾薄薄上色，再用干净的刷子画小圈晕开边缘。",
+        "lip": "少量唇色点在内侧，用指腹或唇刷向外拍开。想加深时只在中央叠涂。",
+        "cheek": "抖掉刷上多余的腮红，少量叠涂，再用干净的海绵轻拍边缘。",
+        "mascara": "擦掉刷头多余膏体，从睫毛根部薄刷，趁未干用干净的螺旋刷梳开结块。",
+        "base": "用海绵从面部中央薄薄推开，只在需要的位置叠涂，再轻拍下颌与发际线的边缘。",
+    },
+}
+
+_ADVICE = re.compile(
+    r"어떻게|하려면|하면|도구|팁|자연스럽|쉽게|브러시|방법|요령|대처법|\bhow\b"
+    r"|tips?|which brush|what (?:tool|brush)"
+    r"|自然に|コツ|道具|どう|怎么|怎样|如何|工具|自然",
+    re.I,
+)
+_ADVICE_ZONES = {
+    "eyeliner": r"아이라인|eyeliner|アイライン|眼线",
+    "eyeshadow": r"섀도|눈 화장|eyeshadow|eye makeup|アイシャドウ|アイメイク|眼影|眼妆",
+    "lip": r"입술|립|lip|リップ|唇",
+    "cheek": r"볼터치|블러셔|blush|チーク|腮红",
+    "mascara": r"마스카라|mascara|マスカラ|睫毛膏",
+    "base": r"베이스|파운데이션|foundation|ベース|底妆",
+}
+
+
+_SMUDGING = re.compile(r"번지|번져|번짐|번질|smudg|transfer|にじ|滲|晕染|晕开|脱妆", re.I)
+_EYELINER_SMUDGE_TIP = {
+    "ko": "아이라인 번짐을 줄이려면 눈가 유분을 먼저 가볍게 닦고, 얇게 그린 뒤 완전히 말려 주세요.",
+    "en": "To reduce smudging, gently blot oil around the eye, draw a thin line, and let it dry.",
+    "ja": "にじみを防ぐには、目元の皮脂を軽く押さえ、細く描いてしっかり乾かします。",
+    "zh": "想减少眼线晕染，可以先轻轻吸去眼周油脂，画细一点并等它完全干透。",
+}
+_GENERAL_TIP_NOTICE = {
+    "ko": "일반 팁입니다. 영상에서 이 방법을 썼는지는 확인되지 않았습니다.",
+    "en": "This is a general tip. Its use in the video has not been verified.",
+    "ja": "一般的なコツです。動画で使われた方法かどうかは未確認です。",
+    "zh": "这是一般技巧，尚未确认视频中是否采用了这种方法。",
+}
+
+
+def style_advice(message, steps, index, locale, followup):
+    if not (_ADVICE.search(message) or _SMUDGING.search(message)) or re.search(
+        r"영상에서|in the video|動画では|视频里", message, re.I
+    ):
+        return None
+    zone = next(
+        (zone for zone, pattern in _ADVICE_ZONES.items() if re.search(pattern, message, re.I)),
+        steps[index].zone if steps and followup else None,
+    )
+    zone = "cheek" if zone == "blush" else zone
+    if zone == "eyeliner" and _SMUDGING.search(message):
+        return _EYELINER_SMUDGE_TIP[locale]
+    return TIPS[locale].get(zone)
+
+
 async def execute_style(req, catalog):
     text, context = TEXT[req.locale], req.style_context
 
@@ -191,6 +341,13 @@ async def execute_style(req, catalog):
         )
 
     if context is None:
+        if re.search(
+            r"그라데이션\s*립|gradient\s+lips?|ombre\s+lips?|グラデーションリップ|渐变唇|咬唇",
+            req.message.casefold(),
+        ):
+            return ChatResponse(
+                answer=GRADIENT_LIP_GUIDE[req.locale], products=[], style_status="ready"
+            ), ToolResult(tool="style", status="success", reason="general_guide")
         return empty("clarification", "look_required", "choose")
     if catalog is None:
         return empty("error", "catalog_unavailable", "error")
@@ -278,16 +435,22 @@ async def execute_style(req, catalog):
         eye_request = re.search(r"눈 화장|eye makeup|アイメイク|眼妆", message)
         if eye_request and not any(s.zone in {"eyeshadow", "eyeliner", "mascara"} for s in steps):
             return empty("clarification", "eye_step_unavailable", "zone_missing")
-        if not changed:
-            if re.search(r"첫 단계|처음 단계|first step|最初|第一步", message):
+        tip = style_advice(message, steps, index, req.locale, context.recipe_id is not None)
+        if not changed and not tip and not _ADVICE.search(message):
+            if re.search(
+                r"첫 단계|처음 단계|처음부터|first step|from the beginning|最初|第一步|从头",
+                message,
+            ):
                 index = 0
             elif re.search(r"마지막 단계|last step|最後|最后一步", message):
                 index = max(0, len(steps) - 1)
-            elif re.search(r"다음|next|次|下一", message):
+            elif re.search(r"다음\s*단계|\bnext(?: step)?[.!?]?$|次の手順|次へ|下一步", message):
                 index = min(index + 1, max(0, len(steps) - 1))
-            elif re.search(r"이전|previous|前の|上一步", message):
+            elif re.search(
+                r"이전\s*단계|\bprevious(?: step)?[.!?]?$|前の手順|前へ|上一步", message
+            ):
                 index = max(0, index - 1)
-            elif eye_request:
+            elif eye_request and not _ADVICE.search(message):
                 index = next(
                     (
                         i
@@ -374,7 +537,9 @@ async def execute_style(req, catalog):
             else "video_not_analyzed",
             makeup=makeup,
         )
-        answer = text[notice]
+        answer = tip or text[notice]
+        if tip and context.kind == "video":
+            answer += "\n" + _GENERAL_TIP_NOTICE[req.locale]
         if result.synthetic:
             answer += "\n" + text["synthetic"]
         if changed:

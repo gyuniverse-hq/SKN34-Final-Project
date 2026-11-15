@@ -67,7 +67,18 @@ __pycache__/
 # Independent Python ML project
 /ml/.venv/
 /ml/data/
-/ml/runs/
+/ml/runs/*
+# Share only the approved recommendation V3 serving bundle.
+!/ml/runs/recommend-cat-v3/
+/ml/runs/recommend-cat-v3/*
+!/ml/runs/recommend-cat-v3/bundle/
+/ml/runs/recommend-cat-v3/bundle/*
+!/ml/runs/recommend-cat-v3/bundle/model.cbm
+!/ml/runs/recommend-cat-v3/bundle/manifest.json
+!/ml/runs/recommend-cat-v3/bundle/README.md
+/ml/experiments/
+/reports/recommendation-v2/
+/scripts/data/recommendation/curation_decisions.json
 /ml/.pytest_cache/
 /ml/.ruff_cache/
 /ml/.uv-cache/
@@ -97,3 +108,4 @@ __pycache__/
 # research data (face photos, measurements, LGD inputs): local only, AR_SPEC 1-13
 research/data/
 research/light_eval/_tmp/
+/scripts/data/youtube/non_oy_source_price_review_2026-11-08.csv

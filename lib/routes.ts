@@ -14,7 +14,7 @@ export const MAKEUP_ZONES: readonly MakeupZone[] = [
   'brow',
   'foundation',
 ];
-export const PRODUCT_CATEGORIES: readonly ProductCategory[] = ['lip', 'cheek', 'eye', 'base', 'skincare', 'suncare'];
+export const PRODUCT_CATEGORIES: readonly ProductCategory[] = ['lip', 'cheek', 'eye', 'base', 'skincare', 'suncare', 'tool'];
 export const SKIN_CONCERNS: readonly SkinConcern[] = [
   'dryness',
   'oiliness',
@@ -28,6 +28,11 @@ export type SearchSource = 'home' | 'skin';
 export type LoginReturnTo = 'checkout';
 
 type RawParam = string | string[] | undefined;
+
+export function chatHref(target?: { recipeKind: 'video' | 'catalog'; recipeLookId: string } |
+  { productId: string; shadeId?: string }): Href {
+  return target ? { pathname: '/chat', params: target } : '/chat';
+}
 
 /** Same limit as the backend's id columns. */
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
@@ -85,8 +90,8 @@ function compact(params: Record<string, string | undefined>): Record<string, str
   return Object.fromEntries(Object.entries(params).filter((e): e is [string, string] => !!e[1]));
 }
 
-export function productHref(productId: string, shadeId?: string): Href {
-  return { pathname: '/product/[id]', params: compact({ id: productId, shade: shadeId }) } as Href;
+export function productHref(productId: string, shadeId?: string, recommendation?: string): Href {
+  return { pathname: '/product/[id]', params: compact({ id: productId, shade: shadeId, recommendation }) } as Href;
 }
 
 export function lookHref(lookId: string): Href {

@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { apiGet } from '@/lib/api';
+import { applicationProfileFor, lookApplicationProfileFor, validatedApplicationProfile } from '@/lib/applicationProfiles';
 import { devCatalogProduct } from '@/lib/devCatalog';
 import { demoLookProduct } from '@/lib/demoLookBundle';
-import { demoLookSlots } from '@/lib/demoLookAr';
+import { demoLookSlots, demoLookVideoId } from '@/lib/demoLookAr';
 import { falseLashClusters } from '@/lib/falseLashLooks';
 import { MASCARA_LOOKS, type MascaraLookId } from '@/lib/mascaraLooks';
 import { arHref, parseId } from '@/lib/routes';
@@ -132,16 +133,22 @@ export function useVideoTryOn(items: VideoProductMapping[], id: string, title: s
       const lookItems: LookItem[] = [];
       for (const { product, shade, zone, texture, style, lashes, hexTo } of selected) {
         const base = style ? geometryFromStyle(zone, style) : null;
-        const geometry = zone === 'mascara' && lashes ? { ...base, falseLash: falseLashClusters(lashes) } : base;
+        const initialGeometry = zone === 'mascara' && lashes ? { ...base, falseLash: falseLashClusters(lashes) } : base;
+        const lookProfile = lookApplicationProfileFor(demoLookVideoId(id), zone);
+        // A look-specific color profile belongs exclusively to the video renderer, not the product state.
+        const storedProfile = lookProfile?.lookHex ? undefined : lookProfile;
+        const geometry = storedProfile?.geometry ? { ...initialGeometry, ...storedProfile.geometry } : initialGeometry;
         const mascara = zone === 'mascara' && style && style in MASCARA_LOOKS
           ? MASCARA_LOOKS[style as MascaraLookId]
           : null;
+        const applicationProfile = storedProfile?.overrides ?? applicationProfileFor(product.id, shade.id) ?? validatedApplicationProfile(shade.applicationProfile);
         makeup[zone] = {
           hex: shade.hex,
           intensity: mascara?.intensity ?? DEFAULT_INTENSITY[zone],
           texture,
           ...(geometry ? { geometry } : {}),
           ...(hexTo ? { hexTo } : {}),
+          ...(applicationProfile ? { applicationProfile } : {}),
         };
         lookItems.push({ productId: product.id, shadeId: shade.id, step: STEPS[zone] });
       }

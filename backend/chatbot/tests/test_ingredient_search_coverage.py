@@ -278,8 +278,9 @@ async def test_seventh_result_session_ordinal_and_retry():
 
 
 @pytest.mark.anyio
-async def test_fragrance_unknown_keeps_public_scope_bounded_even_with_named_mismatch():
+async def test_fragrance_unknown_keeps_public_scope_bounded():
     catalog = SearchCatalog(13)
+    catalog.states = {p.id: "UNKNOWN" for p in catalog.products}
     context = BeautyContext(
         issued_at=1000, filters=BeautyFilters(category="lip", fragrance_free=True)
     )
@@ -304,6 +305,20 @@ async def test_unknown_slots_do_not_hide_a_later_match_or_claim_complete_certain
     assert response.result_type == "clarification"
     assert response.tool_result.status == "clarification"
     assert "7/7" in response.answer
+
+
+@pytest.mark.anyio
+async def test_fragrance_unknown_candidates_do_not_hide_later_verified_match():
+    catalog = SearchCatalog(7, matches=[6])
+    catalog.states = {f"item-{i:03d}": "UNKNOWN" for i in range(6)}
+    plan = search_plan().model_copy(update={"fragrance_free": True})
+    response = await beauty.execute_beauty(search_request(), plan, catalog)
+    assert "item-006" in catalog.product_calls
+    assert len(response.products) == len(response.ingredient_results) == 6
+    assert response.ingredient_results[-1].verdict == "MATCH"
+    assert "item-006" in response.chat_context.candidate_ids
+    assert response.tool_result.status == "partial"
+    assert response.chat_context.filters.fragrance_free
 
 
 @pytest.mark.anyio
@@ -376,3 +391,281 @@ async def test_empty_verified_scope_can_be_reused_after_explicit_condition_clear
     restored = await service.answer(search_request(empty.chat_context), "guest:coverage")
     assert [p.id for p in restored.products] == ids
     assert not restored.chat_context.filters.ingredient_conditions
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("reverse", [False, True])
+async def test_confirmed_ingredient_failure_survives_other_condition_timeout(reverse):
+    class MixedCatalog(SearchCatalog):
+        async def get_ingredients(self, pid, shade, *, ingredient_name=None, operator="includes"):
+            if pid == "item-001" and ingredient_name == "Glycerin":
+                raise IngredientLookupError("timeout")
+            return await super().get_ingredients(
+                pid, shade, ingredient_name=ingredient_name, operator=operator
+            )
+
+    catalog = MixedCatalog(3, matches=[1])
+    conditions = [
+        {"ingredientName": "Niacinamide", "operator": "excludes"},
+        {"ingredientName": "Glycerin", "operator": "excludes"},
+    ]
+    if reverse:
+        conditions.reverse()
+    llm = PlanLlm(intent="search", category="lip", shadeName="03", ingredientConditions=conditions)
+    service = ChatService(None, llm, catalog, sessions=ChatSessionRepository(RedisDouble()))
+    owner = "guest:compound-condition-search"
+    response = await service.answer(search_request(), owner)
+    expected = ["item-000", "item-002"]
+    assert [p.id for p in response.products] == expected
+    assert [r.product_id for r in response.ingredient_results] == expected
+    assert response.chat_context.candidate_ids == expected
+    stored = await service._sessions.load(owner, response.chat_context.session)
+    assert stored.context.candidate_ids == expected
+    assert stored.last_tool_result.status == "success"
+    assert "3/3" in response.answer
+    llm.plan = {"intent": "price", "scope": "previous", "ordinal": 2}
+    followup = await service.answer(search_request(response.chat_context), owner)
+    assert followup.chat_context.selected_product_id == "item-002"
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("persist", [True, False])
+async def test_detail_filter_update_survives_saved_session_and_retry(persist):
+    catalog = SearchCatalog(2)
+    llm = PlanLlm(
+        intent="search",
+        category="lip",
+        shadeName="03",
+        ingredientName="A",
+        ingredientOperator="excludes",
+    )
+    redis = RedisDouble()
+    service = ChatService(None, llm, catalog, sessions=ChatSessionRepository(redis))
+    owner = "guest:detail-ingredient-update"
+    first = await service.answer(search_request(), owner)
+    llm.plan = dict(
+        intent="detail",
+        scope="previous",
+        ordinal=2,
+        ingredientName="B",
+        ingredientOperator="excludes" if persist else "includes",
+        persistIngredientConditions=persist,
+    )
+    req = search_request(first.chat_context)
+    detail = await service.answer(req, owner)
+    expected = ["A", "B"] if persist else ["A"]
+    assert [
+        c.ingredient_name for c in detail.chat_context.filters.ingredient_conditions
+    ] == expected
+    assert detail.chat_context.selected_product_id == "item-001"
+    calls, writes = llm.calls, redis.writes
+    await service.answer(req, owner)
+    assert (llm.calls, redis.writes) == (calls, writes)
+    llm.plan = dict(intent="refine", scope="previous", maxPriceKRW=20000)
+    catalog.ingredient_calls.clear()
+    result = await service.answer(search_request(detail.chat_context), owner)
+    assert [
+        c.ingredient_name for c in result.chat_context.filters.ingredient_conditions
+    ] == expected
+    assert {name for _, name in catalog.ingredient_calls} == set(expected)
+    assert result.chat_context.filters.max_price_krw == 20000
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "first,second,expected",
+    [
+        ("MATCH", "MATCH", "MATCH"),
+        ("NOT_MATCH", "ERROR", "NOT_MATCH"),
+        ("ERROR", "NOT_MATCH", "NOT_MATCH"),
+        ("NOT_MATCH", "UNKNOWN", "NOT_MATCH"),
+        ("MATCH", "ERROR", "ERROR"),
+        ("MATCH", "UNKNOWN", "UNKNOWN"),
+        ("UNKNOWN", "ERROR", "ERROR"),
+        ("FOREIGN", "MATCH", "ERROR"),
+    ],
+)
+async def test_compound_condition_preserves_checks(first, second, expected):
+    catalog = SearchCatalog(1)
+    pid, shade = "item-000", "item-000-shade"
+
+    async def lookup(pid, shade, *, ingredient_name, operator):
+        state = first if ingredient_name == "A" else second
+        if state == "ERROR":
+            raise IngredientLookupError("timeout")
+        catalog.states[pid] = state
+        catalog.ingredients[pid] = [ingredient_name] if state == "NOT_MATCH" else ["Water"]
+        result = await SearchCatalog.get_ingredients(
+            catalog, pid, shade, ingredient_name=ingredient_name, operator=operator
+        )
+        return result.model_copy(update={"product_id": "foreign"}) if state == "FOREIGN" else result
+
+    catalog.get_ingredients = lookup
+    conditions = [IngredientFilter(ingredient_name=n, operator="excludes") for n in ("A", "B")]
+    results = [
+        await beauty._lookup_ingredient_condition(catalog, pid, shade, c) for c in conditions
+    ]
+    combined = beauty._combine_ingredient_results(results)
+    assert combined.verdict == expected
+    assert [c.ingredient_name for c in combined.conditions] == ["A", "B"]
+    assert all(c.product_id == pid and c.shade_id == shade for c in combined.conditions)
+    for check, state in zip(combined.conditions, (first, second), strict=True):
+        if state in {"MATCH", "NOT_MATCH"}:
+            assert check.evidence_id == f"synthetic-{pid}"
+        elif state in {"ERROR", "FOREIGN"}:
+            assert check.reason == ("timeout" if state == "ERROR" else "invalid_response")
+
+
+@pytest.mark.anyio
+async def test_scan_deadline_preserves_completed_exclusion(monkeypatch):
+    monkeypatch.setattr(beauty, "INGREDIENT_SEARCH_TIMEOUT_SECONDS", 0.01)
+    catalog = SearchCatalog(2, matches=[0])
+    catalog.slow_condition = "Panthenol"
+    plan = SearchPlan(
+        intent="search",
+        category="lip",
+        shadeName="03",
+        ingredientConditions=[
+            {"ingredientName": name, "operator": "excludes"}
+            for name in ("Niacinamide", "Panthenol")
+        ],
+    )
+    response = await beauty.execute_beauty(search_request(), plan, catalog)
+    assert response.chat_context.candidate_ids == []
+    assert response.tool_result.status == "partial"
+    assert "1/2" in response.answer
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "first,second,verdict",
+    [
+        ("NOT_MATCH", "ERROR", "NOT_MATCH"),
+        ("ERROR", "NOT_MATCH", "NOT_MATCH"),
+        ("NOT_MATCH", "UNKNOWN", "NOT_MATCH"),
+        ("MATCH", "ERROR", "ERROR"),
+        ("MATCH", "UNKNOWN", "UNKNOWN"),
+        ("MATCH", "MATCH", "MATCH"),
+    ],
+)
+async def test_detail_reports_each_condition_verdict_and_failure(first, second, verdict):
+    catalog = SearchCatalog(1)
+    pid = "item-000"
+
+    async def get_ingredients(pid, shade, *, ingredient_name, operator):
+        state = first if ingredient_name == "A" else second
+        if state == "ERROR":
+            raise IngredientLookupError("timeout")
+        catalog.states[pid] = state if state == "UNKNOWN" else None
+        catalog.ingredients[pid] = [ingredient_name] if state == "NOT_MATCH" else ["Water"]
+        return await SearchCatalog.get_ingredients(
+            catalog, pid, shade, ingredient_name=ingredient_name, operator=operator
+        )
+
+    catalog.get_ingredients = get_ingredients
+    context = BeautyContext(
+        issuedAt=1000,
+        filters={},
+        candidateIds=[pid],
+        selectedProductId=pid,
+        shadeSelections={pid: "item-000-shade"},
+    )
+    plan = SearchPlan(
+        intent="detail",
+        scope="previous",
+        ordinal=1,
+        ingredientConditions=[
+            {"ingredientName": "A", "operator": "excludes"},
+            {"ingredientName": "B", "operator": "excludes"},
+        ],
+    )
+    response = await beauty.execute_beauty(search_request(context), plan, catalog)
+    result = response.ingredient_results[0]
+    assert result.verdict == verdict
+    assert "A:" in response.answer and "B:" in response.answer
+    for name, state in (("A", first), ("B", second)):
+        check = next(c for c in result.conditions if c.ingredient_name == name)
+        assert check.verdict == state
+        if state == "ERROR":
+            assert check.reason == "timeout"
+            assert "조회 시간이 초과됐습니다." in response.answer
+            assert check.option_id is None and check.evidence_id is None
+    if verdict in {"ERROR", "UNKNOWN"} and "MATCH" in (first, second):
+        assert result.option_id == "option-item-000"
+        assert result.evidence_id == "synthetic-item-000"
+        assert result.ingredients
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("locale,index", [("ko", 0), ("en", 1), ("ja", 2), ("zh", 3)])
+@pytest.mark.parametrize("reason", ["timeout", "source_unavailable"])
+async def test_detail_failure_reason_is_localized(locale, index, reason):
+    catalog = SearchCatalog(1)
+    pid = "item-000"
+
+    async def lookup(pid, shade, *, ingredient_name, operator):
+        if ingredient_name == "B":
+            raise IngredientLookupError(reason)
+        catalog.ingredients[pid] = ["A"]
+        return await SearchCatalog.get_ingredients(
+            catalog, pid, shade, ingredient_name=ingredient_name, operator=operator
+        )
+
+    catalog.get_ingredients = lookup
+    context = BeautyContext(
+        issuedAt=1000,
+        filters={},
+        candidateIds=[pid],
+        selectedProductId=pid,
+        shadeSelections={pid: "item-000-shade"},
+    )
+    plan = SearchPlan(
+        intent="detail",
+        scope="previous",
+        ordinal=1,
+        ingredientConditions=[
+            {"ingredientName": "A", "operator": "excludes"},
+            {"ingredientName": "B", "operator": "excludes"},
+        ],
+    )
+    response = await beauty.execute_beauty(search_request(context, locale=locale), plan, catalog)
+    assert response.ingredient_results[0].verdict == "NOT_MATCH"
+    assert "A:" in response.answer and "B:" in response.answer
+    assert beauty.INGREDIENT_ISSUES[reason][index] in response.answer
+
+
+@pytest.mark.anyio
+async def test_compound_conflicting_verified_options_do_not_share_evidence():
+    catalog = SearchCatalog(1)
+    pid, shade = "item-000", "item-000-shade"
+    conditions = [IngredientFilter(ingredient_name=n, operator="excludes") for n in ("A", "B")]
+    results = [
+        await beauty._lookup_ingredient_condition(catalog, pid, shade, c) for c in conditions
+    ]
+    results[1].option_id = "foreign-option"
+    results[1].conditions[0].option_id = "foreign-option"
+    combined = beauty._combine_ingredient_results(results)
+    assert combined.verdict == "UNKNOWN"
+    assert all(c.verdict == "UNKNOWN" for c in combined.conditions)
+    assert all(c.evidence_id is None for c in combined.conditions)
+
+
+@pytest.mark.anyio
+async def test_unverified_assertion_is_converted_to_named_unknown():
+    catalog = SearchCatalog(1)
+    pid, shade = "item-000", "item-000-shade"
+
+    async def lookup(pid, shade, *, ingredient_name, operator):
+        result = await SearchCatalog.get_ingredients(
+            catalog, pid, shade, ingredient_name=ingredient_name, operator=operator
+        )
+        return result.model_copy(update={"review_status": "unreviewed"})
+
+    catalog.get_ingredients = lookup
+    condition = IngredientFilter(ingredient_name="A", operator="excludes")
+    result = await beauty._lookup_ingredient_condition(catalog, pid, shade, condition)
+    assert result.verdict == "UNKNOWN"
+    assert len(result.conditions) == 1
+    assert result.conditions[0].ingredient_name == "A"
+    assert result.conditions[0].verdict == "UNKNOWN"
+    assert result.conditions[0].evidence_id is None

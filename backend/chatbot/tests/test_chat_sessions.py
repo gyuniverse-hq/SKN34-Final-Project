@@ -618,6 +618,285 @@ def test_loopback_http_search_then_ordinal_with_mock_redis(client, setup):
 
 
 @pytest.mark.anyio
+async def test_product_detail_can_start_ingredient_chat_without_recommendation_session(setup):
+    service, _, _, _ = setup
+    service._llm.plan = {"intent": "detail", "ingredientLookup": True, "ingredientName": "향료"}
+
+    async def ask(product_id, shade_id=None):
+        screen = {"screenId": "product-detail", "productId": product_id}
+        if shade_id:
+            screen["shadeId"] = shade_id
+        return await service.answer(
+            request(message="이 제품 향료 성분은?", screen=screen), "guest:one"
+        )
+
+    first = await ask("a", "a-03")
+    second = await ask("b", "b-03")
+    assert first.ingredient_results[0].product_id == "a"
+    assert second.ingredient_results[0].product_id == "b"
+    assert first.chat_context.session.session_id != second.chat_context.session.session_id
+    assert service._catalog.ingredient_calls == [("a", "a-03"), ("b", "b-03")]
+
+    unknown = await ask("a")
+    assert unknown.ingredient_results[0].verdict == "UNKNOWN"
+    assert unknown.ingredient_results[0].shade_id is None
+    with pytest.raises(ApiError) as exc:
+        await ask("a", "b-03")
+    assert exc.value.code == "invalid_chat_selection"
+    assert service._catalog.ingredient_calls == [("a", "a-03"), ("b", "b-03")]
+
+
+def test_product_detail_first_question_respects_explicit_shade_over_screen_hint(client, setup):
+    service, _, _, _ = setup
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    product = service._catalog.products[0]
+    product.shades.append(product.shades[0].model_copy(update={"id": "a-05", "name": "05"}))
+    service._llm.plan = {
+        "intent": "detail",
+        "ingredientLookup": True,
+        "ingredientName": "향료",
+        "shadeName": "05",
+    }
+    reply = client.post(
+        "/api/chat",
+        headers={"Authorization": "Bearer ok-member"},
+        json={
+            "requestType": "beauty_consultation",
+            "requestId": str(uuid4()),
+            "locale": "ko",
+            "message": "이 제품 05호에 향료 들어 있어?",
+            "screenContext": {"screenId": "product-detail", "productId": "a", "shadeId": "a-03"},
+        },
+    )
+    assert reply.status_code == 200
+    evidence = reply.json()["ingredientResults"][0]
+    assert (evidence["productId"], evidence["shadeId"]) == ("a", "a-05")
+    assert service._catalog.ingredient_calls == [("a", "a-05")]
+
+
+@pytest.mark.anyio
+async def test_named_comparison_resolves_verified_target_without_replacing_session_candidates(
+    setup,
+):
+    service, _, _, _ = setup
+    catalog = service._catalog
+    catalog.products[0].name = "Torriden Essence"
+    catalog.products[1].name = "Fwee Gloss"
+    initial = (await first(setup)).chat_context
+    screen = {"screenId": "product-detail", "productId": "a", "shadeId": "a-03"}
+    service._llm.plan = {"intent": "general", "query": "Fwee Gloss"}
+
+    missing = await service.answer(
+        request(initial, message="다른 제품과 비교해줘", screen=screen), "guest:one"
+    )
+    assert missing.result_type == "clarification"
+    assert "어떤 제품과 비교할까요?" in missing.answer
+    assert "Fwee Gloss" not in missing.answer and missing.products == []
+
+    for msg, sid in [
+        ("Fwee Gloss와 비교해줘", "product-detail"),
+        ("Fwee Gloss", "product-comparison"),
+    ]:
+        reply = await service.answer(
+            request(initial, message=msg, screen={**screen, "screenId": sid}), "guest:one"
+        )
+        assert "Torriden Essence" in reply.answer and "Fwee Gloss" in reply.answer
+        assert "15,000" in reply.answer and "19,000" in reply.answer
+        assert reply.chat_context.candidate_ids == initial.candidate_ids
+        assert reply.chat_context.selected_product_id == "a"
+        assert reply.chat_context.shade_selections == {"a": "a-03"}
+        assert reply.chat_context.session.result_set_id == initial.session.result_set_id
+        initial = reply.chat_context
+
+
+@pytest.mark.anyio
+async def test_named_ingredient_comparison_does_not_fall_back_to_prices(setup):
+    service, _, _, _ = setup
+    service._catalog.products[1].name = "퓌 글로스"
+    initial = (await first(setup)).chat_context
+    screen = {"screenId": "product-detail", "productId": "a", "shadeId": "a-03"}
+    service._llm.plan = {"intent": "detail", "query": "퓌 글로스"}
+    reply = await service.answer(
+        request(initial, message="이 제품과 퓌 글로스의 성분 차이를 비교해줘", screen=screen),
+        "guest:one",
+    )
+    assert reply.result_type == "clarification"
+    assert "호수" in reply.answer
+    assert "15,000" not in reply.answer and "19,000" not in reply.answer
+    assert reply.chat_context.candidate_ids == initial.candidate_ids
+    assert reply.chat_context.selected_product_id == initial.selected_product_id
+    assert reply.chat_context.session.result_set_id == initial.session.result_set_id
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("with_session", [False, True])
+async def test_direct_ingredient_comparison_resumes_after_target_shade_input(setup, with_session):
+    service, redis, _, _ = setup
+    catalog = service._catalog
+    catalog.products[1].name = "퓌 글로스"
+    screen = {"screenId": "product-detail", "productId": "a", "shadeId": "a-03"}
+    initial = (await first(setup)).chat_context if with_session else None
+    writes_before = redis.writes
+    service._llm.plan = {"intent": "detail", "query": "퓌 글로스"}
+    pending = await service.answer(
+        request(initial, message="이 제품과 퓌 글로스의 성분 비교", screen=screen), "guest:one"
+    )
+    assert pending.result_type == "clarification" and "호수" in pending.answer
+    continuation = pending.model_dump(mode="json")["ingredientComparison"]
+    assert continuation["targetProductId"] == "b" and continuation["awaiting"] == "target"
+    assert not catalog.ingredient_calls and redis.writes == writes_before
+
+    async def ingredients(pid, shade):
+        catalog.ingredient_calls.append((pid, shade))
+        return CatalogIngredients.model_validate(evidence(pid=pid, shade=shade, synthetic=False))
+
+    catalog.get_ingredients = ingredients
+    followup = {
+        **screen,
+        "screenId": "product-ingredient-comparison",
+        "ingredientComparison": continuation,
+    }
+    invalid = await service.answer(request(initial, message="99호", screen=followup), "guest:one")
+    assert invalid.ingredient_comparison.awaiting == "target" and not catalog.ingredient_calls
+    reply = await service.answer(request(initial, message="03호", screen=followup), "guest:one")
+    assert reply.result_type == "clarification" and "표기명 비교: 동일" in reply.answer
+    assert reply.supervisor.result.status == "clarification"
+    assert catalog.ingredient_calls == [("a", "a-03"), ("b", "b-03")]
+    if with_session:
+        assert reply.chat_context.candidate_ids == initial.candidate_ids
+        assert reply.chat_context.selected_product_id == initial.selected_product_id
+        assert reply.chat_context.shade_selections == initial.shade_selections
+        assert reply.chat_context.session == initial.session
+        assert redis.writes == writes_before
+    else:
+        assert reply.chat_context.candidate_ids == ["a"]
+        assert reply.chat_context.selected_product_id == "a"
+        assert "b" not in reply.chat_context.shade_selections
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "data", ["unverified", "synthetic", "missing_identity", "hash_conflict", "verified"]
+)
+async def test_ingredient_comparison_requires_both_exact_reviewed_lists(setup, data):
+    service, _, _, _ = setup
+    catalog = service._catalog
+    catalog.products[1].name = "퓌 글로스"
+    first_reply = await first(setup)
+    context = first_reply.chat_context.model_copy(
+        update={"selected_product_id": "a", "shade_selections": {"a": "a-03", "b": "b-03"}}
+    )
+
+    async def get_ingredients(pid, shade):
+        catalog.ingredient_calls.append((pid, shade))
+        entry = {"name": "향료", "sequence": 1}
+        if data != "missing_identity" or pid == "a":
+            entry["identity"] = {
+                "mfdsIngredientId": 101,
+                "nameKo": "향료",
+                "sourceHash": ("b" if data == "hash_conflict" and pid == "b" else "a") * 64,
+                "matchMethod": "exact_name",
+                "ruleVersion": "fixture-v1",
+            }
+        return CatalogIngredients.model_validate(
+            evidence(
+                pid=pid,
+                shade=shade,
+                ingredients=[entry],
+                synthetic=data == "synthetic",
+                reviewStatus="unreviewed" if data == "unverified" and pid == "b" else "verified",
+            )
+        )
+
+    catalog.get_ingredients = get_ingredients
+    service._llm.plan = {"intent": "detail", "query": "퓌 글로스"}
+    reply = await service.answer(
+        request(
+            context,
+            message="퓌 글로스",
+            screen={"screenId": "product-ingredient-comparison", "productId": "a"},
+        ),
+        "guest:one",
+    )
+    assert catalog.ingredient_calls and catalog.ingredient_calls[0] == ("a", "a-03"), reply.answer
+    if data == "verified":
+        assert reply.result_type == "product_detail"
+        assert reply.supervisor.result.status == "success"
+        assert "검증된 전체 목록 비교: 동일" in reply.answer
+    else:
+        assert reply.result_type == "clarification"
+        assert reply.supervisor.result.status == "clarification"
+        if data == "missing_identity":
+            assert "표기명 비교: 동일" in reply.answer
+            assert "성분 구성은 확인할 수 없습니다" in reply.answer
+        else:
+            assert "차이를 확정할 수 없습니다" in reply.answer
+    assert catalog.ingredient_calls == [("a", "a-03"), ("b", "b-03")]
+    assert "15,000" not in reply.answer and "19,000" not in reply.answer
+    assert reply.chat_context.candidate_ids == context.candidate_ids
+
+
+@pytest.mark.anyio
+async def test_comparison_leaves_a_previously_selected_candidate_in_place(setup):
+    service, _, _, _ = setup
+    service._catalog.products[1].name = "퓌 글로스"
+    initial = await first(setup)
+    service._llm.plan = {"intent": "price", "scope": "previous", "ordinal": 2}
+    selected = await service.answer(request(initial.chat_context, message="2번 가격"), "guest:one")
+    context = selected.chat_context
+    assert context.selected_product_id == "b"
+    service._llm.plan = {"intent": "detail", "query": "퓌 글로스"}
+    comparison = await service.answer(
+        request(context, message="퓌 글로스와 가격 비교", screen={"productId": "c"}),
+        "guest:one",
+    )
+    assert "25,000" in comparison.answer and "19,000" in comparison.answer
+    assert comparison.chat_context.candidate_ids == context.candidate_ids
+    assert comparison.chat_context.selected_product_id == "b"
+    assert comparison.chat_context.session.result_set_id == context.session.result_set_id
+
+
+@pytest.mark.anyio
+async def test_ingredient_comparison_does_not_guess_an_ambiguous_product(setup):
+    service, _, _, _ = setup
+    catalog = service._catalog
+    catalog.products[1].name = "퓌 글로스 핑크"
+    catalog.products[2].name = "퓌 글로스 레드"
+    context = (await first(setup)).chat_context
+    service._llm.plan = {"intent": "detail", "query": "퓌 글로스"}
+    reply = await service.answer(
+        request(context, message="퓌 글로스와 성분 비교", screen={"productId": "a"}), "guest:one"
+    )
+    assert reply.result_type == "clarification"
+    assert "정확한 제품명" in reply.answer
+    assert not catalog.ingredient_calls
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("locale", ["ko", "en", "ja", "zh"])
+async def test_price_comparison_labels_the_provenance_for_each_product(setup, locale):
+    from app.services.beauty_consultation_service import TEXT
+
+    service, _, _, _ = setup
+    catalog = service._catalog
+    catalog.products[0].price_evidence = "synthetic-price"
+    catalog.products[1].name = "Fwee Gloss"
+    catalog.products[1].price_krw = 0
+    initial = (await first(setup)).chat_context
+    screen = {"screenId": "product-detail", "productId": "a"}
+    service._llm.plan = {"intent": "detail", "query": "Fwee Gloss"}
+    req = request(initial, message="Compare the price with Fwee Gloss", screen=screen)
+    reply = await service.answer(req.model_copy(update={"locale": locale}), "guest:one")
+    words = TEXT[locale]
+    synthetic, missing = reply.answer.split("\n\n")
+    assert words["synthetic_price"] in synthetic
+    assert words["live_unavailable"] in synthetic
+    assert words["synthetic_price"] not in missing
+    assert words["reference_unavailable"] in missing
+    assert words["price_source_unknown"] in missing
+
+
+@pytest.mark.anyio
 async def test_explicit_catalog_screen_selection_outside_old_results_is_validated(setup):
     service = setup[0]
     ctx = (await first(setup)).chat_context
@@ -841,3 +1120,102 @@ def test_ingredient_conditions_accumulate_and_only_explicit_same_name_replaces()
     assert len(updated.ingredient_conditions) == 2
     assert updated.ingredient_conditions[-1].operator == "includes"
     assert context.filters.ingredient_conditions[0].operator == "excludes"
+
+
+def test_detail_ingredient_changes_replace_clear_and_respect_limit():
+    from app.core.errors import ApiError
+    from app.schemas.chat import BeautyContext, BeautyFilters, IngredientFilter
+    from app.schemas.supervisor import SearchPlan
+    from app.services.beauty_consultation_service import _effective_filters
+
+    context = BeautyContext(
+        issued_at=1000,
+        filters=BeautyFilters(
+            ingredient_conditions=[
+                IngredientFilter(ingredient_name=f"Ingredient {i}", operator="excludes")
+                for i in range(6)
+            ]
+        ),
+    )
+    detail = SearchPlan(
+        intent="detail",
+        persistIngredientConditions=True,
+        ingredientName="ingredient 0",
+        ingredientOperator="includes",
+    )
+    replacement = _effective_filters(context, detail)
+    assert len(replacement.ingredient_conditions) == 6
+    assert replacement.ingredient_conditions[0].operator == "includes"
+    seventh = detail.model_copy(update={"ingredient_name": "New"})
+    with pytest.raises(ApiError) as exc:
+        _effective_filters(context, seventh)
+    assert exc.value.code == "ingredient_condition_limit"
+    cleared = _effective_filters(
+        context,
+        seventh.model_copy(
+            update={"clear_filters": ["ingredientConditions"]},
+        ),
+    )
+    assert [c.ingredient_name for c in cleared.ingredient_conditions] == ["New"]
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("persist", [True, False])
+async def test_detail_lookup_error_saves_only_explicit_persistent_conditions(setup, persist):
+    from tests.test_ingredient_search_coverage import SearchCatalog, search_request
+
+    service, redis, repo, _ = setup
+    catalog = SearchCatalog(2)
+    original = catalog.get_ingredients
+
+    async def lookup(pid, shade, *, ingredient_name=None, operator="includes"):
+        if ingredient_name == "B":
+            raise IngredientLookupError("timeout")
+        return await original(pid, shade, ingredient_name=ingredient_name, operator=operator)
+
+    catalog.get_ingredients = lookup
+    service._catalog = catalog
+    service._llm.plan = {
+        "intent": "search",
+        "category": "lip",
+        "shadeName": "03",
+        "ingredientName": "A",
+        "ingredientOperator": "excludes",
+    }
+    initial = await service.answer(search_request(), "guest:one")
+    assert initial.session_status == "stored"
+    assert initial.chat_context.candidate_ids == ["item-000", "item-001"]
+    service._llm.plan = {
+        "intent": "detail",
+        "scope": "previous",
+        "ordinal": 2,
+        "ingredientName": "B",
+        "ingredientOperator": "excludes",
+        "persistIngredientConditions": persist,
+    }
+    follow = search_request(initial.chat_context)
+    response = await service.answer(follow, "guest:one")
+    assert response.ingredient_results[0].verdict == "ERROR"
+    assert response.chat_context.session is not None
+    expected = ["A", "B"] if persist else ["A"]
+    stored = await repo.load("guest:one", response.chat_context.session)
+    assert [c.ingredient_name for c in stored.context.filters.ingredient_conditions] == expected
+    assert stored.context.candidate_ids == ["item-000", "item-001"]
+    if persist:
+        assert stored.context.selected_product_id == "item-001"
+        calls, writes = service._llm.calls, redis.writes
+        retry = await service.answer(follow, "guest:one")
+        assert retry.model_dump(mode="json") == response.model_dump(mode="json")
+        assert (service._llm.calls, redis.writes) == (calls, writes)
+    else:
+        assert response.session_status == "unchanged"
+    with pytest.raises(ApiError):
+        await repo.load("guest:other", response.chat_context.session)
+    service._llm.plan = {"intent": "refine", "scope": "previous", "maxPriceKRW": 20000}
+    catalog.ingredient_calls.clear()
+    result = await service.answer(search_request(response.chat_context), "guest:one")
+    assert [
+        c.ingredient_name for c in result.chat_context.filters.ingredient_conditions
+    ] == expected
+    assert result.chat_context.filters.max_price_krw == 20000
+    assert {name for _, name in catalog.ingredient_calls} == {"A"}

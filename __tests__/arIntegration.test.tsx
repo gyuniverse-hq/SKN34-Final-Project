@@ -1,5 +1,6 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
+import { ArSheet } from '@/components/ar/ArSheet';
 import ArTryOnScreen from '@/app/(tabs)/ar';
 import { useMakeupStore } from '@/store/makeupStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -84,6 +85,8 @@ afterEach(async () => { await act(async () => { screen.unmount(); }); });
 it.each([0, 1, 50, 100])('keeps real catalog selection while proposing and rendering %s percent', async (percent) => {
   const before = useMakeupStore.getState().makeup.lip!;
   await send(`립 진하기를 ${percent}%로 설정해 줘.`);
+  expect(screen.root.findAllByProps({ children: `립 진하기를 ${percent}%로 설정해 줘.` }).length).toBeGreaterThan(0);
+  expect(screen.root.findAllByProps({ children: 'ar.command.applied' })).toHaveLength(0);
   const render = face().props.renderCommand;
   expect(render).toBeTruthy();
   expect(useMakeupStore.getState().makeup.lip).toEqual(before);
@@ -91,6 +94,7 @@ it.each([0, 1, 50, 100])('keeps real catalog selection while proposing and rende
   expect((post.mock.calls.find(([path]) => path === '/api/chat')![1] as any).arContext.lip)
     .toEqual({ productId: lip.id, shadeId: shade.id, intensity: before.intensity });
   await act(async () => { face().props.onRenderResult({ ...render, makeup: undefined, status: 'rendered' }); });
+  expect(screen.root.findAllByProps({ children: 'ar.command.applied' }).length).toBeGreaterThan(0);
   expect(useMakeupStore.getState().makeup.lip).toEqual({ ...before, intensity: percent / 100 });
   expect(useMakeupStore.getState().selections.lip).toEqual({ productId: lip.id, shadeId: shade.id });
   expect(post).toHaveBeenCalledWith('/api/chat/acks', expect.objectContaining({ status: 'APPLIED' }), expect.anything());
@@ -105,10 +109,18 @@ it('keeps same-intensity NO_CHANGE distinct from a new application', async () =>
 });
 
 it('keeps recording controls and command confirmation connected on the same AR view', async () => {
+  await act(async () => {
+    screen.root.findAllByProps({ accessibilityRole: 'tab' }).find((tab) => tab.findAllByProps({ children: 'ar.mode.direct' }).length)!.props.onPress();
+  });
+  await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.arc.tools' }).props.onPress(); });
   const start = screen.root.findByProps({ accessibilityLabel: 'ar.rec.start' });
   await act(async () => { start.props.onPress(); });
   expect(face().props.recording).toBe(true);
   expect(face().props.onRecorder).toEqual(expect.any(Function));
+  await act(async () => { screen.root.findByType(ArSheet).props.onClose(); });
+  await act(async () => {
+    screen.root.findAllByProps({ accessibilityRole: 'tab' }).find((tab) => tab.findAllByProps({ children: 'ar.mode.chat' }).length)!.props.onPress();
+  });
 
   await send('립 진하기를 50%로 설정해 줘.');
   const render = face().props.renderCommand;
@@ -139,6 +151,22 @@ it('restores latest Store state after a manual edit cancels a rendered candidate
   const old = face().props.renderCommand;
   await act(async () => { useMakeupStore.getState().setIntensity('blush', 0.25); });
   const restore = face().props.renderCommand;
+  expect(restore.kind).toBe('restore');
+  expect(restore.makeup.lip.intensity).toBe(useMakeupStore.getState().makeup.lip!.intensity);
+  await act(async () => { face().props.onRenderResult({ ...old, status: 'rendered' }); });
+  expect(face().props.renderCommand.kind).toBe('restore');
+  await act(async () => { face().props.onRenderResult({ ...restore, status: 'rendered' }); });
+  expect(face().props.renderCommand).toBeNull();
+  expect(post).toHaveBeenCalledWith('/api/chat/acks', expect.objectContaining({ status: 'REJECTED' }), expect.anything());
+});
+
+it('restores latest Store state after a local command cancels a rendered candidate', async () => {
+  await send('립 진하기를 50%로 설정해 줘.');
+  const old = face().props.renderCommand;
+  await send('립스틱 좀 더 연한 거 없어?');
+  const restore = face().props.renderCommand;
+  expect(screen.root.findAllByProps({ children: 'ar.chatAppliedShade' }).length).toBeGreaterThan(0);
+  expect(screen.root.findAllByProps({ children: 'ar.command.rejected' })).toHaveLength(0);
   expect(restore.kind).toBe('restore');
   expect(restore.makeup.lip.intensity).toBe(useMakeupStore.getState().makeup.lip!.intensity);
   await act(async () => { face().props.onRenderResult({ ...old, status: 'rendered' }); });

@@ -16,7 +16,7 @@ jest.mock('@/lib/chatIdentity', () => ({ getAnonymousChatId: async () => 'guest-
 
 function Harness() { useChat(); return null; }
 
-it('sends Style progress independently from product sessions and preserves the retry UUID', async () => {
+it('sends style progress alongside product context and preserves the retry UUID', async () => {
   let view!: ReactTestRenderer;
   await act(async () => { view = create(createElement(Harness)); });
   const styleContext = { kind: 'video', lookId: '_video-1', recipeId: 'video:_video-1', recipeVersion: 'v1', currentStep: 1 };
@@ -24,8 +24,8 @@ it('sends Style progress independently from product sessions and preserves the r
     requestId: '20000000-0000-4000-8000-000000000001' };
   await mockMutation(args);
   await mockMutation(args);
-  expect(apiPostChat).toHaveBeenLastCalledWith({ message: args.message, locale: 'ko', requestType: 'style_consultation',
-    styleContext, requestId: args.requestId }, expect.anything());
+  expect(apiPostChat).toHaveBeenLastCalledWith({ message: args.message, locale: 'ko', requestType: 'beauty_consultation',
+    chatContext: context, styleContext, requestId: args.requestId }, expect.anything());
   await act(async () => view.unmount());
 });
 
@@ -35,10 +35,10 @@ const context: BeautyChatContext = {
   filters: { category: 'lip', maxPriceKRW: 20000, fragranceFree: false, moisturizing: true, query: '' },
 };
 
-it.each([undefined])('preserves legacy chat transport for category %s', async (category) => {
+it('preserves legacy chat transport without a category or context', async () => {
   let view!: ReactTestRenderer;
   await act(async () => { view = create(createElement(Harness)); });
-  await mockMutation({ message: 'question', locale: 'ko', category, chatContext: context });
+  await mockMutation({ message: 'question', locale: 'ko' });
   expect(apiPostChat).toHaveBeenLastCalledWith({ message: 'question', locale: 'ko', requestId: expect.stringMatching(/^[0-9a-f-]{36}$/i) },
     expect.objectContaining({ timeoutMs: 90_000 }));
   await act(async () => { view.unmount(); });
