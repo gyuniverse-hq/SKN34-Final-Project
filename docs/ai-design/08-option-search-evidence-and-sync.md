@@ -252,3 +252,80 @@ flowchart TD
 ### 8-3. 새 API 구현 여부와 무관한 보장 조건
 
 Catalog가 복합 검색을 **소유하고 검증 경계를 제공**해야 한다. 구현 대안은 (A) 기존 GET + 제한된 후보 후처리, (B) Catalog 소유 읽기 전용 옵션 복합 검색 API이다. **B가 정확한 교집합/범위 표현에 유리하므로 추천하지만, 신설 endpoint 경로/요청 수 제한/실제 DB 모델은 승인 전**이다. A를 임시로 사용하더라도 `partial`·`checkedScope`·`REFERENCE_ONLY`를 유지하고 이를 전체 검증 결과처럼 표현하지 않는다.
+
+
+## 9. 3단계 데이터·RAG·스타일 최종 논리 설계 (2026-11-15)
+
+**관측 출처 분리:** (a) GitHub `develop d1cf4868` 카탈로그·코드 및 후보 파일, (b) **연결된 단일 Supabase PostgreSQL** (`alembic_version=0022`) SQL 스냅샷, (c) **데이터 담당 국내 로컬 PostgreSQL** AIHub 적재 보고. (b)의 숫자를 팀원 로컬 DB, 공용 dev DB 또는 운영 API/DB 수치로 추정하지 않는다. 이번 문서에서는 구현/실시간 API·LLM·앱/기기 테스트를 하지 않았다.
+
+### 9-1. 데이터 관측과 서비스 적격성
+
+| 데이터 | 연결 Supabase 스냅샷 관측 | 의미·추가 확인 |
+| --- | ---: | --- |
+| 서빙 상품/셰이드 | 7,845 / 10,561 | G1 상품 기반. 실 HTTP·앱 검증 별도 |
+| 원본 상품/옵션 | 8,215 / 21,951 | Product↔Option↔Shade 검증 연결 필요 |
+| 옵션 성분 연결 행/성분 행이 있는 옵션 | 715,482 / 18,980 | 검수된 전성분 건수 아님; 전체 원본 옵션 21,951 |
+| 원본 상품공지에서 전성분 원문 있는 상품 | 8,196 | 상품 원문≠검수 완료한 옵션별 완전 전성분 |
+| Olive Young↔MFDS 성분명 매핑 | 4,801 | 검수자·검수일 있는 매핑 151. 신원 매핑≠완전 원본 검수 |
+| 비어 있지 않은 서빙 `key_ingredients` | 0 | 빈 주요 성분 목록으로 부재 판정 금지 |
+| 가격 스냅샷 | 21,951 | 최근 수집 2026-11-02 09:46:05. `is_latest`는 실시간 판매가 아님 |
+| 발행 `makeup_looks`/AR 룩 설정 | 3 / 9 | 영상 기반 검수 레시피와 구별 |
+| `looks`/`look_products`/`yt_catalog_product_link` | 0 / 0 / 0 | 검수된 실제 영상 사용 제품 연결 아직 없음 |
+| `aihub_qa_case`/`aihub_knowledge_document`/`aihub_claim_review` | 0 / 0 / 0 | 데이터 담당 **로컬 보고: QA 9,031/고유 문서 3,108**. 환경 혼동 금지 |
+| 벡터·키워드 검색 | `vector` 확장 없음, `pg_trgm` 설치 | 해당 연결 DB 스냅샷. VectorDB 기술 미확정 |
+
+별도 GitHub 레시피 후보 24개/168단계, 영상 후보 231개, 제품 연결 검토 1,617행, 스타일 영상 메타데이터 등은 **후보**. 원본 추출/공개·제품 연결/단계 검수와 서비스 발행은 분리한다.
+
+### 9-2. 성분 판정·G1/G4 경계
+
+| operator | MATCH: **질문 조건 충족** | NOT_MATCH: **질문 조건 불충족** |
+| --- | --- | --- |
+| `includes` | 요청 성분 존재 검증 | 검수한 **완전 목록**에서 성분 부재 |
+| `excludes` | 검수한 **완전 목록**에서 성분 부재 | 제외 요청 성분 존재 검증 |
+
+- `UNKNOWN`: 옵션 귀속·목록 완전성·성분 신원/동의어·출처 버전·권리/검수 불충분. `ERROR`: 조회/검증 자체 실패. `keyIngredients` 빈 목록, raw 존재, 부분 검색으로 '무향료'·부재 확정 금지.
+- **G1:** 실제 LangGraph 일반 상담→Catalog Tool 호출→상품/호수 ID 검증→가격·제형·성분 **확인 조건과 미확인 조건을 구분**해 자연스럽게 앱 카드 응답. 실판매가/성분을 근거 없이 단정하지 않음. G4 복합 교집합을 G1의 필수 완료조건으로 끌어오지 않음.
+- **G4:** 검증된 원본 Option/상품/셰이드 귀속, 예산·가격 basis/`observedAt`·제형·성분 교집합, `checkedScope/exhaustive` 명시. 필수 조건 중 하나라도 확정 `NOT_MATCH`이면 `EXCLUDED`, 모두 `MATCH`면 `ELIGIBLE`, 나머지 미확인/부분/오류는 별도로 `REFERENCE_ONLY` 또는 시스템 오류 표기. 현재가를 지난 참고가로 대체 금지.
+
+### 9-3. AIHub 71961 국내 로컬 RAG 개발 경로 (D3-01 변경)
+
+**목표:** 71961 데이터를 RAG 설계에서 제외하지 않고 실제 개발 계획에 포함. **권리 게이트:** 본인 합법 접근/국내 로컬/데이터셋 개별 이용조건·문서별 `Purpose/Cautions`, 원문/발췌 외부 LLM 전송, 2차 저작물, 공용 서비스 제공을 별도로 검토. 기존 [원본 이용권한 결정](../AIHUB_DATA_RIGHTS.md)과 [검수 계약](../AIHUB_REVIEW_CONTRACT.md)을 변경 승인 없이 무효화하지 않는다.
+
+1. **구조 실사:** QA 9,031·고유 문서 3,108·출처 참조 9,181의 로컬 DB/원본 해시·`Purpose/Cautions`·문서 출처 구조 분석(원문 공유 금지).
+2. **근거 연결/검수:** QA→출처 문서→주장 연결 및 `direct/indirect/insufficient/contradicting`, 출처·검수자·일시·권리/발행 상태 분리. 자동 링크 일치가 주장 승인 아님.
+3. **청킹:** 처리 권한이 확인된 텍스트에 대해 문서 제목·절·주장·문단/기법 단위 청크, `chunkId/documentId/claimId/sourceSpan/contentHash/sourceVersion/contentLanguage/reviewStatus/rightsStatus/publicationStatus`. QA/문서 이중 임베딩으로 중복 검색 부풀림 방지.
+4. **한국어 의미 검색:** 허용 처리 자료로 정확 키워드/형태소·동의어 + 임베딩·재순위화 결합. `embeddingModelVersion/indexVersion/sourceVersion` 고정; pgvector 기준선, Neo4j Vector/Qdrant 대안 비교. 실제 모델·엔진 확정은 평가 후.
+5. **응답:** 권리·발행·범위 Gate→검색→근거 본문/주장 일치 재검증→답변. 권리 미승인 원문·발췌를 외부 LLM에 보내지 않음; 로컬 모델도 개별 목적에 맞는 허용 처리만. 별도 라이선스 확인 자료를 병행.
+6. **RAG 평가:** Recall@k/MRR, 근거 적중률/claim 지지 여부·거짓 근거/오답·거절·철회. 데이터 담당 기존 보고의 원본 학습/검증에 **대상자 339명 중복, 검증 QA 403/1,000 중복 대상자**가 있으므로 대상자 단위 그룹 분리 + 동일/유사 출처 문서/claim 해시 중복 방지. 같은 QA를 인덱스에 넣고 정답을 검색하는 누출 시험 금지.
+7. **발행/철회:** 출처 버전·검수/권리 확인→청크/그래프/벡터 인덱스 생성·정합성 검증→활성 버전 전환. 철회는 재색인 전에도 조회·답변 시 즉시 차단하고 파생 Vector/Graph/Redis 캐시·요약까지 정리. 공용 서비스 발행은 별도 승인/환경·실 E2E.
+
+**개발이 멈추지 않도록:** 원본 처리 권한 미확정 구간은 합성·별도 권리 확인 자료로 파이프라인·인터페이스·검색 평가기를 구현하면서 71961 로컬 원본 구조/근거 검수를 병행한다. '수집 완료'·'검수 완료'·'서비스 사용 승인'·'실제 검색·응답 성공' 네 상태는 독립 증빙이다.
+
+### 9-4. 정본·관계·벡터·스타일·기억 데이터 모델
+
+| 저장 계층 | 담당 데이터·필드(제안) | 규칙 |
+| --- | --- | --- |
+| Catalog PostgreSQL/API | Product/Shade/RawOption/가격관측/성분/Look, 옵션 매핑·검수·출처·발행 | API 소유 정본; 챗봇의 PostgreSQL 직독 금지 |
+| Neo4j | 승인된 Product↔Shade, Look↔Technique↔Product 등 관계 + `graphGeneration` | 검증된 파생 인덱스, 조회 후 정본 재확인 |
+| VectorDB | 승인/허용 문서·청크·레시피·기법 임베딩, `embeddingModelVersion/indexVersion` | 권리·출처·재현성 필터, 회수·삭제 가능 |
+| Redis | 캐시·요청 중복·단기 세션 | 장기 기억/성분 사실의 정본 아님 |
+| Chatbot 전용 Checkpointer/Store | `VishueState`/thread/checkpoint, 동의한 장기 프로필·취향 | G2/G7 동일 State, 소유권·동의·삭제 계약 별도 |
+
+레시피의 최소 개념 계약은 `recipeId/lookId/kind/videoId/sourceSpan/stepOrder/zone/technique/productId/shadeId/reviewStatus/publicationStatus/reviewer/evidenceId`. 일반 메이크업 팁·영상 메타 추정·검수된 영상 레시피를 구분하고 실제 영상에서 확인하지 않은 제품/호수·화장법을 확정하지 않는다.
+
+### 9-5. G1~G9 데이터·API 착수 조건(권장 순서)
+
+| 작업 | 착수/완료 전 준비해야 할 실제 데이터·연동 |
+| --- | --- |
+| G1 | 7,845 상품/10,561 셰이드 기준 Catalog 스냅샷 후보, 실제 HTTP·LangGraph Catalog Tool·LLM/앱·AR 회귀 확인 |
+| G2 | G1 병합 + 공통 VishueState/결과 집합·선택/요청 ID·Redis 단기 상태 |
+| G3 | 검수 원본 옵션 성분·완전성·동의어/근거 버전·발행과 오류 구분 |
+| G4 | 옵션 교집합/가격 basis/관측시각·검색 범위, 세 후보 그룹, Catalog 담당 Tool/API |
+| **G5** | **AIHub 71961 로컬 RAG 적극 개발**, 문서·주장 검수, 권리 허용 청킹/한국어 임베딩/검색·평가; 서비스 승인 분리 |
+| G6 | 룩·영상과 검수 레시피 단계·영상 근거·상품/옵션 승인 연결 |
+| **G7** | G2 공통 State + Checkpointer/Memory Store·동의·삭제·복구 |
+| **G8** | 필요한 G1~G7 Tool·Agent 의존/부분 성공·재계획·권한 |
+| G9a~c | 피부/미디어/AR 담당 서비스·동의/Handoff·ACK·공동 E2E. AR 내부 LLM·STT·TTS는 타 담당 |
+
+**3단계 종료 범위:** 문서상 논리 설계 검토(REVIEW-CONCLUSION). 실제 구현/승인/검색 정량 측정/팀 검수/운영 배포·실기기 검증 **미완료**. 다음은 4-1 환경·데이터 평가 계약을 먼저 검토.
+
