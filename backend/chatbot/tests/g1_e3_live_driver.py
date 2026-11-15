@@ -130,6 +130,34 @@ class RecordedCatalog(CatalogClient):
         return product
 
 
+def detail_source_shade_pairs(results):
+    """Return only fully observed detail-product shade lists, never inferred response shades."""
+    if not results or any(result.get("operation") != "detail" for result in results):
+        return None
+    pairs = []
+    for result in results:
+        product = result.get("product")
+        if (
+            not isinstance(product, dict)
+            or not isinstance(product.get("id"), str)
+            or not product["id"].strip()
+            or product["id"] != result.get("productId")
+        ):
+            return None
+        shades = product.get("shades")
+        if not isinstance(shades, list):
+            return None
+        for shade in shades:
+            if (
+                not isinstance(shade, dict)
+                or not isinstance(shade.get("id"), str)
+                or not shade["id"].strip()
+            ):
+                return None
+            pairs.append({"productId": product["id"], "shadeId": shade["id"]})
+    return pairs
+
+
 class GraphCapture(BaseCallbackHandler):
     """Observe completed graph nodes without retaining their input or output state."""
 
@@ -383,6 +411,9 @@ async def run(item):
             source_products.append(result["product"])
     if catalog.results:
         observation["sourceProductIds"] = [p["id"] for p in source_products]
+    source_shade_pairs = detail_source_shade_pairs(catalog.results)
+    if source_shade_pairs is not None:
+        observation["sourceShadePairs"] = source_shade_pairs
     tool_result = next(
         (e for e in reversed(capture.events) if e["event"] == "g1_catalog_tool_result"), None
     )

@@ -18,8 +18,15 @@ SUPPORTED = {
     "G1-GEN-10",
     "G1-CAT-01",
     "G1-CAT-03",
+    "G1-CAT-07",
+    "G1-CAT-08",
     "G1-CAT-09",
     "G1-CAT-14",
+    "G1-ERR-01",
+    "G1-ERR-02",
+    "G1-ERR-03",
+    "G1-ERR-06",
+    "G1-ERR-09",
     "G1-REG-01",
 }
 
@@ -101,6 +108,15 @@ def run(item):
         observation["expectedBrand"] = allowed["q"]
     if observed.get("routeIntent") is not None:
         observation["routeIntent"] = observed["routeIntent"]
+    if observed.get("catalogPreflight") is not None:
+        observation["catalogPreflight"] = observed["catalogPreflight"]
+    if observed.get("catalogResultCount") is not None:
+        observation["catalogResultCount"] = observed["catalogResultCount"]
+    if observed.get("faultKind") is not None:
+        observation["fault"] = {"kind": observed["faultKind"]}
+    if observed.get("rateLimitTrace") is not None:
+        observation["trace"].update(observed["rateLimitTrace"])
+        observation["trace"]["completeDomains"] += ["tools", "modelCalls"]
     if result.returncode:
         observation.update(status="FAIL", failureReason="pytest_case_failed")
     common = {
@@ -134,6 +150,9 @@ def run(item):
                 "response": observed["response"],
                 "catalogHttp": observed["events"],
                 "routeIntent": observed.get("routeIntent"),
+                "faultKind": observed.get("faultKind"),
+                "catalogPreflight": observed.get("catalogPreflight"),
+                "rateLimitTrace": observed.get("rateLimitTrace"),
             },
         },
     }
