@@ -5,7 +5,7 @@ import time
 import unicodedata
 from hashlib import sha256
 from typing import Protocol
-from uuid import NAMESPACE_URL, uuid4, uuid5
+from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
 from fastapi import Depends
 
@@ -38,6 +38,7 @@ from app.schemas.supervisor import (
     TaskPlan,
     ToolResult,
 )
+from app.schemas.vishue_state import VishueState
 from app.services.ar_command_service import propose_ar_command
 from app.services.beauty_consultation_service import (
     COMPARISON_SCREENS,
@@ -46,6 +47,7 @@ from app.services.beauty_consultation_service import (
     execute_beauty,
     interpret_beauty,
 )
+from app.services.product_consultation_graph import SupervisorRuntime, product_supervisor
 from app.services.style_recipe_service import TEXT as STYLE_TEXT
 from app.services.style_recipe_service import execute_style
 
@@ -438,7 +440,13 @@ class ChatService:
         return plan.model_copy(update={"category": category, "query": query})
 
     async def _run_supervisor(
-        self, req: ChatRequest, context: ResolvedContext, decision: IntentDecision
+        self,
+        req: ChatRequest,
+        context: ResolvedContext,
+        decision: IntentDecision,
+        *,
+        thread_id: UUID | None = None,
+        request_id: UUID | None = None,
     ) -> ChatResponse:
         # AR can clarify missing selection without an LLM.
         if (
@@ -462,8 +470,35 @@ class ChatService:
                 raise
             if decision.slots.intent != "general":
                 decision.intent = "ingredient" if decision.intent == "ingredient" else "product"
-        sufficient = check_sufficiency(context, decision)
-        plan = build_plan(context, decision, sufficient)
+        if (
+            req.request_type in {"chat", "beauty_consultation"}
+            and decision.intent in {"general", "product", "ingredient"}
+            and req.style_context is None
+            and get_settings().g1_supervisor_enabled
+        ):
+            state = VishueState(
+                turn_id=uuid4(),
+                request_id=request_id or req.request_id,
+                thread_id=thread_id,
+                result_set_id=context.result_set_id,
+                state_version=context.session_version,
+                locale=req.locale,
+                decision=decision,
+            )
+            output = await product_supervisor.ainvoke(
+                state,
+                context=SupervisorRuntime(req, context, self._plan_turn, self._execute_turn),
+            )
+            return output["response"]
+        return await self._execute_turn(req, decision, self._plan_turn(context, decision))
+
+    @staticmethod
+    def _plan_turn(context: ResolvedContext, decision: IntentDecision) -> TaskPlan:
+        return build_plan(context, decision, check_sufficiency(context, decision))
+
+    async def _execute_turn(
+        self, req: ChatRequest, decision: IntentDecision, plan: TaskPlan
+    ) -> ChatResponse:
         tool = (
             plan.tasks[0] if plan.tasks else "ar_command" if decision.intent == "ar" else "beauty"
         )
@@ -686,7 +721,13 @@ class ChatService:
             context.state_source = "server_session"
             context.session_version = state.state_version
             context.result_set_id = str(state.result_set_id)
-        response = await self._run_supervisor(req, context, decision)
+        response = await self._run_supervisor(
+            req,
+            context,
+            decision,
+            thread_id=ref.session_id if state and ref else None,
+            request_id=request_id,
+        )
         result = response.supervisor.result
         ctx = response.chat_context
         if state and comparing and req.screen_context and req.screen_context.ingredient_comparison:
