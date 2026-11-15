@@ -1,4 +1,5 @@
 from functools import lru_cache
+from time import perf_counter
 
 import httpx
 
@@ -31,6 +32,31 @@ class LlmClient:
             return res.json()["choices"][0]["message"]["content"].strip()
         except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
             raise UpstreamError("LLM request failed") from exc
+
+    async def complete_with_tools(self, messages, tools) -> tuple[dict, float]:
+        payload = {
+            "model": self._model,
+            "messages": messages,
+            "tools": tools,
+            "parallel_tool_calls": False,
+            "store": False,
+        }
+        if self._model == "gpt-6-luna":
+            # This model accepts Chat Completions function tools with reasoning disabled.
+            payload["reasoning_effort"] = "none"
+        started = perf_counter()
+        try:
+            async with httpx.AsyncClient(timeout=self._timeout) as client:
+                response = await client.post(
+                    self._url, json=payload, headers={"Authorization": f"Bearer {self._api_key}"}
+                )
+            response.raise_for_status()
+            result = response.json()
+            if not isinstance(result, dict):
+                raise ValueError("Invalid completion response")
+            return result, round((perf_counter() - started) * 1000, 1)
+        except (httpx.HTTPError, ValueError) as exc:
+            raise UpstreamError("G1 LLM request failed") from exc
 
 
 @lru_cache

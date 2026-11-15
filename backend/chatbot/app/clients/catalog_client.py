@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import re
 import unicodedata
 from functools import lru_cache
@@ -10,6 +11,8 @@ from pydantic import ValidationError
 from app.core.config import get_settings
 from app.core.errors import UpstreamError
 from app.schemas.catalog import CatalogIngredients, CatalogLook, CatalogProduct, CatalogStyleLook
+
+logger = logging.getLogger(__name__)
 
 
 class IngredientLookupError(UpstreamError):
@@ -31,6 +34,10 @@ class CatalogClient:
                 timeout=max(40, self._timeout) if search else self._timeout
             ) as client:
                 res = await client.get(self._base + path)
+            if search:
+                logger.info(
+                    "catalog_http", extra={"path": "/api/products", "status": res.status_code}
+                )
             res.raise_for_status()
             return res.json()[key]
         except (httpx.HTTPError, KeyError, ValueError) as exc:
@@ -91,6 +98,10 @@ class CatalogClient:
         try:
             async with httpx.AsyncClient(timeout=self._timeout) as client:
                 res = await client.get(self._base + "/api/products/" + quote(product_id, safe=""))
+            logger.info(
+                "catalog_http",
+                extra={"path": "/api/products/{productId}", "status": res.status_code},
+            )
             if res.status_code == 404:
                 return None
             res.raise_for_status()

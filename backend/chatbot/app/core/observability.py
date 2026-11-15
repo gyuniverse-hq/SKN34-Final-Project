@@ -40,6 +40,8 @@ def configure_logging(service: str, level: str) -> None:
     root.handlers = [handler]
     root.setLevel(level)
     logging.getLogger("uvicorn.access").disabled = True
+    # HTTPX's default INFO message includes arbitrary query strings.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 class RequestContextMiddleware:
