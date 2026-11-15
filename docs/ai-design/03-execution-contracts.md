@@ -359,10 +359,10 @@ type ArHandoffEventV1 = {
 
 | 우선순위 | 실제 사용자 행동을 포함한 최소 수직 PR 경계 | 의존성 및 구현·시험 통과 조건 |
 | --- | --- | --- |
-| G1 | **한국어 자유 상품 상담 첫 수직 경로**: 가격·제형·성분 자연어 질문 수용 → LangGraph 일반 상담 → 실제 Catalog Tool/API → 존재하는 상품·호수/확인·미확인 조건을 구분한 앱 답변 | 기존 §/api/chat§·§ChatService§·AR·§/api/chat/acks§ 회귀. 실제 Tool·실 DB/LLM·앱 카드 검증, 참고가를 현재가로 둔갑 금지. **G4 옵션 복합 교집합까지 G1 게이트로 요구하지 않음** |
+| G1 | **한국어 자유 상품 상담 첫 수직 경로**: 가격·제형·성분 자연어 질문 수용 → LangGraph 일반 상담 → 실제 Catalog Tool/API → 존재하는 상품·호수/확인·미확인 조건을 구분한 앱 답변 | 기존 `/api/chat`·`ChatService`·AR·`/api/chat/acks` 회귀. 실제 Tool·실 DB/LLM·앱 카드 검증, 참고가를 현재가로 둔갑 금지. **G4 옵션 복합 교집합까지 G1 게이트로 요구하지 않음** |
 | G2 | **같은 대화에서 조건 변경·상품 지시어**: "두 번째 상품" / "조건 바꿔줘" → State → 재검증된 결과 | G1 병합 필수. `resultSetId`·선택 순서·`requestId` 중복·오래된 응답·세션 만료 시험. 초기 단기 State는 영속 보증 아님 |
 | G3 | **실제 선택한 상품·옵션의 성분 질문** → 검수 원본·부재·동의어/권리·오류·후속 질문 | G2 + Catalog 원본·옵션 검증/자료 가용성. `excludes+MATCH=조건 충족`, 전성분 미완전은 UNKNOWN, 오류는 ERROR, 승인 없는 원문 사용 금지 |
-| G4 | **옵션별 복합 교집합 검색**: 예산·제형·성분 조건을 실제 Option/셰이드 귀속·같은 검색 범위에서 검증해 §ELIGIBLE/REFERENCE_ONLY/EXCLUDED§ 분리 | G3 + Catalog 옵션 검색 API/검수 선행. §priceBasis/observedAt§·§checkedScope/exhaustive§·§UNKNOWN/ERROR§·부분 결과·세 후보 그룹 평가 |
+| G4 | **옵션별 복합 교집합 검색**: 예산·제형·성분 조건을 실제 Option/셰이드 귀속·같은 검색 범위에서 검증해 `ELIGIBLE/REFERENCE_ONLY/EXCLUDED` 분리 | G3 + Catalog 옵션 검색 API/검수 선행. `priceBasis/observedAt`·`checkedScope/exhaustive`·`UNKNOWN/ERROR`·부분 결과·세 후보 그룹 평가 |
 | G5 | **K-뷰티 지식 자유 질문·RAG**: AIHub 71961 국내 로컬 데이터 적극 개발 후보 및 별도 허용 지식 병행 | G1 상담 경로 + QA/문서/주장 검수, 허용 범위의 청킹·임베딩/한국어 검색 평가. **로컬 개발과 서비스 발행·외부 LLM 원문/발췌 전송 권한 분리**, 실검색/실응답 미검증 |
 | G6 | **룩·메이크업 코칭**: 실제 룩 선택 → 확인된 단계·제품/AR 제안 | G1 + 3단계 레시피/룩 실제 서빙 자료. 일반 팁·영상 메타·검수된 레시피를 분리하고 앱 화면 E2E |
 | G7 | **대화방 재개·동의 기반 기억**: 새로 접속→이전 사용자 선택/동의 정보만 재사용·수정/삭제 | G2 + 챗봇 영속 Checkpointer/DB 권한 ADR·삭제/동의 계약. **Redis 600초는 장기 기억이 아님**; 장기 기억과 현재 thread 분리 |
@@ -434,4 +434,21 @@ AR/AR AI팀의 자체 구현·PR은 일반 LLM G1~G9 전체 병합을 기다릴 
 - AIHub 71961의 국내 로컬 RAG 개발은 D3-01로 적극 추진하며 서비스 발행·외부 LLM 제공 권한과 구분. [DECISIONS](DECISIONS.md)·[08](08-option-search-evidence-and-sync.md).
 
 **상태: 설계 기록.** 공통 State 실제 코드/Checkpointer, G1/G4 실제 기능/팀 승인/실측 완료를 의미하지 않는다.
+
+## 15. 5단계 G1 실제 착수 사전 검증 체크 (2026-11-15)
+
+> **PREPARED, NOT STARTED.** 설계 L2 종료와 실제 개발 착수/실측·PR 병합을 구분한다. 점검 시점 `develop=98b0f83b1475f1cbee7cae147d252fa6b9afac01`; 실제 G1 브랜치 생성 전에 새 HEAD를 다시 확인한다.
+
+| 검증 대상 | 직접 확인한 현재 코드/데이터 | G1 착수 전에 확정/검증할 것 |
+| --- | --- | --- |
+| 기존 HTTP 계약 | `backend/chatbot/app/routers/chat.py`: `POST /api/chat`와 `POST /api/chat/acks` 공용. `ChatService.answer`는 `requestType` 분기·기존 AR 멱등 처리를 포함 | 일반 LLM·AR AI 공용 코드 단일 수정자·필수 리뷰/회귀/롤백. `ChatRequest`의 일반 `chat` 요청에서 `requestId` 제거되는 현재 호환 코드도 고려 |
+| LangGraph·Tool | `backend/chatbot/pyproject.toml`에 `langgraph` 의존성 없음; `CatalogClient`는 현행 HTTP API를 사용 | G1에서 최소 Supervisor·공통 `VishueState`·진짜 Catalog Tool과 실제 LLM 호출 trace를 추가; 기존 AR 전체 교체 금지 |
+| 데이터·Catalog | 연결 Supabase **한 개 스냅샷**에서 `alembic=0022`, 상품 7,845/셰이드 10,561/lip 913, nonempty `keyIngredients=0` 관측. `GET /api/products`, `GET /api/products/{id}` 라우트 존재 | 실제 사용할 로컬/공용 Catalog API URL, HTTP 헬스 및 상품/호수, API가 연결한 DB/시드 버전·출처를 확인. 위 Supabase DB와 동일하다고 가정 금지 |
+| 실제 LLM | `LlmClient`는 OpenAI 호환 Chat Completions, `LLM_API_KEY/LLM_MODEL` 미설정 시 비활성 | 허용 모델/Provider, 로그·비용·timeout, 실제 호출 횟수·추적, 공급자 데이터 전송 범위와 비밀키 취급 합의 |
+| 앱 카드 | `hooks/useChat.ts`: `chat`/`beauty_consultation` 분기 및 90초 제한; `components/chat/ChatProducts.tsx`에서 `priceKRW` 등으로 조건 표시 | productId/shadeId·순서·화면·카드 근거, 카탈로그 참고가 vs 현재가 표기, 무향료 미확인, 0건·타임아웃/재시도·오래된 응답, E5 증빙 및 프론트 리뷰 |
+| 평가/회귀 | G1 47 cases / 70 predicate 정의, 구조 검사 기록 | 70 함수/실행기 구현·핵심 답변 사람 평가·E0/E1/E3/E5 및 기존 AR/ACK 회귀. E6/E7는 해당 AR/팀 연동에서 별도 판정 |
+
+**팀 협의 안건:** (1) API·데이터 담당: G1 기준 Catalog URL/DB/상품 스냅샷·응답/권한·API 오너 (2) 일반 LLM·AR AI: `/api/chat`·`ChatService`·스키마 소유/필수 리뷰, AR/ACK 기존 fingerprint/세션 계약 (3) 프론트: 상품 카드·참고 가격·조건 충족·오류/재시도·E5 실제 화면 (4) LLM·운영: 실제 모델/provider·비용·추적·개인정보 및 실패 정책 (5) 공동: 회귀·최소 필수 실제 환경·PR 승인·병합 후 검증/롤백.
+
+**착수 판정:** 소스와 DB 스냅샷에 대한 읽기 전용 준비 조사 일부 완료, **실제 Catalog HTTP/실 LLM/앱 수직 E2E 미검증**, 공유 변경 담당 확정 전. G1 코딩·평가 실행 아직 시작하지 않는다. 의존 일반 LLM PR 하나씩 구현→관련 E2E→필수 리뷰→`develop` 병합 후 다음 작업, AR/AR AI 독립 병렬·공동 Handoff 유지.
 
