@@ -50,6 +50,7 @@ describe('AR highlighter chips (11-11: face type sets the regions, chips show wh
   it('shows the oval set before any measurement and the picked face type set after a face chip', async () => {
     let screen!: renderer.ReactTestRenderer;
     await act(async () => { screen = renderer.create(<ArTryOnScreen />); });
+    await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.arc.tools' }).props.onPress(); });
     expect(chip(screen, 'ar.hlFace.auto').props.selected).toBe(true);
     expect(areasOn(screen)).toEqual(HL_FACE_AREAS.oval);
     await act(async () => { chip(screen, 'ar.faceShape.name.oblong').props.onPress(); });
@@ -67,6 +68,7 @@ describe('AR highlighter chips (11-11: face type sets the regions, chips show wh
   it('shows no region while a style template is drawn, and a region chip turns the style off', async () => {
     let screen!: renderer.ReactTestRenderer;
     await act(async () => { screen = renderer.create(<ArTryOnScreen />); });
+    await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.arc.tools' }).props.onPress(); });
     await act(async () => { chip(screen, 'ar.hlStyle.natural_cheek').props.onPress(); });
     expect(areasOn(screen)).toEqual([]);
     expect(chip(screen, 'ar.hlFace.auto').props.selected).toBe(false);

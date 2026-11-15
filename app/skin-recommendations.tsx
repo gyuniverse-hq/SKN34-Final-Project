@@ -118,6 +118,8 @@ export default function SkinRecommendationsScreen() {
         <SkinRoutine />
       </View> : <SkinReportDetail metrics={flow.report.metrics} active={flow.activeConcern} onChange={flow.setActive} preview={flow.preview} />}
       <View style={styles.footer}>
+        {__DEV__ ? <Button label={t('comparison.title')} variant="secondary"
+          onPress={() => router.push('/dev/recommendation-comparison')} /> : null}
         <Notice title={t('skinFlow.notMedicalTitle')} body={t('skinFlow.notMedicalBody')} />
         <Button label={t('report.retake')} variant="secondary" onPress={start} />
         <Button label={t('report.top')} variant="ghost" icon="arrow-up" onPress={() => scroll.current?.scrollTo({ y: 0, animated: true })} />

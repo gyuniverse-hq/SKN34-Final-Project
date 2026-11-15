@@ -19,14 +19,16 @@ import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useProduct, useProductVideos } from '@/lib/queries';
 import { arHref, chatHref, parseId, productVideoHref, recommendationsHref } from '@/lib/routes';
 import { useCartStore } from '@/store/cartStore';
+import { useRecommendationProductFeedback } from '@/hooks/useRecommendationProductFeedback';
 import { MAX_COMPARE, useCompareStore } from '@/store/compareStore';
 export default function ProductDetailScreen() {
-  const params = useLocalSearchParams<{ id: string; shade?: string }>();
+  const params = useLocalSearchParams<{ id: string; shade?: string; recommendation?: string }>();
   const id = parseId(params.id);
   const requestedShadeId = parseId(params.shade);
   const router = useRouter();
   const { t } = useI18n();
   const product = useProduct(id);
+  const feedback = useRecommendationProductFeedback(parseId(params.recommendation), id, product.isSuccess);
   const productVideos = useProductVideos(id);
   const addToCart = useCartStore((s) => s.add);
   const addToCompare = useCompareStore((s) => s.add);
@@ -60,7 +62,10 @@ export default function ProductDetailScreen() {
   };
 
   const onAdd = () => {
+    const quantity = () => useCartStore.getState().items.find(i => i.productId === p.id && i.shadeId === selectedShade?.id)?.quantity ?? 0;
+    const before = quantity();
     addToCart({ productId: p.id, shadeId: selectedShade?.id });
+    if (quantity() > before) feedback.record('cart_add');
     setAdded(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
   };
@@ -77,6 +82,7 @@ export default function ProductDetailScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <ProductImage uri={p.imageUrl} category={p.category} style={styles.hero} recyclingKey={p.id} />
           <View style={styles.body}>
+            {feedback.failed ? <Notice tone="warning" body={t('comparison.feedbackFailed')} /> : null}
             <Text style={styles.brand}>{p.brand}</Text>
             <Text style={styles.name} accessibilityRole="header">
               {p.name}
@@ -184,7 +190,7 @@ export default function ProductDetailScreen() {
             label={t('ar.openStore')}
             icon="open-outline"
             variant="secondary"
-            onPress={() => WebBrowser.openBrowserAsync(p.sourceUrl!)}
+            onPress={() => { feedback.record('outbound_click'); void WebBrowser.openBrowserAsync(p.sourceUrl!); }}
             style={styles.footerBtn}
           />
         ) : null}

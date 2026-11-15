@@ -23,6 +23,10 @@ from app.models.order import OrderLineRow, OrderRow
 from app.models.oy_catalog_category_rule import OyCatalogCategoryRuleRow
 from app.models.oy_mfds_ingredient_map import OyMfdsIngredientMapRow
 from app.models.raw_mfds_ingredient import RawMfdsIngredientRow
+from app.models.raw_official_product import (
+    RawOfficialProductOptionRow,
+    RawOfficialProductRow,
+)
 from app.models.raw_oliveyoung import (
     RawOyBrandRow,
     RawOyCategoryRow,
@@ -64,6 +68,12 @@ from app.models.recommendation import (
     RecMappingRow,
     RecommendationLegacyArchiveRow,
 )
+from app.models.recommendation_feedback import (
+    RecommendationCandidateRow,
+    RecommendationImpressionRow,
+    RecommendationRequestRow,
+    UserBehaviorEventRow,
+)
 from app.models.skincare import SkincareServingRow
 
 __all__ = [
@@ -94,6 +104,8 @@ __all__ = [
     "OyMfdsIngredientMapRow",
     "ProductRow",
     "RawMfdsIngredientRow",
+    "RawOfficialProductOptionRow",
+    "RawOfficialProductRow",
     "RawYtProductMentionRow",
     "RawYtProductRow",
     "RecConcernMatchRow",
@@ -104,7 +116,11 @@ __all__ = [
     "RecMappingIngredientRow",
     "RecMappingEvidenceRow",
     "RecMappingRow",
+    "RecommendationCandidateRow",
+    "RecommendationImpressionRow",
     "RecommendationLegacyArchiveRow",
+    "RecommendationRequestRow",
+    "UserBehaviorEventRow",
     "RawOyBrandRow",
     "RawOyCategoryRow",
     "RawOyCrawlLogRow",

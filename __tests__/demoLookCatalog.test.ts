@@ -76,10 +76,13 @@ describe('demo look coverage', () => {
     expect(new Set(Object.keys(DEMO_LOOK_AR).map((id) => JSON.stringify(mascaraGeometry(style(id)!)))).size).toBe(6);
   });
 
-  test('the 설윤 lashes fan out and curl (the straight comb is gone); the fine looks are denser, the light ones sparser', () => {
+  test('the 설윤 lashes fan out a little and curl (the straight comb is gone); the fine looks are denser, the light ones sparser', () => {
     const fan = mascaraGeometry('long_fan');
     expect(fan.lashSweep).toBeGreaterThan(0);
-    expect(fan.lashFan).toBeGreaterThan(40);
+    // 11-13: a wide 55° fan read as drawn comb teeth next to the finished frame; a soft fan stays.
+    expect(fan.lashFan).toBeGreaterThanOrEqual(20);
+    expect(fan.lashFan).toBeLessThanOrEqual(40);
+    expect(fan.lashWidth).toBeLessThanOrEqual(1);
     expect(fan.lower).toBe(true);
     expect(mascaraGeometry('fine_dense').lashCount).toBeGreaterThan(fan.lashCount!);
     expect(mascaraGeometry('short_light').lashCount).toBeLessThan(fan.lashCount!);
@@ -104,7 +107,7 @@ describe('demo look coverage', () => {
       expect(g.thickness).toBeGreaterThanOrEqual(0.04);
       expect(g.thickness).toBeLessThanOrEqual(0.15);
       expect(g.length).toBeGreaterThanOrEqual(0);
-      expect(g.length).toBeLessThanOrEqual(0.35);
+      expect(g.length).toBeLessThanOrEqual(0.45);
       expect(g.angle).toBeGreaterThanOrEqual(-15);
       expect(g.angle).toBeLessThanOrEqual(25);
     }

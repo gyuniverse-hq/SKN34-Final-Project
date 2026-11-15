@@ -27,8 +27,8 @@ export const LINER_LOOKS: Record<LinerLookId, ZoneGeometry> = {
  * 청초 물복숭아 has no liner in its video, so it has no entry.
  */
 export const LOOK_LINERS = {
-  /** 설윤 뿌까: bold, long wing swept up. */
-  sullyoon_wing: style({ thickness: 0.13, length: 0.28, angle: 18, linerSoftness: 0.1, linerLower: false }),
+  /** 설윤 뿌까: bold, long wing swept up (11-13: wing lengthened to match the finished frame). */
+  sullyoon_wing: style({ thickness: 0.12, length: 0.4, angle: 16, linerSoftness: 0.1, linerLower: false }),
   /** 딸기 토끼상: thin smudged line whose end droops a little. */
   strawberry_droop: style({ linerStyle: 'puppy', thickness: 0.07, length: 0.06, angle: -8, linerSoftness: 0.45, linerLower: false }),
   /** 연말 수상템: thin brown line, short wing. */

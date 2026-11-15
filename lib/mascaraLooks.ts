@@ -29,9 +29,10 @@ export const MASCARA_LOOKS = {
   /**
    * 설윤 뿌까: long, dense strands that fan out and curl up, with a few fine lower lashes at the outer corner (eye photo, 11-11).
    * Before 11-11 this was `comb` (14 straight parallel strands, no lower lashes, read from the video close-ups); the photo shows
-   * a curled fan, so the straight comb is gone.
+   * a curled fan, so the straight comb is gone. 11-13: the 11-11 fan read as drawn comb teeth next to the finished frame
+   * (too long, thick and spread), so it is shorter, finer and less spread.
    */
-  long_fan: { length: 1.6, thickness: 1, lower: true, intensity: 0.85, lashCount: 18, lashSweep: 0.35, lashClump: 0.25, lashFan: 55, lashJitter: 0.4, lowerLen: 1.4, lowerAlpha: 2.5, lowerCount: 4, lashWidth: 1.6 },
+  long_fan: { length: 1.1, thickness: 0.7, lower: true, intensity: 0.55, lashCount: 14, lashSweep: 0.3, lashClump: 0.2, lashFan: 25, lashJitter: 0.3, lowerLen: 1.1, lowerAlpha: 1, lowerCount: 3, lashWidth: 0.8 },
   /** 윈터 또렷 청초: thin hair-like dense lashes, no bunches, faint lower lashes. */
   fine_dense: { length: 1.5, thickness: 1, lower: true, intensity: 0.85, lashCount: 24, lashClump: 0.3, lashJitter: 0.8, lowerLen: 1.9, lowerAlpha: 1.5, lowerCount: 4, lashWidth: 1.4 },
 } satisfies Record<string, MascaraLook>;
