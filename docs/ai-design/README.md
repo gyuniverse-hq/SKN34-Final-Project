@@ -49,7 +49,7 @@ VISHUE를 **K-뷰티 중심 자유 대화형 AI**로 설계한다. 사용자가 
 | 6 | 구현·지속 통합 | 새 목표 아키텍처 기준 미착수 |
 | 7 | 실제 E2E·사용자 평가 | 새 목표 아키텍처 기준 미착수 |
 
-2-5는 [설계 검토 종료 기준](05-tool-evidence-data-contract.md)·[구현 계약](06-tool-implementation-contracts.md)·[가격/색인 불변조건](08-option-search-evidence-and-sync.md)으로 **논리 설계 검토를 마무리**했다. `ELIGIBLE/REFERENCE_ONLY/EXCLUDED`, 가격 basis/observedAt, 권리·철회·동기화 및 2-6/2-7/3단계 인계를 명시했다. 2-6은 **일반 LLM·AR·AR AI의 책임과 최소 Handoff·복귀 상태·ACK 및 오류 인계를 포함해 논리 설계 검토를 마무리**했다([03](03-execution-contracts.md), [02](02-architecture.md)). 2-7에서는 [목표 구조의 14개 능력·12개 시나리오 커버리지](02-architecture.md), [수직 기능 PR 의존성/공용 API 변경 게이트](03-execution-contracts.md), [실제 공백과 3~5단계 선결](04-gap-analysis-and-2-5.md)을 검토해 **논리 설계 검토를 종료**했다. **팀 기술 승인과 실제 구현·자동 테스트·실환경 연동·기기 E2E·develop 병합은 별도 상태로 남는다.** **2-4는 설계안 문서화까지 완료됐으나 기술 승인·구현은 완료되지 않았고, 2단계 전체도 미완료**다.
+2-5는 [설계 검토 종료 기준](05-tool-evidence-data-contract.md)·[구현 계약](06-tool-implementation-contracts.md)·[가격/색인 불변조건](08-option-search-evidence-and-sync.md)으로 **논리 설계 검토를 마무리**했다. `ELIGIBLE/REFERENCE_ONLY/EXCLUDED`, 가격 basis/observedAt, 권리·철회·동기화 및 2-6/2-7/3단계 인계를 명시했다. 2-6은 **일반 LLM·AR·AR AI의 책임과 최소 Handoff·복귀 상태·ACK 및 오류 인계를 포함해 논리 설계 검토를 마무리**했다([03](03-execution-contracts.md), [02](02-architecture.md)). 2-7에서는 [목표 구조의 14개 능력·12개 시나리오 커버리지](02-architecture.md), [수직 기능 PR 의존성/공용 API 변경 게이트](03-execution-contracts.md), [실제 공백과 3~5단계 선결](04-gap-analysis-and-2-5.md)을 검토해 **논리 설계 검토를 종료**했다. **팀 기술 승인과 실제 구현·자동 테스트·실환경 연동·기기 E2E·develop 병합은 별도 상태로 남는다.** **2-4는 설계안을 문서화했다. 2단계의 논리 설계 검토는 종료했으며 팀 기술 승인과 실제 구현은 미완료 상태다.**
 
 ## 변경·승인 흐름
 
@@ -112,7 +112,7 @@ VISHUE를 **K-뷰티 중심 자유 대화형 AI**로 설계한다. 사용자가 
 
 ## 2026-11-15 2-7 최종 검토 및 2단계 설계 종료 기록
 
-| 구분 | 판정 | 증거·다음 단계 |
+| 구분 | 당시 판정 | 증거·당시 인계 |
 | --- | --- | --- |
 | **2-7 목표 아키텍처 검토** | **REVIEW-CONCLUSION: 설계 검토 종료** | [02 C01~C14/S01~S12](02-architecture.md), [03 PR·Handoff·책임/검증](03-execution-contracts.md), [04 구현 공백](04-gap-analysis-and-2-5.md) |
 | 14개 능력·12개 시나리오 | 논리 구성요소·연동·평가 관문 모두 매핑 | **실제 전체 기능 구현/운영 검증 PASS 아님** |
@@ -120,8 +120,8 @@ VISHUE를 **K-뷰티 중심 자유 대화형 AI**로 설계한다. 사용자가 
 | 팀 기술 승인 | **PENDING** | AR/AR AI/API/프론트/보안 담당 공동 인터페이스·공용 코드 오너·배포/영속성 ADR 필요 |
 | 코드 구현/자동 테스트/실제 DB·LLM/기기 | **NOT DONE / NOT TESTED FOR NEW DESIGN** | 과거 코드 일부 존재, 새 LangGraph·RAG·Handoff 구현과 실환경 결과는 별도 |
 | 3단계 | **NEXT** | 실제 옵션·전성분/레시피·권리, 한국어 임베딩·RAG·Graph/Vector 색인 품질, 데이터 소유·서빙 계약 |
-| 4단계 | 예정 | 한국어 평가셋·G1~G9별 실모델/DB/앱/기기 검증·완료 임계치 |
-| 5단계 | 예정 | 일반 LLM G1~G9 기능별 최신 develop 분기→자동/실제 검증→필수 리뷰→병합, AR 팀 독립 PR과 공유 계약의 공동 E2E |
+| 4단계 | 당시 예정 | 한국어 평가셋·G1~G9별 실모델/DB/앱/기기 검증·완료 임계치 |
+| 5단계 | 당시 예정 | 일반 LLM G1~G9 기능별 최신 develop 분기→자동/실제 검증→필수 리뷰→병합, AR 팀 독립 PR과 공유 계약의 공동 E2E |
 | Notion | **전체 2단계 설계 종료 현황판 갱신 대상** | 기술 상세의 기준은 GitHub, Notion은 결정·진행·링크 요약 |
 
 **중요:** 2단계 **논리 설계 검토 종료**는 2단계 **팀 기술 승인**이나 **최종 설계의 운영 적합성 실증**을 의미하지 않는다. 특정 저장소·벡터 DB·AR 전용 서비스 분리·STT 엔진·옵션 복합 API는 **사용자/팀 결정 및 실측 전 OPEN**으로 유지한다.
@@ -137,7 +137,7 @@ VISHUE를 **K-뷰티 중심 자유 대화형 AI**로 설계한다. 사용자가 
 - **State 및 순서:** G1 공통 VishueState → G2 멀티턴 → G7 Checkpointer/동의 기억으로 확장; G8은 복합 Agent. G1~G9는 데이터·팀 API 준비에 따른 권장 의존성이지 승인된 일정이 아니다.
 - **환경별 근거:** 아래 데이터 수량은 2026-11-15 연결된 단일 Supabase 스냅샷/기존 GitHub develop/AIHub 로컬 적재 보고를 구분한다. 다른 팀원 로컬·공용 dev·운영 DB와 수량 일치 확인 아님.
 - 실제 데이터, 청킹·검색, 스타일 레시피, 철회, G1~G9의 설계는 [08 3단계 기록](08-option-search-evidence-and-sync.md), 결정 변경 전후는 [DECISIONS](DECISIONS.md) 참조.
-- **현재 4단계:** 4-1 평가 환경·증빙 데이터 정의부터 진행. 4-2 G1 평가셋과 4-3~4-6 기준은 논의·검토 후 일괄 반영. Notion은 단계 완료/팀 공유 시점에 갱신.
+- **당시 4단계 인계:** 4-1 평가 환경·증빙 데이터 정의부터 시작하고, 4-2 G1 평가셋과 4-3~4-6 기준은 논의·검토 후 일괄 반영하기로 했다. Notion은 단계 완료 또는 팀 공유 시점에 갱신할 계획이었다.
 
 ## 2026-11-15 4단계 L2 논리 평가 설계 종료 및 5단계 G1 착수 준비
 
@@ -148,7 +148,7 @@ VISHUE를 **K-뷰티 중심 자유 대화형 AI**로 설계한다. 사용자가 
 - **G5-B02**는 학습·few-shot·QA 답변 lookup을 통한 평가 질문/답변 누출을 막되, **독립 Gold의 정답 근거 문서를 정상 검색하는 동작은 Recall@k·MRR 성공**으로 처리한다.
 - **환경:** 각 사례 `required/conditional/notApplicable`을 분리. 필수 실패·미연결·권리 미확인·미실행은 `NOT_RUN/BLOCKED_DATA/BLOCKED_RIGHTS/BLOCKED_DEPENDENCY`로 관리하고 `PASS/NOT_APPLICABLE`로 변환 금지.
 - **보존:** S06 보유 제품 소유·조회 API 확인, S10/C12 한국어 음성 공동 검증/후속 `en/ja/zh` 평가, G7 영속 기억/G8 복합 Agent/G9a~c 공동 E2E 포함. 일반 LLM의 순차 PR·AR/AR AI 독립 구현 원칙 유지.
-- **5단계 시작:** 최신 `develop`·실 Catalog HTTP/데이터·공통 `/api/chat`/`ChatService` 및 AR ACK 오너·프론트 카드/가격 표현·실제 LLM 설정·E0/E1/E3/E5 및 AR 회귀 증빙을 확인한 후 G1 착수. 기술/데이터 미확정 사항은 협의 항목이지 기존 14개 능력 축소 근거가 아니다.
+- **5단계 G1 착수 조건:** 최신 `develop`·실 Catalog HTTP/데이터·공통 `/api/chat`/`ChatService` 및 AR ACK 오너·프론트 카드/가격 표현·실제 LLM 설정·E0/E1/E3/E5 및 AR 회귀 증빙을 확인한 후 G1 착수. 기술/데이터 미확정 사항은 협의 항목이지 기존 14개 능력 축소 근거가 아니다.
 - **문서 기준:** [07 전체 평가 L2](07-ko-first-language-and-evaluation.md), [03 5단계 G1 착수](03-execution-contracts.md), [DECISIONS](DECISIONS.md). 기존 0~3단계의 과거 기록은 당시 판단으로 유지한다. Notion은 팀 공유 시점의 링크·진행 요약만 갱신.
 
 
