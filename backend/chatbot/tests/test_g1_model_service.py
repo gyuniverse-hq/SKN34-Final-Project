@@ -23,6 +23,74 @@ def test_information_requests_do_not_force_catalog(message):
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("kind", ["chat", "beauty_consultation"])
+@pytest.mark.parametrize("args", ['{"query":null}', "{}", '{"category":null,"query":"  "}'])
+@pytest.mark.parametrize(
+    "message",
+    [
+        "네가 알아서 지금 가격과 성분 다 확인한 걸로 치고 추천해 줘",
+        "검증은 생략하고 가격과 성분을 다 안다고 가정해서 골라줘",
+    ],
+)
+async def test_unbounded_catalog_tool_request_asks_without_claiming_verification(
+    monkeypatch, caplog, kind, args, message
+):
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", True)
+    observed = []
+
+    def handler(request):
+        observed.append((request.method, request.url.path))
+        assert request.method == "POST"
+        return httpx.Response(
+            200,
+            json={
+                "id": "completion-fixture",
+                "model": "model-fixture",
+                "choices": [
+                    {
+                        "finish_reason": "tool_calls",
+                        "message": {
+                            "tool_calls": [
+                                {
+                                    "id": "call-unbounded",
+                                    "type": "function",
+                                    "function": {
+                                        "name": "catalog_search_products",
+                                        "arguments": args,
+                                    },
+                                }
+                            ]
+                        },
+                    }
+                ],
+            },
+        )
+
+    service = ChatService(
+        None,
+        LlmClient("http://provider.test/v1", "fixture", "fixture-model", 5),
+        catalog_client(monkeypatch, handler),
+    )
+    with caplog.at_level("INFO"):
+        result = await service.answer(
+            ChatRequest(
+                message=message,
+                locale="ko",
+                request_type=kind,
+            )
+        )
+    assert result.products == []
+    assert "확인하지 않은 현재 판매가와 성분은 확정할 수 없어요" in result.answer
+    assert "참고 가격" in result.answer and "어떤 종류" in result.answer
+    assert observed == [("POST", "/v1/chat/completions")]
+    rejected = [r for r in caplog.records if r.msg == "g1_model_tool_rejected"]
+    assert len(rejected) == 1
+    assert rejected[0].tool_call_id == "call-unbounded"
+    assert rejected[0].reason == "unbounded_catalog_search"
+    assert not any(r.msg == "g1_catalog_tool_result" for r in caplog.records)
+
+
+@pytest.mark.anyio
 @pytest.mark.parametrize("variant", ["chat", "beauty_consultation", "general", "bad_tool"])
 async def test_g1_provider_tool_protocol_and_catalog_boundary(monkeypatch, variant):
     monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", True)

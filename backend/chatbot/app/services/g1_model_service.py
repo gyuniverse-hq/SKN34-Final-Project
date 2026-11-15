@@ -134,6 +134,7 @@ async def choose_g1_turn(request: ChatRequest, complete_with_tools) -> G1ModelTu
         choice = result["choices"][0]
         message = choice["message"]
         calls = message.get("tool_calls") or []
+        rejected_call_id = None
         if not calls and choice["finish_reason"] == "stop":
             if required_search:
                 raise ValueError("The requested product search requires a Catalog tool call")
@@ -158,14 +159,22 @@ async def choose_g1_turn(request: ChatRequest, complete_with_tools) -> G1ModelTu
             if name == SEARCH_TOOL:
                 search = CatalogSearchArgs.model_validate_json(args)
                 if not search.category and not (search.query or "").strip():
-                    raise ValueError("Unbounded catalog search")
-                plan = SearchPlan(intent="search", **search.model_dump())
+                    rejected_call_id = call_id
+                    turn = G1ModelTurn(
+                        SearchPlan(intent="general"),
+                        "확인하지 않은 현재 판매가와 성분은 확정할 수 없어요. "
+                        "카탈로그에서 참고 가격과 확인 가능한 상품 정보를 살펴볼 수 있어요. "
+                        "어떤 종류의 제품을 찾으시나요?",
+                    )
+                else:
+                    plan = SearchPlan(intent="search", **search.model_dump())
+                    turn = G1ModelTurn(plan, tool_call_id=call_id, tool_name=name)
             elif name == DETAIL_TOOL and screen and screen.product_id:
                 detail = CatalogDetailArgs.model_validate_json(args)
                 plan = SearchPlan(intent=detail.intent)
+                turn = G1ModelTurn(plan, tool_call_id=call_id, tool_name=name)
             else:
                 raise ValueError("Unavailable G1 tool")
-            turn = G1ModelTurn(plan, tool_call_id=call_id, tool_name=name)
         model_id, response_id = result["model"], result["id"]
         usage = result.get("usage") or {}
         if not all(
@@ -176,6 +185,15 @@ async def choose_g1_turn(request: ChatRequest, complete_with_tools) -> G1ModelTu
     except (AttributeError, IndexError, KeyError, TypeError, ValidationError, ValueError) as exc:
         raise ApiError(502, "Invalid G1 model response", "invalid_tool_result") from exc
 
+    if rejected_call_id:
+        logger.info(
+            "g1_model_tool_rejected",
+            extra={
+                "tool_call_id": rejected_call_id,
+                "tool_name": SEARCH_TOOL,
+                "reason": "unbounded_catalog_search",
+            },
+        )
     logger.info(
         "g1_model_completion",
         extra={
