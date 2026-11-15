@@ -156,7 +156,7 @@ VISHUE를 **K-뷰티 중심 자유 대화형 AI**로 설계한다. 사용자가 
 
 > **현재 유효 상태:** 0단계 실사 1차 / 1단계 14개 능력·12개 시나리오 사용자 확정 / 2·3단계 논리 설계 검토 종료 / **4단계 L2 평가 설계 검토 종료 / 5단계 G1 착수 준비**. 과거의 ‘다음 3단계’, ‘4단계 예정’, ‘AIHub 개발 보류’ 등 문구는 **각 당시 단계의 기록**이며 현재 결정을 덮어쓰지 않는다. 결정 변경 내역은 [DECISIONS](DECISIONS.md)의 D3-01 및 VAI-D-018을 따른다.
 
-**상세 평가 원본 저장 위치:** `docs/ai-alignment/04_llm_stage4_evaluation/` — [평가 계약 보존 PR #243](https://github.com/gyuniverse-hq/SKN34-Final-Project/pull/243) (Draft, #241과 별도). **#243 병합 전에는 아래 상대 링크가 `develop`에 존재하지 않을 수 있으므로 PR #243 브랜치에서 확인**한다.
+**상세 평가 원본 저장 위치:** `docs/ai-alignment/04_llm_stage4_evaluation/`. 설계 문서와 함께 보존한 평가 원본 8개는 아래 상대 링크에서 확인한다.
 
 - [4-1 평가 환경·Test Case/Test Run·증빙 계약](../ai-alignment/04_llm_stage4_evaluation/4-1_평가환경_데이터계약.md): E0~E7의 환경별 실제/Mock·권리·실행 증빙과 미실행/차단 판정.
 - [G1 47개 최종 사례 JSONL](../ai-alignment/04_llm_stage4_evaluation/g1_cases_PROPOSED.jsonl) · [70개 predicate 명세](../ai-alignment/04_llm_stage4_evaluation/g1_predicate_registry_PROPOSED.json) · [fixture/버전 manifest](../ai-alignment/04_llm_stage4_evaluation/g1_manifest_PROPOSED.json).

@@ -273,4 +273,4 @@ flowchart TD
 
 본 문서 10-4절의 ‘AIHub 승인 지식 RAG 차단’은 **2-7 시점의 공용 서비스/외부 모델 사용 검증 상태**다. 후속 사용자 결정 **D3-01**에 따라 AIHub 71961을 **권한이 확인되는 국내 로컬 RAG 개발·검증의 적극 후보**로 변경했고, 서비스용 원문·외부 LLM 전송 및 문서별 권한·근거 검수는 독립 게이트로 유지했다. [08의 데이터·RAG 설계](08-option-search-evidence-and-sync.md)와 [DECISIONS](DECISIONS.md) 참조.
 
-4단계는 C01~C14/S01~S12의 L2 논리 평가 설계 검토까지 종료했으며, **실제 LangGraph/Vector·실 LLM/앱 E2E/G1~G9 구현이 완료됐다는 의미가 아니다**. 상세 평가 원본은 [PR #243](https://github.com/gyuniverse-hq/SKN34-Final-Project/pull/243) 및 [07 평가 문서](07-ko-first-language-and-evaluation.md)에서 관리한다.
+4단계는 C01~C14/S01~S12의 L2 논리 평가 설계 검토까지 종료했으며, **실제 LangGraph/Vector·실 LLM/앱 E2E/G1~G9 구현이 완료됐다는 의미가 아니다**. 상세 평가 원본과 검증 상태는 [07 평가 문서](07-ko-first-language-and-evaluation.md)에서 확인한다.

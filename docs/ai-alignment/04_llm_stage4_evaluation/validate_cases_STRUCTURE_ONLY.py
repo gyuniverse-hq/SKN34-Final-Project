@@ -114,6 +114,7 @@ def validate_contract(rows, manifest, registry, human_rows):
             check(ctx['expiresAt']=='${SESSION.expiresAt}' and ctx['stateVersion']=='${SESSION.stateVersion}', 'foreign owner fixture is incorrectly expired/static')
             check({'E0','E2'}<=required and x['expected'].get('httpStatus')==403 and x['expected'].get('errorCode')=='chat_session_forbidden','foreign owner must be active with 403 not 410')
         if cid=='G1-REG-03':
+            check(required=={'E0'} and not optional and set(names)=={'reg.ar_ack_endpoint_unchanged','reg.ack_does_not_fake_apply'},'G1-REG-03 must exercise both ACK predicates in E0 only')
             check(x['input'].get('payloadSchema')=='ArAckRequest' and set(x['input']['body'])=={'requestId','commandId','sessionId','status','actualStateVersion'},'ACK request schema must be distinct from ChatRequest')
     check(set(prednames)==automated_used,f'predicate registry has unused/untracked keys {set(prednames)^automated_used}')
     check(recorded_human<=set(human_ids),'human gate requires missing CSV rows')
