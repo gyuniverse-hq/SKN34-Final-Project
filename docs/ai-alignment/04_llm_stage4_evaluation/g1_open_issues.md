@@ -1,5 +1,41 @@
 # G1 #244 병합 전 핵심 항목과 병합 후 평가
 
+## 이번 G1 작업 종료 — 2026-11-16 사용자 결정
+
+**상태: 핵심 수정 및 현재 개발 작업 종료, 담당 리뷰·develop 통합 대기. G1 전체 검증 완료나 병합 완료를 뜻하지 않는다.** 추가 테스트와 113건 전체 재평가는 이번 작업에서 수행하지 않는다. PR #244는 Draft, `G1_SUPERVISOR_ENABLED` 기본 OFF를 유지한다.
+
+### 확보된 결과
+
+- 코드 기준 HEAD: `ec6273dc5b06924daf69c53ff4bb418942c00a09`. 기능 수정 `3a78cd2`, 문서 `3306345`, 최종 테스트 형식 정리 `ec6273d`를 구분한다.
+- GEN-06: 실제 모델의 설명 응답과 Tool·Catalog HTTP·카드 0 확인. 과거 사용자 캡처의 카드 출처는 동일 runId로 확인되지 않았다.
+- GEN-07: 기준선의 원치 않는 검색을 재현했고, 수정 후 실제 모델이 확인 질문·선택 방향을 제시하며 Tool·HTTP·카드 0임을 확인했다.
+- CAT-02: 미검증 조건 전체 충족 표현을 중립적인 후보 안내로 수정했다. 실제 E5에서 본문·촉촉함 정보 미확인 표시·카드·상세 ID 일치를 확인했다. 카드 제목 의미는 프론트 리뷰에 남긴다. 원본 E5 자동 predicate 3개는 관측 부족으로 NOT_RUN이다.
+- 실제 수직 경로: clean `3306345`의 E5 CAT-01 자유 chat / beauty_consultation 각각 원본 PASS. 실제 모델→Catalog HTTP 200→카드 6개→첫 카드와 동일 상품 상세 이동. 최종 `ec6273d`의 새 실측 결과로 재표기하지 않는다.
+- 관련 pytest 62 PASS. 로컬 챗봇 전체 868 PASS / 2 SKIP / 1 FAIL(기존 스타일 readiness timeout). 앱 타입·린트 통과, 직렬 Jest 1118 PASS; 병렬 Jest 3건 timeout 기록 유지. Ruff·import-linter 통과.
+- `ec6273d` CI SUCCESS: https://github.com/gyuniverse-hq/SKN34-Final-Project/actions/runs/43832474946 (앱·양 백엔드·양 Docker). 이번 종료 문서 변경에서는 사용자 지시에 따라 테스트를 추가 실행하지 않는다.
+
+### 이번 작업에서 실행하지 않고 후속으로 이관
+
+1. 기존 113건 평가 미완료 관측 및 전체 재평가. b08 기준 76 PASS / 1 FAIL / 1 BLOCKED / 35 NOT_RUN을 과거 결과로 유지한다.
+2. 사람 평가 18건: 실제 자료와 빈 판정표를 보존하며 검토자가 판정하기 전 미판정 유지.
+3. REG-02·REG-07·GEN-11 계약 확정: AR 상대 명령, 이미지 보강 정합성, 안전 정형 응답의 실모델 span 조건을 담당 승인 후 처리. 원본 계약 및 현재 결과 유지.
+4. 전체 실기기 E6 및 팀 E2E. 기존 격리 Expo 웹 E5 결과와 구분한다.
+5. 평가 도구·테스트 파일 구조 정리. 이번 종료 범위에 포함하지 않는다.
+
+### 병합 전 별도 남은 일과 작업 재개 조건
+
+- 프론트: 기본 카테고리 미선택, CAT-02 카드 표현, 기존 화면·상세 이동 호환 리뷰.
+- 공유 백엔드 및 AR·인증 담당: 일반 상담·AR·ACK·세션·인증 영향 리뷰. 요청을 승인으로 간주하지 않는다.
+- #245·#246의 실제 develop 병합 상태를 확인한 뒤 #244 통합을 별도 작업으로 진행한다. 지금은 develop 반영·직접 push·PR 병합을 하지 않는다.
+- 작업 재개는 develop 통합 필요, 담당자의 구체적인 수정 요청, 새 핵심 결함 발견 시로 한정한다. 평가 미완료만을 이유로 이번 작업을 계속 연장하지 않는다.
+
+### 보존된 증빙
+
+저장소 밖 내부 증빙 폴더 `g1-final-b08ac90/`(전체 평가 기준선)과 `g1-premerge-3306345/`(핵심 수정 실측)를 보존한다. 로컬 위치는 `C:\Users\playdata2\.codex\visualizations\2026\11\15\01a1dedd-94a8-72e0-ac7a-8466d24bb1e9` 아래다. 팀 검토자는 접근 제한 경로로 전달받아 runId·commit·증빙 참조를 확인한다. 공개 GitHub에는 민감한 실행 원본을 올리지 않는다. 기존 미추적 문서와 `reports/ingredients/`는 그대로 보존한다.
+
+아래 항목은 기존 수정 기준과 평가 이력이다. 현재 작업 종료 및 후속 이관 범위는 이 절을 우선 적용한다.
+
+
 기준: 2026-11-16. 기능·평가 기준선은 `b08ac900aaeeec56db8a43c097b5f2204e69d72a`. GEN-06·07, CAT-02의 코드 수정은 `3a78cd2`에 반영됐다. 아래 기준선 수치를 수정 코드의 실제 판정으로 사용하지 않는다.
 
 ## 결정된 진행 방식
@@ -33,6 +69,6 @@
 
 ## #246 통합 위험
 
-[PR #246](https://github.com/gyuniverse-hq/SKN34-Final-Project/pull/246)은 AR 제어·음성 기능이며 현재 별도 `develop` 대상 PR이다. #244와 겹치는 `backend/chatbot/app/services/chat_service.py`, `app/clients/llm_client.py`, `app/core/config.py`, `pyproject.toml`, `uv.lock`, `tests/test_chat_sessions.py`는 충돌 가능 파일이다. #244의 최소 수정에서 `llm_client.py`도 변경되므로 통합 때 특히 확인한다. #244에 #246의 AR 기능을 임의로 가져오지 않는다. #244 병합 뒤 #246을 최신 `develop`에 통합하는 순서를 우선 검토하고, 실제 base·diff·회귀를 다시 확인한다.
+[PR #246](https://github.com/gyuniverse-hq/SKN34-Final-Project/pull/246)은 AR 제어·음성 기능이며 현재 별도 `develop` 대상 PR이다. #244와 겹치는 `backend/chatbot/app/services/chat_service.py`, `app/clients/llm_client.py`, `app/core/config.py`, `pyproject.toml`, `uv.lock`, `tests/test_chat_sessions.py`는 충돌 가능 파일이다. #244의 최소 수정에서 `llm_client.py`도 변경되므로 통합 때 특히 확인한다. #244에 #246의 AR 기능을 임의로 가져오지 않는다. #245·#246의 실제 develop 병합 상태를 확인한 후 #244의 통합 순서·base·diff·필요 회귀를 별도 작업에서 확인한다. 현재는 통합하지 않는다.
 
 현재 코드 병합 판단에는 이 문서의 분리된 게이트를 적용한다. 과거 전체 평가 선행 기준은 기존 PR 본문 이력으로 보존한다.
