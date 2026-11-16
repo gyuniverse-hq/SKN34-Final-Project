@@ -1,0 +1,645 @@
+[
+  {
+    "id": "N01",
+    "group": "호수명",
+    "message": "페이드 레드 발라줘",
+    "expected": "롬앤 24호 지정 적용",
+    "check": {
+      "choice": "apply_shade/product_shade",
+      "shade": "24"
+    }
+  },
+  {
+    "id": "N02",
+    "group": "호수명",
+    "message": "페이드레드로 한번 볼래",
+    "expected": "띄어쓰기 없이 롬앤 24호 지정 적용",
+    "check": {
+      "choice": "apply_shade/product_shade",
+      "shade": "24"
+    }
+  },
+  {
+    "id": "N03",
+    "group": "호수명",
+    "message": "번트하트 있지? 그거 발라줘",
+    "expected": "롬앤 04호 지정 적용",
+    "check": {
+      "choice": "apply_shade/product_shade",
+      "shade": "04"
+    }
+  },
+  {
+    "id": "N04",
+    "group": "호수명",
+    "message": "오늘은 피칸타르트로 해줄래?",
+    "expected": "롬앤 14호 지정 적용",
+    "check": {
+      "choice": "apply_shade/product_shade",
+      "shade": "14"
+    }
+  },
+  {
+    "id": "N05",
+    "group": "호수명",
+    "message": "롬앤 제로 벨벳 틴트 앤셜리 발라볼래",
+    "expected": "롬앤 12호 지정 적용",
+    "check": {
+      "choice": "apply_shade/product_shade",
+      "shade": "12"
+    }
+  },
+  {
+    "id": "N06",
+    "group": "호수명",
+    "message": "너드 핑크로 바꿔줘",
+    "expected": "롬앤 25호 지정 적용",
+    "check": {
+      "choice": "apply_shade/product_shade",
+      "shade": "25"
+    }
+  },
+  {
+    "id": "N07",
+    "group": "호수명",
+    "message": "얼그레이 숄 그 색으로 발라줘",
+    "expected": "롬앤 19호 지정 적용",
+    "check": {
+      "choice": "apply_shade/product_shade",
+      "shade": "19"
+    }
+  },
+  {
+    "id": "N08",
+    "group": "호수명",
+    "message": "페이드 레드는 바르지 말고 지금 바른 립 이름만 알려줘",
+    "expected": "현재 제품 조회, 착용 유지",
+    "check": {
+      "readonly": true,
+      "unchanged": true
+    }
+  },
+  {
+    "id": "N09",
+    "group": "호수명",
+    "message": "페이드 레드도 있어? 아직 바르지는 말고",
+    "expected": "조회 또는 안내, 착용 유지",
+    "check": {
+      "readonly": true,
+      "unchanged": true
+    }
+  },
+  {
+    "id": "N10",
+    "group": "호수명",
+    "message": "별빛구름맛이라는 립으로 발라줘",
+    "expected": "없는 호수는 안내 또는 거절, 착용 유지",
+    "check": {
+      "unchanged": true,
+      "clarification": true
+    }
+  },
+  {
+    "id": "C01",
+    "group": "색감",
+    "message": "차분한 레드로 발라줘",
+    "expected": "레드·낮은 채도로 추천 적용",
+    "check": {
+      "choice": "apply_shade/lip/by_color",
+      "params": {
+        "family": "red",
+        "chroma": "muted"
+      }
+    }
+  },
+  {
+    "id": "C02",
+    "group": "색감",
+    "message": "쨍한 핑크 말고 좀 차분한 핑크로 해줘",
+    "expected": "핑크·낮은 채도로 추천 적용",
+    "check": {
+      "choice": "apply_shade/lip/by_color",
+      "params": {
+        "family": "pink",
+        "chroma": "muted"
+      }
+    }
+  },
+  {
+    "id": "C03",
+    "group": "색감",
+    "message": "입술은 쨍한 빨강으로 포인트 줘",
+    "expected": "레드·높은 채도로 추천 적용",
+    "check": {
+      "choice": "apply_shade/lip/by_color",
+      "params": {
+        "family": "red",
+        "chroma": "vivid"
+      }
+    }
+  },
+  {
+    "id": "C04",
+    "group": "색감",
+    "message": "밝고 여리여리한 핑크 립 발라줘",
+    "expected": "핑크·밝은 톤으로 추천 적용",
+    "check": {
+      "choice": "apply_shade/lip/by_color",
+      "params": {
+        "family": "pink",
+        "lightness": "light"
+      }
+    }
+  },
+  {
+    "id": "C05",
+    "group": "색감",
+    "message": "이번엔 코랄빛 립으로 바꿔볼래",
+    "expected": "코랄 계열 추천 적용",
+    "check": {
+      "choice": "apply_shade/lip/by_color",
+      "params": {
+        "family": "coral"
+      }
+    }
+  },
+  {
+    "id": "C06",
+    "group": "색감",
+    "message": "입술에 딥한 브라운으로 분위기 내줘",
+    "expected": "브라운·어두운 톤 추천 적용",
+    "check": {
+      "choice": "apply_shade/lip/by_color",
+      "params": {
+        "family": "brown",
+        "lightness": "deep"
+      }
+    }
+  },
+  {
+    "id": "C07",
+    "group": "색감",
+    "message": "누드톤 립 하나 골라서 발라줘",
+    "expected": "누드 계열 추천 적용",
+    "check": {
+      "choice": "apply_shade/lip/by_color",
+      "params": {
+        "family": "nude"
+      }
+    }
+  },
+  {
+    "id": "C08",
+    "group": "색감",
+    "message": "블러셔는 연한 핑크빛으로 올려줘",
+    "expected": "블러셔 핑크·밝은 톤 추천 적용",
+    "check": {
+      "choice": "apply_shade/blush/by_color",
+      "zone": "blush",
+      "params": {
+        "family": "pink",
+        "lightness": "light"
+      }
+    }
+  },
+  {
+    "id": "C09",
+    "group": "색감",
+    "message": "여리여리한 느낌으로 립 하나 골라 발라줘",
+    "expected": "밝고 낮은 채도의 립 추천 적용",
+    "check": {
+      "choice": "apply_shade/lip/by_color",
+      "params": {
+        "lightness": "light",
+        "chroma": "muted"
+      }
+    }
+  },
+  {
+    "id": "C10",
+    "group": "색감",
+    "message": "입술은 선명한 베리 컬러로 해줘",
+    "expected": "베리·높은 채도로 추천 적용",
+    "check": {
+      "choice": "apply_shade/lip/by_color",
+      "params": {
+        "family": "berry",
+        "chroma": "vivid"
+      }
+    }
+  },
+  {
+    "id": "M01",
+    "group": "멀티턴",
+    "setup": [
+      {
+        "say": "립 좀 연하게 해줘"
+      }
+    ],
+    "message": "조금 더",
+    "expected": "립 감소의 연속, 0.45 → 0.40",
+    "check": {
+      "choice": "adjust_intensity/lip/down",
+      "params": {
+        "fineAdjustment": true
+      },
+      "intensity": 0.4
+    }
+  },
+  {
+    "id": "M02",
+    "group": "멀티턴",
+    "setup": [
+      {
+        "say": "립 좀 연하게 해줘"
+      }
+    ],
+    "message": "거기서 딱 한 끗만 더",
+    "expected": "립 감소의 연속, 0.45 → 0.40",
+    "check": {
+      "choice": "adjust_intensity/lip/down",
+      "params": {
+        "fineAdjustment": true
+      },
+      "intensity": 0.4
+    }
+  },
+  {
+    "id": "M03",
+    "group": "멀티턴",
+    "setup": [
+      {
+        "say": "블러셔를 조금 진하게 해줘"
+      }
+    ],
+    "message": "조금 더",
+    "expected": "열린 립 팔레트 대신 블러셔 증가, 0.65 → 0.70",
+    "check": {
+      "choice": "adjust_intensity/blush/up",
+      "params": {
+        "fineAdjustment": true
+      },
+      "zone": "blush",
+      "intensity": 0.7
+    }
+  },
+  {
+    "id": "M04",
+    "group": "멀티턴",
+    "setup": [
+      {
+        "say": "블러셔를 살짝 연하게 해줘"
+      }
+    ],
+    "message": "한 번만 더 덜어줘",
+    "expected": "블러셔 감소의 연속, 0.45 → 0.40",
+    "check": {
+      "choice": "adjust_intensity/blush/down",
+      "params": {
+        "fineAdjustment": true
+      },
+      "zone": "blush",
+      "intensity": 0.4
+    }
+  },
+  {
+    "id": "M05",
+    "group": "멀티턴",
+    "setup": [
+      {
+        "zone": "lip",
+        "intensity": 0.6
+      },
+      {
+        "say": "입술은 지금의 반만 남겨줘"
+      }
+    ],
+    "message": "거기서 조금 더 연하게",
+    "expected": "실제 직전 폭 0.30의 절반인 0.15 감소",
+    "check": {
+      "choice": "adjust_intensity/lip/down",
+      "params": {
+        "fineAdjustment": true
+      },
+      "intensity": 0.15
+    }
+  },
+  {
+    "id": "M06",
+    "group": "멀티턴",
+    "setup": [
+      {
+        "say": "립 좀 연하게 해줘"
+      },
+      {
+        "say": "조금 더"
+      }
+    ],
+    "message": "여기서 조금만 더",
+    "expected": "직전 폭 0.05의 절반 반올림, 0.40 → 0.37",
+    "check": {
+      "choice": "adjust_intensity/lip/down",
+      "params": {
+        "fineAdjustment": true
+      },
+      "intensity": 0.37
+    }
+  },
+  {
+    "id": "M07",
+    "group": "멀티턴",
+    "setup": [
+      {
+        "say": "립 좀 연하게 해줘"
+      }
+    ],
+    "message": "이번엔 블러셔를 연하게 해줘",
+    "expected": "새 대상 블러셔 감소, 립 유지",
+    "check": {
+      "choice": "adjust_intensity/blush/down",
+      "zone": "blush",
+      "intensity": 0.45
+    }
+  },
+  {
+    "id": "M08",
+    "group": "멀티턴",
+    "setup": [
+      {
+        "say": "립 좀 연하게 해줘"
+      }
+    ],
+    "message": "아니다 입술을 좀 더 진하게 해줘",
+    "expected": "명시적으로 바뀐 방향으로 립 증가",
+    "check": {
+      "choice": "adjust_intensity/lip/up",
+      "intensity": 0.55
+    }
+  },
+  {
+    "id": "M09",
+    "group": "멀티턴",
+    "setup": [
+      {
+        "say": "립 좀 연하게 해줘"
+      },
+      {
+        "manual": "04"
+      }
+    ],
+    "message": "조금 더",
+    "expected": "수동 제품 변경으로 이전 강도 근거 무효, 되묻고 착용 유지",
+    "check": {
+      "clarification": true,
+      "unchanged": true
+    }
+  },
+  {
+    "id": "M10",
+    "group": "멀티턴",
+    "setup": [
+      {
+        "zone": "lip",
+        "intensity": 0
+      }
+    ],
+    "message": "입술 더 연하게 해줘",
+    "expected": "최솟값에서 변화 없음",
+    "check": {
+      "choice": "adjust_intensity/lip/down",
+      "status": "NO_CHANGE",
+      "unchanged": true
+    }
+  },
+  {
+    "id": "H01",
+    "group": "체험순서",
+    "setup": [
+      {
+        "manual": "04"
+      },
+      {
+        "say": "페이드 레드 발라줘"
+      },
+      {
+        "manual": "07"
+      }
+    ],
+    "message": "아까 두 번째로 발라본 립 다시 발라줘",
+    "expected": "수동→Luna→수동 뒤 두 번째 립 ID·호수 복원",
+    "check": {
+      "choice": "reapply_try_on/lip",
+      "params": {
+        "ordinal": 2
+      },
+      "history": 2
+    }
+  },
+  {
+    "id": "H02",
+    "group": "체험순서",
+    "setup": [
+      {
+        "manual": "04"
+      },
+      {
+        "say": "페이드 레드 발라줘"
+      },
+      {
+        "manual": "07"
+      }
+    ],
+    "message": "맨 처음 써본 입술 색으로 돌아가자",
+    "expected": "첫 수동 립 복원",
+    "check": {
+      "choice": "reapply_try_on/lip",
+      "params": {
+        "ordinal": 1
+      },
+      "history": 1
+    }
+  },
+  {
+    "id": "H03",
+    "group": "체험순서",
+    "setup": [
+      {
+        "say": "번트하트 발라줘"
+      },
+      {
+        "manual": "24"
+      },
+      {
+        "manual": "07"
+      }
+    ],
+    "message": "두 번째 립이 더 좋았어. 그걸로 다시 해줘",
+    "expected": "Luna→수동→수동 뒤 두 번째 수동 립 복원",
+    "check": {
+      "choice": "reapply_try_on/lip",
+      "params": {
+        "ordinal": 2
+      },
+      "history": 2
+    }
+  },
+  {
+    "id": "H04",
+    "group": "체험순서",
+    "setup": [
+      {
+        "manual": "04"
+      },
+      {
+        "manual": "blush"
+      },
+      {
+        "manual": "24"
+      },
+      {
+        "manual": "07"
+      }
+    ],
+    "message": "두 번째로 바른 립으로 다시 해줘",
+    "expected": "블러셔를 제외하고 립의 두 번째 복원",
+    "check": {
+      "choice": "reapply_try_on/lip",
+      "params": {
+        "ordinal": 2
+      },
+      "history": 2
+    }
+  },
+  {
+    "id": "H05",
+    "group": "체험순서",
+    "setup": [
+      {
+        "manual": "04"
+      },
+      {
+        "manual": "blush"
+      },
+      {
+        "manual": "24"
+      }
+    ],
+    "message": "전체에서 두 번째로 발라본 제품 다시 발라줘",
+    "expected": "전체 순서의 두 번째 블러셔, 이미 착용해 NO_CHANGE",
+    "check": {
+      "choice": "reapply_try_on/all",
+      "params": {
+        "ordinal": 2
+      },
+      "history": 2,
+      "scope": "all",
+      "status": "NO_CHANGE",
+      "zone": "blush"
+    }
+  },
+  {
+    "id": "H06",
+    "group": "체험순서",
+    "setup": [
+      {
+        "manual": "04"
+      },
+      {
+        "manual": "24"
+      },
+      {
+        "manual": "07"
+      }
+    ],
+    "message": "세 번째로 발랐던 립으로 해줘",
+    "expected": "이미 착용 중인 세 번째 호수 유지",
+    "check": {
+      "choice": "reapply_try_on/lip",
+      "params": {
+        "ordinal": 3
+      },
+      "history": 3,
+      "status": "NO_CHANGE",
+      "unchanged": true
+    }
+  },
+  {
+    "id": "H07",
+    "group": "체험순서",
+    "setup": [
+      {
+        "manual": "04"
+      },
+      {
+        "manual": "04"
+      },
+      {
+        "manual": "24"
+      },
+      {
+        "manual": "07"
+      }
+    ],
+    "message": "두 번째 립 다시 보여줘",
+    "expected": "같은 호수 반복 선택은 중복 집계하지 않고 24호 복원",
+    "check": {
+      "choice": "reapply_try_on/lip",
+      "params": {
+        "ordinal": 2
+      },
+      "history": 2
+    }
+  },
+  {
+    "id": "H08",
+    "group": "체험순서",
+    "setup": [
+      {
+        "manual": "04"
+      },
+      {
+        "say": "립 좀 연하게 해줘"
+      },
+      {
+        "manual": "24"
+      },
+      {
+        "manual": "07"
+      }
+    ],
+    "message": "두 번째로 발라봤던 입술 색 다시 발라줘",
+    "expected": "강도 조절은 체험 순번에서 제외하고 24호 복원",
+    "check": {
+      "choice": "reapply_try_on/lip",
+      "params": {
+        "ordinal": 2
+      },
+      "history": 2
+    }
+  },
+  {
+    "id": "H09",
+    "group": "체험순서",
+    "setup": [
+      {
+        "manual": "04"
+      }
+    ],
+    "message": "아까 다섯 번째 립 다시 발라줘",
+    "expected": "없는 순번 안내 또는 거절, 착용 유지",
+    "check": {
+      "clarification": true,
+      "unchanged": true
+    }
+  },
+  {
+    "id": "H10",
+    "group": "체험순서",
+    "message": "아까 두 번째로 바른 립 다시 발라줘",
+    "expected": "비어 있는 이번 체험 이력 안내, 착용 유지",
+    "check": {
+      "clarification": true,
+      "unchanged": true
+    }
+  }
+]

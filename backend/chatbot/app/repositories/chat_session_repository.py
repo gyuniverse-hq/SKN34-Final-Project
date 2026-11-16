@@ -11,7 +11,7 @@ from redis.exceptions import RedisError, WatchError
 
 from app.core.errors import ApiError
 from app.core.ratelimit import get_redis
-from app.schemas.chat import ChatSessionRef, ChatSessionState
+from app.schemas.chat import ArAdjustmentSnapshot, ChatSessionRef, ChatSessionState
 
 
 class ChatSessionRepository:
@@ -37,6 +37,40 @@ class ChatSessionRepository:
             raise ApiError(503, "Chat session configuration invalid", self.configuration_error)
         if self.client is None:
             raise ApiError(503, "Chat session storage unavailable", "chat_session_unavailable")
+
+    def _adjustment_key(self, owner: str, session: UUID, command: UUID) -> str:
+        # A late ACK can only write its own immutable result, never replace a newer turn.
+        return f"{self.key(session)}:ar:{sha256(owner.encode()).hexdigest()}:{command}"
+
+    async def save_adjustment(
+        self, owner: str, session: UUID, command: UUID, snapshot: ArAdjustmentSnapshot,
+        received_at: int,
+    ) -> None:
+        self.available()
+        ttl = received_at + self.ttl_seconds - int(time.time())
+        if ttl <= 0:
+            return
+        try:
+            await self.client.set(
+                self._adjustment_key(owner, session, command),
+                snapshot.model_dump_json(), ex=ttl, nx=True,
+            )
+        except (RedisError, OSError) as exc:
+            raise ApiError(
+                503, "AR session storage unavailable", "chat_session_unavailable"
+            ) from exc
+
+    async def load_adjustment(
+        self, owner: str, session: UUID, command: UUID
+    ) -> ArAdjustmentSnapshot | None:
+        self.available()
+        try:
+            raw = await self.client.get(self._adjustment_key(owner, session, command))
+            return ArAdjustmentSnapshot.model_validate_json(raw) if raw else None
+        except (RedisError, OSError, ValueError) as exc:
+            raise ApiError(
+                503, "AR session storage unavailable", "chat_session_unavailable"
+            ) from exc
 
     async def check_new_request(self, owner: str, request_id: UUID):
         self.available()

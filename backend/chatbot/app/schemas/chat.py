@@ -53,9 +53,73 @@ class ArUndo(ArModel):
     value: ArIntensity
 
 
+class ArControlScreen(ArModel):
+    choices: list[Annotated[str, StringConstraints(min_length=1, max_length=120)]] = Field(
+        min_length=1, max_length=400
+    )
+    summary: str = Field(max_length=12000)
+
+
+ArColorFamily = Literal["red", "coral", "pink", "berry", "nude", "brown"]
+ArLightness = Literal["light", "medium", "deep"]
+ArChroma = Literal["muted", "medium", "vivid"]
+ArLipType = Literal["lipstick", "tint", "gloss"]
+
+
+class ArControlSelection(ArModel):
+    choice: str = Field(min_length=1, max_length=120)
+    family: ArColorFamily | None = None
+    lightness: ArLightness | None = None
+    chroma: ArChroma | None = None
+    lip_type: ArLipType | None = None
+    lookup_detail: Literal["count", "list"] | None = None
+    name: str | None = Field(default=None, max_length=128)
+    product_id: str | None = Field(default=None, max_length=128)
+    shade_id: str | None = Field(default=None, max_length=128)
+    steps: int | None = Field(default=None, strict=True, ge=1, le=100)
+    ordinal: int | None = Field(default=None, strict=True, ge=1, le=2**53 - 1)
+    value: float | None = Field(default=None, strict=True, ge=0, le=1.7, allow_inf_nan=False)
+
+    @model_validator(mode="after")
+    def validate_color_preferences(self) -> Self:
+        if self.choice.startswith("reapply_try_on/") != (self.ordinal is not None):
+            raise ValueError("An ordinal is required only for reapply_try_on")
+        if self.choice.endswith("/by_color") != any((self.family, self.lightness, self.chroma)):
+            raise ValueError("Color preferences are required for by_color and only valid there")
+        if self.lip_type and self.choice not in {
+            "apply_shade/lip/pick",
+            "apply_shade/lip/by_color",
+            "find_shades/lip/by_color",
+        }:
+            raise ValueError("lipType requires a lip catalog selection")
+        return self
+
+
+class ArControlProposal(ArControlSelection):
+    session_id: UUID | None = Field(default=None, exclude_if=lambda v: v is None)
+    fine_adjustment: bool = Field(default=False, exclude_if=lambda v: not v)
+    on_applied_reply: str | None = Field(default=None, max_length=180)
+    action: Literal["ar_control"]
+    command_id: UUID
+    expected_state_version: ArVersion
+
+
+class ArCatalogNameMatch(ArModel):
+    product_id: ArIdentifier
+    shade_id: ArIdentifier
+    zone: ArZone
+    brand: str = Field(max_length=500)
+    product: str = Field(max_length=1000)
+    shade: str = Field(max_length=500)
+
+
 class ArContext(ArModel):
     """Caller-supplied snapshot, not proof of catalog validity or current app state."""
 
+    control: ArControlScreen | None = None
+    catalog_name_matches: list[ArCatalogNameMatch] = Field(default_factory=list, max_length=1000)
+    session_id: UUID | None = None
+    previous_adjustment_id: UUID | None = None
     screen_id: Literal["A-01"]
     state_version: ArVersion
     active_zone: ArZone | None
@@ -236,7 +300,7 @@ class ArGeometryProposal(ArGeometryAction):
 
 
 ArActionProposal = Annotated[
-    ArIntensityProposal | ArGeometryProposal, Field(discriminator="action")
+    ArIntensityProposal | ArGeometryProposal | ArControlProposal, Field(discriminator="action")
 ]
 
 
@@ -272,12 +336,31 @@ class ArResult(ArModel):
         return self
 
 
+class ArIntensityChange(ArModel):
+    zone: ArZone
+    before: ArIntensity
+    after: ArIntensity
+
+
+class ArAdjustmentSnapshot(ArIntensityChange):
+    state_version: ArVersion
+
+
 class ArAckRequest(ArModel):
     request_id: UUID
     command_id: UUID
     session_id: UUID
-    status: Literal["APPLIED", "NO_CHANGE", "REJECTED", "FAILED", "UNKNOWN"]
+    status: Literal["OK", "APPLIED", "NO_CHANGE", "REJECTED", "FAILED", "UNKNOWN"]
     actual_state_version: ArVersion | None = None
+    intensity_change: ArIntensityChange | None = None
+
+
+class ArControlFeedback(ArModel):
+    request_id: UUID
+    command_id: UUID
+    locale: Locale
+    message: str = Field(max_length=2000)
+    result: str = Field(max_length=12000)
 
 
 class ArAckResponse(ApiModel):

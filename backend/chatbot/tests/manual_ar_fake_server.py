@@ -200,8 +200,8 @@ class FakeService(ChatService):
             proposal.expected_state_version = version + 1 if version < 2**53 - 1 else version - 1
         return response
 
-    def acknowledge_ar(self, principal_key: str, ack: ArAckRequest) -> None:
-        super().acknowledge_ar(principal_key, ack)
+    async def acknowledge_ar(self, principal_key: str, ack: ArAckRequest) -> None:
+        await super().acknowledge_ar(principal_key, ack)
         emit(
             "ack_received",
             requestId=str(ack.request_id),

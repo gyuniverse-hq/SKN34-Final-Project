@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "VISHUE chatbot: LLM answers grounded in the Neo4j product graph"
 requires-python = ">=3.12"
 dependencies = [
+    "av>=19.0.2",
     "fastapi>=0.161.1",
     "httpx>=0.28.1",
     "neo4j>=6.4.1",
@@ -11,6 +12,7 @@ dependencies = [
     "pyjwt[crypto]>=2.15.1",
     "redis>=8.1.0",
     "uvicorn[standard]>=0.54.0",
+    "websockets>=17.3",
 ]
 
 [tool.uv]

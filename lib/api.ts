@@ -57,8 +57,8 @@ export const CHAT_API_BASE_URL = resolveChatApiBaseUrl(process.env.EXPO_PUBLIC_C
 /** Sends a request to the backend (`path` starts with /api) with the Supabase access token. */
 async function apiRequest(
   path: string,
-  init: { method: 'GET' | 'POST' | 'DELETE'; headers?: Record<string, string>; body?: string },
-  options: { baseUrl?: string; timeoutMs?: number; fixedToken?: { value: string | null } } = {}
+  init: { method: 'GET' | 'POST' | 'DELETE'; headers?: Record<string, string>; body?: string | ArrayBuffer },
+  options: { baseUrl?: string; timeoutMs?: number; fixedToken?: { value: string | null }; signal?: AbortSignal } = {}
 ): Promise<Response> {
   const baseUrl = (options.baseUrl ?? API_BASE_URL).replace(/\/+$/, '');
   if (options.baseUrl && baseUrl !== API_BASE_URL && !/^https?:\/\/[^/@?#\\\s]+(?:\/[^?#\\\s]*)?$/i.test(baseUrl)) {
@@ -69,6 +69,9 @@ async function apiRequest(
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const controller = new AbortController();
+  const cancel = () => controller.abort();
+  options.signal?.addEventListener('abort', cancel);
+  if (options.signal?.aborted) cancel();
   const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? TIMEOUT_MS);
   let res: Response;
   try {
@@ -81,6 +84,7 @@ async function apiRequest(
     );
   } finally {
     clearTimeout(timer);
+    options.signal?.removeEventListener('abort', cancel);
   }
 
   if (!res.ok) {
@@ -181,7 +185,7 @@ export function subscribeArIdentityChange(listener: () => void): () => void {
 export async function apiPostOwned<T>(
   path: string,
   body: unknown,
-  options: { expectedOwner?: ArRequestOwner; timeoutMs?: number } = {}
+  options: { expectedOwner?: ArRequestOwner; timeoutMs?: number; signal?: AbortSignal } = {}
 ): Promise<{ data: T; owner: ArRequestOwner }> {
   let changed = false;
   const unsubscribe = subscribeArIdentityChange(() => { changed = true; });
@@ -191,10 +195,11 @@ export async function apiPostOwned<T>(
       throw new ApiError('AR request owner changed', 0, 'ar_owner_changed');
     }
     // Do not send the guest ID with a user token: an invalid token must not fall back to guest.
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const audio = body instanceof ArrayBuffer;
+    const headers: Record<string, string> = { 'Content-Type': audio ? 'audio/mp4' : 'application/json' };
     if (owner.kind === 'guest') headers['X-Vishue-Anonymous-Id'] = owner.id;
-    const res = await apiRequest(path, { method: 'POST', headers, body: JSON.stringify(body) }, {
-      baseUrl: CHAT_API_BASE_URL, timeoutMs: options.timeoutMs, fixedToken: { value: token },
+    const res = await apiRequest(path, { method: 'POST', headers, body: audio ? body : JSON.stringify(body) }, {
+      baseUrl: CHAT_API_BASE_URL, timeoutMs: options.timeoutMs, fixedToken: { value: token }, signal: options.signal,
     });
     const data = (await res.json()) as T;
     const latest = await arCredentials();

@@ -19,6 +19,8 @@ from app.repositories.chat_session_repository import ChatSessionRepository, get_
 from app.repositories.graph_repository import GraphRepository
 from app.schemas.chat import (
     ArAckRequest,
+    ArAdjustmentSnapshot,
+    ArControlProposal,
     BeautyContext,
     BeautyFilters,
     ChatRequest,
@@ -39,6 +41,7 @@ from app.schemas.supervisor import (
     ToolResult,
 )
 from app.services.ar_command_service import propose_ar_command
+from app.services.ar_control_service import plan_control
 from app.services.beauty_consultation_service import (
     COMPARISON_SCREENS,
     TEXT,
@@ -400,7 +403,9 @@ class ChatService:
                 principal_key,
                 req.request_id,
                 fingerprint,
-                lambda: self._run_supervisor(req, context, decision),
+                lambda: self._plan_control(req, principal_key)
+                if req.ar_context and req.ar_context.control
+                else self._run_supervisor(req, context, decision),
             )
         return await self._run_supervisor(req, context, decision)
 
@@ -953,10 +958,45 @@ class ChatService:
             raise ApiError(422, "Invalid AR product or shade", "invalid_ar_selection")
         return result
 
-    def acknowledge_ar(self, principal_key: str, ack: ArAckRequest) -> None:
+    async def _plan_control(self, req: ChatRequest, owner: str) -> ChatResponse:
+        ctx = req.ar_context
+        previous = None
+        if ctx.session_id and ctx.previous_adjustment_id and self._sessions is not None:
+            snapshot = await self._sessions.load_adjustment(
+                owner, ctx.session_id, ctx.previous_adjustment_id
+            )
+            if snapshot and snapshot.state_version == ctx.state_version:
+                previous = snapshot
+        return await plan_control(req, self._ar_llm, previous)
+
+    async def acknowledge_ar(self, principal_key: str, ack: ArAckRequest) -> None:
         if get_settings().is_production or self._requests is None:
             raise ApiError(503, "AR request storage is unavailable", "ar_requests_unavailable")
-        self._requests.record_ack(principal_key, ack)
+        delta = ack.intensity_change
+        if delta is not None:
+            proposal = self._requests.issued_proposal(principal_key, ack.request_id, ack.command_id)
+            direction = "down" if delta.after < delta.before else "up"
+            valid_choices = {
+                f"adjust_intensity/{delta.zone}/{direction}",
+                f"set_intensity/{delta.zone}/absolute",
+            }
+            if direction == "down":
+                valid_choices.add(f"set_intensity/{delta.zone}/half")
+            if (
+                not isinstance(proposal, ArControlProposal)
+                or ack.status != "APPLIED" or proposal.session_id != ack.session_id
+                or ack.actual_state_version is None
+                or ack.actual_state_version <= proposal.expected_state_version
+                or delta.after == delta.before or proposal.choice not in valid_choices
+            ):
+                raise ApiError(422, "Invalid confirmed adjustment", "invalid_ar_result")
+        received_at = self._requests.record_ack(principal_key, ack)
+        if delta is not None and self._sessions is not None:
+            await self._sessions.save_adjustment(
+                principal_key, ack.session_id, ack.command_id,
+                ArAdjustmentSnapshot(**delta.model_dump(), state_version=ack.actual_state_version),
+                received_at,
+            )
 
 
 def get_chat_service(

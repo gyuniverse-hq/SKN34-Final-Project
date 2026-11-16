@@ -1,7 +1,11 @@
 import { apiPostOwned, type ArRequestOwner } from '@/lib/api';
 import type { ArOutcome } from '@/store/makeupStore';
+import type { MakeupZone } from '@/types';
 
-export type ArAck = ArOutcome & { requestId: string; commandId: string; sessionId: string };
+export type ArAck = Omit<ArOutcome, 'status'> & {
+  status: ArOutcome['status'] | 'OK'; requestId: string; commandId: string; sessionId: string;
+  intensityChange?: { zone: MakeupZone; before: number; after: number };
+};
 
 // Development-only outbox: retained while the JS process lives, never re-executes a command.
 const outbox = new Map<string, { body: ArAck; owner: ArRequestOwner }>();
@@ -18,6 +22,11 @@ export function pendingArAcks() { return outbox.size; }
 
 export async function retryArAcks() {
   await Promise.all([...outbox.keys()].map(sendAck));
+}
+
+export async function confirmArAck(commandId: string) {
+  if (outbox.has(commandId)) await sendAck(commandId);
+  return !outbox.has(commandId);
 }
 
 async function sendAck(commandId: string): Promise<void> {

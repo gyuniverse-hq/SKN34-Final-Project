@@ -9,7 +9,7 @@ from app.core.errors import install_error_handlers
 from app.core.graph import close_driver
 from app.core.observability import RequestContextMiddleware, configure_logging
 from app.core.ratelimit import close_redis
-from app.routers import chat, health
+from app.routers import chat, health, voice
 
 
 @asynccontextmanager
@@ -47,6 +47,7 @@ def create_app() -> FastAPI:
     install_error_handlers(app)
     app.include_router(health.router)
     app.include_router(chat.router)
+    app.include_router(voice.router)
     return app
 
 
