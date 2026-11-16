@@ -215,3 +215,16 @@ def test_reg07_records_distinct_actual_requests_without_baseline_or_secrets():
     assert result["fixtureIdentity"]["sessionStore"] == "RedisDouble fixture"
     assert auth.get_verifier is old_verifier
     assert get_settings().g1_supervisor_enabled == old_flag
+
+
+def test_catalog_difference_preserves_missing_fields_and_hides_values():
+    from tests.g1_e1_live_driver import catalog_row_difference
+
+    result = catalog_row_difference(
+        {"id": "p", "priceKRW": 100, "extra": "private-value"},
+        {"id": "p", "priceKRW": 200, "nullable": None},
+    )
+    assert result["productId"] == "p"
+    assert [field["field"] for field in result["fields"]] == ["extra", "nullable", "priceKRW"]
+    assert "private-value" not in json.dumps(result)
+    assert catalog_row_difference({"id": "p"}, {"id": "p"})["fields"] == []

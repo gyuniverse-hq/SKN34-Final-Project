@@ -594,22 +594,32 @@ async def _cdp_live(item, owned=None):
         )
         try:
             port_file = Path(profile) / "DevToolsActivePort"
+            port = None
             for _ in range(100):
                 if port_file.is_file():
-                    break
+                    try:
+                        lines = (
+                            (await asyncio.to_thread(_read_shared_log, port_file, 0))
+                            .decode("utf-8")
+                            .splitlines()
+                        )
+                        port = int(lines[0]) if lines else None
+                        if port is not None and 0 < port < 65536:
+                            break
+                    except (OSError, ValueError):
+                        port = None
                 if process.poll() is not None:
                     raise OSError("chrome_exited_before_debugging_ready")
                 await asyncio.sleep(0.1)
-            if not port_file.is_file():
+            if port is None or not 0 < port < 65536:
                 raise TimeoutError("chrome_debugging_not_ready")
-            port = int(port_file.read_text(encoding="utf-8").splitlines()[0])
             async with httpx.AsyncClient(trust_env=False, timeout=20) as http:
                 target = await http.put(f"http://127.0.0.1:{port}/json/new?about:blank")
                 target.raise_for_status()
                 ws_url = target.json()["webSocketDebuggerUrl"]
             if not ws_url.startswith(f"ws://127.0.0.1:{port}/"):
                 raise ValueError("unexpected_debugging_endpoint")
-            async with websockets.connect(ws_url, max_size=12_000_000) as ws:
+            async with websockets.connect(ws_url, max_size=80_000_000) as ws:
                 counter, network = 0, []
 
                 async def call(method, params=None):
@@ -666,7 +676,10 @@ async def _cdp_live(item, owned=None):
 
                 await call("Page.enable")
                 await call("Runtime.enable")
-                await call("Network.enable", {"maxTotalBufferSize": 20_000_000})
+                await call(
+                    "Network.enable",
+                    {"maxTotalBufferSize": 100_000_000, "maxResourceBufferSize": 50_000_000},
+                )
                 await call("Page.navigate", {"url": app_url + "/chat"})
                 for _ in range(120):
                     ready = await js(
@@ -1101,7 +1114,29 @@ async def _cdp_live(item, owned=None):
                         break
                     await asyncio.sleep(0.25)
                 if browser_catalog is None:
-                    return _not_run(item, "browser_catalog_request_not_observed")
+                    result = _not_run(item, "browser_catalog_request_not_observed")
+                    result["observation"]["partialCapture"] = {
+                        "requestId": server_id,
+                        "httpStatus": int(response_info["status"]),
+                        "response": _safe_response(response),
+                        "serverTrace": events,
+                        "catalogRequestCount": len(requests),
+                        "catalogResponseStatuses": [
+                            responses[key].get("status") for key in requests if key in responses
+                        ],
+                        "catalogLoadingFailures": [
+                            {
+                                "networkRequestId": event["params"]["requestId"],
+                                "corsError": event["params"]
+                                .get("corsErrorStatus", {})
+                                .get("corsError"),
+                            }
+                            for event in network
+                            if event.get("method") == "Network.loadingFailed"
+                            and event.get("params", {}).get("requestId") in requests
+                        ],
+                    }
+                    return result
                 # Only certify rendered cards when the browser actually exposes each label.
                 labels = await js(
                     "[...document.querySelectorAll('button,[role=button]')].map(e=>e.getAttribute('aria-label')||'').filter(Boolean)"
@@ -1419,6 +1454,43 @@ def _owned_ready(http, app_url, chat_url):
     )
 
 
+def _runtime_log_event(raw):
+    """Keep diagnostic markers, never arbitrary process output or credentials."""
+    text = raw.decode("utf-8", errors="replace")
+    markers = (
+        "Traceback",
+        "ModuleNotFoundError",
+        "ImportError",
+        "ValidationError",
+        "PermissionError",
+        "EADDRINUSE",
+        "ENOENT",
+        "Cannot find module",
+        "No modules in context",
+        "Unable to resolve",
+        "Error:",
+        "Bundled",
+        "Bundling failed",
+        "Starting Metro",
+        "Waiting on",
+        "Application startup complete",
+        "Uvicorn running",
+        "CommandError",
+        "SyntaxError",
+        "TypeError",
+        "Cannot load skin-analysis-v4",
+        "heap out of memory",
+        "FATAL ERROR",
+        "Allocation failed",
+        "ERR_WORKER_OUT_OF_MEMORY",
+    )
+    return {
+        "capturedAt": datetime.now().astimezone().isoformat(),
+        "lineSha256": hashlib.sha256(raw).hexdigest(),
+        "markers": [marker for marker in markers if marker in text],
+    }
+
+
 def _owned_environment(inherited, file_values, catalog_url, app_port, chat_port):
     env = inherited.copy()
     for key, value in file_values.items():
@@ -1451,10 +1523,16 @@ def _run_owned(item):
     import httpx
     from dotenv import dotenv_values
 
+    diagnostics = {"expo": [], "chatbot": [], "readiness": []}
+
     def blocked(reason):
         return {
             "observation": _identity(item)
-            | {"status": "BLOCKED_DEPENDENCY", "blockedReason": reason},
+            | {
+                "status": "BLOCKED_DEPENDENCY",
+                "blockedReason": reason,
+                "runtimeDiagnostics": diagnostics,
+            },
             "artifacts": {},
         }
 
@@ -1462,7 +1540,12 @@ def _run_owned(item):
         return blocked("windows_socket_owner_check_required")
     try:
         commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
-        if subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True).strip():
+        diagnostic_only = os.environ.get("G1_E5_DIAGNOSTIC_ONLY") == "1"
+        dirty = bool(
+            subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True).strip()
+        )
+        diagnostics.update({"gitCommit": commit, "worktreeDirty": dirty})
+        if dirty and not diagnostic_only:
             return _not_run(item, "worktree_not_clean")
         node = shutil.which("node")
         expo = ROOT / "node_modules/expo/bin/cli"
@@ -1493,6 +1576,8 @@ def _run_owned(item):
 
             def copy_log():
                 for line in iter(chat.stdout.readline, b""):
+                    diagnostics["chatbot"].append(_runtime_log_event(line))
+                    del diagnostics["chatbot"][:-100]
                     try:
                         decoded = line.decode("utf-8")
                         event = json.loads(decoded)
@@ -1513,24 +1598,41 @@ def _run_owned(item):
                     [node, str(expo), "start", "--web", "--port", str(app_port)],
                     cwd=ROOT,
                     env=env,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
                 )
+
+                def copy_expo_log():
+                    for line in iter(expo_process.stdout.readline, b""):
+                        diagnostics["expo"].append(_runtime_log_event(line))
+                        del diagnostics["expo"][:-100]
+
+                expo_thread = threading.Thread(target=copy_expo_log, daemon=True)
+                expo_thread.start()
                 app_url = f"http://localhost:{app_port}"
                 chat_url = f"http://127.0.0.1:{chat_port}"
                 deadline = time.monotonic() + 120
-                with httpx.Client(timeout=2, trust_env=False) as http:
+                with httpx.Client(timeout=httpx.Timeout(30, connect=2), trust_env=False) as http:
                     while time.monotonic() < deadline:
                         if chat.poll() is not None or expo_process.poll() is not None:
+                            diagnostics["exitCodes"] = {
+                                "chatbot": chat.poll(),
+                                "expo": expo_process.poll(),
+                            }
                             return blocked("owned_runtime_process_exited")
                         try:
                             if _owned_ready(http, app_url, chat_url):
                                 break
-                        except httpx.HTTPError:
-                            pass
+                        except httpx.HTTPError as exc:
+                            diagnostics["readiness"].append(type(exc).__name__)
+                            del diagnostics["readiness"][:-30]
                         time.sleep(1)
                     else:
                         return blocked("owned_runtime_startup_timeout")
+                if diagnostic_only and os.environ.get("G1_E5_EXPLORATORY") != "1":
+                    result = _not_run(item, "diagnostic_only_runtime_ready")
+                    result["observation"]["runtimeDiagnostics"] = diagnostics
+                    return result
                 if not _owns_listener(app_port, expo_process) or not _owns_listener(
                     chat_port, chat
                 ):
@@ -1554,6 +1656,20 @@ def _run_owned(item):
                     "expoDependencyPath": str(expo.resolve()),
                 }
                 result = asyncio.run(_cdp_live(item, owned=owned))
+                if diagnostic_only:
+                    result["observation"]["diagnosticCaptureReason"] = result["observation"].get(
+                        "blockedReason"
+                    )
+                    if result["observation"].get("status") not in {
+                        "FAIL",
+                        "BLOCKED_DEPENDENCY",
+                        "BLOCKED_DATA",
+                        "BLOCKED",
+                    }:
+                        result["observation"]["status"] = "NOT_RUN"
+                        result["observation"]["blockedReason"] = "diagnostic_only_ui_capture"
+                    result["observation"]["runtimeDiagnostics"] = diagnostics
+                    return result
                 clean = (
                     subprocess.check_output(
                         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
@@ -1589,7 +1705,16 @@ def _run_owned(item):
                             process.kill()
                             process.wait(timeout=10)
                 thread.join(timeout=3)
-    except (OSError, ValueError, KeyError, subprocess.SubprocessError):
+    except (OSError, ValueError, KeyError, subprocess.SubprocessError) as exc:
+        import traceback
+
+        diagnostics["exception"] = {
+            "type": type(exc).__name__,
+            "frames": [
+                {"file": Path(frame.filename).name, "line": frame.lineno, "function": frame.name}
+                for frame in traceback.extract_tb(exc.__traceback__)[-8:]
+            ],
+        }
         return blocked("owned_runtime_setup_incomplete")
 
 

@@ -144,6 +144,20 @@ def product_identity_matches(response_products, db_products):
     )
 
 
+def catalog_row_difference(before, after):
+    """Report exact differing fields without serializing unrestricted upstream values."""
+    fields = []
+    for key in sorted(before.keys() | after.keys()):
+        if (key in before) == (key in after) and before.get(key) == after.get(key):
+            continue
+        entry = {"field": key, "beforePresent": key in before, "afterPresent": key in after}
+        for label, row in (("before", before), ("after", after)):
+            value = json.dumps(row.get(key), sort_keys=True, ensure_ascii=False)
+            entry[label + "Sha256"] = hashlib.sha256(value.encode()).hexdigest()
+        fields.append(entry)
+    return {"productId": before.get("id"), "fields": fields}
+
+
 def catalog_rows_match_db(ids, catalog_products, db_products, db_shades):
     """Check only returned product IDs, including every shade visible in their API rows."""
     source = {row["id"]: row for row in db_products}
@@ -560,7 +574,20 @@ async def run(item):
         "missing": missing.status_code == 404,
     }
     if not all(checks.values()):
-        return blocked("catalog_http_fixture_mismatch", "BLOCKED_DATA")
+        result = blocked("catalog_http_fixture_mismatch", "BLOCKED_DATA")
+        result["observation"]["dataDiagnostics"] = {
+            "checks": checks,
+            "httpStatuses": {
+                "target": target.status_code,
+                "foreign": foreign.status_code,
+                "empty": empty.status_code,
+                "missing": missing.status_code,
+            },
+            "observedAt": datetime.now(UTC).isoformat(),
+            "targetId": fv["productId"],
+            "foreignId": fv["foreignProductId"],
+        }
+        return result
 
     model = FixtureModel(case)
     get_settings().g1_supervisor_enabled = True
@@ -599,6 +626,7 @@ async def run(item):
         ):
             is_detail = request.url.path.startswith("/api/products/")
             event = {
+                "observedAt": datetime.now(UTC).isoformat(),
                 "name": "catalog.get_product_detail" if is_detail else "catalog.search_products",
                 "method": request.method,
                 "path": "/api/products/{productId}" if is_detail else request.url.path,
@@ -676,7 +704,29 @@ async def run(item):
         for row in catalog_rows:
             if row["id"] in all_ids:
                 if row["id"] in unique_rows and unique_rows[row["id"]] != row:
-                    return blocked("returned_catalog_data_changed_between_requests", "BLOCKED_DATA")
+                    result = blocked(
+                        "returned_catalog_data_changed_between_requests", "BLOCKED_DATA"
+                    )
+                    result["observation"]["dataDiagnostics"] = {
+                        "difference": catalog_row_difference(unique_rows[row["id"]], row),
+                        "requests": [
+                            {key: event[key] for key in ("observedAt", "method", "path", "status")}
+                            | {
+                                "returnedCount": len(event["returnedProducts"]),
+                                "restrictedIds": "ids" in event["query"],
+                            }
+                            for event in search_events
+                            if row["id"] in event["returnedProductIds"]
+                        ],
+                        "beforeMatchesDatabase": catalog_rows_match_db(
+                            [row["id"]], [unique_rows[row["id"]]], db["products"], db["shades"]
+                        ),
+                        "afterMatchesDatabase": catalog_rows_match_db(
+                            [row["id"]], [row], db["products"], db["shades"]
+                        ),
+                        "databaseObservedAt": datetime.now(UTC).isoformat(),
+                    }
+                    return result
                 unique_rows[row["id"]] = row
         selected_rows = list(unique_rows.values())
         for step in security_result["steps"]:

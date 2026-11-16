@@ -326,6 +326,17 @@ def test_owned_runtime_preserves_explicit_env_and_sets_cors():
     assert env["EXPO_PUBLIC_CHAT_API_BASE_URL"] == "http://127.0.0.1:8403"
 
 
+def test_runtime_diagnostics_never_copy_raw_output():
+    from tests.g1_e5_live_driver import _runtime_log_event
+
+    raw = b"Error: private-value postgres://user:password@host/db\n"
+    event = _runtime_log_event(raw)
+    assert event["markers"] == ["Error:"]
+    assert "private-value" not in json.dumps(event)
+    assert "password" not in json.dumps(event)
+    assert len(event["lineSha256"]) == 64
+
+
 def test_owned_listener_allows_only_live_direct_python_child(monkeypatch):
     from types import SimpleNamespace
 
