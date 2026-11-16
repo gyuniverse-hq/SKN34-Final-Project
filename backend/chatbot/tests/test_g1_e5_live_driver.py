@@ -10,6 +10,26 @@ from tests.g1_e5_live_driver import bind, run
 from tests.run_g1_evaluation import CONTRACT, read_jsonl
 
 
+def test_screen_entry_uses_real_deep_link_and_resolves_foreign_shade():
+    from tests.g1_e5_live_driver import _screen_entry
+
+    case = {
+        "input": {
+            "screenContext": {
+                "screenId": "product-detail",
+                "productId": "${FIXTURE.productId}",
+                "shadeId": "${FIXTURE.foreignShadeId}",
+            }
+        }
+    }
+    path, screen = _screen_entry(case, {"productId": "p", "foreignShadeId": "foreign"})
+    assert path == "/chat?productId=p&shadeId=foreign"
+    assert screen["shadeId"] == "foreign"
+    with pytest.raises(ValueError, match="screen_fixture_missing"):
+        _screen_entry(case, {"productId": "p"})
+    assert _screen_entry({"input": {}}, {}) == ("/chat", None)
+
+
 @pytest.fixture
 def sample(tmp_path):
     case = next(

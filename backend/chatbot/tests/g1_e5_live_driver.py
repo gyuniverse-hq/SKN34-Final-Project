@@ -28,6 +28,25 @@ def _identity(item):
     }
 
 
+def _screen_entry(case, fixture):
+    """Use the existing product deep link; never inject application state."""
+    from urllib.parse import urlencode
+
+    screen = dict(case["input"].get("screenContext") or {})
+    for key, value in screen.items():
+        if isinstance(value, str) and value.startswith("${FIXTURE."):
+            name = value.removeprefix("${FIXTURE.").removesuffix("}")
+            if name not in fixture:
+                raise ValueError("screen_fixture_missing")
+            screen[key] = fixture[name]
+    if not screen:
+        return "/chat", None
+    if not screen.get("productId"):
+        raise ValueError("screen_product_missing")
+    query = {key: screen[key] for key in ("productId", "shadeId") if screen.get(key)}
+    return "/chat?" + urlencode(query), screen
+
+
 def _matches_chat_origin(url, expected_origin):
     from urllib.parse import urlsplit
 
@@ -422,10 +441,17 @@ async def _cdp_live(item, owned=None):
 
     supported = {
         "G1-CAT-01",
+        "G1-CAT-02",
         "G1-CAT-03",
+        "G1-CAT-04",
+        "G1-CAT-05",
+        "G1-CAT-06",
         "G1-CAT-07",
         "G1-CAT-08",
         "G1-CAT-09",
+        "G1-CAT-10",
+        "G1-CAT-12",
+        "G1-CAT-13",
         "G1-CAT-14",
         "G1-UI-01",
     }
@@ -680,7 +706,8 @@ async def _cdp_live(item, owned=None):
                     "Network.enable",
                     {"maxTotalBufferSize": 100_000_000, "maxResourceBufferSize": 50_000_000},
                 )
-                await call("Page.navigate", {"url": app_url + "/chat"})
+                entry_path, expected_screen = _screen_entry(item["case"], fixture)
+                await call("Page.navigate", {"url": app_url + entry_path})
                 for _ in range(120):
                     ready = await js(
                         "!!document.querySelector('[aria-label=\"궁금한 점을 입력하세요\"]')"
@@ -693,7 +720,7 @@ async def _cdp_live(item, owned=None):
                 variants = item["case"]["input"].get("requiredVariants", [])
                 spec = next((v for v in variants if v["variantId"] == item["variantId"]), {})
                 expected_type = spec.get("requestType", item["case"]["input"]["requestType"])
-                if expected_type == "beauty_consultation":
+                if expected_type == "beauty_consultation" and expected_screen is None:
                     await click("지금 쓰는 립이 너무 건조해")
                 await click("궁금한 점을 입력하세요")
                 await call(
@@ -752,7 +779,7 @@ async def _cdp_live(item, owned=None):
                     return _not_run(item, "browser_request_response_not_observed")
                 if (
                     request_body.get("requestType", "chat") != expected_type
-                    or request_body.get("screenContext") is not None
+                    or request_body.get("screenContext") != expected_screen
                     or request_body.get("chatContext") is not None
                 ):
                     return _not_run(item, "browser_request_variant_mismatch")
@@ -905,9 +932,53 @@ async def _cdp_live(item, owned=None):
                             | {"postgres": db, "capturedOnError": True},
                         },
                     }
+
+                async def captured_incomplete(reason):
+                    # Keep actual browser/server evidence even when a later gate is missing.
+                    rendered = await js("document.body.innerText")
+                    screenshot = await call("Page.captureScreenshot", {"format": "png"})
+                    encoded = screenshot.get("data", "")
+                    image = base64.b64decode(encoded, validate=True)
+                    if not image.startswith(b"\x89PNG\r\n\x1a\n") or len(image) > MAX_IMAGE_BYTES:
+                        return _not_run(item, "browser_screenshot_invalid")
+                    common = _identity(item) | {"gitCommit": commit, "requestId": server_id}
+                    return {
+                        "observation": common
+                        | {
+                            "status": "NOT_RUN",
+                            "blockedReason": reason,
+                            "isMock": False,
+                            "isSynthetic": False,
+                            "httpStatus": int(response_info["status"]),
+                            "response": response,
+                        },
+                        "artifacts": {
+                            "app_request_and_response_trace": common
+                            | {
+                                "request": request_body,
+                                "response": response,
+                                "serverTrace": events,
+                            },
+                            "UI_rendered_elements_or_screen_recording": common
+                            | {
+                                "renderedElements": rendered,
+                                "screenshot": {
+                                    "sha256": hashlib.sha256(image).hexdigest(),
+                                    "bytesBase64": encoded,
+                                },
+                            },
+                            "card_and_navigation_ids_if_present": common
+                            | {
+                                "responseProductIds": ids,
+                                "postgres": fixed_db,
+                                "navigationObserved": False,
+                            },
+                        },
+                    }
+
                 if item["case"]["caseId"] == "G1-CAT-07":
                     if not _verified_empty_search(events, empty_preflight["query"]):
-                        return _not_run(item, "empty_search_trace_not_observed")
+                        return await captured_incomplete("empty_search_trace_not_observed")
                     rendered = ""
                     labels = []
                     for _ in range(40):
@@ -998,7 +1069,37 @@ async def _cdp_live(item, owned=None):
                         },
                     }
                 if not ids:
-                    return _not_run(item, "no_product_card_to_validate")
+                    if item["case"]["caseId"] == "G1-CAT-12":
+                        from tests.g1_e1_live_driver import observe_detail_shades
+
+                        captured = await captured_incomplete("clarification_render_not_verified")
+                        ui_artifact = captured["artifacts"].get(
+                            "UI_rendered_elements_or_screen_recording", {}
+                        )
+                        answer = response.get("answer", "")
+                        if answer and answer in ui_artifact.get("renderedElements", ""):
+                            observation = captured["observation"]
+                            observation.pop("status", None)
+                            observation.pop("blockedReason", None)
+                            observation.update(
+                                sourceSnapshotId=fixed_db["catalogFixtureRef"],
+                                sourceShadePairs=[
+                                    {"productId": row["product_id"], "shadeId": row["id"]}
+                                    for row in fixed_db["shades"]
+                                    if row["product_id"] == expected_screen["productId"]
+                                ],
+                            )
+                            observation.update(
+                                observe_detail_shades(
+                                    "G1-CAT-12",
+                                    response,
+                                    expected_screen["productId"],
+                                    fixed_db["shades"],
+                                    fixture,
+                                )
+                            )
+                        return captured
+                    return await captured_incomplete("no_product_card_to_validate")
                 manifest = json.loads(
                     (
                         ROOT
@@ -1206,8 +1307,12 @@ async def _cdp_live(item, owned=None):
                 if item["case"]["caseId"] == "G1-UI-01":
                     pairs = _rendered_shade_pairs(labels, rows)
                     if pairs is None:
-                        return _not_run(item, "rendered_shades_not_observed_or_unverified")
-                    observation["ui"]["shadePairs"] = pairs
+                        observation.update(
+                            status="NOT_RUN",
+                            blockedReason="rendered_shades_not_observed_or_unverified",
+                        )
+                    else:
+                        observation["ui"]["shadePairs"] = pairs
                     observation["sourceShadePairs"] = [
                         {"productId": row["product_id"], "shadeId": row["id"]}
                         for row in db["shades"]

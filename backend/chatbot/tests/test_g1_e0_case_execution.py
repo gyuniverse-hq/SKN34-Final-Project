@@ -579,7 +579,23 @@ async def test_case_observation(monkeypatch):
                 "serviceEntriesBefore": service_before,
                 "serviceEntriesAfter": len(service_entries),
             }
+    shade_observation = {}
+    if detail_case and response.status_code == 200:
+        from tests.g1_e1_live_driver import observe_detail_shades
+
+        shade_observation = observe_detail_shades(
+            case["caseId"],
+            response.json(),
+            body["screenContext"]["productId"],
+            [
+                {"product_id": p["id"], "id": s["id"], "name": s["name"]}
+                for p in products
+                for s in p.get("shades", [])
+            ],
+            fixture,
+        )
     result = {
+        "shadeObservation": shade_observation,
         "request": body,
         "httpStatus": response.status_code,
         "response": response.json(),

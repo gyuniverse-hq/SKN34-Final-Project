@@ -147,7 +147,7 @@ def run(item):
         observation["screenProductId"] = observed["detailScreenProductId"]
     if observed.get("sourceShadePairs") is not None:
         observation["sourceShadePairs"] = observed["sourceShadePairs"]
-    # No response shade pairs are recorded without reliable natural-language auditing.
+    observation.update(observed.get("shadeObservation", {}))
     if observed.get("legacyRequestId") is not None:
         observation["legacyRequestId"] = observed["legacyRequestId"]
     if observed.get("catalogPreflight") is not None:
@@ -217,6 +217,7 @@ def run(item):
                 "legacyRequestId": observed.get("legacyRequestId"),
                 "detailScreenProductId": observed.get("detailScreenProductId"),
                 "sourceShadePairs": observed.get("sourceShadePairs"),
+                "shadeObservation": observed.get("shadeObservation"),
                 "securityObservations": observed.get("securityObservations"),
                 "auth": observed.get("auth"),
                 "steps": observed.get("steps"),

@@ -274,6 +274,28 @@ def detail_response_failure(case_id, payload, fixture):
     return None
 
 
+def observe_detail_shades(case_id, payload, product_id, source_shades, fixture):
+    """Collect response fields and exact listed names; missing prose evidence stays missing."""
+    observation = {}
+    if case_id == "G1-CAT-04":
+        pairs, failure = detail_answer_shade_pairs(payload, product_id, source_shades)
+        if pairs is not None:
+            observation["responseShadePairs"] = pairs
+        if failure:
+            observation.update(status="FAIL", failureReason=failure)
+    elif case_id == "G1-CAT-12":
+        failure = detail_response_failure(case_id, payload, fixture)
+        observation["responseShadePairs"] = response_shade_pairs(payload)
+        observation["shadeResponseAudit"] = {
+            "scope": "structured response selection and evidence; foreign fixture name in answer",
+            "resultType": payload.get("resultType"),
+            "failureReason": failure,
+        }
+        if failure:
+            observation.update(status="FAIL", failureReason=failure)
+    return observation
+
+
 async def observe_reg07(case, run_id, catalog, artifact_name):
     """Make independent guest, fixture-user and active foreign-session requests.
 

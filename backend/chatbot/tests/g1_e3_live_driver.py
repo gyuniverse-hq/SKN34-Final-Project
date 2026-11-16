@@ -458,6 +458,20 @@ async def run(item):
     source_shade_pairs = detail_source_shade_pairs(catalog.results)
     if source_shade_pairs is not None:
         observation["sourceShadePairs"] = source_shade_pairs
+        if screen and response.status_code == 200:
+            from tests.g1_e1_live_driver import observe_detail_shades
+
+            source_shades = [
+                {"product_id": p["id"], "id": s["id"], "name": s["name"]}
+                for p in source_products
+                for s in p.get("shades", [])
+                if isinstance(s.get("name"), str)
+            ]
+            observation.update(
+                observe_detail_shades(
+                    case["caseId"], payload, screen["productId"], source_shades, fixture
+                )
+            )
     tool_result = next(
         (e for e in reversed(capture.events) if e["event"] == "g1_catalog_tool_result"), None
     )
