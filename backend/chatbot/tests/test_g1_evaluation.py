@@ -648,7 +648,6 @@ def test_e2_foreign_response_is_bound_to_its_existing_trace(tmp_path):
     assert report()["status"] == "NOT_RUN"
 
 
-
 def test_forbidden_catalog_search_is_failure_even_with_other_missing_observations(tmp_path):
     cases, registry = load_contract()
     case = next(case for case in cases if case["caseId"] == "G1-GEN-07")
@@ -684,7 +683,8 @@ def test_forbidden_catalog_search_is_failure_even_with_other_missing_observation
 
     def verdict(row):
         return next(
-            item for item in evaluate([case], [row], registry, evidence_root=tmp_path)
+            item
+            for item in evaluate([case], [row], registry, evidence_root=tmp_path)
             if item["environment"] == "E0"
         )
 

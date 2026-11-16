@@ -224,7 +224,6 @@ async def test_foreign_screen_shade_returns_safe_clarification(monkeypatch, kind
         assert calls == ["/api/products/a", "/api/products/a"]
 
 
-
 @pytest.mark.anyio
 async def test_g1_moisture_preference_does_not_claim_verified_match(monkeypatch):
     monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", True)

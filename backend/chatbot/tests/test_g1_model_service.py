@@ -367,7 +367,6 @@ async def test_screen_detail_is_not_forced_to_list_search(message, allowed):
             await choose_g1_turn(request, complete)
 
 
-
 @pytest.mark.anyio
 @pytest.mark.parametrize(
     "message",
@@ -410,14 +409,16 @@ async def test_general_question_rejects_unoffered_catalog_tool():
                 {
                     "finish_reason": "tool_calls",
                     "message": {
-                        "tool_calls": [{
-                            "id": "unoffered-call",
-                            "type": "function",
-                            "function": {
-                                "name": "catalog_search_products",
-                                "arguments": '{"category":"base"}',
-                            },
-                        }]
+                        "tool_calls": [
+                            {
+                                "id": "unoffered-call",
+                                "type": "function",
+                                "function": {
+                                    "name": "catalog_search_products",
+                                    "arguments": '{"category":"base"}',
+                                },
+                            }
+                        ]
                     },
                 }
             ],
@@ -430,44 +431,45 @@ async def test_general_question_rejects_unoffered_catalog_tool():
         )
     assert error.value.code == "invalid_tool_result"
 
+
 @pytest.mark.anyio
 @pytest.mark.parametrize(
-    'message,answer',
+    "message,answer",
     [
         (
-            '추천은 하지 말고 립 틴트랑 립스틱의 차이만 알려줘',
-            '립 틴트는 착색이 남는 편이고 립스틱은 색과 질감 표현이 다양해요.',
+            "추천은 하지 말고 립 틴트랑 립스틱의 차이만 알려줘",
+            "립 틴트는 착색이 남는 편이고 립스틱은 색과 질감 표현이 다양해요.",
         ),
         (
-            '좀 분위기 있는 느낌으로 하고 싶어',
-            '차분한 로즈와 브라운 중 어떤 방향을 원하세요?',
+            "좀 분위기 있는 느낌으로 하고 싶어",
+            "차분한 로즈와 브라운 중 어떤 방향을 원하세요?",
         ),
     ],
 )
 async def test_general_requests_return_answer_without_catalog_cards(monkeypatch, message, answer):
-    monkeypatch.setattr(get_settings(), 'g1_supervisor_enabled', True)
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", True)
     observed = []
 
     def handler(request):
         observed.append((request.method, request.url.path))
-        assert request.method == 'POST'
+        assert request.method == "POST"
         payload = json.loads(request.content)
-        assert 'tools' not in payload
+        assert "tools" not in payload
         return httpx.Response(
             200,
             json={
-                'id': 'completion-fixture',
-                'model': 'model-fixture',
-                'choices': [{'finish_reason': 'stop', 'message': {'content': answer}}],
+                "id": "completion-fixture",
+                "model": "model-fixture",
+                "choices": [{"finish_reason": "stop", "message": {"content": answer}}],
             },
         )
 
     service = ChatService(
         None,
-        LlmClient('http://provider.test/v1', 'fixture', 'gpt-6-luna', 5),
+        LlmClient("http://provider.test/v1", "fixture", "gpt-6-luna", 5),
         catalog_client(monkeypatch, handler),
     )
-    response = await service.answer(ChatRequest(message=message, locale='ko'))
+    response = await service.answer(ChatRequest(message=message, locale="ko"))
     assert response.answer == answer
     assert response.products == []
-    assert observed == [('POST', '/v1/chat/completions')]
+    assert observed == [("POST", "/v1/chat/completions")]
