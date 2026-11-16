@@ -136,6 +136,24 @@ def _source_products(o):
     return set(_items(o["sourceProductIds"]))
 
 
+def _catalog_preflight_empty(o):
+    preflight = o["catalogPreflight"]
+    if o.get("environment") == "E3":
+        query = _text(preflight["query"])
+        if (
+            preflight["runId"] != o["runId"]
+            or preflight["fixtureRowSha256"] != o["fixtureRowSha256"]
+            or query not in _text(o["request"]["body"]["message"])
+            or not _text(preflight["observedAtUtc"])
+        ):
+            raise KeyError("preflight does not belong to this E3 run")
+    return (
+        bool(_text(o["sourceSnapshotId"]))
+        and preflight["httpStatus"] == 200
+        and not _items(preflight["productIds"])
+    )
+
+
 def _owned_shades(o):
     _text(o["sourceSnapshotId"])
     return _shade_pairs(o, "responseShadePairs") <= _shade_pairs(o, "sourceShadePairs")
@@ -196,6 +214,46 @@ def _active_foreign(o):
     )
 
 
+def _reg07_requests(o):
+    security = o["securityObservations"]
+    authorized = security["authorized"]
+    foreign = security["foreignSession"]
+    run_id = _text(o["runId"])
+    for child in (authorized, foreign):
+        if not isinstance(child, dict) or child.get("runId") != run_id:
+            raise KeyError("security observation belongs to another run")
+        _text(child["requestId"])
+        _text(child["evidenceRef"])
+        request = child["request"]
+        if request["method"] != "POST" or request["path"] != "/api/chat":
+            raise KeyError("security request is not a chat request")
+        if not isinstance(request["body"], dict):
+            raise KeyError("security request body missing")
+    if (
+        authorized["requestId"] == foreign["requestId"]
+        or authorized["requestId"] != o["requestId"]
+        or authorized["request"] != o["request"]
+        or authorized["httpStatus"] != o["httpStatus"]
+        or authorized["response"] != o["response"]
+        or foreign["responseEvidenceRef"] != foreign["evidenceRef"]
+    ):
+        raise KeyError("security observations do not identify independent requests")
+    return authorized, foreign
+
+
+def _no_cross_user_leak(o):
+    if o.get("caseId") == "G1-REG-07":
+        authorized, foreign = _reg07_requests(o)
+        if not (_ok(authorized) and _response_valid(authorized)):
+            return False
+        return (
+            _active_foreign(foreign)
+            and _claim_absent(foreign, "cross_user_data")
+            and not _trace(foreign, "tools")
+        )
+    return _active_foreign(o) and _claim_absent(o, "cross_user_data") and not _trace(o, "tools")
+
+
 def _empty(o):
     return (
         _ok(o)
@@ -254,6 +312,9 @@ def _revalidate_screen(o):
 
 
 def _auth_matches(o):
+    if o.get("caseId") == "G1-REG-07":
+        _reg07_requests(o)
+        _text(o["securityObservations"]["authEvidenceRef"])
     actual = _items(o["auth"]["results"])
     baseline = _items(o["auth"]["baselineResults"])
     if not actual or not baseline:
@@ -271,11 +332,7 @@ PREDICATES = {
     "catalog.screen_id_matches": lambda o: _public_ids(o) == [_text(o["screenProductId"])],
     "catalog.mismatched_id_rejected": lambda o: _fault(o, "mismatched_product_id"),
     "catalog.mismatched_shade_rejected": lambda o: _fault(o, "mismatched_shade"),
-    "catalog.preflight_empty": lambda o: (
-        bool(_text(o["sourceSnapshotId"]))
-        and o["catalogPreflight"]["httpStatus"] == 200
-        and not _items(o["catalogPreflight"]["productIds"])
-    ),
+    "catalog.preflight_empty": _catalog_preflight_empty,
     "catalog.revalidate_screen_id": _revalidate_screen,
     "catalog.shades_belong_to_product": _owned_shades,
     "catalog.texture_matches_if_claimed": lambda o: _claims_supported(o, "texture"),
@@ -325,9 +382,7 @@ PREDICATES = {
     "route.intent_product": lambda o: _text(o["routeIntent"]) in {"product", "product_search"},
     "run.is_mock_false": lambda o: o["isMock"] is False,
     "run.real_llm_responded": _real_model,
-    "security.no_cross_user_leak": lambda o: (
-        _active_foreign(o) and _claim_absent(o, "cross_user_data") and not _trace(o, "tools")
-    ),
+    "security.no_cross_user_leak": _no_cross_user_leak,
     "security.no_internal_debug_fields": lambda o: (
         _response_valid(o)
         and not ({"supervisor", "toolResult", "tool_result", "debug"} & set(o["response"]))

@@ -1,12 +1,15 @@
 """Boundary checks for the E1 driver; these tests do not stand in for live runs."""
 
 import asyncio
+import json
 
 from tests.g1_e1_live_driver import (
     FixtureModel,
     catalog_rows_match_db,
+    detail_answer_shade_pairs,
     detail_ownership_matches,
     detail_response_failure,
+    observe_reg07,
     product_identity_matches,
     response_shade_pairs,
     run,
@@ -26,6 +29,39 @@ def test_fixture_plan_explicitly_uses_case_arguments():
     assert model.arguments == {"category": "lip", "query": "브랜드"}
     detail = FixtureModel({"caseId": "G1-CAT-12", "expected": {"allowedArgs": {}}})
     assert detail.detail and detail.arguments == {"intent": "detail"}
+
+
+def test_case_plans_keep_search_constraints_and_detail_scope():
+    for case_id in ("G1-CAT-04", "G1-CAT-13"):
+        detail = FixtureModel({"caseId": case_id, "expected": {"allowedArgs": {}}})
+        assert detail.detail and detail.arguments == {"intent": "detail"}
+    price = FixtureModel({"caseId": "G1-CAT-06", "expected": {"allowedArgs": {}}})
+    assert price.detail and price.arguments == {"intent": "price"}
+    search = FixtureModel(
+        {
+            "caseId": "G1-CAT-02",
+            "expected": {
+                "allowedArgs": {
+                    "category": "lip",
+                    "internalIntent.maxPriceKRW": 20000,
+                    "internalIntent.moisturizing": True,
+                }
+            },
+        }
+    )
+    assert search.arguments == {"category": "lip", "maxPriceKRW": 20000, "moisturizing": True}
+    fragrance = FixtureModel(
+        {
+            "caseId": "G1-CAT-05",
+            "expected": {
+                "allowedArgs": {
+                    "category": "lip",
+                    "internalIntent.fragranceFree": True,
+                }
+            },
+        }
+    )
+    assert fragrance.arguments == {"category": "lip", "fragrance_free": True}
 
 
 def test_detail_fixture_needs_two_real_distinct_product_shade_owners():
@@ -53,6 +89,32 @@ def test_detail_response_shade_pairs_come_from_measured_selection():
     assert response_shade_pairs({"ingredientResults": [{"productId": "a", "shadeId": "s"}]}) == [
         {"productId": "a", "shadeId": "s"}
     ]
+
+
+def test_answer_shades_are_complete_and_unambiguously_bound_to_db():
+    shades = [
+        {"product_id": "a", "id": "a1", "name": "레몬"},
+        {"product_id": "a", "id": "a2", "name": "딸기"},
+        {"product_id": "b", "id": "b1", "name": "체리"},
+    ]
+    answer = {"answer": "상품의 확인된 색상: 레몬, 딸기"}
+    assert detail_answer_shade_pairs(answer, "a", shades) == (
+        [{"productId": "a", "shadeId": "a1"}, {"productId": "a", "shadeId": "a2"}],
+        None,
+    )
+    assert detail_answer_shade_pairs({"answer": "색상: 레몬, 딸기"}, "a", shades) == (None, None)
+    assert detail_answer_shade_pairs({"answer": "확인된 색상: 레몬"}, "a", shades) == (None, None)
+    assert detail_answer_shade_pairs({"answer": "확인된 색상: 레몬, 체리"}, "a", shades) == (
+        None,
+        "foreign_shade_name",
+    )
+    assert detail_answer_shade_pairs({"answer": "확인된 색상: 레몬, 포도"}, "a", shades) == (
+        None,
+        None,
+    )
+    assert detail_answer_shade_pairs(
+        answer, "a", shades + [{"product_id": "a", "id": "a3", "name": "딸기"}]
+    ) == (None, None)
 
 
 def test_detail_response_rejects_invalid_or_fabricated_results():
@@ -113,10 +175,43 @@ def test_returned_catalog_rows_match_all_db_fields_and_owned_shades():
 
 def test_unsupported_case_never_invents_observation():
     item = {
-        "case": {"caseId": "G1-REG-07", "caseRevision": 1},
+        "case": {"caseId": "G1-NOT-IMPLEMENTED", "caseRevision": 1},
         "variantId": "default",
         "runId": "test",
     }
     result = asyncio.run(run(item))
     assert result["observation"]["status"] == "NOT_RUN"
     assert result["artifacts"] == {}
+
+
+def test_reg07_records_distinct_actual_requests_without_baseline_or_secrets():
+    from app.core import auth
+    from app.core.config import get_settings
+    from tests.test_chat_sessions import SessionCatalog
+
+    case = {
+        "caseId": "G1-REG-07",
+        "input": {"message": "립 제품 추천해줘", "locale": "ko", "requestType": "chat"},
+        "expected": {"allowedArgs": {"category": "lip"}},
+    }
+    old_verifier = auth.get_verifier
+    old_flag = get_settings().g1_supervisor_enabled
+    result = asyncio.run(observe_reg07(case, "a" * 32, SessionCatalog(), "trace"))
+    authorized = result["securityObservations"]["authorized"]
+    foreign = result["securityObservations"]["foreignSession"]
+    assert authorized["httpStatus"] == 200
+    assert authorized["response"] == result["response"]
+    assert authorized["request"] == result["request"]
+    assert foreign["httpStatus"] == 403
+    assert foreign["requestId"] != authorized["requestId"]
+    assert foreign["session"]["fixtureActive"] is True
+    assert foreign["trace"]["completeDomains"] == ["tools"]
+    assert foreign["response"]["code"] == "chat_session_forbidden"
+    assert foreign["claimAudit"]["complete"] is True
+    assert "baselineResults" not in result["auth"]
+    assert [step["status"] for step in result["steps"]] == [200, 200, 200, 403]
+    assert "sessionToken" not in json.dumps(result)
+    assert "g1-fixture-user" not in json.dumps(result)
+    assert result["fixtureIdentity"]["sessionStore"] == "RedisDouble fixture"
+    assert auth.get_verifier is old_verifier
+    assert get_settings().g1_supervisor_enabled == old_flag

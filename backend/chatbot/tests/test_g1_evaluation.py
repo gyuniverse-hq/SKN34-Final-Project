@@ -12,6 +12,7 @@ from tests.run_g1_evaluation import (
     grade,
     observation_digest,
     read_jsonl,
+    verify_evidence,
 )
 
 
@@ -149,8 +150,21 @@ def test_cat14_review_is_bound_to_the_actual_run_and_response(tmp_path):
         "runId": "run-cat14",
         "llmModelId": "test-model",
         "llmModelVersion": "version-1",
+        "model": {
+            "isMock": False,
+            "modelId": "test-model",
+            "modelVersion": "version-1",
+            "promptVersion": "prompt-v1",
+            "responseId": "response-1",
+            "requestId": "request-1",
+        },
         "responseEvidenceRef": "response_snapshot.json",
         "requestId": "request-1",
+        "request": {
+            "method": "POST",
+            "path": "/api/chat",
+            "body": {"message": "틴트 추천", "requestType": "chat"},
+        },
         "response": {
             "answer": "틴트는 착색이 남는 경우가 많고 립스틱은 표면에 또렷하게 발색돼요.",
             "products": [{"id": "lip-1", "brand": "fixture", "name": "립", "category": "lip"}],
@@ -200,9 +214,37 @@ def test_cat14_review_is_bound_to_the_actual_run_and_response(tmp_path):
                 "runId": row["runId"],
                 "observationSha256": observation_digest(row),
                 "artifactType": name,
-                "content": {"response": row["response"]}
-                if name == "response_snapshot"
-                else {"observed": True},
+                "content": (
+                    {"response": row["response"]}
+                    if name == "response_snapshot"
+                    else {
+                        "runId": row["runId"],
+                        "request": row["request"]["body"],
+                        "calls": [{"responseId": "response-1", "modelId": "test-model"}],
+                        "events": [
+                            {
+                                "event": "g1_model_completion",
+                                "model_response_id": "response-1",
+                                "model_id": "test-model",
+                                "prompt_version": "prompt-v1",
+                            }
+                        ],
+                    }
+                    if name == "nonmock_llm_span"
+                    else {
+                        "runId": row["runId"],
+                        "request": row["request"]["body"],
+                        "actualModel": "test-model",
+                        "promptVersion": "prompt-v1",
+                    }
+                    if name == "model_and_prompt_version"
+                    else {
+                        "observed": True,
+                        "routeIntent": row.get("routeIntent"),
+                        "catalogPreflight": row.get("catalogPreflight"),
+                        "graphNodes": [{"name": "plan_turn"}] if row.get("routeIntent") else [],
+                    }
+                ),
             }
             artifact["contentSha256"] = content_digest(artifact["content"])
             (tmp_path / path).write_text(json.dumps(artifact), encoding="utf-8")
@@ -219,6 +261,25 @@ def test_cat14_review_is_bound_to_the_actual_run_and_response(tmp_path):
     assert report(observation)["status"] == "NOT_RUN"
     assert report(observation, [review | {"runId": "other"}])["status"] == "NOT_RUN"
     assert report(observation, [review])["status"] == "PASS"
+    span_path = tmp_path / "nonmock_llm_span.json"
+    span = json.loads(span_path.read_text(encoding="utf-8"))
+    span["content"]["calls"] = []
+    span["contentSha256"] = content_digest(span["content"])
+    span_path.write_text(json.dumps(span), encoding="utf-8")
+    assert report(observation, [review])["status"] == "NOT_RUN"
+    write_evidence(observation)
+    span = json.loads(span_path.read_text(encoding="utf-8"))
+    span["content"]["calls"][0]["responseId"] = "different-response"
+    span["contentSha256"] = content_digest(span["content"])
+    span_path.write_text(json.dumps(span), encoding="utf-8")
+    assert report(observation, [review])["status"] == "NOT_RUN"
+    write_evidence(observation)
+    span = json.loads(span_path.read_text(encoding="utf-8"))
+    span["content"]["runId"] = "different-run"
+    span["contentSha256"] = content_digest(span["content"])
+    span_path.write_text(json.dumps(span), encoding="utf-8")
+    assert report(observation, [review])["status"] == "NOT_RUN"
+    write_evidence(observation)
     assert report(observation | {"fixtureRowSha256": "drift"}, [review])["status"] == "BLOCKED_DATA"
     assert report(observation | {"evidenceRefs": {}}, [review])["status"] == "NOT_RUN"
     (tmp_path / "response_snapshot.json").unlink()
@@ -243,6 +304,73 @@ def test_cat14_review_is_bound_to_the_actual_run_and_response(tmp_path):
     failure = observation | {"status": "FAIL", "failureReason": "actual execution failed"}
     write_evidence(failure)
     assert report(failure, [review])["status"] == "FAIL"
+    span = json.loads(span_path.read_text(encoding="utf-8"))
+    span["content"]["calls"] = []
+    span["contentSha256"] = content_digest(span["content"])
+    span_path.write_text(json.dumps(span), encoding="utf-8")
+    assert report(failure, [review])["status"] == "FAIL"
+
+    audit = observation | {
+        "claimAudit": {
+            "complete": True,
+            "responseEvidenceRef": "response_snapshot.json",
+            "claims": [
+                {
+                    "kind": "price",
+                    "verification": "VERIFIED",
+                    "evidenceRef": "tool_trace_or_no_tool_trace.json",
+                }
+            ],
+        }
+    }
+    write_evidence(audit)
+    key = (case["caseId"], "default", "E3")
+    required = case["evidenceByEnvironment"]["E3"]["requiredArtifacts"]
+    assert verify_evidence(audit, key, required, tmp_path)
+    wrong_claim = audit | {
+        "claimAudit": audit["claimAudit"]
+        | {
+            "claims": [
+                {"kind": "price", "verification": "VERIFIED", "evidenceRef": "other-run.json"}
+            ]
+        }
+    }
+    write_evidence(wrong_claim)
+    assert not verify_evidence(wrong_claim, key, required, tmp_path)
+    self_supported = audit | {
+        "claimAudit": audit["claimAudit"]
+        | {
+            "claims": [
+                {
+                    "kind": "price",
+                    "verification": "VERIFIED",
+                    "evidenceRef": "response_snapshot.json",
+                }
+            ]
+        }
+    }
+    write_evidence(self_supported)
+    assert not verify_evidence(self_supported, key, required, tmp_path)
+    wrong_response = audit | {
+        "claimAudit": audit["claimAudit"] | {"responseEvidenceRef": "other-run.json"}
+    }
+    write_evidence(wrong_response)
+    assert not verify_evidence(wrong_response, key, required, tmp_path)
+    linked = observation | {"routeIntent": "general", "catalogPreflight": {"runId": "run-cat14"}}
+    write_evidence(linked)
+    assert verify_evidence(linked, key, required, tmp_path)
+    trace_path = tmp_path / "tool_trace_or_no_tool_trace.json"
+    trace = json.loads(trace_path.read_text(encoding="utf-8"))
+    trace["content"]["routeIntent"] = "product"
+    trace["contentSha256"] = content_digest(trace["content"])
+    trace_path.write_text(json.dumps(trace), encoding="utf-8")
+    assert not verify_evidence(linked, key, required, tmp_path)
+    write_evidence(linked)
+    trace = json.loads(trace_path.read_text(encoding="utf-8"))
+    trace["content"]["catalogPreflight"]["runId"] = "other"
+    trace["contentSha256"] = content_digest(trace["content"])
+    trace_path.write_text(json.dumps(trace), encoding="utf-8")
+    assert not verify_evidence(linked, key, required, tmp_path)
 
 
 def test_collector_distinguishes_failure_blocking_and_missing_evidence(tmp_path, monkeypatch):
@@ -286,3 +414,155 @@ def test_collector_distinguishes_failure_blocking_and_missing_evidence(tmp_path,
     row = capture(case, "default", "E0", required, tmp_path / "driver.py", tmp_path)
     assert row["status"] == "FAIL"
     assert all((tmp_path / ref).is_file() for ref in row["evidenceRefs"].values())
+
+
+def test_reg07_binds_independent_requests_and_preserves_missing_baseline(tmp_path):
+    cases, registry = load_contract()
+    case = next(c for c in cases if c["caseId"] == "G1-REG-07")
+    required = case["evidenceByEnvironment"]["E0"]["requiredArtifacts"]
+    refs = {name: name + ".json" for name in required}
+    evidence_ref = refs["predicate_observations"]
+    normal_request = {
+        "method": "POST",
+        "path": "/api/chat",
+        "body": {"message": "립 추천", "requestType": "chat"},
+    }
+    normal_response = {"answer": "추천합니다", "products": []}
+    foreign_request = {
+        "method": "POST",
+        "path": "/api/chat",
+        "body": {"message": "이전 후보", "requestType": "beauty_consultation"},
+    }
+    foreign_response = {"error": "Forbidden", "code": "chat_session_forbidden"}
+    authorized = {
+        "runId": "run-reg",
+        "requestId": "normal-1",
+        "request": normal_request,
+        "httpStatus": 200,
+        "response": normal_response,
+        "evidenceRef": evidence_ref,
+    }
+    foreign = {
+        "runId": "run-reg",
+        "requestId": "foreign-1",
+        "request": foreign_request,
+        "httpStatus": 403,
+        "response": foreign_response,
+        "evidenceRef": evidence_ref,
+        "responseEvidenceRef": evidence_ref,
+        "session": {"fixtureActive": True},
+        "trace": {"completeDomains": ["tools"], "requestId": "foreign-1", "tools": []},
+        "claimAudit": {"complete": True, "responseEvidenceRef": evidence_ref, "claims": []},
+    }
+    auth = {"results": [200, 401], "baselineResults": [200, 401]}
+    observation = {
+        "caseId": case["caseId"],
+        "caseRevision": case["caseRevision"],
+        "variantId": "default",
+        "environment": "E0",
+        "runId": "run-reg",
+        "requestId": "normal-1",
+        "isMock": True,
+        "httpStatus": 200,
+        "request": normal_request,
+        "response": normal_response,
+        "auth": auth,
+        "evidenceRefs": refs,
+        "securityObservations": {
+            "authorized": authorized,
+            "foreignSession": foreign,
+            "authEvidenceRef": evidence_ref,
+        },
+    }
+
+    def write(row, *, captured=None):
+        for name, path in refs.items():
+            content = {"observed": True}
+            if name == "predicate_observations":
+                content = {
+                    "securityObservations": captured
+                    if captured is not None
+                    else row.get("securityObservations"),
+                    "auth": row.get("auth"),
+                }
+            artifact = {
+                "caseId": row["caseId"],
+                "caseRevision": row["caseRevision"],
+                "variantId": "default",
+                "environment": "E0",
+                "runId": row["runId"],
+                "observationSha256": observation_digest(row),
+                "artifactType": name,
+                "content": content,
+                "contentSha256": content_digest(content),
+            }
+            (tmp_path / path).write_text(json.dumps(artifact), encoding="utf-8")
+
+    def report(row):
+        return next(
+            x
+            for x in evaluate([case], [row], registry, evidence_root=tmp_path)
+            if x["environment"] == "E0"
+        )
+
+    write(observation)
+    assert report(observation)["status"] == "PASS"
+    no_baseline = observation | {
+        "securityObservations": {"authorized": authorized, "foreignSession": foreign}
+    }
+    no_baseline.pop("auth")
+    write(no_baseline)
+    result = report(no_baseline)
+    assert result["status"] == "NOT_RUN"
+    assert result["predicates"] == {
+        "reg.auth_unchanged": "NOT_RUN",
+        "security.no_cross_user_leak": "PASS",
+    }
+
+    missing = observation | {"securityObservations": {"authorized": authorized}}
+    write(missing)
+    assert report(missing)["status"] == "NOT_RUN"
+    wrong_top = observation | {"httpStatus": 403, "response": foreign_response}
+    write(wrong_top)
+    assert report(wrong_top)["status"] == "NOT_RUN"
+    same = observation | {
+        "securityObservations": observation["securityObservations"]
+        | {"foreignSession": foreign | {"requestId": "normal-1"}}
+    }
+    write(same)
+    assert report(same)["status"] == "NOT_RUN"
+    wrong_run = observation | {
+        "securityObservations": observation["securityObservations"]
+        | {"foreignSession": foreign | {"runId": "different"}}
+    }
+    write(wrong_run)
+    assert report(wrong_run)["status"] == "NOT_RUN"
+    unlinked = observation | {
+        "securityObservations": observation["securityObservations"]
+        | {"foreignSession": foreign | {"evidenceRef": "other-run.json"}}
+    }
+    write(unlinked)
+    assert report(unlinked)["status"] == "NOT_RUN"
+    write(
+        observation,
+        captured={"authorized": authorized, "foreignSession": foreign | {"requestId": "different"}},
+    )
+    assert report(observation)["status"] == "NOT_RUN"
+
+    exposed = foreign | {"httpStatus": 200, "response": {"answer": "private", "products": []}}
+    failed = observation | {
+        "securityObservations": observation["securityObservations"] | {"foreignSession": exposed}
+    }
+    write(failed)
+    assert report(failed)["status"] == "FAIL"
+    leaked = foreign | {
+        "claimAudit": foreign["claimAudit"] | {"claims": [{"kind": "cross_user_data"}]}
+    }
+    failed = observation | {
+        "securityObservations": observation["securityObservations"] | {"foreignSession": leaked}
+    }
+    write(failed)
+    assert report(failed)["status"] == "FAIL"
+    drift = observation | {"auth": {"results": [200], "baselineResults": [401]}}
+    write(drift)
+    assert report(drift)["status"] == "FAIL"

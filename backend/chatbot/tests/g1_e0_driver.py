@@ -11,23 +11,49 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SUPPORTED = {
+    "G1-GEN-01",
     "G1-GEN-02",
+    "G1-GEN-03",
     "G1-GEN-04",
     "G1-GEN-05",
     "G1-GEN-06",
+    "G1-GEN-07",
+    "G1-GEN-08",
+    "G1-GEN-09",
     "G1-GEN-10",
+    "G1-GEN-11",
+    "G1-GEN-12",
     "G1-CAT-01",
+    "G1-CAT-02",
     "G1-CAT-03",
+    "G1-CAT-04",
+    "G1-CAT-05",
+    "G1-CAT-06",
     "G1-CAT-07",
     "G1-CAT-08",
     "G1-CAT-09",
+    "G1-CAT-10",
+    "G1-CAT-11",
+    "G1-CAT-12",
+    "G1-CAT-13",
     "G1-CAT-14",
     "G1-ERR-01",
     "G1-ERR-02",
     "G1-ERR-03",
+    "G1-ERR-04",
+    "G1-ERR-05",
     "G1-ERR-06",
+    "G1-ERR-07",
+    "G1-ERR-08",
     "G1-ERR-09",
+    "G1-ERR-10",
     "G1-REG-01",
+    "G1-REG-02",
+    "G1-REG-03",
+    "G1-REG-04",
+    "G1-REG-05",
+    "G1-REG-06",
+    "G1-REG-07",
 }
 
 
@@ -91,7 +117,11 @@ def run(item):
         "requestId": run_id,
         "httpStatus": observed["httpStatus"],
         "response": observed["response"],
-        "request": {"method": "POST", "path": "/api/chat", "body": observed["request"]},
+        "request": {
+            "method": "POST",
+            "path": observed.get("requestPath", "/api/chat"),
+            "body": observed["request"],
+        },
         "sourceSnapshotId": "e0-synthetic-catalog-fixture",
         "sourceProductIds": observed["fixtureProductIds"],
         "trace": {
@@ -108,6 +138,18 @@ def run(item):
         observation["expectedBrand"] = allowed["q"]
     if observed.get("routeIntent") is not None:
         observation["routeIntent"] = observed["routeIntent"]
+    if observed.get("securityObservations") is not None:
+        observation["securityObservations"] = observed["securityObservations"]
+        observation["auth"] = observed["auth"]
+    if observed.get("session") is not None:
+        observation["session"] = observed["session"]
+    if observed.get("detailScreenProductId") is not None:
+        observation["screenProductId"] = observed["detailScreenProductId"]
+    if observed.get("sourceShadePairs") is not None:
+        observation["sourceShadePairs"] = observed["sourceShadePairs"]
+    # No response shade pairs are recorded without reliable natural-language auditing.
+    if observed.get("legacyRequestId") is not None:
+        observation["legacyRequestId"] = observed["legacyRequestId"]
     if observed.get("catalogPreflight") is not None:
         observation["catalogPreflight"] = observed["catalogPreflight"]
     if observed.get("catalogResultCount") is not None:
@@ -117,6 +159,17 @@ def run(item):
     if observed.get("rateLimitTrace") is not None:
         observation["trace"].update(observed["rateLimitTrace"])
         observation["trace"]["completeDomains"] += ["tools", "modelCalls"]
+    if observed.get("invalidPlanTrace") is not None:
+        observation["trace"]["tools"] = observed["invalidPlanTrace"]["tools"]
+        observation["trace"]["completeDomains"].append("tools")
+    if observed.get("arSelection") is not None:
+        selection = observed["arSelection"]
+        observation["ar"] = {
+            "selection": {"productId": selection["productId"], "shadeId": selection["shadeId"]},
+            "stateVersion": observed["arStateVersion"],
+        }
+        if observed["response"].get("arResult", {}).get("status") != "proposed":
+            observation.update(status="FAIL", failureReason="required_ar_proposal_not_produced")
     if result.returncode:
         observation.update(status="FAIL", failureReason="pytest_case_failed")
     common = {
@@ -142,6 +195,9 @@ def run(item):
             | {
                 "catalogProductIds": observed["fixtureProductIds"],
                 "fixtureModelCalls": observed["modelCalls"],
+                "fixtureBinding": observed.get("fixtureBinding"),
+                "modelCallTrace": observed.get("modelCallTrace"),
+                "fixtureIdentity": observed.get("fixtureIdentity"),
             },
             "predicate_observations": common
             | {
@@ -153,6 +209,17 @@ def run(item):
                 "faultKind": observed.get("faultKind"),
                 "catalogPreflight": observed.get("catalogPreflight"),
                 "rateLimitTrace": observed.get("rateLimitTrace"),
+                "invalidPlanTrace": observed.get("invalidPlanTrace"),
+                "arSelection": observed.get("arSelection"),
+                "arStateVersion": observed.get("arStateVersion"),
+                "session": observed.get("session"),
+                "foreignChecks": observed.get("foreignChecks"),
+                "legacyRequestId": observed.get("legacyRequestId"),
+                "detailScreenProductId": observed.get("detailScreenProductId"),
+                "sourceShadePairs": observed.get("sourceShadePairs"),
+                "securityObservations": observed.get("securityObservations"),
+                "auth": observed.get("auth"),
+                "steps": observed.get("steps"),
             },
         },
     }

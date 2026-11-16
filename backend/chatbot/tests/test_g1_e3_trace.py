@@ -3,7 +3,13 @@ import pytest
 from langgraph.graph import END, START, StateGraph
 
 from app.core.observability import catalog_tool_call_id
-from tests.g1_e3_live_driver import GraphCapture, ObservedGraph, catalog_http_observer
+from app.schemas.supervisor import IntentDecision
+from tests.g1_e3_live_driver import (
+    GraphCapture,
+    ObservedGraph,
+    catalog_http_observer,
+    measure_empty_preflight,
+)
 from tests.run_g1_evaluation import grade
 
 
@@ -55,9 +61,15 @@ async def test_callback_captures_real_langgraph_nodes_without_state():
         .compile()
     )
     capture = GraphCapture()
-    await ObservedGraph(graph, capture).ainvoke({"private": "not collected"})
+    await ObservedGraph(graph, capture).ainvoke(
+        {
+            "private": "not collected",
+            "decision": IntentDecision(intent="general", request_type_hint="chat"),
+        }
+    )
     nodes = capture.nodes
     assert {n["name"] for n in nodes} == {"plan_turn", "execute_turn"}
+    assert capture.route_intent == "general"
     assert "private" not in repr(nodes)
 
 
@@ -98,3 +110,61 @@ async def test_catalog_observer_records_http_and_call_identity_without_headers(m
             "status": 200,
         },
     ]
+
+
+@pytest.mark.anyio
+async def test_empty_preflight_uses_actual_http_and_is_bound_to_run():
+    seen = []
+
+    def reply(request):
+        seen.append(request.url.params.get("q"))
+        return httpx.Response(200, json={"products": []})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(reply)) as client:
+        result = await measure_empty_preflight(
+            client, "http://catalog.local", "없는립", "run-1", "fixture"
+        )
+    assert seen == ["없는립"]
+    observation = {
+        "environment": "E3",
+        "runId": "run-1",
+        "sourceSnapshotId": "snapshot",
+        "fixtureRowSha256": "fixture",
+        "request": {"body": {"message": "없는립 보여줘"}},
+        "catalogPreflight": result,
+    }
+    assert grade("catalog.preflight_empty", observation) == "PASS"
+    assert grade("catalog.preflight_empty", observation | {"runId": "other"}) == "NOT_RUN"
+    assert (
+        grade("catalog.preflight_empty", observation | {"fixtureRowSha256": "other"}) == "NOT_RUN"
+    )
+    mismatched = dict(result, query="다른검색어")
+    assert (
+        grade("catalog.preflight_empty", observation | {"catalogPreflight": mismatched})
+        == "NOT_RUN"
+    )
+    assert (
+        grade(
+            "catalog.preflight_empty",
+            observation | {"catalogPreflight": dict(result, productIds=["p"])},
+        )
+        == "FAIL"
+    )
+
+
+@pytest.mark.anyio
+async def test_preflight_does_not_treat_http_error_as_empty():
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(lambda _: httpx.Response(503))
+    ) as client:
+        with pytest.raises(httpx.HTTPStatusError):
+            await measure_empty_preflight(client, "http://catalog.local", "q", "run-1", "fixture")
+
+
+def test_auth_results_do_not_create_an_unobserved_foreign_session():
+    normal_response = {
+        "response": {"answer": "ok", "products": []},
+        "httpStatus": 200,
+        "auth": {"results": [200], "baselineResults": [200]},
+    }
+    assert grade("security.no_cross_user_leak", normal_response) == "NOT_RUN"

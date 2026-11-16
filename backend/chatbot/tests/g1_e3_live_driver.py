@@ -164,10 +164,16 @@ class GraphCapture(BaseCallbackHandler):
     def __init__(self):
         self.active = {}
         self.nodes = []
+        self.route_intent = None
 
     def on_chain_start(self, serialized, inputs, *, run_id, name=None, **kwargs):
         if name in {"plan_turn", "execute_turn"}:
             self.active[run_id] = name
+        if name == "plan_turn" and isinstance(inputs, dict):
+            decision = inputs.get("decision")
+            intent = getattr(decision, "intent", None)
+            if isinstance(intent, str) and intent.strip():
+                self.route_intent = intent
 
     def on_chain_end(self, outputs, *, run_id, **kwargs):
         name = self.active.pop(run_id, None)
@@ -233,6 +239,26 @@ def catalog_http_observer(base, records):
         return result
 
     return original, send
+
+
+async def measure_empty_preflight(client, base, query, run_id, fixture_hash):
+    response = await client.get(base.rstrip("/") + "/api/products", params={"q": query})
+    response.raise_for_status()
+    if response.status_code != 200:
+        raise ValueError("Unexpected Catalog preflight status")
+    rows = response.json()["products"]
+    if not isinstance(rows, list) or any(
+        not isinstance(row, dict) or not isinstance(row.get("id"), str) for row in rows
+    ):
+        raise ValueError("Invalid Catalog preflight response")
+    return {
+        "runId": run_id,
+        "query": query,
+        "httpStatus": response.status_code,
+        "productIds": [row["id"] for row in rows],
+        "fixtureRowSha256": fixture_hash,
+        "observedAtUtc": datetime.now(UTC).isoformat(),
+    }
 
 
 async def run(item):
@@ -317,6 +343,20 @@ async def run(item):
         "requestType": variant_spec.get("requestType", inp["requestType"]),
         "screenContext": screen,
     }
+    catalog_preflight = None
+    if case["caseId"] == "G1-CAT-07":
+        query = case["expected"].get("allowedArgs", {}).get("q")
+        if not isinstance(query, str) or not query.strip() or query not in body["message"]:
+            return blocked("empty_preflight_query_missing", "BLOCKED_DATA")
+        try:
+            async with httpx.AsyncClient(timeout=45) as preflight_client:
+                catalog_preflight = await measure_empty_preflight(
+                    preflight_client, catalog_base, query, run_id, preflight["fixtureRowSha256"]
+                )
+            if catalog_preflight["productIds"]:
+                return blocked("empty_preflight_data_mismatch", "BLOCKED_DATA")
+        except (httpx.HTTPError, KeyError, ValueError, TypeError):
+            return blocked("empty_preflight_http_unavailable")
     capture = Capture()
     root = logging.getLogger()
     root.addHandler(capture)
@@ -394,6 +434,10 @@ async def run(item):
         ),
         "trace": trace,
     }
+    if graph_capture.route_intent is not None:
+        observation["routeIntent"] = graph_capture.route_intent
+    if catalog_preflight is not None:
+        observation["catalogPreflight"] = catalog_preflight
     if preflight:
         observation.update(
             {
@@ -469,6 +513,8 @@ async def run(item):
             "events": capture.events,
             "catalogHttp": http_events,
             "graphNodes": nodes,
+            "routeIntent": graph_capture.route_intent,
+            "catalogPreflight": catalog_preflight,
             "catalogResults": catalog.results,
         },
         "response_snapshot": common | {"response": payload, "httpStatus": response.status_code},

@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from tests.g1_eval_predicates import PREDICATES
+from tests.g1_eval_predicates import PREDICATES, _reg07_requests
 
 CONTRACT = Path(__file__).resolve().parents[3] / "docs/ai-alignment/04_llm_stage4_evaluation"
 BLOCKED = {"BLOCKED", "BLOCKED_DATA", "BLOCKED_DEPENDENCY", "BLOCKED_FIXTURE", "BLOCKED_RIGHTS"}
@@ -53,7 +53,15 @@ def content_digest(content):
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def verify_evidence(observation, key, required_artifacts, evidence_root):
+def verify_evidence(
+    observation,
+    key,
+    required_artifacts,
+    evidence_root,
+    *,
+    require_e3_model=True,
+    require_reg07_evidence=True,
+):
     """Require local evidence JSON whose identity, artifact type and digest match the run."""
     if evidence_root is None or not evidence_root.is_dir():
         return False
@@ -69,6 +77,7 @@ def verify_evidence(observation, key, required_artifacts, evidence_root):
         "runId": observation.get("runId"),
         "observationSha256": observation_digest(observation),
     }
+    contents = {}
     for artifact_type in required_artifacts:
         ref = refs.get(artifact_type)
         if not _nonblank(ref):
@@ -88,6 +97,7 @@ def verify_evidence(observation, key, required_artifacts, evidence_root):
             content = artifact.get("content")
             if not isinstance(content, dict) or not content:
                 return False
+            contents[artifact_type] = content
             if artifact.get("contentSha256") != content_digest(content):
                 return False
             if artifact_type == "response_snapshot" and content.get("response") != observation.get(
@@ -101,7 +111,135 @@ def verify_evidence(observation, key, required_artifacts, evidence_root):
                 return False
         except (OSError, RuntimeError, ValueError, TypeError):
             return False
+    if (
+        key[0] == "G1-REG-07"
+        and require_reg07_evidence
+        and not _valid_reg07_evidence(observation, contents, refs, required_artifacts)
+    ):
+        return False
+    audit = observation.get("claimAudit")
+    if audit is not None:
+        if not isinstance(audit, dict):
+            return False
+        response_ref = audit.get("responseEvidenceRef")
+        response_name = next(
+            (name for name in required_artifacts if refs.get(name) == response_ref), None
+        )
+        if (
+            not _nonblank(response_ref)
+            or observation.get("responseEvidenceRef") != response_ref
+            or response_name is None
+            or contents[response_name].get("response") != observation.get("response")
+        ):
+            return False
+        claims = audit.get("claims")
+        if not isinstance(claims, list):
+            return False
+        allowed = {refs[name] for name in required_artifacts if name in refs}
+        if any(
+            not isinstance(claim, dict)
+            or (
+                claim.get("verification") == "VERIFIED"
+                and (
+                    claim.get("evidenceRef") not in allowed
+                    or claim.get("evidenceRef") == response_ref
+                )
+            )
+            for claim in claims
+        ):
+            return False
+    if key[2] == "E3":
+        trace = contents.get("tool_trace_or_no_tool_trace", {})
+        if "catalogPreflight" in observation and (
+            trace.get("catalogPreflight") != observation["catalogPreflight"]
+        ):
+            return False
+        if "routeIntent" in observation and (
+            trace.get("routeIntent") != observation["routeIntent"]
+            or not isinstance(trace.get("graphNodes"), list)
+            or not any(
+                isinstance(node, dict) and node.get("name") == "plan_turn"
+                for node in trace.get("graphNodes", [])
+            )
+        ):
+            return False
+        if require_e3_model and not _valid_e3_model(observation, contents):
+            return False
     return True
+
+
+def _valid_reg07_evidence(observation, contents, refs, required_artifacts):
+    try:
+        _reg07_requests(observation)
+    except (AttributeError, KeyError, TypeError, ValueError):
+        return False
+    security = observation.get("securityObservations")
+    if not isinstance(security, dict):
+        return False
+    allowed = {refs[name]: name for name in required_artifacts if name in refs}
+    for role in ("authorized", "foreignSession"):
+        child = security.get(role)
+        if not isinstance(child, dict):
+            return False
+        ref = child.get("evidenceRef")
+        if not _nonblank(ref) or ref not in allowed:
+            return False
+        content = contents[allowed[ref]]
+        captures = content.get("securityObservations")
+        if not isinstance(captures, dict) or captures.get(role) != child:
+            return False
+    auth_ref = security.get("authEvidenceRef")
+    if auth_ref is not None:
+        if not _nonblank(auth_ref) or auth_ref not in allowed:
+            return False
+        if contents[allowed[auth_ref]].get("auth") != observation.get("auth"):
+            return False
+    return True
+
+
+def _valid_e3_model(observation, contents):
+    model = observation.get("model")
+    span = contents.get("nonmock_llm_span", {})
+    version = contents.get("model_and_prompt_version", {})
+    if not isinstance(model, dict) or model.get("isMock") is not False:
+        return False
+    if not all(
+        _nonblank(model.get(k)) for k in ("responseId", "modelId", "modelVersion", "promptVersion")
+    ):
+        return False
+    request = observation.get("request")
+    if not isinstance(request, dict) or not isinstance(request.get("body"), dict):
+        return False
+    if (
+        not _nonblank(observation.get("runId"))
+        or span.get("runId") != observation["runId"]
+        or version.get("runId") != observation["runId"]
+        or span.get("request") != request["body"]
+        or version.get("request") != request["body"]
+        or not _nonblank(observation.get("requestId"))
+        or model.get("requestId") != observation.get("requestId")
+        or model["modelId"] != observation.get("llmModelId")
+        or model["modelVersion"] != observation.get("llmModelVersion")
+        or version.get("actualModel") != model["modelId"]
+        or version.get("promptVersion") != model["promptVersion"]
+    ):
+        return False
+    calls, events = span.get("calls"), span.get("events")
+    if not isinstance(calls, list) or not isinstance(events, list):
+        return False
+    return any(
+        isinstance(call, dict)
+        and call.get("responseId") == model["responseId"]
+        and call.get("modelId") == model["modelId"]
+        for call in calls
+    ) and any(
+        isinstance(event, dict)
+        and event.get("event") == "g1_model_completion"
+        and event.get("model_response_id") == model["responseId"]
+        and event.get("model_id") == model["modelId"]
+        and event.get("prompt_version") == model["promptVersion"]
+        for event in events
+    )
 
 
 def grade(name, observation):
@@ -211,8 +349,19 @@ def evaluate(cases, observations, registry, reviews=(), *, evidence_root=None):
         statuses = set(results.values())
         human_status = _human_status(case, key, observed, reviews) if human else None
         refs = observed.get("evidenceRefs", {}) if observed else {}
+        capture_ok = bool(
+            observed
+            and verify_evidence(
+                observed,
+                key,
+                required_artifacts,
+                evidence_root,
+                require_e3_model=False,
+                require_reg07_evidence=False,
+            )
+        )
         evidence_ok = bool(
-            observed and verify_evidence(observed, key, required_artifacts, evidence_root)
+            capture_ok and verify_evidence(observed, key, required_artifacts, evidence_root)
         )
         if not evidence_ok:
             results = {
@@ -227,16 +376,17 @@ def evaluate(cases, observations, registry, reviews=(), *, evidence_root=None):
             observed
             and case["expected"].get("responseSchema") == "ChatResponse"
             and "response" in observed
+            and (case["caseId"] != "G1-REG-07" or evidence_ok)
             and not _nonblank(answer)
         )
         if blocker:
             status = blocker
-        elif evidence_ok and (
-            "FAIL" in statuses
+        elif capture_ok and (
+            ((case["caseId"] != "G1-REG-07" or evidence_ok) and "FAIL" in statuses)
             or human_status == "FAIL"
             or invalid_answer
             or (
-                evidence_ok
+                capture_ok
                 and observed.get("status") == "FAIL"
                 and _nonblank(observed.get("failureReason"))
             )

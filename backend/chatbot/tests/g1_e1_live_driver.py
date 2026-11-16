@@ -30,14 +30,21 @@ from app.services.chat_service import ChatService, get_chat_service  # noqa: E40
 
 SUPPORTED = {
     "G1-CAT-01",
+    "G1-CAT-02",
     "G1-CAT-03",
+    "G1-CAT-04",
+    "G1-CAT-05",
+    "G1-CAT-06",
     "G1-CAT-07",
     "G1-CAT-08",
     "G1-CAT-09",
+    "G1-CAT-10",
     "G1-CAT-11",
     "G1-CAT-12",
+    "G1-CAT-13",
     "G1-CAT-14",
     "G1-RUN-01",
+    "G1-REG-07",
     "G1-UI-01",
 }
 
@@ -47,14 +54,29 @@ class FixtureModel:
 
     def __init__(self, case):
         args = case["expected"].get("allowedArgs", {})
-        self.detail = case.get("caseId") in {"G1-CAT-11", "G1-CAT-12"}
+        self.detail = case.get("caseId") in {
+            "G1-CAT-04",
+            "G1-CAT-06",
+            "G1-CAT-11",
+            "G1-CAT-12",
+            "G1-CAT-13",
+            "G1-ERR-04",
+            "G1-ERR-05",
+        }
         self.arguments = {}
         if args.get("category"):
             self.arguments["category"] = args["category"]
         if args.get("q"):
             self.arguments["query"] = args["q"]
+        for source, target in (
+            ("internalIntent.maxPriceKRW", "maxPriceKRW"),
+            ("internalIntent.moisturizing", "moisturizing"),
+            ("internalIntent.fragranceFree", "fragrance_free"),
+        ):
+            if source in args:
+                self.arguments[target] = args[source]
         if self.detail:
-            self.arguments = {"intent": "detail"}
+            self.arguments = {"intent": "price" if case.get("caseId") == "G1-CAT-06" else "detail"}
         elif not self.arguments:
             self.arguments["category"] = "lip"
         self.calls = 0
@@ -184,6 +206,32 @@ def response_shade_pairs(payload):
     return pairs
 
 
+def detail_answer_shade_pairs(payload, product_id, source_shades):
+    """Bind every explicitly listed shade name to an exact DB-owned shade, or withhold evidence."""
+    answer = payload.get("answer")
+    marker = "확인된 색상:"
+    if not isinstance(answer, str) or marker not in answer:
+        return None, None
+    names = [name.strip() for name in answer.rsplit(marker, 1)[1].strip().split(",")]
+    if not names or any(not name for name in names):
+        return None, None
+    by_name = {}
+    for shade in source_shades:
+        if shade["product_id"] == product_id:
+            by_name.setdefault(shade["name"], []).append(shade["id"])
+    unknown_names = {name for name in names if name not in by_name}
+    if unknown_names:
+        foreign_names = {
+            shade["name"] for shade in source_shades if shade["product_id"] != product_id
+        }
+        return (None, "foreign_shade_name") if unknown_names & foreign_names else (None, None)
+    if any(len(by_name[name]) != 1 for name in names):
+        return None, None
+    if len(names) != len(set(names)) or set(names) != set(by_name):
+        return None, None
+    return [{"productId": product_id, "shadeId": by_name[name][0]} for name in names], None
+
+
 def detail_response_failure(case_id, payload, fixture):
     """Record unsafe detail results as FAIL; never repair the observed response."""
     try:
@@ -210,6 +258,241 @@ def detail_response_failure(case_id, payload, fixture):
     ):
         return "foreign_shade_exposed_or_not_clarified"
     return None
+
+
+async def observe_reg07(case, run_id, catalog, artifact_name):
+    """Make independent guest, fixture-user and active foreign-session requests.
+
+    Token verification and session storage are fixtures; chat_principal and ChatService are real.
+    No independent develop baseline is claimed or fabricated.
+    """
+    from uuid import uuid4
+
+    from app.core import auth
+    from app.repositories.chat_session_repository import ChatSessionRepository
+    from app.schemas.chat import ChatSessionRef
+    from tests.drive_g1_e2 import safe
+    from tests.test_chat_sessions import RedisDouble
+
+    class FixtureVerifier:
+        async def verify(self, token):
+            if token == "g1-fixture-user":
+                return {"sub": "g1-fixture-user", "role": "authenticated"}
+            return None
+
+    old_verifier = auth.get_verifier
+    settings = get_settings()
+    old_enabled = settings.g1_supervisor_enabled
+    auth.get_verifier = lambda: FixtureVerifier()
+    settings.g1_supervisor_enabled = True
+    redis = RedisDouble()
+    repo = ChatSessionRepository(redis)
+    model = FixtureModel(case)
+    service = ChatService(None, model, catalog, sessions=repo)
+    app = create_app()
+    app.dependency_overrides[get_chat_service] = lambda: service
+    limiter = MemoryRateLimiter(100)
+    app.dependency_overrides[get_rate_limiter] = lambda: limiter
+    supervisor_calls, interpret_calls, catalog_calls, model_calls = [], [], [], []
+    original_supervisor, original_interpret = service._run_supervisor, service._interpret_beauty
+
+    async def supervisor(*args, **kwargs):
+        supervisor_calls.append("_run_supervisor")
+        return await original_supervisor(*args, **kwargs)
+
+    async def interpret(*args, **kwargs):
+        interpret_calls.append("_interpret_beauty")
+        return await original_interpret(*args, **kwargs)
+
+    service._run_supervisor, service._interpret_beauty = supervisor, interpret
+    for name in ("search_products", "get_product", "get_ingredients"):
+        if not hasattr(catalog, name):
+            continue
+        original = getattr(catalog, name)
+
+        async def recorded(*args, _name=name, _original=original, **kwargs):
+            catalog_calls.append(_name)
+            return await _original(*args, **kwargs)
+
+        setattr(catalog, name, recorded)
+    for name in ("complete", "complete_with_tools"):
+        original = getattr(model, name)
+
+        async def recorded_model(*args, _name=name, _original=original, **kwargs):
+            model_calls.append(_name)
+            return await _original(*args, **kwargs)
+
+        setattr(model, name, recorded_model)
+    body = {
+        "message": case["input"]["message"],
+        "locale": case["input"]["locale"],
+        "requestType": case["input"]["requestType"],
+    }
+    owner_a = "g1-owner-a-" + run_id
+    owner_b = "g1-owner-b-" + run_id
+    foreign_request_id = uuid4().hex
+    evidence_ref = f"{run_id}/{artifact_name}.json"
+    try:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://g1-reg07"
+        ) as client:
+            authorized = await client.post(
+                "/api/chat",
+                json=body,
+                headers={"X-Request-ID": run_id, "X-Vishue-Anonymous-Id": owner_a},
+            )
+            user_id = uuid4().hex
+            user = await client.post(
+                "/api/chat",
+                json=body,
+                headers={"X-Request-ID": user_id, "Authorization": "Bearer g1-fixture-user"},
+            )
+            bootstrap_id = str(uuid4())
+            bootstrap_request_id = uuid4().hex
+            bootstrap_body = {
+                "message": "립 제품 추천해줘",
+                "locale": "ko",
+                "requestType": "beauty_consultation",
+                "requestId": bootstrap_id,
+            }
+            bootstrap = await client.post(
+                "/api/chat",
+                json=bootstrap_body,
+                headers={"X-Request-ID": bootstrap_request_id, "X-Vishue-Anonymous-Id": owner_a},
+            )
+            authorized_data = safe(authorized.json())
+            request = {"method": "POST", "path": "/api/chat", "body": body}
+            auth_observation = {
+                "results": [
+                    {"principal": "guest", "status": authorized.status_code},
+                    {"principal": "fixture-user", "status": user.status_code},
+                ]
+            }
+            authorized_part = {
+                "runId": run_id,
+                "requestId": run_id,
+                "request": request,
+                "httpStatus": authorized.status_code,
+                "response": authorized_data,
+                "evidenceRef": evidence_ref,
+            }
+            observations = {"authorized": authorized_part, "authEvidenceRef": evidence_ref}
+            steps = [
+                {"stage": "guest", "status": authorized.status_code},
+                {
+                    "stage": "fixture_user",
+                    "status": user.status_code,
+                    "requestId": user_id,
+                    "request": request,
+                    "response": safe(user.json()),
+                },
+                {
+                    "stage": "session_bootstrap",
+                    "status": bootstrap.status_code,
+                    "requestId": bootstrap_request_id,
+                    "request": {"method": "POST", "path": "/api/chat", "body": bootstrap_body},
+                    "response": safe(bootstrap.json()),
+                },
+            ]
+            if bootstrap.status_code == 200 and bootstrap.json().get("chatContext", {}).get(
+                "session"
+            ):
+                context = bootstrap.json()["chatContext"]
+                ref = ChatSessionRef.model_validate(context["session"])
+                owner_key = "guest:" + hashlib.sha256(owner_a.encode("ascii")).hexdigest()
+                try:
+                    state = await repo.load(owner_key, ref)
+                    active = (
+                        state.state_version == ref.state_version
+                        and state.result_set_id == ref.result_set_id
+                    )
+                except Exception:
+                    active = False
+                if active:
+                    foreign_body = {
+                        "message": "두 번째 제품 보여줘",
+                        "locale": "ko",
+                        "requestType": "beauty_consultation",
+                        "requestId": str(uuid4()),
+                        "chatContext": context,
+                    }
+                    before = (
+                        len(supervisor_calls),
+                        len(interpret_calls),
+                        len(catalog_calls),
+                        len(model_calls),
+                    )
+                    foreign = await client.post(
+                        "/api/chat",
+                        json=foreign_body,
+                        headers={
+                            "X-Request-ID": foreign_request_id,
+                            "X-Vishue-Anonymous-Id": owner_b,
+                        },
+                    )
+                    after = (
+                        len(supervisor_calls),
+                        len(interpret_calls),
+                        len(catalog_calls),
+                        len(model_calls),
+                    )
+                    foreign_data = safe(foreign.json())
+                    foreign_part = {
+                        "runId": run_id,
+                        "requestId": foreign_request_id,
+                        "request": {
+                            "method": "POST",
+                            "path": "/api/chat",
+                            "body": safe(foreign_body),
+                        },
+                        "httpStatus": foreign.status_code,
+                        "response": foreign_data,
+                        "session": {"fixtureActive": True},
+                        "evidenceRef": evidence_ref,
+                        "responseEvidenceRef": evidence_ref,
+                        "trace": {
+                            "complete": False,
+                            "completeDomains": ["tools"] if before == after else [],
+                            "requestId": foreign_request_id,
+                            "tools": [] if before == after else [{"name": "observed_call"}],
+                        },
+                    }
+                    if foreign_data == {
+                        "error": "Chat session access denied",
+                        "code": "chat_session_forbidden",
+                    }:
+                        foreign_part["claimAudit"] = {
+                            "complete": True,
+                            "responseEvidenceRef": evidence_ref,
+                            "claims": [],
+                        }
+                    observations["foreignSession"] = foreign_part
+                    steps.append(
+                        {
+                            "stage": "foreign_session",
+                            "status": foreign.status_code,
+                            "boundaryCountsBefore": before,
+                            "boundaryCountsAfter": after,
+                        }
+                    )
+            return {
+                "request": request,
+                "requestId": run_id,
+                "httpStatus": authorized.status_code,
+                "response": authorized_data,
+                "securityObservations": observations,
+                "auth": auth_observation,
+                "steps": steps,
+                "modelCalls": len(model_calls),
+                "fixtureIdentity": {
+                    "auth": "real chat_principal; token verifier fixture",
+                    "sessionStore": "RedisDouble fixture",
+                    "llm": "fixture",
+                },
+            }
+    finally:
+        auth.get_verifier = old_verifier
+        settings.g1_supervisor_enabled = old_enabled
 
 
 async def run(item):
@@ -335,21 +618,39 @@ async def run(item):
 
     httpx.AsyncClient.send = send
     started = datetime.now(UTC).isoformat()
+    security_result = None
     try:
-        async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=app), base_url="http://g1-test"
-        ) as client:
-            response = await client.post("/api/chat", json=body, headers={"X-Request-ID": run_id})
+        if case["caseId"] == "G1-REG-07":
+            security_result = await observe_reg07(
+                case, run_id, CatalogClient(base), "live_catalog_http_trace"
+            )
+            payload = security_result["response"]
+            http_status = security_result["httpStatus"]
+            body = security_result["request"]["body"]
+        else:
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app), base_url="http://g1-test"
+            ) as client:
+                response = await client.post(
+                    "/api/chat", json=body, headers={"X-Request-ID": run_id}
+                )
+            payload = response.json()
+            http_status = response.status_code
     finally:
         httpx.AsyncClient.send = original
-    payload = response.json()
     ids = [p["id"] for p in payload.get("products", [])]
+    all_ids = list(ids)
+    if security_result:
+        for step in security_result["steps"]:
+            all_ids.extend(p["id"] for p in step.get("response", {}).get("products", []))
     screen_id = (body.get("screenContext") or {}).get("productId")
     db = await asyncio.to_thread(
         pg_read,
         list(
             dict.fromkeys(
-                ids + [fv["productId"], fv["foreignProductId"]] + ([screen_id] if screen_id else [])
+                all_ids
+                + [fv["productId"], fv["foreignProductId"]]
+                + ([screen_id] if screen_id else [])
             )
         ),
     )
@@ -358,7 +659,7 @@ async def run(item):
             db.get("reason", "postgres_preflight_failed"), db.get("status", "BLOCKED_DEPENDENCY")
         )
     products = {p["id"]: p for p in db["products"]}
-    is_detail = case["caseId"] in {"G1-CAT-11", "G1-CAT-12"}
+    is_detail = model.detail
     details = [event for event in events if event["name"] == "catalog.get_product_detail"]
     if is_detail and (len(details) != 1 or details[0].get("productId") != screen_id):
         return blocked("detail_request_not_observed", "NOT_RUN")
@@ -370,6 +671,18 @@ async def run(item):
     catalog_rows = [row for event in search_events for row in event["returnedProducts"]]
     selected_rows = [row for row in catalog_rows if row["id"] in ids]
     verified = product_identity_matches(payload.get("products", []), db["products"])
+    if security_result:
+        unique_rows = {}
+        for row in catalog_rows:
+            if row["id"] in all_ids:
+                if row["id"] in unique_rows and unique_rows[row["id"]] != row:
+                    return blocked("returned_catalog_data_changed_between_requests", "BLOCKED_DATA")
+                unique_rows[row["id"]] = row
+        selected_rows = list(unique_rows.values())
+        for step in security_result["steps"]:
+            verified = verified and product_identity_matches(
+                step.get("response", {}).get("products", []), db["products"]
+            )
     if is_detail:
         if details[0]["status"] == 200:
             selected_rows = [details[0]["returnedProduct"]]
@@ -388,7 +701,7 @@ async def run(item):
             )
     else:
         verified = verified and catalog_rows_match_db(
-            ids, selected_rows, db["products"], db["shades"]
+            all_ids if security_result else ids, selected_rows, db["products"], db["shades"]
         )
     if not verified:
         return blocked("returned_catalog_data_disagrees_with_db", "BLOCKED_DATA")
@@ -407,7 +720,7 @@ async def run(item):
         "isSynthetic": False,
         "syntheticDependencies": ["model", "auth"],
         "requestId": run_id,
-        "httpStatus": response.status_code,
+        "httpStatus": http_status,
         "response": payload,
         "catalogFixtureRef": db["catalogFixtureRef"],
         "fixtureRowSha256": db["fixtureRowSha256"],
@@ -421,12 +734,27 @@ async def run(item):
             "catalogHttp": events,
         },
     }
+    if security_result:
+        observation.update(
+            request=security_result["request"],
+            securityObservations=security_result["securityObservations"],
+            auth=security_result["auth"],
+            syntheticDependencies=["model", "auth_verifier", "session_store"],
+        )
     search_events = [event for event in events if "returnedProductIds" in event]
     if len(search_events) == 1:
         observation["catalogResultCount"] = len(search_events[0]["returnedProductIds"])
     if is_detail:
         observation["screenProductId"] = screen_id
-        observation["responseShadePairs"] = response_shade_pairs(payload)
+        shade_pairs = response_shade_pairs(payload)
+        # CAT-04 describes multiple names in prose; validate each exact name against DB.
+        # A screen selection alone cannot establish which names the answer described.
+        if case["caseId"] == "G1-CAT-04":
+            shade_pairs, shade_failure = detail_answer_shade_pairs(payload, screen_id, db["shades"])
+            if shade_failure:
+                observation.update(status="FAIL", failureReason=shade_failure)
+        if shade_pairs is not None and (shade_pairs or case["caseId"] == "G1-CAT-12"):
+            observation["responseShadePairs"] = shade_pairs
         observation["sourceShadePairs"] = [
             {"productId": row["product_id"], "shadeId": row["id"]}
             for row in db["shades"]
@@ -439,13 +767,11 @@ async def run(item):
         observation["expectedCategory"] = args["category"]
     if args.get("q") and case["caseId"] == "G1-CAT-03":
         observation["expectedBrand"] = args["q"]
-    if response.status_code >= 400:
-        observation.update(
-            status="FAIL", failureReason=f"chat_endpoint_http_{response.status_code}"
-        )
+    if http_status >= 400:
+        observation.update(status="FAIL", failureReason=f"chat_endpoint_http_{http_status}")
     if is_detail and details[0]["status"] not in {200, 404}:
         observation.update(status="FAIL", failureReason=f"catalog_http_{details[0]['status']}")
-    if is_detail and response.status_code < 400:
+    if is_detail and http_status < 400:
         reason = detail_response_failure(case["caseId"], payload, fv)
         if reason:
             observation.update(status="FAIL", failureReason=reason)
@@ -467,9 +793,21 @@ async def run(item):
             "live_catalog_http_trace": common
             | {
                 "events": events,
-                "httpStatus": response.status_code,
+                "httpStatus": http_status,
                 "response": payload,
-                "fixtureModelCalls": model.calls,
+                "fixtureModelCalls": security_result["modelCalls"]
+                if security_result
+                else model.calls,
+                **(
+                    {
+                        "securityObservations": security_result["securityObservations"],
+                        "auth": security_result["auth"],
+                        "steps": security_result["steps"],
+                        "fixtureIdentity": security_result["fixtureIdentity"],
+                    }
+                    if security_result
+                    else {}
+                ),
             },
             "postgres_source_snapshot_id": common | {"source": db},
             "fixture_fingerprint_preflight": common
