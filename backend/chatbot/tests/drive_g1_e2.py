@@ -79,6 +79,17 @@ def safe(value):
     return value
 
 
+def session_trace_artifact(common, request_id, bootstrap_id, steps, observation):
+    artifact = common | {
+        "requestId": request_id,
+        "bootstrapRequestId": bootstrap_id,
+        "steps": steps,
+    }
+    if observation["caseId"] == "G1-ERR-10":
+        artifact["response"] = observation["response"]
+    return artifact
+
+
 def drive(request):
     case, run_id = request["case"], request["runId"]
     identity = {
@@ -270,8 +281,9 @@ def drive(request):
                     },
                     "run_scoped_owner_and_ttl_preflight": common
                     | {"ttlSeconds": ttl, "active": ttl > 0, "ownerAndForeignDiffer": True},
-                    "request_id_and_session_state_trace": common
-                    | {"requestId": request_id, "bootstrapRequestId": bootstrap_id, "steps": trace},
+                    "request_id_and_session_state_trace": session_trace_artifact(
+                        common, request_id, bootstrap_id, trace, observation
+                    ),
                 }
                 observation.update(
                     isMock=False,

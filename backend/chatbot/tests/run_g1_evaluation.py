@@ -112,6 +112,16 @@ def verify_evidence(
         except (OSError, RuntimeError, ValueError, TypeError):
             return False
     if (
+        key[2] == "E2"
+        and "request_id_and_session_state_trace" in contents
+        and (
+            not _nonblank(observation.get("requestId"))
+            or contents["request_id_and_session_state_trace"].get("requestId")
+            != observation["requestId"]
+        )
+    ):
+        return False
+    if (
         key[0] == "G1-REG-07"
         and require_reg07_evidence
         and not _valid_reg07_evidence(observation, contents, refs, required_artifacts)

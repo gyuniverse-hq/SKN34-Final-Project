@@ -566,3 +566,83 @@ def test_reg07_binds_independent_requests_and_preserves_missing_baseline(tmp_pat
     drift = observation | {"auth": {"results": [200], "baselineResults": [401]}}
     write(drift)
     assert report(drift)["status"] == "FAIL"
+
+
+def test_e2_foreign_response_is_bound_to_its_existing_trace(tmp_path):
+    from tests.drive_g1_e2 import session_trace_artifact
+
+    cases, registry = load_contract()
+    case = next(c for c in cases if c["caseId"] == "G1-ERR-10")
+    required = case["evidenceByEnvironment"]["E2"]["requiredArtifacts"]
+    refs = {name: name + ".json" for name in required}
+    response = {"error": "Chat session access denied", "code": "chat_session_forbidden"}
+    response_ref = refs["request_id_and_session_state_trace"]
+    observation = {
+        "caseId": case["caseId"],
+        "caseRevision": case["caseRevision"],
+        "variantId": "default",
+        "environment": "E2",
+        "runId": "run-e2",
+        "requestId": "foreign-request",
+        "isMock": False,
+        "isSynthetic": True,
+        "realRedisConnected": True,
+        "httpStatus": 403,
+        "response": response,
+        "responseEvidenceRef": response_ref,
+        "session": {"fixtureActive": True},
+        "trace": {"complete": True, "requestId": "foreign-request", "tools": []},
+        "claimAudit": {"complete": True, "responseEvidenceRef": response_ref, "claims": []},
+        "evidenceRefs": refs,
+    }
+    steps = [
+        {"role": "owner_preflight", "status": 200},
+        {"role": "foreign_request", "status": 403, "response": response},
+    ]
+    trace = session_trace_artifact(
+        {"runId": "run-e2"}, "foreign-request", "bootstrap", steps, observation
+    )
+    assert trace["response"] is observation["response"]
+    assert trace["steps"][1]["response"] == trace["response"]
+    assert "response" not in session_trace_artifact({}, "r", "b", [], {"caseId": "G1-REG-04"})
+    for name, path in refs.items():
+        content = trace if name == "request_id_and_session_state_trace" else {"observed": True}
+        artifact = {
+            "caseId": observation["caseId"],
+            "caseRevision": observation["caseRevision"],
+            "variantId": "default",
+            "environment": "E2",
+            "runId": "run-e2",
+            "observationSha256": observation_digest(observation),
+            "artifactType": name,
+            "content": content,
+            "contentSha256": content_digest(content),
+        }
+        (tmp_path / path).write_text(json.dumps(artifact), encoding="utf-8")
+
+    def report():
+        return next(
+            x
+            for x in evaluate([case], [observation], registry, evidence_root=tmp_path)
+            if x["environment"] == "E2"
+        )
+
+    assert report()["status"] == "PASS"
+    trace_path = tmp_path / response_ref
+    artifact = json.loads(trace_path.read_text(encoding="utf-8"))
+    artifact["content"]["requestId"] = "different-request"
+    artifact["contentSha256"] = content_digest(artifact["content"])
+    trace_path.write_text(json.dumps(artifact), encoding="utf-8")
+    assert report()["status"] == "NOT_RUN"
+    artifact["content"]["requestId"] = observation["requestId"]
+    artifact["contentSha256"] = content_digest(artifact["content"])
+    trace_path.write_text(json.dumps(artifact), encoding="utf-8")
+    assert report()["status"] == "PASS"
+    artifact["content"]["response"] = {"error": "other", "code": "other"}
+    artifact["contentSha256"] = content_digest(artifact["content"])
+    trace_path.write_text(json.dumps(artifact), encoding="utf-8")
+    assert report()["status"] == "NOT_RUN"
+    del artifact["content"]["response"]
+    artifact["contentSha256"] = content_digest(artifact["content"])
+    trace_path.write_text(json.dumps(artifact), encoding="utf-8")
+    assert report()["status"] == "NOT_RUN"
