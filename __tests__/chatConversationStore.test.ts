@@ -1,6 +1,6 @@
 import type { BeautyChatContext } from '@/types';
 import type { ChatRequestSnapshot, ConversationTarget } from '@/types/chatConversation';
-import { useChatConversationStore } from '@/store/chatConversationStore';
+import { recentChatMessages, useChatConversationStore } from '@/store/chatConversationStore';
 
 const store = useChatConversationStore.getState;
 
@@ -189,4 +189,39 @@ test('selection, shades and server session reconcile immutably while another req
   expect(current.conversation.beautyContext?.session?.stateVersion).toBe(2);
   expect(pending.conversation.beautyContext?.session?.stateVersion).toBe(1);
   expect(beforeSelection.messages[1].chatContext?.session).toBeUndefined();
+});
+
+
+test('G3 selects bounded Unicode pairs without mixing owners or incomplete turns', () => {
+  const pair = (n: number, text = '😀'.repeat(1000)) => [
+    { id: `u${n}`, role: 'user' as const, text, ownerKey: 'a', generation: 1 },
+    { id: `a${n}`, role: 'assistant' as const, text, ownerKey: 'a', generation: 1 },
+  ];
+  const messages = Array.from({ length: 5 }, (_, i) => pair(i)).flat();
+  expect(recentChatMessages(messages, 'a', 1)).toHaveLength(8);
+  expect(recentChatMessages(messages, 'a', 1)[0].id).toBe('u1');
+  expect(recentChatMessages(messages, 'b', 1)).toEqual([]);
+  expect(recentChatMessages(messages, 'a', 2)).toEqual([]);
+  expect(recentChatMessages(pair(0, '😀'.repeat(1001)), 'a', 1)).toEqual([]);
+  const failed = pair(0).map((m) => ({ ...m, failed: true }));
+  expect(recentChatMessages(failed, 'a', 1)).toEqual([]);
+});
+
+test('G3 retries the original history snapshot and clarification conflict only clears pending', () => {
+  const id = store().open({ type: 'general' })!;
+  const room = store().conversations[id].conversation;
+  const snapshot = request(room, '03호');
+  snapshot.args.recentMessages = [{ id: 'old', role: 'user', text: '향료 있어?' }];
+  snapshot.args.clarificationId = 'question-id';
+  const ticket = store().beginRequest(room, snapshot)!;
+  store().failRequest(ticket, 'chat.ui.error', false, false);
+  const changed = request(room, 'changed');
+  changed.args.recentMessages = [{ id: 'new', role: 'user', text: 'new context' }];
+  const retry = store().beginRequest(room, changed, ticket.messageId)!;
+  expect(store().conversations[id].conversation.snapshots.get(ticket.messageId)?.args).toEqual(snapshot.args);
+  const generation = store().conversations[id].conversation.generation;
+  store().failRequest(retry, 'chat.session.conflict', false, false, true);
+  expect(store().conversations[id].conversation.generation).toBe(generation);
+  expect(store().conversations[id].conversation.snapshots.size).toBe(0);
+  expect(store().conversations[id].messages.at(-1)?.retryable).toBe(false);
 });

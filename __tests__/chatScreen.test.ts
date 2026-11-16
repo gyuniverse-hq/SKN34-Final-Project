@@ -267,6 +267,26 @@ describe('server session recovery', () => {
   }
   function texts(view: ReactTestRenderer) { return view.root.findAllByType(Text).map((n) => n.props.children); }
 
+  it('G3 sends pending and complete recent turns and preserves the session on question conflict', async () => {
+    const pending = { id: '10000000-0000-4000-8000-000000000009', missingSlot: 'shade', productId: 'p1',
+      resultSetId: context.session!.resultSetId, createdRequestId: 'r', createdStateVersion: 1,
+      expiresAt: context.session!.expiresAt, ingredientConditions: [{ ingredientName: '향료', operator: 'includes' }] };
+    mockMutateAsync.mockResolvedValueOnce({ answer: '몇 호인가요?', products: [], chatContext: context,
+      pendingClarification: pending, sessionStatus: 'stored', resultType: 'clarification' })
+      .mockRejectedValueOnce(new ApiError('Question changed', 409, 'chat_clarification_conflict'))
+      .mockResolvedValueOnce({ answer: '다시 확인', products: [], chatContext: context, sessionStatus: 'unchanged' });
+    const view = await renderScreen();
+    await send(view, '첫 번째 제품에 향료 있어?');
+    await send(view, '03호');
+    const args = mockMutateAsync.mock.calls[1][0];
+    expect(args.clarificationId).toBe(pending.id);
+    expect(args.recentMessages.map((m: { text: string }) => m.text)).toEqual(['첫 번째 제품에 향료 있어?', '몇 호인가요?']);
+    await send(view, '첫 번째 상품 다시 확인');
+    expect(mockMutateAsync.mock.calls[2][0].chatContext.session).toEqual(context.session);
+    expect(mockMutateAsync.mock.calls[2][0].clarificationId).toBeUndefined();
+    await act(async () => view.unmount());
+  });
+
   it('retains the session through a general makeup explanation and the next product reference', async () => {
     mockMutateAsync.mockResolvedValueOnce({ answer: 'List', products: [], chatContext: context })
       .mockResolvedValueOnce({ answer: 'General explanation', products: [], chatContext: context, sessionStatus: 'unchanged' })
@@ -1219,4 +1239,13 @@ describe('structured consultation outcomes', () => {
     expect(texts).not.toContain('chat.ui.retry');
     await act(async () => { renderer.unmount(); });
   });
+  it('keeps 1000 Unicode code points in the composer without splitting emoji', async () => {
+    const view = await renderScreen();
+    await act(async () => view.root.findByType(TextInput).props.onChangeText('😀'.repeat(1001)));
+    expect(view.root.findByType(TextInput).props.value).toBe('😀'.repeat(1000));
+    await act(async () => view.root.findByType(TextInput).props.onChangeText('e\u0301'.repeat(501)));
+    expect(Array.from(view.root.findByType(TextInput).props.value)).toHaveLength(1000);
+    await act(async () => view.unmount());
+  });
+
 });

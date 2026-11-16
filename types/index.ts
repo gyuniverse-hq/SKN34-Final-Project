@@ -548,7 +548,15 @@ export interface ChatProductRef {
   category: string;
 }
 
+export type RecentChatMessage = { id: string; role: 'user' | 'assistant'; text: string };
+export type PendingClarification = {
+  id: string; missingSlot: 'product' | 'shade'; productId?: string | null;
+  resultSetId: string; createdRequestId: string; createdStateVersion: number; expiresAt: number;
+  ingredientConditions: { ingredientName: string; operator: 'includes' | 'excludes' }[];
+};
+
 export interface ChatResponse {
+  pendingClarification?: PendingClarification | null;
   styleRecipe?: ChatStyleRecipe;
   styleContext?: ChatStyleContext;
   styleStatus?: 'ready' | 'clarification' | 'not_found' | 'error' | 'unsupported';

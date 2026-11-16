@@ -1,4 +1,4 @@
-import type { BeautyChatContext, ChatProductEvidence, ChatProductRef, ChatResponse, ChatScreenContext, ChatStyleContext } from './index';
+import type { RecentChatMessage, BeautyChatContext, ChatProductEvidence, ChatProductRef, ChatResponse, ChatScreenContext, ChatStyleContext } from './index';
 
 export type ConversationSubject =
   | { type: 'general' }
@@ -39,6 +39,8 @@ export type ChatMessage = {
 
 export type ChatRequestSnapshot = {
   args: {
+    recentMessages?: RecentChatMessage[];
+    clarificationId?: string;
     generalMakeup?: boolean;
     message: string;
     locale: NonNullable<ChatMessage['locale']>;

@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { uuid } from 'expo';
 import { apiPostChat } from '@/lib/api';
-import type { BeautyChatContext, ChatResponse, ChatScreenContext, ChatStyleContext } from '@/types';
+import type { RecentChatMessage, BeautyChatContext, ChatResponse, ChatScreenContext, ChatStyleContext } from '@/types';
 
 type ChatLocale = 'en' | 'ko' | 'ja' | 'zh';
 const CHAT_TIMEOUT_MS = 90_000;
@@ -9,7 +9,7 @@ const CHAT_TIMEOUT_MS = 90_000;
 export function useChat() {
   return useMutation({
     retry: false,
-    mutationFn: async ({ message, locale, category, chatContext, screenContext, styleContext, requestId, expectedUserId, generalMakeup }: {
+    mutationFn: async ({ message, locale, category, chatContext, screenContext, styleContext, requestId, expectedUserId, generalMakeup, recentMessages, clarificationId }: {
       message: string; locale: ChatLocale; category?: 'product' | 'ingredient' | 'style';
       chatContext?: BeautyChatContext;
       screenContext?: ChatScreenContext;
@@ -17,9 +17,13 @@ export function useChat() {
       requestId?: string;
       expectedUserId?: string | null;
       generalMakeup?: boolean;
+      recentMessages?: RecentChatMessage[];
+      clarificationId?: string;
     }) =>
       apiPostChat<ChatResponse>(
         {
+          ...(recentMessages?.length ? { recentMessages } : {}),
+          ...(clarificationId ? { clarificationId } : {}),
           message, locale, requestId: requestId ?? uuid.v4(),
           ...(generalMakeup ? { generalMakeup: true } : {}),
           ...(category || (!generalMakeup && chatContext) || screenContext || styleContext

@@ -29,11 +29,14 @@ from app.schemas.chat import (
     ChatSessionRef,
     ChatSessionState,
     GraphProduct,
+    IngredientFilter,
+    PendingClarification,
     ProductRef,
 )
 from app.schemas.supervisor import (
     ConditionCheck,
     EvidenceRef,
+    IngredientPlanCondition,
     IntentDecision,
     ResolvedContext,
     SearchPlan,
@@ -464,14 +467,14 @@ class ChatService:
             )
         return await self._run_supervisor(req, context, decision)
 
-    async def _interpret_beauty(self, req):
+    async def _interpret_beauty(self, req, *, pending=None):
         previous = req.chat_context
         followup = bool(previous and _look_search_followup(req.message))
         category = look_shopping_category(req.message) if req.style_context else None
         if req.style_context and followup and not category:
             category = previous.filters.category
         if not category:
-            return await interpret_beauty(req, self._llm)
+            return await interpret_beauty(req, self._llm, pending=pending)
         if self._catalog is None:
             raise ApiError(503, "Catalog is not configured", "catalog_unavailable")
         style = req.style_context
@@ -799,11 +802,40 @@ class ChatService:
         req = incoming.model_copy(deep=True)
         g2_enabled = req.locale == "ko" and get_settings().g1_supervisor_enabled
         general_only = g2_enabled and req.general_makeup
+        old_pending = state.pending_clarification if state and g2_enabled else None
+        if (
+            g2_enabled
+            and incoming.clarification_id
+            and (not old_pending or incoming.clarification_id != old_pending.id)
+        ):
+            raise ApiError(409, "Clarification changed", "chat_clarification_conflict")
+        focus_changed = bool(
+            old_pending
+            and (
+                (
+                    incoming.screen_context
+                    and incoming.screen_context.product_id
+                    and incoming.screen_context.product_id != old_pending.product_id
+                )
+                or (
+                    incoming.chat_context
+                    and incoming.chat_context.selected_product_id
+                    and old_pending.product_id
+                    and incoming.chat_context.selected_product_id != old_pending.product_id
+                    and incoming.chat_context.selected_product_id
+                    != state.context.selected_product_id
+                )
+            )
+        )
+        active_pending = old_pending if incoming.clarification_id and not focus_changed else None
+        cancelled = bool(old_pending and re.search(r"취소|그만|질문.*(?:됐어|그만)", req.message))
         if general_only:
             req.screen_context = None
             req.style_context = None
         # Client candidate lists/filters are never promoted into a server-owned snapshot.
         req.chat_context = state.context.model_copy(deep=True) if state else None
+        if active_pending and active_pending.product_id:
+            req.chat_context.selected_product_id = active_pending.product_id
         context = resolve_context(req)
         if state:
             context.state_source = "server_session"
@@ -818,6 +850,8 @@ class ChatService:
             await self._choose_g1_turn(req)
             if ref is None
             and not general_only
+            and not cancelled
+            and not req.recent_messages
             and not (
                 g2_enabled and _G2_FILTER.search(req.message) and _FILTER_CHANGE.search(req.message)
             )
@@ -828,12 +862,37 @@ class ChatService:
         )
         decision.slots = (
             SearchPlan(intent="general")
-            if general_only
+            if general_only or cancelled
             else model_turn.plan
             if model_turn
-            else await self._interpret_beauty(req)
+            else await self._interpret_beauty(req, pending=active_pending)
         )
         slots = decision.slots
+        if active_pending and slots.intent == "detail" and not cancelled and not general_only:
+            slots.ingredient_lookup = True
+            if not slots.ingredient_name and not slots.ingredient_conditions:
+                slots.ingredient_conditions = [
+                    IngredientPlanCondition(ingredient_name=c.ingredient_name, operator=c.operator)
+                    for c in active_pending.ingredient_conditions
+                ]
+        pending_ambiguous = False
+        if cancelled:
+            model_turn = G1ModelTurn(slots, answer="성분 확인 질문을 취소했어요.")
+        elif (
+            active_pending
+            and slots.intent == "general"
+            and not general_only
+            and not re.search(r"설명|방법|어떻게|알려", req.message)
+        ):
+            pending_ambiguous = True
+            model_turn = G1ModelTurn(
+                slots,
+                answer=(
+                    "확인할 상품을 선택해 주세요."
+                    if active_pending.missing_slot == "product"
+                    else "확인할 상품의 호수를 선택해 주세요."
+                ),
+            )
         unsupported = g2_enabled and not general_only and _unsupported_g2_change(req.message, slots)
         if unsupported:
             slots = decision.slots = SearchPlan(intent="general")
@@ -881,6 +940,19 @@ class ChatService:
                 and not slots.selection
             )
         )
+        if (
+            g2_enabled
+            and not state
+            and ref is None
+            and slots.intent == "detail"
+            and (slots.ingredient_lookup or slots.ingredient_name or slots.ingredient_conditions)
+            and not (req.screen_context and req.screen_context.product_id)
+        ):
+            return ChatResponse(
+                answer="성분을 확인할 상품과 호수를 선택해 주세요.",
+                products=[],
+                result_type="clarification",
+            )
         if not state and not independent:
             if load_error:
                 raise load_error
@@ -932,7 +1004,11 @@ class ChatService:
             try:
                 await self._validate_session_context(
                     req.chat_context,
-                    incoming.chat_context,
+                    incoming.chat_context.model_copy(
+                        update={"selected_product_id": active_pending.product_id}
+                    )
+                    if active_pending and active_pending.product_id
+                    else incoming.chat_context,
                     req.screen_context,
                     select_screen=(
                         bool(
@@ -963,12 +1039,86 @@ class ChatService:
             model_turn=model_turn,
         )
         result = response.supervisor.result
-        if unsupported:
+        if unsupported or pending_ambiguous:
             response.result_type = "clarification"
         ctx = response.chat_context
+        next_pending = old_pending
+        pending_changed = False
+        if g2_enabled and state:
+            errors = result.status == "error" or any(
+                r.status == "error" or r.verdict == "ERROR"
+                for r in response.ingredient_results or []
+            )
+            if not errors:
+                if cancelled or focus_changed or slots.intent in {"search", "refine"}:
+                    next_pending = None
+                ingredient_detail = slots.intent == "detail" and (
+                    slots.ingredient_lookup or slots.ingredient_name or slots.ingredient_conditions
+                )
+                if ingredient_detail:
+                    missing = next(
+                        (
+                            r
+                            for r in response.ingredient_results or []
+                            if r.reason == "shade_required"
+                        ),
+                        None,
+                    )
+                    missing_product = bool(
+                        ctx and not ctx.selected_product_id and not response.products
+                    )
+                    if missing or missing_product:
+                        conditions = [
+                            IngredientFilter.model_validate(c.model_dump())
+                            for c in slots.ingredient_conditions
+                        ]
+                        if slots.ingredient_name:
+                            conditions.append(
+                                IngredientFilter(
+                                    ingredient_name=slots.ingredient_name,
+                                    operator=slots.ingredient_operator,
+                                )
+                            )
+                        # Deduplicate the same condition before enforcing the existing limit.
+                        conditions = list(
+                            {(c.ingredient_name, c.operator): c for c in conditions}.values()
+                        )
+                        if len(conditions) > 6:
+                            raise ApiError(400, "Too many ingredient conditions", "invalid_request")
+                        slot = "shade" if missing else "product"
+                        pid = missing.product_id if missing else None
+                        if (
+                            old_pending
+                            and old_pending.missing_slot == slot
+                            and old_pending.product_id == pid
+                            and old_pending.ingredient_conditions == conditions
+                        ):
+                            next_pending = old_pending
+                        else:
+                            next_pending = PendingClarification(
+                                id=uuid4(),
+                                missing_slot=slot,
+                                product_id=pid,
+                                result_set_id=state.result_set_id,
+                                created_request_id=request_id,
+                                created_state_version=state.state_version + 1,
+                                expires_at=state.expires_at,
+                                ingredient_conditions=conditions,
+                            )
+                    elif response.ingredient_results:
+                        next_pending = None
+                pending_changed = next_pending != old_pending
+            response.pending_clarification = next_pending
+            if next_pending and response.result_type == "clarification" and not pending_changed:
+                response.chat_context = state.context.model_copy(deep=True, update={"session": ref})
+                response.session_status = "unchanged"
+                return response
+            if pending_changed and (ctx is None or next_pending):
+                ctx = response.chat_context = state.context.model_copy(deep=True)
         if (
             state
             and ctx is None
+            and not pending_changed
             and slots.intent == "general"
             and incoming.locale == "ko"
             and get_settings().g1_supervisor_enabled
@@ -1002,7 +1152,7 @@ class ChatService:
             and ctx.scope_ids == state.context.scope_ids
             and all(p.id in state.context.candidate_ids for p in response.products)
         )
-        if (
+        if not pending_changed and (
             not ctx
             or result.status == "unsupported"
             or (result.status == "error" and not partial_ingredients and not persist_failed_detail)
@@ -1073,6 +1223,7 @@ class ChatService:
                     "sourceVersion": r.source_version,
                 }
         snapshot = ChatSessionState(
+            pending_clarification=next_pending,
             session_id=session_ref.session_id,
             owner=owner,
             owner_kind=owner.split(":", 1)[0],

@@ -21,7 +21,7 @@ import { conditionsFromChatFilters, extractChatConditions } from '@/lib/chatCond
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useLook, useProduct, useProductsByIds, useStyleLooks } from '@/lib/queries';
 import { arHref, parseId, paramValue, productHref } from '@/lib/routes';
-import { isChatSessionExpired, useChatConversationStore, type ConversationRecord } from '@/store/chatConversationStore';
+import { isChatSessionExpired, recentChatMessages, useChatConversationStore, type ConversationRecord } from '@/store/chatConversationStore';
 import type { ChatCategory as Category, ChatMessage, ChatRequestSnapshot, ConversationEntry } from '@/types/chatConversation';
 import type { BeautyChatContext, ChatProductEvidence, ChatProductRef } from '@/types';
 
@@ -389,6 +389,10 @@ function ChatConversation({ record, onRecent, onNew }: {
       revision: room.selection.revision,
       args: {
         message: text, locale: language, category: requestCategory, requestId, expectedUserId: userId,
+        ...(language === 'ko' && !room.styleContext ? {
+          recentMessages: recentChatMessages(messages, room.ownerKey, room.generation),
+          ...(room.pendingClarification ? { clarificationId: room.pendingClarification.id } : {}),
+        } : {}),
         ...(generalMakeup ? { generalMakeup: true } : {}),
         ...(!generalMakeup && room.styleContext
           ? { styleContext: { ...room.styleContext } } : {}),
@@ -413,7 +417,8 @@ function ChatConversation({ record, onRecent, onNew }: {
       store().completeRequest(ticket, response, comparisonTarget && lastReply?.question ? lastReply.question : text);
     } catch (error) {
       const api = error instanceof ApiError ? error : undefined;
-      const fatal = api && ([403, 409, 410].includes(api.status) ||
+      const clarificationConflict = api?.code === 'chat_clarification_conflict';
+      const fatal = api && !clarificationConflict && ([403, 409, 410].includes(api.status) ||
         ['chat_owner_changed', 'chat_owner_unavailable'].includes(api.code ?? ''));
       const errorKey: TranslationKey = api?.code === 'chat_owner_changed'
         ? 'chat.session.identityChanged'
@@ -426,7 +431,7 @@ function ChatConversation({ record, onRecent, onNew }: {
                   : api?.status === 404 ? 'chat.ingredient.productMissing'
                     : api?.status === 503 ? 'chat.ingredient.server'
                       : api?.status === 0 ? 'chat.ingredient.network' : 'chat.ui.error';
-      store().failRequest(ticket, errorKey, !!fatal, !!api?.code?.startsWith('chat_owner_'));
+      store().failRequest(ticket, errorKey, !!fatal, !!api?.code?.startsWith('chat_owner_'), clarificationConflict);
     }
   };
 
@@ -703,8 +708,8 @@ function ChatConversation({ record, onRecent, onNew }: {
             </View>
           ) : null}
           <View style={styles.inputRow}>
-            <TextInput ref={inputRef} accessibilityLabel={t('chat.ui.placeholder')} editable={!isPending} maxLength={1000}
-              multiline onChangeText={setInput} onFocus={() => setEditing(true)} onBlur={() => setEditing(false)}
+            <TextInput ref={inputRef} accessibilityLabel={t('chat.ui.placeholder')} editable={!isPending} maxLength={2000}
+              multiline onChangeText={(value) => setInput(Array.from(value).slice(0, 1000).join(''))} onFocus={() => setEditing(true)} onBlur={() => setEditing(false)}
               placeholder={t('chat.ui.placeholder')} placeholderTextColor={theme.colors.inkFaint}
               style={[styles.input, editing && styles.inputEditing]} value={input} />
             <Pressable accessibilityRole="button" accessibilityLabel={t('chat.ui.send')}
