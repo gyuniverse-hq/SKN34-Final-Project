@@ -674,6 +674,7 @@ export interface ChatIngredientResult {
 }
 
 export interface BeautyChatFilters {
+  texture?: 'matte' | null;
   category: ProductCategory | null;
   maxPriceKRW: number | null;
   fragranceFree: boolean;

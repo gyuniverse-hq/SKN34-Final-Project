@@ -127,6 +127,7 @@ async def test_refine_retains_conditions_requeries_catalog_and_explicitly_clears
         request(moist.chat_context, "그럼 2만원 이하로 바꾸고 촉촉한 조건은 유지해줘"), "user:a"
     )
     assert result.chat_context.filters.category == "lip"
+    assert result.supervisor.intent.slots.scope == "catalog"
     assert result.chat_context.filters.moisturizing is True
     assert result.chat_context.filters.max_price_krw == 20000
     assert set(result.chat_context.candidate_ids) == {"a", "b"}
@@ -240,6 +241,108 @@ async def test_general_interlude_preserves_context_and_foreign_shade_is_rejected
 
 
 @pytest.mark.anyio
+async def test_matte_change_retains_filters_matches_metadata_and_clears(setup):
+    service, redis, _, _ = setup
+    service._catalog.products[0].texture = "matte"
+    service._catalog.products[1].texture = "glossy"
+    service._catalog.products[1].description = "매트처럼 보이는 상품"
+    service._catalog.products[2].texture = None
+    first = await service.answer(request(), "user:a")
+    service._llm.plan = {"intent": "refine", "scope": "previous", "texture": "matte"}
+    result = await service.answer(request(first.chat_context, "매트한 걸로 바꿔줘"), "user:a")
+    assert [p.id for p in result.products] == ["a"]
+    assert result.chat_context.filters.texture == "matte"
+    assert result.chat_context.filters.max_price_krw == 30000
+    assert result.chat_context.filters.category == "lip"
+    assert "옵션별 제형과 실제 발림은 미확인" in result.answer
+    assert any(
+        c.condition == "texture" and c.verdict == "MATCH"
+        for c in result.supervisor.result.conditions
+    )
+    service._llm.plan = {"intent": "refine", "scope": "catalog", "maxPriceKRW": 20000}
+    cheaper = await service.answer(request(result.chat_context, "2만원 이하로 바꿔줘"), "user:a")
+    assert cheaper.chat_context.filters.texture == "matte"
+    assert cheaper.chat_context.filters.max_price_krw == 20000
+    service._llm.plan = {"intent": "refine", "scope": "catalog", "clearFilters": ["texture"]}
+    cleared = await service.answer(request(cheaper.chat_context, "제형 조건 빼줘"), "user:a")
+    assert cleared.chat_context.filters.texture is None
+    assert cleared.chat_context.filters.max_price_krw == 20000
+    assert {p.id for p in cleared.products} == {"a", "b"} and redis.writes == 4
+
+
+@pytest.mark.anyio
+async def test_explicit_among_previous_keeps_matte_search_scope(setup):
+    service, _, _, _ = setup
+    service._catalog.products[0].texture = "matte"
+    service._catalog.products[1].texture = "glossy"
+    service._catalog.products[2].texture = None
+    first = await service.answer(request(), "user:a")
+    service._llm.plan = {"intent": "refine", "scope": "previous", "texture": "matte"}
+    result = await service.answer(request(first.chat_context, "그중 매트한 걸로 골라줘"), "user:a")
+    assert result.supervisor.intent.slots.scope == "previous"
+    assert [p.id for p in result.products] == ["a"]
+    assert service._catalog.ids == first.chat_context.candidate_ids
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "message,plan",
+    [
+        ("지속력 좋은 걸로 바꿔줘", {"intent": "refine", "scope": "catalog"}),
+        ("매트한 걸로 바꿔줘", {"intent": "refine", "scope": "catalog"}),
+        ("더 매트한 걸로 바꿔줘", {"intent": "refine", "texture": "matte"}),
+        ("매트 말고 다른 걸로 바꿔줘", {"intent": "refine", "texture": "matte"}),
+        ("매트한 걸로 바꿔줘", {"intent": "refine", "query": "매트"}),
+        ("조건 바꿔줘", {"intent": "refine", "scope": "catalog"}),
+        ("2만원 이하로 바꾸고 지속력도 좋아야 해", {"intent": "refine", "maxPriceKRW": 20000}),
+        ("비건 인증 있는 것만", {"intent": "refine", "unsupportedConditions": ["비건 인증"]}),
+    ],
+)
+async def test_unsupported_or_unrepresented_change_does_not_claim_success(setup, message, plan):
+    service, redis, _, _ = setup
+    first = await service.answer(request(), "user:a")
+    service._llm.plan = plan
+    before = len(service._catalog.calls)
+    result = await service.answer(request(first.chat_context, message), "user:a")
+    assert result.result_type == "clarification" and result.products == []
+    assert "변경하지 않았어요" in result.answer
+    assert result.chat_context == first.chat_context and result.session_status == "unchanged"
+    assert redis.writes == 1 and len(service._catalog.calls) == before
+
+
+@pytest.mark.anyio
+async def test_general_makeup_hint_keeps_session_without_interpretation_or_catalog(setup):
+    service, redis, _, _ = setup
+    first = await service.answer(request(), "user:a")
+    # A misleading interpreter plan must never be used for this explicit general-only request.
+    service._llm.plan = {"intent": "search", "category": "eye"}
+    req = request(first.chat_context, "그라데이션 립 어떻게 해?")
+    req.general_makeup = True
+    calls = len(service._catalog.calls)
+    result = await service.answer(req, "user:a")
+    assert len(service._catalog.calls) == calls and redis.writes == 1
+    assert result.products == [] and result.chat_context == first.chat_context
+    assert result.session_status == "unchanged"
+    assert service._llm.messages[-1]["content"] == req.message
+    assert "PRODUCTS (JSON): []" in service._llm.messages[0]["content"]
+
+
+@pytest.mark.parametrize("kind", ["chat", "beauty_consultation"])
+def test_general_makeup_off_keeps_legacy_context_omission(monkeypatch, kind):
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", False)
+    req = ChatRequest.model_validate(
+        {
+            "message": "그라데이션 립 어떻게 해?",
+            "locale": "ko",
+            "requestType": kind,
+            "generalMakeup": True,
+            "chatContext": {"legacy": "invalid but omitted"},
+        }
+    )
+    assert req.chat_context is None
+
+
+@pytest.mark.anyio
 @pytest.mark.skipif(not os.getenv("G2_LIVE_ENV_FILE"), reason="G2 live model/Catalog opt-in")
 async def test_live_model_catalog_multiturn(monkeypatch):
     """Real model + Catalog HTTP; Redis/auth/device remain outside this smoke test."""
@@ -270,6 +373,23 @@ async def test_live_model_catalog_multiturn(monkeypatch):
     assert changed.chat_context.filters.category == context.filters.category
     assert changed.chat_context.session.result_set_id != context.session.result_set_id
     assert "참고" in changed.answer
+    matte = await service.answer(request(changed.chat_context, "매트한 걸로 바꿔줘"), owner)
+    assert matte.chat_context.filters.texture == "matte" and matte.products
+    assert matte.chat_context.filters.max_price_krw == 20000
+    assert matte.chat_context.filters.moisturizing
+    rows = await catalog.search_products(ids=[p.id for p in matte.products])
+    assert {p.id for p in rows} == {p.id for p in matte.products}
+    assert all(p.texture == "matte" for p in rows)
+    unsupported = await service.answer(
+        request(matte.chat_context, "1만원 이하로 바꾸고 지속력도 좋아야 해"), owner
+    )
+    assert unsupported.result_type == "clarification" and unsupported.products == []
+    assert unsupported.chat_context == matte.chat_context
+    general_req = request(matte.chat_context, "그라데이션 립 어떻게 해?")
+    general_req.general_makeup = True
+    general = await service.answer(general_req, owner)
+    assert general.chat_context == matte.chat_context and general.products == []
+    assert general.session_status == "unchanged" and general.answer.strip()
     print(
         json.dumps(
             {
@@ -278,10 +398,14 @@ async def test_live_model_catalog_multiturn(monkeypatch):
                 "candidateCount": len(context.candidate_ids),
                 "ordinalMatched": True,
                 "conditionsPreserved": True,
+                "matteMetadataMatched": True,
+                "mixedUnsupportedUnchanged": True,
+                "generalSessionPreserved": True,
                 "versions": [
                     context.session.state_version,
                     detail.chat_context.session.state_version,
                     changed.chat_context.session.state_version,
+                    matte.chat_context.session.state_version,
                 ],
                 "redis": "deterministic double",
                 "auth": "service principal fixture",

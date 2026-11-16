@@ -267,6 +267,25 @@ describe('server session recovery', () => {
   }
   function texts(view: ReactTestRenderer) { return view.root.findAllByType(Text).map((n) => n.props.children); }
 
+  it('retains the session through a general makeup explanation and the next product reference', async () => {
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'List', products: [], chatContext: context })
+      .mockResolvedValueOnce({ answer: 'General explanation', products: [], chatContext: context, sessionStatus: 'unchanged' })
+      .mockResolvedValueOnce({ answer: 'Second product', products: [], chatContext: context });
+    const view = await renderScreen();
+    await send(view, '립 제품 추천해줘');
+    await send(view, '그라데이션 립 어떻게 해?');
+    const general = mockMutateAsync.mock.calls[1][0];
+    expect(general.generalMakeup).toBe(true);
+    expect(general.chatContext.session).toEqual(context.session);
+    expect(general.screenContext).toBeUndefined();
+    expect(general.styleContext).toBeUndefined();
+    expect(view.root.findAllByType(ChatProducts)).toHaveLength(0);
+    await send(view, '두 번째 제품 보여줘');
+    expect(mockMutateAsync.mock.calls[2][0].chatContext.session).toEqual(context.session);
+    expect(mockMutateAsync.mock.calls[2][0].generalMakeup).toBeUndefined();
+    await act(async () => view.unmount());
+  });
+
   it('reopens general chat and isolates two products, their shades and the first unseeded question', async () => {
     const firstShadeEvidence = { productId: 'p1', shadeId: 'p1-01', verdict: 'UNKNOWN', status: 'unknown',
       mappingStatus: 'candidate', ingredientCoverage: 'unknown', reviewStatus: 'unreviewed',

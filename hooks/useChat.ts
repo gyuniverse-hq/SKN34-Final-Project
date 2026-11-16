@@ -9,18 +9,20 @@ const CHAT_TIMEOUT_MS = 90_000;
 export function useChat() {
   return useMutation({
     retry: false,
-    mutationFn: async ({ message, locale, category, chatContext, screenContext, styleContext, requestId, expectedUserId }: {
+    mutationFn: async ({ message, locale, category, chatContext, screenContext, styleContext, requestId, expectedUserId, generalMakeup }: {
       message: string; locale: ChatLocale; category?: 'product' | 'ingredient' | 'style';
       chatContext?: BeautyChatContext;
       screenContext?: ChatScreenContext;
       styleContext?: ChatStyleContext;
       requestId?: string;
       expectedUserId?: string | null;
+      generalMakeup?: boolean;
     }) =>
       apiPostChat<ChatResponse>(
         {
           message, locale, requestId: requestId ?? uuid.v4(),
-          ...(category || chatContext || screenContext || styleContext
+          ...(generalMakeup ? { generalMakeup: true } : {}),
+          ...(category || (!generalMakeup && chatContext) || screenContext || styleContext
             ? { requestType: category === 'style' && !chatContext ? 'style_consultation' : 'beauty_consultation' }
             : {}),
           ...(styleContext ? { styleContext } : {}),

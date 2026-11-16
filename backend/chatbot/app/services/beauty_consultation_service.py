@@ -10,6 +10,7 @@ from collections import Counter
 from pydantic import ValidationError
 
 from app.clients.catalog_client import IngredientLookupError
+from app.core.config import get_settings
 from app.core.errors import ApiError, UpstreamError
 from app.schemas.catalog import CatalogIngredients, CatalogProduct, IngredientDecision
 from app.schemas.chat import (
@@ -311,6 +312,15 @@ def _reply(answer, context, products=(), result_type="clarification"):
         context.selected_product_id = None
     checks = []
     for product in products:
+        if context.filters.texture:
+            checks.append(
+                ConditionCheck(
+                    condition="texture",
+                    product_id=product.id,
+                    verdict="MATCH" if product.texture == context.filters.texture else "UNKNOWN",
+                    reason="product_catalog_metadata_not_option_verification",
+                )
+            )
         if context.filters.category:
             checks.append(
                 ConditionCheck(
@@ -380,6 +390,8 @@ def _reply(answer, context, products=(), result_type="clarification"):
 
 
 def _matches(product: CatalogProduct, filters: BeautyFilters, *, identity_only=False) -> bool:
+    if filters.texture and product.texture != filters.texture:
+        return False
     # The current Catalog contract provides keyIngredients, not verified full ingredients.
     if filters.fragrance_free:
         return False
@@ -734,7 +746,24 @@ async def interpret_beauty(req: ChatRequest, llm, look_profile=None) -> SearchPl
     try:
         output = await llm.complete(
             [
-                {"role": "system", "content": PLAN_PROMPT},
+                {
+                    "role": "system",
+                    "content": PLAN_PROMPT
+                    + (
+                        '\nG2: texture may be "matte" only (product-level Catalog metadata). '
+                        '"매트한 걸로 바꿔줘" means refine, scope catalog, texture matte; '
+                        "retain other conditions. "
+                        '"제형 조건 빼줘" means refine, scope catalog, clearFilters [texture]. '
+                        "Never encode texture as query or moisturizing. "
+                        "For any unrepresentable condition (other textures, relative more matte, "
+                        "wear duration, waterproof, option-level guarantees), return "
+                        "unsupportedConditions listing it; never omit it or claim success. "
+                        "Include unsupportedConditions for mixed supported/unsupported changes. "
+                        "General texture explanations are general, not filter changes."
+                        if req.locale == "ko" and get_settings().g1_supervisor_enabled
+                        else ""
+                    ),
+                },
                 {
                     "role": "user",
                     "content": json.dumps(
@@ -785,6 +814,15 @@ async def interpret_beauty(req: ChatRequest, llm, look_profile=None) -> SearchPl
         )
     ):
         plan = plan.model_copy(update={"intent": "detail", "ingredient_lookup": True})
+    if (
+        req.locale == "ko"
+        and get_settings().g1_supervisor_enabled
+        and plan.intent == "refine"
+        and (plan.texture is not None or "texture" in plan.clear_filters)
+        and not re.search(r"(?:그|이)\s*중|(?:아까|이전|후보).*?(?:중|안에서)", req.message)
+    ):
+        # Changing a filter re-searches Catalog; only explicit "among these" limits the scope.
+        plan = plan.model_copy(update={"scope": "catalog"})
     return plan
 
 
@@ -1052,6 +1090,11 @@ async def execute_beauty(
         answer += " " + words["price"]
     if filters.moisturizing:
         answer += " " + words["moisture"]
+    if filters.texture and products:
+        answer += (
+            " 카탈로그의 상품 제형이 매트로 등록된 후보이며, "
+            "옵션별 제형과 실제 발림은 미확인입니다."
+        )
     return _reply(answer, context, products, "recommendations" if products else "empty")
 
 
@@ -1259,6 +1302,7 @@ def _effective_filters(previous, plan):
             c.model_copy() for c in previous.filters.ingredient_conditions
         ]
     defaults = BeautyFilters().model_dump(by_alias=False)
+    defaults["texture"] = None  # None is omitted from the backward-compatible wire context.
     aliases = {
         "maxPriceKRW": "max_price_krw",
         "fragranceFree": "fragrance_free",
