@@ -457,3 +457,47 @@ async def test_review_new_shade_then_general_does_not_restore_pending(setup):
         result.chat_context.session.state_version == pending.chat_context.session.state_version + 1
     )
     assert result.chat_context.session.expires_at == pending.chat_context.session.expires_at
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("intent", ["search", "detail", "general"])
+async def test_registered_pending_shade_overrides_model_misclassification(setup, intent):
+    service, redis, _, _ = setup
+    label = "솔리드인 립에센스 더블기획"
+    service._catalog.products[0].shades[0].name = label
+    first = await service.answer(request(), "user:a")
+    pending = await ask_shade(service, first.chat_context)
+    ref = pending.chat_context.session
+    service._llm.plan = {"intent": intent, "query": label}
+    req = request(pending.chat_context, label)
+    req.clarification_id = pending.pending_clarification.id
+    result = await service.answer(req, "user:a")
+    assert result.pending_clarification is None
+    assert result.ingredient_results[0].product_id == "a"
+    assert result.ingredient_results[0].shade_id == service._catalog.products[0].shades[0].id
+    assert result.ingredient_results[0].conditions[0].ingredient_name == "향료"
+    assert result.chat_context.session.state_version == ref.state_version + 1
+    assert result.chat_context.session.result_set_id == ref.result_set_id
+    assert result.chat_context.session.expires_at == ref.expires_at
+    writes = redis.writes
+    assert await service.answer(req, "user:a") == result
+    assert redis.writes == writes
+
+
+@pytest.mark.anyio
+async def test_registered_pending_duplicate_shade_keeps_question(setup):
+    service, redis, _, _ = setup
+    shades = service._catalog.products[0].shades
+    shades.append(shades[0].model_copy(update={"id": "a-duplicate"}))
+    first = await service.answer(request(), "user:a")
+    pending = await ask_shade(service, first.chat_context)
+    service._llm.plan = {"intent": "search", "query": shades[0].name}
+    req = request(pending.chat_context, shades[0].name)
+    req.clarification_id = pending.pending_clarification.id
+    writes = redis.writes
+    result = await service.answer(req, "user:a")
+    assert result.result_type == "clarification"
+    assert result.pending_clarification == pending.pending_clarification
+    assert result.chat_context.session == pending.chat_context.session
+    assert not result.ingredient_results
+    assert redis.writes == writes

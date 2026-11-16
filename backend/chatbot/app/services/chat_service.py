@@ -51,6 +51,7 @@ from app.services.beauty_consultation_service import (
     COMPARISON_SCREENS,
     TEXT,
     _resolve_product_reference,
+    _shade_label,
     abandons_ingredient_goal,
     direct_comparison,
     execute_beauty,
@@ -891,9 +892,33 @@ class ChatService:
             and decision.intent in {"general", "product", "ingredient"}
             else None
         )
+        registered_plan = None
+        if (
+            active_pending
+            and active_pending.missing_slot == "shade"
+            and active_pending.product_id
+            and not (general_only or cancelled or goal_changed)
+        ):
+            try:
+                product = await self._catalog.get_product(active_pending.product_id)
+            except UpstreamError as exc:
+                raise ApiError(502, "Catalog validation failed", "upstream_error") from exc
+            if product and product.id == active_pending.product_id:
+                # An exact Catalog option answer must not become a new LLM product search.
+                matches = [
+                    s for s in product.shades if _shade_label(s.name) == _shade_label(req.message)
+                ]
+                if matches:
+                    registered_plan = (
+                        SearchPlan(intent="detail", scope="previous", shade_name=matches[0].name)
+                        if len(matches) == 1
+                        else SearchPlan(intent="general")
+                    )
         decision.slots = (
             SearchPlan(intent="general")
             if general_only or cancelled
+            else registered_plan
+            if registered_plan is not None
             else model_turn.plan
             if model_turn
             else await self._interpret_beauty(req, pending=active_pending)
@@ -945,7 +970,9 @@ class ChatService:
             active_pending
             and slots.intent == "general"
             and not general_only
-            and not re.search(r"설명|방법|어떻게|알려", req.message)
+            and (
+                registered_plan is not None or not re.search(r"설명|방법|어떻게|알려", req.message)
+            )
         ):
             pending_ambiguous = True
             model_turn = G1ModelTurn(
