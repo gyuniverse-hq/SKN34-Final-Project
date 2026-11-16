@@ -403,9 +403,11 @@ class ChatService:
                 principal_key,
                 req.request_id,
                 fingerprint,
-                lambda: self._plan_control(req, principal_key)
-                if req.ar_context and req.ar_context.control
-                else self._run_supervisor(req, context, decision),
+                lambda: (
+                    self._plan_control(req, principal_key)
+                    if req.ar_context and req.ar_context.control
+                    else self._run_supervisor(req, context, decision)
+                ),
             )
         return await self._run_supervisor(req, context, decision)
 
@@ -984,16 +986,20 @@ class ChatService:
                 valid_choices.add(f"set_intensity/{delta.zone}/half")
             if (
                 not isinstance(proposal, ArControlProposal)
-                or ack.status != "APPLIED" or proposal.session_id != ack.session_id
+                or ack.status != "APPLIED"
+                or proposal.session_id != ack.session_id
                 or ack.actual_state_version is None
                 or ack.actual_state_version <= proposal.expected_state_version
-                or delta.after == delta.before or proposal.choice not in valid_choices
+                or delta.after == delta.before
+                or proposal.choice not in valid_choices
             ):
                 raise ApiError(422, "Invalid confirmed adjustment", "invalid_ar_result")
         received_at = self._requests.record_ack(principal_key, ack)
         if delta is not None and self._sessions is not None:
             await self._sessions.save_adjustment(
-                principal_key, ack.session_id, ack.command_id,
+                principal_key,
+                ack.session_id,
+                ack.command_id,
                 ArAdjustmentSnapshot(**delta.model_dump(), state_version=ack.actual_state_version),
                 received_at,
             )

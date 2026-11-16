@@ -43,7 +43,11 @@ class ChatSessionRepository:
         return f"{self.key(session)}:ar:{sha256(owner.encode()).hexdigest()}:{command}"
 
     async def save_adjustment(
-        self, owner: str, session: UUID, command: UUID, snapshot: ArAdjustmentSnapshot,
+        self,
+        owner: str,
+        session: UUID,
+        command: UUID,
+        snapshot: ArAdjustmentSnapshot,
         received_at: int,
     ) -> None:
         self.available()
@@ -53,7 +57,9 @@ class ChatSessionRepository:
         try:
             await self.client.set(
                 self._adjustment_key(owner, session, command),
-                snapshot.model_dump_json(), ex=ttl, nx=True,
+                snapshot.model_dump_json(),
+                ex=ttl,
+                nx=True,
             )
         except (RedisError, OSError) as exc:
             raise ApiError(

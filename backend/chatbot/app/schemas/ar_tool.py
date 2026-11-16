@@ -42,7 +42,9 @@ def ar_control_tool(choices: list[str]) -> dict:
                 "value": {"type": "number", "minimum": 0, "maximum": 1.7},
                 "steps": {"type": "integer", "minimum": 1, "maximum": 100},
                 "ordinal": {
-                    "type": "integer", "minimum": 1, "maximum": 2**53 - 1,
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2**53 - 1,
                     "description": "One-based wear order within the requested zone, or all zones "
                     "for reapply_try_on/all. Only for reapply_try_on.",
                 },

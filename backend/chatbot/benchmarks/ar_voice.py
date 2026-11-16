@@ -185,7 +185,9 @@ def trial(page, client, model, audio):
                        speechSynthesis.speak(s);})"""
         )
         return {
-            "screenMs": screen_ms, "speechMs": speech_ms, "answer": answer,
+            "screenMs": screen_ms,
+            "speechMs": speech_ms,
+            "answer": answer,
             "usedPreparedReply": used_prepared_reply,
         }
 

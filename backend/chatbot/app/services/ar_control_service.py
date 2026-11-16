@@ -86,19 +86,24 @@ async def plan_control(
         continued_choice = f"adjust_intensity/{previous.zone}/{direction}" if previous else None
         continuation = (
             f"continue_intensity/{previous.zone}/{direction}"
-            if previous and continued_choice in screen.choices else None
+            if previous and continued_choice in screen.choices
+            else None
         )
         choices = [continuation, *screen.choices] if continuation else screen.choices
         messages = [
-            {"role": "system", "content": GUIDE + (
-                "\nDecide whether the user is requesting a new edit or a continuation. "
-                "For a small continuation, use the offered continue_intensity choice matching "
-                "lastAppliedAdjustment. It refers to the actual preceding edit even when a "
-                "different palette is open. An ordinary adjust_intensity starts a new edit "
-                "and requires a new target or direction in the user's message. If there is no "
-                "confirmed reference for an underspecified continuation, ask which area or "
-                "direction. Explicit new targets or directions take precedence."
-            )},
+            {
+                "role": "system",
+                "content": GUIDE
+                + (
+                    "\nDecide whether the user is requesting a new edit or a continuation. "
+                    "For a small continuation, use the offered continue_intensity choice matching "
+                    "lastAppliedAdjustment. It refers to the actual preceding edit even when a "
+                    "different palette is open. An ordinary adjust_intensity starts a new edit "
+                    "and requires a new target or direction in the user's message. If there is no "
+                    "confirmed reference for an underspecified continuation, ask which area or "
+                    "direction. Explicit new targets or directions take precedence."
+                ),
+            },
             {
                 "role": "user",
                 "content": json.dumps(
@@ -111,8 +116,7 @@ async def plan_control(
                             match.model_dump(mode="json") for match in ctx.catalog_name_matches
                         ],
                         "lastAppliedAdjustment": (
-                            {**previous.model_dump(), "direction": direction}
-                            if previous else None
+                            {**previous.model_dump(), "direction": direction} if previous else None
                         ),
                     },
                     ensure_ascii=False,
@@ -253,8 +257,15 @@ class ControlFeedbackService:
             data = outcome.get("data")
             if (
                 action == "apply_shade"
-                and target.rsplit("/", 1)[-1] in {
-                    "by_color", "pick", "oil", "balm", "skin_match", "product_shade", "named",
+                and target.rsplit("/", 1)[-1]
+                in {
+                    "by_color",
+                    "pick",
+                    "oil",
+                    "balm",
+                    "skin_match",
+                    "product_shade",
+                    "named",
                 }
             ) or (
                 "/first_match/" in proposal.choice

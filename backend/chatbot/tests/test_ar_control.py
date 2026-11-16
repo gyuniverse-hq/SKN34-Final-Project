@@ -86,7 +86,9 @@ def test_only_the_matching_rendered_turn_is_available_to_the_next_planner(monkey
     async def exercise():
         repo = ChatSessionRepository(RedisDouble(), 30)
         service = ChatService(
-            None, Spy("adjust_intensity/lip/down"), requests=MemoryArRequestRepository(),
+            None,
+            Spy("adjust_intensity/lip/down"),
+            requests=MemoryArRequestRepository(),
             sessions=repo,
         )
         owner, session = "guest:one", uuid4()
@@ -94,8 +96,11 @@ def test_only_the_matching_rendered_turn_is_available_to_the_next_planner(monkey
         first.ar_context.session_id = session
         proposal = (await service.answer(first, owner)).ar_result.action_proposal
         ack = ArAckRequest(
-            request_id=first.request_id, session_id=session, command_id=proposal.command_id,
-            status="APPLIED", actual_state_version=8,
+            request_id=first.request_id,
+            session_id=session,
+            command_id=proposal.command_id,
+            status="APPLIED",
+            actual_state_version=8,
             intensity_change={"zone": "lip", "before": 0.55, "after": 0.45},
         )
 
@@ -113,7 +118,11 @@ def test_only_the_matching_rendered_turn_is_available_to_the_next_planner(monkey
         assert await read() is None
         await service.acknowledge_ar(owner, ack)
         assert await read() == {
-            "zone": "lip", "before": 0.55, "after": 0.45, "direction": "down", "stateVersion": 8,
+            "zone": "lip",
+            "before": 0.55,
+            "after": 0.45,
+            "direction": "down",
+            "stateVersion": 8,
         }
         assert await read(version=9) is None
         assert await read(sid=uuid4()) is None
