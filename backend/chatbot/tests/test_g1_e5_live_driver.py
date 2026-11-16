@@ -324,3 +324,31 @@ def test_owned_runtime_preserves_explicit_env_and_sets_cors():
     assert env["LLM_API_KEY"] == "file-secret"
     assert json.loads(env["CORS_ORIGINS"]) == ["http://localhost:8098"]
     assert env["EXPO_PUBLIC_CHAT_API_BASE_URL"] == "http://127.0.0.1:8403"
+
+
+def test_owned_listener_allows_only_live_direct_python_child(monkeypatch):
+    from types import SimpleNamespace
+
+    from tests import g1_e5_live_driver as driver
+
+    process = SimpleNamespace(pid=10, poll=lambda: None)
+    monkeypatch.setattr(driver, "_listening_pids", lambda port: {20})
+
+    def captured(parent, name):
+        monkeypatch.setattr(
+            driver.subprocess,
+            "run",
+            lambda *a, **kw: SimpleNamespace(
+                stdout=json.dumps({"ParentProcessId": parent, "Name": name})
+            ),
+        )
+
+    captured(10, "python.exe")
+    assert driver._owns_listener(8403, process)
+    captured(11, "python.exe")
+    assert not driver._owns_listener(8403, process)
+    captured(10, "other.exe")
+    assert not driver._owns_listener(8403, process)
+    captured(10, "python.exe")
+    process.poll = lambda: 0
+    assert not driver._owns_listener(8403, process)

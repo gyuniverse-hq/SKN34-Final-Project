@@ -1379,6 +1379,39 @@ def _listening_pids(port):
     return found
 
 
+def _owns_listener(port, process):
+    """Windows venv Python uses a direct child; reject unrelated socket owners."""
+    if process.poll() is not None:
+        return False
+    owners = _listening_pids(port)
+    if owners == {process.pid}:
+        return True
+    if len(owners) != 1:
+        return False
+    owner = next(iter(owners))
+    result = subprocess.run(
+        [
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            f"Get-CimInstance Win32_Process -Filter 'ProcessId={int(owner)}' | "
+            "Select-Object ParentProcessId,Name | ConvertTo-Json -Compress",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=15,
+        check=True,
+    )
+    try:
+        child = json.loads(result.stdout)
+        return (
+            child.get("ParentProcessId") == process.pid
+            and child.get("Name", "").lower() == "python.exe"
+        )
+    except (ValueError, AttributeError):
+        return False
+
+
 def _owned_ready(http, app_url, chat_url):
     return (
         http.get(app_url + "/chat").status_code == 200
@@ -1498,9 +1531,9 @@ def _run_owned(item):
                         time.sleep(1)
                     else:
                         return blocked("owned_runtime_startup_timeout")
-                if _listening_pids(app_port) != {expo_process.pid} or _listening_pids(
-                    chat_port
-                ) != {chat.pid}:
+                if not _owns_listener(app_port, expo_process) or not _owns_listener(
+                    chat_port, chat
+                ):
                     return blocked("owned_runtime_socket_pid_mismatch")
                 os.environ.update(
                     {
@@ -1533,8 +1566,8 @@ def _run_owned(item):
                 live = (
                     chat.poll() is None
                     and expo_process.poll() is None
-                    and _listening_pids(app_port) == {expo_process.pid}
-                    and _listening_pids(chat_port) == {chat.pid}
+                    and _owns_listener(app_port, expo_process)
+                    and _owns_listener(chat_port, chat)
                 )
                 if not clean or not live or not owned.get("servedBundleSha256"):
                     return _not_run(item, "owned_runtime_identity_changed_or_unverified")
