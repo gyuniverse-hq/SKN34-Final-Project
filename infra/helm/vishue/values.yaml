@@ -49,6 +49,8 @@ chatbot:
     NEO4J_USER: neo4j
     LLM_BASE_URL: https://api.openai.com/v1
     LLM_MODEL: ""
+    STT_MODEL: ""
+    TTS_MODEL: ""
     CHAT_REQUESTS_PER_MINUTE: "10"
 
 # PostgreSQL -> Neo4j copy (through the api service). Also runs once after every deploy.

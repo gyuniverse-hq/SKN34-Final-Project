@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     llm_base_url: str = "https://api.openai.com/v1"
     llm_api_key: str | None = None
     llm_model: str | None = None
+    stt_model: str | None = None
+    tts_model: str | None = None
     llm_timeout_seconds: float = 30
     chat_requests_per_minute: int = 10
     supabase_url: str | None = None

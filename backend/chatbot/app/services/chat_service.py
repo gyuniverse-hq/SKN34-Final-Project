@@ -10,7 +10,7 @@ from uuid import NAMESPACE_URL, uuid4, uuid5
 from fastapi import Depends
 
 from app.clients.catalog_client import CatalogClient, get_catalog_client
-from app.clients.llm_client import LlmClient, get_llm_client
+from app.clients.llm_client import LlmClient, get_ar_llm_client, get_llm_client
 from app.core.config import get_settings
 from app.core.errors import ApiError, UpstreamError
 from app.core.graph import get_driver
@@ -19,6 +19,8 @@ from app.repositories.chat_session_repository import ChatSessionRepository, get_
 from app.repositories.graph_repository import GraphRepository
 from app.schemas.chat import (
     ArAckRequest,
+    ArAdjustmentSnapshot,
+    ArControlProposal,
     BeautyContext,
     BeautyFilters,
     ChatRequest,
@@ -39,6 +41,7 @@ from app.schemas.supervisor import (
     ToolResult,
 )
 from app.services.ar_command_service import propose_ar_command
+from app.services.ar_control_service import plan_control
 from app.services.beauty_consultation_service import (
     COMPARISON_SCREENS,
     TEXT,
@@ -99,17 +102,17 @@ def build_messages(req: ChatRequest, products: list[GraphProduct]) -> list[dict[
 
 def resolve_context(req: ChatRequest) -> ResolvedContext:
     beauty, ar = req.chat_context, req.ar_context
-    lip = ar.lip if ar else None
+    selection = ar.selection(ar.active_zone) if ar and ar.active_zone else None
     return ResolvedContext(
         style=req.style_context,
         message=req.message,
         request_type=req.request_type,
         screen=req.screen_context,
         candidate_ids=list(beauty.candidate_ids) if beauty else [],
-        selected_product_id=lip.product_id
-        if lip
+        selected_product_id=selection.product_id
+        if selection
         else (beauty.selected_product_id if beauty else None),
-        selected_shade_id=lip.shade_id if lip else None,
+        selected_shade_id=selection.shade_id if selection else None,
         ar_state_version=ar.state_version if ar else None,
         has_beauty_context=beauty is not None,
         has_ar_context=ar is not None,
@@ -249,7 +252,7 @@ def check_sufficiency(context: ResolvedContext, intent: IntentDecision) -> Suffi
         if not context.has_ar_context:
             missing.append("arContext")
         if not context.selected_product_id or not context.selected_shade_id:
-            missing.append("lipSelection")
+            missing.append("productSelection")
     if (
         intent.slots
         and not context.has_beauty_context
@@ -338,11 +341,11 @@ def verify_response(
             raise ApiError(502, "Unexpected AR request ID", "invalid_tool_result")
         proposal = response.ar_result.action_proposal
         if proposal:
-            lip = req.ar_context.lip if req.ar_context else None
+            selection = req.ar_context.selection(proposal.zone) if req.ar_context else None
             if (
-                not lip
-                or proposal.product_id != lip.product_id
-                or proposal.shade_id != lip.shade_id
+                not selection
+                or proposal.product_id != selection.product_id
+                or proposal.shade_id != selection.shade_id
                 or proposal.expected_state_version != req.ar_context.state_version
             ):
                 raise ApiError(502, "Invalid AR proposal context", "invalid_tool_result")
@@ -356,10 +359,17 @@ class ChatService:
     """Retrieves product candidates and asks the LLM to answer the user's question."""
 
     def __init__(
-        self, graph: GraphReader | None, llm: Completer, catalog=None, requests=None, sessions=None
+        self,
+        graph: GraphReader | None,
+        llm: Completer,
+        catalog=None,
+        requests=None,
+        sessions=None,
+        ar_llm: Completer | None = None,
     ) -> None:
         self._graph = graph
         self._llm = llm
+        self._ar_llm = ar_llm or llm
         self._catalog = catalog
         self._requests = requests
         self._sessions = sessions
@@ -393,7 +403,11 @@ class ChatService:
                 principal_key,
                 req.request_id,
                 fingerprint,
-                lambda: self._run_supervisor(req, context, decision),
+                lambda: (
+                    self._plan_control(req, principal_key)
+                    if req.ar_context and req.ar_context.control
+                    else self._run_supervisor(req, context, decision)
+                ),
             )
         return await self._run_supervisor(req, context, decision)
 
@@ -929,7 +943,7 @@ class ChatService:
         )
 
     async def _propose_ar(self, req: ChatRequest) -> ChatResponse:
-        result = await propose_ar_command(req, self._llm)
+        result = await propose_ar_command(req, self._ar_llm)
         proposal = result.ar_result.action_proposal if result.ar_result else None
         if proposal is None:
             return result
@@ -940,22 +954,62 @@ class ChatService:
         if (
             product is None
             or product.id != proposal.product_id
-            or product.makeup_zone != "lip"
+            or product.makeup_zone != proposal.zone
             or not any(shade.id == proposal.shade_id for shade in product.shades)
         ):
-            raise ApiError(422, "Invalid lip product or shade", "invalid_ar_selection")
+            raise ApiError(422, "Invalid AR product or shade", "invalid_ar_selection")
         return result
 
-    def acknowledge_ar(self, principal_key: str, ack: ArAckRequest) -> None:
+    async def _plan_control(self, req: ChatRequest, owner: str) -> ChatResponse:
+        ctx = req.ar_context
+        previous = None
+        if ctx.session_id and ctx.previous_adjustment_id and self._sessions is not None:
+            snapshot = await self._sessions.load_adjustment(
+                owner, ctx.session_id, ctx.previous_adjustment_id
+            )
+            if snapshot and snapshot.state_version == ctx.state_version:
+                previous = snapshot
+        return await plan_control(req, self._ar_llm, previous)
+
+    async def acknowledge_ar(self, principal_key: str, ack: ArAckRequest) -> None:
         if get_settings().is_production or self._requests is None:
             raise ApiError(503, "AR request storage is unavailable", "ar_requests_unavailable")
-        self._requests.record_ack(principal_key, ack)
+        delta = ack.intensity_change
+        if delta is not None:
+            proposal = self._requests.issued_proposal(principal_key, ack.request_id, ack.command_id)
+            direction = "down" if delta.after < delta.before else "up"
+            valid_choices = {
+                f"adjust_intensity/{delta.zone}/{direction}",
+                f"set_intensity/{delta.zone}/absolute",
+            }
+            if direction == "down":
+                valid_choices.add(f"set_intensity/{delta.zone}/half")
+            if (
+                not isinstance(proposal, ArControlProposal)
+                or ack.status != "APPLIED"
+                or proposal.session_id != ack.session_id
+                or ack.actual_state_version is None
+                or ack.actual_state_version <= proposal.expected_state_version
+                or delta.after == delta.before
+                or proposal.choice not in valid_choices
+            ):
+                raise ApiError(422, "Invalid confirmed adjustment", "invalid_ar_result")
+        received_at = self._requests.record_ack(principal_key, ack)
+        if delta is not None and self._sessions is not None:
+            await self._sessions.save_adjustment(
+                principal_key,
+                ack.session_id,
+                ack.command_id,
+                ArAdjustmentSnapshot(**delta.model_dump(), state_version=ack.actual_state_version),
+                received_at,
+            )
 
 
 def get_chat_service(
     llm: LlmClient = Depends(get_llm_client),
+    ar_llm: LlmClient = Depends(get_ar_llm_client),
     catalog: CatalogClient = Depends(get_catalog_client),
     requests: MemoryArRequestRepository = Depends(get_ar_requests),
     sessions: ChatSessionRepository = Depends(get_chat_sessions),
 ) -> ChatService:
-    return ChatService(None, llm, catalog, requests, sessions)
+    return ChatService(None, llm, catalog, requests, sessions, ar_llm)

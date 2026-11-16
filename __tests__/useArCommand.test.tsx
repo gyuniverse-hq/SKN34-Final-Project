@@ -3,6 +3,7 @@ import { createElement, useLayoutEffect } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { useArCommand } from '@/hooks/useArCommand';
 import { apiPostOwned } from '@/lib/api';
+import type { ControlResult, ControlScreen } from '@/lib/arControl';
 import { useMakeupStore } from '@/store/makeupStore';
 import type { MakeupZone, Product } from '@/types';
 
@@ -23,11 +24,28 @@ let hook: ReturnType<typeof useArCommand>;
 let view: ReactTestRenderer;
 const initialOptions = { active: true, enabled: true, activeZone: 'lip' as const, locale: 'ko' as const, rendererId: 'renderer-1' };
 
-function Harness(props: typeof initialOptions & { visibleZones?: MakeupZone[] | null }) {
+function Harness(props: typeof initialOptions & { visibleZones?: MakeupZone[] | null; control?: ControlScreen }) {
   const result = useArCommand(props);
   useLayoutEffect(() => { hook = result; });
   return null;
 }
+
+it('runs a voice model tool on its original screen without a second text-model request', async () => {
+  const op = jest.fn(() => ({ status: 'APPLIED' as const, before: 0.55, after: 0.45 }));
+  const choice = 'adjust_intensity/lip/down';
+  const control: ControlScreen = { summary: '{}', contextKey: 'lip', catalogApplyKey: 'lip',
+    displayMode: 'face', choices: new Map([[choice, op]]) };
+  await act(async () => { view.update(createElement(Harness, { ...initialOptions, control })); });
+  const call = { args: {choice}, owner: owned(null).owner, stateVersion: useMakeupStore.getState().arVersion, contextKey: 'lip' };
+  const signal = new AbortController().signal;
+  let output: string | undefined;
+  await act(async () => { output = await hook.send('', signal, {...call, contextKey: 'old'}); });
+  expect(op).not.toHaveBeenCalled();
+  await act(async () => { output = await hook.send('', signal, call); });
+  expect(op).toHaveBeenCalledTimes(1);
+  expect(JSON.parse(output!)).toMatchObject({choice, status:'APPLIED', after:0.45});
+  expect(mockedPost).not.toHaveBeenCalled();
+});
 
 function proposed(body: { requestId: string; arContext: { stateVersion: number } }) {
   return { answer: '', arResult: { requestId: body.requestId, status: 'proposed', actionProposal: {
@@ -35,6 +53,38 @@ function proposed(body: { requestId: string; arContext: { stateVersion: number }
     value: 0.5, productId: lip.id, shadeId: shade.id,
   } } };
 }
+
+it.each([
+  ['APPLIED', 0.45, true], ['APPLIED', 0.65, false], ['NO_CHANGE', 0.55, false],
+  ['REJECTED', null, false], ['FAILED', null, false], ['UNKNOWN', null, false],
+] as const)('gates the drafted artist reply on the applied direction (%s, %s)', async (status, intensity, useDraft) => {
+  const choice = 'adjust_intensity/lip/down';
+  let finish!: (outcome: ControlResult) => void;
+  const operation = () => new Promise<ControlResult>(resolve => { finish = resolve; });
+  const control: ControlScreen = { summary: '{}', contextKey: 'lip', catalogApplyKey: 'lip',
+    displayMode: 'face', choices: new Map([[choice, operation]]) };
+  const draft = '립 컬러가 한결 은은해졌어요.';
+  const feedback = '실제 결과를 확인한 답변';
+  mockedPost.mockImplementation(async (path, body) => {
+    if (path === '/api/chat/acks') return owned({ received: true }) as never;
+    if (path !== '/api/chat') return owned({ answer: feedback }) as never;
+    const response = proposed(body as never);
+    return owned({ ...response, arResult: { ...response.arResult, actionProposal: {
+      commandId, expectedStateVersion: response.arResult.actionProposal.expectedStateVersion,
+      action: 'ar_control', choice, onAppliedReply: draft,
+    } } }) as never;
+  });
+  await act(async () => { view.update(createElement(Harness, { ...initialOptions, control })); });
+  let pending!: ReturnType<typeof hook.send>;
+  await act(async () => { pending = hook.send('립 색을 조금 연하게 해줘'); });
+  expect(hook.message).toBe('');
+  expect(mockedPost.mock.calls.map(([path]) => path)).toEqual(['/api/chat']);
+  await act(async () => {
+    finish({ status, before: { zone: 'lip', intensity: 0.55 }, after: { zone: 'lip', intensity } });
+    expect(await pending).toBe(useDraft ? draft : feedback);
+  });
+  expect(mockedPost.mock.calls.filter(([path]) => path === '/api/chat/ar-control/reply')).toHaveLength(useDraft ? 0 : 1);
+});
 
 beforeEach(async () => {
   jest.clearAllMocks();
@@ -67,6 +117,26 @@ it('commits only after the matching renderer result and sends APPLIED ACK', asyn
   expect(mockedPost).toHaveBeenCalledWith('/api/chat/acks', expect.objectContaining({ commandId, status: 'APPLIED' }), expect.anything());
 });
 
+it('applies a geometry proposal after render while advertising intensity and undo', async () => {
+  const product = { id: 'hl-product', makeupZone: 'highlighter', texture: 'shimmer' } as unknown as Product;
+  useMakeupStore.getState().applyShade(product, shade);
+  mockedPost.mockImplementation(async (path, body) => {
+    if (path !== '/api/chat') return owned({ received: true }) as never;
+    const request = body as { requestId: string; arContext: { stateVersion: number; supportedActions: string[] } };
+    expect(request.arContext.supportedActions).toEqual(expect.arrayContaining(['set_intensity', 'undo', 'set_geometry']));
+    return owned({ arResult: { requestId: request.requestId, status: 'proposed', actionProposal: {
+      commandId, expectedStateVersion: request.arContext.stateVersion, action: 'set_geometry', zone: 'highlighter',
+      style: 'nose_tip', geometry: { hlStyle: 'nose_tip' }, productId: product.id, shadeId: shade.id,
+    } } }) as never;
+  });
+  await act(async () => { await hook.send('하이라이터를 콧대로 설정해 줘'); });
+  expect(hook.state).toBe('applying');
+  const render = hook.renderCommand!;
+  expect(render.zone).toBe('highlighter');
+  await act(async () => { hook.onRenderResult({ commandId, renderSeq: render.renderSeq, rendererId: render.rendererId, status: 'rendered' }); });
+  expect(useMakeupStore.getState().makeup.highlighter?.geometry?.hlStyle).toBe('nose_tip');
+});
+
 it('rejects an account change while a proposal response is in flight', async () => {
   let resolve!: (value: unknown) => void;
   let body: Parameters<typeof proposed>[0];
@@ -76,7 +146,7 @@ it('rejects an account change while a proposal response is in flight', async () 
     return new Promise((done) => { resolve = done; }) as never;
   });
   const before = useMakeupStore.getState().makeup.lip!.intensity;
-  let sending!: Promise<void>;
+  let sending!: ReturnType<typeof hook.send>;
   await act(async () => { sending = hook.send('립 진하기 50%'); await Promise.resolve(); });
   await act(async () => { mockIdentityChange!(); mockIdentityChange!(); }); // A -> B -> A is stale too.
   await act(async () => { resolve(owned(proposed(body))); await sending; });
@@ -265,7 +335,7 @@ it.each(['manual', 'leave'] as const)('rejects a delayed proposal after %s', asy
     sentBody = body as typeof sentBody;
     return new Promise((r) => { resolve = r; }) as never;
   });
-  let sending!: Promise<void>;
+  let sending!: ReturnType<typeof hook.send>;
   await act(async () => { sending = hook.send('립 진하기 50%'); await Promise.resolve(); });
   if (event === 'manual') await act(async () => { useMakeupStore.getState().setIntensity('lip', 0.2); });
   else await act(async () => { view.update(createElement(Harness, { ...initialOptions, active: false })); });
@@ -287,7 +357,7 @@ it('keeps the new session request when a prior session reply arrives late', asyn
     }
     return Promise.resolve(owned(proposed(body as never)) as never);
   });
-  let oldRequest!: Promise<void>;
+  let oldRequest!: ReturnType<typeof hook.send>;
   await act(async () => { oldRequest = hook.send('이전 요청'); await Promise.resolve(); });
   await act(async () => { view.update(createElement(Harness, { ...initialOptions, active: false })); });
   await act(async () => { view.update(createElement(Harness, initialOptions)); });
@@ -310,7 +380,7 @@ it('rejects a delayed proposal after the screen is disabled and enabled again', 
     body = payload as typeof body;
     return new Promise((r) => { resolve = r; }) as never;
   });
-  let sending!: Promise<void>;
+  let sending!: ReturnType<typeof hook.send>;
   await act(async () => { sending = hook.send('립 진하기 50%'); await Promise.resolve(); });
   await act(async () => { view.update(createElement(Harness, { ...initialOptions, enabled: false })); });
   await act(async () => { view.update(createElement(Harness, initialOptions)); });
@@ -349,8 +419,8 @@ describe.each(['disabled', 'left'] as const)('stale reply after screen %s', (tra
         if (path !== '/api/chat') return Promise.resolve(owned({ received: true }) as never);
         return new Promise((resolve, reject) => { requests.push({ body: body as { requestId: string }, resolve, reject }); }) as never;
       });
-      let oldRequest!: Promise<void>;
-      let newRequest!: Promise<void>;
+      let oldRequest!: ReturnType<typeof hook.send>;
+      let newRequest!: ReturnType<typeof hook.send>;
       await act(async () => { oldRequest = hook.send('오래된 요청'); await Promise.resolve(); });
       const paused = transition === 'left' ? { ...initialOptions, active: false } : { ...initialOptions, enabled: false };
       await act(async () => { view.update(createElement(Harness, paused)); });
@@ -385,8 +455,8 @@ describe.each(['intensity', 'shade'] as const)('stale reply after manual %s chan
         if (path !== '/api/chat') return Promise.resolve(owned({ received: true }) as never);
         return new Promise((resolve, reject) => { requests.push({ body: body as RequestBody, resolve, reject }); }) as never;
       });
-      let oldRequest!: Promise<void>;
-      let nextRequest!: Promise<void>;
+      let oldRequest!: ReturnType<typeof hook.send>;
+      let nextRequest!: ReturnType<typeof hook.send>;
       await act(async () => { oldRequest = hook.send('이전 요청'); await Promise.resolve(); });
       expect(hook.state).toBe('interpreting');
       await act(async () => {
@@ -433,7 +503,7 @@ it('does not replace an already completed newer response with an older clarifica
     }
     return Promise.resolve(owned({ answer: '최신 답변', arResult: { requestId, status: 'unsupported' } }) as never);
   });
-  let oldRequest!: Promise<void>;
+  let oldRequest!: ReturnType<typeof hook.send>;
   await act(async () => { oldRequest = hook.send('과거'); await Promise.resolve(); });
   await act(async () => { view.update(createElement(Harness, { ...initialOptions, enabled: false })); });
   await act(async () => { view.update(createElement(Harness, initialOptions)); });
@@ -454,7 +524,7 @@ it('does not show a stale clarification after disabling and re-enabling without 
     oldId = (body as { requestId: string }).requestId;
     return new Promise((resolve) => { resolveOld = resolve; }) as never;
   });
-  let oldRequest!: Promise<void>;
+  let oldRequest!: ReturnType<typeof hook.send>;
   await act(async () => { oldRequest = hook.send('과거'); await Promise.resolve(); });
   await act(async () => { view.update(createElement(Harness, { ...initialOptions, enabled: false })); });
   await act(async () => { view.update(createElement(Harness, initialOptions)); });
@@ -473,7 +543,7 @@ it('abandons the loading state when the renderer changes during interpretation',
     body = payload as typeof body;
     return new Promise((resolve) => { resolveOld = resolve; }) as never;
   });
-  let request!: Promise<void>;
+  let request!: ReturnType<typeof hook.send>;
   await act(async () => { request = hook.send('이전 요청'); await Promise.resolve(); });
   await act(async () => { view.update(createElement(Harness, { ...initialOptions, rendererId: 'renderer-2' })); });
   await act(async () => { resolveOld(owned({ answer: '오래된 답변', arResult: { requestId: body.requestId, status: 'clarification' } })); await request; });

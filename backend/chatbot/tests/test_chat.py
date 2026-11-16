@@ -9,7 +9,8 @@ import httpx
 import pytest
 
 from app.clients.catalog_client import CatalogClient
-from app.clients.llm_client import LlmClient
+from app.clients.llm_client import LlmClient, get_ar_llm_client, get_llm_client
+from app.core.config import Settings, get_settings
 from app.core.errors import ApiError, UpstreamError
 from app.core.ratelimit import MemoryRateLimiter, get_rate_limiter
 from app.repositories.ar_command_repository import MemoryArRequestRepository
@@ -21,6 +22,25 @@ from tests.test_graph_sync import PRODUCT
 
 AUTH = {"Authorization": "Bearer ok-1"}
 GUEST = {"X-Vishue-Anonymous-Id": "guest-session-id-0123456789-abcdefghijk"}
+
+
+def test_ar_and_chat_share_configured_model_and_voice_models_are_read(monkeypatch):
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    monkeypatch.setenv("LLM_MODEL", "custom-model")
+    monkeypatch.setenv("STT_MODEL", "custom-stt")
+    monkeypatch.setenv("TTS_MODEL", "custom-tts")
+    get_settings.cache_clear()
+    get_llm_client.cache_clear()
+    get_ar_llm_client.cache_clear()
+    try:
+        settings = Settings(_env_file=None)
+        assert (settings.stt_model, settings.tts_model) == ("custom-stt", "custom-tts")
+        assert get_ar_llm_client() is get_llm_client()
+        assert get_ar_llm_client()._model == "custom-model"
+    finally:
+        get_ar_llm_client.cache_clear()
+        get_llm_client.cache_clear()
+        get_settings.cache_clear()
 
 
 @pytest.mark.parametrize("model,temperature", [("gpt-6-luna", None), ("gpt-4o-mini", 0.3)])
@@ -289,6 +309,7 @@ def test_ar_service_factory_does_not_initialize_neo4j(monkeypatch):
     monkeypatch.setattr(chat_service, "GraphRepository", forbidden_graph)
     service = chat_service.get_chat_service(
         llm=ArTestLlm(),
+        ar_llm=ArTestLlm(),
         catalog=ArTestCatalog(PRODUCT.model_copy(update={"makeup_zone": "lip"})),
         requests=MemoryArRequestRepository(),
     )

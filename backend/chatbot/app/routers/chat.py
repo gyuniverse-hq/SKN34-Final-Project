@@ -3,7 +3,14 @@ from fastapi import APIRouter, Depends
 from app.core.auth import ChatPrincipal, chat_principal
 from app.core.errors import ApiError
 from app.core.ratelimit import RateLimiter, get_rate_limiter
-from app.schemas.chat import ArAckRequest, ArAckResponse, ChatRequest, ChatResponse
+from app.schemas.chat import (
+    ArAckRequest,
+    ArAckResponse,
+    ArControlFeedback,
+    ChatRequest,
+    ChatResponse,
+)
+from app.services.ar_control_service import ControlFeedbackService, get_control_feedback
 from app.services.chat_service import ChatService, get_chat_service
 
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -21,11 +28,23 @@ async def chat(
     return await service.answer(body, principal.rate_limit_key)
 
 
+@router.post("/chat/ar-control/reply")
+async def control_reply(
+    body: ArControlFeedback,
+    principal: ChatPrincipal = Depends(chat_principal),
+    limiter: RateLimiter = Depends(get_rate_limiter),
+    service: ControlFeedbackService = Depends(get_control_feedback),
+) -> dict[str, str]:
+    if not await limiter.allow("ar-reply:" + principal.rate_limit_key):
+        raise ApiError(429, "Too many questions", "rate_limited")
+    return {"answer": await service.answer(body, principal.rate_limit_key)}
+
+
 @router.post("/chat/acks", response_model=ArAckResponse)
 async def acknowledge_ar(
     body: ArAckRequest,
     principal: ChatPrincipal = Depends(chat_principal),
     service: ChatService = Depends(get_chat_service),
 ) -> ArAckResponse:
-    service.acknowledge_ar(principal.rate_limit_key, body)
+    await service.acknowledge_ar(principal.rate_limit_key, body)
     return ArAckResponse(received=True)

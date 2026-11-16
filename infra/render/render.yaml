@@ -79,3 +79,7 @@ services:
         sync: false
       - key: LLM_MODEL
         sync: false
+      - key: STT_MODEL
+        sync: false
+      - key: TTS_MODEL
+        sync: false
