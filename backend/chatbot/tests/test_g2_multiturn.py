@@ -18,7 +18,8 @@ from app.core.config import get_settings
 from app.core.errors import ApiError
 from app.core.ratelimit import MemoryRateLimiter, get_rate_limiter
 from app.repositories.chat_session_repository import ChatSessionRepository
-from app.schemas.chat import ChatRequest
+from app.schemas.chat import BeautyContext, BeautyFilters, ChatRequest
+from app.services.beauty_consultation_service import execute_beauty, interpret_beauty
 from app.services.chat_service import ChatService, get_chat_service
 from tests.test_beauty_consultation import PlanLlm
 from tests.test_chat_sessions import RedisDouble, SessionCatalog
@@ -138,6 +139,44 @@ async def test_refine_retains_conditions_requeries_catalog_and_explicitly_clears
     cleared = await service.answer(request(result.chat_context, "촉촉한 조건은 빼줘"), "user:a")
     assert cleared.chat_context.filters.moisturizing is False
     assert cleared.chat_context.filters.max_price_krw == 20000
+
+
+@pytest.mark.anyio
+async def test_clear_all_seven_filters_from_interpreted_plan(setup):
+    service, _, _, _ = setup
+    context = BeautyContext(
+        issued_at=1000,
+        filters=BeautyFilters(
+            category="lip",
+            maxPriceKRW=20000,
+            fragrance_free=True,
+            moisturizing=True,
+            query="Catalog Brand",
+            ingredient_conditions=[{"ingredient_name": "향료", "operator": "excludes"}],
+            texture="matte",
+        ),
+        candidate_ids=["a"],
+    )
+    service._llm.plan = {
+        "intent": "refine",
+        "clearFilters": [
+            "category",
+            "maxPriceKRW",
+            "fragranceFree",
+            "moisturizing",
+            "query",
+            "ingredientConditions",
+            "texture",
+        ],
+    }
+    req = request(context, "검색 조건 전부 빼줘")
+    plan = await interpret_beauty(req, service._llm)
+    result = await execute_beauty(req, plan, service._catalog, g1=True)
+    assert len(plan.clear_filters) == 7
+    assert result.chat_context.filters == BeautyFilters()
+    # With no search criteria left, ask for new criteria rather than reuse old candidates.
+    assert result.result_type == "clarification" and result.products == []
+    assert context.filters.texture == "matte" and context.filters.ingredient_conditions
 
 
 @pytest.mark.parametrize(

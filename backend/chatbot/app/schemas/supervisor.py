@@ -89,7 +89,7 @@ class SearchPlan(SupervisorModel):
             "ingredientConditions",
             "texture",
         ]
-    ] = Field(default_factory=list, max_length=6)
+    ] = Field(default_factory=list, max_length=7)
 
 
 class IntentDecision(SupervisorModel):
