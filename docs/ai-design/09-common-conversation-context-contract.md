@@ -442,3 +442,55 @@ pending 공개 필드: `id`, `missingSlot`, `productId`, `resultSetId`, `created
 G6: StyleContext/recipeVersion/단계 진행 책임과 독립 버전 유지. G7: 승인된 pending/상품 세션 계약을 영속화 설계에 매핑하고 동의 기억·요약·검색·checkpoint를 별도로 구현한다. G4 복합 옵션 검색과 G8 복합 실행은 이 PR 범위 밖이다. G3 핵심 구현은 Draft 검토 대상으로 제출하며 실제 자료·실기기·미해결 통합 검증까지 완료됐다고 선언하지 않는다.
 
 작업 중 별도 변경으로 등장한 infra/compose/nginx.conf와 scripts/data/oliveyoung/build_reviewed_ingredient_mapping.py는 G3 변경/스테이징 대상에서 제외한다. 기존 G1 검토 문서와 성분 매핑 JSON의 SHA256은 작업 전후 동일함을 확인했다. G1/G2 기본 OFF·Draft·부모 base·평가 원본은 유지한다.
+
+
+## 17. PR #249 핵심 결함 수정 계약 및 재검증 (2026-11-16)
+
+기준은 G3 1d02c7182a7b5d71ae703c89296f157e73ad021b / G2 f2373a5994ce6d48ed15bb4ab838c0fffb77efee다. 16절의 초기 구현 기록은 보존하며, 최종 리뷰에서 발견된 P1 1건·P2 3건의 보완은 본 절을 따른다.
+
+### pending과 선택의 우선순위
+
+1. 소유권·만료 → 재전송 캐시 → 세션 버전 → clarificationId 검증 순서는 유지한다.
+2. 유효한 질문 ID와 이전과 동일한 상품 선택을 보낸 짧은 답변은 pending 상품을 사용한다. A 화면에서 B 성분 질문을 시작한 뒤 남은 A screenContext는 새로운 선택이 아니며 B를 덮지 않는다.
+3. 앱의 명시적 카드/호수 선택은 질문 ID를 해제하고 현재 선택을 보낸다. 질문 ID가 없고 pending과 다른 상품 또는 변경된 호수 힌트가 오면 이전 질문을 무효화한다. 선택 힌트는 반드시 Catalog 검증을 통과해야 하며 서버 후보 순서·권한을 대체하지 않는다.
+4. 현재 발화의 명시적 다른 순번/상품명은 기존 SearchPlan과 Catalog 후보 조회로 해결한다. 유일하게 확인된 새 대상이 있으면 이전 pending 조건을 이어 붙이지 않는다. 모호하거나 존재하지 않는 대상을 추측하지 않는다.
+5. 일반 설명 중 명시적 새 선택이 있으면 그 선택을 검증하고 질문 무효화를 커밋한다. 선택 변경이 없는 설명은 기존 pending·버전·TTL을 유지한다.
+6. 앱은 최신 selection revision 방어를 유지하고, 해제한 질문 ID 하나를 메모리에 기록해 늦은 응답 또는 일반 설명 응답으로 같은 질문이 되살아나는 것을 막는다. 방/세션 초기화 때 이 기록을 비우며 새로운 영속 저장소·이벤트 로그를 만들지 않는다.
+
+### 목표 변경·취소·신규 검색
+
+- “성분 말고 색상만 보여줘”, “성분 말고 이제 가격만 알려줘”는 기존 pending을 종료하고 동일 상품의 새 detail/price 요청을 처리한다. 성분이라는 단어가 남아 있어도 이를 새 성분 조회로 강제하지 않는다. 일반 화장법 설명은 성분 목표를 포기한 것으로 보지 않는다.
+- “질문 취소해줘”와 “취소하지 말고 03호로 확인해줘”를 구분한다. 단어 언급만으로 취소하지 않고 명시적인 명령·부정·마지막 정정을 구분한다. 임의의 자연어 표현 전체를 해결한 범용 의도 엔진이라고 주장하지 않는다.
+- pending 종료만 발생하면 resultSetId·TTL을 유지하고 상태 변경을 기존 CAS로 한 번 커밋한다. 오류를 성공 해소로 저장하지 않으며 동일 requestId 재전송은 원래 성공 응답을 재사용한다.
+- 세션 없이 최근 문답이 있으면 기존 상담 해석으로 현재 과업을 분류하되, 새로운 독립 상품 검색이면 G1 Tool 선택과 Catalog 실행을 다시 거친다. 최근 문답이 없는 동일 검색과 반환 카드·서버 후보·세션 생성의 일관성을 검사한다. 이력 유무가 G1 Tool Calling 생략 사유가 되지 않는다.
+- 기존 세션 참조/조건 변경/확인 질문은 기존 G2/G3 경로를 유지한다. G2의 명시적 제형 필터 전용 경로를 일반 G1 검색으로 되돌리지 않는다. 이력은 비신뢰 해석 힌트이며 Tool 인자·Catalog 사실·권한 검증을 대체하지 않는다.
+
+### 수정 전후 검증
+
+변경 파일은 chat_service.py, beauty_consultation_service.py, chatConversationStore.ts, G3 backend 테스트, store 테스트 및 이 문서의 6개다. API·스타일 서비스·Compose·DB·기본 OFF·기존 평가를 수정하지 않는다.
+
+- 수정 전 신규 백엔드 재현 13건 중 9건 실패 / 4건 통과. 앱 재등장 경계 2건 실패. 취소 단순 언급에 대한 추가 재현도 수정 전 실패를 확인했다.
+- 수정 후 G3/G2·기존 세션·G1 모델/Tool·성분 관련 테스트: 265 passed / 3 skipped. skipped는 전용 Redis·프록시 및 G2 live opt-in이며 이번 통합 PASS에 포함하지 않는다.
+- 앱 store/screen 관련 두 suite: 84 passed. 기존 질문 ID 충돌 시 세션 보존, snapshot 재시도와 늦은 선택 응답 방어를 포함한다.
+- 신규 검색의 Tool/해석 호출, 실제 서비스 실행기 및 Catalog 대역의 호출·반환 카드·세션 결과를 비교했다. 이것은 실제 LLM 성능 평가가 아니다.
+- 기본 경로 외에도 실제 새 카드 선택, 명시적 새 순번/상품명, 새 선택 후 일반 설명, 취소 부정 및 정정을 확인했다.
+- 전체 G1 113건·전체 프로젝트 평가·무관한 AR/스타일 재평가는 실행하지 않는다.
+
+### 실제 연결 관측과 BLOCKED
+
+현재 vishue-api-1이 연결한 호스트는 vishue-pr233-postgres이며, 읽기 전용 SELECT로 alembic revision 0022를 확인했다. 기존 8080 Catalog GET에서 아래 응답을 재확인했다. DB 수정·서비스 재시작·설정 변경은 하지 않았다.
+
+| product / shade | 향료 includes 관측 | 자료 상태 |
+| --- | --- | --- |
+| oy-a000000246445 / a000000246445-044 | MATCH / ingredient_present | verified, partial, normalizationStatus=unverified, synthetic=false, optionId/evidenceId/sourceVersion 존재 |
+| oy-a000000162092 / a000000162092-001 | UNKNOWN / absence_not_verifiable | verified, partial, normalizationStatus=unverified, synthetic=false, optionId/evidenceId/sourceVersion 존재 |
+
+이는 0022 연결 상태와 반환 계약의 재확인이다. 원본별 상품/호수/옵션 귀속·완전성·정규화 및 검수 기록의 독립 감사까지 완료한 것은 아니므로 실제 검수 승인 BLOCKED_DATA, 외부 원문 사용 권리 BLOCKED_RIGHTS를 유지한다. 특히 partial 자료의 미관측을 성분 부재로 승격하지 않는다.
+
+이전 전용 G3 Redis/서버/프록시는 중지 상태이며 공유 Redis를 검증 대상으로 대체하지 않았다. 이번 수정의 실제 Redis CAS·LLM·Catalog를 잇는 G3 통합 흐름은 미실행이다. 실제 회원 인증·Expo Go는 BLOCKED_ENV다. 이전 16절 smoke를 이번 수정 HEAD의 실제 통합 PASS로 재사용하지 않는다.
+
+### 스타일 실패 및 종료 판단
+
+최종 읽기 전용 리뷰에서 동일 Python/의존성·정적 자료·12초 제한으로 G2/G3를 비교했다. 양쪽 프로세스는 정상 기동했지만 style-looks API가 VerifiedVideoProductRepository를 통해 DB를 조회하면서 테스트의 127.0.0.1:1 주소에 연결하지 못해 500을 반환했다. 정적 자료만 조회한다는 테스트 전제와 실제 의존성의 충돌이며 G3 신규 회귀가 아니다. 별도 담당 후속 작업으로 격리 DB 또는 명시적 정적 테스트 의존성을 정리해야 한다. 테스트 제한시간을 늘려 성공으로 맞추거나 이번 G3에 API/스타일/Compose 변경을 포함하지 않는다.
+
+핵심 결함 재현과 관련 자동 회귀는 해소했다. 종료 판정은 **조건부 종료 가능**이다. G3 핵심 코드 수정은 종료할 수 있으나 실제 수정 HEAD의 통합·실기기 검증과 자료/권리 감사는 남는다. G6 스타일 상태와 G7 영속화/요약/동의 기억, G4 옵션 복합 검색 및 G8 전체 실행은 기존 후속 범위를 유지한다. Draft·G2 base를 보존하고 자동 병합·배포하지 않는다.

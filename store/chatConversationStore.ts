@@ -53,6 +53,7 @@ function createChatConversation(userId: string | null, ownerKey: string, entry: 
     attempt: 0,
     generation: 0,
     pendingClarification: undefined as PendingClarification | undefined,
+    dismissedClarificationId: undefined as string | undefined,
     beautyContext: undefined as BeautyChatContext | undefined,
     beautyContextTurn: 0,
     selection: {
@@ -118,6 +119,7 @@ type ChatStore = {
 function resetRoom(room: ChatConversationState, record: ConversationRecord, key: TranslationKey, keepSelection = false) {
   room.generation += 1;
   room.beautyContext = undefined;
+  room.dismissedClarificationId = undefined;
   room.pendingClarification = undefined;
   room.beautyContextTurn = 0;
   room.snapshots.clear();
@@ -172,6 +174,7 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
           change(room, (draft) => {
             draft.entryProduct = screen;
             draft.selection.revision += 1;
+            draft.dismissedClarificationId = draft.pendingClarification?.id ?? draft.dismissedClarificationId;
             draft.pendingClarification = undefined;
             draft.selection.screen = undefined;
             draft.selection.changed[entry.productId] = draft.selection.revision;
@@ -216,6 +219,7 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
       if (!current?.session || isChatSessionExpired(current.session.expiresAt) ||
         message.resultSetId !== current.session.resultSetId || !current.candidateIds.includes(productId)) return false;
       room.selection.revision += 1;
+      room.dismissedClarificationId = room.pendingClarification?.id ?? room.dismissedClarificationId;
       room.pendingClarification = undefined;
       const shadeId = room.selection.shades[productId];
       room.selection.screen = { screenId: 'chat', productId, ...(shadeId ? { shadeId } : {}) };
@@ -225,6 +229,7 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
       if (message.ownerKey !== room.ownerKey || message.generation !== room.generation) return false;
       const currentSession = room.beautyContext?.session;
       if (currentSession && (isChatSessionExpired(currentSession.expiresAt) || message.resultSetId !== currentSession.resultSetId)) return false;
+      room.dismissedClarificationId = room.pendingClarification?.id ?? room.dismissedClarificationId;
       room.pendingClarification = undefined;
       const revision = room.selection.revision + 1;
       const shades = { ...room.selection.shades, [productId]: shadeId };
@@ -318,8 +323,12 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
           }
         }
 
+        if (response.pendingClarification && room.selection.revision !== snapshot.revision) {
+          room.dismissedClarificationId = response.pendingClarification.id;
+        }
         if (room.selection.revision === snapshot.revision && response.sessionStatus) {
-          room.pendingClarification = response.pendingClarification ?? undefined;
+          const pending = response.pendingClarification;
+          room.pendingClarification = pending?.id === room.dismissedClarificationId ? undefined : pending ?? undefined;
         }
         room.snapshots.delete(messageId);
         const answer: ChatMessage = {
@@ -361,6 +370,7 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
       record.messages = record.messages.map((message) => message.id === messageId
         ? { ...message, failed: true, errorKey, retryable: !fatal && !clarificationConflict } : message);
       if (clarificationConflict) {
+        room.dismissedClarificationId = room.pendingClarification?.id ?? room.dismissedClarificationId;
         room.pendingClarification = undefined;
         room.snapshots.delete(messageId);
       }

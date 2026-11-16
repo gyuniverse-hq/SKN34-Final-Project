@@ -314,3 +314,146 @@ async def test_pending_target_overrides_unchanged_prior_selection(setup):
     response = await service.answer(req, "user:a")
     assert response.ingredient_results[0].product_id == "b"
     assert response.ingredient_results[0].conditions[0].ingredient_name == "향료"
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "change", ["stale_screen", "new_selection", "new_ordinal", "new_name", "selection_then_general"]
+)
+async def test_review_pending_focus_priority(setup, change):
+    service, _, _, _ = setup
+    service._catalog.products[2].name = "UniqueTarget"
+    service._catalog.products[2].name_ko = "UniqueTarget"
+    first = await service.answer(request(), "user:a")
+    service._llm.plan = {"intent": "detail", "ordinal": 1}
+    selected = await service.answer(request(first.chat_context, "첫 번째 보여줘"), "user:a")
+    service._llm.plan = {"intent": "detail", "ordinal": 2, "ingredientName": "향료"}
+    pending = await service.answer(request(selected.chat_context, "두 번째 향료 있어?"), "user:a")
+    service._llm.plan = {"intent": "detail", "shadeName": "03"}
+    data = request(pending.chat_context, "03호").model_dump(mode="json")
+    data.update(
+        clarificationId=str(pending.pending_clarification.id),
+        screenContext={"screenId": "chat", "productId": "a"},
+    )
+    if change in {"new_selection", "selection_then_general"}:
+        if change == "selection_then_general":
+            data.pop("screenContext")
+            data.update(generalMakeup=True, message="화장법 알려줘")
+        data.pop("clarificationId")  # App drops it on an explicit card selection.
+    elif change in {"new_ordinal", "new_name"}:
+        service._llm.plan = {
+            "intent": "detail",
+            **({"ordinal": 3} if change == "new_ordinal" else {"query": "UniqueTarget"}),
+        }
+        data["message"] = (
+            "아니 세 번째 상품 보여줘"
+            if change == "new_ordinal"
+            else "아니 UniqueTarget 상품 보여줘"
+        )
+    result = await service.answer(ChatRequest.model_validate(data), "user:a")
+    assert result.pending_clarification is None
+    assert result.chat_context.session.result_set_id == pending.chat_context.session.result_set_id
+    assert result.chat_context.session.expires_at == pending.chat_context.session.expires_at
+    if change == "stale_screen":
+        assert result.ingredient_results[0].product_id == "b"
+        assert result.ingredient_results[0].conditions[0].ingredient_name == "향료"
+    elif change == "selection_then_general":
+        assert result.chat_context.selected_product_id == "a"
+        assert not result.ingredient_results
+    else:
+        assert not result.ingredient_results
+        assert result.products[0].id == ("a" if change == "new_selection" else "c")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "intent,message",
+    [("detail", "성분 말고 색상만 보여줘"), ("price", "성분 말고 이제 가격만 알려줘")],
+)
+async def test_review_explicit_goal_change(setup, intent, message):
+    service, _, _, _ = setup
+    first = await service.answer(request(), "user:a")
+    pending = await ask_shade(service, first.chat_context)
+    service._llm.plan = {"intent": intent}
+    req = request(pending.chat_context, message)
+    req.clarification_id = pending.pending_clarification.id
+    result = await service.answer(req, "user:a")
+    assert result.pending_clarification is None and not result.ingredient_results
+    assert result.products[0].id == "a"
+    assert (
+        result.chat_context.session.state_version == pending.chat_context.session.state_version + 1
+    )
+    assert result.chat_context.session.expires_at == pending.chat_context.session.expires_at
+    assert result.chat_context.session.result_set_id == pending.chat_context.session.result_set_id
+    assert await service.answer(req, "user:a") == result
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "message,cancel",
+    [
+        ("질문 취소해줘", True),
+        ("취소라는 말은 알겠고 03호 확인해줘", False),
+        ("취소하지 말고 03호로 확인해줘", False),
+        ("취소 말고 03호 확인해줘", False),
+        ("취소해줘, 아니 취소하지 말고 03호 확인해줘", False),
+        ("취소하지 말고 확인해줘, 아니 질문 취소해줘", True),
+    ],
+)
+async def test_review_cancel_negation_and_correction(setup, message, cancel):
+    service, _, _, _ = setup
+    first = await service.answer(request(), "user:a")
+    pending = await ask_shade(service, first.chat_context)
+    service._llm.plan = {"intent": "detail", "shadeName": "03"}
+    req = request(pending.chat_context, message)
+    req.clarification_id = pending.pending_clarification.id
+    result = await service.answer(req, "user:a")
+    assert result.pending_clarification is None
+    assert bool(result.ingredient_results) is (not cancel)
+    if not cancel:
+        assert result.ingredient_results[0].shade_id == "a-03"
+
+
+@pytest.mark.anyio
+async def test_review_history_new_search_keeps_g1_tool(setup, monkeypatch):
+    from unittest.mock import AsyncMock
+
+    service, _, _, _ = setup
+    tool = AsyncMock(wraps=service._llm.complete_with_tools)
+    monkeypatch.setattr(service._llm, "complete_with_tools", tool)
+    first = await service.answer(request(), "user:a")
+    service._llm.plan = {"intent": "search", "category": "lip", "maxPriceKRW": 30000}
+    req = ChatRequest.model_validate(
+        request().model_dump(mode="json")
+        | {
+            "recentMessages": [
+                {"id": "u1", "role": "user", "text": "립 바르는 법 알려줘"},
+                {"id": "a1", "role": "assistant", "text": "안쪽부터 펴 바르세요"},
+            ]
+        }
+    )
+    result = await service.answer(req, "user:a")
+    assert tool.await_count == 2
+    assert result.products == first.products
+    assert result.chat_context.candidate_ids == first.chat_context.candidate_ids
+    assert result.chat_context.session and result.session_status == "stored"
+    assert len([c for c in service._catalog.calls if c[0] == "search" and "category" in c[1]]) == 2
+
+
+@pytest.mark.anyio
+async def test_review_new_shade_then_general_does_not_restore_pending(setup):
+    service, _, _, _ = setup
+    first = await service.answer(request(), "user:a")
+    pending = await ask_shade(service, first.chat_context)
+    ctx = pending.chat_context.model_copy(deep=True)
+    ctx.shade_selections["a"] = "a-03"
+    ctx.selected_product_id = "a"
+    req = request(ctx, "그라데이션 방법 알려줘")
+    req.general_makeup = True
+    result = await service.answer(req, "user:a")
+    assert result.pending_clarification is None
+    assert result.chat_context.shade_selections["a"] == "a-03"
+    assert (
+        result.chat_context.session.state_version == pending.chat_context.session.state_version + 1
+    )
+    assert result.chat_context.session.expires_at == pending.chat_context.session.expires_at

@@ -50,6 +50,8 @@ from app.services.ar_command_service import propose_ar_command
 from app.services.beauty_consultation_service import (
     COMPARISON_SCREENS,
     TEXT,
+    _resolve_product_reference,
+    abandons_ingredient_goal,
     direct_comparison,
     execute_beauty,
     interpret_beauty,
@@ -74,6 +76,18 @@ _WORD = re.compile(r"[\w가-힣ぁ-んァ-ン一-龥]{2,}")
 # Route explicit G2 filter requests through the richer interpreter, not G1's first-search args.
 _G2_FILTER = re.compile(r"매트|matte|제형|지속력|워터프루프|waterproof|글로시|벨벳|새틴", re.I)
 _FILTER_CHANGE = re.compile(r"바꿔|바꾸|변경|조건|추천|찾아|골라|유지|빼|제외|말고")
+
+
+def _cancels_pending(message: str) -> bool:
+    # Honor the last correction; a negated cancellation is not a cancellation.
+    commands = list(
+        re.finditer(
+            r"(?:취소|그만)(?:(\s*(?:하지\s*(?:말고|말아|마|않\w*)|(?:는\s*)?안\s*\w*|말고))"
+            r"|\s*(?:해(?:줘|주세요|요)?|하자|할게|할래|하고|해주세요)|(?=$|[.!?,。！？]))",
+            message,
+        )
+    )
+    return not bool(commands[-1].group(1)) if commands else bool(re.search(r"질문.*됐어", message))
 
 
 def _unsupported_g2_change(message: str, slots: SearchPlan) -> bool:
@@ -816,26 +830,43 @@ class ChatService:
                     incoming.screen_context
                     and incoming.screen_context.product_id
                     and incoming.screen_context.product_id != old_pending.product_id
+                    and not incoming.clarification_id
                 )
                 or (
                     incoming.chat_context
                     and incoming.chat_context.selected_product_id
-                    and old_pending.product_id
                     and incoming.chat_context.selected_product_id != old_pending.product_id
-                    and incoming.chat_context.selected_product_id
-                    != state.context.selected_product_id
+                    and (
+                        not incoming.clarification_id
+                        or incoming.chat_context.selected_product_id
+                        != state.context.selected_product_id
+                    )
+                )
+                or (
+                    not incoming.clarification_id
+                    and incoming.chat_context
+                    and incoming.chat_context.shade_selections != state.context.shade_selections
                 )
             )
         )
         active_pending = old_pending if incoming.clarification_id and not focus_changed else None
-        cancelled = bool(old_pending and re.search(r"취소|그만|질문.*(?:됐어|그만)", req.message))
+        resolved_target = active_pending.product_id if active_pending else None
+        cancelled = bool(old_pending and _cancels_pending(req.message))
+        goal_changed = bool(old_pending and abandons_ingredient_goal(req))
         if general_only:
             req.screen_context = None
             req.style_context = None
         # Client candidate lists/filters are never promoted into a server-owned snapshot.
         req.chat_context = state.context.model_copy(deep=True) if state else None
-        if active_pending and active_pending.product_id:
-            req.chat_context.selected_product_id = active_pending.product_id
+        if resolved_target:
+            req.chat_context.selected_product_id = resolved_target
+            if req.screen_context and req.screen_context.product_id != resolved_target:
+                req.screen_context = None  # Same question ID: old screen is not a new selection.
+        if focus_changed and general_only:
+            try:
+                await self._validate_session_context(req.chat_context, incoming.chat_context, None)
+            except UpstreamError as exc:
+                raise ApiError(502, "Catalog validation failed", "upstream_error") from exc
         context = resolve_context(req)
         if state:
             context.state_source = "server_session"
@@ -868,6 +899,38 @@ class ChatService:
             else await self._interpret_beauty(req, pending=active_pending)
         )
         slots = decision.slots
+        if (
+            req.recent_messages
+            and ref is None
+            and incoming.chat_context is None
+            and not general_only
+            and req.style_context is None
+            and slots.intent == "search"
+            and slots.scope == "catalog"
+            and not slots.ordinal
+            and not slots.selection
+            and not slots.compare_ordinals
+            and not (_G2_FILTER.search(req.message) and _FILTER_CHANGE.search(req.message))
+        ):
+            # History helps classify the turn; an independent search still uses G1 tools.
+            model_turn = await self._choose_g1_turn(req)
+            if model_turn:
+                slots = decision.slots = model_turn.plan
+        if (
+            active_pending
+            and active_pending.product_id
+            and slots.intent in {"detail", "price"}
+            and (slots.ordinal is not None or slots.query is not None)
+        ):
+            target = await _resolve_product_reference(req.chat_context, slots, self._catalog)
+            if target and target != active_pending.product_id:
+                focus_changed = True
+                resolved_target = target
+                req.chat_context.selected_product_id = target
+                req.screen_context = None
+                active_pending = None
+        if goal_changed:
+            active_pending = None
         if active_pending and slots.intent == "detail" and not cancelled and not general_only:
             slots.ingredient_lookup = True
             if not slots.ingredient_name and not slots.ingredient_conditions:
@@ -1005,9 +1068,9 @@ class ChatService:
                 await self._validate_session_context(
                     req.chat_context,
                     incoming.chat_context.model_copy(
-                        update={"selected_product_id": active_pending.product_id}
+                        update={"selected_product_id": resolved_target}
                     )
-                    if active_pending and active_pending.product_id
+                    if resolved_target
                     else incoming.chat_context,
                     req.screen_context,
                     select_screen=(
@@ -1050,7 +1113,12 @@ class ChatService:
                 for r in response.ingredient_results or []
             )
             if not errors:
-                if cancelled or focus_changed or slots.intent in {"search", "refine"}:
+                if (
+                    cancelled
+                    or goal_changed
+                    or focus_changed
+                    or slots.intent in {"search", "refine"}
+                ):
                     next_pending = None
                 ingredient_detail = slots.intent == "detail" and (
                     slots.ingredient_lookup or slots.ingredient_name or slots.ingredient_conditions
@@ -1114,7 +1182,8 @@ class ChatService:
                 response.session_status = "unchanged"
                 return response
             if pending_changed and (ctx is None or next_pending):
-                ctx = response.chat_context = state.context.model_copy(deep=True)
+                source = req.chat_context if focus_changed and general_only else state.context
+                ctx = response.chat_context = source.model_copy(deep=True)
         if (
             state
             and ctx is None

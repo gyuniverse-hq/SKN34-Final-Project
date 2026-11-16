@@ -739,6 +739,17 @@ def _ingredient_difference(locale, products, results):
     return "\n".join(lines), identities_complete
 
 
+def abandons_ingredient_goal(req: ChatRequest) -> bool:
+    return bool(
+        req.locale == "ko"
+        and get_settings().g1_supervisor_enabled
+        and re.search(
+            r"(?:성분|향료)(?:\s*(?:질문|확인|상담))?\s*(?:은|는)?\s*(?:말고|대신|아니라)",
+            req.message,
+        )
+    )
+
+
 async def interpret_beauty(
     req: ChatRequest, llm, look_profile=None, *, pending: PendingClarification | None = None
 ) -> SearchPlan:
@@ -767,7 +778,11 @@ async def interpret_beauty(
                         "For a pending ingredient question, interpret a short product/shade answer "
                         "as detail, scope previous, with ordinal/query or shadeName. "
                         "Do not invent a selection for an ambiguous answer; use general. "
-                        "Independent new searches remain search; explanations remain general."
+                        "Independent new searches remain search; explanations remain general. "
+                        "Explicitly abandoning ingredients for colors/prices means detail/price "
+                        "without ingredientLookup or inherited ingredient conditions. "
+                        "An explicit new product reference overrides the pending target; "
+                        "emit its ordinal/query, never replace it with the old pending product."
                         if req.locale == "ko" and get_settings().g1_supervisor_enabled
                         else ""
                     ),
@@ -880,7 +895,11 @@ async def execute_beauty(
         or plan.compare_ordinals
         or (effective_filters.ingredient_conditions and plan.intent in {"search", "refine"})
         or (plan.fragrance_free is True and plan.intent in {"search", "refine"})
-        or (plan.intent == "detail" and re.search(r"성분|ingredient|成分", req.message, re.I))
+        or (
+            plan.intent == "detail"
+            and not abandons_ingredient_goal(req)
+            and re.search(r"성분|ingredient|成分", req.message, re.I)
+        )
         or (
             req.chat_context
             and req.chat_context.filters.fragrance_free

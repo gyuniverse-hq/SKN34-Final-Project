@@ -225,3 +225,29 @@ test('G3 retries the original history snapshot and clarification conflict only c
   expect(store().conversations[id].conversation.snapshots.size).toBe(0);
   expect(store().conversations[id].messages.at(-1)?.retryable).toBe(false);
 });
+
+
+test.each(['product', 'shade'] as const)('G3 does not resurrect dismissed pending after %s selection', (kind) => {
+  const id = store().open({ type: 'general' })!;
+  const target = store().conversations[id].conversation;
+  const context: BeautyChatContext = {
+    version: 1, issuedAt: 1000, candidateIds: ['a', 'b'], scopeIds: ['a', 'b'], selectedProductId: 'a',
+    filters: { category: 'lip', maxPriceKRW: null, fragranceFree: false, moisturizing: false, query: '' },
+    session: { sessionId: 's', sessionToken: 'token', resultSetId: 'r', stateVersion: 2, expiresAt: Date.now() / 1000 + 300 },
+  };
+  const pending = { id: 'q', missingSlot: 'shade' as const, productId: 'a', resultSetId: 'r',
+    createdRequestId: 'r1', createdStateVersion: 2, expiresAt: context.session!.expiresAt, ingredientConditions: [] };
+  const first = store().beginRequest(target, request(target))!;
+  store().completeRequest(first, { answer: '호수?', products: [], chatContext: context, sessionStatus: 'stored', pendingClarification: pending }, 'question');
+  const card = store().conversations[id].messages[1];
+  const waiting = store().beginRequest(target, request(target, '설명'))!;
+  if (kind === 'product') store().selectProduct(target, 'b', card);
+  else store().selectShade(target, 'a', 'a-03', card);
+  store().completeRequest(waiting, { answer: 'late', products: [], chatContext: context, sessionStatus: 'unchanged', pendingClarification: pending }, '설명');
+  expect(store().conversations[id].conversation.pendingClarification).toBeUndefined();
+  expect(store().conversations[id].view.chosenProductId).toBe(kind === 'product' ? 'b' : 'a');
+  if (kind === 'shade') expect(store().conversations[id].view.selectedShades.a).toBe('a-03');
+  const explanation = store().beginRequest(target, request(target, '일반 설명'))!;
+  store().completeRequest(explanation, { answer: 'general', products: [], sessionStatus: 'unchanged', pendingClarification: pending }, '일반 설명');
+  expect(store().conversations[id].conversation.pendingClarification).toBeUndefined();
+});
