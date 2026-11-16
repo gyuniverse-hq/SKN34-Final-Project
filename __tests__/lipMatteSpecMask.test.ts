@@ -69,3 +69,44 @@ describe('steady lip outline (11-15)', () => {
     expect(html).toContain('lipThickSm = lipThickSm > 0 ? lipThickSm + TUNING.lipThickSmooth * (lipThickNow - lipThickSm) : lipThickNow;');
   });
 });
+
+describe('lashes and liner that sit on the eye (11-16)', () => {
+  it('fits the lash line for a mascara-only look and starts roots inside it', () => {
+    expect(html).toContain('if (liner || mascara) {');
+    expect(html).toContain('lashRootInset: 0.006,');
+    expect(html).toContain('const widthShrink = clamp(lashSpacePx / (2.2 * lashRootPx), 0.85, 1);');
+  });
+  it('keeps volume with a back row and a dense root, and softens the roots and liner edges', () => {
+    const num = (k: string) => Number(html.match(new RegExp(`${k}: ([0-9.]+)`))![1]);
+    expect(num('lashBackLayer')).toBeGreaterThan(0);
+    expect(num('lashBackLayer')).toBeLessThan(1);
+    expect(num('lashRootHold')).toBeLessThan(0.5);
+    expect(num('lashRootBand')).toBeLessThanOrEqual(0.6);
+    expect(num('linerShade')).toBeLessThanOrEqual(0.5);
+    expect(html).toContain('lashG = max(lashG, smoothstep(0.10, 0.34, eyeC.g) * uLashBand);');
+    expect(html).toContain('uLinerAA, 0.5 + 0.25 * (TUNING.linerEdgeSoft[0] + TUNING.linerEdgeSoft[1])');
+  });
+});
+
+describe('natural lashes, liner on the lid edge, brow hair overlay (11-16)', () => {
+  it('gives each strand its own darkness and a glint on the brow canvas R', () => {
+    expect(html).toContain('0.75 + 0.2 * seeded(i + 700), 0.35 + 0.5 * seeded(i + 800), false);');
+    expect(html).toContain("'float lashGlintAt(vec2 s) {',");
+    expect(html).toContain('uLightColor * uExposure * uLightStrength * lashGlintAt(suv) * uLashGloss * mascaraA');
+    const g = Number(html.match(/lashGloss: ([0-9.]+)/)![1]);
+    expect(g).toBeGreaterThan(0);
+    expect(g).toBeLessThanOrEqual(0.5);
+  });
+  it('draws lower roots inside the lid line, a lower shade line, and a liner that reaches the eye edge', () => {
+    expect(html).toContain('lowerLineAlpha: 0.2,');
+    expect(html).toContain('const sideCanvas = !!(browPaint || mascara);');
+    expect(Number(html.match(/linerRootInset: ([0-9.]+)/)![1])).toBeLessThanOrEqual(0.03);
+  });
+  it('tints brow hairs (black ones too) and keeps the grain, no overlay', () => {
+    expect(html).toContain('float newL = max(camL + uBrowShift * (prodL - hairMeanL), 0.2 * camL);');
+    expect(html).toContain("'float browZoneAt(vec2 s) {',");
+    expect(html).not.toContain('ovCol');
+    expect(html).toContain('hairDepth: 0.85,');
+    expect(html).toContain('vec3 ownOv = toLin(hardLight(toSrgb(layer(cam, uMascaraAlbedo, uSkinMeanLum, 1.0)), toSrgb(col))) * 0.85;');
+  });
+});

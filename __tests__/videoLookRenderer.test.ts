@@ -99,7 +99,7 @@ describe('video look finish in the renderer', () => {
     expect(html).toContain('if (uLookLip.y > 0.001) {');
     expect(html).toContain('if (tip && lookTaper > 0.001) {');
     expect(html).toContain("const lookCurl = profileGain(mascara, 'lashCurl', 1);");
-    expect(html).toContain('if (lookCurl > 0.001) {');
+    expect(html).toContain('const curlK = 0.5 + 0.5 * lookCurl;');
     expect(html).toContain('if (uSkinWide > 0.001) {');
     expect(html).toContain("gl.uniform1f(u.uSkinWide, profileGain(foundZ, 'skinWide', 1));");
     expect(html).toContain("const lookPearl = profileGain(shadow, 'underEyePearl', 1);");

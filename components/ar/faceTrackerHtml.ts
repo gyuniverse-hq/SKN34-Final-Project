@@ -380,23 +380,39 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     // Mascara lashes (11-07 /ar-debug, user: "a black comb, not a mascara lash"; target = sparse wispy natural mascara
     // lash). Fewer, thinner strands that taper to nothing and fade toward the tip, a soft C curl, a faint lash line.
     lashCount: 14,              // mascara strands per upper lid (was 32: the comb)
-    lashLength: 0.12,           // longest strand, share of the eye width (front view foreshortens lashes)
+    lashLength: 0.145,          // longest strand, share of the eye width (front view foreshortens lashes)
     lashWidth: 0.009,           // strand ROOT width, share of the eye width; tapers to 0 at the tip (was 0.018 with round caps)
     // 11-11 /ar-debug (user: "the six looks' lashes all look the same"): at phone distance (eye ~70 px) the share above gave a
     // 0.6-0.8 px root that faded to the tip, so no look's lashes showed and only the liners differed (headless at that size:
     // a mascara-only look darkened 4 pixels by 30/255). Root width never goes under this many video pixels; a close-up
     // (eye 138 px: 1.2-2.5 px roots) is unchanged.
     lashMinPx: 1.3,
-    lashTipFade: 0.6,           // strand darkness lost from root to tip (root darker, tip lighter)
+    lashTipFade: 0.45,          // strand darkness lost from root to tip (root darker, tip lighter)
     lashClump: 0.06,            // tip pull toward the 3-strand group (was 0.18: strands read as one black patch)
-    lashLineWidth: 0.012,       // lash line at the roots, share of the eye width (was 0.035 at full strength: a thick band)
-    lashLineAlpha: 0.4,
+    lashLineWidth: 0.016,       // lash line at the roots, share of the eye width (was 0.035 at full strength: a thick band)
+    lashLineAlpha: 0.6,
     lowerLash: 0.3,             // lower lashes: length share of the upper
-    lowerLashAlpha: 0.22,       // lower lashes stay barely there (was 0.5)
+    lowerLashAlpha: 0.35,       // (unused since v2: see lower)
+    lower: { length: 0.3, width: 0.75, alpha: 0.7, inset: 0.004, rootStage: 0.08 }, // length: the looks' lowerLen (1-3) multiplies it
+    lashTotal: 28,              // upper strands per eye a density-1 look aims for (clusters fill up to it) // 11-16 v2 lower lashes, own settings: length share of the upper, root width multiple, opacity, root inset (eye widths)
+    lashRootStage: 0.22,        // share of a strand drawn as the short dark root stage before the curl
+    lashZoneCurl: [-12, 14, 36],  // extra outward tip curl in degrees: inner, middle, outer zone
+    lashCore: 0.92,             // coverage of a strand's core (the look coverage applies to its faint parts only)       // lower lashes stay barely there (was 0.5)
     // Attached lashes: eye-width share per mm. 11-06: 0.0125 made a 10 mm bunch as long as the mascara-lengthened natural
     // strands (0.125 vs 0.119 eye widths, Karina look), so the bunches vanished among them. 0.018 puts them ~1.5x past.
     falseLashMm: 0.018,
     falseLashWidth: 1.2,        // bunch root width, multiple of lashWidth (11-07: 1.7 read as thick spikes)
+    // 11-16 (user: lashes and liner should sit on the eye, keep the volume, soften the edges). Every value is a share of
+    // the eye width unless noted; 0 switches the item off.
+    lashRootInset: 0.006,       // strand roots start this far inside the fitted lash line (no skin strip between lash and eye)
+    lashBackLayer: 0.6,         // back-row strands between the main ones: 0.75x width, 0.85x length, this share of the darkness (x1.5 shader gain: paler than the main strands)
+    lashRootHold: 0.3,         // share of the strand length that keeps full darkness from the root before it fades
+    lashRootBand: 0.35,         // darkness of the soft shadow band under the lash roots (the lashes grow from a dense line)
+    linerRootInset: 0.015,      // liner lower edge sits this far inside the fitted line (closes the gap to the lash roots)
+    linerShade: 0.4,            // share of the camera shading the liner ink follows (0 = flat ink)
+    lashGloss: 0.18,            // lash glint: share of the room light added along the curl of each strand (R of the brow canvas)
+    lowerLineAlpha: 0.2,        // soft shade line along the fitted lower lid line under the lower lashes
+    linerEdgeSoft: [1.0, 0.5],  // liner edge softness in eye-canvas texels: [lash side, lid side]; core stays opaque
     shadowFeatherPx: 10,
     blushSize: [0.17, 0.11],    // ellipse radii relative to the UV face width
     appleScale: 0.8,            // the face-point blush (placement / size / softness set) is this much smaller than the baked default
@@ -629,15 +645,17 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     archDensity: 0.85,
     tailDensity: 0.9,
     hairOverlay: 0.0,
+    hairShift: 0.7,              // share of the way the hairs' mean light moves to the product brightness (grain kept)
+    hairDepth: 0.85,             // 11-16 v2: tinted hairs sit this far below the product's own brightness (hair is a little deeper than the pencil)
     hairFloor: 0.0,
     hardLight: 0.0,
     feather: 1.0,
     hairMix: 1.0,
     dropTowardEye: 0.55,
     extraDrop: 0.0,
-    powder: 0.45,                // pencil/powder layer: translucent tint over skin and hair (never brightens)
+    powder: 0.25,                // pencil/powder layer: translucent tint over skin and hair (never brightens)
     lift: 0.35,                  // brow-mascara layer: how far a dark hair moves toward a lighter product tone
-    softness: 0.25,              // feather radius of the brow edge, share of the brow height
+    softness: 0.35,              // feather radius of the brow edge, share of the brow height
   };
   // A care product (oil / balm) covers only 10..20% with colour, times how much of its chip colour may show (zone.care.tint:
   // 0 for a packaging-colour chip, so the lip keeps its own colour). Its shine covers the whole lip: lipGlossCoverage.
@@ -2489,12 +2507,13 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     if (srcW < 16 || srcH < 8) return false;
     const cw = Math.min(TUNING.eyeCanvasPx, Math.ceil(srcW * TUNING.eyeCanvasScale)), ch = Math.max(4, Math.ceil((cw * srcH) / srcW));
     if (eyeCanvas.width !== cw || eyeCanvas.height !== ch) { eyeCanvas.width = cw; eyeCanvas.height = ch; }
-    if (browPaint && (browCanvas.width !== cw || browCanvas.height !== ch)) { browCanvas.width = cw; browCanvas.height = ch; }
+    const sideCanvas = !!(browPaint || mascara);   // 11-16: R of the brow canvas carries the lash glint, G the brow
+    if (sideCanvas && (browCanvas.width !== cw || browCanvas.height !== ch)) { browCanvas.width = cw; browCanvas.height = ch; }
     const k = cw / srcW;
     const map = (q) => [(q[0] - x0) * k, (q[1] - y0) * k];
     const pathOn = (ctx, pts) => { ctx.beginPath(); pts.map(map).forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); };
     const path = (pts) => pathOn(eyeCtx, pts);
-    if (browPaint) {
+    if (sideCanvas) {
       browCtx.globalCompositeOperation = 'source-over'; browCtx.globalAlpha = 1;
       browCtx.fillStyle = '#000'; browCtx.fillRect(0, 0, cw, ch);
       browCtx.globalCompositeOperation = 'lighter';
@@ -2519,7 +2538,9 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       // The far eye of a turned head is foreshortened; fade both with the eye's facing.
       const fade = clamp((meshNrm[e.center * 3 + 2] - 0.15) / 0.35, 0, 1);
       if (fade <= 0) continue;
-      if (liner) {
+      // 11-16 (user: lashes should sit on the eye): the camera lash-line fit used to run only with a liner, so a
+      // mascara-only look grew its strands from the raw MediaPipe lid points, which can float off the real lash line.
+      if (liner || mascara) {
         const fit = fitLidLine(EYE_LINES.indexOf(e), e, up, low, eyeW, nUp, fade, W, H, nowMs);
         up = fit.up; low = fit.low;
         outer = up[0]; inner = up[up.length - 1];
@@ -2540,7 +2561,8 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
           const t = 1 - j / (nC - 1); // 1 at the outer corner
           const th = Math.max(thickOuter * (innerShare + (1 - innerShare) * Math.pow(t, taper)), floorPx);
           const q = curve[j];
-          bottom.push(q);
+          // 11-16: the lower edge sits a hair inside the fitted line so no skin strip is left between liner and lash roots.
+          bottom.push([q[0] - nUp[0] * eyeW * TUNING.linerRootInset * t, q[1] - nUp[1] * eyeW * TUNING.linerRootInset * t]);
           top.push([q[0] + nUp[0] * th, q[1] + nUp[1] * th]);
         }
         const ang = (g.angle * Math.PI) / 180;
@@ -2623,6 +2645,11 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         pathOn(browCtx, lower.concat(upper));
         browCtx.closePath();
         browCtx.fill();
+        // 11-16 v2 (render: the upper hairs of the brow kept their black): the hair tint uses the person's own brow ring, not the
+        // shape dropped toward the eye, widened by a fifth of the brow height so the top and head hairs are inside. B channel.
+        browCtx.fillStyle = '#0000ff'; browCtx.strokeStyle = '#0000ff';
+        browCtx.lineJoin = 'round'; browCtx.lineWidth = Math.max(1, 0.25 * browH * k);
+        pathOn(browCtx, lower0.concat(upper0)); browCtx.closePath(); browCtx.fill(); browCtx.stroke();
       }
       const ip = shadow && shadow.geometry && shadow.geometry.innerPoint;
       if (ip) {
@@ -2680,55 +2707,67 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         const lashUp = [nUp[0] * (2 * openness - 1), nUp[1] * (2 * openness - 1)];
         const lashUpLen = Math.hypot(lashUp[0], lashUp[1]) || 1;
         const lu = Math.abs(2 * openness - 1) < 0.2 ? [-nUp[0], -nUp[1]] : [lashUp[0] / lashUpLen, lashUp[1] / lashUpLen];
-        // A strand (11-07): one smooth C curve (quadratic Bezier, control lifted in the curl direction, so it bends up when
-        // open and down when closed) filled as a ribbon whose width tapers from the root to 0 at the tip, and whose
-        // darkness fades toward the tip (root darker, like a coated lash). No round caps, no straight root segment.
+        // ── Lash generator v2 (11-16, after several parameter-only rounds failed). Three structural changes, not value tweaks:
+        //  1) two-stage strand: a short, thick, dark ROOT stage that leaves the lid almost head-on (seen from the front a curled
+        //     lash's base is foreshortened into a dense dark line on the lid), then the CURL stage that turns up and out and
+        //     tapers to nothing. Root direction and tip direction differ, so the strand sits on the lid and curls.
+        //  2) volume = micro clusters: 1-3 strands per anchor (look thickness), small root / angle / length differences, tips
+        //     pulled toward the cluster by lashClump. The strand width is not raised.
+        //  3) darkness: the shader gives a strand's core its own coverage (uLashCore), so a lash is no longer capped at ~60 %
+        //     grey by the look's coverage (that cap is why width / length changes never showed on the phone).
+        // Every random value is fixed by the strand index (seeded), nothing is regenerated per frame.
         const lookCurl = profileGain(mascara, 'lashCurl', 1);
-        const STRAND_SEG = lookCurl > 0.001 ? 8 : 6;
-        const strand = (root, dir, curl, L, w, pull) => {
-          const ctrl = [root[0] + dir[0] * 0.55 * L + curl[0] * 0.3 * L, root[1] + dir[1] * 0.55 * L + curl[1] * 0.3 * L];
-          const end = [root[0] + dir[0] * 0.85 * L + curl[0] * 0.5 * L + pull[0], root[1] + dir[1] * 0.85 * L + curl[1] * 0.5 * L + pull[1]];
-          const P0 = map(root), P1 = map(ctrl), P2 = map(end);
-          // A short outward root tangent turns upward into the tip: the old quadratic has almost collinear controls.
-          let C1 = P1, C2 = P1;
-          if (lookCurl > 0.001) {
-            const outward = (curl[0] * axis[0] + curl[1] * axis[1]) >= 0 ? 1 : -1;
-            C1 = map([root[0] + (axis[0] * 0.38 * outward + dir[0] * 0.12) * L, root[1] + (axis[1] * 0.38 * outward + dir[1] * 0.12) * L]);
-            C2 = map([end[0] - dir[0] * 0.48 * L, end[1] - dir[1] * 0.48 * L]);
-          }
+        const LASH_SEG = 9;
+        const lashSpacePx = (eyeW * k * 0.95) / Math.max(1, nLash - 1);
+        const lashRootPx = Math.max(0.9, eyeW * TUNING.lashWidth * lashWidthK * k, TUNING.lashMinPx * k);
+        const widthShrink = clamp(lashSpacePx / (2.2 * lashRootPx), 0.85, 1);
+        eyeDbg.lashShrink = widthShrink;
+        const unit = (d) => { const n = Math.hypot(d[0], d[1]) || 1; return [d[0] / n, d[1] / n]; };
+        const rot = (d, th) => [d[0] * Math.cos(th) + axis[0] * Math.sin(th), d[1] * Math.cos(th) + axis[1] * Math.sin(th)];
+        // root, root direction, tip direction, length, root width (video px), darkness 0..1, glint 0..1, keep width (no shrink)
+        const lash = (root, rootDir, tipDir, L, w, dark, glint, keepW, rootStage) => {
+          const rs = rootStage == null ? TUNING.lashRootStage : rootStage;
+          const P1 = [root[0] + rootDir[0] * rs * L, root[1] + rootDir[1] * rs * L];
+          const C = [P1[0] + rootDir[0] * 0.3 * L, P1[1] + rootDir[1] * 0.3 * L];
+          const P3 = [P1[0] + tipDir[0] * (1 - rs) * L, P1[1] + tipDir[1] * (1 - rs) * L];
           const at = (t) => {
-            if (lookCurl > 0.001) {
-              const a = 1 - t;
-              return [a*a*a*P0[0] + 3*a*a*t*C1[0] + 3*a*t*t*C2[0] + t*t*t*P2[0], a*a*a*P0[1] + 3*a*a*t*C1[1] + 3*a*t*t*C2[1] + t*t*t*P2[1]];
-            }
-            return [(1 - t) * (1 - t) * P0[0] + 2 * (1 - t) * t * P1[0] + t * t * P2[0], (1 - t) * (1 - t) * P0[1] + 2 * (1 - t) * t * P1[1] + t * t * P2[1]];
+            if (t <= rs) return lerp(root, P1, t / rs);
+            const q = (t - rs) / (1 - rs), a2 = 1 - q;
+            return [a2 * a2 * P1[0] + 2 * a2 * q * C[0] + q * q * P3[0], a2 * a2 * P1[1] + 2 * a2 * q * C[1] + q * q * P3[1]];
           };
-          const side = (t) => {
-            let dx = 2 * (1 - t) * (P1[0] - P0[0]) + 2 * t * (P2[0] - P1[0]), dy = 2 * (1 - t) * (P1[1] - P0[1]) + 2 * t * (P2[1] - P1[1]);
-            if (lookCurl > 0.001) {
-              const a = 1 - t;
-              dx = 3*a*a*(C1[0]-P0[0]) + 6*a*t*(C2[0]-C1[0]) + 3*t*t*(P2[0]-C2[0]);
-              dy = 3*a*a*(C1[1]-P0[1]) + 6*a*t*(C2[1]-C1[1]) + 3*t*t*(P2[1]-C2[1]);
-            }
-            const n = Math.hypot(dx, dy) || 1;
-            const hw = 0.5 * Math.max(0.9, w * k, TUNING.lashMinPx * (w > 0 ? Math.min(1, w / (eyeW * TUNING.lashWidth)) : 1) * k) * Math.pow(1 - t, 0.9);
-            const tapered = lookCurl > 0.001 ? hw * Math.pow(1 - t, 0.3) : hw;
-            return [(-dy / n) * tapered, (dx / n) * tapered];
-          };
-          for (let s2 = 0; s2 < STRAND_SEG; s2++) {
-            const t0 = s2 / STRAND_SEG, t1 = (s2 + 1) / STRAND_SEG;
-            const a0 = at(t0), a1 = at(t1), n0 = side(t0), n1 = side(t1);
-            const g = Math.round(255 * (1 - TUNING.lashTipFade * (t0 + t1) * 0.5));
-            c.fillStyle = 'rgb(0,' + g + ',0)';
+          const wPx = Math.max(w * k, TUNING.lashMinPx * Math.min(1, w / (eyeW * TUNING.lashWidth)) * k) * (keepW ? 1 : widthShrink);
+          const halfW = (t) => 0.5 * Math.max(0.9, wPx) * (t <= rs ? 1 : Math.pow(Math.max(0, 1 - Math.pow((t - rs) / (1 - rs), 1.6)), 0.8));
+          const pts = [];
+          for (let s2 = 0; s2 <= LASH_SEG; s2++) pts.push(map(at(s2 / LASH_SEG)));
+          for (let s2 = 0; s2 < LASH_SEG; s2++) {
+            const t0 = s2 / LASH_SEG, t1 = (s2 + 1) / LASH_SEG;
+            const a0 = pts[s2], a1 = pts[s2 + 1];
+            const nn = unit([-(a1[1] - a0[1]), a1[0] - a0[0]]);
+            const h0 = halfW(t0), h1 = halfW(t1);
+            const tm = clamp01(((t0 + t1) * 0.5 - TUNING.lashRootHold) / (1 - TUNING.lashRootHold));
+            c.fillStyle = 'rgb(0,' + Math.round(255 * clamp01(dark) * (1 - TUNING.lashTipFade * tm)) + ',0)';
             c.beginPath();
-            c.moveTo(a0[0] + n0[0], a0[1] + n0[1]); c.lineTo(a1[0] + n1[0], a1[1] + n1[1]);
-            c.lineTo(a1[0] - n1[0], a1[1] - n1[1]); c.lineTo(a0[0] - n0[0], a0[1] - n0[1]);
+            c.moveTo(a0[0] + nn[0] * h0, a0[1] + nn[1] * h0); c.lineTo(a1[0] + nn[0] * h1, a1[1] + nn[1] * h1);
+            c.lineTo(a1[0] - nn[0] * h1, a1[1] - nn[1] * h1); c.lineTo(a0[0] - nn[0] * h0, a0[1] - nn[1] * h0);
             c.closePath(); c.fill();
           }
+          // Glint: a thin light line along the upper edge of the curl bend, on the R of the brow canvas (shader adds room light).
+          if (glint > 0 && TUNING.lashGloss > 0) {
+            browCtx.lineCap = 'round'; browCtx.lineWidth = Math.max(0.5, 0.35 * lashRootPx);
+            browCtx.strokeStyle = 'rgb(' + Math.round(255 * clamp01(glint)) + ',0,0)';
+            browCtx.globalAlpha = clamp01(c.globalAlpha);
+            browCtx.beginPath();
+            for (let s3 = 0; s3 <= 5; s3++) {
+              const tg = rs + (0.45 * s3) / 5, a3 = map(at(tg)), b3 = map(at(Math.min(1, tg + 0.05)));
+              let gn = unit([-(b3[1] - a3[1]), b3[0] - a3[0]]);
+              if (gn[0] * nUp[0] + gn[1] * nUp[1] < 0) gn = [-gn[0], -gn[1]];
+              const gx = a3[0] + gn[0] * 0.8, gy = a3[1] + gn[1] * 0.8;
+              if (s3) browCtx.lineTo(gx, gy); else browCtx.moveTo(gx, gy);
+            }
+            browCtx.stroke();
+          }
         };
-        // Strand roots sit at a fixed share (u) of the lid curve's ARC LENGTH (11-08): the smooth spline through the lid
-        // points, not an index step over 9 unevenly spaced points. A root keeps its place on the lid when the lid points
-        // move or the fit shifts, and lies on the same curve the liner follows.
+        // Strand roots sit at a fixed share (u) of the lid curve's ARC LENGTH (11-08), on the same curve the liner follows.
         const arcAt = (pts) => {
           const curve = openSpline(pts, 6), cum = [0];
           for (let i = 1; i < curve.length; i++) cum.push(cum[i - 1] + dist(curve[i - 1], curve[i]));
@@ -2741,63 +2780,72 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
             return lerp(curve[j - 1], curve[j], clamp((want - cum[j - 1]) / span, 0, 1));
           };
         };
-        // 2.5D for a turned head: the surface normal of the eye (shading frame is mirrored: canvas = -x, -y) says where
-        // the lashes' forward part shows up on screen; the eye also loses length as it faces away.
+        // 2.5D for a turned head (11-08): the eye loses width as it faces away, the lashes' height does not.
         const facing = clamp(meshNrm[e.center * 3 + 2], 0, 1);
         const turn = clamp((TUNING.lashTurnFrom - facing) / 0.4, 0, 1);
-        // A head turned about the vertical axis squeezes the eye's WIDTH by cos(yaw) but not the lashes' height. The strand
-        // length comes from the projected eye width, so on a turned eye the up-going part is stretched back by 1 / facing
-        // (11-08 phone capture: lashes stubby and not matching the eye shape at a three-quarter view).
         const upStretch = 1 + turn * (1 / clamp(facing, TUNING.lashFacingMin, 1) - 1);
         const nxy = Math.hypot(meshNrm[e.center * 3], meshNrm[e.center * 3 + 1]) || 1;
         const leanDir = [(-meshNrm[e.center * 3] / nxy) * TUNING.lashYawLean * turn, (-meshNrm[e.center * 3 + 1] / nxy) * TUNING.lashYawLean * turn];
-        // Phone capture 11-08 (head rolled 90 deg): every strand was a straight stick, parallel to the next (a comb). A real
-        // lash curves: seen from the front its tip sweeps toward the outer corner, more so toward the outer end of the lid.
         const sweep = (u) => lashSweepK * (0.25 + clamp01(u));
-        const bend = (curl, u, k) => [curl[0] + axis[0] * sweep(u) * k, curl[1] + axis[1] * sweep(u) * k];
+        const bend = (curl, u, k2) => [curl[0] + axis[0] * sweep(u) * k2, curl[1] + axis[1] * sweep(u) * k2];
         const lean = (d) => {
           const ax = d[0] * axis[0] + d[1] * axis[1];
           const along = [axis[0] * ax, axis[1] * ax], across = [d[0] - along[0], d[1] - along[1]];
           return [along[0] + across[0] * upStretch + leanDir[0], along[1] + across[1] * upStretch + leanDir[1]];
         };
-        // Upper lashes inner (u = 0) → outer corner (u = 1): uneven spacing, fanning outward,
-        // longer toward the outer corner, tips only lightly gathered.
         const arcUp = arcAt(up.slice().reverse()), arcLow = arcAt(low.slice().reverse());
-        const nUpper = nLash;
-        const tips = [];
-        for (let i = 0; i < nUpper; i++) {
-          const u = clamp(0.06 + (0.94 * (i + 0.6 * lashJitterK * (seeded(i + 300) - 0.5))) / (nUpper - 1), 0.04, 1);
-          // Fan: inner lashes lean toward the nose a little, outer ones spread outward more (11-07: 62 deg over the lid).
+        // Zones (inner 0..0.25, middle, outer 0.75..1): extra outward curl of the tip, degrees.
+        const zoneCurl = (u) => (u < 0.25 ? TUNING.lashZoneCurl[0] : u < 0.75 ? TUNING.lashZoneCurl[1] : TUNING.lashZoneCurl[2]) * Math.PI / 180;
+        const curlK = 0.5 + 0.5 * lookCurl;
+        // Micro-cluster size from the look density, capped by the total (render 11-16: 22 anchors x 3 = 66 strands fused into a black block).
+        const perAnchor = clamp(Math.round((TUNING.lashTotal * clamp(mg.thickness, 0.4, 1.5)) / nLash), 1, 3);
+        eyeDbg.lashStrands = nLash * perAnchor;
+        for (let i = 0; i < nLash; i++) {
+          const u = clamp(0.06 + (0.94 * (i + 0.6 * lashJitterK * (seeded(i + 300) - 0.5))) / (nLash - 1), 0.04, 1);
           const th = ((u - 0.4) * lashFanDeg * Math.PI) / 180 + (seeded(i) - 0.5) * 0.22 * lashJitterK;
-          const dir = lean([lu[0] * Math.cos(th) + axis[0] * Math.sin(th), lu[1] * Math.cos(th) + axis[1] * Math.sin(th)]);
-          // Length: short at the inner corner, clear in the middle, a little longer at the outer corner; uneven, with an
-          // occasional longer wisp (fixed per strand index, so nothing moves between frames).
+          // Root stage: up the lid at half the fan angle (the base of a lash leaves the lid nearly straight).
+          const rootDir = unit(lean(rot(lu, th * 0.5)));
+          // Curl stage: the full fan plus the zone's outward curl and the look's sweep toward the outer corner.
+          const tipDir = unit(lean(bend(rot(lu, th + zoneCurl(u) * curlK), u, 0.6 * curlK)));
           const prof0 = 0.45 + 0.55 * smooth01(0, 0.7, Math.min(1, u)) + (u > 0.75 ? 0.08 : 0);
-          const prof = 1 - (1 - prof0) * clamp01(lashJitterK);   // a comb look (jitter near 0) keeps one length across the lid
+          const prof = 1 - (1 - prof0) * clamp01(lashJitterK);
           const wisp = seeded(i + 500) > 0.8 ? 1.15 : 1;
           const L = eyeW * TUNING.lashLength * lengthen * prof * (1 + (0.78 + 0.34 * seeded(i + 100) - 1) * lashJitterK) * (lashJitterK < 0.5 ? 1 : wisp);
-          tips.push({ root: arcUp(u), dir, L, u });
+          const r0 = arcUp(u);
+          const root = [r0[0] - nUp[0] * eyeW * TUNING.lashRootInset, r0[1] - nUp[1] * eyeW * TUNING.lashRootInset];
+          const w = eyeW * TUNING.lashWidth * lashWidthK;
+          const ownTip = [root[0] + tipDir[0] * L, root[1] + tipDir[1] * L];
+          for (let m = 0; m < perAnchor; m++) {
+            if (m === 0) { lash(root, rootDir, tipDir, L, w, 0.75 + 0.2 * seeded(i + 700), 0.35 + 0.5 * seeded(i + 800), false); continue; }
+            // Cluster mates: root a little to either side along the lid, a few degrees apart, shorter, tip pulled to the main tip.
+            const sgn = m === 1 ? -1 : 1, off = sgn * eyeW * 0.012 * (0.6 + 0.4 * seeded(i * 7 + m));
+            const rm = [root[0] + axis[0] * off, root[1] + axis[1] * off];
+            const Lm = L * (0.78 + 0.14 * seeded(i * 11 + m));
+            let td = unit(rot(tipDir, sgn * 0.1 * (0.5 + seeded(i * 13 + m))));
+            const tipM = [rm[0] + td[0] * Lm, rm[1] + td[1] * Lm];
+            const pullK = clamp01(lashClumpK * clamp01(mascara.intensity) * 2);
+            td = unit([tipM[0] + (ownTip[0] - tipM[0]) * pullK - rm[0], tipM[1] + (ownTip[1] - tipM[1]) * pullK - rm[1]]);
+            lash(rm, rootDir, td, Lm, w * 0.8, 0.6 + 0.2 * seeded(i * 17 + m), 0, false);
+          }
         }
-        for (let i = 0; i < nUpper; i++) {
-          const g = Math.floor(i / 3) * 3, gEnd = Math.min(nUpper, g + 3);
-          let cx = 0, cy = 0;
-          for (let j = g; j < gEnd; j++) { cx += tips[j].root[0] + tips[j].dir[0] * tips[j].L; cy += tips[j].root[1] + tips[j].dir[1] * tips[j].L; }
-          cx /= gEnd - g; cy /= gEnd - g;
-          const t0 = tips[i], own = [t0.root[0] + t0.dir[0] * t0.L, t0.root[1] + t0.dir[1] * t0.L];
-          const pull = [(cx - own[0]) * lashClumpK * clamp01(mascara.intensity), (cy - own[1]) * lashClumpK * clamp01(mascara.intensity)];
-          strand(t0.root, t0.dir, bend(lu, t0.u, 1), t0.L, eyeW * TUNING.lashWidth * lashWidthK, pull);
-        }
-        // Lower lashes: few, short, faint, pointing down (only when the eye is open).
-        c.globalAlpha = clamp01(lashFade * TUNING.lowerLashAlpha * lowerAlphaK * openness);
-        // A look can name its lower lash count (11-11: the doll look has 8 upper strands but many lower spikes).
-        const nLow = mg.lower === false ? 0 : mg.lowerCount != null ? clamp(Math.round(mg.lowerCount), 0, 12) : Math.min(8, Math.round(nLash / 4));
+        // Lower lashes (11-16 v2): their own settings (TUNING.lower), apart from the upper ones, and visible on a phone (they were
+        // ~3 px long at ~20 % darkness). Longer and darker toward the outer corner.
+        const LW = TUNING.lower;
+        c.globalAlpha = clamp01(lashFade * Math.min(1, LW.alpha * lowerAlphaK) * openness);
+        const nLow = mg.lower === false ? 0 : mg.lowerCount != null ? clamp(Math.round(mg.lowerCount), 0, 12) : Math.min(8, Math.round(nLash / 3));
         for (let i = 0; i < nLow && openness > 0; i++) {
-          const u = 0.3 + (0.65 * (i + 0.5 * (seeded(i + 400) - 0.5))) / (nLow - 1);
+          const u = 0.3 + (0.65 * (i + 0.5 * (seeded(i + 400) - 0.5))) / Math.max(1, nLow - 1);
           const th = ((u - 0.4) * 40 * Math.PI) / 180;
-          const dir = lean([-nUp[0] * Math.cos(th) + axis[0] * Math.sin(th), -nUp[1] * Math.cos(th) + axis[1] * Math.sin(th)]);
-          const L = eyeW * TUNING.lashLength * TUNING.lowerLash * lowerLenK * lengthen * (0.7 + 0.3 * seeded(i + 200));
-          strand(arcLow(u), dir, bend([-nUp[0] * 0.5, -nUp[1] * 0.5], u, 0.5), L, 0.6 * eyeW * TUNING.lashWidth * lashWidthK, [0, 0]);
+          const down = [-nUp[0], -nUp[1]];
+          const rootDir = unit(lean(rot(down, th * 0.5)));
+          const tipDir = unit(lean(bend(rot(down, th), u, 0.3)));
+          const L = eyeW * TUNING.lashLength * LW.length * lowerLenK * lengthen * (0.75 + 0.5 * u) * (0.85 + 0.3 * seeded(i + 200));
+          const rl = arcLow(u), insL = eyeW * LW.inset;
+          lash([rl[0] + nUp[0] * insL, rl[1] + nUp[1] * insL], rootDir, tipDir, L, LW.width * eyeW * TUNING.lashWidth * lashWidthK, 0.7 + 0.3 * u, 0, true, LW.rootStage);
         }
+        c.globalAlpha = lashFade;
+        // The attached bunches below keep their own geometry from the look video; they draw with the same two-stage strand.
+        const strand = (root, dir, curl, L, w) => lash(root, dir, unit([dir[0] + curl[0] * 0.6, dir[1] + curl[1] * 0.6]), L, w, 1, 0, false);
         // Attached lashes from the look video: bunches of strands, tips gathered by converge (A-shape).
         if (Array.isArray(mg.falseLash)) {
           for (const cl of mg.falseLash) {
@@ -2815,7 +2863,8 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
               const dir = lean([base[0] * Math.cos(th) + axis[0] * Math.sin(th), base[1] * Math.cos(th) + axis[1] * Math.sin(th)]);
               const L = eyeW * TUNING.falseLashMm * bunchLenK * clamp(cl.mm, 3, 16) * (0.94 + 0.12 * seeded(j + 600 + Math.round(cl.u * 100)));
               const curl = bend([base[0] * clamp(cl.lift, 0, 1.5), base[1] * clamp(cl.lift, 0, 1.5)], uu, isLower ? 0.5 : 1);
-              strand(arcEdge(uu), dir, curl, L, eyeW * TUNING.lashWidth * TUNING.falseLashWidth * lashWidthK * (isLower ? 0.7 : 1), [0, 0]);
+              const rt = arcEdge(uu), ins = isLower ? -0.7 * eyeW * TUNING.lashRootInset : eyeW * TUNING.lashRootInset;
+              strand([rt[0] - nUp[0] * ins, rt[1] - nUp[1] * ins], dir, curl, L, eyeW * TUNING.lashWidth * TUNING.falseLashWidth * lashWidthK * (isLower ? 0.7 : 1), [0, 0]);
             }
           }
         }
@@ -2825,6 +2874,19 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         c.strokeStyle = '#0f0';
         c.lineWidth = Math.max(0.6, TUNING.lashLineWidth * eyeW * k);
         path(up.slice(0, -1)); c.stroke();
+        // 11-16: a soft shade line along the fitted lower lid line, so the lower lashes grow out of a dense edge. It fades
+        // as the eye closes and is paler at the inner third.
+        if (openness > 0 && TUNING.lowerLineAlpha > 0) {
+          const lc = openSpline(low.slice().reverse(), 6);
+          c.lineCap = 'round'; c.lineWidth = Math.max(0.6, 0.010 * eyeW * k);
+          for (let j = 1; j < lc.length; j++) {
+            const tj = j / (lc.length - 1);
+            c.globalAlpha = clamp01(lashFade * TUNING.lowerLineAlpha * openness * (0.4 + 0.6 * smooth01(0, 0.3, tj)));
+            const a0 = map([lc[j - 1][0] + nUp[0] * eyeW * 0.004, lc[j - 1][1] + nUp[1] * eyeW * 0.004]);
+            const a1 = map([lc[j][0] + nUp[0] * eyeW * 0.004, lc[j][1] + nUp[1] * eyeW * 0.004]);
+            c.beginPath(); c.moveTo(a0[0], a0[1]); c.lineTo(a1[0], a1[1]); c.stroke();
+          }
+        }
         c.globalAlpha = fade;
       }
     }
@@ -3039,7 +3101,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   let guardErrors = 0, guardLast = '', renderErrors = 0, renderErrLast = '';
   // HUD 'eye' line (11-06 /ar-debug: look mascara and lashes not seen on the phone): which eye paint reached this page and
   // whether the eye canvas was drawn this frame. 'build' tells a stale Expo Go bundle apart from a renderer fault.
-  const EYE_HUD_BUILD = '1115-lip-cavity';
+  const EYE_HUD_BUILD = '1116-lash-v2';
   const eyeDbg = { liner: '-', mascara: '-', lashes: 0, on: false, cw: 0, ch: 0 };
   // Blink (11-08): MediaPipe blendshape eyeBlinkRight/Left (0 open .. 1 closed) per EYE_LINES entry (0 = subject's right
   // eye, landmarks 33/133; 1 = left). NaN until the model returns blendshapes; drawing then falls back to the lid gap.
@@ -3861,7 +3923,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     // Video look (0 = off): skin tone evening by frequency separation, colour-blend blush and lip, local-contrast glow mask.
     'uniform float uSkinEven; uniform float uBlushColor; uniform float uLookLipColor;',
     'uniform vec3 uFaceRough; uniform float uFaceSheen; uniform float uEyeHole; uniform float uCap; uniform float uCapFade; uniform float uPowderTint; uniform vec2 uJawFloor; uniform float uContourDebug; uniform float uJawCap; uniform float uJawCullOn; uniform float uJawYaw;',
-    'uniform sampler2D uEye; uniform sampler2D uBrowTex; uniform vec4 uEyeRect; uniform vec3 uLinerAlbedo; uniform float uLinerCov; uniform float uLinerAA; uniform float uLinerSoft; uniform vec3 uMascaraAlbedo; uniform float uMascaraCov; uniform float uEyeSoft;',
+    'uniform sampler2D uEye; uniform sampler2D uBrowTex; uniform vec4 uEyeRect; uniform vec3 uLinerAlbedo; uniform float uLinerCov; uniform float uLinerAA; uniform float uLinerSoft; uniform vec3 uMascaraAlbedo; uniform float uMascaraCov; uniform float uEyeSoft; uniform float uLashBand; uniform float uLinerShade; uniform float uLashGloss; uniform float uBrowHairDepth; uniform float uBrowShift; uniform float uLashCore;',
     'uniform float uSpecMax; uniform float uFlakeDensity; uniform float uFlakeScale;',
     'uniform vec2 uTexel; uniform float uLipRed; uniform float uSkinRed; uniform float uRefine;',
     'uniform float uLipDetailGain; uniform float uLipGlint; uniform float uGlintThreshold;',
@@ -3931,6 +3993,14 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '  return (p.x < 0.0 || p.y < 0.0 || p.x > 1.0 || p.y > 1.0) ? vec4(0.0) : texture2D(uEye, p);',
     '}',
     // Brow paint: its own canvas (green), same rectangle as the eye canvas.
+    'float lashGlintAt(vec2 s) {',
+    '  vec2 p = (s - uEyeRect.xy) / uEyeRect.zw;',
+    '  return (p.x < 0.0 || p.y < 0.0 || p.x > 1.0 || p.y > 1.0) ? 0.0 : texture2D(uBrowTex, p).r;',
+    '}',
+    'float browZoneAt(vec2 s) {',
+    '  vec2 p = (s - uEyeRect.xy) / uEyeRect.zw;',
+    '  return (p.x < 0.0 || p.y < 0.0 || p.x > 1.0 || p.y > 1.0) ? 0.0 : texture2D(uBrowTex, p).b;',
+    '}',
     'float browAt(vec2 s) {',
     '  vec2 p = (s - uEyeRect.xy) / uEyeRect.zw;',
     '  return (p.x < 0.0 || p.y < 0.0 || p.x > 1.0 || p.y > 1.0) ? 0.0 : texture2D(uBrowTex, p).g;',
@@ -4197,7 +4267,8 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '  if (uEyeRect.x > -1.0) {',
     '    vec2 ao = uTexel * uLinerAA;',
     '    linerR = (4.0 * eyeAt(suv).r + eyeAt(suv + vec2(ao.x, 0.0)).r + eyeAt(suv - vec2(ao.x, 0.0)).r + eyeAt(suv + vec2(0.0, ao.y)).r + eyeAt(suv - vec2(0.0, ao.y)).r) / 8.0;',
-    '    linerR = smoothstep(0.05, 0.45, linerR);',
+    // 11-16: the wider read (uLinerAA grows with TUNING.linerEdgeSoft) softens both edges; the lower threshold keeps the core opaque.
+    '    linerR = smoothstep(0.03, 0.5, linerR);',
     '  }',
     // Smudge (geometry.linerSoftness): blend toward a wide read of the same drawn path. 0 leaves the line as is.
     '  if (uEyeRect.x > -1.0 && uLinerSoft > 0.001) {',
@@ -4213,11 +4284,15 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     // half-texel anti-aliasing against stair steps only (no widening), then a texel the strand covers past about half is opaque.
     '  float lashG = 0.0;',
     '  if (uEyeRect.x > -1.0) {',
-    '    vec2 lo = uTexel * uLinerAA;',
+    '    vec2 lo = uTexel * 0.5;',
     '    lashG = (4.0 * eyeAt(suv).g + eyeAt(suv + vec2(lo.x, 0.0)).g + eyeAt(suv - vec2(lo.x, 0.0)).g + eyeAt(suv + vec2(0.0, lo.y)).g + eyeAt(suv - vec2(0.0, lo.y)).g) / 8.0;',
-    '    lashG = min(1.0, lashG * 1.35);',   // 11-07: no opaque snap (it made every strand a blunt black line)
+    '    lashG = min(1.0, lashG * 1.5);',   // 11-07: no opaque snap (it made every strand a blunt black line)
+    // 11-16: soft shadow band where the strands are dense (their roots): the lashes grow out of a dense line, not off bare skin.
+    '    lashG = max(lashG, smoothstep(0.10, 0.34, eyeC.g) * uLashBand);',
+    // 11-16: strand tips (pale part) take the camera's blur like a real lash tip; roots and bodies stay sharp.
+    '    lashG = max(lashG, min(1.0, eyeC.g * 2.2) * (1.0 - smoothstep(0.35, 0.65, lashG)) * 0.6);',
     '  }',
-    '  float linerA = linerR * uLinerCov; float mascaraA = lashG * uMascaraCov; float innerA = eyeC.b * uInnerCov;',
+    '  float linerA = linerR * uLinerCov; float mascaraA = lashG * mix(uMascaraCov, max(uMascaraCov, uLashCore), smoothstep(0.55, 0.9, lashG)); float innerA = eyeC.b * uInnerCov;',
     '  float browG = uEyeRect.x > -1.0 ? browAt(suv) : 0.0;',
     '  if (uBrowCov > 0.0 && uEyeRect.x > -1.0) {',
     '    vec2 bo = uTexel * uBrowSoft;',
@@ -4225,6 +4300,12 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '      + browAt(suv + bo) + browAt(suv - bo) + browAt(suv + vec2(bo.x, -bo.y)) + browAt(suv + vec2(-bo.x, bo.y))) / 16.0;',
     '  }',
     '  float browA = browG * uBrowCov * mix(0.9, 1.0, clamp(normalize(vNormal).z, 0.0, 1.0));',
+    'float browZone = 0.0;',
+    'if (uBrowCov > 0.0 && uEyeRect.x > -1.0) {',
+    '    vec2 zo = uTexel * max(1.5, uBrowSoft);',
+    '    browZone = (2.0 * browZoneAt(suv) + browZoneAt(suv + vec2(zo.x, 0.0)) + browZoneAt(suv - vec2(zo.x, 0.0)) + browZoneAt(suv + vec2(0.0, zo.y)) + browZoneAt(suv - vec2(0.0, zo.y))) / 6.0;',
+    '}',
+    'if (uEyeHole > 0.5) browZone = 0.0;',
     // Eye-opening triangles carry only lashes (no shadow feather or lip band on the eyeball).
     '  if (uCap > 0.5) {',
     '    m = vec4(0.0); blushA = 0.0; shadowA = 0.0; lipZone = 0.0; hlA = 0.0; contourA = 0.0; linerA = 0.0; mascaraA = 0.0; darkA = 0.0; innerA = 0.0; browA = 0.0;',
@@ -4237,7 +4318,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '    contourA *= uFoundSkinOn > 0.5 ? texture2D(uFoundSkin, fuv).r : 0.0;',
     '  }',
     '  if (uEyeHole > 0.5) { blushA = 0.0; shadowA = 0.0; lipZone = 0.0; hlA = 0.0; contourA = 0.0; linerA = 0.0; darkA = 0.0; innerA = 0.0; foundA = 0.0; browA = 0.0; }',
-    '  if (lipZone + blushA + shadowA + hlA + contourA + linerA + mascaraA + darkA + innerA + foundA + browA < 0.002) discard;',
+    '  if (lipZone + blushA + shadowA + hlA + contourA + linerA + mascaraA + darkA + innerA + foundA + browA + browZone * uBrowCov < 0.002) discard;',
     '  vec3 cam = toLin(texture2D(uVideo, suv).rgb);',
     '  vec3 n = normalize(vNormal); vec3 v = vec3(0.0, 0.0, 1.0); vec3 l = normalize(uLightDir);',
     '  float lipM = 0.0; float lipEdgeW = 0.0; float redN = 0.0; vec3 lipFormN = n; vec3 lipBaseN = n; vec3 lipDetailN = n; vec3 camN = cam;',
@@ -4362,7 +4443,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '    shadowA *= mix(occSkin, 1.0, uOccGate.y); linerA *= mix(occSkin, 1.0, uOccGate.y); mascaraA *= mix(occSkin, 1.0, uOccGate.y);',
     '    darkA *= mix(occSkin, 1.0, uOccGate.y); innerA *= mix(occSkin, 1.0, uOccGate.y);',
     '  }',
-    '  if (lipM + blushA + shadowA + hlA + contourA + linerA + mascaraA + darkA + innerA + foundA + browA < 0.002) discard;',
+    '  if (lipM + blushA + shadowA + hlA + contourA + linerA + mascaraA + darkA + innerA + foundA + browA + browZone * uBrowCov < 0.002) discard;',
     '  vec3 col = cam;',
     // Face → eyes → lips, each a product layer over the camera (a mixed product color shaded by the
     // camera brightness), so intensity 0 leaves the pixel as it was.
@@ -4502,13 +4583,14 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '  if (innerA > 0.002) col = mix(col, powder(cam, uInnerAlbedo), innerA) + uInnerAlbedo * uLightColor * powderSheen(n, l, v, 0.3) * innerA;',
     // Liner: one flat opaque ink over everything under it (eyeshadow included). Product color under the room
     // light only: no camera shading, sheen, highlight or texture. Mascara stays a camera-shaded pigment.
-    '  if (linerA > 0.002) col = mix(col, uLinerAlbedo * uLightColor * uExposure, linerA);',
+    // 11-16: the ink follows a share (uLinerShade) of the camera shading, so a liner in the lid's shade is a little darker.
+    '  if (linerA > 0.002) col = mix(col, uLinerAlbedo * uLightColor * uExposure * mix(1.0, clamp(lum(cam) / max(uSkinMeanLum, 1e-3), 0.7, 1.1), uLinerShade), linerA);',
     // Brow, as a real product leaves it (no generated strands, no flat cover): 1) pencil/powder, a
     // translucent film over skin and hair inside the feathered brow shape, never brighter than the camera;
     // 2) brow mascara, only on hairs (darker than the bare skin just outside the brow): the camera
     // brightness keeps each hair, the chromaticity moves to the product's, and a dark hair lifts a little
     // toward a lighter shade. Hex unchanged (1-1).
-    '  if (browA > 0.002) {',
+    '  if (browA > 0.002 || browZone * uBrowCov > 0.002) {',
     '    float camL = lum(cam);',
     '    vec2 bpx = suv / uTexel;',
     '    float selB = step(distance(bpx, 0.5 * (uBrowHead[1] + uBrowTail[1]) / uTexel), distance(bpx, 0.5 * (uBrowHead[0] + uBrowTail[0]) / uTexel));',
@@ -4520,18 +4602,44 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '    sAbove += lum(toLin(texture2D(uVideo, mix(uBrowSkin[4], uBrowSkin[10], selB)).rgb));',
     '    sAbove += lum(toLin(texture2D(uVideo, mix(uBrowSkin[5], uBrowSkin[11], selB)).rgb));',
     '    float skinRef = max(max(sBelow, sAbove) / 3.0, 1e-3);',
-    '    float hairW = smoothstep(0.10, 0.45, 1.0 - camL / skinRef)',
+    // 11-16 v2: the red rim on the phone came from the overlay, not this test; a faint (light, sparse) brow head needs a loose one.
+    '    float hairW = smoothstep(0.05, 0.35, 1.0 - camL / skinRef)',
     '      * (1.0 - smoothstep(0.85, 1.0, camL / max(uSkinMeanLum, 1e-3)));',
-    '    col = mix(col, powder(cam, uBrowAlbedo), browA * uBrowPowder);',
-    '    vec3 chromaP = uBrowAlbedo / max(dot(uBrowAlbedo, vec3(1.0)), 1e-4);',
-    '    vec3 chromaC = cam / max(dot(cam, vec3(1.0)), 1e-4);',
-    '    vec3 tinted = col * clamp(chromaP / max(chromaC, vec3(1e-4)), 0.0, 1.5);',
-    '    float tL = max(lum(tinted), 1e-4);',
-    '    float pL = lum(uBrowAlbedo * uLightColor * uExposure) * clamp(skinRef / max(uSkinMeanLum, 1e-3), 0.3, 1.2);',
-    '    tinted *= mix(tL, max(tL, pL), uBrowLift) / tL;',
-    '    col = mix(col, tinted, browA * hairW);',
+    '    float browCore = max(smoothstep(0.25, 0.6, browG), smoothstep(0.1, 0.9, browZone));',
+    // The translucent film is mostly on the hairs; bare skin between them gets only a quarter of it (no flat sticker).
+    '    col = mix(col, powder(cam, uBrowAlbedo), browA * uBrowPowder * mix(0.25, 1.0, hairW));',
+    // Hair-aware tint (11-16 v2, replaces the overlay: an overlay keeps a black hair black, 2 x 0.08 x colour). Each hair
+    // keeps its light relative to the hairs around it (grain), and the whole set moves to the product colour's brightness, so
+    // black hairs take a light brown too. Mean hair light = 8 camera taps around, only those darker than the bare skin.
+    '    float hs = 0.0; float hn = 0.0; float hl;',
+    '    vec2 hr = uTexel * max(2.0, 0.6 * uBrowSoft);',
+    '    hl = lum(toLin(texture2D(uVideo, suv + vec2(hr.x, 0.0)).rgb)); hs += hl * step(hl, 0.8 * skinRef); hn += step(hl, 0.8 * skinRef);',
+    '    hl = lum(toLin(texture2D(uVideo, suv - vec2(hr.x, 0.0)).rgb)); hs += hl * step(hl, 0.8 * skinRef); hn += step(hl, 0.8 * skinRef);',
+    '    hl = lum(toLin(texture2D(uVideo, suv + vec2(0.0, hr.y)).rgb)); hs += hl * step(hl, 0.8 * skinRef); hn += step(hl, 0.8 * skinRef);',
+    '    hl = lum(toLin(texture2D(uVideo, suv - vec2(0.0, hr.y)).rgb)); hs += hl * step(hl, 0.8 * skinRef); hn += step(hl, 0.8 * skinRef);',
+    '    hl = lum(toLin(texture2D(uVideo, suv + hr).rgb)); hs += hl * step(hl, 0.8 * skinRef); hn += step(hl, 0.8 * skinRef);',
+    '    hl = lum(toLin(texture2D(uVideo, suv - hr).rgb)); hs += hl * step(hl, 0.8 * skinRef); hn += step(hl, 0.8 * skinRef);',
+    '    hl = lum(toLin(texture2D(uVideo, suv + vec2(hr.x, -hr.y)).rgb)); hs += hl * step(hl, 0.8 * skinRef); hn += step(hl, 0.8 * skinRef);',
+    '    hl = lum(toLin(texture2D(uVideo, suv + vec2(-hr.x, hr.y)).rgb)); hs += hl * step(hl, 0.8 * skinRef); hn += step(hl, 0.8 * skinRef);',
+    '    float hairMeanL = (hs + camL) / (hn + 1.0);',
+    // Render check 11-16: a ratio (grain) flattened the hairs into one fill. Shift the hair light instead: every hair moves by the
+    // same amount toward the product brightness, so the differences between hairs (the grain) stay as the camera shows them.
+    '    float prodL = lum(uBrowAlbedo * uLightColor * uExposure) * clamp(skinRef / max(uSkinMeanLum, 1e-3), 0.3, 1.2) * uBrowHairDepth;',
+    '    float newL = max(camL + uBrowShift * (prodL - hairMeanL), 0.2 * camL);',
+    '    vec3 hairCol = uBrowAlbedo * uLightColor / max(lum(uBrowAlbedo * uLightColor), 1e-4) * newL;',
+    '    col = mix(col, hairCol, uBrowCov * hairW * browCore);',
     '  }',
     '  if (mascaraA > 0.002) col = mix(col, layer(cam, uMascaraAlbedo, uSkinMeanLum, 1.0), mascaraA);',
+    // 11-16 glint: the room light along the curl of each strand (R of the brow canvas); follows the light, so a dark room dims it.
+    '  if (mascaraA > 0.002 && uLashGloss > 0.0) col += uLightColor * uExposure * uLightStrength * lashGlintAt(suv) * uLashGloss * mascaraA;',
+    // 11-16: the person's own lashes. Near the drawn lash line only, a pixel darker than the bare skin takes the mascara
+    // (the same layer as the strands), so the real hairs carry the product and the drawn strands only add length and curl.
+    '  if (uLashBand > 0.0 && uEyeRect.x > -1.0) {',
+    '    float ownL = lum(cam);',
+    '    float ownHair = smoothstep(0.10, 0.45, 1.0 - ownL / max(uSkinMeanLum, 1e-3)) * smoothstep(0.03, 0.2, eyeC.g);',
+    '    vec3 ownOv = toLin(hardLight(toSrgb(layer(cam, uMascaraAlbedo, uSkinMeanLum, 1.0)), toSrgb(col))) * 0.85;',
+    '    col = mix(col, ownOv, ownHair * uMascaraCov * 0.7);',
+    '  }',
     '  if (lipM > 0.002) {',
     '    float core = smoothstep(0.5, 0.95, lipM);',
     '    float meanL = mix(max(uLipMeanLum, 1e-3), max(uSkinMeanLum, 1e-3), skinRefW);',
@@ -4849,7 +4957,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       'uTeethGuard', 'uTeethSat', 'uTeethDark',
       'uShadow2Albedo', 'uShadow2Cov', 'uInnerAlbedo', 'uInnerCov', 'uMask3', 'uHlAreas', 'uHlLegacy', 'uSkinColor',
       'uLipCenter', 'uCenterHalf', 'uCenterHl', 'uMask2', 'uHlAlbedo', 'uHlCov', 'uHlFlake', 'uHlNat', 'uHlLift', 'uHlGloss', 'uHlHead', 'uHlRel', 'uHlSkin', 'uHlSkinOn', 'uHlGlintScale', 'uHlGlintDensity', 'uContourAlbedo', 'uContourCov', 'uVolume', 'uVolLight', 'uFaceRough', 'uFaceSheen', 'uEyeHole', 'uCap', 'uCapFade', 'uPowderTint', 'uJawFloor', 'uContourDebug', 'uJawCap', 'uJawCullOn', 'uJawYaw',
-      'uEye', 'uBrowTex', 'uEyeRect', 'uLinerAlbedo', 'uLinerCov', 'uLinerAA', 'uLinerSoft', 'uMascaraAlbedo', 'uMascaraCov', 'uEyeSoft',
+      'uEye', 'uBrowTex', 'uEyeRect', 'uLinerAlbedo', 'uLinerCov', 'uLinerAA', 'uLinerSoft', 'uMascaraAlbedo', 'uMascaraCov', 'uEyeSoft', 'uLashBand', 'uLinerShade', 'uLashGloss', 'uBrowHairDepth', 'uBrowShift', 'uLashCore',
       'uFoundAlbedo', 'uFoundCov', 'uFoundOpaque', 'uFoundShadeMax', 'uFoundHair', 'uFoundTone', 'uFoundSkin', 'uFoundSkinOn', 'uSegWarp', 'uFoundFloor', 'uFoundLowerV', 'uOccOn', 'uOccGate', 'uBrowAlbedo', 'uBrowCov', 'uBrowPowder', 'uBrowLift', 'uBrowSoft', 'uBrowSkin', 'uBrowHead', 'uBrowTail', 'uMask2Prev', 'uContourMix',
       'uBlushSoft', 'uSkinTint', 'uSkinTone', 'uSkinClean', 'uHlGlow', 'uSkinWide', 'uLookLip', 'uLookLipLower',
       'uSkinEven', 'uBlushColor', 'uLookLipColor'];
@@ -5189,7 +5297,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         gl.uniform1i(u.uEye, 5);
         gl.activeTexture(gl.TEXTURE9);
         gl.bindTexture(gl.TEXTURE_2D, browTex);
-        if (eyesOn && browZ) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, browCanvas);
+        if (eyesOn && (browZ || mascara)) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, browCanvas);
         gl.uniform1i(u.uBrowTex, 9);
         gl.activeTexture(gl.TEXTURE5);   // leave the active unit as before this texture existed
         if (eyesOn) gl.uniform4f(u.uEyeRect, eyeRect[0], eyeRect[1], eyeRect[2], eyeRect[3]);
@@ -5249,8 +5357,14 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         const linerGeo = liner ? Object.assign({}, TUNING.liner, liner.geometry || {}) : null;
         gl.uniform1f(u.uLinerCov, liner ? EYELINER_DARK.opacity : 0);
         if (liner && liner.applicationProfile) gl.uniform1f(u.uLinerCov, profileCoverage(liner, EYELINER_DARK.opacity));
-        gl.uniform1f(u.uLinerAA, 0.5);
+        gl.uniform1f(u.uLinerAA, 0.5 + 0.25 * (TUNING.linerEdgeSoft[0] + TUNING.linerEdgeSoft[1]));
         gl.uniform1f(u.uLinerSoft, liner ? clamp01(linerGeo.linerSoftness || 0) : 0);
+        gl.uniform1f(u.uLashBand, mascara ? TUNING.lashRootBand : 0);
+        gl.uniform1f(u.uLashGloss, mascara ? (mascara.applicationProfile && typeof mascara.applicationProfile.lashGloss === 'number' ? clamp(mascara.applicationProfile.lashGloss, 0, 0.5) : TUNING.lashGloss) : 0);
+        gl.uniform1f(u.uBrowHairDepth, EYEBROW_PRESET.hairDepth);
+        gl.uniform1f(u.uBrowShift, EYEBROW_PRESET.hairShift);
+        gl.uniform1f(u.uLashCore, mascara ? TUNING.lashCore : 0);
+        gl.uniform1f(u.uLinerShade, liner ? TUNING.linerShade : 0);
         gl.uniform3f(u.uMascaraAlbedo, mascaraAlb[0], mascaraAlb[1], mascaraAlb[2]);
         gl.uniform1f(u.uMascaraCov, mascara ? 0.55 + 0.35 * clamp01(mascara.intensity) : 0);
         if (mascara && mascara.applicationProfile) gl.uniform1f(u.uMascaraCov, profileCoverage(mascara, 0.55 + 0.35 * clamp01(mascara.intensity)));
@@ -5805,7 +5919,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       'found ' + (makeup.foundation ? 'on ' + makeup.foundation.hex + ' ' + f(makeup.foundation.intensity || 0) : 'off') + '  mask ' + (foundSkinReady ? 'ready' : 'none') + '  skin cat ' + f(foundSkinStat.cat) + ' prob ' + f(foundSkinStat.prob) + '  lower floor ' + f(foundSkinReady ? TUNING.foundLowerFloor * foundOcc : 0) + '  seg call ' + foundSegMs.toFixed(0) + 'ms',
       'jaw ' + (makeup.contour ? 'shade ' + faceHud() + '  mask ' + shadeHud() + '  floor L ' + f(jawOcc[0]) + ' R ' + f(jawOcc[1]) + '  yaw ' + f((sz[234] - sz[454]) / Math.max(1e-4, Math.abs(sx[234] - sx[454]))) + (TUNING.contourDebug ? '  debug' : '') : 'off'),
       (guardErrors || renderErrors ? 'ERR guard ' + guardErrors + ' (' + guardLast + ')  render ' + renderErrors + ' (' + renderErrLast + ')' : 'err none'),
-      'eye build ' + EYE_HUD_BUILD + '  liner ' + eyeDbg.liner + '  mascara ' + eyeDbg.mascara + ' lash ' + eyeDbg.lashes + '  blink ' + (Number.isNaN(blink[0]) ? '-' : blink[0].toFixed(2) + '/' + blink[1].toFixed(2)) + '  a0 ' + alphaZeroColor + '  canvas ' + (eyeDbg.on ? eyeDbg.cw + 'x' + eyeDbg.ch : 'off'),
+      'eye build ' + EYE_HUD_BUILD + '  liner ' + eyeDbg.liner + '  mascara ' + eyeDbg.mascara + ' lash ' + eyeDbg.lashes + ' shrink ' + (eyeDbg.lashShrink || 1).toFixed(2) + ' n ' + (eyeDbg.lashStrands || 0) + '  blink ' + (Number.isNaN(blink[0]) ? '-' : blink[0].toFixed(2) + '/' + blink[1].toFixed(2)) + '  a0 ' + alphaZeroColor + '  canvas ' + (eyeDbg.on ? eyeDbg.cw + 'x' + eyeDbg.ch : 'off'),
       'occ ' + (TUNING.makeupOcclusion ? 'on lip ' + f(occGate.lip) + ' eye ' + f(occGate.eye) + ' cheek ' + f(occGate.cheek) : 'off'),
       'dir ' + light.dir.map(f).join(' ') + '  conf ' + f(light.dirConf) + (TUNING.lightMatch ? '  match r2 ' + f(light.matchR2) : '  fit'),
       'light ms ' + lightMs.toFixed(1) + (TUNING.lightDirGlide ? '  glide on' : '') + (TUNING.lightModel === 'sh9' ? '  sh9 ' + (light.shUsed ? 'fit' : 'linear') : ''),
