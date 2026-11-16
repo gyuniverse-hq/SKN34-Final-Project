@@ -1287,7 +1287,18 @@ async def _cdp_live(item, owned=None):
                 }
         finally:
             if process.poll() is None:
-                process.terminate()
+                if os.name == "nt":
+                    # Chrome's children also hold the private profile open on Windows.
+                    await asyncio.to_thread(
+                        subprocess.run,
+                        ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        check=False,
+                        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                    )
+                else:
+                    process.terminate()
             try:
                 process.wait(timeout=10)
             except subprocess.TimeoutExpired:
