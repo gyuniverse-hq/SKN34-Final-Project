@@ -596,6 +596,7 @@ async def test_case_observation(monkeypatch):
         )
     result = {
         "shadeObservation": shade_observation,
+        "sourceProducts": products,
         "request": body,
         "httpStatus": response.status_code,
         "response": response.json(),

@@ -323,7 +323,7 @@ def _matching_server_events(lines, request_id):
     return result
 
 
-def _verified_catalog_trace(events):
+def _verified_catalog_trace(events, *, detail=False):
     nodes = {e.get("node") for e in events if e.get("msg") == "g1_graph_node_end"}
     if not {"plan_turn", "execute_turn"} <= nodes:
         return False
@@ -336,7 +336,7 @@ def _verified_catalog_trace(events):
         and model.get("prompt_version")
         and model.get("tool_call_id")
         and request.get("status") == 200
-        and request.get("path") == "/api/products"
+        and request.get("path") == ("/api/products/{productId}" if detail else "/api/products")
         and request.get("tool_call_id") == model.get("tool_call_id")
         and tool.get("tool_call_id") == model.get("tool_call_id")
         for model in models
@@ -345,13 +345,13 @@ def _verified_catalog_trace(events):
     )
 
 
-def _verified_tool_products(events, ids):
+def _verified_tool_products(events, ids, *, detail=False):
     models = {e.get("tool_call_id") for e in events if e.get("msg") == "g1_model_completion"}
     requests = {
         e.get("tool_call_id")
         for e in events
         if e.get("msg") == "catalog_http"
-        and e.get("path") == "/api/products"
+        and e.get("path") == ("/api/products/{productId}" if detail else "/api/products")
         and e.get("status") == 200
     }
     return any(
@@ -427,6 +427,187 @@ def _safe_response(data):
     return response
 
 
+async def _exercise_ui02(call, js, click, network, question, chat_url):
+    """Real browser UI under declared CDP faults; retain every observed stage."""
+    import asyncio
+
+    stages = []
+    used = set()
+
+    async def pause():
+        for _ in range(240):
+            await js("document.readyState")
+            for event in network:
+                if event.get("method") != "Fetch.requestPaused":
+                    continue
+                p = event["params"]
+                if p["requestId"] in used:
+                    continue
+                used.add(p["requestId"])
+                if p["request"].get("method") != "POST":
+                    await call("Fetch.continueRequest", {"requestId": p["requestId"]})
+                    continue
+                if not _matches_chat_origin(p["request"]["url"], chat_url):
+                    raise ValueError("ui02_unexpected_origin")
+                return p
+            await asyncio.sleep(0.5)
+        raise TimeoutError("ui02_response_not_observed")
+
+    async def send(question):
+        await click("궁금한 점을 입력하세요")
+        await call("Input.insertText", {"text": question})
+        await click("보내기")
+
+    async def screen(stage, expected):
+        for _ in range(80):
+            text = await js("document.body.innerText")
+            if expected in text:
+                break
+            await asyncio.sleep(0.25)
+        image = (await call("Page.captureScreenshot", {"format": "png"}))["data"]
+        raw = base64.b64decode(image, validate=True)
+        if not raw.startswith(b"\x89PNG\r\n\x1a\n") or len(raw) > MAX_IMAGE_BYTES:
+            raise ValueError("ui02_invalid_screenshot")
+        labels = await js(
+            "[...document.querySelectorAll('button,[role=button]')].map(e=>e.getAttribute('aria-label')||'')"
+        )
+        result = {
+            "stage": stage,
+            "renderedElements": text,
+            "expectedTextObserved": expected in text,
+            "cardLabels": [x for x in labels if x.endswith(", 상세보기")],
+            "screenshot": {"sha256": hashlib.sha256(raw).hexdigest(), "bytesBase64": image},
+        }
+        stages.append(result)
+        return result
+
+    async def observed_response(p, stage):
+        raw = await call("Fetch.getResponseBody", {"requestId": p["requestId"]})
+        text = raw["body"]
+        if raw.get("base64Encoded"):
+            text = base64.b64decode(text).decode("utf-8")
+        headers = {h["name"].lower(): h["value"] for h in p.get("responseHeaders", [])}
+        result = {
+            "stage": stage,
+            "networkRequestId": p.get("networkId"),
+            "requestId": headers.get("x-request-id"),
+            "httpStatus": p.get("responseStatusCode"),
+            "request": _safe_response(json.loads(p["request"]["postData"])),
+            "response": _safe_response(json.loads(text)),
+        }
+        stages.append(result)
+        return result
+
+    try:
+        await call(
+            "Fetch.enable",
+            {"patterns": [{"urlPattern": chat_url + "/api/chat", "requestStage": "Response"}]},
+        )
+        await click("새 상담")
+        await send("롬앤 립 제품 추천해줘")
+        old = await pause()
+        older = await observed_response(old, "held_older_response")
+        if older["httpStatus"] != 200 or not older["response"].get("products"):
+            return {"stages": stages, "reason": "ui02_stale_product_fixture_missing"}
+        await click("새 상담")
+        await send(question)
+        failed = await pause()
+        await observed_response(failed, "before_injected_http_error")
+        allowed_headers = [
+            h
+            for h in failed.get("responseHeaders", [])
+            if h["name"].lower().startswith("access-control-")
+        ]
+        await call(
+            "Fetch.fulfillRequest",
+            {
+                "requestId": failed["requestId"],
+                "responseCode": 502,
+                "responseHeaders": allowed_headers
+                + [{"name": "Content-Type", "value": "application/json"}],
+                "body": base64.b64encode(
+                    b'{"error":"G1 controlled transport failure","code":"upstream_error"}'
+                ).decode(),
+            },
+        )
+        error = await screen("injected_http_error", "다시 보내기")
+        if not error["expectedTextObserved"]:
+            return {"stages": stages, "failureReason": "ui02_error_retry_control_missing"}
+        await click("다시 보내기")
+        timed = await pause()
+        await observed_response(timed, "before_injected_timeout")
+        await call(
+            "Fetch.failRequest", {"requestId": timed["requestId"], "errorReason": "TimedOut"}
+        )
+        timeout = await screen("injected_transport_timeout", "다시 보내기")
+        if not timeout["expectedTextObserved"]:
+            return {"stages": stages, "failureReason": "ui02_timeout_retry_control_missing"}
+        await click("다시 보내기")
+        retried = await pause()
+        retry = await observed_response(retried, "real_retry_response")
+        await call("Fetch.continueRequest", {"requestId": retried["requestId"]})
+        empty_text = "현재 조건과 근거로 추천할 제품이 없어요"
+        displayed = await screen("retry_rendered", empty_text)
+        if retry["httpStatus"] != 200 or retry["response"].get("resultType") != "empty":
+            return {"stages": stages, "failureReason": "ui02_retry_not_empty"}
+        try:
+            await call("Fetch.continueRequest", {"requestId": old["requestId"]})
+            release = "released"
+        except ValueError:
+            cancelled = any(
+                e.get("method") == "Network.loadingFailed"
+                and e["params"].get("requestId") == old.get("networkId")
+                and e["params"].get("canceled")
+                for e in network
+            )
+            if not cancelled:
+                return {"stages": stages, "reason": "ui02_older_response_release_unverified"}
+            release = "browser_cancelled"
+        old_finished = False
+        for _ in range(40):
+            await js("document.readyState")
+            old_finished = any(
+                e.get("method") in {"Network.loadingFinished", "Network.loadingFailed"}
+                and e.get("params", {}).get("requestId") == old.get("networkId")
+                for e in network
+            )
+            if old_finished:
+                break
+            await asyncio.sleep(0.25)
+        if not old_finished:
+            return {"stages": stages, "reason": "ui02_older_response_delivery_not_observed"}
+        final = await screen("after_older_response", empty_text)
+        if (
+            not displayed["expectedTextObserved"]
+            or not final["expectedTextObserved"]
+            or final["cardLabels"]
+        ):
+            return {"stages": stages, "failureReason": "ui02_stale_or_missing_retry_ui"}
+        if not retry["requestId"]:
+            return {"stages": stages, "reason": "ui02_retry_request_id_missing"}
+        answer = retry["response"].get("answer")
+        if not isinstance(answer, str) or not answer or answer not in final["renderedElements"]:
+            return {"stages": stages, "reason": "ui02_retry_answer_identity_unverified"}
+        if question not in final["renderedElements"]:
+            return {"stages": stages, "reason": "ui02_active_question_unverified"}
+        return {
+            "stages": stages,
+            "olderResponseDisposition": release,
+            "ui": {
+                "emptyState": "empty",
+                "errorState": "error",
+                "cardIds": [],
+                "visibleRequestId": retry["requestId"],
+                "retryRequestId": retry["requestId"],
+                "retryResponseIds": [],
+            },
+        }
+    except (ValueError, KeyError, TimeoutError) as exc:
+        return {"stages": stages, "reason": type(exc).__name__ + ":ui02_collection_incomplete"}
+    finally:
+        await call("Fetch.disable")
+
+
 async def _cdp_live(item, owned=None):
     """Run supported cases through a fresh Chrome process; unsupported cases stay NOT_RUN."""
     import asyncio
@@ -454,6 +635,7 @@ async def _cdp_live(item, owned=None):
         "G1-CAT-13",
         "G1-CAT-14",
         "G1-UI-01",
+        "G1-UI-02",
     }
     if item["case"]["caseId"] not in supported:
         return _not_run(item, "cdp_case_not_implemented")
@@ -536,8 +718,10 @@ async def _cdp_live(item, owned=None):
             "artifacts": {},
         }
     empty_preflight = None
-    if item["case"]["caseId"] == "G1-CAT-07":
-        query = item["case"]["expected"]["allowedArgs"]["q"]
+    if item["case"]["caseId"] in {"G1-CAT-07", "G1-UI-02"}:
+        query = item["case"]["expected"]["allowedArgs"].get("q")
+        if query is None:
+            query = item["case"]["input"]["message"].split()[0]
         async with httpx.AsyncClient(trust_env=False, timeout=20) as http:
             response = await http.get(catalog_url + "/api/products", params={"q": query})
         if response.status_code != 200:
@@ -661,7 +845,7 @@ async def _cdp_live(item, owned=None):
                             if "error" in message:
                                 raise ValueError("chrome_protocol_error")
                             return message.get("result", {})
-                        if message.get("method", "").startswith("Network."):
+                        if message.get("method", "").startswith(("Network.", "Fetch.")):
                             network.append(message)
 
                 async def js(expression):
@@ -841,13 +1025,15 @@ async def _cdp_live(item, owned=None):
                     owned["servedBundleSha256"] = hashlib.sha256(raw_bundle).hexdigest()
                 if not _verified_server_response(events, response):
                     return _not_run(item, "server_response_hash_missing_or_mismatch")
-                if int(response_info["status"]) < 400 and not _verified_catalog_trace(events):
+                if int(response_info["status"]) < 400 and not _verified_catalog_trace(
+                    events, detail=expected_screen is not None
+                ):
                     return _not_run(item, "real_model_catalog_trace_missing")
                 ids = [p["id"] for p in response.get("products", [])]
                 if (
                     int(response_info["status"]) < 400
                     and ids
-                    and not _verified_tool_products(events, ids)
+                    and not _verified_tool_products(events, ids, detail=expected_screen is not None)
                 ):
                     return _not_run(item, "response_products_not_bound_to_tool_result")
                 if int(response_info["status"]) >= 400:
@@ -976,7 +1162,7 @@ async def _cdp_live(item, owned=None):
                         },
                     }
 
-                if item["case"]["caseId"] == "G1-CAT-07":
+                if item["case"]["caseId"] in {"G1-CAT-07", "G1-UI-02"}:
                     if not _verified_empty_search(events, empty_preflight["query"]):
                         return await captured_incomplete("empty_search_trace_not_observed")
                     rendered = ""
@@ -1044,7 +1230,7 @@ async def _cdp_live(item, owned=None):
                         },
                         "emptyPreflight": empty_preflight,
                     }
-                    return {
+                    captured = {
                         "observation": observation,
                         "artifacts": {
                             "app_request_and_response_trace": common
@@ -1068,6 +1254,38 @@ async def _cdp_live(item, owned=None):
                             | {"observedCardLabels": card_labels, "postgres": fixed_db},
                         },
                     }
+                    if item["case"]["caseId"] == "G1-UI-02" and valid:
+                        exercise = await _exercise_ui02(
+                            call, js, click, network, item["case"]["input"]["message"], chat_url
+                        )
+                        observation["syntheticDependencies"] = [
+                            "CDP HTTP 502 injection",
+                            "CDP transport TimedOut injection",
+                            "CDP held real older response",
+                        ]
+                        captured["artifacts"]["app_request_and_response_trace"]["ui02Stages"] = (
+                            exercise
+                        )
+                        # Preserve independently emitted server spans for every observed request.
+                        raw = (
+                            (await asyncio.to_thread(_read_shared_log, log_path, before))
+                            .decode("utf-8", errors="replace")
+                            .splitlines()
+                        )
+                        for stage in exercise["stages"]:
+                            if stage.get("requestId"):
+                                stage["serverTrace"] = _matching_server_events(
+                                    raw, stage["requestId"]
+                                )
+                        if exercise.get("failureReason"):
+                            observation.update(
+                                status="FAIL", failureReason=exercise["failureReason"]
+                            )
+                        elif exercise.get("reason"):
+                            observation.update(status="NOT_RUN", blockedReason=exercise["reason"])
+                        else:
+                            observation["ui"].update(exercise["ui"])
+                    return captured
                 if not ids:
                     if item["case"]["caseId"] == "G1-CAT-12":
                         from tests.g1_e1_live_driver import observe_detail_shades
@@ -1239,6 +1457,10 @@ async def _cdp_live(item, owned=None):
                     }
                     return result
                 # Only certify rendered cards when the browser actually exposes each label.
+                rendered_answer = await js("document.body.innerText")
+                condition_labels = await js(
+                    "[...document.querySelectorAll('[aria-label]')].map(e=>e.getAttribute('aria-label')).filter(Boolean)"
+                )
                 labels = await js(
                     "[...document.querySelectorAll('button,[role=button]')].map(e=>e.getAttribute('aria-label')||'').filter(Boolean)"
                 )
@@ -1304,6 +1526,27 @@ async def _cdp_live(item, owned=None):
                     "sourceProductIds": ids,
                     "ui": {"cardIds": ids, "clickedCardId": ids[0], "detailId": ids[0]},
                 }
+                from tests.g1_e1_live_driver import observe_known_limitations
+
+                observation.update(
+                    observe_known_limitations(
+                        item["case"]["caseId"],
+                        response,
+                        f"{item['runId']}/app_request_and_response_trace.json",
+                        rows,
+                    )
+                )
+                if item["case"]["caseId"] == "G1-CAT-02" and "claimAudit" in observation:
+                    # Response coverage does not establish the UI's price-claim coverage.
+                    observation["claimAudit"]["complete"] = False
+                    observation["claimAudit"]["missingScope"] = "rendered UI price claims"
+                if item["case"]["caseId"] == "G1-CAT-05":
+                    observation["expectedUnknownConditions"] = ["fragranceFree"]
+                    observation["ui"]["unknownConditions"] = (
+                        ["fragranceFree"]
+                        if "향료 무첨가 필수 · 정보 미확인" in condition_labels
+                        else []
+                    )
                 if item["case"]["caseId"] == "G1-UI-01":
                     pairs = _rendered_shade_pairs(labels, rows)
                     if pairs is None:
@@ -1328,10 +1571,6 @@ async def _cdp_live(item, owned=None):
                 )
                 if route:
                     observation["routeIntent"] = route
-                if item["case"]["caseId"] == "G1-CAT-14":
-                    observation.update(
-                        status="NOT_RUN", blockedReason="combined_explanation_human_review_pending"
-                    )
                 if dirty or not owned:
                     observation.update(
                         status="NOT_RUN",
@@ -1368,6 +1607,8 @@ async def _cdp_live(item, owned=None):
                         },
                         "UI_rendered_elements_or_screen_recording": common
                         | {
+                            "renderedElements": rendered_answer,
+                            "conditionLabels": condition_labels,
                             "labels": labels,
                             "screenshot": {
                                 "sha256": hashlib.sha256(image).hexdigest(),
@@ -1420,11 +1661,24 @@ def run_captured_server():
     from langchain_core.callbacks.base import BaseCallbackHandler
 
     sys.path.insert(0, str(ROOT / "backend/chatbot"))
-    from app.clients.catalog_client import CatalogClient
+    import httpx
+
     from app.core.observability import catalog_tool_call_id, request_id_var
     from app.main import app
     from app.services import chat_service
     from tests.g1_e3_live_driver import ObservedGraph
+
+    print(
+        json.dumps(
+            {
+                "msg": "g1_e5_runtime_source",
+                "request_id": "runtime",
+                "driver_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+                "sourcePath": str(Path(__file__).resolve()),
+            }
+        ),
+        flush=True,
+    )
 
     class RequestGraphCapture(BaseCallbackHandler):
         def __init__(self):
@@ -1454,22 +1708,38 @@ def run_captured_server():
             with self.lock:
                 self.active.pop(run_id, None)
 
-    original_search = CatalogClient.search_products
+    original_send = httpx.AsyncClient.send
 
-    async def observed_search(self, *, category=None, q="", ids=None):
-        rows = await original_search(self, category=category, q=q, ids=ids)
-        logging.getLogger("g1_e5_catalog").info(
-            "g1_e5_catalog_search",
-            extra={
-                "query": q,
-                "category": category,
-                "result_count": len(rows),
-                "tool_call_id": catalog_tool_call_id.get(),
-            },
-        )
-        return rows
+    async def observed_send(self, request, *args, **kwargs):
+        request_id = request_id_var.get()
+        call_id = catalog_tool_call_id.get()
+        response = await original_send(self, request, *args, **kwargs)
+        expected = httpx.URL(os.environ["CATALOG_API_URL"])
+        if (
+            request.url.scheme == expected.scheme
+            and request.url.host == expected.host
+            and request.url.port == expected.port
+            and request.url.path.rstrip("/") == "/api/products"
+            and response.status_code == 200
+        ):
+            try:
+                rows = response.json()["products"]
+            except (ValueError, KeyError, TypeError):
+                rows = None
+            if isinstance(rows, list):
+                logging.getLogger("app.clients.catalog_client").info(
+                    "g1_e5_catalog_search",
+                    extra={
+                        "request_id": request_id,
+                        "query": request.url.params.get("q", ""),
+                        "category": request.url.params.get("category"),
+                        "result_count": len(rows),
+                        "tool_call_id": call_id,
+                    },
+                )
+        return response
 
-    CatalogClient.search_products = observed_search
+    httpx.AsyncClient.send = observed_send
     chat_service.product_supervisor = ObservedGraph(
         chat_service.product_supervisor, RequestGraphCapture()
     )
@@ -1624,6 +1894,7 @@ def _owned_environment(inherited, file_values, catalog_url, app_port, chat_port)
             "CORS_ORIGINS": json.dumps([f"http://localhost:{app_port}"]),
             "PYTHONPATH": str(ROOT / "backend/chatbot"),
             "PYTHONUNBUFFERED": "1",
+            "PYTHONIOENCODING": "utf-8",
         }
     )
     return env
@@ -1697,6 +1968,13 @@ def _run_owned(item):
                     try:
                         decoded = line.decode("utf-8")
                         event = json.loads(decoded)
+                        if event.get("msg") == "g1_e5_runtime_source":
+                            diagnostics["driverSourceMatches"] = (
+                                event.get("driver_sha256")
+                                == hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+                                and Path(event.get("sourcePath", "")).resolve()
+                                == Path(__file__).resolve()
+                            )
                         request_id = event.get("request_id")
                         safe = _matching_server_events([decoded], request_id) if request_id else []
                         if safe:
@@ -1753,6 +2031,8 @@ def _run_owned(item):
                     chat_port, chat
                 ):
                     return blocked("owned_runtime_socket_pid_mismatch")
+                if diagnostics.get("driverSourceMatches") is not True:
+                    return blocked("owned_driver_source_not_verified")
                 os.environ.update(
                     {
                         "G1_E5_APP_URL": app_url,
@@ -1765,6 +2045,7 @@ def _run_owned(item):
                     "checkout": str(ROOT),
                     "gitCommit": commit,
                     "startedAt": started,
+                    "driverSha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                     "expoPid": expo_process.pid,
                     "chatbotPid": chat.pid,
                     "expoPort": app_port,

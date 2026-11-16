@@ -172,6 +172,17 @@ def run(item):
             observation.update(status="FAIL", failureReason="required_ar_proposal_not_produced")
     if result.returncode:
         observation.update(status="FAIL", failureReason="pytest_case_failed")
+    from tests.g1_e1_live_driver import observe_known_limitations
+
+    if observation["httpStatus"] == 200:
+        observation.update(
+            observe_known_limitations(
+                case["caseId"],
+                observation["response"],
+                f"{run_id}/predicate_observations.json",
+                observed.get("sourceProducts", []),
+            )
+        )
     common = {
         "runId": run_id,
         "gitCommit": git,
@@ -217,6 +228,7 @@ def run(item):
                 "legacyRequestId": observed.get("legacyRequestId"),
                 "detailScreenProductId": observed.get("detailScreenProductId"),
                 "sourceShadePairs": observed.get("sourceShadePairs"),
+                "sourceProducts": observed.get("sourceProducts"),
                 "shadeObservation": observed.get("shadeObservation"),
                 "securityObservations": observed.get("securityObservations"),
                 "auth": observed.get("auth"),

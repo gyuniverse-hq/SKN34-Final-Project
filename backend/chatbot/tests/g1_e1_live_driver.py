@@ -274,6 +274,97 @@ def detail_response_failure(case_id, payload, fixture):
     return None
 
 
+def observe_known_limitations(case_id, payload, evidence_ref, source_products=()):
+    """Audit only a fully matched bounded Korean answer, never arbitrary model prose."""
+    answer = payload.get("answer")
+    products = payload.get("products")
+    if not isinstance(answer, str) or not isinstance(products, list) or not evidence_ref:
+        return {}
+    segments = []
+    if case_id == "G1-CAT-06" and len(products) == 1:
+        sources = [p for p in source_products if p.get("id") == products[0].get("id")]
+        if len(sources) != 1:
+            return {}
+        source = sources[0]
+        price = source.get("priceKRW")
+        if not isinstance(price, int) or isinstance(price, bool):
+            return {}
+        reference = (
+            f"Catalog 기준가격: {price:,}원."
+            if price > 0
+            else "Catalog 기준가격을 확인할 수 없습니다."
+        )
+        provenance = (
+            "가상 테스트 fixture의 합성 가격이며 실제 상품 가격이 아닙니다."
+            if source.get("priceEvidence") == "synthetic-price"
+            else "가격 원본 출처와 검수 상태는 미확인입니다."
+        )
+        text = (
+            f"{source['brand']} {source['name']}\n{reference}\n"
+            f"오늘의 실제 판매가·판매처·확인 시각은 미확인입니다. {provenance}"
+        )
+        segments = [("reference_price_detail", text)]
+    elif case_id == "G1-CAT-13":
+        segments = [
+            (
+                "ingredient_unknown",
+                "검수된 전성분이 없어 해당 성분이나 알레르기 안전 여부는 확인할 수 없어요.",
+            )
+        ]
+    elif case_id in {"G1-CAT-02", "G1-CAT-05", "G1-CAT-10"} and products:
+        count = len(products)
+        found = (
+            f"카탈로그에서 참고할 후보 {count}개를 찾았어요."
+            if case_id == "G1-CAT-05"
+            else (
+                f"현재 카탈로그에서 조건에 맞는 후보 {count}개를 찾았어요. "
+                "표시 순서의 번호로 후속 질문을 할 수 있어요."
+            )
+        )
+        segments = [("candidate_count", found)]
+        if case_id == "G1-CAT-05":
+            segments.append(
+                (
+                    "fragrance_unknown",
+                    "별도의 검증된 근거가 없어 무향료 여부는 미확인입니다. "
+                    "전성분 목록에서 특정 성분명이 없다는 사실만으로 무향료라고 판단하지 않습니다.",
+                )
+            )
+        segments.append(
+            (
+                "reference_price_boundary",
+                "가격은 상품 기준가격이며 판매처·옵션에 따라 달라질 수 있어요.",
+            )
+        )
+        if case_id == "G1-CAT-02":
+            segments.append(
+                (
+                    "moisture_not_verified",
+                    "촉촉함 선호는 상품 설명·태그를 참고한 정렬이며 "
+                    "실제 보습 효과를 보장하지 않습니다.",
+                )
+            )
+    if not segments or answer != " ".join(text for _, text in segments):
+        return {}
+    return {
+        "responseEvidenceRef": evidence_ref,
+        "claimAudit": {
+            "complete": True,
+            "responseEvidenceRef": evidence_ref,
+            "method": "whole-answer exact segment coverage; no ingredient or effect verification",
+            "claims": [
+                {
+                    "kind": kind,
+                    "text": text,
+                    "verification": "OBSERVED_TEXT_ONLY",
+                    "evidenceRef": evidence_ref,
+                }
+                for kind, text in segments
+            ],
+        },
+    }
+
+
 def observe_detail_shades(case_id, payload, product_id, source_shades, fixture):
     """Collect response fields and exact listed names; missing prose evidence stays missing."""
     observation = {}
@@ -847,6 +938,12 @@ async def run(item):
         reason = detail_response_failure(case["caseId"], payload, fv)
         if reason:
             observation.update(status="FAIL", failureReason=reason)
+    if http_status == 200:
+        observation.update(
+            observe_known_limitations(
+                case["caseId"], payload, f"{run_id}/live_catalog_http_trace.json", selected_rows
+            )
+        )
     common = {
         "runId": run_id,
         "gitCommit": commit,

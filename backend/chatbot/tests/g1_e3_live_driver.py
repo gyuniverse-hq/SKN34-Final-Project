@@ -505,6 +505,14 @@ async def run(item):
         observation.update(
             {"status": "FAIL", "failureReason": "chat_endpoint_http_" + str(response.status_code)}
         )
+    from tests.g1_e1_live_driver import observe_known_limitations
+
+    if response.status_code == 200:
+        observation.update(
+            observe_known_limitations(
+                case["caseId"], payload, f"{run_id}/response_snapshot.json", source_products
+            )
+        )
     common = {
         "runId": run_id,
         "gitCommit": commit,

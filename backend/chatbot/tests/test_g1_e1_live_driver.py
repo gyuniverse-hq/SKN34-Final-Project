@@ -3,17 +3,53 @@
 import asyncio
 import json
 
+import pytest
+
 from tests.g1_e1_live_driver import (
     FixtureModel,
     catalog_rows_match_db,
     detail_answer_shade_pairs,
     detail_ownership_matches,
     detail_response_failure,
+    observe_known_limitations,
     observe_reg07,
     product_identity_matches,
     response_shade_pairs,
     run,
 )
+
+
+@pytest.mark.parametrize(
+    "case_id,answer",
+    [
+        ("G1-CAT-13", "검수된 전성분이 없어 해당 성분이나 알레르기 안전 여부는 확인할 수 없어요."),
+        (
+            "G1-CAT-10",
+            "현재 카탈로그에서 조건에 맞는 후보 1개를 찾았어요. "
+            "표시 순서의 번호로 후속 질문을 할 수 있어요. "
+            "가격은 상품 기준가격이며 판매처·옵션에 따라 달라질 수 있어요.",
+        ),
+    ],
+)
+def test_known_limitations_require_whole_answer_and_evidence(case_id, answer):
+    payload = {"answer": answer, "products": [{"id": "p"}]}
+    observed = observe_known_limitations(case_id, payload, "run/response.json")
+    assert observed["claimAudit"]["complete"] is True
+    assert observed["claimAudit"]["claims"]
+    assert " ".join(c["text"] for c in observed["claimAudit"]["claims"]) == answer
+    assert all(c["verification"] != "VERIFIED" for c in observed["claimAudit"]["claims"])
+    for changed in (
+        "",
+        answer + " 무향료 제품입니다.",
+        answer + " 현재 판매가입니다.",
+        answer.replace("확인할 수 없어요", "확인했어요") + "추가",
+    ):
+        assert (
+            observe_known_limitations(case_id, payload | {"answer": changed}, "run/response.json")
+            == {}
+        )
+    assert observe_known_limitations(case_id, payload, "") == {}
+    assert observe_known_limitations(case_id, {"answer": answer}, "run/response.json") == {}
 
 
 def test_product_identity_must_match_read_only_database_rows():
@@ -22,6 +58,41 @@ def test_product_identity_must_match_read_only_database_rows():
     assert not product_identity_matches([product], [])
     assert not product_identity_matches([product], [product | {"brand": "other"}])
     assert not product_identity_matches([product], [product | {"category": "eye"}])
+
+
+def test_price_limitations_need_the_same_product_and_reference_price():
+    source = {"id": "p", "brand": "브랜드", "name": "제품", "priceKRW": 12000}
+    payload = {
+        "products": [{"id": "p"}],
+        "answer": "브랜드 제품\nCatalog 기준가격: 12,000원.\n"
+        "오늘의 실제 판매가·판매처·확인 시각은 미확인입니다. "
+        "가격 원본 출처와 검수 상태는 미확인입니다.",
+    }
+    assert observe_known_limitations("G1-CAT-06", payload, "r/response.json", [source])[
+        "claimAudit"
+    ]["complete"]
+    assert observe_known_limitations("G1-CAT-06", payload, "r/response.json", []) == {}
+    assert (
+        observe_known_limitations(
+            "G1-CAT-06", payload, "r/response.json", [source | {"id": "other"}]
+        )
+        == {}
+    )
+    assert (
+        observe_known_limitations(
+            "G1-CAT-06", payload, "r/response.json", [source | {"priceKRW": 13000}]
+        )
+        == {}
+    )
+    assert (
+        observe_known_limitations(
+            "G1-CAT-06",
+            payload | {"answer": payload["answer"] + " 오늘 할인 중입니다."},
+            "r/response.json",
+            [source],
+        )
+        == {}
+    )
 
 
 def test_fixture_plan_explicitly_uses_case_arguments():

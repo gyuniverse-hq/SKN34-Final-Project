@@ -10,6 +10,75 @@ from tests.g1_e5_live_driver import bind, run
 from tests.run_g1_evaluation import CONTRACT, read_jsonl
 
 
+def test_ui02_missing_browser_response_never_completes(monkeypatch):
+    import asyncio
+
+    from tests.g1_e5_live_driver import _exercise_ui02
+
+    commands = []
+
+    async def call(method, params=None):
+        commands.append(method)
+        return {}
+
+    async def js(expression):
+        return "loading"
+
+    async def noop(*args):
+        return None
+
+    monkeypatch.setattr(asyncio, "sleep", noop)
+    result = asyncio.run(_exercise_ui02(call, js, noop, [], "fixture", "http://localhost:8403"))
+    assert result["reason"] == "TimeoutError:ui02_collection_incomplete"
+    assert "ui" not in result
+    assert commands[-1] == "Fetch.disable"
+
+
+def test_ui02_expected_fault_requires_actual_error_ui(monkeypatch):
+    import asyncio
+    import base64
+
+    from tests.g1_e5_live_driver import _exercise_ui02
+
+    network = [
+        {
+            "method": "Fetch.requestPaused",
+            "params": {
+                "requestId": str(i),
+                "networkId": str(i),
+                "responseStatusCode": 200,
+                "responseHeaders": [{"name": "x-request-id", "value": str(i)}],
+                "request": {
+                    "method": "POST",
+                    "url": "http://localhost:8403/api/chat",
+                    "postData": '{"message":"fixture"}',
+                },
+            },
+        }
+        for i in (1, 2)
+    ]
+
+    async def call(method, params=None):
+        if method == "Fetch.getResponseBody":
+            return {"body": '{"answer":"fixture","products":[{"id":"p"}]}'}
+        if method == "Page.captureScreenshot":
+            return {"data": base64.b64encode(b"\x89PNG\r\n\x1a\nsynthetic-test").decode()}
+        return {}
+
+    async def js(expression):
+        return [] if "querySelectorAll" in expression else "fixture without error UI"
+
+    async def noop(*args):
+        return None
+
+    monkeypatch.setattr(asyncio, "sleep", noop)
+    result = asyncio.run(
+        _exercise_ui02(call, js, noop, network, "fixture", "http://localhost:8403")
+    )
+    assert result["failureReason"] == "ui02_error_retry_control_missing"
+    assert "ui" not in result
+
+
 def test_screen_entry_uses_real_deep_link_and_resolves_foreign_shade():
     from tests.g1_e5_live_driver import _screen_entry
 
@@ -138,7 +207,8 @@ def test_local_endpoints_reject_nonlocal_and_credentials():
             _local_http_url(endpoint)
 
 
-def test_real_trace_join_requires_model_http_and_matching_tool_call():
+@pytest.mark.parametrize("detail", [False, True])
+def test_real_trace_join_requires_model_http_and_matching_tool_call(detail):
     from tests.g1_e5_live_driver import _matching_server_events, _verified_catalog_trace
 
     events = [
@@ -153,7 +223,7 @@ def test_real_trace_join_requires_model_http_and_matching_tool_call():
         {
             "msg": "catalog_http",
             "request_id": "r",
-            "path": "/api/products",
+            "path": "/api/products/{productId}" if detail else "/api/products",
             "status": 200,
             "tool_call_id": "call1",
         },
@@ -165,10 +235,15 @@ def test_real_trace_join_requires_model_http_and_matching_tool_call():
     lines = [json.dumps(e) for e in events]
     trace = _matching_server_events(lines, "r")
     assert len(trace) == 5
-    assert _verified_catalog_trace(trace)
-    assert not _verified_catalog_trace(trace[:-1])
-    assert not _verified_catalog_trace([trace[0], trace[1] | {"tool_call_id": "other"}, *trace[2:]])
-    assert not _verified_catalog_trace([trace[0], trace[1] | {"status": 503}, *trace[2:]])
+    assert _verified_catalog_trace(trace, detail=detail)
+    assert not _verified_catalog_trace(trace, detail=not detail)
+    assert not _verified_catalog_trace(trace[:-1], detail=detail)
+    assert not _verified_catalog_trace(
+        [trace[0], trace[1] | {"tool_call_id": "other"}, *trace[2:]], detail=detail
+    )
+    assert not _verified_catalog_trace(
+        [trace[0], trace[1] | {"status": 503}, *trace[2:]], detail=detail
+    )
 
 
 def test_shared_log_reader_and_redaction(tmp_path):
