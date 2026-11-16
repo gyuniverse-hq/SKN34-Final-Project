@@ -114,7 +114,14 @@ async def choose_g1_turn(request: ChatRequest, complete_with_tools) -> G1ModelTu
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": request.message},
     ]
-    required_search = _requires_catalog_search(request.message)
+    # A request about the displayed product may legitimately use the detail tool.
+    screen_detail = bool(
+        screen
+        and screen.product_id
+        and re.search(r"(?:이|현재|지금\s*보는|화면(?:의)?)\s*(?:상품|제품)", request.message)
+        and not re.search(r"추천|검색|찾아|다른|비슷한|대신", request.message)
+    )
+    required_search = _requires_catalog_search(request.message) and not screen_detail
     try:
         result, duration = await complete_with_tools(messages, tools)
         choice = result["choices"][0]

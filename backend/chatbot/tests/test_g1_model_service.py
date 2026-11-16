@@ -308,3 +308,56 @@ async def test_explanation_and_catalog_search_for_other_questions(
     assert explanation in result.answer
     assert [p.id for p in result.products] == ["a"]
     assert calls == ["model", "catalog", "explanation"]
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "message,allowed",
+    [
+        ("이 상품 02호 보여줘", True),
+        ("현재 상품 색상 보여줘", True),
+        ("이 상품 대신 다른 립 제품 추천해줘", False),
+        ("립 제품 보여줘", False),
+    ],
+)
+async def test_screen_detail_is_not_forced_to_list_search(message, allowed):
+    from app.services.g1_model_service import choose_g1_turn
+
+    async def complete(*args, **kwargs):
+        return {
+            "id": "fixture",
+            "model": "fixture",
+            "choices": [
+                {
+                    "finish_reason": "tool_calls",
+                    "message": {
+                        "tool_calls": [
+                            {
+                                "id": "detail",
+                                "type": "function",
+                                "function": {
+                                    "name": "catalog_get_product_detail",
+                                    "arguments": "{}",
+                                },
+                            }
+                        ]
+                    },
+                }
+            ],
+        }, 1
+
+    request = ChatRequest.model_validate(
+        {
+            "message": message,
+            "locale": "ko",
+            "requestType": "chat",
+            "screenContext": {"productId": "product", "shadeId": "02"},
+        }
+    )
+    if allowed:
+        turn = await choose_g1_turn(request, complete)
+        assert turn.tool_name == "catalog_get_product_detail"
+        assert turn.plan.intent == "detail"
+    else:
+        with pytest.raises(ApiError):
+            await choose_g1_turn(request, complete)
