@@ -1044,8 +1044,8 @@ async def execute_beauty(
     ids = [p.id for p in products]
     context = _context(filters, ids, now, scope_ids=scope_ids)
     answer = words["found"].format(count=len(products)) if products else words["empty"]
-    if g1 and products and filters.fragrance_free:
-        answer = f"카탈로그에서 참고할 후보 {len(products)}개를 찾았어요."
+    if g1 and products and (filters.fragrance_free or filters.moisturizing):
+        answer = f"카탈로그에서 확인 가능한 상품 후보 {len(products)}개를 찾았어요."
     if filters.fragrance_free:
         answer += " " + words["fragrance"]
     if products:

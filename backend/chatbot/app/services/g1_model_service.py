@@ -122,6 +122,10 @@ async def choose_g1_turn(request: ChatRequest, complete_with_tools) -> G1ModelTu
         and not re.search(r"추천|검색|찾아|다른|비슷한|대신", request.message)
     )
     required_search = _requires_catalog_search(request.message) and not screen_detail
+    # Offer search only for an actual search request; a vague or no-recommendation
+    # question must not let the model turn general advice into a Catalog lookup.
+    if not (_SEARCH_REQUEST.search(request.message) and not _NO_SEARCH.search(request.message)):
+        tools = [tool for tool in tools if tool["function"]["name"] == DETAIL_TOOL]
     try:
         result, duration = await complete_with_tools(messages, tools)
         choice = result["choices"][0]
@@ -161,6 +165,8 @@ async def choose_g1_turn(request: ChatRequest, complete_with_tools) -> G1ModelTu
             ):
                 raise ValueError("Invalid G1 tool call")
             args = call["function"]["arguments"]
+            if name not in {tool["function"]["name"] for tool in tools}:
+                raise ValueError("Unavailable G1 tool")
             if required_search and name != SEARCH_TOOL:
                 raise ValueError("Expected the Catalog search tool")
             if name == SEARCH_TOOL:

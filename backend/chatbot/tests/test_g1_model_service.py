@@ -101,11 +101,15 @@ async def test_g1_provider_tool_protocol_and_catalog_boundary(monkeypatch, varia
         if request.method == "GET":
             return httpx.Response(200, json={"products": [row("a")]})
         payload = json.loads(request.content)
-        assert payload["store"] is False and payload["parallel_tool_calls"] is False
+        assert payload["store"] is False
+        assert payload.get("parallel_tool_calls") == (None if variant == "general" else False)
         assert payload["reasoning_effort"] == "none"
-        assert [tool["function"]["name"] for tool in payload["tools"]] == [
-            "catalog_search_products"
-        ]
+        if variant == "general":
+            assert "tools" not in payload
+        else:
+            assert [tool["function"]["name"] for tool in payload["tools"]] == [
+                "catalog_search_products"
+            ]
         if variant == "general":
             message = {"content": "립밤을 얇게 바른 뒤 립스틱을 소량 발라 보세요."}
             finish = "stop"
@@ -361,3 +365,109 @@ async def test_screen_detail_is_not_forced_to_list_search(message, allowed):
     else:
         with pytest.raises(ApiError):
             await choose_g1_turn(request, complete)
+
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "message",
+    [
+        "추천은 하지 말고 립 틴트랑 립스틱의 차이만 알려줘",
+        "좀 분위기 있는 느낌으로 하고 싶어",
+    ],
+)
+async def test_general_questions_cannot_trigger_catalog_search(monkeypatch, message):
+    from app.services.g1_model_service import choose_g1_turn
+
+    async def complete(messages, tools):
+        assert tools == []
+        return {
+            "id": "fixture-response",
+            "model": "fixture-model",
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "message": {"content": "취향을 알려주시면 방향을 함께 정할게요."},
+                }
+            ],
+        }, 1
+
+    turn = await choose_g1_turn(ChatRequest(message=message, locale="ko"), complete)
+    assert turn.plan.intent == "general"
+    assert turn.tool_call_id is None
+
+
+@pytest.mark.anyio
+async def test_general_question_rejects_unoffered_catalog_tool():
+    from app.services.g1_model_service import choose_g1_turn
+
+    async def complete(messages, tools):
+        assert tools == []
+        return {
+            "id": "fixture-response",
+            "model": "fixture-model",
+            "choices": [
+                {
+                    "finish_reason": "tool_calls",
+                    "message": {
+                        "tool_calls": [{
+                            "id": "unoffered-call",
+                            "type": "function",
+                            "function": {
+                                "name": "catalog_search_products",
+                                "arguments": '{"category":"base"}',
+                            },
+                        }]
+                    },
+                }
+            ],
+        }, 1
+
+    with pytest.raises(ApiError) as error:
+        await choose_g1_turn(
+            ChatRequest(message="좀 분위기 있는 느낌으로 하고 싶어", locale="ko"),
+            complete,
+        )
+    assert error.value.code == "invalid_tool_result"
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    'message,answer',
+    [
+        (
+            '추천은 하지 말고 립 틴트랑 립스틱의 차이만 알려줘',
+            '립 틴트는 착색이 남는 편이고 립스틱은 색과 질감 표현이 다양해요.',
+        ),
+        (
+            '좀 분위기 있는 느낌으로 하고 싶어',
+            '차분한 로즈와 브라운 중 어떤 방향을 원하세요?',
+        ),
+    ],
+)
+async def test_general_requests_return_answer_without_catalog_cards(monkeypatch, message, answer):
+    monkeypatch.setattr(get_settings(), 'g1_supervisor_enabled', True)
+    observed = []
+
+    def handler(request):
+        observed.append((request.method, request.url.path))
+        assert request.method == 'POST'
+        payload = json.loads(request.content)
+        assert 'tools' not in payload
+        return httpx.Response(
+            200,
+            json={
+                'id': 'completion-fixture',
+                'model': 'model-fixture',
+                'choices': [{'finish_reason': 'stop', 'message': {'content': answer}}],
+            },
+        )
+
+    service = ChatService(
+        None,
+        LlmClient('http://provider.test/v1', 'fixture', 'gpt-6-luna', 5),
+        catalog_client(monkeypatch, handler),
+    )
+    response = await service.answer(ChatRequest(message=message, locale='ko'))
+    assert response.answer == answer
+    assert response.products == []
+    assert observed == [('POST', '/v1/chat/completions')]

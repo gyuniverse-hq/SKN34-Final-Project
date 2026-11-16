@@ -222,3 +222,23 @@ async def test_foreign_screen_shade_returns_safe_clarification(monkeypatch, kind
         assert valid_body["resultType"] == "product_detail"
         assert valid_body["chatContext"]["shadeSelections"] == {"a": "real-shade"}
         assert calls == ["/api/products/a", "/api/products/a"]
+
+
+
+@pytest.mark.anyio
+async def test_g1_moisture_preference_does_not_claim_verified_match(monkeypatch):
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", True)
+
+    def handler(request):
+        return httpx.Response(200, json={"products": [row("a")]})
+
+    response = await ChatService(
+        None,
+        PlanLlm(intent="search", category="lip", moisturizing=True, maxPriceKRW=20000),
+        catalog_client(monkeypatch, handler),
+    ).answer(ChatRequest(message="2만원 이하 촉촉한 립 추천해줘", locale="ko"))
+
+    assert [product.id for product in response.products] == ["a"]
+    assert "조건에 맞는 후보" not in response.answer
+    assert "확인 가능한 상품 후보" in response.answer
+    assert "보습 효과를 보장하지" in response.answer

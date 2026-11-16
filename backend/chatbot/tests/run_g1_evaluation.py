@@ -356,6 +356,16 @@ def evaluate(cases, observations, registry, reviews=(), *, evidence_root=None):
                 blocker, blocked_reason = "BLOCKED_DATA", "catalog_fixture_fingerprint_mismatch"
                 observed = None
         results = {name: grade(name, observed) for name in names}
+        trace = observed.get("trace") if observed else None
+        tool_calls = trace.get("tools") if isinstance(trace, dict) else None
+        forbidden_tools = set(case["expected"].get("forbiddenTools", []))
+        forbidden_tool_called = bool(
+            isinstance(tool_calls, list)
+            and any(
+                isinstance(call, dict) and call.get("name") in forbidden_tools
+                for call in tool_calls
+            )
+        )
         statuses = set(results.values())
         human_status = _human_status(case, key, observed, reviews) if human else None
         refs = observed.get("evidenceRefs", {}) if observed else {}
@@ -394,6 +404,7 @@ def evaluate(cases, observations, registry, reviews=(), *, evidence_root=None):
         elif capture_ok and (
             ((case["caseId"] != "G1-REG-07" or evidence_ok) and "FAIL" in statuses)
             or human_status == "FAIL"
+            or forbidden_tool_called
             or invalid_answer
             or (
                 capture_ok
@@ -423,6 +434,7 @@ def evaluate(cases, observations, registry, reviews=(), *, evidence_root=None):
             "environment": key[2],
             "status": status,
             "predicates": results,
+            "forbiddenToolCalled": forbidden_tool_called if capture_ok else None,
             "humanGate": human_status,
             "blockedReason": blocked_reason,
         }

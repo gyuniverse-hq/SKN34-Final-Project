@@ -39,10 +39,11 @@ class LlmClient:
         payload = {
             "model": self._model,
             "messages": messages,
-            "tools": tools,
-            "parallel_tool_calls": False,
             "store": False,
         }
+        if tools:
+            payload["tools"] = tools
+            payload["parallel_tool_calls"] = False
         if self._model == "gpt-6-luna":
             # This model accepts Chat Completions function tools with reasoning disabled.
             payload["reasoning_effort"] = "none"

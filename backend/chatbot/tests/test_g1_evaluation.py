@@ -646,3 +646,52 @@ def test_e2_foreign_response_is_bound_to_its_existing_trace(tmp_path):
     artifact["contentSha256"] = content_digest(artifact["content"])
     trace_path.write_text(json.dumps(artifact), encoding="utf-8")
     assert report()["status"] == "NOT_RUN"
+
+
+
+def test_forbidden_catalog_search_is_failure_even_with_other_missing_observations(tmp_path):
+    cases, registry = load_contract()
+    case = next(case for case in cases if case["caseId"] == "G1-GEN-07")
+    required = case["evidenceByEnvironment"]["E0"]["requiredArtifacts"]
+    observation = {
+        "caseId": case["caseId"],
+        "caseRevision": case["caseRevision"],
+        "variantId": "default",
+        "environment": "E0",
+        "runId": "forbidden-search",
+        "isMock": True,
+        "response": {"answer": "어떤 분위기를 원하시나요?", "products": []},
+        "trace": {
+            "complete": False,
+            "tools": [{"name": "catalog.search_products", "callId": "call-1"}],
+        },
+        "evidenceRefs": {name: f"{name}.json" for name in required},
+    }
+    for name, path in observation["evidenceRefs"].items():
+        content = {"observed": True}
+        artifact = {
+            "caseId": case["caseId"],
+            "caseRevision": case["caseRevision"],
+            "variantId": "default",
+            "environment": "E0",
+            "runId": observation["runId"],
+            "observationSha256": observation_digest(observation),
+            "artifactType": name,
+            "content": content,
+            "contentSha256": content_digest(content),
+        }
+        (tmp_path / path).write_text(json.dumps(artifact), encoding="utf-8")
+
+    def verdict(row):
+        return next(
+            item for item in evaluate([case], [row], registry, evidence_root=tmp_path)
+            if item["environment"] == "E0"
+        )
+
+    result = verdict(observation)
+    assert result["status"] == "FAIL"
+    assert result["forbiddenToolCalled"] is True
+
+    # Missing tool observation is never treated as proof that no search happened.
+    missing = observation | {"trace": {"complete": False}}
+    assert verdict(missing)["status"] == "NOT_RUN"
