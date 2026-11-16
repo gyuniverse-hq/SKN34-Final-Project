@@ -1,0 +1,274 @@
+{
+  "schemaVersion": "g1-eval-contract-0.3-structure-only",
+  "status": "REVIEW_REVISED_NOT_GOLD_NOT_EXECUTABLE",
+  "gStage": "G1",
+  "firstLanguage": "ko",
+  "sourceDesignCommit": "fef623f23b8b54770a821ef999fdcfa4527fdbfc",
+  "sourceCodeBranch": "develop",
+  "sourceCodeSnapshot": "d1cf4868f74d2ff6db188bf2c7646146f3ec72ad",
+  "dbSnapshotPolicy": "E1/E3/E5 평가 수행 시 별도의 실 Catalog DB 환경·기준 시각·snapshot hash·Alembic 버전·상품/셰이드 fixture ID를 추가 수집하고 결과에 첨부. 이전 Supabase 개수와 동일하다고 추정하지 않음.",
+  "testsFile": "g1_cases_PROPOSED.jsonl",
+  "caseCount": 47,
+  "countsByFamily": {
+    "conversation": 12,
+    "catalog": 14,
+    "fault": 10,
+    "suite": 11
+  },
+  "environmentContract": {
+    "E0": "Mock/synthetic unit",
+    "E1": "Real Catalog API+PostgreSQL",
+    "E2": "Real Neo4j/Redis if pathway used",
+    "E3": "Actual LLM+Tool trace",
+    "E4": "RAG (not G1 new feature)",
+    "E5": "Actual app UI",
+    "E6": "Android/iOS real device separate",
+    "E7": "Team joint E2E separate"
+  },
+  "caseStatuses": [
+    "PROPOSED",
+    "REVIEWED",
+    "APPROVAL_CANDIDATE",
+    "GOLD_APPROVED",
+    "HOLD"
+  ],
+  "runStatuses": [
+    "PASS",
+    "FAIL",
+    "BLOCKED",
+    "NOT_RUN",
+    "NOT_APPLICABLE"
+  ],
+  "runnerRules": [
+    "Structure-only validator never executes E0-E7 tests or predicates; 70 registry entries have no implementation (NOT_RUN).",
+    "For each case+requiredVariant+requiredEnvironment, every declared predicate must return a run-scoped observation; unknown predicate and missing observation are NOT_RUN/BLOCKED, not PASS.",
+    "Before E1/E3/E5, bind reviewed actual Catalog snapshot and assert fixtureRowSha256, option/shade ownership and API payload match; drift=BLOCKED_DATA.",
+    "E3 requires genuine model ID, provider span and isMock=false; Catalog may still be mocked in a separately labeled fault-injection run but that is not E1.",
+    "General counseling P0 core compliance requires human binary assessment on E3 answers, not only schema and routing.",
+    "G1-CAT-01 must pass both free_chat and category_entry request types in each required environment.",
+    "Use separate E0, E1, E2, E3, E5 results and runId; never promote mock/fixture, database access, LLM call or app success to another environment.",
+    "Fail closed on invalid sessions, stale fixture, unapproved evidence and unknown result ownership.",
+    "G1 does not demand G2/G3/G4/G5/G8 complete implementations; preserve existing /api/chat AR/ACK/session behavior.",
+    "Never transmit AIHub 71961 unapproved material or real account secrets to logs or external providers."
+  ],
+  "fixtureManifestTemplate": {
+    "catalogEnvId": null,
+    "sourceSnapshotId": null,
+    "snapshotObservedAt": null,
+    "gitCommit": null,
+    "alembicVersion": null,
+    "productId": null,
+    "shadeId": null,
+    "foreignShadeId": null,
+    "fixtureSelectionReview": {
+      "reviewer": null,
+      "reviewedAt": null,
+      "notes": "Runtime preflight must bind one reviewed actual Catalog snapshot and reject drift."
+    }
+  },
+  "designReviewState": "4-2_CONTRACT_REVIEW_REVISED;USER_FINAL_APPROVAL_PENDING",
+  "predicateCount": 70,
+  "implementedPredicateCount": 0,
+  "runnerImplemented": false,
+  "validationScope": "STATIC_CONTRACT_ONLY;NO_E0_E7_FUNCTIONAL_TESTS",
+  "catalogFixtureBinding": {
+    "bindingStatus": "ROW_OBSERVED_REPRODUCIBLE_PREFLIGHT_REQUIRED",
+    "sourceKind": "single_connected_supabase_observation_NOT_TEAM_DB_OR_PRODUCTION",
+    "sourceEnvironmentRef": "${CATALOG_OBSERVED_ENV_REF}",
+    "observedAtUTC": "2026-11-15T12:15:40.621706Z",
+    "alembicVersion": "0022",
+    "catalogCountsAtObservation": {
+      "products": 7845,
+      "shades": 10561
+    },
+    "fixtureSnapshotId": "catalog-fixture-20261115T121540Z-alembic0022-1d906bb69de8d8de",
+    "fixtureRowSha256PostgresJsonbText": "1d906bb69de8d8ded140755c38c8ed64059e87d9548af4bcb8b09d8241e83166",
+    "fixtureRowValue": {
+      "brand": "멘소래담",
+      "nameKo": "[촉촉보습/진짜과즙] 멘소래담 립아이스 립밤 3.5g 3종",
+      "productId": "oy-a000000158790",
+      "category": "lip",
+      "priceKRW": 3200,
+      "shadeId": "a000000158790-001",
+      "shadeName": "레몬",
+      "shadeHex": "#FDDC43",
+      "foreignProductId": "oy-a000000247588",
+      "foreignShadeId": "05",
+      "foreignShadeName": "쿨앵두잼",
+      "foreignShadeHex": "#E1505C",
+      "targetContainsForeignShade": false
+    },
+    "sourceCodeGitCommit": "d1cf4868f74d2ff6db188bf2c7646146f3ec72ad",
+    "catalogSeedGitBlobSha": "f3ca4e5b01b0462c8638f53279bfa19cc4b4b8b5",
+    "catalogSeedGitPath": "backend/api/seed/catalog.json",
+    "reproductionSqlReadOnly": "WITH selected AS (\n SELECT p.id product_id,p.brand,p.name_ko,p.category,p.price_krw,\n        s.id shade_id,s.name shade_name,s.hex\n FROM public.products p JOIN public.shades s ON s.product_id=p.id\n WHERE p.id='oy-a000000158790' AND s.id='a000000158790-001'\n), foreign_shade AS (\n SELECT s.product_id foreign_product_id,s.id foreign_shade_id,\n        s.name foreign_shade_name,s.hex foreign_hex\n FROM public.shades s\n WHERE s.product_id='oy-a000000247588' AND s.id='05'\n), payload AS (\n SELECT jsonb_build_object(\n   'productId',a.product_id,'brand',a.brand,'nameKo',a.name_ko,\n   'category',a.category,'priceKRW',a.price_krw,\n   'shadeId',a.shade_id,'shadeName',a.shade_name,'shadeHex',a.hex,\n   'foreignProductId',b.foreign_product_id,\n   'foreignShadeId',b.foreign_shade_id,\n   'foreignShadeName',b.foreign_shade_name,\n   'foreignShadeHex',b.foreign_hex,\n   'targetContainsForeignShade',\n       (SELECT COUNT(*)>0 FROM public.shades s\n        WHERE s.product_id=a.product_id AND s.id=b.foreign_shade_id)) value\n FROM selected a CROSS JOIN foreign_shade b\n)\nSELECT value,encode(digest(value::text,'sha256'),'hex') fixture_sha256,\n       (SELECT version_num FROM public.alembic_version) alembic FROM payload;",
+    "snapshotIntegrityLevel": "selected_DB_rows_fingerprinted_not_full_DB_snapshot",
+    "requiredPreflight": [
+      "Run reproductionSqlReadOnly against the exact selected Catalog DB; exactly one row must match all fixture values and sha256.",
+      "Check that actual GET /api/products/{productId} response has matching productId, category, priceKRW, selected shadeId and its attributes.",
+      "Check that foreignShadeId belongs to foreignProductId and is absent from the target product shades (even if another unrelated product uses the same short shade ID).",
+      "Verify real GET /api/products?q=G1평가전용_없는립_20261115 yields 0 matches and nonexistent product ID is absent.",
+      "Record resolved env/gitCommit/dbSnapshotId/alembic/sourceHash/API base and product IDs for E1/E3/E5; do not inherit E0 PASS.",
+      "If any preflight value differs, return BLOCKED_DATA and require reviewer-approved rebinding; never silently choose a new product."
+    ],
+    "runtimeBindingPolicy": "FIXTURE.* resolves only after E1 preflight; E0 can use this pinned observed row as a synthetic/offline test fixture, marked E0, never E1.",
+    "sourceEnvironmentRefPolicy": "Supabase project reference is environment-local and must be supplied securely at E1 preflight; not committed. The product/shade IDs and observed row hash are observation metadata, not a full DB snapshot."
+  },
+  "sessionFixtureResolver": {
+    "bindingStatus": "DYNAMIC_FRESH_NOT_PRECREATED",
+    "createOnEachRun": true,
+    "sessionStore": "dedicated_isolated_Redis_in_E2;in_memory_equivalent_in_E0",
+    "ttlSecondsRange": [
+      1,
+      600
+    ],
+    "fixtureKeys": {
+      "SESSION.foreignSessionId": "server-issued UUID from active owner-A session",
+      "SESSION.foreignToken": "server-issued owner-A capability token; memory only, never log plaintext",
+      "SESSION.resultSetId": "server-issued active owner-A result set UUID",
+      "SESSION.stateVersion": "current owner-A session version integer",
+      "SESSION.expiresAt": "current owner-A expiresAt unix timestamp, must exceed run time",
+      "SESSION.issuedAt": "current owner-A context issuedAt unix timestamp",
+      "SESSION.sameOwnerSessionRef": "current valid owner-A session ref with capability token, used in repeat scenarios",
+      "SESSION.sameRequestId": "run-scoped UUID for exact replay and changed-payload conflict",
+      "SESSION.generalChatRequestId": "run-scoped UUID for legacy chat compatibility probe"
+    },
+    "ownerSetup": {
+      "ownerA": "test_principal_A_valid",
+      "ownerB": "test_principal_B_valid",
+      "relationship": "A != B; neither session expired",
+      "authMaterial": "generated by test harness, not committed"
+    },
+    "preflight": [
+      "Create owner-A with isolated test principal, bootstrap real beauty_consultation and capture fresh sessionRef and version.",
+      "Before foreign-owner request, verify now < expiresAt and owner-A can load the same session.",
+      "Send owner-B request with owner-A session ID/token while token still valid.",
+      "Require HTTP 403/chat_session_forbidden (not 410 expired), zero cross-user data, no Tool call or session mutation.",
+      "For REG-04/05 use owner-A same active session and same requestId; verify exact replay and changed-payload conflict without overwriting state.",
+      "If TTL expires, mark fixture BLOCKED_FIXTURE and recreate it; do not count that run as a successful 403 authorization check."
+    ],
+    "secretHandling": "Never commit plaintext sessionToken, bearer JWT, email, personal session ID; log hashes/opaque trace references only."
+  },
+  "arRegressionFixtureResolver": {
+    "bindingStatus": "REUSE_EXISTING_VALID_TEST_FIXTURE_RUNTIME",
+    "sourceTests": [
+      "backend/chatbot/tests/test_ar_ack.py",
+      "backend/chatbot/tests/test_ar_command.py"
+    ],
+    "fixtureKeys": {
+      "AR_COMMAND.requestId": "UUID generated for existing ar_command test",
+      "AR_COMMAND.validArContext": "valid complete existing ArContext fixture object, not catalog observed lip balm",
+      "AR_ACK.requestId": "requestId linked to existing command fixture",
+      "AR_ACK.commandId": "commandId linked to existing command fixture",
+      "AR_ACK.sessionId": "sessionId linked to existing command fixture",
+      "AR_ACK.actualStateVersion": "valid state version from existing command fixture"
+    },
+    "preflight": "Validate ar_command and ACK payload against current ChatRequest and ArAckRequest before requests; no new AR/STT/TTS implementation.",
+    "noDeviceClaim": "E0 regression is not physical AR application or E6 device verification."
+  },
+  "g1Cat01RequiredVariants": {
+    "caseId": "G1-CAT-01",
+    "requiredVariantIds": [
+      "category_entry",
+      "free_chat"
+    ],
+    "variantPassPolicy": "ALL_REQUIRED_IN_EACH_MANDATORY_ENV",
+    "rule": "Each E0/E1/E3/E5 must record variant-specific runId, trace, result and assertions; one path cannot substitute for the other."
+  },
+  "humanCoreGate": {
+    "status": "PROPOSED_P0_REQUIREMENT_NO_BASELINE_THRESHOLD",
+    "requiredCases": [
+      "G1-CAT-02",
+      "G1-CAT-05",
+      "G1-CAT-06",
+      "G1-CAT-13",
+      "G1-CAT-14",
+      "G1-GEN-01",
+      "G1-GEN-02",
+      "G1-GEN-03",
+      "G1-GEN-04",
+      "G1-GEN-05",
+      "G1-GEN-06",
+      "G1-GEN-07",
+      "G1-GEN-08",
+      "G1-GEN-09",
+      "G1-GEN-10",
+      "G1-GEN-11",
+      "G1-GEN-12",
+      "G1-RUN-02"
+    ],
+    "requiredMethod": "human_review_binary_ALL_CORE_BEHAVIORS + independent technical assertions",
+    "minimumReviewerCount": 1,
+    "requirementStatusValues": [
+      "PASS",
+      "FAIL",
+      "NOT_RUN",
+      "BLOCKED"
+    ],
+    "rule": "For required human cases, each required core behavior must be substantively satisfied (or accepted equivalent). Empty/generic/irrelevant answer fails; a schema-only PASS never makes the case PASS. Missing review remains NOT_RUN and blocks G1 PR merge.",
+    "softRatings": "0-4 quality dimensions informative; no arbitrary average quality threshold until real baseline is measured.",
+    "criticalFinding": "Fabrication, authorization breach, unsafe certainty or lying about AR execution always blocks even when rating average is high."
+  },
+  "runEvidenceContract": {
+    "separateExecutions": [
+      "E0",
+      "E1",
+      "E2",
+      "E3",
+      "E5"
+    ],
+    "requiredFields": [
+      "caseId",
+      "caseRevision",
+      "variantId",
+      "runId",
+      "environmentId",
+      "gitCommit",
+      "sourceSnapshotId",
+      "fixtureRowSha256",
+      "apiBaseRef",
+      "modelId",
+      "modelVersion",
+      "promptVersion",
+      "toolRegistryVersion",
+      "isMock",
+      "catalogIsMock",
+      "isSynthetic",
+      "traceRef",
+      "toolSpanRefs",
+      "httpTraceRefs",
+      "assertionResults",
+      "humanReviewRef",
+      "startedAt",
+      "endedAt",
+      "status",
+      "failureReason"
+    ],
+    "assertionStatusValues": [
+      "PASS",
+      "FAIL",
+      "NOT_RUN",
+      "BLOCKED",
+      "NOT_APPLICABLE"
+    ],
+    "joinBy": [
+      "caseId",
+      "caseRevision",
+      "variantId",
+      "environmentId",
+      "runId"
+    ],
+    "noImplicitPassAcrossEnvironments": true,
+    "neverLog": [
+      "AIHub_raw",
+      "plaintext_token",
+      "JWT",
+      "credentials",
+      "personal_user_images"
+    ],
+    "dataStatusValue": "Observation hash is a rebind gate, not proof of deployment or stable full DB snapshot."
+  },
+  "caseRevisionPolicy": "caseRevision=1 unchanged initial case; =2 CAT-09/CAT-14 behavior contract corrected; references are stable",
+  "contractReviewStatus": "LOGICAL_REVIEW_CLOSED__NOT_GOLD__NOT_EXECUTED",
+  "contractReviewNote": "4-2 design consistency/structure only. Implementation predicate count 0, runner not implemented, all runtime tests NOT_RUN."
+}

@@ -264,28 +264,42 @@ describe('face tracker page', () => {
     expect(script).toContain('lipDetailN = normalize(lipFormN + vec3(dT.x, dT.y, 0.0));');
     // 11-03 (5 still faces): the shine follows the lip's lines through the camera's own crease shading
     // (cavity), sparkles stay; the tilted normal, its satin mix and anisotropy did not help and stay off.
-    expect(script).toContain('float cav = pow(clamp(camL / max(wideL, 1e-4), 0.3, 2.0), uGlossCavity); formSpec *= cav; sheen *= cav;');
+    expect(script).toContain('cav = pow(clamp(camL / max(wideL, 1e-4), 0.3, 2.0), uGlossCavity); formSpec *= cav; sheen *= cav;');
     expect(script).toContain('glossCavity: 2,');
+    // 11-15: each finish has its own crease-following strength; the lip-care layer keeps careCavity.
+    expect(script).toContain('gl.uniform1f(u.uGlossCavity, careAny ? TUNING.careCavity : (lipMat.cavity ?? TUNING.glossCavity));');
+    expect(script).toContain('float fl = uLipFlake * flake(vUv, n, l, v) * uLightStrength * core * cav;');
     // 11-10: smooth finishes reflect a procedural room (light bars) on the lip form, cut by the lip's lines; a HUD button flips it.
     expect(script).toContain('glossEnv: 0, glossEnvSoft: 0.15, lipLineCount: 30, lipLineCut: 1,');
     expect(script).toContain('float formSpec = glossCap * (1.0 + envW * 2.0) * lobe * core');
     expect(script).toContain('lobe = mix(lobe, envLobe, envW);');
     expect(script).toContain('float peakness = mix(max(sharpK, sharpF), envPeak, envW);');
     expect(script).toContain('uniform vec4 uEnvGloss;');
-    expect(script).toContain("'1111-lash-visible'");
+    expect(script).toContain("'1115-lip-cavity'");
+    // 11-11 natural highlighter (user: the forehead highlight read as a white circle): the lift multiplies the camera pixel (its own
+    // colour and texture, never a white add) with headroom, the sheen and glints are the pixel's own colour, the forehead stays
+    // off hair and bangs, and the mask has no hard ellipse edge. hlNatural false keeps the old composite.
+    expect(script).toContain('hlNatural: true,');
+    expect(script).toContain("'    col *= 1.0 + hlA * room * uHlLift.x * mix(vec3(1.0), hue, uHlLift.y);',");
+    expect(script).toContain("'    col += soft * lobe * hlA * room * uHlGloss.x;',");
+    expect(script).toContain("'    hlA *= mix(1.0, smoothstep(uHlSkin.x, uHlSkin.y, texture2D(uFoundSkin, fuv).r), hlForehead);',");
+    expect(script).toContain("'  } else if (hlA > 0.002) {',");
+    expect(script).toContain("gl.uniform1f(u.uHlSkinOn, hl && foundSkinReady ? 1 : 0);");
+    expect(script).toContain('soft(f, side(f), u(0.15) * wide, u(0.05) * tall, a);');
+    expect(script).not.toContain('ellipse(f, up(f), u(0.055), u(0.033), 0.8);');
     // 11-11 highlighter by face type: mask 2 R is drawn from the face type and regions; the shader reads it, not mask 3.
     expect(script).toContain('hlFaceLayout: true,');
     expect(script).toContain('gl.uniform1f(u.uHlLegacy, TUNING.hlFaceLayout || !hlAreas ? 1 : 0);');
     expect(script).toContain("const hlLay = hl && !hlStyle && TUNING.hlFaceLayout ? hlLayout(hl.geometry, faceFitState) : null;");
     // The forehead sits above the brows (between 151 and 10), not centred below 151 toward the glabella.
-    expect(script).toContain('const f = lerp(U(151), U(10), 0.25);');
+    expect(script).toContain('const f = lerp(U(151), U(10), 0.15);');
     // The shape is read for the highlighter even while the shading personalization is off; the shading keeps no shapeP.
     expect(script).toContain("post({ type: 'face_fit', ratios: rounded, rec: out.rec, shape: hShape });");
     // 11-10 phone capture (looking up at the face): the top of the upper lip stayed unpainted. The camera edge may push the upper
     // landmark line out (capped, smoothed, only where 2 of 3 rays agree and none sits at the search cap); never the lower lip.
     expect(script).toContain('lipEdgePushUp: 0.5,');
-    expect(script).toContain('if (lipEdge.conf[r] > 0.7 && t > 1 && t < TUNING.lipEdgePushValid) v.push(t - 1);');
-    expect(script).toContain('if (push[j] > 0) return push[j];');
+    expect(script).toContain('if (lipEdge.conf[r] > 0.5 && t > 1 && t < TUNING.lipEdgePushValid) v.push((t - 1) * clamp((lipEdge.conf[r] - 0.5) / 0.3, 0, 1));');
+    expect(script).toContain('if (push[j] > 0) target = push[j];');
     // 11-10 lip oil / balm (zone.care from lib/lipCare.ts): see-through colour, shine with its own cover, neutral shine colour.
     expect(script).toContain("oil:     { roughness: 0.08, specular: 1.30");
     expect(script).toContain('if (zone.care) return (0.10 + 0.10 * clamp01(zone.intensity)) * clamp01(zone.care.tint) * 0.6;');
@@ -402,7 +416,8 @@ describe('face tracker page', () => {
     // Offline the paint edge was 2.1 px against ~8 px for the photo's own lip edge; 0.5 × blur was too crisp.
     expect(num('lipEdgeBlurK')).toBeGreaterThanOrEqual(0.8);
     expect(num('lipEdgeSoftMax')).toBeLessThanOrEqual(3);
-    expect(script).toContain('clamp(TUNING.lipEdgeBlurK * light.blur, 0.5, TUNING.lipEdgeSoftMax)');
+    // 11-13: the radius also scales with the lip thickness (close selfies), capped at max(lipEdgeSoftMax, lipEdgeSoftMaxK x thickness).
+    expect(script).toContain('Math.max(TUNING.lipEdgeBlurK * light.blur, TUNING.lipEdgeFeatherK * lipThickPx), 0.5, Math.max(TUNING.lipEdgeSoftMax, TUNING.lipEdgeSoftMaxK * lipThickPx)');
   });
 
   it('treats light reflected by the lip as lip, so it carries gloss and creases (device 10-25)', () => {
@@ -595,7 +610,12 @@ describe('face tracker page', () => {
     expect(script).toContain('c.save(); c.translate(2 * midU, 0); c.scale(-1, 1); drawSide(); c.restore();');
     expect(script).toContain('const inside = clamp01((faceFill[i] - 0.5) * 2);');
     // Intensity off → zero coverage (pixel untouched).
-    expect(script).toContain('gl.uniform1f(u.uHlCov, hl ? clamp01(hl.intensity) * TUNING.hlCoverage * hlGain : 0);');
+    // Intensity 0 → zero coverage (pixel untouched); natural mode maps the slider to hlSlider [0.5, 1.1] of the old linear strength.
+    // The video-look commit (c9a0f331) computes the coverage in two steps (an applicationProfile can reshape it) before the uniform.
+    expect(script).toContain('let hlCov = hl ? hlS * TUNING.hlCoverage * hlGain : 0;');
+    expect(script).toContain('gl.uniform1f(u.uHlCov, hlCov);');
+    expect(script).toContain('hlSlider: [0.5, 1.1],');
+    expect(script).toContain('const hlS = !TUNING.hlNatural ? hlI : hlI <= 0 ? 0 : (TUNING.hlSlider[0] + (TUNING.hlSlider[1] - TUNING.hlSlider[0]) * hlI) * Math.min(1, hlI / 0.05);');
     expect(script).toContain("gl.uniform1f(u.uContourCov, contourZ ? clamp01(contourZ.intensity) * (jawShade ? 0.85 : TUNING.contourCoverage) : 0);");
     expect(script).toContain('gl.uniform1f(u.uFoundCov, foundZ ? span(TUNING.foundCoverage) : 0);');
     expect(FACE_TRACKER_HTML).toContain('object-fit: cover');
@@ -946,7 +966,7 @@ describe('face tracker page', () => {
     expect(script).toContain("'      lipM *= 1.0 - band * max(notRed * pale * flatL, dark);',");
     expect(script.indexOf('if (TUNING.lipForm) drawLipForm(srcW, srcH);')).toBeLessThan(script.indexOf("c.globalCompositeOperation = 'multiply';"));
     // Pull-in never pushes the outer line out.
-    expect(script).toContain('return j % 10 === 0 || lipEdge.conf[r] <= 0.5 || t >= 1 ? 0 : -Math.min(1 - t, TUNING.lipEdgePullMax);');
+    expect(script).toContain('else target = j % 10 === 0 || t >= 1 ? 0 : -Math.min(1 - t, TUNING.lipEdgePullMax) * clamp((lipEdge.conf[r] - 0.35) / 0.3, 0, 1);');
 
     const ring = script.slice(script.indexOf('  function lipRing('), script.indexOf('  // Cubic curve through the ring'));
     const inner = script.slice(script.indexOf('  const lipInner = {'), script.indexOf('  // Lip outline in screen space'));
