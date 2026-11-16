@@ -386,6 +386,32 @@ def _verified_empty_search(events, query):
     )
 
 
+def _observed_catalog_http(events, request_id):
+    """Project actual request-bound HTTP events; never infer absent calls or effects."""
+    spans = [
+        {
+            "name": "catalog.search_products",
+            "method": e["method"],
+            "path": e["path"],
+            "status": e["status"],
+            "toolCallId": e["tool_call_id"],
+        }
+        for e in events
+        if e.get("msg") == "catalog_http"
+        and e.get("request_id") == request_id
+        and e.get("method") == "GET"
+        and e.get("path") == "/api/products"
+        and e.get("status") == 200
+        and e.get("tool_call_id")
+    ]
+    return {
+        "complete": False,
+        "completeDomains": ["catalogHttp"] if spans else [],
+        "requestId": request_id,
+        "catalogHttp": spans,
+    }
+
+
 def _response_hash(data):
     safe = _safe_response(data)
     raw = json.dumps(safe, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
@@ -1200,6 +1226,7 @@ async def _cdp_live(item, owned=None):
                         "sourceSnapshotId": fixed_db["catalogFixtureRef"],
                         "sourceProductIds": [],
                         "catalogResultCount": 0,
+                        "trace": _observed_catalog_http(events, server_id),
                         "ui": {"state": "empty", "cardIds": []}
                         if valid
                         else {"state": "unexpected", "observedCardLabels": card_labels},

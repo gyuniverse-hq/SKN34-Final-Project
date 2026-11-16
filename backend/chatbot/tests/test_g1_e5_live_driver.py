@@ -10,6 +10,32 @@ from tests.g1_e5_live_driver import bind, run
 from tests.run_g1_evaluation import CONTRACT, read_jsonl
 
 
+def test_empty_http_projection_requires_actual_request_bound_event():
+    from tests.g1_e5_live_driver import _observed_catalog_http
+
+    event = {
+        "msg": "catalog_http",
+        "request_id": "r",
+        "method": "GET",
+        "path": "/api/products",
+        "status": 200,
+        "tool_call_id": "call",
+    }
+    observed = _observed_catalog_http([event], "r")
+    assert observed["complete"] is False
+    assert observed["completeDomains"] == ["catalogHttp"]
+    assert observed["catalogHttp"][0]["name"] == "catalog.search_products"
+    assert "effects" not in observed
+    for events in (
+        [],
+        [event | {"request_id": "other"}],
+        [event | {"status": 502}],
+        [event | {"tool_call_id": None}],
+        [event | {"method": "POST"}],
+    ):
+        assert _observed_catalog_http(events, "r")["completeDomains"] == []
+
+
 def test_ui02_missing_browser_response_never_completes(monkeypatch):
     import asyncio
 
