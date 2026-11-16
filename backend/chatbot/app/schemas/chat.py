@@ -4,6 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 from pydantic.alias_generators import to_camel
 
+from app.core.config import get_settings
 from app.schemas.ar_geometry import STYLE_IDS
 from app.schemas.catalog import CatalogIngredients
 from app.schemas.style_recipe import StyleContext, StyleRecipe
@@ -134,16 +135,23 @@ class ChatRequest(ApiModel):
     @classmethod
     def ignore_ar_fields_for_chat(cls, data):
         # Older chat clients could send unrecognized fields; keep them inert.
-        if (
-            isinstance(data, dict)
-            and data.get("requestType", data.get("request_type", "chat")) != "beauty_consultation"
-        ):
+        if not isinstance(data, dict):
+            return data
+        request_type = data.get("requestType", data.get("request_type", "chat"))
+        session_chat = (
+            request_type == "chat"
+            and data.get("locale", "en") == "ko"
+            and get_settings().g1_supervisor_enabled
+        )
+        if request_type != "beauty_consultation" and not session_chat:
             data = {k: v for k, v in data.items() if k not in {"chatContext", "chat_context"}}
         if (
             isinstance(data, dict)
             and data.get("requestType", data.get("request_type", "chat")) == "chat"
         ):
             ar_fields = {"requestId", "request_id", "arContext", "ar_context"}
+            if session_chat:
+                ar_fields = {"arContext", "ar_context"}
             data = {k: v for k, v in data.items() if k not in ar_fields}
         return data
 

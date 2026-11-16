@@ -381,6 +381,19 @@ class ChatService:
     async def answer(self, req: ChatRequest, principal_key: str | None = None) -> ChatResponse:
         context = resolve_context(req)
         decision = route_intent(context)
+        # G2 reuses the authoritative shopping session, including its CAS and TTL.
+        # OFF and non-Korean chat keep their legacy stateless route.
+        if (
+            req.request_type == "chat"
+            and req.locale == "ko"
+            and get_settings().g1_supervisor_enabled
+            and self._sessions is not None
+            and req.style_context is None
+            and decision.intent in {"general", "product", "ingredient"}
+        ):
+            req = req.model_copy(update={"request_type": "beauty_consultation"})
+            context = resolve_context(req)
+            decision = route_intent(context)
         if req.request_type == "style_consultation" and decision.intent in {
             "product",
             "ingredient",
@@ -727,6 +740,9 @@ class ChatService:
             try:
                 state = await repo.load(owner, ref)
             except ApiError as exc:
+                if incoming.locale == "ko" and get_settings().g1_supervisor_enabled:
+                    # A supplied capability must be valid before any model or Catalog call.
+                    raise
                 if exc.code not in {"chat_session_unavailable", "chat_session_expired"}:
                     raise
                 load_error = exc
@@ -761,6 +777,20 @@ class ChatService:
         )
         decision.slots = model_turn.plan if model_turn else await self._interpret_beauty(req)
         slots = decision.slots
+        if (
+            state
+            and slots.intent == "general"
+            and req.locale == "ko"
+            and get_settings().g1_supervisor_enabled
+        ):
+            # General interludes do not retrieve unrequested products from the legacy graph.
+            try:
+                answer = await self._llm.complete(build_messages(req, []))
+            except UpstreamError as exc:
+                raise ApiError(502, "Chatbot is temporarily unavailable", "upstream_error") from exc
+            if not isinstance(answer, str) or not answer.strip():
+                raise ApiError(502, "Invalid general answer", "invalid_tool_result")
+            model_turn = G1ModelTurn(slots, answer=answer.strip())
         comparing = direct_comparison(req, slots)
         independent = (
             slots.intent == "general"
@@ -865,6 +895,17 @@ class ChatService:
         )
         result = response.supervisor.result
         ctx = response.chat_context
+        if (
+            state
+            and ctx is None
+            and slots.intent == "general"
+            and incoming.locale == "ko"
+            and get_settings().g1_supervisor_enabled
+        ):
+            # An intervening explanation must not discard the previous result set.
+            response.chat_context = state.context.model_copy(deep=True, update={"session": ref})
+            response.session_status = "unchanged"
+            return response
         if state and comparing and req.screen_context and req.screen_context.ingredient_comparison:
             response.chat_context = state.context.model_copy(deep=True, update={"session": ref})
             response.session_status = "unchanged"
