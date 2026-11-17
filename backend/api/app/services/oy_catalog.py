@@ -104,7 +104,7 @@ def build_oy_catalog(rows: list[OyProductInput]) -> OyCatalogBuild:
                 makeup_zone=paint,  # type: ignore[arg-type]
                 texture=texture,  # type: ignore[arg-type]
                 price_krw=price,
-                volume=(row.volume or "")[:50],
+                volume=row.volume or "",
                 shades=shades,
                 description="",
                 key_ingredients=[],

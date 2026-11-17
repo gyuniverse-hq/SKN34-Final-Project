@@ -180,7 +180,7 @@ def build_products(
                 "makeupZone": zone,
                 "texture": texture,
                 "priceKRW": min(latest_prices),
-                "volume": clean(raw["volume"])[:50],
+                "volume": clean(raw["volume"]),
                 "shades": shades,
                 "description": "",
                 # Full ingredient lists are not equivalent to curated key ingredients.
