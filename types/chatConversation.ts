@@ -39,6 +39,7 @@ export type ChatMessage = {
 
 export type ChatRequestSnapshot = {
   args: {
+    generalMakeup?: boolean;
     message: string;
     locale: NonNullable<ChatMessage['locale']>;
     category?: ChatCategory;

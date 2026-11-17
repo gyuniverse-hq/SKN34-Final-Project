@@ -68,6 +68,8 @@ class SearchPlan(SupervisorModel):
     )
     fragrance_free: bool | None = None
     moisturizing: bool | None = None
+    texture: Literal["matte"] | None = None
+    unsupported_conditions: list[str] = Field(default_factory=list, max_length=8)
     query: str | None = Field(default=None, max_length=80)
     ordinal: int | None = Field(default=None, ge=1, le=6)
     ingredient_name: str | None = Field(default=None, min_length=1, max_length=500)
@@ -85,8 +87,9 @@ class SearchPlan(SupervisorModel):
             "moisturizing",
             "query",
             "ingredientConditions",
+            "texture",
         ]
-    ] = Field(default_factory=list, max_length=6)
+    ] = Field(default_factory=list, max_length=7)
 
 
 class IntentDecision(SupervisorModel):

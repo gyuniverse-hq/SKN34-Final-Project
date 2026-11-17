@@ -1,6 +1,11 @@
 import { conditionsFromChatFilters, extractChatConditions } from '@/lib/chatConditions';
 
 describe('extractChatConditions', () => {
+  it('displays the retained product-level matte filter using an existing translation', () => {
+    expect(conditionsFromChatFilters({ category: null, maxPriceKRW: null,
+      fragranceFree: false, moisturizing: false, query: '', texture: 'matte',
+    }, (key) => key)).toEqual([{ kind: 'texture', required: true, text: 'ar.texture.matte' }]);
+  });
   it('displays retained ingredient predicates from effective server filters', () => {
     const conditions = conditionsFromChatFilters({ category: null, maxPriceKRW: null,
       fragranceFree: false, moisturizing: false, query: '',

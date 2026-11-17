@@ -369,7 +369,7 @@ function ChatConversation({ record, onRecent, onNew }: {
       (!retryCategory && !room.styleContext && !lookReference && !shopping && makeupTopic && technique);
     const requestCategory = original?.args.category ?? retryCategory ??
       (generalMakeup && room.category ? 'product' : lookReference ? 'style' : room.category);
-    const context = generalMakeup ? undefined : room.beautyContext;
+    const context = generalMakeup && !room.beautyContext?.session ? undefined : room.beautyContext;
     const focusedProduct = generalMakeup ? undefined : room.selection.screen ?? room.entryProduct;
     const lastReply = messages.at(-1);
     const comparing = /비교|차이|\bcompar(?:e|ison)\b|\bdiffer(?:s|ent|ence|ences)?\b|比較|違い|对比|比较|区别/i;
@@ -389,6 +389,7 @@ function ChatConversation({ record, onRecent, onNew }: {
       revision: room.selection.revision,
       args: {
         message: text, locale: language, category: requestCategory, requestId, expectedUserId: userId,
+        ...(generalMakeup ? { generalMakeup: true } : {}),
         ...(!generalMakeup && room.styleContext
           ? { styleContext: { ...room.styleContext } } : {}),
         ...(context ? { chatContext: { ...context, filters: { ...context.filters },

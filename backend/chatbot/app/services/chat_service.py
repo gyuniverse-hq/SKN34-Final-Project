@@ -36,6 +36,7 @@ from app.schemas.supervisor import (
     EvidenceRef,
     IntentDecision,
     ResolvedContext,
+    SearchPlan,
     Sufficiency,
     SupervisorResult,
     TaskPlan,
@@ -66,6 +67,45 @@ LANGUAGE = {"en": "English", "ko": "Korean", "ja": "Japanese", "zh": "Simplified
 MAX_TERMS = 8
 logger = logging.getLogger(__name__)
 _WORD = re.compile(r"[\w가-힣ぁ-んァ-ン一-龥]{2,}")
+
+# Route explicit G2 filter requests through the richer interpreter, not G1's first-search args.
+_G2_FILTER = re.compile(r"매트|matte|제형|지속력|워터프루프|waterproof|글로시|벨벳|새틴", re.I)
+_FILTER_CHANGE = re.compile(r"바꿔|바꾸|변경|조건|추천|찾아|골라|유지|빼|제외|말고")
+
+
+def _unsupported_g2_change(message: str, slots: SearchPlan) -> bool:
+    if slots.unsupported_conditions:
+        return True
+    changing = slots.intent in {"search", "refine"} or bool(_FILTER_CHANGE.search(message))
+    if changing and re.search(
+        r"지속력|워터프루프|waterproof|글로시|벨벳|새틴|더\s*매트", message, re.I
+    ):
+        return True
+    if changing and re.search(r"매트|matte|제형", message, re.I):
+        if "texture" in slots.clear_filters and slots.texture is None:
+            return False
+        if slots.texture != "matte" or re.search(r"매트\s*(?:말고|아닌|제외)", message):
+            return True
+    # A refine with no representable change must not renew the result and claim a match.
+    if re.search(r"다시\s*(?:추천|검색|찾아)", message):
+        return False
+    return slots.intent == "refine" and not (
+        slots.clear_filters
+        or any(
+            value is not None
+            for value in (
+                slots.category,
+                slots.max_price_krw,
+                slots.fragrance_free,
+                slots.moisturizing,
+                slots.texture,
+                slots.query,
+            )
+        )
+        or slots.ingredient_conditions
+        or slots.ingredient_name
+    )
+
 
 SYSTEM_PROMPT = """You are VISHUE's K-beauty shopping assistant for international visitors.
 Answer in {language}, in at most 5 short sentences.
@@ -381,6 +421,19 @@ class ChatService:
     async def answer(self, req: ChatRequest, principal_key: str | None = None) -> ChatResponse:
         context = resolve_context(req)
         decision = route_intent(context)
+        # G2 reuses the authoritative shopping session, including its CAS and TTL.
+        # OFF and non-Korean chat keep their legacy stateless route.
+        if (
+            req.request_type == "chat"
+            and req.locale == "ko"
+            and get_settings().g1_supervisor_enabled
+            and self._sessions is not None
+            and req.style_context is None
+            and decision.intent in {"general", "product", "ingredient"}
+        ):
+            req = req.model_copy(update={"request_type": "beauty_consultation"})
+            context = resolve_context(req)
+            decision = route_intent(context)
         if req.request_type == "style_consultation" and decision.intent in {
             "product",
             "ingredient",
@@ -727,6 +780,9 @@ class ChatService:
             try:
                 state = await repo.load(owner, ref)
             except ApiError as exc:
+                if incoming.locale == "ko" and get_settings().g1_supervisor_enabled:
+                    # A supplied capability must be valid before any model or Catalog call.
+                    raise
                 if exc.code not in {"chat_session_unavailable", "chat_session_expired"}:
                     raise
                 load_error = exc
@@ -741,6 +797,11 @@ class ChatService:
                 ):
                     raise ApiError(409, "Chat result set changed", "chat_session_conflict")
         req = incoming.model_copy(deep=True)
+        g2_enabled = req.locale == "ko" and get_settings().g1_supervisor_enabled
+        general_only = g2_enabled and req.general_makeup
+        if general_only:
+            req.screen_context = None
+            req.style_context = None
         # Client candidate lists/filters are never promoted into a server-owned snapshot.
         req.chat_context = state.context.model_copy(deep=True) if state else None
         context = resolve_context(req)
@@ -749,18 +810,56 @@ class ChatService:
             context.session_version = state.state_version
             context.result_set_id = str(state.result_set_id)
         decision = route_intent(context)
+        if general_only:
+            decision.intent = "general"
         if decision.intent == "compound":
             return await self._run_supervisor(req, context, decision)
         model_turn = (
             await self._choose_g1_turn(req)
             if ref is None
+            and not general_only
+            and not (
+                g2_enabled and _G2_FILTER.search(req.message) and _FILTER_CHANGE.search(req.message)
+            )
             and incoming.chat_context is None
             and req.style_context is None
             and decision.intent in {"general", "product", "ingredient"}
             else None
         )
-        decision.slots = model_turn.plan if model_turn else await self._interpret_beauty(req)
+        decision.slots = (
+            SearchPlan(intent="general")
+            if general_only
+            else model_turn.plan
+            if model_turn
+            else await self._interpret_beauty(req)
+        )
         slots = decision.slots
+        unsupported = g2_enabled and not general_only and _unsupported_g2_change(req.message, slots)
+        if unsupported:
+            slots = decision.slots = SearchPlan(intent="general")
+            model_turn = G1ModelTurn(
+                slots,
+                answer=(
+                    "요청한 조건 중 현재 확인하거나 적용할 수 없는 조건이 있어 변경하지 않았어요. "
+                    "상품에 등록된 매트 제형이나 가격 조건으로 "
+                    "바꾸거나, 적용할 조건을 구체적으로 알려 주세요."
+                ),
+            )
+        if (
+            (state or general_only)
+            and model_turn is None
+            and slots.intent == "general"
+            and req.locale == "ko"
+            and get_settings().g1_supervisor_enabled
+        ):
+            # General interludes do not retrieve unrequested products from the legacy graph.
+            try:
+                answer = await self._llm.complete(build_messages(req, []))
+            except UpstreamError as exc:
+                raise ApiError(502, "Chatbot is temporarily unavailable", "upstream_error") from exc
+            if not isinstance(answer, str) or not answer.strip():
+                raise ApiError(502, "Invalid general answer", "invalid_tool_result")
+            model_turn = G1ModelTurn(slots, answer=answer.strip())
         comparing = direct_comparison(req, slots)
         independent = (
             slots.intent == "general"
@@ -864,7 +963,20 @@ class ChatService:
             model_turn=model_turn,
         )
         result = response.supervisor.result
+        if unsupported:
+            response.result_type = "clarification"
         ctx = response.chat_context
+        if (
+            state
+            and ctx is None
+            and slots.intent == "general"
+            and incoming.locale == "ko"
+            and get_settings().g1_supervisor_enabled
+        ):
+            # An intervening explanation must not discard the previous result set.
+            response.chat_context = state.context.model_copy(deep=True, update={"session": ref})
+            response.session_status = "unchanged"
+            return response
         if state and comparing and req.screen_context and req.screen_context.ingredient_comparison:
             response.chat_context = state.context.model_copy(deep=True, update={"session": ref})
             response.session_status = "unchanged"
