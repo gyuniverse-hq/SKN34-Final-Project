@@ -119,7 +119,42 @@ class ProductEvidence(ArModel):
     fragrance_status: Literal["unknown"] = "unknown"
 
 
+class RecentChatMessage(ArModel):
+    id: ArIdentifier
+    role: Literal["user", "assistant"]
+    text: str = Field(min_length=1, max_length=2000)
+
+    @model_validator(mode="after")
+    def limit_user_text(self) -> Self:
+        if self.role == "user" and len(self.text) > 1000:
+            raise ValueError("User history exceeds 1000 characters")
+        return self
+
+
+class PendingClarification(ArModel):
+    id: UUID
+    missing_slot: Literal["product", "shade"]
+    product_id: ArIdentifier | None = None
+    result_set_id: UUID
+    created_request_id: UUID
+    created_state_version: int = Field(ge=1)
+    expires_at: int = Field(ge=0)
+    ingredient_conditions: list[IngredientFilter] = Field(default_factory=list, max_length=6)
+
+
 class ChatRequest(ApiModel):
+    recent_messages: list[RecentChatMessage] = Field(
+        default_factory=list, max_length=8, exclude_if=lambda v: not v
+    )
+    clarification_id: UUID | None = Field(default=None, exclude_if=lambda v: v is None)
+
+    @model_validator(mode="after")
+    def validate_recent_messages(self) -> Self:
+        ids = [m.id for m in self.recent_messages]
+        if len(ids) != len(set(ids)) or sum(len(m.text) for m in self.recent_messages) > 8000:
+            raise ValueError("Invalid recent conversation")
+        return self
+
     general_makeup: bool = Field(default=False, strict=True, exclude_if=lambda v: not v)
     message: str = Field(min_length=1, max_length=1000)
     locale: Locale = "en"
@@ -141,6 +176,13 @@ class ChatRequest(ApiModel):
             return data
         request_type = data.get("requestType", data.get("request_type", "chat"))
         g2_enabled = data.get("locale", "en") == "ko" and get_settings().g1_supervisor_enabled
+        if not g2_enabled or request_type not in {"chat", "beauty_consultation"}:
+            data = {
+                k: v
+                for k, v in data.items()
+                if k
+                not in {"recentMessages", "recent_messages", "clarificationId", "clarification_id"}
+            }
         if data.get("generalMakeup", data.get("general_makeup")) is True and not g2_enabled:
             # The app used to omit context for these requests; preserve that OFF contract.
             data = {k: v for k, v in data.items() if k not in {"chatContext", "chat_context"}}
@@ -296,6 +338,9 @@ class FragranceSearchSummary(ApiModel):
 
 
 class ChatResponse(ApiModel):
+    pending_clarification: PendingClarification | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
     style_status: Literal["ready", "clarification", "not_found", "error", "unsupported"] | None = (
         Field(default=None, exclude_if=lambda v: v is None)
     )
@@ -342,6 +387,9 @@ class ChatResponse(ApiModel):
 class ChatSessionState(ArModel):
     """Redis-only snapshot and one TTL-bound retry response, never a transcript archive."""
 
+    pending_clarification: PendingClarification | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
     session_id: UUID
     owner: str
     owner_kind: Literal["user", "guest"]
