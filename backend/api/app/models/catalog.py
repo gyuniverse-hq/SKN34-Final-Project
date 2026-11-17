@@ -29,7 +29,7 @@ class ProductRow(Base):
     makeup_zone: Mapped[str | None] = mapped_column(String(20))
     texture: Mapped[str | None] = mapped_column(String(20), nullable=True)
     price_krw: Mapped[int] = mapped_column(Integer)
-    volume: Mapped[str] = mapped_column(String(50))
+    volume: Mapped[str] = mapped_column(Text)
     description: Mapped[str] = mapped_column(Text)
     key_ingredients: Mapped[list[str]] = mapped_column(JsonType)
     tags: Mapped[list[str]] = mapped_column(JsonType)
