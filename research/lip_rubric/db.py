@@ -48,8 +48,13 @@ def import_pack(con, pack):
         existing_pack=con.execute('SELECT manifest_sha256,rubric_version FROM packs WHERE pack_id=?',(pack_id,)).fetchone()
         if existing_pack['manifest_sha256']!=manifest_hash or existing_pack['rubric_version']!=VERSION: raise ValueError('pack id reused with different manifest')
         for r in data:
-            benchmark_id=hashlib.sha256(json.dumps([r[x] for x in ('lapa_stem','face_id','kind','shade','image_sha256')],ensure_ascii=False).encode()).hexdigest()
+            identity=[r[x] for x in ('lapa_stem','face_id','kind','shade','image_sha256')]
+            if r.get('variant'):
+                identity.append(r['variant'])
+            benchmark_id=hashlib.sha256(json.dumps(identity,ensure_ascii=False).encode()).hexdigest()
             values={'image_id':r['random_id'],'file_sha256':sha256(rating/'images'/f"{r['random_id']}_full.png"),'lapa_stem':r['lapa_stem'],'face_id':r['face_id'],'kind':r['kind'],'shade':r['shade'],'hex':r['hex'],'finish':r['finish'],'mouth':r['mouth'],'ita':r['ita'] or None,'ita_bin':r['ita_bin'],'monk':r['monk'],'yaw':r['yaw'] or None,'split':r['split'],'repeat_of':r['repeat_of'] or None,'benchmark_id':benchmark_id,'renderer_commit':version['renderer_commit'],'renderer_dirty':int(version['renderer_dirty']),'tracker_sha256':version['tracker_sha256'],'page_sha256':version['page_sha256'],'tuning_json':json.dumps(version['tuning_json']),'intensity':version['intensity'],'pack_id':pack_id,'created_at':stamp,'source':r['source'],'source_split':r['source_split'],'source_image_sha256':r['image_sha256'],'label_sha256':r['label_sha256'],'full_path':str(rating/'images'/f"{r['random_id']}_full.png"),'crop_path':str(rating/'images'/f"{r['random_id']}_crop.png")}
+            if r.get('tuning_json'):
+                values['tuning_json']=json.dumps(json.loads(r['tuning_json']),sort_keys=True)
             values['render_script_sha256']=json.dumps(version.get('render_script_sha256',{}),sort_keys=True)
             fields=','.join(values); con.execute(f"INSERT OR IGNORE INTO images({fields}) VALUES({','.join('?' for _ in values)})",tuple(values.values()))
             existing=con.execute('SELECT file_sha256,pack_id FROM images WHERE image_id=?',(r['random_id'],)).fetchone()

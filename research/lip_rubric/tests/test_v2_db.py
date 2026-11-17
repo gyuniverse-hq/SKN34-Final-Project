@@ -8,6 +8,7 @@ import pytest
 from PIL import Image
 
 HERE=Path(__file__).resolve().parents[1]; sys.path.insert(0,str(HERE))
+import metrics  # Load this experiment's metrics before helpers add lip_texture to sys.path.
 import db
 from aggregate import aggregate_db, pilot_report
 from analyze import analyze_db
@@ -88,6 +89,21 @@ def test_db_mock_end_to_end(tmp_path):
     comp=compare_runs(con,'old','new');assert comp['lum_spread']['delta_new_minus_old']['estimate']==pytest.approx(1)
     con.execute("update images set source='other' where image_id=?",(keys[0]['random_id'],))
     with pytest.raises(ValueError,match='LaPa'): export_db(con,tmp_path/'bad.zip')
+    con.close()
+
+
+def test_expanded_pack_retains_variant_identity_and_tuning(tmp_path):
+    pack, _, keys = fake_pack(tmp_path)
+    keys[1].update({k: keys[0][k] for k in ('lapa_stem', 'face_id', 'kind', 'shade', 'image_sha256', 'label_sha256', 'split')})
+    keys[0].update(variant='current', tuning_json='{}')
+    keys[1].update(variant='low_detail', tuning_json='{"creaseGain": 0.25}')
+    for row in keys[2:]: row.update(variant='', tuning_json='')
+    write_csv(pack/'key.csv', keys)
+    con = db.connect(tmp_path/'eval.db')
+    db.import_pack(con, pack)
+    a, b = [con.execute('select benchmark_id,tuning_json from images where image_id=?', (row['random_id'],)).fetchone() for row in keys[:2]]
+    assert a['benchmark_id'] != b['benchmark_id']
+    assert json.loads(b['tuning_json']) == {'creaseGain': 0.25}
     con.close()
 
 
