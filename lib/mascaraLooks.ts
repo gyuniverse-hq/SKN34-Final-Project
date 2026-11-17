@@ -32,7 +32,7 @@ export const MASCARA_LOOKS = {
    * a curled fan, so the straight comb is gone. 11-13: the 11-11 fan read as drawn comb teeth next to the finished frame
    * (too long, thick and spread), so it is shorter, finer and less spread.
    */
-  long_fan: { length: 1.1, thickness: 0.7, lower: true, intensity: 0.55, lashCount: 14, lashSweep: 0.3, lashClump: 0.2, lashFan: 25, lashJitter: 0.3, lowerLen: 1.1, lowerAlpha: 1, lowerCount: 3, lashWidth: 0.8 },
+  long_fan: { length: 1.1, thickness: 0.7, lower: true, intensity: 0.55, lashCount: 14, lashSweep: 0.3, lashClump: 0.2, lashFan: 25, lashJitter: 0.3, lowerLen: 1.1, lowerAlpha: 1, lowerCount: 3, lashWidth: 1.1 },
   /** 윈터 또렷 청초: thin hair-like dense lashes, no bunches, faint lower lashes. */
   fine_dense: { length: 1.5, thickness: 1, lower: true, intensity: 0.85, lashCount: 24, lashClump: 0.3, lashJitter: 0.8, lowerLen: 1.9, lowerAlpha: 1.5, lowerCount: 4, lashWidth: 1.4 },
 } satisfies Record<string, MascaraLook>;
