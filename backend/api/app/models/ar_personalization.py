@@ -87,9 +87,7 @@ class ArActivityEventRow(Base):
         Index("ix_ar_activity_member_occurred", "member_id", "occurred_at"),
         Index("ix_ar_activity_session_occurred", "session_id", "occurred_at"),
         Index("ix_ar_activity_impression", "impression_id"),
-        CheckConstraint(
-            "event_type IN ('try_on', 'cart_add')", name="ck_ar_activity_events_type"
-        ),
+        CheckConstraint("event_type IN ('try_on', 'cart_add')", name="ck_ar_activity_events_type"),
     )
 
     event_id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True)
