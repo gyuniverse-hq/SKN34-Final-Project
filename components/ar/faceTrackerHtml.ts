@@ -4419,13 +4419,12 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     // The shine has its own cover: a lip oil / balm tints only 10..20% but its gloss covers the whole lip. Every other finish
     // sends the same value for both, so nothing else changes.
     '    float glossCov = clamp(lipM * uLipGlossCov * uneven, 0.0, 1.0);',
-    // Coverage first moves the bare lip toward the product color; only the see-through share of the
-    // film then tints it like the dye on white paper, by the dye's hue only (its brightness is already in
-    // the mix above). Filtering by the full dye color darkened twice: a sheer nude made a red lip darker
-    // (L* 43 vs 47, 10-25) and a sheer coral made a pale red lip darker than both (L* 50 → 41, 10-26).
+    // Coverage moves the bare lip toward the product color. A translucent film tints only the remaining
+    // uncovered bare-lip contribution: filtering the already-covered pigment a second time pushed its
+    // chroma beyond the chosen color. Hue-only filtering avoids applying the dye brightness twice.
     '    vec3 paint = mix(rPx, uLipAlbedo, cov);',
     '    vec3 filt = clamp(uLipAlbedo / uPaperWhite, 0.0, 1.0);',
-    '    vec3 mixCol = paint * mix(vec3(1.0), filt / max(lum(filt), 1e-3), cov * uLipTranslucent);',
+    '    vec3 mixCol = paint + rPx * (filt / max(lum(filt), 1e-3) - vec3(1.0)) * (cov * uLipTranslucent * (1.0 - cov));',
     // Light and shade come only from the camera and the light-driven lip form; no lightness or chroma
     // fixed by UV position (that drew the upper lip dark and the lower centre light whatever the light).
     '    vec3 ratio = clamp(mixCol / rPx, 0.0, uRatioMax);',

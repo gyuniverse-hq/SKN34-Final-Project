@@ -231,8 +231,8 @@ describe('face tracker page', () => {
     expect(script).toContain('layered *= pkSoft / max(pk, 1e-4)');
     // Estimated chip hex cannot brighten the uncovered, see-through share beyond the cap.
     expect(script).toContain('uLumGainMax');
-    // Coverage blends toward the product first; the see-through share then tints by hue only (a sheer nude or coral must not darken a red lip).
-    expect(script).toContain('vec3 mixCol = paint * mix(vec3(1.0), filt / max(lum(filt), 1e-3), cov * uLipTranslucent);');
+    // The see-through dye tints only the uncovered bare-lip contribution, never the pigment again.
+    expect(script).toContain('vec3 mixCol = paint + rPx * (filt / max(lum(filt), 1e-3) - vec3(1.0)) * (cov * uLipTranslucent * (1.0 - cov));');
     // Covered share takes only the camera brightness (no per-channel noise amplification); uncovered keeps the camera color.
     expect(script).toContain('vec3 layered = mix(camDiffuse * ratio, lumOnly, cov) * clamp(fill, 0.6, 1.6);');
     // Light is drawn once: no lightness/chroma fixed by UV position, camera highlights never amplified,
@@ -1210,7 +1210,7 @@ describe('face tracker page', () => {
       const paint = bare.map((b, k) => b + (albedo[k] - b) * cov);
       const filt = albedo.map((v) => Math.min(1, v / 0.85));
       const fl = lum(filt);
-      return paint.map((p, k) => p * (1 + (filt[k] / fl - 1) * cov * translucent));
+      return paint.map((p, k) => p + bare[k] * (filt[k] / fl - 1) * cov * translucent * (1 - cov));
     };
     const coral = '#F2735B';
     // Red and pale-red bare lips (linear, as the camera sees them): the result keeps at least the brightness of the
@@ -1219,6 +1219,20 @@ describe('face tracker page', () => {
       const out = sheer(bare, coral, 0.38, 3 * 0.56, 0.8);
       expect(lum(out)).toBeGreaterThan(Math.min(lum(bare), lum(rgb(coral))) * 0.97);
     }
+  });
+
+  it('does not double-filter the pigment at full coverage or change the bare lip at zero coverage', () => {
+    const bare = [0.23, 0.11, 0.09];
+    const pigment = [0.55, 0.18, 0.21];
+    const luminance = (v: number[]) => 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+    const filtered = (coverage: number, translucent: number) => {
+      const l = luminance(pigment);
+      return bare.map((v, i) => v * (1 - coverage) + pigment[i] * coverage
+        + v * (pigment[i] / l - 1) * coverage * translucent * (1 - coverage));
+    };
+    expect(filtered(0, 1)).toEqual(bare);
+    expect(filtered(1, 1)).toEqual(pigment);
+    expect(filtered(0.5, 0)).toEqual(bare.map((v, i) => (v + pigment[i]) * 0.5));
   });
 
   it('keeps medium satin coverage below a sticker-like full cover', () => {
