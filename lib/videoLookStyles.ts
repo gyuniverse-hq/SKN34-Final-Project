@@ -38,7 +38,7 @@ export const VIDEO_LOOK_STYLES: Readonly<Record<string, Partial<Record<MakeupZon
     },
     eyeliner: { hex: '#3A2A26', geometry: { length: 0.3, thickness: 0.08, angle: 10 }, overrides: { coverageMultiplier: 0.85, linerTaper: 1 } },
     mascara: {
-      geometry: { length: 0.95, lashCount: 14, lashSweep: 0.45, lashClump: 0.25, lashFan: 40, lashJitter: 0.8, lashWidth: 0.55 },
+      geometry: { length: 1.4, lashCount: 14, lashSweep: 0.45, lashClump: 0.12, lashFan: 40, lashJitter: 0.8, lashWidth: 0.9, lowerCount: 6, lowerLen: 2.2 },
       overrides: { coverageMultiplier: 0.8, lashCurl: 1 },
     },
     brow: { overrides: { coverageMultiplier: 0.45 } },
