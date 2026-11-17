@@ -10,6 +10,12 @@ from app.models.aihub import (
     AihubSkinConcernRow,
     AihubSkinTypeRow,
 )
+from app.models.ar_personalization import (
+    ArActivityEventRow,
+    ArRecommendationCandidateRow,
+    ArRecommendationImpressionRow,
+    ArRecommendationRequestRow,
+)
 from app.models.catalog import LookItemRow, LookRow, ProductRow, ShadeRow, StoreRow
 from app.models.cosing import (
     CosingFunctionRow,
@@ -87,6 +93,10 @@ __all__ = [
     "AihubQaSourceLinkRow",
     "AihubSkinConcernRow",
     "AihubSkinTypeRow",
+    "ArActivityEventRow",
+    "ArRecommendationCandidateRow",
+    "ArRecommendationImpressionRow",
+    "ArRecommendationRequestRow",
     "CosingFunctionRow",
     "CosingIngredientLookupRow",
     "FunctionConcernRow",
