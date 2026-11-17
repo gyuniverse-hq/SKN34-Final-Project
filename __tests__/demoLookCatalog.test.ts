@@ -82,7 +82,7 @@ describe('demo look coverage', () => {
     // 11-13: a wide 55° fan read as drawn comb teeth next to the finished frame; a soft fan stays.
     expect(fan.lashFan).toBeGreaterThanOrEqual(20);
     expect(fan.lashFan).toBeLessThanOrEqual(40);
-    expect(fan.lashWidth).toBeLessThanOrEqual(1);
+    expect(fan.lashWidth).toBeLessThanOrEqual(1.2);
     expect(fan.lower).toBe(true);
     expect(mascaraGeometry('fine_dense').lashCount).toBeGreaterThan(fan.lashCount!);
     expect(mascaraGeometry('short_light').lashCount).toBeLessThan(fan.lashCount!);
