@@ -128,7 +128,7 @@ describe('selected Style recipe flow', () => {
     expect(listChat.root.findAllByType(StyleRecipeResult)).toHaveLength(0);
     expect(listChat.root.findAllByType(Text).some((node) => node.props.children === 'chat.entry.context')).toBe(false);
     await submit(listChat, '그라데이션 립 어떻게 해?');
-    expect(mockMutateAsync.mock.calls[1][0].category).toBe('product');
+    expect(mockMutateAsync.mock.calls[1][0].category).toBeUndefined();
     expect(mockMutateAsync.mock.calls[1][0].styleContext).toBeUndefined();
     await act(async () => listChat.unmount());
 
@@ -322,7 +322,7 @@ describe('server session recovery', () => {
     const saved = useChatConversationStore.getState().conversations[general].view;
     expect(changed).toHaveBeenCalledTimes(2);
     expect(beforeEdit.conversation.draft).toBe('');
-    expect(beforeEdit.conversation.category).toBe('product');
+    expect(beforeEdit.conversation.category).toBeUndefined();
     expect(useChatConversationStore.getState().conversations[general].conversation).not.toBe(beforeEdit.conversation);
     unsubscribe();
     expect(saved.category).toBe('ingredient');
@@ -822,6 +822,28 @@ describe('ingredient selection and request snapshots', () => {
 });
 
 describe('standalone chat input', () => {
+  it('starts without a category and retains explicit product selection for the next request', async () => {
+    mockMutateAsync.mockResolvedValue({ answer: 'Answer', products: [] });
+    const renderer = await renderScreen();
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('립 제품 추천해줘'); });
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    expect(mockMutateAsync.mock.calls[0][0]).toEqual(expect.objectContaining({ category: undefined }));
+    await act(async () => { buttonWithText(renderer.root, 'chat.ui.product').props.onPress(); });
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('립 제품 추천해줘'); });
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    expect(mockMutateAsync.mock.calls[1][0]).toEqual(expect.objectContaining({ category: 'product' }));
+    await act(async () => { renderer.unmount(); });
+  });
+
+  it('shows a real empty result in a category-free conversation', async () => {
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'No products', products: [], resultType: 'empty' });
+    const renderer = await renderScreen();
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('없는 립 보여줘'); });
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    expect(renderer.root.findAllByType(Text).some((item) => item.props.children === 'chat.ui.noProducts')).toBe(true);
+    await act(async () => { renderer.unmount(); });
+  });
+
   it('carries effective filters and candidate order into a follow-up', async () => {
     mockMutateAsync.mockResolvedValueOnce({ answer: 'Candidates', products: [], chatContext: beautyContext })
       .mockResolvedValueOnce({ answer: 'Details', products: [] });
@@ -830,8 +852,8 @@ describe('standalone chat input', () => {
       await act(async () => { renderer.root.findByType(TextInput).props.onChangeText(text); });
       await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
     }
-    expect(mockMutateAsync.mock.calls[0][0]).toEqual(expect.objectContaining({ message: '2만원 이하 립 추천', locale: 'ko', category: 'product' }));
-    expect(mockMutateAsync.mock.calls[1][0]).toEqual(expect.objectContaining({ message: '두 번째 제품 자세히', locale: 'ko', category: 'product', chatContext: beautyContext }));
+    expect(mockMutateAsync.mock.calls[0][0]).toEqual(expect.objectContaining({ message: '2만원 이하 립 추천', locale: 'ko', category: undefined }));
+    expect(mockMutateAsync.mock.calls[1][0]).toEqual(expect.objectContaining({ message: '두 번째 제품 자세히', locale: 'ko', category: undefined, chatContext: beautyContext }));
     await act(async () => { renderer.unmount(); });
   });
 

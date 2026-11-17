@@ -41,7 +41,7 @@ export type ChatRequestSnapshot = {
   args: {
     message: string;
     locale: NonNullable<ChatMessage['locale']>;
-    category: ChatCategory;
+    category?: ChatCategory;
     requestId: string;
     expectedUserId: string | null;
     chatContext?: BeautyChatContext;

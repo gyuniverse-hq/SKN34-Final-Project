@@ -1,11 +1,13 @@
 import json
+import logging
 import re
 import secrets
 import time
 import unicodedata
+from functools import partial
 from hashlib import sha256
 from typing import Protocol
-from uuid import NAMESPACE_URL, uuid4, uuid5
+from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
 from fastapi import Depends
 
@@ -14,6 +16,7 @@ from app.clients.llm_client import LlmClient, get_llm_client
 from app.core.config import get_settings
 from app.core.errors import ApiError, UpstreamError
 from app.core.graph import get_driver
+from app.core.observability import catalog_tool_call_id
 from app.repositories.ar_command_repository import MemoryArRequestRepository, get_ar_requests
 from app.repositories.chat_session_repository import ChatSessionRepository, get_chat_sessions
 from app.repositories.graph_repository import GraphRepository
@@ -38,6 +41,7 @@ from app.schemas.supervisor import (
     TaskPlan,
     ToolResult,
 )
+from app.schemas.vishue_state import VishueState
 from app.services.ar_command_service import propose_ar_command
 from app.services.beauty_consultation_service import (
     COMPARISON_SCREENS,
@@ -46,11 +50,21 @@ from app.services.beauty_consultation_service import (
     execute_beauty,
     interpret_beauty,
 )
+from app.services.g1_catalog_tool import G1CatalogTool
+from app.services.g1_model_service import (
+    DETAIL_TOOL,
+    G1ModelTurn,
+    choose_g1_turn,
+    explain_general_question,
+    requests_general_explanation,
+)
+from app.services.product_consultation_graph import SupervisorRuntime, product_supervisor
 from app.services.style_recipe_service import TEXT as STYLE_TEXT
 from app.services.style_recipe_service import execute_style
 
 LANGUAGE = {"en": "English", "ko": "Korean", "ja": "Japanese", "zh": "Simplified Chinese"}
 MAX_TERMS = 8
+logger = logging.getLogger(__name__)
 _WORD = re.compile(r"[\w가-힣ぁ-んァ-ン一-龥]{2,}")
 
 SYSTEM_PROMPT = """You are VISHUE's K-beauty shopping assistant for international visitors.
@@ -438,7 +452,14 @@ class ChatService:
         return plan.model_copy(update={"category": category, "query": query})
 
     async def _run_supervisor(
-        self, req: ChatRequest, context: ResolvedContext, decision: IntentDecision
+        self,
+        req: ChatRequest,
+        context: ResolvedContext,
+        decision: IntentDecision,
+        *,
+        thread_id: UUID | None = None,
+        request_id: UUID | None = None,
+        model_turn: G1ModelTurn | None = None,
     ) -> ChatResponse:
         # AR can clarify missing selection without an LLM.
         if (
@@ -448,10 +469,40 @@ class ChatService:
             and decision.intent != "style"
         ):
             raise ApiError(503, "Chatbot is not configured", "chatbot_unavailable")
-        if req.request_type == "beauty_consultation" and decision.intent not in {
-            "compound",
-            "style",
-        }:
+        use_graph = (
+            req.request_type in {"chat", "beauty_consultation"}
+            and decision.intent in {"general", "product", "ingredient"}
+            and req.style_context is None
+            and get_settings().g1_supervisor_enabled
+        )
+        if (
+            use_graph
+            and model_turn is None
+            and decision.slots is None
+            and thread_id is None
+            and req.chat_context is None
+        ):
+            model_turn = await self._choose_g1_turn(req)
+        if model_turn is not None:
+            decision.slots = model_turn.plan
+        free_category = None
+        free_detail = False
+        if use_graph and req.locale == "ko" and req.request_type == "chat":
+            if not re.search(r"추천\s*(?:하지\s*마|말고|없이)|추천은\s*(?:빼|안)", req.message):
+                free_category = look_shopping_category(req.message)
+            free_detail = bool(
+                req.screen_context
+                and req.screen_context.product_id
+                and re.search(r"색상|호수|색깔|가격|얼마|성분|향료", req.message)
+            )
+        if (free_category or free_detail) or (
+            req.request_type == "beauty_consultation"
+            and decision.intent
+            not in {
+                "compound",
+                "style",
+            }
+        ):
             if self._catalog is None:
                 raise ApiError(503, "Catalog is not configured", "catalog_unavailable")
             try:
@@ -460,16 +511,123 @@ class ChatService:
             except ApiError as exc:
                 exc.supervisor_result = ToolResult(tool="beauty", status="error", reason=exc.code)
                 raise
+            if (
+                model_turn is None
+                and decision.slots.intent == "general"
+                and (free_category or free_detail)
+            ):
+                decision.slots = decision.slots.model_copy(
+                    update={
+                        "intent": "detail" if free_detail else "search",
+                        "category": free_category,
+                    }
+                )
             if decision.slots.intent != "general":
                 decision.intent = "ingredient" if decision.intent == "ingredient" else "product"
-        sufficient = check_sufficiency(context, decision)
-        plan = build_plan(context, decision, sufficient)
+        if use_graph:
+            slots = decision.slots
+            g1_catalog = bool(
+                req.locale == "ko"
+                and thread_id is None
+                and slots
+                and slots.scope == "catalog"
+                and not slots.compare_ordinals
+                and not direct_comparison(req, slots)
+                and (
+                    (slots.intent == "search" and req.chat_context is None)
+                    or (
+                        slots.intent in {"detail", "price"}
+                        and req.screen_context
+                        and req.screen_context.product_id
+                    )
+                )
+            )
+            state = VishueState(
+                turn_id=uuid4(),
+                request_id=request_id or req.request_id,
+                thread_id=thread_id,
+                result_set_id=context.result_set_id,
+                state_version=context.session_version,
+                locale=req.locale,
+                decision=decision,
+            )
+            output = await product_supervisor.ainvoke(
+                state,
+                context=SupervisorRuntime(
+                    req,
+                    context,
+                    self._plan_turn,
+                    partial(self._execute_turn, g1_catalog=g1_catalog, model_turn=model_turn),
+                ),
+            )
+            return output["response"]
+        return await self._execute_turn(req, decision, self._plan_turn(context, decision))
+
+    async def _choose_g1_turn(self, req: ChatRequest) -> G1ModelTurn | None:
+        complete = getattr(self._llm, "complete_with_tools", None)
+        if req.locale != "ko" or not get_settings().g1_supervisor_enabled or complete is None:
+            return None
+        if not self._llm.configured:
+            raise ApiError(503, "Chatbot is not configured", "chatbot_unavailable")
+        return await choose_g1_turn(req, complete)
+
+    @staticmethod
+    def _plan_turn(context: ResolvedContext, decision: IntentDecision) -> TaskPlan:
+        return build_plan(context, decision, check_sufficiency(context, decision))
+
+    async def _execute_turn(
+        self,
+        req: ChatRequest,
+        decision: IntentDecision,
+        plan: TaskPlan,
+        *,
+        g1_catalog=False,
+        model_turn: G1ModelTurn | None = None,
+    ) -> ChatResponse:
         tool = (
             plan.tasks[0] if plan.tasks else "ar_command" if decision.intent == "ar" else "beauty"
         )
         try:
-            response, result = await self.execute_tool(req, decision, plan)
-            return verify_response(req, decision, plan, response, result)
+            if model_turn and model_turn.answer is not None:
+                response = ChatResponse(answer=model_turn.answer, products=[])
+                result = ToolResult(tool="graph_chat", status="success")
+            elif g1_catalog and tool == "beauty":
+                catalog = G1CatalogTool(self._catalog, decision.slots.query or "")
+                token = catalog_tool_call_id.set(model_turn.tool_call_id if model_turn else None)
+                try:
+                    response = await execute_beauty(req, decision.slots, catalog, g1=True)
+                finally:
+                    catalog_tool_call_id.reset(token)
+                if response is None or response.tool_result is None:
+                    raise ApiError(502, "Missing catalog result", "invalid_tool_result")
+                if (
+                    decision.slots.intent == "search"
+                    and model_turn
+                    and requests_general_explanation(req.message)
+                ):
+                    explanation = await explain_general_question(req, self._llm)
+                    response.answer = f"{explanation}\n\n{response.answer}"
+                result = response.tool_result
+            else:
+                if model_turn and model_turn.tool_call_id:
+                    raise ApiError(502, "Unsupported G1 tool route", "invalid_tool_result")
+                response, result = await self.execute_tool(req, decision, plan)
+            response = verify_response(req, decision, plan, response, result)
+            if model_turn and model_turn.tool_call_id:
+                logger.info(
+                    "g1_catalog_tool_result",
+                    extra={
+                        "tool_call_id": model_turn.tool_call_id,
+                        "tool_name": (
+                            "catalog.get_product_detail"
+                            if model_turn.tool_name == DETAIL_TOOL
+                            else "catalog.search_products"
+                        ),
+                        "result_type": response.result_type,
+                        "product_ids": result.product_ids,
+                    },
+                )
+            return response
         except UpstreamError as exc:
             error = ApiError(502, "Chatbot is temporarily unavailable", "upstream_error")
             error.supervisor_result = ToolResult(tool=tool, status="error", reason="upstream_error")
@@ -593,7 +751,15 @@ class ChatService:
         decision = route_intent(context)
         if decision.intent == "compound":
             return await self._run_supervisor(req, context, decision)
-        decision.slots = await self._interpret_beauty(req)
+        model_turn = (
+            await self._choose_g1_turn(req)
+            if ref is None
+            and incoming.chat_context is None
+            and req.style_context is None
+            and decision.intent in {"general", "product", "ingredient"}
+            else None
+        )
+        decision.slots = model_turn.plan if model_turn else await self._interpret_beauty(req)
         slots = decision.slots
         comparing = direct_comparison(req, slots)
         independent = (
@@ -630,6 +796,9 @@ class ChatService:
             and (req.screen_context.screen_id == "product-detail" or comparing)
             and independent
             and slots.intent in {"detail", "price"}
+            # The G1 detail tool validates product and shade before selecting them.
+            # Let it return a clarification for a mismatched screen shade.
+            and not (model_turn and model_turn.tool_name == DETAIL_TOOL)
         ):
             req.chat_context = await self._validate_session_context(
                 BeautyContext(issued_at=int(time.time()), filters=BeautyFilters()),
@@ -686,7 +855,14 @@ class ChatService:
             context.state_source = "server_session"
             context.session_version = state.state_version
             context.result_set_id = str(state.result_set_id)
-        response = await self._run_supervisor(req, context, decision)
+        response = await self._run_supervisor(
+            req,
+            context,
+            decision,
+            thread_id=ref.session_id if state and ref else None,
+            request_id=request_id,
+            model_turn=model_turn,
+        )
         result = response.supervisor.result
         ctx = response.chat_context
         if state and comparing and req.screen_context and req.screen_context.ingredient_comparison:

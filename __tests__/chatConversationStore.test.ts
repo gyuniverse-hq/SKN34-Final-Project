@@ -75,7 +75,7 @@ test('notifies subscribers atomically without mutating previous records or retry
   store().setCategory(target, 'ingredient');
   expect(changed).toHaveBeenCalledTimes(2);
   expect(before.view.draft).toBe('');
-  expect(before.conversation.category).toBe('product');
+  expect(before.conversation.category).toBeUndefined();
   const ready = store().conversations[id];
   const snapshot = request(target);
   const ticket = store().beginRequest(target, snapshot)!;
