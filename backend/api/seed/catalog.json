@@ -72026,387 +72026,464 @@
         {
           "id": "a000000174309-131",
           "name": "베이지우드",
-          "hex": "#A08376"
+          "hex": "#A08376",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-132",
           "name": "소이 로즈",
-          "hex": "#A6706D"
+          "hex": "#A6706D",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-133",
           "name": "시나몬 브루",
-          "hex": "#9C7A6E"
+          "hex": "#9C7A6E",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-134",
           "name": "멜티드 헤이즐",
-          "hex": "#75574E"
+          "hex": "#75574E",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-113",
           "name": "우드스모크",
-          "hex": "#2C231E"
+          "hex": "#2C231E",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-114",
           "name": "코코아 브륄레",
-          "hex": "#392823"
+          "hex": "#392823",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-115",
           "name": "몰튼 아메리카노",
-          "hex": "#3E2621"
+          "hex": "#3E2621",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-124",
           "name": "베리 문",
-          "hex": "#EDA5CB"
+          "hex": "#EDA5CB",
+          "finish": "satin"
         },
         {
           "id": "a000000174309-130",
           "name": "베리 시럽",
-          "hex": "#F2CBC5"
+          "hex": "#F2CBC5",
+          "finish": "satin"
         },
         {
           "id": "a000000174309-127",
           "name": "더 히든 001",
-          "hex": "#E6E7E0"
+          "hex": "#E6E7E0",
+          "finish": "shimmer"
         },
         {
           "id": "a000000174309-128",
           "name": "더 히든 002",
-          "hex": "#E6CEDC"
+          "hex": "#E6CEDC",
+          "finish": "shimmer"
         },
         {
           "id": "a000000174309-129",
           "name": "더 히든 003",
-          "hex": "#FCD3B6"
+          "hex": "#FCD3B6",
+          "finish": "shimmer"
         },
         {
           "id": "a000000174309-031",
           "name": "츄",
-          "hex": "#F9A2B4"
+          "hex": "#F9A2B4",
+          "finish": "shimmer"
         },
         {
           "id": "a000000174309-033",
           "name": "베리휘그",
-          "hex": "#EDAAAF"
+          "hex": "#EDAAAF",
+          "finish": "shimmer"
         },
         {
           "id": "a000000174309-046",
           "name": "피치 포지",
-          "hex": "#FEBCBB"
+          "hex": "#FEBCBB",
+          "finish": "shimmer"
         },
         {
           "id": "a000000174309-045",
           "name": "피치우롱티",
-          "hex": "#FEAEA4"
+          "hex": "#FEAEA4",
+          "finish": "shimmer"
         },
         {
           "id": "a000000174309-054",
           "name": "타로튜튜",
-          "hex": "#FBC1D1"
+          "hex": "#FBC1D1",
+          "finish": "shimmer"
         },
         {
           "id": "a000000174309-106",
           "name": "시나몬 스파이스",
-          "hex": "#CC9284"
+          "hex": "#CC9284",
+          "finish": "satin"
         },
         {
           "id": "a000000174309-110",
           "name": "모브 시즈닝",
-          "hex": "#CB939B"
+          "hex": "#CB939B",
+          "finish": "satin"
         },
         {
           "id": "a000000174309-013",
           "name": "베베",
-          "hex": "#F1B097"
+          "hex": "#F1B097",
+          "finish": "shimmer"
         },
         {
           "id": "a000000174309-014",
           "name": "키티",
-          "hex": "#F1B8A1"
+          "hex": "#F1B8A1",
+          "finish": "shimmer"
         },
         {
           "id": "a000000174309-016",
           "name": "러비",
-          "hex": "#F1B3BC"
+          "hex": "#F1B3BC",
+          "finish": "shimmer"
         },
         {
           "id": "a000000174309-100",
           "name": "얼리 샤인",
-          "hex": "#D2A9A6"
+          "hex": "#D2A9A6",
+          "finish": "satin"
         },
         {
           "id": "a000000174309-097",
           "name": "레이지 듀",
-          "hex": "#E1A89E"
+          "hex": "#E1A89E",
+          "finish": "satin"
         },
         {
           "id": "a000000174309-096",
           "name": "블러쉬 데이즈",
-          "hex": "#F69C9D"
+          "hex": "#F69C9D",
+          "finish": "satin"
         },
         {
           "id": "a000000174309-002",
           "name": "핑키드",
-          "hex": "#F9C2BE"
+          "hex": "#F9C2BE",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-003",
           "name": "스트로베리 크림",
-          "hex": "#FCBFB4"
+          "hex": "#FCBFB4",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-043",
           "name": "피치오트",
-          "hex": "#FEC1BA"
+          "hex": "#FEC1BA",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-057",
           "name": "베이비 타로",
-          "hex": "#F7CBCF"
+          "hex": "#F7CBCF",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-099",
           "name": "슈가 클라우드",
-          "hex": "#F7BDB8"
+          "hex": "#F7BDB8",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-098",
           "name": "쥬시 모닝",
-          "hex": "#FBC2AD"
+          "hex": "#FBC2AD",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-101",
           "name": "돌체 피치",
-          "hex": "#EDB7AB"
+          "hex": "#EDB7AB",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-006",
           "name": "소다",
-          "hex": "#FBBAA5"
+          "hex": "#FBBAA5",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-005",
           "name": "팬지",
-          "hex": "#FABACA"
+          "hex": "#FABACA",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-029",
           "name": "수퍼핑크",
-          "hex": "#F8B2BF"
+          "hex": "#F8B2BF",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-030",
           "name": "스트로베리 오트",
-          "hex": "#F2B9BB"
+          "hex": "#F2B9BB",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-044",
           "name": "수퍼피치",
-          "hex": "#FDB29D"
+          "hex": "#FDB29D",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-107",
           "name": "오버 더 피치",
-          "hex": "#FCB2AE"
+          "hex": "#FCB2AE",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-111",
           "name": "오버 더 핑크",
-          "hex": "#F6B4C8"
+          "hex": "#F6B4C8",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-018",
           "name": "소프티",
-          "hex": "#F7D3BD"
+          "hex": "#F7D3BD",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-007",
           "name": "버니",
-          "hex": "#EDB599"
+          "hex": "#EDB599",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-009",
           "name": "졸리",
-          "hex": "#E7B9A9"
+          "hex": "#E7B9A9",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-022",
           "name": "벨로",
-          "hex": "#E9B4AC"
+          "hex": "#E9B4AC",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-023",
           "name": "헤더",
-          "hex": "#E6BAC5"
+          "hex": "#E6BAC5",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-059",
           "name": "클린 솝",
-          "hex": "#FEE5D9"
+          "hex": "#FEE5D9",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-058",
           "name": "이너프",
-          "hex": "#F7D3C8"
+          "hex": "#F7D3C8",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-056",
           "name": "그레이프 오트",
-          "hex": "#F1C8C5"
+          "hex": "#F1C8C5",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-104",
           "name": "굿 이너프",
-          "hex": "#EEC2B7"
+          "hex": "#EEC2B7",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-109",
           "name": "핑크 시어링",
-          "hex": "#F0BFBD"
+          "hex": "#F0BFBD",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-010",
           "name": "멜로즈",
-          "hex": "#DA9E8E"
+          "hex": "#DA9E8E",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-001",
           "name": "위스테리아",
-          "hex": "#CB9B9D"
+          "hex": "#CB9B9D",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-019",
           "name": "폴인",
-          "hex": "#C39586"
+          "hex": "#C39586",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-042",
           "name": "피치얼그레이",
-          "hex": "#EFB0A5"
+          "hex": "#EFB0A5",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-040",
           "name": "앙고라",
-          "hex": "#D4ADA4"
+          "hex": "#D4ADA4",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-055",
           "name": "돌체 그레이프",
-          "hex": "#D3918F"
+          "hex": "#D3918F",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-105",
           "name": "그릴드 피치",
-          "hex": "#CEA28C"
+          "hex": "#CEA28C",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-108",
           "name": "크림드 베리",
-          "hex": "#DDA59A"
+          "hex": "#DDA59A",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-021",
           "name": "테일러",
-          "hex": "#A07464"
+          "hex": "#A07464",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-035",
           "name": "로즈 토프",
-          "hex": "#B68E8D"
+          "hex": "#B68E8D",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-034",
           "name": "블러쉬그레이",
-          "hex": "#B69896"
+          "hex": "#B69896",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-039",
           "name": "콜드브루",
-          "hex": "#BC9383"
+          "hex": "#BC9383",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-112",
           "name": "수티 위스테리아",
-          "hex": "#B48485"
+          "hex": "#B48485",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-011",
           "name": "투샷 아메리카노",
-          "hex": "#5E3E31"
+          "hex": "#5E3E31",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-027",
           "name": "다크 에스프레소",
-          "hex": "#453632"
+          "hex": "#453632",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-036",
           "name": "아로마에스프레소",
-          "hex": "#4C292C"
+          "hex": "#4C292C",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-052",
           "name": "피치 멜바",
-          "hex": "#FEB2A6"
+          "hex": "#FEB2A6",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-102",
           "name": "환타스틱",
-          "hex": "#F1C9BE"
+          "hex": "#F1C9BE",
+          "finish": "satin"
         },
         {
           "id": "a000000174309-078",
           "name": "아이보릿",
-          "hex": "#EBCFC2"
+          "hex": "#EBCFC2",
+          "finish": "satin"
         },
         {
           "id": "a000000174309-077",
           "name": "크림릿",
-          "hex": "#F5D7C1"
+          "hex": "#F5D7C1",
+          "finish": "satin"
         },
         {
           "id": "a000000174309-081",
           "name": "애프리콧듀",
-          "hex": "#F0C9BB"
+          "hex": "#F0C9BB",
+          "finish": "satin"
         },
         {
           "id": "a000000174309-082",
           "name": "슈가코트",
-          "hex": "#E9C4BB"
+          "hex": "#E9C4BB",
+          "finish": "satin"
         },
         {
           "id": "a000000174309-084",
           "name": "핑크어텐션",
-          "hex": "#F2C1CA"
+          "hex": "#F2C1CA",
+          "finish": "satin"
         },
         {
           "id": "a000000174309-083",
           "name": "슈가리스",
-          "hex": "#E7BFBA"
+          "hex": "#E7BFBA",
+          "finish": "satin"
         },
         {
           "id": "a000000174309-085",
           "name": "위티",
-          "hex": "#DFAEA8"
+          "hex": "#DFAEA8",
+          "finish": "shimmer"
         },
         {
           "id": "a000000174309-089",
           "name": "엔젤릭",
-          "hex": "#E9ABB2"
+          "hex": "#E9ABB2",
+          "finish": "shimmer"
         },
         {
           "id": "a000000174309-090",
           "name": "디뮤어",
-          "hex": "#D99B89"
+          "hex": "#D99B89",
+          "finish": "shimmer"
         },
         {
           "id": "a000000174309-088",
           "name": "문샤인",
-          "hex": "#B9947E"
+          "hex": "#B9947E",
+          "finish": "shimmer"
         },
         {
           "id": "a000000174309-047",
@@ -72426,32 +72503,38 @@
         {
           "id": "a000000174309-136",
           "name": "휩드 베리",
-          "hex": "#E8BBB8"
+          "hex": "#E8BBB8",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-137",
           "name": "신더 로즈",
-          "hex": "#E2B7B4"
+          "hex": "#E2B7B4",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-138",
           "name": "울리 그레이",
-          "hex": "#E3BAB6"
+          "hex": "#E3BAB6",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-025",
           "name": "튤",
-          "hex": "#EC9589"
+          "hex": "#EC9589",
+          "finish": "shimmer"
         },
         {
           "id": "a000000174309-041",
           "name": "윈터베리",
-          "hex": "#EFB2B1"
+          "hex": "#EFB2B1",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-020",
           "name": "그레이캣",
-          "hex": "#BD9B91"
+          "hex": "#BD9B91",
+          "finish": "matte"
         },
         {
           "id": "a000000174309-140",
@@ -73189,12 +73272,14 @@
         {
           "id": "15",
           "name": "진짜웜톤",
-          "hex": "#C1A793"
+          "hex": "#C1A793",
+          "finish": "matte"
         },
         {
           "id": "16",
           "name": "진짜쿨톤",
-          "hex": "#C4A395"
+          "hex": "#C4A395",
+          "finish": "matte"
         },
         {
           "id": "03",
@@ -73224,87 +73309,104 @@
         {
           "id": "11",
           "name": "진짜피치",
-          "hex": "#D79B88"
+          "hex": "#D79B88",
+          "finish": "matte"
         },
         {
           "id": "12",
           "name": "진짜핑크",
-          "hex": "#D29792"
+          "hex": "#D29792",
+          "finish": "matte"
         },
         {
           "id": "13",
           "name": "썬베리",
-          "hex": "#CC8D88"
+          "hex": "#CC8D88",
+          "finish": "shimmer"
         },
         {
           "id": "14",
           "name": "로지펄",
-          "hex": "#D59698"
+          "hex": "#D59698",
+          "finish": "shimmer"
         },
         {
           "id": "13-2",
           "name": "30% 번 브라운",
-          "hex": "#E2BBAC"
+          "hex": "#E2BBAC",
+          "finish": "matte"
         },
         {
           "id": "14-2",
           "name": "70% 번 브라운",
-          "hex": "#D0A691"
+          "hex": "#D0A691",
+          "finish": "matte"
         },
         {
           "id": "a000000257264-019",
           "name": "그레이브라운 듀오",
-          "hex": "#D5CCCD"
+          "hex": "#D5CCCD",
+          "finish": "matte"
         },
         {
           "id": "a000000257264-020",
           "name": "로즈브라운 듀오",
-          "hex": "#E9C9D8"
+          "hex": "#E9C9D8",
+          "finish": "matte"
         },
         {
           "id": "01-2",
           "name": "20% 음영",
-          "hex": "#CEB9A8"
+          "hex": "#CEB9A8",
+          "finish": "matte"
         },
         {
           "id": "02-2",
           "name": "30% 음영",
-          "hex": "#C5AF9E"
+          "hex": "#C5AF9E",
+          "finish": "matte"
         },
         {
           "id": "03-3",
           "name": "70% 음영",
-          "hex": "#B9A798"
+          "hex": "#B9A798",
+          "finish": "matte"
         },
         {
           "id": "05",
           "name": "30% 그레이",
-          "hex": "#BEBFC2"
+          "hex": "#BEBFC2",
+          "finish": "matte"
         },
         {
           "id": "07-2",
           "name": "30% 로즈브라운",
-          "hex": "#DEB9BC"
+          "hex": "#DEB9BC",
+          "finish": "matte"
         },
         {
           "id": "08",
           "name": "70% 로즈브라운",
-          "hex": "#CEA2A6"
+          "hex": "#CEA2A6",
+          "finish": "matte"
         },
         {
           "id": "10",
           "name": "70% 썬 브라운",
-          "hex": "#C1A08C"
+          "hex": "#C1A08C",
+          "finish": "matte"
         },
         {
           "id": "11-2",
           "name": "30% 그레이 브라운",
-          "hex": "#DFDFD9"
+          "hex": "#DFDFD9",
+          "finish": "matte"
         },
         {
           "id": "12-2",
           "name": "70% 그레이 브라",
-          "hex": "#C7C3B9"
+          "hex": "#C7C3B9",
+          "finish": "matte"
         },
         {
           "id": "01-3",
@@ -73324,17 +73426,20 @@
         {
           "id": "11-3",
           "name": "진짜피치",
-          "hex": "#ECC8C1"
+          "hex": "#ECC8C1",
+          "finish": "matte"
         },
         {
           "id": "12-3",
           "name": "진짜핑크",
-          "hex": "#EBC1C3"
+          "hex": "#EBC1C3",
+          "finish": "matte"
         },
         {
           "id": "09",
           "name": "30% 썬 브라운",
-          "hex": "#E7D6CE"
+          "hex": "#E7D6CE",
+          "finish": "matte"
         }
       ],
       "description": "",
@@ -73853,12 +73958,14 @@
         {
           "id": "15",
           "name": "진짜웜톤",
-          "hex": "#C1A793"
+          "hex": "#C1A793",
+          "finish": "matte"
         },
         {
           "id": "16",
           "name": "진짜쿨톤",
-          "hex": "#C4A395"
+          "hex": "#C4A395",
+          "finish": "matte"
         },
         {
           "id": "03",
@@ -73868,22 +73975,26 @@
         {
           "id": "11",
           "name": "진짜피치",
-          "hex": "#D79B88"
+          "hex": "#D79B88",
+          "finish": "matte"
         },
         {
           "id": "12",
           "name": "진짜핑크",
-          "hex": "#D29792"
+          "hex": "#D29792",
+          "finish": "matte"
         },
         {
           "id": "13",
           "name": "썬베리",
-          "hex": "#CC8D88"
+          "hex": "#CC8D88",
+          "finish": "shimmer"
         },
         {
           "id": "14",
           "name": "로지펄",
-          "hex": "#D59698"
+          "hex": "#D59698",
+          "finish": "shimmer"
         },
         {
           "id": "01",
@@ -73903,7 +74014,8 @@
         {
           "id": "07",
           "name": "웜피치",
-          "hex": "#C3998F"
+          "hex": "#C3998F",
+          "finish": "satin"
         },
         {
           "id": "01-2",
@@ -73918,7 +74030,8 @@
         {
           "id": "07-2",
           "name": "웜피치",
-          "hex": "#CEA9A2"
+          "hex": "#CEA9A2",
+          "finish": "satin"
         }
       ],
       "description": "",
@@ -74495,112 +74608,134 @@
         {
           "id": "244",
           "name": "빈티지발렌타인",
-          "hex": "#BD8F81"
+          "hex": "#BD8F81",
+          "finish": "matte"
         },
         {
           "id": "219",
           "name": "발레리나",
-          "hex": "#E3B8AF"
+          "hex": "#E3B8AF",
+          "finish": "matte"
         },
         {
           "id": "221",
           "name": "로즈브라운",
-          "hex": "#AE8D7C"
+          "hex": "#AE8D7C",
+          "finish": "matte"
         },
         {
           "id": "222",
           "name": "코코아베이지",
-          "hex": "#BD9A86"
+          "hex": "#BD9A86",
+          "finish": "matte"
         },
         {
           "id": "224",
           "name": "리얼스킨",
-          "hex": "#D6B090"
+          "hex": "#D6B090",
+          "finish": "matte"
         },
         {
           "id": "237",
           "name": "살몬글로우",
-          "hex": "#EABCA5"
+          "hex": "#EABCA5",
+          "finish": "matte"
         },
         {
           "id": "255",
           "name": "라넌큘러스",
-          "hex": "#E7ACA5"
+          "hex": "#E7ACA5",
+          "finish": "matte"
         },
         {
           "id": "150",
           "name": "프레쉬라임",
-          "hex": "#B7AE79"
+          "hex": "#B7AE79",
+          "finish": "shimmer"
         },
         {
           "id": "180",
           "name": "로즈로코코",
-          "hex": "#C29993"
+          "hex": "#C29993",
+          "finish": "shimmer"
         },
         {
           "id": "182",
           "name": "올댓누드",
-          "hex": "#D2B299"
+          "hex": "#D2B299",
+          "finish": "satin"
         },
         {
           "id": "514",
           "name": "바닐라쇼크",
-          "hex": "#D6BEAB"
+          "hex": "#D6BEAB",
+          "finish": "shimmer"
         },
         {
           "id": "515",
           "name": "레드쏠트핑크칙촉",
-          "hex": "#D8B3AB"
+          "hex": "#D8B3AB",
+          "finish": "shimmer"
         },
         {
           "id": "265",
           "name": "허쉬핑크",
-          "hex": "#DFBCBC"
+          "hex": "#DFBCBC",
+          "finish": "matte"
         },
         {
           "id": "179",
           "name": "체리블라썸",
-          "hex": "#D29991"
+          "hex": "#D29991",
+          "finish": "satin"
         },
         {
           "id": "243",
           "name": "마카롱그레이",
-          "hex": "#B6A598"
+          "hex": "#B6A598",
+          "finish": "matte"
         },
         {
           "id": "113",
           "name": "피치오렌지",
-          "hex": "#D9A38F"
+          "hex": "#D9A38F",
+          "finish": "satin"
         },
         {
           "id": "151",
           "name": "스파클릴리",
-          "hex": "#C9C7B4"
+          "hex": "#C9C7B4",
+          "finish": "shimmer"
         },
         {
           "id": "158",
           "name": "코랄베이지",
-          "hex": "#C9A48D"
+          "hex": "#C9A48D",
+          "finish": "satin"
         },
         {
           "id": "172",
           "name": "웨딩부케",
-          "hex": "#C3917C"
+          "hex": "#C3917C",
+          "finish": "satin"
         },
         {
           "id": "190",
           "name": "엔젤블러드",
-          "hex": "#E3BDB7"
+          "hex": "#E3BDB7",
+          "finish": "shimmer"
         },
         {
           "id": "508",
           "name": "엔젤윙스",
-          "hex": "#AFAC99"
+          "hex": "#AFAC99",
+          "finish": "shimmer"
         },
         {
           "id": "522",
           "name": "퍼플엔젤티얼스",
-          "hex": "#C4A5AB"
+          "hex": "#C4A5AB",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -74773,152 +74908,182 @@
         {
           "id": "a000000208709-035",
           "name": "아이 쉬머 라이트 13",
-          "hex": "#E8A193"
+          "hex": "#E8A193",
+          "finish": "satin"
         },
         {
           "id": "a000000208709-009",
           "name": "아이 쉐이드 프라이머 09",
-          "hex": "#ECD1B4"
+          "hex": "#ECD1B4",
+          "finish": "matte"
         },
         {
           "id": "a000000208709-032",
           "name": "아이 쉐이드 프라이머16",
-          "hex": "#EA968F"
+          "hex": "#EA968F",
+          "finish": "matte"
         },
         {
           "id": "a000000208709-001",
           "name": "아이 쉐이드 프라이머 01",
-          "hex": "#E0AC92"
+          "hex": "#E0AC92",
+          "finish": "matte"
         },
         {
           "id": "a000000208709-002",
           "name": "아이 쉐이드 프라이머 02",
-          "hex": "#D3A890"
+          "hex": "#D3A890",
+          "finish": "matte"
         },
         {
           "id": "a000000208709-003",
           "name": "아이 쉐이드 프라이머 03",
-          "hex": "#D19376"
+          "hex": "#D19376",
+          "finish": "matte"
         },
         {
           "id": "a000000208709-004",
           "name": "아이 쉐이드 프라이머 04",
-          "hex": "#CF7763"
+          "hex": "#CF7763",
+          "finish": "matte"
         },
         {
           "id": "a000000208709-006",
           "name": "아이 쉐이드 프라이머 06",
-          "hex": "#D2B491"
+          "hex": "#D2B491",
+          "finish": "matte"
         },
         {
           "id": "a000000208709-007",
           "name": "아이 쉐이드 프라이머 07",
-          "hex": "#BF8182"
+          "hex": "#BF8182",
+          "finish": "matte"
         },
         {
           "id": "a000000208709-010",
           "name": "아이 쉐이드 프라이머 10",
-          "hex": "#F2CABA"
+          "hex": "#F2CABA",
+          "finish": "matte"
         },
         {
           "id": "a000000208709-011",
           "name": "아이 쉐이드 프라이머 11",
-          "hex": "#BAA39B"
+          "hex": "#BAA39B",
+          "finish": "matte"
         },
         {
           "id": "a000000208709-012",
           "name": "아이 쉐이드 프라이머 12",
-          "hex": "#B69DA3"
+          "hex": "#B69DA3",
+          "finish": "satin"
         },
         {
           "id": "a000000208709-013",
           "name": "아이 쉐이드 프라이머 13",
-          "hex": "#D3B3B8"
+          "hex": "#D3B3B8",
+          "finish": "satin"
         },
         {
           "id": "a000000208709-014",
           "name": "아이 쉐이드 프라이머 14",
-          "hex": "#D5B6C5"
+          "hex": "#D5B6C5",
+          "finish": "satin"
         },
         {
           "id": "a000000208709-015",
           "name": "아이 쉐이드 프라이머 15",
-          "hex": "#F39F7E"
+          "hex": "#F39F7E",
+          "finish": "shimmer"
         },
         {
           "id": "a000000208709-024",
           "name": "아이 쉬머 라이트 09",
-          "hex": "#E8EAEF"
+          "hex": "#E8EAEF",
+          "finish": "shimmer"
         },
         {
           "id": "a000000208709-025",
           "name": "아이 쉬머 라이트 10",
-          "hex": "#F3EFEB"
+          "hex": "#F3EFEB",
+          "finish": "shimmer"
         },
         {
           "id": "a000000208709-030",
           "name": "아이 쉐이드 프라이머18",
-          "hex": "#E9A0B2"
+          "hex": "#E9A0B2",
+          "finish": "shimmer"
         },
         {
           "id": "a000000208709-031",
           "name": "아이 쉐이드 프라이머17",
-          "hex": "#F3AAAC"
+          "hex": "#F3AAAC",
+          "finish": "shimmer"
         },
         {
           "id": "a000000208709-037",
           "name": "아이 쉐이드 프라이머 05",
-          "hex": "#D1AEA8"
+          "hex": "#D1AEA8",
+          "finish": "matte"
         },
         {
           "id": "a000000208709-034",
           "name": "아이 쉐이드 프라이머 19",
-          "hex": "#DF726B"
+          "hex": "#DF726B",
+          "finish": "matte"
         },
         {
           "id": "a000000208709-005",
           "name": "아이 쉐이드 프라이머 05",
-          "hex": "#E2AA9E"
+          "hex": "#E2AA9E",
+          "finish": "matte"
         },
         {
           "id": "a000000208709-008",
           "name": "아이 쉐이드 프라이머 08",
-          "hex": "#A5856D"
+          "hex": "#A5856D",
+          "finish": "matte"
         },
         {
           "id": "a000000208709-016",
           "name": "아이 쉬머 라이트 01",
-          "hex": "#F4DECC"
+          "hex": "#F4DECC",
+          "finish": "shimmer"
         },
         {
           "id": "a000000208709-018",
           "name": "아이 쉬머 라이트 03",
-          "hex": "#CD9A8F"
+          "hex": "#CD9A8F",
+          "finish": "shimmer"
         },
         {
           "id": "a000000208709-020",
           "name": "아이 쉬머 라이트 05",
-          "hex": "#B17D81"
+          "hex": "#B17D81",
+          "finish": "shimmer"
         },
         {
           "id": "a000000208709-021",
           "name": "아이 쉬머 라이트 06",
-          "hex": "#D6C4BE"
+          "hex": "#D6C4BE",
+          "finish": "shimmer"
         },
         {
           "id": "a000000208709-023",
           "name": "아이 쉬머 라이트 08",
-          "hex": "#F9F7F7"
+          "hex": "#F9F7F7",
+          "finish": "shimmer"
         },
         {
           "id": "a000000208709-029",
           "name": "아이 쉬머 라이트 12",
-          "hex": "#EAA1A7"
+          "hex": "#EAA1A7",
+          "finish": "shimmer"
         },
         {
           "id": "a000000208709-033",
           "name": "아이 쉬머 라이트 12",
-          "hex": "#E3B1B4"
+          "hex": "#E3B1B4",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -75092,37 +75257,44 @@
         {
           "id": "m205",
           "name": "애프터눈코랄",
-          "hex": "#D5AB9D"
+          "hex": "#D5AB9D",
+          "finish": "matte"
         },
         {
           "id": "s101",
           "name": "폴인피오니",
-          "hex": "#E59CB7"
+          "hex": "#E59CB7",
+          "finish": "shimmer"
         },
         {
           "id": "s102",
           "name": "페이보릿피치",
-          "hex": "#F5B9B6"
+          "hex": "#F5B9B6",
+          "finish": "shimmer"
         },
         {
           "id": "s103",
           "name": "헤이즈베리",
-          "hex": "#D4959A"
+          "hex": "#D4959A",
+          "finish": "shimmer"
         },
         {
           "id": "s104",
           "name": "허니베스티",
-          "hex": "#F6B2A3"
+          "hex": "#F6B2A3",
+          "finish": "shimmer"
         },
         {
           "id": "m201",
           "name": "캐시미어뮤트",
-          "hex": "#C8A59C"
+          "hex": "#C8A59C",
+          "finish": "satin"
         },
         {
           "id": "m202",
           "name": "그레이퍼지",
-          "hex": "#A88778"
+          "hex": "#A88778",
+          "finish": "satin"
         },
         {
           "id": "m203-2",
@@ -75132,7 +75304,8 @@
         {
           "id": "m204",
           "name": "로즈무스",
-          "hex": "#FAAEAD"
+          "hex": "#FAAEAD",
+          "finish": "satin"
         }
       ],
       "description": "",
@@ -75436,77 +75609,92 @@
         {
           "id": "a000000207900-019",
           "name": "베어코지",
-          "hex": "#E2B3B6"
+          "hex": "#E2B3B6",
+          "finish": "matte"
         },
         {
           "id": "a000000207900-018",
           "name": "바닐라화이트",
-          "hex": "#FEFBF5"
+          "hex": "#FEFBF5",
+          "finish": "matte"
         },
         {
           "id": "a000000207900-009",
           "name": "멜로우핑크",
-          "hex": "#F3C8CA"
+          "hex": "#F3C8CA",
+          "finish": "shimmer"
         },
         {
           "id": "a000000207900-010",
           "name": "애프리콧피치",
-          "hex": "#F6CCB8"
+          "hex": "#F6CCB8",
+          "finish": "shimmer"
         },
         {
           "id": "a000000207900-016",
           "name": "더스티핑크",
-          "hex": "#BF959E"
+          "hex": "#BF959E",
+          "finish": "matte"
         },
         {
           "id": "a000000207900-011",
           "name": "스플래시핑크",
-          "hex": "#F8EEE9"
+          "hex": "#F8EEE9",
+          "finish": "shimmer"
         },
         {
           "id": "a000000207900-001",
           "name": "샴페인바닐라",
-          "hex": "#E5CCC8"
+          "hex": "#E5CCC8",
+          "finish": "shimmer"
         },
         {
           "id": "a000000207900-003",
           "name": "모브핑크",
-          "hex": "#D29897"
+          "hex": "#D29897",
+          "finish": "shimmer"
         },
         {
           "id": "a000000207900-004",
           "name": "모카브라운",
-          "hex": "#8D6E6B"
+          "hex": "#8D6E6B",
+          "finish": "shimmer"
         },
         {
           "id": "a000000207900-006",
           "name": "진저로즈",
-          "hex": "#C49096"
+          "hex": "#C49096",
+          "finish": "shimmer"
         },
         {
           "id": "a000000207900-007",
           "name": "코튼베리",
-          "hex": "#E8C1C6"
+          "hex": "#E8C1C6",
+          "finish": "shimmer"
         },
         {
           "id": "a000000207900-008",
           "name": "프렌치토프",
-          "hex": "#A78885"
+          "hex": "#A78885",
+          "finish": "shimmer"
         },
         {
           "id": "a000000207900-017",
           "name": "토피브라운",
-          "hex": "#AC8973"
+          "hex": "#AC8973",
+          "finish": "matte"
         },
         {
           "id": "a000000207900-002",
           "name": "메이플브라운",
-          "hex": "#C8AAA4"
+          "hex": "#C8AAA4",
+          "finish": "shimmer"
         },
         {
           "id": "a000000207900-005",
           "name": "브론즈골드",
-          "hex": "#DEB49F"
+          "hex": "#DEB49F",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -75796,22 +75984,26 @@
         {
           "id": "01",
           "name": "청초핑",
-          "hex": "#CB8C6E"
+          "hex": "#CB8C6E",
+          "finish": "matte"
         },
         {
           "id": "02",
           "name": "요염핑",
-          "hex": "#C9877F"
+          "hex": "#C9877F",
+          "finish": "matte"
         },
         {
           "id": "03",
           "name": "살구핑",
-          "hex": "#D9AA98"
+          "hex": "#D9AA98",
+          "finish": "matte"
         },
         {
           "id": "04",
           "name": "뽀용핑",
-          "hex": "#CB8F8A"
+          "hex": "#CB8F8A",
+          "finish": "matte"
         }
       ],
       "description": "",
@@ -75857,102 +76049,122 @@
         {
           "id": "16",
           "name": "플래쉬 로즈",
-          "hex": "#EA968F"
+          "hex": "#EA968F",
+          "finish": "matte"
         },
         {
           "id": "09",
           "name": "블러 누드",
-          "hex": "#ECD1B4"
+          "hex": "#ECD1B4",
+          "finish": "matte"
         },
         {
           "id": "01",
           "name": "페일 진저",
-          "hex": "#E0AC92"
+          "hex": "#E0AC92",
+          "finish": "matte"
         },
         {
           "id": "02",
           "name": "라이트 우드",
-          "hex": "#D3A890"
+          "hex": "#D3A890",
+          "finish": "matte"
         },
         {
           "id": "03",
           "name": "뉴트럴 너츠",
-          "hex": "#D19376"
+          "hex": "#D19376",
+          "finish": "matte"
         },
         {
           "id": "04",
           "name": "딥 코랄",
-          "hex": "#CF7763"
+          "hex": "#CF7763",
+          "finish": "matte"
         },
         {
           "id": "06",
           "name": "라이트 토프",
-          "hex": "#D2B491"
+          "hex": "#D2B491",
+          "finish": "matte"
         },
         {
           "id": "07",
           "name": "뉴트럴 모브",
-          "hex": "#BF8182"
+          "hex": "#BF8182",
+          "finish": "matte"
         },
         {
           "id": "10",
           "name": "페일 코랄",
-          "hex": "#F2CABA"
+          "hex": "#F2CABA",
+          "finish": "matte"
         },
         {
           "id": "11",
           "name": "포그 그레이",
-          "hex": "#BAA39B"
+          "hex": "#BAA39B",
+          "finish": "matte"
         },
         {
           "id": "12",
           "name": "딥 라벤더",
-          "hex": "#B69DA3"
+          "hex": "#B69DA3",
+          "finish": "satin"
         },
         {
           "id": "13",
           "name": "던 모브",
-          "hex": "#D3B3B8"
+          "hex": "#D3B3B8",
+          "finish": "satin"
         },
         {
           "id": "14",
           "name": "라이트 라일락",
-          "hex": "#D5B6C5"
+          "hex": "#D5B6C5",
+          "finish": "matte"
         },
         {
           "id": "15",
           "name": "팝 피치",
-          "hex": "#F39F7E"
+          "hex": "#F39F7E",
+          "finish": "shimmer"
         },
         {
           "id": "18",
           "name": "파스텔 푸시아",
-          "hex": "#E9A0B2"
+          "hex": "#E9A0B2",
+          "finish": "satin"
         },
         {
           "id": "17",
           "name": "소프트 블러쉬",
-          "hex": "#F3AAAC"
+          "hex": "#F3AAAC",
+          "finish": "satin"
         },
         {
           "id": "05",
           "name": "페일로즈 셀렉션",
-          "hex": "#D1AEA8"
+          "hex": "#D1AEA8",
+          "finish": "matte"
         },
         {
           "id": "19",
           "name": "멜로우 루비",
-          "hex": "#DF726B"
+          "hex": "#DF726B",
+          "finish": "matte"
         },
         {
           "id": "05-2",
           "name": "페일 로즈",
-          "hex": "#E2AA9E"
+          "hex": "#E2AA9E",
+          "finish": "matte"
         },
         {
           "id": "08",
           "name": "딥 스모크",
-          "hex": "#A5856D"
+          "hex": "#A5856D",
+          "finish": "matte"
         }
       ],
       "description": "",
@@ -76038,117 +76250,140 @@
         {
           "id": "m29",
           "name": "피치 슈",
-          "hex": "#F5B4AB"
+          "hex": "#F5B4AB",
+          "finish": "shimmer"
         },
         {
           "id": "m31",
           "name": "슈가 프레즐",
-          "hex": "#C5A197"
+          "hex": "#C5A197",
+          "finish": "shimmer"
         },
         {
           "id": "m01",
           "name": "웜 볼류머",
-          "hex": "#F2E1D6"
+          "hex": "#F2E1D6",
+          "finish": "matte"
         },
         {
           "id": "m02",
           "name": "쿨 볼류머",
-          "hex": "#F3DAD8"
+          "hex": "#F3DAD8",
+          "finish": "matte"
         },
         {
           "id": "m09",
           "name": "비 헤이지",
-          "hex": "#E4BFBA"
+          "hex": "#E4BFBA",
+          "finish": "matte"
         },
         {
           "id": "m11",
           "name": "커스터드",
-          "hex": "#EEC1A5"
+          "hex": "#EEC1A5",
+          "finish": "matte"
         },
         {
           "id": "m14",
           "name": "토 슈즈",
-          "hex": "#FAB4AF"
+          "hex": "#FAB4AF",
+          "finish": "matte"
         },
         {
           "id": "m15",
           "name": "낫띵 피치",
-          "hex": "#F8AC9A"
+          "hex": "#F8AC9A",
+          "finish": "matte"
         },
         {
           "id": "m16",
           "name": "피그 휘핑",
-          "hex": "#ECA7A2"
+          "hex": "#ECA7A2",
+          "finish": "matte"
         },
         {
           "id": "m18",
           "name": "플레인 모카",
-          "hex": "#CDA796"
+          "hex": "#CDA796",
+          "finish": "matte"
         },
         {
           "id": "m20",
           "name": "데일리 메밀",
-          "hex": "#C19C83"
+          "hex": "#C19C83",
+          "finish": "matte"
         },
         {
           "id": "m24",
           "name": "먼지",
-          "hex": "#A48276"
+          "hex": "#A48276",
+          "finish": "matte"
         },
         {
           "id": "m25",
           "name": "처비 초코",
-          "hex": "#6D5040"
+          "hex": "#6D5040",
+          "finish": "matte"
         },
         {
           "id": "s01",
           "name": "글레이즈",
-          "hex": "#F2D8D9"
+          "hex": "#F2D8D9",
+          "finish": "shimmer"
         },
         {
           "id": "s07",
           "name": "포슬린",
-          "hex": "#F2C6B5"
+          "hex": "#F2C6B5",
+          "finish": "shimmer"
         },
         {
           "id": "s08",
           "name": "핑크 샤",
-          "hex": "#D49E92"
+          "hex": "#D49E92",
+          "finish": "shimmer"
         },
         {
           "id": "s11",
           "name": "매쉬드 자몽",
-          "hex": "#C98A80"
+          "hex": "#C98A80",
+          "finish": "shimmer"
         },
         {
           "id": "s12",
           "name": "카프리 바이올렛",
-          "hex": "#A16D79"
+          "hex": "#A16D79",
+          "finish": "shimmer"
         },
         {
           "id": "s14",
           "name": "배디",
-          "hex": "#C97B7D"
+          "hex": "#C97B7D",
+          "finish": "satin"
         },
         {
           "id": "s16",
           "name": "얼그레이",
-          "hex": "#9C7366"
+          "hex": "#9C7366",
+          "finish": "satin"
         },
         {
           "id": "g01",
           "name": "스노이",
-          "hex": "#CECDCE"
+          "hex": "#CECDCE",
+          "finish": "glitter"
         },
         {
           "id": "g03",
           "name": "버니 챗",
-          "hex": "#E59CA3"
+          "hex": "#E59CA3",
+          "finish": "glitter"
         },
         {
           "id": "g04",
           "name": "퍼플 릿",
-          "hex": "#BA849D"
+          "hex": "#BA849D",
+          "finish": "glitter"
         },
         {
           "id": "a000000212611-052",
@@ -76158,12 +76393,14 @@
         {
           "id": "m28",
           "name": "키튼 젤리",
-          "hex": "#F1CAC8"
+          "hex": "#F1CAC8",
+          "finish": "shimmer"
         },
         {
           "id": "m30",
           "name": "캔디드 베리",
-          "hex": "#F7C6DA"
+          "hex": "#F7C6DA",
+          "finish": "shimmer"
         },
         {
           "id": "01",
@@ -76178,142 +76415,170 @@
         {
           "id": "m03",
           "name": "요거트 크림",
-          "hex": "#F4C5B0"
+          "hex": "#F4C5B0",
+          "finish": "matte"
         },
         {
           "id": "m04",
           "name": "쥬시 망고",
-          "hex": "#FEB86C"
+          "hex": "#FEB86C",
+          "finish": "matte"
         },
         {
           "id": "m05",
           "name": "멜론 듀",
-          "hex": "#D4D4A0"
+          "hex": "#D4D4A0",
+          "finish": "matte"
         },
         {
           "id": "m06",
           "name": "소다 팝",
-          "hex": "#D7B7AE"
+          "hex": "#D7B7AE",
+          "finish": "matte"
         },
         {
           "id": "m07",
           "name": "스프링 라벤더",
-          "hex": "#ECC4CF"
+          "hex": "#ECC4CF",
+          "finish": "matte"
         },
         {
           "id": "m08",
           "name": "페일 피오니",
-          "hex": "#FBC8BB"
+          "hex": "#FBC8BB",
+          "finish": "matte"
         },
         {
           "id": "m10",
           "name": "토피 라떼",
-          "hex": "#E5C3B1"
+          "hex": "#E5C3B1",
+          "finish": "matte"
         },
         {
           "id": "m12",
           "name": "마가렛",
-          "hex": "#DFBDA2"
+          "hex": "#DFBDA2",
+          "finish": "matte"
         },
         {
           "id": "m13",
           "name": "포도 크림",
-          "hex": "#EBB4CC"
+          "hex": "#EBB4CC",
+          "finish": "matte"
         },
         {
           "id": "m17",
           "name": "포니",
-          "hex": "#D4A78F"
+          "hex": "#D4A78F",
+          "finish": "matte"
         },
         {
           "id": "m19",
           "name": "모브 도우",
-          "hex": "#D3A6A2"
+          "hex": "#D3A6A2",
+          "finish": "matte"
         },
         {
           "id": "m21",
           "name": "웜 캐러멜",
-          "hex": "#B27F58"
+          "hex": "#B27F58",
+          "finish": "matte"
         },
         {
           "id": "m22",
           "name": "미드 마롱",
-          "hex": "#C08868"
+          "hex": "#C08868",
+          "finish": "matte"
         },
         {
           "id": "m23",
           "name": "레드 빈즈",
-          "hex": "#BF8C80"
+          "hex": "#BF8C80",
+          "finish": "matte"
         },
         {
           "id": "m26",
           "name": "블렌딩 코코",
-          "hex": "#745249"
+          "hex": "#745249",
+          "finish": "matte"
         },
         {
           "id": "m27",
           "name": "콜드 브루",
-          "hex": "#705649"
+          "hex": "#705649",
+          "finish": "matte"
         },
         {
           "id": "s02",
           "name": "리치 레몬",
-          "hex": "#EADEC2"
+          "hex": "#EADEC2",
+          "finish": "shimmer"
         },
         {
           "id": "s03",
           "name": "블루 베일",
-          "hex": "#D8AEA6"
+          "hex": "#D8AEA6",
+          "finish": "shimmer"
         },
         {
           "id": "s04",
           "name": "베어 타로",
-          "hex": "#ECDBE7"
+          "hex": "#ECDBE7",
+          "finish": "shimmer"
         },
         {
           "id": "s05",
           "name": "버블리",
-          "hex": "#F0C0C3"
+          "hex": "#F0C0C3",
+          "finish": "shimmer"
         },
         {
           "id": "s06",
           "name": "소르베 휩",
-          "hex": "#F6A88E"
+          "hex": "#F6A88E",
+          "finish": "shimmer"
         },
         {
           "id": "s09",
           "name": "솔티 바닐라",
-          "hex": "#E4A48F"
+          "hex": "#E4A48F",
+          "finish": "shimmer"
         },
         {
           "id": "s10",
           "name": "잠봉 핑크",
-          "hex": "#F3B7BA"
+          "hex": "#F3B7BA",
+          "finish": "shimmer"
         },
         {
           "id": "s13",
           "name": "레이지 마젠타",
-          "hex": "#E36B8C"
+          "hex": "#E36B8C",
+          "finish": "shimmer"
         },
         {
           "id": "s15",
           "name": "생강",
-          "hex": "#D78564"
+          "hex": "#D78564",
+          "finish": "satin"
         },
         {
           "id": "s17",
           "name": "퍼지",
-          "hex": "#64493E"
+          "hex": "#64493E",
+          "finish": "satin"
         },
         {
           "id": "g02",
           "name": "버터 링",
-          "hex": "#D5997C"
+          "hex": "#D5997C",
+          "finish": "glitter"
         },
         {
           "id": "g05",
           "name": "누 메테오",
-          "hex": "#D2CFD1"
+          "hex": "#D2CFD1",
+          "finish": "glitter"
         }
       ],
       "description": "",
@@ -76506,37 +76771,44 @@
         {
           "id": "cr02",
           "name": "입덕주의 살구",
-          "hex": "#E7C3BB"
+          "hex": "#E7C3BB",
+          "finish": "shimmer"
         },
         {
           "id": "pk03",
           "name": "눈꽃 딸기 소르베",
-          "hex": "#E8DBDB"
+          "hex": "#E8DBDB",
+          "finish": "shimmer"
         },
         {
           "id": "wh01",
           "name": "생크림 화이트",
-          "hex": "#DDD1D3"
+          "hex": "#DDD1D3",
+          "finish": "matte"
         },
         {
           "id": "wh02",
           "name": "살결st 바닐라",
-          "hex": "#D6CECD"
+          "hex": "#D6CECD",
+          "finish": "matte"
         },
         {
           "id": "wh01-2",
           "name": "입덕주의 화이트",
-          "hex": "#DDCFC7"
+          "hex": "#DDCFC7",
+          "finish": "shimmer"
         },
         {
           "id": "wh02-2",
           "name": "입덕주의 스노우",
-          "hex": "#D4CCC8"
+          "hex": "#D4CCC8",
+          "finish": "shimmer"
         },
         {
           "id": "wh01-3",
           "name": "물기 머금은 다이아",
-          "hex": "#D9DDE2"
+          "hex": "#D9DDE2",
+          "finish": "glitter"
         },
         {
           "id": "4",
@@ -76546,7 +76818,8 @@
         {
           "id": "pk01",
           "name": "생딸기 젤리",
-          "hex": "#CFB2B9"
+          "hex": "#CFB2B9",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -76821,72 +77094,86 @@
         {
           "id": "13",
           "name": "이노센트*",
-          "hex": "#ECDADC"
+          "hex": "#ECDADC",
+          "finish": "satin"
         },
         {
           "id": "a000000227521-019",
           "name": "[포도딸기 더블기획]",
-          "hex": "#E8D2DD"
+          "hex": "#E8D2DD",
+          "finish": "satin"
         },
         {
           "id": "a000000227521-020",
           "name": "[장미딸기 더블기획]",
-          "hex": "#EED6D9"
+          "hex": "#EED6D9",
+          "finish": "satin"
         },
         {
           "id": "01",
           "name": "스트로베리",
-          "hex": "#FABDBE"
+          "hex": "#FABDBE",
+          "finish": "satin"
         },
         {
           "id": "02",
           "name": "복숭아",
-          "hex": "#F8C0C2"
+          "hex": "#F8C0C2",
+          "finish": "satin"
         },
         {
           "id": "03",
           "name": "벚꽃",
-          "hex": "#EDC2CC"
+          "hex": "#EDC2CC",
+          "finish": "satin"
         },
         {
           "id": "04",
           "name": "실루엣",
-          "hex": "#F7BCC7"
+          "hex": "#F7BCC7",
+          "finish": "satin"
         },
         {
           "id": "05",
           "name": "타로밀크",
-          "hex": "#E1C3CE"
+          "hex": "#E1C3CE",
+          "finish": "satin"
         },
         {
           "id": "06",
           "name": "로즈니",
-          "hex": "#FBBFBF"
+          "hex": "#FBBFBF",
+          "finish": "satin"
         },
         {
           "id": "07",
           "name": "메모러블",
-          "hex": "#EDBFC0"
+          "hex": "#EDBFC0",
+          "finish": "satin"
         },
         {
           "id": "08",
           "name": "투투",
-          "hex": "#F5C1C2"
+          "hex": "#F5C1C2",
+          "finish": "satin"
         },
         {
           "id": "a000000227521-002",
           "name": "[크림제형09 모먼트 살몬",
-          "hex": "#F9C1BF"
+          "hex": "#F9C1BF",
+          "finish": "satin"
         },
         {
           "id": "11",
           "name": "데이즈",
-          "hex": "#FCBDBA"
+          "hex": "#FCBDBA",
+          "finish": "satin"
         },
         {
           "id": "12",
           "name": "소프티*",
-          "hex": "#FDC4C4"
+          "hex": "#FDC4C4",
+          "finish": "satin"
         }
       ],
       "description": "",
@@ -76912,32 +77199,38 @@
         {
           "id": "01",
           "name": "베이직브라운",
-          "hex": "#DBB3AE"
+          "hex": "#DBB3AE",
+          "finish": "matte"
         },
         {
           "id": "02",
           "name": "오버로즈",
-          "hex": "#DFB4AF"
+          "hex": "#DFB4AF",
+          "finish": "matte"
         },
         {
           "id": "03",
           "name": "버니피치",
-          "hex": "#E2B3B0"
+          "hex": "#E2B3B0",
+          "finish": "matte"
         },
         {
           "id": "05",
           "name": "모브어페어",
-          "hex": "#DDB3B3"
+          "hex": "#DDB3B3",
+          "finish": "matte"
         },
         {
           "id": "06",
           "name": "타임리스그레이",
-          "hex": "#D9B4AE"
+          "hex": "#D9B4AE",
+          "finish": "matte"
         },
         {
           "id": "04",
           "name": "진저캣",
-          "hex": "#DFB3AC"
+          "hex": "#DFB3AC",
+          "finish": "matte"
         }
       ],
       "description": "",
@@ -77019,72 +77312,86 @@
         {
           "id": "01",
           "name": "펄리 스킨",
-          "hex": "#F5D6C6"
+          "hex": "#F5D6C6",
+          "finish": "shimmer"
         },
         {
           "id": "03",
           "name": "샴페인 로지",
-          "hex": "#F4C8C1"
+          "hex": "#F4C8C1",
+          "finish": "shimmer"
         },
         {
           "id": "04",
           "name": "스킨 브라운",
-          "hex": "#C8967F"
+          "hex": "#C8967F",
+          "finish": "matte"
         },
         {
           "id": "07",
           "name": "스타더스트",
-          "hex": "#F8DCC8"
+          "hex": "#F8DCC8",
+          "finish": "shimmer"
         },
         {
           "id": "08",
           "name": "티어링 로즈",
-          "hex": "#E9BEBE"
+          "hex": "#E9BEBE",
+          "finish": "shimmer"
         },
         {
           "id": "09",
           "name": "문라이트",
-          "hex": "#DBA890"
+          "hex": "#DBA890",
+          "finish": "shimmer"
         },
         {
           "id": "10",
           "name": "샌드 번",
-          "hex": "#CA917E"
+          "hex": "#CA917E",
+          "finish": "matte"
         },
         {
           "id": "11",
           "name": "솔티드 브론즈",
-          "hex": "#AF9185"
+          "hex": "#AF9185",
+          "finish": "shimmer"
         },
         {
           "id": "15",
           "name": "살몬 드리즐",
-          "hex": "#D6B1AB"
+          "hex": "#D6B1AB",
+          "finish": "shimmer"
         },
         {
           "id": "16",
           "name": "글래시어 핑크",
-          "hex": "#E4E0DD"
+          "hex": "#E4E0DD",
+          "finish": "shimmer"
         },
         {
           "id": "17",
           "name": "페탈린",
-          "hex": "#F4DDD9"
+          "hex": "#F4DDD9",
+          "finish": "shimmer"
         },
         {
           "id": "18",
           "name": "글리밍 블러쉬",
-          "hex": "#EDBAC4"
+          "hex": "#EDBAC4",
+          "finish": "shimmer"
         },
         {
           "id": "19",
           "name": "피치 플레어",
-          "hex": "#F3BCB7"
+          "hex": "#F3BCB7",
+          "finish": "shimmer"
         },
         {
           "id": "14",
           "name": "튜튜",
-          "hex": "#E6D9D1"
+          "hex": "#E6D9D1",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -77522,62 +77829,74 @@
         {
           "id": "a000000249931-012",
           "name": "포슬린",
-          "hex": "#EEE3DD"
+          "hex": "#EEE3DD",
+          "finish": "matte"
         },
         {
           "id": "a000000249931-011",
           "name": "누드 베리",
-          "hex": "#EEE2E1"
+          "hex": "#EEE2E1",
+          "finish": "matte"
         },
         {
           "id": "a000000249931-010",
           "name": "베이비 살몬",
-          "hex": "#F3A6A1"
+          "hex": "#F3A6A1",
+          "finish": "matte"
         },
         {
           "id": "a000000249931-009",
           "name": "뮤티드 모브",
-          "hex": "#CA8985"
+          "hex": "#CA8985",
+          "finish": "matte"
         },
         {
           "id": "a000000249931-008",
           "name": "로즈 부케",
-          "hex": "#C67D7F"
+          "hex": "#C67D7F",
+          "finish": "matte"
         },
         {
           "id": "a000000249931-007",
           "name": "아몬드 오트",
-          "hex": "#D4A394"
+          "hex": "#D4A394",
+          "finish": "matte"
         },
         {
           "id": "a000000249931-006",
           "name": "더스티 토프",
-          "hex": "#9D7465"
+          "hex": "#9D7465",
+          "finish": "matte"
         },
         {
           "id": "a000000249931-005",
           "name": "피치 인사이드",
-          "hex": "#EDB29D"
+          "hex": "#EDB29D",
+          "finish": "matte"
         },
         {
           "id": "a000000249931-004",
           "name": "미스티 로즈",
-          "hex": "#D28C85"
+          "hex": "#D28C85",
+          "finish": "matte"
         },
         {
           "id": "a000000249931-001",
           "name": "페탈코랄",
-          "hex": "#F39981"
+          "hex": "#F39981",
+          "finish": "matte"
         },
         {
           "id": "a000000249931-003",
           "name": "퓨어 모카",
-          "hex": "#96655C"
+          "hex": "#96655C",
+          "finish": "matte"
         },
         {
           "id": "a000000249931-002",
           "name": "카카오 팝스*",
-          "hex": "#554346"
+          "hex": "#554346",
+          "finish": "matte"
         }
       ],
       "description": "",
@@ -78492,37 +78811,44 @@
         {
           "id": "a000000206347-008",
           "name": "OR-2 코랄로제팝",
-          "hex": "#E5C2AF"
+          "hex": "#E5C2AF",
+          "finish": "shimmer"
         },
         {
           "id": "a000000206347-009",
           "name": "PK-1 라즈베리로제팝",
-          "hex": "#E8CBC3"
+          "hex": "#E8CBC3",
+          "finish": "shimmer"
         },
         {
           "id": "a000000206347-001",
           "name": "MV-1 모브팝",
-          "hex": "#CDAAAA"
+          "hex": "#CDAAAA",
+          "finish": "shimmer"
         },
         {
           "id": "a000000206347-002",
           "name": "BE-1 시나몬팝",
-          "hex": "#DBB498"
+          "hex": "#DBB498",
+          "finish": "shimmer"
         },
         {
           "id": "a000000206347-003",
           "name": "BR-1 그레이지팝",
-          "hex": "#C9A29E"
+          "hex": "#C9A29E",
+          "finish": "shimmer"
         },
         {
           "id": "a000000206347-004",
           "name": "OR-1 애프리콧팝",
-          "hex": "#E0B59D"
+          "hex": "#E0B59D",
+          "finish": "shimmer"
         },
         {
           "id": "a000000206347-005",
           "name": "RD-1 로지팝",
-          "hex": "#C8A29F"
+          "hex": "#C8A29F",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -79064,27 +79390,32 @@
         {
           "id": "a000000110707-006",
           "name": "아이시 화이트",
-          "hex": "#EAE7E6"
+          "hex": "#EAE7E6",
+          "finish": "shimmer"
         },
         {
           "id": "a000000110707-008",
           "name": "스테어리 블루",
-          "hex": "#D8D4DF"
+          "hex": "#D8D4DF",
+          "finish": "shimmer"
         },
         {
           "id": "a000000110707-005",
           "name": "핑크 쉰",
-          "hex": "#E9D4D3"
+          "hex": "#E9D4D3",
+          "finish": "shimmer"
         },
         {
           "id": "a000000110707-002",
           "name": "스턱",
-          "hex": "#DFB393"
+          "hex": "#DFB393",
+          "finish": "glitter"
         },
         {
           "id": "a000000110707-003",
           "name": "더블 노트",
-          "hex": "#E0B99D"
+          "hex": "#E0B99D",
+          "finish": "glitter"
         }
       ],
       "description": "",
@@ -79110,27 +79441,32 @@
         {
           "id": "a000000230225-007",
           "name": "로스트 인 핑크+브러쉬",
-          "hex": "#BD939A"
+          "hex": "#BD939A",
+          "finish": "shimmer"
         },
         {
           "id": "a000000230225-008",
           "name": "피치 글레이즈+브러쉬",
-          "hex": "#99756D"
+          "hex": "#99756D",
+          "finish": "shimmer"
         },
         {
           "id": "a000000230225-002",
           "name": "버터 크림",
-          "hex": "#C39276"
+          "hex": "#C39276",
+          "finish": "shimmer"
         },
         {
           "id": "a000000230225-005",
           "name": "민트 제스트",
-          "hex": "#B3DECF"
+          "hex": "#B3DECF",
+          "finish": "shimmer"
         },
         {
           "id": "a000000230225-003",
           "name": "플레임 플리커",
-          "hex": "#B47D6D"
+          "hex": "#B47D6D",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -79343,72 +79679,86 @@
         {
           "id": "06",
           "name": "애교베이지",
-          "hex": "#E6D1CE"
+          "hex": "#E6D1CE",
+          "finish": "satin"
         },
         {
           "id": "07",
           "name": "쿨플러팅",
-          "hex": "#EAD6DA"
+          "hex": "#EAD6DA",
+          "finish": "satin"
         },
         {
           "id": "08",
           "name": "여쿨핑베",
-          "hex": "#EAD4D8"
+          "hex": "#EAD4D8",
+          "finish": "matte"
         },
         {
           "id": "10",
           "name": "쿨팅데이",
-          "hex": "#E7D0D6"
+          "hex": "#E7D0D6",
+          "finish": "shimmer"
         },
         {
           "id": "11",
           "name": "앙금로즈",
-          "hex": "#C88B89"
+          "hex": "#C88B89",
+          "finish": "matte"
         },
         {
           "id": "12",
           "name": "모브쿨브",
-          "hex": "#AC7773"
+          "hex": "#AC7773",
+          "finish": "matte"
         },
         {
           "id": "14",
           "name": "코랄포풍",
-          "hex": "#D38384"
+          "hex": "#D38384",
+          "finish": "shimmer"
         },
         {
           "id": "15",
           "name": "앙마레드",
-          "hex": "#B2585F"
+          "hex": "#B2585F",
+          "finish": "matte"
         },
         {
           "id": "17",
           "name": "베리크림",
-          "hex": "#EFE5E7"
+          "hex": "#EFE5E7",
+          "finish": "satin"
         },
         {
           "id": "23",
           "name": "블루둥이",
-          "hex": "#E2E1E4"
+          "hex": "#E2E1E4",
+          "finish": "satin"
         },
         {
           "id": "24",
           "name": "분유베이지",
-          "hex": "#EBDDCD"
+          "hex": "#EBDDCD",
+          "finish": "matte"
         },
         {
           "id": "26",
           "name": "당연보라",
-          "hex": "#D9D0D9"
+          "hex": "#D9D0D9",
+          "finish": "matte"
         },
         {
           "id": "27",
           "name": "초코핑",
-          "hex": "#BF7C95"
+          "hex": "#BF7C95",
+          "finish": "satin"
         },
         {
           "id": "28",
           "name": "장꾸코랄",
-          "hex": "#E1A3A0"
+          "hex": "#E1A3A0",
+          "finish": "matte"
         },
         {
           "id": "a000000216667-038",
@@ -79418,7 +79768,8 @@
         {
           "id": "02",
           "name": "봄브웜베",
-          "hex": "#ECD2D0"
+          "hex": "#ECD2D0",
+          "finish": "matte"
         }
       ],
       "description": "",
@@ -79444,167 +79795,200 @@
         {
           "id": "a000000238646-061",
           "name": "멜로우 빗",
-          "hex": "#E6B7B6"
+          "hex": "#E6B7B6",
+          "finish": "matte"
         },
         {
           "id": "a000000238646-060",
           "name": "스테이 위드 멜로디",
-          "hex": "#E0B7B8"
+          "hex": "#E0B7B8",
+          "finish": "matte"
         },
         {
           "id": "a000000238646-059",
           "name": "팝 팝 푸딩",
-          "hex": "#DEBEA7"
+          "hex": "#DEBEA7",
+          "finish": "matte"
         },
         {
           "id": "a000000238646-058",
           "name": "그 시절 봄플리",
-          "hex": "#DDC4B4"
+          "hex": "#DDC4B4",
+          "finish": "matte"
         },
         {
           "id": "a000000238646-043",
           "name": "아임 파인 땡큐",
-          "hex": "#D9CAC1"
+          "hex": "#D9CAC1",
+          "finish": "matte"
         },
         {
           "id": "a000000238646-041",
           "name": "멜론 머스크",
-          "hex": "#D9B5AA"
+          "hex": "#D9B5AA",
+          "finish": "matte"
         },
         {
           "id": "a000000238646-057",
           "name": "핑크빛 로열티",
-          "hex": "#D9BBC2"
+          "hex": "#D9BBC2",
+          "finish": "matte"
         },
         {
           "id": "a000000238646-056",
           "name": "핑크 튀튀",
-          "hex": "#E2B4C3"
+          "hex": "#E2B4C3",
+          "finish": "matte"
         },
         {
           "id": "a000000238646-055",
           "name": "유리구두는 필요 없어",
-          "hex": "#DDB2BE"
+          "hex": "#DDB2BE",
+          "finish": "satin"
         },
         {
           "id": "a000000238646-054",
           "name": "달빛 아래 무도회",
-          "hex": "#D2A4A3"
+          "hex": "#D2A4A3",
+          "finish": "matte"
         },
         {
           "id": "a000000238646-014",
           "name": "젤라또 프라이머",
-          "hex": "#DAB6B0"
+          "hex": "#DAB6B0",
+          "finish": "matte"
         },
         {
           "id": "a000000238646-012",
           "name": "꿀광수저의 등장",
-          "hex": "#DADCDA"
+          "hex": "#DADCDA",
+          "finish": "satin"
         },
         {
           "id": "a000000238646-052",
           "name": "쿨타는 쿨핑",
-          "hex": "#D5B9C1"
+          "hex": "#D5B9C1",
+          "finish": "satin"
         },
         {
           "id": "a000000238646-053",
           "name": "퐁당퐁당 러브",
-          "hex": "#DFBEC5"
+          "hex": "#DFBEC5",
+          "finish": "satin"
         },
         {
           "id": "a000000238646-050",
           "name": "사랑은 쿨내나게",
-          "hex": "#D6B1B6"
+          "hex": "#D6B1B6",
+          "finish": "satin"
         },
         {
           "id": "a000000238646-047",
           "name": "저당 시럽 추가",
-          "hex": "#D1B6B0"
+          "hex": "#D1B6B0",
+          "finish": "satin"
         },
         {
           "id": "a000000238646-046",
           "name": "타로밀크티라구",
-          "hex": "#D5A4A4"
+          "hex": "#D5A4A4",
+          "finish": "satin"
         },
         {
           "id": "a000000238646-045",
           "name": "달다구리 모먼트",
-          "hex": "#CF9EA1"
+          "hex": "#CF9EA1",
+          "finish": "satin"
         },
         {
           "id": "a000000238646-044",
           "name": "두잇두잇 츄",
-          "hex": "#D7A1A2"
+          "hex": "#D7A1A2",
+          "finish": "satin"
         },
         {
           "id": "a000000238646-042",
           "name": "허니 밀크",
-          "hex": "#D8CBB9"
+          "hex": "#D8CBB9",
+          "finish": "satin"
         },
         {
           "id": "a000000238646-040",
           "name": "천도씨 복숭아",
-          "hex": "#D1A09E"
+          "hex": "#D1A09E",
+          "finish": "satin"
         },
         {
           "id": "a000000238646-039",
           "name": "내 마음에 별로",
-          "hex": "#CCB9AF"
+          "hex": "#CCB9AF",
+          "finish": "satin"
         },
         {
           "id": "a000000238646-038",
           "name": "카페라떼 우유 많이",
-          "hex": "#D4A49B"
+          "hex": "#D4A49B",
+          "finish": "satin"
         },
         {
           "id": "a000000238646-037",
           "name": "해변에서 모히또",
-          "hex": "#CE9F9A"
+          "hex": "#CE9F9A",
+          "finish": "satin"
         },
         {
           "id": "a000000238646-035",
           "name": "레이디 얼그레이",
-          "hex": "#CB9F9C"
+          "hex": "#CB9F9C",
+          "finish": "satin"
         },
         {
           "id": "a000000238646-034",
           "name": "라떼는 말이야",
-          "hex": "#CFA3A1"
+          "hex": "#CFA3A1",
+          "finish": "satin"
         },
         {
           "id": "a000000238646-032",
           "name": "단독 주연 안개꽃",
-          "hex": "#D2C9BC"
+          "hex": "#D2C9BC",
+          "finish": "shimmer"
         },
         {
           "id": "a000000238646-031",
           "name": "기억 조작 판타지",
-          "hex": "#CBAEB4"
+          "hex": "#CBAEB4",
+          "finish": "shimmer"
         },
         {
           "id": "a000000238646-028",
           "name": "오늘은 디카페인",
-          "hex": "#C59E9A"
+          "hex": "#C59E9A",
+          "finish": "matte"
         },
         {
           "id": "a000000238646-023",
           "name": "울먹 티무룩",
-          "hex": "#D1A7BA"
+          "hex": "#D1A7BA",
+          "finish": "satin"
         },
         {
           "id": "a000000238646-003",
           "name": "오렌지 링가링가링",
-          "hex": "#D8C1B9"
+          "hex": "#D8C1B9",
+          "finish": "shimmer"
         },
         {
           "id": "a000000238646-009",
           "name": "모찌나가요",
-          "hex": "#D5AD99"
+          "hex": "#D5AD99",
+          "finish": "satin"
         },
         {
           "id": "a000000238646-020",
           "name": "꼬순내 애착 인형",
-          "hex": "#DBACA5"
+          "hex": "#DBACA5",
+          "finish": "satin"
         },
         {
           "id": "4",
@@ -79614,22 +79998,26 @@
         {
           "id": "a000000238646-036",
           "name": "Tea라 미숙해",
-          "hex": "#CCBCB0"
+          "hex": "#CCBCB0",
+          "finish": "matte"
         },
         {
           "id": "a000000238646-030",
           "name": "일렉기타 여신",
-          "hex": "#CDA39D"
+          "hex": "#CDA39D",
+          "finish": "shimmer"
         },
         {
           "id": "a000000238646-027",
           "name": "명예 쿨톤 지기",
-          "hex": "#E0D6D7"
+          "hex": "#E0D6D7",
+          "finish": "satin"
         },
         {
           "id": "a000000238646-025",
           "name": "쫀득한 타로 펄 추가",
-          "hex": "#D0B9C9"
+          "hex": "#D0B9C9",
+          "finish": "shimmer"
         },
         {
           "id": "6",
@@ -79660,47 +80048,56 @@
         {
           "id": "928",
           "name": "허그",
-          "hex": "#EBCED5"
+          "hex": "#EBCED5",
+          "finish": "matte"
         },
         {
           "id": "939",
           "name": "선셋",
-          "hex": "#E1A49B"
+          "hex": "#E1A49B",
+          "finish": "matte"
         },
         {
           "id": "909",
           "name": "솝",
-          "hex": "#DDC2BD"
+          "hex": "#DDC2BD",
+          "finish": "matte"
         },
         {
           "id": "916",
           "name": "베베",
-          "hex": "#DCBEB3"
+          "hex": "#DCBEB3",
+          "finish": "matte"
         },
         {
           "id": "918",
           "name": "플로리스트",
-          "hex": "#DEB5B3"
+          "hex": "#DEB5B3",
+          "finish": "matte"
         },
         {
           "id": "922",
           "name": "스노우",
-          "hex": "#DAD2C8"
+          "hex": "#DAD2C8",
+          "finish": "glitter"
         },
         {
           "id": "927",
           "name": "퓨어",
-          "hex": "#D9E4EA"
+          "hex": "#D9E4EA",
+          "finish": "matte"
         },
         {
           "id": "908",
           "name": "바닐라",
-          "hex": "#E1D4C4"
+          "hex": "#E1D4C4",
+          "finish": "matte"
         },
         {
           "id": "910",
           "name": "포그",
-          "hex": "#C8BDB9"
+          "hex": "#C8BDB9",
+          "finish": "matte"
         }
       ],
       "description": "",
@@ -80174,137 +80571,164 @@
         {
           "id": "23",
           "name": "스위트너",
-          "hex": "#EFC1BF"
+          "hex": "#EFC1BF",
+          "finish": "glitter"
         },
         {
           "id": "24",
           "name": "솔티 코코아",
-          "hex": "#CDAAB0"
+          "hex": "#CDAAB0",
+          "finish": "glitter"
         },
         {
           "id": "a000000226679-031",
           "name": "샌드 바이브",
-          "hex": "#DDB5AF"
+          "hex": "#DDB5AF",
+          "finish": "glitter"
         },
         {
           "id": "a000000226679-032",
           "name": "칠 웨이브",
-          "hex": "#D3D7DD"
+          "hex": "#D3D7DD",
+          "finish": "glitter"
         },
         {
           "id": "07",
           "name": "앤티크 피치",
-          "hex": "#DFB0AB"
+          "hex": "#DFB0AB",
+          "finish": "matte"
         },
         {
           "id": "15",
           "name": "얼루어 인 모션",
-          "hex": "#DAACAC"
+          "hex": "#DAACAC",
+          "finish": "matte"
         },
         {
           "id": "00",
           "name": "아이프라이머",
-          "hex": "#E8EFF3"
+          "hex": "#E8EFF3",
+          "finish": "matte"
         },
         {
           "id": "01",
           "name": "린넨",
-          "hex": "#EAC8B1"
+          "hex": "#EAC8B1",
+          "finish": "matte"
         },
         {
           "id": "02",
           "name": "리플렉션",
-          "hex": "#E0BD9E"
+          "hex": "#E0BD9E",
+          "finish": "matte"
         },
         {
           "id": "03",
           "name": "실크 핑크",
-          "hex": "#E2B1A2"
+          "hex": "#E2B1A2",
+          "finish": "satin"
         },
         {
           "id": "04",
           "name": "진저 티",
-          "hex": "#E3AB92"
+          "hex": "#E3AB92",
+          "finish": "matte"
         },
         {
           "id": "05",
           "name": "펄리 피치",
-          "hex": "#F6BAB0"
+          "hex": "#F6BAB0",
+          "finish": "satin"
         },
         {
           "id": "06",
           "name": "포멜 로즈",
-          "hex": "#F2B5A6"
+          "hex": "#F2B5A6",
+          "finish": "matte"
         },
         {
           "id": "08",
           "name": "어니스티",
-          "hex": "#DCB6AC"
+          "hex": "#DCB6AC",
+          "finish": "matte"
         },
         {
           "id": "09",
           "name": "토프 라떼",
-          "hex": "#C89D86"
+          "hex": "#C89D86",
+          "finish": "matte"
         },
         {
           "id": "10",
           "name": "빌드 온",
-          "hex": "#9A7D68"
+          "hex": "#9A7D68",
+          "finish": "matte"
         },
         {
           "id": "11",
           "name": "카페인",
-          "hex": "#7B5D47"
+          "hex": "#7B5D47",
+          "finish": "matte"
         },
         {
           "id": "13",
           "name": "피오니 로즈",
-          "hex": "#F9C0C2"
+          "hex": "#F9C0C2",
+          "finish": "matte"
         },
         {
           "id": "14",
           "name": "미스티 모브",
-          "hex": "#CC999A"
+          "hex": "#CC999A",
+          "finish": "matte"
         },
         {
           "id": "16",
           "name": "시트론",
-          "hex": "#F3E3BB"
+          "hex": "#F3E3BB",
+          "finish": "matte"
         },
         {
           "id": "17",
           "name": "라일락 샤워",
-          "hex": "#E5D6DD"
+          "hex": "#E5D6DD",
+          "finish": "shimmer"
         },
         {
           "id": "20",
           "name": "비 마이 얼루어",
-          "hex": "#C3898A"
+          "hex": "#C3898A",
+          "finish": "shimmer"
         },
         {
           "id": "21",
           "name": "모카 프레소",
-          "hex": "#AC826A"
+          "hex": "#AC826A",
+          "finish": "matte"
         },
         {
           "id": "22",
           "name": "얼루어 로즈",
-          "hex": "#CF9C92"
+          "hex": "#CF9C92",
+          "finish": "matte"
         },
         {
           "id": "a000000226679-027",
           "name": "스노우 화이트",
-          "hex": "#EEEEF2"
+          "hex": "#EEEEF2",
+          "finish": "glitter"
         },
         {
           "id": "07-2",
           "name": "앤티크 피치",
-          "hex": "#DAA08B"
+          "hex": "#DAA08B",
+          "finish": "matte"
         },
         {
           "id": "15-2",
           "name": "얼루어 인 모션",
-          "hex": "#CCA19C"
+          "hex": "#CCA19C",
+          "finish": "matte"
         }
       ],
       "description": "",
@@ -80370,22 +80794,26 @@
         {
           "id": "p02",
           "name": "샤이닝버블",
-          "hex": "#E9AFA1"
+          "hex": "#E9AFA1",
+          "finish": "satin"
         },
         {
           "id": "p06",
           "name": "미스티 피치",
-          "hex": "#DA9E98"
+          "hex": "#DA9E98",
+          "finish": "satin"
         },
         {
           "id": "p07",
           "name": "글림 로지",
-          "hex": "#D29095"
+          "hex": "#D29095",
+          "finish": "matte"
         },
         {
           "id": "m02",
           "name": "로지네이션",
-          "hex": "#E5ABA6"
+          "hex": "#E5ABA6",
+          "finish": "matte"
         }
       ],
       "description": "",
@@ -80411,37 +80839,44 @@
         {
           "id": "03",
           "name": "스트로베리 스쿱",
-          "hex": "#DEB3AF"
+          "hex": "#DEB3AF",
+          "finish": "matte"
         },
         {
           "id": "04",
           "name": "발레 노트",
-          "hex": "#EFC7C6"
+          "hex": "#EFC7C6",
+          "finish": "matte"
         },
         {
           "id": "05",
           "name": "앳 로즈",
-          "hex": "#DEB3AE"
+          "hex": "#DEB3AE",
+          "finish": "matte"
         },
         {
           "id": "07",
           "name": "모더니스트 기획",
-          "hex": "#D8AEA6"
+          "hex": "#D8AEA6",
+          "finish": "matte"
         },
         {
           "id": "01",
           "name": "라이트 프레임",
-          "hex": "#EED6C8"
+          "hex": "#EED6C8",
+          "finish": "matte"
         },
         {
           "id": "02",
           "name": "내추럴 프레임",
-          "hex": "#E7BCAA"
+          "hex": "#E7BCAA",
+          "finish": "matte"
         },
         {
           "id": "06",
           "name": "바미 모브",
-          "hex": "#CA9497"
+          "hex": "#CA9497",
+          "finish": "matte"
         }
       ],
       "description": "",
@@ -80487,22 +80922,26 @@
         {
           "id": "01",
           "name": "누디 스킨",
-          "hex": "#FADFD6"
+          "hex": "#FADFD6",
+          "finish": "matte"
         },
         {
           "id": "02",
           "name": "페탈 핑크",
-          "hex": "#ECAB9B"
+          "hex": "#ECAB9B",
+          "finish": "matte"
         },
         {
           "id": "03",
           "name": "모어 피치",
-          "hex": "#F1BAA4"
+          "hex": "#F1BAA4",
+          "finish": "matte"
         },
         {
           "id": "04",
           "name": "로즈닝",
-          "hex": "#D79186"
+          "hex": "#D79186",
+          "finish": "matte"
         }
       ],
       "description": "",
@@ -80559,42 +80998,50 @@
         {
           "id": "01",
           "name": "블루푸딩",
-          "hex": "#BFD7ED"
+          "hex": "#BFD7ED",
+          "finish": "shimmer"
         },
         {
           "id": "04",
           "name": "태닝렌지",
-          "hex": "#C9AFA1"
+          "hex": "#C9AFA1",
+          "finish": "shimmer"
         },
         {
           "id": "05",
           "name": "콩닥핑닥",
-          "hex": "#F3E2E4"
+          "hex": "#F3E2E4",
+          "finish": "shimmer"
         },
         {
           "id": "06",
           "name": "버터젤리",
-          "hex": "#AD8A82"
+          "hex": "#AD8A82",
+          "finish": "shimmer"
         },
         {
           "id": "07",
           "name": "알밤골드",
-          "hex": "#D2A28D"
+          "hex": "#D2A28D",
+          "finish": "shimmer"
         },
         {
           "id": "08",
           "name": "핑쿨체리",
-          "hex": "#D79EA8"
+          "hex": "#D79EA8",
+          "finish": "shimmer"
         },
         {
           "id": "02",
           "name": "실버토끼",
-          "hex": "#E2E2E7"
+          "hex": "#E2E2E7",
+          "finish": "shimmer"
         },
         {
           "id": "03",
           "name": "코랄방울",
-          "hex": "#D4B9BA"
+          "hex": "#D4B9BA",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -81361,7 +81808,8 @@
         {
           "id": "e3",
           "name": "제니퍼 브라운",
-          "hex": "#584842"
+          "hex": "#584842",
+          "finish": "satin"
         }
       ],
       "description": "",
@@ -81509,42 +81957,50 @@
         {
           "id": "a000000117743-020",
           "name": "시머07 크림쉐론",
-          "hex": "#F1DCCC"
+          "hex": "#F1DCCC",
+          "finish": "shimmer"
         },
         {
           "id": "a000000117743-019",
           "name": "시머08 코랄클리프",
-          "hex": "#EECEBC"
+          "hex": "#EECEBC",
+          "finish": "shimmer"
         },
         {
           "id": "a000000117743-018",
           "name": "시머09 핑크띠에",
-          "hex": "#EECAC3"
+          "hex": "#EECAC3",
+          "finish": "shimmer"
         },
         {
           "id": "a000000117743-017",
           "name": "시머010 모브메스",
-          "hex": "#E5C4BE"
+          "hex": "#E5C4BE",
+          "finish": "shimmer"
         },
         {
           "id": "a000000117743-001",
           "name": "시머001 슈가블링",
-          "hex": "#F7E5DD"
+          "hex": "#F7E5DD",
+          "finish": "shimmer"
         },
         {
           "id": "a000000117743-005",
           "name": "시머002 피치코로넷",
-          "hex": "#F2E3DC"
+          "hex": "#F2E3DC",
+          "finish": "shimmer"
         },
         {
           "id": "a000000117743-004",
           "name": "시머003 핑크참",
-          "hex": "#EBC8C6"
+          "hex": "#EBC8C6",
+          "finish": "shimmer"
         },
         {
           "id": "a000000117743-003",
           "name": "시머004 로즈케이프",
-          "hex": "#EDC7BE"
+          "hex": "#EDC7BE",
+          "finish": "shimmer"
         },
         {
           "id": "01",
@@ -81554,12 +82010,14 @@
         {
           "id": "a000000117743-011",
           "name": "매트02 하트로지",
-          "hex": "#D3A09D"
+          "hex": "#D3A09D",
+          "finish": "matte"
         },
         {
           "id": "a000000117743-012",
           "name": "매트03 테디 애프리콧",
-          "hex": "#A36E56"
+          "hex": "#A36E56",
+          "finish": "matte"
         },
         {
           "id": "02",
@@ -81569,7 +82027,8 @@
         {
           "id": "a000000117743-010",
           "name": "매트01 피치슈",
-          "hex": "#CEA08E"
+          "hex": "#CEA08E",
+          "finish": "matte"
         }
       ],
       "description": "",
@@ -81635,72 +82094,86 @@
         {
           "id": "a000000123520-011",
           "name": "소바",
-          "hex": "#B48765"
+          "hex": "#B48765",
+          "finish": "satin"
         },
         {
           "id": "a000000123520-014",
           "name": "허니러스트",
-          "hex": "#D0A18F"
+          "hex": "#D0A18F",
+          "finish": "shimmer"
         },
         {
           "id": "a000000123520-001",
           "name": "에스프레소",
-          "hex": "#75523F"
+          "hex": "#75523F",
+          "finish": "matte"
         },
         {
           "id": "a000000123520-018",
           "name": "올 댓 글리터스",
-          "hex": "#C49381"
+          "hex": "#C49381",
+          "finish": "shimmer"
         },
         {
           "id": "a000000123520-013",
           "name": "오메가",
-          "hex": "#B08D77"
+          "hex": "#B08D77",
+          "finish": "matte"
         },
         {
           "id": "a000000123520-004",
           "name": "템팅",
-          "hex": "#9B7B69"
+          "hex": "#9B7B69",
+          "finish": "shimmer"
         },
         {
           "id": "a000000123520-006",
           "name": "멀치",
-          "hex": "#7E574C"
+          "hex": "#7E574C",
+          "finish": "satin"
         },
         {
           "id": "a000000123520-009",
           "name": "소프트 브라운",
-          "hex": "#BE866F"
+          "hex": "#BE866F",
+          "finish": "satin"
         },
         {
           "id": "a000000123520-012",
           "name": "웨지",
-          "hex": "#B68E7A"
+          "hex": "#B68E7A",
+          "finish": "matte"
         },
         {
           "id": "a000000123520-015",
           "name": "인 리빙 핑크",
-          "hex": "#DA7072"
+          "hex": "#DA7072",
+          "finish": "shimmer"
         },
         {
           "id": "a000000123520-002",
           "name": "테테-아-틴트",
-          "hex": "#D8A18B"
+          "hex": "#D8A18B",
+          "finish": "satin"
         },
         {
           "id": "a000000123520-008",
           "name": "텍스처",
-          "hex": "#8F664F"
+          "hex": "#8F664F",
+          "finish": "satin"
         },
         {
           "id": "a000000123520-010",
           "name": "파라디스코",
-          "hex": "#C27265"
+          "hex": "#C27265",
+          "finish": "satin"
         },
         {
           "id": "a000000123520-016",
           "name": "로얄 랑데부",
-          "hex": "#CB8D82"
+          "hex": "#CB8D82",
+          "finish": "matte"
         }
       ],
       "description": "",
@@ -81726,22 +82199,26 @@
         {
           "id": "a000000123918-002",
           "name": "멜팅 포인트",
-          "hex": "#F0BCA4"
+          "hex": "#F0BCA4",
+          "finish": "shimmer"
         },
         {
           "id": "a000000123918-003",
           "name": "문스톤",
-          "hex": "#E5C5AE"
+          "hex": "#E5C5AE",
+          "finish": "shimmer"
         },
         {
           "id": "a000000123918-001",
           "name": "히트 레이",
-          "hex": "#EB9E74"
+          "hex": "#EB9E74",
+          "finish": "shimmer"
         },
         {
           "id": "a000000123918-004",
           "name": "선 플레어",
-          "hex": "#F87E57"
+          "hex": "#F87E57",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -81807,147 +82284,176 @@
         {
           "id": "063",
           "name": "모브베이지",
-          "hex": "#AC8C73"
+          "hex": "#AC8C73",
+          "finish": "matte"
         },
         {
           "id": "11",
           "name": "오렌지 베이지",
-          "hex": "#BB9C83"
+          "hex": "#BB9C83",
+          "finish": "shimmer"
         },
         {
           "id": "p201",
           "name": "웜화이트",
-          "hex": "#DDC4B1"
+          "hex": "#DDC4B1",
+          "finish": "shimmer"
         },
         {
           "id": "p202",
           "name": "루센트옐로우",
-          "hex": "#E6CBA8"
+          "hex": "#E6CBA8",
+          "finish": "shimmer"
         },
         {
           "id": "p203",
           "name": "루센트핑크",
-          "hex": "#E1C4C9"
+          "hex": "#E1C4C9",
+          "finish": "shimmer"
         },
         {
           "id": "p204",
           "name": "파스텔블루",
-          "hex": "#D7DCDF"
+          "hex": "#D7DCDF",
+          "finish": "shimmer"
         },
         {
           "id": "p208",
           "name": "플라밍고핑크",
-          "hex": "#E59BA7"
+          "hex": "#E59BA7",
+          "finish": "shimmer"
         },
         {
           "id": "p209",
           "name": "모브핑크",
-          "hex": "#C6A2B8"
+          "hex": "#C6A2B8",
+          "finish": "shimmer"
         },
         {
           "id": "p210",
           "name": "스포키퍼플",
-          "hex": "#A999B1"
+          "hex": "#A999B1",
+          "finish": "shimmer"
         },
         {
           "id": "p215",
           "name": "아몬드브라운",
-          "hex": "#96795F"
+          "hex": "#96795F",
+          "finish": "shimmer"
         },
         {
           "id": "p217",
           "name": "모스그린",
-          "hex": "#90A08B"
+          "hex": "#90A08B",
+          "finish": "shimmer"
         },
         {
           "id": "p219",
           "name": "그레이시카키",
-          "hex": "#7F7357"
+          "hex": "#7F7357",
+          "finish": "shimmer"
         },
         {
           "id": "p220",
           "name": "딥플럼",
-          "hex": "#654F54"
+          "hex": "#654F54",
+          "finish": "shimmer"
         },
         {
           "id": "ps401",
           "name": "아이시프리즘",
-          "hex": "#EAE5E5"
+          "hex": "#EAE5E5",
+          "finish": "shimmer"
         },
         {
           "id": "m108",
           "name": "블루하와이안",
-          "hex": "#839DAB"
+          "hex": "#839DAB",
+          "finish": "satin"
         },
         {
           "id": "m101",
           "name": "라즈베리",
-          "hex": "#C0627D"
+          "hex": "#C0627D",
+          "finish": "matte"
         },
         {
           "id": "m102",
           "name": "스트로베리밀크",
-          "hex": "#EFC5CE"
+          "hex": "#EFC5CE",
+          "finish": "matte"
         },
         {
           "id": "m105",
           "name": "월넛브라운",
-          "hex": "#B78971"
+          "hex": "#B78971",
+          "finish": "matte"
         },
         {
           "id": "m109",
           "name": "밀크브라운",
-          "hex": "#C5AC96"
+          "hex": "#C5AC96",
+          "finish": "matte"
         },
         {
           "id": "m110",
           "name": "코코아",
-          "hex": "#C29D9F"
+          "hex": "#C29D9F",
+          "finish": "matte"
         },
         {
           "id": "m116",
           "name": "머드브라운",
-          "hex": "#45342A"
+          "hex": "#45342A",
+          "finish": "matte"
         },
         {
           "id": "sg601",
           "name": "글로우베이지",
-          "hex": "#F5D5BC"
+          "hex": "#F5D5BC",
+          "finish": "matte"
         },
         {
           "id": "sg608",
           "name": "시스루플럼",
-          "hex": "#A64A64"
+          "hex": "#A64A64",
+          "finish": "matte"
         },
         {
           "id": "ct501",
           "name": "드리미옐로우",
-          "hex": "#EFD6B1"
+          "hex": "#EFD6B1",
+          "finish": "satin"
         },
         {
           "id": "ct510",
           "name": "체리레드",
-          "hex": "#874749"
+          "hex": "#874749",
+          "finish": "matte"
         },
         {
           "id": "ct512",
           "name": "딥카키",
-          "hex": "#756A56"
+          "hex": "#756A56",
+          "finish": "matte"
         },
         {
           "id": "062",
           "name": "모브라벤더",
-          "hex": "#8F7065"
+          "hex": "#8F7065",
+          "finish": "matte"
         },
         {
           "id": "064",
           "name": "그레이시브라운",
-          "hex": "#AA9582"
+          "hex": "#AA9582",
+          "finish": "matte"
         },
         {
           "id": "066",
           "name": "로제핑크",
-          "hex": "#ECCCC5"
+          "hex": "#ECCCC5",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -82221,27 +82727,32 @@
         {
           "id": "01",
           "name": "스텔라더스트",
-          "hex": "#AC8A76"
+          "hex": "#AC8A76",
+          "finish": "glitter"
         },
         {
           "id": "09",
           "name": "피치크러쉬",
-          "hex": "#D1A29D"
+          "hex": "#D1A29D",
+          "finish": "glitter"
         },
         {
           "id": "10",
           "name": "선샤인",
-          "hex": "#DCB2A0"
+          "hex": "#DCB2A0",
+          "finish": "glitter"
         },
         {
           "id": "11",
           "name": "스윗하트",
-          "hex": "#E2B4AF"
+          "hex": "#E2B4AF",
+          "finish": "glitter"
         },
         {
           "id": "08",
           "name": "허니스파클링",
-          "hex": "#D1AE9D"
+          "hex": "#D1AE9D",
+          "finish": "glitter"
         }
       ],
       "description": "",
@@ -82267,22 +82778,26 @@
         {
           "id": "02",
           "name": "샴페인파츠",
-          "hex": "#F0C1A5"
+          "hex": "#F0C1A5",
+          "finish": "glitter"
         },
         {
           "id": "03",
           "name": "탠저린파츠",
-          "hex": "#FBB28D"
+          "hex": "#FBB28D",
+          "finish": "glitter"
         },
         {
           "id": "06",
           "name": "쉘파츠",
-          "hex": "#E0B197"
+          "hex": "#E0B197",
+          "finish": "glitter"
         },
         {
           "id": "07",
           "name": "페어리파츠",
-          "hex": "#E7AEB9"
+          "hex": "#E7AEB9",
+          "finish": "glitter"
         }
       ],
       "description": "",
@@ -82359,12 +82874,14 @@
         {
           "id": "a000000137177-001",
           "name": "스트라이크 어 포즈",
-          "hex": "#F69D8B"
+          "hex": "#F69D8B",
+          "finish": "matte"
         },
         {
           "id": "a000000137177-005",
           "name": "마이 트위디",
-          "hex": "#E48973"
+          "hex": "#E48973",
+          "finish": "matte"
         }
       ],
       "description": "",
@@ -82835,32 +83352,38 @@
         {
           "id": "07",
           "name": "모태매력",
-          "hex": "#E4B09E"
+          "hex": "#E4B09E",
+          "finish": "matte"
         },
         {
           "id": "02",
           "name": "팥",
-          "hex": "#B97E75"
+          "hex": "#B97E75",
+          "finish": "matte"
         },
         {
           "id": "03",
           "name": "율무",
-          "hex": "#B29689"
+          "hex": "#B29689",
+          "finish": "matte"
         },
         {
           "id": "06",
           "name": "모태청순",
-          "hex": "#EBAF9B"
+          "hex": "#EBAF9B",
+          "finish": "matte"
         },
         {
           "id": "08",
           "name": "모태지적",
-          "hex": "#CFA097"
+          "hex": "#CFA097",
+          "finish": "matte"
         },
         {
           "id": "09",
           "name": "모태분위기",
-          "hex": "#E9B09F"
+          "hex": "#E9B09F",
+          "finish": "matte"
         }
       ],
       "description": "",
@@ -83065,22 +83588,26 @@
         {
           "id": "a000000174310-005",
           "name": "엔젤릭",
-          "hex": "#E9ABB2"
+          "hex": "#E9ABB2",
+          "finish": "shimmer"
         },
         {
           "id": "a000000174310-006",
           "name": "디뮤어",
-          "hex": "#D99B89"
+          "hex": "#D99B89",
+          "finish": "shimmer"
         },
         {
           "id": "a000000174310-007",
           "name": "문샤인",
-          "hex": "#B9947E"
+          "hex": "#B9947E",
+          "finish": "shimmer"
         },
         {
           "id": "a000000174310-009",
           "name": "위티",
-          "hex": "#DFAEA8"
+          "hex": "#DFAEA8",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -83142,12 +83669,14 @@
         {
           "id": "a000000178209-005",
           "name": "골든 핑크",
-          "hex": "#E8BAAD"
+          "hex": "#E8BAAD",
+          "finish": "shimmer"
         },
         {
           "id": "a000000178209-008",
           "name": "더스티 모브",
-          "hex": "#826C6F"
+          "hex": "#826C6F",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -83173,7 +83702,8 @@
         {
           "id": "a000000179978-001",
           "name": "A000000179978-001",
-          "hex": "#E8BAAD"
+          "hex": "#E8BAAD",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -83436,27 +83966,32 @@
         {
           "id": "01",
           "name": "눈물빛밤",
-          "hex": "#DFA9A3"
+          "hex": "#DFA9A3",
+          "finish": "glitter"
         },
         {
           "id": "02",
           "name": "호수빛밤",
-          "hex": "#E0AA96"
+          "hex": "#E0AA96",
+          "finish": "glitter"
         },
         {
           "id": "03",
           "name": "석양빛밤",
-          "hex": "#CD8077"
+          "hex": "#CD8077",
+          "finish": "glitter"
         },
         {
           "id": "05",
           "name": "초승빛밤",
-          "hex": "#AF8F86"
+          "hex": "#AF8F86",
+          "finish": "glitter"
         },
         {
           "id": "04",
           "name": "새벽빛밤",
-          "hex": "#D59EB2"
+          "hex": "#D59EB2",
+          "finish": "glitter"
         }
       ],
       "description": "",
@@ -83998,47 +84533,56 @@
         {
           "id": "13",
           "name": "선릿 루비",
-          "hex": "#E8A193"
+          "hex": "#E8A193",
+          "finish": "shimmer"
         },
         {
           "id": "09",
           "name": "눈 프로스트",
-          "hex": "#E8EAEF"
+          "hex": "#E8EAEF",
+          "finish": "shimmer"
         },
         {
           "id": "10",
           "name": "포스트 포그",
-          "hex": "#F3EFEB"
+          "hex": "#F3EFEB",
+          "finish": "shimmer"
         },
         {
           "id": "01",
           "name": "프리 베이지",
-          "hex": "#F4DECC"
+          "hex": "#F4DECC",
+          "finish": "shimmer"
         },
         {
           "id": "12",
           "name": "스프링클 로즈",
-          "hex": "#EAA1A7"
+          "hex": "#EAA1A7",
+          "finish": "shimmer"
         },
         {
           "id": "12-2",
           "name": "스프링클 로즈",
-          "hex": "#E3B1B4"
+          "hex": "#E3B1B4",
+          "finish": "shimmer"
         },
         {
           "id": "03",
           "name": "던 로즈",
-          "hex": "#CD9A8F"
+          "hex": "#CD9A8F",
+          "finish": "shimmer"
         },
         {
           "id": "05",
           "name": "선셋 모브",
-          "hex": "#B17D81"
+          "hex": "#B17D81",
+          "finish": "shimmer"
         },
         {
           "id": "08",
           "name": "데이 코튼",
-          "hex": "#F9F7F7"
+          "hex": "#F9F7F7",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -84161,27 +84705,32 @@
         {
           "id": "255",
           "name": "라넌큘러스",
-          "hex": "#E7ACA5"
+          "hex": "#E7ACA5",
+          "finish": "matte"
         },
         {
           "id": "222",
           "name": "코코아베이지",
-          "hex": "#BD9A86"
+          "hex": "#BD9A86",
+          "finish": "matte"
         },
         {
           "id": "221",
           "name": "로즈브라운",
-          "hex": "#AE8D7C"
+          "hex": "#AE8D7C",
+          "finish": "matte"
         },
         {
           "id": "219",
           "name": "발레리나",
-          "hex": "#E3B8AF"
+          "hex": "#E3B8AF",
+          "finish": "matte"
         },
         {
           "id": "237",
           "name": "살몬글로우",
-          "hex": "#EABCA5"
+          "hex": "#EABCA5",
+          "finish": "matte"
         }
       ],
       "description": "",
@@ -84207,42 +84756,50 @@
         {
           "id": "150",
           "name": "프레쉬라임",
-          "hex": "#B7AE79"
+          "hex": "#B7AE79",
+          "finish": "satin"
         },
         {
           "id": "180",
           "name": "로즈로코코",
-          "hex": "#C29993"
+          "hex": "#C29993",
+          "finish": "satin"
         },
         {
           "id": "182",
           "name": "올댓누드",
-          "hex": "#D2B299"
+          "hex": "#D2B299",
+          "finish": "satin"
         },
         {
           "id": "190",
           "name": "엔젤블러드",
-          "hex": "#E3BDB7"
+          "hex": "#E3BDB7",
+          "finish": "satin"
         },
         {
           "id": "113",
           "name": "피치오렌지",
-          "hex": "#D9A38F"
+          "hex": "#D9A38F",
+          "finish": "satin"
         },
         {
           "id": "151",
           "name": "스파클릴리",
-          "hex": "#C9C7B4"
+          "hex": "#C9C7B4",
+          "finish": "satin"
         },
         {
           "id": "158",
           "name": "코랄베이지",
-          "hex": "#C9A48D"
+          "hex": "#C9A48D",
+          "finish": "satin"
         },
         {
           "id": "172",
           "name": "웨딩부케",
-          "hex": "#C3917C"
+          "hex": "#C3917C",
+          "finish": "satin"
         }
       ],
       "description": "",
@@ -84434,17 +84991,20 @@
         {
           "id": "a000000209312-001",
           "name": "리얼 글리터 리퀴드 01 플래쉬",
-          "hex": "#F0E9EA"
+          "hex": "#F0E9EA",
+          "finish": "glitter"
         },
         {
           "id": "a000000209312-002",
           "name": "리얼 글리터 리퀴드 02 오로라",
-          "hex": "#F3EAE9"
+          "hex": "#F3EAE9",
+          "finish": "glitter"
         },
         {
           "id": "a000000209312-003",
           "name": "리얼 글리터 리퀴드 03 글로리",
-          "hex": "#EDC5C6"
+          "hex": "#EDC5C6",
+          "finish": "glitter"
         }
       ],
       "description": "",
@@ -84627,237 +85187,284 @@
         {
           "id": "501",
           "name": "스윗앤테이스티",
-          "hex": "#E57368"
+          "hex": "#E57368",
+          "finish": "glossy"
         },
         {
           "id": "103",
           "name": "오피스코랄",
-          "hex": "#EDC7B2"
+          "hex": "#EDC7B2",
+          "finish": "matte"
         },
         {
           "id": "108",
           "name": "테디시어링",
-          "hex": "#BD8A75"
+          "hex": "#BD8A75",
+          "finish": "matte"
         },
         {
           "id": "111",
           "name": "진저파운드",
-          "hex": "#D79E85"
+          "hex": "#D79E85",
+          "finish": "matte"
         },
         {
           "id": "115",
           "name": "스모크오크",
-          "hex": "#6D4C3D"
+          "hex": "#6D4C3D",
+          "finish": "matte"
         },
         {
           "id": "116",
           "name": "코드블랙",
-          "hex": "#141415"
+          "hex": "#141415",
+          "finish": "matte"
         },
         {
           "id": "118",
           "name": "리틀시스",
-          "hex": "#FBCACD"
+          "hex": "#FBCACD",
+          "finish": "matte"
         },
         {
           "id": "308",
           "name": "트윈버스",
-          "hex": "#F1BEB9"
+          "hex": "#F1BEB9",
+          "finish": "glitter"
         },
         {
           "id": "1",
           "name": "호 브라우니핑크",
-          "hex": "#CB9692"
+          "hex": "#CB9692",
+          "finish": "shimmer"
         },
         {
           "id": "3",
           "name": "호 모카베이지",
-          "hex": "#B3836E"
+          "hex": "#B3836E",
+          "finish": "shimmer"
         },
         {
           "id": "6",
           "name": "호 마르살라레드",
-          "hex": "#D38870"
+          "hex": "#D38870",
+          "finish": "shimmer"
         },
         {
           "id": "7",
           "name": "호 샌드웨이브",
-          "hex": "#AD8063"
+          "hex": "#AD8063",
+          "finish": "matte"
         },
         {
           "id": "10",
           "name": "호 오리엔탈핑크",
-          "hex": "#D19076"
+          "hex": "#D19076",
+          "finish": "shimmer"
         },
         {
           "id": "13",
           "name": "호 레이디밀크티",
-          "hex": "#AC7660"
+          "hex": "#AC7660",
+          "finish": "matte"
         },
         {
           "id": "103-2",
           "name": "디어버니",
-          "hex": "#E3BBBD"
+          "hex": "#E3BBBD",
+          "finish": "matte"
         },
         {
           "id": "201",
           "name": "키치리본",
-          "hex": "#E27699"
+          "hex": "#E27699",
+          "finish": "glossy"
         },
         {
           "id": "101",
           "name": "페일블룸",
-          "hex": "#E9CDD1"
+          "hex": "#E9CDD1",
+          "finish": "matte"
         },
         {
           "id": "102",
           "name": "베이비솝",
-          "hex": "#EBC4BD"
+          "hex": "#EBC4BD",
+          "finish": "matte"
         },
         {
           "id": "104",
           "name": "시크아이리스",
-          "hex": "#E0C2AA"
+          "hex": "#E0C2AA",
+          "finish": "matte"
         },
         {
           "id": "105",
           "name": "프롬핑크",
-          "hex": "#E2AAB4"
+          "hex": "#E2AAB4",
+          "finish": "matte"
         },
         {
           "id": "106",
           "name": "포에버피치",
-          "hex": "#E2A29D"
+          "hex": "#E2A29D",
+          "finish": "satin"
         },
         {
           "id": "107",
           "name": "웜앤퍼지",
-          "hex": "#DD9F8F"
+          "hex": "#DD9F8F",
+          "finish": "matte"
         },
         {
           "id": "109",
           "name": "모브블렌드",
-          "hex": "#D09F9F"
+          "hex": "#D09F9F",
+          "finish": "matte"
         },
         {
           "id": "110",
           "name": "로지텐셜",
-          "hex": "#D78C89"
+          "hex": "#D78C89",
+          "finish": "matte"
         },
         {
           "id": "112",
           "name": "모닝커피",
-          "hex": "#AA7D5C"
+          "hex": "#AA7D5C",
+          "finish": "satin"
         },
         {
           "id": "113",
           "name": "더스티로드",
-          "hex": "#A48777"
+          "hex": "#A48777",
+          "finish": "matte"
         },
         {
           "id": "114",
           "name": "캐니언클레이",
-          "hex": "#956955"
+          "hex": "#956955",
+          "finish": "matte"
         },
         {
           "id": "117",
           "name": "핑크시스",
-          "hex": "#F4C2CD"
+          "hex": "#F4C2CD",
+          "finish": "matte"
         },
         {
           "id": "119",
           "name": "베리나이스",
-          "hex": "#F4BCC9"
+          "hex": "#F4BCC9",
+          "finish": "satin"
         },
         {
           "id": "201-2",
           "name": "레이스쉬폰",
-          "hex": "#E7C0A4"
+          "hex": "#E7C0A4",
+          "finish": "shimmer"
         },
         {
           "id": "202",
           "name": "핑키썬레이",
-          "hex": "#F0CECE"
+          "hex": "#F0CECE",
+          "finish": "shimmer"
         },
         {
           "id": "204",
           "name": "쉬어팬지",
-          "hex": "#A58299"
+          "hex": "#A58299",
+          "finish": "shimmer"
         },
         {
           "id": "205",
           "name": "아이스트러커",
-          "hex": "#92B2DB"
+          "hex": "#92B2DB",
+          "finish": "shimmer"
         },
         {
           "id": "206",
           "name": "새틴베이지",
-          "hex": "#B78870"
+          "hex": "#B78870",
+          "finish": "shimmer"
         },
         {
           "id": "207",
           "name": "위키드그런지",
-          "hex": "#4E6C6C"
+          "hex": "#4E6C6C",
+          "finish": "shimmer"
         },
         {
           "id": "301",
           "name": "윈터솔트",
-          "hex": "#D8D5CF"
+          "hex": "#D8D5CF",
+          "finish": "shimmer"
         },
         {
           "id": "302",
           "name": "썸머피즈",
-          "hex": "#DE7F73"
+          "hex": "#DE7F73",
+          "finish": "glitter"
         },
         {
           "id": "305",
           "name": "브라이덜피치",
-          "hex": "#C28872"
+          "hex": "#C28872",
+          "finish": "glitter"
         },
         {
           "id": "306",
           "name": "피오니부케",
-          "hex": "#D09993"
+          "hex": "#D09993",
+          "finish": "glitter"
         },
         {
           "id": "309",
           "name": "쏘쿨소다",
-          "hex": "#C7D2CB"
+          "hex": "#C7D2CB",
+          "finish": "glitter"
         },
         {
           "id": "401",
           "name": "핑크클라우드",
-          "hex": "#F3D6D3"
+          "hex": "#F3D6D3",
+          "finish": "shimmer"
         },
         {
           "id": "14",
           "name": "호 듀이애프리콧",
-          "hex": "#C68074"
+          "hex": "#C68074",
+          "finish": "shimmer"
         },
         {
           "id": "19",
           "name": "호 러브참",
-          "hex": "#DE8B6E"
+          "hex": "#DE8B6E",
+          "finish": "shimmer"
         },
         {
           "id": "20",
           "name": "호 빈티지코인",
-          "hex": "#925D53"
+          "hex": "#925D53",
+          "finish": "shimmer"
         },
         {
           "id": "22",
           "name": "호 밀키라군",
-          "hex": "#DADEDE"
+          "hex": "#DADEDE",
+          "finish": "shimmer"
         },
         {
           "id": "17",
           "name": "호 하트링",
-          "hex": "#B4735E"
+          "hex": "#B4735E",
+          "finish": "matte"
         },
         {
           "id": "21",
           "name": "호 베리베리킹",
-          "hex": "#E8A7B1"
+          "hex": "#E8A7B1",
+          "finish": "satin"
         }
       ],
       "description": "",
@@ -84883,62 +85490,74 @@
         {
           "id": "407",
           "name": "에이프릴핑크",
-          "hex": "#E6D0CD"
+          "hex": "#E6D0CD",
+          "finish": "matte"
         },
         {
           "id": "413",
           "name": "바닐라크림",
-          "hex": "#E0CFC7"
+          "hex": "#E0CFC7",
+          "finish": "matte"
         },
         {
           "id": "414",
           "name": "퓨어핑크",
-          "hex": "#E4CFCE"
+          "hex": "#E4CFCE",
+          "finish": "matte"
         },
         {
           "id": "421",
           "name": "밀키웨이",
-          "hex": "#E9DBD4"
+          "hex": "#E9DBD4",
+          "finish": "shimmer"
         },
         {
           "id": "422",
           "name": "스노우핑크",
-          "hex": "#E4D4D4"
+          "hex": "#E4D4D4",
+          "finish": "shimmer"
         },
         {
           "id": "423",
           "name": "아이시핑크",
-          "hex": "#E3D3D0"
+          "hex": "#E3D3D0",
+          "finish": "shimmer"
         },
         {
           "id": "415",
           "name": "러브썸코랄",
-          "hex": "#E4CEC8"
+          "hex": "#E4CEC8",
+          "finish": "matte"
         },
         {
           "id": "428",
           "name": "팬시핑크",
-          "hex": "#E5D0D4"
+          "hex": "#E5D0D4",
+          "finish": "matte"
         },
         {
           "id": "429",
           "name": "판타지모브",
-          "hex": "#DCC7D1"
+          "hex": "#DCC7D1",
+          "finish": "matte"
         },
         {
           "id": "430",
           "name": "미스틱버블",
-          "hex": "#DFC3CC"
+          "hex": "#DFC3CC",
+          "finish": "shimmer"
         },
         {
           "id": "501",
           "name": "페일 로즈",
-          "hex": "#E3D3D1"
+          "hex": "#E3D3D1",
+          "finish": "matte"
         },
         {
           "id": "502",
           "name": "로지 포그",
-          "hex": "#D9CECE"
+          "hex": "#D9CECE",
+          "finish": "matte"
         },
         {
           "id": "01",
@@ -85029,22 +85648,26 @@
         {
           "id": "01",
           "name": "새틀라이트*",
-          "hex": "#E9EEF5"
+          "hex": "#E9EEF5",
+          "finish": "glitter"
         },
         {
           "id": "02",
           "name": "코멧*",
-          "hex": "#E8D4C4"
+          "hex": "#E8D4C4",
+          "finish": "glitter"
         },
         {
           "id": "03",
           "name": "그래비티*",
-          "hex": "#F1DDE6"
+          "hex": "#F1DDE6",
+          "finish": "glitter"
         },
         {
           "id": "04",
           "name": "슈퍼노바*",
-          "hex": "#EFD7EA"
+          "hex": "#EFD7EA",
+          "finish": "glitter"
         }
       ],
       "description": "",
@@ -85258,32 +85881,38 @@
         {
           "id": "01",
           "name": "누디베이지",
-          "hex": "#EDAFA8"
+          "hex": "#EDAFA8",
+          "finish": "matte"
         },
         {
           "id": "04",
           "name": "베이오브베이지",
-          "hex": "#DE9B86"
+          "hex": "#DE9B86",
+          "finish": "matte"
         },
         {
           "id": "05",
           "name": "소프트베일",
-          "hex": "#E9B39E"
+          "hex": "#E9B39E",
+          "finish": "matte"
         },
         {
           "id": "06",
           "name": "뉴 로즈*",
-          "hex": "#DD9F9C"
+          "hex": "#DD9F9C",
+          "finish": "matte"
         },
         {
           "id": "02",
           "name": "심플리레드*",
-          "hex": "#DC4F4D"
+          "hex": "#DC4F4D",
+          "finish": "matte"
         },
         {
           "id": "03",
           "name": "클로저*",
-          "hex": "#D99294"
+          "hex": "#D99294",
+          "finish": "matte"
         }
       ],
       "description": "",
@@ -85471,72 +86100,86 @@
         {
           "id": "501",
           "name": "스윗앤테이스티",
-          "hex": "#E57368"
+          "hex": "#E57368",
+          "finish": "glossy"
         },
         {
           "id": "401",
           "name": "갈릭버터",
-          "hex": "#DC9484"
+          "hex": "#DC9484",
+          "finish": "matte"
         },
         {
           "id": "402",
           "name": "로제코코넛",
-          "hex": "#D39288"
+          "hex": "#D39288",
+          "finish": "matte"
         },
         {
           "id": "502",
           "name": "라스트오더",
-          "hex": "#C8565D"
+          "hex": "#C8565D",
+          "finish": "glossy"
         },
         {
           "id": "102",
           "name": "피치컨페티",
-          "hex": "#F3C2AB"
+          "hex": "#F3C2AB",
+          "finish": "glossy"
         },
         {
           "id": "202",
           "name": "코랄비트",
-          "hex": "#E9686B"
+          "hex": "#E9686B",
+          "finish": "glossy"
         },
         {
           "id": "204",
           "name": "애플피크",
-          "hex": "#BE3444"
+          "hex": "#BE3444",
+          "finish": "glossy"
         },
         {
           "id": "301",
           "name": "피치선라이트",
-          "hex": "#EBCEB7"
+          "hex": "#EBCEB7",
+          "finish": "glossy"
         },
         {
           "id": "101",
           "name": "허니애프리콧",
-          "hex": "#EFC0A9"
+          "hex": "#EFC0A9",
+          "finish": "matte"
         },
         {
           "id": "103",
           "name": "디어버니",
-          "hex": "#E3BBBD"
+          "hex": "#E3BBBD",
+          "finish": "matte"
         },
         {
           "id": "104",
           "name": "비마이러브",
-          "hex": "#D58E91"
+          "hex": "#D58E91",
+          "finish": "matte"
         },
         {
           "id": "201",
           "name": "키치리본",
-          "hex": "#E27699"
+          "hex": "#E27699",
+          "finish": "glossy"
         },
         {
           "id": "203",
           "name": "로맨틱프린지",
-          "hex": "#BB5B65"
+          "hex": "#BB5B65",
+          "finish": "glossy"
         },
         {
           "id": "302",
           "name": "히든블루",
-          "hex": "#E8C0B3"
+          "hex": "#E8C0B3",
+          "finish": "satin"
         }
       ],
       "description": "",
@@ -85931,37 +86574,44 @@
         {
           "id": "a000000226357-008",
           "name": "팅글",
-          "hex": "#D2CDC8"
+          "hex": "#D2CDC8",
+          "finish": "glitter"
         },
         {
           "id": "a000000226357-007",
           "name": "글램 헤일로",
-          "hex": "#E3D2C2"
+          "hex": "#E3D2C2",
+          "finish": "glitter"
         },
         {
           "id": "a000000226357-006",
           "name": "피치스냅",
-          "hex": "#EB937C"
+          "hex": "#EB937C",
+          "finish": "glitter"
         },
         {
           "id": "a000000226357-005",
           "name": "베이비 블링크",
-          "hex": "#E0A2AF"
+          "hex": "#E0A2AF",
+          "finish": "glitter"
         },
         {
           "id": "a000000226357-004",
           "name": "팝핑 핑크",
-          "hex": "#DB91AF"
+          "hex": "#DB91AF",
+          "finish": "glitter"
         },
         {
           "id": "a000000226357-002",
           "name": "소다 팝",
-          "hex": "#8FAEC6"
+          "hex": "#8FAEC6",
+          "finish": "glitter"
         },
         {
           "id": "a000000226357-001",
           "name": "몬스터",
-          "hex": "#CEA79F"
+          "hex": "#CEA79F",
+          "finish": "glitter"
         }
       ],
       "description": "",
@@ -86675,22 +87325,26 @@
         {
           "id": "08",
           "name": "라이트토프*",
-          "hex": "#AB8668"
+          "hex": "#AB8668",
+          "finish": "satin"
         },
         {
           "id": "03",
           "name": "어텀선셋*",
-          "hex": "#EA9B79"
+          "hex": "#EA9B79",
+          "finish": "satin"
         },
         {
           "id": "05",
           "name": "블랙슈가*",
-          "hex": "#A76C53"
+          "hex": "#A76C53",
+          "finish": "satin"
         },
         {
           "id": "07",
           "name": "티얼스틱*",
-          "hex": "#EFC2A4"
+          "hex": "#EFC2A4",
+          "finish": "satin"
         }
       ],
       "description": "",
@@ -86837,12 +87491,14 @@
         {
           "id": "a000000233138-001",
           "name": "아트테라피치",
-          "hex": "#F8A78C"
+          "hex": "#F8A78C",
+          "finish": "matte"
         },
         {
           "id": "a000000233138-002",
           "name": "페인터리",
-          "hex": "#E0A994"
+          "hex": "#E0A994",
+          "finish": "matte"
         }
       ],
       "description": "",
@@ -86964,62 +87620,74 @@
         {
           "id": "a000000235399-007",
           "name": "쉬머05+매트01",
-          "hex": "#FECBB1"
+          "hex": "#FECBB1",
+          "finish": "shimmer"
         },
         {
           "id": "04",
           "name": "애틋로즈",
-          "hex": "#C3908B"
+          "hex": "#C3908B",
+          "finish": "matte"
         },
         {
           "id": "03",
           "name": "그윽진저",
-          "hex": "#C68876"
+          "hex": "#C68876",
+          "finish": "matte"
         },
         {
           "id": "05",
           "name": "싱긋레몬",
-          "hex": "#F6F1E5"
+          "hex": "#F6F1E5",
+          "finish": "shimmer"
         },
         {
           "id": "03-2",
           "name": "수줍피치",
-          "hex": "#F5D1C8"
+          "hex": "#F5D1C8",
+          "finish": "shimmer"
         },
         {
           "id": "01",
           "name": "방긋슈가",
-          "hex": "#F4DEC9"
+          "hex": "#F4DEC9",
+          "finish": "shimmer"
         },
         {
           "id": "02",
           "name": "청초핑크",
-          "hex": "#FAC1C8"
+          "hex": "#FAC1C8",
+          "finish": "matte"
         },
         {
           "id": "01-2",
           "name": "뽀용피치",
-          "hex": "#FECAAF"
+          "hex": "#FECAAF",
+          "finish": "matte"
         },
         {
           "id": "a000000235399-008",
           "name": "쉬머03+매트03",
-          "hex": "#DEA99B"
+          "hex": "#DEA99B",
+          "finish": "shimmer"
         },
         {
           "id": "a000000235399-009",
           "name": "쉬머01+매트04",
-          "hex": "#DDB7A8"
+          "hex": "#DDB7A8",
+          "finish": "shimmer"
         },
         {
           "id": "02-2",
           "name": "부끄베리",
-          "hex": "#F1CED8"
+          "hex": "#F1CED8",
+          "finish": "shimmer"
         },
         {
           "id": "04-2",
           "name": "글썽로즈",
-          "hex": "#F1BEC4"
+          "hex": "#F1BEC4",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -87045,22 +87713,26 @@
         {
           "id": "02",
           "name": "엔젤 크러쉬*",
-          "hex": "#EDD0DB"
+          "hex": "#EDD0DB",
+          "finish": "shimmer"
         },
         {
           "id": "03",
           "name": "소프트 튀튀*",
-          "hex": "#E5BFBD"
+          "hex": "#E5BFBD",
+          "finish": "shimmer"
         },
         {
           "id": "04",
           "name": "핑크 코어*",
-          "hex": "#E1BBBD"
+          "hex": "#E1BBBD",
+          "finish": "shimmer"
         },
         {
           "id": "01",
           "name": "코튼 키스*",
-          "hex": "#E8D0CB"
+          "hex": "#E8D0CB",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -87239,67 +87911,80 @@
         {
           "id": "103",
           "name": "오피스코랄",
-          "hex": "#EDC7B2"
+          "hex": "#EDC7B2",
+          "finish": "matte"
         },
         {
           "id": "10",
           "name": "호 오리엔탈핑크",
-          "hex": "#D19076"
+          "hex": "#D19076",
+          "finish": "shimmer"
         },
         {
           "id": "1",
           "name": "호 브라우니핑크",
-          "hex": "#CB9692"
+          "hex": "#CB9692",
+          "finish": "shimmer"
         },
         {
           "id": "104",
           "name": "시크아이리스",
-          "hex": "#E0C2AA"
+          "hex": "#E0C2AA",
+          "finish": "matte"
         },
         {
           "id": "105",
           "name": "프롬핑크",
-          "hex": "#E2AAB4"
+          "hex": "#E2AAB4",
+          "finish": "matte"
         },
         {
           "id": "106",
           "name": "포에버피치",
-          "hex": "#E2A29D"
+          "hex": "#E2A29D",
+          "finish": "matte"
         },
         {
           "id": "113",
           "name": "더스티로드",
-          "hex": "#A48777"
+          "hex": "#A48777",
+          "finish": "matte"
         },
         {
           "id": "201",
           "name": "레이스쉬폰",
-          "hex": "#E7C0A4"
+          "hex": "#E7C0A4",
+          "finish": "satin"
         },
         {
           "id": "204",
           "name": "쉬어팬지",
-          "hex": "#A58299"
+          "hex": "#A58299",
+          "finish": "satin"
         },
         {
           "id": "205",
           "name": "아이스트러커",
-          "hex": "#92B2DB"
+          "hex": "#92B2DB",
+          "finish": "satin"
         },
         {
           "id": "305",
           "name": "브라이덜피치",
-          "hex": "#C28872"
+          "hex": "#C28872",
+          "finish": "satin"
         },
         {
           "id": "306",
           "name": "피오니부케",
-          "hex": "#D09993"
+          "hex": "#D09993",
+          "finish": "satin"
         },
         {
           "id": "401",
           "name": "핑크클라우드",
-          "hex": "#F3D6D3"
+          "hex": "#F3D6D3",
+          "finish": "satin"
         }
       ],
       "description": "",
@@ -87325,137 +88010,164 @@
         {
           "id": "1",
           "name": "호 브라우니핑크",
-          "hex": "#CB9692"
+          "hex": "#CB9692",
+          "finish": "shimmer"
         },
         {
           "id": "10",
           "name": "호 오리엔탈핑크",
-          "hex": "#D19076"
+          "hex": "#D19076",
+          "finish": "shimmer"
         },
         {
           "id": "103",
           "name": "오피스코랄",
-          "hex": "#EDC7B2"
+          "hex": "#EDC7B2",
+          "finish": "matte"
         },
         {
           "id": "8",
           "name": "호 오렌지퍼레이드",
-          "hex": "#D89779"
+          "hex": "#D89779",
+          "finish": "satin"
         },
         {
           "id": "17",
           "name": "호 하트링",
-          "hex": "#B4735E"
+          "hex": "#B4735E",
+          "finish": "matte"
         },
         {
           "id": "19",
           "name": "호 러브참",
-          "hex": "#DE8B6E"
+          "hex": "#DE8B6E",
+          "finish": "shimmer"
         },
         {
           "id": "20",
           "name": "호 빈티지코인",
-          "hex": "#925D53"
+          "hex": "#925D53",
+          "finish": "shimmer"
         },
         {
           "id": "a000000237900-005",
           "name": "No.1 헤븐스프리즘",
-          "hex": "#D8D2CC"
+          "hex": "#D8D2CC",
+          "finish": "glitter"
         },
         {
           "id": "a000000237900-006",
           "name": "No.2 키튼프리즘",
-          "hex": "#C5896B"
+          "hex": "#C5896B",
+          "finish": "glitter"
         },
         {
           "id": "a000000237900-007",
           "name": "No.4 드래곤프리즘",
-          "hex": "#D97362"
+          "hex": "#D97362",
+          "finish": "glitter"
         },
         {
           "id": "a000000237900-008",
           "name": "No.8 스텔라프리즘",
-          "hex": "#D5BFC2"
+          "hex": "#D5BFC2",
+          "finish": "glitter"
         },
         {
           "id": "a000000237900-009",
           "name": "No.7 블라썸프리즘",
-          "hex": "#E19D96"
+          "hex": "#E19D96",
+          "finish": "glitter"
         },
         {
           "id": "101",
           "name": "페일블룸",
-          "hex": "#E9CDD1"
+          "hex": "#E9CDD1",
+          "finish": "matte"
         },
         {
           "id": "112",
           "name": "모닝커피",
-          "hex": "#AA7D5C"
+          "hex": "#AA7D5C",
+          "finish": "satin"
         },
         {
           "id": "301",
           "name": "윈터솔트",
-          "hex": "#D8D5CF"
+          "hex": "#D8D5CF",
+          "finish": "shimmer"
         },
         {
           "id": "303",
           "name": "로즈스페이스",
-          "hex": "#BE7C89"
+          "hex": "#BE7C89",
+          "finish": "shimmer"
         },
         {
           "id": "a000000237900-015",
           "name": "No.22 민트프리즘",
-          "hex": "#B8C8BD"
+          "hex": "#B8C8BD",
+          "finish": "shimmer"
         },
         {
           "id": "305",
           "name": "브라이덜피치",
-          "hex": "#C28872"
+          "hex": "#C28872",
+          "finish": "satin"
         },
         {
           "id": "306",
           "name": "피오니부케",
-          "hex": "#D09993"
+          "hex": "#D09993",
+          "finish": "satin"
         },
         {
           "id": "104",
           "name": "시크아이리스",
-          "hex": "#E0C2AA"
+          "hex": "#E0C2AA",
+          "finish": "matte"
         },
         {
           "id": "105",
           "name": "프롬핑크",
-          "hex": "#E2AAB4"
+          "hex": "#E2AAB4",
+          "finish": "matte"
         },
         {
           "id": "106",
           "name": "포에버피치",
-          "hex": "#E2A29D"
+          "hex": "#E2A29D",
+          "finish": "satin"
         },
         {
           "id": "113",
           "name": "더스티로드",
-          "hex": "#A48777"
+          "hex": "#A48777",
+          "finish": "matte"
         },
         {
           "id": "201",
           "name": "레이스쉬폰",
-          "hex": "#E7C0A4"
+          "hex": "#E7C0A4",
+          "finish": "matte"
         },
         {
           "id": "204",
           "name": "쉬어팬지",
-          "hex": "#A58299"
+          "hex": "#A58299",
+          "finish": "satin"
         },
         {
           "id": "205",
           "name": "아이스트러커",
-          "hex": "#92B2DB"
+          "hex": "#92B2DB",
+          "finish": "satin"
         },
         {
           "id": "401",
           "name": "핑크클라우드",
-          "hex": "#F3D6D3"
+          "hex": "#F3D6D3",
+          "finish": "satin"
         }
       ],
       "description": "",
@@ -87638,192 +88350,230 @@
         {
           "id": "m01",
           "name": "누드바닐라",
-          "hex": "#FADDC4"
+          "hex": "#FADDC4",
+          "finish": "matte"
         },
         {
           "id": "m02",
           "name": "피치클라우드",
-          "hex": "#F1CDB7"
+          "hex": "#F1CDB7",
+          "finish": "matte"
         },
         {
           "id": "m03",
           "name": "피치벨",
-          "hex": "#F5CBC4"
+          "hex": "#F5CBC4",
+          "finish": "matte"
         },
         {
           "id": "m04",
           "name": "코랄로",
-          "hex": "#F7C0B4"
+          "hex": "#F7C0B4",
+          "finish": "matte"
         },
         {
           "id": "m05",
           "name": "핑크폴렌",
-          "hex": "#E8C7D5"
+          "hex": "#E8C7D5",
+          "finish": "matte"
         },
         {
           "id": "m06",
           "name": "누티엘",
-          "hex": "#CFA894"
+          "hex": "#CFA894",
+          "finish": "matte"
         },
         {
           "id": "m07",
           "name": "샌디움",
-          "hex": "#C99E86"
+          "hex": "#C99E86",
+          "finish": "matte"
         },
         {
           "id": "m08",
           "name": "베이지블룸",
-          "hex": "#B6927E"
+          "hex": "#B6927E",
+          "finish": "matte"
         },
         {
           "id": "m09",
           "name": "루즈브라운",
-          "hex": "#AA8775"
+          "hex": "#AA8775",
+          "finish": "matte"
         },
         {
           "id": "m10",
           "name": "무디코코아",
-          "hex": "#9B786F"
+          "hex": "#9B786F",
+          "finish": "matte"
         },
         {
           "id": "m11",
           "name": "밤코코",
-          "hex": "#88645A"
+          "hex": "#88645A",
+          "finish": "matte"
         },
         {
           "id": "m12",
           "name": "밤브라우니",
-          "hex": "#45352F"
+          "hex": "#45352F",
+          "finish": "matte"
         },
         {
           "id": "mp1",
           "name": "피치페인트",
-          "hex": "#EFC8C1"
+          "hex": "#EFC8C1",
+          "finish": "satin"
         },
         {
           "id": "mp2",
           "name": "버터밀크",
-          "hex": "#EBCABE"
+          "hex": "#EBCABE",
+          "finish": "satin"
         },
         {
           "id": "mp3",
           "name": "블러쉬드베리",
-          "hex": "#EFC7CD"
+          "hex": "#EFC7CD",
+          "finish": "satin"
         },
         {
           "id": "mp4",
           "name": "밀키모카",
-          "hex": "#CDA9A4"
+          "hex": "#CDA9A4",
+          "finish": "satin"
         },
         {
           "id": "mp5",
           "name": "베어넛",
-          "hex": "#B79B97"
+          "hex": "#B79B97",
+          "finish": "satin"
         },
         {
           "id": "mp6",
           "name": "레몬듀",
-          "hex": "#FEE0A1"
+          "hex": "#FEE0A1",
+          "finish": "satin"
         },
         {
           "id": "mp7",
           "name": "애쉬로즈",
-          "hex": "#E8CCCB"
+          "hex": "#E8CCCB",
+          "finish": "satin"
         },
         {
           "id": "mp8",
           "name": "베리퍼플",
-          "hex": "#D7B7D5"
+          "hex": "#D7B7D5",
+          "finish": "satin"
         },
         {
           "id": "g01",
           "name": "펄린넨",
-          "hex": "#ECD6D0"
+          "hex": "#ECD6D0",
+          "finish": "shimmer"
         },
         {
           "id": "g02",
           "name": "샌디피치",
-          "hex": "#E2C3B1"
+          "hex": "#E2C3B1",
+          "finish": "shimmer"
         },
         {
           "id": "g03",
           "name": "바닐라핑크",
-          "hex": "#EACBC7"
+          "hex": "#EACBC7",
+          "finish": "shimmer"
         },
         {
           "id": "g04",
           "name": "미스트달리아",
-          "hex": "#EFD5D4"
+          "hex": "#EFD5D4",
+          "finish": "shimmer"
         },
         {
           "id": "g05",
           "name": "로즈베일",
-          "hex": "#D7ACAE"
+          "hex": "#D7ACAE",
+          "finish": "shimmer"
         },
         {
           "id": "g06",
           "name": "라벤더문",
-          "hex": "#EBD4DE"
+          "hex": "#EBD4DE",
+          "finish": "shimmer"
         },
         {
           "id": "g07",
           "name": "로지멜로우",
-          "hex": "#C6A3A2"
+          "hex": "#C6A3A2",
+          "finish": "shimmer"
         },
         {
           "id": "g08",
           "name": "체리밤",
-          "hex": "#DF7A90"
+          "hex": "#DF7A90",
+          "finish": "shimmer"
         },
         {
           "id": "s01",
           "name": "리프팝",
-          "hex": "#D2E0B8"
+          "hex": "#D2E0B8",
+          "finish": "shimmer"
         },
         {
           "id": "s02",
           "name": "프레시베인",
-          "hex": "#ACC1A8"
+          "hex": "#ACC1A8",
+          "finish": "shimmer"
         },
         {
           "id": "s03",
           "name": "프로스티블루",
-          "hex": "#96D3FD"
+          "hex": "#96D3FD",
+          "finish": "shimmer"
         },
         {
           "id": "s04",
           "name": "라벤더즈",
-          "hex": "#D7AAD5"
+          "hex": "#D7AAD5",
+          "finish": "shimmer"
         },
         {
           "id": "s05",
           "name": "선블레이즈",
-          "hex": "#FB9555"
+          "hex": "#FB9555",
+          "finish": "shimmer"
         },
         {
           "id": "h01",
           "name": "문라이트드롭",
-          "hex": "#F2EBEC"
+          "hex": "#F2EBEC",
+          "finish": "metallic"
         },
         {
           "id": "h02",
           "name": "아이보리글림",
-          "hex": "#F8EBE7"
+          "hex": "#F8EBE7",
+          "finish": "metallic"
         },
         {
           "id": "h03",
           "name": "핑크실루엣",
-          "hex": "#FAEAE7"
+          "hex": "#FAEAE7",
+          "finish": "metallic"
         },
         {
           "id": "h04",
           "name": "아이스페탈핑크",
-          "hex": "#F7E6EC"
+          "hex": "#F7E6EC",
+          "finish": "metallic"
         },
         {
           "id": "h05",
           "name": "카멜브론즈",
-          "hex": "#F6E2D6"
+          "hex": "#F6E2D6",
+          "finish": "metallic"
         }
       ],
       "description": "",
@@ -87869,27 +88619,32 @@
         {
           "id": "a000000244687-001",
           "name": "핑크 쉰",
-          "hex": "#D9ADB5"
+          "hex": "#D9ADB5",
+          "finish": "shimmer"
         },
         {
           "id": "a000000244687-002",
           "name": "라벤더 데이즈",
-          "hex": "#786E84"
+          "hex": "#786E84",
+          "finish": "shimmer"
         },
         {
           "id": "a000000244687-003",
           "name": "블루 캡처",
-          "hex": "#ABC8E2"
+          "hex": "#ABC8E2",
+          "finish": "shimmer"
         },
         {
           "id": "a000000244687-004",
           "name": "아이보리 브리즈",
-          "hex": "#D7B7A7"
+          "hex": "#D7B7A7",
+          "finish": "shimmer"
         },
         {
           "id": "a000000244687-005",
           "name": "더블 노트",
-          "hex": "#F0EFF1"
+          "hex": "#F0EFF1",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -88235,27 +88990,32 @@
         {
           "id": "01",
           "name": "드림 허그",
-          "hex": "#F8D4C5"
+          "hex": "#F8D4C5",
+          "finish": "shimmer"
         },
         {
           "id": "02",
           "name": "샌드 문",
-          "hex": "#F6CCB4"
+          "hex": "#F6CCB4",
+          "finish": "shimmer"
         },
         {
           "id": "05",
           "name": "바닐라 베일",
-          "hex": "#FDE6DF"
+          "hex": "#FDE6DF",
+          "finish": "shimmer"
         },
         {
           "id": "06",
           "name": "리코타 핑크",
-          "hex": "#FCD3CC"
+          "hex": "#FCD3CC",
+          "finish": "shimmer"
         },
         {
           "id": "04",
           "name": "리코타 피치",
-          "hex": "#F7D6BB"
+          "hex": "#F7D6BB",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -88910,37 +89670,44 @@
         {
           "id": "01",
           "name": "순수밤",
-          "hex": "#EDD0B6"
+          "hex": "#EDD0B6",
+          "finish": "matte"
         },
         {
           "id": "02",
           "name": "단아밤",
-          "hex": "#E4BBA4"
+          "hex": "#E4BBA4",
+          "finish": "matte"
         },
         {
           "id": "03",
           "name": "그윽밤",
-          "hex": "#D2A28A"
+          "hex": "#D2A28A",
+          "finish": "matte"
         },
         {
           "id": "04",
           "name": "청순밤",
-          "hex": "#CD968A"
+          "hex": "#CD968A",
+          "finish": "matte"
         },
         {
           "id": "05",
           "name": "오묘밤",
-          "hex": "#CF9597"
+          "hex": "#CF9597",
+          "finish": "matte"
         },
         {
           "id": "06",
           "name": "생기밤",
-          "hex": "#D8A9A3"
+          "hex": "#D8A9A3",
+          "finish": "matte"
         },
         {
           "id": "07",
           "name": "여리밤",
-          "hex": "#E1A497"
+          "hex": "#E1A497",
+          "finish": "matte"
         }
       ],
       "description": "",
@@ -88966,52 +89733,62 @@
         {
           "id": "a000000263434-001",
           "name": "진저",
-          "hex": "#D69E83"
+          "hex": "#D69E83",
+          "finish": "matte"
         },
         {
           "id": "a000000263434-003",
           "name": "카페오레",
-          "hex": "#906F5C"
+          "hex": "#906F5C",
+          "finish": "matte"
         },
         {
           "id": "a000000263434-004",
           "name": "프레스코",
-          "hex": "#AF715C"
+          "hex": "#AF715C",
+          "finish": "matte"
         },
         {
           "id": "a000000263434-005",
           "name": "캐시미어",
-          "hex": "#C09489"
+          "hex": "#C09489",
+          "finish": "matte"
         },
         {
           "id": "a000000263434-006",
           "name": "구아바",
-          "hex": "#EEAA97"
+          "hex": "#EEAA97",
+          "finish": "matte"
         },
         {
           "id": "a000000263434-007",
           "name": "스텔라",
-          "hex": "#F5DABD"
+          "hex": "#F5DABD",
+          "finish": "satin"
         },
         {
           "id": "a000000263434-008",
           "name": "바닐라너츠",
-          "hex": "#E8CEB7"
+          "hex": "#E8CEB7",
+          "finish": "satin"
         },
         {
           "id": "a000000263434-009",
           "name": "모닝듀",
-          "hex": "#F7DACE"
+          "hex": "#F7DACE",
+          "finish": "satin"
         },
         {
           "id": "a000000263434-010",
           "name": "버터크림",
-          "hex": "#FBDABB"
+          "hex": "#FBDABB",
+          "finish": "satin"
         },
         {
           "id": "a000000263434-002",
           "name": "토파즈",
-          "hex": "#96746A"
+          "hex": "#96746A",
+          "finish": "matte"
         }
       ],
       "description": "",
@@ -89223,32 +90000,38 @@
         {
           "id": "1",
           "name": "호 스노우 화이트",
-          "hex": "#C0B9B2"
+          "hex": "#C0B9B2",
+          "finish": "shimmer"
         },
         {
           "id": "16",
           "name": "호 애쉬토프",
-          "hex": "#9C6E68"
+          "hex": "#9C6E68",
+          "finish": "shimmer"
         },
         {
           "id": "17",
           "name": "호 밀크티",
-          "hex": "#AF776A"
+          "hex": "#AF776A",
+          "finish": "shimmer"
         },
         {
           "id": "18",
           "name": "호 소프트 누디",
-          "hex": "#C78B78"
+          "hex": "#C78B78",
+          "finish": "shimmer"
         },
         {
           "id": "19",
           "name": "호 아이시 블루",
-          "hex": "#A7B2BE"
+          "hex": "#A7B2BE",
+          "finish": "shimmer"
         },
         {
           "id": "20",
           "name": "호 플럼 바이올렛",
-          "hex": "#96869D"
+          "hex": "#96869D",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -89425,7 +90208,8 @@
         {
           "id": "a000001003931-001",
           "name": "A000001003931-001",
-          "hex": "#F8EEE9"
+          "hex": "#F8EEE9",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -89729,27 +90513,32 @@
         {
           "id": "a000000123502-001",
           "name": "라스트 댄스",
-          "hex": "#D08875"
+          "hex": "#D08875",
+          "finish": "shimmer"
         },
         {
           "id": "a000000123502-003",
           "name": "오 쏘 길티",
-          "hex": "#C4915F"
+          "hex": "#C4915F",
+          "finish": "shimmer"
         },
         {
           "id": "a000000123502-004",
           "name": "슬로우/패스트/슬로우",
-          "hex": "#C8706C"
+          "hex": "#C8706C",
+          "finish": "shimmer"
         },
         {
           "id": "a000000123502-005",
           "name": "캔트 스탑, 돈트 스탑",
-          "hex": "#995D91"
+          "hex": "#995D91",
+          "finish": "shimmer"
         },
         {
           "id": "a000000123502-006",
           "name": "샤인딜라이트",
-          "hex": "#805C6D"
+          "hex": "#805C6D",
+          "finish": "metallic"
         }
       ],
       "description": "",
@@ -90052,27 +90841,32 @@
         {
           "id": "01",
           "name": "아침에 햇살",
-          "hex": "#E3C3BA"
+          "hex": "#E3C3BA",
+          "finish": "glitter"
         },
         {
           "id": "02",
           "name": "눈부신 정오",
-          "hex": "#CBA79A"
+          "hex": "#CBA79A",
+          "finish": "glitter"
         },
         {
           "id": "03",
           "name": "은하수 달빛",
-          "hex": "#D6A2A0"
+          "hex": "#D6A2A0",
+          "finish": "glitter"
         },
         {
           "id": "04",
           "name": "비온뒤 노을",
-          "hex": "#D9AB9D"
+          "hex": "#D9AB9D",
+          "finish": "glitter"
         },
         {
           "id": "05",
           "name": "라일락 향기",
-          "hex": "#D8A3AE"
+          "hex": "#D8A3AE",
+          "finish": "glitter"
         }
       ],
       "description": "",
@@ -90738,22 +91532,26 @@
         {
           "id": "514",
           "name": "바닐라쇼크",
-          "hex": "#D6BEAB"
+          "hex": "#D6BEAB",
+          "finish": "shimmer"
         },
         {
           "id": "515",
           "name": "레드쏠트핑크칙촉",
-          "hex": "#D8B3AB"
+          "hex": "#D8B3AB",
+          "finish": "shimmer"
         },
         {
           "id": "508",
           "name": "엔젤윙스",
-          "hex": "#AFAC99"
+          "hex": "#AFAC99",
+          "finish": "shimmer"
         },
         {
           "id": "522",
           "name": "퍼플엔젤티얼스",
-          "hex": "#C4A5AB"
+          "hex": "#C4A5AB",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -90830,12 +91628,14 @@
         {
           "id": "01",
           "name": "7AM 옐로 베릴",
-          "hex": "#E5CAB0"
+          "hex": "#E5CAB0",
+          "finish": "glitter"
         },
         {
           "id": "02",
           "name": "11PM 모가나이트",
-          "hex": "#D7CDCE"
+          "hex": "#D7CDCE",
+          "finish": "glitter"
         }
       ],
       "description": "",
@@ -91008,7 +91808,8 @@
         {
           "id": "09",
           "name": "브릭브라운",
-          "hex": "#CFC2BC"
+          "hex": "#CFC2BC",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -91034,42 +91835,50 @@
         {
           "id": "a000000215590-013",
           "name": "멜팅제로 102 코랄젬",
-          "hex": "#DB9F80"
+          "hex": "#DB9F80",
+          "finish": "satin"
         },
         {
           "id": "a000000215590-011",
           "name": "멜팅제로 103 피치스톤",
-          "hex": "#C99289"
+          "hex": "#C99289",
+          "finish": "satin"
         },
         {
           "id": "a000000215590-010",
           "name": "멜팅제로 104 핑크샌드",
-          "hex": "#E6ACAB"
+          "hex": "#E6ACAB",
+          "finish": "satin"
         },
         {
           "id": "a000000215590-012",
           "name": "멜팅제로 105 로즈쿼츠",
-          "hex": "#CF9B94"
+          "hex": "#CF9B94",
+          "finish": "satin"
         },
         {
           "id": "a000000215590-008",
           "name": "트위스트 201 펄 스플래쉬",
-          "hex": "#F0C7B9"
+          "hex": "#F0C7B9",
+          "finish": "shimmer"
         },
         {
           "id": "a000000215590-007",
           "name": "트위스트 202 골든로즈",
-          "hex": "#C6918A"
+          "hex": "#C6918A",
+          "finish": "shimmer"
         },
         {
           "id": "a000000215590-014",
           "name": "트위스트 205 루비링",
-          "hex": "#C28F8C"
+          "hex": "#C28F8C",
+          "finish": "shimmer"
         },
         {
           "id": "a000000215590-015",
           "name": "트위스트 206 라벤더링",
-          "hex": "#D0AEBE"
+          "hex": "#D0AEBE",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -91261,12 +92070,14 @@
         {
           "id": "1",
           "name": "호 베이지 러스트",
-          "hex": "#F4E5DF"
+          "hex": "#F4E5DF",
+          "finish": "shimmer"
         },
         {
           "id": "2",
           "name": "호 로즈 쿼츠",
-          "hex": "#E0C0C2"
+          "hex": "#E0C0C2",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -91439,7 +92250,8 @@
         {
           "id": "a000000233130-001",
           "name": "A000000233130-001",
-          "hex": "#C89C8C"
+          "hex": "#C89C8C",
+          "finish": "metallic"
         }
       ],
       "description": "",
@@ -91597,37 +92409,44 @@
         {
           "id": "a000000263933-006",
           "name": "복숭아*",
-          "hex": "#FEB5BD"
+          "hex": "#FEB5BD",
+          "finish": "matte"
         },
         {
           "id": "a000000263933-003",
           "name": "구운백도*",
-          "hex": "#F3B5AE"
+          "hex": "#F3B5AE",
+          "finish": "matte"
         },
         {
           "id": "a000000263933-007",
           "name": "구운무화과*",
-          "hex": "#E09AA5"
+          "hex": "#E09AA5",
+          "finish": "matte"
         },
         {
           "id": "a000000263933-004",
           "name": "밀키살구*",
-          "hex": "#FCC9BB"
+          "hex": "#FCC9BB",
+          "finish": "matte"
         },
         {
           "id": "a000000263933-005",
           "name": "밀키코코넛*",
-          "hex": "#DDA59E"
+          "hex": "#DDA59E",
+          "finish": "matte"
         },
         {
           "id": "a000000263933-001",
           "name": "굽굽 듀오 기획  *",
-          "hex": "#F3D6CB"
+          "hex": "#F3D6CB",
+          "finish": "matte"
         },
         {
           "id": "a000000263933-002",
           "name": "멀멀 듀오 기획  *",
-          "hex": "#F2DCDB"
+          "hex": "#F2DCDB",
+          "finish": "matte"
         }
       ],
       "description": "",
@@ -91770,7 +92589,8 @@
         {
           "id": "a000001003930-001",
           "name": "A000001003930-001",
-          "hex": "#DEB49F"
+          "hex": "#DEB49F",
+          "finish": "shimmer"
         }
       ],
       "description": "",
@@ -91796,17 +92616,20 @@
         {
           "id": "a000001004396-001",
           "name": "라일락 샤워+블루솝",
-          "hex": "#E0DDE4"
+          "hex": "#E0DDE4",
+          "finish": "shimmer"
         },
         {
           "id": "a000001004396-002",
           "name": "아이시 라일락",
-          "hex": "#EBCDD9"
+          "hex": "#EBCDD9",
+          "finish": "shimmer"
         },
         {
           "id": "a000001004396-003",
           "name": "스노우 화이트",
-          "hex": "#EEEEF2"
+          "hex": "#EEEEF2",
+          "finish": "shimmer"
         }
       ],
       "description": "",

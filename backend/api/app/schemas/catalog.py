@@ -19,6 +19,9 @@ MakeupZone = Literal[
 ]
 Texture = Literal["matte", "velvet", "glossy", "satin", "sheer", "cream", "shimmer"]
 ShadowFinish = Literal["matte", "shimmer", "glitter", "glossy"]
+# Reviewed eyeshadow finish of one shade (AR finish chart). Wider than ShadowFinish, which is
+# what the AR lid renderer draws today.
+ShadeFinish = Literal["matte", "satin", "shimmer", "metallic", "glitter", "glossy"]
 LookStep = Literal["prep", "base", "eyes", "cheeks", "lips"]
 SkinConcern = Literal[
     "dryness", "oiliness", "sensitivity", "blemish", "pores", "pigmentation", "wrinkles"
@@ -45,6 +48,7 @@ class Shade(OmitNoneModel):
         | None
     ) = None
     color_confidence: float | None = Field(default=None, ge=0, le=1)
+    finish: ShadeFinish | None = None
 
 
 class Product(ApiModel):
