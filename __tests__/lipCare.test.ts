@@ -36,10 +36,10 @@ describe('lip skincare is not in the AR lip tab', () => {
 });
 
 describe('lip finish chips', () => {
-  it('folds seven finishes into four', () => {
+  it('groups seven lip textures into five finishes with satin separate from cream', () => {
     expect(lipTextureChip('velvet')).toBe('matte');
     expect(lipTextureChip('matte')).toBe('matte');
-    expect(lipTextureChip('satin')).toBe('cream');
+    expect(lipTextureChip('satin')).toBe('satin');
     expect(lipTextureChip('cream')).toBe('cream');
     expect(lipTextureChip('sheer')).toBe('glossy');
     expect(lipTextureChip('glossy')).toBe('glossy');
