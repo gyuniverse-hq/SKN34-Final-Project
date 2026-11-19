@@ -8,9 +8,9 @@ export function normalize(rgb) {
   return result;
 }
 
-function weights(input) {
-  return Array.from({ length: 256 }, (_, x) => {
-    const scale = input / 256, support = Math.max(1, scale), center = (x + .5) * scale;
+function weights(input, size) {
+  return Array.from({ length: size }, (_, x) => {
+    const scale = input / size, support = Math.max(1, scale), center = (x + .5) * scale;
     const start = Math.max(0, Math.trunc(center - support + .5));
     const end = Math.min(input, Math.trunc(center + support + .5));
     const raw = Array.from({ length: end - start }, (_, i) => Math.max(0, 1 - Math.abs((start + i - center + .5) / support)));
@@ -19,25 +19,39 @@ function weights(input) {
   });
 }
 
-export function resizePillow(rgb, width, height) {
+export function resizePillow(rgb, width, height, size = 256) {
   let horizontal = rgb;
-  if (width !== 256) {
-    horizontal = new Uint8Array(height * 256 * 3);
-    const kernels = weights(width);
-    for (let y = 0; y < height; y++) for (let x = 0; x < 256; x++) for (let c = 0; c < 3; c++) {
+  if (width !== size) {
+    horizontal = new Uint8Array(height * size * 3);
+    const kernels = weights(width, size);
+    for (let y = 0; y < height; y++) for (let x = 0; x < size; x++) for (let c = 0; c < 3; c++) {
       const kernel = kernels[x]; let value = 2 ** 21;
       kernel.coefficients.forEach((coefficient, i) => { value += rgb[(y * width + kernel.start + i) * 3 + c] * coefficient; });
-      horizontal[(y * 256 + x) * 3 + c] = Math.min(255, Math.max(0, value >> 22));
+      horizontal[(y * size + x) * 3 + c] = Math.min(255, Math.max(0, value >> 22));
     }
   }
-  if (height === 256) return horizontal;
-  const result = new Uint8Array(256 * 256 * 3), kernels = weights(height);
-  for (let y = 0; y < 256; y++) for (let x = 0; x < 256; x++) for (let c = 0; c < 3; c++) {
+  if (height === size) return horizontal;
+  const result = new Uint8Array(size * size * 3), kernels = weights(height, size);
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) for (let c = 0; c < 3; c++) {
     const kernel = kernels[y]; let value = 2 ** 21;
-    kernel.coefficients.forEach((coefficient, i) => { value += horizontal[((kernel.start + i) * 256 + x) * 3 + c] * coefficient; });
-    result[(y * 256 + x) * 3 + c] = Math.min(255, Math.max(0, value >> 22));
+    kernel.coefficients.forEach((coefficient, i) => { value += horizontal[((kernel.start + i) * size + x) * 3 + c] * coefficient; });
+    result[(y * size + x) * 3 + c] = Math.min(255, Math.max(0, value >> 22));
   }
   return result;
+}
+
+export function acneTensor(cv, rgba) {
+  const rgb = new cv.Mat();
+  cv.cvtColor(rgba, rgb, cv.COLOR_RGBA2RGB);
+  try {
+    const pixels = resizePillow(resizePillow(rgb.data, rgb.cols, rgb.rows), 256, 256, 224);
+    const mean = [.45815152, .361242, .29348266], std = [.2814769, .226306, .20132513];
+    const result = new Float32Array(3 * 224 * 224);
+    for (let c = 0; c < 3; c++) for (let i = 0; i < 224 * 224; i++) {
+      result[c * 224 * 224 + i] = (pixels[i * 3 + c] / 255 - mean[c]) / std[c];
+    }
+    return result;
+  } finally { rgb.delete(); }
 }
 
 // Actual square input crop used by the model, including image-edge clipping.

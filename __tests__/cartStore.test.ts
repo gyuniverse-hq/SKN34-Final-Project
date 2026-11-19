@@ -1,4 +1,5 @@
 import { cartLineKey, MAX_QUANTITY, selectCartCount, useCartStore } from '@/store/cartStore';
+import { arCartEventIds } from '@/lib/arHistory';
 
 beforeEach(() => useCartStore.getState().clear());
 
@@ -28,6 +29,23 @@ describe('cartStore', () => {
     expect(useCartStore.getState().items[0].quantity).toBe(MAX_QUANTITY);
     setQuantity(cartLineKey({ productId: 'a' }), 0);
     expect(useCartStore.getState().items).toHaveLength(0);
+  });
+
+  it('keeps AR sources only for the remaining units and the matching account', () => {
+    const { add, setQuantity } = useCartStore.getState();
+    const item = { productId: 'a', shadeId: '01' };
+    const key = cartLineKey(item);
+    const sources = () => arCartEventIds(useCartStore.getState().items[0], 'owner');
+    add(item);
+    add({ ...item, arCartSources: [{ ownerId: 'owner', eventId: 'first' }] });
+    add({ ...item, arCartSources: [{ ownerId: 'other', eventId: 'second' }] });
+    add({ ...item, arCartSources: [{ ownerId: 'owner', eventId: 'third' }] });
+    expect(sources()).toEqual(['first', 'third']);
+    setQuantity(key, 2);
+    expect(sources()).toEqual(['first']);
+    setQuantity(key, 1);
+    setQuantity(key, 4);
+    expect(sources()).toEqual([]);
   });
 
   it('removes only unchanged lines from a confirmed order, preserving new or edited items', () => {

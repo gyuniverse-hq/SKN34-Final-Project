@@ -1,23 +1,29 @@
 import { useCallback, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { AppState, type View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { halfVisible, RecommendationFeedback, recommendationLink } from '@/lib/recommendationFeedback';
+import { halfVisible, RecommendationFeedback, recommendationLink, type FeedbackItem, type FeedbackSurface } from '@/lib/recommendationFeedback';
 import { productHref } from '@/lib/routes';
-import type { ComparisonProduct, RecommendationComparisonResult } from '@/types/recommendationComparison';
+import type { RecommendationComparisonResult } from '@/types/recommendationComparison';
 
 /** Measure the actual clipped scroll viewport; fetching/mounting a card is not an impression. */
 export function useRecommendationFeedback(result: RecommendationComparisonResult | undefined, owner: string | undefined) {
+  return useRecommendationCardFeedback(result?.history, result?.v2.matches, owner, 'v2_comparison');
+}
+
+export function useRecommendationCardFeedback(
+  history: RecommendationComparisonResult['history'], items: readonly FeedbackItem[] | undefined,
+  owner: string | undefined, surface: FeedbackSurface, enabled = true, topInset = 0,
+) {
   const viewportRef = useRef<ComponentRef<typeof View>>(null);
   const cards = useRef(new Map<string, ComponentRef<typeof View>>());
   const [failedView, setFailedView] = useState<string>();
-  const requestId = result?.history?.requestId;
-  const sessionId = result?.history?.sessionId;
-  const feedback = useMemo(() => requestId && sessionId && owner ? new RecommendationFeedback(owner, sessionId) : undefined,
-    [requestId, sessionId, owner]);
+  const requestId = history?.requestId;
+  const sessionId = history?.sessionId;
+  const feedback = useMemo(() => requestId && sessionId && owner ? new RecommendationFeedback(owner, sessionId, surface) : undefined,
+    [requestId, sessionId, owner, surface]);
   const refresh = useRef(() => {});
-  const items = result?.v2.matches;
   useFocusEffect(useCallback(() => {
-    if (!feedback || !items) return;
+    if (!feedback || !items || !enabled) return;
     let mounted = true;
     let generation = 0;
     let active = AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
@@ -33,7 +39,8 @@ export function useRecommendationFeedback(result: RecommendationComparisonResult
           if (!id || sent.has(id)) continue;
           cards.current.get(id)?.measureInWindow((cx, cy, cw, ch) => {
             if (!mounted || !active || epoch !== generation) return;
-            if (!halfVisible({ x: cx, y: cy, width: cw, height: ch }, { x, y, width, height })) {
+            if (!halfVisible({ x: cx, y: cy, width: cw, height: ch },
+              { x, y: y + topInset, width, height: Math.max(0, height - topInset) })) {
               since.delete(id); return;
             }
             const now = Date.now();
@@ -52,16 +59,19 @@ export function useRecommendationFeedback(result: RecommendationComparisonResult
     const timer = setInterval(measure, 200);
     measure();
     return () => { mounted = false; generation++; clearInterval(timer); subscription.remove(); refresh.current = () => {}; };
-  }, [feedback, items]));
-  const setCard = (item: ComparisonProduct, node: ComponentRef<typeof View> | null) => {
+  }, [feedback, items, enabled, topInset]));
+  const setCard = (item: FeedbackItem, node: ComponentRef<typeof View> | null) => {
     if (!item.candidateId) return;
     if (node) cards.current.set(item.candidateId, node);
     else cards.current.delete(item.candidateId);
   };
-  const href = (item: ComparisonProduct) => {
-    const recommendation = feedback && item.candidateId ? recommendationLink(feedback, item) : undefined;
-    // Navigation is immediate; the detail action waits for its real impression acknowledgement.
-    return productHref(item.productId, undefined, recommendation);
+  const href = (item: FeedbackItem) => {
+    if (!feedback || !item.candidateId) return productHref(item.productId);
+    if (surface === 'skin_recommendations') {
+      // A tap confirms exposure even if the product detail fails to load.
+      void feedback.impression(item, true).catch(() => setFailedView(feedback.viewId));
+    }
+    return productHref(item.productId, undefined, recommendationLink(feedback, item));
   };
   return { viewportRef, setCard, refresh: () => refresh.current(), href, failed: !!feedback && failedView === feedback.viewId };
 }

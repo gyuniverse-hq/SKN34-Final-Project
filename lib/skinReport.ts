@@ -24,7 +24,7 @@ function modelMetric(concern: SkinConcern, maximum: number, values: [SkinRegion,
 
 function imageMetrics(analysis: SkinReportInput['analysis']) {
   const { features, cautionProbabilities, acneScore } = analysis;
-  const binary = analysis.schema === 'skin-analysis-mobile-v4';
+  const binary = analysis.schema === 'skin-analysis-mobile-v4' || analysis.schema === 'skin-analysis-mobile-v4.1';
   const isScore = (value: number | undefined): value is number =>
     value !== undefined && Number.isFinite(value) && value >= 0 && value <= 1;
   function metric(concern: SkinConcern, maxGrade: number, regions: [SkinRegion, Exclude<keyof typeof features, 'acne'>][]) {

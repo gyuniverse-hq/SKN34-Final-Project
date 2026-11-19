@@ -1,4 +1,4 @@
-import { DEMO_LOOK_AR } from '@/lib/demoLookAr';
+import { DEMO_LOOK_AR, DEMO_LOOK_TITLE_KEYS, demoLookTitleKey, isDemoLook } from '@/lib/demoLookAr';
 import { DEMO_CELEBRITY_VIDEOS, DEMO_LOOK_PRODUCTS, DEMO_STYLE_LOOKS } from '@/lib/demoLookBundle';
 import { FALSE_LASH_LOOKS } from '@/lib/falseLashLooks';
 import { LOOK_LINERS, type LookLinerId } from '@/lib/linerLooks';
@@ -51,6 +51,14 @@ describe('demo look coverage', () => {
       expect(new Set(zones).size).toBe(zones.length);
       for (const slot of list) expect(slot.video?.length).toBeGreaterThan(0);
     }
+  });
+
+  test('every demo look has a short on-screen title key', () => {
+    expect(Object.keys(DEMO_LOOK_TITLE_KEYS).sort()).toEqual(Object.keys(DEMO_LOOK_AR).sort());
+    expect(isDemoLook('celebrity-n5otfjJSSQc')).toBe(true);
+    expect(demoLookTitleKey('celebrity-e1gSkUdG6Bo')).toBe('look.demo.sullyoon');
+    expect(demoLookTitleKey('style-ZAozXs-ZZik')).toBe('look.demo.strawberry');
+    expect(demoLookTitleKey('other')).toBeNull();
   });
 
   test('false lashes only ride on mascara slots and use known presets', () => {

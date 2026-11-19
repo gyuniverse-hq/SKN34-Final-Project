@@ -3,19 +3,25 @@ import { StyleSheet, Text, View, type GestureResponderEvent } from 'react-native
 import { theme } from '@/constants/theme';
 
 const KNOB = 20;
+const KNOB_COMPACT = 16;
 
 export interface CoverageBarProps {
   /** 0..1 */
   value: number;
   labels: { title: string; low: string; high: string };
   onChange: (value: number) => void;
+  /** Drop side padding when the bar already sits inside a padded card. */
+  inset?: boolean;
+  /** Shorter hit area for tight overlays (look strength under the top bar). */
+  compact?: boolean;
 }
 
 /** Drag bar for the foundation coverage (how strongly the color is laid on the skin in AR), applied live. */
-export function CoverageBar({ value, labels, onChange }: CoverageBarProps) {
+export function CoverageBar({ value, labels, onChange, inset, compact }: CoverageBarProps) {
   const [trackW, setTrackW] = useState(0);
   const trackWRef = useRef(0);
   const last = useRef(value);
+  const knob = compact ? KNOB_COMPACT : KNOB;
   const move = (e: GestureResponderEvent) => {
     const w = trackWRef.current;
     const v = w <= 0 ? value : Math.round(Math.min(1, Math.max(0, e.nativeEvent.locationX / w)) * 20) / 20;
@@ -25,8 +31,8 @@ export function CoverageBar({ value, labels, onChange }: CoverageBarProps) {
   };
   const t = Math.min(1, Math.max(0, value));
   return (
-    <View style={styles.row}>
-      <Text style={styles.label}>{labels.low}</Text>
+    <View style={[styles.row, inset ? styles.rowInset : null]}>
+      <Text style={[styles.label, compact ? styles.labelCompact : null]}>{labels.low}</Text>
       <View
         accessibilityRole="adjustable"
         accessibilityLabel={labels.title}
@@ -37,7 +43,7 @@ export function CoverageBar({ value, labels, onChange }: CoverageBarProps) {
             onChange(Math.min(1, Math.max(0, value + (e.nativeEvent.actionName === 'increment' ? 0.05 : -0.05))));
           }
         }}
-        style={styles.hit}
+        style={[styles.hit, compact ? styles.hitCompact : null]}
         onLayout={(e) => {
           trackWRef.current = e.nativeEvent.layout.width;
           setTrackW(e.nativeEvent.layout.width);
@@ -46,20 +52,31 @@ export function CoverageBar({ value, labels, onChange }: CoverageBarProps) {
         onMoveShouldSetResponder={() => true}
         onResponderGrant={move}
         onResponderMove={move}>
-        <View style={styles.track} />
-        <View pointerEvents="none" style={[styles.fill, { width: t * trackW }]} />
-        <View pointerEvents="none" style={[styles.knob, { left: t * Math.max(0, trackW - KNOB) }]} />
+        <View style={[styles.track, compact ? styles.trackCompact : null]} />
+        <View pointerEvents="none" style={[styles.fill, compact ? styles.trackCompact : null, { width: t * trackW }]} />
+        <View
+          pointerEvents="none"
+          style={[
+            styles.knob,
+            compact ? styles.knobCompact : null,
+            { left: t * Math.max(0, trackW - knob), width: knob, height: knob, borderRadius: knob / 2 },
+          ]}
+        />
       </View>
-      <Text style={styles.label}>{labels.high}</Text>
+      <Text style={[styles.label, compact ? styles.labelCompact : null]}>{labels.high}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16 },
+  rowInset: { paddingHorizontal: 0 },
   label: { fontSize: 11, fontWeight: '700', color: theme.colors.inkMuted },
+  labelCompact: { fontSize: 10 },
   hit: { flex: 1, height: 44, justifyContent: 'center' },
+  hitCompact: { height: 32 },
   track: { height: 6, borderRadius: 3, backgroundColor: theme.colors.border },
+  trackCompact: { height: 4, borderRadius: 2 },
   fill: { position: 'absolute', left: 0, height: 6, borderRadius: 3, backgroundColor: theme.colors.ink },
   knob: {
     position: 'absolute',
@@ -72,4 +89,5 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.12)',
     ...theme.shadow,
   },
+  knobCompact: { top: 8 },
 });

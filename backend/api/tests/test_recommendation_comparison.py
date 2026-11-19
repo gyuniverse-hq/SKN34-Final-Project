@@ -5,6 +5,8 @@ import pytest
 from pydantic import ValidationError
 
 from app.core.config import Settings
+from app.core.errors import ApiError
+from app.routers.recommendation_comparison import validate_model_input
 from app.schemas.recommendation_comparison import (
     CandidateOption,
     ComparisonCatalog,
@@ -85,6 +87,27 @@ def test_input_rejects_missing_invalid_and_wrong_score_semantics():
         "주의",
         "양호",
     ]
+
+
+def test_v4_route_requires_acne_without_affecting_v3_requests():
+    with patch("app.routers.recommendation_comparison.get_settings") as settings:
+        settings.return_value = Settings(_env_file=None, recommendation_model="recommend-cat-v4")
+        with pytest.raises(ApiError) as error:
+            validate_model_input(body())
+        assert error.value.code == "acne_score_required"
+        validate_model_input(
+            body(
+                analysisVersion="skin-analysis-v4.1",
+                scores={
+                    "pores": 0.8,
+                    "pigmentation": 0.2,
+                    "wrinkles": 0.8,
+                    "acne": 0.7,
+                },
+            )
+        )
+        settings.return_value = Settings(_env_file=None, recommendation_model="recommend-cat-v3")
+        validate_model_input(body())
 
 
 def test_expansion_joins_original_tables_without_products_projection_or_count_limit():

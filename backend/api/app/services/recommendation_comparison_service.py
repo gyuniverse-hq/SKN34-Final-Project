@@ -84,7 +84,7 @@ class ComparisonService:
                 }
         ids1 = {r["product"]["id"] for r in v1_result["matches"]}
         ids2 = {r["productId"] for r in v2_result["matches"]}
-        serialized = body.model_dump(mode="json")
+        serialized = body.model_dump(mode="json", exclude_none=True)
         return {
             "input": serialized,
             "inputHash": hashlib.sha256(

@@ -1,6 +1,7 @@
 import hashlib
 import secrets
 from typing import Protocol
+from uuid import UUID
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,6 +21,7 @@ from app.schemas.payment import (
     PaymentResult,
     PublicCheckout,
 )
+from app.services.member_service import TERMS_VERSION
 
 
 class CatalogStore(Protocol):
@@ -27,9 +29,13 @@ class CatalogStore(Protocol):
 
 
 class OrderStore(Protocol):
-    async def create(self, order: OrderRow) -> None: ...
-    async def get(self, order_id: str) -> OrderRow | None: ...
-    async def mark_paid(self, order: OrderRow, payment_key: str) -> None: ...
+    async def create(
+        self, order: OrderRow, *, ar_cart_events: list[list[UUID]], ar_terms: str | None
+    ) -> None: ...
+    async def get(self, order_id: str, *, lock: bool = False) -> OrderRow | None: ...
+    async def mark_paid(
+        self, order: OrderRow, payment_key: str, *, ar_terms: str | None
+    ) -> None: ...
     def line(self, **values: object): ...
 
 
@@ -51,6 +57,9 @@ class PaymentService:
             approver,
             settings,
         )
+
+    def _ar_terms(self, user_id: str) -> str | None:
+        return TERMS_VERSION if user_id in self._settings.ar_activity_consented_members else None
 
     async def create_order(self, user_id: str, body: CreateOrderRequest) -> CreateOrderResponse:
         if not (self._settings.toss_client_key and self._settings.payment_web_base_url):
@@ -88,7 +97,9 @@ class PaymentService:
                 checkout_token_hash=_digest(token),
                 payment_key=None,
                 lines=lines,
-            )
+            ),
+            ar_cart_events=[line.ar_cart_event_ids[: line.quantity] for line in body.lines],
+            ar_terms=self._ar_terms(user_id),
         )
         base = self._settings.payment_web_base_url.rstrip("/")
         return CreateOrderResponse(
@@ -117,7 +128,7 @@ class PaymentService:
         return OrderStatus(orderId=order.id, status=order.status)
 
     async def confirm(self, body: ConfirmPaymentRequest) -> PaymentResult:
-        order = await self._orders.get(body.order_id)
+        order = await self._orders.get(body.order_id, lock=True)
         if order is None or not secrets.compare_digest(
             order.checkout_token_hash, _digest(body.checkout_token)
         ):
@@ -129,7 +140,9 @@ class PaymentService:
         if order.status != "pending" or order.amount_krw != body.amount:
             raise ApiError(400, "Payment amount does not match the order", "invalid_payment")
         await self._approver.approve(body.payment_key, order.id, body.amount)
-        await self._orders.mark_paid(order, body.payment_key)
+        await self._orders.mark_paid(
+            order, body.payment_key, ar_terms=self._ar_terms(order.user_id)
+        )
         return PaymentResult(
             orderId=order.id, status="paid", returnUrl=self._settings.payment_return_url
         )

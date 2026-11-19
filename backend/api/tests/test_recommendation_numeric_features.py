@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from app.services.recommendation_v2_service import (
+    ACNE_SCORE_FEATURES,
     FEATURES,
     SCORE_FEATURES,
     feature_values,
@@ -45,6 +46,26 @@ def test_numeric_inputs_keep_the_training_order_and_raw_precision():
     assert len(feature_values(request, "pores")) == 7
     with pytest.raises(ValueError, match="invalid_model_features"):
         feature_values(request, "pores", FEATURES + SCORE_FEATURES[::-1])
+
+
+def test_v4_requires_v41_acne_score_and_preserves_feature_order():
+    request = body(
+        analysisVersion="skin-analysis-v4.1",
+        scores={
+            "pores": 0.9137,
+            "pigmentation": 0.2742,
+            "wrinkles": 0.6329,
+            "acne": 0.4567,
+        },
+    )
+    assert feature_values(request, "pores", FEATURES + ACNE_SCORE_FEATURES)[-4:] == [
+        0.9137,
+        0.6329,
+        0.2742,
+        0.4567,
+    ]
+    with pytest.raises(ValueError, match="acne_score_required"):
+        feature_values(body(), "pores", FEATURES + ACNE_SCORE_FEATURES)
 
 
 @pytest.mark.parametrize("features", [FEATURES, FEATURES + SCORE_FEATURES])
