@@ -9,9 +9,10 @@ import type { ChatCondition } from '@/lib/chatConditions';
 import { formatKRW } from '@/lib/format';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { parseCategory, parseId } from '@/lib/routes';
-import type { ChatProductEvidence, Product } from '@/types';
+import type { ChatOptionSearch, ChatProductEvidence, Product } from '@/types';
 
 interface Props {
+  optionSearch?: ChatOptionSearch;
   products: Product[];
   loading: boolean;
   failed: boolean;
@@ -58,11 +59,19 @@ function candidateStatus(product: Product, required: ChatCondition[]): 'matched'
   return 'matched';
 }
 
-export function ChatProducts({ products, loading, failed, missingCount, conditions, showIngredients, onRetry, onOpenProduct, onOpenAr, disabledActions = false, previewImage, candidateOrder, evidence, selectedShades: controlledShades, onSelectShade, onSelectProduct, selectedProductId, expectedIds, fragrance, onOpenEvidence }: Props) {
+function optionShadeLabel(shadeId: string, items: ChatOptionSearch['items']): TranslationKey {
+  const groups = new Set(items.filter((item) => item.shadeId === shadeId).map((item) => item.group));
+  if (!groups.size) return 'chat.conditionUnknown';
+  // A shade can represent multiple source options. Only a unanimous verdict confirms its status.
+  if (groups.size !== 1 || groups.has('REFERENCE_ONLY')) return 'chat.option.reference';
+  return groups.has('ELIGIBLE') ? 'chat.option.eligible' : 'chat.conditionNotMet';
+}
+
+export function ChatProducts({ optionSearch, products, loading, failed, missingCount, conditions, showIngredients, onRetry, onOpenProduct, onOpenAr, disabledActions = false, previewImage, candidateOrder, evidence, selectedShades: controlledShades, onSelectShade, onSelectProduct, selectedProductId, expectedIds, fragrance, onOpenEvidence }: Props) {
   const { t } = useI18n();
   const [selectedShades, setSelectedShades] = useState<Record<string, string>>({});
   const [compareOpen, setCompareOpen] = useState(false);
-  const requiredConditions = conditions.filter((condition) => condition.required);
+  const requiredConditions = optionSearch ? [] : conditions.filter((condition) => condition.required);
   const ordered = candidateOrder ? [...products].sort((a, b) => {
     const rank = (id: string) => { const i = candidateOrder.indexOf(id); return i < 0 ? candidateOrder.length : i; };
     return rank(a.id) - rank(b.id);
@@ -109,7 +118,7 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
 
   return (
     <View style={styles.list}>
-      {conditions.length && products.length ? <Text style={styles.notice}>{t('chat.ui.partialConditionsNotice' as TranslationKey)}</Text> : null}
+      {!optionSearch && conditions.length && products.length ? <Text style={styles.notice}>{t('chat.ui.partialConditionsNotice' as TranslationKey)}</Text> : null}
       {slides.length > 0 ? (
         <View style={styles.carouselHeader}>
           <Text style={styles.carouselCount}>{currentIndex + 1} / {slides.length}</Text>
@@ -150,11 +159,17 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
           {group.products.map((product) => {
             const candidateIndex = candidateOrder?.indexOf(product.id) ?? -1;
             const proof = evidence?.find((item) => item.productId === product.id);
+            const productOptions = optionSearch?.items.filter((item) => item.productId === product.id) ?? [];
+            const options = productOptions.filter((item) => item.group !== 'EXCLUDED');
             const validShades = parseId(product.id) === product.id
               ? product.shades.filter((shade) => parseId(shade.id) === shade.id) : [];
             const tryOn = canTryOn(product) && parseId(product.id) === product.id && validShades.length > 0;
             const selectedShade = validShades.find((shade) => shade.id === (controlledShades ?? selectedShades)[product.id]);
             const productCategory = parseCategory(product.category);
+            const priceBasis = optionSearch?.effectiveRequest?.priceBasis ?? options.find((item) => item.price)?.price?.requestedBasis;
+            const registeredPrice = optionSearch || proof?.source === 'catalog_api';
+            const fragranceUnknown = options.some((item) => item.checks.some((check) =>
+              check.condition === 'fragrance_free' && check.verdict === 'UNKNOWN'));
             return (
               <View key={product.id} style={[styles.card, selectedProductId === product.id && styles.cardSelected]}>
                 <View style={styles.productHeader}>
@@ -165,10 +180,44 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
                     <Text style={styles.brand}>{product.brand}</Text>
                     <Text style={styles.name}>{product.name}</Text>
                     <Text style={styles.notice}>{productCategory ? t(`shop.cat.${productCategory}` as TranslationKey) : t('chat.conditionUnknown')}</Text>
-                    <Text style={styles.price}>{t('chat.referencePrice')} {Number.isFinite(product.priceKRW) && product.priceKRW > 0 ? formatKRW(product.priceKRW) : t('chat.conditionUnknown')}</Text>
+                    <Text style={styles.price}>{t(registeredPrice ? 'chat.option.registeredPrice' : 'chat.referencePrice')} {Number.isFinite(product.priceKRW) && product.priceKRW > 0 ? formatKRW(product.priceKRW) : t('chat.conditionUnknown')}</Text>
                   </View>
                 </View>
                 <View style={styles.productBody}>
+                  {optionSearch ? <View style={styles.conditionPanel}>
+                    <Text style={styles.notice}>{t('chat.option.scopeNotice')}</Text>
+                    {fragranceUnknown ? <Text style={styles.notice}>{t('chat.option.fragranceUnknown')}</Text> : null}
+                    {options.map((item) => (
+                      <View key={item.optionId} style={styles.ingredientBlock}>
+                        {item.synthetic ? <Text style={styles.notice}>{t('chat.option.synthetic')}</Text> : null}
+                        {item.checks.some((check) => check.reason === 'option_texture_unverified') ? <Text style={styles.notice}>{t('chat.option.textureUnverified')}</Text> : null}
+                        {item.ingredientEntryCount != null && item.ingredientIdentityCount != null ? <Text style={styles.notice}>{t('chat.option.identities', { matched: item.ingredientIdentityCount, total: item.ingredientEntryCount })}</Text> : null}
+                        {item.checks.filter((check) => check.condition === 'texture').map((check, index) => (
+                          <Text key={`texture-${index}`} style={styles.notice}>
+                            {t(check.textureBasis === 'official_reviewed' && check.verdict === 'MATCH' ? 'chat.option.textureOfficial'
+                              : check.textureBasis === 'product_name' ? 'chat.option.textureName'
+                              : check.textureBasis === 'review_ai' || check.textureBasis === 'review_survey' ? 'chat.option.textureReview'
+                              : 'chat.option.textureCatalog')}
+                          </Text>
+                        ))}
+                        <Text style={styles.sectionTitle}>{product.shades.find((shade) => shade.id === item.shadeId)?.name ?? t('chat.option.noShade')} · {t(item.group === 'ELIGIBLE' ? 'chat.option.eligible' : 'chat.option.reference')}</Text>
+                        {item.checks.filter((check) => check.condition !== 'identity').map((check, index) => {
+                          if (check.condition === 'fragrance_free' && check.verdict === 'UNKNOWN') {
+                            return null;
+                          }
+                          if (check.condition === 'price' && priceBasis === 'current_offer' && check.verdict === 'UNKNOWN') {
+                            return null;
+                          }
+                          const label = check.condition === 'ingredient'
+                            ? `${check.ingredientName} · ${t(check.operator === 'excludes' ? 'chat.option.excludes' : 'chat.option.includes')}`
+                            : t(({ price: 'chat.option.price', texture: 'chat.option.texture', fragrance_free: 'chat.option.fragrance', moisturizing: 'chat.option.moisturizing' } as Record<string, TranslationKey>)[check.condition] ?? 'chat.option.unsupported');
+                          return <Text key={index} style={styles.notice}>{label}: {t(check.verdict === 'MATCH' ? 'chat.conditionMet' : check.verdict === 'NOT_MATCH' ? 'chat.conditionNotMet' : check.verdict === 'ERROR' ? 'chat.option.error' : 'chat.conditionUnknown')}{check.condition === 'ingredient' && check.verdict === 'UNKNOWN' ? ` · ${t(check.reason === 'absence_not_verifiable' ? 'chat.ingredient.partial' : check.reason === 'evidence_requires_review' ? 'chat.ingredient.review' : 'chat.ingredient.unknown')}` : ''}</Text>;
+                        })}
+                        {priceBasis === 'collected_snapshot' && item.price?.observedBasis === 'collected_snapshot' ? <Text style={styles.notice}>{t('chat.option.snapshot')}: {formatKRW(item.price.amountKRW)} · {item.price.observedAt ?? (item.price.observedAtRaw ? `${item.price.observedAtRaw} · ${t('chat.option.timezoneUnknown')}` : t('chat.option.noObservation'))}</Text> : null}
+                      </View>
+                    ))}
+                    {selectedShade && !productOptions.some((item) => item.shadeId === selectedShade.id) ? <Text style={styles.notice}>{t('chat.option.selectionUnverified')}</Text> : null}
+                  </View> : null}
                   {fragrance ? <View style={styles.ingredientBlock}>
                     <Text style={styles.notice}>{t(fragrance === 'verified' ? 'chat.ingredient.fragranceVerified' : 'chat.ingredient.fragranceUnknown')}</Text>
                     {fragrance === 'verified' && selectedShade ? <Text style={styles.notice}>{selectedShade.name}</Text> : null}
@@ -176,12 +225,12 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
                       <Text style={styles.notice}>{t('chat.ingredient.showDetails')}</Text>
                     </Pressable> : null}
                   </View> : null}
-                  {!fragrance && proof ? <View style={styles.ingredientBlock}>
+                  {!optionSearch && !fragrance && proof ? <View style={styles.ingredientBlock}>
                     <Text style={styles.notice}>{t('chat.catalogEvidence')}</Text>
                     <Text style={styles.notice}>{t(proof.ingredientCoverage === 'key_only'
                       ? 'chat.keyOnlyEvidence' : 'chat.noIngredientEvidence')}</Text>
                   </View> : null}
-                  {!fragrance && showIngredients ? (
+                  {!optionSearch && !fragrance && showIngredients ? (
                     <View style={styles.ingredientBlock}>
                       {product.keyIngredients.length > 0 ? (
                         <>
@@ -191,7 +240,7 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
                       ) : <Text style={styles.notice}>{t('chat.ui.ingredientUnavailable')}</Text>}
                     </View>
                   ) : null}
-                  {!fragrance && conditions.length ? (
+                  {!optionSearch && !fragrance && conditions.length ? (
                     <View style={styles.conditionPanel}>
                       <Text style={styles.sectionTitle}>{t('chat.ui.checkConditions')}</Text>
                       {conditions.map((condition, index) => {
@@ -218,23 +267,30 @@ export function ChatProducts({ products, loading, failed, missingCount, conditio
                     <>
                       <Text style={styles.notice}>{t('chat.selectShade')}</Text>
                       <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.shades}>
-                        {validShades.map((shade) => (
-                          <Pressable
-                            key={shade.id}
-                            accessibilityRole="button"
-                            accessibilityLabel={`${product.name}, ${shade.name}`}
-                            accessibilityState={{ selected: shade.id === selectedShade?.id, disabled: disabledActions }}
-                            disabled={disabledActions}
-                            onPress={() => {
-                              if (disabledActions) return;
-                              setSelectedShades((current) => ({ ...current, [product.id]: shade.id }));
-                              onSelectShade?.(product.id, shade.id);
-                            }}
-                            style={[styles.shade, shade.id === selectedShade?.id && styles.shadeSelected]}>
-                            <View style={[styles.swatch, { backgroundColor: shade.hex }]} />
-                            <Text style={styles.shadeText}>{shade.name}</Text>
-                          </Pressable>
-                        ))}
+                        {validShades.map((shade) => {
+                          const status = optionSearch ? t(optionShadeLabel(shade.id, productOptions)) : undefined;
+                          const label = [product.name, shade.name, status].filter(Boolean).join(', ');
+                          return (
+                            <Pressable
+                              key={shade.id}
+                              accessibilityRole="button"
+                              accessibilityLabel={label}
+                              accessibilityState={{ selected: shade.id === selectedShade?.id, disabled: disabledActions }}
+                              disabled={disabledActions}
+                              onPress={() => {
+                                if (disabledActions) return;
+                                setSelectedShades((current) => ({ ...current, [product.id]: shade.id }));
+                                onSelectShade?.(product.id, shade.id);
+                              }}
+                              style={[styles.shade, shade.id === selectedShade?.id && styles.shadeSelected]}>
+                              <View style={[styles.swatch, { backgroundColor: shade.hex }]} />
+                              <View>
+                                <Text style={styles.shadeText}>{shade.name}</Text>
+                                {status ? <Text style={styles.notice}>{status}</Text> : null}
+                              </View>
+                            </Pressable>
+                          );
+                        })}
                       </ScrollView>
                       {tryOn && !selectedShade ? <Text style={styles.notice}>{t('chat.tryOnAtDetail')}</Text> : null}
                     </>

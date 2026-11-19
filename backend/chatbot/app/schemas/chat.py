@@ -6,7 +6,12 @@ from pydantic.alias_generators import to_camel
 
 from app.core.config import get_settings
 from app.schemas.ar_geometry import STYLE_IDS
-from app.schemas.catalog import CatalogIngredients
+from app.schemas.catalog import (
+    BaseProductType,
+    CatalogIngredients,
+    IngredientSelection,
+    OptionSearchResponse,
+)
 from app.schemas.style_recipe import StyleContext, StyleRecipe
 from app.schemas.supervisor import IngredientComparison, ScreenContext, SupervisorResult, ToolResult
 
@@ -78,6 +83,14 @@ class IngredientFilter(ArModel):
 
 
 class BeautyFilters(ArModel):
+    product_type: BaseProductType | None = Field(default=None, exclude_if=lambda v: v is None)
+    unsupported_conditions: list[str] = Field(
+        default_factory=list, max_length=8, exclude_if=lambda v: not v
+    )
+    option_search: bool = Field(default=False, exclude_if=lambda v: not v)
+    price_basis: Literal["current_offer", "catalog_reference", "collected_snapshot"] | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
     texture: Literal["matte"] | None = Field(default=None, exclude_if=lambda v: v is None)
     category: Literal["lip", "cheek", "eye", "base", "skincare", "suncare"] | None = None
     max_price_krw: Annotated[int, Field(strict=True, ge=0, le=100_000_000)] | None = Field(
@@ -100,6 +113,9 @@ class ChatSessionRef(ArModel):
 class BeautyContext(ArModel):
     """Client-carried search context; IDs and facts are always rechecked with Catalog."""
 
+    option_scope: list[IngredientSelection] | None = Field(
+        default=None, max_length=42, exclude_if=lambda v: v is None
+    )
     version: Literal[1] = 1
     issued_at: Annotated[int, Field(strict=True, ge=0)]
     filters: BeautyFilters
@@ -337,7 +353,12 @@ class FragranceSearchSummary(ApiModel):
     verified_product_ids: list[ArIdentifier] = Field(default_factory=list)
 
 
+class ChatIngredientResult(CatalogIngredients):
+    shade_name: str | None = Field(default=None, exclude_if=lambda value: value is None)
+
+
 class ChatResponse(ApiModel):
+    option_search: OptionSearchResponse | None = Field(default=None, exclude_if=lambda v: v is None)
     pending_clarification: PendingClarification | None = Field(
         default=None, exclude_if=lambda v: v is None
     )
@@ -357,7 +378,7 @@ class ChatResponse(ApiModel):
         Field(default=None, exclude_if=lambda v: v is None)
     )
     evidence: list[ProductEvidence] | None = Field(default=None, exclude_if=lambda v: v is None)
-    ingredient_results: list[CatalogIngredients] | None = Field(
+    ingredient_results: list[ChatIngredientResult] | None = Field(
         default=None, exclude_if=lambda v: v is None
     )
     ingredient_comparison: IngredientComparison | None = Field(

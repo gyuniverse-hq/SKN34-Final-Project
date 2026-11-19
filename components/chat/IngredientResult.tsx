@@ -39,12 +39,13 @@ const reasons: Record<string, string> = {
 };
 
 /** Only expose checked ingredient data when the existing server evidence contract permits it. */
-function IngredientEvidenceCard({ result, target, labels, selectedShade, initiallyExpanded }: {
+function IngredientEvidenceCard({ result, target, labels, selectedShade, initiallyExpanded, hasSummary }: {
   result: ChatIngredientResult;
   target: ChatProductRef;
   labels: IngredientResultProps['labels'];
   selectedShade?: string;
   initiallyExpanded?: boolean;
+  hasSummary: boolean;
 }) {
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(initiallyExpanded ?? false);
@@ -77,6 +78,12 @@ function IngredientEvidenceCard({ result, target, labels, selectedShade, initial
     : verified && !absenceUnverified ? result.verdict : 'UNKNOWN';
   const verdictStyle = verdict === 'MATCH' ? styles.positive : verdict === 'UNKNOWN'
     ? styles.uncertain : styles.negative;
+  const reasonKey = (reason: string) => reason === 'absence_not_verifiable' && result.ingredientCoverage !== 'partial'
+    ? 'unknown' : reasons[reason] ?? 'unknown';
+  const reason = reasonKey(result.reason);
+  const showReasons = expanded || !hasSummary;
+  const coverage = result.ingredientCoverage;
+  const displayedReasons = new Set(expanded ? [reason, coverage] : [reason]);
 
   return (
     <View style={styles.verdictCard}>
@@ -85,7 +92,8 @@ function IngredientEvidenceCard({ result, target, labels, selectedShade, initial
           <Text style={styles.caption}>{t(initiallyExpanded ? 'chat.ingredient.results' : 'chat.ingredient.resultFor')}</Text>
           <Text style={styles.productName}>{target.brand} {target.name}</Text>
           {(!verified || result.shadeId !== null) && (
-            <Text style={styles.secondary}>{t('chat.ingredient.shade')}: {result.shadeId ?? t('chat.ingredient.selection')}</Text>
+            <Text style={styles.secondary}>{t('chat.ingredient.shade')}: {result.shadeId
+              ? result.shadeName || result.shadeId : t('chat.ingredient.selection')}</Text>
           )}
         </View>
         <View style={[styles.verdictIcon, verdictStyle]}>
@@ -105,21 +113,24 @@ function IngredientEvidenceCard({ result, target, labels, selectedShade, initial
             !!check.evidenceId && check.evidenceId === result.evidenceId && (!absence || complete);
           const conditionVerdict = check.verdict === 'ERROR' || check.verdict === 'UNKNOWN'
             ? check.verdict : verifiedCondition ? check.verdict : 'UNKNOWN';
-          const detail = conditionVerdict === 'ERROR' || conditionVerdict === 'UNKNOWN'
-            ? t(`chat.ingredient.${reasons[check.reason] ?? 'unknown'}` as TranslationKey) : null;
+          const key = reasonKey(check.reason);
+          const showDetail = showReasons && (conditionVerdict === 'ERROR' || conditionVerdict === 'UNKNOWN') &&
+            !displayedReasons.has(key);
+          if (showDetail) displayedReasons.add(key);
+          const detail = showDetail ? t(`chat.ingredient.${key}` as TranslationKey) : null;
           return (
             <View key={i} style={styles.checkLine}>
               <Text style={styles.checkName}>{check.ingredientName} · {t(`chat.ingredient.${check.operator}`)}</Text>
-              <Text style={styles.checkVerdict}>{t(`chat.ingredient.${conditionVerdict}`)}{detail ? ` · ${detail}` : ''}</Text>
+              {checks.length > 1 || conditionVerdict !== verdict || detail ? (
+                <Text style={styles.checkVerdict}>{t(`chat.ingredient.${conditionVerdict}`)}{detail ? ` · ${detail}` : ''}</Text>
+              ) : null}
             </View>
           );
         })}
       </View> : null}
-      <Text style={styles.reason}>{t(`chat.ingredient.${reasons[result.reason] ?? 'unknown'}` as TranslationKey)}</Text>
-      <View style={styles.coverageLine}>
-        <Text style={styles.coverageText}>{t('chat.ingredient.coverage')}: {t(`chat.ingredient.${result.ingredientCoverage}`)}</Text>
-        <Text style={styles.coverageText}>{t('chat.ingredient.reviewLabel')}: {t(`chat.ingredient.${syntheticBlocked ? 'unreviewed' : result.reviewStatus}`)}</Text>
-      </View>
+      {showReasons && (!expanded || reason !== coverage) ? (
+        <Text style={styles.reason}>{t(`chat.ingredient.${reason}` as TranslationKey)}</Text>
+      ) : null}
       <Pressable accessibilityRole="button"
         accessibilityLabel={t(expanded ? 'chat.ingredient.hideDetails' : 'chat.ingredient.showDetails')}
         accessibilityState={{ expanded }}
@@ -129,6 +140,10 @@ function IngredientEvidenceCard({ result, target, labels, selectedShade, initial
         <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} color={theme.colors.rose} size={18} />
       </Pressable>
       {expanded ? <View style={styles.details}>
+        <View style={styles.coverageLine}>
+          <Text style={styles.coverageText}>{t('chat.ingredient.coverage')}: {t(`chat.ingredient.${coverage}`)}</Text>
+          <Text style={styles.coverageText}>{t('chat.ingredient.reviewLabel')}: {t(`chat.ingredient.${syntheticBlocked ? 'unreviewed' : result.reviewStatus}`)}</Text>
+        </View>
         <Text style={styles.secondary}>{t('chat.ingredient.mappingLabel')}: {t(`chat.ingredient.${result.mappingStatus}`)}</Text>
         {verified ? <>
           <Text selectable style={styles.secondary}>{labels.source}: {result.source}</Text>
@@ -160,7 +175,7 @@ export function IngredientResult({ heading, summary, notice, product, labels, re
         if (!target || (result.shadeId && shadeSelections && shadeSelections[result.productId] !== result.shadeId)) return null;
         return <IngredientEvidenceCard key={`${result.productId}-${result.shadeId}-${index}`}
           target={target} result={result} labels={labels} selectedShade={shadeSelections?.[result.productId]}
-          initiallyExpanded={evidenceOnly} />;
+          initiallyExpanded={evidenceOnly} hasSummary={!evidenceOnly && !!summary.trim()} />;
       })}
       {product ? <View style={styles.panel}>
         <Text style={styles.label}>{labels.product}</Text>

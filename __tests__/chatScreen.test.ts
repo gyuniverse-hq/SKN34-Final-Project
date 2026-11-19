@@ -828,6 +828,7 @@ describe('ingredient selection and request snapshots', () => {
 
   it.each([
     [503, undefined, 'chat.ingredient.server'],
+    [503, 'option_search_unavailable', 'chat.option.searchUnavailable'],
     [404, 'not_found', 'chat.ingredient.productMissing'],
     [404, 'shade_not_found', 'chat.ingredient.shadeMissing'],
   ])('localizes transport error %s/%s', async (status, code, key) => {
@@ -838,24 +839,40 @@ describe('ingredient selection and request snapshots', () => {
     await act(async () => { renderer.unmount(); });
   });
 
-  it('merges a shade selected during a pending request with the latest server candidate order', async () => {
+  it.each([false, true])('keeps the latest shade after a pending response (G4: %s)', async (g4) => {
     catalog();
     let finish!: (value: unknown) => void;
-    mockMutateAsync.mockResolvedValueOnce({ answer: 'Candidates', products: refs, chatContext: beautyContext })
+    const optionScope = [{ productId: 'p2', shadeId: 'p2-03', optionId: 'option-03' }];
+    const context = g4 ? { ...beautyContext, optionScope,
+      filters: { ...beautyContext.filters, optionSearch: true } } : beautyContext;
+    const optionSearch = g4 ? {
+      schemaVersion: 1, status: 'PARTIAL', products: [], excludedCount: 1, omittedCount: 0,
+      checkedScope: { candidateProducts: 2, candidateOptions: 2, checkedOptions: 2, unidentifiedOptions: 0,
+        exhaustive: true, stoppedReason: 'COMPLETE', errors: 0 },
+      items: [
+        { ...optionScope[0], group: 'ELIGIBLE', sourceVersion: 'v1', synthetic: false, checks: [] },
+        { productId: 'p2', shadeId: 'p2-04', optionId: 'option-04', group: 'EXCLUDED',
+          sourceVersion: 'v1', synthetic: false, checks: [{ condition: 'ingredient', verdict: 'NOT_MATCH' }] },
+      ],
+    } : undefined;
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'Candidates', products: refs, chatContext: context, optionSearch })
       .mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }))
       .mockResolvedValueOnce({ answer: 'Next', products: [] });
     const renderer = await renderScreen();
     await send(renderer, '추천');
+    expect(renderer.root.findByType(ChatProducts).props.optionSearch).toEqual(optionSearch);
     await act(async () => { renderer.root.findByType(ChatProducts).props.onSelectShade('p2', 'p2-03'); });
     await send(renderer, '성분');
     await act(async () => { renderer.root.findByType(ChatProducts).props.onSelectShade('p2', 'p2-04'); });
     await act(async () => { finish({ answer: 'Old shade result', products: [], chatContext: {
-      ...beautyContext, candidateIds: ['p2', 'p1'], selectedProductId: 'p2', shadeSelections: { p2: 'p2-03' },
+      ...context, candidateIds: ['p2', 'p1'], selectedProductId: 'p2', shadeSelections: { p2: 'p2-03' },
     } }); });
     await send(renderer, '두 번째 성분');
     const sent = mockMutateAsync.mock.calls[2][0];
     expect(sent.chatContext.candidateIds).toEqual(['p2', 'p1']);
     expect(sent.chatContext.shadeSelections).toEqual({ p2: 'p2-04' });
+    expect(sent.screenContext).toEqual({ screenId: 'chat', productId: 'p2', shadeId: 'p2-04' });
+    expect(sent.chatContext.optionScope).toEqual(g4 ? optionScope : undefined);
     await act(async () => { renderer.unmount(); });
   });
 });
@@ -1248,4 +1265,62 @@ describe('structured consultation outcomes', () => {
     await act(async () => view.unmount());
   });
 
+});
+
+
+test('G4 forwards server option results to product cards', async () => {
+  const optionSearch: NonNullable<import('@/types').ChatResponse['optionSearch']> = {
+    schemaVersion: 1, status: 'PARTIAL', items: [], products: [], excludedCount: 0, omittedCount: 0,
+    checkedScope: { candidateProducts: 1, candidateOptions: 1, checkedOptions: 1, unidentifiedOptions: 0, exhaustive: true, stoppedReason: 'COMPLETE', errors: 0 },
+  };
+  mockMutateAsync.mockResolvedValueOnce({ answer: 'Reference only', products: [{ id: 'p1' }], resultType: 'recommendations', chatContext: beautyContext, optionSearch });
+  const view = await renderScreen();
+  await act(async () => view.root.findByType(TextInput).props.onChangeText('립 옵션 찾아줘'));
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress());
+  expect(view.root.findByType(ChatProducts).props.optionSearch).toEqual(optionSearch);
+  await act(async () => view.unmount());
+});
+
+
+test('G4 detail cards do not re-evaluate option conditions with product reference prices', async () => {
+  mockMutateAsync.mockResolvedValueOnce({ answer: 'Product reference price', products: [{ id: 'p1' }], resultType: 'product_detail',
+    chatContext: { ...beautyContext, filters: { ...beautyContext.filters, optionSearch: true } } });
+  const view = await renderScreen();
+  await act(async () => view.root.findByType(TextInput).props.onChangeText('첫 번째 가격은?'));
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress());
+  expect(view.root.findByType(ChatProducts).props.conditions).toEqual([]);
+  await act(async () => view.unmount());
+});
+
+test('G4 search scope can be opened for a partial result without product cards', async () => {
+  const optionSearch: NonNullable<import('@/types').ChatResponse['optionSearch']> = {
+    schemaVersion: 1, status: 'PARTIAL', items: [], products: [], excludedCount: 0, omittedCount: 0,
+    checkedScope: { candidateProducts: 1, candidateOptions: 3, checkedOptions: 2, unidentifiedOptions: 0, exhaustive: false, stoppedReason: 'TIMEOUT', errors: 1 },
+  };
+  mockMutateAsync.mockResolvedValueOnce({ answer: '일부 후보만 확인했어요.', products: [], resultType: 'clarification', optionSearch });
+  const view = await renderScreen();
+  await act(async () => view.root.findByType(TextInput).props.onChangeText('립 옵션 찾아줘'));
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress());
+  expect(view.root.findAllByType(ChatProducts)).toHaveLength(0);
+  expect(view.root.findAllByType(Text).some((n) => n.props.children === 'chat.option.scopeProgress')).toBe(false);
+  await act(async () => buttonWithText(view.root, 'chat.option.scopeShow').props.onPress());
+  expect(view.root.findAllByType(Text).some((n) => n.props.children === 'chat.option.scopeTimeout')).toBe(true);
+  expect(view.root.findAllByType(Text).some((n) => n.props.children === 'chat.option.scopeProgress')).toBe(true);
+  await act(async () => view.unmount());
+});
+
+test('G4 ingredient confirmation does not show a search scope', async () => {
+  const optionSearch: NonNullable<import('@/types').ChatResponse['optionSearch']> = {
+    schemaVersion: 1, status: 'PARTIAL', items: [], products: [], excludedCount: 0, omittedCount: 0,
+    checkedScope: { candidateProducts: 0, candidateOptions: 0, checkedOptions: 0, unidentifiedOptions: 0,
+      exhaustive: false, stoppedReason: 'INGREDIENT_CONFIRMATION', errors: 0 },
+  };
+  mockMutateAsync.mockResolvedValueOnce({ answer: '성분명을 확인해 주세요.', products: [], resultType: 'clarification', optionSearch });
+  const view = await renderScreen();
+  await act(async () => view.root.findByType(TextInput).props.onChangeText('립 옵션 찾아줘'));
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress());
+  expect(view.root.findAllByType(Text).some((n) => n.props.children === '성분명을 확인해 주세요.')).toBe(true);
+  expect(view.root.findAllByType(Text).some((n) => n.props.children === 'chat.option.scopeShow')).toBe(false);
+  expect(view.root.findAllByType(ChatProducts)).toHaveLength(0);
+  await act(async () => view.unmount());
 });

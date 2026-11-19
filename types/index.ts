@@ -578,7 +578,46 @@ export type PendingClarification = {
   ingredientConditions: { ingredientName: string; operator: 'includes' | 'excludes' }[];
 };
 
+export type ChatBaseProductType = 'foundation' | 'cushion';
+export type OptionPriceBasis = 'current_offer' | 'catalog_reference' | 'collected_snapshot';
+export interface ChatOptionSearch {
+  schemaVersion: 1;
+  limitations?: string[];
+  effectiveRequest?: {
+    query: string; category?: Product['category'] | null; productIds?: string[] | null;
+    productType?: ChatBaseProductType | null;
+    optionScope?: { productId: string; shadeId?: string | null; optionId?: string | null }[] | null;
+    texture?: 'matte' | null; maxPriceKRW?: number | null; priceBasis: OptionPriceBasis;
+    ingredientConditions: { ingredientName: string; operator: 'includes' | 'excludes' }[];
+    fragranceFree: boolean; moisturizing: boolean; unsupportedConditions: string[];
+  } | null;
+  checkedAt?: string | null;
+  status: 'SUCCESS' | 'PARTIAL' | 'ERROR';
+  items: {
+    productId: string; shadeId: string | null; optionId: string; sourceVersion: string;
+    productType?: ChatBaseProductType | null;
+    group: 'ELIGIBLE' | 'REFERENCE_ONLY' | 'EXCLUDED'; synthetic: boolean;
+    ingredientEntryCount?: number | null; ingredientIdentityCount?: number | null;
+    checks: { condition: string; verdict: IngredientVerdict; reason: string;
+      ingredientName?: string | null; operator?: 'includes' | 'excludes' | null;
+      evidenceId?: string | null; sourceVersion?: string | null;
+      sourceRef?: string | null; reviewRef?: string | null; observedAt?: string | null; reviewedAt?: string | null;
+      ingredientCoverage?: 'full' | 'partial' | 'unknown' | null;
+      normalizationStatus?: 'verified' | 'unverified' | null;
+      reviewStatus?: 'verified' | 'unreviewed' | 'rejected' | null; limitations?: string[];
+      textureBasis?: 'product_name' | 'review_survey' | 'review_ai' | 'catalog_metadata' | 'official_reviewed' | null; textureCode?: string | null }[];
+    price?: { requestedBasis: OptionPriceBasis; observedBasis: 'catalog_reference' | 'collected_snapshot';
+      observedAtRaw?: string | null; limitations?: string[];
+      amountKRW: number; observedAt?: string | null; checkedAt: string; sourceRef: string; sourceVersion: string } | null;
+  }[];
+  products: Product[];
+  checkedScope: { candidateProducts: number; candidateOptions: number; checkedOptions: number;
+    unidentifiedOptions: number; exhaustive: boolean; stoppedReason: 'COMPLETE' | 'PRODUCT_LIMIT' | 'WORK_LIMIT' | 'TIMEOUT' | 'INGREDIENT_CONFIRMATION'; errors: number };
+  excludedCount: number; omittedCount: number;
+}
+
 export interface ChatResponse {
+  optionSearch?: ChatOptionSearch;
   pendingClarification?: PendingClarification | null;
   styleRecipe?: ChatStyleRecipe;
   styleContext?: ChatStyleContext;
@@ -681,6 +720,7 @@ export interface ChatIngredientCondition {
 export interface ChatIngredientResult {
   productId: string;
   shadeId: string | null;
+  shadeName?: string | null;
   optionId?: string | null;
   status: 'ok' | 'unknown' | 'error';
   verdict: IngredientVerdict;
@@ -705,6 +745,10 @@ export interface ChatIngredientResult {
 }
 
 export interface BeautyChatFilters {
+  productType?: ChatBaseProductType | null;
+  optionSearch?: boolean;
+  unsupportedConditions?: string[];
+  priceBasis?: OptionPriceBasis | null;
   texture?: 'matte' | null;
   category: ProductCategory | null;
   maxPriceKRW: number | null;
@@ -716,6 +760,7 @@ export interface BeautyChatFilters {
 
 /** Ephemeral, client-carried context. The server revalidates all IDs and product facts. */
 export interface BeautyChatContext {
+  optionScope?: { productId: string; shadeId: string | null; optionId: string | null }[] | null;
   version: 1;
   issuedAt: number;
   filters: BeautyChatFilters;
