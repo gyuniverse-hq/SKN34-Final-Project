@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { LIP_CARE_INTENSITY, lipCareFor } from '@/lib/lipCare';
+import { glitterTraitsOf } from '@/lib/shadowFinishes';
 import type { CelebLook, ColorLink, MakeupState, MakeupZone, Product, Shade, ZoneGeometry, ZoneSetting } from '@/types';
 
 export interface ZoneSelection {
@@ -152,6 +153,8 @@ interface MakeupStore {
   setIntensity: (zone: MakeupZone, intensity: number) => void;
   /** Merge shape fields (liner wing, shadow gradient). Hex and texture stay. */
   patchGeometry: (zone: MakeupZone, geometry: ZoneGeometry) => void;
+  /** Eyeshadow point colour (second shade at the outer V / crease); null removes it. */
+  setShadowPoint: (hex: string | null) => void;
   clearZone: (zone: MakeupZone) => void;
   /** Take the lip oil / balm off; the colour lip stays. */
   clearLipCare: () => void;
@@ -347,6 +350,8 @@ export const useMakeupStore = create<MakeupStore>((rawSet) => {
         intensity: prev?.intensity ?? DEFAULT_INTENSITY[zone],
         ...(prev?.hexTo ? { hexTo: prev.hexTo } : {}),
         ...(prev?.geometry ? { geometry: prev.geometry } : {}),
+        // 11-17 v7: glitter traits of this product (metallic / sequin flakes / holo), from its name.
+        ...(zone === 'eyeshadow' ? { particle: glitterTraitsOf(product.name, shade.name) } : {}),
       };
       const makeup: MakeupState = { ...s.makeup, [zone]: next };
       const selections = { ...s.selections, [zone]: { productId: product.id, shadeId: shade.id } };
@@ -419,6 +424,17 @@ export const useMakeupStore = create<MakeupStore>((rawSet) => {
       return {
         makeup: { ...s.makeup, [zone]: { ...current, geometry: { ...current.geometry, ...geometry } } },
       };
+    }),
+
+  setShadowPoint: (hex) =>
+    set((s) => {
+      if (s.fit) return s;
+      const current = s.makeup.eyeshadow;
+      if (!current) return s;
+      const next: ZoneSetting = { ...current };
+      if (hex) next.hexTo = hex;
+      else delete next.hexTo;
+      return { makeup: { ...s.makeup, eyeshadow: next } };
     }),
 
   clearZone: (zone) =>

@@ -6,8 +6,13 @@ export type MakeupZone = 'lip' | 'blush' | 'eyeshadow' | 'eyeliner' | 'mascara' 
 
 export type Texture = 'matte' | 'velvet' | 'glossy' | 'satin' | 'sheer' | 'cream' | 'shimmer';
 /** Lid paint chips only. Catalog Texture stays the 7 product names. */
-export type ShadowFinish = 'matte' | 'shimmer' | 'glitter' | 'glossy';
-
+export type ShadowFinish = 'matte' | 'satin' | 'shimmer' | 'metallic' | 'glitter' | 'glossy';
+/** Glitter traits read from the product name: metallic glitter, sequin-size flakes, strong iridescence. */
+export interface ShadowParticle {
+  metal: boolean;
+  large: boolean;
+  holo: boolean;
+}
 /** How a shade color was obtained (AR_SPEC 1-8). Measured values always win over estimates. */
 export type MeasureMethod = 'measured' | 'user_verified' | 'estimated' | 'placeholder';
 
@@ -302,6 +307,8 @@ export interface ZoneSetting {
   care?: ZoneCare;
   /** Second color of a two-tone eyeshadow: fades in at the outer corner and along the lower lash line. */
   hexTo?: string;
+  /** Eyeshadow glitter traits estimated from the product name (lib/shadowFinishes glitterTraitsOf). */
+  particle?: ShadowParticle;
   /** 0..1 */
   intensity: number;
   texture: Texture;

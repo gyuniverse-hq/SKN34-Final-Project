@@ -267,7 +267,7 @@ describe('face tracker page', () => {
     expect(script).toContain('lobe = mix(lobe, envLobe, envW);');
     expect(script).toContain('float peakness = mix(max(sharpK, sharpF), envPeak, envW);');
     expect(script).toContain('uniform vec4 uEnvGloss;');
-    expect(script).toContain("'1116-lash-v2'");
+    expect(script).toContain("'1119-shadow-v9'");
     // 11-11 natural highlighter (user: the forehead highlight read as a white circle): the lift multiplies the camera pixel (its own
     // colour and texture, never a white add) with headroom, the sheen and glints are the pixel's own colour, the forehead stays
     // off hair and bangs, and the mask has no hard ellipse edge. hlNatural false keeps the old composite.
@@ -654,10 +654,13 @@ describe('face tracker page', () => {
     // the hairs only (camera brightness kept, chromaticity moved). No generated strands, no flat color.
     expect(script).toContain('uniform vec2 uBrowSkin[12];');
     expect(script).toContain('float skinRef = max(max(sBelow, sAbove) / 3.0, 1e-3);');
-    expect(script).toContain('float hairW = smoothstep(0.05, 0.35, 1.0 - camL / skinRef)');
-    expect(script).toContain('col = mix(col, powder(cam, uBrowAlbedo), browA * uBrowPowder * mix(0.25, 1.0, hairW));');
+    // 11-17 v3: hair = darker than the LOCAL skin (8 taps), normalised by the brow's darkest hair; zone and regions are soft.
+    expect(script).toContain('float localSkin = max(min(lmax, 1.3 * skinRef), uBrowSkinFloor * skinRef);');
+    expect(script).toContain('float hairW = smoothstep(uBrowHairEdge, uBrowHairEdge + max(0.15, darkest), hairD)');
+    expect(script).toContain('col = mix(col, powder(cam, uBrowAlbedo), browA * uBrowPowder * region * mix(0.3, 1.0, hairW));');
     expect(script).toContain('vec3 hairCol = uBrowAlbedo * uLightColor / max(lum(uBrowAlbedo * uLightColor), 1e-4) * newL;');
-    expect(script).toContain('col = mix(col, hairCol, uBrowCov * hairW * browCore);');
+    expect(script).toContain('col = mix(col, hairCol, smoothstep(0.0, 0.75, uBrowCov) * hairW * browZone * region);');
+    expect(script).not.toContain('browCore');
     expect(script).toContain('vec2 bo = uTexel * uBrowSoft;');
     expect(script).toContain('function browGuides(W, H)');
     for (const gone of ['uBrowStrand', 'strandFreq', 'recol', 'uBrowHue', 'vec3 dyed', 'localMax']) expect(script).not.toContain(gone);
@@ -685,9 +688,10 @@ describe('face tracker page', () => {
     // Second color: wedge at the outer corner and a stroke along the lower lash line, per eye, in UV mask 2 (B).
     expect(script).toContain('const shadowDark = layer(() => {');
     expect(script).toContain("rgba2[i * 4 + 2] = Math.round(clamp01(shadowDark[i] * inside) * 255);");
-    expect(script).toContain("if (darkA > 0.002) col = mix(col, powder(cam, uShadow2Albedo), darkA);");
+    // A video look keeps the powder second colour; a product shadow layers it over the first (11-17).
+    expect(script).toContain("if (darkA > 0.002) col = mix(col, uShadowZoned > 0.5 ? shadowPack(col, cam, uShadow2Albedo) : powder(cam, uShadow2Albedo), darkA);");
     expect(script).toContain('gl.uniform1f(u.uShadow2Cov, eye && eye.hexTo ? clamp01(eye.intensity) * TUNING.shadow2Coverage : 0);');
-    // Without a second color the shadow is unchanged (coverage 0), and the eyeball is never painted.
+    // The eyeball is never painted.
     expect(script).toContain('darkA = 0.0; innerA = 0.0; foundA = 0.0; browA = 0.0; }');
     // Mascara length and density come from geometry (defaults 1, clamped), never random per frame.
     expect(script).toContain("const mg = Object.assign({ length: 1, thickness: 1 }, mascara.geometry || {});");
@@ -1195,8 +1199,9 @@ describe('face tracker page', () => {
     expect(script).toContain('glossy:  { opacity: 0.25, roughness: 0.05, sparkleDensity: 0.0, specular: 0.9 }');
     expect(script).toContain('shimmerScale: 520');
     expect(script).toContain('float lidPearlFade(float maskB)');
-    expect(script).toContain('col = mix(col, col * tint, shadowA)');
-    expect(script).toContain('float isGloss = (1.0 - hasPearl) * (1.0 - step(0.97, uFaceRough.y));');
+    // Video looks keep the plain multiply; a product shadow is layered (shadowPack, 11-17).
+    expect(script).toContain('col = mix(col, uShadowZoned > 0.5 ? shadowPack(col, cam, uShadowAlbedo) : col * tint, shadowA)');
+    expect(script).toContain('float isGloss = max((1.0 - hasPearl) * (1.0 - step(0.97, uFaceRough.y)), uShadowMetal);');
     expect(script).toContain('vec3(0.93, 0.96, 1.0)');
     expect(script).toContain('glitterScale: 600');
     expect(script).toContain('if (hash(cell) >= uShadowFlakeDensity) return 0.0;');
@@ -1210,7 +1215,7 @@ describe('face tracker page', () => {
     expect(script).not.toContain('sparkleSheen:');
     expect(script).not.toContain('lidNdh * lidNdh');
     expect(script).not.toContain('uniform float uGlitter');
-    expect(script).toContain('gl.uniform1f(u.uShadowCov, eye ? clamp01(eye.intensity) * eyeFinish.opacity : 0)');
+    expect(script).toContain('gl.uniform1f(u.uShadowCov, eye ? clamp01(eye.intensity) * shadowOpacity(eye, eyeFinish) : 0)');
     expect(script).toContain('YouCam glowIntensity stays 0');
     expect(script).not.toContain('makeupar.com');
     expect(script).not.toContain('YOUCAM_API_KEY');
