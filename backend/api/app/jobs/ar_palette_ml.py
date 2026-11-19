@@ -6,6 +6,7 @@ import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from app.services.ar_palette_search import SEARCH_METHODS
 from app.services.ar_palette_training_service import (
     experiment_report,
     export_dataset,
@@ -44,6 +45,11 @@ def main():
     train.add_argument("--code-revision")
     train.add_argument("--min-hit", type=float)
     train.add_argument("--min-lift", type=float)
+    train.add_argument(
+        "--search-method",
+        choices=("compare", *SEARCH_METHODS),
+        help="Compare search methods by default, or reuse the baseline bundle's selected method",
+    )
     experiment = commands.add_parser("experiment", help="Compare session metrics by assigned arm")
     experiment.add_argument("--output", required=True, type=Path)
     experiment.add_argument("--id", required=True)
@@ -66,6 +72,7 @@ def main():
             min_hit=args.min_hit,
             min_lift=args.min_lift,
             code_revision=args.code_revision,
+            search_method=args.search_method,
         )
     else:
         if args.window_hours <= 0 or args.grace_hours < 0:

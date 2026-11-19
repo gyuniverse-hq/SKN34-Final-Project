@@ -8,7 +8,6 @@ import numpy as np
 
 from app.core.ar_palette import CATEGORICAL, FEATURE_VERSION, FEATURES
 from app.core.ar_palette_artifacts import (
-    feature_matrix,
     load_palette_model,
     read_json,
     score_model,
@@ -17,7 +16,16 @@ from app.core.ar_palette_artifacts import (
 from app.core.config import get_settings
 from app.core.db import dispose_engine, session_scope
 from app.repositories.ar_palette_repository import ArPaletteDatasetRepository
+from app.services.ar_palette_search import (
+    FIXED_PARAMETERS,
+    SEARCH_METHODS,
+    compare_searches,
+    fit_candidate,
+    training_pool,
+)
 from app.services.member_service import TERMS_VERSION
+
+MIN_COLLECTION_DAYS = 30
 
 
 def member_key(member_id):
@@ -104,6 +112,8 @@ def summarize(rows):
     return {
         "rows": len(rows),
         "positive_impressions": positives,
+        "negative_impressions": len(rows) - positives,
+        "mixed_label_requests": len(mixed_label_requests(rows)),
         "impression_cart_rate": positives / len(rows) if rows else None,
         "members": len({r["member"] for r in rows}),
         "positive_requests": len({r["request_id"] for r in rows if r["added_to_cart"]}),
@@ -160,23 +170,37 @@ def synthetic_dataset(output):
     return summarize(rows)
 
 
-def temporal_split(rows, test_positives):
+def mixed_label_requests(rows):
+    labels = defaultdict(dict)
+    for row in rows:
+        candidates = labels[row["request_id"]]
+        rank = row["rank"]
+        candidates[rank] = max(candidates.get(rank, 0), row["added_to_cart"])
+    return {request for request, candidates in labels.items() if set(candidates.values()) == {0, 1}}
+
+
+def temporal_split(rows):
     ordered = sorted(rows, key=lambda row: (row["requested_at"], row["request_id"]))
-    positive_requests = {
-        row["request_id"]: row["requested_at"] for row in ordered if row["added_to_cart"]
-    }
-    boundary = list(positive_requests.values())[-test_positives]
-    evaluation = [row for row in ordered if row["requested_at"] >= boundary]
-    held_out = {(r["member"], r["session_id"]) for r in evaluation}
-    development = [
-        row
-        for row in ordered
-        if row["requested_at"] < boundary and (row["member"], row["session_id"]) not in held_out
-    ]
-    return development, evaluation, boundary
+    request_times = list({row["request_id"]: row["requested_at"] for row in ordered}.values())
+    if len(request_times) < 3:
+        return [], [], [], {}
+    validation_cutoff = request_times[len(request_times) * 70 // 100]
+    test_cutoff = request_times[len(request_times) * 85 // 100]
+    partitions = ([], [], [])
+    session_folds = {}
+    for row in reversed(ordered):
+        at = row["requested_at"]
+        fold = 2 if at >= test_cutoff else 1 if at >= validation_cutoff else 0
+        session = (row["member"], row["session_id"])
+        # Keep the later interval for sessions that span a boundary.
+        if session_folds.setdefault(session, fold) == fold:
+            partitions[fold].append(row)
+    for part in partitions:
+        part.reverse()
+    return (*partitions, {"validation": validation_cutoff, "test": test_cutoff})
 
 
-def ranked_comparison(rows, candidate, baseline_bundle=None):
+def ranked_comparison(rows, candidate, baseline_bundle=None, *, confidence_interval=True):
     proposed = score_model(candidate, [r["features"] for r in rows])
     baseline = (
         score_model(baseline_bundle, [r["features"] for r in rows])
@@ -187,7 +211,8 @@ def ranked_comparison(rows, candidate, baseline_bundle=None):
     comparisons = []
     for _, entries in groupby(ordered, key=lambda x: x[0]["request_id"]):
         group = list(entries)
-        if any(r["added_to_cart"] for r, _, _ in group):
+        positive_ranks = {r["rank"] for r, _, _ in group if r["added_to_cart"]}
+        if positive_ranks:
 
             def first(ranking, i):
                 return min(ranking, key=lambda x: (-x[i], x[0]["rank"], x[0]["impression_id"]))[0]
@@ -196,8 +221,8 @@ def ranked_comparison(rows, candidate, baseline_bundle=None):
                 (
                     group[0][0],
                     len({r["rank"] for r, _, _ in group}),
-                    first(group, 2)["added_to_cart"],
-                    first(group, 1)["added_to_cart"],
+                    int(first(group, 2)["rank"] in positive_ranks),
+                    int(first(group, 1)["rank"] in positive_ranks),
                 )
             )
 
@@ -214,7 +239,7 @@ def ranked_comparison(rows, candidate, baseline_bundle=None):
         clustered[row["member"]].append(new - old)
     samples = np.array([(len(v), sum(v)) for v in clustered.values()])
     ci = None
-    if len(samples) >= 2:
+    if confidence_interval and len(samples) >= 2:
         rng = np.random.default_rng(42)
         differences = []
         for _ in range(1000):
@@ -232,11 +257,26 @@ def ranked_comparison(rows, candidate, baseline_bundle=None):
     }
 
 
-def train_dataset(
-    dataset: Path, output: Path, *, baseline=None, min_hit=None, min_lift=None, code_revision=None
-):
-    from catboost import CatBoostClassifier, Pool
+def collection_days(data, rows):
+    if not rows or not data.get("as_of"):
+        return 0.0
+    first = datetime.fromisoformat(min(row["requested_at"] for row in rows))
+    closed_through = datetime.fromisoformat(data["as_of"]) - timedelta(
+        seconds=data["label_window_seconds"] + data["receipt_grace_seconds"]
+    )
+    return max(0.0, (closed_through - first).total_seconds() / 86_400)
 
+
+def train_dataset(
+    dataset: Path,
+    output: Path,
+    *,
+    baseline=None,
+    min_hit=None,
+    min_lift=None,
+    code_revision=None,
+    search_method=None,
+):
     data = read_json(dataset)
     if data["feature_version"] != FEATURE_VERSION or data["source"] not in ("db", "synthetic"):
         raise ValueError("Invalid AR dataset contract")
@@ -244,47 +284,59 @@ def train_dataset(
     if baseline is None and data["source"] == "db":
         rows = [row for row in rows if row["policy_version"].split(":")[-1] in ("rule", "fallback")]
     summary = summarize(rows)
-    minimum = 500 if data["source"] == "db" else 20
-    if summary["positive_requests"] < minimum:
+    days = collection_days(data, rows) if data["source"] == "db" else None
+    if days is not None and days < MIN_COLLECTION_DAYS:
         return {
             "status": "skipped",
-            "reason": "insufficient_positive_requests",
-            "required": minimum,
+            "reason": "insufficient_collection_days",
+            "required_collection_days": MIN_COLLECTION_DAYS,
+            "collection_days": days,
             **summary,
         }
-    development, evaluation, boundary = temporal_split(rows, 100 if data["source"] == "db" else 8)
-    if len({r["added_to_cart"] for r in development}) != 2 or (
-        data["source"] == "db" and summarize(development)["positive_requests"] < 400
+    development, validation, evaluation, cutoffs = temporal_split(rows)
+    split = {
+        "development": summarize(development),
+        "validation": summarize(validation),
+        "evaluation": summarize(evaluation),
+        "cutoffs": cutoffs,
+    }
+    validation_requests = mixed_label_requests(validation)
+    if (
+        {r["added_to_cart"] for r in development} != {0, 1}
+        or not validation_requests
+        or not mixed_label_requests(evaluation)
     ):
         return {
             "status": "skipped",
-            "reason": "insufficient_training_classes_or_requests",
+            "reason": "insufficient_split_classes_or_comparable_requests",
+            "collection_days": days,
             **summary,
+            **split,
         }
-    params = {
-        "iterations": 180,
-        "depth": 4,
-        "learning_rate": 0.08,
-        "random_seed": 42,
-        "loss_function": "Logloss",
-        "thread_count": 2,
-        "allow_writing_files": False,
-        "verbose": False,
-    }
-    candidate = CatBoostClassifier(**params)
-    candidate.fit(
-        Pool(
-            feature_matrix([r["features"] for r in development]),
-            label=[r["added_to_cart"] for r in development],
-            feature_names=list(FEATURES),
-            cat_features=list(CATEGORICAL),
-        )
-    )
     champion, champion_id, _ = (
         load_palette_model(baseline.resolve(), allow_synthetic=data["source"] == "synthetic")
         if baseline
         else (None, "recorded-rule-rank", None)
     )
+    if search_method is None and baseline:
+        previous_search = read_json(baseline / "manifest.json").get("search", {})
+        if previous_search.get("method") in SEARCH_METHODS:
+            search_method = previous_search["method"]
+    method = search_method or "compare"
+    if method not in ("compare", *SEARCH_METHODS):
+        raise ValueError("Unknown AR search method")
+    pool = training_pool(development)
+    validation_rows = [r for r in validation if r["request_id"] in validation_requests]
+
+    def evaluate(parameters):
+        model = fit_candidate(pool, parameters)
+        return ranked_comparison(validation_rows, model, confidence_interval=False)[
+            "candidate_hit_at_1"
+        ]
+
+    search = compare_searches(evaluate, method)
+    candidate = fit_candidate(training_pool(development + validation), search["parameters"])
+    params = {**FIXED_PARAMETERS, **search["parameters"]}
     metrics = ranked_comparison(evaluation, candidate, champion)
     passes = None
     if min_hit is not None and min_lift is not None:
@@ -299,9 +351,9 @@ def train_dataset(
         "baseline": champion_id,
         "offline_pass": passes,
         "thresholds": {"hit_at_1": min_hit, "lift": min_lift},
-        "cutoff": boundary,
-        "development": summarize(development),
-        "evaluation": summarize(evaluation),
+        "collection_days": days,
+        **split,
+        "search": search,
         "metrics": metrics,
     }
     output.mkdir(parents=True, exist_ok=True)
@@ -319,6 +371,10 @@ def train_dataset(
             "source": data["source"],
             "code_revision": code_revision,
             "parameters": params,
+            "search": {
+                key: search[key]
+                for key in ("method", "trials_per_method", "objective", "best_validation_hit_at_1")
+            },
             "data_as_of": data.get("as_of"),
             "catalog_versions": data.get("catalog_versions", []),
             "dataset_sha256": hashlib.sha256(dataset.read_bytes()).hexdigest(),
