@@ -39,6 +39,7 @@ function OptionSearchScope({ result }: { result: NonNullable<ChatMessage['option
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
   const scope = result.checkedScope;
+  if (scope.stoppedReason === 'INGREDIENT_CONFIRMATION') return null;
   const reason = scope.stoppedReason === 'TIMEOUT' ? 'chat.option.scopeTimeout'
     : scope.exhaustive ? 'chat.option.scopeComplete' : 'chat.option.scopeLimited';
   return (

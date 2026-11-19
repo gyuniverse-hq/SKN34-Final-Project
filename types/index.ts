@@ -606,7 +606,7 @@ export interface ChatOptionSearch {
   }[];
   products: Product[];
   checkedScope: { candidateProducts: number; candidateOptions: number; checkedOptions: number;
-    unidentifiedOptions: number; exhaustive: boolean; stoppedReason: 'COMPLETE' | 'PRODUCT_LIMIT' | 'WORK_LIMIT' | 'TIMEOUT'; errors: number };
+    unidentifiedOptions: number; exhaustive: boolean; stoppedReason: 'COMPLETE' | 'PRODUCT_LIMIT' | 'WORK_LIMIT' | 'TIMEOUT' | 'INGREDIENT_CONFIRMATION'; errors: number };
   excludedCount: number; omittedCount: number;
 }
 

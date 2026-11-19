@@ -59,6 +59,14 @@ function candidateStatus(product: Product, required: ChatCondition[]): 'matched'
   return 'matched';
 }
 
+function optionShadeLabel(shadeId: string, items: ChatOptionSearch['items']): TranslationKey {
+  const groups = new Set(items.filter((item) => item.shadeId === shadeId).map((item) => item.group));
+  if (!groups.size) return 'chat.conditionUnknown';
+  // A shade can represent multiple source options. Only a unanimous verdict confirms its status.
+  if (groups.size !== 1 || groups.has('REFERENCE_ONLY')) return 'chat.option.reference';
+  return groups.has('ELIGIBLE') ? 'chat.option.eligible' : 'chat.conditionNotMet';
+}
+
 export function ChatProducts({ optionSearch, products, loading, failed, missingCount, conditions, showIngredients, onRetry, onOpenProduct, onOpenAr, disabledActions = false, previewImage, candidateOrder, evidence, selectedShades: controlledShades, onSelectShade, onSelectProduct, selectedProductId, expectedIds, fragrance, onOpenEvidence }: Props) {
   const { t } = useI18n();
   const [selectedShades, setSelectedShades] = useState<Record<string, string>>({});
@@ -153,11 +161,8 @@ export function ChatProducts({ optionSearch, products, loading, failed, missingC
             const proof = evidence?.find((item) => item.productId === product.id);
             const productOptions = optionSearch?.items.filter((item) => item.productId === product.id) ?? [];
             const options = productOptions.filter((item) => item.group !== 'EXCLUDED');
-            const fragranceExclusions = new Set(productOptions.filter((item) => item.group === 'EXCLUDED'
-              && item.checks.some((check) => check.condition === 'fragrance_free' && check.verdict === 'NOT_MATCH'))
-              .map((item) => item.shadeId));
             const validShades = parseId(product.id) === product.id
-              ? product.shades.filter((shade) => parseId(shade.id) === shade.id && !fragranceExclusions.has(shade.id)) : [];
+              ? product.shades.filter((shade) => parseId(shade.id) === shade.id) : [];
             const tryOn = canTryOn(product) && parseId(product.id) === product.id && validShades.length > 0;
             const selectedShade = validShades.find((shade) => shade.id === (controlledShades ?? selectedShades)[product.id]);
             const productCategory = parseCategory(product.category);
@@ -211,7 +216,7 @@ export function ChatProducts({ optionSearch, products, loading, failed, missingC
                         {priceBasis === 'collected_snapshot' && item.price?.observedBasis === 'collected_snapshot' ? <Text style={styles.notice}>{t('chat.option.snapshot')}: {formatKRW(item.price.amountKRW)} · {item.price.observedAt ?? (item.price.observedAtRaw ? `${item.price.observedAtRaw} · ${t('chat.option.timezoneUnknown')}` : t('chat.option.noObservation'))}</Text> : null}
                       </View>
                     ))}
-                    {selectedShade && !optionSearch.items.some((item) => item.productId === product.id && item.shadeId === selectedShade.id && item.group !== 'EXCLUDED') ? <Text style={styles.notice}>{t('chat.option.selectionUnverified')}</Text> : null}
+                    {selectedShade && !productOptions.some((item) => item.shadeId === selectedShade.id) ? <Text style={styles.notice}>{t('chat.option.selectionUnverified')}</Text> : null}
                   </View> : null}
                   {fragrance ? <View style={styles.ingredientBlock}>
                     <Text style={styles.notice}>{t(fragrance === 'verified' ? 'chat.ingredient.fragranceVerified' : 'chat.ingredient.fragranceUnknown')}</Text>
@@ -262,23 +267,30 @@ export function ChatProducts({ optionSearch, products, loading, failed, missingC
                     <>
                       <Text style={styles.notice}>{t('chat.selectShade')}</Text>
                       <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.shades}>
-                        {validShades.map((shade) => (
-                          <Pressable
-                            key={shade.id}
-                            accessibilityRole="button"
-                            accessibilityLabel={`${product.name}, ${shade.name}`}
-                            accessibilityState={{ selected: shade.id === selectedShade?.id, disabled: disabledActions }}
-                            disabled={disabledActions}
-                            onPress={() => {
-                              if (disabledActions) return;
-                              setSelectedShades((current) => ({ ...current, [product.id]: shade.id }));
-                              onSelectShade?.(product.id, shade.id);
-                            }}
-                            style={[styles.shade, shade.id === selectedShade?.id && styles.shadeSelected]}>
-                            <View style={[styles.swatch, { backgroundColor: shade.hex }]} />
-                            <Text style={styles.shadeText}>{shade.name}</Text>
-                          </Pressable>
-                        ))}
+                        {validShades.map((shade) => {
+                          const status = optionSearch ? t(optionShadeLabel(shade.id, productOptions)) : undefined;
+                          const label = [product.name, shade.name, status].filter(Boolean).join(', ');
+                          return (
+                            <Pressable
+                              key={shade.id}
+                              accessibilityRole="button"
+                              accessibilityLabel={label}
+                              accessibilityState={{ selected: shade.id === selectedShade?.id, disabled: disabledActions }}
+                              disabled={disabledActions}
+                              onPress={() => {
+                                if (disabledActions) return;
+                                setSelectedShades((current) => ({ ...current, [product.id]: shade.id }));
+                                onSelectShade?.(product.id, shade.id);
+                              }}
+                              style={[styles.shade, shade.id === selectedShade?.id && styles.shadeSelected]}>
+                              <View style={[styles.swatch, { backgroundColor: shade.hex }]} />
+                              <View>
+                                <Text style={styles.shadeText}>{shade.name}</Text>
+                                {status ? <Text style={styles.notice}>{status}</Text> : null}
+                              </View>
+                            </Pressable>
+                          );
+                        })}
                       </ScrollView>
                       {tryOn && !selectedShade ? <Text style={styles.notice}>{t('chat.tryOnAtDetail')}</Text> : null}
                     </>

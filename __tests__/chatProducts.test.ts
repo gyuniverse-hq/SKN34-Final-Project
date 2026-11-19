@@ -427,7 +427,7 @@ test('G4 displays the registered price once and explains an unverified fragrance
   await act(async () => renderer.unmount());
 });
 
-test('G4 keeps the registered price and removes a fragrance-excluded shade during a current-price search', async () => {
+test('G4 keeps the registered price and labels a fragrance-excluded shade during a current-price search', async () => {
   const product = { ...lip, priceKRW: 5900, shades: [
     ...lip.shades,
     { id: 'shade-2', name: 'Pink', hex: '#dd3399' },
@@ -458,9 +458,62 @@ test('G4 keeps the registered price and removes a fragrance-excluded shade durin
   expect(rows).toContain('chat.option.registeredPrice ₩5,900');
   expect(rows.join(' ')).not.toContain('₩7,600');
   expect(rows.filter((row) => row === 'chat.option.fragranceUnknown')).toHaveLength(1);
-  expect(rows).not.toContain('Plum');
+  expect(rows).toContain('Plum');
+  expect(rows).toContain('chat.conditionNotMet');
+  await act(async () => buttonWithText(renderer.root, 'Plum').props.onPress());
+  expect(onSelectShade).toHaveBeenCalledWith(lip.id, 'shade-3');
   expect(rows).not.toContain('chat.option.currentPriceUnknown');
   await act(async () => buttonWithText(renderer.root, 'Rose').props.onPress());
   expect(onSelectShade).toHaveBeenCalledWith(lip.id, 'shade-1');
+  await act(async () => renderer.unmount());
+});
+
+test('G4 labels each shade and preserves exact shade selection, detail and try-on', async () => {
+  const product = { ...lip, shades: [
+    ...lip.shades,
+    { id: 'shade-2', name: 'Coral', hex: '#ee7755' },
+    { id: 'shade-3', name: 'Berry', hex: '#771133' },
+    { id: 'shade-4', name: 'Peach', hex: '#dda577' },
+    { id: 'shade-5', name: 'Nude', hex: '#b08c75' },
+  ] };
+  const makeItem = (shadeId: string, group: ChatOptionSearch['items'][number]['group'],
+    checks: ChatOptionSearch['items'][number]['checks']): ChatOptionSearch['items'][number] => ({
+    productId: lip.id, shadeId, optionId: 'option-' + shadeId, sourceVersion: 'v1', synthetic: false, group, checks,
+  });
+  const onSelectShade = jest.fn();
+  const { renderer, onOpenProduct, onOpenAr } = await renderProducts({
+    products: [product], onSelectShade, optionSearch: {
+      schemaVersion: 1, status: 'PARTIAL', products: [product], excludedCount: 2, omittedCount: 0,
+      checkedScope: { candidateProducts: 1, candidateOptions: 5, checkedOptions: 4, unidentifiedOptions: 0,
+        exhaustive: false, stoppedReason: 'WORK_LIMIT', errors: 0 },
+      items: [
+        makeItem('shade-1', 'ELIGIBLE', [{ condition: 'price', verdict: 'MATCH', reason: 'requested_price_basis' }]),
+        makeItem('shade-2', 'EXCLUDED', [{ condition: 'ingredient', verdict: 'NOT_MATCH', reason: 'ingredient_present' }]),
+        makeItem('shade-3', 'EXCLUDED', [{ condition: 'price', verdict: 'NOT_MATCH', reason: 'requested_price_basis' }]),
+        makeItem('shade-4', 'REFERENCE_ONLY', [{ condition: 'ingredient', verdict: 'UNKNOWN', reason: 'absence_not_verifiable' }]),
+      ],
+    },
+  });
+  for (const [name, shadeId, label] of [
+    ['Rose', 'shade-1', 'chat.option.eligible'],
+    ['Coral', 'shade-2', 'chat.conditionNotMet'],
+    ['Berry', 'shade-3', 'chat.conditionNotMet'],
+    ['Peach', 'shade-4', 'chat.option.reference'],
+    ['Nude', 'shade-5', 'chat.conditionUnknown'],
+  ]) {
+    const button = buttonWithText(renderer.root, name);
+    expect(button.props.accessibilityLabel).toBe(`${lip.name}, ${name}, ${label}`);
+    expect(button.findAllByType(Text).some((item) => item.props.children === label)).toBe(true);
+    expect(button.props.disabled).toBe(false);
+    await act(async () => button.props.onPress());
+    expect(onSelectShade).toHaveBeenLastCalledWith(lip.id, shadeId);
+    expect(buttonWithText(renderer.root, name).props.accessibilityState.selected).toBe(true);
+    await act(async () => buttonWithText(renderer.root, 'chat.trySelectedShade').props.onPress());
+    expect(onOpenAr).toHaveBeenLastCalledWith(lip.id, shadeId);
+    const open = renderer.root.findAll((node) => typeof node.props.onPress === 'function'
+      && node.props.accessibilityLabel === `${lip.brand} ${lip.name}, chat.openProduct`)[0];
+    await act(async () => open.props.onPress());
+    expect(onOpenProduct).toHaveBeenLastCalledWith(lip.id, shadeId);
+  }
   await act(async () => renderer.unmount());
 });
