@@ -19,8 +19,8 @@ MakeupZone = Literal[
 ]
 Texture = Literal["matte", "velvet", "glossy", "satin", "sheer", "cream", "shimmer"]
 ShadowFinish = Literal["matte", "shimmer", "glitter", "glossy"]
-# Reviewed eyeshadow finish of one shade (AR finish chart). Wider than ShadowFinish, which is
-# what the AR lid renderer draws today.
+# Reviewed eyeshadow finish of one shade (AR finish chart). Same six values as the app's
+# ShadowFinish type in types/index.ts; the look geometry ShadowFinish above keeps its four.
 ShadeFinish = Literal["matte", "satin", "shimmer", "metallic", "glitter", "glossy"]
 LookStep = Literal["prep", "base", "eyes", "cheeks", "lips"]
 SkinConcern = Literal[
