@@ -46,6 +46,7 @@ def _product(row: ProductRow) -> Product:
                 measure_method=s.measure_method,
                 color_source=s.color_source,
                 color_confidence=s.color_confidence,
+                finish=s.finish,
             )
             for s in row.shades
         ],
@@ -209,6 +210,7 @@ class CatalogRepository:
                                 measure_method=s.measure_method,
                                 color_source=s.color_source,
                                 color_confidence=s.color_confidence,
+                                finish=s.finish,
                             )
                             for i, s in enumerate(p.shades)
                         ],
