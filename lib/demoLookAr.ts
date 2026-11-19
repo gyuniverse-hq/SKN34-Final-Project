@@ -137,3 +137,26 @@ export function demoLookVideoId(lookId: string): string {
 export function demoLookSlots(lookId: string): DemoLookSlot[] {
   return DEMO_LOOK_AR[demoLookVideoId(lookId)] ?? [];
 }
+
+/** Short on-screen titles for the six demo looks (not the long YouTube title). */
+export const DEMO_LOOK_TITLE_KEYS = {
+  'ZAozXs-ZZik': 'look.demo.strawberry',
+  '4QR0tre9yBI': 'look.demo.yearend',
+  'kWI7_DkDjZ0': 'look.demo.peach',
+  n5otfjJSSQc: 'look.demo.karina',
+  e1gSkUdG6Bo: 'look.demo.sullyoon',
+  fDqBPI1SaWY: 'look.demo.winter',
+} as const;
+
+export type DemoLookTitleKey = (typeof DEMO_LOOK_TITLE_KEYS)[keyof typeof DEMO_LOOK_TITLE_KEYS];
+
+export function isDemoLook(lookId: string): boolean {
+  return Object.prototype.hasOwnProperty.call(DEMO_LOOK_AR, demoLookVideoId(lookId));
+}
+
+export function demoLookTitleKey(lookId: string): DemoLookTitleKey | null {
+  const videoId = demoLookVideoId(lookId);
+  return Object.prototype.hasOwnProperty.call(DEMO_LOOK_TITLE_KEYS, videoId)
+    ? DEMO_LOOK_TITLE_KEYS[videoId as keyof typeof DEMO_LOOK_TITLE_KEYS]
+    : null;
+}
