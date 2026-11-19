@@ -67,6 +67,9 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     } else if (command === 'validate' || (command === 'check-build' && process.env.EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS === '1')) {
       if (!existsSync(resolve(target, 'manifest.json'))) throw new Error('Run npm run skin:prepare before building skin analysis');
       const selected = selectedSkinModel(root);
+      if (command === 'check-build' && selected.name === 'skin-analysis-v4.1') {
+        throw new Error('skin-analysis-v4.1 currently supports Expo Go only.');
+      }
       validateSelectedAssets(target, selected);
       console.log('Skin asset hashes and contracts verified.');
     }

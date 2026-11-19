@@ -285,7 +285,7 @@ WebView 전면 카메라 ─▶ 자동 촬영 게이트 (얼굴 정렬·조명) 
 
 - 사진·ROI·텐서는 기기 메모리에서만 처리하고, 화면을 벗어나거나 취소하면 참조를 지웁니다.
 - Android 전용 빌드는 CameraX·ML Kit·ONNX Runtime 네이티브 경로를 씁니다(`modules/skin-analysis/android/`).
-- 모델 버전은 `SKIN_ANALYSIS_MODEL`(`skin-analysis-v3` / `v4`, 기본 v4)로 고르고, `npm run skin:prepare`가 선택한 버전만 ONNX로 내보냅니다.
+- 모델 버전은 `SKIN_ANALYSIS_MODEL`(`skin-analysis-v4` / `skin-analysis-v4.1`, 기본 v4)로 고르고, `npm run skin:prepare`가 선택한 버전만 ONNX로 내보냅니다.
 
 ### 4-3. 챗봇 Supervisor 파이프라인
 

@@ -1,6 +1,5 @@
-"""Export only the four skin-analysis-v3 models with embedded ROI enhancement."""
+"""Shared export of skin-analysis bundles for on-device inference."""
 
-import argparse
 import hashlib
 import json
 import math
@@ -21,7 +20,6 @@ from torchvision.models import mobilenet_v3_large
 from .mobile_enhancement import RoiEnhancement
 from .mobile_export import OUTPUT_ROOT, ROOT, digest, fixtures
 
-DEFAULT_BUNDLE = ROOT / "ml/runs/skin-analysis-v3/bundle-four-models-20261030"
 CLASSES = ["dry", "balanced", "oily"]
 
 
@@ -64,14 +62,16 @@ def reference_input(values):
     return (tensor - enhancement.mean) / enhancement.std
 
 
-def export(bundle=DEFAULT_BUNDLE):
+def export(bundle):
     bundle = Path(bundle).resolve(strict=True)
     source = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
     tasks = ("pore", "pigmentation", "wrinkle", "skin_type_roi")
-    binary = source["schema"] == "skin-binary-three-and-roi-type-v1"
+    v41 = source["schema"] == "skin-binary-three-roi-type-and-acne-v1"
+    binary = source["schema"] == "skin-binary-three-and-roi-type-v1" or v41
     if (source["schema"] not in ("skin-research-four-models-v1",
-                                 "skin-binary-three-and-roi-type-v1")
-            or set(source["models"]) != set(tasks)):
+                                 "skin-binary-three-and-roi-type-v1",
+                                 "skin-binary-three-roi-type-and-acne-v1")
+            or set(source["models"]) != set(tasks) | ({"acne"} if v41 else set())):
         raise ValueError("Incomplete research bundle")
     if binary and source["preprocessing"] != dict(
             radius=1., percent=75, threshold=0, contrast_factor=1.4):
@@ -88,6 +88,10 @@ def export(bundle=DEFAULT_BUNDLE):
     output = OUTPUT_ROOT / version
     # Always verify the source checkpoints, even when reusing an immutable export.
     models = {task: load_research_model(bundle, task, source["models"][task]) for task in tasks}
+    acne_path = bundle / source["models"]["acne"]["file"] if v41 else None
+    if acne_path and (not acne_path.resolve(strict=True).is_relative_to(bundle)
+                      or digest(acne_path) != source["models"]["acne"]["sha256"]):
+        raise ValueError("Invalid acne checkpoint")
     if output.exists():
         manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
         if any(digest(output / name) != sha for name, sha in manifest["assets"].items()):
@@ -147,8 +151,34 @@ def export(bundle=DEFAULT_BUNDLE):
                                 fixture="downsample.f32", expectedLogits=expected,
                                 maxExportAbsoluteError=max(errors),
                                 roiEnhancement="pillow-unsharp1-75-contrast1.4-embedded"))
+        if v41:
+            record = source["models"]["acne"]
+            if record["threshold"] != .5 or record["score_type"] != "uncalibrated_ldl_aggregated_score":
+                raise ValueError("Unexpected acne output contract")
+            model = torch.jit.load(str(acne_path), map_location="cpu").eval()
+            values = np.zeros((1, 3, 224, 224), dtype=np.float32)
+            values.tofile(stage / "acne_fixture.f32")
+            path = stage / "acne.onnx"
+            with torch.inference_mode():
+                expected = model(torch.from_numpy(values)).reshape(-1).numpy()
+                torch.onnx.export(model, torch.from_numpy(values), path, input_names=["image"],
+                                  output_names=["score"], opset_version=17, dynamo=False,
+                                  external_data=False)
+            onnx.checker.check_model(str(path))
+            session = ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
+            actual = session.run(["score"], {"image": values})[0].reshape(-1)
+            np.testing.assert_allclose(actual, expected, rtol=1e-3, atol=1e-4)
+            if len(expected) != 1 or not 0 <= expected[0] <= 1:
+                raise ValueError("Invalid acne score")
+            records.append(dict(indicator="acne", file=path.name, sha256=digest(path),
+                                sourceSha256=record["sha256"], input="image", output="score",
+                                inputShape=[1, 3, 224, 224], outputs=1, decoder="ldl_score",
+                                threshold=.5, fixture="acne_fixture.f32",
+                                expectedLogits=expected.tolist(),
+                                preprocessing="full-rgb-pillow-bilinear-256-224-v1"))
         manifest = dict(
-            schema="skin-analysis-assets-v4" if binary else "skin-analysis-assets-v3",
+            schema=("skin-analysis-assets-v4.1" if v41 else
+                    "skin-analysis-assets-v4" if binary else "skin-analysis-assets-v3"),
             bundleVersion=version, precision="float32",
             opset=17, preprocessing="skin-preprocessing-v3", pythonRuntime=ort.__version__,
             androidRuntime="1.22.0", roiMethod="opencv_haar_facebox_proportions_v1",
@@ -158,13 +188,3 @@ def export(bundle=DEFAULT_BUNDLE):
             json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
         stage.replace(output)
     return output
-
-
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--bundle", type=Path, default=DEFAULT_BUNDLE)
-    print(export(parser.parse_args().bundle))
-
-
-if __name__ == "__main__":
-    main()

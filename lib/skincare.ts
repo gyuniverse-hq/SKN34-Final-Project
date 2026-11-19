@@ -54,7 +54,7 @@ export function deriveCareGoals(profile: SkinProfile | null): SkincareProfileReq
   const detectedConcerns = CARE_GOALS.filter(g => sources.has(g))
     .map(goal => ({ goal, sources: [...sources.get(goal)!] }));
   const analysisScores: NonNullable<SkincareProfileRequest['analysisScores']> = {};
-  if (profile?.analysis.schema === 'skin-analysis-mobile-v4') {
+  if (profile?.analysis.schema === 'skin-analysis-mobile-v4' || profile?.analysis.schema === 'skin-analysis-mobile-v4.1') {
     for (const metric of report?.metrics ?? []) {
       if ((metric.concern === 'pores' || metric.concern === 'pigmentation' || metric.concern === 'wrinkles') &&
           metric.status !== 'unknown' && metric.modelScore !== undefined &&
