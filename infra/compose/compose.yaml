@@ -44,6 +44,8 @@ services:
       <<: *backend-env
       # Optional read-only artifact: add compose.ingredients.yaml (see docs/DEPLOYMENT.md).
       INGREDIENT_MAPPING_PATH: ""
+      AR_ACTIVITY_ENROLLED_MEMBERS: '${AR_ACTIVITY_ENROLLED_MEMBERS:-[]}'
+      AR_ACTIVITY_CONSENTED_MEMBERS: '${AR_ACTIVITY_CONSENTED_MEMBERS:-[]}'
       SKIN_RECOMMENDATION_FEEDBACK_CONSENTED_MEMBERS: '${SKIN_RECOMMENDATION_FEEDBACK_CONSENTED_MEMBERS:-[]}'
       DATABASE_URL: postgresql+asyncpg://vishue:${POSTGRES_PASSWORD:-vishue}@postgres:5432/vishue_db
       REDIS_URL: redis://redis:6379/0

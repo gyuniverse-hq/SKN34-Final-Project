@@ -62,6 +62,8 @@ import { practiceDrawStep, practiceZones, revealedMakeup, visit } from '@/lib/pr
 import { useArRecording } from '@/hooks/useArRecording';
 import { useArRouteSelection } from '@/hooks/useArRouteSelection';
 import { useNearbyExploration } from '@/hooks/useNearbyExploration';
+import { useArHistory } from '@/hooks/useArHistory';
+import { noteArFailure } from '@/lib/arHistory';
 import { useArCommand } from '@/hooks/useArCommand';
 import { MIN_TONE_CONF, rankFoundationShades, type SkinTone } from '@/lib/foundationMatch';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
@@ -74,7 +76,7 @@ import { useCartStore } from '@/store/cartStore';
 import { isLipBaseCare, LIP_TEXTURE_CHIPS, lipCareKind, lipTextureChip } from '@/lib/lipCare';
 import { AR_PAINT_ZONES, arPaintMakeup, isArPaintZone, useMakeupStore } from '@/store/makeupStore';
 import { useSettingsStore } from '@/store/settingsStore';
-import type { HighlightFace, MakeupZone, Texture } from '@/types';
+import type { HighlightFace, MakeupZone, Product, Shade, Texture } from '@/types';
 
 type Mode = 'direct' | 'chat';
 
@@ -297,10 +299,8 @@ export default function ArTryOnScreen() {
   // 11-17 v7: a metallic eyeshadow (read from its name) is drawn as a metallic glitter and labelled next to its name.
   const shadowMetal =
     zone === 'eyeshadow' && !!selectedTryOn && glitterTraitsOf(selectedTryOn.product.name, selectedTryOn.shade.name).metal;
-  const nearby = useNearbyExploration(
-    tryOnProducts, zone, selectedTryOn, textureFilter,
-    JSON.stringify([routeProductId, routeShadeId, activeLook?.id])
-  );
+  const explorationScope = JSON.stringify([routeProductId, routeShadeId, activeLook?.id]);
+  const nearby = useNearbyExploration(tryOnProducts, zone, selectedTryOn, textureFilter, explorationScope);
   // Filter chips: only textures / color families present in this zone; families for lips only.
   const textureOptions = useMemo(
     () =>
@@ -337,7 +337,15 @@ export default function ArTryOnScreen() {
           ),
     [careOpen, careChip, careSwatches, zoneSwatches, zone, textureFilter, familyFilter]
   );
-  const displayedSwatches = nearby.active ? nearby.groups[nearby.direction] : visibleSwatches;
+  const direct = mode === 'direct' && !fit && !practice && !fromVideo;
+  const paletteShown = direct && !sheet && !zoneMenuOpen && !isFullscreenAR;
+  const activity = useArHistory({
+    active: cameraActive && direct, zone, direction: nearby.direction,
+    nearby: nearby.active ? nearby.groups[nearby.direction] : null,
+    catalog: zoneSwatches, visibleItems: visibleSwatches, paletteShown, careOpen,
+    scopeKey: explorationScope, filterKey: JSON.stringify([textureFilter, familyFilter]),
+  });
+  const displayedSwatches = activity.ordered;
   const displayedFamilies = nearby.active ? [] : familyOptions;
 
   const showsDemo = useMemo(
@@ -384,6 +392,15 @@ export default function ArTryOnScreen() {
   const liveCamera =
     !!cameraConsent && !!permissionGranted && !permissionBlocked && !swatchOnly && status !== 'unavailable' && status !== 'denied';
   const rendererMounted = !!liveCamera && cameraActive;
+  const applyDirect = (product: Product, shade: Shade, fromPalette = false) => {
+    applyShade(product, shade);
+    if (!rendererMounted || status !== 'tracking' || !activity.history || !product.makeupZone) return;
+    const state = useMakeupStore.getState();
+    const selection = [state.selections[product.makeupZone], state.careSelection]
+      .find(s => s?.productId === product.id && s.shadeId === shade.id);
+    if (selection) void activity.history.event('try_on', selection, product.makeupZone,
+      fromPalette && activity.view?.contains(product.id, shade.id) ? activity.view : undefined).catch(noteArFailure);
+  };
   const rendererId = useMemo(() => [arKey, rendererMounted, uuid.v4()].join(':'), [arKey, rendererMounted]);
   const commandEnabled = rendererMounted && status === 'tracking' && !fit && !practice && !compare && mode === 'chat';
   const arCommand = useArCommand({ active: cameraActive, enabled: commandEnabled, activeZone: zone, locale: language, rendererId,
@@ -501,11 +518,21 @@ export default function ArTryOnScreen() {
     setAdded(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
   };
+  function recordCartIncrease(selection: { productId: string; shadeId: string }, makeupZone: MakeupZone,
+    before: ReturnType<typeof useCartStore.getState>['items']) {
+    if (!activity.history) return;
+    const quantity = (items: typeof before) => items.find(i =>
+      i.productId === selection.productId && i.shadeId === selection.shadeId)?.quantity ?? 0;
+    if (quantity(useCartStore.getState().items) > quantity(before)) {
+      void activity.history.event('cart_add', selection, makeupZone).catch(noteArFailure);
+    }
+  }
   const onAddSelection = () => {
     if (added) {
       router.push('/cart');
       return;
     }
+    const before = useCartStore.getState().items;
     addMany([
       ...selectionItems.map((s) => ({
         productId: s!.productId,
@@ -513,6 +540,11 @@ export default function ArTryOnScreen() {
         addedFromLookId: activeLook?.id,
       })),
     ]);
+    for (const s of selectionItems) {
+      if (!s) continue;
+      const product = tryOnProducts.find(p => p.id === s.productId);
+      if (product?.makeupZone) recordCartIncrease(s, product.makeupZone, before);
+    }
     setAdded(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
   };
@@ -755,7 +787,10 @@ export default function ArTryOnScreen() {
   };
   const onAddCurrent = () => {
     if (!selectedTryOn) return;
+    const before = useCartStore.getState().items;
     addToCart({ productId: selectedTryOn.product.id, shadeId: selectedTryOn.shade.id, ...(activeLook ? { addedFromLookId: activeLook.id } : {}) });
+    const selection = selections[zone];
+    if (selection) recordCartIncrease(selection, zone, before);
     setAddedShade(`${selectedTryOn.product.id}:${selectedTryOn.shade.id}`);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
   };
@@ -774,12 +809,12 @@ export default function ArTryOnScreen() {
         vivid: nearby.groups.vivid.length,
       }}
       canGoBack={nearby.canGoBack}
-      onEnter={() => { setCareChip(null); nearby.enter(); }}
-      onLeave={nearby.leave}
+      onEnter={() => { activity.beginNearby(); setCareChip(null); nearby.enter(); }}
+      onLeave={() => { activity.returnFromNearby(selectedTryOn); nearby.leave(); }}
       onDirection={nearby.setDirection}
       onBack={nearby.back}
       onApplyAnchor={() => {
-        if (nearby.anchor) applyShade(nearby.anchor.product, nearby.anchor.shade);
+        if (nearby.anchor) applyDirect(nearby.anchor.product, nearby.anchor.shade);
       }}
     />
   ) : null;
@@ -1056,7 +1091,7 @@ export default function ArTryOnScreen() {
                     </Text>
                     <Chip
                       label={t('ar.match.use')}
-                      onPress={() => applyShade(zoneGap.nearest.product, zoneGap.nearest.shade)}
+                      onPress={() => applyDirect(zoneGap.nearest.product, zoneGap.nearest.shade)}
                     />
                   </>
                 ) : (
@@ -1092,7 +1127,7 @@ export default function ArTryOnScreen() {
                         if (careOpen) clearLipCare();
                         else clearZone(zone);
                       } else {
-                        applyShade(product, shade);
+                        applyDirect(product, shade);
                       }
                       Haptics.selectionAsync().catch(() => {});
                     }}
@@ -1223,7 +1258,7 @@ export default function ArTryOnScreen() {
                           const worn =
                             selections.foundation?.productId === m.product.id && selections.foundation?.shadeId === m.shade.id;
                           if (worn) clearZone('foundation');
-                          else applyShade(m.product, m.shade);
+                          else applyDirect(m.product, m.shade);
                         }}
                       />
                     ))}
@@ -1672,10 +1707,12 @@ export default function ArTryOnScreen() {
             <View pointerEvents={zoneMenuOpen ? 'none' : 'auto'} aria-hidden={zoneMenuOpen} accessibilityElementsHidden={zoneMenuOpen} importantForAccessibility={zoneMenuOpen ? 'no-hide-descendants' : 'auto'} style={zoneMenuOpen ? { opacity: 0 } : undefined}>
             <OpenArcPalette key={JSON.stringify([zone, nearby.active, nearby.anchor?.product.id, nearby.anchor?.shade.id, nearby.direction, textureFilter, familyFilter, careChip])}
               items={displayedSwatches} selected={(careOpen ? selectedCare : selectedTryOn) ?? undefined} label={t('ar.arc.palette')} hint={t('ar.arc.swipe')}
+              onVisible={activity.visible}
+              recommendedItems={activity.recommendedItems} recommendedLabel={t('ar.arc.recommended')}
               onSelect={({ product, shade }) => {
                 if (careOpen && careSelection?.productId === product.id && careSelection.shadeId === shade.id) clearLipCare();
                 else if (!careOpen && selections[zone]?.productId === product.id && selections[zone]?.shadeId === shade.id) clearZone(zone);
-                else applyShade(product, shade);
+                else applyDirect(product, shade, true);
                 Haptics.selectionAsync().catch(() => {});
               }} />
             </View>
