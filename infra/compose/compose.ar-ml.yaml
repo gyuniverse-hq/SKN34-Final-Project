@@ -5,6 +5,7 @@ services:
       AR_PALETTE_MODE: ${AR_PALETTE_MODE:-collect}
       AR_PALETTE_DATA_DIR: /app/runtime/ar-ml
       AR_PALETTE_MODEL_DIR: /app/runtime/ar-ml/bundles/${AR_PALETTE_BUNDLE:-candidate}
+      AR_PALETTE_BASELINE_MODEL_DIR:
       AR_PALETTE_EXPERIMENT: ${AR_PALETTE_EXPERIMENT:-}
     volumes:
       - ../../ml/data/ar-recommendation:/app/runtime/ar-ml

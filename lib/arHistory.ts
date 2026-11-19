@@ -2,12 +2,35 @@ import { uuid } from 'expo';
 import { apiPost, ApiError } from './api';
 import type { ColorSwatch, NearbyDirection } from './nearbyColors';
 import type { PickStrategy } from './arPalettePicks';
-import type { MakeupZone } from '@/types';
+import type { CartItem, MakeupZone } from '@/types';
 
 type ShadeKey = { productId: string; shadeId: string };
 type PaletteCandidate = ShadeKey & { candidateId: string };
 export type RankedArPalette = { requestId: string; candidates: PaletteCandidate[] };
 type Sender = (resource: string, payload: unknown) => Promise<unknown>;
+const pendingCartEvents = new Map<string, Promise<unknown>>();
+
+export function arCartEventIds(item: CartItem, ownerId: string) {
+  return [...new Set((item.arCartSources ?? []).slice(0, item.quantity)
+    .flatMap(source => source?.ownerId === ownerId ? [source.eventId] : []))];
+}
+
+export async function waitForArCartEvents(ids: readonly string[]) {
+  const pending = ids.flatMap(id => {
+    const event = pendingCartEvents.get(id);
+    return event ? [event] : [];
+  });
+  if (!pending.length) return;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      Promise.allSettled(pending),
+      new Promise(resolve => { timeout = setTimeout(resolve, 750); }),
+    ]);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 export async function postArHistory(owner: string, path: string, body: unknown) {
   const send = () => apiPost('/api/me/ar-history/' + path, body, { expectedUserId: owner, timeoutMs: 5000 });
@@ -75,17 +98,39 @@ export class ArHistorySession {
   readonly id = uuid.v4();
   // The exact store selection object dies when it is removed/replaced, even by a different AR surface.
   private attribution = new WeakMap<ShadeKey, ArPaletteView>();
-  constructor(readonly send: Sender) {}
+  constructor(readonly send: Sender, private readonly ownerId?: string) {}
 
-  async event(type: 'try_on' | 'cart_add', selection: ShadeKey, makeupZone: MakeupZone, view?: ArPaletteView) {
+  private prepare(type: 'try_on' | 'cart_add', selection: ShadeKey, makeupZone: MakeupZone, view?: ArPaletteView) {
     if (type === 'try_on' && view) this.attribution.set(selection, view);
     const origin = type === 'try_on' ? view : this.attribution.get(selection);
     const impression = origin?.exposure(selection.productId, selection.shadeId, true);
     const body = { eventId: uuid.v4(), sessionId: this.id, eventType: type, makeupZone,
       productId: selection.productId, shadeId: selection.shadeId, impressionId: impression?.id ?? null,
       occurredAt: new Date().toISOString() };
-    if (impression) await impression.save();
-    await this.send('events', body);
+    return {
+      eventId: body.eventId,
+      impressionId: body.impressionId,
+      save: once(async () => {
+        if (impression) await impression.save();
+        return this.send('events', body);
+      }),
+    };
+  }
+
+  async event(type: 'try_on' | 'cart_add', selection: ShadeKey, makeupZone: MakeupZone, view?: ArPaletteView) {
+    await this.prepare(type, selection, makeupZone, view).save();
+  }
+
+  cartAdd(selection: ShadeKey, makeupZone: MakeupZone) {
+    const { eventId, impressionId, save } = this.prepare('cart_add', selection, makeupZone);
+    const source = this.ownerId && impressionId ? { ownerId: this.ownerId, eventId } : undefined;
+    return {
+      source,
+      record: () => {
+        const pending = save().catch(noteArFailure).finally(() => pendingCartEvents.delete(eventId));
+        if (source) pendingCartEvents.set(eventId, pending);
+      },
+    };
   }
 }
 

@@ -200,3 +200,47 @@ def test_rank_persists_assigned_arm_and_fallback_with_the_exact_features(tmp_pat
     )
     assert report["arms"]["B"]["sessions"] == report["arms"]["B"]["fallback_sessions"] == 1
     assert report["lift"] == -1 and report["result"] == "pending"
+
+
+@pytest.mark.parametrize(
+    ("baseline_rule", "baseline_versions", "candidate_versions", "result"),
+    [
+        pytest.param(True, [], ["m-B"], "passed", id="rule-baseline"),
+        pytest.param(False, ["m-A"], ["m-B"], "passed", id="ml-baseline"),
+        pytest.param(False, [], ["m-B"], "pending", id="fallback-only-baseline"),
+        pytest.param(True, ["m-A"], ["m-B"], "pending", id="mixed-baseline"),
+        pytest.param(False, ["m-A"], ["m-A"], "pending", id="same-model"),
+        pytest.param(True, [], ["s-B"], "pending", id="synthetic-candidate"),
+    ],
+)
+def test_experiment_uses_session_purchase_lift_for_valid_arms(
+    baseline_rule, baseline_versions, candidate_versions, result
+):
+    versions = {"A": baseline_versions, "B": candidate_versions}
+    rows = [
+        {
+            "arm": arm,
+            "member_id": f"{arm}-{member}",
+            "added_to_cart": arm == "B" or session == 0,
+            "purchased": session < (1 if arm == "A" else 2),
+            "served_rule": arm == "A" and baseline_rule,
+            "fallback": arm == "A" and not (baseline_rule or baseline_versions),
+            "empty": False,
+            "model_versions": versions[arm],
+        }
+        for arm in ("A", "B")
+        for member in range(3)
+        for session in range(3)
+    ]
+    options = dict(min_sessions=9, min_lift=0.01)
+    report = summarize_experiment(rows, finished=True, measure_purchase=True, **options)
+    assert report["purchase_metrics"]["cart_to_purchase_lift"] == pytest.approx(-1 / 3)
+    assert report["purchase_metrics"]["session_to_purchase_lift"] == pytest.approx(1 / 3)
+    assert report["decision_metric"] == "session_to_purchase_rate"
+    assert report["result"] == result
+    unfinished = summarize_experiment(rows, finished=False, measure_purchase=True, **options)
+    assert unfinished["result"] == "pending"
+    without_purchases = summarize_experiment(rows, finished=True, **options)
+    assert without_purchases["lift"] > 0
+    assert without_purchases["purchase_metrics"] == "unmeasured"
+    assert without_purchases["result"] == "pending"

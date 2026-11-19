@@ -385,58 +385,104 @@ def train_dataset(
     return report
 
 
-def summarize_experiment(rows, *, min_sessions=None, min_lift=None, finished=False):
-    clusters = {"A": defaultdict(list), "B": defaultdict(list)}
+def experiment_lift(clusters, numerator, denominator):
+    samples = {
+        arm: np.array([(c[numerator], c[denominator]) for c in members.values()]).reshape(-1, 2)
+        for arm, members in clusters.items()
+    }
+    totals = {arm: data.sum(axis=0) for arm, data in samples.items()}
+    if not all(count for _, count in totals.values()):
+        return None, None
+    delta = float(totals["B"][0] / totals["B"][1] - totals["A"][0] / totals["A"][1])
+    if not all(len(data) >= 2 for data in samples.values()):
+        return delta, None
+    rng = np.random.default_rng(42)
+
+    def bootstrap(data):
+        sums = np.array(
+            [data[rng.integers(len(data), size=len(data))].sum(axis=0) for _ in range(1000)]
+        )
+        return np.divide(
+            sums[:, 0], sums[:, 1], out=np.full(len(sums), np.nan), where=sums[:, 1] != 0
+        )
+
+    differences = bootstrap(samples["B"]) - bootstrap(samples["A"])
+    finite = differences[np.isfinite(differences)]
+    return delta, np.percentile(finite, [2.5, 97.5]).tolist() if len(finite) else None
+
+
+def summarize_experiment(
+    rows, *, min_sessions=None, min_lift=None, finished=False, measure_purchase=False
+):
+    clusters = {"A": defaultdict(Counter), "B": defaultdict(Counter)}
     counts = {arm: Counter() for arm in clusters}
     versions = {arm: set() for arm in clusters}
     for row in rows:
         arm = row["arm"]
         versions[arm].update(row.get("model_versions") or ())
-        clusters[arm][row["member_id"]].append(int(row["added_to_cart"]))
-        counts[arm].update(
-            {
-                "sessions": 1,
-                "cart_sessions": int(row["added_to_cart"]),
-                "fallback_sessions": int(row["fallback"]),
-                "empty_sessions": int(row["empty"]),
-            }
-        )
+        session = {
+            "sessions": 1,
+            "cart_sessions": int(row["added_to_cart"]),
+            "purchase_sessions": int(row["added_to_cart"] and row.get("purchased", False)),
+            "rule_sessions": int(row.get("served_rule", False)),
+            "fallback_sessions": int(row["fallback"]),
+            "empty_sessions": int(row["empty"]),
+        }
+        clusters[arm][row["member_id"]].update(session)
+        counts[arm].update(session)
     if clusters["A"].keys() & clusters["B"].keys():
         raise ValueError("Member appears in both AR experiment arms")
     arms = {}
-    rates = {}
     for arm, counter in counts.items():
-        rate = counter["cart_sessions"] / counter["sessions"] if counter["sessions"] else None
-        rates[arm] = rate
+        sessions, carts, purchases = (
+            counter[k] for k in ("sessions", "cart_sessions", "purchase_sessions")
+        )
         arms[arm] = {
             **{
                 key: counter[key]
-                for key in ("sessions", "cart_sessions", "fallback_sessions", "empty_sessions")
+                for key in (
+                    "sessions",
+                    "cart_sessions",
+                    "rule_sessions",
+                    "fallback_sessions",
+                    "empty_sessions",
+                )
             },
             "members": len(clusters[arm]),
-            "cart_rate": rate,
+            "cart_rate": carts / sessions if sessions else None,
             "model_versions": sorted(versions[arm]),
         }
-    ci = delta = None
-    if all(rate is not None for rate in rates.values()):
-        delta = rates["B"] - rates["A"]
-    if all(len(groups) >= 2 for groups in clusters.values()):
-        rng = np.random.default_rng(42)
-
-        def bootstrap(groups):
-            data = np.array([(len(v), sum(v)) for v in groups.values()])
-            sampled_rates = []
-            for _ in range(1000):
-                total, carts = data[rng.integers(len(data), size=len(data))].sum(axis=0)
-                sampled_rates.append(carts / total)
-            return np.array(sampled_rates)
-
-        ci = np.percentile(bootstrap(clusters["B"]) - bootstrap(clusters["A"]), [2.5, 97.5])
-        ci = ci.tolist()
+        if measure_purchase:
+            arms[arm].update(
+                purchase_sessions=purchases,
+                cart_to_purchase_rate=purchases / carts if carts else None,
+                session_to_purchase_rate=purchases / sessions if sessions else None,
+            )
+    delta, ci = experiment_lift(clusters, "cart_sessions", "sessions")
+    decision_lift, decision_ci = None, None
+    purchase_metrics = "unmeasured"
+    if measure_purchase:
+        cart_lift, cart_ci = experiment_lift(clusters, "purchase_sessions", "cart_sessions")
+        decision_lift, decision_ci = experiment_lift(clusters, "purchase_sessions", "sessions")
+        purchase_metrics = {
+            "cart_to_purchase_lift": cart_lift,
+            "cart_to_purchase_lift_ci95": cart_ci,
+            "session_to_purchase_lift": decision_lift,
+            "session_to_purchase_lift_ci95": decision_ci,
+        }
+    rule_baseline = counts["A"]["rule_sessions"] > 0 and not versions["A"]
+    stable_model = {
+        arm: counts[arm]["rule_sessions"] == 0
+        and len(model_versions) == 1
+        and all(version.startswith("m-") for version in model_versions)
+        for arm, model_versions in versions.items()
+    }
+    ml_baseline = stable_model["A"] and versions["A"].isdisjoint(versions["B"])
     ready = (
-        finished
-        and not versions["A"]
-        and len(versions["B"]) == 1
+        measure_purchase
+        and finished
+        and stable_model["B"]
+        and (rule_baseline or ml_baseline)
         and min_sessions is not None
         and min_lift is not None
         and all(counter["sessions"] >= min_sessions for counter in counts.values())
@@ -445,17 +491,28 @@ def summarize_experiment(rows, *, min_sessions=None, min_lift=None, finished=Fal
         "arms": arms,
         "lift": delta,
         "lift_ci95": ci,
+        "decision_metric": "session_to_purchase_rate",
         "result": "pending"
         if not ready
         else "passed"
-        if ci and ci[0] > 0 and delta >= min_lift
+        if decision_ci and decision_ci[0] > 0 and decision_lift >= min_lift
         else "retain_baseline",
-        "purchase_metrics": "unmeasured",
+        "purchase_metrics": purchase_metrics,
     }
 
 
 async def experiment_report(
-    output, *, experiment, start, end, as_of, window, grace, min_sessions=None, min_lift=None
+    output,
+    *,
+    experiment,
+    start,
+    end,
+    as_of,
+    window,
+    grace,
+    min_sessions=None,
+    min_lift=None,
+    purchase_window=None,
 ):
     settings = get_settings()
     try:
@@ -467,11 +524,14 @@ async def experiment_report(
                 as_of=as_of,
                 window=window,
                 grace=grace,
+                purchase_window=purchase_window,
                 members=settings.ar_activity_consented_members,
                 terms=TERMS_VERSION,
             )
     finally:
         await dispose_engine()
+    mature = [row for row in rows if row["mature"]]
+    observation = max(window + grace, purchase_window or window)
     report = {
         "experiment": experiment,
         "start": start.isoformat(),
@@ -479,11 +539,14 @@ async def experiment_report(
         "as_of": as_of.isoformat(),
         "min_sessions_per_arm": min_sessions,
         "min_lift": min_lift,
+        "purchase_window_seconds": purchase_window.total_seconds() if purchase_window else None,
+        "pending_sessions": len(rows) - len(mature),
         **summarize_experiment(
-            rows,
+            mature,
             min_sessions=min_sessions,
             min_lift=min_lift,
-            finished=as_of >= end + window + grace,
+            finished=as_of >= end + observation and len(mature) == len(rows),
+            measure_purchase=purchase_window is not None,
         ),
     }
     write_json(output, report)

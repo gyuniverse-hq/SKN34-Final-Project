@@ -518,13 +518,26 @@ export default function ArTryOnScreen() {
     setAdded(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
   };
-  function recordCartIncrease(selection: { productId: string; shadeId: string }, makeupZone: MakeupZone,
+  function prepareCartAddition(selection: { productId: string; shadeId: string }, makeupZone?: MakeupZone | null) {
+    const event = makeupZone ? activity.history?.cartAdd(selection, makeupZone) : undefined;
+    return {
+      item: {
+        productId: selection.productId,
+        shadeId: selection.shadeId,
+        addedFromLookId: activeLook?.id,
+        ...(event?.source ? { arCartSources: [event.source] } : {}),
+      },
+      record: event?.record,
+    };
+  }
+  function recordCartIncrease(addition: ReturnType<typeof prepareCartAddition>,
     before: ReturnType<typeof useCartStore.getState>['items']) {
-    if (!activity.history) return;
+    if (!addition.record) return;
+    const { productId, shadeId } = addition.item;
     const quantity = (items: typeof before) => items.find(i =>
-      i.productId === selection.productId && i.shadeId === selection.shadeId)?.quantity ?? 0;
+      i.productId === productId && i.shadeId === shadeId)?.quantity ?? 0;
     if (quantity(useCartStore.getState().items) > quantity(before)) {
-      void activity.history.event('cart_add', selection, makeupZone).catch(noteArFailure);
+      addition.record();
     }
   }
   const onAddSelection = () => {
@@ -533,18 +546,11 @@ export default function ArTryOnScreen() {
       return;
     }
     const before = useCartStore.getState().items;
-    addMany([
-      ...selectionItems.map((s) => ({
-        productId: s!.productId,
-        shadeId: s!.shadeId,
-        addedFromLookId: activeLook?.id,
-      })),
-    ]);
-    for (const s of selectionItems) {
-      if (!s) continue;
-      const product = tryOnProducts.find(p => p.id === s.productId);
-      if (product?.makeupZone) recordCartIncrease(s, product.makeupZone, before);
-    }
+    const additions = selectionItems.flatMap(s => s
+      ? [prepareCartAddition(s, tryOnProducts.find(p => p.id === s.productId)?.makeupZone)]
+      : []);
+    addMany(additions.map(addition => addition.item));
+    for (const addition of additions) recordCartIncrease(addition, before);
     setAdded(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
   };
@@ -788,9 +794,12 @@ export default function ArTryOnScreen() {
   const onAddCurrent = () => {
     if (!selectedTryOn) return;
     const before = useCartStore.getState().items;
-    addToCart({ productId: selectedTryOn.product.id, shadeId: selectedTryOn.shade.id, ...(activeLook ? { addedFromLookId: activeLook.id } : {}) });
     const selection = selections[zone];
-    if (selection) recordCartIncrease(selection, zone, before);
+    if (selection) {
+      const addition = prepareCartAddition(selection, zone);
+      addToCart(addition.item);
+      recordCartIncrease(addition, before);
+    }
     setAddedShade(`${selectedTryOn.product.id}:${selectedTryOn.shade.id}`);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
   };

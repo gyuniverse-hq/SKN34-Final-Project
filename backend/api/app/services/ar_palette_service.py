@@ -19,12 +19,13 @@ def experiment_arm(experiment, member_id):
     return "B" if digest[0] % 2 else "A"
 
 
-def model_scores(settings, rows):
-    if settings.ar_palette_model_dir is None:
+def model_scores(settings, rows, model_dir=None):
+    model_dir = model_dir if model_dir is not None else settings.ar_palette_model_dir
+    if model_dir is None:
         raise ValueError("AR model directory is missing")
     local = settings.env in ("local", "development", "test")
     model, version, source = load_palette_model(
-        settings.ar_palette_model_dir.resolve(),
+        model_dir.resolve(),
         allow_synthetic=local,
         require_offline_pass=not local,
     )
@@ -62,12 +63,15 @@ class ArPaletteService:
         if mode == "experiment" and not experiment:
             raise ApiError(503, "AR experiment is not configured", "ar_experiment_unavailable")
         arm = experiment_arm(experiment, owner) if experiment else "-"
+        control_model = self.settings.ar_palette_baseline_model_dir if arm == "A" else None
         served = "rule"
         strategy = "personalized" if personalized else "rating"
         scores = [row[2] for row in rows]
-        if rows and (mode == "model" or arm == "B"):
+        if rows and (mode == "model" or arm == "B" or control_model is not None):
             try:
-                scores, served = await run_in_threadpool(model_scores, self.settings, rows)
+                scores, served = await run_in_threadpool(
+                    model_scores, self.settings, rows, control_model
+                )
                 strategy = "ml"
             except Exception:
                 served = "fallback"

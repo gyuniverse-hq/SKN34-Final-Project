@@ -10,6 +10,7 @@ import { theme } from '@/constants/theme';
 import { useCartLines } from '@/hooks/useCartLines';
 import { useAuth } from '@/lib/auth';
 import { apiGet, apiPost } from '@/lib/api';
+import { arCartEventIds, waitForArCartEvents } from '@/lib/arHistory';
 import { formatKRW } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { loginHref } from '@/lib/routes';
@@ -70,13 +71,17 @@ export default function CheckoutScreen() {
     setPaymentBusy(true);
     setNotice(null);
     try {
-      const order = await apiPost<CreateOrderResponse>('/api/payments/orders', {
-        lines: lines.map((line) => ({
+      const orderLines = lines.map((line) => {
+        const eventIds = arCartEventIds(line.item, user.id);
+        return {
           productId: line.product.id,
           shadeId: line.shade?.id,
           quantity: line.item.quantity,
-        })),
+          ...(eventIds.length ? { arCartEventIds: eventIds } : {}),
+        };
       });
+      await waitForArCartEvents(orderLines.flatMap(line => line.arCartEventIds ?? []));
+      const order = await apiPost<CreateOrderResponse>('/api/payments/orders', { lines: orderLines }, { expectedUserId: user.id });
       const payment: PendingPayment = { orderId: order.orderId, userId: user.id, items: lines.map((line) => ({ ...line.item })) };
       setPending(payment);
       setCheckoutSession({ orderId: order.orderId, url: order.checkoutUrl });

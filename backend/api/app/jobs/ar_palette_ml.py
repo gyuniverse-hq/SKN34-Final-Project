@@ -57,6 +57,11 @@ def main():
     experiment.add_argument("--end", required=True, type=utc)
     experiment.add_argument("--min-sessions", type=int)
     experiment.add_argument("--min-lift", type=float)
+    experiment.add_argument(
+        "--purchase-window-hours",
+        type=int,
+        help="Hours from impression to purchase. Required for a promotion decision.",
+    )
     timing(experiment)
     args = parser.parse_args()
     if args.command == "synthetic":
@@ -91,6 +96,8 @@ def main():
                 parser.error("Minimum sessions must be positive")
             if args.min_lift is not None and not 0 <= args.min_lift <= 1:
                 parser.error("Minimum lift must be within [0, 1]")
+            if args.purchase_window_hours is not None and args.purchase_window_hours < 1:
+                parser.error("Purchase observation window must be positive")
             report = asyncio.run(
                 experiment_report(
                     args.output,
@@ -99,6 +106,9 @@ def main():
                     end=args.end,
                     min_sessions=args.min_sessions,
                     min_lift=args.min_lift,
+                    purchase_window=timedelta(hours=args.purchase_window_hours)
+                    if args.purchase_window_hours is not None
+                    else None,
                     **times,
                 )
             )

@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     ar_palette_mode: Literal["legacy", "collect", "model", "experiment"] = "legacy"
     ar_palette_data_dir: Path = PROJECT_ROOT / "ml/data/ar-recommendation"
     ar_palette_model_dir: Path | None = None
+    ar_palette_baseline_model_dir: Path | None = None
     ar_palette_experiment: str = Field(default="", pattern=r"^([a-z0-9-]{1,16})?$")
     recommendation_model: str = Field(
         default="recommend-cat-v4", pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"

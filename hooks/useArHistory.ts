@@ -35,7 +35,7 @@ export function useArHistory({ active, zone, direction, nearby, catalog, visible
   const { user } = useAuth();
   const owner = user?.id;
   const session = useMemo(() => active && owner
-    ? new ArHistorySession((path, body) => postArHistory(owner, path, body)) : null, [active, owner]);
+    ? new ArHistorySession((path, body) => postArHistory(owner, path, body), owner) : null, [active, owner]);
   const [allowed, setAllowed] = useState<{ session: ArHistorySession; recommendations: boolean; serverRanking?: boolean } | null>(null);
   useEffect(() => {
     let current = true;
