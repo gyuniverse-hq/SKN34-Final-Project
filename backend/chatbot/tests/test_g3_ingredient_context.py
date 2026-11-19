@@ -501,3 +501,26 @@ async def test_registered_pending_duplicate_shade_keeps_question(setup):
     assert result.chat_context.session == pending.chat_context.session
     assert not result.ingredient_results
     assert redis.writes == writes
+
+
+@pytest.mark.anyio
+async def test_g4_option_search_replaces_pending_without_rebuilding_g3(setup):
+    from tests.test_g4_option_search import OptionCatalog
+
+    service, _, repo, _ = setup
+    first = await service.answer(request(), "user:a")
+    pending = await ask_shade(service, first.chat_context)
+    assert pending.pending_clarification
+    service._catalog = OptionCatalog()
+    service._llm.plan = {
+        "intent": "refine",
+        "scope": "previous",
+        "optionSearch": True,
+        "maxPriceKRW": 10000,
+    }
+    result = await service.answer(
+        request(pending.chat_context, "그중 만원 이하 옵션으로 찾아줘"), "user:a"
+    )
+    assert result.option_search and result.pending_clarification is None
+    state = await repo.load("user:a", result.chat_context.session)
+    assert state.pending_clarification is None and state.context.option_scope

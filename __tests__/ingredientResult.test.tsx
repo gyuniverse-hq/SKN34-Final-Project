@@ -24,10 +24,13 @@ const evidence: ChatIngredientResult = {
     reason: 'ingredient_present', evidenceId: 'fixture-evidence' }],
 };
 
-async function render(results?: ChatIngredientResult[], shadeSelections?: Record<string, string>) {
+async function render(
+  results?: ChatIngredientResult[], shadeSelections?: Record<string, string>,
+  { summary = 'Original server answer', evidenceOnly = false } = {},
+) {
   let view!: ReactTestRenderer;
   await act(async () => { view = create(createElement(IngredientResult, {
-    heading: 'Ingredients', summary: 'Original server answer', notice: 'Information',
+    heading: 'Ingredients', summary, notice: 'Information', evidenceOnly,
     labels: { product: 'Product', ingredients: 'Ingredients', source: 'Source' },
     products: [product], results, shadeSelections,
   })); });
@@ -111,7 +114,26 @@ it('does not turn a partial list into an exclusion match', async () => {
   }]);
   expect(text(view)).toContain(en['chat.ingredient.UNKNOWN']);
   expect(text(view)).not.toContain(en['chat.ingredient.MATCH']);
+  await expandDetails(view);
   expect(text(view)).toContain(en['chat.ingredient.partial']);
+  await act(async () => { view.unmount(); });
+});
+
+it.each([false, true])('shows the selected shade name and one coverage reason (evidence only=%s)', async (evidenceOnly) => {
+  const reason = en['chat.ingredient.partial'];
+  const view = await render([{
+    ...evidence, shadeName: 'Earl Grey 70%', ingredientCoverage: 'partial',
+    verdict: 'UNKNOWN', reason: 'absence_not_verifiable',
+    conditions: [{ ...evidence.conditions![0], verdict: 'UNKNOWN', reason: 'absence_not_verifiable' }],
+  }], { p2: 'p2-03' }, { summary: 'Only part of the list is available.', evidenceOnly });
+  expect(text(view)).toContain('Earl Grey 70%');
+  expect(text(view)).not.toContain('p2-03');
+  if (!evidenceOnly) {
+    expect(text(view)).not.toContain(reason);
+    await expandDetails(view);
+  }
+  expect(text(view).split(reason)).toHaveLength(2);
+  expect(text(view).split(en['chat.ingredient.UNKNOWN'])).toHaveLength(2);
   await act(async () => { view.unmount(); });
 });
 
@@ -218,6 +240,9 @@ describe.each([['en', en], ['ko', ko], ['ja', ja], ['zh', zh]] as const)(
         }], {});
         expect(text(view)).toContain(dictionary[`chat.ingredient.${verdict}`]);
         expect(text(view)).toContain(dictionary[`chat.ingredient.${operator}`]);
+        await act(async () => {
+          view.root.findByProps({ accessibilityLabel: dictionary['chat.ingredient.showDetails'] }).props.onPress();
+        });
         expect(text(view)).toContain(dictionary['chat.ingredient.absent']);
         expect(text(view)).not.toContain(dictionary['chat.ingredient.unknown']);
         await act(async () => { view.unmount(); });
@@ -244,6 +269,9 @@ describe.each([['en', en], ['ko', ko], ['ja', ja], ['zh', zh]] as const)(
       const view = await render([result], colorless ? {} : { p2: 'p2-03' });
       expect(conditionRow(view, 'A')).toContain(dictionary['chat.ingredient.NOT_MATCH']);
       expect(conditionRow(view, 'B')).toContain(dictionary['chat.ingredient.ERROR']);
+      await act(async () => {
+        view.root.findByProps({ accessibilityLabel: dictionary['chat.ingredient.showDetails'] }).props.onPress();
+      });
       expect(conditionRow(view, 'B')).toContain(dictionary['chat.ingredient.network']);
       await act(async () => { view.unmount(); });
     });
@@ -262,6 +290,7 @@ it('rejects foreign selection, mismatched options and unverifiable null-option c
     { ...base, ingredientName: 'Fake error evidence', optionId: null, evidenceId: 'fabricated', verdict: 'ERROR' },
     { ...base, ingredientName: 'Unknown', verdict: 'UNKNOWN', reason: 'evidence_requires_review' },
   ] }], { p2: 'p2-03' });
+  await expandDetails(view);
   expect(conditionRow(view, 'B')).toContain(en['chat.ingredient.server']);
   expect(conditionRow(view, 'Unknown')).toContain(en['chat.ingredient.UNKNOWN']);
   for (const name of ['Foreign product', 'Foreign shade', 'Foreign option', 'Unproven match', 'Fake error evidence']) {
@@ -284,9 +313,9 @@ it.each([
   }], { p2: 'p2-03' });
   expect(conditionRow(view, 'A')).toContain(en['chat.ingredient.MATCH']);
   expect(conditionRow(view, 'B')).toContain(en[`chat.ingredient.${conditionVerdict}`]);
-  expect(conditionRow(view, 'B')).toContain(en[
-    conditionVerdict === 'ERROR' ? 'chat.ingredient.network' : 'chat.ingredient.review'
-  ]);
+  await expandDetails(view);
+  const detail = en[conditionVerdict === 'ERROR' ? 'chat.ingredient.network' : 'chat.ingredient.review'];
+  expect(text(view).split(detail)).toHaveLength(2);
   await act(async () => { view.unmount(); });
 });
 

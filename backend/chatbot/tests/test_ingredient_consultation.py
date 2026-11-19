@@ -219,6 +219,7 @@ async def test_supervisor_reuses_one_interpretation_and_keeps_public_contract(mo
     assert llm.calls == 1
     assert [p.id for p in result.products] == ["b"]
     assert result.ingredient_results[0].verdict == "MATCH"
+    assert " · 03 Rose\n" in result.answer
     assert {"ko": "충족", "en": "meets", "ja": "満た", "zh": "符合"}[locale] in result.answer
     assert result.supervisor.result.conditions[0].shade_id == "b-03"
     assert result.supervisor.result.evidence[0].evidence_id == "synthetic-b"
@@ -245,6 +246,7 @@ async def test_missing_selection_clarifies_without_api_or_first_shade(
     ).answer(request(ctx, locale))
     assert result.result_type == "clarification"
     assert catalog.calls == []
+    assert "03 Rose" not in result.answer
     assert result.supervisor.result.status == "clarification"
     assert {"ko": "선택", "en": "Select", "ja": "選んで", "zh": "选择"}[locale] in result.answer
 
@@ -279,24 +281,46 @@ async def test_screen_selection_is_revalidated(monkeypatch):
 
 @pytest.mark.anyio
 @pytest.mark.parametrize(
-    "review,coverage,reason",
+    "review,coverage,normalization,reason,explanation",
     [
-        ("unreviewed", "unknown", "evidence_not_reviewed"),
-        ("verified", "partial", "absence_not_verifiable"),
+        (
+            "unreviewed",
+            "unknown",
+            "unverified",
+            "evidence_not_reviewed",
+            "성분표가 아직 검수되지 않아 확인할 수 없어요.",
+        ),
+        (
+            "verified",
+            "partial",
+            "unverified",
+            "absence_not_verifiable",
+            "확인할 수 있는 성분표가 일부라서, 물어보신 성분이 들어 있는지 알 수 없어요.",
+        ),
+        (
+            "verified",
+            "full",
+            "unverified",
+            "absence_not_verifiable",
+            "성분 이름의 표기가 확인되지 않아, 물어보신 성분이 들어 있는지 알 수 없어요.",
+        ),
     ],
 )
-async def test_unknown_is_not_empty_or_absence(monkeypatch, review, coverage, reason):
+async def test_unknown_is_not_empty_or_absence(
+    monkeypatch, review, coverage, normalization, reason, explanation
+):
     install_http(
         monkeypatch,
         lambda req: httpx.Response(
             200,
             json=evidence(
                 name="향료",
-                status="unknown",
+                status="ok" if review == "verified" else "unknown",
                 verdict="UNKNOWN",
                 reviewStatus=review,
                 ingredientCoverage=coverage,
-                ingredients=[],
+                normalizationStatus=normalization,
+                ingredients=[{"name": "정제수", "sequence": 1}] if review == "verified" else [],
                 reason=reason,
             ),
         ),
@@ -308,6 +332,10 @@ async def test_unknown_is_not_empty_or_absence(monkeypatch, review, coverage, re
     ).answer(request(context()))
     assert result.ingredient_results[0].verdict == "UNKNOWN"
     assert result.result_type == "clarification" and result.products[0].id == "a"
+    description = f"향료: {explanation}" if review == "verified" else explanation
+    assert result.answer.splitlines()[1].startswith(description)
+    assert result.answer.count(explanation) == 1
+    assert "성분 부재를 확정" not in result.answer and "미검출" not in result.answer
 
 
 @pytest.mark.anyio
@@ -704,6 +732,7 @@ async def test_lookup_failure_survives_supervisor_as_error_not_empty(monkeypatch
     assert result.ingredient_results[0].reason == "source_unavailable"
     assert result.ingredient_results[0].verdict == "ERROR"
     assert result.result_type != "empty" and "조회 중 오류" in result.answer
+    assert " · 03 Rose\n" in result.answer and "성분표가 일부" not in result.answer
 
 
 def test_response_rejects_foreign_product_and_shade():

@@ -35,7 +35,36 @@ const categories: { id: Category; image: number; label: TranslationKey; caption:
   { id: 'style', image: styleBrowseImage, label: 'chat.ui.style', caption: 'chat.ui.styleCaption', prompts: ['chat.ui.styleQuestion1', 'chat.ui.styleQuestion2', 'chat.ui.styleQuestion3'] },
 ];
 
-function RelatedProducts({ refs, question, category, chatContext, evidence, selectedShades, onSelectShade, onSelectProduct, selectedProductId, fragrance, onOpenEvidence }: {
+function OptionSearchScope({ result }: { result: NonNullable<ChatMessage['optionSearch']> }) {
+  const { t } = useI18n();
+  const [expanded, setExpanded] = useState(false);
+  const scope = result.checkedScope;
+  const reason = scope.stoppedReason === 'TIMEOUT' ? 'chat.option.scopeTimeout'
+    : scope.exhaustive ? 'chat.option.scopeComplete' : 'chat.option.scopeLimited';
+  return (
+    <View style={styles.conditionArea}>
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded }}
+        onPress={() => setExpanded((open) => !open)} style={styles.retry}>
+        <Text style={styles.retryText}>{t(expanded ? 'chat.option.scopeHide' : 'chat.option.scopeShow')}</Text>
+      </Pressable>
+      {expanded ? <>
+        <Text style={styles.note}>{t(reason)}</Text>
+        <Text style={styles.note}>{t('chat.option.scopeProgress', { checked: scope.checkedOptions, total: scope.candidateOptions })}</Text>
+        <Text style={styles.note}>{t('chat.option.scopeResults', {
+          matched: result.items.filter((item) => item.group === 'ELIGIBLE').length,
+          reference: result.items.filter((item) => item.group === 'REFERENCE_ONLY').length,
+          excluded: result.excludedCount,
+        })}</Text>
+        {scope.errors > 0 ? <Text style={styles.note}>{t('chat.option.scopeErrors', { count: scope.errors })}</Text> : null}
+        {scope.unidentifiedOptions > 0 ? <Text style={styles.note}>{t('chat.option.scopeUnidentified', { count: scope.unidentifiedOptions })}</Text> : null}
+        {result.omittedCount > 0 ? <Text style={styles.note}>{t('chat.option.scopeOmitted', { count: result.omittedCount })}</Text> : null}
+      </> : null}
+    </View>
+  );
+}
+
+function RelatedProducts({ optionSearch, refs, question, category, chatContext, evidence, selectedShades, onSelectShade, onSelectProduct, selectedProductId, fragrance, onOpenEvidence }: {
+  optionSearch?: ChatMessage['optionSearch'];
   refs: ChatProductRef[]; question: string; category?: Category;
   chatContext?: BeautyChatContext; evidence?: ChatProductEvidence[];
   selectedShades: Record<string, string>;
@@ -67,10 +96,11 @@ function RelatedProducts({ refs, question, category, chatContext, evidence, sele
       {!fragrance ? <Text style={styles.relatedTitle}>{t('chat.relatedProducts')}</Text> : null}
       <ChatProducts
         products={products}
+        optionSearch={optionSearch}
         fragrance={fragrance}
         onOpenEvidence={onOpenEvidence}
         expectedIds={ids}
-        conditions={chatContext ? conditionsFromChatFilters(chatContext.filters, t) : extractChatConditions(question)}
+        conditions={chatContext?.filters.optionSearch ? [] : chatContext ? conditionsFromChatFilters(chatContext.filters, t) : extractChatConditions(question)}
         candidateOrder={chatContext?.candidateIds ?? ids}
         selectedShades={selectedShades}
         selectedProductId={selectedProductId}
@@ -429,6 +459,7 @@ function ChatConversation({ record, onRecent, onNew }: {
               : api?.status === 503 && api.code?.startsWith('chat_session_') ? 'chat.session.storageError'
                 : api?.code === 'shade_not_found' ? 'chat.ingredient.shadeMissing'
                   : api?.status === 404 ? 'chat.ingredient.productMissing'
+                    : api?.code === 'option_search_unavailable' ? 'chat.option.searchUnavailable'
                     : api?.status === 503 ? 'chat.ingredient.server'
                       : api?.status === 0 ? 'chat.ingredient.network' : 'chat.ui.error';
       store().failRequest(ticket, errorKey, !!fatal, !!api?.code?.startsWith('chat_owner_'), clarificationConflict);
@@ -621,7 +652,8 @@ function ChatConversation({ record, onRecent, onNew }: {
                   </Pressable> : null}
                 </View>
               ) : null}
-              {message.role === 'assistant' && !message.fragranceSearchSummary && message.products?.length ? <RelatedProducts refs={message.products}
+              {message.role === 'assistant' && message.optionSearch ? <OptionSearchScope result={message.optionSearch} /> : null}
+              {message.role === 'assistant' && !message.fragranceSearchSummary && message.products?.length ? <RelatedProducts refs={message.products} optionSearch={message.optionSearch}
                 question={message.question ?? ''} category={message.category}
                 chatContext={message.chatContext} evidence={message.evidence}
                 selectedShades={selectedShades}

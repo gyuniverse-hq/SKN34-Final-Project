@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.6-flash"
     tutorial_searches_per_minute: int = 20
     offer_searches_per_minute: int = 20
+    # Initial safety budgets, not measured throughput/SLA; tune after isolated G4 runs.
+    option_searches_per_minute: int = Field(default=20, ge=1, le=120)
+    option_search_product_limit: int = Field(default=42, ge=1, le=42)
+    option_search_work_limit: int = Field(default=42, ge=1, le=42)
+    option_search_timeout_seconds: float = Field(default=15, gt=0, le=15)
     # Public Supabase values, used only to verify access tokens.
     supabase_url: str | None = None
     supabase_publishable_key: str | None = None
