@@ -1,15 +1,15 @@
 import { createElement, useCallback, useEffect, useRef, useState } from 'react';
 import { parseFaceFit, parseFaceFitStatus, parseFaceShape } from '@/lib/faceFit';
 import { parseSkinTone } from '@/lib/foundationMatch';
-import type { ArFaceViewProps, LightHint } from './ArFaceView';
+import type { ArFaceViewProps, LightHint, PoseHint } from './ArFaceView';
 import { FACE_TRACKER_HTML, type ArStatus } from './faceTrackerHtml';
 
-export function ArFaceView({ makeup, compare, guide = null, fillPreview = false, onStatus, onLightHint, onSkinTone, onFaceFit, onFaceFitStatus, renderCommand = null, onRenderResult }: ArFaceViewProps) {
+export function ArFaceView({ makeup, compare, guide = null, fillPreview = false, onStatus, onLightHint, onPoseHint, poseEnabled = false, onSkinTone, onFaceFit, onFaceFitStatus, renderCommand = null, onRenderResult }: ArFaceViewProps) {
   const [frame, setFrame] = useState<HTMLIFrameElement | null>(null);
   const stateSeq = useRef(0);
-  const latest = useRef({ makeup, compare, guide, fillPreview, onStatus, onLightHint, onSkinTone, onFaceFit, onFaceFitStatus, renderCommand, onRenderResult });
+  const latest = useRef({ makeup, compare, guide, fillPreview, poseEnabled, onStatus, onLightHint, onPoseHint, onSkinTone, onFaceFit, onFaceFitStatus, renderCommand, onRenderResult });
   useEffect(() => {
-    latest.current = { makeup, compare, guide, fillPreview, onStatus, onLightHint, onSkinTone, onFaceFit, onFaceFitStatus, renderCommand, onRenderResult };
+    latest.current = { makeup, compare, guide, fillPreview, poseEnabled, onStatus, onLightHint, onPoseHint, onSkinTone, onFaceFit, onFaceFitStatus, renderCommand, onRenderResult };
   });
 
   const send = useCallback(
@@ -29,12 +29,13 @@ export function ArFaceView({ makeup, compare, guide = null, fillPreview = false,
   useEffect(() => send({ type: 'compare', value: compare }), [compare, send]);
   useEffect(() => send({ type: 'guide', guide }), [guide, send]);
   useEffect(() => send({ type: 'preview', fill: fillPreview }), [fillPreview, send]);
+  useEffect(() => send({ type: 'pose_enabled', value: poseEnabled }), [poseEnabled, send]);
 
   useEffect(() => {
     if (!frame) return;
     const onMessage = (event: MessageEvent) => {
       if (event.source !== frame.contentWindow || typeof event.data !== 'string') return;
-      let message: { type?: string; status?: string; value?: LightHint | null; lab?: unknown; conf?: unknown; rec?: unknown; state?: unknown; shape?: unknown; commandId?: unknown; restoreId?: unknown; renderSeq?: unknown; rendererId?: unknown };
+      let message: { type?: string; status?: string; value?: LightHint | PoseHint | null; lab?: unknown; conf?: unknown; rec?: unknown; state?: unknown; shape?: unknown; commandId?: unknown; restoreId?: unknown; renderSeq?: unknown; rendererId?: unknown };
       try {
         message = JSON.parse(event.data);
       } catch {
@@ -46,6 +47,7 @@ export function ArFaceView({ makeup, compare, guide = null, fillPreview = false,
         send({ type: 'compare', value: latest.current.compare });
         send({ type: 'guide', guide: latest.current.guide });
         send({ type: 'preview', fill: latest.current.fillPreview });
+      send({ type: 'pose_enabled', value: latest.current.poseEnabled });
       } else if (message.type === 'render_result') {
         const command = latest.current.renderCommand;
         if (command && command.kind !== 'restore' && message.commandId === command.commandId && message.renderSeq === command.renderSeq &&
@@ -65,6 +67,9 @@ export function ArFaceView({ makeup, compare, guide = null, fillPreview = false,
       } else if (message.type === 'light_hint') {
         const hint = message.value === 'low' || message.value === 'blown' ? message.value : null;
         latest.current.onLightHint?.(hint);
+      } else if (message.type === 'pose_hint') {
+        const hint = message.value === 'closer' || message.value === 'farther' || message.value === 'front' || message.value === 'center' ? message.value : null;
+        latest.current.onPoseHint?.(hint);
       } else if (message.type === 'skin_tone') {
         const tone = parseSkinTone(message);
         if (tone) latest.current.onSkinTone?.(tone);

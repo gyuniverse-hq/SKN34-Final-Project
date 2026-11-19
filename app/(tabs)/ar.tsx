@@ -26,7 +26,7 @@ import {
   type GestureResponderEvent,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArFaceView, type LightHint } from '@/components/ar/ArFaceView';
+import { ArFaceView, type LightHint, type PoseHint } from '@/components/ar/ArFaceView';
 import { ArSheet } from '@/components/ar/ArSheet';
 import { ArZoneWheel, zoneWheelRadius } from '@/components/ar/ArZoneWheel';
 import { OpenArcPalette } from '@/components/ar/OpenArcPalette';
@@ -66,9 +66,8 @@ import { useArCommand } from '@/hooks/useArCommand';
 import { MIN_TONE_CONF, rankFoundationShades, type SkinTone } from '@/lib/foundationMatch';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useTryOnProducts } from '@/lib/queries';
-import { demoLookVideoId } from '@/lib/demoLookAr';
-import { LOOK_STRENGTH_MAX, LOOK_STRENGTH_MIN, videoLookMakeup } from '@/lib/videoLookMakeup';
-import { hasVideoLookStyle } from '@/lib/videoLookStyles';
+import { demoLookTitleKey, isDemoLook } from '@/lib/demoLookAr';
+import { LOOK_STRENGTH_DEFAULT, LOOK_STRENGTH_MAX, LOOK_STRENGTH_MIN, videoLookMakeup } from '@/lib/videoLookMakeup';
 import { parseFlag, parseId, productHref, recommendationsHref } from '@/lib/routes';
 import { useCartStore } from '@/store/cartStore';
 import { isLipBaseCare, LIP_TEXTURE_CHIPS, lipCareKind, lipTextureChip } from '@/lib/lipCare';
@@ -166,6 +165,7 @@ export default function ArTryOnScreen() {
   const compareParam = parseFlag(params.compare);
   const [status, setStatus] = useState<ArStatus>('loading');
   const [lightHint, setLightHint] = useState<LightHint | null>(null);
+  const [poseHint, setPoseHint] = useState<PoseHint | null>(null);
   const [skinTone, setSkinTone] = useState<SkinTone | null>(null);
   const [faceFitHints, setFaceFitHints] = useState<FaceFitHint[] | null>(null);
   const [faceShape, setFaceShape] = useState<FaceShape | null>(null);
@@ -526,10 +526,15 @@ export default function ArTryOnScreen() {
   const practiceIndex = practice ? Math.min(practice.index, zonesOfSteps.length - 1) : 0;
   const practiceZone = zonesOfSteps[practiceIndex] ?? null;
   // Video look finish strength (1 = the look's tuned values), kept per look so a new look starts from 1.
-  const [lookStrengthPick, setLookStrengthPick] = useState<{ lookId: string | null; value: number }>({ lookId: null, value: 1 });
-  const lookStrength = lookStrengthPick.lookId === (activeLook?.id ?? null) ? lookStrengthPick.value : 1;
+  const [lookStrengthPick, setLookStrengthPick] = useState<{ lookId: string | null; value: number }>({ lookId: null, value: LOOK_STRENGTH_DEFAULT });
+  const lookStrength = lookStrengthPick.lookId === (activeLook?.id ?? null) ? lookStrengthPick.value : LOOK_STRENGTH_DEFAULT;
   const setLookStrength = (value: number) => setLookStrengthPick({ lookId: activeLook?.id ?? null, value });
-  const lookFinishOn = fromVideo && !fit && !routeProductId && !!activeLook && hasVideoLookStyle(demoLookVideoId(activeLook.id));
+  const lookFinishOn = fromVideo && !fit && !routeProductId && !!activeLook && isDemoLook(activeLook.id);
+  const onPoseHint = useCallback((hint: PoseHint | null) => {
+    if (lookFinishOn || hint === null) setPoseHint(hint);
+  }, [lookFinishOn]);
+  const lookTitleKey = activeLook ? demoLookTitleKey(activeLook.id) : null;
+  const lookDisplayTitle = lookTitleKey ? t(lookTitleKey) : (activeLook?.title ?? '');
   const shownMakeup = useMemo(() => {
     const face = practicing && !peek && practice ? revealedMakeup(makeup, practice.visited) : makeup;
     return videoLookMakeup(arPaintMakeup(face), {
@@ -669,8 +674,10 @@ export default function ArTryOnScreen() {
           compare={compare}
           guide={guide}
           fillPreview
-          onStatus={setStatus}
+          onStatus={(next) => { setStatus(next); if (next !== 'tracking') setPoseHint(null); }}
           onLightHint={setLightHint}
+          onPoseHint={onPoseHint}
+          poseEnabled={lookFinishOn}
           onSkinTone={setSkinTone}
           onFaceFit={onFaceFit}
           onFaceFitStatus={onFaceFitStatus}
@@ -695,7 +702,7 @@ export default function ArTryOnScreen() {
             <Text style={styles.overlayText}>{t('ar.loading')}</Text>
           </View>
         ) : null}
-        {status === 'no-face' ? (
+        {status === 'no-face' && !lookFinishOn ? (
           <View style={styles.noFace}>
             <Text style={styles.hintText}>{t('ar.noFace')}</Text>
             <View style={styles.noFaceActions}>
@@ -707,7 +714,8 @@ export default function ArTryOnScreen() {
               </Pressable>
             </View>
           </View>
-        ) : status === 'tracking' && lightHint ? (
+        ) : status === 'tracking' && !lookFinishOn && lightHint ? (
+          // Look-finish mode shows light/pose/no-face coaching under the slim strength card so the card does not cover it.
           <View style={styles.hintPill} pointerEvents="none">
             <Text style={styles.hintText}>
               {t(lightHint === 'blown' ? 'ar.lightHint.blown' : 'ar.lightHint.low')}
@@ -783,23 +791,54 @@ export default function ArTryOnScreen() {
       }}
     />
   ) : null;
+  const coachHint = lookFinishOn && status === 'tracking'
+    ? (lightHint
+      ? t(lightHint === 'blown' ? 'ar.lightHint.blown' : 'ar.lightHint.low')
+      : poseHint
+        ? t(`ar.poseHint.${poseHint}`)
+        : null)
+    : null;
   const notices = (
-    <View style={styles.notices}>
+    <View style={styles.notices} pointerEvents="box-none">
         {showsDemo ? <Text style={styles.sampleNotice}>{t('ar.demoColors')}</Text> : null}
-        {activeLook && !fit ? (
-          <Text style={styles.lookBanner} numberOfLines={1}>
-            {t(modified.length > 0 ? 'ar.lookModified' : 'ar.lookApplied', { title: activeLook.title })}
-          </Text>
-        ) : null}
-        {fromVideo ? <Text style={styles.warnBanner}>{t('videoAr.notice')}</Text> : null}
         {lookFinishOn ? (
-          <View style={styles.foundBox}>
-            <Text style={styles.foundTitle}>{t('videoAr.lookStrength')} · {Math.round(lookStrength * 100)}%</Text>
+          <View style={styles.lookFinishCard}>
+            <View style={styles.lookFinishHead}>
+              <Text style={styles.lookFinishTitle} numberOfLines={1}>
+                {modified.length > 0
+                  ? t('ar.lookModified', { title: lookDisplayTitle })
+                  : lookDisplayTitle}
+              </Text>
+              <Text style={styles.lookFinishPct}>{Math.round(lookStrength * 100)}%</Text>
+            </View>
             <CoverageBar
+              inset
+              compact
               value={(lookStrength - LOOK_STRENGTH_MIN) / (LOOK_STRENGTH_MAX - LOOK_STRENGTH_MIN)}
               labels={{ title: t('videoAr.lookStrength'), low: t('videoAr.lookStrengthLow'), high: t('videoAr.lookStrengthHigh') }}
               onChange={(value) => setLookStrength(LOOK_STRENGTH_MIN + value * (LOOK_STRENGTH_MAX - LOOK_STRENGTH_MIN))}
             />
+          </View>
+        ) : activeLook && !fit ? (
+          <Text style={styles.lookBanner} numberOfLines={1}>
+            {t(modified.length > 0 ? 'ar.lookModified' : 'ar.lookApplied', { title: lookDisplayTitle || activeLook.title })}
+          </Text>
+        ) : null}
+        {lookFinishOn && status === 'no-face' ? (
+          <View style={styles.coachPanel}>
+            <Text style={styles.coachText}>{t('ar.noFace')}</Text>
+            <View style={styles.noFaceActions}>
+              <Pressable onPress={retry} accessibilityRole="button" style={styles.pillBtn}>
+                <Text style={styles.pillBtnText}>{t('common.retry')}</Text>
+              </Pressable>
+              <Pressable onPress={() => setSwatchOnly(true)} accessibilityRole="button" style={styles.pillBtn}>
+                <Text style={styles.pillBtnText}>{t('ar.viewSwatches')}</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : coachHint ? (
+          <View style={styles.coachPill} pointerEvents="none">
+            <Text style={styles.coachText}>{coachHint}</Text>
           </View>
         ) : null}
         {routeSelection.shadeMissing ? (
@@ -1716,8 +1755,29 @@ const styles = StyleSheet.create({
   topIconVisual: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(30,22,27,0.46)' },
   cartBadge: { position: 'absolute', top: 1, right: 0, minWidth: 16, paddingHorizontal: 3, borderRadius: 8, backgroundColor: theme.colors.rose, color: '#FFFFFF', fontSize: 9, textAlign: 'center' },
   bottomShade: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '48%' },
-  notices: { gap: 4, zIndex: 2 },
+  notices: { gap: 10, zIndex: 2, paddingTop: 4 },
   sampleNotice: { alignSelf: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, color: '#FFFFFF', fontSize: 10, backgroundColor: 'rgba(30,22,27,0.6)' },
+  coachPill: {
+    alignSelf: 'center',
+    maxWidth: '88%',
+    marginTop: 2,
+    backgroundColor: theme.colors.overlay,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: theme.radius.pill,
+  },
+  coachPanel: {
+    alignSelf: 'center',
+    width: '88%',
+    marginTop: 2,
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: theme.colors.overlay,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: theme.radius.md,
+  },
+  coachText: { color: theme.colors.white, fontSize: 12, fontWeight: '600', textAlign: 'center' },
   arcDock: { position: 'absolute', bottom: 0, width: '100%' },
   sideControls: { position: 'absolute', width: '100%', paddingHorizontal: 16, height: 226, zIndex: 8 },
   leftTools: { position: 'absolute', left: 16, top: 58, gap: 6, zIndex: 4 },
@@ -1792,6 +1852,18 @@ const styles = StyleSheet.create({
   exploreContent: { gap: 10, paddingBottom: 4 },
   hScroll: { flexGrow: 0 },
   lookBanner: { marginHorizontal: 16, fontSize: 12, fontWeight: '700', color: theme.colors.rose },
+  lookFinishCard: {
+    marginHorizontal: 16,
+    paddingHorizontal: 10,
+    paddingTop: 6,
+    paddingBottom: 4,
+    gap: 2,
+    borderRadius: theme.radius.md,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+  },
+  lookFinishHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  lookFinishTitle: { flex: 1, fontSize: 12, fontWeight: '800', color: theme.colors.ink },
+  lookFinishPct: { fontSize: 11, fontWeight: '700', color: theme.colors.rose },
   zoneScroll: { flexGrow: 0, marginHorizontal: 16, backgroundColor: theme.colors.surfaceAlt, borderRadius: theme.radius.md },
   zoneRow: { padding: 3 },
   zoneTab: { flexDirection: 'row', paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, borderRadius: 10 },
