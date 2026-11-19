@@ -54,7 +54,7 @@ import { adjustMakeupFromChat } from '@/lib/arChatAdjust';
 import { isSafeExternalUrl } from '@/lib/externalLink';
 import { formatKRW } from '@/lib/format';
 import { LINER_LOOK_IDS, LINER_LOOKS, matchingLinerLook } from '@/lib/linerLooks';
-import { SHADOW_FINISH_IDS, shadowFinishOf } from '@/lib/shadowFinishes';
+import { SHADOW_FINISH_IDS, glitterTraitsOf, shadowFinishOf } from '@/lib/shadowFinishes';
 import { findColorGaps, recommendShades, type LookLine } from '@/lib/colorGaps';
 import { guideMessage } from '@/lib/drawGuide';
 import { buildGuideSteps, guideText } from '@/lib/lookGuide';
@@ -236,12 +236,16 @@ export default function ArTryOnScreen() {
     clearZone,
     clearLipCare,
     patchGeometry,
+    setShadowPoint,
     setIntensity,
     revertZone,
     fit,
     endFit,
     clearLookMascara,
   } = useMakeupStore();
+  // Eyeshadow point colour mode (11-17): while on, a swatch tap sets the second shade at the outer V / crease.
+  const [shadowPointMode, setShadowPointMode] = useState(false);
+  const shadowPointing = shadowPointMode && zone === 'eyeshadow' && !!makeup.eyeshadow;
   const [blushTrackW, setBlushTrackW] = useState(0);
   const blushTrackWRef = useRef(0);
   const addMany = useCartStore((s) => s.addMany);
@@ -290,6 +294,9 @@ export default function ArTryOnScreen() {
       ),
     [zoneSwatches, selections, zone]
   );
+  // 11-17 v7: a metallic eyeshadow (read from its name) is drawn as a metallic glitter and labelled next to its name.
+  const shadowMetal =
+    zone === 'eyeshadow' && !!selectedTryOn && glitterTraitsOf(selectedTryOn.product.name, selectedTryOn.shade.name).metal;
   const nearby = useNearbyExploration(
     tryOnProducts, zone, selectedTryOn, textureFilter,
     JSON.stringify([routeProductId, routeShadeId, activeLook?.id])
@@ -825,6 +832,7 @@ export default function ArTryOnScreen() {
         {nearby.active ? <Text style={styles.matchTitle}>{t('ar.explore.preview')}</Text> : null}
         <Text style={styles.matchName} numberOfLines={2}>
           {selectedTryOn.product.brand} {selectedTryOn.product.name}
+          {shadowMetal ? ` · ${t('ar.shadow.metalTag')}` : ''}
         </Text>
         <Text style={styles.matchNote} numberOfLines={1}>
           {selectedTryOn.shade.name}
@@ -1068,15 +1076,19 @@ export default function ArTryOnScreen() {
               style={styles.hScroll}
               contentContainerStyle={styles.swatches}>
               {visibleSwatches.map(({ product, shade }) => {
-                const selected = careOpen
-                  ? careSelection?.productId === product.id && careSelection?.shadeId === shade.id
-                  : selections[zone]?.productId === product.id && selections[zone]?.shadeId === shade.id;
+                const selected = shadowPointing
+                  ? makeup.eyeshadow?.hexTo === shade.hex
+                  : careOpen
+                    ? careSelection?.productId === product.id && careSelection?.shadeId === shade.id
+                    : selections[zone]?.productId === product.id && selections[zone]?.shadeId === shade.id;
                 return (
                   <Pressable
                     key={`${product.id}-${shade.id}`}
                     onPress={() => {
                       // Pressing the worn shade again takes it off (the bare lip / face shows); another shade replaces it.
-                      if (selected) {
+                      if (shadowPointing) {
+                        setShadowPoint(selected ? null : shade.hex);
+                      } else if (selected) {
                         if (careOpen) clearLipCare();
                         else clearZone(zone);
                       } else {
@@ -1114,6 +1126,7 @@ export default function ArTryOnScreen() {
                 <View style={styles.productCopy}>
                   <Text style={styles.matchName} numberOfLines={2}>
                     {selectedTryOn.product.brand} {selectedTryOn.product.name}
+                    {shadowMetal ? ` · ${t('ar.shadow.metalTag')}` : ''}
                   </Text>
                   <Text style={styles.matchNote} numberOfLines={1}>
                     {selectedTryOn.shade.name}
@@ -1288,6 +1301,20 @@ export default function ArTryOnScreen() {
                 showsHorizontalScrollIndicator={false}
                 style={styles.hScroll}
                 contentContainerStyle={styles.filters}>
+                <Chip
+                  label={t('ar.shadow.point')}
+                  selected={shadowPointing}
+                  onPress={() => setShadowPointMode((on) => !on)}
+                />
+                {makeup.eyeshadow.hexTo ? (
+                  <Chip
+                    label={t('ar.shadow.pointOff')}
+                    onPress={() => {
+                      setShadowPoint(null);
+                      setShadowPointMode(false);
+                    }}
+                  />
+                ) : null}
                 {SHADOW_FINISH_IDS.map((id) => (
                   <Chip
                     key={id}
@@ -1298,6 +1325,7 @@ export default function ArTryOnScreen() {
                 ))}
               </ScrollView>
             ) : null}
+            {shadowPointing ? <Text style={styles.swatchName}>{t('ar.shadow.pointHint')}</Text> : null}
             {(zone === 'highlighter' && makeup.highlighter) || (zone === 'contour' && makeup.contour) ? (
               <View style={styles.foundBox}>
                 <CoverageBar

@@ -1,5 +1,6 @@
 import { AR_PAINT_ZONES, arPaintMakeup, MAKEUP_ZONES, useMakeupStore, type ArProposal } from '@/store/makeupStore';
 import type { CelebLook, Product } from '@/types';
+import { PEARL_FINISH_IDS, glitterTraitsOf } from '@/lib/shadowFinishes';
 
 describe('makeup store zones', () => {
   beforeEach(() => useMakeupStore.getState().reset());
@@ -115,6 +116,27 @@ describe('makeup store zones', () => {
       // The wing angle and length belong to the look, not to the product.
       expect(s.makeup.eyeliner?.geometry).toEqual({ length: 0.3, angle: 15 });
       expect(s.modified).toEqual(['eyeliner']);
+    });
+
+    it('reads metallic / sequin / holo glitter traits from the product name (11-17 v7)', () => {
+      const metal = { id: 'm', name: '홀리카홀리카 아이메탈글리터', makeupZone: 'eyeshadow', texture: 'shimmer', shades: [] } as unknown as Product;
+      useMakeupStore.getState().applyShade(metal, shade('x', '#C9A27E'));
+      expect(useMakeupStore.getState().makeup.eyeshadow?.particle).toEqual({ metal: true, large: false, holo: false });
+      const sequin = { id: 'q', name: '홀리카홀리카 아이스팽글리터', makeupZone: 'eyeshadow', texture: 'shimmer', shades: [] } as unknown as Product;
+      useMakeupStore.getState().applyShade(sequin, shade('y', '#E0C0A0'));
+      expect(useMakeupStore.getState().makeup.eyeshadow?.particle).toEqual({ metal: false, large: true, holo: false });
+      expect(glitterTraitsOf('바닐라코 하이퍼 홀로빔 아이 글리터').holo).toBe(true);
+      expect(PEARL_FINISH_IDS).toEqual(['shimmer', 'glitter']);
+    });
+
+    it('sets and removes the eyeshadow point colour (11-17)', () => {
+      const shadow = { id: 's', makeupZone: 'eyeshadow', texture: 'matte', shades: [] } as unknown as Product;
+      useMakeupStore.getState().applyShade(shadow, shade('x', '#C9A27E'));
+      useMakeupStore.getState().setShadowPoint('#6B4A3F');
+      expect(useMakeupStore.getState().makeup.eyeshadow).toMatchObject({ hex: '#C9A27E', hexTo: '#6B4A3F' });
+      useMakeupStore.getState().setShadowPoint(null);
+      expect(useMakeupStore.getState().makeup.eyeshadow?.hexTo).toBeUndefined();
+      expect(useMakeupStore.getState().makeup.eyeshadow?.hex).toBe('#C9A27E');
     });
 
     it('keeps the second shadow tone when the shadow color is swapped', () => {
