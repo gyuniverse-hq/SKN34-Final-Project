@@ -25,6 +25,15 @@ def enabled():
         raise ApiError(404, "Not found", "not_found")
 
 
+def validate_model_input(body: ComparisonInput):
+    if get_settings().recommendation_model == "recommend-cat-v4" and (
+        body.analysis_version != "skin-analysis-v4.1" or body.scores.acne is None
+    ):
+        raise ApiError(
+            422, "A v4.1 skin analysis with an acne score is required", "acne_score_required"
+        )
+
+
 @router.post("/compare", dependencies=[Depends(enabled)])
 async def compare(
     body: ComparisonInput,
@@ -32,6 +41,7 @@ async def compare(
     session: AsyncSession = Depends(get_session),
 ):
     response.headers["Cache-Control"] = "no-store"
+    validate_model_input(body)
     return await comparison_service(session, get_settings()).compare(body)
 
 
@@ -43,6 +53,7 @@ async def recorded_compare(
     session: AsyncSession = Depends(get_session),
 ):
     response.headers["Cache-Control"] = "no-store"
+    validate_model_input(body.input)
     return await feedback_service(session, get_settings()).compare(body, user.id)
 
 

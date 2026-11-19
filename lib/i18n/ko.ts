@@ -60,6 +60,7 @@ export const ko: Dictionary = {
   'ar.arc.zones': "메이크업 부위 변경",
   'ar.arc.anchor': "기준 색",
   'ar.arc.direction': "색상 변화 방향",
+  'ar.arc.recommended': "추천 색상",
   'ar.arc.pickShade': "색상을 골라주세요",
   'ar.arc.light': "연하게",
   'ar.arc.strong': "진하게",

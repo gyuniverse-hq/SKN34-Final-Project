@@ -443,11 +443,17 @@ export interface Store {
   pickupAvailable: boolean;
 }
 
+export interface ArCartSource {
+  ownerId: string;
+  eventId: string;
+}
+
 export interface CartItem {
   productId: string;
   shadeId?: string;
   quantity: number;
   addedFromLookId?: string;
+  arCartSources?: (ArCartSource | null)[];
 }
 
 export interface ShoppingListLine {

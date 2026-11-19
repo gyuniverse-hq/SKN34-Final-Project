@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 
 from .mobile_export import ROOT
-from .mobile_export_v3 import export
+from .mobile_export_common import export
 
 DEFAULT_BUNDLE = ROOT / "ml/runs/skin-analysis-v4/bundle"
 

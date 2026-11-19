@@ -60,6 +60,7 @@ export const zh: Dictionary = {
   'ar.arc.zones': "切换化妆部位",
   'ar.arc.anchor': "基准色",
   'ar.arc.direction': "颜色变化方向",
+  'ar.arc.recommended': "推荐色号",
   'ar.arc.pickShade': "请选择色号",
   'ar.arc.light': "淡",
   'ar.arc.strong': "浓",

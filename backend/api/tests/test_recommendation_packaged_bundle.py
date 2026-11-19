@@ -19,7 +19,10 @@ from tests.test_recommendation_comparison import body, catalog, option
 @pytest.mark.parametrize("goal", ["pores", "wrinkles", "pigmentation"])
 def test_committed_v3_runs_without_training_artifacts(goal):
     bundle = PROJECT_ROOT / "ml/runs/recommend-cat-v3/bundle"
-    assert Settings(_env_file=None).recommendation_bundle_path == bundle
+    assert (
+        Settings(_env_file=None, recommendation_model="recommend-cat-v3").recommendation_bundle_path
+        == bundle
+    )
     assert (bundle / "README.md").is_file()
     manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
     model_hash = hashlib.sha256((bundle / "model.cbm").read_bytes()).hexdigest()
@@ -45,3 +48,28 @@ def test_committed_v3_runs_without_training_artifacts(goal):
     assert result["model"]["version"] == "recommend-cat-v3"
     assert len(result["model"]["features"]) == 10
     assert result["secondaryRecommendation"]["model"]["version"] == "recommend-cat-v3"
+
+
+def test_v4_bundle_runs_with_acne_score_and_rejects_missing_input():
+    bundle = PROJECT_ROOT / "ml/runs/recommend-cat-v4/bundle"
+    assert Settings(_env_file=None).recommendation_bundle_path == bundle
+    request = body(
+        analysisVersion="skin-analysis-v4.1",
+        scores={
+            "pores": 0.8,
+            "pigmentation": 0.2,
+            "wrinkles": 0.8,
+            "acne": 0.71,
+        },
+    )
+    seeds, info = predict_seeds(request, "pores", str(bundle))
+    assert info["version"] == "recommend-cat-v4"
+    assert info["features"]["acne_score"] == 0.71
+    assert len(seeds) == 5
+    candidates = [option(f"p{i}", [seed["id"]]) for i, seed in enumerate(seeds)]
+    result = recommend_v2(
+        request, "pores", catalog(candidates), str(bundle), model_name="recommend-cat-v4"
+    )
+    assert result["status"] == "ok" and result["model"]["version"] == "recommend-cat-v4"
+    with pytest.raises(ValueError, match="acne_score_required"):
+        predict_seeds(body(), "pores", str(bundle))

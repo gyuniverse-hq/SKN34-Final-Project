@@ -60,6 +60,7 @@ export const ja: Dictionary = {
   'ar.arc.zones': "メイク部位を変更",
   'ar.arc.anchor': "基準の色",
   'ar.arc.direction': "色の変化方向",
+  'ar.arc.recommended': "おすすめの色",
   'ar.arc.pickShade': "色を選んでください",
   'ar.arc.light': "薄く",
   'ar.arc.strong': "濃く",

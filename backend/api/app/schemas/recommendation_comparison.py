@@ -1,9 +1,11 @@
 """Development comparison contract: numeric analysis only; no images or identifiers."""
 
 from typing import Annotated, Literal
+from uuid import UUID
 
 from pydantic import Field
 
+from app.schemas.catalog import Product
 from app.schemas.skincare import StrictModel
 
 
@@ -11,13 +13,14 @@ class AnalysisScores(StrictModel):
     pores: float = Field(ge=0, le=1)
     pigmentation: float = Field(ge=0, le=1)
     wrinkles: float = Field(ge=0, le=1)
+    acne: float | None = Field(default=None, ge=0, le=1)
 
 
 class ComparisonInput(StrictModel):
     age_group: Literal["10대", "20대", "30대", "40대", "50대", "60대"]
     gender: Literal["남성", "여성"]
     skin_type: Literal["건성", "중성", "지성", "복합성"]
-    analysis_version: Literal["skin-analysis-v4"]
+    analysis_version: Literal["skin-analysis-v4", "skin-analysis-v4.1"]
     score_kind: Literal["binary_caution_probability"]
     aggregation: Literal["mean-cheeks-pore-tone-eyes-wrinkle-v1"]
     scores: AnalysisScores
@@ -45,6 +48,9 @@ class CandidateOption(StrictModel):
     subcategory: str | None = None
     skin_types: list[str] = Field(default_factory=list)
     label_source: str | None = None
+    product: Product | None = None
+    option_name: str = ""
+    price_krw: int = Field(default=0, alias="priceKRW", ge=0)
 
 
 class ComparisonCatalog(StrictModel):
@@ -55,3 +61,22 @@ class ComparisonCatalog(StrictModel):
     source_manifest: dict[str, str]
     functions_by_id: dict[int, list[str]] = Field(default_factory=dict)
     functions_by_concern: dict[str, list[str]] = Field(default_factory=dict)
+
+
+class SkinV2Match(StrictModel):
+    product: Product
+    option_id: str
+    option_name: str
+    price_krw: int = Field(alias="priceKRW", ge=0)
+    candidate_id: UUID | None = None
+
+
+class SkinV2History(StrictModel):
+    request_id: UUID
+    session_id: UUID
+
+
+class SkinV2Response(StrictModel):
+    target_concern: Literal["pores", "pigmentation", "wrinkles"]
+    matches: list[SkinV2Match]
+    history: SkinV2History | None = None

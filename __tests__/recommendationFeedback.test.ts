@@ -1,10 +1,11 @@
-import { ApiError } from '@/lib/api';
+import { apiPost, ApiError } from '@/lib/api';
 import { comparisonPost } from '@/lib/recommendationComparison';
 import { halfVisible, recommendationContext, RecommendationFeedback, recommendationLink } from '@/lib/recommendationFeedback';
 import type { ComparisonProduct } from '@/types/recommendationComparison';
 
 jest.mock('expo', () => ({ ...jest.requireActual('expo'), uuid: { v4: jest.fn(() => `id-${Math.random()}`) } }));
 jest.mock('@/lib/recommendationComparison', () => ({ comparisonPost: jest.fn() }));
+jest.mock('@/lib/api', () => ({ ...jest.requireActual('@/lib/api'), apiPost: jest.fn() }));
 const post = jest.mocked(comparisonPost);
 const item = { candidateId: 'candidate', productId: 'p', optionId: 'o', rank: 1 } as ComparisonProduct;
 beforeEach(() => { post.mockReset(); post.mockResolvedValue({}); });
@@ -60,4 +61,21 @@ test('opaque navigation context requires both its owner and matching product', (
   expect(recommendationContext('unknown', 'member-a', 'p')).toBeUndefined();
   recommendationLink(new RecommendationFeedback('member-b', 'other'), item);
   expect(recommendationContext(link, 'member-a', 'p')).toBeUndefined();
+});
+
+test('regular recommendations link one real impression to the view and cart event', async () => {
+  const productionPost = jest.mocked(apiPost);
+  productionPost.mockResolvedValue({});
+  const feedback = new RecommendationFeedback('owner', 'session', 'skin_recommendations');
+  await feedback.event(item, 'product_view');
+  await feedback.event(item, 'cart_add');
+  expect(productionPost.mock.calls.map(call => call[0])).toEqual([
+    '/api/recommendations/skin-v2/impressions', '/api/recommendations/skin-v2/events',
+    '/api/recommendations/skin-v2/events',
+  ]);
+  const [impression, view, cart] = productionPost.mock.calls.map(call => call[1]) as { impressionId: string }[];
+  expect(impression).toMatchObject({ surface: 'skin_recommendations', visibilityPolicyVersion: 'direct-interaction-v1' });
+  expect(view).toMatchObject({ impressionId: impression.impressionId, productId: 'p', optionId: 'o', eventType: 'product_view' });
+  expect(cart).toMatchObject({ impressionId: impression.impressionId, productId: 'p', optionId: null, eventType: 'cart_add' });
+  expect(post).not.toHaveBeenCalled();
 });

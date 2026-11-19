@@ -1,9 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
-import { createPreprocessor, detectRegions, inputCrop } from '../modules/skin-analysis/web/preprocessing.mjs';
+import { createPreprocessor, detectRegions, inputCrop, resizePillow } from '../modules/skin-analysis/web/preprocessing.mjs';
 import { createJpegRoundTrip } from '../modules/skin-analysis/web/jpeg.mjs';
 import { CaptureGate, previewFace } from '../modules/skin-analysis/web/gate.mjs';
 import { decodeGrade, decodeBinary, meanSkinType, validateModelManifest } from '../modules/skin-analysis/web/model-contract.mjs';
@@ -13,6 +14,12 @@ const assets = require('./skin-models.cjs').preparedSkinModel(resolve('.'));
 const manifest = JSON.parse(readFileSync(resolve(assets, 'manifest.json')));
 validateModelManifest(manifest);
 const floats = name => { const bytes = readFileSync(resolve(assets, name)); return new Float32Array(bytes.buffer, bytes.byteOffset, bytes.length / 4); };
+
+test('acne resizing matches Pillow bilinear at both stages', () => {
+  const pixels = Uint8Array.from({ length: 380 * 260 * 3 }, (_, i) => (i * 37 + Math.floor(i / 13)) % 256);
+  const resized = resizePillow(resizePillow(pixels, 380, 260), 256, 256, 224);
+  assert.equal(createHash('sha256').update(resized).digest('hex'), 'a5914753442191dce68a4b89c5c61c0fcf2b38d21719ce8d45a0f25ab3864d10');
+});
 
 test('browser preprocessing matches reference resize tensors and records the separate JPEG variant', async () => {
   const cvModule = require('@techstark/opencv-js');
@@ -48,20 +55,22 @@ test('browser preprocessing matches reference resize tensors and records the sep
   } finally { image.delete(); detector.delete(); cv.FS_unlink('/web-test-face.xml'); }
 });
 
-test('only four models run with WASM CPU and preserve source logits and decoded results', { timeout: 240000 }, async () => {
-  assert.deepEqual(manifest.models.map(model => model.indicator), ['pore', 'pigmentation', 'wrinkle', 'skinType']);
-  assert.equal(Object.keys(manifest.assets).some(name => name.includes('acne')), false);
+test('selected models run with WASM CPU and preserve source outputs and decisions', { timeout: 240000 }, async () => {
+  const v41 = manifest.schema === 'skin-analysis-assets-v4.1';
+  assert.deepEqual(manifest.models.map(model => model.indicator), ['pore', 'pigmentation', 'wrinkle', 'skinType', ...(v41 ? ['acne'] : [])]);
+  assert.equal(Object.keys(manifest.assets).some(name => name === 'acne.onnx'), v41);
   const ort = require('onnxruntime-web/wasm'); ort.env.wasm.numThreads = 1;
   for (const model of manifest.models) {
     const session = await ort.InferenceSession.create(readFileSync(resolve(assets, model.file)), { executionProviders: ['wasm'] });
-    const input = new ort.Tensor('float32', floats(model.fixture), [1, 3, 256, 256]);
+    const input = new ort.Tensor('float32', floats(model.fixture), model.inputShape);
     let output;
     try {
-      output = await session.run({ image: input }); const actual = output.logits.data;
+      output = await session.run({ image: input }); const actual = output[model.output].data;
       assert.equal(actual.length, model.outputs);
       actual.forEach((value, i) => assert.ok(Math.abs(value - model.expectedLogits[i]) <= 1e-4 + 1e-3 * Math.abs(model.expectedLogits[i])));
       const best = values => values.reduce((at, value, i) => value > values[at] ? i : at, 0);
       if (model.indicator === 'skinType') assert.equal(best(actual), best(model.expectedLogits));
+      else if (model.decoder === 'ldl_score') assert.equal(actual[0] >= model.threshold, model.expectedLogits[0] >= model.threshold);
       else if (model.decoder === 'sigmoid_binary') assert.equal(decodeBinary(actual[0]).label, decodeBinary(model.expectedLogits[0]).label);
       else assert.equal(decodeGrade(actual[0], model.maxGrade), decodeGrade(model.expectedLogits[0], model.maxGrade));
       console.log(`${model.indicator}: WASM reference logits and decision matched`);
@@ -201,7 +210,7 @@ test('asset middleware serves only listed assets, and rejects uploads and traver
 test('restarting the middleware switches both the manifest and model assets using only the environment', () => {
   const previous = process.env.SKIN_ANALYSIS_MODEL;
   try {
-    for (const suffix of ['v3', 'v4']) {
+    for (const suffix of ['v4', 'v4.1']) {
       process.env.SKIN_ANALYSIS_MODEL = `skin-analysis-${suffix}`;
       const directory = require('./skin-models.cjs').preparedSkinModel(resolve('.'));
       const expected = JSON.parse(readFileSync(resolve(directory, 'manifest.json')));

@@ -58,6 +58,7 @@ export const en = {
   'ar.arc.zones': "Change makeup area",
   'ar.arc.anchor': "Reference",
   'ar.arc.direction': "Color direction",
+  'ar.arc.recommended': "Recommended shade",
   'ar.arc.pickShade': "Choose a shade",
   'ar.arc.light': "Sheer",
   'ar.arc.strong': "Strong",

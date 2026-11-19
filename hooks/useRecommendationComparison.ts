@@ -26,6 +26,17 @@ export function useRecommendationComparison() {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [hydrate]);
+  useEffect(() => {
+    if (profile?.version !== 4 || !profile.demographics) return;
+    const { age: savedAge, birthYear, gender: savedGender } = profile.demographics;
+    const upperAge = birthYear === undefined ? savedAge : new Date().getFullYear() - birthYear;
+    const lowerAge = upperAge === undefined ? undefined : birthYear === undefined ? upperAge : upperAge - 1;
+    if (upperAge !== undefined && lowerAge !== undefined && lowerAge >= 10 && upperAge < 70 &&
+        Math.floor(lowerAge / 10) === Math.floor(upperAge / 10)) {
+      setAge(previous => previous ?? `${Math.floor(upperAge / 10) * 10}대` as ComparisonAge);
+    }
+    if (savedGender) setGender(previous => previous ?? savedGender);
+  }, [profile]);
   const run = () => {
     setProblem(undefined);
     if (!age || !gender) { setProblem('comparison.needDemographics'); return; }

@@ -1,7 +1,7 @@
 import { createElement, useEffect } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { useSkinReport } from '@/hooks/useSkinReport';
-import { useSkincareRecommendations } from '@/lib/queries';
+import { useSkinV2Recommendation } from '@/hooks/useSkinV2Recommendation';
 import { SKIN_REPORT_EXAMPLE } from '@/constants/skinCare';
 import type { SkinProfile } from '@/types/skin';
 
@@ -11,7 +11,7 @@ jest.mock('@/store/skinProfileStore', () => ({
   useSkinProfileStore: (selector: (state: { profile: SkinProfile | null; hydrate: () => Promise<void> }) => unknown) =>
     selector({ profile: mockProfile, hydrate: mockHydrate }),
 }));
-jest.mock('@/lib/queries', () => ({ useSkincareRecommendations: jest.fn(() => ({ refetch: jest.fn() })) }));
+jest.mock('@/hooks/useSkinV2Recommendation', () => ({ useSkinV2Recommendation: jest.fn(() => ({ query: { refetch: jest.fn() } })) }));
 
 let flow: ReturnType<typeof useSkinReport>;
 let tree: ReactTestRenderer | undefined;
@@ -33,7 +33,7 @@ it('shows an explicit example only after storage loads and does not request live
   expect(flow.loadFailed).toBe(false);
   expect(flow.example).toBe(true);
   expect(flow.live).toBe(false);
-  expect(useSkincareRecommendations).toHaveBeenLastCalledWith(undefined);
+  expect(useSkinV2Recommendation).toHaveBeenLastCalledWith(null, true);
 });
 
 it('preserves a storage failure for the screen error state rather than hiding it behind sample success', async () => {
@@ -41,16 +41,14 @@ it('preserves a storage failure for the screen error state rather than hiding it
   await act(async () => { tree = create(createElement(Probe)); });
   expect(flow.loadFailed).toBe(true);
   expect(flow.loading).toBe(false);
-  expect(useSkincareRecommendations).toHaveBeenLastCalledWith(undefined);
+  expect(useSkinV2Recommendation).toHaveBeenLastCalledWith(null, true);
 });
 
-it('automatically requests products using only derived profile signals', async () => {
+it('passes the stored profile to the V2 recommendation hook', async () => {
   mockProfile = { ...SKIN_REPORT_EXAMPLE, analysis: { ...SKIN_REPORT_EXAMPLE.analysis, timing: { runId: 'test' } } } as SkinProfile;
   await act(async () => { tree = create(createElement(Probe)); });
   expect(flow.live).toBe(true);
-  const request = jest.mocked(useSkincareRecommendations).mock.lastCall?.[0];
-  expect(Object.keys(request ?? {}).sort()).toEqual(['detectedConcerns', 'irritationSignal', 'skinType']);
-  expect(request?.detectedConcerns).toContainEqual({ goal: 'dryness', sources: ['survey'] });
+  expect(useSkinV2Recommendation).toHaveBeenLastCalledWith(mockProfile, true);
 });
 
 it('allows a successful retry after a storage error', async () => {
