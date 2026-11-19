@@ -8,6 +8,22 @@ import { skinJa } from './skin';
 import { skinReportJa } from './skinReport';
 
 export const ja: Dictionary = {
+  'skinAccess.homeTitle': '肌分析に基づくおすすめ',
+  'skinAccess.afterAnalysis': '肌分析が完了すると利用できます。',
+  'skinAccess.afterJoin': '登録すると、肌に合ったスキンケアの提案を受けられます。',
+  'skinAccess.arInvite': 'AR体験はいかがでしたか？肌を分析して、自分に合ったスキンケアを見つけましょう。',
+  'skinAccess.analyze': '肌を分析する',
+  'skinAccess.later': 'あとで',
+  'skinAccess.reportInvite': '登録すると、このレポートに合ったスキンケアがホームに表示され、いつでも肌を再分析できます。',
+  'skinAccess.viewMembership': '会員プランを見る',
+  'skinAccess.used': '無料の肌分析は利用済みです。登録すると、いつでも再分析できます。',
+  'skinAccess.benefits': '肌分析が回数無制限・分析結果に合ったスキンケアの提案',
+  'skinAccess.active': '登録済み・ホームへ',
+  'skinAccess.devJoin': '開発用プランを30日間開始・請求なし',
+  'skinAccess.unavailable': '会員プラン準備中',
+  'skinAccess.joinFailed': '登録できませんでした。ログイン状態と接続をご確認ください。',
+  'skinAccess.linkReport': 'ログイン前にこの端末に保存した肌レポートを、このアカウントに紐づけますか？',
+  'skinAccess.link': 'アカウントに紐づける',
   'ar.arc.compareShort': '比較',
   'ar.arc.mirrorShort': 'ミラー',
   'ar.arc.infoShort': 'ご案内',

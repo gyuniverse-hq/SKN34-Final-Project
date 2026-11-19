@@ -5,11 +5,12 @@ import { useSkinV2Recommendation } from '@/hooks/useSkinV2Recommendation';
 import { SKIN_REPORT_EXAMPLE } from '@/constants/skinCare';
 import type { SkinProfile } from '@/types/skin';
 
+jest.mock('@/lib/auth', () => ({ useAuth: () => ({ ready: true, user: null }) }));
 let mockProfile: SkinProfile | null = null;
 const mockHydrate = jest.fn<Promise<void>, []>();
 jest.mock('@/store/skinProfileStore', () => ({
-  useSkinProfileStore: (selector: (state: { profile: SkinProfile | null; hydrate: () => Promise<void> }) => unknown) =>
-    selector({ profile: mockProfile, hydrate: mockHydrate }),
+  useSkinProfileStore: (selector: (state: { owner: null; profile: SkinProfile | null; hydrate: () => Promise<void> }) => unknown) =>
+    selector({ owner: null, profile: mockProfile, hydrate: mockHydrate }),
 }));
 jest.mock('@/hooks/useSkinV2Recommendation', () => ({ useSkinV2Recommendation: jest.fn(() => ({ query: { refetch: jest.fn() } })) }));
 

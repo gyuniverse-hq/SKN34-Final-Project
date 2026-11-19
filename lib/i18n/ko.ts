@@ -8,6 +8,22 @@ import { skinKo } from './skin';
 import { skinReportKo } from './skinReport';
 
 export const ko: Dictionary = {
+  'skinAccess.homeTitle': '피부 분석 맞춤 추천',
+  'skinAccess.afterAnalysis': '피부 분석 진행 후 이용할 수 있어요',
+  'skinAccess.afterJoin': '구독하면 내 피부에 맞는 기초 화장품을 추천받을 수 있어요.',
+  'skinAccess.arInvite': 'AR 체험은 마음에 드셨나요? 피부를 분석하고 내 피부에 맞는 기초 화장품도 추천받아 보세요.',
+  'skinAccess.analyze': '피부 분석하기',
+  'skinAccess.later': '다음에',
+  'skinAccess.reportInvite': '구독하면 이 분석 결과에 맞는 기초 화장품을 홈에서 추천받고, 원할 때마다 피부를 다시 분석할 수 있어요.',
+  'skinAccess.viewMembership': '구독 살펴보기',
+  'skinAccess.used': '무료 피부 분석 1회를 사용했어요. 구독하면 언제든 다시 분석할 수 있어요.',
+  'skinAccess.benefits': '피부 분석 무제한 · 분석 결과에 맞는 기초 화장품 추천',
+  'skinAccess.active': '구독 중 · 홈으로',
+  'skinAccess.devJoin': '개발용 구독 30일 시작 · 결제 없음',
+  'skinAccess.unavailable': '구독 준비 중',
+  'skinAccess.joinFailed': '구독을 시작하지 못했어요. 로그인 상태와 연결을 확인해 주세요.',
+  'skinAccess.linkReport': '이 기기에서 로그인 전에 저장한 피부 분석 결과를 이 계정에 연결할까요?',
+  'skinAccess.link': '내 계정에 연결',
   'ar.arc.compareShort': '비교',
   'ar.arc.mirrorShort': '거울',
   'ar.arc.infoShort': '안내',

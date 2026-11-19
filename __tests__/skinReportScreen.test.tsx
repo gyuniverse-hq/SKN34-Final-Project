@@ -5,10 +5,16 @@ import SkinRecommendationsScreen from '@/app/skin-recommendations';
 import { useSkinPreviewStore } from '@/store/skinPreviewStore';
 import { recommendationContext } from '@/lib/recommendationFeedback';
 import { apiPost } from '@/lib/api';
+import { offerAction } from '@/lib/confirm';
 
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
+let mockSubscribed = true;
+let mockFreeTrial: string | undefined = '1';
+jest.mock('@/hooks/useSkinAccess', () => ({ useSkinAccess: () => ({ ready: true, subscribed: mockSubscribed }) }));
+jest.mock('@/lib/confirm', () => ({ offerAction: jest.fn() }));
 jest.mock('@/lib/api', () => ({ apiPost: jest.fn().mockResolvedValue({}) }));
-jest.mock('expo-router', () => ({ Stack: { Screen: () => null }, useFocusEffect: (callback: () => void) => require('react').useEffect(callback, [callback]), useRouter: () => ({ push: mockPush, replace: jest.fn(), canGoBack: () => false }) }));
+jest.mock('expo-router', () => ({ Stack: { Screen: () => null }, useLocalSearchParams: () => ({ freeTrial: mockFreeTrial }), usePreventRemove: () => jest.fn(), useFocusEffect: (callback: () => void) => require('react').useEffect(callback, [callback]), useRouter: () => ({ push: mockPush, replace: mockReplace, canGoBack: () => false }) }));
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key, language: 'ko' }) }));
@@ -98,6 +104,46 @@ it('shows the empty state when V2 finds no products', async () => {
     const cards = screen.root.findAll(node => String(node.type) === 'ProductCard');
     expect(cards).toHaveLength(0);
   } finally {
+    mockResults = undefined;
+    await act(async () => { screen?.unmount(); });
+  }
+});
+
+it.each([false, true])('offers membership on exit and respects the choice (subscribe %s)', async subscribe => {
+  mockResults = { matches: [] };
+  mockSubscribed = false;
+  jest.mocked(offerAction).mockImplementationOnce((message, accept, later, onAccept, onLater) =>
+    subscribe ? onAccept() : onLater());
+  let screen!: renderer.ReactTestRenderer;
+  try {
+    await act(async () => { screen = renderer.create(<SkinRecommendationsScreen />); });
+    expect(screen.root.findAll(node => String(node.type) === 'ProductCard')).toHaveLength(0);
+    const home = screen.root.findAll(node => node.props.accessibilityLabel === 'tabs.home')[0];
+    await act(async () => { home.props.onPress(); });
+    expect(offerAction).toHaveBeenCalledWith('skinAccess.reportInvite', 'skinAccess.viewMembership',
+      'skinAccess.later', expect.any(Function), expect.any(Function));
+    expect(mockReplace).toHaveBeenLastCalledWith(subscribe ? '/membership' : '/(tabs)');
+  } finally {
+    mockSubscribed = true;
+    mockResults = undefined;
+    await act(async () => { screen?.unmount(); });
+  }
+});
+
+it('leaves a reopened report without repeating the free-analysis subscription invitation', async () => {
+  mockFreeTrial = undefined;
+  mockSubscribed = false;
+  mockResults = { matches: [] };
+  jest.mocked(offerAction).mockClear();
+  let screen!: renderer.ReactTestRenderer;
+  try {
+    await act(async () => { screen = renderer.create(<SkinRecommendationsScreen />); });
+    await act(async () => { screen.root.findAllByProps({ accessibilityLabel: 'tabs.home' })[0].props.onPress(); });
+    expect(offerAction).not.toHaveBeenCalled();
+    expect(mockReplace).toHaveBeenLastCalledWith('/(tabs)');
+  } finally {
+    mockFreeTrial = '1';
+    mockSubscribed = true;
     mockResults = undefined;
     await act(async () => { screen?.unmount(); });
   }

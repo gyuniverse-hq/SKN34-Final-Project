@@ -8,6 +8,22 @@ import { skinZh } from './skin';
 import { skinReportZh } from './skinReport';
 
 export const zh: Dictionary = {
+  'skinAccess.homeTitle': '肤况专属推荐',
+  'skinAccess.afterAnalysis': '完成皮肤分析后即可使用。',
+  'skinAccess.afterJoin': '订阅后即可获得适合您肤况的护肤品推荐。',
+  'skinAccess.arInvite': '喜欢这次 AR 试妆吗？分析肤况，发现适合自己的护肤品。',
+  'skinAccess.analyze': '开始皮肤分析',
+  'skinAccess.later': '下次再说',
+  'skinAccess.reportInvite': '订阅后，即可在首页查看根据本次报告推荐的护肤品，并随时重新分析肤况。',
+  'skinAccess.viewMembership': '查看会员方案',
+  'skinAccess.used': '免费皮肤分析已使用。订阅后即可随时再次分析。',
+  'skinAccess.benefits': '不限次数的皮肤分析和个性化护肤品推荐',
+  'skinAccess.active': '已订阅 · 返回首页',
+  'skinAccess.devJoin': '开启 30 天开发测试订阅 · 不收费',
+  'skinAccess.unavailable': '订阅功能筹备中',
+  'skinAccess.joinFailed': '未能开启订阅，请检查登录状态和网络连接。',
+  'skinAccess.linkReport': '将登录前保存在本设备上的皮肤报告关联到当前账户吗？',
+  'skinAccess.link': '关联到我的账户',
   'ar.arc.compareShort': '对比',
   'ar.arc.mirrorShort': '镜子',
   'ar.arc.infoShort': '说明',

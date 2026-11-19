@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient } from '@tanstack/react-query';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import { useEffect, useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ListRow } from '@/components/ui/ListRow';
 import { theme } from '@/constants/theme';
@@ -12,8 +12,8 @@ import { authErrorMessageKey, signOut, useAuth } from '@/lib/auth';
 import { confirmAction, notify } from '@/lib/confirm';
 import { LANGUAGE_LABELS, LANGUAGES, useI18n, type LanguagePreference } from '@/lib/i18n';
 import { STORAGE_KEYS } from '@/lib/storage';
-import { skinAnalysisEnabled } from '@/lib/skinAnalysis';
-import { clearSkinTimings } from '@/lib/skinProfile';
+import { pendingProfileKey } from '@/lib/skinRegistration';
+import { clearSkinTimings, skinProfileKey } from '@/lib/skinProfile';
 import { useSkinProfileStore } from '@/store/skinProfileStore';
 import { useCartStore } from '@/store/cartStore';
 import { useCompareStore } from '@/store/compareStore';
@@ -31,13 +31,6 @@ export default function MyScreen() {
   const setCameraConsent = useSettingsStore((s) => s.setCameraConsent);
   const listCount = useShoppingListStore((s) => s.lists.length);
   const { user } = useAuth();
-  const profile = useSkinProfileStore(s => s.profile);
-  const hydrate = useSkinProfileStore(s => s.hydrate);
-  const [skinLoadFailed, setSkinLoadFailed] = useState(false);
-  useEffect(() => {
-    if (skinAnalysisEnabled) void hydrate().catch(() => setSkinLoadFailed(true));
-  }, [hydrate]);
-
   const options: { value: LanguagePreference; label: string }[] = [
     { value: 'system', label: t('my.languageSystem') },
     ...LANGUAGES.map((l) => ({ value: l as LanguagePreference, label: LANGUAGE_LABELS[l] })),
@@ -52,7 +45,9 @@ export default function MyScreen() {
       useMakeupStore.getState().reset();
       queryClient.clear();
       await clearSkinTimings();
-      await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
+      const profileKeys = (await AsyncStorage.getAllKeys()).filter(key =>
+        key.startsWith(`${STORAGE_KEYS.skinProfile}:`) || key.startsWith(`${STORAGE_KEYS.firstArInvitation}:`));
+      await AsyncStorage.multiRemove([...Object.values(STORAGE_KEYS), ...profileKeys]);
       useSkinProfileStore.getState().reset();
       notify(t('my.deleteDataDone'));
     });
@@ -71,6 +66,8 @@ export default function MyScreen() {
         notify(t(unavailable ? 'account.deleteUnavailable' : 'auth.error.generic'));
         return;
       }
+      if (user) await AsyncStorage.multiRemove([skinProfileKey(user.id), pendingProfileKey(user.id), `${STORAGE_KEYS.firstArInvitation}:${user.id}`]);
+      useSkinProfileStore.getState().reset();
       await signOut().catch(() => {});
       queryClient.removeQueries({ queryKey: ['me'] });
       notify(t('account.deleteDone'));
@@ -78,14 +75,6 @@ export default function MyScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      {skinAnalysisEnabled && <Section title={t('skin.title')}>
-        <ListRow icon="scan-outline" label={t(profile ? 'skin.registerAgain' : 'skin.title')}
-          value={profile ? new Date(profile.registeredAt).toLocaleDateString() : undefined}
-          onPress={() => router.push('/skin-analysis')} />
-        <ListRow icon="speedometer-outline" label={t('skin.benchmark')} onPress={() => router.push('/dev/skin-benchmark')} />
-        {skinLoadFailed && !profile && <Text accessibilityRole="alert" style={styles.note}>{t('skin.loadFailed')}</Text>}
-        <Text style={styles.note}>{t('skin.deleteNotice')}</Text>
-      </Section>}
       <Section title={t('my.account')}>
         {user ? (
           <>

@@ -1,3 +1,4 @@
+import { getCurrentUserId } from '@/lib/auth';
 import { readSkincareRecord } from '@/lib/skincareRecord';
 import { Stack, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -56,7 +57,7 @@ export default function SkinBenchmarkScreen() {
     {__DEV__ && <View style={styles.card}>
       <Button label={t('support.devRecord')} variant="secondary" onPress={() => {
         if (record !== null) { setRecord(null); return; }
-        void readSkinProfile().then(profile => {
+        void getCurrentUserId().then(readSkinProfile).then(profile => {
           if (!profile) { setRecord(t('support.devEmpty')); return; }
           setRecord(JSON.stringify({ version: profile.version, registeredAt: profile.registeredAt,
             questionnaire: profile.questionnaire, imageType: profile.analysis.skinType,

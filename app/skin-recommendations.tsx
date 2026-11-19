@@ -2,7 +2,7 @@ import type { ComparisonAge } from '@/types/recommendationComparison';
 import type { SkinV2Result } from '@/hooks/useSkinV2Recommendation';
 import { SUPPORT_PRIORITY_CONCERNS } from '@/constants/skinSurvey';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, usePreventRemove, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { AppState, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +15,8 @@ import { InlineState } from '@/components/ui/InlineState';
 import { Notice } from '@/components/ui/Notice';
 import { LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
+import { useSkinAccess } from '@/hooks/useSkinAccess';
+import { offerAction } from '@/lib/confirm';
 import { useSkinReport } from '@/hooks/useSkinReport';
 import { useRecommendationCardFeedback } from '@/hooks/useRecommendationFeedback';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
@@ -27,7 +29,25 @@ import { useSkinPreviewStore } from '@/store/skinPreviewStore';
 export default function SkinRecommendationsScreen() {
   const router = useRouter();
   const { t } = useI18n();
-  const flow = useSkinReport();
+  const access = useSkinAccess();
+  const flow = useSkinReport(access.subscribed);
+  const { freeTrial } = useLocalSearchParams<{ freeTrial?: string }>();
+  const [invited, setInvited] = useState(false);
+  const offering = useRef(false);
+  const shouldOffer = freeTrial === '1' && flow.live && !access.subscribed && !invited;
+  const disablePrevention = usePreventRemove(shouldOffer, ({ repeat }) => invite(repeat));
+  function invite(leave: () => void) {
+    if (!shouldOffer) { leave(); return; }
+    if (offering.current) return;
+    offering.current = true;
+    const finish = (action: () => void) => {
+      setInvited(true);
+      disablePrevention();
+      action();
+    };
+    offerAction(t('skinAccess.reportInvite'), t('skinAccess.viewMembership'), t('skinAccess.later'),
+      () => finish(() => router.replace('/membership')), () => finish(leave));
+  }
   useFocusEffect(useCallback(() => () => { useSkinPreviewStore.getState().clear(); }, []));
   useEffect(() => {
     const listener = AppState.addEventListener('change', state => {
@@ -48,7 +68,7 @@ export default function SkinRecommendationsScreen() {
   const showDetail = (concern: SkinConcern) => {
     flow.setActive(concern); switchTab('results');
   };
-  const start = () => router.push('/skin-analysis');
+  const start = () => invite(() => router.push('/skin-analysis'));
   const recommendation = flow.recommendation;
   const data = recommendation.query.data;
   const cards = useMemo(() => data?.matches.map((match, index) => ({
@@ -73,14 +93,14 @@ export default function SkinRecommendationsScreen() {
     <Stack.Screen options={{ headerShown: false }} />
     <View style={styles.header}>
       <Pressable accessibilityRole="button" accessibilityLabel={t('common.back')} style={styles.iconButton}
-        onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); }}>
+        onPress={() => invite(() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); })}>
         <Ionicons name="arrow-back" size={23} color={theme.colors.ink} />
       </Pressable>
       <View style={styles.headerTitle}><Text style={styles.headerLabel}>{t('report.title')}</Text></View>
       <Pressable accessibilityRole="button" accessibilityLabel={t('report.latest')} onPress={() => setHistory(true)} style={styles.iconButton}>
         <Ionicons name="reader-outline" size={23} color={theme.colors.ink} />
       </Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel={t('tabs.home')} onPress={() => router.replace('/(tabs)')} style={styles.iconButton}>
+      <Pressable accessibilityRole="button" accessibilityLabel={t('tabs.home')} onPress={() => invite(() => router.replace('/(tabs)'))} style={styles.iconButton}>
         <Ionicons name="home-outline" size={23} color={theme.colors.ink} />
       </Pressable>
     </View>
@@ -105,6 +125,8 @@ export default function SkinRecommendationsScreen() {
           <Text style={styles.title} accessibilityRole="header">{t('report.products')}</Text>
           <Text style={styles.caption}>{t('skincare.disclosure')}</Text>
           {!flow.live ? <Text style={styles.caption}>{t('skincare.requestPrompt')}</Text>
+            : !access.subscribed ? <Button label={t('skinAccess.viewMembership')} variant="secondary"
+                onPress={() => { setInvited(true); disablePrevention(); router.push('/membership'); }} />
             : recommendation.problem === 'comparison.needDemographics' ? <View>
               <Text style={styles.caption}>{t('comparison.needDemographics')}</Text>
               <Text style={styles.panelTitle}>{t('comparison.age')}</Text>
@@ -135,13 +157,13 @@ export default function SkinRecommendationsScreen() {
                   </> : <Text style={styles.caption}>{t('skincare.emptyAi')}</Text>}
                 </View>
               </>}
-          <Button label={t('skinFlow.skip')} variant="ghost" onPress={() => router.push(searchHref({ source: 'skin' }))} />
+          <Button label={t('skinFlow.skip')} variant="ghost" onPress={() => invite(() => router.push(searchHref({ source: 'skin' })))} />
         </View>
         <SkinRoutine />
       </View> : <SkinReportDetail metrics={flow.report.metrics} active={flow.activeConcern} onChange={flow.setActive} preview={flow.preview} />}
       <View style={styles.footer}>
         {__DEV__ ? <Button label={t('comparison.title')} variant="secondary"
-          onPress={() => router.push('/dev/recommendation-comparison')} /> : null}
+          onPress={() => invite(() => router.push('/dev/recommendation-comparison'))} /> : null}
         <Notice title={t('skinFlow.notMedicalTitle')} body={t('skinFlow.notMedicalBody')} />
         <Button label={t('report.retake')} variant="secondary" onPress={start} />
         <Button label={t('report.top')} variant="ghost" icon="arrow-up" onPress={() => scroll.current?.scrollTo({ y: 0, animated: true })} />

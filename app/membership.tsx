@@ -1,5 +1,15 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { ComponentProps } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
+import { useState, type ComponentProps } from 'react';
+import { skinAccessKey, useSkinAccess, type SkinAccess } from '@/hooks/useSkinAccess';
+import { apiPost } from '@/lib/api';
+import { notify, offerAction } from '@/lib/confirm';
+import { loginHref } from '@/lib/routes';
+import { readSkinProfile } from '@/lib/skinProfile';
+import { registerSkinReport } from '@/lib/skinRegistration';
+import { STORAGE_KEYS } from '@/lib/storage';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
@@ -8,6 +18,7 @@ import { theme } from '@/constants/theme';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 
 const BENEFITS: { icon: ComponentProps<typeof Ionicons>['name']; key: TranslationKey }[] = [
+  { icon: 'water-outline', key: 'skinAccess.benefits' },
   { icon: 'gift-outline', key: 'membership.benefit1' },
   { icon: 'ticket-outline', key: 'membership.benefit2' },
   { icon: 'scan-outline', key: 'membership.benefit3' },
@@ -15,6 +26,35 @@ const BENEFITS: { icon: ComponentProps<typeof Ionicons>['name']; key: Translatio
 
 export default function MembershipScreen() {
   const { t } = useI18n();
+  const access = useSkinAccess();
+  const router = useRouter();
+  const cache = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const home = () => router.dismissTo('/(tabs)');
+  async function join() {
+    if (!access.owner) { router.push(loginHref('membership')); return; }
+    const owner = access.owner;
+    setBusy(true);
+    try {
+      if (!access.subscribed) {
+        const status = await apiPost<SkinAccess>('/api/me/skin-access/dev-subscription', {}, { expectedUserId: owner });
+        cache.setQueryData(skinAccessKey(owner), status);
+      }
+      const guest = await readSkinProfile();
+      if (guest && !await readSkinProfile(owner)) {
+        offerAction(t('skinAccess.linkReport'), t('skinAccess.link'), t('skinAccess.later'), async () => {
+          try {
+            await registerSkinReport(guest, owner);
+            await AsyncStorage.setItem(STORAGE_KEYS.guestSkinTrial, guest.analysis.timing.runId);
+            await AsyncStorage.removeItem(STORAGE_KEYS.skinProfile);
+            await cache.invalidateQueries({ queryKey: skinAccessKey(owner) });
+            home();
+          } catch { notify(t('skin.storageFailed')); }
+        }, home);
+      } else home();
+    } catch { notify(t('skinAccess.joinFailed')); }
+    finally { setBusy(false); }
+  }
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
@@ -41,7 +81,10 @@ export default function MembershipScreen() {
         </View>
       </ScrollView>
       <View style={styles.footer}>
-        <Button label={t('membership.join')} icon="star-outline" onPress={() => {}} />
+        {access.error ? <Button label={t('skin.retry')} onPress={() => { void access.retry(); }} />
+          : access.subscribed ? <Button label={t('skinAccess.active')} icon="checkmark-circle-outline" loading={busy} disabled={busy} onPress={() => { void join(); }} />
+          : <Button label={t(__DEV__ ? 'skinAccess.devJoin' : 'skinAccess.unavailable')} loading={busy}
+              disabled={!__DEV__ || !access.ready || busy} onPress={() => { void join(); }} />}
       </View>
     </SafeAreaView>
   );

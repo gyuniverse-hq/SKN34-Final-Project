@@ -9,7 +9,7 @@ import { useSkinPreviewStore } from '@/store/skinPreviewStore';
 import { SkinPreviewAssembler } from '@/lib/skinPreview';
 import type { SkinAnalysisResult, SkinCameraEvent, SkinIndicator, SkinProfileV4, SkinSurveyV3, SkinWebRun, SkinWebEvent, SkinPreview } from '@/types/skin';
 
-export function useSkinAnalysis(demographics?: SkinProfileV4['demographics']) {
+export function useSkinAnalysis(demographics?: SkinProfileV4['demographics'], register?: (profile: SkinProfileV4) => Promise<void>) {
   const [phase, setPhase] = useState<'ready' | 'camera' | 'analysis' | 'survey' | 'saving' | 'done' | 'error'>('ready');
   const [camera, setCamera] = useState<SkinCameraEvent>({ guidance: 'noFace', progress: 0 });
   const [indicator, setIndicator] = useState<SkinIndicator>('pore');
@@ -161,7 +161,7 @@ export function useSkinAnalysis(demographics?: SkinProfileV4['demographics']) {
     setPhase('saving'); setError(null);
     try {
       await appendSkinTiming(result.timing);
-      await save({ version: 4, registeredAt: new Date().toISOString(), analysis: result, questionnaire: answers,
+      await (register ?? save)({ version: 4, registeredAt: new Date().toISOString(), analysis: result, questionnaire: answers,
         fusion: fuseSupportSkinType(result.skinType, answers),
         ...(demographics && Object.keys(demographics).length ? { demographics } : {}) });
       if (pendingPreview.current?.runId === result.timing.runId) {

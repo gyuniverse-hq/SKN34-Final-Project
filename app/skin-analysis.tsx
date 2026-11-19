@@ -1,8 +1,13 @@
 import { Stack, useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
+import { skinAccessKey, useSkinAccess } from '@/hooks/useSkinAccess';
+import { ApiError } from '@/lib/api';
+import { registerSkinReport } from '@/lib/skinRegistration';
+import type { SkinProfileV4 } from '@/types/skin';
 import { useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, BackHandler, FlatList, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
@@ -15,24 +20,43 @@ import { skinAnalysisSupported, skinAnalysisUsesWebView } from '@/lib/skinAnalys
 import type { ComparisonGender } from '@/types/recommendationComparison';
 
 export default function SkinAnalysisScreen() {
+  const access = useSkinAccess();
+  return <AnalysisSession key={access.owner} access={access} />;
+}
+
+function AnalysisSession({ access }: { access: ReturnType<typeof useSkinAccess> }) {
   const { t } = useI18n();
   const router = useRouter();
+  const usedFreeAnalysis = useRef(false);
+  const cache = useQueryClient();
+  const register = async (profile: SkinProfileV4) => {
+    try { usedFreeAnalysis.current = await registerSkinReport(profile, access.owner) === 'free'; }
+    catch (error) {
+      if (error instanceof ApiError && error.code === 'skin_access_required') {
+        void access.retry();
+        router.replace('/membership');
+      }
+      throw error;
+    }
+    void cache.invalidateQueries({ queryKey: skinAccessKey(access.owner) });
+  };
   const [permission, requestPermission] = useCameraPermissions();
   const [birthYear, setBirthYear] = useState<number>();
   const [yearPickerOpen, setYearPickerOpen] = useState(false);
   const [gender, setGender] = useState<ComparisonGender>();
   const year = new Date().getFullYear();
   const years = Array.from({ length: Math.max(0, year - 1900 + 1) }, (_, index) => year - index);
-  const flow = useSkinAnalysis({ ...(birthYear !== undefined ? { birthYear } : {}), ...(gender ? { gender } : {}) });
+  const flow = useSkinAnalysis({ ...(birthYear !== undefined ? { birthYear } : {}), ...(gender ? { gender } : {}) }, register);
   const [photoError, setPhotoError] = useState(false);
   const { phase, cancel } = flow;
   useEffect(() => {
-    if (phase === 'done') router.replace('/skin-recommendations');
+    if (phase === 'done') router.replace(usedFreeAnalysis.current
+      ? { pathname: '/skin-recommendations', params: { freeTrial: '1' } } : '/skin-recommendations');
   }, [phase, router]);
-  const leave = () => { flow.cancel(); if (router.canGoBack()) router.back(); else router.replace('/(tabs)/my'); };
+  const leave = () => { flow.cancel(); if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); };
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (phase !== 'saving') { cancel(); if (router.canGoBack()) router.back(); else router.replace('/(tabs)/my'); }
+      if (phase !== 'saving') { cancel(); if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); }
       return true;
     });
     return () => subscription.remove();
@@ -58,6 +82,12 @@ export default function SkinAnalysisScreen() {
       state={flow.camera} onCapture={flow.onCapture} webRun={flow.webRun} onWebEvent={flow.onWebEvent} analyzing={flow.phase === 'analysis'} />}
     {!skinAnalysisSupported ? <View style={styles.center}>
       <Text style={styles.body}>{t('skin.unsupported')}</Text>
+    </View> : flow.phase === 'ready' && !access.ready ? <View style={styles.center}>
+      {access.error ? <Button label={t('skin.retry')} onPress={() => { void access.retry(); }} />
+        : <ActivityIndicator color={theme.colors.rose} />}
+    </View> : flow.phase === 'ready' && access.trialUsed && !access.subscribed ? <View style={styles.center}>
+      <Text style={styles.body}>{t('skinAccess.used')}</Text>
+      <Button label={t('skinAccess.viewMembership')} onPress={() => router.replace('/membership')} />
     </View> : flow.phase === 'ready' ? <ScrollView contentContainerStyle={styles.ready} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>{t('skin.title')}</Text>
       <Text style={styles.body}>{t('skin.instructions')}</Text>

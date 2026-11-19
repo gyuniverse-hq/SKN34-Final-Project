@@ -38,7 +38,7 @@ export default function HomeScreen() {
   const refresh = () => {
     looks.refetch();
     products.refetch();
-    skinMatch.products.refetch();
+    if (skinMatch.visible) skinMatch.products.refetch();
   };
 
   return (
@@ -110,14 +110,16 @@ export default function HomeScreen() {
         </View>
 
         <SkinMatchSection
-          title={skinTypeLabel ? t('home.skinMatchTitle', { type: skinTypeLabel }) : t('home.skinMatchIntro')}
-          actionLabel={skinMatch.hasProfile ? t('home.skinReanalyze') : t('home.skin')}
+          title={skinMatch.visible && skinTypeLabel ? t('home.skinMatchTitle', { type: skinTypeLabel }) : t('skinAccess.homeTitle')}
+          actionLabel={skinMatch.checking || skinMatch.failed ? undefined :
+            t(skinMatch.visible ? 'home.skinReanalyze' : skinMatch.needsSubscription ? 'skinAccess.viewMembership' : 'skinAccess.analyze')}
+          availability={skinMatch.visible ? undefined : t(skinMatch.needsSubscription ? 'skinAccess.afterJoin' : 'skinAccess.afterAnalysis')}
           products={skinMatch.products.data?.slice(0, HOME_PRODUCT_LIMIT)}
-          loading={skinMatch.products.isPending}
-          error={skinMatch.products.isError}
+          loading={skinMatch.checking || (skinMatch.visible && skinMatch.products.isPending)}
+          error={skinMatch.failed || (skinMatch.visible && skinMatch.products.isError)}
           emptyMessage={t('home.skinMatchEmpty')}
-          onAction={() => router.push('/skin-analysis')}
-          onRetry={() => skinMatch.products.refetch()}
+          onAction={() => router.push(skinMatch.needsSubscription ? '/membership' : '/skin-consent')}
+          onRetry={() => skinMatch.failed ? skinMatch.retry() : skinMatch.products.refetch()}
           onPressProduct={(p) => router.push(productHref(p.id))}
         />
 

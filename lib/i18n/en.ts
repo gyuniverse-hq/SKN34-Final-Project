@@ -6,6 +6,22 @@ import { flowsEn } from './flows';
 import { skinEn } from './skin';
 import { skinReportEn } from './skinReport';
 export const en = {
+  'skinAccess.homeTitle': 'Skincare for your skin',
+  'skinAccess.afterAnalysis': 'Available after your skin analysis.',
+  'skinAccess.afterJoin': 'Subscribe to get skincare picks for your skin.',
+  'skinAccess.arInvite': 'How was your AR try-on? Analyze your skin to discover skincare that suits you.',
+  'skinAccess.analyze': 'Analyze my skin',
+  'skinAccess.later': 'Maybe later',
+  'skinAccess.reportInvite': 'Subscribe for skincare picks based on this report on your home screen, and analyze your skin whenever you like.',
+  'skinAccess.viewMembership': 'View membership',
+  'skinAccess.used': 'You have used your free skin analysis. Subscribe to analyze again anytime.',
+  'skinAccess.benefits': 'Unlimited skin analysis and personalized skincare picks',
+  'skinAccess.active': 'Subscribed · Go home',
+  'skinAccess.devJoin': 'Start 30-day test subscription · No charge',
+  'skinAccess.unavailable': 'Subscription coming soon',
+  'skinAccess.joinFailed': 'Could not start the subscription. Check your sign-in and connection.',
+  'skinAccess.linkReport': 'Link the skin report saved before sign-in on this device to your account?',
+  'skinAccess.link': 'Link to my account',
   'ar.arc.compareShort': 'Compare',
   'ar.arc.mirrorShort': 'Mirror',
   'ar.arc.infoShort': 'Info',

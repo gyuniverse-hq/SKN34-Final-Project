@@ -4,6 +4,7 @@ import { useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
+import { useFirstArExit } from '@/hooks/useFirstArExit';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
@@ -150,6 +151,7 @@ function useCameraActive() {
 export default function ArTryOnScreen() {
   const router = useRouter();
   const navigation = useNavigation();
+  const exitAr = useFirstArExit();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ compare?: string; productId?: string; shadeId?: string; video?: string }>();
   const routeProductId = parseId(params.productId);
@@ -474,10 +476,15 @@ export default function ArTryOnScreen() {
     setArKey((k) => k + 1);
   }, []);
 
-  const backToProduct = () => {
+  const exitToPrevious = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)');
+  }, [router]);
+  const backToProduct = () => exitAr(() => {
     if (router.canGoBack()) router.back();
     else if (routeProductId) router.push(productHref(routeProductId, routeShadeId));
-  };
+    else exitToPrevious();
+  });
 
   const selectionItems = [...Object.values(selections).filter(Boolean), ...(careSelection ? [careSelection] : [])];
   // A zone wearing a color that no chosen product has (a look color the shop lacks, a linked zone):
@@ -618,14 +625,16 @@ export default function ArTryOnScreen() {
     setIsFullscreenAR(next);
   }, []);
 
-  useEffect(() => {
-    if (!isFullscreenAR) return;
+  useFocusEffect(useCallback(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      setMirrorMode(false);
+      if (isFullscreenAR) setMirrorMode(false);
+      else if (sheet) setSheet(null);
+      else if (zoneMenuOpen) setZoneMenuOpen(false);
+      else void exitAr(exitToPrevious);
       return true;
     });
     return () => sub.remove();
-  }, [isFullscreenAR, setMirrorMode]);
+  }, [exitAr, exitToPrevious, isFullscreenAR, setMirrorMode, sheet, zoneMenuOpen]));
 
   useFocusEffect(
     useCallback(() => {
@@ -976,7 +985,7 @@ export default function ArTryOnScreen() {
                 label={t('ar.backToProduct')}
                 variant="secondary"
                 icon="arrow-back-outline"
-                onPress={() => router.push({ pathname: '/product/[id]', params: { id: fit.productId, shade: fit.shadeId } })}
+                onPress={() => { void exitAr(() => router.push({ pathname: '/product/[id]', params: { id: fit.productId, shade: fit.shadeId } })); }}
                 style={{ flex: 1 }}
               />
             </View>
@@ -1618,7 +1627,7 @@ export default function ArTryOnScreen() {
       <SafeAreaView pointerEvents="box-none" style={styles.overlayScreen} edges={['top', 'left', 'right']}>
         <View pointerEvents="box-none" style={styles.topbar}>
           <Pressable accessibilityRole="button" accessibilityLabel={t('common.back')} style={styles.topIcon}
-            onPress={() => { if (isFullscreenAR) setMirrorMode(false); else if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); }}>
+            onPress={() => { if (isFullscreenAR) setMirrorMode(false); else void exitAr(exitToPrevious); }}>
             <View style={styles.topIconVisual}><Ionicons name="chevron-back" size={20} color="#FFFFFF" /></View>
           </Pressable>
           {!isFullscreenAR && !practicing && !fit ? (

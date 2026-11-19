@@ -8,6 +8,7 @@ import type { Product } from '@/types';
 export function SkinMatchSection({
   title,
   actionLabel,
+  availability,
   products,
   loading,
   error,
@@ -17,7 +18,8 @@ export function SkinMatchSection({
   onPressProduct,
 }: {
   title: string;
-  actionLabel: string;
+  actionLabel?: string;
+  availability?: string;
   products: Product[] | undefined;
   loading: boolean;
   error: boolean;
@@ -32,14 +34,16 @@ export function SkinMatchSection({
         <Text style={styles.title} accessibilityRole="header">
           {title}
         </Text>
-        <Pressable onPress={onAction} accessibilityRole="button" hitSlop={10} style={styles.action}>
+        {actionLabel && <Pressable onPress={onAction} accessibilityRole="button" hitSlop={10} style={styles.action}>
           <Text style={styles.actionText}>{actionLabel} ›</Text>
-        </Pressable>
+        </Pressable>}
       </View>
       {loading ? (
         <InlineState status="loading" />
       ) : error ? (
         <InlineState status="error" onRetry={onRetry} />
+      ) : availability ? (
+        <Text style={styles.availability}>{availability}</Text>
       ) : !products?.length ? (
         <InlineState status="empty" message={emptyMessage} />
       ) : (
@@ -59,5 +63,6 @@ const styles = StyleSheet.create({
   title: { flex: 1, fontSize: theme.font.title, lineHeight: 24, fontWeight: '800', color: theme.colors.ink },
   action: { minHeight: 32, justifyContent: 'center' },
   actionText: { fontSize: theme.font.small, fontWeight: '700', color: theme.colors.rose },
+  availability: { color: theme.colors.inkMuted, fontSize: theme.font.body, lineHeight: 22 },
   rail: { gap: 14 },
 });
