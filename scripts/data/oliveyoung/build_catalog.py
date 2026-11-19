@@ -80,6 +80,7 @@ def build_products(
     colors: dict[str, dict],
     textures: dict[str, str | None],
     thumbnails: dict[str, str],
+    finishes: dict[str, str] | None = None,
 ) -> tuple[list[dict], Counter[str]]:
     options_by_goods: dict[str, list[dict]] = defaultdict(list)
     for option in options:
@@ -153,6 +154,8 @@ def build_products(
             }
             if color["color_confidence"] is not None:
                 shade["colorConfidence"] = color["color_confidence"]
+            if finishes and option_id in finishes:
+                shade["finish"] = finishes[option_id]
             shades.append(shade)
 
         if rule["requires_color"] and missing_required_shade_color:
@@ -284,6 +287,25 @@ async def fetch_source(
     return products, rules, options, prices, colors, textures, thumbnails
 
 
+async def fetch_finishes(conn: asyncpg.Connection) -> dict[str, str]:
+    """Latest reviewed eyeshadow finish per option; tools, palettes and the like are left out."""
+    if await conn.fetchval("SELECT to_regclass('public.raw_oy_option_finish')") is None:
+        return {}
+    rows = await conn.fetch(
+        """
+        SELECT f.option_id, f.finish_code
+        FROM (
+            SELECT DISTINCT ON (option_id) option_id, finish_code
+            FROM public.raw_oy_option_finish
+            ORDER BY option_id, collected_at DESC
+        ) f
+        JOIN public.raw_oy_finish_type t ON t.finish_code = f.finish_code
+        WHERE t.is_finish
+        """
+    )
+    return {row["option_id"]: row["finish_code"] for row in rows}
+
+
 async def run(args: argparse.Namespace) -> None:
     if args.target == "shared":
         if not args.project_ref or args.user != f"postgres.{args.project_ref}":
@@ -317,11 +339,12 @@ async def run(args: argparse.Namespace) -> None:
             raw_products, rules, options, prices, colors, textures, thumbnails = (
                 await fetch_source(conn)
             )
+            finishes = await fetch_finishes(conn)
     finally:
         await conn.close()
 
     products, excluded = build_products(
-        raw_products, rules, options, prices, colors, textures, thumbnails
+        raw_products, rules, options, prices, colors, textures, thumbnails, finishes
     )
     if args.expect_source is not None and len(raw_products) != args.expect_source:
         raise ValueError(f"Source products: expected {args.expect_source}, got {len(raw_products)}")
