@@ -394,7 +394,11 @@ async def test_same_budget_survives_price_lookup_and_search_classification(
 ):
     service, _, repo = setup
     owner = "user:a"
-    service._llm.search_arguments = {"category": "lip", "moisturizing": True}
+    service._llm.search_arguments = {
+        "category": "lip",
+        "moisturizing": True,
+        "priceBasis": "catalog_reference",
+    }
     first = await service.answer(request(message="2만 원 이하 촉촉한 립 추천해줘."), owner)
     assert len(first.products) == 2
     assert not service._catalog.calls
@@ -424,8 +428,9 @@ async def test_same_budget_survives_price_lookup_and_search_classification(
     assert payload.product_ids == (first.chat_context.candidate_ids if within_previous else None)
 
     stored = await repo.load(owner, response.chat_context.session)
-    for filters in (first.chat_context.filters, price.chat_context.filters):
-        assert (filters.max_price_krw, filters.price_basis) == (20000, "catalog_reference")
+    for turn in (first, price):
+        assert turn.chat_context.filters.max_price_krw == 20000
+        assert "priceBasis" not in turn.model_dump(mode="json")["chatContext"]["filters"]
     assert (stored.context.filters.max_price_krw, stored.context.filters.price_basis) == (
         expected_budget,
         "catalog_reference",
@@ -455,17 +460,10 @@ async def test_same_budget_clarifies_without_a_saved_limit(setup, with_session):
 
 
 @pytest.mark.anyio
-async def test_first_shopping_reply_describes_the_registered_price():
-    from app.schemas.supervisor import SearchPlan
-    from app.services.beauty_consultation_service import execute_beauty
-
-    catalog = OptionCatalog()
-    response = await execute_beauty(
-        request(message="2만 원 이하 촉촉한 립 추천해줘."),
-        SearchPlan(intent="search", category="lip", moisturizing=True, maxPriceKRW=20000),
-        catalog,
-        g1=True,
-    )
+async def test_first_shopping_reply_describes_the_registered_price(setup):
+    service, _, _ = setup
+    service._llm.search_arguments = {"category": "lip", "moisturizing": True}
+    response = await service.answer(request(message="2만 원 이하 촉촉한 립 추천해줘."), "user:a")
     assert response.option_search is None and response.products
     assert "가격은 앱 등록 가격을 기준으로 확인했어요." in response.answer
 
@@ -647,7 +645,30 @@ async def test_selected_g4_shade_is_named_in_its_ingredient_answer(
     service, _, _ = setup
     product = service._catalog.products[0]
     shade = product.shades[0].model_copy(update={"name": "얼그레이 70%"})
-    product.shades = [shade, shade.model_copy(update={"id": "a-other", "name": "로즈 30%"})]
+    product.shades = [shade.model_copy(update={"id": "a-other", "name": "로즈 30%"}), shade]
+    original_search = service._catalog.search_options
+
+    async def search_options(req):
+        result = await original_search(req)
+        if req.option_scope is None:
+            excluded = result.items[0].model_dump(mode="json", by_alias=True)
+            excluded.update(shadeId=shade.id, optionId="excluded-option", group="EXCLUDED")
+            excluded["checks"][1].update(verdict="NOT_MATCH", reason="requested_price_basis")
+            result = OptionSearchResponse.model_validate(
+                result.model_dump(mode="json", by_alias=True)
+                | {
+                    "items": [result.items[0].model_dump(mode="json", by_alias=True), excluded],
+                    "excludedCount": 1,
+                    "checkedScope": result.checked_scope.model_dump(mode="json", by_alias=True)
+                    | {
+                        "candidateOptions": 2,
+                        "checkedOptions": 2,
+                    },
+                }
+            )
+        return result
+
+    monkeypatch.setattr(service._catalog, "search_options", search_options)
 
     async def get_ingredients(pid, sid, *, ingredient_name, operator):
         assert (pid, sid, ingredient_name, operator) == (product.id, shade.id, "판테놀", "includes")
@@ -657,7 +678,7 @@ async def test_selected_g4_shade_is_named_in_its_ingredient_answer(
                 shade=sid,
                 name=ingredient_name,
                 operator=operator,
-                optionId="synthetic-option",
+                optionId="excluded-option",
                 synthetic=False,
                 verdict=verdict,
                 reason=reason,
@@ -678,7 +699,7 @@ async def test_selected_g4_shade_is_named_in_its_ingredient_answer(
     assert (result.product_id, result.shade_id, result.option_id, result.verdict) == (
         product.id,
         shade.id,
-        "synthetic-option",
+        "excluded-option",
         verdict,
     )
     assert result.shade_name == "얼그레이 70%"
@@ -688,6 +709,12 @@ async def test_selected_g4_shade_is_named_in_its_ingredient_answer(
     assert detail.answer.count(expected_text) == 1
     assert "로즈 30%" not in detail.answer
     assert "성분 부재를 확정" not in detail.answer
+    assert detail.chat_context.option_scope == initial.chat_context.option_scope
+    assert all(option.shade_id != shade.id for option in detail.chat_context.option_scope)
+
+    service._llm.plan = {"intent": "refine", "optionSearch": True, "maxPriceKRW": 20000}
+    await service.answer(request(detail.chat_context, "그중 2만 원 이하로 찾아줘."), "user:a")
+    assert service._catalog.calls[-1].option_scope == initial.chat_context.option_scope
 
 
 @pytest.mark.anyio

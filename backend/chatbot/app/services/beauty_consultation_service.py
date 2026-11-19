@@ -961,15 +961,7 @@ async def execute_beauty(
                     previous or _context(BeautyFilters(), [], int(time.time())),
                 )
         if budget is not None:
-            inherited_basis = previous.filters.price_basis if same_budget and previous else None
-            plan = plan.model_copy(
-                update={
-                    "max_price_krw": budget,
-                    "price_basis": _requested_price_basis(req.message)
-                    or inherited_basis
-                    or "catalog_reference",
-                }
-            )
+            plan = plan.model_copy(update={"max_price_krw": budget})
     if (
         g4_search
         and req.request_id is not None
@@ -999,6 +991,8 @@ async def execute_beauty(
             }
         )
     effective_filters = _effective_filters(previous, plan)
+    if g4_search and not effective_filters.option_search:
+        effective_filters.price_basis = None
     if g4_enabled and plan.intent == "price" and previous:
         effective_filters.max_price_krw = previous.filters.max_price_krw
         effective_filters.price_basis = previous.filters.price_basis
@@ -1278,6 +1272,7 @@ async def execute_beauty(
         answer += (
             " 가격은 앱 등록 가격을 기준으로 확인했어요."
             if g1
+            and req.request_id is not None
             and req.locale == "ko"
             and not filters.fragrance_free
             and all(p.price_krw > 0 and p.price_evidence != "synthetic-price" for p in products)
@@ -1309,7 +1304,7 @@ INGREDIENT_TEXT = {
         "차이 있음",
         "검증된 전체 목록이 부족하여 차이를 확정할 수 없습니다.",
         "합성 테스트 자료이며 실제 상품의 검증 결과가 아닙니다.",
-        "성분표의 이름만으로는 물어보신 성분이 들어 있는지 확인할 수 없어요.",
+        "성분표에 적힌 이름만으로는 판단하기 어려워서, 말씀하신 성분의 포함 여부는 미확인이에요.",
         "성분 이름의 표기가 확인되지 않아, 물어보신 성분이 들어 있는지 알 수 없어요.",
         "성분표에서 확인된 항목만 표시했어요.",
     ],
@@ -1328,7 +1323,7 @@ INGREDIENT_TEXT = {
         "different",
         "Insufficient verified full lists to establish differences.",
         "Synthetic test evidence, not verification of a real product.",
-        "The names on the list alone cannot confirm whether the ingredient is present.",
+        "Presence is unverified. The listed names alone do not identify this ingredient.",
         "The names on the list could not be verified, so the ingredient's presence is unclear.",
         "Only confirmed entries from the ingredient list are shown.",
     ],
@@ -1346,7 +1341,7 @@ INGREDIENT_TEXT = {
         "相違あり",
         "検証済み全成分一覧が不足しており、違いを断定できません。",
         "合成テスト資料であり、実際の商品検証結果ではありません。",
-        "成分表の名前だけでは、指定の成分が入っているかは分かりません。",
+        "成分表の名前だけでは判断できず、指定の成分が入っているかは未確認です。",
         "成分名の表記を確認できないため、指定の成分が入っているかは分かりません。",
         "成分表で確認できた項目のみを表示しています。",
     ],
@@ -1364,7 +1359,7 @@ INGREDIENT_TEXT = {
         "存在差异",
         "缺少经验证的完整列表，无法确定差异。",
         "这是合成测试资料，并非真实产品的验证结果。",
-        "仅凭成分表中的名称，无法确认是否含有您询问的成分。",
+        "仅凭成分表中的名称无法判断，是否含有您询问的成分仍未确认。",
         "成分名称的写法尚未确认，因此无法判断是否含有您询问的成分。",
         "仅显示成分表中已确认的项目。",
     ],
