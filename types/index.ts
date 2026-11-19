@@ -266,6 +266,16 @@ export interface ApplicationProfileOverrides {
   /** Video look only: small pigment correction above a measured skin warmth threshold (both 0..1). */
   skinAdapt?: number;
   skinWarmth?: number;
+  /**
+   * Video look only: multiply look foundation tint / blush / lip pigment by the estimated scene light colour and
+   * exposure (0..1), keeping luminance so coverage feel stays. 0 = product/look colours unchanged.
+   */
+  lightAdapt?: number;
+  /**
+   * Video look only (read from foundation): pull liner / mascara / lip layer brightness toward the camera pixel's
+   * luminance vs face mean (0..1). Cheap local tone match; 0 = unchanged.
+   */
+  toneMap?: number;
 }
 
 /** Video-fit evidence must include a separate validation comparison. */

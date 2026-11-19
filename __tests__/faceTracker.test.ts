@@ -16,6 +16,7 @@ function renderHarness() {
   const messages: Record<string, unknown>[] = [];
   const build = new Function('state', 'messages', `
     let makeup = { lip: null }, pendingRender = null, pendingRestore = null, commandRendererId = null, lastRenderSeq = -1, lastStateSeq = -1;
+    let poseEnabled = false; const clearPoseHint = () => {};
     let segCount = 0, segPerSec = 0, detectMs = 0, shapesOn = true, status = null, hasFace = true, lastFaceAt = 0, lastLightAt = 1, fpsFrames = 0, fpsAt = 0, fps = 0;
     let landmarker = { detectForVideo: () => ({ faceLandmarks: state.face ? [{}] : [] }) };
     let renderer = { get lost() { return state.lost; }, upload() {}, render() {
@@ -48,6 +49,58 @@ function restoreCommand(value: number | null, renderSeq = 2, rendererId = 'rende
   return { type: 'restore_command', commandId: 'command-1', restoreId, renderSeq, rendererId,
     makeup: { lip: value === null ? null : { intensity: value } } };
 }
+
+describe('pose guidance', () => {
+  it('debounces persistent conditions and clears immediately on recovery or tracking loss', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    const tuning = script.match(/pose: (\{[^\n]+\})/)?.[1];
+    const pose = script.slice(script.indexOf('  let poseEnabled = false'), script.indexOf('  let lastLightHint = undefined'));
+    const messages: { type: string; value: string | null }[] = [];
+    const create = new Function('messages', `
+      const TUNING = { pose: ${tuning} }, canvas = { clientWidth: 100, clientHeight: 100 }, viewZoom = 1;
+      const post = (message) => messages.push(message);
+      ${pose}
+      return { postPoseHint, clearPoseHint };
+    `) as (m: typeof messages) => { postPoseHint: (face: { x: number; y: number; z: number }[], w: number, h: number, now: number) => void; clearPoseHint: () => void };
+    const tracker = create(messages);
+    const face = Array.from({ length: 455 }, () => ({ x: 0.5, y: 0.5, z: 0 }));
+    face[10].y = 0.35; face[152].y = 0.65; face[1].y = 0.515;
+    face[234].x = 0.4; face[454].x = 0.6;
+    tracker.postPoseHint(face, 100, 100, 10);
+    tracker.postPoseHint(face, 100, 100, 809);
+    expect(messages).toEqual([]);
+    tracker.postPoseHint(face, 100, 100, 810);
+    expect(messages).toEqual([{ type: 'pose_hint', value: 'closer' }]);
+    face[10].y = 0.25; face[152].y = 0.75; face[1].y = 0.525;
+    tracker.postPoseHint(face, 100, 100, 820);
+    expect(messages[1]).toEqual({ type: 'pose_hint', value: null });
+    face[10].y = 0.35; face[152].y = 0.65;
+    tracker.postPoseHint(face, 100, 100, 900);
+    tracker.postPoseHint(face, 100, 100, 1700);
+    tracker.clearPoseHint();
+    expect(messages.slice(-2)).toEqual([{ type: 'pose_hint', value: 'closer' }, { type: 'pose_hint', value: null }]);
+  });
+
+  it('prioritizes conditions and applies hysteresis', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    const tuning = script.match(/pose: (\{[^\n]+\})/)?.[1];
+    const pick = script.slice(script.indexOf('  function pickPoseHint('), script.indexOf('  function postPoseHint('));
+    const decide = new Function(`const TUNING = { pose: ${tuning} }; ${pick}; return pickPoseHint;`)() as (m: Record<string, number | boolean>, last: string | null) => string | null;
+    const face = { height: 0.5, clipped: false, yaw: 0, pitch: 0, x: 0, y: 0 };
+    expect(decide(face, null)).toBeNull();
+    expect(decide({ ...face, height: 0.3, clipped: true, yaw: 1 }, null)).toBe('closer');
+    expect(decide({ ...face, clipped: true, yaw: 1 }, null)).toBe('farther');
+    expect(decide({ ...face, pitch: 0.2, x: 0.3 }, null)).toBe('front');
+    expect(decide({ ...face, yaw: 0.4 }, null)).toBe('front');
+    expect(decide({ ...face, x: 0.21 }, null)).toBe('center');
+    expect(decide({ ...face, height: 0.37 }, 'closer')).toBe('closer');
+    expect(decide({ ...face, height: 0.40 }, 'closer')).toBeNull();
+    expect(decide({ ...face, x: 0.18 }, 'center')).toBe('center');
+    expect(script).toContain("type: 'pose_hint', value: null");
+    expect(script).toContain('now - poseSince >= TUNING.pose.debounceMs');
+    expect(script).toContain('if (poseEnabled) postPoseHint(face, W, H, now)');
+  });
+});
 
 describe('face tracker page', () => {
   it.each([0, 0.01, 0.5, 1])('acknowledges intensity %s only after a matching face and draw', (value) => {
@@ -267,7 +320,10 @@ describe('face tracker page', () => {
     expect(script).toContain('lobe = mix(lobe, envLobe, envW);');
     expect(script).toContain('float peakness = mix(max(sharpK, sharpF), envPeak, envW);');
     expect(script).toContain('uniform vec4 uEnvGloss;');
-    expect(script).toContain("'1119-shadow-v9'");
+    expect(script).toContain("'1119-shadow-v9-pose'");
+    expect(script).toContain('float browHair = browA *');
+    expect(script).toContain('lookSkinMinFps: 10');
+    expect(script).toContain('lookSkinGate');
     // 11-11 natural highlighter (user: the forehead highlight read as a white circle): the lift multiplies the camera pixel (its own
     // colour and texture, never a white add) with headroom, the sheen and glints are the pixel's own colour, the forehead stays
     // off hair and bangs, and the mask has no hard ellipse edge. hlNatural false keeps the old composite.
@@ -376,7 +432,7 @@ describe('face tracker page', () => {
     expect(script).toContain('shadowA *= mix(occSkin, 1.0, uOccGate.y);');
     expect(script).toContain('gl.uniform1f(u.uOccOn, occOn ? 1 : 0);');
     expect(script).not.toContain('foundA *= mix(occSkin');
-    expect(script).toContain('gl.uniform1f(u.uFoundSkinOn, (foundZ || jawShadeOn) && foundSkinReady ? 1 : 0);');
+    expect(script).toContain('gl.uniform1f(u.uFoundSkinOn, (foundZ || jawShadeOn || browZ) && foundSkinReady ? 1 : 0);');
     expect(script).toContain('OCC_LIP_PTS = LIPS_OUTER');
     expect(script).toContain('OCC_EYE_PTS = EYES[0].contour.concat(EYES[1].contour)');
   });
@@ -661,6 +717,15 @@ describe('face tracker page', () => {
     expect(script).toContain('vec3 hairCol = uBrowAlbedo * uLightColor / max(lum(uBrowAlbedo * uLightColor), 1e-4) * newL;');
     expect(script).toContain('col = mix(col, hairCol, smoothstep(0.0, 0.75, uBrowCov) * hairW * browZone * region);');
     expect(script).not.toContain('browCore');
+    expect(script).toContain('float strandCut = smoothstep(1.0, 2.8, bangCont) * hairW;');
+    expect(script).toContain('float skinG = uFoundSkinOn > 0.5 ? smoothstep(uBrowBang.x, uBrowBang.y, texture2D(uFoundSkin, fuv).r) : 1.0;');
+    expect(script).toContain('float underHair = skinG * (1.0 - max(denseCut, 0.9 * strandCut));');
+    expect(script).toContain('bangSkin: [0.2, 0.55]');
+    expect(script).toContain("gl.uniform2f(u.uBrowBang, EYEBROW_PRESET.bangSkin[0], EYEBROW_PRESET.bangSkin[1]);");
+    expect(script).toContain('gl.uniform2fv(u.uBrowUp, bg.up);');
+    expect(script).toContain('makeup.foundation || jawline || makeup.brow || (TUNING.makeupOcclusion && occMakeupOn())');
+    expect(script).toContain('gl.uniform1f(u.uFoundSkinOn, (foundZ || jawShadeOn || browZ) && foundSkinReady ? 1 : 0);');
+    expect(script).toContain('region *= underHair;');
     expect(script).toContain('vec2 bo = uTexel * uBrowSoft;');
     expect(script).toContain('function browGuides(W, H)');
     for (const gone of ['uBrowStrand', 'strandFreq', 'recol', 'uBrowHue', 'vec3 dyed', 'localMax']) expect(script).not.toContain(gone);
@@ -1139,7 +1204,8 @@ describe('face tracker page', () => {
     expect(script).not.toContain('halo');
     expect(script).toContain('linerR = smoothstep(0.03, 0.5, linerR);');
     expect(script).toContain('linerR = max(linerR, mix(linerR, min(wide * (1.0 + 2.5 * uLinerSoft), 1.0), uLinerSoft));');
-    expect(script).toContain('col = mix(col, uLinerAlbedo * uLightColor * uExposure * mix(1.0, clamp(lum(cam) / max(uSkinMeanLum, 1e-3), 0.7, 1.1), uLinerShade), linerA);');
+    expect(script).toContain('vec3 ink = uLinerAlbedo * uLightColor * uExposure * mix(1.0, clamp(lum(cam) / max(uSkinMeanLum, 1e-3), 0.7, 1.1), uLinerShade);');
+    expect(script).toContain('col = mix(col, ink, linerA);');
     expect(script).not.toContain('layer(cam, uLinerAlbedo');
     expect(script).not.toContain('uLinerCrisp');
     expect(script).toContain('thickness: 0.09');

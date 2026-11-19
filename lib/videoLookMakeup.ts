@@ -10,6 +10,8 @@ const LOOK_ZONES: MakeupZone[] = [
 /** Look strength slider range: 1 = the look's tuned values, lower = more natural, higher = more visible. */
 export const LOOK_STRENGTH_MIN = 0.3;
 export const LOOK_STRENGTH_MAX = 1.7;
+/** Default when a video look AR opens (before the user moves the slider). */
+export const LOOK_STRENGTH_DEFAULT = 0.7;
 
 const cap = (value: number | undefined, s: number, max: number) => (value === undefined ? undefined : Math.min(max, value * s));
 
@@ -29,8 +31,14 @@ export function scaleLookOverrides(o: ApplicationProfileOverrides, strength: num
   set('lipColor', cap(o.lipColor, s, 1));
   set('underEyePearl', cap(o.underEyePearl, s, 1));
   set('skinEven', cap(o.skinEven, s, 1));
+  set('lightAdapt', cap(o.lightAdapt, s, 1));
+  set('toneMap', cap(o.toneMap, s, 1));
   if (o.skin) scaled.skin = { ...o.skin, tone: Math.min(1, o.skin.tone * s), clean: Math.min(1, o.skin.clean * s) };
   return scaled;
+}
+
+function strengthOf(strength: number | undefined): number {
+  return Math.min(LOOK_STRENGTH_MAX, Math.max(LOOK_STRENGTH_MIN, Number.isFinite(strength) ? (strength as number) : 1));
 }
 
 /** Render-only look color: never alter the store, product shade, or selected item. */
@@ -38,19 +46,21 @@ export function videoLookMakeup(
   makeup: MakeupState,
   options: {
     fromVideo: boolean; cameraActive: boolean; fittingProduct: boolean; lookId: string | null; modified: MakeupZone[];
-    /** Look strength slider (LOOK_STRENGTH_MIN..MAX, default 1); scales only the look's own finish. */
+    /** Look strength slider (LOOK_STRENGTH_MIN..MAX, default LOOK_STRENGTH_DEFAULT); scales only the look's own finish. */
     strength?: number;
   },
 ): MakeupState {
   if (!options.fromVideo || !options.cameraActive || options.fittingProduct || !options.lookId) return makeup;
   const videoId = demoLookVideoId(options.lookId);
+  const strength = strengthOf(options.strength);
   let result = makeup;
   for (const zone of LOOK_ZONES) {
     const setting = makeup[zone];
     if (!setting || options.modified.includes(zone)) continue;
     const profile = lookApplicationProfileFor(videoId, zone);
     const style = videoLookStyle(videoId, zone);
-    if (!profile?.lookHex && !style) continue;
+    // Strength alone may still scale coverage on looks that have no per-zone finish yet.
+    if (!profile?.lookHex && !style && strength === 1) continue;
     if (result === makeup) result = { ...makeup };
     let next = setting;
     if (profile?.lookHex) {
@@ -66,8 +76,17 @@ export function videoLookMakeup(
         ...(style.hexTo ? { hexTo: style.hexTo } : {}),
         ...(style.geometry ? { geometry: { ...next.geometry, ...style.geometry } } : {}),
         ...(style.overrides ? {
-          applicationProfile: { ...next.applicationProfile, ...scaleLookOverrides(style.overrides, options.strength ?? 1) },
+          applicationProfile: { ...next.applicationProfile, ...scaleLookOverrides(style.overrides, strength) },
         } : {}),
+      };
+    } else if (strength !== 1) {
+      const cov = next.applicationProfile?.coverageMultiplier ?? 1;
+      next = {
+        ...next,
+        applicationProfile: {
+          ...next.applicationProfile,
+          coverageMultiplier: Math.min(2, cov * strength),
+        },
       };
     }
     result[zone] = next;
