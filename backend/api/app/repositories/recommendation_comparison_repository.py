@@ -17,7 +17,7 @@ class ComparisonRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def read(self) -> ComparisonCatalog:
+    async def read(self, *, include_products: bool = False) -> ComparisonCatalog:
         async with self.session.begin():
             await self.session.execute(
                 text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
@@ -136,6 +136,9 @@ class ComparisonRepository:
                     product_id=o["product"]["id"],
                     product_name=o["product"].get("nameKo") or o["product"]["name"],
                     option_id=o["optionId"],
+                    product=o["product"] if include_products else None,
+                    option_name=o["optionName"] if include_products else "",
+                    priceKRW=o["priceKRW"] if include_products else 0,
                     ingredient_ids=sorted(ids.get(o["optionId"], set())),
                     subcategory=o.get("subcategory"),
                     skin_types=o.get("skinTypes") or [],

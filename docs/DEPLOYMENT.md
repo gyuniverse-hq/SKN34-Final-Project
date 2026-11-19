@@ -195,7 +195,7 @@ helm install eg oci://docker.io/envoyproxy/gateway-helm -n envoy-gateway-system 
 kubectl apply -f infra/platform/gatewayclass.yaml
 
 # 이미지를 만들어 kind 노드에 넣기
-docker build -t vishue-api:dev backend/api
+docker buildx build --build-context model=./ml/runs/recommend-cat-v4/bundle -t vishue-api:dev backend/api
 docker build -t vishue-chatbot:dev backend/chatbot
 kind load docker-image vishue-api:dev vishue-chatbot:dev --name vishue
 

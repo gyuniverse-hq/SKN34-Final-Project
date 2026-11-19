@@ -104,6 +104,12 @@ Expo Go에서는 사진을 분석 후 결과 화면까지 기기 메모리에서
 개별 표본 결과는 Git에서 제외합니다. 향후 LLM 외부 호출과 서비스 조합은 기존
 `server/clients/`·`server/services/` 레이어를 따릅니다.
 
+피부 결과 화면은 `/api/recommendations/skin-v2`에서 V2 추천을 받는다. 이 경로는
+v4.1의 분석 점수와 연령대·성별을 이용해 `recommend-cat-v4`로 성분을 예측하고
+CosIng과 제품 카탈로그를 연결한다. 사진은 보내지 않는다. 모델이 없거나 이전 분석에
+트러블 점수가 없으면 오류를 반환한다. API 이미지는 해당 모델 번들과 CatBoost를 포함한다.
+입력과 학습 이미지의 전처리 동등성 및 실제 제품 적합성은 검증되지 않았다.
+
 로컬 NIA 연구 도구의 화면은 `app/dev/nia.tsx`, 사진 분석·결과 요청 훅은 `hooks/useNia*.ts`,
 표현 컴포넌트는 `components/nia/`에 둡니다. 컴포넌트는 화면에서 결과와 동작을 props로
 받으며 `lib/nia`를 직접 호출하지 않습니다. 이 경계를 린트로 검사합니다. 개발 API는
@@ -150,12 +156,13 @@ V1·V2 추천 비교는 `app/dev/recommendation-comparison.tsx` →
 백엔드 서비스는 기존 V1을 `clients/recommendation_v1_client.py`의 HTTP 호출로 읽고,
 COSING·제품 자료는 전용 repository의 읽기 전용 트랜잭션으로 조회한다.
 CatBoost는 선택 의존성 그룹 `recommendation`과 해시 검증된 로컬 번들을 사용한다.
-`RECOMMENDATION_MODEL`(기본 `recommend-cat-v2`)로 선택하며 `ml/runs/<모델 이름>/bundle/`에
+`RECOMMENDATION_MODEL`(기본 `recommend-cat-v4`)로 선택하며 `ml/runs/<모델 이름>/bundle/`에
 가중치와 manifest를 별도 배치한다. 피부 분석 원본과 같은 디렉터리 체계지만 추천 추론은 서버에서만 실행한다.
 별도 서버 볼륨은 `RECOMMENDATION_MODELS_DIR`로 지정하며 이름·해시·입력 계약을 검증한다.
 현재 Docker V1과 작업 공간의 스키마가 다르므로 기존 컨테이너를 교체하지 않고
 별도 로컬 포트 8082에서 비교한다. 얼굴 이미지·ROI는 전달하지 않는다.
-개발 플래그와 환경 검사를 모두 통과해야 실행되며 입력 본문은 저장하지 않는다.
+개발 플래그와 환경 검사를 모두 통과해야 실행된다. 로그인한 기록 비교는 입력 스냅샷을 기록한다.
+V4 성분 모델은 피부 분석 v4.1의 트러블 점수를 추가로 요구한다. V3를 선택하면 기존 입력을 사용할 수 있다.
 입력 계약·리뷰 응답 수 부족·실행 방법은 [V2 비교](recommendation-v2-comparison.md)에 있다.
 
 피부 모델 연구 환경은 운영 흐름과 별도로 관리합니다. `ml/src/`에는 학습·평가 코드,
