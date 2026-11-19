@@ -5,10 +5,10 @@
 
 ## 실행 모델과 로컬 보존 데이터
 
-실행용 V3의 `model.cbm`·`manifest.json`·설명서는 `ml/runs/recommend-cat-v3/bundle/`에 Git으로 동봉한다.
-기본 추천 모델은 V3다. 기존 환경변수에 V2가 있으면 `RECOMMENDATION_MODEL=recommend-cat-v3`로 변경하고 API를 재시작한다.
-모델 입력·평가·팀 적용 방법은 [V3 번들 설명서](../../../ml/runs/recommend-cat-v3/bundle/README.md)를 따른다.
-피부 분석 원본은 기존 별도 인계 방식을 유지한다. 아래 데이터·재학습 절은 기존 V2 보존 기록이며 V3 추론에는 필요하지 않다.
+실행용 V4의 `model.cbm`·`manifest.json`·설명서는 `ml/runs/recommend-cat-v4/bundle/`에 둔다.
+일반 추천 API와 개발용 비교 API의 기본 모델은 V4다. 기존 환경변수가 V3이면 `RECOMMENDATION_MODEL=recommend-cat-v4`로 변경하고 API를 재시작한다.
+V4는 피부 분석 v4.1 트러블 점수를 추가로 사용한다. 모델 입력·평가·팀 적용 방법은 [V4 번들 설명서](../../../ml/runs/recommend-cat-v4/bundle/README.md)를 따른다.
+피부 분석 원본은 기존 별도 인계 방식을 유지한다. 아래 데이터·재학습 절은 기존 V2 보존 기록이며 V4 추론에는 필요하지 않다.
 
 | 경로 (ml/data/recommendation-v2 아래) | 역할 |
 |---|---|
@@ -20,7 +20,7 @@
 | catboost-skin-condition-20261111 | 80성분 인코딩 사전·원문 피부상태 대조 자료 |
 | dictionary-20261110.json, knowledge.json | 성분 사전·지식 엑셀 정규화 스냅샷 |
 
-현재 학습에 직접 사용하는 최종 5,289행은
+기존 V2 학습에 사용한 5,289행은
 `ml/experiments/recommendation-v2-image-feature-replacement-20261111/{training,validation,test}.jsonl`이다.
 분할은 3,702 / 794 / 793행이며 source·original_group_id·image_group_id·group_id가 보존된다.
 `protocol.json`에 7개 입력 순서·고정 설정, `folds.json`에 기존 CV 분할이 있다.

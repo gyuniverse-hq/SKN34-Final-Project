@@ -26,6 +26,16 @@ class RecommendationFeedbackRepository:
         self.session.add(Request(**values))
         await self.session.commit()
 
+    async def record_completed(self, values, candidates):
+        try:
+            self.session.add(Request(**values))
+            await self.session.flush()
+            self.session.add_all(Candidate(**row) for row in candidates)
+            await self.session.commit()
+        except Exception:
+            await self.session.rollback()
+            raise
+
     async def finish(self, request_id, values, candidates):
         try:
             self.session.add_all(Candidate(**row) for row in candidates)
@@ -40,7 +50,7 @@ class RecommendationFeedbackRepository:
     async def candidate(self, candidate_id, member_id):
         row = (
             await self.session.execute(
-                select(Candidate, Request.session_id)
+                select(Candidate, Request.session_id, Request.contract_version)
                 .join(Request, Candidate.request_id == Request.request_id)
                 .where(
                     Candidate.candidate_id == candidate_id,
@@ -52,12 +62,13 @@ class RecommendationFeedbackRepository:
         ).first()
         if not row:
             return None
-        candidate, session_id = row
+        candidate, session_id, contract_version = row
         return {
             "product_id": candidate.product_id,
             "option_id": candidate.option_id,
             "final_rank": candidate.final_rank,
             "session_id": session_id,
+            "contract_version": contract_version,
         }
 
     async def impression(self, impression_id, member_id):

@@ -3,8 +3,8 @@ const { resolve } = require('node:path');
 const { parseProjectEnv } = require('@expo/env');
 
 const SKIN_MODELS = Object.freeze({
-  'skin-analysis-v3': { exporter: 'skin_analysis.mobile_export_v3', schema: 'skin-analysis-assets-v3' },
   'skin-analysis-v4': { exporter: 'skin_analysis.mobile_export_v4', schema: 'skin-analysis-assets-v4' },
+  'skin-analysis-v4.1': { exporter: 'skin_analysis.mobile_export_v41', schema: 'skin-analysis-assets-v4.1' },
 });
 
 function selectedSkinModel(root, systemEnv = process.env) {

@@ -50,13 +50,13 @@ export interface SkinTiming {
 }
 
 export interface SkinAnalysisResult {
-  schema: 'skin-analysis-mobile-v1' | 'skin-analysis-mobile-v2' | 'skin-analysis-mobile-v3' | 'skin-analysis-mobile-v4' | 'skin-analysis-server-v1';
+  schema: 'skin-analysis-mobile-v1' | 'skin-analysis-mobile-v2' | 'skin-analysis-mobile-v3' | 'skin-analysis-mobile-v4' | 'skin-analysis-mobile-v4.1' | 'skin-analysis-server-v1';
   skinType?: SkinTypePrediction;
   /** v4 only: per-ROI uncalibrated sigmoid scores, not diagnostic confidence. */
   cautionProbabilities?: Record<Exclude<keyof SkinAnalysisResult['features'], 'acne'>, number>;
   /** v4 retains the historical ROI keys but stores binary labels (0 good / 1 care), not grades. */
   features: {
-    /** Present only in historical results produced with an acne model. */
+    /** Present in results produced with an acne model. */
     acne?: number;
     pore_grade_cheek_image_left: number;
     pore_grade_cheek_image_right: number;
@@ -160,6 +160,7 @@ export interface SkinProfileV4 {
   analysis: SkinAnalysisResult;
   questionnaire: SkinSurveyV3;
   fusion: SupportFusionResult;
+  demographics?: { birthYear?: number; age?: number; gender?: '남성' | '여성' };
 }
 export type SkinProfile = LegacySkinProfile | SkinProfileV2 | SkinProfileV3 | SkinProfileV4;
 

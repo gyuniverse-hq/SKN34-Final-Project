@@ -13,13 +13,17 @@ jest.mock('expo-web-browser', () => ({ openAuthSessionAsync: jest.fn() }));
 jest.mock('@/lib/auth', () => ({ useAuth: () => ({ user: { id: 'user-1' }, ready: true }) }));
 jest.mock('@/lib/api', () => ({ apiGet: jest.fn(), apiPost: jest.fn() }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
-jest.mock('@/hooks/useCartLines', () => ({
-  useCartLines: () => ({
-    lines: [{ key: 'p::s', item: { productId: 'p', shadeId: 's', quantity: 1 }, product: { id: 'p', brand: 'B', name: 'P' }, shade: { id: 's', name: 'S' }, lineTotal: 1000 }],
-    total: 1000,
-    query: { isPending: false },
-  }),
-}));
+jest.mock('@/hooks/useCartLines', () => {
+  const { useCartStore } = jest.requireActual('@/store/cartStore');
+  return {
+    useCartLines: () => ({
+      lines: [{ key: 'p::s', item: useCartStore.getState().items[0] ?? { productId: 'p', shadeId: 's', quantity: 1 },
+        product: { id: 'p', brand: 'B', name: 'P' }, shade: { id: 's', name: 'S' }, lineTotal: 1000 }],
+      total: 1000,
+      query: { isPending: false },
+    }),
+  };
+});
 
 const browser = jest.mocked(WebBrowser.openAuthSessionAsync);
 const get = jest.mocked(apiGet);
@@ -52,6 +56,18 @@ it('clears paid items only after the server confirms the order', async () => {
   expect(get).toHaveBeenCalledWith('/api/payments/orders/order-1');
   expect(useCartStore.getState().items).toHaveLength(0);
   expect(JSON.stringify(screen.toJSON())).toContain('checkout.paid');
+});
+
+it('sends only this checkout account’s AR origins with the order line', async () => {
+  useCartStore.setState({ items: [{ productId: 'p', shadeId: 's', quantity: 2, arCartSources: [
+    { ownerId: 'user-1', eventId: 'my-event' }, { ownerId: 'user-2', eventId: 'other-event' },
+  ] }] });
+  browser.mockResolvedValue({ type: 'cancel' as WebBrowser.WebBrowserResultType.CANCEL });
+  get.mockResolvedValue({ orderId: 'order-1', status: 'pending' });
+  await start();
+  expect(post).toHaveBeenCalledWith('/api/payments/orders', {
+    lines: [{ productId: 'p', shadeId: 's', quantity: 2, arCartEventIds: ['my-event'] }],
+  }, { expectedUserId: 'user-1' });
 });
 
 it('keeps the cart and pending order when the payment window closes', async () => {

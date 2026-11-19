@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRecommendationComparison } from '@/hooks/useRecommendationComparison';
 import { useRecommendationFeedback } from '@/hooks/useRecommendationFeedback';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
+import { ApiError } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { theme } from '@/constants/theme';
 import type { ComparisonAge } from '@/types/recommendationComparison';
@@ -44,7 +45,7 @@ export default function RecommendationComparisonScreen() {
       <Button label={t('comparison.analyze')} variant="secondary" onPress={() => router.push('/skin-analysis')} />
       {flow.loading || flow.mutation.isPending ? <ActivityIndicator /> : null}
       {flow.problem ? <Text accessibilityRole="alert">{t(flow.problem as TranslationKey)}</Text> : null}
-      {flow.mutation.isError ? <Text accessibilityRole="alert">{t('comparison.unavailable')}</Text> : null}
+      {flow.mutation.isError ? <Text accessibilityRole="alert">{t(flow.mutation.error instanceof ApiError && flow.mutation.error.code === 'acne_score_required' ? 'comparison.needV41' : 'comparison.unavailable')}</Text> : null}
       {result ? <>
         <Text style={styles.label}>{t('comparison.input')}</Text>
         <Text selectable>{JSON.stringify(result.input, null, 2)}</Text>

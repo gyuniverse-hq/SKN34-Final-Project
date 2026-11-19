@@ -45,6 +45,8 @@ jobs:
       - uses: docker/build-push-action@v7
         with:
           context: backend/${{ matrix.service }}
+          build-contexts: |
+            model=./ml/runs/recommend-cat-v4/bundle
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

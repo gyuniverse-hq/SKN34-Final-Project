@@ -44,7 +44,7 @@ export function SkinReportDetail({ metrics, active, onChange, preview }: { metri
         <Ionicons name={REPORT_ICONS[concern]} size={24} color={theme.colors.accent} />
         <Text style={[styles.cardTitle, styles.resultTitle]}>{t(metric.skinType ? 'report.skinType' : `concern.${concern}` as TranslationKey)}</Text>
         <Text style={[styles.status, !metric.skinType && metric.status === 'care' && styles.statusCare]}>
-          {metric.skinType ? t(`report.type.${metric.skinType}`) : concern === 'blemish' && metric.value !== null ? t(metric.value === 1 ? 'skin.acneDetected' : 'skin.acneNotDetected') : t(`report.${metric.status}`)}
+          {metric.skinType ? t(`report.type.${metric.skinType}`) : t(`report.${metric.status}`)}
         </Text>
       </View>
       <Text style={[styles.caption, styles.resultDescription]}>{t(metric.skinType ? 'report.skinTypeDescription' : `report.${metric.status}Body`)}</Text>

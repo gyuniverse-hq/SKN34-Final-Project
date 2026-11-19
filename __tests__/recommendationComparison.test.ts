@@ -45,3 +45,14 @@ it('rejects legacy grade results and missing/non-finite scores rather than inser
   const invalid = profile(); invalid.analysis.cautionProbabilities!.pore_grade_cheek_image_left = NaN;
   expect(() => comparisonInput(invalid, '30대', '여성')).toThrow('comparison.invalidScores');
 });
+
+it('passes the v4.1 acne score without changing the ROI scores', () => {
+  const source = profile();
+  source.analysis.schema = 'skin-analysis-mobile-v4.1';
+  source.analysis.acneScore = 0.72;
+  const request = comparisonInput(source, '30대', '여성');
+  expect(request.analysisVersion).toBe('skin-analysis-v4.1');
+  expect(request.scores).toEqual({ pores: 0.4, pigmentation: 0.2, wrinkles: 0.6, acne: 0.72 });
+  source.analysis.acneScore = undefined;
+  expect(() => comparisonInput(source, '30대', '여성')).toThrow('comparison.invalidScores');
+});

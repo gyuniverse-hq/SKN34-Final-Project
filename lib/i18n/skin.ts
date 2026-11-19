@@ -1,4 +1,7 @@
 export const skinEn = {
+  'skin.birthYearOptional': 'Year of birth (optional)', 'skin.birthYearPlaceholder': 'Select your birth year',
+  'skin.birthYearNone': 'No selection', 'skin.genderOptional': 'Gender (optional)',
+  'skin.demographicsStorage': 'Your birth year and gender are saved on this device with your analysis.',
   'skin.resultTitle': 'Skin analysis results',
   'skin.choosePhoto': 'Choose a photo',
   'skin.photoError': 'Could not open this photo. Try another, smaller image.',
@@ -41,9 +44,9 @@ export const skinEn = {
   'skin.startupTiming': 'Camera/runtime preparation: {ms} ms (before alignment)',
   'skin.downloadTiming': 'Model transfer/cache read: {ms} ms (included in total; separate from inference)',
   'skin.webPreprocessing': 'Experimental WebView JPEG preprocessing · reference tensor difference {error}',
-  'skin.title': 'Register skin information',
+  'skin.title': 'Skin analysis',
   'skin.registerAgain': 'Update skin information',
-  'skin.start': 'Start camera',
+  'skin.start': 'Start analysis',
   'skin.capture': 'Take photo',
   'skin.instructions': 'Lift your fringe and show your forehead through your chin. Face forward in a bright place.',
   'skin.localNotice': 'Analysis runs on this phone. Only results and answers are saved; any report photo is temporary.',
@@ -95,6 +98,9 @@ export const skinEn = {
 };
 type SkinDictionary = Record<keyof typeof skinEn, string>;
 export const skinKo: SkinDictionary = {
+  'skin.birthYearOptional': '출생연도 (선택)', 'skin.birthYearPlaceholder': '출생연도를 선택해 주세요',
+  'skin.birthYearNone': '선택 안 함', 'skin.genderOptional': '성별 (선택)',
+  'skin.demographicsStorage': '출생연도와 성별은 분석 결과와 함께 이 기기에 저장돼요.',
   'skin.resultTitle': '피부 분석 결과',
   'skin.choosePhoto': '사진 선택',
   'skin.photoError': '사진을 열 수 없어요. 다른 작은 사진을 선택해 주세요.',
@@ -138,7 +144,7 @@ export const skinKo: SkinDictionary = {
   'skin.startupTiming': '카메라·실행 도구 준비: {ms} ms (얼굴 정렬 이전)',
   'skin.downloadTiming': '모델 전송·캐시 읽기: {ms} ms (총 대기에 포함, 추론 시간과 별도)',
   'skin.webPreprocessing': 'WebView JPEG 전처리 실험 · 기준 텐서 차이 {error}',
-  'skin.title': '피부 정보 등록', 'skin.registerAgain': '피부 정보 다시 등록', 'skin.start': '카메라 시작',
+  'skin.title': '피부 분석', 'skin.registerAgain': '피부 정보 다시 등록', 'skin.start': '분석 시작',
   'skin.instructions': '앞머리를 올리고 이마부터 턱까지 보여주세요. 밝은 곳에서 정면을 바라봐 주세요.',
   'skin.localNotice': '이 휴대폰에서 분석해요. 분석 수치와 설문 답변만 저장하며, 리포트 사진은 임시로만 표시해요.',
   'skin.unsupported': '개발 서버에 연결된 모바일 Expo Go 또는 Android 피부 분석 빌드에서 사용할 수 있습니다.',
@@ -171,6 +177,9 @@ export const skinKo: SkinDictionary = {
   'skin.deleteNotice': '‘앱 데이터 모두 삭제’ 시 피부 정보와 측정 기록도 삭제합니다.',
 };
 export const skinJa: SkinDictionary = {
+  'skin.birthYearOptional': '生まれた年（任意）', 'skin.birthYearPlaceholder': '生まれた年を選択',
+  'skin.birthYearNone': '選択しない', 'skin.genderOptional': '性別（任意）',
+  'skin.demographicsStorage': '生まれた年と性別は分析結果と一緒にこの端末に保存されます。',
   'skin.resultTitle': '肌の分析結果',
   'skin.choosePhoto': '写真を選択',
   'skin.photoError': '写真を開けません。別の小さい写真を選んでください。',
@@ -214,7 +223,7 @@ export const skinJa: SkinDictionary = {
   'skin.startupTiming': 'カメラ・実行環境の準備：{ms} ms（顔の位置合わせ前）',
   'skin.downloadTiming': 'モデル転送・キャッシュ読み込み：{ms} ms（合計に含む・推論とは別）',
   'skin.webPreprocessing': 'WebView JPEG前処理実験・基準テンソルとの差 {error}',
-  'skin.title': '肌情報の登録', 'skin.registerAgain': '肌情報の再登録', 'skin.start': 'カメラを開始',
+  'skin.title': '肌分析', 'skin.registerAgain': '肌情報の再登録', 'skin.start': '分析を開始',
   'skin.instructions': '前髪を上げて額から顎まで見せてください。明るい場所で正面を向いてください。',
   'skin.localNotice': 'この端末で分析します。数値と回答のみ保存し、レポート写真は一時的に表示します。',
   'skin.unsupported': '開発サーバーに接続したモバイルExpo Go、またはAndroid肌分析ビルドを使用してください。',
@@ -245,6 +254,9 @@ export const skinJa: SkinDictionary = {
   'skin.deleteNotice': 'アプリデータの全削除で肌情報と測定記録も削除されます。',
 };
 export const skinZh: SkinDictionary = {
+  'skin.birthYearOptional': '出生年份（选填）', 'skin.birthYearPlaceholder': '请选择出生年份',
+  'skin.birthYearNone': '不选择', 'skin.genderOptional': '性别（选填）',
+  'skin.demographicsStorage': '出生年份和性别将与分析结果一起保存在本设备上。',
   'skin.resultTitle': '皮肤分析结果',
   'skin.choosePhoto': '选择照片',
   'skin.photoError': '无法打开照片，请选择较小的照片。',
@@ -288,7 +300,7 @@ export const skinZh: SkinDictionary = {
   'skin.startupTiming': '相机与运行环境准备：{ms} ms（对准脸部之前）',
   'skin.downloadTiming': '模型传输与缓存读取：{ms} ms（计入总时长，与推理分开）',
   'skin.webPreprocessing': 'WebView JPEG预处理实验 · 与参考张量的差值 {error}',
-  'skin.title': '登记皮肤信息', 'skin.registerAgain': '更新皮肤信息', 'skin.start': '启动相机',
+  'skin.title': '皮肤分析', 'skin.registerAgain': '更新皮肤信息', 'skin.start': '开始分析',
   'skin.instructions': '请撩起刘海，露出额头到下巴。在明亮处正对镜头。',
   'skin.localNotice': '分析在本机完成，只保存分析数值和问卷答案，报告照片仅临时显示。',
   'skin.unsupported': '请使用连接开发服务器的移动版Expo Go或Android皮肤分析版本。',

@@ -285,7 +285,7 @@ WebView 전면 카메라 ─▶ 자동 촬영 게이트 (얼굴 정렬·조명) 
 
 - 사진·ROI·텐서는 기기 메모리에서만 처리하고, 화면을 벗어나거나 취소하면 참조를 지웁니다.
 - Android 전용 빌드는 CameraX·ML Kit·ONNX Runtime 네이티브 경로를 씁니다(`modules/skin-analysis/android/`).
-- 모델 버전은 `SKIN_ANALYSIS_MODEL`(`skin-analysis-v3` / `v4`, 기본 v4)로 고르고, `npm run skin:prepare`가 선택한 버전만 ONNX로 내보냅니다.
+- 모델 버전은 `SKIN_ANALYSIS_MODEL`(`skin-analysis-v4` / `skin-analysis-v4.1`, 기본 v4)로 고르고, `npm run skin:prepare`가 선택한 버전만 ONNX로 내보냅니다.
 
 ### 4-3. 챗봇 Supervisor 파이프라인
 
@@ -435,7 +435,7 @@ cd backend/api && uv run ruff check . && uv run lint-imports && uv run pytest
 | `SUPABASE_SECRET_KEY` | api 전용 | 회원 탈퇴 |
 | `LLM_API_KEY` · `LLM_MODEL` · `LLM_BASE_URL` | chatbot | 상담 챗봇 |
 | `EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS` · `SKIN_ANALYSIS_MODEL` | 앱 | 기기 내 피부 분석 활성화와 모델 선택 |
-| `RECOMMENDATION_MODEL` · `RECOMMENDATION_MODELS_DIR` | api | 추천 모델 선택(기본 `recommend-cat-v2`)과 모델 루트(기본 `ml/runs/`). [별도 모델 배치·실행](docs/recommendation-v2-comparison.md#실행) |
+| `RECOMMENDATION_MODEL` · `RECOMMENDATION_MODELS_DIR` | api | 추천 모델 선택(기본 `recommend-cat-v4`)과 모델 루트(기본 `ml/runs/`). [별도 모델 배치·실행](docs/recommendation-v2-comparison.md#실행) |
 
 > 🔐 서버 키에는 절대 `EXPO_PUBLIC_` 접두어를 붙이지 않습니다. 붙이면 앱 번들에 노출됩니다. `.env`는 커밋하지 않습니다.
 
