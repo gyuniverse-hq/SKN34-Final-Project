@@ -8,11 +8,8 @@ import argparse
 import asyncio
 from dataclasses import dataclass
 
-from sqlalchemy import select
-
 from app.core.db import dispose_engine, session_scope
 from app.core.errors import UpstreamError
-from app.models.idol_look import YoutubeVideoRow
 from app.services.idol_look_service import IdolLookService, idol_look_service_for
 
 VIDEO_IDS = ("fDqBPI1SaWY", "S2nXySh1WuU", "mXUMB45414A")
@@ -46,12 +43,10 @@ async def refresh_registered_metadata(
 async def main(refresh_all: bool) -> None:
     try:
         async with session_scope() as session:
-            query = select(YoutubeVideoRow.video_id).order_by(YoutubeVideoRow.id)
-            if not refresh_all:
-                query = query.where(YoutubeVideoRow.analysis_status != "metadata_ready")
-            video_ids = tuple(await session.scalars(query))
+            service = idol_look_service_for(session)
+            video_ids = await service.registered_video_ids(include_ready=refresh_all)
             print(f"videos to refresh: {len(video_ids)}")
-            summary = await refresh_registered_metadata(idol_look_service_for(session), video_ids)
+            summary = await refresh_registered_metadata(service, video_ids)
         print(
             "YouTube metadata refresh complete: "
             f"updated={len(summary.updated)}, unchanged={len(summary.unchanged)}, "

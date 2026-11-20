@@ -1,4 +1,8 @@
-from app.jobs.register_look_videos import mention_only_videos, plan_registrations, primary_start
+from app.services.look_video_registration_service import (
+    mention_only_videos,
+    plan_registrations,
+    primary_start,
+)
 
 
 def video(youtube_id: str, **extra) -> dict:
