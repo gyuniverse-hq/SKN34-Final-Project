@@ -23,7 +23,13 @@ from app.models.cosing import (
     FunctionConcernRow,
     IngredientFunctionRow,
 )
-from app.models.idol_look import LookArSettingRow, LookProductRow, MakeupLookRow, YoutubeVideoRow
+from app.models.idol_look import (
+    LookArSettingRow,
+    LookProductRow,
+    LookVideoTagRow,
+    MakeupLookRow,
+    YoutubeVideoRow,
+)
 from app.models.member import MemberRow
 from app.models.order import OrderLineRow, OrderRow
 from app.models.oy_catalog_category_rule import OyCatalogCategoryRuleRow
@@ -105,6 +111,7 @@ __all__ = [
     "LookArSettingRow",
     "LookItemRow",
     "LookProductRow",
+    "LookVideoTagRow",
     "LookRow",
     "MakeupLookRow",
     "MemberRow",
