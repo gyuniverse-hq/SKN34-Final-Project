@@ -11,6 +11,9 @@ class OrderLineRequest(BaseModel):
     ar_cart_event_ids: list[UUID] = Field(
         default_factory=list, alias="arCartEventIds", max_length=20
     )
+    skincare_cart_event_ids: list[UUID] = Field(
+        default_factory=list, alias="skincareCartEventIds", max_length=20
+    )
 
 
 class CreateOrderRequest(BaseModel):

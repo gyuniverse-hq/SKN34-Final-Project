@@ -1,21 +1,19 @@
 import { uuid } from 'expo';
 import { apiPost, ApiError } from './api';
-import { comparisonPost } from './recommendationComparison';
+import { trackCartEvent } from './cartAttribution';
 
-type FeedbackAction = 'product_view' | 'cart_add' | 'outbound_click';
-export type FeedbackSurface = 'v2_comparison' | 'skin_recommendations';
+type FeedbackAction = 'product_view' | 'cart_add';
 export type FeedbackItem = { candidateId?: string; productId: string; optionId: string; rank: number };
 type Impression = {
   impressionId: string; candidateId: string; viewInstanceId: string; displayedPosition: number;
-  occurredAt: string; surface: FeedbackSurface;
+  occurredAt: string; surface: 'skin_recommendations';
   visibilityPolicyVersion: 'half-visible-500ms-v1' | 'direct-interaction-v1';
 };
 type Entry = { body: Impression; sent: boolean; pending?: Promise<void> };
 
-async function send(path: string, body: unknown, owner: string, surface: FeedbackSurface) {
-  const post = () => surface === 'skin_recommendations'
-    ? apiPost('/api/recommendations/skin-v2' + path, body, { expectedUserId: owner, timeoutMs: 5000 })
-    : comparisonPost(path, body, owner);
+async function send(path: string, body: unknown, owner: string) {
+  const post = () => apiPost('/api/recommendations/skincare/v4' + path, body,
+    { expectedUserId: owner, timeoutMs: 5000 });
   try { await post(); }
   catch (error) {
     // One bounded retry, retaining the original UUID and timestamp (including a lost response).
@@ -28,7 +26,7 @@ async function send(path: string, body: unknown, owner: string, surface: Feedbac
 export class RecommendationFeedback {
   readonly viewId = uuid.v4();
   private entries = new Map<string, Entry>();
-  constructor(readonly owner: string, readonly sessionId: string, readonly surface: FeedbackSurface = 'v2_comparison') {}
+  constructor(readonly owner: string, readonly sessionId: string) {}
 
   impression(item: FeedbackItem, interaction = false): Promise<void> {
     if (!item.candidateId) return Promise.resolve();
@@ -36,27 +34,40 @@ export class RecommendationFeedback {
     if (!entry) {
       entry = { sent: false, body: { impressionId: uuid.v4(), candidateId: item.candidateId,
         viewInstanceId: this.viewId, displayedPosition: item.rank, occurredAt: new Date().toISOString(),
-        surface: this.surface, visibilityPolicyVersion: interaction ? 'direct-interaction-v1' : 'half-visible-500ms-v1' } };
+        surface: 'skin_recommendations', visibilityPolicyVersion: interaction ? 'direct-interaction-v1' : 'half-visible-500ms-v1' } };
       this.entries.set(item.candidateId, entry);
     }
     if (entry.sent) return Promise.resolve();
     if (!entry.pending) {
       const current = entry;
-      current.pending = send('/impressions', current.body, this.owner, this.surface).then(() => { current.sent = true; })
+      current.pending = send('/impressions', current.body, this.owner).then(() => { current.sent = true; })
         .finally(() => { current.pending = undefined; });
     }
     return entry.pending!;
   }
 
-  async event(item: FeedbackItem, eventType: FeedbackAction) {
-    if (!item.candidateId || (this.surface === 'skin_recommendations' && eventType === 'outbound_click')) return;
+  async event(item: FeedbackItem, eventType: FeedbackAction, eventId = uuid.v4()) {
+    if (!item.candidateId) return;
+    // A deliberate click proves exposure before the 500 ms dwell threshold.
+    const exposure = this.impression(item, true);
     const occurredAt = new Date().toISOString();
-    const eventId = uuid.v4();
-    // A deliberate click proves exposure even if it occurs before the 500 ms dwell threshold.
-    await this.impression(item, true);
+    await exposure;
     await send('/events', { eventId, impressionId: this.entries.get(item.candidateId)!.body.impressionId,
       sessionId: this.sessionId, productId: item.productId, optionId: eventType === 'cart_add' ? null : item.optionId,
-      eventType, occurredAt, surface: 'product_detail' }, this.owner, this.surface);
+      eventType, occurredAt, surface: 'product_detail' }, this.owner);
+  }
+
+  cartAdd(item: FeedbackItem) {
+    if (!item.candidateId) return;
+    const eventId = uuid.v4();
+    return {
+      source: { ownerId: this.owner, eventId },
+      record: () => {
+        const pending = this.event(item, 'cart_add', eventId);
+        trackCartEvent(eventId, pending);
+        return pending;
+      },
+    };
   }
 }
 
