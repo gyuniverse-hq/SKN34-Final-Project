@@ -9,7 +9,7 @@ V2 당시 추천 흐름은 [V2 비교 설계](recommendation-v2-comparison.md)�
 
 현재 피부 리포트의 로그인 요청은 `POST /api/recommendations/skincare/v4/recorded`를 사용한다. 수집에 동의한 회원의 종합 TOP 10을 `recommendation_requests`와 `recommendation_candidates`에 저장하고 `skincare-v1-serving-history-v1`로 식별한다. 이 값은 기존 노출과 담기를 연결하는 이력 계약의 식별자다. 저장하는 항목은 요청·세션 ID, 추천 정책과 카탈로그 버전, 상품·옵션과 순위다. `/skincare/v4/impressions`는 카드 절반 이상이 500ms 보였거나 직접 선택한 경우에 `recommendation_impressions`를 기록한다.
 
-`0028`에서 추가한 `skincare_recommendation_events`는 V1 노출에 연결된 상세 조회, 실제 담기, 주문 항목 연결과 결제 확정을 저장한다. 담은 수량에 붙은 이벤트 ID가 주문의 계정과 상품에 일치해야 귀속된다. 결제 승인 후 서버가 주문을 `paid`로 저장할 때만 구매를 기록하고, 담기 한 건을 구매로 한 번 귀속한다. AR은 자체 `ar_*` 이력과 `user_behavior_events`의 AR 결제 귀속을 사용한다.
+`0029`에서 추가한 `skincare_recommendation_events`는 V1 노출에 연결된 상세 조회, 실제 담기, 주문 항목 연결과 결제 확정을 저장한다. 담은 수량에 붙은 이벤트 ID가 주문의 계정과 상품에 일치해야 귀속된다. 결제 승인 후 서버가 주문을 `paid`로 저장할 때만 구매를 기록하고, 담기 한 건을 구매로 한 번 귀속한다. AR은 자체 `ar_*` 이력과 `user_behavior_events`의 AR 결제 귀속을 사용한다.
 
 ### 집계 실행
 

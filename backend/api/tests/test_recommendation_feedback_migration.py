@@ -23,7 +23,7 @@ def test_member_deletion_removes_recommendation_history_and_preserves_orders():
     config.set_main_option("script_location", "alembic")
     scripts = ScriptDirectory.from_config(config)
     migration = scripts.get_revision("0020").module
-    skincare_events = scripts.get_revision("0028").module
+    skincare_events = scripts.get_revision("0029").module
 
     def verify(connection):
         schema = "rec_feedback_test_" + uuid4().hex
