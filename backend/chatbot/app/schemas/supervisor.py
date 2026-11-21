@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
+from app.schemas.catalog import BaseProductType
 from app.schemas.style_recipe import StyleContext
 
 ToolName = Literal["beauty", "graph_chat", "ar_command", "style", "knowledge"]
@@ -59,6 +60,11 @@ class IngredientPlanCondition(SupervisorModel):
 
 
 class SearchPlan(SupervisorModel):
+    product_type: BaseProductType | None = Field(default=None, exclude_if=lambda v: v is None)
+    option_search: bool = Field(default=False, exclude_if=lambda v: not v)
+    price_basis: Literal["current_offer", "catalog_reference", "collected_snapshot"] | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
     intent: Literal["search", "refine", "detail", "price", "general"]
     scope: Literal["catalog", "previous"] = "catalog"
     selection: Literal["lowest_price"] | None = None
@@ -82,6 +88,7 @@ class SearchPlan(SupervisorModel):
     clear_filters: list[
         Literal[
             "category",
+            "productType",
             "maxPriceKRW",
             "fragranceFree",
             "moisturizing",
@@ -89,7 +96,7 @@ class SearchPlan(SupervisorModel):
             "ingredientConditions",
             "texture",
         ]
-    ] = Field(default_factory=list, max_length=7)
+    ] = Field(default_factory=list, max_length=8)
 
 
 class IntentDecision(SupervisorModel):

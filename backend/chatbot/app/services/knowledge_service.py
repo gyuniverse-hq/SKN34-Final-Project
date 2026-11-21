@@ -408,12 +408,15 @@ def resolve(draft, audit, evidence):
                 and len({source_by_id[ref] for ref in cited | conditions}) == 1
             )
             applicable = review.applicability == "APPLICABLE" and review.scope_basis in {
-                "DIRECT", "SUPPORTED_TRANSFER",
+                "DIRECT",
+                "SUPPORTED_TRANSFER",
             }
             condition = review.condition_quote.strip()
             bounded = (
-                review.applicability == "CONDITIONAL" and review.scope_basis == "BOUNDED"
-                and condition and condition in text
+                review.applicability == "CONDITIONAL"
+                and review.scope_basis == "BOUNDED"
+                and condition
+                and condition in text
             )
             if same_context and (applicable or bounded):
                 refs = [c for c in dict.fromkeys(claim.citations) if c in cited]
@@ -453,7 +456,8 @@ def resolve(draft, audit, evidence):
         if status == "partial":
             missing = " · ".join(
                 _CITATION_MARKUP.sub("", r.description).strip()
-                for r in audit.requirements if r.required and r.id not in fulfilled
+                for r in audit.requirements
+                if r.required and r.id not in fulfilled
             )
             limits = f"{_PARTIAL} 확인이 필요한 항목은 {missing}입니다."
         elif status == "insufficient_evidence":

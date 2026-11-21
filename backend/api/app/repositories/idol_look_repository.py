@@ -73,6 +73,13 @@ class IdolLookRepository:
         self._session = session
         self._catalog = CatalogRepository(session)
 
+    async def video_ids(self, include_ready: bool) -> tuple[str, ...]:
+        """YouTube ids of registered videos, by id; metadata_ready ones only when asked."""
+        stmt = select(YoutubeVideoRow.video_id).order_by(YoutubeVideoRow.id)
+        if not include_ready:
+            stmt = stmt.where(YoutubeVideoRow.analysis_status != "metadata_ready")
+        return tuple(await self._session.scalars(stmt))
+
     async def list_published(self) -> list[IdolLook]:
         stmt = select(MakeupLookRow).where(MakeupLookRow.is_published).order_by(MakeupLookRow.id)
         rows = (await self._session.scalars(stmt)).all()

@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -36,8 +37,16 @@ class Settings(BaseSettings):
     ingredient_mapping_path: str | None = None
     ingredient_alias_approvals_path: str | None = None
     recommendation_comparison_enabled: bool = False
+    skin_recommendation_feedback_consented_members: set[str] = Field(default_factory=set)
+    ar_activity_enrolled_members: set[str] = Field(default_factory=set)
+    ar_activity_consented_members: set[str] = Field(default_factory=set)
+    ar_palette_mode: Literal["legacy", "collect", "model", "experiment"] = "legacy"
+    ar_palette_data_dir: Path = PROJECT_ROOT / "ml/data/ar-recommendation"
+    ar_palette_model_dir: Path | None = None
+    ar_palette_baseline_model_dir: Path | None = None
+    ar_palette_experiment: str = Field(default="", pattern=r"^([a-z0-9-]{1,16})?$")
     recommendation_model: str = Field(
-        default="recommend-cat-v3", pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        default="recommend-cat-v4", pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
     )
     recommendation_models_dir: Path = PROJECT_ROOT / "ml/runs"
     recommendation_v1_url: str = "http://127.0.0.1:8080"
@@ -51,6 +60,11 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.6-flash"
     tutorial_searches_per_minute: int = 20
     offer_searches_per_minute: int = 20
+    # Initial safety budgets, not measured throughput/SLA; tune after isolated G4 runs.
+    option_searches_per_minute: int = Field(default=20, ge=1, le=120)
+    option_search_product_limit: int = Field(default=42, ge=1, le=42)
+    option_search_work_limit: int = Field(default=42, ge=1, le=42)
+    option_search_timeout_seconds: float = Field(default=15, gt=0, le=15)
     # Public Supabase values, used only to verify access tokens.
     supabase_url: str | None = None
     supabase_publishable_key: str | None = None

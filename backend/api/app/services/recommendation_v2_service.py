@@ -14,6 +14,7 @@ GOAL_ORDER = ("pores", "pigmentation", "wrinkles")
 CONCERNS = {"pores": "모공케어", "pigmentation": "톤잡티 케어", "wrinkles": "주름 케어"}
 FEATURES = ["age_group", "gender", "skin_type", "primary_concern", "pore", "wrinkle", "tone"]
 SCORE_FEATURES = ["pore_score", "wrinkle_score", "pigmentation_score"]
+ACNE_SCORE_FEATURES = [*SCORE_FEATURES, "acne_score"]
 GOAL_SURVEY_SIGNALS = {
     "dryness": "hydrating",
     "sensitivity": "soothing",
@@ -97,7 +98,7 @@ def feature_values(
     body: ComparisonInput, goal: str, features: list[str] | None = None
 ) -> list[str | float]:
     features = FEATURES if features is None else features
-    if features not in (FEATURES, FEATURES + SCORE_FEATURES):
+    if features not in (FEATURES, FEATURES + SCORE_FEATURES, FEATURES + ACNE_SCORE_FEATURES):
         raise ValueError("invalid_model_features")
 
     def state(score):
@@ -112,8 +113,12 @@ def feature_values(
         state(body.scores.wrinkles),
         state(body.scores.pigmentation),
     ]
-    if features == FEATURES + SCORE_FEATURES:
+    if features in (FEATURES + SCORE_FEATURES, FEATURES + ACNE_SCORE_FEATURES):
         values.extend([body.scores.pores, body.scores.wrinkles, body.scores.pigmentation])
+    if features == FEATURES + ACNE_SCORE_FEATURES:
+        if body.analysis_version != "skin-analysis-v4.1" or body.scores.acne is None:
+            raise ValueError("acne_score_required")
+        values.append(body.scores.acne)
     return values
 
 
@@ -125,10 +130,15 @@ def load_bundle(path: str):
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     model_path = root / "model.cbm"
     if (
-        manifest["features"] not in (FEATURES, FEATURES + SCORE_FEATURES)
+        manifest["features"]
+        not in (FEATURES, FEATURES + SCORE_FEATURES, FEATURES + ACNE_SCORE_FEATURES)
         or (
             manifest["features"] == FEATURES + SCORE_FEATURES
             and manifest.get("numericFeatures") != SCORE_FEATURES
+        )
+        or (
+            manifest["features"] == FEATURES + ACNE_SCORE_FEATURES
+            and manifest.get("numericFeatures") != ACNE_SCORE_FEATURES
         )
         or len(manifest["labels"]) != 80
         or len({label["db_id"] for label in manifest["labels"]}) != 80

@@ -23,6 +23,7 @@ export type ChatMessage = {
   chatContext?: BeautyChatContext;
   evidence?: ChatProductEvidence[];
   resultType?: ChatResponse['resultType'];
+  optionSearch?: ChatResponse['optionSearch'];
   ingredientResults?: ChatResponse['ingredientResults'];
   knowledge?: ChatResponse['knowledge'];
   ingredientComparison?: ChatResponse['ingredientComparison'];

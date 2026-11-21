@@ -473,3 +473,154 @@ async def test_general_requests_return_answer_without_catalog_cards(monkeypatch,
     assert response.answer == answer
     assert response.products == []
     assert observed == [("POST", "/v1/chat/completions")]
+
+
+def test_g4_tool_schema_keeps_option_conditions_and_rejects_extra_fields():
+    from pydantic import ValidationError
+
+    from app.services.g1_model_service import CatalogSearchArgs
+
+    args = CatalogSearchArgs.model_validate(
+        {
+            "optionSearch": True,
+            "category": "lip",
+            "texture": "matte",
+            "priceBasis": "collected_snapshot",
+            "ingredientConditions": [{"ingredientName": "Panthenol", "operator": "includes"}],
+            "unsupportedConditions": ["stock"],
+        }
+    )
+    assert args.option_search and args.price_basis == "collected_snapshot"
+    assert args.ingredient_conditions[0].ingredient_name == "Panthenol"
+    assert args.unsupported_conditions == ["stock"]
+    with pytest.raises(ValidationError):
+        CatalogSearchArgs.model_validate({"category": "lip", "verified": True})
+
+
+@pytest.mark.anyio
+async def test_historical_price_tool_condition_is_preserved_and_not_executed():
+    from app.services.chat_service import _unsupported_g2_change
+    from app.services.g1_model_service import choose_g1_turn
+
+    async def model(messages, tools):
+        assert "특정 날짜·기간의 가격 검색은 지원하지 않습니다" in messages[0]["content"]
+        assert (
+            "일반 추천·예산 상한은 VISHUE 등록 가격 기준 catalog_reference"
+            in messages[0]["content"]
+        )
+        assert "명시적 판매처 현재가·실시간 가격은 current_offer" in messages[0]["content"]
+        assert "옵션 수집가는 collected_snapshot" in messages[0]["content"]
+        return {
+            "id": "date-fixture",
+            "model": "fixture-model",
+            "choices": [
+                {
+                    "finish_reason": "tool_calls",
+                    "message": {
+                        "tool_calls": [
+                            {
+                                "id": "date-call",
+                                "type": "function",
+                                "function": {
+                                    "name": "catalog_search_products",
+                                    "arguments": json.dumps(
+                                        {
+                                            "category": "lip",
+                                            "optionSearch": True,
+                                            "maxPriceKRW": 20000,
+                                            "priceBasis": "collected_snapshot",
+                                            "unsupportedConditions": ["2026-10-01 가격"],
+                                        }
+                                    ),
+                                },
+                            }
+                        ]
+                    },
+                }
+            ],
+        }, 0.01
+
+    request = ChatRequest(message="2026-10-01 가격 2만원 이하 립 찾아줘", locale="ko")
+    turn = await choose_g1_turn(request, model)
+    assert turn.plan.unsupported_conditions == ["2026-10-01 가격"]
+    assert _unsupported_g2_change(request.message, turn.plan)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "message,expected",
+    [
+        ("3만원 이하 향료 제외 립 옵션 찾아줘", 30000),
+        ("3만원 미만 향료 제외 립 옵션 찾아줘", 29999),
+    ],
+)
+async def test_bad_initial_option_tool_arguments_are_checked_before_catalog(
+    monkeypatch, message, expected
+):
+    from app.repositories.chat_session_repository import ChatSessionRepository
+    from tests.test_chat_sessions import RedisDouble
+    from tests.test_g2_multiturn import G2Llm, request
+    from tests.test_g4_option_search import OptionCatalog
+
+    class WrongArgs(G2Llm):
+        async def complete_with_tools(self, messages, tools, **kwargs):
+            result, elapsed = await super().complete_with_tools(messages, tools, **kwargs)
+            result["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"] = json.dumps(
+                {
+                    "category": "lip",
+                    "optionSearch": True,
+                    "maxPriceKRW": 29998,
+                    "fragranceFree": True,
+                }
+            )
+            return result, elapsed
+
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", True)
+    catalog = OptionCatalog()
+    service = ChatService(None, WrongArgs(), catalog, sessions=ChatSessionRepository(RedisDouble()))
+    response = await service.answer(request(message=message), "user:a")
+    payload = catalog.calls[-1]
+    assert payload.max_price_krw == expected
+    assert not payload.fragrance_free
+    assert [(c.ingredient_name, c.operator) for c in payload.ingredient_conditions] == [
+        ("향료", "excludes")
+    ]
+    assert response.chat_context.filters.max_price_krw == expected
+
+
+@pytest.mark.anyio
+async def test_g1_option_tool_preserves_requested_base_type_when_model_omits_it(monkeypatch):
+    from app.repositories.chat_session_repository import ChatSessionRepository
+    from tests.test_chat_sessions import RedisDouble
+    from tests.test_g2_multiturn import G2Llm, request
+    from tests.test_g4_option_search import OptionCatalog
+
+    class CoarseOptions(G2Llm):
+        async def complete_with_tools(self, messages, tools, **kwargs):
+            result, elapsed = await super().complete_with_tools(messages, tools, **kwargs)
+            tool = next(t for t in tools if t["function"]["name"] == "catalog_search_products")
+            assert "productType" in tool["function"]["parameters"]["properties"]
+            result["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"] = json.dumps(
+                {
+                    "category": "base",
+                    "query": "파운데이션",
+                    "optionSearch": True,
+                    "ingredientConditions": [
+                        {"ingredientName": "미네랄오일", "operator": "excludes"}
+                    ],
+                }
+            )
+            return result, elapsed
+
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", True)
+    catalog = OptionCatalog()
+    service = ChatService(
+        None, CoarseOptions(), catalog, sessions=ChatSessionRepository(RedisDouble())
+    )
+    response = await service.answer(
+        request(message="미네랄오일 성분이 없는 파운데이션 옵션을 찾아줘"), "user:a"
+    )
+    payload = catalog.calls[-1]
+    assert (payload.category, payload.product_type, payload.query) == ("base", "foundation", "")
+    assert payload.ingredient_conditions[0].ingredient_name == "미네랄오일"
+    assert response.chat_context.filters.product_type == "foundation"

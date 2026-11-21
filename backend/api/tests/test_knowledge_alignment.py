@@ -284,8 +284,8 @@ def test_isolated_alignment_storage_and_read_only(knowledge_database):
         finally:
             await engine.dispose()
 
-    migrate_standard(url, "upgrade", "0028")
+    migrate_standard(url, "upgrade", "0030")
     asyncio.run(check())
-    migrate_standard(url, "downgrade", "0027")
-    migrate_standard(url, "upgrade", "0028")
+    migrate_standard(url, "downgrade", "0029")
+    migrate_standard(url, "upgrade", "0030")
     asyncio.run(check_reapplied())

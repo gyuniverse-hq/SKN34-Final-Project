@@ -168,13 +168,24 @@ def test_mismatched_original_version_is_rejected():
 
 
 def check(
-    index, *, requirements=(), citations=(), label="SUPPORTED", match="MATCHED",
-    applicability="APPLICABLE", basis=None, condition="", condition_ids=(), link="NONE",
+    index,
+    *,
+    requirements=(),
+    citations=(),
+    label="SUPPORTED",
+    match="MATCHED",
+    applicability="APPLICABLE",
+    basis=None,
+    condition="",
+    condition_ids=(),
+    link="NONE",
 ):
     if basis is None:
         basis = {
-            "APPLICABLE": "DIRECT", "CONDITIONAL": "BOUNDED",
-            "NOT_APPLICABLE": "CONFLICT", "UNCERTAIN": "UNVERIFIED",
+            "APPLICABLE": "DIRECT",
+            "CONDITIONAL": "BOUNDED",
+            "NOT_APPLICABLE": "CONFLICT",
+            "UNCERTAIN": "UNVERIFIED",
         }.get(applicability, "UNVERIFIED")
     return {
         "index": index,
@@ -291,16 +302,31 @@ def test_supported_wrong_question_is_removed(required, claim, reason):
 @pytest.mark.parametrize(
     ("required", "claim", "scope", "basis"),
     [
-        ("고화질 촬영용 파우더 동작", "요철에 파우더를 눌러 보정합니다.",
-         "UNCERTAIN", "UNVERIFIED"),
-        ("고화질 촬영용 파우더 동작", "요철에 파우더를 눌러 보정합니다.",
-         "APPLICABLE", "UNVERIFIED"),
-        ("얼굴 전체의 올바른 도포법", "눈꼬리에만 얇게 펴 바르세요.",
-         "NOT_APPLICABLE", "CONFLICT"),
-        ("시험의 8시간 지속력", "A가 만족도 조사에서 가장 높았습니다.",
-         "NOT_APPLICABLE", "CONFLICT"),
-        ("밤 제형을 녹여 쓰는 방법", "오일을 건조한 얼굴에 먼저 펴 바르세요.",
-         "NOT_APPLICABLE", "CONFLICT"),
+        (
+            "고화질 촬영용 파우더 동작",
+            "요철에 파우더를 눌러 보정합니다.",
+            "UNCERTAIN",
+            "UNVERIFIED",
+        ),
+        (
+            "고화질 촬영용 파우더 동작",
+            "요철에 파우더를 눌러 보정합니다.",
+            "APPLICABLE",
+            "UNVERIFIED",
+        ),
+        ("얼굴 전체의 올바른 도포법", "눈꼬리에만 얇게 펴 바르세요.", "NOT_APPLICABLE", "CONFLICT"),
+        (
+            "시험의 8시간 지속력",
+            "A가 만족도 조사에서 가장 높았습니다.",
+            "NOT_APPLICABLE",
+            "CONFLICT",
+        ),
+        (
+            "밤 제형을 녹여 쓰는 방법",
+            "오일을 건조한 얼굴에 먼저 펴 바르세요.",
+            "NOT_APPLICABLE",
+            "CONFLICT",
+        ),
     ],
     ids=["M04-scope", "unverified-despite-positive-label", "new-area", "new-metric", "new-formula"],
 )
@@ -322,7 +348,8 @@ def test_supported_matched_claim_outside_scope_cannot_satisfy_requirement(
 
 
 @pytest.mark.parametrize(
-    ("quote", "keep"), [("실내에서만", True), ("", False), ("야외에서만", False)],
+    ("quote", "keep"),
+    [("실내에서만", True), ("", False), ("야외에서만", False)],
     ids=["already-bounded", "no-condition", "condition-invented-by-validator"],
 )
 def test_conditional_advice_needs_existing_bound_and_never_completes_required_item(quote, keep):
@@ -335,14 +362,17 @@ def test_conditional_advice_needs_existing_bound_and_never_completes_required_it
     _, citable, _ = pack(evidence, loc, source, [HIT, candidate_for(before, "pre")])
     extra = citable[1].id
     draft = {
-        "claims": [{"claim": primary, "citations": ["E1"]},
-                   {"claim": secondary, "citations": [extra]}],
+        "claims": [
+            {"claim": primary, "citations": ["E1"]},
+            {"claim": secondary, "citations": [extra]},
+        ],
         "limitations": "",
     }
     audit = verification(
         check(1, requirements=["R1"], citations=["E1"]),
-        check(2, requirements=["R2"], citations=[extra], applicability="CONDITIONAL",
-              condition=quote),
+        check(
+            2, requirements=["R2"], citations=[extra], applicability="CONDITIONAL", condition=quote
+        ),
         required=["기본 도포법", "야외에서 덧바르는 방법"],
     )
     result = resolve(draft, audit, citable)
@@ -367,10 +397,15 @@ def test_same_study_conditions_can_attach_to_direct_evidence_and_be_published():
     condition_id = citable[1].id
     text = "측정값이 줄었습니다."
     draft = {"claims": [{"claim": text, "citations": ["E1"]}], "limitations": ""}
-    audit = verification(check(
-        1, requirements=["R1"], citations=["E1"],
-        condition_ids=[condition_id, condition_id], link="SAME_CONTEXT",
-    ))
+    audit = verification(
+        check(
+            1,
+            requirements=["R1"],
+            citations=["E1"],
+            condition_ids=[condition_id, condition_id],
+            link="SAME_CONTEXT",
+        )
+    )
     result = resolve(draft, audit, citable)
     assert result.status == "answered"
     assert Consultation(result, {}).answer == f"{text} [E1] [{condition_id}]"
@@ -380,23 +415,37 @@ def test_same_study_conditions_can_attach_to_direct_evidence_and_be_published():
 
 @pytest.mark.parametrize(
     ("link", "different_source"),
-    [("DIFFERENT_CONTEXT", {}), ("UNVERIFIED", {}),
-     ("SAME_CONTEXT", {"source_version": "v2"}), ("SAME_CONTEXT", {"document_id": 33}),
-     ("SAME_CONTEXT", {"source_file_id": 44})],
+    [
+        ("DIFFERENT_CONTEXT", {}),
+        ("UNVERIFIED", {}),
+        ("SAME_CONTEXT", {"source_version": "v2"}),
+        ("SAME_CONTEXT", {"document_id": 33}),
+        ("SAME_CONTEXT", {"source_file_id": 44}),
+    ],
     ids=["other-arm-same-doc", "unknown-study", "other-version", "other-doc", "other-file"],
 )
 def test_condition_evidence_must_share_study_and_source_identity(link, different_source):
     evidence, loc, _ = verify_selection([SELECTED], {"C1": HIT})
     _, citable, _ = pack(
-        evidence, loc, neighboring_originals(loc), [HIT, candidate_for(BEFORE, "pre")],
+        evidence,
+        loc,
+        neighboring_originals(loc),
+        [HIT, candidate_for(BEFORE, "pre")],
     )
     citable[1] = citable[1].model_copy(update=different_source)
-    draft = {"claims": [{"claim": "두 번째 시험군에서 효과가 있었습니다.", "citations": ["E1"]}],
-             "limitations": ""}
-    audit = verification(check(
-        1, requirements=["R1"], citations=["E1"],
-        condition_ids=[citable[1].id], link=link,
-    ))
+    draft = {
+        "claims": [{"claim": "두 번째 시험군에서 효과가 있었습니다.", "citations": ["E1"]}],
+        "limitations": "",
+    }
+    audit = verification(
+        check(
+            1,
+            requirements=["R1"],
+            citations=["E1"],
+            condition_ids=[citable[1].id],
+            link=link,
+        )
+    )
     result = resolve(draft, audit, citable)
     assert result.status == "insufficient_evidence"
     assert not result.claims and not result.evidence
@@ -453,8 +502,13 @@ def test_valid_core_survives_uncertain_wrong_or_unrelated_advice(
     audit = verification(
         check(1, requirements=["R1"], citations=["E1"]),
         check(
-            2, label=label, match=match, applicability=applicability, basis=basis,
-            citations=[wrong], requirements=["R1"],
+            2,
+            label=label,
+            match=match,
+            applicability=applicability,
+            basis=basis,
+            citations=[wrong],
+            requirements=["R1"],
         ),
         required=["실핏줄을 가릴 제품과 사용법"],
     )
@@ -567,12 +621,20 @@ def test_pipeline_keeps_document_citations():
 def test_followup_search_respects_existing_character_limit():
     question, prior = "가" * 1000, "나" * 1000
     retrieval = Retrieval()
-    retrieval.search = AsyncMock(return_value=SearchResult(
-        candidates=[], embedding_input_tokens=1, embedding_ms=0, lookup_ms=0,
-    ))
-    reply = asyncio.run(KnowledgeService(retrieval, Model()).consult(
-        question, prior_user_context=prior,
-    ))
+    retrieval.search = AsyncMock(
+        return_value=SearchResult(
+            candidates=[],
+            embedding_input_tokens=1,
+            embedding_ms=0,
+            lookup_ms=0,
+        )
+    )
+    reply = asyncio.run(
+        KnowledgeService(retrieval, Model()).consult(
+            question,
+            prior_user_context=prior,
+        )
+    )
     retrieval.search.assert_awaited_once_with(question + "\n" + prior[:999], "large")
     assert reply.reply.status == "insufficient_evidence"
 
@@ -595,12 +657,14 @@ def test_incomplete_verification_returns_error_without_retrying_stage():
 
 @pytest.mark.parametrize("citation_ids", [[], ["E1"]], ids=["without-citations", "with-citation"])
 def test_http_empty_draft_uses_verification_only_for_cited_limits(
-    citation_ids, routed_chat, monkeypatch,
+    citation_ids,
+    routed_chat,
+    monkeypatch,
 ):
     limitation = (
         "해당 원문은 볼 사용만 설명합니다."
-        if citation_ids else
-        "제공된 근거만으로는 ‘보습’이라고 표시된 립스틱이 마스크에 얼마나 묻을지 "
+        if citation_ids
+        else "제공된 근거만으로는 ‘보습’이라고 표시된 립스틱이 마스크에 얼마나 묻을지 "
         "확인할 수 없습니다."
     )
 
@@ -609,7 +673,9 @@ def test_http_empty_draft_uses_verification_only_for_cited_limits(
             result = await super().run(stage, *args)
             if stage == "answer":
                 result.content.update(
-                    status="insufficient", claims=[], limitations=limitation,
+                    status="insufficient",
+                    claims=[],
+                    limitations=limitation,
                     limitation_citations=citation_ids,
                 )
             elif stage == "detect":
@@ -653,14 +719,33 @@ def test_http_empty_draft_uses_verification_only_for_cited_limits(
         {"reviews": [check(1, requirements=["R1"], applicability="UNKNOWN")]},
         {"reviews": [{k: v for k, v in check(1).items() if k != "applicability"}]},
         {"reviews": [check(1) | {"condition_evidence_ids": "E1"}]},
-        {"reviews": [check(1, requirements=["R1"], citations=["E1"], condition_ids=["E99"],
-                           link="SAME_CONTEXT")]},
+        {
+            "reviews": [
+                check(
+                    1,
+                    requirements=["R1"],
+                    citations=["E1"],
+                    condition_ids=["E99"],
+                    link="SAME_CONTEXT",
+                )
+            ]
+        },
         {"reviews": [check(1) | {"scope_basis": "UNKNOWN"}]},
         {"limits_unsubstantiated": "false"},
     ],
     ids=[
-        "missing-reqs", "missing-review", "index", "req-id", "evidence-id", "label",
-        "scope-label", "missing-scope", "scope-field-type", "condition-id", "scope-basis", "type",
+        "missing-reqs",
+        "missing-review",
+        "index",
+        "req-id",
+        "evidence-id",
+        "label",
+        "scope-label",
+        "missing-scope",
+        "scope-field-type",
+        "condition-id",
+        "scope-basis",
+        "type",
     ],
 )
 def test_invalid_verification_is_an_error_with_no_answer_or_sources(override):
@@ -895,31 +980,34 @@ def test_http_routes_general_makeup_and_research(message, enabled, routed_chat, 
         assert llm.calls == 1
 
 
-@pytest.mark.parametrize(("message", "expected_tool"), [
-    ("이마 하이라이트를 옆으로 펴는 게 나을까요?", "knowledge"),
-    ("볼은 덜 넓어 보이고 싶어요. 쉐딩 방향을 잡아줘요.", "knowledge"),
-    ("토너를 피부에 바를 때 화장솜을 꼭 써야 하나요?", "knowledge"),
-    ("bb크림이 톤업크림보다 잡티를 잘 가려요?", "knowledge"),
-    ("스파출라로 파운데이션을 얇게 올릴 때 제형은 어떤 걸 써요?", "knowledge"),
-    ("에어브러시 메이크업에서 손에 든 부분이 분사기인지 헷갈려요.", "knowledge"),
-    ("저자극 세안제 실험에서 모공 수를 어떤 기기로 셌나요?", "knowledge"),
-    ("얼굴형 자료에서 볼 색을 어느 방향으로 넣으라고 했어요?", "knowledge"),
-    ("논문에서 사용한 피부 젤의 대조군 결과는 어땠나요?", "knowledge"),
-    ("요즘 판매하는 BB크림과 톤업크림은 같은 제품처럼 써도 될까요?", "knowledge"),
-    ("시판 모공 프라이머 두 제품을 비교한 연구에서 어느 쪽이 오래 갔나요?", "knowledge"),
-    ("논문 속 모공 프라이머가 지금 그 회사가 납품 중인 같은 제품인가요?", "graph_chat"),
-    ("논문 속 모공 프라이머가 요새 온라인몰에 파는 그 물건과 같은 건가요?", "graph_chat"),
-    ("논문 속 모공 프라이머가 온라인몰에 올라온 제품과 같은 건가요?", "graph_chat"),
-    ("논문의 CC크림 A가 지금 온라인몰에서 팔리는 그 제품 맞아요?", "graph_chat"),
-    ("프린터 토너를 어떻게 관리해요?", "graph_chat"),
-    ("프린터 토너가 손에 묻었는데 물로 닦아도 돼요?", "graph_chat"),
-    ("프린터 토너로 찍은 사진이 볼수록 흐려져요. 왜 그럴까요?", "graph_chat"),
-    ("축구 하이라이트에서 득점 장면만 찾아줘요.", "graph_chat"),
-    ("축구에서 코너킥 하이라이트는 어디서 봐요?", "graph_chat"),
-    ("요리용 스파출라로 피자 베이스를 눌러도 돼요?", "graph_chat"),
-    ("에어브러시로 모형을 칠할 때 공기압을 어떻게 잡아줘요?", "graph_chat"),
-    ("에어브러시로 레진 모형 얼굴 도색은 어떻게 해요?", "graph_chat"),
-])
+@pytest.mark.parametrize(
+    ("message", "expected_tool"),
+    [
+        ("이마 하이라이트를 옆으로 펴는 게 나을까요?", "knowledge"),
+        ("볼은 덜 넓어 보이고 싶어요. 쉐딩 방향을 잡아줘요.", "knowledge"),
+        ("토너를 피부에 바를 때 화장솜을 꼭 써야 하나요?", "knowledge"),
+        ("bb크림이 톤업크림보다 잡티를 잘 가려요?", "knowledge"),
+        ("스파출라로 파운데이션을 얇게 올릴 때 제형은 어떤 걸 써요?", "knowledge"),
+        ("에어브러시 메이크업에서 손에 든 부분이 분사기인지 헷갈려요.", "knowledge"),
+        ("저자극 세안제 실험에서 모공 수를 어떤 기기로 셌나요?", "knowledge"),
+        ("얼굴형 자료에서 볼 색을 어느 방향으로 넣으라고 했어요?", "knowledge"),
+        ("논문에서 사용한 피부 젤의 대조군 결과는 어땠나요?", "knowledge"),
+        ("요즘 판매하는 BB크림과 톤업크림은 같은 제품처럼 써도 될까요?", "knowledge"),
+        ("시판 모공 프라이머 두 제품을 비교한 연구에서 어느 쪽이 오래 갔나요?", "knowledge"),
+        ("논문 속 모공 프라이머가 지금 그 회사가 납품 중인 같은 제품인가요?", "graph_chat"),
+        ("논문 속 모공 프라이머가 요새 온라인몰에 파는 그 물건과 같은 건가요?", "graph_chat"),
+        ("논문 속 모공 프라이머가 온라인몰에 올라온 제품과 같은 건가요?", "graph_chat"),
+        ("논문의 CC크림 A가 지금 온라인몰에서 팔리는 그 제품 맞아요?", "graph_chat"),
+        ("프린터 토너를 어떻게 관리해요?", "graph_chat"),
+        ("프린터 토너가 손에 묻었는데 물로 닦아도 돼요?", "graph_chat"),
+        ("프린터 토너로 찍은 사진이 볼수록 흐려져요. 왜 그럴까요?", "graph_chat"),
+        ("축구 하이라이트에서 득점 장면만 찾아줘요.", "graph_chat"),
+        ("축구에서 코너킥 하이라이트는 어디서 봐요?", "graph_chat"),
+        ("요리용 스파출라로 피자 베이스를 눌러도 돼요?", "graph_chat"),
+        ("에어브러시로 모형을 칠할 때 공기압을 어떻게 잡아줘요?", "graph_chat"),
+        ("에어브러시로 레진 모형 얼굴 도색은 어떻게 해요?", "graph_chat"),
+    ],
+)
 def test_http_routes_beauty_terms_in_context(message, expected_tool, routed_chat):
     ask, service, _, consult = routed_chat
     response = ask(message)
@@ -931,38 +1019,44 @@ def test_http_routes_beauty_terms_in_context(message, expected_tool, routed_chat
         consult.assert_not_awaited()
 
 
-@pytest.mark.parametrize(("question", "prior"), [
-    pytest.param(
-        "그럼 컨실러는 지금 바른 파데보다 밝은 걸 써요, 어두운 걸 써요?",
-        "파데는 다 발랐어요. 앞볼이 좀 평평해 보여서 앞볼만 살짝 도톰해 보이게 하고 싶어요.",
-        id="D07",
-    ),
-    pytest.param(
-        "그럼 컨실러는 지금 바른 파데보다 밝은 걸 써요, 어두운 걸 써요?",
-        "파데는 다 발랐어요. 얼굴 옆선이 좀 도드라져 보여서 바깥쪽만 살짝 눌러주고 싶어요.",
-        id="D08",
-    ),
-    pytest.param(
-        "그럼 그 논문에서 피부 자극은 몇 명한테 붙이는 방식으로 봤어요, 열어 둔 방식으로 봤어요?",
-        "패션프루트 씨앗 추출물을 넣은 리퀴드 파운데이션이랑 컨실러 무스 연구를 보고 있어요.",
-        id="P11A",
-    ),
-    pytest.param(
-        "그럼 그 논문에서 피부 자극은 몇 명한테 붙이는 방식으로 봤어요, 열어 둔 방식으로 봤어요?",
-        "에틸신나메이트를 넣고 유화제 비율을 바꾼 크림 파운데이션 연구를 보고 있어요.",
-        id="P11B",
-    ),
-    pytest.param(
-        "그 지표는 그럼 28일 뒤 두 그룹 모두에서 개선이 뚜렷했어요?",
-        "지성 중년 여성에게 알팔파·렌틸 젤 크림을 쓴 논문에서 경피 수분 손실이 궁금해요.",
-        id="P12A",
-    ),
-    pytest.param(
-        "그 지표는 그럼 28일 뒤 두 그룹 모두에서 개선이 뚜렷했어요?",
-        "지성 중년 여성에게 알팔파·렌틸 젤 크림을 쓴 논문에서 피부 표면 매끄러움 지표가 궁금해요.",
-        id="P12B",
-    ),
-])
+@pytest.mark.parametrize(
+    ("question", "prior"),
+    [
+        pytest.param(
+            "그럼 컨실러는 지금 바른 파데보다 밝은 걸 써요, 어두운 걸 써요?",
+            "파데는 다 발랐어요. 앞볼이 좀 평평해 보여서 앞볼만 살짝 도톰해 보이게 하고 싶어요.",
+            id="D07",
+        ),
+        pytest.param(
+            "그럼 컨실러는 지금 바른 파데보다 밝은 걸 써요, 어두운 걸 써요?",
+            "파데는 다 발랐어요. 얼굴 옆선이 좀 도드라져 보여서 바깥쪽만 살짝 눌러주고 싶어요.",
+            id="D08",
+        ),
+        pytest.param(
+            "그럼 그 논문에서 피부 자극은 몇 명한테 "
+            "붙이는 방식으로 봤어요, 열어 둔 방식으로 봤어요?",
+            "패션프루트 씨앗 추출물을 넣은 리퀴드 파운데이션이랑 컨실러 무스 연구를 보고 있어요.",
+            id="P11A",
+        ),
+        pytest.param(
+            "그럼 그 논문에서 피부 자극은 몇 명한테 "
+            "붙이는 방식으로 봤어요, 열어 둔 방식으로 봤어요?",
+            "에틸신나메이트를 넣고 유화제 비율을 바꾼 크림 파운데이션 연구를 보고 있어요.",
+            id="P11B",
+        ),
+        pytest.param(
+            "그 지표는 그럼 28일 뒤 두 그룹 모두에서 개선이 뚜렷했어요?",
+            "지성 중년 여성에게 알팔파·렌틸 젤 크림을 쓴 논문에서 경피 수분 손실이 궁금해요.",
+            id="P12A",
+        ),
+        pytest.param(
+            "그 지표는 그럼 28일 뒤 두 그룹 모두에서 개선이 뚜렷했어요?",
+            "지성 중년 여성에게 알팔파·렌틸 젤 크림을 쓴 논문에서 "
+            "피부 표면 매끄러움 지표가 궁금해요.",
+            id="P12B",
+        ),
+    ],
+)
 def test_http_passes_followup_context_through_g5(question, prior, routed_chat, monkeypatch):
     ask, _, _, _ = routed_chat
     retrieval = Retrieval()
@@ -971,11 +1065,14 @@ def test_http_passes_followup_context_through_g5(question, prior, routed_chat, m
     model.run = AsyncMock(wraps=model.run)
     service = KnowledgeService(retrieval, model)
     monkeypatch.setattr(chat_service, "consult_knowledge", service.consult)
-    response = ask(question, recentMessages=[
-        {"id": "older", "role": "user", "text": "아이라인 방법을 물었어요."},
-        {"id": "prior", "role": "user", "text": prior},
-        {"id": "assistant", "role": "assistant", "text": "앞 답변을 원문처럼 사용해요."},
-    ])
+    response = ask(
+        question,
+        recentMessages=[
+            {"id": "older", "role": "user", "text": "아이라인 방법을 물었어요."},
+            {"id": "prior", "role": "user", "text": prior},
+            {"id": "assistant", "role": "assistant", "text": "앞 답변을 원문처럼 사용해요."},
+        ],
+    )
     assert response.status_code == 200
     assert response.json()["knowledge"]["evidence"][0]["quote"] == QUOTE
     retrieval.search.assert_awaited_once_with(question + "\n" + prior, "large")
@@ -987,17 +1084,27 @@ def test_http_passes_followup_context_through_g5(question, prior, routed_chat, m
         assert "앞 답변을 원문처럼" not in str(value) and "아이라인 방법" not in str(value)
 
 
-@pytest.mark.parametrize(("message", "prior", "g1", "expected_knowledge"), [
-    ("그 지표도 개선됐어요?", "파운데이션 연구의 보습 지표를 봤어요.", False, False),
-    (
-        "파우더를 얇게 펴 바르는 방법이 궁금해요.",
-        "파운데이션 연구의 보습 지표를 봤어요.", True, True,
-    ),
-    ("그 지표도 개선됐어요?", "파운데이션 가격을 알려주세요.", True, False),
-    ("그럼 이 컨실러 가격은요?", "컨실러 연구의 보습 지표를 봤어요.", True, False),
-])
+@pytest.mark.parametrize(
+    ("message", "prior", "g1", "expected_knowledge"),
+    [
+        ("그 지표도 개선됐어요?", "파운데이션 연구의 보습 지표를 봤어요.", False, False),
+        (
+            "파우더를 얇게 펴 바르는 방법이 궁금해요.",
+            "파운데이션 연구의 보습 지표를 봤어요.",
+            True,
+            True,
+        ),
+        ("그 지표도 개선됐어요?", "파운데이션 가격을 알려주세요.", True, False),
+        ("그럼 이 컨실러 가격은요?", "컨실러 연구의 보습 지표를 봤어요.", True, False),
+    ],
+)
 def test_http_limits_g5_followup_context(
-    message, prior, g1, expected_knowledge, routed_chat, monkeypatch,
+    message,
+    prior,
+    g1,
+    expected_knowledge,
+    routed_chat,
+    monkeypatch,
 ):
     ask, _, _, consult = routed_chat
     monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", g1)

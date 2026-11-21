@@ -20,7 +20,7 @@ class RecommendationImpressionInput(StrictModel):
     view_instance_id: UUID
     displayed_position: int = Field(ge=1, le=5, strict=True)
     occurred_at: AwareDatetime
-    surface: Literal["v2_comparison"] = "v2_comparison"
+    surface: Literal["v2_comparison", "skin_recommendations"] = "v2_comparison"
     visibility_policy_version: Literal["half-visible-500ms-v1", "direct-interaction-v1"]
 
 

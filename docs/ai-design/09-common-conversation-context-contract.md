@@ -494,3 +494,80 @@ G6: StyleContext/recipeVersion/단계 진행 책임과 독립 버전 유지. G7:
 최종 읽기 전용 리뷰에서 동일 Python/의존성·정적 자료·12초 제한으로 G2/G3를 비교했다. 양쪽 프로세스는 정상 기동했지만 style-looks API가 VerifiedVideoProductRepository를 통해 DB를 조회하면서 테스트의 127.0.0.1:1 주소에 연결하지 못해 500을 반환했다. 정적 자료만 조회한다는 테스트 전제와 실제 의존성의 충돌이며 G3 신규 회귀가 아니다. 별도 담당 후속 작업으로 격리 DB 또는 명시적 정적 테스트 의존성을 정리해야 한다. 테스트 제한시간을 늘려 성공으로 맞추거나 이번 G3에 API/스타일/Compose 변경을 포함하지 않는다.
 
 핵심 결함 재현과 관련 자동 회귀는 해소했다. 종료 판정은 **조건부 종료 가능**이다. G3 핵심 코드 수정은 종료할 수 있으나 실제 수정 HEAD의 통합·실기기 검증과 자료/권리 감사는 남는다. G6 스타일 상태와 G7 영속화/요약/동의 기억, G4 옵션 복합 검색 및 G8 전체 실행은 기존 후속 범위를 유지한다. Draft·G2 base를 보존하고 자동 병합·배포하지 않는다.
+
+
+## G4 최소 구현 보충 (2026-11-17, 로컬 작업본)
+
+G3 계약을 교체하지 않고 옵션 검색 결과를 확장했다. 본문의 과거 실제 통합 미실행 기록은 당시 상태이며 PR #249의 이후 G3 실제 LLM·Catalog·Redis 검증과 구분한다. 이번 G4에는 실제 통합 검증을 전용하지 않는다.
+
+- G1 ON·한국어의 `optionSearch` 검색/조건 변경만 새 Catalog HTTP 경로를 사용한다. 일반 G2 상품 수준 검색·G3 단일 상품 성분 질문/pending·G1 OFF·비한국어·AR·스타일 경로는 기존 경계를 유지한다.
+- `BeautyFilters`에 선택적 `optionSearch`, `priceBasis`, `unsupportedConditions`; `BeautyContext`에 선택적 `optionScope[{productId,shadeId,optionId}]`; `ChatResponse`에 선택적 `optionSearch` 결과를 추가했다. 기존 메시지는 이 필드 없이 유효하다.
+- 후보 순번은 기존 product ID 순서이며 옵션 순번으로 바꾸지 않는다. 같은 상품의 옵션들은 별도로 보존한다. 이전 후보 안에서 좁힐 때 서버가 저장한 옵션 범위를 재검증하며 클라이언트가 변조한 optionScope는 채택하지 않는다. 명시적으로 새 화면 상품을 선택하면 이전 옵션 범위를 제거한다.
+- 세션 owner/token/expected version/request ID/질문 ID/TTL/CAS 저장소는 변경하지 않았다. 검색·조건 변경은 기존 결과 집합 갱신 규칙, 상세·pending은 기존 TTL 규칙을 따른다. 최초 요청을 세션 없이 재전송하면 기존 409 규칙을 유지한다. 세션 있는 동일 요청 재전송은 저장 응답을 반환한다.
+- 부분 결과라도 검증된 귀속의 참고 옵션이 있으면 조건 상태와 함께 저장할 수 있다. 전체 오류 또는 불완전한 빈 검색으로 이전의 유효한 결과 집합을 덮지 않는다. G4 검색으로 상담을 바꾸면 기존 pending 해소 규칙을 재사용한다.
+- 앱은 해당 메시지에 옵션 판정을 보존한다. 기존 owner/generation/revision 방어를 통과한 응답만 반영하며, 새 원문 저장·요약·장기 기억을 추가하지 않는다.
+
+### 최소 구현 당시 실행 검증 (종료 감사 보완 전)
+
+- API: `test_option_search`, `test_ingredient_api`, `test_ingredient_service`, `test_ingredient_mapping`, `test_ingredient_identity`, `test_ingredient_canonical_identity`, `test_catalog_api`, `test_catalog_optional_texture` — 157 passed.
+- 챗봇: `test_g4_option_search`, `test_g3_ingredient_context`, `test_g1_model_service`, `test_g2_multiturn`, `test_chat_sessions`, `test_g1_catalog_tool`, `test_g1_supervisor`, `test_partial_ingredient_sessions` — 230 passed / 3 skipped (opt-in 실제 연동).
+- 앱: `chatProducts`, `chatScreen`, `chatConversationStore` — 111 passed.
+- typecheck·Expo lint·변경 Python 파일 Ruff·양쪽 백엔드 import-linter(각 3 kept / 0 broken)·git diff --check 통과.
+- G4 후속 가격/상세는 옵션 범위·기존 상세 TTL을 보존하고 참고가로 현재가 조건을 재판정하지 않는다. 최저가 옵션 정렬은 미지원 재질문으로 처리한다.
+- Windows sandbox의 asyncio 내부 socketpair 정지로 대역 테스트를 sandbox 밖에서 실행했다. API 기존 pytest 공용 임시 폴더 ACL 오류는 새 OS 임시 경로로 해결했다. 실서비스는 기동하지 않았다.
+- 실제 G4 LLM·Catalog·Redis·실회원·Expo Go는 미실행. 전체 G1 113건 평가와 전체 프로젝트 테스트는 재개하지 않았다. 기존 스타일 HTTP/실DB 전제 충돌은 별도 후속 과제로 유지한다.
+
+
+### 종료 감사 보완 및 검증 (2026-11-17)
+
+- 이름 있는 성분 하나 삭제는 기존 `clearFilters=[ingredientConditions]` 후 유지할 조건을 재설정하는 계약을 사용한다. 추가는 병합, 같은 이름의 includes/excludes 변경은 교체한다. 프롬프트의 향료 조건 삭제와 포괄적 fragranceFree 삭제를 구분했다. 가격 기준만 변경해도 유효한 refine으로 인정한다.
+- 기존 세션·CAS·TTL 저장소는 수정하지 않는다. 응답의 effectiveRequest/checkedAt과 조건별 근거는 기존 lastResponse 및 앱 메시지 경로에 보존한다. 불완전한 빈 결과에서도 검사한 요청은 결과에 남고 기존 유효 문맥은 보존한다. 옛 저장 응답에는 새 필드가 없을 수 있다.
+- 대역 테스트로 복합 조건 설정 → 특정 성분 삭제 → 성분 추가 → 연산자 교체 → 가격 상한/기준 변경과 저장된 유효 요청을 확인했다. 자연어 해석 자체의 실제 LLM 성공으로 계산하지 않는다.
+- 실제 LLM·Catalog HTTP·PostgreSQL 동시 변경·전용 Redis·실회원·Expo Go는 이번에 실행하지 않는다. G4-N01/B01/B02/E01 정식 평가 완료로 간주하지 않으며 특히 B01 사람 의미 검수가 남는다. 자료 완전성·권리·환경 BLOCKED는 유지한다.
+
+
+이번 보완의 실행 결과 (이전 최소 구현 결과와 별도):
+
+- API 관련 회귀: `test_option_search`, `test_ingredient_service`, `test_ingredient_mapping`, `test_ingredient_api`, `test_ingredient_identity`, `test_ingredient_canonical_identity`, `test_oy_catalog` — **147 passed**. 마지막 근거 필드/스냅샷 오류 처리 변경 뒤 `test_option_search` **23 passed** 재확인. 두 숫자는 중복이 있으므로 합산하지 않는다.
+- 챗봇 관련 회귀: `test_g4_option_search`, `test_g1_model_service`, `test_g1_catalog_tool`, `test_g2_multiturn`, `test_g3_ingredient_context`, `test_chat_sessions`, `test_ingredient_consultation` (`-k 'not live'`) — **289 passed / 2 skipped / 1 deselected**. 마지막 근거 검증 보강 뒤 G4/G1 model 집중 테스트 **56 passed** 재확인. 합산하지 않는다.
+- 앱 `chatProducts`, `chatScreen`, `chatConversationStore` — **111 passed**. 옵션 제형 미확인 표시 assertion을 추가하고 기존 순번·선택·늦은 응답 회귀를 실행했다.
+- 최종 typecheck, Expo lint, 변경 영역 Ruff, 양쪽 import-linter 각 3 kept/0 broken, diff whitespace 검사 통과. API TestClient의 기존 httpx 사용 중단 예정 경고 1건은 남는다.
+- Windows sandbox에서 asyncio 내부 socketpair 생성이 멈춰 해당 테스트 프로세스만 중단하고 대역 테스트를 sandbox 밖에서 실행했다. 공용 pytest 임시 폴더 ACL 오류는 고유 OS 임시 경로로 회피했다. 실제 서비스 기동·실데이터 조회는 하지 않았다.
+- 이번 보완은 제시한 후보 중 **23개 기존 작업 파일**을 수정했다. `chatScreen.test.ts`는 기존 회귀로 충분해 수정하지 않았다. 새 프로젝트 파일·의존성·DB 구조는 추가하지 않았다. Compose·G1 검토 문서·성분 보고서·매핑 스크립트는 시작 시점과 파일 해시가 같음을 확인했다.
+- 종료 판정: 이번 코드 보완과 집중 자동 검증은 완료. 실제 PostgreSQL 동시 갱신, LLM의 날짜·선택 삭제 해석, Catalog/Redis/회원/Expo Go, G4 정식 평가와 사람 검수는 미완료다. 옵션별 제형 근거 및 권리 증빙이 없어 **G4 전체 종료는 보류**한다.
+
+
+### 기존 데이터 활용 보완 검증 (2026-11-17)
+
+사용자가 승인한 21개 파일 범위에서 수정했다. 일반 옵션 가격 요청의 기본 기준을 collected_snapshot으로 정하고 유효 기준을 기존 세션 필터에 보존한다. 명시적 current_offer/catalog_reference는 유지한다. 시간대 없는 기록, 옵션 가격이 없어 상품 참고가만 표시한 경우, 상품 제형 분류의 근거, 성분 신원 연결 개수를 앱에 구분해 표시한다. 부분 목록의 포함 확인은 활용하고 부재 확정 조건은 유지한다. 이전 권리 미확인 일괄 차단은 사용자 지시에 따라 제거하고 limitations로 보존했다. 상세 계약은 08의 기존 데이터 활용 보완 절을 따른다.
+
+- API: `test_option_search`, `test_ingredient_service`, `test_ingredient_mapping`, `test_ingredient_api`, `test_ingredient_identity`, `test_ingredient_canonical_identity`, `test_oy_catalog` — **153 passed**. 시간대 없는 수집가 비교/현재가 구분, 옵션 가격 누락 시 참고가 fallback, 제형 출처별 참고 후보, 상품번호 대소문자 귀속, 성분 연결 집계 포함.
+- 챗봇: `test_g4_option_search`, `test_g1_model_service`, `test_g1_catalog_tool`, `test_g2_multiturn`, `test_g3_ingredient_context`, `test_chat_sessions`, `test_ingredient_consultation` (`-k 'not live'`) — **296 passed / 2 skipped / 1 deselected**. 새 수집가 계약과 기본/명시적 가격 기준 보존, 기존 G1/G2/G3 대역 회귀 포함.
+- 앱: `chatProducts`, `chatScreen`, `chatConversationStore` — **112 passed**. 성분 연결 집계·리뷰 제형 출처·시간대 미확인 시각 표시 및 기존 선택/늦은 응답 회귀 포함.
+- typecheck·Expo lint·양쪽 Ruff·import-linter 각 3 kept/0 broken·git diff --check 통과. API의 기존 TestClient/httpx 사용 중단 예정 경고 1건은 유지한다.
+- 모든 테스트는 대역/합성 자료 검증이다. Windows asyncio sandbox 제약이 이미 확인되어 Python 테스트는 sandbox 밖에서 실행했다. 실제 DB·LLM·Redis·실회원·Expo Go 연동, G4 정식 평가·사람 검수는 실행하지 않았다. 직전 읽기 전용 DB 조사 수치와 이번 테스트 결과를 혼합하지 않는다.
+- 새 프로젝트 파일·의존성·DB 변경은 없다. 서비스 기동·커밋·푸시·PR 생성은 하지 않았다. 원 검수 JSON/매핑/보고서, Compose 및 승인 범위 밖 작업은 보존했다. 성분 부재·옵션 제형의 근거 한계와 실제 연동 검증은 여전히 남는다.
+
+
+### G4 조건 해석·검색 범위 실연동 재검증 (2026-11-17)
+
+사용자 승인 6개 파일 안에서 두 챗봇 서비스 파일·두 테스트·08/09 문서를 보완했다. 초기 8개 방향 원문을 재구성하지 않는다. G1 한국어 프롬프트 식별자는 g1-ko-v5이며 G4 실행 직전 보정은 한국어·G1 ON·옵션 search/refine에 한정한다. G2/G3 상태 소유권·TTL·CAS 계약은 그대로다.
+
+자동 검증:
+- 챗봇 G4/G1 model/G1 catalog/G2 multiturn/G3 context/chat sessions/ingredient consultation 집중 회귀: **306 passed / 2 skipped / 2 deselected** (`-k 'not live'`). 이전 회차 숫자와 합산하지 않는다.
+- 새 회귀는 잘못된 모델 인자의 향료/무향료·가격 경계, 충돌 재확인, 명시적 교체, 부분 결과 뒤 Catalog 재검색, 명시적 이전 옵션 범위, 저장 effectiveRequest를 검사한다. 대역 테스트를 실제 모델 성능으로 계산하지 않는다.
+- 변경 Python Ruff 통과, import-linter 3 kept / 0 broken. 프로젝트 typecheck와 Expo lint(--no-cache) 통과. API 구현은 수정하지 않았다.
+- 최종 부정 표현/조건 삭제 방어 회귀 3건을 포함한다. 포함하지 마/제외하지 말아줘/포함 조건 빼줘를 원문 보정기가 반대 조건으로 바꾸지 않는다.
+
+실제 환경 및 관측:
+- 기존 DB를 읽기 전용으로 사용하는 별도 G4 API(18082), 챗봇(18083), 전용 Redis(18379)를 사용했다. 수정 반영을 위해 별도 G4 챗봇만 재시작했다. 실제 모델은 gpt-6-luna이며 챗봇은 Catalog HTTP로만 조회했다. 기존 서비스·DB 원본·Compose·평가 원본은 변경하지 않았다.
+- 원래 매트 복합 요청: 3만원 이하를 30000, 향료 제외를 개별 excludes, 판테놀을 includes로 보존했다. 검사한 7개 옵션 모두 향료 발견으로 EXCLUDED였다. TIMEOUT 부분 결과에서 상품 세션이 만들어지지 않아 다음 요청은 409 chat_session_required였다. 이 흐름을 다단계 성공 또는 매트 성공 사례로 계산하지 않는다.
+- 토리든 립으로 동일 조건 흐름을 검증: 최초 30000 상한·향료 제외·판테놀 포함 → 판테놀만 삭제 → 나이아신아마이드 추가 → 향료 includes 교체 → 20000 상한 → current_offer 전환까지 HTTP 응답과 유효 요청에서 확인했다. fragranceFree는 false이며 다른 조건은 보존됐다. 1~6단계는 productIds/optionScope 제한 없이 Catalog를 재조회했다.
+- 7단계 `그중 가격 기준만 수집가로`: 이전 상품 2개·옵션 6개만 검사하고 6/6 완료. 응답은 앞서 표시한 후보 범위이며 전체 Catalog 완료가 아니라고 명시했다. 참고 후보이며 조건 충족 확정 성공이 아니다.
+- 5단계에서 TIMEOUT·조건 조회 오류 3건이 발생했다. PARTIAL과 일부 조회 실패 안내를 보존했다. 그 외 단계도 WORK_LIMIT 등이 있어 전체 검색 성공으로 표시하지 않는다. 정식 G4-E01 일부 페이지 실패 평가를 대체하지 않는다.
+- 실제 모델의 `3만원 미만`은 상한 29999. 실제 퓌 옵션 수집가 12900은 상한12900에서 가격 MATCH, 상한12899에서 NOT_MATCH였다.
+- 마지막 응답 재전송은 200/동일 응답, 타인 접근403, 오래된 버전409를 재확인했다. 실제 Redis TTL 관측값558초. 만료·CAS 동시 쓰기는 이전 실연동 검증 결과와 구분하며 이번 자동 회귀에 포함한다.
+
+미완료: 실제 회원·Expo Go·앱 실기기, 정식 G4-N01/B01/B02/E01 전체와 사람 검수, 성분 부재/옵션 제형의 확정 근거. 이 보완과 재검증은 G4 전체 종료·출시 승인이 아니다. 커밋·푸시·PR 생성은 하지 않았다.
+
+최종 코드 재확인: 부정 표현 방어를 반영하고 별도 G4 챗봇만 다시 시작한 뒤 토리든 7단계를 새 세션으로 재실행했다. 1~6단계의 조건·가격·범위가 위 기대값과 일치했고 모두 errors=0이었다(검색은 WORK_LIMIT 부분 결과). 7단계는 이전 상품 2개/옵션6개만 6/6 검사하고 범위 안내를 반환했다. 앞선 실행의 TIMEOUT/오류 관측 기록은 삭제하지 않는다. 최종 파일 해시 대조에서 승인한 6개 외 기존 미커밋·미추적 파일 변경/삭제는 없었다. 기존 API·챗봇·PostgreSQL 컨테이너 ID/시작 시각이 유지됐고 G4 API의 읽기 전용 연결 bootstrap도 유지됐다.

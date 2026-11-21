@@ -15,7 +15,10 @@ from app.schemas.recommendation_feedback import (
     RecommendationImpressionInput,
     RecordedComparisonInput,
 )
-from app.services.recommendation_feedback_service import RecommendationFeedbackService
+from app.services.recommendation_feedback_service import (
+    SERVING_CONTRACT,
+    RecommendationFeedbackService,
+)
 from app.services.recommendation_v2_service import rank_products
 from tests.test_recommendation_comparison import body, catalog, option
 
@@ -65,6 +68,44 @@ def event(**changes):
             "occurredAt": datetime.now(UTC),
             **changes,
         }
+    )
+
+
+def test_serving_impression_and_product_actions_require_consent_and_serving_context():
+    flow = service()
+    view = impression(surface="skin_recommendations")
+    with pytest.raises(ApiError) as error:
+        asyncio.run(flow.impression(view, "member", serving=True))
+    assert error.value.code == "feedback_disabled"
+    flow.repository.candidate.assert_not_awaited()
+    flow.consented_members = {"member"}
+    flow.repository.candidate.return_value = {"contract_version": SERVING_CONTRACT, "final_rank": 1}
+    assert asyncio.run(flow.impression(view, "member", serving=True)) == {
+        "impressionId": str(view.impression_id)
+    }
+    with pytest.raises(ApiError) as error:
+        asyncio.run(flow.impression(view, "member"))
+    assert error.value.code == "candidate_not_found"
+    flow.repository.insert_impression.assert_awaited_once()
+    product_view = event(impressionId=view.impression_id)
+    flow.repository.impression.return_value = {
+        "contract_version": SERVING_CONTRACT,
+        "session_id": product_view.session_id,
+        "product_id": product_view.product_id,
+        "option_id": product_view.option_id,
+    }
+    cart = event(
+        impressionId=view.impression_id,
+        sessionId=product_view.session_id,
+        eventType="cart_add",
+        optionId=None,
+    )
+    asyncio.run(flow.event(product_view, "member", serving=True))
+    asyncio.run(flow.event(cart, "member", serving=True))
+    saved = [call.args[0] for call in flow.repository.insert_event.await_args_list]
+    assert [row["event_type"] for row in saved] == ["product_view", "cart_add"]
+    assert all(
+        row["member_id"] == "member" and row["impression_id"] == view.impression_id for row in saved
     )
 
 
@@ -228,7 +269,16 @@ def test_recorded_route_requires_token_and_passes_only_verified_member(client):
     )
     flow = SimpleNamespace(compare=AsyncMock(return_value={"history": {"requestId": "test"}}))
     client.app.dependency_overrides[get_session] = lambda: None
-    payload = RecordedComparisonInput(session_id=uuid4(), input=body()).model_dump(mode="json")
+    legacy_payload = RecordedComparisonInput(session_id=uuid4(), input=body()).model_dump(
+        mode="json"
+    )
+    payload = RecordedComparisonInput(
+        session_id=uuid4(),
+        input=body(
+            analysisVersion="skin-analysis-v4.1",
+            scores={"pores": 0.8, "pigmentation": 0.2, "wrinkles": 0.8, "acne": 0.7},
+        ),
+    ).model_dump(mode="json")
     with (
         patch(
             "app.routers.recommendation_comparison.get_settings",
@@ -244,6 +294,13 @@ def test_recorded_route_requires_token_and_passes_only_verified_member(client):
             client.post("/api/dev/recommendations/compare/recorded", json=payload).status_code
             == 401
         )
+        missing = client.post(
+            "/api/dev/recommendations/compare/recorded",
+            json=legacy_payload,
+            headers={"Authorization": "Bearer test-token"},
+        )
+        assert missing.status_code == 422 and missing.json()["code"] == "acne_score_required"
+        flow.compare.assert_not_called()
         response = client.post(
             "/api/dev/recommendations/compare/recorded",
             json=payload,

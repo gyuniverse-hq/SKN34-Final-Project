@@ -1,22 +1,26 @@
 import { uuid } from 'expo';
-import { ApiError } from './api';
+import { apiPost, ApiError } from './api';
 import { comparisonPost } from './recommendationComparison';
-import type { ComparisonProduct } from '@/types/recommendationComparison';
 
 type FeedbackAction = 'product_view' | 'cart_add' | 'outbound_click';
+export type FeedbackSurface = 'v2_comparison' | 'skin_recommendations';
+export type FeedbackItem = { candidateId?: string; productId: string; optionId: string; rank: number };
 type Impression = {
   impressionId: string; candidateId: string; viewInstanceId: string; displayedPosition: number;
-  occurredAt: string; surface: 'v2_comparison';
+  occurredAt: string; surface: FeedbackSurface;
   visibilityPolicyVersion: 'half-visible-500ms-v1' | 'direct-interaction-v1';
 };
 type Entry = { body: Impression; sent: boolean; pending?: Promise<void> };
 
-async function send(path: string, body: unknown, owner: string) {
-  try { await comparisonPost(path, body, owner); }
+async function send(path: string, body: unknown, owner: string, surface: FeedbackSurface) {
+  const post = () => surface === 'skin_recommendations'
+    ? apiPost('/api/recommendations/skin-v2' + path, body, { expectedUserId: owner, timeoutMs: 5000 })
+    : comparisonPost(path, body, owner);
+  try { await post(); }
   catch (error) {
     // One bounded retry, retaining the original UUID and timestamp (including a lost response).
     if (!(error instanceof ApiError) || (error.code !== 'network' && error.status < 500)) throw error;
-    await comparisonPost(path, body, owner);
+    await post();
   }
 }
 
@@ -24,40 +28,40 @@ async function send(path: string, body: unknown, owner: string) {
 export class RecommendationFeedback {
   readonly viewId = uuid.v4();
   private entries = new Map<string, Entry>();
-  constructor(readonly owner: string, readonly sessionId: string) {}
+  constructor(readonly owner: string, readonly sessionId: string, readonly surface: FeedbackSurface = 'v2_comparison') {}
 
-  impression(item: ComparisonProduct, interaction = false): Promise<void> {
+  impression(item: FeedbackItem, interaction = false): Promise<void> {
     if (!item.candidateId) return Promise.resolve();
     let entry = this.entries.get(item.candidateId);
     if (!entry) {
       entry = { sent: false, body: { impressionId: uuid.v4(), candidateId: item.candidateId,
         viewInstanceId: this.viewId, displayedPosition: item.rank, occurredAt: new Date().toISOString(),
-        surface: 'v2_comparison', visibilityPolicyVersion: interaction ? 'direct-interaction-v1' : 'half-visible-500ms-v1' } };
+        surface: this.surface, visibilityPolicyVersion: interaction ? 'direct-interaction-v1' : 'half-visible-500ms-v1' } };
       this.entries.set(item.candidateId, entry);
     }
     if (entry.sent) return Promise.resolve();
     if (!entry.pending) {
       const current = entry;
-      current.pending = send('/impressions', current.body, this.owner).then(() => { current.sent = true; })
+      current.pending = send('/impressions', current.body, this.owner, this.surface).then(() => { current.sent = true; })
         .finally(() => { current.pending = undefined; });
     }
     return entry.pending!;
   }
 
-  async event(item: ComparisonProduct, eventType: FeedbackAction) {
-    if (!item.candidateId) return;
+  async event(item: FeedbackItem, eventType: FeedbackAction) {
+    if (!item.candidateId || (this.surface === 'skin_recommendations' && eventType === 'outbound_click')) return;
     const occurredAt = new Date().toISOString();
     const eventId = uuid.v4();
     // A deliberate click proves exposure even if it occurs before the 500 ms dwell threshold.
     await this.impression(item, true);
     await send('/events', { eventId, impressionId: this.entries.get(item.candidateId)!.body.impressionId,
       sessionId: this.sessionId, productId: item.productId, optionId: eventType === 'cart_add' ? null : item.optionId,
-      eventType, occurredAt, surface: 'product_detail' }, this.owner);
+      eventType, occurredAt, surface: 'product_detail' }, this.owner, this.surface);
   }
 }
 
-const links = new Map<string, { feedback: RecommendationFeedback; item: ComparisonProduct }>();
-export function recommendationLink(feedback: RecommendationFeedback, item: ComparisonProduct): string {
+const links = new Map<string, { feedback: RecommendationFeedback; item: FeedbackItem }>();
+export function recommendationLink(feedback: RecommendationFeedback, item: FeedbackItem): string {
   // Only recent navigation contexts are kept, and another account cannot reuse them.
   for (const [id, context] of links) if (context.feedback.owner !== feedback.owner) links.delete(id);
   if (links.size >= 20) links.delete(links.keys().next().value!);

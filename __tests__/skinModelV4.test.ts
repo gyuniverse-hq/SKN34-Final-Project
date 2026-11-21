@@ -40,10 +40,32 @@ it('persists binary evidence and uses any caution ROI consistently in the report
   expect(buildSkinRecommendationRequest(restored)).toEqual({ concerns: ['dryness', 'pores', 'wrinkles'], limit: 8 });
 });
 
+it('preserves optional demographics with the saved skin profile', async () => {
+  await AsyncStorage.clear();
+  const source = { ...profile(), demographics: { birthYear: 1998, gender: '여성' as const } };
+  await writeSkinProfile(source);
+  expect(await readSkinProfile()).toEqual(source);
+  await expect(writeSkinProfile({ ...source, demographics: { birthYear: 1899 } })).rejects.toThrow();
+  await expect(writeSkinProfile({ ...source, demographics: { age: 27 } })).resolves.toBeUndefined();
+});
+
 it('rejects grade values, missing scores and scores inconsistent with binary labels', () => {
   const source = profile().analysis;
   expect(() => validateSkinAnalysis(source)).not.toThrow();
   expect(() => validateSkinAnalysis({ ...source, features: { ...source.features, pore_grade_cheek_image_left: 3 } })).toThrow();
   expect(() => validateSkinAnalysis({ ...source, cautionProbabilities: undefined })).toThrow();
   expect(() => validateSkinAnalysis({ ...source, cautionProbabilities: { ...source.cautionProbabilities!, pore_grade_cheek_image_left: .5 } })).toThrow();
+});
+
+it('validates and displays the v4.1 acne score as a blemish result', () => {
+  const source = profile();
+  source.analysis = { ...source.analysis, schema: 'skin-analysis-mobile-v4.1',
+    features: { ...source.analysis.features, acne: 1 }, acneScore: .7, acneThreshold: .5,
+    timing: { ...source.analysis.timing, models: [...source.analysis.timing.models, {
+      indicator: 'acne', sourceSha256: 'a'.repeat(64), sha256: 'b'.repeat(64),
+      loadMs: 0, validationMs: 0, preprocessingMs: 0, inferenceMs: 0,
+    }] } };
+  expect(() => validateSkinAnalysis(source.analysis)).not.toThrow();
+  expect(buildSkinReport(source).metrics.find(m => m.concern === 'blemish')).toMatchObject({ status: 'care', value: 1, modelScore: .7 });
+  expect(() => validateSkinAnalysis({ ...source.analysis, acneScore: .2 })).toThrow();
 });

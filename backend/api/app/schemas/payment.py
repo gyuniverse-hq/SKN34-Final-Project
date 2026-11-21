@@ -1,4 +1,5 @@
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -7,6 +8,9 @@ class OrderLineRequest(BaseModel):
     product_id: str = Field(alias="productId", min_length=1, max_length=64)
     shade_id: str | None = Field(default=None, alias="shadeId", max_length=64)
     quantity: int = Field(ge=1, le=20)
+    ar_cart_event_ids: list[UUID] = Field(
+        default_factory=list, alias="arCartEventIds", max_length=20
+    )
 
 
 class CreateOrderRequest(BaseModel):

@@ -4,7 +4,12 @@ from fastapi import APIRouter, Depends, Path, Query, Request, Response
 
 from app.core.errors import ApiError, UpstreamError
 from app.core.http import cache_for
-from app.core.ratelimit import RateLimiter, client_key, get_offer_search_rate_limiter
+from app.core.ratelimit import (
+    RateLimiter,
+    client_key,
+    get_offer_search_rate_limiter,
+    get_option_search_rate_limiter,
+)
 from app.schemas.catalog import (
     CATEGORIES,
     CONCERNS,
@@ -16,10 +21,12 @@ from app.schemas.catalog import (
 )
 from app.schemas.external import ProductOffers
 from app.schemas.ingredient import IngredientReadResult
+from app.schemas.option_search import OptionSearchRequest, OptionSearchResponse
 from app.schemas.product_video import ProductVideosResponse
 from app.services.catalog_service import CatalogService, get_catalog_service
 from app.services.ingredient_service import IngredientService, get_ingredient_service
 from app.services.offer_service import OfferService, get_offer_service
+from app.services.option_search_service import OptionSearchService, get_option_search_service
 from app.services.product_video_service import ProductVideoService, get_product_video_service
 
 router = APIRouter(prefix="/api", tags=["catalog"])
@@ -154,3 +161,17 @@ async def list_stores(
     stores = await service.list_pickup_stores()
     cache_for(response, 3600)
     return StoresResponse(stores=stores)
+
+
+@router.post("/catalog/options/search", response_model=OptionSearchResponse)
+async def search_options(
+    payload: OptionSearchRequest,
+    request: Request,
+    response: Response,
+    service: OptionSearchService = Depends(get_option_search_service),
+    limiter: RateLimiter = Depends(get_option_search_rate_limiter),
+) -> OptionSearchResponse:
+    response.headers["Cache-Control"] = "no-store"
+    if not await limiter.allow(client_key(request)):
+        raise ApiError(429, "Too many option searches", "rate_limited")
+    return await service.search(payload)

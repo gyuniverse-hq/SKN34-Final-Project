@@ -266,3 +266,19 @@ test('keeps optional knowledge citations with their assistant reply', () => {
   store().completeRequest(ticket, { answer: 'A grounded answer [E1]', products: [], knowledge }, 'question');
   expect(store().conversations[id].messages.at(-1)?.knowledge).toEqual(knowledge);
 });
+
+test('G4 keeps option results with their original message and ignores late owner responses', () => {
+  const id = store().open({ type: 'general' })!;
+  const target = store().conversations[id].conversation;
+  const ticket = store().beginRequest(target, request(target))!;
+  const optionSearch: NonNullable<import('@/types').ChatResponse['optionSearch']> = {
+    schemaVersion: 1, status: 'PARTIAL', items: [], products: [], excludedCount: 0, omittedCount: 0,
+    checkedScope: { candidateProducts: 1, candidateOptions: 1, checkedOptions: 0, unidentifiedOptions: 0, exhaustive: false, stoppedReason: 'TIMEOUT', errors: 0 },
+  };
+  store().completeRequest(ticket, { answer: 'Partial search', products: [], optionSearch }, 'question');
+  expect(store().conversations[id].messages.at(-1)?.optionSearch).toEqual(optionSearch);
+  const late = store().beginRequest(store().conversations[id].conversation, request(target))!;
+  store().activate('account-B');
+  store().completeRequest(late, { answer: 'late', products: [], optionSearch }, 'question');
+  expect(store().conversations).toEqual({});
+});

@@ -23,7 +23,13 @@ from app.models.cosing import (
     FunctionConcernRow,
     IngredientFunctionRow,
 )
-from app.models.idol_look import LookArSettingRow, LookProductRow, MakeupLookRow, YoutubeVideoRow
+from app.models.idol_look import (
+    LookArSettingRow,
+    LookProductRow,
+    LookVideoTagRow,
+    MakeupLookRow,
+    YoutubeVideoRow,
+)
 from app.models.knowledge import (
     AihubDocumentBlockRow,
     AihubDocumentExtractionRow,
@@ -113,6 +119,7 @@ __all__ = [
     "LookArSettingRow",
     "LookItemRow",
     "LookProductRow",
+    "LookVideoTagRow",
     "LookRow",
     "MakeupLookRow",
     "MemberRow",

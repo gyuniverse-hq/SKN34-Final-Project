@@ -147,7 +147,7 @@ def test_block_failure_propagates_out_of_transaction():
         assert session.rolled_back
 
 
-EXPECTED_TEST_URL = "postgresql+asyncpg://g5_test:g5_test_local@127.0.0.1:15543/g5_extraction_test"
+EXPECTED_TEST_URL = "postgresql+asyncpg://g5_test:g5_test_local@127.0.0.1:15549/g5_extraction_test"
 API_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -169,6 +169,9 @@ async def _test_database_revision(url):
                 "g5_extraction_test",
                 "g5_test",
             )
+            assert (await conn.execute(text("SHOW cluster_name"))).scalar_one() == (
+                "g5-integration-test"
+            )
             assert (
                 await conn.execute(text("SELECT to_regclass('public.alembic_version_g5')"))
             ).scalar() is None
@@ -184,7 +187,19 @@ async def _test_database_revision(url):
             revision = (
                 await conn.execute(text("SELECT version_num FROM alembic_version"))
             ).scalar_one()
-            assert revision == "0026", "Use a clean disposable database at the standard predecessor"
+            assert revision == "0028", "Use a clean disposable database at the standard predecessor"
+            assert (
+                await conn.execute(text("SELECT to_regclass('public.look_video_tags')"))
+            ).scalar()
+            assert (
+                await conn.execute(
+                    text(
+                        "SELECT count(*) FROM information_schema.columns "
+                        "WHERE table_schema = 'public' AND table_name = 'shades' "
+                        "AND column_name = 'finish'"
+                    )
+                )
+            ).scalar_one() == 1
             for table in ("aihub_knowledge_document", "aihub_qa_case_raw", "aihub_dataset_release"):
                 assert not (await conn.execute(text(f"SELECT count(*) FROM {table}"))).scalar_one()
             return revision
@@ -218,12 +233,12 @@ def knowledge_database():
         pytest.skip("Set G5_EXTRACTION_TEST_DATABASE_URL to the disposable test database")
     assert url == EXPECTED_TEST_URL, "Only the dedicated disposable test database is allowed"
     if asyncio.run(_test_database_revision(url)) is None:
-        migrate_standard(url, "upgrade", "0026")
-        assert asyncio.run(_test_database_revision(url)) == "0026"
+        migrate_standard(url, "upgrade", "0028")
+        assert asyncio.run(_test_database_revision(url)) == "0028"
     try:
         yield url
     finally:
-        migrate_standard(url, "downgrade", "0026")
+        migrate_standard(url, "downgrade", "0028")
         asyncio.run(_delete_test_rows(url))
 
 
@@ -340,8 +355,8 @@ def test_isolated_postgres_migration_idempotency_and_rollback(knowledge_database
         finally:
             await engine.dispose()
 
-    migrate_standard(url, "upgrade", "0027")
+    migrate_standard(url, "upgrade", "0029")
     asyncio.run(check())
-    migrate_standard(url, "downgrade", "0026")
-    migrate_standard(url, "upgrade", "0027")
+    migrate_standard(url, "downgrade", "0028")
+    migrate_standard(url, "upgrade", "0029")
     asyncio.run(check_reapplied())

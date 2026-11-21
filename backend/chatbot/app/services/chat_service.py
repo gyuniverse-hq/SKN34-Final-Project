@@ -56,6 +56,7 @@ from app.services.beauty_consultation_service import (
     direct_comparison,
     execute_beauty,
     interpret_beauty,
+    refers_to_same_budget,
 )
 from app.services.g1_catalog_tool import G1CatalogTool
 from app.services.g1_model_service import (
@@ -120,6 +121,7 @@ def _unsupported_g2_change(message: str, slots: SearchPlan) -> bool:
             for value in (
                 slots.category,
                 slots.max_price_krw,
+                slots.price_basis,
                 slots.fragrance_free,
                 slots.moisturizing,
                 slots.texture,
@@ -128,6 +130,7 @@ def _unsupported_g2_change(message: str, slots: SearchPlan) -> bool:
         )
         or slots.ingredient_conditions
         or slots.ingredient_name
+        or refers_to_same_budget(message)
     )
 
 
@@ -546,7 +549,9 @@ def verify_response(
             result.action_proposed = True
             result.application = "awaiting_app_ack"
     response.supervisor = SupervisorResult(
-        intent=decision, plan=plan, result=result,
+        intent=decision,
+        plan=plan,
+        result=result,
         unavailable_tools=[] if _g5_enabled() else ["knowledge"],
     )
     return response
@@ -826,6 +831,8 @@ class ChatService:
                         "tool_name": (
                             "catalog.get_product_detail"
                             if model_turn.tool_name == DETAIL_TOOL
+                            else "catalog.search_options"
+                            if response.option_search is not None
                             else "catalog.search_products"
                         ),
                         "result_type": response.result_type,
@@ -862,6 +869,18 @@ class ChatService:
         products = {p.id: p for p in rows if p.id in ids}
         if len(products) != len(ids):
             raise ApiError(422, "Catalog candidates changed; search again", "chat_catalog_changed")
+        for option in context.option_scope or []:
+            product = products.get(option.product_id)
+            if (
+                product is None
+                or not option.option_id
+                or (
+                    option.shade_id not in {s.id for s in product.shades}
+                    if product.shades
+                    else option.shade_id is not None
+                )
+            ):
+                raise ApiError(422, "Catalog option scope changed", "chat_catalog_changed")
         for pid, sid in context.shade_selections.items():
             if pid not in products or not any(s.id == sid for s in products[pid].shades):
                 raise ApiError(422, "Catalog shade changed", "chat_catalog_changed")
@@ -879,6 +898,7 @@ class ChatService:
             if select_screen and product.id not in context.candidate_ids:
                 context.candidate_ids = [product.id]
                 context.scope_ids = [product.id]
+                context.option_scope = None
                 context.selected_product_id = product.id
                 context.shade_selections = {product.id: screen.shade_id} if screen.shade_id else {}
         if incoming:
@@ -1143,6 +1163,16 @@ class ChatService:
             if not isinstance(answer, str) or not answer.strip():
                 raise ApiError(502, "Invalid general answer", "invalid_tool_result")
             model_turn = G1ModelTurn(slots, answer=answer.strip())
+        if (
+            g2_enabled
+            and slots.intent in {"search", "refine"}
+            and refers_to_same_budget(req.message)
+        ):
+            if state:
+                slots.intent = "refine"
+            elif ref is None and not load_error:
+                slots.intent = "search"
+                slots.scope = "catalog"
         comparing = direct_comparison(req, slots)
         independent = (
             slots.intent == "general"
@@ -1266,6 +1296,14 @@ class ChatService:
         if unsupported or pending_ambiguous:
             response.result_type = "clarification"
         ctx = response.chat_context
+        if (
+            ctx
+            and req.chat_context
+            and slots.intent in {"detail", "price"}
+            and ctx.candidate_ids == req.chat_context.candidate_ids
+            and ctx.filters.option_search
+        ):
+            ctx.option_scope = req.chat_context.option_scope
         next_pending = old_pending
         pending_changed = False
         if g2_enabled and state:
@@ -1392,7 +1430,8 @@ class ChatService:
                 if not response.products:
                     response.chat_context = state.context.model_copy(deep=True)
                 same_result_set = (
-                    response.chat_context.candidate_ids == state.context.candidate_ids
+                    response.chat_context.option_scope == state.context.option_scope
+                    and response.chat_context.candidate_ids == state.context.candidate_ids
                     and response.chat_context.scope_ids == state.context.scope_ids
                     and response.chat_context.filters == state.context.filters
                     # Positive selection hints replay on retry; None cannot clear a saved selection.
@@ -1423,6 +1462,7 @@ class ChatService:
             slots.intent in {"search", "refine"}
             or ctx.candidate_ids != state.context.candidate_ids
             or ctx.filters != state.context.filters
+            or ctx.option_scope != state.context.option_scope
         )
         created = now if renewed else state.result_created_at
         ctx.issued_at = created
@@ -1580,10 +1620,16 @@ class ChatService:
             status = consultation.reply.status
             return (
                 ChatResponse(answer=consultation.answer, products=[], knowledge=consultation.reply),
-                ToolResult(tool=tool, status={
-                    "answered": "success", "partial": "partial",
-                    "insufficient_evidence": "unsupported", "error": "error",
-                }[status], reason=None if status == "answered" else f"g5_{status}"),
+                ToolResult(
+                    tool=tool,
+                    status={
+                        "answered": "success",
+                        "partial": "partial",
+                        "insufficient_evidence": "unsupported",
+                        "error": "error",
+                    }[status],
+                    reason=None if status == "answered" else f"g5_{status}",
+                ),
             )
         if tool != "graph_chat":
             raise ApiError(503, "Tool is not implemented", "tool_unavailable")

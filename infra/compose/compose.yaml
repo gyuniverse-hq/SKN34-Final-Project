@@ -21,6 +21,11 @@ x-ready: &ready
   retries: 12
   start_period: 10s
 
+x-api-build: &api-build
+  context: ../../backend/api
+  additional_contexts:
+    model: ../../ml/runs/recommend-cat-v4/bundle
+
 services:
   # Waits for api only: shopping keeps working while the chatbot is down (nginx answers 503 for chat).
   gateway:
@@ -33,12 +38,15 @@ services:
 
   api:
     <<: *backend
-    build: ../../backend/api
+    build: *api-build
     image: vishue-api:dev
     environment:
       <<: *backend-env
       # Optional read-only artifact: add compose.ingredients.yaml (see docs/DEPLOYMENT.md).
       INGREDIENT_MAPPING_PATH: ""
+      AR_ACTIVITY_ENROLLED_MEMBERS: '${AR_ACTIVITY_ENROLLED_MEMBERS:-[]}'
+      AR_ACTIVITY_CONSENTED_MEMBERS: '${AR_ACTIVITY_CONSENTED_MEMBERS:-[]}'
+      SKIN_RECOMMENDATION_FEEDBACK_CONSENTED_MEMBERS: '${SKIN_RECOMMENDATION_FEEDBACK_CONSENTED_MEMBERS:-[]}'
       DATABASE_URL: postgresql+asyncpg://vishue:${POSTGRES_PASSWORD:-vishue}@postgres:5432/vishue_db
       REDIS_URL: redis://redis:6379/0
       NAVER_CLIENT_ID: ${NAVER_CLIENT_ID:-}
@@ -78,7 +86,7 @@ services:
   # One-off jobs: schema migration before api starts, graph sync once api is ready.
   migrate:
     image: vishue-api:dev
-    build: ../../backend/api
+    build: *api-build
     command: ["alembic", "upgrade", "head"]
     environment:
       DATABASE_URL: postgresql+asyncpg://vishue:${POSTGRES_PASSWORD:-vishue}@postgres:5432/vishue_db
@@ -100,7 +108,7 @@ services:
   # `docker compose ... run --rm seed` to load backend/api/seed/catalog.json, then rerun sync-graph.
   seed:
     image: vishue-api:dev
-    build: ../../backend/api
+    build: *api-build
     command: ["python", "-m", "app.jobs.seed_catalog", "seed/catalog.json"]
     environment:
       DATABASE_URL: postgresql+asyncpg://vishue:${POSTGRES_PASSWORD:-vishue}@postgres:5432/vishue_db
