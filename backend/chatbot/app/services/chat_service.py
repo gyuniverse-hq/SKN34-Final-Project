@@ -224,6 +224,7 @@ _KNOWLEDGE_FOLLOWUP = re.compile(
 )
 _PROTECTED_KNOWLEDGE_REQUEST = re.compile(
     r"가격|할인|최저가|재고|장바구니|전성분|성분표|배합표|제조번호|제조사|모델명|"
+    r"얼마\s*(?:예요|에요|인가요|입니까|야|죠|해요|하나요|에\s*(?:팔|사|살))|"
     r"색\s*번호|호수|옵션|매출|결제|영수증|진단|치료|처방|"
     r"(?:성분|향료).{0,14}(?:들어\s*있|함유|포함\s*여부)"
 )
@@ -400,10 +401,11 @@ def _is_knowledge_question(
     ):
         return False
 
+    prior = _prior_knowledge_context(req)
     free_chat = req.request_type == "chat" and decision.intent in {"general", "ingredient"}
     app_makeup = (
         req.request_type == "beauty_consultation"
-        and req.general_makeup
+        and (req.general_makeup or prior)
         and context.screen is None
         and decision.intent in {"product", "ingredient"}
     )
@@ -411,7 +413,6 @@ def _is_knowledge_question(
         return False
 
     message = context.message
-    prior = _prior_knowledge_context(req)
     source_question = bool(_SOURCE_QUESTION.search(message))
     explains = requests_general_explanation(message)
     if (

@@ -1,11 +1,12 @@
 import asyncio
 from copy import deepcopy
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
+import httpx
 import pytest
 
-from app.clients.openai_responses_client import StageResult
+from app.clients.openai_responses_client import OpenAIResponses, StageResult
 from app.core.config import get_settings
 from app.core.errors import UpstreamError
 from app.core.ratelimit import MemoryRateLimiter, get_rate_limiter
@@ -1295,11 +1296,12 @@ def test_http_passes_followup_context_through_g5(question, prior, routed_chat, m
         ),
     ],
 )
-@pytest.mark.parametrize("request_type", ["chat", "knowledge_consultation"])
+@pytest.mark.parametrize("request_type", ["chat", "beauty_consultation", "knowledge_consultation"])
 def test_http_g5_keeps_contiguous_followups_through_all_stages(
     questions, request_type, routed_chat, monkeypatch
 ):
     ask, service, llm, _ = routed_chat
+    service._sessions = ChatSessionRepository(RedisDouble())
     retrieval, model = Retrieval(), Model()
     retrieval.search = AsyncMock(wraps=retrieval.search)
     model.run = AsyncMock(wraps=model.run)
@@ -1309,7 +1311,16 @@ def test_http_g5_keeps_contiguous_followups_through_all_stages(
     for index, question in enumerate(questions):
         retrieval.search.reset_mock()
         model.run.reset_mock()
-        response = ask(question, requestType=request_type, recentMessages=history)
+        response = ask(
+            question,
+            requestType=request_type,
+            recentMessages=history,
+            **(
+                {"generalMakeup": True}
+                if request_type == "beauty_consultation" and index == 0
+                else {}
+            ),
+        )
         assert response.status_code == 200
         assert service.last_route.result.tool == "knowledge"
         assert response.json()["knowledge"]["evidence"][0]["quote"] == QUOTE
@@ -1346,7 +1357,7 @@ def test_http_g5_keeps_contiguous_followups_through_all_stages(
         "오늘 일정 정리를 하고 있어요.",
     ],
 )
-@pytest.mark.parametrize("request_type", ["chat", "knowledge_consultation"])
+@pytest.mark.parametrize("request_type", ["chat", "beauty_consultation", "knowledge_consultation"])
 def test_http_g5_does_not_cross_an_interrupted_topic(interruption, request_type, routed_chat):
     ask, service, _, consult = routed_chat
     response = ask(
@@ -1724,3 +1735,188 @@ def test_http_explicit_knowledge_cannot_bypass_session_validation(field, status,
         assert (response.status_code, response.json()["code"]) == (status, code)
     assert llm.calls == calls
     consult.assert_not_awaited()
+
+
+@pytest.mark.parametrize("request_type", ["chat", "beauty_consultation", "knowledge_consultation"])
+@pytest.mark.parametrize(
+    "message",
+    [
+        "롬앤 틴트가 얼마예요?",
+        "마스카라는 얼마인가요?",
+        "이 파운데이션 얼마에 팔아요?",
+        "블러셔 얼마야?",
+    ],
+)
+def test_http_price_without_selection_keeps_catalog_route(message, request_type, routed_chat):
+    ask, service, llm, consult = routed_chat
+    service._sessions = ChatSessionRepository(RedisDouble())
+    llm.plan = {"intent": "search", "category": "lip", "query": message}
+    response = ask(message, requestType=request_type)
+    assert response.status_code == 200
+    assert service.last_route.result.tool == "beauty"
+    assert response.json().get("knowledge") is None
+    consult.assert_not_awaited()
+
+
+@pytest.mark.parametrize("request_type", ["chat", "beauty_consultation", "knowledge_consultation"])
+@pytest.mark.parametrize(
+    "message",
+    [
+        "블러셔는 얼마나 자주 발라요?",
+        "파운데이션은 얼마큼 짜서 써요?",
+        "선크림을 바른 뒤 얼마 동안 기다려요?",
+        "얼마 뒤 파우더를 바르나요?",
+    ],
+)
+def test_http_quantity_and_frequency_are_not_price_questions(message, request_type, routed_chat):
+    ask, service, _, consult = routed_chat
+    response = ask(
+        message,
+        requestType=request_type,
+        **({"generalMakeup": True} if request_type == "beauty_consultation" else {}),
+    )
+    assert response.status_code == 200
+    assert service.last_route.result.tool == "knowledge"
+    consult.assert_awaited_once_with(message)
+
+
+@pytest.mark.parametrize("adequate", [True, False])
+@pytest.mark.parametrize("supported", [True, False])
+def test_answered_requires_both_supported_coverage_and_adequate_context(adequate, supported):
+    evidence, _, _ = verify_selection([SELECTED], {"C1": HIT})
+    draft = {
+        "status": "answered",
+        "claims": [{"claim": QUOTE, "citations": ["E1"]}],
+        "limitations": "",
+    }
+    audit = verification(
+        check(
+            1,
+            requirements=["R1"],
+            citations=["E1"],
+            label="SUPPORTED" if supported else "UNSUPPORTED",
+        )
+    )
+    audit["adequate_context"] = adequate
+    result = resolve(draft, audit, evidence)
+    expected = (
+        "answered"
+        if supported and adequate
+        else "partial"
+        if supported
+        else "insufficient_evidence"
+    )
+    assert result.status == expected
+    assert result.evidence == (evidence if supported else [])
+    assert bool(result.claims) == supported
+    if supported and not adequate:
+        assert "전체 질문에 답하기 어렵습니다" in result.limitations
+        assert f"{QUOTE} [E1]" in Consultation(result, {}).answer
+        assert "항목은 입니다" not in result.limitations
+
+
+def test_http_inadequate_context_preserves_supported_answer_as_partial(routed_chat, monkeypatch):
+    ask, service, _, _ = routed_chat
+
+    class InadequateModel(Model):
+        async def run(self, stage, *args):
+            result = await super().run(stage, *args)
+            if stage == "detect":
+                result.content["adequate_context"] = False
+            return result
+
+    consultation = KnowledgeService(Retrieval(), InadequateModel())
+    monkeypatch.setattr(chat_service, "consult_knowledge", consultation.consult)
+    response = ask("볼 홍조를 화장으로 가리는 방법은요?")
+    assert response.status_code == 200
+    reply = response.json()["knowledge"]
+    assert reply["status"] == "partial"
+    assert reply["claims"][0]["citations"] == ["E1"]
+    assert reply["evidence"][0]["quote"] == QUOTE
+    assert service.last_route.result.status == "partial"
+
+
+@pytest.mark.parametrize("stage_seconds", [15, 21])
+def test_consultation_deadline_is_shared_across_successful_model_stages(stage_seconds):
+    stages = []
+
+    async def run():
+        loop = asyncio.get_running_loop()
+        real_time = loop.time
+        elapsed = 0
+
+        class TimedModel(Model):
+            async def run(self, stage, *args):
+                nonlocal elapsed
+                stages.append(stage)
+                elapsed += stage_seconds
+                await asyncio.sleep(0.001)
+                return await super().run(stage, *args)
+
+        with patch.object(loop, "time", lambda: real_time() + elapsed):
+            return await KnowledgeService(Retrieval(), TimedModel()).consult("볼에 사용하나요?")
+
+    result = asyncio.run(run())
+    assert stages == ["select", "answer", "detect"]
+    if stage_seconds == 15:
+        assert result.reply.status == "answered" and result.reply.evidence
+    else:
+        assert result.reply.status == "error"
+        assert result.trace["error"] == "TimeoutError"
+        assert not result.reply.claims and not result.reply.evidence
+
+
+def test_consultation_deadline_includes_model_retry_wait():
+    requests = []
+
+    async def run():
+        loop = asyncio.get_running_loop()
+        real_time = loop.time
+        elapsed = 0
+
+        async def fail(request):
+            nonlocal elapsed
+            requests.append(request)
+            elapsed = 56
+            return httpx.Response(500)
+
+        async with httpx.AsyncClient(
+            base_url="https://example.test/", transport=httpx.MockTransport(fail)
+        ) as http:
+            with patch.object(loop, "time", lambda: real_time() + elapsed):
+                return await KnowledgeService(Retrieval(), OpenAIResponses(http)).consult(
+                    "볼에 쓰나요?"
+                )
+
+    result = asyncio.run(run())
+    assert len(requests) == 1
+    assert result.reply.status == "error" and result.trace["error"] == "TimeoutError"
+    assert not result.reply.claims and not result.reply.evidence
+
+
+def test_http_search_deadline_returns_g5_error_and_stops_later_stages(routed_chat, monkeypatch):
+    ask, service, _, _ = routed_chat
+    cancelled = []
+
+    class SlowRetrieval(Retrieval):
+        async def search(self, *args):
+            try:
+                await asyncio.sleep(0.2)
+            except asyncio.CancelledError:
+                cancelled.append(True)
+                raise
+            return await super().search(*args)
+
+    model = Model()
+    model.run = AsyncMock(wraps=model.run)
+    consultation = KnowledgeService(SlowRetrieval(), model)
+    monkeypatch.setattr(knowledge_service, "CONSULTATION_TIMEOUT_SECONDS", 0.02)
+    monkeypatch.setattr(chat_service, "consult_knowledge", consultation.consult)
+    response = ask("볼 홍조를 화장으로 가리는 방법은요?")
+    assert response.status_code == 200
+    assert response.json()["knowledge"]["status"] == "error"
+    assert response.json()["knowledge"]["claims"] == []
+    assert response.json()["knowledge"]["evidence"] == []
+    assert service.last_route.result.status == "error"
+    assert cancelled == [True]
+    model.run.assert_not_awaited()
