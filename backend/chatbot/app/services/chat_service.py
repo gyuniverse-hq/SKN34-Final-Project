@@ -358,14 +358,27 @@ def route_intent(context: ResolvedContext) -> IntentDecision:
 def _prior_knowledge_context(req: ChatRequest) -> str:
     if not _KNOWLEDGE_FOLLOWUP.search(req.message.strip()):
         return ""
-    # Only consider the latest user turn; older topics may have been superseded.
-    text = next(
-        (turn.text.strip() for turn in reversed(req.recent_messages) if turn.role == "user"), ""
-    )
-    if _SHOPPING.search(text) or _PROTECTED_KNOWLEDGE_REQUEST.search(text):
+    followups = []
+    for turn in reversed(req.recent_messages):
+        if turn.role != "user":
+            continue
+        text = turn.text.strip()
+        if (
+            _SHOPPING.search(text)
+            or _requires_catalog_search(text)
+            or _PROTECTED_KNOWLEDGE_REQUEST.search(text)
+            or _LOOK_REFERENCE.search(text)
+        ):
+            return ""
+        # A follow-up mentioning a tool still needs its original topic and conditions.
+        if _KNOWLEDGE_FOLLOWUP.search(text):
+            followups.append(text)
+            continue
+        topic = _KNOWLEDGE_TOPIC.search(text) or _FACE_COVER.search(text)
+        if topic or re.search(r"젤\s*크림", text):
+            return "\n".join([text, *reversed(followups)])
         return ""
-    topic = _KNOWLEDGE_TOPIC.search(text) or _FACE_COVER.search(text)
-    return text if topic or re.search(r"젤\s*크림", text) else ""
+    return ""
 
 
 def _is_knowledge_question(

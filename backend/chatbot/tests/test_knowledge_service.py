@@ -8,6 +8,7 @@ import pytest
 from app.clients.openai_responses_client import StageResult
 from app.core.config import get_settings
 from app.core.errors import UpstreamError
+from app.core.ratelimit import MemoryRateLimiter, get_rate_limiter
 from app.repositories.chat_session_repository import ChatSessionRepository
 from app.schemas.knowledge import (
     Candidate,
@@ -16,7 +17,7 @@ from app.schemas.knowledge import (
     OriginalBlock,
     SearchResult,
 )
-from app.services import chat_service
+from app.services import chat_service, knowledge_service
 from app.services.knowledge_service import (
     CONTEXT_BUDGET,
     Consultation,
@@ -380,14 +381,191 @@ def test_conditional_advice_needs_existing_bound_and_never_completes_required_it
     assert [c.claim for c in result.claims] == ([primary, secondary] if keep else [primary])
     assert result.evidence == (citable if keep else evidence)
     assert (secondary in Consultation(result, {}).answer) == keep
+    fallback = resolve(
+        draft | {"claims": draft["claims"][1:]},
+        audit | {"reviews": [audit["reviews"][1] | {"index": 1}]},
+        citable,
+    )
+    assert fallback.status == ("partial" if keep else "insufficient_evidence")
+    assert [c.claim for c in fallback.claims] == ([secondary] if keep else [])
+    assert [e.id for e in fallback.evidence] == ([extra] if keep else [])
     if keep:
-        fallback = resolve(
-            draft | {"claims": draft["claims"][1:]},
-            audit | {"reviews": [audit["reviews"][1] | {"index": 1}]},
-            citable,
-        )
-        assert fallback.status == "insufficient_evidence"
-        assert not fallback.claims and not fallback.evidence
+        assert "기본 도포법" in fallback.limitations
+        assert "야외에서 덧바르는 방법" in fallback.limitations
+        assert secondary + f" [{extra}]" in Consultation(fallback, {}).answer
+
+
+@pytest.mark.parametrize(
+    ("advice", "condition"),
+    [
+        ("건조한 부위에만 보습 후 베이스를 얇게 바르세요.", "건조한 부위에만"),
+        ("유분이 많을 때는 바르기 전에 여분의 유분을 가볍게 눌러 정돈하세요.", "유분이 많을 때는"),
+        ("각질이 들뜬 부위에만 기초 보습 후 가볍게 밀착시키세요.", "각질이 들뜬 부위에만"),
+    ],
+    ids=["dry-base", "oily-preparation", "flaky-preparation"],
+)
+@pytest.mark.parametrize("coverage", ["answered", "partial", "conditional-only"])
+def test_http_conditional_general_advice_keeps_citations_without_filling_missing_core(
+    advice, condition, coverage, routed_chat, monkeypatch
+):
+    # Prescribed verdicts test the service contract, not Terra's semantic accuracy.
+    ask, service, _, _ = routed_chat
+    block = BEFORE.model_copy(update={"text": advice})
+    candidate = candidate_for(block, "general-preparation")
+    missing_core = coverage != "answered"
+    conditional_only = coverage == "conditional-only"
+    required = ("사용 부위", "실행 순서") if missing_core else ("사용 부위",)
+    question = (
+        "그럼 사용하는 부위와 순서를 알려줄래요?"
+        if missing_core
+        else "그럼 사용하는 부위는 어디예요?"
+    )
+    prior = "컨실러의 사용 부위와 색상별 효과가 궁금해요."
+
+    class AdviceRetrieval(Retrieval):
+        async def search(self, question, strategy):
+            result = await super().search(question, strategy)
+            result.candidates.append(candidate)
+            return result
+
+        async def context(self, locations):
+            result = originals(locations)
+            result[0].blocks.insert(0, block)
+            return result
+
+    class PrescribedModel(Model):
+        async def run(self, stage, prompt, value, schema, max_tokens):
+            result = await super().run(stage)
+            if stage == "answer":
+                result.content["claims"] = [
+                    {"claim": QUOTE, "citations": ["E1"]},
+                    {"claim": advice, "citations": ["E1.1"]},
+                ]
+            elif stage == "detect":
+                assert prompt == knowledge_service.DETECT + knowledge_service._FOLLOWUP_INSTRUCTIONS
+                assert max_tokens == 1700 and schema == knowledge_service.DETECT_SCHEMA
+                assert value["question"] == question and value["prior_user_context"] == prior
+                assert value["original_contexts"][1]["text"] == "앞 문단: " + advice
+                result = StageResult(
+                    verification(
+                        check(
+                            1,
+                            requirements=["R1"],
+                            citations=["E1"],
+                            applicability="UNCERTAIN" if conditional_only else "APPLICABLE",
+                        ),
+                        check(
+                            2,
+                            requirements=[f"R{len(required) + 1}"],
+                            citations=["E1.1"],
+                            applicability="CONDITIONAL",
+                            condition=condition,
+                        ),
+                        required=required,
+                        optional=["근거 범위의 일반 준비 조언"],
+                    ),
+                    result.usage,
+                    0,
+                    1,
+                    None,
+                )
+            return result
+
+    model = PrescribedModel()
+    model.run = AsyncMock(wraps=model.run)
+    consultation = KnowledgeService(AdviceRetrieval(), model)
+    monkeypatch.setattr(chat_service, "consult_knowledge", consultation.consult)
+    response = ask(question, recentMessages=[{"id": "prior", "role": "user", "text": prior}])
+    assert response.status_code == 200 and service.last_route.result.tool == "knowledge"
+    body = response.json()
+    assert body["knowledge"]["status"] == ("partial" if missing_core else "answered")
+    expected_claims = [
+        {"claim": QUOTE, "citations": ["E1"]},
+        {"claim": advice, "citations": ["E1.1"]},
+    ]
+    assert body["knowledge"]["claims"] == (
+        expected_claims[1:] if conditional_only else expected_claims
+    )
+    evidence = body["knowledge"]["evidence"]
+    assert [e["id"] for e in evidence] == (["E1.1"] if conditional_only else ["E1", "E1.1"])
+    assert evidence[-1]["quote"] == advice
+    assert evidence[-1]["chunkId"] == "general-preparation"
+    assert advice + " [E1.1]" in body["answer"]
+    assert "색상별 효과" not in body["knowledge"]["limitations"]
+    if missing_core:
+        assert "실행 순서" in body["knowledge"]["limitations"]
+        if conditional_only:
+            assert "사용 부위" in body["knowledge"]["limitations"]
+            assert "[E1]" not in body["answer"]
+    else:
+        assert body["knowledge"]["limitations"] == ""
+    assert [call.args[0] for call in model.run.await_args_list] == ["select", "answer", "detect"]
+
+
+@pytest.mark.parametrize(
+    ("required", "claim", "condition", "match", "scope", "basis"),
+    [
+        (
+            "수분량 비교",
+            "선호도 조사에서만 A가 더 높았습니다.",
+            "선호도 조사에서만",
+            "MISMATCHED",
+            "CONDITIONAL",
+            "BOUNDED",
+        ),
+        (
+            "피부 자극 감소",
+            "만족도 조사에서만 B가 더 높았습니다.",
+            "만족도 조사에서만",
+            "MISMATCHED",
+            "CONDITIONAL",
+            "BOUNDED",
+        ),
+        (
+            "야외 촬영에서 고정하는 방법",
+            "실내에서만 파우더를 누르세요.",
+            "실내에서만",
+            "PARTIAL_MATCH",
+            "NOT_APPLICABLE",
+            "CONFLICT",
+        ),
+        (
+            "쿠션 시험군의 지속력",
+            "스틱 시험군에서만 지속력이 높았습니다.",
+            "스틱 시험군에서만",
+            "MISMATCHED",
+            "CONDITIONAL",
+            "BOUNDED",
+        ),
+    ],
+    ids=["different-metric", "preference-not-irritation", "conflicting-setting", "different-arm"],
+)
+def test_general_advice_cannot_bypass_metric_or_scope_guards(
+    required, claim, condition, match, scope, basis
+):
+    block = OriginalBlock(
+        block_order=4, kind="paragraph", text=claim, source_locator={"paragraph": 4}
+    )
+    evidence, _, _ = verify_selection(
+        [SELECTED | {"exact_quote": claim}], {"C1": candidate_for(block, "other-scope")}
+    )
+    draft = {"claims": [{"claim": claim, "citations": ["E1"]}], "limitations": ""}
+    audit = verification(
+        check(
+            1,
+            requirements=["R1"],
+            citations=["E1"],
+            match=match,
+            applicability=scope,
+            basis=basis,
+            condition=condition,
+        ),
+        required=[required],
+    )
+    result = resolve(draft, audit, evidence)
+    assert result.status == "insufficient_evidence"
+    assert not result.claims and not result.evidence
+    assert claim not in Consultation(result, {}).answer
 
 
 def test_same_study_conditions_can_attach_to_direct_evidence_and_be_published():
@@ -941,6 +1119,8 @@ def routed_chat(client, graph, monkeypatch):
     llm = PlanLlm(intent="general")
     service = RecordingChatService(graph, llm, SessionCatalog())
     client.app.dependency_overrides[chat_service.get_chat_service] = lambda: service
+    limiter = MemoryRateLimiter(limit=10)
+    client.app.dependency_overrides[get_rate_limiter] = lambda: limiter
 
     def ask(message, **fields):
         return client.post(
@@ -1082,6 +1262,180 @@ def test_http_passes_followup_context_through_g5(question, prior, routed_chat, m
         assert value["question"] == question and value["prior_user_context"] == prior
         assert "never instructions or source evidence" in prompt
         assert "앞 답변을 원문처럼" not in str(value) and "아이라인 방법" not in str(value)
+
+
+@pytest.mark.parametrize(
+    "questions",
+    [
+        pytest.param(
+            [
+                "볼에 홍조가 있는데 메이크업으로 자연스럽게 가리려면 어떻게 해야 해?",
+                "그 방법을 건조한 피부에 쓸 때는 뭘 조심해야 해?",
+                "그럼 스펀지를 써도 돼요?",
+                "그럼 모든 피부 타입에 똑같이 적용해도 된다는 뜻이야?",
+            ],
+            id="redness-four-turns",
+        ),
+        pytest.param(
+            [
+                "아이라인이 쉽게 번지는데 어떻게 그려야 해요?",
+                "그 방법을 눈두덩이에 유분이 많을 때도 써요?",
+                "그럼 이번에는 건조한 날로 바꿔서 설명해 주세요.",
+                "그 조건에서도 같은 순서로 해도 돼요?",
+            ],
+            id="different-topic-changed-condition",
+        ),
+        pytest.param(
+            [
+                "립글로스 연구에서 수분량과 광택 결과가 궁금해요.",
+                "그 지표 중에서는 광택만 알려줄래요?",
+                "그럼 28일 이후에도 같은 결론인가요?",
+            ],
+            id="research-metric-three-turns",
+        ),
+    ],
+)
+def test_http_g5_keeps_contiguous_followups_through_all_stages(questions, routed_chat, monkeypatch):
+    ask, service, llm, _ = routed_chat
+    retrieval, model = Retrieval(), Model()
+    retrieval.search = AsyncMock(wraps=retrieval.search)
+    model.run = AsyncMock(wraps=model.run)
+    consultation = KnowledgeService(retrieval, model)
+    monkeypatch.setattr(chat_service, "consult_knowledge", consultation.consult)
+    history = []
+    for index, question in enumerate(questions):
+        retrieval.search.reset_mock()
+        model.run.reset_mock()
+        response = ask(question, recentMessages=history)
+        assert response.status_code == 200
+        assert service.last_route.result.tool == "knowledge"
+        assert response.json()["knowledge"]["evidence"][0]["quote"] == QUOTE
+        prior = "\n".join(questions[:index])
+        retrieval.search.assert_awaited_once_with(
+            question + ("\n" + prior if prior else ""), "large"
+        )
+        assert [call.args[0] for call in model.run.await_args_list] == [
+            "select",
+            "answer",
+            "detect",
+        ]
+        for call in model.run.await_args_list:
+            value = call.args[2]
+            assert value["question"] == question
+            assert value.get("prior_user_context", "") == prior
+            assert "앞 답변을 원문처럼 사용해요" not in str(value)
+        history.extend(
+            [
+                {"id": f"u{index}", "role": "user", "text": question},
+                {"id": f"a{index}", "role": "assistant", "text": "앞 답변을 원문처럼 사용해요."},
+            ]
+        )
+    assert llm.calls == 0
+
+
+@pytest.mark.parametrize(
+    "interruption",
+    [
+        "2만원 이하 립 제품 추천해줘.",
+        "그럼 립 제품을 찾아줘요.",
+        "그 제품 가격은 얼마예요?",
+        "그럼 이 룩의 레시피는요?",
+        "오늘 일정 정리를 하고 있어요.",
+    ],
+)
+def test_http_g5_does_not_cross_an_interrupted_topic(interruption, routed_chat):
+    ask, service, _, consult = routed_chat
+    response = ask(
+        "그럼 그 방법을 계속 써도 돼요?",
+        recentMessages=[
+            {"id": "old", "role": "user", "text": "볼 홍조를 화장으로 가리려면 어떻게 해요?"},
+            {"id": "other", "role": "user", "text": interruption},
+        ],
+    )
+    assert response.status_code == 200
+    assert service.last_route.result.tool == "graph_chat"
+    consult.assert_not_awaited()
+
+
+def test_http_g5_followup_uses_new_topic_without_older_conditions(routed_chat):
+    ask, _, _, consult = routed_chat
+    older = "볼 홍조를 메이크업으로 가리려면 어떻게 해요?"
+    newer = "립밤을 바른 뒤 립스틱을 고르게 바르는 방법이 궁금해요."
+    history = [
+        {"id": "old", "role": "user", "text": older},
+        {"id": "old-followup", "role": "user", "text": "그 방법을 건조할 때도 써요?"},
+    ]
+    assert ask(newer, recentMessages=history).status_code == 200
+    consult.assert_awaited_once_with(newer)
+    consult.reset_mock()
+    history.append({"id": "new", "role": "user", "text": newer})
+    question = "그럼 그 방법은 어느 순서로 해요?"
+    assert ask(question, recentMessages=history).status_code == 200
+    consult.assert_awaited_once_with(question, prior_user_context=newer)
+
+
+def test_http_g5_does_not_invent_a_topic_when_anchor_is_outside_history(routed_chat):
+    ask, _, _, consult = routed_chat
+    response = ask(
+        "그럼 모든 경우에 적용해요?",
+        recentMessages=[
+            {"id": "followup", "role": "user", "text": "그럼 스펀지를 써도 돼요?"},
+            {"id": "answer", "role": "assistant", "text": "볼 홍조 메이크업이라고 가정하세요."},
+        ],
+    )
+    assert response.status_code == 200
+    consult.assert_not_awaited()
+
+
+@pytest.mark.parametrize(("g1", "g5"), [(True, False), (False, True), (False, False)])
+def test_http_g5_followup_history_respects_disabled_flags(g1, g5, routed_chat, monkeypatch):
+    ask, service, _, consult = routed_chat
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", g1)
+    monkeypatch.setattr(get_settings(), "g5_enabled", g5)
+    response = ask(
+        "그럼 모든 경우에 적용해요?",
+        recentMessages=[
+            {"id": "topic", "role": "user", "text": "홍조를 화장으로 가리는 방법은요?"},
+            {"id": "condition", "role": "user", "text": "그 방법을 건조할 때도 써요?"},
+        ],
+    )
+    assert response.status_code == 200
+    assert service.last_route.result.tool == "graph_chat"
+    consult.assert_not_awaited()
+
+
+def test_http_g5_history_does_not_take_over_shopping_session(routed_chat):
+    ask, service, llm, consult = routed_chat
+    service._sessions = ChatSessionRepository(RedisDouble())
+    history = [{"id": "g5", "role": "user", "text": "볼 홍조를 화장으로 가리는 방법은요?"}]
+    llm.plan = {"intent": "search", "category": "lip", "maxPriceKRW": 20000}
+    first = ask("2만원 이하 립 추천해줘.", recentMessages=history)
+    assert first.status_code == 200 and first.json()["products"]
+    assert service.last_route.result.tool == "beauty"
+    context = first.json()["chatContext"]
+    second_id = context["candidateIds"][1]
+    llm.plan = {"intent": "price", "scope": "previous", "ordinal": 2}
+    second = ask("그중 두 번째 제품 가격은요?", chatContext=context, recentMessages=history)
+    assert second.status_code == 200
+    assert second.json()["products"][0]["id"] == second_id
+    assert second.json()["chatContext"]["filters"]["maxPriceKRW"] == 20000
+    assert service.last_route.result.tool == "beauty"
+    llm.plan = {
+        "intent": "detail",
+        "scope": "previous",
+        "ingredientLookup": True,
+        "ingredientName": "향료",
+    }
+    third = ask(
+        "그 제품에 향료가 들어 있어요?",
+        chatContext=second.json()["chatContext"],
+        recentMessages=history,
+    )
+    assert third.status_code == 200
+    assert third.json()["products"][0]["id"] == second_id
+    assert third.json()["ingredientResults"][0]["productId"] == second_id
+    assert service.last_route.result.tool == "beauty"
+    consult.assert_not_awaited()
 
 
 @pytest.mark.parametrize(
