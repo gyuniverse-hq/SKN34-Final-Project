@@ -100,7 +100,7 @@ class SearchPlan(SupervisorModel):
 
 
 class IntentDecision(SupervisorModel):
-    intent: Literal["product", "ingredient", "general", "style", "ar", "compound"]
+    intent: Literal["product", "ingredient", "general", "style", "ar", "compound", "knowledge"]
     request_type_hint: str
     slots: SearchPlan | None = None
 

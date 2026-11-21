@@ -13,6 +13,8 @@ api:
   autoscaling: { enabled: false }
 
 chatbot:
+  env:
+    G1_SUPERVISOR_ENABLED: "true"
   replicas: 1
   autoscaling: { enabled: false }
 

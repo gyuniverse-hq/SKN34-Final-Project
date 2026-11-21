@@ -520,11 +520,23 @@ def test_real_catalog_and_chat_http_with_bundled_unreviewed_content():
 
     api_port, chat_port = port(), port()
     api_url, chat_url = f"http://127.0.0.1:{api_port}", f"http://127.0.0.1:{chat_port}"
-    api_code = (
-        "from app.main import create_app; import uvicorn; "
-        f"uvicorn.run(create_app(),host='127.0.0.1',port={api_port},"
-        "access_log=False,log_level='warning')"
-    )
+    api_code = f"""
+import uvicorn
+from app.main import create_app
+from app.repositories.style_look_repository import StyleLookRepository
+from app.services.style_look_service import StyleLookService, get_style_look_service
+
+class EmptyVerifiedStyleLinks:
+    async def links(self, *, source):
+        assert source == "style"
+        return []
+
+app = create_app()
+app.dependency_overrides[get_style_look_service] = lambda: StyleLookService(
+    StyleLookRepository(), EmptyVerifiedStyleLinks()
+)
+uvicorn.run(app,host="127.0.0.1",port={api_port},access_log=False,log_level="warning")
+"""
     chat_code = f"""
 from app.main import create_app
 from app.services.chat_service import ChatService, get_chat_service
@@ -544,6 +556,7 @@ uvicorn.run(app,host="127.0.0.1",port={chat_port},access_log=False,log_level="wa
         "REDIS_URL": "",
         "LOG_LEVEL": "WARNING",
         "DATABASE_URL": "postgresql+asyncpg://unused:unused@127.0.0.1:1/unused",
+        "SKINCARE_REFRESH_ENABLED": "false",
         "CATALOG_API_URL": api_url,
         "LLM_API_KEY": "",
         "LLM_MODEL": "",
@@ -566,17 +579,23 @@ uvicorn.run(app,host="127.0.0.1",port={chat_port},access_log=False,log_level="wa
                 )
             )
         with httpx.Client(timeout=5, trust_env=False) as client:
-            for url in (api_url + "/api/style-looks", chat_url + "/healthz"):
+            for url in (api_url + "/healthz", chat_url + "/healthz"):
                 deadline = time.monotonic() + 12
                 while True:
                     try:
-                        if client.get(url).status_code == 200:
+                        health = client.get(url)
+                        if health.status_code == 200:
                             break
-                    except httpx.HTTPError:
-                        pass
-                    assert time.monotonic() < deadline, "Local integration server did not start"
+                        last_error = f"HTTP {health.status_code}: {health.text[:500]}"
+                    except httpx.HTTPError as exc:
+                        last_error = f"{type(exc).__name__}: {exc}"
+                    assert time.monotonic() < deadline, f"Health check {url} failed: {last_error}"
                     time.sleep(0.1)
-            look_id = client.get(api_url + "/api/style-looks").json()["looks"][0]["id"]
+            looks = client.get(api_url + "/api/style-looks")
+            assert looks.status_code == 200, (
+                f"GET /api/style-looks returned HTTP {looks.status_code}: {looks.text[:500]}"
+            )
+            look_id = looks.json()["looks"][0]["id"]
             body = {
                 "message": "이 스타일은 어떻게 따라 해?",
                 "requestType": "style_consultation",

@@ -1,5 +1,4 @@
 import { skincareJa } from './skincare';
-import { comparisonJa } from './recommendationComparison';
 import { supportJa } from './skinSupport';
 import { surveyJa } from './survey';
 import type { Dictionary } from './en';
@@ -82,6 +81,9 @@ export const ja: Dictionary = {
   'ar.explore.empty': "この方向・質感に合う商品はありません。別の方向・質感を選ぶか、自由に探すに戻ってください。",
   'ar.explore.preview': "試している色",
   'ar.explore.rebase': "この色の周りを探す",
+  'chat.knowledge.sources': '出典',
+  'chat.knowledge.document': '文書 {id}',
+  'chat.knowledge.paragraph': '段落 {order}',
   'chat.ingredient.resultFor': "選択した商品・成分確認",
   'chat.ingredient.showDetails': "根拠と成分を見る",
   'chat.ingredient.hideDetails': "根拠を閉じる",
@@ -118,7 +120,6 @@ export const ja: Dictionary = {
   'chat.carousel.ordinal': "番",
   'chat.carousel.ingredient': "この商品の成分は？",
   'chat.carousel.details': "この商品について詳しく教えて",
-  ...comparisonJa,
   ...skincareJa,
   ...supportJa,
   ...surveyJa,

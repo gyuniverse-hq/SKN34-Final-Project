@@ -14,20 +14,22 @@ function credentials(id: string) {
   return auth;
 }
 
-test('feedback pins the verified owner token to the configured comparison backend', async () => {
+const eventsPath = '/api/recommendations/skincare/v4/events';
+
+test('feedback pins the verified owner token to the request', async () => {
   credentials('member-a');
   const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: true, json: async () => ({ ok: true }) } as Response);
-  await apiPost('/api/dev/recommendations/events', { eventId: 'event' }, {
+  await apiPost(eventsPath, { eventId: 'event' }, {
     baseUrl: 'http://localhost:8082', expectedUserId: 'member-a',
   });
-  expect(fetchMock).toHaveBeenCalledWith('http://localhost:8082/api/dev/recommendations/events',
+  expect(fetchMock).toHaveBeenCalledWith(`http://localhost:8082${eventsPath}`,
     expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer token-member-a' }) }));
 });
 
 test('another user cannot submit old recommendation context', async () => {
   credentials('member-b');
   const fetchMock = jest.spyOn(globalThis, 'fetch');
-  await expect(apiPost('/api/dev/recommendations/events', {}, { expectedUserId: 'member-a' }))
+  await expect(apiPost(eventsPath, {}, { expectedUserId: 'member-a' }))
     .rejects.toMatchObject({ code: 'owner_changed' });
   expect(fetchMock).not.toHaveBeenCalled();
 });
@@ -37,6 +39,6 @@ test('identity changing during token verification sends no request', async () =>
   auth.getSession.mockResolvedValueOnce({ data: { session: { access_token: 'token-member-a', user: { id: 'member-a' } } } });
   auth.getSession.mockResolvedValue({ data: { session: { access_token: 'token-member-b', user: { id: 'member-b' } } } });
   const fetchMock = jest.spyOn(globalThis, 'fetch');
-  await expect(apiPost('/api/dev/recommendations/events', {}, { expectedUserId: 'member-a' })).rejects.toThrow();
+  await expect(apiPost(eventsPath, {}, { expectedUserId: 'member-a' })).rejects.toThrow();
   expect(fetchMock).not.toHaveBeenCalled();
 });

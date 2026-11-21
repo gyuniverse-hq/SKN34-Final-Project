@@ -104,11 +104,12 @@ Expo Go에서는 사진을 분석 후 결과 화면까지 기기 메모리에서
 개별 표본 결과는 Git에서 제외합니다. 향후 LLM 외부 호출과 서비스 조합은 기존
 `server/clients/`·`server/services/` 레이어를 따릅니다.
 
-피부 결과 화면은 `/api/recommendations/skin-v2`에서 V2 추천을 받는다. 이 경로는
-v4.1의 분석 점수와 연령대·성별을 이용해 `recommend-cat-v4`로 성분을 예측하고
-CosIng과 제품 카탈로그를 연결한다. 사진은 보내지 않는다. 모델이 없거나 이전 분석에
-트러블 점수가 없으면 오류를 반환한다. API 이미지는 해당 모델 번들과 CatBoost를 포함한다.
-입력과 학습 이미지의 전처리 동등성 및 실제 제품 적합성은 검증되지 않았다.
+피부 결과 화면은 `/api/recommendations/skincare/v4`에서 `recommend-v3`의 규칙 기반 종합 추천을 받습니다.
+피부 타입·고민·설문에서 도출한 자극 신호와 사용 가능한 분석 점수를 보내면, 서버는 발행된
+CosIng 성분 매핑으로 제품 후보를 찾습니다. 순위에는 경험적 베이즈 보정 별점과 응답 적합도를
+사용합니다. 계산과 입력 계약은 [기초 화장품 추천](skincare-recommendations.md)을 따릅니다.
+수집에 동의한 회원의 TOP 10 노출과 장바구니·결제 전환은 [피부 추천 이력](recommendation-v2-feedback-erd.md#현재-v3-피부-추천의-전환-측정)에 연결합니다.
+AR과 피부 분석 추천을 한 릴리스로 묶은 결정과 V1·V2에서 이어진 변경은 [recommend-v3 개발 이력](recommend-v3.md)을 참고합니다.
 
 로컬 NIA 연구 도구의 화면은 `app/dev/nia.tsx`, 사진 분석·결과 요청 훅은 `hooks/useNia*.ts`,
 표현 컴포넌트는 `components/nia/`에 둡니다. 컴포넌트는 화면에서 결과와 동작을 props로
@@ -150,20 +151,8 @@ constants/ · types/           테마, 정적 상수, 공용 타입
 
 ## 개발 전용 도구 (피부 분석 연구)
 
-V1·V2 추천 비교는 `app/dev/recommendation-comparison.tsx` →
-`hooks/useRecommendationComparison.ts` → `lib/recommendationComparison.ts` →
-`backend/api/app/routers/recommendation_comparison.py`로 호출한다.
-백엔드 서비스는 기존 V1을 `clients/recommendation_v1_client.py`의 HTTP 호출로 읽고,
-COSING·제품 자료는 전용 repository의 읽기 전용 트랜잭션으로 조회한다.
-CatBoost는 선택 의존성 그룹 `recommendation`과 해시 검증된 로컬 번들을 사용한다.
-`RECOMMENDATION_MODEL`(기본 `recommend-cat-v4`)로 선택하며 `ml/runs/<모델 이름>/bundle/`에
-가중치와 manifest를 별도 배치한다. 피부 분석 원본과 같은 디렉터리 체계지만 추천 추론은 서버에서만 실행한다.
-별도 서버 볼륨은 `RECOMMENDATION_MODELS_DIR`로 지정하며 이름·해시·입력 계약을 검증한다.
-현재 Docker V1과 작업 공간의 스키마가 다르므로 기존 컨테이너를 교체하지 않고
-별도 로컬 포트 8082에서 비교한다. 얼굴 이미지·ROI는 전달하지 않는다.
-개발 플래그와 환경 검사를 모두 통과해야 실행된다. 로그인한 기록 비교는 입력 스냅샷을 기록한다.
-V4 성분 모델은 피부 분석 v4.1의 트러블 점수를 추가로 요구한다. V3를 선택하면 기존 입력을 사용할 수 있다.
-입력 계약·리뷰 응답 수 부족·실행 방법은 [V2 비교](recommendation-v2-comparison.md)에 있다.
+피부 추천의 과거 비교 실험과 그 결과는 [V1·V2 비교 기록](recommendation-v2-comparison.md)에 남겼습니다.
+백엔드 `recommendation` 의존성 그룹의 CatBoost와 Optuna는 [AR 팔레트 모델](ar-recommendation-mlops-v1.0.md)에 사용합니다.
 
 피부 모델 연구 환경은 운영 흐름과 별도로 관리합니다. `ml/src/`에는 학습·평가 코드,
 `ml/configs/`에는 설정, `ml/tests/`에는 자동 테스트를 두고, 실행 방법과 결과 요약은

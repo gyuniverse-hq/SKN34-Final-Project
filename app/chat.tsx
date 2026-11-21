@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChatProducts } from '@/components/chat/ChatProducts';
 import { IngredientResult } from '@/components/chat/IngredientResult';
+import { KnowledgeCitations } from '@/components/chat/KnowledgeCitations';
 import { RecentConversations } from '@/components/chat/RecentConversations';
 import { StyleRecipeResult } from '@/components/chat/StyleRecipeResult';
 import { theme } from '@/constants/theme';
@@ -586,7 +587,7 @@ function ChatConversation({ record, onRecent, onNew }: {
                 <FragranceSearchResult message={message} selectedShades={selectedShades} selectedProductId={chosenProductId}
                   onSelectProduct={canSelect(message) ? (productId) => selectProduct(productId, message) : undefined}
                   onSelectShade={(productId, shadeId) => selectShade(productId, shadeId, message)} />
-              ) : message.role === 'assistant' && !message.styleRecipe && (message.category === 'ingredient' || message.ingredientResults?.length) ? (
+              ) : message.role === 'assistant' && !message.knowledge && !message.styleRecipe && (message.category === 'ingredient' || message.ingredientResults?.length) ? (
                 <IngredientResult
                   heading={t('chat.ui.ingredient')}
                   summary={message.text}
@@ -633,8 +634,9 @@ function ChatConversation({ record, onRecent, onNew }: {
                   </View>
                 ) : null}
                 <Text style={[styles.messageText, message.role === 'user' && styles.userMessageText]}>{message.text}</Text>
+                {message.knowledge ? <KnowledgeCitations evidence={message.knowledge.evidence} /> : null}
               </View>}
-              {subject.type === 'general' && message.role === 'assistant' && message.category === 'style' && !message.styleRecipe
+              {subject.type === 'general' && message.role === 'assistant' && message.category === 'style' && !message.styleRecipe && !message.knowledge
                 ? <InlineStyleLookPicker question={message.question ?? ''} onSelect={(lookId) => {
                   if (!mounted.current || !owned() || currentRoom()?.request) return;
                   store().setStyle(target, { kind: 'video', lookId, currentStep: 0 });
@@ -661,7 +663,7 @@ function ChatConversation({ record, onRecent, onNew }: {
                 selectedProductId={chosenProductId}
                 onSelectProduct={canSelect(message) ? (productId) => selectProduct(productId, message) : undefined}
                 onSelectShade={(productId, shadeId) => selectShade(productId, shadeId, message)} /> : null}
-              {message.role === 'assistant' && !message.fragranceSearchSummary && !message.products?.length && (message.category === 'product' || message.category === undefined) &&
+              {message.role === 'assistant' && !message.fragranceSearchSummary && !message.knowledge && !message.products?.length && (message.category === 'product' || message.category === undefined) &&
                 (message.resultType === 'empty' || (!message.resultType && extractChatConditions(message.question ?? '').length)) ? (
                 <View style={styles.emptyState}>
                   <View style={styles.stateIcon}><Ionicons name="search-outline" size={22} color={theme.colors.rose} /></View>
