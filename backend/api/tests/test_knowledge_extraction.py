@@ -187,9 +187,14 @@ async def _test_database_revision(url):
             revision = (
                 await conn.execute(text("SELECT version_num FROM alembic_version"))
             ).scalar_one()
-            assert revision == "0028", "Use a clean disposable database at the standard predecessor"
+            assert revision == "0029", "Use a clean disposable database at the standard predecessor"
             assert (
                 await conn.execute(text("SELECT to_regclass('public.look_video_tags')"))
+            ).scalar()
+            assert (
+                await conn.execute(
+                    text("SELECT to_regclass('public.skincare_recommendation_events')")
+                )
             ).scalar()
             assert (
                 await conn.execute(
@@ -233,13 +238,14 @@ def knowledge_database():
         pytest.skip("Set G5_EXTRACTION_TEST_DATABASE_URL to the disposable test database")
     assert url == EXPECTED_TEST_URL, "Only the dedicated disposable test database is allowed"
     if asyncio.run(_test_database_revision(url)) is None:
-        migrate_standard(url, "upgrade", "0028")
-        assert asyncio.run(_test_database_revision(url)) == "0028"
+        migrate_standard(url, "upgrade", "0029")
+        assert asyncio.run(_test_database_revision(url)) == "0029"
     try:
         yield url
     finally:
-        migrate_standard(url, "downgrade", "0028")
+        migrate_standard(url, "downgrade", "0029")
         asyncio.run(_delete_test_rows(url))
+        assert asyncio.run(_test_database_revision(url)) == "0029"
 
 
 async def seed_source_documents(conn):
@@ -355,8 +361,8 @@ def test_isolated_postgres_migration_idempotency_and_rollback(knowledge_database
         finally:
             await engine.dispose()
 
-    migrate_standard(url, "upgrade", "0029")
+    migrate_standard(url, "upgrade", "0030")
     asyncio.run(check())
-    migrate_standard(url, "downgrade", "0028")
-    migrate_standard(url, "upgrade", "0029")
+    migrate_standard(url, "downgrade", "0029")
+    migrate_standard(url, "upgrade", "0030")
     asyncio.run(check_reapplied())

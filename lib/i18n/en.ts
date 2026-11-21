@@ -1,5 +1,4 @@
 import { skincareEn } from './skincare';
-import { comparisonEn } from './recommendationComparison';
 import { supportEn } from './skinSupport';
 import { surveyEn } from './survey';
 import { flowsEn } from './flows';
@@ -80,7 +79,6 @@ export const en = {
   'ar.explore.empty': "No products match this direction and finish. Try another direction, finish or free explore.",
   'ar.explore.preview': "Trying now",
   'ar.explore.rebase': "Explore around this color",
-  ...comparisonEn,
   ...skincareEn,
   ...supportEn,
   ...surveyEn,
