@@ -194,22 +194,21 @@ class ChatRequest(ApiModel):
         request_type = data.get("requestType", data.get("request_type", "chat"))
         g2_enabled = data.get("locale", "en") == "ko" and get_settings().g1_supervisor_enabled
         if not g2_enabled or request_type not in {"chat", "beauty_consultation"}:
-            data = {
-                k: v
-                for k, v in data.items()
-                if k
-                not in {"recentMessages", "recent_messages", "clarificationId", "clarification_id"}
-            }
+            ignored = {"clarificationId", "clarification_id"}
+            if not (
+                g2_enabled
+                and get_settings().g5_enabled
+                and request_type == "knowledge_consultation"
+            ):
+                ignored.update({"recentMessages", "recent_messages"})
+            data = {k: v for k, v in data.items() if k not in ignored}
         if data.get("generalMakeup", data.get("general_makeup")) is True and not g2_enabled:
             # The app used to omit context for these requests; preserve that OFF contract.
             data = {k: v for k, v in data.items() if k not in {"chatContext", "chat_context"}}
-        session_chat = request_type == "chat" and g2_enabled
+        session_chat = request_type in {"chat", "knowledge_consultation"} and g2_enabled
         if request_type != "beauty_consultation" and not session_chat:
             data = {k: v for k, v in data.items() if k not in {"chatContext", "chat_context"}}
-        if (
-            isinstance(data, dict)
-            and data.get("requestType", data.get("request_type", "chat")) == "chat"
-        ):
+        if isinstance(data, dict) and request_type in {"chat", "knowledge_consultation"}:
             ar_fields = {"requestId", "request_id", "arContext", "ar_context"}
             if session_chat:
                 ar_fields = {"arContext", "ar_context"}

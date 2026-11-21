@@ -1295,7 +1295,10 @@ def test_http_passes_followup_context_through_g5(question, prior, routed_chat, m
         ),
     ],
 )
-def test_http_g5_keeps_contiguous_followups_through_all_stages(questions, routed_chat, monkeypatch):
+@pytest.mark.parametrize("request_type", ["chat", "knowledge_consultation"])
+def test_http_g5_keeps_contiguous_followups_through_all_stages(
+    questions, request_type, routed_chat, monkeypatch
+):
     ask, service, llm, _ = routed_chat
     retrieval, model = Retrieval(), Model()
     retrieval.search = AsyncMock(wraps=retrieval.search)
@@ -1306,7 +1309,7 @@ def test_http_g5_keeps_contiguous_followups_through_all_stages(questions, routed
     for index, question in enumerate(questions):
         retrieval.search.reset_mock()
         model.run.reset_mock()
-        response = ask(question, recentMessages=history)
+        response = ask(question, requestType=request_type, recentMessages=history)
         assert response.status_code == 200
         assert service.last_route.result.tool == "knowledge"
         assert response.json()["knowledge"]["evidence"][0]["quote"] == QUOTE
@@ -1343,10 +1346,12 @@ def test_http_g5_keeps_contiguous_followups_through_all_stages(questions, routed
         "오늘 일정 정리를 하고 있어요.",
     ],
 )
-def test_http_g5_does_not_cross_an_interrupted_topic(interruption, routed_chat):
+@pytest.mark.parametrize("request_type", ["chat", "knowledge_consultation"])
+def test_http_g5_does_not_cross_an_interrupted_topic(interruption, request_type, routed_chat):
     ask, service, _, consult = routed_chat
     response = ask(
         "그럼 그 방법을 계속 써도 돼요?",
+        requestType=request_type,
         recentMessages=[
             {"id": "old", "role": "user", "text": "볼 홍조를 화장으로 가리려면 어떻게 해요?"},
             {"id": "other", "role": "user", "text": interruption},
@@ -1357,7 +1362,8 @@ def test_http_g5_does_not_cross_an_interrupted_topic(interruption, routed_chat):
     consult.assert_not_awaited()
 
 
-def test_http_g5_followup_uses_new_topic_without_older_conditions(routed_chat):
+@pytest.mark.parametrize("request_type", ["chat", "knowledge_consultation"])
+def test_http_g5_followup_uses_new_topic_without_older_conditions(request_type, routed_chat):
     ask, _, _, consult = routed_chat
     older = "볼 홍조를 메이크업으로 가리려면 어떻게 해요?"
     newer = "립밤을 바른 뒤 립스틱을 고르게 바르는 방법이 궁금해요."
@@ -1365,12 +1371,12 @@ def test_http_g5_followup_uses_new_topic_without_older_conditions(routed_chat):
         {"id": "old", "role": "user", "text": older},
         {"id": "old-followup", "role": "user", "text": "그 방법을 건조할 때도 써요?"},
     ]
-    assert ask(newer, recentMessages=history).status_code == 200
+    assert ask(newer, requestType=request_type, recentMessages=history).status_code == 200
     consult.assert_awaited_once_with(newer)
     consult.reset_mock()
     history.append({"id": "new", "role": "user", "text": newer})
     question = "그럼 그 방법은 어느 순서로 해요?"
-    assert ask(question, recentMessages=history).status_code == 200
+    assert ask(question, requestType=request_type, recentMessages=history).status_code == 200
     consult.assert_awaited_once_with(question, prior_user_context=newer)
 
 
@@ -1500,9 +1506,10 @@ def test_http_shared_words_without_a_beauty_question_stay_in_general_chat(routed
         ("zh", "怎么涂睫毛膏才不容易晕开？"),
     ],
 )
-def test_http_keeps_existing_other_locale_route(routed_chat, locale, message):
+@pytest.mark.parametrize("request_type", ["chat", "knowledge_consultation"])
+def test_http_keeps_existing_other_locale_route(routed_chat, locale, message, request_type):
     ask, service, _, consult = routed_chat
-    response = ask(message, locale=locale)
+    response = ask(message, locale=locale, requestType=request_type)
     assert response.status_code == 200
     assert service.last_route.result.tool == "graph_chat"
     consult.assert_not_awaited()
@@ -1548,7 +1555,8 @@ def test_http_keeps_look_screen_without_style_context(routed_chat):
     consult.assert_not_awaited()
 
 
-def test_http_active_shopping_session_keeps_general_makeup_context(routed_chat):
+@pytest.mark.parametrize("request_type", ["beauty_consultation", "knowledge_consultation"])
+def test_http_active_shopping_session_keeps_general_makeup_context(request_type, routed_chat):
     ask, service, llm, consult = routed_chat
     service._sessions = ChatSessionRepository(RedisDouble())
     llm.plan = {"intent": "search", "category": "lip", "maxPriceKRW": 20000}
@@ -1557,7 +1565,7 @@ def test_http_active_shopping_session_keeps_general_makeup_context(routed_chat):
     previous = first.json()["chatContext"]
     followup = ask(
         "파우더를 맨 마지막에 바르는 방법은요?",
-        requestType="beauty_consultation",
+        requestType=request_type,
         generalMakeup=True,
         chatContext=previous,
         recentMessages=[{"id": "prior", "role": "user", "text": "2만원 이하 립 추천해줘."}],
@@ -1580,4 +1588,139 @@ def test_http_keeps_style_and_stops_shopping_with_ar(routed_chat):
     assert service.last_route.plan.tasks == []
     assert service.last_route.result.status == "unsupported"
     assert llm.calls == 0
+    consult.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    ("message", "fields", "plan"),
+    [
+        ("이 제품 가격은 얼마예요?", {}, {"intent": "general"}),
+        ("2만원 이하 립 추천해줘.", {}, {"intent": "search", "category": "lip"}),
+        (
+            "이 립의 전성분에서 향료를 확인해 주세요.",
+            {"screenContext": {"screenId": "product-detail", "productId": "a", "shadeId": "a-03"}},
+            {
+                "intent": "detail",
+                "scope": "previous",
+                "ingredientLookup": True,
+                "ingredientName": "향료",
+            },
+        ),
+        (
+            "이 제품 호수는 어떤 게 있어요?",
+            {"screenContext": {"screenId": "product-detail", "productId": "a"}},
+            {"intent": "detail", "scope": "previous"},
+        ),
+        ("이 룩의 베이스는 어떻게 바르나요?", {}, {"intent": "general"}),
+        ("립 추천하고 그걸 AR에 발라줘.", {}, {"intent": "general"}),
+    ],
+    ids=["price", "shopping", "ingredients", "options", "style", "ar-compound"],
+)
+def test_http_explicit_knowledge_keeps_existing_tool_responsibilities(
+    message, fields, plan, routed_chat
+):
+    ask, service, llm, consult = routed_chat
+    llm.plan = plan
+    ordinary = ask(message, **fields)
+    assert ordinary.status_code == 200
+    expected_tool = service.last_route.result.tool
+    expected_status = service.last_route.result.status
+    assert expected_tool != "knowledge"
+
+    explicit = ask(message, requestType="knowledge_consultation", **fields)
+    assert explicit.status_code == 200
+    assert service.last_route.result.tool == expected_tool
+    assert service.last_route.result.status == expected_status
+    assert explicit.json().get("knowledge") is None
+    consult.assert_not_awaited()
+
+
+@pytest.mark.parametrize(("g1", "g5"), [(True, True), (True, False), (False, True), (False, False)])
+@pytest.mark.parametrize("history_key", ["recentMessages", "recent_messages"])
+def test_http_explicit_knowledge_history_contract(g1, g5, history_key, routed_chat, monkeypatch):
+    ask, service, _, consult = routed_chat
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", g1)
+    monkeypatch.setattr(get_settings(), "g5_enabled", g5)
+    topic = "볼 홍조를 화장으로 가리는 방법은요?"
+    question = "그럼 그 방법을 건조할 때도 써요?"
+    history = [{"id": "topic", "role": "user", "text": topic}]
+    response = ask(
+        question,
+        requestType="knowledge_consultation",
+        clarificationId="ignored-g2-only-field",
+        **{history_key: history},
+    )
+    assert response.status_code == 200
+    assert service.request.clarification_id is None
+    if g1 and g5:
+        assert len(service.request.recent_messages) == 1
+        consult.assert_awaited_once_with(question, prior_user_context=topic)
+    else:
+        assert not service.request.recent_messages
+        assert service.last_route.result.tool == "graph_chat"
+        consult.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    "history",
+    [
+        [{"id": str(i), "role": "user", "text": "과거 질문"} for i in range(9)],
+        [{"id": "duplicate", "role": "user", "text": "과거 질문"}] * 2,
+        [{"id": str(i), "role": "assistant", "text": "가" * 1001} for i in range(8)],
+    ],
+    ids=["count", "duplicate-id", "total-length"],
+)
+def test_http_explicit_knowledge_rejects_invalid_history(history, routed_chat):
+    ask, _, _, consult = routed_chat
+    response = ask(
+        "파우더를 바르는 순서를 알려주세요.",
+        requestType="knowledge_consultation",
+        recentMessages=history,
+    )
+    assert (response.status_code, response.json()["code"]) == (400, "invalid_request")
+    consult.assert_not_awaited()
+
+
+def test_http_explicit_knowledge_keeps_history_limits_and_ignores_ar_fields(routed_chat):
+    ask, service, _, consult = routed_chat
+    question = "파우더는 어느 순서로 발라요?"
+    response = ask(
+        question,
+        requestType="knowledge_consultation",
+        recentMessages=[{"id": str(i), "role": "assistant", "text": "가" * 1000} for i in range(8)],
+        arContext={"untrusted": "not an AR command"},
+    )
+    assert response.status_code == 200
+    assert len(service.request.recent_messages) == 8
+    assert service.request.ar_context is None
+    assert "arResult" not in response.json()
+    consult.assert_awaited_once_with(question)
+
+
+@pytest.mark.parametrize(
+    ("field", "status", "code"),
+    [
+        ("sessionToken", 403, "chat_session_forbidden"),
+        ("stateVersion", 409, "chat_session_conflict"),
+    ],
+)
+def test_http_explicit_knowledge_cannot_bypass_session_validation(field, status, code, routed_chat):
+    ask, service, llm, consult = routed_chat
+    service._sessions = ChatSessionRepository(RedisDouble())
+    llm.plan = {"intent": "search", "category": "lip", "maxPriceKRW": 20000}
+    first = ask("2만원 이하 립 추천해줘.")
+    assert first.status_code == 200
+    context = first.json()["chatContext"]
+    context["session"][field] = (
+        "x" * 32 if field == "sessionToken" else context["session"][field] + 1
+    )
+    calls = llm.calls
+    for request_type in ("chat", "knowledge_consultation"):
+        response = ask(
+            "그중 두 번째 제품 가격은요?",
+            requestType=request_type,
+            chatContext=context,
+        )
+        assert (response.status_code, response.json()["code"]) == (status, code)
+    assert llm.calls == calls
     consult.assert_not_awaited()

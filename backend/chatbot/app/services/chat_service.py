@@ -310,8 +310,6 @@ def route_intent(context: ResolvedContext) -> IntentDecision:
     text = context.message.casefold()
     shopping = _SHOPPING.search(text)
     execution = re.search(r"발라|적용해|설정해|조절해|apply|set .*intensity|塗って|涂上", text)
-    if context.request_type == "knowledge_consultation":
-        return IntentDecision(intent="knowledge", request_type_hint=context.request_type)
     intent = "general"
     if shopping and execution:
         intent = "compound"
@@ -583,9 +581,13 @@ class ChatService:
         self._sessions = sessions
 
     async def answer(self, req: ChatRequest, principal_key: str | None = None) -> ChatResponse:
+        explicit_knowledge = req.request_type == "knowledge_consultation"
+        if explicit_knowledge:
+            # A knowledge hint must pass the same tool and session guards as ordinary chat.
+            req = req.model_copy(update={"request_type": "chat"})
         context = resolve_context(req)
         decision = route_intent(context)
-        if _g5_enabled() and _is_knowledge_question(req, context, decision):
+        if (_g5_enabled() or explicit_knowledge) and _is_knowledge_question(req, context, decision):
             return await self._run_supervisor(
                 req, context, decision.model_copy(update={"intent": "knowledge"})
             )
