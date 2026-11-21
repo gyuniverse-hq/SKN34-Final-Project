@@ -58,15 +58,18 @@ it('clears paid items only after the server confirms the order', async () => {
   expect(JSON.stringify(screen.toJSON())).toContain('checkout.paid');
 });
 
-it('sends only this checkout account’s AR origins with the order line', async () => {
+it('sends the current account’s AR and skincare origins in their own order fields', async () => {
   useCartStore.setState({ items: [{ productId: 'p', shadeId: 's', quantity: 2, arCartSources: [
     { ownerId: 'user-1', eventId: 'my-event' }, { ownerId: 'user-2', eventId: 'other-event' },
+  ], skincareCartSources: [
+    { ownerId: 'user-2', eventId: 'other-skincare' }, { ownerId: 'user-1', eventId: 'my-skincare' },
   ] }] });
   browser.mockResolvedValue({ type: 'cancel' as WebBrowser.WebBrowserResultType.CANCEL });
   get.mockResolvedValue({ orderId: 'order-1', status: 'pending' });
   await start();
   expect(post).toHaveBeenCalledWith('/api/payments/orders', {
-    lines: [{ productId: 'p', shadeId: 's', quantity: 2, arCartEventIds: ['my-event'] }],
+    lines: [{ productId: 'p', shadeId: 's', quantity: 2,
+      arCartEventIds: ['my-event'], skincareCartEventIds: ['my-skincare'] }],
   }, { expectedUserId: 'user-1' });
 });
 

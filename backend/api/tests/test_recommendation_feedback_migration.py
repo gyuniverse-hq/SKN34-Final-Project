@@ -21,7 +21,9 @@ from sqlalchemy.ext.asyncio import create_async_engine
 def test_member_deletion_removes_recommendation_history_and_preserves_orders():
     config = Config()
     config.set_main_option("script_location", "alembic")
-    migration = ScriptDirectory.from_config(config).get_revision("0020").module
+    scripts = ScriptDirectory.from_config(config)
+    migration = scripts.get_revision("0020").module
+    skincare_events = scripts.get_revision("0028").module
 
     def verify(connection):
         schema = "rec_feedback_test_" + uuid4().hex
@@ -45,7 +47,7 @@ def test_member_deletion_removes_recommendation_history_and_preserves_orders():
                     "primary_concern, contract_version, feature_version, ranking_policy_version, "
                     "policy_snapshot) VALUES "
                     "(:id, 'member-1', :session, 'started', 'test', '{}'::jsonb, "
-                    "'dryness', 'v1', 'v1', 'v1', '{}'::jsonb)"
+                    "'dryness', 'recommend-v2-serving-history-v1', 'v1', 'v1', '{}'::jsonb)"
                 ),
                 {"id": request_id, "session": session_id},
             )
@@ -83,16 +85,26 @@ def test_member_deletion_removes_recommendation_history_and_preserves_orders():
                     "impression": impression_id,
                 },
             )
+            skincare_events.upgrade()
+            assert (
+                connection.scalar(sa.text("SELECT v2_score FROM recommendation_candidates")) == 0.5
+            )
+            assert (
+                connection.scalar(sa.text("SELECT event_type FROM user_behavior_events"))
+                == "product_view"
+            )
             connection.execute(sa.text("DELETE FROM members WHERE id = 'member-1'"))
             for table in (
                 "recommendation_requests",
                 "recommendation_candidates",
                 "recommendation_impressions",
                 "user_behavior_events",
+                "skincare_recommendation_events",
             ):
                 assert connection.scalar(sa.text(f"SELECT count(*) FROM {table}")) == 0
             assert connection.scalar(sa.text("SELECT count(*) FROM order_lines")) == 1
 
+            skincare_events.downgrade()
             migration.downgrade()
             remaining = set(sa.inspect(connection).get_table_names(schema=schema))
             assert remaining == {"members", "order_lines"}

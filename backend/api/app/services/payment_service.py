@@ -30,11 +30,16 @@ class CatalogStore(Protocol):
 
 class OrderStore(Protocol):
     async def create(
-        self, order: OrderRow, *, ar_cart_events: list[list[UUID]], ar_terms: str | None
+        self,
+        order: OrderRow,
+        *,
+        ar_cart_events: list[list[UUID]],
+        ar_terms: str | None,
+        skincare_cart_events: list[list[UUID]],
     ) -> None: ...
     async def get(self, order_id: str, *, lock: bool = False) -> OrderRow | None: ...
     async def mark_paid(
-        self, order: OrderRow, payment_key: str, *, ar_terms: str | None
+        self, order: OrderRow, payment_key: str, *, ar_terms: str | None, skincare_feedback: bool
     ) -> None: ...
     def line(self, **values: object): ...
 
@@ -60,6 +65,9 @@ class PaymentService:
 
     def _ar_terms(self, user_id: str) -> str | None:
         return TERMS_VERSION if user_id in self._settings.ar_activity_consented_members else None
+
+    def _skincare_feedback(self, user_id: str) -> bool:
+        return user_id in self._settings.skin_recommendation_feedback_consented_members
 
     async def create_order(self, user_id: str, body: CreateOrderRequest) -> CreateOrderResponse:
         if not (self._settings.toss_client_key and self._settings.payment_web_base_url):
@@ -100,6 +108,11 @@ class PaymentService:
             ),
             ar_cart_events=[line.ar_cart_event_ids[: line.quantity] for line in body.lines],
             ar_terms=self._ar_terms(user_id),
+            skincare_cart_events=[
+                line.skincare_cart_event_ids[: line.quantity] for line in body.lines
+            ]
+            if self._skincare_feedback(user_id)
+            else [],
         )
         base = self._settings.payment_web_base_url.rstrip("/")
         return CreateOrderResponse(
@@ -141,7 +154,10 @@ class PaymentService:
             raise ApiError(400, "Payment amount does not match the order", "invalid_payment")
         await self._approver.approve(body.payment_key, order.id, body.amount)
         await self._orders.mark_paid(
-            order, body.payment_key, ar_terms=self._ar_terms(order.user_id)
+            order,
+            body.payment_key,
+            ar_terms=self._ar_terms(order.user_id),
+            skincare_feedback=self._skincare_feedback(order.user_id),
         )
         return PaymentResult(
             orderId=order.id, status="paid", returnUrl=self._settings.payment_return_url

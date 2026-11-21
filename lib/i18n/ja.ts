@@ -1,5 +1,4 @@
 import { skincareJa } from './skincare';
-import { comparisonJa } from './recommendationComparison';
 import { supportJa } from './skinSupport';
 import { surveyJa } from './survey';
 import type { Dictionary } from './en';
@@ -118,7 +117,6 @@ export const ja: Dictionary = {
   'chat.carousel.ordinal': "番",
   'chat.carousel.ingredient': "この商品の成分は？",
   'chat.carousel.details': "この商品について詳しく教えて",
-  ...comparisonJa,
   ...skincareJa,
   ...supportJa,
   ...surveyJa,

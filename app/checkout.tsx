@@ -10,7 +10,8 @@ import { theme } from '@/constants/theme';
 import { useCartLines } from '@/hooks/useCartLines';
 import { useAuth } from '@/lib/auth';
 import { apiGet, apiPost } from '@/lib/api';
-import { arCartEventIds, waitForArCartEvents } from '@/lib/arHistory';
+import { arCartEventIds } from '@/lib/arHistory';
+import { cartEventIds, waitForCartEvents } from '@/lib/cartAttribution';
 import { formatKRW } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { loginHref } from '@/lib/routes';
@@ -72,15 +73,19 @@ export default function CheckoutScreen() {
     setNotice(null);
     try {
       const orderLines = lines.map((line) => {
-        const eventIds = arCartEventIds(line.item, user.id);
+        const arEvents = arCartEventIds(line.item, user.id);
+        const skincareEvents = cartEventIds(line.item, 'skincareCartSources', user.id);
         return {
           productId: line.product.id,
           shadeId: line.shade?.id,
           quantity: line.item.quantity,
-          ...(eventIds.length ? { arCartEventIds: eventIds } : {}),
+          ...(arEvents.length ? { arCartEventIds: arEvents } : {}),
+          ...(skincareEvents.length ? { skincareCartEventIds: skincareEvents } : {}),
         };
       });
-      await waitForArCartEvents(orderLines.flatMap(line => line.arCartEventIds ?? []));
+      await waitForCartEvents(orderLines.flatMap(line => [
+        ...(line.arCartEventIds ?? []), ...(line.skincareCartEventIds ?? []),
+      ]));
       const order = await apiPost<CreateOrderResponse>('/api/payments/orders', { lines: orderLines }, { expectedUserId: user.id });
       const payment: PendingPayment = { orderId: order.orderId, userId: user.id, items: lines.map((line) => ({ ...line.item })) };
       setPending(payment);

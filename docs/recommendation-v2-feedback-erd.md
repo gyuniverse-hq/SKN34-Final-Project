@@ -2,17 +2,35 @@
 
 기준일: 2026-11-13. **0020 마이그레이션과 개발용 피부 분석 V2 비교 경로에 이력 수집을 연결했다.**
 목적은 현재 V2의 추천 근거와 사용자 반응을 연결해 성분 예측·제품 연결·리뷰 보정·주/보조 고민 비중의 개선 대상을 찾고, 정책 변경 전후를 평가하는 것이다.
-현재 추천 흐름은 [V2 비교 설계](recommendation-v2-comparison.md)를 따른다.
+V2 당시 추천 흐름은 [V2 비교 설계](recommendation-v2-comparison.md)에 있다.
 별도 선호 모델, 자동 재학습·배포, 새로운 순위 결합식은 이번 범위에 포함하지 않는다.
 
-## 일반 사용자 recommend-v2 기록
+## 현재 V3 피부 추천의 전환 측정
 
-- 일반 피부 추천 화면의 결과는 **recommend-v2**, 성분 예측 모델은 **cat-v4**(번들 식별자 `recommend-cat-v4`)다. 로그인한 앱은 `POST /api/recommendations/skin-v2/recorded`를 사용한다. 서버에 동의가 확인된 회원만 기존 0020 테이블에 추천 요청과 사용자에게 반환한 제품 후보를 한 트랜잭션으로 저장한다.
+현재 피부 리포트의 로그인 요청은 `POST /api/recommendations/skincare/v4/recorded`를 사용한다. 수집에 동의한 회원의 종합 TOP 10을 `recommendation_requests`와 `recommendation_candidates`에 저장하고 `skincare-v1-serving-history-v1`로 식별한다. 이 값은 기존 노출과 담기를 연결하는 이력 계약의 식별자다. 저장하는 항목은 요청·세션 ID, 추천 정책과 카탈로그 버전, 상품·옵션과 순위다. `/skincare/v4/impressions`는 카드 절반 이상이 500ms 보였거나 직접 선택한 경우에 `recommendation_impressions`를 기록한다.
+
+`0028`에서 추가한 `skincare_recommendation_events`는 V1 노출에 연결된 상세 조회, 실제 담기, 주문 항목 연결과 결제 확정을 저장한다. 담은 수량에 붙은 이벤트 ID가 주문의 계정과 상품에 일치해야 귀속된다. 결제 승인 후 서버가 주문을 `paid`로 저장할 때만 구매를 기록하고, 담기 한 건을 구매로 한 번 귀속한다. AR은 자체 `ar_*` 이력과 `user_behavior_events`의 AR 결제 귀속을 사용한다.
+
+### 집계 실행
+
+`backend/api`에서 관측 범위를 지정한다. 첫 실제 노출이 `start` 이상 `end` 미만인 세션을 기준으로 `as-of`까지의 장바구니와 결제를 센다. `as-of`를 생략하면 실행 시각을 사용한다.
+
+```sh
+uv run python -m app.jobs.skincare_funnel --start 2026-11-19T00:00:00+09:00 --end 2026-11-20T00:00:00+09:00
+```
+
+- 담기율은 추천 상품을 한 개 이상 담은 세션을 추천 노출 세션으로 나눈 비율이다.
+- 노출 100세션당 담긴 추천 상품 수는 세션마다 서로 다른 담긴 상품 수를 합해 노출 세션 수로 나눈 뒤 100을 곱한다.
+- 담기 → 구매율은 세션 기준과 상품 기준을 함께 출력한다. 상품 기준은 한 세션에서 동일 상품을 한 번 센다. 분모가 0이면 해당 비율은 `null`이다.
+
+## 이전 앱의 recommend-v2 기록
+
+- 이전 앱의 **recommend-v2**는 `POST /api/recommendations/skin-v2/recorded`에서 동의가 확인된 회원의 요청과 반환 후보를 0020 테이블에 함께 저장했다. 아래는 당시의 동작 기록이다.
 - `SKIN_RECOMMENDATION_FEEDBACK_CONSENTED_MEMBERS`에 동의를 확인한 회원 ID를 JSON 배열로 설정한다. 기본값은 빈 배열이다. 가입 약관 동의와 별개이며, 동의가 철회되면 목록에서 해당 회원을 제거하고 API 설정을 다시 로드한다. 동의 목록 밖의 회원도 추천을 받을 수 있다.
 - 카드 면적의 절반 이상이 화면에 500ms 보였거나 카드를 직접 선택하면 `skin_recommendations` 노출이 생긴다. 상품 상세가 로드되면 `product_view`, 장바구니 수량이 늘면 `cart_add`를 같은 노출에 연결한다. 장바구니는 제품 단위라 `cart_add`의 `option_id`는 비워 둔다.
 - 일반 추천 요청은 `contract_version='recommend-v2-serving-history-v1'`로 식별한다. 입력 스냅샷은 분석 버전만 보존하고, 주·보조 고민과 모델·카탈로그 버전은 기존 필드에 기록한다. 기록 실패 시 추천은 제공하고 저장 실패를 서버에 기록한다. 웹·앱 재시작을 넘는 추천 출처나 구매 귀속은 이 범위 밖이다.
 
-## 개발용 비교 경로 구현 범위
+## V1·V2 개발 비교 이력
 
 - 비회원 `POST /api/dev/recommendations/compare`는 저장하지 않는다. 로그인한 비교 화면은 `/compare/recorded`에 `{sessionId, input}`을 보낸다. 회원은 검증된 토큰에서 결정하고, 약관 동의로 생성된 `members` 행이 필요하다. 입력·정책·모델과 **제품 중복 제거 전 적격 옵션 전체**를 저장한다. 응답에는 `history.requestId/sessionId`, 최종 후보에는 `candidateId`를 붙인다. 순위 계산은 유지한다.
 - 요청은 `running → completed/failed`로 기록한다. 후보 저장과 완료 처리는 한 트랜잭션이다. 계산 실패는 제한된 코드만 기록하며, 프로세스 중단으로 남은 `running`은 성공으로 간주하지 않는다. 저장 실패를 비회원 실행으로 조용히 우회하지 않는다.
