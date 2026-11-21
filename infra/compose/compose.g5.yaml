@@ -1,0 +1,19 @@
+name: vishue-g5-rag
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.2-pg17-bookworm
+    environment:
+      POSTGRES_USER: vishue
+      POSTGRES_PASSWORD: ${G5_TEST_POSTGRES_PASSWORD:-g5-local-development}
+      POSTGRES_DB: vishue_g5_rag
+    ports:
+      - "127.0.0.1:${G5_TEST_POSTGRES_PORT:-15435}:5432"
+    volumes:
+      - g5-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vishue -d vishue_g5_rag"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+volumes:
+  g5-data:

@@ -7,6 +7,7 @@ from pydantic.alias_generators import to_camel
 from app.core.config import get_settings
 from app.schemas.ar_geometry import STYLE_IDS
 from app.schemas.catalog import CatalogIngredients
+from app.schemas.knowledge import KnowledgeReply
 from app.schemas.style_recipe import StyleContext, StyleRecipe
 from app.schemas.supervisor import IngredientComparison, ScreenContext, SupervisorResult, ToolResult
 
@@ -159,9 +160,9 @@ class ChatRequest(ApiModel):
     message: str = Field(min_length=1, max_length=1000)
     locale: Locale = "en"
     skin: SkinHint | None = None
-    request_type: Literal["chat", "ar_command", "beauty_consultation", "style_consultation"] = (
-        "chat"
-    )
+    request_type: Literal[
+        "chat", "ar_command", "beauty_consultation", "style_consultation", "knowledge_consultation"
+    ] = "chat"
     chat_context: BeautyContext | None = None
     request_id: UUID | None = None
     ar_context: ArContext | None = None
@@ -338,6 +339,7 @@ class FragranceSearchSummary(ApiModel):
 
 
 class ChatResponse(ApiModel):
+    knowledge: KnowledgeReply | None = Field(default=None, exclude_if=lambda v: v is None)
     pending_clarification: PendingClarification | None = Field(
         default=None, exclude_if=lambda v: v is None
     )

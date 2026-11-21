@@ -24,6 +24,7 @@ export type ChatMessage = {
   evidence?: ChatProductEvidence[];
   resultType?: ChatResponse['resultType'];
   ingredientResults?: ChatResponse['ingredientResults'];
+  knowledge?: ChatResponse['knowledge'];
   ingredientComparison?: ChatResponse['ingredientComparison'];
   fragranceSearchSummary?: ChatResponse['fragranceSearchSummary'];
   screenContext?: ChatScreenContext;

@@ -17,6 +17,7 @@ from app.routers import (
     idol_looks,
     members,
     payments,
+    rag,
     recommendation_comparison,
     recommendations,
     shades,
@@ -80,6 +81,7 @@ def create_app() -> FastAPI:
         app.include_router(module.router)
     app.include_router(payments.router)
     app.include_router(payments.api)
+    app.include_router(rag.router)
     return app
 
 

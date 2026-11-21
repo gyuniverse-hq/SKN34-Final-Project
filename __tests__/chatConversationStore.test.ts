@@ -1,4 +1,4 @@
-import type { BeautyChatContext } from '@/types';
+import type { BeautyChatContext, KnowledgeReply } from '@/types';
 import type { ChatRequestSnapshot, ConversationTarget } from '@/types/chatConversation';
 import { recentChatMessages, useChatConversationStore } from '@/store/chatConversationStore';
 
@@ -250,4 +250,19 @@ test.each(['product', 'shade'] as const)('G3 does not resurrect dismissed pendin
   const explanation = store().beginRequest(target, request(target, '일반 설명'))!;
   store().completeRequest(explanation, { answer: 'general', products: [], sessionStatus: 'unchanged', pendingClarification: pending }, '일반 설명');
   expect(store().conversations[id].conversation.pendingClarification).toBeUndefined();
+});
+
+test('keeps optional knowledge citations with their assistant reply', () => {
+  const id = store().open({ type: 'general' })!;
+  const room = store().conversations[id].conversation;
+  const ticket = store().beginRequest(room, request(room, 'how do I cover redness?'))!;
+  const knowledge: KnowledgeReply = {
+    status: 'answered', claims: [{ claim: 'A grounded answer', citations: ['E1'] }],
+    evidence: [{ id: 'E1', documentId: 8, chunkId: 'c', title: 'Source',
+      sourceFileId: 3, sourceVersion: 'v1', blockOrder: 7, startUtf16: 1, endUtf16: 12,
+      sourceLocator: {}, quote: 'source text', relevance: 'essential' }],
+    findings: [], limitations: '',
+  };
+  store().completeRequest(ticket, { answer: 'A grounded answer [E1]', products: [], knowledge }, 'question');
+  expect(store().conversations[id].messages.at(-1)?.knowledge).toEqual(knowledge);
 });

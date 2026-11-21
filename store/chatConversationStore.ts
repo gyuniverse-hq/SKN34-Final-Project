@@ -345,6 +345,7 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
           fragranceSearchSummary: response.fragranceSearchSummary,
           ingredientComparison: response.ingredientComparison,
           styleRecipe: response.styleRecipe,
+          ...(response.knowledge ? { knowledge: response.knowledge } : {}),
         };
         record.messages = ((current: ChatMessage[]) => {
           const questionIndex = current.findIndex((message) => message.id === messageId);

@@ -61,10 +61,12 @@ from app.services.g1_catalog_tool import G1CatalogTool
 from app.services.g1_model_service import (
     DETAIL_TOOL,
     G1ModelTurn,
+    _requires_catalog_search,
     choose_g1_turn,
     explain_general_question,
     requests_general_explanation,
 )
+from app.services.knowledge_service import consult_knowledge
 from app.services.product_consultation_graph import SupervisorRuntime, product_supervisor
 from app.services.style_recipe_service import TEXT as STYLE_TEXT
 from app.services.style_recipe_service import execute_style
@@ -77,6 +79,10 @@ _WORD = re.compile(r"[\w가-힣ぁ-んァ-ン一-龥]{2,}")
 # Route explicit G2 filter requests through the richer interpreter, not G1's first-search args.
 _G2_FILTER = re.compile(r"매트|matte|제형|지속력|워터프루프|waterproof|글로시|벨벳|새틴", re.I)
 _FILTER_CHANGE = re.compile(r"바꿔|바꾸|변경|조건|추천|찾아|골라|유지|빼|제외|말고")
+
+
+def _g5_enabled() -> bool:
+    return bool(getattr(get_settings(), "g5_enabled", False))
 
 
 def _cancels_pending(message: str) -> bool:
@@ -196,6 +202,38 @@ _PRODUCT_FACT = re.compile(
     r"가격|얼마|성분|향료|비교|price|ingredient|fragrance|compare|価格|成分|比較|价格|香料|对比",
     re.I,
 )
+_KNOWLEDGE_TOPIC = re.compile(
+    r"화장(?!실)|메이크업|색조|스킨케어|파운데이션|파데|쿠션|컨실러|코렉터|보정제|"
+    r"\b립|틴트|파우더|블러셔|볼터치|[쉐셰]이?딩|마스카라|아이라이너|아이라인|섀도|"
+    r"클렌징|폼\s*클렌저|세안제|선크림|자외선\s*차단|미백|발색|퍼프|스펀지|세럼|로션|에센스|"
+    r"(?:눈가|피부)\s*젤|(?i:bb|cc)\s*크림|톤\s*업\s*크림|모공\s*프라이머|볼\s*색|"
+    r"(?<![가-힣])(?:이마|코|광대|턱|볼|눈두덩)(?:에|는|쪽|의|위)?(?=[\s,.!?])"
+    r"[^.!?]{0,15}하이라이트|토너[^.!?]{0,22}화장솜|"
+    r"베이스(?=[^.!?]{0,24}(?:바르|바른|바를|펴|들뜨|밀리))"
+)
+_FACE_COVER = re.compile(
+    r"(?:얼굴|볼|피부|실핏줄|흉터|여드름|백반증|홍조|다크\s*서클).*?(?:가리|가릴|커버|보정)"
+)
+_SOURCE_QUESTION = re.compile(r"연구|논문|설문|실험|시험|조사|자료|원문|시연|사례")
+_KNOWLEDGE_FOLLOWUP = re.compile(
+    r"^(?:그럼|그러면)(?:\s|[,，])|(?:^|\s)그\s+(?:논문|연구|자료|지표|방법|조건|부위|제품)"
+    r"|(?:^|\s)(?:앞서|아까)\s*(?:말|언급|질문|본|보던)"
+)
+_PROTECTED_KNOWLEDGE_REQUEST = re.compile(
+    r"가격|할인|최저가|재고|장바구니|전성분|성분표|배합표|제조번호|제조사|모델명|"
+    r"색\s*번호|호수|옵션|매출|결제|영수증|진단|치료|처방|"
+    r"(?:성분|향료).{0,14}(?:들어\s*있|함유|포함\s*여부)"
+)
+_CURRENT_PRODUCT_CONTEXT = re.compile(
+    r"현재|지금|요즘|요새|온라인몰|쇼핑몰|판매|납품|유통|매장|시판|출고|올라온"
+)
+_PRODUCT_IDENTITY_QUESTION = re.compile(
+    r"(?:같은|동일한?)\s*(?:제품|상품|물건)(?!\s*(?:종류|유형|처럼))"
+    r"|(?:제품|상품|물건)(?:이|과|이랑|하고)?\s*(?:같은|동일)"
+    r"|(?:그|해당)\s*(?:제품|상품|물건)(?:이|과|이랑|하고)?\s*맞"
+)
+_GENERAL_INGREDIENT_QUESTION = re.compile(r"일반적|종류|원리|역할")
+_UNMEASURED_VALUE = re.compile(r"실측값|(?:촬영|측정)[^.!?]{0,22}(?:없|안\s*했)")
 _SHOPPING_ZONES = {
     "lip": r"립|입술 제품|lip(?:stick| product| tint)?|リップ|唇",
     "eye": r"아이라이너|아이섀도|마스카라|eyeliner|eyeshadow|mascara|アイシャドウ|眼影|眼线",
@@ -269,6 +307,8 @@ def route_intent(context: ResolvedContext) -> IntentDecision:
     text = context.message.casefold()
     shopping = _SHOPPING.search(text)
     execution = re.search(r"발라|적용해|설정해|조절해|apply|set .*intensity|塗って|涂上", text)
+    if context.request_type == "knowledge_consultation":
+        return IntentDecision(intent="knowledge", request_type_hint=context.request_type)
     intent = "general"
     if shopping and execution:
         intent = "compound"
@@ -312,6 +352,89 @@ def route_intent(context: ResolvedContext) -> IntentDecision:
     return IntentDecision(intent=intent, request_type_hint=context.request_type)
 
 
+def _prior_knowledge_context(req: ChatRequest) -> str:
+    if not _KNOWLEDGE_FOLLOWUP.search(req.message.strip()):
+        return ""
+    # Only consider the latest user turn; older topics may have been superseded.
+    text = next(
+        (turn.text.strip() for turn in reversed(req.recent_messages) if turn.role == "user"), ""
+    )
+    if _SHOPPING.search(text) or _PROTECTED_KNOWLEDGE_REQUEST.search(text):
+        return ""
+    topic = _KNOWLEDGE_TOPIC.search(text) or _FACE_COVER.search(text)
+    return text if topic or re.search(r"젤\s*크림", text) else ""
+
+
+def _is_knowledge_question(
+    req: ChatRequest, context: ResolvedContext, decision: IntentDecision
+) -> bool:
+    # Keep selection capabilities and pending replies on the existing session path.
+    if (
+        req.locale != "ko"
+        or context.style is not None
+        or context.has_beauty_context
+        or req.clarification_id is not None
+        or (
+            context.screen
+            and (
+                context.screen.product_id
+                or context.screen.look_id
+                or context.screen.style_id
+                or context.screen.screen_id in COMPARISON_SCREENS
+            )
+        )
+    ):
+        return False
+
+    free_chat = req.request_type == "chat" and decision.intent in {"general", "ingredient"}
+    app_makeup = (
+        req.request_type == "beauty_consultation"
+        and req.general_makeup
+        and context.screen is None
+        and decision.intent in {"product", "ingredient"}
+    )
+    if not (free_chat or app_makeup):
+        return False
+
+    message = context.message
+    prior = _prior_knowledge_context(req)
+    source_question = bool(_SOURCE_QUESTION.search(message))
+    explains = requests_general_explanation(message)
+    if (
+        _SHOPPING.search(message)
+        or _requires_catalog_search(message)
+        or _PROTECTED_KNOWLEDGE_REQUEST.search(message)
+        or (
+            source_question
+            and _CURRENT_PRODUCT_CONTEXT.search(message)
+            and _PRODUCT_IDENTITY_QUESTION.search(message)
+        )
+    ):
+        return False
+    if not source_question:
+        if _UNMEASURED_VALUE.search(message):
+            return False
+        if decision.intent == "ingredient" and not (
+            explains and _GENERAL_INGREDIENT_QUESTION.search(message)
+        ):
+            return False
+
+    return bool(
+        (_KNOWLEDGE_TOPIC.search(message) or _FACE_COVER.search(message) or prior)
+        and (
+            source_question
+            or _SOURCE_QUESTION.search(prior)
+            or req.general_makeup
+            or explains
+            or re.search(
+                r"[?？]|어떻|어디|어느|어떤|뭘|방법|주의|좋을까요|되나요|할까요|"
+                r"잡아\s*줘(?:요)?[.!]?$|(?:인지|는지)\s*(?:궁금해|헷갈려)",
+                message,
+            )
+        )
+    )
+
+
 def check_sufficiency(context: ResolvedContext, intent: IntentDecision) -> Sufficiency:
     # Missing AR slots are clarified by the existing AR Tool (same localized reasons).
     missing = []
@@ -336,6 +459,8 @@ def check_sufficiency(context: ResolvedContext, intent: IntentDecision) -> Suffi
 def build_plan(
     context: ResolvedContext, intent: IntentDecision, sufficiency: Sufficiency
 ) -> TaskPlan:
+    if intent.intent == "knowledge":
+        return TaskPlan(tasks=["knowledge"])
     if intent.intent == "compound":
         return TaskPlan(stop_reason="compound_request_unsupported")
     if intent.intent == "ar":
@@ -420,7 +545,10 @@ def verify_response(
                 raise ApiError(502, "Invalid AR proposal context", "invalid_tool_result")
             result.action_proposed = True
             result.application = "awaiting_app_ack"
-    response.supervisor = SupervisorResult(intent=decision, plan=plan, result=result)
+    response.supervisor = SupervisorResult(
+        intent=decision, plan=plan, result=result,
+        unavailable_tools=[] if _g5_enabled() else ["knowledge"],
+    )
     return response
 
 
@@ -439,6 +567,10 @@ class ChatService:
     async def answer(self, req: ChatRequest, principal_key: str | None = None) -> ChatResponse:
         context = resolve_context(req)
         decision = route_intent(context)
+        if _g5_enabled() and _is_knowledge_question(req, context, decision):
+            return await self._run_supervisor(
+                req, context, decision.model_copy(update={"intent": "knowledge"})
+            )
         # G2 reuses the authoritative shopping session, including its CAS and TTL.
         # OFF and non-Korean chat keep their legacy stateless route.
         if (
@@ -532,6 +664,8 @@ class ChatService:
         request_id: UUID | None = None,
         model_turn: G1ModelTurn | None = None,
     ) -> ChatResponse:
+        if decision.intent == "knowledge":
+            return await self._execute_turn(req, decision, self._plan_turn(context, decision))
         # AR can clarify missing selection without an LLM.
         if (
             not self._llm.configured
@@ -1433,9 +1567,23 @@ class ChatService:
         if tool == "style":
             return await execute_style(req, self._catalog)
         if tool == "knowledge":
+            if not _g5_enabled() or req.locale != "ko":
+                return (
+                    ChatResponse(answer=TEXT[req.locale]["clarify"], products=[]),
+                    ToolResult(tool=tool, status="unsupported", reason="tool_unavailable"),
+                )
+            prior = _prior_knowledge_context(req)
+            if prior:
+                consultation = await consult_knowledge(req.message, prior_user_context=prior)
+            else:
+                consultation = await consult_knowledge(req.message)
+            status = consultation.reply.status
             return (
-                ChatResponse(answer=TEXT[req.locale]["clarify"], products=[]),
-                ToolResult(tool=tool, status="unsupported", reason="tool_unavailable"),
+                ChatResponse(answer=consultation.answer, products=[], knowledge=consultation.reply),
+                ToolResult(tool=tool, status={
+                    "answered": "success", "partial": "partial",
+                    "insufficient_evidence": "unsupported", "error": "error",
+                }[status], reason=None if status == "answered" else f"g5_{status}"),
             )
         if tool != "graph_chat":
             raise ApiError(503, "Tool is not implemented", "tool_unavailable")

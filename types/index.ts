@@ -572,7 +572,25 @@ export type PendingClarification = {
   ingredientConditions: { ingredientName: string; operator: 'includes' | 'excludes' }[];
 };
 
+export type KnowledgeEvidence = {
+  id: string; documentId: number; chunkId: string; title: string; sourceFileId: number;
+  sourceVersion: string; blockOrder: number; startUtf16: number; endUtf16: number;
+  sourceLocator: Record<string, unknown>; quote: string; relevance: 'essential' | 'support';
+};
+
+export type KnowledgeReply = {
+  status: 'answered' | 'partial' | 'insufficient_evidence' | 'error';
+  claims: { claim: string; citations: string[] }[];
+  evidence: KnowledgeEvidence[];
+  findings: {
+    index: number; label: 'SUPPORTED' | 'OVERGENERALIZED' | 'CONTRADICTED' | 'UNSUPPORTED';
+    reason: string;
+  }[];
+  limitations: string;
+};
+
 export interface ChatResponse {
+  knowledge?: KnowledgeReply;
   pendingClarification?: PendingClarification | null;
   styleRecipe?: ChatStyleRecipe;
   styleContext?: ChatStyleContext;
