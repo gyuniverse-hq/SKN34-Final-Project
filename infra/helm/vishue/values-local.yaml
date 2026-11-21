@@ -9,12 +9,16 @@ image:
   pullPolicy: Never
 
 api:
+  env:
+    G5_ENABLED: "false" # enable together with chatbot after the G5 data check
+    G5_ALLOW_LOCAL_SOURCES: "false"
   replicas: 1
   autoscaling: { enabled: false }
 
 chatbot:
   env:
     G1_SUPERVISOR_ENABLED: "true"
+    G5_ENABLED: "false"
   replicas: 1
   autoscaling: { enabled: false }
 
@@ -38,5 +42,9 @@ secrets:
     NAVER_CLIENT_SECRET: ""
     YOUTUBE_API_KEY: ""
     SUPABASE_SECRET_KEY: ""
+    G5_OPENAI_API_KEY: ""
+    G5_INTERNAL_TOKEN: "" # must match secrets.chatbot.G5_INTERNAL_TOKEN
   chatbot:
     LLM_API_KEY: ""
+    G5_OPENAI_API_KEY: ""
+    G5_INTERNAL_TOKEN: ""

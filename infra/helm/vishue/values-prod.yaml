@@ -10,9 +10,15 @@ supabase:
   url: ""             # set before first deploy: https://<project>.supabase.co
   publishableKey: ""  # set before first deploy (public key, not the secret key)
 
+api:
+  env:
+    G5_ENABLED: "false" # enable both services after G5 migration, restore and verification
+    G5_ALLOW_LOCAL_SOURCES: "false"
+
 chatbot:
   env:
     G1_SUPERVISOR_ENABLED: "true"
+    G5_ENABLED: "false"
     NEO4J_URI: ""     # set before first deploy: neo4j+s://<id>.databases.neo4j.io (AuraDB)
     LLM_MODEL: ""     # set before first deploy; empty keeps the chatbot disabled (503)
 
@@ -25,7 +31,11 @@ gateway:
 # Secrets come from AWS Secrets Manager through External Secrets Operator:
 #   vishue/production/api      {"DATABASE_URL": ..., "REDIS_URL": ..., "NAVER_CLIENT_ID": ...,
 #                               "NAVER_CLIENT_SECRET": ..., "YOUTUBE_API_KEY": ...,
-#                               "SUPABASE_SECRET_KEY": ...}
-#   vishue/production/chatbot  {"NEO4J_PASSWORD": ..., "REDIS_URL": ..., "LLM_API_KEY": ...}
+#                               "SUPABASE_SECRET_KEY": ..., "G5_OPENAI_API_KEY": ...,
+#                               "G5_INTERNAL_TOKEN": ...}
+#   vishue/production/chatbot  {"NEO4J_PASSWORD": ..., "REDIS_URL": ..., "LLM_API_KEY": ...,
+#                               "G5_OPENAI_API_KEY": ..., "G5_INTERNAL_TOKEN": ...}
+# G5_INTERNAL_TOKEN must match across the two secrets. G5 embedding access also needs a key
+# in the API service; G1's LLM_API_KEY stays in the chatbot service only.
 externalSecrets:
   enabled: true

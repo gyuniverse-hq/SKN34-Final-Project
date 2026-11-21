@@ -67,6 +67,8 @@ these override whatever the service Secret holds; external stores come from the 
 
 {{- define "vishue.chatbotStoreEnv" -}}
 {{- $fullname := include "vishue.fullname" .root -}}
+- name: CATALOG_API_URL
+  value: {{ .root.Values.chatbot.env.CATALOG_API_URL | default (printf "http://%s-api:8000" $fullname) | quote }}
 {{- if .root.Values.dataStores.neo4j.enabled }}
 - name: NEO4J_URI
   value: bolt://{{ $fullname }}-neo4j:7687

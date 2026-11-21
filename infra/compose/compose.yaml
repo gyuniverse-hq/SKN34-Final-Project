@@ -10,6 +10,10 @@ x-backend: &backend
   environment: &backend-env
     ENV: local
     LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    # Both services need G5 credentials; enable only after DB preparation.
+    G5_ENABLED: ${G5_ENABLED:-false}
+    G5_OPENAI_API_KEY: ${G5_OPENAI_API_KEY:-}
+    G5_INTERNAL_TOKEN: ${G5_INTERNAL_TOKEN:-}
     SUPABASE_URL: ${SUPABASE_URL:-${EXPO_PUBLIC_SUPABASE_URL:-}}
     SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}}
     # Expo web (`npx expo start --web`) calls the gateway from another origin.
@@ -44,6 +48,7 @@ services:
       <<: *backend-env
       # Optional read-only artifact: add compose.ingredients.yaml (see docs/DEPLOYMENT.md).
       INGREDIENT_MAPPING_PATH: ""
+      G5_ALLOW_LOCAL_SOURCES: "false"
       AR_ACTIVITY_ENROLLED_MEMBERS: '${AR_ACTIVITY_ENROLLED_MEMBERS:-[]}'
       AR_ACTIVITY_CONSENTED_MEMBERS: '${AR_ACTIVITY_CONSENTED_MEMBERS:-[]}'
       SKIN_RECOMMENDATION_FEEDBACK_CONSENTED_MEMBERS: '${SKIN_RECOMMENDATION_FEEDBACK_CONSENTED_MEMBERS:-[]}'
@@ -73,6 +78,7 @@ services:
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:-vishue-local}
       REDIS_URL: redis://redis:6379/1
       CATALOG_API_URL: http://api:8000
+      G1_SUPERVISOR_ENABLED: ${G1_SUPERVISOR_ENABLED:-true}
       LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_MODEL: ${LLM_MODEL:-}
@@ -121,7 +127,8 @@ services:
     profiles: ["tools"]
 
   postgres:
-    image: postgres:17-alpine
+    # Select a pgvector image for a NEW G5 project/volume; existing volumes stay untouched.
+    image: ${POSTGRES_IMAGE:-postgres:17-alpine}
     environment:
       POSTGRES_USER: vishue
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vishue}

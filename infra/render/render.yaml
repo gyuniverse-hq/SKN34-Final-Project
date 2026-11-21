@@ -17,12 +17,21 @@ services:
     # Deploy only after the commit's GitHub checks (ci-ok) pass.
     autoDeployTrigger: checksPass
     buildFilter:
-      paths: ["backend/api/**"]
+      paths: ["backend/api/**", "infra/render/render.yaml"]
     envVars:
       - key: ENV
         value: development
       - key: RUN_MIGRATIONS
         value: "true"
+      # Enable only after the separate G5 migration and verified data restore.
+      - key: G5_ENABLED
+        value: "false"
+      - key: G5_ALLOW_LOCAL_SOURCES
+        value: "false"
+      - key: G5_OPENAI_API_KEY
+        sync: false
+      - key: G5_INTERNAL_TOKEN
+        sync: false
       - key: CORS_ORIGINS
         value: '["http://localhost:8081"]'
       - key: DATABASE_URL
@@ -59,10 +68,22 @@ services:
     healthCheckPath: /healthz
     autoDeployTrigger: checksPass
     buildFilter:
-      paths: ["backend/chatbot/**"]
+      paths: ["backend/chatbot/**", "infra/render/render.yaml"]
     envVars:
       - key: ENV
         value: development
+      - key: G1_SUPERVISOR_ENABLED
+        value: "true"
+      - key: G5_ENABLED
+        value: "false"
+      # Full API base URL; never the chatbot's localhost address.
+      - key: CATALOG_API_URL
+        sync: false
+      - key: G5_OPENAI_API_KEY
+        sync: false
+      # Must match the API service's G5_INTERNAL_TOKEN.
+      - key: G5_INTERNAL_TOKEN
+        sync: false
       - key: CORS_ORIGINS
         value: '["http://localhost:8081"]'
       - key: NEO4J_URI

@@ -19,6 +19,134 @@ flowchart LR
   Bump -->|병합 = 배포| Argo["Argo CD → EKS 롤링 배포"]
 ```
 
+## G5 지식 상담의 공유·배포 준비
+
+G1은 Render·Compose·Helm에서 ON으로 설정한다. G5는 새 환경에서 명시적 OFF로
+시작하고, 아래 DB 준비와 데이터 검증을 마친 뒤 API와 챗봇에서 함께 ON으로 바꾼다.
+이미 준비된 D: 통합 환경의 G5 ON 설정은 이 기본 템플릿과 별개다. 설정 파일 수정이나
+`/healthz`의 200 응답만으로 G5 상담 품질이 검증됐다고 판정하지 않는다.
+
+### 서비스별 설정
+
+| 설정 | API | 챗봇 |
+| --- | --- | --- |
+| `G1_SUPERVISOR_ENABLED` | 사용하지 않음 | `true` 유지 |
+| `G5_ENABLED` | 준비 전 `false`, 검증 후 `true` | API와 같은 시점에 전환 |
+| `G5_ALLOW_LOCAL_SOURCES` | `false` 유지 | 사용하지 않음 |
+| `G5_OPENAI_API_KEY` | 질문 임베딩용 서버 비밀값 | Terra 선택·생성·검증용 서버 비밀값 |
+| `G5_INTERNAL_TOKEN` | 내부 요청 인증 | API와 동일한 비밀값 |
+| `CATALOG_API_URL` | 사용하지 않음 | API의 전체 기본 URL, `/internal/knowledge` 접미사 제외 |
+
+G5 키·토큰·DB 암호는 Git이나 `EXPO_PUBLIC_*`에 넣지 않는다. API에 필요한 G5
+임베딩 키와 G1의 챗봇 전용 `LLM_API_KEY`를 구분한다. Render에서는 두 서비스에
+`sync: false`로 선언된 비밀값을 채우고, 챗봇의 `CATALOG_API_URL`에 실제 API 서버의
+HTTPS 기본 주소를 지정한다. Blueprint를 다시 동기화할 때 `G5_ENABLED` 값도 확인한다.
+Helm에서는 `secrets.api`·`secrets.chatbot` 또는 대응하는 External Secrets로 주입한다.
+Helm의 기본 API 주소는 `http://<release>-api:8000`이며, 다른 주소가 필요한 경우
+`chatbot.env.CATALOG_API_URL`로 지정한다. 챗봇→API 통신은 같은 release의 Pod만 허용한다.
+
+### DB를 먼저 준비한다
+
+1. 승인된 **별도 대상 DB**를 준비하고 접속 대상·백업·디스크 여유를 확인한다.
+   D: DB의 파일 경로는 팀원의 접속 주소가 아니다. DB 전체를 덮어쓰지 않고 필요한
+   G5 데이터만 전달한다. 기존 DB·Docker 볼륨을 재사용하거나 이미지 변경으로 전환하지 않는다.
+2. PostgreSQL 17과 `halfvec(3072)`를 지원하는 pgvector를 준비한다. 현재 D: 검증
+   기준은 pgvector 0.8.2다. 기본 `postgres:17-alpine` 이미지에는 확장 설치를 보장하는
+   구성이 없다. 새 Compose 프로젝트에는 `POSTGRES_IMAGE=pgvector/pgvector:0.8.2-pg17-bookworm`을
+   명시할 수 있다. `infra/compose/compose.g5.yaml`은 기존의 **DB 전용** 실행 파일이며
+   전체 스택의 추가 설정 파일로 합쳐 쓰지 않는다.
+   이미지의 버전·PostgreSQL 기반은 [pgvector v0.8.2 Dockerfile](https://github.com/pgvector/pgvector/blob/v0.8.2/Dockerfile)을 참고한다.
+3. 새 kind 저장소를 준비한다면 PostgreSQL 이미지와 저장 용량을 별도 values로 지정한다.
+   예: `dataStores.postgres.image=pgvector/pgvector:0.8.2-pg17-bookworm`,
+   `dataStores.postgres.storage=8Gi`. 기본 2Gi는 전량 적재·WAL·인덱스 작업의 여유를
+   보장하지 않는다. 기존 PVC의 이미지 교체나 크기 변경은 별도 작업이다.
+4. Render/Supabase와 운영 RDS에서도 pgvector 가용 버전, 확장 생성 권한, 저장 용량을
+   대상 DB에서 확인한다. 로컬 설치 성공으로 원격 DB 준비까지 완료 처리하지 않는다.
+5. `backend/api`에서 **표준 마이그레이션 → G5 마이그레이션** 순서로 적용한다.
+   아래는 이후 대상 DB 적용 승인을 받은 운영자가 실행할 절차이며, 모델 API는 호출하지 않는다.
+
+```bash
+# private-target.env: Git 밖의 대상 DB 전용 설정. DATABASE_URL은 SQLAlchemy URL이다.
+uv run --env-file /private/private-target.env alembic upgrade head
+uv run --env-file /private/private-target.env alembic -c alembic-g5.ini upgrade head
+```
+
+2026-11-21 검증 기준은 표준 `0030`, 별도 `alembic_version_g5`의 `g5_0001`이다.
+공유·병합 직전에는 최신 develop의 표준 head를 다시 확인한다. Render 기동 명령,
+Compose `migrate`, Helm initContainer는 현재 **표준 Alembic만** 실행한다. 따라서
+G5의 별도 적용을 마친 후에 활성화한다. 표준 `alembic upgrade head`를 실행했다는
+이유만으로 G5 테이블도 있다고 판단하지 않는다.
+
+### 기존 원문·벡터를 재사용한다
+
+대상 테이블이 비어 있는지 먼저 확인하고, 원본의 ID·버전·승인 상태를 보존한다.
+현재 기본 검색·상담에 필요한 복사 순서는 다음과 같다.
+
+1. `aihub_knowledge_document` → `aihub_knowledge_document_file`
+2. `aihub_document_extraction` → `aihub_document_block`
+3. `aihub_rag_embedding` → `aihub_rag_chunk`
+
+대상에 같은 ID가 있으면 내용을 대조하고 충돌을 해결한 뒤 진행한다. 제약 조건을
+끄거나 기존 데이터를 삭제해서 통과시키지 않는다. QA·발췌 연결까지 전달할 때는
+`aihub_quote_alignment`가 참조하는 QA·출처 부모 데이터도 별도 manifest에 포함한다.
+기본 원문·벡터 검색만을 위해 QA나 발췌 연결을 새로 생성할 필요는 없다.
+
+전달물은 Git 밖에 두는 데이터 전용 덤프와 manifest다. PostgreSQL 17 도구를 사용하고,
+libpq의 비공개 `g5-source`·`g5-target` service 설정으로 접속한다. SQLAlchemy의
+`postgresql+asyncpg://` URL을 `pg_dump`에 그대로 넣지 않는다.
+
+```bash
+# 원본 읽기. 아래 파일 경로는 승인된 로컬 보관 위치로 지정한다.
+pg_dump --dbname='service=g5-source' --format=custom --data-only --no-owner --no-privileges \
+  --table=public.aihub_knowledge_document --table=public.aihub_knowledge_document_file \
+  --table=public.aihub_document_extraction --table=public.aihub_document_block \
+  --table=public.aihub_rag_embedding --table=public.aihub_rag_chunk --file="$G5_ARCHIVE"
+# 대상 테이블이 비어 있고 ID 충돌이 없음을 확인한 후에만 실행한다.
+pg_restore --dbname='service=g5-target' --data-only --no-owner --no-privileges \
+  --single-transaction --exit-on-error "$G5_ARCHIVE"
+```
+
+manifest에는 테이블별 건수·ID 목록 해시, 문서 버전·원문 블록 해시, 청크 본문·원문
+좌표·임베딩 키, 입력 해시·모델·차원·벡터 내용 해시, 덤프 파일 SHA-256을 포함한다.
+일관된 스냅샷에서 추출하거나 원본 쓰기를 멈춘 상태에서 덤프와 manifest를 만든다.
+서로 다른 시점의 건수와 해시를 혼합하지 않는다. 시퀀스와 외래키·인덱스도 확인한다.
+단순 건수 일치는 전체 내용 일치의 증거가 아니다.
+
+2026-11-21 D: 통합 DB의 기준은 다음과 같다. 다른 DB의 완료 결과가 아니다.
+
+| 항목 | 기준 |
+| --- | --- |
+| 검증 성공 원문 / 원문 블록 | 3,105 / 447,122 |
+| 청크 / 고유 벡터 | 36,167 / 36,040 |
+| 서비스 승인 문서 | 3,105 |
+| 임베딩 | `text-embedding-3-large`, 3,072차원 |
+| 청크 / 입력 버전 | `large-3200-overlap-1000-v1` / `openai-3072-title-body-v1` |
+
+복사 후에는 읽기 전용으로 manifest와 대조하고, HNSW·GIN 등 인덱스의 정의·유효성을
+확인한다. HNSW가 존재한다고 기본 검색이 HNSW를 사용한다는 뜻은 아니다. 현재
+기준선은 정확 코사인 벡터 상위 20개다. 해시 불일치·외래키 오류·건수 부족이면
+활성화를 중단하고 실패한 복사 트랜잭션과 대상 DB를 조사한다. 전체 재임베딩이나
+`index_knowledge --all`로 덮어쓰지 않는다.
+
+### 활성화와 확인
+
+- DB 검증과 비밀값 주입을 마친 후 Render 두 서비스의 `G5_ENABLED` 또는 Helm의
+  `api.env.G5_ENABLED`·`chatbot.env.G5_ENABLED`를 함께 `true`로 바꾼다.
+  Compose도 준비된 별도 프로젝트의 `.env`에서 `G5_ENABLED=true`로 전환한다.
+- `G5_ALLOW_LOCAL_SOURCES=false`를 유지하고 문서의 서비스 승인 상태로 조회한다.
+  D:에서 승인한 상태가 새 DB에 자동으로 생긴다고 가정하지 않는다.
+- 내부 `/context`의 문서·버전·블록·UTF-16 범위를 확인한다. `/search`는 질문 임베딩
+  API를 호출하므로 실제 모델 호출 승인을 받은 뒤에만 검색·상담을 시험한다.
+- 최소 실제 앱 상담·후속 대화·공개 인용을 확인하고 모델별 토큰·비용·지연시간을 남긴다.
+  저장 판정 재생·모의 테스트 통과와 실제 모델 상담 성공은 구분한다.
+- 문제 시 API·챗봇의 G5만 OFF로 되돌리고 G1 ON과 기존 상품·성분·스타일 경로를
+  유지한다. 검증을 이유로 원문·벡터를 삭제하거나 기존 DB를 롤백하지 않는다.
+
+Render API 이미지가 참조하는 `model` 빌드 컨텍스트는 현재 Blueprint 선언에 전달
+경로가 없다. 실제 Render 이미지 빌드 검증은 별도 선행 항목이며, 이 절차는 그 성공을
+보장하지 않는다. Helm/Render의 실제 비밀값과 DB 준비 완료 여부도 배포 전 확인한다.
+J11의 연구 지표 혼동은 잔여 품질 결함이며, 이 설정 보완으로 해결 처리하지 않는다.
+
 ## 선택적 성분 매핑 파일
 
 성분 조회에는 생성 재현·상품/호수/옵션 소유권·출처 버전·성분 검수가 확인된 `schemaVersion: 1` 매핑 JSON이 필요하다. `candidate`·`ambiguous`·미검수 자료를 `reproduced`/`verified`로 바꾸지 않는다. 로컬 `reports/ingredients/p0-2b-1-mapping.json`은 미검수 후보 자료이며 정상 조회의 증빙이 아니다.
