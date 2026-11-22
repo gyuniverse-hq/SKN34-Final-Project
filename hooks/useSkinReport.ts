@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { uuid } from 'expo';
 import { SKIN_REPORT_EXAMPLE } from '@/constants/skinCare';
-import { useSkinV2Recommendation } from '@/hooks/useSkinV2Recommendation';
+import { useAuth } from '@/lib/auth';
+import { useSkincareRecommendations } from '@/lib/queries';
 import { buildSkinReport, ingredientExamples } from '@/lib/skinReport';
-import { displayCareGoal } from '@/lib/skincare';
+import { deriveCareGoals, displayCareGoal } from '@/lib/skincare';
 import { useSkinProfileStore } from '@/store/skinProfileStore';
 import { useSkinPreviewStore } from '@/store/skinPreviewStore';
 import type { SkinConcern } from '@/types';
@@ -27,7 +29,13 @@ export function useSkinReport() {
   }, [hydrate]);
   const report = useMemo(() => buildSkinReport(profile ?? SKIN_REPORT_EXAMPLE), [profile]);
   const activeConcern = active ?? report.priorities[0].concern;
-  const recommendation = useSkinV2Recommendation(profile, !loading);
+  const request = useMemo(() => !loading && !loadFailed && profile ? deriveCareGoals(profile) : undefined,
+    [loading, loadFailed, profile]);
+  const { user, ready } = useAuth();
+  const owner = user?.id;
+  const runId = profile?.analysis.timing.runId;
+  const sessionId = useMemo(() => owner && runId ? uuid.v4() : undefined, [owner, runId]);
+  const recommendations = useSkincareRecommendations(request, owner, sessionId, ready);
   return {
     report, activeConcern, setActive, loading, loadFailed,
     preview: profile && preview?.runId === profile.analysis.timing.runId ? preview : null,
@@ -35,6 +43,6 @@ export function useSkinReport() {
     example: profile === null,
     ingredients: displayCareGoal(activeConcern) === 'dryness'
       ? [...new Set([...ingredientExamples('dryness'), ...ingredientExamples('oiliness')])]
-      : ingredientExamples(activeConcern), recommendation, live: !loading && profile !== null,
+      : ingredientExamples(activeConcern), recommendations, owner, live: request !== undefined,
   };
 }

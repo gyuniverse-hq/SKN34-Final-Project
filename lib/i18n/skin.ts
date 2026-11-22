@@ -1,7 +1,4 @@
 export const skinEn = {
-  'skin.birthYearOptional': 'Year of birth (optional)', 'skin.birthYearPlaceholder': 'Select your birth year',
-  'skin.birthYearNone': 'No selection', 'skin.genderOptional': 'Gender (optional)',
-  'skin.demographicsStorage': 'Your birth year and gender are saved on this device with your analysis.',
   'skin.resultTitle': 'Skin analysis results',
   'skin.choosePhoto': 'Choose a photo',
   'skin.photoError': 'Could not open this photo. Try another, smaller image.',
@@ -98,9 +95,6 @@ export const skinEn = {
 };
 type SkinDictionary = Record<keyof typeof skinEn, string>;
 export const skinKo: SkinDictionary = {
-  'skin.birthYearOptional': '출생연도 (선택)', 'skin.birthYearPlaceholder': '출생연도를 선택해 주세요',
-  'skin.birthYearNone': '선택 안 함', 'skin.genderOptional': '성별 (선택)',
-  'skin.demographicsStorage': '출생연도와 성별은 분석 결과와 함께 이 기기에 저장돼요.',
   'skin.resultTitle': '피부 분석 결과',
   'skin.choosePhoto': '사진 선택',
   'skin.photoError': '사진을 열 수 없어요. 다른 작은 사진을 선택해 주세요.',
@@ -177,9 +171,6 @@ export const skinKo: SkinDictionary = {
   'skin.deleteNotice': '‘앱 데이터 모두 삭제’ 시 피부 정보와 측정 기록도 삭제합니다.',
 };
 export const skinJa: SkinDictionary = {
-  'skin.birthYearOptional': '生まれた年（任意）', 'skin.birthYearPlaceholder': '生まれた年を選択',
-  'skin.birthYearNone': '選択しない', 'skin.genderOptional': '性別（任意）',
-  'skin.demographicsStorage': '生まれた年と性別は分析結果と一緒にこの端末に保存されます。',
   'skin.resultTitle': '肌の分析結果',
   'skin.choosePhoto': '写真を選択',
   'skin.photoError': '写真を開けません。別の小さい写真を選んでください。',
@@ -254,9 +245,6 @@ export const skinJa: SkinDictionary = {
   'skin.deleteNotice': 'アプリデータの全削除で肌情報と測定記録も削除されます。',
 };
 export const skinZh: SkinDictionary = {
-  'skin.birthYearOptional': '出生年份（选填）', 'skin.birthYearPlaceholder': '请选择出生年份',
-  'skin.birthYearNone': '不选择', 'skin.genderOptional': '性别（选填）',
-  'skin.demographicsStorage': '出生年份和性别将与分析结果一起保存在本设备上。',
   'skin.resultTitle': '皮肤分析结果',
   'skin.choosePhoto': '选择照片',
   'skin.photoError': '无法打开照片，请选择较小的照片。',

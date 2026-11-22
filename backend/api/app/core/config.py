@@ -32,7 +32,6 @@ class Settings(BaseSettings):
     skincare_refresh_interval_seconds: int = 60
     ingredient_mapping_path: str | None = None
     ingredient_alias_approvals_path: str | None = None
-    recommendation_comparison_enabled: bool = False
     skin_recommendation_feedback_consented_members: set[str] = Field(default_factory=set)
     ar_activity_enrolled_members: set[str] = Field(default_factory=set)
     ar_activity_consented_members: set[str] = Field(default_factory=set)
@@ -41,12 +40,6 @@ class Settings(BaseSettings):
     ar_palette_model_dir: Path | None = None
     ar_palette_baseline_model_dir: Path | None = None
     ar_palette_experiment: str = Field(default="", pattern=r"^([a-z0-9-]{1,16})?$")
-    recommendation_model: str = Field(
-        default="recommend-cat-v4", pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
-    )
-    recommendation_models_dir: Path = PROJECT_ROOT / "ml/runs"
-    recommendation_v1_url: str = "http://127.0.0.1:8080"
-    recommendation_v1_revision: str | None = None
     # External APIs. Unset keys disable the matching feature instead of failing requests.
     naver_client_id: str | None = None
     naver_client_secret: str | None = None
@@ -71,19 +64,6 @@ class Settings(BaseSettings):
     toss_secret_key: str | None = None
     payment_web_base_url: str | None = None
     payment_return_url: str = "kbeautyar://payment-result"
-
-    @property
-    def recommendation_bundle_path(self) -> Path:
-        # Resolve relative roots against the repository, never the process working directory.
-        root = self.recommendation_models_dir
-        if not root.is_absolute():
-            root = PROJECT_ROOT / root
-        return root.resolve() / self.recommendation_model / "bundle"
-
-    @property
-    def recommendation_v2_bundle(self) -> str:
-        """Local comparison scripts can still read the resolved path; selection is by name."""
-        return str(self.recommendation_bundle_path)
 
     @property
     def is_production(self) -> bool:
