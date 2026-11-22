@@ -350,6 +350,8 @@ collect_youtube_playlist ─▶ normalize_youtube_candidates ─▶ match_video_
 | 관측성 | 한 줄 JSON 로그, 요청마다 `X-Request-ID` |
 | 인증 | Supabase JWT를 JWKS로 로컬 검증([ADR-0005](docs/adr/0005-supabase-auth-jwks.md)). secret 키는 회원 탈퇴용으로 `api`만 보유([ADR-0010](docs/adr/0010-account-deletion-secret-key.md)) |
 
+G5 벡터 검색에는 PostgreSQL 17과 pgvector 0.8.2가 필요합니다. 팀 로컬 Compose는 pgvector 이미지를 사용합니다. 기존 별도 G5 이력 DB는 이전 절차 검증 전 일반 이력을 적용하지 않습니다.
+
 ### 4-6. 레이어 아키텍처 (린트로 강제)
 
 ```text

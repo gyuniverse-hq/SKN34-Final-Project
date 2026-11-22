@@ -24,9 +24,9 @@ alembic 이 하므로 그 가드가 걸리지 않습니다. `alembic upgrade hea
 `aihub` 는 `public` 이 아니므로 `alembic check` 의 비교 대상이 아닙니다(`env.py` 가
 `include_schemas` 를 쓰지 않습니다). CI 를 깨뜨리지 않는 것을 실행으로 확인했습니다.
 
-## 데이터를 공유하지 않고 절차를 공유합니다
+## 초기 데이터 공유 정책 (2026-11-04)
 
-원본 ZIP 을 팀원끼리 주고받지 않습니다. 각자 본인 AI-Hub 계정으로 내려받고, 저장소의
+초기 정책에서는 원본 ZIP 을 팀원끼리 주고받지 않았습니다. 현재 G5 팀 데이터 공유에 대한 사용자 확인은 `docs/AIHUB_DATA_RIGHTS.md`를 따릅니다. 당시에는 각자 본인 AI-Hub 계정으로 내려받고, 저장소의
 스크립트로 같은 로컬 DB 를 만듭니다.
 
 ## 실행 순서
@@ -264,11 +264,40 @@ G5는 별도 로컬 PostgreSQL에서 검증한다. 아래 Compose는 포트 1543
 
 PR #260이 develop에 병합된 후 통합 순서는 일반 Alembic의 `0028`(영상 태그) →
 `0029`(피부 추천 이벤트) → `0030`(원문 추출) → `0031`(발췌 연결)이다.
-별도 G5 이력은 `alembic_version_g5`의 `g5_0001`을 유지하고 일반 이력 뒤에 적용한다.
+G5 청크·벡터는 일반 이력의 `0032`에서 생성한다. PostgreSQL에 pgvector 0.8.2가 필요하다.
 통합 전 G5의 `0027`·`0028`과 구형 D: DB의 `0029`(원문 추출)·`0030`(발췌 연결)은
 새 번호와 내용이 다르다. 기존 D: DB에는 직접 업그레이드하거나 스탬프하지 않고,
-신규 DB에 일반·G5 마이그레이션을 적용한 뒤 기존 데이터를 논리 복사·대조한다.
+신규 격리 DB에 일반 마이그레이션을 적용한 뒤 허용된 데이터를 준비·대조한다. 기존 별도 이력을 사용한 DB는 테이블 정의와 데이터 보존을 검증하기 전에는 업그레이드하거나 스탬프하지 않는다.
 
+### 팀 로컬 데이터 덤프 복원
+
+공유 데이터 전용 덤프는 스키마와 Alembic 이력을 포함하지 않는다. `aihub_*`
+테이블의 원문·발췌·QA·청크·벡터와 시퀀스가 들어 있으며, Git이나 공개 채널에
+올리지 않는다. 공유 범위와 이전 결정은 `docs/AIHUB_DATA_RIGHTS.md`를 따른다.
+
+1. 새 빈 로컬 DB를 PostgreSQL 17·pgvector 0.8.2로 준비한다. 기존 팀 DB나 기존
+   볼륨에 덮어쓰지 않는다.
+2. `backend/api`에서 `uv run alembic upgrade head`를 실행하고 일반 이력
+   `0032`가 적용됐는지 확인한다. 기존 별도 G5 이력 DB는 직접 upgrade/stamp하지 않는다.
+3. 빈 DB에 마이그레이션이 기본 생성한 피부 고민 13개와 피부 타입 4개는 덤프에도
+   있으므로 복원 전 중복을 처리한다. 실험에서는 **새 빈 격리 DB에서만**
+   `DELETE FROM aihub_skin_concern; DELETE FROM aihub_skin_type;`를 실행했다.
+   데이터가 이미 있는 DB에서는 실행하지 않는다.
+4. `pg_restore --data-only --disable-triggers --exit-on-error --no-owner
+   --no-privileges -U <복원계정> -d <새DB> <덤프파일>`로 복원한다. 이 검증은
+   superuser 권한을 사용했다. 다른 권한·환경에서는 별도 검증이 필요하다.
+5. 복원 후 트리거가 모두 활성 상태인지, 데이터 참조와 ID 시퀀스가 보존됐는지
+   확인한다. 실패하면 부분 복원된 DB를 운영에 사용하지 않는다.
+6. 검증에 사용한 덤프 기준은 문서 3,108, 원문 추출 3,105, 원문 블록 447,122,
+   청크 36,167, 고유 벡터 36,040건이다. QA 원본과 조회용은 각각 9,031건이다.
+   원본과 각 테이블의 ID·행 해시, 원문 좌표와 검색 결과를 대조한다. 새 덤프의
+   파일 SHA-256도 전달 시 확인한다.
+
+검증한 덤프 SHA-256:
+`2225608363AA64B6EE855AC848BF7BA7CD4B8A1447A7A871CB3FB7DB783CB856`.
+원문·청크·벡터 등 15개 테이블의 건수와 ID 포함 행 해시가 일치했고 저장 벡터
+1개를 사용한 정확 검색 상위 5건의 청크·문서·거리·좌표 해시가 일치했다. 이는
+새 질문의 상담 품질 검증이 아니다. 원본은 일반 이력 번호가 달라 새 DB로 복사했다.
 추출·연결 통합 테스트는 포트 `15549`, DB `g5_extraction_test`, 사용자 `g5_test`,
 `cluster_name=g5-integration-test`인 별도 클러스터에서만 허용한다.
 `G5_EXTRACTION_TEST_DATABASE_URL`은 테스트의 고정 URL과 같아야 하며, 기존 DB나
@@ -281,7 +310,6 @@ docker compose -f infra/compose/compose.g5.yaml up -d --wait
 $env:DATABASE_URL = 'postgresql+asyncpg://vishue:g5-local-development@127.0.0.1:15435/vishue_g5_rag'
 Push-Location backend/api
 uv run alembic upgrade head
-uv run alembic -c alembic-g5.ini upgrade head
 # 기존 데이터 관리 절차에 따라 이 검증 DB에만 평가 원문을 준비한다.
 $env:G5_ALLOW_LOCAL_SOURCES = 'true'
 uv run python -m app.jobs.index_knowledge --local --document-ids 171 179 267 757 1322 2647
