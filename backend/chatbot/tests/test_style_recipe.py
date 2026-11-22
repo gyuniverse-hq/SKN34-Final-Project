@@ -142,7 +142,10 @@ async def test_est_04_05_exact_mapping_required_and_no_first_shade():
     catalog = StyleCatalog(look)
     unverified = await ask(catalog, "이 룩의 립 제품 알려줘")
     assert not unverified.style_recipe.ar_eligible and not unverified.products
-    assert "Test Listed only" in unverified.answer and "상품 상세가 연결되지" in unverified.answer
+    assert (
+        "Test Listed only" in unverified.answer
+        and "상품 상세 페이지는 아직 연결되지 않았어요" in unverified.answer
+    )
     by_usage = await ask(catalog, "이 영상에서 진짜 사용한 립은 뭐야?")
     assert "Test Listed only" in by_usage.answer and "실제 사용 여부는 확인되지" in by_usage.answer
     assert all(item.zone == "lip" for item in by_usage.style_recipe.products)
@@ -180,7 +183,10 @@ async def test_video_product_questions_use_original_names_options_and_requested_
     result = await ask(catalog, "이 영상에서 진짜 사용한 립은 뭐야?")
     assert "브랜드 립 펜슬 오트베이지" in result.answer
     assert "브랜드 틴트 (06포그선셋)" in result.answer
-    assert "펜 라이너" not in result.answer and "상품 상세가 연결되지" in result.answer
+    assert (
+        "펜 라이너" not in result.answer
+        and "상품 상세 페이지는 아직 연결되지 않았어요" in result.answer
+    )
     assert [p.id for p in result.products] == ["b"]
     assert all(p.shade_id is None and not p.ar_eligible for p in result.style_recipe.products)
 
@@ -200,7 +206,10 @@ async def test_video_product_empty_unlinked_and_lookup_failure_are_distinct():
     no_eyeliner = await ask(catalog, "이 영상에서 사용한 아이라이너 제품은 뭐야?")
     assert "등록되어 있지 않아요" in no_eyeliner.answer and not no_eyeliner.products
     unlinked = await ask(catalog, "이 영상에서 사용한 립은 뭐야?")
-    assert "원본 립" in unlinked.answer and "상품 상세가 연결되지" in unlinked.answer
+    assert (
+        "원본 립" in unlinked.answer
+        and "상품 상세 페이지는 아직 연결되지 않았어요" in unlinked.answer
+    )
     assert not unlinked.products
 
     look.products[-1].mapping_verified = True

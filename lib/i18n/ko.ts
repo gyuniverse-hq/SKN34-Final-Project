@@ -136,7 +136,7 @@ export const ko: Dictionary = {
   "chat.style.mappingProductOnly": "상품 연결됨 · 호수 연결 없음",
   "chat.style.mappingShadeInvalid": "상품 연결됨 · 호수 연결 확인 필요",
   "chat.style.mappingNotLinked": "상품 상세 연결 없음",
-  "chat.style.videoProductsCount": "영상 등록 {total}개 · 상품 상세 연결 {linked}개",
+  "chat.style.videoProductsCount": "검색된 제품 {total}개 · 상품 상세 연결 {linked}개",
   "chat.style.mappingUnknown": "자료에 기재된 제품 · 실제 사용 제품·호수 미확인",
   "chat.style.manualAr": "상품·호수를 직접 선택해 AR 체험",
 
