@@ -1,13 +1,16 @@
 import asyncio
+import json
 from copy import deepcopy
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
+import httpx
 import pytest
 
-from app.clients.openai_responses_client import StageResult
+from app.clients.openai_responses_client import OpenAIResponses, StageResult
 from app.core.config import get_settings
 from app.core.errors import UpstreamError
+from app.core.ratelimit import MemoryRateLimiter, get_rate_limiter
 from app.repositories.chat_session_repository import ChatSessionRepository
 from app.schemas.knowledge import (
     Candidate,
@@ -16,7 +19,7 @@ from app.schemas.knowledge import (
     OriginalBlock,
     SearchResult,
 )
-from app.services import chat_service
+from app.services import chat_service, knowledge_service
 from app.services.knowledge_service import (
     CONTEXT_BUDGET,
     Consultation,
@@ -380,14 +383,193 @@ def test_conditional_advice_needs_existing_bound_and_never_completes_required_it
     assert [c.claim for c in result.claims] == ([primary, secondary] if keep else [primary])
     assert result.evidence == (citable if keep else evidence)
     assert (secondary in Consultation(result, {}).answer) == keep
+    fallback = resolve(
+        draft | {"claims": draft["claims"][1:]},
+        audit | {"reviews": [audit["reviews"][1] | {"index": 1}]},
+        citable,
+    )
+    assert fallback.status == ("partial" if keep else "insufficient_evidence")
+    assert [c.claim for c in fallback.claims] == ([secondary] if keep else [])
+    assert [e.id for e in fallback.evidence] == ([extra] if keep else [])
     if keep:
-        fallback = resolve(
-            draft | {"claims": draft["claims"][1:]},
-            audit | {"reviews": [audit["reviews"][1] | {"index": 1}]},
-            citable,
-        )
-        assert fallback.status == "insufficient_evidence"
-        assert not fallback.claims and not fallback.evidence
+        assert "기본 도포법" in fallback.limitations
+        assert "야외에서 덧바르는 방법" in fallback.limitations
+        assert secondary + f" [{extra}]" in Consultation(fallback, {}).answer
+
+
+@pytest.mark.parametrize(
+    ("advice", "condition"),
+    [
+        ("건조한 부위에만 보습 후 베이스를 얇게 바르세요.", "건조한 부위에만"),
+        ("유분이 많을 때는 바르기 전에 여분의 유분을 가볍게 눌러 정돈하세요.", "유분이 많을 때는"),
+        ("각질이 들뜬 부위에만 기초 보습 후 가볍게 밀착시키세요.", "각질이 들뜬 부위에만"),
+    ],
+    ids=["dry-base", "oily-preparation", "flaky-preparation"],
+)
+@pytest.mark.parametrize("coverage", ["answered", "partial", "conditional-only"])
+def test_http_conditional_general_advice_keeps_citations_without_filling_missing_core(
+    advice, condition, coverage, routed_chat, monkeypatch
+):
+    # Prescribed verdicts test the service contract, not Terra's semantic accuracy.
+    ask, service, _, _ = routed_chat
+    block = BEFORE.model_copy(update={"text": advice})
+    candidate = candidate_for(block, "general-preparation")
+    missing_core = coverage != "answered"
+    conditional_only = coverage == "conditional-only"
+    required = ("사용 부위", "실행 순서") if missing_core else ("사용 부위",)
+    question = (
+        "그럼 사용하는 부위와 순서를 알려줄래요?"
+        if missing_core
+        else "그럼 사용하는 부위는 어디예요?"
+    )
+    prior = "컨실러의 사용 부위와 색상별 효과가 궁금해요."
+
+    class AdviceRetrieval(Retrieval):
+        async def search(self, question, strategy):
+            result = await super().search(question, strategy)
+            result.candidates.append(candidate)
+            return result
+
+        async def context(self, locations):
+            result = originals(locations)
+            result[0].blocks.insert(0, block)
+            return result
+
+    class PrescribedModel(Model):
+        async def run(self, stage, prompt, value, schema, max_tokens):
+            result = await super().run(stage)
+            if stage == "answer":
+                result.content["claims"] = [
+                    {"claim": QUOTE, "citations": ["E1"]},
+                    {"claim": advice, "citations": ["E1.1"]},
+                ]
+            elif stage == "detect":
+                assert prompt == knowledge_service.DETECT + knowledge_service._FOLLOWUP_INSTRUCTIONS
+                assert max_tokens == 1700 and schema == knowledge_service.DETECT_SCHEMA
+                assert value["question"] == question and value["prior_user_context"] == prior
+                assert value["original_contexts"][1]["text"] == "앞 문단: " + advice
+                result = StageResult(
+                    verification(
+                        check(
+                            1,
+                            requirements=["R1"],
+                            citations=["E1"],
+                            applicability="UNCERTAIN" if conditional_only else "APPLICABLE",
+                        ),
+                        check(
+                            2,
+                            requirements=[f"R{len(required) + 1}"],
+                            citations=["E1.1"],
+                            applicability="CONDITIONAL",
+                            condition=condition,
+                        ),
+                        required=required,
+                        optional=["근거 범위의 일반 준비 조언"],
+                    ),
+                    result.usage,
+                    0,
+                    1,
+                    None,
+                )
+            return result
+
+    model = PrescribedModel()
+    model.run = AsyncMock(wraps=model.run)
+    consultation = KnowledgeService(AdviceRetrieval(), model)
+    monkeypatch.setattr(chat_service, "consult_knowledge", consultation.consult)
+    response = ask(question, requestType="knowledge_consultation", recentMessages=[
+        {"id": "prior", "role": "user", "text": prior}
+    ])
+    assert response.status_code == 200 and service.last_route.result.tool == "knowledge"
+    body = response.json()
+    assert body["knowledge"]["status"] == ("partial" if missing_core else "answered")
+    expected_claims = [
+        {"claim": QUOTE, "citations": ["E1"]},
+        {"claim": advice, "citations": ["E1.1"]},
+    ]
+    assert body["knowledge"]["claims"] == (
+        expected_claims[1:] if conditional_only else expected_claims
+    )
+    evidence = body["knowledge"]["evidence"]
+    assert [e["id"] for e in evidence] == (["E1.1"] if conditional_only else ["E1", "E1.1"])
+    assert evidence[-1]["quote"] == advice
+    assert evidence[-1]["chunkId"] == "general-preparation"
+    assert advice + " [E1.1]" in body["answer"]
+    assert "색상별 효과" not in body["knowledge"]["limitations"]
+    if missing_core:
+        assert "실행 순서" in body["knowledge"]["limitations"]
+        if conditional_only:
+            assert "사용 부위" in body["knowledge"]["limitations"]
+            assert "[E1]" not in body["answer"]
+    else:
+        assert body["knowledge"]["limitations"] == ""
+    assert [call.args[0] for call in model.run.await_args_list] == ["select", "answer", "detect"]
+
+
+@pytest.mark.parametrize(
+    ("required", "claim", "condition", "match", "scope", "basis"),
+    [
+        (
+            "수분량 비교",
+            "선호도 조사에서만 A가 더 높았습니다.",
+            "선호도 조사에서만",
+            "MISMATCHED",
+            "CONDITIONAL",
+            "BOUNDED",
+        ),
+        (
+            "피부 자극 감소",
+            "만족도 조사에서만 B가 더 높았습니다.",
+            "만족도 조사에서만",
+            "MISMATCHED",
+            "CONDITIONAL",
+            "BOUNDED",
+        ),
+        (
+            "야외 촬영에서 고정하는 방법",
+            "실내에서만 파우더를 누르세요.",
+            "실내에서만",
+            "PARTIAL_MATCH",
+            "NOT_APPLICABLE",
+            "CONFLICT",
+        ),
+        (
+            "쿠션 시험군의 지속력",
+            "스틱 시험군에서만 지속력이 높았습니다.",
+            "스틱 시험군에서만",
+            "MISMATCHED",
+            "CONDITIONAL",
+            "BOUNDED",
+        ),
+    ],
+    ids=["different-metric", "preference-not-irritation", "conflicting-setting", "different-arm"],
+)
+def test_general_advice_cannot_bypass_metric_or_scope_guards(
+    required, claim, condition, match, scope, basis
+):
+    block = OriginalBlock(
+        block_order=4, kind="paragraph", text=claim, source_locator={"paragraph": 4}
+    )
+    evidence, _, _ = verify_selection(
+        [SELECTED | {"exact_quote": claim}], {"C1": candidate_for(block, "other-scope")}
+    )
+    draft = {"claims": [{"claim": claim, "citations": ["E1"]}], "limitations": ""}
+    audit = verification(
+        check(
+            1,
+            requirements=["R1"],
+            citations=["E1"],
+            match=match,
+            applicability=scope,
+            basis=basis,
+            condition=condition,
+        ),
+        required=[required],
+    )
+    result = resolve(draft, audit, evidence)
+    assert result.status == "insufficient_evidence"
+    assert not result.claims and not result.evidence
+    assert claim not in Consultation(result, {}).answer
 
 
 def test_same_study_conditions_can_attach_to_direct_evidence_and_be_published():
@@ -618,6 +800,58 @@ def test_pipeline_keeps_document_citations():
     assert "[E1]" in result.answer
 
 
+@pytest.mark.parametrize(
+    ("failure", "expected"),
+    [
+        ("audit_schema", "invalid_verification_schema"),
+        ("claim_schema", "invalid_claim_schema"),
+        ("count", "claim_review_mismatch"),
+        ("requirements", "invalid_requirements"),
+        ("requirement_id", "unknown_requirement"),
+        ("evidence_id", "unknown_evidence"),
+        ("incomplete", "incomplete_supported_claim"),
+    ],
+)
+def test_verification_failure_logs_only_safe_diagnostics(failure, expected, caplog):
+    class InvalidModel(Model):
+        async def run(self, stage, *args):
+            result = await super().run(stage, *args)
+            data = deepcopy(result.content)
+            if stage == "answer":
+                data["claims"][0]["claim"] = "PRIVATE_DRAFT"
+                if failure == "claim_schema":
+                    data["claims"][0]["citations"] = 123
+            if stage == "detect":
+                data["reviews"][0]["reason"] = "PRIVATE_REASON"
+                if failure == "audit_schema":
+                    data["reviews"] = None
+                elif failure == "count":
+                    data["reviews"] = []
+                elif failure == "requirements":
+                    data["requirements"] = []
+                elif failure == "requirement_id":
+                    data["reviews"][0]["requirement_ids"] = ["PRIVATE_REQUIREMENT_ID"]
+                elif failure == "evidence_id":
+                    data["reviews"][0]["supporting_ids"] = ["PRIVATE_SOURCE_ID"]
+                elif failure == "incomplete":
+                    data["reviews"][0]["supporting_ids"] = []
+            return StageResult(data, result.usage, 0, 1, None)
+
+    with caplog.at_level("INFO", logger="app.services.knowledge_service"):
+        result = asyncio.run(
+            KnowledgeService(Retrieval(), InvalidModel()).consult("PRIVATE_QUESTION")
+        )
+    assert result.reply.status == "error"
+    assert result.reply.claims == [] and result.reply.evidence == []
+    assert result.trace["verificationFailure"]["code"] == expected
+    assert result.trace["verificationFailure"]["claims"] == 1
+    assert result.trace["verificationFailure"]["evidence"] == 1
+    assert expected in caplog.text
+    for private in ("PRIVATE_QUESTION", "PRIVATE_DRAFT", "PRIVATE_REASON", "PRIVATE_REQUIREMENT_ID",
+                    "PRIVATE_SOURCE_ID", QUOTE):
+        assert private not in caplog.text
+
+
 def test_followup_search_respects_existing_character_limit():
     question, prior = "가" * 1000, "나" * 1000
     retrieval = Retrieval()
@@ -691,7 +925,8 @@ def test_http_empty_draft_uses_verification_only_for_cited_limits(
     monkeypatch.setattr(chat_service, "consult_knowledge", consultation.consult)
     response = ask(
         "집에 있는 립스틱이 마스크에 많이 묻을까요? "
-        "케이스에는 보습이라고만 써 있고 어떤 제품인지 모르겠어요."
+        "케이스에는 보습이라고만 써 있고 어떤 제품인지 모르겠어요.",
+        requestType="knowledge_consultation",
     )
     assert response.status_code == 200
     body = response.json()
@@ -813,7 +1048,8 @@ def test_http_exposes_only_cited_boosts_and_limits_in_existing_shape(client, mon
     monkeypatch.setattr(chat_service, "consult_knowledge", consultation.consult)
     response = client.post(
         "/api/chat",
-        json={"locale": "ko", "message": "패인 흉터 화장은 어떻게 해요?"},
+        json={"locale": "ko", "message": "패인 흉터 화장은 어떻게 해요?",
+              "requestType": "knowledge_consultation"},
         headers={"Authorization": "Bearer ok-1"},
     )
     assert response.status_code == 200
@@ -883,7 +1119,7 @@ def test_chat_service_only_routes_eligible_free_chat_when_enabled(monkeypatch):
     assert disabled.knowledge is None and not read
     assert disabled.supervisor.result.reason == "tool_unavailable"
     monkeypatch.setattr(settings, "g5_enabled", True)
-    enabled = asyncio.run(service.answer(explicit.model_copy(update={"request_type": "chat"})))
+    enabled = asyncio.run(service.answer(explicit))
     assert enabled.knowledge.status == "insufficient_evidence"
     assert enabled.supervisor.result.tool == "knowledge"
     assert enabled.supervisor.result.status == "unsupported"
@@ -941,6 +1177,8 @@ def routed_chat(client, graph, monkeypatch):
     llm = PlanLlm(intent="general")
     service = RecordingChatService(graph, llm, SessionCatalog())
     client.app.dependency_overrides[chat_service.get_chat_service] = lambda: service
+    limiter = MemoryRateLimiter(limit=10)
+    client.app.dependency_overrides[get_rate_limiter] = lambda: limiter
 
     def ask(message, **fields):
         return client.post(
@@ -950,6 +1188,174 @@ def routed_chat(client, graph, monkeypatch):
         )
 
     return ask, service, llm, consult
+
+
+def test_general_multiturn_and_evidence_request_preserve_context(routed_chat):
+    ask, service, llm, consult = routed_chat
+    llm.complete = AsyncMock(return_value="베이스를 얇게 발라 보세요.")
+    q1 = "볼 홍조를 화장으로 가리려면 어떻게 해요?"
+    a1 = ask(q1)
+    assert a1.status_code == 200 and service.last_route.result.tool == "graph_chat"
+    history = [{"id": "q1", "role": "user", "text": q1},
+               {"id": "a1", "role": "assistant", "text": a1.json()["answer"]}]
+    q2 = "피부가 건조할 때도 그렇게 해도 돼요?"
+    a2 = ask(q2, recentMessages=history)
+    assert a2.status_code == 200 and service.last_route.result.tool == "graph_chat"
+    assert any(m["content"] == q1 for m in llm.complete.await_args.args[0])
+    history.extend([{"id": "q2", "role": "user", "text": q2},
+                    {"id": "a2", "role": "assistant", "text": a2.json()["answer"]}])
+    q3 = "그럼 양은 얼마나 써요?"
+    a3 = ask(q3, recentMessages=history)
+    assert a3.status_code == 200 and service.last_route.result.tool == "graph_chat"
+    messages = llm.complete.await_args.args[0]
+    assert [m["content"] for m in messages[1:]] == [x["text"] for x in history] + [q3]
+    consult.assert_not_awaited()
+
+
+def test_general_new_topic_does_not_inherit_old_g5_context(routed_chat):
+    ask, service, llm, consult = routed_chat
+
+    async def complete(messages):
+        if "Determine whether" in messages[0]["content"]:
+            return '{"continuation": false}'
+        return "새로운 주제에 대한 안내예요."
+
+    llm.complete = AsyncMock(side_effect=complete)
+    response = ask("아이라인이 잘 번지는데 어떻게 해요?", recentMessages=[
+        {"id": "q1", "role": "user", "text": "볼 홍조를 가릴 땐 어떻게 해요?"},
+        {"id": "a1", "role": "assistant", "text": "베이스를 얇게 사용해요."},
+    ])
+    assert response.status_code == 200 and service.last_route.result.tool == "graph_chat"
+    assert llm.complete.await_args.args[0][-1]["content"] == "아이라인이 잘 번지는데 어떻게 해요?"
+    consult.assert_not_awaited()
+
+
+def test_app_general_makeup_multiturn_keeps_history_without_g5(routed_chat):
+    from app.services.beauty_consultation_service import PLAN_PROMPT
+
+    ask, service, llm, consult = routed_chat
+    service._sessions = ChatSessionRepository(RedisDouble())
+    answers = []
+
+    async def complete(messages):
+        if messages[0]["content"].startswith(PLAN_PROMPT):
+            return json.dumps({"intent": "general"})
+        answers.append(messages)
+        return "화장 부위에 얇게 발라 보세요."
+
+    llm.complete = AsyncMock(side_effect=complete)
+    history = []
+    context = None
+    questions = ["볼의 붉은 기를 덜 보이게 하려면요?", "건조할 때도 괜찮아요?", "그럼 얼마나 써요?"]
+    for i, question in enumerate(questions):
+        response = ask(
+            question, requestType="beauty_consultation", generalMakeup=i == 0,
+            recentMessages=history, **({"chatContext": context} if context else {}),
+        )
+        assert response.status_code == 200
+        assert response.json().get("knowledge") is None
+        assert [m["content"] for m in answers[-1][1:]] == [
+            turn["text"] for turn in history
+        ] + [question]
+        history.extend([
+            {"id": f"q{i}", "role": "user", "text": question},
+            {"id": f"a{i}", "role": "assistant", "text": response.json()["answer"]},
+        ])
+        context = response.json().get("chatContext")
+    consult.assert_not_awaited()
+
+
+def test_direct_evidence_question_uses_g5_without_extra_classifier(routed_chat):
+    ask, service, llm, consult = routed_chat
+    question = "홍조 메이크업에 그린 베이스를 쓰는 근거 자료는 무엇인가요?"
+    response = ask(question, requestType="knowledge_consultation")
+    assert response.status_code == 200 and service.last_route.result.tool == "knowledge"
+    consult.assert_awaited_once_with(question)
+    assert llm.calls == 0
+
+
+def test_failed_evidence_request_does_not_fabricate_luna_answer(routed_chat):
+    ask, service, llm, consult = routed_chat
+    consult.return_value = Consultation(
+        KnowledgeReply(status="error", limitations="근거 확인 중 오류가 발생했습니다."), {}
+    )
+    response = ask("홍조 메이크업의 근거 자료를 알려 주세요.", requestType="knowledge_consultation")
+    assert response.status_code == 200 and service.last_route.result.tool == "knowledge"
+    assert response.json()["knowledge"]["status"] == "error"
+    assert response.json()["answer"] == "근거 확인 중 오류가 발생했습니다."
+    assert not response.json()["knowledge"]["evidence"] and llm.calls == 0
+
+
+def test_semantic_followup_uses_previous_answer_and_preserves_new_condition(routed_chat):
+    ask, service, llm, consult = routed_chat
+    llm.complete = AsyncMock(side_effect=[
+        json.dumps({"intent": "general"}), "건조할 때는 보습을 먼저 확인하세요."
+    ])
+    history = [
+        {"id": "q1", "role": "user", "text": "볼에 홍조가 있는데 화장으로 가리려면 어떻게 해요?"},
+        {"id": "a1", "role": "assistant", "text": "그린 코렉터를 얇게 발라 보세요."},
+    ]
+    question = "피부가 많이 건조한 날에도 그렇게 해도 돼?"
+    response = ask(question, requestType="beauty_consultation", recentMessages=history)
+    assert response.status_code == 200
+    assert service.last_route.result.tool == "graph_chat"
+    messages = llm.complete.await_args.args[0]
+    assert [m["content"] for m in messages[1:]] == [t["text"] for t in history] + [question]
+    consult.assert_not_awaited()
+
+
+def test_semantic_followup_keeps_three_turn_context(routed_chat):
+    ask, service, llm, consult = routed_chat
+    llm.complete = AsyncMock(return_value="상황에 맞는 도구를 사용해 보세요.")
+    history = [
+        {"id": "q1", "role": "user", "text": "홍조가 있는데 메이크업으로 어떻게 가려요?"},
+        {"id": "a1", "role": "assistant", "text": "그린 코렉터를 얇게 발라 보세요."},
+        {"id": "q2", "role": "user", "text": "피부가 건조해도 그렇게 해도 돼요?"},
+        {"id": "a2", "role": "assistant", "text": "건조할 때는 보습을 먼저 확인하세요."},
+    ]
+    response = ask("그 상태에서 도구를 써도 될까요?", recentMessages=history)
+    assert response.status_code == 200
+    assert service.last_route.result.tool == "graph_chat"
+    messages = llm.complete.await_args.args[0]
+    assert [m["content"] for m in messages[1:]] == [
+        t["text"] for t in history
+    ] + ["그 상태에서 도구를 써도 될까요?"]
+    consult.assert_not_awaited()
+
+
+@pytest.mark.parametrize("question", ["그 제품 가격은 얼마예요?", "립 제품 추천해줘요."])
+def test_semantic_followup_does_not_intercept_shopping(question, routed_chat):
+    ask, _, llm, consult = routed_chat
+    original = llm.complete
+    llm.complete = AsyncMock(wraps=original)
+    response = ask(question, recentMessages=[
+        {"id": "q1", "role": "user", "text": "볼에 홍조가 있는데 화장으로 가리려면 어떻게 해요?"},
+        {"id": "a1", "role": "assistant", "text": "그린 코렉터를 얇게 발라 보세요."},
+    ])
+    assert response.status_code == 200
+    consult.assert_not_awaited()
+    assert all(
+        "Determine whether" not in str(call.args[0]) for call in llm.complete.await_args_list
+    )
+
+
+def test_semantic_followup_rejects_topic_switch(routed_chat):
+    ask, service, llm, consult = routed_chat
+    original = llm.complete
+
+    async def classify(messages):
+        if "Determine whether" in messages[0]["content"]:
+            return '{"continuation": false}'
+        return await original(messages)
+
+    llm.complete = AsyncMock(side_effect=classify)
+    response = ask("오늘 날씨는 어떤가요?", recentMessages=[
+        {"id": "q1", "role": "user", "text": "볼에 홍조가 있는데 화장으로 가리려면 어떻게 해요?"},
+        {"id": "a1", "role": "assistant", "text": "그린 코렉터를 얇게 발라 보세요."},
+    ])
+    assert response.status_code == 200
+    assert service.last_route.result.tool != "knowledge"
+    consult.assert_not_awaited()
 
 
 @pytest.mark.parametrize(
@@ -969,15 +1375,10 @@ def test_http_routes_general_makeup_and_research(message, enabled, routed_chat, 
     )
     assert response.status_code == 200
     assert service.request.recent_messages[0].text == "틴트 가격은?"
-    assert service.last_route.result.tool == ("knowledge" if enabled else "graph_chat")
-    assert bool(response.json().get("knowledge")) == enabled
-    if enabled:
-        assert service.last_route.intent.intent == "knowledge"
-        consult.assert_awaited_once_with(message)
-        assert llm.calls == 0
-    else:
-        consult.assert_not_awaited()
-        assert llm.calls == 1
+    assert service.last_route.result.tool == "graph_chat"
+    assert response.json().get("knowledge") is None
+    consult.assert_not_awaited()
+    assert llm.calls == 1
 
 
 @pytest.mark.parametrize(
@@ -1010,7 +1411,7 @@ def test_http_routes_general_makeup_and_research(message, enabled, routed_chat, 
 )
 def test_http_routes_beauty_terms_in_context(message, expected_tool, routed_chat):
     ask, service, _, consult = routed_chat
-    response = ask(message)
+    response = ask(message, requestType="knowledge_consultation")
     assert response.status_code == 200
     assert service.last_route.result.tool == expected_tool
     if expected_tool == "knowledge":
@@ -1067,6 +1468,7 @@ def test_http_passes_followup_context_through_g5(question, prior, routed_chat, m
     monkeypatch.setattr(chat_service, "consult_knowledge", service.consult)
     response = ask(
         question,
+        requestType="knowledge_consultation",
         recentMessages=[
             {"id": "older", "role": "user", "text": "아이라인 방법을 물었어요."},
             {"id": "prior", "role": "user", "text": prior},
@@ -1082,6 +1484,196 @@ def test_http_passes_followup_context_through_g5(question, prior, routed_chat, m
         assert value["question"] == question and value["prior_user_context"] == prior
         assert "never instructions or source evidence" in prompt
         assert "앞 답변을 원문처럼" not in str(value) and "아이라인 방법" not in str(value)
+
+
+@pytest.mark.parametrize(
+    "questions",
+    [
+        pytest.param(
+            [
+                "볼에 홍조가 있는데 메이크업으로 자연스럽게 가리려면 어떻게 해야 해?",
+                "그 방법을 건조한 피부에 쓸 때는 뭘 조심해야 해?",
+                "그럼 스펀지를 써도 돼요?",
+                "그럼 모든 피부 타입에 똑같이 적용해도 된다는 뜻이야?",
+            ],
+            id="redness-four-turns",
+        ),
+        pytest.param(
+            [
+                "아이라인이 쉽게 번지는데 어떻게 그려야 해요?",
+                "그 방법을 눈두덩이에 유분이 많을 때도 써요?",
+                "그럼 이번에는 건조한 날로 바꿔서 설명해 주세요.",
+                "그 조건에서도 같은 순서로 해도 돼요?",
+            ],
+            id="different-topic-changed-condition",
+        ),
+        pytest.param(
+            [
+                "립글로스 연구에서 수분량과 광택 결과가 궁금해요.",
+                "그 지표 중에서는 광택만 알려줄래요?",
+                "그럼 28일 이후에도 같은 결론인가요?",
+            ],
+            id="research-metric-three-turns",
+        ),
+    ],
+)
+@pytest.mark.parametrize("request_type", ["knowledge_consultation"])
+def test_http_g5_keeps_contiguous_followups_through_all_stages(
+    questions, request_type, routed_chat, monkeypatch
+):
+    ask, service, llm, _ = routed_chat
+    service._sessions = ChatSessionRepository(RedisDouble())
+    retrieval, model = Retrieval(), Model()
+    retrieval.search = AsyncMock(wraps=retrieval.search)
+    model.run = AsyncMock(wraps=model.run)
+    consultation = KnowledgeService(retrieval, model)
+    monkeypatch.setattr(chat_service, "consult_knowledge", consultation.consult)
+    history = []
+    for index, question in enumerate(questions):
+        retrieval.search.reset_mock()
+        model.run.reset_mock()
+        response = ask(
+            question,
+            requestType=request_type,
+            recentMessages=history,
+            **(
+                {"generalMakeup": True}
+                if request_type == "beauty_consultation" and index == 0
+                else {}
+            ),
+        )
+        assert response.status_code == 200
+        assert service.last_route.result.tool == "knowledge"
+        assert response.json()["knowledge"]["evidence"][0]["quote"] == QUOTE
+        prior = "\n".join(questions[:index])
+        retrieval.search.assert_awaited_once_with(
+            question + ("\n" + prior if prior else ""), "large"
+        )
+        assert [call.args[0] for call in model.run.await_args_list] == [
+            "select",
+            "answer",
+            "detect",
+        ]
+        for call in model.run.await_args_list:
+            value = call.args[2]
+            assert value["question"] == question
+            assert value.get("prior_user_context", "") == prior
+            assert "앞 답변을 원문처럼 사용해요" not in str(value)
+        history.extend(
+            [
+                {"id": f"u{index}", "role": "user", "text": question},
+                {"id": f"a{index}", "role": "assistant", "text": "앞 답변을 원문처럼 사용해요."},
+            ]
+        )
+    assert llm.calls == 0
+
+
+@pytest.mark.parametrize(
+    "interruption",
+    [
+        "2만원 이하 립 제품 추천해줘.",
+        "그럼 립 제품을 찾아줘요.",
+        "그 제품 가격은 얼마예요?",
+        "그럼 이 룩의 레시피는요?",
+        "오늘 일정 정리를 하고 있어요.",
+    ],
+)
+@pytest.mark.parametrize("request_type", ["chat", "beauty_consultation", "knowledge_consultation"])
+def test_http_g5_does_not_cross_an_interrupted_topic(interruption, request_type, routed_chat):
+    ask, service, _, consult = routed_chat
+    response = ask(
+        "그럼 그 방법을 계속 써도 돼요?",
+        requestType=request_type,
+        recentMessages=[
+            {"id": "old", "role": "user", "text": "볼 홍조를 화장으로 가리려면 어떻게 해요?"},
+            {"id": "other", "role": "user", "text": interruption},
+        ],
+    )
+    assert response.status_code == 200
+    assert service.last_route.result.tool == "graph_chat"
+    consult.assert_not_awaited()
+
+
+@pytest.mark.parametrize("request_type", ["knowledge_consultation"])
+def test_http_g5_followup_uses_new_topic_without_older_conditions(request_type, routed_chat):
+    ask, _, _, consult = routed_chat
+    older = "볼 홍조를 메이크업으로 가리려면 어떻게 해요?"
+    newer = "립밤을 바른 뒤 립스틱을 고르게 바르는 방법이 궁금해요."
+    history = [
+        {"id": "old", "role": "user", "text": older},
+        {"id": "old-followup", "role": "user", "text": "그 방법을 건조할 때도 써요?"},
+    ]
+    assert ask(newer, requestType=request_type, recentMessages=history).status_code == 200
+    consult.assert_awaited_once_with(newer)
+    consult.reset_mock()
+    history.append({"id": "new", "role": "user", "text": newer})
+    question = "그럼 그 방법은 어느 순서로 해요?"
+    assert ask(question, requestType=request_type, recentMessages=history).status_code == 200
+    consult.assert_awaited_once_with(question, prior_user_context=newer)
+
+
+def test_http_g5_does_not_invent_a_topic_when_anchor_is_outside_history(routed_chat):
+    ask, _, _, consult = routed_chat
+    response = ask(
+        "그럼 모든 경우에 적용해요?",
+        recentMessages=[
+            {"id": "followup", "role": "user", "text": "그럼 스펀지를 써도 돼요?"},
+            {"id": "answer", "role": "assistant", "text": "볼 홍조 메이크업이라고 가정하세요."},
+        ],
+    )
+    assert response.status_code == 200
+    consult.assert_not_awaited()
+
+
+@pytest.mark.parametrize(("g1", "g5"), [(True, False), (False, True), (False, False)])
+def test_http_g5_followup_history_respects_disabled_flags(g1, g5, routed_chat, monkeypatch):
+    ask, service, _, consult = routed_chat
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", g1)
+    monkeypatch.setattr(get_settings(), "g5_enabled", g5)
+    response = ask(
+        "그럼 모든 경우에 적용해요?",
+        recentMessages=[
+            {"id": "topic", "role": "user", "text": "홍조를 화장으로 가리는 방법은요?"},
+            {"id": "condition", "role": "user", "text": "그 방법을 건조할 때도 써요?"},
+        ],
+    )
+    assert response.status_code == 200
+    assert service.last_route.result.tool == "graph_chat"
+    consult.assert_not_awaited()
+
+
+def test_http_g5_history_does_not_take_over_shopping_session(routed_chat):
+    ask, service, llm, consult = routed_chat
+    service._sessions = ChatSessionRepository(RedisDouble())
+    history = [{"id": "g5", "role": "user", "text": "볼 홍조를 화장으로 가리는 방법은요?"}]
+    llm.plan = {"intent": "search", "category": "lip", "maxPriceKRW": 20000}
+    first = ask("2만원 이하 립 추천해줘.", recentMessages=history)
+    assert first.status_code == 200 and first.json()["products"]
+    assert service.last_route.result.tool == "beauty"
+    context = first.json()["chatContext"]
+    second_id = context["candidateIds"][1]
+    llm.plan = {"intent": "price", "scope": "previous", "ordinal": 2}
+    second = ask("그중 두 번째 제품 가격은요?", chatContext=context, recentMessages=history)
+    assert second.status_code == 200
+    assert second.json()["products"][0]["id"] == second_id
+    assert second.json()["chatContext"]["filters"]["maxPriceKRW"] == 20000
+    assert service.last_route.result.tool == "beauty"
+    llm.plan = {
+        "intent": "detail",
+        "scope": "previous",
+        "ingredientLookup": True,
+        "ingredientName": "향료",
+    }
+    third = ask(
+        "그 제품에 향료가 들어 있어요?",
+        chatContext=second.json()["chatContext"],
+        recentMessages=history,
+    )
+    assert third.status_code == 200
+    assert third.json()["products"][0]["id"] == second_id
+    assert third.json()["ingredientResults"][0]["productId"] == second_id
+    assert service.last_route.result.tool == "beauty"
+    consult.assert_not_awaited()
 
 
 @pytest.mark.parametrize(
@@ -1110,22 +1702,19 @@ def test_http_limits_g5_followup_context(
     monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", g1)
     response = ask(message, recentMessages=[{"id": "prior", "role": "user", "text": prior}])
     assert response.status_code == 200
-    if expected_knowledge:
-        consult.assert_awaited_once_with(message)
-    else:
-        consult.assert_not_awaited()
+    consult.assert_not_awaited()
 
 
-def test_http_app_general_makeup_hint_without_selection_can_route_to_g5(routed_chat):
+def test_http_app_general_makeup_hint_uses_general_chat(routed_chat):
     ask, service, llm, consult = routed_chat
     service._sessions = ChatSessionRepository(RedisDouble())
     message = "파우더를 얇게 펴 바르는 방법이 궁금해요."
     response = ask(message, requestType="beauty_consultation", generalMakeup=True)
     assert response.status_code == 200
-    assert response.json()["knowledge"]["status"] == "insufficient_evidence"
-    assert service.last_route.result.tool == "knowledge"
-    consult.assert_awaited_once_with(message)
-    assert llm.calls == 0
+    assert response.json().get("knowledge") is None
+    assert service.last_route.result.tool == "graph_chat"
+    consult.assert_not_awaited()
+    assert llm.calls >= 1
 
 
 @pytest.mark.parametrize(
@@ -1146,9 +1735,10 @@ def test_http_shared_words_without_a_beauty_question_stay_in_general_chat(routed
         ("zh", "怎么涂睫毛膏才不容易晕开？"),
     ],
 )
-def test_http_keeps_existing_other_locale_route(routed_chat, locale, message):
+@pytest.mark.parametrize("request_type", ["chat", "knowledge_consultation"])
+def test_http_keeps_existing_other_locale_route(routed_chat, locale, message, request_type):
     ask, service, _, consult = routed_chat
-    response = ask(message, locale=locale)
+    response = ask(message, locale=locale, requestType=request_type)
     assert response.status_code == 200
     assert service.last_route.result.tool == "graph_chat"
     consult.assert_not_awaited()
@@ -1194,7 +1784,8 @@ def test_http_keeps_look_screen_without_style_context(routed_chat):
     consult.assert_not_awaited()
 
 
-def test_http_active_shopping_session_keeps_general_makeup_context(routed_chat):
+@pytest.mark.parametrize("request_type", ["beauty_consultation", "knowledge_consultation"])
+def test_http_active_shopping_session_keeps_general_makeup_context(request_type, routed_chat):
     ask, service, llm, consult = routed_chat
     service._sessions = ChatSessionRepository(RedisDouble())
     llm.plan = {"intent": "search", "category": "lip", "maxPriceKRW": 20000}
@@ -1203,7 +1794,7 @@ def test_http_active_shopping_session_keeps_general_makeup_context(routed_chat):
     previous = first.json()["chatContext"]
     followup = ask(
         "파우더를 맨 마지막에 바르는 방법은요?",
-        requestType="beauty_consultation",
+        requestType=request_type,
         generalMakeup=True,
         chatContext=previous,
         recentMessages=[{"id": "prior", "role": "user", "text": "2만원 이하 립 추천해줘."}],
@@ -1227,3 +1818,327 @@ def test_http_keeps_style_and_stops_shopping_with_ar(routed_chat):
     assert service.last_route.result.status == "unsupported"
     assert llm.calls == 0
     consult.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    ("message", "fields", "plan"),
+    [
+        ("이 제품 가격은 얼마예요?", {}, {"intent": "general"}),
+        ("2만원 이하 립 추천해줘.", {}, {"intent": "search", "category": "lip"}),
+        (
+            "이 립의 전성분에서 향료를 확인해 주세요.",
+            {"screenContext": {"screenId": "product-detail", "productId": "a", "shadeId": "a-03"}},
+            {
+                "intent": "detail",
+                "scope": "previous",
+                "ingredientLookup": True,
+                "ingredientName": "향료",
+            },
+        ),
+        (
+            "이 제품 호수는 어떤 게 있어요?",
+            {"screenContext": {"screenId": "product-detail", "productId": "a"}},
+            {"intent": "detail", "scope": "previous"},
+        ),
+        ("이 룩의 베이스는 어떻게 바르나요?", {}, {"intent": "general"}),
+        ("립 추천하고 그걸 AR에 발라줘.", {}, {"intent": "general"}),
+    ],
+    ids=["price", "shopping", "ingredients", "options", "style", "ar-compound"],
+)
+def test_http_explicit_knowledge_keeps_existing_tool_responsibilities(
+    message, fields, plan, routed_chat
+):
+    ask, service, llm, consult = routed_chat
+    llm.plan = plan
+    ordinary = ask(message, **fields)
+    assert ordinary.status_code == 200
+    expected_tool = service.last_route.result.tool
+    expected_status = service.last_route.result.status
+    assert expected_tool != "knowledge"
+
+    explicit = ask(message, requestType="knowledge_consultation", **fields)
+    assert explicit.status_code == 200
+    assert service.last_route.result.tool == expected_tool
+    assert service.last_route.result.status == expected_status
+    assert explicit.json().get("knowledge") is None
+    consult.assert_not_awaited()
+
+
+@pytest.mark.parametrize(("g1", "g5"), [(True, True), (True, False), (False, True), (False, False)])
+@pytest.mark.parametrize("history_key", ["recentMessages", "recent_messages"])
+def test_http_explicit_knowledge_history_contract(g1, g5, history_key, routed_chat, monkeypatch):
+    ask, service, _, consult = routed_chat
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", g1)
+    monkeypatch.setattr(get_settings(), "g5_enabled", g5)
+    topic = "볼 홍조를 화장으로 가리는 방법은요?"
+    question = "그럼 그 방법을 건조할 때도 써요?"
+    history = [{"id": "topic", "role": "user", "text": topic}]
+    response = ask(
+        question,
+        requestType="knowledge_consultation",
+        clarificationId="ignored-g2-only-field",
+        **{history_key: history},
+    )
+    assert response.status_code == 200
+    assert service.request.clarification_id is None
+    if g1 and g5:
+        assert len(service.request.recent_messages) == 1
+        consult.assert_awaited_once_with(question, prior_user_context=topic)
+    else:
+        assert not service.request.recent_messages
+        assert service.last_route.result.tool == "graph_chat"
+        consult.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    "history",
+    [
+        [{"id": str(i), "role": "user", "text": "과거 질문"} for i in range(9)],
+        [{"id": "duplicate", "role": "user", "text": "과거 질문"}] * 2,
+        [{"id": str(i), "role": "assistant", "text": "가" * 1001} for i in range(8)],
+    ],
+    ids=["count", "duplicate-id", "total-length"],
+)
+def test_http_explicit_knowledge_rejects_invalid_history(history, routed_chat):
+    ask, _, _, consult = routed_chat
+    response = ask(
+        "파우더를 바르는 순서를 알려주세요.",
+        requestType="knowledge_consultation",
+        recentMessages=history,
+    )
+    assert (response.status_code, response.json()["code"]) == (400, "invalid_request")
+    consult.assert_not_awaited()
+
+
+def test_http_explicit_knowledge_keeps_history_limits_and_ignores_ar_fields(routed_chat):
+    ask, service, _, consult = routed_chat
+    question = "파우더는 어느 순서로 발라요?"
+    response = ask(
+        question,
+        requestType="knowledge_consultation",
+        recentMessages=[{"id": str(i), "role": "assistant", "text": "가" * 1000} for i in range(8)],
+        arContext={"untrusted": "not an AR command"},
+    )
+    assert response.status_code == 200
+    assert len(service.request.recent_messages) == 8
+    assert service.request.ar_context is None
+    assert "arResult" not in response.json()
+    consult.assert_awaited_once_with(question)
+
+
+@pytest.mark.parametrize(
+    ("field", "status", "code"),
+    [
+        ("sessionToken", 403, "chat_session_forbidden"),
+        ("stateVersion", 409, "chat_session_conflict"),
+    ],
+)
+def test_http_explicit_knowledge_cannot_bypass_session_validation(field, status, code, routed_chat):
+    ask, service, llm, consult = routed_chat
+    service._sessions = ChatSessionRepository(RedisDouble())
+    llm.plan = {"intent": "search", "category": "lip", "maxPriceKRW": 20000}
+    first = ask("2만원 이하 립 추천해줘.")
+    assert first.status_code == 200
+    context = first.json()["chatContext"]
+    context["session"][field] = (
+        "x" * 32 if field == "sessionToken" else context["session"][field] + 1
+    )
+    calls = llm.calls
+    for request_type in ("chat", "knowledge_consultation"):
+        response = ask(
+            "그중 두 번째 제품 가격은요?",
+            requestType=request_type,
+            chatContext=context,
+        )
+        assert (response.status_code, response.json()["code"]) == (status, code)
+    assert llm.calls == calls
+    consult.assert_not_awaited()
+
+
+@pytest.mark.parametrize("request_type", ["chat", "beauty_consultation", "knowledge_consultation"])
+@pytest.mark.parametrize(
+    "message",
+    [
+        "롬앤 틴트가 얼마예요?",
+        "마스카라는 얼마인가요?",
+        "이 파운데이션 얼마에 팔아요?",
+        "블러셔 얼마야?",
+    ],
+)
+def test_http_price_without_selection_keeps_catalog_route(message, request_type, routed_chat):
+    ask, service, llm, consult = routed_chat
+    service._sessions = ChatSessionRepository(RedisDouble())
+    llm.plan = {"intent": "search", "category": "lip", "query": message}
+    response = ask(message, requestType=request_type)
+    assert response.status_code == 200
+    assert service.last_route.result.tool == "beauty"
+    assert response.json().get("knowledge") is None
+    consult.assert_not_awaited()
+
+
+@pytest.mark.parametrize("request_type", ["chat", "beauty_consultation", "knowledge_consultation"])
+@pytest.mark.parametrize(
+    "message",
+    [
+        "블러셔는 얼마나 자주 발라요?",
+        "파운데이션은 얼마큼 짜서 써요?",
+        "선크림을 바른 뒤 얼마 동안 기다려요?",
+        "얼마 뒤 파우더를 바르나요?",
+    ],
+)
+def test_http_quantity_and_frequency_are_not_price_questions(message, request_type, routed_chat):
+    ask, service, _, consult = routed_chat
+    response = ask(
+        message,
+        requestType=request_type,
+        **({"generalMakeup": True} if request_type == "beauty_consultation" else {}),
+    )
+    assert response.status_code == 200
+    if request_type == "knowledge_consultation":
+        assert service.last_route.result.tool == "knowledge"
+        consult.assert_awaited_once_with(message)
+    else:
+        assert service.last_route.result.tool == "graph_chat"
+        consult.assert_not_awaited()
+
+
+@pytest.mark.parametrize("adequate", [True, False])
+@pytest.mark.parametrize("supported", [True, False])
+def test_answered_requires_both_supported_coverage_and_adequate_context(adequate, supported):
+    evidence, _, _ = verify_selection([SELECTED], {"C1": HIT})
+    draft = {
+        "status": "answered",
+        "claims": [{"claim": QUOTE, "citations": ["E1"]}],
+        "limitations": "",
+    }
+    audit = verification(
+        check(
+            1,
+            requirements=["R1"],
+            citations=["E1"],
+            label="SUPPORTED" if supported else "UNSUPPORTED",
+        )
+    )
+    audit["adequate_context"] = adequate
+    result = resolve(draft, audit, evidence)
+    expected = (
+        "answered"
+        if supported and adequate
+        else "partial"
+        if supported
+        else "insufficient_evidence"
+    )
+    assert result.status == expected
+    assert result.evidence == (evidence if supported else [])
+    assert bool(result.claims) == supported
+    if supported and not adequate:
+        assert "전체 질문에 답하기 어렵습니다" in result.limitations
+        assert f"{QUOTE} [E1]" in Consultation(result, {}).answer
+        assert "항목은 입니다" not in result.limitations
+
+
+def test_http_inadequate_context_preserves_supported_answer_as_partial(routed_chat, monkeypatch):
+    ask, service, _, _ = routed_chat
+
+    class InadequateModel(Model):
+        async def run(self, stage, *args):
+            result = await super().run(stage, *args)
+            if stage == "detect":
+                result.content["adequate_context"] = False
+            return result
+
+    consultation = KnowledgeService(Retrieval(), InadequateModel())
+    monkeypatch.setattr(chat_service, "consult_knowledge", consultation.consult)
+    response = ask("볼 홍조를 화장으로 가리는 방법은요?", requestType="knowledge_consultation")
+    assert response.status_code == 200
+    reply = response.json()["knowledge"]
+    assert reply["status"] == "partial"
+    assert reply["claims"][0]["citations"] == ["E1"]
+    assert reply["evidence"][0]["quote"] == QUOTE
+    assert service.last_route.result.status == "partial"
+
+
+@pytest.mark.parametrize("stage_seconds", [15, 21])
+def test_consultation_deadline_is_shared_across_successful_model_stages(stage_seconds):
+    stages = []
+
+    async def run():
+        loop = asyncio.get_running_loop()
+        real_time = loop.time
+        elapsed = 0
+
+        class TimedModel(Model):
+            async def run(self, stage, *args):
+                nonlocal elapsed
+                stages.append(stage)
+                elapsed += stage_seconds
+                await asyncio.sleep(0.001)
+                return await super().run(stage, *args)
+
+        with patch.object(loop, "time", lambda: real_time() + elapsed):
+            return await KnowledgeService(Retrieval(), TimedModel()).consult("볼에 사용하나요?")
+
+    result = asyncio.run(run())
+    assert stages == ["select", "answer", "detect"]
+    if stage_seconds == 15:
+        assert result.reply.status == "answered" and result.reply.evidence
+    else:
+        assert result.reply.status == "error"
+        assert result.trace["error"] == "TimeoutError"
+        assert not result.reply.claims and not result.reply.evidence
+
+
+def test_consultation_deadline_includes_model_retry_wait():
+    requests = []
+
+    async def run():
+        loop = asyncio.get_running_loop()
+        real_time = loop.time
+        elapsed = 0
+
+        async def fail(request):
+            nonlocal elapsed
+            requests.append(request)
+            elapsed = 56
+            return httpx.Response(500)
+
+        async with httpx.AsyncClient(
+            base_url="https://example.test/", transport=httpx.MockTransport(fail)
+        ) as http:
+            with patch.object(loop, "time", lambda: real_time() + elapsed):
+                return await KnowledgeService(Retrieval(), OpenAIResponses(http)).consult(
+                    "볼에 쓰나요?"
+                )
+
+    result = asyncio.run(run())
+    assert len(requests) == 1
+    assert result.reply.status == "error" and result.trace["error"] == "TimeoutError"
+    assert not result.reply.claims and not result.reply.evidence
+
+
+def test_http_search_deadline_returns_g5_error_and_stops_later_stages(routed_chat, monkeypatch):
+    ask, service, _, _ = routed_chat
+    cancelled = []
+
+    class SlowRetrieval(Retrieval):
+        async def search(self, *args):
+            try:
+                await asyncio.sleep(0.2)
+            except asyncio.CancelledError:
+                cancelled.append(True)
+                raise
+            return await super().search(*args)
+
+    model = Model()
+    model.run = AsyncMock(wraps=model.run)
+    consultation = KnowledgeService(SlowRetrieval(), model)
+    monkeypatch.setattr(knowledge_service, "CONSULTATION_TIMEOUT_SECONDS", 0.02)
+    monkeypatch.setattr(chat_service, "consult_knowledge", consultation.consult)
+    response = ask("볼 홍조를 화장으로 가리는 방법은요?", requestType="knowledge_consultation")
+    assert response.status_code == 200
+    assert response.json()["knowledge"]["status"] == "error"
+    assert response.json()["knowledge"]["claims"] == []
+    assert response.json()["knowledge"]["evidence"] == []
+    assert service.last_route.result.status == "error"
+    assert cancelled == [True]
+    model.run.assert_not_awaited()

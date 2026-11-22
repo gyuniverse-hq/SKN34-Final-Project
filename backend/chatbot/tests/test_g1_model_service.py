@@ -8,7 +8,7 @@ from app.core.config import get_settings
 from app.core.errors import ApiError
 from app.schemas.chat import ChatRequest
 from app.services.chat_service import ChatService
-from app.services.g1_model_service import _requires_catalog_search
+from app.services.g1_model_service import _requires_catalog_search, choose_g1_turn
 from tests.test_g1_catalog_tool import catalog_client, row
 
 
@@ -20,6 +20,33 @@ def anyio_backend():
 @pytest.mark.parametrize("message", ["립 제품 추천 기준 알려줘", "제품 추천하지 말고 설명만 해줘"])
 def test_information_requests_do_not_force_catalog(message):
     assert not _requires_catalog_search(message)
+
+
+@pytest.mark.anyio
+async def test_general_turn_passes_recent_conversation_as_untrusted_context(monkeypatch):
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", True)
+    request = ChatRequest.model_validate({
+        "locale": "ko", "message": "건조한 날에도 괜찮아요?",
+        "recentMessages": [
+            {"id": "q1", "role": "user", "text": "홍조 화장법 알려줘요"},
+            {"id": "a1", "role": "assistant", "text": "베이스를 얇게 발라요"},
+        ],
+    })
+    captured = []
+
+    async def complete(messages, tools, **_kwargs):
+        captured.extend(messages)
+        return {"model": "fixture-model", "id": "fixture-id",
+                "choices": [{"finish_reason": "stop", "message": {"content": "답변"}}]}, 0
+
+    turn = await choose_g1_turn(request, complete)
+    assert turn.answer == "답변"
+    assert "untrusted context" in captured[0]["content"]
+    assert [(item["role"], item["content"]) for item in captured[1:]] == [
+        ("user", "홍조 화장법 알려줘요"),
+        ("assistant", "베이스를 얇게 발라요"),
+        ("user", "건조한 날에도 괜찮아요?"),
+    ]
 
 
 @pytest.mark.anyio
