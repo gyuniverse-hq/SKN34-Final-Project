@@ -1,6 +1,8 @@
 # AR 진행표
 마지막 갱신: 2026-11-19
 
+- 2026-11-19 DINOv2 점수 칼리브: R5 isotonic(`calibrate_score.py`). raw MAE 1.49→보정 CV MAE ~1.03, real 평균 2.73→~4.03. `score_capture`는 `calibrated_score`로 합격선 4.68 비교.
+- 2026-11-19 DINOv2 가중MSE+AdamW 헤드(`finetune_dinov2.py`): R5 Spearman 0.303·MAE 1.80 → Ridge 0.515보다 하락. 백본+Ridge는 유지.
 - 2026-11-19 합격 앵커 21장·합격선 **4.68/5(사람, 앵커 평균)** 확정(`pass_anchors.json`). 스크린샷 채점 `score_capture.py`. 결 살리기(C) 보류.
 - 2026-11-19 립 점수 전후 비교: `compare_score.py`(DINOv2/ResNet18 고정+Ridge). 결 복원 탐침 16쌍 DINOv2 승률 0.688·R18 1.0. creaseGain TUNING은 DINOv2 0.625이나 Δ≈0으로 미세. 앱 반영·Expo Go는 별도. `research/lip_rubric/compare_score.py`.
 - 2026-11-19 립 B0 before/after: `compare_b0.py`로 fine-tune B0 비교. openai_pool current vs strong 219쌍에서 current 승률 0.827. TUNING creaseGain 오프라인 전후는 MAD 0.07·승률 0.50(페이지 보상). 맨입술 고주파 복원 탐침 16쌍은 승률 ~0.56. `research/lip_rubric/compare_b0.py`.

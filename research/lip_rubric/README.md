@@ -39,6 +39,119 @@ ml/.venv/Scripts/python.exe research/lip_rubric/learn.py all
 
 산출: `research/data/lip_rubric/learn/`(라벨·임베딩·모델, Git 제외), 요약 `research/lip_rubric/LEARN_RESULTS.md`. 결함 이름은 특징으로 쓰지 않으며 앱에 연결하지 않는다.
 
+## Astra 라벨 증류 확인 (2026-11-19)
+
+Astra(OpenAI)가 v2 채점표로 `expansion_v3_openai_pool`의 1,659장(얼굴 667명)을 채점한 CSV를 `research/data/lip_rubric/astra/`에 둔다. 매트는 윤기 체크 3개(q3_2~q3_4)를 해당 없음으로 바꿔 R5와 같은 규칙으로 총점을 계산한다. 고정 ResNet18 + Ridge를 Astra 라벨로만 학습하고, Astra가 보지 않은 R5 사람 라벨(checklist 98장, A/B 476쌍)로 시험한다.
+
+```powershell
+ml/.venv/Scripts/python.exe research/lip_rubric/learn_astra.py all
+```
+
+결과(`research/data/lip_rubric/learn_astra/fit_summary.json`): R5 98장 Spearman 0.50(얼굴 단위 95% CI 약 0.3~0.67), R5만으로 학습한 0.31보다 높다. 렌더끼리만 보면 0.35, A/B 476쌍 일치 0.66(R5 쌍으로 직접 학습한 헤드는 0.81). Astra 평균 총점 1.85로 R5(3.13)보다 엄하므로 점수 수준이 아니라 순위로만 비교한다. 4,080장은 사람이 원래 입술 상태를 확인하지 않은 얼굴이다.
+
+고정 인코더 점수 bakeoff(같은 Astra 1,659장 → Ridge, 같은 R5 98장 홀드아웃; A/B는 보지 않음):
+
+```powershell
+ml/.venv/Scripts/python.exe research/lip_rubric/learn_astra.py all --encoder resnet18
+ml/.venv/Scripts/python.exe research/lip_rubric/learn_astra.py all --encoder efficientnet_b0
+ml/.venv/Scripts/python.exe research/lip_rubric/learn_astra.py all --encoder efficientnet_b3
+ml/.venv/Scripts/python.exe research/lip_rubric/learn_astra.py all --encoder convnext_tiny
+ml/.venv/Scripts/python.exe research/lip_rubric/learn_astra.py all --encoder dinov2_vits14
+```
+
+| 모델 | R5 Spearman | R5 MAE | 렌더끼리 Spearman | kind 순서 |
+|---|---|---|---|---|
+| ResNet18 고정 + Ridge | 0.501 | 1.60 | 0.349 | sticker < render < real |
+| EfficientNet-B0 고정 + Ridge | 0.374 | — | 0.21 | ok |
+| EfficientNet-B3 고정 + Ridge | 0.397 | 1.54 | 0.259 | ok |
+| ConvNeXt-Tiny 고정 + Ridge | 0.497 | 1.51 | 0.360 | ok |
+| **DINOv2-ViT-S/14 고정 + Ridge** | **0.515** | **1.49** | **0.410** | ok |
+
+DINOv2가 홀드아웃에서 가장 높지만 ResNet18과 CI가 크게 겹친다(약 0.30~0.69 vs 0.30~0.66). 요약 JSON은 `fit_summary.json`(ResNet18)과 `fit_summary_<encoder>.json`.
+
+DINOv2 가중 MSE + AdamW 헤드 (`finetune_dinov2.py`, 백본 고정·Dropout+Linear, 12에폭, 저/고득점·합격선 구간 가중):
+
+```powershell
+ml/.venv/Scripts/python.exe research/lip_rubric/finetune_dinov2.py
+```
+
+R5 Spearman **0.303** · MAE **1.80** · bias −1.27 → 같은 임베딩의 Ridge(**0.515**)보다 나쁨. 스크린샷 채점은 계속 **고정 DINOv2 + Ridge**. 가중치 `finetune_dinov2_head.pt`(Git 제외).
+
+분포·산점도(R5 98장):
+
+```powershell
+ml/.venv/Scripts/python.exe research/lip_rubric/plot_score_dist.py
+```
+
+출력: `research/data/lip_rubric/learn_astra/dist_plots/<encoder>/` — `scatter_human_vs_pred.png`, `hist_scores.png`, `hist_residual.png`, `bar_by_kind.png`, `stats.json`. DINOv2는 사람 평균 3.13 vs 예측 2.13(편향 −1.0), 예측 분산이 사람보다 훨씬 좁다(std 0.57 vs 1.60).
+
+(참고) B0 fine-tuning 가중치는 `finetune_b0.pt`(Git 제외). A/B 476쌍에서는 B0 FT가 0.72까지 올랐으나 절대 점수 목표는 아님.
+
+### 합격선 후보 갤러리 · 스크린샷 점수 (2026-11-19)
+
+사람 R5 총점 ≥4.0 사진(38장, 그중 ≥4.5는 25장) 갤러리에서 사용자가 21장을 합격 앵커로 고름(`pass_gallery/pass_anchors.json`). 앵커 점수 4.0~5.0(중앙값 4.8, 평균 4.68). **확정 합격선 4.68/5 (사람 채점표, 앵커 평균)**. 자동 모델 점수는 합격 판정에 직접 쓰지 않는다.
+
+```powershell
+ml/.venv/Scripts/python.exe research/lip_rubric/make_pass_gallery.py
+# 열기: research/data/lip_rubric/learn_astra/pass_gallery/index.html
+```
+
+평가지표 브리핑 PDF (타임라인·개념·분포 그림·합격선·칼리브):
+
+```powershell
+ml/.venv/Scripts/python.exe research/lip_rubric/export_eval_report_pdf.py
+```
+
+출력: `research/data/lip_rubric/learn_astra/lip_eval_metrics_briefing_20261119.pdf`
+
+스토리 흐름 PDF (25체크 → 사람5명 → Qwen실패 → 사다리+R5 → R5만학습 → Astra증류 → 칼리브):
+
+```powershell
+ml/.venv/Scripts/python.exe research/lip_rubric/export_eval_story_pdf.py
+```
+
+출력: `research/data/lip_rubric/learn_astra/lip_eval_story_flow_20261119.pdf`
+
+외부 평가지표 레퍼런스 1쪽 요약 (토요일 제출용):
+
+```powershell
+ml/.venv/Scripts/python.exe research/lip_rubric/export_eval_refs_pdf.py
+```
+
+출력: `reports/lip_eval_external_refs_1p_20261120.pdf` (동일본 `research/data/lip_rubric/learn_astra/`)
+
+사람 척도 칼리브레이션(R5 isotonic → 합격선 4.68과 같은 눈금):
+
+```powershell
+ml/.venv/Scripts/python.exe research/lip_rubric/calibrate_score.py --encoder dinov2_vits14
+```
+
+출력 `calibration_dinov2_vits14.json`. R5에서 raw MAE 1.49·real 평균 2.73 → 보정 후 MAE ~0.89(전체 fit)·CV MAE ~1.03, real 평균 ~4.03. `compare_score`/`score_capture`는 보정 점수를 기본으로 씀.
+
+폰/렌더 스크린샷 → 입술 crop → 보정 점수:
+
+```powershell
+research/ar_evaluation/.venv/Scripts/python.exe research/lip_rubric/score_capture.py path\to\shot.png
+```
+
+출력: `calibrated_score`, `pass`(≥4.68).
+
+### 점수 모델로 전후 비교 (2026-11-19)
+
+절대 점수 헤드로 before/after crop을 재는 도구:
+
+```powershell
+# DINOv2 고정 + Ridge (기본, bakeoff 최고)
+ml/.venv/Scripts/python.exe research/lip_rubric/compare_score.py pairs <pairs.csv> --out <out_dir>
+# 참고용 B0 fine-tune
+ml/.venv/Scripts/python.exe research/lip_rubric/compare_b0.py pairs <pairs.csv>
+ml/.venv/Scripts/python.exe research/lip_rubric/compare_b0.py pool-sanity
+```
+
+- B0 pool-sanity: openai_pool 같은 얼굴 `current` vs `*:strong` → current 승률 **0.827**.
+- TUNING `creaseGain` 1.0→1.4 (16쌍, crop MAD ~0.07): B0 승률 **0.50**, DINOv2 승률 **0.625**이나 평균 Δ ≈ 0 → 미세 TUNING만으로는 판정이 흔들림.
+- 맨입술 고주파를 립에 되돌린 이미지 공간 탐침(16쌍, MAD ~0.31): DINOv2 승률 **0.688**, ResNet18 **1.0**, B0 **~0.56** → “색은 유지하고 결만 더 남기기” 방향은 점수 모델이 선호. 앱 셰이더 반영·Expo Go 확인은 별도.
+
 ## 추가 이미지 평가 (2026-11-14)
 
 - 기존 5명 평균 총점 기준 렌더 38장은 0~1점 1장, 1~2점 4장, 2~3점 14장, 3~4점 13장, 4~5점 6장이다(상한 5 포함). 스티커 6장과 실제 립 기준 6장은 이 렌더 분포에서 제외했다. 점수 구간은 합격 기준이 아니다.

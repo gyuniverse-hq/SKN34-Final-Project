@@ -1,0 +1,104 @@
+{
+  "version": "technical-v1.2",
+  "date": "2026-11-20",
+  "title": "VISHUE AR 테크니컬 평가지표",
+  "inherits": "eval_matrix criteria_v2.1 (2026-11-03) evidence principle",
+  "scope": "트랙 B — 입술 ROI 숫자 지표만. 사람/Astra 자연스러움(트랙 A)은 별도 문서.",
+  "principle": "합격선은 ① 사람 눈 공개 역치, ② 같은 데이터 공개 SOTA, ③ 통계 검정(우연이 아님) 중 하나만. 근거 없으면 기록만. 팀 눈 앵커는 목표 감각이며 공식 합격선을 대체하지 않음.",
+  "status_values": {
+    "pass": "제대로 잰 값이 근거 있는 합격선을 넘음",
+    "fail": "제대로 잰 값이 합격선에 못 미침",
+    "not_valid": "잰 값은 있지만 데이터가 판정할 만큼 정확하지 않음",
+    "not_measured": "아직 안 잼",
+    "report_only": "근거 있는 합격선이 없음 → 변화만 추적"
+  },
+  "common": {
+    "roi": "lip mask (upper+lower as one region unless noted)",
+    "pair_rule": "same person bare / AR / real-applied when pairs exist; compute inside lip ROI only",
+    "relative_n": "20 pairs, win >= 15 → exact binomial one-sided p < 0.05"
+  },
+  "mapping_from_v2_1": {
+    "color": "delta_e",
+    "position": "miou",
+    "texture": "ssim + dL_spread + dL_hi (+ mae/lpips report)",
+    "naturalness": "excluded_from_this_pdf_use_track_A"
+  },
+  "team_eye_anchors": {
+    "decided_at": "2026-11-20",
+    "method": "tech_score_ladder에서 문항별 합격 칸 선택",
+    "source_file": "research/data/eval_matrix/tech_score_ladder/tech_pass_lines_from_ladder.json",
+    "role": "내부 목표·발표 감각용. 공개 역치/SOTA/부호검정이 있으면 그쪽이 공식.",
+    "lines": {
+      "delta_e": {"rule": "<= 1.8", "value": 1.8, "aligns_with_published": true, "published_ref": "Paravina 2015 AT 1.8"},
+      "ssim": {"rule": ">= 0.95", "value": 0.95, "aligns_with_published": false, "note": "절대선 없음. 현재 AR 중앙≈0.66 → 목표는 엄격"},
+      "mae": {"rule": "<= 0.04", "value": 0.04, "aligns_with_published": false, "scale": "RGB 0..1"},
+      "miou": {"rule": ">= 0.85", "value": 0.85, "aligns_with_published": false, "note": "공식은 SegFace 0.797. 0.85는 팀 목표"}
+    }
+  },
+  "snapshot_example": {
+    "note": "예시 스냅샷(평가 매트릭스 실행 결과). 렌더 고친 뒤 다시 재야 함.",
+    "source": "research/eval_matrix/results/result_v2.1_2026-11-03_evaluated-a2e45746.json + v2.1 PDF HEAD 측정",
+    "delta_e_median": 3.65,
+    "skin_floor": 2.90,
+    "color_beats_bare": "17/20",
+    "lip_f1": 0.840,
+    "lip_iou": 0.724,
+    "tex_spread_wins": "9/20",
+    "tex_hi_wins": "9/20",
+    "tex_ssim_wins": "4/20"
+  },
+  "items": {
+    "delta_e": {
+      "name": "ΔE CIE2000 (색상일치)",
+      "what": "AR 입술색과 실제 바른 입술색의 지각 색 차이",
+      "direction": "lower better",
+      "conditions": [
+        {"id": "de_at", "rule": "median(dE00) <= 1.8", "value": 1.8, "source": "Paravina 2015 AT 1.8; Lagouvardo 2018 ~1.81"},
+        {"id": "de_beats_bare", "rule": "AR closer to real than bare in >= 15/20", "source": "exact binomial sign test"}
+      ],
+      "validity": "median skin-ring dE00 (bare vs real) < 1.8 else not_valid"
+    },
+    "miou": {
+      "name": "mIoU / F1 (위치)",
+      "what": "정답 립 마스크와 AR/검출 마스크 겹침",
+      "direction": "higher better",
+      "conditions": [
+        {"id": "lip_f1_sota", "rule": "dataset F1 >= 0.887 (IoU >= 0.797)", "value": 0.887, "source": "SegFace AAAI 2025 LaPa"},
+        {"id": "lip_no_regression", "rule": "per-image IoU not worse than previous (Wilcoxon)", "source": "paired Wilcoxon"}
+      ],
+      "team_eye_goal": {"rule": ">= 0.85", "role": "internal only"}
+    },
+    "texture_bundle": {
+      "name": "질감·광택 묶음",
+      "what": "명암 폭·하이라이트·SSIM이 맨입술보다 실바에 가까운가",
+      "pass": "세 수치 각각 >=15/20 (모두 통과해야 합격)",
+      "metrics": ["dL_spread", "dL_hi", "ssim"],
+      "source": "eval_matrix v2.1 texture + Wang 2004 SSIM"
+    },
+    "ssim": {
+      "name": "SSIM",
+      "absolute": "report_only",
+      "team_eye_goal": {"rule": ">= 0.95"}
+    },
+    "lpips": {
+      "name": "LPIPS",
+      "absolute": "report_only",
+      "relative": ">=15/20 closer than bare"
+    },
+    "mae_mse": {
+      "name": "MAE/MSE",
+      "absolute": "report_only",
+      "relative": ">=15/20 lower MAE than bare",
+      "team_eye_goal": {"rule": "<= 0.04", "scale": "RGB 0..1"}
+    }
+  },
+  "sources": [
+    "Paravina RD et al. (2015). Color difference thresholds in dentistry.",
+    "Lagouvardo P et al. (2018). Facial skin color differences on screen.",
+    "SegFace AAAI 2025 arXiv:2412.08647 (LaPa lip F1).",
+    "Wang Z et al. (2004). SSIM. IEEE TIP.",
+    "Zhang R et al. (2018). LPIPS. CVPR.",
+    "eval_matrix criteria_v2.1.json (2026-11-03)",
+    "Team eye anchors 2026-11-20 tech_score_ladder"
+  ]
+}
