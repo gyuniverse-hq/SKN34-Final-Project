@@ -411,21 +411,29 @@ function ChatConversation({ record, onRecent, onNew }: {
       message.generation === room.generation && message.styleCandidates !== undefined);
     const latestLooks = messages.findLast((message) => message.ownerKey === ownerKey &&
       message.generation === room.generation && message.styleCandidates !== undefined)?.styleCandidates;
-    const previousLooks = refersToPreviousLooks(text)
+    const previousLookReference = refersToPreviousLooks(text);
+    const listedLooks = previousLookReference
       ? messages.findLast((message) => message.ownerKey === ownerKey && message.generation === room.generation &&
         message.styleCandidates?.length)?.styleCandidates : latestLooks;
+    const earlierRecipe = previousLookReference ? messages.findLast((message) => message.ownerKey === ownerKey &&
+      message.generation === room.generation && message.styleRecipe &&
+      (message.styleRecipe.kind !== room.styleContext?.kind || message.styleRecipe.lookId !== room.styleContext?.lookId))?.styleRecipe : undefined;
+    const previousLooks = earlierRecipe && !listedLooks?.some((look) => look.kind === earlierRecipe.kind && look.lookId === earlierRecipe.lookId)
+      ? [...(listedLooks ?? []), { kind: earlierRecipe.kind, lookId: earlierRecipe.lookId, title: earlierRecipe.title, tags: [] }]
+      : listedLooks;
     const unresolvedLookReference = !room.styleContext && /(?:그|이)\s*(?:룩|스타일)|\b(?:this|that) look\b|このルック|这个妆容/i.test(text);
     const ordinal = selectedLookOrdinal(text);
     const compareLooks = !!previousLooks?.length && /비교|차이|compare|difference|比較|違い|比较|区别/i.test(text) &&
       /룩|후보|첫|두|세|[123]|look|first|second|ルック|妆容/i.test(text) &&
       !/제품|상품|product|商品|製品|产品/i.test(text);
-    const previousLookRequest = !!previousLooks?.length && (refersToPreviousLooks(text) || unresolvedLookReference || ordinal !== undefined || compareLooks);
+    const previousLookRequest = !!previousLooks?.length && (previousLookReference || unresolvedLookReference || ordinal !== undefined || compareLooks);
     const wantsExplanation = /설명|어떻게|방법|explain|how|説明|方法|解释|怎么/i.test(text);
     const singlePrevious = !compareLooks && previousLookRequest
       ? ordinal !== undefined ? previousLooks?.[ordinal] : previousLooks?.length === 1 && wantsExplanation ? previousLooks[0] : undefined
       : undefined;
-    const styleSearch = original?.args.styleSearch ?? (subject.type === 'general' &&
-      (previousLookRequest ? !singlePrevious : ((!room.styleContext || wantsDifferentStyle(text)) &&
+    const differentLook = wantsDifferentStyle(text);
+    const styleSearch = original?.args.styleSearch ?? ((subject.type === 'general' || (subject.type === 'look' && (differentLook || previousLookRequest))) &&
+      (previousLookRequest ? !singlePrevious : ((!room.styleContext || differentLook) &&
         (wantsStyleSearch(text, styleSearchActive) || (room.category === 'style' && !room.styleContext &&
           makeupTopic && !technique && !shopping && !/제품|상품|product|商品|製品|产品/i.test(text))))));
     const requestedStyle = singlePrevious
@@ -462,6 +470,7 @@ function ChatConversation({ record, onRecent, onNew }: {
           ...(!styleSearch && room.pendingClarification ? { clarificationId: room.pendingClarification.id } : {}),
         } : {}),
         ...(styleSearch ? { styleSearch: true, styleConditions: room.styleConditions.map((item) => ({ ...item })),
+          ...(!previousLookRequest && differentLook && room.styleContext ? { excludedStyle: { kind: room.styleContext.kind, lookId: room.styleContext.lookId } } : {}),
           ...(compareLooks ? { styleCompare: true } : {}),
           ...(previousLookRequest ? { previousStyleCandidates: previousLooks!.map(({ kind, lookId }) => ({ kind, lookId })),
             ...(room.styleContext ? { previousStyleSelection: { kind: room.styleContext.kind, lookId: room.styleContext.lookId } } : {}) } : {}) } : {}),

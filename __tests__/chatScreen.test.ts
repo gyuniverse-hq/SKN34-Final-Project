@@ -150,19 +150,58 @@ describe('selected Style recipe flow', () => {
 
   it('keeps the selected look for adjustments but searches when another look is requested', async () => {
     const candidates = [{ kind: 'video', lookId: '_video-1', title: 'Selected', tags: ['daily'] }];
+    const alternatives = [{ kind: 'video', lookId: '_video-2', title: 'Alternative', tags: ['daily'] }];
+    const otherRecipe = { ...recipe, lookId: '_video-2', sourceLookId: '_video-2', recipeId: 'video:_video-2', title: 'Alternative' };
+    const otherContext = { ...context, lookId: '_video-2', recipeId: otherRecipe.recipeId };
     mockMutateAsync.mockResolvedValueOnce({ answer: 'Candidates', products: [], styleCandidates: candidates })
       .mockResolvedValueOnce({ answer: 'Guide', products: [], styleRecipe: recipe, styleContext: context })
       .mockResolvedValueOnce({ answer: 'Adjustment', products: [], styleRecipe: recipe, styleContext: context })
-      .mockResolvedValueOnce({ answer: 'Other candidates', products: [], styleCandidates: candidates });
+      .mockResolvedValueOnce({ answer: 'Other candidates', products: [], styleCandidates: alternatives })
+      .mockResolvedValueOnce({ answer: 'Other guide', products: [], styleRecipe: otherRecipe, styleContext: otherContext })
+      .mockResolvedValueOnce({ answer: 'Earlier looks', products: [], styleCandidates: [...alternatives, ...candidates] });
     const view = await renderScreen();
     await submit(view, '출근할 때 자연스러운 룩 추천해줘');
     await act(async () => buttonWithText(view.root, 'Selected').props.onPress());
     await submit(view, '눈은 덜 진하게 하고 립을 조금 더 강조하고 싶어.');
     expect(mockMutateAsync.mock.calls[2][0]).toMatchObject({ styleContext: { lookId: '_video-1' } });
     expect(mockMutateAsync.mock.calls[2][0].styleSearch).toBeUndefined();
+    await act(async () => view.root.findByType(StyleRecipeResult).props.onStepChange(1));
     await submit(view, '다른 룩 추천해줘');
-    expect(mockMutateAsync.mock.calls[3][0]).toMatchObject({ styleSearch: true });
+    expect(mockMutateAsync.mock.calls[3][0]).toMatchObject({ styleSearch: true, excludedStyle: { kind: 'video', lookId: '_video-1' } });
     expect(mockMutateAsync.mock.calls[3][0].styleContext).toBeUndefined();
+    expect(view.root.findAllByType(Text).map((item) => item.props.children)).toContain('Alternative');
+    const store = useChatConversationStore.getState();
+    expect(store.conversations[store.latest.general].conversation.styleContext).toMatchObject({ lookId: '_video-1', currentStep: 1 });
+    await act(async () => buttonWithText(view.root, 'Alternative').props.onPress());
+    await submit(view, '아까 추천한 룩 다시 보여줘');
+    expect(mockMutateAsync.mock.calls[5][0]).toMatchObject({ previousStyleSelection: { kind: 'video', lookId: '_video-2' },
+      previousStyleCandidates: expect.arrayContaining([{ kind: 'video', lookId: '_video-1' }]) });
+    await act(async () => view.unmount());
+  });
+
+  it('supports alternative search and earlier look references from a direct look conversation', async () => {
+    Object.assign(mockRouteParams, { recipeKind: 'video', recipeLookId: '_video-1' });
+    const otherRecipe = { ...recipe, lookId: '_video-2', sourceLookId: '_video-2', recipeId: 'video:_video-2', title: 'Other look' };
+    const otherContext = { ...context, lookId: '_video-2', recipeId: otherRecipe.recipeId };
+    const alternatives = [{ kind: 'video', lookId: '_video-2', title: 'Other look', tags: ['daily'] }];
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'Guide', products: [], styleRecipe: recipe, styleContext: context })
+      .mockResolvedValueOnce({ answer: 'Adjustment', products: [], styleRecipe: recipe, styleContext: context })
+      .mockResolvedValueOnce({ answer: 'Other candidates', products: [], styleCandidates: alternatives })
+      .mockResolvedValueOnce({ answer: 'Other guide', products: [], styleRecipe: otherRecipe, styleContext: otherContext })
+      .mockResolvedValueOnce({ answer: 'Earlier looks', products: [], styleCandidates: alternatives });
+    const view = await renderScreen();
+    await submit(view, '눈은 덜 진하게 하고 립을 강조하고 싶어.');
+    expect(mockMutateAsync.mock.calls[1][0].styleContext.lookId).toBe('_video-1');
+    await submit(view, '출근할 때 자연스러운 다른 룩 추천해줘');
+    expect(mockMutateAsync.mock.calls[2][0]).toMatchObject({ styleSearch: true, excludedStyle: { kind: 'video', lookId: '_video-1' } });
+    const store = useChatConversationStore.getState();
+    expect(store.conversations[store.latest['look:video:_video-1']].conversation.styleContext?.lookId).toBe('_video-1');
+    await act(async () => buttonWithText(view.root, 'Other look').props.onPress());
+    expect(mockMutateAsync.mock.calls[3][0].styleContext.lookId).toBe('_video-2');
+    await submit(view, '아까 추천한 룩 다시 보여줘');
+    expect(mockMutateAsync.mock.calls[4][0]).toMatchObject({ styleSearch: true,
+      previousStyleCandidates: expect.arrayContaining([{ kind: 'video', lookId: '_video-1' }, { kind: 'video', lookId: '_video-2' }]),
+      previousStyleSelection: { kind: 'video', lookId: '_video-2' } });
     await act(async () => view.unmount());
   });
 

@@ -66,6 +66,45 @@ class Model:
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("indexes", [[0], []])
+async def test_other_look_excludes_selection_from_model_and_fallback(indexes):
+    model = Model(indexes)
+    request = ChatRequest.model_validate(
+        {
+            "message": "다른 룩 추천해줘",
+            "locale": "ko",
+            "styleSearch": True,
+            "excludedStyle": {"kind": "video", "lookId": "ST-A"},
+            "styleConditions": [{"slot": "occasion", "value": "출근"}],
+        }
+    )
+    response = await ChatService(None, model, Looks()).answer(request)
+    assert [(item.kind, item.look_id) for item in response.style_candidates] == [
+        ("catalog", "daily")
+    ]
+    assert "출근 SYNTHETIC style" not in model.messages[0]["content"]
+
+
+@pytest.mark.anyio
+async def test_other_look_without_alternatives_reports_empty():
+    class OnlySelected(Looks):
+        async def fetch_looks(self):
+            return []
+
+    request = ChatRequest.model_validate(
+        {
+            "message": "다른 룩 추천해줘",
+            "locale": "ko",
+            "styleSearch": True,
+            "excludedStyle": {"kind": "video", "lookId": "ST-A"},
+        }
+    )
+    response = await ChatService(None, Model([]), OnlySelected()).answer(request)
+    assert response.style_candidates == []
+    assert "다른 룩을 찾지 못했어요" in response.answer
+
+
+@pytest.mark.anyio
 async def test_candidates_are_catalog_facts_and_previous_conditions_reach_model():
     model = Model([1, 0], adjustments=["softer_eye", "stronger_lip"])
     request = ChatRequest.model_validate(

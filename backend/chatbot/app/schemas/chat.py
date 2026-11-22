@@ -167,6 +167,7 @@ class PendingClarification(ArModel):
 
 class ChatRequest(ApiModel):
     style_search: bool = Field(default=False, strict=True, exclude_if=lambda v: not v)
+    excluded_style: StyleCandidateRef | None = None
     previous_style_candidates: list[StyleCandidateRef] = Field(
         default_factory=list, max_length=6, exclude_if=lambda v: not v
     )
@@ -241,6 +242,8 @@ class ChatRequest(ApiModel):
     def validate_ar_request(self) -> Self:
         if self.style_search and self.request_type not in {"chat", "style_consultation"}:
             raise ValueError("Style search is only available in chat")
+        if self.excluded_style and (not self.style_search or self.previous_style_candidates):
+            raise ValueError("Look exclusion requires a new style search")
         if (
             self.previous_style_candidates or self.previous_style_selection
         ) and not self.style_search:

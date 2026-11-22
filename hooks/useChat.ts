@@ -9,12 +9,13 @@ const CHAT_TIMEOUT_MS = 90_000;
 export function useChat() {
   return useMutation({
     retry: false,
-    mutationFn: async ({ message, locale, category, chatContext, screenContext, styleContext, styleSearch, previousStyleCandidates, previousStyleSelection, styleConditions, styleCompare, requestId, expectedUserId, generalMakeup, recentMessages, clarificationId }: {
+    mutationFn: async ({ message, locale, category, chatContext, screenContext, styleContext, styleSearch, excludedStyle, previousStyleCandidates, previousStyleSelection, styleConditions, styleCompare, requestId, expectedUserId, generalMakeup, recentMessages, clarificationId }: {
       message: string; locale: ChatLocale; category?: 'product' | 'ingredient' | 'style';
       chatContext?: BeautyChatContext;
       screenContext?: ChatScreenContext;
       styleContext?: ChatStyleContext;
       styleSearch?: boolean;
+      excludedStyle?: Pick<ChatStyleCandidate, 'kind' | 'lookId'>;
       previousStyleCandidates?: Pick<ChatStyleCandidate, 'kind' | 'lookId'>[];
       previousStyleSelection?: Pick<ChatStyleCandidate, 'kind' | 'lookId'>;
       styleConditions?: ChatStyleCondition[];
@@ -31,6 +32,7 @@ export function useChat() {
           ...(clarificationId ? { clarificationId } : {}),
           message, locale, requestId: requestId ?? uuid.v4(),
           ...(styleSearch ? { styleSearch: true } : {}),
+          ...(excludedStyle ? { excludedStyle } : {}),
           ...(previousStyleCandidates?.length ? { previousStyleCandidates } : {}),
           ...(previousStyleSelection ? { previousStyleSelection } : {}),
           ...(styleConditions ? { styleConditions } : {}),

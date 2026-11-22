@@ -87,6 +87,8 @@ TEXT = {
         ),
         "empty": "등록된 룩 정보에서 맞는 후보를 찾지 못했어요. "
         "상황이나 원하는 분위기를 바꿔 알려 주세요.",
+        "empty_alternative": "현재 조건에 맞는 다른 룩을 찾지 못했어요. "
+        "상황이나 분위기를 바꿔 알려 주세요.",
         "previous": "앞서 제안한 룩이에요. 어느 룩을 다시 설명할지 선택해 주세요.",
         "missing": "앞서 제안한 룩을 더 이상 조회할 수 없어요. 조건을 알려 주시면 다시 찾아볼게요.",
     },
@@ -97,6 +99,7 @@ TEXT = {
             "the available guidance."
         ),
         "empty": "No matching look was found. Try another occasion or mood.",
+        "empty_alternative": "No other matching look was found. Try another occasion or mood.",
         "previous": "These are the earlier suggestions. Choose which one you want explained again.",
         "missing": "The earlier looks are no longer available. "
         "Tell me your preferences to search again.",
@@ -107,6 +110,8 @@ TEXT = {
             "動画の実際の順序は確認できません。選ぶと確認できる案内を表示します。"
         ),
         "empty": "登録情報に合うルックが見つかりませんでした。場面や雰囲気を変えてください。",
+        "empty_alternative": "条件に合う別のルックが見つかりませんでした。"
+        "場面や雰囲気を変えてください。",
         "previous": "先ほどの候補です。もう一度説明するルックを選んでください。",
         "missing": "先ほどのルックを取得できません。条件を教えていただければ再検索します。",
     },
@@ -116,6 +121,7 @@ TEXT = {
             "选择后可查看已有的指导。"
         ),
         "empty": "登记资料中没有找到合适的妆容，请换一个场合或氛围再试。",
+        "empty_alternative": "没有找到符合条件的其他妆容，请换一个场合或氛围再试。",
         "previous": "这是之前推荐的妆容，请选择要重新说明的一款。",
         "missing": "之前的妆容暂时无法查询，请告诉我条件以重新搜索。",
     },
@@ -236,9 +242,18 @@ async def search_style(req: ChatRequest, catalog, llm) -> ChatResponse:
             style_candidates=previous,
             style_status="ready",
         )
+    if req.excluded_style:
+        candidates = [
+            item
+            for item in candidates
+            if (item.kind, item.look_id) != (req.excluded_style.kind, req.excluded_style.look_id)
+        ]
     if not candidates:
         return ChatResponse(
-            answer=text["empty"], products=[], style_candidates=[], style_status="ready"
+            answer=text["empty_alternative" if req.excluded_style else "empty"],
+            products=[],
+            style_candidates=[],
+            style_status="ready",
         )
     if not llm.configured:
         raise ApiError(503, "Chatbot is not configured", "chatbot_unavailable")
@@ -377,7 +392,7 @@ async def search_style(req: ChatRequest, catalog, llm) -> ChatResponse:
                 found.append(candidate.model_copy(update={"match": match}))
     except (UpstreamError, ValidationError, ValueError, TypeError, KeyError, IndexError) as exc:
         raise ApiError(502, "Look search failed", "style_search_unavailable") from exc
-    answer = text["found" if found else "empty"]
+    answer = text["found" if found else "empty_alternative" if req.excluded_style else "empty"]
     intro = await conversational_intro(llm, req.locale, req.message, list(conditions.values()))
     if intro:
         answer = intro + "\n" + answer
