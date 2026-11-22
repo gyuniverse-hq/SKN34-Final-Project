@@ -710,7 +710,7 @@ function ChatConversation({ record, onRecent, onNew }: {
                 </View>
               ) : null}
               {message.role === 'assistant' && message.optionSearch ? <OptionSearchScope result={message.optionSearch} /> : null}
-              {message.role === 'assistant' && !message.fragranceSearchSummary && message.products?.length && (!message.styleRecipe || /제품|상품|product|商品|製品|产品|사용한.{0,12}(?:립|입술)/i.test(message.question ?? '')) ? <RelatedProducts refs={message.products} optionSearch={message.optionSearch}
+              {message.role === 'assistant' && !message.fragranceSearchSummary && message.products?.length && (!message.styleRecipe || /제품|상품|product|商品|製品|产品|사용한.{0,12}(?:립|입술|아이라인|아이라이너)/i.test(message.question ?? '')) ? <RelatedProducts refs={message.products} optionSearch={message.optionSearch}
                 question={message.question ?? ''} category={message.category}
                 chatContext={message.chatContext} evidence={message.evidence}
                 selectedShades={selectedShades}

@@ -109,6 +109,19 @@ describe('selected Style recipe flow', () => {
     await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress());
   }
 
+  it('shows linked product cards for a video eyeliner question without changing the look', async () => {
+    Object.assign(mockRouteParams, { recipeKind: 'video', recipeLookId: '_video-1' });
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'Guide', products: [], styleRecipe: recipe, styleContext: context })
+      .mockResolvedValueOnce({ answer: 'Video product: Test eyeliner', products: [{ id: 'p1', name: 'Test eyeliner', brand: 'Test', category: 'eye' }],
+        styleRecipe: recipe, styleContext: context });
+    const view = await renderScreen();
+    await submit(view, '이 영상에서 사용한 아이라이너는 뭐야?');
+    expect(mockProductsByIds).toHaveBeenCalledWith(['p1']);
+    expect(view.root.findAllByType(Text).map((item) => item.props.children)).toContain('Video product: Test eyeliner');
+    expect(mockMutateAsync.mock.calls[1][0].styleContext.lookId).toBe('_video-1');
+    await act(async () => view.unmount());
+  });
+
   it('keeps look suggestions, refinements and a selected look in the same conversation', async () => {
     const first = [{ kind: 'video', lookId: '_video-1', title: 'First suggestion', tags: ['daily'] }];
     const refined = [{ kind: 'video', lookId: '_video-1', title: 'Refined suggestion', tags: ['daily'] },
