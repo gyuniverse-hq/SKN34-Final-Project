@@ -128,18 +128,26 @@ def test_chat_http_search_then_selected_recipe(client):
     )
     headers = {"X-Vishue-Anonymous-Id": "guest-session-id-0123456789-abcdefghijk"}
     search = client.post(
-        "/api/chat", headers=headers,
+        "/api/chat",
+        headers=headers,
         json={"message": "자연스러운 룩 추천", "locale": "ko", "styleSearch": True},
     )
     assert search.status_code == 200
     candidate = search.json()["styleCandidates"][0]
     assert (candidate["kind"], candidate["lookId"]) == ("video", "ST-A")
     recipe = client.post(
-        "/api/chat", headers=headers,
-        json={"message": "이 룩의 두 번째 단계", "locale": "ko",
-              "requestType": "style_consultation",
-              "styleContext": {"kind": candidate["kind"], "lookId": candidate["lookId"],
-                               "currentStep": 0}},
+        "/api/chat",
+        headers=headers,
+        json={
+            "message": "이 룩의 두 번째 단계",
+            "locale": "ko",
+            "requestType": "style_consultation",
+            "styleContext": {
+                "kind": candidate["kind"],
+                "lookId": candidate["lookId"],
+                "currentStep": 0,
+            },
+        },
     )
     assert recipe.status_code == 200
     assert recipe.json()["styleRecipe"]["lookId"] == candidate["lookId"]

@@ -330,9 +330,12 @@ def explicit_step(message):
         message,
     )
     if korean:
-        return {name: i for i, name in enumerate(
-            ("첫", "두", "세", "네", "다섯", "여섯", "일곱", "여덟", "아홉", "열"), 1
-        )}[korean.group(1)]
+        return {
+            name: i
+            for i, name in enumerate(
+                ("첫", "두", "세", "네", "다섯", "여섯", "일곱", "여덟", "아홉", "열"), 1
+            )
+        }[korean.group(1)]
     english = re.search(
         r"\b(first|second|third|fourth|fifth|\d{1,2}(?:st|nd|rd|th))\s+step\b", message
     )
