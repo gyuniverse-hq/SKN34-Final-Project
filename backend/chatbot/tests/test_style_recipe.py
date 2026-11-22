@@ -112,6 +112,9 @@ async def test_est_01_reviewed_recipe_is_synthetic_and_ordered():
     assert result.supervisor.result.tool == "style"
     assert result.supervisor.result.application == "not_requested"
     assert result.ar_result is None
+    second = await ask(StyleCatalog(look), "두 번째 단계는 어떻게 해?", result.style_context)
+    assert "Fixture instruction 2" in second.answer
+    assert "일반 팁" not in second.answer
 
 
 @pytest.mark.anyio
@@ -138,6 +141,10 @@ async def test_est_04_05_exact_mapping_required_and_no_first_shade():
     catalog = StyleCatalog(look)
     unverified = await ask(catalog, "이 룩의 립 제품 알려줘")
     assert not unverified.style_recipe.ar_eligible and not unverified.products
+    assert "실제 사용한 제품과 호수는 확인되지" in unverified.answer
+    by_usage = await ask(catalog, "이 영상에서 진짜 사용한 립은 뭐야?")
+    assert "실제 사용한 제품과 호수는 확인되지" in by_usage.answer
+    assert all(item.zone == "lip" for item in by_usage.style_recipe.products)
     mapped.mapping_verified = True
     valid = await ask(catalog)
     link = valid.style_recipe.products[-1]
@@ -217,11 +224,22 @@ async def test_explicit_step_uses_current_recipe_and_rejects_missing_step():
     second = await ask(catalog, "두 번째 단계는 어떻게 해?", first.style_context)
     assert second.style_context.current_step == 1
     assert second.style_recipe.look_id == first.style_recipe.look_id
+    assert "2." in second.answer and "블러셔" in second.answer and "일반 팁" in second.answer
     missing = await ask(catalog, "9번째 단계 알려줘", second.style_context)
     assert missing.style_status == "clarification"
     assert missing.style_recipe is None and "단계가 없습니다" in missing.answer
     english = await ask(catalog, "second step", first.style_context, locale="en")
     assert english.style_context.current_step == 1
+
+
+@pytest.mark.anyio
+async def test_order_followup_answers_with_general_steps_not_just_a_disclaimer():
+    catalog = StyleCatalog()
+    first = await ask(catalog)
+    reply = await ask(catalog, "이 룩은 어떤 순서로 하면 돼?", first.style_context)
+    assert "실제 화장 순서는 확인되지 않았" in reply.answer
+    assert "1. 아이섀도" in reply.answer and "2. 블러셔" in reply.answer and "3. 립" in reply.answer
+    assert reply.style_context.look_id == first.style_context.look_id
 
 
 @pytest.mark.anyio

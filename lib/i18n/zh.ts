@@ -171,6 +171,7 @@ export const zh: Dictionary = {
   'chat.ingredient.fragranceVerified': "已确认无添加香料",
   'chat.ingredient.noRegisteredShades': "未登记色号信息。",
   'chat.style.referenceProducts': "参考产品",
+  'chat.style.match': "标题或标签中的相关词：{match}",
   'chat.session.newSearchHint': "请输入产品类别和条件，开始独立的新搜索。",
   'chat.session.idUnavailable': "无法生成安全的请求UUID，请在支持的设备上重试。",
   'chat.ingredient.MATCH': "符合条件",

@@ -56,6 +56,7 @@ export type ChatRequestSnapshot = {
     styleContext?: ChatStyleContext;
     styleSearch?: boolean;
     previousStyleCandidates?: Pick<NonNullable<ChatResponse['styleCandidates']>[number], 'kind' | 'lookId'>[];
+    previousStyleSelection?: Pick<NonNullable<ChatResponse['styleCandidates']>[number], 'kind' | 'lookId'>;
   };
   automatic: boolean;
   generalMakeup?: boolean;

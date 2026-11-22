@@ -658,6 +658,7 @@ export interface ChatStyleCandidate {
   lookId: string;
   title: string;
   tags: string[];
+  match?: string | null;
 }
 
 /** Ephemeral progress hint. The server reloads content and checks recipe identity/version. */

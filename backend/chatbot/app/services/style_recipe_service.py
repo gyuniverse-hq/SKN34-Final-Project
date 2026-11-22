@@ -67,10 +67,10 @@ TEXT = {
         "choose": "먼저 스타일 화면에서 안내받을 룩을 선택해 주세요.",
         "missing": "선택한 종류에서 해당 룩을 찾을 수 없습니다. 룩을 다시 선택해 주세요.",
         "error": "룩 자료를 조회하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-        "video": (
-            "제목·태그·제품 부위 메타데이터를 참고한 일반 가이드입니다. 영상 프"
-            "레임을 분석하지 않았으며, 실제 영상의 기법·순서·사용 제품은 확인되"
-            "지 않았습니다."
+        "video": "영상의 실제 화장 순서는 확인되지 않았습니다. 아래는 일반적인 방법이에요.",
+        "video_product": (
+            "영상에서 실제 사용한 제품과 호수는 확인되지 않았어요. "
+            "연결된 상품이 있다면 참고용으로만 봐 주세요."
         ),
         "catalog": (
             "등록된 Catalog 메이크업 설정에 근거한 규칙 "
@@ -108,6 +108,10 @@ TEXT = {
             "Catalog makeup settings. It is not a h"
             "uman-reviewed video recipe."
         ),
+        "video_product": (
+            "The products and shades actually used in the video are unconfirmed. "
+            "Any linked products are references only."
+        ),
         "reviewed": "These steps come from the registered reviewed recipe and its source.",
         "changed": "The look or recipe version changed. Progress returned to the first step.",
         "none": ("Step information is insufficient. The video's makeup order will not be guessed."),
@@ -138,6 +142,9 @@ TEXT = {
             "登録されたCatalogメイク設定に基づくルール型ガイド"
             "です。人が検証した動画レシピではありません。"
         ),
+        "video_product": (
+            "動画で実際に使った商品と色番は未確認です。関連商品は参考としてご覧ください。"
+        ),
         "reviewed": "登録された検証済みレシピの手順と出典を案内します。",
         "changed": "ルックまたはレシピの版が変わったため、最初の手順に戻りました。",
         "none": "手順の情報が不足しています。動画の順序を推測しません。",
@@ -159,6 +166,7 @@ TEXT = {
             "帧，视频中的实际技法、顺序和使用产品尚未确认。"
         ),
         "catalog": "这是依据已登记Catalog化妆设置生成的规则指南，并非人工审核的视频教程。",
+        "video_product": "视频中实际使用的产品和色号尚未确认，关联产品仅供参考。",
         "reviewed": "以下步骤来自已登记的审核教程及其来源。",
         "changed": "妆容或教程版本已改变，已返回第一步。",
         "none": "步骤资料不足，不会猜测视频的化妆顺序。",
@@ -470,7 +478,14 @@ async def execute_style(req, catalog):
             if requested_step < 1 or requested_step > len(steps):
                 return empty("clarification", "step_unavailable", "step_missing")
             index = requested_step - 1
-        tip = style_advice(message, steps, index, req.locale, context.recipe_id is not None)
+        order_request = bool(
+            re.search(r"순서|단계별|\border\b|step.by.step|順番|順序|顺序", message)
+        )
+        tip = (
+            None
+            if order_request or (reviewed and requested_step is not None)
+            else style_advice(message, steps, index, req.locale, context.recipe_id is not None)
+        )
         if not changed and requested_step is None and not tip and not _ADVICE.search(message):
             if re.search(
                 r"첫 단계|처음 단계|처음부터|first step|from the beginning|最初|第一步|从头",
@@ -496,7 +511,9 @@ async def execute_style(req, catalog):
                 )
         links, refs, cache = [], {}, {}
         entries = look.products if context.kind == "video" else look.items
-        lip_question = re.search(r"립 제품|lip product|リップ製品|唇部产品", message)
+        lip_question = re.search(
+            r"립 제품|사용한.{0,12}(?:립|입술)|lip product|リップ製品|唇部产品", message
+        )
         for entry in entries:
             video = context.kind == "video"
             pid = entry.catalog_product_id if video else entry.product_id
@@ -572,8 +589,34 @@ async def execute_style(req, catalog):
             else "video_not_analyzed",
             makeup=makeup,
         )
-        answer = tip or text[notice]
-        if tip and context.kind == "video":
+        product_question = bool(
+            lip_question or re.search(r"제품|상품|product|商品|製品|产品", message, re.I)
+        )
+        answer = (
+            text["video_product"]
+            if context.kind == "video" and product_question
+            else tip or text[notice]
+        )
+        if steps and not changed and not product_question:
+            if tip and requested_step is not None:
+                answer = f"{requested_step}. {steps[index].title}: {tip}"
+            elif not tip:
+                is_single_step = requested_step is not None or bool(
+                    re.search(
+                        r"다음\s*단계|이전\s*단계|next\s+step|previous\s+step|次の手順|下一步",
+                        message,
+                    )
+                )
+                shown = [steps[index]] if is_single_step else steps
+                lines = []
+                for step in shown:
+                    zone = {"foundation": "base", "blush": "cheek"}.get(step.zone, step.zone)
+                    guidance = step.description if reviewed else TIPS[req.locale].get(zone)
+                    lines.append(
+                        f"{step.order}. {step.title}" + (f": {guidance}" if guidance else "")
+                    )
+                answer += "\n" + "\n".join(lines)
+        if tip and context.kind == "video" and not product_question:
             answer += "\n" + _GENERAL_TIP_NOTICE[req.locale]
         if result.synthetic:
             answer += "\n" + text["synthetic"]

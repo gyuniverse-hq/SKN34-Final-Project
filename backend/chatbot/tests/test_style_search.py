@@ -11,17 +11,19 @@ from tests.test_style_recipe import StyleCatalog, video
 
 class Looks(StyleCatalog):
     async def fetch_style_looks(self):
-        return [video()]
+        return [video().model_copy(update={"title": "출근 SYNTHETIC style"})]
 
     async def fetch_looks(self):
-        return [CatalogLook(id="daily", title="Daily look", tags=["daily"], items=[])]
+        return [CatalogLook(id="daily", title="출근 Daily look", tags=["daily"], items=[])]
 
 
 class Model:
     configured = True
 
-    def __init__(self, indexes):
+    def __init__(self, indexes, match="출근", adjustments=None):
         self.indexes = indexes
+        self.match = match
+        self.adjustments = adjustments or []
         self.messages = None
 
     async def complete_with_tools(self, messages, tools, *, required_tool=None):
@@ -38,7 +40,15 @@ class Model:
                                     "type": "function",
                                     "function": {
                                         "name": "select_looks",
-                                        "arguments": json.dumps({"indexes": self.indexes}),
+                                        "arguments": json.dumps(
+                                            {
+                                                "looks": [
+                                                    {"index": i, "match": self.match}
+                                                    for i in self.indexes
+                                                ],
+                                                "adjustments": self.adjustments,
+                                            }
+                                        ),
                                     },
                                 }
                             ]
@@ -52,7 +62,7 @@ class Model:
 
 @pytest.mark.anyio
 async def test_candidates_are_catalog_facts_and_previous_conditions_reach_model():
-    model = Model([1, 0])
+    model = Model([1, 0], adjustments=["softer_eye", "stronger_lip"])
     request = ChatRequest.model_validate(
         {
             "message": "눈은 덜 진하게 하고 립을 강조하고 싶어",
@@ -70,7 +80,7 @@ async def test_candidates_are_catalog_facts_and_previous_conditions_reach_model(
         ("catalog", "daily"),
         ("video", "ST-A"),
     ]
-    assert "확인할 수 없어요" in response.answer
+    assert "영상에서 확인" in response.answer
     assert "일반적인 조절 팁" in response.answer
     assert any("내일 출근" in item["content"] for item in model.messages)
     assert not any(item["content"] == "이전 응답" for item in model.messages)
@@ -110,6 +120,34 @@ async def test_empty_and_previous_candidates_are_not_replaced_by_a_guess():
 
 
 @pytest.mark.anyio
+async def test_model_cannot_suggest_unrelated_or_fabricated_evidence():
+    result = await ChatService(None, Model([0], match="출근"), Looks()).answer(
+        ChatRequest(message="결혼식 룩 추천", locale="ko", styleSearch=True)
+    )
+    assert result.style_candidates == []
+    assert "찾지 못했어요" in result.answer
+
+
+@pytest.mark.anyio
+async def test_previous_looks_name_the_current_selection_separately():
+    request = ChatRequest.model_validate(
+        {
+            "message": "아까 추천한 룩",
+            "locale": "ko",
+            "styleSearch": True,
+            "previousStyleCandidates": [
+                {"kind": "video", "lookId": "ST-A"},
+                {"kind": "catalog", "lookId": "daily"},
+            ],
+            "previousStyleSelection": {"kind": "video", "lookId": "ST-A"},
+        }
+    )
+    result = await ChatService(None, Model([]), Looks()).answer(request)
+    assert "현재 선택한 룩" in result.answer and "출근 SYNTHETIC style" in result.answer
+    assert [look.look_id for look in result.style_candidates] == ["ST-A", "daily"]
+
+
+@pytest.mark.anyio
 async def test_catalog_failure_is_retryable_error():
     class Failed(Looks):
         async def fetch_style_looks(self):
@@ -130,7 +168,7 @@ def test_chat_http_search_then_selected_recipe(client):
     search = client.post(
         "/api/chat",
         headers=headers,
-        json={"message": "자연스러운 룩 추천", "locale": "ko", "styleSearch": True},
+        json={"message": "출근 룩 추천", "locale": "ko", "styleSearch": True},
     )
     assert search.status_code == 200
     candidate = search.json()["styleCandidates"][0]

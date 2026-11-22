@@ -413,7 +413,10 @@ function ChatConversation({ record, onRecent, onNew }: {
       (previousLookRequest ? !singlePrevious : ((!room.styleContext || styleSearchActive) &&
         (wantsStyleSearch(text, styleSearchActive) || (room.category === 'style' && !room.styleContext &&
           makeupTopic && !technique && !shopping && !/제품|상품|product|商品|製品|产品/i.test(text))))));
-    const requestedStyle = singlePrevious ? { kind: singlePrevious.kind, lookId: singlePrevious.lookId, currentStep: 0 } : room.styleContext;
+    const requestedStyle = singlePrevious
+      ? room.styleContext?.kind === singlePrevious.kind && room.styleContext.lookId === singlePrevious.lookId
+        ? room.styleContext : { kind: singlePrevious.kind, lookId: singlePrevious.lookId, currentStep: 0 }
+      : room.styleContext;
     const generalMakeup = original?.generalMakeup ??
       (!styleSearch && !retryCategory && !room.styleContext && !lookReference && !shopping && makeupTopic && technique);
     const requestCategory = original?.args.category ?? retryCategory ??
@@ -444,7 +447,8 @@ function ChatConversation({ record, onRecent, onNew }: {
           ...(!styleSearch && room.pendingClarification ? { clarificationId: room.pendingClarification.id } : {}),
         } : {}),
         ...(styleSearch ? { styleSearch: true,
-          ...(previousLookRequest ? { previousStyleCandidates: previousLooks!.map(({ kind, lookId }) => ({ kind, lookId })) } : {}) } : {}),
+          ...(previousLookRequest ? { previousStyleCandidates: previousLooks!.map(({ kind, lookId }) => ({ kind, lookId })),
+            ...(room.styleContext ? { previousStyleSelection: { kind: room.styleContext.kind, lookId: room.styleContext.lookId } } : {}) } : {}) } : {}),
         ...(generalMakeup ? { generalMakeup: true } : {}),
         ...(!styleSearch && !generalMakeup && requestedStyle
           ? { styleContext: { ...requestedStyle } } : {}),
@@ -670,7 +674,7 @@ function ChatConversation({ record, onRecent, onNew }: {
                     void send(t('chat.room.recipePrompt'), undefined, 'style');
                   }} style={styles.retry}>
                   <Text style={styles.retryText}>{look.title}</Text>
-                  {look.tags.length ? <Text>{look.tags.join(' · ')}</Text> : null}
+                  {look.match ? <Text style={styles.retryText}>{t('chat.style.match', { match: look.match })}</Text> : null}
                 </Pressable>)}
               </View> : null}
               {subject.type === 'general' && message.role === 'assistant' && message.category === 'style' && !message.styleRecipe && !message.knowledge && !message.styleCandidates && !activeStyle && message.styleStatus !== 'not_found'
@@ -693,7 +697,7 @@ function ChatConversation({ record, onRecent, onNew }: {
                 </View>
               ) : null}
               {message.role === 'assistant' && message.optionSearch ? <OptionSearchScope result={message.optionSearch} /> : null}
-              {message.role === 'assistant' && !message.fragranceSearchSummary && message.products?.length ? <RelatedProducts refs={message.products} optionSearch={message.optionSearch}
+              {message.role === 'assistant' && !message.fragranceSearchSummary && message.products?.length && (!message.styleRecipe || /제품|상품|product|商品|製品|产品|사용한.{0,12}(?:립|입술)/i.test(message.question ?? '')) ? <RelatedProducts refs={message.products} optionSearch={message.optionSearch}
                 question={message.question ?? ''} category={message.category}
                 chatContext={message.chatContext} evidence={message.evidence}
                 selectedShades={selectedShades}

@@ -171,6 +171,7 @@ export const ko: Dictionary = {
   'chat.ingredient.fragranceVerified': "향료 무첨가 확인",
   'chat.ingredient.noRegisteredShades': "등록된 호수 정보가 없어요.",
   'chat.style.referenceProducts': "참고 제품",
+  'chat.style.match': "제목·태그 관련 표현: {match}",
   'chat.session.newSearchHint': "상품 종류와 조건을 입력해 새로운 독립 검색을 시작해 주세요.",
   'chat.session.idUnavailable': "안전한 요청 UUID를 생성할 수 없습니다. 지원되는 기기에서 다시 시도해 주세요.",
   'chat.ingredient.MATCH': "조건 충족",

@@ -130,6 +130,7 @@ export const en = {
   'chat.ingredient.fragranceVerified': "Fragrance-free verified",
   'chat.ingredient.noRegisteredShades': "No shade information is registered.",
   'chat.style.referenceProducts': "Reference products",
+  'chat.style.match': "Title or tag match: {match}",
   'chat.session.newSearchHint': "Enter a product category and conditions for a new independent search.",
   'chat.session.idUnavailable': "A secure request UUID could not be generated. Please try again on a supported device.",
   'chat.ingredient.MATCH': "Condition met",

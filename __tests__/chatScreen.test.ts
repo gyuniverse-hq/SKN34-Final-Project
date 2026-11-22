@@ -154,6 +154,18 @@ describe('selected Style recipe flow', () => {
     await act(async () => view.unmount());
   });
 
+  it('keeps progress when the only previous suggestion is the selected look', async () => {
+    const candidates = [{ kind: 'video', lookId: '_video-1', title: 'Previous', tags: [] }];
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'Candidates', products: [], styleCandidates: candidates })
+      .mockResolvedValue({ answer: 'Guide', products: [], styleRecipe: recipe, styleContext: { ...context, currentStep: 1 } });
+    const view = await renderScreen();
+    await submit(view, '내일 출근할 때 자연스러운 메이크업을 하고 싶어.');
+    await act(async () => buttonWithText(view.root, 'Previous').props.onPress());
+    await submit(view, '아까 추천한 룩으로 다시 설명해줘.');
+    expect(mockMutateAsync.mock.calls[2][0].styleContext).toEqual({ ...context, currentStep: 1 });
+    await act(async () => view.unmount());
+  });
+
   it('offers a retry for failed look search without creating suggestions', async () => {
     mockMutateAsync.mockRejectedValueOnce(new ApiError('Unavailable', 502, 'style_search_unavailable'))
       .mockResolvedValueOnce({ answer: 'No matches', products: [], styleCandidates: [] });

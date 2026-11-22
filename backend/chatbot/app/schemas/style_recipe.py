@@ -44,6 +44,7 @@ class StyleCandidateRef(StyleModel):
 class StyleCandidate(StyleCandidateRef):
     title: str = Field(min_length=1, max_length=200)
     tags: list[Annotated[str, Field(max_length=100)]] = Field(default_factory=list, max_length=20)
+    match: str | None = Field(default=None, max_length=40)
 
 
 class StyleContext(StyleModel):

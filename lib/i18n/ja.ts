@@ -171,6 +171,7 @@ export const ja: Dictionary = {
   'chat.ingredient.fragranceVerified': "香料無添加を確認済み",
   'chat.ingredient.noRegisteredShades': "色番の登録がありません。",
   'chat.style.referenceProducts': "参考商品",
+  'chat.style.match': "タイトル・タグの関連語: {match}",
   'chat.session.newSearchHint': "商品カテゴリと条件を入力し、新しい検索を始めてください。",
   'chat.session.idUnavailable': "安全なリクエストUUIDを生成できません。対応端末で再試行してください。",
   'chat.ingredient.MATCH': "条件を満たす",

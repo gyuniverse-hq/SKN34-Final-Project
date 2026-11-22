@@ -164,6 +164,7 @@ class ChatRequest(ApiModel):
     previous_style_candidates: list[StyleCandidateRef] = Field(
         default_factory=list, max_length=6, exclude_if=lambda v: not v
     )
+    previous_style_selection: StyleCandidateRef | None = None
     recent_messages: list[RecentChatMessage] = Field(
         default_factory=list, max_length=8, exclude_if=lambda v: not v
     )
@@ -229,7 +230,9 @@ class ChatRequest(ApiModel):
     def validate_ar_request(self) -> Self:
         if self.style_search and self.request_type not in {"chat", "style_consultation"}:
             raise ValueError("Style search is only available in chat")
-        if self.previous_style_candidates and not self.style_search:
+        if (
+            self.previous_style_candidates or self.previous_style_selection
+        ) and not self.style_search:
             raise ValueError("Previous look references require style search")
         if self.request_type == "ar_command" and (
             self.request_id is None or self.ar_context is None or not self.message.strip()
