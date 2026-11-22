@@ -639,6 +639,7 @@ export interface ChatResponse {
   optionSearch?: ChatOptionSearch;
   pendingClarification?: PendingClarification | null;
   styleRecipe?: ChatStyleRecipe;
+  styleCandidates?: ChatStyleCandidate[];
   styleContext?: ChatStyleContext;
   styleStatus?: 'ready' | 'clarification' | 'not_found' | 'error' | 'unsupported';
   answer: string;
@@ -650,6 +651,13 @@ export interface ChatResponse {
   ingredientComparison?: ChatIngredientComparison;
   fragranceSearchSummary?: { checked: number; total: number; verifiedProductIds: string[] };
   sessionStatus?: 'stored' | 'unchanged' | 'unavailable';
+}
+
+export interface ChatStyleCandidate {
+  kind: 'video' | 'catalog';
+  lookId: string;
+  title: string;
+  tags: string[];
 }
 
 /** Ephemeral progress hint. The server reloads content and checks recipe identity/version. */

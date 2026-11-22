@@ -23,6 +23,24 @@ export function recentChatMessages(messages: ChatMessage[], ownerKey: string, ge
   return result;
 }
 
+export function recentStyleMessages(messages: ChatMessage[], ownerKey: string, generation: number): RecentChatMessage[] {
+  const turns = messages.flatMap((answer, index) => {
+    const question = messages[index - 1];
+    if (answer.role !== 'assistant' || answer.styleCandidates === undefined || question?.role !== 'user' ||
+      [answer, question].some((item) => item.failed || item.automatic || item.ownerKey !== ownerKey || item.generation !== generation) ||
+      !question.text || Array.from(question.text).length > 1000) return [];
+    return [{ id: question.id, role: 'user' as const, text: question.text }];
+  });
+  const grouped: RecentChatMessage[] = [];
+  for (const turn of turns) {
+    const last = grouped.at(-1);
+    if (last && Array.from(`${last.text}\n${turn.text}`).length <= 1000) last.text += `\n${turn.text}`;
+    else grouped.push({ ...turn });
+  }
+  // shortcut: very long chats keep the first and latest groups; G7 can provide durable context.
+  return grouped.length > 8 ? [grouped[0], ...grouped.slice(-7)] : grouped;
+}
+
 function subjectKey(subject: ConversationSubject) {
   if (subject.type === 'look') return `look:${subject.kind}:${subject.lookId}`;
   if (subject.type === 'product') return `product:${subject.productId}`;
@@ -201,7 +219,10 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
       return true;
     },
     setDraft: (target, value) => { change(target, (room) => { room.draft = value; }); },
-    setCategory: (target, value) => { change(target, (room) => { room.category = value; }); },
+    setCategory: (target, value) => { change(target, (room) => {
+      if (room.category !== value) room.styleRevision += 1;
+      room.category = value;
+    }); },
     setNotice: (target, value) => { change(target, (room) => { room.notice = value; }); },
     setStyle: (target, value) => { change(target, (room) => {
       room.styleContext = value ? { ...value } : undefined;
@@ -290,6 +311,7 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
             room.styleContext = { ...next };
           }
         }
+        if (response.styleCandidates && room.styleRevision === snapshot.styleRevision) room.category = 'style';
         const requestTurn = Number(messageId.slice('user-'.length));
         if (response.sessionStatus === 'unavailable' && requestTurn >= room.beautyContextTurn) {
           resetRoom(room, record, 'chat.session.unavailable', room.selection.revision > snapshot.revision);
@@ -345,6 +367,8 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
           fragranceSearchSummary: response.fragranceSearchSummary,
           ingredientComparison: response.ingredientComparison,
           styleRecipe: response.styleRecipe,
+          styleCandidates: response.styleCandidates,
+          styleStatus: response.styleStatus,
           ...(response.knowledge ? { knowledge: response.knowledge } : {}),
           optionSearch: response.optionSearch,
         };

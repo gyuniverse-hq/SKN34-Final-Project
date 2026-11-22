@@ -109,6 +109,73 @@ describe('selected Style recipe flow', () => {
     await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress());
   }
 
+  it('keeps look suggestions, refinements and a selected look in the same conversation', async () => {
+    const first = [{ kind: 'video', lookId: '_video-1', title: 'First suggestion', tags: ['daily'] }];
+    const refined = [{ kind: 'video', lookId: '_video-1', title: 'Refined suggestion', tags: ['daily'] },
+      { kind: 'video', lookId: '_video-2', title: 'Other suggestion', tags: ['daily'] }];
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'Candidates', products: [], styleCandidates: first })
+      .mockResolvedValueOnce({ answer: 'Refined', products: [], styleCandidates: refined })
+      .mockResolvedValueOnce({ answer: 'Guide', products: [], styleRecipe: recipe, styleContext: context })
+      .mockResolvedValueOnce({ answer: 'Order', products: [], styleRecipe: recipe, styleContext: context })
+      .mockResolvedValueOnce({ answer: 'Previous', products: [], styleCandidates: refined });
+    const view = await renderScreen();
+    await submit(view, '내일 출근할 때 자연스러운 메이크업을 하고 싶어.');
+    expect(mockMutateAsync.mock.calls[0][0]).toMatchObject({ styleSearch: true, category: 'style' });
+    await submit(view, '눈은 덜 진하게 하고 립을 조금 더 강조하고 싶어.');
+    expect(mockMutateAsync.mock.calls[1][0]).toMatchObject({ styleSearch: true,
+      recentMessages: expect.arrayContaining([expect.objectContaining({ text: '내일 출근할 때 자연스러운 메이크업을 하고 싶어.' })]) });
+    await act(async () => buttonWithText(view.root, 'Refined suggestion').props.onPress());
+    expect(mockMutateAsync.mock.calls[2][0].styleContext.lookId).toBe('_video-1');
+    await submit(view, '이 룩은 어떤 순서로 하면 돼?');
+    expect(mockMutateAsync.mock.calls[3][0].styleContext.lookId).toBe('_video-1');
+    await submit(view, '아까 추천한 룩으로 다시 설명해줘.');
+    expect(mockMutateAsync.mock.calls[4][0]).toMatchObject({ styleSearch: true,
+      previousStyleCandidates: [{ kind: 'video', lookId: '_video-1' }, { kind: 'video', lookId: '_video-2' }] });
+    expect(mockMutateAsync.mock.calls[4][0].styleContext).toBeUndefined();
+    const room = useChatConversationStore.getState().conversations[useChatConversationStore.getState().latest.general];
+    expect(room.conversation.styleContext?.lookId).toBe('_video-1');
+    await act(async () => view.unmount());
+  });
+
+  it('resolves one previously suggested look separately from the current selection', async () => {
+    const candidates = [{ kind: 'video', lookId: '_video-1', title: 'Previous', tags: [] }];
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'Candidates', products: [], styleCandidates: candidates })
+      .mockResolvedValueOnce({ answer: 'Guide', products: [], styleRecipe: recipe, styleContext: context });
+    const view = await renderScreen();
+    await submit(view, '내일 출근할 때 자연스러운 메이크업을 하고 싶어.');
+    const store = useChatConversationStore.getState();
+    const id = store.latest.general;
+    const room = store.conversations[id].conversation;
+    await act(async () => store.setStyle({ id, ownerKey: room.ownerKey }, { kind: 'video', lookId: '_video-2', currentStep: 0 }));
+    await submit(view, '아까 추천한 것으로 다시 설명해줘');
+    expect(mockMutateAsync.mock.calls[1][0].styleContext).toEqual({ kind: 'video', lookId: '_video-1', currentStep: 0 });
+    expect(useChatConversationStore.getState().conversations[id].conversation.styleContext?.lookId).toBe('_video-1');
+    await act(async () => view.unmount());
+  });
+
+  it('offers a retry for failed look search without creating suggestions', async () => {
+    mockMutateAsync.mockRejectedValueOnce(new ApiError('Unavailable', 502, 'style_search_unavailable'))
+      .mockResolvedValueOnce({ answer: 'No matches', products: [], styleCandidates: [] });
+    const view = await renderScreen();
+    await submit(view, '내일 출근할 때 자연스러운 메이크업을 하고 싶어.');
+    await act(async () => buttonWithText(view.root, 'chat.ui.retry').props.onPress());
+    expect(mockMutateAsync.mock.calls[1][0]).toMatchObject({ styleSearch: true });
+    expect(mockMutateAsync.mock.calls[1][0].requestId).toBe(mockMutateAsync.mock.calls[0][0].requestId);
+    expect(view.root.findAllByType(Text).map((item) => item.props.children)).toContain('No matches');
+    await act(async () => view.unmount());
+  });
+
+  it('continues a look search after no match and sends the earlier condition', async () => {
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'No matches', products: [], styleCandidates: [] })
+      .mockResolvedValueOnce({ answer: 'Try again', products: [], styleCandidates: [] });
+    const view = await renderScreen();
+    await submit(view, '내일 출근할 때 자연스러운 메이크업을 하고 싶어.');
+    await submit(view, '다른 분위기로 해줘');
+    expect(mockMutateAsync.mock.calls[1][0]).toMatchObject({ styleSearch: true,
+      recentMessages: expect.arrayContaining([expect.objectContaining({ text: '내일 출근할 때 자연스러운 메이크업을 하고 싶어.' })]) });
+    await act(async () => view.unmount());
+  });
+
   it('automatically opens a look once and restores only general chat from the list', async () => {
     Object.assign(mockRouteParams, { recipeKind: 'video', recipeLookId: '_video-1' });
     mockMutateAsync.mockResolvedValueOnce({

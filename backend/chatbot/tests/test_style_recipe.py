@@ -211,6 +211,20 @@ async def test_est_09_step_boundaries_eye_first_and_stale_version():
 
 
 @pytest.mark.anyio
+async def test_explicit_step_uses_current_recipe_and_rejects_missing_step():
+    catalog = StyleCatalog()
+    first = await ask(catalog)
+    second = await ask(catalog, "두 번째 단계는 어떻게 해?", first.style_context)
+    assert second.style_context.current_step == 1
+    assert second.style_recipe.look_id == first.style_recipe.look_id
+    missing = await ask(catalog, "9번째 단계 알려줘", second.style_context)
+    assert missing.style_status == "clarification"
+    assert missing.style_recipe is None and "단계가 없습니다" in missing.answer
+    english = await ask(catalog, "second step", first.style_context, locale="en")
+    assert english.style_context.current_step == 1
+
+
+@pytest.mark.anyio
 @pytest.mark.parametrize(
     "question", ["아이라인을 더 자연스럽게 하려면?", "아이라인 끝을 부드럽게 하는 팁"]
 )

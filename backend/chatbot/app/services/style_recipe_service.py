@@ -81,6 +81,7 @@ TEXT = {
         "changed": "룩 또는 레시피 버전이 변경되어 첫 단계로 돌아갔습니다.",
         "none": "단계 자료가 부족합니다. 영상의 화장 순서를 추측하지 않습니다.",
         "step": "현재 단계",
+        "step_missing": "요청한 단계가 없습니다. 등록된 단계를 선택해 주세요.",
         "synthetic": "테스트용 합성 콘텐츠입니다.",
         "unsupported": (
             "현재 단계 안내와 등록 상품 확인을 지원합니다. 상"
@@ -111,6 +112,7 @@ TEXT = {
         "changed": "The look or recipe version changed. Progress returned to the first step.",
         "none": ("Step information is insufficient. The video's makeup order will not be guessed."),
         "step": "Current step",
+        "step_missing": "That step is unavailable. Please choose a listed step.",
         "synthetic": "Synthetic test content.",
         "unsupported": (
             "Step guidance and registered product r"
@@ -140,6 +142,7 @@ TEXT = {
         "changed": "ルックまたはレシピの版が変わったため、最初の手順に戻りました。",
         "none": "手順の情報が不足しています。動画の順序を推測しません。",
         "step": "現在の手順",
+        "step_missing": "指定された手順はありません。登録された手順を選んでください。",
         "synthetic": "テスト用の合成コンテンツです。",
         "unsupported": (
             "手順案内と登録製品の確認に対応しています。製品推薦とAR"
@@ -160,6 +163,7 @@ TEXT = {
         "changed": "妆容或教程版本已改变，已返回第一步。",
         "none": "步骤资料不足，不会猜测视频的化妆顺序。",
         "step": "当前步骤",
+        "step_missing": "没有请求的步骤，请选择已列出的步骤。",
         "synthetic": "合成测试内容。",
         "unsupported": "目前支持步骤指导和已登记产品查询，不会将产品推荐和AR执行视为已一并完成。",
     },
@@ -317,6 +321,29 @@ _GENERAL_TIP_NOTICE = {
 }
 
 
+def explicit_step(message):
+    digits = re.search(r"(?<!\d)(\d{1,2})\s*(?:번(?:째)?\s*)?단계", message)
+    if digits:
+        return int(digits.group(1))
+    korean = re.search(
+        r"(첫|두|세|네|다섯|여섯|일곱|여덟|아홉|열)\s*(?:번(?:째)?|째)?\s*단계",
+        message,
+    )
+    if korean:
+        return {name: i for i, name in enumerate(
+            ("첫", "두", "세", "네", "다섯", "여섯", "일곱", "여덟", "아홉", "열"), 1
+        )}[korean.group(1)]
+    english = re.search(
+        r"\b(first|second|third|fourth|fifth|\d{1,2}(?:st|nd|rd|th))\s+step\b", message
+    )
+    if english:
+        value = english.group(1)
+        return {"first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5}.get(
+            value, int(value[:-2]) if value[0].isdigit() else 0
+        )
+    return None
+
+
 def style_advice(message, steps, index, locale, followup):
     if not (_ADVICE.search(message) or _SMUDGING.search(message)) or re.search(
         r"영상에서|in the video|動画では|视频里", message, re.I
@@ -435,8 +462,13 @@ async def execute_style(req, catalog):
         eye_request = re.search(r"눈 화장|eye makeup|アイメイク|眼妆", message)
         if eye_request and not any(s.zone in {"eyeshadow", "eyeliner", "mascara"} for s in steps):
             return empty("clarification", "eye_step_unavailable", "zone_missing")
+        requested_step = explicit_step(message)
+        if requested_step is not None and not changed:
+            if requested_step < 1 or requested_step > len(steps):
+                return empty("clarification", "step_unavailable", "step_missing")
+            index = requested_step - 1
         tip = style_advice(message, steps, index, req.locale, context.recipe_id is not None)
-        if not changed and not tip and not _ADVICE.search(message):
+        if not changed and requested_step is None and not tip and not _ADVICE.search(message):
             if re.search(
                 r"첫 단계|처음 단계|처음부터|first step|from the beginning|最初|第一步|从头",
                 message,

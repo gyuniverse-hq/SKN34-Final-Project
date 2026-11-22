@@ -13,7 +13,7 @@ from app.schemas.catalog import (
     OptionSearchResponse,
 )
 from app.schemas.knowledge import KnowledgeReply
-from app.schemas.style_recipe import StyleContext, StyleRecipe
+from app.schemas.style_recipe import StyleCandidate, StyleCandidateRef, StyleContext, StyleRecipe
 from app.schemas.supervisor import IngredientComparison, ScreenContext, SupervisorResult, ToolResult
 
 Locale = Literal["en", "ko", "ja", "zh"]
@@ -160,6 +160,10 @@ class PendingClarification(ArModel):
 
 
 class ChatRequest(ApiModel):
+    style_search: bool = Field(default=False, strict=True, exclude_if=lambda v: not v)
+    previous_style_candidates: list[StyleCandidateRef] = Field(
+        default_factory=list, max_length=6, exclude_if=lambda v: not v
+    )
     recent_messages: list[RecentChatMessage] = Field(
         default_factory=list, max_length=8, exclude_if=lambda v: not v
     )
@@ -170,6 +174,9 @@ class ChatRequest(ApiModel):
         ids = [m.id for m in self.recent_messages]
         if len(ids) != len(set(ids)) or sum(len(m.text) for m in self.recent_messages) > 8000:
             raise ValueError("Invalid recent conversation")
+        looks = [(item.kind, item.look_id) for item in self.previous_style_candidates]
+        if len(looks) != len(set(looks)):
+            raise ValueError("Duplicate previous looks")
         return self
 
     general_makeup: bool = Field(default=False, strict=True, exclude_if=lambda v: not v)
@@ -193,7 +200,10 @@ class ChatRequest(ApiModel):
             return data
         request_type = data.get("requestType", data.get("request_type", "chat"))
         g2_enabled = data.get("locale", "en") == "ko" and get_settings().g1_supervisor_enabled
-        if not g2_enabled or request_type not in {"chat", "beauty_consultation"}:
+        style_search = data.get("styleSearch", data.get("style_search")) is True
+        if (
+            not g2_enabled or request_type not in {"chat", "beauty_consultation"}
+        ) and not style_search:
             ignored = {"clarificationId", "clarification_id"}
             if not (
                 g2_enabled
@@ -217,6 +227,10 @@ class ChatRequest(ApiModel):
 
     @model_validator(mode="after")
     def validate_ar_request(self) -> Self:
+        if self.style_search and self.request_type not in {"chat", "style_consultation"}:
+            raise ValueError("Style search is only available in chat")
+        if self.previous_style_candidates and not self.style_search:
+            raise ValueError("Previous look references require style search")
         if self.request_type == "ar_command" and (
             self.request_id is None or self.ar_context is None or not self.message.strip()
         ):
@@ -358,6 +372,9 @@ class ChatIngredientResult(CatalogIngredients):
 
 
 class ChatResponse(ApiModel):
+    style_candidates: list[StyleCandidate] | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
     knowledge: KnowledgeReply | None = Field(default=None, exclude_if=lambda v: v is None)
     option_search: OptionSearchResponse | None = Field(default=None, exclude_if=lambda v: v is None)
     pending_clarification: PendingClarification | None = Field(

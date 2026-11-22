@@ -37,6 +37,8 @@ export type ChatMessage = {
   sessionStatus?: ChatResponse['sessionStatus'];
   retryable?: boolean;
   styleRecipe?: ChatResponse['styleRecipe'];
+  styleCandidates?: ChatResponse['styleCandidates'];
+  styleStatus?: ChatResponse['styleStatus'];
 };
 
 export type ChatRequestSnapshot = {
@@ -52,6 +54,8 @@ export type ChatRequestSnapshot = {
     chatContext?: BeautyChatContext;
     screenContext?: ChatScreenContext;
     styleContext?: ChatStyleContext;
+    styleSearch?: boolean;
+    previousStyleCandidates?: Pick<NonNullable<ChatResponse['styleCandidates']>[number], 'kind' | 'lookId'>[];
   };
   automatic: boolean;
   generalMakeup?: boolean;
