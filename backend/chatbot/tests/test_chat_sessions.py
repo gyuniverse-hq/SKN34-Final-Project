@@ -13,6 +13,7 @@ import uvicorn
 from redis.exceptions import RedisError, WatchError
 
 from app.clients.catalog_client import IngredientLookupError
+from app.core.config import get_settings
 from app.core.errors import ApiError, UpstreamError
 from app.repositories.chat_session_repository import ChatSessionRepository
 from app.schemas.catalog import CatalogIngredients
@@ -644,6 +645,55 @@ async def test_product_detail_can_start_ingredient_chat_without_recommendation_s
         await ask("a", "b-03")
     assert exc.value.code == "invalid_chat_selection"
     assert service._catalog.ingredient_calls == [("a", "a-03"), ("b", "b-03")]
+
+
+@pytest.mark.anyio
+async def test_g1_new_detail_session_rejects_foreign_shade_with_clarification(setup, monkeypatch):
+    service, redis, _, _ = setup
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", True)
+
+    class DetailLlm(PlanLlm):
+        async def complete_with_tools(self, messages, tools, *, required_tool=None):
+            return {
+                "id": "completion-fixture",
+                "model": "model-fixture",
+                "choices": [
+                    {
+                        "finish_reason": "tool_calls",
+                        "message": {
+                            "tool_calls": [
+                                {
+                                    "id": "call-fixture",
+                                    "type": "function",
+                                    "function": {
+                                        "name": "catalog_get_product_detail",
+                                        "arguments": "{}",
+                                    },
+                                }
+                            ]
+                        },
+                    }
+                ],
+            }, 1
+
+    service._llm = DetailLlm(intent="detail")
+    screen = {"screenId": "product-detail", "productId": "a", "shadeId": "b-03"}
+    response = await service.answer(
+        request(message="선택한 호수의 색은?", screen=screen), "guest:one"
+    )
+    assert response.result_type == "clarification"
+    assert response.products == []
+    assert response.chat_context.candidate_ids == []
+    assert response.chat_context.selected_product_id is None
+    assert response.chat_context.shade_selections == {}
+    assert redis.writes == 0
+
+    screen["shadeId"] = "a-03"
+    valid = await service.answer(request(message="선택한 호수의 색은?", screen=screen), "guest:one")
+    assert valid.result_type == "product_detail"
+    assert valid.chat_context.shade_selections == {"a": "a-03"}
+    assert valid.chat_context.session is not None
+    assert redis.writes == 1
 
 
 def test_product_detail_first_question_respects_explicit_shade_over_screen_hint(client, setup):

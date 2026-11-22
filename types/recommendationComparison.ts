@@ -5,10 +5,10 @@ export interface RecommendationComparisonInput {
   ageGroup: ComparisonAge;
   gender: ComparisonGender;
   skinType: '건성' | '중성' | '지성' | '복합성';
-  analysisVersion: 'skin-analysis-v4';
+  analysisVersion: 'skin-analysis-v4' | 'skin-analysis-v4.1';
   scoreKind: 'binary_caution_probability';
   aggregation: 'mean-cheeks-pore-tone-eyes-wrinkle-v1';
-  scores: Record<ComparisonGoal, number>;
+  scores: Record<ComparisonGoal, number> & { acne?: number };
   irritationSignal?: 'caution' | 'none' | 'unknown';
 }
 export interface ComparisonIngredient { id: number; name: string; score: number; rank?: number }
@@ -84,10 +84,10 @@ export interface RecommendationComparisonResult {
     secondaryRecommendation?: {
       goal: ComparisonGoal; coreIngredients: ComparisonIngredient[];
       expandedIngredients: ExpandedIngredient[];
-      model: { version: string; sha256: string; features: Record<string, string> };
+      model: { version: string; sha256: string; features: Record<string, string | number> };
     } | null;
     candidateProducts?: number; candidateOptions?: number; reviewAppliedProducts?: number; shortfall?: number;
     excludedProducts?: number;
-    model?: { version: string; sha256: string; features: Record<string, string> };
+    model?: { version: string; sha256: string; features: Record<string, string | number> };
   };
 }

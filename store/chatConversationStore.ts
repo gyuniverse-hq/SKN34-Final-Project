@@ -1,8 +1,27 @@
 import { uuid } from 'expo';
 import { create } from 'zustand';
 import type { TranslationKey } from '@/lib/i18n';
-import type { BeautyChatContext, ChatResponse, ChatScreenContext, ChatStyleContext } from '@/types';
+import type { PendingClarification, RecentChatMessage, BeautyChatContext, ChatResponse, ChatScreenContext, ChatStyleContext } from '@/types';
 import type { ChatCategory, ChatMessage, ConversationTarget, ChatRequestTicket, ChatRequestSnapshot, ConversationEntry, ConversationSubject } from '@/types/chatConversation';
+
+// Select complete pairs from this room; Unicode code points match Python len().
+export function recentChatMessages(messages: ChatMessage[], ownerKey: string, generation: number): RecentChatMessage[] {
+  const result: RecentChatMessage[] = [];
+  let total = 0;
+  for (let i = messages.length - 1; i > 0; i -= 1) {
+    const answer = messages[i], question = messages[i - 1];
+    if (answer.role !== 'assistant' || question.role !== 'user') continue;
+    if ([question, answer].some((m) => m.failed || m.automatic || m.ownerKey !== ownerKey || m.generation !== generation)) continue;
+    const q = Array.from(question.text).length, a = Array.from(answer.text).length;
+    // Stop at a gap rather than silently use older context in place of the latest turn.
+    if (!q || !a || q > 1000 || a > 2000 || total + q + a > 8000 || result.length + 2 > 8) break;
+    result.unshift({ id: question.id, role: 'user', text: question.text },
+      { id: answer.id, role: 'assistant', text: answer.text });
+    total += q + a;
+    i -= 1;
+  }
+  return result;
+}
 
 function subjectKey(subject: ConversationSubject) {
   if (subject.type === 'look') return `look:${subject.kind}:${subject.lookId}`;
@@ -33,6 +52,8 @@ function createChatConversation(userId: string | null, ownerKey: string, entry: 
     serial: 0,
     attempt: 0,
     generation: 0,
+    pendingClarification: undefined as PendingClarification | undefined,
+    dismissedClarificationId: undefined as string | undefined,
     beautyContext: undefined as BeautyChatContext | undefined,
     beautyContextTurn: 0,
     selection: {
@@ -43,7 +64,7 @@ function createChatConversation(userId: string | null, ownerKey: string, entry: 
     styleRevision: 0,
     entryProduct: screenForEntry(entry) ?? focus?.product,
     snapshots: new Map<string, ChatRequestSnapshot>(),
-    category: (entry.type === 'look' || focus?.style ? 'style' : 'product') as ChatCategory,
+    category: (entry.type === 'look' || focus?.style ? 'style' : entry.type === 'product' || focus?.product ? 'product' : undefined) as ChatCategory | undefined,
   };
 }
 
@@ -92,12 +113,14 @@ type ChatStore = {
   setRecipeStep: (target: ConversationTarget, messageId: string, index: number) => void;
   beginRequest: (target: ConversationTarget, snapshot: ChatRequestSnapshot, retryId?: string) => ChatRequestTicket | undefined;
   completeRequest: (ticket: ChatRequestTicket, response: ChatResponse, question: string) => void;
-  failRequest: (ticket: ChatRequestTicket, key: TranslationKey, fatal: boolean, ownerError: boolean) => void;
+  failRequest: (ticket: ChatRequestTicket, key: TranslationKey, fatal: boolean, ownerError: boolean, clarificationConflict?: boolean) => void;
 };
 
 function resetRoom(room: ChatConversationState, record: ConversationRecord, key: TranslationKey, keepSelection = false) {
   room.generation += 1;
   room.beautyContext = undefined;
+  room.dismissedClarificationId = undefined;
+  room.pendingClarification = undefined;
   room.beautyContextTurn = 0;
   room.snapshots.clear();
   if (!keepSelection) room.selection = { revision: room.selection.revision + 1, shades: {}, changed: {}, screen: undefined };
@@ -151,6 +174,8 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
           change(room, (draft) => {
             draft.entryProduct = screen;
             draft.selection.revision += 1;
+            draft.dismissedClarificationId = draft.pendingClarification?.id ?? draft.dismissedClarificationId;
+            draft.pendingClarification = undefined;
             draft.selection.screen = undefined;
             draft.selection.changed[entry.productId] = draft.selection.revision;
             if (entry.shadeId) draft.selection.shades[entry.productId] = entry.shadeId;
@@ -181,7 +206,7 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
     setStyle: (target, value) => { change(target, (room) => {
       room.styleContext = value ? { ...value } : undefined;
       room.styleRevision += 1;
-      room.category = value ? 'style' : 'product';
+      room.category = value ? 'style' : room.subject.type === 'product' || room.entryProduct ? 'product' : undefined;
     }); },
     clearProduct: (target) => { change(target, (room, record) => {
       room.entryProduct = undefined;
@@ -194,6 +219,8 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
       if (!current?.session || isChatSessionExpired(current.session.expiresAt) ||
         message.resultSetId !== current.session.resultSetId || !current.candidateIds.includes(productId)) return false;
       room.selection.revision += 1;
+      room.dismissedClarificationId = room.pendingClarification?.id ?? room.dismissedClarificationId;
+      room.pendingClarification = undefined;
       const shadeId = room.selection.shades[productId];
       room.selection.screen = { screenId: 'chat', productId, ...(shadeId ? { shadeId } : {}) };
       room.beautyContext = { ...current, selectedProductId: productId };
@@ -202,6 +229,8 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
       if (message.ownerKey !== room.ownerKey || message.generation !== room.generation) return false;
       const currentSession = room.beautyContext?.session;
       if (currentSession && (isChatSessionExpired(currentSession.expiresAt) || message.resultSetId !== currentSession.resultSetId)) return false;
+      room.dismissedClarificationId = room.pendingClarification?.id ?? room.dismissedClarificationId;
+      room.pendingClarification = undefined;
       const revision = room.selection.revision + 1;
       const shades = { ...room.selection.shades, [productId]: shadeId };
       room.selection = { revision, shades, changed: { ...room.selection.changed, [productId]: revision },
@@ -294,13 +323,20 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
           }
         }
 
+        if (response.pendingClarification && room.selection.revision !== snapshot.revision) {
+          room.dismissedClarificationId = response.pendingClarification.id;
+        }
+        if (room.selection.revision === snapshot.revision && response.sessionStatus) {
+          const pending = response.pendingClarification;
+          room.pendingClarification = pending?.id === room.dismissedClarificationId ? undefined : pending ?? undefined;
+        }
         room.snapshots.delete(messageId);
         const answer: ChatMessage = {
           id: `assistant-${++room.serial}`, role: 'assistant', text: response.answer,
           products: snapshot.generalMakeup && !response.resultType ? [] : response.products,
           question,
           category: response.styleRecipe || snapshot.generalMakeup ? 'style'
-            : response.resultType === 'recommendations' || response.resultType === 'product_detail' ? 'product' : snapshot.args.category,
+            : response.resultType === 'recommendations' || response.resultType === 'product_detail' || response.resultType === 'empty' ? 'product' : snapshot.args.category,
           ownerKey: room.ownerKey, generation: snapshot.generation, sessionStatus: response.sessionStatus,
           resultSetId: response.chatContext?.session?.resultSetId,
           screenContext: snapshot.args.screenContext,
@@ -318,7 +354,7 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
         })(record.messages);
         room.request = undefined;
     }); },
-    failRequest: (ticket, errorKey, fatal, ownerError) => { change(ticket, (room, record) => {
+    failRequest: (ticket, errorKey, fatal, ownerError, clarificationConflict = false) => { change(ticket, (room, record) => {
       if (!matches(room, ticket)) return false;
       const { messageId } = ticket;
       const snapshot = room.snapshots.get(messageId)!;
@@ -332,7 +368,12 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
         } else resetRoom(room, record, errorKey);
       }
       record.messages = record.messages.map((message) => message.id === messageId
-        ? { ...message, failed: true, errorKey, retryable: !fatal } : message);
+        ? { ...message, failed: true, errorKey, retryable: !fatal && !clarificationConflict } : message);
+      if (clarificationConflict) {
+        room.dismissedClarificationId = room.pendingClarification?.id ?? room.dismissedClarificationId;
+        room.pendingClarification = undefined;
+        room.snapshots.delete(messageId);
+      }
       if (!snapshot.automatic && !room.draft) room.draft = snapshot.args.message;
       room.request = undefined;
     }); },

@@ -76,37 +76,43 @@ def main():
         ),
     )
     if args.smoke_output:
-        from fastapi.testclient import TestClient
-
         from app.main import create_app
+        from fastapi.testclient import TestClient
 
         if args.smoke_output.exists():
             raise ValueError("Choose a new smoke output path")
-        source = ROOT / "ml/data/recommendation-v2/model-ready-20261111/x_metadata.csv"
-        with source.open(encoding="utf-8-sig", newline="") as stream:
-            rows = list(csv.DictReader(stream))
         examples = {}
-        for row in rows:
-            if row["included_in_x"] != "true":
-                continue
-            scores = {
-                "pores": float(row["pore_score"]),
-                "pigmentation": float(row["pigmentation_score"]),
-                "wrinkles": float(row["wrinkle_score"]),
-            }
-            goal = max(scores, key=scores.get)
-            examples.setdefault(
-                goal,
-                {
-                    "ageGroup": row["age_group"],
-                    "gender": row["gender"],
-                    "skinType": row["skin_type"],
-                    "scores": scores,
-                    "analysisVersion": "skin-analysis-v4",
+        if os.environ["RECOMMENDATION_MODEL"] == "recommend-cat-v4":
+            source = ROOT / "ml/data/recommendation-v2/reviewed-acne-v41-20261117/test.jsonl"
+            with source.open(encoding="utf-8") as stream:
+                rows = [json.loads(line) for line in stream if line.strip()]
+            for row in rows:
+                data, numeric = row["base_x"], row["image_scores"]
+                scores = {"pores": numeric["pore_score"], "pigmentation": numeric["pigmentation_score"],
+                          "wrinkles": numeric["wrinkle_score"], "acne": numeric["acne_score"]}
+                goal = max(("pores", "pigmentation", "wrinkles"), key=scores.get)
+                examples.setdefault(goal, {
+                    "ageGroup": data["age_group"], "gender": data["gender"],
+                    "skinType": data["skin_type"], "scores": scores,
+                    "analysisVersion": "skin-analysis-v4.1", "scoreKind": "binary_caution_probability",
+                    "aggregation": "mean-cheeks-pore-tone-eyes-wrinkle-v1",
+                })
+        else:
+            source = ROOT / "ml/data/recommendation-v2/model-ready-20261111/x_metadata.csv"
+            with source.open(encoding="utf-8-sig", newline="") as stream:
+                rows = list(csv.DictReader(stream))
+            for row in rows:
+                if row["included_in_x"] != "true":
+                    continue
+                scores = {"pores": float(row["pore_score"]), "pigmentation": float(row["pigmentation_score"]),
+                          "wrinkles": float(row["wrinkle_score"])}
+                goal = max(scores, key=scores.get)
+                examples.setdefault(goal, {
+                    "ageGroup": row["age_group"], "gender": row["gender"], "skinType": row["skin_type"],
+                    "scores": scores, "analysisVersion": "skin-analysis-v4",
                     "scoreKind": "binary_caution_probability",
                     "aggregation": "mean-cheeks-pore-tone-eyes-wrinkle-v1",
-                },
-            )
+                })
         results = []
         with TestClient(create_app()) as client:
             for body in examples.values():

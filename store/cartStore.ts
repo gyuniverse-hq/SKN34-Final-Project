@@ -31,14 +31,17 @@ interface CartState {
 function addInto(items: CartItem[], item: Omit<CartItem, 'quantity'>, quantity: number): CartItem[] {
   const key = cartLineKey(item);
   const existing = items.find((i) => cartLineKey(i) === key);
-  if (existing) {
-    return items.map((i) =>
-      cartLineKey(i) === key
-        ? { ...i, quantity: Math.min(i.quantity + quantity, MAX_QUANTITY) }
-        : i
-    );
+  const previousQuantity = existing?.quantity ?? 0;
+  const nextQuantity = Math.min(previousQuantity + quantity, MAX_QUANTITY);
+  const next = { ...(existing ?? item), quantity: nextQuantity };
+  if (existing?.arCartSources || item.arCartSources) {
+    const sources = Array.from({ length: nextQuantity }, (_, index) => index < previousQuantity
+      ? existing?.arCartSources?.[index] ?? null
+      : item.arCartSources?.[index - previousQuantity] ?? null);
+    if (sources.some(Boolean)) next.arCartSources = sources;
+    else delete next.arCartSources;
   }
-  return [...items, { ...item, quantity: Math.min(quantity, MAX_QUANTITY) }];
+  return existing ? items.map(i => i === existing ? next : i) : [...items, next];
 }
 
 export const useCartStore = create<CartState>()(
@@ -54,9 +57,15 @@ export const useCartStore = create<CartState>()(
           items:
             quantity <= 0
               ? s.items.filter((i) => cartLineKey(i) !== key)
-              : s.items.map((i) =>
-                  cartLineKey(i) === key ? { ...i, quantity: Math.min(quantity, MAX_QUANTITY) } : i
-                ),
+              : s.items.map((i) => {
+                if (cartLineKey(i) !== key) return i;
+                const next = { ...i, quantity: Math.min(quantity, MAX_QUANTITY) };
+                // Remove the last units first. Later increases create unattributed units.
+                const sources = i.arCartSources?.slice(0, next.quantity);
+                if (sources?.some(Boolean)) next.arCartSources = sources;
+                else delete next.arCartSources;
+                return next;
+              }),
         })),
       remove: (key) => set((s) => ({ items: s.items.filter((i) => cartLineKey(i) !== key) })),
       clear: () => set({ items: [] }),
@@ -65,10 +74,14 @@ export const useCartStore = create<CartState>()(
       completePayment: (orderId) =>
         set((s) => {
           if (s.pendingPayment?.orderId !== orderId) return s;
-          const paid = new Map(s.pendingPayment.items.map((item) => [cartLineKey(item), item.quantity]));
+          const paid = new Map(s.pendingPayment.items.map((item) => [cartLineKey(item), item]));
           return {
             // Preserve any line edited while payment was open instead of deleting new user changes.
-            items: s.items.filter((item) => paid.get(cartLineKey(item)) !== item.quantity),
+            items: s.items.filter((item) => {
+              const ordered = paid.get(cartLineKey(item));
+              return ordered?.quantity !== item.quantity ||
+                JSON.stringify(ordered?.arCartSources) !== JSON.stringify(item.arCartSources);
+            }),
             pendingPayment: null,
           };
         }),

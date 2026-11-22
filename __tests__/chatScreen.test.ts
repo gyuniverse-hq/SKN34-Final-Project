@@ -128,7 +128,7 @@ describe('selected Style recipe flow', () => {
     expect(listChat.root.findAllByType(StyleRecipeResult)).toHaveLength(0);
     expect(listChat.root.findAllByType(Text).some((node) => node.props.children === 'chat.entry.context')).toBe(false);
     await submit(listChat, '그라데이션 립 어떻게 해?');
-    expect(mockMutateAsync.mock.calls[1][0].category).toBe('product');
+    expect(mockMutateAsync.mock.calls[1][0].category).toBeUndefined();
     expect(mockMutateAsync.mock.calls[1][0].styleContext).toBeUndefined();
     await act(async () => listChat.unmount());
 
@@ -267,6 +267,45 @@ describe('server session recovery', () => {
   }
   function texts(view: ReactTestRenderer) { return view.root.findAllByType(Text).map((n) => n.props.children); }
 
+  it('G3 sends pending and complete recent turns and preserves the session on question conflict', async () => {
+    const pending = { id: '10000000-0000-4000-8000-000000000009', missingSlot: 'shade', productId: 'p1',
+      resultSetId: context.session!.resultSetId, createdRequestId: 'r', createdStateVersion: 1,
+      expiresAt: context.session!.expiresAt, ingredientConditions: [{ ingredientName: '향료', operator: 'includes' }] };
+    mockMutateAsync.mockResolvedValueOnce({ answer: '몇 호인가요?', products: [], chatContext: context,
+      pendingClarification: pending, sessionStatus: 'stored', resultType: 'clarification' })
+      .mockRejectedValueOnce(new ApiError('Question changed', 409, 'chat_clarification_conflict'))
+      .mockResolvedValueOnce({ answer: '다시 확인', products: [], chatContext: context, sessionStatus: 'unchanged' });
+    const view = await renderScreen();
+    await send(view, '첫 번째 제품에 향료 있어?');
+    await send(view, '03호');
+    const args = mockMutateAsync.mock.calls[1][0];
+    expect(args.clarificationId).toBe(pending.id);
+    expect(args.recentMessages.map((m: { text: string }) => m.text)).toEqual(['첫 번째 제품에 향료 있어?', '몇 호인가요?']);
+    await send(view, '첫 번째 상품 다시 확인');
+    expect(mockMutateAsync.mock.calls[2][0].chatContext.session).toEqual(context.session);
+    expect(mockMutateAsync.mock.calls[2][0].clarificationId).toBeUndefined();
+    await act(async () => view.unmount());
+  });
+
+  it('retains the session through a general makeup explanation and the next product reference', async () => {
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'List', products: [], chatContext: context })
+      .mockResolvedValueOnce({ answer: 'General explanation', products: [], chatContext: context, sessionStatus: 'unchanged' })
+      .mockResolvedValueOnce({ answer: 'Second product', products: [], chatContext: context });
+    const view = await renderScreen();
+    await send(view, '립 제품 추천해줘');
+    await send(view, '그라데이션 립 어떻게 해?');
+    const general = mockMutateAsync.mock.calls[1][0];
+    expect(general.generalMakeup).toBe(true);
+    expect(general.chatContext.session).toEqual(context.session);
+    expect(general.screenContext).toBeUndefined();
+    expect(general.styleContext).toBeUndefined();
+    expect(view.root.findAllByType(ChatProducts)).toHaveLength(0);
+    await send(view, '두 번째 제품 보여줘');
+    expect(mockMutateAsync.mock.calls[2][0].chatContext.session).toEqual(context.session);
+    expect(mockMutateAsync.mock.calls[2][0].generalMakeup).toBeUndefined();
+    await act(async () => view.unmount());
+  });
+
   it('reopens general chat and isolates two products, their shades and the first unseeded question', async () => {
     const firstShadeEvidence = { productId: 'p1', shadeId: 'p1-01', verdict: 'UNKNOWN', status: 'unknown',
       mappingStatus: 'candidate', ingredientCoverage: 'unknown', reviewStatus: 'unreviewed',
@@ -322,7 +361,7 @@ describe('server session recovery', () => {
     const saved = useChatConversationStore.getState().conversations[general].view;
     expect(changed).toHaveBeenCalledTimes(2);
     expect(beforeEdit.conversation.draft).toBe('');
-    expect(beforeEdit.conversation.category).toBe('product');
+    expect(beforeEdit.conversation.category).toBeUndefined();
     expect(useChatConversationStore.getState().conversations[general].conversation).not.toBe(beforeEdit.conversation);
     unsubscribe();
     expect(saved.category).toBe('ingredient');
@@ -822,6 +861,28 @@ describe('ingredient selection and request snapshots', () => {
 });
 
 describe('standalone chat input', () => {
+  it('starts without a category and retains explicit product selection for the next request', async () => {
+    mockMutateAsync.mockResolvedValue({ answer: 'Answer', products: [] });
+    const renderer = await renderScreen();
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('립 제품 추천해줘'); });
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    expect(mockMutateAsync.mock.calls[0][0]).toEqual(expect.objectContaining({ category: undefined }));
+    await act(async () => { buttonWithText(renderer.root, 'chat.ui.product').props.onPress(); });
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('립 제품 추천해줘'); });
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    expect(mockMutateAsync.mock.calls[1][0]).toEqual(expect.objectContaining({ category: 'product' }));
+    await act(async () => { renderer.unmount(); });
+  });
+
+  it('shows a real empty result in a category-free conversation', async () => {
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'No products', products: [], resultType: 'empty' });
+    const renderer = await renderScreen();
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText('없는 립 보여줘'); });
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    expect(renderer.root.findAllByType(Text).some((item) => item.props.children === 'chat.ui.noProducts')).toBe(true);
+    await act(async () => { renderer.unmount(); });
+  });
+
   it('carries effective filters and candidate order into a follow-up', async () => {
     mockMutateAsync.mockResolvedValueOnce({ answer: 'Candidates', products: [], chatContext: beautyContext })
       .mockResolvedValueOnce({ answer: 'Details', products: [] });
@@ -830,8 +891,8 @@ describe('standalone chat input', () => {
       await act(async () => { renderer.root.findByType(TextInput).props.onChangeText(text); });
       await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
     }
-    expect(mockMutateAsync.mock.calls[0][0]).toEqual(expect.objectContaining({ message: '2만원 이하 립 추천', locale: 'ko', category: 'product' }));
-    expect(mockMutateAsync.mock.calls[1][0]).toEqual(expect.objectContaining({ message: '두 번째 제품 자세히', locale: 'ko', category: 'product', chatContext: beautyContext }));
+    expect(mockMutateAsync.mock.calls[0][0]).toEqual(expect.objectContaining({ message: '2만원 이하 립 추천', locale: 'ko', category: undefined }));
+    expect(mockMutateAsync.mock.calls[1][0]).toEqual(expect.objectContaining({ message: '두 번째 제품 자세히', locale: 'ko', category: undefined, chatContext: beautyContext }));
     await act(async () => { renderer.unmount(); });
   });
 
@@ -1178,4 +1239,13 @@ describe('structured consultation outcomes', () => {
     expect(texts).not.toContain('chat.ui.retry');
     await act(async () => { renderer.unmount(); });
   });
+  it('keeps 1000 Unicode code points in the composer without splitting emoji', async () => {
+    const view = await renderScreen();
+    await act(async () => view.root.findByType(TextInput).props.onChangeText('😀'.repeat(1001)));
+    expect(view.root.findByType(TextInput).props.value).toBe('😀'.repeat(1000));
+    await act(async () => view.root.findByType(TextInput).props.onChangeText('e\u0301'.repeat(501)));
+    expect(Array.from(view.root.findByType(TextInput).props.value)).toHaveLength(1000);
+    await act(async () => view.unmount());
+  });
+
 });

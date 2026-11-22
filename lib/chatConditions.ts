@@ -2,7 +2,7 @@ import type { BeautyChatFilters, ProductCategory } from '@/types';
 import type { TranslationKey } from '@/lib/i18n';
 
 export type ChatCondition = {
-  kind: 'category' | 'maxPrice' | 'fragranceFree' | 'moisturizing' | 'ingredient';
+  kind: 'category' | 'maxPrice' | 'fragranceFree' | 'moisturizing' | 'ingredient' | 'texture';
   text: string;
   required: boolean;
   value?: ProductCategory | number;
@@ -13,6 +13,8 @@ export function conditionsFromChatFilters(
   filters: BeautyChatFilters, t: (key: TranslationKey, params?: Record<string, string | number>) => string
 ): ChatCondition[] {
   const result: ChatCondition[] = [];
+  if (filters.texture === 'matte') result.push({ kind: 'texture', required: true,
+    text: t('ar.texture.matte') });
   if (filters.category) result.push({ kind: 'category', required: true, value: filters.category,
     text: t(`shop.cat.${filters.category}`) });
   if (filters.maxPriceKRW !== null) result.push({ kind: 'maxPrice', required: true,

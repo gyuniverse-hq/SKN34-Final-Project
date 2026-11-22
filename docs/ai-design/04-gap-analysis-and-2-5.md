@@ -1,0 +1,165 @@
+# VISHUE AI — 기존 설계 대조·충돌 기록 및 2-5 인계
+
+> 기준: `develop d1cf4868f74d2ff6db188bf2c7646146f3ec72ad` (2026-11-14 KST)  
+> 상태: **읽기 기반 정적 분석**. 브랜치 작업은 문서 작성만. 운영 상태·실제 데이터 최신성·실기기 E2E 결과를 새로 검증하지 않았다.
+> 관련: [상위 목차](README.md), [1단계 승인](01-user-experience.md), [2단계 구조](02-architecture.md), [2-4 실행 계약](03-execution-contracts.md).
+
+## 1. 검토한 기존 문서
+
+| 기존 문서 | 현재의 역할 | 이번 새 문서와의 관계 |
+| --- | --- | --- |
+| [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md) | 앱·Gateway·API/Chatbot·DB 소유권 및 운영 구조 | 기존 런타임 사실의 기준. 이번 문서는 목표 AI 내부 구조를 보완 |
+| [`docs/deliverables/vishue-system-architecture-spec.md`](../deliverables/vishue-system-architecture-spec.md) | 10/28 기준 제출용 시스템 명세 | **과거 시점 스냅샷**, LangGraph 미도입 표기를 최신 목표 미승인으로 혼동 금지 |
+| [`docs/adr/0001-two-backend-services.md`](../adr/0001-two-backend-services.md) | API/Chatbot 서비스 분리 | 유지 |
+| [`docs/adr/0002-postgres-source-neo4j-copy.md`](../adr/0002-postgres-source-neo4j-copy.md) | Catalog PostgreSQL 원본·Neo4j 사본, 서비스 소유권 | 유지. 새 챗봇 영속 데이터의 소유권은 별도 ADR 필요 |
+| [`docs/adr/0007-observability.md`](../adr/0007-observability.md) | JSON 로그·요청 ID·Langfuse 관측 결정 | 기존 결정 존중; Agent trace 및 사용자 미디어/개인정보 제한 추가 검토 |
+| [`docs/adr/0008-aws-environments.md`](../adr/0008-aws-environments.md), [`0009`](../adr/0009-render-dev-environment.md) | 초기 dev/운영 인프라 결정 및 dev 대체 | 최신 로컬·운영 배포 사실과 구분 |
+| [`docs/ai-alignment/README_FIRST.md`](../ai-alignment/README_FIRST.md) | 10/31 AI 평가·Codex 인계 자료 | 기존 평가 원본/Gold 검수 상태 보존. 새 12개 과업 화이트리스트 아님 |
+| [`docs/INGREDIENT_CONSULTATION.md`](../INGREDIENT_CONSULTATION.md) | 성분 검증·오류·회귀 계약 | Tool/근거 검증에 재사용. 모든 자연 대화 정책을 대표하지는 않음 |
+| [`docs/AIHUB_DATA_RIGHTS.md`](../AIHUB_DATA_RIGHTS.md) | AIHub 원문·발췌 보관 및 이용권한 | 서비스 RAG·외부 모델 제공 승인 전 제한 유지 |
+| [`docs/AIHUB_REVIEW_CONTRACT.md`](../AIHUB_REVIEW_CONTRACT.md) | QA/문서/주장 검수·권한·발행 계약 | 승인 자료 0건 기준 기록; 현재 DB 실측 아님 |
+| [`docs/LOOK_FLOW_SPEC.md`](../LOOK_FLOW_SPEC.md), [`docs/AR_SPEC.md`](../AR_SPEC.md) | 기존 룩·AR 실행·카메라 개인정보·시연 범위 | 기존 AR 내부 소유권 유지. 대화 통합·업로드/음성 정책만 별도 설계 |
+| [`docs/LAUNCH_CHECKLIST.md`](../LAUNCH_CHECKLIST.md) | 출시 전 개인정보·실기기 등 수동 확인 | 기존 '마이크 권한 없음/이미지 수집 없음' 가정은 새 목표와 재검토 필요 |
+
+## 2. 목표 설계와 기존 명세·구현의 차이
+
+| ID | 현재 근거 | 이번 목표 설계 | 차이 유형 및 처리 |
+| --- | --- | --- | --- |
+| G-01 | 기존 `ChatService.route_intent/build_plan`; `compound_request_unsupported` | 복합 자유 질문·다단계 계획·재판단 | **설계 변경 필요**: 단일 intent/정규식 분기는 전문 Tool 내부에만 남기고 Supervisor가 목표 조정 |
+| G-02 | `schemas/supervisor.py` `TaskPlan.tasks` 최대 2개, 단일 ToolResult | 작업 DAG·병렬/Handoff/부분성공 | **새 계약 제안**, 실제 API·Graph 스키마 미확정 |
+| G-03 | `backend/chatbot/pyproject.toml`에 LangGraph 의존성 없음 | LangGraph·Checkpointer | **미구현** |
+| G-04 | Redis `ChatSessionRepository` 600초 이하 TTL, WATCH 버전 검증 | 장기 이력+동의 기억+장애 재개 | **범위 차이**: 현재 Redis 세션 검증 재사용하되 영속 대화 별도 |
+| G-05 | `docs/ARCHITECTURE.md`와 ADR-0002는 'PostgreSQL은 API만 접근' | 챗봇 영속 Checkpointer/기억을 위한 PG 후보 | **잠재적 ADR 충돌**: Catalog DB와 챗봇 전용 데이터/자격증명 분리, 서비스 소유권 명시 |
+| G-06 | 기존 AR_SPEC 및 `docs/ARCHITECTURE.md`에서 실시간 얼굴 프레임 기기 내 | 사용자 제공 이미지·영상은 명시적 동의 후 서버 분석 가능 | **동의·입력 범위 차이**: 실시간 AR 프레임 비전송 유지, 별도 업로드·외부 LLM 제공 정책 새로 설계 |
+| G-07 | 피부 분석 코드에 별도 `lib/skinServer.ts` 서버 전송 경로 존재 | 피부 분석 결과 활용·선별 동의 | **문서 정합성 점검**: '얼굴 영상은 항상 기기 밖으로 안 나감'의 예외 범위·해당 모드 고지 확인 필요 |
+| G-08 | `lib/arCommandAck.ts`의 ACK outbox는 개발용/JS 프로세스 메모리; 일부 AR 복원 코드 | 영속 Action Ledger/Outbox, ACK 장애 복구 | **미구현·설계 제안**; 같은 명령 중복 적용 금지, AR 담당 계약 합의 |
+| G-09 | `ChatService` 운영 AR 요청 저장소 미구성 시 503 차단 | 사용자 요청 후 실제 AR 상태 변경·ACK | **운영 통합 미검증**; 코드의 직접 변경 금지, 2-6 인계 |
+| G-10 | `ChatRequest`는 텍스트 문자열·맥락 중심, `LlmClient.complete`는 텍스트 응답 | 미디어·STT·TTS·구조화 Tool Calling | **미구현**; 미디어 참조·원문 최소화·접근 통제 계약 필요 |
+| G-11 | `backend/api/app/schemas/style_look.py`는 스타일 룩·연결 상품 정보 제공, 검수 레시피 응답 없음 | S05/S12의 검수 레시피·단계별 코칭 | **데이터/API 공백**; 실제 승인 레시피 수량·발행 경로 3단계 실사 |
+| G-12 | §AIHUB_DATA_RIGHTS.md§의 공용 서비스/외부 LLM 전송 제한, 승인 근거 0건 | **D3-01:** 71961의 국내 로컬 RAG 구축·검색·평가는 적극 개발 후보. 처리 허용·서비스 발행/외부 전송은 별도 확인 | 서비스·외부 원문 전송 BLOCKED 유지, 허용/합성 자료로 개발 병행·권리 Gate 분리 |
+| G-13 | Neo4j는 API 동기화 기반 관계 사본 | Neo4j+Vector Search 하이브리드 검색 | **검색 설계 미확정**: 승인된 데이터의 색인, 원본 검증, 갱신/철회 규칙 필요 |
+| G-14 | ADR-0007은 Langfuse를 관측 도구로 채택(도입 자체는 별개) | Agent 실행·비용·품질 추적 | **기존 결정과 도구 재선택 주의**: LangSmith로 무단 교체하지 않음, 민감 데이터 기록 최소화 |
+| G-15 | 10/31 평가 패키지: 359건, Gold 승인 0 기록 | 14개 능력·12개 과업의 자유 대화·복합 평가 | **평가 목적 차이**: 기존 평가 보존, 새 사용자 목표 평가 기준은 4단계 합의 |
+| G-16 | 이전 PR #227~#232 모두 Closed·미병합, PR #229·#231 누적 의존 | 데이터 검증·평가 자산 재사용 | **코드 재통합 선결**: 최신 develop과 독립 diff·마이그레이션 번호 충돌 검증 필요 |
+| G-17 | `docs/LAUNCH_CHECKLIST.md`의 '마이크 권한 요청 없음/이미지 수집 없음' 기존 출시 가정 | STT/TTS·동의된 업로드·사진/영상 기반 상담 | **출시/개인정보 명세 충돌**: 개인정보 처리방침·권한·보존·동의·스토어 라벨·시연 안내 갱신 필요 |
+| G-18 | 기존 사용자 기획의 한·영·일 3개 언어 기준, `lib/i18n/languages.ts`와 챗봇 `Locale`는 `en/ko/ja/zh` 4개 로케일 | 다국어 대화·STT/TTS·AR 음성의 전 언어 경험 | **OPEN-LANG-01**: UI/요청 타입의 중국어 코드 존재는 확인. 공식 출시 언어 확대·언어별 기능 품질·음성 지원은 사용자/팀 미결정. [1단계 언어 대조](01-user-experience.md), [결정 로그](DECISIONS.md) |
+
+위의 G-07과 G-17, G-18은 새 설계가 기존 내용을 무효화했다는 주장보다 **기능별 처리 경계를 분명히 해야 하는 충돌·점검 지점**으로 기록한다.
+
+## 3. 기존 PR #227~#232 재사용 원칙
+
+| 기존 PR | 유용한 내용 | 이번 변경에 적용할 때 |
+| --- | --- | --- |
+| #227 | AIHub 원본·검수·주장 이력 | 권리 확인과 공개 발행 상태 분리, 기존 `0019` 마이그레이션 번호 그대로 재사용 금지 |
+| #228 | 옵션 검색·수집가/현재가·성분 판정 | Catalog Tool 계약을 최신 API 기준으로 재작성 |
+| #229 | 승인 근거 발행·철회·Redis 재검증 | 데이터/근거 코드는 보존 후보, 단일 기능 오케스트레이션은 새 계획 계약에 맞춰 재평가 |
+| #230 | 36개 후보·47턴·379 assertion 및 채점기 | 기존 구조에 종속된 예상값은 재평가, Gold 승인으로 표시 금지 |
+| #231 | 옵션 원문·관측·sourceVersion | 원본 귀속/완전성/검수·버전 재검증 보존 |
+| #232 | 격리 실행·관측 | 새 Tool/Agent trace와 연결, mock PASS와 실제 LLM PASS 구분 |
+
+현재 `develop` Alembic은 기존 `0019`를 넘어 후속 마이그레이션이 존재한다. 기존 PR 마이그레이션을 cherry-pick 하는 대신 최신 기준으로 선형 재구성하고 격리 DB 마이그레이션/복구를 검증한다. **이 문서 작업은 코드 이식·PR 재개·통합 완료를 수행하지 않았다.**
+
+## 4. 상태 증거 규칙
+
+- **EXISTING-CODE**: GitHub 파일과 해당 커밋에서 코드가 보인다는 의미.
+- **TESTED**: 실제 실행한 명령/환경/데이터/결과를 기록한 경우에만.
+- **VERIFIED-E2E**: 실제 LLM, DB, API, 앱, AR 실기기 등의 각각 명시된 범위가 확인된 경우에만.
+- **PROPOSED**: 문서상의 권장 설계. 기술 담당/팀 합의 필요.
+- **ACCEPTED-USER**: 제품 목표·정책에 대한 사용자 승인. 운영 배포 완료가 아님.
+- **BLOCKED**: 권한·데이터/원본 미비 등 전제조건이 충족되지 않은 상태.
+
+## 5. 2-5 Tool·근거·데이터 접근 설계 인계
+
+2-5에서는 아직 최종 결정하지 않은 다음 기술 계약을 구체화해야 한다.
+
+| 설계 대상 | 필요한 결정과 증거 | 현재 상태 |
+| --- | --- | --- |
+| Tool Registry | 등록·입력 출력 스키마·인증·권한·타임아웃·멱등성·실패 정책 | PROPOSED |
+| Catalog Tool | 상품·판매 옵션/`shadeId`·가격 유형·기준시각·재고·조회 범위·현재값 vs 수집값 | 현재 일부 코드, 상세 계약 필요 |
+| Ingredient Tool | 정확한 옵션 귀속·원문 완전성·MFDS 매핑·MATCH/NOT_MATCH/UNKNOWN/ERROR·철회·sourceVersion | 기존 성분 검증 재사용 후보, 실제 승인 근거 확보 별개 |
+| Style Tool | 룩 ID, 검수 단계, 영상 구간·관찰 범위, 상품·호수·AR 지원 | 실제 검수 레시피 수량/서빙 경로 미확인 |
+| Knowledge/RAG | 권리 선행 검사, AIHub 71961 국내 로컬 QA→문서→주장·청킹/임베딩/검색·평가, 최신 발행/철회 | 로컬 개발 후보 ACTIVE(D3-01), 공용 서비스/외부 LLM 원문 제공은 별도 승인 전 BLOCKED; 허용 자료로 개발 병행 |
+| Neo4j·VectorDB | 승인된 원본 → 색인 동기화, 버전 일치, 정본 재조회, 검색 결합·성능 측정 | 벡터 기술·인덱스 미결정 |
+| Media/Skin Tool | 사용자 동의·외부 업로드·보관·삭제, 관찰과 추정 구분, 피부 분석 버전·불확실성 | 2-5/3단계 상세 필요 |
+| AR Action | 실제 상품·호수 확인, Action Ledger/ACK/Undo/복원 및 동일 ID 멱등성 | AR 담당과 2-6 계약 예정 |
+| 오류·감사 | 권한 차단, 미확인, 조회 실패, 부분 성공, 분산 Trace·비용·실제 E2E | 2-7/4단계 상세 필요 |
+
+**다음 진행 위치: 2-5.** 1단계의 제품 범위와 2-4 실행 정책을 유지하고 Tool/근거 경계를 정식 상세 설계한다. 신규 기술 결정은 필요한 경우 ADR을 작성하며, 현재 `develop`의 기존 아키텍처·운영 코드·ADR을 이번 브랜치에서 직접 수정하지 않는다.
+
+## 6. 2026-11-15 추적 변경
+
+- **G-18** 추가: 한·영·일 기존 서비스 기획과 중국어까지 존재하는 코드 로케일의 차이. 출시·LLM·STT·TTS·AR 음성별 지원 범위를 **OPEN-LANG-01**로 미결정 처리.
+- 2-5의 구체 Tool 연결·응답·검증·오류·권한·테스트 계약은 [06 구현 계약](06-tool-implementation-contracts.md)에 추가. 본 충돌 문서의 기존 근거·판단은 교체하지 않았음.
+- 신규 상태는 **PROPOSED / CODE-INSPECTED**, 실제 배포 또는 E2E 통과 아님.
+
+## 7. 한국어 우선 결정과 데이터 동기화 추가 대조 (2026-11-15)
+
+- **VAI-D-013 (ACCEPTED-USER)**: 한국어(`ko`) 1차 구현·평가 언어 확정. 14개 능력·12개 시나리오와 기존 `en/ja/zh` 로케일 코드는 변경하지 않음.
+- **G-18 / OPEN-LANG-01 부분 해소**: 기존 한·영·일 목표 vs 코드상의 `en/ko/ja/zh` 로케일 차이는 유지. 한국어 AI 구현·평가 범위는 확정했으나 `en/ja/zh`의 실제 자유 대화·음성·AR 지원 시점·출시 범위는 미결정. [07 언어 계약](07-ko-first-language-and-evaluation.md).
+- **G-19 / DB 동기화 검토**: 현행 `GraphSyncService.sync()`는 Catalog API 전체 상품·룩 조회 후 Neo4j `replace_catalog()` 전체 교체; 원본 소스 스냅샷·그래프 버전·권리 철회 전파와 벡터 색인 동기화는 새 목표 계약에 맞게 상세화 필요.
+- **G-20 / 성분 관계 오해**: `graph_sync_service.py`가 `key_ingredients`를 그래프 Ingredient 관계로 저장하는 것은 **검수된 전성분**의 존재/부재 증거가 아니다. 옵션별 검수·원본 버전은 Catalog API에서 재확인해야 함.
+- **G-21 / 옵션 검색 데이터**: raw 옵션·가격 스냅샷은 존재하지만 현재 공개 `GET /api/products`는 옵션별 복합 가격·성분 필터를 직접 제공하지 않음. 가격 `is_latest`는 수집 관측상 최신이지 실시간 판매가 보증이 아님.
+- G-19~21의 기술 검토·대안·미실행 테스트는 [08 옵션·근거·DB 동기화 계약](08-option-search-evidence-and-sync.md)을 기준으로 한다. 기존 G-01~18 판단은 삭제·철회하지 않음.
+
+**구분:** 정적 코드 확인(EXISTING-CODE) / 새 API·색인 계약(PROPOSED) / 한국어 범위 채택(ACCEPTED-USER) / 운영 DB·실제 조회·STT/TTS·E2E(NOT TESTED). 본 변경은 코드/기존 ADR에 적용된 것이 아니다.
+
+## 8. 2-6 공유 코드/서비스 배치의 추가 차이 (2026-11-15)
+
+| 항목 | 현재 코드 근거 | 새 책임·연동 목표 | 상태 |
+| --- | --- | --- | --- |
+| G-22 | `backend/chatbot/app/routers/chat.py`는 `POST /api/chat` 및 `POST /api/chat/acks` 공용; `ChatService.execute_tool`은 일반/AR 분기 | 일반 LLM/AR AI **개발 담당은 분리**, 같은 FastAPI 서비스 유지 가능. 별도 서비스 배치 미결정 | **공동 코드 소유·변경 승인 필요** |
+| G-23 | `app/chat.tsx`의 `onOpenAr`와 `lib/routes.ts::arHref`는 `productId/shadeId`로 AR 이동; `useArRouteSelection`은 Catalog 재조회 | 기본 이동 경로 보존, 최소 `handoffId`와 AR 측 **검증된 결과 이벤트**로 일반 상담 복귀 맥락 추가 | **Handoff B 우선, 이벤트 구현 미확인** |
+| G-24 | `lib/arCommandAck.ts`는 JS 프로세스 메모리 Outbox; `useArCommand`과 `makeupStore`는 일부 상태 검증/실패 복원 | AR에서 실제 렌더·ACK/Undo/Restore 상태를 소유하고 일반 AI에는 **읽기 전용 결과** 전달 | **영속·세션 만료 복구 미구현, AR 담당 협의 필요** |
+| G-25 | 현재 `ChatRequest`는 일반/AR 요청 타입이 공용이며 일반 요청은 일부 AR 입력 무시, 클라이언트 AR 제안은 변경으로 확정되지 않음 | 구형 요청 호환과 새로운 Handoff/응답 `schemaVersion` 어댑터, 팀별 담당 범위·계약 테스트 | **공용 파일 단일 변경 책임자 확정 필요** |
+
+기존 2서비스 ADR(API/Chatbot), 현재 `backend/chatbot` 배치는 유지한다. 팀이 승인하기 전 AR AI 서비스 분리·새 엔드포인트·음성 엔진을 기존 구현 또는 확정 결정으로 기록하지 않는다. **일반 LLM만 기능별 순차 구현·테스트·PR 병합**하며 AR/AR AI 팀은 독립 작업 가능하되 공용 인터페이스 변경은 사전 합의와 관련 통합 E2E가 필수이다.
+
+### 변경 기록
+- 2026-11-15: G-22~25 공유 라우트·앱 인계·ACK·스키마 차이 및 책임·물리 서비스 분리의 미결정 상태 추가. 기존 G-01~21과 2-5 설계 종료 결론 유지.
+
+## 9. 2-7 전체 구현·통합 가능성 감사: 남은 실제 공백
+
+> 상태: **REVIEW-CONCLUSION 2026-11-15**. 코드 정적 확인이며, 새 CI·DB·실제 LLM/실기기 테스트는 실행하지 않음. 기존 G-01~25의 변경/삭제 없이 **2-7 구현 진입 관문**으로 묶는다.
+
+| 식별 | 현행 코드/기존 자료 | 실제 구현 전 필요한 계약·판정 | 담당 또는 인계 |
+| --- | --- | --- | --- |
+| G-26 | `backend/chatbot/pyproject.toml`에는 `langgraph` 의존성 없음, `ChatService.build_plan`에 복합 요청 중단 | G1 최소 LangGraph 실제 실행·입출력/AR 경로 호환, G7/8 영속·복합 업무 별도 확장 | 일반 LLM |
+| G-27 | `llm_client.py`는 일반 텍스트 chat completions 래퍼 | 구조화 호출/검증·LLM 실패 재시도, Tool 허용/권한·비용·시간 제한 | 일반 LLM, 실제 LLM 통합 미검증 |
+| G-28 | `app/chat.tsx` / `ChatProducts.tsx`는 로컬 상품 카드·`priceKRW` 조건 일부 추정 | 서버 검증된 실옵션/가격 basis·`ELIGIBLE/REFERENCE_ONLY/EXCLUDED`·오류 상태 렌더/실제 앱 검증 | 일반 LLM(출력 계약) + **UI 담당 확인 필요** |
+| G-29 | 현재 `/api/chat`·`/api/chat/acks`, `ChatService`, `schemas/chat.py` 공용 | 첫 G1 전에 변경 책임자·필수 AR 리뷰·기존 AR 명령/ACK 회귀 테스트 확정 | 일반 LLM + AR AI 공동 |
+| G-30 | `lib/routes.ts::arHref`·`useArRouteSelection`은 제품/호수 인계·AR 조회, 현재 복귀 이벤트는 미확인 | `handoffId/eventId/arEventSeq/arStateVersion`를 권한 검증해 일반 상담에 반영, 중복·오래된 이벤트 차단 | 일반 LLM + AR/AR AI + UI 공동 |
+| G-31 | `ChatSessionRepository` Redis TTL≤600초, 앱 대화방 Zustand | 영속 LangGraph Checkpointer·별도 사용자 동의 Memory·삭제/복구/owner 경계 | 일반 LLM, DB 소유/보안 ADR 필요 |
+| G-32 | `GraphSyncService`/Neo4j 파생 사본, `keyIngredients`는 부분 성분 | 전성분 부재/무향료를 Graph에 추론 금지, 실제 Catalog API 정본 재검증, 인덱스 권리 철회 | 일반 LLM + Catalog/데이터 |
+| G-33 | AIHub 원문 권리·승인/발행 상태는 서비스용 자료 보장 안 됨 | 허용 출처·정량 한국어 검색 평가·색인/폐기 정책 확정 전 지식 RAG의 실제 승인 완료 주장 금지 | 3단계 데이터·권리 |
+| G-34 | 스타일 일반 가이드/룩 API 존재, 승인 영상 레시피 커버리지 불명 | 실제 검수 단계·영상 관찰 근거·상품/옵션 연결/API·테스트 데이터 | 3단계 스타일·데이터 |
+| G-35 | 카메라/피부 기기 내 흐름과 별도 연구 서버 도구; 일반 채팅 미디어 입력 부재 | 기능별 실제 경로·동의/저장·외부 전달·검증 상태·담당 확인 | 3단계 미디어/보안 + 앱 |
+| G-36 | AR 명령/ACK·로컬 실행 일부 코드, `lib/arCommandAck.ts` 개발용 메모리 큐 | 실제 renderer/ACK/Undo·복귀 이벤트 영속·사용자 권한 및 Android/iOS 검증 | AR/AR AI + 일반 LLM 공동 |
+| G-37 | 앱 4개 UI 사전, Android 녹음 차단, 첫 STT 경로 미선택 | 1차 한국어 기기/서버 단일 STT 채택·기기 빌드·동의·TTS 중단/음성 E2E | AR AI·앱/보안 |
+
+### 공유 계약 위험의 우선순위
+
+1. **즉시 선결:** `/api/chat` 및 공통 스키마의 작성자/필수 리뷰어, AR 분기·ACK 회귀, Catalog 정본 API 조회 가용성. 이들 없이 G1의 안전한 기능 변경을 시작하지 않는다.
+2. **데이터 의존:** G3 성분, G4 가격/옵션, G5 RAG, G6 검수 레시피는 **해당 근거/권한/서빙 데이터가 준비된 후에만** 검증 완료 가능. 과거 #227~#232의 변경을 병합했다고 주장하지 않는다.
+3. **팀/기기 의존:** G9 외부 연동과 AR·한국어 음성은 **공동 Handoff 계약과 담당별 실기기·권한 검증**이 필요. 일반 LLM 개발자에게 AR LLM/STT/TTS 실제 구현을 배정하지 않는다.
+4. **운영/영속 의존:** 장기 기억/재시작과 이벤트 중복/철회 정확성은 Redis 단기 캐시로 해결했다고 주장하지 않는다. 별도 영속 DB의 접근/삭제/보존 ADR 선행.
+
+### 3~5단계 선결 항목의 실무 기준
+
+| 다음 단계 | 산출·승인 조건 | 완료 시 잠금 해제되는 개발 |
+| --- | --- | --- |
+| **3 데이터/RAG** | 실제 샘플/옵션별 검수·출처/권리, 룩 레시피 커버리지, 한국어 벡터/Graph 버전·평가 후보, 데이터/API 담당 소유 확정 | G3~G6의 검증·지식 RAG 및 실제 검색 구현 |
+| **4 평가** | 일반/성분/스타일/복합/동의/오류·권한·Handoff의 한국어 평가셋 및 실제 모델/DB/기기 별 완료 기준, mock/live 구분 | 각 PR의 `REAL_INTEGRATION_VERIFIED`/`DEVICE_E2E_VERIFIED` 판단 |
+| **5 Issue/PR** | G1~G9 수직 기능 의존성, 공용 파일 소유/리뷰 협의, 최신 develop 분기·자동 검사·PR·rollback, AR 독립 PR/공동 시험 계획 | 안전한 일반 LLM 첫 수직 브랜치 G1, 이후 순차 병합 |
+
+서비스 물리 분리·VectorDB 제품·권리 확인·옵션 검색 API 경로/서빙·체크포인터 영속 저장 기술은 **OPEN**으로 두며, 위 선결과 실제 운영 데이터/팀 의견이 생겼을 때 기술 ADR/구현 결정을 내린다. **2-7 논리 아키텍처 검토 종료 ≠ 3~5단계 완료**.
+
+### 변경 이력
+- 2026-11-15: G-26~G-37 구현·검증 공백, 공유 코드/데이터/팀 연동 위험, 3~5단계 작업 시작 관문을 추가. 기존 G-01~25·ADR 및 사용자 결정은 그대로 유지.
+
+
+## 2026-11-15 3단계 공백 해석 갱신
+
+- **G-12/G-33:** AIHub 71961 **서비스 RAG·공용 원문/발췌·외부 LLM 제공 BLOCKED**라는 기존 데이터 담당 결정은 유지. 그러나 D3-01에 따라 **국내 로컬 RAG 개발·검색 평가의 적극적 후보**로 전환. 71961 개별 목적·문서별 Purpose/Cautions·2차 처리 권리를 확인하고, 미확인 처리 단계만 차단하며 합성/별도 권리 자료로 개발을 병행한다. [DECISIONS](DECISIONS.md)·[08](08-option-search-evidence-and-sync.md).
+- **G-26/G-29:** 첫 G1 수직 기능은 기존 `/api/chat`/AR/ACK의 회귀를 깨지 않는 LangGraph 일반 상담 호환 경로와 Catalog 실제 Tool/앱 카드. G4의 옵션 교집합/실판매가 검증과 구분한다.
+- **데이터 실사:** 2026-11-15의 연결 Supabase `0022` SQL 수량은 그 DB 스냅샷만의 관측. 팀원 로컬·공용 dev·운영 동일성, 실제 배포 HTTP/LLM/벡터 검색을 검증한 것이 아니다.
+

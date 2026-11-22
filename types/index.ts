@@ -6,8 +6,13 @@ export type MakeupZone = 'lip' | 'blush' | 'eyeshadow' | 'eyeliner' | 'mascara' 
 
 export type Texture = 'matte' | 'velvet' | 'glossy' | 'satin' | 'sheer' | 'cream' | 'shimmer';
 /** Lid paint chips only. Catalog Texture stays the 7 product names. */
-export type ShadowFinish = 'matte' | 'shimmer' | 'glitter' | 'glossy';
-
+export type ShadowFinish = 'matte' | 'satin' | 'shimmer' | 'metallic' | 'glitter' | 'glossy';
+/** Glitter traits read from the product name: metallic glitter, sequin-size flakes, strong iridescence. */
+export interface ShadowParticle {
+  metal: boolean;
+  large: boolean;
+  holo: boolean;
+}
 /** How a shade color was obtained (AR_SPEC 1-8). Measured values always win over estimates. */
 export type MeasureMethod = 'measured' | 'user_verified' | 'estimated' | 'placeholder';
 
@@ -261,6 +266,16 @@ export interface ApplicationProfileOverrides {
   /** Video look only: small pigment correction above a measured skin warmth threshold (both 0..1). */
   skinAdapt?: number;
   skinWarmth?: number;
+  /**
+   * Video look only: multiply look foundation tint / blush / lip pigment by the estimated scene light colour and
+   * exposure (0..1), keeping luminance so coverage feel stays. 0 = product/look colours unchanged.
+   */
+  lightAdapt?: number;
+  /**
+   * Video look only (read from foundation): pull liner / mascara / lip layer brightness toward the camera pixel's
+   * luminance vs face mean (0..1). Cheap local tone match; 0 = unchanged.
+   */
+  toneMap?: number;
 }
 
 /** Video-fit evidence must include a separate validation comparison. */
@@ -302,6 +317,8 @@ export interface ZoneSetting {
   care?: ZoneCare;
   /** Second color of a two-tone eyeshadow: fades in at the outer corner and along the lower lash line. */
   hexTo?: string;
+  /** Eyeshadow glitter traits estimated from the product name (lib/shadowFinishes glitterTraitsOf). */
+  particle?: ShadowParticle;
   /** 0..1 */
   intensity: number;
   texture: Texture;
@@ -426,11 +443,17 @@ export interface Store {
   pickupAvailable: boolean;
 }
 
+export interface ArCartSource {
+  ownerId: string;
+  eventId: string;
+}
+
 export interface CartItem {
   productId: string;
   shadeId?: string;
   quantity: number;
   addedFromLookId?: string;
+  arCartSources?: (ArCartSource | null)[];
 }
 
 export interface ShoppingListLine {
@@ -548,7 +571,15 @@ export interface ChatProductRef {
   category: string;
 }
 
+export type RecentChatMessage = { id: string; role: 'user' | 'assistant'; text: string };
+export type PendingClarification = {
+  id: string; missingSlot: 'product' | 'shade'; productId?: string | null;
+  resultSetId: string; createdRequestId: string; createdStateVersion: number; expiresAt: number;
+  ingredientConditions: { ingredientName: string; operator: 'includes' | 'excludes' }[];
+};
+
 export interface ChatResponse {
+  pendingClarification?: PendingClarification | null;
   styleRecipe?: ChatStyleRecipe;
   styleContext?: ChatStyleContext;
   styleStatus?: 'ready' | 'clarification' | 'not_found' | 'error' | 'unsupported';
@@ -674,6 +705,7 @@ export interface ChatIngredientResult {
 }
 
 export interface BeautyChatFilters {
+  texture?: 'matte' | null;
   category: ProductCategory | null;
   maxPriceKRW: number | null;
   fragranceFree: boolean;

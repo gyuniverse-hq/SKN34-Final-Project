@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Animated, Platform, Pressable, StyleSheet, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
+import { AR_PALETTE_LOOP_THRESHOLD } from '@/lib/arPalettePicks';
 import type { ColorSwatch } from '@/lib/nearbyColors';
 import { ArcFeatherView } from './ArcFeatherView';
 import { arcSnapEasing } from './arcMotion';
@@ -10,6 +12,9 @@ interface Props {
   label: string;
   hint: string;
   onSelect: (item: ColorSwatch) => void;
+  onVisible?: (item: ColorSwatch) => void;
+  recommendedItems?: ReadonlySet<ColorSwatch>;
+  recommendedLabel?: string;
 }
 
 const ANGLE_STEP = 16;
@@ -17,20 +22,36 @@ const WINDOW_RADIUS = 5;
 const wrap = (value: number, count: number) => ((value % count) + count) % count;
 
 /** A small window of catalog shades on one rotating drum, clipped to its open upper arc. */
-export function OpenArcPalette({ items, selected, label, hint, onSelect }: Props) {
+export function OpenArcPalette({ items, selected, label, hint, onSelect, onVisible, recommendedItems, recommendedLabel }: Props) {
   const { width } = useWindowDimensions();
   const radius = Math.max(160, Math.min(240, width * 0.56));
   const step = radius * ANGLE_STEP * Math.PI / 180;
   const selectedIndex = items.findIndex((item) => item.product.id === selected?.product.id && item.shade.id === selected?.shade.id);
-  const [position] = useState(() => new Animated.Value(Math.max(0, selectedIndex)));
-  const [center, setCenter] = useState(Math.max(0, selectedIndex));
-  const current = useRef(Math.max(0, selectedIndex));
+  const anchorIndex = selectedIndex >= 0 ? selectedIndex : recommendedItems?.size === 3 ? 1 : 0;
+  const [position] = useState(() => new Animated.Value(anchorIndex));
+  const [center, setCenter] = useState(anchorIndex);
+  const current = useRef(anchorIndex);
   const animation = useRef<Animated.CompositeAnimation | null>(null);
   const generation = useRef(0);
   const wheelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previousItems = useRef(items);
   const drag = useRef({ x: 0, y: 0, start: 0, lastX: 0, lastTime: 0, velocity: 0 });
-  const loops = items.length > 7;
+  const loops = items.length > AR_PALETTE_LOOP_THRESHOLD;
+  useEffect(() => {
+    if (!onVisible || !items.length) return;
+    // Even at half a slot from the rounded center the whole chip must clear the feathered edges.
+    const timer = setTimeout(() => {
+      for (let offset = -2; offset <= 2; offset++) {
+        const slot = center + offset;
+        if (!loops && (slot < 0 || slot >= items.length)) continue;
+        const angle = (Math.abs(offset) + 0.5) * ANGLE_STEP * Math.PI / 180;
+        if (radius * Math.sin(angle) + 17 > width / 2 - 28 ||
+            32 + radius * (1 - Math.cos(angle)) + 17 > 112 - 28) continue;
+        onVisible(items[wrap(slot, items.length)]);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [center, items, loops, onVisible, radius, width]);
   const bound = (value: number) => loops ? value : Math.max(0, Math.min(Math.max(0, items.length - 1), value));
 
   const stop = useCallback(() => {
@@ -56,8 +77,8 @@ export function OpenArcPalette({ items, selected, label, hint, onSelect }: Props
     if (sameCandidates && selectedIndex >= 0 && items.length && wrap(Math.round(current.current), items.length) === selectedIndex) return;
     stop();
     // Changing filters must never apply the first candidate to the face.
-    position.setValue(Math.max(0, selectedIndex));
-  }, [items, selectedIndex, position, stop]);
+    position.setValue(anchorIndex);
+  }, [items, selectedIndex, anchorIndex, position, stop]);
 
   const snap = (requested: number, apply = true) => {
     stop();
@@ -147,6 +168,9 @@ export function OpenArcPalette({ items, selected, label, hint, onSelect }: Props
             {slots.map(({ slot, item, placement }) => (
               <View key={slot} style={[styles.hit, placement, item.product.id === selected?.product.id && item.shade.id === selected?.shade.id && styles.selected]}>
                 <View style={[styles.swatch, { backgroundColor: item.shade.hex }]} />
+                {recommendedItems?.has(item) && <View style={styles.sparkle}>
+                  <Ionicons name="sparkles" color="#fff" size={11} />
+                </View>}
               </View>
             ))}
           </Animated.View>
@@ -158,7 +182,8 @@ export function OpenArcPalette({ items, selected, label, hint, onSelect }: Props
           const active = item.product.id === selected?.product.id && item.shade.id === selected?.shade.id;
           const outsideArc = Math.abs(slot - center) > 3;
           return (
-            <Pressable key={slot} accessibilityRole="button" accessibilityLabel={item.product.brand + ' ' + item.product.name + ' ' + item.shade.name}
+            <Pressable key={slot} accessibilityRole="button" accessibilityLabel={[item.product.brand, item.product.name, item.shade.name,
+              recommendedItems?.has(item) ? recommendedLabel : null].filter(Boolean).join(' ')}
               accessibilityState={{ selected: active }}
               aria-hidden={outsideArc} accessibilityElementsHidden={outsideArc} importantForAccessibility={outsideArc ? 'no-hide-descendants' : 'auto'}
               disabled={outsideArc} onPress={() => { if (active) onSelect(item); else snap(slot); }}
@@ -177,5 +202,7 @@ const styles = StyleSheet.create({
   hit: { position: 'absolute', width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
   selected: { borderColor: '#FFFFFF' },
   swatch: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: 'rgba(255,255,255,0.65)' },
+  sparkle: { position: 'absolute', right: 0, top: 0, width: 16, height: 16, borderRadius: 8,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: '#433244' },
   marker: { position: 'absolute', top: 0, alignSelf: 'center', width: 4, height: 4, borderRadius: 2, backgroundColor: '#FFFFFF' },
 });

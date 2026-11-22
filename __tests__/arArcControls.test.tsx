@@ -43,6 +43,54 @@ describe('rotating open arc', () => {
   const palette = (screen: renderer.ReactTestRenderer) => screen.root.findByProps({ testID: 'ar-arc-palette' });
   const finish = async () => { await act(async () => { jest.advanceTimersByTime(800); }); };
 
+  it('marks the initial picks before any shade is selected, and leaves ordinary chips selectable', async () => {
+    const select = jest.fn();
+    let screen!: renderer.ReactTestRenderer;
+    await act(async () => { screen = renderer.create(<OpenArcPalette items={items} label="palette" hint="swipe"
+      recommendedItems={new Set(items.slice(0, 3))} recommendedLabel="recommended" onSelect={select} />); });
+    for (const i of [0, 1, 2]) {
+      expect(screen.root.findByProps({ accessibilityLabel: 'Brand Lip Shade ' + i + ' recommended' }).props.disabled).toBe(false);
+    }
+    expect(select).not.toHaveBeenCalled();
+    await act(async () => { screen.root.findByProps({ accessibilityLabel: 'Brand Lip Shade 3' }).props.onPress(); });
+    await finish();
+    expect(select).toHaveBeenCalledWith(items[3]);
+    await act(async () => { screen.unmount(); });
+  });
+
+  it('marks recommendations next to a selected color without applying a different color', async () => {
+    const select = jest.fn();
+    const selected = items[1];
+    let screen!: renderer.ReactTestRenderer;
+    await act(async () => { screen = renderer.create(<OpenArcPalette items={items} selected={selected} label="palette" hint="swipe"
+      recommendedItems={new Set([items[0], items[2], items[3]])} recommendedLabel="recommended" onSelect={select} />); });
+    for (const index of [0, 2, 3]) {
+      expect(screen.root.findByProps({ accessibilityLabel: `Brand Lip Shade ${index} recommended` }).props.disabled).toBe(false);
+    }
+    expect(screen.root.findByProps({ accessibilityLabel: 'Brand Lip Shade 1' }).props.accessibilityState.selected).toBe(true);
+    expect(select).not.toHaveBeenCalled();
+    await act(async () => { screen.unmount(); });
+  });
+
+  it('reports inner visible chips only after dwell and cancels when the palette is covered', async () => {
+    const visible = jest.fn();
+    let screen!: renderer.ReactTestRenderer;
+    const render = (onVisible?: (item: ColorSwatch) => void) =>
+      <OpenArcPalette items={items} selected={items[0]} label="palette" hint="swipe" onSelect={jest.fn()} onVisible={onVisible} />;
+    await act(async () => { screen = renderer.create(render(visible)); });
+    await act(async () => { jest.advanceTimersByTime(499); });
+    expect(visible).not.toHaveBeenCalled();
+    await act(async () => { screen.update(render()); });
+    await finish();
+    expect(visible).not.toHaveBeenCalled();
+    await act(async () => { screen.update(render(visible)); });
+    await finish();
+    expect(visible).toHaveBeenCalledWith(items[0]);
+    expect(visible).toHaveBeenCalledWith(items[1]);
+    expect(visible).not.toHaveBeenCalledWith(items[4]);
+    await act(async () => { screen.unmount(); });
+  });
+
   it('renders a bounded window, rotates a tapped shade into place, and only then applies it', async () => {
     const select = jest.fn();
     let screen!: renderer.ReactTestRenderer;

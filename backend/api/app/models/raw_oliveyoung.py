@@ -6,6 +6,8 @@
 
 채우는 쪽: 공통·메이크업 21테이블 = 올리브영 수집기(oliveyoung_erd_v30)
           스킨케어 전용 1테이블   = raw_oy_skincare_attr (스킨케어 수집기)
+          아이섀도우 마감 2테이블 = raw_oy_finish_type / raw_oy_option_finish
+                                  (사람 검수 CSV, load_eyeshadow_finish.py)
 
 API 는 이 테이블을 읽지 않는다. 앱 반영 경로는
   raw_oy_* -> 변환 -> backend/api/seed/catalog.json -> seed_catalog -> products/shades
@@ -89,6 +91,21 @@ class RawOyTextureTypeRow(Base):
     gloss_axis: Mapped[int | None] = mapped_column(Integer, nullable=True)
     ar_gloss: Mapped[float | None] = mapped_column(REAL, nullable=True)
     ar_matte: Mapped[float | None] = mapped_column(REAL, nullable=True)
+
+
+class RawOyFinishTypeRow(Base):
+    """아이섀도우 마감 10종 고정표.
+
+    마감 6종과 판정 대상이 아닌 4종(소도구·팔레트·다른 카테고리·판정 불가).
+    """
+
+    __tablename__ = "raw_oy_finish_type"
+
+    finish_code: Mapped[str] = mapped_column(Text, primary_key=True)
+    # AR 아이섀도우 마감 기준표의 광택 순서. 립 제형표 gloss_axis 와 다른 축
+    # 판정 대상이 아닌 4종은 NULL
+    gloss_axis: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    is_finish: Mapped[bool] = mapped_column(Boolean, nullable=False)
 
 
 class RawOySurveyQuestionRow(Base):
@@ -296,6 +313,28 @@ class RawOyProductTextureRow(Base):
     )
     judge_step: Mapped[str | None] = mapped_column(Text, nullable=True)
     judge_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class RawOyOptionFinishRow(Base):
+    """호수별 아이섀도우 마감.
+
+    수집기가 아니라 사람 검수 CSV를 load_eyeshadow_finish.py 로 적재한다.
+    """
+
+    __tablename__ = "raw_oy_option_finish"
+
+    option_id: Mapped[str] = mapped_column(
+        Text, ForeignKey("raw_oy_product_option.option_id"), primary_key=True
+    )
+    # 검수해서 값을 얻은 시각. 다시 검수하면 행이 쌓이고 최신 행을 쓴다
+    collected_at: Mapped[datetime] = mapped_column(DateTime, primary_key=True)
+    finish_code: Mapped[str] = mapped_column(
+        Text, ForeignKey("raw_oy_finish_type.finish_code"), nullable=False
+    )
+    # manual_image / manual_detail_page / manual_bulk
+    judge_step: Mapped[str] = mapped_column(Text, nullable=False)
+    judge_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_file: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 # ───────────────────────── 이미지 ─────────────────────────

@@ -1,4 +1,4 @@
-import { createPreprocessor, detectRegions, inputCrop } from './preprocessing.mjs';
+import { acneTensor, createPreprocessor, detectRegions, inputCrop } from './preprocessing.mjs';
 import { createJpegRoundTrip } from './jpeg.mjs';
 import { CaptureGate, previewFace } from './gate.mjs';
 import { validateModelManifest, decodeGrade, decodeBinary, meanSkinType } from './model-contract.mjs';
@@ -65,10 +65,10 @@ export async function boot(config) {
       return cv.imread(temporary);
     } finally { URL.revokeObjectURL(url); }
   };
-  const run = async (session, values) => {
-    const input = new ort.Tensor('float32', values, [1, 3, 256, 256]);
+  const run = async (session, values, shape = [1, 3, 256, 256], outputName = 'logits') => {
+    const input = new ort.Tensor('float32', values, shape);
     let output;
-    try { output = await session.run({ image: input }); return Float32Array.from(output.logits.data); }
+    try { output = await session.run({ image: input }); return Float32Array.from(output[outputName].data); }
     finally { input.dispose(); if (output) Object.values(output).forEach(value => value.dispose()); }
   };
 
@@ -96,8 +96,9 @@ export async function boot(config) {
     try { if (!detector.load('face.xml')) throw new Error('model'); regions = detectRegions(cv, image, detector); }
     finally { detector.delete(); cv.FS_unlink('/face.xml'); }
     const detectionMs = elapsed(detectedAt), features = {}, cautionProbabilities = {}, models = [];
-    const binary = manifest.schema === 'skin-analysis-assets-v4';
-    let skinType;
+    const v41 = manifest.schema === 'skin-analysis-assets-v4.1';
+    const binary = manifest.schema === 'skin-analysis-assets-v4' || v41;
+    let skinType, acneScore;
     for (const model of manifest.models) {
       check(); post({ type: 'progress', indicator: model.indicator }); await sleepFrame();
       const downloadAt = performance.now(); let bytes = await asset(model.file);
@@ -107,12 +108,23 @@ export async function boot(config) {
       const loadMs = elapsed(loadAt), modelValidationAt = performance.now();
       try {
         const fixture = await asset(model.fixture);
-        const actual = await run(session, new Float32Array(fixture.buffer, fixture.byteOffset, fixture.byteLength / 4));
+        const actual = await run(session, new Float32Array(fixture.buffer, fixture.byteOffset, fixture.byteLength / 4), model.inputShape, model.output);
         if (actual.length !== model.outputs || actual.some((v, i) => !Number.isFinite(v) || Math.abs(v - model.expectedLogits[i]) > 1e-4 + 1e-3 * Math.abs(model.expectedLogits[i]))) throw new Error('model');
         const modelValidationMs = elapsed(modelValidationAt);
         let preprocessingMs = 0, inferenceMs = 0;
         const typeLogits = [];
-        for (const [key, region] of parts[model.indicator]) {
+        if (model.indicator === 'acne') {
+          const preparedAt = performance.now();
+          const input = acneTensor(cv, image);
+          preprocessingMs += elapsed(preparedAt);
+          const inferenceAt = performance.now();
+          const score = await run(session, input, model.inputShape, model.output);
+          inferenceMs += elapsed(inferenceAt);
+          if (score.length !== 1 || !Number.isFinite(score[0]) || score[0] < 0 || score[0] > 1) throw new Error('model');
+          acneScore = score[0];
+          features.acne = Number(acneScore >= model.threshold);
+        }
+        for (const [key, region] of parts[model.indicator] ?? []) {
           check(); const preparedAt = performance.now();
           const input = await tensor(image, regions[region]);
           preprocessingMs += elapsed(preparedAt);
@@ -132,8 +144,9 @@ export async function boot(config) {
       } finally { await session.release(); }
     }
     check();
-    return { regions: regions.map(box => inputCrop(box, image.cols, image.rows)), result: { schema: binary ? 'skin-analysis-mobile-v4' : 'skin-analysis-mobile-v3', features, skinType,
+    return { regions: regions.map(box => inputCrop(box, image.cols, image.rows)), result: { schema: v41 ? 'skin-analysis-mobile-v4.1' : binary ? 'skin-analysis-mobile-v4' : 'skin-analysis-mobile-v3', features, skinType,
       ...(binary ? { cautionProbabilities } : {}),
+      ...(v41 ? { acneScore, acneThreshold: .5 } : {}),
       roiMethod: 'opencv_haar_facebox_proportions_v1', validationStatus: 'experimental_unvalidated',
       preprocessing: 'skin-v3-embedded-enhancement',
       timing: { ...config.run, runtime: 'onnxruntime-web-1.30.0/wasm-cpu/threads=1',

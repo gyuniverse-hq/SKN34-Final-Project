@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -32,8 +33,16 @@ class Settings(BaseSettings):
     ingredient_mapping_path: str | None = None
     ingredient_alias_approvals_path: str | None = None
     recommendation_comparison_enabled: bool = False
+    skin_recommendation_feedback_consented_members: set[str] = Field(default_factory=set)
+    ar_activity_enrolled_members: set[str] = Field(default_factory=set)
+    ar_activity_consented_members: set[str] = Field(default_factory=set)
+    ar_palette_mode: Literal["legacy", "collect", "model", "experiment"] = "legacy"
+    ar_palette_data_dir: Path = PROJECT_ROOT / "ml/data/ar-recommendation"
+    ar_palette_model_dir: Path | None = None
+    ar_palette_baseline_model_dir: Path | None = None
+    ar_palette_experiment: str = Field(default="", pattern=r"^([a-z0-9-]{1,16})?$")
     recommendation_model: str = Field(
-        default="recommend-cat-v2", pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        default="recommend-cat-v4", pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
     )
     recommendation_models_dir: Path = PROJECT_ROOT / "ml/runs"
     recommendation_v1_url: str = "http://127.0.0.1:8080"

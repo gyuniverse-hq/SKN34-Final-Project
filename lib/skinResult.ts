@@ -16,7 +16,7 @@ export function summarizeSkinResult(features: SkinAnalysisResult['features'], sc
   };
   return {
     grades: (['pore', 'pigmentation', 'wrinkle'] as const).map(indicator => ({
-      indicator, grade: grades[indicator], status: schema === 'skin-analysis-mobile-v4'
+      indicator, grade: grades[indicator], status: schema === 'skin-analysis-mobile-v4' || schema === 'skin-analysis-mobile-v4.1'
         ? grades[indicator] === 1 ? 'care' as const : grades[indicator] === 0 ? 'good' as const : 'unknown' as const
         : skinGradeStatus(grades[indicator]),
     })),

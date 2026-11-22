@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import re
 import unicodedata
 from functools import lru_cache
@@ -9,7 +10,23 @@ from pydantic import ValidationError
 
 from app.core.config import get_settings
 from app.core.errors import UpstreamError
+from app.core.observability import catalog_tool_call_id
 from app.schemas.catalog import CatalogIngredients, CatalogLook, CatalogProduct, CatalogStyleLook
+
+logger = logging.getLogger(__name__)
+
+
+def _log_catalog_http(path: str, status: int | None, *, error: str | None = None) -> None:
+    logger.info(
+        "catalog_http",
+        extra={
+            "path": path,
+            "status": status,
+            "method": "GET",
+            "tool_call_id": catalog_tool_call_id.get(),
+            "error_type": error,
+        },
+    )
 
 
 class IngredientLookupError(UpstreamError):
@@ -31,10 +48,14 @@ class CatalogClient:
                 timeout=max(40, self._timeout) if search else self._timeout
             ) as client:
                 res = await client.get(self._base + path)
+            if search:
+                _log_catalog_http("/api/products", res.status_code)
             res.raise_for_status()
             return res.json()[key]
         except (httpx.HTTPError, KeyError, ValueError) as exc:
-            raise UpstreamError(f"catalog request failed: {path}") from exc
+            if search and not isinstance(exc, httpx.HTTPStatusError):
+                _log_catalog_http("/api/products", None, error=type(exc).__name__)
+            raise UpstreamError(f"catalog request failed: {path.partition('?')[0]}") from exc
 
     async def fetch_products(self) -> list[CatalogProduct]:
         return [
@@ -91,11 +112,14 @@ class CatalogClient:
         try:
             async with httpx.AsyncClient(timeout=self._timeout) as client:
                 res = await client.get(self._base + "/api/products/" + quote(product_id, safe=""))
+            _log_catalog_http("/api/products/{productId}", res.status_code)
             if res.status_code == 404:
                 return None
             res.raise_for_status()
             return CatalogProduct.model_validate(res.json()["product"])
         except (httpx.HTTPError, KeyError, ValueError, ValidationError, TypeError) as exc:
+            if not isinstance(exc, httpx.HTTPStatusError):
+                _log_catalog_http("/api/products/{productId}", None, error=type(exc).__name__)
             raise UpstreamError("catalog product request failed") from exc
 
     async def get_ingredients(

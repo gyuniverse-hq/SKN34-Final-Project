@@ -93,7 +93,7 @@ jobs:
           uv run alembic upgrade head
           uv run alembic check
       - name: Tests
-        run: uv run pytest
+        run: uv run --frozen ${{ matrix.service == 'api' && '--group recommendation' || '' }} pytest
         env:
           TEST_DATABASE_URL: ${{ matrix.service == 'api' && env.DATABASE_URL || '' }}
 
@@ -111,6 +111,8 @@ jobs:
       - uses: docker/build-push-action@v7
         with:
           context: backend/${{ matrix.service }}
+          build-contexts: |
+            model=./ml/runs/recommend-cat-v4/bundle
           push: false
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}

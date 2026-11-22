@@ -10,6 +10,8 @@ from app.repositories.recommendation_feedback_repository import RecommendationFe
 from app.services.recommendation_comparison_service import comparison_service
 from app.services.recommendation_v2_service import POLICY, secondary_goal, target_goal
 
+SERVING_CONTRACT = "recommend-v2-serving-history-v1"
+
 
 def feedback_service(session, settings):
     return RecommendationFeedbackService(
@@ -17,15 +19,70 @@ def feedback_service(session, settings):
         MemberRepository(session),
         comparison_service(session, settings),
         settings.env,
+        settings.skin_recommendation_feedback_consented_members,
     )
 
 
+def candidate_values(request_id, row):
+    return {
+        "candidate_id": uuid4(),
+        "request_id": request_id,
+        "product_id": row["productId"],
+        "option_id": row["optionId"],
+        "primary_ingredient_score": row.get("primaryIngredientScore", row["ingredientScore"]),
+        "secondary_ingredient_score": row.get("secondaryIngredientScore"),
+        "ingredient_score": row["ingredientScore"],
+        "review_score": row["review"]["normalizedScore"],
+        "v2_score": row["score"],
+        "final_rank": row.get("rank"),
+        "diversity_penalty": row.get("diversityPenalty") if "rank" in row else None,
+        "selection_score": row.get("selectionScore") if "rank" in row else None,
+        "evidence_snapshot": row,
+    }
+
+
 class RecommendationFeedbackService:
-    def __init__(self, repository, members, comparison, environment):
+    def __init__(self, repository, members, comparison, environment, consented_members=()):
         self.repository = repository
         self.members = members
         self.comparison = comparison
         self.environment = environment
+        self.consented_members = consented_members
+
+    async def record_serving(
+        self, body, member_id, session_id, goal, catalog, result, requested_at
+    ):
+        if member_id not in self.consented_members or not await self.members.get(member_id):
+            return None
+        request_id = uuid4()
+        candidates = [candidate_values(request_id, row) for row in result["matches"]]
+        await self.repository.record_completed(
+            {
+                "request_id": request_id,
+                "member_id": member_id,
+                "session_id": session_id,
+                "requested_at": requested_at,
+                "completed_at": datetime.now(UTC),
+                "status": "completed",
+                "environment": self.environment,
+                "input_snapshot": {"analysis_version": body.analysis_version},
+                "primary_concern": goal,
+                "secondary_concern": result["secondaryConcern"],
+                "contract_version": SERVING_CONTRACT,
+                "feature_version": "age-gender-skin-primary-pore-wrinkle-tone-acne-v2",
+                "ranking_policy_version": POLICY["version"],
+                "policy_snapshot": deepcopy(POLICY),
+                "v2_model_version": result["model"]["version"],
+                "model_manifest": result["model"],
+                "catalog_version": catalog.version,
+                "catalog_digest": catalog.digest,
+            },
+            candidates,
+        )
+        return (
+            {"requestId": str(request_id), "sessionId": str(session_id)},
+            {row["option_id"]: str(row["candidate_id"]) for row in candidates},
+        )
 
     async def compare(self, body, member_id):
         if not await self.members.get(member_id):
@@ -41,11 +98,13 @@ class RecommendationFeedbackService:
                 "requested_at": now,
                 "status": "running",
                 "environment": self.environment,
-                "input_snapshot": body.input.model_dump(mode="json"),
+                "input_snapshot": body.input.model_dump(mode="json", exclude_none=True),
                 "primary_concern": goal,
                 "secondary_concern": secondary_goal(body.input, goal),
                 "contract_version": "v2-comparison-history-v1",
-                "feature_version": "age-gender-skin-primary-pore-wrinkle-tone-v1",
+                "feature_version": "age-gender-skin-primary-pore-wrinkle-tone-acne-v2"
+                if body.input.analysis_version == "skin-analysis-v4.1"
+                else "age-gender-skin-primary-pore-wrinkle-tone-v1",
                 "ranking_policy_version": POLICY["version"],
                 "policy_snapshot": deepcopy(POLICY),
             }
@@ -69,27 +128,9 @@ class RecommendationFeedbackService:
         candidates = []
         ids = {}
         for row in audit.get("candidates", []) if success else []:
-            candidate_id = uuid4()
-            ids[row["optionId"]] = str(candidate_id)
-            candidates.append(
-                {
-                    "candidate_id": candidate_id,
-                    "request_id": request_id,
-                    "product_id": row["productId"],
-                    "option_id": row["optionId"],
-                    "primary_ingredient_score": row.get(
-                        "primaryIngredientScore", row["ingredientScore"]
-                    ),
-                    "secondary_ingredient_score": row.get("secondaryIngredientScore"),
-                    "ingredient_score": row["ingredientScore"],
-                    "review_score": row["review"]["normalizedScore"],
-                    "v2_score": row["score"],
-                    "final_rank": row.get("rank"),
-                    "diversity_penalty": row.get("diversityPenalty") if "rank" in row else None,
-                    "selection_score": row.get("selectionScore") if "rank" in row else None,
-                    "evidence_snapshot": row,
-                }
-            )
+            candidate = candidate_values(request_id, row)
+            ids[row["optionId"]] = str(candidate["candidate_id"])
+            candidates.append(candidate)
         model = v2.get("model")
         await self.repository.finish(
             request_id,
@@ -122,20 +163,30 @@ class RecommendationFeedbackService:
         if occurred_at > datetime.now(UTC) + timedelta(minutes=5):
             raise ApiError(422, "Event time is in the future", "invalid_event_time")
 
-    async def impression(self, body, member_id):
+    def require_serving_consent(self, member_id, serving):
+        if serving and member_id not in self.consented_members:
+            raise ApiError(403, "Skin recommendation feedback is disabled", "feedback_disabled")
+
+    async def impression(self, body, member_id, *, serving=False):
+        self.require_serving_consent(member_id, serving)
         self.check_time(body.occurred_at)
         candidate = await self.repository.candidate(body.candidate_id, member_id)
-        if not candidate:
+        if not candidate or (candidate.get("contract_version") == SERVING_CONTRACT) != serving:
             raise ApiError(404, "Recommendation candidate not found", "candidate_not_found")
+        if body.surface != ("skin_recommendations" if serving else "v2_comparison"):
+            raise ApiError(422, "Recommendation surface does not match", "surface_mismatch")
         if candidate["final_rank"] != body.displayed_position:
             raise ApiError(422, "Displayed position does not match", "position_mismatch")
         await self.repository.insert_impression(body.model_dump(by_alias=False))
         return {"impressionId": str(body.impression_id)}
 
-    async def event(self, body, member_id):
+    async def event(self, body, member_id, *, serving=False):
+        self.require_serving_consent(member_id, serving)
+        if serving and body.event_type not in ("product_view", "cart_add"):
+            raise ApiError(422, "Unsupported skin recommendation event", "unsupported_event_type")
         self.check_time(body.occurred_at)
         attribution = await self.repository.impression(body.impression_id, member_id)
-        if not attribution:
+        if not attribution or (attribution.get("contract_version") == SERVING_CONTRACT) != serving:
             raise ApiError(404, "Recommendation impression not found", "impression_not_found")
         if any(attribution[key] != getattr(body, key) for key in ("session_id", "product_id")):
             raise ApiError(422, "Recommendation attribution does not match", "attribution_mismatch")

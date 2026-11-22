@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     llm_api_key: str | None = None
     llm_model: str | None = None
     llm_timeout_seconds: float = 30
+    g1_supervisor_enabled: bool = False
     chat_requests_per_minute: int = 10
     supabase_url: str | None = None
     supabase_publishable_key: str | None = None

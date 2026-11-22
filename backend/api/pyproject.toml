@@ -28,6 +28,7 @@ dev = [
 ]
 recommendation = [
     "catboost>=1.2.10",
+    "optuna>=4.4,<6",
 ]
 
 [tool.uv]

@@ -17,6 +17,7 @@ class CatalogShade(_CatalogModel):
     id: str
     name: str
     hex: str
+    product_id: str | None = Field(default=None, exclude=True)
     measure_method: str | None = None
     color_source: str | None = None
 
