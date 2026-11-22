@@ -134,6 +134,55 @@ async def test_model_cannot_suggest_unrelated_or_fabricated_evidence():
 
 
 @pytest.mark.anyio
+async def test_direct_metadata_candidates_do_not_depend_on_model_selection():
+    request = ChatRequest.model_validate(
+        {
+            "message": "내일 출근할 때 자연스러운 메이크업을 추천해줘.",
+            "locale": "ko",
+            "styleSearch": True,
+            "styleConditions": [],
+        }
+    )
+    result = await ChatService(None, Model([]), Looks()).answer(request)
+    assert [(c.look_id, c.match) for c in result.style_candidates] == [
+        ("ST-A", "출근"),
+        ("daily", "출근"),
+    ]
+
+
+@pytest.mark.anyio
+async def test_fallback_uses_active_conditions_and_never_restores_removed_ones():
+    service = ChatService(None, Model([]), Looks())
+    request = ChatRequest.model_validate(
+        {
+            "message": "눈은 덜 진하게 해줘",
+            "locale": "ko",
+            "styleSearch": True,
+            "styleConditions": [{"slot": "occasion", "value": "출근할 때"}],
+            "recentMessages": [{"id": "old", "role": "user", "text": "출근 룩"}],
+        }
+    )
+    assert len((await service.answer(request)).style_candidates) == 2
+    request.message = "출근은 빼줘"
+    service = ChatService(
+        None,
+        Model([], changes=[{"slot": "occasion", "action": "remove", "evidence": "출근은 빼줘"}]),
+        Looks(),
+    )
+    assert (await service.answer(request)).style_candidates == []
+
+
+@pytest.mark.anyio
+async def test_fallback_does_not_recommend_from_negated_or_generic_words():
+    service = ChatService(None, Model([]), Looks())
+    for message in ("출근 말고 데이트 룩 추천", "메이크업 추천해줘"):
+        result = await service.answer(
+            ChatRequest(message=message, locale="ko", styleSearch=True, styleConditions=[])
+        )
+        assert result.style_candidates == []
+
+
+@pytest.mark.anyio
 async def test_condition_changes_keep_unrelated_and_cannot_restore_removed_occasion():
     changes = [{"slot": "occasion", "action": "remove", "evidence": "출근은 빼줘", "value": None}]
     result = await ChatService(

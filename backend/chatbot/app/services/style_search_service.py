@@ -340,6 +340,41 @@ async def search_style(req: ChatRequest, catalog, llm) -> ChatResponse:
                 and match in source
             ):
                 found.append(candidate.model_copy(update={"match": item.match.strip()}))
+        # Direct metadata matches keep results available when the model omits a candidate.
+        search_values = [
+            condition.value.casefold()
+            for condition in conditions.values()
+            if condition.slot in {"occasion", "mood"}
+        ]
+        if (
+            not req.style_conditions
+            and not any(turn.role == "user" for turn in req.recent_messages)
+            and not any(change.action == "remove" for change in selection.changes)
+            and not re.search(
+                r"말고|제외|빼|취소|상관없|\b(?:not|except|without)\b", req.message, re.I
+            )
+        ):
+            search_values.append(req.message.casefold())
+        generic = {"makeup", "look", "style", "메이크업", "화장", "스타일", "시즌", "맞춤", "활용"}
+        seen = {(candidate.kind, candidate.look_id) for candidate in found}
+        for candidate in candidates:
+            if len(found) >= 3:
+                break
+            if (candidate.kind, candidate.look_id) in seen:
+                continue
+            tokens = re.findall(
+                r"[가-힣a-z0-9]{2,}", " ".join([candidate.title, *candidate.tags]).casefold()
+            )
+            match = next(
+                (
+                    token
+                    for token in tokens
+                    if token not in generic and any(token in value for value in search_values)
+                ),
+                None,
+            )
+            if match:
+                found.append(candidate.model_copy(update={"match": match}))
     except (UpstreamError, ValidationError, ValueError, TypeError, KeyError, IndexError) as exc:
         raise ApiError(502, "Look search failed", "style_search_unavailable") from exc
     answer = text["found" if found else "empty"]
