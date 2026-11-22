@@ -30,6 +30,11 @@ from app.models.idol_look import (
     MakeupLookRow,
     YoutubeVideoRow,
 )
+from app.models.knowledge import (
+    AihubDocumentBlockRow,
+    AihubDocumentExtractionRow,
+    AihubQuoteAlignmentRow,
+)
 from app.models.member import MemberRow
 from app.models.order import OrderLineRow, OrderRow
 from app.models.oy_catalog_category_rule import OyCatalogCategoryRuleRow
@@ -91,7 +96,10 @@ from app.models.skincare import SkincareServingRow
 __all__ = [
     "AihubClaimReviewRow",
     "AihubDatasetReleaseRow",
+    "AihubDocumentBlockRow",
+    "AihubDocumentExtractionRow",
     "AihubIngredientMentionRow",
+    "AihubQuoteAlignmentRow",
     "AihubKnowledgeDocumentFileRow",
     "AihubKnowledgeDocumentRow",
     "AihubQaCaseRawRow",

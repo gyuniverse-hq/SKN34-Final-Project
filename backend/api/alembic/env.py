@@ -31,13 +31,22 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
+def include_object(obj, name, type_, reflected, compare_to):
+    # RAG tables use migration-owned pgvector types absent from ORM metadata.
+    if type_ == "table" and reflected and compare_to is None:
+        return name not in {"aihub_rag_chunk", "aihub_rag_embedding"}
+    return True
+
+
 def do_run_migrations(connection: Connection) -> None:
     locked = connection.dialect.name == "postgresql"
     if locked:
         connection.execute(text("SELECT pg_advisory_lock(:id)"), {"id": MIGRATION_LOCK_ID})
         connection.commit()
     try:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection, target_metadata=target_metadata, include_object=include_object
+        )
         with context.begin_transaction():
             context.run_migrations()
     finally:

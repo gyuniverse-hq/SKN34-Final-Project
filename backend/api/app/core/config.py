@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://vishue:vishue@localhost:5432/vishue_db"
     redis_url: str | None = None
     catalog_cache_seconds: int = 300
+    g5_enabled: bool = False
+    g5_allow_local_sources: bool = False
+    g5_openai_api_key: str | None = None
+    g5_internal_token: str | None = None
     skincare_refresh_enabled: bool | None = None
     skincare_refresh_interval_seconds: int = 60
     ingredient_mapping_path: str | None = None
@@ -64,6 +68,10 @@ class Settings(BaseSettings):
     toss_secret_key: str | None = None
     payment_web_base_url: str | None = None
     payment_return_url: str = "kbeautyar://payment-result"
+
+    @property
+    def g5_local_mode(self) -> bool:
+        return self.g5_allow_local_sources and self.env == "local"
 
     @property
     def is_production(self) -> bool:

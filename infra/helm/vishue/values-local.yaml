@@ -13,6 +13,8 @@ api:
   autoscaling: { enabled: false }
 
 chatbot:
+  env:
+    G1_SUPERVISOR_ENABLED: "true"
   replicas: 1
   autoscaling: { enabled: false }
 
@@ -23,7 +25,7 @@ podDisruptionBudget:
   enabled: false
 
 dataStores:
-  postgres: { enabled: true }
+  postgres: { enabled: true, image: pgvector/pgvector:0.8.2-pg17-bookworm }
   redis: { enabled: true }
   neo4j: { enabled: true }
 

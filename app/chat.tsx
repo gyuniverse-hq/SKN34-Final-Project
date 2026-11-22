@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChatProducts } from '@/components/chat/ChatProducts';
 import { IngredientResult } from '@/components/chat/IngredientResult';
+import { KnowledgeCitations } from '@/components/chat/KnowledgeCitations';
 import { RecentConversations } from '@/components/chat/RecentConversations';
 import { StyleRecipeResult } from '@/components/chat/StyleRecipeResult';
 import { theme } from '@/constants/theme';
@@ -26,6 +27,10 @@ import type { ChatCategory as Category, ChatMessage, ChatRequestSnapshot, Conver
 import type { BeautyChatContext, ChatProductEvidence, ChatProductRef } from '@/types';
 
 let observedAuthClient: ReturnType<typeof getSupabase>;
+
+function displayAssistantText(text: string) {
+  return text.replace(/\*\*([^*\n]+)\*\*/g, '$1');
+}
 
 const styleBrowseImage = require('@/assets/images/chat/style-recipe.png');
 
@@ -586,10 +591,10 @@ function ChatConversation({ record, onRecent, onNew }: {
                 <FragranceSearchResult message={message} selectedShades={selectedShades} selectedProductId={chosenProductId}
                   onSelectProduct={canSelect(message) ? (productId) => selectProduct(productId, message) : undefined}
                   onSelectShade={(productId, shadeId) => selectShade(productId, shadeId, message)} />
-              ) : message.role === 'assistant' && !message.styleRecipe && (message.category === 'ingredient' || message.ingredientResults?.length) ? (
+              ) : message.role === 'assistant' && !message.knowledge && !message.styleRecipe && (message.category === 'ingredient' || message.ingredientResults?.length) ? (
                 <IngredientResult
                   heading={t('chat.ui.ingredient')}
-                  summary={message.text}
+                  summary={displayAssistantText(message.text)}
                   notice={t('chat.ui.ingredientGeneralNotice')}
                   labels={{ product: t('chat.result.productInfo'), ingredients: t('chat.result.ingredientList'), source: t('chat.result.source'), unknown: t('chat.conditionUnknown') }}
                   results={message.ingredientResults}
@@ -599,7 +604,7 @@ function ChatConversation({ record, onRecent, onNew }: {
               ) : message.role === 'assistant' && message.styleRecipe && !visibleMessages.slice(0, messageIndex).some((item) =>
                 item.styleRecipe?.recipeId === message.styleRecipe?.recipeId && item.styleRecipe?.recipeVersion === message.styleRecipe?.recipeVersion) ? (
                 <>
-                {message.text && message.styleRecipe.steps.length ? <View style={[styles.message, styles.assistantMessage]}><Text style={styles.messageText}>{message.text}</Text></View> : null}
+                {message.text && message.styleRecipe.steps.length ? <View style={[styles.message, styles.assistantMessage]}><Text style={styles.messageText}>{displayAssistantText(message.text)}</Text></View> : null}
                 <StyleRecipeResult
                   result={message.styleRecipe && message.styleRecipe.recipeId === activeStyle?.recipeId &&
                     message.styleRecipe.recipeVersion === activeStyle?.recipeVersion
@@ -613,7 +618,7 @@ function ChatConversation({ record, onRecent, onNew }: {
                   onOpenAr={(productId, shadeId) => { if (mounted.current) router.push(arHref({ productId, shadeId })); }}
                   onManualAr={() => { if (mounted.current) router.push(arHref()); }}
                   heading={t('chat.ui.style')}
-                  summary={message.text}
+                  summary={displayAssistantText(message.text)}
                   browseImage={styleBrowseImage}
                   browseLabel={t('chat.ui.styleBrowse')}
                   stepsLabel={t('chat.result.steps')}
@@ -632,9 +637,10 @@ function ChatConversation({ record, onRecent, onNew }: {
                     <Text style={styles.answerTitle}>{t('chat.ui.title')}</Text>
                   </View>
                 ) : null}
-                <Text style={[styles.messageText, message.role === 'user' && styles.userMessageText]}>{message.text}</Text>
+                <Text style={[styles.messageText, message.role === 'user' && styles.userMessageText]}>{message.role === 'assistant' ? displayAssistantText(message.text) : message.text}</Text>
+                {message.knowledge ? <KnowledgeCitations evidence={message.knowledge.evidence} /> : null}
               </View>}
-              {subject.type === 'general' && message.role === 'assistant' && message.category === 'style' && !message.styleRecipe
+              {subject.type === 'general' && message.role === 'assistant' && message.category === 'style' && !message.styleRecipe && !message.knowledge
                 ? <InlineStyleLookPicker question={message.question ?? ''} onSelect={(lookId) => {
                   if (!mounted.current || !owned() || currentRoom()?.request) return;
                   store().setStyle(target, { kind: 'video', lookId, currentStep: 0 });
@@ -661,7 +667,7 @@ function ChatConversation({ record, onRecent, onNew }: {
                 selectedProductId={chosenProductId}
                 onSelectProduct={canSelect(message) ? (productId) => selectProduct(productId, message) : undefined}
                 onSelectShade={(productId, shadeId) => selectShade(productId, shadeId, message)} /> : null}
-              {message.role === 'assistant' && !message.fragranceSearchSummary && !message.products?.length && (message.category === 'product' || message.category === undefined) &&
+              {message.role === 'assistant' && !message.fragranceSearchSummary && !message.knowledge && !message.products?.length && (message.category === 'product' || message.category === undefined) &&
                 (message.resultType === 'empty' || (!message.resultType && extractChatConditions(message.question ?? '').length)) ? (
                 <View style={styles.emptyState}>
                   <View style={styles.stateIcon}><Ionicons name="search-outline" size={22} color={theme.colors.rose} /></View>

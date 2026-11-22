@@ -119,7 +119,7 @@ services:
     profiles: ["tools"]
 
   postgres:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:0.8.2-pg17-bookworm
     environment:
       POSTGRES_USER: vishue
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vishue}

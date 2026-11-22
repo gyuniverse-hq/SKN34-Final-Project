@@ -63,7 +63,7 @@ jobs:
         service: [api, chatbot]
     services:
       postgres:
-        image: postgres:17-alpine
+        image: pgvector/pgvector:0.8.2-pg17-bookworm
         env:
           POSTGRES_USER: vishue
           POSTGRES_PASSWORD: vishue
