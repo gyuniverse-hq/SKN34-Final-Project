@@ -25,7 +25,7 @@ podDisruptionBudget:
   enabled: false
 
 dataStores:
-  postgres: { enabled: true }
+  postgres: { enabled: true, image: pgvector/pgvector:0.8.2-pg17-bookworm }
   redis: { enabled: true }
   neo4j: { enabled: true }
 
