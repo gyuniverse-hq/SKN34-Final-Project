@@ -199,6 +199,32 @@ async def test_video_product_questions_use_original_names_options_and_requested_
 
 
 @pytest.mark.anyio
+async def test_product_question_flag_covers_natural_wording_without_exposing_guide_products():
+    catalog = StyleCatalog(video())
+    guide = await ask(catalog, "이 룩 화장 순서 알려줘")
+    assert guide.style_recipe.product_question is False
+    product = await ask(catalog, "이 영상에서 쓴 립 뭐야?")
+    assert product.style_recipe.product_question is True
+    assert product.model_dump(mode="json")["styleRecipe"]["productQuestion"] is True
+    assert "Test Listed only" in product.answer
+
+
+@pytest.mark.anyio
+async def test_selected_look_adjustment_answers_with_general_tips_and_keeps_context():
+    catalog = StyleCatalog(video())
+    guide = await ask(catalog, "이 룩 화장 순서 알려줘")
+    result = await ask(
+        catalog, "눈은 덜 진하게 하고 립을 조금 더 강조하고 싶어.", guide.style_context
+    )
+    assert result.style_context.look_id == guide.style_context.look_id
+    assert "일반적인 조절 팁" in result.answer
+    assert "눈두덩" in result.answer and "입술" in result.answer
+    assert "일반 팁입니다" in result.answer
+    opposite = await ask(catalog, "립을 더 강조하지 마", guide.style_context)
+    assert "일반적인 조절 팁이에요" not in opposite.answer
+
+
+@pytest.mark.anyio
 async def test_video_product_empty_unlinked_and_lookup_failure_are_distinct():
     look = video()
     look.products[-1].name = "원본 립"

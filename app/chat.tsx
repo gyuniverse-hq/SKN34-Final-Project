@@ -22,7 +22,7 @@ import { conditionsFromChatFilters, extractChatConditions } from '@/lib/chatCond
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useLook, useProduct, useProductsByIds, useStyleLooks } from '@/lib/queries';
 import { arHref, parseId, paramValue, productHref } from '@/lib/routes';
-import { refersToPreviousLooks, selectedLookOrdinal, wantsStyleSearch } from '@/lib/styleCoaching';
+import { refersToPreviousLooks, selectedLookOrdinal, wantsDifferentStyle, wantsStyleSearch } from '@/lib/styleCoaching';
 import { isChatSessionExpired, recentChatMessages, recentStyleMessages, useChatConversationStore, type ConversationRecord } from '@/store/chatConversationStore';
 import type { ChatCategory as Category, ChatMessage, ChatRequestSnapshot, ConversationEntry } from '@/types/chatConversation';
 import type { BeautyChatContext, ChatProductEvidence, ChatProductRef } from '@/types';
@@ -132,7 +132,7 @@ function RelatedProducts({ optionSearch, sourceProducts, refs, question, categor
         failed={ids.length > 0 && query.isError}
         missingCount={!query.isPending && !query.isPlaceholderData && !query.isError ? ids.length - products.length : 0}
         onRetry={() => { if (mounted.current) void query.refetch(); }}
-        onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId)); }}
+        onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId, undefined, !!sourceProducts)); }}
         onOpenAr={(productId, shadeId) => { if (mounted.current) router.push(arHref({ productId, shadeId })); }}
       />
     </View>
@@ -425,7 +425,7 @@ function ChatConversation({ record, onRecent, onNew }: {
       ? ordinal !== undefined ? previousLooks?.[ordinal] : previousLooks?.length === 1 && wantsExplanation ? previousLooks[0] : undefined
       : undefined;
     const styleSearch = original?.args.styleSearch ?? (subject.type === 'general' &&
-      (previousLookRequest ? !singlePrevious : ((!room.styleContext || styleSearchActive) &&
+      (previousLookRequest ? !singlePrevious : ((!room.styleContext || wantsDifferentStyle(text)) &&
         (wantsStyleSearch(text, styleSearchActive) || (room.category === 'style' && !room.styleContext &&
           makeupTopic && !technique && !shopping && !/제품|상품|product|商品|製品|产品/i.test(text))))));
     const requestedStyle = singlePrevious
@@ -656,7 +656,7 @@ function ChatConversation({ record, onRecent, onNew }: {
                   onStepChange={(index) => {
                     if (mounted.current) store().setRecipeStep(target, message.id, index);
                   }}
-                  onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId)); }}
+                  onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId, undefined, message.styleRecipe?.kind === 'video')); }}
                   onOpenAr={(productId, shadeId) => { if (mounted.current) router.push(arHref({ productId, shadeId })); }}
                   onManualAr={() => { if (mounted.current) router.push(arHref()); }}
                   heading={t('chat.ui.style')}
@@ -716,8 +716,8 @@ function ChatConversation({ record, onRecent, onNew }: {
               ) : null}
               {message.role === 'assistant' && message.optionSearch ? <OptionSearchScope result={message.optionSearch} /> : null}
               {message.role === 'assistant' && !message.fragranceSearchSummary &&
-                !!(message.products?.length || (message.styleRecipe?.kind === 'video' && message.styleRecipe.products.length && /제품|상품|product|商品|製品|产品|사용한.{0,12}(?:립|입술|아이라인|아이라이너|마스카라|컨실러)/i.test(message.question ?? ''))) &&
-                (!message.styleRecipe || /제품|상품|product|商品|製品|产品|사용한.{0,12}(?:립|입술|아이라인|아이라이너|마스카라|컨실러)/i.test(message.question ?? '')) ? <RelatedProducts refs={message.products ?? []} optionSearch={message.optionSearch}
+                !!(message.products?.length || (message.styleRecipe?.kind === 'video' && message.styleRecipe.products.length)) &&
+                (!message.styleRecipe || (message.styleRecipe.productQuestion ?? /제품|상품|product|商品|製品|产品|사용한.{0,12}(?:립|입술|아이라인|아이라이너|마스카라|컨실러)/i.test(message.question ?? ''))) ? <RelatedProducts refs={message.products ?? []} optionSearch={message.optionSearch}
                 sourceProducts={message.styleRecipe?.kind === 'video' ? message.styleRecipe.products : undefined}
                 question={message.question ?? ''} category={message.category}
                 chatContext={message.chatContext} evidence={message.evidence}

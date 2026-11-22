@@ -135,6 +135,7 @@ class StyleRecipe(StyleModel):
     basis: Literal["reviewed_recipe", "catalog_settings", "video_metadata"]
     review_status: Literal["verified", "unreviewed", "not_applicable"]
     product_usage_trusted: bool = False
+    product_question: bool = False
     video_analyzed: Literal[False] = False
     synthetic: bool = False
     source: str

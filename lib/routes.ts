@@ -90,8 +90,8 @@ function compact(params: Record<string, string | undefined>): Record<string, str
   return Object.fromEntries(Object.entries(params).filter((e): e is [string, string] => !!e[1]));
 }
 
-export function productHref(productId: string, shadeId?: string, recommendation?: string): Href {
-  return { pathname: '/product/[id]', params: compact({ id: productId, shade: shadeId, recommendation }) } as Href;
+export function productHref(productId: string, shadeId?: string, recommendation?: string, requireShade?: boolean): Href {
+  return { pathname: '/product/[id]', params: compact({ id: productId, shade: shadeId, recommendation, requireShade: requireShade ? '1' : undefined }) } as Href;
 }
 
 export function lookHref(lookId: string): Href {

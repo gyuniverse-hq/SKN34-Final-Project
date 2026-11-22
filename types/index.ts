@@ -686,6 +686,7 @@ export interface ChatStyleRecipe {
   basis: 'reviewed_recipe' | 'catalog_settings' | 'video_metadata';
   reviewStatus: 'verified' | 'unreviewed' | 'not_applicable';
   productUsageTrusted?: boolean;
+  productQuestion?: boolean;
   videoAnalyzed: false;
   synthetic: boolean;
   source: string;

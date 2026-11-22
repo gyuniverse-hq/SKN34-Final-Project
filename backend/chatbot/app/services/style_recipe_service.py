@@ -369,6 +369,16 @@ def explicit_step(message):
 
 
 def style_advice(message, steps, index, locale, followup):
+    if locale == "ko" and not re.search(r"영상에서|in the video|動画では|视频里", message, re.I):
+        tips = []
+        eye = re.search(r"눈[^,.!?]{0,20}(?:덜|연하게|옅게)", message)
+        lip = re.search(r"(?:립|입술)[^,.!?]{0,20}(?:강조|진하게|더\s*진하게)", message)
+        if eye and not re.match(r"[^,.!?]{0,8}(?:하지\s*마|말아|않)", message[eye.end() :]):
+            tips.append(TIPS[locale]["eyeshadow"])
+        if lip and not re.match(r"[^,.!?]{0,8}(?:하지\s*마|말아|않)", message[lip.end() :]):
+            tips.append(TIPS[locale]["lip"])
+        if tips:
+            return "일반적인 조절 팁이에요: " + " ".join(tips)
     if not (_ADVICE.search(message) or _SMUDGING.search(message)) or re.search(
         r"영상에서|in the video|動画では|视频里", message, re.I
     ):
@@ -663,6 +673,7 @@ async def execute_style(req, catalog):
             if context.kind == "video"
             else "not_applicable",
             product_usage_trusted=products_trusted,
+            product_question=product_question,
             synthetic=recipe.synthetic if reviewed else False,
             source=source,
             evidence_id=recipe.evidence_id if reviewed else None,

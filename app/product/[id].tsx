@@ -22,7 +22,7 @@ import { useCartStore } from '@/store/cartStore';
 import { useRecommendationProductFeedback } from '@/hooks/useRecommendationProductFeedback';
 import { MAX_COMPARE, useCompareStore } from '@/store/compareStore';
 export default function ProductDetailScreen() {
-  const params = useLocalSearchParams<{ id: string; shade?: string; recommendation?: string }>();
+  const params = useLocalSearchParams<{ id: string; shade?: string; recommendation?: string; requireShade?: string }>();
   const id = parseId(params.id);
   const requestedShadeId = parseId(params.shade);
   const router = useRouter();
@@ -51,7 +51,7 @@ export default function ProductDetailScreen() {
   if (product.isError) return <ErrorState error={product.error} onRetry={() => product.refetch()} />;
 
   const p = product.data;
-  const selectedShade = pickShade(p, pickedShadeId);
+  const selectedShade = params.requireShade === '1' ? p.shades.find((shade) => shade.id === pickedShadeId) : pickShade(p, pickedShadeId);
   const arShade = p.shades.find((shade) => shade.id === pickedShadeId);
   const shadeMissing = !!requestedShadeId && pickedShadeId === requestedShadeId && !p.shades.some((s) => s.id === requestedShadeId);
   const tryOn = canTryOn(p);
@@ -62,6 +62,7 @@ export default function ProductDetailScreen() {
   };
 
   const onAdd = () => {
+    if (params.requireShade === '1' && p.shades.length && !selectedShade) { notify(t('chat.ingredient.selection')); return; }
     const quantity = () => useCartStore.getState().items.find(i => i.productId === p.id && i.shadeId === selectedShade?.id)?.quantity ?? 0;
     const before = quantity();
     const cart = feedback.prepareCartAdd();
@@ -74,6 +75,7 @@ export default function ProductDetailScreen() {
   };
 
   const onCompare = () => {
+    if (params.requireShade === '1' && p.shades.length && !selectedShade) { notify(t('chat.ingredient.selection')); return; }
     if (addToCompare({ productId: p.id, shadeId: selectedShade?.id })) router.push('/compare');
     else notify(t('compare.full', { max: MAX_COMPARE }));
   };
