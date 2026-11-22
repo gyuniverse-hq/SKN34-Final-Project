@@ -120,6 +120,7 @@ describe('selected Style recipe flow', () => {
       .mockResolvedValueOnce({ answer: 'Previous', products: [], styleCandidates: refined });
     const view = await renderScreen();
     await submit(view, '내일 출근할 때 자연스러운 메이크업을 하고 싶어.');
+    expect(view.root.findAllByType(Text).some((node) => node.props.children === 'chat.ui.contextNotice')).toBe(false);
     expect(mockMutateAsync.mock.calls[0][0]).toMatchObject({ styleSearch: true, category: 'style' });
     await submit(view, '눈은 덜 진하게 하고 립을 조금 더 강조하고 싶어.');
     expect(mockMutateAsync.mock.calls[1][0]).toMatchObject({ styleSearch: true,
@@ -195,6 +196,7 @@ describe('selected Style recipe flow', () => {
     expect(listChat.root.findAllByType(StyleRecipeResult)).toHaveLength(0);
     expect(listChat.root.findAllByType(Text).some((node) => node.props.children === 'chat.entry.context')).toBe(false);
     await submit(listChat, '그라데이션 립 어떻게 해?');
+    expect(listChat.root.findAllByType(Text).some((node) => node.props.children === 'chat.ui.contextNotice')).toBe(true);
     expect(mockMutateAsync.mock.calls[1][0].category).toBeUndefined();
     expect(mockMutateAsync.mock.calls[1][0].styleContext).toBeUndefined();
     await act(async () => listChat.unmount());

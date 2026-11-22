@@ -497,6 +497,9 @@ function ChatConversation({ record, onRecent, onNew }: {
   }, [subject]);
 
   const visibleMessages = messages.filter((message) => !message.automatic || message.failed);
+  const hasStyleConversation = !!activeStyle || messages.some((message) => message.ownerKey === ownerKey &&
+    message.generation === conversationGeneration && (message.styleCandidates !== undefined ||
+      (message.role === 'user' && message.category === 'style')));
   const canSelect = (message: ChatMessage) => sessionCandidateIds.length > 0 &&
     message.generation === conversationGeneration && message.resultSetId === view.resultSetId;
 
@@ -585,7 +588,7 @@ function ChatConversation({ record, onRecent, onNew }: {
             </View>
           ) : (
             <View>
-              {messages.length && !editing && subject.type === 'general' ? <Text style={styles.contextNotice}>{t('chat.ui.contextNotice')}</Text> : null}
+              {messages.length && !editing && subject.type === 'general' && !hasStyleConversation ? <Text style={styles.contextNotice}>{t('chat.ui.contextNotice')}</Text> : null}
               {subject.type === 'general' ? <View style={styles.categoryChips}>
                 {categories.map((item) => (
                   <Pressable key={item.id} accessibilityRole="button" accessibilityState={{ selected: category === item.id }}
