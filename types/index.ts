@@ -443,7 +443,7 @@ export interface Store {
   pickupAvailable: boolean;
 }
 
-export interface ArCartSource {
+export interface CartEventSource {
   ownerId: string;
   eventId: string;
 }
@@ -453,7 +453,8 @@ export interface CartItem {
   shadeId?: string;
   quantity: number;
   addedFromLookId?: string;
-  arCartSources?: (ArCartSource | null)[];
+  arCartSources?: (CartEventSource | null)[];
+  skincareCartSources?: (CartEventSource | null)[];
 }
 
 export interface ShoppingListLine {

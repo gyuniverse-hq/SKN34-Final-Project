@@ -64,8 +64,11 @@ export default function ProductDetailScreen() {
   const onAdd = () => {
     const quantity = () => useCartStore.getState().items.find(i => i.productId === p.id && i.shadeId === selectedShade?.id)?.quantity ?? 0;
     const before = quantity();
-    addToCart({ productId: p.id, shadeId: selectedShade?.id });
-    if (quantity() > before) feedback.record('cart_add');
+    const cart = feedback.prepareCartAdd();
+    addToCart({ productId: p.id, shadeId: selectedShade?.id,
+      ...(cart?.source ? { skincareCartSources: [cart.source] } : {}),
+    });
+    if (quantity() > before) cart?.record();
     setAdded(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
   };
@@ -82,7 +85,7 @@ export default function ProductDetailScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <ProductImage uri={p.imageUrl} category={p.category} style={styles.hero} recyclingKey={p.id} />
           <View style={styles.body}>
-            {feedback.failed ? <Notice tone="warning" body={t('comparison.feedbackFailed')} /> : null}
+            {feedback.failed ? <Notice tone="warning" body={t('skincare.feedbackFailed')} /> : null}
             <Text style={styles.brand}>{p.brand}</Text>
             <Text style={styles.name} accessibilityRole="header">
               {p.name}
@@ -190,7 +193,7 @@ export default function ProductDetailScreen() {
             label={t('ar.openStore')}
             icon="open-outline"
             variant="secondary"
-            onPress={() => { feedback.record('outbound_click'); void WebBrowser.openBrowserAsync(p.sourceUrl!); }}
+            onPress={() => { void WebBrowser.openBrowserAsync(p.sourceUrl!); }}
             style={styles.footerBtn}
           />
         ) : null}

@@ -54,9 +54,13 @@ export function deriveCareGoals(profile: SkinProfile | null): SkincareProfileReq
   const detectedConcerns = CARE_GOALS.filter(g => sources.has(g))
     .map(goal => ({ goal, sources: [...sources.get(goal)!] }));
   const analysisScores: NonNullable<SkincareProfileRequest['analysisScores']> = {};
-  if (profile?.analysis.schema === 'skin-analysis-mobile-v4' || profile?.analysis.schema === 'skin-analysis-mobile-v4.1') {
+  const schema = profile?.analysis.schema;
+  const blemishThreshold = schema === 'skin-analysis-mobile-v4.1' ? profile?.analysis.acneThreshold : undefined;
+  const hasBlemishThreshold = blemishThreshold !== undefined && blemishThreshold > 0 && blemishThreshold < 1;
+  if (schema === 'skin-analysis-mobile-v4' || schema === 'skin-analysis-mobile-v4.1') {
     for (const metric of report?.metrics ?? []) {
-      if ((metric.concern === 'pores' || metric.concern === 'pigmentation' || metric.concern === 'wrinkles') &&
+      if ((metric.concern === 'pores' || metric.concern === 'pigmentation' || metric.concern === 'wrinkles' ||
+          (metric.concern === 'blemish' && hasBlemishThreshold)) &&
           metric.status !== 'unknown' && metric.modelScore !== undefined &&
           Number.isFinite(metric.modelScore) && metric.modelScore >= 0 && metric.modelScore <= 1) {
         analysisScores[metric.concern] = metric.modelScore;
@@ -65,5 +69,6 @@ export function deriveCareGoals(profile: SkinProfile | null): SkincareProfileReq
   }
   return { detectedConcerns, irritationSignal,
     ...(Object.keys(analysisScores).length ? { analysisScores } : {}),
+    ...(analysisScores.blemish !== undefined ? { blemishThreshold } : {}),
     skinType: report?.skinType === 'combination' ? 'unknown' as const : report?.skinType ?? 'unknown' };
 }

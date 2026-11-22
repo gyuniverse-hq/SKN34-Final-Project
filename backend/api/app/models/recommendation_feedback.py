@@ -1,4 +1,4 @@
-"""Historical V2 recommendation decisions and observed user responses."""
+"""Historical skin recommendation decisions and observed user responses."""
 
 from datetime import datetime
 from typing import Any
@@ -90,13 +90,19 @@ class RecommendationCandidateRow(Base):
             postgresql_where=text("final_rank IS NOT NULL"),
         ),
         CheckConstraint(
-            "final_rank IS NULL OR final_rank BETWEEN 1 AND 5",
+            "(v2_score IS NULL AND final_rank IS NOT NULL AND final_rank BETWEEN 1 AND 10) "
+            "OR (v2_score IS NOT NULL AND (final_rank IS NULL OR final_rank BETWEEN 1 AND 5))",
             name="ck_rec_candidates_final_rank",
         ),
         CheckConstraint(
-            "(final_rank IS NULL AND diversity_penalty IS NULL AND selection_score IS NULL) "
+            "(v2_score IS NULL AND primary_ingredient_score IS NULL "
+            "AND secondary_ingredient_score IS NULL AND ingredient_score IS NULL "
+            "AND review_score IS NULL AND diversity_penalty IS NULL AND selection_score IS NULL) "
+            "OR (v2_score IS NOT NULL AND primary_ingredient_score IS NOT NULL "
+            "AND ingredient_score IS NOT NULL AND review_score IS NOT NULL AND "
+            "((final_rank IS NULL AND diversity_penalty IS NULL AND selection_score IS NULL) "
             "OR (final_rank IS NOT NULL AND diversity_penalty IS NOT NULL "
-            "AND selection_score IS NOT NULL)",
+            "AND selection_score IS NOT NULL)))",
             name="ck_rec_candidates_selection",
         ),
         CheckConstraint(
@@ -131,11 +137,11 @@ class RecommendationCandidateRow(Base):
     )
     product_id: Mapped[str] = mapped_column(Text, nullable=False)
     option_id: Mapped[str] = mapped_column(Text, nullable=False)
-    primary_ingredient_score: Mapped[float] = mapped_column(Float(53), nullable=False)
+    primary_ingredient_score: Mapped[float | None] = mapped_column(Float(53))
     secondary_ingredient_score: Mapped[float | None] = mapped_column(Float(53))
-    ingredient_score: Mapped[float] = mapped_column(Float(53), nullable=False)
-    review_score: Mapped[float] = mapped_column(Float(53), nullable=False)
-    v2_score: Mapped[float] = mapped_column(Float(53), nullable=False)
+    ingredient_score: Mapped[float | None] = mapped_column(Float(53))
+    review_score: Mapped[float | None] = mapped_column(Float(53))
+    v2_score: Mapped[float | None] = mapped_column(Float(53))
     final_rank: Mapped[int | None] = mapped_column(SmallInteger)
     diversity_penalty: Mapped[float | None] = mapped_column(Float(53))
     selection_score: Mapped[float | None] = mapped_column(Float(53))
@@ -168,6 +174,40 @@ class RecommendationImpressionRow(Base):
         DateTime(timezone=True), server_default=text("now()"), nullable=False
     )
     visibility_policy_version: Mapped[str] = mapped_column(Text, nullable=False)
+
+
+class SkincareRecommendationEventRow(Base):
+    __tablename__ = "skincare_recommendation_events"
+    __table_args__ = (
+        Index("ix_skincare_rec_events_impression", "impression_id"),
+        UniqueConstraint("order_line_id", "event_type", name="uq_skincare_rec_events_line_type"),
+        Index(
+            "uq_skincare_rec_events_paid_cart",
+            "cart_event_id",
+            unique=True,
+            postgresql_where=text("event_type = 'purchase_confirmed'"),
+        ),
+        CheckConstraint(
+            "(event_type IN ('product_view', 'cart_add') "
+            "AND order_line_id IS NULL AND cart_event_id IS NULL) OR "
+            "(event_type IN ('checkout_started', 'purchase_confirmed') "
+            "AND order_line_id IS NOT NULL AND cart_event_id IS NOT NULL)",
+            name="ck_skincare_rec_events_attribution",
+        ),
+    )
+
+    event_id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True)
+    impression_id: Mapped[UUID] = mapped_column(
+        ForeignKey("recommendation_impressions.impression_id", ondelete="CASCADE")
+    )
+    event_type: Mapped[str] = mapped_column(Text)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    order_line_id: Mapped[int | None] = mapped_column(
+        ForeignKey("order_lines.id", ondelete="CASCADE")
+    )
+    cart_event_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("skincare_recommendation_events.event_id", ondelete="CASCADE")
+    )
 
 
 class UserBehaviorEventRow(Base):

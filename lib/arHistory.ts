@@ -1,5 +1,6 @@
 import { uuid } from 'expo';
 import { apiPost, ApiError } from './api';
+import { cartEventIds, trackCartEvent } from './cartAttribution';
 import type { ColorSwatch, NearbyDirection } from './nearbyColors';
 import type { PickStrategy } from './arPalettePicks';
 import type { CartItem, MakeupZone } from '@/types';
@@ -8,29 +9,11 @@ type ShadeKey = { productId: string; shadeId: string };
 type PaletteCandidate = ShadeKey & { candidateId: string };
 export type RankedArPalette = { requestId: string; candidates: PaletteCandidate[] };
 type Sender = (resource: string, payload: unknown) => Promise<unknown>;
-const pendingCartEvents = new Map<string, Promise<unknown>>();
-
 export function arCartEventIds(item: CartItem, ownerId: string) {
-  return [...new Set((item.arCartSources ?? []).slice(0, item.quantity)
-    .flatMap(source => source?.ownerId === ownerId ? [source.eventId] : []))];
+  return cartEventIds(item, 'arCartSources', ownerId);
 }
 
-export async function waitForArCartEvents(ids: readonly string[]) {
-  const pending = ids.flatMap(id => {
-    const event = pendingCartEvents.get(id);
-    return event ? [event] : [];
-  });
-  if (!pending.length) return;
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-  try {
-    await Promise.race([
-      Promise.allSettled(pending),
-      new Promise(resolve => { timeout = setTimeout(resolve, 750); }),
-    ]);
-  } finally {
-    clearTimeout(timeout);
-  }
-}
+export { waitForCartEvents as waitForArCartEvents } from './cartAttribution';
 
 export async function postArHistory(owner: string, path: string, body: unknown) {
   const send = () => apiPost('/api/me/ar-history/' + path, body, { expectedUserId: owner, timeoutMs: 5000 });
@@ -127,8 +110,8 @@ export class ArHistorySession {
     return {
       source,
       record: () => {
-        const pending = save().catch(noteArFailure).finally(() => pendingCartEvents.delete(eventId));
-        if (source) pendingCartEvents.set(eventId, pending);
+        const pending = save().catch(noteArFailure);
+        if (source) trackCartEvent(eventId, pending);
       },
     };
   }
