@@ -1,0 +1,16 @@
+# Secret scanning for VISHUE. Used by .github/workflows/secrets.yml.
+title = "vishue"
+
+[extend]
+useDefault = true
+
+# Synthetic / documented placeholders only — never real credentials.
+[[allowlists]]
+description = "Compose local throwaway DB password"
+paths = ['''infra/compose/.*''', '''infra/helm/vishue/values-local\.yaml''']
+regexTarget = "match"
+regexes = ['''(?i)vishue(-local)?''']
+
+[[allowlists]]
+description = "Env example placeholders"
+paths = ['''\.env\.example$''', '''backend/.*/\.env\.example$''']

@@ -13,11 +13,16 @@ def get_driver() -> AsyncDriver:
 
 
 async def ping_graph() -> bool:
+    # ADR-0012: Neo4j is retired; skip the graph check when no password is configured
+    # so readiness does not block the pod during the pgvector cutover.
+    if not get_settings().neo4j_password:
+        return True
     try:
         await get_driver().verify_connectivity()
         return True
     except Exception:
         return False
+
 
 
 async def close_driver() -> None:

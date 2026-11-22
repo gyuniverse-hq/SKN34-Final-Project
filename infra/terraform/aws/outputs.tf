@@ -27,3 +27,13 @@ output "secret_names" {
   description = "Secrets Manager entries to fill with API keys."
   value       = [for s in aws_secretsmanager_secret.app : s.name]
 }
+
+output "ops_bucket" {
+  description = "Private S3 bucket for dumps, backups, and non-secret assets (prefix dumps/ expires after 90 days)."
+  value       = aws_s3_bucket.ops.bucket
+}
+
+output "ops_bucket_arn" {
+  description = "ARN of the ops bucket (for IAM policies / restore jobs)."
+  value       = aws_s3_bucket.ops.arn
+}
