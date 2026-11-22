@@ -2,10 +2,9 @@
 
 import pytest
 
-from app.schemas.skincare import HybridRequest, SkincareProfileRequest, SkincareSnapshot
+from app.schemas.skincare import SkincareProfileRequest, SkincareSnapshot
 from app.services.skincare_service import recommend_hybrid
-from tests.test_skincare import option
-from tests.test_skincare_cosing import cosing
+from tests.test_skincare import cosing, option
 
 
 def rule(id, goal, *functions, **changes):
@@ -74,9 +73,6 @@ def test_fit_beats_reviews_and_profile_labels_but_equal_fit_uses_reviews():
         "complete",
         "popular",
     ]
-    # A client on the old contract retains its original review-first ordering.
-    legacy = HybridRequest(primaryGoal="pores", skinType="dry", irritationSignal="caution")
-    assert ids(recommend_hybrid(data, legacy).by_concern["pores"])[0] == "popular"
 
 
 def test_duplicate_functions_and_other_concerns_cannot_inflate_fit():

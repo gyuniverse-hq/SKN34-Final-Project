@@ -878,6 +878,27 @@ describe('ingredient selection and request snapshots', () => {
 });
 
 describe('standalone chat input', () => {
+  it('hides answer emphasis without changing the question, stored answer, or source quote', async () => {
+    const question = '질문 **그대로**';
+    const answer = '답변 **강조** 그리고 **미완성';
+    const quote = '원문 **그대로**';
+    mockMutateAsync.mockResolvedValueOnce({ answer, products: [], knowledge: {
+      status: 'answered', claims: [], findings: [], evidence: [{ id: 'E1', documentId: 1, chunkId: 'chunk',
+        title: '원문', sourceFileId: 1, sourceVersion: 'v1', blockOrder: 1, startUtf16: 0, endUtf16: 10,
+        sourceLocator: {}, quote, relevance: 'essential' }],
+    } });
+    const renderer = await renderScreen();
+    await act(async () => { renderer.root.findByType(TextInput).props.onChangeText(question); });
+    await act(async () => { renderer.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    const texts = renderer.root.findAllByType(Text).map((item) => item.props.children);
+    expect(texts).toContain(question);
+    expect(texts).toContain('답변 강조 그리고 **미완성');
+    expect(texts).toContain(quote);
+    const messages = Object.values(useChatConversationStore.getState().conversations).flatMap((record) => record.messages);
+    expect(messages.find((message) => message.role === 'assistant')?.text).toBe(answer);
+    await act(async () => { renderer.unmount(); });
+  });
+
   it('starts without a category and retains explicit product selection for the next request', async () => {
     mockMutateAsync.mockResolvedValue({ answer: 'Answer', products: [] });
     const renderer = await renderScreen();

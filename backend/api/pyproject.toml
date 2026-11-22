@@ -80,5 +80,4 @@ modules = [
     "app.clients.naver_client",
     "app.clients.youtube_client",
     "app.clients.supabase_admin_client",
-    "app.clients.recommendation_v1_client",
 ]

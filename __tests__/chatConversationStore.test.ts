@@ -1,4 +1,4 @@
-import type { BeautyChatContext } from '@/types';
+import type { BeautyChatContext, KnowledgeReply } from '@/types';
 import type { ChatRequestSnapshot, ConversationTarget } from '@/types/chatConversation';
 import { recentChatMessages, useChatConversationStore } from '@/store/chatConversationStore';
 
@@ -252,6 +252,20 @@ test.each(['product', 'shade'] as const)('G3 does not resurrect dismissed pendin
   expect(store().conversations[id].conversation.pendingClarification).toBeUndefined();
 });
 
+test('keeps optional knowledge citations with their assistant reply', () => {
+  const id = store().open({ type: 'general' })!;
+  const room = store().conversations[id].conversation;
+  const ticket = store().beginRequest(room, request(room, 'how do I cover redness?'))!;
+  const knowledge: KnowledgeReply = {
+    status: 'answered', claims: [{ claim: 'A grounded answer', citations: ['E1'] }],
+    evidence: [{ id: 'E1', documentId: 8, chunkId: 'c', title: 'Source',
+      sourceFileId: 3, sourceVersion: 'v1', blockOrder: 7, startUtf16: 1, endUtf16: 12,
+      sourceLocator: {}, quote: 'source text', relevance: 'essential' }],
+    findings: [], limitations: '',
+  };
+  store().completeRequest(ticket, { answer: 'A grounded answer [E1]', products: [], knowledge }, 'question');
+  expect(store().conversations[id].messages.at(-1)?.knowledge).toEqual(knowledge);
+});
 
 test('G4 keeps option results with their original message and ignores late owner responses', () => {
   const id = store().open({ type: 'general' })!;

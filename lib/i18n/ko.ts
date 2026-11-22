@@ -1,5 +1,4 @@
 import { skincareKo } from './skincare';
-import { comparisonKo } from './recommendationComparison';
 import { supportKo } from './skinSupport';
 import { surveyKo } from './survey';
 import type { Dictionary } from './en';
@@ -82,6 +81,9 @@ export const ko: Dictionary = {
   'ar.explore.empty': "이 방향과 제형에 맞는 제품이 없어요. 다른 방향·제형을 고르거나 자유 탐색으로 돌아가세요.",
   'ar.explore.preview': "지금 발라보는 색",
   'ar.explore.rebase': '이 색을 기준으로',
+  'chat.knowledge.sources': '원문 출처',
+  'chat.knowledge.document': '문서 {id}',
+  'chat.knowledge.paragraph': '문단 {order}',
   'chat.ingredient.resultFor': "선택한 제품 · 성분 확인",
   'chat.ingredient.showDetails': "근거와 성분 목록 보기",
   'chat.ingredient.hideDetails': "근거 상세 접기",
@@ -118,7 +120,6 @@ export const ko: Dictionary = {
   'chat.carousel.ordinal': "번",
   'chat.carousel.ingredient': "이 제품 성분은?",
   'chat.carousel.details': "이 제품 자세히 알려줘",
-  ...comparisonKo,
   ...skincareKo,
   ...supportKo,
   ...surveyKo,

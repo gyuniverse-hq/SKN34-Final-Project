@@ -7,9 +7,9 @@ import { appendSkinTiming, validateSkinAnalysis } from '@/lib/skinProfile';
 import { useSkinProfileStore } from '@/store/skinProfileStore';
 import { useSkinPreviewStore } from '@/store/skinPreviewStore';
 import { SkinPreviewAssembler } from '@/lib/skinPreview';
-import type { SkinAnalysisResult, SkinCameraEvent, SkinIndicator, SkinProfileV4, SkinSurveyV3, SkinWebRun, SkinWebEvent, SkinPreview } from '@/types/skin';
+import type { SkinAnalysisResult, SkinCameraEvent, SkinIndicator, SkinSurveyV3, SkinWebRun, SkinWebEvent, SkinPreview } from '@/types/skin';
 
-export function useSkinAnalysis(demographics?: SkinProfileV4['demographics']) {
+export function useSkinAnalysis() {
   const [phase, setPhase] = useState<'ready' | 'camera' | 'analysis' | 'survey' | 'saving' | 'done' | 'error'>('ready');
   const [camera, setCamera] = useState<SkinCameraEvent>({ guidance: 'noFace', progress: 0 });
   const [indicator, setIndicator] = useState<SkinIndicator>('pore');
@@ -162,8 +162,7 @@ export function useSkinAnalysis(demographics?: SkinProfileV4['demographics']) {
     try {
       await appendSkinTiming(result.timing);
       await save({ version: 4, registeredAt: new Date().toISOString(), analysis: result, questionnaire: answers,
-        fusion: fuseSupportSkinType(result.skinType, answers),
-        ...(demographics && Object.keys(demographics).length ? { demographics } : {}) });
+        fusion: fuseSupportSkinType(result.skinType, answers) });
       if (pendingPreview.current?.runId === result.timing.runId) {
         useSkinPreviewStore.getState().setPreview(pendingPreview.current);
         previewTransferred.current = true;

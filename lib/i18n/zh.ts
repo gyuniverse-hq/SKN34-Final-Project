@@ -1,5 +1,4 @@
 import { skincareZh } from './skincare';
-import { comparisonZh } from './recommendationComparison';
 import { supportZh } from './skinSupport';
 import { surveyZh } from './survey';
 import type { Dictionary } from './en';
@@ -82,6 +81,9 @@ export const zh: Dictionary = {
   'ar.explore.empty': "没有符合此方向和质地的产品。请选择其他方向、质地，或返回自由探索。",
   'ar.explore.preview': "正在试用的颜色",
   'ar.explore.rebase': "以此颜色继续探索",
+  'chat.knowledge.sources': '来源',
+  'chat.knowledge.document': '文档 {id}',
+  'chat.knowledge.paragraph': '段落 {order}',
   'chat.ingredient.resultFor': "所选商品 · 成分核查",
   'chat.ingredient.showDetails': "查看依据与成分列表",
   'chat.ingredient.hideDetails': "收起依据详情",
@@ -118,7 +120,6 @@ export const zh: Dictionary = {
   'chat.carousel.ordinal': "号",
   'chat.carousel.ingredient': "这款产品含有哪些成分？",
   'chat.carousel.details': "详细介绍这款产品",
-  ...comparisonZh,
   ...skincareZh,
   ...supportZh,
   ...surveyZh,

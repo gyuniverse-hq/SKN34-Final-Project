@@ -12,6 +12,7 @@ supabase:
 
 chatbot:
   env:
+    G1_SUPERVISOR_ENABLED: "true"
     NEO4J_URI: ""     # set before first deploy: neo4j+s://<id>.databases.neo4j.io (AuraDB)
     LLM_MODEL: ""     # set before first deploy; empty keeps the chatbot disabled (503)
 

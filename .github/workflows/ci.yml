@@ -63,7 +63,7 @@ jobs:
         service: [api, chatbot]
     services:
       postgres:
-        image: postgres:17-alpine
+        image: pgvector/pgvector:0.8.2-pg17-bookworm
         env:
           POSTGRES_USER: vishue
           POSTGRES_PASSWORD: vishue
@@ -111,8 +111,6 @@ jobs:
       - uses: docker/build-push-action@v7
         with:
           context: backend/${{ matrix.service }}
-          build-contexts: |
-            model=./ml/runs/recommend-cat-v4/bundle
           push: false
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}

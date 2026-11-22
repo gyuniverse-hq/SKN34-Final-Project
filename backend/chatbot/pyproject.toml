@@ -11,6 +11,7 @@ dependencies = [
     "pydantic-settings>=2.16.1",
     "pyjwt[crypto]>=2.15.1",
     "redis>=8.1.0",
+    "tiktoken>=0.14.0",
     "uvicorn[standard]>=0.54.0",
 ]
 
