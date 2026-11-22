@@ -133,6 +133,10 @@ export const zh: Dictionary = {
   "chat.style.source": "来源",
   "chat.style.version": "教程版本",
   "chat.style.mappingVerified": "产品与色号映射已确认",
+  "chat.style.mappingProductOnly": "已关联商品 · 未关联色号",
+  "chat.style.mappingShadeInvalid": "已关联商品 · 色号关联待确认",
+  "chat.style.mappingNotLinked": "未关联商品详情",
+  "chat.style.videoProductsCount": "视频登记 {total} 件 · 已关联商品详情 {linked} 件",
   "chat.style.mappingUnknown": "资料所列产品 · 实际使用和色号未确认",
   "chat.style.manualAr": "自行选择产品和色号体验AR",
 

@@ -92,6 +92,10 @@ export const en = {
   "chat.style.source": "Source",
   "chat.style.version": "Recipe version",
   "chat.style.mappingVerified": "Product and shade mapping confirmed",
+  "chat.style.mappingProductOnly": "Product linked · shade not linked",
+  "chat.style.mappingShadeInvalid": "Product linked · shade link needs checking",
+  "chat.style.mappingNotLinked": "Product details not linked",
+  "chat.style.videoProductsCount": "{total} video products · {linked} linked to product details",
   "chat.style.mappingUnknown": "Listed product · actual use and shade unconfirmed",
   "chat.style.manualAr": "Choose a product and shade for manual AR",
 

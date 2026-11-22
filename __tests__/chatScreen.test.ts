@@ -122,6 +122,18 @@ describe('selected Style recipe flow', () => {
     await act(async () => view.unmount());
   });
 
+  it('shows an unlinked source product without a permanent loading state', async () => {
+    Object.assign(mockRouteParams, { recipeKind: 'video', recipeLookId: '_video-1' });
+    const source = { label: 'Source concealer', zone: 'foundation', mappingStatus: 'unknown' as const, catalogValid: false, arEligible: false };
+    mockProductsByIds.mockReturnValue({ data: [], isPending: true, isError: false, refetch: mockRefetch });
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'Guide', products: [], styleRecipe: recipe, styleContext: context })
+      .mockResolvedValueOnce({ answer: 'Source concealer', products: [], styleRecipe: { ...recipe, products: [source] }, styleContext: context });
+    const view = await renderScreen();
+    await submit(view, '이 영상에서 사용한 컨실러 제품 알려줘.');
+    expect(view.root.findByType(ChatProducts).props).toMatchObject({ sourceProducts: [source], loading: false, failed: false });
+    await act(async () => view.unmount());
+  });
+
   it('keeps look suggestions, refinements and a selected look in the same conversation', async () => {
     const first = [{ kind: 'video', lookId: '_video-1', title: 'First suggestion', tags: ['daily'] }];
     const refined = [{ kind: 'video', lookId: '_video-1', title: 'Refined suggestion', tags: ['daily'] },

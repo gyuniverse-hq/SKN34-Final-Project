@@ -70,8 +70,9 @@ function OptionSearchScope({ result }: { result: NonNullable<ChatMessage['option
   );
 }
 
-function RelatedProducts({ optionSearch, refs, question, category, chatContext, evidence, selectedShades, onSelectShade, onSelectProduct, selectedProductId, fragrance, onOpenEvidence }: {
+function RelatedProducts({ optionSearch, sourceProducts, refs, question, category, chatContext, evidence, selectedShades, onSelectShade, onSelectProduct, selectedProductId, fragrance, onOpenEvidence }: {
   optionSearch?: ChatMessage['optionSearch'];
+  sourceProducts?: NonNullable<ChatMessage['styleRecipe']>['products'];
   refs: ChatProductRef[]; question: string; category?: Category;
   chatContext?: BeautyChatContext; evidence?: ChatProductEvidence[];
   selectedShades: Record<string, string>;
@@ -101,8 +102,12 @@ function RelatedProducts({ optionSearch, refs, question, category, chatContext, 
   return (
     <View>
       {!fragrance ? <Text style={styles.relatedTitle}>{t('chat.relatedProducts')}</Text> : null}
+      {sourceProducts ? <Text style={styles.relatedTitle}>{t('chat.style.videoProductsCount', {
+        total: sourceProducts.length, linked: sourceProducts.filter((product) => product.productId).length,
+      })}</Text> : null}
       <ChatProducts
         products={products}
+        sourceProducts={sourceProducts}
         optionSearch={optionSearch}
         fragrance={fragrance}
         onOpenEvidence={onOpenEvidence}
@@ -123,8 +128,8 @@ function RelatedProducts({ optionSearch, refs, question, category, chatContext, 
         }}
         evidence={evidence}
         showIngredients={category === 'ingredient'}
-        loading={query.isPending || query.isPlaceholderData}
-        failed={query.isError}
+        loading={ids.length > 0 && (query.isPending || query.isPlaceholderData)}
+        failed={ids.length > 0 && query.isError}
         missingCount={!query.isPending && !query.isPlaceholderData && !query.isError ? ids.length - products.length : 0}
         onRetry={() => { if (mounted.current) void query.refetch(); }}
         onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId)); }}
@@ -710,7 +715,10 @@ function ChatConversation({ record, onRecent, onNew }: {
                 </View>
               ) : null}
               {message.role === 'assistant' && message.optionSearch ? <OptionSearchScope result={message.optionSearch} /> : null}
-              {message.role === 'assistant' && !message.fragranceSearchSummary && message.products?.length && (!message.styleRecipe || /제품|상품|product|商品|製品|产品|사용한.{0,12}(?:립|입술|아이라인|아이라이너)/i.test(message.question ?? '')) ? <RelatedProducts refs={message.products} optionSearch={message.optionSearch}
+              {message.role === 'assistant' && !message.fragranceSearchSummary &&
+                !!(message.products?.length || (message.styleRecipe?.kind === 'video' && message.styleRecipe.products.length && /제품|상품|product|商品|製品|产品|사용한.{0,12}(?:립|입술|아이라인|아이라이너|마스카라|컨실러)/i.test(message.question ?? ''))) &&
+                (!message.styleRecipe || /제품|상품|product|商品|製品|产品|사용한.{0,12}(?:립|입술|아이라인|아이라이너|마스카라|컨실러)/i.test(message.question ?? '')) ? <RelatedProducts refs={message.products ?? []} optionSearch={message.optionSearch}
+                sourceProducts={message.styleRecipe?.kind === 'video' ? message.styleRecipe.products : undefined}
                 question={message.question ?? ''} category={message.category}
                 chatContext={message.chatContext} evidence={message.evidence}
                 selectedShades={selectedShades}

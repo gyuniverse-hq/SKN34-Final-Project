@@ -133,6 +133,10 @@ export const ja: Dictionary = {
   "chat.style.source": "出典",
   "chat.style.version": "レシピ版",
   "chat.style.mappingVerified": "製品・色番の対応を確認済み",
+  "chat.style.mappingProductOnly": "商品連携済み・色番は未連携",
+  "chat.style.mappingShadeInvalid": "商品連携済み・色番の確認が必要",
+  "chat.style.mappingNotLinked": "商品詳細は未連携",
+  "chat.style.videoProductsCount": "動画登録 {total}件・商品詳細連携 {linked}件",
   "chat.style.mappingUnknown": "資料記載の製品・実使用と色番は未確認",
   "chat.style.manualAr": "製品と色番を選んでAR体験",
 

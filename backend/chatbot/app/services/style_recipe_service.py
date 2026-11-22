@@ -6,6 +6,7 @@ from hashlib import sha256
 from math import isfinite
 
 from app.core.errors import UpstreamError
+from app.core.trusted_style_videos import TRUSTED_STYLE_VIDEO_IDS
 from app.schemas.chat import ChatResponse, ProductRef
 from app.schemas.style_recipe import RecipeProduct, RecipeStep, StyleContext, StyleRecipe
 from app.schemas.supervisor import EvidenceRef, ToolResult
@@ -69,6 +70,7 @@ TEXT = {
         "error": "룩 자료를 조회하지 못했습니다. 잠시 후 다시 시도해 주세요.",
         "video": "영상의 실제 화장 순서는 확인되지 않았습니다. 아래는 일반적인 방법이에요.",
         "video_product": "영상 정보에 등록된 제품이에요:",
+        "video_product_trusted": "영상에서 사용한 제품이에요:",
         "video_product_empty": "요청한 제품이 영상 정보에 등록되어 있지 않아요.",
         "video_product_unverified": "영상 속 실제 사용 여부는 확인되지 않았어요.",
         "video_product_unlinked": "일부 제품은 상품 상세가 연결되지 않았어요.",
@@ -110,6 +112,7 @@ TEXT = {
             "uman-reviewed video recipe."
         ),
         "video_product": "Products listed in the video information:",
+        "video_product_trusted": "Products used in the video:",
         "video_product_empty": "No requested products are listed in the video information.",
         "video_product_unverified": "Actual use in the video has not been verified.",
         "video_product_unlinked": "Some products are not linked to catalog details.",
@@ -145,6 +148,7 @@ TEXT = {
             "です。人が検証した動画レシピではありません。"
         ),
         "video_product": "動画情報に登録された製品です:",
+        "video_product_trusted": "動画で使用された製品です:",
         "video_product_empty": "ご希望の製品は動画情報に登録されていません。",
         "video_product_unverified": "動画での実際の使用は未確認です。",
         "video_product_unlinked": "一部の製品は商品詳細に紐付いていません。",
@@ -171,6 +175,7 @@ TEXT = {
         ),
         "catalog": "这是依据已登记Catalog化妆设置生成的规则指南，并非人工审核的视频教程。",
         "video_product": "视频信息中登记的产品：",
+        "video_product_trusted": "视频中使用的产品：",
         "video_product_empty": "视频信息中没有登记所请求的产品。",
         "video_product_unverified": "尚未确认视频中的实际使用情况。",
         "video_product_unlinked": "部分产品未关联商品详情。",
@@ -411,6 +416,7 @@ async def execute_style(req, catalog):
         if recipe and (recipe.look_id != look.id or recipe.kind != context.kind):
             raise UpstreamError("Recipe belongs to a different look")
         reviewed = recipe is not None and recipe.review_status == "verified"
+        products_trusted = context.kind == "video" and look.id in TRUSTED_STYLE_VIDEO_IDS
         names = dict(zip(ORDER, NAMES[req.locale], strict=True))
         makeup = None
         if context.kind == "video":
@@ -520,10 +526,21 @@ async def execute_style(req, catalog):
         links, refs, cache = [], {}, {}
         entries = look.products if context.kind == "video" else look.items
         requested_zone = source_zone(message)
+        specific_product = next(
+            (
+                pattern
+                for pattern in (
+                    r"컨실러|concealer|コンシーラー|遮瑕",
+                    r"마스카라|mascara|マスカラ|睫毛膏",
+                )
+                if re.search(pattern, message, re.I)
+            ),
+            None,
+        )
         product_question = bool(
             re.search(r"제품|상품|product|商品|製品|产品", message, re.I)
             or (
-                requested_zone
+                (requested_zone or specific_product)
                 and re.search(
                     r"사용한|사용된|사용했|썼|쓴|바른|\bused\b|使った|使用", message, re.I
                 )
@@ -535,8 +552,35 @@ async def execute_style(req, catalog):
             pid = entry.catalog_product_id if video else entry.product_id
             sid = entry.catalog_shade_id if video else entry.shade_id
             verified = entry.mapping_verified if video else True
-            zone = source_zone(entry.zone + " " + entry.category) if video else None
-            if video and product_question and requested_zone and zone != requested_zone:
+            # The listed ampoule was incorrectly linked to a different toner product.
+            if (
+                video
+                and look.id == "L8RvSmdkR2g"
+                and entry.number == 3
+                and pid == "yt-45f63ecddcd067bb3d67"
+            ):
+                verified = False
+            zone = (
+                (source_zone(entry.zone + " " + entry.category) or source_zone(entry.name))
+                if video
+                else None
+            )
+            if video and look.id == "_yyvVZ55LuI" and entry.number == 3:
+                zone = "foundation"
+            if (
+                video
+                and product_question
+                and specific_product
+                and not re.search(specific_product, entry.name, re.I)
+            ):
+                continue
+            if (
+                video
+                and product_question
+                and not specific_product
+                and requested_zone
+                and zone != requested_zone
+            ):
                 continue
             link = RecipeProduct(
                 label=f"{entry.brand} {entry.name}" if video else pid, zone=zone or "unknown"
@@ -549,6 +593,8 @@ async def execute_style(req, catalog):
                     brand.casefold()
                 ):
                     brand = ""
+                if look.id == "L8RvSmdkR2g" and entry.number == 13:
+                    name = name.replace("홀리카홀ㄹ기카", "홀리카홀리카")
                 label = " ".join(part for part in (brand, name) if part)
                 unlinked |= not (pid and verified)
                 if (
@@ -560,6 +606,7 @@ async def execute_style(req, catalog):
                     label += f" ({option})"
                 if label:
                     listed.append(label)
+                    link.label = label
             if pid and verified:
                 if pid not in cache:
                     try:
@@ -572,8 +619,10 @@ async def execute_style(req, catalog):
                 product = cache[pid]
                 if product is not None and product.id == pid:
                     link.product_id = product.id
-                    link.label = f"{product.brand} {product.name}"
-                    link.zone = product.makeup_zone or zone or "unknown"
+                    if not (video and product_question):
+                        link.label = f"{product.brand} {product.name}"
+                    link.zone = zone or product.makeup_zone or "unknown"
+                    link.mapping_status = "product_only"
                     refs[pid] = ProductRef(
                         id=pid, brand=product.brand, name=product.name, category=product.category
                     )
@@ -596,7 +645,7 @@ async def execute_style(req, catalog):
                     elif sid:
                         link.mapping_status = "invalid"
                 else:
-                    link.mapping_status = "invalid"
+                    link.mapping_status = "unavailable" if pid in failed_ids else "invalid"
                     if video and product_question and pid not in failed_ids:
                         unlinked = True
             links.append(link)
@@ -613,6 +662,7 @@ async def execute_style(req, catalog):
             else "unreviewed"
             if context.kind == "video"
             else "not_applicable",
+            product_usage_trusted=products_trusted,
             synthetic=recipe.synthetic if reviewed else False,
             source=source,
             evidence_id=recipe.evidence_id if reviewed else None,
@@ -633,14 +683,15 @@ async def execute_style(req, catalog):
             makeup=makeup,
         )
         answer = (
-            text["video_product"]
+            text["video_product_trusted" if products_trusted else "video_product"]
             if context.kind == "video" and product_question
             else tip or text[notice]
         )
         if context.kind == "video" and product_question:
             if listed:
                 answer += "\n" + "\n".join(f"- {item}" for item in listed)
-                answer += "\n" + text["video_product_unverified"]
+                if not products_trusted:
+                    answer += "\n" + text["video_product_unverified"]
             else:
                 answer = text["video_product_empty"]
             if unlinked:

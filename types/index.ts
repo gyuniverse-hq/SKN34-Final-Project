@@ -685,6 +685,7 @@ export interface ChatStyleRecipe {
   title: string;
   basis: 'reviewed_recipe' | 'catalog_settings' | 'video_metadata';
   reviewStatus: 'verified' | 'unreviewed' | 'not_applicable';
+  productUsageTrusted?: boolean;
   videoAnalyzed: false;
   synthetic: boolean;
   source: string;
@@ -693,7 +694,7 @@ export interface ChatStyleRecipe {
   steps: { order: number; zone: MakeupZone; title: string; description?: string | null; guideKey?: MakeupZone | null }[];
   currentStep: number;
   products: { label: string; zone: string; productId?: string | null; shadeId?: string | null;
-    mappingStatus: 'verified' | 'unknown' | 'invalid'; catalogValid: boolean; arEligible: boolean }[];
+    mappingStatus: 'verified' | 'product_only' | 'unknown' | 'invalid' | 'unavailable'; catalogValid: boolean; arEligible: boolean }[];
   arEligible: boolean;
   reason: 'reviewed_recipe' | 'catalog_settings' | 'video_not_analyzed' | 'no_steps' | 'recipe_changed';
   makeup?: Partial<MakeupState> | null;

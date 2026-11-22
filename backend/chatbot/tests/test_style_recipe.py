@@ -14,6 +14,7 @@ from pydantic import ValidationError
 
 from app.clients.catalog_client import CatalogClient
 from app.core.errors import ApiError, UpstreamError
+from app.core.trusted_style_videos import TRUSTED_STYLE_VIDEO_IDS
 from app.schemas.catalog import CatalogLook, CatalogStyleLook
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.schemas.style_recipe import ReviewedRecipe, StyleContext
@@ -152,6 +153,7 @@ async def test_est_04_05_exact_mapping_required_and_no_first_shade():
     mapped.catalog_shade_id = None
     missing = await ask(catalog)
     assert missing.style_recipe.products[-1].product_id == "a"
+    assert missing.style_recipe.products[-1].mapping_status == "product_only"
     assert not missing.style_recipe.ar_eligible
     mapped.catalog_shade_id = "other-product-shade"
     invalid = await ask(catalog)
@@ -211,6 +213,63 @@ async def test_video_product_empty_unlinked_and_lookup_failure_are_distinct():
     failed = await ask(catalog, "이 영상에서 사용한 립은 뭐야?")
     assert "원본 립" in failed.answer and "상품 상세를 불러오지 못했어요" in failed.answer
     assert "등록되어 있지 않아요" not in failed.answer and not failed.products
+    assert failed.style_recipe.products[0].mapping_status == "unavailable"
+
+
+def test_trusted_product_policy_is_limited_to_existing_73_videos():
+    source = REPO / "backend/api/app/catalog_data/style_looks.json"
+    ids = {look["id"] for look in json.loads(source.read_text(encoding="utf-8"))}
+    assert len(TRUSTED_STYLE_VIDEO_IDS) == 73 and ids == TRUSTED_STYLE_VIDEO_IDS
+    assert "new-video" not in TRUSTED_STYLE_VIDEO_IDS
+
+
+@pytest.mark.anyio
+async def test_trusted_video_uses_registered_product_without_false_unverified_notice():
+    look = video()
+    look.id = "-sEFzOlm5xg"
+    look.products[-1].name, look.products[-1].option = "틴트", "06포그선셋"
+    look.products[-1].mapping_verified, look.products[-1].catalog_product_id = True, "a"
+    result = await ask(
+        StyleCatalog(look),
+        "이 영상에서 사용한 립 제품은 뭐야?",
+        StyleContext(kind="video", lookId=look.id),
+    )
+    assert "영상에서 사용한 제품" in result.answer and "틴트 (06포그선셋)" in result.answer
+    assert "실제 사용 여부는 확인되지" not in result.answer
+    assert result.style_recipe.product_usage_trusted is True
+    assert result.style_recipe.products[0].mapping_status == "product_only"
+    assert result.style_recipe.products[0].shade_id is None and not result.style_recipe.ar_eligible
+
+
+@pytest.mark.anyio
+async def test_specific_video_repairs_and_product_questions_do_not_mix_looks():
+    look = video()
+    look.id = "_yyvVZ55LuI"
+    lip = look.products[-1]
+    lip.number, lip.name, lip.zone, lip.category = 3, "베일 스킨 틴트", "립", "립 메이크업"
+    result = await ask(
+        StyleCatalog(look), "영상에서 사용한 립 제품은?", StyleContext(kind="video", lookId=look.id)
+    )
+    assert "베일 스킨 틴트" not in result.answer
+
+    look = video()
+    look.id = "L8RvSmdkR2g"
+    concealer, mascara, bad = look.products
+    concealer.number, concealer.name, concealer.zone = 6, "컨실러 10호", "베이스"
+    mascara.number, mascara.name, mascara.zone = 13, "홀리카홀ㄹ기카 마스카라", "속눈썹"
+    bad.number, bad.name, bad.zone = 3, "그린토마토 모공 앰플(개발)", "피부"
+    bad.mapping_verified, bad.catalog_product_id = True, "yt-45f63ecddcd067bb3d67"
+    ctx = StyleContext(kind="video", lookId=look.id)
+    catalog = StyleCatalog(look)
+    concealer_result = await ask(catalog, "이 영상에서 사용한 컨실러 제품 알려줘", ctx)
+    assert "컨실러 10호" in concealer_result.answer and "마스카라" not in concealer_result.answer
+    mascara_result = await ask(catalog, "이 영상에서 사용한 마스카라 제품은 뭐야?", ctx)
+    assert (
+        "홀리카홀리카 마스카라" in mascara_result.answer and "컨실러" not in mascara_result.answer
+    )
+    all_result = await ask(catalog, "영상 전체 제품 알려줘", ctx)
+    assert "그린토마토 모공 앰플(개발)" in all_result.answer
+    assert all(p.product_id != "yt-45f63ecddcd067bb3d67" for p in all_result.style_recipe.products)
 
 
 @pytest.mark.anyio

@@ -118,7 +118,9 @@ class RecipeProduct(StyleModel):
     zone: str
     product_id: str | None = None
     shade_id: str | None = None
-    mapping_status: Literal["verified", "unknown", "invalid"] = "unknown"
+    mapping_status: Literal["verified", "product_only", "unknown", "invalid", "unavailable"] = (
+        "unknown"
+    )
     catalog_valid: bool = False
     ar_eligible: bool = False
 
@@ -132,6 +134,7 @@ class StyleRecipe(StyleModel):
     title: str
     basis: Literal["reviewed_recipe", "catalog_settings", "video_metadata"]
     review_status: Literal["verified", "unreviewed", "not_applicable"]
+    product_usage_trusted: bool = False
     video_analyzed: Literal[False] = False
     synthetic: bool = False
     source: str
