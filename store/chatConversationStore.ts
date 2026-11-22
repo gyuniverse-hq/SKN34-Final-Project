@@ -1,7 +1,7 @@
 import { uuid } from 'expo';
 import { create } from 'zustand';
 import type { TranslationKey } from '@/lib/i18n';
-import type { PendingClarification, RecentChatMessage, BeautyChatContext, ChatResponse, ChatScreenContext, ChatStyleContext } from '@/types';
+import type { PendingClarification, RecentChatMessage, BeautyChatContext, ChatResponse, ChatScreenContext, ChatStyleContext, ChatStyleCondition } from '@/types';
 import type { ChatCategory, ChatMessage, ConversationTarget, ChatRequestTicket, ChatRequestSnapshot, ConversationEntry, ConversationSubject } from '@/types/chatConversation';
 
 // Select complete pairs from this room; Unicode code points match Python len().
@@ -80,6 +80,7 @@ function createChatConversation(userId: string | null, ownerKey: string, entry: 
     },
     styleContext: (entry.type === 'look' ? { kind: entry.kind, lookId: entry.lookId, currentStep: 0 } : focus?.style ? { kind: focus.style.kind, lookId: focus.style.lookId, currentStep: 0 } : undefined) as ChatStyleContext | undefined,
     styleRevision: 0,
+    styleConditions: [] as ChatStyleCondition[],
     entryProduct: screenForEntry(entry) ?? focus?.product,
     snapshots: new Map<string, ChatRequestSnapshot>(),
     category: (entry.type === 'look' || focus?.style ? 'style' : entry.type === 'product' || focus?.product ? 'product' : undefined) as ChatCategory | undefined,
@@ -139,6 +140,7 @@ function resetRoom(room: ChatConversationState, record: ConversationRecord, key:
   room.beautyContext = undefined;
   room.dismissedClarificationId = undefined;
   room.pendingClarification = undefined;
+  room.styleConditions = [];
   room.beautyContextTurn = 0;
   room.snapshots.clear();
   if (!keepSelection) room.selection = { revision: room.selection.revision + 1, shades: {}, changed: {}, screen: undefined };
@@ -309,6 +311,9 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
           const next = response.styleContext;
           if (next && expected && next.kind === expected.kind && next.lookId === expected.lookId) {
             room.styleContext = { ...next };
+          }
+          if (snapshot.args.styleSearch && response.styleConditions) {
+            room.styleConditions = response.styleConditions.map((item) => ({ ...item }));
           }
         }
         if (response.styleCandidates && room.styleRevision === snapshot.styleRevision) room.category = 'style';

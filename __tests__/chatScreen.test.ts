@@ -166,6 +166,52 @@ describe('selected Style recipe flow', () => {
     await act(async () => view.unmount());
   });
 
+  it('preserves condition state and compares or selects the actual listed ordinal', async () => {
+    const candidates = [{ kind: 'video', lookId: '_video-1', title: 'First', tags: ['daily'] },
+      { kind: 'video', lookId: '_video-2', title: 'Second', tags: ['daily'] }];
+    const conditions = [{ slot: 'occasion', value: '출근' }, { slot: 'mood', value: '자연스러운' }];
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'Candidates', products: [], styleCandidates: candidates, styleConditions: conditions })
+      .mockResolvedValueOnce({ answer: 'Compare', products: [] })
+      .mockResolvedValueOnce({ answer: 'Guide', products: [], styleRecipe: { ...recipe, lookId: '_video-2', sourceLookId: '_video-2' },
+        styleContext: { ...context, lookId: '_video-2' } });
+    const view = await renderScreen();
+    await submit(view, '출근할 때 자연스러운 룩 추천해줘');
+    await submit(view, '첫 번째랑 두 번째 차이 알려줘');
+    expect(mockMutateAsync.mock.calls[1][0]).toMatchObject({ styleSearch: true, styleCompare: true,
+      styleConditions: conditions, previousStyleCandidates: [{ kind: 'video', lookId: '_video-1' }, { kind: 'video', lookId: '_video-2' }] });
+    await submit(view, '두 번째로 할게');
+    expect(mockMutateAsync.mock.calls[2][0].styleContext).toEqual({ kind: 'video', lookId: '_video-2', currentStep: 0 });
+    await act(async () => view.unmount());
+  });
+
+  it('routes an explicit occasion removal to the style search with its prior state', async () => {
+    const conditions = [{ slot: 'occasion', value: '출근' }, { slot: 'mood', value: '자연스러운' }];
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'Candidates', products: [], styleCandidates: [], styleConditions: conditions })
+      .mockResolvedValueOnce({ answer: 'Refined', products: [], styleCandidates: [], styleConditions: conditions.slice(1) });
+    const view = await renderScreen();
+    await submit(view, '출근할 때 자연스러운 룩 추천해줘');
+    await submit(view, '출근 조건은 빼줘');
+    expect(mockMutateAsync.mock.calls[1][0]).toMatchObject({ styleSearch: true, styleConditions: conditions });
+    const store = useChatConversationStore.getState();
+    expect(store.conversations[store.latest.general].conversation.styleConditions).toEqual(conditions.slice(1));
+    await act(async () => view.unmount());
+  });
+
+  it('disables stale candidates after an empty search but can recall the earlier look explicitly', async () => {
+    const candidates = [{ kind: 'video', lookId: '_video-1', title: 'Earlier look', tags: [] }];
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'Candidates', products: [], styleCandidates: candidates })
+      .mockResolvedValueOnce({ answer: 'No matches', products: [], styleCandidates: [] })
+      .mockResolvedValueOnce({ answer: 'Earlier suggestions', products: [], styleCandidates: candidates });
+    const view = await renderScreen();
+    await submit(view, '출근할 때 자연스러운 룩 추천해줘');
+    await submit(view, '출근 조건은 빼줘');
+    expect(buttonWithText(view.root, 'Earlier look').props.disabled).toBe(true);
+    await submit(view, '아까 추천한 룩 다시 보여줘');
+    expect(mockMutateAsync.mock.calls[2][0]).toMatchObject({ styleSearch: true, previousStyleCandidates: [{ kind: 'video', lookId: '_video-1' }] });
+    expect(mockMutateAsync.mock.calls[2][0].styleContext).toBeUndefined();
+    await act(async () => view.unmount());
+  });
+
   it('offers a retry for failed look search without creating suggestions', async () => {
     mockMutateAsync.mockRejectedValueOnce(new ApiError('Unavailable', 502, 'style_search_unavailable'))
       .mockResolvedValueOnce({ answer: 'No matches', products: [], styleCandidates: [] });

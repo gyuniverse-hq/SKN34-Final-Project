@@ -22,7 +22,7 @@ import { conditionsFromChatFilters, extractChatConditions } from '@/lib/chatCond
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useLook, useProduct, useProductsByIds, useStyleLooks } from '@/lib/queries';
 import { arHref, parseId, paramValue, productHref } from '@/lib/routes';
-import { refersToPreviousLooks, wantsStyleSearch } from '@/lib/styleCoaching';
+import { refersToPreviousLooks, selectedLookOrdinal, wantsStyleSearch } from '@/lib/styleCoaching';
 import { isChatSessionExpired, recentChatMessages, recentStyleMessages, useChatConversationStore, type ConversationRecord } from '@/store/chatConversationStore';
 import type { ChatCategory as Category, ChatMessage, ChatRequestSnapshot, ConversationEntry } from '@/types/chatConversation';
 import type { BeautyChatContext, ChatProductEvidence, ChatProductRef } from '@/types';
@@ -404,11 +404,21 @@ function ChatConversation({ record, onRecent, onNew }: {
     const technique = /어떻게|방법|하는\s*법|하는\s*거|바르는\s*법|\bhow\b|やり方|方法|怎么|如何/i.test(text);
     const styleSearchActive = messages.some((message) => message.ownerKey === ownerKey &&
       message.generation === room.generation && message.styleCandidates !== undefined);
-    const previousLooks = messages.findLast((message) => message.ownerKey === ownerKey &&
-      message.generation === room.generation && message.styleCandidates?.length)?.styleCandidates;
+    const latestLooks = messages.findLast((message) => message.ownerKey === ownerKey &&
+      message.generation === room.generation && message.styleCandidates !== undefined)?.styleCandidates;
+    const previousLooks = refersToPreviousLooks(text)
+      ? messages.findLast((message) => message.ownerKey === ownerKey && message.generation === room.generation &&
+        message.styleCandidates?.length)?.styleCandidates : latestLooks;
     const unresolvedLookReference = !room.styleContext && /(?:그|이)\s*(?:룩|스타일)|\b(?:this|that) look\b|このルック|这个妆容/i.test(text);
-    const previousLookRequest = !!previousLooks?.length && (refersToPreviousLooks(text) || unresolvedLookReference);
-    const singlePrevious = previousLookRequest && previousLooks?.length === 1 ? previousLooks[0] : undefined;
+    const ordinal = selectedLookOrdinal(text);
+    const compareLooks = !!previousLooks?.length && /비교|차이|compare|difference|比較|違い|比较|区别/i.test(text) &&
+      /룩|후보|첫|두|세|[123]|look|first|second|ルック|妆容/i.test(text) &&
+      !/제품|상품|product|商品|製品|产品/i.test(text);
+    const previousLookRequest = !!previousLooks?.length && (refersToPreviousLooks(text) || unresolvedLookReference || ordinal !== undefined || compareLooks);
+    const wantsExplanation = /설명|어떻게|방법|explain|how|説明|方法|解释|怎么/i.test(text);
+    const singlePrevious = !compareLooks && previousLookRequest
+      ? ordinal !== undefined ? previousLooks?.[ordinal] : previousLooks?.length === 1 && wantsExplanation ? previousLooks[0] : undefined
+      : undefined;
     const styleSearch = original?.args.styleSearch ?? (subject.type === 'general' &&
       (previousLookRequest ? !singlePrevious : ((!room.styleContext || styleSearchActive) &&
         (wantsStyleSearch(text, styleSearchActive) || (room.category === 'style' && !room.styleContext &&
@@ -446,7 +456,8 @@ function ChatConversation({ record, onRecent, onNew }: {
           recentMessages: styleHistory.length ? styleHistory : recentChatMessages(messages, room.ownerKey, room.generation),
           ...(!styleSearch && room.pendingClarification ? { clarificationId: room.pendingClarification.id } : {}),
         } : {}),
-        ...(styleSearch ? { styleSearch: true,
+        ...(styleSearch ? { styleSearch: true, styleConditions: room.styleConditions.map((item) => ({ ...item })),
+          ...(compareLooks ? { styleCompare: true } : {}),
           ...(previousLookRequest ? { previousStyleCandidates: previousLooks!.map(({ kind, lookId }) => ({ kind, lookId })),
             ...(room.styleContext ? { previousStyleSelection: { kind: room.styleContext.kind, lookId: room.styleContext.lookId } } : {}) } : {}) } : {}),
         ...(generalMakeup ? { generalMakeup: true } : {}),
@@ -501,6 +512,8 @@ function ChatConversation({ record, onRecent, onNew }: {
   }, [subject]);
 
   const visibleMessages = messages.filter((message) => !message.automatic || message.failed);
+  const latestStyleMessageId = messages.findLast((message) => message.ownerKey === ownerKey &&
+    message.generation === conversationGeneration && message.styleCandidates !== undefined)?.id;
   const hasStyleConversation = !!activeStyle || messages.some((message) => message.ownerKey === ownerKey &&
     message.generation === conversationGeneration && (message.styleCandidates !== undefined ||
       (message.role === 'user' && message.category === 'style')));
@@ -666,13 +679,13 @@ function ChatConversation({ record, onRecent, onNew }: {
               </View>}
               {message.role === 'assistant' && message.styleCandidates?.length ? <View style={styles.conditionArea}>
                 {message.styleCandidates.map((look) => <Pressable key={`${look.kind}:${look.lookId}`}
-                  accessibilityRole="button" disabled={isPending || message.ownerKey !== ownerKey || message.generation !== conversationGeneration}
-                  accessibilityState={{ disabled: isPending || message.ownerKey !== ownerKey || message.generation !== conversationGeneration }}
+                  accessibilityRole="button" disabled={isPending || message.ownerKey !== ownerKey || message.generation !== conversationGeneration || message.id !== latestStyleMessageId}
+                  accessibilityState={{ disabled: isPending || message.ownerKey !== ownerKey || message.generation !== conversationGeneration || message.id !== latestStyleMessageId }}
                   onPress={() => {
                     if (!mounted.current || !owned() || currentRoom()?.request) return;
                     store().setStyle(target, { kind: look.kind, lookId: look.lookId, currentStep: 0 });
                     void send(t('chat.room.recipePrompt'), undefined, 'style');
-                  }} style={styles.retry}>
+                  }} style={[styles.retry, message.id !== latestStyleMessageId && styles.retryDisabled]}>
                   <Text style={styles.retryText}>{look.title}</Text>
                   {look.match ? <Text style={styles.retryText}>{t('chat.style.match', { match: look.match })}</Text> : null}
                 </Pressable>)}

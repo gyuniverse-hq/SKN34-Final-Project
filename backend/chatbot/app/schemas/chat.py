@@ -13,7 +13,13 @@ from app.schemas.catalog import (
     OptionSearchResponse,
 )
 from app.schemas.knowledge import KnowledgeReply
-from app.schemas.style_recipe import StyleCandidate, StyleCandidateRef, StyleContext, StyleRecipe
+from app.schemas.style_recipe import (
+    StyleCandidate,
+    StyleCandidateRef,
+    StyleCondition,
+    StyleContext,
+    StyleRecipe,
+)
 from app.schemas.supervisor import IngredientComparison, ScreenContext, SupervisorResult, ToolResult
 
 Locale = Literal["en", "ko", "ja", "zh"]
@@ -165,6 +171,8 @@ class ChatRequest(ApiModel):
         default_factory=list, max_length=6, exclude_if=lambda v: not v
     )
     previous_style_selection: StyleCandidateRef | None = None
+    style_conditions: list[StyleCondition] | None = Field(default=None, max_length=7)
+    style_compare: bool = False
     recent_messages: list[RecentChatMessage] = Field(
         default_factory=list, max_length=8, exclude_if=lambda v: not v
     )
@@ -178,6 +186,9 @@ class ChatRequest(ApiModel):
         looks = [(item.kind, item.look_id) for item in self.previous_style_candidates]
         if len(looks) != len(set(looks)):
             raise ValueError("Duplicate previous looks")
+        slots = [item.slot for item in self.style_conditions or []]
+        if len(slots) != len(set(slots)):
+            raise ValueError("Duplicate style conditions")
         return self
 
     general_makeup: bool = Field(default=False, strict=True, exclude_if=lambda v: not v)
@@ -234,6 +245,8 @@ class ChatRequest(ApiModel):
             self.previous_style_candidates or self.previous_style_selection
         ) and not self.style_search:
             raise ValueError("Previous look references require style search")
+        if self.style_compare and (not self.style_search or not self.previous_style_candidates):
+            raise ValueError("Style comparison requires previous candidates")
         if self.request_type == "ar_command" and (
             self.request_id is None or self.ar_context is None or not self.message.strip()
         ):
@@ -376,6 +389,9 @@ class ChatIngredientResult(CatalogIngredients):
 
 class ChatResponse(ApiModel):
     style_candidates: list[StyleCandidate] | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
+    style_conditions: list[StyleCondition] | None = Field(
         default=None, exclude_if=lambda v: v is None
     )
     knowledge: KnowledgeReply | None = Field(default=None, exclude_if=lambda v: v is None)

@@ -640,6 +640,7 @@ export interface ChatResponse {
   pendingClarification?: PendingClarification | null;
   styleRecipe?: ChatStyleRecipe;
   styleCandidates?: ChatStyleCandidate[];
+  styleConditions?: ChatStyleCondition[];
   styleContext?: ChatStyleContext;
   styleStatus?: 'ready' | 'clarification' | 'not_found' | 'error' | 'unsupported';
   answer: string;
@@ -659,6 +660,11 @@ export interface ChatStyleCandidate {
   title: string;
   tags: string[];
   match?: string | null;
+}
+
+export interface ChatStyleCondition {
+  slot: 'occasion' | 'mood' | 'eyes' | 'lips' | 'sparkle' | 'color' | 'finish';
+  value: string;
 }
 
 /** Ephemeral progress hint. The server reloads content and checks recipe identity/version. */

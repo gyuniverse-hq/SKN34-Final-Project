@@ -20,13 +20,17 @@ class Looks(StyleCatalog):
 class Model:
     configured = True
 
-    def __init__(self, indexes, match="출근", adjustments=None):
+    def __init__(self, indexes, match="출근", adjustments=None, changes=None, intro=None):
         self.indexes = indexes
         self.match = match
         self.adjustments = adjustments or []
+        self.changes = changes or []
+        self.intro = intro
         self.messages = None
 
     async def complete_with_tools(self, messages, tools, *, required_tool=None):
+        if not tools:
+            return ({"choices": [{"message": {"content": self.intro}}]}, 1.0)
         self.messages = messages
         assert required_tool == "select_looks"
         return (
@@ -47,6 +51,7 @@ class Model:
                                                     for i in self.indexes
                                                 ],
                                                 "adjustments": self.adjustments,
+                                                "changes": self.changes,
                                             }
                                         ),
                                     },
@@ -126,6 +131,151 @@ async def test_model_cannot_suggest_unrelated_or_fabricated_evidence():
     )
     assert result.style_candidates == []
     assert "찾지 못했어요" in result.answer
+
+
+@pytest.mark.anyio
+async def test_condition_changes_keep_unrelated_and_cannot_restore_removed_occasion():
+    changes = [{"slot": "occasion", "action": "remove", "evidence": "출근은 빼줘", "value": None}]
+    result = await ChatService(
+        None, Model([0], changes=changes, intro="자연스러운 느낌을 유지할게요."), Looks()
+    ).answer(
+        ChatRequest.model_validate(
+            {
+                "message": "출근은 빼줘",
+                "locale": "ko",
+                "styleSearch": True,
+                "styleConditions": [
+                    {"slot": "occasion", "value": "출근"},
+                    {"slot": "mood", "value": "자연스러운"},
+                ],
+                "recentMessages": [
+                    {"id": "old", "role": "user", "text": "출근할 때 자연스러운 화장"}
+                ],
+            }
+        )
+    )
+    assert [(item.slot, item.value) for item in result.style_conditions] == [("mood", "자연스러운")]
+    assert result.style_candidates == []
+    assert "자연스러운 느낌을 유지할게요" in result.answer
+    assert "일반적인 조절 팁" not in result.answer
+
+
+@pytest.mark.anyio
+async def test_ungrounded_condition_changes_are_rejected():
+    changes = [{"slot": "occasion", "action": "set", "evidence": "데이트", "value": "데이트"}]
+    with pytest.raises(ApiError):
+        await ChatService(None, Model([], changes=changes), Looks()).answer(
+            ChatRequest(message="출근 추천", locale="ko", styleSearch=True, styleConditions=[])
+        )
+
+
+@pytest.mark.anyio
+async def test_empty_conditions_never_restore_a_deleted_condition_from_history():
+    request = ChatRequest.model_validate(
+        {
+            "message": "다른 분위기로 추천해줘",
+            "locale": "ko",
+            "styleSearch": True,
+            "styleConditions": [],
+            "recentMessages": [
+                {"id": "old", "role": "user", "text": "출근 룩 추천해줘"},
+                {"id": "remove", "role": "user", "text": "출근 조건은 빼줘"},
+            ],
+        }
+    )
+    result = await ChatService(None, Model([0]), Looks()).answer(request)
+    assert result.style_conditions == []
+    assert result.style_candidates == []
+
+
+@pytest.mark.anyio
+async def test_replacing_an_occasion_cannot_match_the_old_one():
+    changes = [
+        {"slot": "occasion", "action": "set", "evidence": "출근 말고 데이트", "value": "데이트"}
+    ]
+    request = ChatRequest.model_validate(
+        {
+            "message": "출근 말고 데이트로 바꿔줘",
+            "locale": "ko",
+            "styleSearch": True,
+            "styleConditions": [
+                {"slot": "occasion", "value": "출근"},
+                {"slot": "mood", "value": "자연스러운"},
+            ],
+        }
+    )
+    result = await ChatService(None, Model([0], changes=changes), Looks()).answer(request)
+    assert {c.slot: c.value for c in result.style_conditions} == {
+        "occasion": "데이트",
+        "mood": "자연스러운",
+    }
+    assert result.style_candidates == []
+
+
+@pytest.mark.anyio
+async def test_generated_text_cannot_claim_video_or_product_facts():
+    result = await ChatService(
+        None, Model([0], intro="영상에서 이 제품을 사용했어요."), Looks()
+    ).answer(ChatRequest(message="출근 추천", locale="ko", styleSearch=True))
+    assert "이 제품을 사용" not in result.answer
+    assert result.style_candidates[0].look_id == "ST-A"
+
+
+@pytest.mark.anyio
+async def test_compare_uses_real_candidates_and_handles_missing_second():
+    request = ChatRequest.model_validate(
+        {
+            "message": "첫 번째와 두 번째 차이",
+            "locale": "ko",
+            "styleSearch": True,
+            "styleCompare": True,
+            "previousStyleCandidates": [
+                {"kind": "video", "lookId": "ST-A"},
+                {"kind": "catalog", "lookId": "daily"},
+            ],
+        }
+    )
+    result = await ChatService(None, Model([]), Looks()).answer(request)
+    assert "출근 SYNTHETIC style" in result.answer and "출근 Daily look" in result.answer
+    assert "실제 메이크업 특징은 미확인" in result.answer and result.style_candidates is None
+    request.previous_style_candidates = request.previous_style_candidates[:1]
+    result = await ChatService(None, Model([]), Looks()).answer(request)
+    assert "두 개 이상 없어요" in result.answer
+
+
+@pytest.mark.anyio
+async def test_compare_only_requested_positions_and_keep_original_numbers():
+    class ThreeLooks(Looks):
+        async def fetch_looks(self):
+            return [
+                CatalogLook(id="one", title="첫 룩", tags=["데일리"], items=[]),
+                CatalogLook(id="two", title="둘 룩", tags=["여름"], items=[]),
+            ]
+
+    request = ChatRequest.model_validate(
+        {
+            "message": "첫 번째랑 두 번째 차이 알려줘",
+            "locale": "ko",
+            "styleSearch": True,
+            "styleCompare": True,
+            "previousStyleCandidates": [
+                {"kind": "video", "lookId": "ST-A"},
+                {"kind": "catalog", "lookId": "one"},
+                {"kind": "catalog", "lookId": "two"},
+            ],
+        }
+    )
+    service = ChatService(None, Model([]), ThreeLooks())
+    result = await service.answer(request)
+    assert "1. 출근 SYNTHETIC style" in result.answer
+    assert "2. 첫 룩" in result.answer and "둘 룩" not in result.answer
+    request.message = "compare first and third"
+    result = await service.answer(request)
+    assert "1. 출근 SYNTHETIC style" in result.answer and "3. 둘 룩" in result.answer
+    assert "첫 룩" not in result.answer
+    request.previous_style_candidates = request.previous_style_candidates[:2]
+    result = await service.answer(request)
+    assert "두 개 이상 없어요" in result.answer
 
 
 @pytest.mark.anyio

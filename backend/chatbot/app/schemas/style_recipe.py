@@ -47,6 +47,11 @@ class StyleCandidate(StyleCandidateRef):
     match: str | None = Field(default=None, max_length=40)
 
 
+class StyleCondition(StyleModel):
+    slot: Literal["occasion", "mood", "eyes", "lips", "sparkle", "color", "finish"]
+    value: str = Field(min_length=1, max_length=100)
+
+
 class StyleContext(StyleModel):
     kind: LookKind
     look_id: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-][A-Za-z0-9._-]*$")
