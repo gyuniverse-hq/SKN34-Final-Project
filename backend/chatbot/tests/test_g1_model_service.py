@@ -25,19 +25,25 @@ def test_information_requests_do_not_force_catalog(message):
 @pytest.mark.anyio
 async def test_general_turn_passes_recent_conversation_as_untrusted_context(monkeypatch):
     monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", True)
-    request = ChatRequest.model_validate({
-        "locale": "ko", "message": "건조한 날에도 괜찮아요?",
-        "recentMessages": [
-            {"id": "q1", "role": "user", "text": "홍조 화장법 알려줘요"},
-            {"id": "a1", "role": "assistant", "text": "베이스를 얇게 발라요"},
-        ],
-    })
+    request = ChatRequest.model_validate(
+        {
+            "locale": "ko",
+            "message": "건조한 날에도 괜찮아요?",
+            "recentMessages": [
+                {"id": "q1", "role": "user", "text": "홍조 화장법 알려줘요"},
+                {"id": "a1", "role": "assistant", "text": "베이스를 얇게 발라요"},
+            ],
+        }
+    )
     captured = []
 
     async def complete(messages, tools, **_kwargs):
         captured.extend(messages)
-        return {"model": "fixture-model", "id": "fixture-id",
-                "choices": [{"finish_reason": "stop", "message": {"content": "답변"}}]}, 0
+        return {
+            "model": "fixture-model",
+            "id": "fixture-id",
+            "choices": [{"finish_reason": "stop", "message": {"content": "답변"}}],
+        }, 0
 
     turn = await choose_g1_turn(request, complete)
     assert turn.answer == "답변"

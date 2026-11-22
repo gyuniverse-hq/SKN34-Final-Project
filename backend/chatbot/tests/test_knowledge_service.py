@@ -477,9 +477,11 @@ def test_http_conditional_general_advice_keeps_citations_without_filling_missing
     model.run = AsyncMock(wraps=model.run)
     consultation = KnowledgeService(AdviceRetrieval(), model)
     monkeypatch.setattr(chat_service, "consult_knowledge", consultation.consult)
-    response = ask(question, requestType="knowledge_consultation", recentMessages=[
-        {"id": "prior", "role": "user", "text": prior}
-    ])
+    response = ask(
+        question,
+        requestType="knowledge_consultation",
+        recentMessages=[{"id": "prior", "role": "user", "text": prior}],
+    )
     assert response.status_code == 200 and service.last_route.result.tool == "knowledge"
     body = response.json()
     assert body["knowledge"]["status"] == ("partial" if missing_core else "answered")
@@ -847,8 +849,14 @@ def test_verification_failure_logs_only_safe_diagnostics(failure, expected, capl
     assert result.trace["verificationFailure"]["claims"] == 1
     assert result.trace["verificationFailure"]["evidence"] == 1
     assert expected in caplog.text
-    for private in ("PRIVATE_QUESTION", "PRIVATE_DRAFT", "PRIVATE_REASON", "PRIVATE_REQUIREMENT_ID",
-                    "PRIVATE_SOURCE_ID", QUOTE):
+    for private in (
+        "PRIVATE_QUESTION",
+        "PRIVATE_DRAFT",
+        "PRIVATE_REASON",
+        "PRIVATE_REQUIREMENT_ID",
+        "PRIVATE_SOURCE_ID",
+        QUOTE,
+    ):
         assert private not in caplog.text
 
 
@@ -1048,8 +1056,11 @@ def test_http_exposes_only_cited_boosts_and_limits_in_existing_shape(client, mon
     monkeypatch.setattr(chat_service, "consult_knowledge", consultation.consult)
     response = client.post(
         "/api/chat",
-        json={"locale": "ko", "message": "패인 흉터 화장은 어떻게 해요?",
-              "requestType": "knowledge_consultation"},
+        json={
+            "locale": "ko",
+            "message": "패인 흉터 화장은 어떻게 해요?",
+            "requestType": "knowledge_consultation",
+        },
         headers={"Authorization": "Bearer ok-1"},
     )
     assert response.status_code == 200
@@ -1196,14 +1207,20 @@ def test_general_multiturn_and_evidence_request_preserve_context(routed_chat):
     q1 = "볼 홍조를 화장으로 가리려면 어떻게 해요?"
     a1 = ask(q1)
     assert a1.status_code == 200 and service.last_route.result.tool == "graph_chat"
-    history = [{"id": "q1", "role": "user", "text": q1},
-               {"id": "a1", "role": "assistant", "text": a1.json()["answer"]}]
+    history = [
+        {"id": "q1", "role": "user", "text": q1},
+        {"id": "a1", "role": "assistant", "text": a1.json()["answer"]},
+    ]
     q2 = "피부가 건조할 때도 그렇게 해도 돼요?"
     a2 = ask(q2, recentMessages=history)
     assert a2.status_code == 200 and service.last_route.result.tool == "graph_chat"
     assert any(m["content"] == q1 for m in llm.complete.await_args.args[0])
-    history.extend([{"id": "q2", "role": "user", "text": q2},
-                    {"id": "a2", "role": "assistant", "text": a2.json()["answer"]}])
+    history.extend(
+        [
+            {"id": "q2", "role": "user", "text": q2},
+            {"id": "a2", "role": "assistant", "text": a2.json()["answer"]},
+        ]
+    )
     q3 = "그럼 양은 얼마나 써요?"
     a3 = ask(q3, recentMessages=history)
     assert a3.status_code == 200 and service.last_route.result.tool == "graph_chat"
@@ -1221,10 +1238,13 @@ def test_general_new_topic_does_not_inherit_old_g5_context(routed_chat):
         return "새로운 주제에 대한 안내예요."
 
     llm.complete = AsyncMock(side_effect=complete)
-    response = ask("아이라인이 잘 번지는데 어떻게 해요?", recentMessages=[
-        {"id": "q1", "role": "user", "text": "볼 홍조를 가릴 땐 어떻게 해요?"},
-        {"id": "a1", "role": "assistant", "text": "베이스를 얇게 사용해요."},
-    ])
+    response = ask(
+        "아이라인이 잘 번지는데 어떻게 해요?",
+        recentMessages=[
+            {"id": "q1", "role": "user", "text": "볼 홍조를 가릴 땐 어떻게 해요?"},
+            {"id": "a1", "role": "assistant", "text": "베이스를 얇게 사용해요."},
+        ],
+    )
     assert response.status_code == 200 and service.last_route.result.tool == "graph_chat"
     assert llm.complete.await_args.args[0][-1]["content"] == "아이라인이 잘 번지는데 어떻게 해요?"
     consult.assert_not_awaited()
@@ -1249,18 +1269,23 @@ def test_app_general_makeup_multiturn_keeps_history_without_g5(routed_chat):
     questions = ["볼의 붉은 기를 덜 보이게 하려면요?", "건조할 때도 괜찮아요?", "그럼 얼마나 써요?"]
     for i, question in enumerate(questions):
         response = ask(
-            question, requestType="beauty_consultation", generalMakeup=i == 0,
-            recentMessages=history, **({"chatContext": context} if context else {}),
+            question,
+            requestType="beauty_consultation",
+            generalMakeup=i == 0,
+            recentMessages=history,
+            **({"chatContext": context} if context else {}),
         )
         assert response.status_code == 200
         assert response.json().get("knowledge") is None
-        assert [m["content"] for m in answers[-1][1:]] == [
-            turn["text"] for turn in history
-        ] + [question]
-        history.extend([
-            {"id": f"q{i}", "role": "user", "text": question},
-            {"id": f"a{i}", "role": "assistant", "text": response.json()["answer"]},
-        ])
+        assert [m["content"] for m in answers[-1][1:]] == [turn["text"] for turn in history] + [
+            question
+        ]
+        history.extend(
+            [
+                {"id": f"q{i}", "role": "user", "text": question},
+                {"id": f"a{i}", "role": "assistant", "text": response.json()["answer"]},
+            ]
+        )
         context = response.json().get("chatContext")
     consult.assert_not_awaited()
 
@@ -1288,9 +1313,9 @@ def test_failed_evidence_request_does_not_fabricate_luna_answer(routed_chat):
 
 def test_semantic_followup_uses_previous_answer_and_preserves_new_condition(routed_chat):
     ask, service, llm, consult = routed_chat
-    llm.complete = AsyncMock(side_effect=[
-        json.dumps({"intent": "general"}), "건조할 때는 보습을 먼저 확인하세요."
-    ])
+    llm.complete = AsyncMock(
+        side_effect=[json.dumps({"intent": "general"}), "건조할 때는 보습을 먼저 확인하세요."]
+    )
     history = [
         {"id": "q1", "role": "user", "text": "볼에 홍조가 있는데 화장으로 가리려면 어떻게 해요?"},
         {"id": "a1", "role": "assistant", "text": "그린 코렉터를 얇게 발라 보세요."},
@@ -1317,9 +1342,9 @@ def test_semantic_followup_keeps_three_turn_context(routed_chat):
     assert response.status_code == 200
     assert service.last_route.result.tool == "graph_chat"
     messages = llm.complete.await_args.args[0]
-    assert [m["content"] for m in messages[1:]] == [
-        t["text"] for t in history
-    ] + ["그 상태에서 도구를 써도 될까요?"]
+    assert [m["content"] for m in messages[1:]] == [t["text"] for t in history] + [
+        "그 상태에서 도구를 써도 될까요?"
+    ]
     consult.assert_not_awaited()
 
 
@@ -1328,10 +1353,17 @@ def test_semantic_followup_does_not_intercept_shopping(question, routed_chat):
     ask, _, llm, consult = routed_chat
     original = llm.complete
     llm.complete = AsyncMock(wraps=original)
-    response = ask(question, recentMessages=[
-        {"id": "q1", "role": "user", "text": "볼에 홍조가 있는데 화장으로 가리려면 어떻게 해요?"},
-        {"id": "a1", "role": "assistant", "text": "그린 코렉터를 얇게 발라 보세요."},
-    ])
+    response = ask(
+        question,
+        recentMessages=[
+            {
+                "id": "q1",
+                "role": "user",
+                "text": "볼에 홍조가 있는데 화장으로 가리려면 어떻게 해요?",
+            },
+            {"id": "a1", "role": "assistant", "text": "그린 코렉터를 얇게 발라 보세요."},
+        ],
+    )
     assert response.status_code == 200
     consult.assert_not_awaited()
     assert all(
@@ -1349,10 +1381,17 @@ def test_semantic_followup_rejects_topic_switch(routed_chat):
         return await original(messages)
 
     llm.complete = AsyncMock(side_effect=classify)
-    response = ask("오늘 날씨는 어떤가요?", recentMessages=[
-        {"id": "q1", "role": "user", "text": "볼에 홍조가 있는데 화장으로 가리려면 어떻게 해요?"},
-        {"id": "a1", "role": "assistant", "text": "그린 코렉터를 얇게 발라 보세요."},
-    ])
+    response = ask(
+        "오늘 날씨는 어떤가요?",
+        recentMessages=[
+            {
+                "id": "q1",
+                "role": "user",
+                "text": "볼에 홍조가 있는데 화장으로 가리려면 어떻게 해요?",
+            },
+            {"id": "a1", "role": "assistant", "text": "그린 코렉터를 얇게 발라 보세요."},
+        ],
+    )
     assert response.status_code == 200
     assert service.last_route.result.tool != "knowledge"
     consult.assert_not_awaited()
