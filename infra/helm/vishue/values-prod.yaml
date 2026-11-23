@@ -1,31 +1,38 @@
-# AWS EKS (ap-northeast-2). Fill the values marked "set before first deploy" (see docs/DEPLOYMENT.md).
+# AWS EKS (ap-northeast-2). See docs/DEPLOYMENT.md and ADR-0011 / ADR-0012.
 env: production
 
 image:
-  registry: ghcr.io/gyuniverse-hq
-  # Updated by the image workflow's pull request on every merge to main.
-  tag: ""
+  # Temporary cutover registry (ECR in the camp account). Switch back to GHCR after org push rights exist.
+  registry: 027099020675.dkr.ecr.ap-northeast-2.amazonaws.com
+  tag: "sha-a785976"
+  pullPolicy: IfNotPresent
 
 supabase:
-  url: ""             # set before first deploy: https://<project>.supabase.co
-  publishableKey: ""  # set before first deploy (public key, not the secret key)
+  url: "https://htlykvanutehqgqufytf.supabase.co"
+  publishableKey: "sb_publishable_PkuU3u1TW9U0GNeIjUIWPg_mmXViX5T"
 
 chatbot:
   env:
     G1_SUPERVISOR_ENABLED: "true"
-    NEO4J_URI: ""     # set before first deploy: neo4j+s://<id>.databases.neo4j.io (AuraDB)
-    LLM_MODEL: ""     # set before first deploy; empty keeps the chatbot disabled (503)
+    # Neo4j/AuraDB retired (ADR-0012). Knowledge uses RDS pgvector (#261).
+    NEO4J_URI: ""
+    LLM_MODEL: "gpt-6-luna"
+    LLM_BASE_URL: "https://api.openai.com/v1"
+
+# No Neo4j copy job in production; knowledge is on RDS pgvector.
+syncGraph:
+  schedule: "0 0 1 1 *"
+  runAfterDeploy: false
 
 gateway:
-  hostname: ""        # set before first deploy: api.<domain>
+  # Empty = accept any Host (NLB DNS works for Expo). Set api.<domain> when DNS exists.
+  hostname: ""
   tls:
-    enabled: false    # turn on with certificateSecret once the domain and certificate exist
+    enabled: false
     certificateSecret: ""
 
 # Secrets come from AWS Secrets Manager through External Secrets Operator:
-#   vishue/production/api      {"DATABASE_URL": ..., "REDIS_URL": ..., "NAVER_CLIENT_ID": ...,
-#                               "NAVER_CLIENT_SECRET": ..., "YOUTUBE_API_KEY": ...,
-#                               "SUPABASE_SECRET_KEY": ...}
-#   vishue/production/chatbot  {"NEO4J_PASSWORD": ..., "REDIS_URL": ..., "LLM_API_KEY": ...}
+#   vishue/production/api      {"DATABASE_URL": ..., "REDIS_URL": ..., "NAVER_*", "YOUTUBE_API_KEY", "SUPABASE_SECRET_KEY"}
+#   vishue/production/chatbot  {"REDIS_URL": ..., "LLM_API_KEY": ...}
 externalSecrets:
   enabled: true

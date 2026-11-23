@@ -38,6 +38,28 @@ describe('matte specular mask and softer outer edge (11-13)', () => {
   });
 });
 
+describe('lip finish plan D (11-23)', () => {
+  it('registers and sets glossScale / rimTilt from the lip material (1 when absent, a lip oil / balm keeps 1)', () => {
+    expect(html).toContain("'uniform float uGlossScale; uniform float uRimTilt;',");
+    expect(html).toContain("'uGlossFlat', 'uGlossScale', 'uRimTilt', 'uGlossShape',");
+    expect(html).toContain('gl.uniform1f(u.uGlossScale, careAny ? 1 : (lipMat.glossScale ?? 1));');
+    expect(html).toContain('gl.uniform1f(u.uRimTilt, careAny ? 1 : (lipMat.rimTilt ?? 1));');
+    expect(html).toContain('matteSpecMask: [0.05, 0.2, 0.10],');
+  });
+
+  it('scales the form highlight and bends only the shine normal, after the colour path', () => {
+    const shader = html;
+    const rim = shader.indexOf("'    if (uRimTilt < 0.999) {',");
+    const midN = shader.indexOf("'    vec3 lipMidN = uWideDetail > 0.0 ? normalize(mix(lipFormN, lipDetailN, uWideDetail)) : lipFormN;',");
+    const colour = shader.indexOf("'    layered *= mix(1.0, clamp(form, 0.35, 1.0), uLipVolume * cov * uFormOn);',");
+    expect(rim).toBeGreaterThan(colour);
+    expect(midN).toBeGreaterThan(rim);
+    // only the upward tilt of the upper lip is scaled
+    expect(shader).toContain("'      float kR = mix(1.0, uRimTilt, upW * step(0.0, dN.y));',");
+    expect(shader).toContain("'    formSpec *= uGlossScale;',");
+  });
+});
+
 describe('lip edge that scales with the lip (11-13)', () => {
   it('has the proportional radius, the inward remap and the two-ring kernel, each switched off by zero', () => {
     const fk = html.match(/lipEdgeFeatherK: ([\d.]+)/);

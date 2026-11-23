@@ -239,7 +239,9 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     // lip luminance as a LOCAL contrast (this pixel vs its 3 px surround), so a wrinkle (darker than its surround) gets no reflection and a ridge
     // keeps / gains a soft powder reflection; a lip that is dark as a whole (upper-lip shade) is not suppressed. Only roughness > 0.8 (matte).
     // final = base + specular x mask. 0 = off.
-    matteSpecMask: [0.05, 0.6, 0.10],
+    // 11-23 finish plan D (user): ridge extra 0.6 -> 0.2. With the form highlight it lit every ridge 1.6x and read as frost on a
+    // matte (phone capture); only roughness > 0.8 uses it, i.e. matte alone.
+    matteSpecMask: [0.05, 0.2, 0.10],
     // Product-colour Overlay layer (plan C, adaptive: Soft Light on dark pixels), share = MATERIALS overlay × cov. On by the
     // user's decision (11-13): plan C had it on; it raises chroma (velvet 50.6 -> 58.4 headless), accepted (AR_SPEC ΔC is a note).
     lipOverlay: true,
@@ -486,7 +488,9 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     lightDisplaySec: 0.6,         // light color / exposure / skin brightness glide to each new estimate (no 0.5 s steps)
     // Light direction / strength / confidence glide every frame too (off: the shader gets the 0.5 s estimate as it is).
     // A new fit more than lightDirSnapDeg away from the estimate replaces it at once instead of the 0.35 EMA.
-    lightDirGlide: false,
+    // 11-19 on: off, the direction-driven terms (pearl flash, lip gloss, highlighter sheen) stepped every 0.5 s sample
+    // (11-03 glide_sim: largest change per frame 10.4 deg off -> 2.3 deg on; a 15 deg step settles 2.50 -> 2.93 s).
+    lightDirGlide: true,
     lightDirSec: 0.4,
     lightDirSnapDeg: 25,
     // Huber IRLS for the normal→brightness fit instead of dropping the worst 20% once (off: the old fit).
@@ -563,8 +567,17 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     // Gray-Edge mixed into the Gray World light color (off: Gray World only). Weight [normal background, one-color or
     // small background]; with it on, the one-color check runs on the mixed color. Not measured offline (no segmenter
     // there): check the HUD on a device before shipping it on.
-    lightColorEdge: false,
-    lightColorEdgeMix: [0.25, 0.75],
+    // 11-19 on at a fixed 0.75 (Gray-Edge: van de Weijer et al. 2007; the mix weight is ours). Test split (LaPa, painted
+    // walls): p90 estimate shift 37.8 deg (Gray World) -> 34.0 deg, warm / cool tracking p90 3.5 -> 2.2 deg; 1.0 was a
+    // little better in both splits (docs/AR_ENV_THRESHOLDS.md 4). The old switching mix [0.25, 0.75] flipped under a warm light.
+    // 11-19 step 6-1a (user): keep the last TRUSTED light colour (background big enough and not one colour, confidence > 0.5) at full
+    // strength while the estimate cannot be trusted (a painted wall, a close face), instead of fading the correction to none. Dropped
+    // at once when the skin colour jumps (the light changed: snap), and keepMs after the face was lost. Colour-wall test (LaPa 52,
+    // research/env_eval/step6_sim.py): shader colour error 0.16-0.17 -> 0 for red / blue walls (green / beige walls that pass the
+    // trust test stay 0.26-0.31). The estimate itself (light.color / colorConf, env conditions, light_hint) is unchanged.
+    lightTrustHold: true, lightTrustKeepMs: 10000,
+    lightColorEdge: true,
+    lightColorEdgeMix: [0.75, 0.75],
     clipLin: 0.92,              // linear value treated as blown out
     darkLum: 0.02,
     lightConfR2: [0.1, 0.4],    // R² of the normal→brightness fit mapped to confidence 0..1
@@ -576,6 +589,66 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     lightMatchSpread: 0.02,     // R² gap over which a runner-up candidate's weight in the blend falls by e
     lightChangeDelta: 6,        // CIE76 on mean skin Lab: above this, Gray World snaps (no smoothing)
     blownFaceFraction: 0.15,    // share of in-frame skin verts blown out → "light too strong"
+    // 11-19 environment state (envEvaluate): [enter, exit] thresholds per condition, a condition switches on after holding
+    // its enter test enterMs and off after holding its exit test exitMs. Baseline v1 (kept as is). What backs each value
+    // (outside research / VISHUE test split / inherited / assumption) and its measured rates: docs/AR_ENV_THRESHOLDS.md
+    // (fixed split, logs in research/data/env_eval_runs/2026-11-19). The first 11-19 numbers were in-sample and their logs
+    // were lost; they are not quoted here any more.
+    env: {
+      enterMs: 1500, exitMs: 1000, unevenEnterMs: 3000, readyEvals: 3,
+      // Low light: the whole frame is dark, or the skin noise is high once its shot-noise share of the skin brightness
+      // is taken out (grain x sqrt(skin), after the signal-dependent noise model of Foi et al. 2008), so a darker skin
+      // tone is not read as a dark room. Test split: normal-light false alarms dark / fair / light skin 0 / 0 / 0 %.
+      // v2 (11-19 decision 2-b): page grain read at 0.64 of offline (same-frame headless check, 0.60-0.68; decision A kept
+      // the page scale), so the offline candidate frame 0.03 / grainN 0.02 / grain 0.1 (select split: every skin tone's
+      // normal-light false alarms <= 2 %) becomes 0.03 / 0.0128 / 0.064 here. v1 (0.025 / 0.011 / 0.045) acted as offline
+      // ~0.017 / ~0.07 and false-alarmed on dark skin 6.7 % vs fair 0.8 % (select split). Test split for v2: false alarms
+      // dark / fair / light 0 / 0 / 0 %, LaPa 2.5 %; recall dark room 97.5 / 87.5 / 97.5 %, auto-exposed dark room
+      // 100 / 72.5 / 97.5 % (fair skin shows less noise in the same dim light). Exits keep v1's enter:exit proportions
+      // (an assumption). docs/AR_ENV_THRESHOLDS.md 4-2. The phone's own ratio: HUD 'env' line grain (3 decimals).
+      dark: { frameLum: [0.03, 0.04], grainN: [0.0128, 0.0093], grain: [0.064, 0.051] },
+      // Backlight: a fixed bg/face ratio misread normally lit dark skin before a bright wall as backlit far more often
+      // than lighter skin (auto exposure also differs by skin tone, Borek et al. 2024). So: relative to this session's own
+      // settled reference (face at most half as bright while bg/face doubled, bright background), plus an absolute rule
+      // only for an extremely dark face. Test split: 0 % false alarms for all three skin tones, recall 34-75 %.
+      backlight: { faceDrop: [0.5, 0.65], ratioRise: [2.0, 1.5], bgLum: 0.5, absFace: 0.04, absRatio: 8, refEvals: 4 },
+      // Left / right skin brightness: only a strong split, held 3 s, on a near-frontal face. Test split: this measure did
+      // not tell synthetic side light from normal photos (report 4); keep as an assumption until it is redesigned.
+      uneven: [2.5, 2.0], unevenMaxYaw: 20,
+      // Colour light from the unclamped Gray-Edge background estimate: test split warm recall LaPa 70 %, but ~0 % when the
+      // face fills the frame (background under bgMin). A red wall reads r/b > 2 too but its green share is low, so warm / cool need a neutral
+      // green share. Strong colours outside that (painted walls) go to 'estimating' through colorConf instead.
+      warm: [2.0, 1.8], cool: [0.7, 0.78], gmRange: [0.8, 1.2], bgMin: 0.15,
+      blown: [0.15, 0.08],
+      // Turn: the landmark yaw reads the Face Landmarker matrix yaw x1.09-1.10 (select / test split, r 0.997), pitch
+      // x1.08-1.11 with a -3.1 deg offset (added back below). 38 / 32 here ~ 35 / 30 deg; the 35 / 30 targets are assumed.
+      turnDeg: [38, 30], pitchDeg: [32, 26], pitchOffset: 3.1,
+      motion: { speed: [0.6, 0.3] },   // face centre speed, share of the frame per second
+      tooClose: [0.62, 0.55],   // outer eye-corner distance / frame width
+      tooFar: [26, 32],         // eye width in canvas px (the lid fit needs ~40 px; below ~26 lid paint thins out)
+      estimating: [0.5, 0.65],  // colorConf (the old light_hint 'low')
+      lightChanged: { exposure: 0.12, color: 0.05 },
+      // 11-19 plan step 3-a: after the page changes a camera setting (white-balance lock), the colour and exposure jump is
+      // the camera's, not the room's. For this long the colour / light-change conditions cannot switch on, the backlight
+      // reference is collected again and the light estimate snaps to the next sample. 1.5 s = the enter dwell (assumption).
+      camSettleMs: 1500,
+      // 3-c: from the change until 1 s after the hold, the light colour is re-read every 500 ms (not the locked 2 s), so
+      // neither a sample taken while the camera was still settling nor a real light change right after it sticks.
+      // research/env_eval/headless/sim_cam_settle.mjs (test split 200): colour error after the lock 1 s / 2 s / 2.5 s
+      // blip 0.080 / 0.091 / 0.101 (3-a 0.195 / 0.117 / 0.142), a real warm lamp 0.5 s later 0.077 (3-a 0.234).
+      camResampleMs: 500, camResampleTailMs: 1000,
+      // 5-d (11-19, user: R3): makeup exposure follows how much darker the skin got than this session's settled reference,
+      // not skin / 0.34 alone (that reads a dark skin tone as dim light and the 0.2 floor then left the makeup 2-4x brighter
+      // than the skin in a dark room). The reference is the skin brightness while the scene is clearly not dark (dark exit
+      // tests), not blown out and the light estimate is not moving (a reference taken too HIGH would darken the makeup in
+      // normal light; one taken too low only leaves today's behaviour, so backlight and the other flags do not block it);
+      // it follows a brighter room at once-ish (0.15 per 0.5 s) and a dimmer one slowly (0.02, about 25 s). It is kept for
+      // keepMs when the face is lost (a new person after a longer gap). Without a reference (start-up, a start in the
+      // dark) the old formula runs. floor = lowest share of the reference.
+      // research/env_eval/results/step5b_r3_render_2026-11-19.json: normal light unchanged (dE <= 0.2); very dark skin, light
+      // x0.2 / x0.1: makeup-to-skin brightness 1.96-2.57 / 2.58-3.95 -> 1.01-1.27 / 1.03-1.50.
+      expRef: { follow: [0.15, 0.02], nearFrac: 0.75, floor: 0.02, keepMs: 10000 },
+    },
   };
   // roughness/specular/flake: PBR_DEMO_SPEC 5 starting values, then detail/specular nudged
   // toward finish medians in research/data/reference/lip_texture/lip_texture.sqlite (Pexels/Unsplash
@@ -587,12 +660,21 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   // final share of the lip change over the camera (sheer 0.75: the see-through finish came out more saturated than matte),
   // overlay = Overlay layer strength (only with TUNING.lipOverlay). detail lowered on velvet/cream/satin (plan C wrinkle smoothing).
   const MATERIALS = {
-    matte:   { roughness: 0.90, specular: 0.35, flake: 0, a1: 0.72, translucent: 0.0, detail: 1.15, shadeMatch: 0.5, opacity: 0.97, overlay: 0, cavity: 2 },   // overlay off (user, 11-13)
+    // 11-23 finish plan D (user, phone captures: frost on a matte, a band along the upper lip on satin / glossy; 5 faces headless,
+    // research/makeup_gen/finish_candidates.py). glossScale scales the form highlight, rimTilt the upper lip's upward rim tilt for
+    // the shine only; both 1 when absent. matte: shine area 45 -> 6 % of the lip, mean lift +2.0 -> +0.9 L* (with matteSpecMask
+    // ridge 0.2). glossy (rimTilt only; cavity stays 1.2 by the user's 11-15 order, a thick clear gloss shows the lines least):
+    // band 26 -> 14 %, peak 12.9 -> 10.0 L*, shine follows the lines 0.19 -> 0.28. satin: band 22 -> 12 %, peak 9.3 -> 8.3 L*.
+    matte:   { roughness: 0.90, specular: 0.35, flake: 0, a1: 0.72, translucent: 0.0, detail: 1.15, shadeMatch: 0.5, opacity: 0.97, overlay: 0, cavity: 2, glossScale: 0.3 },   // overlay off (user, 11-13)
     velvet:  { roughness: 0.75, specular: 0.45, flake: 0, a1: 0.66, translucent: 0.0, detail: 0.75, shadeMatch: 0.6, opacity: 0.97, overlay: 0.35, cavity: 2.5 },
     cream:   { roughness: 0.55, specular: 0.60, flake: 0, a1: 0.58, translucent: 0.12, detail: 0.90, shadeMatch: 0.5, opacity: 0.97, overlay: 0.30, cavity: 2 },
-    satin:   { roughness: 0.42, specular: 0.85, flake: 0, a1: 0.50, translucent: 0.12, detail: 1.05, shadeMatch: 0.5, opacity: 0.96, overlay: 0.20, cavity: 2.3 },
+    satin:   { roughness: 0.42, specular: 0.85, flake: 0, a1: 0.50, translucent: 0.12, detail: 1.05, shadeMatch: 0.5, opacity: 0.96, overlay: 0.20, cavity: 2.3, rimTilt: 0.3 },
     sheer:   { roughness: 0.32, specular: 0.90, flake: 0, a1: 0.38, translucent: 0.8, detail: 1.05, shadeMatch: 0.3, opacity: 0.75, overlay: 0.15, cavity: 2.2 },
-    glossy:  { roughness: 0.16, specular: 1.15, flake: 0, a1: 0.46, translucent: 0.28, detail: 0.95, shadeMatch: 0.4, opacity: 0.95, overlay: 0.20, cavity: 1.2 },
+    // 11-23 GC (user): translucent 0.28 -> 0, overlay 0.20 -> 0.10. Target: FPMT (Pattern Recognition 2026) run on the AR's bare
+    // frame with the worn photo as reference (research/makeup_gen/COMPARE_LOCAL.md, fpmt_gap.py): the bare lip's yellow no longer
+    // shows through the film (03 Bare Grape #A26263 0.35: lip dE00 to the target 3.56 -> 2.28, b* 15.7 -> 13.3), a red glossy
+    // stops glowing (#B0283A 0.65 vs its hex 7.66 -> 4.87, chroma 62 -> 46 vs hex 59.5). One face, one worn photo; headless only.
+    glossy:  { roughness: 0.16, specular: 1.15, flake: 0, a1: 0.46, translucent: 0.0, detail: 0.95, shadeMatch: 0.4, opacity: 0.95, overlay: 0.10, cavity: 1.2, rimTilt: 0.3 },
     shimmer: { roughness: 0.38, specular: 0.90, flake: 1, a1: 0.55, translucent: 0.12, detail: 1.10, shadeMatch: 0.5, opacity: 1.0, overlay: 0, cavity: 1.6 },
     // Lip oil / balm (11-10, user: 80~90% see-through, shine and the lip's lines kept, no sudden colour). Chosen by zone.care
     // (lib/lipCare.ts), not by texture. a1 is unused for them: lipCoverage gives the colour cover, the shine has its own.
@@ -3182,14 +3264,16 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     skinColor: [0.42, 0.28, 0.22], colorSamples: 0, colorDelta: 1,
     snapColor: false, refSkinLab: null, blownFrac: 0, fitR2: 0, fitRel: 0,
     sh: [1, 0, 0, 0, 0, 0, 0, 0, 0], shDirectional: 0.5, shCond: 0, shUsed: false, colorEdgeW: 0,
+    trusted: null, trustedLostAt: 0,   // 6-1a: last trusted light colour (TUNING.lightTrustHold)
+    rawRb: 1, rawGm: 1,   // 11-19: unclamped background light estimate (red / blue, green / magenta) for the colour-light guidance
   };
   // What the shader is given. The estimates above change every 0.5 s (and snap on a big light change); applied as they are,
   // every layer covering the face (foundation most of all) stepped brighter or darker. The shown values glide instead.
   const shownLight = { color: [1, 1, 1], exposure: 1, skinMeanLum: TUNING.skinRefLum, dir: [0, 0.3, 0.95], strength: 1, conf: 0, sh: [1, 0, 0, 0, 0, 0, 0, 0, 0], t: 0 };
   function glideLight(now) {
     const w = clamp(light.colorConf, 0, 1);
-    const target = [1 + w * (light.color[0] - 1), 1 + w * (light.color[1] - 1), 1 + w * (light.color[2] - 1)];
-    const exposure = clamp(light.skinMeanLum / TUNING.skinRefLum, TUNING.exposureRange[0], TUNING.exposureRange[1]);
+    const target = TUNING.lightTrustHold && light.trusted ? light.trusted : [1 + w * (light.color[0] - 1), 1 + w * (light.color[1] - 1), 1 + w * (light.color[2] - 1)];
+    const exposure = exposureFor(light.skinMeanLum);
     const dt = shownLight.t ? (now - shownLight.t) / 1000 : Infinity;
     shownLight.t = now;
     const k = dt === Infinity ? 1 : 1 - Math.exp(-Math.max(0, dt) / TUNING.lightDisplaySec);
@@ -3264,12 +3348,217 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     lastLightHint = hint;
     post({ type: 'light_hint', value: hint });
   }
+  // ── 11-19 Environment state: measures -> conditions with hysteresis -> one primary message (display rules in the app,
+  // hooks/useArEnvMessage). The shader never reads this state; correction keeps using light.* (analysis and guidance apart).
+  // Levels: degraded (works, accuracy limited) and ask (the user should change something); "auto" stays in the HUD only.
+  // Low light and a low light-estimate confidence are separate conditions ('dark' vs 'estimating' = the old 'low').
+  // Too close cuts the chin / brows off the frame, so it shares the first group with 'position' and wins on severity.
+  const ENV_GROUPS = [['position', 'tooClose'], ['blown', 'backlight', 'dark'], ['motion'], ['turn', 'tooFar'], ['unevenLight'],
+    ['warmLight', 'colorCast'], ['lightChanged'], ['estimating']];
+  const ENV_LEVEL = { position: 'ask', blown: 'ask', backlight: 'ask', dark: 'ask', motion: 'ask', turn: 'ask', tooClose: 'ask',
+    tooFar: 'ask', unevenLight: 'degraded', warmLight: 'degraded', colorCast: 'degraded', lightChanged: 'degraded', estimating: 'degraded' };
+  const envState = { on: {}, since: {}, sev: {}, evals: 0, sentKey: '', camHoldUntil: 0 };
+  let camSnapPending = false;
+  // A camera setting the page changed (step 3-a): see TUNING.env.camSettleMs.
+  // True while a camera setting change is settling (the hold plus its tail): light colour re-read every camResampleMs.
+  function camSettling(now) {
+    return now < envState.camHoldUntil + TUNING.env.camResampleTailMs;
+  }
+  function envCameraChanged(now) {
+    envState.camHoldUntil = now + TUNING.env.camSettleMs;
+    envRef.face = 0; envRef.ratio = 0; envRef.n = 0;
+    light.snapColor = true;
+    camSnapPending = true;
+  }
+  const envBg = { bits: null, w: 0, h: 0, at: -1 };   // last segmenter background (class 0) at the 128 px stats size
+  const envRef = { face: 0, ratio: 0, n: 0 };   // this session's settled face brightness and bg/face ratio
+  // 5-d: this session's settled skin brightness (light.skinMeanLum scale) the makeup exposure is measured against.
+  const expRef = { skin: 0, n: 0, lostAt: 0, rb: 0 };   // rb = 6-2a: bare-skin red / blue of the camera at the same settled moments
+  function exposureFor(skin) {
+    const base = (v) => clamp(v / TUNING.skinRefLum, TUNING.exposureRange[0], TUNING.exposureRange[1]);
+    if (expRef.n < 1 || !(skin < expRef.skin)) return base(skin);
+    return base(expRef.skin) * Math.max(TUNING.env.expRef.floor, skin / expRef.skin);
+  }
+  // Highlighter / lip pearl follows the same drop (1 = no reference or not darker than it).
+  function pearlExposure(skin) {
+    if (expRef.n < 1 || !(skin < expRef.skin)) return 1;
+    return Math.min(1, Math.max(TUNING.env.expRef.floor, skin / expRef.skin));
+  }
+  const envToneHist = new Float32Array(64);
+  const envM = { tone: { black: 0, mid: 0, white: 0, hl: 0, shadow: 0, key: 0, dr: 0, gamma: 0 }, outIds: [], prevExp: 0, prevColor: [1, 1, 1], faceLum: NaN, bgLum: NaN, frameLum: NaN, lr: 1, eyeFrac: 0, eyePx: 0, out: 0, yaw: 0, pitch: 0, rb: 1, gm: 1 };
+  const ENV_KEY_PTS = [33, 133, 263, 362, 70, 300, 61, 291, 0, 17, 152, 10];
+  // One condition: holds its enter test enterMs to switch on, its exit test exitMs to switch off (hysteresis + dwell).
+  function envStep(id, enter, exit, sev, now, enterMs) {
+    const E = TUNING.env;
+    const on = !!envState.on[id];
+    envState.sev[id] = sev;
+    if (on ? !exit : !enter) { envState.since[id] = -1; return on; }
+    if (!(envState.since[id] >= 0)) envState.since[id] = now;
+    if (now - envState.since[id] >= (on ? E.exitMs : (enterMs || E.enterMs))) { envState.on[id] = !on; envState.since[id] = -1; }
+    return !!envState.on[id];
+  }
+  // The background mask the last segmenter call left, scaled to the stats frame (so the backlight ratio follows every
+  // 0.5 s scene sample instead of the 1 s light-colour segmentation; no extra segmenter calls).
+  function envKeepBackground(cat, mw, mh) {
+    const sw = stats.width, sh = stats.height;
+    if (!sw || !sh) return;
+    if (!envBg.bits || envBg.bits.length !== sw * sh) envBg.bits = new Uint8Array(sw * sh);
+    for (let y = 0; y < sh; y++) {
+      const my = Math.floor((y * mh) / sh) * mw;
+      for (let x = 0; x < sw; x++) envBg.bits[y * sw + x] = cat[my + Math.floor((x * mw) / sw)] === 0 ? 1 : 0;
+    }
+    envBg.w = sw; envBg.h = sh; envBg.at = performance.now();
+  }
+  // Scene measures from the 128 px stats frame sampleScene already read (no extra getImageData).
+  function envMeasureScene(data, sw, sh, skinLum, skinIn, lumAt) {
+    let fs = 0, fn = 0, bs = 0, bn = 0, ls = 0, es = 0, hl = 0, shd = 0;
+    const bgOk = envBg.bits && envBg.w === sw && envBg.h === sh && performance.now() - envBg.at < 6000;
+    // 11-19 tone values (research/env_eval lapa_env_eval.tone_of): 64-bin histogram of gamma-encoded luma Y' (0..255).
+    const hist = envToneHist; hist.fill(0);
+    for (let i = 0, p = 0; i < sw * sh; i += 2, p = i * 4) {
+      const Y = lumOf(toLin(data[p] / 255), toLin(data[p + 1] / 255), toLin(data[p + 2] / 255));
+      fs += Y; fn++;
+      if (bgOk && envBg.bits[i]) { bs += Y; bn++; }
+      const yp = 0.2126 * data[p] + 0.7152 * data[p + 1] + 0.0722 * data[p + 2];
+      hist[Math.min(63, yp >> 2)]++;
+      ls += Math.log(Y + 1e-4); es += yp;
+      if (yp > 235) hl++; else if (yp < 16) shd++;
+    }
+    envM.frameLum = fn ? fs / fn : NaN;
+    if (fn) {
+      const pct = (q) => { let c = 0; for (let b = 0; b < 64; b++) { c += hist[b]; if (c >= q * fn) return (b + 0.5) * 4; } return 254; };
+      const t = envM.tone;
+      t.black = pct(0.02); t.mid = pct(0.5); t.white = pct(0.98);
+      t.hl = hl / fn; t.shadow = shd / fn;
+      t.key = Math.exp(ls / fn);
+      t.dr = Math.log2(Math.max(toLin(t.white / 255), 1e-4) / Math.max(toLin(t.black / 255), 1e-3));
+      const me = Math.min(Math.max(es / fn / 255, 1e-6), 0.999);
+      t.gamma = Math.log(Math.max(fs / fn, 1e-6)) / Math.log(me);
+    }
+    envM.bgLum = bn > 0.05 * fn ? bs / bn : NaN;
+    envM.faceLum = skinLum || NaN;
+    // Left / right skin brightness split at the nose tip (landmark 1).
+    const l = [], r = [];
+    for (const i of skinIn) (sx[i] < sx[1] ? l : r).push(lumAt(sx[i], sy[i]));
+    const lm = l.length > 20 ? trimmedMean(l) : null, rm = r.length > 20 ? trimmedMean(r) : null;
+    envM.lr = lm && rm ? lm / rm : 1;
+  }
+  function envEvaluate(now, W, H) {
+    const E = TUNING.env;
+    // Geometry: head turn from the depth difference of the face edges (as the jaw skirt does), pitch from forehead / chin.
+    envM.yaw = Math.atan((sz[234] - sz[454]) / Math.max(1e-4, Math.abs(sx[234] - sx[454]))) * 180 / Math.PI;
+    envM.pitch = Math.atan((sz[10] - sz[152]) / Math.max(1e-4, Math.abs(sy[10] - sy[152]) * H / W)) * 180 / Math.PI + E.pitchOffset;
+    envM.eyePx = Math.min(Math.hypot((sx[33] - sx[133]) * W, (sy[33] - sy[133]) * H), Math.hypot((sx[263] - sx[362]) * W, (sy[263] - sy[362]) * H));
+    envM.eyeFrac = Math.hypot((sx[33] - sx[263]) * W, (sy[33] - sy[263]) * H) / Math.max(1, Math.min(W, H));
+    let out = 0;
+    envM.outIds = [];
+    for (const i of ENV_KEY_PTS) if (sx[i] < 0.01 || sx[i] > 0.99 || sy[i] < 0.01 || sy[i] > 0.99) { out++; envM.outIds.push(i); }
+    envM.out = out;
+    envM.rb = light.rawRb;
+    envM.gm = light.rawGm;
+    const bl = envM.bgLum / Math.max(1e-4, envM.faceLum);
+    // This session's settled reference (only while nothing is wrong): backlight is judged against it, not a fixed ratio.
+    // A sample far from the reference (a light change under way) does not move it, or a slow turn to a window would be
+    // absorbed before the dwell time passes.
+    const nearRef = !envRef.n || (envM.faceLum > 0.75 * envRef.face && bl < 1.3 * envRef.ratio);
+    // Away from it with nothing wrong (a new room), the reference follows slowly (about 15 s) instead.
+    if (envState.evals >= E.readyEvals && !envPrimary() && !envState.on.backlight && Number.isFinite(bl) && envM.faceLum > 0) {
+      const kr = !envRef.n ? 1 : nearRef ? 0.15 : 0.03;
+      envRef.face += kr * (envM.faceLum - envRef.face);
+      envRef.ratio += kr * (bl - envRef.ratio);
+      envRef.n++;
+    }
+    // 5-d reference (TUNING.env.expRef): not while blown out, the light estimate moves, a camera change settles or the scene is dark.
+    const XR = E.expRef, notDark = envM.frameLum > E.dark.frameLum[1] && (light.grain * Math.sqrt(Math.max(1e-4, light.skinMeanLum)) < E.dark.grainN[1] || light.grain < E.dark.grain[1]);   // the dark exit test
+    if (expRef.lostAt) {
+      if (now - expRef.lostAt > XR.keepMs) { expRef.skin = 0; expRef.n = 0; expRef.rb = 0; }
+      expRef.lostAt = 0;
+    }
+    if (light.trustedLostAt) {
+      if (now - light.trustedLostAt > TUNING.lightTrustKeepMs) light.trusted = null;
+      light.trustedLostAt = 0;
+    }
+    if (envState.evals >= E.readyEvals && !envState.on.blown && !envState.on.lightChanged && now >= envState.camHoldUntil && notDark && light.samples > 0 && light.skinMeanLum > 0) {
+      const k = !expRef.n ? 1 : light.skinMeanLum >= XR.nearFrac * expRef.skin ? XR.follow[0] : XR.follow[1];
+      expRef.skin += k * (light.skinMeanLum - expRef.skin);
+      expRef.n++;
+      // 6-2a: the skin's red / blue reference (HUD only, no condition reads it): not while a colour light is flagged, follows only
+      // small moves (a real colour change must not be absorbed).
+      const rbNow = light.skinColor[0] / Math.max(1e-4, light.skinColor[2]);
+      if (!envState.on.warmLight && !envState.on.colorCast && (!expRef.rb || (rbNow > 0.9 * expRef.rb && rbNow < 1.1 * expRef.rb))) expRef.rb += (expRef.rb ? 0.15 : 1) * (rbNow - expRef.rb);
+    }
+    const lr = Math.max(envM.lr, 1 / Math.max(1e-3, envM.lr));
+    const turn = Math.max(Math.abs(envM.yaw) / E.turnDeg[0], Math.abs(envM.pitch) / E.pitchDeg[0]);
+    const B = E.backlight;
+    const relOk = envRef.n >= B.refEvals && envM.bgLum > B.bgLum;
+    const backRel = relOk && envM.faceLum < B.faceDrop[0] * envRef.face && bl > B.ratioRise[0] * envRef.ratio;
+    const backAbs = envM.faceLum < B.absFace && bl > B.absRatio && envM.bgLum > B.bgLum;
+    const backOff = !(relOk && envM.faceLum < B.faceDrop[1] * envRef.face && bl > B.ratioRise[1] * envRef.ratio) && !backAbs;
+    const bgOkCol = light.bgFraction >= E.bgMin;
+    const gmMid = envM.gm > E.gmRange[0] && envM.gm < E.gmRange[1];
+    const camHold = now < envState.camHoldUntil;
+    envStep('position', out > 0, out === 0, out / ENV_KEY_PTS.length, now);
+    envStep('tooClose', envM.eyeFrac > E.tooClose[0], envM.eyeFrac < E.tooClose[1], envM.eyeFrac / E.tooClose[0], now);
+    envStep('tooFar', envM.eyePx < E.tooFar[0], envM.eyePx > E.tooFar[1], E.tooFar[0] / Math.max(1, envM.eyePx), now);
+    envStep('turn', turn > 1, Math.abs(envM.yaw) < E.turnDeg[1] && Math.abs(envM.pitch) < E.pitchDeg[1], turn, now);
+    // Speed only: the blur measure's resting value depends on the camera (a still, upscaled face read 2.28 in the headless
+    // run), so it would hold the motion message on a still face; it keeps softening the edges as before.
+    // Not before the start-up check: the speed starts at 1 when tracking begins.
+    envStep('motion', envState.evals >= E.readyEvals && faceSpeed > E.motion.speed[0], faceSpeed < E.motion.speed[1], faceSpeed / E.motion.speed[0], now);
+    envStep('blown', light.blownFrac > E.blown[0], light.blownFrac < E.blown[1], light.blownFrac / E.blown[0], now);
+    envStep('backlight', backRel || backAbs, backOff, envRef.face / Math.max(1e-4, envM.faceLum), now);
+    const grainN = light.grain * Math.sqrt(Math.max(1e-4, light.skinMeanLum));
+    envStep('dark', envM.frameLum < E.dark.frameLum[0] || (grainN > E.dark.grainN[0] && light.grain > E.dark.grain[0]),
+      envM.frameLum > E.dark.frameLum[1] && (grainN < E.dark.grainN[1] || light.grain < E.dark.grain[1]),
+      Math.max(E.dark.frameLum[0] / Math.max(1e-4, envM.frameLum), grainN / E.dark.grainN[0]), now);
+    const frontal = Math.abs(envM.yaw) < E.unevenMaxYaw;
+    envStep('unevenLight', frontal && lr > E.uneven[0], !frontal || lr < E.uneven[1], lr / E.uneven[0], now, E.unevenEnterMs);
+    envStep('warmLight', !camHold && bgOkCol && gmMid && envM.rb > E.warm[0], !(bgOkCol && gmMid && envM.rb > E.warm[1]), envM.rb / E.warm[0], now);
+    envStep('colorCast', !camHold && bgOkCol && gmMid && envM.rb < E.cool[0], !(bgOkCol && gmMid && envM.rb < E.cool[1]), E.cool[0] / Math.max(1e-3, envM.rb), now);
+    const tgtExp = exposureFor(light.skinMeanLum);
+    // Re-adjusting = the light estimate itself still moving between two evaluations (exposure target or light colour);
+    // the shown values glide only while makeup is drawn, so they are not the measure.
+    let colGap = 0;
+    for (let j = 0; j < 3; j++) colGap = Math.max(colGap, Math.abs(light.color[j] - envM.prevColor[j]));
+    const moving = envM.prevExp > 0 && (Math.abs(tgtExp / envM.prevExp - 1) > E.lightChanged.exposure || colGap > E.lightChanged.color);
+    envM.prevExp = tgtExp; envM.prevColor = light.color.slice();
+    envStep('lightChanged', moving && !camHold, !moving, 1, now);
+    envStep('estimating', light.colorSamples >= 1 && light.colorConf < E.estimating[0], light.colorConf > E.estimating[1], 1 - light.colorConf, now);
+    envState.evals++;
+    envPublish();
+  }
+  function envPrimary() {
+    for (const g of ENV_GROUPS) {
+      let best = null;
+      for (const id of g) if (envState.on[id] && (!best || envState.sev[id] > envState.sev[best])) best = id;
+      if (best) return best;
+    }
+    return null;
+  }
+  // Sends only a changed, settled state; the first one after readyEvals samples is the start-up check ('ready').
+  function envPublish() {
+    if (envState.evals < TUNING.env.readyEvals) return;
+    const items = ENV_GROUPS.flat().filter((id) => envState.on[id]);
+    const primary = envPrimary();
+    const key = (primary || '-') + '|' + items.join(',');
+    if (key === envState.sentKey) return;
+    envState.sentKey = key;
+    post({ type: 'env', primary, level: primary ? ENV_LEVEL[primary] : 'ok', items, ready: true });
+  }
+  function envReset() {
+    const had = envState.sentKey;
+    envState.on = {}; envState.since = {}; envState.sev = {}; envState.evals = 0; envState.sentKey = '';
+    envRef.face = 0; envRef.ratio = 0; envRef.n = 0;
+    if (light.trusted) light.trustedLostAt = performance.now();
+    if (expRef.n) expRef.lostAt = performance.now();   // kept for TUNING.env.expRef.keepMs, cleared at the next evaluation after that
+    if (had) post({ type: 'env', primary: null, level: 'ok', items: [], ready: false });
+  }
   // ── Face-fit measurement (11-04): this person's ratios from the landmarks, frontal frames only, then frozen ──
   // Errors of the side jobs around the render (measure / repaint / shade) are counted and shown in the HUD; they never abort the frame.
   let guardErrors = 0, guardLast = '', renderErrors = 0, renderErrLast = '';
   // HUD 'eye' line (11-06 /ar-debug: look mascara and lashes not seen on the phone): which eye paint reached this page and
   // whether the eye canvas was drawn this frame. 'build' tells a stale Expo Go bundle apart from a renderer fault.
-  const EYE_HUD_BUILD = '1119-shadow-v9-pose';
+  const EYE_HUD_BUILD = '1123-lip-finish-d';
   const eyeDbg = { liner: '-', mascara: '-', lashes: 0, on: false, cw: 0, ch: 0 };
   // Blink (11-08): MediaPipe blendshape eyeBlinkRight/Left (0 open .. 1 closed) per EYE_LINES entry (0 = subject's right
   // eye, landmarks 33/133; 1 = left). NaN until the model returns blendshapes; drawing then falls back to the lid gap.
@@ -3831,6 +4120,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         segmentBusy = false;
         const mask = result.categoryMask;
         if (!mask) return;
+        try { envKeepBackground(mask.getAsUint8Array(), mask.width, mask.height); } catch (e) { /* backlight ratio is best-effort */ }
         if (forSkin && wantSkinMask()) applyFoundSkinMask(mask, result.confidenceMasks);
         if (!forLight || !lightSnap) return;
         const mw = mask.width, mh = mask.height, cat = mask.getAsUint8Array();
@@ -3852,11 +4142,16 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
             chroma = Math.max(est[0], est[1], est[2]) / Math.max(1e-6, Math.min(est[0], est[1], est[2]));
             light.colorEdgeW = w;
           }
+          // As measured (the env condition's 1.5 s hold is the smoothing).
+          light.rawRb = est[0] / Math.max(1e-4, est[2]);
+          light.rawGm = est[1] / Math.max(1e-4, 0.5 * (est[0] + est[2]));
           const c = [clamp(est[0], lo, hi), clamp(est[1], lo, hi), clamp(est[2], lo, hi)];
           const cy = lumOf(c[0], c[1], c[2]);
           const snap = light.snapColor;
           const kc = light.colorSamples++ === 0 || snap ? 1 : wbLocked ? TUNING.lightSmoothing : TUNING.lightSmoothingAuto;
           if (snap) light.snapColor = false;
+          // Step 3-a: after a camera setting change the shown light jumps to this sample too (no 0.6 s glide from the old one).
+          if (snap && camSnapPending) { camSnapPending = false; shownLight.t = 0; }
           let delta = 0;
           for (let j = 0; j < 3; j++) {
             const d = c[j] / cy - light.color[j];
@@ -3866,6 +4161,8 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
           light.colorDelta = delta;
           const ok = light.bgFraction >= TUNING.bgMinFraction && chroma <= TUNING.bgMaxChroma ? 1 : 0;
           light.colorConf += kc * (ok - light.colorConf);
+          if (snap) light.trusted = null;   // the skin colour jumped: the light changed, the old trusted colour is stale
+          if (ok && light.colorConf > 0.5) light.trusted = light.color.slice();
         }
         postLightHint();
       });
@@ -3944,6 +4241,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     if (lipRed !== null) light.lipRed += k * (lipRed - light.lipRed);
     if (skinRed !== null) light.skinRed += k * (skinRed - light.skinRed);
     if (skinLum) light.skinMeanLum += k * (skinLum - light.skinMeanLum);
+    try { envMeasureScene(data, sw, sh, skinLum, skinIn, lumAt); } catch (e) { /* environment measures are best-effort */ }
     // Bare-skin color: the reference below paint that crosses the lip line onto the skin (overlip).
     const skinCols = skinIn.map((i) => linAt(sx[i], sy[i]));
     const skinColor = [0, 1, 2].map((j) => trimmedMean(skinCols.map((c) => c[j])));
@@ -4040,7 +4338,8 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
 
     // Color: Gray World over background pixels (segmenter class 0), blown-out and dark pixels excluded.
     const segEvery = wbLocked ? TUNING.segmentEveryMs : TUNING.segmentEveryMsAuto;
-    const lightDue = light.snapColor || (now - lastSegmentAt > segEvery && (lastSegmentAt < 0 || fps >= TUNING.segmentMinFps));
+    const lightDue = light.snapColor || (camSettling(now) && now - lastSegmentAt >= TUNING.env.camResampleMs) ||
+      (now - lastSegmentAt > segEvery && (lastSegmentAt < 0 || fps >= TUNING.segmentMinFps));
     const skinDue = wantSkinMask() && now - lastFoundSegAt > skinSegGap();
     runSegmenter(now, lightDue, skinDue);
     postLightHint();
@@ -4125,6 +4424,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     'uniform sampler2D uOutline; uniform vec4 uOutlineRect; uniform float uOutlineSoft; uniform vec3 uLipFeather;',
     'uniform sampler2D uForm; uniform vec2 uFormStep; uniform float uFormTilt; uniform float uLowPx; uniform float uLipVolume; uniform float uFormOn; uniform vec2 uGlossMax; uniform vec2 uLightSize; uniform float uWideGloss; uniform vec3 uMouthN; uniform float uGlossGain; uniform float uFrontGloss; uniform float uGlossFlat; uniform vec4 uGlossShape; uniform vec3 uGlossTone; uniform vec4 uEnvGloss; uniform float uGlossRough; uniform float uGlossKnee; uniform float uSharpW;',
     'uniform float uHlLocal; uniform vec2 uHlSat; uniform float uHlBlown; uniform float uOpaqueShadeGamma; uniform float uLipFill;',
+    'uniform float uGlossScale; uniform float uRimTilt;',
     'uniform float uLipDetail; uniform vec2 uDetailNoise; uniform float uHlSparkle; uniform float uWideDetail; uniform float uGlossAniso; uniform float uGlossCavity;',
     'uniform vec2 uInner[20]; uniform float uTeethReach; uniform vec2 uTeethRed; uniform vec2 uTeethBright; uniform vec2 uTeethFirm; uniform float uTeethOn; uniform float uMouthOpen;',
     'uniform float uTeethGuard; uniform vec2 uTeethSat; uniform float uTeethDark;',
@@ -5292,6 +5592,17 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '    float specPbr = ggx(n, l, v, uGlossRough) * max(dot(n, l), 0.0) * uLightStrength * uExposure * uSkinRef * lightMix;',
     '    float peakMask = pow(max(dot(n, normalize(l + v)), 0.0), mix(28.0, 64.0, uGlossRough)) * core;',
     // Broad glow and sheen: the smooth form, or part of the lip's own lines with it (wideDetail).
+    // Upper-lip rim, shine only (11-23 finish plan D, user): the form normal tilts up at the upper lip's top line and met the
+    // frontal source's half vector there, so gloss and sheen piled into a band along the lip's top edge (phone captures; 5
+    // faces: 26 % of a gloss's shine in the top 30 % of the upper lip, 12–17 % if spread evenly). The upward part of that tilt
+    // is scaled by MATERIALS rimTilt for the reflection terms only; colour and form shading above keep the full form.
+    '    if (uRimTilt < 0.999) {',
+    '      vec2 qq = suv * uViewport - uLipCenter.xy; vec2 dn = vec2(-uLipCenter.w, uLipCenter.z); if (dn.y < 0.0) dn = -dn;',
+    '      float upW = 1.0 - smoothstep(-2.0, 2.0, dot(qq, dn));',
+    '      vec3 dN = lipFormN - lipBaseN; vec3 dD = lipDetailN - lipFormN;',
+    '      float kR = mix(1.0, uRimTilt, upW * step(0.0, dN.y));',
+    '      lipFormN = normalize(lipBaseN + vec3(dN.x, dN.y * kR, dN.z)); lipDetailN = normalize(lipFormN + dD);',
+    '    }',
     '    vec3 lipMidN = uWideDetail > 0.0 ? normalize(mix(lipFormN, lipDetailN, uWideDetail)) : lipFormN;',
     '    float sheen = pow(max(dot(lipMidN, normalize(l + v)), 0.0), mix(4.0, 10.0, smooth1)) * smooth1 * smooth1 * uLipSheen * lightMix * core;',
     // Finish highlight on the lip form: GGX at the finish's roughness, the light's color and strength,
@@ -5355,6 +5666,8 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     // Thin streaks cover far less area than the round lobe: their peak is raised with the reflection mix (x3 at envW 1; measured
     // on the headless face: gain 0 -> p99 L 191 / 22 px above 200, gain 2 -> 205 / 553, the old blob 202 / 343).
     '    float formSpec = glossCap * (1.0 + envW * 2.0) * lobe * core * uFormOn * mix(1.0, exp(-cd * cd), uGlossShape.y);',
+    // Finish scale on the form highlight (MATERIALS glossScale, 1 = as before; a matte's broad lobe lifted 45 % of the lip).
+    '    formSpec *= uGlossScale;',
     '    float camSpec = hl / max(meanL, 1e-3);',
     '    formSpec *= 1.0 + uGlossFlat * (1.0 - smoothstep(0.02, 0.12, camSpec)) * smooth1 * smooth1;',
     '    float cav = 1.0;',
@@ -5455,7 +5768,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       'uLipTranslucent', 'uMaskBias',
       'uSpecFill', 'uLipColor', 'uPaperWhite', 'uRatioMax', 'uLipSpecMax', 'uHlKeep',
       'uLumGainMax', 'uCreaseCover', 'uLipSheen', 'uMatteSpec', 'uDepthMatch', 'uSeamPx', 'uLipOpacity', 'uLipOverlay',
-      'uOutline', 'uOutlineRect', 'uOutlineSoft', 'uLipFeather', 'uForm', 'uFormStep', 'uFormTilt', 'uLowPx', 'uLipVolume', 'uFormOn', 'uGlossMax', 'uLightSize', 'uWideGloss', 'uMouthN', 'uGlossGain', 'uFrontGloss', 'uGlossFlat', 'uGlossShape', 'uGlossTone', 'uEnvGloss', 'uGlossRough', 'uGlossKnee', 'uSharpW',
+      'uOutline', 'uOutlineRect', 'uOutlineSoft', 'uLipFeather', 'uForm', 'uFormStep', 'uFormTilt', 'uLowPx', 'uLipVolume', 'uFormOn', 'uGlossMax', 'uLightSize', 'uWideGloss', 'uMouthN', 'uGlossGain', 'uFrontGloss', 'uGlossFlat', 'uGlossScale', 'uRimTilt', 'uGlossShape', 'uGlossTone', 'uEnvGloss', 'uGlossRough', 'uGlossKnee', 'uSharpW',
       'uHlLocal', 'uHlSat', 'uHlBlown', 'uOpaqueShadeGamma', 'uLipFill', 'uLipDetail', 'uDetailNoise', 'uHlSparkle', 'uWideDetail', 'uGlossAniso', 'uGlossCavity', 'uInner', 'uTeethReach', 'uTeethRed', 'uTeethBright', 'uTeethFirm', 'uTeethOn', 'uMouthOpen',
       'uTeethGuard', 'uTeethSat', 'uTeethDark',
       'uShadow2Albedo', 'uShadow2Cov', 'uInnerAlbedo', 'uInnerCov', 'uMask3',
@@ -5860,7 +6173,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         let hlCov = hl ? hlS * TUNING.hlCoverage * hlGain : 0;
         if (hl && hl.applicationProfile) hlCov = profileCoverage(hl, hlCov);
         gl.uniform1f(u.uHlCov, hlCov);
-        gl.uniform1f(u.uHlFlake, hl ? hlMat.flake * TUNING.shimmerFlake * hlS : 0);
+        gl.uniform1f(u.uHlFlake, hl ? hlMat.flake * TUNING.shimmerFlake * hlS * pearlExposure(shownLight.skinMeanLum) : 0);
         gl.uniform1f(u.uHlNat, TUNING.hlNatural ? 1 : 0);
         gl.uniform3f(u.uHlLift, TUNING.hlLift, TUNING.hlTint, 0);
         gl.uniform3f(u.uHlGloss, TUNING.hlGloss, TUNING.hlGlint, 0);
@@ -6047,7 +6360,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         gl.uniform1f(u.uLipSheenK, lip && lip.care ? clamp01(lip.care.tint) * 0.5 : 1);
         gl.uniform1f(u.uLipRough, lipMat.roughness);
         gl.uniform1f(u.uLipSpec, careOver ? Math.max(lipMat.specular, careMat.specular) : lipMat.specular);
-        gl.uniform1f(u.uLipFlake, lip ? lipMat.flake * TUNING.shimmerFlake * clamp01(lip.intensity) : 0);
+        gl.uniform1f(u.uLipFlake, lip ? lipMat.flake * TUNING.shimmerFlake * clamp01(lip.intensity) * pearlExposure(shownLight.skinMeanLum) : 0);
         gl.uniform1f(u.uLipOn, lipEffectEnabled(lip) ? 1 : 0);
         gl.uniform3f(u.uBlushAlbedo, blushAlb[0], blushAlb[1], blushAlb[2]);
         gl.uniform1f(u.uBlushCov, blush ? clamp01(blush.intensity) * TUNING.blushCoverage : 0);
@@ -6147,6 +6460,9 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         gl.uniform1f(u.uWideDetail, TUNING.wideDetail);
         gl.uniform1f(u.uGlossAniso, TUNING.glossAniso);
         gl.uniform1f(u.uGlossCavity, careAny ? TUNING.careCavity : (lipMat.cavity ?? TUNING.glossCavity));
+        // 11-23 finish plan D (MATERIALS glossScale / rimTilt, 1 = as before); a lip oil / balm keeps its own shine
+        gl.uniform1f(u.uGlossScale, careAny ? 1 : (lipMat.glossScale ?? 1));
+        gl.uniform1f(u.uRimTilt, careAny ? 1 : (lipMat.rimTilt ?? 1));
         gl.uniform1f(u.uTeethOn, TUNING.teeth && outlineOn ? 1 : 0);
         gl.uniform2fv(u.uInner, innerRingPx);
         gl.uniform1f(u.uTeethReach, Math.max(1, TUNING.teethReach * 0.5 * (lipThick.up + lipThick.low)));
@@ -6498,6 +6814,8 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     if (!hudOn) return;
     const f = (v) => v.toFixed(2);
     hud.textContent = [
+      lowHud(),
+      expHud(),
       'fps ' + fps + '  detect ' + detectMs.toFixed(1) + 'ms ' + (shapesOn ? 'bs on' : 'bs off') + ' seg ' + foundSegMs.toFixed(0) + 'ms x' + segPerSec + (faceSpeed < TUNING.faceStillSpeed && sceneChange < TUNING.sceneStillDiff ? ' still' : '') + '  ' + (renderer ? renderer.name : '-') + '  face ' + landmarkerDelegate + '  zoom ' + viewZoom.toFixed(2) + 'x',
       'light rgb ' + light.color.map(f).join(' ') + '  conf ' + f(light.colorConf),
       'bg ' + f(light.bgFraction) + '  seg ' + (segmenter ? 'on' : 'off') + (TUNING.lightColorEdge ? '  edge w ' + f(light.colorEdgeW) : ''),
@@ -6521,7 +6839,15 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       'lip rgb ' + light.lipColor.map(f).join(' ') + '  red lip ' + f(light.lipRed) + '  skin ' + f(light.skinRed) + '  grain ' + f(light.grain) + '  blur ' + f(light.blur),
       'lid fit  eye33 ' + lidHud[0] + '  eye263 ' + lidHud[1] + '  ' + lidFitMs.toFixed(1) + 'ms',
       'lid sparkle ' + (TUNING.lidSparkle ? 'on' : 'off') + '  px/cell shimmer ' + (lidSparkle.pxPerUv / TUNING.lidShimmerScale).toFixed(1) + ' glitter ' + (lidSparkle.pxPerUv / TUNING.lidGlitterScale).toFixed(1) + '  open ' + f(lidSparkle.open),
-      'wb ' + (wbLocked ? 'locked' : 'auto') + (colorTempK ? '  ' + colorTempK + 'K' : ''),
+      'wb ' + (wbLocked ? 'locked' : 'auto') + (colorTempK ? '  ' + colorTempK + 'K' : '') + '  ' + wbInfo.result + (wbInfo.modes ? ' [' + wbInfo.modes + ']' : '') + (wbInfo.ct ? ' ct ' + wbInfo.ct : '') + (wbInfo.exp ? ' exp [' + wbInfo.exp + ']' : '') + (wbInfo.expTime ? ' t ' + wbInfo.expTime : '') + (wbInfo.iso ? ' iso ' + wbInfo.iso : ''),
+      camHud(),
+      perfHud(),
+      // skin = the measured skin brightness, exposure / pearl = what the makeup would get now (the drawn values glide toward these)
+      'expo ref ' + (expRef.n ? expRef.skin.toFixed(3) : '-') + ' skin ' + light.skinMeanLum.toFixed(3) + ' exposure ' + exposureFor(light.skinMeanLum).toFixed(2) + ' pearl ' + pearlExposure(light.skinMeanLum).toFixed(2),
+      // 6-2a (measure only): bare-skin red / blue now over this session's settled reference; > 1 warmer, < 1 cooler. trusted = the held light colour.
+      'skinrb ' + (expRef.rb ? (light.skinColor[0] / Math.max(1e-4, light.skinColor[2]) / expRef.rb).toFixed(2) + ' (ref ' + expRef.rb.toFixed(2) + ')' : '-') + '  trusted ' + (light.trusted ? light.trusted.map((v) => v.toFixed(2)).join(' ') : '-') + '  rawRb ' + light.rawRb.toFixed(2),
+      'tone black ' + envM.tone.black.toFixed(0) + ' mid ' + envM.tone.mid.toFixed(0) + ' white ' + envM.tone.white.toFixed(0) + ' hl ' + (100 * envM.tone.hl).toFixed(1) + '% shadow ' + (100 * envM.tone.shadow).toFixed(1) + '% key ' + envM.tone.key.toFixed(3) + ' dr ' + envM.tone.dr.toFixed(1) + ' gamma ' + envM.tone.gamma.toFixed(2),
+      'env ' + (envPrimary() || 'ok') + '  on ' + (ENV_GROUPS.flat().filter((id) => envState.on[id]).join(',') || '-') + '  bg/face ' + f(envM.bgLum / Math.max(1e-4, envM.faceLum)) + ' frame ' + f(envM.frameLum) + ' lr ' + f(envM.lr) + ' rb ' + f(envM.rb) + ' gm ' + f(envM.gm) + ' yaw ' + envM.yaw.toFixed(0) + ' pitch ' + envM.pitch.toFixed(0) + ' eye ' + envM.eyePx.toFixed(0) + 'px ' + f(envM.eyeFrac) + ' grain ' + light.grain.toFixed(3) + ' grainN ' + (light.grain * Math.sqrt(Math.max(1e-4, light.skinMeanLum))).toFixed(4) + ' blur ' + f(light.blur) + ' spd ' + f(faceSpeed) + (envM.out ? ' out ' + envM.outIds.join('/') : '') + (performance.now() < envState.camHoldUntil ? ' camhold' : ''),
     ].join(NL);
   }
 
@@ -6577,6 +6903,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
           clearPoseHint();
           setStatus('no-face');
           if (lastLightHint) { lastLightHint = null; post({ type: 'light_hint', value: null }); }
+          envReset();
         }
       } catch (e) { /* skip frame */ }
     }
@@ -6591,10 +6918,11 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         // The light estimate (22-35 ms on the phone, 11-08 HUD) only changes when the scene does: a still face in a still
         // scene re-reads it every lightStillMs instead. The lip measurements below keep their own pace (the mouth moves
         // while the face is still).
-        if (now - lastSceneAt >= (faceSpeed < TUNING.faceStillSpeed && sceneChange < TUNING.sceneStillDiff ? TUNING.lightStillMs : 0)) {
+        if (camSettling(now) || now - lastSceneAt >= (faceSpeed < TUNING.faceStillSpeed && sceneChange < TUNING.sceneStillDiff ? TUNING.lightStillMs : 0)) {
           lastSceneAt = now;
           try { sampleScene(now, W, H); } catch (e) { /* light estimation is best-effort */ }
         }
+        try { envEvaluate(now, W, H); } catch (e) { /* environment guidance is best-effort */ }
         maybeLockWhiteBalance();
         measureLipThickness(W, H);
         try { measureLipEdge(W, H); } catch (e) { /* edge measurement is best-effort */ }
@@ -6626,16 +6954,77 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     }
     if (hudOn || guide) drawOverlay(W, H);
   }
+  // 11-19 (plan step 2-a): HUD measures only, nothing reads them. frame = processFrame start to end; lat = camera frame time
+  // (requestVideoFrameCallback captureTime, else presentationTime; none on the rAF path) to the end of processFrame (the
+  // compositor's display delay is not in it); jit = per-frame movement of the drawn (filtered) nose tip while the face is
+  // still. Last 120 frames, p50 / p95.
+  const PERF_N = 120;
+  const perf = { frame: new Float32Array(PERF_N), lat: new Float32Array(PERF_N), jit: new Float32Array(PERF_N), nFrame: 0, nLat: 0, nJit: 0, latSrc: '-', px: NaN, py: NaN };
+  function perfPush(key, v) {
+    const n = 'n' + key[0].toUpperCase() + key.slice(1);
+    perf[key][perf[n] % PERF_N] = v; perf[n]++;
+  }
+  function perfPct(key, q) {
+    const m = Math.min(perf['n' + key[0].toUpperCase() + key.slice(1)], PERF_N);
+    if (!m) return NaN;
+    const a = Array.from(perf[key].subarray(0, m)).sort((x, y) => x - y);
+    return a[Math.min(m - 1, Math.round(q * (m - 1)))];
+  }
+  function perfFrame(t0, camT, src) {
+    const t1 = performance.now();
+    perfPush('frame', t1 - t0);
+    if (camT > 0 && t1 - camT >= 0 && t1 - camT < 2000) { perfPush('lat', t1 - camT); perf.latSrc = src; }
+    if (!hasFace) { perf.px = NaN; return; }
+    const W = video.videoWidth, H = video.videoHeight;
+    const x = sx[1] * W, y = sy[1] * H;
+    if (faceSpeed < TUNING.faceStillSpeed && perf.px === perf.px) perfPush('jit', Math.hypot(x - perf.px, y - perf.py));
+    perf.px = x; perf.py = y;
+  }
+  function perfHud() {
+    const p = (key) => { const a = perfPct(key, 0.5), b = perfPct(key, 0.95); return a === a ? a.toFixed(1) + ' / ' + b.toFixed(1) : '-'; };
+    return 'perf frame ' + p('frame') + 'ms  lat(' + perf.latSrc + ') ' + p('lat') + 'ms  jit still ' + p('jit') + 'px n ' + Math.min(perf.nJit, PERF_N);
+  }
+  // 4-a (11-20, measure only): the values the low-light decisions read, short enough to fit a phone-wide HUD (the long
+  // env / cam lines run off the screen). fr = frame brightness (linear mean), face = skin brightness, gr / gN = grain and
+  // grain x sqrt(skin), then the dark flag. exp = the camera's current exposure time / ISO / mode (raw units, '-' when the
+  // WebView does not report them), hold = the white-balance-lock settle window (3-a), wb = lock result.
+  function lowHud() {
+    const n = (v, d) => (Number.isFinite(v) ? v.toFixed(d) : '-');
+    return 'low fr ' + n(envM.frameLum, 3) + ' face ' + n(envM.faceLum, 3) + ' gr ' + n(light.grain, 3) + ' gN ' + n(light.grain * Math.sqrt(Math.max(1e-4, light.skinMeanLum)), 4) + (envState.on.dark ? ' DARK' : ' -');
+  }
+  function expHud() {
+    let set = {};
+    try { set = camTrack && camTrack.getSettings ? camTrack.getSettings() || {} : {}; } catch (e) { /* not offered */ }
+    const v = (x) => (x == null ? '-' : typeof x === 'number' ? String(+x.toFixed(1)) : String(x));
+    return 'exp t ' + v(set.exposureTime) + ' iso ' + v(set.iso) + ' ' + v(set.exposureMode) + '  hold ' + (camSettling(performance.now()) ? 'on' : '-') + '  wb ' + wbInfo.result;
+  }
+  // Camera controls this WebView offers: constraint supported (Y/N), capability range or modes, current setting (=). Read
+  // only while the HUD is on; 'apply' is the white-balance lock attempt (tryLockWhiteBalance). No control is requested here.
+  let camTrack = null;
+  const CAM_KEYS = [['whiteBalanceMode', 'wb'], ['colorTemperature', 'ct'], ['exposureMode', 'expM'], ['exposureTime', 'expT'], ['exposureCompensation', 'expC'], ['iso', 'iso']];
+  function camHud() {
+    if (!camTrack) return 'cam -';
+    let sup = {}, caps = {}, set = {};
+    try { sup = navigator.mediaDevices.getSupportedConstraints ? navigator.mediaDevices.getSupportedConstraints() || {} : {}; } catch (e) { /* not offered */ }
+    try { caps = camTrack.getCapabilities ? camTrack.getCapabilities() || {} : {}; } catch (e) { /* not offered */ }
+    try { set = camTrack.getSettings ? camTrack.getSettings() || {} : {}; } catch (e) { /* not offered */ }
+    const cap = (c) => c == null ? '-' : Array.isArray(c) ? (c.join('/') || '-') : typeof c === 'object' ? c.min + '..' + c.max : String(c);
+    return 'cam ' + CAM_KEYS.map(([k, s]) => s + ' ' + (sup[k] ? 'Y' : 'N') + ' ' + cap(caps[k]) + ' =' + (set[k] == null ? '-' : set[k])).join(' | ') + '  apply ' + wbInfo.result;
+  }
   // Prefer requestVideoFrameCallback (fires once per camera frame, AR_SPEC 6-1); else poll with rAF.
-  function onVideoFrame() {
+  function onVideoFrame(t, meta) {
     video.requestVideoFrameCallback(onVideoFrame);
-    processFrame(performance.now());
+    const t0 = performance.now();
+    processFrame(t0);
+    perfFrame(t0, meta ? meta.captureTime || meta.presentationTime || 0 : 0, meta && meta.captureTime ? 'cap' : 'pres');
   }
   function onAnimationFrame(now) {
     requestAnimationFrame(onAnimationFrame);
     if (video.currentTime === lastVideoTime) return;
     lastVideoTime = video.currentTime;
+    const t0 = performance.now();
     processFrame(now);
+    perfFrame(t0, 0, '-');
   }
   function startLoop() {
     if (typeof video.requestVideoFrameCallback === 'function') video.requestVideoFrameCallback(onVideoFrame);
@@ -6701,22 +7090,34 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     wbTrack = null;
     tryLockWhiteBalance(track);
   }
+  // 11-19: what this camera allows (HUD 'wb' line), so a phone capture tells whether the white balance was really
+  // locked; without 'manual' the colour comes from the screen analysis only (never reported as a camera setting).
+  const wbInfo = { result: 'pending', modes: '', ct: '', exp: '', expTime: 0, iso: 0 };
   function tryLockWhiteBalance(track) {
     try {
-      const caps = track.getCapabilities ? track.getCapabilities() : {};
+      const caps = track.getCapabilities ? track.getCapabilities() : null;
+      if (!caps) { wbInfo.result = 'no-caps'; return; }
       const settings = track.getSettings ? track.getSettings() : {};
       if (settings.colorTemperature) colorTempK = settings.colorTemperature;
+      wbInfo.modes = (caps.whiteBalanceMode || []).join('/');
+      wbInfo.ct = caps.colorTemperature ? caps.colorTemperature.min + '-' + caps.colorTemperature.max : '';
+      wbInfo.exp = (caps.exposureMode || []).join('/');
+      // 11-19: exposure the camera reports, where it does (display only; support differs per device).
+      if (settings.exposureTime) wbInfo.expTime = settings.exposureTime;
+      if (settings.iso) wbInfo.iso = settings.iso;
+      wbInfo.result = 'unsupported';
       if (caps.whiteBalanceMode && caps.whiteBalanceMode.indexOf('manual') >= 0) {
+        wbInfo.result = 'trying';
         // Pass the current temperature along: 'manual' alone can jump to a default temperature on some phones
         // instead of freezing the one the camera settled on.
         const wb = { whiteBalanceMode: 'manual' };
         const ct = caps.colorTemperature;
         if (colorTempK && (!ct || (colorTempK >= ct.min && colorTempK <= ct.max))) wb.colorTemperature = colorTempK;
         track.applyConstraints({ advanced: [wb] })
-          .then(() => { wbLocked = true; })
-          .catch(() => {});
+          .then(() => { wbLocked = true; wbInfo.result = 'locked'; envCameraChanged(performance.now()); })
+          .catch(() => { wbInfo.result = 'rejected'; });
       }
-    } catch (e) { /* not supported */ }
+    } catch (e) { wbInfo.result = 'error'; }
   }
 
   async function start() {
@@ -6739,6 +7140,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     const track = stream.getVideoTracks()[0];
     wbLocked = false;
     wbTrack = track || null;
+    camTrack = track || null;
     wbStartAt = performance.now();
 
     try {

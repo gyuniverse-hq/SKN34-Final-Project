@@ -1,0 +1,90 @@
+{
+ "0.45": {
+  "lapa": {
+   "normal": 0.025,
+   "dark": 0.95,
+   "dark_ae": 0.9625
+  },
+  "roboflow:dark": {
+   "normal": 0.0,
+   "dark": 0.95,
+   "dark_ae": 1.0
+  },
+  "roboflow:fair": {
+   "normal": 0.0,
+   "dark": 0.85,
+   "dark_ae": 0.725
+  },
+  "roboflow:light": {
+   "normal": 0.0,
+   "dark": 0.975,
+   "dark_ae": 0.975
+  }
+ },
+ "0.6": {
+  "lapa": {
+   "normal": 0.025,
+   "dark": 0.9875,
+   "dark_ae": 0.975
+  },
+  "roboflow:dark": {
+   "normal": 0.025,
+   "dark": 1.0,
+   "dark_ae": 1.0
+  },
+  "roboflow:fair": {
+   "normal": 0.0,
+   "dark": 1.0,
+   "dark_ae": 1.0
+  },
+  "roboflow:light": {
+   "normal": 0.0,
+   "dark": 1.0,
+   "dark_ae": 1.0
+  }
+ },
+ "0.64": {
+  "lapa": {
+   "normal": 0.0625,
+   "dark": 0.9875,
+   "dark_ae": 0.975
+  },
+  "roboflow:dark": {
+   "normal": 0.025,
+   "dark": 1.0,
+   "dark_ae": 1.0
+  },
+  "roboflow:fair": {
+   "normal": 0.0,
+   "dark": 1.0,
+   "dark_ae": 1.0
+  },
+  "roboflow:light": {
+   "normal": 0.0,
+   "dark": 1.0,
+   "dark_ae": 1.0
+  }
+ },
+ "0.68": {
+  "lapa": {
+   "normal": 0.0625,
+   "dark": 0.9875,
+   "dark_ae": 0.9875
+  },
+  "roboflow:dark": {
+   "normal": 0.025,
+   "dark": 1.0,
+   "dark_ae": 1.0
+  },
+  "roboflow:fair": {
+   "normal": 0.0,
+   "dark": 1.0,
+   "dark_ae": 1.0
+  },
+  "roboflow:light": {
+   "normal": 0.0,
+   "dark": 1.0,
+   "dark_ae": 1.0
+  }
+ }
+}

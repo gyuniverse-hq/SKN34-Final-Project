@@ -26,7 +26,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArFaceView, type LightHint, type PoseHint } from '@/components/ar/ArFaceView';
+import { ArFaceView, type PoseHint } from '@/components/ar/ArFaceView';
 import { ArSheet } from '@/components/ar/ArSheet';
 import { ArZoneWheel, zoneWheelRadius } from '@/components/ar/ArZoneWheel';
 import { IntensityRail } from '@/components/ar/IntensityRail';
@@ -68,7 +68,9 @@ import { useNearbyExploration } from '@/hooks/useNearbyExploration';
 import { useArHistory } from '@/hooks/useArHistory';
 import { noteArFailure } from '@/lib/arHistory';
 import { useArCommand } from '@/hooks/useArCommand';
+import { useArEnvMessage } from '@/hooks/useArEnvMessage';
 import { MIN_TONE_CONF, rankFoundationShades, type SkinTone } from '@/lib/foundationMatch';
+import { ENV_MESSAGE_KEY, type EnvState } from '@/lib/arEnv';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useTryOnProducts } from '@/lib/queries';
 import { demoLookTitleKey, isDemoLook } from '@/lib/demoLookAr';
@@ -154,8 +156,10 @@ export default function ArTryOnScreen() {
   const routeZone = routeSelection.product.data?.makeupZone ?? undefined;
   const compareParam = parseFlag(params.compare);
   const [status, setStatus] = useState<ArStatus>('loading');
-  const [lightHint, setLightHint] = useState<LightHint | null>(null);
   const [poseHint, setPoseHint] = useState<PoseHint | null>(null);
+  // 11-19: one shooting-environment message at a time (lib/arEnv display rules; the page sends a settled state).
+  const [arEnv, setArEnv] = useState<EnvState | null>(null);
+  const envMessage = useArEnvMessage(status === 'tracking' ? arEnv : null, status === 'no-face');
   const [skinTone, setSkinTone] = useState<SkinTone | null>(null);
   const [faceFitHints, setFaceFitHints] = useState<FaceFitHint[] | null>(null);
   const [faceShape, setFaceShape] = useState<FaceShape | null>(null);
@@ -711,7 +715,7 @@ export default function ArTryOnScreen() {
           guide={guide}
           fillPreview
           onStatus={(next) => { setStatus(next); if (next !== 'tracking') setPoseHint(null); }}
-          onLightHint={setLightHint}
+          onEnv={setArEnv}
           onPoseHint={onPoseHint}
           poseEnabled={lookFinishOn}
           onSkinTone={setSkinTone}
@@ -740,7 +744,7 @@ export default function ArTryOnScreen() {
         ) : null}
         {status === 'no-face' && !lookFinishOn ? (
           <View style={styles.noFace}>
-            <Text style={styles.hintText}>{t('ar.noFace')}</Text>
+            <Text style={styles.hintText}>{t('ar.env.noFace')}</Text>
             <View style={styles.noFaceActions}>
               <Pressable onPress={retry} accessibilityRole="button" style={styles.pillBtn}>
                 <Text style={styles.pillBtnText}>{t('common.retry')}</Text>
@@ -750,12 +754,10 @@ export default function ArTryOnScreen() {
               </Pressable>
             </View>
           </View>
-        ) : status === 'tracking' && !lookFinishOn && lightHint ? (
+        ) : status === 'tracking' && !lookFinishOn && envMessage && envMessage !== 'noFace' ? (
           // Look-finish mode shows light/pose/no-face coaching under the slim strength card so the card does not cover it.
           <View style={styles.hintPill} pointerEvents="none">
-            <Text style={styles.hintText}>
-              {t(lightHint === 'blown' ? 'ar.lightHint.blown' : 'ar.lightHint.low')}
-            </Text>
+            <Text style={styles.hintText}>{t(ENV_MESSAGE_KEY[envMessage])}</Text>
           </View>
         ) : null}
         {recordingNow ? (
@@ -827,6 +829,8 @@ export default function ArTryOnScreen() {
       }}
     />
   ) : null;
+  // The page no longer posts a separate light hint (11-19 env state); look-finish coaching keeps its two light cases.
+  const lightHint = envMessage === 'blown' ? 'blown' : envMessage === 'dark' ? 'low' : null;
   const coachHint = lookFinishOn && status === 'tracking'
     ? (lightHint
       ? t(lightHint === 'blown' ? 'ar.lightHint.blown' : 'ar.lightHint.low')
