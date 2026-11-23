@@ -24,7 +24,6 @@ async def ping_graph() -> bool:
         return False
 
 
-
 async def close_driver() -> None:
     if get_driver.cache_info().currsize:
         await get_driver().close()

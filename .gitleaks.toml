@@ -14,3 +14,13 @@ regexes = ['''(?i)vishue(-local)?''']
 [[allowlists]]
 description = "Env example placeholders"
 paths = ['''\.env\.example$''', '''backend/.*/\.env\.example$''']
+
+# Supabase publishable keys are public client keys (not service_role / secret).
+[[allowlists]]
+description = "Supabase publishable keys (public by design)"
+regexes = ['''sb_publishable_[A-Za-z0-9_-]+''']
+
+# Pre-secrets-CI hardcoding; history still scanned with fetch-depth 0. Prefer env at runtime.
+[[allowlists]]
+description = "Legacy Glowpick scraper script (key should move to env; history allowlisted)"
+paths = ['''scripts/data/youtube/enrich_glowpick\.py''']
