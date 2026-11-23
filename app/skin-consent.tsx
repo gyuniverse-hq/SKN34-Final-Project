@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
@@ -8,20 +8,15 @@ import { Notice } from '@/components/ui/Notice';
 import { theme } from '@/constants/theme';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { skinAnalysisEnabled, skinAnalysisSupported } from '@/lib/skinAnalysis';
-import { useSkinProfileStore } from '@/store/skinProfileStore';
+import { useOwnedSkinProfile } from '@/hooks/useOwnedSkinProfile';
 
 /** Separate consent before skin capture. Manual concern selection never needs the camera. */
 export default function SkinConsentScreen() {
   const router = useRouter();
   const { t } = useI18n();
   const [agreed, setAgreed] = useState(false);
-  const profile = useSkinProfileStore((s) => s.profile);
-  const hydrate = useSkinProfileStore((s) => s.hydrate);
+  const { profile } = useOwnedSkinProfile();
   const canCapture = skinAnalysisEnabled && skinAnalysisSupported;
-
-  useEffect(() => {
-    void hydrate().catch(() => {});
-  }, [hydrate]);
 
   const points: TranslationKey[] = [
     'skinFlow.consent.notMedical',

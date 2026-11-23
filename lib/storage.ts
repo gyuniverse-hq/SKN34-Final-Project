@@ -9,6 +9,8 @@ export const STORAGE_KEYS = {
   settings: 'kb.settings.v1',
   lists: 'kb.lists.v1',
   skinProfile: 'kb.skin-profile.v1',
+  firstArInvitation: 'kb.first-ar-invitation.v1',
+  guestSkinTrial: 'kb.guest-skin-trial.v1',
   skinTimings: 'kb.skin-timings.v1',
   chatAnonymousId: 'kb.chat-anonymous-id.v1',
   recentSearches: 'kb.recent-searches.v1',

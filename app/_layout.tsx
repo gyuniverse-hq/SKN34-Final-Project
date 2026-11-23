@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import Head from 'expo-router/head';
 import * as SplashScreen from 'expo-splash-screen';
@@ -31,11 +32,16 @@ function createQueryClient() {
 
 export default function RootLayout() {
   const [queryClient] = useState(createQueryClient);
+  const [fontsLoaded, fontError] = useFonts({
+    [theme.fontFamily.regular]: require('@/assets/fonts/NanumGothic-Regular.ttf'),
+    [theme.fontFamily.display]: require('@/assets/fonts/NanumGothic-Bold.ttf'),
+  });
 
   useEffect(() => {
-    SplashScreen.hideAsync().catch(() => {});
-  }, []);
+    if (fontsLoaded || fontError) SplashScreen.hideAsync().catch(() => {});
+  }, [fontsLoaded, fontError]);
 
+  if (!fontsLoaded && !fontError) return null;
   return (
     <QueryClientProvider client={queryClient}>
       <Head>
@@ -93,6 +99,7 @@ function RootStack() {
         options={{ title: t('consent.title'), presentation: 'modal', gestureEnabled: false, headerBackVisible: false }}
       />
       <Stack.Screen name="membership" options={{ title: t('membership.title') }} />
+      <Stack.Screen name="settings" options={{ title: t('my.settings') }} />
       <Stack.Screen name="rewards" options={{ title: t('rewards.title') }} />
       <Stack.Screen name="saved" options={{ title: t('saved.title') }} />
       <Stack.Screen name="ingredients" options={{ title: t('ingredients.title') }} />

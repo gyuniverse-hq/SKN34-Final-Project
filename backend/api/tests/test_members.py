@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.clients.supabase_admin_client import SupabaseAdminClient
 from app.core.auth import AuthUser, require_user
+from app.core.config import get_settings
 from app.core.errors import ApiError
 from app.main import create_app
 from app.services.member_service import TERMS_VERSION, MemberService, get_member_service
@@ -105,3 +106,15 @@ def test_unconfigured_admin_client_makes_no_requests():
     with pytest.raises(ApiError) as unavailable:
         anyio.run(SupabaseAdminClient(None, None).delete_user, "user-1")
     assert unavailable.value.status == 503
+
+
+def test_dev_subscription_cannot_be_activated_in_production(monkeypatch):
+    monkeypatch.setattr(get_settings(), "env", "production")
+    client = client_with(FakeMembers(), FakeAccounts())
+    response = client.post("/api/me/skin-access/dev-subscription")
+    assert response.status_code == 404
+    assert client.get("/api/me/skin-access").json() == {
+        "subscribed": False,
+        "trialUsed": False,
+        "expiresAt": None,
+    }
