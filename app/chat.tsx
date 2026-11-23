@@ -22,7 +22,8 @@ import { conditionsFromChatFilters, extractChatConditions } from '@/lib/chatCond
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useLook, useProduct, useProductsByIds, useStyleLooks } from '@/lib/queries';
 import { arHref, parseId, paramValue, productHref } from '@/lib/routes';
-import { isChatSessionExpired, recentChatMessages, useChatConversationStore, type ConversationRecord } from '@/store/chatConversationStore';
+import { refersToPreviousLooks, selectedLookOrdinal, wantsDifferentStyle, wantsStyleSearch } from '@/lib/styleCoaching';
+import { isChatSessionExpired, recentChatMessages, recentStyleMessages, useChatConversationStore, type ConversationRecord } from '@/store/chatConversationStore';
 import type { ChatCategory as Category, ChatMessage, ChatRequestSnapshot, ConversationEntry } from '@/types/chatConversation';
 import type { BeautyChatContext, ChatProductEvidence, ChatProductRef } from '@/types';
 
@@ -69,8 +70,9 @@ function OptionSearchScope({ result }: { result: NonNullable<ChatMessage['option
   );
 }
 
-function RelatedProducts({ optionSearch, refs, question, category, chatContext, evidence, selectedShades, onSelectShade, onSelectProduct, selectedProductId, fragrance, onOpenEvidence }: {
+function RelatedProducts({ optionSearch, sourceProducts, refs, question, category, chatContext, evidence, selectedShades, onSelectShade, onSelectProduct, selectedProductId, fragrance, onOpenEvidence }: {
   optionSearch?: ChatMessage['optionSearch'];
+  sourceProducts?: NonNullable<ChatMessage['styleRecipe']>['products'];
   refs: ChatProductRef[]; question: string; category?: Category;
   chatContext?: BeautyChatContext; evidence?: ChatProductEvidence[];
   selectedShades: Record<string, string>;
@@ -100,8 +102,12 @@ function RelatedProducts({ optionSearch, refs, question, category, chatContext, 
   return (
     <View>
       {!fragrance ? <Text style={styles.relatedTitle}>{t('chat.relatedProducts')}</Text> : null}
+      {sourceProducts ? <Text style={styles.relatedTitle}>{t('chat.style.videoProductsCount', {
+        total: sourceProducts.length, linked: sourceProducts.filter((product) => product.productId).length,
+      })}</Text> : null}
       <ChatProducts
         products={products}
+        sourceProducts={sourceProducts}
         optionSearch={optionSearch}
         fragrance={fragrance}
         onOpenEvidence={onOpenEvidence}
@@ -122,11 +128,11 @@ function RelatedProducts({ optionSearch, refs, question, category, chatContext, 
         }}
         evidence={evidence}
         showIngredients={category === 'ingredient'}
-        loading={query.isPending || query.isPlaceholderData}
-        failed={query.isError}
+        loading={ids.length > 0 && (query.isPending || query.isPlaceholderData)}
+        failed={ids.length > 0 && query.isError}
         missingCount={!query.isPending && !query.isPlaceholderData && !query.isError ? ids.length - products.length : 0}
         onRetry={() => { if (mounted.current) void query.refetch(); }}
-        onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId)); }}
+        onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId, undefined, !!sourceProducts)); }}
         onOpenAr={(productId, shadeId) => { if (mounted.current) router.push(arHref({ productId, shadeId })); }}
       />
     </View>
@@ -401,12 +407,46 @@ function ChatConversation({ record, onRecent, onNew }: {
     const shopping = /추천|구매|가격|얼마|비교|성분|향료|recommend|price|compare|ingredient|fragrance|おすすめ|比較|価格|推荐|比较|价格|成分|香料/i.test(text);
     const makeupTopic = /립|입술|아이라인|블러셔|아이섀도|화장|메이크업|\b(?:lip|lips|makeup|eyeliner|blush|eyeshadow)\b|メイク|リップ|化妆|唇|眼妆/i.test(text);
     const technique = /어떻게|방법|하는\s*법|하는\s*거|바르는\s*법|\bhow\b|やり方|方法|怎么|如何/i.test(text);
+    const styleSearchActive = messages.some((message) => message.ownerKey === ownerKey &&
+      message.generation === room.generation && message.styleCandidates !== undefined);
+    const latestLooks = messages.findLast((message) => message.ownerKey === ownerKey &&
+      message.generation === room.generation && message.styleCandidates !== undefined)?.styleCandidates;
+    const previousLookReference = refersToPreviousLooks(text);
+    const listedLooks = previousLookReference
+      ? messages.findLast((message) => message.ownerKey === ownerKey && message.generation === room.generation &&
+        message.styleCandidates?.length)?.styleCandidates : latestLooks;
+    const earlierRecipe = previousLookReference ? messages.findLast((message) => message.ownerKey === ownerKey &&
+      message.generation === room.generation && message.styleRecipe &&
+      (message.styleRecipe.kind !== room.styleContext?.kind || message.styleRecipe.lookId !== room.styleContext?.lookId))?.styleRecipe : undefined;
+    const previousLooks = earlierRecipe && !listedLooks?.some((look) => look.kind === earlierRecipe.kind && look.lookId === earlierRecipe.lookId)
+      ? [...(listedLooks ?? []), { kind: earlierRecipe.kind, lookId: earlierRecipe.lookId, title: earlierRecipe.title, tags: [] }]
+      : listedLooks;
+    const unresolvedLookReference = !room.styleContext && /(?:그|이)\s*(?:룩|스타일)|\b(?:this|that) look\b|このルック|这个妆容/i.test(text);
+    const ordinal = selectedLookOrdinal(text);
+    const compareLooks = !!previousLooks?.length && /비교|차이|compare|difference|比較|違い|比较|区别/i.test(text) &&
+      /룩|후보|첫|두|세|[123]|look|first|second|ルック|妆容/i.test(text) &&
+      !/제품|상품|product|商品|製品|产品/i.test(text);
+    const previousLookRequest = !!previousLooks?.length && (previousLookReference || unresolvedLookReference || ordinal !== undefined || compareLooks);
+    const wantsExplanation = /설명|어떻게|방법|explain|how|説明|方法|解释|怎么/i.test(text);
+    const singlePrevious = !compareLooks && previousLookRequest
+      ? ordinal !== undefined ? previousLooks?.[ordinal] : previousLooks?.length === 1 && wantsExplanation ? previousLooks[0] : undefined
+      : undefined;
+    const differentLook = wantsDifferentStyle(text);
+    const styleSearch = original?.args.styleSearch ?? ((subject.type === 'general' || (subject.type === 'look' && (differentLook || previousLookRequest))) &&
+      (previousLookRequest ? !singlePrevious : ((!room.styleContext || differentLook) &&
+        (wantsStyleSearch(text, styleSearchActive) || (room.category === 'style' && !room.styleContext &&
+          makeupTopic && !technique && !shopping && !/제품|상품|product|商品|製品|产品/i.test(text))))));
+    const requestedStyle = singlePrevious
+      ? room.styleContext?.kind === singlePrevious.kind && room.styleContext.lookId === singlePrevious.lookId
+        ? room.styleContext : { kind: singlePrevious.kind, lookId: singlePrevious.lookId, currentStep: 0 }
+      : room.styleContext;
     const generalMakeup = original?.generalMakeup ??
-      (!retryCategory && !room.styleContext && !lookReference && !shopping && makeupTopic && technique);
+      (!styleSearch && !retryCategory && !room.styleContext && !lookReference && !shopping && makeupTopic && technique);
     const requestCategory = original?.args.category ?? retryCategory ??
-      (generalMakeup && room.category ? 'product' : lookReference ? 'style' : room.category);
-    const context = generalMakeup && !room.beautyContext?.session ? undefined : room.beautyContext;
+      (styleSearch || singlePrevious ? 'style' : generalMakeup && room.category ? 'product' : lookReference ? 'style' : room.category);
+    const context = styleSearch || (generalMakeup && !room.beautyContext?.session) ? undefined : room.beautyContext;
     const focusedProduct = generalMakeup ? undefined : room.selection.screen ?? room.entryProduct;
+    const styleHistory = styleSearch ? recentStyleMessages(messages, room.ownerKey, room.generation) : [];
     const lastReply = messages.at(-1);
     const comparing = /비교|차이|\bcompar(?:e|ison)\b|\bdiffer(?:s|ent|ence|ences)?\b|比較|違い|对比|比较|区别/i;
     const comparisonTarget = !!focusedProduct?.productId && lastReply?.resultType === 'clarification' &&
@@ -425,18 +465,23 @@ function ChatConversation({ record, onRecent, onNew }: {
       revision: room.selection.revision,
       args: {
         message: text, locale: language, category: requestCategory, requestId, expectedUserId: userId,
-        ...(language === 'ko' && !room.styleContext ? {
-          recentMessages: recentChatMessages(messages, room.ownerKey, room.generation),
-          ...(room.pendingClarification ? { clarificationId: room.pendingClarification.id } : {}),
+        ...((styleSearch || (language === 'ko' && !room.styleContext)) ? {
+          recentMessages: styleHistory.length ? styleHistory : recentChatMessages(messages, room.ownerKey, room.generation),
+          ...(!styleSearch && room.pendingClarification ? { clarificationId: room.pendingClarification.id } : {}),
         } : {}),
+        ...(styleSearch ? { styleSearch: true, styleConditions: room.styleConditions.map((item) => ({ ...item })),
+          ...(!previousLookRequest && differentLook && room.styleContext ? { excludedStyle: { kind: room.styleContext.kind, lookId: room.styleContext.lookId } } : {}),
+          ...(compareLooks ? { styleCompare: true } : {}),
+          ...(previousLookRequest ? { previousStyleCandidates: previousLooks!.map(({ kind, lookId }) => ({ kind, lookId })),
+            ...(room.styleContext ? { previousStyleSelection: { kind: room.styleContext.kind, lookId: room.styleContext.lookId } } : {}) } : {}) } : {}),
         ...(generalMakeup ? { generalMakeup: true } : {}),
-        ...(!generalMakeup && room.styleContext
-          ? { styleContext: { ...room.styleContext } } : {}),
+        ...(!styleSearch && !generalMakeup && requestedStyle
+          ? { styleContext: { ...requestedStyle } } : {}),
         ...(context ? { chatContext: { ...context, filters: { ...context.filters },
           candidateIds: [...context.candidateIds], scopeIds: [...context.scopeIds],
           ...(context.session ? { session: { ...context.session } } : {}),
           ...(context.shadeSelections ? { shadeSelections: { ...context.shadeSelections } } : {}) } } : {}),
-        ...(screen ? { screenContext: { ...screen } } : {}),
+        ...(!styleSearch && screen ? { screenContext: { ...screen } } : {}),
       },
     };
     const ticket = store().beginRequest(target, snapshot, failedMatch);
@@ -444,7 +489,7 @@ function ChatConversation({ record, onRecent, onNew }: {
     if (!failedMatch) nearBottom.current = true;
     try {
       const response = await mutateAsync(snapshot.args);
-      if (snapshot.automatic && response.styleStatus === 'error') throw new ApiError(response.answer, 503);
+      if (response.styleStatus === 'error') throw new ApiError(response.answer, 502, 'style_search_unavailable');
       const expectedStyle = snapshot.args.styleContext;
       const actualRecipe = response.styleRecipe;
       if (actualRecipe && (!expectedStyle || actualRecipe.kind !== expectedStyle.kind || actualRecipe.lookId !== expectedStyle.lookId)) {
@@ -466,7 +511,8 @@ function ChatConversation({ record, onRecent, onNew }: {
                 : api?.code === 'shade_not_found' ? 'chat.ingredient.shadeMissing'
                   : api?.status === 404 ? 'chat.ingredient.productMissing'
                     : api?.code === 'option_search_unavailable' ? 'chat.option.searchUnavailable'
-                    : api?.status === 503 ? 'chat.ingredient.server'
+                    : (snapshot.args.styleSearch || snapshot.args.styleContext) && api?.status === 503 ? 'chat.ui.error'
+                      : api?.status === 503 ? 'chat.ingredient.server'
                       : api?.status === 0 ? 'chat.ingredient.network' : 'chat.ui.error';
       store().failRequest(ticket, errorKey, !!fatal, !!api?.code?.startsWith('chat_owner_'), clarificationConflict);
     }
@@ -480,6 +526,11 @@ function ChatConversation({ record, onRecent, onNew }: {
   }, [subject]);
 
   const visibleMessages = messages.filter((message) => !message.automatic || message.failed);
+  const latestStyleMessageId = messages.findLast((message) => message.ownerKey === ownerKey &&
+    message.generation === conversationGeneration && message.styleCandidates !== undefined)?.id;
+  const hasStyleConversation = !!activeStyle || messages.some((message) => message.ownerKey === ownerKey &&
+    message.generation === conversationGeneration && (message.styleCandidates !== undefined ||
+      (message.role === 'user' && message.category === 'style')));
   const canSelect = (message: ChatMessage) => sessionCandidateIds.length > 0 &&
     message.generation === conversationGeneration && message.resultSetId === view.resultSetId;
 
@@ -568,7 +619,7 @@ function ChatConversation({ record, onRecent, onNew }: {
             </View>
           ) : (
             <View>
-              {messages.length && !editing && subject.type === 'general' ? <Text style={styles.contextNotice}>{t('chat.ui.contextNotice')}</Text> : null}
+              {messages.length && !editing && subject.type === 'general' && !hasStyleConversation ? <Text style={styles.contextNotice}>{t('chat.ui.contextNotice')}</Text> : null}
               {subject.type === 'general' ? <View style={styles.categoryChips}>
                 {categories.map((item) => (
                   <Pressable key={item.id} accessibilityRole="button" accessibilityState={{ selected: category === item.id }}
@@ -614,7 +665,7 @@ function ChatConversation({ record, onRecent, onNew }: {
                   onStepChange={(index) => {
                     if (mounted.current) store().setRecipeStep(target, message.id, index);
                   }}
-                  onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId)); }}
+                  onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId, undefined, message.styleRecipe?.kind === 'video')); }}
                   onOpenAr={(productId, shadeId) => { if (mounted.current) router.push(arHref({ productId, shadeId })); }}
                   onManualAr={() => { if (mounted.current) router.push(arHref()); }}
                   heading={t('chat.ui.style')}
@@ -640,7 +691,20 @@ function ChatConversation({ record, onRecent, onNew }: {
                 <Text style={[styles.messageText, message.role === 'user' && styles.userMessageText]}>{message.role === 'assistant' ? displayAssistantText(message.text) : message.text}</Text>
                 {message.knowledge ? <KnowledgeCitations evidence={message.knowledge.evidence} /> : null}
               </View>}
-              {subject.type === 'general' && message.role === 'assistant' && message.category === 'style' && !message.styleRecipe && !message.knowledge
+              {message.role === 'assistant' && message.styleCandidates?.length ? <View style={styles.conditionArea}>
+                {message.styleCandidates.map((look) => <Pressable key={`${look.kind}:${look.lookId}`}
+                  accessibilityRole="button" disabled={isPending || message.ownerKey !== ownerKey || message.generation !== conversationGeneration || message.id !== latestStyleMessageId}
+                  accessibilityState={{ disabled: isPending || message.ownerKey !== ownerKey || message.generation !== conversationGeneration || message.id !== latestStyleMessageId }}
+                  onPress={() => {
+                    if (!mounted.current || !owned() || currentRoom()?.request) return;
+                    store().setStyle(target, { kind: look.kind, lookId: look.lookId, currentStep: 0 });
+                    void send(t('chat.room.recipePrompt'), undefined, 'style');
+                  }} style={[styles.retry, message.id !== latestStyleMessageId && styles.retryDisabled]}>
+                  <Text style={styles.retryText}>{look.title}</Text>
+                  {look.match ? <Text style={styles.retryText}>{t('chat.style.match', { match: look.match })}</Text> : null}
+                </Pressable>)}
+              </View> : null}
+              {subject.type === 'general' && message.role === 'assistant' && message.category === 'style' && !message.styleRecipe && !message.knowledge && !message.styleCandidates && !activeStyle && message.styleStatus !== 'not_found'
                 ? <InlineStyleLookPicker question={message.question ?? ''} onSelect={(lookId) => {
                   if (!mounted.current || !owned() || currentRoom()?.request) return;
                   store().setStyle(target, { kind: 'video', lookId, currentStep: 0 });
@@ -660,7 +724,10 @@ function ChatConversation({ record, onRecent, onNew }: {
                 </View>
               ) : null}
               {message.role === 'assistant' && message.optionSearch ? <OptionSearchScope result={message.optionSearch} /> : null}
-              {message.role === 'assistant' && !message.fragranceSearchSummary && message.products?.length ? <RelatedProducts refs={message.products} optionSearch={message.optionSearch}
+              {message.role === 'assistant' && !message.fragranceSearchSummary &&
+                !!(message.products?.length || (message.styleRecipe?.kind === 'video' && message.styleRecipe.products.length)) &&
+                (!message.styleRecipe || (message.styleRecipe.productQuestion ?? /제품|상품|product|商品|製品|产品|사용한.{0,12}(?:립|입술|아이라인|아이라이너|마스카라|컨실러)/i.test(message.question ?? ''))) ? <RelatedProducts refs={message.products ?? []} optionSearch={message.optionSearch}
+                sourceProducts={message.styleRecipe?.kind === 'video' ? message.styleRecipe.products : undefined}
                 question={message.question ?? ''} category={message.category}
                 chatContext={message.chatContext} evidence={message.evidence}
                 selectedShades={selectedShades}

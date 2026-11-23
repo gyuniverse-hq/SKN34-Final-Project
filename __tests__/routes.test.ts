@@ -66,6 +66,7 @@ describe('route builders pass ids, never names', () => {
   it('product detail keeps the exact shade', () => {
     expect(productHref('p1', '02')).toEqual({ pathname: '/product/[id]', params: { id: 'p1', shade: '02' } });
     expect(productHref('p1')).toEqual({ pathname: '/product/[id]', params: { id: 'p1' } });
+    expect(productHref('p1', undefined, undefined, true)).toEqual({ pathname: '/product/[id]', params: { id: 'p1', requireShade: '1' } });
   });
 
   it('AR carries product + shade, and drops a shade without a product', () => {

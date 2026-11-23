@@ -133,6 +133,10 @@ export const ja: Dictionary = {
   "chat.style.source": "出典",
   "chat.style.version": "レシピ版",
   "chat.style.mappingVerified": "製品・色番の対応を確認済み",
+  "chat.style.mappingProductOnly": "商品連携済み・色番は未連携",
+  "chat.style.mappingShadeInvalid": "商品連携済み・色番の確認が必要",
+  "chat.style.mappingNotLinked": "商品詳細は未連携",
+  "chat.style.videoProductsCount": "検索結果 {total}件・商品詳細連携 {linked}件",
   "chat.style.mappingUnknown": "資料記載の製品・実使用と色番は未確認",
   "chat.style.manualAr": "製品と色番を選んでAR体験",
 
@@ -171,6 +175,7 @@ export const ja: Dictionary = {
   'chat.ingredient.fragranceVerified': "香料無添加を確認済み",
   'chat.ingredient.noRegisteredShades': "色番の登録がありません。",
   'chat.style.referenceProducts': "参考商品",
+  'chat.style.match': "タイトル・タグの関連語: {match}",
   'chat.session.newSearchHint': "商品カテゴリと条件を入力し、新しい検索を始めてください。",
   'chat.session.idUnavailable': "安全なリクエストUUIDを生成できません。対応端末で再試行してください。",
   'chat.ingredient.MATCH': "条件を満たす",

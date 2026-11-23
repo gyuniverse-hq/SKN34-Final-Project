@@ -6,7 +6,12 @@ from typing import Any
 from sqlalchemy import delete, insert, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.idol_look import LookProductRow, MakeupLookRow, YoutubeVideoRow
+from app.models.idol_look import (
+    LookProductRow,
+    LookVideoTagRow,
+    MakeupLookRow,
+    YoutubeVideoRow,
+)
 from app.schemas.look_video import PlannedVideo
 
 STYLE_PLACEHOLDER = "Video is registered. Makeup style has not been verified."
@@ -145,4 +150,23 @@ class LookVideoRepository:
                     .where(YoutubeVideoRow.id.in_(list(videos)))
                     .values(product_mapping_status=status)
                 )
+        await self._session.commit()
+
+    async def reviewed_tag_video_ids(self) -> set[str]:
+        """Videos whose tags a person has confirmed; batch loads never overwrite them."""
+        result = await self._session.scalars(
+            select(LookVideoTagRow.video_id).where(LookVideoTagRow.review_status == "user_reviewed")
+        )
+        return set(result)
+
+    async def replace_video_tags(self, rows: Sequence[Mapping[str, Any]]) -> None:
+        """Swap the given videos' tag rows in one transaction."""
+        if not rows:
+            return
+        await self._session.execute(
+            delete(LookVideoTagRow).where(
+                LookVideoTagRow.video_id.in_([row["video_id"] for row in rows])
+            )
+        )
+        await self._session.execute(insert(LookVideoTagRow), list(rows))
         await self._session.commit()

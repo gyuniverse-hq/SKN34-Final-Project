@@ -92,6 +92,10 @@ export const en = {
   "chat.style.source": "Source",
   "chat.style.version": "Recipe version",
   "chat.style.mappingVerified": "Product and shade mapping confirmed",
+  "chat.style.mappingProductOnly": "Product linked · shade not linked",
+  "chat.style.mappingShadeInvalid": "Product linked · shade link needs checking",
+  "chat.style.mappingNotLinked": "Product details not linked",
+  "chat.style.videoProductsCount": "{total} products found · {linked} linked to product details",
   "chat.style.mappingUnknown": "Listed product · actual use and shade unconfirmed",
   "chat.style.manualAr": "Choose a product and shade for manual AR",
 
@@ -130,6 +134,7 @@ export const en = {
   'chat.ingredient.fragranceVerified': "Fragrance-free verified",
   'chat.ingredient.noRegisteredShades': "No shade information is registered.",
   'chat.style.referenceProducts': "Reference products",
+  'chat.style.match': "Title or tag match: {match}",
   'chat.session.newSearchHint': "Enter a product category and conditions for a new independent search.",
   'chat.session.idUnavailable': "A secure request UUID could not be generated. Please try again on a supported device.",
   'chat.ingredient.MATCH': "Condition met",

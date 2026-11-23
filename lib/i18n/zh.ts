@@ -133,6 +133,10 @@ export const zh: Dictionary = {
   "chat.style.source": "来源",
   "chat.style.version": "教程版本",
   "chat.style.mappingVerified": "产品与色号映射已确认",
+  "chat.style.mappingProductOnly": "已关联商品 · 未关联色号",
+  "chat.style.mappingShadeInvalid": "已关联商品 · 色号关联待确认",
+  "chat.style.mappingNotLinked": "未关联商品详情",
+  "chat.style.videoProductsCount": "找到 {total} 件产品 · 已关联商品详情 {linked} 件",
   "chat.style.mappingUnknown": "资料所列产品 · 实际使用和色号未确认",
   "chat.style.manualAr": "自行选择产品和色号体验AR",
 
@@ -171,6 +175,7 @@ export const zh: Dictionary = {
   'chat.ingredient.fragranceVerified': "已确认无添加香料",
   'chat.ingredient.noRegisteredShades': "未登记色号信息。",
   'chat.style.referenceProducts': "参考产品",
+  'chat.style.match': "标题或标签中的相关词：{match}",
   'chat.session.newSearchHint': "请输入产品类别和条件，开始独立的新搜索。",
   'chat.session.idUnavailable': "无法生成安全的请求UUID，请在支持的设备上重试。",
   'chat.ingredient.MATCH': "符合条件",

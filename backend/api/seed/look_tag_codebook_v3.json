@@ -1,0 +1,404 @@
+{
+  "rubric_version": "look-comparison-v3",
+  "version": 3,
+  "scores": [
+    "overall_sparkle",
+    "eye_sparkle",
+    "glamour",
+    "naturalness",
+    "eye_emphasis",
+    "spring_mood",
+    "summer_mood",
+    "autumn_mood",
+    "winter_mood"
+  ],
+  "groups": [
+    [
+      "펄 위치",
+      [
+        [
+          "sparkle_locations",
+          "펄이 보이는 위치",
+          {
+            "none": "펄 없음",
+            "eyelid": "눈두덩",
+            "inner_corner": "눈 앞머리",
+            "aegyo_sal": "애교살",
+            "lower_lashline": "눈 아래",
+            "brow_bone": "눈썹뼈",
+            "cheekbone": "광대",
+            "nose": "코",
+            "lips": "입술",
+            "other": "기타(메모)"
+          },
+          true
+        ]
+      ]
+    ],
+    [
+      "퍼스널 컬러",
+      [
+        [
+          "overall_tone",
+          "전체 추천 톤",
+          {
+            "warm": "웜톤",
+            "cool": "쿨톤",
+            "neutral": "뉴트럴",
+            "mixed": "혼합",
+            "spring_warm": "봄 웜",
+            "spring_light": "봄 웜 라이트",
+            "spring_bright": "봄 웜 브라이트",
+            "summer_cool": "여름 쿨",
+            "summer_light": "여름 쿨 라이트",
+            "summer_mute": "여름 쿨 뮤트",
+            "autumn_warm": "가을 웜",
+            "autumn_mute": "가을 웜 뮤트",
+            "autumn_deep": "가을 웜 딥",
+            "winter_cool": "겨울 쿨",
+            "winter_bright": "겨울 쿨 브라이트",
+            "winter_deep": "겨울 쿨 딥"
+          }
+        ],
+        [
+          "eye_tone",
+          "눈 톤",
+          {
+            "warm": "웜톤",
+            "cool": "쿨톤",
+            "neutral": "뉴트럴",
+            "mixed": "혼합",
+            "spring_warm": "봄 웜",
+            "spring_light": "봄 웜 라이트",
+            "spring_bright": "봄 웜 브라이트",
+            "summer_cool": "여름 쿨",
+            "summer_light": "여름 쿨 라이트",
+            "summer_mute": "여름 쿨 뮤트",
+            "autumn_warm": "가을 웜",
+            "autumn_mute": "가을 웜 뮤트",
+            "autumn_deep": "가을 웜 딥",
+            "winter_cool": "겨울 쿨",
+            "winter_bright": "겨울 쿨 브라이트",
+            "winter_deep": "겨울 쿨 딥"
+          }
+        ],
+        [
+          "cheek_tone",
+          "볼 톤",
+          {
+            "warm": "웜톤",
+            "cool": "쿨톤",
+            "neutral": "뉴트럴",
+            "mixed": "혼합",
+            "spring_warm": "봄 웜",
+            "spring_light": "봄 웜 라이트",
+            "spring_bright": "봄 웜 브라이트",
+            "summer_cool": "여름 쿨",
+            "summer_light": "여름 쿨 라이트",
+            "summer_mute": "여름 쿨 뮤트",
+            "autumn_warm": "가을 웜",
+            "autumn_mute": "가을 웜 뮤트",
+            "autumn_deep": "가을 웜 딥",
+            "winter_cool": "겨울 쿨",
+            "winter_bright": "겨울 쿨 브라이트",
+            "winter_deep": "겨울 쿨 딥"
+          }
+        ],
+        [
+          "lip_tone",
+          "입술 톤",
+          {
+            "warm": "웜톤",
+            "cool": "쿨톤",
+            "neutral": "뉴트럴",
+            "mixed": "혼합",
+            "spring_warm": "봄 웜",
+            "spring_light": "봄 웜 라이트",
+            "spring_bright": "봄 웜 브라이트",
+            "summer_cool": "여름 쿨",
+            "summer_light": "여름 쿨 라이트",
+            "summer_mute": "여름 쿨 뮤트",
+            "autumn_warm": "가을 웜",
+            "autumn_mute": "가을 웜 뮤트",
+            "autumn_deep": "가을 웜 딥",
+            "winter_cool": "겨울 쿨",
+            "winter_bright": "겨울 쿨 브라이트",
+            "winter_deep": "겨울 쿨 딥"
+          }
+        ]
+      ]
+    ],
+    [
+      "색감과 강조 부위",
+      [
+        [
+          "main_color",
+          "메인 컬러",
+          {
+            "pink": "핑크",
+            "rose": "로즈",
+            "mauve": "모브",
+            "plum": "플럼",
+            "red": "레드",
+            "peach": "피치",
+            "coral": "코랄",
+            "orange": "오렌지",
+            "beige": "베이지",
+            "brown": "브라운",
+            "taupe": "토프",
+            "gold": "골드",
+            "silver": "실버",
+            "other": "기타(메모)"
+          }
+        ],
+        [
+          "accent_colors",
+          "포인트 컬러",
+          {
+            "none": "없음",
+            "pink": "핑크",
+            "rose": "로즈",
+            "mauve": "모브",
+            "plum": "플럼",
+            "red": "레드",
+            "peach": "피치",
+            "coral": "코랄",
+            "orange": "오렌지",
+            "beige": "베이지",
+            "brown": "브라운",
+            "taupe": "토프",
+            "gold": "골드",
+            "silver": "실버",
+            "other": "기타(메모)"
+          },
+          true
+        ],
+        [
+          "brightness",
+          "전체 색감 밝기",
+          {
+            "light": "밝음",
+            "medium": "중간",
+            "deep": "깊음"
+          }
+        ],
+        [
+          "saturation",
+          "전체 색감 채도",
+          {
+            "muted": "낮음",
+            "medium": "중간",
+            "vivid": "높음"
+          }
+        ],
+        [
+          "primary_emphasis",
+          "주강조 부위",
+          {
+            "none": "뚜렷한 강조 없음",
+            "eyes": "눈",
+            "cheeks": "볼",
+            "lips": "입술",
+            "complexion": "피부 표현",
+            "contour": "윤곽"
+          }
+        ],
+        [
+          "secondary_emphasis",
+          "보조 강조 부위",
+          {
+            "none": "없음",
+            "eyes": "눈",
+            "cheeks": "볼",
+            "lips": "입술",
+            "complexion": "피부 표현",
+            "contour": "윤곽"
+          },
+          true
+        ]
+      ]
+    ],
+    [
+      "마무리감",
+      [
+        [
+          "skin_finish",
+          "피부",
+          {
+            "matte": "매트",
+            "semi_matte": "세미매트",
+            "satin": "새틴",
+            "glow": "글로우",
+            "mixed": "복합"
+          }
+        ],
+        [
+          "eye_finish",
+          "눈",
+          {
+            "matte": "매트",
+            "satin": "새틴",
+            "shimmer": "쉬머",
+            "glitter": "글리터",
+            "metallic": "메탈릭",
+            "mixed": "복합"
+          }
+        ],
+        [
+          "cheek_finish",
+          "볼",
+          {
+            "matte": "매트",
+            "satin": "새틴",
+            "shimmer": "쉬머",
+            "glow": "글로우",
+            "mixed": "복합"
+          }
+        ],
+        [
+          "lip_finish",
+          "입술",
+          {
+            "matte": "매트",
+            "semi_matte": "세미매트",
+            "satin": "새틴",
+            "glossy": "글로시",
+            "mixed": "복합"
+          }
+        ],
+        [
+          "overall_finish",
+          "전체 마무리 요약",
+          {
+            "matte": "매트",
+            "semi_matte": "세미매트",
+            "satin": "새틴",
+            "glossy": "글로시·광택",
+            "mixed": "복합"
+          },
+          false,
+          true
+        ]
+      ]
+    ],
+    [
+      "계절과 상황",
+      [
+        [
+          "season_themes",
+          "계절 테마",
+          {
+            "none": "뚜렷한 계절감 없음",
+            "spring": "봄",
+            "summer": "여름",
+            "autumn": "가을",
+            "winter": "겨울"
+          },
+          true
+        ],
+        [
+          "occasions",
+          "어울리는 상황",
+          {
+            "daily": "데일리",
+            "office": "출근",
+            "school": "등교",
+            "date": "데이트",
+            "wedding_guest": "하객",
+            "party": "파티·연말",
+            "photo": "촬영",
+            "performance": "공연·무대",
+            "other": "기타(메모)"
+          },
+          true
+        ]
+      ]
+    ],
+    [
+      "색 대비",
+      [
+        [
+          "color_contrast",
+          "눈·볼·립 색 대비",
+          {
+            "low": "낮음",
+            "medium": "중간",
+            "high": "높음"
+          }
+        ]
+      ]
+    ],
+    [
+      "부위별 핵심 기법",
+      [
+        [
+          "base_techniques",
+          "베이스 기법",
+          {
+            "thin_layer": "얇게 레이어링",
+            "spot_concealing": "부분 컨실링",
+            "color_correcting": "컬러 코렉팅",
+            "pore_blurring": "모공 블러링",
+            "powder_setting": "파우더 픽싱",
+            "contouring": "윤곽 쉐딩",
+            "highlighting": "하이라이팅",
+            "other": "기타(메모)"
+          },
+          true
+        ],
+        [
+          "eye_techniques",
+          "눈 기법",
+          {
+            "smoky": "스모키",
+            "gradient_shadow": "그라데이션 음영",
+            "aegyo_sal": "애교살 강조",
+            "inner_corner": "눈 앞머리 강조",
+            "outer_corner": "눈꼬리·삼각존 음영",
+            "winged_liner": "올라간 날개 아이라인",
+            "downturned_liner": "내려가는 아이라인",
+            "tightlining": "점막 채우기",
+            "defined_lashes": "또렷한 가닥 속눈썹",
+            "false_lashes": "인조 속눈썹",
+            "lower_lashes": "언더래쉬 강조",
+            "natural_brow": "자연스러운 눈썹",
+            "defined_brow": "선명한 눈썹",
+            "other": "기타(메모)"
+          },
+          true
+        ],
+        [
+          "cheek_techniques",
+          "볼 기법",
+          {
+            "center_blush": "볼 중앙 블러셔",
+            "high_blush": "광대 위 블러셔",
+            "under_eye_blush": "눈 밑 블러셔",
+            "horizontal_blush": "가로 블러셔",
+            "gradient_blush": "그라데이션 블러셔",
+            "nose_blush": "코 블러셔",
+            "under_cheekbone_blush": "광대 아래 사선 블러셔",
+            "other": "기타(메모)"
+          },
+          true
+        ],
+        [
+          "lip_techniques",
+          "입술 기법",
+          {
+            "overlip": "오버립",
+            "gradient_lip": "그라데이션 립",
+            "full_lip": "풀립",
+            "lip_liner": "립라인 윤곽",
+            "blurred_edge": "경계 블러링",
+            "center_gloss": "중앙 광택 강조",
+            "layering": "립 레이어링",
+            "widened_lip": "입술 가로 확장",
+            "other": "기타(메모)"
+          },
+          true
+        ]
+      ]
+    ]
+  ]
+}
