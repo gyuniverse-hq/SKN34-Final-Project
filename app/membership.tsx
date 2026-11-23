@@ -1,6 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient } from '@tanstack/react-query';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useState, type ComponentProps } from 'react';
 import { skinAccessKey, useSkinAccess, type SkinAccess } from '@/hooks/useSkinAccess';
@@ -13,15 +15,16 @@ import { STORAGE_KEYS } from '@/lib/storage';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
-import { EmptyState } from '@/components/ui/StateViews';
+import { homeHeading, homeLayout, homeType } from '@/constants/homeLayout';
 import { theme } from '@/constants/theme';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 
-const BENEFITS: { icon: ComponentProps<typeof Ionicons>['name']; key: TranslationKey }[] = [
-  { icon: 'water-outline', key: 'skinAccess.benefits' },
-  { icon: 'gift-outline', key: 'membership.benefit1' },
-  { icon: 'ticket-outline', key: 'membership.benefit2' },
-  { icon: 'scan-outline', key: 'membership.benefit3' },
+const BENEFITS: { icon: ComponentProps<typeof Ionicons>['name']; title: TranslationKey; detail: TranslationKey }[] = [
+  { icon: 'water-outline', title: 'skinAccess.benefits', detail: 'membership.skinDetail' },
+  { icon: 'ticket-outline', title: 'membership.coupons', detail: 'rewards.memberRule' },
+  { icon: 'chatbubbles-outline', title: 'membership.conversation', detail: 'membership.conversationDetail' },
+  { icon: 'mic-outline', title: 'membership.voice', detail: 'membership.voiceDetail' },
+  { icon: 'sparkles-outline', title: 'membership.styles', detail: 'membership.stylesDetail' },
 ];
 
 export default function MembershipScreen() {
@@ -60,24 +63,30 @@ export default function MembershipScreen() {
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
-          <Text style={styles.headline}>{t('membership.headline')}</Text>
-          <Text style={styles.price}>{t('membership.price')}</Text>
+          <View pointerEvents="none" aria-hidden style={styles.heroArt}>
+            <Image source={require('@/assets/images/home/editorial/tint.webp')} contentFit="cover" style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={[homeLayout.blush, homeLayout.blush + '00']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.photoFade} />
+          </View>
+          <View style={styles.heroCopy}>
+            <Text style={styles.headline}>{t('membership.headline')}</Text>
+            <Text style={styles.price}>{t('membership.price')}</Text>
+          </View>
         </View>
 
+        <Text accessibilityRole="header" style={styles.sectionTitle}>{t('membership.benefitsTitle')}</Text>
         <View style={styles.card}>
-          {BENEFITS.map((b) => (
-            <View key={b.key} style={styles.benefit}>
+          {BENEFITS.map(({ icon, title, detail }, index) => (
+            <View key={title} style={[styles.benefit, index > 0 && styles.divider]}>
               <View style={styles.benefitIcon}>
-                <Ionicons name={b.icon} size={20} color={theme.colors.rose} />
+                <Ionicons name={icon} size={20} color={theme.colors.rose} />
               </View>
-              <Text style={styles.benefitText}>{t(b.key)}</Text>
+              <View style={styles.benefitCopy}>
+                <Text style={styles.benefitText}>{t(title)}</Text>
+                <Text style={styles.detail}>{t(detail)}</Text>
+              </View>
             </View>
           ))}
-        </View>
-
-        <Text style={styles.sectionTitle}>{t('membership.samples')}</Text>
-        <View style={styles.samples}>
-          <EmptyState icon="cube-outline" title={t('membership.samplesEmpty')} />
         </View>
       </ScrollView>
       <View style={styles.footer}>
@@ -91,18 +100,25 @@ export default function MembershipScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.colors.surface },
-  content: { padding: theme.spacing.lg, paddingBottom: 32 },
-  hero: { backgroundColor: theme.colors.ink, borderRadius: theme.radius.lg, padding: 22, gap: 6 },
-  headline: { fontSize: theme.font.h2, fontWeight: '800', color: theme.colors.white },
-  price: { fontSize: theme.font.small, color: 'rgba(255,255,255,0.75)' },
-  card: { marginTop: 16, backgroundColor: theme.colors.card, borderRadius: theme.radius.md, padding: 16, gap: 14, ...theme.shadow },
-  benefit: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  screen: { flex: 1, backgroundColor: homeLayout.background },
+  content: { width: '100%', maxWidth: homeLayout.maxWidth, alignSelf: 'center', padding: homeLayout.gutter, paddingBottom: 24 },
+  hero: { minHeight: 164, backgroundColor: homeLayout.blush, borderRadius: theme.radius.lg, overflow: 'hidden', justifyContent: 'center' },
+  heroArt: { position: 'absolute', right: 0, top: 0, bottom: 0, width: '49%', maxWidth: 220 },
+  photoFade: { width: '48%', height: '100%' },
+  heroCopy: { width: '68%', paddingLeft: 16, paddingVertical: 18, gap: 14 },
+  headline: { ...homeType(22), fontFamily: homeLayout.displayFont, lineHeight: 30, color: theme.colors.roseDark },
+  price: { ...homeType(16), fontWeight: '600', color: theme.colors.roseDark },
+  sectionTitle: { ...homeHeading, marginTop: 23, marginBottom: 10 },
+  card: { backgroundColor: theme.colors.card, borderRadius: theme.radius.lg, borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.colors.border, paddingHorizontal: 14 },
+  benefit: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
+  divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.border },
   benefitIcon: { width: 38, height: 38, borderRadius: 19, backgroundColor: theme.colors.roseSoft, alignItems: 'center', justifyContent: 'center' },
-  benefitText: { flex: 1, fontSize: theme.font.body, color: theme.colors.ink, lineHeight: 21 },
-  sectionTitle: { fontSize: theme.font.title, fontWeight: '800', color: theme.colors.ink, marginTop: 26, marginBottom: 8 },
-  samples: { borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.border, borderStyle: 'dashed' },
+  benefitCopy: { flex: 1, gap: 4 },
+  benefitText: { ...homeType(15), fontWeight: '600', color: theme.colors.ink, lineHeight: 22 },
+  detail: { ...homeType(13), color: theme.colors.inkMuted, lineHeight: 19 },
   footer: {
+    alignSelf: 'center', width: '100%', maxWidth: homeLayout.maxWidth,
     paddingHorizontal: theme.spacing.lg,
     paddingTop: 12,
     paddingBottom: 8,
