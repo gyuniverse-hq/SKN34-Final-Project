@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     env: str = "local"
+    admin_enabled: bool = False
     log_level: str = "INFO"
     database_url: str = "postgresql+asyncpg://vishue:vishue@localhost:5432/vishue_db"
     redis_url: str | None = None
@@ -68,6 +69,12 @@ class Settings(BaseSettings):
     toss_secret_key: str | None = None
     payment_web_base_url: str | None = None
     payment_return_url: str = "kbeautyar://payment-result"
+    # OpenAI-compatible vision LLM for admin lip naturalness (Astra). Keys stay server-only.
+    llm_base_url: str = "https://api.openai.com/v1"
+    llm_api_key: str | None = None
+    llm_model: str | None = None
+    astra_model: str | None = None
+    llm_timeout_seconds: float = 60
 
     @property
     def g5_local_mode(self) -> bool:

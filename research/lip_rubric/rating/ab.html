@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>립 A/B 비교</title><style>
+body{font-family:system-ui,"Malgun Gothic",sans-serif;margin:auto;max-width:1100px;padding:16px;color:#202736;background:#f6f7fb}
+.panel{background:#fff;border-radius:10px;padding:14px;margin:10px 0}.pair{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.side{display:flex;flex-direction:column;gap:6px;align-items:center}.side img.crop{width:100%;max-width:440px;border:2px solid transparent;border-radius:6px}
+.side img.full{width:160px;border-radius:4px}.side.on img.crop{border-color:#253d65}button{font:inherit;padding:10px 14px;border:1px solid #abb5c6;border-radius:8px;background:#fff;cursor:pointer}
+.keys{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.muted{color:#5b6475;font-size:13px}progress{width:100%}
+</style></head><body>
+<h1>어느 쪽이 실제로 바른 것처럼 더 자연스러운가요?</h1>
+<div class="panel" id="setup"><label>평가자 코드 <input id="rater" value="R5" autocomplete="off"></label> <button id="begin">시작 / 이어서 하기</button>
+<p class="muted">같은 얼굴의 두 사진입니다. 입술 확대를 보고, 필요하면 아래 전체 사진도 보세요. 제품 색이 정확한지는 판단하지 않습니다. 키보드: ← 왼쪽 · → 오른쪽 · ↓ 거의 같음 · Backspace 이전. 자동 저장되며 언제든 CSV를 내보낼 수 있습니다.</p></div>
+<main id="app" hidden><div class="panel"><p id="progress"></p><progress id="bar"></progress></div>
+<div class="panel pair"><div class="side" id="L"><img class="crop" id="lc" alt="왼쪽 입술"><img class="full" id="lf" alt="왼쪽 전체"></div>
+<div class="side" id="R"><img class="crop" id="rc" alt="오른쪽 입술"><img class="full" id="rf" alt="오른쪽 전체"></div></div>
+<div class="panel keys"><button data-c="left">← 왼쪽</button><button data-c="same">↓ 거의 같음</button><button data-c="right">오른쪽 →</button>
+<button id="prev">이전</button><button id="export">CSV 내보내기</button></div><p id="msg" class="muted"></p></main>
+<script>
+(()=>{'use strict';
+const PAIRS=__PAIRS__, PACK='__PACK__'; const $=id=>document.getElementById(id); let code='', key='', st=null, t0=0;
+function save(){localStorage.setItem(key,JSON.stringify(st))}
+function show(){const i=Math.min(st.i,PAIRS.length-1), p=PAIRS[i], a=st.a[p.pair_id];
+ $('progress').textContent=(st.i<PAIRS.length?(st.i+1)+' / '+PAIRS.length:'끝')+' · 완료 '+Object.keys(st.a).length;$('bar').max=PAIRS.length;$('bar').value=Object.keys(st.a).length;
+ $('lc').src='images/'+p.left+'_crop.png';$('lf').src='images/'+p.left+'_full.png';$('rc').src='images/'+p.right+'_crop.png';$('rf').src='images/'+p.right+'_full.png';
+ $('L').className='side'+(a&&a.c==='left'?' on':'');$('R').className='side'+(a&&a.c==='right'?' on':'');t0=Date.now()}
+function pick(c){const i=Math.min(st.i,PAIRS.length-1), p=PAIRS[i], prev=st.a[p.pair_id];
+ st.a[p.pair_id]={c, s:Math.round(((prev&&prev.s)||0)+(Date.now()-t0)/1000), o:i+1};
+ if(st.i<PAIRS.length-1)st.i++;else $('msg').textContent='마지막 쌍입니다. CSV를 내보내 주세요.';save();show()}
+$('begin').onclick=()=>{code=$('rater').value.trim().toUpperCase();if(!/^R\d+$/.test(code)){alert('R5 같은 평가자 코드를 입력하세요');return}
+ key='lip-ab:'+code+':'+PACK;st=JSON.parse(localStorage.getItem(key)||'{"i":0,"a":{}}');$('setup').hidden=true;$('app').hidden=false;show()};
+document.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>pick(b.dataset.c));
+$('prev').onclick=()=>{st.i=Math.max(0,st.i-1);save();show()};
+document.addEventListener('keydown',e=>{if(!st)return;const m={ArrowLeft:'left',ArrowRight:'right',ArrowDown:'same'}[e.key];
+ if(m){e.preventDefault();pick(m)}else if(e.key==='Backspace'){e.preventDefault();st.i=Math.max(0,st.i-1);save();show()}});
+$('export').onclick=()=>{const rows=[['rater_id','pair_id','left','right','choice','seconds','order_index','pack_id']];
+ for(const p of PAIRS){const a=st.a[p.pair_id];if(a)rows.push([code,p.pair_id,p.left,p.right,a.c,a.s,a.o,PACK])}
+ const blob=new Blob(['\ufeff'+rows.map(r=>r.join(',')).join('\r\n')],{type:'text/csv'});const l=document.createElement('a');
+ l.href=URL.createObjectURL(blob);l.download=code+'_ab_'+PACK.slice(0,8)+'.csv';l.click();$('msg').textContent=(rows.length-1)+'쌍 내보냄'};
+})();
+</script></body></html>

@@ -11,6 +11,7 @@ from app.core.db import dispose_engine
 from app.core.errors import install_error_handlers
 from app.core.observability import RequestContextMiddleware, configure_logging
 from app.routers import (
+    admin,
     ar_history,
     catalog,
     celebrity_videos,
@@ -61,12 +62,13 @@ def create_app() -> FastAPI:
         app.add_middleware(
             CORSMiddleware,
             allow_origins=settings.cors_origins,
-            allow_methods=["GET", "POST", "DELETE"],
+            allow_methods=["GET", "POST", "PATCH", "DELETE"],
             allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
         )
     app.add_middleware(RequestContextMiddleware)
     install_error_handlers(app)
     for module in (
+        admin,
         ar_history,
         health,
         catalog,

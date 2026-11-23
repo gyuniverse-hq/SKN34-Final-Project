@@ -1,0 +1,122 @@
+{
+  "version": "mentor-likert-v1.0",
+  "date": "2026-11-20",
+  "title": "립 AR 평가 본선 지표 (멘토 정렬: 3축 × 1–5)",
+  "status": "primary_for_mentor_report",
+  "scope": "트랙 A(보이는 품질). 제품 색=실물 ΔE는 보조(트랙 B)로 분리.",
+  "relation_to_ext_b": "Ext-B(E1–E6 yes/no)는 축 탐색·Astra 합의 연습용. 멘토 보고·운영 본선은 이 표.",
+  "answers": [1, 2, 3, 4, 5],
+  "input_protocol": {
+    "preferred": "bare_lips | makeup_result (같은 얼굴)",
+    "labels_shown_to_rater": ["화장 전(맨입술)", "화장 후(평가 대상)"],
+    "hidden_from_rater": ["kind", "sticker|render|real", "hex", "model name"],
+    "fallback_when_no_bare": "화장 후만 제시. A3는 입술–피부·조명 정합(프레임 내)으로 채점."
+  },
+  "scoring": {
+    "axes": ["A1", "A2", "A3"],
+    "soft_gate": "어느 축이든 1 또는 2이면 overall_fail 권고(보고용 플래그). 평균은 그대로 기록.",
+    "overall": {
+      "formula": "mean(A1, A2, A3)",
+      "range": [1, 5],
+      "round": 2
+    },
+    "report": ["A1", "A2", "A3", "overall", "soft_gate_fail", "brief_reason"]
+  },
+  "items": [
+    {
+      "id": "A1",
+      "name_ko": "영역 정확도",
+      "name_en": "region / placement accuracy",
+      "question": "화장 후 입술 색이 입술 영역에 맞게 올라가 있는가? (윤곽·배치)",
+      "likert": {
+        "1": "색이 피부·이·수염으로 크게 나가거나, 입술과 무관한 위치에 있음",
+        "2": "이탈·이중선·큰 번짐이 눈에 띔",
+        "3": "대체로 맞지만 입꼬리·경계 일부가 어색",
+        "4": "윤곽을 잘 따르고 사소한 흔들림만 있음",
+        "5": "자연스럽게 윤곽을 따르며 영역 오류가 없음"
+      },
+      "refs": [
+        {
+          "source": "Banuba makeup-fidelity / AR cosmetics realism",
+          "axis": "Edge precision, spatial placement"
+        },
+        {
+          "source": "FFHQ-Makeup (arXiv:2508.03241)",
+          "axis": "Spatial placement"
+        },
+        {
+          "source": "VTONQA (arXiv:2601.02945)",
+          "axis": "Fit (영역 적합, 의용)"
+        }
+      ],
+      "why_included": "멘토 지정 축 ‘영역 정확도’. 여러 try-on 루브릭에서 placement/edge가 공통.",
+      "tech_aux": ["lip mask IoU / boundary error (있을 때)"]
+    },
+    {
+      "id": "A2",
+      "name_ko": "자연스러움",
+      "name_en": "naturalness / realism",
+      "question": "화장 후 입술이 실제로 바른 것처럼 자연스러운가? (떠 보임·페인트·필터 티)",
+      "likert": {
+        "1": "스티커·페인트·명백한 AI/필터로 보임",
+        "2": "합성 티·플라스틱감이 강함",
+        "3": "보통. 약간 떠 보이거나 텍스처/광택이 어색",
+        "4": "대체로 실바름에 가깝고 작은 어색함만 있음",
+        "5": "실바름/실사진과 구분하기 어려울 정도로 자연스러움"
+      },
+      "refs": [
+        {
+          "source": "Makeup transfer human studies (Likert realism / artifacts)",
+          "axis": "Overall realism, artifact absence"
+        },
+        {
+          "source": "Q-REAL (arXiv:2511.16908)",
+          "axis": "Material/texture, AI-look / distortion"
+        },
+        {
+          "source": "Banuba",
+          "axis": "Texture truth (matte/satin/gloss), non-paint look"
+        }
+      ],
+      "why_included": "멘토 지정 축 ‘자연스러운지’. 사람 평가 논문의 공통 Likert 축.",
+      "tech_aux": ["립 crop LPIPS/SSIM vs 실바름 쌍(있을 때)"]
+    },
+    {
+      "id": "A3",
+      "name_ko": "이미지 일관성",
+      "name_en": "image consistency",
+      "question": "화장 전·후(또는 입술과 얼굴)가 같은 사람·같은 조명 맥락으로 자연스럽게 이어지는가?",
+      "likert": {
+        "1": "전후가 다른 얼굴처럼 보이거나, 입술만 따로 논 스티커",
+        "2": "조명·피부톤·형태가 크게 어긋남",
+        "3": "대체로 이어지나 입술 부위만 동떨어짐",
+        "4": "전후·얼굴 맥락이 잘 맞고 작은 점프만 있음",
+        "5": "전후가 한 촬영처럼 일관됨 (또는 프레임 내 입술–피부 정합이 완벽)"
+      },
+      "mode_with_bare": "화장 전 맨입술과 화장 후를 나란히 보고 형태·조명·피부 맥락의 점프를 본다.",
+      "mode_without_bare": "화장 후만 있을 때: 입술 색·광택·경계가 주변 피부·얼굴 조명과 맞는지(프레임 내 정합).",
+      "refs": [
+        {
+          "source": "FFHQ-Makeup",
+          "axis": "Facial consistency"
+        },
+        {
+          "source": "Makeup transfer / identity-preserving rubrics",
+          "axis": "Identity consistency"
+        },
+        {
+          "source": "LipAT / foundation VTO before–after setups",
+          "axis": "Same-face before–after evaluation protocol"
+        }
+      ],
+      "why_included": "멘토 지정 축 ‘이미지 일관성’. bare|after 쌍이 있을 때 가장 잘 측정.",
+      "tech_aux": ["same-face bare↔after SSIM/LPIPS (립 박스)"]
+    }
+  ],
+  "soft_gate_note": "합산 점수만으로 치명 실패를 가리지 말라는 멘토 지적 반영. 1–2점은 플래그.",
+  "out_of_scope": [
+    "제품 hex vs 실물 ΔE (트랙 B)",
+    "25문항 OX 체크리스트 (내부 디버그만)",
+    "로컬 평가 모델 필수화 (Astra가 일치하면 Astra 위임)"
+  ]
+}

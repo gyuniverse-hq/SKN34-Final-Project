@@ -1,5 +1,18 @@
 # 카탈로그 데이터 관리 (데이터 담당자용)
 
+## 관리자 상태 (로컬 구현, 공용 DB 적용 전 검토 필요)
+
+| 테이블 | 쓰기 주체 | 용도·시드 관계 |
+| --- | --- | --- |
+| `staff_roles` | 운영자 grant 잡 | admin·viewer 지정. 시드와 무관, 회원 삭제 시 역할 제거 |
+| `admin_audit_log` | 관리자 API·운영자 잡 | 변경 전후 허용 필드·요청 ID. 시드와 무관, actor 탈퇴 시 NULL |
+| `product_admin_state` | 관리자 API·결제 확정·취소 | 노출·nullable 재고. 시드에서 유지 상품은 잠금·트랜잭션으로 복구, 제거 상품만 CASCADE 삭제 |
+| `eval_runs` | 관리자 숫자 게시 API | 얼굴 자료 없는 집계. 시드와 무관, 업로더 탈퇴 시 NULL |
+
+상태 행이 없으면 기존처럼 노출·재고 제한 없음이다. 재고는 제품 단위다. 가격·이름·HEX·measure_method는 관리자 편집 대상이 아니다. 시드와 재고 변경은 `7284732` transaction advisory lock을 공유한다. `order_lines.stock_debited`는 실제 차감량이며 과거 NULL은 소급 복원하지 않는다.
+
+네 테이블에 RLS를 켜고 anon/authenticated 직접 접근 정책을 만들지 않는다. 프런트엔드는 관리자 API만 호출한다. 보관 기간·탈퇴 추가 처리·migration 번호는 [관리자 ERD](design/admin-web-erd.md)를 DB 담당자와 검토한다.
+
 제품, 룩, 매장 데이터를 넣고 고치는 방법입니다. 시드 파일을 직접 편집할 때는 DB 접속 권한이 필요하지 않습니다. 원본 DB에서 시드를 생성하는 스크립트는 원본 DB 읽기 권한이 필요합니다. **서빙 데이터는 Git으로 관리하고, 배포가 DB에 넣습니다.**
 
 ## 한눈에 보기

@@ -16,5 +16,6 @@
 | [0010](0010-account-deletion-secret-key.md) | 회원 탈퇴를 위해 `api`만 Supabase secret 키를 가진다 | 채택 |
 | [0011](0011-production-cutover.md) | 운영 컷오버: RDS 공용 원본, 덤프→시드 보정, 1차 범위(S3·pause·검증·gitleaks) | 채택 |
 | [0012](0012-pgvector-instead-of-neo4j.md) | 챗봇 지식은 Neo4j 대신 PostgreSQL pgvector | 채택 |
+| [0013](0013-admin-web.md) | 독립 관리자 웹, 직원 권한·감사 로그, 숫자 평가 요약 | 로컬 구현, DB·결제 검토 대기 |
 
 형식: 배경(왜 결정이 필요했나) → 결정 → 결과(얻는 것, 감수하는 것).
