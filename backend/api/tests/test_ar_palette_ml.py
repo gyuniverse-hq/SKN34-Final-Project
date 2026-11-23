@@ -7,7 +7,14 @@ from uuid import uuid4
 import pytest
 
 from app.core.ar_palette import FEATURES, score_inputs, shade_features, top_chips
-from app.core.ar_palette_artifacts import load_palette_model, read_json, score_model, write_json
+from app.core.ar_palette_artifacts import (
+    CLASSIFIER,
+    RANKER,
+    load_palette_model,
+    read_json,
+    score_model,
+    write_json,
+)
 from app.schemas.ar_history import RankPalette
 from app.services import ar_palette_search
 from app.services.ar_palette_service import ArPaletteService, experiment_arm, model_scores
@@ -92,7 +99,7 @@ def test_compare_searches_and_reuse_winning_method_from_baseline(tmp_path, short
     synthetic_dataset(dataset)
     data = read_json(dataset)
     output = tmp_path / "candidate"
-    report = train_dataset(dataset, output)
+    report = train_dataset(dataset, output, model_type=CLASSIFIER)
     assert report["status"] == "candidate_created" and report["offline_pass"] is None
     assert report["metrics"]["candidate_hit_at_1"] == 1.0
     search = report["search"]
@@ -101,6 +108,8 @@ def test_compare_searches_and_reuse_winning_method_from_baseline(tmp_path, short
         assert len(method["trials"]) == search["trials_per_method"] == 8
         assert len({tuple(t["parameters"].values()) for t in method["trials"]}) == 8
     manifest = read_json(output / "manifest.json")
+    assert manifest.pop("model_type") == CLASSIFIER
+    write_json(output / "manifest.json", manifest)
     assert manifest["parameters"]["auto_class_weights"] == "Balanced"
     assert manifest["search"]["method"] == search["method"]
     model, version, source = load_palette_model(output, allow_synthetic=True)
@@ -112,9 +121,73 @@ def test_compare_searches_and_reuse_winning_method_from_baseline(tmp_path, short
     assert model_scores(local, ranking_rows) == (scores, f"s-{version}")
     with pytest.raises(ValueError, match="Incompatible"):
         load_palette_model(output)
-    refresh = train_dataset(dataset, tmp_path / "refresh", baseline=output)
+    refresh = train_dataset(dataset, tmp_path / "refresh", baseline=output, model_type=CLASSIFIER)
     assert refresh["search"]["requested_method"] == search["method"]
     assert set(refresh["search"]["results"]) == {search["method"]}
+
+
+def test_default_pairlogit_bundle_can_serve_the_experiment_arm(tmp_path, short_search):
+    dataset = tmp_path / "data.json"
+    synthetic_dataset(dataset)
+    output = tmp_path / "ranker"
+    report = train_dataset(dataset, output, min_ndcg=0.9, min_lift=0.1)
+    manifest = read_json(output / "manifest.json")
+    assert report["offline_pass"] is True and report["decision_metric"] == "ndcg_at_3"
+    assert report["metrics"]["candidate_ndcg_at_3"] == 1.0
+    assert report["metrics"]["baseline_ndcg_at_3"] == pytest.approx(0.63093)
+    assert report["search"]["objective"] == "mixed_label_request_ndcg_at_3"
+    assert set(report["search"]["results"]) == {"random"}
+    assert report["search"]["trials_per_method"] == 8
+    assert (
+        manifest["model_type"] == RANKER and manifest["parameters"]["loss_function"] == "PairLogit"
+    )
+    assert manifest["search"]["best_validation_ndcg_at_3"] == 1.0
+    model, version, _ = load_palette_model(output, allow_synthetic=True, require_offline_pass=True)
+    scores = score_model(model, [row["features"] for row in read_json(dataset)["rows"][-3:]])
+    assert scores.index(max(scores)) == 1
+
+    body = RankPalette(
+        request_id=uuid4(),
+        session_id=uuid4(),
+        makeup_zone="lip",
+        shades=[{"productId": "p", "shadeId": "s"}],
+    )
+    owner = next(str(i) for i in range(100) if experiment_arm("trial", str(i)) == "B")
+    repo = SimpleNamespace(
+        lock_rank=AsyncMock(return_value=None),
+        ranking_inputs=AsyncMock(
+            return_value=(
+                {("p", "s"): ("#C26471", "matte", "estimated", None)},
+                {"p": (4.5, 100)},
+                [],
+            )
+        ),
+        save_rank=AsyncMock(),
+    )
+    config = SimpleNamespace(
+        env="local",
+        ar_palette_mode="experiment",
+        ar_palette_experiment="trial",
+        ar_palette_model_dir=output,
+        ar_palette_data_dir=tmp_path,
+    )
+    result = asyncio.run(ArPaletteService(repo, config).rank(owner, body))
+    assert result.candidates[0].shade_id == "s"
+    assert repo.save_rank.await_args.args[3:5] == ("ml", f"ar1:trial:B:s-{version}")
+
+
+def test_pairlogit_skips_when_training_labels_have_no_within_request_pairs(tmp_path):
+    dataset = tmp_path / "data.json"
+    synthetic_dataset(dataset)
+    data = read_json(dataset)
+    development, _, _, _ = temporal_split(data["rows"])
+    for row in development:
+        row["added_to_cart"] = int(row["request_id"] == "demo-0")
+    write_json(dataset, data)
+    output = tmp_path / "ranker"
+    report = train_dataset(dataset, output)
+    assert report["reason"] == "insufficient_split_classes_or_comparable_requests"
+    assert not output.exists()
 
 
 def test_temporal_split_drops_earlier_rows_from_evaluation_sessions(tmp_path):
@@ -148,6 +221,7 @@ def test_repeat_impressions_keep_the_candidate_label_and_need_distinct_options()
     ):
         result = ranked_comparison([earlier, latest, other], object())
     assert result["baseline_hit_at_1"] == result["candidate_hit_at_1"] == 1.0
+    assert result["baseline_ndcg_at_3"] == result["candidate_ndcg_at_3"] == 1.0
 
 
 def test_rank_persists_assigned_arm_and_fallback_with_the_exact_features(tmp_path):

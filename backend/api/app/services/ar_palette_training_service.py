@@ -2,12 +2,15 @@ import hashlib
 from collections import Counter, defaultdict
 from datetime import UTC, datetime, timedelta
 from itertools import groupby
+from math import log2
 from pathlib import Path
 
 import numpy as np
 
 from app.core.ar_palette import CATEGORICAL, FEATURE_VERSION, FEATURES
 from app.core.ar_palette_artifacts import (
+    CLASSIFIER,
+    RANKER,
     load_palette_model,
     read_json,
     score_model,
@@ -17,7 +20,7 @@ from app.core.config import get_settings
 from app.core.db import dispose_engine, session_scope
 from app.repositories.ar_palette_repository import ArPaletteDatasetRepository
 from app.services.ar_palette_search import (
-    FIXED_PARAMETERS,
+    MODEL_PARAMETERS,
     SEARCH_METHODS,
     compare_searches,
     fit_candidate,
@@ -26,6 +29,8 @@ from app.services.ar_palette_search import (
 from app.services.member_service import TERMS_VERSION
 
 MIN_COLLECTION_DAYS = 30
+NDCG_DISCOUNTS = tuple(1 / log2(rank + 1) for rank in range(1, 4))
+RANKING_METRICS = ("hit_at_1", "ndcg_at_3")
 
 
 def member_key(member_id):
@@ -208,47 +213,66 @@ def ranked_comparison(rows, candidate, baseline_bundle=None, *, confidence_inter
         else [-r["rank"] for r in rows]
     )
     ordered = sorted(zip(rows, proposed, baseline, strict=True), key=lambda x: x[0]["request_id"])
+
+    def metrics_at(group, score_index, positive_ranks):
+        ranking = sorted(
+            group, key=lambda x: (-x[score_index], x[0]["rank"], x[0]["impression_id"])
+        )
+        # A candidate can have multiple impressions of the same recorded slot.
+        positions = list(dict.fromkeys(row["rank"] for row, _, _ in ranking))
+        dcg = sum(
+            discount
+            for rank, discount in zip(positions, NDCG_DISCOUNTS, strict=False)
+            if rank in positive_ranks
+        )
+        return int(positions[0] in positive_ranks), dcg / sum(NDCG_DISCOUNTS[: len(positive_ranks)])
+
     comparisons = []
     for _, entries in groupby(ordered, key=lambda x: x[0]["request_id"]):
         group = list(entries)
         positive_ranks = {r["rank"] for r, _, _ in group if r["added_to_cart"]}
-        if positive_ranks:
+        if not positive_ranks:
+            continue
 
-            def first(ranking, i):
-                return min(ranking, key=lambda x: (-x[i], x[0]["rank"], x[0]["impression_id"]))[0]
-
-            comparisons.append(
-                (
-                    group[0][0],
-                    len({r["rank"] for r, _, _ in group}),
-                    int(first(group, 2)["rank"] in positive_ranks),
-                    int(first(group, 1)["rank"] in positive_ranks),
-                )
+        comparisons.append(
+            (
+                group[0][0],
+                len({r["rank"] for r, _, _ in group}),
+                metrics_at(group, 2, positive_ranks),
+                metrics_at(group, 1, positive_ranks),
             )
+        )
 
     def report(entries):
         count = len(entries)
         return {
             "positive_requests": count,
-            "baseline_hit_at_1": sum(x[2] for x in entries) / count if count else None,
-            "candidate_hit_at_1": sum(x[3] for x in entries) / count if count else None,
+            **{
+                f"{side}_{metric}": sum(entry[index][i] for entry in entries) / count
+                if count
+                else None
+                for i, metric in enumerate(RANKING_METRICS)
+                for side, index in (("baseline", 2), ("candidate", 3))
+            },
         }
 
     clustered = defaultdict(list)
-    for row, _, old, new in comparisons:
-        clustered[row["member"]].append(new - old)
-    samples = np.array([(len(v), sum(v)) for v in clustered.values()])
-    ci = None
-    if confidence_interval and len(samples) >= 2:
+    if confidence_interval:
+        for row, _, old, new in comparisons:
+            clustered[row["member"]].append([b - a for a, b in zip(old, new, strict=True)])
+    hit_ci = ndcg_ci = None
+    if len(clustered) >= 2:
+        samples = np.array([(len(v), *np.sum(v, axis=0)) for v in clustered.values()])
         rng = np.random.default_rng(42)
         differences = []
         for _ in range(1000):
-            count, net = samples[rng.integers(len(samples), size=len(samples))].sum(axis=0)
-            differences.append(net / count)
-        ci = np.percentile(differences, [2.5, 97.5]).tolist()
+            sampled = samples[rng.integers(len(samples), size=len(samples))].sum(axis=0)
+            differences.append(sampled[1:] / sampled[0])
+        hit_ci, ndcg_ci = np.percentile(differences, [2.5, 97.5], axis=0).T.tolist()
     return {
         **report(comparisons),
-        "delta_ci95": ci,
+        "delta_ci95": hit_ci,
+        "ndcg_at_3_delta_ci95": ndcg_ci,
         "multi_candidate": report([x for x in comparisons if x[1] >= 2]),
         "by_zone": {
             zone: report([x for x in comparisons if x[0]["features"]["makeup_zone"] == zone])
@@ -273,10 +297,16 @@ def train_dataset(
     *,
     baseline=None,
     min_hit=None,
+    min_ndcg=None,
     min_lift=None,
     code_revision=None,
     search_method=None,
+    model_type=RANKER,
 ):
+    if model_type not in MODEL_PARAMETERS:
+        raise ValueError("Unknown AR model type")
+    if min_hit is not None and min_ndcg is not None:
+        raise ValueError("Choose one AR offline threshold metric")
     data = read_json(dataset)
     if data["feature_version"] != FEATURE_VERSION or data["source"] not in ("db", "synthetic"):
         raise ValueError("Invalid AR dataset contract")
@@ -303,6 +333,7 @@ def train_dataset(
     validation_requests = mixed_label_requests(validation)
     if (
         {r["added_to_cart"] for r in development} != {0, 1}
+        or (model_type == RANKER and not mixed_label_requests(development))
         or not validation_requests
         or not mixed_label_requests(evaluation)
     ):
@@ -318,39 +349,55 @@ def train_dataset(
         if baseline
         else (None, "recorded-rule-rank", None)
     )
-    if search_method is None and baseline:
-        previous_search = read_json(baseline / "manifest.json").get("search", {})
-        if previous_search.get("method") in SEARCH_METHODS:
+    if search_method is None and model_type == CLASSIFIER and baseline:
+        previous_manifest = read_json(baseline / "manifest.json")
+        previous_search = previous_manifest.get("search", {})
+        if (
+            previous_manifest.get("model_type", CLASSIFIER) == CLASSIFIER
+            and previous_search.get("method") in SEARCH_METHODS
+        ):
             search_method = previous_search["method"]
-    method = search_method or "compare"
+    method = search_method or ("random" if model_type == RANKER else "compare")
     if method not in ("compare", *SEARCH_METHODS):
         raise ValueError("Unknown AR search method")
-    pool = training_pool(development)
+    search_metric = "ndcg_at_3" if model_type == RANKER else "hit_at_1"
+    pool = training_pool(development, model_type=model_type)
     validation_rows = [r for r in validation if r["request_id"] in validation_requests]
 
     def evaluate(parameters):
-        model = fit_candidate(pool, parameters)
+        model = fit_candidate(pool, parameters, model_type=model_type)
         return ranked_comparison(validation_rows, model, confidence_interval=False)[
-            "candidate_hit_at_1"
+            f"candidate_{search_metric}"
         ]
 
-    search = compare_searches(evaluate, method)
-    candidate = fit_candidate(training_pool(development + validation), search["parameters"])
-    params = {**FIXED_PARAMETERS, **search["parameters"]}
+    search = compare_searches(evaluate, method, metric=search_metric)
+    refit_pool = training_pool(development + validation, model_type=model_type)
+    candidate = fit_candidate(refit_pool, search["parameters"], model_type=model_type)
+    params = {**MODEL_PARAMETERS[model_type], **search["parameters"]}
     metrics = ranked_comparison(evaluation, candidate, champion)
+    decision_metric = search_metric
+    if min_hit is not None:
+        decision_metric = "hit_at_1"
+    elif min_ndcg is not None:
+        decision_metric = "ndcg_at_3"
+    threshold = min_ndcg if decision_metric == "ndcg_at_3" else min_hit
+    ci = metrics["ndcg_at_3_delta_ci95" if decision_metric == "ndcg_at_3" else "delta_ci95"]
     passes = None
-    if min_hit is not None and min_lift is not None:
+    if threshold is not None and min_lift is not None:
+        score = metrics[f"candidate_{decision_metric}"]
         passes = (
-            metrics["candidate_hit_at_1"] >= min_hit
-            and metrics["candidate_hit_at_1"] - metrics["baseline_hit_at_1"] >= min_lift
-            and metrics["delta_ci95"] is not None
-            and metrics["delta_ci95"][0] > 0
+            score >= threshold
+            and score - metrics[f"baseline_{decision_metric}"] >= min_lift
+            and ci is not None
+            and ci[0] > 0
         )
     report = {
         "status": "candidate_created",
+        "model_type": model_type,
         "baseline": champion_id,
         "offline_pass": passes,
-        "thresholds": {"hit_at_1": min_hit, "lift": min_lift},
+        "decision_metric": decision_metric,
+        "thresholds": {decision_metric: threshold, "lift": min_lift},
         "collection_days": days,
         **split,
         "search": search,
@@ -366,6 +413,7 @@ def train_dataset(
         output / "manifest.json",
         {
             "feature_version": FEATURE_VERSION,
+            "model_type": model_type,
             "features": FEATURES,
             "categorical": CATEGORICAL,
             "source": data["source"],
@@ -373,7 +421,12 @@ def train_dataset(
             "parameters": params,
             "search": {
                 key: search[key]
-                for key in ("method", "trials_per_method", "objective", "best_validation_hit_at_1")
+                for key in (
+                    "method",
+                    "trials_per_method",
+                    "objective",
+                    f"best_validation_{search_metric}",
+                )
             },
             "data_as_of": data.get("as_of"),
             "catalog_versions": data.get("catalog_versions", []),

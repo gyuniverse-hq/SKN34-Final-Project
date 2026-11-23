@@ -1,10 +1,10 @@
 """Training-only hyperparameter comparison for the AR palette ranker."""
 
-from itertools import product
+from itertools import groupby, product
 from random import Random
 
 from app.core.ar_palette import CATEGORICAL, FEATURES
-from app.core.ar_palette_artifacts import feature_matrix
+from app.core.ar_palette_artifacts import CLASSIFIER, RANKER, feature_matrix
 
 SEARCH_METHODS = ("grid", "random", "optuna")
 SEED = 42
@@ -20,13 +20,20 @@ GRID_SPACE = {
     "learning_rate": (0.03, 0.08),
     "l2_leaf_reg": (3.0, 12.0),
 }
-FIXED_PARAMETERS = {
-    "auto_class_weights": "Balanced",
+COMMON_PARAMETERS = {
     "random_seed": SEED,
-    "loss_function": "Logloss",
     "thread_count": 2,
     "allow_writing_files": False,
     "verbose": False,
+}
+FIXED_PARAMETERS = {
+    **COMMON_PARAMETERS,
+    "loss_function": "Logloss",
+    "auto_class_weights": "Balanced",
+}
+MODEL_PARAMETERS = {
+    CLASSIFIER: FIXED_PARAMETERS,
+    RANKER: {**COMMON_PARAMETERS, "loss_function": "PairLogit"},
 }
 
 
@@ -34,8 +41,24 @@ def parameter_grid(space):
     return [dict(zip(space, values, strict=True)) for values in product(*space.values())]
 
 
-def training_pool(rows):
+def training_pool(rows, *, model_type=CLASSIFIER):
     from catboost import Pool
+
+    ranking = {}
+    if model_type == RANKER:
+        slots = {}
+        for row in rows:
+            key = (row["request_id"], row["rank"])
+            if key not in slots or row["added_to_cart"] > slots[key]["added_to_cart"]:
+                slots[key] = row
+        rows = [slots[key] for key in sorted(slots)]
+        pairs = []
+        for _, group in groupby(enumerate(rows), key=lambda entry: entry[1]["request_id"]):
+            added, not_added = [], []
+            for index, row in group:
+                (added if row["added_to_cart"] else not_added).append(index)
+            pairs.extend(product(added, not_added))
+        ranking = {"group_id": [row["request_id"] for row in rows], "pairs": pairs}
 
     return Pool(
         feature_matrix([row["features"] for row in rows]),
@@ -43,18 +66,20 @@ def training_pool(rows):
         feature_names=list(FEATURES),
         cat_features=list(CATEGORICAL),
         thread_count=FIXED_PARAMETERS["thread_count"],
+        **ranking,
     )
 
 
-def fit_candidate(pool, parameters):
-    from catboost import CatBoostClassifier
+def fit_candidate(pool, parameters, *, model_type=CLASSIFIER):
+    from catboost import CatBoostClassifier, CatBoostRanker
 
-    model = CatBoostClassifier(**FIXED_PARAMETERS, **parameters)
+    model_class = CatBoostRanker if model_type == RANKER else CatBoostClassifier
+    model = model_class(**MODEL_PARAMETERS[model_type], **parameters)
     model.fit(pool)
     return model
 
 
-def optuna_trials(evaluate, all_parameters, budget):
+def optuna_trials(evaluate, all_parameters, budget, metric_key):
     from optuna import create_study
     from optuna.samplers import TPESampler
     from optuna.trial import TrialState
@@ -81,40 +106,38 @@ def optuna_trials(evaluate, all_parameters, budget):
         seen.add(tuple(parameters.values()))
         score = evaluate(parameters)
         study.tell(trial, score)
-        trials.append({"parameters": parameters, "validation_hit_at_1": score})
+        trials.append({"parameters": parameters, metric_key: score})
     return trials
 
 
-def compare_searches(evaluate, method):
+def compare_searches(evaluate, method, *, metric="hit_at_1"):
     grid = parameter_grid(GRID_SPACE)
     all_parameters = parameter_grid(SEARCH_SPACE)
     budget = len(grid)
+    metric_key = f"validation_{metric}"
     methods = SEARCH_METHODS if method == "compare" else (method,)
     results = {}
 
     def merit(trial):
         parameters = trial["parameters"]
-        return (trial["validation_hit_at_1"], -parameters["iterations"], -parameters["depth"])
+        return (trial[metric_key], -parameters["iterations"], -parameters["depth"])
 
     for choice in methods:
         if choice == "optuna":
-            trials = optuna_trials(evaluate, all_parameters, budget)
+            trials = optuna_trials(evaluate, all_parameters, budget, metric_key)
         else:
             samples = grid if choice == "grid" else Random(SEED).sample(all_parameters, budget)
-            trials = [
-                {"parameters": params, "validation_hit_at_1": evaluate(params)}
-                for params in samples
-            ]
+            trials = [{"parameters": params, metric_key: evaluate(params)} for params in samples]
         results[choice] = {"best": max(trials, key=merit), "trials": trials}
     selected = max(results, key=lambda choice: merit(results[choice]["best"]))
     return {
         "method": selected,
         "requested_method": method,
         "trials_per_method": budget,
-        "objective": "mixed_label_request_hit_at_1",
+        "objective": f"mixed_label_request_{metric}",
         "search_space": SEARCH_SPACE,
         "grid_space": GRID_SPACE,
-        "best_validation_hit_at_1": results[selected]["best"]["validation_hit_at_1"],
+        f"best_{metric_key}": results[selected]["best"][metric_key],
         "parameters": results[selected]["best"]["parameters"],
         "results": results,
     }
