@@ -1,6 +1,10 @@
 # Defaults are production-shaped. values-local.yaml (kind) and values-prod.yaml (EKS) override them.
 
 env: production
+admin:
+  enabled: false
+  image: vishue-admin
+  apiBaseUrl: ""
 
 image:
   registry: ghcr.io/gyuniverse-hq

@@ -1,5 +1,48 @@
 # 실행과 배포
 
+## 관리자 웹: 로컬 검증 후 별도 검토·배포
+
+`feat/admin-web`의 `0021`은 공용 DB에 적용하지 않은 초안이다. DB·결제 담당자 검토 전 develop에 병합·배포하지 않는다. Render는 서버 시작 시 자동 migration을 실행한다. 추천 측이 주문 시각을 먼저 추가하면 중복을 통합하고 다음 head로 번호·down_revision을 조정해 왕복 검사를 다시 한다.
+
+화면 확인: `cd admin`, `npm ci`, `npm run dev`. 출력 URL에 `?demo=1`을 붙이면 개발 서버에서만 예시 주문·상품과 v2 실제 숫자 집계를 조회한다. 변경 요청은 보내지 않으며 운영 빌드에는 이 모드가 없다. 실제 로그인은 `admin/.env.example`을 `.env`로 복사해 공개값 세 개를 설정한다. Supabase 이메일 템플릿은 코드(Token) 방식이어야 한다. 신규 계정 자동 생성은 비활성이다.
+
+API는 로컬 DB 주소를 명시하고 `ADMIN_ENABLED=true`, `SKINCARE_REFRESH_ENABLED=false`, `CORS_ORIGINS=["http://127.0.0.1:5173"]`를 설정한다. 기존 .env의 공용 DB 주소를 사용하지 않는다. 검증은 일회용 로컬 PostgreSQL만 사용한다. 운영자 grant 잡은 지정 환경에 쓰므로 DB 주소를 먼저 확인한다.
+
+DB가 필요한 로컬 재현 예시(저장소 루트부터, Docker Desktop 실행 필요):
+
+```powershell
+# loopback에만 노출하는 폐기 가능한 개발 DB. 기존 DB 컨테이너를 재사용하지 않는다.
+docker run -d --name vishue-admin-local -p 127.0.0.1:15439:5432 -e POSTGRES_USER=admin_local -e POSTGRES_PASSWORD=admin_local -e POSTGRES_DB=admin_local postgres:17-alpine
+cd backend/api
+$env:DATABASE_URL = 'postgresql+asyncpg://admin_local:admin_local@127.0.0.1:15439/admin_local'
+$env:ADMIN_ENABLED = 'true'
+$env:SKINCARE_REFRESH_ENABLED = 'false'
+$env:CORS_ORIGINS = '["http://127.0.0.1:5173"]'
+uv sync --frozen
+uv run alembic upgrade head
+uv run python -m app.jobs.seed_catalog fixtures/demo_catalog.json
+# API에도 프런트엔드와 같은 SUPABASE_URL·SUPABASE_PUBLISHABLE_KEY 공개값을 설정한다.
+# 실제 결제 시연 키는 서버 환경에만 설정한다.
+uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+앱을 이 로컬 API로 연결해 약관을 동의한 계정을 아래 grant 잡으로 등록한다. 다른 터미널에서 admin 웹을 실행한다. 재현을 끝내고 로컬 데이터를 폐기할 때만 `docker rm -f -v vishue-admin-local`로 자신이 만든 이 컨테이너를 정리한다. 이번 자동 검사에 사용한 review 컨테이너는 검사 종료 후 삭제한다.
+
+운영 전환은 확장 migration → 전체 API 서버 코드 교체 → 이전 Pod가 없음을 확인 → ADMIN_ENABLED=true 순서다. 이전 서버는 확장 상태 값을 이해하지 못할 수 있으므로 혼재 중에는 켜지 않는다. 이 값은 관리자 API뿐 아니라 새 노출 필터·재고 경로도 제어하므로, 활성화 후 끄면 기존 카탈로그·결제 동작으로 돌아간다는 점을 고려한다.
+
+```powershell
+# backend/api에서, DB 검토·반영 후 대상 DB를 명시한 운영자만 실행
+uv run python -m app.jobs.grant_staff_role --user-id <Supabase-user-id> --role admin
+uv run python -m app.jobs.grant_staff_role --user-id <Supabase-user-id> --role viewer
+uv run python -m app.jobs.grant_staff_role --user-id <Supabase-user-id> --revoke
+```
+
+회원은 먼저 앱에서 약관에 동의해 members에 존재해야 한다. 최초·후속 역할 지정은 이 잡만 사용한다. 자기 권한 부여 API는 없다.
+
+Render: `vishue-admin` 정적 사이트(rootDir admin, build `npm ci && npm run build`, dist 게시, SPA rewrite)를 연결한다. `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_API_BASE_URL`은 sync:false로 대시보드에 입력한다. API의 CORS_ORIGINS도 sync:false이며 기존 앱 origin과 관리자 origin을 JSON 배열에 함께 넣는다. DB 검토·반영 후 API의 ADMIN_ENABLED를 true로 켠다. DB·토스·Supabase secret 키는 admin에 전달하지 않는다.
+
+Helm: admin.enabled는 기본 false, local만 true. 동일 gateway의 `/`는 admin, 더 구체적인 `/api`·`/pay`는 기존 서버다. admin.apiBaseUrl이 비면 같은 origin이다. nginx는 공개값만 runtime config.js로 받아 비루트·읽기 전용 파일시스템으로 실행한다. `docker build -t vishue-admin:dev admin` 후 kind 이미지 로드와 GitOps 흐름을 따른다. GHCR 이미지 workflow에 admin을 추가했다. 직접 kubectl apply·실제 Render/EKS 배포는 하지 않는다.
+
 같은 백엔드 코드와 Dockerfile을 네 환경에서 씁니다. 환경 사이의 차이는 설정 값에만 있습니다. 왜 이렇게 나눴는지는 [ADR-0003](adr/0003-containers-helm-gitops.md), [ADR-0008](adr/0008-aws-environments.md), [ADR-0009](adr/0009-render-dev-environment.md)에 있습니다.
 
 | 환경 | 용도 | 정의 | PostgreSQL | Neo4j | Redis | 배포 |

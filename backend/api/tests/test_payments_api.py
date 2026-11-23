@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.core.auth import AuthUser, require_user
@@ -40,3 +41,19 @@ def test_order_status_is_only_visible_to_its_owner():
     assert client.get("/api/payments/orders/missing").status_code == 404
     app.dependency_overrides[require_user] = lambda: AuthUser(id="other", email=None)
     assert client.get("/api/payments/orders/order-1").status_code == 404
+
+
+@pytest.mark.parametrize("stored_status", ["paid", "preparing", "shipped", "delivered"])
+def test_fulfillment_keeps_mobile_payment_success_contract(stored_status):
+    class Orders:
+        async def get(self, order_id):
+            return SimpleNamespace(id=order_id, user_id="owner", status=stored_status)
+
+    app = create_app()
+    app.dependency_overrides[get_payment_service] = lambda: PaymentService(
+        Orders(), None, None, None
+    )
+    app.dependency_overrides[require_user] = lambda: AuthUser(id="owner", email=None)
+    response = TestClient(app).get("/api/payments/orders/order-1")
+    assert response.status_code == 200
+    assert response.json() == {"orderId": "order-1", "status": "paid"}

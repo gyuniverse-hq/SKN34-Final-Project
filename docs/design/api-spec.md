@@ -8,6 +8,32 @@
 
 ## 1. 공개 API
 
+### 관리자 API (로컬 구현, 배포 전 DB·결제 검토 필요)
+
+모든 경로에 Supabase Bearer가 필요하다. 미인증/무효 401 unauthorized, 비직원/권한 부족 403 forbidden, ADMIN_ENABLED=false는 503 admin_unavailable다. 응답은 camelCase, 오류는 `{error,code}`. 요청 스키마 추가 필드는 400 invalid_request다. 세부 입출력 계약은 `backend/api/app/schemas/admin.py`와 개발 OpenAPI의 admin 태그에서 확인한다.
+
+| Method · endpoint | 권한 | 입력 | 성공 응답 | 추가 오류 |
+| --- | --- | --- | --- | --- |
+| GET `/api/admin/me` | admin·viewer | 없음 | `{userId,email,role}` | 공통 |
+| GET `/api/admin/audit-log` | admin | cursor?, limit 1–100 | `{items:[id,actorUserId,action,targetType,targetId,beforeJson,afterJson,requestId,createdAt],nextCursor}` | 400 invalid_cursor |
+| GET `/api/admin/orders` | admin·viewer | status?, cursor?, limit 1–100 | `{items:Order[],nextCursor}` | 400 invalid_cursor |
+| GET `/api/admin/orders/{id}` | admin·viewer | 경로 ID | Order + lines | 404 not_found |
+| POST `/api/admin/orders/{id}/status` | admin | `{status,reason?}` | 갱신 Order + lines | 409 invalid_transition, 400 invalid_request(취소 사유 누락), 502 payment_cancel_failed |
+| GET `/api/admin/products` | admin·viewer | query?, category?, cursor?, limit 1–100 | `{items:AdminProduct[],nextCursor}` | 공통 |
+| GET `/api/admin/products/{id}` | admin·viewer | 경로 ID | AdminProduct + shades | 404 not_found |
+| PATCH `/api/admin/products/{id}/admin-state` | admin | `{isVisible?:boolean,stock?:integer|null}`, 최소 한 필드 | 갱신 AdminProduct + shades | 400 invalid_request, 404 not_found |
+| POST `/api/admin/eval-runs` | admin | EvalCreate | EvalRun, 같은 요청은 같은 ID | 400 invalid_request |
+| GET `/api/admin/eval-runs` | admin·viewer | kind?, limit 1–100 | `{items:EvalRun[]}` | 공통 |
+| GET `/api/admin/eval-runs/{id}` | admin·viewer | UUID | EvalRun | 400 invalid_request, 404 not_found |
+
+Order는 id·마스킹 userId(앞 8자)·amountKRW·orderName·status·createdAt·paidAt·마스킹 paymentKey·nextStatuses를 반환한다. lines는 id·productId·productName·shadeId·quantity·unitPriceKRW다. 미상 과거 시각은 null, 목록은 최근 순이며 미상값은 마지막이다. 허용 전이는 paid→preparing→shipped→delivered, paid|preparing→canceled뿐이다.
+
+AdminProduct는 id·name·brand·category·priceKRW·isVisible·stock·shadeCount·measurementMethods다. shades는 id·name·hex·measureMethod·colorSource·colorConfidence이며 읽기 전용이다. stock null은 제한 없음, 상태 행 없는 상품도 노출·제한 없음이다. 상품 커서는 ID 오름차순의 마지막 ID다.
+
+EvalRun은 id·kind·createdAt·rendererCommit·rendererDirty·rubricVersion·metricVersion·benchmarkSha256·summaryJson이다. EvalCreate는 id와 createdAt을 제외한 필드다. summaryJson 허용 키·중첩 계약과 금지 자료는 [ERD](admin-web-erd.md) 및 Pydantic 스키마를 따른다. rendererCommit·kind·benchmarkSha256·정규화된 summaryJson의 결합 digest로 멱등 처리한다. 얼굴 자료나 개별 이미지 해시는 없다.
+
+ADMIN_ENABLED=true이면 기존 `/api/payments/orders`가 수량 부족 시 409 out_of_stock을 반환한다. `/api/payments/confirm`은 잠금 아래 재확인하고 재고 차감·paid·구매 이벤트를 한 트랜잭션으로 저장한다. 기존 URL·요청·성공 응답 형식은 유지한다. 모바일 결제 상태 조회는 paid·preparing·shipped·delivered 모두 paid로 반환해 기존 성공 판정을 유지한다. 취소는 canceled로 반환한다. 관리자 주문 조회는 실제 배송 상태를 반환한다.
+
 | Method · endpoint | 인증 | 입력 | 성공 응답 | 주요 오류 | 모듈 · 상태 |
 |---|---|---|---|---|---|
 | GET `/api/health` | 없음 | 없음 | `{ok, integrations}` | 500 | `api/routers/health.py` · PARTIAL |
