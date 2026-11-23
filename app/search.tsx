@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ProductCard } from '@/components/shop/ProductCard';
@@ -25,7 +25,7 @@ import type { Product, ProductCategory, SkinConcern } from '@/types';
 
 /** Search results for home search and skin-analysis filters (`q`, `category`, `concerns`, `source`). */
 export default function SearchScreen() {
-  const params = useLocalSearchParams<{ q?: string; category?: string; concerns?: string; source?: string }>();
+  const params = useLocalSearchParams<{ q?: string; category?: string; concerns?: string; source?: string; collection?: string }>();
   const router = useRouter();
   const { t } = useI18n();
   const source = parseSearchSource(params.source);
@@ -35,6 +35,8 @@ export default function SearchScreen() {
   const [concerns, setConcerns] = useState<SkinConcern[]>(parseConcerns(params.concerns));
   const debouncedQuery = useDebouncedValue(query.trim(), 300);
   const products = useProducts({ q: debouncedQuery || undefined, category, concerns });
+  const newArrivals = paramValue(params.collection) === 'new';
+  const items = useMemo(() => newArrivals ? products.data?.filter(p => p.tags.includes('new')) : products.data, [newArrivals, products.data]);
 
   const renderItem = useCallback(
     ({ item }: { item: Product }) => (
@@ -81,8 +83,8 @@ export default function SearchScreen() {
           <Button label={t('search.editFilters')} variant="ghost" compact onPress={() => router.back()} style={styles.noticeBtn} />
         </Notice>
       ) : null}
-      {!products.isPending && !products.isError && products.data.length > 0 ? (
-        <Text style={styles.count}>{t('search.count', { count: products.data.length })}</Text>
+      {!products.isPending && !products.isError && !!items?.length ? (
+        <Text style={styles.count}>{t('search.count', { count: items.length })}</Text>
       ) : null}
     </View>
   );
@@ -91,9 +93,9 @@ export default function SearchScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <Stack.Screen options={{ title: t(source === 'skin' ? 'search.skinTitle' : 'search.title') }} />
+      <Stack.Screen options={{ title: t(newArrivals ? 'discovery.new' : source === 'skin' ? 'search.skinTitle' : 'search.title') }} />
       <FlatList
-        data={products.data ?? []}
+        data={items ?? []}
         keyExtractor={(item) => item.id}
         numColumns={2}
         renderItem={renderItem}
@@ -109,8 +111,8 @@ export default function SearchScreen() {
           ) : (
             <EmptyState
               icon={filtered ? 'search-outline' : 'cube-outline'}
-              title={filtered ? t('shop.noResults') : t('shop.emptyCatalog')}
-              body={filtered ? t('search.noResultsBody') : t('shop.emptyCatalogBody')}
+              title={filtered ? t('shop.noResults') : t(newArrivals ? 'discovery.newEmpty' : 'shop.emptyCatalog')}
+              body={filtered ? t('search.noResultsBody') : newArrivals ? undefined : t('shop.emptyCatalogBody')}
               action={
                 filtered ? (
                   <Button

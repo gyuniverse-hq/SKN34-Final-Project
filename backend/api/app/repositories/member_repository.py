@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,7 +10,11 @@ from app.schemas.member import MemberRecord
 
 def _record(row: MemberRow) -> MemberRecord:
     return MemberRecord(
-        id=row.id, terms_version=row.terms_version, terms_agreed_at=row.terms_agreed_at
+        id=row.id,
+        terms_version=row.terms_version,
+        terms_agreed_at=row.terms_agreed_at,
+        skin_trial_run=row.skin_trial_run,
+        skin_subscription_until=row.skin_subscription_until,
     )
 
 
@@ -34,6 +38,50 @@ class MemberRepository:
         row = await self._session.scalar(stmt)
         await self._session.commit()
         return _record(row)
+
+    async def claim_first_ar_visit(self, member_id: str) -> bool:
+        stmt = (
+            update(MemberRow)
+            .where(MemberRow.id == member_id, MemberRow.first_ar_seen_at.is_(None))
+            .values(first_ar_seen_at=func.now())
+            .returning(MemberRow.skin_trial_run.is_(None))
+        )
+        eligible = await self._session.scalar(stmt)
+        await self._session.commit()
+        return bool(eligible)
+
+    async def complete_analysis(self, member_id: str, run_id: str) -> MemberRecord | None:
+        stmt = (
+            update(MemberRow)
+            .where(
+                MemberRow.id == member_id,
+                or_(
+                    MemberRow.skin_trial_run.is_(None),
+                    MemberRow.skin_trial_run == run_id,
+                    MemberRow.skin_subscription_until > func.now(),
+                ),
+            )
+            .values(skin_trial_run=func.coalesce(MemberRow.skin_trial_run, run_id))
+            .returning(MemberRow)
+            .execution_options(populate_existing=True)
+        )
+        row = await self._session.scalar(stmt)
+        record = _record(row) if row else None
+        await self._session.commit()
+        return record
+
+    async def set_skin_subscription(self, member_id: str, until: datetime) -> MemberRecord | None:
+        stmt = (
+            update(MemberRow)
+            .where(MemberRow.id == member_id)
+            .values(skin_subscription_until=until)
+            .returning(MemberRow)
+            .execution_options(populate_existing=True)
+        )
+        row = await self._session.scalar(stmt)
+        record = _record(row) if row else None
+        await self._session.commit()
+        return record
 
     async def delete(self, member_id: str) -> None:
         await self._session.execute(delete(MemberRow).where(MemberRow.id == member_id))

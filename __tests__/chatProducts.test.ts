@@ -61,6 +61,20 @@ async function renderProducts(props: Partial<Parameters<typeof ChatProducts>[0]>
 }
 
 describe('chat product cards', () => {
+  it('keeps unlinked video products in the carousel without inventing a detail link', async () => {
+    const sourceProducts = [
+      { label: '원본 립', zone: 'lip', productId: lip.id, mappingStatus: 'product_only' as const, catalogValid: false, arEligible: false },
+      { label: '원본 미연결 제품', zone: 'base', mappingStatus: 'unknown' as const, catalogValid: false, arEligible: false },
+      { label: '원본 스킨케어', zone: 'unknown', productId: care.id, mappingStatus: 'product_only' as const, catalogValid: false, arEligible: false },
+    ];
+    const { renderer } = await renderProducts({ sourceProducts, conditions: [], showIngredients: false });
+    const rows = textRows(renderer);
+    expect(rows).toContain('원본 미연결 제품');
+    expect(rows).toContain('chat.style.mappingNotLinked');
+    expect(rows.some((row) => row.includes('1 / 3'))).toBe(true);
+    expect(renderer.root.findAllByType(ProductImage)).toHaveLength(2);
+    await act(async () => { renderer.unmount(); });
+  });
   it('shows original candidate numbering and explicitly partial ingredient evidence', async () => {
     const { renderer } = await renderProducts({ products: [lip], candidateOrder: ['another', lip.id],
       evidence: [{ productId: lip.id, source: 'catalog_api', ingredientCoverage: 'key_only', fragranceStatus: 'unknown' }] });

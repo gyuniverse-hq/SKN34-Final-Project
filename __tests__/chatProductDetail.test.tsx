@@ -13,7 +13,8 @@ const mockProduct = { id: 'lip', brand: 'Fixture', name: 'Test lip', nameKo: '',
     { id: 'first', name: 'First', hex: '#112233' }, { id: 'selected', name: 'Selected', hex: '#445566' },
   ] } as Product;
 const mockHref = productHref(mockProduct.id, 'selected');
-const mockRoute = typeof mockHref === 'object' ? mockHref.params : {};
+const mockRoute = (typeof mockHref === 'object' ? mockHref.params : {}) as { id?: string; shade?: string; requireShade?: string };
+const mockNotify = jest.fn();
 jest.mock('expo-router', () => ({ Stack: { Screen: () => null },
   useLocalSearchParams: () => mockRoute, useRouter: () => ({ push: jest.fn(), setParams: jest.fn() }),
 }));
@@ -24,6 +25,7 @@ jest.mock('@/components/ui/ProductImage', () => ({ ProductImage: () => null }));
 jest.mock('@/components/ui/StateViews', () => ({ EmptyState: () => null, ErrorState: () => null, LoadingState: () => null }));
 jest.mock('@expo/vector-icons/Ionicons', () => () => null);
 jest.mock('expo-haptics', () => ({ notificationAsync: async () => {}, NotificationFeedbackType: { Success: 'success' } }));
+jest.mock('@/lib/confirm', () => ({ notify: (...args: unknown[]) => mockNotify(...args) }));
 
 it('keeps the chat-selected non-first shade through product details and the real cart store', async () => {
   useCartStore.getState().reset();
@@ -33,5 +35,25 @@ it('keeps the chat-selected non-first shade through product details and the real
   await act(async () => { view.root.findAllByType(Button).find((button) => button.props.label === 'product.addToCart')!.props.onPress(); });
   expect(useCartStore.getState().items).toEqual([{ productId: 'lip', shadeId: 'selected', quantity: 1 }]);
   await act(async () => { view.unmount(); });
+  useCartStore.getState().reset();
+});
+
+it('does not select or add a shade when a video product has no linked shade', async () => {
+  useCartStore.getState().reset();
+  mockRoute.requireShade = '1';
+  delete mockRoute.shade;
+  let view!: ReactTestRenderer;
+  await act(async () => { view = create(createElement(ProductDetail)); });
+  expect(view.root.findByType(ShadePicker).props.selectedId).toBeUndefined();
+  await act(async () => { view.root.findAllByType(Button).find((button) => button.props.label === 'product.addToCart')!.props.onPress(); });
+  expect(useCartStore.getState().items).toEqual([]);
+  expect(mockNotify).toHaveBeenCalledWith('chat.ingredient.selection');
+  await act(async () => { view.root.findByType(ShadePicker).props.onSelect(mockProduct.shades[1]); });
+  expect(view.root.findByType(ShadePicker).props.selectedId).toBe('selected');
+  await act(async () => { view.root.findAllByType(Button).find((button) => button.props.label === 'product.addToCart')!.props.onPress(); });
+  expect(useCartStore.getState().items).toEqual([{ productId: 'lip', shadeId: 'selected', quantity: 1 }]);
+  await act(async () => { view.unmount(); });
+  delete mockRoute.requireShade;
+  mockRoute.shade = 'selected';
   useCartStore.getState().reset();
 });

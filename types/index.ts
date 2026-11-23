@@ -639,6 +639,8 @@ export interface ChatResponse {
   optionSearch?: ChatOptionSearch;
   pendingClarification?: PendingClarification | null;
   styleRecipe?: ChatStyleRecipe;
+  styleCandidates?: ChatStyleCandidate[];
+  styleConditions?: ChatStyleCondition[];
   styleContext?: ChatStyleContext;
   styleStatus?: 'ready' | 'clarification' | 'not_found' | 'error' | 'unsupported';
   answer: string;
@@ -650,6 +652,19 @@ export interface ChatResponse {
   ingredientComparison?: ChatIngredientComparison;
   fragranceSearchSummary?: { checked: number; total: number; verifiedProductIds: string[] };
   sessionStatus?: 'stored' | 'unchanged' | 'unavailable';
+}
+
+export interface ChatStyleCandidate {
+  kind: 'video' | 'catalog';
+  lookId: string;
+  title: string;
+  tags: string[];
+  match?: string | null;
+}
+
+export interface ChatStyleCondition {
+  slot: 'occasion' | 'mood' | 'eyes' | 'lips' | 'sparkle' | 'color' | 'finish';
+  value: string;
 }
 
 /** Ephemeral progress hint. The server reloads content and checks recipe identity/version. */
@@ -670,6 +685,8 @@ export interface ChatStyleRecipe {
   title: string;
   basis: 'reviewed_recipe' | 'catalog_settings' | 'video_metadata';
   reviewStatus: 'verified' | 'unreviewed' | 'not_applicable';
+  productUsageTrusted?: boolean;
+  productQuestion?: boolean;
   videoAnalyzed: false;
   synthetic: boolean;
   source: string;
@@ -678,7 +695,7 @@ export interface ChatStyleRecipe {
   steps: { order: number; zone: MakeupZone; title: string; description?: string | null; guideKey?: MakeupZone | null }[];
   currentStep: number;
   products: { label: string; zone: string; productId?: string | null; shadeId?: string | null;
-    mappingStatus: 'verified' | 'unknown' | 'invalid'; catalogValid: boolean; arEligible: boolean }[];
+    mappingStatus: 'verified' | 'product_only' | 'unknown' | 'invalid' | 'unavailable'; catalogValid: boolean; arEligible: boolean }[];
   arEligible: boolean;
   reason: 'reviewed_recipe' | 'catalog_settings' | 'video_not_analyzed' | 'no_steps' | 'recipe_changed';
   makeup?: Partial<MakeupState> | null;

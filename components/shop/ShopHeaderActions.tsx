@@ -35,7 +35,7 @@ function IconButton({
   );
 }
 
-export function ShopHeaderActions({ onOpenCart }: { onOpenCart: () => void }) {
+export function ShopHeaderActions({ onOpenCart, showLanguage = true }: { onOpenCart: () => void; showLanguage?: boolean }) {
   const { t } = useI18n();
   const cartCount = useCartStore(selectCartCount);
   const language = useSettingsStore((s) => s.language);
@@ -56,12 +56,12 @@ export function ShopHeaderActions({ onOpenCart }: { onOpenCart: () => void }) {
 
   return (
     <View style={styles.row}>
-      <IconButton
+      {showLanguage && <IconButton
         icon="language-outline"
         label={t('shop.changeLanguage')}
         value={currentLabel}
         onPress={() => setPickerOpen(true)}
-      />
+      />}
       <IconButton icon="cart-outline" label={t('cart.title')} value={cartCount ? badge : undefined} onPress={onOpenCart}>
         {cartCount > 0 ? (
           <View style={styles.badge} importantForAccessibility="no-hide-descendants">

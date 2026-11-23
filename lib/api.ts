@@ -95,8 +95,17 @@ async function apiRequest(
   return res;
 }
 
-export async function apiGet<T>(path: string, options: { timeoutMs?: number } = {}): Promise<T> {
-  const res = await apiRequest(path, { method: 'GET' }, options);
+async function ownerToken(expectedUserId?: string) {
+  if (expectedUserId === undefined) return undefined;
+  const credentials = await arCredentials();
+  if (credentials.owner.kind !== 'user' || credentials.owner.id !== expectedUserId) {
+    throw new ApiError('Request owner changed', 0, 'owner_changed');
+  }
+  return { value: credentials.token };
+}
+
+export async function apiGet<T>(path: string, options: { timeoutMs?: number; expectedUserId?: string } = {}): Promise<T> {
+  const res = await apiRequest(path, { method: 'GET' }, { ...options, fixedToken: await ownerToken(options.expectedUserId) });
   return (await res.json()) as T;
 }
 
@@ -106,15 +115,12 @@ export async function apiPost<T>(
   options: { headers?: Record<string, string>; baseUrl?: string; timeoutMs?: number; expectedUserId?: string } = {}
 ): Promise<T> {
   // Feedback belongs to the user who saw the recommendation, even across an account switch.
-  const credentials = options.expectedUserId === undefined ? undefined : await arCredentials();
-  if (credentials && (credentials.owner.kind !== 'user' || credentials.owner.id !== options.expectedUserId)) {
-    throw new ApiError('Request owner changed', 0, 'owner_changed');
-  }
+  const fixedToken = await ownerToken(options.expectedUserId);
   const res = await apiRequest(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options.headers },
     body: JSON.stringify(body),
-  }, { ...options, ...(credentials ? { fixedToken: { value: credentials.token } } : {}) });
+  }, { ...options, fixedToken });
   return (await res.json()) as T;
 }
 

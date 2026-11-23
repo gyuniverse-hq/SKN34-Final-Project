@@ -95,6 +95,15 @@ class CatalogClient:
     async def fetch_looks(self) -> list[CatalogLook]:
         return [CatalogLook.model_validate(lk) for lk in await self._get("/api/looks", "looks")]
 
+    async def fetch_style_looks(self) -> list[CatalogStyleLook]:
+        try:
+            return [
+                CatalogStyleLook.model_validate(row)
+                for row in await self._get("/api/style-looks", "looks")
+            ]
+        except (ValueError, TypeError) as exc:
+            raise UpstreamError("Invalid style catalog response") from exc
+
     async def get_style_look(self, kind: str, look_id: str):
         pattern = r"[A-Za-z0-9_-]{1,64}" if kind == "video" else r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}"
         if not re.fullmatch(pattern, look_id):

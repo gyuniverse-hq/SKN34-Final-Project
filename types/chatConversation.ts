@@ -1,4 +1,4 @@
-import type { RecentChatMessage, BeautyChatContext, ChatProductEvidence, ChatProductRef, ChatResponse, ChatScreenContext, ChatStyleContext } from './index';
+import type { RecentChatMessage, BeautyChatContext, ChatProductEvidence, ChatProductRef, ChatResponse, ChatScreenContext, ChatStyleContext, ChatStyleCondition } from './index';
 
 export type ConversationSubject =
   | { type: 'general' }
@@ -37,6 +37,8 @@ export type ChatMessage = {
   sessionStatus?: ChatResponse['sessionStatus'];
   retryable?: boolean;
   styleRecipe?: ChatResponse['styleRecipe'];
+  styleCandidates?: ChatResponse['styleCandidates'];
+  styleStatus?: ChatResponse['styleStatus'];
 };
 
 export type ChatRequestSnapshot = {
@@ -52,6 +54,12 @@ export type ChatRequestSnapshot = {
     chatContext?: BeautyChatContext;
     screenContext?: ChatScreenContext;
     styleContext?: ChatStyleContext;
+    styleSearch?: boolean;
+    excludedStyle?: Pick<NonNullable<ChatResponse['styleCandidates']>[number], 'kind' | 'lookId'>;
+    previousStyleCandidates?: Pick<NonNullable<ChatResponse['styleCandidates']>[number], 'kind' | 'lookId'>[];
+    previousStyleSelection?: Pick<NonNullable<ChatResponse['styleCandidates']>[number], 'kind' | 'lookId'>;
+    styleConditions?: ChatStyleCondition[];
+    styleCompare?: boolean;
   };
   automatic: boolean;
   generalMakeup?: boolean;

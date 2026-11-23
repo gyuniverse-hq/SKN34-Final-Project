@@ -71,6 +71,7 @@ from app.services.knowledge_service import consult_knowledge
 from app.services.product_consultation_graph import SupervisorRuntime, product_supervisor
 from app.services.style_recipe_service import TEXT as STYLE_TEXT
 from app.services.style_recipe_service import execute_style
+from app.services.style_search_service import search_style
 
 LANGUAGE = {"en": "English", "ko": "Korean", "ja": "Japanese", "zh": "Simplified Chinese"}
 MAX_TERMS = 8
@@ -588,6 +589,8 @@ class ChatService:
         self._sessions = sessions
 
     async def answer(self, req: ChatRequest, principal_key: str | None = None) -> ChatResponse:
+        if req.style_search:
+            return await search_style(req, self._catalog, self._llm)
         explicit_knowledge = req.request_type == "knowledge_consultation"
         if explicit_knowledge:
             # A knowledge hint must pass the same tool and session guards as ordinary chat.

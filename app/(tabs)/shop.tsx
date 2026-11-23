@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ProductCard } from '@/components/shop/ProductCard';
 import { SearchBar } from '@/components/shop/SearchBar';
 import { ShopHeaderActions } from '@/components/shop/ShopHeaderActions';
-import { Chip } from '@/components/ui/Chip';
+import { homeLayout, homeType, tabTitle } from '@/constants/homeLayout';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -44,23 +44,22 @@ export default function ShopScreen() {
           <Text style={styles.title} accessibilityRole="header">
             {t('shop.products')}
           </Text>
-          <Text style={styles.tagline}>{t('shop.tagline')}</Text>
         </View>
         <ShopHeaderActions onOpenCart={() => router.push('/cart')} />
       </View>
       <View style={styles.search}>
-        <SearchBar value={query} onChangeText={setQuery} placeholder={t('shop.searchPlaceholder')} />
+        <SearchBar tonal value={query} onChangeText={setQuery} placeholder={t('shop.searchPlaceholder')} />
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-        <Chip label={t('shop.all')} selected={!category} onPress={() => setCategory(undefined)} />
-        {PRODUCT_CATEGORIES.map((c) => (
-          <Chip
-            key={c}
-            label={t(`shop.cat.${c}` as TranslationKey)}
-            selected={category === c}
-            onPress={() => setCategory(category === c ? undefined : c)}
-          />
-        ))}
+        {[undefined, ...PRODUCT_CATEGORIES].map((c) => {
+          const selected = category === c;
+          return (
+            <Pressable key={c ?? 'all'} accessibilityRole="button" aria-selected={selected}
+              style={[styles.category, selected && styles.activeCategory]} onPress={() => setCategory(selected ? undefined : c)}>
+              <Text style={[styles.categoryText, selected && styles.activeText]}>{c ? t(`shop.cat.${c}` as TranslationKey) : t('shop.all')}</Text>
+            </Pressable>
+          );
+        })}
       </ScrollView>
 
       <View style={styles.links}>
@@ -92,6 +91,7 @@ export default function ShopScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <FlatList
+        style={styles.catalog}
         data={products.data ?? []}
         keyExtractor={(item) => item.id}
         numColumns={2}
@@ -122,24 +122,28 @@ export default function ShopScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.colors.surface },
-  list: { paddingHorizontal: 10, paddingBottom: 32 },
-  hero: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 6, paddingTop: 12 },
+  screen: { flex: 1, backgroundColor: homeLayout.background },
+  catalog: { flex: 1, width: '100%', maxWidth: homeLayout.maxWidth, alignSelf: 'center' },
+  list: { paddingHorizontal: homeLayout.gutter - homeLayout.productGap / 2, paddingBottom: 92 },
+  hero: { minHeight: homeLayout.headerHeight, flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: homeLayout.productGap / 2 },
   heroText: { flex: 1 },
-  title: { fontSize: theme.font.h1, fontWeight: '800', color: theme.colors.ink, letterSpacing: -0.5 },
-  tagline: { fontSize: theme.font.small, color: theme.colors.inkMuted, marginTop: 2 },
-  search: { paddingHorizontal: 6, paddingTop: 14, paddingBottom: 10 },
-  chips: { gap: 8, paddingHorizontal: 6, paddingBottom: 6 },
-  links: { gap: 8, marginTop: 10, marginHorizontal: 6 },
+  title: tabTitle,
+  search: { marginHorizontal: homeLayout.productGap / 2, marginBottom: 6 },
+  chips: { gap: 16, paddingHorizontal: homeLayout.productGap / 2 },
+  category: { minHeight: theme.hitTarget, justifyContent: 'center', borderBottomWidth: 2, borderColor: 'transparent' },
+  activeCategory: { borderColor: theme.colors.rose },
+  categoryText: { ...homeType(14), color: theme.colors.inkMuted },
+  activeText: { fontWeight: '600', color: theme.colors.roseDark },
+  links: { gap: 6, marginTop: 14, marginHorizontal: homeLayout.productGap / 2 },
   link: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     minHeight: theme.hitTarget,
     paddingHorizontal: 12,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.roseSoft,
+    borderRadius: 10,
+    backgroundColor: theme.colors.cream,
   },
-  linkText: { flex: 1, fontSize: theme.font.small, fontWeight: '700', color: theme.colors.roseDark },
-  count: { marginTop: 16, marginHorizontal: 6, fontSize: 12, fontWeight: '700', color: theme.colors.inkMuted },
+  linkText: { ...homeType(13), flex: 1, fontWeight: '500', color: theme.colors.roseDark },
+  count: { ...homeType(12), marginTop: 16, marginBottom: 8, marginHorizontal: homeLayout.productGap / 2, color: theme.colors.inkMuted },
 });

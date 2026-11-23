@@ -9,10 +9,11 @@ import type { ChatCondition } from '@/lib/chatConditions';
 import { formatKRW } from '@/lib/format';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { parseCategory, parseId } from '@/lib/routes';
-import type { ChatOptionSearch, ChatProductEvidence, Product } from '@/types';
+import type { ChatOptionSearch, ChatProductEvidence, ChatStyleRecipe, Product } from '@/types';
 
 interface Props {
   optionSearch?: ChatOptionSearch;
+  sourceProducts?: ChatStyleRecipe['products'];
   products: Product[];
   loading: boolean;
   failed: boolean;
@@ -67,7 +68,7 @@ function optionShadeLabel(shadeId: string, items: ChatOptionSearch['items']): Tr
   return groups.has('ELIGIBLE') ? 'chat.option.eligible' : 'chat.conditionNotMet';
 }
 
-export function ChatProducts({ optionSearch, products, loading, failed, missingCount, conditions, showIngredients, onRetry, onOpenProduct, onOpenAr, disabledActions = false, previewImage, candidateOrder, evidence, selectedShades: controlledShades, onSelectShade, onSelectProduct, selectedProductId, expectedIds, fragrance, onOpenEvidence }: Props) {
+export function ChatProducts({ optionSearch, sourceProducts, products, loading, failed, missingCount, conditions, showIngredients, onRetry, onOpenProduct, onOpenAr, disabledActions = false, previewImage, candidateOrder, evidence, selectedShades: controlledShades, onSelectShade, onSelectProduct, selectedProductId, expectedIds, fragrance, onOpenEvidence }: Props) {
   const { t } = useI18n();
   const [selectedShades, setSelectedShades] = useState<Record<string, string>>({});
   const [compareOpen, setCompareOpen] = useState(false);
@@ -101,9 +102,13 @@ export function ChatProducts({ optionSearch, products, loading, failed, missingC
         return rank(a) - rank(b);
       })
     : undefined;
-  const slides = orderedExpected
+  const catalogSlides = orderedExpected
     ? orderedExpected.map((id) => loadedSlides.find((slide) => slide.key === id) ?? { key: id, title: undefined, products: [] })
     : loadedSlides;
+  const slides: { key: string; title?: TranslationKey; products: Product[]; source?: ChatStyleRecipe['products'][number] }[] = sourceProducts
+    ? sourceProducts.map((source, index) => ({ key: `video-${index}`, source,
+      products: source.productId ? products.filter((product) => product.id === source.productId) : [] }))
+    : catalogSlides;
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = Math.min(312, Math.max(224, screenWidth - 96));
   const slideStep = cardWidth + 12;
@@ -146,18 +151,19 @@ export function ChatProducts({ optionSearch, products, loading, failed, missingC
           const index = Math.round(nativeEvent.contentOffset.x / slideStep);
           setViewedIndex(Math.max(0, Math.min(index, slides.length - 1)));
         }}>
-      {slides.map((group) => (
+      {slides.map((group, slideIndex) => (
         <View key={group.key} style={[styles.group, { width: cardWidth }]}>
           {group.title ? <Text style={styles.groupTitle}>{t(group.title)}</Text> : null}
           {!group.products.length ? <View style={styles.missingCard}>
-            <Text style={styles.carouselCount}>{candidateOrder?.includes(group.key)
+            <Text style={styles.carouselCount}>{group.source ? t('chat.candidateNumber', { index: slideIndex + 1 }) : candidateOrder?.includes(group.key)
               ? t('chat.candidateNumber', { index: candidateOrder.indexOf(group.key) + 1 })
               : t('chat.conditionUnknown')}</Text>
-            <Text style={styles.notice}>{loading ? t('chat.productLoading') : failed
+            {group.source?.label ? <Text style={styles.brand}>{group.source.label}</Text> : null}
+            <Text style={styles.notice}>{group.source?.mappingStatus === 'unavailable' ? t('chat.productLoadFailed') : group.source && !group.source.productId ? t('chat.style.mappingNotLinked') : loading ? t('chat.productLoading') : failed
               ? t('chat.productLoadFailed') : t('chat.productMissing', { count: 1 })}</Text>
           </View> : null}
           {group.products.map((product) => {
-            const candidateIndex = candidateOrder?.indexOf(product.id) ?? -1;
+            const candidateIndex = group.source ? slideIndex : candidateOrder?.indexOf(product.id) ?? -1;
             const proof = evidence?.find((item) => item.productId === product.id);
             const productOptions = optionSearch?.items.filter((item) => item.productId === product.id) ?? [];
             const options = productOptions.filter((item) => item.group !== 'EXCLUDED');
@@ -165,7 +171,7 @@ export function ChatProducts({ optionSearch, products, loading, failed, missingC
               ? product.shades.filter((shade) => parseId(shade.id) === shade.id) : [];
             const tryOn = canTryOn(product) && parseId(product.id) === product.id && validShades.length > 0;
             const selectedShade = validShades.find((shade) => shade.id === (controlledShades ?? selectedShades)[product.id]);
-            const productCategory = parseCategory(product.category);
+            const productCategory = parseCategory(group.source?.zone === 'foundation' && product.id === 'yt-044fc0c5c3441ea932e6' ? 'base' : product.category);
             const priceBasis = optionSearch?.effectiveRequest?.priceBasis ?? options.find((item) => item.price)?.price?.requestedBasis;
             const registeredPrice = optionSearch || proof?.source === 'catalog_api';
             const fragranceUnknown = options.some((item) => item.checks.some((check) =>
