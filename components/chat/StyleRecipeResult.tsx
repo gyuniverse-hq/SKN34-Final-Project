@@ -193,7 +193,10 @@ export function StyleRecipeResult({ heading, summary, browseImage, browseLabel, 
       {result && showProducts ? <View style={styles.relatedProducts}>
         {result.products.map((product, index) => <View key={index} style={styles.relatedProduct}>
           <Text style={styles.productName}>{product.label}</Text>
-          <Text>{t(product.mappingStatus === 'verified' ? 'chat.style.mappingVerified' : 'chat.style.mappingUnknown')}</Text>
+          <Text>{t(product.mappingStatus === 'verified' ? 'chat.style.mappingVerified'
+            : product.productId ? product.mappingStatus === 'invalid' ? 'chat.style.mappingShadeInvalid' : 'chat.style.mappingProductOnly'
+              : product.mappingStatus === 'unavailable' ? 'chat.productLoadFailed'
+                : result.productUsageTrusted ? 'chat.style.mappingNotLinked' : 'chat.style.mappingUnknown')}</Text>
           {product.productId && onOpenProduct ? <Pressable accessibilityRole="button" accessibilityLabel={t('styleLooks.openProduct')} style={styles.stepControl}
             onPress={() => onOpenProduct(product.productId!, product.catalogValid && product.mappingStatus === 'verified' ? product.shadeId ?? undefined : undefined)}><Text>{t('styleLooks.openProduct')}</Text></Pressable> : null}
           {product.arEligible && product.catalogValid && product.mappingStatus === 'verified' && product.productId && product.shadeId && onOpenAr ? <Pressable accessibilityRole="button" accessibilityLabel={t('styleLooks.tryAr')} style={styles.stepControl}

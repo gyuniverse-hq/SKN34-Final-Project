@@ -133,6 +133,10 @@ export const ko: Dictionary = {
   "chat.style.source": "출처",
   "chat.style.version": "레시피 버전",
   "chat.style.mappingVerified": "상품·호수 연결 확인",
+  "chat.style.mappingProductOnly": "상품 연결됨 · 호수 연결 없음",
+  "chat.style.mappingShadeInvalid": "상품 연결됨 · 호수 연결 확인 필요",
+  "chat.style.mappingNotLinked": "상품 상세 연결 없음",
+  "chat.style.videoProductsCount": "검색된 제품 {total}개 · 상품 상세 연결 {linked}개",
   "chat.style.mappingUnknown": "자료에 기재된 제품 · 실제 사용 제품·호수 미확인",
   "chat.style.manualAr": "상품·호수를 직접 선택해 AR 체험",
 
@@ -171,6 +175,7 @@ export const ko: Dictionary = {
   'chat.ingredient.fragranceVerified': "향료 무첨가 확인",
   'chat.ingredient.noRegisteredShades': "등록된 호수 정보가 없어요.",
   'chat.style.referenceProducts': "참고 제품",
+  'chat.style.match': "제목·태그 관련 표현: {match}",
   'chat.session.newSearchHint': "상품 종류와 조건을 입력해 새로운 독립 검색을 시작해 주세요.",
   'chat.session.idUnavailable': "안전한 요청 UUID를 생성할 수 없습니다. 지원되는 기기에서 다시 시도해 주세요.",
   'chat.ingredient.MATCH': "조건 충족",

@@ -1,7 +1,7 @@
 import { uuid } from 'expo';
 import { create } from 'zustand';
 import type { TranslationKey } from '@/lib/i18n';
-import type { PendingClarification, RecentChatMessage, BeautyChatContext, ChatResponse, ChatScreenContext, ChatStyleContext } from '@/types';
+import type { PendingClarification, RecentChatMessage, BeautyChatContext, ChatResponse, ChatScreenContext, ChatStyleContext, ChatStyleCondition } from '@/types';
 import type { ChatCategory, ChatMessage, ConversationTarget, ChatRequestTicket, ChatRequestSnapshot, ConversationEntry, ConversationSubject } from '@/types/chatConversation';
 
 // Select complete pairs from this room; Unicode code points match Python len().
@@ -21,6 +21,24 @@ export function recentChatMessages(messages: ChatMessage[], ownerKey: string, ge
     i -= 1;
   }
   return result;
+}
+
+export function recentStyleMessages(messages: ChatMessage[], ownerKey: string, generation: number): RecentChatMessage[] {
+  const turns = messages.flatMap((answer, index) => {
+    const question = messages[index - 1];
+    if (answer.role !== 'assistant' || answer.styleCandidates === undefined || question?.role !== 'user' ||
+      [answer, question].some((item) => item.failed || item.automatic || item.ownerKey !== ownerKey || item.generation !== generation) ||
+      !question.text || Array.from(question.text).length > 1000) return [];
+    return [{ id: question.id, role: 'user' as const, text: question.text }];
+  });
+  const grouped: RecentChatMessage[] = [];
+  for (const turn of turns) {
+    const last = grouped.at(-1);
+    if (last && Array.from(`${last.text}\n${turn.text}`).length <= 1000) last.text += `\n${turn.text}`;
+    else grouped.push({ ...turn });
+  }
+  // shortcut: very long chats keep the first and latest groups; G7 can provide durable context.
+  return grouped.length > 8 ? [grouped[0], ...grouped.slice(-7)] : grouped;
 }
 
 function subjectKey(subject: ConversationSubject) {
@@ -62,6 +80,7 @@ function createChatConversation(userId: string | null, ownerKey: string, entry: 
     },
     styleContext: (entry.type === 'look' ? { kind: entry.kind, lookId: entry.lookId, currentStep: 0 } : focus?.style ? { kind: focus.style.kind, lookId: focus.style.lookId, currentStep: 0 } : undefined) as ChatStyleContext | undefined,
     styleRevision: 0,
+    styleConditions: [] as ChatStyleCondition[],
     entryProduct: screenForEntry(entry) ?? focus?.product,
     snapshots: new Map<string, ChatRequestSnapshot>(),
     category: (entry.type === 'look' || focus?.style ? 'style' : entry.type === 'product' || focus?.product ? 'product' : undefined) as ChatCategory | undefined,
@@ -121,6 +140,7 @@ function resetRoom(room: ChatConversationState, record: ConversationRecord, key:
   room.beautyContext = undefined;
   room.dismissedClarificationId = undefined;
   room.pendingClarification = undefined;
+  room.styleConditions = [];
   room.beautyContextTurn = 0;
   room.snapshots.clear();
   if (!keepSelection) room.selection = { revision: room.selection.revision + 1, shades: {}, changed: {}, screen: undefined };
@@ -201,7 +221,10 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
       return true;
     },
     setDraft: (target, value) => { change(target, (room) => { room.draft = value; }); },
-    setCategory: (target, value) => { change(target, (room) => { room.category = value; }); },
+    setCategory: (target, value) => { change(target, (room) => {
+      if (room.category !== value) room.styleRevision += 1;
+      room.category = value;
+    }); },
     setNotice: (target, value) => { change(target, (room) => { room.notice = value; }); },
     setStyle: (target, value) => { change(target, (room) => {
       room.styleContext = value ? { ...value } : undefined;
@@ -289,7 +312,11 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
           if (next && expected && next.kind === expected.kind && next.lookId === expected.lookId) {
             room.styleContext = { ...next };
           }
+          if (snapshot.args.styleSearch && response.styleConditions) {
+            room.styleConditions = response.styleConditions.map((item) => ({ ...item }));
+          }
         }
+        if (response.styleCandidates && room.styleRevision === snapshot.styleRevision) room.category = 'style';
         const requestTurn = Number(messageId.slice('user-'.length));
         if (response.sessionStatus === 'unavailable' && requestTurn >= room.beautyContextTurn) {
           resetRoom(room, record, 'chat.session.unavailable', room.selection.revision > snapshot.revision);
@@ -345,6 +372,8 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
           fragranceSearchSummary: response.fragranceSearchSummary,
           ingredientComparison: response.ingredientComparison,
           styleRecipe: response.styleRecipe,
+          styleCandidates: response.styleCandidates,
+          styleStatus: response.styleStatus,
           ...(response.knowledge ? { knowledge: response.knowledge } : {}),
           optionSearch: response.optionSearch,
         };

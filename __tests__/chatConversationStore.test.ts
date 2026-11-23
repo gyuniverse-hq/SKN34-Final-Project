@@ -1,6 +1,6 @@
 import type { BeautyChatContext, KnowledgeReply } from '@/types';
 import type { ChatRequestSnapshot, ConversationTarget } from '@/types/chatConversation';
-import { recentChatMessages, useChatConversationStore } from '@/store/chatConversationStore';
+import { recentChatMessages, recentStyleMessages, useChatConversationStore } from '@/store/chatConversationStore';
 
 const store = useChatConversationStore.getState;
 
@@ -205,6 +205,29 @@ test('G3 selects bounded Unicode pairs without mixing owners or incomplete turns
   expect(recentChatMessages(pair(0, '😀'.repeat(1001)), 'a', 1)).toEqual([]);
   const failed = pair(0).map((m) => ({ ...m, failed: true }));
   expect(recentChatMessages(failed, 'a', 1)).toEqual([]);
+});
+
+test('look search keeps earlier conditions in the same room across later refinements', () => {
+  const messages = Array.from({ length: 9 }, (_, i) => [
+    { id: `u${i}`, role: 'user' as const, text: `condition ${i}`, ownerKey: 'a', generation: 1 },
+    { id: `a${i}`, role: 'assistant' as const, text: 'results', styleCandidates: [], ownerKey: 'a', generation: 1 },
+  ]).flat();
+  const history = recentStyleMessages(messages, 'a', 1);
+  expect(history.map((item) => item.text).join('\n')).toContain('condition 0');
+  expect(history.map((item) => item.text).join('\n')).toContain('condition 8');
+  expect(recentStyleMessages(messages, 'b', 1)).toEqual([]);
+  expect(recentStyleMessages(messages, 'a', 2)).toEqual([]);
+});
+
+test('a late look result does not replace a category chosen during the request', () => {
+  const id = store().open({ type: 'general' })!;
+  const target = store().conversations[id].conversation;
+  const ticket = store().beginRequest(target, request(target))!;
+  store().setCategory(target, 'product');
+  store().completeRequest(ticket, { answer: 'look', products: [], styleCandidates: [
+    { kind: 'video', lookId: 'a', title: 'Look', tags: [] },
+  ] }, 'question');
+  expect(store().conversations[id].conversation.category).toBe('product');
 });
 
 test('G3 retries the original history snapshot and clarification conflict only clears pending', () => {
