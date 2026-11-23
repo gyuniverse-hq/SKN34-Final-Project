@@ -65,7 +65,21 @@ const errorMessages: Record<string, string> = {
     "결제 취소를 확인하지 못했습니다. 상태를 확인한 뒤 다시 시도해 주세요.",
   invalid_request: "입력 내용을 확인해 주세요.",
   not_found: "요청한 항목을 찾을 수 없습니다.",
+  astra_unavailable: "Astra(LLM) 설정이 없습니다. API 키와 모델을 확인하세요.",
+  astra_failed: "Astra 채점에 실패했습니다. 잠시 후 다시 시도해 주세요.",
 };
+
+async function parseAdmin<T>(response: Response): Promise<T> {
+  const data = await response.json();
+  if (!response.ok)
+    throw new ApiError(
+      response.status,
+      data.code,
+      errorMessages[data.code] || "요청을 처리하지 못했습니다.",
+    );
+  return data as T;
+}
+
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (isDemo) {
     if (init.method && init.method !== "GET")
@@ -82,12 +96,17 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
       ...init.headers,
     },
   });
-  const data = await response.json();
-  if (!response.ok)
-    throw new ApiError(
-      response.status,
-      data.code,
-      errorMessages[data.code] || "요청을 처리하지 못했습니다.",
-    );
-  return data as T;
+  return parseAdmin<T>(response);
+}
+
+/** Multipart upload; do not set Content-Type so the browser adds the boundary. */
+export async function apiForm<T>(path: string, form: FormData): Promise<T> {
+  if (isDemo) throw new Error("미리보기에서는 채점을 실행할 수 없습니다");
+  const token = (await supabase?.auth.getSession())?.data.session?.access_token;
+  const response = await fetch(`${apiBase}/api/admin${path}`, {
+    method: "POST",
+    body: form,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  return parseAdmin<T>(response);
 }

@@ -409,7 +409,30 @@ pre {
 [role="alert"] {
   color: #a32b42;
 }
+.triad-panel {
+  margin-bottom: 28px;
+}
+.triad-uploads {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 16px 0;
+}
+.triad-results {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 20px;
+}
+.form-error {
+  color: #a32b42;
+  margin-top: 10px;
+}
 @media (max-width: 900px) {
+  .triad-uploads,
+  .triad-results {
+    grid-template-columns: 1fr;
+  }
   aside {
     width: 170px;
     padding: 28px 14px;

@@ -1,0 +1,46 @@
+{
+  "version": "naturalness-techlang-v1.0",
+  "date": "2026-11-23",
+  "title": "립 AR 자연스러움 (테크니컬 지표 사람말 · 1~5)",
+  "scope": "트랙 A. 실제로 바른 입술 vs AR. Astra/사람 동일 문항.",
+  "scale": {
+    "min": 1,
+    "max": 5,
+    "labels": {
+      "1": "전혀 아니다",
+      "2": "아니다",
+      "3": "보통",
+      "4": "그렇다",
+      "5": "매우 그렇다"
+    }
+  },
+  "compare": ["real_applied", "ar"],
+  "items": [
+    {
+      "id": "delta_e",
+      "label": "ΔE",
+      "text": "AR로 올린 입술과 실제로 바른 입술의 색이 얼마나 비슷해 보이는가?"
+    },
+    {
+      "id": "ssim",
+      "label": "SSIM",
+      "text": "AR로 올린 입술과 실제로 바른 입술의 모양·명암·결 느낌이 얼마나 비슷해 보이는가?"
+    },
+    {
+      "id": "mae",
+      "label": "MAE",
+      "text": "AR로 올린 입술과 실제로 바른 입술이 전체적으로 얼마나 비슷해 보이는가?"
+    },
+    {
+      "id": "miou",
+      "label": "mIoU",
+      "text": "AR 색이 입술 영역·윤곽에 얼마나 잘 맞게 올라가 있는가?"
+    },
+    {
+      "id": "lpips",
+      "label": "LPIPS",
+      "text": "AR로 올린 입술이 실제로 바른 입술과 얼마나 자연스럽게 비슷해 보이는가?"
+    }
+  ],
+  "report": ["scores", "mean", "brief_reason"]
+}

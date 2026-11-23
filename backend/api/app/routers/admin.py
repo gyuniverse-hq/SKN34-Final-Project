@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, File, Query, UploadFile
 
 from app.schemas.admin import (
     AdminStatePatch,
@@ -8,6 +8,7 @@ from app.schemas.admin import (
     EvalCreate,
     EvalList,
     EvalResponse,
+    LipTriadEvalResponse,
     OrderResponse,
     Page,
     ProductResponse,
@@ -17,6 +18,7 @@ from app.schemas.admin import (
 )
 from app.services.admin_auth_service import admin_user, staff_user
 from app.services.admin_service import AdminService, get_admin_service
+from app.services.lip_triad_eval_service import LipTriadEvalService, get_lip_triad_eval_service
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -115,3 +117,15 @@ async def eval_run(
     ident: UUID, user=Depends(staff_user), service: AdminService = Depends(get_admin_service)
 ):
     return await service.eval_run(ident)
+
+
+@router.post("/lip-triad-eval", response_model=LipTriadEvalResponse)
+async def lip_triad_eval(
+    bare: UploadFile = File(..., description="화장 전(맨입술)"),
+    real: UploadFile = File(..., description="실제로 바른 입술"),
+    ar: UploadFile = File(..., description="AR 적용"),
+    user=Depends(admin_user),
+    service: LipTriadEvalService = Depends(get_lip_triad_eval_service),
+):
+    """Score technical metrics and Astra naturalness. Image bytes are discarded after scoring."""
+    return await service.evaluate(bare, real, ar, user["userId"])

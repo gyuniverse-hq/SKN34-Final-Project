@@ -69,6 +69,12 @@ class Settings(BaseSettings):
     toss_secret_key: str | None = None
     payment_web_base_url: str | None = None
     payment_return_url: str = "kbeautyar://payment-result"
+    # OpenAI-compatible vision LLM for admin lip naturalness (Astra). Keys stay server-only.
+    llm_base_url: str = "https://api.openai.com/v1"
+    llm_api_key: str | None = None
+    llm_model: str | None = None
+    astra_model: str | None = None
+    llm_timeout_seconds: float = 60
 
     @property
     def g5_local_mode(self) -> bool:

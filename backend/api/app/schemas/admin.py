@@ -244,3 +244,33 @@ class Page[T](Contract):
 
 class EvalList(Contract):
     items: list[EvalResponse]
+
+
+class TechnicalMetricItem(Contract):
+    value: Number | None = None
+    bare_value: Number | None = None
+    beats_bare: bool | None = None
+    pass_line: Number | None = None
+    verdict: Literal["pass", "fail", "report_only"]
+    method: str | None = None
+
+
+class TechnicalTrack(Contract):
+    criteria_version: Version
+    overall: Literal["pass", "fail", "report_only"]
+    items: dict[str, TechnicalMetricItem]
+
+
+class NaturalnessTrack(Contract):
+    criteria_version: Version
+    scores: dict[str, int]
+    mean: Number
+    brief_reason: str = ""
+    model: str | None = None
+
+
+class LipTriadEvalResponse(Contract):
+    id: str
+    technical: TechnicalTrack
+    naturalness: NaturalnessTrack
+    retained_images: bool = False

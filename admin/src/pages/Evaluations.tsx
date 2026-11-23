@@ -1,7 +1,14 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../api/client";
-import type { Estimate, EvalRun, EvalSummary, Factor } from "../api/types";
+import { ApiError, api, apiForm } from "../api/client";
+import type {
+  Estimate,
+  EvalRun,
+  EvalSummary,
+  Factor,
+  LipTriadEval,
+  TechMetricId,
+} from "../api/types";
 import { LoadingError } from "./Commerce";
 const names: Record<Factor, string> = {
   total: "총점",
@@ -11,6 +18,25 @@ const names: Record<Factor, string> = {
   boundary: "경계",
   adhesion: "밀착감",
 };
+const techNames: Record<TechMetricId, string> = {
+  delta_e: "ΔE",
+  ssim: "SSIM",
+  mae: "MAE",
+  miou: "mIoU",
+  lpips: "LPIPS",
+};
+const naturalTexts: Record<TechMetricId, string> = {
+  delta_e: "색이 얼마나 비슷해 보이는가?",
+  ssim: "모양·명암·결 느낌이 얼마나 비슷해 보이는가?",
+  mae: "전체적으로 얼마나 비슷해 보이는가?",
+  miou: "입술 영역·윤곽에 얼마나 잘 맞게 올라가 있는가?",
+  lpips: "얼마나 자연스럽게 비슷해 보이는가?",
+};
+const verdictLabel = {
+  pass: "통과",
+  fail: "미통과",
+  report_only: "기록만",
+} as const;
 const num = (n: number | null | undefined) =>
   n === null || n === undefined ? "미측정" : n.toFixed(2);
 function estimate(v: Estimate) {
@@ -207,6 +233,156 @@ function Trend({ runs, factor }: { runs: EvalRun[]; factor: Factor }) {
     </>
   );
 }
+function TriadScorer() {
+  const [bare, setBare] = useState<File | null>(null);
+  const [real, setReal] = useState<File | null>(null);
+  const [ar, setAr] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<LipTriadEval | null>(null);
+  async function run() {
+    if (!bare || !real || !ar) {
+      setError("화장 전 · 실제로 바른 입술 · AR 세 장을 모두 선택하세요.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const form = new FormData();
+      form.append("bare", bare);
+      form.append("real", real);
+      form.append("ar", ar);
+      setResult(await apiForm<LipTriadEval>("/lip-triad-eval", form));
+    } catch (e) {
+      setResult(null);
+      setError(
+        e instanceof ApiError
+          ? e.message
+          : e instanceof Error
+            ? e.message
+            : "채점에 실패했습니다.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <section className="panel triad-panel">
+      <h2>즉시 채점 · 세 장 업로드</h2>
+      <p>
+        화장 전, 실제로 바른 입술, AR 적용 사진을 올리면 테크니컬 숫자와
+        자연스러움(1~5, Astra)이 함께 나옵니다. 이미지는 서버에 저장하지
+        않습니다.
+      </p>
+      <div className="triad-uploads">
+        <label>
+          화장 전(맨입술)
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => setBare(e.target.files?.[0] || null)}
+          />
+        </label>
+        <label>
+          실제로 바른 입술
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => setReal(e.target.files?.[0] || null)}
+          />
+        </label>
+        <label>
+          AR 적용
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => setAr(e.target.files?.[0] || null)}
+          />
+        </label>
+      </div>
+      <button type="button" disabled={busy} onClick={run}>
+        {busy ? "채점 중…" : "두 트랙 채점 실행"}
+      </button>
+      {error && <p className="form-error">{error}</p>}
+      {result && (
+        <div className="triad-results">
+          <section>
+            <h3>
+              테크니컬{" "}
+              <span className="badge">
+                {verdictLabel[result.technical.overall]}
+              </span>
+            </h3>
+            <p>
+              <small>{result.technical.criteriaVersion}</small>
+            </p>
+            <table>
+              <thead>
+                <tr>
+                  <th>지표</th>
+                  <th>값</th>
+                  <th>합격선</th>
+                  <th>판정</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(Object.keys(techNames) as TechMetricId[]).map((id) => {
+                  const item = result.technical.items[id];
+                  if (!item) return null;
+                  return (
+                    <tr key={id}>
+                      <td>{techNames[id]}</td>
+                      <td>{item.value === null ? "미측정" : item.value}</td>
+                      <td>
+                        {item.passLine === null ? "—" : String(item.passLine)}
+                      </td>
+                      <td>{verdictLabel[item.verdict]}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </section>
+          <section>
+            <h3>
+              자연스러움 <span className="badge">{result.naturalness.mean} / 5</span>
+            </h3>
+            <p>
+              <small>
+                {result.naturalness.criteriaVersion}
+                {result.naturalness.model
+                  ? ` · ${result.naturalness.model}`
+                  : ""}
+              </small>
+            </p>
+            <table>
+              <thead>
+                <tr>
+                  <th>지표</th>
+                  <th>설명</th>
+                  <th>1~5</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(Object.keys(techNames) as TechMetricId[]).map((id) => (
+                  <tr key={id}>
+                    <td>{techNames[id]}</td>
+                    <td>{naturalTexts[id]}</td>
+                    <td>{result.naturalness.scores[id] ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {result.naturalness.briefReason && (
+              <p>근거: {result.naturalness.briefReason}</p>
+            )}
+          </section>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function Evaluations({ dashboard = false }: { dashboard?: boolean }) {
   const [kind, setKind] = useState("human");
   const [selected, setSelected] = useState("");
@@ -226,7 +402,10 @@ export function Evaluations({ dashboard = false }: { dashboard?: boolean }) {
         {dashboard ? "OPERATIONS OVERVIEW" : "AR QUALITY · REPORT ONLY"}
       </p>
       <h1>{dashboard ? "운영 대시보드" : "AR 평가"}</h1>
-      <p>숫자로 살펴보는 AR 현실감. 이미지 확인은 로컬 보고서에서.</p>
+      <p>
+        세 장으로 즉시 채점하거나, 로컬 보고서 숫자 요약으로 추이를 봅니다.
+      </p>
+      {!dashboard && <TriadScorer />}
       <div className="toolbar">
         <label>
           평가 종류

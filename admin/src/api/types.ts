@@ -104,3 +104,29 @@ export interface Audit {
   requestId: string;
   createdAt: string;
 }
+
+export type TechMetricId = "delta_e" | "ssim" | "mae" | "miou" | "lpips";
+export interface TechnicalMetricItem {
+  value: number | null;
+  bareValue: number | null;
+  beatsBare: boolean | null;
+  passLine: number | null;
+  verdict: "pass" | "fail" | "report_only";
+  method?: string | null;
+}
+export interface LipTriadEval {
+  id: string;
+  retainedImages: boolean;
+  technical: {
+    criteriaVersion: string;
+    overall: "pass" | "fail" | "report_only";
+    items: Record<string, TechnicalMetricItem>;
+  };
+  naturalness: {
+    criteriaVersion: string;
+    scores: Record<string, number>;
+    mean: number;
+    briefReason: string;
+    model: string | null;
+  };
+}
