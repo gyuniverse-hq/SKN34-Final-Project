@@ -114,5 +114,7 @@ def test_dev_subscription_cannot_be_activated_in_production(monkeypatch):
     response = client.post("/api/me/skin-access/dev-subscription")
     assert response.status_code == 404
     assert client.get("/api/me/skin-access").json() == {
-        "subscribed": False, "trialUsed": False, "expiresAt": None,
+        "subscribed": False,
+        "trialUsed": False,
+        "expiresAt": None,
     }
