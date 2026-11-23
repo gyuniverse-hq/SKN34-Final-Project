@@ -2,9 +2,8 @@ import React from 'react';
 import { StyleSheet, Text } from 'react-native';
 import renderer, { act } from 'react-test-renderer';
 import SkinRecommendationsScreen from '@/app/skin-recommendations';
-import { useSkinPreviewStore } from '@/store/skinPreviewStore';
-import { recommendationContext } from '@/lib/recommendationFeedback';
 import { apiPost } from '@/lib/api';
+import { useSkinPreviewStore } from '@/store/skinPreviewStore';
 import { offerAction } from '@/lib/confirm';
 
 const mockPush = jest.fn();
@@ -13,20 +12,21 @@ let mockSubscribed = true;
 let mockFreeTrial: string | undefined = '1';
 jest.mock('@/hooks/useSkinAccess', () => ({ useSkinAccess: () => ({ ready: true, subscribed: mockSubscribed }) }));
 jest.mock('@/lib/confirm', () => ({ offerAction: jest.fn() }));
-jest.mock('@/lib/api', () => ({ apiPost: jest.fn().mockResolvedValue({}) }));
 jest.mock('expo-router', () => ({ Stack: { Screen: () => null }, useLocalSearchParams: () => ({ freeTrial: mockFreeTrial }), usePreventRemove: () => jest.fn(), useFocusEffect: (callback: () => void) => require('react').useEffect(callback, [callback]), useRouter: () => ({ push: mockPush, replace: mockReplace, canGoBack: () => false }) }));
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key, language: 'ko' }) }));
+jest.mock('@/lib/api', () => ({ apiPost: jest.fn().mockResolvedValue({}) }));
 jest.mock('@/components/skin/SkinSolution', () => ({ SkinSolution: 'SolutionContent', SkinRoutine: 'RoutineContent' }));
 jest.mock('@/components/skin/SkinReportDetail', () => ({ SkinReportDetail: 'ResultContent', SkinConcernRail: 'ConcernRail' }));
 jest.mock('@/components/ui/StateViews', () => ({ LoadingState: 'LoadingState' }));
 let mockResults: object | undefined;
+let mockOwner: string | undefined;
 jest.mock('@/components/shop/ProductLineCard', () => ({ ProductLineCard: 'ProductCard' }));
 jest.mock('@/hooks/useSkinReport', () => ({ useSkinReport: () => ({
   report: require('@/lib/skinReport').buildSkinReport(require('@/constants/skinCare').SKIN_REPORT_EXAMPLE), example: false, loading: false, loadFailed: false,
   activeConcern: 'dryness', ingredients: [], live: Boolean(mockResults),
-  recommendation: { owner: 'member', query: { isFetching: false, data: mockResults } }, setActive: jest.fn(),
+  recommendations: { data: mockResults }, owner: mockOwner, setActive: jest.fn(),
 }) }));
 
 it('opens report information by default and keeps the sticky tabs in a horizontal inner row', async () => {
@@ -57,26 +57,20 @@ it('opens report information by default and keeps the sticky tabs in a horizonta
 });
 
 
-it('shows V2 products returned for the selected concern', async () => {
-  const first = { product: { id: 'a' }, optionId: 'a-1', candidateId: 'candidate-a', optionName: 'Option A', priceKRW: 100,
-    reasons: [{ goal: 'pores', sources: ['analysis'] }] };
-  const second = { ...first, product: { id: 'b' }, optionId: 'b-1', candidateId: 'candidate-b', optionName: 'Option B',
-    reasons: [{ goal: 'wrinkles', sources: ['concern'] }] };
-  mockResults = { targetConcern: 'pores', matches: [first, second], history: { requestId: 'request', sessionId: 'session' } };
+it.each([5, 10])('displays %i rule-based products in API order and opens the last product', async limit => {
+  const matches = Array.from({ length: limit }, (_, index) => ({
+    product: { id: `p-${index + 1}` }, optionId: `o-${index + 1}`, optionName: `Option ${index + 1}`, priceKRW: 100,
+    reasons: [{ goal: 'pores', sources: ['analysis'] }],
+  }));
+  mockResults = { overallTop5: matches.slice(0, 5), ...(limit === 10 ? { overallTop10: matches } : {}) };
   let screen!: renderer.ReactTestRenderer;
   try {
     await act(async () => { screen = renderer.create(<SkinRecommendationsScreen />); });
     const cards = () => screen.root.findAll(n => String(n.type) === 'ProductCard');
-    expect(cards()).toHaveLength(2);
-    expect(cards().map(c => c.props.eyebrow)).toEqual(['Option A', 'Option B']);
-    await act(async () => { cards()[1].props.onPress(); });
-    const link = mockPush.mock.lastCall?.[0].params.recommendation;
-    const context = recommendationContext(link, 'member', 'b');
-    expect(context?.item).toMatchObject({ candidateId: 'candidate-b', optionId: 'b-1', rank: 2 });
-    expect(context?.feedback.surface).toBe('skin_recommendations');
-    expect(apiPost).toHaveBeenCalledWith('/api/recommendations/skin-v2/impressions',
-      expect.objectContaining({ candidateId: 'candidate-b', visibilityPolicyVersion: 'direct-interaction-v1' }),
-      expect.objectContaining({ expectedUserId: 'member' }));
+    expect(cards()).toHaveLength(limit);
+    expect(cards().map(c => c.props.eyebrow)).toEqual(matches.map(m => m.optionName));
+    await act(async () => { cards()[limit - 1].props.onPress(); });
+    expect(mockPush).toHaveBeenLastCalledWith({ pathname: '/product/[id]', params: { id: `p-${limit}` } });
   } finally {
     mockResults = undefined;
     await act(async () => { screen?.unmount(); });
@@ -95,12 +89,38 @@ it('discards the temporary photo when the report is left', async () => {
   expect(useSkinPreviewStore.getState().preview).toBeNull();
 });
 
-it('shows the empty state when V2 finds no products', async () => {
-  mockResults = { targetConcern: 'pores', matches: [] };
+it('links a tap on rank 10 to a V1 impression and opens the attributed product detail', async () => {
+  mockOwner = 'owner';
+  const matches = Array.from({ length: 10 }, (_, index) => ({
+    product: { id: `p-${index + 1}` }, optionId: `o-${index + 1}`, candidateId: `c-${index + 1}`,
+    optionName: 'Option', priceKRW: 100, reasons: [],
+  }));
+  mockResults = { overallTop10: matches, history: { requestId: 'request', sessionId: 'session' } };
   let screen!: renderer.ReactTestRenderer;
   try {
     await act(async () => { screen = renderer.create(<SkinRecommendationsScreen />); });
-    expect(JSON.stringify(screen.toJSON())).toContain('skincare.emptyAi');
+    const cards = screen.root.findAll(n => String(n.type) === 'ProductCard');
+    expect(apiPost).not.toHaveBeenCalled();
+    await act(async () => { cards[9].props.onPress(); });
+    expect(apiPost).toHaveBeenCalledWith('/api/recommendations/skincare/v4/impressions', expect.objectContaining({
+      candidateId: 'c-10', displayedPosition: 10, visibilityPolicyVersion: 'direct-interaction-v1',
+    }), expect.objectContaining({ expectedUserId: 'owner' }));
+    expect(mockPush).toHaveBeenLastCalledWith({
+      pathname: '/product/[id]', params: { id: 'p-10', recommendation: expect.any(String) },
+    });
+  } finally {
+    mockOwner = undefined;
+    mockResults = undefined;
+    await act(async () => { screen?.unmount(); });
+  }
+});
+
+it('shows the empty state when the rule-based API finds no products', async () => {
+  mockResults = { overallTop10: [], overallTop5: [] };
+  let screen!: renderer.ReactTestRenderer;
+  try {
+    await act(async () => { screen = renderer.create(<SkinRecommendationsScreen />); });
+    expect(JSON.stringify(screen.toJSON())).toContain('skincare.emptyProfileMatches');
     const cards = screen.root.findAll(node => String(node.type) === 'ProductCard');
     expect(cards).toHaveLength(0);
   } finally {

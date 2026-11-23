@@ -127,3 +127,12 @@ def approved_synonym(
     if not name or name not in {part.lower() for part in official_synonyms(raw)}:
         return False
     return source_single_alias(raw, alias) or (mfds_id, name, source_hash) in approved
+
+
+def approved_english_parts(name_en: str | None, mfds_id: int, source_hash: str) -> set[str]:
+    """A split English field needs the same current-source approval as split synonyms."""
+    parts = {part.lower() for part in official_synonyms(name_en)}
+    if len(parts) < 2:
+        return set()
+    approvals = get_ingredient_alias_approvals()
+    return {part for part in parts if (mfds_id, part, source_hash) in approvals}

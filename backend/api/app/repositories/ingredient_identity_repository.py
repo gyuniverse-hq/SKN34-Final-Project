@@ -1,5 +1,7 @@
 """Read-only canonical identity lookup; never infers product/option ownership."""
 
+from dataclasses import dataclass
+
 from pydantic import ValidationError
 from sqlalchemy import Text, any_, func, literal_column, or_, select
 from sqlalchemy.dialects.postgresql import ARRAY, array
@@ -7,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.ingredient_alias_approval import (
     OFFICIAL_SYNONYM_SEPARATOR,
+    approved_english_parts,
     approved_synonym,
     dictionary_name_keys,
     get_ingredient_alias_approvals,
@@ -74,6 +77,17 @@ def _identity(row, method=None):
         )
     except ValidationError:
         return None
+
+
+@dataclass(frozen=True)
+class OptionIngredientMatch:
+    identity: IngredientIdentity | None = None
+    status: str = "literal"
+    suggestions: tuple[str, ...] = ()
+
+
+def _suggestions(rows):
+    return tuple(sorted({row[1] for row in rows}))[:3]
 
 
 class IngredientIdentityRepository:
@@ -185,3 +199,87 @@ class IngredientIdentityRepository:
         links = await self.for_entries(ids)
         resolved = {identity.mfds_ingredient_id: identity for identity in links.values()}
         return next(iter(resolved.values())) if len(resolved) == 1 else None
+
+    async def resolve_option_name(self, name: str) -> OptionIngredientMatch:
+        target = _name(name).lower()
+        found = await self.resolve(name)
+        if found:
+            return OptionIngredientMatch(found, "resolved")
+
+        compact = target.replace(" ", "")
+        compact_matches = compact.isalpha() and any("가" <= c <= "힣" for c in compact)
+
+        def tokens(column):
+            parts = func.regexp_split_to_array(_key(column), OFFICIAL_SYNONYM_SEPARATOR)
+            if compact_matches:
+                return func.string_to_array(
+                    func.replace(func.array_to_string(parts, "^"), " ", ""), "^"
+                )
+            return parts
+
+        key = compact if compact_matches else target
+        ko = func.replace(_key(Mfds.name_ko), " ", "") if compact_matches else _key(Mfds.name_ko)
+        # Count all matching official owners, including unapproved names, before using an alias.
+        rows = (
+            await self._session.execute(
+                self._select()
+                .where(
+                    or_(
+                        ko == key,
+                        key == any_(tokens(Mfds.name_en)),
+                        key == any_(tokens(Mfds.synonym_raw)),
+                    )
+                )
+                .execution_options(autoflush=False)
+            )
+        ).all()
+        owners = {row[0]: row for row in rows}
+        if len(owners) > 1:
+            return OptionIngredientMatch(
+                status="ambiguous", suggestions=_suggestions(owners.values())
+            )
+        if owners:
+            row = next(iter(owners.values()))
+            if compact_matches and _name(row[1]).lower().replace(" ", "") == compact:
+                # Resolve the original spelling through the existing official-name guard.
+                found = await self.resolve(row[1])
+            elif target in approved_english_parts(row[9], row[0], row[2]):
+                found = _identity(row, "official_synonym")
+            if found:
+                return OptionIngredientMatch(found, "resolved")
+            return OptionIngredientMatch(
+                status="unverified_alias", suggestions=_suggestions(owners.values())
+            )
+
+        # Preserve reviewed literal evidence if the same name occurs in the source vocabulary.
+        was_collected = await self._session.scalar(
+            select(Oy.ingredient_id)
+            .where(_key(Oy.ingredient_name) == target)
+            .limit(1)
+            .execution_options(autoflush=False)
+        )
+        if was_collected is not None:
+            return OptionIngredientMatch()
+
+        # Ask about close spellings; PostgreSQL similarity is never identity evidence.
+        ko_name, en_name = _key(Mfds.name_ko), _key(Mfds.name_en)
+        candidates = (
+            await self._session.scalars(
+                select(Mfds.name_ko)
+                .where(
+                    Mfds.is_current.is_(True),
+                    or_(ko_name.op("%")(target), en_name.op("%")(target)),
+                )
+                .order_by(
+                    func.greatest(
+                        func.similarity(ko_name, target), func.similarity(en_name, target)
+                    ).desc(),
+                    Mfds.ingredient_id,
+                )
+                .limit(3)
+                .execution_options(autoflush=False)
+            )
+        ).all()
+        return OptionIngredientMatch(
+            status="unresolved", suggestions=tuple(dict.fromkeys(candidates))
+        )

@@ -60,6 +60,14 @@ class G1CatalogTool:
         identity = _normalize(f"{product.brand} {product.name} {product.name_ko}")
         return all(word in identity for word in query.split())
 
+    async def search_options(self, request):
+        result = await self._client.search_options(request)
+        for product in result.products:
+            validate_catalog_product(product)
+            if request.query and not self._matches_name(product, _normalize(request.query)):
+                raise UpstreamError("Catalog option search identity does not match request")
+        return result
+
     async def get_product(self, product_id: str) -> CatalogProduct | None:
         product = await self._client.get_product(product_id)
         if product is not None:

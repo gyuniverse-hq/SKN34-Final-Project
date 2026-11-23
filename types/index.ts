@@ -443,7 +443,7 @@ export interface Store {
   pickupAvailable: boolean;
 }
 
-export interface ArCartSource {
+export interface CartEventSource {
   ownerId: string;
   eventId: string;
 }
@@ -453,7 +453,8 @@ export interface CartItem {
   shadeId?: string;
   quantity: number;
   addedFromLookId?: string;
-  arCartSources?: (ArCartSource | null)[];
+  arCartSources?: (CartEventSource | null)[];
+  skincareCartSources?: (CartEventSource | null)[];
 }
 
 export interface ShoppingListLine {
@@ -578,9 +579,68 @@ export type PendingClarification = {
   ingredientConditions: { ingredientName: string; operator: 'includes' | 'excludes' }[];
 };
 
+export type KnowledgeEvidence = {
+  id: string; documentId: number; chunkId: string; title: string; sourceFileId: number;
+  sourceVersion: string; blockOrder: number; startUtf16: number; endUtf16: number;
+  sourceLocator: Record<string, unknown>; quote: string; relevance: 'essential' | 'support';
+};
+
+export type KnowledgeReply = {
+  status: 'answered' | 'partial' | 'insufficient_evidence' | 'error';
+  claims: { claim: string; citations: string[] }[];
+  evidence: KnowledgeEvidence[];
+  findings: {
+    index: number; label: 'SUPPORTED' | 'OVERGENERALIZED' | 'CONTRADICTED' | 'UNSUPPORTED';
+    reason: string;
+  }[];
+  limitations: string;
+};
+
+export type ChatBaseProductType = 'foundation' | 'cushion';
+export type OptionPriceBasis = 'current_offer' | 'catalog_reference' | 'collected_snapshot';
+export interface ChatOptionSearch {
+  schemaVersion: 1;
+  limitations?: string[];
+  effectiveRequest?: {
+    query: string; category?: Product['category'] | null; productIds?: string[] | null;
+    productType?: ChatBaseProductType | null;
+    optionScope?: { productId: string; shadeId?: string | null; optionId?: string | null }[] | null;
+    texture?: 'matte' | null; maxPriceKRW?: number | null; priceBasis: OptionPriceBasis;
+    ingredientConditions: { ingredientName: string; operator: 'includes' | 'excludes' }[];
+    fragranceFree: boolean; moisturizing: boolean; unsupportedConditions: string[];
+  } | null;
+  checkedAt?: string | null;
+  status: 'SUCCESS' | 'PARTIAL' | 'ERROR';
+  items: {
+    productId: string; shadeId: string | null; optionId: string; sourceVersion: string;
+    productType?: ChatBaseProductType | null;
+    group: 'ELIGIBLE' | 'REFERENCE_ONLY' | 'EXCLUDED'; synthetic: boolean;
+    ingredientEntryCount?: number | null; ingredientIdentityCount?: number | null;
+    checks: { condition: string; verdict: IngredientVerdict; reason: string;
+      ingredientName?: string | null; operator?: 'includes' | 'excludes' | null;
+      evidenceId?: string | null; sourceVersion?: string | null;
+      sourceRef?: string | null; reviewRef?: string | null; observedAt?: string | null; reviewedAt?: string | null;
+      ingredientCoverage?: 'full' | 'partial' | 'unknown' | null;
+      normalizationStatus?: 'verified' | 'unverified' | null;
+      reviewStatus?: 'verified' | 'unreviewed' | 'rejected' | null; limitations?: string[];
+      textureBasis?: 'product_name' | 'review_survey' | 'review_ai' | 'catalog_metadata' | 'official_reviewed' | null; textureCode?: string | null }[];
+    price?: { requestedBasis: OptionPriceBasis; observedBasis: 'catalog_reference' | 'collected_snapshot';
+      observedAtRaw?: string | null; limitations?: string[];
+      amountKRW: number; observedAt?: string | null; checkedAt: string; sourceRef: string; sourceVersion: string } | null;
+  }[];
+  products: Product[];
+  checkedScope: { candidateProducts: number; candidateOptions: number; checkedOptions: number;
+    unidentifiedOptions: number; exhaustive: boolean; stoppedReason: 'COMPLETE' | 'PRODUCT_LIMIT' | 'WORK_LIMIT' | 'TIMEOUT' | 'INGREDIENT_CONFIRMATION'; errors: number };
+  excludedCount: number; omittedCount: number;
+}
+
 export interface ChatResponse {
+  knowledge?: KnowledgeReply;
+  optionSearch?: ChatOptionSearch;
   pendingClarification?: PendingClarification | null;
   styleRecipe?: ChatStyleRecipe;
+  styleCandidates?: ChatStyleCandidate[];
+  styleConditions?: ChatStyleCondition[];
   styleContext?: ChatStyleContext;
   styleStatus?: 'ready' | 'clarification' | 'not_found' | 'error' | 'unsupported';
   answer: string;
@@ -592,6 +652,19 @@ export interface ChatResponse {
   ingredientComparison?: ChatIngredientComparison;
   fragranceSearchSummary?: { checked: number; total: number; verifiedProductIds: string[] };
   sessionStatus?: 'stored' | 'unchanged' | 'unavailable';
+}
+
+export interface ChatStyleCandidate {
+  kind: 'video' | 'catalog';
+  lookId: string;
+  title: string;
+  tags: string[];
+  match?: string | null;
+}
+
+export interface ChatStyleCondition {
+  slot: 'occasion' | 'mood' | 'eyes' | 'lips' | 'sparkle' | 'color' | 'finish';
+  value: string;
 }
 
 /** Ephemeral progress hint. The server reloads content and checks recipe identity/version. */
@@ -612,6 +685,8 @@ export interface ChatStyleRecipe {
   title: string;
   basis: 'reviewed_recipe' | 'catalog_settings' | 'video_metadata';
   reviewStatus: 'verified' | 'unreviewed' | 'not_applicable';
+  productUsageTrusted?: boolean;
+  productQuestion?: boolean;
   videoAnalyzed: false;
   synthetic: boolean;
   source: string;
@@ -620,7 +695,7 @@ export interface ChatStyleRecipe {
   steps: { order: number; zone: MakeupZone; title: string; description?: string | null; guideKey?: MakeupZone | null }[];
   currentStep: number;
   products: { label: string; zone: string; productId?: string | null; shadeId?: string | null;
-    mappingStatus: 'verified' | 'unknown' | 'invalid'; catalogValid: boolean; arEligible: boolean }[];
+    mappingStatus: 'verified' | 'product_only' | 'unknown' | 'invalid' | 'unavailable'; catalogValid: boolean; arEligible: boolean }[];
   arEligible: boolean;
   reason: 'reviewed_recipe' | 'catalog_settings' | 'video_not_analyzed' | 'no_steps' | 'recipe_changed';
   makeup?: Partial<MakeupState> | null;
@@ -681,6 +756,7 @@ export interface ChatIngredientCondition {
 export interface ChatIngredientResult {
   productId: string;
   shadeId: string | null;
+  shadeName?: string | null;
   optionId?: string | null;
   status: 'ok' | 'unknown' | 'error';
   verdict: IngredientVerdict;
@@ -705,6 +781,10 @@ export interface ChatIngredientResult {
 }
 
 export interface BeautyChatFilters {
+  productType?: ChatBaseProductType | null;
+  optionSearch?: boolean;
+  unsupportedConditions?: string[];
+  priceBasis?: OptionPriceBasis | null;
   texture?: 'matte' | null;
   category: ProductCategory | null;
   maxPriceKRW: number | null;
@@ -716,6 +796,7 @@ export interface BeautyChatFilters {
 
 /** Ephemeral, client-carried context. The server revalidates all IDs and product facts. */
 export interface BeautyChatContext {
+  optionScope?: { productId: string; shadeId: string | null; optionId: string | null }[] | null;
   version: 1;
   issuedAt: number;
   filters: BeautyChatFilters;

@@ -28,11 +28,14 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://vishue:vishue@localhost:5432/vishue_db"
     redis_url: str | None = None
     catalog_cache_seconds: int = 300
+    g5_enabled: bool = False
+    g5_allow_local_sources: bool = False
+    g5_openai_api_key: str | None = None
+    g5_internal_token: str | None = None
     skincare_refresh_enabled: bool | None = None
     skincare_refresh_interval_seconds: int = 60
     ingredient_mapping_path: str | None = None
     ingredient_alias_approvals_path: str | None = None
-    recommendation_comparison_enabled: bool = False
     skin_recommendation_feedback_consented_members: set[str] = Field(default_factory=set)
     ar_activity_enrolled_members: set[str] = Field(default_factory=set)
     ar_activity_consented_members: set[str] = Field(default_factory=set)
@@ -41,12 +44,6 @@ class Settings(BaseSettings):
     ar_palette_model_dir: Path | None = None
     ar_palette_baseline_model_dir: Path | None = None
     ar_palette_experiment: str = Field(default="", pattern=r"^([a-z0-9-]{1,16})?$")
-    recommendation_model: str = Field(
-        default="recommend-cat-v4", pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
-    )
-    recommendation_models_dir: Path = PROJECT_ROOT / "ml/runs"
-    recommendation_v1_url: str = "http://127.0.0.1:8080"
-    recommendation_v1_revision: str | None = None
     # External APIs. Unset keys disable the matching feature instead of failing requests.
     naver_client_id: str | None = None
     naver_client_secret: str | None = None
@@ -56,6 +53,11 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.6-flash"
     tutorial_searches_per_minute: int = 20
     offer_searches_per_minute: int = 20
+    # Initial safety budgets, not measured throughput/SLA; tune after isolated G4 runs.
+    option_searches_per_minute: int = Field(default=20, ge=1, le=120)
+    option_search_product_limit: int = Field(default=42, ge=1, le=42)
+    option_search_work_limit: int = Field(default=42, ge=1, le=42)
+    option_search_timeout_seconds: float = Field(default=15, gt=0, le=15)
     # Public Supabase values, used only to verify access tokens.
     supabase_url: str | None = None
     supabase_publishable_key: str | None = None
@@ -68,17 +70,8 @@ class Settings(BaseSettings):
     payment_return_url: str = "kbeautyar://payment-result"
 
     @property
-    def recommendation_bundle_path(self) -> Path:
-        # Resolve relative roots against the repository, never the process working directory.
-        root = self.recommendation_models_dir
-        if not root.is_absolute():
-            root = PROJECT_ROOT / root
-        return root.resolve() / self.recommendation_model / "bundle"
-
-    @property
-    def recommendation_v2_bundle(self) -> str:
-        """Local comparison scripts can still read the resolved path; selection is by name."""
-        return str(self.recommendation_bundle_path)
+    def g5_local_mode(self) -> bool:
+        return self.g5_allow_local_sources and self.env == "local"
 
     @property
     def is_production(self) -> bool:

@@ -6,9 +6,8 @@ import { registerSkinReport } from '@/lib/skinRegistration';
 import type { SkinProfileV4 } from '@/types/skin';
 import { useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, BackHandler, FlatList, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
 import { SkinCamera } from '@/components/skin/SkinCamera';
@@ -17,7 +16,6 @@ import { theme } from '@/constants/theme';
 import { useSkinAnalysis } from '@/hooks/useSkinAnalysis';
 import { useI18n } from '@/lib/i18n';
 import { skinAnalysisSupported, skinAnalysisUsesWebView } from '@/lib/skinAnalysis';
-import type { ComparisonGender } from '@/types/recommendationComparison';
 
 export default function SkinAnalysisScreen() {
   const access = useSkinAccess();
@@ -41,12 +39,7 @@ function AnalysisSession({ access }: { access: ReturnType<typeof useSkinAccess> 
     void cache.invalidateQueries({ queryKey: skinAccessKey(access.owner) });
   };
   const [permission, requestPermission] = useCameraPermissions();
-  const [birthYear, setBirthYear] = useState<number>();
-  const [yearPickerOpen, setYearPickerOpen] = useState(false);
-  const [gender, setGender] = useState<ComparisonGender>();
-  const year = new Date().getFullYear();
-  const years = Array.from({ length: Math.max(0, year - 1900 + 1) }, (_, index) => year - index);
-  const flow = useSkinAnalysis({ ...(birthYear !== undefined ? { birthYear } : {}), ...(gender ? { gender } : {}) }, register);
+  const flow = useSkinAnalysis(register);
   const [photoError, setPhotoError] = useState(false);
   const { phase, cancel } = flow;
   useEffect(() => {
@@ -92,26 +85,6 @@ function AnalysisSession({ access }: { access: ReturnType<typeof useSkinAccess> 
       <Text style={styles.title}>{t('skin.title')}</Text>
       <Text style={styles.body}>{t('skin.instructions')}</Text>
       <Text style={styles.body}>{t('skin.localNotice')}</Text>
-      <View style={styles.fields}>
-        <Text style={styles.label}>{t('skin.birthYearOptional')}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel={t('skin.birthYearOptional')}
-          accessibilityValue={{ text: birthYear === undefined ? t('skin.birthYearPlaceholder') : String(birthYear) }}
-          onPress={() => setYearPickerOpen(true)} style={styles.input}>
-          <Text style={birthYear === undefined ? styles.placeholder : styles.label}>
-            {birthYear ?? t('skin.birthYearPlaceholder')}
-          </Text>
-          <Ionicons name="chevron-down" size={20} color={theme.colors.inkMuted} />
-        </Pressable>
-        <Text style={styles.label}>{t('skin.genderOptional')}</Text>
-        <View style={styles.choices}>
-          {(['남성', '여성'] as const).map(value => <Pressable key={value} accessibilityRole="radio"
-            accessibilityState={{ checked: gender === value }} onPress={() => setGender(previous => previous === value ? undefined : value)}
-            style={[styles.choice, gender === value && styles.selected]}>
-            <Text style={styles.label}>{t(value === '남성' ? 'comparison.male' : 'comparison.female')}</Text>
-          </Pressable>)}
-        </View>
-        <Text style={styles.help}>{t('skin.demographicsStorage')}</Text>
-      </View>
       {skinAnalysisUsesWebView && <Text style={styles.help}>{t('skin.expoHelp')}</Text>}
       {photoError && <Text accessibilityRole="alert" style={styles.body}>{t('skin.photoError')}</Text>}
       {permission && !permission.granted && !permission.canAskAgain ? <>
@@ -135,42 +108,12 @@ function AnalysisSession({ access }: { access: ReturnType<typeof useSkinAccess> 
         {skinAnalysisUsesWebView && <Button label={t('skin.choosePhoto')} variant="secondary" onPress={() => { void choosePhoto(); }} />}
       </View>}
     {flow.phase !== 'done' && <Button variant="ghost" label={t('common.cancel')} disabled={flow.phase === 'saving'} onPress={leave} />}
-    <Modal visible={yearPickerOpen} transparent animationType="slide" onRequestClose={() => setYearPickerOpen(false)}>
-      <View style={styles.modalOverlay}>
-        <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel={t('common.cancel')} onPress={() => setYearPickerOpen(false)} />
-        <View style={styles.yearSheet}>
-          <Text style={styles.yearTitle}>{t('skin.birthYearOptional')}</Text>
-          <Pressable accessibilityRole="button" onPress={() => { setBirthYear(undefined); setYearPickerOpen(false); }} style={styles.yearRow}>
-            <Text style={styles.label}>{t('skin.birthYearNone')}</Text>
-          </Pressable>
-          <FlatList data={years} keyExtractor={item => String(item)} renderItem={({ item }) => (
-            <Pressable accessibilityRole="radio" accessibilityState={{ checked: birthYear === item }}
-              onPress={() => { setBirthYear(item); setYearPickerOpen(false); }} style={styles.yearRow}>
-              <Text style={styles.label}>{item}</Text>
-              {birthYear === item && <Ionicons name="checkmark" size={20} color={theme.colors.rose} />}
-            </Pressable>
-          )} />
-          <Button label={t('common.cancel')} variant="ghost" onPress={() => setYearPickerOpen(false)} />
-        </View>
-      </View>
-    </Modal>
   </SafeAreaView>;
 }
 const styles = StyleSheet.create({
   screen: { flex: 1, padding: 20, gap: 16, backgroundColor: theme.colors.surface },
   center: { flex: 1, justifyContent: 'center', gap: 24 },
   ready: { flexGrow: 1, justifyContent: 'center', gap: 18, paddingVertical: 12 },
-  fields: { gap: 8 },
-  label: { fontSize: 15, fontWeight: '600', color: theme.colors.ink },
-  input: { minHeight: 48, borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.radius.md, paddingHorizontal: 12, backgroundColor: theme.colors.card, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  placeholder: { fontSize: 15, color: theme.colors.inkMuted },
-  choices: { flexDirection: 'row', gap: 10 },
-  choice: { flex: 1, minHeight: 48, borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.card },
-  selected: { borderColor: theme.colors.rose, backgroundColor: theme.colors.roseSoft },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-  yearSheet: { height: '60%', backgroundColor: theme.colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 },
-  yearTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.ink, marginBottom: 8 },
-  yearRow: { minHeight: 48, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 8 },
   title: { fontSize: 24, fontWeight: '700', textAlign: 'center', color: theme.colors.ink },
   body: { fontSize: 16, lineHeight: 25, textAlign: 'center', color: theme.colors.inkMuted },
   help: { fontSize: 14, color: theme.colors.inkMuted, textAlign: 'center' },
