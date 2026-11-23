@@ -103,7 +103,7 @@ test('fetches product-only approvals in chunks and does not fetch unverified IDs
 test('applies catalog shades for the six demo looks without treating them as mappingVerified', async () => {
   useMakeupStore.getState().reset();
   mockPush.mockClear();
-  const contour = product('oy-a000000201055', 'contour', '02-2');
+  const contour = product('oy-a000000201055', 'contour', 'A000000201055-008');
   const mascara = product('oy-a000000198027', 'mascara', '01');
   const shadow = product('oy-a000000217606', 'eyeshadow', '04');
   const shadowTo = product('oy-a000000174309', 'eyeshadow', 'a000000174309-027');
@@ -122,7 +122,7 @@ test('applies catalog shades for the six demo looks without treating them as map
     length: 1.25, thickness: 0.6, lower: true, lashCount: 10, lowerLen: 2.4, lowerCount: 7,   // spiky_long, video close-ups + eye photo (11-11)
   });
   expect(useMakeupStore.getState().makeup.mascara?.intensity).toBe(0.8);
-  expect(useMakeupStore.getState().selections.contour).toEqual({ productId: 'oy-a000000201055', shadeId: '02-2' });
+  expect(useMakeupStore.getState().selections.contour).toEqual({ productId: 'oy-a000000201055', shadeId: 'A000000201055-008' });
   expect(useMakeupStore.getState().selections.mascara).toEqual({ productId: 'oy-a000000198027', shadeId: '01' });
   const eyeshadow = useMakeupStore.getState().makeup.eyeshadow;
   expect(eyeshadow?.hex).toBe('#112233');

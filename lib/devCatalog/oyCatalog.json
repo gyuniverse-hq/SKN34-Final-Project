@@ -104483,34 +104483,52 @@
       "volume": "20.5g",
       "shades": [
         {
-          "id": "01",
+          "id": "A000000201055-004",
           "name": "뉴트럴 웜+브러쉬 증정",
-          "hex": "#EFD4C7"
+          "hex": "#EFD4C7",
+          "measureMethod": "estimated",
+          "colorSource": "color_compare",
+          "colorConfidence": 0.7879999876022339
         },
         {
-          "id": "02",
+          "id": "A000000201055-003",
           "name": "그레이 쿨+브러쉬 증정",
-          "hex": "#E9D4CD"
+          "hex": "#E9D4CD",
+          "measureMethod": "estimated",
+          "colorSource": "color_compare",
+          "colorConfidence": 0.7929999828338623
         },
         {
-          "id": "01-2",
+          "id": "A000000201055-001",
           "name": "뉴트럴 웜",
-          "hex": "#EFD4C7"
+          "hex": "#EFD4C7",
+          "measureMethod": "estimated",
+          "colorSource": "color_compare",
+          "colorConfidence": 0.7889999747276306
         },
         {
-          "id": "02-2",
+          "id": "A000000201055-008",
           "name": "그레이 쿨",
-          "hex": "#BAA08A"
+          "hex": "#BAA08A",
+          "measureMethod": "estimated",
+          "colorSource": "color_compare",
+          "colorConfidence": 0.6800000071525574
         },
         {
-          "id": "02-3",
+          "id": "A000000201055-007",
           "name": "그레이 쿨",
-          "hex": "#E9D5CD"
+          "hex": "#E9D5CD",
+          "measureMethod": "estimated",
+          "colorSource": "color_compare",
+          "colorConfidence": 0.7919999957084656
         },
         {
-          "id": "02-4",
+          "id": "A000000201055-002",
           "name": "그레이 쿨",
-          "hex": "#E9D4CD"
+          "hex": "#E9D4CD",
+          "measureMethod": "estimated",
+          "colorSource": "color_compare",
+          "colorConfidence": 0.7919999957084656
         }
       ],
       "description": "",
@@ -106008,24 +106026,36 @@
       "volume": "데이지크 브이컷 블렌딩 쉐딩 01. 웜 블렌딩 / 데이지크 브이컷 블렌딩 쉐딩 02. 쿨 ",
       "shades": [
         {
-          "id": "01",
+          "id": "A000000176894-005",
           "name": "웜 블렌딩",
-          "hex": "#CDAE9D"
+          "hex": "#CDAE9D",
+          "measureMethod": "estimated",
+          "colorSource": "color_compare",
+          "colorConfidence": 0.8029999732971191
         },
         {
-          "id": "02",
+          "id": "A000000176894-006",
           "name": "쿨 블렌딩",
-          "hex": "#D2B1A1"
+          "hex": "#D2B1A1",
+          "measureMethod": "estimated",
+          "colorSource": "color_compare",
+          "colorConfidence": 0.8109999895095825
         },
         {
-          "id": "01-2",
+          "id": "A000000176894-001",
           "name": "웜 블렌딩",
-          "hex": "#CEAF9E"
+          "hex": "#CEAF9E",
+          "measureMethod": "estimated",
+          "colorSource": "color_compare",
+          "colorConfidence": 0.7900000214576721
         },
         {
-          "id": "02-2",
+          "id": "A000000176894-002",
           "name": "쿨 블렌딩",
-          "hex": "#D4B3A3"
+          "hex": "#D4B3A3",
+          "measureMethod": "estimated",
+          "colorSource": "color_compare",
+          "colorConfidence": 0.800000011920929
         }
       ],
       "description": "",
@@ -106728,34 +106758,52 @@
       "volume": "3.8g",
       "shades": [
         {
-          "id": "01",
+          "id": "A000000232152-001",
           "name": "문라이트 젬",
-          "hex": "#DEC6B8"
+          "hex": "#DEC6B8",
+          "measureMethod": "estimated",
+          "colorSource": "color_compare",
+          "colorConfidence": 0.8299999833106995
         },
         {
-          "id": "02",
+          "id": "A000000232152-002",
           "name": "로즈 쿼츠",
-          "hex": "#DAB7B2"
+          "hex": "#DAB7B2",
+          "measureMethod": "estimated",
+          "colorSource": "color_compare",
+          "colorConfidence": 0.8119999766349792
         },
         {
-          "id": "03",
+          "id": "A000000232152-003",
           "name": "웜 루틸",
-          "hex": "#D1AC9E"
+          "hex": "#D1AC9E",
+          "measureMethod": "estimated",
+          "colorSource": "color_compare",
+          "colorConfidence": 0.777999997138977
         },
         {
-          "id": "04",
+          "id": "A000000232152-004",
           "name": "블루 토파즈",
-          "hex": "#D0D4DA"
+          "hex": "#D0D4DA",
+          "measureMethod": "estimated",
+          "colorSource": "color_compare",
+          "colorConfidence": 0.8550000190734863
         },
         {
-          "id": "01-2",
+          "id": "A000000232152-009",
           "name": "문라이트 젬 기획",
-          "hex": "#EECCC7"
+          "hex": "#EECCC7",
+          "measureMethod": "estimated",
+          "colorSource": "color_compare",
+          "colorConfidence": 0.7160000205039978
         },
         {
-          "id": "02-2",
+          "id": "A000000232152-010",
           "name": "로즈쿼츠 기획",
-          "hex": "#EFCECA"
+          "hex": "#EFCECA",
+          "measureMethod": "estimated",
+          "colorSource": "color_compare",
+          "colorConfidence": 0.7279999852180481
         }
       ],
       "description": "",
