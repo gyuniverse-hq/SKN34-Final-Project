@@ -419,7 +419,7 @@ export const ko: Dictionary = {
 
   'tabs.shop': '쇼핑',
   'tabs.looks': '룩',
-  'tabs.tryOn': '가상 메이크업',
+  'tabs.tryOn': '뷰티미러',
   'tabs.my': '마이',
 
   'shop.title': 'VISHUE',

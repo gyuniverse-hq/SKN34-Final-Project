@@ -1317,12 +1317,7 @@ export default function ArTryOnScreen() {
                 </View>
               ) : null}
               {zone === 'eyeshadow' && makeup.eyeshadow ? (
-                <ScrollView
-                  horizontal
-                  nestedScrollEnabled
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.hScroll}
-                  contentContainerStyle={styles.filters}>
+                <View style={styles.finishOptions}>
                   <Chip
                     label={t('ar.shadow.point')}
                     selected={shadowPointing}
@@ -1348,7 +1343,7 @@ export default function ArTryOnScreen() {
                       onPress={() => makeup.eyeshadow && patchGeometry('eyeshadow', { shadowFinish: id })}
                     />
                   ))}
-                </ScrollView>
+                </View>
               ) : null}
               {zone === 'highlighter' && makeup.highlighter ? (
                 <>
@@ -1474,25 +1469,15 @@ export default function ArTryOnScreen() {
                   ))}
                 </ScrollView>
               ) : null}
-              <View style={styles.actions}>
-                {!nearby.supported && zoneHex ? (
-                  <Button
-                    label={t('ar.recommendColor')}
-                    icon="pricetag-outline"
-                    disabled={!zoneHex}
-                    onPress={() => recKey && setRecFor(recKey)}
-                    style={{ flex: 1 }}
-                  />
-                ) : null}
-                {(selectionItems.length > 1 || (activeLook && selectionItems.length > 0)) && <Button
-                  label={added ? t('looks.viewCart') : t('ar.addSelection')}
-                  variant="secondary"
-                  icon={added ? 'checkmark' : 'cart-outline'}
-                  disabled={selectionItems.length === 0}
-                  onPress={onAddSelection}
-                  style={{ flex: 1 }}
-                />}
-              </View>
+              {!nearby.supported && zoneHex ? (
+                <Button multiline label={t('ar.recommendColor')} icon="pricetag-outline"
+                  onPress={() => recKey && setRecFor(recKey)} />
+              ) : null}
+              {(selectionItems.length > 1 || (activeLook && selectionItems.length > 0)) && (
+                <Button multiline label={added ? t('looks.viewCart') : t('ar.addSelection')}
+                  variant="secondary" icon={added ? 'checkmark' : 'cart-outline'}
+                  disabled={selectionItems.length === 0} onPress={onAddSelection} />
+              )}
               {showRecs ? (
                 recs.length === 0 ? (
                   <Text style={styles.noProducts}>{t('ar.recommendEmpty')}</Text>
@@ -1518,15 +1503,8 @@ export default function ArTryOnScreen() {
                 )
               ) : null}
               {!nearby.supported && zoneHex ? (
-                <View style={styles.actions}>
-                  <Button
-                    label={t('ar.similar')}
-                    variant="secondary"
-                    icon="color-filter-outline"
-                    disabled={!zoneSelection}
-                    onPress={openRecommendations}
-                  />
-                </View>
+                <Button multiline label={t('ar.similar')} variant="secondary" icon="color-filter-outline"
+                  disabled={!zoneSelection} onPress={openRecommendations} />
               ) : null}
             </ScrollView>
           ) : (
@@ -1600,6 +1578,7 @@ const styles = StyleSheet.create({
   infoButton: { position: 'absolute', right: 12, top: 8, width: 44, height: 44, alignItems: 'center', justifyContent: 'center', zIndex: 6 },
   statusNotice: { alignSelf: 'center', padding: 10, minHeight: 44 },
   chatDock: { position: 'absolute', top: 58, bottom: 0, width: '100%', justifyContent: 'flex-end' },
+  finishOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   moreModes: { padding: 16, gap: 8 },
   sheetContent: { gap: 14, paddingVertical: 16, paddingHorizontal: 4 },
   screen: { flex: 1, backgroundColor: theme.colors.ink },

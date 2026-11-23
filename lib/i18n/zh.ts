@@ -419,7 +419,7 @@ export const zh: Dictionary = {
 
   'tabs.shop': '商店',
   'tabs.looks': '妆容',
-  'tabs.tryOn': '虚拟试妆',
+  'tabs.tryOn': '美妆镜',
   'tabs.my': '我的',
 
   'shop.title': 'VISHUE',

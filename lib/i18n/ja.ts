@@ -419,7 +419,7 @@ export const ja: Dictionary = {
 
   'tabs.shop': 'ショップ',
   'tabs.looks': 'ルック',
-  'tabs.tryOn': 'バーチャルメイク',
+  'tabs.tryOn': 'メイクミラー',
   'tabs.my': 'マイ',
 
   'shop.title': 'VISHUE',

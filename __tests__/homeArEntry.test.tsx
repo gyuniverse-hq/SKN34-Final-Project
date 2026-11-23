@@ -5,6 +5,9 @@ import { MAKEUP_ZONES, useMakeupStore } from '@/store/makeupStore';
 import type { CelebLook } from '@/types';
 
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
 jest.mock('@/components/chat/HomeChatButton', () => ({ HomeChatButton: 'HomeChatButton' }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 jest.mock('expo-router', () => {

@@ -378,7 +378,7 @@ export const en = {
 
   'tabs.shop': 'Shop',
   'tabs.looks': 'Looks',
-  'tabs.tryOn': 'Try-on',
+  'tabs.tryOn': 'Beauty Mirror',
   'tabs.my': 'My',
 
   'shop.title': 'VISHUE',
