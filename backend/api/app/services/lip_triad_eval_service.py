@@ -67,9 +67,7 @@ class LipTriadEvalService:
         )
 
         run_id = str(uuid4())
-        digest = hashlib.sha256(
-            bare_bytes + b"|" + real_bytes + b"|" + ar_bytes
-        ).hexdigest()[:16]
+        digest = hashlib.sha256(bare_bytes + b"|" + real_bytes + b"|" + ar_bytes).hexdigest()[:16]
         # Scores only — never image bytes, paths, or filenames.
         after = {
             "technicalOverall": technical["overall"],

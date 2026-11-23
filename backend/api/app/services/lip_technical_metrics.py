@@ -228,9 +228,7 @@ def score_triad(bare_bytes: bytes, real_bytes: bytes, ar_bytes: bytes) -> dict[s
             "value": lpips_ar,
             "bareValue": lpips_bare,
             "beatsBare": (
-                None
-                if lpips_ar is None or lpips_bare is None
-                else lpips_ar < lpips_bare
+                None if lpips_ar is None or lpips_bare is None else lpips_ar < lpips_bare
             ),
             "passLine": None,
             "verdict": _verdict("lpips", lpips_ar),
