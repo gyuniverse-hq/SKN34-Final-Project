@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     llm_model: str | None = None
     llm_timeout_seconds: float = 30
     g1_supervisor_enabled: bool = False
+    g5_enabled: bool = False
+    g5_openai_api_key: str | None = None
+    g5_internal_token: str | None = None
     chat_requests_per_minute: int = 10
     supabase_url: str | None = None
     supabase_publishable_key: str | None = None

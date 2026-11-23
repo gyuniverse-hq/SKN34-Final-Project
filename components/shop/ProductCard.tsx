@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ProductImage } from '@/components/ui/ProductImage';
+import { homeLayout, homeType } from '@/constants/homeLayout';
 import { theme } from '@/constants/theme';
 import { formatKRW } from '@/lib/format';
 import type { Product } from '@/types';
@@ -42,20 +43,16 @@ export const ProductCard = memo(function ProductCard({ product, shadeLabel, onPr
 
 const styles = StyleSheet.create({
   card: {
-    flex: 1,
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    overflow: 'hidden',
-    margin: 6,
+    width: '50%',
+    paddingHorizontal: homeLayout.productGap / 2,
+    paddingBottom: 18,
   },
-  image: { width: '100%', aspectRatio: 1, backgroundColor: theme.colors.surfaceAlt },
-  body: { padding: 12, gap: 3 },
-  brand: { fontSize: 11, color: theme.colors.accent, fontWeight: '700' },
-  name: { fontSize: 14, fontWeight: '600', color: theme.colors.ink, minHeight: 36 },
-  price: { fontSize: 15, fontWeight: '800', color: theme.colors.ink, marginTop: 2 },
-  shades: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
-  dot: { width: 12, height: 12, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)' },
-  shadeLabel: { fontSize: 11, color: theme.colors.inkMuted, marginLeft: 2 },
+  image: { width: '100%', aspectRatio: 1, borderRadius: 10, backgroundColor: theme.colors.cream },
+  body: { paddingTop: 8, paddingHorizontal: 2, gap: 2 },
+  brand: { ...homeType(11), color: theme.colors.roseDark, fontWeight: '500' },
+  name: { ...homeType(14), lineHeight: 19, color: theme.colors.ink },
+  price: { ...homeType(15), fontWeight: '600', color: theme.colors.ink, marginTop: 2 },
+  shades: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 4 },
+  dot: { width: 10, height: 10, borderRadius: 5, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(0,0,0,0.12)' },
+  shadeLabel: { ...homeType(11), flexShrink: 1, color: theme.colors.inkMuted, marginLeft: 2 },
 });

@@ -15,6 +15,7 @@ import csv
 import difflib
 import getpass
 import json
+import os
 import threading
 import time
 import unicodedata
@@ -29,8 +30,8 @@ import asyncpg
 import httpx
 
 BASE_URL = "https://www.glowpick.com"
-# Glowpick's web client exposes this public web API key in its JavaScript bundle.
-GLOWPICK_API_KEY = "b9d54cc0-5ea5-11ea-b7f9-41b4f2de8659"
+# Prefer env; do not commit real keys. History may still contain older hardcoding.
+GLOWPICK_API_KEY = os.environ.get("GLOWPICK_API_KEY", "")
 REPORT_COLUMNS = (
     "yt_product_id",
     "source_brand",

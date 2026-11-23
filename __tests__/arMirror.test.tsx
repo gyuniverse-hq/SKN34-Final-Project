@@ -1,5 +1,7 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
+import { ArSheet } from '@/components/ar/ArSheet';
+import { Button } from '@/components/ui/Button';
 import ArTryOnScreen from '@/app/(tabs)/ar';
 import { useMakeupStore } from '@/store/makeupStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -90,6 +92,8 @@ it('folds the product panel without clearing makeup, then restores the same sele
   });
 
   await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.arc.tools' }).props.onPress(); });
+  expect(screen.root.findByType(ArSheet).findAllByType(Button).map(button => button.props.label))
+    .toEqual(['ar.mirror.enter', 'ar.ui.practice', 'ar.rec.start']);
   const fold = screen.root.findByProps({ accessibilityLabel: 'ar.mirror.enter' });
   await act(async () => {
     fold.props.onPress();

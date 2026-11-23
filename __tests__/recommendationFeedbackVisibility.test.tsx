@@ -1,8 +1,8 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
-import { useRecommendationFeedback } from '@/hooks/useRecommendationFeedback';
-import { comparisonPost } from '@/lib/recommendationComparison';
-import type { ComparisonProduct, RecommendationComparisonResult } from '@/types/recommendationComparison';
+import { useRecommendationCardFeedback } from '@/hooks/useRecommendationFeedback';
+import { apiPost } from '@/lib/api';
+import type { FeedbackItem } from '@/lib/recommendationFeedback';
 
 let mockAppChange: (state: string) => void;
 let mockFocused = true;
@@ -14,11 +14,11 @@ jest.mock('expo-router', () => ({ useFocusEffect: (callback: () => (() => void) 
   ReactModule.useEffect(() => mockFocused ? callback() : undefined, [callback, mockFocused]);
 } }));
 jest.mock('expo', () => ({ uuid: { v4: jest.fn(() => `id-${Math.random()}`) } }));
-jest.mock('@/lib/api', () => ({ ApiError: class extends Error {} }));
-jest.mock('@/lib/recommendationComparison', () => ({ comparisonPost: jest.fn() }));
-const post = jest.mocked(comparisonPost);
-const item = { candidateId: 'candidate', productId: 'p', optionId: 'o', rank: 1 } as ComparisonProduct;
-const result = { history: { requestId: 'request', sessionId: 'session' }, v2: { matches: [item] } } as RecommendationComparisonResult;
+jest.mock('@/lib/api', () => ({ apiPost: jest.fn() }));
+const post = jest.mocked(apiPost);
+const item: FeedbackItem = { candidateId: 'candidate', productId: 'p', optionId: 'o', rank: 1 };
+const history = { requestId: 'request', sessionId: 'session' };
+const matches = [item];
 
 test('requires continuous dwell; ignores hidden/background/blurred cards and cleans up on unmount', async () => {
   jest.useFakeTimers(); post.mockResolvedValue({});
@@ -26,7 +26,7 @@ test('requires continuous dwell; ignores hidden/background/blurred cards and cle
   const clearIntervalSpy = jest.spyOn(globalThis, 'clearInterval');
   let top = 200;
   function Probe() {
-    const feedback = useRecommendationFeedback(result, 'member');
+    const feedback = useRecommendationCardFeedback(history, matches, 'member');
     React.useLayoutEffect(() => {
       // Stand-ins for native measurements; no screen exposure is inferred from mounting.
       Object.assign(feedback.viewportRef, { current: { measureInWindow: (fn: (...n: number[]) => void) => fn(0, 0, 100, 100) } });

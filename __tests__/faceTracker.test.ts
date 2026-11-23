@@ -320,7 +320,7 @@ describe('face tracker page', () => {
     expect(script).toContain('lobe = mix(lobe, envLobe, envW);');
     expect(script).toContain('float peakness = mix(max(sharpK, sharpF), envPeak, envW);');
     expect(script).toContain('uniform vec4 uEnvGloss;');
-    expect(script).toContain("'1119-shadow-v9-pose'");
+    expect(script).toContain("'1123-lip-finish-d'");
     expect(script).toContain('float browHair = browA *');
     expect(script).toContain('lookSkinMinFps: 10');
     expect(script).toContain('lookSkinGate');
@@ -862,7 +862,7 @@ describe('face tracker page', () => {
 
   it('glides the light direction only behind its switch and snaps the estimate past the snap angle', () => {
     const script = moduleScript(FACE_TRACKER_HTML);
-    expect(script).toContain('lightDirGlide: false,');
+    expect(script).toContain('lightDirGlide: true,');
     expect(script).toContain('lightDirSec: 0.4,');
     expect(script).toContain('lightDirSnapDeg: 25,');
     // Switch off: the shader still gets the 0.5 s estimate exactly as before.
@@ -876,6 +876,7 @@ describe('face tracker page', () => {
       new Function('glideOn', `
         const TUNING = { lightDirGlide: glideOn, lightDirSec: 0.4, lightDisplaySec: 0.6, skinRefLum: 0.34, exposureRange: [0.2, 1.6] };
         const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+        const exposureFor = (v) => clamp(v / TUNING.skinRefLum, TUNING.exposureRange[0], TUNING.exposureRange[1]);   // no session reference
         const light = { color: [1, 1, 1], colorConf: 0, dir: [1, 0, 0], strength: 1.5, dirConf: 1, skinMeanLum: 0.34, sh: [1, 0, 0, 0, 0, 0, 0, 0, 0] };
         const shownLight = { color: [1, 1, 1], exposure: 1, skinMeanLum: 0.34, dir: [0, 0, 1], strength: 1, conf: 0, sh: [1, 0, 0, 0, 0, 0, 0, 0, 0], t: 0 };
         ${glideSrc}
@@ -988,8 +989,8 @@ describe('face tracker page', () => {
 
   it('mixes Gray-Edge into the background light color only behind its switch', () => {
     const script = moduleScript(FACE_TRACKER_HTML);
-    expect(script).toContain('lightColorEdge: false,');
-    expect(script).toContain('lightColorEdgeMix: [0.25, 0.75],');
+    expect(script).toContain('lightColorEdge: true,');
+    expect(script).toContain('lightColorEdgeMix: [0.75, 0.75],');
     // Off: the Gray World estimate and the one-color check on the raw sums, as before.
     expect(script).toContain('let est = [r / Y, g / Y, bl / Y];');
     expect(script).toContain('let chroma = Math.max(r, g, bl) / Math.max(1e-6, Math.min(r, g, bl));');

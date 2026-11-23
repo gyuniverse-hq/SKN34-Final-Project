@@ -10,8 +10,7 @@ FROM python:3.12-slim
 RUN useradd --uid 10001 --no-create-home --shell /usr/sbin/nologin app
 WORKDIR /app
 COPY --from=build --chown=10001:10001 /app /app
-COPY --from=model --chown=10001:10001 / /models/recommend-cat-v4/bundle/
-ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 RECOMMENDATION_MODELS_DIR=/models
+ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 USER 10001
 EXPOSE 8000
 # PORT is set by Render; Kubernetes and Compose use 8000. RUN_MIGRATIONS=true is for hosts without a

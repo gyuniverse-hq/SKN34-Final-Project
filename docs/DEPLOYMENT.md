@@ -195,7 +195,7 @@ helm install eg oci://docker.io/envoyproxy/gateway-helm -n envoy-gateway-system 
 kubectl apply -f infra/platform/gatewayclass.yaml
 
 # 이미지를 만들어 kind 노드에 넣기
-docker buildx build --build-context model=./ml/runs/recommend-cat-v4/bundle -t vishue-api:dev backend/api
+docker build -t vishue-api:dev backend/api
 docker build -t vishue-chatbot:dev backend/chatbot
 kind load docker-image vishue-api:dev vishue-chatbot:dev --name vishue
 
@@ -215,15 +215,26 @@ kubectl -n envoy-gateway-system port-forward \
 
 ## 4. AWS 운영 (배포 단계)
 
-운영은 AWS EKS에 올립니다. AWS 자원은 모두 [`infra/terraform/aws`](../infra/terraform/aws)에 코드로 정의되어 있습니다([ADR-0008](adr/0008-aws-environments.md)).
+운영은 AWS EKS에 올립니다. AWS 자원은 모두 [`infra/terraform/aws`](../infra/terraform/aws)에 코드로 정의되어 있습니다([ADR-0008](adr/0008-aws-environments.md), [ADR-0011](adr/0011-production-cutover.md)).
 
 | 항목 | 구성 |
 | --- | --- |
 | 네트워크 | VPC 2개 AZ, 노드·DB·캐시는 프라이빗 서브넷, NAT 1개 |
 | 클러스터 | EKS, 노드 `t3.large` 2대 (AZ마다 1대) |
-| 데이터 | RDS PostgreSQL 17, ElastiCache Redis(TLS), Neo4j AuraDB |
+| 데이터 | RDS PostgreSQL 17(공용 원본), ElastiCache Redis(TLS), Neo4j AuraDB, S3(백업·덤프·에셋) |
 | 시크릿 | Secrets Manager `vishue/production/*` → External Secrets |
 | 배포 | `main` 병합 → 태그 갱신 PR 병합 → Argo CD |
+| 1차 부가 | pause/resume 런북, gitleaks CI, 배포 경로 검증 |
+
+### 컷오버 순서 (확정)
+
+1. Terraform으로 VPC · EKS · RDS · Redis · Secrets Manager · S3를 만든다.  
+2. 플랫폼(metrics-server, Envoy Gateway, External Secrets, Argo CD)을 설치한다.  
+3. 시크릿과 `values-prod.yaml`을 채운 뒤 첫 이미지를 GitOps로 올린다.  
+4. **데이터:** 기존 PostgreSQL 덤프를 RDS에 복원 → Alembic → 카탈로그만 시드로 보정 → `sync-graph`.  
+5. 앱의 `EXPO_PUBLIC_API_BASE_URL`을 운영 Gateway로 바꾼다(팀은 API로 공용 DB를 본다).  
+6. pause/resume 런북·gitleaks·배포 검증 스크립트를 같은 단계에서 갖춘다.  
+7. Prometheus · Grafana · Langfuse는 클러스터가 안정된 뒤 2차로 둔다.
 
 ### 처음 한 번 (관리자 1명)
 
@@ -244,20 +255,12 @@ terraform output
 
 **2. 클러스터 공용 구성 요소 설치**
 
-```bash
+```powershell
 aws eks update-kubeconfig --name vishue --region ap-northeast-2
-helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
-helm repo add external-secrets https://charts.external-secrets.io
-helm repo add argo https://argoproj.github.io/argo-helm
-helm upgrade --install metrics-server metrics-server/metrics-server -n kube-system
-helm upgrade --install eg oci://docker.io/envoyproxy/gateway-helm -n envoy-gateway-system --create-namespace
-helm upgrade --install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace
-helm upgrade --install argocd argo/argo-cd -n argocd --create-namespace
-
-kubectl apply -f infra/platform/gatewayclass.yaml
-kubectl apply -f infra/platform/cluster-secret-store.yaml
-kubectl apply -f infra/argocd/project.yaml -f infra/argocd/application-prod.yaml
+pwsh -File infra/scripts/bootstrap-platform.ps1
 ```
+
+수동으로 나누어 설치하려면 스크립트 내용을 그대로 따라도 됩니다(metrics-server · Envoy Gateway · External Secrets · Argo CD · `infra/platform/*` · Argo Application).
 
 **3. 시크릿 값 채우기 (AWS 콘솔 → Secrets Manager)**
 
@@ -275,7 +278,37 @@ kubectl apply -f infra/argocd/project.yaml -f infra/argocd/application-prod.yaml
 
 **5. 운영 데이터 넣기**
 
-운영 DB(RDS)에는 시드가 자동으로 돌지 않습니다. 넣을 때는 `values-prod.yaml`에 `seedOnDeploy: true`를 추가한 PR로 한 번 배포하고(배포 직후 시드 → 그래프 동기화가 순서대로 돎), 다음 PR에서 다시 지웁니다. 일정은 백엔드 담당자와 데이터 담당자가 함께 정합니다.
+운영 DB(RDS)에는 시드가 자동으로 돌지 않습니다. 컷오버 때는 아래 순서를 씁니다([ADR-0011](adr/0011-production-cutover.md)).
+
+1. Argo/Helm이 ExternalSecret으로 `vishue-api` Secret(`DATABASE_URL`)을 만든 뒤, 덤프를 gzip SQL로 ops 버킷에 올린다.
+   ```powershell
+   aws s3 cp .\vishue.dump.sql.gz "s3://$(terraform -chdir=infra/terraform/aws output -raw ops_bucket)/dumps/"
+   kubectl apply -f infra/platform/restore-serviceaccount.yaml
+   pwsh -File infra/scripts/restore-rds-dump.ps1 -Bucket (terraform -chdir=infra/terraform/aws output -raw ops_bucket) -Key dumps/vishue.dump.sql.gz -Yes
+   ```
+   RDS는 프라이빗이라 **클러스터 Job**으로만 복원한다. 전체 순서는 `pwsh -File infra/scripts/cutover-checklist.ps1`.  
+2. `api` Pod가 뜨면 initContainer의 Alembic이 스키마를 맞춘다.  
+3. Git `catalog.json`과 카탈로그만 어긋나면 `values-prod.yaml`에 `seedOnDeploy: true`를 잠깐 켠 PR로 한 번 배포하고(시드 → 그래프 동기화), 다음 PR에서 끈다.  
+4. `pwsh -File infra/scripts/verify-prod.ps1 -GatewayUrl <Gateway URL>`로 확인한다.  
+5. 덤프가 카탈로그만이고 나머지를 버려도 되면 시드만으로 단순화한다.
+
+일정은 백엔드 담당자와 데이터 담당자가 함께 정합니다.
+
+**6. 시연 외 기간 축소(pause) / 재개(resume)**
+
+```powershell
+# 미리보기(변경 없음) 후 -Yes 로 적용
+pwsh -File infra/scripts/pause-prod.ps1 -ScaleNodes -StopRds          # 확인
+pwsh -File infra/scripts/pause-prod.ps1 -ScaleNodes -StopRds -Yes
+pwsh -File infra/scripts/resume-prod.ps1 -ScaleNodes -StartRds -Yes -GatewayUrl https://api.<도메인>
+```
+
+완전 삭제는 `terraform destroy`이며, 그 전에 `db_deletion_protection`과 최종 스냅샷을 확인한다.
+
+**7. 1차 품질 가드**
+
+- 시크릿 스캔: `.github/workflows/secrets.yml`(gitleaks).  
+- 배포 후: `infra/scripts/verify-prod.ps1`.
 
 ### 배포와 롤백
 

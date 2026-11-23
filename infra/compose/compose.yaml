@@ -23,8 +23,6 @@ x-ready: &ready
 
 x-api-build: &api-build
   context: ../../backend/api
-  additional_contexts:
-    model: ../../ml/runs/recommend-cat-v4/bundle
 
 services:
   # Waits for api only: shopping keeps working while the chatbot is down (nginx answers 503 for chat).
@@ -121,7 +119,7 @@ services:
     profiles: ["tools"]
 
   postgres:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:0.8.2-pg17-bookworm
     environment:
       POSTGRES_USER: vishue
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vishue}

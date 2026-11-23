@@ -77,3 +77,27 @@ module "external_secrets_pod_identity" {
 }
 
 data "aws_caller_identity" "current" {}
+
+# One-shot dump restore Job (infra/scripts/restore-rds-dump.ps1) reads dumps/ from the ops bucket.
+module "restore_pod_identity" {
+  source  = "terraform-aws-modules/eks-pod-identity/aws"
+  version = "~> 2.0"
+
+  name                 = "${var.name}-restore"
+  attach_custom_policy = true
+  policy_statements = [
+    {
+      sid       = "ReadOpsDumps"
+      actions   = ["s3:GetObject", "s3:ListBucket"]
+      resources = [aws_s3_bucket.ops.arn, "${aws_s3_bucket.ops.arn}/dumps/*"]
+    }
+  ]
+
+  associations = {
+    restore = {
+      cluster_name    = module.eks.cluster_name
+      namespace       = "vishue"
+      service_account = "vishue-restore"
+    }
+  }
+}

@@ -47,7 +47,7 @@ export function useMe(userId: string | undefined) {
   });
 }
 
-export function useProducts(params: ProductQuery = {}) {
+export function useProducts(params: ProductQuery = {}, enabled = true) {
   const search = new URLSearchParams();
   if (params.q) search.set('q', params.q);
   if (params.category) search.set('category', params.category);
@@ -55,6 +55,7 @@ export function useProducts(params: ProductQuery = {}) {
   if (concerns) search.set('concerns', concerns);
   const qs = search.toString();
   return useQuery({
+    enabled,
     queryKey: ['products', params.q ?? '', params.category ?? 'all', concerns],
     queryFn: async () => {
       try {
@@ -269,8 +270,16 @@ export function useTutorials(query: string | undefined, max = 6) {
   });
 }
 
-export function useSkincareRecommendations(request: SkincareProfileRequest | undefined) {
-  return useQuery({ queryKey: ['skincare-recommendations', 'v4', request],
-    queryFn: () => apiPost<HybridResponse>('/api/recommendations/skincare/v4', request!),
-    enabled: request !== undefined, gcTime: 0, staleTime: 0 });
+export function useSkincareRecommendations(
+  request: SkincareProfileRequest | undefined, owner: string | undefined,
+  sessionId: string | undefined, authReady: boolean,
+) {
+  const path = '/api/recommendations/skincare/v4';
+  return useQuery({
+    queryKey: ['skincare-recommendations', 'v4', owner, sessionId, request],
+    queryFn: () => owner && sessionId
+      ? apiPost<HybridResponse>(`${path}/recorded`, { sessionId, input: request! }, { expectedUserId: owner })
+      : apiPost<HybridResponse>(path, request!),
+    enabled: authReady && request !== undefined, gcTime: 0, staleTime: 0,
+  });
 }

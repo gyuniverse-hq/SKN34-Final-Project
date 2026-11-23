@@ -1,6 +1,6 @@
 # AR 부위별 정리 — 아이브로우·아이라인·아이섀도·블러셔·파운데이션·립
 
-AR 시착에서 칠하는 6개 부위가 각각 어떻게 그려지는지 한곳에 모은 요약이다. 세부 근거·수치 이력은 `docs/AR_SPEC.md` 6-5-3(립)·6-5-4(나머지 부위)와 `docs/AR_PROGRESS.md`가 원본이며, 이 문서와 다르면 원본을 따른다.
+AR 시착에서 칠하는 6개 부위가 각각 어떻게 그려지는지 한곳에 모은 요약이다. 부위·제형별 **계산식과 기준값**은 `docs/AR_MAKEUP_CALC.md`다. 세부 근거·수치 이력은 `docs/AR_SPEC.md` 6-5-3(립)·6-5-4(나머지 부위)와 `docs/AR_PROGRESS.md`가 원본이며, 이 문서와 다르면 원본을 따른다. 계산 문서와 숫자가 다르면 렌더러 코드를 따른다.
 
 - 렌더러: `components/ar/faceTrackerHtml.ts` (WebView 안 WebGL, 값은 `TUNING`)
 - 상태 타입: `types/index.ts`의 `MakeupState`, `ZoneSetting`(`hex`, `intensity` 0~1, `texture`, `geometry`)

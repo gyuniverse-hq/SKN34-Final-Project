@@ -65,6 +65,17 @@ it('sends ROI maxima for both good and care analyses without changing their stat
   expect(Object.keys(result).sort()).toEqual(['analysisScores', 'detectedConcerns', 'irritationSignal', 'skinType']);
 });
 
+it.each([0.42, 0.88])('sends all four v4.1 scores and the blemish threshold at score %f', score => {
+  const input = scoredProfile();
+  const threshold = 0.6;
+  const result = deriveCareGoals({ ...input, analysis: { ...input.analysis,
+    schema: 'skin-analysis-mobile-v4.1', acneScore: score, acneThreshold: threshold,
+    features: { ...input.analysis.features, acne: Number(score >= threshold) } } });
+  expect(result.analysisScores).toEqual({ pores: 0.9, pigmentation: 0.45, wrinkles: 0.1, blemish: score });
+  expect(result.blemishThreshold).toBe(threshold);
+  expect(result.detectedConcerns.some(c => c.goal === 'blemish')).toBe(score >= threshold);
+});
+
 it('does not invent scores for legacy models or incomplete and invalid ROIs', () => {
   const input = scoredProfile();
   const legacy = { ...input, analysis: { ...input.analysis, schema: 'skin-analysis-mobile-v3' as const } };

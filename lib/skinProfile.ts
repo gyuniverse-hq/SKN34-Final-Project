@@ -64,8 +64,12 @@ export function validateSkinAnalysis(result: SkinAnalysisResult): void {
   } else if (result.skinType !== undefined) throw new Error('skin.analysisFailed');
 }
 
-export async function readSkinProfile(): Promise<SkinProfile | null> {
-  const raw = await AsyncStorage.getItem(STORAGE_KEYS.skinProfile);
+export function skinProfileKey(owner: string | null) {
+  return owner ? `${STORAGE_KEYS.skinProfile}:${owner}` : STORAGE_KEYS.skinProfile;
+}
+
+export async function readSkinProfile(owner: string | null = null): Promise<SkinProfile | null> {
+  const raw = await AsyncStorage.getItem(skinProfileKey(owner));
   if (!raw) return null;
   const profile: SkinProfile = JSON.parse(raw);
   validateSkinProfile(profile);
@@ -105,9 +109,9 @@ export function validateSkinProfile(profile: SkinProfile): void {
   } else throw new Error('skin.storageFailed');
 }
 
-export async function writeSkinProfile(profile: SkinProfile) {
+export async function writeSkinProfile(profile: SkinProfile, owner: string | null = null) {
   validateSkinProfile(profile);
-  await AsyncStorage.setItem(STORAGE_KEYS.skinProfile, JSON.stringify(profile));
+  await AsyncStorage.setItem(skinProfileKey(owner), JSON.stringify(profile));
 }
 
 let timingWrites: Promise<unknown> = Promise.resolve();

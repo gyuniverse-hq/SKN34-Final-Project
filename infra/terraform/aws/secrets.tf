@@ -13,10 +13,10 @@ locals {
       YOUTUBE_API_KEY     = ""
       SUPABASE_SECRET_KEY = ""
     }
+    # Neo4j removed (ADR-0012): chatbot uses RDS pgvector via api/shared Postgres.
     "production/chatbot" = {
-      REDIS_URL      = "rediss://${local.redis_host}:6379/1"
-      NEO4J_PASSWORD = ""
-      LLM_API_KEY    = ""
+      REDIS_URL   = "rediss://${local.redis_host}:6379/1"
+      LLM_API_KEY = ""
     }
   }
 }

@@ -1,6 +1,6 @@
-import type { BeautyChatContext } from '@/types';
+import type { BeautyChatContext, KnowledgeReply } from '@/types';
 import type { ChatRequestSnapshot, ConversationTarget } from '@/types/chatConversation';
-import { recentChatMessages, useChatConversationStore } from '@/store/chatConversationStore';
+import { recentChatMessages, recentStyleMessages, useChatConversationStore } from '@/store/chatConversationStore';
 
 const store = useChatConversationStore.getState;
 
@@ -207,6 +207,29 @@ test('G3 selects bounded Unicode pairs without mixing owners or incomplete turns
   expect(recentChatMessages(failed, 'a', 1)).toEqual([]);
 });
 
+test('look search keeps earlier conditions in the same room across later refinements', () => {
+  const messages = Array.from({ length: 9 }, (_, i) => [
+    { id: `u${i}`, role: 'user' as const, text: `condition ${i}`, ownerKey: 'a', generation: 1 },
+    { id: `a${i}`, role: 'assistant' as const, text: 'results', styleCandidates: [], ownerKey: 'a', generation: 1 },
+  ]).flat();
+  const history = recentStyleMessages(messages, 'a', 1);
+  expect(history.map((item) => item.text).join('\n')).toContain('condition 0');
+  expect(history.map((item) => item.text).join('\n')).toContain('condition 8');
+  expect(recentStyleMessages(messages, 'b', 1)).toEqual([]);
+  expect(recentStyleMessages(messages, 'a', 2)).toEqual([]);
+});
+
+test('a late look result does not replace a category chosen during the request', () => {
+  const id = store().open({ type: 'general' })!;
+  const target = store().conversations[id].conversation;
+  const ticket = store().beginRequest(target, request(target))!;
+  store().setCategory(target, 'product');
+  store().completeRequest(ticket, { answer: 'look', products: [], styleCandidates: [
+    { kind: 'video', lookId: 'a', title: 'Look', tags: [] },
+  ] }, 'question');
+  expect(store().conversations[id].conversation.category).toBe('product');
+});
+
 test('G3 retries the original history snapshot and clarification conflict only clears pending', () => {
   const id = store().open({ type: 'general' })!;
   const room = store().conversations[id].conversation;
@@ -250,4 +273,35 @@ test.each(['product', 'shade'] as const)('G3 does not resurrect dismissed pendin
   const explanation = store().beginRequest(target, request(target, '일반 설명'))!;
   store().completeRequest(explanation, { answer: 'general', products: [], sessionStatus: 'unchanged', pendingClarification: pending }, '일반 설명');
   expect(store().conversations[id].conversation.pendingClarification).toBeUndefined();
+});
+
+test('keeps optional knowledge citations with their assistant reply', () => {
+  const id = store().open({ type: 'general' })!;
+  const room = store().conversations[id].conversation;
+  const ticket = store().beginRequest(room, request(room, 'how do I cover redness?'))!;
+  const knowledge: KnowledgeReply = {
+    status: 'answered', claims: [{ claim: 'A grounded answer', citations: ['E1'] }],
+    evidence: [{ id: 'E1', documentId: 8, chunkId: 'c', title: 'Source',
+      sourceFileId: 3, sourceVersion: 'v1', blockOrder: 7, startUtf16: 1, endUtf16: 12,
+      sourceLocator: {}, quote: 'source text', relevance: 'essential' }],
+    findings: [], limitations: '',
+  };
+  store().completeRequest(ticket, { answer: 'A grounded answer [E1]', products: [], knowledge }, 'question');
+  expect(store().conversations[id].messages.at(-1)?.knowledge).toEqual(knowledge);
+});
+
+test('G4 keeps option results with their original message and ignores late owner responses', () => {
+  const id = store().open({ type: 'general' })!;
+  const target = store().conversations[id].conversation;
+  const ticket = store().beginRequest(target, request(target))!;
+  const optionSearch: NonNullable<import('@/types').ChatResponse['optionSearch']> = {
+    schemaVersion: 1, status: 'PARTIAL', items: [], products: [], excludedCount: 0, omittedCount: 0,
+    checkedScope: { candidateProducts: 1, candidateOptions: 1, checkedOptions: 0, unidentifiedOptions: 0, exhaustive: false, stoppedReason: 'TIMEOUT', errors: 0 },
+  };
+  store().completeRequest(ticket, { answer: 'Partial search', products: [], optionSearch }, 'question');
+  expect(store().conversations[id].messages.at(-1)?.optionSearch).toEqual(optionSearch);
+  const late = store().beginRequest(store().conversations[id].conversation, request(target))!;
+  store().activate('account-B');
+  store().completeRequest(late, { answer: 'late', products: [], optionSearch }, 'question');
+  expect(store().conversations).toEqual({});
 });

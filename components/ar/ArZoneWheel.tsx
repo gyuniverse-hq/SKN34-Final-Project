@@ -3,17 +3,21 @@ import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, ty
 import { Animated, BackHandler, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 import { theme } from '@/constants/theme';
+import type { NearbyDirection } from '@/lib/nearbyColors';
 import type { MakeupZone } from '@/types';
 import { arcSnapEasing } from './arcMotion';
 
-const ICONS: Record<MakeupZone, keyof typeof Ionicons.glyphMap> = {
+type WheelItem = MakeupZone | NearbyDirection;
+const ICONS: Record<WheelItem, keyof typeof Ionicons.glyphMap> = {
+  similar: 'copy-outline', lighter: 'sunny-outline', darker: 'moon-outline', muted: 'leaf-outline', vivid: 'sparkles-outline',
   lip: 'color-palette-outline', blush: 'brush-outline', eyeshadow: 'eye-outline', eyeliner: 'pencil-outline',
   brow: 'remove-outline', foundation: 'water-outline', highlighter: 'sparkles-outline', contour: 'color-wand-outline', mascara: 'eye-outline',
 };
-interface Props {
-  zones: readonly MakeupZone[]; selected: MakeupZone; labels: Partial<Record<MakeupZone, string>>;
+interface Props<T extends WheelItem> {
+  directionLabel?: string;
+  zones: readonly T[]; selected: T; labels: Partial<Record<T, string>>;
   hint: string; openHint?: string; openLabel: string; closeLabel: string;
-  onSelect: (zone: MakeupZone) => void; onOpenChange?: (open: boolean) => void;
+  onSelect: (zone: T) => void; onOpenChange?: (open: boolean) => void;
 }
 export const zoneWheelRadius = (width: number) => Math.min(220, (width - 24) / 2);
 
@@ -39,7 +43,7 @@ function labelBounds(radius: number, inner: number, start: number, end: number, 
 }
 
 /** Tap to choose, or hold the hub and slide through the annular sectors. */
-export function ArZoneWheel({ zones, selected, labels, hint, openHint, openLabel, closeLabel, onSelect, onOpenChange }: Props) {
+export function ArZoneWheel<T extends WheelItem>({ directionLabel, zones, selected, labels, hint, openHint, openLabel, closeLabel, onSelect, onOpenChange }: Props<T>) {
   const { width } = useWindowDimensions();
   const radius = zoneWheelRadius(width);
   const inner = radius * 0.36;
@@ -49,7 +53,7 @@ export function ArZoneWheel({ zones, selected, labels, hint, openHint, openLabel
   const textHeight = lineHeight * 2;
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(false);
-  const [hover, setHover] = useState<MakeupZone | null>(null);
+  const [hover, setHover] = useState<T | null>(null);
   const [reveal] = useState(() => new Animated.Value(0));
   const animation = useRef<Animated.CompositeAnimation | null>(null);
   const hub = useRef<ComponentRef<typeof View>>(null);
@@ -96,7 +100,7 @@ export function ArZoneWheel({ zones, selected, labels, hint, openHint, openLabel
     const index = Math.min(zones.length - 1, Math.floor(Math.atan2(-dy, -dx) / Math.PI * zones.length));
     return zones[index] ?? null;
   };
-  const choose = (zone: MakeupZone) => { onSelect(zone); changeOpen(false); };
+  const choose = (zone: T) => { onSelect(zone); changeOpen(false); };
   const sectors = zones.map((zone, i) => {
     const start = Math.PI + Math.PI * i / zones.length;
     const end = Math.PI + Math.PI * (i + 1) / zones.length;
@@ -179,8 +183,8 @@ export function ArZoneWheel({ zones, selected, labels, hint, openHint, openLabel
         onResponderTerminationRequest={() => false}
         onResponderTerminate={() => { clearTimer(); held.current = false; changeOpen(false); }}
         style={[styles.hub, { marginTop: visible ? radius : 0 }]}>
-        <Ionicons name={ICONS[selected]} size={22} color="#FFFFFF" />
-        <Text style={styles.hubLabel}>{labels[selected]}</Text>
+        <Ionicons name={directionLabel ? 'compass-outline' : ICONS[selected]} size={22} color="#FFFFFF" />
+        <Text style={styles.hubLabel}>{directionLabel ?? labels[selected]}</Text>
       </View>
       <Text style={styles.hint}>{open ? openHint ?? hint : hint}</Text>
     </View>

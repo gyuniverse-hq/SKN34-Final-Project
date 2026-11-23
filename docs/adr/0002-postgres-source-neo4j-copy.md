@@ -1,6 +1,6 @@
 # ADR-0002 PostgreSQL이 원본이고, Neo4j는 `api` HTTP를 통해 한 방향으로 복사한다
 
-- 상태: 채택 (2026-10-23)
+- 상태: **대체됨 (2026-11-22)** → [ADR-0012](0012-pgvector-instead-of-neo4j.md). Neo4j/AuraDB·`sync_graph`는 쓰지 않고 pgvector를 쓴다. (원문 채택: 2026-10-23)
 
 ## 배경
 

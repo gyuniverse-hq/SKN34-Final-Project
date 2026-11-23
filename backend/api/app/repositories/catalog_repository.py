@@ -1,4 +1,4 @@
-from sqlalchemy import Text, cast, delete, select, text
+from sqlalchemy import Text, cast, delete, func, select, text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +10,7 @@ from app.models import (
     StoreRow,
     YtCatalogProductLinkRow,
 )
+from app.models.raw_oliveyoung import RawOyCategoryRow, RawOyProductRow
 from app.models.skincare import SkincareServingRow
 from app.schemas.catalog import CatalogBundle, CelebLook, LookItem, Product, Shade, Store
 
@@ -112,6 +113,34 @@ class CatalogRepository:
             stmt = stmt.where(ProductRow.search_text.contains(term.lower(), autoescape=True))
         rows = (await self._session.scalars(stmt)).all()
         return [_product(r) for r in rows]
+
+    async def option_search_candidates(self, query, category, ids, limit, *, product_type=None):
+        stmt = select(ProductRow).order_by(ProductRow.position, ProductRow.id)
+        if category:
+            stmt = stmt.where(ProductRow.category == category)
+        if ids is not None:
+            stmt = stmt.where(ProductRow.id.in_(ids))
+        if product_type is not None:
+            label = {"foundation": "파운데이션", "cushion": "쿠션"}[product_type]
+            product_ids = (
+                select(func.concat("oy-", func.lower(RawOyProductRow.goods_no)))
+                .join(RawOyCategoryRow, RawOyCategoryRow.category_no == RawOyProductRow.category_no)
+                .where(
+                    RawOyProductRow.std_category_code == label,
+                    RawOyCategoryRow.category_name == label,
+                    RawOyProductRow.delisted_at.is_(None),
+                )
+            )
+            stmt = stmt.where(ProductRow.id.in_(product_ids))
+        for word in query.lower().split():
+            # Search identity, never descriptions which could swallow requested predicates.
+            identity = ProductRow.brand + " " + ProductRow.name + " " + ProductRow.name_ko
+            stmt = stmt.where(func.lower(identity).contains(word, autoescape=True))
+        count = await self._session.scalar(
+            select(func.count()).select_from(stmt.order_by(None).subquery())
+        )
+        rows = (await self._session.scalars(stmt.limit(limit))).all()
+        return [_product(row) for row in rows], count
 
     async def get_product(self, product_id: str) -> Product | None:
         row = await self._session.get(ProductRow, product_id)

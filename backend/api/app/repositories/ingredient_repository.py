@@ -45,9 +45,11 @@ class IngredientRepository:
         mappings: list[IngredientMapping] | None = None,
         *,
         mapping_path: str | Path | None = None,
+        pin_mapping: bool = False,
     ):
         self._session = session
         self._mappings = mappings
+        self._pin_mapping = pin_mapping
         # An explicit artifact avoids dependency on checkout layout, CWD or Docker image depth.
         self._mapping_path = (
             mapping_path if mapping_path is not None else Settings().ingredient_mapping_path
@@ -57,7 +59,7 @@ class IngredientRepository:
         result = await self._session.execute(statement.execution_options(autoflush=False))
         return result.all()
 
-    def _mapping(self, product_id, shade_id):
+    def _mapping_records(self) -> list[IngredientMapping]:
         records = self._mappings
         if records is None:
             if not self._mapping_path or not str(self._mapping_path).strip():
@@ -99,6 +101,50 @@ class IngredientRepository:
                 raise ApiError(
                     503, "Ingredient mapping file is invalid", "ingredient_mapping_invalid"
                 ) from exc
+        if self._pin_mapping:
+            self._mappings = records
+        return records
+
+    def prioritized_option_keys(
+        self,
+        keys: set[tuple[str, str | None]] | None = None,
+        *,
+        reviewed_texture: str | None = None,
+    ) -> set[tuple[str, str | None]]:
+        """Pick ordering hints from the same mapping snapshot that lookup will validate."""
+        prioritized = set()
+        seen = set()
+        for record in self._mapping_records():
+            key = (record.product_id, record.shade_id)
+            if keys is not None and key not in keys:
+                continue
+            if key in seen:
+                prioritized.discard(key)
+                continue
+            seen.add(key)
+            if (
+                record.review_status == "verified"
+                and record.mapping_status in {"directly_reviewed", "reproduced"}
+                and record.option_id
+                and record.goods_no
+                and record.product_id == "oy-" + record.goods_no.lower()
+                and record.catalog_fingerprint
+                and record.source_version
+                and not record.synthetic
+                and (
+                    reviewed_texture is None
+                    or (
+                        record.mapping_status == "directly_reviewed"
+                        and record.option_review
+                        and record.option_review.texture == reviewed_texture
+                    )
+                )
+            ):
+                prioritized.add(key)
+        return prioritized
+
+    def _mapping(self, product_id, shade_id):
+        records = self._mapping_records()
         matches = [r for r in records if r.product_id == product_id and r.shade_id == shade_id]
         if len(matches) > 1:
             raise ApiError(
@@ -265,6 +311,18 @@ class IngredientRepository:
         if "ingredient_list_inconsistent" in response.issues:
             evidence.ingredient_coverage = "partial"
             evidence.normalization_status = "unverified"
+        elif direct and not mapping.synthetic and mapping.option_review:
+            identity_version = fingerprint(
+                [
+                    [entry.identity.mfds_ingredient_id, entry.identity.source_hash]
+                    if entry.identity
+                    else [None, None]
+                    for entry in entries
+                ]
+            )
+            if identity_version != mapping.option_review.ingredient_identity_version:
+                evidence.normalization_status = "unverified"
+            response.option_review = mapping.option_review
         response.evidence = evidence
         warnings = {"source_timezone_unknown"} if direct else set()
         response.reason = (
@@ -272,5 +330,17 @@ class IngredientRepository:
         )
         return response
 
+    @staticmethod
+    def verified_option(result: IngredientReadResult) -> bool:
+        # option_id is assigned only after catalog, active ownership and source-version checks.
+        return bool(
+            result.option_id
+            and result.source_version
+            and result.mapping_status in {"directly_reviewed", "reproduced"}
+        )
+
     async def resolve_identity(self, name: str):
         return await IngredientIdentityRepository(self._session).resolve(name)
+
+    async def resolve_option_name(self, name: str):
+        return await IngredientIdentityRepository(self._session).resolve_option_name(name)

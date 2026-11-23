@@ -2,7 +2,7 @@ import { hexToLab } from '@/lib/colorFamily';
 import type { Product, Shade, Texture, ZoneCare } from '@/types';
 
 /**
- * Lip tab layout (11-10, user): colour lips under four finish chips, and one "립케어" chip holding lip oils and lip balms. A care
+ * Lip tab layout (11-10, user): colour lips grouped by finish, and one "립케어" chip holding lip oils and lip balms. A care
  * product is a separate layer drawn over the colour lip (or the bare lip): shine and texture on top, almost no colour.
  *
  * Decided by the product NAME, not the catalog tag: the "립케어" tag also covers tinted serums, cheek-and-lip pots and matte bars.
@@ -30,10 +30,10 @@ export function isLipBaseCare(product: Named): boolean {
   return BASE_CARE_NAME.test(name) && lipCareKind(product) === null && !TINTED_NAME.test(name);
 }
 
-export type LipTextureChip = 'matte' | 'cream' | 'glossy' | 'shimmer';
-export const LIP_TEXTURE_CHIPS: LipTextureChip[] = ['matte', 'cream', 'glossy', 'shimmer'];
+export type LipTextureChip = 'matte' | 'cream' | 'satin' | 'glossy' | 'shimmer';
+export const LIP_TEXTURE_CHIPS: LipTextureChip[] = ['matte', 'cream', 'satin', 'glossy', 'shimmer'];
 
-/** The lip tab's four finish chips: velvet sits with matte, satin with cream, sheer with glossy. */
+/** Velvet shares the matte filter and sheer shares glossy. Satin has its own finish. */
 export function lipTextureChip(texture: Texture | null | undefined): LipTextureChip | null {
   switch (texture) {
     case 'matte':
@@ -41,7 +41,7 @@ export function lipTextureChip(texture: Texture | null | undefined): LipTextureC
       return 'matte';
     case 'cream':
     case 'satin':
-      return 'cream';
+      return texture;
     case 'glossy':
     case 'sheer':
       return 'glossy';

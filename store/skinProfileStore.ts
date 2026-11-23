@@ -6,20 +6,22 @@ import { readSkinProfile, writeSkinProfile } from '@/lib/skinProfile';
 let revision = 0;
 export const useSkinProfileStore = create<{
   profile: SkinProfile | null;
-  hydrate: () => Promise<void>;
-  save: (profile: SkinProfile) => Promise<void>;
+  owner: string | null;
+  hydrate: (owner?: string | null) => Promise<void>;
+  save: (profile: SkinProfile, owner?: string | null) => Promise<void>;
   reset: () => void;
 }>((set) => ({
   profile: null,
-  hydrate: async () => {
-    const before = revision;
-    const profile = await readSkinProfile();
-    if (before === revision) set({ profile });
+  owner: null,
+  hydrate: async (owner = null) => {
+    const before = ++revision;
+    const profile = await readSkinProfile(owner);
+    if (before === revision) set({ owner, profile });
   },
-  save: async (profile) => {
-    await writeSkinProfile(profile);
+  save: async (profile, owner = null) => {
+    await writeSkinProfile(profile, owner);
     revision++;
-    set({ profile });
+    set({ owner, profile });
   },
   reset: () => { revision++; set({ profile: null }); },
 }));

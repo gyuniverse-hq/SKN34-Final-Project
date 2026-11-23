@@ -35,8 +35,8 @@ export const flowsEn = {
   'home.eyebrow': 'K-BEAUTY EDIT',
 
   'home.collectionTitle': 'K-STYLE COLLECTION',
-  'home.collectionCelebrity': 'K-CELEBRITY',
-  'home.collectionStyle': 'K-STYLE',
+  'home.collectionCelebrity': 'K-Celebs',
+  'home.collectionStyle': 'K-Style',
   'home.collectionCelebrityEmpty': 'K-celebrity looks are being prepared.',
   'home.chatFab': 'Ask VISHUE',
   'home.chatFabHint': 'Open the VISHUE chat assistant',
@@ -366,8 +366,8 @@ export const flowsKo: FlowsDictionary = {
   'home.eyebrow': 'K-BEAUTY EDIT',
 
   'home.collectionTitle': 'K-STYLE COLLECTION',
-  'home.collectionCelebrity': 'K-\uc5f0\uc608\uc778',
-  'home.collectionStyle': 'K-\uc2a4\ud0c0\uc77c',
+  'home.collectionCelebrity': 'K-셀럽',
+  'home.collectionStyle': 'K-스타일',
   'home.collectionCelebrityEmpty': 'K-\uc5f0\uc608\uc778 \ub8e9\uc744 \uc900\ube44\ud558\uace0 \uc788\uc5b4\uc694.',
   'home.chatFab': 'VISHUE\uc5d0\uac8c \ubb3c\uc5b4\ubcf4\uae30',
   'home.chatFabHint': 'VISHUE \ucc57\ubd07\uc744 \uc5f4\uc5b4\uc694',
@@ -695,8 +695,8 @@ export const flowsJa: FlowsDictionary = {
   'home.eyebrow': 'K-BEAUTY EDIT',
 
   'home.collectionTitle': 'K-STYLE COLLECTION',
-  'home.collectionCelebrity': 'K-\u30bb\u30ec\u30d6',
-  'home.collectionStyle': 'K-\u30b9\u30bf\u30a4\u30eb',
+  'home.collectionCelebrity': '韓国スター',
+  'home.collectionStyle': '韓国スタイル',
   'home.collectionCelebrityEmpty': 'K-\u30bb\u30ec\u30d6\u30eb\u30c3\u30af\u3092\u6e96\u5099\u4e2d\u3067\u3059\u3002',
   'home.chatFab': 'VISHUE\u306b\u805e\u304f',
   'home.chatFabHint': 'VISHUE\u30c1\u30e3\u30c3\u30c8\u30a2\u30b7\u30b9\u30bf\u30f3\u30c8\u3092\u958b\u304f',
@@ -1023,8 +1023,8 @@ export const flowsZh: FlowsDictionary = {
 
   'home.eyebrow': 'K-BEAUTY EDIT',
   'home.collectionTitle': 'K-STYLE COLLECTION',
-  'home.collectionCelebrity': 'K-\u660e\u661f',
-  'home.collectionStyle': 'K-\u98ce\u683c',
+  'home.collectionCelebrity': '韩国明星',
+  'home.collectionStyle': '韩系风格',
   'home.collectionCelebrityEmpty': 'K-\u660e\u661f\u5986\u5bb9\u6b63\u5728\u51c6\u5907\u4e2d\u3002',
   'home.chatFab': '\u95ee VISHUE',
   'home.chatFabHint': '\u6253\u5f00 VISHUE \u804a\u5929\u52a9\u624b',

@@ -562,7 +562,9 @@ describe('face-fit page', () => {
       expect(dict['ar.hlFace.name.gaunt']).toBeTruthy();
       for (const face of ['round', 'square', 'oblong', 'oval', 'heart']) expect(Object.keys(dict)).not.toContain('ar.hlFace.name.' + face);
     }
-    expect(tsx).toContain("value={zone === 'highlighter' ? makeup.highlighter!.intensity : makeup.contour!.intensity}");
+    expect(tsx).toContain('const currentIntensity = makeup[zone]?.intensity;');
+    expect(tsx).toContain('<IntensityRail value={currentIntensity}');
+    expect(tsx).toContain('onChange={level => setIntensity(zone, level)}');
     for (const dict of [en, ko, ja, zh] as Record<string, string>[]) {
       for (const key of ['contourPlacement.auto', 'faceShape.default', 'faceShape.analyzing', 'faceShape.fallback', 'faceShape.result']) expect(dict['ar.' + key]).toBeTruthy();
       for (const shape of FACE_SHAPES) {

@@ -5,31 +5,13 @@ from unittest.mock import AsyncMock
 from fastapi.testclient import TestClient
 
 from app.main import create_app
-from app.schemas.skincare import GOALS, CosingMapping, HybridRequest, SkincareSnapshot
+from app.schemas.skincare import GOALS, SkincareProfileRequest, SkincareSnapshot
 from app.services.skincare_service import (
     SkincareService,
     get_skincare_service,
-    recommend,
     recommend_hybrid,
 )
-from tests.test_skincare import option, request, snapshot
-from tests.test_skincare_hybrid import reviewed
-
-
-def cosing(**changes):
-    return CosingMapping(
-        **(
-            {
-                "mapping_id": "cosing:42:dryness",
-                "target_concern": "dryness",
-                "ingredient_codes": ["A"],
-                "function_names": ["HUMECTANT"],
-                "substance_id": "42",
-                "match_method": "exact",
-            }
-            | changes
-        )
-    )
+from tests.test_skincare import cosing, option, request, reviewed, snapshot
 
 
 def test_cosing_candidate_has_distinct_source_and_no_fabricated_study():
@@ -37,8 +19,7 @@ def test_cosing_candidate_has_distinct_source_and_no_fabricated_study():
     data = snapshot([option(matched_mapping_ids=[mapping.mapping_id])], [mapping])
     data = SkincareSnapshot.model_validate_json(data.model_dump_json(by_alias=True))
     assert data.mappings[0].evidence_ids == []
-    assert [match.option_id for match in recommend(data, request()).matches] == ["a"]
-    result = recommend_hybrid(data, HybridRequest(primaryGoal="dryness"))
+    result = recommend_hybrid(data, request())
     assert [match.option_id for match in result.overall_top5] == ["a"]
     assert result.overall_top5[0].reasons[0].evidence_sources == ["cosing_function"]
 
@@ -81,10 +62,10 @@ def test_cosing_does_not_use_another_options_ingredient_or_inactive_mapping():
         [option("without", ingredient_codes=[], matched_mapping_ids=[mapping.mapping_id])],
         [mapping],
     )
-    assert not recommend_hybrid(data, HybridRequest(primaryGoal="dryness")).overall_top5
+    assert not recommend_hybrid(data, request()).overall_top5
     data.options[0].ingredient_codes = ["A"]
     data.mappings[0].runtime_enabled = False
-    assert not recommend_hybrid(data, HybridRequest(primaryGoal="dryness")).overall_top5
+    assert not recommend_hybrid(data, request()).overall_top5
 
 
 def test_research_is_ignored_even_when_it_matches_the_same_option():
@@ -94,17 +75,18 @@ def test_research_is_ignored_even_when_it_matches_the_same_option():
         [option(matched_mapping_ids=[original.mapping_id, cosing_rule.mapping_id])],
         [original, cosing_rule],
     )
-    result = recommend_hybrid(data, HybridRequest(primaryGoal="dryness", secondaryGoals=["pores"]))
+    result = recommend_hybrid(
+        data, request(detectedConcerns=[{"goal": "pores", "sources": ["analysis"]}])
+    )
     assert [reason.goal for reason in result.overall_top5[0].reasons] == ["dryness"]
     assert result.overall_top5[0].reasons[0].evidence_sources == ["cosing_function"]
-    assert result.coverage[1].status == "mapping_unavailable"
+    assert {item.goal: item.status for item in result.coverage}["pores"] == "mapping_unavailable"
 
 
 def test_legacy_research_only_snapshot_produces_no_recommendations():
     research = reviewed()
     data = snapshot([option(matched_mapping_ids=[research.mapping_id])], [research])
-    assert not recommend(data, request()).matches
-    result = recommend_hybrid(data, HybridRequest(primaryGoal="dryness"))
+    result = recommend_hybrid(data, request())
     assert not result.overall_top5
     assert result.coverage[0].status == "mapping_unavailable"
 
@@ -122,7 +104,7 @@ def test_research_ingredients_cannot_change_cosing_ranking():
     for item in mixed.options:
         item.ingredient_codes.append("B")
         item.matched_mapping_ids.append("research")
-    req = HybridRequest(primaryGoal="dryness")
+    req = request()
     assert recommend_hybrid(mixed, req) == recommend_hybrid(clean, req)
 
 
@@ -130,15 +112,11 @@ def test_concern_and_balance_return_five_distinct_products_when_available():
     dry = cosing(mapping_id="dry", target_concern="dryness")
     options = [option(str(i), matched_mapping_ids=["dry"]) for i in range(7)]
     options.append(option("duplicate", product=options[0].product, matched_mapping_ids=["dry"]))
-    result = recommend_hybrid(
-        snapshot(options, [dry]), HybridRequest(primaryGoal="dryness", balanceGoal="primary")
-    )
+    result = recommend_hybrid(snapshot(options, [dry]), request())
     for matches in (result.by_concern["dryness"], result.balance_matches):
         assert len(matches) == 5
         assert len({match.product.id for match in matches}) == 5
-    short = recommend_hybrid(
-        snapshot(options[:2], [dry]), HybridRequest(primaryGoal="dryness", balanceGoal="primary")
-    )
+    short = recommend_hybrid(snapshot(options[:2], [dry]), request())
     assert len(short.by_concern["dryness"]) == len(short.balance_matches) == 2
 
 
@@ -174,12 +152,17 @@ def test_concern_rankings_match_single_goal_requests_even_when_candidates_overla
     )
     combined = recommend_hybrid(
         data,
-        HybridRequest(
-            primaryGoal="pores", detectedConcerns=[{"goal": "sensitivity", "sources": ["analysis"]}]
+        SkincareProfileRequest(
+            detectedConcerns=[
+                {"goal": "pores", "sources": ["analysis"]},
+                {"goal": "sensitivity", "sources": ["analysis"]},
+            ]
         ),
     )
     for goal, first in (("pores", "pores-only"), ("sensitivity", "sensitive-only")):
-        single = recommend_hybrid(data, HybridRequest(primaryGoal=goal))
+        single = recommend_hybrid(
+            data, SkincareProfileRequest(detectedConcerns=[{"goal": goal, "sources": ["analysis"]}])
+        )
         ids = [match.option_id for match in combined.by_concern[goal]]
         assert ids == [match.option_id for match in single.by_concern[goal]]
         assert len(ids) == 5
@@ -196,21 +179,17 @@ def test_balance_prioritizes_oil_or_dryness_and_treats_conflicting_signals_equal
         ],
         [dry, oil],
     )
-    base = {"primaryGoal": "dryness", "balanceGoal": "primary"}
     oil_signal = [{"goal": "oiliness", "sources": ["survey"]}]
     cases = [
-        ({"detectedConcerns": oil_signal}, "z-oil"),
-        ({"skinType": "dry"}, "a-dry"),
-        ({"skinType": "dry", "detectedConcerns": oil_signal}, "a-dry"),
-        ({}, "a-dry"),
+        ({"detectedConcerns": oil_signal}, ["z-oil"], "z-oil"),
+        ({"skinType": "dry"}, ["a-dry"], "a-dry"),
+        ({"skinType": "dry", "detectedConcerns": oil_signal}, ["z-oil", "a-dry"], "a-dry"),
+        ({}, [], "a-dry"),
     ]
-    for extra, expected in cases:
-        result = recommend_hybrid(data, HybridRequest(**(base | extra)))
-        assert result.overall_top5[0].product.id == expected
-        assert result.balance_matches[0].product.id == expected
+    for extra, overall, balance_first in cases:
+        result = recommend_hybrid(data, SkincareProfileRequest(**extra))
+        assert [m.product.id for m in result.overall_top10] == overall
+        assert result.balance_matches[0].product.id == balance_first
         assert {m.product.id for m in result.balance_matches} == {"a-dry", "z-oil"}
         assert [m.product.id for m in result.by_concern["dryness"]] == ["a-dry"]
         assert [m.product.id for m in result.by_concern["oiliness"]] == ["z-oil"]
-        assert {reason.sources[0] for match in result.overall_top5 for reason in match.reasons} == {
-            "primary"
-        }

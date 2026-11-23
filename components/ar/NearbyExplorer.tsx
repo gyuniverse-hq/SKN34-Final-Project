@@ -1,26 +1,23 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { NearbyDirectionDial } from './NearbyDirectionDial';
 import { theme } from '@/constants/theme';
 import { useI18n } from '@/lib/i18n';
-import { type ColorSwatch, type NearbyDirection } from '@/lib/nearbyColors';
+import type { ColorSwatch } from '@/lib/nearbyColors';
 
 interface Props {
   active: boolean;
   canEnter: boolean;
   anchor?: ColorSwatch;
-  direction: NearbyDirection;
-  counts: Record<NearbyDirection, number>;
+  showHint?: boolean;
   canGoBack: boolean;
   onEnter: () => void;
   onLeave: () => void;
-  onDirection: (direction: NearbyDirection) => void;
   onBack: () => void;
   onApplyAnchor: () => void;
 }
 
 /** Side controls leave the face open; direction choices expand only on request. */
-export function NearbyExplorer({ active, canEnter, anchor, direction, counts, canGoBack, onEnter, onLeave, onDirection, onBack, onApplyAnchor }: Props) {
+export function NearbyExplorer({ active, canEnter, anchor, showHint, canGoBack, onEnter, onLeave, onBack, onApplyAnchor }: Props) {
   const { t } = useI18n();
   return (
     <View pointerEvents="box-none" style={styles.container}>
@@ -33,29 +30,33 @@ export function NearbyExplorer({ active, canEnter, anchor, direction, counts, ca
         </View>
         <Text style={styles.switchLabel}>{t(active ? 'ar.explore.free' : 'ar.explore.nearby')}</Text>
       </Pressable>
+      {showHint && canEnter && !active ? <Pressable onPress={onEnter} accessibilityRole="button" style={styles.hint}>
+        <View pointerEvents="none" style={styles.tail} />
+        <Text style={styles.hintText}>{t('ar.ui.firstHint')}</Text>
+      </Pressable> : null}
       {active && anchor ? (
-        <>
-          <View style={styles.anchorRow}>
-            <Pressable onPress={onApplyAnchor} accessibilityRole="button"
-              accessibilityLabel={`${t('ar.explore.applyAnchor')}: ${anchor.product.brand} ${anchor.shade.name}`} style={styles.anchor}>
-              <View style={[styles.color, { backgroundColor: anchor.shade.hex }]} />
-              <View style={styles.copy}>
-                <Text style={styles.small}>{t('ar.arc.anchor')}</Text>
-                <Text style={styles.small} numberOfLines={1}>{anchor.shade.name}</Text>
-              </View>
-            </Pressable>
-            {canGoBack ? <Pressable accessibilityRole="button" accessibilityLabel={t('ar.explore.back')} onPress={onBack} style={styles.back}>
-              <Ionicons name="arrow-undo-outline" size={18} color="#FFFFFF" />
-            </Pressable> : null}
-          </View>
-          <NearbyDirectionDial key={`${anchor.product.id}:${anchor.shade.id}`} direction={direction} counts={counts} onDirection={onDirection} />
-        </>
+        <View style={styles.anchorRow}>
+          <Pressable onPress={onApplyAnchor} accessibilityRole="button"
+            accessibilityLabel={`${t('ar.explore.applyAnchor')}: ${anchor.product.brand} ${anchor.shade.name}`} style={styles.anchor}>
+            <View style={[styles.color, { backgroundColor: anchor.shade.hex }]} />
+            <View style={styles.copy}>
+              <Text style={styles.small}>{t('ar.arc.anchor')}</Text>
+              <Text style={styles.small} numberOfLines={1}>{anchor.shade.name}</Text>
+            </View>
+          </Pressable>
+          {canGoBack ? <Pressable accessibilityRole="button" accessibilityLabel={t('ar.explore.back')} onPress={onBack} style={styles.back}>
+            <Ionicons name="arrow-undo-outline" size={18} color="#FFFFFF" />
+          </Pressable> : null}
+        </View>
       ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  hint: { position: 'absolute', left: 52, top: 0, minHeight: 44, paddingHorizontal: 12, borderRadius: 16, backgroundColor: theme.colors.surface, justifyContent: 'center' },
+  tail: { position: 'absolute', left: -4, width: 9, height: 9, backgroundColor: theme.colors.surface, transform: [{ rotate: '45deg' }] },
+  hintText: { color: theme.colors.rose, fontWeight: '600', fontSize: 12 },
   container: { height: 226, justifyContent: 'flex-end', zIndex: 3 },
   switch: { position: 'absolute', top: 0, left: 0, width: 44, minHeight: 52, gap: 3, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
   switchIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(30,22,27,0.5)' },

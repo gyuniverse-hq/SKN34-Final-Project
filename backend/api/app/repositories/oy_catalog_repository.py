@@ -28,6 +28,55 @@ class OyCatalogRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
+    async def option_price(self, option_id: str, product_id: str):
+        if not product_id.startswith("oy-"):
+            return None
+        row = (
+            await self._session.execute(
+                select(
+                    RawOyPriceSnapshotRow.snapshot_id,
+                    RawOyPriceSnapshotRow.sale_price,
+                    RawOyPriceSnapshotRow.collected_at,
+                    RawOyProductRow.product_url,
+                )
+                .join(
+                    RawOyProductOptionRow,
+                    RawOyProductOptionRow.option_id == RawOyPriceSnapshotRow.option_id,
+                )
+                .join(RawOyProductRow, RawOyProductRow.goods_no == RawOyProductOptionRow.goods_no)
+                .where(
+                    RawOyPriceSnapshotRow.option_id == option_id,
+                    RawOyProductOptionRow.goods_no == product_id.removeprefix("oy-").upper(),
+                    RawOyPriceSnapshotRow.is_latest.is_(True),
+                    RawOyProductOptionRow.delisted_at.is_(None),
+                    RawOyProductRow.delisted_at.is_(None),
+                )
+            )
+        ).one_or_none()
+        return tuple(row) if row else None
+
+    async def product_texture(self, product_id: str):
+        if not product_id.startswith("oy-"):
+            return None
+        row = (
+            await self._session.execute(
+                select(
+                    RawOyProductTextureRow.texture_code,
+                    RawOyProductTextureRow.judge_step,
+                    RawOyProductTextureRow.collected_at,
+                    RawOyProductRow.product_url,
+                )
+                .join(RawOyProductRow, RawOyProductRow.goods_no == RawOyProductTextureRow.goods_no)
+                .where(
+                    RawOyProductTextureRow.goods_no == product_id.removeprefix("oy-").upper(),
+                    RawOyProductRow.delisted_at.is_(None),
+                )
+                .order_by(RawOyProductTextureRow.collected_at.desc())
+                .limit(1)
+            )
+        ).one_or_none()
+        return tuple(row) if row else None
+
     async def load_products(self) -> list[OyProductInput]:
         product_rows = (
             await self._session.execute(
