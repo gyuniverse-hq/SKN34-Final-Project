@@ -99,6 +99,7 @@ function RootStack() {
         options={{ title: t('consent.title'), presentation: 'modal', gestureEnabled: false, headerBackVisible: false }}
       />
       <Stack.Screen name="membership" options={{ title: t('membership.title') }} />
+      <Stack.Screen name="settings" options={{ title: t('my.settings') }} />
       <Stack.Screen name="rewards" options={{ title: t('rewards.title') }} />
       <Stack.Screen name="saved" options={{ title: t('saved.title') }} />
       <Stack.Screen name="ingredients" options={{ title: t('ingredients.title') }} />
