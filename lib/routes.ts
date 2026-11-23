@@ -142,6 +142,7 @@ export function recommendationsHref(options: {
 
 export function searchHref(options: {
   q?: string;
+  collection?: 'new';
   category?: ProductCategory;
   concerns?: SkinConcern[];
   source?: SearchSource;
@@ -151,6 +152,7 @@ export function searchHref(options: {
     pathname: '/search',
     params: compact({
       q: options.q?.trim() || undefined,
+      collection: options.collection,
       category: options.category,
       concerns: concerns.length ? concerns.join(',') : undefined,
       source: options.source,

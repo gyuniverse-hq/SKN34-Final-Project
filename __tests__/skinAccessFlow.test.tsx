@@ -32,8 +32,11 @@ jest.mock('@/lib/queries', () => ({
   useProducts: jest.fn(() => ({ data: [] })), useStyleLooks: () => ({ data: [] }),
 }));
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
+jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => 'MaterialCommunityIcons');
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('@/components/celeb/KStyleCollection', () => ({ KStyleCollection: 'Collection' }));
+jest.mock('@/components/home/HomeCatalog', () => ({ HomeCategories: 'Categories', HomeProductSection: 'ProductSection' }));
+jest.mock('@/components/home/HomeSearch', () => ({ HomeSearch: 'HomeSearch' }));
 jest.mock('@/components/shop/ShopHeaderActions', () => ({ ShopHeaderActions: 'HeaderActions' }));
 jest.mock('@/lib/skinFilters', () => ({ suggestConcerns: () => ['dryness'] }));
 
@@ -104,6 +107,7 @@ it.each([
   const section = tree.root.findByType(SkinMatchSection);
   expect(section.props.availability).toBe(message);
   expect(section.findAllByProps({ children: message }).length).toBeGreaterThan(0);
-  section.props.onAction();
+  const action = section.findAll(node => node.props.accessibilityRole === 'button' && typeof node.props.onPress === 'function')[0];
+  action.props.onPress();
   expect(mockPush).toHaveBeenCalledWith(path);
 });
