@@ -1,6 +1,7 @@
 # ADR-0009 팀 공용 개발 서버는 Render(무료) + Supabase + Neo4j AuraDB Free로 둔다
 
-- 상태: 채택 (2026-10-24). [ADR-0008](0008-aws-environments.md)의 "EKS 안 dev 네임스페이스" 부분을 대체합니다. AWS는 운영 배포에만 씁니다.
+- 상태: 채택 (2026-10-24). [ADR-0008](0008-aws-environments.md)의 "EKS 안 dev 네임스페이스" 부분을 대체합니다. AWS는 운영 배포에만 씁니다.  
+  공용 Supabase 용량 한계 이후의 덤프·로컬 개발과 운영 RDS 컷오버는 [ADR-0011](0011-production-cutover.md)를 따릅니다.
 
 ## 배경
 

@@ -313,12 +313,14 @@ backend/<service>/
 
 | 항목 | 현재 결정 | 바꿀 조건 |
 | --- | --- | --- |
-| 개발 서버 | Render 무료 플랜 + Supabase + Neo4j AuraDB Free ([ADR-0009](adr/0009-render-dev-environment.md)) | 잠들기·사용 시간 제약이 불편해지면 `vishue-api`만 유료로 |
-| 운영 배포처 | AWS EKS (서울 리전, Terraform) + Argo CD ([ADR-0008](adr/0008-aws-environments.md)) | 확정 (캠프 AWS 지원, 배포 단계에 적용) |
-| 운영 데이터 저장소 | RDS PostgreSQL, ElastiCache, Neo4j AuraDB | 운영 DB 비용이 문제면 Supabase로 바꿉니다(`DATABASE_URL`만 교체) |
-| 카탈로그 데이터 | dev는 Git의 `seed/catalog.json`이 원본, 바뀌면 `dev-data` 워크플로가 반영 ([`DATA.md`](DATA.md)) | 크롤링 데이터가 파일 하나로 감당하기 어려워지면 가져오기 방식을 바꿉니다 |
+| 개발 서버 | Render + Supabase는 보조. 용량 한계 이후에는 덤프·로컬 DB로 개발 ([ADR-0009](adr/0009-render-dev-environment.md), [ADR-0011](adr/0011-production-cutover.md)) | 운영 Gateway가 안정되면 팀 공용은 운영 API로 모은다 |
+| 운영 배포처 | AWS EKS (서울 리전, Terraform) + Argo CD + GHCR + Envoy Gateway ([ADR-0008](adr/0008-aws-environments.md), [ADR-0011](adr/0011-production-cutover.md)) | 확정 |
+| 운영 데이터 저장소 | RDS PostgreSQL(공용 원본), ElastiCache, Neo4j AuraDB, S3(백업·에셋) | 초기 적재는 덤프 복원 후 시드 보정 ([ADR-0011](adr/0011-production-cutover.md)) |
+| 카탈로그 데이터 | Git `seed/catalog.json`이 배포 기준. 운영 컷오버 시 덤프와 맞춘 뒤 시드로 보정 ([`DATA.md`](DATA.md)) | 크롤링 데이터가 파일 하나로 감당하기 어려워지면 가져오기 방식을 바꿉니다 |
+| 운영 1차 부가 | pause/resume 런북, gitleaks CI, 배포 경로 검증 ([ADR-0011](adr/0011-production-cutover.md)) | 관측(Prometheus·Grafana)·Langfuse는 2차 ([ADR-0007](adr/0007-observability.md)) |
 | 챗봇 LLM | OpenAI 호환 API, 모델은 `LLM_MODEL`로 지정 | 모델 선정은 평가 세트를 만든 뒤에 합니다 |
 | 챗봇 대화 기록 | 저장하지 않음 | 저장하려면 보관 기간과 동의 절차를 먼저 정합니다 |
+| GPU 추론 서버 | 운영 경로에 두지 않음(AR·피부분석은 기기 내) | 배치·연구 전용으로 범위가 정해질 때만 별도 검토 |
 
 
 새 기초 추천의 파생 입력·검수 데이터 발행·추적 계약은 [기초 추천 v1](skincare-recommendations.md)을 따른다.

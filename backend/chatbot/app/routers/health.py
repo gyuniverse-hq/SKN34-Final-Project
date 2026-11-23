@@ -15,7 +15,7 @@ async def healthz() -> dict[str, bool]:
 
 @router.get("/readyz")
 async def readyz() -> JSONResponse:
-    """Readiness: take the pod out of the Service until Neo4j (and Redis, if set) respond."""
+    """Readiness: deps must respond; skip graph when Neo4j is unset (ADR-0012)."""
     graph = await ping_graph()
     redis = await ping_redis()
     ok = graph and redis is not False
