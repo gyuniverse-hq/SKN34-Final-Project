@@ -10,8 +10,8 @@ let mockProfile: SkinProfile | null = null;
 let mockOwner: string | undefined;
 const mockHydrate = jest.fn<Promise<void>, []>();
 jest.mock('@/store/skinProfileStore', () => ({
-  useSkinProfileStore: (selector: (state: { profile: SkinProfile | null; hydrate: () => Promise<void> }) => unknown) =>
-    selector({ profile: mockProfile, hydrate: mockHydrate }),
+  useSkinProfileStore: (selector: (state: { owner: string | null; profile: SkinProfile | null; hydrate: () => Promise<void> }) => unknown) =>
+    selector({ owner: mockOwner ?? null, profile: mockProfile, hydrate: mockHydrate }),
 }));
 jest.mock('@/lib/api', () => ({ apiPost: jest.fn().mockResolvedValue({ overallTop5: [] }) }));
 jest.mock('@/lib/auth', () => ({ useAuth: () => ({ user: mockOwner && { id: mockOwner }, ready: true }) }));

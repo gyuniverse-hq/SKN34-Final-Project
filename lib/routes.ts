@@ -25,7 +25,7 @@ export const SKIN_CONCERNS: readonly SkinConcern[] = [
   'wrinkles',
 ];
 export type SearchSource = 'home' | 'skin';
-export type LoginReturnTo = 'checkout';
+export type LoginReturnTo = 'checkout' | 'membership';
 
 type RawParam = string | string[] | undefined;
 
@@ -79,7 +79,8 @@ export function parseSearchSource(value: RawParam): SearchSource | undefined {
 }
 
 export function parseLoginReturnTo(value: RawParam): LoginReturnTo | undefined {
-  return paramValue(value) === 'checkout' ? 'checkout' : undefined;
+  const route = paramValue(value);
+  return route === 'checkout' || route === 'membership' ? route : undefined;
 }
 
 export function parseFlag(value: RawParam): boolean {
@@ -141,6 +142,7 @@ export function recommendationsHref(options: {
 
 export function searchHref(options: {
   q?: string;
+  collection?: 'new';
   category?: ProductCategory;
   concerns?: SkinConcern[];
   source?: SearchSource;
@@ -150,6 +152,7 @@ export function searchHref(options: {
     pathname: '/search',
     params: compact({
       q: options.q?.trim() || undefined,
+      collection: options.collection,
       category: options.category,
       concerns: concerns.length ? concerns.join(',') : undefined,
       source: options.source,

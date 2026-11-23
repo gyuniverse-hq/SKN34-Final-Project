@@ -28,7 +28,8 @@ export const theme = {
   radius: { sm: 8, md: 12, lg: 18, pill: 999 },
   font: { caption: 12, small: 13, body: 15, title: 18, h2: 22, h1: 28 },
   fontFamily: {
-    display: Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia, serif' }),
+    regular: 'NanumGothicRegular',
+    display: 'NanumGothicBold',
   },
   /** Minimum touch target (iOS HIG 44pt, Material 48dp). */
   hitTarget: 44,

@@ -21,6 +21,7 @@ interface Props {
   disabled?: boolean;
   loading?: boolean;
   compact?: boolean;
+  multiline?: boolean;
   style?: StyleProp<ViewStyle>;
   accessibilityHint?: string;
 }
@@ -40,6 +41,7 @@ export function Button({
   disabled,
   loading,
   compact,
+  multiline,
   style,
   accessibilityHint,
 }: Props) {
@@ -63,9 +65,9 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={color} />
       ) : (
-        <View style={styles.row}>
+        <View style={[styles.row, multiline && styles.wrappingRow]}>
           {icon ? <Ionicons name={icon} size={compact ? 16 : 18} color={color} /> : null}
-          <Text style={[styles.label, compact && styles.labelCompact, { color }]} numberOfLines={1}>
+          <Text style={[styles.label, compact && styles.labelCompact, multiline && styles.wrappingLabel, { color }]} numberOfLines={multiline ? undefined : 1}>
             {label}
           </Text>
         </View>
@@ -91,5 +93,7 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.45 },
   pressed: { opacity: 0.8 },
   label: { fontSize: theme.font.body, fontWeight: '600' },
+  wrappingRow: { maxWidth: '100%', paddingVertical: 6 },
+  wrappingLabel: { flexShrink: 1, textAlign: 'center' },
   labelCompact: { fontSize: theme.font.small },
 });
