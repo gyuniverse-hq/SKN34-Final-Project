@@ -1,0 +1,952 @@
+{
+ "light": {
+  "px": {
+   "lip": 2120,
+   "lid": 2807,
+   "hl": 3170
+  },
+  "normal|B0": {
+   "exc": 0,
+   "fps": 1,
+   "skin": 0.52,
+   "perf": [
+    214.3,
+    5153.3,
+    199.5,
+    303.7,
+    0.1,
+    0.1
+   ],
+   "frameLum": 0.32,
+   "A.lip": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.0,
+    "sparkle": 1.0,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "A.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.0,
+    "sparkle": 0.0,
+    "peak_vs_base": 0.0,
+    "level_vs_base": 0.0
+   },
+   "A.hl": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.0,
+    "sparkle": 1.0,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "B.lip": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.0,
+    "sparkle": 1.0,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "B.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.0,
+    "sparkle": 0.0,
+    "peak_vs_base": 0.0,
+    "level_vs_base": 0.0
+   },
+   "B.hl": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.0,
+    "sparkle": 1.0,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "C.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.0,
+    "sparkle": 1.0,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "D.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.0,
+    "sparkle": 1.0,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   }
+  },
+  "normal|R3": {
+   "exc": 0,
+   "fps": 1,
+   "skin": 0.52,
+   "perf": [
+    207.3,
+    3638.1,
+    41.2,
+    260.3,
+    0.0,
+    0.1
+   ],
+   "frameLum": 0.32,
+   "A.lip": {
+    "dE_vs_B0": 0.137,
+    "maxPix_vs_B0": 23,
+    "float": 0.998,
+    "sparkle": 1.003,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.003
+   },
+   "A.lid": {
+    "dE_vs_B0": 0.041,
+    "maxPix_vs_B0": 26,
+    "float": 1.001,
+    "sparkle": 0.0,
+    "peak_vs_base": 0.0,
+    "level_vs_base": 0.0
+   },
+   "A.hl": {
+    "dE_vs_B0": 0.006,
+    "maxPix_vs_B0": 14,
+    "float": 1.0,
+    "sparkle": 1.0,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "B.lip": {
+    "dE_vs_B0": 0.059,
+    "maxPix_vs_B0": 12,
+    "float": 0.999,
+    "sparkle": 0.941,
+    "peak_vs_base": 0.986,
+    "level_vs_base": 0.955
+   },
+   "B.lid": {
+    "dE_vs_B0": 0.005,
+    "maxPix_vs_B0": 22,
+    "float": 1.0,
+    "sparkle": 0.0,
+    "peak_vs_base": 0.0,
+    "level_vs_base": 0.0
+   },
+   "B.hl": {
+    "dE_vs_B0": 0.043,
+    "maxPix_vs_B0": 12,
+    "float": 1.0,
+    "sparkle": 1.001,
+    "peak_vs_base": 1.001,
+    "level_vs_base": 1.0
+   },
+   "C.lid": {
+    "dE_vs_B0": 0.019,
+    "maxPix_vs_B0": 22,
+    "float": 1.0,
+    "sparkle": 0.993,
+    "peak_vs_base": 1.003,
+    "level_vs_base": 0.99
+   },
+   "D.lid": {
+    "dE_vs_B0": 0.02,
+    "maxPix_vs_B0": 19,
+    "float": 0.999,
+    "sparkle": 0.999,
+    "peak_vs_base": 1.007,
+    "level_vs_base": 0.993
+   }
+  },
+  "dark|B0": {
+   "exc": 0,
+   "fps": 1,
+   "skin": 0.1,
+   "perf": [
+    219.1,
+    5096.1,
+    37.0,
+    369.8,
+    0.4,
+    1.4
+   ],
+   "frameLum": 0.06,
+   "A.lip": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.014,
+    "sparkle": 81647.555,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "A.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.005,
+    "sparkle": 102374.969,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "A.hl": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.012,
+    "sparkle": 2.159,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "B.lip": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.163,
+    "sparkle": 6.067,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "B.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.009,
+    "sparkle": 181435.766,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "B.hl": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.01,
+    "sparkle": 2.105,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "C.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 0.99,
+    "sparkle": 1.954,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "D.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.002,
+    "sparkle": 1.375,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   }
+  },
+  "dark|R3": {
+   "exc": 0,
+   "fps": 1,
+   "skin": 0.1,
+   "perf": [
+    44.5,
+    5490.3,
+    33.0,
+    355.3,
+    0.6,
+    1.4
+   ],
+   "frameLum": 0.06,
+   "A.lip": {
+    "dE_vs_B0": 0.457,
+    "maxPix_vs_B0": 34,
+    "float": 1.027,
+    "sparkle": 72283.852,
+    "peak_vs_base": 0.869,
+    "level_vs_base": 1.017
+   },
+   "A.lid": {
+    "dE_vs_B0": 0.519,
+    "maxPix_vs_B0": 24,
+    "float": 1.0,
+    "sparkle": 66548.273,
+    "peak_vs_base": 1.223,
+    "level_vs_base": 0.532
+   },
+   "A.hl": {
+    "dE_vs_B0": 0.22,
+    "maxPix_vs_B0": 22,
+    "float": 1.016,
+    "sparkle": 2.193,
+    "peak_vs_base": 0.963,
+    "level_vs_base": 1.052
+   },
+   "B.lip": {
+    "dE_vs_B0": 0.411,
+    "maxPix_vs_B0": 59,
+    "float": 1.152,
+    "sparkle": 5.234,
+    "peak_vs_base": 0.917,
+    "level_vs_base": 0.939
+   },
+   "B.lid": {
+    "dE_vs_B0": 0.144,
+    "maxPix_vs_B0": 27,
+    "float": 1.005,
+    "sparkle": 114665.195,
+    "peak_vs_base": 1.024,
+    "level_vs_base": 0.618
+   },
+   "B.hl": {
+    "dE_vs_B0": 0.514,
+    "maxPix_vs_B0": 26,
+    "float": 1.016,
+    "sparkle": 2.192,
+    "peak_vs_base": 0.99,
+    "level_vs_base": 1.05
+   },
+   "C.lid": {
+    "dE_vs_B0": 0.525,
+    "maxPix_vs_B0": 51,
+    "float": 1.008,
+    "sparkle": 2.046,
+    "peak_vs_base": 0.777,
+    "level_vs_base": 1.349
+   },
+   "D.lid": {
+    "dE_vs_B0": 0.083,
+    "maxPix_vs_B0": 44,
+    "float": 1.004,
+    "sparkle": 1.309,
+    "peak_vs_base": 0.936,
+    "level_vs_base": 1.018
+   }
+  },
+  "dark10|B0": {
+   "exc": 0,
+   "fps": 1,
+   "skin": 0.05,
+   "perf": [
+    49.2,
+    4481.6,
+    43.9,
+    326.0,
+    0.9,
+    2.3
+   ],
+   "frameLum": 0.03,
+   "A.lip": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.185,
+    "sparkle": 151792.016,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "A.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.006,
+    "sparkle": 179135.0,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "A.hl": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.019,
+    "sparkle": 2.772,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "B.lip": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.372,
+    "sparkle": 10.751,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "B.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.012,
+    "sparkle": 271071.719,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "B.hl": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.009,
+    "sparkle": 3.502,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "C.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.092,
+    "sparkle": 4.638,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "D.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.065,
+    "sparkle": 2.611,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   }
+  },
+  "dark10|R3": {
+   "exc": 0,
+   "fps": 1,
+   "skin": 0.05,
+   "perf": [
+    256.8,
+    3810.1,
+    47.2,
+    314.6,
+    1.0,
+    2.7
+   ],
+   "frameLum": 0.03,
+   "A.lip": {
+    "dE_vs_B0": 3.027,
+    "maxPix_vs_B0": 50,
+    "float": 1.058,
+    "sparkle": 112932.828,
+    "peak_vs_base": 1.71,
+    "level_vs_base": 0.433
+   },
+   "A.lid": {
+    "dE_vs_B0": 0.175,
+    "maxPix_vs_B0": 26,
+    "float": 1.009,
+    "sparkle": 190558.562,
+    "peak_vs_base": 0.826,
+    "level_vs_base": 1.276
+   },
+   "A.hl": {
+    "dE_vs_B0": 0.572,
+    "maxPix_vs_B0": 42,
+    "float": 1.016,
+    "sparkle": 2.824,
+    "peak_vs_base": 1.048,
+    "level_vs_base": 0.971
+   },
+   "B.lip": {
+    "dE_vs_B0": 1.967,
+    "maxPix_vs_B0": 60,
+    "float": 1.278,
+    "sparkle": 12.661,
+    "peak_vs_base": 1.559,
+    "level_vs_base": 0.752
+   },
+   "B.lid": {
+    "dE_vs_B0": 0.284,
+    "maxPix_vs_B0": 32,
+    "float": 1.02,
+    "sparkle": 262192.875,
+    "peak_vs_base": 0.888,
+    "level_vs_base": 1.078
+   },
+   "B.hl": {
+    "dE_vs_B0": 0.346,
+    "maxPix_vs_B0": 44,
+    "float": 1.017,
+    "sparkle": 3.328,
+    "peak_vs_base": 0.883,
+    "level_vs_base": 1.075
+   },
+   "C.lid": {
+    "dE_vs_B0": 1.404,
+    "maxPix_vs_B0": 77,
+    "float": 1.02,
+    "sparkle": 2.831,
+    "peak_vs_base": 1.163,
+    "level_vs_base": 0.52
+   },
+   "D.lid": {
+    "dE_vs_B0": 0.566,
+    "maxPix_vs_B0": 54,
+    "float": 1.022,
+    "sparkle": 1.506,
+    "peak_vs_base": 0.797,
+    "level_vs_base": 0.716
+   }
+  }
+ },
+ "dark": {
+  "px": {
+   "lip": 4987,
+   "lid": 1879,
+   "hl": 105
+  },
+  "normal|B0": {
+   "exc": 0,
+   "fps": 1,
+   "skin": 0.02,
+   "perf": [
+    271.0,
+    5709.5,
+    37.7,
+    349.9,
+    0.0,
+    0.1
+   ],
+   "frameLum": 0.21,
+   "A.lip": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.0,
+    "sparkle": 1.0,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "A.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.0,
+    "sparkle": 1.0,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 0.241
+   },
+   "A.hl": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.0,
+    "sparkle": 1.0,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "B.lip": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.0,
+    "sparkle": 1.0,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "B.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.0,
+    "sparkle": 1.0,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "B.hl": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.0,
+    "sparkle": 1.0,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "C.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.0,
+    "sparkle": 1.0,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "D.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.0,
+    "sparkle": 1.0,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   }
+  },
+  "normal|R3": {
+   "exc": 0,
+   "fps": 1,
+   "skin": 0.02,
+   "perf": [
+    217.9,
+    3879.6,
+    25.7,
+    294.9,
+    0.0,
+    0.1
+   ],
+   "frameLum": 0.21,
+   "A.lip": {
+    "dE_vs_B0": 0.019,
+    "maxPix_vs_B0": 3,
+    "float": 1.0,
+    "sparkle": 1.0,
+    "peak_vs_base": 0.998,
+    "level_vs_base": 1.002
+   },
+   "A.lid": {
+    "dE_vs_B0": 0.015,
+    "maxPix_vs_B0": 1,
+    "float": 1.0,
+    "sparkle": 1.0,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 0.241
+   },
+   "A.hl": {
+    "dE_vs_B0": 0.097,
+    "maxPix_vs_B0": 2,
+    "float": 1.0,
+    "sparkle": 1.027,
+    "peak_vs_base": 0.997,
+    "level_vs_base": 1.031
+   },
+   "B.lip": {
+    "dE_vs_B0": 0.161,
+    "maxPix_vs_B0": 6,
+    "float": 1.006,
+    "sparkle": 1.063,
+    "peak_vs_base": 1.003,
+    "level_vs_base": 1.06
+   },
+   "B.lid": {
+    "dE_vs_B0": 0.007,
+    "maxPix_vs_B0": 1,
+    "float": 1.0,
+    "sparkle": 1.001,
+    "peak_vs_base": 1.001,
+    "level_vs_base": 1.0
+   },
+   "B.hl": {
+    "dE_vs_B0": 0.147,
+    "maxPix_vs_B0": 4,
+    "float": 1.007,
+    "sparkle": 1.046,
+    "peak_vs_base": 0.999,
+    "level_vs_base": 1.047
+   },
+   "C.lid": {
+    "dE_vs_B0": 0.029,
+    "maxPix_vs_B0": 5,
+    "float": 1.002,
+    "sparkle": 1.007,
+    "peak_vs_base": 0.993,
+    "level_vs_base": 1.014
+   },
+   "D.lid": {
+    "dE_vs_B0": 0.007,
+    "maxPix_vs_B0": 2,
+    "float": 1.0,
+    "sparkle": 1.009,
+    "peak_vs_base": 1.01,
+    "level_vs_base": 0.999
+   }
+  },
+  "dark|B0": {
+   "exc": 0,
+   "fps": 1,
+   "skin": 0.0,
+   "perf": [
+    263.9,
+    4850.9,
+    30.4,
+    307.7,
+    0.9,
+    1.6
+   ],
+   "frameLum": 0.04,
+   "A.lip": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 2.21,
+    "sparkle": 79.792,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "A.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 2.193,
+    "sparkle": 404629.438,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "A.hl": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.876,
+    "sparkle": 14.229,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "B.lip": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.956,
+    "sparkle": 7.368,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "B.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 2.024,
+    "sparkle": 9.04,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "B.hl": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 1.521,
+    "sparkle": 9.702,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "C.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 2.568,
+    "sparkle": 5.474,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "D.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 2.426,
+    "sparkle": 4.861,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   }
+  },
+  "dark|R3": {
+   "exc": 0,
+   "fps": 1,
+   "skin": 0.01,
+   "perf": [
+    40.2,
+    4047.9,
+    34.4,
+    316.6,
+    0.7,
+    1.6
+   ],
+   "frameLum": 0.04,
+   "A.lip": {
+    "dE_vs_B0": 12.267,
+    "maxPix_vs_B0": 111,
+    "float": 1.196,
+    "sparkle": 20.269,
+    "peak_vs_base": 1.597,
+    "level_vs_base": 0.158
+   },
+   "A.lid": {
+    "dE_vs_B0": 6.153,
+    "maxPix_vs_B0": 46,
+    "float": 1.07,
+    "sparkle": 133955.031,
+    "peak_vs_base": 3.614,
+    "level_vs_base": 0.091
+   },
+   "A.hl": {
+    "dE_vs_B0": 4.572,
+    "maxPix_vs_B0": 44,
+    "float": 1.207,
+    "sparkle": 6.777,
+    "peak_vs_base": 1.511,
+    "level_vs_base": 0.337
+   },
+   "B.lip": {
+    "dE_vs_B0": 8.552,
+    "maxPix_vs_B0": 105,
+    "float": 1.275,
+    "sparkle": 3.843,
+    "peak_vs_base": 1.501,
+    "level_vs_base": 0.345
+   },
+   "B.lid": {
+    "dE_vs_B0": 5.907,
+    "maxPix_vs_B0": 48,
+    "float": 1.05,
+    "sparkle": 1.283,
+    "peak_vs_base": 1.309,
+    "level_vs_base": 0.108
+   },
+   "B.hl": {
+    "dE_vs_B0": 3.222,
+    "maxPix_vs_B0": 51,
+    "float": 1.593,
+    "sparkle": 17.324,
+    "peak_vs_base": 1.666,
+    "level_vs_base": 1.144
+   },
+   "C.lid": {
+    "dE_vs_B0": 8.579,
+    "maxPix_vs_B0": 84,
+    "float": 1.067,
+    "sparkle": 1.113,
+    "peak_vs_base": 1.402,
+    "level_vs_base": 0.145
+   },
+   "D.lid": {
+    "dE_vs_B0": 7.282,
+    "maxPix_vs_B0": 72,
+    "float": 1.006,
+    "sparkle": 1.359,
+    "peak_vs_base": 1.471,
+    "level_vs_base": 0.19
+   }
+  },
+  "dark10|B0": {
+   "exc": 0,
+   "fps": 1,
+   "skin": 0.0,
+   "perf": [
+    231.3,
+    3912.7,
+    233.4,
+    295.1,
+    1.1,
+    2.2
+   ],
+   "frameLum": 0.02,
+   "A.lip": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 2.992,
+    "sparkle": 146.107,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "A.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 3.133,
+    "sparkle": 747034.875,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "A.hl": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 2.539,
+    "sparkle": 55.835,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "B.lip": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 2.584,
+    "sparkle": 12.851,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "B.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 2.862,
+    "sparkle": 16.067,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "B.hl": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 0.871,
+    "sparkle": 3.15,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "C.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 3.947,
+    "sparkle": 8.841,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   },
+   "D.lid": {
+    "dE_vs_B0": 0.0,
+    "maxPix_vs_B0": 0,
+    "float": 3.412,
+    "sparkle": 7.828,
+    "peak_vs_base": 1.0,
+    "level_vs_base": 1.0
+   }
+  },
+  "dark10|R3": {
+   "exc": 0,
+   "fps": 1,
+   "skin": 0.0,
+   "perf": [
+    232.0,
+    4451.4,
+    41.0,
+    292.5,
+    0.9,
+    2.8
+   ],
+   "frameLum": 0.02,
+   "A.lip": {
+    "dE_vs_B0": 13.512,
+    "maxPix_vs_B0": 121,
+    "float": 1.257,
+    "sparkle": 36.343,
+    "peak_vs_base": 1.799,
+    "level_vs_base": 0.138
+   },
+   "A.lid": {
+    "dE_vs_B0": 8.563,
+    "maxPix_vs_B0": 51,
+    "float": 1.112,
+    "sparkle": 162487.891,
+    "peak_vs_base": 3.118,
+    "level_vs_base": 0.07
+   },
+   "A.hl": {
+    "dE_vs_B0": 7.605,
+    "maxPix_vs_B0": 62,
+    "float": 1.135,
+    "sparkle": 7.857,
+    "peak_vs_base": 0.842,
+    "level_vs_base": 0.164
+   },
+   "B.lip": {
+    "dE_vs_B0": 9.184,
+    "maxPix_vs_B0": 95,
+    "float": 1.496,
+    "sparkle": 7.692,
+    "peak_vs_base": 1.623,
+    "level_vs_base": 0.369
+   },
+   "B.lid": {
+    "dE_vs_B0": 7.742,
+    "maxPix_vs_B0": 58,
+    "float": 1.075,
+    "sparkle": 3.784,
+    "peak_vs_base": 1.881,
+    "level_vs_base": 0.125
+   },
+   "B.hl": {
+    "dE_vs_B0": 2.282,
+    "maxPix_vs_B0": 28,
+    "float": 0.914,
+    "sparkle": 4.472,
+    "peak_vs_base": 1.068,
+    "level_vs_base": 1.302
+   },
+   "C.lid": {
+    "dE_vs_B0": 12.01,
+    "maxPix_vs_B0": 99,
+    "float": 1.09,
+    "sparkle": 1.199,
+    "peak_vs_base": 1.454,
+    "level_vs_base": 0.093
+   },
+   "D.lid": {
+    "dE_vs_B0": 8.9,
+    "maxPix_vs_B0": 85,
+    "float": 1.028,
+    "sparkle": 1.551,
+    "peak_vs_base": 1.44,
+    "level_vs_base": 0.137
+   }
+  }
+ }
+}

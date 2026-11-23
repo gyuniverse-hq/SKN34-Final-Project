@@ -1,0 +1,1500 @@
+{
+ "baseline": {
+  "dark": {
+   "frame": 0.025,
+   "gN": 0.024444444444444446,
+   "grain": 0.1
+  },
+  "backlight": {
+   "faceDrop": 0.5,
+   "ratioRise": 2.0,
+   "bgLum": 0.5,
+   "absFace": 0.04,
+   "absRatio": 8
+  },
+  "warm": 2.0,
+  "cool": 0.7,
+  "gm": [
+   0.8,
+   1.2
+  ],
+  "bgMin": 0.15,
+  "mix": 0.75,
+  "uneven": 2.5,
+  "unevenMaxYaw": 20,
+  "blown": 0.15,
+  "turnDeg": 38,
+  "pitchDeg": 32,
+  "pitchOffset": 3.1
+ },
+ "note": "grain thresholds evaluated at page value / 0.45",
+ "counts": {
+  "select": 598,
+  "tune": 199,
+  "test": 200,
+  "?": 0
+ },
+ "baseline_test": {
+  "dark": {
+   "lapa": {
+    "normal": {
+     "rate": 0.025,
+     "n": 80
+    },
+    "dark": {
+     "rate": 0.95,
+     "n": 80
+    },
+    "dark_ae": {
+     "rate": 0.9625,
+     "n": 80
+    },
+    "backlight": {
+     "rate": 0.025,
+     "n": 80
+    },
+    "warm": {
+     "rate": 0.025,
+     "n": 80
+    },
+    "blown": {
+     "rate": 0.0125,
+     "n": 80
+    }
+   },
+   "roboflow:dark": {
+    "normal": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "dark": {
+     "rate": 0.95,
+     "n": 40
+    },
+    "dark_ae": {
+     "rate": 1.0,
+     "n": 40
+    },
+    "backlight": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "warm": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "blown": {
+     "rate": 0.0,
+     "n": 40
+    }
+   },
+   "roboflow:fair": {
+    "normal": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "dark": {
+     "rate": 0.85,
+     "n": 40
+    },
+    "dark_ae": {
+     "rate": 0.725,
+     "n": 40
+    },
+    "backlight": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "warm": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "blown": {
+     "rate": 0.0,
+     "n": 40
+    }
+   },
+   "roboflow:light": {
+    "normal": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "dark": {
+     "rate": 0.975,
+     "n": 40
+    },
+    "dark_ae": {
+     "rate": 0.975,
+     "n": 40
+    },
+    "backlight": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "warm": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "blown": {
+     "rate": 0.0,
+     "n": 40
+    }
+   }
+  },
+  "backlight": {
+   "lapa": {
+    "normal": {
+     "rate": 0.0,
+     "n": 80
+    },
+    "dark": {
+     "rate": 0.0,
+     "n": 80
+    },
+    "dark_ae": {
+     "rate": 0.0,
+     "n": 80
+    },
+    "backlight": {
+     "rate": 0.3375,
+     "n": 80
+    },
+    "uneven": {
+     "rate": 0.0,
+     "n": 80
+    },
+    "warm": {
+     "rate": 0.0,
+     "n": 80
+    },
+    "cool": {
+     "rate": 0.0,
+     "n": 80
+    },
+    "blown": {
+     "rate": 0.0,
+     "n": 80
+    }
+   },
+   "roboflow:dark": {
+    "normal": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "dark": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "dark_ae": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "backlight": {
+     "rate": 0.75,
+     "n": 40
+    },
+    "uneven": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "warm": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "cool": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "blown": {
+     "rate": 0.0,
+     "n": 40
+    }
+   },
+   "roboflow:fair": {
+    "normal": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "dark": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "dark_ae": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "backlight": {
+     "rate": 0.75,
+     "n": 40
+    },
+    "uneven": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "warm": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "cool": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "blown": {
+     "rate": 0.0,
+     "n": 40
+    }
+   },
+   "roboflow:light": {
+    "normal": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "dark": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "dark_ae": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "backlight": {
+     "rate": 0.525,
+     "n": 40
+    },
+    "uneven": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "warm": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "cool": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "blown": {
+     "rate": 0.0,
+     "n": 40
+    }
+   }
+  },
+  "color": {
+   "lapa:backlight": {
+    "warm": {
+     "rate": 0.1,
+     "n": 80
+    },
+    "cool": {
+     "rate": 0.0,
+     "n": 80
+    }
+   },
+   "lapa:blown": {
+    "warm": {
+     "rate": 0.075,
+     "n": 80
+    },
+    "cool": {
+     "rate": 0.0,
+     "n": 80
+    }
+   },
+   "lapa:cool": {
+    "warm": {
+     "rate": 0.025,
+     "n": 80
+    },
+    "cool": {
+     "rate": 0.2125,
+     "n": 80
+    }
+   },
+   "lapa:dark": {
+    "warm": {
+     "rate": 0.05,
+     "n": 80
+    },
+    "cool": {
+     "rate": 0.0125,
+     "n": 80
+    }
+   },
+   "lapa:dark_ae": {
+    "warm": {
+     "rate": 0.0875,
+     "n": 80
+    },
+    "cool": {
+     "rate": 0.0,
+     "n": 80
+    }
+   },
+   "lapa:normal": {
+    "warm": {
+     "rate": 0.075,
+     "n": 80
+    },
+    "cool": {
+     "rate": 0.0,
+     "n": 80
+    }
+   },
+   "lapa:uneven": {
+    "warm": {
+     "rate": 0.0875,
+     "n": 80
+    },
+    "cool": {
+     "rate": 0.0,
+     "n": 80
+    }
+   },
+   "lapa:wall_beige": {
+    "warm": {
+     "rate": 0.1,
+     "n": 80
+    },
+    "cool": {
+     "rate": 0.0,
+     "n": 80
+    }
+   },
+   "lapa:wall_blue": {
+    "warm": {
+     "rate": 0.0,
+     "n": 80
+    },
+    "cool": {
+     "rate": 0.0375,
+     "n": 80
+    }
+   },
+   "lapa:wall_green": {
+    "warm": {
+     "rate": 0.0,
+     "n": 80
+    },
+    "cool": {
+     "rate": 0.0,
+     "n": 80
+    }
+   },
+   "lapa:wall_red": {
+    "warm": {
+     "rate": 0.0,
+     "n": 80
+    },
+    "cool": {
+     "rate": 0.0,
+     "n": 80
+    }
+   },
+   "lapa:warm": {
+    "warm": {
+     "rate": 0.7,
+     "n": 80
+    },
+    "cool": {
+     "rate": 0.0,
+     "n": 80
+    }
+   },
+   "roboflow:backlight": {
+    "warm": {
+     "rate": 0.0,
+     "n": 120
+    },
+    "cool": {
+     "rate": 0.0,
+     "n": 120
+    }
+   },
+   "roboflow:blown": {
+    "warm": {
+     "rate": 0.0,
+     "n": 120
+    },
+    "cool": {
+     "rate": 0.0,
+     "n": 120
+    }
+   },
+   "roboflow:cool": {
+    "warm": {
+     "rate": 0.0,
+     "n": 120
+    },
+    "cool": {
+     "rate": 0.025,
+     "n": 120
+    }
+   },
+   "roboflow:dark": {
+    "warm": {
+     "rate": 0.0,
+     "n": 120
+    },
+    "cool": {
+     "rate": 0.0,
+     "n": 120
+    }
+   },
+   "roboflow:dark_ae": {
+    "warm": {
+     "rate": 0.0,
+     "n": 120
+    },
+    "cool": {
+     "rate": 0.0,
+     "n": 120
+    }
+   },
+   "roboflow:normal": {
+    "warm": {
+     "rate": 0.0,
+     "n": 120
+    },
+    "cool": {
+     "rate": 0.0,
+     "n": 120
+    }
+   },
+   "roboflow:uneven": {
+    "warm": {
+     "rate": 0.0,
+     "n": 120
+    },
+    "cool": {
+     "rate": 0.0083,
+     "n": 120
+    }
+   },
+   "roboflow:warm": {
+    "warm": {
+     "rate": 0.025,
+     "n": 120
+    },
+    "cool": {
+     "rate": 0.0,
+     "n": 120
+    }
+   }
+  },
+  "uneven": {
+   "lapa:normal": {
+    "rate": 0.1636,
+    "n": 55
+   },
+   "lapa:uneven": {
+    "rate": 0.1091,
+    "n": 55
+   },
+   "roboflow:normal": {
+    "rate": 0.2083,
+    "n": 120
+   },
+   "roboflow:uneven": {
+    "rate": 0.2167,
+    "n": 120
+   }
+  },
+  "blown": {
+   "lapa:normal": {
+    "rate": 0.05,
+    "n": 80
+   },
+   "lapa:blown": {
+    "rate": 0.7875,
+    "n": 80
+   },
+   "lapa:uneven": {
+    "rate": 0.175,
+    "n": 80
+   },
+   "lapa:dark_ae": {
+    "rate": 0.0375,
+    "n": 80
+   },
+   "roboflow:normal": {
+    "rate": 0.0667,
+    "n": 120
+   },
+   "roboflow:blown": {
+    "rate": 0.85,
+    "n": 120
+   },
+   "roboflow:uneven": {
+    "rate": 0.3667,
+    "n": 120
+   },
+   "roboflow:dark_ae": {
+    "rate": 0.0583,
+    "n": 120
+   }
+  },
+  "turn": {
+   "n": 80,
+   "positives": 2,
+   "tp": 2,
+   "fp": 0,
+   "fn": 0,
+   "precision": 1.0,
+   "recall": 1.0
+  }
+ },
+ "gray_edge_select": {
+  "0.0": {
+   "wall_shift_median": 22.9,
+   "wall_shift_p90": 37.87,
+   "cast_err_median": 0.18,
+   "cast_err_p90": 2.88,
+   "n": 960
+  },
+  "0.25": {
+   "wall_shift_median": 22.07,
+   "wall_shift_p90": 36.47,
+   "cast_err_median": 0.19,
+   "cast_err_p90": 2.5,
+   "n": 960
+  },
+  "0.5": {
+   "wall_shift_median": 21.23,
+   "wall_shift_p90": 34.47,
+   "cast_err_median": 0.21,
+   "cast_err_p90": 2.1,
+   "n": 960
+  },
+  "0.75": {
+   "wall_shift_median": 20.26,
+   "wall_shift_p90": 32.83,
+   "cast_err_median": 0.22,
+   "cast_err_p90": 1.78,
+   "n": 960
+  },
+  "1.0": {
+   "wall_shift_median": 19.12,
+   "wall_shift_p90": 32.1,
+   "cast_err_median": 0.24,
+   "cast_err_p90": 1.54,
+   "n": 960
+  }
+ },
+ "gray_edge_test": {
+  "0.0": {
+   "wall_shift_median": 23.24,
+   "wall_shift_p90": 37.8,
+   "cast_err_median": 0.22,
+   "cast_err_p90": 3.51,
+   "n": 320
+  },
+  "0.25": {
+   "wall_shift_median": 22.55,
+   "wall_shift_p90": 36.38,
+   "cast_err_median": 0.21,
+   "cast_err_p90": 3.23,
+   "n": 320
+  },
+  "0.5": {
+   "wall_shift_median": 21.74,
+   "wall_shift_p90": 35.09,
+   "cast_err_median": 0.2,
+   "cast_err_p90": 2.62,
+   "n": 320
+  },
+  "0.75": {
+   "wall_shift_median": 20.65,
+   "wall_shift_p90": 33.95,
+   "cast_err_median": 0.22,
+   "cast_err_p90": 2.16,
+   "n": 320
+  },
+  "1.0": {
+   "wall_shift_median": 19.52,
+   "wall_shift_p90": 33.49,
+   "cast_err_median": 0.24,
+   "cast_err_p90": 1.81,
+   "n": 320
+  }
+ },
+ "pose_fit_select": {
+  "n": 234,
+  "yaw_corr": -0.9967,
+  "yaw_slope": -1.087,
+  "yaw_offset": 0.17,
+  "yaw_abs_err_median": 1.65,
+  "pitch_corr": -0.9834,
+  "pitch_slope": -1.076,
+  "pitch_offset": -3.17
+ },
+ "pose_fit_test": {
+  "n": 80,
+  "yaw_corr": -0.9971,
+  "yaw_slope": -1.1,
+  "yaw_offset": 0.32,
+  "yaw_abs_err_median": 1.92,
+  "pitch_corr": -0.9785,
+  "pitch_slope": -1.105,
+  "pitch_offset": -3.1
+ },
+ "dark_candidate": {
+  "frame": 0.03,
+  "gN": 0.02,
+  "grain": 0.1,
+  "select_mean_recall": 0.937,
+  "select_max_tone_fp": 0.017,
+  "meets_fp_cap": true
+ },
+ "dark_candidate_tune": {
+  "lapa": {
+   "normal": {
+    "rate": 0.0625,
+    "n": 80
+   },
+   "dark": {
+    "rate": 0.975,
+    "n": 80
+   },
+   "dark_ae": {
+    "rate": 0.9625,
+    "n": 80
+   },
+   "backlight": {
+    "rate": 0.05,
+    "n": 80
+   },
+   "warm": {
+    "rate": 0.0625,
+    "n": 80
+   },
+   "blown": {
+    "rate": 0.05,
+    "n": 80
+   }
+  },
+  "roboflow:dark": {
+   "normal": {
+    "rate": 0.025,
+    "n": 40
+   },
+   "dark": {
+    "rate": 0.975,
+    "n": 40
+   },
+   "dark_ae": {
+    "rate": 0.975,
+    "n": 40
+   },
+   "backlight": {
+    "rate": 0.05,
+    "n": 40
+   },
+   "warm": {
+    "rate": 0.025,
+    "n": 40
+   },
+   "blown": {
+    "rate": 0.025,
+    "n": 40
+   }
+  },
+  "roboflow:fair": {
+   "normal": {
+    "rate": 0.0,
+    "n": 39
+   },
+   "dark": {
+    "rate": 0.8205,
+    "n": 39
+   },
+   "dark_ae": {
+    "rate": 0.7692,
+    "n": 39
+   },
+   "backlight": {
+    "rate": 0.0,
+    "n": 39
+   },
+   "warm": {
+    "rate": 0.0,
+    "n": 39
+   },
+   "blown": {
+    "rate": 0.0,
+    "n": 39
+   }
+  },
+  "roboflow:light": {
+   "normal": {
+    "rate": 0.0,
+    "n": 40
+   },
+   "dark": {
+    "rate": 1.0,
+    "n": 40
+   },
+   "dark_ae": {
+    "rate": 0.975,
+    "n": 40
+   },
+   "backlight": {
+    "rate": 0.0,
+    "n": 40
+   },
+   "warm": {
+    "rate": 0.0,
+    "n": 40
+   },
+   "blown": {
+    "rate": 0.0,
+    "n": 40
+   }
+  }
+ },
+ "dark_baseline_tune": {
+  "lapa": {
+   "normal": {
+    "rate": 0.05,
+    "n": 80
+   },
+   "dark": {
+    "rate": 0.975,
+    "n": 80
+   },
+   "dark_ae": {
+    "rate": 0.9625,
+    "n": 80
+   },
+   "backlight": {
+    "rate": 0.025,
+    "n": 80
+   },
+   "warm": {
+    "rate": 0.0625,
+    "n": 80
+   },
+   "blown": {
+    "rate": 0.05,
+    "n": 80
+   }
+  },
+  "roboflow:dark": {
+   "normal": {
+    "rate": 0.025,
+    "n": 40
+   },
+   "dark": {
+    "rate": 0.9,
+    "n": 40
+   },
+   "dark_ae": {
+    "rate": 0.975,
+    "n": 40
+   },
+   "backlight": {
+    "rate": 0.025,
+    "n": 40
+   },
+   "warm": {
+    "rate": 0.025,
+    "n": 40
+   },
+   "blown": {
+    "rate": 0.025,
+    "n": 40
+   }
+  },
+  "roboflow:fair": {
+   "normal": {
+    "rate": 0.0,
+    "n": 39
+   },
+   "dark": {
+    "rate": 0.8205,
+    "n": 39
+   },
+   "dark_ae": {
+    "rate": 0.7692,
+    "n": 39
+   },
+   "backlight": {
+    "rate": 0.0,
+    "n": 39
+   },
+   "warm": {
+    "rate": 0.0,
+    "n": 39
+   },
+   "blown": {
+    "rate": 0.0,
+    "n": 39
+   }
+  },
+  "roboflow:light": {
+   "normal": {
+    "rate": 0.0,
+    "n": 40
+   },
+   "dark": {
+    "rate": 0.975,
+    "n": 40
+   },
+   "dark_ae": {
+    "rate": 0.975,
+    "n": 40
+   },
+   "backlight": {
+    "rate": 0.0,
+    "n": 40
+   },
+   "warm": {
+    "rate": 0.0,
+    "n": 40
+   },
+   "blown": {
+    "rate": 0.0,
+    "n": 40
+   }
+  }
+ },
+ "dark_v2": {
+  "select": {
+   "lapa": {
+    "normal": {
+     "rate": 0.0708,
+     "n": 240
+    },
+    "dark": {
+     "rate": 0.9583,
+     "n": 240
+    },
+    "dark_ae": {
+     "rate": 0.9583,
+     "n": 240
+    },
+    "backlight": {
+     "rate": 0.0542,
+     "n": 240
+    },
+    "warm": {
+     "rate": 0.0708,
+     "n": 240
+    },
+    "blown": {
+     "rate": 0.0542,
+     "n": 240
+    }
+   },
+   "roboflow:dark": {
+    "normal": {
+     "rate": 0.0168,
+     "n": 119
+    },
+    "dark": {
+     "rate": 0.9916,
+     "n": 119
+    },
+    "dark_ae": {
+     "rate": 1.0,
+     "n": 119
+    },
+    "backlight": {
+     "rate": 0.042,
+     "n": 119
+    },
+    "warm": {
+     "rate": 0.0336,
+     "n": 119
+    },
+    "blown": {
+     "rate": 0.0168,
+     "n": 119
+    }
+   },
+   "roboflow:fair": {
+    "normal": {
+     "rate": 0.0,
+     "n": 119
+    },
+    "dark": {
+     "rate": 0.8655,
+     "n": 119
+    },
+    "dark_ae": {
+     "rate": 0.8235,
+     "n": 119
+    },
+    "backlight": {
+     "rate": 0.0,
+     "n": 119
+    },
+    "warm": {
+     "rate": 0.0,
+     "n": 119
+    },
+    "blown": {
+     "rate": 0.0,
+     "n": 119
+    }
+   },
+   "roboflow:light": {
+    "normal": {
+     "rate": 0.0,
+     "n": 120
+    },
+    "dark": {
+     "rate": 0.9417,
+     "n": 120
+    },
+    "dark_ae": {
+     "rate": 0.9583,
+     "n": 120
+    },
+    "backlight": {
+     "rate": 0.0,
+     "n": 120
+    },
+    "warm": {
+     "rate": 0.0,
+     "n": 120
+    },
+    "blown": {
+     "rate": 0.0,
+     "n": 120
+    }
+   }
+  },
+  "tune": {
+   "lapa": {
+    "normal": {
+     "rate": 0.0625,
+     "n": 80
+    },
+    "dark": {
+     "rate": 0.975,
+     "n": 80
+    },
+    "dark_ae": {
+     "rate": 0.9625,
+     "n": 80
+    },
+    "backlight": {
+     "rate": 0.05,
+     "n": 80
+    },
+    "warm": {
+     "rate": 0.0625,
+     "n": 80
+    },
+    "blown": {
+     "rate": 0.05,
+     "n": 80
+    }
+   },
+   "roboflow:dark": {
+    "normal": {
+     "rate": 0.025,
+     "n": 40
+    },
+    "dark": {
+     "rate": 0.975,
+     "n": 40
+    },
+    "dark_ae": {
+     "rate": 0.975,
+     "n": 40
+    },
+    "backlight": {
+     "rate": 0.05,
+     "n": 40
+    },
+    "warm": {
+     "rate": 0.025,
+     "n": 40
+    },
+    "blown": {
+     "rate": 0.025,
+     "n": 40
+    }
+   },
+   "roboflow:fair": {
+    "normal": {
+     "rate": 0.0,
+     "n": 39
+    },
+    "dark": {
+     "rate": 0.8205,
+     "n": 39
+    },
+    "dark_ae": {
+     "rate": 0.7692,
+     "n": 39
+    },
+    "backlight": {
+     "rate": 0.0,
+     "n": 39
+    },
+    "warm": {
+     "rate": 0.0,
+     "n": 39
+    },
+    "blown": {
+     "rate": 0.0,
+     "n": 39
+    }
+   },
+   "roboflow:light": {
+    "normal": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "dark": {
+     "rate": 1.0,
+     "n": 40
+    },
+    "dark_ae": {
+     "rate": 0.975,
+     "n": 40
+    },
+    "backlight": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "warm": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "blown": {
+     "rate": 0.0,
+     "n": 40
+    }
+   }
+  },
+  "test": {
+   "lapa": {
+    "normal": {
+     "rate": 0.025,
+     "n": 80
+    },
+    "dark": {
+     "rate": 0.95,
+     "n": 80
+    },
+    "dark_ae": {
+     "rate": 0.9625,
+     "n": 80
+    },
+    "backlight": {
+     "rate": 0.025,
+     "n": 80
+    },
+    "warm": {
+     "rate": 0.0375,
+     "n": 80
+    },
+    "blown": {
+     "rate": 0.0125,
+     "n": 80
+    }
+   },
+   "roboflow:dark": {
+    "normal": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "dark": {
+     "rate": 0.975,
+     "n": 40
+    },
+    "dark_ae": {
+     "rate": 1.0,
+     "n": 40
+    },
+    "backlight": {
+     "rate": 0.025,
+     "n": 40
+    },
+    "warm": {
+     "rate": 0.025,
+     "n": 40
+    },
+    "blown": {
+     "rate": 0.0,
+     "n": 40
+    }
+   },
+   "roboflow:fair": {
+    "normal": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "dark": {
+     "rate": 0.875,
+     "n": 40
+    },
+    "dark_ae": {
+     "rate": 0.725,
+     "n": 40
+    },
+    "backlight": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "warm": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "blown": {
+     "rate": 0.0,
+     "n": 40
+    }
+   },
+   "roboflow:light": {
+    "normal": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "dark": {
+     "rate": 0.975,
+     "n": 40
+    },
+    "dark_ae": {
+     "rate": 0.975,
+     "n": 40
+    },
+    "backlight": {
+     "rate": 0.025,
+     "n": 40
+    },
+    "warm": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "blown": {
+     "rate": 0.0,
+     "n": 40
+    }
+   }
+  }
+ },
+ "dark_v1_at_064": {
+  "select": {
+   "lapa": {
+    "normal": {
+     "rate": 0.1083,
+     "n": 240
+    },
+    "dark": {
+     "rate": 0.9958,
+     "n": 240
+    },
+    "dark_ae": {
+     "rate": 0.9875,
+     "n": 240
+    },
+    "backlight": {
+     "rate": 0.0917,
+     "n": 240
+    },
+    "warm": {
+     "rate": 0.1083,
+     "n": 240
+    },
+    "blown": {
+     "rate": 0.1083,
+     "n": 240
+    }
+   },
+   "roboflow:dark": {
+    "normal": {
+     "rate": 0.0672,
+     "n": 119
+    },
+    "dark": {
+     "rate": 1.0,
+     "n": 119
+    },
+    "dark_ae": {
+     "rate": 1.0,
+     "n": 119
+    },
+    "backlight": {
+     "rate": 0.0672,
+     "n": 119
+    },
+    "warm": {
+     "rate": 0.0588,
+     "n": 119
+    },
+    "blown": {
+     "rate": 0.0588,
+     "n": 119
+    }
+   },
+   "roboflow:fair": {
+    "normal": {
+     "rate": 0.0084,
+     "n": 119
+    },
+    "dark": {
+     "rate": 1.0,
+     "n": 119
+    },
+    "dark_ae": {
+     "rate": 1.0,
+     "n": 119
+    },
+    "backlight": {
+     "rate": 0.0084,
+     "n": 119
+    },
+    "warm": {
+     "rate": 0.0084,
+     "n": 119
+    },
+    "blown": {
+     "rate": 0.0084,
+     "n": 119
+    }
+   },
+   "roboflow:light": {
+    "normal": {
+     "rate": 0.0,
+     "n": 120
+    },
+    "dark": {
+     "rate": 1.0,
+     "n": 120
+    },
+    "dark_ae": {
+     "rate": 1.0,
+     "n": 120
+    },
+    "backlight": {
+     "rate": 0.0,
+     "n": 120
+    },
+    "warm": {
+     "rate": 0.0,
+     "n": 120
+    },
+    "blown": {
+     "rate": 0.0,
+     "n": 120
+    }
+   }
+  },
+  "tune": {
+   "lapa": {
+    "normal": {
+     "rate": 0.0875,
+     "n": 80
+    },
+    "dark": {
+     "rate": 1.0,
+     "n": 80
+    },
+    "dark_ae": {
+     "rate": 1.0,
+     "n": 80
+    },
+    "backlight": {
+     "rate": 0.0625,
+     "n": 80
+    },
+    "warm": {
+     "rate": 0.0625,
+     "n": 80
+    },
+    "blown": {
+     "rate": 0.0875,
+     "n": 80
+    }
+   },
+   "roboflow:dark": {
+    "normal": {
+     "rate": 0.025,
+     "n": 40
+    },
+    "dark": {
+     "rate": 0.975,
+     "n": 40
+    },
+    "dark_ae": {
+     "rate": 1.0,
+     "n": 40
+    },
+    "backlight": {
+     "rate": 0.025,
+     "n": 40
+    },
+    "warm": {
+     "rate": 0.025,
+     "n": 40
+    },
+    "blown": {
+     "rate": 0.025,
+     "n": 40
+    }
+   },
+   "roboflow:fair": {
+    "normal": {
+     "rate": 0.0256,
+     "n": 39
+    },
+    "dark": {
+     "rate": 1.0,
+     "n": 39
+    },
+    "dark_ae": {
+     "rate": 1.0,
+     "n": 39
+    },
+    "backlight": {
+     "rate": 0.0256,
+     "n": 39
+    },
+    "warm": {
+     "rate": 0.0256,
+     "n": 39
+    },
+    "blown": {
+     "rate": 0.0256,
+     "n": 39
+    }
+   },
+   "roboflow:light": {
+    "normal": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "dark": {
+     "rate": 1.0,
+     "n": 40
+    },
+    "dark_ae": {
+     "rate": 1.0,
+     "n": 40
+    },
+    "backlight": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "warm": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "blown": {
+     "rate": 0.0,
+     "n": 40
+    }
+   }
+  },
+  "test": {
+   "lapa": {
+    "normal": {
+     "rate": 0.0625,
+     "n": 80
+    },
+    "dark": {
+     "rate": 0.9875,
+     "n": 80
+    },
+    "dark_ae": {
+     "rate": 0.975,
+     "n": 80
+    },
+    "backlight": {
+     "rate": 0.0625,
+     "n": 80
+    },
+    "warm": {
+     "rate": 0.0375,
+     "n": 80
+    },
+    "blown": {
+     "rate": 0.0125,
+     "n": 80
+    }
+   },
+   "roboflow:dark": {
+    "normal": {
+     "rate": 0.025,
+     "n": 40
+    },
+    "dark": {
+     "rate": 1.0,
+     "n": 40
+    },
+    "dark_ae": {
+     "rate": 1.0,
+     "n": 40
+    },
+    "backlight": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "warm": {
+     "rate": 0.025,
+     "n": 40
+    },
+    "blown": {
+     "rate": 0.025,
+     "n": 40
+    }
+   },
+   "roboflow:fair": {
+    "normal": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "dark": {
+     "rate": 1.0,
+     "n": 40
+    },
+    "dark_ae": {
+     "rate": 1.0,
+     "n": 40
+    },
+    "backlight": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "warm": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "blown": {
+     "rate": 0.0,
+     "n": 40
+    }
+   },
+   "roboflow:light": {
+    "normal": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "dark": {
+     "rate": 1.0,
+     "n": 40
+    },
+    "dark_ae": {
+     "rate": 1.0,
+     "n": 40
+    },
+    "backlight": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "warm": {
+     "rate": 0.0,
+     "n": 40
+    },
+    "blown": {
+     "rate": 0.0,
+     "n": 40
+    }
+   }
+  }
+ }
+}
