@@ -136,12 +136,16 @@ class VisionLlmClient:
             )
         payload = {
             "model": self._model,
-            "temperature": 0.2,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": content},
             ],
         }
+        # Some Astra / OpenAI models only accept the default temperature.
+        if self._model not in {"gpt-6-luna", "gpt-6.2-astra"} and not str(self._model).endswith(
+            "-astra"
+        ):
+            payload["temperature"] = 0.2
         headers = {"Authorization": f"Bearer {self._api_key}"}
         try:
             async with httpx.AsyncClient(timeout=self._timeout) as client:
