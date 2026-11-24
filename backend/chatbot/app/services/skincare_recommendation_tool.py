@@ -39,6 +39,15 @@ class SkincareRecommendationTool:
             profile_goals.add("oiliness")
         if request.irritation_signal == "caution":
             profile_goals.add("sensitivity")
+        relevant_goals = set(request.goals) | profile_goals
+        if bool(result.overall_top10) != any(coverage[goal] == "ok" for goal in relevant_goals):
+            raise UpstreamError("Skincare overall ranking is inconsistent with coverage")
+        if any(
+            coverage[reason.goal] != "ok"
+            for match in result.overall_top10
+            for reason in match.reasons
+        ):
+            raise UpstreamError("Skincare overall reason is inconsistent with coverage")
         for match, is_overall in matches:
             for reason in match.reasons:
                 expected = set()

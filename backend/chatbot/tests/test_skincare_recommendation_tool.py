@@ -51,13 +51,34 @@ def match(goal="pores", sources=None):
 
 def payload(goals=("pores",), *, status="ok", matches=None):
     items = [match()] if matches is None else matches
+    all_goals = (
+        *goals,
+        *(
+            g
+            for g in (
+                "dryness",
+                "sensitivity",
+                "pigmentation",
+                "wrinkles",
+                "pores",
+                "oiliness",
+                "blemish",
+            )
+            if g not in goals
+        ),
+    )
     return {
         "strategyVersion": "skincare-v4",
         "dataVersion": "fixture-v1",
-        "coverage": [{"goal": goal, "status": status} for goal in goals],
+        "coverage": [
+            {"goal": goal, "status": status if goal in goals else "mapping_unavailable"}
+            for goal in all_goals
+        ],
         "overallTop5": items[:5],
         "overallTop10": items,
-        "byConcern": {goal: [match(goal)] if status == "ok" else [] for goal in goals},
+        "byConcern": {
+            goal: [match(goal)] if goal in goals and status == "ok" else [] for goal in all_goals
+        },
         "balanceMatches": [],
     }
 
@@ -102,7 +123,18 @@ async def test_explicit_skin_characteristics_are_transmitted(monkeypatch):
 
     def handler(request):
         calls.append(json.loads(request.content))
-        return httpx.Response(200, json=payload())
+        candidate = match()
+        candidate["reasons"].extend(
+            [
+                match("dryness", ["skinProfile"])["reasons"][0],
+                match("sensitivity", ["skinProfile"])["reasons"][0],
+            ]
+        )
+        data = payload(("pores", "dryness", "sensitivity"), matches=[candidate])
+        for goal in ("pores", "dryness", "sensitivity"):
+            data["byConcern"][goal] = [candidate]
+        data["balanceMatches"] = [candidate]
+        return httpx.Response(200, json=data)
 
     request = SkincareToolInput(goals=["pores"], skinType="dry", irritationSignal="caution")
     await tool_with_handler(monkeypatch, handler).recommend(request)
@@ -151,6 +183,47 @@ async def test_empty_results_keep_the_original_coverage_status(monkeypatch, stat
 
 
 @pytest.mark.anyio
+async def test_missing_snapshot_reports_mapping_unavailable_for_all_goals(monkeypatch):
+    data = payload(status="mapping_unavailable", matches=[])
+    data["dataVersion"] = None
+    tool = tool_with_handler(monkeypatch, lambda _: httpx.Response(200, json=data))
+    result = await tool.recommend(SkincareToolInput(goals=["pores"]))
+    assert result.data_version is None
+    assert {item.status for item in result.coverage} == {"mapping_unavailable"}
+
+
+@pytest.mark.anyio
+async def test_other_goals_can_have_candidates_when_requested_goal_has_none(monkeypatch):
+    data = payload(status="no_matches", matches=[])
+    for item in data["coverage"]:
+        if item["goal"] == "dryness":
+            item["status"] = "ok"
+    candidate = match("dryness", ["concern"])
+    data["byConcern"]["dryness"] = [candidate]
+    data["balanceMatches"] = [candidate]
+    tool = tool_with_handler(monkeypatch, lambda _: httpx.Response(200, json=data))
+    result = await tool.recommend(SkincareToolInput(goals=["pores"]))
+    assert result.overall_top10 == []
+    assert result.by_concern["dryness"]
+
+
+@pytest.mark.anyio
+async def test_not_every_relevant_goal_must_appear_in_the_top_ten(monkeypatch):
+    candidates = [match() for _ in range(10)]
+    for i, candidate in enumerate(candidates):
+        candidate["product"]["id"] = f"product-{i}"
+        candidate["optionId"] = f"option-{i}"
+    data = payload(("pores", "dryness"), matches=candidates)
+    data["byConcern"]["dryness"][0]["product"]["id"] = "dry-product"
+    data["byConcern"]["dryness"][0]["optionId"] = "dry-option"
+    tool = tool_with_handler(monkeypatch, lambda _: httpx.Response(200, json=data))
+    result = await tool.recommend(SkincareToolInput(goals=["pores", "dryness"]))
+    assert len(result.overall_top10) == 10
+    assert {reason.goal for item in result.overall_top10 for reason in item.reasons} == {"pores"}
+    assert result.by_concern["dryness"]
+
+
+@pytest.mark.anyio
 @pytest.mark.parametrize("fault", ["http400", "http500", "timeout", "json", "legacy"])
 async def test_upstream_failures_are_not_empty_recommendations(monkeypatch, fault):
     def handler(request):
@@ -195,6 +268,18 @@ async def test_upstream_failures_are_not_empty_recommendations(monkeypatch, faul
         "product_id",
         "option_id",
         "group",
+        "missing_profile_goal",
+        "missing_unrequested_goal",
+        "nonempty_group_empty_overall",
+        "empty_group_nonempty_overall",
+        "unavailable_overall_reason",
+        "profile_group_empty_overall",
+        "group_too_many",
+        "group_duplicate",
+        "balance_too_many",
+        "balance_duplicate",
+        "balance_without_balance_goal",
+        "missing_version_no_matches",
     ],
 )
 async def test_invalid_upstream_contract_is_rejected(monkeypatch, fault):
@@ -251,11 +336,51 @@ async def test_invalid_upstream_contract_is_rejected(monkeypatch, fault):
         else:
             candidate["optionId"] = " "
         data = payload(matches=[candidate])
-    else:
+    elif fault == "group":
         data["byConcern"]["pores"] = [match(goal="dryness")]
+    elif fault in {"missing_profile_goal", "missing_unrequested_goal"}:
+        goal = "dryness" if fault == "missing_profile_goal" else "wrinkles"
+        data["coverage"] = [item for item in data["coverage"] if item["goal"] != goal]
+        del data["byConcern"][goal]
+    elif fault == "nonempty_group_empty_overall":
+        data["overallTop5"] = []
+        data["overallTop10"] = []
+    elif fault == "empty_group_nonempty_overall":
+        data = payload(status="no_matches", matches=[match()])
+    elif fault == "unavailable_overall_reason":
+        data = payload(("pores", "dryness"))
+        data["coverage"][0]["status"] = "no_matches"
+        data["byConcern"]["pores"] = []
+    elif fault == "profile_group_empty_overall":
+        data = payload(status="no_matches", matches=[])
+        for item in data["coverage"]:
+            if item["goal"] == "dryness":
+                item["status"] = "ok"
+        data["byConcern"]["dryness"] = [match("dryness", ["skinProfile"])]
+    elif fault in {"group_too_many", "group_duplicate", "balance_too_many", "balance_duplicate"}:
+        balance = fault.startswith("balance")
+        candidate = match("dryness", ["concern"]) if balance else match()
+        candidates = [
+            json.loads(json.dumps(candidate)) for _ in range(6 if fault.endswith("many") else 2)
+        ]
+        if fault.endswith("many"):
+            for i, item in enumerate(candidates):
+                item["product"]["id"] = f"product-{i}"
+        if balance:
+            data["balanceMatches"] = candidates
+        else:
+            data["byConcern"]["pores"] = candidates
+    elif fault == "balance_without_balance_goal":
+        data["balanceMatches"] = [match()]
+    else:
+        data = payload(status="no_matches", matches=[])
+        data["dataVersion"] = None
     tool = tool_with_handler(monkeypatch, lambda _: httpx.Response(200, json=data))
     request = SkincareToolInput(
-        goals=["pores"], skinType="dry" if fault == "wrong_profile_goal" else None
+        goals=["pores", "dryness"] if fault == "unavailable_overall_reason" else ["pores"],
+        skinType="dry"
+        if fault in {"wrong_profile_goal", "missing_profile_goal", "profile_group_empty_overall"}
+        else None,
     )
     with pytest.raises(UpstreamError):
         await tool.recommend(request)

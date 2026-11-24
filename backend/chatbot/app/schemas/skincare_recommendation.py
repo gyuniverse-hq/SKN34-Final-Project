@@ -1,6 +1,6 @@
 """Contract for the independent, non-recording skincare recommendation tool."""
 
-from typing import Annotated, Literal, Self
+from typing import Annotated, Literal, Self, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
@@ -71,8 +71,8 @@ class SkincareRecommendation(_ResponseModel):
     coverage: list[SkincareCoverage]
     overall_top5: list[SkincareMatch] = Field(max_length=5)
     overall_top10: list[SkincareMatch] = Field(max_length=10)
-    by_concern: dict[SkinGoal, list[SkincareMatch]]
-    balance_matches: list[SkincareMatch] | None = None
+    by_concern: dict[SkinGoal, Annotated[list[SkincareMatch], Field(max_length=5)]]
+    balance_matches: Annotated[list[SkincareMatch], Field(max_length=5)] | None = None
 
     @model_validator(mode="after")
     def check_ranking(self) -> Self:
@@ -84,8 +84,22 @@ class SkincareRecommendation(_ResponseModel):
         goals = [item.goal for item in self.coverage]
         if len(set(goals)) != len(goals):
             raise ValueError("Duplicate skincare coverage")
-        if self.data_version is None and (
-            self.overall_top10 or any(self.by_concern.values()) or self.balance_matches
+        if set(goals) != set(get_args(SkinGoal)) or set(self.by_concern) != set(goals):
+            raise ValueError("Skincare coverage must include all seven goals")
+        for group in [*self.by_concern.values(), self.balance_matches or []]:
+            ids = [match.product.id for match in group]
+            if len(set(ids)) != len(ids):
+                raise ValueError("Duplicate product in skincare recommendation group")
+        if any(
+            not any(reason.goal in {"dryness", "oiliness"} for reason in match.reasons)
+            for match in self.balance_matches or []
         ):
-            raise ValueError("Recommendations lack a data version")
+            raise ValueError("Balance recommendation lacks a balance concern")
+        if self.data_version is None and (
+            self.overall_top10
+            or any(self.by_concern.values())
+            or self.balance_matches
+            or any(item.status != "mapping_unavailable" for item in self.coverage)
+        ):
+            raise ValueError("Unavailable skincare data has inconsistent results")
         return self
