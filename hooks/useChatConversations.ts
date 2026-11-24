@@ -41,24 +41,27 @@ export function useChatConversations(userId: string | null, ownerKey?: string) {
     }
   };
 
-  const open = async (id: string) => {
-    const record = useChatConversationStore.getState().conversations[id];
-    if (!record || record.conversation.ownerKey !== ownerKey) return;
-    if (!record.conversation.serverSummary) return id;
-    if (!current() || busy.current) return;
-    busy.current = true;
-    setLoading(true);
-    setError(false);
+  const open = async (id: string, reload = false) => {
+    const room = useChatConversationStore.getState().conversations[id]?.conversation;
+    if (!room || room.ownerKey !== ownerKey) return;
+    const refresh = reload || (!!room.serverId && room.notice === 'chat.session.conflict');
+    if (!room.serverSummary && !refresh) return id;
+    if (!room.serverId || !current() || (!reload && busy.current)) return;
+    if (!reload) {
+      busy.current = true;
+      setLoading(true);
+      setError(false);
+    }
     try {
       const detail = await apiChatUserRequest<ServerConversationDetail>(
-        `/api/chat/conversations/${record.conversation.serverId}`, 'GET', userId!,
+        `/api/chat/conversations/${room.serverId}`, 'GET', userId!,
       );
-      if (!current() || detail.conversationId !== record.conversation.serverId) return;
-      return useChatConversationStore.getState().restoreServerRoom(ownerKey!, detail);
+      if (!current() || detail.conversationId !== room.serverId) return;
+      return useChatConversationStore.getState().restoreServerRoom(ownerKey!, detail, refresh ? room.generation : undefined);
     } catch {
-      if (current()) setError(true);
+      if (!reload && current()) setError(true);
     } finally {
-      if (current()) { busy.current = false; setLoading(false); }
+      if (!reload && current()) { busy.current = false; setLoading(false); }
     }
   };
   const older = async (id: string) => {

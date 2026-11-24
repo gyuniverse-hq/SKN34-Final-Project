@@ -127,7 +127,7 @@ type ChatStore = {
   open: (entry: ConversationEntry, fresh?: boolean, focus?: { product?: ChatScreenContext; style?: ChatStyleContext }) => string | undefined;
   resume: (id: string) => boolean;
   mergeServerRooms: (ownerKey: string, rooms: ServerConversationSummary[]) => void;
-  restoreServerRoom: (ownerKey: string, detail: ServerConversationDetail) => string | undefined;
+  restoreServerRoom: (ownerKey: string, detail: ServerConversationDetail, refreshGeneration?: number) => string | undefined;
   prependServerMessages: (target: ConversationTarget, cursor: number, detail: ServerConversationDetail) => void;
   setDraft: (target: ConversationTarget, value: string) => void;
   setCategory: (target: ConversationTarget, value: ChatCategory) => void;
@@ -245,13 +245,22 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
       }
       return { conversations };
     }),
-    restoreServerRoom: (ownerKey, detail) => {
+    restoreServerRoom: (ownerKey, detail, refreshGeneration) => {
       const state = get();
       if (state.identity?.key !== ownerKey || !state.identity.userId) return;
       const existing = Object.values(state.conversations).find((record) => record.conversation.serverId === detail.conversationId);
-      if (existing && (!existing.conversation.serverSummary || existing.conversation.request)) return existing.conversation.id;
+      const previous = existing?.conversation;
+      if (refreshGeneration === undefined) {
+        if (previous && (!previous.serverSummary || previous.request)) return previous.id;
+      } else if (!previous || previous.request || previous.generation !== refreshGeneration ||
+          previous.serverVersion > detail.conversationVersion) return;
       const room = createChatConversation(state.identity.userId, ownerKey, detail.subject, true);
-      room.id = existing?.conversation.id ?? detail.conversationId;
+      room.id = previous?.id ?? detail.conversationId;
+      if (previous && refreshGeneration !== undefined) {
+        room.draft = previous.draft;
+        room.category = previous.category;
+        room.generation = refreshGeneration + 1;
+      }
       room.serverId = detail.conversationId;
       room.serverVersion = detail.conversationVersion;
       room.persistenceMode = 'enabled';

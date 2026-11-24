@@ -245,6 +245,7 @@ export default function ChatScreen() {
   return <>
     <ChatConversation key={record.conversation.id} record={record}
       onRecent={() => { setRecentVisible(true); if (userId) void savedRooms.list(); }} onNew={startNew}
+      onReload={() => savedRooms.open(record.conversation.id, true)}
       onOlder={() => { void savedRooms.older(record.conversation.id); }} olderLoading={savedRooms.loading} olderError={savedRooms.error} />
     {recentVisible ? <RecentConversations rooms={Object.values(rooms)} activeId={record.conversation.id}
       onClose={() => setRecentVisible(false)} onNew={startNew}
@@ -314,10 +315,11 @@ function InlineStyleLookPicker({ question, onSelect }: { question: string; onSel
   </View>;
 }
 
-function ChatConversation({ record, onRecent, onNew, onOlder, olderLoading, olderError }: {
+function ChatConversation({ record, onRecent, onNew, onReload, onOlder, olderLoading, olderError }: {
   record: ConversationRecord;
   onRecent: () => void;
   onNew: () => void;
+  onReload: () => Promise<string | undefined>;
   onOlder: () => void;
   olderLoading: boolean;
   olderError: boolean;
@@ -406,8 +408,14 @@ function ChatConversation({ record, onRecent, onNew, onOlder, olderLoading, olde
       stateRequestIds.current.delete(key);
       apply();
     } catch (error) {
-      if (owned()) store().setNotice(target, error instanceof ApiError && error.status === 409
-        ? 'chat.session.conflict' : 'chat.session.storageError');
+      if (owned() && currentRoom()?.generation === room.generation) {
+        const api = error instanceof ApiError ? error : undefined;
+        store().setNotice(target, api?.status === 409 ? 'chat.session.conflict' : 'chat.session.storageError');
+        if (api?.code === 'conversation_conflict') {
+          stateRequestIds.current.delete(key);
+          await onReload();
+        }
+      }
     } finally {
       stateBusy.current = false;
       if (mounted.current) setStatePending(false);
@@ -636,7 +644,20 @@ function ChatConversation({ record, onRecent, onNew, onOlder, olderLoading, olde
                     : (snapshot.args.styleSearch || snapshot.args.styleContext) && api?.status === 503 ? 'chat.ui.error'
                       : api?.status === 503 ? 'chat.ingredient.server'
                       : api?.status === 0 ? 'chat.ingredient.network' : 'chat.ui.error';
+      const active = currentRoom();
+      const recover = api?.code === 'conversation_conflict' && owned() && mounted.current &&
+        active?.request === ticket.requestId && active.generation === ticket.generation && active.attempt === ticket.attempt;
       store().failRequest(ticket, errorKey, !!fatal, !!api?.code?.startsWith('chat_owner_'), clarificationConflict);
+      if (recover) {
+        stateBusy.current = true;
+        setStatePending(true);
+        try {
+          await onReload();
+        } finally {
+          stateBusy.current = false;
+          if (mounted.current) setStatePending(false);
+        }
+      }
     }
   };
 

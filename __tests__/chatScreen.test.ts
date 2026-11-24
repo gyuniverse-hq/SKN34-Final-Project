@@ -132,6 +132,50 @@ it('shows the server memory candidate and saves it only after confirmation', asy
   await act(async () => view.unmount());
 });
 
+it.each(['message', 'selection'])('reloads the current room on a %s version conflict', async (conflict) => {
+  mockAuth.mockReturnValue({ user: { id: 'A' }, ready: true });
+  const subject = conflict === 'selection' ? { type: 'product', productId: 'p1' } : { type: 'general' };
+  if (conflict === 'selection') Object.assign(mockRouteParams, { productId: 'p1', shadeId: 'p1-01' });
+  const changed = new ApiError('Conversation version changed', 409, 'conversation_conflict');
+  let version = 0;
+  const server = jest.spyOn(chatApi, 'apiChatUserRequest').mockImplementation(async (path, method) => {
+    if (path === '/api/chat/conversations' && method === 'POST') {
+      return { conversationId: 'server-room', conversationVersion: 0 };
+    }
+    if (path === '/api/chat/conversations/server-room/state' && method === 'PATCH') {
+      if (version === 0) throw changed;
+      return { conversationVersion: ++version };
+    }
+    if (path === '/api/chat/conversations/server-room' && method === 'GET') {
+      version = 4;
+      return {
+        conversationId: 'server-room', conversationVersion: version, subject,
+        context: conflict === 'selection' ? { product: { selectedProductId: 'p1', selectedShadeId: 'p1-01' } } : {},
+        messages: [{ id: 'other-turn', role: 'assistant', text: '다른 기기의 답변', displayPayload: {} }],
+      };
+    }
+    throw new Error('unexpected request');
+  });
+  if (conflict === 'message') mockMutateAsync.mockRejectedValueOnce(changed);
+  mockMutateAsync.mockImplementation(async () => ({
+    answer: '새 답변', products: [],
+    conversation: { id: 'server-room', version: version + 1, turnId: 'turn', persistenceStatus: 'stored' },
+  }));
+  const view = await renderScreen();
+  await act(async () => view.root.findByType(TextInput).props.onChangeText('상담을 이어서 할게'));
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress());
+  expect(server).toHaveBeenCalledWith('/api/chat/conversations/server-room', 'GET', 'A');
+  expect(view.root.findAllByType(Text).some((item) => item.props.children === '다른 기기의 답변')).toBe(true);
+  expect(view.root.findByType(TextInput).props.value).toBe('상담을 이어서 할게');
+  expect(mockMutateAsync).toHaveBeenCalledTimes(conflict === 'selection' ? 0 : 1);
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress());
+  expect(mockMutateAsync).toHaveBeenLastCalledWith(expect.objectContaining({
+    conversationId: 'server-room', expectedConversationVersion: version,
+  }));
+  server.mockRestore();
+  await act(async () => view.unmount());
+});
+
 it('keeps the same selection patch on retry of a persistent chat', async () => {
   mockAuth.mockReturnValue({ user: { id: 'A' }, ready: true });
   mockMemoryRefresh.mockResolvedValue([]);
