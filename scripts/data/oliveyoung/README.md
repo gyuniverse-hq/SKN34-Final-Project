@@ -31,10 +31,10 @@
                                    ↓
 
 [D] 앱 서빙 카탈로그 ─ Git 경유, 사람 검토 필수
-      (6) build_catalog.py      읽기만 -> 로컬 검토 JSON
+      (6) build_catalog_review.py    읽기 전용 -> 승인 증분 후보 + 제품별 결정 보고서
       (7) 사람이 검토 -> backend/api/seed/catalog.json
       (8) PR -> CI 형식·무결성 검사 -> develop 병합
-      (9) Actions(dev-data) -> Supabase products/shades 교체 -> 챗봇 DB 복사
+      (9) 승인된 증분만 적재 (기존 전체 seed/상품/호수 교체 금지)
      (10) 앱 / Supabase 대시보드에서 확인
 ```
 

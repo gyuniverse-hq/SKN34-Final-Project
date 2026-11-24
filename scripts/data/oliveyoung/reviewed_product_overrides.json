@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "reviewedDate": "2026-11-24",
+  "note": "Reviewed product decisions for future builder reconciliation. Raw retailer classifications are not overwritten. This file is not yet an automated builder input.",
+  "products": [
+    {
+      "goodsNo": "A000000102306",
+      "sourceStandardCategory": "헤어메이크업류",
+      "displayCategory": "쉐이딩",
+      "decision": "exclude",
+      "reason": "헤어쿠션: 현재 얼굴 메이크업 서비스 범위 밖",
+      "sourceUrl": "https://m.oliveyoung.co.kr/m/goods/getGoodsDetail.do?goodsNo=A000000102306"
+    },
+    {
+      "goodsNo": "A000000214600",
+      "sourceStandardCategory": "키링/인형",
+      "displayCategory": "립스틱",
+      "decision": "exclude",
+      "reason": "글로우 케이스 키체인: 비화장품",
+      "sourceUrl": "https://m.oliveyoung.co.kr/m/goods/getGoodsDetail.do?goodsNo=A000000214600"
+    },
+    {
+      "goodsNo": "A000000250109",
+      "sourceStandardCategory": "선블록",
+      "displayCategory": "BB/CC",
+      "reviewedCategory": "BB/CC",
+      "servingCategory": "base",
+      "decision": "include",
+      "reason": "판매처 화면 BB/CC 및 원본 상품고지의 비비크림 표기 확인. 공급처 표준 분류는 원본으로 보존.",
+      "texture": "cream",
+      "makeupZone": null,
+      "sourceUrl": "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000250109",
+      "officialEvidenceUrl": "https://www.easydew.co.kr/product/detail.html?product_no=2905",
+      "reviewedShade": {
+        "optionId": "A000000250109-001",
+        "officialShadeName": null,
+        "hex": "#ECCEB6",
+        "rgb": [236, 206, 182],
+        "lab": [84.6, 7.1, 15.6],
+        "method": "swatch",
+        "measureMethod": "estimated",
+        "colorSource": "color_compare",
+        "rawConfidence": 0.8564028776978417,
+        "colorConfidence": 0.771,
+        "confidencePenalty": 0.9,
+        "sourceImageUrl": "https://drive.google.com/file/d/1-2N7wiwH6J2xFXYBPJ9-XHDaDmfHB1D4/view",
+        "sourceImageSha256": "af86a71a6edb589b146f7f3c7d421edadb15e51032d16b7144afb47e24cd4a22"
+      }
+    }
+  ]
+}
