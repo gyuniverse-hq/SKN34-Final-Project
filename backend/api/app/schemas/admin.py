@@ -274,3 +274,53 @@ class LipTriadEvalResponse(Contract):
     technical: TechnicalTrack
     naturalness: NaturalnessTrack
     retained_images: bool = False
+
+
+class LipEvalRater(Contract):
+    id: int
+    label: str
+
+
+class LipEvalImageUrls(Contract):
+    bare: str | None = None
+    real: str | None = None
+    ar: str | None = None
+
+
+class LipEvalSlot(Contract):
+    rater_id: int
+    label: str
+    has_bare: bool
+    has_real: bool
+    has_ar: bool
+    ready_for_ar: bool
+    scored: bool
+    technical: dict | None = None
+    naturalness: dict | None = None
+    scored_at: str | None = None
+    image_urls: LipEvalImageUrls
+
+
+class LipEvalAggregate(Contract):
+    scored_count: int
+    finalized: bool
+    naturalness_mean: Number | None = None
+    technical_overall_pass_rate: Number | None = None
+    metric_means: dict[str, Number] | None = None
+
+
+class LipEvalProduct(Contract):
+    id: str
+    brand: str
+    name: str
+    shade: str
+    sort_order: int
+    aggregate: LipEvalAggregate
+    slots: list[LipEvalSlot]
+    raters: list[LipEvalRater] | None = None
+    last_score: dict | None = None
+
+
+class LipEvalProductList(Contract):
+    items: list[LipEvalProduct]
+    raters: list[LipEvalRater]

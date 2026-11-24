@@ -110,3 +110,28 @@ export async function apiForm<T>(path: string, form: FormData): Promise<T> {
   });
   return parseAdmin<T>(response);
 }
+
+/** Authenticated binary fetch for stored eval images (blob URL). */
+export async function apiBlob(path: string): Promise<string> {
+  if (isDemo) throw new Error("미리보기에서는 이미지를 불러올 수 없습니다");
+  const token = (await supabase?.auth.getSession())?.data.session?.access_token;
+  const response = await fetch(`${apiBase}/api/admin${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    let code = "invalid_request";
+    try {
+      const data = await response.json();
+      code = data.code || code;
+    } catch {
+      /* ignore */
+    }
+    throw new ApiError(
+      response.status,
+      code,
+      errorMessages[code] || "이미지를 불러오지 못했습니다.",
+    );
+  }
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
+}

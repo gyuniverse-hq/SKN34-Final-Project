@@ -10,6 +10,7 @@ import type {
   TechMetricId,
 } from "../api/types";
 import { LoadingError } from "./Commerce";
+import { LipEvalPanel } from "./LipEvalPanel";
 const names: Record<Factor, string> = {
   total: "총점",
   texture: "질감",
@@ -403,8 +404,9 @@ export function Evaluations({ dashboard = false }: { dashboard?: boolean }) {
       </p>
       <h1>{dashboard ? "운영 대시보드" : "AR 평가"}</h1>
       <p>
-        세 장으로 즉시 채점하거나, 로컬 보고서 숫자 요약으로 추이를 봅니다.
+        제품 패널(11×5)로 채점하거나, 세 장 즉시 채점·로컬 보고서 추이를 봅니다.
       </p>
+      {!dashboard && <LipEvalPanel />}
       {!dashboard && <TriadScorer />}
       <div className="toolbar">
         <label>

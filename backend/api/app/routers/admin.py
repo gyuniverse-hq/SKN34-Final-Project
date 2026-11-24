@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Query, UploadFile
+from fastapi.responses import Response
 
 from app.schemas.admin import (
     AdminStatePatch,
@@ -8,6 +9,8 @@ from app.schemas.admin import (
     EvalCreate,
     EvalList,
     EvalResponse,
+    LipEvalProduct,
+    LipEvalProductList,
     LipTriadEvalResponse,
     OrderResponse,
     Page,
@@ -18,6 +21,7 @@ from app.schemas.admin import (
 )
 from app.services.admin_auth_service import admin_user, staff_user
 from app.services.admin_service import AdminService, get_admin_service
+from app.services.lip_eval_panel_service import LipEvalPanelService, get_lip_eval_panel_service
 from app.services.lip_triad_eval_service import LipTriadEvalService, get_lip_triad_eval_service
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -129,3 +133,59 @@ async def lip_triad_eval(
 ):
     """Score technical metrics and Astra naturalness. Image bytes are discarded after scoring."""
     return await service.evaluate(bare, real, ar, user["userId"])
+
+
+@router.get("/lip-eval/products", response_model=LipEvalProductList)
+async def lip_eval_products(
+    user=Depends(staff_user),
+    service: LipEvalPanelService = Depends(get_lip_eval_panel_service),
+):
+    return await service.list_products()
+
+
+@router.get("/lip-eval/products/{product_id}", response_model=LipEvalProduct)
+async def lip_eval_product(
+    product_id: str,
+    user=Depends(staff_user),
+    service: LipEvalPanelService = Depends(get_lip_eval_panel_service),
+):
+    return await service.get_product(product_id)
+
+
+@router.post(
+    "/lip-eval/products/{product_id}/raters/{rater_id}/refs", response_model=LipEvalProduct
+)
+async def lip_eval_save_refs(
+    product_id: str,
+    rater_id: int,
+    bare: UploadFile = File(..., description="화장 전(맨입술)"),
+    real: UploadFile = File(..., description="실제로 바른 입술"),
+    user=Depends(admin_user),
+    service: LipEvalPanelService = Depends(get_lip_eval_panel_service),
+):
+    """Save bare/real for a rater slot (eval-period retention)."""
+    return await service.save_refs(product_id, rater_id, bare, real, user["userId"])
+
+
+@router.post("/lip-eval/products/{product_id}/raters/{rater_id}/ar", response_model=LipEvalProduct)
+async def lip_eval_score_ar(
+    product_id: str,
+    rater_id: int,
+    ar: UploadFile = File(..., description="AR 적용"),
+    user=Depends(admin_user),
+    service: LipEvalPanelService = Depends(get_lip_eval_panel_service),
+):
+    """Score AR against stored bare/real for this product × rater slot."""
+    return await service.score_ar(product_id, rater_id, ar, user["userId"])
+
+
+@router.get("/lip-eval/products/{product_id}/raters/{rater_id}/images/{kind}")
+async def lip_eval_image(
+    product_id: str,
+    rater_id: int,
+    kind: str,
+    user=Depends(staff_user),
+    service: LipEvalPanelService = Depends(get_lip_eval_panel_service),
+):
+    data, mime = await service.read_image(product_id, rater_id, kind)
+    return Response(content=data, media_type=mime)

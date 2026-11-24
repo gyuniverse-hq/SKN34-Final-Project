@@ -64,6 +64,9 @@ __pycache__/
 /ios
 /android
 
+# Admin lip product-panel eval images (temporary, eval period only)
+/runtime/lip-eval/
+
 # Independent Python ML project
 /ml/.venv/
 /ml/data/
