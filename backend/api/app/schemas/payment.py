@@ -14,10 +14,14 @@ class OrderLineRequest(BaseModel):
     skincare_cart_event_ids: list[UUID] = Field(
         default_factory=list, alias="skincareCartEventIds", max_length=20
     )
+    cart_recommendation_event_ids: list[UUID] = Field(
+        default_factory=list, alias="cartRecommendationEventIds", max_length=20
+    )
 
 
 class CreateOrderRequest(BaseModel):
     lines: list[OrderLineRequest] = Field(min_length=1, max_length=30)
+    cart_visit_id: UUID | None = Field(default=None, alias="cartVisitId")
 
 
 class CreateOrderResponse(BaseModel):

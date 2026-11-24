@@ -13,6 +13,7 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -31,6 +32,7 @@ class ArRecommendationRequestRow(Base):
     makeup_zone: Mapped[str] = mapped_column(String(20), nullable=False)
     strategy: Mapped[str] = mapped_column(String(40), nullable=False)
     policy_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    cart_candidates: Mapped[list[list[str]] | None] = mapped_column(JSONB(none_as_null=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=text("now()"), nullable=False
     )

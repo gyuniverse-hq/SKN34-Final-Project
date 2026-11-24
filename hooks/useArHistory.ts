@@ -4,6 +4,7 @@ import { apiPost } from '@/lib/api';
 import { paletteSwatchKey, pickPalette, placePicksAround, type PaletteInputs, type PickStrategy } from '@/lib/arPalettePicks';
 import { ArHistorySession, ArPaletteView, noteArFailure, postArHistory, type RankedArPalette } from '@/lib/arHistory';
 import { useAuth } from '@/lib/auth';
+import { rememberCartArRank } from '@/lib/cartRecommendations';
 import type { ColorSwatch, NearbyDirection } from '@/lib/nearbyColors';
 import type { MakeupZone } from '@/types';
 
@@ -122,6 +123,11 @@ export function useArHistory({ active, zone, direction, nearby, catalog, visible
   const items = nearby ?? recommendations;
   const strategy = nearby ? direction : returnedPalette?.strategy ?? firstStrategy;
   const rankedDecision = nearby ? undefined : returnedPalette ? returnedPalette.ranked : rankedView;
+  useEffect(() => {
+    if (owner && paletteShown && rankedDecision?.candidates.length && (zone === 'lip' || zone === 'blush')) {
+      rememberCartArRank(owner, zone, rankedDecision.requestId);
+    }
+  }, [owner, paletteShown, rankedDecision, zone]);
   const view = useMemo(() => canRecommend && history && items && (nearby || items.length) && strategy && paletteShown
     ? new ArPaletteView(history.send, history.id, zone, strategy, items, rankedDecision, returnedPalette ? ordered : undefined) : null,
     [history, canRecommend, items, nearby, zone, strategy, paletteShown, rankedDecision, returnedPalette, ordered]);

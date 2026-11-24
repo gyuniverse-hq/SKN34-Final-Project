@@ -757,6 +757,9 @@ export const ja: Dictionary = {
   'cart.shopInStore': '店舗用ショッピングリストを作成',
   'cart.clear': 'カートを空にする',
   'cart.fromLook': 'ルックから追加',
+  'cart.recommendations': '一緒に使いたいアイテム',
+  'cart.recommendationAdd': '追加',
+  'cart.recommendationAdded': '追加済み',
 
   'checkout.title': '注文',
   'checkout.intro': 'お支払い前に注文内容をご確認ください。',

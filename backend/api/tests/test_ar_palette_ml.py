@@ -172,6 +172,7 @@ def test_rank_persists_assigned_arm_and_fallback_with_the_exact_features(tmp_pat
     config = SimpleNamespace(
         ar_palette_mode="experiment",
         ar_palette_experiment="trial",
+        cart_recommendation_experiment="cart-trial",
         ar_palette_model_dir=None,
         ar_palette_data_dir=tmp_path,
     )
@@ -180,6 +181,7 @@ def test_rank_persists_assigned_arm_and_fallback_with_the_exact_features(tmp_pat
     snapshot = read_json(tmp_path / "snapshots" / f"{body.request_id}.json")
     features = snapshot["features"][str(result.candidates[0].candidate_id)]
     assert set(features) == set(FEATURES) and features["rating_avg"] == 4.5
+    assert repo.save_rank.await_args.kwargs["cart_candidates"] == []
     report = summarize_experiment(
         [
             {

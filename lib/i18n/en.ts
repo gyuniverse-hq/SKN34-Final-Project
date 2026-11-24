@@ -716,6 +716,9 @@ export const en = {
   'cart.shopInStore': 'Make in-store shopping list',
   'cart.clear': 'Clear cart',
   'cart.fromLook': 'From a look',
+  'cart.recommendations': 'Pairs well with your cart',
+  'cart.recommendationAdd': 'Add',
+  'cart.recommendationAdded': 'Added',
 
   'checkout.title': 'Checkout',
   'checkout.intro': 'Review your order before payment.',

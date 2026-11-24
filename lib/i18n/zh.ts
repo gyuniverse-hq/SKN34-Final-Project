@@ -756,6 +756,9 @@ export const zh: Dictionary = {
   'cart.shopInStore': '生成门店购物清单',
   'cart.clear': '清空购物车',
   'cart.fromLook': '来自妆容',
+  'cart.recommendations': '适合搭配的商品',
+  'cart.recommendationAdd': '添加',
+  'cart.recommendationAdded': '已添加',
 
   'checkout.title': '结算',
   'checkout.intro': '请在支付前确认订单商品。',

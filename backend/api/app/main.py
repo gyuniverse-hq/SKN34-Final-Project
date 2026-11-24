@@ -12,6 +12,7 @@ from app.core.errors import install_error_handlers
 from app.core.observability import RequestContextMiddleware, configure_logging
 from app.routers import (
     ar_history,
+    cart_recommendations,
     catalog,
     celebrity_videos,
     health,
@@ -68,6 +69,7 @@ def create_app() -> FastAPI:
     install_error_handlers(app)
     for module in (
         ar_history,
+        cart_recommendations,
         health,
         catalog,
         idol_looks,
