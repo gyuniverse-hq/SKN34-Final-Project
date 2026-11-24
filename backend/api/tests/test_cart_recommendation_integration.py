@@ -16,6 +16,7 @@ from app.core.auth import AuthUser, require_user
 from app.core.config import get_settings
 from app.core.db import get_session
 from app.main import create_app
+from app.models.admin import ProductAdminStateRow
 from app.models.ar_personalization import ArRecommendationImpressionRow, ArRecommendationRequestRow
 from app.models.catalog import ProductRow, ShadeRow
 from app.models.member import MemberRow
@@ -33,7 +34,8 @@ PATH = "/api/me/cart-recommendations"
 @pytest.mark.skipif(
     not os.getenv("CART_RECOMMENDATION_TEST_URL"), reason="needs migrated PostgreSQL"
 )
-def test_cart_recommendation_attribution_and_ab_report(monkeypatch, tmp_path):
+@pytest.mark.parametrize("admin_enabled", [False, True], ids=["payments", "admin-inventory"])
+def test_cart_recommendation_attribution_and_ab_report(monkeypatch, tmp_path, admin_enabled):
     experiment = "cart-recs-qa"
     members = {}
     while len(members) < 2:
@@ -43,6 +45,7 @@ def test_cart_recommendation_attribution_and_ab_report(monkeypatch, tmp_path):
     actor = owner_b
     settings = get_settings()
     for key, value in {
+        "admin_enabled": admin_enabled,
         "ar_activity_enrolled_members": set(members.values()),
         "ar_activity_consented_members": set(members.values()),
         "ar_palette_mode": "collect",
@@ -75,12 +78,14 @@ def test_cart_recommendation_attribution_and_ab_report(monkeypatch, tmp_path):
         stem = "oy-cartqa-" + uuid4().hex[:10]
         lip = [f"{stem}-lip-{i}" for i in range(6)]
         blush = [f"{stem}-blush-{i}" for i in range(5)]
+        unavailable_blush = [f"{stem}-hidden", f"{stem}-sold-out"] if admin_enabled else []
+        products = [*lip, *blush, *unavailable_blush]
         async with session() as db:
             db.add_all(
                 MemberRow(id=owner, terms_version=TERMS_VERSION, terms_agreed_at=now)
                 for owner in members.values()
             )
-            for product in [*lip, *blush]:
+            for product in products:
                 zone = "lip" if product in lip else "blush"
                 db.add(
                     ProductRow(
@@ -112,15 +117,24 @@ def test_cart_recommendation_attribution_and_ab_report(monkeypatch, tmp_path):
                 )
                 db.add(RawOyProductRow(goods_no=product[3:]))
             await db.flush()
+            if admin_enabled:
+                hidden, sold_out = unavailable_blush
+                db.add_all(
+                    [
+                        ProductAdminStateRow(product_id=hidden, is_visible=False),
+                        ProductAdminStateRow(product_id=sold_out, stock=0),
+                        ProductAdminStateRow(product_id=lip[3], stock=4),
+                    ]
+                )
             db.add_all(
                 RawOyReviewSummaryRow(
                     goods_no=product[3:],
                     review_count=100,
-                    rating_avg=4.5,
+                    rating_avg=5.0 if product in unavailable_blush else 4.5,
                     is_latest=True,
                     collected_at=(now - timedelta(days=1)).replace(tzinfo=None),
                 )
-                for product in [*lip, *blush]
+                for product in products
             )
             await db.commit()
 
@@ -229,8 +243,15 @@ def test_cart_recommendation_attribution_and_ab_report(monkeypatch, tmp_path):
         assert approval.await_count == 3
         async with session() as db:
             assert (await db.get(OrderRow, forged)).cart_visit_id is None
+            paid_order = await db.get(OrderRow, paid_b)
+            assert paid_order.paid_at is not None
             bought = await db.scalar(select(OrderLineRow).where(OrderLineRow.order_id == paid_b))
             assert str(bought.cart_recommendation_event_id) == addition["eventId"]
+            if admin_enabled:
+                assert bought.stock_debited == 1
+                assert (await db.get(ProductAdminStateRow, lip[3])).stock == 2
+                paid_order.status = "shipped"
+                await db.commit()
             event = await db.get(UserBehaviorEventRow, UUID(addition["eventId"]))
             assert event.surface == "cart_recommendations"
             assert event.context_snapshot["impression_id"] == first["impressionId"]

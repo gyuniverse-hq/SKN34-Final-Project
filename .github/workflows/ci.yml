@@ -22,16 +22,18 @@ jobs:
       app: ${{ steps.filter.outputs.app }}
       backend: ${{ steps.filter.outputs.backend }}
       infra: ${{ steps.filter.outputs.infra }}
+      admin: ${{ steps.filter.outputs.admin }}
     steps:
       - uses: actions/checkout@v7
       - id: filter
         uses: dorny/paths-filter@v4
         with:
-          predicate-quantifier: every
+          predicate-quantifier: some-with-excludes
           filters: |
             app:
               - '**'
               - '!backend/**'
+              - '!admin/**'
               - '!infra/**'
               - '!docs/**'
               - '!**/*.md'
@@ -39,6 +41,36 @@ jobs:
               - 'backend/**'
             infra:
               - 'infra/**'
+            admin:
+              - 'admin/**'
+              - 'backend/api/app/schemas/admin.py'
+              - 'backend/api/tests/fixtures/admin_eval_v2.json'
+              - 'research/lip_rubric/publish_eval.py'
+              - 'research/lip_rubric/test_publish_eval.py'
+              - '.github/workflows/ci.yml'
+
+  admin:
+    needs: changes
+    if: needs.changes.outputs.admin == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: admin/package-lock.json
+      - run: npm ci
+        working-directory: admin
+      - run: npm run lint && npm run typecheck && npm test && npm run build
+        working-directory: admin
+      - uses: astral-sh/setup-uv@v10.3.2
+      - run: uv run --project backend/api pytest research/lip_rubric/test_publish_eval.py
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: admin
+          push: false
 
   app:
     needs: changes
@@ -96,6 +128,7 @@ jobs:
         run: uv run --frozen ${{ matrix.service == 'api' && '--group recommendation' || '' }} pytest
         env:
           TEST_DATABASE_URL: ${{ matrix.service == 'api' && env.DATABASE_URL || '' }}
+          ADMIN_TEST_DATABASE_URL: ${{ matrix.service == 'api' && env.DATABASE_URL || '' }}
 
   docker:
     needs: changes
@@ -145,7 +178,7 @@ jobs:
 
   # Single required check for branch protection; skipped jobs count as passed.
   ci-ok:
-    needs: [changes, app, backend, docker, infra]
+    needs: [changes, app, backend, docker, infra, admin]
     if: always()
     runs-on: ubuntu-latest
     steps:

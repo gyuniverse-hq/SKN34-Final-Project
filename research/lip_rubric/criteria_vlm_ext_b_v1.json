@@ -1,0 +1,95 @@
+{
+  "version": "vlm-ext-b-v1.2.1",
+  "date": "2026-11-20",
+  "title": "립 AR 자연스러움 VLM/Astra 간이 채점표 (안 B)",
+  "status": "debug_companion_not_mentor_primary",
+  "mentor_primary": "criteria_mentor_likert_v1.json (A1–A3 × 1–5)",
+  "scope": "트랙 A(보이는 자연스러움)만. 색=실물 여부(ΔE)는 포함하지 않음. 멘토 보고 본선은 mentor Likert.",
+  "changelog": {
+    "v1.2": "구 E1(배치)·E2(번짐)를 E1(경계·배치) 한 문항으로 통합. 구 E3–E7 → E2–E6. 게이트=E1·E6.",
+    "v1.2.1": "E1 가중 0.40→0.22 리밸런스(게이트가 치명도 담당, S는 제형·텍스처·조명으로 분산)."
+  },
+  "answers": ["yes", "no", "na"],
+  "pass_means": "문항별 '통과 답'과 일치하면 통과",
+  "excluded": {
+    "E8": "bare–AR 쌍 일관성 — 제외",
+    "color_match": "색 정확도는 ΔE(트랙 B)로 분리",
+    "legacy_E1_E2_split": "v1.1의 배치/번짐 분리는 내부 디버그용으로만 참고"
+  },
+  "scoring": {
+    "layers": ["gate", "weighted_score"],
+    "gate": ["E1", "E6"],
+    "gate_rule": "E1·E6 중 하나라도 실패면 전체 fail. 이 경우 weighted S는 보고용만.",
+    "weighted_score": {
+      "formula": "S = sum(w_i * pass_i) / sum(w_i) over i where answer != na",
+      "range": [0, 1],
+      "note": "가중치는 팀 초안. 공개 역치 아님."
+    },
+    "report": ["gate_pass", "S", "item_vector"]
+  },
+  "items": [
+    {
+      "id": "E1",
+      "text": "입술 색이 윤곽 안에만 있고, 밖으로 번지거나 끊긴 경계 없이 윤곽을 따르는가? (피부·이·수염으로 나가지 않고, 윤곽이 문질러지듯 번지거나 가위질처럼 딱딱하지 않음)",
+      "pass_answer": "yes",
+      "na_allowed": false,
+      "role": "gate",
+      "weight": 0.22,
+      "why_weight": "치명도는 게이트로. S에서는 중간 비중(통합≠가중 합산)",
+      "merges": ["v1.1:E1", "v1.1:E2"]
+    },
+    {
+      "id": "E2",
+      "text": "화면에 적힌 제형(매트/새틴/글로시)과 광택 정도가 맞는가? (매트≈거의 무광, 새틴≈은은, 글로시≈뚜렷 반사)",
+      "pass_answer": "yes",
+      "na_allowed": true,
+      "na_when": "제형 미표기",
+      "role": "score",
+      "weight": 0.16,
+      "why_weight": "제품 try-on 마감 구분",
+      "was": "v1.1:E3"
+    },
+    {
+      "id": "E3",
+      "text": "입술 표면이 피부·립 텍스처처럼 보이고, 플라스틱·페인트처럼 보이지 않는가?",
+      "pass_answer": "yes",
+      "na_allowed": false,
+      "role": "score",
+      "weight": 0.16,
+      "why_weight": "페인트감",
+      "was": "v1.1:E4"
+    },
+    {
+      "id": "E4",
+      "text": "입술의 밝은 곳·하이라이트 방향이 얼굴 조명 방향과 같은가?",
+      "pass_answer": "yes",
+      "na_allowed": false,
+      "role": "score",
+      "weight": 0.14,
+      "why_weight": "조명 정합",
+      "was": "v1.1:E5"
+    },
+    {
+      "id": "E5",
+      "text": "입술·입 주변 형태가 일그러지지 않았는가? (비정상적으로 커지거나 윤곽이 왜곡되지 않음)",
+      "pass_answer": "yes",
+      "na_allowed": false,
+      "role": "score",
+      "weight": 0.1,
+      "why_weight": "형태 왜곡(빈도↓)",
+      "was": "v1.1:E6"
+    },
+    {
+      "id": "E6",
+      "text": "합성 아티팩트가 눈에 띄지 않는가? (떠 있는 색 덩어리, 이중 테두리, 얼룩, 명백한 AI/필터 티)",
+      "pass_answer": "yes",
+      "na_allowed": false,
+      "role": "gate",
+      "weight": 0.22,
+      "why_weight": "필터 티·신뢰 붕괴(게이트+S)",
+      "was": "v1.1:E7"
+    }
+  ],
+  "weights_sum": 1.0,
+  "weights_status": "team_draft_2026-11-20_v1.2.1_rebalance"
+}

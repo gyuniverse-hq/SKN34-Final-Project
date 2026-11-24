@@ -4,7 +4,9 @@ from sqlalchemy import or_, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.errors import ApiError
+from app.models.admin import ProductAdminStateRow
 from app.models.cart_recommendation import (
     CartRecommendationImpressionRow as Impression,
 )
@@ -35,7 +37,7 @@ class CartRecommendationRepository:
         return await self.db.get(Visit, visit_id)
 
     async def catalog(self, product_ids):
-        return await self.db.execute(
+        query = (
             select(
                 ProductRow.id,
                 ProductRow.makeup_zone,
@@ -51,6 +53,12 @@ class CartRecommendationRepository:
                 or_(ProductRow.makeup_zone.in_(("lip", "blush")), ProductRow.id.in_(product_ids)),
             )
         )
+        if get_settings().admin_enabled:
+            unavailable = select(ProductAdminStateRow.product_id).where(
+                or_(ProductAdminStateRow.is_visible.is_(False), ProductAdminStateRow.stock == 0)
+            )
+            query = query.where(ProductRow.id.not_in(unavailable))
+        return await self.db.execute(query)
 
     async def save_visit(self, owner, experiment, arm, visit_id, basket, candidates):
         self.db.add(
@@ -201,7 +209,7 @@ class CartRecommendationRepository:
                         bool_or(l.cart_recommendation_event_id IS NOT NULL) AS recommendation_paid
                     FROM orders o LEFT JOIN order_lines l ON l.order_id = o.id
                     WHERE mature AND o.cart_visit_id = v.id AND o.user_id = v.member_id
-                      AND o.status = 'paid'
+                      AND o.status IN ('paid', 'preparing', 'shipped', 'delivered')
                       AND o.paid_at >= v.created_at AND o.paid_at < v.closes_at
                 ) p ON true
                 GROUP BY v.arm

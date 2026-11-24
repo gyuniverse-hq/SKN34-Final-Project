@@ -5,8 +5,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 from alembic import op
 
-revision = "0034"
-down_revision = "0033"
+revision = "0035"
+down_revision = "0034"
 branch_labels = None
 depends_on = None
 
@@ -55,7 +55,6 @@ def upgrade() -> None:
         ),
         sa.UniqueConstraint("visit_id", "candidate_id", name="uq_cart_recommendation_impression"),
     )
-    op.add_column("orders", sa.Column("paid_at", sa.DateTime(timezone=True)))
     op.add_column("orders", sa.Column("cart_visit_id", sa.Uuid()))
     op.create_foreign_key(
         "fk_orders_cart_visit",
@@ -91,7 +90,6 @@ def downgrade() -> None:
     op.drop_index("ix_orders_cart_visit_id", table_name="orders")
     op.drop_constraint("fk_orders_cart_visit", "orders", type_="foreignkey")
     op.drop_column("orders", "cart_visit_id")
-    op.drop_column("orders", "paid_at")
     op.drop_table("cart_recommendation_impressions")
     op.drop_table("cart_recommendation_visits")
     op.drop_column("ar_recommendation_requests", "cart_candidates")

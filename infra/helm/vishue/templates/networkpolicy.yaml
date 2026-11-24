@@ -1,6 +1,9 @@
 {{- if .Values.networkPolicy.enabled }}
 {{- /* target component => list of allowed sources (pod components, or "gateway") */ -}}
 {{- $rules := dict "api" (list "gateway" "sync-graph") "chatbot" (list "gateway") -}}
+{{- if .Values.admin.enabled }}
+{{- $_ := set $rules "admin" (list "gateway") -}}
+{{- end }}
 {{- $ds := .Values.dataStores -}}
 {{- if $ds.postgres.enabled }}
 {{- $_ := set $rules "postgres" (list "api" "seed") -}}

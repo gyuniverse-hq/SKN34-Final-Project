@@ -1,0 +1,178 @@
+{
+  "kind": "human",
+  "rendererCommit": "85ca8af626b29ac99f4404b801f93eac31ca3ffa",
+  "rendererDirty": true,
+  "rubricVersion": "lip-rubric-v2",
+  "metricVersion": "lip-metrics-v2.1",
+  "benchmarkSha256": "99d553a9b74a44bdd3bfc7aa0d2126108afe145ec60e9ff17c6434793a327489",
+  "summaryJson": {
+    "factors": {
+      "total": {
+        "estimate": 3.0389473684210526,
+        "low": 2.692026315789474,
+        "high": 3.3710789473684213,
+        "n": 19
+      },
+      "texture": {
+        "estimate": 0.5010526315789474,
+        "low": 0.42000000000000004,
+        "high": 0.58,
+        "n": 19
+      },
+      "shading": {
+        "estimate": 0.7526315789473684,
+        "low": 0.6663157894736842,
+        "high": 0.828421052631579,
+        "n": 19
+      },
+      "gloss": {
+        "estimate": 0.7431578947368421,
+        "low": 0.6957894736842105,
+        "high": 0.7894736842105263,
+        "n": 19
+      },
+      "boundary": {
+        "estimate": 0.6052631578947368,
+        "low": 0.5189473684210526,
+        "high": 0.6852631578947369,
+        "n": 19
+      },
+      "adhesion": {
+        "estimate": 0.4368421052631579,
+        "low": 0.3357894736842105,
+        "high": 0.5378947368421053,
+        "n": 19
+      }
+    },
+    "reliability": {
+      "raterCount": 5,
+      "icc21": 0.256,
+      "icc2K": 0.633,
+      "normalizedIcc": 0.794,
+      "alpha": 0.376
+    },
+    "mdc95": 1.42,
+    "finishes": [
+      {
+        "label": "glossy",
+        "total": {
+          "estimate": 2.7333333333333334,
+          "low": 2.3012,
+          "high": 3.152,
+          "n": 15
+        }
+      },
+      {
+        "label": "matte",
+        "total": {
+          "estimate": 2.985,
+          "low": 2.4823125,
+          "high": 3.46,
+          "n": 8
+        }
+      },
+      {
+        "label": "satin",
+        "total": {
+          "estimate": 3.3733333333333335,
+          "low": 2.949333333333333,
+          "high": 3.7413999999999996,
+          "n": 15
+        }
+      }
+    ],
+    "mouths": [
+      {
+        "label": "closed",
+        "total": {
+          "estimate": 3.2822222222222224,
+          "low": 2.8510000000000004,
+          "high": 3.6912222222222217,
+          "n": 9
+        }
+      },
+      {
+        "label": "open",
+        "total": {
+          "estimate": 2.82,
+          "low": 2.33195,
+          "high": 3.3000249999999998,
+          "n": 10
+        }
+      }
+    ],
+    "itaBins": [
+      {
+        "label": "q1",
+        "total": {
+          "estimate": 2.82,
+          "low": 2.13,
+          "high": 3.493333333333333,
+          "n": 6
+        }
+      },
+      {
+        "label": "q2",
+        "total": {
+          "estimate": 2.906,
+          "low": 2.476,
+          "high": 3.28,
+          "n": 5
+        }
+      },
+      {
+        "label": "q3",
+        "total": {
+          "estimate": 3.1633333333333336,
+          "low": 2.546666666666667,
+          "high": 3.780166666666666,
+          "n": 6
+        }
+      },
+      {
+        "label": "q4",
+        "total": {
+          "estimate": 3.6550000000000002,
+          "low": 3.6,
+          "high": 3.71,
+          "n": 2
+        }
+      }
+    ],
+    "correlations": [
+      {
+        "metric": "edge_width",
+        "spearman": 0.058
+      },
+      {
+        "metric": "flat_ratio",
+        "spearman": 0.036
+      },
+      {
+        "metric": "hf_corr_bare",
+        "spearman": 0.291
+      },
+      {
+        "metric": "hf_std",
+        "spearman": -0.17
+      },
+      {
+        "metric": "highlight_area",
+        "spearman": -0.268
+      },
+      {
+        "metric": "lum_spread",
+        "spearman": -0.214
+      }
+    ],
+    "codeMetrics": [],
+    "pairedComparison": null,
+    "vlmVerdict": "판정 불가",
+    "unmeasured": [
+      "색 재현",
+      "피팅 안정성",
+      "VLM 판정",
+      "짝 비교"
+    ]
+  }
+}

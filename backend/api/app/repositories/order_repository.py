@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, selectinload
 
 from app.models.ar_personalization import ArActivityEventRow
 from app.models.cart_recommendation import CartRecommendationVisitRow
@@ -56,7 +56,9 @@ class OrderRepository:
         await self._session.commit()
 
     async def get(self, order_id: str, *, lock: bool = False) -> OrderRow | None:
-        query = select(OrderRow).where(OrderRow.id == order_id)
+        query = (
+            select(OrderRow).options(selectinload(OrderRow.lines)).where(OrderRow.id == order_id)
+        )
         return await self._session.scalar(query.with_for_update() if lock else query)
 
     async def _attach_cart_recommendation_sources(self, order, visit_id, cart_events, terms):

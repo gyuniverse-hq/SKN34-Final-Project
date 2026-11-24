@@ -35,7 +35,7 @@
    "makeupZone": "brow",
    "texture": "satin",
    "priceKRW": 5700,
-   "volume": "[단품] 0.05g / Net Wt. 0.001 Oz. / [더블기획] 0.05g / Ne",
+   "volume": "[단품] 0.05g / Net Wt. 0.001 Oz. / [더블기획] 0.05g / Net Wt. 0.001 Oz. * 2",
    "shades": [
     {
      "id": "03",
@@ -149,7 +149,8 @@
     {
      "id": "09",
      "name": "모태분위기",
-     "hex": "#E9B09F"
+     "hex": "#E9B09F",
+     "finish": "matte"
     }
    ],
    "description": "",
@@ -201,22 +202,26 @@
     {
      "id": "a000000174309-133",
      "name": "시나몬 브루",
-     "hex": "#9C7A6E"
+     "hex": "#9C7A6E",
+     "finish": "matte"
     },
     {
      "id": "a000000174309-057",
      "name": "베이비 타로",
-     "hex": "#F7CBCF"
+     "hex": "#F7CBCF",
+     "finish": "matte"
     },
     {
      "id": "a000000174309-011",
      "name": "투샷 아메리카노",
-     "hex": "#5E3E31"
+     "hex": "#5E3E31",
+     "finish": "matte"
     },
     {
      "id": "a000000174309-027",
      "name": "다크 에스프레소",
-     "hex": "#453632"
+     "hex": "#453632",
+     "finish": "matte"
     }
    ],
    "description": "",
@@ -242,7 +247,8 @@
     {
      "id": "a000000174310-009",
      "name": "위티",
-     "hex": "#DFAEA8"
+     "hex": "#DFAEA8",
+     "finish": "shimmer"
     }
    ],
    "description": "",
@@ -263,7 +269,7 @@
    "makeupZone": "highlighter",
    "texture": "shimmer",
    "priceKRW": 11500,
-   "volume": "품목별상이 [NEW 01 듀이문, 04 밀키문, 05 피치문 : 2.3g / NEW 02 ",
+   "volume": "품목별상이 [NEW 01 듀이문, 04 밀키문, 05 피치문 : 2.3g / NEW 02 다이아몬드베일, 03 크롬 베이비 : 2.4g / NEW 엔젤피치 3.3g / NEW 피치쿼츠 3.3g / NEW 로즈피치 : 2.8g]",
    "shades": [
     {
      "id": "a000000176088-018",
@@ -299,12 +305,15 @@
    "makeupZone": "contour",
    "texture": "velvet",
    "priceKRW": 22000,
-   "volume": "데이지크 브이컷 블렌딩 쉐딩 01. 웜 블렌딩 / 데이지크 브이컷 블렌딩 쉐딩 02. 쿨 ",
+   "volume": "데이지크 브이컷 블렌딩 쉐딩 01. 웜 블렌딩 / 데이지크 브이컷 블렌딩 쉐딩 02. 쿨 블렌딩",
    "shades": [
     {
-     "id": "02",
+     "id": "A000000176894-006",
      "name": "쿨 블렌딩",
-     "hex": "#D2B1A1"
+     "hex": "#D2B1A1",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.8109999895095825
     }
    ],
    "description": "",
@@ -314,7 +323,7 @@
     "쉐이딩"
    ],
    "imageUrl": "https://image.oliveyoung.co.kr/cfimages/cf-goods/uploads/images/thumbnails10/0000/0017/A00000017689416ko.jpg",
-   "searchKeyword": "데이지크 [브러쉬 증정] 데이지크 브이컷 블렌딩 쉐딩 2 colors (단품/기획)"
+   "searchKeyword": "[브러쉬 증정] 데이지크 브이컷 블렌딩 쉐딩 2 colors (단품/기획)"
   },
   {
    "id": "oy-a000000180297",
@@ -325,7 +334,7 @@
    "makeupZone": "contour",
    "texture": "velvet",
    "priceKRW": 12000,
-   "volume": "<브이 쉐딩 디테일> 9.8g / Net Wt. 0.34 Oz. / <브이 쉐딩> 9.5g",
+   "volume": "<브이 쉐딩 디테일> 9.8g / Net Wt. 0.34 Oz. / <브이 쉐딩> 9.5g / Net Wt. 0.33 Oz.",
    "shades": [
     {
      "id": "03",
@@ -484,9 +493,12 @@
    "volume": "20.5g",
    "shades": [
     {
-     "id": "02-2",
+     "id": "A000000201055-008",
      "name": "그레이 쿨",
-     "hex": "#BAA08A"
+     "hex": "#BAA08A",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.6800000071525574
     }
    ],
    "description": "",
@@ -496,7 +508,7 @@
     "쉐이딩"
    ],
    "imageUrl": "https://image.oliveyoung.co.kr/cfimages/cf-goods/uploads/images/thumbnails10/0000/0020/A00000020105559ko.jpg",
-   "searchKeyword": "롬앤 롬앤 베러 댄 컨투어"
+   "searchKeyword": "롬앤 베러 댄 컨투어"
   },
   {
    "id": "oy-a000000201123",
@@ -694,7 +706,8 @@
     {
      "id": "04",
      "name": "베이오브베이지",
-     "hex": "#DE9B86"
+     "hex": "#DE9B86",
+     "finish": "matte"
     }
    ],
    "description": "",
@@ -720,7 +733,8 @@
     {
      "id": "104",
      "name": "비마이러브",
-     "hex": "#D58E91"
+     "hex": "#D58E91",
+     "finish": "matte"
     }
    ],
    "description": "",
@@ -850,7 +864,7 @@
    "makeupZone": "lip",
    "texture": "velvet",
    "priceKRW": 8500,
-   "volume": "(본품) : 5g, (증정) 픽싱 탑코트 글로스 미니 : 1.6g, 복숭아 꿀잠 립 마스크",
+   "volume": "(본품) : 5g, (증정) 픽싱 탑코트 글로스 미니 : 1.6g, 복숭아 꿀잠 립 마스크 미니 2.8g",
    "shades": [
     {
      "id": "14",
@@ -879,9 +893,12 @@
    "volume": "3.8g",
    "shades": [
     {
-     "id": "02",
+     "id": "A000000232152-002",
      "name": "로즈 쿼츠",
-     "hex": "#DAB7B2"
+     "hex": "#DAB7B2",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.8119999766349792
     }
    ],
    "description": "",
@@ -891,7 +908,7 @@
     "하이라이터"
    ],
    "imageUrl": "https://image.oliveyoung.co.kr/cfimages/cf-goods/uploads/images/thumbnails10/0000/0023/A00000023215236ko.jpg",
-   "searchKeyword": "캔메이크 [은은선셋광] 캔메이크 무뉴토 하이라이터 4종 기획/단품 택1"
+   "searchKeyword": "[은은선셋광] 캔메이크 무뉴토 하이라이터 4종 기획/단품 택1"
   },
   {
    "id": "oy-a000000233171",
@@ -1037,7 +1054,8 @@
     {
      "id": "06",
      "name": "리코타 핑크",
-     "hex": "#FCD3CC"
+     "hex": "#FCD3CC",
+     "finish": "shimmer"
     }
    ],
    "description": "",

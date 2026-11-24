@@ -1,0 +1,16 @@
+{
+  "version": "technical-admin-v1.0",
+  "date": "2026-11-23",
+  "title": "관리자 triad 테크니컬 즉시 채점 (팀 눈 앵커)",
+  "inherits": "research/eval_matrix/criteria_technical_v1.json team_eye_anchors",
+  "scope": "화장 전·실제로 바른 입술·AR 세 장. 입술 crop(전체 ROI) 기준.",
+  "pair_rule": "같은 사람·같은 구도. AR vs 실제로 바른 입술 수치 + 맨입술 대비 beats_bare.",
+  "team_eye_lines": {
+    "delta_e": {"rule": "<=", "value": 1.8, "direction": "lower_better"},
+    "ssim": {"rule": ">=", "value": 0.95, "direction": "higher_better"},
+    "mae": {"rule": "<=", "value": 0.04, "direction": "lower_better", "scale": "RGB 0..1"},
+    "miou": {"rule": ">=", "value": 0.85, "direction": "higher_better", "note": "화장 변화 마스크 IoU 근사"},
+    "lpips": {"rule": null, "absolute": "report_only", "direction": "lower_better"}
+  },
+  "miou_method": "bare 대비 |real-bare|·|ar-bare| 임계 마스크 IoU (정답 립 마스크 없을 때)"
+}
