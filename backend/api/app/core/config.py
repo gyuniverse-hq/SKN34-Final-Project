@@ -76,6 +76,8 @@ class Settings(BaseSettings):
     llm_model: str | None = None
     astra_model: str | None = None
     llm_timeout_seconds: float = 60
+    # Temporary face refs for lip product-panel eval (eval period only; ADR-0013 exception).
+    admin_lip_eval_dir: Path = PROJECT_ROOT / "runtime" / "lip-eval"
 
     @property
     def g5_local_mode(self) -> bool:
