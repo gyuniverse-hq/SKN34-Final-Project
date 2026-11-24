@@ -659,6 +659,20 @@ def test_persisted_conversation_resumes_g3_pending_ingredient_question(api, monk
     question = pending.json()["pendingClarification"]
     assert question["missingSlot"] == "shade" and question["productId"] == "a"
     llm.plan = {"intent": "detail", "scope": "previous", "shadeName": "03"}
+    other_room = create(client)[0]["conversationId"]
+    wrong_room = client.post(
+        "/api/chat",
+        headers=AUTH,
+        json={
+            **body,
+            "conversationId": other_room,
+            "requestId": str(uuid4()),
+            "message": "03호",
+            "chatContext": pending.json()["chatContext"],
+            "clarificationId": question["id"],
+        },
+    )
+    assert (wrong_room.status_code, wrong_room.json()["code"]) == (410, "chat_session_expired")
     forged = client.post(
         "/api/chat",
         headers=AUTH,

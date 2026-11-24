@@ -100,7 +100,9 @@ class ChatSessionRepository:
                 503, "Chat session storage unavailable", "chat_session_unavailable"
             ) from exc
 
-    async def load(self, owner: str, ref: ChatSessionRef) -> ChatSessionState:
+    async def load(
+        self, owner: str, ref: ChatSessionRef, *, conversation_id: UUID | None = None
+    ) -> ChatSessionState:
         self.available()
         try:
             raw = await self.client.get(self.key(ref.session_id))
@@ -114,6 +116,12 @@ class ChatSessionRepository:
             ):
                 raise ApiError(403, "Chat session access denied", "chat_session_forbidden")
             if state.expires_at <= int(time.time()):
+                raise ApiError(410, "Chat session expired", "chat_session_expired")
+            # Older persistent snapshots have a memory fence but no room binding.
+            unbound_persistent = state.conversation_id is None and (
+                state.memory_epoch is not None or state.memory_generation is not None
+            )
+            if state.conversation_id != conversation_id or unbound_persistent:
                 raise ApiError(410, "Chat session expired", "chat_session_expired")
             return state
         except (RedisError, OSError, ValueError, ValidationError) as exc:
@@ -143,6 +151,7 @@ class ChatSessionRepository:
                         or current.state_version != expected_version
                         or current.owner != state.owner
                         or current.token_hash != state.token_hash
+                        or current.conversation_id != state.conversation_id
                     )
                 ):
                     raise ApiError(409, "Chat session changed", "chat_session_conflict")

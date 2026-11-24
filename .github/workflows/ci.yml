@@ -103,6 +103,11 @@ jobs:
         ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U vishue" --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: ${{ matrix.service == 'chatbot' && 'redis:7-alpine' || '' }}
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
     defaults:
       run:
         working-directory: backend/${{ matrix.service }}
@@ -137,6 +142,7 @@ jobs:
           TEST_DATABASE_URL: ${{ matrix.service == 'api' && env.DATABASE_URL || '' }}
           ADMIN_TEST_DATABASE_URL: ${{ matrix.service == 'api' && env.DATABASE_URL || '' }}
           TEST_CHAT_DATABASE_URL: ${{ matrix.service == 'chatbot' && env.CHAT_DATABASE_URL || '' }}
+          TEST_CHAT_REDIS_URL: ${{ matrix.service == 'chatbot' && 'redis://127.0.0.1:6379/1' || '' }}
           G7_ALLOW_DESTRUCTIVE_TESTS: ${{ matrix.service == 'chatbot' && '1' || '0' }}
 
   docker:

@@ -346,6 +346,12 @@ def test_memory_edit_invalidates_old_redis_candidates(memory_api, monkeypatch):
         },
     )
     assert (stale.status_code, stale.json()["code"]) == (410, "chat_session_expired")
+    legacy = client.post(
+        "/api/chat",
+        headers=AUTH,
+        json={"locale": "ko", "message": "첫 번째 가격", "chatContext": old_context},
+    )
+    assert (legacy.status_code, legacy.json()["code"]) == (410, "chat_session_expired")
     llm.plan = {"intent": "search", "scope": "catalog", "category": "lip"}
     fresh = client.post(
         "/api/chat",
@@ -360,6 +366,16 @@ def test_memory_edit_invalidates_old_redis_candidates(memory_api, monkeypatch):
         },
     )
     assert fresh.status_code == 200, fresh.text
-    assert (
-        fresh.json()["chatContext"]["session"]["sessionId"] != old_context["session"]["sessionId"]
+    fresh_context = fresh.json()["chatContext"]
+    assert fresh_context["session"]["sessionId"] != old_context["session"]["sessionId"]
+    assert client.delete(f"/api/chat/conversations/{room}", headers=AUTH).status_code == 204
+    llm.plan = {"intent": "detail", "scope": "previous", "ordinal": 1}
+    after_deletion = client.post(
+        "/api/chat",
+        headers=AUTH,
+        json={"locale": "ko", "message": "첫 번째 가격", "chatContext": fresh_context},
+    )
+    assert (after_deletion.status_code, after_deletion.json()["code"]) == (
+        410,
+        "chat_session_expired",
     )

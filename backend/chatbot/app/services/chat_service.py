@@ -1000,6 +1000,8 @@ class ChatService:
         request_id = incoming.request_id or uuid5(
             NAMESPACE_URL, f"{owner}:{ref.session_id if ref else 'bootstrap'}:{fingerprint}"
         )
+        execution = incoming._g7_execution
+        conversation_id = execution.conversation_id if execution is not None else None
         state, load_error = None, None
         if ref is None:
             try:
@@ -1011,7 +1013,7 @@ class ChatService:
         if ref:
             try:
                 async with legacy_owner_access(owner_id):
-                    state = await repo.load(owner, ref)
+                    state = await repo.load(owner, ref, conversation_id=conversation_id)
                 if (
                     incoming._memory_epoch is not None
                     and state.memory_epoch != incoming._memory_epoch
@@ -1584,6 +1586,7 @@ class ChatService:
                     "sourceVersion": r.source_version,
                 }
         snapshot = ChatSessionState(
+            conversation_id=conversation_id,
             pending_clarification=next_pending,
             memory_epoch=req._memory_epoch,
             memory_generation=req._memory_generation,
@@ -1610,7 +1613,7 @@ class ChatService:
         except ApiError as exc:
             if state and exc.status == 409:
                 async with legacy_owner_access(owner_id):
-                    winner = await repo.load(owner, ref)
+                    winner = await repo.load(owner, ref, conversation_id=conversation_id)
                 if winner.last_request_id == request_id and winner.last_fingerprint == fingerprint:
                     return self._cached_session_response(winner)
             if exc.code != "chat_session_unavailable" or state:

@@ -466,6 +466,7 @@ class ChatResponse(ApiModel):
 class ChatSessionState(ArModel):
     """Redis-only snapshot and one TTL-bound retry response, never a transcript archive."""
 
+    conversation_id: UUID | None = Field(default=None, exclude_if=lambda v: v is None)
     pending_clarification: PendingClarification | None = Field(
         default=None, exclude_if=lambda v: v is None
     )
