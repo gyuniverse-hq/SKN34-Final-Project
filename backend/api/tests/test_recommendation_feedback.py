@@ -189,3 +189,56 @@ def test_repository_duplicate_payload_is_idempotent_and_conflicts_roll_back():
         asyncio.run(repo.insert_impression(payload))
     session.rollback.assert_awaited_once()
     session.commit.assert_awaited_once()
+
+
+def test_recorded_route_accepts_conversation_without_relabeling(client):
+    from tests.test_skincare_concern_fit import product, rule, snapshot
+
+    verifier = SimpleNamespace(
+        verify=AsyncMock(return_value={"sub": "verified-member", "role": "authenticated"})
+    )
+    request = {
+        "detectedConcerns": [{"goal": "pores", "sources": ["conversation"]}],
+    }
+    data = snapshot([product("p", "p")], [rule("p", "pores", "ASTRINGENT")])
+    result = recommend_hybrid(data, SkincareProfileRequest.model_validate(request))
+    flow = SimpleNamespace(recommend_recorded=AsyncMock(return_value=result))
+    client.app.dependency_overrides[get_session] = lambda: None
+    client.app.dependency_overrides[get_skincare_service] = lambda: flow
+    with patch("app.core.auth.get_verifier", return_value=verifier):
+        response = client.post(
+            f"{PATH}/recorded",
+            json={"sessionId": str(uuid4()), "input": request},
+            headers={"Authorization": "Bearer test-token"},
+        )
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    stored_request = flow.recommend_recorded.await_args.args[0].input
+    assert stored_request.detected_concerns[0].sources == ["conversation"]
+    assert stored_request.analysis_scores == {}
+    assert stored_request.skin_type == stored_request.irritation_signal == "unknown"
+    assert response.json()["overallTop10"][0]["reasons"][0]["sources"] == ["conversation"]
+
+
+def test_recorded_conversation_keeps_existing_private_snapshot_policy():
+    from app.schemas.recommendation_feedback import RecordedSkincareInput
+    from app.services.skincare_service import SkincareService
+    from tests.test_skincare_concern_fit import product, rule, snapshot
+
+    data = snapshot([product("p", "p")], [rule("p", "pores", "ASTRINGENT")])
+    repo = SimpleNamespace(read=AsyncMock(return_value=data))
+    feedback = service()
+    feedback.repository.record_completed = AsyncMock()
+    req = RecordedSkincareInput.model_validate(
+        {
+            "sessionId": str(uuid4()),
+            "input": {"detectedConcerns": [{"goal": "pores", "sources": ["conversation"]}]},
+        }
+    )
+    result = asyncio.run(SkincareService(repo).recommend_recorded(req, "owner", feedback))
+    request_record, candidates = feedback.repository.record_completed.await_args.args
+    assert request_record["input_snapshot"] == {}
+    assert request_record["policy_snapshot"] == {}
+    assert all(candidate["evidence_snapshot"] == {} for candidate in candidates)
+    assert result.history is not None
+    assert result.overall_top10[0].reasons[0].sources == ["conversation"]

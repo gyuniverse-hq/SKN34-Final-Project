@@ -267,7 +267,7 @@ class GoalCoverage(ApiModel):
     status: Literal["ok", "mapping_unavailable", "no_matches"]
 
 
-DetectionSource = Literal["analysis", "survey", "skinType"]
+DetectionSource = Literal["analysis", "survey", "skinType", "conversation"]
 MatchSource = Literal[
     "analysis",
     "survey",
@@ -275,12 +275,13 @@ MatchSource = Literal[
     "skinProfile",
     "concern",
     "analysisSupport",
+    "conversation",
 ]
 
 
 class DetectedConcern(StrictModel):
     goal: Goal
-    sources: list[DetectionSource] = Field(min_length=1, max_length=3)
+    sources: list[DetectionSource] = Field(min_length=1, max_length=4)
 
 
 class SkincareProfileRequest(StrictModel):

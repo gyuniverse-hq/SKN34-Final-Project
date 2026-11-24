@@ -2,7 +2,7 @@ import type { Product } from './index';
 export const CARE_GOALS = ['dryness', 'sensitivity', 'pigmentation', 'wrinkles', 'pores', 'oiliness', 'blemish'] as const;
 export type CareGoal = typeof CARE_GOALS[number];
 
-export type DetectionSource = 'analysis' | 'survey' | 'skinType';
+export type DetectionSource = 'analysis' | 'survey' | 'skinType' | 'conversation';
 export interface SkincareProfileRequest {
   detectedConcerns: { goal: CareGoal; sources: DetectionSource[] }[];
   /** Mobile v4 ROI maxima and the mobile v4.1 whole-image blemish score. */
