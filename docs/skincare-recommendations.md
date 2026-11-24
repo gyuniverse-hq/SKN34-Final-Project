@@ -9,6 +9,27 @@ v4는 `detectedConcerns`, `skinType`, `irritationSignal`, 선택적 `analysisSco
 독립 순위를, `balanceMatches`로 보습·유분을 묶은 순위를 제공한다.
 아래의 이전 API 계약과 정렬 규칙은 [개발 이력](recommend-v3.md)과 함께 읽을 수 있다.
 
+
+### 대화에서 확인한 관리 목표
+
+분석이나 설문이 없는 상담에서는 확인된 관리 목표를
+`detectedConcerns[].sources: ["conversation"]`으로 전달할 수 있다.
+같은 목표에 실제 분석·설문·피부 타입 출처가 함께 있으면 각각 구분해 표시하며,
+한 목표의 출처는 최대 4개다. 없는 분석 점수·설문 답변·피부 타입을 만들지 않는다.
+출처만 다른 동일 관리 목표는 기존 종합 추천 순위를 재사용하며 응답 이유에도
+`conversation`이 보존된다. 기존 로직은 이미 명시된 동일 고민에 대해 점수만으로
+`analysis`이나 `analysisSupport` 출처를 자동 추가하지 않는다. 실제 분석 출처를
+함께 전달할 때는 호출자가 확인된 출처를 명시해야 한다. 상품의 CosIng 기능 분류는
+치료 효과를 보장하지 않는다.
+
+```json
+{"detectedConcerns":[{"goal":"pores","sources":["conversation"]},{"goal":"dryness","sources":["conversation"]}]}
+```
+
+조회 API와 인증이 필요한 `/skincare/v4/recorded`는 동일 입력 스키마를 사용한다.
+기록 API는 기존 동의·인증과 저장 정책을 유지하며 원문 상담이나 입력 스냅샷을
+새로 저장하지 않는다. 이 계약만으로 챗봇 호출이나 대화 상태 연동이 구현되는 것은 아니다.
+
 ### v4 종합 추천 (2026-11-09)
 
 `analysisScores`는 mobile-v4 계열의 모공·톤잡티·주름 ROI 점수 최댓값과 mobile-v4.1의
