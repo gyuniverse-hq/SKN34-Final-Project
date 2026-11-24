@@ -6,6 +6,7 @@ import importlib.util
 from pathlib import Path
 
 import pytest
+
 from app.schemas.catalog import Product
 
 SCRIPT = Path(__file__).resolve().with_name("build_catalog_review.py")
