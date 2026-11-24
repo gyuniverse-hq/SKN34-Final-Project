@@ -1,8 +1,9 @@
-"""Write a serving catalog JSON from the Olive Young raw tables.
+"""Legacy diagnostic export; do not use it to replace the serving catalog.
 
-uv run python -m app.jobs.export_oy_catalog seed/oy-catalog.json
+uv run python -m app.jobs.export_oy_catalog --legacy-diagnostic oy-legacy-review.json
 
-Does not replace the live catalog. Review the file, then load it with seed_catalog.
+Use scripts/data/oliveyoung/build_catalog_review.py for new catalog work.
+This historical export does not preserve existing serving products or shade IDs.
 Products without a stored price are omitted. Shades without a stored hex are not painted.
 """
 
@@ -45,8 +46,13 @@ async def export(path: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("path", type=Path, nargs="?", default=Path("seed/oy-catalog.json"))
+    parser.add_argument("path", type=Path)
+    parser.add_argument("--legacy-diagnostic", action="store_true")
     args = parser.parse_args()
+    if not args.legacy_diagnostic:
+        parser.error("Use build_catalog_review.py; legacy export is diagnostic only")
+    if args.path.exists():
+        parser.error("Use a new review file; never overwrite a seed")
     configure_logging("export_oy_catalog", get_settings().log_level)
     asyncio.run(export(args.path))
 

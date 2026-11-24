@@ -1,4 +1,4 @@
-"""Build a reviewable catalog JSON from the Olive Young raw tables.
+"""Legacy makeup-only diagnostic builder; do not replace the serving catalog.
 
 This is read-only. Run from backend/api with uv. The output is a local file,
 not the tracked seed; review it before deciding whether to publish it.
@@ -390,7 +390,13 @@ def main() -> None:
     parser.add_argument("--output", type=Path)
     parser.add_argument("--expect-source", type=int)
     parser.add_argument("--expect-products", type=int)
-    asyncio.run(run(parser.parse_args()))
+    parser.add_argument("--legacy-diagnostic", action="store_true")
+    args = parser.parse_args()
+    if args.output and not args.legacy_diagnostic:
+        parser.error("Use build_catalog_review.py; legacy output is diagnostic only")
+    if args.output and args.output.exists():
+        parser.error("Use a new review file; never overwrite a seed")
+    asyncio.run(run(args))
 
 
 if __name__ == "__main__":

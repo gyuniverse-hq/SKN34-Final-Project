@@ -27,14 +27,14 @@ GitHub Actions(dev-data)가 Supabase에 교체 → 챗봇 DB(AuraDB)에 복사
 앱(dev 서버)과 Supabase 대시보드에서 확인
 ```
 
-### 올리브영 v29 원본에서 상품 카탈로그 만들기
+### 올리브영 원본에서 안전한 상품 카탈로그 검토 후보 만들기
 
 - `public.oy_catalog_category_rule`의 21개 표준 카테고리별로 `requires_texture`와 `requires_color`를 관리합니다. 초기값은 AR 담당 팀원과 2026-10-30에 합의한 기준이며, `0010_oy_catalog_category_rules.py` 마이그레이션에 들어 있습니다. 원본 `raw_oy_category`의 카테고리명과 표준 카테고리는 일대일이 아니므로 별도 규칙 표를 사용합니다.
 - 범위 밖 상품, 필수 제형이 없는 상품, 그리고 색상 필수 카테고리에서 호수 옵션 중 색상 HEX가 하나라도 없는 상품을 제외합니다. 원본 또는 규칙이 바뀌면 결과 수를 다시 검증해야 합니다.
-- `scripts/data/oliveyoung/build_catalog.py`는 원본 DB를 **읽기만** 하고, 현재 시드의 올리브영 상품만 교체한 로컬 검토 파일을 만듭니다. 기존 비올리브영 상품·룩·매장은 보존합니다. v29에서 확인된 홀리카홀리카 단독 구성품 옵션 4개는 카탈로그 호수에서만 제외하며 raw 원본은 보존합니다. 실행 위치는 `backend/api`입니다.
+- 공식 검토 경로는 `scripts/data/oliveyoung/build_catalog_review.py`입니다. 현재 seed와 실제 서빙의 상품·호수 ID 및 실질값 일치를 확인하고, 기존 상품·호수·룩·매장을 보존합니다. `reviewed_product_overrides.json`에서 승인된 신규 상품만 후보에 추가하며 미검수 항목은 보고합니다. 기존 `build_catalog.py`와 `export_oy_catalog`는 `--legacy-diagnostic`을 지정한 진단용 파일 생성에만 사용합니다. 전체 재시드로 기존 DB를 교체하지 않습니다. 실행 위치는 `backend/api`입니다.
 
 ```bash
-uv run python ../../scripts/data/oliveyoung/build_catalog.py --expect-source 2512 --output ../../tmp/catalog-v29-review.json
+uv run --group data python ../../scripts/data/oliveyoung/build_catalog_review.py --seed seed/catalog.json --overrides ../../scripts/data/oliveyoung/reviewed_product_overrides.json --output catalog-review.json --report catalog-review-report.json
 ```
 
 상품별 대표 썸네일 URL만 `products.image_url`에 넣습니다. 옵션·색상칩·상세 설명 이미지는 앱 카탈로그에 넣지 않으며 이미지 파일 자체도 저장하지 않습니다. 리뷰 원문과 검수되지 않은 주요 성분·피부 효능 태그도 제외합니다. 추출한 색은 `measureMethod: estimated`와 추출 출처·신뢰도를 함께 보관합니다. 실제 발색 측정값으로 취급하지 않으며 AR 사용 전 출처와 적합성을 검토합니다. 출처 활용 범위를 확인한 뒤 검토 파일을 `backend/api/seed/catalog.json`에 반영하고 PR을 올립니다. 시드가 교체 적재되면 `raw_oy_product.is_in_catalog`도 같은 트랜잭션에서 갱신됩니다.
