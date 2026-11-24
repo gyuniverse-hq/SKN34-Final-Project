@@ -2,7 +2,7 @@ import { uuid } from 'expo';
 import { create } from 'zustand';
 import type { TranslationKey } from '@/lib/i18n';
 import type { PendingClarification, RecentChatMessage, BeautyChatContext, ChatResponse, ChatScreenContext, ChatStyleContext, ChatStyleCondition } from '@/types';
-import type { ChatCategory, ChatMessage, ConversationTarget, ChatRequestTicket, ChatRequestSnapshot, ConversationEntry, ConversationSubject } from '@/types/chatConversation';
+import type { ChatCategory, ChatMessage, ConversationTarget, ChatRequestTicket, ChatRequestSnapshot, ConversationEntry, ConversationSubject, ServerConversationSummary, ServerConversationDetail } from '@/types/chatConversation';
 
 // Select complete pairs from this room; Unicode code points match Python len().
 export function recentChatMessages(messages: ChatMessage[], ownerKey: string, generation: number): RecentChatMessage[] {
@@ -62,6 +62,11 @@ function createChatConversation(userId: string | null, ownerKey: string, entry: 
     id: uuid.v4(),
     subject,
     userId,
+    serverId: undefined as string | undefined,
+    serverVersion: 0,
+    serverSummary: false,
+    olderMessageCursor: undefined as number | undefined,
+    persistenceMode: 'unknown' as 'unknown' | 'enabled' | 'disabled',
     draft: '',
     notice: undefined as TranslationKey | undefined,
     request: undefined as string | undefined,
@@ -121,9 +126,15 @@ type ChatStore = {
   activate: (userId: string | null) => void;
   open: (entry: ConversationEntry, fresh?: boolean, focus?: { product?: ChatScreenContext; style?: ChatStyleContext }) => string | undefined;
   resume: (id: string) => boolean;
+  mergeServerRooms: (ownerKey: string, rooms: ServerConversationSummary[]) => void;
+  restoreServerRoom: (ownerKey: string, detail: ServerConversationDetail) => string | undefined;
+  prependServerMessages: (target: ConversationTarget, cursor: number, detail: ServerConversationDetail) => void;
   setDraft: (target: ConversationTarget, value: string) => void;
   setCategory: (target: ConversationTarget, value: ChatCategory) => void;
   setNotice: (target: ConversationTarget, value: TranslationKey) => void;
+  setPersistenceMode: (target: ConversationTarget, value: 'enabled' | 'disabled') => void;
+  bindServerRoom: (target: ConversationTarget, id: string, version: number) => void;
+  invalidateMemoryContext: (ownerKey: string) => void;
   setStyle: (target: ConversationTarget, value?: ChatStyleContext) => void;
   clearProduct: (target: ConversationTarget) => void;
   resetSession: (target: ConversationTarget, key: TranslationKey, keepSelection?: boolean) => void;
@@ -220,12 +231,85 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
       set({ latest: { ...latest, [subjectKey(record.conversation.subject)]: id } });
       return true;
     },
+    mergeServerRooms: (ownerKey, rooms) => set((state) => {
+      if (state.identity?.key !== ownerKey || !state.identity.userId) return state;
+      const conversations = { ...state.conversations };
+      for (const summary of rooms) {
+        if (Object.values(conversations).some((record) => record.conversation.serverId === summary.conversationId)) continue;
+        const room = createChatConversation(state.identity.userId, ownerKey, summary.subject, true);
+        room.id = summary.conversationId;
+        room.serverId = summary.conversationId;
+        room.serverVersion = summary.conversationVersion;
+        room.serverSummary = true;
+        conversations[room.id] = { conversation: room, messages: [], view: readConversationView(room), updatedAt: Date.parse(summary.updatedAt) || Date.now() };
+      }
+      return { conversations };
+    }),
+    restoreServerRoom: (ownerKey, detail) => {
+      const state = get();
+      if (state.identity?.key !== ownerKey || !state.identity.userId) return;
+      const existing = Object.values(state.conversations).find((record) => record.conversation.serverId === detail.conversationId);
+      if (existing && (!existing.conversation.serverSummary || existing.conversation.request)) return existing.conversation.id;
+      const room = createChatConversation(state.identity.userId, ownerKey, detail.subject, true);
+      room.id = existing?.conversation.id ?? detail.conversationId;
+      room.serverId = detail.conversationId;
+      room.serverVersion = detail.conversationVersion;
+      room.persistenceMode = 'enabled';
+      room.serverSummary = false;
+      room.olderMessageCursor = detail.nextMessageCursor ?? undefined;
+      const product = detail.context.product;
+      if (product?.selectedProductId) room.selection.screen = { screenId: 'chat', productId: product.selectedProductId,
+        ...(product.selectedShadeId ? { shadeId: product.selectedShadeId } : {}) };
+      if (product?.selectedProductId && product.selectedShadeId) room.selection.shades[product.selectedProductId] = product.selectedShadeId;
+      const style = detail.context.style;
+      room.styleContext = style ? { kind: style.kind, lookId: style.lookId,
+        recipeId: style.recipeId, recipeVersion: style.recipeVersion, currentStep: style.currentStep } : undefined;
+      room.styleConditions = detail.context.style?.conditions ?? detail.context.styleConditions ?? [];
+      const messages: ChatMessage[] = detail.messages.map((item) => ({
+        ...item.displayPayload, id: item.id, role: item.role, text: item.text,
+        ownerKey, generation: room.generation,
+      }));
+      const record = { conversation: room, messages, view: readConversationView(room),
+        updatedAt: (detail.updatedAt ? Date.parse(detail.updatedAt) : 0) || existing?.updatedAt || Date.now() };
+      set((current) => current.identity?.key === ownerKey ? {
+        conversations: { ...current.conversations, [room.id]: record },
+        latest: { ...current.latest, [subjectKey(room.subject)]: room.id },
+      } : current);
+      return get().identity?.key === ownerKey ? room.id : undefined;
+    },
+    prependServerMessages: (target, cursor, detail) => { change(target, (room, record) => {
+      if (room.olderMessageCursor !== cursor || room.serverId !== detail.conversationId) return false;
+      const ids = new Set(record.messages.map((message) => message.id));
+      const older: ChatMessage[] = detail.messages.filter((item) => !ids.has(item.id)).map((item) => ({
+        ...item.displayPayload, id: item.id, role: item.role, text: item.text,
+        ownerKey: room.ownerKey, generation: room.generation,
+      }));
+      record.messages = [...older, ...record.messages];
+      room.olderMessageCursor = detail.nextMessageCursor ?? undefined;
+    }); },
     setDraft: (target, value) => { change(target, (room) => { room.draft = value; }); },
     setCategory: (target, value) => { change(target, (room) => {
       if (room.category !== value) room.styleRevision += 1;
       room.category = value;
     }); },
     setNotice: (target, value) => { change(target, (room) => { room.notice = value; }); },
+    setPersistenceMode: (target, value) => { change(target, (room) => { room.persistenceMode = value; }); },
+    bindServerRoom: (target, id, version) => { change(target, (room) => {
+      if (room.serverId && room.serverId !== id) return false;
+      room.serverId = id;
+      room.serverVersion = Math.max(room.serverVersion, version);
+    }); },
+    invalidateMemoryContext: (ownerKey) => {
+      for (const record of Object.values(get().conversations)) {
+        if (record.conversation.ownerKey !== ownerKey) continue;
+        change(record.conversation, (room, next) => {
+          resetRoom(room, next, 'chat.session.newSearchHint');
+          room.entryProduct = undefined;
+          room.styleContext = undefined;
+          room.styleRevision += 1;
+        });
+      }
+    },
     setStyle: (target, value) => { change(target, (room) => {
       room.styleContext = value ? { ...value } : undefined;
       room.styleRevision += 1;
@@ -303,6 +387,10 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
     },
     completeRequest: (ticket, response, question) => { change(ticket, (room, record) => {
         if (!matches(room, ticket)) return false;
+        if (room.serverId && response.conversation) {
+          if (response.conversation.id !== room.serverId) return false;
+          room.serverVersion = Math.max(room.serverVersion, response.conversation.version);
+        }
         const { messageId } = ticket;
         const snapshot = room.snapshots.get(messageId)!;
         if (snapshot.automatic) room.bootstrap = 'ready';
@@ -374,6 +462,7 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
           styleRecipe: response.styleRecipe,
           styleCandidates: response.styleCandidates,
           styleStatus: response.styleStatus,
+          memoryProposal: response.memoryProposal,
           ...(response.knowledge ? { knowledge: response.knowledge } : {}),
           optionSearch: response.optionSearch,
         };

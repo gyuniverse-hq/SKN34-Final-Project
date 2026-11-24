@@ -57,7 +57,7 @@ export const CHAT_API_BASE_URL = resolveChatApiBaseUrl(process.env.EXPO_PUBLIC_C
 /** Sends a request to the backend (`path` starts with /api) with the Supabase access token. */
 async function apiRequest(
   path: string,
-  init: { method: 'GET' | 'POST' | 'DELETE'; headers?: Record<string, string>; body?: string },
+  init: { method: 'GET' | 'POST' | 'PATCH' | 'DELETE'; headers?: Record<string, string>; body?: string },
   options: { baseUrl?: string; timeoutMs?: number; fixedToken?: { value: string | null } } = {}
 ): Promise<Response> {
   const baseUrl = (options.baseUrl ?? API_BASE_URL).replace(/\/+$/, '');
@@ -258,6 +258,48 @@ export async function apiPostChat<T>(
   }
 }
 
-export async function apiDelete(path: string): Promise<void> {
-  await apiRequest(path, { method: 'DELETE' });
+export async function apiDelete(
+  path: string,
+  options: { expectedUserId?: string; expectedStatus?: number } = {},
+): Promise<void> {
+  const response = await apiRequest(path, { method: 'DELETE' }, {
+    fixedToken: await ownerToken(options.expectedUserId),
+  });
+  if (options.expectedStatus !== undefined && response.status !== options.expectedStatus) {
+    throw new ApiError('Unexpected deletion response', response.status);
+  }
+}
+
+/** Chat memory and conversation writes stay bound to the verified signed-in owner. */
+export async function apiChatUserRequest<T>(
+  path: string,
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+  expectedUserId: string,
+  body?: unknown,
+  headers?: Record<string, string>,
+): Promise<T> {
+  const client = getSupabase();
+  let changed = false;
+  const subscription = client?.auth.onAuthStateChange((_event, session) => {
+    if (session?.user.id !== expectedUserId) changed = true;
+  }).data.subscription;
+  try {
+    const credentials = await arCredentials();
+    if (changed || credentials.owner.kind !== 'user' || credentials.owner.id !== expectedUserId) {
+      throw new ApiError('Chat owner changed', 0, 'chat_owner_changed');
+    }
+    const response = await apiRequest(path, {
+      method,
+      headers: { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...headers },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    }, { baseUrl: CHAT_API_BASE_URL, fixedToken: { value: credentials.token } });
+    const data = response.status === 204 ? undefined : await response.json();
+    const latest = await arCredentials();
+    if (changed || latest.owner.kind !== 'user' || latest.owner.id !== expectedUserId) {
+      throw new ApiError('Chat owner changed', 0, 'chat_owner_changed');
+    }
+    return data as T;
+  } finally {
+    subscription?.unsubscribe();
+  }
 }

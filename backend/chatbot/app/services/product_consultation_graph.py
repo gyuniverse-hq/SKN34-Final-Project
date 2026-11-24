@@ -6,7 +6,7 @@ from langgraph.runtime import Runtime
 
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.schemas.supervisor import IntentDecision, ResolvedContext, TaskPlan
-from app.schemas.vishue_state import VishueState
+from app.schemas.vishue_state import DurableVishueState, VishueState
 
 
 @dataclass(frozen=True)
@@ -39,3 +39,39 @@ product_supervisor = (
     .add_edge("execute_turn", END)
     .compile()
 )
+
+
+@dataclass
+class DurableRuntime:
+    supervisor: SupervisorRuntime
+    decision: IntentDecision
+    plan: TaskPlan | None = None
+    response: ChatResponse | None = None
+
+
+def plan_durable(state: DurableVishueState, runtime: Runtime[DurableRuntime]) -> dict:
+    context = runtime.context
+    context.plan = context.supervisor.plan(context.supervisor.context, context.decision)
+    return {"execution_status": "planned"}
+
+
+async def execute_durable(state: DurableVishueState, runtime: Runtime[DurableRuntime]) -> dict:
+    context = runtime.context
+    if context.plan is None:
+        raise ValueError("Missing turn plan")
+    context.response = await context.supervisor.execute(
+        context.supervisor.request, context.decision, context.plan
+    )
+    return {"execution_status": "done"}
+
+
+def durable_supervisor(checkpointer):
+    return (
+        StateGraph(DurableVishueState, context_schema=DurableRuntime)
+        .add_node("plan_turn", plan_durable)
+        .add_node("execute_turn", execute_durable)
+        .add_edge(START, "plan_turn")
+        .add_edge("plan_turn", "execute_turn")
+        .add_edge("execute_turn", END)
+        .compile(checkpointer=checkpointer)
+    )

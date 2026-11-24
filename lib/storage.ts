@@ -13,5 +13,6 @@ export const STORAGE_KEYS = {
   guestSkinTrial: 'kb.guest-skin-trial.v1',
   skinTimings: 'kb.skin-timings.v1',
   chatAnonymousId: 'kb.chat-anonymous-id.v1',
+  accountDeletion: 'kb.account-deletion.v1',
   recentSearches: 'kb.recent-searches.v1',
 } as const;

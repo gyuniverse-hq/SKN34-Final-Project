@@ -9,7 +9,7 @@ const CHAT_TIMEOUT_MS = 90_000;
 export function useChat() {
   return useMutation({
     retry: false,
-    mutationFn: async ({ message, locale, category, chatContext, screenContext, styleContext, styleSearch, excludedStyle, previousStyleCandidates, previousStyleSelection, styleConditions, styleCompare, requestId, expectedUserId, generalMakeup, recentMessages, clarificationId }: {
+    mutationFn: async ({ message, locale, category, chatContext, screenContext, styleContext, styleSearch, excludedStyle, previousStyleCandidates, previousStyleSelection, styleConditions, styleCompare, requestId, expectedUserId, generalMakeup, recentMessages, clarificationId, conversationId, expectedConversationVersion }: {
       message: string; locale: ChatLocale; category?: 'product' | 'ingredient' | 'style';
       chatContext?: BeautyChatContext;
       screenContext?: ChatScreenContext;
@@ -25,12 +25,15 @@ export function useChat() {
       generalMakeup?: boolean;
       recentMessages?: RecentChatMessage[];
       clarificationId?: string;
+      conversationId?: string;
+      expectedConversationVersion?: number;
     }) =>
       apiPostChat<ChatResponse>(
         {
           ...(recentMessages?.length ? { recentMessages } : {}),
           ...(clarificationId ? { clarificationId } : {}),
           message, locale, requestId: requestId ?? uuid.v4(),
+          ...(conversationId ? { conversationId, expectedConversationVersion } : {}),
           ...(styleSearch ? { styleSearch: true } : {}),
           ...(excludedStyle ? { excludedStyle } : {}),
           ...(previousStyleCandidates?.length ? { previousStyleCandidates } : {}),

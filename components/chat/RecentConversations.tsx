@@ -9,17 +9,21 @@ import type { ConversationRecord } from '@/store/chatConversationStore';
 const labels = { general: 'chat.room.general', look: 'chat.room.look', product: 'chat.room.product' } as const;
 const icons = { general: 'chatbubble-outline', look: 'color-palette-outline', product: 'bag-outline' } as const;
 
-export function RecentConversations({ rooms, activeId, renderSubject, onClose, onNew, onSelect }: {
+export function RecentConversations({ rooms, activeId, renderSubject, onClose, onNew, onSelect, loading, error, hasMore, onMore }: {
   rooms: ConversationRecord[];
   activeId: string;
   renderSubject: (room: ConversationRecord) => ReactNode;
   onClose: () => void;
   onNew: () => void;
   onSelect: (id: string) => void;
+  loading?: boolean;
+  error?: boolean;
+  hasMore?: boolean;
+  onMore?: () => void;
 }) {
   const { t, language } = useI18n();
   const [openedAt] = useState(Date.now);
-  const recent = rooms.filter(({ messages }) => messages.some((item) => !item.automatic && item.role === 'user' ||
+  const recent = rooms.filter(({ conversation, messages }) => conversation.serverSummary || messages.some((item) => !item.automatic && item.role === 'user' ||
     item.role === 'assistant' && item.styleRecipe)).sort((a, b) => b.updatedAt - a.updatedAt);
   return <Modal animationType="slide" onRequestClose={onClose} presentationStyle="pageSheet">
     <SafeAreaView style={styles.panel} accessibilityViewIsModal>
@@ -34,7 +38,9 @@ export function RecentConversations({ rooms, activeId, renderSubject, onClose, o
           <Ionicons name="add" size={20} color={theme.colors.roseDark} />
           <Text style={styles.kind}>{t('chat.session.newConversation')}</Text>
         </Pressable>
-        {!recent.length ? <Text style={styles.secondary}>{t('chat.room.empty')}</Text> : null}
+        {loading ? <Text style={styles.secondary}>{t('chat.room.loading')}</Text> : null}
+        {error ? <Text accessibilityRole="alert" style={styles.secondary}>{t('chat.room.loadError')}</Text> : null}
+        {!recent.length && !loading && !error ? <Text style={styles.secondary}>{t('chat.room.empty')}</Text> : null}
         {recent.map((room) => {
           const { id, subject } = room.conversation;
           const last = room.messages.findLast((item) => item.role === 'user' && !item.automatic)
@@ -53,6 +59,9 @@ export function RecentConversations({ rooms, activeId, renderSubject, onClose, o
             </View>
           </Pressable>;
         })}
+        {hasMore && onMore ? <Pressable accessibilityRole="button" disabled={loading} onPress={onMore} style={styles.row}>
+          <Text style={styles.kind}>{t('chat.room.more')}</Text>
+        </Pressable> : null}
       </ScrollView>
     </SafeAreaView>
   </Modal>;

@@ -63,7 +63,14 @@ async def agree_terms(
     return await service.agree_terms(user, body.version)
 
 
-@router.delete("/me", status_code=204)
+@router.delete(
+    "/me",
+    status_code=204,
+    responses={
+        409: {"description": "Deletion in progress"},
+        503: {"description": "Deletion unavailable"},
+    },
+)
 async def delete_account(
     user: AuthUser = Depends(require_user),
     service: MemberService = Depends(get_member_service),

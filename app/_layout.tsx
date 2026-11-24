@@ -4,8 +4,11 @@ import { Stack } from 'expo-router';
 import Head from 'expo-router/head';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import { AccountDeletionProgress } from '@/components/account/AccountDeletionProgress';
 import { theme } from '@/constants/theme';
+import { AccountDeletionContext, useAccountDeletionController } from '@/hooks/useAccountDeletion';
 import { useTermsConsentGate } from '@/hooks/useTermsConsent';
 import { ApiError } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
@@ -48,14 +51,42 @@ export default function RootLayout() {
         <title>VISHUE</title>
       </Head>
       <StatusBar style="dark" />
-      <RootStack />
+      <AccountDeletionGate />
     </QueryClientProvider>
   );
 }
 
+function AccountDeletionGate() {
+  const deletion = useAccountDeletionController();
+  // Keep the initial web render consistent with the server's signed-out HTML.
+  const hydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
+  const waiting = hydrated && deletion.waiting;
+  if (deletion.progress) {
+    return <AccountDeletionProgress complete={deletion.progress === 'complete'}
+      busy={deletion.busy} issue={deletion.issue} signedIn={deletion.signedIn}
+      onCheck={() => { void deletion.check(); }} onLeave={() => { void deletion.leave(); }} />;
+  }
+  return <AccountDeletionContext.Provider value={deletion}>
+    {waiting && <View style={{ flex: 1, justifyContent: 'center', backgroundColor: theme.colors.surface }}>
+      <ActivityIndicator />
+    </View>}
+    {/* Preserve the initial route while the account's local receipt is loading. */}
+    <View style={{ flex: 1, display: waiting ? 'none' : 'flex' }}>
+      {!waiting && <TermsConsentGate />}
+      <RootStack />
+    </View>
+  </AccountDeletionContext.Provider>;
+}
+
+const subscribeToHydration = () => () => {};
+
+function TermsConsentGate() {
+  useTermsConsentGate();
+  return null;
+}
+
 function RootStack() {
   const { t } = useI18n();
-  useTermsConsentGate();
   return (
     <Stack
       screenOptions={{

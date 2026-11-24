@@ -652,6 +652,8 @@ export interface ChatOptionSearch {
 }
 
 export interface ChatResponse {
+  conversation?: { id: string; version: number; turnId: string; persistenceStatus: 'stored' };
+  memoryProposal?: ChatMemoryProposal | null;
   knowledge?: KnowledgeReply;
   optionSearch?: ChatOptionSearch;
   pendingClarification?: PendingClarification | null;
@@ -669,6 +671,23 @@ export interface ChatResponse {
   ingredientComparison?: ChatIngredientComparison;
   fragranceSearchSummary?: { checked: number; total: number; verifiedProductIds: string[] };
   sessionStatus?: 'stored' | 'unchanged' | 'unavailable';
+}
+
+export interface ChatMemoryProposal {
+  proposalId: string;
+  version: number;
+  kind: 'preference' | 'profile' | 'owned_product';
+  value: string;
+  consentScope: 'future_consultations';
+  expiresAt: string;
+}
+
+export interface ChatMemory {
+  id: string;
+  kind: 'preference' | 'profile' | 'owned_product';
+  value: string;
+  version: number;
+  consentScope: 'future_consultations';
 }
 
 export interface ChatStyleCandidate {

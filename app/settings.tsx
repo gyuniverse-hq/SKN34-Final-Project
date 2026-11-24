@@ -10,14 +10,12 @@ import { MenuSection } from '@/components/ui/MenuSection';
 import { ListRow } from '@/components/ui/ListRow';
 import { homeLayout, homeType } from '@/constants/homeLayout';
 import { theme } from '@/constants/theme';
-import { deleteAccount } from '@/lib/account';
-import { ApiError } from '@/lib/api';
-import { signOut, useAuth } from '@/lib/auth';
+import { useAccountDeletion } from '@/hooks/useAccountDeletion';
+import { useAuth } from '@/lib/auth';
 import { confirmAction, notify } from '@/lib/confirm';
 import { LANGUAGE_LABELS, LANGUAGES, useI18n, type LanguagePreference } from '@/lib/i18n';
 import { STORAGE_KEYS } from '@/lib/storage';
-import { pendingProfileKey } from '@/lib/skinRegistration';
-import { clearSkinTimings, skinProfileKey } from '@/lib/skinProfile';
+import { clearSkinTimings } from '@/lib/skinProfile';
 import { useSkinProfileStore } from '@/store/skinProfileStore';
 import { useCartStore } from '@/store/cartStore';
 import { useCompareStore } from '@/store/compareStore';
@@ -36,6 +34,7 @@ export default function SettingsScreen() {
   const cameraConsent = useSettingsStore((s) => s.cameraConsent);
   const setCameraConsent = useSettingsStore((s) => s.setCameraConsent);
   const { user } = useAuth();
+  const deletion = useAccountDeletion();
   const options: { value: LanguagePreference; label: string }[] = [
     { value: 'system', label: t('my.languageSystem') },
     ...LANGUAGES.map((l) => ({ value: l, label: LANGUAGE_LABELS[l] })),
@@ -57,20 +56,9 @@ export default function SettingsScreen() {
       notify(t('my.deleteDataDone'));
     });
 
-  const removeAccount = () =>
-    confirmAction(t('account.deleteConfirm'), t('account.delete'), t('common.cancel'), async () => {
-      try {
-        await deleteAccount();
-      } catch (e) {
-        const unavailable = e instanceof ApiError && e.code === 'account_deletion_unavailable';
-        notify(t(unavailable ? 'account.deleteUnavailable' : 'auth.error.generic'));
-        return;
-      }
-      if (user) await AsyncStorage.multiRemove([skinProfileKey(user.id), pendingProfileKey(user.id), `${STORAGE_KEYS.firstArInvitation}:${user.id}`]);
-      useSkinProfileStore.getState().reset();
-      await signOut().catch(() => {});
-      queryClient.removeQueries({ queryKey: ['me'] });
-      notify(t('account.deleteDone'));
+  const removeAccount = (owner: string) =>
+    confirmAction(t('account.deleteConfirm'), t('account.delete'), t('common.cancel'), () => {
+      void deletion.submit(owner);
     });
 
   return (
@@ -91,7 +79,16 @@ export default function SettingsScreen() {
         <MenuSection title={t('my.accountData')}>
           <ListRow icon="trash-outline" label={t('my.deleteData')} destructive onPress={deleteAll} />
           <Text style={styles.dataNote}>{t('my.dataNote')}</Text>
-          {user && <ListRow icon="person-remove-outline" label={t('account.delete')} destructive onPress={removeAccount} />}
+          {user && <>
+            <ListRow icon="person-remove-outline" label={t('account.delete')} destructive
+              value={deletion.busy ? t('account.deleteSubmitting') : undefined}
+              onPress={deletion.busy ? undefined : () => removeAccount(user.id)} />
+            {deletion.issue && (
+              <Text style={styles.dataNote} accessibilityLiveRegion="polite">
+                {t(deletion.issue === 'sessionEnded' ? 'account.deleteSessionEnded' : 'account.deleteUnavailable')}
+              </Text>
+            )}
+          </>}
         </MenuSection>
         <Text style={styles.version}>{t('my.version')} {Constants.expoConfig?.version ?? '—'}</Text>
       </ScrollView>

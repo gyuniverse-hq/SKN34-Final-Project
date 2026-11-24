@@ -853,6 +853,11 @@ async def interpret_beauty(
                         {
                             "message": req.message,
                             **(
+                                {"confirmedUserPreferences": req._consented_memories}
+                                if req._consented_memories
+                                else {}
+                            ),
+                            **(
                                 {"recentMessages": [m.model_dump() for m in req.recent_messages]}
                                 if req.recent_messages
                                 else {}

@@ -220,6 +220,15 @@ docker compose -f infra/compose/compose.yaml --env-file .env up --build
 - 앱(`npx expo start`)은 개발 중에 Metro를 띄운 PC의 `:8080`으로 자동 연결됩니다. 휴대폰 Expo Go도 같은 Wi-Fi라면 따로 설정할 필요가 없습니다(PC 방화벽에서 8080 허용 필요). 터널 모드(`--tunnel`)처럼 PC 주소로 닿지 않을 때는 `.env`의 `EXPO_PUBLIC_API_BASE_URL`에 백엔드 주소를 넣습니다.
 - LAN에 열리는 포트는 게이트웨이(8080) 하나뿐입니다. DB 관리 도구용 포트는 `127.0.0.1`에만, PC에 이미 설치된 PostgreSQL·Redis와 겹치지 않는 번호로 열립니다(PostgreSQL 15432, Redis 16379, Neo4j 17474·17687). 겹치면 `.env`에서 `GATEWAY_PORT`, `POSTGRES_HOST_PORT` 등으로 바꿉니다.
 - Expo 웹(`localhost:8081`)에서 부르는 경우를 위해 CORS가 기본으로 열려 있습니다(`CORS_ORIGINS`).
+- G7 로컬 저장소 준비는 명시적으로 다음 명령을 실행합니다. 기존 PostgreSQL 볼륨에도 별도 챗봇 역할·DB를 생성하며, 비밀번호를 포함한 연결 주소를 출력하거나 저장소에 커밋하지 않습니다. `CHAT_POSTGRES_USER`, `CHAT_POSTGRES_PASSWORD`, `CHAT_POSTGRES_DB`는 로컬 전용 설정이며 URL 특수문자를 쓰려면 연결 주소에서 인코딩해야 합니다.
+
+  ```bash
+  docker compose -f infra/compose/compose.yaml --env-file .env --profile g7 up --build chat-checkpoint-setup
+  ```
+
+  `chat-db-bootstrap` → `chat-migrate` → `chat-checkpoint-setup` 순서로 실행합니다. 이미 존재하는 역할의 비밀번호를 덮어쓰지 않으므로 기존 역할과 설정이 다르면 운영자가 확인해야 합니다. G7 API는 이 작업만으로 활성화되지 않습니다. 운영 DB 권한·비밀 관리·회원 탈퇴 공동 계약은 별도 승인 전까지 미확정입니다.
+- 챗봇의 `G7_OWNER_DELETION_GUARD_ENABLED`는 기본 `false`이며 `G7_PERSISTENCE_ENABLED`와 별도로 탈퇴 계정의 기존 상담·AR 확인 요청을 차단합니다. 영속 기능이 켜진 동안에는 차단 설정값과 관계없이 계정 상태를 검사합니다. G7을 사용한 환경에서는 영속 기능을 끄기 **전에** 차단 설정을 `true`로 적용하고, 남은 유효 JWT와 차단 표식에 관한 팀 정책이 확정될 때까지 유지합니다. 설정을 함께 끄거나 차단 코드가 없는 이전 버전으로 되돌리면 보호되지 않습니다.
+- 차단 검사는 현재 `local`/`test` 환경만 지원하며 `CHAT_DATABASE_URL`과 마이그레이션된 챗봇 DB가 필요합니다. DB 설정이 없거나 연결에 실패하면 로그인 상담과 AR 확인은 503으로 거부되고 게스트 요청은 영향을 받지 않습니다. 이 설정은 챗봇 프로세스의 환경 변수입니다. Compose·운영 배포에 전달하는 작업과 운영 활성화는 회원 탈퇴 공동 계약 및 인프라 확정 후 별도로 진행합니다.
 - 카탈로그 넣기: `backend/api/seed/catalog.json`을 채운 뒤 다음을 실행합니다.
 
   ```bash

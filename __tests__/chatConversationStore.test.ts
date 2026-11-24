@@ -45,6 +45,24 @@ test('clears all rooms, sessions and drafts on owner change and rejects stale up
   expect(store().open({ type: 'general' })).not.toBe(id);
 });
 
+test('memory changes invalidate local context and late responses in every owned room', () => {
+  const product = store().open({ type: 'product', productId: 'p1', shadeId: 's1' })!;
+  const look = store().open({ type: 'look', kind: 'video', lookId: 'look1' })!;
+  const a = store().conversations[product].conversation;
+  const b = store().conversations[look].conversation;
+  const first = store().beginRequest(a, request(a))!;
+  const second = store().beginRequest(b, request(b))!;
+  store().invalidateMemoryContext(a.ownerKey);
+  store().completeRequest(first, { answer: 'stale product reply', products: [] }, 'question');
+  store().completeRequest(second, { answer: 'stale look reply', products: [] }, 'question');
+  expect(store().conversations[product].conversation.entryProduct).toBeUndefined();
+  expect(store().conversations[look].conversation.styleContext).toBeUndefined();
+  expect(store().conversations[product].view.pending).toBe(false);
+  expect(store().conversations[look].view.pending).toBe(false);
+  expect(store().conversations[product].messages.some((message) => message.text === 'stale product reply')).toBe(false);
+  expect(store().conversations[look].messages.some((message) => message.text === 'stale look reply')).toBe(false);
+});
+
 test('a fresh app store has no saved chat or pending request to restore', () => {
   const id = store().open({ type: 'general' })!;
   const room = store().conversations[id].conversation;

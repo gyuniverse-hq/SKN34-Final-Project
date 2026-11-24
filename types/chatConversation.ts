@@ -9,6 +9,24 @@ export type ConversationEntry =
   | Extract<ConversationSubject, { type: 'general' | 'look' }>
   | (Extract<ConversationSubject, { type: 'product' }> & { shadeId?: string });
 
+export type ServerConversationSummary = {
+  conversationId: string;
+  conversationVersion: number;
+  subject: ConversationEntry;
+  updatedAt: string;
+};
+
+export type ServerConversationDetail = Omit<ServerConversationSummary, 'updatedAt'> & {
+  updatedAt?: string;
+  context: {
+    product?: { selectedProductId?: string | null; selectedShadeId?: string | null } | null;
+    style?: (ChatStyleContext & { conditions?: ChatStyleCondition[] }) | null;
+    styleConditions?: ChatStyleCondition[];
+  };
+  messages: { id: string; role: 'user' | 'assistant'; text: string; displayPayload?: Partial<ChatResponse> | null; createdAt: string }[];
+  nextMessageCursor?: number | null;
+};
+
 export type ChatCategory = 'product' | 'ingredient' | 'style';
 export type ChatMessage = {
   id: string;
@@ -39,6 +57,7 @@ export type ChatMessage = {
   styleRecipe?: ChatResponse['styleRecipe'];
   styleCandidates?: ChatResponse['styleCandidates'];
   styleStatus?: ChatResponse['styleStatus'];
+  memoryProposal?: ChatResponse['memoryProposal'];
 };
 
 export type ChatRequestSnapshot = {
@@ -66,6 +85,8 @@ export type ChatRequestSnapshot = {
   revision: number;
   generation: number;
   styleRevision: number;
+  statePatchId?: string;
+  serverBaseVersion?: number;
 };
 
 // The owner key includes the authentication epoch, even when the same user logs in again.
