@@ -168,12 +168,14 @@ def test_default_pairlogit_bundle_can_serve_the_experiment_arm(tmp_path, short_s
         env="local",
         ar_palette_mode="experiment",
         ar_palette_experiment="trial",
+        cart_recommendation_experiment="",
         ar_palette_model_dir=output,
         ar_palette_data_dir=tmp_path,
     )
     result = asyncio.run(ArPaletteService(repo, config).rank(owner, body))
     assert result.candidates[0].shade_id == "s"
     assert repo.save_rank.await_args.args[3:5] == ("ml", f"ar1:trial:B:s-{version}")
+    assert repo.save_rank.await_args.kwargs["cart_candidates"] is None
 
 
 def test_pairlogit_skips_when_training_labels_have_no_within_request_pairs(tmp_path):
@@ -246,6 +248,7 @@ def test_rank_persists_assigned_arm_and_fallback_with_the_exact_features(tmp_pat
     config = SimpleNamespace(
         ar_palette_mode="experiment",
         ar_palette_experiment="trial",
+        cart_recommendation_experiment="cart-trial",
         ar_palette_model_dir=None,
         ar_palette_data_dir=tmp_path,
     )
@@ -254,6 +257,7 @@ def test_rank_persists_assigned_arm_and_fallback_with_the_exact_features(tmp_pat
     snapshot = read_json(tmp_path / "snapshots" / f"{body.request_id}.json")
     features = snapshot["features"][str(result.candidates[0].candidate_id)]
     assert set(features) == set(FEATURES) and features["rating_avg"] == 4.5
+    assert repo.save_rank.await_args.kwargs["cart_candidates"] == []
     report = summarize_experiment(
         [
             {

@@ -144,3 +144,13 @@ def top_chips(rows, scores, personalized):
         families.add(first[1]["color_family"])
         remaining = [(row, score) for row, score in remaining if row[0][0] != first[0][0]]
     return selected
+
+
+def ranked_products(rows, scores, exclude):
+    """Highest-scoring shade per product, excluding the products already shown."""
+    seen = set(exclude)
+    for (key, _, _), _ in sorted(zip(rows, scores, strict=True), key=lambda row: -row[1]):
+        product_id, _ = key
+        if product_id not in seen:
+            seen.add(product_id)
+            yield key

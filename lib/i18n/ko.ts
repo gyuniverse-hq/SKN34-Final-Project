@@ -757,6 +757,9 @@ export const ko: Dictionary = {
   'cart.shopInStore': '매장용 쇼핑 리스트 만들기',
   'cart.clear': '장바구니 비우기',
   'cart.fromLook': '룩에서 담음',
+  'cart.recommendations': '함께 쓰기 좋은 상품',
+  'cart.recommendationAdd': '담기',
+  'cart.recommendationAdded': '담김',
 
   'checkout.title': '주문',
   'checkout.intro': '결제 전에 주문 상품을 확인해 주세요.',

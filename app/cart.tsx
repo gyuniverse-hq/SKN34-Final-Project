@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { CartRecommendationShelf } from '@/components/cart/CartRecommendationShelf';
 import { Button } from '@/components/ui/Button';
 import { Mascot } from '@/components/ui/Mascot';
 import { Notice } from '@/components/ui/Notice';
@@ -8,6 +9,8 @@ import { QuantityStepper } from '@/components/ui/QuantityStepper';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
 import { useCartLines } from '@/hooks/useCartLines';
+import { useCartRecommendations } from '@/hooks/useCartRecommendations';
+import { useVisibleCards } from '@/hooks/useRecommendationFeedback';
 import { confirmAction } from '@/lib/confirm';
 import { useAuth } from '@/lib/auth';
 import { formatKRW } from '@/lib/format';
@@ -20,6 +23,11 @@ export default function CartScreen() {
   const { t } = useI18n();
   const { user, ready } = useAuth();
   const { items, lines, unavailable, total, query } = useCartLines();
+  const catalogReady = ready && !query.isPending && !query.isError;
+  const recommendation = useCartRecommendations(user?.id, items, lines, catalogReady);
+  const { viewportRef, clipRef, setCard, refresh } = useVisibleCards(
+    recommendation.ids, recommendation.onImpression, catalogReady && lines.length > 0,
+  );
   const setQuantity = useCartStore((s) => s.setQuantity);
   const remove = useCartStore((s) => s.remove);
   const clear = useCartStore((s) => s.clear);
@@ -69,58 +77,71 @@ export default function CartScreen() {
 
   return (
     <View style={styles.screen}>
-      <FlatList
-        data={lines}
-        keyExtractor={(l) => l.key}
-        contentContainerStyle={styles.list}
-        ListHeaderComponent={changed}
-        renderItem={({ item: line }) => (
-          <View style={styles.row}>
-            <Pressable
-              onPress={() => router.push(productHref(line.product.id, line.shade?.id))}
-              accessibilityRole="button"
-              accessibilityLabel={`${line.product.brand} ${line.product.name}`}>
-              <ProductImage uri={line.product.imageUrl} category={line.product.category} style={styles.thumb} compact />
-            </Pressable>
-            <View style={styles.info}>
-              <Text style={styles.brand}>{line.product.brand}</Text>
-              <Text style={styles.name} numberOfLines={2}>
-                {line.product.name}
-              </Text>
-              {line.shade ? (
-                <View style={styles.shadeRow}>
-                  <View style={[styles.shadeDot, { backgroundColor: line.shade.hex }]} />
-                  <Text style={styles.shadeName}>{line.shade.name}</Text>
-                </View>
-              ) : null}
-              {line.item.addedFromLookId ? <Text style={styles.fromLook}>{t('cart.fromLook')}</Text> : null}
-              <View style={styles.bottomRow}>
-                <QuantityStepper
-                  value={line.item.quantity}
-                  max={MAX_QUANTITY}
-                  onChange={(q) => setQuantity(line.key, q)}
-                />
-                <Text style={styles.price}>{formatKRW(line.lineTotal)}</Text>
-              </View>
+      <View ref={viewportRef} collapsable={false} style={styles.listViewport}>
+        <FlatList
+          data={lines}
+          keyExtractor={(l) => l.key}
+          contentContainerStyle={styles.list}
+          ListHeaderComponent={changed}
+          onScroll={refresh}
+          scrollEventThrottle={100}
+          renderItem={({ item: line }) => (
+            <View style={styles.row}>
               <Pressable
                 onPress={() => router.push(productHref(line.product.id, line.shade?.id))}
-                accessibilityRole="link"
-                hitSlop={8}
-                style={styles.sellerLink}>
-                <Text style={styles.sellerText}>{t('cart.viewProduct')} ›</Text>
+                accessibilityRole="button"
+                accessibilityLabel={`${line.product.brand} ${line.product.name}`}>
+                <ProductImage uri={line.product.imageUrl} category={line.product.category} style={styles.thumb} compact />
               </Pressable>
+              <View style={styles.info}>
+                <Text style={styles.brand}>{line.product.brand}</Text>
+                <Text style={styles.name} numberOfLines={2}>
+                  {line.product.name}
+                </Text>
+                {line.shade ? (
+                  <View style={styles.shadeRow}>
+                    <View style={[styles.shadeDot, { backgroundColor: line.shade.hex }]} />
+                    <Text style={styles.shadeName}>{line.shade.name}</Text>
+                  </View>
+                ) : null}
+                {line.item.addedFromLookId ? <Text style={styles.fromLook}>{t('cart.fromLook')}</Text> : null}
+                <View style={styles.bottomRow}>
+                  <QuantityStepper
+                    value={line.item.quantity}
+                    max={MAX_QUANTITY}
+                    onChange={(q) => setQuantity(line.key, q)}
+                  />
+                  <Text style={styles.price}>{formatKRW(line.lineTotal)}</Text>
+                </View>
+                <Pressable
+                  onPress={() => router.push(productHref(line.product.id, line.shade?.id))}
+                  accessibilityRole="link"
+                  hitSlop={8}
+                  style={styles.sellerLink}>
+                  <Text style={styles.sellerText}>{t('cart.viewProduct')} ›</Text>
+                </Pressable>
+              </View>
             </View>
-          </View>
-        )}
-        ListFooterComponent={
-          <Button
-            label={t('cart.clear')}
-            variant="ghost"
-            compact
-            onPress={() => confirmAction(t('cart.clear'), t('common.delete'), t('common.cancel'), clear)}
-          />
-        }
-      />
+          )}
+          ListFooterComponent={
+            <View>
+              <CartRecommendationShelf cards={lines.length ? recommendation.cards : []} items={items}
+                clipRef={clipRef} setCard={setCard} onScroll={refresh}
+                onOpen={candidate => {
+                  recommendation.interact(candidate);
+                  router.push(productHref(candidate.productId, candidate.shadeId));
+                }}
+                onAdd={recommendation.add} />
+              <Button
+                label={t('cart.clear')}
+                variant="ghost"
+                compact
+                onPress={() => confirmAction(t('cart.clear'), t('common.delete'), t('common.cancel'), clear)}
+              />
+            </View>
+          }
+        />
+      </View>
       <View style={styles.footer}>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>{t('cart.subtotal')}</Text>
@@ -131,7 +152,9 @@ export default function CartScreen() {
           label={t('cart.checkout')}
           icon="card-outline"
           disabled={!ready || lines.length === 0}
-          onPress={() => router.push(user ? '/checkout' : loginHref('checkout'))}
+          onPress={() => router.push(!user ? loginHref('checkout') : recommendation.cartVisitId
+            ? { pathname: '/checkout', params: { cartVisitId: recommendation.cartVisitId } }
+            : '/checkout')}
         />
       </View>
     </View>
@@ -140,6 +163,7 @@ export default function CartScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.surface },
+  listViewport: { flex: 1 },
   list: { padding: theme.spacing.lg, gap: 12 },
   changed: { gap: 8, marginBottom: 4 },
   changedRow: {

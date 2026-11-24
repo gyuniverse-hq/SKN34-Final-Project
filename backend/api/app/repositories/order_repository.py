@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
 from app.models.ar_personalization import ArActivityEventRow
+from app.models.cart_recommendation import CartRecommendationVisitRow
 from app.models.member import MemberRow
 from app.models.order import OrderLineRow, OrderRow
 from app.models.recommendation_feedback import (
@@ -16,6 +17,7 @@ from app.models.recommendation_feedback import (
     SkincareRecommendationEventRow,
     UserBehaviorEventRow,
 )
+from app.repositories.cart_recommendation_repository import CART_EVENT_SCHEMA, CART_SURFACE
 from app.schemas.recommendation_feedback import SKINCARE_HISTORY_CONTRACT
 
 AR_CHECKOUT_SURFACE = "ar_checkout"
@@ -34,7 +36,16 @@ class OrderRepository:
         ar_cart_events: list[list[UUID]],
         ar_terms: str | None,
         skincare_cart_events: list[list[UUID]],
+        cart_visit_id: UUID | None = None,
+        cart_recommendation_events: list[list[UUID]] | None = None,
     ) -> None:
+        if cart_visit_id and ar_terms:
+            await self._attach_cart_recommendation_sources(
+                order,
+                cart_visit_id,
+                cart_recommendation_events or [],
+                ar_terms,
+            )
         self._session.add(order)
         if ar_terms and any(ar_cart_events):
             await self._session.flush()
@@ -47,6 +58,44 @@ class OrderRepository:
     async def get(self, order_id: str, *, lock: bool = False) -> OrderRow | None:
         query = select(OrderRow).where(OrderRow.id == order_id)
         return await self._session.scalar(query.with_for_update() if lock else query)
+
+    async def _attach_cart_recommendation_sources(self, order, visit_id, cart_events, terms):
+        visit = CartRecommendationVisitRow
+        owner_visit = await self._session.scalar(
+            select(visit.id)
+            .join(MemberRow, MemberRow.id == visit.member_id)
+            .where(
+                visit.id == visit_id,
+                visit.member_id == order.user_id,
+                MemberRow.terms_version == terms,
+            )
+            .with_for_update(read=True, key_share=True)
+        )
+        if owner_visit is None:
+            return
+        order.cart_visit_id = owner_visit
+        ids = {key for keys in cart_events for key in keys}
+        if not ids:
+            return
+        event = UserBehaviorEventRow
+        sources = await self._session.execute(
+            select(event.event_id, event.product_id, event.option_id).where(
+                event.event_id.in_(ids),
+                event.member_id == order.user_id,
+                event.session_id == owner_visit,
+                event.event_type == "cart_add",
+                event.event_source == "client",
+                event.surface == CART_SURFACE,
+                event.event_schema_version == CART_EVENT_SCHEMA,
+            )
+        )
+        by_id = {key: (product, option) for key, product, option in sources}
+        for line, keys in zip(order.lines, cart_events, strict=True):
+            for key in keys:
+                if by_id.get(key) == (line.product_id, line.shade_id):
+                    line.cart_recommendation_event_id = key
+                    del by_id[key]
+                    break
 
     async def _attach_ar_checkout_sources(self, order, cart_events, terms):
         ids = {event_id for candidates in cart_events for event_id in candidates}
@@ -171,6 +220,7 @@ class OrderRepository:
     ) -> None:
         order.status = "paid"
         order.payment_key = payment_key
+        order.paid_at = datetime.now(UTC)
         if ar_terms:
             await self._record_ar_purchases(order, ar_terms)
         if skincare_feedback:

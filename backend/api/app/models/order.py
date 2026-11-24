@@ -1,4 +1,7 @@
-from sqlalchemy import ForeignKey, Integer, String
+from datetime import datetime
+from uuid import UUID
+
+from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
@@ -14,6 +17,13 @@ class OrderRow(Base):
     status: Mapped[str] = mapped_column(String(20), index=True, default="pending")
     checkout_token_hash: Mapped[str] = mapped_column(String(64))
     payment_key: Mapped[str | None] = mapped_column(String(200), unique=True)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cart_visit_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey(
+            "cart_recommendation_visits.id", name="fk_orders_cart_visit", ondelete="SET NULL"
+        ),
+        index=True,
+    )
     lines: Mapped[list["OrderLineRow"]] = relationship(cascade="all, delete-orphan")
 
 
@@ -26,3 +36,12 @@ class OrderLineRow(Base):
     shade_id: Mapped[str | None] = mapped_column(String(64))
     quantity: Mapped[int] = mapped_column(Integer)
     unit_price_krw: Mapped[int] = mapped_column(Integer)
+    cart_recommendation_event_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey(
+            "user_behavior_events.event_id",
+            name="fk_order_lines_cart_recommendation_event",
+            ondelete="SET NULL",
+            use_alter=True,
+        ),
+        index=True,
+    )

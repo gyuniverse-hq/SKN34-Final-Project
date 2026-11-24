@@ -16,6 +16,10 @@ from app.models.ar_personalization import (
     ArRecommendationImpressionRow,
     ArRecommendationRequestRow,
 )
+from app.models.cart_recommendation import (
+    CartRecommendationImpressionRow,
+    CartRecommendationVisitRow,
+)
 from app.models.catalog import LookItemRow, LookRow, ProductRow, ShadeRow, StoreRow
 from app.models.cosing import (
     CosingFunctionRow,
@@ -111,6 +115,8 @@ __all__ = [
     "ArRecommendationCandidateRow",
     "ArRecommendationImpressionRow",
     "ArRecommendationRequestRow",
+    "CartRecommendationImpressionRow",
+    "CartRecommendationVisitRow",
     "CosingFunctionRow",
     "CosingIngredientLookupRow",
     "FunctionConcernRow",

@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/auth';
 import { apiGet, apiPost } from '@/lib/api';
 import { arCartEventIds } from '@/lib/arHistory';
 import { cartEventIds, waitForCartEvents } from '@/lib/cartAttribution';
+import { clearCartArRanks } from '@/lib/cartRecommendations';
 import { formatKRW } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { loginHref } from '@/lib/routes';
@@ -22,6 +23,9 @@ type PaymentNotice = 'paid' | 'failed' | 'closed' | 'pending' | 'checkFailed' | 
 
 export default function CheckoutScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ cartVisitId?: string }>();
+  const cartVisitId = typeof params.cartVisitId === 'string' &&
+    /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(params.cartVisitId) ? params.cartVisitId : undefined;
   const { t } = useI18n();
   const { user, ready } = useAuth();
   const { lines, total, query } = useCartLines();
@@ -44,6 +48,7 @@ export default function CheckoutScreen() {
       const result = await apiGet<OrderStatusResponse>(`/api/payments/orders/${encodeURIComponent(payment.orderId)}`);
       if (result.orderId === payment.orderId && result.status === 'paid') {
         completePayment(payment.orderId);
+        clearCartArRanks(payment.userId);
         setCheckoutSession(null);
         setNotice('paid');
       } else {
@@ -75,18 +80,24 @@ export default function CheckoutScreen() {
       const orderLines = lines.map((line) => {
         const arEvents = arCartEventIds(line.item, user.id);
         const skincareEvents = cartEventIds(line.item, 'skincareCartSources', user.id);
+        const cartRecommendationEvents = cartVisitId ? cartEventIds(line.item, 'cartRecommendationSources', user.id) : [];
         return {
           productId: line.product.id,
           shadeId: line.shade?.id,
           quantity: line.item.quantity,
           ...(arEvents.length ? { arCartEventIds: arEvents } : {}),
           ...(skincareEvents.length ? { skincareCartEventIds: skincareEvents } : {}),
+          ...(cartRecommendationEvents.length ? { cartRecommendationEventIds: cartRecommendationEvents } : {}),
         };
       });
-      await waitForCartEvents(orderLines.flatMap(line => [
-        ...(line.arCartEventIds ?? []), ...(line.skincareCartEventIds ?? []),
-      ]));
-      const order = await apiPost<CreateOrderResponse>('/api/payments/orders', { lines: orderLines }, { expectedUserId: user.id });
+      const pendingWrites = orderLines.flatMap(line => [
+        ...(line.arCartEventIds ?? []), ...(line.skincareCartEventIds ?? []), ...(line.cartRecommendationEventIds ?? []),
+      ]);
+      if (cartVisitId) pendingWrites.push(cartVisitId);
+      await waitForCartEvents(pendingWrites);
+      const order = await apiPost<CreateOrderResponse>('/api/payments/orders', {
+        lines: orderLines, ...(cartVisitId ? { cartVisitId } : {}),
+      }, { expectedUserId: user.id });
       const payment: PendingPayment = { orderId: order.orderId, userId: user.id, items: lines.map((line) => ({ ...line.item })) };
       setPending(payment);
       setCheckoutSession({ orderId: order.orderId, url: order.checkoutUrl });

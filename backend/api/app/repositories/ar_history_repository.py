@@ -49,6 +49,16 @@ class ArHistoryRepository:
             for r in rows
         ]
 
+    async def owned_server_rank(self, owner, zone, request_id):
+        return await self.db.scalar(
+            select(Request).where(
+                Request.request_id == request_id,
+                Request.member_id == owner,
+                Request.makeup_zone == zone,
+                Request.policy_version.startswith("ar1:"),
+            )
+        )
+
     async def ranking_inputs(self, owner, zone, at):
         ratings = await self.db.execute(
             text("""
@@ -95,7 +105,9 @@ class ArHistoryRepository:
             [((p, s), d, float(w)) for p, s, d, w in history],
         )
 
-    async def save_rank(self, body, owner, at, strategy, policy, candidates):
+    async def save_rank(
+        self, body, owner, at, strategy, policy, candidates, *, cart_candidates=None
+    ):
         self.db.add(
             Request(
                 request_id=body.request_id,
@@ -105,6 +117,7 @@ class ArHistoryRepository:
                 created_at=at,
                 strategy=strategy,
                 policy_version=policy,
+                cart_candidates=cart_candidates,
             )
         )
         await self.db.flush()

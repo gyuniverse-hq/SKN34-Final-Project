@@ -36,6 +36,8 @@ class OrderStore(Protocol):
         ar_cart_events: list[list[UUID]],
         ar_terms: str | None,
         skincare_cart_events: list[list[UUID]],
+        cart_visit_id: UUID | None = None,
+        cart_recommendation_events: list[list[UUID]] | None = None,
     ) -> None: ...
     async def get(self, order_id: str, *, lock: bool = False) -> OrderRow | None: ...
     async def mark_paid(
@@ -95,6 +97,18 @@ class PaymentService:
             if len(lines) > 1
             else lines[0].product_id
         )
+        cart_feedback = (
+            {
+                "cart_visit_id": body.cart_visit_id,
+                "cart_recommendation_events": [
+                    line.cart_recommendation_event_ids[: line.quantity] for line in body.lines
+                ],
+            }
+            if body.cart_visit_id
+            and self._settings.cart_recommendation_experiment
+            and user_id in self._settings.ar_activity_enrolled_members
+            else {}
+        )
         await self._orders.create(
             OrderRow(
                 id=order_id,
@@ -113,6 +127,7 @@ class PaymentService:
             ]
             if self._skincare_feedback(user_id)
             else [],
+            **cart_feedback,
         )
         base = self._settings.payment_web_base_url.rstrip("/")
         return CreateOrderResponse(
