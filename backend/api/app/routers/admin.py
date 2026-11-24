@@ -12,6 +12,9 @@ from app.schemas.admin import (
     LipEvalProduct,
     LipEvalProductList,
     LipTriadEvalResponse,
+    OpsChatbot,
+    OpsRecommendations,
+    OpsSystem,
     OrderResponse,
     Page,
     ProductResponse,
@@ -20,6 +23,7 @@ from app.schemas.admin import (
     StatusChange,
 )
 from app.services.admin_auth_service import admin_user, staff_user
+from app.services.admin_ops_service import AdminOpsService, get_admin_ops_service
 from app.services.admin_service import AdminService, get_admin_service
 from app.services.lip_eval_panel_service import LipEvalPanelService, get_lip_eval_panel_service
 from app.services.lip_triad_eval_service import LipTriadEvalService, get_lip_triad_eval_service
@@ -189,3 +193,27 @@ async def lip_eval_image(
 ):
     data, mime = await service.read_image(product_id, rater_id, kind)
     return Response(content=data, media_type=mime)
+
+
+@router.get("/ops/recommendations", response_model=OpsRecommendations)
+async def ops_recommendations(
+    user=Depends(staff_user),
+    service: AdminOpsService = Depends(get_admin_ops_service),
+):
+    return await service.recommendations()
+
+
+@router.get("/ops/chatbot", response_model=OpsChatbot)
+async def ops_chatbot(
+    user=Depends(staff_user),
+    service: AdminOpsService = Depends(get_admin_ops_service),
+):
+    return await service.chatbot()
+
+
+@router.get("/ops/system", response_model=OpsSystem)
+async def ops_system(
+    user=Depends(staff_user),
+    service: AdminOpsService = Depends(get_admin_ops_service),
+):
+    return await service.system()

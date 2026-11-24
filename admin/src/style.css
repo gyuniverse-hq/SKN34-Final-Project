@@ -428,6 +428,36 @@ pre {
   color: #a32b42;
   margin-top: 10px;
 }
+.ops-dl {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0 0;
+}
+.ops-dl > div {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 8px;
+  font-size: 13px;
+}
+.ops-dl dt {
+  margin: 0;
+  color: #746b6e;
+  font-weight: 600;
+}
+.ops-dl dd {
+  margin: 0;
+  word-break: break-all;
+}
+.ops-pre {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  background: #f7f4f5;
+  border: 1px solid #eee8ea;
+  border-radius: 6px;
+  font-size: 11px;
+  overflow: auto;
+  max-height: 240px;
+}
 .panel.lip-eval-panel {
   margin: 12px 0 16px;
   padding: 12px 14px;
