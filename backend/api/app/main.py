@@ -13,6 +13,7 @@ from app.core.observability import RequestContextMiddleware, configure_logging
 from app.routers import (
     admin,
     ar_history,
+    cart_recommendations,
     catalog,
     celebrity_videos,
     health,
@@ -70,6 +71,7 @@ def create_app() -> FastAPI:
     for module in (
         admin,
         ar_history,
+        cart_recommendations,
         health,
         catalog,
         idol_looks,

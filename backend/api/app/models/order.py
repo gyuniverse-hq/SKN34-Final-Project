@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from uuid import UUID
 
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -21,6 +22,12 @@ class OrderRow(Base):
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cart_visit_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey(
+            "cart_recommendation_visits.id", name="fk_orders_cart_visit", ondelete="SET NULL"
+        ),
+        index=True,
+    )
     lines: Mapped[list["OrderLineRow"]] = relationship(cascade="all, delete-orphan")
 
 
@@ -40,3 +47,12 @@ class OrderLineRow(Base):
     quantity: Mapped[int] = mapped_column(Integer)
     unit_price_krw: Mapped[int] = mapped_column(Integer)
     stock_debited: Mapped[int | None] = mapped_column(Integer)
+    cart_recommendation_event_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey(
+            "user_behavior_events.event_id",
+            name="fk_order_lines_cart_recommendation_event",
+            ondelete="SET NULL",
+            use_alter=True,
+        ),
+        index=True,
+    )

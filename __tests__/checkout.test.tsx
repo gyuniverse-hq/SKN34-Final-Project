@@ -8,7 +8,11 @@ import { useCartStore } from '@/store/cartStore';
 
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('@/components/ui/StateViews', () => ({ EmptyState: 'EmptyState', LoadingState: 'LoadingState' }));
-jest.mock('expo-router', () => ({ useRouter: () => ({ replace: jest.fn() }) }));
+const mockSearchParams: { cartVisitId?: string } = {};
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ replace: jest.fn() }),
+  useLocalSearchParams: () => mockSearchParams,
+}));
 jest.mock('expo-web-browser', () => ({ openAuthSessionAsync: jest.fn() }));
 jest.mock('@/lib/auth', () => ({ useAuth: () => ({ user: { id: 'user-1' }, ready: true }) }));
 jest.mock('@/lib/api', () => ({ apiGet: jest.fn(), apiPost: jest.fn() }));
@@ -32,6 +36,7 @@ let mounted: renderer.ReactTestRenderer | undefined;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  delete mockSearchParams.cartVisitId;
   useCartStore.setState({ items: [{ productId: 'p', shadeId: 's', quantity: 1 }], pendingPayment: null });
   post.mockResolvedValue({ orderId: 'order-1', checkoutUrl: 'https://example.com/pay', amount: 1000 });
 });
@@ -85,6 +90,20 @@ it('keeps the cart and pending order when the payment window closes', async () =
   await act(async () => { await check!.props.onPress(); });
   expect(useCartStore.getState().items).toHaveLength(0);
   expect(JSON.stringify(screen.toJSON())).toContain('checkout.paid');
+});
+
+it.each([false, true])('links checkout to a cart visit with recommendation sources: %s', async (hasSource) => {
+  mockSearchParams.cartVisitId = '088d42bd-bc31-4677-92a8-6d7fda10f175';
+  if (hasSource) useCartStore.setState({ items: [{ productId: 'p', shadeId: 's', quantity: 2,
+    cartRecommendationSources: [{ ownerId: 'user-1', eventId: 'cart-event' }, { ownerId: 'user-2', eventId: 'other-event' }] }] });
+  browser.mockResolvedValue({ type: 'cancel' as WebBrowser.WebBrowserResultType.CANCEL });
+  get.mockResolvedValue({ orderId: 'order-1', status: 'pending' });
+  await start();
+  expect(post).toHaveBeenCalledWith('/api/payments/orders', {
+    cartVisitId: mockSearchParams.cartVisitId,
+    lines: [{ productId: 'p', shadeId: 's', quantity: hasSource ? 2 : 1,
+      ...(hasSource ? { cartRecommendationEventIds: ['cart-event'] } : {}) }],
+  }, { expectedUserId: 'user-1' });
 });
 
 it('does not treat an unverified success redirect as payment', async () => {

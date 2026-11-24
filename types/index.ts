@@ -455,6 +455,23 @@ export interface CartItem {
   addedFromLookId?: string;
   arCartSources?: (CartEventSource | null)[];
   skincareCartSources?: (CartEventSource | null)[];
+  cartRecommendationSources?: (CartEventSource | null)[];
+}
+
+export interface CartRecommendationCandidate {
+  candidateId: string;
+  productId: string;
+  shadeId: string;
+  makeupZone: 'lip' | 'blush';
+  position: number;
+  originalRank: number;
+  policyVersion: string;
+  arRequestId?: string | null;
+}
+
+export interface CartRecommendations {
+  cartVisitId: string;
+  candidates: CartRecommendationCandidate[];
 }
 
 export interface ShoppingListLine {

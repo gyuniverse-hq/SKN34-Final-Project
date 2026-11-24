@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     ar_palette_model_dir: Path | None = None
     ar_palette_baseline_model_dir: Path | None = None
     ar_palette_experiment: str = Field(default="", pattern=r"^([a-z0-9-]{1,16})?$")
+    cart_recommendation_experiment: str = Field(default="", pattern=r"^([a-z0-9-]{1,16})?$")
     # External APIs. Unset keys disable the matching feature instead of failing requests.
     naver_client_id: str | None = None
     naver_client_secret: str | None = None

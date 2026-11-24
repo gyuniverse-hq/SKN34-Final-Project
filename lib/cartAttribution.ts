@@ -1,6 +1,6 @@
 import type { CartItem } from '@/types';
 
-export const CART_SOURCE_FIELDS = ['arCartSources', 'skincareCartSources'] as const;
+export const CART_SOURCE_FIELDS = ['arCartSources', 'skincareCartSources', 'cartRecommendationSources'] as const;
 type CartSourceField = typeof CART_SOURCE_FIELDS[number];
 const pendingEvents = new Map<string, Promise<unknown>>();
 

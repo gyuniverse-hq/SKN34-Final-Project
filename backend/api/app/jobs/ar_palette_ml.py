@@ -6,6 +6,7 @@ import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from app.core.ar_palette_artifacts import CLASSIFIER, RANKER
 from app.services.ar_palette_search import SEARCH_METHODS
 from app.services.ar_palette_training_service import (
     experiment_report,
@@ -43,12 +44,20 @@ def main():
     train.add_argument("--output", required=True, type=Path)
     train.add_argument("--baseline", type=Path)
     train.add_argument("--code-revision")
-    train.add_argument("--min-hit", type=float)
-    train.add_argument("--min-lift", type=float)
+    train.add_argument(
+        "--model-type",
+        choices=(RANKER, CLASSIFIER),
+        default=RANKER,
+        help="Train a PairLogit ranker by default, or a classifier for comparison",
+    )
+    thresholds = train.add_mutually_exclusive_group()
+    thresholds.add_argument("--min-ndcg", type=float, help="Minimum offline NDCG@3")
+    thresholds.add_argument("--min-hit", type=float, help="Minimum offline Hit@1")
+    train.add_argument("--min-lift", type=float, help="Minimum offline improvement over baseline")
     train.add_argument(
         "--search-method",
         choices=("compare", *SEARCH_METHODS),
-        help="Compare search methods by default, or reuse the baseline bundle's selected method",
+        help="Random by default for the ranker. Classifier uses its baseline method or compare.",
     )
     experiment = commands.add_parser("experiment", help="Compare session metrics by assigned arm")
     experiment.add_argument("--output", required=True, type=Path)
@@ -67,7 +76,7 @@ def main():
     if args.command == "synthetic":
         report = synthetic_dataset(args.output)
     elif args.command == "train":
-        for value in (args.min_hit, args.min_lift):
+        for value in (args.min_hit, args.min_ndcg, args.min_lift):
             if value is not None and not 0 <= value <= 1:
                 parser.error("Offline thresholds must be within [0, 1]")
         report = train_dataset(
@@ -75,9 +84,11 @@ def main():
             args.output,
             baseline=args.baseline,
             min_hit=args.min_hit,
+            min_ndcg=args.min_ndcg,
             min_lift=args.min_lift,
             code_revision=args.code_revision,
             search_method=args.search_method,
+            model_type=args.model_type,
         )
     else:
         if args.window_hours <= 0 or args.grace_hours < 0:

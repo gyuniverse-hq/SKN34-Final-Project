@@ -86,6 +86,20 @@ docker compose -f infra/compose/compose.yaml -f infra/compose/compose.ingredient
 
 승인 CSV는 API 컨테이너에서 읽기 전용으로 연결되며 `INGREDIENT_ALIAS_APPROVALS_PATH`가 자동으로 지정된다. 승인 CSV를 교체한 후에는 같은 설정으로 `up -d --force-recreate api`를 실행한다. 이 설정을 추가하지 않으면 분리 동의어는 미승인으로 처리된다.
 
+## 장바구니 추천 실험
+
+API에 `CART_RECOMMENDATION_EXPERIMENT` 값을 지정하면 실험이 시작된다. Docker Compose는 루트 `.env`에서 값을 읽고, Docker 없이 실행할 때는 `backend/api/.env`에서 값을 읽는다. 실험 ID는 16자 이하의 영문 소문자, 숫자, 하이픈으로 지정한다. 빈 값이 기본값이다. 참여자는 AR 추천 대상 목록과 활동 수집 동의 목록에 모두 있고 최신 약관에 동의한 회원이다.
+
+같은 실험에서 회원의 A/B 배정은 고정되며 AR 실험 배정과 독립적이다. A는 기존 장바구니를, B는 최대 5개의 추천 상품을 표시한다. AR 서버 순위 요청의 후순위 후보는 PostgreSQL에 저장되어 API 복제본끼리 공유한다. B는 같은 회원과 부위의 후보를 이어 쓰거나 현재 AR 점수 방식으로 새 순위를 매긴다. 추천 카드의 직접 담기에서 시작된 구매는 결제 승인 후에 귀속한다.
+
+`backend/api`에서 아래처럼 실험 기간, 집계 기준 시각, 구매 관측 시간을 지정한다. 관측 시간이 지난 A/B 방문 전체가 분모다. 방문 당시 장바구니에 없던 상품을 결제한 방문의 비율이 주지표이고, 상품 종류에 관계없이 결제된 방문의 비율도 함께 집계한다. 카드가 노출된 방문과 추천에서 직접 담아 구매한 방문은 별도 수치로 확인할 수 있다.
+
+```bash
+uv run python -m app.jobs.cart_recommendation_report --id cart-v1 \
+  --start 2026-11-01T00:00:00+09:00 --end 2026-11-08T00:00:00+09:00 \
+  --as-of 2026-11-09T00:00:00+09:00 --purchase-window-hours 24
+```
+
 ## 1. 팀 공용 dev 서버 (Render)
 
 팀원은 Docker 없이 이 서버에 붙어서 개발합니다. 모두 무료 플랜입니다.
