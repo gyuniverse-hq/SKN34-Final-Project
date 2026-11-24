@@ -245320,6 +245320,35 @@
       ],
       "imageUrl": "https://img.hwahae.co.kr/products/1938874/1938874_20220801000000.jpg?format=webp&size=600x600&fit=inside",
       "searchKeyword": "세포라컬렉션 글리드 라이너 워터프루프 [05 화이트 스노우]"
+    },
+    {
+      "id": "oy-a000000250109",
+      "brand": "이지듀",
+      "name": "[ 저자극커버] 이지듀 EGFx 다운타임 BB 35ml",
+      "nameKo": "[ 저자극커버] 이지듀 EGFx 다운타임 BB 35ml",
+      "category": "base",
+      "makeupZone": null,
+      "texture": "cream",
+      "priceKRW": 19900,
+      "volume": "35ml",
+      "shades": [
+        {
+          "id": "A000000250109-001",
+          "name": "A000000250109-001",
+          "hex": "#ECCEB6",
+          "measureMethod": "estimated",
+          "colorSource": "color_compare",
+          "colorConfidence": 0.771
+        }
+      ],
+      "description": "",
+      "keyIngredients": [],
+      "tags": [
+        "oliveyoung",
+        "BB/CC"
+      ],
+      "imageUrl": "https://image.oliveyoung.co.kr/cfimages/cf-goods/uploads/images/thumbnails/10/0000/0025/A00000025010903ko.png",
+      "searchKeyword": "[ 저자극커버] 이지듀 EGFx 다운타임 BB 35ml"
     }
   ],
   "looks": [],
