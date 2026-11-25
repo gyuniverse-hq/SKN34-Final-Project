@@ -1,0 +1,364 @@
+{
+  "date": "2026-11-25",
+  "scope": {
+    "products": 11,
+    "price": 7,
+    "volume": 7,
+    "estimate_tag_removed": 11
+  },
+  "held": {
+    "historical_reference_only": 3,
+    "unresolved": 5
+  },
+  "price_definition": "Reference prices from direct domestic product listings; historical stale labels removed without repricing. Actual offers and availability not asserted.",
+  "changes_sha256": "6daa2ca955e0a486a7b7be5bb0ff81d6404e63824744be36330d04ec7a5c1c8d",
+  "changes": [
+    {
+      "id": "yt-60f582126782f6f5d78c",
+      "brand": "샤넬",
+      "name": "립 앤 치크 밤 [3호 바이탈 베이지]",
+      "old": {
+        "priceKRW": 14000,
+        "volume": "4g",
+        "tags": [
+          "youtube",
+          "립메이크업",
+          "price_estimated"
+        ]
+      },
+      "new": {
+        "priceKRW": 66000,
+        "volume": "6.5g",
+        "tags": [
+          "youtube",
+          "립메이크업"
+        ]
+      },
+      "evidence": {
+        "sources": [
+          "https://www.chanel.com/kr/makeup/p/145382/n1-de-chanel-lip-and-cheek-balm-enhances-colour-nourishes-plumps/"
+        ],
+        "basis": "Korean manufacturer product page, reference 145382, explicitly selected shade 3, product page size and non-discount price.",
+        "observed_at": "2026-11-25"
+      }
+    },
+    {
+      "id": "yt-e4287791a880b36a2164",
+      "brand": "시세이도",
+      "name": "리바이탈에센스 스킨 글로우 파운데이션 160",
+      "old": {
+        "priceKRW": 25000,
+        "volume": "15g / 30ml",
+        "tags": [
+          "youtube",
+          "페이스 메이크업",
+          "price_estimated"
+        ]
+      },
+      "new": {
+        "priceKRW": 85000,
+        "volume": "30ml",
+        "tags": [
+          "youtube",
+          "페이스 메이크업"
+        ]
+      },
+      "evidence": {
+        "sources": [
+          "https://m.ssg.com/item/itemView.ssg?itemId=1000557521448&itemSsgCollectYn=N&salestrNo=1004&siteNo=6009",
+          "https://www.shiseido.co.kr/ko/shiseido-%EB%A6%AC%EB%B0%94%EC%9D%B4%ED%83%88%EC%97%90%EC%84%BC%EC%8A%A4-%EC%8A%A4%ED%82%A8-%EA%B8%80%EB%A1%9C%EC%9A%B0-%ED%8C%8C%EC%9A%B4%EB%8D%B0%EC%9D%B4%EC%85%98-1011934230SHI.html"
+        ],
+        "basis": "Authorized Korean Shiseido warehouse item, shade 160 option and 30ml, non-discount reference price 85000. Shade 160 was marked out of stock; no availability claim.",
+        "observed_at": "2026-11-25"
+      }
+    },
+    {
+      "id": "yt-b7824e8f14a857a76ca3",
+      "brand": "시세이도",
+      "name": "리바이탈에센스 루스 세팅 파우더",
+      "old": {
+        "priceKRW": 25000,
+        "volume": "15g / 30ml",
+        "tags": [
+          "youtube",
+          "페이스 메이크업",
+          "price_estimated"
+        ]
+      },
+      "new": {
+        "priceKRW": 63000,
+        "volume": "7g",
+        "tags": [
+          "youtube",
+          "페이스 메이크업"
+        ]
+      },
+      "evidence": {
+        "sources": [
+          "https://www.galleria.co.kr/goods/initDetailGoods.action?goods_no=2512891620",
+          "https://m.gsshop.com/prd/prd.gs?ispre=Y&kwd=1727&mseq=421966&prdid=1102955573&rank=15"
+        ],
+        "basis": "Same named Korean department-store product with release and pre-discount price 63000 and shade choices; separate department-store product detail declares 7g. No shade specified in current serving name.",
+        "observed_at": "2026-11-25"
+      }
+    },
+    {
+      "id": "yt-3a5c28fc67c98942602e",
+      "brand": "메이크업포에버",
+      "name": "HD 스킨 파우더 파운데이션 1R02",
+      "old": {
+        "priceKRW": 25000,
+        "volume": "15g / 30ml",
+        "tags": [
+          "youtube",
+          "페이스 메이크업",
+          "price_estimated"
+        ]
+      },
+      "new": {
+        "priceKRW": 77000,
+        "volume": "11g",
+        "tags": [
+          "youtube",
+          "페이스 메이크업"
+        ]
+      },
+      "evidence": {
+        "sources": [
+          "https://www.ssg.com/item/itemView.ssg?itemId=1000527936383&itemSsgCollectYn=N&salestrNo=1004&siteNo=6009",
+          "https://www.makeupforever.com/kr/ko/face/%ED%8C%8C%EC%9A%B4%EB%8D%B0%EC%9D%B4%EC%85%98/hd-skin-%ED%8C%8C%EC%9A%B0%EB%8D%94-%ED%8C%8C%EC%9A%B4%EB%8D%B0%EC%9D%B4%EC%85%98-MI000064100.html"
+        ],
+        "basis": "Brand-operated department-store listing with shade 1R02, 11g and pre-discount 77000; manufacturer confirms the shade and product family.",
+        "observed_at": "2026-11-25"
+      }
+    },
+    {
+      "id": "yt-315104c02f2ecc26678c",
+      "brand": "나스",
+      "name": "리플렉팅 프리즈마틱 파우더 인터스텔라",
+      "old": {
+        "priceKRW": 25000,
+        "volume": "15g / 30ml",
+        "tags": [
+          "youtube",
+          "페이스 메이크업",
+          "price_estimated"
+        ]
+      },
+      "new": {
+        "priceKRW": 67000,
+        "volume": "15g / 30ml",
+        "tags": [
+          "youtube",
+          "페이스 메이크업"
+        ]
+      },
+      "evidence": {
+        "sources": [
+          "https://www.galleria.co.kr/goods/initDetailGoods.action?goods_no=2405688513",
+          "https://www.lotteon.com/p/product/LE1216979876"
+        ],
+        "basis": "Two Korean department-store product listings match Interstellar exactly and list 67000 before discounts. Preserve existing volume until an exact volume source is confirmed.",
+        "observed_at": "2026-11-25"
+      }
+    },
+    {
+      "id": "yt-66730e66c1c5f9bbf69d",
+      "brand": "메이크업포에버",
+      "name": "아쿠아 레지스트 그래픽 펜 _블랙Aqua Resist Graphic Pen _Black",
+      "old": {
+        "priceKRW": 15000,
+        "volume": "1g / 8g",
+        "tags": [
+          "youtube",
+          "아이메이크업",
+          "price_estimated"
+        ]
+      },
+      "new": {
+        "priceKRW": 40000,
+        "volume": "0.52ml",
+        "tags": [
+          "youtube",
+          "아이메이크업"
+        ]
+      },
+      "evidence": {
+        "sources": [
+          "https://department.ssg.com/item/itemView.ssg?itemId=1000337477948&salestrNo=1004&siteNo=6009",
+          "https://department.ssg.com/disp/category.ssg?dispCtgId=6000258606",
+          "https://m.gsshop.com/prd/prd.gs?bnclick=main-r70_rbst70_LowestCateBestItems&iid=8s73cBR0Xy9gd&mseq=421819-95&prdid=1011150648&rank=95&sectSeq=1719608",
+          "https://www.ssgdfs.com/kr/goos/view/MAKE%20UP%20FOR%20EVER/beauty/makeup/106338000048"
+        ],
+        "basis": "Brand-operated Korean department-store pre-discount price, separate department-store listing expressly names Intense Black and 0.52ml. Seed image uses manufacturer SKU I000027201 and 0.52ML, same as Shinsegae duty-free reference I000027201. Do not use converted duty-free price.",
+        "observed_at": "2026-11-25"
+      }
+    },
+    {
+      "id": "yt-c56a6cdc6db2d1a36251",
+      "brand": "디올",
+      "name": "backstage face & body foundation 0N - 0 neutral",
+      "old": {
+        "priceKRW": 25000,
+        "volume": "15g / 30ml",
+        "tags": [
+          "youtube",
+          "페이스 메이크업",
+          "price_estimated"
+        ]
+      },
+      "new": {
+        "priceKRW": 63000,
+        "volume": "50ml",
+        "tags": [
+          "youtube",
+          "페이스 메이크업"
+        ]
+      },
+      "evidence": {
+        "sources": [
+          "https://www.ssg.com/item/itemView.ssg?itemId=1000027801431",
+          "https://www.hwahae.co.kr/products/1807631",
+          "https://www.glowpick.com/products/108653"
+        ],
+        "basis": "Exact legacy 50ml product, seller DIOR, model C002800000, shade 0N in product disclosure, listed price 63000. Department-store listing is out of stock, and Glowpick marks legacy product discontinued; record as reference price, not purchasable offer or renewal.",
+        "observed_at": "2026-11-25"
+      }
+    },
+    {
+      "id": "yt-8704cf225262cdbffb55",
+      "brand": "르브쌍",
+      "name": "아이섀도우 001 아이보리",
+      "old": {
+        "priceKRW": 6500,
+        "volume": "1g / 8g",
+        "tags": [
+          "youtube",
+          "아이메이크업",
+          "price_estimated"
+        ]
+      },
+      "new": {
+        "priceKRW": 6500,
+        "volume": "3.1g",
+        "tags": [
+          "youtube",
+          "아이메이크업"
+        ]
+      },
+      "evidence": {
+        "sources": [
+          "https://www.revecen.kr/goods/goods_view.php?goodsNo=1000000049"
+        ],
+        "basis": "Official exact product 1000000049: selling price 6500, list price 7000. Preserve the sourced current selling value; not estimated.",
+        "observed_at": "2026-11-25",
+        "volume_basis": "User confirmed 3.1g on 2026-11-25; user-supplied verification, external source not asserted."
+      }
+    },
+    {
+      "id": "yt-0e0625804030568450dc",
+      "brand": "하킷",
+      "name": "플로리드 레이어 블러셔 07 블렌딩",
+      "old": {
+        "priceKRW": 22000,
+        "volume": "4g",
+        "tags": [
+          "youtube",
+          "블러셔",
+          "price_estimated"
+        ]
+      },
+      "new": {
+        "priceKRW": 22000,
+        "volume": "4g",
+        "tags": [
+          "youtube",
+          "블러셔"
+        ]
+      },
+      "evidence": {
+        "sources": [
+          "https://www.glowpick.com/products/164136"
+        ],
+        "basis": "Previously user-reviewed price correction recorded on 2026-11-13. Preserve price; remove stale estimate label.",
+        "historical_review": {
+          "evidence_url": "https://www.glowpick.com/products/164136",
+          "note": "https://www.glowpick.com/products/164136 해당 페이지에 url이랑 후보랑 가격 다 있음. 재수집해야할듯 아니면 걍 내가 지금 알려준 정보 그대로 써. 가격은 22000원.",
+          "decision_interpretation": "manual_link_in_note",
+          "existing_price_krw": "15000",
+          "price_to_correct": "22000"
+        }
+      }
+    },
+    {
+      "id": "yt-9e1c0f4eddfee75f9404",
+      "brand": "샤넬",
+      "name": "루즈 알뤼르 벨벳 71 럽터리스트",
+      "old": {
+        "priceKRW": 55000,
+        "volume": "4g",
+        "tags": [
+          "youtube",
+          "립메이크업",
+          "price_estimated"
+        ]
+      },
+      "new": {
+        "priceKRW": 55000,
+        "volume": "4g",
+        "tags": [
+          "youtube",
+          "립메이크업"
+        ]
+      },
+      "evidence": {
+        "sources": [
+          "https://www.hwahae.co.kr/products/2023056"
+        ],
+        "basis": "Previously user-reviewed price correction recorded on 2026-11-13. Preserve price; remove stale estimate label.",
+        "historical_review": {
+          "evidence_url": "https://www.hwahae.co.kr/products/2023056",
+          "note": "55,000원",
+          "decision_interpretation": "reviewed_same",
+          "existing_price_krw": "14000",
+          "price_to_correct": "55000"
+        }
+      }
+    },
+    {
+      "id": "yt-4b4eed79f266f329e675",
+      "brand": "나스",
+      "name": "블러쉬 [섹스판타지]",
+      "old": {
+        "priceKRW": 51000,
+        "volume": "4g",
+        "tags": [
+          "youtube",
+          "블러셔",
+          "price_estimated"
+        ]
+      },
+      "new": {
+        "priceKRW": 51000,
+        "volume": "4g",
+        "tags": [
+          "youtube",
+          "블러셔"
+        ]
+      },
+      "evidence": {
+        "sources": [
+          "https://www.glowpick.com/products/1756"
+        ],
+        "basis": "Previously user-reviewed price correction recorded on 2026-11-13. Preserve price; remove stale estimate label.",
+        "historical_review": {
+          "evidence_url": "https://www.glowpick.com/products/1756",
+          "note": "https://www.glowpick.com/products/1756 해당 페이지에 url이랑 후보랑 가격 다 있음. 재수집해야할듯 아니면 걍 내가 지금 알려준 정보 그대로 써. 가격은 51000원.",
+          "decision_interpretation": "reviewed_same",
+          "existing_price_krw": "15000",
+          "price_to_correct": "51000"
+        }
+      }
+    }
+  ]
+}
