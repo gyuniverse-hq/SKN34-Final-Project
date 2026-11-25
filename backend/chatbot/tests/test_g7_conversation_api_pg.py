@@ -1406,8 +1406,10 @@ def test_n01_condition_provenance_survives_pg_followups(api, monkeypatch, record
                 plan["removeKnowledgeIngredients"] = ["글리세린"]
             if turn >= 4:
                 plan["goal"]["goals"] = ["sensitivity"]
-            if turn == 5:
+            if turn in {5, 7}:
                 plan["knowledgeAction"] = "clear"
+            if turn == 6:
+                plan["knowledgeAction"] = "reevaluate"
             f["arguments"] = json.dumps(plan)
             return response, ms
 
@@ -1425,9 +1427,11 @@ def test_n01_condition_provenance_survives_pg_followups(api, monkeypatch, record
         [
             skin_case.QUESTION,
             "예산만 1만5천 원으로 바꿔 줘.",
-            "글리세린 포함 조건은 해제해 줘.",
+            "글리세린 포함 조건은 삭제해 줘.",
             "모공 대신 민감함 목표로 제품을 추천해 줘.",
             "지식에서 제안한 조건은 모두 해제해 줘.",
+            "지식 조건을 다시 적용해 줘. 제품도 추천해 줘.",
+            "지식 조건을 삭제해 줘.",
         ],
         1,
     ):
@@ -1448,7 +1452,15 @@ def test_n01_condition_provenance_survives_pg_followups(api, monkeypatch, record
         detail = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
         state = detail["context"]["compound"]
         assert state["goal"]["excludedIngredients"] == ["향료"]
-        expected = {1: ["글리세린"], 2: ["글리세린"], 3: [], 4: ["판테놀"], 5: []}[version]
+        expected = {
+            1: ["글리세린"],
+            2: ["글리세린"],
+            3: [],
+            4: ["판테놀"],
+            5: [],
+            6: ["판테놀"],
+            7: [],
+        }[version]
         assert [c["ingredientName"] for c in state["knowledgeSearch"]["conditions"]] == expected
         assert state["knowledgeSearch"]["source"] == "knowledge"
         calls = downstream.calls[before:]
@@ -1476,5 +1488,5 @@ def test_n01_condition_provenance_survives_pg_followups(api, monkeypatch, record
                 "replayAdditionalCalls": 0,
             }
         )
-    assert consult.await_count == extractor.calls == 2
+    assert consult.await_count == extractor.calls == 3
     record_property("n01_followup_turns", observations)

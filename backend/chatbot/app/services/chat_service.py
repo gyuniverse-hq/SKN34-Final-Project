@@ -374,7 +374,10 @@ def route_intent(context: ResolvedContext) -> IntentDecision:
     shopping = _SHOPPING.search(text)
     execution = re.search(r"발라|적용해|설정해|조절해|apply|set .*intensity|塗って|涂上", text)
     intent = "general"
-    if shopping and execution:
+    if shopping and execution and not (
+        get_settings().g8_enabled
+        and compound_graph.is_search_condition_change(context.message)
+    ):
         intent = "compound"
     elif context.request_type == "ar_command":
         intent = "ar"
@@ -801,6 +804,10 @@ class ChatService:
         active_previous = previous if choice.action == "refine" else None
 
         async def execute(_req, _decision, _plan):
+            if choice.action == "clarify":
+                return ChatResponse(
+                    answer=choice.question, products=[], result_type="clarification"
+                )
             return await compound_graph.run_compound(
                 choice.goal,
                 choice.question,

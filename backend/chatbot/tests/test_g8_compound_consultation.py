@@ -740,6 +740,7 @@ async def test_knowledge_conditions_survive_budget_release_and_goal_change(
     assert api.calls[-1][1]["ingredientConditions"] == [
         {"ingredientName": "향료", "operator": "excludes"}
     ]
+
     assert previous.knowledge_search.removed_ingredients == ["글리세린"]
     # Goal changes request fresh knowledge even for a product-only turn.
     reply = resolved_ingredient_reply(monkeypatch, "판테놀")
@@ -771,3 +772,163 @@ async def test_knowledge_conditions_survive_budget_release_and_goal_change(
     assert api.calls[-1][1]["ingredientConditions"] == [
         {"ingredientName": "향료", "operator": "excludes"}
     ]
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("verb", ["해제해", "삭제해", "재적용해", "다시 적용해"])
+async def test_condition_verbs_through_chat_service(
+    monkeypatch, connections, verb, record_property
+):
+    from app.services.conversation_context import read_context, updated_context
+
+    api, skincare, catalog = connections
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    reply = resolved_ingredient_reply(monkeypatch)
+    consult = AsyncMock(return_value=Consultation(reply=reply, trace={}))
+    monkeypatch.setattr(specialists, "consult_knowledge", consult)
+    extractor = IngredientExtractor()
+    first = await graph.run_compound(GOAL, CARE_QUESTION, skincare, catalog, llm=extractor)
+    previous = read_context(updated_context({}, first)).compound
+
+    class ChangePlanner(Planner):
+        async def complete_with_tools(self, messages, tools, *, required_tool=None):
+            if required_tool == "extract_knowledge_search_conditions":
+                return await extractor.complete_with_tools(
+                    messages, tools, required_tool=required_tool
+                )
+            response, ms = await super().complete_with_tools(
+                messages, tools, required_tool=required_tool
+            )
+            f = response["choices"][0]["message"]["tool_calls"][0]["function"]
+            plan = json.loads(f["arguments"])
+            plan.update(
+                action="refine",
+                knowledgeAction="clear" if verb in {"해제해", "삭제해"} else "reevaluate",
+            )
+            plan["goal"]["wantsKnowledge"] = False
+            f["arguments"] = json.dumps(plan)
+            return response, ms
+
+    req = ChatRequest(message=f"지식 성분 조건을 {verb} 줘. 제품도 추천해 줘.", locale="ko")
+    req._compound_context = previous
+    answer = await ChatService(None, ChangePlanner(), catalog, skincare=skincare).answer(req)
+    assert answer.compound is not None
+    expected = [{"ingredientName": "향료", "operator": "excludes"}]
+    if verb not in {"해제해", "삭제해"}:
+        expected.append({"ingredientName": "글리세린", "operator": "includes"})
+    assert api.calls[-1][1]["ingredientConditions"] == expected
+    assert consult.await_count == (1 if verb in {"해제해", "삭제해"} else 2)
+    record_property(
+        "condition_entry",
+        {
+            "utterance": req.message,
+            "optionRequest": api.calls[-1][1],
+            "outcomes": [o.outcome for o in answer.compound.options],
+            "modelConfiguredMode": "mock",
+            "actualRemoteModelCalls": 0,
+        },
+    )
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "검색 조건을 삭제해. 기억도 삭제해",
+        "추천 조건을 적용해. 립도 발라줘",
+        "기억에서 성분 조건을 삭제해",
+        "AR 조건을 적용해",
+        "제품 추천하고 얼굴에 적용해",
+    ],
+)
+def test_condition_change_does_not_bypass_execution_guard(monkeypatch, message):
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    assert not graph.is_search_condition_change(message)
+    assert not graph.may_plan(ChatRequest(message=message, locale="ko"), previous=True)
+
+
+def test_condition_routing_preserves_g8_disabled_contract(monkeypatch):
+    from app.services.chat_service import resolve_context, route_intent
+
+    req = ChatRequest(message="검색 조건을 다시 적용해 줘. 제품도 추천해 줘.", locale="ko")
+    monkeypatch.setattr(get_settings(), "g8_enabled", False)
+    assert route_intent(resolve_context(req)).intent == "compound"
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    assert route_intent(resolve_context(req)).intent != "compound"
+
+
+@pytest.mark.anyio
+async def test_original_n01_requests_situation_before_inventing_goal(
+    monkeypatch, connections, record_property
+):
+    api, skincare, catalog = connections
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", True)
+    original = "오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘"
+
+    class ClarifyingPlanner(Planner):
+        async def complete_with_tools(self, messages, tools, *, required_tool=None):
+            response, ms = await super().complete_with_tools(
+                messages, tools, required_tool=required_tool
+            )
+            f = response["choices"][0]["message"]["tool_calls"][0]["function"]
+            f["arguments"] = json.dumps(
+                {
+                    "action": "clarify",
+                    "question": (
+                        "당김·각질이 있나요, 유분 때문에 뭉치나요? "
+                        "사용 중인 기초와 베이스도 알려주세요."
+                    ),
+                }
+            )
+            return response, ms
+
+    result = await ChatService(None, ClarifyingPlanner(), catalog, skincare=skincare).answer(
+        ChatRequest(message=original, locale="ko")
+    )
+    assert result.result_type == "clarification" and result.products == []
+    assert result.compound is None and api.calls == []
+    assert "당김" in result.answer and "유분" in result.answer
+    followup = ChatRequest(
+        message="각질과 당김이 있어. 로션과 쿠션을 써. 예산은 2만 원이고 향료는 제외해 줘.",
+        locale="ko",
+        recentMessages=[
+            {"id": "u1", "role": "user", "text": original},
+            {"id": "a1", "role": "assistant", "text": result.answer},
+        ],
+    )
+    assert graph.may_plan(followup)
+    consult = install_knowledge(monkeypatch)
+
+    class ContextPlanner(Planner):
+        async def complete_with_tools(self, messages, tools, *, required_tool=None):
+            response, ms = await super().complete_with_tools(
+                messages, tools, required_tool=required_tool
+            )
+            if required_tool == "plan_skin_consultation":
+                data = json.loads(messages[-1]["content"])
+                assert data["recentMessages"][0]["text"] == original
+                assert data["utterance"] == followup.message
+                f = response["choices"][0]["message"]["tool_calls"][0]["function"]
+                plan = json.loads(f["arguments"])
+                plan["goal"].update(goals=["dryness"])
+                plan["question"] = original + " / " + followup.message
+                f["arguments"] = json.dumps(plan)
+            return response, ms
+
+    answer = await ChatService(None, ContextPlanner(), catalog, skincare=skincare).answer(followup)
+    consult.assert_awaited_once_with(original + " / " + followup.message)
+    assert answer.compound.goal.goals == ["dryness"]
+    assert answer.compound.options[8].outcome == "eligible"
+    record_property(
+        "original_n01",
+        {
+            "input": original,
+            "clarification": result.answer,
+            "followup": followup.message,
+            "knowledgeInput": consult.call_args.args[0],
+            "answer": answer.answer,
+            "toolRequests": api.calls,
+            "modelConfiguredMode": "mock",
+            "actualRemoteModelCalls": 0,
+        },
+    )

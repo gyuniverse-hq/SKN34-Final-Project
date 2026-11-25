@@ -33,7 +33,7 @@ from app.services.beauty_consultation_service import _explicit_krw_budget, _requ
 
 
 class Interpretation(CompoundModel):
-    action: Literal["start", "refine", "other"]
+    action: Literal["start", "refine", "clarify", "other"]
     goal: CompoundGoal | None = None
     question: str = Field(default="", max_length=1000)
     knowledge_action: Literal["keep", "clear", "reevaluate"] = "keep"
@@ -43,7 +43,12 @@ class Interpretation(CompoundModel):
 _PLAN_TOOL = "plan_skin_consultation"
 _PLAN_PROMPT = """한국어 피부 관리 상담의 요청을 분류하는 계획기다. 제공된 함수로만 응답한다.
 처음에는 피부 관리 설명과 실제 제품 추천을 함께 요청하고 7개 관리 목표 중 하나 이상이 명시된
-경우에만 start. 제품만/설명만/스타일/화장 원인 일반론/기억/AR/다른 행동은 other.
+경우에만 start. 제품만/설명만/스타일/기억/AR/다른 행동은 other.
+화장이 뜨는 원인 설명과 제품 탐색처럼 목표를 아직 특정할 수 없는 복합 요청은 clarify.
+화장 뜸을 건조함으로 단정하지 않는다. question에 당김·각질인지 유분·뭉침인지,
+사용 중인 기초·베이스와 발생 상황을 묻는 짧은 질문을 담고 goal은 비운다.
+recentMessages의 상황 확인에 답한 경우 원래 설명·상품 요청을 유지한다.
+사용자가 확인한 목표로 start하고 question에 원래 상황과 확인된 정보를 함께 담는다.
 기존 목표가 있고 사용자가 목표, 설명만 요청, 제품 재요청, 예산,
 제외 성분 또는 조회 범위를 조정하면 refine.
 goal에는 현재 적용할 완전한 목표와 조건을 채운다. 현재 발화의 변경과 취소가 우선한다.
@@ -64,6 +69,20 @@ _SHOP = re.compile(r"제품|상품|추천|찾아|골라|살\s*만|구매|살\s*�
 _ACTION = re.compile(
     r"기억해|저장해|삭제해|적용해|발라줘|발라\s*줘|장바구니|AR\s*(?:해|켜|적용)", re.I
 )
+_CONDITION_CHANGE = re.compile(
+    r"(?:검색\s*조건|성분\s*조건|지식\s*조건|제외\s*조건|추천\s*조건|조건)"
+    r"(?:을|를|은|는|만)?\s*(?:(?:전체|모두|다시|전부)\s*)*"
+    r"(?:해제|삭제|재적용|적용)\s*(?:해\s*줘|해줘|해|해주세요|해\s*주세요)?"
+)
+
+
+def is_search_condition_change(message):
+    """Only exempt a condition-targeted verb; mixed state-changing requests stay guarded."""
+    return bool(
+        _CONDITION_CHANGE.search(message)
+        and not re.search(r"기억|저장|장바구니|\bAR\b|가상\s*메이크업", message, re.I)
+        and not _ACTION.search(_CONDITION_CHANGE.sub("", message))
+    )
 
 
 def may_plan(req, *, previous=False):
@@ -77,9 +96,16 @@ def may_plan(req, *, previous=False):
             or req.style_search
             or req.screen_context
             or req.clarification_id
-            or _ACTION.search(req.message)
+            or (_ACTION.search(req.message) and not is_search_condition_change(req.message))
         )
-        and (previous or (_SHOP.search(req.message) and _ADVICE.search(req.message)))
+        and (
+            previous
+            or (_SHOP.search(req.message) and _ADVICE.search(req.message))
+            or any(
+                turn.role == "user" and _SHOP.search(turn.text) and _ADVICE.search(turn.text)
+                for turn in req.recent_messages
+            )
+        )
     )
 
 
@@ -96,6 +122,7 @@ async def interpret(req, llm, previous: CompoundContext | None):
             "content": json.dumps(
                 {
                     "utterance": req.message,
+                    "recentMessages": [turn.model_dump() for turn in req.recent_messages],
                     "previousGoal": previous.goal.model_dump(by_alias=True) if previous else None,
                     "previousKnowledgeConditions": [
                         {"ingredientName": p.ingredient_name, "operator": p.operator}
@@ -124,6 +151,10 @@ async def interpret(req, llm, previous: CompoundContext | None):
         plan = Interpretation.model_validate_json(call["function"]["arguments"])
         if plan.action == "other" or (plan.action == "refine" and previous is None):
             return None
+        if plan.action == "clarify":
+            if plan.goal is not None or not plan.question.strip():
+                raise ValueError("Clarification needs a question without inferred goals")
+            return plan
         if not plan.goal:
             raise ValueError("Missing goal")
         budget = _explicit_krw_budget(req.message)
