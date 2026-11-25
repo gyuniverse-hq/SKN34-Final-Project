@@ -65,7 +65,7 @@ from app.services.consultation_memory import (
     has_catalog_color_preference,
     inventory_mode,
     prompt_memories,
-    skincare_memory_request,
+    skincare_recommendation_request,
 )
 from app.services.g1_catalog_tool import G1CatalogTool
 from app.services.g1_model_service import (
@@ -689,7 +689,10 @@ class ChatService:
                     and req.screen_context is None
                     and _SHOPPING.search(req.message)
                     and (
-                        (self._skincare is not None and skincare_memory_request(req) is not None)
+                        (
+                            self._skincare is not None
+                            and skincare_recommendation_request(req) is not None
+                        )
                         or has_catalog_color_preference(req)
                     )
                 )

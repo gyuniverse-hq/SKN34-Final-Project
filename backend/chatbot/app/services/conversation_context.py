@@ -330,6 +330,9 @@ def display_payload(response: ChatResponse) -> dict:
     result = _sanitize({key: value for key, value in payload.items() if key in _DISPLAY_FIELDS})
     for item in result.get("ingredientResults", []):
         item.setdefault("shadeId", None)
+    # Catalog products require the texture field even when the value is unknown.
+    for product in result.get("optionSearch", {}).get("products", []):
+        product.setdefault("texture", None)
     if response.chat_context and any(item.shade_id for item in response.ingredient_results or []):
         result["resultContext"] = {
             "issuedAt": response.chat_context.issued_at,

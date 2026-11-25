@@ -30,6 +30,7 @@ from app.services.memory_registry import (
 # Keep the current consultation cap until the search and context budget trials.
 CONSULTATION_MEMORY_LIMIT = 20
 
+_SKIN_TIGHTNESS = r"(?:피부|얼굴)(?:가|이|은|도)?\s*당[기길겨김긴]"
 _TOPICS = {
     "lip": re.compile(r"립|입술|틴트|\b(?:lip|lips|lipstick|tint)\b|リップ|唇"),
     "cheek": re.compile(r"치크|블러셔|볼터치|\b(?:cheek|blush)\b|チーク|腮红"),
@@ -38,7 +39,8 @@ _TOPICS = {
         r"아이섀|눈\s*화장|아이라인|\b(?:eye shadow|eyeshadow|eyeliner)\b|アイメイク|眼妆"
     ),
     "skin": re.compile(
-        r"피부|건성|지성|복합성|스킨케어|보습제|유분\s*(?:관리|조절)|"
+        rf"피부|건성|지성|복합성|스킨케어|보습\s*(?:제|크림)|{_SKIN_TIGHTNESS}|"
+        r"유분\s*(?:관리|조절)|"
         r"\b(?:skin|skincare|moisturi[sz]er|oil[- ]control)\b|肌|肤|保湿|皮脂|控油"
     ),
     "color": re.compile(r"색|컬러|\b(?:colou?r|shade|coral|pink)\b|色|珊瑚"),
@@ -74,6 +76,10 @@ _EXPLICIT_SKIN_TYPE = re.compile(
     r"\bskin(?:\s+type)?\s*(?:is\s+|:\s*)(?:dry|oily|combination|balanced|normal)\b|"
     r"乾燥肌|脂性肌|混合肌|普通肌|干[性皮]|油[性皮]|混合[性皮]|中[性皮]"
 )
+_KO_CURRENT_SKIN_TYPE = re.compile(
+    r"(?:피부\s*(?:타입)?\s*[가는은이]|(?:저|나)는)\s*(건성|지성)"
+    r"(?:이에요|예요|이야|입니다|이구요|이고|이라서|이라|이거든요|임|(?=[.!?,。！？]|$))"
+)
 _EXPLICIT_SHADE = re.compile(
     r"#(?:[0-9a-f]{6}|[0-9a-f]{3})\b|\d+\s*(?:호|号|番)|웜톤|쿨톤|\b(?:warm|cool)\b"
 )
@@ -89,7 +95,10 @@ _OTHER_PERSON = re.compile(
     r"友達|友人|母|父|プレゼント|朋友|妈妈|爸爸|送给"
 )
 _SKINCARE_GOALS = {
-    "dryness": re.compile(r"보습|수분\s*공급|\b(?:hydrat\w*|moisturi[sz]\w*)\b|保湿"),
+    "dryness": re.compile(
+        rf"보습|수분\s*공급|{_SKIN_TIGHTNESS}|"
+        r"\b(?:hydrat\w*|moisturi[sz]\w*)\b|保湿"
+    ),
     "oiliness": re.compile(r"(?:유분|피지)\s*(?:조절|관리)|번들거림|\boil[- ]control\b|皮脂|控油"),
 }
 _SKINCARE_GOAL_OPTOUT = re.compile(
@@ -252,15 +261,12 @@ def verified_inventory_matches(
     return matches, len(matches) != len(entries)
 
 
-def skincare_memory_request(
+def skincare_recommendation_request(
     request: ChatRequest,
-) -> tuple[ConsultationMemory, SkincareToolInput] | None:
+) -> tuple[ConsultationMemory | None, SkincareToolInput] | None:
     text = normalize(request.message)
     if (
-        not request._consultation_memories
-        or ignores_memory(text)
-        or _EXPLICIT_RANK.search(text)
-        or _EXPLICIT_SKIN_TYPE.search(text)
+        _EXPLICIT_RANK.search(text)
         or _OTHER_PERSON.search(text)
         or _SKINCARE_GOAL_OPTOUT.search(text)
         or _RECOMMENDATION_OPTOUT.search(text)
@@ -268,6 +274,16 @@ def skincare_memory_request(
         return None
     goals = [goal for goal, pattern in _SKINCARE_GOALS.items() if pattern.search(text)]
     if not goals:
+        return None
+    explicit = set(_EXPLICIT_SKIN_TYPE.findall(text))
+    if explicit:
+        current = _KO_CURRENT_SKIN_TYPE.search(text) if request._server_history else None
+        if current and explicit == {current[1]}:
+            return None, SkincareToolInput(
+                goals=goals, skin_type="dry" if current[1] == "건성" else "oily"
+            )
+        return None
+    if not request._consultation_memories or ignores_memory(text):
         return None
     matches = [
         (entry, entry.structured.value["type"])

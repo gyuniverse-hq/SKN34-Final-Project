@@ -820,6 +820,7 @@ class SkincareHttpFixture:
         for name, price in (("profile-match", 15000), ("over-budget", 25000), ("fragrance", 10000)):
             item = product(name, price, category="skincare")
             item.shades = []
+            item.texture = None
             self.products[name] = item.model_dump(mode="json", by_alias=True) | {
                 "volume": "50 ml",
                 "imageUrl": "",
@@ -839,6 +840,7 @@ class SkincareHttpFixture:
             if self.unavailable:
                 return httpx.Response(503, json={})
             goal = body["detectedConcerns"][0]["goal"]
+            profile_goal = {"dry": "dryness", "oily": "oiliness"}[body["skinType"]]
             matches = [
                 {
                     "product": item,
@@ -847,17 +849,21 @@ class SkincareHttpFixture:
                     "priceKRW": item["priceKRW"],
                     "reasons": [
                         {
-                            "goal": goal,
-                            "sources": ["conversation", "skinProfile"],
+                            "goal": reason_goal,
+                            "sources": (["conversation"] if reason_goal == goal else [])
+                            + (["skinProfile"] if reason_goal == profile_goal else []),
                             "ingredientCodes": ["fixture-humectant"],
                             "evidenceLevel": "ingredient_presence",
                             "evidenceSources": ["cosing_function"],
                         }
+                        for reason_goal in dict.fromkeys((goal, profile_goal))
                     ],
                 }
                 for name, item in self.products.items()
             ]
-            groups = {key: matches if key == goal else [] for key in get_args(SkinGoal)}
+            groups = {
+                key: matches if key in {goal, profile_goal} else [] for key in get_args(SkinGoal)
+            }
             return httpx.Response(
                 200,
                 json={
@@ -979,12 +985,15 @@ def test_consented_skin_type_selects_only_verified_options(memory_api, monkeypat
     )
     client.app.dependency_overrides[get_chat_service] = lambda: service
 
-    def recommend(message="보습 스킨케어 추천해줘", *, request_type="beauty_consultation"):
+    def recommend(
+        message="보습 스킨케어 추천해줘", *, request_type="beauty_consultation", request_id=None
+    ):
         return ask(
             client,
             new_room(client),
             0,
             message,
+            request_id,
             structured=True,
             request_type=request_type,
         )
@@ -1014,7 +1023,12 @@ def test_consented_skin_type_selects_only_verified_options(memory_api, monkeypat
         moisturizing=True,
         ingredientConditions=[{"ingredientName": "향료", "operator": "excludes"}],
     )
-    selected = recommend("2만원 이하로 향료 제외하고 보습 스킨케어 추천해줘", request_type="chat")
+    selected_request_id = str(uuid4())
+    selected = recommend(
+        "2만원 이하로 향료 제외하고 얼굴이 당길 때 쓸 보습 크림 추천해줘",
+        request_type="chat",
+        request_id=selected_request_id,
+    )
     assert [p["id"] for p in selected["products"]] == ["profile-match"]
     assert selected["appliedMemories"] == [
         {
@@ -1041,9 +1055,18 @@ def test_consented_skin_type_selects_only_verified_options(memory_api, monkeypat
     selected_room = selected["conversation"]["id"]
     detail_path = f"/api/chat/conversations/{selected_room}"
     detail = client.get(detail_path, headers=AUTH).json()
-    assert (
-        detail["messages"][-1]["displayPayload"]["appliedMemories"] == selected["appliedMemories"]
-    )
+    display = detail["messages"][-1]["displayPayload"]
+    assert display["appliedMemories"] == selected["appliedMemories"]
+    assert display["optionSearch"]["products"][0]["texture"] is None
+    recovered = client.get(f"{detail_path}/requests/{selected_request_id}", headers=AUTH)
+    assert recovered.status_code == 200, recovered.text
+    recovery = recovered.json()
+    assert recovery["status"] == "COMMITTED"
+    assert recovery["response"]["appliedMemories"] == selected["appliedMemories"]
+    explicit = recommend("오늘은 피부가 지성이에요. 2만원 이하 보습 크림 추천해줘")
+    assert [p["id"] for p in explicit["products"]] == ["profile-match"]
+    assert "appliedMemories" not in explicit
+    assert fixture.v4_calls[-1]["skinType"] == "oily"
 
     llm.plan = {"intent": "search", "category": "skincare"}
     for message in (
@@ -1054,9 +1077,9 @@ def test_consented_skin_type_selects_only_verified_options(memory_api, monkeypat
         "보습 말고 스킨케어 추천해줘",
     ):
         assert "appliedMemories" not in recommend(message)
-    assert len(fixture.v4_calls) == 1
+    assert len(fixture.v4_calls) == 2
     fixture.unavailable = True
-    assert recommend()["products"] and len(fixture.v4_calls) == 2
+    assert recommend()["products"] and len(fixture.v4_calls) == 3
     fixture.unavailable = False
     fixture.unmatched_option = True
     fallback = recommend()
@@ -1075,7 +1098,7 @@ def test_consented_skin_type_selects_only_verified_options(memory_api, monkeypat
     )
     assert disabled.status_code == 200, disabled.text
     assert "appliedMemories" not in recommend()
-    assert len(fixture.v4_calls) == 3
+    assert len(fixture.v4_calls) == 4
     detail = client.get(detail_path, headers=AUTH).json()
     assert "appliedMemories" not in detail["messages"][-1]["displayPayload"]
 

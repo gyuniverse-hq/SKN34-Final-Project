@@ -43,7 +43,7 @@ from app.services.consultation_memory import (
     inventory_mode,
     prompt_memories,
     rank_catalog_by_memory,
-    skincare_memory_request,
+    skincare_recommendation_request,
     verified_inventory_matches,
 )
 from app.services.g1_catalog_tool import InvalidShadeSelection
@@ -2367,7 +2367,7 @@ async def _ingredient_consultation(req, plan, catalog, filters):
 
 
 async def _recommend_with_skin_type(req, plan, catalog, filters, skincare):
-    selection = skincare_memory_request(req)
+    selection = skincare_recommendation_request(req)
     if selection is None:
         return None
     memory, tool_input = selection
@@ -2409,7 +2409,10 @@ async def _recommend_with_skin_type(req, plan, catalog, filters, skincare):
         return None
     if req.locale != "ko":
         response.answer = TEXT[req.locale]["found"].format(count=len(response.products))
-    response.applied_memories = [AppliedSkinTypeMemory(memory_id=memory.id, version=memory.version)]
+    if memory is not None:
+        response.applied_memories = [
+            AppliedSkinTypeMemory(memory_id=memory.id, version=memory.version)
+        ]
     return response
 
 
