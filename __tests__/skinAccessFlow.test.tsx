@@ -30,6 +30,7 @@ jest.mock('@/hooks/useOwnedSkinProfile', () => ({ useOwnedSkinProfile: () => ({ 
 jest.mock('@/hooks/useSkinAccess', () => ({ useSkinAccess: () => ({ ready: true, subscribed: mockSubscribed }) }));
 jest.mock('@/lib/queries', () => ({
   useProducts: jest.fn(() => ({ data: [] })), useStyleLooks: () => ({ data: [] }),
+  useProductDiscoveryOrder: () => ({ data: { hot: [], makeup: [], skincare: [], newArrivals: [] } }),
 }));
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => 'MaterialCommunityIcons');

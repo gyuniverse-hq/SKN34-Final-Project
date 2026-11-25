@@ -15,6 +15,7 @@ from app.schemas.catalog import (
     CONCERNS,
     LookDetailResponse,
     LooksResponse,
+    ProductDiscoveryOrder,
     ProductResponse,
     ProductsResponse,
     StoresResponse,
@@ -64,6 +65,17 @@ async def get_product(
         raise ApiError(404, "Product not found", "not_found")
     cache_for(response, 300)
     return ProductResponse(product=product)
+
+
+@router.get("/discovery/product-order", response_model=ProductDiscoveryOrder)
+async def get_product_discovery_order(
+    response: Response,
+    preview: bool = False,
+    service: CatalogService = Depends(get_catalog_service),
+) -> ProductDiscoveryOrder:
+    order = await service.discovery_product_order(preview=preview)
+    cache_for(response, 300)
+    return order
 
 
 @router.get("/products/{product_id}/ingredients", response_model=IngredientReadResult)

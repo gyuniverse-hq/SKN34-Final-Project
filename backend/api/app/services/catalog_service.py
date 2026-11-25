@@ -1,3 +1,5 @@
+from datetime import date, datetime, timedelta, timezone
+from math import inf
 from typing import Protocol
 
 from fastapi import Depends
@@ -6,11 +8,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.cache import Cache, get_cache
 from app.core.config import get_settings
 from app.core.db import get_session
-from app.repositories.catalog_repository import CatalogRepository
-from app.schemas.catalog import CatalogBundle, CelebLook, Product, Store
+from app.repositories.catalog_repository import CatalogRepository, ProductDiscoveryCandidate
+from app.schemas.catalog import CatalogBundle, CelebLook, Product, ProductDiscoveryOrder, Store
 from app.services.image_service import get_image_service
+from app.services.rating_score_service import confidence_adjusted_rating
 
 CATALOG_CACHE_PREFIXES = ("products:", "looks")
+DISCOVERY_PREVIEW_SIZE = 8
+TRENDING_REGISTRATION_DAYS = 60
+MIN_REVIEW_AGE_DAYS = 7
+KOREA_TIMEZONE = timezone(timedelta(hours=9))
 
 # Rough bounding box of South Korea; catches swapped lat/lng and missing coordinates.
 KOREA_LAT = (33.0, 39.0)
@@ -40,6 +47,7 @@ class CatalogStore(Protocol):
         ids: list[str] | None = None,
         tags: list[str] | None = None,
     ) -> list[Product]: ...
+    async def discovery_candidates(self) -> list[ProductDiscoveryCandidate]: ...
     async def get_product(self, product_id: str) -> Product | None: ...
     async def list_looks(self) -> list[CelebLook]: ...
     async def get_look(self, look_id: str) -> CelebLook | None: ...
@@ -89,6 +97,23 @@ class CatalogService:
             )
         return await self._with_images(products) if with_images else products
 
+    async def discovery_product_order(self, *, preview: bool = False) -> ProductDiscoveryOrder:
+        today = datetime.now(KOREA_TIMEZONE).date()
+        key = f"products:discovery:{today.isoformat()}"
+        if (hit := await self._cache.get_json(key)) is not None:
+            order = ProductDiscoveryOrder.model_validate(hit)
+        else:
+            order = rank_discovery_products(await self._store.discovery_candidates(), today)
+            await self._cache.set_json(key, order.model_dump(mode="json"), self._ttl)
+        if not preview:
+            return order
+        return ProductDiscoveryOrder(
+            hot=order.hot[:DISCOVERY_PREVIEW_SIZE],
+            makeup=order.makeup[:DISCOVERY_PREVIEW_SIZE],
+            skincare=order.skincare[:DISCOVERY_PREVIEW_SIZE],
+            new_arrivals=order.new_arrivals[:DISCOVERY_PREVIEW_SIZE],
+        )
+
     async def get_product(self, product_id: str) -> Product | None:
         product = await self._store.get_product(product_id)
         if product is None:
@@ -119,6 +144,50 @@ class CatalogService:
         # Cached listings would keep serving the old catalog (and feed it to the graph sync).
         for prefix in CATALOG_CACHE_PREFIXES:
             await self._cache.delete_prefix(prefix)
+
+
+def rank_discovery_products(
+    candidates: list[ProductDiscoveryCandidate], today: date
+) -> ProductDiscoveryOrder:
+    hot: list[tuple[float, float, str]] = []
+    makeup: list[tuple[float, int, str]] = []
+    skincare: list[tuple[float, int, str]] = []
+    new_arrivals: list[tuple[int, float, str]] = []
+    for candidate in candidates:
+        product_id = candidate.product_id
+        count = candidate.review_count or 0
+        average = candidate.rating_avg
+        rating_key = inf
+        if count > 0 and average is not None and 1 <= average <= 5:
+            rating_key = -confidence_adjusted_rating(average, count)
+            chart_key = (rating_key, -count, product_id)
+            if candidate.category in ("lip", "cheek", "eye", "base"):
+                makeup.append(chart_key)
+            elif candidate.category in ("skincare", "suncare"):
+                skincare.append(chart_key)
+
+        registered = candidate.registered_on
+        if registered is None or registered > today:
+            continue
+        if candidate.is_new:
+            new_arrivals.append((-registered.toordinal(), rating_key, product_id))
+
+        collected = candidate.review_collected_on
+        if (
+            count > 0
+            and (today - registered).days < TRENDING_REGISTRATION_DAYS
+            and collected is not None
+            and registered <= collected <= today
+        ):
+            age = max((collected - registered).days, MIN_REVIEW_AGE_DAYS)
+            hot.append((-count / age, rating_key, product_id))
+
+    return ProductDiscoveryOrder(
+        hot=[product_id for _, _, product_id in sorted(hot)],
+        makeup=[product_id for _, _, product_id in sorted(makeup)],
+        skincare=[product_id for _, _, product_id in sorted(skincare)],
+        new_arrivals=[product_id for _, _, product_id in sorted(new_arrivals)],
+    )
 
 
 def _unique(ids: list[str], what: str) -> None:

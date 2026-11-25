@@ -39,6 +39,13 @@ export interface ProductQuery {
   concerns?: SkinConcern[];
 }
 
+export interface ProductDiscoveryOrder {
+  hot: string[];
+  makeup: string[];
+  skincare: string[];
+  newArrivals: string[];
+}
+
 /** Concern codes derived on device from analysis + survey and confirmed by the user. */
 export interface SkinRecommendationRequest {
   concerns: SkinConcern[];
