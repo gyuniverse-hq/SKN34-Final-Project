@@ -14,6 +14,7 @@ from redis.asyncio import Redis as AsyncRedis
 from sqlalchemy.engine import make_url
 
 from app.clients.catalog_client import CatalogClient
+from app.clients.skincare_recommendation_client import SkincareRecommendationClient
 from app.core.config import get_settings
 from app.core.db import get_chat_engine
 from app.core.ratelimit import MemoryRateLimiter, get_rate_limiter
@@ -21,7 +22,17 @@ from app.repositories.chat_session_repository import ChatSessionRepository
 from app.repositories.checkpoint_repository import CheckpointRepository
 from app.repositories.conversation_repository import ConversationRepository
 from app.schemas.chat import BeautyContext, BeautyFilters, ChatResponse, ChatSessionRef
+from app.schemas.compound_consultation import (
+    CompoundContext,
+    CompoundDisplay,
+    CompoundGoal,
+    RankedOption,
+    VerifiedOption,
+)
+from app.services import compound_consultation_graph as compound_graph
 from app.services.chat_service import ChatService, get_chat_service
+from app.services.skincare_recommendation_tool import SkincareRecommendationTool
+from tests import test_g8_compound_consultation as skin_case
 from tests.conftest import FakeGraph, FakeLlm
 from tests.test_beauty_consultation import PlanLlm
 from tests.test_chat_sessions import RedisDouble, SessionCatalog
@@ -131,6 +142,239 @@ def test_two_turns_replay_server_history_and_owner_isolation(api):
     assert (
         status.json()["status"] == "COMMITTED" and status.json()["response"]["answer"] == "answer-1"
     )
+
+
+def test_compound_options_replay_and_restore_from_server_only(api, monkeypatch):
+    client, service = api
+    room = create(client)[0]["conversationId"]
+    goal = CompoundGoal(goals=["dryness", "pores"], max_price_krw=20_000, fragrance_free=True)
+    options = [
+        RankedOption(
+            rank=rank,
+            product_id=f"p-{rank}",
+            option_id=f"sale-{rank}",
+            option_name=f"Option {rank}",
+            product_name=f"Product {rank}",
+            brand="example",
+            has_shades=False,
+            data_version="catalog-a",
+        )
+        for rank in range(1, 11)
+    ]
+    calls = []
+
+    async def answer(prepared, _principal):
+        calls.append(prepared._compound_context)
+        if len(calls) == 1:
+            display = CompoundDisplay(
+                plan_version=1,
+                goal=goal,
+                options=[VerifiedOption(candidate=item, outcome="unknown") for item in options],
+            )
+            return ChatResponse(answer="Ten options checked", products=[], compound=display)
+        next_goal = goal.model_copy(update={"wants_products": False})
+        context = CompoundContext(plan_version=2, goal=next_goal, candidates=options)
+        return ChatResponse(
+            answer="Care follow-up",
+            products=[],
+            compound=CompoundDisplay(plan_version=2, goal=next_goal),
+            chat_context=BeautyContext(issued_at=1, filters=BeautyFilters(), compound=context),
+        )
+
+    monkeypatch.setattr(service, "answer", answer)
+    first = {
+        "conversationId": room,
+        "expectedConversationVersion": 0,
+        "requestId": str(uuid4()),
+        "message": "Care and recommendations",
+    }
+    response = client.post("/api/chat", headers=AUTH, json=first)
+    assert response.status_code == 200, response.text
+    replay = client.post("/api/chat", headers=AUTH, json=first)
+    assert replay.json() == response.json()
+    detail = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+    assert detail["messages"][-1]["displayPayload"]["compound"] == response.json()["compound"]
+    durable = detail["context"]["compound"]
+    assert [item["optionId"] for item in durable["candidates"]] == [v.option_id for v in options]
+    assert "options" not in durable
+    forged = CompoundContext(plan_version=99, goal=goal, candidates=[])
+    second = {
+        **first,
+        "expectedConversationVersion": 1,
+        "requestId": str(uuid4()),
+        "message": "Just explain the care this time",
+        "chatContext": {"issuedAt": 1, "filters": {}, "compound": forged.model_dump(by_alias=True)},
+    }
+    followup = client.post("/api/chat", headers=AUTH, json=second)
+    assert followup.status_code == 200, followup.text
+    assert calls == [None, CompoundContext(plan_version=1, goal=goal, candidates=options)]
+    restored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()["context"]
+    assert restored["compound"]["planVersion"] == 2
+    assert restored["compound"]["candidates"][-1]["optionId"] == "sale-10"
+    assert client.get(f"/api/chat/conversations/{room}", headers=OTHER).status_code == 404
+
+
+def test_g8_graph_commits_replays_and_rechecks_the_saved_budget(api, monkeypatch, record_property):
+    client, _ = api
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    consult = skin_case.install_knowledge(monkeypatch)
+    downstream = skin_case.SkinApi()
+    original_client = httpx.AsyncClient
+    monkeypatch.setattr(
+        httpx,
+        "AsyncClient",
+        lambda **kw: original_client(transport=httpx.MockTransport(downstream), **kw),
+    )
+    planner_inputs = []
+    followup = "예산만 1만 5천 원 이하로 바꿔 줘."
+
+    class Planner(skin_case.Planner):
+        async def complete_with_tools(self, messages, tools, *, required_tool=None):
+            inputs = json.loads(messages[-1]["content"])
+            planner_inputs.append(inputs)
+            reply, usage = await super().complete_with_tools(
+                messages, tools, required_tool=required_tool
+            )
+            if inputs["utterance"] == followup:
+                goal = skin_case.GOAL.model_copy(
+                    update={"max_price_krw": 15000, "wants_knowledge": False}
+                )
+                call = reply["choices"][0]["message"]["tool_calls"][0]
+                call["function"]["arguments"] = json.dumps(
+                    {
+                        "action": "refine",
+                        "goal": goal.model_dump(by_alias=True),
+                        "question": "",
+                    }
+                )
+            return reply, usage
+
+    traces = []
+    execute = compound_graph.run_compound
+
+    async def observe(*args, **kwargs):
+        tasks = []
+        traces.append(tasks)
+        return await execute(*args, trace=tasks, **kwargs)
+
+    monkeypatch.setattr(compound_graph, "run_compound", observe)
+    chat = ChatService(
+        None,
+        Planner(),
+        CatalogClient("https://api.test"),
+        skincare=SkincareRecommendationTool(SkincareRecommendationClient("https://api.test")),
+    )
+    client.app.dependency_overrides[get_chat_service] = lambda: chat
+    room = create(client)[0]["conversationId"]
+    data = {"conversationId": room, "locale": "ko"}
+    path = f"/api/chat/conversations/{room}"
+    observations = []
+    dsn = make_url(URL).set(drivername="postgresql").render_as_string(hide_password=False)
+    for version, question in enumerate((skin_case.QUESTION, followup), 1):
+        req_id = str(uuid4())
+        request = {
+            **data,
+            "requestId": req_id,
+            "expectedConversationVersion": version - 1,
+            "message": question,
+        }
+        start_calls = len(downstream.calls)
+        response = client.post("/api/chat", headers=AUTH, json=request)
+        assert response.status_code == 200, response.text
+        public = response.json()
+        display = public["compound"]
+        assert public["conversation"]["version"] == display["planVersion"] == version
+        calls = downstream.calls[start_calls:]
+        assert [route for route, _ in calls] == (
+            (["/api/recommendations/skincare/v4"] if version == 1 else [])
+            + ["/api/catalog/options/search"] * 2
+        )
+        assert [len(body["optionScope"]) for _, body in calls[-2:]] == [6, 4]
+        assert all(
+            body["maxPriceKRW"] == (20000 if version == 1 else 15000) for _, body in calls[-2:]
+        )
+        assert calls[-1][1]["optionScope"][2]["optionId"] == "sale-9"
+        cards = [item for item in display["options"] if item["outcome"] == "eligible"]
+        assert [item["candidate"]["optionId"] for item in cards] == (
+            ["sale-9"] if version == 1 else []
+        )
+        if version == 1:
+            assert display["options"][2]["outcome"] == "unknown"
+            evidence_id = public["knowledge"]["evidence"][0]["id"]
+            assert public["knowledge"]["claims"][0]["citations"] == [evidence_id]
+            assert f"{skin_case.CARE_ADVICE} [1]" in public["answer"]
+            assert evidence_id not in public["answer"]
+        else:
+            assert planner_inputs[-1]["previousGoal"]["maxPriceKRW"] == 20000
+            assert display["options"][8]["outcome"] == "excluded"
+        replay = client.post("/api/chat", headers=AUTH, json=request)
+        assert replay.status_code == 200, replay.text
+        assert replay.json()["answer"] == public["answer"] and replay.json()["compound"] == display
+        assert len(traces) == len(planner_inputs) == version
+        assert downstream.calls[start_calls:] == calls
+        detail = client.get(path, headers=AUTH).json()
+        assert len(detail["messages"]) == version * 2
+        assert detail["messages"][-1]["displayPayload"]["compound"] == display
+        assert detail["context"]["compound"]["candidates"][-1]["optionId"] == "sale-10"
+        with psycopg.connect(dsn) as conn:
+            thread, checkpoint, accepted = conn.execute(
+                "SELECT thread_id, accepted_checkpoint_id, accepted_checkpoint_version "
+                "FROM chat_conversations WHERE id = %s",
+                (room,),
+            ).fetchone()
+            namespaces = conn.execute(
+                "SELECT checkpoint_ns FROM checkpoints WHERE thread_id=%s "
+                "UNION SELECT checkpoint_ns FROM checkpoint_blobs WHERE thread_id=%s "
+                "UNION SELECT checkpoint_ns FROM checkpoint_writes WHERE thread_id=%s",
+                (str(thread),) * 3,
+            ).fetchall()
+            checkpoint_bytes = conn.execute(
+                "SELECT blob FROM checkpoint_blobs WHERE thread_id=%s "
+                "UNION ALL SELECT blob FROM checkpoint_writes WHERE thread_id=%s "
+                "UNION ALL SELECT convert_to(checkpoint::text, 'UTF8') "
+                "FROM checkpoints WHERE thread_id=%s",
+                (str(thread),) * 3,
+            ).fetchall()
+        assert namespaces == [("",)]
+        forbidden = (b"sale-9", b"chunk8", b"fixture-rag", skin_case.QUESTION.encode())
+        assert all(
+            marker not in bytes(blob or b"") for (blob,) in checkpoint_bytes for marker in forbidden
+        )
+        with PostgresSaver.from_conn_string(dsn) as saver:
+            saved = saver.get_tuple(
+                {"configurable": {"thread_id": str(thread), "checkpoint_id": checkpoint}}
+            )
+        assert checkpoint and accepted == version
+        channels = saved.checkpoint["channel_values"]
+        assert channels["request_id"] == req_id and channels["execution_status"] == "done"
+        assert "sale-9" not in str(channels) and skin_case.QUESTION not in str(channels)
+        observations.append(
+            {
+                "version": version,
+                "utterance": question,
+                "plannerInput": planner_inputs[-1],
+                "toolHttpRequests": calls,
+                "tasks": traces[-1],
+                "answer": public["answer"],
+                "display": display,
+                "knowledge": public.get("knowledge"),
+                "httpStatus": response.status_code,
+                "replayHttpStatus": replay.status_code,
+                "replayAdditionalGraphCalls": 0,
+                "replayAdditionalHttpCalls": len(downstream.calls) - start_calls - len(calls),
+                "detailMessageCount": len(detail["messages"]),
+                "acceptedCheckpointVersion": accepted,
+                "checkpointExecutionStatus": channels["execution_status"],
+                "checkpointNamespaces": [ns for (ns,) in namespaces],
+                "rawCheckpointMarkersFound": 0,
+                "durableCandidateScope": [
+                    [v["rank"], v["productId"], v["optionId"]]
+                    for v in detail["context"]["compound"]["candidates"]
+                ],
+            }
+        )
+    consult.assert_awaited_once_with(skin_case.CARE_QUESTION)
+    record_property("g8_verified_turns", observations)
 
 
 def test_room_deletion_is_retryable_and_does_not_resurrect_on_create_replay(api, monkeypatch):

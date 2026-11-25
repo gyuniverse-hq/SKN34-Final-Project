@@ -659,7 +659,48 @@ export interface ChatOptionSearch {
   excludedCount: number; omittedCount: number;
 }
 
+export interface CompoundConsultation {
+  planVersion: number;
+  goal: {
+    goals: import('./skincare').CareGoal[];
+    maxPriceKRW?: number | null;
+    excludedIngredients: string[];
+    wantsKnowledge: boolean;
+    wantsProducts: boolean;
+    fragranceFree: boolean;
+    unsupportedConditions: string[];
+  };
+  options: {
+    candidate: {
+      rank: number; productId: string; optionId: string; optionName: string;
+      productName: string; brand: string; hasShades: boolean; dataVersion?: string | null;
+      ingredientCodes: string[];
+      reasons?: import('./skincare').HybridMatch['reasons'];
+    };
+    outcome: 'eligible' | 'excluded' | 'unknown' | 'failed';
+    verification?: ChatOptionSearch['items'][number] | null;
+    reason?: string | null;
+  }[];
+  batches: {
+    productIds: string[];
+    scope?: ChatOptionSearch['checkedScope'] | null;
+    reason?: string | null;
+    request?: ChatOptionSearch['effectiveRequest'];
+    status?: string | null;
+    omittedCount?: number;
+    excludedCount?: number;
+    limitations?: string[];
+    ingredientResolutions?: {
+      ingredientName: string; operator: 'includes' | 'excludes';
+      status: 'resolved' | 'literal' | 'unresolved' | 'ambiguous' | 'unverified_alias' | 'unsupported_group' | 'conflict';
+      canonicalName?: string | null; suggestions: string[];
+    }[];
+  }[];
+  limitations: string[];
+}
+
 export interface ChatResponse {
+  compound?: CompoundConsultation | null;
   conversation?: { id: string; version: number; turnId: string; persistenceStatus: 'stored' };
   memoryProposal?: ChatMemoryProposal | null;
   appliedMemories?: ChatAppliedMemory[];

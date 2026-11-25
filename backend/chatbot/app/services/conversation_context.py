@@ -11,6 +11,7 @@ from app.schemas.chat import (
     ChatResponse,
     RecentChatMessage,
 )
+from app.schemas.compound_consultation import CompoundContext
 from app.schemas.conversation import (
     StoredConversationContext,
     StoredProductContext,
@@ -22,6 +23,7 @@ from app.schemas.supervisor import ScreenContext
 from app.services.style_recipe_service import execute_style
 
 _DISPLAY_FIELDS = {
+    "compound",
     "appliedMemories",
     "products",
     "styleCandidates",
@@ -180,6 +182,7 @@ def prepare_request(
         },
     )
     result._server_history = True
+    result._compound_context = context.compound
     if context.product and beauty and not beauty.filters.option_search:
         result._historical_product_ids = tuple(context.product.historical_candidate_refs)
     return result
@@ -218,8 +221,25 @@ async def revalidate_request(chat, request: ChatRequest) -> None:
 
 def updated_context(raw: dict, response: ChatResponse) -> dict:
     context = read_context(raw)
+    compound = response.compound
+    context.compound = (
+        CompoundContext(
+            plan_version=compound.plan_version,
+            goal=compound.goal,
+            candidates=[item.candidate for item in compound.options],
+        )
+        if compound is not None
+        else None
+    )
     if response.chat_context is not None:
         beauty = response.chat_context
+        if (
+            compound is not None
+            and beauty.compound is not None
+            and beauty.compound.plan_version == compound.plan_version
+            and beauty.compound.goal == compound.goal
+        ):
+            context.compound = beauty.compound
         selected = beauty.selected_product_id
         context.product = StoredProductContext(
             selected_product_id=selected,
@@ -327,6 +347,9 @@ async def apply_state_update(
 
 def display_payload(response: ChatResponse) -> dict:
     payload = response.model_dump(mode="json", by_alias=True, exclude_none=True)
+    if response.compound is not None:
+        # Persist the same nullable evidence fields that the live card received.
+        payload["compound"] = response.compound.model_dump(mode="json", by_alias=True)
     result = _sanitize({key: value for key, value in payload.items() if key in _DISPLAY_FIELDS})
     for item in result.get("ingredientResults", []):
         item.setdefault("shadeId", None)

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import re
@@ -49,6 +50,7 @@ from app.schemas.supervisor import (
     ToolResult,
 )
 from app.schemas.vishue_state import VishueState
+from app.services import compound_consultation_graph as compound_graph
 from app.services.ar_command_service import propose_ar_command
 from app.services.beauty_consultation_service import (
     COMPARISON_SCREENS,
@@ -658,6 +660,22 @@ class ChatService:
             req = req.model_copy(update={"request_type": "chat"})
         context = resolve_context(req)
         decision = route_intent(context)
+        session_ref = req.chat_context.session if req.chat_context else None
+        if (
+            not explicit_knowledge
+            and decision.intent not in {"ar", "style", "compound"}
+            and compound_graph.may_plan(req, previous=bool(req._compound_context or session_ref))
+        ):
+            if self._sessions is not None and principal_key:
+                return await self._answer_session(req, principal_key, consider_compound=True)
+            if session_ref:
+                raise ApiError(503, "Chat session is unavailable", "chat_session_unavailable")
+            response = await self._try_compound(req, context, decision, req._compound_context)
+            if response is not None:
+                return response
+        return await self._answer_single(req, principal_key, context, decision, explicit_knowledge)
+
+    async def _answer_single(self, req, principal_key, context, decision, explicit_knowledge):
         if explicit_knowledge and _is_knowledge_question(req, context, decision):
             return await self._run_supervisor(
                 req, context, decision.model_copy(update={"intent": "knowledge"})
@@ -771,6 +789,55 @@ class ChatService:
         query = _grounded_look_query(req.message, look.title, plan.query)
         return plan.model_copy(update={"category": category, "query": query})
 
+    async def _try_compound(self, req, context, decision, previous):
+        deadline = time.monotonic() + get_settings().g8_deadline_seconds
+        try:
+            async with asyncio.timeout(max(0.0, deadline - time.monotonic())):
+                choice = await compound_graph.interpret(req, self._llm, previous)
+        except TimeoutError as exc:
+            raise ApiError(504, "Consultation planning timed out", "compound_plan_timeout") from exc
+        if choice is None:
+            return None
+        active_previous = previous if choice.action == "refine" else None
+
+        async def execute(_req, _decision, _plan):
+            return await compound_graph.run_compound(
+                choice.goal,
+                choice.question,
+                self._skincare,
+                self._catalog,
+                previous=previous,
+                reuse_candidates=bool(
+                    active_previous and active_previous.goal.goals == choice.goal.goals
+                ),
+                deadline=deadline,
+            )
+
+        if req._g7_execution is not None:
+            runtime = SupervisorRuntime(req, context, lambda *_: TaskPlan(), execute)
+            return await self._run_durable(req._g7_execution, runtime, decision)
+        return await execute(req, decision, None)
+
+    @staticmethod
+    async def _run_durable(execution, supervisor_runtime, decision):
+        repository = CheckpointRepository(get_settings().chat_database_url)
+        async with repository.fresh_writer(
+            execution.thread_id,
+            execution.conversation_id,
+            execution.owner_id,
+            execution.request_id,
+        ) as writer:
+            runtime = DurableRuntime(supervisor_runtime, decision)
+            await durable_supervisor(writer).ainvoke(
+                {"request_id": str(execution.request_id), "execution_status": "new"},
+                config={"configurable": {"thread_id": str(execution.thread_id)}},
+                context=runtime,
+            )
+            if runtime.response is None:
+                raise ValueError("Missing graph response")
+            execution.checkpoint_id = await writer.completed_id(execution.request_id)
+            return runtime.response
+
     async def _run_supervisor(
         self,
         req: ChatRequest,
@@ -881,23 +948,7 @@ class ChatService:
             )
             execution = req._g7_execution
             if execution is not None:
-                repository = CheckpointRepository(get_settings().chat_database_url)
-                async with repository.fresh_writer(
-                    execution.thread_id,
-                    execution.conversation_id,
-                    execution.owner_id,
-                    execution.request_id,
-                ) as writer:
-                    runtime = DurableRuntime(supervisor_runtime, decision)
-                    await durable_supervisor(writer).ainvoke(
-                        {"request_id": str(execution.request_id), "execution_status": "new"},
-                        config={"configurable": {"thread_id": str(execution.thread_id)}},
-                        context=runtime,
-                    )
-                    if runtime.response is None:
-                        raise ValueError("Missing graph response")
-                    execution.checkpoint_id = await writer.completed_id(execution.request_id)
-                    return runtime.response
+                return await self._run_durable(execution, supervisor_runtime, decision)
             output = await product_supervisor.ainvoke(
                 state,
                 context=supervisor_runtime,
@@ -1061,7 +1112,9 @@ class ChatService:
                 context.shade_selections.pop(screen.product_id, None)
         return context
 
-    async def _answer_session(self, incoming: ChatRequest, owner: str | None):
+    async def _answer_session(
+        self, incoming: ChatRequest, owner: str | None, *, consider_compound=False
+    ):
         if not owner or not owner.startswith(("user:", "guest:")):
             raise ApiError(401, "Chat principal required", "chat_session_owner_required")
         owner_id = owner.removeprefix("user:") if owner.startswith("user:") else None
@@ -1117,7 +1170,9 @@ class ChatService:
                     ref = None
                     load_error = exc
                     await repo.check_new_request(owner, request_id)
-                elif incoming.locale == "ko" and get_settings().g1_supervisor_enabled:
+                elif consider_compound or (
+                    incoming.locale == "ko" and get_settings().g1_supervisor_enabled
+                ):
                     # A supplied capability must be valid before any model or Catalog call.
                     raise
                 elif exc.code not in {"chat_session_unavailable", "chat_session_expired"}:
@@ -1196,6 +1251,33 @@ class ChatService:
             context.session_version = state.state_version
             context.result_set_id = str(state.result_set_id)
         decision = route_intent(context)
+        if consider_compound and not (old_pending or general_only or req.screen_context):
+            previous = incoming._compound_context
+            if incoming._g7_execution is None and state:
+                previous = state.context.compound
+            response = await self._try_compound(req, context, decision, previous)
+            if response is not None:
+                if incoming._g7_execution is not None:
+                    # G7 owns the completed response and restores exact options without Redis.
+                    return response
+                return await self._store_session_reply(
+                    req,
+                    owner,
+                    repo,
+                    state,
+                    ref,
+                    response,
+                    request_id,
+                    fingerprint,
+                    conversation_id,
+                    next_pending=None,
+                    renewed=True,
+                )
+            if not ref and incoming.request_type == "chat":
+                original_context = resolve_context(incoming)
+                return await self._answer_single(
+                    incoming, owner, original_context, route_intent(original_context), False
+                )
         if general_only:
             decision.intent = "general"
         if decision.intent == "compound":
@@ -1656,13 +1738,45 @@ class ChatService:
             await self._validate_session_context(ctx, None, None)
         except UpstreamError as exc:
             raise ApiError(502, "Catalog validation failed", "upstream_error") from exc
-        now = int(time.time())
         renewed = state is None or (
             slots.intent in {"search", "refine"}
             or ctx.candidate_ids != state.context.candidate_ids
             or ctx.filters != state.context.filters
             or ctx.option_scope != state.context.option_scope
         )
+        return await self._store_session_reply(
+            req,
+            owner,
+            repo,
+            state,
+            ref,
+            response,
+            request_id,
+            fingerprint,
+            conversation_id,
+            next_pending=next_pending,
+            renewed=renewed,
+        )
+
+    async def _store_session_reply(
+        self,
+        req,
+        owner,
+        repo,
+        state,
+        ref,
+        response,
+        request_id,
+        fingerprint,
+        conversation_id,
+        *,
+        next_pending,
+        renewed,
+    ):
+        now = int(time.time())
+        ctx = response.chat_context
+        result = response.supervisor.result if response.supervisor else response.tool_result
+        owner_id = owner.removeprefix("user:") if owner.startswith("user:") else None
         created = now if renewed else state.result_created_at
         ctx.issued_at = created
         token = ref.session_token if state else secrets.token_urlsafe(32)
@@ -1728,12 +1842,13 @@ class ChatService:
             ctx.session = None
             response.session_status = "unavailable"
             response.answer += "\n" + TEXT[req.locale]["session_unavailable"]
-            result.status = "partial"
-            result.conditions.append(
-                ConditionCheck(
-                    condition="session", verdict="ERROR", reason="chat_session_unavailable"
+            if result is not None:
+                result.status = "partial"
+                result.conditions.append(
+                    ConditionCheck(
+                        condition="session", verdict="ERROR", reason="chat_session_unavailable"
+                    )
                 )
-            )
         return response
 
     async def execute_tool(

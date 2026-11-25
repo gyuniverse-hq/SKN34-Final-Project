@@ -1,14 +1,22 @@
 import { createElement } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
-import { ChatProducts } from '@/components/chat/ChatProducts';
+import { ChatProducts, CompoundProductCards } from '@/components/chat/ChatProducts';
 import { ProductCompareSheet } from '@/components/chat/ProductCompareSheet';
 import { ProductImage } from '@/components/ui/ProductImage';
 import type { ChatCondition } from '@/lib/chatConditions';
-import type { ChatOptionSearch, Product } from '@/types';
+import type { ChatOptionSearch, CompoundConsultation, Product } from '@/types';
 
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({
-  t: (key: string, params?: { index?: number }) => key === 'chat.candidateNumber' ? `${key}:${params?.index}` : key,
+  language: 'ko',
+  t: (key: string, params?: Record<string, number | string>) => {
+    if (key === 'chat.candidateNumber') return `${key}:${params?.index}`;
+    if (key.startsWith('chat.compound.')) {
+      const value = jest.requireActual('@/lib/i18n/ko').ko[key] as string;
+      return value.replace(/\{(\w+)\}/g, (_, name) => String(params?.[name]));
+    }
+    return key;
+  },
 }) }));
 jest.mock('@/components/ui/ProductImage', () => ({ ProductImage: () => null }));
 
@@ -61,6 +69,56 @@ async function renderProducts(props: Partial<Parameters<typeof ChatProducts>[0]>
 }
 
 describe('chat product cards', () => {
+  it('shows only exact verified options with their original ranks, observed price and ingredient checks', async () => {
+    type Option = CompoundConsultation['options'][number];
+    const option = (rank: number, outcome: Option['outcome']): Option => ({
+      candidate: { rank, productId: 'care', optionId: 'opt-' + rank, optionName: 'Bottle ' + rank,
+        productName: 'Care product', brand: 'Brand', hasShades: false, dataVersion: 'v4', ingredientCodes: ['NOT_FULL_LIST'] },
+      outcome,
+      verification: { productId: 'care', optionId: 'opt-' + rank, shadeId: null, sourceVersion: 'cat-1',
+        synthetic: false, group: 'ELIGIBLE', checks: [
+          { condition: 'ingredient', verdict: 'MATCH', operator: 'excludes', ingredientName: '향료', reason: 'verified' },
+          { condition: 'price', verdict: 'MATCH', reason: 'within_budget' },
+        ], price: { amountKRW: 18000, observedBasis: 'collected_snapshot', requestedBasis: 'collected_snapshot',
+          observedAt: '2026-11-01T01:00:00Z', checkedAt: '2026-11-02', sourceRef: 'https://shop.example.test/sale', sourceVersion: 'private-version' } },
+    });
+    const wrongOption = option(1, 'eligible');
+    wrongOption.verification!.optionId = 'different';
+    const incomplete = option(4, 'eligible');
+    incomplete.verification!.group = 'REFERENCE_ONLY';
+    const undated = option(10, 'eligible');
+    Object.assign(undated.verification!.price!, { observedAt: null, observedBasis: 'catalog_reference' });
+    const result: CompoundConsultation = {
+      planVersion: 1, goal: { goals: ['dryness'], wantsProducts: true, wantsKnowledge: true,
+        fragranceFree: false, maxPriceKRW: 20000, excludedIngredients: ['향료'], unsupportedConditions: [] },
+      options: [undated, option(8, 'eligible'), wrongOption, incomplete,
+        option(5, 'excluded'), option(6, 'unknown'), option(7, 'failed')], batches: [], limitations: [],
+    };
+    const onOpenProduct = jest.fn();
+    let renderer!: ReactTestRenderer;
+    await act(async () => { renderer = create(createElement(CompoundProductCards, { result, onOpenProduct })); });
+    const rows = textRows(renderer);
+    expect(rows.filter((row) => row.startsWith('Care product · '))).toEqual(['Care product · Bottle 8', 'Care product · Bottle 10']);
+    expect(rows).toContain('18,000원');
+    expect(rows).toContain('전성분표에 향료 표기 없음');
+    expect(rows.join(' ')).not.toMatch(/2026-11|shop\.example|private-version|NOT_FULL_LIST|전체 후보 중/);
+    const toggles = renderer.root.findAllByType(Text).filter((item) => item.props.children === '가격 정보');
+    const openPrice = async (index: number) => {
+      let button = toggles[index].parent;
+      while (button && typeof button.props.onPress !== 'function') button = button.parent;
+      await act(async () => { button!.props.onPress(); });
+    };
+    await openPrice(0);
+    expect(textRows(renderer)).toEqual(expect.arrayContaining(['2026. 11. 1. 확인', '판매처 자료 · shop.example.test']));
+    await openPrice(1);
+    expect(textRows(renderer)).toEqual(expect.arrayContaining(['상품 카탈로그에 등록된 참고 가격이에요.', '가격을 확인한 날짜는 알려지지 않았어요.']));
+    expect(textRows(renderer).join(' ')).not.toMatch(/2026\. 11\. 2\.|private-version|https:\/\//);
+    await act(async () => { buttonWithText(renderer.root, 'chat.option.scopeShow').props.onPress(); });
+    expect(textRows(renderer)).toContain('Care product · 전체 후보 중 8위');
+    await act(async () => { buttonWithText(renderer.root, 'styleLooks.openProduct').props.onPress(); });
+    expect(onOpenProduct).toHaveBeenCalledWith('care', undefined);
+    await act(async () => { renderer.unmount(); });
+  });
   it('keeps unlinked video products in the carousel without inventing a detail link', async () => {
     const sourceProducts = [
       { label: '원본 립', zone: 'lip', productId: lip.id, mappingStatus: 'product_only' as const, catalogValid: false, arEligible: false },

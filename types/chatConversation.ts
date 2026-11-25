@@ -53,6 +53,7 @@ export type ChatMessage = {
   evidence?: ChatProductEvidence[];
   resultType?: ChatResponse['resultType'];
   optionSearch?: ChatResponse['optionSearch'];
+  compound?: ChatResponse['compound'];
   ingredientResults?: ChatResponse['ingredientResults'];
   knowledge?: ChatResponse['knowledge'];
   ingredientComparison?: ChatResponse['ingredientComparison'];

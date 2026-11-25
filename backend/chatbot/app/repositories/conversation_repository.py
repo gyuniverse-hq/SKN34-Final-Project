@@ -15,6 +15,7 @@ from app.schemas.conversation import ConversationEntry
 
 _ENTRY = TypeAdapter(ConversationEntry)
 _CONTEXT_KEYS = {
+    "compound",
     "schemaVersion",
     "currentGoal",
     "product",
@@ -49,6 +50,7 @@ _FORBIDDEN = {
     "videoframe",
 }
 _DISPLAY_KEYS = {
+    "compound",
     "appliedMemories",
     "products",
     "styleCandidates",

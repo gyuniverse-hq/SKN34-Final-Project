@@ -9,7 +9,7 @@ import {
   StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChatProducts } from '@/components/chat/ChatProducts';
+import { ChatProducts, CompoundProductCards } from '@/components/chat/ChatProducts';
 import { IngredientResult } from '@/components/chat/IngredientResult';
 import { KnowledgeCitations } from '@/components/chat/KnowledgeCitations';
 import { MemoryProposalGroup } from '@/components/chat/MemoryProposalGroup';
@@ -46,6 +46,29 @@ const categories: { id: Category; image: number; label: TranslationKey; caption:
   { id: 'ingredient', image: require('@/assets/images/chat/ingredient-consultation.png'), label: 'chat.ui.ingredient', caption: 'chat.ui.ingredientCaption', prompts: ['chat.ui.ingredientQuestion1', 'chat.ui.ingredientQuestion2', 'chat.ui.ingredientQuestion3'] },
   { id: 'style', image: styleBrowseImage, label: 'chat.ui.style', caption: 'chat.ui.styleCaption', prompts: ['chat.ui.styleQuestion1', 'chat.ui.styleQuestion2', 'chat.ui.styleQuestion3'] },
 ];
+
+function CompoundSources({ evidence }: { evidence: NonNullable<ChatMessage['knowledge']>['evidence'] }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  if (!evidence.length) return null;
+  return <View>
+    <Pressable accessibilityRole="button" aria-expanded={open} onPress={() => setOpen((value) => !value)}
+      style={styles.retry}>
+      <Text style={styles.retryText}>{t('chat.compound.sources', { count: evidence.length })}</Text>
+    </Pressable>
+    {open ? <KnowledgeCitations evidence={evidence.map((item, index) => ({ ...item, id: String(index + 1) }))} /> : null}
+  </View>;
+}
+
+function messageAnswer(message: ChatMessage) {
+  const text = displayAssistantText(message.text);
+  const evidence = message.compound && message.knowledge?.evidence;
+  if (!evidence?.length) return text;
+  return text.replace(/\[([^\]\n]+)\]/g, (marker, id: string) => {
+    const index = evidence.findIndex((item) => item.id === id);
+    return index >= 0 ? `[${index + 1}]` : marker;
+  });
+}
 
 function OptionSearchScope({ result }: { result: NonNullable<ChatMessage['optionSearch']> }) {
   const { t } = useI18n();
@@ -1001,7 +1024,7 @@ function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload
             </View>
           ) : (
             <View>
-              {messages.length && !editing && subject.type === 'general' && !hasStyleConversation ? <Text style={styles.contextNotice}>{t('chat.ui.contextNotice')}</Text> : null}
+              {messages.length && !editing && subject.type === 'general' && !hasStyleConversation && !messages.findLast((item) => item.role === 'assistant')?.compound ? <Text style={styles.contextNotice}>{t('chat.ui.contextNotice')}</Text> : null}
               {subject.type === 'general' ? <View style={styles.categoryChips}>
                 {categories.map((item) => (
                   <Pressable key={item.id} accessibilityRole="button" accessibilityState={{ selected: category === item.id }}
@@ -1099,11 +1122,11 @@ function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload
           </View> : null}
           {visibleMessages.map((message, messageIndex) => (
             <View key={message.id} style={styles.messageGroup}>
-              {message.role === 'assistant' && message.fragranceSearchSummary ? (
+              {message.role === 'assistant' && !message.compound && message.fragranceSearchSummary ? (
                 <FragranceSearchResult message={message} selectedShades={selectedShades} selectedProductId={chosenProductId}
                   onSelectProduct={canSelect(message) ? (productId) => selectProduct(productId, message) : undefined}
                   onSelectShade={(productId, shadeId) => selectShade(productId, shadeId, message)} />
-              ) : message.role === 'assistant' && !message.knowledge && !message.styleRecipe && (message.category === 'ingredient' || message.ingredientResults?.length) ? (
+              ) : message.role === 'assistant' && !message.compound && !message.knowledge && !message.styleRecipe && (message.category === 'ingredient' || message.ingredientResults?.length) ? (
                 <IngredientResult
                   heading={t('chat.ui.ingredient')}
                   summary={displayAssistantText(message.text)}
@@ -1155,7 +1178,7 @@ function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload
                     <Text style={styles.answerTitle}>{t('chat.ui.title')}</Text>
                   </View>
                 ) : null}
-                <Text style={[styles.messageText, message.role === 'user' && styles.userMessageText]}>{message.role === 'assistant' ? displayAssistantText(message.text) : message.text}</Text>
+                <Text style={[styles.messageText, message.role === 'user' && styles.userMessageText]}>{message.role === 'assistant' ? messageAnswer(message) : message.text}</Text>
                 {message.role === 'assistant' && userId && memorySettings?.enabled !== false &&
                   message.appliedMemories?.some((item) => item.tool === 'catalog.search_products' &&
                     item.field === 'texture' && item.applicationKind === 'ranking')
@@ -1173,7 +1196,7 @@ function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload
                   message.appliedMemories?.some((item) => item.key === 'skin.type' &&
                     item.tool === 'skincare.recommend' && item.applicationKind === 'candidate_selection')
                   ? <Text style={styles.note}>{t('chat.memory.appliedSkinType')}</Text> : null}
-                {message.knowledge ? <KnowledgeCitations evidence={message.knowledge.evidence} /> : null}
+                {message.knowledge ? (message.compound ? <CompoundSources evidence={message.knowledge.evidence} /> : <KnowledgeCitations evidence={message.knowledge.evidence} />) : null}
               </View>}
               {message.memoryProposal && userId && memory.settings?.enabled !== false && message.ownerKey === ownerKey &&
                 message.generation === conversationGeneration && !dismissedProposals.includes(message.memoryProposal.proposalId)
@@ -1218,7 +1241,7 @@ function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload
                   {look.match ? <Text style={styles.retryText}>{t('chat.style.match', { match: look.match })}</Text> : null}
                 </Pressable>)}
               </View> : null}
-              {subject.type === 'general' && message.role === 'assistant' && message.category === 'style' && !message.styleRecipe && !message.knowledge && !message.styleCandidates && !activeStyle && message.styleStatus !== 'not_found'
+              {subject.type === 'general' && message.role === 'assistant' && message.category === 'style' && !message.compound && !message.styleRecipe && !message.knowledge && !message.styleCandidates && !activeStyle && message.styleStatus !== 'not_found'
                 ? <InlineStyleLookPicker question={message.question ?? ''} onSelect={(lookId) => {
                   if (!mounted.current || !owned() || currentRoom()?.request) return;
                   store().setStyle(target, { kind: 'video', lookId, currentStep: 0 });
@@ -1237,8 +1260,10 @@ function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload
                   </Pressable> : null}
                 </View>
               ) : null}
-              {message.role === 'assistant' && message.optionSearch ? <OptionSearchScope result={message.optionSearch} /> : null}
-              {message.role === 'assistant' && !message.fragranceSearchSummary &&
+              {message.role === 'assistant' && message.compound ? <CompoundProductCards result={message.compound}
+                onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId, undefined, true)); }} /> : null}
+              {message.role === 'assistant' && !message.compound && message.optionSearch ? <OptionSearchScope result={message.optionSearch} /> : null}
+              {message.role === 'assistant' && !message.compound && !message.fragranceSearchSummary &&
                 !!(message.products?.length || (message.styleRecipe?.kind === 'video' && message.styleRecipe.products.length)) &&
                 (!message.styleRecipe || (message.styleRecipe.productQuestion ?? /제품|상품|product|商品|製品|产品|사용한.{0,12}(?:립|입술|아이라인|아이라이너|마스카라|컨실러)/i.test(message.question ?? ''))) ? <RelatedProducts refs={message.products ?? []} optionSearch={message.optionSearch}
                   colorMemory={userId && memorySettings?.enabled !== false
@@ -1252,7 +1277,7 @@ function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload
                 selectedProductId={chosenProductId}
                 onSelectProduct={canSelect(message) ? (productId) => selectProduct(productId, message) : undefined}
                 onSelectShade={(productId, shadeId) => selectShade(productId, shadeId, message)} /> : null}
-              {message.role === 'assistant' && !message.fragranceSearchSummary && !message.knowledge && !message.products?.length && (message.category === 'product' || message.category === undefined) &&
+              {message.role === 'assistant' && !message.compound && !message.fragranceSearchSummary && !message.knowledge && !message.products?.length && (message.category === 'product' || message.category === undefined) &&
                 (message.resultType === 'empty' || (!message.resultType && extractChatConditions(message.question ?? '').length)) ? (
                 <View style={styles.emptyState}>
                   <View style={styles.stateIcon}><Ionicons name="search-outline" size={22} color={theme.colors.rose} /></View>

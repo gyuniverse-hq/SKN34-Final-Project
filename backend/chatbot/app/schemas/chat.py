@@ -12,6 +12,7 @@ from app.schemas.catalog import (
     IngredientSelection,
     OptionSearchResponse,
 )
+from app.schemas.compound_consultation import CompoundContext, CompoundDisplay
 from app.schemas.conversation import ConversationMetadata
 from app.schemas.knowledge import KnowledgeReply
 from app.schemas.memory import (
@@ -129,6 +130,7 @@ class ChatSessionRef(ArModel):
 class BeautyContext(ArModel):
     """Client-carried search context; IDs and facts are always rechecked with Catalog."""
 
+    compound: CompoundContext | None = Field(default=None, exclude_if=lambda v: v is None)
     option_scope: list[IngredientSelection] | None = Field(
         default=None, max_length=42, exclude_if=lambda v: v is None
     )
@@ -178,6 +180,7 @@ class ChatRequest(ApiModel):
     structured_memory: bool = Field(default=False, strict=True, exclude_if=lambda value: not value)
     _server_history: bool = PrivateAttr(default=False)
     _historical_product_ids: tuple[str, ...] = PrivateAttr(default=())
+    _compound_context: CompoundContext | None = PrivateAttr(default=None)
     _g7_execution: object | None = PrivateAttr(default=None)
     _consented_memories: list[str] = PrivateAttr(default_factory=list)
     _consultation_memories: tuple[ConsultationMemory, ...] | None = PrivateAttr(default=None)
@@ -417,6 +420,7 @@ class ChatIngredientResult(CatalogIngredients):
 
 
 class ChatResponse(ApiModel):
+    compound: CompoundDisplay | None = Field(default=None, exclude_if=lambda v: v is None)
     conversation: ConversationMetadata | None = Field(default=None, exclude_if=lambda v: v is None)
     memory_proposal: MemoryProposal | None = Field(default=None, exclude_if=lambda v: v is None)
     applied_memories: list[

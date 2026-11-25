@@ -4,7 +4,7 @@ import { AppState, Keyboard, KeyboardAvoidingView, Platform, Text, TextInput, ty
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import ChatScreen from '@/app/chat';
 import type { BeautyChatContext, ChatStyleRecipe } from '@/types';
-import { ChatProducts } from '@/components/chat/ChatProducts';
+import { ChatProducts, CompoundProductCards } from '@/components/chat/ChatProducts';
 import { IngredientResult } from '@/components/chat/IngredientResult';
 import { RecentConversations } from '@/components/chat/RecentConversations';
 import { StyleRecipeResult } from '@/components/chat/StyleRecipeResult';
@@ -68,7 +68,7 @@ jest.mock('@/lib/queries', () => ({
   useLook: () => ({}),
   useProduct: (id: string) => ({ data: { id, name: id, shades: [{ id: `${id}-01`, name: '01' }, { id: `${id}-02`, name: '02' }] } }),
 }));
-jest.mock('@/components/chat/ChatProducts', () => ({ ChatProducts: () => null }));
+jest.mock('@/components/chat/ChatProducts', () => ({ ChatProducts: () => null, CompoundProductCards: () => null }));
 jest.mock('@expo/vector-icons/Ionicons', () => () => null);
 const mockRouteParams: { recipeKind?: string; recipeLookId?: string; productId?: string; shadeId?: string } = {};
 jest.mock('expo-router', () => ({
@@ -1619,6 +1619,31 @@ describe('ingredient selection and request snapshots', () => {
 });
 
 describe('standalone chat input', () => {
+  it.each([{ refs: [] }, { refs: [{ id: 'care', brand: 'B', name: 'Care', category: 'skincare' }] }])(
+    'shows the compound card panel and knowledge sources without a second generic product lookup (%#)', async ({ refs }) => {
+      const compound = { planVersion: 1, goal: { wantsProducts: true }, options: [], batches: [], limitations: [] };
+      mockMutateAsync.mockResolvedValueOnce({ answer: '관리 방법과 조건 확인 결과 [K1.E1]', products: refs, compound,
+        knowledge: { status: 'answered', claims: [], findings: [], limitations: '', evidence: [{ id: 'K1.E1',
+          documentId: 1, chunkId: 'c1', title: '근거 문서', sourceFileId: 1, sourceVersion: 'v1', blockOrder: 1,
+          startUtf16: 0, endUtf16: 3, sourceLocator: {}, quote: '원문 근거', relevance: 'essential' }] } });
+      const view = await renderScreen();
+      await act(async () => { view.root.findByType(TextInput).props.onChangeText('건조함 관리와 제품 추천'); });
+      await act(async () => { view.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+      const replies = view.root.findAllByType(Text).map((item) => item.props.children);
+      expect(replies).toContain('관리 방법과 조건 확인 결과 [1]');
+      expect(replies).not.toContain('원문 근거');
+      await act(async () => { buttonWithText(view.root, 'chat.compound.sources').props.onPress(); });
+      expect(view.root.findAllByType(Text).map((item) => item.props.children)).toContain('원문 근거');
+      const cards = view.root.findByType(CompoundProductCards);
+      expect(cards.props.result).toEqual(compound);
+      expect(view.root.findAllByType(Text).map((item) => item.props.children)).not.toContain('chat.ui.contextNotice');
+      await act(async () => { cards.props.onOpenProduct('care', undefined); });
+      expect(mockPush).toHaveBeenCalledWith({ pathname: '/product/[id]', params: { id: 'care', requireShade: '1' } });
+      expect(view.root.findAllByType(ChatProducts)).toHaveLength(0);
+      expect(mockProductsByIds).not.toHaveBeenCalled();
+      await act(async () => { view.unmount(); });
+    }
+  );
   it('hides answer emphasis without changing the question, stored answer, or source quote', async () => {
     const question = '질문 **그대로**';
     const answer = '답변 **강조** 그리고 **미완성';

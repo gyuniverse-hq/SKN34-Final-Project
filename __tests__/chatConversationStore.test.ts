@@ -1,4 +1,4 @@
-import type { BeautyChatContext, KnowledgeReply } from '@/types';
+import type { BeautyChatContext, CompoundConsultation, KnowledgeReply } from '@/types';
 import type { ChatRequestSnapshot, ConversationTarget } from '@/types/chatConversation';
 import { recentChatMessages, recentStyleMessages, useChatConversationStore } from '@/store/chatConversationStore';
 
@@ -314,6 +314,26 @@ test.each(['product', 'shade'] as const)('G3 does not resurrect dismissed pendin
   const explanation = store().beginRequest(target, request(target, '일반 설명'))!;
   store().completeRequest(explanation, { answer: 'general', products: [], sessionStatus: 'unchanged', pendingClarification: pending }, '일반 설명');
   expect(store().conversations[id].conversation.pendingClarification).toBeUndefined();
+});
+
+test('keeps the same compound display for a live reply and a restored server turn', () => {
+  const id = store().open({ type: 'general' })!;
+  const target = store().conversations[id].conversation;
+  store().bindServerRoom(target, 'server', 1);
+  const compound: CompoundConsultation = {
+    planVersion: 2, goal: { goals: ['pores'], excludedIngredients: [], unsupportedConditions: [],
+      wantsKnowledge: true, wantsProducts: true, fragranceFree: false },
+    options: [{ candidate: { rank: 9, productId: 'p', optionId: 'non-shade', optionName: '50 ml',
+      productName: 'Care', brand: 'B', hasShades: false, dataVersion: 'v4', ingredientCodes: [] }, outcome: 'unknown' }],
+    batches: [{ productIds: ['p'], reason: 'lookup_failed' }], limitations: [],
+  };
+  const ticket = store().beginRequest(target, request(target))!;
+  store().completeRequest(ticket, { answer: '관리 안내', products: [], compound }, 'question');
+  expect(store().conversations[id].messages.at(-1)?.compound).toEqual(compound);
+  store().restoreServerRoom(target, { conversationId: 'server', conversationVersion: 3, subject: { type: 'general' },
+    context: {}, messages: [{ id: 'persisted', role: 'assistant', createdAt: '2026-11-26', text: '관리 안내',
+      displayPayload: { products: [], compound } }] }, target.generation, true);
+  expect(store().conversations[id].messages.at(-1)).toMatchObject({ id: 'persisted', compound });
 });
 
 test('keeps optional knowledge citations with their assistant reply', () => {

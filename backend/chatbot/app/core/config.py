@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     g5_enabled: bool = False
     g5_openai_api_key: str | None = None
     g5_internal_token: str | None = None
+    g8_enabled: bool = False
+    g8_parallelism: int = Field(default=2, ge=1, le=3)
+    g8_read_retries: int = Field(default=1, ge=0, le=2)
+    g8_deadline_seconds: float = Field(default=80, gt=0, lt=90)
     g7_persistence_enabled: bool = False
     g7_memory_enabled: bool = False
     g7_structured_memory_enabled: bool = False

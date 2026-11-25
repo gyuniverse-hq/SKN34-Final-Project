@@ -370,7 +370,7 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
         ...item.displayPayload, id: item.id, role: item.role, text: item.text,
         ownerKey, generation: room.generation,
       }));
-      if (messages.some(message => message.products?.length) &&
+      if (messages.some(message => !message.compound && message.products?.length) &&
           (!product?.historicalCandidateRefs?.length || product.filters?.optionSearch)) {
         room.notice = 'chat.session.newSearchHint';
       }
@@ -695,6 +695,7 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
           ...(response.appliedMemories?.length ? { appliedMemories: response.appliedMemories } : {}),
           ...(response.knowledge ? { knowledge: response.knowledge } : {}),
           optionSearch: response.optionSearch,
+          ...(response.compound ? { compound: response.compound } : {}),
         };
         record.messages = ((current: ChatMessage[]) => {
           const questionIndex = current.findIndex((message) => message.id === messageId);
