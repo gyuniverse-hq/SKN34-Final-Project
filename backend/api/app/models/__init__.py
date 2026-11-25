@@ -111,6 +111,7 @@ from app.models.recommendation_feedback import (
     RecommendationRequestRow,
     UserBehaviorEventRow,
 )
+from app.models.reward import RewardAttendanceRow, RewardCouponRow
 from app.models.skincare import SkincareServingRow
 
 __all__ = [
@@ -180,6 +181,8 @@ __all__ = [
     "RecommendationLegacyArchiveRow",
     "RecommendationRequestRow",
     "UserBehaviorEventRow",
+    "RewardAttendanceRow",
+    "RewardCouponRow",
     "RawOyBrandRow",
     "RawOyCategoryRow",
     "RawOyCrawlLogRow",
