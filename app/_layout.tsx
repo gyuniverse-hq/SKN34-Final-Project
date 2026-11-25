@@ -63,7 +63,7 @@ function AccountDeletionGate() {
   const waiting = hydrated && deletion.waiting;
   if (deletion.progress) {
     return <AccountDeletionProgress complete={deletion.progress === 'complete'}
-      busy={deletion.busy} issue={deletion.issue} signedIn={deletion.signedIn}
+      busy={deletion.busy} issue={deletion.issue} signedIn={deletion.signedIn} canCheck={deletion.canCheck}
       onCheck={() => { void deletion.check(); }} onLeave={() => { void deletion.leave(); }} />;
   }
   return <AccountDeletionContext.Provider value={deletion}>

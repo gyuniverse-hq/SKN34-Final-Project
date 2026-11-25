@@ -11,16 +11,28 @@ export function agreeToTerms() {
   return apiPost<TermsStatus>('/api/me/terms', { version: TERMS_VERSION });
 }
 
-export async function deleteAccount(owner: string): Promise<'pending' | 'complete'> {
+export function isAccountDeletionReceipt(value: string | null | undefined): value is string {
+  return !!value && /^[0-9a-f]{32}\.[0-9a-f]{64}$/.test(value);
+}
+
+export async function deleteAccount(owner: string): Promise<{ phase: 'pending' | 'complete'; receipt?: string }> {
   try {
     await apiDelete('/api/me', { expectedUserId: owner, expectedStatus: 204 });
-    return 'complete';
+    return { phase: 'complete' };
   } catch (error) {
     if (error instanceof ApiError && error.status === 409 && error.code === 'account_deletion_in_progress') {
-      return 'pending';
+      return { phase: 'pending', receipt: isAccountDeletionReceipt(error.deletionReceipt) ? error.deletionReceipt : undefined };
     }
     throw error;
   }
+}
+
+export async function accountDeletionStatus(receipt: string) {
+  const result = await apiPost<{ status: 'pending' | 'complete' }>('/api/me/deletion-status', { receipt }, { anonymous: true });
+  if (result?.status !== 'pending' && result?.status !== 'complete') {
+    throw new ApiError('Invalid account deletion status', 502);
+  }
+  return result.status;
 }
 
 export function hasAccountDeletionFence(error: unknown) {

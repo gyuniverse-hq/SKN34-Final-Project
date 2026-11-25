@@ -9,14 +9,15 @@ interface Props {
   complete: boolean;
   busy: boolean;
   signedIn: boolean;
+  canCheck: boolean;
   issue?: 'unconfirmed' | 'sessionEnded' | 'cleanupFailed' | 'signOutFailed';
   onCheck: () => void;
   onLeave: () => void;
 }
 
-export function AccountDeletionProgress({ complete, busy, signedIn, issue, onCheck, onLeave }: Props) {
+export function AccountDeletionProgress({ complete, busy, signedIn, canCheck, issue, onCheck, onLeave }: Props) {
   const { t } = useI18n();
-  const showCheck = complete ? issue === 'cleanupFailed' : signedIn && issue !== 'sessionEnded';
+  const showCheck = complete ? issue === 'cleanupFailed' : canCheck && issue !== 'sessionEnded';
 
   return (
     <SafeAreaView style={styles.screen}>

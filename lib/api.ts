@@ -8,7 +8,8 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
-    public code?: string
+    public code?: string,
+    public deletionReceipt?: string,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -84,13 +85,15 @@ async function apiRequest(
   }
 
   if (!res.ok) {
-    let body: ApiErrorBody | undefined;
+    let body: (ApiErrorBody & { deletionReceipt?: unknown }) | undefined;
     try {
-      body = (await res.json()) as ApiErrorBody;
+      body = await res.json();
     } catch {
       // non-JSON error body
     }
-    throw new ApiError(body?.error ?? `Request failed (${res.status})`, res.status, body?.code);
+    const receipt = body?.code === 'account_deletion_in_progress' && typeof body.deletionReceipt === 'string'
+      ? body.deletionReceipt : undefined;
+    throw new ApiError(body?.error ?? `Request failed (${res.status})`, res.status, body?.code, receipt);
   }
   return res;
 }
@@ -112,10 +115,10 @@ export async function apiGet<T>(path: string, options: { timeoutMs?: number; exp
 export async function apiPost<T>(
   path: string,
   body: unknown,
-  options: { headers?: Record<string, string>; baseUrl?: string; timeoutMs?: number; expectedUserId?: string } = {}
+  options: { headers?: Record<string, string>; baseUrl?: string; timeoutMs?: number; expectedUserId?: string; anonymous?: true } = {}
 ): Promise<T> {
   // Feedback belongs to the user who saw the recommendation, even across an account switch.
-  const fixedToken = await ownerToken(options.expectedUserId);
+  const fixedToken = options.anonymous ? { value: null } : await ownerToken(options.expectedUserId);
   const res = await apiRequest(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options.headers },

@@ -42,6 +42,16 @@ class AccountDeletionRepository:
             select(AccountDeletionJobRow.status).where(AccountDeletionJobRow.owner_id == owner_id)
         )
 
+    async def lookup(self, owner_id: str) -> AccountDeletionJobRow | None:
+        return await self._session.scalar(
+            select(AccountDeletionJobRow).where(AccountDeletionJobRow.owner_id == owner_id)
+        )
+
+    async def receipt_status(self, job_id: UUID) -> str | None:
+        return await self._session.scalar(
+            select(AccountDeletionJobRow.status).where(AccountDeletionJobRow.id == job_id)
+        )
+
     async def get_or_create(self, owner_id: str) -> AccountDeletionJobRow:
         if not isinstance(owner_id, str) or not 1 <= len(owner_id) <= 64:
             raise ValueError("Invalid owner ID")
@@ -50,9 +60,7 @@ class AccountDeletionRepository:
             .values(id=uuid4(), owner_id=owner_id)
             .on_conflict_do_nothing(index_elements=[AccountDeletionJobRow.owner_id])
         )
-        job = await self._session.scalar(
-            select(AccountDeletionJobRow).where(AccountDeletionJobRow.owner_id == owner_id)
-        )
+        job = await self.lookup(owner_id)
         if job is None:
             raise RuntimeError("Deletion job could not be read")
         return job

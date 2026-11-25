@@ -243,7 +243,9 @@ it.each([503, 'network', 202] as const)('keeps the normal screen when initial re
 
 it('retries local cleanup after an immediate 204 without sending another deletion', async () => {
   deletionResponse = async () => response(204);
-  const failingCleanup = jest.spyOn(AsyncStorage, 'multiRemove').mockRejectedValueOnce(new Error('disk error'));
+  const cleanup = jest.mocked(AsyncStorage.multiRemove);
+  const removeItems = cleanup.getMockImplementation()!;
+  cleanup.mockRejectedValueOnce(new Error('disk error'));
   try {
     await mount();
     await openConfirm();
@@ -257,7 +259,7 @@ it('retries local cleanup after an immediate 204 without sending another deletio
     expect(displays('account.deleteCleanupFailed')).toBe(false);
     expect(deleteCalls()).toHaveLength(1);
   } finally {
-    failingCleanup.mockRestore();
+    cleanup.mockReset().mockImplementation(removeItems);
   }
 });
 
@@ -278,6 +280,44 @@ it('restores a receipt on app launch and distinguishes session expiry from compl
   expect(displays('my.deleteData')).toBe(true);
   expect(await AsyncStorage.getItem(marker('A'))).toBe('1');
 });
+
+it('checks the signed receipt and shows completion after the auth session ends', async () => {
+  const receipt = 'a'.repeat(32) + '.' + 'b'.repeat(64);
+  const accepted = { ...pending(), json: async () => ({
+    code: 'account_deletion_in_progress', deletionReceipt: receipt,
+  }) } as Response;
+  request.mockImplementation(async (url, options) => {
+    if (options?.method === 'DELETE') return accepted;
+    if (options?.method === 'POST') {
+      expect(String(url)).toContain('/api/me/deletion-status');
+      expect(options.headers).not.toHaveProperty('Authorization');
+      expect(JSON.parse(String(options.body))).toEqual({ receipt });
+      return { ...response(200), json: async () => ({ status: 'complete' }) } as Response;
+    }
+    return memberResponse();
+  });
+  await mount();
+  await openConfirm();
+  await act(async () => mockConfirm!());
+  expect(await AsyncStorage.getItem(marker('A'))).toBe(receipt);
+  await switchOwner(null);
+  expect(displays('account.deletePendingTitle')).toBe(true);
+  expect(displays('account.deleteDone')).toBe(false);
+  const remove = jest.mocked(AsyncStorage.removeItem);
+  const removeItem = remove.getMockImplementation()!;
+  await act(async () => {
+    await new Promise<void>(resolve => {
+      remove.mockImplementationOnce(async (...args) => {
+        await removeItem(...args);
+        resolve();
+      });
+    });
+  });
+  expect(displays('account.deleteDone')).toBe(true);
+  expect(displays('account.deleteCleanupFailed')).toBe(false);
+  expect(deleteCalls()).toHaveLength(1);
+  expect(await AsyncStorage.getItem(marker('A'))).toBeNull();
+}, 15000);
 
 it('recovers an accepted request from member status without resubmitting', async () => {
   memberResponse = () => response(403, 'account_unavailable');

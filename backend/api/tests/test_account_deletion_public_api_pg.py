@@ -6,7 +6,8 @@ from uuid import uuid4
 
 import httpx
 import pytest
-from sqlalchemy import delete, select
+from pydantic import SecretStr
+from sqlalchemy import delete, select, update
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -115,6 +116,28 @@ async def test_duplicate_intake_and_pausing_preserve_the_member_fence(member_api
     ] == "account_deletion_in_progress"
     assert (await client.get("/api/me", headers=other_headers)).status_code == 200
     assert (await client.delete("/api/me", headers=other_headers)).status_code == 503
+
+
+async def test_signed_receipt_confirms_deletion_after_auth_is_gone(member_api, monkeypatch):
+    client, sessions, owner, _ = member_api
+    monkeypatch.setattr(get_settings(), "g7_internal_deletion_key", SecretStr("test-receipt-key"))
+    intake = await client.delete("/api/me", headers={"Authorization": f"Bearer {owner}"})
+    assert intake.status_code == 409
+    receipt = intake.json()["deletionReceipt"]
+    path = "/api/me/deletion-status"
+    assert (await client.post(path, json={"receipt": receipt})).json() == {"status": "pending"}
+    forged = receipt[:-1] + ("0" if receipt[-1] != "0" else "1")
+    assert (await client.post(path, json={"receipt": forged})).status_code == 404
+    monkeypatch.setattr(auth, "get_verifier", lambda: None)
+    async with sessions.begin() as session:
+        await session.execute(
+            update(AccountDeletionJobRow)
+            .where(AccountDeletionJobRow.owner_id == owner)
+            .values(status="DONE", phase="DONE")
+        )
+    complete = await client.post(path, json={"receipt": receipt})
+    assert complete.status_code == 200 and complete.json() == {"status": "complete"}
+    assert complete.headers["Cache-Control"] == "no-store"
 
 
 async def test_member_write_waits_for_intake_and_cannot_recreate_member(member_api, monkeypatch):

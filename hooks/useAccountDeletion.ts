@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient, type QueryClient, type QueryKey } from '@tanstack/react-query';
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { deleteAccount, hasAccountDeletionFence } from '@/lib/account';
+import { createContext, useCallback, useContext, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
+import { accountDeletionStatus, deleteAccount, hasAccountDeletionFence, isAccountDeletionReceipt } from '@/lib/account';
 import { ApiError } from '@/lib/api';
 import { getCurrentUserId, signOut, useAuth } from '@/lib/auth';
 import { useMe } from '@/lib/queries';
@@ -15,8 +15,11 @@ type Issue = 'unconfirmed' | 'sessionEnded' | 'cleanupFailed' | 'signOutFailed';
 type DeletionState = {
   owner: string;
   phase: 'ready' | 'pending' | 'complete';
+  receipt?: string;
   issue?: Issue;
 };
+
+const STATUS_POLL_MS = 2_000;
 
 const markerKey = (owner: string) => `${STORAGE_KEYS.accountDeletion}:${owner}`;
 
@@ -80,14 +83,15 @@ export function useAccountDeletionController() {
   useEffect(() => {
     if (!ready || !owner) return;
     let active = true;
-    const restore = (pending: boolean) => {
+    const restore = (marker: string | null) => {
       if (active) {
+        const receipt = isAccountDeletionReceipt(marker) ? marker : undefined;
         setState(previous => previous?.owner === owner
           ? previous
-          : { owner, phase: pending ? 'pending' : 'ready' });
+          : { owner, phase: marker === '1' || receipt ? 'pending' : 'ready', receipt });
       }
     };
-    void AsyncStorage.getItem(markerKey(owner)).then(value => restore(value === '1'), () => restore(false));
+    void AsyncStorage.getItem(markerKey(owner)).then(restore, () => restore(null));
     return () => { active = false; };
   }, [owner, ready]);
 
@@ -100,11 +104,11 @@ export function useAccountDeletionController() {
     }
   }, [owner, serverFence, phase]);
 
-  const prepare = useCallback((id: string) => {
+  const prepare = useCallback((id: string, receipt?: string) => {
     const existing = preparation.current.get(id);
     if (existing) return existing;
     const tasks = Promise.allSettled([
-      AsyncStorage.setItem(markerKey(id), '1'),
+      AsyncStorage.setItem(markerKey(id), receipt ?? '1'),
       clearAccountData(client, id),
     ]);
     preparation.current.set(id, tasks);
@@ -112,8 +116,8 @@ export function useAccountDeletionController() {
   }, [client]);
 
   useEffect(() => {
-    if (owner && (serverFence || phase === 'pending')) void prepare(owner);
-  }, [owner, phase, prepare, serverFence]);
+    if (owner && (serverFence || phase === 'pending')) void prepare(owner, owned?.receipt);
+  }, [owner, owned?.receipt, phase, prepare, serverFence]);
 
   async function runOnce(id: string, action: () => Promise<void>) {
     if (operations.current.has(id)) return;
@@ -157,11 +161,13 @@ export function useAccountDeletionController() {
         return;
       }
 
-      if (result === 'pending') {
-        if (activeOwner.current === id) {
-          setState({ owner: id, phase: 'pending' });
+      if (result.phase === 'pending') {
+        if (activeOwner.current === id || (activeOwner.current === null && result.receipt)) {
+          setState(previous => previous?.owner === id
+            ? { owner: id, phase: 'pending', receipt: result.receipt } : previous);
         }
-        await prepare(id);
+        await prepare(id, result.receipt);
+        if (result.receipt) await AsyncStorage.setItem(markerKey(id), result.receipt).catch(() => {});
         return;
       }
 
@@ -171,10 +177,35 @@ export function useAccountDeletionController() {
   }
 
   const visible = owner ? owned : state;
-  const issue = owner || visible?.phase === 'complete' ? visible?.issue : 'sessionEnded';
+  const issue = owner || visible?.receipt || visible?.phase === 'complete' ? visible?.issue : 'sessionEnded';
   const progress = visible?.phase === 'complete' ? 'complete'
     : serverFence || visible?.phase === 'pending' ? 'pending' : undefined;
   const busy = !!visible && running.has(visible.owner);
+  const pendingReceipt = progress === 'pending' ? visible?.receipt : undefined;
+  const pendingOwner = pendingReceipt ? visible?.owner : undefined;
+
+  async function checkReceipt(id: string, receipt: string) {
+    if (activeOwner.current !== null && activeOwner.current !== id) return;
+    await runOnce(id, async () => {
+      setIssue(id);
+      try {
+        if (await accountDeletionStatus(receipt) !== 'complete') return;
+        if (activeOwner.current !== null && activeOwner.current !== id) return;
+        await finish(id);
+        setState(previous => previous?.owner === id && previous.receipt === receipt
+          ? { owner: id, phase: 'complete', issue: previous.issue } : previous);
+      } catch {
+        setIssue(id, 'unconfirmed');
+      }
+    });
+  }
+
+  const poll = useEffectEvent(checkReceipt);
+  useEffect(() => {
+    if (!ready || !pendingOwner || !pendingReceipt || issue) return;
+    const timer = setInterval(() => { void poll(pendingOwner, pendingReceipt); }, STATUS_POLL_MS);
+    return () => clearInterval(timer);
+  }, [ready, pendingOwner, pendingReceipt, issue]);
 
   async function leave() {
     if (!visible) return;
@@ -198,13 +229,15 @@ export function useAccountDeletionController() {
     if (!visible) return;
     if (progress === 'complete') {
       await runOnce(visible.owner, () => finish(visible.owner));
+    } else if (visible.receipt) {
+      await checkReceipt(visible.owner, visible.receipt);
     } else if (owner && issue !== 'sessionEnded') {
       await submit(owner);
     }
   }
 
   return {
-    busy, waiting, progress, issue, signedIn: !!owner, submit, check, leave,
+    busy, waiting, progress, issue, signedIn: !!owner, canCheck: !!owner || !!pendingReceipt, submit, check, leave,
   };
 }
 

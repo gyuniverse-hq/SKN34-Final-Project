@@ -1,6 +1,7 @@
 """Durable deletion requests and replay-safe local processing steps."""
 
 import asyncio
+import hmac
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Literal, Protocol
@@ -20,6 +21,16 @@ from app.repositories.account_deletion_repository import AccountDeletionReposito
 from app.repositories.member_repository import MemberRepository
 
 _PHASES = ("BLOCKING", "PURGING_CHAT", "DELETING_AUTH", "DELETING_MEMBER")
+
+
+class AccountDeletionPending(ApiError):
+    def __init__(self, receipt: str | None) -> None:
+        super().__init__(409, "Account deletion is in progress", "account_deletion_in_progress")
+        self.receipt = receipt
+
+
+def _receipt_signature(job_id: str, key: str) -> str:
+    return hmac.digest(key.encode(), f"g7:deletion-status:{job_id}".encode(), "sha256").hex()
 
 
 def _unavailable() -> ApiError:
@@ -57,21 +68,43 @@ class AccountDeletionRequests:
                 await jobs.lock_owner(owner_id)
                 if not enabled and not await jobs.is_installed():
                     return False
-                status = await jobs.status(owner_id)
-                if status is None:
+                job = await jobs.lookup(owner_id)
+                if job is None:
                     if enabled:
-                        status = (await jobs.get_or_create(owner_id)).status
+                        job = await jobs.get_or_create(owner_id)
                     elif await jobs.has_jobs():
                         # Pausing intake must not route an adopted database through legacy deletion.
                         raise _unavailable()
                     else:
                         return False
+                job_id, status = job.id.hex, job.status
         except (SQLAlchemyError, OSError) as exc:
             raise _unavailable() from exc
 
         if status != "DONE":
-            raise ApiError(409, "Account deletion is in progress", "account_deletion_in_progress")
+            key = settings.g7_internal_deletion_key
+            receipt = (
+                f"{job_id}.{_receipt_signature(job_id, key.get_secret_value())}" if key else None
+            )
+            raise AccountDeletionPending(receipt)
         return True
+
+    async def receipt_status(self, receipt: str) -> Literal["pending", "complete"]:
+        settings = get_settings()
+        key = settings.g7_internal_deletion_key
+        if settings.env not in {"local", "test"} or not key:
+            raise _unavailable()
+        _require_local_database(settings.database_url)
+        job_id, _, signature = receipt.partition(".")
+        if not hmac.compare_digest(signature, _receipt_signature(job_id, key.get_secret_value())):
+            raise ApiError(404, "Deletion receipt not found", "not_found")
+        try:
+            status = await AccountDeletionRepository(self._session).receipt_status(UUID(hex=job_id))
+        except (SQLAlchemyError, OSError) as exc:
+            raise _unavailable() from exc
+        if status is None:
+            raise ApiError(404, "Deletion receipt not found", "not_found")
+        return "complete" if status == "DONE" else "pending"
 
 
 class ReplaySafeDeletionSteps(Protocol):

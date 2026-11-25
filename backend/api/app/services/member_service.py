@@ -96,6 +96,11 @@ class MemberService:
         await self._accounts.delete_user(user.id)
         await self._members.delete(user.id)
 
+    async def deletion_status(self, receipt: str):
+        if self._deletions is None:
+            raise ApiError(503, "Account deletion is unavailable", "account_deletion_unavailable")
+        return await self._deletions.receipt_status(receipt)
+
 
 def get_member_service(session: AsyncSession = Depends(get_session)) -> MemberService:
     settings = get_settings()
