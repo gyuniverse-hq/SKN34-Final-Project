@@ -204,7 +204,7 @@ function OrderDetail({ staff }: { staff: Staff }) {
   });
   return (
     <>
-      <Link to="/orders">← 주문 목록</Link>
+      <Link to="..">← 주문 목록</Link>
       <h1>주문 상세</h1>
       <LoadingError pending={q.isPending} error={q.error || mutation.error} />
       {q.data && (
@@ -433,7 +433,7 @@ function ProductDetail({ staff }: { staff: Staff }) {
   });
   return (
     <>
-      <Link to="/products">← 상품 목록</Link>
+      <Link to="..">← 상품 목록</Link>
       <h1>{q.data?.name || "상품 상세"}</h1>
       <LoadingError pending={q.isPending} error={q.error || m.error} />
       {m.isSuccess && <p role="status">저장했습니다.</p>}
