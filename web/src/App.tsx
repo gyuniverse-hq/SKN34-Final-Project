@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, NavLink, Navigate, Route, Routes, useParams } from "react-router";
+import {
+  Link,
+  NavLink,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   ApiError,
@@ -10,58 +19,85 @@ import {
   type CartLine,
   type Product,
 } from "./api";
+import { isStaffSession, signOut, STAFF_HOME } from "./auth";
 import { cartTotal, loadCart, saveCart } from "./cart";
-
-function Shell({
-  cartCount,
-  children,
-}: {
-  cartCount: number;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="shell">
-      <header className="top">
-        <Link to="/" className="brand">
-          VISHUE
-        </Link>
-        <nav className="nav">
-          <NavLink to="/" end>
-            쇼핑
-          </NavLink>
-          <NavLink to="/cart">장바구니 ({cartCount})</NavLink>
-        </nav>
-      </header>
-      <main className="main">{children}</main>
-    </div>
-  );
-}
+import { LoginPage } from "./Login";
+import { SignupPage } from "./Signup";
+import { StaffApp } from "./StaffApp";
 
 function money(n: number) {
   return `${n.toLocaleString("ko-KR")}원`;
 }
 
-function ArCta() {
+function Shell({
+  cartCount,
+  email,
+  children,
+}: {
+  cartCount: number;
+  email: string | null;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="ar-banner">
-      <strong>AR 가상 메이크업은 앱에서</strong>
-      <p>
-        웹에서는 쇼핑만 지원합니다. 입술에 직접 바른 것처럼 보려면 VISHUE 앱의 AR을
-        열어 주세요.
-      </p>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <a href={arAppUrl} target="_blank" rel="noreferrer">
-          <button type="button">앱에서 AR 열기</button>
-        </a>
-        {appStoreUrl && (
-          <a href={appStoreUrl} target="_blank" rel="noreferrer">
-            <button type="button" className="secondary">
-              스토어로 이동
+    <div className="shell">
+      <header className="site-header">
+        <div className="site-header-inner">
+          <Link to="/" className="brand" aria-label="VISHUE 홈">
+            VISHUE<span className="brand-dot">.</span>
+          </Link>
+          <nav className="site-nav" aria-label="주요 메뉴">
+            <NavLink to="/" end>
+              쇼핑
+            </NavLink>
+            <NavLink to="/cart">
+              장바구니
+              {cartCount > 0 ? <span className="nav-count">{cartCount}</span> : null}
+            </NavLink>
+            <a href={arAppUrl} target="_blank" rel="noreferrer" className="nav-ar">
+              앱 AR
+            </a>
+          </nav>
+          <div className="site-account">
+            {email ? <span className="account-email">{email}</span> : null}
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => void signOut()}>
+              로그아웃
             </button>
-          </a>
+          </div>
+        </div>
+      </header>
+      <main className="main">{children}</main>
+      <footer className="site-footer">
+        <div className="site-footer-inner">
+          <p className="footer-brand">
+            VISHUE<span className="brand-dot">.</span>
+          </p>
+          <p>가상 메이크업은 앱에서, 쇼핑은 웹에서.</p>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function ArCta({ compact = false }: { compact?: boolean }) {
+  return (
+    <aside className={`ar-strip${compact ? " is-compact" : ""}`}>
+      <div className="ar-strip-copy">
+        <strong>앱에서 AR 가상 메이크업</strong>
+        {!compact && (
+          <p>고른 립을 입술에 직접 바른 것처럼 보려면 VISHUE 앱 AR을 열어 주세요.</p>
         )}
       </div>
-    </div>
+      <div className="ar-strip-actions">
+        <a href={arAppUrl} target="_blank" rel="noreferrer" className="btn btn-sm">
+          앱에서 AR 열기
+        </a>
+        {appStoreUrl ? (
+          <a href={appStoreUrl} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm">
+            스토어
+          </a>
+        ) : null}
+      </div>
+    </aside>
   );
 }
 
@@ -70,44 +106,74 @@ function Home() {
     queryKey: ["products"],
     queryFn: () => api<{ products: Product[] }>("/api/products?category=lip"),
   });
+  const products = q.data?.products ?? [];
+
   return (
     <>
-      <section className="hero">
-        <h1>VISHUE 쇼핑</h1>
-        <p>립 제품을 고르고 장바구니에 담으세요. AR 가상 피팅은 앱에서 이어갑니다.</p>
+      <section className="shop-hero">
+        <div className="shop-hero-copy">
+          <p className="eyebrow">LIP COLLECTION</p>
+          <h1>나에게 맞는 립을 고르세요</h1>
+          <p className="shop-hero-lead">
+            VISHUE 웹에서 제품을 담고, AR 피팅은 앱에서 이어갑니다.
+          </p>
+        </div>
         <ArCta />
       </section>
-      {q.isPending && <p>불러오는 중…</p>}
+
+      {q.isPending && <p className="state">불러오는 중…</p>}
       {q.error && (
         <p className="form-error">
           {q.error instanceof Error ? q.error.message : "목록을 불러오지 못했습니다."}
         </p>
       )}
       {q.data && (
-        <div className="grid">
-          {q.data.products.map((p) => (
-            <Link key={p.id} to={`/products/${encodeURIComponent(p.id)}`} className="card">
-              <img src={p.imageUrl || undefined} alt="" />
-              <div className="body">
-                <span className="brand-line">{p.brand}</span>
-                <span className="name">{p.name}</span>
-                <span className="price">{money(p.priceKRW)}</span>
-              </div>
-            </Link>
-          ))}
-          {!q.data.products.length && <p className="empty">표시할 상품이 없습니다.</p>}
-        </div>
+        <section className="catalog">
+          <div className="catalog-head">
+            <h2>립 제품</h2>
+            {products.length > 0 && <span>{products.length}개</span>}
+          </div>
+          <div className="product-grid">
+            {products.map((p) => (
+              <Link
+                key={p.id}
+                to={`/products/${encodeURIComponent(p.id)}`}
+                className="product-card"
+              >
+                <div className="product-thumb">
+                  <img src={p.imageUrl || undefined} alt="" loading="lazy" />
+                </div>
+                <div className="product-body">
+                  <span className="product-brand">{p.brand}</span>
+                  <span className="product-name">{p.name}</span>
+                  <span className="product-price">{money(p.priceKRW)}</span>
+                  {!!p.shades?.length && p.shades.length > 1 && (
+                    <span className="shade-row">
+                      {p.shades.slice(0, 5).map((s) => (
+                        <span
+                          key={s.id}
+                          className="shade-dot"
+                          style={{ background: s.hex }}
+                          title={s.name}
+                        />
+                      ))}
+                      <span className="shade-count">{p.shades.length}색</span>
+                    </span>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+          {!products.length && <p className="empty">표시할 상품이 없습니다.</p>}
+        </section>
       )}
     </>
   );
 }
 
-function ProductDetail({
-  onAdd,
-}: {
-  onAdd: (line: CartLine) => void;
-}) {
+function ProductDetail({ onAdd }: { onAdd: (line: CartLine) => void }) {
   const { id = "" } = useParams();
+  const navigate = useNavigate();
   const q = useQuery({
     queryKey: ["product", id],
     queryFn: () => api<{ product: Product }>(`/api/products/${encodeURIComponent(id)}`),
@@ -116,6 +182,7 @@ function ProductDetail({
   const product = q.data?.product;
   const shades = product?.shades || [];
   const [shadeId, setShadeId] = useState("");
+  const [added, setAdded] = useState(false);
   useEffect(() => {
     if (shades[0] && !shadeId) setShadeId(shades[0].id);
   }, [shades, shadeId]);
@@ -123,23 +190,28 @@ function ProductDetail({
 
   return (
     <>
-      {q.isPending && <p>불러오는 중…</p>}
+      <button type="button" className="back-link" onClick={() => navigate(-1)}>
+        ← 쇼핑으로
+      </button>
+      {q.isPending && <p className="state">불러오는 중…</p>}
       {q.error && (
         <p className="form-error">
           {q.error instanceof Error ? q.error.message : "상품을 불러오지 못했습니다."}
         </p>
       )}
       {product && (
-        <div className="detail">
-          <img src={product.imageUrl || undefined} alt={product.name} />
-          <div>
-            <p className="brand-line">{product.brand}</p>
-            <h1 style={{ margin: "4px 0 8px", fontSize: 28 }}>{product.name}</h1>
-            <p>{money(product.priceKRW)}</p>
+        <article className="pdp">
+          <div className="pdp-media">
+            <img src={product.imageUrl || undefined} alt={product.name} />
+          </div>
+          <div className="pdp-info">
+            <p className="product-brand">{product.brand}</p>
+            <h1>{product.name}</h1>
+            <p className="pdp-price">{money(product.priceKRW)}</p>
             {!!shades.length && (
-              <>
-                <p style={{ marginTop: 16, fontSize: 13, color: "#6b5f63" }}>
-                  쉐이드 {shade?.name}
+              <div className="pdp-shades">
+                <p className="pdp-shade-label">
+                  쉐이드 <strong>{shade?.name}</strong>
                 </p>
                 <div className="shades">
                   {shades.map((s) => (
@@ -150,15 +222,17 @@ function ProductDetail({
                       style={{ background: s.hex }}
                       title={s.name}
                       aria-label={s.name}
+                      aria-pressed={s.id === shadeId}
                       onClick={() => setShadeId(s.id)}
                     />
                   ))}
                 </div>
-              </>
+              </div>
             )}
-            <div style={{ marginTop: 18, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <div className="pdp-actions">
               <button
                 type="button"
+                className="btn"
                 disabled={!shade}
                 onClick={() => {
                   if (!shade) return;
@@ -171,19 +245,18 @@ function ProductDetail({
                     unitPriceKRW: product.priceKRW,
                     quantity: 1,
                   });
+                  setAdded(true);
                 }}
               >
-                장바구니 담기
+                {added ? "담았어요 · 하나 더" : "장바구니 담기"}
               </button>
-              <Link to="/cart">
-                <button type="button" className="secondary">
-                  장바구니
-                </button>
+              <Link to="/cart" className="btn btn-ghost">
+                장바구니
               </Link>
             </div>
-            <ArCta />
+            <ArCta compact />
           </div>
-        </div>
+        </article>
       )}
     </>
   );
@@ -251,32 +324,37 @@ function CartPage({
 
   return (
     <>
-      <h1>장바구니</h1>
-      {!lines.length && !orderId && <p className="empty">담은 상품이 없습니다.</p>}
-      {!!lines.length && (
-        <table className="cart-table">
-          <thead>
-            <tr>
-              <th>상품</th>
-              <th>쉐이드</th>
-              <th>수량</th>
-              <th>금액</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
+      <section className="page-title">
+        <h1>장바구니</h1>
+        <p>{lines.length ? `${lines.length}개 상품` : "담은 상품이 없습니다."}</p>
+      </section>
+
+      {!lines.length && !orderId && (
+        <div className="empty-box">
+          <p>아직 담은 제품이 없어요.</p>
+          <Link to="/" className="btn">
+            쇼핑 계속하기
+          </Link>
+        </div>
+      )}
+
+      <div className="cart-layout">
+        {!!lines.length && (
+          <ul className="cart-list">
             {lines.map((l) => (
-              <tr key={`${l.productId}:${l.shadeId}`}>
-                <td>
-                  {l.brand} {l.productName}
-                </td>
-                <td>{l.shadeName}</td>
-                <td>{l.quantity}</td>
-                <td>{money(l.unitPriceKRW * l.quantity)}</td>
-                <td>
+              <li key={`${l.productId}:${l.shadeId}`} className="cart-item">
+                <div className="cart-item-copy">
+                  <span className="product-brand">{l.brand}</span>
+                  <strong className="cart-item-name">{l.productName}</strong>
+                  <span className="cart-item-meta">
+                    {l.shadeName} · {l.quantity}개
+                  </span>
+                </div>
+                <div className="cart-item-side">
+                  <span className="product-price">{money(l.unitPriceKRW * l.quantity)}</span>
                   <button
                     type="button"
-                    className="secondary"
+                    className="btn btn-ghost btn-sm"
                     onClick={() =>
                       setLines(
                         lines.filter(
@@ -288,37 +366,66 @@ function CartPage({
                   >
                     삭제
                   </button>
-                </td>
-              </tr>
+                </div>
+              </li>
             ))}
-          </tbody>
-        </table>
-      )}
-      <div className="checkout-box">
-        <div>
-          합계 <strong>{money(total)}</strong>
-        </div>
-        <button type="button" disabled={busy || !lines.length} onClick={() => void checkout()}>
-          {busy ? "주문 생성 중…" : "주문 생성 (결제 준비)"}
-        </button>
-        <p style={{ margin: 0, fontSize: 13, color: "#6b5f63" }}>
-          Toss 위젯 확정은 앱·기존 `/pay` 흐름과 동일합니다. 여기서는 주문을 만들고 결제는
-          운영 설정에 맞는 웹 결제 URL로 이어가세요.
-        </p>
-        {error && <p className="form-error">{error}</p>}
-        {orderId && (
-          <p role="status">
-            주문이 생성되었습니다: <code>{orderId}</code>
-          </p>
+          </ul>
         )}
+
+        <div className="checkout-box">
+          <div className="checkout-total">
+            <span>합계</span>
+            <strong>{money(total)}</strong>
+          </div>
+          <button
+            type="button"
+            className="btn btn-block"
+            disabled={busy || !lines.length}
+            onClick={() => void checkout()}
+          >
+            {busy ? "주문 생성 중…" : "주문하기"}
+          </button>
+          <p className="checkout-hint">
+            결제는 앱·기존 결제 흐름과 같습니다. 주문을 만든 뒤 안내에 따라 이어가세요.
+          </p>
+          {error && <p className="form-error">{error}</p>}
+          {orderId && (
+            <p className="checkout-ok" role="status">
+              주문이 생성되었습니다: <code>{orderId}</code>
+            </p>
+          )}
+          <ArCta compact />
+        </div>
       </div>
-      <ArCta />
     </>
   );
 }
 
+function RequireAuth({
+  ready,
+  signedIn,
+  children,
+}: {
+  ready: boolean;
+  signedIn: boolean;
+  children: React.ReactNode;
+}) {
+  if (!ready) return <p className="boot-status" role="status">로그인을 확인하고 있습니다…</p>;
+  if (!signedIn) return <Navigate to="/login" replace />;
+  return children;
+}
+
 export function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [lines, setLinesState] = useState<CartLine[]>(() => loadCart());
+  const [auth, setAuth] = useState({
+    ready: false,
+    signedIn: false,
+    email: null as string | null,
+  });
+  const [role, setRole] = useState<"unknown" | "user" | "staff">("unknown");
+
   function setLines(next: CartLine[]) {
     setLinesState(next);
     saveCart(next);
@@ -338,18 +445,110 @@ export function App() {
     } else setLines([...lines, line]);
   }
   const count = lines.reduce((n, l) => n + l.quantity, 0);
+  const onStaffPath =
+    location.pathname === STAFF_HOME || location.pathname.startsWith(`${STAFF_HOME}/`);
+  const roleReady = !auth.signedIn || role !== "unknown";
+
+  useEffect(() => {
+    if (!supabase) {
+      setAuth({ ready: true, signedIn: false, email: null });
+      return;
+    }
+    let alive = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!alive) return;
+      setAuth({
+        ready: true,
+        signedIn: !!data.session,
+        email: data.session?.user.email ?? null,
+      });
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuth({
+        ready: true,
+        signedIn: !!session,
+        email: session?.user.email ?? null,
+      });
+      if (!session) setRole("unknown");
+    });
+    return () => {
+      alive = false;
+      data.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!auth.ready || !auth.signedIn) {
+      setRole("unknown");
+      return;
+    }
+    let alive = true;
+    setRole("unknown");
+    void isStaffSession()
+      .then((staff) => {
+        if (!alive) return;
+        setRole(staff ? "staff" : "user");
+      })
+      .catch(() => {
+        if (alive) setRole("user");
+      });
+    return () => {
+      alive = false;
+    };
+  }, [auth.ready, auth.signedIn]);
+
+  useEffect(() => {
+    if (!auth.signedIn || role === "unknown") return;
+    if (
+      role === "staff" &&
+      !onStaffPath &&
+      location.pathname !== "/login" &&
+      location.pathname !== "/signup"
+    ) {
+      navigate(STAFF_HOME, { replace: true });
+    }
+    if (role === "user" && onStaffPath) {
+      navigate("/", { replace: true });
+    }
+  }, [auth.signedIn, role, onStaffPath, location.pathname, navigate]);
+
+  if (auth.signedIn && !roleReady)
+    return <p className="boot-status" role="status">권한을 확인하고 있습니다…</p>;
 
   return (
-    <Shell cartCount={count}>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/products/:id" element={<ProductDetail onAdd={onAdd} />} />
-        <Route
-          path="/cart"
-          element={<CartPage lines={lines} setLines={setLines} />}
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Shell>
+    <Routes>
+      <Route path="/login" element={<LoginPage signedIn={auth.signedIn && roleReady} />} />
+      <Route path="/signup" element={<SignupPage signedIn={auth.signedIn && roleReady} />} />
+      <Route
+        path="/admin/*"
+        element={
+          <RequireAuth ready={auth.ready} signedIn={auth.signedIn}>
+            {role === "staff" ? <StaffApp /> : <Navigate to="/" replace />}
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/*"
+        element={
+          <RequireAuth ready={auth.ready} signedIn={auth.signedIn}>
+            {role === "staff" ? (
+              <Navigate to={STAFF_HOME} replace />
+            ) : (
+              <Shell cartCount={count} email={auth.email}>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/products/:id" element={<ProductDetail onAdd={onAdd} />} />
+                  <Route
+                    path="/cart"
+                    element={<CartPage lines={lines} setLines={setLines} />}
+                  />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </Shell>
+            )}
+          </RequireAuth>
+        }
+      />
+    </Routes>
   );
 }
