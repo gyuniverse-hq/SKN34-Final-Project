@@ -172,3 +172,47 @@ trace의 entry_revision_manifest/entry_revision_final_full은 파일별 SHA256�
 이번 게시 검사에서 npm run check -- -- --runInBand --silent는 타입·린트·105개 suite/1,320건 통과(92.614초)했다. 챗봇 uv run --frozen ruff check . 및 uv run --frozen lint-imports는 통과(계층 3개 KEPT), uv run --frozen pytest -q -p no:cacheprovider --basetemp <fresh-temp>는 1,426건 통과·97건 건너뜀(36.34초)이었다. 기존 G7 검토 venv를 UV_PROJECT_ENVIRONMENT로 지정했다. 이번 게시 검사에는 재실행이 필요하지 않았다. 완료 확인 시각은 위 절 제목과 같으며 명령별 시작·종료 시각은 별도 보존하지 않았다.
 
 trace 145개와 신규 53개를 다시 검사해 검사 대상 민감정보 및 실제 환경 자격증명 값이 없음을 확인했다. trace와 기존 prefix를 변경하지 않았으며 위 SHA256을 유지한다. 실제 모델·API·PG를 이번 게시 검사에서 추가 호출하지 않았고, 앞 절의 실환경 판정과 남은 N01 범위를 그대로 유지한다. 현재 위치는 ⑤ N01이며 PR은 생성하지 않는다.
+
+## 1dceb38 검토 반영 — 2026-11-26 04:10 KST
+
+전체: ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성 중 N01** → ⑥ 통합 검증 → ⑦ PR 인계. 기준 HEAD는 1dceb38cf1eabf9f1aac9deccb7e2919fd8e4298, branch는 feat/compound-consultation이다. 이번 변경은 로컬 미커밋이며 PR·push는 수행하지 않았다.
+
+### 변경과 검증
+
+이전 검토의 세 문장(조건 변경 뒤 얼굴에 발라/강도를 조절해줘/립 색도 설정해줘)은 G8 ON에서 general로 분류되어 계획 진입이 가능한 결함이었다. 기존 route_intent의 실행 정규식을 EXECUTION_REQUEST로 공유하고, 조건 구절을 제거한 나머지에도 같은 실행 판정을 적용했다. 단어를 각각 별도 예외로 추가하지 않았다. 정상 ChatService에서 G8 ON/OFF 응답이 같고 G8 계획·Catalog·AR 호출이 없음을 검사했다. 순수 조건 삭제·재적용 회귀도 유지했다.
+
+원래 N01의 영속 검증을 추가했다. 원래 발화→상황 질문 저장→재전송→클라이언트 recentMessages 없는 다음 발화→서버가 PG에서 복원한 원래 발화·질문을 계획기에 전달→G5 입력과 건조함 목표 상품 조회를 확인했다. G1 ON/OFF 두 설정 모두 통과했다. 두 턴 각각 재전송에서 추가 계획·지식·Catalog 호출은 0회다. 실제 PostgreSQL 17.12를 사용하고 모델·G5·Catalog·인증은 대역이다. 성분 추출은 빈 목록이므로 성분 양성 연결 검증을 대체하지 않는다.
+
+집중 pytest 실행(`test_g8_compound_consultation.py`, `test_g7_conversation_api_pg.py`, `-k 'original_n01 or mixed_execution or condition_provenance'`)은 **7 통과·49 선택 제외, 6.48초**다. G8 파일 전체는 **31 통과, 0.78초**다. 신규 mixed_n01_test의 original_n01_pg 속성에 G1 설정, 턴별 대화·호출 수·서버 복원 history·도구 요청을 보존했다. 모델 설정은 mock, 실제 원격 모델 호출은 0이다.
+
+최종 챗봇 전체 `pytest -q -p no:cacheprovider --basetemp <fresh-temp>`: **1,429 통과·99 건너뜀, 37.25초**. 새 PG 두 설정은 전체 실행에서는 환경 미설정으로 건너뛰며 위 별도 실제 PG 실행 결과와 구분한다. 기존 잠금 버전의 G7 검토 venv에서 수행했다. `uv run --frozen ruff check .`, `uv run --frozen lint-imports`(3 KEPT), 앱 `npm run typecheck`와 `npm run lint`가 통과했다. 앱 전체 Jest·실기기·실제 모델 검증은 이번에 실행하지 않았다.
+
+이전 임시 PG 경로가 없어 /tmp/vishue-g8-mixed-20261126, 56947, vishue_chat_test를 새로 준비했다. 기존 Alembic과 init_chat_checkpoints를 실행하고 Windows SelectorEventLoop를 사용했다. 검증 후 이 인스턴스만 종료했고 로컬 데이터·로그를 보존했다.
+
+### V4 환경 확인
+
+| 확인 대상 | 실제 결과 | 판정 |
+|---|---|---|
+| 프로젝트 .env.local의 로컬 DB 15441 / vishue_g5_integration | skincare_serving 0행 재확인 | snapshot_absent로 BLOCKED |
+| 로컬 API 8000 | V4 POST 404, OpenAPI는 별도 서비스이며 skincare 경로 없음 | VISHUE 검증 환경 아님 |
+| 로컬 PostgreSQL 5432 | Docker backend / WSL relay가 포트 소유 | 데이터베이스·스냅샷 미확인 |
+| Docker 목록 | 최초 조회 중단, 10초 제한 재확인도 timeout | 컨테이너 환경 식별 불가 |
+| Ubuntu 배포판 | psql 경로 및 postgres 프로세스 없음 | 실행 중인 PG 확인 안 됨 |
+
+준비된 V4 환경을 찾았다고 판단하지 않는다. 다른 환경의 데이터 부재도 주장하지 않는다. 설정된 로컬 DB와 서비스만 읽기 전용으로 확인했으며 원본 데이터·배포 설정을 변경하지 않았다. 실제 후보·정확한 옵션·성분 근거·지식 조건 채택은 여전히 NOT_RUN이며 조건 불일치·근거 부족 판정과 구분한다.
+
+### 문서·남은 범위
+
+실행 안내에 비영속 recentMessages는 G1 ON을 요구하지만 G7 영속 history는 서버가 복원한다는 차이를 명시했다. 원래 N01의 저장·복원 공백은 이번 실제 PG 검증으로 보완했다. 원래 N01의 실제 모델 원인–해결책–상품 관련성, 앱·사람 검토와 성분 하위 사례의 실제 양성 연결은 남아 있다. N02·E01·B01 전체 경험도 후속 범위다.
+
+변경 파일은 chatbot 서비스 2개·테스트 2개, G8 구현 계약·이 작업 기록·기존 N01 trace다. mixed_n01_manifest와 mixed_final_validation에 기준 HEAD, 미커밋 소스 SHA256, 저장소 루트 기준 diff SHA256을 기록했다. 다음 작업에는 V4 데이터가 준비된 API/DB 연결 대상의 식별 또는 Docker 접근 복구가 필요하다. 실제 자료가 확보되면 버전→후보→정확한 옵션·성분 근거 순으로 점검한 뒤 양성 연결을 검증한다.
+
+최종 trace는 156개(신규 11개)이며 1dceb38의 기존 145개 바이트 prefix를 보존했다. 토큰·JWT·비밀키·이메일·전화번호·개인 경로 패턴 및 실제 환경 자격증명 값 대조에서 노출을 발견하지 않았다. 소스·diff 해시 일치와 git diff --check 통과를 확인했다. trace SHA256은 d7859406df18397d7b37a111d1d11304f8cb49d32a2d4ece2d9eb5d22349c403이다.
+
+### 게시 전 검사 — 2026-11-26 04:20 KST
+
+후속 사용자 지시로 구현·테스트와 문서·증빙을 두 커밋으로 나눠 feat/compound-consultation에 게시한다. 위 미커밋·push 미실행은 당시 상태다. 구현·테스트 네 파일을 8cade25로 커밋했다. 원격 사전 확인은 1dceb38이며 검증한 소스·diff 해시와 스테이징 내용의 일치를 확인했다.
+
+게시 전 앱 npm run check -- -- --runInBand --silent는 타입·린트·105개 suite/1,320건 통과(94.012초)했다. 챗봇 uv run --frozen ruff check . 및 uv run --frozen lint-imports는 통과(3 KEPT), uv run --frozen pytest -q -p no:cacheprovider --basetemp <fresh-temp>는 1,429건 통과·99건 건너뜀(41.49초)이었다. UV_PROJECT_ENVIRONMENT로 기존 잠금 버전의 G7 검토 venv를 사용했다. 이번 게시 검사에는 재실행이 필요하지 않았다. 완료 확인 시각은 위 제목과 같고 명령별 시작·종료 시각은 별도 보존하지 않았다.
+
+신규 11개를 포함한 trace 156개에서 검사 대상 민감정보와 실제 환경 자격증명 값이 없음을 다시 확인했다. trace 원본·기존 prefix와 위 SHA256을 유지한다. 이번 게시 검사에서 실제 모델·API·PG를 추가 호출하지 않았다. 현재 단계는 ⑤ N01이며 실제 양성 연결의 V4 환경 차단과 남은 사용자 경험은 앞 절의 판정을 유지한다. PR은 생성하지 않는다.
