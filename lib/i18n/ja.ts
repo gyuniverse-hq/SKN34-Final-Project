@@ -247,7 +247,7 @@ export const ja: Dictionary = {
   'discovery.ranking': '製品ランキング',
   'discovery.makeupRanking': 'メイクランキング',
   'discovery.skinRanking': 'スキンケアランキング',
-  'discovery.rankingBasis': 'カタログで順位を指定した製品のみをランキング表示し、その他は別に表示します。',
+  'discovery.rankingBasis': 'オリーブヤングの評価とレビュー件数をもとにしたランキングです。',
   'discovery.rankingEmpty': 'ランキングはまだ登録されていません。',
   'discovery.otherProducts': 'その他の製品',
   'discovery.hot': '注目のアイテム',

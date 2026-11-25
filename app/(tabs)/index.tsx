@@ -11,9 +11,9 @@ import { InlineState } from '@/components/ui/InlineState';
 import { homeLayout, homeType } from '@/constants/homeLayout';
 import { theme } from '@/constants/theme';
 import { useSkinMatchedProducts } from '@/hooks/useSkinMatchedProducts';
-import { rankedProducts, type RankingCategory } from '@/lib/discovery';
+import { orderCatalogProducts, type RankingCategory } from '@/lib/discovery';
 import { useI18n } from '@/lib/i18n';
-import { useProducts, useStyleLooks } from '@/lib/queries';
+import { useProductDiscoveryOrder, useProducts, useStyleLooks } from '@/lib/queries';
 import { celebrityHref, productHref, searchHref } from '@/lib/routes';
 import type { Product } from '@/types';
 
@@ -23,21 +23,28 @@ export default function HomeScreen() {
   const width = Math.min(useWindowDimensions().width, homeLayout.maxWidth);
   const looks = useStyleLooks();
   const products = useProducts();
+  const discoveryOrder = useProductDiscoveryOrder(true);
   const skinMatch = useSkinMatchedProducts();
   const shelves = useMemo(() => {
-    const all = products.data ?? [];
+    const productsById = new Map(products.data?.map(product => [product.id, product]));
+    const order = discoveryOrder.data;
     return {
-      hot: all.filter(p => p.tags.includes('bestseller')),
-      makeup: rankedProducts(all, 'makeup').map(entry => entry.product),
-      skincare: rankedProducts(all, 'skincare').map(entry => entry.product),
-      newArrivals: all.filter(p => p.tags.includes('new')),
-      all,
+      hot: orderCatalogProducts(order?.hot ?? [], productsById).map(entry => entry.product),
+      makeup: orderCatalogProducts(order?.makeup ?? [], productsById).map(entry => entry.product),
+      skincare: orderCatalogProducts(order?.skincare ?? [], productsById).map(entry => entry.product),
+      newArrivals: orderCatalogProducts(order?.newArrivals ?? [], productsById).map(entry => entry.product),
     };
-  }, [products.data]);
+  }, [products.data, discoveryOrder.data]);
+  const shelvesPending = products.isPending || discoveryOrder.isPending;
+  const shelvesFailed = products.isError || discoveryOrder.isError;
   const skinTypeLabel = skinMatch.concerns.slice(0, 2).map(c => t(`concern.${c}`)).join('·');
+  const refreshProducts = () => {
+    void products.refetch();
+    void discoveryOrder.refetch();
+  };
   const refresh = () => {
     void looks.refetch();
-    void products.refetch();
+    refreshProducts();
     if (skinMatch.visible) void skinMatch.products.refetch();
   };
   const openProduct = (product: Product) => router.push(productHref(product.id));
@@ -47,7 +54,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       <ScrollView contentContainerStyle={[styles.content, { width }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={looks.isRefetching || products.isRefetching || skinMatch.products.isRefetching}
+        refreshControl={<RefreshControl refreshing={looks.isRefetching || products.isRefetching || discoveryOrder.isRefetching || skinMatch.products.isRefetching}
           onRefresh={refresh} tintColor={theme.colors.rose} />}>
         <View style={styles.header}>
           <Text style={styles.logo} accessibilityRole="header">VISHUE<Text style={styles.logoDot}>.</Text></Text>
@@ -59,8 +66,8 @@ export default function HomeScreen() {
             onPressCelebrity={id => router.push(celebrityHref(id))}
             onPressStyle={look => router.push({ pathname: '/style-look/[id]', params: { id: look.id } } as Href)} />
           <HomeCategories onPress={category => router.push(searchHref({ category, source: 'home' }))} />
-          {products.isPending || products.isError ? (
-            <View style={styles.catalogState}><InlineState status={products.isPending ? 'loading' : 'error'} onRetry={() => void products.refetch()} /></View>
+          {shelvesPending || shelvesFailed ? (
+            <View style={styles.catalogState}><InlineState status={shelvesPending ? 'loading' : 'error'} onRetry={refreshProducts} /></View>
           ) : (
             <>
               <HomeProductSection featured pageWidth={width} title={t('discovery.hot')} products={shelves.hot}
@@ -71,9 +78,11 @@ export default function HomeScreen() {
                 emptyMessage={t('discovery.rankingEmpty')} onViewAll={() => openChart('skincare')} onPress={openProduct} />
               <HomeProductSection preview="new" pageWidth={width} title={t('discovery.new')} products={shelves.newArrivals}
                 emptyMessage={t('discovery.newEmpty')} onViewAll={() => router.push(searchHref({ collection: 'new', source: 'home' }))} onPress={openProduct} />
-              <HomeProductSection pageWidth={width} title={t('home.pickTitle')} products={shelves.all}
-                emptyMessage={t('shop.emptyCatalog')} onViewAll={() => router.push('/shop')} onPress={openProduct} />
             </>
+          )}
+          {!products.isPending && !products.isError && (
+            <HomeProductSection pageWidth={width} title={t('home.pickTitle')} products={products.data}
+              emptyMessage={t('shop.emptyCatalog')} onViewAll={() => router.push('/shop')} onPress={openProduct} />
           )}
           <SkinMatchSection
             title={skinMatch.visible && skinTypeLabel ? t('home.skinMatchTitle', { type: skinTypeLabel }) : t('skinAccess.homeTitle')}

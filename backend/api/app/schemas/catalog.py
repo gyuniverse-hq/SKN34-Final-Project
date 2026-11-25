@@ -214,6 +214,13 @@ class ProductsResponse(ApiModel):
     products: list[Product]
 
 
+class ProductDiscoveryOrder(ApiModel):
+    hot: list[str]
+    makeup: list[str]
+    skincare: list[str]
+    new_arrivals: list[str]
+
+
 class ProductResponse(ApiModel):
     product: Product
 

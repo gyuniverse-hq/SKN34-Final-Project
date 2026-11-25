@@ -1,4 +1,4 @@
-import { inRankingCategory, rankedProducts } from '@/lib/discovery';
+import { inRankingCategory, orderCatalogProducts } from '@/lib/discovery';
 import type { Product, ProductCategory } from '@/types';
 
 function product(id: string, category: ProductCategory, tags: string[] = []): Product {
@@ -6,27 +6,30 @@ function product(id: string, category: ProductCategory, tags: string[] = []): Pr
 }
 
 describe('product rankings', () => {
-  it('shows only explicitly ranked products in the correct category and rank order', () => {
-    const products = [
-      product('second', 'lip', ['rank:makeup:2']),
-      product('unranked', 'base'),
-      product('first', 'eye', ['rank:makeup:1']),
-      product('skin', 'suncare', ['rank:skincare:1']),
-      product('wrong-category', 'skincare', ['rank:makeup:3']),
-    ];
-    expect(rankedProducts(products, 'makeup').map(({ product: p, rank }) => [p.id, rank])).toEqual([['first', 1], ['second', 2]]);
-    expect(rankedProducts(products, 'skincare').map(({ product: p }) => p.id)).toEqual(['skin']);
-    expect(inRankingCategory(products[1], 'makeup')).toBe(true);
+  it('maps product IDs in server order regardless of catalog position or old tags', () => {
+    const first = product('first', 'eye');
+    const second = product('second', 'lip', ['rank:makeup:1']);
+    const unranked = product('unranked', 'base', ['rank:makeup:2']);
+    const catalog = new Map([second, unranked, first].map(item => [item.id, item]));
+
+    expect(orderCatalogProducts(['first', 'second'], catalog)).toEqual([
+      { product: first, rank: 1 },
+      { product: second, rank: 2 },
+    ]);
   });
 
-  it('does not invent ranks for missing, malformed, duplicated or conflicting tags', () => {
-    const products = [
-      product('no-rank', 'lip'),
-      product('invalid', 'lip', ['rank:makeup:0']),
-      product('duplicate-a', 'eye', ['rank:makeup:1']),
-      product('duplicate-b', 'base', ['rank:makeup:1']),
-      product('multiple', 'cheek', ['rank:makeup:2', 'rank:makeup:3']),
-    ];
-    expect(rankedProducts(products, 'makeup')).toEqual([]);
+  it('preserves server positions when resolving a filtered or partially loaded catalog', () => {
+    const remaining = product('remaining', 'skincare');
+    const catalog = new Map([[remaining.id, remaining]]);
+
+    expect(orderCatalogProducts(['missing', 'remaining'], catalog)).toEqual([
+      { product: remaining, rank: 2 },
+    ]);
+  });
+
+  it('includes base and sun care in their respective browse categories', () => {
+    expect(inRankingCategory(product('base', 'base'), 'makeup')).toBe(true);
+    expect(inRankingCategory(product('sun', 'suncare'), 'skincare')).toBe(true);
+    expect(inRankingCategory(product('tool', 'tool'), 'makeup')).toBe(false);
   });
 });
