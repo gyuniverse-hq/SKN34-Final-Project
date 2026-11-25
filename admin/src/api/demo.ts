@@ -70,5 +70,35 @@ export function demoResponse(path: string): unknown {
       nextCursor: null,
     };
   if (url.pathname === "/orders/DEMO-ORDER") return order;
+  if (url.pathname === "/ops/recommendations")
+    return {
+      arPaletteMode: "legacy",
+      arPaletteExperiment: null,
+      cartRecommendationExperiment: null,
+      counts: {
+        recommendationImpressions: 12,
+        skincareEvents: 4,
+        cartRecommendationVisits: 2,
+      },
+    };
+  if (url.pathname === "/ops/chatbot")
+    return {
+      configured: false,
+      baseUrl: null,
+      healthz: null,
+      readyz: null,
+      error: "demo mode",
+    };
+  if (url.pathname === "/ops/system")
+    return {
+      env: "demo",
+      adminEnabled: true,
+      alembicHead: "0036",
+      lipEvalDir: "runtime/lip-eval",
+      lipEvalDirExists: false,
+      llmConfigured: false,
+      chatbotBaseUrl: null,
+      corsOriginCount: 0,
+    };
   return { items: [], nextCursor: null };
 }

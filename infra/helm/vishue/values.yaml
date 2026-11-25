@@ -4,6 +4,7 @@ env: production
 admin:
   enabled: false
   image: vishue-admin
+  # Empty = same origin as the gateway (browser calls /api on the admin host).
   apiBaseUrl: ""
 
 image:
@@ -35,6 +36,14 @@ api:
   env:
     LOG_LEVEL: INFO
     CATALOG_CACHE_SECONDS: "300"
+  # Lip-eval face refs (ADR-0013 eval-period exception). RWO PVC → one node; use RWX/EFS or
+  # temporarily replicas=1 during the panel. Delete the PVC when tearing down the camp stack.
+  persistence:
+    lipEval:
+      enabled: false
+      size: 20Gi
+      storageClassName: ""
+      mountPath: /data/lip-eval
 
 chatbot:
   image: vishue-chatbot

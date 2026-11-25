@@ -1,6 +1,31 @@
 # AWS EKS (ap-northeast-2). See docs/DEPLOYMENT.md and ADR-0011 / ADR-0012.
 env: production
 
+admin:
+  enabled: true
+  # Gateway serves admin at / and api at /api — same origin for the browser.
+  apiBaseUrl: ""
+
+api:
+  # Single writer while lip-eval uses an RWO PVC (eval period). Re-enable HPA after teardown.
+  replicas: 1
+  autoscaling:
+    enabled: false
+  env:
+    LOG_LEVEL: INFO
+    CATALOG_CACHE_SECONDS: "300"
+    ADMIN_ENABLED: "true"
+    ADMIN_LIP_EVAL_DIR: "/data/lip-eval"
+    # In-cluster chatbot health for admin Ops (Phase B).
+    CHATBOT_BASE_URL: "http://vishue-chatbot:8000"
+  persistence:
+    lipEval:
+      enabled: true
+      size: 20Gi
+      # Empty = cluster default (often gp2/gp3). Prefer RWX/EFS if api replicas > 1.
+      storageClassName: ""
+      mountPath: /data/lip-eval
+
 image:
   # Temporary cutover registry (ECR in the camp account). Switch back to GHCR after org push rights exist.
   registry: 027099020675.dkr.ecr.ap-northeast-2.amazonaws.com

@@ -175,3 +175,33 @@ export interface LipEvalProductList {
   items: LipEvalProduct[];
   raters: LipEvalRater[];
 }
+
+export interface OpsRecommendations {
+  arPaletteMode: string;
+  arPaletteExperiment: string | null;
+  cartRecommendationExperiment: string | null;
+  counts: {
+    recommendationImpressions: number;
+    skincareEvents: number;
+    cartRecommendationVisits: number;
+  };
+}
+
+export interface OpsChatbot {
+  configured: boolean;
+  baseUrl: string | null;
+  healthz: { ok: boolean; status: number | null; body: unknown } | null;
+  readyz: { ok: boolean; status: number | null; body: unknown } | null;
+  error: string | null;
+}
+
+export interface OpsSystem {
+  env: string;
+  adminEnabled: boolean;
+  alembicHead: string | null;
+  lipEvalDir: string;
+  lipEvalDirExists: boolean;
+  llmConfigured: boolean;
+  chatbotBaseUrl: string | null;
+  corsOriginCount: number;
+}

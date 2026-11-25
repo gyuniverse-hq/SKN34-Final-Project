@@ -324,3 +324,41 @@ class LipEvalProduct(Contract):
 class LipEvalProductList(Contract):
     items: list[LipEvalProduct]
     raters: list[LipEvalRater]
+
+
+class OpsRecommendationCounts(Contract):
+    recommendation_impressions: int
+    skincare_events: int
+    cart_recommendation_visits: int
+
+
+class OpsRecommendations(Contract):
+    ar_palette_mode: str
+    ar_palette_experiment: str | None = None
+    cart_recommendation_experiment: str | None = None
+    counts: OpsRecommendationCounts
+
+
+class OpsProbe(Contract):
+    ok: bool
+    status: int | None = None
+    body: dict | None = None
+
+
+class OpsChatbot(Contract):
+    configured: bool
+    base_url: str | None = None
+    healthz: OpsProbe | None = None
+    readyz: OpsProbe | None = None
+    error: str | None = None
+
+
+class OpsSystem(Contract):
+    env: str
+    admin_enabled: bool
+    alembic_head: str | None = None
+    lip_eval_dir: str
+    lip_eval_dir_exists: bool
+    llm_configured: bool
+    chatbot_base_url: str | None = None
+    cors_origin_count: int

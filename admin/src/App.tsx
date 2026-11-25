@@ -23,6 +23,15 @@ const AuditLog = lazy(() =>
 const Evaluations = lazy(() =>
   import("./pages/Evaluations").then((m) => ({ default: m.Evaluations })),
 );
+const OpsRecommendationsPage = lazy(() =>
+  import("./pages/Ops").then((m) => ({ default: m.OpsRecommendationsPage })),
+);
+const OpsChatbotPage = lazy(() =>
+  import("./pages/Ops").then((m) => ({ default: m.OpsChatbotPage })),
+);
+const OpsSystemPage = lazy(() =>
+  import("./pages/Ops").then((m) => ({ default: m.OpsSystemPage })),
+);
 const LocalConsent = import.meta.env.DEV
   ? lazy(() =>
       import("./LocalConsent").then((m) => ({ default: m.LocalConsent })),
@@ -222,6 +231,9 @@ export function Workspace({ staff }: { staff: Staff }) {
     ["/orders", "주문"],
     ["/products", "상품"],
     ["/evaluations", "AR 평가"],
+    ["/ops/recommendations", "추천 Ops"],
+    ["/ops/chatbot", "챗봇 Ops"],
+    ["/ops/system", "시스템"],
     ...(staff.role === "admin" ? [["/audit", "감사 로그"]] : []),
   ];
   return (
@@ -269,6 +281,12 @@ export function Workspace({ staff }: { staff: Staff }) {
               <Route path="/orders/*" element={<Orders staff={staff} />} />
               <Route path="/products/*" element={<Products staff={staff} />} />
               <Route path="/evaluations" element={<Evaluations />} />
+              <Route
+                path="/ops/recommendations"
+                element={<OpsRecommendationsPage />}
+              />
+              <Route path="/ops/chatbot" element={<OpsChatbotPage />} />
+              <Route path="/ops/system" element={<OpsSystemPage />} />
               <Route
                 path="/audit"
                 element={
