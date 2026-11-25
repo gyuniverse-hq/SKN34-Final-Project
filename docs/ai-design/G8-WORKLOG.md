@@ -51,3 +51,29 @@
 ## 다음 작업
 
 ⑤ N01의 지식→상품 도구 입력, N02 보유품·룩과 부족품만 조회, E01 일부 서비스 실패, B01 기억 제안과 추천 동시 표시·AR/ACK 경계를 구현·검증한다. 실행 중 취소·교체·권한 철회·구버전 응답 폐기와 미완료 재개도 해당 단계에서 다룬다. ⑥ 필수 환경과 핵심 의미 사람 검토, Expo Go 실기기, 권한이 충족된 G5 실자료 응답까지 확인한다. ⑦ 팀 리뷰와 PR은 후속 지시에 따른다.
+
+## 게시 후 상태 및 ④ 보완 → ⑤ N01
+
+전체는 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → ⑤ 협력 완성 → ⑥ 통합 검증 → ⑦ PR 인계다. 현재 ④ 두 결함 보완과 ⑤ N01 성분 검색 연결의 코드·계약 검증을 수행했다.
+
+2026-11-26 KST에 구현 0e3973f와 문서 5ed8ac1을 origin/feat/compound-consultation에 게시했다. 원격과 로컬 HEAD 5ed8ac159af50cbe459eaea445c285e0ff2c9529 일치 및 깨끗한 작업 트리를 확인했다. 기존 trace는 당시 기록 그대로 보존한다.
+
+게시 전 검사 대상은 위 커밋의 소스다. npm run check -- --runInBand --silent는 npm 인자 전달 때문에 Jest 순차 옵션이 적용되지 않았고 상품 카드 테스트가 5초를 초과해 중단했다. 같은 소스로 npm run check -- -- --runInBand --silent를 실행해 타입·린트·105개 suite/1,320건 통과(125.955초)를 확인했다. 재실행 프로세스 시작은 2026-11-26 01:35:41 KST, Jest 시작은 01:36:12 KST였다. 정확한 명령 종료 시각은 별도 보존하지 않았다.
+
+게시 전 챗봇은 uv run --frozen ruff check ., uv run --frozen lint-imports, uv run --frozen pytest -q --basetemp <fresh-temp>를 실행했다. UV_PROJECT_ENVIRONMENT로 잠금 파일과 일치하는 기존 G7 검토 가상환경을 사용했다. Ruff·계층 3개 통과, 1,404건 통과·96건 건너뜀(45.26초)이었다. 초 단위 실행 시각은 별도 보존하지 않았다.
+
+이번 수정은 후보 생성 목표 보존·구버전 재조회, 설명 전용 목표 변경의 후보 무효화, 질문 맥락 보존, 근거 있는 지식 조건의 다음 옵션 요청 연결이다. 정상 ChatService 3턴과 G7 컨텍스트 직렬화·복원, 세럼·크림 사용 순서 질문, 글리세린→판테놀 제안 변화에 따른 HTTP 본문 변화, 사용자 향료 제외 우선, 잘못된 근거, 제안끼리 충돌, 지식·추출 실패를 검증했다.
+
+신규 증빙은 reports/g8/n01/trace.jsonl이다. 1~15행은 초기 14건 실행이며 16행부터 최종 소스 manifest와 15건 실행이다. 최종 실행의 각 턴에 planner/knowledge/searchExtractor의 mock 또는 not_called를 명시했다. live/replay 호출은 없다. fixture-v1/fixture-rag/fixture-label 자료와 실제 HTTP 클라이언트·MockTransport를 사용했다. manifest UTC 시각과 파일별 SHA256이 검증 대상 미커밋 소스를 식별한다.
+
+2026-11-26 02:07~02:08 KST에 uv run --frozen ruff check .와 uv run --frozen lint-imports가 통과했다. uv run --frozen pytest -q -p no:cacheprovider --basetemp <fresh-temp>는 1,413건 통과·96건 건너뜀(44.09초)이었다. 최종 집중 실행은 15건 통과했다. 증빙 수집 실행에는 이미 불러온 anyio/langsmith 모듈의 assertion-rewrite 경고 2개가 있었다. 앱 npm run typecheck와 npm run lint도 통과했다.
+
+실제 G5/모델의 질문 보존·조건 추출은 NOT_RUN이다. 이번 실제 PostgreSQL 통합은 TEST_CHAT_DATABASE_URL 미설정으로 NOT_RUN이며, 확인한 저장 범위는 컨텍스트 직렬화·복원이다. 기존 PG 테스트의 모의 계획기는 새 추출 호출을 처리하도록 갱신했다. 앱 재촬영·Expo Go·사람 검토는 NOT_RUN이다.
+
+다음은 N01 실환경·사람 검토와 제품 종류/제형 등 검색 표현, 후속 턴의 지식 조건 지속·해제 검증이다. N02, E01 전체 시나리오, B01, 실행 중 취소·재개는 ⑤ 후속 범위에 남아 있다. 이번 변경은 5ed8ac1 위의 로컬 미커밋 변경이다.
+
+### N01 게시 전 최종 검사
+
+2026-11-26 02:14 KST에 구현·테스트 여섯 파일을 9b1df1d로 커밋했다. 이번 게시 전 npm run check -- -- --runInBand --silent는 타입·린트·105개 suite/1,320건 모두 통과(101.307초)했다. 챗봇 uv run --frozen ruff check .와 uv run --frozen lint-imports 통과, uv run --frozen pytest -q -p no:cacheprovider --basetemp <fresh-temp>는 1,413건 통과·96건 건너뜀(46.94초)이었다. 이번 앱 검사에는 재실행이 필요하지 않았다. 미실행 실환경 항목은 앞 절의 판정을 따른다.
+
+신규 trace 32개 레코드를 대상으로 인증 토큰·키·이메일·전화번호·사용자 경로와 식별 필드, URL의 인증정보·쿼리를 확인했다. 검토 범위에서 자격증명·실사용자 식별정보를 발견하지 않았다. 질문은 합성 사례이고 링크는 example.test다. trace SHA256은 5e4f13c31dd5cddfab0e5af34559b8a77295db83a7ed2e16d6e52178babd8fea다. 스테이징한 소스가 검증 대상과 같음을 확인했다. 원래 trace와 신규 trace의 실행 이력은 그대로 보존했다.
