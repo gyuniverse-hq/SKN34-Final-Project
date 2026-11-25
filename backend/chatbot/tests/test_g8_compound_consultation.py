@@ -110,7 +110,14 @@ class SkinApi:
                     "ingredientName": condition["ingredientName"],
                     "operator": condition["operator"],
                     "verdict": "MATCH",
-                    "reason": "fixture_ingredient_present",
+                    "reason": "ingredient_present"
+                    if condition["operator"] == "includes"
+                    else "ingredient_absent",
+                    "evidenceId": f"label-{rank}",
+                    "observedAt": STAMP,
+                    "reviewStatus": "verified",
+                    "normalizationStatus": "verified",
+                    "ingredientCoverage": "full",
                     **source,
                 }
                 for condition in body["ingredientConditions"]
@@ -603,3 +610,164 @@ async def test_extractor_failure_keeps_knowledge_and_product_lookup(monkeypatch,
     )
     assert response.knowledge.status == "answered"
     assert len(api.calls) == 3 and response.compound.options[8].outcome == "eligible"
+
+
+def resolved_ingredient_reply(monkeypatch, name="글리세린"):
+    from app.services.knowledge_service import resolve
+    from tests.test_knowledge_service import check, verification
+
+    fixture = install_knowledge(monkeypatch).return_value.reply
+    sentence = f"{name} 성분이 포함된 제품을 선택하세요."
+    fixture.evidence[0].quote = sentence
+    fixture.evidence[0].end_utf16 = len(sentence.encode("utf-16-le")) // 2
+    draft = {
+        "claims": [
+            {"claim": "근거 없는 첫 주장", "citations": ["E1"]},
+            {"claim": sentence, "citations": ["E1"]},
+        ],
+        "limitations": "",
+    }
+    audit = verification(
+        check(1, requirements=["R1"], citations=["E1"], label="UNSUPPORTED"),
+        check(2, requirements=["R1"], citations=["E1"]),
+    )
+    return resolve(draft, audit, fixture.evidence)
+
+
+class IngredientExtractor:
+    configured = True
+    calls = 0
+
+    async def complete_with_tools(self, messages, tools, *, required_tool=None):
+        self.calls += 1
+        assert required_tool == "extract_knowledge_search_conditions"
+        reply = json.loads(messages[-1]["content"])["knowledge"]
+        claim = reply["claims"][0]
+        name = "판테놀" if "판테놀" in claim["claim"] else "글리세린"
+        condition = {
+            "ingredientName": name,
+            "operator": "includes",
+            "claimIndex": 0,
+            "evidenceId": claim["citations"][0],
+            "quote": claim["claim"],
+        }
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "tool_calls": [
+                            {
+                                "function": {
+                                    "name": required_tool,
+                                    "arguments": json.dumps({"conditions": [condition]}),
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        }, 0
+
+
+@pytest.mark.anyio
+async def test_g5_resolved_claim_indices_reach_n01_and_alias_limit(monkeypatch, connections):
+    api, skincare, catalog = connections
+    reply = resolved_ingredient_reply(monkeypatch)
+    assert len(reply.claims) == 1 and reply.findings[0].index == 1
+    monkeypatch.setattr(
+        specialists,
+        "consult_knowledge",
+        AsyncMock(return_value=Consultation(reply=reply, trace={})),
+    )
+    goal = GOAL.model_copy(
+        update={"excluded_ingredients": ["향료", "Fragrance", "에탄올", "멘톨", "리모넨", "리날룰"]}
+    )
+    result = await graph.run_compound(
+        goal, CARE_QUESTION, skincare, catalog, llm=IngredientExtractor()
+    )
+    assert result.compound.options[8].outcome == "eligible"
+    body = api.calls[-1][1]
+    assert len(body["ingredientConditions"]) == 6
+    assert body["ingredientConditions"][-1] == {
+        "ingredientName": "글리세린",
+        "operator": "includes",
+    }
+    assert (
+        sum(c["ingredientName"] in {"향료", "Fragrance"} for c in body["ingredientConditions"]) == 1
+    )
+
+
+@pytest.mark.anyio
+async def test_knowledge_conditions_survive_budget_release_and_goal_change(
+    monkeypatch, connections
+):
+    from app.services.conversation_context import read_context, updated_context
+
+    api, skincare, catalog = connections
+    reply = resolved_ingredient_reply(monkeypatch)
+    consult = AsyncMock(return_value=Consultation(reply=reply, trace={}))
+    monkeypatch.setattr(specialists, "consult_knowledge", consult)
+    extractor = IngredientExtractor()
+    first = await graph.run_compound(GOAL, CARE_QUESTION, skincare, catalog, llm=extractor)
+    previous = read_context(updated_context({}, first)).compound
+    assert previous.goal.excluded_ingredients == ["향료"]
+    assert previous.knowledge_search.source == "knowledge"
+    changed_budget = GOAL.model_copy(update={"max_price_krw": 15000, "wants_knowledge": False})
+    second = await graph.run_compound(
+        changed_budget,
+        "",
+        skincare,
+        catalog,
+        previous=previous,
+        reuse_candidates=True,
+        llm=extractor,
+    )
+    previous = read_context(updated_context({}, second)).compound
+    assert api.calls[-1][1]["ingredientConditions"][-1]["ingredientName"] == "글리세린"
+    assert extractor.calls == 1 and consult.await_count == 1
+    assert len([p for p, b in api.calls if p.endswith("/v4")]) == 1
+    third = await graph.run_compound(
+        changed_budget,
+        "",
+        skincare,
+        catalog,
+        previous=previous,
+        reuse_candidates=True,
+        llm=extractor,
+        remove_knowledge_ingredients=["글리세린"],
+    )
+    previous = read_context(updated_context({}, third)).compound
+    assert api.calls[-1][1]["ingredientConditions"] == [
+        {"ingredientName": "향료", "operator": "excludes"}
+    ]
+    assert previous.knowledge_search.removed_ingredients == ["글리세린"]
+    # Goal changes request fresh knowledge even for a product-only turn.
+    reply = resolved_ingredient_reply(monkeypatch, "판테놀")
+    consult.return_value = Consultation(reply=reply, trace={})
+    monkeypatch.setattr(specialists, "consult_knowledge", consult)
+    fourth = await graph.run_compound(
+        changed_budget.model_copy(update={"goals": ["sensitivity"]}),
+        "",
+        skincare,
+        catalog,
+        previous=previous,
+        reuse_candidates=True,
+        llm=extractor,
+    )
+    assert api.calls[-1][1]["ingredientConditions"][-1]["ingredientName"] == "판테놀"
+    assert extractor.calls == 2 and consult.await_count == 2
+    assert len([p for p, b in api.calls if p.endswith("/v4")]) == 2
+    previous = read_context(updated_context({}, fourth)).compound
+    await graph.run_compound(
+        fourth.compound.goal,
+        "",
+        skincare,
+        catalog,
+        previous=previous,
+        reuse_candidates=True,
+        llm=extractor,
+        knowledge_action="clear",
+    )
+    assert api.calls[-1][1]["ingredientConditions"] == [
+        {"ingredientName": "향료", "operator": "excludes"}
+    ]

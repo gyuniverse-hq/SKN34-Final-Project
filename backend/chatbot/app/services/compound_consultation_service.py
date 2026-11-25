@@ -95,7 +95,9 @@ async def extract_search_conditions(reply, goal, llm):
             "content": json.dumps(
                 {
                     "goal": goal.model_dump(mode="json", by_alias=True),
-                    "knowledge": reply.model_dump(mode="json", by_alias=True),
+                    "knowledge": reply.model_dump(
+                        mode="json", by_alias=True, exclude={"findings"}
+                    ),
                 },
                 ensure_ascii=False,
             ),
@@ -130,14 +132,23 @@ async def extract_search_conditions(reply, goal, llm):
         return []
 
 
+def normalized_ingredient(value):
+    name = "".join(unicodedata.normalize("NFKC", value).casefold().split())
+    return {"fragrance": "향료", "parfum": "향료"}.get(name, name)
+
+
+def explicit_ingredient_conditions(goal):
+    # Count and send the exact same list, retaining the user's first spelling.
+    names = {}
+    for name in goal.excluded_ingredients:
+        names.setdefault(normalized_ingredient(name), name)
+    return [SearchIngredient(ingredient_name=name, operator="excludes") for name in names.values()]
+
+
 def validate_search_conditions(goal, knowledge, proposals):
     accepted, decisions = [], []
 
-    def normalized(value):
-        name = "".join(unicodedata.normalize("NFKC", value).casefold().split())
-        return {"fragrance": "향료", "parfum": "향료"}.get(name, name)
-
-    explicit = {normalized(name) for name in goal.excluded_ingredients}
+    explicit = {normalized_ingredient(name) for name in goal.excluded_ingredients}
     selected = {}
     evidence = {e.id: e for e in knowledge.evidence} if knowledge else {}
     for proposal in proposals:
@@ -148,7 +159,8 @@ def validate_search_conditions(goal, knowledge, proposals):
             if (knowledge and proposal.claim_index < len(knowledge.claims))
             else None
         )
-        name = normalized(proposal.ingredient_name)
+        name = normalized_ingredient(proposal.ingredient_name)
+        # G5 findings index the pre-filter draft, not these final claims.
         if (
             not knowledge
             or knowledge.status not in {"answered", "partial"}
@@ -157,11 +169,8 @@ def validate_search_conditions(goal, knowledge, proposals):
             or proposal.evidence_id not in claim.citations
             or proposal.quote not in ref.quote
             or proposal.quote not in claim.claim
-            or normalized(proposal.ingredient_name) not in normalized(proposal.quote)
-            or any(
-                f.index == proposal.claim_index + 1 and f.label != "SUPPORTED"
-                for f in knowledge.findings
-            )
+            or normalized_ingredient(proposal.ingredient_name)
+            not in normalized_ingredient(proposal.quote)
         ):
             reason = "unverified_evidence"
         elif name in explicit or (goal.fragrance_free and name in {"향료", "fragrance", "parfum"}):
@@ -176,7 +185,7 @@ def validate_search_conditions(goal, knowledge, proposals):
             selected[name] = proposal.operator
             accepted.append(proposal)
         elif reason == "conflicting_suggestions":
-            accepted = [p for p in accepted if normalized(p.ingredient_name) != name]
+            accepted = [p for p in accepted if normalized_ingredient(p.ingredient_name) != name]
         decisions.append(
             {"condition": proposal.model_dump(mode="json", by_alias=True), "decision": reason}
         )
@@ -249,10 +258,7 @@ async def verify(
             ],
             maxPriceKRW=goal.max_price_krw,
             price_basis="collected_snapshot",
-            ingredient_conditions=[
-                SearchIngredient(ingredient_name=name, operator="excludes")
-                for name in goal.excluded_ingredients
-            ]
+            ingredient_conditions=explicit_ingredient_conditions(goal)
             + [
                 SearchIngredient(ingredient_name=p.ingredient_name, operator=p.operator)
                 for p in search_conditions

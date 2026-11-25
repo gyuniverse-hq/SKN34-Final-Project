@@ -1368,3 +1368,113 @@ def test_deleting_room_removes_state_result_snapshot(api):
             ).fetchone()
             is None
         )
+
+
+def test_n01_condition_provenance_survives_pg_followups(api, monkeypatch, record_property):
+    client, _ = api
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    reply = skin_case.resolved_ingredient_reply(monkeypatch)
+    consult = skin_case.AsyncMock(return_value=skin_case.Consultation(reply=reply, trace={}))
+    monkeypatch.setattr(skin_case.specialists, "consult_knowledge", consult)
+    downstream = skin_case.SkinApi()
+    original = httpx.AsyncClient
+    monkeypatch.setattr(
+        httpx, "AsyncClient", lambda **kw: original(transport=httpx.MockTransport(downstream), **kw)
+    )
+    extractor = skin_case.IngredientExtractor()
+
+    class Planner(skin_case.Planner):
+        calls = 0
+
+        async def complete_with_tools(self, messages, tools, *, required_tool=None):
+            if required_tool == "extract_knowledge_search_conditions":
+                return await extractor.complete_with_tools(
+                    messages, tools, required_tool=required_tool
+                )
+            self.calls += 1
+            response, ms = await super().complete_with_tools(
+                messages, tools, required_tool=required_tool
+            )
+            f = response["choices"][0]["message"]["tool_calls"][0]["function"]
+            plan = json.loads(f["arguments"])
+            turn = self.calls
+            if turn > 1:
+                plan["action"] = "refine"
+                plan["goal"].update(maxPriceKRW=15000, wantsKnowledge=False)
+                plan["question"] = ""
+            if turn == 3:
+                plan["removeKnowledgeIngredients"] = ["글리세린"]
+            if turn >= 4:
+                plan["goal"]["goals"] = ["sensitivity"]
+            if turn == 5:
+                plan["knowledgeAction"] = "clear"
+            f["arguments"] = json.dumps(plan)
+            return response, ms
+
+    planner = Planner()
+    chat = ChatService(
+        None,
+        planner,
+        CatalogClient("https://api.test"),
+        skincare=SkincareRecommendationTool(SkincareRecommendationClient("https://api.test")),
+    )
+    client.app.dependency_overrides[get_chat_service] = lambda: chat
+    room = create(client)[0]["conversationId"]
+    observations = []
+    for version, message in enumerate(
+        [
+            skin_case.QUESTION,
+            "예산만 1만5천 원으로 바꿔 줘.",
+            "글리세린 포함 조건은 해제해 줘.",
+            "모공 대신 민감함 목표로 제품을 추천해 줘.",
+            "지식에서 제안한 조건은 모두 해제해 줘.",
+        ],
+        1,
+    ):
+        if version == 4:
+            new_reply = skin_case.resolved_ingredient_reply(monkeypatch, "판테놀")
+            consult.return_value = skin_case.Consultation(reply=new_reply, trace={})
+            monkeypatch.setattr(skin_case.specialists, "consult_knowledge", consult)
+        before = len(downstream.calls)
+        payload = {
+            "conversationId": room,
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": version - 1,
+            "message": message,
+            "locale": "ko",
+        }
+        response = client.post("/api/chat", headers=AUTH, json=payload)
+        assert response.status_code == 200, response.text
+        detail = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+        state = detail["context"]["compound"]
+        assert state["goal"]["excludedIngredients"] == ["향료"]
+        expected = {1: ["글리세린"], 2: ["글리세린"], 3: [], 4: ["판테놀"], 5: []}[version]
+        assert [c["ingredientName"] for c in state["knowledgeSearch"]["conditions"]] == expected
+        assert state["knowledgeSearch"]["source"] == "knowledge"
+        calls = downstream.calls[before:]
+        assert len([p for p, b in calls if p.endswith("/v4")]) == (1 if version in {1, 4} else 0)
+        count = len(downstream.calls)
+        model_count = planner.calls + extractor.calls
+        replay = client.post("/api/chat", headers=AUTH, json=payload)
+        assert replay.status_code == 200
+        for field in ("answer", "compound", "knowledge", "conversation"):
+            assert replay.json().get(field) == response.json().get(field)
+        assert len(downstream.calls) == count and planner.calls + extractor.calls == model_count
+        observations.append(
+            {
+                "turn": version,
+                "input": message,
+                "httpStatus": response.status_code,
+                "storedKnowledgeState": state["knowledgeSearch"],
+                "toolHttpRequests": calls,
+                "modelConfiguredMode": "mock",
+                "actualRemoteModelCalls": 0,
+                "mockPlannerCallsCumulative": planner.calls,
+                "mockExtractorCallsCumulative": extractor.calls,
+                "postgres": "live",
+                "api": "mock_transport",
+                "replayAdditionalCalls": 0,
+            }
+        )
+    assert consult.await_count == extractor.calls == 2
+    record_property("n01_followup_turns", observations)

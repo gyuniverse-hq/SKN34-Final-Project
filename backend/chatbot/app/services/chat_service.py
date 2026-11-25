@@ -812,6 +812,8 @@ class ChatService:
                 ),
                 deadline=deadline,
                 llm=self._llm,
+                knowledge_action=choice.knowledge_action,
+                remove_knowledge_ingredients=choice.remove_knowledge_ingredients,
             )
 
         if req._g7_execution is not None:

@@ -88,13 +88,6 @@ class BatchCoverage(CompoundModel):
     ingredient_resolutions: list[OptionIngredientResolution] = Field(default_factory=list)
 
 
-class CompoundContext(CompoundModel):
-    plan_version: int = Field(ge=1)
-    goal: CompoundGoal
-    candidates: list[RankedOption] = Field(default_factory=list, max_length=10)
-    candidate_goals: list[SkinGoal] | None = None
-
-
 class KnowledgeSearchCondition(CompoundModel):
     ingredient_name: Text
     operator: Literal["includes", "excludes"]
@@ -105,6 +98,23 @@ class KnowledgeSearchCondition(CompoundModel):
 
 class KnowledgeSearchPlan(CompoundModel):
     conditions: list[KnowledgeSearchCondition] = Field(default_factory=list, max_length=6)
+
+
+class KnowledgeSearchState(CompoundModel):
+    source: Literal["knowledge"] = "knowledge"
+    goals: list[SkinGoal]
+    conditions: list[KnowledgeSearchCondition] = Field(default_factory=list, max_length=6)
+    knowledge: KnowledgeReply | None = None
+    removed_ingredients: list[Text] = Field(default_factory=list)
+    cleared: bool = False
+
+
+class CompoundContext(CompoundModel):
+    plan_version: int = Field(ge=1)
+    goal: CompoundGoal
+    candidates: list[RankedOption] = Field(default_factory=list, max_length=10)
+    candidate_goals: list[SkinGoal] | None = None
+    knowledge_search: KnowledgeSearchState | None = None
 
 
 class CompoundDisplay(CompoundModel):
@@ -142,4 +152,5 @@ class TaskResult(CompoundModel):
     batches: list[BatchCoverage] = Field(default_factory=list)
     knowledge: KnowledgeReply | None = None
     search_conditions: list[KnowledgeSearchCondition] = Field(default_factory=list)
+    knowledge_search: KnowledgeSearchState | None = None
     limitations: list[str] = Field(default_factory=list)
