@@ -198,3 +198,141 @@ button:disabled {
   color: #8a7d81;
   padding: 28px 0;
 }
+.nav-user {
+  font-size: 12px;
+  color: #8a7d81;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nav-logout {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+.auth-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background: #f6f3f0;
+}
+.auth-card {
+  width: min(420px, 100%);
+  background: #fff;
+  border-radius: 20px;
+  padding: 28px 24px 32px;
+  box-shadow: 0 8px 28px rgba(60, 40, 50, 0.06);
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+}
+.auth-top-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #4a4245;
+}
+.auth-mascot {
+  margin-top: 8px;
+  object-fit: contain;
+}
+.auth-card h1 {
+  margin: 8px 0 0;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  color: #2c2426;
+}
+.auth-sub {
+  margin: 0;
+  font-size: 13px;
+  color: #8a7d81;
+  line-height: 1.45;
+  max-width: 20rem;
+}
+.auth-form {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  text-align: left;
+}
+.auth-form input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid #ddd6d8;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font: inherit;
+  background: #fff;
+}
+.auth-form button[type="submit"] {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 4px;
+}
+.auth-link {
+  background: none;
+  border: none;
+  color: #84374e;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px;
+  margin-top: 4px;
+}
+.auth-divider {
+  width: 100%;
+  height: 1px;
+  background: #ebe4e6;
+  margin: 10px 0;
+}
+.auth-social {
+  width: 100%;
+  min-height: 48px;
+}
+.auth-signup {
+  margin: 12px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #84374e;
+}
+.auth-hint {
+  margin: 0;
+  font-size: 12px;
+  color: #8a7d81;
+}
+.auth-info {
+  margin: 0;
+  font-size: 13px;
+  color: #5a6b7a;
+}
+.auth-consent {
+  border: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  text-align: left;
+}
+.auth-consent label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #4a4245;
+}
+.auth-consent input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}

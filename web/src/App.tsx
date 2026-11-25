@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, NavLink, Navigate, Route, Routes, useParams } from "react-router";
+import {
+  Link,
+  NavLink,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   ApiError,
@@ -10,13 +19,19 @@ import {
   type CartLine,
   type Product,
 } from "./api";
+import { isStaffSession, signOut, STAFF_HOME } from "./auth";
 import { cartTotal, loadCart, saveCart } from "./cart";
+import { LoginPage } from "./Login";
+import { SignupPage } from "./Signup";
+import { StaffApp } from "./StaffApp";
 
 function Shell({
   cartCount,
+  email,
   children,
 }: {
   cartCount: number;
+  email: string | null;
   children: React.ReactNode;
 }) {
   return (
@@ -30,6 +45,14 @@ function Shell({
             쇼핑
           </NavLink>
           <NavLink to="/cart">장바구니 ({cartCount})</NavLink>
+          {email && <span className="nav-user">{email}</span>}
+          <button
+            type="button"
+            className="secondary nav-logout"
+            onClick={() => void signOut()}
+          >
+            로그아웃
+          </button>
         </nav>
       </header>
       <main className="main">{children}</main>
@@ -317,8 +340,31 @@ function CartPage({
   );
 }
 
+function RequireAuth({
+  ready,
+  signedIn,
+  children,
+}: {
+  ready: boolean;
+  signedIn: boolean;
+  children: React.ReactNode;
+}) {
+  if (!ready) return <p role="status">로그인을 확인하고 있습니다…</p>;
+  if (!signedIn) return <Navigate to="/login" replace />;
+  return children;
+}
+
 export function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [lines, setLinesState] = useState<CartLine[]>(() => loadCart());
+  const [auth, setAuth] = useState({
+    ready: false,
+    signedIn: false,
+    email: null as string | null,
+  });
+  const [role, setRole] = useState<"unknown" | "user" | "staff">("unknown");
+
   function setLines(next: CartLine[]) {
     setLinesState(next);
     saveCart(next);
@@ -338,18 +384,110 @@ export function App() {
     } else setLines([...lines, line]);
   }
   const count = lines.reduce((n, l) => n + l.quantity, 0);
+  const onStaffPath = location.pathname === STAFF_HOME || location.pathname.startsWith(`${STAFF_HOME}/`);
+  const roleReady = !auth.signedIn || role !== "unknown";
+
+  useEffect(() => {
+    if (!supabase) {
+      setAuth({ ready: true, signedIn: false, email: null });
+      return;
+    }
+    let alive = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!alive) return;
+      setAuth({
+        ready: true,
+        signedIn: !!data.session,
+        email: data.session?.user.email ?? null,
+      });
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuth({
+        ready: true,
+        signedIn: !!session,
+        email: session?.user.email ?? null,
+      });
+      if (!session) setRole("unknown");
+    });
+    return () => {
+      alive = false;
+      data.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!auth.ready || !auth.signedIn) {
+      setRole("unknown");
+      return;
+    }
+    let alive = true;
+    setRole("unknown");
+    void isStaffSession()
+      .then((staff) => {
+        if (!alive) return;
+        setRole(staff ? "staff" : "user");
+      })
+      .catch(() => {
+        if (alive) setRole("user");
+      });
+    return () => {
+      alive = false;
+    };
+  }, [auth.ready, auth.signedIn]);
+
+  useEffect(() => {
+    if (!auth.signedIn || role === "unknown") return;
+    if (role === "staff" && !onStaffPath && location.pathname !== "/login" && location.pathname !== "/signup") {
+      navigate(STAFF_HOME, { replace: true });
+    }
+    if (role === "user" && onStaffPath) {
+      navigate("/", { replace: true });
+    }
+  }, [auth.signedIn, role, onStaffPath, location.pathname, navigate]);
+
+  if (auth.signedIn && !roleReady)
+    return <p role="status">권한을 확인하고 있습니다…</p>;
 
   return (
-    <Shell cartCount={count}>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/products/:id" element={<ProductDetail onAdd={onAdd} />} />
-        <Route
-          path="/cart"
-          element={<CartPage lines={lines} setLines={setLines} />}
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Shell>
+    <Routes>
+      <Route
+        path="/login"
+        element={<LoginPage signedIn={auth.signedIn && roleReady} />}
+      />
+      <Route
+        path="/signup"
+        element={<SignupPage signedIn={auth.signedIn && roleReady} />}
+      />
+      <Route
+        path="/admin/*"
+        element={
+          <RequireAuth ready={auth.ready} signedIn={auth.signedIn}>
+            {role === "staff" ? <StaffApp /> : <Navigate to="/" replace />}
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/*"
+        element={
+          <RequireAuth ready={auth.ready} signedIn={auth.signedIn}>
+            {role === "staff" ? (
+              <Navigate to={STAFF_HOME} replace />
+            ) : (
+              <Shell cartCount={count} email={auth.email}>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/products/:id" element={<ProductDetail onAdd={onAdd} />} />
+                  <Route
+                    path="/cart"
+                    element={<CartPage lines={lines} setLines={setLines} />}
+                  />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </Shell>
+            )}
+          </RequireAuth>
+        }
+      />
+    </Routes>
   );
 }
