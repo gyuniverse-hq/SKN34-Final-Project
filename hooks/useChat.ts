@@ -33,7 +33,7 @@ export function useChat() {
           ...(recentMessages?.length ? { recentMessages } : {}),
           ...(clarificationId ? { clarificationId } : {}),
           message, locale, requestId: requestId ?? uuid.v4(),
-          ...(conversationId ? { conversationId, expectedConversationVersion } : {}),
+          ...(conversationId ? { conversationId, expectedConversationVersion, structuredMemory: true } : {}),
           ...(styleSearch ? { styleSearch: true } : {}),
           ...(excludedStyle ? { excludedStyle } : {}),
           ...(previousStyleCandidates?.length ? { previousStyleCandidates } : {}),

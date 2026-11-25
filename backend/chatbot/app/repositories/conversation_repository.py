@@ -49,6 +49,7 @@ _FORBIDDEN = {
     "videoframe",
 }
 _DISPLAY_KEYS = {
+    "appliedMemories",
     "products",
     "styleCandidates",
     "styleRecipe",
@@ -152,8 +153,58 @@ class ConversationRepository:
         )
         return list(rows)
 
+    async def first_user_messages(
+        self, owner_id: str, conversation_ids: list[UUID]
+    ) -> dict[UUID, str]:
+        if not conversation_ids:
+            return {}
+        first_text = (
+            select(ChatMessage.text)
+            .where(ChatMessage.conversation_id == ChatConversation.id, ChatMessage.role == "user")
+            .order_by(ChatMessage.sequence)
+            .limit(1)
+            .correlate(ChatConversation)
+            .scalar_subquery()
+        )
+        rows = await self.session.execute(
+            select(ChatConversation.id, first_text)
+            .join(ChatOwnerStatus, ChatOwnerStatus.owner_id == ChatConversation.owner_id)
+            .where(
+                ChatConversation.id.in_(conversation_ids),
+                ChatConversation.owner_id == owner_id,
+                ChatConversation.deleted_at.is_(None),
+                ChatOwnerStatus.status == "ACTIVE",
+                ChatConversation.subject_json["type"].astext == "general",
+            )
+        )
+        return {room_id: text for room_id, text in rows if text is not None}
+
     async def get_creation(self, owner_id: str, request_id: UUID) -> ChatTurn | None:
         return await self.session.get(ChatTurn, (owner_id, request_id))
+
+    async def _creation_for_room(self, owner_id: str, conversation_id: UUID) -> ChatTurn | None:
+        return await self.session.scalar(
+            select(ChatTurn).where(
+                ChatTurn.owner_id == owner_id,
+                ChatTurn.operation == "conversation_create",
+                ChatTurn.result_resource_id == conversation_id,
+            )
+        )
+
+    async def room_deletion_completed(self, owner_id: str, conversation_id: UUID) -> bool:
+        creation = await self._creation_for_room(owner_id, conversation_id)
+        return creation is not None and creation.result_payload == {"roomDeletionComplete": True}
+
+    async def room_chat_request_ids(self, owner_id: str, conversation_id: UUID) -> list[UUID]:
+        return list(
+            await self.session.scalars(
+                select(ChatTurn.request_id).where(
+                    ChatTurn.owner_id == owner_id,
+                    ChatTurn.conversation_id == conversation_id,
+                    ChatTurn.operation == "chat",
+                )
+            )
+        )
 
     async def record_creation(
         self, owner_id: str, request_id: UUID, fingerprint: str, conversation_id: UUID
@@ -698,4 +749,9 @@ class ConversationRepository:
             )
             .returning(ChatConversation.id)
         )
-        return result.scalar_one_or_none() is not None
+        if result.scalar_one_or_none() is None:
+            return False
+        creation = await self._creation_for_room(owner_id, conversation_id)
+        if creation is not None:
+            creation.result_payload = {"roomDeletionComplete": True}
+        return True

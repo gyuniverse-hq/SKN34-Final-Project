@@ -5,23 +5,30 @@ import subprocess
 import sys
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
+from urllib.parse import urlsplit
 from uuid import UUID, uuid4
 
 import httpx
 import pytest
+from redis.asyncio import Redis
 from sqlalchemy import select, text, update
 from sqlalchemy.engine import make_url
 
 from app.core import auth
 from app.core.config import get_settings
 from app.core.db import dispose_chat_engine, get_chat_engine, get_chat_sessionmaker
+from app.core.errors import ApiError
 from app.core.ratelimit import get_rate_limiter
 from app.main import create_app
 from app.models.conversation import ChatConversation, ChatTurn
+from app.repositories.chat_session_repository import ChatSessionRepository
+from app.repositories.checkpoint_repository import CheckpointRepository
 from app.repositories.conversation_repository import ConversationRepository
-from app.schemas.chat import ChatResponse
+from app.schemas.chat import ChatRequest, ChatResponse
 from app.services.chat_service import ChatService, get_chat_service
 from tests.conftest import FakeGraph, FakeLlm, FakeVerifier
+from tests.test_beauty_consultation import PlanLlm
+from tests.test_chat_sessions import RedisDouble, SessionCatalog
 
 URL = os.environ.get("TEST_CHAT_DATABASE_URL")
 pytestmark = [
@@ -46,6 +53,11 @@ async def setup(monkeypatch):
     monkeypatch.setattr(settings, "g7_persistence_enabled", True)
     monkeypatch.setattr(settings, "chat_database_url", URL)
     monkeypatch.setattr(auth, "get_verifier", lambda: FakeVerifier())
+    redis = RedisDouble()
+    monkeypatch.setattr(
+        "app.services.conversation_service.get_chat_sessions",
+        lambda: ChatSessionRepository(redis),
+    )
     get_chat_engine.cache_clear()
     get_rate_limiter.cache_clear()
     try:
@@ -264,6 +276,152 @@ async def test_graph_cannot_start_after_room_was_deleted(setup, monkeypatch):
                 text("SELECT count(*) FROM checkpoints WHERE thread_id = :id"), {"id": str(thread)}
             )
         assert count == 0
+
+
+async def test_deleted_room_rejects_a_late_redis_write(setup, monkeypatch):
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", True)
+    redis = RedisDouble()
+    sessions = ChatSessionRepository(redis)
+    service = ChatService(
+        FakeGraph(), PlanLlm(intent="search", category="lip"), SessionCatalog(), sessions=sessions
+    )
+    before_write, release = asyncio.Event(), asyncio.Event()
+    validate = service._validate_session_context
+
+    async def pause_before_save(context, incoming, screen, **kwargs):
+        result = await validate(context, incoming, screen, **kwargs)
+        if incoming is None and screen is None and not before_write.is_set():
+            before_write.set()
+            await release.wait()
+        return result
+
+    async def unavailable_checkpoint(self, thread_id):
+        raise OSError("Checkpoint temporarily unavailable")
+
+    monkeypatch.setattr(service, "_validate_session_context", pause_before_save)
+    app = create_app()
+    app.dependency_overrides[get_chat_service] = lambda: service
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        room, other_room = await create(client), await create(client)
+        request_id = uuid4()
+        body = {
+            "conversationId": room,
+            "expectedConversationVersion": 0,
+            "requestId": str(request_id),
+            "locale": "ko",
+            "message": "립 추천해줘",
+        }
+        pending = asyncio.create_task(client.post("/api/chat", headers=AUTH, json=body))
+        delete_url = f"/api/chat/conversations/{room}"
+        try:
+            await asyncio.wait_for(before_write.wait(), timeout=10)
+            with monkeypatch.context() as cleanup:
+                cleanup.setattr(CheckpointRepository, "delete_thread", unavailable_checkpoint)
+                deleted = await client.delete(delete_url, headers=AUTH)
+            assert (deleted.status_code, deleted.json()["code"]) == (503, "deletion_incomplete")
+            async with get_chat_sessionmaker().begin() as session:
+                deleted_at = await session.scalar(
+                    select(ChatConversation.deleted_at).where(ChatConversation.id == UUID(room))
+                )
+            assert deleted_at is not None
+        finally:
+            release.set()
+            late = await asyncio.wait_for(pending, timeout=10)
+        assert (late.status_code, late.json()["code"]) == (409, "request_interrupted")
+        assert redis.writes == 0
+        assert await redis.get(sessions.request_key("user:user-ok-1", request_id)) is None
+        assert (await client.delete(delete_url, headers=AUTH)).status_code == 204
+
+        other = await client.post(
+            "/api/chat",
+            headers=AUTH,
+            json={**body, "conversationId": other_room, "requestId": str(uuid4())},
+        )
+        assert other.status_code == 200, other.text
+        assert other.json()["chatContext"]["session"] and redis.writes == 1
+
+
+@pytest.mark.skipif(
+    not os.environ.get("TEST_CHAT_REDIS_URL"), reason="disposable Redis not configured"
+)
+async def test_room_redis_cleanup_is_retryable_and_preserves_other_sessions(setup, monkeypatch):
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", True)
+    redis_url = os.environ["TEST_CHAT_REDIS_URL"]
+    if urlsplit(redis_url).hostname not in {"127.0.0.1", "localhost", "::1"}:
+        raise RuntimeError("Room cleanup tests require a disposable local Redis")
+    async with Redis.from_url(redis_url, decode_responses=True) as redis:
+        sessions = ChatSessionRepository(redis)
+        service = ChatService(
+            FakeGraph(),
+            PlanLlm(intent="search", category="lip"),
+            SessionCatalog(),
+            sessions=sessions,
+        )
+        app = create_app()
+        app.dependency_overrides[get_chat_service] = lambda: service
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            room, other_room = await create(client), await create(client)
+
+            async def store(room_id, version=0):
+                request_id = uuid4()
+                response = await client.post(
+                    "/api/chat",
+                    headers=AUTH,
+                    json={
+                        "conversationId": room_id,
+                        "expectedConversationVersion": version,
+                        "requestId": str(request_id),
+                        "locale": "ko",
+                        "message": "립 추천해줘",
+                    },
+                )
+                assert response.status_code == 200, response.text
+                session_id = UUID(response.json()["chatContext"]["session"]["sessionId"])
+                return sessions.key(session_id), sessions.request_key("user:user-ok-1", request_id)
+
+            orphan_session, evicted_request = await store(room)
+            room_session, room_request = await store(room, 1)
+            other_session, other_request = await store(other_room)
+            guest_id = f"guest:{uuid4()}"
+            guest_request_id = uuid4()
+            guest = await service.answer(
+                ChatRequest(
+                    message="립 추천해줘",
+                    locale="ko",
+                    request_type="beauty_consultation",
+                    request_id=guest_request_id,
+                ),
+                guest_id,
+            )
+            guest_session = sessions.key(guest.chat_context.session.session_id)
+            guest_request = sessions.request_key(guest_id, guest_request_id)
+            # Simulate eviction of only the disposable room's request key.
+            assert await redis.delete(evicted_request) == 1
+
+            async def unavailable(*args):
+                raise ApiError(503, "Redis unavailable", "chat_session_unavailable")
+
+            path = f"/api/chat/conversations/{room}"
+            with monkeypatch.context() as outage:
+                outage.setattr(sessions, "delete_room", unavailable)
+                incomplete = await client.delete(path, headers=AUTH)
+            assert (incomplete.status_code, incomplete.json()["code"]) == (
+                503,
+                "deletion_incomplete",
+            )
+            assert (await client.get(path, headers=AUTH)).status_code == 404
+            assert await redis.exists(orphan_session, room_session, room_request) == 3
+
+            assert (await client.delete(path, headers=AUTH)).status_code == 204
+            assert (await client.delete(path, headers=AUTH)).status_code == 204
+            assert await redis.exists(orphan_session, room_session, room_request) == 0
+            assert (
+                await redis.exists(other_session, other_request, guest_session, guest_request) == 4
+            )
 
 
 @pytest.mark.parametrize("change", ["delete", "update"])

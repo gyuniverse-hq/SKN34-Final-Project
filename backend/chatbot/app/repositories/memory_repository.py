@@ -1,14 +1,19 @@
+from __future__ import annotations
+
 from datetime import datetime
 from hashlib import sha256
 from uuid import UUID
 
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.conversation import (
     ChatConversation,
     ChatMemory,
     ChatMemoryProposal,
+    ChatMemoryProposalGroup,
+    ChatMemoryProposalItem,
+    ChatMemorySource,
     ChatMessage,
     ChatOwnerStatus,
 )
@@ -28,24 +33,28 @@ class MemoryRepository:
         )
         return status == "ACTIVE"
 
-    async def get(self, owner_id: str, memory_id: UUID) -> ChatMemory | None:
+    async def get(
+        self, owner_id: str, memory_id: UUID, schema_version: int = 1
+    ) -> ChatMemory | None:
         return await self.session.scalar(
             select(ChatMemory)
             .join(ChatOwnerStatus, ChatOwnerStatus.owner_id == ChatMemory.owner_id)
             .where(
                 ChatMemory.id == memory_id,
                 ChatMemory.owner_id == owner_id,
+                ChatMemory.schema_version == schema_version,
                 ChatMemory.revoked_at.is_(None),
                 ChatOwnerStatus.status == "ACTIVE",
             )
         )
 
-    async def list(self, owner_id: str) -> list[ChatMemory]:
+    async def list(self, owner_id: str, schema_version: int = 1) -> list[ChatMemory]:
         rows = await self.session.scalars(
             select(ChatMemory)
             .join(ChatOwnerStatus, ChatOwnerStatus.owner_id == ChatMemory.owner_id)
             .where(
                 ChatMemory.owner_id == owner_id,
+                ChatMemory.schema_version == schema_version,
                 ChatMemory.revoked_at.is_(None),
                 ChatOwnerStatus.status == "ACTIVE",
             )
@@ -53,10 +62,71 @@ class MemoryRepository:
         )
         return list(rows)
 
+    async def consultation_rows(self, owner_id: str) -> list[ChatMemory]:
+        return list(
+            await self.session.scalars(
+                select(ChatMemory)
+                .join(ChatOwnerStatus, ChatOwnerStatus.owner_id == ChatMemory.owner_id)
+                .where(
+                    ChatMemory.owner_id == owner_id,
+                    ChatMemory.revoked_at.is_(None),
+                    ChatMemory.consent_scope == "future_consultations",
+                    ChatOwnerStatus.status == "ACTIVE",
+                    ChatOwnerStatus.memory_enabled.is_(True),
+                )
+            )
+        )
+
     async def owner_epoch(self, owner_id: str) -> int | None:
         return await self.session.scalar(
             select(ChatOwnerStatus.revocation_epoch).where(
                 ChatOwnerStatus.owner_id == owner_id, ChatOwnerStatus.status == "ACTIVE"
+            )
+        )
+
+    async def owner_settings(self, owner_id: str) -> ChatOwnerStatus | None:
+        return await self.session.scalar(
+            select(ChatOwnerStatus).where(
+                ChatOwnerStatus.owner_id == owner_id, ChatOwnerStatus.status == "ACTIVE"
+            )
+        )
+
+    async def personalization_enabled(self, owner_id: str) -> bool:
+        return bool(
+            await self.session.scalar(
+                select(ChatOwnerStatus.memory_enabled).where(
+                    ChatOwnerStatus.owner_id == owner_id, ChatOwnerStatus.status == "ACTIVE"
+                )
+            )
+        )
+
+    async def clear_pending(self, owner_id: str) -> None:
+        await self.session.execute(
+            delete(ChatMemoryProposal).where(
+                ChatMemoryProposal.owner_id == owner_id,
+                ChatMemoryProposal.consumed_at.is_(None),
+            )
+        )
+        groups = select(ChatMemoryProposalGroup.id).where(
+            ChatMemoryProposalGroup.owner_id == owner_id
+        )
+        await self.session.execute(
+            delete(ChatMemoryProposalItem).where(
+                ChatMemoryProposalItem.group_id.in_(groups),
+                ChatMemoryProposalItem.status.in_(("pending", "deferred")),
+            )
+        )
+
+    async def clear_approved(self, owner_id: str) -> None:
+        await self.session.execute(
+            update(ChatMemory)
+            .where(ChatMemory.owner_id == owner_id, ChatMemory.revoked_at.is_(None))
+            .values(
+                value_json=None,
+                display_value=None,
+                applicability_json=None,
+                revoked_at=func.now(),
+                updated_at=func.now(),
             )
         )
 
@@ -74,7 +144,7 @@ class MemoryRepository:
     async def memory_fence(
         self, owner_id: str
     ) -> tuple[dict[str, int], set[str], dict[str, datetime]]:
-        rows = await self.session.execute(
+        legacy = (
             select(
                 ChatMemory.id,
                 ChatMemory.version,
@@ -84,8 +154,22 @@ class MemoryRepository:
                 ChatMessage.conversation_id,
             )
             .outerjoin(ChatMessage, ChatMessage.id == ChatMemory.source_message_id)
-            .where(ChatMemory.owner_id == owner_id)
+            .where(ChatMemory.owner_id == owner_id, ChatMemory.schema_version == 1)
         )
+        structured = (
+            select(
+                ChatMemory.id,
+                ChatMemory.version,
+                ChatMemory.revoked_at,
+                ChatMemory.updated_at,
+                ChatMemorySource.message_id,
+                ChatMessage.conversation_id,
+            )
+            .outerjoin(ChatMemorySource, ChatMemorySource.memory_id == ChatMemory.id)
+            .outerjoin(ChatMessage, ChatMessage.id == ChatMemorySource.message_id)
+            .where(ChatMemory.owner_id == owner_id, ChatMemory.schema_version == 2)
+        )
+        rows = await self.session.execute(legacy.union_all(structured))
         values = list(rows)
         cutoffs = {}
         for row in values:
@@ -166,6 +250,7 @@ class MemoryRepository:
             .where(
                 ChatMemory.id == memory_id,
                 ChatMemory.owner_id == owner_id,
+                ChatMemory.schema_version == 1,
                 ChatMemory.revoked_at.is_(None),
                 ChatMemory.version == expected_version,
             )
@@ -174,7 +259,7 @@ class MemoryRepository:
         )
         return result.scalar_one_or_none()
 
-    async def revoke(self, owner_id: str, memory_id: UUID) -> bool:
+    async def revoke(self, owner_id: str, memory_id: UUID, schema_version: int = 1) -> bool:
         if not await self._lock_active(owner_id):
             return False
         result = await self.session.execute(
@@ -182,16 +267,25 @@ class MemoryRepository:
             .where(
                 ChatMemory.id == memory_id,
                 ChatMemory.owner_id == owner_id,
+                ChatMemory.schema_version == schema_version,
                 ChatMemory.revoked_at.is_(None),
             )
-            .values(value_json=None, revoked_at=func.now(), updated_at=func.now())
+            .values(
+                value_json=None,
+                display_value=None,
+                applicability_json=None,
+                revoked_at=func.now(),
+                updated_at=func.now(),
+            )
             .returning(ChatMemory.id)
         )
         if result.scalar_one_or_none() is None:
             return (
                 await self.session.scalar(
                     select(ChatMemory.id).where(
-                        ChatMemory.id == memory_id, ChatMemory.owner_id == owner_id
+                        ChatMemory.id == memory_id,
+                        ChatMemory.owner_id == owner_id,
+                        ChatMemory.schema_version == schema_version,
                     )
                 )
             ) is not None

@@ -14,7 +14,14 @@ from app.schemas.catalog import (
 )
 from app.schemas.conversation import ConversationMetadata
 from app.schemas.knowledge import KnowledgeReply
-from app.schemas.memory import MemoryProposal
+from app.schemas.memory import (
+    AppliedColorMemory,
+    AppliedMemory,
+    AppliedOwnedProductMemory,
+    AppliedSkinTypeMemory,
+    ConsultationMemory,
+    MemoryProposal,
+)
 from app.schemas.style_recipe import (
     StyleCandidate,
     StyleCandidateRef,
@@ -168,9 +175,11 @@ class PendingClarification(ArModel):
 
 
 class ChatRequest(ApiModel):
+    structured_memory: bool = Field(default=False, strict=True, exclude_if=lambda value: not value)
     _server_history: bool = PrivateAttr(default=False)
     _g7_execution: object | None = PrivateAttr(default=None)
     _consented_memories: list[str] = PrivateAttr(default_factory=list)
+    _consultation_memories: tuple[ConsultationMemory, ...] | None = PrivateAttr(default=None)
     _memory_epoch: int | None = PrivateAttr(default=None)
     _memory_generation: str | None = PrivateAttr(default=None)
     style_search: bool = Field(default=False, strict=True, exclude_if=lambda v: not v)
@@ -409,6 +418,9 @@ class ChatIngredientResult(CatalogIngredients):
 class ChatResponse(ApiModel):
     conversation: ConversationMetadata | None = Field(default=None, exclude_if=lambda v: v is None)
     memory_proposal: MemoryProposal | None = Field(default=None, exclude_if=lambda v: v is None)
+    applied_memories: list[
+        AppliedMemory | AppliedSkinTypeMemory | AppliedColorMemory | AppliedOwnedProductMemory
+    ] = Field(default_factory=list, exclude_if=lambda v: not v)
     style_candidates: list[StyleCandidate] | None = Field(
         default=None, exclude_if=lambda v: v is None
     )

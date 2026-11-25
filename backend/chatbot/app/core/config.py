@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     g5_internal_token: str | None = None
     g7_persistence_enabled: bool = False
     g7_memory_enabled: bool = False
+    g7_structured_memory_enabled: bool = False
     g7_owner_deletion_guard_enabled: bool = False
     g7_internal_deletion_enabled: bool = False
     g7_internal_deletion_key: SecretStr | None = None

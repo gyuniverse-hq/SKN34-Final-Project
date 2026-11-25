@@ -1,8 +1,9 @@
 """Add durable account deletion job state without changing the existing deletion API."""
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "0039"
 down_revision = "0038"

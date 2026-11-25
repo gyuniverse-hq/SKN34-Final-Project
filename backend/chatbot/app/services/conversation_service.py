@@ -3,6 +3,8 @@
 import asyncio
 import base64
 import json
+import logging
+import re
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from types import SimpleNamespace
@@ -10,9 +12,11 @@ from uuid import UUID, uuid4
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.clients.catalog_client import UpstreamError
 from app.core.config import get_settings
 from app.core.db import get_chat_sessionmaker
 from app.core.errors import ApiError
+from app.repositories.chat_session_repository import get_chat_sessions
 from app.repositories.checkpoint_repository import CheckpointRepository
 from app.repositories.conversation_repository import ConversationRepository
 from app.repositories.memory_repository import MemoryRepository
@@ -23,6 +27,13 @@ from app.schemas.conversation import (
     UpdateConversationStateRequest,
 )
 from app.services.chat_service import ChatService
+from app.services.consultation_memory import (
+    CONSULTATION_MEMORY_LIMIT,
+    capture_prompt_dependencies,
+    ignores_memory,
+    select_consultation_memories,
+    visible_memory_evidence,
+)
 from app.services.conversation_context import (
     apply_state_update,
     display_payload,
@@ -32,12 +43,65 @@ from app.services.conversation_context import (
     revalidate_request,
     updated_context,
 )
+from app.services.memory_registry import (
+    extract_values,
+    is_explicit_request,
+    refers_to_prior,
+    with_verified_product,
+)
 from app.services.memory_service import (
     _item,
     create_candidate,
     memory_request_prompt,
     replay_candidate,
 )
+from app.services.structured_memory_service import enabled as structured_memory_enabled
+from app.services.structured_memory_service import issue_group
+
+logger = logging.getLogger(__name__)
+_STRUCTURED_MEMORY_REPLY = {
+    "ko": (
+        "제안에서 선택하고 저장을 확인한 항목만 기억해요. "
+        "제안이 보이지 않으면 기억할 내용을 구체적으로 알려주세요."
+    ),
+    "en": (
+        "Only items you select and confirm will be saved. "
+        "If no proposal appears, tell me what to remember more specifically."
+    ),
+    "ja": (
+        "提案から選び、保存を確認した項目だけを記憶します。"
+        "提案が表示されない場合は、内容を具体的に教えてください。"
+    ),
+    "zh": "只有选择并确认保存的项目才会被记住。若没有显示提议，请具体说明要记住的内容。",
+}
+
+_LIST_TITLE_RULES = (
+    ("look", re.compile(r"룩|화장법|メイク方法|妆容|妝容|\bmakeup (?:look|tutorial)\b", re.I)),
+    ("ingredient", re.compile(r"성분|향료|成分|香料|\b(?:ingredients?|fragrance)\b", re.I)),
+    (
+        "product",
+        re.compile(
+            r"제품|상품|립스틱|립틴트|製品|商品|口红|口紅|\b(?:products?|lipsticks?|lip tint)\b",
+            re.I,
+        ),
+    ),
+)
+_LIST_PREVIEW_RULES = (
+    ("hydration", re.compile(r"보습|촉촉|保湿|保濕|\b(?:moisturi[sz]\w*|hydrati\w*)\b", re.I)),
+    (
+        "price",
+        re.compile(r"가격|예산|만원|価格|予算|价格|價格|预算|\b(?:price|budget|cost)\b", re.I),
+    ),
+)
+
+
+def _list_summary(text: str) -> dict[str, str | list[str]]:
+    title = next((topic for topic, pattern in _LIST_TITLE_RULES if pattern.search(text)), None)
+    topics = [topic for topic, pattern in _LIST_PREVIEW_RULES if pattern.search(text)]
+    summary: dict[str, str | list[str]] = {"previewTopics": topics} if title or topics else {}
+    if title:
+        summary["titleTopic"] = title
+    return summary
 
 
 def _unavailable() -> ApiError:
@@ -153,27 +217,32 @@ class ConversationService:
                 raise ApiError(400, "Invalid cursor", "invalid_request") from exc
         try:
             async with self._sessions()() as session:
-                rows = await ConversationRepository(session).list_page(owner_id, limit + 1, before)
+                repo = ConversationRepository(session)
+                rows = await repo.list_page(owner_id, limit + 1, before)
                 more = len(rows) > limit
                 rows = rows[:limit]
+                first_messages = await repo.first_user_messages(
+                    owner_id, [row.id for row in rows if row.subject_json.get("type") == "general"]
+                )
                 next_cursor = (
                     _cursor({"updatedAt": rows[-1].updated_at.isoformat(), "id": str(rows[-1].id)})
                     if more
                     else None
                 )
-                return {
-                    "conversations": [
-                        {
-                            "conversationId": str(row.id),
-                            "conversationVersion": row.conversation_version,
-                            "subject": row.subject_json,
-                            "createdAt": row.created_at,
-                            "updatedAt": row.updated_at,
-                        }
-                        for row in rows
-                    ],
-                    "nextCursor": next_cursor,
-                }
+                conversations = []
+                for row in rows:
+                    item = {
+                        "conversationId": str(row.id),
+                        "conversationVersion": row.conversation_version,
+                        "subject": row.subject_json,
+                        "createdAt": row.created_at,
+                        "updatedAt": row.updated_at,
+                    }
+                    summary = _list_summary(first_messages.get(row.id, ""))
+                    if summary:
+                        item["listSummary"] = summary
+                    conversations.append(item)
+                return {"conversations": conversations, "nextCursor": next_cursor}
         except (SQLAlchemyError, OSError) as exc:
             raise _unavailable() from exc
 
@@ -192,7 +261,10 @@ class ConversationService:
                 memory_repo = MemoryRepository(session)
                 epoch = await memory_repo.owner_epoch(owner_id)
                 versions, _, _ = await memory_repo.memory_fence(owner_id)
-                if not get_settings().g7_memory_enabled:
+                if (
+                    not get_settings().g7_memory_enabled
+                    or not await memory_repo.personalization_enabled(owner_id)
+                ):
                     versions = {}
                 safe_context = _safe_context(dict(room.context_json), epoch, versions)
                 more = len(rows) > limit
@@ -208,7 +280,9 @@ class ConversationService:
                             "id": str(row.id),
                             "role": row.role,
                             "text": row.text,
-                            "displayPayload": row.display_payload,
+                            "displayPayload": visible_memory_evidence(
+                                row.display_payload, versions
+                            ),
                             "createdAt": row.created_at,
                         }
                         for row in reversed(rows)
@@ -261,8 +335,17 @@ class ConversationService:
         row = await repo.response_message(owner_id, conversation_id, turn.response_message_id)
         if row is None:
             raise _unavailable()
+        payload = row.display_payload
+        if "appliedMemories" in payload:
+            memory_repo = MemoryRepository(repo.session)
+            versions = {}
+            if get_settings().g7_memory_enabled and await memory_repo.personalization_enabled(
+                owner_id
+            ):
+                versions, _, _ = await memory_repo.memory_fence(owner_id)
+            payload = visible_memory_evidence(payload, versions)
         try:
-            response = restore_response(row.text, row.display_payload)
+            response = restore_response(row.text, payload)
         except ValueError as exc:
             raise _unavailable() from exc
         response.conversation = ConversationMetadata(
@@ -333,10 +416,22 @@ class ConversationService:
                     messages = await repo.recent_messages(owner_id, room_id)
                     memory_repo = MemoryRepository(session)
                     memory_epoch = await memory_repo.owner_epoch(owner_id)
-                    memory_enabled = settings.g7_memory_enabled
+                    global_memory_enabled = settings.g7_memory_enabled
+                    memory_enabled = (
+                        global_memory_enabled
+                        and await memory_repo.personalization_enabled(owner_id)
+                    )
+                    structured = (
+                        memory_enabled
+                        and request.structured_memory
+                        and structured_memory_enabled()
+                        and room.subject_json.get("type") == "general"
+                        and request.request_type in {"chat", "beauty_consultation"}
+                    )
                     memory_generation = await memory_repo.generation(owner_id, memory_enabled)
                     versions, removed_sources, cutoffs = await memory_repo.memory_fence(owner_id)
-                    if not settings.g7_memory_enabled:
+                    memory_opt_out = structured and ignores_memory(request.message)
+                    if not memory_enabled or memory_opt_out:
                         versions = {}
                     raw_context = _safe_context(dict(room.context_json), memory_epoch, versions)
                     prepared = prepare_request(
@@ -347,11 +442,19 @@ class ConversationService:
                         removed_sources,
                         cutoffs.get(str(room_id)),
                     )
-                    memories = (
-                        (await memory_repo.list(owner_id))[:20]
-                        if settings.g7_memory_enabled
-                        else []
-                    )
+                    memories = []
+                    if structured:
+                        prepared._consultation_memories = ()
+                        if not memory_opt_out and not is_explicit_request(request.message):
+                            try:
+                                async with session.begin_nested():
+                                    prepared._consultation_memories = select_consultation_memories(
+                                        prepared, await memory_repo.consultation_rows(owner_id)
+                                    )
+                            except (SQLAlchemyError, OSError):
+                                logger.warning("Consultation memory candidates are unavailable")
+                    elif memory_enabled:
+                        memories = (await memory_repo.list(owner_id))[:CONSULTATION_MEMORY_LIMIT]
                     prepared._consented_memories = [_item(item).value for item in memories]
                     prepared._memory_epoch = memory_epoch
                     prepared._memory_generation = memory_generation
@@ -363,6 +466,7 @@ class ConversationService:
                     )
                     if (
                         incoming_session
+                        and not memory_opt_out
                         and request.locale == "ko"
                         and request.request_type in {"chat", "beauty_consultation"}
                         and settings.g1_supervisor_enabled
@@ -398,8 +502,48 @@ class ConversationService:
         )
         try:
             await revalidate_request(self.chat, prepared)
-            response = await self.chat.answer(prepared, principal_key)
-            if prompt := memory_request_prompt(request.message, request.locale):
+            with capture_prompt_dependencies() as model_dependencies:
+                response = await self.chat.answer(prepared, principal_key)
+            if structured:
+                selected_versions = {
+                    entry.id: entry.version for entry in prepared._consultation_memories or ()
+                }
+                response.applied_memories = [
+                    item
+                    for item in response.applied_memories
+                    if selected_versions.get(item.memory_id) == item.version
+                ]
+                dependencies = dict(model_dependencies)
+                dependencies.update(
+                    {str(item.memory_id): item.version for item in response.applied_memories}
+                )
+                memory_refs = [
+                    {"memoryId": memory_id, "version": stamp}
+                    for memory_id, stamp in dependencies.items()
+                ]
+            explicit_memory = structured and is_explicit_request(request.message)
+            drafts = extract_values(request.message, request.locale) if explicit_memory else []
+            previous_source = explicit_memory and refers_to_prior(request.message)
+            catalog = getattr(self.chat, "_catalog", None)
+            selected = prepared.chat_context.selected_product_id if prepared.chat_context else None
+            if catalog and selected and any(draft.key == "inventory.product" for draft in drafts):
+                try:
+                    product = await catalog.get_product(selected)
+                except UpstreamError:
+                    product = None
+                if product and product.id == selected:
+                    drafts = [
+                        with_verified_product(draft, product, request.locale)
+                        if draft.key == "inventory.product"
+                        else draft
+                        for draft in drafts
+                    ]
+            if structured:
+                if explicit_memory:
+                    response.answer = _STRUCTURED_MEMORY_REPLY[request.locale]
+            elif memory_enabled and (
+                prompt := memory_request_prompt(request.message, request.locale)
+            ):
                 response.answer = prompt
             context = updated_context(raw_context, response)
             prior_refs = context.get("memoryRefs", [])
@@ -417,7 +561,7 @@ class ConversationService:
             turn_id = uuid4()
             async with self._sessions().begin() as session:
                 repo = ConversationRepository(session)
-                if get_settings().g7_memory_enabled != memory_enabled:
+                if get_settings().g7_memory_enabled != global_memory_enabled:
                     raise ApiError(409, "Memory context changed", "request_interrupted")
                 written = await repo.finish_reply(
                     owner_id,
@@ -438,9 +582,26 @@ class ConversationService:
                 )
                 if not written:
                     raise ApiError(409, "Request was interrupted", "request_interrupted")
-                response.memory_proposal = await create_candidate(
-                    session, owner_id, room_id, request_id, memory_epoch, request.message
-                )
+                if structured:
+                    if structured_memory_enabled() and (drafts or previous_source):
+                        try:
+                            async with session.begin_nested():
+                                await issue_group(
+                                    session,
+                                    owner_id,
+                                    room_id,
+                                    request_id,
+                                    request.locale,
+                                    drafts,
+                                    previous_source,
+                                )
+                        except (SQLAlchemyError, ValueError):
+                            # A proposal failure leaves the completed consultation intact.
+                            logger.warning("Structured memory proposal could not be issued")
+                elif memory_enabled:
+                    response.memory_proposal = await create_candidate(
+                        session, owner_id, room_id, request_id, memory_epoch, request.message
+                    )
             response.conversation = ConversationMetadata(
                 id=room_id, version=version + 1, turn_id=turn_id, persistence_status="stored"
             )
@@ -546,7 +707,7 @@ class ConversationService:
         repo = MemoryRepository(session)
         epoch = await repo.owner_epoch(owner_id)
         versions, _, _ = await repo.memory_fence(owner_id)
-        if not get_settings().g7_memory_enabled:
+        if not get_settings().g7_memory_enabled or not await repo.personalization_enabled(owner_id):
             versions = {}
         if _safe_context(payload["context"], epoch, versions) != payload["context"]:
             raise ApiError(409, "Memory context changed", "memory_context_changed")
@@ -611,10 +772,14 @@ class ConversationService:
                         raise ApiError(409, "Conversation is busy", "conversation_busy")
                     memory_repo = MemoryRepository(session)
                     memory_epoch = await memory_repo.owner_epoch(owner_id)
-                    memory_enabled = get_settings().g7_memory_enabled
+                    global_memory_enabled = get_settings().g7_memory_enabled
+                    memory_enabled = (
+                        global_memory_enabled
+                        and await memory_repo.personalization_enabled(owner_id)
+                    )
                     memory_generation = await memory_repo.generation(owner_id, memory_enabled)
                     versions, _, _ = await memory_repo.memory_fence(owner_id)
-                    if not get_settings().g7_memory_enabled:
+                    if not memory_enabled:
                         versions = {}
                     raw_context = _safe_context(dict(room.context_json), memory_epoch, versions)
                     subject = dict(room.subject_json)
@@ -633,7 +798,7 @@ class ConversationService:
         try:
             context = await apply_state_update(raw_context, subject, body, self.chat)
             async with self._sessions().begin() as session:
-                if get_settings().g7_memory_enabled != memory_enabled:
+                if get_settings().g7_memory_enabled != global_memory_enabled:
                     raise ApiError(409, "Memory context changed", "request_interrupted")
                 snapshot = await ConversationRepository(session).finish_state_update(
                     owner_id,
@@ -684,17 +849,29 @@ class ConversationService:
                     await repo.mark_deleted(owner_id, conversation_id)
                 else:
                     thread_id = await repo.deleting_thread(owner_id, conversation_id)
-            if thread_id is None:
-                return
+                if thread_id is None:
+                    if await repo.room_deletion_completed(owner_id, conversation_id):
+                        return
+                    raise ApiError(404, "Conversation not found", "not_found")
+                request_ids = await repo.room_chat_request_ids(owner_id, conversation_id)
             try:
                 await CheckpointRepository(get_settings().chat_database_url).delete_thread(
                     thread_id
                 )
+                if request_ids:
+                    sessions = getattr(self.chat, "_sessions", None) or get_chat_sessions()
+                    await sessions.delete_room(owner_id, conversation_id, request_ids)
             except Exception as exc:
                 raise ApiError(
                     503, "Conversation deletion is incomplete", "deletion_incomplete"
                 ) from exc
             async with self._sessions().begin() as session:
-                await ConversationRepository(session).purge_deleted(owner_id, conversation_id)
+                repo = ConversationRepository(session)
+                if not await repo.purge_deleted(
+                    owner_id, conversation_id
+                ) and not await repo.room_deletion_completed(owner_id, conversation_id):
+                    raise ApiError(
+                        503, "Conversation deletion is incomplete", "deletion_incomplete"
+                    )
         except (SQLAlchemyError, OSError) as exc:
             raise _unavailable() from exc

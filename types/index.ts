@@ -73,6 +73,7 @@ export interface Shade {
   measureMethod?: MeasureMethod;
   /** Where an estimated color came from (AR_SPEC 6-15-2). */
   colorSource?: 'measured' | 'option_chip' | 'color_compare' | 'product_photo' | 'official_hex' | 'placeholder';
+  colorFamily?: 'red' | 'coral' | 'pink' | 'berry' | 'nude' | 'brown';
   labEstimated?: LabColor;
   /** 0..1 confidence of the color extraction, when the source reports one. */
   colorConfidence?: number;
@@ -661,6 +662,7 @@ export interface ChatOptionSearch {
 export interface ChatResponse {
   conversation?: { id: string; version: number; turnId: string; persistenceStatus: 'stored' };
   memoryProposal?: ChatMemoryProposal | null;
+  appliedMemories?: ChatAppliedMemory[];
   knowledge?: KnowledgeReply;
   optionSearch?: ChatOptionSearch;
   pendingClarification?: PendingClarification | null;
@@ -695,7 +697,60 @@ export interface ChatMemory {
   value: string;
   version: number;
   consentScope: 'future_consultations';
+  schemaVersion?: 2;
+  key?: StructuredMemoryKey;
+  editableValue?: string;
+  choices?: [string, string][];
 }
+
+export interface ChatMemorySettings {
+  enabled: boolean;
+  version: number;
+  noticeAcknowledged: boolean;
+  memorySetRevision: string;
+}
+
+export type StructuredMemoryKey = 'skin.type' | 'makeup.color' | 'makeup.finish' | 'inventory.product';
+
+export type ChatAppliedMemory = {
+  memoryId: string;
+  version: number;
+} & (
+  | { key: 'makeup.finish'; tool: 'catalog.search_products'; field: 'texture'; applicationKind: 'ranking' }
+  | { key: 'skin.type'; tool: 'skincare.recommend'; field: 'skinType'; applicationKind: 'candidate_selection' }
+  | {
+      key: 'makeup.color'; tool: 'catalog.search_products'; field: 'shadeColorFamily'; applicationKind: 'ranking';
+      matches: { productId: string; shadeId: string; basis: 'measured' | 'user_verified' | 'estimated' | 'catalog_name' }[];
+    }
+  | {
+      key: 'inventory.product'; tool: 'catalog.search_products'; field: 'productId'; applicationKind: 'candidate_filter';
+      action: 'include' | 'exclude'; productId: string; shadeId?: string;
+    }
+);
+
+export interface ChatMemoryProposalItem {
+  itemId: string;
+  key: StructuredMemoryKey;
+  kind: ChatMemory['kind'];
+  version: number;
+  status: 'pending' | 'deferred';
+  value: Record<string, string>;
+  displayValue: string;
+  previousDisplayValue?: string | null;
+  editableValue: string;
+  choices: [string, string][];
+}
+
+export interface ChatMemoryProposalGroup {
+  groupId: string;
+  conversationId: string;
+  expiresAt: string;
+  items: ChatMemoryProposalItem[];
+}
+
+export type ChatMemoryDecision = { itemId: string; expectedVersion: number } & (
+  { action: 'approve'; confirmed: true } | { action: 'defer' | 'reject' }
+);
 
 export interface ChatStyleCandidate {
   kind: 'video' | 'catalog';

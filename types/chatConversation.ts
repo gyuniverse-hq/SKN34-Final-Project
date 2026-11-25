@@ -9,14 +9,20 @@ export type ConversationEntry =
   | Extract<ConversationSubject, { type: 'general' | 'look' }>
   | (Extract<ConversationSubject, { type: 'product' }> & { shadeId?: string });
 
+export type ConversationListSummary = {
+  titleTopic?: 'product' | 'ingredient' | 'look';
+  previewTopics: ('hydration' | 'price')[];
+};
+
 export type ServerConversationSummary = {
   conversationId: string;
   conversationVersion: number;
   subject: ConversationEntry;
   updatedAt: string;
+  listSummary?: ConversationListSummary;
 };
 
-export type ServerConversationDetail = Omit<ServerConversationSummary, 'updatedAt'> & {
+export type ServerConversationDetail = Omit<ServerConversationSummary, 'updatedAt' | 'listSummary'> & {
   updatedAt?: string;
   context: {
     product?: { selectedProductId?: string | null; selectedShadeId?: string | null } | null;
@@ -58,6 +64,7 @@ export type ChatMessage = {
   styleCandidates?: ChatResponse['styleCandidates'];
   styleStatus?: ChatResponse['styleStatus'];
   memoryProposal?: ChatResponse['memoryProposal'];
+  appliedMemories?: ChatResponse['appliedMemories'];
 };
 
 export type ChatRequestSnapshot = {

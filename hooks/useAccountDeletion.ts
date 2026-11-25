@@ -7,7 +7,7 @@ import { getCurrentUserId, signOut, useAuth } from '@/lib/auth';
 import { useMe } from '@/lib/queries';
 import { skinProfileKey } from '@/lib/skinProfile';
 import { pendingProfileKey } from '@/lib/skinRegistration';
-import { STORAGE_KEYS } from '@/lib/storage';
+import { chatRequestRecoveryPrefix, chatRoomDeletionPrefix, STORAGE_KEYS } from '@/lib/storage';
 import { useChatConversationStore } from '@/store/chatConversationStore';
 import { useSkinProfileStore } from '@/store/skinProfileStore';
 
@@ -34,10 +34,14 @@ async function clearAccountData(client: QueryClient, owner: string) {
   const filters = { predicate: ({ queryKey }: { queryKey: QueryKey }) => ownsQuery(queryKey, owner) };
   await client.cancelQueries(filters);
   client.removeQueries(filters);
+  const deletionPrefix = chatRoomDeletionPrefix(owner);
+  const recoveryPrefix = chatRequestRecoveryPrefix(owner);
+  const chatKeys = (await AsyncStorage.getAllKeys()).filter(key => key.startsWith(deletionPrefix) || key.startsWith(recoveryPrefix));
   await AsyncStorage.multiRemove([
     skinProfileKey(owner),
     pendingProfileKey(owner),
     `${STORAGE_KEYS.firstArInvitation}:${owner}`,
+    ...chatKeys,
   ]);
 }
 

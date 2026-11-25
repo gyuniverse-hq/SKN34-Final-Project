@@ -5,6 +5,7 @@ import json
 import socket
 import threading
 import time
+from fnmatch import fnmatchcase
 from uuid import uuid4
 
 import httpx
@@ -36,6 +37,14 @@ class RedisDouble:
         entry = self.rows.get(key)
         return entry[0] if entry and entry[1] > time.time() else None
 
+    async def mget(self, keys):
+        return [await self.get(key) for key in keys]
+
+    async def scan_iter(self, match, count):
+        for key in list(self.rows):
+            if fnmatchcase(key, match) and await self.get(key) is not None:
+                yield key
+
     def pipeline(self, transaction=True):
         assert transaction
         return Pipeline(self)
@@ -44,6 +53,7 @@ class RedisDouble:
 class Pipeline:
     def __init__(self, redis):
         self.redis, self.watched, self.commands = redis, {}, []
+        self.removals = ()
 
     async def __aenter__(self):
         return self
@@ -60,17 +70,30 @@ class Pipeline:
         await asyncio.sleep(0)
         return await self.redis.get(key)
 
+    async def mget(self, keys):
+        return [await self.get(key) for key in keys]
+
     def multi(self):
         pass
 
     def set(self, key, value, ex):
         self.commands.append((key, value, ex))
 
+    def delete(self, *keys):
+        self.removals = keys
+
     async def execute(self):
         if self.redis.fail_write:
             raise RedisError("synthetic write failure")
         if any(self.redis.versions.get(k, 0) != v for k, v in self.watched.items()):
             raise WatchError("synthetic CAS conflict")
+        if self.removals:
+            removed = 0
+            for key in self.removals:
+                if self.redis.rows.pop(key, None) is not None:
+                    removed += 1
+                    self.redis.versions[key] = self.redis.versions.get(key, 0) + 1
+            return [removed]
         for key, value, ttl in self.commands:
             self.redis.rows[key] = (value, time.time() + ttl)
             self.redis.versions[key] = self.redis.versions.get(key, 0) + 1
@@ -129,6 +152,84 @@ def request(context=None, *, message="상품 추천", rid=None, screen=None):
 async def first(setup):
     service = setup[0]
     return await service.answer(request(), "guest:one")
+
+
+@pytest.mark.anyio
+async def test_persistent_session_is_bound_to_its_room(setup):
+    _, _, repo, _ = setup
+    guest_ref = (await first(setup)).chat_context.session
+    guest_state = await repo.load("guest:one", guest_ref)
+    owner = "user:one"
+    room, other_room = uuid4(), uuid4()
+    state = guest_state.model_copy(
+        update={
+            "session_id": uuid4(),
+            "owner": owner,
+            "owner_kind": "user",
+            "conversation_id": room,
+        }
+    )
+    ref = guest_ref.model_copy(update={"session_id": state.session_id})
+    await repo.commit(state, None)
+
+    for wrong_room in (None, other_room):
+        with pytest.raises(ApiError) as denied:
+            await repo.load(owner, ref, conversation_id=wrong_room)
+        assert (denied.value.status, denied.value.code) == (410, "chat_session_expired")
+    with pytest.raises(ApiError) as denied:
+        await repo.commit(
+            state.model_copy(
+                update={
+                    "conversation_id": other_room,
+                    "state_version": state.state_version + 1,
+                    "last_request_id": uuid4(),
+                }
+            ),
+            state.state_version,
+        )
+    assert (denied.value.status, denied.value.code) == (409, "chat_session_conflict")
+    assert (await repo.load(owner, ref, conversation_id=room)).state_version == state.state_version
+    assert (await repo.load("guest:one", guest_ref)).conversation_id is None
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("old_memory_fence", [{"memory_epoch": 0}, {"memory_generation": "old"}])
+async def test_legacy_session_cannot_reopen_an_unbound_persistent_snapshot(setup, old_memory_fence):
+    _, _, repo, _ = setup
+    guest_ref = (await first(setup)).chat_context.session
+    guest_state = await repo.load("guest:one", guest_ref)
+    owner = "user:one"
+    state = guest_state.model_copy(
+        update={
+            "session_id": uuid4(),
+            "owner": owner,
+            "owner_kind": "user",
+            **old_memory_fence,
+        }
+    )
+    ref = guest_ref.model_copy(update={"session_id": state.session_id})
+    await repo.commit(state, None)
+
+    with pytest.raises(ApiError) as denied:
+        await repo.load(owner, ref)
+    assert (denied.value.status, denied.value.code) == (410, "chat_session_expired")
+
+
+@pytest.mark.anyio
+async def test_room_cleanup_waits_for_an_unattributed_request_key_to_expire(setup):
+    _, redis, repo, clock = setup
+    owner_id, room, request_id = "one", uuid4(), uuid4()
+    key = repo.request_key(f"user:{owner_id}", request_id)
+    redis.rows[key] = (str(uuid4()), clock["now"] + 600)
+
+    with pytest.raises(ApiError) as unconfirmed:
+        await repo.delete_room(owner_id, room, [request_id])
+    assert unconfirmed.value.code == "room_sessions_unconfirmed"
+    assert await redis.get(key) is not None
+
+    clock["now"] += 600
+    await repo.delete_room(owner_id, room, [request_id])
+    assert await redis.get(key) is None
 
 
 @pytest.mark.anyio

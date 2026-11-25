@@ -27,8 +27,13 @@ async def _lock_owner(session: AsyncSession, owner_id: str) -> None:
 
 
 @asynccontextmanager
-async def legacy_owner_access(owner_id: str | None):
+async def legacy_owner_access(owner_id: str | None, *, conversation_id: UUID | None = None):
     settings = get_settings()
+    if conversation_id is not None:
+        if owner_id is None:
+            raise ApiError(403, "Account is unavailable", "account_unavailable")
+        if not settings.g7_persistence_enabled:
+            raise ApiError(503, "Persistent chat is disabled", "persistence_disabled")
     if owner_id is None or not (
         settings.g7_persistence_enabled or settings.g7_owner_deletion_guard_enabled
     ):
@@ -46,6 +51,17 @@ async def legacy_owner_access(owner_id: str | None):
             )
             if status is not None and status != "ACTIVE":
                 raise ApiError(403, "Account is unavailable", "account_unavailable")
+            if conversation_id is not None:
+                # Room deletion takes the same owner row lock before setting deleted_at.
+                active_room = await session.scalar(
+                    select(ChatConversation.id).where(
+                        ChatConversation.id == conversation_id,
+                        ChatConversation.owner_id == owner_id,
+                        ChatConversation.deleted_at.is_(None),
+                    )
+                )
+                if active_room is None:
+                    raise ApiError(409, "Request was interrupted", "request_interrupted")
             yield
     except (SQLAlchemyError, OSError) as exc:
         raise ApiError(503, "Persistent chat is unavailable", "persistence_unavailable") from exc
@@ -114,5 +130,8 @@ class OwnerDeletionRepository:
             delete(ChatConversation).where(ChatConversation.owner_id == owner_id)
         )
         owner.status = "DELETED"
+        owner.memory_enabled = False
+        owner.memory_policy_version = 0
+        owner.memory_notice_at = None
         owner.updated_at = func.now()
         await self.session.flush()

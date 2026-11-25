@@ -24,7 +24,7 @@ from app.schemas.chat import BeautyContext, BeautyFilters, ChatResponse, ChatSes
 from app.services.chat_service import ChatService, get_chat_service
 from tests.conftest import FakeGraph, FakeLlm
 from tests.test_beauty_consultation import PlanLlm
-from tests.test_chat_sessions import SessionCatalog
+from tests.test_chat_sessions import RedisDouble, SessionCatalog
 from tests.test_g2_multiturn import G2Llm
 from tests.test_g4_option_search import OptionCatalog, OptionLlm
 
@@ -55,6 +55,11 @@ def api(client, monkeypatch):
     monkeypatch.setattr(settings, "g7_persistence_enabled", True)
     monkeypatch.setattr(settings, "chat_database_url", URL)
     get_chat_engine.cache_clear()
+    redis = RedisDouble()
+    monkeypatch.setattr(
+        "app.services.conversation_service.get_chat_sessions",
+        lambda: ChatSessionRepository(redis),
+    )
     fake = RecordingChat()
     client.app.dependency_overrides[get_chat_service] = lambda: fake
     client.app.dependency_overrides[get_rate_limiter] = lambda: MemoryRateLimiter(limit=1000)
@@ -62,10 +67,10 @@ def api(client, monkeypatch):
         yield client, fake
 
 
-def create(client, request_id=None):
+def create(client, request_id=None, *, headers=AUTH):
     request_id = request_id or str(uuid4())
     body = {"requestId": request_id, "entry": {"type": "general"}}
-    result = client.post("/api/chat/conversations", headers=AUTH, json=body)
+    result = client.post("/api/chat/conversations", headers=headers, json=body)
     assert result.status_code == 201, result.text
     return result.json(), body
 
@@ -132,6 +137,8 @@ def test_room_deletion_is_retryable_and_does_not_resurrect_on_create_replay(api,
     client, _ = api
     created, body = create(client)
     room = created["conversationId"]
+    path = f"/api/chat/conversations/{room}"
+    assert client.delete(path, headers=OTHER).status_code == 404
     real = CheckpointRepository.delete_thread
 
     async def fail(self, thread_id):
@@ -142,8 +149,9 @@ def test_room_deletion_is_retryable_and_does_not_resurrect_on_create_replay(api,
     assert (failed.status_code, failed.json()["code"]) == (503, "deletion_incomplete")
     assert client.get(f"/api/chat/conversations/{room}", headers=AUTH).status_code == 404
     monkeypatch.setattr(CheckpointRepository, "delete_thread", real)
-    assert client.delete(f"/api/chat/conversations/{room}", headers=AUTH).status_code == 204
-    assert client.delete(f"/api/chat/conversations/{room}", headers=AUTH).status_code == 204
+    assert client.delete(path, headers=AUTH).status_code == 204
+    assert client.delete(path, headers=AUTH).status_code == 204
+    assert client.delete(path, headers=OTHER).status_code == 404
     replay = client.post("/api/chat/conversations", headers=AUTH, json=body)
     assert (replay.status_code, replay.json()["code"]) == (410, "conversation_deleted")
 
@@ -174,6 +182,57 @@ def test_room_delete_removes_existing_checkpoint(api):
         assert saver.get_tuple(config) is None
 
 
+def test_room_delete_preserves_approved_memory_and_removes_pending_proposal(api, monkeypatch):
+    client, _ = api
+    monkeypatch.setattr(get_settings(), "g7_memory_enabled", True)
+    headers = {"Authorization": f"Bearer ok-room-memory-{uuid4()}"}
+    room = create(client, headers=headers)[0]["conversationId"]
+
+    def propose(version, message):
+        response = client.post(
+            "/api/chat",
+            headers=headers,
+            json={
+                "conversationId": room,
+                "requestId": str(uuid4()),
+                "expectedConversationVersion": version,
+                "locale": "ko",
+                "message": message,
+            },
+        )
+        assert response.status_code == 200, response.text
+        return response.json()["memoryProposal"]
+
+    original = "코랄 립을 좋아하는 걸 기억해줘"
+    proposal = propose(0, original)
+    saved = client.post(
+        "/api/chat/memories",
+        headers=headers,
+        json={
+            "requestId": str(uuid4()),
+            "proposalId": proposal["proposalId"],
+            "expectedProposalVersion": proposal["version"],
+            "confirmed": True,
+        },
+    )
+    assert saved.status_code == 200, saved.text
+    memory_id = saved.json()["memoryId"]
+    pending = propose(1, "매트 립을 좋아하는 걸 기억해줘")
+    assert pending["proposalId"] != proposal["proposalId"]
+
+    assert client.delete(f"/api/chat/conversations/{room}", headers=headers).status_code == 204
+    memories = client.get("/api/chat/memories", headers=headers).json()["memories"]
+    assert [(item["id"], item["value"]) for item in memories] == [(memory_id, original)]
+    dsn = make_url(URL).set(drivername="postgresql").render_as_string(hide_password=False)
+    with psycopg.connect(dsn) as conn:
+        assert conn.execute(
+            "SELECT source_message_id FROM chat_memories WHERE id = %s", (memory_id,)
+        ).fetchone() == (None,)
+        assert conn.execute(
+            "SELECT count(*) FROM chat_memory_proposals WHERE conversation_id = %s", (room,)
+        ).fetchone() == (0,)
+
+
 def test_pagination_returns_latest_rooms_and_message_pages(api):
     client, _ = api
     owner = {"Authorization": f"Bearer ok-page-{uuid4()}"}
@@ -193,6 +252,65 @@ def test_pagination_returns_latest_rooms_and_message_pages(api):
     assert (
         len({r["conversationId"] for r in page["conversations"] + next_page["conversations"]}) == 3
     )
+
+
+def test_list_summarizes_first_user_message_only_and_keeps_keyset_order(api):
+    client, fake = api
+    owner = {"Authorization": f"Bearer ok-summary-{uuid4()}"}
+    other = {"Authorization": f"Bearer ok-summary-{uuid4()}"}
+    product_room = create(client, headers=owner)[0]["conversationId"]
+    ingredient_room = create(client, headers=owner)[0]["conversationId"]
+    empty_room = create(client, headers=owner)[0]["conversationId"]
+    other_room = create(client, headers=other)[0]["conversationId"]
+    private_text = "synthetic-person@example.invalid"
+    first = f"Suggest a moisturizing lip product in my price budget. My email is {private_text}."
+
+    def send(room, headers, text, version=0):
+        response = client.post(
+            "/api/chat",
+            headers=headers,
+            json={
+                "conversationId": room,
+                "requestId": str(uuid4()),
+                "expectedConversationVersion": version,
+                "locale": "en",
+                "message": text,
+            },
+        )
+        assert response.status_code == 200, response.text
+
+    send(product_room, owner, first)
+    send(product_room, owner, "Can you show me a makeup look?", version=1)
+    send(ingredient_room, owner, "Does this contain fragrance or other ingredients?")
+    send(other_room, other, "Show me a makeup look")
+    ids = [product_room, ingredient_room, empty_room]
+    dsn = make_url(URL).set(drivername="postgresql").render_as_string(hide_password=False)
+    with psycopg.connect(dsn) as conn:
+        conn.execute(
+            "UPDATE chat_conversations SET updated_at = TIMESTAMPTZ '2026-01-01 00:00:00+00' "
+            "WHERE id = ANY(%s::uuid[])",
+            (ids,),
+        )
+
+    first_page = client.get("/api/chat/conversations?limit=2", headers=owner)
+    page = first_page.json()
+    last_page = client.get(
+        "/api/chat/conversations", headers=owner, params={"limit": 2, "cursor": page["nextCursor"]}
+    )
+    rows = page["conversations"] + last_page.json()["conversations"]
+    assert [row["conversationId"] for row in rows] == sorted(ids, reverse=True)
+    assert last_page.json()["nextCursor"] is None
+    summaries = {row["conversationId"]: row.get("listSummary") for row in rows}
+    assert summaries == {
+        product_room: {"titleTopic": "product", "previewTopics": ["hydration", "price"]},
+        ingredient_room: {"titleTopic": "ingredient", "previewTopics": []},
+        empty_room: None,
+    }
+    assert private_text not in (first_page.text + last_page.text)
+    assert first not in (first_page.text + last_page.text)
+    assert len(fake.requests) == 4
+    detail = client.get(f"/api/chat/conversations/{product_room}", headers=owner)
+    assert detail.json()["messages"][0]["text"] == first
 
 
 def test_real_chat_service_receives_persisted_history_with_g1_off(api, monkeypatch):

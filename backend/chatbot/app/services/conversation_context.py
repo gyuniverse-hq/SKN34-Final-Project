@@ -22,6 +22,7 @@ from app.schemas.supervisor import ScreenContext
 from app.services.style_recipe_service import execute_style
 
 _DISPLAY_FIELDS = {
+    "appliedMemories",
     "products",
     "styleCandidates",
     "styleRecipe",

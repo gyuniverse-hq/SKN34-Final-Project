@@ -117,6 +117,8 @@ async def create_candidate(
         if re.search(r"내\s*피부|피부\s*타입|my\s+skin|肌質|我的肤质", text, re.I)
         else "preference"
     )
+    generation = await MemoryRepository(session).generation(owner, True)
+    issued_at = datetime.now(UTC)
     row = ChatMemoryProposal(
         id=uuid4(),
         owner_id=owner,
@@ -125,8 +127,9 @@ async def create_candidate(
         kind=kind,
         memory_key=f"source:{source}",
         revocation_epoch=epoch,
-        memory_generation=await MemoryRepository(session).generation(owner, True),
-        expires_at=datetime.now(UTC) + timedelta(minutes=15),
+        memory_generation=generation,
+        created_at=issued_at,
+        expires_at=issued_at + timedelta(minutes=15),
     )
     session.add(row)
     await session.flush()
@@ -136,7 +139,8 @@ async def create_candidate(
 async def replay_candidate(
     session, owner: str, room_id: UUID, request_id: UUID
 ) -> MemoryProposal | None:
-    if not get_settings().g7_memory_enabled:
+    repo = MemoryRepository(session)
+    if not get_settings().g7_memory_enabled or not await repo.personalization_enabled(owner):
         return None
     result = await session.execute(
         select(ChatMemoryProposal, ChatMessage.text)
@@ -150,8 +154,8 @@ async def replay_candidate(
         )
     )
     item = result.one_or_none()
-    epoch = await MemoryRepository(session).owner_epoch(owner)
-    generation = await MemoryRepository(session).generation(owner, True)
+    epoch = await repo.owner_epoch(owner)
+    generation = await repo.generation(owner, True)
     return (
         _proposal(item[0], item[1])
         if item and item[0].revocation_epoch == epoch and item[0].memory_generation == generation
@@ -228,6 +232,8 @@ class MemoryService:
                         "memoryId": str(previous.result_resource_id),
                         "memoryVersion": previous.result_version,
                     }
+                if not await repo.personalization_enabled(owner):
+                    raise ApiError(409, "Memory is turned off", "memory_disabled")
                 proposal = await repo.proposal(owner, proposal_id)
                 epoch = await repo.owner_epoch(owner)
                 generation = await repo.generation(owner, True)
@@ -324,8 +330,13 @@ class MemoryService:
         except (SQLAlchemyError, OSError) as exc:
             raise ApiError(503, "Memory is unavailable", "memory_unavailable") from exc
 
-    async def delete(self, owner: str, memory_id: UUID, request_id: UUID) -> None:
-        fingerprint = _fingerprint(owner, "memory_delete", {"memoryId": str(memory_id)})
+    async def delete(
+        self, owner: str, memory_id: UUID, request_id: UUID, schema_version: int = 1
+    ) -> None:
+        identity = {"memoryId": str(memory_id)}
+        if schema_version != 1:
+            identity["schemaVersion"] = schema_version
+        fingerprint = _fingerprint(owner, "memory_delete", identity)
         try:
             async with self._sessions().begin() as session:
                 if not await ConversationRepository(session).ensure_active_owner(owner):
@@ -335,7 +346,7 @@ class MemoryService:
                 )
                 if previous:
                     return
-                if not await MemoryRepository(session).revoke(owner, memory_id):
+                if not await MemoryRepository(session).revoke(owner, memory_id, schema_version):
                     raise ApiError(404, "Memory not found", "not_found")
                 self._record(
                     session, owner, request_id, "memory_delete", fingerprint, memory_id, None

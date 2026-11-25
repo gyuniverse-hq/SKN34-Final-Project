@@ -8,12 +8,13 @@ import { ApiError, apiDelete } from '@/lib/api';
 import { signOut } from '@/lib/auth';
 import { skinProfileKey } from '@/lib/skinProfile';
 import { pendingProfileKey } from '@/lib/skinRegistration';
-import { STORAGE_KEYS } from '@/lib/storage';
+import { chatRequestRecoveryKey, chatRoomDeletionKey, STORAGE_KEYS } from '@/lib/storage';
 import { useChatConversationStore } from '@/store/chatConversationStore';
 
 let mockOwner: string | null;
 let mockConfirm: (() => void) | undefined;
 let mockClient: QueryClient;
+const mockMemorySettings = jest.fn(async () => undefined);
 
 jest.mock('expo-font', () => ({ useFonts: () => [true, null], isLoaded: () => true }));
 jest.mock('@expo/vector-icons/Ionicons', () => () => null);
@@ -50,6 +51,9 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({}),
 }));
 jest.mock('@/hooks/useTermsConsent', () => ({ useTermsConsentGate: jest.fn() }));
+jest.mock('@/hooks/useChatMemory', () => ({
+  useChatMemory: () => ({ refreshSettings: mockMemorySettings, busy: false }),
+}));
 jest.mock('@/lib/i18n', () => ({
   LANGUAGE_LABELS: { en: 'English' },
   LANGUAGES: ['en'],
@@ -83,6 +87,8 @@ jest.mock('@/lib/auth/client', () => ({
 const request = jest.fn<Promise<Response>, [input: RequestInfo | URL, init?: RequestInit]>();
 const originalFetch = globalThis.fetch;
 const marker = (owner: string) => `${STORAGE_KEYS.accountDeletion}:${owner}`;
+const roomId = '8b332bee-a5f9-4fc8-a945-2921f863bcd8';
+const requestId = 'bbc311ef-de68-4a47-ad42-10ad376cd235';
 const response = (status: number, code?: string): Response => ({
   ok: status >= 200 && status < 300,
   status,
@@ -148,6 +154,10 @@ it('blocks member screens after acceptance and completes only after 204', async 
     [skinProfileKey('A'), 'account'],
     [pendingProfileKey('A'), 'draft'],
     [skinProfileKey('B'), 'other account'],
+    [chatRoomDeletionKey('A', roomId), '1'],
+    [chatRoomDeletionKey('B', roomId), '1'],
+    [chatRequestRecoveryKey('A', roomId, requestId), '1'],
+    [chatRequestRecoveryKey('B', roomId, requestId), '1'],
     [STORAGE_KEYS.cart, 'shared device data'],
   ]);
   await mount();
@@ -171,6 +181,10 @@ it('blocks member screens after acceptance and completes only after 204', async 
   expect(await AsyncStorage.getItem(skinProfileKey('A'))).toBeNull();
   expect(await AsyncStorage.getItem(pendingProfileKey('A'))).toBeNull();
   expect(await AsyncStorage.getItem(skinProfileKey('B'))).toBe('other account');
+  expect(await AsyncStorage.getItem(chatRoomDeletionKey('A', roomId))).toBeNull();
+  expect(await AsyncStorage.getItem(chatRoomDeletionKey('B', roomId))).toBe('1');
+  expect(await AsyncStorage.getItem(chatRequestRecoveryKey('A', roomId, requestId))).toBeNull();
+  expect(await AsyncStorage.getItem(chatRequestRecoveryKey('B', roomId, requestId))).toBe('1');
   expect(await AsyncStorage.getItem(STORAGE_KEYS.cart)).toBe('shared device data');
   expect(mockClient.getQueryData(['skin-access', 'A'])).toBeUndefined();
   expect(mockClient.getQueryData(['skin-access', 'B'])).toEqual({ test: 'B' });
@@ -190,6 +204,27 @@ it('blocks member screens after acceptance and completes only after 204', async 
   await act(async () => button('account.deleteClose').props.onPress());
   expect(displays('my.deleteData')).toBe(true);
 }, 20000);
+
+it('removes room-deletion and request recovery markers when device data is cleared', async () => {
+  await AsyncStorage.multiSet([
+    [chatRoomDeletionKey('A', roomId), '1'],
+    [chatRoomDeletionKey('B', roomId), '1'],
+    [chatRequestRecoveryKey('A', roomId, requestId), '1'],
+    [chatRequestRecoveryKey('B', roomId, requestId), '1'],
+  ]);
+  await mount();
+  const store = useChatConversationStore.getState();
+  store.activate('A');
+  store.restoreRoomDeletions(useChatConversationStore.getState().identity!.key, [roomId]);
+  await act(async () => view!.root.findAll((node) => node.props.label === 'my.deleteData')[0].props.onPress());
+  await act(async () => mockConfirm!());
+  expect(await AsyncStorage.getItem(chatRoomDeletionKey('A', roomId))).toBeNull();
+  expect(await AsyncStorage.getItem(chatRoomDeletionKey('B', roomId))).toBeNull();
+  expect(await AsyncStorage.getItem(chatRequestRecoveryKey('A', roomId, requestId))).toBeNull();
+  expect(await AsyncStorage.getItem(chatRequestRecoveryKey('B', roomId, requestId))).toBeNull();
+  expect(useChatConversationStore.getState().conversations[roomId]).toBeUndefined();
+  expect(deleteCalls()).toHaveLength(0);
+});
 
 it.each([503, 'network', 202] as const)('keeps the normal screen when initial receipt is unconfirmed (%s)', async outcome => {
   deletionResponse = async () => {

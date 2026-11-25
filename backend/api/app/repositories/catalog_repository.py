@@ -5,6 +5,7 @@ from sqlalchemy import Date, Select, Text, and_, cast, delete, func, select, tex
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.ar_palette import catalog_color_family
 from app.core.config import get_settings
 from app.models import (
     LookItemRow,
@@ -63,6 +64,11 @@ def _product(row: ProductRow) -> Product:
                 color_source=s.color_source,
                 color_confidence=s.color_confidence,
                 finish=s.finish,
+                color_family=(
+                    catalog_color_family(s.hex, s.measure_method, s.color_source)
+                    if (row.category, row.makeup_zone) in {("lip", "lip"), ("cheek", "blush")}
+                    else None
+                ),
             )
             for s in row.shades
         ],

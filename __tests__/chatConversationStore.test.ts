@@ -78,6 +78,29 @@ test('a fresh app store has no saved chat or pending request to restore', () => 
   expect(store().conversations[id].view.pending).toBe(true);
 });
 
+test('first requests survive repeated observations of the same account memory policy', () => {
+  const firstId = store().open({ type: 'general' })!;
+  const first = store().conversations[firstId].conversation;
+  const firstTicket = store().beginRequest(first, request(first))!;
+  store().observeMemoryPolicy(first.ownerKey, { enabled: false, version: 2 });
+  store().completeRequest(firstTicket, { answer: 'first reply', products: [] }, 'question');
+  expect(store().conversations[firstId].messages.at(-1)?.text).toBe('first reply');
+
+  const secondId = store().open({ type: 'general' }, true)!;
+  const second = store().conversations[secondId].conversation;
+  const secondTicket = store().beginRequest(second, request(second))!;
+  store().observeMemoryPolicy(second.ownerKey, { enabled: false, version: 2 });
+  store().observeMemoryPolicy(second.ownerKey, { enabled: true, version: 1 });
+  store().completeRequest(secondTicket, { answer: 'second reply', products: [] }, 'question');
+  expect(store().conversations[secondId].messages.at(-1)?.text).toBe('second reply');
+
+  store().observeMemoryPolicy(second.ownerKey, { enabled: true, version: 3 });
+  expect(store().conversations[secondId].view.generation).toBe(second.generation + 1);
+  store().activate('account-B');
+  store().observeMemoryPolicy(second.ownerKey, { enabled: true, version: 4 });
+  expect(store().memoryPolicyVersion).toBeUndefined();
+});
+
 test('notifies subscribers atomically without mutating previous records or retry snapshots', () => {
   const id = store().open({ type: 'general' })!;
   const target = store().conversations[id].conversation;
