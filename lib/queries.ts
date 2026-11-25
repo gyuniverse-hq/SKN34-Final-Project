@@ -6,6 +6,7 @@ import type {
   IdolLook,
   MeResponse,
   Product,
+  ProductDiscoveryOrder,
   ProductOffers,
   ProductQuery,
   ProductVideo,
@@ -71,6 +72,14 @@ export function useProducts(params: ProductQuery = {}, enabled = true) {
     },
     select: (d) => d.products,
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useProductDiscoveryOrder(preview = false, enabled = true) {
+  return useQuery({
+    enabled,
+    queryKey: ['product-discovery-order', preview],
+    queryFn: () => apiGet<ProductDiscoveryOrder>(`/api/discovery/product-order${preview ? '?preview=true' : ''}`),
   });
 }
 

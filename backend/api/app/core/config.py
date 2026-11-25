@@ -81,6 +81,10 @@ class Settings(BaseSettings):
     llm_model: str | None = None
     astra_model: str | None = None
     llm_timeout_seconds: float = 60
+    # Temporary face refs for lip product-panel eval (eval period only; ADR-0013 exception).
+    admin_lip_eval_dir: Path = PROJECT_ROOT / "runtime" / "lip-eval"
+    # Admin Ops: in-cluster chatbot base (e.g. http://vishue-chatbot:8000). Empty skips probe.
+    chatbot_base_url: str | None = None
 
     @property
     def g5_local_mode(self) -> bool:

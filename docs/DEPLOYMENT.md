@@ -41,7 +41,7 @@ uv run python -m app.jobs.grant_staff_role --user-id <Supabase-user-id> --revoke
 
 Render: `vishue-admin` 정적 사이트(rootDir admin, build `npm ci && npm run build`, dist 게시, SPA rewrite)를 연결한다. `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_API_BASE_URL`은 sync:false로 대시보드에 입력한다. API의 CORS_ORIGINS도 sync:false이며 기존 앱 origin과 관리자 origin을 JSON 배열에 함께 넣는다. DB 검토·반영 후 API의 ADMIN_ENABLED를 true로 켠다. DB·토스·Supabase secret 키는 admin에 전달하지 않는다.
 
-Helm: admin.enabled는 기본 false, local만 true. 동일 gateway의 `/`는 admin, 더 구체적인 `/api`·`/pay`는 기존 서버다. admin.apiBaseUrl이 비면 같은 origin이다. nginx는 공개값만 runtime config.js로 받아 비루트·읽기 전용 파일시스템으로 실행한다. `docker build -t vishue-admin:dev admin` 후 kind 이미지 로드와 GitOps 흐름을 따른다. GHCR 이미지 workflow에 admin을 추가했다. 직접 kubectl apply·실제 Render/EKS 배포는 하지 않는다.
+Helm: `values-prod.yaml`에서 `admin.enabled=true`로 켠다. 동일 gateway의 `/`는 admin, 더 구체적인 `/api`·`/pay`는 기존 서버다. admin.apiBaseUrl이 비면 같은 origin이다. API ConfigMap에 `ADMIN_ENABLED=true`, 립 평가용 `ADMIN_LIP_EVAL_DIR=/data/lip-eval`과 PVC(`api.persistence.lipEval`)를 둔다(평가 기간 RWO → api replicas=1). nginx는 공개값만 runtime config.js로 받아 비루트·읽기 전용 파일시스템으로 실행한다. `docker build -t vishue-admin:dev admin` 후 kind 이미지 로드와 GitOps 흐름을 따른다. 소비자 웹은 `web/`(포트 5174)로 분리한다. 상세 체크리스트는 `docs/design/admin-ops-web-rollout.md`. 직접 kubectl apply·실제 Render/EKS 배포는 하지 않는다.
 
 같은 백엔드 코드와 Dockerfile을 네 환경에서 씁니다. 환경 사이의 차이는 설정 값에만 있습니다. 왜 이렇게 나눴는지는 [ADR-0003](adr/0003-containers-helm-gitops.md), [ADR-0008](adr/0008-aws-environments.md), [ADR-0009](adr/0009-render-dev-environment.md)에 있습니다.
 

@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Uuid, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
@@ -9,7 +9,16 @@ from app.core.db import Base
 
 class OrderRow(Base):
     __tablename__ = "orders"
-    __table_args__ = (Index("ix_orders_created_at_id", "created_at", "id"),)
+    __table_args__ = (
+        Index("ix_orders_created_at_id", "created_at", "id"),
+        CheckConstraint("discount_krw BETWEEN 0 AND 2000", name="ck_orders_discount_krw"),
+        Index(
+            "ux_orders_active_reward_coupon",
+            "reward_coupon_id",
+            unique=True,
+            postgresql_where=text("reward_coupon_id IS NOT NULL AND status <> 'canceled'"),
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     user_id: Mapped[str] = mapped_column(String(64), index=True)
@@ -28,6 +37,10 @@ class OrderRow(Base):
         ),
         index=True,
     )
+    reward_coupon_id: Mapped[UUID | None] = mapped_column(
+        Uuid, ForeignKey("reward_coupons.id", name="fk_orders_reward_coupon", ondelete="SET NULL")
+    )
+    discount_krw: Mapped[int] = mapped_column(Integer, server_default=text("0"))
     lines: Mapped[list["OrderLineRow"]] = relationship(cascade="all, delete-orphan")
 
 

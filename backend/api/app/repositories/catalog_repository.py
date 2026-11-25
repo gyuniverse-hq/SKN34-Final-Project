@@ -1,4 +1,7 @@
-from sqlalchemy import Text, cast, delete, func, select, text
+from dataclasses import dataclass
+from datetime import date
+
+from sqlalchemy import Date, Select, Text, and_, cast, delete, func, select, text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,9 +15,20 @@ from app.models import (
     YtCatalogProductLinkRow,
 )
 from app.models.admin import ProductAdminStateRow
-from app.models.raw_oliveyoung import RawOyCategoryRow, RawOyProductRow
+from app.models.raw_oliveyoung import RawOyCategoryRow, RawOyProductRow, RawOyReviewSummaryRow
 from app.models.skincare import SkincareServingRow
 from app.schemas.catalog import CatalogBundle, CelebLook, LookItem, Product, Shade, Store
+
+
+@dataclass(frozen=True)
+class ProductDiscoveryCandidate:
+    product_id: str
+    category: str
+    registered_on: date | None
+    is_new: bool | None
+    rating_avg: float | None
+    review_count: int | None
+    review_collected_on: date | None
 
 
 def build_search_text(product: Product) -> str:
@@ -90,8 +104,17 @@ def _store(row: StoreRow) -> Store:
     )
 
 
+def _visible_products(stmt: Select) -> Select:
+    if not get_settings().admin_enabled:
+        return stmt
+    hidden_ids = select(ProductAdminStateRow.product_id).where(
+        ProductAdminStateRow.is_visible.is_(False)
+    )
+    return stmt.where(~ProductRow.id.in_(hidden_ids))
+
+
 class CatalogRepository:
-    """PostgreSQL access for products, looks and stores. Returns API schemas, never ORM rows."""
+    """PostgreSQL access for products, looks and stores. Keeps ORM rows internal."""
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -104,15 +127,7 @@ class CatalogRepository:
         tags: list[str] | None = None,
     ) -> list[Product]:
         """`tags` matches products carrying any of them; an empty list matches nothing."""
-        stmt = select(ProductRow).order_by(ProductRow.position, ProductRow.id)
-        if get_settings().admin_enabled:
-            stmt = stmt.where(
-                ~ProductRow.id.in_(
-                    select(ProductAdminStateRow.product_id).where(
-                        ProductAdminStateRow.is_visible.is_(False)
-                    )
-                )
-            )
+        stmt = _visible_products(select(ProductRow).order_by(ProductRow.position, ProductRow.id))
         if ids is not None:
             stmt = stmt.where(ProductRow.id.in_(ids))
         if category:
@@ -123,6 +138,27 @@ class CatalogRepository:
             stmt = stmt.where(ProductRow.search_text.contains(term.lower(), autoescape=True))
         rows = (await self._session.scalars(stmt)).all()
         return [_product(r) for r in rows]
+
+    async def discovery_candidates(self) -> list[ProductDiscoveryCandidate]:
+        source = RawOyProductRow
+        review = RawOyReviewSummaryRow
+        stmt = (
+            select(
+                ProductRow.id,
+                ProductRow.category,
+                cast(source.registered_at, Date),
+                source.is_new,
+                review.rating_avg,
+                review.review_count,
+                cast(review.collected_at, Date),
+            )
+            .select_from(ProductRow)
+            .join(source, ProductRow.id == func.concat("oy-", func.lower(source.goods_no)))
+            .outerjoin(review, and_(review.goods_no == source.goods_no, review.is_latest.is_(True)))
+            .where(source.delisted_at.is_(None))
+        )
+        rows = await self._session.execute(_visible_products(stmt))
+        return [ProductDiscoveryCandidate(*row) for row in rows]
 
     async def option_search_candidates(self, query, category, ids, limit, *, product_type=None):
         stmt = select(ProductRow).order_by(ProductRow.position, ProductRow.id)

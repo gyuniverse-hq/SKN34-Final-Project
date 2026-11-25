@@ -268,6 +268,7 @@ backend/<service>/
 | 경로 | 서비스 | 비고 |
 | --- | --- | --- |
 | `GET /api/products?q=&category=&ids=&concerns=` | api | `{ products }`, 5분 캐시, 네이버 이미지로 보강. `concerns`는 피부 고민 코드 → 케어 태그(`catalog_service.CONCERN_TAGS`) |
+| `GET /api/discovery/product-order?preview=true` | api | `{ hot, makeup, skincare, newArrivals }`, 올리브영 등록일과 최신 리뷰로 정렬한 상품 ID. `preview=true`는 각 목록의 앞 8개 |
 | `GET /api/products/{id}` | api | `{ product }` |
 | `GET /api/products/{id}/offers` | api | `{ configured, offers }`, 네이버 쇼핑 판매처·최저가 (6시간 캐시) |
 | `GET /api/youtube/search?q=&max=` | api | `{ configured, videos }`, IP당 분당 20회, 12시간 캐시 |

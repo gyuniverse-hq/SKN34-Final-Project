@@ -14,7 +14,10 @@
     {
      "id": "16",
      "name": "꿀복빔",
-     "hex": "#FAB3AB"
+     "hex": "#FAB3AB",
+     "measureMethod": "estimated",
+     "colorSource": "option_chip",
+     "colorConfidence": 1.0
     }
    ],
    "description": "",
@@ -40,12 +43,18 @@
     {
      "id": "03",
      "name": "내추럴 브라운",
-     "hex": "#4B453C"
+     "hex": "#4B453C",
+     "measureMethod": "estimated",
+     "colorSource": "product_photo",
+     "colorConfidence": 0.49300000071525574
     },
     {
      "id": "09",
      "name": "토프 브라운",
-     "hex": "#959291"
+     "hex": "#959291",
+     "measureMethod": "estimated",
+     "colorSource": "product_photo",
+     "colorConfidence": 0.7590000033378601
     }
    ],
    "description": "",
@@ -71,7 +80,10 @@
     {
      "id": "1",
      "name": "클래식",
-     "hex": "#ECB5A2"
+     "hex": "#ECB5A2",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.7200000286102295
     }
    ],
    "description": "",
@@ -97,7 +109,10 @@
     {
      "id": "a000000148567-006",
      "name": "라이트 브라운",
-     "hex": "#C69D89"
+     "hex": "#C69D89",
+     "measureMethod": "estimated",
+     "colorSource": "option_chip",
+     "colorConfidence": 0.6800000071525574
     }
    ],
    "description": "",
@@ -123,7 +138,10 @@
     {
      "id": "02",
      "name": "애쉬 브라운",
-     "hex": "#9F8162"
+     "hex": "#9F8162",
+     "measureMethod": "estimated",
+     "colorSource": "option_chip",
+     "colorConfidence": 1.0
     }
    ],
    "description": "",
@@ -150,7 +168,10 @@
      "id": "09",
      "name": "모태분위기",
      "hex": "#E9B09F",
-     "finish": "matte"
+     "finish": "matte",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.7049999833106995
     }
    ],
    "description": "",
@@ -176,7 +197,10 @@
     {
      "id": "01",
      "name": "블랙",
-     "hex": "#1F1D1C"
+     "hex": "#1F1D1C",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.9399999976158142
     }
    ],
    "description": "",
@@ -203,25 +227,37 @@
      "id": "a000000174309-133",
      "name": "시나몬 브루",
      "hex": "#9C7A6E",
-     "finish": "matte"
+     "finish": "matte",
+     "measureMethod": "estimated",
+     "colorSource": "option_chip",
+     "colorConfidence": 0.9850000143051147
     },
     {
      "id": "a000000174309-057",
      "name": "베이비 타로",
      "hex": "#F7CBCF",
-     "finish": "matte"
+     "finish": "matte",
+     "measureMethod": "estimated",
+     "colorSource": "option_chip",
+     "colorConfidence": 0.9660000205039978
     },
     {
      "id": "a000000174309-011",
      "name": "투샷 아메리카노",
      "hex": "#5E3E31",
-     "finish": "matte"
+     "finish": "matte",
+     "measureMethod": "estimated",
+     "colorSource": "option_chip",
+     "colorConfidence": 0.9470000267028809
     },
     {
      "id": "a000000174309-027",
      "name": "다크 에스프레소",
      "hex": "#453632",
-     "finish": "matte"
+     "finish": "matte",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.6809999942779541
     }
    ],
    "description": "",
@@ -248,7 +284,10 @@
      "id": "a000000174310-009",
      "name": "위티",
      "hex": "#DFAEA8",
-     "finish": "shimmer"
+     "finish": "shimmer",
+     "measureMethod": "estimated",
+     "colorSource": "option_chip",
+     "colorConfidence": 0.906000018119812
     }
    ],
    "description": "",
@@ -274,17 +313,26 @@
     {
      "id": "a000000176088-018",
      "name": "밀키문",
-     "hex": "#F2E5DE"
+     "hex": "#F2E5DE",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.8560000061988831
     },
     {
      "id": "a000000176088-010",
      "name": "피치문",
-     "hex": "#E9CCC3"
+     "hex": "#E9CCC3",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.7799999713897705
     },
     {
      "id": "a000000176088-012",
      "name": "다이아몬드베일",
-     "hex": "#F7F6F1"
+     "hex": "#F7F6F1",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.7720000147819519
     }
    ],
    "description": "",
@@ -339,7 +387,10 @@
     {
      "id": "03",
      "name": "그레이쉬쿨",
-     "hex": "#D1B68D"
+     "hex": "#D1B68D",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.6019999980926514
     }
    ],
    "description": "",
@@ -365,7 +416,10 @@
     {
      "id": "01",
      "name": "그레이스 토프",
-     "hex": "#91857D"
+     "hex": "#91857D",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.5899999737739563
     }
    ],
    "description": "",
@@ -391,7 +445,10 @@
     {
      "id": "02",
      "name": "블랙",
-     "hex": "#0F0E0E"
+     "hex": "#0F0E0E",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.7639999985694885
     }
    ],
    "description": "",
@@ -417,7 +474,10 @@
     {
      "id": "a000000185974-010",
      "name": "차콜 브라운",
-     "hex": "#493725"
+     "hex": "#493725",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.9990000128746033
     }
    ],
    "description": "",
@@ -443,7 +503,10 @@
     {
      "id": "01",
      "name": "딥블랙",
-     "hex": "#282828"
+     "hex": "#282828",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.5619999766349792
     }
    ],
    "description": "",
@@ -469,7 +532,10 @@
     {
      "id": "05",
      "name": "포쉬",
-     "hex": "#E0ACB2"
+     "hex": "#E0ACB2",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.6600000262260437
     }
    ],
    "description": "",
@@ -524,7 +590,10 @@
     {
      "id": "219",
      "name": "아베 마리아",
-     "hex": "#C3848E"
+     "hex": "#C3848E",
+     "measureMethod": "estimated",
+     "colorSource": "option_chip",
+     "colorConfidence": 1.0
     }
    ],
    "description": "",
@@ -550,7 +619,10 @@
     {
      "id": "02",
      "name": "브라운",
-     "hex": "#321907"
+     "hex": "#321907",
+     "measureMethod": "estimated",
+     "colorSource": "option_chip",
+     "colorConfidence": 0.9769999980926514
     }
    ],
    "description": "",
@@ -576,7 +648,10 @@
     {
      "id": "cr01",
      "name": "쥬시스마일",
-     "hex": "#EE917B"
+     "hex": "#EE917B",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.8029999732971191
     }
    ],
    "description": "",
@@ -602,7 +677,10 @@
     {
      "id": "a000000205718-006",
      "name": "뮤트 블랙",
-     "hex": "#594540"
+     "hex": "#594540",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.5220000147819519
     }
    ],
    "description": "",
@@ -628,7 +706,10 @@
     {
      "id": "01",
      "name": "포슬린",
-     "hex": "#E1D6D1"
+     "hex": "#E1D6D1",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.8870000243186951
     }
    ],
    "description": "",
@@ -654,7 +735,10 @@
     {
      "id": "21c",
      "name": "란제리",
-     "hex": "#FED7C4"
+     "hex": "#FED7C4",
+     "measureMethod": "estimated",
+     "colorSource": "option_chip",
+     "colorConfidence": 0.9789999723434448
     }
    ],
    "description": "",
@@ -680,7 +764,10 @@
     {
      "id": "21",
      "name": "호 화사한 베이지",
-     "hex": "#F5DCCA"
+     "hex": "#F5DCCA",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.8740000128746033
     }
    ],
    "description": "",
@@ -707,7 +794,10 @@
      "id": "04",
      "name": "베이오브베이지",
      "hex": "#DE9B86",
-     "finish": "matte"
+     "finish": "matte",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.777999997138977
     }
    ],
    "description": "",
@@ -734,7 +824,10 @@
      "id": "104",
      "name": "비마이러브",
      "hex": "#D58E91",
-     "finish": "matte"
+     "finish": "matte",
+     "measureMethod": "estimated",
+     "colorSource": "option_chip",
+     "colorConfidence": 0.9739999771118164
     }
    ],
    "description": "",
@@ -760,7 +853,10 @@
     {
      "id": "8",
      "name": "호 애쉬 그레이 EX",
-     "hex": "#7B6256"
+     "hex": "#7B6256",
+     "measureMethod": "estimated",
+     "colorSource": "option_chip",
+     "colorConfidence": 0.9779999852180481
     }
    ],
    "description": "",
@@ -786,7 +882,10 @@
     {
      "id": "02",
      "name": "웜누디 23",
-     "hex": "#C98F84"
+     "hex": "#C98F84",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.8899999856948853
     }
    ],
    "description": "",
@@ -812,12 +911,18 @@
     {
      "id": "8",
      "name": "호 보타닉피치",
-     "hex": "#FF928F"
+     "hex": "#FF928F",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.593999981880188
     },
     {
      "id": "04",
      "name": "피오니밀크",
-     "hex": "#EFBCC9"
+     "hex": "#EFBCC9",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.5910000205039978
     }
    ],
    "description": "",
@@ -843,7 +948,10 @@
     {
      "id": "03",
      "name": "슴슴바",
-     "hex": "#9E5C52"
+     "hex": "#9E5C52",
+     "measureMethod": "estimated",
+     "colorSource": "option_chip",
+     "colorConfidence": 0.9980000257492065
     }
    ],
    "description": "",
@@ -869,7 +977,10 @@
     {
      "id": "14",
      "name": "딸기멜로",
-     "hex": "#D48B8E"
+     "hex": "#D48B8E",
+     "measureMethod": "estimated",
+     "colorSource": "option_chip",
+     "colorConfidence": 1.0
     }
    ],
    "description": "",
@@ -924,7 +1035,10 @@
     {
      "id": "19nc",
      "name": "라이트",
-     "hex": "#F6DED0"
+     "hex": "#F6DED0",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.8980000019073486
     }
    ],
    "description": "",
@@ -950,7 +1064,10 @@
     {
      "id": "01",
      "name": "멜트어웨이",
-     "hex": "#E77671"
+     "hex": "#E77671",
+     "measureMethod": "estimated",
+     "colorSource": "option_chip",
+     "colorConfidence": 1.0
     }
    ],
    "description": "",
@@ -976,7 +1093,10 @@
     {
      "id": "02",
      "name": "핑크 하트 보석",
-     "hex": "#D5B4BB"
+     "hex": "#D5B4BB",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.6600000262260437
     }
    ],
    "description": "",
@@ -1002,7 +1122,10 @@
     {
      "id": "03",
      "name": "베어 그레이프",
-     "hex": "#C3646C"
+     "hex": "#C3646C",
+     "measureMethod": "estimated",
+     "colorSource": "option_chip",
+     "colorConfidence": 0.8389999866485596
     }
    ],
    "description": "",
@@ -1028,7 +1151,10 @@
     {
      "id": "20-2",
      "name": "호 바닐라",
-     "hex": "#FEF4E9"
+     "hex": "#FEF4E9",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 1.0
     }
    ],
    "description": "",
@@ -1055,7 +1181,10 @@
      "id": "06",
      "name": "리코타 핑크",
      "hex": "#FCD3CC",
-     "finish": "shimmer"
+     "finish": "shimmer",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.9589999914169312
     }
    ],
    "description": "",
@@ -1081,7 +1210,10 @@
     {
      "id": "02",
      "name": "블라썸 피치",
-     "hex": "#F2B9AC"
+     "hex": "#F2B9AC",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.9169999957084656
     }
    ],
    "description": "",
@@ -1107,7 +1239,10 @@
     {
      "id": "p205",
      "name": "파르 유스티티아",
-     "hex": "#FECCC6"
+     "hex": "#FECCC6",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.9629999995231628
     }
    ],
    "description": "",
@@ -1133,7 +1268,10 @@
     {
      "id": "23n",
      "name": "[본품+리필] 23N",
-     "hex": "#C29474"
+     "hex": "#C29474",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.8560000061988831
     }
    ],
    "description": "",
@@ -1159,7 +1297,10 @@
     {
      "id": "a000000263862-007",
      "name": "스타아일랜드",
-     "hex": "#F1E3D5"
+     "hex": "#F1E3D5",
+     "measureMethod": "estimated",
+     "colorSource": "color_compare",
+     "colorConfidence": 0.9049999713897705
     }
    ],
    "description": "",

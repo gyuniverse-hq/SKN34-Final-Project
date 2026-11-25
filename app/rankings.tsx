@@ -6,10 +6,10 @@ import { SearchBar } from '@/components/shop/SearchBar';
 import { InlineState } from '@/components/ui/InlineState';
 import { ProductImage } from '@/components/ui/ProductImage';
 import { theme } from '@/constants/theme';
-import { inRankingCategory, rankedProducts, type RankingCategory } from '@/lib/discovery';
+import { inRankingCategory, orderCatalogProducts, type RankingCategory } from '@/lib/discovery';
 import { formatKRW } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
-import { useProducts } from '@/lib/queries';
+import { useProductDiscoveryOrder, useProducts } from '@/lib/queries';
 import { productHref, searchHref } from '@/lib/routes';
 import { useRecentSearchStore } from '@/store/recentSearchStore';
 import type { Product } from '@/types';
@@ -24,16 +24,24 @@ export default function RankingsScreen() {
   const [query, setQuery] = useState('');
   const addSearch = useRecentSearchStore((s) => s.add);
   const products = useProducts();
+  const discoveryOrder = useProductDiscoveryOrder();
   const { ranked, others } = useMemo(() => {
     const all = products.data ?? [];
-    const rankedItems = rankedProducts(all, category);
+    const productsById = new Map(all.map(product => [product.id, product]));
+    const rankedItems = orderCatalogProducts(discoveryOrder.data?.[category] ?? [], productsById);
     const rankedIds = new Set(rankedItems.map(({ product }) => product.id));
     return { ranked: rankedItems, others: all.filter((product) => inRankingCategory(product, category) && !rankedIds.has(product.id)).map((product) => ({ product })) };
-  }, [category, products.data]);
-  const sections = [
-    { title: t('discovery.ranking'), data: ranked as ProductRow[] },
-    { title: t('discovery.otherProducts'), data: others as ProductRow[] },
+  }, [category, products.data, discoveryOrder.data]);
+  const isPending = products.isPending || discoveryOrder.isPending;
+  const isError = products.isError || discoveryOrder.isError;
+  const sections: { title: string; data: ProductRow[] }[] = [
+    { title: t('discovery.ranking'), data: ranked },
+    { title: t('discovery.otherProducts'), data: others },
   ];
+  const retry = () => {
+    void products.refetch();
+    void discoveryOrder.refetch();
+  };
   const submit = () => {
     const term = query.trim();
     if (!term) return;
@@ -42,7 +50,7 @@ export default function RankingsScreen() {
   };
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <SectionList sections={sections} keyExtractor={(item) => item.product.id} stickySectionHeadersEnabled={false}
+      <SectionList sections={isPending || isError ? [] : sections} keyExtractor={(item) => item.product.id} stickySectionHeadersEnabled={false}
         keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}
         ListHeaderComponent={<View>
           <SearchBar value={query} onChangeText={setQuery} placeholder={t('shop.searchPlaceholder')} onSubmit={submit} />
@@ -55,9 +63,9 @@ export default function RankingsScreen() {
             ))}
           </View>
           <Text style={styles.note}>{t('discovery.rankingBasis')}</Text>
-          {products.isPending ? <InlineState status="loading" /> : products.isError ? <InlineState status="error" onRetry={() => products.refetch()} /> : null}
-          {!products.isPending && !products.isError && ranked.length === 0 ? <InlineState status="empty" message={t('discovery.rankingEmpty')} /> : null}
-          {!products.isPending && !products.isError && ranked.length === 0 && others.length === 0 ? <Text style={styles.emptyCatalog}>{t('shop.emptyCatalog')}</Text> : null}
+          {isPending ? <InlineState status="loading" /> : isError ? <InlineState status="error" onRetry={retry} /> : null}
+          {!isPending && !isError && ranked.length === 0 ? <InlineState status="empty" message={t('discovery.rankingEmpty')} /> : null}
+          {!isPending && !isError && ranked.length === 0 && others.length === 0 ? <Text style={styles.emptyCatalog}>{t('shop.emptyCatalog')}</Text> : null}
         </View>}
         renderSectionHeader={({ section }) => section.data.length ? <Text accessibilityRole="header" style={styles.sectionTitle}>{section.title}</Text> : null}
         renderItem={({ item }) => (

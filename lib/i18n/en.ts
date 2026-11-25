@@ -227,7 +227,7 @@ export const en = {
   'discovery.ranking': 'Product rankings',
   'discovery.makeupRanking': 'Makeup chart',
   'discovery.skinRanking': 'Skincare chart',
-  'discovery.rankingBasis': 'Rank numbers appear only for products with an assigned catalog ranking. Other products are listed separately.',
+  'discovery.rankingBasis': 'Rankings use Olive Young ratings and review counts.',
   'discovery.rankingEmpty': 'No rankings have been published yet.',
   'discovery.otherProducts': 'More products',
   'discovery.hot': 'Trending now',

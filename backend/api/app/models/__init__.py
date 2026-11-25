@@ -1,5 +1,12 @@
 from app.models.account_deletion import AccountDeletionJobRow
-from app.models.admin import AdminAuditLogRow, EvalRunRow, ProductAdminStateRow, StaffRoleRow
+from app.models.admin import (
+    AdminAuditLogRow,
+    EvalRunRow,
+    LipEvalProductRow,
+    LipEvalSlotRow,
+    ProductAdminStateRow,
+    StaffRoleRow,
+)
 from app.models.aihub import (
     AihubClaimReviewRow,
     AihubDatasetReleaseRow,
@@ -40,6 +47,14 @@ from app.models.knowledge import (
     AihubDocumentBlockRow,
     AihubDocumentExtractionRow,
     AihubQuoteAlignmentRow,
+)
+from app.models.makeup_troubleshooting import (
+    MakeupTroubleshootingProblemEvidenceRow,
+    MakeupTroubleshootingProblemRow,
+    MakeupTroubleshootingReleaseRow,
+    MakeupTroubleshootingSituationEvidenceRow,
+    MakeupTroubleshootingSituationRow,
+    MakeupTroubleshootingSourceRow,
 )
 from app.models.member import MemberRow
 from app.models.order import OrderLineRow, OrderRow
@@ -97,12 +112,15 @@ from app.models.recommendation_feedback import (
     RecommendationRequestRow,
     UserBehaviorEventRow,
 )
+from app.models.reward import RewardAttendanceRow, RewardCouponRow
 from app.models.skincare import SkincareServingRow
 
 __all__ = [
     "AccountDeletionJobRow",
     "AdminAuditLogRow",
     "EvalRunRow",
+    "LipEvalProductRow",
+    "LipEvalSlotRow",
     "ProductAdminStateRow",
     "StaffRoleRow",
     "AihubClaimReviewRow",
@@ -135,6 +153,12 @@ __all__ = [
     "LookVideoTagRow",
     "LookRow",
     "MakeupLookRow",
+    "MakeupTroubleshootingProblemEvidenceRow",
+    "MakeupTroubleshootingProblemRow",
+    "MakeupTroubleshootingReleaseRow",
+    "MakeupTroubleshootingSituationEvidenceRow",
+    "MakeupTroubleshootingSituationRow",
+    "MakeupTroubleshootingSourceRow",
     "MemberRow",
     "OrderLineRow",
     "OrderRow",
@@ -159,6 +183,8 @@ __all__ = [
     "RecommendationLegacyArchiveRow",
     "RecommendationRequestRow",
     "UserBehaviorEventRow",
+    "RewardAttendanceRow",
+    "RewardCouponRow",
     "RawOyBrandRow",
     "RawOyCategoryRow",
     "RawOyCrawlLogRow",

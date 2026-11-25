@@ -11,6 +11,7 @@ import {
 } from "./api/client";
 import type { Staff } from "./api/types";
 import { loginErrorMessage } from "./api/authErrors";
+import { LocalConsent } from "./LocalConsent";
 const Orders = lazy(() =>
   import("./pages/Commerce").then((m) => ({ default: m.Orders })),
 );
@@ -23,11 +24,19 @@ const AuditLog = lazy(() =>
 const Evaluations = lazy(() =>
   import("./pages/Evaluations").then((m) => ({ default: m.Evaluations })),
 );
-const LocalConsent = import.meta.env.DEV
-  ? lazy(() =>
-      import("./LocalConsent").then((m) => ({ default: m.LocalConsent })),
-    )
-  : null;
+const OpsRecommendationsPage = lazy(() =>
+  import("./pages/Ops").then((m) => ({ default: m.OpsRecommendationsPage })),
+);
+const OpsChatbotPage = lazy(() =>
+  import("./pages/Ops").then((m) => ({ default: m.OpsChatbotPage })),
+);
+const OpsSystemPage = lazy(() =>
+  import("./pages/Ops").then((m) => ({ default: m.OpsSystemPage })),
+);
+
+const webBaseUrl =
+  (import.meta.env.VITE_WEB_BASE_URL as string | undefined) ||
+  "http://127.0.0.1:5174";
 
 export function AccessGate({
   ready,
@@ -42,121 +51,138 @@ export function AccessGate({
   forbidden: boolean;
   children: React.ReactNode;
 }) {
+  useEffect(() => {
+    if (!forbidden || localAccountSetup) return;
+    window.location.assign(webBaseUrl.replace(/\/$/, "") + "/");
+  }, [forbidden]);
+
   if (!ready) return <p role="status">로그인을 확인하고 있습니다…</p>;
   if (!signedIn) return <Login />;
-  if (forbidden)
+  if (forbidden) {
+    if (localAccountSetup)
+      return (
+        <main className="login auth-screen">
+          <p className="eyebrow">LOCAL SETUP</p>
+          <p>직원 권한이 없습니다. 로컬에서 약관 동의 후 회원으로 등록해 주세요.</p>
+          <LocalConsent />
+          <button onClick={() => void supabase?.auth.signOut()}>
+            다른 계정으로 로그인
+          </button>
+        </main>
+      );
     return (
-      <main className="login">
-        <p className="eyebrow">ACCESS DENIED</p>
-        <h1>권한 없음</h1>
-        <p>
-          직원 권한이 등록되지 않았습니다. 운영자에게 권한 등록을 요청해 주세요.
-        </p>
-        {localAccountSetup && LocalConsent && (
-          <Suspense fallback={<p>불러오는 중…</p>}>
-            <LocalConsent />
-          </Suspense>
-        )}
-        <button onClick={() => void supabase?.auth.signOut()}>
-          다른 계정으로 로그인
-        </button>
+      <main className="login auth-screen">
+        <p role="status">소비자 웹으로 이동 중…</p>
+        <button onClick={() => void supabase?.auth.signOut()}>로그아웃</button>
       </main>
     );
+  }
   if (!staff) return <p role="status">직원 권한을 확인하고 있습니다…</p>;
   return children;
 }
 
 function Login() {
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [sent, setSent] = useState(false);
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
   const [error, setError] = useState("");
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!supabase) return;
     setBusy(true);
     setError("");
     try {
-      const { error: issue } = sent
-        ? await supabase.auth.verifyOtp({
-            email: email.trim(),
-            token: code.trim(),
-            type: "email",
-          })
-        : await supabase.auth.signInWithOtp({
-            email: email.trim(),
-            options: { shouldCreateUser: false },
-          });
+      const { error: issue } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
       if (issue) throw issue;
-      setSent(true);
     } catch (issue) {
-      setError(loginErrorMessage(issue, sent));
+      setError(loginErrorMessage(issue));
     } finally {
       setBusy(false);
     }
   }
+
+  async function google() {
+    if (!supabase) return;
+    setGoogleBusy(true);
+    setError("");
+    try {
+      const { error: issue } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.origin },
+      });
+      if (issue) throw issue;
+    } catch (issue) {
+      setError(loginErrorMessage(issue));
+      setGoogleBusy(false);
+    }
+  }
+
   return (
-    <main className="login">
-      <div className="brand">
-        VISHUE<span>ADMIN WORKSPACE</span>
-      </div>
-      <p className="eyebrow">팀의 운영 공간</p>
-      <h1>
-        함께 관리하는
-        <br />더 나은 뷰티 경험.
-      </h1>
-      <p>등록된 직원 계정으로 로그인해 주세요.</p>
-      {!supabase && (
-        <p role="alert">
-          로그인 설정이 필요합니다. admin/.env.example의 공개 환경 변수를 설정해
-          주세요.
+    <main className="login auth-screen">
+      <div className="auth-card">
+        <p className="auth-top-title">로그인</p>
+        <img className="auth-mascot" src="/mascot.png" alt="" width={96} height={96} />
+        <h1>VISHUE에 오신 걸 환영해요</h1>
+        <p className="auth-sub">
+          로그인하면 룩 저장, 보상 적립, 멤버십을 이용할 수 있어요.
         </p>
-      )}
-      <form onSubmit={submit}>
-        <label>
-          이메일
-          <input
-            type="email"
-            required
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={sent}
-          />
-        </label>
-        {sent && (
+        {!supabase && (
+          <p role="alert">
+            로그인 설정이 필요합니다. admin/.env.example의 공개 환경 변수를 설정해
+            주세요.
+          </p>
+        )}
+        <form className="auth-form" onSubmit={(e) => void submit(e)}>
           <label>
-            이메일 인증 코드
+            이메일
             <input
+              type="email"
               required
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
+              autoComplete="email"
+              placeholder="이메일"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={busy || googleBusy}
             />
           </label>
-        )}
-        {error && <p role="alert">{error}</p>}
-        <button disabled={busy || !supabase}>
-          {busy ? "확인 중…" : sent ? "로그인" : "인증 코드 받기"}
-        </button>
-        {sent && (
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => {
-              setSent(false);
-              setCode("");
-            }}
-          >
-            이메일 다시 입력
+          <label>
+            비밀번호
+            <input
+              type="password"
+              required
+              autoComplete="current-password"
+              placeholder="비밀번호"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={busy || googleBusy}
+            />
+          </label>
+          {error && <p role="alert">{error}</p>}
+          <button type="submit" disabled={busy || googleBusy || !supabase}>
+            {busy ? "확인 중…" : "로그인"}
           </button>
-        )}
-      </form>
-      <small>
-        이메일에는 인증 코드가 포함된 템플릿이 설정되어 있어야 합니다.
-      </small>
+        </form>
+        <button type="button" className="auth-link" disabled>
+          비밀번호를 잊으셨나요?
+        </button>
+        <div className="auth-divider" />
+        <button type="button" className="secondary auth-social" disabled title="준비 중">
+          Apple로 계속하기
+        </button>
+        <button
+          type="button"
+          className="secondary auth-social"
+          disabled={busy || googleBusy || !supabase}
+          onClick={() => void google()}
+        >
+          {googleBusy ? "연결 중…" : "Google로 계속하기"}
+        </button>
+      </div>
     </main>
   );
 }
@@ -222,6 +248,9 @@ export function Workspace({ staff }: { staff: Staff }) {
     ["/orders", "주문"],
     ["/products", "상품"],
     ["/evaluations", "AR 평가"],
+    ["/ops/recommendations", "추천 Ops"],
+    ["/ops/chatbot", "챗봇 Ops"],
+    ["/ops/system", "시스템"],
     ...(staff.role === "admin" ? [["/audit", "감사 로그"]] : []),
   ];
   return (
@@ -269,6 +298,12 @@ export function Workspace({ staff }: { staff: Staff }) {
               <Route path="/orders/*" element={<Orders staff={staff} />} />
               <Route path="/products/*" element={<Products staff={staff} />} />
               <Route path="/evaluations" element={<Evaluations />} />
+              <Route
+                path="/ops/recommendations"
+                element={<OpsRecommendationsPage />}
+              />
+              <Route path="/ops/chatbot" element={<OpsChatbotPage />} />
+              <Route path="/ops/system" element={<OpsSystemPage />} />
               <Route
                 path="/audit"
                 element={

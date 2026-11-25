@@ -268,7 +268,7 @@ export const zh: Dictionary = {
   'discovery.ranking': '产品排行榜',
   'discovery.makeupRanking': '彩妆榜',
   'discovery.skinRanking': '护肤榜',
-  'discovery.rankingBasis': '仅显示目录中已设定的产品排名，其他产品单独列出。',
+  'discovery.rankingBasis': '榜单依据 Olive Young 的评分和评价数量。',
   'discovery.rankingEmpty': '暂未发布排行榜。',
   'discovery.otherProducts': '浏览其他产品',
   'discovery.hot': '人气好物',

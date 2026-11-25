@@ -268,7 +268,7 @@ export const ko: Dictionary = {
   'discovery.ranking': '제품 랭킹',
   'discovery.makeupRanking': '메이크업 차트',
   'discovery.skinRanking': '스킨케어 차트',
-  'discovery.rankingBasis': '카탈로그에 순위가 지정된 제품만 순위로 표시하며, 나머지 제품은 별도로 보여드려요.',
+  'discovery.rankingBasis': '올리브영 평점과 리뷰 수를 반영한 순위예요.',
   'discovery.rankingEmpty': '차트를 준비하고 있어요.',
   'discovery.otherProducts': '다른 제품 둘러보기',
   'discovery.hot': '요즘 뜨는 아이템',

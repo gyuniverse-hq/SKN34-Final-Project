@@ -274,3 +274,91 @@ class LipTriadEvalResponse(Contract):
     technical: TechnicalTrack
     naturalness: NaturalnessTrack
     retained_images: bool = False
+
+
+class LipEvalRater(Contract):
+    id: int
+    label: str
+
+
+class LipEvalImageUrls(Contract):
+    bare: str | None = None
+    real: str | None = None
+    ar: str | None = None
+
+
+class LipEvalSlot(Contract):
+    rater_id: int
+    label: str
+    has_bare: bool
+    has_real: bool
+    has_ar: bool
+    ready_for_ar: bool
+    scored: bool
+    technical: dict | None = None
+    naturalness: dict | None = None
+    scored_at: str | None = None
+    image_urls: LipEvalImageUrls
+
+
+class LipEvalAggregate(Contract):
+    scored_count: int
+    finalized: bool
+    naturalness_mean: Number | None = None
+    technical_overall_pass_rate: Number | None = None
+    metric_means: dict[str, Number] | None = None
+
+
+class LipEvalProduct(Contract):
+    id: str
+    brand: str
+    name: str
+    shade: str
+    sort_order: int
+    aggregate: LipEvalAggregate
+    slots: list[LipEvalSlot]
+    raters: list[LipEvalRater] | None = None
+    last_score: dict | None = None
+
+
+class LipEvalProductList(Contract):
+    items: list[LipEvalProduct]
+    raters: list[LipEvalRater]
+
+
+class OpsRecommendationCounts(Contract):
+    recommendation_impressions: int
+    skincare_events: int
+    cart_recommendation_visits: int
+
+
+class OpsRecommendations(Contract):
+    ar_palette_mode: str
+    ar_palette_experiment: str | None = None
+    cart_recommendation_experiment: str | None = None
+    counts: OpsRecommendationCounts
+
+
+class OpsProbe(Contract):
+    ok: bool
+    status: int | None = None
+    body: dict | None = None
+
+
+class OpsChatbot(Contract):
+    configured: bool
+    base_url: str | None = None
+    healthz: OpsProbe | None = None
+    readyz: OpsProbe | None = None
+    error: str | None = None
+
+
+class OpsSystem(Contract):
+    env: str
+    admin_enabled: bool
+    alembic_head: str | None = None
+    lip_eval_dir: str
+    lip_eval_dir_exists: bool
+    llm_configured: bool
+    chatbot_base_url: str | None = None
+    cors_origin_count: int

@@ -81,3 +81,28 @@ class EvalRunRow(Base):
     uploaded_by: Mapped[str | None] = mapped_column(
         String(64), ForeignKey("members.id", ondelete="SET NULL")
     )
+
+
+class LipEvalProductRow(Base):
+    __tablename__ = "lip_eval_products"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    brand: Mapped[str] = mapped_column(String(80))
+    name: Mapped[str] = mapped_column(String(160))
+    shade: Mapped[str] = mapped_column(String(120))
+    sort_order: Mapped[int] = mapped_column(Integer)
+
+
+class LipEvalSlotRow(Base):
+    __tablename__ = "lip_eval_slots"
+    __table_args__ = (CheckConstraint("rater_id BETWEEN 1 AND 5", name="ck_lip_eval_rater"),)
+    product_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("lip_eval_products.id", ondelete="CASCADE"), primary_key=True
+    )
+    rater_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    bare_path: Mapped[str | None] = mapped_column(String(512))
+    real_path: Mapped[str | None] = mapped_column(String(512))
+    ar_path: Mapped[str | None] = mapped_column(String(512))
+    technical_json: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    naturalness_json: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    scored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

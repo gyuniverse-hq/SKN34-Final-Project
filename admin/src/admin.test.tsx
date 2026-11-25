@@ -45,24 +45,30 @@ describe("권한과 운영 화면", () => {
     );
     expect(register).toHaveBeenCalledOnce();
   });
-  it("로그인 전에는 이메일 코드 로그인을 표시한다", () => {
+  it("로그인 전에는 앱형 이메일·비밀번호 로그인을 표시한다", () => {
     render(
       <AccessGate ready signedIn={false} forbidden={false}>
         비공개
       </AccessGate>,
     );
     expect(screen.getByLabelText("이메일")).toBeInTheDocument();
+    expect(screen.getByLabelText("비밀번호")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "로그인" })).toBeInTheDocument();
     expect(screen.queryByText("비공개")).not.toBeInTheDocument();
   });
-  it("직원이 아니면 권한 없음 화면을 표시한다", () => {
+  it("직원이 아니면 소비자 웹으로 보내거나 로컬 등록을 안내한다", () => {
     render(
       <AccessGate ready signedIn forbidden>
         비공개
       </AccessGate>,
     );
-    expect(
-      screen.getByRole("heading", { name: "권한 없음" }),
-    ).toBeInTheDocument();
+    const redirected = screen.queryByRole("status")?.textContent?.includes(
+      "소비자 웹",
+    );
+    const localSetup = screen.queryByRole("heading", {
+      name: "로컬 테스트 계정 등록",
+    });
+    expect(!!redirected || !!localSetup).toBe(true);
   });
   it("조회자에게 상태 변경 버튼을 숨긴다", () => {
     render(

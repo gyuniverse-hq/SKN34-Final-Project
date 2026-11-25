@@ -1,17 +1,28 @@
 """Add durable account deletion job state without changing the existing deletion API."""
 
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
-from alembic import op
-
-revision = "0036"
-down_revision = "0035"
+revision = "0039"
+down_revision = "0038"
 branch_labels = None
 depends_on = None
 
 
 def upgrade() -> None:
+    op.execute("""
+        DO $$ BEGIN
+            IF to_regclass('public.lip_eval_products') IS NULL
+               OR NOT EXISTS (
+                   SELECT 1 FROM pg_class
+                   WHERE oid = to_regclass('public.lip_eval_slots')
+                     AND relkind = 'r' AND relrowsecurity
+               ) THEN
+                RAISE EXCEPTION 'Expected develop lip evaluation schema before G7 revision 0039';
+            END IF;
+        END $$;
+    """)
     op.create_table(
         "account_deletion_jobs",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -57,6 +68,7 @@ def upgrade() -> None:
             name="ck_account_deletion_lease",
         ),
     )
+    op.execute("ALTER TABLE account_deletion_jobs ENABLE ROW LEVEL SECURITY")
     op.create_index(
         "ix_account_deletion_ready",
         "account_deletion_jobs",
@@ -72,4 +84,11 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    op.execute("""
+        DO $$ BEGIN
+            IF EXISTS (SELECT 1 FROM account_deletion_jobs LIMIT 1) THEN
+                RAISE EXCEPTION 'Account deletion jobs exist; downgrade refused';
+            END IF;
+        END $$;
+    """)
     op.drop_table("account_deletion_jobs")

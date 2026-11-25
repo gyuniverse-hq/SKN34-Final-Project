@@ -130,3 +130,78 @@ export interface LipTriadEval {
     model: string | null;
   };
 }
+
+export interface LipEvalRater {
+  id: number;
+  label: string;
+}
+export interface LipEvalSlot {
+  raterId: number;
+  label: string;
+  hasBare: boolean;
+  hasReal: boolean;
+  hasAr: boolean;
+  readyForAr: boolean;
+  scored: boolean;
+  technical: LipTriadEval["technical"] | null;
+  naturalness: LipTriadEval["naturalness"] | null;
+  scoredAt: string | null;
+  imageUrls: { bare: string | null; real: string | null; ar: string | null };
+}
+export interface LipEvalAggregate {
+  scoredCount: number;
+  finalized: boolean;
+  naturalnessMean: number | null;
+  technicalOverallPassRate: number | null;
+  metricMeans: Record<string, number> | null;
+}
+export interface LipEvalProduct {
+  id: string;
+  brand: string;
+  name: string;
+  shade: string;
+  sortOrder: number;
+  aggregate: LipEvalAggregate;
+  slots: LipEvalSlot[];
+  raters?: LipEvalRater[];
+  lastScore?: {
+    raterId: number;
+    technical: LipTriadEval["technical"];
+    naturalness: LipTriadEval["naturalness"];
+    retainedImages: boolean;
+  } | null;
+}
+export interface LipEvalProductList {
+  items: LipEvalProduct[];
+  raters: LipEvalRater[];
+}
+
+export interface OpsRecommendations {
+  arPaletteMode: string;
+  arPaletteExperiment: string | null;
+  cartRecommendationExperiment: string | null;
+  counts: {
+    recommendationImpressions: number;
+    skincareEvents: number;
+    cartRecommendationVisits: number;
+  };
+}
+
+export interface OpsChatbot {
+  configured: boolean;
+  baseUrl: string | null;
+  healthz: { ok: boolean; status: number | null; body: unknown } | null;
+  readyz: { ok: boolean; status: number | null; body: unknown } | null;
+  error: string | null;
+}
+
+export interface OpsSystem {
+  env: string;
+  adminEnabled: boolean;
+  alembicHead: string | null;
+  lipEvalDir: string;
+  lipEvalDirExists: boolean;
+  llmConfigured: boolean;
+  chatbotBaseUrl: string | null;
+  corsOriginCount: number;
+}

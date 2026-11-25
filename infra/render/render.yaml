@@ -48,6 +48,7 @@ services:
       - key: CORS_ORIGINS
         sync: false
       - key: ADMIN_ENABLED
+        # Flip to "true" after staff grant + CORS include admin origin. See admin-ops-web-rollout.md.
         value: "false"
       - key: DATABASE_URL
         sync: false
