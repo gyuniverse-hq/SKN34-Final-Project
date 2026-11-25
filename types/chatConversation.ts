@@ -9,6 +9,35 @@ export type ConversationEntry =
   | Extract<ConversationSubject, { type: 'general' | 'look' }>
   | (Extract<ConversationSubject, { type: 'product' }> & { shadeId?: string });
 
+export type ConversationListSummary = {
+  titleTopic?: 'product' | 'ingredient' | 'look';
+  previewTopics: ('hydration' | 'price')[];
+};
+
+export type ServerConversationSummary = {
+  conversationId: string;
+  conversationVersion: number;
+  subject: ConversationEntry;
+  updatedAt: string;
+  listSummary?: ConversationListSummary;
+};
+
+export type ServerConversationDetail = Omit<ServerConversationSummary, 'updatedAt' | 'listSummary'> & {
+  updatedAt?: string;
+  context: {
+    product?: {
+      selectedProductId?: string | null;
+      selectedShadeId?: string | null;
+      historicalCandidateRefs?: string[];
+      filters?: Pick<BeautyChatContext['filters'], 'optionSearch'>;
+    } | null;
+    style?: (ChatStyleContext & { conditions?: ChatStyleCondition[] }) | null;
+    styleConditions?: ChatStyleCondition[];
+  };
+  messages: { id: string; role: 'user' | 'assistant'; text: string; displayPayload?: Partial<ChatResponse> | null; createdAt: string }[];
+  nextMessageCursor?: number | null;
+};
+
 export type ChatCategory = 'product' | 'ingredient' | 'style';
 export type ChatMessage = {
   id: string;
@@ -39,6 +68,8 @@ export type ChatMessage = {
   styleRecipe?: ChatResponse['styleRecipe'];
   styleCandidates?: ChatResponse['styleCandidates'];
   styleStatus?: ChatResponse['styleStatus'];
+  memoryProposal?: ChatResponse['memoryProposal'];
+  appliedMemories?: ChatResponse['appliedMemories'];
 };
 
 export type ChatRequestSnapshot = {
@@ -66,6 +97,8 @@ export type ChatRequestSnapshot = {
   revision: number;
   generation: number;
   styleRevision: number;
+  statePatchId?: string;
+  serverBaseVersion?: number;
 };
 
 // The owner key includes the authentication epoch, even when the same user logs in again.

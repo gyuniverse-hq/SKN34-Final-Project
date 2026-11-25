@@ -37,3 +37,7 @@ class MeResponse(ApiModel):
 
 class AgreeTermsRequest(ApiModel):
     version: str = Field(min_length=1, max_length=32)
+
+
+class AccountDeletionStatusRequest(ApiModel):
+    receipt: str = Field(pattern=r"^[0-9a-f]{32}\.[0-9a-f]{64}$")

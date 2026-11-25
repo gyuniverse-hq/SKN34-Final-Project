@@ -1,4 +1,4 @@
-import { ApiError, apiPostChat } from '@/lib/api';
+import { ApiError, apiChatUserRequest, apiPostChat } from '@/lib/api';
 
 type Session = { user: { id: string }; access_token: string } | null;
 let mockSession: Session;
@@ -42,6 +42,27 @@ it('pins the verified user token and does not provide anonymous fallback headers
   expect(headers.Authorization).toBe('Bearer token-A');
   expect(headers['X-Vishue-Anonymous-Id']).toBeUndefined();
   expect(mockListeners.size).toBe(0);
+});
+
+it('pins memory operations to the verified user and preserves the delete key', async () => {
+  mockSession = { user: { id: 'A' }, access_token: 'token-A' };
+  const fetch = jest.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: true, status: 204 } as Response);
+  await apiChatUserRequest('/api/chat/memories/m1', 'DELETE', 'A', undefined, { 'Idempotency-Key': 'key-1' });
+  const headers = fetch.mock.calls[0][1]?.headers as Record<string, string>;
+  expect(headers.Authorization).toBe('Bearer token-A');
+  expect(headers['Idempotency-Key']).toBe('key-1');
+  expect(headers['X-Vishue-Anonymous-Id']).toBeUndefined();
+});
+
+it('discards memory data if the owner changes while a request is in flight', async () => {
+  mockSession = { user: { id: 'A' }, access_token: 'token-A' };
+  jest.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: true, json: async () => {
+    transition(null);
+    transition({ user: { id: 'A' }, access_token: 'new-token' });
+    return { memories: [{ value: 'private' }] };
+  } } as Response);
+  await expect(apiChatUserRequest('/api/chat/memories', 'GET', 'A'))
+    .rejects.toMatchObject({ code: 'chat_owner_changed' });
 });
 
 it('does not send a prior user session under a different account', async () => {

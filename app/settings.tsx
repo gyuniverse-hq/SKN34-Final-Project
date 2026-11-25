@@ -2,24 +2,26 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient } from '@tanstack/react-query';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MemorySettingsControls } from '@/components/chat/MemorySettingsControls';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { MenuSection } from '@/components/ui/MenuSection';
 import { ListRow } from '@/components/ui/ListRow';
 import { homeLayout, homeType } from '@/constants/homeLayout';
 import { theme } from '@/constants/theme';
-import { deleteAccount } from '@/lib/account';
+import { useAccountDeletion } from '@/hooks/useAccountDeletion';
+import { useChatMemory } from '@/hooks/useChatMemory';
 import { ApiError } from '@/lib/api';
-import { signOut, useAuth } from '@/lib/auth';
+import { useAuth } from '@/lib/auth';
 import { confirmAction, notify } from '@/lib/confirm';
-import { LANGUAGE_LABELS, LANGUAGES, useI18n, type LanguagePreference } from '@/lib/i18n';
-import { STORAGE_KEYS } from '@/lib/storage';
-import { pendingProfileKey } from '@/lib/skinRegistration';
-import { clearSkinTimings, skinProfileKey } from '@/lib/skinProfile';
+import { LANGUAGE_LABELS, LANGUAGES, useI18n, type LanguagePreference, type TranslationKey } from '@/lib/i18n';
+import { chatRequestRecoveryPrefix, chatRoomDeletionPrefix, STORAGE_KEYS } from '@/lib/storage';
+import { clearSkinTimings } from '@/lib/skinProfile';
 import { useSkinProfileStore } from '@/store/skinProfileStore';
 import { useCartStore } from '@/store/cartStore';
+import { useChatConversationStore } from '@/store/chatConversationStore';
 import { useCompareStore } from '@/store/compareStore';
 import { useMakeupStore } from '@/store/makeupStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -29,17 +31,61 @@ export default function SettingsScreen() {
   const [languageOpen, setLanguageOpen] = useState(false);
   const { bottom } = useSafeAreaInsets();
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, language: resolvedLanguage } = useI18n();
   const queryClient = useQueryClient();
   const language = useSettingsStore((s) => s.language);
   const setLanguage = useSettingsStore((s) => s.setLanguage);
   const cameraConsent = useSettingsStore((s) => s.cameraConsent);
   const setCameraConsent = useSettingsStore((s) => s.setCameraConsent);
   const { user } = useAuth();
+  const ownerId = user?.id ?? null;
+  const memory = useChatMemory(ownerId, resolvedLanguage);
+  const memorySettings = memory.settings;
+  const refreshMemorySettings = memory.refreshSettings;
+  const [memoryMessage, setMemoryMessage] = useState<{ ownerId: string; key: TranslationKey }>();
+  const deletion = useAccountDeletion();
   const options: { value: LanguagePreference; label: string }[] = [
     { value: 'system', label: t('my.languageSystem') },
     ...LANGUAGES.map((l) => ({ value: l, label: LANGUAGE_LABELS[l] })),
   ];
+
+  useEffect(() => {
+    if (!ownerId) return;
+    let active = true;
+    void refreshMemorySettings().catch(() => {
+      if (active) setMemoryMessage({ ownerId, key: 'chat.memory.error' });
+    });
+    return () => { active = false; };
+  }, [ownerId, refreshMemorySettings]);
+
+  const invalidateChatMemory = (id: string) => {
+    const store = useChatConversationStore.getState();
+    if (store.identity?.userId === id) store.invalidateMemoryContext(store.identity.key);
+  };
+
+  const showMemoryError = (id: string, error: unknown) => {
+    const conflict = error instanceof ApiError && error.code === 'memory_settings_changed';
+    setMemoryMessage({ ownerId: id, key: conflict ? 'chat.memory.settingsChanged' : 'chat.memory.error' });
+    if (conflict) void refreshMemorySettings().catch(() => {});
+  };
+
+  const changeMemory = async (enabled: boolean | undefined, acknowledgeNotice?: true) => {
+    if (!ownerId || !memorySettings || memory.busy) return;
+    try {
+      const updated = await memory.updateSettings(memorySettings, enabled, acknowledgeNotice);
+      if (updated.enabled !== memorySettings.enabled) invalidateChatMemory(ownerId);
+      setMemoryMessage(undefined);
+    } catch (error) { showMemoryError(ownerId, error); }
+  };
+
+  const deleteSavedMemories = async () => {
+    if (!ownerId || !memorySettings || memory.busy) return;
+    try {
+      await memory.deleteAll(memorySettings);
+      invalidateChatMemory(ownerId);
+      setMemoryMessage({ ownerId, key: 'chat.memory.deleteAllDone' });
+    } catch (error) { showMemoryError(ownerId, error); }
+  };
 
   const deleteAll = () =>
     confirmAction(t('my.deleteDataConfirm'), t('common.delete'), t('common.cancel'), async () => {
@@ -50,27 +96,21 @@ export default function SettingsScreen() {
       useMakeupStore.getState().reset();
       queryClient.clear();
       await clearSkinTimings();
-      const profileKeys = (await AsyncStorage.getAllKeys()).filter(key =>
-        key.startsWith(`${STORAGE_KEYS.skinProfile}:`) || key.startsWith(`${STORAGE_KEYS.firstArInvitation}:`));
-      await AsyncStorage.multiRemove([...Object.values(STORAGE_KEYS), ...profileKeys]);
+      const deletionPrefix = chatRoomDeletionPrefix();
+      const recoveryPrefix = chatRequestRecoveryPrefix();
+      const scopedKeys = (await AsyncStorage.getAllKeys()).filter(key =>
+        key.startsWith(`${STORAGE_KEYS.skinProfile}:`) || key.startsWith(`${STORAGE_KEYS.firstArInvitation}:`) ||
+        key.startsWith(deletionPrefix) || key.startsWith(recoveryPrefix));
+      await AsyncStorage.multiRemove([...Object.values(STORAGE_KEYS), ...scopedKeys]);
+      useChatConversationStore.getState().clearRecoveredRoomDeletions();
+      useChatConversationStore.getState().clearRequestRecoveries();
       useSkinProfileStore.getState().reset();
       notify(t('my.deleteDataDone'));
     });
 
-  const removeAccount = () =>
-    confirmAction(t('account.deleteConfirm'), t('account.delete'), t('common.cancel'), async () => {
-      try {
-        await deleteAccount();
-      } catch (e) {
-        const unavailable = e instanceof ApiError && e.code === 'account_deletion_unavailable';
-        notify(t(unavailable ? 'account.deleteUnavailable' : 'auth.error.generic'));
-        return;
-      }
-      if (user) await AsyncStorage.multiRemove([skinProfileKey(user.id), pendingProfileKey(user.id), `${STORAGE_KEYS.firstArInvitation}:${user.id}`]);
-      useSkinProfileStore.getState().reset();
-      await signOut().catch(() => {});
-      queryClient.removeQueries({ queryKey: ['me'] });
-      notify(t('account.deleteDone'));
+  const removeAccount = (owner: string) =>
+    confirmAction(t('account.deleteConfirm'), t('account.delete'), t('common.cancel'), () => {
+      void deletion.submit(owner);
     });
 
   return (
@@ -84,6 +124,18 @@ export default function SettingsScreen() {
             value={cameraConsent ? t('my.cameraOn') : t('my.cameraOff')}
             onPress={cameraConsent ? () => setCameraConsent(false) : undefined} />
         </MenuSection>
+        {ownerId && (memorySettings || memoryMessage?.ownerId === ownerId) ? <MenuSection title={t('chat.memory.settings')}>
+          {memorySettings ? <>
+            <MemorySettingsControls settings={memorySettings} busy={memory.busy} showManagement
+              onChange={(enabled, acknowledge) => void changeMemory(enabled, acknowledge)}
+              onDeleteAll={() => void deleteSavedMemories()} />
+            <ListRow icon="bookmark-outline" label={t('chat.memory.manage')}
+              onPress={() => router.push({ pathname: '/chat', params: { memory: 'manage' } })} />
+          </> : null}
+          {memoryMessage?.ownerId === ownerId ? <Text accessibilityRole="alert" style={styles.dataNote}>
+            {t(memoryMessage.key)}
+          </Text> : null}
+        </MenuSection> : null}
         <MenuSection title={t('my.policies')}>
           <ListRow icon="document-text-outline" label={t('my.terms')} onPress={() => router.push('/legal/terms')} />
           <ListRow icon="shield-checkmark-outline" label={t('my.privacy')} onPress={() => router.push('/legal/privacy')} />
@@ -91,7 +143,16 @@ export default function SettingsScreen() {
         <MenuSection title={t('my.accountData')}>
           <ListRow icon="trash-outline" label={t('my.deleteData')} destructive onPress={deleteAll} />
           <Text style={styles.dataNote}>{t('my.dataNote')}</Text>
-          {user && <ListRow icon="person-remove-outline" label={t('account.delete')} destructive onPress={removeAccount} />}
+          {user && <>
+            <ListRow icon="person-remove-outline" label={t('account.delete')} destructive
+              value={deletion.busy ? t('account.deleteSubmitting') : undefined}
+              onPress={deletion.busy ? undefined : () => removeAccount(user.id)} />
+            {deletion.issue && (
+              <Text style={styles.dataNote} accessibilityLiveRegion="polite">
+                {t(deletion.issue === 'sessionEnded' ? 'account.deleteSessionEnded' : 'account.deleteUnavailable')}
+              </Text>
+            )}
+          </>}
         </MenuSection>
         <Text style={styles.version}>{t('my.version')} {Constants.expoConfig?.version ?? '—'}</Text>
       </ScrollView>

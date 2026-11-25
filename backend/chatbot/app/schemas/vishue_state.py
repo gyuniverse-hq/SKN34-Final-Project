@@ -17,3 +17,10 @@ class VishueState(TypedDict):
     decision: IntentDecision
     plan: NotRequired[TaskPlan]
     response: NotRequired[ChatResponse]
+
+
+class DurableVishueState(TypedDict):
+    """Only these per-run references may be written to PostgreSQL checkpoints."""
+
+    request_id: str
+    execution_status: str

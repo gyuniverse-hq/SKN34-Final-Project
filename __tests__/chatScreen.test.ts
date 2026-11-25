@@ -1,5 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createElement } from 'react';
-import { Keyboard, KeyboardAvoidingView, Platform, Text, TextInput } from 'react-native';
+import { AppState, Keyboard, KeyboardAvoidingView, Platform, Text, TextInput, type AppStateStatus } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import ChatScreen from '@/app/chat';
 import type { BeautyChatContext, ChatStyleRecipe } from '@/types';
@@ -8,15 +9,24 @@ import { IngredientResult } from '@/components/chat/IngredientResult';
 import { RecentConversations } from '@/components/chat/RecentConversations';
 import { StyleRecipeResult } from '@/components/chat/StyleRecipeResult';
 import { ApiError } from '@/lib/api';
+import * as chatApi from '@/lib/api';
+import * as confirmations from '@/lib/confirm';
 import { en } from '@/lib/i18n/en';
 import { ko } from '@/lib/i18n/ko';
 import { ja } from '@/lib/i18n/ja';
 import { zh } from '@/lib/i18n/zh';
+import { chatRequestRecoveryKey, chatRoomDeletionKey } from '@/lib/storage';
 import { useChatConversationStore } from '@/store/chatConversationStore';
 
 jest.setTimeout(20000);
 
 const mockMutateAsync = jest.fn();
+const mockMemoryRefresh = jest.fn();
+const mockMemoryProposalRefresh = jest.fn();
+const mockMemorySettingsRefresh = jest.fn();
+const mockMemoryConfirm = jest.fn();
+const mockMemoryUpdate = jest.fn();
+const mockMemoryRemove = jest.fn();
 const mockUseChat = jest.fn(() => ({ mutateAsync: mockMutateAsync, isPending: false }));
 const mockProductsByIds = jest.fn();
 const mockPush = jest.fn();
@@ -24,6 +34,7 @@ const mockRefetch = jest.fn();
 const mockAuth = jest.fn((): { user: { id: string } | null; ready: boolean } => ({ user: null, ready: true }));
 let mockAuthListener: ((event: string, session: { user: { id: string } } | null) => void) | undefined;
 let mockSupabaseEnabled = false;
+let mockScreenFocused = false;
 let mockLanguage = 'ko';
 let mockDictionary: Record<string, string> | undefined;
 
@@ -34,6 +45,14 @@ const beautyContext: BeautyChatContext = {
 };
 
 jest.mock('@/hooks/useChat', () => ({ useChat: () => mockUseChat() }));
+jest.mock('@/hooks/useChatMemory', () => ({
+  useChatMemory: () => ({
+    memories: [], busy: false,
+    refresh: mockMemoryRefresh, refreshProposals: mockMemoryProposalRefresh,
+    refreshSettings: mockMemorySettingsRefresh,
+    confirm: mockMemoryConfirm, update: mockMemoryUpdate, remove: mockMemoryRemove,
+  }),
+}));
 jest.mock('@/lib/auth', () => ({ useAuth: () => mockAuth(), getAccessToken: async () => null }));
 jest.mock('@/lib/auth/client', () => ({
   getSupabase: () => mockSupabaseEnabled ? { auth: { onAuthStateChange: (listener: typeof mockAuthListener) => {
@@ -52,7 +71,12 @@ jest.mock('@/lib/queries', () => ({
 jest.mock('@/components/chat/ChatProducts', () => ({ ChatProducts: () => null }));
 jest.mock('@expo/vector-icons/Ionicons', () => () => null);
 const mockRouteParams: { recipeKind?: string; recipeLookId?: string; productId?: string; shadeId?: string } = {};
-jest.mock('expo-router', () => ({ Stack: { Screen: ({ options }: { options: { headerRight?: () => unknown } }) => options.headerRight?.() ?? null }, useRouter: () => ({ push: mockPush }), useLocalSearchParams: () => mockRouteParams }));
+jest.mock('expo-router', () => ({
+  Stack: { Screen: ({ options }: { options: { headerRight?: () => unknown } }) => options.headerRight?.() ?? null },
+  useRouter: () => ({ push: mockPush }),
+  useLocalSearchParams: () => mockRouteParams,
+  useIsFocused: () => mockScreenFocused,
+}));
 jest.mock('expo-router/react-navigation', () => ({ useHeaderHeight: () => 88 }));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }: { children: unknown }) => children,
@@ -76,11 +100,19 @@ async function renderScreen(): Promise<ReactTestRenderer> {
   return renderer;
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  await AsyncStorage.clear();
+  jest.spyOn(chatApi, 'apiChatUserRequest').mockRejectedValue(new ApiError('disabled', 503, 'persistence_disabled'));
   useChatConversationStore.setState({ identity: undefined, conversations: {}, latest: {} });
   delete mockRouteParams.recipeKind; delete mockRouteParams.recipeLookId;
   delete mockRouteParams.productId; delete mockRouteParams.shadeId;
   mockMutateAsync.mockReset();
+  mockMemoryRefresh.mockReset().mockRejectedValue(new ApiError('Memory unavailable', 503, 'memory_unavailable'));
+  mockMemoryProposalRefresh.mockReset().mockResolvedValue(undefined);
+  mockMemorySettingsRefresh.mockReset().mockResolvedValue(undefined);
+  mockMemoryConfirm.mockReset();
+  mockMemoryUpdate.mockReset();
+  mockMemoryRemove.mockReset();
   mockUseChat.mockReturnValue({ mutateAsync: mockMutateAsync, isPending: false });
   mockProductsByIds.mockReset().mockReturnValue({ data: [], isPending: false, isError: false, refetch: mockRefetch });
   mockPush.mockReset();
@@ -88,8 +120,468 @@ beforeEach(() => {
   mockAuth.mockReturnValue({ user: null, ready: true });
   mockAuthListener = undefined;
   mockSupabaseEnabled = false;
+  mockScreenFocused = false;
   mockLanguage = 'ko';
   mockDictionary = undefined;
+});
+
+it('shows the server memory candidate and saves it only after confirmation', async () => {
+  mockAuth.mockReturnValue({ user: { id: 'A' }, ready: true });
+  mockMemoryRefresh.mockResolvedValue([]);
+  mockMemoryConfirm.mockResolvedValue({ memoryId: 'memory-1', memoryVersion: 1 });
+  const server = jest.spyOn(chatApi, 'apiChatUserRequest').mockResolvedValue({
+    conversationId: 'server-room', conversationVersion: 0,
+  });
+  const proposal = { proposalId: 'proposal-1', version: 1, kind: 'preference',
+    value: '코랄 립 기억해줘', consentScope: 'future_consultations', expiresAt: '2099-01-01T00:00:00Z' };
+  mockMutateAsync.mockResolvedValue({ answer: '확인해 주세요', products: [], memoryProposal: proposal,
+    conversation: { id: 'server-room', version: 1, turnId: 'turn', persistenceStatus: 'stored' } });
+  const view = await renderScreen();
+  await act(async () => view.root.findByType(TextInput).props.onChangeText('코랄 립 기억해줘'));
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress());
+  expect(view.root.findAll((item) => item.props.children === '코랄 립 기억해줘').length).toBeGreaterThan(0);
+  expect(mockMemoryConfirm).not.toHaveBeenCalled();
+  await act(async () => buttonWithText(view.root, 'chat.memory.confirm').props.onPress());
+  expect(mockMemoryConfirm).toHaveBeenCalledWith(proposal);
+  expect(view.root.findAllByType(Text).filter((item) => item.props.children === 'chat.memory.saved')).toHaveLength(1);
+  server.mockRestore();
+  await act(async () => view.unmount());
+});
+
+it.each(['message', 'selection'])('reloads the current room on a %s version conflict', async (conflict) => {
+  mockAuth.mockReturnValue({ user: { id: 'A' }, ready: true });
+  const subject = conflict === 'selection' ? { type: 'product', productId: 'p1' } : { type: 'general' };
+  if (conflict === 'selection') Object.assign(mockRouteParams, { productId: 'p1', shadeId: 'p1-01' });
+  const changed = new ApiError('Conversation version changed', 409, 'conversation_conflict');
+  let version = 0;
+  const server = jest.spyOn(chatApi, 'apiChatUserRequest').mockImplementation(async (path, method) => {
+    if (path === '/api/chat/conversations' && method === 'POST') {
+      return { conversationId: 'server-room', conversationVersion: 0 };
+    }
+    if (path === '/api/chat/conversations/server-room/state' && method === 'PATCH') {
+      if (version === 0) throw changed;
+      return { conversationVersion: ++version };
+    }
+    if (path === '/api/chat/conversations/server-room' && method === 'GET') {
+      version = 4;
+      return {
+        conversationId: 'server-room', conversationVersion: version, subject,
+        context: conflict === 'selection' ? { product: { selectedProductId: 'p1', selectedShadeId: 'p1-01' } } : {},
+        messages: [{ id: 'other-turn', role: 'assistant', text: '다른 기기의 답변', displayPayload: {} }],
+      };
+    }
+    throw new Error('unexpected request');
+  });
+  if (conflict === 'message') mockMutateAsync.mockRejectedValueOnce(changed);
+  mockMutateAsync.mockImplementation(async () => ({
+    answer: '새 답변', products: [],
+    conversation: { id: 'server-room', version: version + 1, turnId: 'turn', persistenceStatus: 'stored' },
+  }));
+  const view = await renderScreen();
+  await act(async () => view.root.findByType(TextInput).props.onChangeText('상담을 이어서 할게'));
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress());
+  expect(server).toHaveBeenCalledWith('/api/chat/conversations/server-room', 'GET', 'A');
+  expect(view.root.findAllByType(Text).some((item) => item.props.children === '다른 기기의 답변')).toBe(true);
+  expect(view.root.findByType(TextInput).props.value).toBe('상담을 이어서 할게');
+  expect(mockMutateAsync).toHaveBeenCalledTimes(conflict === 'selection' ? 0 : 1);
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress());
+  expect(mockMutateAsync).toHaveBeenLastCalledWith(expect.objectContaining({
+    conversationId: 'server-room', expectedConversationVersion: version,
+  }));
+  server.mockRestore();
+  await act(async () => view.unmount());
+});
+
+it('recovers a committed chat after response loss without repeating its selection patch or chat', async () => {
+  mockAuth.mockReturnValue({ user: { id: 'A' }, ready: true });
+  mockMemoryRefresh.mockResolvedValue([]);
+  Object.assign(mockRouteParams, { productId: 'p1', shadeId: 'p1-01' });
+  const server = jest.spyOn(chatApi, 'apiChatUserRequest').mockImplementation(async (path, method) => {
+    if (path === '/api/chat/conversations' && method === 'POST') {
+      return { conversationId: 'server-room', conversationVersion: 0 };
+    }
+    if (path === '/api/chat/conversations/server-room/state' && method === 'PATCH') {
+      return { conversationVersion: 1 };
+    }
+    if (path.startsWith('/api/chat/conversations/server-room/requests/') && method === 'GET') return {
+      requestId: path.split('/').at(-1), status: 'COMMITTED',
+      response: { conversation: { id: 'server-room', version: 2, persistenceStatus: 'stored' } },
+    };
+    if (path === '/api/chat/conversations/server-room' && method === 'GET') return {
+      conversationId: 'server-room', conversationVersion: 2, subject: { type: 'product', productId: 'p1' },
+      context: { product: { selectedProductId: 'p1', selectedShadeId: 'p1-01' } }, nextMessageCursor: null,
+      messages: [{ id: 'server-user', role: 'user', text: '이 제품 알려줘' },
+        { id: 'server-answer', role: 'assistant', text: 'Restored answer' }],
+    };
+    throw new Error('unexpected request');
+  });
+  let markerAtSend: string | null = null;
+  mockMutateAsync.mockImplementationOnce(async ({ requestId }) => {
+    markerAtSend = await AsyncStorage.getItem(chatRequestRecoveryKey('A', 'server-room', requestId));
+    throw new ApiError('offline', 0, 'network');
+  });
+  const view = await renderScreen();
+  await act(async () => view.root.findByType(TextInput).props.onChangeText('이 제품 알려줘'));
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress());
+  const patches = server.mock.calls.filter((call) => call[1] === 'PATCH');
+  expect(patches).toHaveLength(1);
+  expect(patches[0][3]).toMatchObject({ expectedConversationVersion: 0,
+    operation: 'select_shade', payload: { productId: 'p1', shadeId: 'p1-01' } });
+  expect(mockMutateAsync).toHaveBeenLastCalledWith(expect.objectContaining({
+    conversationId: 'server-room', expectedConversationVersion: 1,
+  }));
+  expect(mockMutateAsync).toHaveBeenCalledTimes(1);
+  expect(markerAtSend).toBe('1');
+  expect(await AsyncStorage.getAllKeys()).toEqual([]);
+  expect(view.root.findAllByType(Text).some((item) => item.props.children === 'Restored answer')).toBe(true);
+  server.mockRestore();
+  await act(async () => view.unmount());
+});
+
+it('loads and resumes a server conversation without reviving an old candidate session', async () => {
+  mockAuth.mockReturnValue({ user: { id: 'A' }, ready: true });
+  const server = jest.spyOn(chatApi, 'apiChatUserRequest').mockImplementation(async (path, method) => {
+    if (path === '/api/chat/conversations' && method === 'GET') return { conversations: [{
+      conversationId: 'saved-room', conversationVersion: 4, subject: { type: 'general' },
+      updatedAt: '2026-01-01T00:00:00Z',
+    }], nextCursor: null };
+    if (path === '/api/chat/conversations/saved-room' && method === 'GET') return {
+      conversationId: 'saved-room', conversationVersion: 4, subject: { type: 'general' },
+      context: { product: { selectedProductId: 'p1', selectedShadeId: 'p1-01' } },
+      messages: [{ id: 'saved-question', role: 'user', text: 'previous question' },
+        { id: 'saved-answer', role: 'assistant', text: 'previous answer', displayPayload: { products: [] } }],
+      nextMessageCursor: null,
+    };
+    throw new Error('unexpected request');
+  });
+  const view = await renderScreen();
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.room.recent' }).props.onPress());
+  const recent = view.root.findByType(RecentConversations);
+  await act(async () => recent.props.onSelect('saved-room'));
+  expect(view.root.findAllByType(Text).some((item) => item.props.children === 'previous answer')).toBe(true);
+  const room = useChatConversationStore.getState().conversations['saved-room'];
+  expect(room.view.linkedProduct).toMatchObject({ productId: 'p1', shadeId: 'p1-01' });
+  expect(room.conversation.beautyContext?.session).toBeUndefined();
+  expect(mockMutateAsync).not.toHaveBeenCalled();
+  server.mockRestore();
+  await act(async () => view.unmount());
+});
+
+it('loads a saved transcript after a cold restart and sends a follow-up to the same room', async () => {
+  mockAuth.mockReturnValue({ user: { id: 'A' }, ready: true });
+  const summary = { conversationId: 'saved-room', conversationVersion: 1, subject: { type: 'general' },
+    updatedAt: '2026-01-01T00:00:00Z' };
+  const server = jest.spyOn(chatApi, 'apiChatUserRequest').mockClear().mockImplementation(async (path, method) => {
+    if (path === '/api/chat/conversations' && method === 'POST') return { ...summary, conversationVersion: 0 };
+    if (path === '/api/chat/conversations' && method === 'GET') return { conversations: [summary], nextCursor: null };
+    if (path === '/api/chat/conversations/saved-room' && method === 'GET') return {
+      ...summary, context: {}, nextMessageCursor: null, messages: [
+        { id: 'question', role: 'user', text: 'First question' },
+        { id: 'answer', role: 'assistant', text: 'Saved answer' },
+      ],
+    };
+    throw new Error('Unexpected chat request');
+  });
+  mockMutateAsync.mockResolvedValueOnce({ answer: 'Saved answer', products: [],
+    conversation: { id: 'saved-room', version: 1, turnId: 'first', persistenceStatus: 'stored' } })
+    .mockResolvedValueOnce({ answer: 'Follow-up answer', products: [],
+      conversation: { id: 'saved-room', version: 2, turnId: 'next', persistenceStatus: 'stored' } });
+  const first = await renderScreen();
+  await act(async () => first.root.findByType(TextInput).props.onChangeText('First question'));
+  await act(async () => first.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress());
+  await act(async () => first.unmount());
+  useChatConversationStore.setState({ identity: undefined, conversations: {}, latest: {} });
+
+  const initialState = AppState.currentState;
+  AppState.currentState = 'active';
+  mockScreenFocused = true;
+  const view = await renderScreen();
+  expect(server.mock.calls.slice(1)).toEqual([['/api/chat/conversations', 'GET', 'A']]);
+  expect(mockMutateAsync).toHaveBeenCalledTimes(1);
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.room.recent' }).props.onPress());
+  const callCount = server.mock.calls.length;
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.room.refresh' }).props.onPress());
+  expect(server.mock.calls.slice(callCount)).toEqual([['/api/chat/conversations', 'GET', 'A']]);
+  await act(async () => view.root.findByType(RecentConversations).props.onSelect('saved-room'));
+  expect(view.root.findAllByType(Text).some((item) => item.props.children === 'Saved answer')).toBe(true);
+  await act(async () => view.root.findByType(TextInput).props.onChangeText('Follow-up question'));
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress());
+  expect(mockMutateAsync).toHaveBeenLastCalledWith(expect.objectContaining({
+    message: 'Follow-up question', conversationId: 'saved-room', expectedConversationVersion: 1,
+  }));
+  expect(server.mock.calls.filter(([, method]) => method === 'POST')).toHaveLength(1);
+  await act(async () => view.unmount());
+  AppState.currentState = initialState;
+  server.mockRestore();
+});
+
+it('checks a saved pending request after restart and requires explicit dismissal if it is not found', async () => {
+  const requestId = '970c8147-015d-46f3-873b-e9c764b4cdd4';
+  const marker = chatRequestRecoveryKey('A', 'saved-room', requestId);
+  await AsyncStorage.setItem(marker, '1');
+  mockAuth.mockReturnValue({ user: { id: 'A' }, ready: true });
+  const summary = { conversationId: 'saved-room', conversationVersion: 1, subject: { type: 'general' },
+    updatedAt: '2026-01-01T00:00:00Z' };
+  const statusPath = `/api/chat/conversations/saved-room/requests/${requestId}`;
+  let pending = true;
+  const server = jest.spyOn(chatApi, 'apiChatUserRequest').mockClear().mockImplementation(async (path, method) => {
+    if (method !== 'GET') throw new Error('Unexpected chat write');
+    if (path === '/api/chat/conversations') return { conversations: [summary], nextCursor: null };
+    if (path === '/api/chat/conversations/saved-room') return { ...summary, context: {}, messages: [] };
+    if (path === statusPath) {
+      if (pending) return { requestId, status: 'IN_PROGRESS' };
+      throw new ApiError('Request not found', 404, 'not_found');
+    }
+    throw new Error('Unexpected chat request');
+  });
+  const view = await renderScreen();
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.room.recent' }).props.onPress());
+  await act(async () => view.root.findByType(RecentConversations).props.onSelect('saved-room'));
+  expect(view.root.findAllByType(Text).map(({ props }) => props.children)).toContain('chat.recovery.in_progress');
+  expect(view.root.findByType(TextInput).props.editable).toBe(false);
+  pending = false;
+  await act(async () => buttonWithText(view.root, 'chat.recovery.check').props.onPress());
+  expect(server.mock.lastCall).toEqual([statusPath, 'GET', 'A']);
+  expect(view.root.findAllByType(Text).map(({ props }) => props.children)).toContain('chat.recovery.not_found');
+  expect(await AsyncStorage.getItem(marker)).toBe('1');
+  expect(mockMutateAsync).not.toHaveBeenCalled();
+  await act(async () => buttonWithText(view.root, 'chat.recovery.dismiss').props.onPress());
+  expect(await AsyncStorage.getItem(marker)).toBeNull();
+  expect(view.root.findByType(TextInput).props.editable).toBe(true);
+  await act(async () => view.unmount());
+  server.mockRestore();
+});
+
+it('preserves the live draft after interruption and uses a new ID only after the user sends it', async () => {
+  mockAuth.mockReturnValue({ user: { id: 'A' }, ready: true });
+  let status: 'IN_PROGRESS' | 'INTERRUPTED' = 'IN_PROGRESS';
+  const server = jest.spyOn(chatApi, 'apiChatUserRequest').mockImplementation(async (path, method) => {
+    if (path === '/api/chat/conversations' && method === 'POST') return { conversationId: 'saved-room', conversationVersion: 0 };
+    if (path.startsWith('/api/chat/conversations/saved-room/requests/') && method === 'GET') {
+      return { requestId: path.split('/').at(-1), status };
+    }
+    throw new Error('Unexpected chat request');
+  });
+  mockMutateAsync.mockRejectedValueOnce(new ApiError('Response lost', 0, 'network'))
+    .mockResolvedValueOnce({ answer: 'New answer', products: [],
+      conversation: { id: 'saved-room', version: 1, turnId: 'new', persistenceStatus: 'stored' } });
+  const view = await renderScreen();
+  const send = () => view.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress();
+  await act(async () => view.root.findByType(TextInput).props.onChangeText('My question'));
+  await act(async () => send());
+  const firstRequestId = mockMutateAsync.mock.calls[0][0].requestId;
+  status = 'INTERRUPTED';
+  await act(async () => buttonWithText(view.root, 'chat.recovery.check').props.onPress());
+  expect(await AsyncStorage.getItem(chatRequestRecoveryKey('A', 'saved-room', firstRequestId))).toBeNull();
+  expect(view.root.findByType(TextInput).props.value).toBe('My question');
+  expect(view.root.findByType(TextInput).props.editable).toBe(true);
+  expect(mockMutateAsync).toHaveBeenCalledTimes(1);
+  await act(async () => send());
+  expect(mockMutateAsync).toHaveBeenCalledTimes(2);
+  expect(mockMutateAsync.mock.lastCall![0].requestId).not.toBe(firstRequestId);
+  expect(view.root.findAllByType(Text).map(({ props }) => props.children)).toContain('New answer');
+  await act(async () => view.unmount());
+  server.mockRestore();
+});
+
+it('rechecks the active room on focus and foreground return, closing it only on confirmed deletion', async () => {
+  mockAuth.mockReturnValue({ user: { id: 'A' }, ready: true });
+  const summary = { conversationId: 'saved-room', conversationVersion: 1, subject: { type: 'general' },
+    updatedAt: '2026-01-01T00:00:00Z' };
+  let result: 'found' | 'unavailable' | 'deleted' = 'found';
+  const server = jest.spyOn(chatApi, 'apiChatUserRequest').mockClear().mockImplementation(async (path, method) => {
+    if (method === 'GET' && path === '/api/chat/conversations') {
+      return { conversations: result === 'found' ? [summary] : [], nextCursor: null };
+    }
+    if (method !== 'GET' || path !== '/api/chat/conversations/saved-room') throw new Error('Unexpected chat request');
+    if (result === 'unavailable') throw new ApiError('Network unavailable', 0, 'network');
+    if (result === 'deleted') throw new ApiError('Conversation not found', 404, 'not_found');
+    return { ...summary, context: {}, nextMessageCursor: null, messages: [{ id: 'm', role: 'user', text: 'Previous question' }] };
+  });
+  const initialState = AppState.currentState;
+  AppState.currentState = 'active';
+  let onAppState!: (state: AppStateStatus) => void;
+  const removeListener = jest.fn();
+  const listen = jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, listener) => {
+    onAppState = listener;
+    return { remove: removeListener };
+  });
+  const view = await renderScreen();
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.room.recent' }).props.onPress());
+  await act(async () => view.root.findByType(RecentConversations).props.onSelect('saved-room'));
+  result = 'unavailable';
+  mockScreenFocused = true;
+  await act(async () => view.update(createElement(ChatScreen)));
+  expect(server.mock.calls.slice(-2)).toEqual([
+    ['/api/chat/conversations', 'GET', 'A'], ['/api/chat/conversations/saved-room', 'GET', 'A'],
+  ]);
+  expect(useChatConversationStore.getState().conversations['saved-room']).toBeDefined();
+  result = 'deleted';
+  await act(async () => { onAppState('background'); onAppState('active'); });
+  expect(useChatConversationStore.getState().conversations['saved-room']).toBeUndefined();
+  expect(view.root.findByType(TextInput).props.value).toBe('');
+  expect(mockMutateAsync).not.toHaveBeenCalled();
+  await act(async () => view.unmount());
+  expect(removeListener).toHaveBeenCalledTimes(1);
+  AppState.currentState = initialState;
+  listen.mockRestore();
+  server.mockRestore();
+});
+
+it('renders safe recent-room titles and previews before and after opening details', async () => {
+  mockAuth.mockReturnValue({ user: { id: 'A' }, ready: true });
+  const first = { conversationId: 'product-question', conversationVersion: 2, subject: { type: 'general' },
+    updatedAt: '2026-01-01T00:00:02Z', listSummary: { titleTopic: 'product', previewTopics: ['hydration', 'price'] } };
+  const other = { ...first, conversationId: 'ingredient-question', updatedAt: '2026-01-01T00:00:01Z',
+    listSummary: { titleTopic: 'ingredient', previewTopics: [] } };
+  const privateText = 'My email is synthetic@example.invalid. Please suggest a moisturizing lip product.';
+  const server = jest.spyOn(chatApi, 'apiChatUserRequest').mockImplementation(async (path, method) => {
+    if (path === '/api/chat/conversations' && method === 'GET') return { conversations: [first, other], nextCursor: null };
+    if (path === '/api/chat/conversations/product-question' && method === 'GET') return {
+      ...first, context: {}, messages: [{ id: 'original', role: 'user', text: privateText }],
+    };
+    throw new Error('Unexpected recent chat request');
+  });
+  const view = await renderScreen();
+  const openRecent = () => view.root.findByProps({ accessibilityLabel: 'chat.room.recent' }).props.onPress();
+  const recent = () => view.root.findByType(RecentConversations);
+  const textLabels = () => recent().findAllByType(Text).map((item) => item.props.children);
+  await act(async () => openRecent());
+  expect(textLabels()).toEqual(expect.arrayContaining(['chat.room.product', 'careTag.hydrating · chat.option.price', 'chat.ui.ingredient']));
+  await act(async () => recent().props.onSelect('product-question'));
+  expect(view.root.findAllByType(Text).some((item) => item.props.children === privateText)).toBe(true);
+  await act(async () => openRecent());
+  expect(textLabels()).not.toContain(privateText);
+  expect(recent().findAllByProps({ accessibilityHint: privateText })).toHaveLength(0);
+  expect(textLabels()).toContain('careTag.hydrating · chat.option.price');
+  await act(async () => view.unmount());
+  server.mockRestore();
+});
+
+it('confirms deletion, blocks the active room after failure and opens a blank chat after retry', async () => {
+  mockAuth.mockReturnValue({ user: { id: 'A' }, ready: true });
+  const deleteRoom = jest.fn().mockRejectedValueOnce(new ApiError('Response lost', 0, 'network'))
+    .mockResolvedValueOnce(undefined);
+  const summary = (conversationId: string) => ({
+    conversationId, conversationVersion: 2, subject: { type: 'general' }, updatedAt: '2026-01-01T00:00:00Z',
+  });
+  const server = jest.spyOn(chatApi, 'apiChatUserRequest').mockImplementation(async (path, method) => {
+    if (path === '/api/chat/conversations' && method === 'GET') {
+      return { conversations: [{ ...summary('saved-room'), listSummary: { titleTopic: 'product', previewTopics: ['price'] } },
+        summary('other-room')], nextCursor: null };
+    }
+    if (path === '/api/chat/conversations/saved-room' && method === 'GET') {
+      return { ...summary('saved-room'), context: {}, nextMessageCursor: null,
+        messages: [{ id: 'previous-question', role: 'user', text: 'Question to delete' }] };
+    }
+    if (method === 'DELETE') return deleteRoom(path);
+    throw new Error('Unexpected chat request');
+  });
+  const confirm = jest.spyOn(confirmations, 'confirmAction').mockImplementation(() => {});
+  const view = await renderScreen();
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.room.recent' }).props.onPress());
+  await act(async () => view.root.findByType(RecentConversations).props.onSelect('saved-room'));
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.room.recent' }).props.onPress());
+  const pressDelete = () => view.root.findAllByProps({ accessibilityHint: 'chat.option.price' })[0].props.onPress();
+  await act(async () => pressDelete());
+  expect(confirm).toHaveBeenCalledWith('chat.room.deleteConfirm', 'common.delete', 'common.cancel', expect.any(Function));
+  expect(deleteRoom).not.toHaveBeenCalled();
+  expect(useChatConversationStore.getState().conversations['saved-room']).toBeDefined();
+  await act(async () => pressDelete());
+  await act(async () => { confirm.mock.lastCall![3](); });
+  expect(view.root.findAllByType(TextInput)).toHaveLength(0);
+  expect(view.root.findAllByType(Text).some((item) => item.props.children === 'Question to delete')).toBe(false);
+  await act(async () => view.root.findByType(RecentConversations).props.onClose());
+  await act(async () => buttonWithText(view.root, 'common.retry').props.onPress());
+  expect(deleteRoom.mock.calls).toEqual([
+    ['/api/chat/conversations/saved-room'], ['/api/chat/conversations/saved-room'],
+  ]);
+  const store = useChatConversationStore.getState();
+  expect(store.conversations['saved-room']).toBeUndefined();
+  expect(store.conversations['other-room']).toBeDefined();
+  expect(store.conversations[store.latest.general].conversation.serverId).toBeUndefined();
+  expect(view.root.findByType(TextInput).props.value).toBe('');
+  expect(mockMutateAsync).not.toHaveBeenCalled();
+  await act(async () => view.unmount());
+  confirm.mockRestore();
+  server.mockRestore();
+});
+
+it('deletes a guest chat locally and ignores an answer that arrives after deletion', async () => {
+  const server = jest.spyOn(chatApi, 'apiChatUserRequest').mockClear();
+  const confirm = jest.spyOn(confirmations, 'confirmAction').mockImplementation(() => {});
+  let answer!: (value: unknown) => void;
+  mockMutateAsync.mockImplementationOnce(() => new Promise((resolve) => { answer = resolve; }));
+  const view = await renderScreen();
+  const id = Object.keys(useChatConversationStore.getState().conversations)[0];
+  await act(async () => view.root.findByType(TextInput).props.onChangeText('Guest question'));
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress());
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.room.recent' }).props.onPress());
+  await act(async () => view.root.findAllByProps({ accessibilityHint: 'Guest question' })[0].props.onPress());
+  await act(async () => { confirm.mock.lastCall![3](); });
+  await act(async () => { answer({ answer: 'Late response', products: [] }); });
+  const store = useChatConversationStore.getState();
+  expect(store.conversations[id]).toBeUndefined();
+  expect(Object.values(store.conversations).map((record) => record.messages)).toEqual([[]]);
+  expect(view.root.findByType(TextInput).props.value).toBe('');
+  expect(server).not.toHaveBeenCalled();
+  await act(async () => view.unmount());
+  confirm.mockRestore();
+  server.mockRestore();
+});
+
+it('shows a restored deletion retry without room details or an automatic DELETE', async () => {
+  const id = 'bdf6defe-cd5c-4a4f-91d7-7222f6313792';
+  const marker = chatRoomDeletionKey('A', id);
+  await AsyncStorage.setItem(marker, '1');
+  mockAuth.mockReturnValue({ user: { id: 'A' }, ready: true });
+  const server = jest.spyOn(chatApi, 'apiChatUserRequest').mockClear().mockImplementation(async (path, method) => {
+    if (path === '/api/chat/conversations' && method === 'GET') return { conversations: [{
+      conversationId: id, conversationVersion: 4, subject: { type: 'product', productId: 'hidden-product' },
+      updatedAt: '2026-01-01T00:00:00Z',
+    }], nextCursor: null };
+    if (path === `/api/chat/conversations/${id}` && method === 'DELETE') return undefined;
+    throw new Error('Unexpected chat request');
+  });
+  const view = await renderScreen();
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.room.recent' }).props.onPress());
+  const recent = view.root.findByType(RecentConversations);
+  const labels = recent.findAllByType(Text).map((item) => item.props.children);
+  expect(labels).toContain('chat.room.deleteError');
+  expect(labels).not.toContain('chat.room.product');
+  expect(labels).not.toContain('hidden-product');
+  expect(server.mock.calls).toEqual([['/api/chat/conversations', 'GET', 'A']]);
+  await act(async () => buttonWithText(recent, 'common.retry').props.onPress());
+  expect(server.mock.lastCall).toEqual([`/api/chat/conversations/${id}`, 'DELETE', 'A']);
+  expect(await AsyncStorage.getItem(marker)).toBeNull();
+  expect(view.root.findByType(RecentConversations).findAllByType(Text).map((item) => item.props.children)).toContain('chat.room.empty');
+  await act(async () => view.unmount());
+  server.mockRestore();
+});
+
+it('persists an ordinary chat when memory is disabled and stops when persistence fails', async () => {
+  mockAuth.mockReturnValue({ user: { id: 'A' }, ready: true });
+  const server = jest.spyOn(chatApi, 'apiChatUserRequest').mockResolvedValueOnce({ conversationId: 'saved-room', conversationVersion: 0 });
+  mockMutateAsync.mockResolvedValueOnce({ answer: 'answer', products: [],
+    conversation: { id: 'saved-room', version: 1, turnId: 'turn', persistenceStatus: 'stored' } });
+  const view = await renderScreen();
+  await act(async () => view.root.findByType(TextInput).props.onChangeText('일반 질문'));
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress());
+  expect(mockMemoryRefresh).not.toHaveBeenCalled();
+  expect(mockMutateAsync).toHaveBeenCalledWith(expect.objectContaining({ conversationId: 'saved-room' }));
+  server.mockRestore();
+  await act(async () => view.unmount());
+
+  useChatConversationStore.setState({ identity: undefined, conversations: {}, latest: {} });
+  mockMutateAsync.mockClear();
+  const unavailable = jest.spyOn(chatApi, 'apiChatUserRequest').mockRejectedValue(new ApiError('unavailable', 503, 'persistence_unavailable'));
+  const failed = await renderScreen();
+  await act(async () => failed.root.findByType(TextInput).props.onChangeText('저장해야 하는 질문'));
+  await act(async () => failed.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress());
+  expect(mockMutateAsync).not.toHaveBeenCalled();
+  expect(failed.root.findAllByType(Text).some((item) => item.props.children === 'chat.ingredient.server')).toBe(true);
+  unavailable.mockRestore();
+  await act(async () => failed.unmount());
 });
 
 describe('selected Style recipe flow', () => {
@@ -104,6 +596,32 @@ describe('selected Style recipe flow', () => {
   };
   const context = { kind: 'video' as const, lookId: '_video-1', recipeId: recipe.recipeId,
     recipeVersion: recipe.recipeVersion, currentStep: 0 };
+  it('saves a recipe step before showing it and reuses the request ID after a lost response', async () => {
+    mockAuth.mockReturnValue({ user: { id: 'A' }, ready: true });
+    Object.assign(mockRouteParams, { recipeKind: 'video', recipeLookId: '_video-1' });
+    let steps = 0;
+    const server = jest.spyOn(chatApi, 'apiChatUserRequest').mockImplementation(async (path, method, _user, body) => {
+      if (path === '/api/chat/conversations' && method === 'POST') return { conversationId: 'saved-room', conversationVersion: 0 };
+      const update = body as { operation: string };
+      if (update.operation === 'select_look') return { conversationVersion: 1 };
+      if (update.operation === 'set_recipe_step' && steps++ === 0) throw new ApiError('lost', 0, 'network');
+      return { conversationVersion: 3 };
+    });
+    mockMutateAsync.mockResolvedValueOnce({ answer: 'Recipe', products: [], styleRecipe: recipe,
+      styleContext: context, conversation: { id: 'saved-room', version: 2, turnId: 'turn', persistenceStatus: 'stored' } });
+    const view = await renderScreen();
+    await act(async () => view.root.findByType(StyleRecipeResult).props.onStepChange(1));
+    expect(view.root.findByType(StyleRecipeResult).props.result.currentStep).toBe(0);
+    await act(async () => view.root.findByType(StyleRecipeResult).props.onStepChange(1));
+    expect(view.root.findByType(StyleRecipeResult).props.result.currentStep).toBe(1);
+    const patches = server.mock.calls.filter((call) => (call[3] as { operation?: string })?.operation === 'set_recipe_step');
+    expect(patches).toHaveLength(2);
+    expect(patches[0][3]).toEqual(patches[1][3]);
+    expect(patches[0][3]).toMatchObject({ expectedConversationVersion: 2,
+      payload: { recipeVersion: 'fixture-v1', currentStep: 1 } });
+    server.mockRestore();
+    await act(async () => view.unmount());
+  });
   async function submit(view: ReactTestRenderer, text: string) {
     await act(async () => view.root.findByType(TextInput).props.onChangeText(text));
     await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress());

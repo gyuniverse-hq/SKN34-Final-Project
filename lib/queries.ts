@@ -24,6 +24,7 @@ import {
   withDevTryOnFallback,
 } from '@/lib/devCatalog';
 import { DEMO_CELEBRITY_VIDEOS, DEMO_STYLE_LOOKS } from '@/lib/demoLookBundle';
+import { hasAccountDeletionFence } from './account';
 import { ApiError, apiGet, apiPost } from './api';
 
 /** Run only after the user confirms the concerns; keep responses out of the shared product cache. */
@@ -42,9 +43,9 @@ export const meQueryKey = (userId?: string) => ['me', userId] as const;
 export function useMe(userId: string | undefined) {
   return useQuery({
     queryKey: meQueryKey(userId),
-    queryFn: () => apiGet<MeResponse>('/api/me'),
+    queryFn: () => apiGet<MeResponse>('/api/me', { expectedUserId: userId }),
     enabled: !!userId,
-    retry: 1,
+    retry: (failureCount, error) => !hasAccountDeletionFence(error) && failureCount < 1,
   });
 }
 

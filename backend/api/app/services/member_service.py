@@ -11,6 +11,7 @@ from app.core.db import get_session
 from app.core.errors import ApiError
 from app.repositories.member_repository import MemberRepository
 from app.schemas.member import MemberRecord, MeResponse, SkinAccess, TermsStatus
+from app.services.account_deletion_service import AccountDeletionRequests
 
 # Same value as TERMS_VERSION in the app's constants/legal.ts. Bump both when the terms change.
 TERMS_VERSION = "2026-10-30"
@@ -50,8 +51,14 @@ def _terms(member: MemberRecord | None) -> TermsStatus:
 
 
 class MemberService:
-    def __init__(self, members: MemberStore, accounts: AccountDeleter) -> None:
+    def __init__(
+        self,
+        members: MemberStore,
+        accounts: AccountDeleter,
+        deletions: AccountDeletionRequests | None = None,
+    ) -> None:
         self._members, self._accounts = members, accounts
+        self._deletions = deletions
 
     async def me(self, user: AuthUser) -> MeResponse:
         return MeResponse(user=user, terms=_terms(await self._members.get(user.id)))
@@ -84,17 +91,22 @@ class MemberService:
         return _terms(await self._members.save_terms(user.id, version, datetime.now(UTC)))
 
     async def delete_account(self, user: AuthUser) -> None:
-        """Deletes the Supabase account first, so a failure leaves everything in place to retry.
-
-        Orders are kept: commerce records must be retained by law and hold no account data.
-        """
+        if self._deletions is not None and await self._deletions.handle(user.id):
+            return
         await self._accounts.delete_user(user.id)
         await self._members.delete(user.id)
+
+    async def deletion_status(self, receipt: str):
+        if self._deletions is None:
+            raise ApiError(503, "Account deletion is unavailable", "account_deletion_unavailable")
+        return await self._deletions.receipt_status(receipt)
 
 
 def get_member_service(session: AsyncSession = Depends(get_session)) -> MemberService:
     settings = get_settings()
+    local = settings.env in {"local", "test"}
     return MemberService(
-        MemberRepository(session),
+        MemberRepository(session, guard_deletion=local),
         SupabaseAdminClient(settings.supabase_url, settings.supabase_secret_key),
+        AccountDeletionRequests(session) if local or settings.g7_account_deletion_enabled else None,
     )

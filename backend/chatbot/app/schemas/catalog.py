@@ -13,6 +13,9 @@ class _CatalogModel(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="ignore")
 
 
+ColorFamily = Literal["red", "coral", "pink", "berry", "nude", "brown"]
+
+
 class CatalogShade(_CatalogModel):
     id: str
     name: str
@@ -20,6 +23,7 @@ class CatalogShade(_CatalogModel):
     product_id: str | None = Field(default=None, exclude=True)
     measure_method: str | None = None
     color_source: str | None = None
+    color_family: ColorFamily | None = None
 
 
 class CatalogProduct(_CatalogModel):

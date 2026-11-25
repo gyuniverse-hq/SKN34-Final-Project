@@ -30,6 +30,7 @@ from app.schemas.chat import (
     ProductEvidence,
     ProductRef,
 )
+from app.schemas.memory import AppliedSkinTypeMemory
 from app.schemas.supervisor import (
     ConditionCheck,
     EvidenceRef,
@@ -38,9 +39,43 @@ from app.schemas.supervisor import (
     SearchPlan,
     ToolResult,
 )
+from app.services.consultation_memory import (
+    inventory_mode,
+    prompt_memories,
+    rank_catalog_by_memory,
+    skincare_recommendation_request,
+    verified_inventory_matches,
+)
 from app.services.g1_catalog_tool import InvalidShadeSelection
+from app.services.skincare_recommendation_tool import SkincareRecommendationTool
 
 CONTEXT_TTL_SECONDS = 600
+INVENTORY_TEXT = {
+    "ko": (
+        "이번 카탈로그 후보와 연결된 보유 기억을 찾지 못했어요. "
+        "기억을 켜고 정확한 브랜드와 제품명을 확인해 주세요.",
+        "보유 제품 기준 추천은 상품 단위 검색에서 사용할 수 있어요. "
+        "제품이나 호수를 지정하면 그 조건을 따로 확인할 수 있어요.",
+        "일부 보유 기록은 이번 카탈로그 후보와 대조하지 못했어요.",
+    ),
+    "en": (
+        "No saved products could be matched to this catalog search. "
+        "Check that memory is on and the saved brand and full product name are correct.",
+        "Saved products can be used in product searches. "
+        "For option-level checks, specify the product or shade.",
+        "Some saved products could not be matched in this catalog search.",
+    ),
+    "ja": (
+        "このカタログ検索に一致する保存済みの商品が見つかりませんでした。メモリーの設定とブランド名・正式な商品名をご確認ください。",
+        "保存済みの商品は商品検索で使えます。色番ごとの条件は商品や色番を指定して確認できます。",
+        "保存済みの一部の商品は、このカタログ検索で照合できませんでした。",
+    ),
+    "zh": (
+        "这次目录搜索没有匹配到已保存的自有产品。请确认记忆已开启，并核对品牌和完整商品名。",
+        "自有产品记忆可用于商品搜索。若要验证选项条件，请指定商品或色号。",
+        "部分已保存的自有产品无法与本次目录搜索匹配。",
+    ),
+}
 # Evidence-loop budget only; Catalog search and session validation are separate requests.
 INGREDIENT_SEARCH_REQUEST_LIMIT = 6 * (1 + 6)
 # This deadline covers per-product evidence work, not the complete chat request.
@@ -813,6 +848,7 @@ def abandons_ingredient_goal(req: ChatRequest) -> bool:
 async def interpret_beauty(
     req: ChatRequest, llm, look_profile=None, *, pending: PendingClarification | None = None
 ) -> SearchPlan:
+    preferences = prompt_memories(req, planning=True)
     if _ingredient_comparison_continuation(req):
         return SearchPlan(intent="detail")
     if not llm.configured:
@@ -823,6 +859,13 @@ async def interpret_beauty(
                 {
                     "role": "system",
                     "content": PLAN_PROMPT
+                    + (
+                        "\nThe server handles the saved-products scope. For a new recommendation "
+                        "within it, use search and catalog. Preserve the user's product and price "
+                        "conditions. Do not copy the saved-products request into query."
+                        if inventory_mode(req)
+                        else ""
+                    )
                     + (
                         '\nG2: texture may be "matte" only (product-level Catalog metadata). '
                         '"매트한 걸로 바꿔줘" means refine, scope catalog, texture matte; '
@@ -852,6 +895,7 @@ async def interpret_beauty(
                     "content": json.dumps(
                         {
                             "message": req.message,
+                            **({"confirmedUserPreferences": preferences} if preferences else {}),
                             **(
                                 {"recentMessages": [m.model_dump() for m in req.recent_messages]}
                                 if req.recent_messages
@@ -937,14 +981,20 @@ async def answer_beauty(req: ChatRequest, llm, catalog) -> ChatResponse | None:
 
 
 async def execute_beauty(
-    req: ChatRequest, plan: SearchPlan, catalog, *, g1: bool = False
+    req: ChatRequest,
+    plan: SearchPlan,
+    catalog,
+    *,
+    g1: bool = False,
+    skincare: SkincareRecommendationTool | None = None,
 ) -> ChatResponse | None:
     """Execute an already validated interpretation without another LLM call."""
     if catalog is None:
         raise ApiError(503, "Catalog is not configured", "catalog_unavailable")
-    if direct_comparison(req, plan):
+    owned_mode = inventory_mode(req)
+    if not owned_mode and direct_comparison(req, plan):
         return await _compare_product(req, plan, catalog)
-    if plan.intent == "general":
+    if plan.intent == "general" and not owned_mode:
         return None  # Keep the existing general consultation path and prompt.
 
     g4_enabled = req.locale == "ko" and get_settings().g1_supervisor_enabled
@@ -991,6 +1041,25 @@ async def execute_beauty(
             }
         )
     effective_filters = _effective_filters(previous, plan)
+    if owned_mode and (
+        plan.intent != "search"
+        or plan.scope != "catalog"
+        or effective_filters.option_search
+        or effective_filters.ingredient_conditions
+        or effective_filters.fragrance_free
+        or effective_filters.unsupported_conditions
+        or plan.ingredient_lookup
+        or plan.ingredient_name
+        or plan.shade_name
+        or plan.compare_ordinals
+        or plan.selection
+        or effective_filters.price_basis in {"current_offer", "collected_snapshot"}
+        or _requested_price_basis(req.message) in {"current_offer", "collected_snapshot"}
+    ):
+        return _reply(
+            INVENTORY_TEXT[req.locale][1],
+            previous or _context(BeautyFilters(), [], int(time.time())),
+        )
     if g4_search and not effective_filters.option_search:
         effective_filters.price_basis = None
     if g4_enabled and plan.intent == "price" and previous:
@@ -1019,6 +1088,21 @@ async def execute_beauty(
             "옵션 검색 결과의 최저가 정렬은 아직 지원하지 않습니다. 확인할 상품을 선택해 주세요.",
             req.chat_context or _context(effective_filters, [], int(time.time())),
         )
+    if (
+        skincare is not None
+        and not owned_mode
+        and plan.intent == "search"
+        and plan.scope == "catalog"
+        and effective_filters.category == "skincare"
+        and not effective_filters.unsupported_conditions
+        and not req.style_context
+        and not req.screen_context
+    ):
+        personalized = await _recommend_with_skin_type(
+            req, plan, catalog, effective_filters, skincare
+        )
+        if personalized is not None:
+            return personalized
     if g4_search and effective_filters.option_search:
         return await _option_search(req, plan, catalog, effective_filters)
     if not g1 and (
@@ -1240,7 +1324,7 @@ async def execute_beauty(
         scope_ids = previous.candidate_ids or previous.scope_ids
         if not scope_ids:
             return _reply(words["clarify"], _context(filters, [], now))
-    if not filters.category and not filters.query and scope_ids is None:
+    if not filters.category and not filters.query and scope_ids is None and owned_mode != "include":
         return _reply(words["clarify"], _context(filters, [], now))
     try:
         products = await catalog.search_products(
@@ -1250,18 +1334,61 @@ async def execute_beauty(
         )
     except UpstreamError as exc:
         raise ApiError(502, "Catalog is temporarily unavailable", "upstream_error") from exc
+    owned_matches, unresolved_inventory = (
+        verified_inventory_matches(req, products, owned_mode, match_names=not filters.query)
+        if owned_mode
+        else ([], False)
+    )
+    if owned_mode and not owned_matches:
+        return _reply(INVENTORY_TEXT[req.locale][0], _context(filters, [], now))
     # IDs remain catalog-owned; deduplicate before numbering the visible candidate list.
     unique = {p.id: p for p in products if scope_ids is None or p.id in scope_ids}
     confirmed_filters = filters.model_copy(update={"fragrance_free": False}) if g1 else filters
     products = _search_matches(
-        unique.values(), confirmed_filters, identity_only=g1 or req.style_context is not None
+        unique.values(),
+        confirmed_filters,
+        identity_only=g1 or req.style_context is not None or owned_mode is not None,
     )
     order = {pid: i for i, pid in enumerate(scope_ids or [])}
     products.sort(
         key=lambda p: (-int(filters.moisturizing and _moisture_rank(p)), order.get(p.id, 0), p.id)
     )
-    products = products[:6]
+    can_rank = (
+        plan.intent == "search"
+        and plan.scope == "catalog"
+        and not req.style_context
+        and not filters.fragrance_free
+        and not filters.moisturizing
+        and not filters.ingredient_conditions
+    )
+
+    def rank(candidates):
+        if not can_rank:
+            return candidates[:6], []
+        return rank_catalog_by_memory(
+            req,
+            candidates,
+            filters.category,
+            6,
+            allow_matte=not filters.texture,
+            allow_color=not (
+                plan.shade_name or filters.unsupported_conditions or req.screen_context
+            ),
+        )
+
+    owned_ids = {match.product_id for match in owned_matches}
+    affected = set()
+    if owned_mode == "include":
+        products = [product for product in products if product.id in owned_ids]
+    elif owned_mode == "exclude":
+        if any(product.id in owned_ids for product in products):
+            affected = {product.id for product in rank(products)[0]} & owned_ids
+        products = [product for product in products if product.id not in owned_ids]
+    products, applied = rank(products)
     ids = [p.id for p in products]
+    if owned_mode == "include":
+        affected = set(ids)
+    applied.extend(match for match in owned_matches if match.product_id in affected)
     context = _context(filters, ids, now, scope_ids=scope_ids)
     answer = words["found"].format(count=len(products)) if products else words["empty"]
     if g1 and products and (filters.fragrance_free or filters.moisturizing):
@@ -1285,7 +1412,11 @@ async def execute_beauty(
             " 카탈로그의 상품 제형이 매트로 등록된 후보이며, "
             "옵션별 제형과 실제 발림은 미확인입니다."
         )
-    return _reply(answer, context, products, "recommendations" if products else "empty")
+    if unresolved_inventory:
+        answer += " " + INVENTORY_TEXT[req.locale][2]
+    response = _reply(answer, context, products, "recommendations" if products else "empty")
+    response.applied_memories = applied
+    return response
 
 
 # Order: selection, mapping, review, coverage, error, match, non-match, list, comparison.
@@ -2235,9 +2366,63 @@ async def _ingredient_consultation(req, plan, catalog, filters):
     )
 
 
-async def _option_search(req, plan, catalog, filters):
+async def _recommend_with_skin_type(req, plan, catalog, filters, skincare):
+    selection = skincare_recommendation_request(req)
+    if selection is None:
+        return None
+    memory, tool_input = selection
+    try:
+        result = await skincare.recommend(tool_input)
+    except UpstreamError:
+        return None
+    # A candidate must have an explicit goal and a profile contribution from V4.
+    # This contract identifies unshaded options by product and exact source option ID.
+    scope = [
+        IngredientSelection(product_id=match.product.id, option_id=match.option_id)
+        for match in result.overall_top10
+        if not match.product.shades
+        and any(
+            reason.goal in tool_input.goals and "conversation" in reason.sources
+            for reason in match.reasons
+        )
+        and any("skinProfile" in reason.sources for reason in match.reasons)
+    ][:6]
+    if not scope:
+        return None
+    # The V4 goal is candidate evidence. Catalog does not verify moisturising efficacy.
+    checks = filters.model_copy(update={"option_search": True, "moisturizing": False})
+    try:
+        response = await _option_search(req, plan, catalog, checks, candidate_scope=scope)
+    except ApiError as exc:
+        if exc.code in {"upstream_error", "option_search_unavailable"}:
+            return None
+        raise
+    allowed = {(item.product_id, item.option_id) for item in scope}
+    displayed = {product.id for product in response.products}
+    if response.option_search is None or not any(
+        item.group == "ELIGIBLE"
+        and item.shade_id is None
+        and item.product_id in displayed
+        and (item.product_id, item.option_id) in allowed
+        for item in response.option_search.items
+    ):
+        return None
+    if req.locale != "ko":
+        response.answer = TEXT[req.locale]["found"].format(count=len(response.products))
+    if memory is not None:
+        response.applied_memories = [
+            AppliedSkinTypeMemory(memory_id=memory.id, version=memory.version)
+        ]
+    return response
+
+
+async def _option_search(req, plan, catalog, filters, *, candidate_scope=None):
     previous = req.chat_context
-    if previous and not 0 <= int(time.time()) - previous.issued_at <= CONTEXT_TTL_SECONDS:
+    if (
+        candidate_scope is None
+        and previous
+        and not (0 <= int(time.time()) - previous.issued_at <= CONTEXT_TTL_SECONDS)
+    ):
         return _reply(TEXT[req.locale]["expired"], previous)
     ids = (
         (previous.candidate_ids or previous.scope_ids)
@@ -2245,6 +2430,9 @@ async def _option_search(req, plan, catalog, filters):
         else None
     )
     scope = previous.option_scope if previous and plan.scope == "previous" else None
+    if candidate_scope is not None:
+        ids = [item.product_id for item in candidate_scope]
+        scope = candidate_scope
     if not filters.category and not filters.query and ids is None:
         return _reply(
             "검색할 상품 종류나 이름을 알려 주세요.",
