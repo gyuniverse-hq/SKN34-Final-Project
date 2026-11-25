@@ -125,3 +125,50 @@ G5 resolve의 최종 claims와 초안 findings.index를 비교하던 결함을 �
 trace 전체 92개 레코드와 기준 64188a2 이후 추가된 60개를 검사했다. 인증 키·토큰·JWT·비밀키·이메일·전화번호·주민번호·로컬 사용자 경로와 민감 필드, 실제 환경의 자격증명 값 대조에서 노출을 발견하지 않았다. URL 호스트는 example.test이며 질문은 합성 사례다. 실제 G5 주장 8개와 발췌 10개는 해시·길이 형태이고 원문 필드는 없다. 기존 trace의 바이트 prefix를 보존했다. 이번 trace SHA256은 fd407b8af6d06c74095cfc35a061c42d7eff0fdd01932fe9f9be848f2c1abfd4다.
 
 게시 검사는 새 실제 모델 호출을 포함하지 않았다. 앞 절의 실제 연결 결과와 최종 코드 외부 모델 재호출 미실행, 실제 양성 조건·옵션 조회의 미검증 판정을 유지한다. 다음 작업은 유효한 V4 자료에서 N01 양성 연결 검증과 남은 ⑤ 범위다.
+
+## f7b97e1 검토 반영 — 2026-11-26 03:34 KST
+
+전체: ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → ⑤ 협력 완성 → ⑥ 통합 검증 → ⑦ PR 인계. 현재는 **⑤ N01 진행 중**이다. 원격·로컬 기준 f7b97e1b3cd2ef0134804d12d7b14e89417e0cec, 확인한 develop c70240ae266930f357fb522e839b6dc544504836. 이번 변경은 미커밋이며 PR을 생성하지 않았다.
+
+변경 파일은 chatbot의 compound_consultation_graph.py, chat_service.py, test_g8_compound_consultation.py, test_g7_conversation_api_pg.py와 G8-IMPLEMENTATION-SPEC.md, 이 문서, docs/AIHUB_DATA_RIGHTS.md, reports/g8/n01/trace.jsonl이다. 기존 구현·trace를 유지했다.
+
+### 구현 및 확인 범위
+
+- may_plan의 삭제해/적용해 차단과 route_intent의 추천+적용 분류에 같은 검색 조건 대상 판정을 적용했다. 기억·AR·별도 얼굴 적용이 섞인 요청은 기존 경계를 유지하며 G8 OFF의 기존 분류도 보존한다.
+- 정상 ChatService에서 해제·삭제·재적용·다시 적용→실제 CatalogClient 요청 본문 변화를 대역 HTTP로 확인했다. 사용자 향료 제외는 유지한다. 새 PG 7턴은 조건 채택→예산 유지→개별 삭제→목표 변경→전체 해제→재적용→삭제를 저장·복원하고 재전송 추가 호출 0회를 확인한다.
+- 원래 N01은 모의 계획기의 상황 질문→후속 답변→원래 발화·당김/각질 상황을 지식 입력에 전달→건조함 목표 상품 조회를 확인했다. 질문 전에는 상품·목표를 생성하지 않는다. 모델 계획에 clarify를 추가하고 기존 resultType=clarification을 사용했다. G7 실행·저장 경계와 기존 recentMessages 계약을 유지한다.
+- 외부 전송 문서 §1-2에 기존 OpenAI 승인과 예시 3턴·G5 발췌·검증 답변의 G8 추출 승인을 연결했다. 수신처·API·항목·목적을 명시했다. 제공기관 승인 원본을 확인했다고 주장하지 않는다.
+
+### 실제 실행과 증빙
+
+최종 챗봇 전체 pytest -q -p no:cacheprovider --basetemp <fresh-temp>: **1,426 통과·97 건너뜀, 41.84초**. Ruff와 import-linter 계층 3개 통과. 앱 npm run typecheck, npm run lint 통과. 앱 전체 Jest와 실기기 재촬영은 이번에는 실행하지 않았다. 잠금 환경은 기존 G7 검토 venv이며 소스는 이 작업 트리다.
+
+G8 집중·실제 PG 결합: **46 통과·4 건너뜀, 13.71초**. 그 뒤 G8 OFF 라우팅 보존을 추가했고 최종 소스로 PG 7턴 테스트를 재실행해 **1건 통과, 4.17초**를 확인했다. PostgreSQL은 실제 17.12, 합성 인증·계획기·G5·Catalog는 대역이다. 신규 entry_revision_test/entry_final_pg 레코드의 턴별 modelConfiguredMode=mock, actualRemoteModelCalls=0과 요청·저장 상태를 확인한다. 원래 N01 대역 대화는 original_n01 속성으로 별도 기록했다.
+
+실제 V4 사전 점검: 로컬 vishue_g5_integration PostgreSQL 17.12의 SELECT count(*) FROM skincare_serving 결과 **0행**. 데이터 버전은 없고 실제 후보·정확한 옵션·성분 근거 조회는 NOT_RUN이다. **후보 생성용 스냅샷 부재(BLOCKED)**이며 조건 불일치나 근거 부족으로 판정하지 않는다. 실제 양성 연결이 진행될 자료가 없어 이번 새 외부 모델 호출은 0회다. 기존 실제 3턴 실행의 범위를 이번 성공으로 확대하지 않는다. 원본 데이터·스냅샷은 수정하지 않았다.
+
+기존 일회용 PG 경로가 없어 새 /tmp/vishue-g8-entry-20261126-0325, 포트 56947, vishue_chat_test를 초기화했다. Alembic과 init_chat_checkpoints 후 실행했으며 종료했다. DB 자료와 로그는 로컬 보존한다. 첫 준비의 쉘 변수 전달 오류와 Windows ProactorEventLoop 오류는 명시 경로·SelectorEventLoop로 해결했다. 증빙 훅 인자 오타는 테스트 시작 전에 수정했다.
+
+최초 집중 실행은 26 통과·1 실패였다. G1 OFF로 history가 제거되는 테스트 준비를 G1 ON 계약에 맞췄고 27건 통과했다. 최초 전체 실행은 기본 pytest 임시 폴더 접근 거부로 1,408 통과·97 건너뜀·17 준비 오류였다. 원인 확인 후 새 임시 경로로 재실행해 위 최종 결과를 얻었다. 실패·재실행을 성공으로 덮어쓰지 않는다.
+
+trace의 entry_revision_manifest/entry_revision_final_full은 파일별 SHA256을 보존한다. 이 두 레코드의 diffSha256은 실행 디렉터리에 상대적인 pathspec 때문에 빈 diff를 해시했으므로 식별 근거로 사용하지 않는다. entry_final_source의 저장소 루트 기준 diffSha256과 파일별 SHA256을 최종 기준으로 사용한다. 기존 f7b97e1 trace는 바이트 prefix로 유지하며 비밀·인증정보·실사용자 식별정보를 검사한다.
+
+### 별도 판정과 다음 작업
+
+| 범위 | 현재 판정 | 남은 사용자 경험 |
+|---|---|---|
+| 성분 연결 하위 사례 | 코드·모의 조건 연결·실제 PG 후속 통과, 실제 양성 연결 BLOCKED | 유효한 V4 버전·후보·옵션 근거가 있는 환경에서 지식 채택→옵션 판정→예산 유지→해제 |
+| 원래 N01 | 상황 확인과 후속 연결 모의 검증, 전체 미완료 | 실제 모델의 원인 설명·관련 상품 적합성, 유분·베이스 제형 등 다른 원인, 앱 표시·사람 검토 |
+| N02·E01·B01 | 전체 시나리오 미완료 | 보유품 기반 룩과 부족품 추천, 서비스 부분 실패 경험, 기억·AR 권한 및 실행 경계의 통합 |
+
+다음은 실제 V4 스냅샷이 있는 검증 환경 연결, 원래 N01의 실제 모델·앱·사람 평가, 이어서 N02·E01·B01 확장이다. 이번 데이터 부재를 해결하기 위해 합성 스냅샷을 실자료로 게시하거나 운영 데이터를 갱신하지 않는다. 신규 파일·공용 계약 변경이 필요한 확장은 구체화 후 기존 승인 규칙을 적용한다.
+
+최종 trace 145개(신규 53개)의 토큰·JWT·비밀키·이메일·전화번호·로컬 사용자 경로 패턴과 기존 환경의 실제 자격증명 값을 대조했고 노출을 발견하지 않았다. f7b97e1의 기존 trace prefix 보존을 확인했다. trace SHA256: d24a13bf5fbc29c6c6a01714c38c3f70606a4d51ea986047115708da0a6fca63. git diff --check 통과. 이번 변경은 로컬에 남겼으며 commit·push·PR은 수행하지 않았다.
+
+### 게시 전 검사 — 2026-11-26 03:39 KST
+
+후속 사용자 지시로 구현·테스트와 문서·증빙을 두 커밋으로 나눠 feat/compound-consultation에 게시한다. 앞 절의 미커밋·push 미실행은 당시 상태다. 구현·테스트 네 파일은 3bb4798로 커밋했다. 원격 사전 확인은 f7b97e1이며 검증 소스와 스테이징 내용, entry_final_source의 파일별 SHA256 및 저장소 루트 기준 diff SHA256이 일치했다.
+
+이번 게시 검사에서 npm run check -- -- --runInBand --silent는 타입·린트·105개 suite/1,320건 통과(92.614초)했다. 챗봇 uv run --frozen ruff check . 및 uv run --frozen lint-imports는 통과(계층 3개 KEPT), uv run --frozen pytest -q -p no:cacheprovider --basetemp <fresh-temp>는 1,426건 통과·97건 건너뜀(36.34초)이었다. 기존 G7 검토 venv를 UV_PROJECT_ENVIRONMENT로 지정했다. 이번 게시 검사에는 재실행이 필요하지 않았다. 완료 확인 시각은 위 절 제목과 같으며 명령별 시작·종료 시각은 별도 보존하지 않았다.
+
+trace 145개와 신규 53개를 다시 검사해 검사 대상 민감정보 및 실제 환경 자격증명 값이 없음을 확인했다. trace와 기존 prefix를 변경하지 않았으며 위 SHA256을 유지한다. 실제 모델·API·PG를 이번 게시 검사에서 추가 호출하지 않았고, 앞 절의 실환경 판정과 남은 N01 범위를 그대로 유지한다. 현재 위치는 ⑤ N01이며 PR은 생성하지 않는다.
