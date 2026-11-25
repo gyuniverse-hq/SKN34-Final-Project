@@ -57,14 +57,16 @@ class SkinApi:
         self.calls.append((path, body))
         rows = []
         for rank, option_id in enumerate(self.options, 1):
-            row = match()
+            row = match(body["detectedConcerns"][0]["goal"] if path.endswith("/v4") else "pores")
             row["product"].update(id=f"p{rank}", nameKo=f"시험 상품 {rank}")
             if rank == 9:
                 row["product"].update(brand="예시랩", nameKo="데일리 보습 로션")
             row.update(optionId=option_id, optionName=f"{rank * 10}ml")
             rows.append(row)
         if path == "/api/recommendations/skincare/v4":
-            return httpx.Response(200, json=payload(("dryness", "pores"), matches=rows))
+            return httpx.Response(
+                200, json=payload(tuple(c["goal"] for c in body["detectedConcerns"]), matches=rows)
+            )
         assert path == "/api/catalog/options/search"
         if set(body["productIds"]) & self.fail_ids:
             return httpx.Response(503)
@@ -101,6 +103,18 @@ class SkinApi:
                     "ingredientCoverage": "partial" if label_unknown else "full",
                     **source,
                 }
+            )
+            checks.extend(
+                {
+                    "condition": "ingredient",
+                    "ingredientName": condition["ingredientName"],
+                    "operator": condition["operator"],
+                    "verdict": "MATCH",
+                    "reason": "fixture_ingredient_present",
+                    **source,
+                }
+                for condition in body["ingredientConditions"]
+                if condition["ingredientName"] != "향료"
             )
             group = (
                 "EXCLUDED"
@@ -255,6 +269,23 @@ class Planner:
     configured = True
 
     async def complete_with_tools(self, messages, tools, *, required_tool=None):
+        if required_tool == "extract_knowledge_search_conditions":
+            return {
+                "choices": [
+                    {
+                        "message": {
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": required_tool,
+                                        "arguments": '{"conditions":[]}',
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }, 0
         assert required_tool == "plan_skin_consultation"
         decision = {
             "action": "start",
@@ -350,3 +381,225 @@ async def test_failed_candidate_read_is_replanned_without_repeating_research(
     ]
     assert len([c for c in api.calls if c[0].endswith("/search")]) == 2
     assert answer.compound.options[8].outcome == "eligible"
+
+
+@pytest.mark.anyio
+async def test_explanation_goal_change_invalidates_candidates(monkeypatch, connections):
+    api, skincare, catalog = connections
+    install_knowledge(monkeypatch)
+    first = await graph.run_compound(GOAL, CARE_QUESTION, skincare, catalog)
+    original = first.chat_context.compound
+    new_goal = GOAL.model_copy(update={"goals": ["sensitivity"], "wants_products": False})
+    second = await graph.run_compound(
+        new_goal,
+        "민감함을 관리하는 방법은?",
+        skincare,
+        catalog,
+        previous=original,
+        reuse_candidates=True,
+    )
+    restored = type(original).model_validate_json(second.chat_context.compound.model_dump_json())
+    assert not restored.candidates and restored.candidate_goals is None
+    before = len([p for p, _ in api.calls if p.endswith("/v4")])
+    third = await graph.run_compound(
+        new_goal.model_copy(update={"wants_products": True, "wants_knowledge": False}),
+        "",
+        skincare,
+        catalog,
+        previous=restored,
+        reuse_candidates=True,
+    )
+    calls = [b for p, b in api.calls if p.endswith("/v4")]
+    assert len(calls) == before + 1 and calls[-1]["detectedConcerns"] == [
+        {"goal": "sensitivity", "sources": ["conversation"]}
+    ]
+    assert third.chat_context.compound.candidate_goals == ["sensitivity"]
+    legacy = original.model_copy(update={"candidate_goals": None})
+    assert not graph.can_reuse_candidates(GOAL, legacy)
+
+
+@pytest.mark.anyio
+async def test_serum_cream_question_keeps_order_and_context(monkeypatch, connections):
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    api, skincare, catalog = connections
+    consult = install_knowledge(monkeypatch)
+    question = "건조할 때 아침에 세럼과 크림은 어떤 순서와 방법으로 사용하나요?"
+
+    class OrderPlanner(Planner):
+        async def complete_with_tools(self, messages, tools, *, required_tool=None):
+            reply, ms = await super().complete_with_tools(
+                messages, tools, required_tool=required_tool
+            )
+            if required_tool == "plan_skin_consultation":
+                call = reply["choices"][0]["message"]["tool_calls"][0]["function"]
+                plan = json.loads(call["arguments"])
+                plan["question"] = question
+                call["arguments"] = json.dumps(plan)
+            return reply, ms
+
+    chat = ChatService(None, OrderPlanner(), catalog, skincare=skincare)
+    await chat.answer(ChatRequest(message=question + " 제품도 추천해 줘.", locale="ko"))
+    consult.assert_awaited_once_with(question)
+    assert len(api.calls) == 3
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("ingredient", ["글리세린", "판테놀", "향료"])
+async def test_knowledge_condition_changes_actual_catalog_input(
+    monkeypatch, connections, ingredient
+):
+    from app.schemas.compound_consultation import KnowledgeSearchCondition
+
+    api, skincare, catalog = connections
+    consult = install_knowledge(monkeypatch)
+    reply = consult.return_value.reply
+    statement = f"{ingredient} 성분이 포함된 제품을 선택하세요."
+    reply.claims[0].claim = statement
+    reply.evidence[0].quote = statement
+    reply.evidence[0].end_utf16 = len(statement.encode("utf-16-le")) // 2
+
+    class SearchPlanner(Planner):
+        async def complete_with_tools(self, messages, tools, *, required_tool=None):
+            if required_tool != "extract_knowledge_search_conditions":
+                return await super().complete_with_tools(
+                    messages, tools, required_tool=required_tool
+                )
+            condition = KnowledgeSearchCondition(
+                ingredient_name=ingredient,
+                operator="includes",
+                claim_index=0,
+                evidence_id="K1.E1",
+                quote=statement,
+            )
+            return {
+                "choices": [
+                    {
+                        "message": {
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": required_tool,
+                                        "arguments": json.dumps(
+                                            {
+                                                "conditions": [
+                                                    condition.model_dump(mode="json", by_alias=True)
+                                                ]
+                                            }
+                                        ),
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }, 0
+
+    trace = []
+    await graph.run_compound(
+        GOAL, CARE_QUESTION, skincare, catalog, trace=trace, llm=SearchPlanner()
+    )
+    body = api.calls[-1][1]
+    expected = [{"ingredientName": "향료", "operator": "excludes"}]
+    if ingredient != "향료":
+        expected.append({"ingredientName": ingredient, "operator": "includes"})
+    assert body["ingredientConditions"] == expected
+    assert body["maxPriceKRW"] == 20000
+    checked = next(t for t in trace if t["task"]["taskId"] == "V1")
+    assert checked["inputs"]["conditionDecisions"][0]["decision"] == (
+        "user_condition_precedes" if ingredient == "향료" else "accepted"
+    )
+
+
+@pytest.mark.anyio
+async def test_failed_knowledge_still_executes_candidate_and_option_http(monkeypatch, connections):
+    api, skincare, catalog = connections
+    monkeypatch.setattr(specialists, "research", AsyncMock(side_effect=UpstreamError("offline")))
+    answer = await graph.run_compound(GOAL, CARE_QUESTION, skincare, catalog)
+    assert len(api.calls) == 3
+    assert answer.compound.options[8].outcome == "eligible"
+
+
+@pytest.mark.anyio
+async def test_three_turn_goal_change_through_chat_service(monkeypatch, connections):
+    from app.services.conversation_context import read_context, updated_context
+
+    api, skincare, catalog = connections
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    install_knowledge(monkeypatch)
+
+    class TurnPlanner(Planner):
+        turn = 0
+
+        async def complete_with_tools(self, messages, tools, *, required_tool=None):
+            reply, usage = await super().complete_with_tools(
+                messages, tools, required_tool=required_tool
+            )
+            if required_tool == "plan_skin_consultation":
+                self.turn += 1
+                function = reply["choices"][0]["message"]["tool_calls"][0]["function"]
+                decision = json.loads(function["arguments"])
+                if self.turn > 1:
+                    decision["action"] = "refine"
+                    decision["goal"].update(
+                        goals=["sensitivity"],
+                        wantsProducts=self.turn == 3,
+                        wantsKnowledge=self.turn == 2,
+                    )
+                    decision["question"] = "민감함 관리 방법은?" if self.turn == 2 else ""
+                function["arguments"] = json.dumps(decision)
+            return reply, usage
+
+    chat = ChatService(None, TurnPlanner(), catalog, skincare=skincare)
+    saved = {}
+    for turn, utterance in enumerate(
+        [QUESTION, "모공 말고 민감함 관리 방법만 설명해 줘.", "그 목표로 제품을 다시 추천해 줘."], 1
+    ):
+        request = ChatRequest(message=utterance, locale="ko")
+        request._compound_context = read_context(saved).compound
+        response = await chat.answer(request)
+        assert response.compound is not None
+        saved = updated_context(saved, response)
+        restored = read_context(saved).compound
+        if turn == 2:
+            assert restored.candidates == [] and restored.candidate_goals is None
+    calls = [body for path, body in api.calls if path.endswith("/v4")]
+    assert len(calls) == 2
+    assert calls[-1]["detectedConcerns"] == [{"goal": "sensitivity", "sources": ["conversation"]}]
+
+
+def test_search_condition_rejects_unlinked_and_conflicting_evidence(monkeypatch):
+    from app.schemas.compound_consultation import KnowledgeSearchCondition
+
+    consult = install_knowledge(monkeypatch)
+    knowledge = consult.return_value.reply
+    text = "글리세린 성분을 확인하세요."
+    knowledge.claims[0].claim = text
+    knowledge.evidence[0].quote = text
+    proposal = KnowledgeSearchCondition(
+        ingredient_name="글리세린", operator="includes", claim_index=0, evidence_id="E1", quote=text
+    )
+    bad = proposal.model_copy(update={"evidence_id": "missing"})
+    accepted, decisions = specialists.validate_search_conditions(GOAL, knowledge, [bad])
+    assert not accepted and decisions[0]["decision"] == "unverified_evidence"
+    accepted, decisions = specialists.validate_search_conditions(
+        GOAL, knowledge, [proposal, proposal.model_copy(update={"operator": "excludes"})]
+    )
+    assert not accepted and decisions[-1]["decision"] == "conflicting_suggestions"
+
+
+@pytest.mark.anyio
+async def test_extractor_failure_keeps_knowledge_and_product_lookup(monkeypatch, connections):
+    api, skincare, catalog = connections
+    install_knowledge(monkeypatch)
+
+    class BrokenExtractor:
+        configured = True
+
+        async def complete_with_tools(self, *args, **kwargs):
+            raise UpstreamError("extractor unavailable")
+
+    response = await graph.run_compound(
+        GOAL, CARE_QUESTION, skincare, catalog, llm=BrokenExtractor()
+    )
+    assert response.knowledge.status == "answered"
+    assert len(api.calls) == 3 and response.compound.options[8].outcome == "eligible"

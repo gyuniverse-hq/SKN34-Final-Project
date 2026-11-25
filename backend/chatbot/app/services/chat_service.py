@@ -808,9 +808,10 @@ class ChatService:
                 self._catalog,
                 previous=previous,
                 reuse_candidates=bool(
-                    active_previous and active_previous.goal.goals == choice.goal.goals
+                    compound_graph.can_reuse_candidates(choice.goal, active_previous)
                 ),
                 deadline=deadline,
+                llm=self._llm,
             )
 
         if req._g7_execution is not None:

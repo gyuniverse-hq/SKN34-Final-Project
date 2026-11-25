@@ -230,6 +230,10 @@ def test_g8_graph_commits_replays_and_rechecks_the_saved_budget(api, monkeypatch
 
     class Planner(skin_case.Planner):
         async def complete_with_tools(self, messages, tools, *, required_tool=None):
+            if required_tool == "extract_knowledge_search_conditions":
+                return await super().complete_with_tools(
+                    messages, tools, required_tool=required_tool
+                )
             inputs = json.loads(messages[-1]["content"])
             planner_inputs.append(inputs)
             reply, usage = await super().complete_with_tools(

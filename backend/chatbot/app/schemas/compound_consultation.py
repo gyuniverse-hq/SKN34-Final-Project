@@ -92,6 +92,19 @@ class CompoundContext(CompoundModel):
     plan_version: int = Field(ge=1)
     goal: CompoundGoal
     candidates: list[RankedOption] = Field(default_factory=list, max_length=10)
+    candidate_goals: list[SkinGoal] | None = None
+
+
+class KnowledgeSearchCondition(CompoundModel):
+    ingredient_name: Text
+    operator: Literal["includes", "excludes"]
+    claim_index: int = Field(ge=0)
+    evidence_id: Text
+    quote: Text
+
+
+class KnowledgeSearchPlan(CompoundModel):
+    conditions: list[KnowledgeSearchCondition] = Field(default_factory=list, max_length=6)
 
 
 class CompoundDisplay(CompoundModel):
@@ -104,8 +117,8 @@ class CompoundDisplay(CompoundModel):
 
 class InputBinding(CompoundModel):
     source_task: str
-    source_field: Literal["candidates"] = "candidates"
-    target_input: Literal["option_scope"] = "option_scope"
+    source_field: Literal["candidates", "search_conditions"] = "candidates"
+    target_input: Literal["option_scope", "ingredient_conditions"] = "option_scope"
 
 
 class TaskRequest(CompoundModel):
@@ -128,4 +141,5 @@ class TaskResult(CompoundModel):
     options: list[VerifiedOption] = Field(default_factory=list)
     batches: list[BatchCoverage] = Field(default_factory=list)
     knowledge: KnowledgeReply | None = None
+    search_conditions: list[KnowledgeSearchCondition] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)
