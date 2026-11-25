@@ -1,4 +1,4 @@
-from sqlalchemy import select, text, tuple_
+from sqlalchemy import func, select, text, tuple_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,8 +28,15 @@ class ArHistoryRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def member_terms(self, owner: str):
-        return await self.db.scalar(select(MemberRow.terms_version).where(MemberRow.id == owner))
+    async def access(self, owner: str, terms: str) -> tuple[bool, bool]:
+        subscribed = await self.db.scalar(
+            select(func.coalesce(MemberRow.skin_subscription_until > func.now(), False)).where(
+                MemberRow.id == owner,
+                MemberRow.terms_version == terms,
+                MemberRow.ar_activity_consented_at.is_not(None),
+            )
+        )
+        return subscribed is not None, bool(subscribed)
 
     async def lock_rank(self, request_id):
         await self.db.execute(

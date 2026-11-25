@@ -10,7 +10,9 @@ import { MenuSection } from '@/components/ui/MenuSection';
 import { ListRow } from '@/components/ui/ListRow';
 import { homeLayout, homeType } from '@/constants/homeLayout';
 import { theme } from '@/constants/theme';
-import { deleteAccount } from '@/lib/account';
+import { meQueryKey, useMe } from '@/lib/queries';
+import type { MeResponse } from '@/types';
+import { deleteAccount, setServiceConsent, type ServiceConsentKind } from '@/lib/account';
 import { ApiError } from '@/lib/api';
 import { signOut, useAuth } from '@/lib/auth';
 import { confirmAction, notify } from '@/lib/confirm';
@@ -36,6 +38,28 @@ export default function SettingsScreen() {
   const cameraConsent = useSettingsStore((s) => s.cameraConsent);
   const setCameraConsent = useSettingsStore((s) => s.setCameraConsent);
   const { user } = useAuth();
+  const me = useMe(user?.id);
+  const [consentKind, setConsentKind] = useState<ServiceConsentKind | null>(null);
+  const [savingConsent, setSavingConsent] = useState(false);
+  const terms = me.data?.user.id === user?.id ? me.data?.terms : undefined;
+  const consent = consentKind === 'cameraFeatures' ? terms?.cameraFeaturesConsent : terms?.arActivityConsent;
+  const consentValue = (value?: boolean | null) => value == null ? '—' : t(value ? 'my.cameraOn' : 'my.cameraOff');
+  const changeConsent = async (enabled: boolean) => {
+    if (!user || !consentKind || savingConsent) return;
+    if (consent === enabled) return setConsentKind(null);
+    setSavingConsent(true);
+    try {
+      const terms = await setServiceConsent(user.id, consentKind, enabled);
+      const key = meQueryKey(user.id);
+      await queryClient.cancelQueries({ queryKey: key });
+      queryClient.setQueryData<MeResponse>(key, old => old && { ...old, terms });
+      setConsentKind(null);
+    } catch {
+      notify(t('consent.failed'));
+    } finally {
+      setSavingConsent(false);
+    }
+  };
   const options: { value: LanguagePreference; label: string }[] = [
     { value: 'system', label: t('my.languageSystem') },
     ...LANGUAGES.map((l) => ({ value: l, label: LANGUAGE_LABELS[l] })),
@@ -80,11 +104,15 @@ export default function SettingsScreen() {
           <ListRow icon="language-outline" label={t('my.language')}
             value={language === 'system' ? t('my.languageSystem') : LANGUAGE_LABELS[language]}
             onPress={() => setLanguageOpen(true)} />
-          <ListRow icon="camera-outline" label={t('my.camera')}
-            value={cameraConsent ? t('my.cameraOn') : t('my.cameraOff')}
-            onPress={cameraConsent ? () => setCameraConsent(false) : undefined} />
+          {user ? <ListRow icon="camera-outline" label={t('consent.cameraTitle')}
+            value={consentValue(terms?.cameraFeaturesConsent)} onPress={() => setConsentKind('cameraFeatures')} />
+            : <ListRow icon="camera-outline" label={t('my.camera')} value={consentValue(cameraConsent)}
+              onPress={cameraConsent ? () => setCameraConsent(false) : undefined} />}
         </MenuSection>
         <MenuSection title={t('my.policies')}>
+          {user && <ListRow icon="color-palette-outline" label={t('consent.arTitle')}
+            value={consentValue(terms?.arActivityConsent)}
+            onPress={() => setConsentKind('arActivity')} />}
           <ListRow icon="document-text-outline" label={t('my.terms')} onPress={() => router.push('/legal/terms')} />
           <ListRow icon="shield-checkmark-outline" label={t('my.privacy')} onPress={() => router.push('/legal/privacy')} />
         </MenuSection>
@@ -95,6 +123,13 @@ export default function SettingsScreen() {
         </MenuSection>
         <Text style={styles.version}>{t('my.version')} {Constants.expoConfig?.version ?? '—'}</Text>
       </ScrollView>
+      {user && consentKind && <BottomSheet title={t(consentKind === 'arActivity' ? 'consent.arTitle' : 'consent.cameraTitle')} closeLabel={t('common.cancel')}
+        bottomInset={bottom} onClose={() => setConsentKind(null)}>
+        <Text style={styles.dataNote}>{t(consentKind === 'arActivity' ? 'consent.arDetails' : 'consent.cameraDetails')}</Text>
+        {[true, false].map(enabled => <ListRow key={String(enabled)} icon={enabled ? 'checkmark-outline' : 'close-outline'}
+          label={t(enabled ? 'consent.arAllow' : 'consent.arDecline')} selected={enabled === consent}
+          onPress={savingConsent ? undefined : () => void changeConsent(enabled)} />)}
+      </BottomSheet>}
       {languageOpen && <BottomSheet title={t('my.language')} closeLabel={t('common.cancel')}
         bottomInset={bottom} onClose={() => setLanguageOpen(false)}>
         <ScrollView>

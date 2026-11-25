@@ -11,7 +11,7 @@ class ArPaletteDatasetRepository:
     def __init__(self, session):
         self.session = session
 
-    async def exposures(self, *, as_of, window, grace, members, terms):
+    async def exposures(self, *, as_of, window, grace, terms):
         stream = await self.session.stream(
             text("""
                 SELECT r.request_id, r.member_id, r.session_id, r.makeup_zone,
@@ -33,7 +33,7 @@ class ArPaletteDatasetRepository:
                 WHERE r.strategy IN ('rating', 'personalized', 'ml')
                   AND r.makeup_zone IN ('lip', 'blush')
                   AND split_part(r.policy_version, ':', 4) NOT LIKE 's-%'
-                  AND m.terms_version = :terms AND r.member_id = ANY(CAST(:members AS text[]))
+                  AND m.terms_version = :terms AND m.ar_activity_consented_at IS NOT NULL
                   AND r.created_at <= :as_of AND i.received_at <= :as_of
                   AND i.occurred_at + CAST(:maturity AS interval) <= :as_of
                 ORDER BY r.created_at, r.request_id, c.rank, i.impression_id
@@ -42,7 +42,6 @@ class ArPaletteDatasetRepository:
                 "as_of": as_of,
                 "window": window,
                 "maturity": window + grace,
-                "members": sorted(members),
                 "terms": terms,
             },
         )
@@ -50,7 +49,7 @@ class ArPaletteDatasetRepository:
             yield row
 
     async def experiment_sessions(
-        self, *, experiment, start, end, as_of, window, grace, members, terms, purchase_window=None
+        self, *, experiment, start, end, as_of, window, grace, terms, purchase_window=None
     ):
         result = await self.session.execute(
             text("""
@@ -64,7 +63,7 @@ class ArPaletteDatasetRepository:
                       AND split_part(r.policy_version, ':', 3) IN ('A', 'B')
                       AND r.created_at >= :start AND r.created_at < :end
                       AND r.created_at <= :as_of
-                      AND r.member_id = ANY(CAST(:members AS text[])) AND m.terms_version = :terms
+                      AND m.ar_activity_consented_at IS NOT NULL AND m.terms_version = :terms
                 )
                 SELECT r.member_id, r.session_id, r.arm,
                        bool_or(r.served = 'rule') AS served_rule,
@@ -118,7 +117,6 @@ class ArPaletteDatasetRepository:
                 "purchase_key_prefix": AR_PURCHASE_KEY_PREFIX,
                 "purchase_surface": AR_CHECKOUT_SURFACE,
                 "purchase_schema": AR_CHECKOUT_SCHEMA,
-                "members": sorted(members),
                 "terms": terms,
             },
         )

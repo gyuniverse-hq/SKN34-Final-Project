@@ -17,14 +17,19 @@ from app.main import create_app
 from app.services.member_service import TERMS_VERSION
 
 
-def test_collection_requires_explicit_enrollment(monkeypatch):
+def test_collection_requires_explicit_enrollment():
+    from unittest.mock import AsyncMock
+
     from fastapi.testclient import TestClient
 
-    monkeypatch.setattr(get_settings(), "ar_activity_enrolled_members", set())
-    monkeypatch.setattr(get_settings(), "ar_activity_consented_members", set())
+    from app.services.ar_history_service import ArHistoryService, get_ar_history
+
+    repo = AsyncMock()
+    repo.access.return_value = (False, False)
     app = create_app()
     app.dependency_overrides[require_user] = lambda: AuthUser(id="ordinary-member", email=None)
 
+    app.dependency_overrides[get_ar_history] = lambda: ArHistoryService(repo)
     client = TestClient(app)
     assert client.post("/api/me/ar-history/palette", json={"makeupZone": "lip"}).status_code == 403
     assert client.post("/api/me/ar-history/status").json() == {
@@ -48,10 +53,8 @@ def test_collection_requires_explicit_enrollment(monkeypatch):
 
 @pytest.mark.integration
 @pytest.mark.skipif(not os.getenv("AR_HISTORY_TEST_URL"), reason="needs migrated PostgreSQL")
-def test_http_to_db_with_replay_and_attribution(monkeypatch):
+def test_http_to_db_with_replay_and_attribution():
     owner, other = ("ar-test-" + uuid4().hex for _ in range(2))
-    monkeypatch.setattr(get_settings(), "ar_activity_enrolled_members", {owner, other})
-    monkeypatch.setattr(get_settings(), "ar_activity_consented_members", {owner, other})
     app = create_app()
     actor = owner
     app.dependency_overrides[require_user] = lambda: AuthUser(id=actor, email=None)
@@ -66,8 +69,10 @@ def test_http_to_db_with_replay_and_attribution(monkeypatch):
         app.dependency_overrides[get_session] = sessions
         await conn.execute(
             text(
-                "INSERT INTO members (id,terms_version,terms_agreed_at) VALUES "
-                "(:owner,:version,now()),(:other,:version,now())"
+                "INSERT INTO members (id,terms_version,terms_agreed_at,ar_activity_consented_at,"
+                "skin_subscription_until) VALUES "
+                "(:owner,:version,now(),now(),now()+interval '1 day'),"
+                "(:other,:version,now(),now(),now()-interval '1 day')"
             ),
             dict(owner=owner, other=other, version=TERMS_VERSION),
         )
@@ -117,15 +122,25 @@ def test_http_to_db_with_replay_and_attribution(monkeypatch):
                 return res.json()
 
             actor = other
-            monkeypatch.setattr(get_settings(), "ar_activity_enrolled_members", {owner})
             assert await post("status", {}) == {"enabled": True, "recommendations": False}
             await post("palette", {"makeupZone": "lip"}, 403)
             await post("requests", request, 403)
             await post("events", {**event, "eventId": str(uuid4()), "impressionId": None})
-            monkeypatch.setattr(get_settings(), "ar_activity_consented_members", {owner})
+            assert (
+                await client.post(
+                    "http://test/api/me/service-consents",
+                    json={"kind": "arActivity", "enabled": False},
+                )
+            ).is_success
             await post("events", {**event, "eventId": str(uuid4()), "impressionId": None}, 403)
-            monkeypatch.setattr(get_settings(), "ar_activity_enrolled_members", {owner, other})
-            monkeypatch.setattr(get_settings(), "ar_activity_consented_members", {owner, other})
+            assert (
+                await client.post(
+                    "http://test/api/me/service-consents",
+                    json={"kind": "arActivity", "enabled": True},
+                )
+            ).is_success
+            assert (await client.post("http://test/api/me/skin-access/dev-subscription")).is_success
+            assert await post("status", {}) == {"enabled": True, "recommendations": True}
             actor = owner
 
             cold = await post("palette", {"makeupZone": "lip"})
@@ -190,8 +205,6 @@ def test_server_rank_through_cart_produces_a_mature_training_label(monkeypatch, 
 
     owner = "ar-rank-" + uuid4().hex
     settings = get_settings()
-    monkeypatch.setattr(settings, "ar_activity_enrolled_members", {owner})
-    monkeypatch.setattr(settings, "ar_activity_consented_members", {owner})
     monkeypatch.setattr(settings, "ar_palette_mode", "experiment")
     monkeypatch.setattr(settings, "ar_palette_experiment", "ar-smoke")
     monkeypatch.setattr(settings, "ar_palette_model_dir", None)
@@ -215,7 +228,10 @@ def test_server_rank_through_cart_produces_a_mature_training_label(monkeypatch, 
 
         app.dependency_overrides[get_session] = sessions
         await conn.execute(
-            text("INSERT INTO members (id,terms_version,terms_agreed_at) VALUES (:o,:v,now())"),
+            text(
+                "INSERT INTO members (id,terms_version,terms_agreed_at,ar_activity_consented_at,"
+                "skin_subscription_until) VALUES (:o,:v,now(),now(),now()+interval '1 day')"
+            ),
             {"o": owner, "v": TERMS_VERSION},
         )
         pairs = (
@@ -286,12 +302,17 @@ def test_server_rank_through_cart_produces_a_mature_training_label(monkeypatch, 
             options = dict(
                 window=timedelta(days=1),
                 grace=timedelta(days=1),
-                members={owner},
                 terms=TERMS_VERSION,
             )
-            assert [r async for r in repository.exposures(as_of=now, **options)] == []
+            assert not [
+                r
+                async for r in repository.exposures(as_of=now, **options)
+                if r["member_id"] == owner
+            ]
             mature = [
-                r async for r in repository.exposures(as_of=now + timedelta(days=3), **options)
+                r
+                async for r in repository.exposures(as_of=now + timedelta(days=3), **options)
+                if r["member_id"] == owner
             ]
             experiment = await repository.experiment_sessions(
                 experiment="ar-smoke",

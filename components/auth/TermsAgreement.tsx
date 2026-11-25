@@ -4,7 +4,7 @@ import { theme } from '@/constants/theme';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 
 export type ConsentItem = 'terms' | 'privacy' | 'age';
-export type ConsentState = Record<ConsentItem, boolean>;
+export type ConsentState = Record<ConsentItem, boolean> & { arActivityConsent?: boolean; cameraFeaturesConsent?: boolean };
 
 const ITEMS: { key: ConsentItem; label: TranslationKey; doc?: 'terms' | 'privacy' }[] = [
   { key: 'terms', label: 'consent.terms', doc: 'terms' },
@@ -18,7 +18,7 @@ export function hasAllConsents(state: ConsentState) {
   return ITEMS.every((item) => state[item.key]);
 }
 
-/** Required sign-up agreements with an "agree to all" row. */
+/** Each optional purpose can also be selected independently. */
 export function TermsAgreement({
   value,
   onChange,
@@ -29,14 +29,14 @@ export function TermsAgreement({
   onOpenDoc: (doc: 'terms' | 'privacy') => void;
 }) {
   const { t } = useI18n();
-  const all = hasAllConsents(value);
+  const all = hasAllConsents(value) && !!value.arActivityConsent && !!value.cameraFeaturesConsent;
   return (
     <View style={styles.box}>
       <CheckRow
         label={t('consent.all')}
         checked={all}
         strong
-        onPress={() => onChange({ terms: !all, privacy: !all, age: !all })}
+        onPress={() => onChange({ terms: !all, privacy: !all, age: !all, cameraFeaturesConsent: !all, arActivityConsent: !all })}
       />
       <View style={styles.divider} />
       {ITEMS.map((item) => (
@@ -53,6 +53,13 @@ export function TermsAgreement({
           ) : null}
         </View>
       ))}
+      <View style={styles.divider} />
+      <CheckRow label={t('consent.cameraOptional')} checked={!!value.cameraFeaturesConsent}
+        onPress={() => onChange({ ...value, cameraFeaturesConsent: !value.cameraFeaturesConsent })} />
+      <Text style={styles.note}>{t('consent.cameraDetails')}</Text>
+      <CheckRow label={t('consent.arOptional')} checked={!!value.arActivityConsent}
+        onPress={() => onChange({ ...value, arActivityConsent: !value.arActivityConsent })} />
+      <Text style={styles.note}>{t('consent.arDetails')}</Text>
     </View>
   );
 }
@@ -71,6 +78,7 @@ function CheckRow({
   return (
     <Pressable
       accessibilityRole="checkbox"
+      accessibilityLabel={label}
       accessibilityState={{ checked }}
       onPress={onPress}
       style={styles.check}>
@@ -97,6 +105,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   check: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: theme.hitTarget },
   label: { flex: 1, fontSize: theme.font.small, color: theme.colors.ink, lineHeight: 19 },
+  note: { marginLeft: 32, paddingBottom: 10, fontSize: theme.font.small, lineHeight: 19, color: theme.colors.inkMuted },
   strong: { fontSize: theme.font.body, fontWeight: '700' },
   view: { fontSize: theme.font.small, fontWeight: '700', color: theme.colors.inkMuted, textDecorationLine: 'underline' },
 });

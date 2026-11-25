@@ -38,8 +38,6 @@ class Settings(BaseSettings):
     ingredient_mapping_path: str | None = None
     ingredient_alias_approvals_path: str | None = None
     skin_recommendation_feedback_consented_members: set[str] = Field(default_factory=set)
-    ar_activity_enrolled_members: set[str] = Field(default_factory=set)
-    ar_activity_consented_members: set[str] = Field(default_factory=set)
     ar_palette_mode: Literal["legacy", "collect", "model", "experiment"] = "legacy"
     ar_palette_data_dir: Path = PROJECT_ROOT / "ml/data/ar-recommendation"
     ar_palette_model_dir: Path | None = None

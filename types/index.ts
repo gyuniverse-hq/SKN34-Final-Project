@@ -848,6 +848,8 @@ export interface TermsStatus {
   version: string;
   agreedVersion: string | null;
   agreedAt: string | null;
+  arActivityConsent?: boolean;
+  cameraFeaturesConsent?: boolean | null;
 }
 
 export interface MeResponse {

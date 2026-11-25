@@ -28,13 +28,45 @@ def test_me_reports_missing_consent_until_the_current_terms_are_agreed():
     before = client.get("/api/me").json()
     assert before == {
         "user": {"id": "user-1", "email": "a@b.c"},
-        "terms": {"version": TERMS_VERSION, "agreedVersion": None, "agreedAt": None},
+        "terms": {
+            "version": TERMS_VERSION,
+            "agreedVersion": None,
+            "agreedAt": None,
+            "arActivityConsent": False,
+            "cameraFeaturesConsent": None,
+        },
     }
 
     agreed = client.post("/api/me/terms", json={"version": TERMS_VERSION})
     assert agreed.status_code == 200
     assert agreed.json()["agreedVersion"] == TERMS_VERSION
     assert client.get("/api/me").json()["terms"]["agreedAt"] is not None
+
+
+def test_optional_ar_consent_can_be_granted_at_signup_and_withdrawn_in_settings():
+    client = client_with(FakeMembers(), FakeAccounts())
+    assert (
+        client.post(
+            "/api/me/service-consents", json={"kind": "arActivity", "enabled": True}
+        ).status_code
+        == 409
+    )
+    grant = client.post(
+        "/api/me/terms",
+        json={"version": TERMS_VERSION, "arActivityConsent": True, "cameraFeaturesConsent": True},
+    )
+    assert grant.json()["arActivityConsent"] is True
+    legacy = client.post("/api/me/terms", json={"version": TERMS_VERSION}).json()
+    assert legacy["arActivityConsent"] is True
+    revoked = client.post(
+        "/api/me/service-consents", json={"kind": "arActivity", "enabled": False}
+    ).json()
+    assert revoked["cameraFeaturesConsent"] is True
+    assert revoked["agreedAt"] == legacy["agreedAt"]
+    assert client.get("/api/me").json()["terms"]["arActivityConsent"] is False
+    assert client.post(
+        "/api/me/service-consents", json={"kind": "arActivity", "enabled": True}
+    ).json()["arActivityConsent"]
 
 
 def test_outdated_or_missing_terms_versions_are_rejected():

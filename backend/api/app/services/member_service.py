@@ -10,17 +10,25 @@ from app.core.config import get_settings
 from app.core.db import get_session
 from app.core.errors import ApiError
 from app.repositories.member_repository import MemberRepository
-from app.schemas.member import MemberRecord, MeResponse, SkinAccess, TermsStatus
+from app.schemas.member import ConsentKind, MemberRecord, MeResponse, SkinAccess, TermsStatus
 
 # Same value as TERMS_VERSION in the app's constants/legal.ts. Bump both when the terms change.
-TERMS_VERSION = "2026-10-30"
+TERMS_VERSION = "2026-11-25"
 
 
 class MemberStore(Protocol):
     async def get(self, member_id: str) -> MemberRecord | None: ...
     async def save_terms(
-        self, member_id: str, version: str, agreed_at: datetime
+        self,
+        member_id: str,
+        version: str,
+        agreed_at: datetime,
+        ar_consent: bool | None,
+        camera_consent: bool | None,
     ) -> MemberRecord: ...
+    async def set_consent(
+        self, member_id: str, kind: ConsentKind, enabled: bool
+    ) -> MemberRecord | None: ...
     async def claim_first_ar_visit(self, member_id: str) -> bool: ...
     async def complete_analysis(self, member_id: str, run_id: str) -> MemberRecord | None: ...
     async def set_skin_subscription(
@@ -44,6 +52,8 @@ def _skin_access(member: MemberRecord | None) -> SkinAccess:
 def _terms(member: MemberRecord | None) -> TermsStatus:
     return TermsStatus(
         version=TERMS_VERSION,
+        camera_features_consent=member.camera_features_consent if member else None,
+        ar_activity_consent=bool(member and member.ar_activity_consented_at),
         agreed_version=member.terms_version if member else None,
         agreed_at=member.terms_agreed_at if member else None,
     )
@@ -78,10 +88,26 @@ class MemberService:
             raise ApiError(409, "Agree to the terms first", "terms_required")
         return _skin_access(member)
 
-    async def agree_terms(self, user: AuthUser, version: str) -> TermsStatus:
+    async def agree_terms(
+        self,
+        user: AuthUser,
+        version: str,
+        ar_consent: bool | None = None,
+        camera_consent: bool | None = None,
+    ) -> TermsStatus:
         if version != TERMS_VERSION:
             raise ApiError(409, "The terms have changed", "terms_outdated")
-        return _terms(await self._members.save_terms(user.id, version, datetime.now(UTC)))
+        return _terms(
+            await self._members.save_terms(
+                user.id, version, datetime.now(UTC), ar_consent, camera_consent
+            )
+        )
+
+    async def set_consent(self, user: AuthUser, kind: ConsentKind, enabled: bool) -> TermsStatus:
+        member = await self._members.set_consent(user.id, kind, enabled)
+        if member is None:
+            raise ApiError(409, "Agree to the terms first", "terms_required")
+        return _terms(member)
 
     async def delete_account(self, user: AuthUser) -> None:
         """Deletes the Supabase account first, so a failure leaves everything in place to retry.

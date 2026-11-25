@@ -44,7 +44,7 @@ jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key, lang
 jest.mock('@/hooks/useArRouteSelection', () => ({ useArRouteSelection: () => ({ product: {} }) }));
 jest.mock('@/lib/queries', () => {
   const products = (require('@/lib/devCatalog/oyCatalog.json') as { products: Product[] }).products;
-  return { useTryOnProducts: () => ({ data: products.filter((p) => p.id === 'oy-a000000120880' || p.makeupZone === 'blush').slice(0, 1000) }) };
+  return { useMe: () => ({ data: undefined, isPending: false }), useTryOnProducts: () => ({ data: products.filter((p) => p.id === 'oy-a000000120880' || p.makeupZone === 'blush').slice(0, 1000) }) };
 });
 
 jest.mock('@/lib/api', () => ({ apiPostOwned: jest.fn(), subscribeArIdentityChange: () => () => {} }));

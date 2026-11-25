@@ -69,9 +69,6 @@ class PaymentService:
         )
         self._inventory = inventory
 
-    def _ar_terms(self, user_id: str) -> str | None:
-        return TERMS_VERSION if user_id in self._settings.ar_activity_consented_members else None
-
     def _skincare_feedback(self, user_id: str) -> bool:
         return user_id in self._settings.skin_recommendation_feedback_consented_members
 
@@ -110,9 +107,7 @@ class PaymentService:
                     line.cart_recommendation_event_ids[: line.quantity] for line in body.lines
                 ],
             }
-            if body.cart_visit_id
-            and self._settings.cart_recommendation_experiment
-            and user_id in self._settings.ar_activity_enrolled_members
+            if body.cart_visit_id and self._settings.cart_recommendation_experiment
             else {}
         )
         await self._orders.create(
@@ -127,7 +122,7 @@ class PaymentService:
                 lines=lines,
             ),
             ar_cart_events=[line.ar_cart_event_ids[: line.quantity] for line in body.lines],
-            ar_terms=self._ar_terms(user_id),
+            ar_terms=TERMS_VERSION,
             skincare_cart_events=[
                 line.skincare_cart_event_ids[: line.quantity] for line in body.lines
             ]
@@ -188,7 +183,7 @@ class PaymentService:
         await self._orders.mark_paid(
             order,
             body.payment_key,
-            ar_terms=self._ar_terms(order.user_id),
+            ar_terms=TERMS_VERSION,
             skincare_feedback=self._skincare_feedback(order.user_id),
         )
         return PaymentResult(

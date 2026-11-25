@@ -42,7 +42,7 @@ export const meQueryKey = (userId?: string) => ['me', userId] as const;
 export function useMe(userId: string | undefined) {
   return useQuery({
     queryKey: meQueryKey(userId),
-    queryFn: () => apiGet<MeResponse>('/api/me'),
+    queryFn: () => apiGet<MeResponse>('/api/me', { expectedUserId: userId }),
     enabled: !!userId,
     retry: 1,
   });

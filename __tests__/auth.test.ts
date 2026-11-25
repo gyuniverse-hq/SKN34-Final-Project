@@ -19,6 +19,13 @@ describe('sign-up input checks', () => {
 });
 
 describe('needsTermsConsent', () => {
+  it('asks existing members once and accepts either answer to the optional choices', () => {
+    const current = { version: 'v2', agreedVersion: 'v2', agreedAt: '2026-11-25', arActivityConsent: false };
+    expect(needsTermsConsent({ ...current, cameraFeaturesConsent: null })).toBe(true);
+    expect(needsTermsConsent({ ...current, cameraFeaturesConsent: false })).toBe(false);
+    expect(needsTermsConsent({ ...current, cameraFeaturesConsent: true })).toBe(false);
+  });
+
   it('asks until the current version is agreed', () => {
     const terms = { version: 'v2', agreedVersion: null, agreedAt: null };
     expect(needsTermsConsent(terms)).toBe(true);

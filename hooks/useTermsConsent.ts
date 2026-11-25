@@ -32,10 +32,14 @@ export function useTermsConsentGate() {
 export function useSaveTermsConsent() {
   const queryClient = useQueryClient();
   return useCallback(
-    async (userId: string) => {
-      const terms = await agreeToTerms();
+    async (userId: string, arActivityConsent: boolean | undefined, cameraFeaturesConsent: boolean) => {
+      const terms = await agreeToTerms(userId, arActivityConsent, cameraFeaturesConsent);
       await queryClient.cancelQueries({ queryKey: meQueryKey(userId) });
-      queryClient.setQueryData<MeResponse>(meQueryKey(userId), (old) => (old ? { ...old, terms } : old));
+      if (queryClient.getQueryData(meQueryKey(userId))) {
+        queryClient.setQueryData<MeResponse>(meQueryKey(userId), old => old && { ...old, terms });
+      } else {
+        await queryClient.invalidateQueries({ queryKey: meQueryKey(userId) });
+      }
     },
     [queryClient]
   );

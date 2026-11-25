@@ -79,6 +79,7 @@ import { parseFlag, parseId, productHref, recommendationsHref } from '@/lib/rout
 import { useCartStore } from '@/store/cartStore';
 import { isLipBaseCare, LIP_TEXTURE_CHIPS, lipCareKind, lipTextureChip } from '@/lib/lipCare';
 import { AR_PAINT_ZONES, arPaintMakeup, isArPaintZone, useMakeupStore } from '@/store/makeupStore';
+import { useMemberCameraConsent } from '@/hooks/useMemberCameraConsent';
 import { useSettingsStore } from '@/store/settingsStore';
 import type { HighlightFace, MakeupZone, Product, Shade, Texture } from '@/types';
 
@@ -148,7 +149,9 @@ export default function ArTryOnScreen() {
   const { t, language } = useI18n();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const dockBottom = Math.max(24, insets.bottom);
-  const cameraConsent = useSettingsStore((s) => s.cameraConsent);
+  const cameraChoice = useMemberCameraConsent();
+  const guestCameraConsent = useSettingsStore((s) => s.cameraConsent);
+  const cameraConsent = cameraChoice.member ? cameraChoice.granted : guestCameraConsent;
   const setCameraConsent = useSettingsStore((s) => s.setCameraConsent);
   const [permission, requestPermission] = useCameraPermissions();
   const cameraActive = useCameraActive();
@@ -444,8 +447,18 @@ export default function ArTryOnScreen() {
     setDraft('');
   };
 
+  // A member who consented at signup only needs the operating system permission.
+  const requestedPermission = useRef(false);
+  useEffect(() => {
+    if (!cameraActive) requestedPermission.current = false;
+    if (isWeb || !cameraActive || !cameraChoice.granted || permission?.status !== 'undetermined' || requestedPermission.current) return;
+    requestedPermission.current = true;
+    void requestPermission().catch(() => {});
+  }, [cameraActive, cameraChoice.granted, isWeb, permission?.status, requestPermission]);
+
   const onAllow = async () => {
-    setCameraConsent(true);
+    if (cameraChoice.member && !cameraChoice.granted) return router.push('/settings');
+    if (!cameraChoice.member) setCameraConsent(true);
     setSwatchOnly(false);
     if (!isWeb && !permission?.granted) await requestPermission();
   };
@@ -656,7 +669,9 @@ export default function ArTryOnScreen() {
   };
 
   let stage: ReactNode;
-  if (swatchOnly) {
+  if (cameraChoice.loading) {
+    stage = <ActivityIndicator color={theme.colors.rose} />;
+  } else if (swatchOnly) {
     stage = (
       <View style={styles.fill}>
         <SwatchFallback message={t('ar.swatchOnly')} />
@@ -670,13 +685,13 @@ export default function ArTryOnScreen() {
       <ScrollView contentContainerStyle={styles.consent}>
         <Ionicons name="scan-circle-outline" size={52} color={theme.colors.rose} />
         <Text style={styles.consentTitle}>{t('ar.consentTitle')}</Text>
-        {(['ar.consentPoint1', 'ar.consentPoint2', 'ar.consentPoint3'] as const).map((key) => (
+        {!cameraChoice.member && (['ar.consentPoint1', 'ar.consentPoint2', 'ar.consentPoint3'] as const).map((key) => (
           <View key={key} style={styles.point}>
             <Ionicons name="shield-checkmark-outline" size={18} color={theme.colors.success} />
             <Text style={styles.pointText}>{t(key)}</Text>
           </View>
         ))}
-        <Button label={t('ar.allowCamera')} icon="camera-outline" onPress={onAllow} style={styles.consentBtn} />
+        <Button label={t(cameraChoice.member && !cameraChoice.granted ? 'consent.manage' : 'ar.allowCamera')} icon="camera-outline" onPress={onAllow} style={styles.consentBtn} />
         <Button label={t('ar.withoutCamera')} variant="ghost" onPress={() => setSwatchOnly(true)} />
       </ScrollView>
     );

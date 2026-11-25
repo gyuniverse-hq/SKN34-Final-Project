@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -107,9 +109,24 @@ class FakeMembers:
     async def get(self, member_id):
         return self.rows.get(member_id)
 
-    async def save_terms(self, member_id, version, agreed_at):
-        row = MemberRecord(id=member_id, terms_version=version, terms_agreed_at=agreed_at)
+    async def save_terms(self, member_id, version, agreed_at, ar_consent=None, camera_consent=None):
+        row = self.rows.get(member_id) or MemberRecord(
+            id=member_id, terms_version=version, terms_agreed_at=agreed_at
+        )
+        row.terms_version, row.terms_agreed_at = version, agreed_at
+        if camera_consent is not None:
+            row.camera_features_consent = camera_consent
+        if ar_consent is not None:
+            row.ar_activity_consented_at = agreed_at if ar_consent else None
         self.rows[member_id] = row
+        return row
+
+    async def set_consent(self, member_id, kind, enabled):
+        row = self.rows.get(member_id)
+        if row and kind == "cameraFeatures":
+            row.camera_features_consent = enabled
+        elif row:
+            row.ar_activity_consented_at = datetime.now(UTC) if enabled else None
         return row
 
     async def delete(self, member_id):

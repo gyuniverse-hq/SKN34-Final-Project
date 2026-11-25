@@ -5,6 +5,7 @@ from app.schemas.member import (
     AgreeTermsRequest,
     CompleteAnalysisRequest,
     MeResponse,
+    ServiceConsentRequest,
     SkinAccess,
     TermsStatus,
 )
@@ -60,7 +61,18 @@ async def agree_terms(
     user: AuthUser = Depends(require_user),
     service: MemberService = Depends(get_member_service),
 ) -> TermsStatus:
-    return await service.agree_terms(user, body.version)
+    return await service.agree_terms(
+        user, body.version, body.ar_activity_consent, body.camera_features_consent
+    )
+
+
+@router.post("/me/service-consents", response_model=TermsStatus)
+async def set_consent(
+    body: ServiceConsentRequest,
+    user: AuthUser = Depends(require_user),
+    service: MemberService = Depends(get_member_service),
+) -> TermsStatus:
+    return await service.set_consent(user, body.kind, body.enabled)
 
 
 @router.delete("/me", status_code=204)

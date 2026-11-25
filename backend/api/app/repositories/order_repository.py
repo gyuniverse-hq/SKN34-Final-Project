@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased, selectinload
@@ -69,7 +69,9 @@ class OrderRepository:
             .where(
                 visit.id == visit_id,
                 visit.member_id == order.user_id,
+                MemberRow.skin_subscription_until > func.now(),
                 MemberRow.terms_version == terms,
+                MemberRow.ar_activity_consented_at.is_not(None),
             )
             .with_for_update(read=True, key_share=True)
         )
@@ -106,6 +108,7 @@ class OrderRepository:
             .join(MemberRow, MemberRow.id == ArActivityEventRow.member_id)
             .where(
                 MemberRow.terms_version == terms,
+                MemberRow.ar_activity_consented_at.is_not(None),
                 ArActivityEventRow.member_id == order.user_id,
                 ArActivityEventRow.event_id.in_(ids),
                 ArActivityEventRow.event_type == "cart_add",
@@ -261,6 +264,7 @@ class OrderRepository:
                 OrderLineRow.order_id == order.id,
                 UserBehaviorEventRow.member_id == order.user_id,
                 MemberRow.terms_version == terms,
+                MemberRow.ar_activity_consented_at.is_not(None),
                 UserBehaviorEventRow.event_type == "cart_add",
                 UserBehaviorEventRow.event_source == "server",
                 UserBehaviorEventRow.surface == AR_CHECKOUT_SURFACE,
