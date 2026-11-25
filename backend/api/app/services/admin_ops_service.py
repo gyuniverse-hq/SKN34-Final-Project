@@ -37,8 +37,7 @@ class AdminOpsService:
         return {
             "arPaletteMode": self.settings.ar_palette_mode,
             "arPaletteExperiment": self.settings.ar_palette_experiment or None,
-            "cartRecommendationExperiment": self.settings.cart_recommendation_experiment
-            or None,
+            "cartRecommendationExperiment": self.settings.cart_recommendation_experiment or None,
             "counts": {
                 "recommendationImpressions": int(impressions or 0),
                 "skincareEvents": int(skincare_events or 0),
@@ -83,8 +82,7 @@ class AdminOpsService:
             "lipEvalDir": str(lip),
             "lipEvalDirExists": lip_exists,
             "llmConfigured": bool(
-                self.settings.llm_api_key
-                and (self.settings.llm_model or self.settings.astra_model)
+                self.settings.llm_api_key and (self.settings.llm_model or self.settings.astra_model)
             ),
             "chatbotBaseUrl": self.settings.chatbot_base_url,
             "corsOriginCount": len(self.settings.cors_origins),

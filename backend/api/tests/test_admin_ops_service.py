@@ -31,9 +31,7 @@ async def test_system_reports_lip_dir_and_admin_flag(tmp_path: Path):
         cors_origins=["http://127.0.0.1:5173"],
     )
     session = AsyncMock()
-    session.execute = AsyncMock(
-        return_value=MagicMock(scalar=MagicMock(return_value="0036"))
-    )
+    session.execute = AsyncMock(return_value=MagicMock(scalar=MagicMock(return_value="0036")))
     service = AdminOpsService(session, settings)
     result = await service.system()
     assert result["adminEnabled"] is True
