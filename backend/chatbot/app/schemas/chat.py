@@ -177,6 +177,7 @@ class PendingClarification(ArModel):
 class ChatRequest(ApiModel):
     structured_memory: bool = Field(default=False, strict=True, exclude_if=lambda value: not value)
     _server_history: bool = PrivateAttr(default=False)
+    _historical_product_ids: tuple[str, ...] = PrivateAttr(default=())
     _g7_execution: object | None = PrivateAttr(default=None)
     _consented_memories: list[str] = PrivateAttr(default_factory=list)
     _consultation_memories: tuple[ConsultationMemory, ...] | None = PrivateAttr(default=None)

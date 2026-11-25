@@ -25,7 +25,12 @@ export type ServerConversationSummary = {
 export type ServerConversationDetail = Omit<ServerConversationSummary, 'updatedAt' | 'listSummary'> & {
   updatedAt?: string;
   context: {
-    product?: { selectedProductId?: string | null; selectedShadeId?: string | null } | null;
+    product?: {
+      selectedProductId?: string | null;
+      selectedShadeId?: string | null;
+      historicalCandidateRefs?: string[];
+      filters?: Pick<BeautyChatContext['filters'], 'optionSearch'>;
+    } | null;
     style?: (ChatStyleContext & { conditions?: ChatStyleCondition[] }) | null;
     styleConditions?: ChatStyleCondition[];
   };

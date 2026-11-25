@@ -533,6 +533,51 @@ def test_checkpoint_failure_does_not_commit_reply(api, monkeypatch):
     assert detail["conversationVersion"] == 0 and detail["messages"] == []
 
 
+def test_restored_product_price_revalidates_the_server_candidates(api, monkeypatch):
+    client, _ = api
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", True)
+    llm = PlanLlm(intent="search", category="lip")
+    catalog = SessionCatalog()
+    service = ChatService(None, llm, catalog, sessions=ChatSessionRepository(RedisDouble()))
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    room = create(client)[0]["conversationId"]
+    body = {"conversationId": room, "locale": "ko"}
+    first = client.post(
+        "/api/chat",
+        headers=AUTH,
+        json={
+            **body,
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": 0,
+            "message": "립 추천해줘",
+        },
+    )
+    assert first.status_code == 200, first.text
+    expected = first.json()["products"][1]
+    refreshed_price = 9_777
+    next(
+        product for product in catalog.products if product.id == expected["id"]
+    ).price_krw = refreshed_price
+    detail = client.get(f"/api/chat/conversations/{room}", headers=AUTH)
+    assert '"sessionToken"' not in detail.text
+
+    llm.plan = {"intent": "detail", "scope": "previous", "ordinal": 2}
+    followup = client.post(
+        "/api/chat",
+        headers=AUTH,
+        json={
+            **body,
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": 1,
+            "message": "두 번째 제품 가격을 자세히 알려 주세요.",
+        },
+    )
+    assert followup.status_code == 200, followup.text
+    assert [item["id"] for item in followup.json()["products"]] == [expected["id"]]
+    assert f"{refreshed_price:,}" in followup.json()["answer"]
+    assert not followup.json().get("chatContext")
+
+
 @pytest.mark.skipif(
     not os.environ.get("TEST_CATALOG_API_URL") or not os.environ.get("TEST_CHAT_REDIS_URL"),
     reason="real Catalog and disposable Redis are not configured",

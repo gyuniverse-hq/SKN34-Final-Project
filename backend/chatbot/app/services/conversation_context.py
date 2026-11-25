@@ -180,6 +180,8 @@ def prepare_request(
         },
     )
     result._server_history = True
+    if context.product and beauty and not beauty.filters.option_search:
+        result._historical_product_ids = tuple(context.product.historical_candidate_refs)
     return result
 
 

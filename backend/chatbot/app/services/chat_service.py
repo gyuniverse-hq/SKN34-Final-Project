@@ -96,6 +96,35 @@ _WORD = re.compile(r"[\w가-힣ぁ-んァ-ン一-龥]{2,}")
 # Route explicit G2 filter requests through the richer interpreter, not G1's first-search args.
 _G2_FILTER = re.compile(r"매트|matte|제형|지속력|워터프루프|waterproof|글로시|벨벳|새틴", re.I)
 _FILTER_CHANGE = re.compile(r"바꿔|바꾸|변경|조건|추천|찾아|골라|유지|빼|제외|말고")
+_RESTORED_PRICE = re.compile(
+    r"(?:\b([1-6])|(첫|두|세|네|다섯|여섯))\s*번(?:째)?\s*(?:제품|상품)\s*(?:의\s*)?(?:가격|얼마)"
+)
+_KOREAN_ORDINALS = ("첫", "두", "세", "네", "다섯", "여섯")
+
+
+def _restored_price_ordinal(request: ChatRequest, plan: SearchPlan) -> bool:
+    references = _RESTORED_PRICE.findall(request.message)
+    if (
+        request.locale != "ko"
+        or len(references) != 1
+        or not request._historical_product_ids
+        or request.style_context
+        or request.screen_context
+        or plan.intent not in {"price", "detail"}
+        or plan.ordinal is None
+        or plan.query is not None
+        or plan.selection
+        or plan.compare_ordinals
+        or plan.ingredient_lookup
+        or plan.ingredient_name
+        or plan.ingredient_conditions
+        or plan.unsupported_conditions
+        or plan.price_basis not in {None, "catalog_reference"}
+    ):
+        return False
+    digit, word = references[0]
+    ordinal = int(digit) if digit else _KOREAN_ORDINALS.index(word) + 1
+    return ordinal == plan.ordinal <= len(request._historical_product_ids)
 
 
 def _g5_enabled() -> bool:
@@ -1310,6 +1339,33 @@ class ChatService:
                 slots.intent = "search"
                 slots.scope = "catalog"
         comparing = direct_comparison(req, slots)
+        restored_price = (
+            state is None
+            and ref is None
+            and load_error is None
+            and not comparing
+            and _restored_price_ordinal(req, slots)
+        )
+        if restored_price:
+            # Historical order identifies the referenced card. Catalog verifies the products anew.
+            req.chat_context = BeautyContext(
+                issued_at=int(time.time()),
+                filters=BeautyFilters(),
+                candidate_ids=list(req._historical_product_ids),
+            )
+            try:
+                await self._validate_session_context(req.chat_context, None, None)
+            except UpstreamError as exc:
+                raise ApiError(502, "Catalog validation failed", "upstream_error") from exc
+            except ApiError as exc:
+                if exc.code == "chat_catalog_changed":
+                    raise ApiError(
+                        409, "Historical candidates changed; search again", "chat_session_required"
+                    ) from exc
+                raise
+            slots = decision.slots = SearchPlan(
+                intent="price", scope="previous", ordinal=slots.ordinal
+            )
         independent = (
             slots.intent == "general"
             or (comparing and req.screen_context and req.screen_context.product_id)
@@ -1343,7 +1399,7 @@ class ChatService:
                 products=[],
                 result_type="clarification",
             )
-        if not state and not independent:
+        if not state and not independent and not restored_price:
             if load_error:
                 raise load_error
             if repo.client is None:
@@ -1428,6 +1484,10 @@ class ChatService:
             request_id=request_id,
             model_turn=model_turn,
         )
+        if restored_price:
+            # A historical card lookup does not create a new search capability.
+            response.chat_context = None
+            return response
         result = response.supervisor.result
         if unsupported or pending_ambiguous:
             response.result_type = "clarification"

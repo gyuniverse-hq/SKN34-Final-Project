@@ -370,6 +370,10 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
         ...item.displayPayload, id: item.id, role: item.role, text: item.text,
         ownerKey, generation: room.generation,
       }));
+      if (messages.some(message => message.products?.length) &&
+          (!product?.historicalCandidateRefs?.length || product.filters?.optionSearch)) {
+        room.notice = 'chat.session.newSearchHint';
+      }
       const updatedAt = Date.parse(detail.updatedAt ?? '');
       const record = { conversation: room, messages, view: readConversationView(room), listSummary: existing.listSummary,
         updatedAt: Number.isFinite(updatedAt) ? Math.max(updatedAt, existing.updatedAt) : existing.updatedAt };

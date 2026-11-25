@@ -31,11 +31,12 @@ it('loads a server room, restores selected state, and loads earlier messages', a
   expect(current.hasMore).toBe(true);
   expect(useChatConversationStore.getState().conversations.room.conversation.serverSummary).toBe(true);
   request.mockResolvedValueOnce({ conversationId: 'room', conversationVersion: 2, subject: { type: 'general' },
-    context: { product: { selectedProductId: 'p1', selectedShadeId: 's1' }, style: {
+    context: { product: { selectedProductId: 'p1', selectedShadeId: 's1',
+      historicalCandidateRefs: ['p1'], filters: { optionSearch: true } }, style: {
       kind: 'catalog', lookId: 'look1', recipeId: 'recipe1', recipeVersion: 'v1', currentStep: 1,
       conditions: [{ slot: 'color', value: 'coral' }], historicalCandidateRefs: [{ kind: 'catalog', lookId: 'look1' }],
     } },
-    messages: [{ id: 'm2', role: 'assistant', text: 'answer', displayPayload: { products: [] } }], nextMessageCursor: 10 });
+    messages: [{ id: 'm2', role: 'assistant', text: 'answer', displayPayload: { products: [{ id: 'p1' }] } }], nextMessageCursor: 10 });
   await act(async () => { expect(await current.open('room')).toBe('room'); });
   let room = useChatConversationStore.getState().conversations.room;
   expect(room.view.linkedProduct).toMatchObject({ productId: 'p1', shadeId: 's1' });
@@ -44,6 +45,7 @@ it('loads a server room, restores selected state, and loads earlier messages', a
   expect(room.conversation.styleConditions).toEqual([{ slot: 'color', value: 'coral' }]);
   expect(room.messages.map((message) => message.text)).toEqual(['answer']);
   expect(room.conversation.beautyContext?.session).toBeUndefined();
+  expect(room.view.notice).toBe('chat.session.newSearchHint');
   request.mockResolvedValueOnce({ conversationId: 'room', messages: [{ id: 'm1', role: 'user', text: 'question' }], nextMessageCursor: null });
   await act(async () => { await current.older('room'); });
   room = useChatConversationStore.getState().conversations.room;
