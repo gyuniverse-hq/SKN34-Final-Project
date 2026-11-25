@@ -832,17 +832,18 @@ function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload
           response.conversation.persistenceStatus !== 'stored' || !Number.isSafeInteger(response.conversation.version))) {
         throw new ApiError('Invalid conversation response', 502, 'invalid_response');
       }
-      if (recoveryMarker) {
-        void AsyncStorage.removeItem(recoveryMarker).catch(() => {});
-        recoveryMarker = undefined;
-      }
       if (response.styleStatus === 'error') throw new ApiError(response.answer, 502, 'style_search_unavailable');
       const expectedStyle = snapshot.args.styleContext;
       const actualRecipe = response.styleRecipe;
       if (actualRecipe && (!expectedStyle || actualRecipe.kind !== expectedStyle.kind || actualRecipe.lookId !== expectedStyle.lookId)) {
         throw new ApiError('Recipe does not match the requested look', 502);
       }
-      store().completeRequest(ticket, response, comparisonTarget && lastReply?.question ? lastReply.question : text);
+      const applied = store().completeRequest(
+        ticket, response, comparisonTarget && lastReply?.question ? lastReply.question : text,
+      );
+      if (recoveryMarker && applied) {
+        void AsyncStorage.removeItem(recoveryMarker).catch(() => {});
+      }
     } catch (error) {
       const api = error instanceof ApiError ? error : undefined;
       if (recoveryMarker) {

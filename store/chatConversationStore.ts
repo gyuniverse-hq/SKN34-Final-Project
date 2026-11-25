@@ -169,7 +169,7 @@ type ChatStore = {
   beginRequest: (target: ConversationTarget, snapshot: ChatRequestSnapshot, retryId?: string) => ChatRequestTicket | undefined;
   beginRequestRecovery: (target: Readonly<ChatConversationState>, requestId: string, ticket?: ChatRequestTicket) => Readonly<ChatConversationState> | undefined;
   finishRequestRecovery: (expected: Readonly<ChatConversationState>, status: RequestRecoveryStatus | 'dismissed') => boolean;
-  completeRequest: (ticket: ChatRequestTicket, response: ChatResponse, question: string) => void;
+  completeRequest: (ticket: ChatRequestTicket, response: ChatResponse, question: string) => boolean;
   failRequest: (ticket: ChatRequestTicket, key: TranslationKey, fatal: boolean, ownerError: boolean, clarificationConflict?: boolean) => void;
 };
 
@@ -612,7 +612,9 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
       });
       return applied;
     },
-    completeRequest: (ticket, response, question) => { change(ticket, (room, record) => {
+    completeRequest: (ticket, response, question) => {
+      let applied = false;
+      change(ticket, (room, record) => {
         if (!matches(room, ticket)) return false;
         if (room.serverId && response.conversation) {
           if (response.conversation.id !== room.serverId) return false;
@@ -701,7 +703,10 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
           ];
         })(record.messages);
         room.request = undefined;
-    }); },
+        applied = true;
+      });
+      return applied;
+    },
     failRequest: (ticket, errorKey, fatal, ownerError, clarificationConflict = false) => { change(ticket, (room, record) => {
       if (!matches(room, ticket)) return false;
       const { messageId } = ticket;

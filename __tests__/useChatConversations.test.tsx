@@ -396,14 +396,18 @@ it('rechecks a restored pending request and only finishes recovery with a curren
   expect(useChatConversationStore.getState().conversations.room.conversation.requestRecovery?.status).toBe('unconfirmed');
   expect(await AsyncStorage.getItem(marker)).toBe('1');
 
-  request.mockResolvedValueOnce(committed).mockResolvedValueOnce({ ...detail('room', 3),
-    messages: [{ id: 'complete', role: 'assistant', text: 'Committed answer' }] });
-  await act(async () => { await current.recover('room'); });
+  const beforeRefresh = request.mock.calls.length;
+  request.mockImplementation(async (path) => {
+    if (path === '/api/chat/conversations') return page('room');
+    if (path === statusPath) return committed;
+    return { ...detail('room', 3), messages: [{ id: 'complete', role: 'assistant', text: 'Committed answer' }] };
+  });
+  await act(async () => { await current.refresh('room'); });
   const room = useChatConversationStore.getState().conversations.room;
   expect(room.conversation.requestRecovery).toBeUndefined();
   expect(room.messages.map(({ text }) => text)).toEqual(['Committed answer']);
   expect(await AsyncStorage.getItem(marker)).toBeNull();
-  expect(request.mock.calls.every(([, method]) => method === 'GET')).toBe(true);
+  expect(request.mock.calls.slice(beforeRefresh).map(([, method]) => method)).toEqual(['GET', 'GET', 'GET']);
   await act(async () => view.unmount());
 });
 

@@ -165,8 +165,13 @@ export function useChatConversations(userId: string | null, ownerKey?: string) {
     if (!room.serverId) return id;
     const refreshes = refreshing.current;
     if (!current() || (mode === 'select' && reading.current) ||
-        (mode === 'refresh' && (room.request || isRequestRecoveryPending(room.requestRecovery) ||
-          reading.current || refreshes.has(room.serverId)))) return;
+        (mode === 'refresh' && (room.request || reading.current || refreshes.has(room.serverId)))) return;
+    if (mode === 'refresh' && isRequestRecoveryPending(room.requestRecovery)) {
+      if (room.requestRecovery?.status === 'in_progress' || room.requestRecovery?.status === 'unconfirmed') {
+        await recover(id, undefined, stillSelected);
+      }
+      return;
+    }
     if (mode === 'select') {
       reading.current = true;
       updateStatus({ detailLoading: true, detailError: false });
@@ -179,7 +184,7 @@ export function useChatConversations(userId: string | null, ownerKey?: string) {
       if (!current() || (stillSelected && !stillSelected()) || detail.conversationId !== room.serverId) return;
       const opened = useChatConversationStore.getState().restoreServerRoom(room, detail, room.generation,
         mode === 'reload' || (mode === 'select' && room.notice === 'chat.session.conflict'));
-      if (mode === 'select' && opened) await recover(opened, undefined, stillSelected);
+      if (mode !== 'reload' && opened) await recover(opened, undefined, stillSelected);
       if (current() && (!stillSelected || stillSelected())) return opened;
     } catch (err) {
       if (!current() || (stillSelected && !stillSelected())) return;
