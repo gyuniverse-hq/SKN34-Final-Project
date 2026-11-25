@@ -69,6 +69,7 @@ _SHOP = re.compile(r"제품|상품|추천|찾아|골라|살\s*만|구매|살\s*�
 _ACTION = re.compile(
     r"기억해|저장해|삭제해|적용해|발라줘|발라\s*줘|장바구니|AR\s*(?:해|켜|적용)", re.I
 )
+EXECUTION_REQUEST = re.compile(r"발라|적용해|설정해|조절해|apply|set .*intensity|塗って|涂上", re.I)
 _CONDITION_CHANGE = re.compile(
     r"(?:검색\s*조건|성분\s*조건|지식\s*조건|제외\s*조건|추천\s*조건|조건)"
     r"(?:을|를|은|는|만)?\s*(?:(?:전체|모두|다시|전부)\s*)*"
@@ -82,6 +83,7 @@ def is_search_condition_change(message):
         _CONDITION_CHANGE.search(message)
         and not re.search(r"기억|저장|장바구니|\bAR\b|가상\s*메이크업", message, re.I)
         and not _ACTION.search(_CONDITION_CHANGE.sub("", message))
+        and not EXECUTION_REQUEST.search(_CONDITION_CHANGE.sub("", message))
     )
 
 
@@ -96,7 +98,10 @@ def may_plan(req, *, previous=False):
             or req.style_search
             or req.screen_context
             or req.clarification_id
-            or (_ACTION.search(req.message) and not is_search_condition_change(req.message))
+            or (
+                (_ACTION.search(req.message) or EXECUTION_REQUEST.search(req.message))
+                and not is_search_condition_change(req.message)
+            )
         )
         and (
             previous

@@ -372,7 +372,7 @@ def route_intent(context: ResolvedContext) -> IntentDecision:
     """Conservative routing hints; dedicated AR parsing still validates execution intent."""
     text = context.message.casefold()
     shopping = _SHOPPING.search(text)
-    execution = re.search(r"발라|적용해|설정해|조절해|apply|set .*intensity|塗って|涂上", text)
+    execution = compound_graph.EXECUTION_REQUEST.search(text)
     intent = "general"
     if shopping and execution and not (
         get_settings().g8_enabled

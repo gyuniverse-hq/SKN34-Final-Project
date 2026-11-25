@@ -857,6 +857,41 @@ def test_condition_routing_preserves_g8_disabled_contract(monkeypatch):
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("execution", ["얼굴에 발라", "강도를 조절해줘", "립 색도 설정해줘"])
+async def test_mixed_execution_uses_existing_chat_path(
+    monkeypatch, connections, execution, record_property
+):
+    from app.services.chat_service import resolve_context, route_intent
+
+    api, skincare, catalog = connections
+    message = "검색 조건을 다시 적용해서 제품 추천하고 " + execution
+    planner = Planner()
+    planner.complete_with_tools = AsyncMock(side_effect=AssertionError("Must not plan G8"))
+    outputs = []
+    for enabled in (False, True):
+        monkeypatch.setattr(get_settings(), "g8_enabled", enabled)
+        req = ChatRequest(message=message, locale="ko")
+        assert route_intent(resolve_context(req)).intent == "compound"
+        assert not graph.may_plan(req, previous=True)
+        response = await ChatService(None, planner, catalog, skincare=skincare).answer(req)
+        assert response.compound is None and response.ar_result is None
+        outputs.append(response.model_dump(mode="json"))
+    assert outputs[0] == outputs[1]
+    assert api.calls == []
+    planner.complete_with_tools.assert_not_awaited()
+    record_property(
+        "mixed_execution",
+        {
+            "input": message,
+            "response": outputs[1],
+            "g8OffEqualsOn": True,
+            "modelConfiguredMode": "mock",
+            "actualRemoteModelCalls": 0,
+        },
+    )
+
+
+@pytest.mark.anyio
 async def test_original_n01_requests_situation_before_inventing_goal(
     monkeypatch, connections, record_property
 ):

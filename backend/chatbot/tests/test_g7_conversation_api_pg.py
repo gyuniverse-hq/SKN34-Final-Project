@@ -1490,3 +1490,106 @@ def test_n01_condition_provenance_survives_pg_followups(api, monkeypatch, record
         )
     assert consult.await_count == extractor.calls == 3
     record_property("n01_followup_turns", observations)
+
+
+@pytest.mark.parametrize("g1_enabled", [False, True])
+def test_original_n01_pg_restores_clarification_without_client_history(
+    api, monkeypatch, record_property, g1_enabled
+):
+    client, _ = api
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", g1_enabled)
+    first = "오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘"
+    question = "당김·각질이 있나요, 유분 때문에 뭉치나요? 기초와 베이스도 알려주세요."
+    followup = "각질과 당김이 있어. 로션과 쿠션을 써. 예산은 2만 원이고 향료는 제외해 줘."
+    consult = skin_case.install_knowledge(monkeypatch)
+    downstream = skin_case.SkinApi()
+    original = httpx.AsyncClient
+    monkeypatch.setattr(
+        httpx, "AsyncClient", lambda **kw: original(transport=httpx.MockTransport(downstream), **kw)
+    )
+
+    class Planner(skin_case.Planner):
+        calls = 0
+        restored = []
+
+        async def complete_with_tools(self, messages, tools, *, required_tool=None):
+            self.calls += 1
+            response, ms = await super().complete_with_tools(
+                messages, tools, required_tool=required_tool
+            )
+            if required_tool == "plan_skin_consultation":
+                data = json.loads(messages[-1]["content"])
+                f = response["choices"][0]["message"]["tool_calls"][0]["function"]
+                if data["utterance"] == first:
+                    plan = {"action": "clarify", "question": question}
+                else:
+                    assert data["utterance"] == followup
+                    self.restored = [(m["role"], m["text"]) for m in data["recentMessages"]]
+                    assert ("user", first) in self.restored
+                    assert ("assistant", question) in self.restored
+                    plan = json.loads(f["arguments"])
+                    plan["goal"]["goals"] = ["dryness"]
+                    plan["question"] = first + " / " + followup
+                f["arguments"] = json.dumps(plan)
+            return response, ms
+
+    planner = Planner()
+    chat = ChatService(
+        None,
+        planner,
+        CatalogClient("https://api.test"),
+        skincare=SkincareRecommendationTool(SkincareRecommendationClient("https://api.test")),
+    )
+    client.app.dependency_overrides[get_chat_service] = lambda: chat
+    room = create(client)[0]["conversationId"]
+    observations = []
+    for version, message in enumerate([first, followup], 1):
+        payload = {
+            "conversationId": room,
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": version - 1,
+            "message": message,
+            "locale": "ko",
+        }
+        assert "recentMessages" not in payload
+        response = client.post("/api/chat", headers=AUTH, json=payload)
+        assert response.status_code == 200, response.text
+        body = response.json()
+        if version == 1:
+            assert body["resultType"] == "clarification" and body["answer"] == question
+            assert body["products"] == [] and not body.get("compound")
+            assert downstream.calls == [] and consult.await_count == 0
+        else:
+            consult.assert_awaited_once_with(first + " / " + followup)
+            assert body["compound"]["goal"]["goals"] == ["dryness"]
+            assert body["compound"]["options"][8]["outcome"] == "eligible"
+        counts = (planner.calls, consult.await_count, len(downstream.calls))
+        replay = client.post("/api/chat", headers=AUTH, json=payload)
+        assert replay.status_code == 200
+        assert replay.json()["answer"] == body["answer"]
+        assert replay.json().get("compound") == body.get("compound")
+        assert counts == (planner.calls, consult.await_count, len(downstream.calls))
+        observations.append(
+            {
+                "turn": version,
+                "input": message,
+                "answer": body["answer"],
+                "clientHistoryProvided": False,
+                "modelConfiguredMode": "mock",
+                "actualRemoteModelCalls": 0,
+                "postgres": "live",
+                "catalog": "mock_transport",
+                "replayAdditionalCalls": 0,
+                "mockCallsCumulative": counts,
+            }
+        )
+    record_property(
+        "original_n01_pg",
+        {
+            "g1Enabled": g1_enabled,
+            "turns": observations,
+            "serverRestoredHistory": planner.restored,
+            "toolRequests": downstream.calls,
+        },
+    )
