@@ -47,6 +47,14 @@ from app.models.knowledge import (
     AihubDocumentExtractionRow,
     AihubQuoteAlignmentRow,
 )
+from app.models.makeup_troubleshooting import (
+    MakeupTroubleshootingProblemEvidenceRow,
+    MakeupTroubleshootingProblemRow,
+    MakeupTroubleshootingReleaseRow,
+    MakeupTroubleshootingSituationEvidenceRow,
+    MakeupTroubleshootingSituationRow,
+    MakeupTroubleshootingSourceRow,
+)
 from app.models.member import MemberRow
 from app.models.order import OrderLineRow, OrderRow
 from app.models.oy_catalog_category_rule import OyCatalogCategoryRuleRow
@@ -142,6 +150,12 @@ __all__ = [
     "LookVideoTagRow",
     "LookRow",
     "MakeupLookRow",
+    "MakeupTroubleshootingProblemEvidenceRow",
+    "MakeupTroubleshootingProblemRow",
+    "MakeupTroubleshootingReleaseRow",
+    "MakeupTroubleshootingSituationEvidenceRow",
+    "MakeupTroubleshootingSituationRow",
+    "MakeupTroubleshootingSourceRow",
     "MemberRow",
     "OrderLineRow",
     "OrderRow",
