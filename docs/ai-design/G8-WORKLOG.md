@@ -332,3 +332,78 @@ Gitleaks 8.30.1 dir 검사: 변경 13개 파일 중 trace는 신규 53개만 복
 현재 위치 상세: ① 착수 설계와 ② 계약 및 ③ 첫 실행 구조는 존재하며 ④ 첫 복합 상담은 구현·부분 실제 검증 상태다. ⑤-1 N01은 지식→조건→옵션 요청·후속 저장 연결을 확인했으나 원래 들뜸 사례의 설명 근거·품질과 조건 충족 카드가 남았다. ⑤-2 N02는 보유품→검수 룩→부족 부위→정확한 상품·호수의 첫 연결만 구현했다. 일반 대체품 적합성, 후속 턴, 실제 Catalog/PG/모델 검증은 남았다. E01/B01 전체, 재계획·취소·재개도 남아 있다. ⑥ 통합 평가 및 ⑦ G8 PR 인계는 미완료다.
 
 다음 기능 순서: N02의 G7 룩 선택·동의 기억 저장/복원 실제 경로 확인 → 필요한 상품만 조회하는 실제 연결과 후속 조건 검증. 병행할 N01 근거 보완 후보는 develop의 검수된 troubleshooting/룩 태그 API이며 아직 chatbot에서 연결하지 않았다. 데이터·근거 계약을 먼저 대조한다. 로컬 API 환경 차단 2건은 통합 검증의 미해결 항목으로 유지한다. 보안 우회나 광범위 제외는 추가하지 않는다.
+
+## N02 정상 API·실제 PG 경계 검증 — 2026-11-26 13:23 KST
+
+전체: ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성(N02 첫 연결의 영속 검증)** → ⑥ 통합 검증 → ⑦ PR 인계. 기준 HEAD 09d7f02001b7cf1374af2e03523587f50ea0b24b, develop 통합 기준 f5adb4e. 사용자 승인 범위에서 test_g7_memory_api_pg.py, reports/g8/n02/trace.jsonl 및 기존 두 설계·작업 문서를 수정했다. 서비스 코드는 변경하지 않았다. 미커밋이며 push·PR 없음.
+
+새 격리 PG는 WSL vishue-g5의 /tmp/g8-n02-validation-20261126, localhost 전용 56947/vishue_chat_test다. 기존 서비스 DB와 분리해 initdb, 기존 alembic upgrade head 및 app.jobs.init_chat_checkpoints를 실행했다. 이전 임시 DB 경로 재사용은 확인되지 않아 새 환경을 사용했다. 합성 인증 verifier와 합성 상품·룩만 사용했다.
+
+검증 경로: 일반 상담 생성 → 상품/호수 선택 → 명시적 기억 요청 → 제안 승인 → 별도 일반 상담 생성 → select_look → 정상 /api/chat N02 실행 → 답변/상품/기억 참조 저장 → 동일 요청 재전송 → 소유권 차단 → 후속 턴 → 기억 사용 거부 → 룩 화면 직접 진입 경계. 이전 테스트처럼 서버 기억을 요청 객체에 직접 주입하지 않고 기존 G7 저장·복원 경로를 실행했다. 립 보유 대조 후 블러셔만 추가 조회, 위조한 클라이언트 룩 대신 서버 룩 사용, 재전송 추가 작업 0회, 다른 사용자 404를 확인했다.
+
+실행 명령: backend/chatbot에서 UV_PROJECT_ENVIRONMENT를 기존 G7 검토 venv로, TEST_CHAT_DATABASE_URL을 위 격리 DB로 지정. uv run --frozen python -c에서 WindowsSelectorEventLoopPolicy를 설정하고 pytest.main(['-q','-p','no:cacheprovider','tests/test_g8_owned_look.py','tests/test_g8_compound_consultation.py','tests/test_g7_memory_api_pg.py::test_n02_consented_inventory_selected_look_persistence_and_replay','tests/test_g7_memory_api_pg.py::test_consent_ownership_idempotency_and_redaction','--tb=short','-o','junit_family=legacy','--junitxml=<local-temp>/g8-n02-final.xml']) 실행. 13:22~13:23 KST 최종 결과 69 통과/3.14초. 시작 시각은 분 단위 관측값이다. ruff check . 및 lint-imports(3 KEPT), npm run typecheck, npm run lint 통과. 전체 앱 테스트·전체 백엔드는 이번 테스트 전용 변경에서 재실행하지 않았다.
+
+초기 준비 오류를 구분한다: 모델 금지 대역을 기억 등록 준비에도 사용해 503이 발생했고 준비 단계만 FakeLlm으로 분리했다. 이후 상품명만 요청해 shadeId가 없었으며, 실제 계약에 맞게 정확한 호수명을 입력했다. 서비스나 조건 검사를 완화하지 않았다. 최종 테스트·기존 회귀가 통과한 실행만 최종 증거다.
+
+신규 trace는 정상 경로에서 관측한 전문 작업 입력·결과·답변·상품과 소스 6개 exact-byte 해시, 미커밋 테스트 diff 해시, JUnit 해시를 포함한다. 모델 설정은 mock이며 N02 본 작업은 호출 금지 대역, 실제 외부 모델 호출은 턴별 0회다. 실제는 PostgreSQL 저장/복원이며 Catalog HTTP·실제 LLM·실기기·실사용자 인증은 NOT_RUN. g8_evidence.append_record의 Gitleaks 8.30.1·빈 ignore 검사 통과 후 새 trace에 저장했다. 기존 N01 trace는 변경하지 않았다.
+
+남은 사용자 경험: 후속 턴에서 룩·보유 기억은 복원하지만 명시적 미보유('블러셔는 없어')는 저장되지 않아 다시 묻는다. 이를 N02 후속 완성으로 처리하지 않는다. subject=look의 직접 진입은 기존 G7 정책상 보유 기억을 소비하지 않는다. 다음은 N02 미보유 조건의 출처·상태·해제·목표 변경 계약을 구현 범위로 정리하고, 실제 Catalog 환경에서 동일 연결을 검증하는 작업이다. N01의 새 troubleshooting API는 일반 지식 근거이며 상품 사실로 승격하지 않는다는 경계를 확인했으나 아직 연결하지 않았다. N01/N02 전체·E01/B01·재계획/취소/재개·⑥ 전체 평가·⑦ 인계는 미완료다.
+
+검증 종료 후 이번 전용 PG를 정상 종료했고 데이터·로그를 보존했다. 기존 서비스 DB는 변경하지 않았다.
+
+## N02 미보유 조건 구현·실제 Catalog 연결 — 2026-11-26 13:45 KST
+
+전체: ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성(N02 후속 조건)** → ⑥ 통합 검증 → ⑦ PR 인계. HEAD 09d7f02001b7cf1374af2e03523587f50ea0b24b와 통합된 develop f5adb4e 기준. 직전 미커밋 테스트·증빙을 보존하고 사용자가 승인한 후속 구현을 추가했다. commit/push/PR/배포는 하지 않았다.
+
+변경: 신규 schemas/owned_look_context.py, schemas/chat.py 및 conversation.py의 내부 전달/저장 계약, services/conversation_context.py의 복원·최종 저장·룩 변경 무효화, services/owned_look_consultation_service.py의 사용자 명시 선언 유지/변경/해제, services/consultation_memory.py의 N02 후속 기억 선택, repositories/conversation_repository.py의 ownedLook 허용 필드, tests/test_g8_owned_look.py와 test_g7_memory_api_pg.py, 기존 두 문서와 N02 trace. 새 공용 채팅 응답 필드·DB migration·외부 모델 호출은 추가하지 않았다.
+
+실제 PG 정상 경로에서 '블러셔는 없어' → 같은 조건 추천 → '블러셔는 이제 있어' → 개별 조건 해제 → 다시 미보유 → 전체 해제를 검증했다. 보유 립 대조 후 필요한 블러셔만 실제 다음 Tool 입력으로 전달되며, present/해제에서는 해당 추가 조회가 사라진다. 상품·호수 없는 present는 정확한 일치로 승격하지 않는다. 같은 요청 재전송은 추가 작업 0회, 다른 소유자는 404다. 기억 사용 거부·직접 룩 subject의 기존 제한을 유지한다. 별도 계약으로 룩 변경·선택 해제·레시피 변경·무관한 질문·질문형/인용/타인/실행 혼합을 확인했다. 일시 Catalog 실패에서도 기존 조건을 보존하고 해제를 처리한다.
+
+실제 Catalog 검증은 기존 localhost:8082의 공개 GET만 사용했다. catalog 룩 0개, 영상 룩 73개, 검수 recipe 0개를 확인했다. 정확한 룩 연결 립/호수를 찾는 최초 opt-in 사례는 데이터 부족으로 1건 SKIPPED였다. 이 상태를 통과로 바꾸지 않고 별도 검증 목적을 명시했다: 실제 립 상품/호수와 실제 영상 룩을 각각 조회하되 둘의 대체 적합성은 주장하지 않고, 정상 API+PG에서 조건 유지·변경·해제와 evidence_missing을 검증한다. 이 별도 실제 경로는 최종 성공했다. 검수된 실제 룩에서 상품 추천 카드가 나오는 양성 검증은 BLOCKED(검수 레시피/정확한 룩 상품 근거 부족)다. 합성 Catalog의 양성 통과로 대체하지 않는다. 실행 중인 Catalog 서버의 소스 commit은 독립 확인하지 않았으며 응답 스냅샷 SHA256과 실제 식별자를 trace에 기록했다.
+
+검증 환경: WSL vishue-g5 /tmp/g8-n02-state-20261126, localhost:56947/vishue_chat_test, PostgreSQL 17.12 (Ubuntu 17.12-1.pgdg24.04+1), 실제 PG 스키마는 기존 alembic 및 checkpoint 초기화 명령으로 생성. 합성 verifier/계정만 사용했다. N02 LLM은 mock 또는 호출 금지 대역, 실제 외부 모델 호출은 모든 턴 0회. 원래 서비스 DB와 Catalog 데이터는 수정하지 않았다. 검증 종료 후 이번 전용 PG를 정상 종료하고 데이터·로그는 보존했다.
+
+최종 검증(소스 9개 실행 전후 exact-byte 해시 동일):
+- 집중 81 통과/30.09초. backend/chatbot에서 기존 G7 venv를 UV_PROJECT_ENVIRONMENT로 지정, TEST_CHAT_DATABASE_URL을 격리 DB, G8_N02_LIVE_CATALOG=http://127.0.0.1:8082로 지정. uv run --frozen python -c에서 WindowsSelectorEventLoopPolicy 설정 후 pytest.main: -q -p no:cacheprovider tests/test_g8_owned_look.py tests/test_g8_compound_consultation.py tests/test_g7_memory_api_pg.py::test_n02_consented_inventory_selected_look_persistence_and_replay tests/test_g7_memory_api_pg.py::test_n02_live_catalog_pg_evidence_boundary tests/test_g7_memory_api_pg.py::test_consent_ownership_idempotency_and_redaction --tb=short -o junit_family=legacy --junitxml=<local-temp>/g8-n02-state-final.xml. JUnit 원본 실행 시각/해시와 속성 관측값을 trace에 연결했다.
+- 전체 챗봇: 외부 연동 env 없는 별도 프로세스에서 uv run --frozen pytest -q -p no:cacheprovider --basetemp <새 GUID 임시 경로> --tb=short, 1,476 통과·101 건너뜀/38.71초. 실제 PG/Catalog 성공은 위 집중 실행과 구분한다.
+- ruff check ., ruff format --check .(154 files), lint-imports(3 KEPT) 통과. npm run typecheck 및 npm run lint 통과. 앱 전체 Jest/실기기 표시·실사용자 인증·실제 LLM·전체 G8 평가는 이번에 NOT_RUN.
+- 초기 구현에서 상태 변수와 부위 판정 변수 이름 충돌, 저장소의 새 필드 허용 누락으로 PG 503이 발생했다. 변수 분리와 ownedLook 한 필드 허용으로 수정했고 최종 PG 경로에서 재검증했다. 마지막 보유 기억 선택 범위를 N02 요청으로 좁힌 뒤 집중·전체를 모두 다시 실행했다. 이전 실행을 최종 소스 통과로 혼동하지 않는다.
+
+증빙: reports/g8/n02/trace.jsonl 기존 1개 기록을 byte prefix 그대로 보존하고 신규 2개(모의 Catalog+실제 PG 양성, 실제 Catalog+실제 PG 근거 부족)를 추가했다. 전문 작업별 입력/결과, 응답·상품, 조건 유지·변경·해제, 턴별 모델 설정/실제 호출 수, 소스 9개 식별값과 JUnit 해시를 저장했다. 신규 기록은 g8_evidence.append_record의 Gitleaks 8.30.1 빈 ignore 검사 통과 후 append했다. 현재 3개 trace SHA256: ed48f9ed731143ce5ac8d02209528409d2fa1d3874bdf0e3b34538d69b6edf34. 기존 N01 증빙은 수정하지 않았다.
+
+남은 범위: 검수된 실제 룩/상품 근거를 통한 추가 추천 양성, 일반 대체품 적합성·예산/성분 조건의 N02 연결, 더 넓은 후속 표현, 앱 표시와 사람 검토, N01 원래 들뜸 근거 보완, 공통 부모 재계획/취소/미완료 실행 재개, E01/B01 전체, ⑥·⑦. 이번 구현은 N02 후속 조건의 한 계약을 완성한 것이며 G8 전체 완료가 아니다. 현재 사용자 판단 필요 없음. 실제 양성 데이터가 준비되지 않은 항목은 BLOCKED로 유지한다.
+
+
+## N02 예산·성분 조건과 대체품 계약 — 2026-11-26 14:20 KST
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성(N02)** → ⑥ 통합 검증 → ⑦ PR 인계. HEAD 09d7f02001b7cf1374af2e03523587f50ea0b24b, 통합 develop f5adb4e60202bdc4c98bdefe36669f96f90e9b55. 이전 승인 미커밋 변경을 보존했다. 이번에도 commit/push/PR/배포는 하지 않았다.
+
+변경: services/owned_look_filters.py를 추가하고 schemas/owned_look_context.py, schemas/owned_look_consultation.py, services/owned_look_consultation_service.py, tests/test_g8_owned_look.py, tests/test_g7_memory_api_pg.py 및 기존 두 문서·N02 trace를 보완했다. 사용자 조건의 저장·변경·해제, P1→V1 실제 옵션 입력, 정확한 상품·호수 판정과 대체 적합성 미확인 계약이다. G7 저장 경계와 기존 미보유 선언을 유지한다. 같은 룩의 레시피 개정에서도 명시적인 구매 조건은 유실하지 않는다. 이름 길이 초과를 유효한 접미사로 잘못 파싱하지 않는 경계 테스트도 포함한다.
+
+실제 연결: 기존 localhost:8082는 상품/룩 GET은 응답하지만 options/search가 404였다. 현재 HEAD의 API를 localhost:19829에 별도 실행했다. 최초 DATABASE_URL만 주입한 실행은 성분 매핑 설정이 없어 HTTP 200이나 옵션 결과 ERROR였으며 통과로 인정하지 않는다. 원본은 로컬 임시 g8-n02-live-filters-mapping-unset.xml이다. 이후 기존 .env.local의 INGREDIENT_MAPPING_PATH도 메모리에 전달하고 재시작했다. 설정 파일·Catalog 데이터는 변경하지 않았다. API DB 연결은 default_transaction_read_only=on, refresh=false, G5=false로 실행했다. API 소스 변경 없음. PostgreSQL 17.12, 매핑 pr233-reviewed-mapping.json SHA256 3f10755e88e78ee46f6c38b3337b34fe02c4abc6abe7edffbb1c60c9247a4a1f. 응답에 남은 rights_unverified 제한은 그대로 보존하며 기존 외부 전송 승인을 번복하는 의미로 해석하지 않는다.
+
+실제 옵션 3회: 2만원 이하 → SUCCESS/ELIGIBLE, 1만원 이하+향료 제외 → PARTIAL/REFERENCE_ONLY(성분 UNKNOWN, 가격 MATCH), 성분 해제 → SUCCESS/ELIGIBLE. 실제 응답/effectiveRequest/근거/조회 범위는 trace에 보존했다. 이 실행은 실제 상품의 직접 옵션 계약 검증이며 검수 룩 양성을 뜻하지 않는다. 실제 영상 룩에 검수 레시피가 없어 룩 기반 추가 추천 양성은 여전히 BLOCKED다.
+
+실제 PG: 이전 임시 DB 경로가 없어 시작 실패 및 503이 발생한 실행은 환경 실패로 분리했다. 새 격리 WSL vishue-g5 /var/tmp/g8-n02-filters-20261126, localhost:56947/vishue_chat_test에 기존 migration/checkpoint를 적용했다. 정상 ChatService/API 경로에서 합성 Catalog+실제 PG로 2만원/향료 제외 저장 → 예산만 1만원 변경(성분 유지) → 전체 상품 조건 해제를 확인했다. 별도 실제 Catalog+PG 경로는 근거 부족과 기존 미보유 상태 계약을 검증했다. 인증은 합성 verifier이며 실사용자 인증 검증은 아니다.
+
+최종 소스 11개 exact-byte 식별값은 실행 전후 동일하다. 신규 trace 4개에 각 실행의 소스 manifest와 JUnit 원본 위치/해시/시각, 전문 작업 입력·결과·답변·상품을 기록했다. 기존 3개 기록 byte prefix를 그대로 유지했다. 모델 설정(mock/호출 금지)과 실제 외부 호출 0회를 구분한다. 실제 LLM 호출은 이번에 없었다.
+
+최종 검증:
+- 집중 91 통과/41.40초, JUnit 시작 2026-11-26T14:19:22.984181+09:00. backend/chatbot에서 기존 G7 venv를 UV_PROJECT_ENVIRONMENT로, TEST_CHAT_DATABASE_URL을 격리 DB로, G8_N02_LIVE_CATALOG=http://127.0.0.1:19829로 지정했다. uv run --frozen python -c에서 WindowsSelectorEventLoopPolicy 설정 후 pytest.main(['-q','-p','no:cacheprovider','tests/test_g8_owned_look.py','tests/test_g8_compound_consultation.py','tests/test_g7_memory_api_pg.py::test_n02_consented_inventory_selected_look_persistence_and_replay','tests/test_g7_memory_api_pg.py::test_n02_live_catalog_pg_evidence_boundary','tests/test_g7_memory_api_pg.py::test_consent_ownership_idempotency_and_redaction','--tb=short','-o','junit_family=legacy','--junitxml=C:/Users/playdata2/AppData/Local/Temp/g8-n02-filters-final.xml']). 합성 양성·실제 PG·실제 HTTP 범위는 trace의 catalogMode/postgresMode로 분리한다.
+- 같은 최종 소스로 외부 연동 env 없는 별도 프로세스의 uv run --frozen pytest -q -p no:cacheprovider --basetemp <새 GUID 임시 경로> --tb=short: 1,485 통과·102 건너뜀/36.74초. 14:19 KST 실행. 건너뛴 연동을 통과로 세지 않는다.
+- uv run --frozen ruff check ., ruff format --check .(155 files), lint-imports(3 KEPT) 통과. 앱 npm run typecheck와 npm run lint 통과. 앱 소스 변경 없음. 앱 전체 Jest/실기기 화면/실제 LLM/전체 G8 평가/사람 검토는 이번에 NOT_RUN.
+- 마지막 재실행 전 샌드박스의 uv 캐시·임시 manifest 쓰기 권한 실패가 발생했다. 승인 범위의 로컬 검증을 권한 상승으로 재실행해 위 결과를 얻었다. 실패한 준비 명령은 통과로 세지 않는다.
+- 신규 trace는 g8_evidence.append_record의 Gitleaks 8.30.1·빈 ignore 검사 후 추가했다. 현재 7개 trace SHA256 5fd0e811fb8b16d67b089ca6d0902cbf23f2b80a906e616ab1fdd910b0ecd700. N01 이력은 변경하지 않았다.
+
+남은 사용자 경험: 검수된 실제 룩 데이터로 추가 추천 양성 및 다른 제품의 색·제형·사용법 대체 적합성 확인, 더 넓은 조건 표현, 앱 표시/사람 검토가 남았다. N01 원래 들뜸 설명 품질, 공통 재계획·취소·재개와 E01/B01 및 ⑥ 전체 평가도 미완료다. 다음은 검수 룩 근거 확보와 N02 종단 양성 검증이며, 데이터와 독립적인 E01/B01 회귀를 이어갈 수 있다. 사용자 판단 필요 없음.
+
+최종 정리: 변경·신규 14개 파일 전체를 임시 디렉터리에 복사하여 Gitleaks 8.30.1 dir, 저장소 config, 빈 ignore, --redact로 검사했고 exit 0이다. git diff --check 통과. 이번 전용 API와 격리 PG를 종료했으며 기존 서비스는 유지하고 검증 DB·로그를 보존했다.
+
+
+## N02 두 커밋 게시 준비 — 2026-11-26 14:28 KST
+
+현재 단계는 ⑤ 협력 완성 중 N02다. 사용자 지시에 따라 구현·테스트를 d5942bf646868e508a50588a7256c7412d6e8bc4로 보존하고 이 문서·설계·신규 N02 trace를 별도 문서 커밋으로 준비한다. fetch로 확인한 원격 feat/compound-consultation은 4173f36658fb96086388971ceb927a651deb147b이며 원격 전용 변경 0개다. 기존 로컬 8ca23b3, f3fe8ab, 09d7f02와 develop 통합 이력도 이번 정상 fast-forward push에 포함된다. 공용 보안 설정 변경·force push·PR 생성·배포는 하지 않는다. 이 절은 push 전 기록이며 실제 원격 도달 SHA는 push 후 조회로 확인한다.
+
+게시 전 재검증(14:24~14:28 KST): npm run check -- -- --runInBand --silent는 타입·린트 및 107 suites/1,325 tests 통과(146.419초). 변경 chatbot에서 기존 잠금 venv와 uv run --frozen ruff check ., lint-imports(3 KEPT), pytest -q -p no:cacheprovider --basetemp <새 GUID 임시 경로> --tb=short는 1,485 통과·102 건너뜀(45.67초). 테스트 대상은 d5942bf와 동일한 소스이며 직전 실제 연결 기록의 최종 11개 exact-byte 소스 해시도 모두 일치했다. 이번 게시 검증에서는 실제 Catalog/PG/LLM을 재실행하지 않았다.
+
+신규 N02 trace 7건 전체에서 비어 있지 않은 인증정보 필드가 발견되지 않았다. 변경·신규 14개 파일을 임시 복사하고 Gitleaks 8.30.1 dir, 저장소 config, 빈 ignore, --redact 검사 exit 0을 확인했다. 기존 trace 3건과 신규 4건을 재작성하지 않았다. git diff --check 및 첫 커밋 staged 검사 통과. 실제 조건 UNKNOWN, 검수 룩 양성 BLOCKED, 실기기·전체 G8 미실행 상태는 유지한다.
