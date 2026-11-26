@@ -3,12 +3,12 @@ import type { TermsStatus } from '@/types';
 import { ApiError, apiDelete, apiPost } from './api';
 
 export function needsTermsConsent(terms: TermsStatus) {
-  return terms.agreedVersion !== terms.version;
+  return terms.agreedVersion !== TERMS_VERSION || terms.version !== TERMS_VERSION;
 }
 
 /** Records that the signed-in user agreed to the terms bundled in this app. */
-export function agreeToTerms() {
-  return apiPost<TermsStatus>('/api/me/terms', { version: TERMS_VERSION });
+export function agreeToTerms(userId: string) {
+  return apiPost<TermsStatus>('/api/me/terms', { version: TERMS_VERSION }, { expectedUserId: userId });
 }
 
 export function isAccountDeletionReceipt(value: string | null | undefined): value is string {

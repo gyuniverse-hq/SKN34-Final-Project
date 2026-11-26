@@ -23,6 +23,7 @@ export default function TermsConsentScreen() {
 
   const submit = async () => {
     if (!user) return close();
+    if (!hasAllConsents(consent)) return;
     setBusy(true);
     setError(null);
     try {

@@ -38,12 +38,12 @@ export default function SettingsScreen() {
   const cameraConsent = useSettingsStore((s) => s.cameraConsent);
   const setCameraConsent = useSettingsStore((s) => s.setCameraConsent);
   const { user } = useAuth();
-  const ownerId = user?.id ?? null;
+  const deletion = useAccountDeletion();
+  const ownerId = deletion.waiting ? null : user?.id ?? null;
   const memory = useChatMemory(ownerId, resolvedLanguage);
   const memorySettings = memory.settings;
   const refreshMemorySettings = memory.refreshSettings;
   const [memoryMessage, setMemoryMessage] = useState<{ ownerId: string; key: TranslationKey }>();
-  const deletion = useAccountDeletion();
   const options: { value: LanguagePreference; label: string }[] = [
     { value: 'system', label: t('my.languageSystem') },
     ...LANGUAGES.map((l) => ({ value: l, label: LANGUAGE_LABELS[l] })),
@@ -94,14 +94,15 @@ export default function SettingsScreen() {
       useShoppingListStore.getState().clear();
       useSettingsStore.getState().reset();
       useMakeupStore.getState().reset();
-      queryClient.clear();
       await clearSkinTimings();
-      const deletionPrefix = chatRoomDeletionPrefix();
-      const recoveryPrefix = chatRequestRecoveryPrefix();
-      const scopedKeys = (await AsyncStorage.getAllKeys()).filter(key =>
-        key.startsWith(`${STORAGE_KEYS.skinProfile}:`) || key.startsWith(`${STORAGE_KEYS.firstArInvitation}:`) ||
-        key.startsWith(deletionPrefix) || key.startsWith(recoveryPrefix));
+      const scopedPrefixes = [
+        ...[STORAGE_KEYS.skinProfile, STORAGE_KEYS.firstArInvitation, STORAGE_KEYS.rewards, STORAGE_KEYS.nickname]
+          .map(key => `${key}:`),
+        chatRoomDeletionPrefix(), chatRequestRecoveryPrefix(),
+      ];
+      const scopedKeys = (await AsyncStorage.getAllKeys()).filter(key => scopedPrefixes.some(prefix => key.startsWith(prefix)));
       await AsyncStorage.multiRemove([...Object.values(STORAGE_KEYS), ...scopedKeys]);
+      queryClient.clear();
       useChatConversationStore.getState().clearRecoveredRoomDeletions();
       useChatConversationStore.getState().clearRequestRecoveries();
       useSkinProfileStore.getState().reset();
@@ -120,9 +121,8 @@ export default function SettingsScreen() {
           <ListRow icon="language-outline" label={t('my.language')}
             value={language === 'system' ? t('my.languageSystem') : LANGUAGE_LABELS[language]}
             onPress={() => setLanguageOpen(true)} />
-          <ListRow icon="camera-outline" label={t('my.camera')}
-            value={cameraConsent ? t('my.cameraOn') : t('my.cameraOff')}
-            onPress={cameraConsent ? () => setCameraConsent(false) : undefined} />
+          {!user && <ListRow icon="camera-outline" label={t('my.camera')} value={t(cameraConsent ? 'my.cameraOn' : 'my.cameraOff')}
+            onPress={cameraConsent ? () => setCameraConsent(false) : undefined} />}
         </MenuSection>
         {ownerId && (memorySettings || memoryMessage?.ownerId === ownerId) ? <MenuSection title={t('chat.memory.settings')}>
           {memorySettings ? <>

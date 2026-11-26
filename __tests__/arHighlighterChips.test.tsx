@@ -32,7 +32,7 @@ jest.mock('@/lib/queries', () => {
     priceKRW: 0, volume: '', description: '', keyIngredients: [], tags: [], imageUrl: '', searchKeyword: '',
     shades: [{ id: 's', name: 'hl', hex: '#F5E1C4' }],
   }];
-  return { useProducts: () => ({ data: products }), useTryOnProducts: () => ({ data: products }) };
+  return { useProducts: () => ({ data: products }), useMe: () => ({ data: undefined, isPending: false }), useTryOnProducts: () => ({ data: products }) };
 });
 
 const chip = (screen: renderer.ReactTestRenderer, label: string) =>

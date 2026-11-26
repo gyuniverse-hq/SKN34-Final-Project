@@ -111,6 +111,8 @@ async def test_duplicate_intake_and_pausing_preserve_the_member_fence(member_api
     monkeypatch.setattr(get_settings(), "g7_account_deletion_enabled", False)
     assert (await client.get("/api/me", headers=headers)).status_code == 403
     assert (await client.get("/api/me/skin-access", headers=headers)).status_code == 403
+    assert (await client.get("/api/me/rewards", headers=headers)).status_code == 403
+    assert (await client.post("/api/me/rewards/attendance", headers=headers)).status_code == 403
     assert (await client.delete("/api/me", headers=headers)).json()[
         "code"
     ] == "account_deletion_in_progress"

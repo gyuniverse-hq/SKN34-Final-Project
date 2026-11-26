@@ -1,4 +1,4 @@
-import { Stack, useRouter } from 'expo-router';
+import { Redirect, Stack, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { skinAccessKey, useSkinAccess } from '@/hooks/useSkinAccess';
 import { ApiError } from '@/lib/api';
@@ -13,12 +13,16 @@ import { Button } from '@/components/ui/Button';
 import { SkinCamera } from '@/components/skin/SkinCamera';
 import { SkinSurvey } from '@/components/skin/SkinSurvey';
 import { theme } from '@/constants/theme';
+import { useMemberCameraConsent } from '@/hooks/useMemberCameraConsent';
 import { useSkinAnalysis } from '@/hooks/useSkinAnalysis';
 import { useI18n } from '@/lib/i18n';
 import { skinAnalysisSupported, skinAnalysisUsesWebView } from '@/lib/skinAnalysis';
 
 export default function SkinAnalysisScreen() {
   const access = useSkinAccess();
+  const cameraChoice = useMemberCameraConsent();
+  if (cameraChoice.loading) return <ActivityIndicator color={theme.colors.rose} />;
+  if (cameraChoice.member && !cameraChoice.granted) return <Redirect href="/skin-consent" />;
   return <AnalysisSession key={access.owner} access={access} />;
 }
 

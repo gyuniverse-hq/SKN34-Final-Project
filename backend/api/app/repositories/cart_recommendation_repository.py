@@ -164,7 +164,7 @@ class CartRecommendationRepository:
                 raise conflict()
         await self.db.commit()
 
-    async def performance(self, *, experiment, start, end, as_of, window_hours, owners, terms):
+    async def performance(self, *, experiment, start, end, as_of, window_hours, terms):
         return (
             (
                 await self.db.execute(
@@ -175,7 +175,7 @@ class CartRecommendationRepository:
                     FROM cart_recommendation_visits v JOIN members m ON m.id = v.member_id
                     WHERE v.experiment = :experiment
                       AND v.created_at >= :start AND v.created_at < :end AND v.created_at <= :as_of
-                      AND m.terms_version = :terms AND m.id = ANY(CAST(:owners AS varchar[]))
+                      AND m.terms_version = :terms AND v.created_at >= m.terms_agreed_at
                 )
                 SELECT v.arm, count(*) AS visits,
                     count(*) FILTER (WHERE mature) AS mature_visits,
@@ -220,7 +220,6 @@ class CartRecommendationRepository:
                         end=end,
                         as_of=as_of,
                         window_hours=window_hours,
-                        owners=sorted(owners),
                         terms=terms,
                         surface=CART_SURFACE,
                         event_schema=CART_EVENT_SCHEMA,

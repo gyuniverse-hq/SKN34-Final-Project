@@ -19,8 +19,7 @@ router = APIRouter(prefix="/api/me/ar-history", tags=["AR activity"])
 async def status(
     user: AuthUser = Depends(require_user), service: ArHistoryService = Depends(get_ar_history)
 ):
-    enabled = await service.enabled(user.id)
-    recommendations = await service.recommended(user.id)
+    enabled, recommendations = await service.access(user.id)
     result = {"enabled": enabled, "recommendations": recommendations}
     if recommendations and service.ranking_enabled():
         result["serverRanking"] = True
