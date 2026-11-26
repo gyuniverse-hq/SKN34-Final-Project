@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ApiError, api, apiForm } from "../api/client";
+import { Link, useSearchParams } from "react-router";
+import { ApiError, api, apiForm, isDemo } from "../api/client";
 import type {
   Estimate,
   EvalRun,
@@ -9,6 +10,12 @@ import type {
   LipTriadEval,
   TechMetricId,
 } from "../api/types";
+import { NaturalnessCriteriaGuide } from "../components/NaturalnessCriteriaGuide";
+import {
+  anchorFor,
+  itemById,
+  type NaturalnessCriteria,
+} from "../lib/naturalnessCriteria";
 import { LoadingError } from "./Commerce";
 import { LipEvalPanel } from "./LipEvalPanel";
 const names: Record<Factor, string> = {
@@ -25,13 +32,6 @@ const techNames: Record<TechMetricId, string> = {
   mae: "MAE",
   miou: "mIoU",
   lpips: "LPIPS",
-};
-const naturalTexts: Record<TechMetricId, string> = {
-  delta_e: "색이 얼마나 비슷해 보이는가?",
-  ssim: "모양·명암·결 느낌이 얼마나 비슷해 보이는가?",
-  mae: "전체적으로 얼마나 비슷해 보이는가?",
-  miou: "입술 영역·윤곽에 얼마나 잘 맞게 올라가 있는가?",
-  lpips: "얼마나 자연스럽게 비슷해 보이는가?",
 };
 const verdictLabel = {
   pass: "통과",
@@ -241,6 +241,12 @@ function TriadScorer() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<LipTriadEval | null>(null);
+  const criteriaQ = useQuery({
+    queryKey: ["lip-eval-naturalness-criteria"],
+    queryFn: () =>
+      api<NaturalnessCriteria>("/lip-eval/naturalness-criteria"),
+  });
+  const criteria = criteriaQ.data;
   async function run() {
     if (!bare || !real || !ar) {
       setError("화장 전 · 실제로 바른 입술 · AR 세 장을 모두 선택하세요.");
@@ -275,6 +281,13 @@ function TriadScorer() {
         자연스러움(1~5, Astra)이 함께 나옵니다. 이미지는 서버에 저장하지
         않습니다.
       </p>
+      <NaturalnessCriteriaGuide
+        criteria={criteria}
+        pending={criteriaQ.isPending}
+        error={
+          criteriaQ.error instanceof Error ? criteriaQ.error.message : null
+        }
+      />
       <div className="triad-uploads">
         <label>
           화장 전(맨입술)
@@ -301,10 +314,11 @@ function TriadScorer() {
           />
         </label>
       </div>
-      <button type="button" disabled={busy} onClick={run}>
+      <button type="button" disabled={busy || !bare || !real || !ar} onClick={run}>
         {busy ? "채점 중…" : "두 트랙 채점 실행"}
       </button>
-      {error && <p className="form-error">{error}</p>}
+      {(!bare || !real || !ar) && <p className="admin-hint">사진 세 장을 모두 선택하면 채점을 시작할 수 있습니다.</p>}
+      {error && <p className="form-error" role="alert">{error}</p>}
       {result && (
         <div className="triad-results">
           <section>
@@ -360,18 +374,27 @@ function TriadScorer() {
               <thead>
                 <tr>
                   <th>지표</th>
-                  <th>설명</th>
+                  <th>문항</th>
                   <th>1~5</th>
+                  <th>앵커</th>
                 </tr>
               </thead>
               <tbody>
-                {(Object.keys(techNames) as TechMetricId[]).map((id) => (
-                  <tr key={id}>
-                    <td>{techNames[id]}</td>
-                    <td>{naturalTexts[id]}</td>
-                    <td>{result.naturalness.scores[id] ?? "—"}</td>
-                  </tr>
-                ))}
+                {(Object.keys(techNames) as TechMetricId[]).map((id) => {
+                  const score = result.naturalness.scores[id];
+                  return (
+                    <tr key={id}>
+                      <td>{techNames[id]}</td>
+                      <td>
+                        {itemById(criteria, id)?.text ?? "—"}
+                      </td>
+                      <td>{score ?? "—"}</td>
+                      <td>
+                        {anchorFor(criteria, id, score) ?? "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
             {result.naturalness.briefReason && (
@@ -384,12 +407,16 @@ function TriadScorer() {
   );
 }
 
-export function Evaluations({ dashboard = false }: { dashboard?: boolean }) {
+export function Evaluations({ canScore }: { canScore: boolean }) {
+  const [params] = useSearchParams();
+  const section = params.get("section") ?? "products";
+  const editable = canScore && !isDemo;
   const [kind, setKind] = useState("human");
   const [selected, setSelected] = useState("");
   const [factor, setFactor] = useState<Factor>("total");
   const q = useQuery({
     queryKey: ["evals", kind],
+    enabled: section === "history",
     queryFn: () =>
       api<{ items: EvalRun[] }>(`/eval-runs?kind=${kind}&limit=30`),
   });
@@ -399,15 +426,17 @@ export function Evaluations({ dashboard = false }: { dashboard?: boolean }) {
   const previous = runs[index + 1];
   return (
     <>
-      <p className="eyebrow">
-        {dashboard ? "OPERATIONS OVERVIEW" : "AR QUALITY · REPORT ONLY"}
-      </p>
-      <h1>{dashboard ? "운영 대시보드" : "AR 평가"}</h1>
-      <p>
-        제품 패널(11×5)로 채점하거나, 세 장 즉시 채점·로컬 보고서 추이를 봅니다.
-      </p>
-      {!dashboard && <LipEvalPanel />}
-      {!dashboard && <TriadScorer />}
+      <h1>AR 평가</h1>
+      <nav className="admin-tabs" aria-label="AR 평가 메뉴">
+        {[["products", "제품 평가 (11×5)"], ["triad", "즉시 채점"], ["history", "평가 이력"]].map(([id, title]) => (
+          <Link key={id} to={`?${new URLSearchParams({ ...(isDemo ? { demo: "1" } : {}), section: id })}`} aria-current={section === id ? "page" : undefined}>{title}</Link>
+        ))}
+      </nav>
+      {section !== "triad" && section !== "history" && <LipEvalPanel editable={editable} />}
+      {section === "triad" && (editable
+        ? <TriadScorer />
+        : <p className="panel">{isDemo ? "미리보기에서는 채점할 수 없습니다." : "즉시 채점은 관리자 계정에서 사용할 수 있습니다."}</p>)}
+      {section === "history" && <>
       <div className="toolbar">
         <label>
           평가 종류
@@ -441,7 +470,7 @@ export function Evaluations({ dashboard = false }: { dashboard?: boolean }) {
           </select>
         </label>
       </div>
-      <LoadingError pending={q.isPending} error={q.error} />
+      <LoadingError pending={q.isPending} error={q.error} onRetry={() => void q.refetch()} />
       {!q.isPending && !q.error && !current && (
         <section className="panel empty">
           <h2>아직 등록된 평가가 없습니다</h2>
@@ -556,6 +585,7 @@ export function Evaluations({ dashboard = false }: { dashboard?: boolean }) {
           <Unmeasured items={current.summaryJson.unmeasured} />
         </>
       )}
+      </>}
     </>
   );
 }

@@ -123,7 +123,7 @@ def test_service_keeps_no_image_bytes_in_audit():
     class FakeVision:
         async def score_naturalness(self, *a, **k):
             return {
-                "criteriaVersion": "naturalness-techlang-v1.0",
+                "criteriaVersion": "naturalness-techlang-v1.1",
                 "scores": {"delta_e": 4, "ssim": 4, "mae": 4, "miou": 4, "lpips": 4},
                 "mean": 4.0,
                 "briefReason": "비슷함",
