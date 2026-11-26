@@ -70,7 +70,9 @@ class FakeCatalogStore:
     def __init__(self, bundle: CatalogBundle) -> None:
         self.bundle = bundle
 
-    async def search_products(self, terms, category=None, ids=None, tags=None):
+    async def search_products(
+        self, terms, category=None, ids=None, tags=None, *, limit=None, offset=0
+    ):
         out = self.bundle.products
         if ids is not None:
             out = [p for p in out if p.id in ids]
@@ -80,6 +82,8 @@ class FakeCatalogStore:
             out = [p for p in out if set(p.tags) & set(tags)]
         for t in terms:
             out = [p for p in out if t in f"{p.brand} {p.name} {' '.join(p.tags)}".lower()]
+        if limit is not None:
+            return out[offset : offset + limit]
         return out
 
     async def get_product(self, product_id):

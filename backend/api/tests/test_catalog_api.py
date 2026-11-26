@@ -15,6 +15,7 @@ def test_products_use_the_app_json_contract(client):
     res = client.get("/api/products")
     assert res.status_code == 200
     assert res.headers["cache-control"] == "public, max-age=300, s-maxage=300"
+    assert set(res.json()) == {"products"}
     product = res.json()["products"][0]
     assert {"nameKo", "priceKRW", "makeupZone", "keyIngredients", "imageUrl"} <= product.keys()
     assert "price_krw" not in product
@@ -30,6 +31,18 @@ def test_products_filter_by_category_ids_and_query(client):
         "base-2",
     ]
     assert len(client.get("/api/products?q=BESTSELLER").json()["products"]) == 3
+
+
+def test_product_pages_filter_before_slicing_and_report_when_more_products_exist(client):
+    path = "/api/products?category=base&q=BESTSELLER&limit=1"
+    first = client.get(path).json()
+    last = client.get(f"{path}&offset=1").json()
+    empty = client.get(f"{path}&offset=2").json()
+    assert [p["id"] for p in first["products"]] == ["base-1"]
+    assert first["hasMore"] is True
+    assert [p["id"] for p in last["products"]] == ["base-2"]
+    assert last["hasMore"] is False
+    assert empty == {"products": [], "hasMore": False}
 
 
 def test_products_filter_by_skin_concern_tags():

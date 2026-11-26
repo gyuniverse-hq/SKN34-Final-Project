@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 from unittest.mock import AsyncMock
 
-from app.core.cache import Cache
+from app.core.cache import Cache, NullCache
 from app.repositories.catalog_repository import ProductDiscoveryCandidate
 from app.services.catalog_service import (
     KOREA_TIMEZONE,
@@ -132,3 +132,30 @@ def test_discovery_preview_and_full_responses_share_one_cached_order():
     assert preview.json() == {name: ids[:8] for name, ids in full.json().items()}
     cache.get_json.assert_awaited_with(key)
     store.discovery_candidates.assert_awaited_once()
+
+
+def test_chart_pages_only_fetch_selected_product_ids_in_rank_order():
+    today = datetime.now(KOREA_TIMEZONE).date()
+    store = FakeCatalogStore(SAMPLE)
+    store.discovery_candidates = AsyncMock(
+        return_value=[
+            ProductDiscoveryCandidate("base-1", "base", today, True, 4.0, 200, today),
+            ProductDiscoveryCandidate("base-2", "base", today, True, 4.9, 200, today),
+            ProductDiscoveryCandidate("lip-1", "lip", today, True, 4.7, 200, today),
+            ProductDiscoveryCandidate("cream", "skincare", today, True, 4.9, 200, today),
+        ]
+    )
+    store.search_products = AsyncMock(wraps=store.search_products)
+    client = client_for(CatalogService(store, NullCache(), 300))
+
+    path = "/api/discovery/charts/makeup?limit=2"
+    first = client.get(path).json()
+    last = client.get(f"{path}&offset=2").json()
+    assert [p["id"] for p in first["products"]] == ["base-2", "lip-1"]
+    assert first["hasMore"] is True
+    assert [p["id"] for p in last["products"]] == ["base-1"]
+    assert last["hasMore"] is False
+    assert [call.args[2] for call in store.search_products.await_args_list] == [
+        ["base-2", "lip-1"],
+        ["base-1"],
+    ]

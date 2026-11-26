@@ -48,6 +48,7 @@ from app.models.knowledge import (
     AihubDocumentExtractionRow,
     AihubQuoteAlignmentRow,
 )
+from app.models.look_community import LookPostReportRow, LookPostRow, LookPostVoteRow
 from app.models.makeup_troubleshooting import (
     MakeupTroubleshootingProblemEvidenceRow,
     MakeupTroubleshootingProblemRow,
@@ -149,6 +150,9 @@ __all__ = [
     "SkincareServingRow",
     "LookArSettingRow",
     "LookItemRow",
+    "LookPostReportRow",
+    "LookPostRow",
+    "LookPostVoteRow",
     "LookProductRow",
     "LookVideoTagRow",
     "LookRow",

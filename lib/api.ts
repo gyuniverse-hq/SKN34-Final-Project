@@ -58,7 +58,7 @@ export const CHAT_API_BASE_URL = resolveChatApiBaseUrl(process.env.EXPO_PUBLIC_C
 /** Sends a request to the backend (`path` starts with /api) with the Supabase access token. */
 async function apiRequest(
   path: string,
-  init: { method: 'GET' | 'POST' | 'PATCH' | 'DELETE'; headers?: Record<string, string>; body?: string },
+  init: { method: 'GET' | 'POST' | 'PATCH' | 'DELETE'; headers?: Record<string, string>; body?: string | FormData },
   options: { baseUrl?: string; timeoutMs?: number; fixedToken?: { value: string | null } } = {}
 ): Promise<Response> {
   const baseUrl = (options.baseUrl ?? API_BASE_URL).replace(/\/+$/, '');
@@ -271,6 +271,11 @@ export async function apiDelete(
   if (options.expectedStatus !== undefined && response.status !== options.expectedStatus) {
     throw new ApiError('Unexpected deletion response', response.status);
   }
+}
+
+export async function apiForm<T>(path: string, method: 'POST' | 'PATCH', body: FormData, owner: string): Promise<T> {
+  const res = await apiRequest(path, { method, body }, { fixedToken: await ownerToken(owner) });
+  return (await res.json()) as T;
 }
 
 /** Chat memory and conversation writes stay bound to the verified signed-in owner. */

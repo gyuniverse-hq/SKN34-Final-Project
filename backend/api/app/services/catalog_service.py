@@ -9,7 +9,14 @@ from app.core.cache import Cache, get_cache
 from app.core.config import get_settings
 from app.core.db import get_session
 from app.repositories.catalog_repository import CatalogRepository, ProductDiscoveryCandidate
-from app.schemas.catalog import CatalogBundle, CelebLook, Product, ProductDiscoveryOrder, Store
+from app.schemas.catalog import (
+    CatalogBundle,
+    CelebLook,
+    DiscoveryChart,
+    Product,
+    ProductDiscoveryOrder,
+    Store,
+)
 from app.services.image_service import get_image_service
 from app.services.rating_score_service import confidence_adjusted_rating
 
@@ -46,6 +53,9 @@ class CatalogStore(Protocol):
         category: str | None = None,
         ids: list[str] | None = None,
         tags: list[str] | None = None,
+        *,
+        limit: int | None = None,
+        offset: int = 0,
     ) -> list[Product]: ...
     async def discovery_candidates(self) -> list[ProductDiscoveryCandidate]: ...
     async def get_product(self, product_id: str) -> Product | None: ...
@@ -82,20 +92,47 @@ class CatalogService:
         ids: list[str] | None = None,
         with_images: bool = True,
         concerns: list[str] | None = None,
+        *,
+        limit: int | None = None,
+        offset: int = 0,
     ) -> list[Product]:
         terms = q.lower().split() if q else []
         id_key = ",".join(ids) if ids is not None else "*"
         tags = concern_tags(concerns) if concerns else None
         tag_key = ",".join(tags) if tags is not None else "*"
-        key = f"products:{category or ''}:{id_key}:{tag_key}:{' '.join(terms)}"
+        page_key = f"page:{limit}:{offset}:" if limit is not None else ""
+        key = f"products:{page_key}{category or ''}:{id_key}:{tag_key}:{' '.join(terms)}"
         if (hit := await self._cache.get_json(key)) is not None:
             products = [Product.model_validate(p) for p in hit]
         else:
-            products = await self._store.search_products(terms, category, ids, tags)
+            products = await self._store.search_products(
+                terms, category, ids, tags, limit=limit, offset=offset
+            )
             await self._cache.set_json(
                 key, [p.model_dump(mode="json") for p in products], self._ttl
             )
         return await self._with_images(products) if with_images else products
+
+    async def list_products_page(
+        self,
+        *,
+        limit: int,
+        offset: int,
+        q: str | None = None,
+        category: str | None = None,
+        ids: list[str] | None = None,
+        concerns: list[str] | None = None,
+    ) -> tuple[list[Product], bool]:
+        products = await self.list_products(
+            q=q,
+            category=category,
+            ids=ids,
+            concerns=concerns,
+            with_images=False,
+            limit=limit + 1,
+            offset=offset,
+        )
+        return await self._with_images(products[:limit]), len(products) > limit
 
     async def discovery_product_order(self, *, preview: bool = False) -> ProductDiscoveryOrder:
         today = datetime.now(KOREA_TIMEZONE).date()
@@ -113,6 +150,18 @@ class CatalogService:
             skincare=order.skincare[:DISCOVERY_PREVIEW_SIZE],
             new_arrivals=order.new_arrivals[:DISCOVERY_PREVIEW_SIZE],
         )
+
+    async def discovery_chart_page(
+        self, chart: DiscoveryChart, *, limit: int, offset: int
+    ) -> tuple[list[Product], bool]:
+        order = await self.discovery_product_order()
+        ids = {"makeup": order.makeup, "skincare": order.skincare, "new": order.new_arrivals}[chart]
+        end = offset + limit
+        page_ids = ids[offset:end]
+        if not page_ids:
+            return [], False
+        products = {product.id: product for product in await self.list_products(ids=page_ids)}
+        return [products[pid] for pid in page_ids if pid in products], end < len(ids)
 
     async def get_product(self, product_id: str) -> Product | None:
         product = await self._store.get_product(product_id)
