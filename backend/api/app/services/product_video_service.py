@@ -54,5 +54,7 @@ def get_product_video_service(
     session: AsyncSession = Depends(get_session),
 ) -> ProductVideoService:
     return ProductVideoService(
-        CelebrityVideoRepository(), StyleLookRepository(), VerifiedVideoProductRepository(session)
+        CelebrityVideoRepository(session),
+        StyleLookRepository(session),
+        VerifiedVideoProductRepository(session),
     )
