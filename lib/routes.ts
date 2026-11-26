@@ -25,7 +25,8 @@ export const SKIN_CONCERNS: readonly SkinConcern[] = [
   'wrinkles',
 ];
 export type SearchSource = 'home' | 'skin';
-export type LoginReturnTo = 'checkout' | 'membership' | 'rewards';
+export type LoginReturnTo = 'checkout' | 'membership' | 'rewards' | 'community-write' | 'community-mine' | 'community-post';
+export type CheckoutSelection = { productId: string; shadeId: string };
 
 type RawParam = string | string[] | undefined;
 
@@ -47,6 +48,12 @@ export function paramValue(value: RawParam): string | undefined {
 export function parseId(value: RawParam): string | undefined {
   const v = paramValue(value);
   return v && ID_PATTERN.test(v) ? v : undefined;
+}
+
+export function parseCheckoutSelection(params: { productId?: RawParam; shadeId?: RawParam }): CheckoutSelection | undefined {
+  const productId = parseId(params.productId);
+  const shadeId = parseId(params.shadeId);
+  return productId && shadeId ? { productId, shadeId } : undefined;
 }
 
 export function parseZone(value: RawParam): MakeupZone | undefined {
@@ -80,7 +87,8 @@ export function parseSearchSource(value: RawParam): SearchSource | undefined {
 
 export function parseLoginReturnTo(value: RawParam): LoginReturnTo | undefined {
   const route = paramValue(value);
-  return route === 'checkout' || route === 'membership' || route === 'rewards' ? route : undefined;
+  return route === 'checkout' || route === 'membership' || route === 'rewards' ||
+    route === 'community-write' || route === 'community-mine' || route === 'community-post' ? route : undefined;
 }
 
 export function parseFlag(value: RawParam): boolean {
@@ -111,7 +119,7 @@ export function productVideoHref(source: 'celebrity' | 'style', id: string): Hre
   return { pathname: source === 'celebrity' ? '/celebrity-video/[id]' : '/style-look/[id]', params: { id } } as Href;
 }
 
-export function arHref(options: { productId?: string; shadeId?: string; compare?: boolean; video?: boolean } = {}): Href {
+export function arHref(options: { productId?: string; shadeId?: string; compare?: boolean; video?: boolean; look?: boolean } = {}): Href {
   return {
     pathname: '/ar',
     params: compact({
@@ -119,8 +127,20 @@ export function arHref(options: { productId?: string; shadeId?: string; compare?
       shadeId: options.productId ? options.shadeId : undefined,
       compare: options.compare ? '1' : undefined,
       video: options.video ? '1' : undefined,
+      look: options.look ? '1' : undefined,
     }),
   } as Href;
+}
+
+/** Confirmation screen before look AR. */
+export function lookPreviewHref(options: { lookId: string; title?: string }): Href {
+  return {
+    pathname: '/look-preview',
+    params: compact({
+      id: options.lookId,
+      title: options.title,
+    }),
+  } as unknown as Href;
 }
 
 export function recommendationsHref(options: {
@@ -164,18 +184,23 @@ export function externalLinkHref(productId: string, link: string): Href {
   return { pathname: '/external-link', params: { productId, link } } as Href;
 }
 
-export function loginHref(returnTo?: LoginReturnTo): Href {
-  return { pathname: '/login', params: compact({ returnTo }) } as Href;
+export function checkoutHref(selection: CheckoutSelection): Href {
+  return { pathname: '/checkout', params: selection };
+}
+
+export function loginHref(returnTo?: LoginReturnTo, selection?: CheckoutSelection): Href {
+  return { pathname: '/login', params: compact({ returnTo, ...(returnTo === 'checkout' ? selection : undefined) }) } as Href;
 }
 
 /** `verifyEmail` opens the code step for an account that signed up but never confirmed. */
-export function signupHref(options: { returnTo?: LoginReturnTo; verifyEmail?: string } = {}): Href {
+export function signupHref(options: { returnTo?: LoginReturnTo; verifyEmail?: string; selection?: CheckoutSelection } = {}): Href {
   return {
     pathname: '/signup',
     params: compact({
       returnTo: options.returnTo,
       email: options.verifyEmail,
       verify: options.verifyEmail ? '1' : undefined,
+      ...(options.returnTo === 'checkout' ? options.selection : undefined),
     }),
   } as Href;
 }
