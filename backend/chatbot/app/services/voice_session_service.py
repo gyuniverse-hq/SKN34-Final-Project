@@ -7,7 +7,7 @@ from app.core.config import get_settings
 from app.core.errors import ApiError
 from app.schemas.ar_tool import ar_control_tool
 from app.schemas.chat import ArControlScreen
-from app.services.ar_control_service import GUIDE
+from app.services.ar_control_service import AR_PERSONA, GUIDE
 
 
 class VoiceOffer(BaseModel):
@@ -32,9 +32,10 @@ def session_config(model: str, screen: ArControlScreen) -> dict:
         }
     return {
         "model": model,
-        "instructions": "You are Luna, a Korean makeup artist. Listen to the complete request. "
-        "For AR requests generate <|SpawnThinking|> and convey the user's actual request "
-        "to the backend. Speak briefly in Korean after the verified result.",
+        "instructions": AR_PERSONA
+        + " Listen to the complete request. For AR requests generate <|SpawnThinking|> and "
+        "convey the user's actual request to the backend. Speak briefly in Korean after "
+        "the verified result.",
         "delegation": {
             "type": "responses",
             "responses": {

@@ -300,7 +300,7 @@ export function useArCommand(options: Options) {
           activeZone: isArPaintZone(opts.activeZone) ? opts.activeZone : null,
           supportedActions: opts.control ? ['ar_control'] : ['set_intensity', 'adjust_intensity', 'undo', 'set_geometry'],
           ...(opts.control && { sessionId, previousAdjustmentId,
-            catalogNameMatches: opts.control.matchCatalogNames?.(text),
+            ...opts.control.matchCatalog?.(text),
             control: { choices: [...opts.control.choices.keys()], summary: opts.control.summary } }),
           selections, undo: snapshot.arUndo, lip: zoneSnap(snapshot, 'lip'),
           highlighter: zoneSnap(snapshot, 'highlighter'), contour: zoneSnap(snapshot, 'contour'),
@@ -334,7 +334,7 @@ export function useArCommand(options: Options) {
         if (typeof tool.commandId !== 'string' || !UUID.test(tool.commandId)) throw new Error('Invalid command ID');
         const id = tool.commandId;
         const choice = typeof tool.choice === 'string' ? tool.choice : '';
-        if (/^apply_shade\/[^/]+\/(pick|by_color|named|oil|balm|skin_match)$/.test(choice)) screenKey = 'catalogApplyKey';
+        if (choice === 'apply_shade/product_pick' || /^apply_shade\/[^/]+\/(pick|by_color|named|oil|balm|skin_match)$/.test(choice)) screenKey = 'catalogApplyKey';
         const operation = opts.control.choices.has(choice) && current.current.control?.choices.get(choice);
         const owned = () => mounted.current && lastRequest.current === requestId && session.current === sessionId && epoch === authEpoch.current;
         let outcome: ControlResult = reject('state changed or operation unavailable');

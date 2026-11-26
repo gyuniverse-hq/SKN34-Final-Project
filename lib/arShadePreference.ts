@@ -47,16 +47,20 @@ export function usableShadeTone(item: ColorSwatch) {
   return shadeTone(item.shade.hex);
 }
 
-/** Tonal coordination for the color accents. Weight visible layers; use a softer, lighter target on cheeks. */
+/** Match cheeks to the visible lip when present. Otherwise coordinate the visible layers. */
 export function pickForMakeup(items: ColorSwatch[], zone: MakeupZone, makeup: MakeupState) {
   if (zone !== 'lip' && zone !== 'blush' && zone !== 'eyeshadow') return {item:items.find(usableShadeTone), sources:[]};
   const sources = [];
   const mean = {L:0, a:0, b:0};
   let weight = 0;
-  for (const part of ['lip','blush','eyeshadow','highlighter','contour','foundation','brow','eyeliner','mascara'] as const) {
+  const lip = makeup.lip;
+  const lipReference = zone === 'blush' && lip && lip.intensity > 0 ? hexToLabD65(lip.hex) : null;
+  const parts = lipReference ? ['lip'] as const :
+    ['lip','blush','eyeshadow','highlighter','contour','foundation','brow','eyeliner','mascara'] as const;
+  for (const part of parts) {
     const layer = makeup[part];
     if (part === zone || !layer || layer.intensity <= 0) continue;
-    const lab = hexToLabD65(layer.hex);
+    const lab = lipReference ?? hexToLabD65(layer.hex);
     if (!lab) continue;
     const importance = part === 'lip' || part === 'blush' ? 4 : part === 'eyeshadow' ? 2 : 0.35;
     const w = layer.intensity * importance;

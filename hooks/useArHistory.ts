@@ -16,6 +16,7 @@ interface PaletteContext {
   catalog: readonly ColorSwatch[];
   visibleItems: readonly ColorSwatch[];
   paletteShown: boolean;
+  prepareVoiceRecommendations?: boolean;
   careOpen: boolean;
   scopeKey?: string;
   filterKey?: string;
@@ -31,7 +32,7 @@ interface NearbyPalette {
   returned?: { anchor: string; filterKey: string };
 }
 
-export function useArHistory({ active, zone, direction, nearby, catalog, visibleItems, paletteShown, careOpen,
+export function useArHistory({ active, zone, direction, nearby, catalog, visibleItems, paletteShown, prepareVoiceRecommendations, careOpen,
   scopeKey = '', filterKey = '' }: PaletteContext) {
   const { user } = useAuth();
   const owner = user?.id;
@@ -66,8 +67,9 @@ export function useArHistory({ active, zone, direction, nearby, catalog, visible
     : null, [useServerRanking, history, careOpen, zone, catalog.length, visibleItems]);
   const [ranked, setRanked] = useState<{ requestId: string; decision: RankedArPalette | null }>();
   const resolved = ranked?.requestId === rankRequest?.requestId ? ranked : undefined;
+  const shouldRank = paletteShown || prepareVoiceRecommendations;
   useEffect(() => {
-    if (!rankRequest || !owner || !paletteShown || nearby || returnedPalette || resolved) return;
+    if (!rankRequest || !owner || !shouldRank || nearby || returnedPalette || resolved) return;
     let current = true;
     void apiPost<RankedArPalette>('/api/me/ar-history/rank', rankRequest, { expectedUserId: owner, timeoutMs: 3000 })
       .then(decision => { if (current) setRanked({ requestId: rankRequest.requestId, decision }); })
@@ -76,7 +78,7 @@ export function useArHistory({ active, zone, direction, nearby, catalog, visible
         if (current) setRanked({ requestId: rankRequest.requestId, decision: null });
       });
     return () => { current = false; };
-  }, [rankRequest, owner, paletteShown, nearby, returnedPalette, resolved]);
+  }, [rankRequest, owner, shouldRank, nearby, returnedPalette, resolved]);
   const rankedItems = useMemo(() => {
     if (!resolved?.decision) return undefined;
     const swatches = new Map(visibleItems.map(item => [JSON.stringify([item.product.id, item.shade.id]), item]));
@@ -102,6 +104,9 @@ export function useArHistory({ active, zone, direction, nearby, catalog, visible
     ? source.data : null;
   const picks = useMemo(() => inputs && !nearby && !careOpen ? pickPalette(inputs, catalog, visibleItems) : null,
     [inputs, nearby, careOpen, catalog, visibleItems]);
+  const recommendationsReady = canRecommend && (
+    !visibleItems.length || !!returnedPalette || (!!rankedView || needsRule && inputs !== null)
+  );
   const firstItems = rankedView ? rankedItems : !rankRequest || resolved ? picks?.items : undefined;
   const firstStrategy = rankedView ? 'rating' : picks?.strategy;
   const { ordered, recommendations } = useMemo(() => {
@@ -147,5 +152,6 @@ export function useArHistory({ active, zone, direction, nearby, catalog, visible
       ? { ...savedPalette, returned: { anchor: paletteSwatchKey(anchor), filterKey } }
       : null);
   };
-  return { history, view, visible: view ? visible : undefined, ordered, recommendedItems, beginNearby, returnFromNearby };
+  return { history, view, visible: view ? visible : undefined, ordered, recommendedItems,
+    recommendations, recommendationsReady, canRecommend, beginNearby, returnFromNearby };
 }

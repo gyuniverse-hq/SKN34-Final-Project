@@ -10,7 +10,7 @@ from app.schemas.chat import (
     ChatRequest,
     ChatResponse,
 )
-from app.services.ar_control_service import ControlFeedbackService, get_control_feedback
+from app.services.ar_control_service import ArControlAgent, get_ar_control_agent
 from app.services.chat_service import ChatService, get_chat_service
 from app.services.conversation_service import ConversationService
 from app.services.owner_deletion_service import OwnerDeletionService
@@ -45,13 +45,13 @@ async def control_reply(
     body: ArControlFeedback,
     principal: ChatPrincipal = Depends(chat_principal),
     limiter: RateLimiter = Depends(get_rate_limiter),
-    service: ControlFeedbackService = Depends(get_control_feedback),
+    agent: ArControlAgent = Depends(get_ar_control_agent),
 ) -> dict[str, str]:
     owner_id = principal.user.id if principal.user else None
     async with OwnerDeletionService.access(owner_id):
         if not await limiter.allow("ar-reply:" + principal.rate_limit_key):
             raise ApiError(429, "Too many questions", "rate_limited")
-    answer = await service.answer(body, principal.rate_limit_key)
+    answer = await agent.answer(body, principal.rate_limit_key)
     async with OwnerDeletionService.access(owner_id):
         return {"answer": answer}
 

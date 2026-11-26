@@ -1,4 +1,4 @@
-import { catalogNameMatches, makeupControls } from '@/lib/arMakeupControls';
+import { catalogMatches, makeupControls } from '@/lib/arMakeupControls';
 import { intensityTarget, type ConfirmPaint, type ControlArgs, type ControlOperation } from '@/lib/arControl';
 import { useMakeupStore } from '@/store/makeupStore';
 import type { Product } from '@/types';
@@ -31,9 +31,47 @@ beforeEach(()=>store().reset());
 it('finds catalog shade names across spaces and keeps duplicate identities', () => {
   const named = {...a,shades:[{...a.shades[0],name:'Fade Red'}]};
   const duplicate = {...named,id:'another-product'};
-  expect(catalogNameMatches([named,duplicate],'fade red 발라줘').map(m=>m.productId)).toEqual([a.id,duplicate.id]);
-  expect(catalogNameMatches([named],'FADE RED 발라줘')[0].shadeId).toBe(named.shades[0].id);
-  expect(catalogNameMatches([named],'차분한 레드로 발라줘')).toEqual([]);
+  expect(catalogMatches([named,duplicate],'fade red 발라줘').catalogNameMatches.map(m=>m.productId)).toEqual([a.id,duplicate.id]);
+  expect(catalogMatches([named],'FADE RED 발라줘').catalogNameMatches[0].shadeId).toBe(named.shades[0].id);
+  expect(catalogMatches([named],'차분한 레드로 발라줘').catalogNameMatches).toEqual([]);
+});
+it('grounds the product in its spoken title and finds a number within that product', () => {
+  const tint = {...a, brand:'Aster', name:'[NEW] Aster Fixing Tint 4g', nameKo:'[기획] 애스터 픽싱 틴트 4g',
+    shades:[{...a.shades[0],id:'07',name:'Soft Rose'}]};
+  const nearby = {...tint, id:'nearby', name:'Aster Soft Fixing Tint 4g', nameKo:'애스터 소프트 픽싱 틴트 4g'};
+  const result = catalogMatches([tint, nearby], '애스터 픽싱 틴트에 7호 발라봐.');
+  expect(result.catalogProductMatches).toMatchObject([{productId:tint.id,reference:'애스터 픽싱 틴트'}]);
+  expect(result.catalogNameMatches).toMatchObject([{productId:tint.id,shadeId:'07'}]);
+  expect(catalogMatches([tint], '애스터 픽싱 틴트 17호').catalogNameMatches).toEqual([]);
+});
+
+it('chooses a shade within the requested product using visible makeup and returns its number', async () => {
+  const requested = {...b, shades:[
+    {...b.shades[0], id:'09', name:'Cool Pink', hex:'#f387b3'},
+    {...b.shades[0], id:'11', name:'Muted Peach', hex:'#dc725d'},
+  ]};
+  wear(blush);
+  const confirm = jest.fn(frame);
+  const result = await run('apply_shade/product_pick', {products:[requested, a, blush]}, {productId:requested.id}, confirm);
+  expect(result).toMatchObject({status:'APPLIED', featuredShade:{shade:'Muted Peach',shadeNumber:'11'}});
+  expect(store().selections.lip).toEqual({productId:requested.id,shadeId:'11'});
+  expect(store().selections.blush?.productId).toBe(blush.id);
+  expect(confirm).toHaveBeenCalledTimes(1);
+  expect(await run('apply_shade/product_pick', {products:[requested]}, {productId:'missing'})).toMatchObject({status:'REJECTED'});
+  expect(store().selections.lip).toEqual({productId:requested.id,shadeId:'11'});
+});
+it('only applies a named shade when the full shade name identifies one swatch', async () => {
+  const duplicate = {...b, id: 'other'};
+  wear(a);
+  expect(await run('apply_shade/lip/named', {}, { name: b.name })).toEqual({
+    status: 'REJECTED', reason: 'no matching shade',
+  });
+  expect(await run('apply_shade/lip/named', { products: [...catalog, duplicate] }, { name: b.shades[0].name }))
+    .toEqual({ status: 'REJECTED', reason: 'ambiguous shade' });
+  expect(store().selections.lip).toEqual({productId: a.id, shadeId: a.shades[0].id});
+  expect(await run('apply_shade/lip/named', {}, { name: b.shades[0].name.toUpperCase().replace(' ', '') }))
+    .toMatchObject({ status: 'APPLIED' });
+  expect(store().selections.lip).toEqual({productId: b.id, shadeId: b.shades[0].id});
 });
 it('replays the exact entry by zone or across zones and only counts committed changes', async () => {
   useMakeupStore.setState({tryOnHistory:[]});
@@ -42,7 +80,7 @@ it('replays the exact entry by zone or across zones and only counts committed ch
     wear(a);
     store().setIntensity('lip', 0.4);
     wear(blush);
-    expect(await run('apply_shade/lip/named', {}, {name:b.name}, async ()=>'failed')).toMatchObject({status:'FAILED'});
+    expect(await run('apply_shade/lip/named', {}, {name:b.shades[0].name}, async ()=>'failed')).toMatchObject({status:'FAILED'});
     expect(await run('reapply_try_on/lip', {}, {ordinal:2})).toMatchObject({status:'REJECTED'});
     wear(b);
     const history = store().tryOnHistory;
@@ -65,6 +103,14 @@ it('changes the recommended cheek shade when only the lip changes and ignores in
   expect(await run('apply_shade/blush/pick',options)).toMatchObject({featuredShade:{product:warm.name},matchedTo:[{zone:'lip'}]});
   store().setIntensity('lip',0);
   expect(await run('apply_shade/blush/pick',options)).not.toHaveProperty('matchedTo');
+});
+it('matches a cheek recommendation to the worn lip even when another color is visible', async () => {
+  const cool = product('cool cheek','blush','#d096af'), warm = product('warm cheek','blush','#e09779');
+  wear(product('warm lip','lip','#e34517'));
+  wear(product('cool shadow','eyeshadow','#5143af'));
+  expect(await run('apply_shade/blush/pick',{products:[cool,warm]})).toMatchObject({
+    featuredShade:{product:warm.name}, matchedTo:[{zone:'lip'}],
+  });
 });
 it('previews one ranked pink, not the first catalog entry, and leaves the palette and other zones alone', async()=>{
   const exact = product('true pink','lip','#ef79ab');
@@ -136,6 +182,15 @@ it('removes only lip care, and repeated removal has no effect',async()=>{
   expect(await run('clear_layer/lipCare')).toMatchObject({status:'NO_CHANGE'});
   expect(store().makeup.lipCare).toBeNull();
 });
+it('leaves the highlighter preset when switching to a region already in the face layout', async () => {
+  wear(high);
+  store().patchGeometry('highlighter', { hlStyle: 'nose_tip' });
+  expect(await run('set_style/highlighter/nose_bridge_on')).toMatchObject({ status: 'APPLIED' });
+  expect(store().makeup.highlighter?.geometry?.hlStyle).toBeUndefined();
+  expect(store().makeup.highlighter?.geometry?.areas).toContain('nose_bridge');
+  expect(await run('set_style/highlighter/nose_bridge_on')).toMatchObject({ status: 'NO_CHANGE' });
+});
+
 it('changes only the requested geometry and restores an original layer exactly',async()=>{
   expect(await run('set_style/eyeshadow/matte')).toMatchObject({status:'REJECTED'});
   wear(shadow);wear(high);wear(liner);

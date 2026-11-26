@@ -194,7 +194,7 @@ export function subscribeArIdentityChange(listener: () => void): () => void {
 export async function apiPostOwned<T>(
   path: string,
   body: unknown,
-  options: { expectedOwner?: ArRequestOwner; timeoutMs?: number; signal?: AbortSignal } = {}
+  options: { expectedOwner?: ArRequestOwner; timeoutMs?: number; signal?: AbortSignal; transcriptionContext?: string } = {}
 ): Promise<{ data: T; owner: ArRequestOwner }> {
   let changed = false;
   const unsubscribe = subscribeArIdentityChange(() => { changed = true; });
@@ -206,6 +206,7 @@ export async function apiPostOwned<T>(
     // Do not send the guest ID with a user token: an invalid token must not fall back to guest.
     const audio = body instanceof ArrayBuffer;
     const headers: Record<string, string> = { 'Content-Type': audio ? 'audio/mp4' : 'application/json' };
+    if (audio && options.transcriptionContext) headers['X-Vishue-Transcription-Context'] = options.transcriptionContext;
     if (owner.kind === 'guest') headers['X-Vishue-Anonymous-Id'] = owner.id;
     const res = await apiRequest(path, { method: 'POST', headers, body: audio ? body : JSON.stringify(body) }, {
       baseUrl: CHAT_API_BASE_URL, timeoutMs: options.timeoutMs, fixedToken: { value: token }, signal: options.signal,

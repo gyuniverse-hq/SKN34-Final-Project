@@ -31,7 +31,7 @@ import { ArSheet } from '@/components/ar/ArSheet';
 import { ArZoneWheel, zoneWheelRadius } from '@/components/ar/ArZoneWheel';
 import { IntensityRail } from '@/components/ar/IntensityRail';
 import { TextureSelect } from '@/components/ar/TextureSelect';
-import { NEARBY_DIRECTIONS } from '@/lib/nearbyColors';
+import { NEARBY_DIRECTIONS, type ColorSwatch } from '@/lib/nearbyColors';
 import { OpenArcPalette } from '@/components/ar/OpenArcPalette';
 import { CoverageBar } from '@/components/ar/CoverageBar';
 import { NearbyExplorer } from '@/components/ar/NearbyExplorer';
@@ -47,13 +47,14 @@ import {
   effectiveHighlighterAreas,
   HIGHLIGHT_FACES,
   HIGHLIGHTER_AREAS,
+  highlighterAreaPatch,
   highlighterFaceOf,
-  toggleHighlighterArea,
 } from '@/lib/arFacePalette';
 import { HIGHLIGHTER_STYLE_IDS, type FaceFitHint, type FaceFitStatus, type FaceShape } from '@/lib/faceFit';
 import { COLOR_FAMILIES, colorFamily, type ColorFamily } from '@/lib/colorFamily';
 import { reject, result, type ControlOperation, type ControlScreen } from '@/lib/arControl';
-import { catalogNameMatches, makeupControls, shadeInfo, worn } from '@/lib/arMakeupControls';
+import { catalogMatches, makeupControls, shadeInfo, worn } from '@/lib/arMakeupControls';
+import { subscribeArIdentityChange } from '@/lib/api';
 import { isSafeExternalUrl } from '@/lib/externalLink';
 import { formatKRW } from '@/lib/format';
 import { LINER_LOOK_IDS, LINER_LOOKS, matchingLinerLook } from '@/lib/linerLooks';
@@ -71,6 +72,7 @@ import { noteArFailure } from '@/lib/arHistory';
 import { useArCommand } from '@/hooks/useArCommand';
 import { integratedVoiceModel, useArVoiceSession } from '@/hooks/useArVoiceSession';
 import { useArVoice } from '@/hooks/useArVoice';
+import { arVoiceKeywords } from '@/lib/arVoiceContext';
 import { useArEnvMessage } from '@/hooks/useArEnvMessage';
 import { MIN_TONE_CONF, rankFoundationShades, type SkinTone } from '@/lib/foundationMatch';
 import { ENV_MESSAGE_KEY, type EnvState } from '@/lib/arEnv';
@@ -87,6 +89,18 @@ import { useSettingsStore } from '@/store/settingsStore';
 import type { HighlightFace, MakeupZone, Product, Shade, Texture } from '@/types';
 
 type Mode = 'direct' | 'chat';
+type RecommendationKind = 'foundation_match' | 'look_gap' | 'similar_shades' | 'personalized';
+interface RecommendationList {
+  kind: RecommendationKind;
+  scope: string;
+  catalog: readonly Product[];
+  items: readonly ColorSwatch[];
+}
+
+const DETAIL_CONTROL_CHOICES = new Set([
+  'navigate/cart', 'navigate/back',
+  'set_view/mirror/on', 'set_view/mirror/off', 'retry_catalog',
+]);
 
 const VoiceSessionView = lazy(() => import('@/components/ar/VoiceSessionView').then(module => ({ default: module.VoiceSessionView })));
 const HIDDEN_TAB_BAR_STYLE = { ...TAB_BAR_STYLE, display: 'none' as const, height: 0 };
@@ -204,6 +218,7 @@ export default function ArTryOnScreen() {
   const [careChip, setCareChip] = useState<'all' | 'oil' | 'balm' | null>(null);
   const [added, setAdded] = useState(false);
   const [recFor, setRecFor] = useState<string | null>(null);
+  const [recommendationList, setRecommendationList] = useState<RecommendationList | null>(null);
   const [mode, setMode] = useState<Mode>('direct');
   const [focusedMode, setFocusedMode] = useState<Mode | null>(null);
   const [sheet, setSheet] = useState<'tools' | 'product' | 'info' | null>(null);
@@ -223,6 +238,13 @@ export default function ArTryOnScreen() {
   }
   const [sendingChat, setSendingChat] = useState(false);
   const [chatRequest, setChatRequest] = useState('');
+  const clearConversation = useCallback(() => {
+    setTestKeyboard(false);
+    setRecommendationList(null);
+    setChatRequest('');
+    setDraft('');
+  }, []);
+  useEffect(() => subscribeArIdentityChange(clearConversation), [clearConversation]);
   const [isFullscreenAR, setIsFullscreenAR] = useState(false);
   useEffect(() => {
     if (!addedShade) return;
@@ -326,13 +348,15 @@ export default function ArTryOnScreen() {
         : TEXTURES.filter((tx) => zoneSwatches.some(({ product }) => product.texture === tx)),
     [zoneSwatches, zone]
   );
-  // Foundation shades closest to the measured skin color, from the shades this tab offers (a color reference only).
+  const foundationSwatches = useMemo(() => colorProducts.filter(p => p.makeupZone === 'foundation')
+    .flatMap(product => product.shades.map(shade => ({ product, shade }))).filter(usableShadeTone), [colorProducts]);
+  // Foundation shades closest to the measured skin color (a color reference only).
   const foundMatches = useMemo(
     () =>
       zone === 'foundation' && skinTone && skinTone.conf >= MIN_TONE_CONF
-        ? rankFoundationShades(skinTone, zoneSwatches).slice(0, 3)
+        ? rankFoundationShades(skinTone, foundationSwatches).slice(0, 3)
         : [],
-    [zone, skinTone, zoneSwatches]
+    [zone, skinTone, foundationSwatches]
   );
   const familyOptions = useMemo(
     () => zone === 'lip' ? COLOR_FAMILIES.filter((fm) => zoneSwatches.some(({ shade }) => colorFamily(shade.hex) === fm)) : [],
@@ -351,12 +375,14 @@ export default function ArTryOnScreen() {
           ),
     [careOpen, careChip, careSwatches, zoneSwatches, zone, textureFilter, familyFilter]
   );
-  const direct = mode === 'direct' && !fit && !practice && !fromVideo;
+  const canExplore = !fit && !practice && !fromVideo;
+  const direct = mode === 'direct' && canExplore;
   const paletteShown = direct && !sheet && !zoneMenuOpen && !isFullscreenAR;
   const activity = useArHistory({
-    active: cameraActive && direct, zone, direction: nearby.direction,
+    active: cameraActive && canExplore, zone, direction: nearby.direction,
     nearby: nearby.active ? nearby.groups[nearby.direction] : null,
-    catalog: zoneSwatches, visibleItems: visibleSwatches, paletteShown, careOpen,
+    catalog: zoneSwatches, visibleItems: visibleSwatches, paletteShown,
+    prepareVoiceRecommendations: mode === 'chat', careOpen,
     scopeKey: explorationScope, filterKey: JSON.stringify([textureFilter, familyFilter]),
   });
   const displayedSwatches = activity.ordered;
@@ -410,7 +436,7 @@ export default function ArTryOnScreen() {
     applyShade(product, shade);
     if (fromPalette && !careOpen && !nearby.active && nearby.supported && recommendHint === 'new' &&
         ![shade.measureMethod, shade.colorSource].includes('placeholder') && product.texture) setRecommendHint('visible');
-    if (!rendererMounted || status !== 'tracking' || !activity.history || !product.makeupZone) return;
+    if (!direct || !rendererMounted || status !== 'tracking' || !activity.history || !product.makeupZone) return;
     const state = useMakeupStore.getState();
     const selection = [state.selections[product.makeupZone], state.careSelection]
       .find(s => s?.productId === product.id && s.shadeId === shade.id);
@@ -505,7 +531,7 @@ export default function ArTryOnScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
   };
   function prepareCartAddition(selection: { productId: string; shadeId: string }, makeupZone?: MakeupZone | null) {
-    const event = makeupZone ? activity.history?.cartAdd(selection, makeupZone) : undefined;
+    const event = direct && makeupZone ? activity.history?.cartAdd(selection, makeupZone) : undefined;
     return {
       item: {
         productId: selection.productId,
@@ -622,9 +648,10 @@ export default function ArTryOnScreen() {
         setSheet(null);
         setAddedShade(null);
         setIsFullscreenAR(false);
+        clearConversation();
         navigation.setOptions({ tabBarStyle: TAB_BAR_STYLE });
       };
-    }, [navigation])
+    }, [navigation, clearConversation])
   );
 
   const currentIntensity = makeup[zone]?.intensity;
@@ -642,17 +669,21 @@ export default function ArTryOnScreen() {
   };
 
   const currentSwatch = careOpen ? selectedCare : selectedTryOn;
-  const center = Math.max(0, displayedSwatches.findIndex(s => s.product.id === currentSwatch?.product.id && s.shade.id === currentSwatch?.shade.id));
+  const paletteSelection = shadowPointing ? displayedSwatches.find(s => s.shade.hex === makeup.eyeshadow?.hexTo) : currentSwatch;
+  const center = Math.max(0, displayedSwatches.findIndex(s => s.product.id === paletteSelection?.product.id && s.shade.id === paletteSelection?.shade.id));
   const displayMode = liveCamera ? 'face' : swatchOnly ? 'swatches_only' : 'unavailable';
   const tracking = rendererMounted && status === 'tracking';
   const catalogReady = !products.isError && !products.isPending;
   const choices = new Map<string, ControlOperation>();
   const { apply, recommend } = makeupControls(choices, { products: tryOnProducts, ready: catalogReady, display: displayedSwatches,
     center, tracking, swatchesOnly: swatchOnly, faceShape, visibleMakeup:shownMakeup,
-    onShadeSelected: (selectedZone, care) => {
-      if (mode !== 'chat') return;
+    faceTemporarilyMissing: rendererMounted && status === 'no-face',
+    shadowPointing,
+    onShadowPointCleared: () => setShadowPointMode(false),
+    onShadeSelected: (selectedZone, care, _item, point) => {
       if (zone !== selectedZone) chooseZone(selectedZone);
       if (care || careOpen) setCareChip(care);
+      if (mode === 'chat' && selectedZone === 'eyeshadow') setShadowPointMode(point);
     } });
   const change = (same: boolean, perform: () => void, data: unknown) => {
     if (same) return result('NO_CHANGE', data);
@@ -661,19 +692,32 @@ export default function ArTryOnScreen() {
   };
   for (const z of AR_PAINT_ZONES) choices.set('select_zone/' + z, () => change(zone === z, () => chooseZone(z),
     { activeZone: z, count: zone === z ? displayedSwatches.length : colorProducts.filter(p => p.makeupZone === z).reduce((n,p) => n + p.shades.length,0) }));
-  const filter = (texture: Texture | null, family: ColorFamily | null, care: typeof careChip) => {
+  const filter = (texture: Texture | null, family: ColorFamily | null, care: typeof careChip, keepNearby = false) => {
     if (!catalogReady) return reject('catalog unavailable');
-    const count = care ? careSwatches.filter(s => care === 'all' || lipCareKind(s.product) === care).length :
+    const staysNearby = keepNearby && nearby.active;
+    const count = staysNearby ? nearby.candidates(nearby.direction, texture).length :
+      care ? careSwatches.filter(s => care === 'all' || lipCareKind(s.product) === care).length :
       zoneSwatches.filter(s => (!texture || (zone === 'lip' ? lipTextureChip(s.product.texture) : s.product.texture) === texture) &&
         (!family || colorFamily(s.shade.hex) === family)).length;
-    return change(!nearby.active && texture === textureFilter && family === familyFilter && care === careChip, () => {
-      nearby.leave(); setTextureFilter(texture); setFamilyFilter(family); setCareChip(care);
-    }, { texture, family, care, count });
+    const leavesNearby = nearby.active && !staysNearby;
+    return change(!leavesNearby && texture === textureFilter && family === familyFilter && care === careChip, () => {
+      if (leavesNearby) {
+        activity.returnFromNearby(selectedTryOn);
+        nearby.leave();
+      }
+      setTextureFilter(texture);
+      setFamilyFilter(family);
+      setCareChip(care);
+    }, { texture, family, care, count, nearby: staysNearby,
+      ...(staysNearby && { anchor: shadeInfo(nearby.anchor), direction: nearby.direction }) });
   };
+  const setTexture = (texture: Texture | null) => filter(texture, familyFilter, null, true);
   choices.set('set_palette_filter/reset', () => filter(null, null, null));
-  for (const tx of textureOptions) choices.set('set_palette_filter/' + tx, () => filter(tx, null, null));
-  for (const fm of familyOptions) {
-    choices.set('set_palette_filter/' + fm, () => filter(null, fm, null));
+  choices.set('set_palette_filter/texture/reset', () => setTexture(null));
+  for (const tx of textureOptions) choices.set('set_palette_filter/' + tx, () => setTexture(tx));
+  if (displayedFamilies.length) choices.set('set_palette_filter/family/reset', () => filter(textureFilter, null, null));
+  for (const fm of displayedFamilies) {
+    choices.set('set_palette_filter/' + fm, () => filter(textureFilter, fm, null));
     for (const tx of textureOptions) choices.set('set_palette_filter/' + fm + '/' + tx, () => filter(tx, fm, null));
   }
   if (zone === 'lip') for (const k of ['all','oil','balm'] as const) choices.set('set_palette_filter/lipCare/' + k, () => filter(null,null,k));
@@ -684,7 +728,8 @@ export default function ArTryOnScreen() {
         const items = nearby.candidates(dir);
         return change(nearby.active && nearby.direction === dir, () => {
           setCareChip(null);
-          if (nearby.active) nearby.setDirection(dir); else nearby.enter(dir);
+          if (nearby.active) nearby.setDirection(dir);
+          else { activity.beginNearby(); nearby.enter(dir); }
         }, { anchor: shadeInfo(nearby.anchor ?? selectedTryOn), direction: dir, count: items.length, shades: items.slice(0,5).map(shadeInfo) });
       });
       if (nearby.active || nearby.canEnter) choices.set('explore_nearby/apply/' + dir, (_,c) => {
@@ -695,30 +740,85 @@ export default function ArTryOnScreen() {
     }
     choices.set('explore_nearby/rebase', () => nearby.canRebase ? change(false, nearby.rebase, shadeInfo(selectedTryOn)) : reject('no new anchor'));
     choices.set('explore_nearby/back', () => nearby.canGoBack ? change(false, nearby.back, 'previous anchor') : reject('no previous anchor'));
-    choices.set('explore_nearby/exit', () => change(!nearby.active, nearby.leave, { active: false }));
+    choices.set('explore_nearby/exit', () => change(!nearby.active, () => {
+      activity.returnFromNearby(selectedTryOn);
+      nearby.leave();
+    }, { active: false }));
     choices.set('explore_nearby/apply_anchor', (_,c) => apply(nearby.anchor,c));
   }
-  const foundationMatches = () => skinTone && skinTone.conf >= MIN_TONE_CONF
-    ? rankFoundationShades(skinTone, colorProducts.filter(p => p.makeupZone === 'foundation')
-      .flatMap(product => product.shades.map(shade => ({product, shade}))).filter(usableShadeTone)) : [];
+  const recommendationScope = JSON.stringify([explorationScope, zone, textureFilter, familyFilter, careChip,
+    shadeInfo(nearby.anchor), nearby.direction, shadowPointing, practicing, fit]);
+  const recentRecommendations = recommendationList && voiceActive && catalogReady &&
+    recommendationList.catalog === tryOnProducts && recommendationList.scope === recommendationScope &&
+    (recommendationList.kind !== 'personalized' || activity.canRecommend) ? recommendationList : null;
+  if (recommendationList && !recentRecommendations) setRecommendationList(null);
+  const showRecommendations = (kind: RecommendationKind, items: readonly ColorSwatch[]) => {
+    setRecommendationList({ kind, items, scope: recommendationScope, catalog: tryOnProducts });
+    return result('OK', items.map(shadeInfo));
+  };
+  if (recentRecommendations) {
+    recentRecommendations.items.forEach((item, index) => {
+      const target = recentRecommendations.kind + '/' + (index + 1);
+      choices.set('apply_recommendation/' + target, (_, confirm) => recommend(item, confirm));
+      choices.set('navigate/recommendation/' + target, () => {
+        router.push(productHref(item.product.id, item.shade.id));
+        return result('APPLIED', { destination: 'product', ...shadeInfo(item) });
+      });
+    });
+  }
+  const foundationMatches = () => zone === 'foundation' ? foundMatches : skinTone && skinTone.conf >= MIN_TONE_CONF
+    ? rankFoundationShades(skinTone, foundationSwatches).slice(0, 3) : [];
   choices.set('apply_shade/foundation/skin_match', (_, confirm) => {
     if (!skinTone || skinTone.conf < MIN_TONE_CONF) return reject('skin tone measurement required');
     return recommend(foundationMatches()[0], confirm);
   });
   choices.set('get_recommendations/foundation_match', () => {
     if (!catalogReady || !skinTone || skinTone.conf < MIN_TONE_CONF) return reject('catalog or skin tone measurement required');
-    return result('OK', foundationMatches().slice(0,3).map(shadeInfo));
+    return showRecommendations('foundation_match', foundationMatches());
   });
-  choices.set('get_recommendations/look_gap', () => result('OK', zoneGap?.kind === 'nearest' ? shadeInfo(zoneGap.nearest) : null));
-  choices.set('get_recommendations/similar_shades', () => !zoneHex || !catalogReady ? reject('no current shade or catalog') :
-    result('OK', recommendShades(zoneHex, zone, colorProducts, selections[zone] ?? null).slice(0,8).map(shadeInfo)));
+  choices.set('get_recommendations/look_gap', () => !catalogReady ? reject('catalog unavailable') :
+    showRecommendations('look_gap', zoneGap?.kind === 'nearest' && !selectedLine ? [zoneGap.nearest] : []));
+  choices.set('get_recommendations/similar_shades', () => {
+    if (!catalogReady) return reject('catalog unavailable');
+    if (nearby.supported) {
+      if (!nearby.active && !nearby.canEnter) return reject('no applied anchor shade');
+      return showRecommendations('similar_shades', nearby.candidates('similar').slice(0, 5));
+    }
+    if (!zoneHex) return reject('no current shade');
+    return showRecommendations('similar_shades', recommendShades(zoneHex, zone, colorProducts, selections[zone] ?? null));
+  });
+  if (canExplore && (zone === 'lip' || zone === 'blush') && !nearby.active && !careOpen) {
+    const unavailable = () => reject(!activity.canRecommend ? 'personalized recommendations unavailable' : 'personalized recommendations loading');
+    choices.set('get_recommendations/personalized', () => !catalogReady ? reject('catalog unavailable') :
+      activity.recommendationsReady ? showRecommendations('personalized', activity.recommendations ?? []) : unavailable());
+    choices.set('apply_shade/' + zone + '/personalized', (_, confirm) => !catalogReady ? reject('catalog unavailable') :
+      activity.recommendationsReady ? recommend(activity.recommendations?.[0], confirm) : unavailable());
+  }
+  choices.set('set_shadow_point/show', () => {
+    if (!makeup.eyeshadow || practicing) return reject('no eyeshadow palette available');
+    return change(!!shadowPointing && !sheet && !isFullscreenAR, () => {
+      if (zone !== 'eyeshadow') chooseZone('eyeshadow');
+      setShadowPointMode(true);
+      setSheet(null);
+      if (isFullscreenAR) setMirrorMode(false);
+    }, { shadowPointing: true });
+  });
+  choices.set('set_shadow_point/hide', () => change(!shadowPointMode && !shadowPointing, () => {
+    setShadowPointMode(false);
+  }, { shadowPointing: false }));
   for (const on of [true,false]) {
     const key = on ? 'on' : 'off';
     choices.set('set_view/compare/' + key, () => liveCamera ? change(compare === on, () => setCompare(on), {compare:on}) : reject('camera required'));
-    choices.set('set_view/mirror/' + key, () => liveCamera ? change(isFullscreenAR === on, () => setMirrorMode(on), {mirror:on}) : reject('camera required'));
+    choices.set('set_view/mirror/' + key, () => liveCamera ? change(isFullscreenAR === on, () => {
+      if (on) setSheet(null);
+      setMirrorMode(on);
+    }, { mirror: on }) : reject('camera required'));
   }
   for (const panel of ['tools','product','info',null] as const) choices.set('set_view/panel/' + (panel ?? 'closed'), () =>
-    panel === 'product' && !currentSwatch ? reject('no selected product') : change(sheet === panel, () => setSheet(panel), { panel }));
+    panel === 'product' && !currentSwatch ? reject('no selected product') : change(sheet === panel, () => {
+      if (panel && isFullscreenAR) setMirrorMode(false);
+      setSheet(panel);
+    }, { panel }));
   for (const m of ['direct','chat'] as const) choices.set('set_view/mode/' + m, () => change(mode === m, () => switchMode(m), {mode:m}));
   for (const target of ['current_product','fit_product','all_selected'] as const) choices.set('add_to_cart/' + target, () => {
     const currentSelection = careOpen ? careSelection : selections[zone];
@@ -759,7 +859,11 @@ export default function ArTryOnScreen() {
   choices.set('navigate/back', () => router.canGoBack() ? change(false, router.back, 'back') : reject('no previous screen'));
   choices.set('navigate/similar_products', () => zoneSelection && !nearby.supported ?
     change(false, openRecommendations, zoneSelection) : reject('no current selection or unavailable'));
-  choices.set('control_practice/start', () => activeLook ? change(practicing, startPractice, practiceSteps[0]) : reject('no active look'));
+  choices.set('control_practice/start', () => change(practicing, () => {
+    setSheet(null);
+    if (isFullscreenAR) setMirrorMode(false);
+    startPractice();
+  }, practiceSteps[0]));
   if (practicing) {
     choices.set('control_practice/exit', () => change(false, exitPractice, {active:false}));
     for (const on of [true,false]) choices.set('control_practice/peek_' + (on?'on':'off'), () => change(peek===on, () => setPeek(on), {peek:on}));
@@ -806,8 +910,6 @@ export default function ArTryOnScreen() {
     retry();
     return result('APPLIED',{cameraStatus:'loading',trackingConfirmed:false});
   });
-  for (const start of [true,false]) choices.set('control_recording/' + (start?'start':'stop'), () =>
-    liveCamera ? recorder.transition(start) : reject('live camera required'));
   const tryOnCounts = useMemo(() => (tryOnHistory ?? []).reduce<Record<string, number>>((counts, entry) => {
     counts.all++;
     counts[entry.zone] = (counts[entry.zone] ?? 0) + 1;
@@ -815,11 +917,13 @@ export default function ArTryOnScreen() {
   }, { all: 0 }), [tryOnHistory]);
   const screenState = { zone, displayMode, tracking, mode, sheet, compare, mirror:isFullscreenAR, fit:fit?.productId,
     tryOnCounts,
-    look:activeLook?.id, lookStrength, practice:practicing ? practiceIndex : null, peek, recording:recorder.state,
-    catalogReady, catalogError:products.isError, cameraStatus:status, permission:permission?.status, recordingAvailable:recorder.available,
+    look:activeLook?.id, lookStrength, practice:practicing ? practiceIndex : null, peek,
+    catalogReady, catalogError:products.isError, cameraStatus:status, permission:permission?.status,
     foundationMeasured:!!skinTone && skinTone.conf >= MIN_TONE_CONF, lookStrengthAvailable:lookFinishOn,
     current:shadeInfo(selectedTryOn), care:shadeInfo(selectedCare), center:shadeInfo(displayedSwatches[center]),
     anchor:shadeInfo(nearby.anchor), direction:nearby.direction, textureFilter, familyFilter, careChip,
+    shadowPointing,
+    recommendations:recentRecommendations && {kind:recentRecommendations.kind, items:recentRecommendations.items.map(shadeInfo)},
     lipTypes:['lipstick','tint','gloss'],
     count:displayedSwatches.length, worn:AR_PAINT_ZONES.map(z=>worn(useMakeupStore.getState(),z,tryOnProducts,shownMakeup)) };
   choices.set('get_state/' + zone, () => result('OK', { ...worn(useMakeupStore.getState(),zone,tryOnProducts),
@@ -828,20 +932,32 @@ export default function ArTryOnScreen() {
   choices.set('get_state/current_screen', () => result('OK', screenState));
   choices.set('get_state/palette_center', () => result('OK', {center:screenState.center, worn:screenState.current}));
   choices.set('get_state/exploration_anchor', () => result('OK', {anchor:screenState.anchor, direction:nearby.direction}));
+  if (fit || practicing) {
+    for (const choice of choices.keys()) {
+      const common = DETAIL_CONTROL_CHOICES.has(choice) || choice.startsWith('get_state/') || choice.startsWith('control_camera/');
+      const specific = fit ? choice === 'add_to_cart/fit_product' || choice === 'navigate/product' :
+        choice.startsWith('control_practice/') || (lookFinishOn && choice.startsWith('set_look_strength/'));
+      if (!common && !specific) choices.delete(choice);
+    }
+  }
   // A catalog pick can start while the catalog or face tracker is warming up.
   // Keep it bound to the user's view and filters, independently of readiness notifications.
   const catalogApplyKey = JSON.stringify([zone, mode, displayMode, sheet, compare, isFullscreenAR,
     fit?.productId, activeLook?.id, lookStrength, practicing, practiceIndex, peek, textureFilter,
-    familyFilter, careChip, screenState.anchor, nearby.direction]);
+    familyFilter, careChip, shadowPointing, screenState.anchor, nearby.direction]);
   const control: ControlScreen = {summary, choices, displayMode, contextKey:summary, catalogApplyKey,
-    matchCatalogNames: message => catalogNameMatches(tryOnProducts, message) };
+    matchCatalog: message => catalogMatches(tryOnProducts, message) };
   const arCommand = useArCommand({active:cameraActive, enabled:tracking, locale:language, rendererId, activeZone:zone, control,
      visibleZones: practicing && !peek && practice ? practice.visited : null,
-    fallbackText:r=>r.featuredShade ? [
-      r.featuredShade.family && t(`ar.family.${r.featuredShade.family}`), r.featuredShade.brand,
-      language === 'ko' && r.featuredShade.productKo || r.featuredShade.product, r.featuredShade.shade,
-    ].filter(Boolean).join(' · ') : t(r.status==='OK' ? 'ar.control.checked' : r.status==='APPLIED' ? 'ar.control.changed' :
-      r.status==='NO_CHANGE' ? 'ar.control.unchanged' : AR_COMMAND_STATUS[r.status.toLowerCase() as keyof typeof AR_COMMAND_STATUS]),
+     fallbackText:r => {
+       const label = r.featuredShade ? [
+         r.featuredShade.family && t(`ar.family.${r.featuredShade.family}`), r.featuredShade.brand,
+         language === 'ko' && r.featuredShade.productKo || r.featuredShade.product, r.featuredShade.shade,
+       ].filter(Boolean).join(' · ') : '';
+       if (r.renderPending) return t('ar.control.selectionPending', { shade: label });
+       return label || t(r.status === 'OK' ? 'ar.control.checked' : r.status === 'APPLIED' ? 'ar.control.changed' :
+         r.status === 'NO_CHANGE' ? 'ar.control.unchanged' : AR_COMMAND_STATUS[r.status.toLowerCase() as keyof typeof AR_COMMAND_STATUS]);
+     },
     preview:(face,strength=lookStrength,edited=modified)=>videoLookMakeup(arPaintMakeup(practicing && !peek && practice ? revealedMakeup(face,practice.visited) : face),
       {fromVideo,cameraActive,fittingProduct:!!fit || !!routeProductId,lookId:activeLook?.id ?? null,modified:edited,strength})});
   const commandBusy = arCommand.state==='interpreting' || arCommand.state==='proposed' ||
@@ -855,10 +971,15 @@ export default function ArTryOnScreen() {
     finally { submittedDraft.current = null; setSendingChat(false); }
   }
   const voiceEnabled = voiceActive && mode === 'chat' && !isFullscreenAR && !sheet;
-  const recordedVoice = useArVoice(voiceEnabled && !integratedVoiceModel, submitRequest);
-  const integratedVoice = useArVoiceSession(voiceEnabled && recordedVoice.available, control, arCommand.send);
-  const voice = integratedVoiceModel ? { ...recordedVoice, ...integratedVoice } : recordedVoice;
-  const keyboardVisible = __DEV__ && (!voice.available || testKeyboard);
+  const useIntegratedVoice = !!integratedVoiceModel && language === 'ko';
+  const recordedVoice = useArVoice(voiceEnabled && !useIntegratedVoice, submitRequest, () => {
+    const recommendationPalette = recentRecommendations?.items;
+    return arVoiceKeywords(tryOnProducts, recommendationPalette ?? displayedSwatches, recommendationPalette ? 0 : center,
+      [zoneSelection, careSelection, ...Object.values(selections)]);
+  });
+  const integratedVoice = useArVoiceSession(voiceEnabled && useIntegratedVoice && recordedVoice.available, control, arCommand.send);
+  const voice = useIntegratedVoice ? { ...recordedVoice, ...integratedVoice } : recordedVoice;
+  const keyboardVisible = __DEV__ && (testKeyboard || !voice.available);
   const inConversation = voice.phase !== 'idle';
   const canSendCommand = cameraActive && !!draft.trim() && !commandBusy && !sendingChat && !inConversation;
   const sendCommand = () => {
@@ -1413,11 +1534,11 @@ export default function ArTryOnScreen() {
                 </Pressable>
               </View>
               {textureOptions.length > 0 ? <TextureSelect options={textureOptions} value={textureFilter}
-                onChange={next => { setCareChip(null); setTextureFilter(next); }} /> : null}
+                onChange={setTexture} /> : null}
             </View>
             <View pointerEvents={zoneMenuOpen ? 'none' : 'auto'} aria-hidden={zoneMenuOpen} accessibilityElementsHidden={zoneMenuOpen} importantForAccessibility={zoneMenuOpen ? 'no-hide-descendants' : 'auto'} style={zoneMenuOpen ? { opacity: 0 } : undefined}>
             <OpenArcPalette key={JSON.stringify([zone, nearby.active, nearby.anchor?.product.id, nearby.anchor?.shade.id, nearby.direction, textureFilter, familyFilter, careChip])}
-              items={displayedSwatches} selected={(shadowPointing ? displayedSwatches.find(item => item.shade.hex === makeup.eyeshadow?.hexTo) : currentSwatch) ?? undefined} label={t('ar.arc.palette')} hint={t('ar.arc.swipe')}
+              items={displayedSwatches} selected={paletteSelection ?? undefined} label={t('ar.arc.palette')} hint={t('ar.arc.swipe')}
               onVisible={activity.visible}
               recommendedItems={activity.recommendedItems} recommendedLabel={t('ar.arc.recommended')}
               onSelect={({ product, shade }) => {
@@ -1481,7 +1602,7 @@ export default function ArTryOnScreen() {
                   {!careOpen && displayedFamilies.length ? <View style={styles.filterDivider} /> : null}
                   {!careOpen ? displayedFamilies.map((fm) => (
                     <Chip key={fm} label={t(`ar.family.${fm}` as TranslationKey)} selected={familyFilter === fm}
-                      onPress={() => setFamilyFilter(familyFilter === fm ? null : fm)} />
+                      onPress={() => filter(textureFilter, familyFilter === fm ? null : fm, null)} />
                   )) : null}
                   {/* Inside 립케어 only: oil or balm (press again for both). */}
                   {careOpen ? <View style={styles.filterDivider} /> : null}
@@ -1647,13 +1768,10 @@ export default function ArTryOnScreen() {
                           key={area}
                           label={t(`looks.area.${area}` as TranslationKey)}
                           selected={!styleOn && painted.includes(area)}
-                          onPress={() =>
-                            patchGeometry('highlighter', {
-                              // From a style: back to the face-type layout with this region on. Otherwise: on / off.
-                              areas: styleOn && painted.includes(area) ? painted : toggleHighlighterArea(painted, area),
-                              hlStyle: undefined,
-                            })
-                          }
+                          onPress={() => {
+                            const patch = highlighterAreaPatch(makeup.highlighter?.geometry, faceShape, area);
+                            if (patch) patchGeometry('highlighter', patch);
+                          }}
                         />
                       );
                     })}

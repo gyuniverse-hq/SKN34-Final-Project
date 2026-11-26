@@ -5,7 +5,6 @@ import httpx
 
 from app.core.config import get_settings
 from app.core.errors import UpstreamError
-from app.schemas.ar_tool import ar_control_tool
 
 
 class LlmClient:
@@ -21,25 +20,15 @@ class LlmClient:
     def configured(self) -> bool:
         return bool(self._api_key and self._model)
 
-    async def choose_ar_control(self, messages: list[dict[str, str]], choices: list[str]) -> dict:
-        tool = {"type": "function", "function": ar_control_tool(choices)}
-        tool["function"]["parameters"]["properties"]["onAppliedReply"] = {
-            "type": "string",
-            "description": (
-                "For relative intensity changes only (up, down, half), write one short, warm "
-                "makeup-artist sentence in the user's language for the confirmed change. "
-                "Describe how the softer or bolder color feels; a brief invitation for their "
-                "opinion is welcome. In swatches_only describe the shade. Avoid slider jargon, "
-                "steps, numbers, invented products or observations about the person's face. "
-                "Omit for other choices or if further result details are needed."
-            ),
-        }
+    async def choose_ar_control(self, messages: list[dict[str, str]], tool: dict) -> dict:
         options = {"reasoning_effort": "none"} if self._model == "gpt-6-luna" else {}
-        response = await self._request(messages, tools=[tool], tool_choice="auto", **options)
+        response = await self._request(
+            messages, tools=[{"type": "function", "function": tool}], tool_choice="auto", **options
+        )
         calls = response.get("tool_calls", [])
         if not calls:
             return {"answer": response.get("content", "")}
-        if len(calls) != 1 or calls[0]["function"]["name"] != "ar_control":
+        if len(calls) != 1 or calls[0]["function"]["name"] != tool["name"]:
             raise UpstreamError("Unexpected AR tool call")
         return {"arguments": calls[0]["function"]["arguments"]}
 

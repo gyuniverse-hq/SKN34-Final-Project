@@ -1,8 +1,12 @@
-from fastapi import APIRouter, Depends, Request
+from urllib.parse import unquote
+
+from fastapi import APIRouter, Depends, Header, Request
+from pydantic import ValidationError
 
 from app.core.auth import ChatPrincipal, chat_principal
 from app.core.errors import ApiError
 from app.core.ratelimit import RateLimiter, get_rate_limiter
+from app.schemas.voice import ArTranscriptionContext
 from app.services.transcription_service import TranscriptionService
 from app.services.voice_session_service import VoiceOffer, create_voice_session
 
@@ -27,13 +31,26 @@ async def transcribe(
     principal: ChatPrincipal = Depends(chat_principal),
     limiter: RateLimiter = Depends(get_rate_limiter),
     service: TranscriptionService = Depends(),
+    context_header: str | None = Header(
+        default=None, alias="X-Vishue-Transcription-Context", max_length=4096
+    ),
 ) -> dict[str, str]:
     if not await limiter.allow("ar-voice:" + principal.rate_limit_key):
         raise ApiError(429, "Too many recordings", "rate_limited")
+    try:
+        context = (
+            ArTranscriptionContext()
+            if context_header is None
+            else ArTranscriptionContext.model_validate_json(
+                unquote(context_header, errors="strict")
+            )
+        )
+    except (ValidationError, UnicodeError) as exc:
+        raise ApiError(400, "Invalid transcription context", "stt_invalid_context") from exc
     recording = bytearray()
     async for chunk in request.stream():
         if len(recording) + len(chunk) > MAX_RECORDING_BYTES:
             raise ApiError(413, "Recording is too large", "stt_too_large")
         recording.extend(chunk)
     media_type = request.headers.get("content-type", "").split(";")[0].strip().lower()
-    return {"text": await service.transcribe(bytes(recording), media_type)}
+    return {"text": await service.transcribe(bytes(recording), media_type, context)}

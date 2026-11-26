@@ -4,7 +4,8 @@ import type { AudioRecorder } from 'expo-audio';
 import { File } from 'expo-file-system';
 import * as Speech from 'expo-speech';
 import { apiPostOwned, subscribeArIdentityChange } from '@/lib/api';
-import { useI18n, type TranslationKey } from '@/lib/i18n';
+import { encodeArVoiceContext } from '@/lib/arVoiceContext';
+import { useI18n, type Language, type TranslationKey } from '@/lib/i18n';
 
 type Phase = 'idle' | 'preparing' | 'recording' | 'hearing' | 'transcribing' | 'thinking' | 'speaking' | 'ending';
 type Audio = typeof import('expo-audio');
@@ -12,6 +13,7 @@ const MAX_SEGMENT_MS = 30_000;
 const QUIET_MS = 1_200;
 const SAMPLE_MS = 100;
 const TRANSCRIPTION_TIMEOUT_MS = 15_000;
+const SPEECH_LOCALES: Record<Language, string> = { en: 'en-US', ko: 'ko-KR', ja: 'ja-JP', zh: 'zh-CN' };
 
 class MeterUnavailable extends Error {}
 class TranscriptionTimeout extends Error {}
@@ -144,9 +146,13 @@ async function capture(audio: Audio, signal: AbortSignal, setPhase: (phase: Phas
   }
 }
 
-export function useArVoice(active: boolean, onTranscript: (text: string, signal: AbortSignal, onPainted?: () => void) => Promise<string | undefined>) {
+export function useArVoice(
+  active: boolean,
+  onTranscript: (text: string, signal: AbortSignal, onPainted?: () => void) => Promise<string | undefined>,
+  getKeywords: () => readonly string[],
+) {
   const { t, language } = useI18n();
-  const available = language === 'ko' && (Platform.OS === 'ios' || Platform.OS === 'android');
+  const available = Platform.OS === 'ios' || Platform.OS === 'android';
   const enabled = active && available;
   const [phase, setPhase] = useState<Phase>('idle');
   const [notice, setNotice] = useState<TranslationKey | null>(null);
@@ -157,7 +163,9 @@ export function useArVoice(active: boolean, onTranscript: (text: string, signal:
   const output = useRef(true);
   const finishSpeech = useRef<(() => void) | null>(null);
   const send = useRef(onTranscript);
+  const keywordsForTurn = useRef(getKeywords);
   send.current = onTranscript;
+  keywordsForTurn.current = getKeywords;
 
   function stopSpeech() {
     const done = finishSpeech.current;
@@ -176,7 +184,7 @@ export function useArVoice(active: boolean, onTranscript: (text: string, signal:
     setNotice(null);
     const unsubscribe = subscribeArIdentityChange(end);
     return () => { unsubscribe(); end(); };
-  }, [enabled]);
+  }, [enabled, language]);
 
   function speak(text: string, onStart?: () => void) {
     return new Promise<void>((resolve) => {
@@ -190,7 +198,7 @@ export function useArVoice(active: boolean, onTranscript: (text: string, signal:
         done();
       };
       try {
-        Speech.speak(text, { language: 'ko-KR', onStart, onDone: done, onStopped: done, onError: failed });
+        Speech.speak(text, { language: SPEECH_LOCALES[language], onStart, onDone: done, onStopped: done, onError: failed });
       } catch { failed(); }
     });
   }
@@ -216,7 +224,9 @@ export function useArVoice(active: boolean, onTranscript: (text: string, signal:
         let text: string | undefined;
         try {
           const { data } = await beforeDeadline(apiPostOwned<{ text: string }>(
-            '/api/chat/ar-control/transcribe', recording.bytes, { signal: request.signal }),
+            '/api/chat/ar-control/transcribe', recording.bytes, {
+              signal: request.signal, transcriptionContext: encodeArVoiceContext(language, keywordsForTurn.current()),
+            }),
           recording.expiresAt, signal);
           text = data.text?.trim();
         } finally {

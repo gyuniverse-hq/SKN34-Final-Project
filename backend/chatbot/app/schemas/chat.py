@@ -106,8 +106,12 @@ class ArControlSelection(ArModel):
     def validate_color_preferences(self) -> Self:
         if self.choice.startswith("reapply_try_on/") != (self.ordinal is not None):
             raise ValueError("An ordinal is required only for reapply_try_on")
-        if self.choice.endswith("/by_color") != any((self.family, self.lightness, self.chroma)):
-            raise ValueError("Color preferences are required for by_color and only valid there")
+        preferences = any((self.family, self.lightness, self.chroma))
+        by_color = self.choice.endswith("/by_color")
+        if (by_color and not preferences) or (
+            preferences and not by_color and self.choice != "apply_shade/product_pick"
+        ):
+            raise ValueError("by_color requires color preferences and product_pick accepts them")
         if self.lip_type and self.choice not in {
             "apply_shade/lip/pick",
             "apply_shade/lip/by_color",
@@ -126,12 +130,19 @@ class ArControlProposal(ArControlSelection):
     expected_state_version: ArVersion
 
 
-class ArCatalogNameMatch(ArModel):
+class ArCatalogProduct(ArModel):
     product_id: ArIdentifier
-    shade_id: ArIdentifier
     zone: ArZone
     brand: str = Field(max_length=500)
     product: str = Field(max_length=1000)
+
+
+class ArCatalogProductMatch(ArCatalogProduct):
+    reference: str = Field(min_length=1, max_length=1000)
+
+
+class ArCatalogNameMatch(ArCatalogProduct):
+    shade_id: ArIdentifier
     shade: str = Field(max_length=500)
 
 
@@ -140,6 +151,9 @@ class ArContext(ArModel):
 
     control: ArControlScreen | None = None
     catalog_name_matches: list[ArCatalogNameMatch] = Field(default_factory=list, max_length=1000)
+    catalog_product_matches: list[ArCatalogProductMatch] = Field(
+        default_factory=list, max_length=1000
+    )
     session_id: UUID | None = None
     previous_adjustment_id: UUID | None = None
     screen_id: Literal["A-01"]

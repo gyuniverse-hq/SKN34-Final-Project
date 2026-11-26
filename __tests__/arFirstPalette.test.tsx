@@ -72,6 +72,31 @@ it('moves the server-selected chip first and sends its server candidate ID for t
   await act(async () => { screen.unmount(); });
 });
 
+it('makes the same ranked shades available in voice without inventing a direct palette impression', async () => {
+  mockServerRanking = true;
+  mockRankedProducts = ['ranked', 'rated'];
+  const items = ['rated', 'ranked'].map(id => ({
+    product: { id, texture: 'matte' }, shade: { id: 's', hex: '#C26471' },
+  } as ColorSwatch));
+  let result!: ReturnType<typeof useArHistory>;
+  function Screen() {
+    result = useArHistory({ active: true, zone: 'lip', direction: 'similar', nearby: null, catalog: items,
+      visibleItems: items, paletteShown: false, prepareVoiceRecommendations: true, careOpen: false });
+    return null;
+  }
+  let screen!: renderer.ReactTestRenderer;
+  await act(async () => { screen = renderer.create(<Screen />); });
+  expect(result.recommendationsReady).toBe(true);
+  expect(result.recommendations).toEqual([items[1], items[0]]);
+  expect(result.visible).toBeUndefined();
+  expect(mockPost.mock.calls.map(([path]) => path)).toEqual(['/api/me/ar-history/status', '/api/me/ar-history/rank']);
+  mockOwner = 'ordinary-member';
+  await act(async () => { screen.update(<Screen />); });
+  expect(result.recommendationsReady).toBe(false);
+  expect(result.recommendations).toBeUndefined();
+  await act(async () => { screen.unmount(); });
+});
+
 it.each([
   { selected: 'picked', start: ['second', 'picked', 'first', 'third', 'after'], position: 3 },
   { selected: 'first', start: ['third', 'first', 'second', 'picked', 'after'], position: 2 },

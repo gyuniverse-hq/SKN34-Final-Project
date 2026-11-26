@@ -30,7 +30,8 @@ export function useNearbyExploration(products: Product[], zone: MakeupZone, sele
   return {
     supported: supportsNearby(zone), active, anchor, direction, groups,
     canEnter: !!current, canRebase, canGoBack: !!session?.history.length,
-    candidates: (d: NearbyDirection) => active ? groups[d] : findNearbyColors(index, current, texture)[d],
+    candidates: (d: NearbyDirection, selectedTexture = texture) => active && selectedTexture === texture
+      ? groups[d] : findNearbyColors(index, anchor ?? current, selectedTexture)[d],
     enter: (direction: NearbyDirection = 'similar') => {
       if (current) setSession({ zone, scopeKey, anchor: selectionOf(current), history: [], direction });
     },

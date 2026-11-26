@@ -44,6 +44,7 @@ def create_app() -> FastAPI:
                 "Idempotency-Key",
                 "X-Request-ID",
                 "X-Vishue-Anonymous-Id",
+                "X-Vishue-Transcription-Context",
             ],
         )
     app.add_middleware(RequestContextMiddleware)

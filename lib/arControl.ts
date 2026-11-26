@@ -2,7 +2,7 @@ import { createMakeupStore, useMakeupStore } from '@/store/makeupStore';
 import type { MakeupState, MakeupZone } from '@/types';
 import type { ColorFamily } from './colorFamily';
 import type { ShadePreference } from './arShadePreference';
-import type { catalogNameMatches } from './arMakeupControls';
+import type { catalogMatches } from './arMakeupControls';
 
 export type ControlStatus = 'OK' | 'APPLIED' | 'NO_CHANGE' | 'REJECTED' | 'FAILED' | 'UNKNOWN';
 export interface ControlResult {
@@ -11,14 +11,15 @@ export interface ControlResult {
   reason?: string;
   before?: unknown;
   after?: unknown;
-  featuredShade?: { brand:string; product:string; productKo:string; shade:string; family?:ColorFamily;
+  renderPending?: true;
+  featuredShade?: { brand:string; product:string; productKo:string; shade:string; shadeNumber?:string; family?:ColorFamily;
     lightness?: ShadePreference['lightness']; chroma?: ShadePreference['chroma'] };
 }
 export interface ControlArgs extends ShadePreference { name?: string | null; value?: number | null; steps?: number; ordinal?: number; productId?: string; shadeId?: string; previousIntensityChange?: number }
 export type ConfirmPaint = (makeup: MakeupState, strength?: number, modified?: MakeupZone[]) => Promise<'rendered' | 'failed' | 'unknown' | 'stale'>;
 export type ControlOperation = (args: ControlArgs, confirm: ConfirmPaint) => ControlResult | Promise<ControlResult>;
 export interface ControlScreen {
-  matchCatalogNames?: (message: string) => ReturnType<typeof catalogNameMatches>;
+  matchCatalog?: (message: string) => ReturnType<typeof catalogMatches>;
   summary: string;
   choices: Map<string, ControlOperation>;
   displayMode: 'face' | 'swatches_only' | 'unavailable';

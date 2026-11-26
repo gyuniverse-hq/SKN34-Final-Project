@@ -52,7 +52,7 @@ from app.schemas.supervisor import (
 )
 from app.schemas.vishue_state import VishueState
 from app.services.ar_command_service import propose_ar_command
-from app.services.ar_control_service import plan_control
+from app.services.ar_control_service import ArControlAgent
 from app.services.beauty_consultation_service import (
     COMPARISON_SCREENS,
     TEXT,
@@ -257,6 +257,7 @@ def resolve_context(req: ChatRequest) -> ResolvedContext:
         ar_state_version=ar.state_version if ar else None,
         has_beauty_context=beauty is not None,
         has_ar_context=ar is not None,
+        has_ar_control=ar is not None and ar.control is not None,
     )
 
 
@@ -375,7 +376,9 @@ def route_intent(context: ResolvedContext) -> IntentDecision:
     shopping = _SHOPPING.search(text)
     execution = re.search(r"발라|적용해|설정해|조절해|apply|set .*intensity|塗って|涂上", text)
     intent = "general"
-    if shopping and execution:
+    if context.request_type == "ar_command" and context.has_ar_control:
+        intent = "ar"
+    elif shopping and execution:
         intent = "compound"
     elif context.request_type == "ar_command":
         intent = "ar"
@@ -521,7 +524,9 @@ def check_sufficiency(context: ResolvedContext, intent: IntentDecision) -> Suffi
     if intent.intent == "ar":
         if not context.has_ar_context:
             missing.append("arContext")
-        if not context.selected_product_id or not context.selected_shade_id:
+        if not context.has_ar_control and (
+            not context.selected_product_id or not context.selected_shade_id
+        ):
             missing.append("productSelection")
     if (
         intent.slots
@@ -613,14 +618,25 @@ def verify_response(
             raise ApiError(502, "Unexpected AR request ID", "invalid_tool_result")
         proposal = response.ar_result.action_proposal
         if proposal:
-            selection = req.ar_context.selection(proposal.zone) if req.ar_context else None
-            if (
-                not selection
-                or proposal.product_id != selection.product_id
-                or proposal.shade_id != selection.shade_id
-                or proposal.expected_state_version != req.ar_context.state_version
-            ):
+            ctx = req.ar_context
+            if ctx is None or proposal.expected_state_version != ctx.state_version:
                 raise ApiError(502, "Invalid AR proposal context", "invalid_tool_result")
+            if isinstance(proposal, ArControlProposal):
+                if (
+                    ctx.control is None
+                    or proposal.choice not in ctx.control.choices
+                    or proposal.session_id != ctx.session_id
+                ):
+                    raise ApiError(502, "Invalid AR control proposal", "invalid_tool_result")
+            else:
+                selection = ctx.selection(proposal.zone)
+                if (
+                    ctx.control is not None
+                    or selection is None
+                    or proposal.product_id != selection.product_id
+                    or proposal.shade_id != selection.shade_id
+                ):
+                    raise ApiError(502, "Invalid AR proposal context", "invalid_tool_result")
             result.action_proposed = True
             result.application = "awaiting_app_ack"
     response.supervisor = SupervisorResult(
@@ -649,6 +665,7 @@ class ChatService:
         self._graph = graph
         self._llm = llm
         self._ar_llm = ar_llm or llm
+        self._ar_agent = ArControlAgent(self._ar_llm, requests)
         self._catalog = catalog
         self._requests = requests
         self._sessions = sessions
@@ -732,11 +749,7 @@ class ChatService:
                 principal_key,
                 req.request_id,
                 fingerprint,
-                lambda: (
-                    self._plan_control(req, principal_key)
-                    if req.ar_context and req.ar_context.control
-                    else self._run_supervisor(req, context, decision)
-                ),
+                lambda: self._run_supervisor(req, context, decision, ar_owner=principal_key),
             )
         return await self._run_supervisor(req, context, decision)
 
@@ -789,6 +802,7 @@ class ChatService:
         thread_id: UUID | None = None,
         request_id: UUID | None = None,
         model_turn: G1ModelTurn | None = None,
+        ar_owner: str | None = None,
     ) -> ChatResponse:
         if decision.intent == "knowledge":
             return await self._execute_turn(req, decision, self._plan_turn(context, decision))
@@ -912,7 +926,9 @@ class ChatService:
                 context=supervisor_runtime,
             )
             return output["response"]
-        return await self._execute_turn(req, decision, self._plan_turn(context, decision))
+        return await self._execute_turn(
+            req, decision, self._plan_turn(context, decision), ar_owner=ar_owner
+        )
 
     async def _choose_g1_turn(self, req: ChatRequest) -> G1ModelTurn | None:
         complete = getattr(self._llm, "complete_with_tools", None)
@@ -934,6 +950,7 @@ class ChatService:
         *,
         g1_catalog=False,
         model_turn: G1ModelTurn | None = None,
+        ar_owner: str | None = None,
     ) -> ChatResponse:
         tool = (
             plan.tasks[0] if plan.tasks else "ar_command" if decision.intent == "ar" else "beauty"
@@ -964,7 +981,7 @@ class ChatService:
             else:
                 if model_turn and model_turn.tool_call_id:
                     raise ApiError(502, "Unsupported G1 tool route", "invalid_tool_result")
-                response, result = await self.execute_tool(req, decision, plan)
+                response, result = await self.execute_tool(req, decision, plan, ar_owner=ar_owner)
             response = verify_response(req, decision, plan, response, result)
             if model_turn and model_turn.tool_call_id:
                 logger.info(
@@ -1746,7 +1763,12 @@ class ChatService:
         return response
 
     async def execute_tool(
-        self, req: ChatRequest, decision: IntentDecision, plan: TaskPlan
+        self,
+        req: ChatRequest,
+        decision: IntentDecision,
+        plan: TaskPlan,
+        *,
+        ar_owner: str | None = None,
     ) -> tuple[ChatResponse, ToolResult]:
         if not plan.tasks or len(plan.tasks) > 1:
             if req.request_type == "style_consultation":
@@ -1761,7 +1783,14 @@ class ChatService:
             )
         tool = plan.tasks[0]
         if tool == "ar_command":
-            response = await self._propose_ar(req)
+            if req.ar_context and req.ar_context.control:
+                if not ar_owner:
+                    raise ApiError(
+                        503, "AR request storage is unavailable", "ar_requests_unavailable"
+                    )
+                response = await self._plan_control(req, ar_owner)
+            else:
+                response = await self._propose_ar(req)
             ar = response.ar_result
             status = {
                 "proposed": "success",
@@ -1779,7 +1808,7 @@ class ChatService:
                         verification="verified",
                     )
                 ]
-                if proposal
+                if proposal and not isinstance(proposal, ArControlProposal)
                 else []
             )
             return response, ToolResult(
@@ -1899,7 +1928,7 @@ class ChatService:
             )
             if snapshot and snapshot.state_version == ctx.state_version:
                 previous = snapshot
-        return await plan_control(req, self._ar_llm, previous)
+        return await self._ar_agent.plan(req, previous)
 
     async def acknowledge_ar(self, principal_key: str, ack: ArAckRequest) -> None:
         if get_settings().is_production or self._requests is None:

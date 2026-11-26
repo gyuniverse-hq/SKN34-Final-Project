@@ -3,6 +3,7 @@ import renderer, { act } from 'react-test-renderer';
 import { Alert } from 'react-native';
 import { useArVoice } from '@/hooks/useArVoice';
 import { apiPostOwned } from '@/lib/api';
+import type { Language } from '@/lib/i18n/languages';
 import * as Speech from 'expo-speech';
 
 const mockDelete = jest.fn();
@@ -10,8 +11,10 @@ const mockRelease = jest.fn();
 const mockStopRecording = jest.fn(async () => {});
 const mockOnText = jest.fn(async (_text: string) => '이 색 어때요?');
 let mockLevel: number | undefined = -90;
+let mockLanguage: Language = 'ko';
+let mockKeywords: string[] = [];
 jest.mock('@/lib/api', () => ({ apiPostOwned: jest.fn(), subscribeArIdentityChange: () => () => {} }));
-jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ language: 'ko', t: (k: string) => k }) }));
+jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ language: mockLanguage, t: (k: string) => k }) }));
 jest.mock('expo-file-system', () => ({ File: class {
   exists = true;
   delete = mockDelete;
@@ -34,13 +37,15 @@ jest.mock('expo-speech', () => ({ speak: jest.fn(), stop: jest.fn(async () => {}
 
 let voice: ReturnType<typeof useArVoice>;
 function Panel({ active }: { active: boolean }) {
-  voice = useArVoice(active, mockOnText);
+  voice = useArVoice(active, mockOnText, () => mockKeywords);
   return null;
 }
 let tree: renderer.ReactTestRenderer;
 beforeEach(async () => {
   jest.useFakeTimers();
   mockLevel = -90;
+  mockLanguage = 'ko';
+  mockKeywords = [];
   jest.clearAllMocks();
   jest.spyOn(Alert, 'alert').mockImplementation((_title, _message, buttons) => buttons?.[1]?.onPress?.());
   await act(async () => { tree = renderer.create(<Panel active />); });
@@ -86,6 +91,9 @@ it('explains unavailable metering instead of silently restarting each 30 seconds
 
 it('sends speech after a pause, waits for TTS, and hears a second request without a tap', async () => {
   jest.mocked(apiPostOwned).mockResolvedValue({ data: { text: ' 은은한 립 발라줘 ' }, owner: { kind: 'guest', id: 'test' } });
+  mockLanguage = 'en';
+  mockKeywords = ['로즈 틴트'];
+  await act(async () => { tree.update(<Panel active />); });
   await act(async () => { voice.microphone(); });
   expect(voice.phase).toBe('recording');
   await levels(-90, 2000);
@@ -95,17 +103,23 @@ it('sends speech after a pause, waits for TTS, and hears a second request withou
   await levels(-25, 300);
   await levels(-90, 1300);
   expect(voice.phase).toBe('speaking');
-  expect(apiPostOwned).toHaveBeenCalledWith('/api/chat/ar-control/transcribe', expect.any(ArrayBuffer), expect.anything());
+  const stt = jest.mocked(apiPostOwned);
+  const context = (index: number) => JSON.parse(decodeURIComponent(stt.mock.calls[index][2]!.transcriptionContext!));
+  expect(stt).toHaveBeenCalledWith('/api/chat/ar-control/transcribe', expect.any(ArrayBuffer), expect.anything());
+  expect(context(0)).toEqual({ language: 'en', keywords: ['로즈 틴트'] });
+  expect(Speech.speak).toHaveBeenCalledWith('이 색 어때요?', expect.objectContaining({ language: 'en-US' }));
   expect(mockOnText).toHaveBeenCalledWith('은은한 립 발라줘', expect.objectContaining({ aborted: false }), expect.any(Function));
   expect(mockDelete).toHaveBeenCalledTimes(1);
   await levels(-20, 3000);
   expect(apiPostOwned).toHaveBeenCalledTimes(1);
+  mockKeywords = ['말린 장미'];
   await act(async () => { jest.mocked(Speech.speak).mock.calls[0][1]?.onDone?.(); });
   expect(voice.phase).toBe('recording');
   await levels(-25, 400);
   await levels(-90, 1300);
   expect(mockOnText).toHaveBeenCalledTimes(2);
   expect(Speech.speak).toHaveBeenCalledTimes(2);
+  expect(context(1)).toEqual({ language: 'en', keywords: ['말린 장미'] });
 });
 
 it('drops a silent segment and a transcript arriving after the conversation ends', async () => {

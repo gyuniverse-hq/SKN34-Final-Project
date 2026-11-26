@@ -37,6 +37,20 @@ beforeEach(() => {
   globalThis.fetch = jest.fn(async () => response() as Response);
 });
 
+it('sends the recording and its transcription context with the same AR identity', async () => {
+  const recording = new ArrayBuffer(8);
+  const transcriptionContext = encodeURIComponent(JSON.stringify({ language: 'en', keywords: ['Rose'] }));
+  await apiPostOwned('/api/chat/ar-control/transcribe', recording, { transcriptionContext });
+  expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/api/chat/ar-control/transcribe'), expect.objectContaining({
+    body: recording,
+    headers: expect.objectContaining({
+      'Content-Type': 'audio/mp4',
+      'X-Vishue-Anonymous-Id': guest.id,
+      'X-Vishue-Transcription-Context': transcriptionContext,
+    }),
+  }));
+});
+
 it('binds a guest request to its anonymous ID with no Authorization header', async () => {
   const result = await apiPostOwned('/api/chat', {});
   expect(result.owner).toEqual(guest);

@@ -82,6 +82,7 @@ jest.mock('@/lib/queries', () => ({
 
 jest.mock('@/lib/api', () => ({ apiPostOwned: jest.fn(), subscribeArIdentityChange: () => () => {} }));
 import { apiPostOwned } from '@/lib/api';
+import { useRouter } from 'expo-router';
 import { Alert, AppState, Text, TextInput } from 'react-native';
 const post = jest.mocked(apiPostOwned);
 let screen: renderer.ReactTestRenderer;
@@ -93,13 +94,13 @@ function proposal(body: any) {
       action: 'set_intensity', zone: 'lip', value: Number(body.message.match(/\d+/)[0]) / 100,
       productId: lip.id, shadeId: shade.id } } });
 }
-function tool(choice: string, fixedId?: string) {
+function tool(choice: string, fixedId?: string, args: Record<string, unknown> = {}) {
   post.mockImplementation(async (path, body: any) => {
     if (path === '/api/chat') {
       expect(body.arContext.control.choices).toContain(choice);
       return owned({ arResult: { requestId:body.requestId, status:'proposed', actionProposal:{
         action:'ar_control', commandId:fixedId ?? `aaaaaaaa-aaaa-4aaa-8aaa-${String(++serial).padStart(12, '0')}`,
-        expectedStateVersion:body.arContext.stateVersion, choice,
+        expectedStateVersion:body.arContext.stateVersion, choice, ...args,
       } } }) as never;
     }
     if (path === '/api/chat/ar-control/reply') return owned({answer:'테스트 응답'}) as never;
@@ -168,7 +169,7 @@ it('keeps same-intensity NO_CHANGE distinct from a new application', async () =>
   expect(post).toHaveBeenCalledWith('/api/chat/acks', expect.objectContaining({ status: 'NO_CHANGE' }), expect.anything());
 });
 
-it('keeps recording controls and command confirmation connected on the same AR view', async () => {
+it('keeps direct recording available and excludes recording from voice command choices', async () => {
   await act(async () => {
     screen.root.findAllByProps({ accessibilityRole: 'tab' }).find((tab) => tab.findAllByProps({ children: 'ar.mode.direct' }).length)!.props.onPress();
   });
@@ -183,6 +184,9 @@ it('keeps recording controls and command confirmation connected on the same AR v
   });
 
   await send('립 진하기를 50%로 설정해 줘.');
+  const [, request] = post.mock.calls.find(([path]) => path === '/api/chat')!;
+  const { arContext } = request as { arContext: { control: { choices: string[] } } };
+  expect(arContext.control.choices.some((choice) => choice.startsWith('control_recording/'))).toBe(false);
   const render = face().props.renderCommand;
   expect(render).toBeTruthy();
   expect(face().props.recording).toBe(true);
@@ -345,11 +349,10 @@ it.each([
   ['안 바른 쪽이랑 나란히 보고 싶어.', 'set_view/compare/on', 'APPLIED'],
   ['이 립 상세 페이지 좀 열어줘.', 'navigate/product', 'APPLIED'],
   ['이 립 하나만 담아줘.', 'add_to_cart/current_product', 'APPLIED'],
-  ['나도 이 메이크업 따라해볼래.', 'control_practice/start', 'REJECTED'],
+  ['나도 이 메이크업 따라해볼래.', 'control_practice/start', 'APPLIED'],
   ['이 룩 전체를 가볍게 해줘.', 'set_look_strength/down', 'REJECTED'],
   ['카메라 말고 색만 볼래.', 'control_camera/swatches_only', 'APPLIED'],
   ['색상이 안 뜨네. 다시 불러줄래?', 'retry_catalog', 'NO_CHANGE'],
-  ['녹화 그만할래.', 'control_recording/stop', 'NO_CHANGE'],
 ])('routes single-turn chat through the mounted screen: %s', async (message,choice,status) => {
   tool(choice);
   const before = useMakeupStore.getState().makeup;
@@ -457,6 +460,18 @@ it('shows the filter intersection even if empty and never wears a substitute',as
   expect(await chat('apply_shade/palette_center','가운데 거 입에 올려봐.')).toMatchObject({status:'REJECTED'});
   expect(useMakeupStore.getState().makeup).toBe(before);
 });
+
+it('keeps the nearby anchor and direction when filtering only the texture', async () => {
+  const matte = { ...lip, id: 'nearby-matte', texture: 'matte' as const, shades: [{ ...shade, hex: '#9F596D' }] };
+  mockCatalog = { data: [lip, matte] };
+  await refresh();
+  const opened = await chat('explore_nearby/show/muted', '지금 색 기준으로 차분한 색들 볼래.');
+  expect(opened).toMatchObject({ status: 'APPLIED', data: { anchor: { productId: lip.id, shadeId: shade.id }, direction: 'muted' } });
+  const narrowed = await chat('set_palette_filter/matte', '여기서 보송한 제형만 남겨줘.');
+  expect(narrowed).toMatchObject({ status: 'APPLIED', data: {
+    nearby: true, anchor: opened.data.anchor, direction: 'muted', texture: 'matte', count: expect.any(Number),
+  } });
+});
 it('reports the actual active zone, including zero results and a repeated selection',async()=>{
   mockCatalog={data:[{...blush,makeupZone:'brow',shades:blush.shades.slice(0,1).concat(shade)}]};
   await refresh();
@@ -473,6 +488,82 @@ it('uses measured skin for recommendations, including a loaded empty foundation 
   expect(useMakeupStore.getState().selections.foundation).toBeUndefined();
   mockCatalog={data:[]}; await refresh();
   expect(await chat('get_recommendations/foundation_match','내 피부색이랑 가까운 게 뭐야?')).toMatchObject({status:'OK',data:[]});
+});
+
+it('applies and opens the exact second shade from the shown recommendation list', async () => {
+  const foundation: Product = { ...blush, id: 'rank-test-foundation', makeupZone: 'foundation',
+    shades: ['#AA6040', '#E2BE9D', '#DDBA95', '#EDCCAF'].map((hex, i) =>
+      ({ ...shade, hex, id: String(i), name: 'Foundation ' + i })) };
+  mockCatalog = { data: [foundation] };
+  await refresh();
+  await act(async () => { face().props.onSkinTone({ L: 80, a: 8, b: 20, conf: 0.9 }); });
+  await chat('select_zone/foundation', '파운데이션도 좀 볼래.');
+  const shown = await chat('get_recommendations/foundation_match', '내 피부색에 가까운 색 몇 개 보여줘.');
+  expect(shown).toMatchObject({ status: 'OK', data: expect.arrayContaining([expect.objectContaining({ productId: foundation.id })]) });
+  expect(useMakeupStore.getState().selections.foundation).toBeUndefined();
+  const second = shown.data[1];
+  // A fresh skin tone can change a later ranking, but the displayed order is still the user's reference.
+  await act(async () => { face().props.onSkinTone({ L: 53, a: 19, b: 40, conf: 0.9 }); });
+  tool('apply_recommendation/foundation_match/2');
+  await send('추천한 것 중에 두 번째로 발라줘.');
+  const frame = face().props.renderCommand;
+  expect(frame.makeup.foundation.hex).toBe(foundation.shades.find(s => s.id === second.shadeId)?.hex);
+  await act(async () => { face().props.onRenderResult({ ...frame, status: 'rendered' }); });
+  expect(feedback()).toMatchObject({ status: 'APPLIED', after: { product: { productId: second.productId, shadeId: second.shadeId } } });
+  expect(useMakeupStore.getState().selections.foundation).toEqual({ productId: second.productId, shadeId: second.shadeId });
+  expect(await chat('navigate/recommendation/foundation_match/2', '그 두 번째 제품 자세히 볼래.'))
+    .toMatchObject({ status: 'APPLIED', data: { productId: second.productId, shadeId: second.shadeId } });
+  expect(useRouter().push).toHaveBeenCalledWith({
+    pathname: '/product/[id]', params: { id: second.productId, shade: second.shadeId },
+  });
+  mockCatalog = { data: [{ ...foundation, shades: foundation.shades.filter(s => s.id !== second.shadeId) }] };
+  await refresh();
+  let offered: string[] | undefined;
+  post.mockImplementationOnce(async (_path, body: any) => {
+    offered = body.arContext.control.choices;
+    return owned({ arResult: { requestId: body.requestId, status: 'clarification' } }) as never;
+  });
+  await send('아까 추천 두 번째 다시 보여줘.');
+  expect(offered).toBeDefined();
+  expect(offered).not.toContain('apply_recommendation/foundation_match/2');
+});
+
+it('changes only the eyeshadow accent and keeps the shade that was worn underneath', async () => {
+  const base = { ...shade, id: 'eye-base', name: '베이지', hex: '#906C58' };
+  const accent = { ...shade, id: 'eye-accent', name: '브라운', hex: '#704434' };
+  const product: Product = { ...blush, id: 'eye-accent-test', makeupZone: 'eyeshadow', shades: [base, accent] };
+  mockCatalog = { data: [...mockCatalog.data, product] };
+  await refresh();
+  await act(async () => { useMakeupStore.getState().applyShade(product, base); });
+  const before = useMakeupStore.getState().makeup.eyeshadow;
+
+  tool('set_shadow_point/product_shade', undefined, { productId: product.id, shadeId: accent.id });
+  await send('이 색은 눈꼬리에만 얹어줘.');
+  const addFrame = face().props.renderCommand;
+  expect(addFrame.makeup.eyeshadow).toMatchObject({ hex: base.hex, hexTo: accent.hex });
+  expect(useMakeupStore.getState().makeup.eyeshadow).toEqual(before);
+  await act(async () => { face().props.onRenderResult({ ...addFrame, status: 'rendered' }); });
+  expect(feedback()).toMatchObject({ status: 'APPLIED', data: { pointShade: { shadeId: accent.id } } });
+
+  tool('set_shadow_point/clear');
+  await send('눈꼬리에 얹은 포인트 색만 빼줘.');
+  const clearFrame = face().props.renderCommand;
+  await act(async () => { face().props.onRenderResult({ ...clearFrame, status: 'rendered' }); });
+  expect(feedback()).toMatchObject({ status: 'APPLIED', after: { point: null } });
+  expect(useMakeupStore.getState().selections.eyeshadow).toEqual({ productId: product.id, shadeId: base.id });
+  expect(useMakeupStore.getState().makeup.eyeshadow).toEqual(before);
+});
+
+it('selects a shade while the face is lost and leaves the frame result pending', async () => {
+  const nextShade = lip.shades.find(s => s.id !== shade.id)!;
+  await act(async () => { face().props.onStatus('no-face'); });
+  tool('apply_shade/product_shade', undefined, { productId: lip.id, shadeId: nextShade.id });
+  await send('다른 립 색으로 바꿔줄래?');
+  expect(face().props.renderCommand).toBeNull();
+  expect(feedback()).toMatchObject({ status: 'OK', renderPending: true, featuredShade: { shade: nextShade.name } });
+  expect(useMakeupStore.getState().selections.lip).toEqual({ productId: lip.id, shadeId: nextShade.id });
+  await act(async () => { face().props.onStatus('tracking'); });
+  expect(face().props.makeup.lip.hex).toBe(nextShade.hex);
 });
 it('opens only the worn product merchant link and handles missing target independently of palette center',async()=>{
   const url='https://example.com/product';
@@ -548,23 +639,6 @@ it('adds only the current lip and does not replay a duplicate command',async()=>
   }
   expect(useCartStore.getState().items).toMatchObject([{productId:lip.id,quantity:2}]);
 });
-it('records an explicit recorder error as FAILED, and does not claim a recording started',async()=>{
-  tool('control_recording/start');
-  await send('지금 이 모습 영상으로 남겨줘.');
-  expect(face().props.recording).toBe(true);
-  expect(post.mock.calls.some(([path])=>path.endsWith('/reply'))).toBe(false);
-  await act(async()=>{face().props.onRecorder({type:'rec_error',detail:'failed'});});
-  expect(feedback()).toMatchObject({status:'FAILED'});
-  expect(face().props.recording).toBe(false);
-});
-it('confirms recording only after the device signals recording, without toggling again on repeat',async()=>{
-  tool('control_recording/start'); await send('지금 이 모습 영상으로 남겨줘.');
-  await act(async()=>{face().props.onRecorder({type:'rec_state',state:'recording',mime:'video/webm'});});
-  expect(feedback()).toMatchObject({status:'APPLIED',data:'recording'});
-  expect(await chat('control_recording/start','지금 이 모습 영상으로 남겨줘.')).toMatchObject({status:'NO_CHANGE'});
-  expect(face().props.recording).toBe(true);
-});
-
 // Optional: start the local chatbot with its configured model; no camera or member data is transmitted.
 const livePort = Number(process.env.AR_CONTROL_TEST_PORT);
 

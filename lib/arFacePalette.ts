@@ -37,3 +37,16 @@ export function toggleHighlighterArea(current: HighlightArea[], area: HighlightA
   if (next.length === 0) return [area];
   return HIGHLIGHTER_AREAS.filter((a) => next.includes(a));
 }
+
+/** Selecting a region leaves a style template and uses the face-based layout. */
+export function highlighterAreaPatch(
+  geometry: ZoneGeometry | undefined, measured: HighlightFace | null, area: HighlightArea, enabled?: boolean,
+): ZoneGeometry | null {
+  const painted = effectiveHighlighterAreas(geometry, measured);
+  const active = painted.includes(area);
+  const usingPreset = !!geometry?.hlStyle;
+  const target = enabled ?? (usingPreset || !active);
+  const changesArea = target !== active && (target || painted.length > 1);
+  if (!usingPreset && !changesArea) return null;
+  return { hlStyle: undefined, areas: changesArea ? toggleHighlighterArea(painted, area) : painted };
+}

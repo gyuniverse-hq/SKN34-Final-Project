@@ -50,7 +50,9 @@ async def _wait_for_event(socket: ClientConnection, expected: str) -> dict:
             return event
 
 
-async def _transcribe_live(settings: Settings, audio: bytes, extension: str) -> str:
+async def _transcribe_live(
+    settings: Settings, audio: bytes, extension: str, transcription: dict
+) -> str:
     pcm = await asyncio.to_thread(_decode_pcm, audio, extension)
     base = httpx.URL(settings.llm_base_url.rstrip("/") + "/realtime")
     url = base.copy_with(
@@ -67,7 +69,7 @@ async def _transcribe_live(settings: Settings, audio: bytes, extension: str) -> 
     ):
         audio_input = {
             "format": {"type": "audio/pcm", "rate": PCM_RATE},
-            "transcription": {"model": settings.stt_model, "languages": ["ko"]},
+            "transcription": transcription,
             "turn_detection": None,
         }
         await socket.send(
@@ -97,19 +99,41 @@ async def _transcribe_live(settings: Settings, audio: bytes, extension: str) -> 
 
 
 class TranscriptionClient:
-    async def transcribe(self, audio: bytes, extension: str, media_type: str) -> str:
+    async def transcribe(
+        self,
+        audio: bytes,
+        extension: str,
+        media_type: str,
+        *,
+        language: str,
+        prompt: str,
+        keywords: list[str],
+    ) -> str:
         settings = get_settings()
         if not settings.llm_api_key or not settings.stt_model:
             raise ApiError(503, "Transcription is unavailable", "stt_unavailable")
         try:
             if settings.stt_model == "gpt-live-transcribe":
-                text = await _transcribe_live(settings, audio, extension)
+                transcription = {
+                    "model": settings.stt_model,
+                    "languages": [language],
+                    "prompt": prompt,
+                    **({"keywords": keywords} if keywords else {}),
+                }
+                text = await _transcribe_live(settings, audio, extension, transcription)
             else:
+                fields: dict[str, str | list[str]] = {"model": settings.stt_model}
+                if settings.stt_model == "gpt-transcribe":
+                    fields.update({"languages[]": [language], "prompt": prompt})
+                    if keywords:
+                        fields["keywords[]"] = keywords
+                else:
+                    fields["language"] = language
                 async with httpx.AsyncClient(timeout=settings.llm_timeout_seconds) as client:
                     response = await client.post(
                         f"{settings.llm_base_url.rstrip('/')}/audio/transcriptions",
                         headers={"Authorization": f"Bearer {settings.llm_api_key}"},
-                        data={"model": settings.stt_model, "language": "ko"},
+                        data=fields,
                         files={"file": (f"command.{extension}", audio, media_type)},
                     )
                     response.raise_for_status()
