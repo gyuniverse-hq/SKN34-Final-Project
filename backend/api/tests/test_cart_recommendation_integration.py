@@ -84,7 +84,6 @@ def test_cart_recommendation_attribution_and_ab_report(monkeypatch, tmp_path, ad
                     id=owner,
                     terms_version=TERMS_VERSION,
                     terms_agreed_at=now,
-                    ar_activity_consented_at=now,
                     skin_subscription_until=now + timedelta(days=30),
                 )
                 for owner in members.values()

@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -11,8 +10,6 @@ class MemberRecord(BaseModel):
     id: str
     terms_version: str
     terms_agreed_at: datetime
-    camera_features_consent: bool | None = None
-    ar_activity_consented_at: datetime | None = None
     skin_trial_run: str | None = None
     skin_subscription_until: datetime | None = None
 
@@ -28,9 +25,7 @@ class CompleteAnalysisRequest(ApiModel):
 
 
 class TermsStatus(ApiModel):
-    camera_features_consent: bool | None
     version: str
-    ar_activity_consent: bool
     agreed_version: str | None
     agreed_at: datetime | None
 
@@ -40,15 +35,9 @@ class MeResponse(ApiModel):
     terms: TermsStatus
 
 
-ConsentKind = Literal["arActivity", "cameraFeatures"]
-
-
-class ServiceConsentRequest(ApiModel):
-    kind: ConsentKind
-    enabled: bool
-
-
 class AgreeTermsRequest(ApiModel):
-    camera_features_consent: bool | None = None
-    ar_activity_consent: bool | None = None
     version: str = Field(min_length=1, max_length=32)
+
+
+class AccountDeletionStatusRequest(ApiModel):
+    receipt: str = Field(pattern=r"^[0-9a-f]{32}\.[0-9a-f]{64}$")

@@ -5,7 +5,6 @@ import { AuthScreen, authStyles, FormMessage } from '@/components/auth/AuthForm'
 import { hasAllConsents, NO_CONSENT, TermsAgreement } from '@/components/auth/TermsAgreement';
 import { Button } from '@/components/ui/Button';
 import { useSaveTermsConsent } from '@/hooks/useTermsConsent';
-import { useMe } from '@/lib/queries';
 import { ApiError } from '@/lib/api';
 import { signOut, useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
@@ -15,14 +14,8 @@ export default function TermsConsentScreen() {
   const router = useRouter();
   const { t } = useI18n();
   const { user } = useAuth();
-  const me = useMe(user?.id);
   const saveConsent = useSaveTermsConsent();
   const [consent, setConsent] = useState(NO_CONSENT);
-  const choices = {
-    ...consent,
-    arActivityConsent: consent.arActivityConsent ?? me.data?.terms?.arActivityConsent,
-    cameraFeaturesConsent: consent.cameraFeaturesConsent ?? me.data?.terms?.cameraFeaturesConsent ?? false,
-  };
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,10 +23,11 @@ export default function TermsConsentScreen() {
 
   const submit = async () => {
     if (!user) return close();
+    if (!hasAllConsents(consent)) return;
     setBusy(true);
     setError(null);
     try {
-      await saveConsent(user.id, choices.arActivityConsent, choices.cameraFeaturesConsent);
+      await saveConsent(user.id);
       close();
     } catch (e) {
       setError(t(e instanceof ApiError && e.code === 'terms_outdated' ? 'consent.updateApp' : 'consent.failed'));
@@ -53,7 +47,7 @@ export default function TermsConsentScreen() {
     <AuthScreen title={t('consent.title')} subtitle={t('consent.body')}>
       <View style={authStyles.form}>
         <TermsAgreement
-          value={choices}
+          value={consent}
           onChange={setConsent}
           onOpenDoc={(doc) => router.push({ pathname: '/legal/[doc]', params: { doc } })}
         />

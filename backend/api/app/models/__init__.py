@@ -1,3 +1,4 @@
+from app.models.account_deletion import AccountDeletionJobRow
 from app.models.admin import (
     AdminAuditLogRow,
     EvalRunRow,
@@ -115,6 +116,7 @@ from app.models.reward import RewardAttendanceRow, RewardCouponRow
 from app.models.skincare import SkincareServingRow
 
 __all__ = [
+    "AccountDeletionJobRow",
     "AdminAuditLogRow",
     "EvalRunRow",
     "LipEvalProductRow",

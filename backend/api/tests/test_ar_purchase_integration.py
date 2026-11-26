@@ -84,7 +84,6 @@ def test_purchase_experiment_links_only_verified_order_lines_and_keeps_cart_labe
                     id=u,
                     terms_version=TERMS_VERSION,
                     terms_agreed_at=now,
-                    ar_activity_consented_at=now,
                     skin_subscription_until=now + timedelta(days=30),
                 )
                 for u in members

@@ -457,7 +457,7 @@ export default function ArTryOnScreen() {
   }, [cameraActive, cameraChoice.granted, isWeb, permission?.status, requestPermission]);
 
   const onAllow = async () => {
-    if (cameraChoice.member && !cameraChoice.granted) return router.push('/settings');
+    if (cameraChoice.member && !cameraChoice.granted) return router.push('/terms-consent');
     if (!cameraChoice.member) setCameraConsent(true);
     setSwatchOnly(false);
     if (!isWeb && !permission?.granted) await requestPermission();
@@ -691,7 +691,7 @@ export default function ArTryOnScreen() {
             <Text style={styles.pointText}>{t(key)}</Text>
           </View>
         ))}
-        <Button label={t(cameraChoice.member && !cameraChoice.granted ? 'consent.manage' : 'ar.allowCamera')} icon="camera-outline" onPress={onAllow} style={styles.consentBtn} />
+        <Button label={t(cameraChoice.member && !cameraChoice.granted ? 'consent.review' : 'ar.allowCamera')} icon="camera-outline" onPress={onAllow} style={styles.consentBtn} />
         <Button label={t('ar.withoutCamera')} variant="ghost" onPress={() => setSwatchOnly(true)} />
       </ScrollView>
     );

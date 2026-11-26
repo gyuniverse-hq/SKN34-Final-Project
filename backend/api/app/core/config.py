@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,6 +33,11 @@ class Settings(BaseSettings):
     g5_allow_local_sources: bool = False
     g5_openai_api_key: str | None = None
     g5_internal_token: str | None = None
+    g7_chatbot_deletion_base_url: str | None = None
+    g7_internal_deletion_key: SecretStr | None = None
+    g7_account_deletion_enabled: bool = False
+    g7_local_supabase_url: str | None = None
+    g7_local_supabase_secret_key: SecretStr | None = None
     skincare_refresh_enabled: bool | None = None
     skincare_refresh_interval_seconds: int = 60
     ingredient_mapping_path: str | None = None

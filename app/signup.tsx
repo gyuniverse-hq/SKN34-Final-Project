@@ -58,7 +58,7 @@ export default function SignupScreen() {
       setVerifiedUserId(userId);
       setStep('consent');
       try {
-        await saveConsent(userId, consent.arActivityConsent, !!consent.cameraFeaturesConsent);
+        await saveConsent(userId);
       } catch {
         setError(t('consent.failed'));
         return;

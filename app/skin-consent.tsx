@@ -65,10 +65,10 @@ export default function SkinConsentScreen() {
       <View style={styles.footer}>
         {canCapture ? (
           <Button
-            label={t(cameraChoice.member ? 'consent.manage' : 'skinFlow.consent.start')}
+            label={t(cameraChoice.member ? 'consent.review' : 'skinFlow.consent.start')}
             icon="camera-outline"
             disabled={!cameraChoice.member && !agreed}
-            onPress={() => router.push(cameraChoice.member ? '/settings' : '/skin-analysis')}
+            onPress={() => router.push(cameraChoice.member ? '/terms-consent' : '/skin-analysis')}
           />
         ) : null}
         {profile ? (

@@ -23,18 +23,18 @@ def get_engine() -> AsyncEngine:
 
 
 @lru_cache
-def _sessionmaker() -> async_sessionmaker[AsyncSession]:
+def get_sessionmaker() -> async_sessionmaker[AsyncSession]:
     return async_sessionmaker(get_engine(), expire_on_commit=False)
 
 
 async def get_session() -> AsyncIterator[AsyncSession]:
-    async with _sessionmaker()() as session:
+    async with get_sessionmaker()() as session:
         yield session
 
 
 def session_scope() -> AsyncSession:
     """Session for code outside a request (jobs, scripts). Use as `async with session_scope()`."""
-    return _sessionmaker()()
+    return get_sessionmaker()()
 
 
 async def ping_database() -> bool:

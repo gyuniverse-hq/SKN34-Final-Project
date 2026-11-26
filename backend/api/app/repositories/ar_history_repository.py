@@ -33,7 +33,6 @@ class ArHistoryRepository:
             select(func.coalesce(MemberRow.skin_subscription_until > func.now(), False)).where(
                 MemberRow.id == owner,
                 MemberRow.terms_version == terms,
-                MemberRow.ar_activity_consented_at.is_not(None),
             )
         )
         return subscribed is not None, bool(subscribed)
@@ -99,6 +98,7 @@ class ArHistoryRepository:
                                 WHEN impression_id IS NULL THEN 1.0 ELSE 0.7 END) AS weight
                 FROM ar_activity_events
                 WHERE member_id = :owner AND makeup_zone = :zone
+                  AND occurred_at >= (SELECT terms_agreed_at FROM members WHERE id = :owner)
                   AND occurred_at >= CAST(:at AS timestamptz) - interval '90 days'
                   AND occurred_at < :at AND received_at <= :at
                 GROUP BY product_id, shade_id, day
@@ -154,6 +154,7 @@ class ArHistoryRepository:
                                 WHEN impression_id IS NULL THEN 1.0 ELSE 0.7 END) AS weight
                 FROM ar_activity_events
                 WHERE member_id = :owner AND makeup_zone = :zone
+                  AND occurred_at >= (SELECT terms_agreed_at FROM members WHERE id = :owner)
                   AND occurred_at BETWEEN statement_timestamp() - interval '90 days'
                                       AND statement_timestamp()
                 GROUP BY product_id, shade_id, day

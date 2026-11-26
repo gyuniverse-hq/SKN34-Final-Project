@@ -1,15 +1,17 @@
 from fastapi import APIRouter, Depends, Response
+from fastapi.responses import JSONResponse
 
 from app.core.auth import AuthUser, require_user
 from app.schemas.member import (
+    AccountDeletionStatusRequest,
     AgreeTermsRequest,
     CompleteAnalysisRequest,
     MeResponse,
-    ServiceConsentRequest,
     SkinAccess,
     TermsStatus,
 )
 from app.schemas.reward import RewardWallet
+from app.services.account_deletion_service import AccountDeletionPending
 from app.services.member_service import MemberService, get_member_service
 from app.services.reward_service import RewardService, get_reward_service
 
@@ -80,24 +82,35 @@ async def agree_terms(
     user: AuthUser = Depends(require_user),
     service: MemberService = Depends(get_member_service),
 ) -> TermsStatus:
-    return await service.agree_terms(
-        user, body.version, body.ar_activity_consent, body.camera_features_consent
-    )
+    return await service.agree_terms(user, body.version)
 
 
-@router.post("/me/service-consents", response_model=TermsStatus)
-async def set_consent(
-    body: ServiceConsentRequest,
-    user: AuthUser = Depends(require_user),
-    service: MemberService = Depends(get_member_service),
-) -> TermsStatus:
-    return await service.set_consent(user, body.kind, body.enabled)
-
-
-@router.delete("/me", status_code=204)
+@router.delete(
+    "/me",
+    status_code=204,
+    responses={
+        409: {"description": "Deletion in progress"},
+        503: {"description": "Deletion unavailable"},
+    },
+)
 async def delete_account(
     user: AuthUser = Depends(require_user),
     service: MemberService = Depends(get_member_service),
 ) -> Response:
-    await service.delete_account(user)
+    try:
+        await service.delete_account(user)
+    except AccountDeletionPending as pending:
+        body = {"error": pending.message, "code": pending.code}
+        if pending.receipt:
+            body["deletionReceipt"] = pending.receipt
+        return JSONResponse(body, status_code=409, headers={"Cache-Control": "no-store"})
     return Response(status_code=204)
+
+
+@router.post("/me/deletion-status")
+async def account_deletion_status(
+    body: AccountDeletionStatusRequest,
+    service: MemberService = Depends(get_member_service),
+) -> JSONResponse:
+    status = await service.deletion_status(body.receipt)
+    return JSONResponse({"status": status}, headers={"Cache-Control": "no-store"})

@@ -6,7 +6,13 @@ from uuid import uuid4
 
 import pytest
 
-from app.core.ar_palette import FEATURES, score_inputs, shade_features, top_chips
+from app.core.ar_palette import (
+    FEATURES,
+    catalog_color_family,
+    score_inputs,
+    shade_features,
+    top_chips,
+)
 from app.core.ar_palette_artifacts import (
     CLASSIFIER,
     RANKER,
@@ -26,6 +32,19 @@ from app.services.ar_palette_training_service import (
     temporal_split,
     train_dataset,
 )
+
+
+def test_catalog_colors_require_provenance_and_keep_the_existing_family():
+    hex_value = "#F34817"
+    family = shade_features(hex_value, "matte", "estimated", None).family
+    assert catalog_color_family(hex_value, "estimated", "option_chip") == family
+    assert catalog_color_family(hex_value, "measured", None) == family
+    assert catalog_color_family(hex_value, "user_verified", None) == family
+    assert catalog_color_family(hex_value, "estimated", None) is None
+    assert catalog_color_family(hex_value, "estimated", "product_photo") is None
+    assert catalog_color_family(hex_value, "placeholder", "option_chip") is None
+    assert catalog_color_family(hex_value, "measured", "placeholder") is None
+    assert catalog_color_family("#bad", "measured", "measured") is None
 
 
 @pytest.fixture

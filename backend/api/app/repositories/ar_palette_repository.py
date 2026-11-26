@@ -33,7 +33,7 @@ class ArPaletteDatasetRepository:
                 WHERE r.strategy IN ('rating', 'personalized', 'ml')
                   AND r.makeup_zone IN ('lip', 'blush')
                   AND split_part(r.policy_version, ':', 4) NOT LIKE 's-%'
-                  AND m.terms_version = :terms AND m.ar_activity_consented_at IS NOT NULL
+                  AND m.terms_version = :terms AND r.created_at >= m.terms_agreed_at
                   AND r.created_at <= :as_of AND i.received_at <= :as_of
                   AND i.occurred_at + CAST(:maturity AS interval) <= :as_of
                 ORDER BY r.created_at, r.request_id, c.rank, i.impression_id
@@ -63,7 +63,7 @@ class ArPaletteDatasetRepository:
                       AND split_part(r.policy_version, ':', 3) IN ('A', 'B')
                       AND r.created_at >= :start AND r.created_at < :end
                       AND r.created_at <= :as_of
-                      AND m.ar_activity_consented_at IS NOT NULL AND m.terms_version = :terms
+                      AND r.created_at >= m.terms_agreed_at AND m.terms_version = :terms
                 )
                 SELECT r.member_id, r.session_id, r.arm,
                        bool_or(r.served = 'rule') AS served_rule,

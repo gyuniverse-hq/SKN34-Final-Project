@@ -6,7 +6,7 @@
 export const LEGAL_LAST_UPDATED = '[YYYY-MM-DD]';
 
 /** Same value as TERMS_VERSION in backend/api member_service.py. Bump both when the terms change. */
-export const TERMS_VERSION = '2026-11-25';
+export const TERMS_VERSION = '2026-11-26';
 
 export const PRIVACY_POLICY = `Privacy Policy
 
@@ -18,11 +18,11 @@ Last updated: ${LEGAL_LAST_UPDATED}
 You can use the App without an account. If you create one, we collect your email address. If you sign in with Google, we also receive the name, email address, and profile photo of your Google account. Account data is stored by our authentication provider, Supabase; passwords are stored only in hashed form and we never see them. We use account data only to sign you in and to provide account features such as saved looks and rewards. When you create an account we record which version of these terms you agreed to and when. You can delete your account at any time in My > Delete account; this deletes your sign-in account and agreement record. Order records are kept for the period required by law.
 
 2. Camera (AR try-on)
-If you allow camera access, video from your front camera is processed on your device to locate facial features and draw virtual makeup. Camera images are never recorded, saved, or sent to us or anyone else. To run face tracking, the App downloads the MediaPipe library and model files from Google and jsDelivr content delivery networks; these providers receive standard request information such as your IP address. You can turn camera access off at any time in the App (My > Settings) or in your device settings.
+If you allow camera access, video from your front camera is processed on your device to locate facial features and draw virtual makeup. Camera images are never recorded, saved, or sent to us or anyone else. To run face tracking, the App downloads the MediaPipe library and model files from Google and jsDelivr content delivery networks; these providers receive standard request information such as your IP address. You can turn camera access off at any time in your device settings.
 
 Skin analysis processes the photo you capture or select on your device. A temporary preview may appear in your report and is discarded when you leave. The numerical analysis results, questionnaire answers, registration date, and performance measurements are stored on your device. You can explicitly share numerical performance records from the internal measurement screen; no face image is included. This experimental feature does not provide a medical diagnosis.
 
-With your optional agreement, we store AR try-on, recommendation interaction, related cart and purchase activity to personalize shade suggestions. This history is linked to your account. Subscribers who opt in can receive personalized lip and blush shades. You can change either optional choice in My > Settings. Withdrawing AR activity consent stops further collection and use for recommendations. Account deletion removes your AR history.
+Under the signup agreement, we use member-linked products and shades recommended or tried on, related cart additions and purchases, and timestamps to personalize recommendations and improve the recommendation model. Member-linked AR activity records are retained until account deletion is complete.
 
 3. Data stored on your device
 Your cart, saved shopping lists, and settings (such as language) are stored only on your device. You can delete them at any time in My > Delete all app data, or by uninstalling the App. If you sign in, your sign-in session is also kept on your device until you log out in My > Log out.

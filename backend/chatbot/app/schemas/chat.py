@@ -1,7 +1,7 @@
 from typing import Annotated, Literal, Self
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, StringConstraints, model_validator
 from pydantic.alias_generators import to_camel
 
 from app.core.config import get_settings
@@ -12,7 +12,16 @@ from app.schemas.catalog import (
     IngredientSelection,
     OptionSearchResponse,
 )
+from app.schemas.conversation import ConversationMetadata
 from app.schemas.knowledge import KnowledgeReply
+from app.schemas.memory import (
+    AppliedColorMemory,
+    AppliedMemory,
+    AppliedOwnedProductMemory,
+    AppliedSkinTypeMemory,
+    ConsultationMemory,
+    MemoryProposal,
+)
 from app.schemas.style_recipe import (
     StyleCandidate,
     StyleCandidateRef,
@@ -166,6 +175,14 @@ class PendingClarification(ArModel):
 
 
 class ChatRequest(ApiModel):
+    structured_memory: bool = Field(default=False, strict=True, exclude_if=lambda value: not value)
+    _server_history: bool = PrivateAttr(default=False)
+    _historical_product_ids: tuple[str, ...] = PrivateAttr(default=())
+    _g7_execution: object | None = PrivateAttr(default=None)
+    _consented_memories: list[str] = PrivateAttr(default_factory=list)
+    _consultation_memories: tuple[ConsultationMemory, ...] | None = PrivateAttr(default=None)
+    _memory_epoch: int | None = PrivateAttr(default=None)
+    _memory_generation: str | None = PrivateAttr(default=None)
     style_search: bool = Field(default=False, strict=True, exclude_if=lambda v: not v)
     excluded_style: StyleCandidateRef | None = None
     previous_style_candidates: list[StyleCandidateRef] = Field(
@@ -201,6 +218,10 @@ class ChatRequest(ApiModel):
     ] = "chat"
     chat_context: BeautyContext | None = None
     request_id: UUID | None = None
+    conversation_id: UUID | None = None
+    expected_conversation_version: Annotated[int, Field(strict=True, ge=0, le=2**53 - 1)] | None = (
+        None
+    )
     ar_context: ArContext | None = None
     screen_context: ScreenContext | None = None
     style_context: StyleContext | None = None
@@ -233,13 +254,18 @@ class ChatRequest(ApiModel):
             data = {k: v for k, v in data.items() if k not in {"chatContext", "chat_context"}}
         if isinstance(data, dict) and request_type in {"chat", "knowledge_consultation"}:
             ar_fields = {"requestId", "request_id", "arContext", "ar_context"}
-            if session_chat:
+            if session_chat or data.get("conversationId", data.get("conversation_id")) is not None:
                 ar_fields = {"arContext", "ar_context"}
             data = {k: v for k, v in data.items() if k not in ar_fields}
         return data
 
     @model_validator(mode="after")
     def validate_ar_request(self) -> Self:
+        if self.conversation_id is not None:
+            if self.request_type == "ar_command":
+                raise ValueError("AR commands do not support persistent conversations")
+            if self.request_id is None or self.expected_conversation_version is None:
+                raise ValueError("Persistent chat requires a request ID and expected version")
         if self.style_search and self.request_type not in {"chat", "style_consultation"}:
             raise ValueError("Style search is only available in chat")
         if self.excluded_style and (not self.style_search or self.previous_style_candidates):
@@ -391,6 +417,11 @@ class ChatIngredientResult(CatalogIngredients):
 
 
 class ChatResponse(ApiModel):
+    conversation: ConversationMetadata | None = Field(default=None, exclude_if=lambda v: v is None)
+    memory_proposal: MemoryProposal | None = Field(default=None, exclude_if=lambda v: v is None)
+    applied_memories: list[
+        AppliedMemory | AppliedSkinTypeMemory | AppliedColorMemory | AppliedOwnedProductMemory
+    ] = Field(default_factory=list, exclude_if=lambda v: not v)
     style_candidates: list[StyleCandidate] | None = Field(
         default=None, exclude_if=lambda v: v is None
     )
@@ -448,8 +479,13 @@ class ChatResponse(ApiModel):
 class ChatSessionState(ArModel):
     """Redis-only snapshot and one TTL-bound retry response, never a transcript archive."""
 
+    conversation_id: UUID | None = Field(default=None, exclude_if=lambda v: v is None)
     pending_clarification: PendingClarification | None = Field(
         default=None, exclude_if=lambda v: v is None
+    )
+    memory_epoch: int | None = Field(default=None, exclude_if=lambda v: v is None, ge=0)
+    memory_generation: str | None = Field(
+        default=None, exclude_if=lambda v: v is None, max_length=64
     )
     session_id: UUID
     owner: str

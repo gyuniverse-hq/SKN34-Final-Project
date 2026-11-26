@@ -1,3 +1,4 @@
+import { needsTermsConsent } from '@/lib/account';
 import { useAuth } from '@/lib/auth';
 import { useMe } from '@/lib/queries';
 
@@ -8,6 +9,6 @@ export function useMemberCameraConsent() {
   return {
     member: !!user,
     loading: !ready || (!!user && me.isPending),
-    granted: terms?.cameraFeaturesConsent === true,
+    granted: !!terms && !needsTermsConsent(terms),
   };
 }

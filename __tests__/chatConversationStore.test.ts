@@ -45,6 +45,24 @@ test('clears all rooms, sessions and drafts on owner change and rejects stale up
   expect(store().open({ type: 'general' })).not.toBe(id);
 });
 
+test('memory changes invalidate local context and late responses in every owned room', () => {
+  const product = store().open({ type: 'product', productId: 'p1', shadeId: 's1' })!;
+  const look = store().open({ type: 'look', kind: 'video', lookId: 'look1' })!;
+  const a = store().conversations[product].conversation;
+  const b = store().conversations[look].conversation;
+  const first = store().beginRequest(a, request(a))!;
+  const second = store().beginRequest(b, request(b))!;
+  store().invalidateMemoryContext(a.ownerKey);
+  store().completeRequest(first, { answer: 'stale product reply', products: [] }, 'question');
+  store().completeRequest(second, { answer: 'stale look reply', products: [] }, 'question');
+  expect(store().conversations[product].conversation.entryProduct).toBeUndefined();
+  expect(store().conversations[look].conversation.styleContext).toBeUndefined();
+  expect(store().conversations[product].view.pending).toBe(false);
+  expect(store().conversations[look].view.pending).toBe(false);
+  expect(store().conversations[product].messages.some((message) => message.text === 'stale product reply')).toBe(false);
+  expect(store().conversations[look].messages.some((message) => message.text === 'stale look reply')).toBe(false);
+});
+
 test('a fresh app store has no saved chat or pending request to restore', () => {
   const id = store().open({ type: 'general' })!;
   const room = store().conversations[id].conversation;
@@ -58,6 +76,29 @@ test('a fresh app store has no saved chat or pending request to restore', () => 
     expect(freshStore.getState().resume(id)).toBe(false);
   });
   expect(store().conversations[id].view.pending).toBe(true);
+});
+
+test('first requests survive repeated observations of the same account memory policy', () => {
+  const firstId = store().open({ type: 'general' })!;
+  const first = store().conversations[firstId].conversation;
+  const firstTicket = store().beginRequest(first, request(first))!;
+  store().observeMemoryPolicy(first.ownerKey, { enabled: false, version: 2 });
+  store().completeRequest(firstTicket, { answer: 'first reply', products: [] }, 'question');
+  expect(store().conversations[firstId].messages.at(-1)?.text).toBe('first reply');
+
+  const secondId = store().open({ type: 'general' }, true)!;
+  const second = store().conversations[secondId].conversation;
+  const secondTicket = store().beginRequest(second, request(second))!;
+  store().observeMemoryPolicy(second.ownerKey, { enabled: false, version: 2 });
+  store().observeMemoryPolicy(second.ownerKey, { enabled: true, version: 1 });
+  store().completeRequest(secondTicket, { answer: 'second reply', products: [] }, 'question');
+  expect(store().conversations[secondId].messages.at(-1)?.text).toBe('second reply');
+
+  store().observeMemoryPolicy(second.ownerKey, { enabled: true, version: 3 });
+  expect(store().conversations[secondId].view.generation).toBe(second.generation + 1);
+  store().activate('account-B');
+  store().observeMemoryPolicy(second.ownerKey, { enabled: true, version: 4 });
+  expect(store().memoryPolicyVersion).toBeUndefined();
 });
 
 test('notifies subscribers atomically without mutating previous records or retry snapshots', () => {

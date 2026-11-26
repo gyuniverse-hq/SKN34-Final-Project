@@ -63,16 +63,18 @@ def test_http_to_db_with_replay_and_attribution():
         nonlocal actor
 
         async def sessions():
-            async with AsyncSession(conn, join_transaction_mode="create_savepoint") as db:
+            async with AsyncSession(
+                conn, expire_on_commit=False, join_transaction_mode="create_savepoint"
+            ) as db:
                 yield db
 
         app.dependency_overrides[get_session] = sessions
         await conn.execute(
             text(
-                "INSERT INTO members (id,terms_version,terms_agreed_at,ar_activity_consented_at,"
+                "INSERT INTO members (id,terms_version,terms_agreed_at,"
                 "skin_subscription_until) VALUES "
-                "(:owner,:version,now(),now(),now()+interval '1 day'),"
-                "(:other,:version,now(),now(),now()-interval '1 day')"
+                "(:owner,:version,now()-interval '1 day',now()+interval '1 day'),"
+                "(:other,'previous',now()-interval '1 day',now()-interval '1 day')"
             ),
             dict(owner=owner, other=other, version=TERMS_VERSION),
         )
@@ -122,23 +124,22 @@ def test_http_to_db_with_replay_and_attribution():
                 return res.json()
 
             actor = other
+            assert await post("status", {}) == {"enabled": False, "recommendations": False}
+            await post("events", {**event, "eventId": str(uuid4()), "impressionId": None}, 403)
+            accepted = await post("http://test/api/me/terms", {"version": TERMS_VERSION})
+            assert await post("http://test/api/me/terms", {"version": TERMS_VERSION}) == accepted
             assert await post("status", {}) == {"enabled": True, "recommendations": False}
             await post("palette", {"makeupZone": "lip"}, 403)
             await post("requests", request, 403)
-            await post("events", {**event, "eventId": str(uuid4()), "impressionId": None})
-            assert (
-                await client.post(
-                    "http://test/api/me/service-consents",
-                    json={"kind": "arActivity", "enabled": False},
-                )
-            ).is_success
-            await post("events", {**event, "eventId": str(uuid4()), "impressionId": None}, 403)
-            assert (
-                await client.post(
-                    "http://test/api/me/service-consents",
-                    json={"kind": "arActivity", "enabled": True},
-                )
-            ).is_success
+            await post(
+                "events",
+                {
+                    **event,
+                    "eventId": str(uuid4()),
+                    "impressionId": None,
+                    "occurredAt": datetime.now(UTC).isoformat(),
+                },
+            )
             assert (await client.post("http://test/api/me/skin-access/dev-subscription")).is_success
             assert await post("status", {}) == {"enabled": True, "recommendations": True}
             actor = owner
@@ -229,8 +230,9 @@ def test_server_rank_through_cart_produces_a_mature_training_label(monkeypatch, 
         app.dependency_overrides[get_session] = sessions
         await conn.execute(
             text(
-                "INSERT INTO members (id,terms_version,terms_agreed_at,ar_activity_consented_at,"
-                "skin_subscription_until) VALUES (:o,:v,now(),now(),now()+interval '1 day')"
+                "INSERT INTO members (id,terms_version,terms_agreed_at,"
+                "skin_subscription_until) VALUES "
+                "(:o,:v,now()-interval '1 day',now()+interval '1 day')"
             ),
             {"o": owner, "v": TERMS_VERSION},
         )

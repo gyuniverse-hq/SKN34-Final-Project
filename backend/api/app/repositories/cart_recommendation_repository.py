@@ -175,7 +175,7 @@ class CartRecommendationRepository:
                     FROM cart_recommendation_visits v JOIN members m ON m.id = v.member_id
                     WHERE v.experiment = :experiment
                       AND v.created_at >= :start AND v.created_at < :end AND v.created_at <= :as_of
-                      AND m.terms_version = :terms AND m.ar_activity_consented_at IS NOT NULL
+                      AND m.terms_version = :terms AND v.created_at >= m.terms_agreed_at
                 )
                 SELECT v.arm, count(*) AS visits,
                     count(*) FILTER (WHERE mature) AS mature_visits,

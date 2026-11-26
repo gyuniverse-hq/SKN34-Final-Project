@@ -9,7 +9,6 @@ from uuid import uuid4
 import pytest
 import sqlalchemy as sa
 from alembic.config import Config
-from alembic.environment import EnvironmentContext
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
 from alembic.script import ScriptDirectory
@@ -182,59 +181,6 @@ def test_reward_constraints_preserve_orders_and_member_deletion():
                     await conn.run_sync(exercise)
                 finally:
                     await tx.rollback()
-        finally:
-            await engine.dispose()
-
-    asyncio.run(run())
-
-
-@pytest.mark.integration
-@pytest.mark.skipif(
-    not os.environ.get("ATTENDANCE_MIGRATION_TEST_URL"), reason="needs test PostgreSQL"
-)
-@pytest.mark.parametrize("legacy_consent", [False, True], ids=["develop-0038", "ar-0038"])
-def test_both_0038_schemas_reach_consent_and_rewards(legacy_consent):
-    def exercise(conn):
-        schema = "consent_test_" + uuid4().hex
-        conn.exec_driver_sql(f"CREATE SCHEMA {schema}")
-        conn.exec_driver_sql(f"SET LOCAL search_path TO {schema}")
-        conn.exec_driver_sql("CREATE TABLE members (id varchar(64) PRIMARY KEY)")
-        conn.exec_driver_sql("INSERT INTO members VALUES ('existing')")
-        conn.exec_driver_sql("CREATE TABLE orders (id varchar(64) PRIMARY KEY, status varchar(20))")
-        config = Config()
-        config.set_main_option(
-            "script_location", str(Path(__file__).resolve().parents[1] / "alembic")
-        )
-        scripts = ScriptDirectory.from_config(config)
-        with EnvironmentContext(config, scripts) as env:
-            env.configure(connection=conn)
-            with Operations.context(env.get_context()):
-                if legacy_consent:
-                    conn.exec_driver_sql("ALTER TABLE members ADD camera_features_consent boolean")
-                    conn.exec_driver_sql(
-                        "ALTER TABLE members ADD ar_activity_consented_at timestamptz"
-                    )
-                    conn.exec_driver_sql("UPDATE members SET camera_features_consent = true")
-                else:
-                    scripts.get_revision("0038").module.upgrade()
-                    conn.exec_driver_sql(
-                        "INSERT INTO reward_attendance VALUES ('existing', CURRENT_DATE, 4)"
-                    )
-                scripts.get_revision("0039").module.upgrade()
-                assert sa.inspect(conn).has_table("reward_coupons", schema=schema)
-                assert conn.exec_driver_sql(
-                    "SELECT camera_features_consent FROM members"
-                ).scalar_one() is (True if legacy_consent else None)
-                assert conn.exec_driver_sql(
-                    "SELECT count(*) FROM reward_attendance"
-                ).scalar_one() == (0 if legacy_consent else 1)
-
-    async def run():
-        engine = create_async_engine(os.environ["ATTENDANCE_MIGRATION_TEST_URL"])
-        try:
-            async with engine.connect() as conn:
-                await conn.run_sync(exercise)
-                # Schema, sample data and migration DDL are rolled back on connection close.
         finally:
             await engine.dispose()
 

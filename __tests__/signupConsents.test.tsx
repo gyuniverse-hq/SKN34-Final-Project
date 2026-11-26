@@ -5,12 +5,13 @@ import { hasAllConsents, NO_CONSENT, TermsAgreement } from '@/components/auth/Te
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicon');
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 
-it('lets a member accept everything once or sign up with only the required items', async () => {
+it('requires both agreements and keeps the two documents accessible', async () => {
+  const openDoc = jest.fn();
   let selection = NO_CONSENT;
   function Form() {
     const [value, setValue] = useState(NO_CONSENT);
     selection = value;
-    return <TermsAgreement value={value} onChange={setValue} onOpenDoc={() => {}} />;
+    return <TermsAgreement value={value} onChange={setValue} onOpenDoc={openDoc} />;
   }
   let screen!: renderer.ReactTestRenderer;
   await act(async () => { screen = renderer.create(<Form />); });
@@ -20,11 +21,15 @@ it('lets a member accept everything once or sign up with only the required items
     await act(async () => { row!.props.onPress(); });
   };
   expect(hasAllConsents(selection)).toBe(false);
-  await toggle('consent.all');
-  expect(selection).toMatchObject({ cameraFeaturesConsent: true, arActivityConsent: true });
-  await toggle('consent.cameraOptional');
-  await toggle('consent.arOptional');
-  expect(selection).toMatchObject({ cameraFeaturesConsent: false, arActivityConsent: false });
+  for (const label of ['consent.viewTerms', 'consent.viewData']) {
+    const link = screen.root.findAllByProps({ accessibilityRole: 'link', accessibilityLabel: label })
+      .find(node => typeof node.props.onPress === 'function');
+    link!.props.onPress();
+  }
+  expect(openDoc.mock.calls).toEqual([['terms'], ['service-data']]);
+  await toggle('consent.terms');
+  expect(hasAllConsents(selection)).toBe(false);
+  await toggle('consent.privacy');
   expect(hasAllConsents(selection)).toBe(true);
   await act(async () => { screen.unmount(); });
 });

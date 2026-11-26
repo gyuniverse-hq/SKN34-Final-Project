@@ -5,6 +5,7 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date
+from typing import Literal
 
 FEATURE_VERSION = "ar-palette-v1"
 FEATURES = (
@@ -21,6 +22,7 @@ FEATURES = (
 )
 CATEGORICAL = ("makeup_zone", "color_family", "texture")
 ShadeKey = tuple[str, str]
+ColorFamily = Literal["red", "coral", "pink", "berry", "nude", "brown"]
 
 
 @dataclass(frozen=True)
@@ -31,23 +33,25 @@ class Shade:
     texture: str
 
 
-def shade_features(hex_value, texture, measure_method, color_source):
-    if not texture or "placeholder" in (measure_method, color_source):
-        return None
+def _linear_rgb(hex_value):
     if not re.fullmatch(r"#[0-9a-fA-F]{6}", hex_value or ""):
         return None
     rgb = [int(hex_value[i : i + 2], 16) / 255 for i in (1, 3, 5)]
-    r, g, b = [x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in rgb]
+    return tuple(x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in rgb)
 
-    def lab(x, y, z, threshold):
-        def f(t):
-            return math.cbrt(t) if t > threshold else t / (3 * (6 / 29) ** 2) + 4 / 29
 
-        x, y, z = f(x), f(y), f(z)
-        return 116 * y - 16, 500 * (x - y), 200 * (y - z)
+def _lab(x, y, z, threshold):
+    def f(t):
+        return math.cbrt(t) if t > threshold else t / (3 * (6 / 29) ** 2) + 4 / 29
 
-    # Keep both conversions equivalent to the existing app's color family and LCh functions.
-    light, a, b_lab = lab(
+    x, y, z = f(x), f(y), f(z)
+    return 116 * y - 16, 500 * (x - y), 200 * (y - z)
+
+
+def _color_family(rgb) -> ColorFamily:
+    r, g, b = rgb
+    # Keep the classification equivalent to the app's AR filter chips.
+    light, a, b_lab = _lab(
         (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047,
         0.2126 * r + 0.7152 * g + 0.0722 * b,
         (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883,
@@ -63,13 +67,35 @@ def shade_features(hex_value, texture, measure_method, color_source):
         family = "brown" if light < 32 and chroma < 45 else "coral" if light >= 62 else "red"
     else:
         family = "berry" if light < 42 else "pink"
-    light, a, b_lab = lab(
+    return family
+
+
+def catalog_color_family(hex_value, measure_method, color_source) -> ColorFamily | None:
+    if "placeholder" in (measure_method, color_source):
+        return None
+    if measure_method not in {"measured", "user_verified"} and (
+        measure_method != "estimated"
+        or color_source not in {"option_chip", "color_compare", "official_hex"}
+    ):
+        return None
+    rgb = _linear_rgb(hex_value)
+    return _color_family(rgb) if rgb is not None else None
+
+
+def shade_features(hex_value, texture, measure_method, color_source):
+    if not texture or "placeholder" in (measure_method, color_source):
+        return None
+    rgb = _linear_rgb(hex_value)
+    if rgb is None:
+        return None
+    r, g, b = rgb
+    light, a, b_lab = _lab(
         (0.4124564 * r + 0.3575761 * g + 0.1804375 * b) / 0.95047,
         0.2126729 * r + 0.7151522 * g + 0.0721750 * b,
         (0.0193339 * r + 0.1191920 * g + 0.9503041 * b) / 1.08883,
         (6 / 29) ** 3,
     )
-    return Shade(family, light, math.hypot(a, b_lab), texture)
+    return Shade(_color_family(rgb), light, math.hypot(a, b_lab), texture)
 
 
 def score_inputs(zone, order, catalog, ratings, daily):

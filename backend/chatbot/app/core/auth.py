@@ -68,7 +68,10 @@ class SupabaseTokenVerifier:
                     algorithms=[alg],
                     audience="authenticated",
                     issuer=self._auth_url,
+                    options={"require": ["exp", "sub", "aud", "iss"]},
                 )
+            except jwt.PyJWKClientConnectionError as exc:
+                raise ApiError(503, "Authentication is unavailable", "auth_unavailable") from exc
             except jwt.PyJWTError:
                 return None
         return await self._claims_from_auth_server(token)
@@ -78,11 +81,18 @@ class SupabaseTokenVerifier:
         try:
             async with httpx.AsyncClient(timeout=5) as client:
                 res = await client.get(f"{self._auth_url}/user", headers=headers)
-        except httpx.HTTPError:
+        except httpx.HTTPError as exc:
+            raise ApiError(503, "Authentication is unavailable", "auth_unavailable") from exc
+        if res.status_code in {400, 401, 403}:
             return None
         if res.status_code != 200:
-            return None
-        user = res.json()
+            raise ApiError(503, "Authentication is unavailable", "auth_unavailable")
+        try:
+            user = res.json()
+        except ValueError as exc:
+            raise ApiError(503, "Authentication is unavailable", "auth_unavailable") from exc
+        if not isinstance(user, dict):
+            raise ApiError(503, "Authentication is unavailable", "auth_unavailable")
         return {"sub": user.get("id"), "email": user.get("email"), "role": user.get("role")}
 
 
@@ -96,11 +106,13 @@ def get_verifier() -> SupabaseTokenVerifier | None:
 
 async def require_user(request: Request) -> AuthUser:
     """FastAPI dependency for routes that need a signed-in user."""
+    token = bearer_token(request.headers.get("authorization"))
+    if token is None:
+        raise ApiError(401, "Sign in required", "unauthorized")
     verifier = get_verifier()
     if verifier is None:
         raise ApiError(503, "Login is not configured", "auth_unavailable")
-    token = bearer_token(request.headers.get("authorization"))
-    claims = await verifier.verify(token) if token else None
+    claims = await verifier.verify(token)
     user = user_from_claims(claims) if claims else None
     if user is None:
         raise ApiError(401, "Sign in required", "unauthorized")
@@ -113,11 +125,8 @@ async def chat_principal(request: Request) -> ChatPrincipal:
     Guest IDs are validated then hashed before reaching the rate limiter; no guest identifier,
     account data, or conversation history is persisted by this dependency.
     """
-    token = bearer_token(request.headers.get("authorization"))
-    verifier = get_verifier()
-    claims = await verifier.verify(token) if verifier is not None and token else None
-    user = user_from_claims(claims) if claims else None
-    if user is not None:
+    if "authorization" in request.headers:
+        user = await require_user(request)
         return ChatPrincipal(rate_limit_key=f"user:{user.id}", user=user)
 
     anonymous_id = request.headers.get("x-vishue-anonymous-id", "")

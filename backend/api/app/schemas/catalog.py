@@ -2,6 +2,7 @@ from typing import Any, Literal, get_args
 
 from pydantic import Field, SerializerFunctionWrapHandler, field_validator, model_serializer
 
+from app.core.ar_palette import ColorFamily
 from app.core.oliveyoung_image import public_oliveyoung_image_url
 from app.schemas.base import ApiModel, OmitNoneModel
 
@@ -49,6 +50,7 @@ class Shade(OmitNoneModel):
     ) = None
     color_confidence: float | None = Field(default=None, ge=0, le=1)
     finish: ShadeFinish | None = None
+    color_family: ColorFamily | None = None
 
 
 class Product(ApiModel):

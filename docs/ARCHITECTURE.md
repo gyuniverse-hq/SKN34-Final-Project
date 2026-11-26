@@ -49,7 +49,7 @@ flowchart LR
 ```
 
 - 앱은 진입점 하나(`https://api.<도메인>`)만 압니다. 서비스가 늘거나 나뉘어도 앱 코드는 바뀌지 않습니다.
-- 데이터 소유권은 서비스별로 나뉩니다. PostgreSQL은 `api`만, Neo4j는 `chatbot`만 접근합니다. 챗봇은 카탈로그를 PostgreSQL에서 직접 읽지 않고 `api`의 HTTP 계약으로 받아 갑니다.
+- 데이터 소유권은 서비스별로 나뉩니다. 카탈로그 PostgreSQL은 `api`가 소유하고 챗봇은 Catalog HTTP 계약으로 읽습니다. G7은 같은 PostgreSQL 인스턴스의 **챗봇 전용 대화 DB**를 별도 역할로 관리합니다. 영속 기능은 아직 꺼져 있습니다. 기존 Neo4j 경로는 남아 있으나 [ADR-0012](adr/0012-pgvector-instead-of-neo4j.md)에 따라 교체 대상입니다.
 - 같은 Dockerfile이 로컬(Docker Compose), 로컬 쿠버네티스(kind), 팀 공용 dev 서버(Render), 운영(AWS EKS)에서 그대로 돌아갑니다. 위 그림은 운영 기준이고, dev 서버는 Gateway 없이 서버마다 주소가 따로 있습니다. 실행 방법과 배포 흐름은 [`DEPLOYMENT.md`](DEPLOYMENT.md), 결정 이유는 [`adr/`](adr/README.md)에 있습니다.
 
 앱은 `lib/api.ts`를 통해 백엔드만 호출합니다. 저장소 안의 Expo 서버(`app/api/dev/`, `server/`)에는 피부 분석 연구용 개발 도구만 남아 있고, 운영 환경에서는 차단됩니다.
@@ -201,7 +201,7 @@ constants/ · types/           테마, 정적 상수, 공용 타입
 | 서비스 | 맡는 것 | 데이터 | 외부 호출 |
 | --- | --- | --- | --- |
 | `backend/api` | 카탈로그(제품·셰이드·룩·매장), 온라인 판매처·제품 이미지, 튜토리얼 검색, 셰이드 추천(CIEDE2000 ΔE), 피부 고민 기반 케어 추천(`/api/recommendations/skin`), 회원(`/api/me`: 약관 동의, 탈퇴) | PostgreSQL(원본), Redis(캐시·레이트 리밋) | 네이버 검색 API, YouTube Data API, Supabase Auth(토큰 검증, 계정 삭제) |
-| `backend/chatbot` | 챗봇(`/api/chat`), PostgreSQL → Neo4j 동기화 잡 | Neo4j(사본), Redis(레이트 리밋) | LLM API, `api` 서비스 |
+| `backend/chatbot` | 챗봇(`/api/chat`), 기존 카탈로그 동기화 잡, G7 대화 저장 기반 | G7 전용 PostgreSQL DB(비활성), Neo4j(기존 사본), Redis(레이트 리밋) | LLM API, `api` 서비스 |
 
 서비스를 둘로 나눈 이유는 [ADR-0001](adr/0001-two-backend-services.md)에 있습니다. LLM 호출은 느리고 비용이 들어서 따로 확장하고 따로 제한해야 합니다. 챗봇 장애가 쇼핑 기능으로 번지지 않아야 하고, LLM 키는 챗봇 Pod에만 있어야 합니다.
 
@@ -215,7 +215,7 @@ constants/ · types/           테마, 정적 상수, 공용 타입
 | 원본 DB | PostgreSQL 17, 접근은 SQLAlchemy 2(async, asyncpg), 스키마 변경은 Alembic |
 | 검색 | PostgreSQL `pg_trgm` GIN 인덱스 (`products.search_text`) |
 | 캐시·레이트 리밋 | Redis (없으면 캐시 없이 동작, 레이트 리밋은 프로세스 메모리) |
-| 챗봇용 그래프 DB | Neo4j 5, 공식 `neo4j` Python 드라이버 |
+| 챗봇 기존 그래프 DB | Neo4j 5, 공식 `neo4j` Python 드라이버 (ADR-0012에 따라 교체 대상) |
 | 인증 | Supabase Auth 토큰을 JWKS로 로컬 검증 ([ADR-0005](adr/0005-supabase-auth-jwks.md)) |
 | 테스트 | pytest (단위 테스트는 가짜 저장소, PostgreSQL 통합 테스트는 CI) |
 | 린트·레이어 강제 | ruff, import-linter |
@@ -231,7 +231,7 @@ constants/ · types/           테마, 정적 상수, 공용 타입
 ```text
 backend/<service>/
   pyproject.toml · uv.lock · .python-version · Dockerfile · .env.example
-  alembic/                 마이그레이션 (api만)
+  alembic/                 서비스별 독립 마이그레이션
   seed/catalog.json        카탈로그 시드, types/index.ts의 Product·CelebLook·Store 형태 (api만)
   app/
     main.py                앱 조립: 미들웨어, 에러 핸들러, 라우터
@@ -240,7 +240,7 @@ backend/<service>/
     services/              비즈니스 로직
     repositories/          DB 접근
     clients/               외부 API 호출, 키는 여기서만 (naver, youtube, llm, catalog)
-    models/                PostgreSQL 테이블 (api만)
+    models/                각 서비스가 소유한 PostgreSQL 테이블
     schemas/               Pydantic 요청·응답 형태
     core/                  설정, DB·Redis 연결, 인증, 에러, 로깅, 레이트 리밋
   tests/
@@ -294,11 +294,12 @@ backend/<service>/
 | DB | 담는 것 | 접근 |
 | --- | --- | --- |
 | PostgreSQL (원본) | 제품, 셰이드, 룩, 룩 구성, 매장 | `api`의 `catalog_repository`만 |
+| PostgreSQL (G7 전용 DB) | 챗봇 대화·메시지·요청·동의 기억·Checkpoint | 챗봇 전용 역할·저장소; 운영 비활성 |
 | Neo4j (사본) | `(:Product)-[:HAS_SHADE\|CONTAINS\|TAGGED]->`, `(:Look)-[:USES]->(:Product)` | `chatbot`의 `graph_repository`만 |
 
 1. 데이터 추가와 수정은 **PostgreSQL에서만** 합니다(`seed_catalog` 잡 또는 이후 관리 API). Neo4j에 직접 쓰지 않습니다.
 2. Neo4j는 `sync_graph` 잡이 `api`의 `GET /api/products`, `GET /api/looks`를 읽어 **한 방향으로만** 채웁니다. 쓰기는 트랜잭션 하나로 이뤄져서, 읽는 쪽은 이전 그래프나 새 그래프 중 하나만 봅니다.
-3. 잡은 30분마다(CronJob) 돌고, 배포 직후에도 한 번 돕니다. 챗봇 서비스는 PostgreSQL 접속 정보를 갖지 않습니다 ([ADR-0002](adr/0002-postgres-source-neo4j-copy.md)).
+3. 기존 잡은 30분마다(CronJob) 돌고, 배포 직후에도 한 번 돕니다. 이 Neo4j 전제는 [ADR-0012](adr/0012-pgvector-instead-of-neo4j.md)로 대체됐지만 기존 코드·인프라 전환은 별도 작업입니다. G7의 개인 대화 DB는 Catalog DB와 분리하며 Catalog 직접 조회에 쓰지 않습니다.
 
 ### 운영 원칙
 

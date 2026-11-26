@@ -4,10 +4,12 @@ from uuid import UUID
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.models.member import MemberRow
 from app.models.order import OrderRow
 from app.models.reward import RewardAttendanceRow as Attendance
 from app.models.reward import RewardCouponRow as Coupon
+from app.repositories.member_repository import MemberRepository
 
 
 class RewardRepository:
@@ -15,6 +17,10 @@ class RewardRepository:
         self.session = session
 
     async def member(self, owner: str, *, writing: bool):
+        members = MemberRepository(
+            self.session, guard_deletion=get_settings().env in {"local", "test"}
+        )
+        await members.require_available(owner, write=writing)
         # Serialize check-ins, including requests straddling midnight and subscription changes.
         return await self.session.scalar(
             select(MemberRow).where(MemberRow.id == owner).with_for_update(read=not writing)
