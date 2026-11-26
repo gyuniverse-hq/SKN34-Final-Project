@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   Link,
   NavLink,
@@ -8,8 +8,9 @@ import {
   useLocation,
   useNavigate,
   useParams,
+  useSearchParams,
 } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
   ApiError,
   api,
@@ -18,6 +19,7 @@ import {
   supabase,
   type CartLine,
   type Product,
+  type ProductDiscoveryOrder,
 } from "./api";
 import { isStaffSession, signOut, STAFF_HOME } from "./auth";
 import { cartTotal, loadCart, saveCart } from "./cart";
@@ -38,6 +40,12 @@ function Shell({
   email: string | null;
   children: React.ReactNode;
 }) {
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const query = params.get("q") ?? "";
+  const [headerQuery, setHeaderQuery] = useState(query);
+  useEffect(() => setHeaderQuery(query), [query]);
+
   return (
     <div className="shell">
       <header className="site-header">
@@ -45,6 +53,23 @@ function Shell({
           <Link to="/" className="brand" aria-label="VISHUE 홈">
             VISHUE<span className="brand-dot">.</span>
           </Link>
+          <form
+            className="header-search"
+            role="search"
+            onSubmit={(event) => {
+              event.preventDefault();
+              navigate(browseUrl(null, headerQuery.trim()));
+            }}
+          >
+            <input
+              type="search"
+              aria-label="브랜드와 제품 검색"
+              placeholder="브랜드·제품 검색"
+              value={headerQuery}
+              onChange={(event) => setHeaderQuery(event.target.value)}
+            />
+            <button type="submit" className="btn btn-sm">검색</button>
+          </form>
           <nav className="site-nav" aria-label="주요 메뉴">
             <NavLink to="/" end>
               쇼핑
@@ -53,11 +78,16 @@ function Shell({
               장바구니
               {cartCount > 0 ? <span className="nav-count">{cartCount}</span> : null}
             </NavLink>
-            <a href={arAppUrl} target="_blank" rel="noreferrer" className="nav-ar">
-              앱 AR
-            </a>
           </nav>
-          <div className="site-account">
+          <div className="site-actions">
+            <a
+              href={arAppUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-sm btn-ar"
+            >
+              앱에서 AR 열기
+            </a>
             {email ? <span className="account-email">{email}</span> : null}
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => void signOut()}>
               로그아웃
@@ -101,72 +131,337 @@ function ArCta({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function Home() {
-  const q = useQuery({
-    queryKey: ["products"],
-    queryFn: () => api<{ products: Product[] }>("/api/products?category=lip"),
+const SHOP_CATEGORIES = [
+  { id: "lip", label: "립" },
+  { id: "cheek", label: "치크" },
+  { id: "eye", label: "아이" },
+  { id: "base", label: "베이스" },
+  { id: "skincare", label: "스킨케어" },
+  { id: "suncare", label: "선케어" },
+] as const;
+
+function browseUrl(category: string | null, query = "") {
+  const params = new URLSearchParams();
+  if (category) params.set("category", category);
+  if (query) params.set("q", query);
+  return `/${params.size ? `?${params}` : ""}#browse`;
+}
+
+const PRODUCT_PAGE_SIZE = 24;
+const PRODUCT_STALE_TIME = 5 * 60 * 1000;
+
+const SHOP_CHARTS = {
+  makeup: "메이크업 차트",
+  skincare: "스킨케어 차트",
+  new: "신상품",
+} as const;
+
+const HOME_SHELVES = [
+  { key: "hot", title: "요즘 눈여겨볼 아이템", to: null },
+  { key: "makeup", title: SHOP_CHARTS.makeup, to: "/charts/makeup" },
+  { key: "newArrivals", title: SHOP_CHARTS.new, to: "/charts/new" },
+  { key: "skincare", title: SHOP_CHARTS.skincare, to: "/charts/skincare" },
+] as const;
+
+function ProductCard({
+  product,
+  compact,
+}: {
+  product: Product;
+  compact?: boolean;
+}) {
+  return (
+    <Link
+      to={`/products/${encodeURIComponent(product.id)}`}
+      className={`product-card${compact ? " is-compact" : ""}`}
+    >
+      <div className="product-thumb">
+        {product.imageUrl && <img src={product.imageUrl} alt="" loading="lazy" decoding="async" />}
+      </div>
+      <div className="product-body">
+        <span className="product-brand">{product.brand}</span>
+        <span className="product-name">{product.name}</span>
+        <span className="product-price">{money(product.priceKRW)}</span>
+        {!compact && !!product.shades?.length && product.shades.length > 1 && (
+          <span className="shade-row">
+            {product.shades.slice(0, 5).map((s) => (
+              <span
+                key={s.id}
+                className="shade-dot"
+                style={{ background: s.hex }}
+                title={s.name}
+              />
+            ))}
+            <span className="shade-count">{product.shades.length}색</span>
+          </span>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+function ShopCategoryNav({ category, query = "" }: { category?: string | null; query?: string }) {
+  return (
+    <nav className="shop-category-nav" aria-label="제품 카테고리">
+      <Link to={browseUrl(null, query)} aria-current={category === null ? "page" : undefined}>
+        전체
+      </Link>
+      {SHOP_CATEGORIES.map((item) => (
+        <Link
+          key={item.id}
+          to={browseUrl(item.id, query)}
+          aria-current={category === item.id ? "page" : undefined}
+        >
+          {item.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+function ProductShelf({ title, to, products }: { title: string; to: string | null; products: Product[] }) {
+  const id = useId();
+  const shelf = useRef<HTMLDivElement>(null);
+  const [controls, setControls] = useState({ previous: false, next: false });
+
+  useEffect(() => {
+    const row = shelf.current;
+    if (!row) return;
+    const updateControls = () => {
+      const previous = row.scrollLeft > 1;
+      const next = row.scrollLeft + row.clientWidth < row.scrollWidth - 1;
+      setControls((current) => current.previous === previous && current.next === next
+        ? current
+        : { previous, next });
+    };
+    updateControls();
+    row.addEventListener("scroll", updateControls, { passive: true });
+    const observer = new ResizeObserver(updateControls);
+    observer.observe(row);
+    return () => {
+      row.removeEventListener("scroll", updateControls);
+      observer.disconnect();
+    };
+  }, [products.length]);
+
+  function scrollShelf(direction: number) {
+    const row = shelf.current;
+    if (!row) return;
+    const gap = Number.parseFloat(getComputedStyle(row).columnGap);
+    row.scrollBy({ left: direction * (row.clientWidth + gap) });
+  }
+
+  return (
+    <section className="shop-shelf" aria-labelledby={`${id}-title`}>
+      <div className="shelf-heading">
+        <h2 id={`${id}-title`}>{title}</h2>
+        <div className="shelf-actions">
+          {to && (
+            <Link className="btn btn-ghost btn-sm" to={to} aria-label={`${title} 전체 보기`}>
+              전체 보기
+            </Link>
+          )}
+          {(controls.previous || controls.next) && (
+            <div className="shelf-controls">
+              <button
+                className="btn btn-ghost btn-sm shelf-arrow"
+                type="button"
+                aria-label={`${title} 이전 상품`}
+                aria-controls={id}
+                disabled={!controls.previous}
+                onClick={() => scrollShelf(-1)}
+              >
+                <span aria-hidden="true">‹</span>
+              </button>
+              <button
+                className="btn btn-ghost btn-sm shelf-arrow"
+                type="button"
+                aria-label={`${title} 다음 상품`}
+                aria-controls={id}
+                disabled={!controls.next}
+                onClick={() => scrollShelf(1)}
+              >
+                <span aria-hidden="true">›</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+      <div
+        ref={shelf}
+        id={id}
+        className="shelf-products"
+        tabIndex={controls.previous || controls.next ? 0 : undefined}
+        role="group"
+        aria-labelledby={`${id}-title`}
+      >
+        {products.map((product) => <ProductCard key={product.id} product={product} compact />)}
+      </div>
+    </section>
+  );
+}
+
+function ProductListError({ error, onRetry }: { error: Error | null; onRetry: () => void }) {
+  return (
+    <div className="catalog-error" role="alert">
+      <p className="form-error">{error?.message || "목록을 불러오지 못했습니다."}</p>
+      <button type="button" className="btn btn-sm" onClick={onRetry}>다시 시도</button>
+    </div>
+  );
+}
+
+function ShopHome() {
+  const order = useQuery({
+    queryKey: ["discovery", "product-order", "preview"],
+    staleTime: PRODUCT_STALE_TIME,
+    queryFn: ({ signal }) =>
+      api<ProductDiscoveryOrder>("/api/discovery/product-order?preview=true", { signal }),
   });
-  const products = q.data?.products ?? [];
+  const ids = [...new Set(HOME_SHELVES.flatMap(({ key }) => order.data?.[key] ?? []))].join(",");
+  const products = useQuery({
+    queryKey: ["products", "by-ids", ids],
+    enabled: !!ids,
+    staleTime: PRODUCT_STALE_TIME,
+    queryFn: ({ signal }) =>
+      api<{ products: Product[] }>(`/api/products?${new URLSearchParams({ ids })}`, { signal }),
+  });
+  const byId = new Map((products.data?.products ?? []).map((product) => [product.id, product]));
 
   return (
     <>
+      <ShopCategoryNav />
       <section className="shop-hero">
         <div className="shop-hero-copy">
-          <p className="eyebrow">LIP COLLECTION</p>
-          <h1>나에게 맞는 립을 고르세요</h1>
-          <p className="shop-hero-lead">
-            VISHUE 웹에서 제품을 담고, AR 피팅은 앱에서 이어갑니다.
-          </p>
+          <p className="hero-kicker">FIND YOUR SHADE</p>
+          <h1>오늘 바르고 싶은<br />나만의 컬러</h1>
+          <p>나에게 어울리는 뷰티 아이템을 발견해 보세요.</p>
+          <Link to={browseUrl("lip")} className="btn hero-button">립 제품 보기</Link>
         </div>
-        <ArCta />
+        <div className="shop-hero-image" aria-hidden="true" />
       </section>
+      {(order.isPending || (!!ids && products.isPending)) && (
+        <p className="state" role="status">추천 상품을 불러오는 중…</p>
+      )}
+      {order.isError && !order.data && (
+        <ProductListError error={order.error} onRetry={() => void order.refetch()} />
+      )}
+      {products.isError && !products.data && (
+        <ProductListError error={products.error} onRetry={() => void products.refetch()} />
+      )}
+      {HOME_SHELVES.map(({ key, title, to }) => {
+        const items = (order.data?.[key] ?? []).flatMap((id) => {
+          const product = byId.get(id);
+          return product ? [product] : [];
+        });
+        return items.length > 0 && <ProductShelf key={key} title={title} to={to} products={items} />;
+      })}
+      <ArCta />
+    </>
+  );
+}
 
-      {q.isPending && <p className="state">불러오는 중…</p>}
-      {q.error && (
-        <p className="form-error">
-          {q.error instanceof Error ? q.error.message : "목록을 불러오지 못했습니다."}
+function PagedProductList({ path, filters = "", empty }: { path: string; filters?: string; empty: string }) {
+  const results = useInfiniteQuery({
+    queryKey: ["products", "pages", path, filters],
+    staleTime: PRODUCT_STALE_TIME,
+    initialPageParam: 0,
+    queryFn: ({ pageParam, signal }) => {
+      const params = new URLSearchParams(filters);
+      params.set("limit", String(PRODUCT_PAGE_SIZE));
+      params.set("offset", String(pageParam));
+      return api<{ products: Product[]; hasMore: boolean }>(`${path}?${params}`, { signal });
+    },
+    getNextPageParam: (page, _pages, offset) => page.hasMore ? offset + PRODUCT_PAGE_SIZE : undefined,
+  });
+
+  if (results.isPending) return <p className="state" role="status">상품을 불러오는 중…</p>;
+  if (!results.data) {
+    return <ProductListError error={results.error} onRetry={() => void results.refetch()} />;
+  }
+
+  const byId = new Map(results.data.pages.flatMap((page) =>
+    page.products.map((product) => [product.id, product] as const)));
+  if (!byId.size && !results.hasNextPage) return <p className="empty">{empty}</p>;
+
+  return (
+    <>
+      <p className="product-list-count" role="status">표시된 상품 {byId.size}개</p>
+      <div className="product-grid product-grid-tight">
+        {[...byId.values()].map((product) => <ProductCard key={product.id} product={product} compact />)}
+      </div>
+      {results.hasNextPage && (
+        <div className="product-list-more">
+          {results.isFetchNextPageError && (
+            <p className="form-error" role="alert">다음 상품을 불러오지 못했어요.</p>
+          )}
+          <button
+            type="button"
+            className="btn btn-ghost"
+            disabled={results.isFetching}
+            onClick={() => void results.fetchNextPage()}
+          >
+            {results.isFetchingNextPage ? "불러오는 중…" : results.isFetchNextPageError ? "다시 시도" : "상품 더 보기"}
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
+function Home() {
+  const location = useLocation();
+  const [params] = useSearchParams();
+  const query = params.get("q")?.trim() ?? "";
+  const active = SHOP_CATEGORIES.find((category) => category.id === params.get("category"));
+  const category = active?.id ?? null;
+  const browsing = !!active || !!query || location.hash === "#browse";
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0 });
+    if (browsing) document.getElementById("browse")?.focus({ preventScroll: true });
+  }, [browsing, location.key]);
+
+  if (!browsing) return <ShopHome />;
+
+  const filters = new URLSearchParams();
+  if (category) filters.set("category", category);
+  if (query) filters.set("q", query);
+  return (
+    <section className="catalog" aria-labelledby="browse">
+      <div className="page-title">
+        <p className="eyebrow"><Link to="/">← 쇼핑 홈</Link></p>
+        <h1 id="browse" tabIndex={-1}>{query ? "검색 결과" : active?.label ?? "전체 상품"}</h1>
+      </div>
+      <ShopCategoryNav category={category} query={query} />
+      {query && (
+        <div className="catalog-filter-hint">
+          <span>{active ? `${active.label} · ` : ""}“{query}”</span>
+          <Link to={browseUrl(category)} className="btn btn-ghost btn-sm">검색어 지우기</Link>
+        </div>
+      )}
+      <PagedProductList path="/api/products" filters={filters.toString()} empty="표시할 상품이 없습니다." />
+    </section>
+  );
+}
+
+function ChartPage() {
+  const { kind } = useParams();
+  const chart = kind === "skincare" || kind === "new" ? kind : "makeup";
+
+  useEffect(() => window.scrollTo({ top: 0, left: 0 }), [chart]);
+
+  return (
+    <>
+      <section className="page-title">
+        <p className="eyebrow">
+          <Link to="/">← 쇼핑 홈</Link>
         </p>
-      )}
-      {q.data && (
-        <section className="catalog">
-          <div className="catalog-head">
-            <h2>립 제품</h2>
-            {products.length > 0 && <span>{products.length}개</span>}
-          </div>
-          <div className="product-grid">
-            {products.map((p) => (
-              <Link
-                key={p.id}
-                to={`/products/${encodeURIComponent(p.id)}`}
-                className="product-card"
-              >
-                <div className="product-thumb">
-                  <img src={p.imageUrl || undefined} alt="" loading="lazy" />
-                </div>
-                <div className="product-body">
-                  <span className="product-brand">{p.brand}</span>
-                  <span className="product-name">{p.name}</span>
-                  <span className="product-price">{money(p.priceKRW)}</span>
-                  {!!p.shades?.length && p.shades.length > 1 && (
-                    <span className="shade-row">
-                      {p.shades.slice(0, 5).map((s) => (
-                        <span
-                          key={s.id}
-                          className="shade-dot"
-                          style={{ background: s.hex }}
-                          title={s.name}
-                        />
-                      ))}
-                      <span className="shade-count">{p.shades.length}색</span>
-                    </span>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
-          {!products.length && <p className="empty">표시할 상품이 없습니다.</p>}
-        </section>
-      )}
+        <h1>{SHOP_CHARTS[chart]}</h1>
+      </section>
+      <PagedProductList
+        path={`/api/discovery/charts/${chart}`}
+        empty={chart === "new" ? "신상품을 준비하고 있어요." : "차트를 준비하고 있어요."}
+      />
     </>
   );
 }
@@ -195,9 +490,14 @@ function ProductDetail({ onAdd }: { onAdd: (line: CartLine) => void }) {
       </button>
       {q.isPending && <p className="state">불러오는 중…</p>}
       {q.error && (
-        <p className="form-error">
-          {q.error instanceof Error ? q.error.message : "상품을 불러오지 못했습니다."}
-        </p>
+        <div className="catalog-error" role="alert">
+          <p className="form-error">
+            {q.error instanceof Error ? q.error.message : "상품을 불러오지 못했습니다."}
+          </p>
+          <button type="button" className="btn btn-sm" onClick={() => void q.refetch()}>
+            다시 시도
+          </button>
+        </div>
       )}
       {product && (
         <article className="pdp">
@@ -517,8 +817,24 @@ export function App() {
 
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage signedIn={auth.signedIn && roleReady} />} />
-      <Route path="/signup" element={<SignupPage signedIn={auth.signedIn && roleReady} />} />
+      <Route
+        path="/login"
+        element={
+          <LoginPage
+            signedIn={auth.signedIn && roleReady}
+            isStaff={role === "staff"}
+          />
+        }
+      />
+      <Route
+        path="/signup"
+        element={
+          <SignupPage
+            signedIn={auth.signedIn && roleReady}
+            isStaff={role === "staff"}
+          />
+        }
+      />
       <Route
         path="/admin/*"
         element={
@@ -537,6 +853,7 @@ export function App() {
               <Shell cartCount={count} email={auth.email}>
                 <Routes>
                   <Route path="/" element={<Home />} />
+                  <Route path="/charts/:kind" element={<ChartPage />} />
                   <Route path="/products/:id" element={<ProductDetail onAdd={onAdd} />} />
                   <Route
                     path="/cart"

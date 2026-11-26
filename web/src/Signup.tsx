@@ -20,7 +20,13 @@ const MIN_CODE_LENGTH = 6;
 const agreement = signupAgreement.ko;
 type Consent = { terms: boolean; privacy: boolean };
 
-export function SignupPage({ signedIn }: { signedIn: boolean }) {
+export function SignupPage({
+  signedIn,
+  isStaff = false,
+}: {
+  signedIn: boolean;
+  isStaff?: boolean;
+}) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,7 +48,8 @@ export function SignupPage({ signedIn }: { signedIn: boolean }) {
     .toLowerCase();
   const allConsent = consent.terms && consent.privacy;
 
-  if (signedIn && step === "form") return <Navigate to="/" replace />;
+  if (signedIn && step === "form")
+    return <Navigate to={isStaff ? STAFF_HOME : "/"} replace />;
 
   async function finish() {
     try {

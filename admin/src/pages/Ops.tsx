@@ -3,6 +3,25 @@ import { api } from "../api/client";
 import type { OpsChatbot, OpsRecommendations, OpsSystem } from "../api/types";
 import { LoadingError } from "./Commerce";
 
+function RefreshStatus({ updatedAt, fetching, onRefresh }: {
+  updatedAt: number;
+  fetching: boolean;
+  onRefresh: () => void;
+}) {
+  return (
+    <div className="admin-refresh">
+      <small>{updatedAt ? `마지막 조회 ${new Date(updatedAt).toLocaleTimeString("ko-KR")}` : "조회 기록 없음"}</small>
+      <button type="button" className="secondary" disabled={fetching} onClick={onRefresh}>새로고침</button>
+    </div>
+  );
+}
+
+function ProbeStatus({ probe }: { probe: OpsChatbot["healthz"] }) {
+  return <span className="badge" data-state={probe && !probe.ok ? "warning" : undefined}>
+    {probe ? `${probe.ok ? "정상" : probe.status ? "점검 필요" : "연결 실패"}${probe.status ? ` · HTTP ${probe.status}` : ""}` : "미확인"}
+  </span>;
+}
+
 export function OpsRecommendationsPage() {
   const q = useQuery({
     queryKey: ["ops-recommendations"],
@@ -10,24 +29,24 @@ export function OpsRecommendationsPage() {
   });
   return (
     <>
-      <p className="eyebrow">OPS</p>
-      <h1>추천 Ops</h1>
+      <h1>추천 집계</h1>
       <p>피부·AR·장바구니 추천 노출 집계와 실험 플래그(조회 전용).</p>
+      <RefreshStatus updatedAt={q.dataUpdatedAt} fetching={q.isFetching} onRefresh={() => void q.refetch()} />
       <LoadingError pending={q.isPending} error={q.error} />
       {q.data && (
         <div className="panel">
-          <div className="metrics" style={{ marginTop: 0 }}>
+          <div className="ops-metrics">
             <div className="metric">
               <span>추천 노출</span>
-              <strong>{q.data.counts.recommendationImpressions}</strong>
+              <strong>{q.data.counts.recommendationImpressions.toLocaleString("ko-KR")}</strong>
             </div>
             <div className="metric">
               <span>스킨케어 이벤트</span>
-              <strong>{q.data.counts.skincareEvents}</strong>
+              <strong>{q.data.counts.skincareEvents.toLocaleString("ko-KR")}</strong>
             </div>
             <div className="metric">
               <span>장바구니 추천 방문</span>
-              <strong>{q.data.counts.cartRecommendationVisits}</strong>
+              <strong>{q.data.counts.cartRecommendationVisits.toLocaleString("ko-KR")}</strong>
             </div>
           </div>
           <dl className="ops-dl">
@@ -58,39 +77,30 @@ export function OpsChatbotPage() {
   });
   return (
     <>
-      <p className="eyebrow">OPS</p>
-      <h1>챗봇 Ops</h1>
-      <p>챗봇 health/ready 프로브. Neo4j는 운영에서 비활성(ADR-0012)일 수 있습니다.</p>
+      <h1>챗봇 상태</h1>
+      <RefreshStatus updatedAt={q.dataUpdatedAt} fetching={q.isFetching} onRefresh={() => void q.refetch()} />
       <LoadingError pending={q.isPending} error={q.error} />
       {q.data && (
         <div className="panel">
           {!q.data.configured && (
-            <p className="form-error">{q.data.error || "CHATBOT_BASE_URL 미설정"}</p>
+            <p className="form-error">챗봇 주소가 설정되지 않았습니다. API의 CHATBOT_BASE_URL을 확인하세요.</p>
           )}
           <dl className="ops-dl">
             <div>
-              <dt>Base URL</dt>
+              <dt>챗봇 API 주소</dt>
               <dd>{q.data.baseUrl || "—"}</dd>
             </div>
             <div>
-              <dt>healthz</dt>
-              <dd>
-                {q.data.healthz
-                  ? `${q.data.healthz.ok ? "OK" : "FAIL"} (${q.data.healthz.status ?? "—"})`
-                  : "—"}
-              </dd>
+              <dt>서버 응답</dt>
+              <dd><ProbeStatus probe={q.data.healthz} /></dd>
             </div>
             <div>
-              <dt>readyz</dt>
-              <dd>
-                {q.data.readyz
-                  ? `${q.data.readyz.ok ? "OK" : "FAIL"} (${q.data.readyz.status ?? "—"})`
-                  : "—"}
-              </dd>
+              <dt>요청 처리 준비</dt>
+              <dd><ProbeStatus probe={q.data.readyz} /></dd>
             </div>
           </dl>
           {q.data.readyz?.body != null ? (
-            <pre className="ops-pre">{JSON.stringify(q.data.readyz.body, null, 2)}</pre>
+            <details><summary>진단 응답 보기</summary><pre className="ops-pre">{JSON.stringify(q.data.readyz.body, null, 2)}</pre></details>
           ) : null}
         </div>
       )}
@@ -105,41 +115,40 @@ export function OpsSystemPage() {
   });
   return (
     <>
-      <p className="eyebrow">OPS</p>
       <h1>시스템</h1>
-      <p>ADMIN_ENABLED, 마이그레이션, 립 평가 디렉터리, LLM 설정 여부.</p>
+      <RefreshStatus updatedAt={q.dataUpdatedAt} fetching={q.isFetching} onRefresh={() => void q.refetch()} />
       <LoadingError pending={q.isPending} error={q.error} />
       {q.data && (
         <div className="panel">
           <dl className="ops-dl">
             <div>
-              <dt>ENV</dt>
+              <dt>실행 환경</dt>
               <dd>{q.data.env}</dd>
             </div>
             <div>
-              <dt>ADMIN_ENABLED</dt>
-              <dd>{q.data.adminEnabled ? "true" : "false"}</dd>
+              <dt>관리자 API</dt>
+              <dd>{q.data.adminEnabled ? "활성" : "비활성"}</dd>
             </div>
             <div>
-              <dt>Alembic</dt>
-              <dd>{q.data.alembicHead || "—"}</dd>
+              <dt>DB 마이그레이션</dt>
+              <dd>{q.data.alembicHead || "마이그레이션 버전 확인 필요"}</dd>
             </div>
             <div>
-              <dt>립 평가 디렉터리</dt>
+              <dt>립 평가 저장소</dt>
               <dd>
                 {q.data.lipEvalDir}{" "}
                 <span className="badge">
-                  {q.data.lipEvalDirExists ? "존재" : "없음"}
+                  {q.data.lipEvalDirExists ? "경로 확인됨" : "경로 없음"}
                 </span>
               </dd>
             </div>
             <div>
-              <dt>LLM(자연스러움)</dt>
-              <dd>{q.data.llmConfigured ? "설정됨" : "미설정"}</dd>
+              <dt>자연스러움 채점 모델</dt>
+              <dd>{q.data.llmConfigured ? "설정됨" : "API의 LLM 키와 모델 설정 필요"}</dd>
             </div>
             <div>
-              <dt>CORS origins</dt>
-              <dd>{q.data.corsOriginCount}</dd>
+              <dt>웹 허용 주소</dt>
+              <dd>{q.data.corsOriginCount}개</dd>
             </div>
           </dl>
         </div>

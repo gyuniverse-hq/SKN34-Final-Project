@@ -1,6 +1,5 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { Link, Navigate, NavLink, Route, Routes } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   api,
@@ -12,27 +11,7 @@ import {
 import type { Staff } from "./api/types";
 import { loginErrorMessage } from "./api/authErrors";
 import { LocalConsent } from "./LocalConsent";
-const Orders = lazy(() =>
-  import("./pages/Commerce").then((m) => ({ default: m.Orders })),
-);
-const Products = lazy(() =>
-  import("./pages/Commerce").then((m) => ({ default: m.Products })),
-);
-const AuditLog = lazy(() =>
-  import("./pages/Commerce").then((m) => ({ default: m.AuditLog })),
-);
-const Evaluations = lazy(() =>
-  import("./pages/Evaluations").then((m) => ({ default: m.Evaluations })),
-);
-const OpsRecommendationsPage = lazy(() =>
-  import("./pages/Ops").then((m) => ({ default: m.OpsRecommendationsPage })),
-);
-const OpsChatbotPage = lazy(() =>
-  import("./pages/Ops").then((m) => ({ default: m.OpsChatbotPage })),
-);
-const OpsSystemPage = lazy(() =>
-  import("./pages/Ops").then((m) => ({ default: m.OpsSystemPage })),
-);
+import { AdminWorkspace } from "./Workspace";
 
 const webBaseUrl =
   (import.meta.env.VITE_WEB_BASE_URL as string | undefined) ||
@@ -167,13 +146,7 @@ function Login() {
             {busy ? "확인 중…" : "로그인"}
           </button>
         </form>
-        <button type="button" className="auth-link" disabled>
-          비밀번호를 잊으셨나요?
-        </button>
         <div className="auth-divider" />
-        <button type="button" className="secondary auth-social" disabled title="준비 중">
-          Apple로 계속하기
-        </button>
         <button
           type="button"
           className="secondary auth-social"
@@ -243,82 +216,12 @@ export function App() {
 }
 
 export function Workspace({ staff }: { staff: Staff }) {
-  const items = [
-    ["/", "대시보드"],
-    ["/orders", "주문"],
-    ["/products", "상품"],
-    ["/evaluations", "AR 평가"],
-    ["/ops/recommendations", "추천 Ops"],
-    ["/ops/chatbot", "챗봇 Ops"],
-    ["/ops/system", "시스템"],
-    ...(staff.role === "admin" ? [["/audit", "감사 로그"]] : []),
-  ];
-  return (
-    <div className="workspace">
-      <aside>
-        <Link className="brand" to="/">
-          VISHUE<span>ADMIN WORKSPACE</span>
-        </Link>
-        <nav aria-label="주 메뉴">
-          {items.map(([to, label]) => (
-            <NavLink key={to} to={to} end={to === "/"}>
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-        <div className="aside-note">
-          내부 운영 도구
-          <br />
-          토스 테스트 결제 시연
-        </div>
-      </aside>
-      <div className="content">
-        <header>
-          <span>운영 워크스페이스</span>
-          <div>
-            {staff.email || "직원 계정"}{" "}
-            <b className="badge">
-              {staff.role === "admin" ? "관리자" : "조회자"}
-            </b>
-            <button
-              className="text-button"
-              onClick={() => {
-                if (isDemo) window.location.assign("/");
-                else void supabase?.auth.signOut();
-              }}
-            >
-              로그아웃
-            </button>
-          </div>
-        </header>
-        <main>
-          <Suspense fallback={<p role="status">화면을 불러오는 중…</p>}>
-            <Routes>
-              <Route path="/" element={<Evaluations dashboard />} />
-              <Route path="/orders/*" element={<Orders staff={staff} />} />
-              <Route path="/products/*" element={<Products staff={staff} />} />
-              <Route path="/evaluations" element={<Evaluations />} />
-              <Route
-                path="/ops/recommendations"
-                element={<OpsRecommendationsPage />}
-              />
-              <Route path="/ops/chatbot" element={<OpsChatbotPage />} />
-              <Route path="/ops/system" element={<OpsSystemPage />} />
-              <Route
-                path="/audit"
-                element={
-                  staff.role === "admin" ? (
-                    <AuditLog />
-                  ) : (
-                    <Navigate to="/" replace />
-                  )
-                }
-              />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
-        </main>
-      </div>
-    </div>
-  );
+  return <AdminWorkspace staff={staff} onSignOut={async () => {
+    if (isDemo) {
+      window.location.assign("/");
+      return;
+    }
+    const result = await supabase?.auth.signOut();
+    if (result?.error) throw result.error;
+  }} />;
 }

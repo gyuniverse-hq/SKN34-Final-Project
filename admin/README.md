@@ -1,6 +1,10 @@
 # VISHUE 관리자 웹
 
-Node 24와 npm을 사용한다. `npm ci`, `npm run dev` 후 출력된 주소를 연다. 로컬 화면 미리보기는 `http://127.0.0.1:5173/?demo=1`이며 개발 서버에서만 동작하는 조회 전용 모드다. 주문·상품은 예시이고 AR 평가는 v2 연구 보고서 숫자 집계다. 실제 DB나 로그인에 접속하지 않는다.
+Node 24와 npm을 사용한다.
+
+**일상 로컬 접속은 `web`(http://127.0.0.1:5174)만 쓴다.** 로그인 후 직원 계정이면 `/admin`으로 들어간다. 이 패키지는 UI·타입 소스이며 `web`이 `@admin`으로 임베드한다.
+
+예외: 로컬 화면 미리보기만 `npm run dev` 후 `http://127.0.0.1:5173/?demo=1`(개발 서버 조회 전용). 주문·상품은 예시이고 AR 평가는 v2 숫자 집계다. 실제 DB나 로그인에 접속하지 않는다.
 
 실제 API 사용 시 `.env.example`을 `.env`로 복사하고 Supabase 공개 URL·publishable 키와 API origin을 입력한다. 회원은 약관 동의 후 운영자가 역할을 지정해야 한다. secret/service_role·토스 키·DB 주소·LLM 키는 프런트엔드에 넣지 않는다. API는 `ADMIN_ENABLED=true`와 DB 스키마가 필요하다. 공용 적용 전 [검토안](../docs/design/admin-web-erd.md)을 확인한다.
 
