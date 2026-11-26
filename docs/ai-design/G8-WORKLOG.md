@@ -216,3 +216,102 @@ trace 145개와 신규 53개를 다시 검사해 검사 대상 민감정보 및 
 게시 전 앱 npm run check -- -- --runInBand --silent는 타입·린트·105개 suite/1,320건 통과(94.012초)했다. 챗봇 uv run --frozen ruff check . 및 uv run --frozen lint-imports는 통과(3 KEPT), uv run --frozen pytest -q -p no:cacheprovider --basetemp <fresh-temp>는 1,429건 통과·99건 건너뜀(41.49초)이었다. UV_PROJECT_ENVIRONMENT로 기존 잠금 버전의 G7 검토 venv를 사용했다. 이번 게시 검사에는 재실행이 필요하지 않았다. 완료 확인 시각은 위 제목과 같고 명령별 시작·종료 시각은 별도 보존하지 않았다.
 
 신규 11개를 포함한 trace 156개에서 검사 대상 민감정보와 실제 환경 자격증명 값이 없음을 다시 확인했다. trace 원본·기존 prefix와 위 SHA256을 유지한다. 이번 게시 검사에서 실제 모델·API·PG를 추가 호출하지 않았다. 현재 단계는 ⑤ N01이며 실제 양성 연결의 V4 환경 차단과 남은 사용자 경험은 앞 절의 판정을 유지한다. PR은 생성하지 않는다.
+
+## 4173f36 후속 구현·실제 검증 — 2026-11-26 05:21 KST
+
+전체: ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. 현재는 **⑤-1 N01 실제 연결·품질 검증, ⑤-2 N02 첫 연결**이다. 시작 시 원격과 HEAD는 4173f36658fb96086388971ceb927a651deb147b, develop은 c70240ae266930f357fb522e839b6dc544504836이었다. branch는 feat/compound-consultation이며 기존 작업 트리는 깨끗했다. 이번 변경은 미커밋이고 commit·push·PR·배포하지 않았다.
+
+### 변경과 담당
+
+메인은 ChatService/compound graph/공통 결과 검증·표시와 관련 테스트, 문서·증빙을 수정했다. 실행 동사만으로 정상 상담을 차단하지 않고 모델의 scope로 설명·검색 조정과 실제 상태 변경·혼합을 구분한다. 의미 판단 결과를 기존 경로로 돌릴 때 버리지 않고 안전한 복합 요청 안내를 사용한다. 설명 전용 목표 변경은 기존 후보 무효화를 유지한다. 설명 전용 계획에 잘못 붙은 상품 목표·조회 플래그는 실행·저장하지 않으며 조건 변경은 refine을 요구한다.
+
+실제 G5의 의역 주장 때문에 유효한 원문 인용이 탈락하는 문제를 수정했다. 최종 주장 인용 연결·원문 구절·주장과 구절의 성분명 확인은 유지하고, 의역 주장에 동일한 원문 문장이 있어야 한다는 중복 제약만 제거했다. 실제 포함 조건을 답변에서 '제외 여부'로 표시하던 결함도 수정했다.
+
+개발 하위 에이전트 v4_recovery는 성공 이력·덤프 추적과 격리 복원을 담당했고, 메인이 실제 HTTP 후보·옵션을 확인했다. n02_contract_audit는 신규 schemas/owned_look_consultation.py, services/owned_look_consultation_service.py, tests/test_g8_owned_look.py 및 consultation_memory.py의 보유 주제 선택을 담당했다. 메인이 내용을 검토하고 ChatService에 통합해 정상 호출 경로를 추가 검증했다. 제품 Agent와 개발 하위 에이전트는 별개다.
+
+N02는 O1 보유품→S1 검수 룩→N1 부위 판정→P1 필요한 상품→R1 정확한 호수 재검토의 실제 입력 연결을 구현했다. 동일 상품·호수로 충족한 부위는 추가 조회하지 않고, 명시적 미보유만 조회한다. 등록 목록 부재는 미확인이다. 조건 미지원·근거 부족·일부 실패를 보존한다. 가격·성분 조건, 일반 대체품 적합성, 지속적인 후속 협력은 아직 완료하지 않았다.
+
+### 실제 V4 환경 회복
+
+과거 성공 기록과 PR #282 자료를 따라 원본 vishue_db_0033_final_20261123.dump를 찾았다. 로컬 보존 위치는 D:/dev/02_TeamProjects/vishue-dump-inspection이며 크기 759,262,803 bytes, SHA256 fe83525204a1b1becd947624a9ceb409954bdb21eddbcb9655ddaf6d24b6bc05다. 원본·기존 개발 DB는 변경하지 않았다.
+
+PostgreSQL 17.12의 별도 /tmp/vishue-g8-v4-restore-20261126, localhost:56949/vishue_g8_v4_validation에 복원했다. 계정·주문·행동 등 13개 TABLE DATA를 제외하고 members/orders 0행을 확인했다. 읽기 역할은 SELECT/CONNECT/USAGE 및 default_transaction_read_only=on이다. PG17의 미지원 exclude-table-data 옵션은 TOC 목록으로 바꿨다. HNSW 생성 중 대기 제한 이후 완료를 확인하고 이미 존재하는 인덱스를 제외한 post-data 재개가 exit 0으로 끝났다.
+
+스냅샷 버전은 local-20261104-conservative-v1-20261123T111457291156Z, 옵션 1,002개·매핑 774개다. 현재 SkincareSnapshot 검증 통과, 원본 JSON과 복원 JSON 일치, 정규화 SHA256 1d45244f6cdf95822142eeae403d5d2587653855fbd6dfbb9aecc7e7f3597dbb를 확인했다. 실제 상품 9,035·호수 11,231·수집 옵션 21,951·옵션 성분 715,482행이다. 이는 11월 25일 G8 스냅샷을 복원했다는 뜻이 아니다.
+
+API는 현재 소스를 사용했다. G5 검색 API 19828은 기존 G5 DB 15441에, Catalog/V4 API 19829는 격리 읽기 전용 DB에 연결했다. SKINCARE_REFRESH_ENABLED=false, 기존 pr233-reviewed-mapping.json 검수 매핑을 사용했고 추천 순위·CosIng 정책은 바꾸지 않았다. 사전 실제 조회는 건조함+모공/유분/민감함 각각 10개 후보와 6+4 옵션 배치를 확인했다. 2만 원·향료 제외 조건에서 각각 unknown/excluded=6/4, 5/5, 7/3이었다. 후보 없음이 아니라 후보의 조건 불일치·근거 부족이다.
+
+### 실제 모델·API·PG 결과
+
+원본 증빙은 reports/g8/n01/trace.jsonl의 recovered_v4_preflight, recovered_live_*, base_method_* 및 scope_live_model_release다. 모델은 계획·추출 gpt-6-luna, G5 gpt-6.1-terra; 실제 G5 promptVersion terra-b-claim-scope-v6, contextVersion same-source-b-1050-citations-v2다. 문서별 sourceVersion과 정확한 옵션 식별자·조회 본문은 trace에 보존했다. G5 검색 API의 임베딩은 text-embedding-3-large 실제 호출이지만 별도 API 프로세스여서 아래 호출 수에는 포함하지 않았고 trace에도 명시했다.
+
+| 실행 | 실제 결과 | 모델 HTTP 요청 / 지연 |
+|---|---|---|
+| 최종 실행 범위 분류 8사례 | 사용 순서 knowledge, 조건+설명 refine, 목표 변경 refine, 혼합 4건 차단, 기억 혼합 기존 경계 모두 기대 일치 | 7회, 호출 턴 1.23~2.30초; 기억 혼합 0회 |
+| 성분 하위 사례 1턴 | 히알루론산·판테놀 includes 채택, 실제 Catalog 요청 전달, 10옵션 중 제외4·미확인6 | 5회 / 33.44초 |
+| 예산 15,000원 변경 | 위 지식 조건 유지, 사용자 향료 제외 유지, 제외7·미확인3 | 1회 / 5.87초 |
+| 지식 조건 전체 해제 | 지식 조건 제거·cleared=true, 사용자 향료 제외만 유지 | 1회 / 6.82초 |
+| 원래 N01 첫 질문 | 원인을 단정하지 않고 당김/각질·유분/뭉침·기초/베이스 확인 | 1회 / 3.24초 |
+| 원래 N01 당김/각질 답변 | 실제 G5 partial, 목표 dryness로 조회, 제외6·미확인4; 현재 로션·쿠션과 들뜸의 인과·특정 상품 적합성은 미확인 | 5회 / 38.08초 |
+| 원래 N01 예산 변경 | PG 복원 후 동일 목표 유지, 제외9·미확인1 | 1회 / 4.82초 |
+| 이미 유분 상황을 제공한 N01 | 중복 질문 없이 실제 원인·관리 설명과 조회, 적합5·제외5; 지식 성분 조건은 없음 | 5회 / 33.82초 |
+| 베이스 제형·사용 순서 최종 | 임의 피부 목표 없이 실제 G5 실행, insufficient_evidence·상품 조건 미지원 안내, 상품 조회 없음 | 4회 / 26.92초 |
+
+위 성공 턴은 실제 격리 PG 56947/vishue_chat_test에 저장하고 같은 요청 재전송에서 추가 HTTP 0회·같은 답변을 확인했다. 인증은 합성 verifier, Redis는 double이며 실제 사용자 인증·실기기 E2E 성공으로 확대하지 않는다. 상품 카드는 compound.options 응답 데이터 기준이며 실제 앱 렌더링은 이번에 확인하지 않았다.
+
+성분 하위 사례는 실제 지식 조건→옵션 입력→판정→후속 저장 연결을 확인했다. 그러나 이 조건에서 적합 상품은 0개이므로 성분 포함·향료 제외를 모두 충족하는 실제 추천 카드 성공을 주장하지 않는다. 유분 사례의 5개 적합 옵션을 그 증거로 대체하지 않는다. 원래 N01의 건조함 원인·베이스 제형 해결 설명은 여전히 근거와 품질 보완이 필요하다.
+
+### 실패와 검증 범위
+
+초기 실제 실행에서 예산 변경 502가 한 번 발생했다. 모델 HTTP는 200이었지만 당시 함수 인자를 기록하지 않아 원인 확정 불가다. 이전 live PG의 지식 응답을 재사용한 진단에서는 계획·추출 모델만 2회 실제 호출했다(recovered_live_diagnostic, G5 replay). 예산 계획은 재현되지 않았고, 원문/의역 중복 제약을 확인했다. 이후 새 실제 G5 3턴은 모두 성공했다. 초기 유분·베이스의 불필요한 반복 질문도 기록을 유지한다.
+
+베이스 재검증은 모델이 knowledge와 임의 goal/빈 goals를 함께 반환하거나 최상위 조회 플래그를 추가해 502가 났다. explanation-only 어댑터가 상품 상태를 사용하지 않게 보완한 뒤 최종 200이었다. 이 성공은 충분한 상담 품질을 뜻하지 않는다. G5는 근거 부족을 반환했다.
+
+집중 계약 66건 통과 후 실제 PG 포함 최종 계약 87 통과·4 건너뜀(16.56초)을 확인했다. 해당 명령은 Windows SelectorEventLoopPolicy를 설정한 pytest.main으로 test_g8_compound_consultation.py, test_g8_owned_look.py, test_g7_conversation_api_pg.py를 실행했다. scope_n02_final_contract_pg에 시작·종료 시각, 파일 해시, 각 테스트 결과와 N02 전문 작업 입력/결과를 기록했다. 이후 표시 결함의 테스트만 추가하여 1 통과·45 선택 제외(0.15초), 구현 소스는 동일하다.
+
+전체 백엔드 pytest -q -p no:cacheprovider --basetemp <fresh-temp>는 1,464 통과·99 건너뜀(38.29초)이었다. 이 실행 뒤 explanation-only 플래그 무시를 추가했으므로 최종 전체 재실행으로 주장하지 않고 위 집중·PG 검증을 최종 근거로 쓴다. 최종 ruff check .와 lint-imports 3 KEPT, 앱 npm run typecheck와 npm run lint는 통과했다. 앱 전체 Jest, N02 실제 Catalog/PG/모델, 실기기, 사람 평가는 NOT_RUN이다.
+
+환경 실패도 구분한다. 샌드박스 uv 캐시 접근 실패와 중단한 pytest는 통과로 세지 않는다. 기존 잠금 venv를 승인된 실행 환경에서 사용했다. 최초 PG 집중 실행은 Windows 기본 이벤트 루프로 3건이 persistence_unavailable(503)로 실패했고 SelectorEventLoopPolicy 재실행으로 해결했다. 중간 Ruff의 프롬프트 줄 길이 1건도 수정 후 최종 통과했다. 초기 scope_live_model은 실행 중 소스 수정으로 매 턴 파일 해시가 실행 모듈과 같다고 보장되지 않으므로 최종 근거에서 제외하며, 소스 고정·전후 해시 확인한 scope_live_model_release를 사용한다.
+
+### 남은 범위와 다음 작업
+
+- 데이터 환경 차단: V4 스냅샷 부재는 이번 격리 복원으로 해소. 원본·운영 데이터 변경 없음.
+- 데이터·근거 한계: 향료 제외 및 지식 포함 조건을 모두 확인한 실제 추천 상품 확보, 건조함/베이스 상담 근거 보완.
+- 구현: N02 일반 대체 적합성·검색 조건·후속 턴, 공통 부모의 전문 작업 제안 기반 재계획, 취소·미완료 실행 재개. 고정 작업 연결을 G8 전체 협력 완성으로 보지 않는다.
+- 미실행·검토: N02 실제 연결·앱, N01 최종 앱 표시와 사람 검토, E01/B01 전체 통합, ⑥ 전체 G8 평가.
+- 다음: N02의 현재 동일 상품·호수 계약을 기반으로 실제 G7 룩 선택·동의 기억 저장/복원부터 확인하고, 근거가 있는 대체 후보와 후속 조건 변경으로 확장한다. N01 부족한 근거와 상품 조건은 별도 추적한다.
+- 사용자 판단 필요: 현재 없음. commit/push는 별도 후속 지시를 기다린다.
+
+검증 후 이번 API 19828/19829와 격리 PG 56947/56949를 종료했다. 복원 데이터와 로그는 보존하고 기존 G5 DB는 유지했다. 기존 trace 156개 바이트 prefix를 보존했다. 최종 기록·민감정보 검사 식별값은 아래 추가 기록을 따른다.
+
+최종 trace는 209개(신규 53개)다. 기존 156개 바이트 prefix 보존, API 키·JWT·비밀키·이메일·개인 경로·자격증명 URL 패턴과 실제 환경 비밀 값 대조에서 노출을 발견하지 않았다. 실제 G5 quote/claim은 해시·길이로 보존하고 실행 답변은 검토용으로 기록했다. trace SHA256: 589e25643a30961d5668eda68a2d969e0b157d6ce73d14c63b5cf1ec78812120. scope_n02_final_source에 최종 Python 9개 파일 해시(신규 3개 포함)와 tracked diff 해시를 기록했다. 마지막 포트 확인에서 이번 네 포트의 listener가 없음을 확인했다. git diff --check 통과.
+
+## 신규 증빙 형식 전환 — 2026-11-26
+
+전체: ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. 현재 N01/N02 구현·검증 상태는 유지하고, 보안 PR #296 이후 증빙 정리 2번을 수행했다.
+
+보안 PR #296은 2026-11-26 11:48:51 KST에 699d9b067e7ef1ca327617e12adbdd55fafd3ffd로 develop에 병합되었다. 원격 gitleaks/app/ci-ok 성공을 확인했다. 이번 작업 HEAD는 feat/compound-consultation의 4173f36658fb96086388971ceb927a651deb147b 그대로이며 develop 병합·commit·push는 수행하지 않았다.
+
+변경 파일은 reports/g8/n01/trace.jsonl, 신규 trace-format-migration.json, 이 WORKLOG다. Git HEAD에 게시된 156개 기록의 바이트 prefix를 그대로 유지하고 미커밋 53개만 sourceManifestVersion=2 형식으로 전환했다. 전체는 209개다. 파일 경로→해시 map을 path/sha256의 독립 필드 배열로 바꿨고, 작업 결과·입력·모델 모드·호출 수·성공/실패 판정·소스 해시 값은 유지했다. 53개를 구형 의미 구조로 역변환하여 원본 JSON과 모두 동일함을 확인했다.
+
+원본 209개 전체는 Git 밖의 %USERPROFILE%/.codex/evidence-archives/vishue-g8/20261126/trace.original.jsonl에 바이트 그대로 보존했다. 임시 실행 복사본과 별개인 지속 보관 경로이며 증빙 보관 판단 전에는 삭제하지 않는다. 원본을 프로젝트에 다시 추가하거나 인코딩해서 보안 검사를 우회하지 않는다. trace-format-migration.json에는 백업 참조, 도구 commit·해시, 원본/전환본/게시 prefix 해시와 각 전환 행의 전후 해시를 기록했다.
+
+도구는 병합 commit 699d9b의 scripts/g8_evidence.py를 Git에서 읽어 사용했으며 작업 branch에 별도로 복사하지 않았다. 실제 Gitleaks 8.30.1과 빈 ignore로 신규 53개를 검사해 전환 전 generic-api-key 2건(exit 1), 전환 후 0건(exit 0)을 확인했다. 검사 원문 값은 출력하지 않았고 redact 결과만 로컬 임시 검사 폴더에 보존했다. 구현·테스트 Python 9개 파일은 기존 실행 증빙의 해시와 모두 일치했다.
+
+과거 이력 전체의 scanner 통과는 이번 판정에 포함하지 않는다. 게시된 trace와 이력은 유지했고, G8 branch에는 develop의 .gitleaksignore가 아직 들어오지 않았다. 다음은 현재 G8 변경 전체의 커밋 전 검증·커밋 후 develop 통합과 재검사다. 이번 형식 전환은 새로운 모델/API 실행이나 G8 기능 완료를 뜻하지 않는다.
+
+전환 전 trace SHA256: 589e25643a30961d5668eda68a2d969e0b157d6ce73d14c63b5cf1ec78812120
+
+전환 후 trace SHA256: 4c55043103227ca317a81c3e6c1cfbda5c59e32a7653b84456ac1c1a3869075e
+
+최종 검증: 원본 지속 보관본·게시 prefix·53개 역변환 일치를 다시 확인했다. npm run typecheck와 npm run lint 통과. 기능 소스가 바뀌지 않아 모의/실제 상담 평가를 다시 실행하지 않았으며 기존 결과를 유지한다. 이번 신규 기록·변환 명세·WORKLOG의 별도 Gitleaks 검사와 git diff --check 결과는 최종 보고에 따른다.
+
+## G8 변경 보존 및 develop 통합 착수 — 2026-11-26 13:10 KST
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. 현재 ⑤-1 N01의 실제 연결·품질 보완 및 ⑤-2 N02 첫 연결 상태를 유지한다. 이번에는 기존 구현을 커밋으로 보존하고 최신 develop을 통합한다. 새로운 상담 기능 완료나 실제 API/LLM/PG 재실행으로 세지 않는다.
+
+기준 HEAD/원격 G8은 4173f36658fb96086388971ceb927a651deb147b, fetch로 확인한 develop은 f5adb4e60202bdc4c98bdefe36669f96f90e9b55다. 구현·테스트 9개와 문서·증빙 4개를 분리 보존한다. 검증 소스는 trace의 scope_n02_final_source에 기록된 9개 파일과 동일하며 trace 형식 전환은 trace-format-migration.json으로 식별한다.
+
+커밋 전 검사(2026-11-26 13시 KST 실행, 13:10 이전 종료): npm run check -- -- --runInBand --silent는 타입·린트·105 suites/1,320 tests 통과(114.875초). chatbot에서 기존 G7 잠금 venv를 UV_PROJECT_ENVIRONMENT로 지정한 uv run --frozen ruff check . 및 uv run --frozen lint-imports는 통과(3 KEPT). 최초 uv run --frozen pytest -q -p no:cacheprovider는 1,448 통과·99 건너뜀·17 setup 오류(55.87초): 공용 pytest 임시 폴더의 WinError 5이며 통과로 세지 않는다. --basetemp에 새 GUID 임시 경로를 지정한 전체 재실행은 1,465 통과·99 건너뜀(48.68초). PG 등 환경 필요 99건은 이번 실행에서 검증하지 않았다. 테스트별 정확한 시작 시각은 별도 보존하지 않았다.
+
+Gitleaks 8.30.1 dir 검사: 변경 13개 파일 중 trace는 신규 53개만 복사하고 기존 설정·빈 ignore·redact로 검사하여 exit 0. 게시 prefix 156개는 유지한다. git diff --check 통과. 최신 develop에는 PR #296의 정확한 fingerprint 예외 및 증빙 도구 외에 PR #297의 HEAD 이력 검사 범위와 룩 상담 데이터 API 등 팀 변경도 있다. 이를 임의 재구현하지 않고 통합 후 검증한다. push·G8 PR 생성·배포는 이번 실행에 포함하지 않는다.
