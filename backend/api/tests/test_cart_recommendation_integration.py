@@ -46,8 +46,6 @@ def test_cart_recommendation_attribution_and_ab_report(monkeypatch, tmp_path, ad
     settings = get_settings()
     for key, value in {
         "admin_enabled": admin_enabled,
-        "ar_activity_enrolled_members": set(members.values()),
-        "ar_activity_consented_members": set(members.values()),
         "ar_palette_mode": "collect",
         "ar_palette_data_dir": tmp_path,
         "cart_recommendation_experiment": experiment,
@@ -82,7 +80,12 @@ def test_cart_recommendation_attribution_and_ab_report(monkeypatch, tmp_path, ad
         products = [*lip, *blush, *unavailable_blush]
         async with session() as db:
             db.add_all(
-                MemberRow(id=owner, terms_version=TERMS_VERSION, terms_agreed_at=now)
+                MemberRow(
+                    id=owner,
+                    terms_version=TERMS_VERSION,
+                    terms_agreed_at=now,
+                    skin_subscription_until=now + timedelta(days=30),
+                )
                 for owner in members.values()
             )
             for product in products:

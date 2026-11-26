@@ -33,9 +33,13 @@ export function useSaveTermsConsent() {
   const queryClient = useQueryClient();
   return useCallback(
     async (userId: string) => {
-      const terms = await agreeToTerms();
+      const terms = await agreeToTerms(userId);
       await queryClient.cancelQueries({ queryKey: meQueryKey(userId) });
-      queryClient.setQueryData<MeResponse>(meQueryKey(userId), (old) => (old ? { ...old, terms } : old));
+      if (queryClient.getQueryData(meQueryKey(userId))) {
+        queryClient.setQueryData<MeResponse>(meQueryKey(userId), old => old && { ...old, terms });
+      } else {
+        await queryClient.invalidateQueries({ queryKey: meQueryKey(userId) });
+      }
     },
     [queryClient]
   );

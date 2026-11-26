@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
 import { EmptyState, LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
+import { useRewards } from '@/hooks/useRewards';
 import { useCartLines } from '@/hooks/useCartLines';
 import { useAuth } from '@/lib/auth';
-import { apiGet, apiPost } from '@/lib/api';
+import { API_BASE_URL, apiGet, apiPost } from '@/lib/api';
 import { arCartEventIds } from '@/lib/arHistory';
 import { cartEventIds, waitForCartEvents } from '@/lib/cartAttribution';
 import { clearCartArRanks } from '@/lib/cartRecommendations';
@@ -19,7 +20,7 @@ import { loginHref } from '@/lib/routes';
 import { useCartStore, type PendingPayment } from '@/store/cartStore';
 import type { CreateOrderResponse, OrderStatusResponse } from '@/types';
 
-type PaymentNotice = 'paid' | 'failed' | 'closed' | 'pending' | 'checkFailed' | 'startFailed';
+type PaymentNotice = 'paid' | 'failed' | 'closed' | 'pending' | 'checkFailed' | 'startFailed' | 'canceled';
 
 export default function CheckoutScreen() {
   const router = useRouter();
@@ -29,6 +30,13 @@ export default function CheckoutScreen() {
   const { t } = useI18n();
   const { user, ready } = useAuth();
   const { lines, total, query } = useCartLines();
+  const wallet = useRewards(user?.id);
+  const [choice, setChoice] = useState<{ owner: string; id: string } | null>(null);
+  const available = wallet.data?.coupons.filter(c => c.status === 'available') ?? [];
+  const coupon = total >= 10000 ? available[available.length - 1] : undefined;
+  const selected = !!coupon && choice?.owner === user?.id && choice?.id === coupon.id;
+  const discount = selected ? Math.min(2000, Math.floor(total / 10)) : 0;
+  const dismissPayment = useCartStore(s => s.dismissPayment);
   const pending = useCartStore((s) => s.pendingPayment);
   const setPending = useCartStore((s) => s.setPendingPayment);
   const completePayment = useCartStore((s) => s.completePayment);
@@ -43,14 +51,24 @@ export default function CheckoutScreen() {
 
   if (!ready || !user) return <LoadingState />;
 
-  const verifyPayment = async (payment: PendingPayment, unresolved: PaymentNotice = 'pending') => {
+  const verifyPayment = async (payment: PendingPayment, unresolved: PaymentNotice = 'pending', close = false) => {
     try {
-      const result = await apiGet<OrderStatusResponse>(`/api/payments/orders/${encodeURIComponent(payment.orderId)}`);
+      const path = `/api/payments/orders/${encodeURIComponent(payment.orderId)}`;
+      const result = payment.couponId && close
+        ? await apiPost<OrderStatusResponse>(path + '/close', {}, { expectedUserId: payment.userId })
+        : await apiGet<OrderStatusResponse>(path, { expectedUserId: payment.userId });
+      if (result.orderId !== payment.orderId) throw new Error('Unexpected order');
+      if (payment.couponId) void wallet.refetch();
       if (result.orderId === payment.orderId && result.status === 'paid') {
         completePayment(payment.orderId);
         clearCartArRanks(payment.userId);
         setCheckoutSession(null);
         setNotice('paid');
+      } else if (result.status === 'canceled') {
+        dismissPayment(payment.orderId);
+        setChoice(null);
+        setCheckoutSession(null);
+        setNotice('canceled');
       } else {
         setNotice(unresolved);
       }
@@ -65,9 +83,9 @@ export default function CheckoutScreen() {
       const unresolved: PaymentNotice = result.type === 'success' && result.url.includes('status=failed')
         ? 'failed'
         : result.type === 'cancel' || result.type === 'dismiss' ? 'closed' : 'pending';
-      await verifyPayment(payment, unresolved);
+      await verifyPayment(payment, unresolved, true);
     } catch {
-      await verifyPayment(payment, 'pending');
+      await verifyPayment(payment, 'pending', true);
     }
   };
 
@@ -96,13 +114,17 @@ export default function CheckoutScreen() {
       if (cartVisitId) pendingWrites.push(cartVisitId);
       await waitForCartEvents(pendingWrites);
       const order = await apiPost<CreateOrderResponse>('/api/payments/orders', {
-        lines: orderLines, ...(cartVisitId ? { cartVisitId } : {}),
+        lines: orderLines, ...(selected && coupon ? { couponId: coupon.id } : {}), ...(cartVisitId ? { cartVisitId } : {}),
       }, { expectedUserId: user.id });
-      const payment: PendingPayment = { orderId: order.orderId, userId: user.id, items: lines.map((line) => ({ ...line.item })) };
+      const payment: PendingPayment = { orderId: order.orderId, userId: user.id, ...(selected && coupon ? { couponId: coupon.id } : {}), items: lines.map((line) => ({ ...line.item })) };
       setPending(payment);
-      setCheckoutSession({ orderId: order.orderId, url: order.checkoutUrl });
-      await openPayment(payment, order.checkoutUrl);
+      // A local test order lives in the same API that served this phone's cart.
+      const checkoutUrl = __DEV__ && order.localCheckoutPath?.startsWith(`/pay/${order.orderId}?`) && API_BASE_URL
+        ? API_BASE_URL + order.localCheckoutPath : order.checkoutUrl;
+      setCheckoutSession({ orderId: order.orderId, url: checkoutUrl });
+      await openPayment(payment, checkoutUrl);
     } catch {
+      if (selected) void wallet.refetch();
       setNotice('startFailed');
     } finally {
       busy.current = false;
@@ -114,7 +136,7 @@ export default function CheckoutScreen() {
     if (!pending || pending.userId !== user.id || busy.current) return;
     busy.current = true;
     setPaymentBusy(true);
-    await verifyPayment(pending);
+    await verifyPayment(pending, 'pending', !!pending.couponId);
     busy.current = false;
     setPaymentBusy(false);
   };
@@ -136,8 +158,8 @@ export default function CheckoutScreen() {
       <View style={styles.content}>
         <Notice tone="warning" body={t(pending.userId !== user.id ? 'checkout.otherUser' : `checkout.${notice && notice !== 'startFailed' ? notice : 'pending'}`)} />
         {pending.userId === user.id ? <Text style={styles.priceNote}>{t('checkout.orderId', { id: pending.orderId })}</Text> : null}
-        {pending.userId === user.id ? <Button label={t('checkout.checkStatus')} loading={paymentBusy} onPress={checkPending} /> : null}
-        {pending.userId === user.id && checkoutSession?.orderId === pending.orderId ? <Button label={t('checkout.resume')} variant="secondary" disabled={paymentBusy} onPress={resumePayment} /> : null}
+        {pending.userId === user.id ? <Button label={t(pending.couponId ? 'checkout.closeOrder' : 'checkout.checkStatus')} loading={paymentBusy} onPress={checkPending} /> : null}
+        {pending.userId === user.id && !pending.couponId && checkoutSession?.orderId === pending.orderId ? <Button label={t('checkout.resume')} variant="secondary" disabled={paymentBusy} onPress={resumePayment} /> : null}
       </View>
     );
   }
@@ -163,8 +185,16 @@ export default function CheckoutScreen() {
             <Text style={styles.totalLabel}>{t('cart.subtotal')}</Text>
             <Text style={styles.totalValue}>{formatKRW(total)}</Text>
           </View>
+          {available.length > 0 && <Button variant="secondary" disabled={!coupon} label={t(selected ? 'checkout.removeCoupon' : 'checkout.useCoupon')}
+            onPress={() => setChoice(!selected && coupon ? { owner: user.id, id: coupon.id } : null)} />}
+          {available.length > 0 && !coupon && <Text style={styles.priceNote}>{t('rewards.conditions')}</Text>}
+          {discount > 0 && <>
+            <View style={styles.summaryRow}><Text style={styles.summaryName}>{t('checkout.discount')}</Text><Text>−{formatKRW(discount)}</Text></View>
+            <View style={styles.summaryRow}><Text style={styles.totalLabel}>{t('checkout.payable')}</Text><Text style={styles.totalValue}>{formatKRW(total - discount)}</Text></View>
+          </>}
           <Text style={styles.priceNote}>{t('cart.priceNote')}</Text>
         </View>
+        {notice === 'canceled' && <Notice body={t('checkout.canceled')} />}
         {notice === 'startFailed' ? <Notice tone="warning" body={t('checkout.startFailed')} /> : null}
       </ScrollView>
       <View style={styles.footer}>

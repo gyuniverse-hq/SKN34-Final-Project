@@ -1,4 +1,4 @@
-from sqlalchemy import select, text, tuple_
+from sqlalchemy import func, select, text, tuple_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,8 +28,14 @@ class ArHistoryRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def member_terms(self, owner: str):
-        return await self.db.scalar(select(MemberRow.terms_version).where(MemberRow.id == owner))
+    async def access(self, owner: str, terms: str) -> tuple[bool, bool]:
+        subscribed = await self.db.scalar(
+            select(func.coalesce(MemberRow.skin_subscription_until > func.now(), False)).where(
+                MemberRow.id == owner,
+                MemberRow.terms_version == terms,
+            )
+        )
+        return subscribed is not None, bool(subscribed)
 
     async def lock_rank(self, request_id):
         await self.db.execute(
@@ -92,6 +98,7 @@ class ArHistoryRepository:
                                 WHEN impression_id IS NULL THEN 1.0 ELSE 0.7 END) AS weight
                 FROM ar_activity_events
                 WHERE member_id = :owner AND makeup_zone = :zone
+                  AND occurred_at >= (SELECT terms_agreed_at FROM members WHERE id = :owner)
                   AND occurred_at >= CAST(:at AS timestamptz) - interval '90 days'
                   AND occurred_at < :at AND received_at <= :at
                 GROUP BY product_id, shade_id, day
@@ -147,6 +154,7 @@ class ArHistoryRepository:
                                 WHEN impression_id IS NULL THEN 1.0 ELSE 0.7 END) AS weight
                 FROM ar_activity_events
                 WHERE member_id = :owner AND makeup_zone = :zone
+                  AND occurred_at >= (SELECT terms_agreed_at FROM members WHERE id = :owner)
                   AND occurred_at BETWEEN statement_timestamp() - interval '90 days'
                                       AND statement_timestamp()
                 GROUP BY product_id, shade_id, day

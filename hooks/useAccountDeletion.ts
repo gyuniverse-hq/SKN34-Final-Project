@@ -4,6 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useEffectEvent, useL
 import { accountDeletionStatus, deleteAccount, hasAccountDeletionFence, isAccountDeletionReceipt } from '@/lib/account';
 import { ApiError } from '@/lib/api';
 import { getCurrentUserId, signOut, useAuth } from '@/lib/auth';
+import { localNicknameKey } from '@/lib/localNickname';
+import { rewardsKey } from '@/hooks/useRewards';
 import { useMe } from '@/lib/queries';
 import { skinProfileKey } from '@/lib/skinProfile';
 import { pendingProfileKey } from '@/lib/skinRegistration';
@@ -24,7 +26,8 @@ const STATUS_POLL_MS = 2_000;
 const markerKey = (owner: string) => `${STORAGE_KEYS.accountDeletion}:${owner}`;
 
 function ownsQuery(key: QueryKey, owner: string) {
-  return ((key[0] === 'me' || key[0] === 'skin-access') && key[1] === owner) ||
+  return key[0] === localNicknameKey(owner) ||
+    ((key[0] === 'me' || key[0] === 'skin-access' || key[0] === rewardsKey(owner)[0]) && key[1] === owner) ||
     (key[0] === 'skincare-recommendations' && key[1] === 'v4' && key[2] === owner);
 }
 
@@ -43,6 +46,8 @@ async function clearAccountData(client: QueryClient, owner: string) {
   await AsyncStorage.multiRemove([
     skinProfileKey(owner),
     pendingProfileKey(owner),
+    localNicknameKey(owner),
+    `${STORAGE_KEYS.rewards}:${owner}`,
     `${STORAGE_KEYS.firstArInvitation}:${owner}`,
     ...chatKeys,
   ]);

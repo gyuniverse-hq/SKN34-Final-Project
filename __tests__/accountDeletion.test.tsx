@@ -152,6 +152,8 @@ afterEach(async () => {
 it('blocks member screens after acceptance and completes only after 204', async () => {
   await AsyncStorage.multiSet([
     [skinProfileKey('A'), 'account'],
+    [`${STORAGE_KEYS.nickname}:A`, 'nickname A'],
+    [`${STORAGE_KEYS.nickname}:B`, 'nickname B'],
     [pendingProfileKey('A'), 'draft'],
     [skinProfileKey('B'), 'other account'],
     [chatRoomDeletionKey('A', roomId), '1'],
@@ -179,6 +181,8 @@ it('blocks member screens after acceptance and completes only after 204', async 
   expect(signOut).not.toHaveBeenCalled();
   expect(await AsyncStorage.getItem(marker('A'))).toBe('1');
   expect(await AsyncStorage.getItem(skinProfileKey('A'))).toBeNull();
+  expect(await AsyncStorage.getItem(`${STORAGE_KEYS.nickname}:A`)).toBeNull();
+  expect(await AsyncStorage.getItem(`${STORAGE_KEYS.nickname}:B`)).toBe('nickname B');
   expect(await AsyncStorage.getItem(pendingProfileKey('A'))).toBeNull();
   expect(await AsyncStorage.getItem(skinProfileKey('B'))).toBe('other account');
   expect(await AsyncStorage.getItem(chatRoomDeletionKey('A', roomId))).toBeNull();

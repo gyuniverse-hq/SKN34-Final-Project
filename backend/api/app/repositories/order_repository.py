@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased, selectinload
@@ -55,11 +55,16 @@ class OrderRepository:
             await self._attach_skincare_checkout_sources(order, skincare_cart_events)
         await self._session.commit()
 
+    async def commit(self) -> None:
+        await self._session.commit()
+
     async def get(self, order_id: str, *, lock: bool = False) -> OrderRow | None:
         query = (
             select(OrderRow).options(selectinload(OrderRow.lines)).where(OrderRow.id == order_id)
         )
-        return await self._session.scalar(query.with_for_update() if lock else query)
+        if lock:
+            query = query.with_for_update().execution_options(populate_existing=True)
+        return await self._session.scalar(query)
 
     async def _attach_cart_recommendation_sources(self, order, visit_id, cart_events, terms):
         visit = CartRecommendationVisitRow
@@ -69,7 +74,9 @@ class OrderRepository:
             .where(
                 visit.id == visit_id,
                 visit.member_id == order.user_id,
+                MemberRow.skin_subscription_until > func.now(),
                 MemberRow.terms_version == terms,
+                visit.created_at >= MemberRow.terms_agreed_at,
             )
             .with_for_update(read=True, key_share=True)
         )
@@ -106,6 +113,7 @@ class OrderRepository:
             .join(MemberRow, MemberRow.id == ArActivityEventRow.member_id)
             .where(
                 MemberRow.terms_version == terms,
+                ArActivityEventRow.occurred_at >= MemberRow.terms_agreed_at,
                 ArActivityEventRow.member_id == order.user_id,
                 ArActivityEventRow.event_id.in_(ids),
                 ArActivityEventRow.event_type == "cart_add",
@@ -261,6 +269,7 @@ class OrderRepository:
                 OrderLineRow.order_id == order.id,
                 UserBehaviorEventRow.member_id == order.user_id,
                 MemberRow.terms_version == terms,
+                UserBehaviorEventRow.occurred_at >= MemberRow.terms_agreed_at,
                 UserBehaviorEventRow.event_type == "cart_add",
                 UserBehaviorEventRow.event_source == "server",
                 UserBehaviorEventRow.surface == AR_CHECKOUT_SURFACE,

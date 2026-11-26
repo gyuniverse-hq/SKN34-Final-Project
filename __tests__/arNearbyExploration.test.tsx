@@ -40,7 +40,7 @@ jest.mock('expo-linear-gradient', () => ({ LinearGradient: 'LinearGradient' }));
 jest.mock('@/components/ar/ArFaceView', () => ({ ArFaceView: 'ArFaceView' }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key, language: 'ko' }) }));
 jest.mock('@/hooks/useArRouteSelection', () => ({ useArRouteSelection: () => ({ product: { data: mockRouteProduct } }) }));
-jest.mock('@/lib/queries', () => ({ useTryOnProducts: () => ({ data: mockProducts }) }));
+jest.mock('@/lib/queries', () => ({ useMe: () => ({ data: undefined, isPending: false }), useTryOnProducts: () => ({ data: mockProducts }) }));
 
 it('connects mode tabs, preview, rebase, restore and free mode without losing the lip shape or finish', async () => {
   useMakeupStore.getState().reset();

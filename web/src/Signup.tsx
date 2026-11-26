@@ -1,3 +1,4 @@
+import { signupAgreement } from "../../constants/signupAgreement";
 import { useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router";
 import {
@@ -16,7 +17,8 @@ import {
 
 const MIN_CODE_LENGTH = 6;
 
-type Consent = { terms: boolean; privacy: boolean; age: boolean };
+const agreement = signupAgreement.ko;
+type Consent = { terms: boolean; privacy: boolean };
 
 export function SignupPage({ signedIn }: { signedIn: boolean }) {
   const navigate = useNavigate();
@@ -26,10 +28,9 @@ export function SignupPage({ signedIn }: { signedIn: boolean }) {
   const [consent, setConsent] = useState<Consent>({
     terms: false,
     privacy: false,
-    age: false,
   });
   const [code, setCode] = useState("");
-  const [step, setStep] = useState<"form" | "verify">("form");
+  const [step, setStep] = useState<"form" | "verify" | "consent">("form");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
@@ -39,7 +40,7 @@ export function SignupPage({ signedIn }: { signedIn: boolean }) {
     .replace(/[\u200B-\u200D\uFEFF]/g, "")
     .trim()
     .toLowerCase();
-  const allConsent = consent.terms && consent.privacy && consent.age;
+  const allConsent = consent.terms && consent.privacy;
 
   if (signedIn && step === "form") return <Navigate to="/" replace />;
 
@@ -47,7 +48,9 @@ export function SignupPage({ signedIn }: { signedIn: boolean }) {
     try {
       await agreeToTerms();
     } catch {
-      /* shop still works; consent can be retried later */
+      setStep("consent");
+      setError("동의 내용을 저장하지 못했어요. 다시 시도해 주세요.");
+      return;
     }
     if (await isStaffSession()) {
       navigate(STAFF_HOME, { replace: true });
@@ -113,6 +116,16 @@ export function SignupPage({ signedIn }: { signedIn: boolean }) {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (step === "consent") {
+    return <main className="auth-screen"><div className="auth-card">
+      <p role="alert">{error}</p>
+      <button type="button" className="primary" disabled={busy} onClick={async () => {
+        setBusy(true);
+        try { await finish(); } finally { setBusy(false); }
+      }}>다시 시도</button>
+    </div></main>;
   }
 
   if (step === "verify") {
@@ -222,30 +235,22 @@ export function SignupPage({ signedIn }: { signedIn: boolean }) {
           <p className="auth-hint">{MIN_PASSWORD_LENGTH}자 이상 입력해 주세요.</p>
           <fieldset className="auth-consent">
             <legend className="sr-only">약관 동의</legend>
-            <label>
-              <input
-                type="checkbox"
-                checked={consent.terms}
-                onChange={(e) => setConsent({ ...consent, terms: e.target.checked })}
-              />
-              [필수] 이용약관
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                checked={consent.privacy}
-                onChange={(e) => setConsent({ ...consent, privacy: e.target.checked })}
-              />
-              [필수] 개인정보 수집·이용
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                checked={consent.age}
-                onChange={(e) => setConsent({ ...consent, age: e.target.checked })}
-              />
-              [필수] 만 14세 이상입니다
-            </label>
+            {(["terms", "privacy"] as const).map(key => (
+              <div key={key}>
+                <label>
+                  <input type="checkbox" checked={consent[key]}
+                    onChange={e => setConsent({ ...consent, [key]: e.target.checked })} />
+                  {agreement[key === "terms" ? "consent.terms" : "consent.privacy"]}
+                </label>
+                <details>
+                  <summary>{agreement[key === "terms" ? "consent.viewTerms" : "consent.viewData"]}</summary>
+                  <p style={{ whiteSpace: "pre-line" }}>
+                    {agreement[key === "terms" ? "consent.termsText" : "consent.dataText"]}
+                  </p>
+                </details>
+              </div>
+            ))}
+            <p className="auth-hint">{agreement["consent.cameraNotice"]}</p>
           </fieldset>
           {error && (
             <p className="form-error" role="alert">

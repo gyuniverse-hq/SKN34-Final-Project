@@ -49,7 +49,6 @@ async def export_dataset(output, *, as_of, window, grace):
                 as_of=as_of,
                 window=window,
                 grace=grace,
-                members=settings.ar_activity_consented_members,
                 terms=TERMS_VERSION,
             ):
                 request_id = str(row["request_id"])
@@ -567,7 +566,6 @@ async def experiment_report(
     min_lift=None,
     purchase_window=None,
 ):
-    settings = get_settings()
     try:
         async with session_scope() as session:
             rows = await ArPaletteDatasetRepository(session).experiment_sessions(
@@ -578,7 +576,6 @@ async def experiment_report(
                 window=window,
                 grace=grace,
                 purchase_window=purchase_window,
-                members=settings.ar_activity_consented_members,
                 terms=TERMS_VERSION,
             )
     finally:

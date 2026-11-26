@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import delete, func, or_, select, update
+from sqlalchemy import case, delete, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,7 +27,7 @@ class MemberRepository:
         self._session = session
         self._guard_deletion = guard_deletion
 
-    async def _require_available(self, member_id: str, *, write: bool = False) -> None:
+    async def require_available(self, member_id: str, *, write: bool = False) -> None:
         if not self._guard_deletion:
             return
         jobs = AccountDeletionRepository(self._session)
@@ -45,17 +45,26 @@ class MemberRepository:
             raise ApiError(403, "Account is unavailable", "account_unavailable")
 
     async def get(self, member_id: str) -> MemberRecord | None:
-        await self._require_available(member_id)
+        await self.require_available(member_id)
         row = await self._session.scalar(select(MemberRow).where(MemberRow.id == member_id))
         return _record(row) if row else None
 
     async def save_terms(self, member_id: str, version: str, agreed_at: datetime) -> MemberRecord:
-        await self._require_available(member_id, write=True)
+        await self.require_available(member_id, write=True)
         values = {"terms_version": version, "terms_agreed_at": agreed_at}
         stmt = (
             insert(MemberRow)
             .values(id=member_id, **values)
-            .on_conflict_do_update(index_elements=[MemberRow.id], set_=values)
+            .on_conflict_do_update(
+                index_elements=[MemberRow.id],
+                set_={
+                    **values,
+                    "terms_agreed_at": case(
+                        (MemberRow.terms_version == version, MemberRow.terms_agreed_at),
+                        else_=agreed_at,
+                    ),
+                },
+            )
             .returning(MemberRow)
             .execution_options(populate_existing=True)
         )
@@ -64,7 +73,7 @@ class MemberRepository:
         return _record(row)
 
     async def claim_first_ar_visit(self, member_id: str) -> bool:
-        await self._require_available(member_id, write=True)
+        await self.require_available(member_id, write=True)
         stmt = (
             update(MemberRow)
             .where(MemberRow.id == member_id, MemberRow.first_ar_seen_at.is_(None))
@@ -76,7 +85,7 @@ class MemberRepository:
         return bool(eligible)
 
     async def complete_analysis(self, member_id: str, run_id: str) -> MemberRecord | None:
-        await self._require_available(member_id, write=True)
+        await self.require_available(member_id, write=True)
         stmt = (
             update(MemberRow)
             .where(
@@ -97,7 +106,7 @@ class MemberRepository:
         return record
 
     async def set_skin_subscription(self, member_id: str, until: datetime) -> MemberRecord | None:
-        await self._require_available(member_id, write=True)
+        await self.require_available(member_id, write=True)
         stmt = (
             update(MemberRow)
             .where(MemberRow.id == member_id)
