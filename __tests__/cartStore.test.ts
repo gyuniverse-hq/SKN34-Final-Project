@@ -70,4 +70,18 @@ describe('cartStore', () => {
     store.reset();
     expect(useCartStore.getState().pendingPayment).toBeNull();
   });
+
+  it('clears a pending payment without changing cart items', () => {
+    const store = useCartStore.getState();
+    store.add({ productId: 'a' });
+    store.setPendingPayment({
+      orderId: 'order-3',
+      userId: 'user-1',
+      items: [...useCartStore.getState().items],
+      checkoutUrl: 'https://example.com/pay',
+    });
+    store.clearPendingPayment();
+    expect(useCartStore.getState().pendingPayment).toBeNull();
+    expect(useCartStore.getState().items).toHaveLength(1);
+  });
 });
