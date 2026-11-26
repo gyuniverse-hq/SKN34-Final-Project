@@ -85,7 +85,7 @@ def _make_service(root: Path):
     vision = AsyncMock()
     vision.score_naturalness = AsyncMock(
         return_value={
-            "criteriaVersion": "naturalness-techlang-v1.0",
+            "criteriaVersion": "naturalness-techlang-v1.1",
             "scores": {"delta_e": 4, "ssim": 4, "mae": 4, "miou": 3, "lpips": 4},
             "mean": 3.8,
             "briefReason": "ok",

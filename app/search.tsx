@@ -2,7 +2,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ProductCard } from '@/components/shop/ProductCard';
+import { ProductCard } from '@/components/ui/ProductCard';
 import { SearchBar } from '@/components/shop/SearchBar';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';

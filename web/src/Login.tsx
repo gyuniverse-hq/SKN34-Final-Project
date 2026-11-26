@@ -9,7 +9,13 @@ import {
   STAFF_HOME,
 } from "./auth";
 
-export function LoginPage({ signedIn }: { signedIn: boolean }) {
+export function LoginPage({
+  signedIn,
+  isStaff = false,
+}: {
+  signedIn: boolean;
+  isStaff?: boolean;
+}) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,7 +24,9 @@ export function LoginPage({ signedIn }: { signedIn: boolean }) {
   const [error, setError] = useState("");
   const configured = isAuthConfigured();
 
-  if (signedIn) return <Navigate to="/" replace />;
+  // Parent sets signedIn only after role is known.
+  if (signedIn)
+    return <Navigate to={isStaff ? STAFF_HOME : "/"} replace />;
 
   async function afterAuth() {
     if (await isStaffSession()) {

@@ -16,9 +16,9 @@ import { canTryOn, resolveShade } from '@/lib/catalog';
 import { formatKRW } from '@/lib/format';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useLook, useTutorials } from '@/lib/queries';
-import { arHref, chatHref, parseId, productHref } from '@/lib/routes';
+import { arHref, lookPreviewHref, chatHref, parseId, productHref } from '@/lib/routes';
 import { useCartStore } from '@/store/cartStore';
-import { useMakeupStore } from '@/store/makeupStore';
+import { useLookPreviewStore } from '@/store/lookPreviewStore';
 
 export default function LookDetailScreen() {
   const params = useLocalSearchParams<{ id: string }>();
@@ -27,7 +27,6 @@ export default function LookDetailScreen() {
   const { t } = useI18n();
   const query = useLook(id);
   const tutorials = useTutorials(query.data?.look.tutorialQuery, 4);
-  const applyLook = useMakeupStore((s) => s.applyLook);
   const add = useCartStore((s) => s.add);
   const addMany = useCartStore((s) => s.addMany);
   const [added, setAdded] = useState(false);
@@ -141,8 +140,8 @@ export default function LookDetailScreen() {
           icon="scan-outline"
           variant="secondary"
           onPress={() => {
-            applyLook(look, products);
-            router.push(arHref({ compare: true }));
+            useLookPreviewStore.setState({ draft: { look: look, products, video: false } });
+            router.push(lookPreviewHref({ lookId: look.id }));
           }}
         />
         <Button

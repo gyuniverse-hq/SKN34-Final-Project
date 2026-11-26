@@ -6,7 +6,7 @@
 
 화면 확인: `cd admin`, `npm ci`, `npm run dev`. 출력 URL에 `?demo=1`을 붙이면 개발 서버에서만 예시 주문·상품과 v2 실제 숫자 집계를 조회한다. 변경 요청은 보내지 않으며 운영 빌드에는 이 모드가 없다. 실제 로그인은 `admin/.env.example`을 `.env`로 복사해 공개값 세 개를 설정한다. Supabase 이메일 템플릿은 코드(Token) 방식이어야 한다. 신규 계정 자동 생성은 비활성이다.
 
-API는 로컬 DB 주소를 명시하고 `ADMIN_ENABLED=true`, `SKINCARE_REFRESH_ENABLED=false`, `CORS_ORIGINS=["http://127.0.0.1:5173"]`를 설정한다. 기존 .env의 공용 DB 주소를 사용하지 않는다. 검증은 일회용 로컬 PostgreSQL만 사용한다. 운영자 grant 잡은 지정 환경에 쓰므로 DB 주소를 먼저 확인한다.
+API는 로컬 DB 주소를 명시하고 `ADMIN_ENABLED=true`, `SKINCARE_REFRESH_ENABLED=false`, `CORS_ORIGINS=["http://127.0.0.1:5174"]`를 설정한다. 일상 로컬 UI는 `web`의 http://127.0.0.1:5174(쇼핑+`/admin`)다. 기존 .env의 공용 DB 주소를 사용하지 않는다. 검증은 일회용 로컬 PostgreSQL만 사용한다. 운영자 grant 잡은 지정 환경에 쓰므로 DB 주소를 먼저 확인한다.
 
 DB가 필요한 로컬 재현 예시(저장소 루트부터, Docker Desktop 실행 필요):
 
@@ -17,7 +17,7 @@ cd backend/api
 $env:DATABASE_URL = 'postgresql+asyncpg://admin_local:admin_local@127.0.0.1:15439/admin_local'
 $env:ADMIN_ENABLED = 'true'
 $env:SKINCARE_REFRESH_ENABLED = 'false'
-$env:CORS_ORIGINS = '["http://127.0.0.1:5173"]'
+$env:CORS_ORIGINS = '["http://127.0.0.1:5174"]'
 uv sync --frozen
 uv run alembic upgrade head
 uv run python -m app.jobs.seed_catalog fixtures/demo_catalog.json

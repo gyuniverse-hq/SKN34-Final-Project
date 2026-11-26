@@ -26,7 +26,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArFaceView, type PoseHint } from '@/components/ar/ArFaceView';
+import { ArFaceView } from '@/components/ar/ArFaceView';
 import { ArSheet } from '@/components/ar/ArSheet';
 import { ArZoneWheel, zoneWheelRadius } from '@/components/ar/ArZoneWheel';
 import { IntensityRail } from '@/components/ar/IntensityRail';
@@ -74,11 +74,12 @@ import { ENV_MESSAGE_KEY, type EnvState } from '@/lib/arEnv';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useTryOnProducts } from '@/lib/queries';
 import { demoLookTitleKey, isDemoLook } from '@/lib/demoLookAr';
+import { communityWriteHref } from '@/lib/lookCommunity';
 import { LOOK_STRENGTH_DEFAULT, LOOK_STRENGTH_MAX, LOOK_STRENGTH_MIN, videoLookMakeup } from '@/lib/videoLookMakeup';
 import { parseFlag, parseId, productHref, recommendationsHref } from '@/lib/routes';
 import { useCartStore } from '@/store/cartStore';
 import { isLipBaseCare, LIP_TEXTURE_CHIPS, lipCareKind, lipTextureChip } from '@/lib/lipCare';
-import { AR_PAINT_ZONES, arPaintMakeup, isArPaintZone, useMakeupStore } from '@/store/makeupStore';
+import { AR_PAINT_ZONES, arPaintMakeup, isArPaintZone, useLookMakeupStore, useMakeupStore } from '@/store/makeupStore';
 import { useMemberCameraConsent } from '@/hooks/useMemberCameraConsent';
 import { useSettingsStore } from '@/store/settingsStore';
 import type { HighlightFace, MakeupZone, Product, Shade, Texture } from '@/types';
@@ -138,14 +139,22 @@ function useCameraActive() {
 
 /** `/ar?productId&shadeId&compare=1`: opened from home, a look, or a product ("Try in AR"). */
 export default function ArTryOnScreen() {
+  const params = useLocalSearchParams<{ compare?: string; productId?: string; shadeId?: string; video?: string; look?: string }>();
+  const routeProductId = parseId(params.productId);
+  const routeShadeId = parseId(params.shadeId);
+  const fromVideo = parseFlag(params.video);
+  const lookMode = !routeProductId && (fromVideo || parseFlag(params.look));
+  return <ArTryOn key={lookMode ? 'look' : 'product'} {...{ routeProductId, routeShadeId, fromVideo, lookMode }} compareParam={parseFlag(params.compare)} />;
+}
+
+function ArTryOn({ routeProductId, routeShadeId, fromVideo, lookMode, compareParam }: {
+  routeProductId?: string; routeShadeId?: string; fromVideo: boolean; lookMode: boolean; compareParam: boolean;
+}) {
   const router = useRouter();
   const navigation = useNavigation();
   const exitAr = useFirstArExit();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ compare?: string; productId?: string; shadeId?: string; video?: string }>();
-  const routeProductId = parseId(params.productId);
-  const routeShadeId = parseId(params.shadeId);
-  const fromVideo = parseFlag(params.video);
+  const useArMakeupStore = lookMode ? useLookMakeupStore : useMakeupStore;
   const { t, language } = useI18n();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const dockBottom = Math.max(24, insets.bottom);
@@ -157,9 +166,7 @@ export default function ArTryOnScreen() {
   const cameraActive = useCameraActive();
   const routeSelection = useArRouteSelection(routeProductId, routeShadeId);
   const routeZone = routeSelection.product.data?.makeupZone ?? undefined;
-  const compareParam = parseFlag(params.compare);
   const [status, setStatus] = useState<ArStatus>('loading');
-  const [poseHint, setPoseHint] = useState<PoseHint | null>(null);
   // 11-19: one shooting-environment message at a time (lib/arEnv display rules; the page sends a settled state).
   const [arEnv, setArEnv] = useState<EnvState | null>(null);
   const envMessage = useArEnvMessage(status === 'tracking' ? arEnv : null, status === 'no-face');
@@ -245,7 +252,7 @@ export default function ArTryOnScreen() {
     fit,
     endFit,
     clearLookMascara,
-  } = useMakeupStore();
+  } = useArMakeupStore();
   // Eyeshadow point colour mode (11-17): while on, a swatch tap sets the second shade at the outer V / crease.
   const [shadowPointMode, setShadowPointMode] = useState(false);
   const shadowPointing = shadowPointMode && zone === 'eyeshadow' && !!makeup.eyeshadow;
@@ -393,7 +400,7 @@ export default function ArTryOnScreen() {
     if (fromPalette && !careOpen && !nearby.active && nearby.supported && recommendHint === 'new' &&
         ![shade.measureMethod, shade.colorSource].includes('placeholder') && product.texture) setRecommendHint('visible');
     if (!rendererMounted || status !== 'tracking' || !activity.history || !product.makeupZone) return;
-    const state = useMakeupStore.getState();
+    const state = useArMakeupStore.getState();
     const selection = [state.selections[product.makeupZone], state.careSelection]
       .find(s => s?.productId === product.id && s.shadeId === shade.id);
     if (selection) void activity.history.event('try_on', selection, product.makeupZone,
@@ -402,7 +409,7 @@ export default function ArTryOnScreen() {
   const rendererId = useMemo(() => [arKey, rendererMounted, uuid.v4()].join(':'), [arKey, rendererMounted]);
   const commandEnabled = rendererMounted && status === 'tracking' && !fit && !practice && !compare && mode === 'chat';
   const arCommand = useArCommand({ active: cameraActive, enabled: commandEnabled, activeZone: zone, locale: language, rendererId,
-    visibleZones: practice && !peek ? practice.visited : null });
+    visibleZones: practice && !peek ? practice.visited : null }, useArMakeupStore);
   const commandBusy = arCommand.state === 'interpreting' || arCommand.state === 'proposed' || arCommand.state === 'applying' || arCommand.restoreState === 'pending';
   const draftRoute = arChatRoute(draft);
   const localChatEnabled = !fit && !practice && !compare && mode === 'chat';
@@ -428,7 +435,7 @@ export default function ArTryOnScreen() {
       return;
     }
     // Local commands are user edits: the Store invalidates any outstanding AI proposal.
-    const result = adjustMakeupFromChat(text, tryOnProducts, useMakeupStore.getState().makeup);
+    const result = adjustMakeupFromChat(text, tryOnProducts, useArMakeupStore.getState().makeup);
     if (result.kind === 'shade') {
       applyShade(result.product, result.shade);
       setZone(result.zone);
@@ -581,9 +588,8 @@ export default function ArTryOnScreen() {
   const lookStrength = lookStrengthPick.lookId === (activeLook?.id ?? null) ? lookStrengthPick.value : LOOK_STRENGTH_DEFAULT;
   const setLookStrength = (value: number) => setLookStrengthPick({ lookId: activeLook?.id ?? null, value });
   const lookFinishOn = fromVideo && !fit && !routeProductId && !!activeLook && isDemoLook(activeLook.id);
-  const onPoseHint = useCallback((hint: PoseHint | null) => {
-    if (lookFinishOn || hint === null) setPoseHint(hint);
-  }, [lookFinishOn]);
+  // Look-finish keeps the strength card in notices; env goes under that card unless fullscreen hides notices.
+  const showCameraEnv = !lookFinishOn || isFullscreenAR;
   const lookTitleKey = activeLook ? demoLookTitleKey(activeLook.id) : null;
   const lookDisplayTitle = lookTitleKey ? t(lookTitleKey) : (activeLook?.title ?? '');
   const shownMakeup = useMemo(() => {
@@ -674,7 +680,7 @@ export default function ArTryOnScreen() {
   } else if (swatchOnly) {
     stage = (
       <View style={styles.fill}>
-        <SwatchFallback message={t('ar.swatchOnly')} />
+        <SwatchFallback makeup={makeup} message={t('ar.swatchOnly')} />
         <View style={styles.stageActions}>
           <Button label={t('ar.useCamera')} icon="camera-outline" variant="secondary" compact onPress={onAllow} />
         </View>
@@ -709,7 +715,7 @@ export default function ArTryOnScreen() {
   } else if (status === 'unavailable') {
     stage = (
       <View style={styles.fill}>
-        <SwatchFallback message={t('ar.unavailable')} />
+        <SwatchFallback makeup={makeup} message={t('ar.unavailable')} />
         <View style={styles.stageActions}>
           <Button label={t('common.retry')} icon="refresh" variant="secondary" compact onPress={retry} />
           {routeProductId ? (
@@ -724,15 +730,14 @@ export default function ArTryOnScreen() {
         <ArFaceView
           key={arKey}
           makeup={shownMakeup}
+          lookMode={lookMode && !!activeLook && !fit}
           renderCommand={arCommand.renderCommand}
           onRenderResult={arCommand.onRenderResult}
           compare={compare}
           guide={guide}
           fillPreview
-          onStatus={(next) => { setStatus(next); if (next !== 'tracking') setPoseHint(null); }}
+          onStatus={setStatus}
           onEnv={setArEnv}
-          onPoseHint={onPoseHint}
-          poseEnabled={lookFinishOn}
           onSkinTone={setSkinTone}
           onFaceFit={onFaceFit}
           onFaceFitStatus={onFaceFitStatus}
@@ -757,7 +762,7 @@ export default function ArTryOnScreen() {
             <Text style={styles.overlayText}>{t('ar.loading')}</Text>
           </View>
         ) : null}
-        {status === 'no-face' && !lookFinishOn ? (
+        {status === 'no-face' && showCameraEnv ? (
           <View style={styles.noFace}>
             <Text style={styles.hintText}>{t('ar.env.noFace')}</Text>
             <View style={styles.noFaceActions}>
@@ -769,8 +774,7 @@ export default function ArTryOnScreen() {
               </Pressable>
             </View>
           </View>
-        ) : status === 'tracking' && !lookFinishOn && envMessage && envMessage !== 'noFace' ? (
-          // Look-finish mode shows light/pose/no-face coaching under the slim strength card so the card does not cover it.
+        ) : status === 'tracking' && showCameraEnv && envMessage && envMessage !== 'noFace' ? (
           <View style={styles.hintPill} pointerEvents="none">
             <Text style={styles.hintText}>{t(ENV_MESSAGE_KEY[envMessage])}</Text>
           </View>
@@ -844,17 +848,9 @@ export default function ArTryOnScreen() {
       }}
     />
   ) : null;
-  // The page no longer posts a separate light hint (11-19 env state); look-finish coaching keeps its two light cases.
-  const lightHint = envMessage === 'blown' ? 'blown' : envMessage === 'dark' ? 'low' : null;
-  const coachHint = lookFinishOn && status === 'tracking'
-    ? (lightHint
-      ? t(lightHint === 'blown' ? 'ar.lightHint.blown' : 'ar.lightHint.low')
-      : poseHint
-        ? t(`ar.poseHint.${poseHint}`)
-        : null)
-    : null;
+  const lookEnvUnderCard = lookFinishOn && !isFullscreenAR;
   const notices = (
-    <View style={styles.notices} pointerEvents="box-none">
+    <View style={[styles.notices, lookMode && styles.lookNotices]} pointerEvents="box-none">
         {showsDemo ? <Text style={styles.sampleNotice}>{t('ar.demoColors')}</Text> : null}
         {lookFinishOn ? (
           <View style={styles.lookFinishCard}>
@@ -879,9 +875,9 @@ export default function ArTryOnScreen() {
             {t(modified.length > 0 ? 'ar.lookModified' : 'ar.lookApplied', { title: lookDisplayTitle || activeLook.title })}
           </Text>
         ) : null}
-        {lookFinishOn && status === 'no-face' ? (
-          <View style={styles.coachPanel}>
-            <Text style={styles.coachText}>{t('ar.noFace')}</Text>
+        {lookEnvUnderCard && status === 'no-face' ? (
+          <View style={styles.lookEnvPanel}>
+            <Text style={styles.lookEnvText}>{t('ar.env.noFace')}</Text>
             <View style={styles.noFaceActions}>
               <Pressable onPress={retry} accessibilityRole="button" style={styles.pillBtn}>
                 <Text style={styles.pillBtnText}>{t('common.retry')}</Text>
@@ -891,9 +887,9 @@ export default function ArTryOnScreen() {
               </Pressable>
             </View>
           </View>
-        ) : coachHint ? (
-          <View style={styles.coachPill} pointerEvents="none">
-            <Text style={styles.coachText}>{coachHint}</Text>
+        ) : lookEnvUnderCard && status === 'tracking' && envMessage && envMessage !== 'noFace' ? (
+          <View style={styles.lookEnvPill} pointerEvents="none">
+            <Text style={styles.lookEnvText}>{t(ENV_MESSAGE_KEY[envMessage])}</Text>
           </View>
         ) : null}
         {routeSelection.shadeMissing ? (
@@ -1053,7 +1049,17 @@ export default function ArTryOnScreen() {
           </Pressable> : null}
         </View>
         {!isFullscreenAR ? notices : null}
-        {!isFullscreenAR && !fit && !practicing && mode === 'direct' ? (
+        {lookMode && activeLook && !isFullscreenAR && !fit && !practicing ? (
+          <Pressable accessibilityRole="button" style={styles.shareLook}
+            onPress={() => router.push(communityWriteHref({
+              title: lookDisplayTitle,
+              products: JSON.stringify(selectionItems.flatMap(item => item ? [{ productId: item.productId, shadeId: item.shadeId }] : [])),
+            }))}>
+            <Ionicons name="share-social-outline" size={17} color={theme.colors.roseDark} />
+            <Text style={styles.shareLookText}>{t('community.share')}</Text>
+          </Pressable>
+        ) : null}
+        {!lookMode && !isFullscreenAR && !fit && !practicing && mode === 'direct' ? (
           <View pointerEvents="box-none" style={[styles.railArea, {
             top: insets.top + 64, bottom: dockBottom + AR_DOCK_BODY_HEIGHT + AR_PRODUCT_ROW_HEIGHT + 8,
           }]}>
@@ -1549,20 +1555,22 @@ const styles = StyleSheet.create({
   cartBadge: { position: 'absolute', top: 1, right: 0, minWidth: 16, paddingHorizontal: 3, borderRadius: 8, backgroundColor: theme.colors.rose, color: '#FFFFFF', fontSize: 9, textAlign: 'center' },
   bottomShade: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '48%' },
   notices: { gap: 10, zIndex: 2, paddingTop: 4 },
+  lookNotices: { alignSelf: 'center', width: '100%', maxWidth: 480 },
   sampleNotice: { alignSelf: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, color: '#FFFFFF', fontSize: 10, backgroundColor: 'rgba(30,22,27,0.6)' },
-  coachPill: {
+  // Same env copy as product AR; sits under the look-finish card so it does not cover the strength slider.
+  lookEnvPill: {
     alignSelf: 'center',
     maxWidth: '88%',
-    marginTop: 2,
+    marginHorizontal: 16,
     backgroundColor: theme.colors.overlay,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: theme.radius.pill,
   },
-  coachPanel: {
+  lookEnvPanel: {
     alignSelf: 'center',
     width: '88%',
-    marginTop: 2,
+    maxWidth: 420,
     alignItems: 'center',
     gap: 8,
     backgroundColor: theme.colors.overlay,
@@ -1570,7 +1578,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: theme.radius.md,
   },
-  coachText: { color: theme.colors.white, fontSize: 12, fontWeight: '600', textAlign: 'center' },
+  lookEnvText: { color: theme.colors.white, fontSize: theme.font.small, fontWeight: '600', textAlign: 'center' },
   arcDock: { position: 'absolute', bottom: 0, width: '100%' },
   railArea: { position: 'absolute', right: 12, width: 48, justifyContent: 'center', alignItems: 'center', zIndex: 9 },
   sideControls: { position: 'absolute', width: '100%', paddingHorizontal: 16, height: 226, zIndex: 8 },
@@ -1623,6 +1631,8 @@ const styles = StyleSheet.create({
   overlayText: { color: theme.colors.white, fontSize: theme.font.small, fontWeight: '600' },
   noFace: { position: 'absolute', top: 120, left: 16, right: 16, alignItems: 'center', gap: 8, backgroundColor: theme.colors.overlay, padding: 12, borderRadius: theme.radius.md },
   noFaceActions: { flexDirection: 'row', gap: 8 },
+  shareLook: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 7, borderRadius: 24, paddingHorizontal: 14, minHeight: 44, marginTop: 6, backgroundColor: theme.colors.card },
+  shareLookText: { color: theme.colors.roseDark, fontWeight: '700' },
   pillBtn: { minHeight: 36, paddingHorizontal: 14, justifyContent: 'center', borderRadius: theme.radius.pill, backgroundColor: 'rgba(255,255,255,0.18)' },
   pillBtnText: { color: theme.colors.white, fontSize: theme.font.small, fontWeight: '700' },
   hintPill: { position: 'absolute', top: 112, alignSelf: 'center', backgroundColor: theme.colors.overlay, paddingHorizontal: 14, paddingVertical: 8, borderRadius: theme.radius.pill },

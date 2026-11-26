@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { LIP_CARE_INTENSITY, lipCareFor } from '@/lib/lipCare';
+import { productLipFinishFor } from '@/lib/productLipFinishes';
 import { glitterTraitsOf } from '@/lib/shadowFinishes';
 import type { CelebLook, ColorLink, MakeupState, MakeupZone, Product, Shade, ZoneGeometry, ZoneSetting } from '@/types';
 
@@ -205,7 +206,7 @@ const EMPTY: MakeupState = {
   foundation: null,
 };
 
-export const useMakeupStore = create<MakeupStore>((rawSet) => {
+const createMakeupStore = () => create<MakeupStore>((rawSet) => {
   // All existing manual mutations pass this gate, including fit and look restoration.
   const set = (update: Partial<MakeupStore> | ((state: MakeupStore) => Partial<MakeupStore> | MakeupStore)) => {
     rawSet((state) => {
@@ -344,6 +345,7 @@ export const useMakeupStore = create<MakeupStore>((rawSet) => {
       if (s.fit) return s;
       // Only the color and finish change: the look's shape (wing angle, second shadow tone, ...) stays.
       const prev = s.makeup[zone];
+      const lipFinish = zone === 'lip' ? productLipFinishFor(product, shade) : undefined;
       const next: ZoneSetting = {
         hex: shade.hex,
         texture,
@@ -352,6 +354,8 @@ export const useMakeupStore = create<MakeupStore>((rawSet) => {
         ...(prev?.geometry ? { geometry: prev.geometry } : {}),
         // 11-17 v7: glitter traits of this product (metallic / sequin flakes / holo), from its name.
         ...(zone === 'eyeshadow' ? { particle: glitterTraitsOf(product.name, shade.name) } : {}),
+        // Product AR lip finish override (hex unchanged). Video looks replace this via videoLookMakeup.
+        ...(lipFinish ? { applicationProfile: lipFinish } : {}),
       };
       const makeup: MakeupState = { ...s.makeup, [zone]: next };
       const selections = { ...s.selections, [zone]: { productId: product.id, shadeId: shade.id } };
@@ -499,10 +503,12 @@ export const useMakeupStore = create<MakeupStore>((rawSet) => {
           careSelection: { productId: product.id, shadeId: shade.id },
         };
       }
+      const lipFinish = zone === 'lip' ? productLipFinishFor(product, shade) : undefined;
       const painted: ZoneSetting = {
         hex: shade.hex,
         texture: texture!,
         intensity: DEFAULT_INTENSITY[zone],
+        ...(lipFinish ? { applicationProfile: lipFinish } : {}),
       };
       return {
         fit: { productId: product.id, shadeId: shade.id },
@@ -557,3 +563,6 @@ export const useMakeupStore = create<MakeupStore>((rawSet) => {
     }),
   };
 });
+
+export const useMakeupStore = createMakeupStore();
+export const useLookMakeupStore = createMakeupStore();

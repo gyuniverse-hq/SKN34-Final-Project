@@ -58,7 +58,8 @@ describe('AR environment state (11-19)', () => {
   });
 
   it('the backlight ratio follows the 0.5 s scene sample from the last segmenter mask (no extra segmenter calls)', () => {
-    expect(html).toContain('try { envKeepBackground(mask.getAsUint8Array(), mask.width, mask.height); }');
+    expect(html).toContain('const pixels = mask.getAsUint8Array();');
+    expect(html).toContain('envKeepBackground(pixels, mask.width, mask.height);');
     expect(html).toContain('try { envMeasureScene(data, sw, sh, skinLum, skinIn, lumAt); }');
     expect(html).toContain('try { envEvaluate(now, W, H); }');
     expect(html).not.toMatch(/envEvaluate[^\n]*segmentForVideo/);
@@ -103,7 +104,8 @@ describe('AR environment state (11-19)', () => {
     expect(html).toContain('camResampleMs: 500, camResampleTailMs: 1000,');
     expect(html).toContain('return now < envState.camHoldUntil + TUNING.env.camResampleTailMs;');
     expect(html).toContain('(camSettling(now) && now - lastSegmentAt >= TUNING.env.camResampleMs)');
-    expect(html).toContain('if (camSettling(now) || now - lastSceneAt >= ');
+    expect(html).toContain('const settling = camSettling(now);');
+    expect(html).toContain('const sceneDue = settling || now - lastSceneAt >= ');
     // Low light, backlight, position etc. are not held (a real problem right after the lock still shows).
     expect(html).not.toMatch(/envStep\('(dark|blown|position|motion)', !camHold/);
     // The page's own envStep: a colour cast present from the lock onward switches on after the hold plus its 1.5 s dwell.

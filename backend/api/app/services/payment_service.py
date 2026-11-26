@@ -56,6 +56,12 @@ def _digest(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+def _order_display_name(brand: str, name_ko: str, name: str, extra_count: int) -> str:
+    title = f"{brand} {(name_ko or name).strip()}".strip()
+    label = f"{title} 외 {extra_count}건" if extra_count > 0 else title
+    return label[:100]
+
+
 class PaymentService:
     def __init__(
         self,
@@ -81,7 +87,7 @@ class PaymentService:
     async def create_order(self, user_id: str, body: CreateOrderRequest) -> CreateOrderResponse:
         if not (self._settings.toss_client_key and self._settings.payment_web_base_url):
             raise ApiError(503, "Payments are not configured", "payment_unavailable")
-        lines, total = [], 0
+        lines, total, titles = [], 0, []
         if self._inventory:
             await self._inventory.check_order(body.lines)
         for request_line in body.lines:
@@ -99,6 +105,7 @@ class PaymentService:
                     unit_price_krw=product.price_krw,
                 )
             )
+            titles.append((product.brand, product.name_ko, product.name))
             total += product.price_krw * request_line.quantity
         discount = 0
         if body.coupon_id:
@@ -106,11 +113,8 @@ class PaymentService:
                 raise ApiError(503, "Coupon service is unavailable", "coupon_unavailable")
             discount = await self._rewards.discount(user_id, body.coupon_id, total)
         order_id, token = f"O{secrets.token_urlsafe(24)}", secrets.token_urlsafe(32)
-        name = (
-            f"{lines[0].product_id} 외 {len(lines) - 1}건"
-            if len(lines) > 1
-            else lines[0].product_id
-        )
+        first_brand, first_name_ko, first_name = titles[0]
+        name = _order_display_name(first_brand, first_name_ko, first_name, len(titles) - 1)
         cart_feedback = (
             {
                 "cart_visit_id": body.cart_visit_id,

@@ -12,6 +12,7 @@ from app.schemas.admin import (
     LipEvalProduct,
     LipEvalProductList,
     LipTriadEvalResponse,
+    NaturalnessCriteriaResponse,
     OpsChatbot,
     OpsRecommendations,
     OpsSystem,
@@ -27,6 +28,7 @@ from app.services.admin_ops_service import AdminOpsService, get_admin_ops_servic
 from app.services.admin_service import AdminService, get_admin_service
 from app.services.lip_eval_panel_service import LipEvalPanelService, get_lip_eval_panel_service
 from app.services.lip_triad_eval_service import LipTriadEvalService, get_lip_triad_eval_service
+from app.services.naturalness_criteria_service import get_naturalness_criteria
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -137,6 +139,12 @@ async def lip_triad_eval(
 ):
     """Score technical metrics and Astra naturalness. Image bytes are discarded after scoring."""
     return await service.evaluate(bare, real, ar, user["userId"])
+
+
+@router.get("/lip-eval/naturalness-criteria", response_model=NaturalnessCriteriaResponse)
+async def lip_eval_naturalness_criteria(user=Depends(staff_user)):
+    """Return the current naturalness Likert anchors (same version as Astra scoring)."""
+    return get_naturalness_criteria()
 
 
 @router.get("/lip-eval/products", response_model=LipEvalProductList)

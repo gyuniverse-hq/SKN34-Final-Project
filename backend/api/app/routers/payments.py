@@ -1,6 +1,3 @@
-# ruff: noqa: E501
-import json
-
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import HTMLResponse
 
@@ -12,6 +9,7 @@ from app.schemas.payment import (
     OrderStatus,
     PaymentResult,
 )
+from app.services.payment_pages import checkout_page, fail_page, success_page
 from app.services.payment_service import PaymentService, get_payment_service
 
 router = APIRouter(tags=["payments"])
@@ -54,14 +52,12 @@ async def confirm(
 
 @router.get("/pay/success", response_class=HTMLResponse)
 async def success() -> HTMLResponse:
-    return HTMLResponse(
-        """<!doctype html><p>결제를 확인하고 있어요…</p><script>(async()=>{try{const q=new URLSearchParams(location.search);const r=await fetch('/api/payments/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId:q.get('orderId'),paymentKey:q.get('paymentKey'),amount:Number(q.get('amount')),checkoutToken:q.get('token')})});const d=await r.json();location.href=r.ok?d.returnUrl+'?orderId='+encodeURIComponent(d.orderId):'kbeautyar://payment-result?status=unknown'}catch{location.href='kbeautyar://payment-result?status=unknown'}})()</script>"""
-    )
+    return HTMLResponse(success_page())
 
 
 @router.get("/pay/fail", response_class=HTMLResponse)
 async def fail() -> HTMLResponse:
-    return HTMLResponse('<script>location.href="kbeautyar://payment-result?status=failed"</script>')
+    return HTMLResponse(fail_page())
 
 
 # Declared after /pay/success and /pay/fail so those fixed paths are not captured as an order id.
@@ -73,7 +69,12 @@ async def checkout(
 ) -> HTMLResponse:
     order = await service.checkout(order_id, token)
     settings = service._settings
-    data = json.dumps({"clientKey": settings.toss_client_key, **order.model_dump()})
     return HTMLResponse(
-        f"""<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><div id="payment-method"></div><div id="agreement"></div><button id="pay">결제하기</button><script src="https://js.tosspayments.com/v2/standard"></script><script>const d={data};(async()=>{{const t=TossPayments(d.clientKey);const w=t.widgets({{customerKey:'ANONYMOUS'}});await w.setAmount({{currency:'KRW',value:d.amount}});await Promise.all([w.renderPaymentMethods({{selector:'#payment-method',variantKey:'DEFAULT'}}),w.renderAgreement({{selector:'#agreement',variantKey:'AGREEMENT'}})]);document.querySelector('#pay').onclick=()=>w.requestPayment({{orderId:d.order_id,orderName:d.order_name,successUrl:location.origin+'/pay/success?token='+encodeURIComponent(d.checkout_token),failUrl:location.origin+'/pay/fail'}})}})();</script>"""
+        checkout_page(
+            client_key=settings.toss_client_key or "",
+            order_id=order.order_id,
+            order_name=order.order_name,
+            amount=order.amount,
+            checkout_token=order.checkout_token,
+        )
     )

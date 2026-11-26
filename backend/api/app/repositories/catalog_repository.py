@@ -131,6 +131,9 @@ class CatalogRepository:
         category: str | None = None,
         ids: list[str] | None = None,
         tags: list[str] | None = None,
+        *,
+        limit: int | None = None,
+        offset: int = 0,
     ) -> list[Product]:
         """`tags` matches products carrying any of them; an empty list matches nothing."""
         stmt = _visible_products(select(ProductRow).order_by(ProductRow.position, ProductRow.id))
@@ -142,6 +145,8 @@ class CatalogRepository:
             stmt = stmt.where(ProductRow.tags.has_any(cast(tags, ARRAY(Text))))
         for term in terms:
             stmt = stmt.where(ProductRow.search_text.contains(term.lower(), autoescape=True))
+        if limit is not None:
+            stmt = stmt.limit(limit).offset(offset)
         rows = (await self._session.scalars(stmt)).all()
         return [_product(r) for r in rows]
 

@@ -7,6 +7,7 @@ from app.core.oliveyoung_image import public_oliveyoung_image_url
 from app.schemas.base import ApiModel, OmitNoneModel
 
 ProductCategory = Literal["lip", "cheek", "eye", "base", "skincare", "suncare", "tool"]
+DiscoveryChart = Literal["makeup", "skincare", "new"]
 MakeupZone = Literal[
     "lip",
     "blush",
@@ -214,6 +215,7 @@ class CatalogBundle(ApiModel):
 
 class ProductsResponse(ApiModel):
     products: list[Product]
+    has_more: bool | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class ProductDiscoveryOrder(ApiModel):

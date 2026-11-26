@@ -74,6 +74,7 @@ export function videoLookMakeup(
         ...next,
         ...(style.hex ? { hex: style.hex } : {}),
         ...(style.hexTo ? { hexTo: style.hexTo } : {}),
+        ...(style.texture ? { texture: style.texture } : {}),
         ...(style.geometry ? { geometry: { ...next.geometry, ...style.geometry } } : {}),
         ...(style.overrides ? {
           applicationProfile: { ...next.applicationProfile, ...scaleLookOverrides(style.overrides, strength) },

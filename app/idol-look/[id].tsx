@@ -17,9 +17,9 @@ import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { hasIdolLookArSettings, idolLookAsCelebLook } from '@/lib/idolLooks';
 import { idolLookMapping, lookProductStatus } from '@/lib/lookStatus';
 import { useIdolLook } from '@/lib/queries';
-import { arHref, parseId, productHref } from '@/lib/routes';
+import { arHref, lookPreviewHref, parseId, productHref } from '@/lib/routes';
 import { useCartStore } from '@/store/cartStore';
-import { useMakeupStore } from '@/store/makeupStore';
+import { useLookPreviewStore } from '@/store/lookPreviewStore';
 
 export default function IdolLookDetailScreen() {
   const params = useLocalSearchParams<{ id: string }>();
@@ -27,7 +27,6 @@ export default function IdolLookDetailScreen() {
   const router = useRouter();
   const { t } = useI18n();
   const query = useIdolLook(id);
-  const applyLook = useMakeupStore((s) => s.applyLook);
   const add = useCartStore((s) => s.add);
   const [showPlayer, setShowPlayer] = useState(false);
   const [playerFailed, setPlayerFailed] = useState(false);
@@ -87,8 +86,8 @@ export default function IdolLookDetailScreen() {
               variant="secondary"
               disabled={!hasArSettings}
               onPress={() => {
-                applyLook(idolLookAsCelebLook(look), products);
-                router.push(arHref({ compare: true }));
+                useLookPreviewStore.setState({ draft: { look: idolLookAsCelebLook(look), products, video: false } });
+                router.push(lookPreviewHref({ lookId: look.id }));
               }}
               style={styles.actionBtn}
             />

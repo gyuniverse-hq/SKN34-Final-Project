@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ProductCard } from '@/components/shop/ProductCard';
+import { ProductCard } from '@/components/ui/ProductCard';
 import { SearchBar } from '@/components/shop/SearchBar';
 import { ShopHeaderActions } from '@/components/shop/ShopHeaderActions';
 import { homeLayout, homeType, tabTitle } from '@/constants/homeLayout';
