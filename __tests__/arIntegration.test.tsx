@@ -5,6 +5,7 @@ import { OpenArcPalette } from '@/components/ar/OpenArcPalette';
 import { shadeTone, type ShadePreference } from '@/lib/arShadePreference';
 import { colorFamily } from '@/lib/colorFamily';
 import { isLipBaseCare, lipCareKind } from '@/lib/lipCare';
+import { LOOK_STRENGTH_DEFAULT, LOOK_STRENGTH_MIN } from '@/lib/videoLookMakeup';
 import ArTryOnScreen from '@/app/(tabs)/ar';
 import { AR_PAINT_ZONES, useMakeupStore } from '@/store/makeupStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -74,7 +75,10 @@ jest.mock('expo-linear-gradient', () => ({ LinearGradient: 'LinearGradient' }));
 jest.mock('@/components/ar/ArFaceView', () => ({ ArFaceView: 'ArFaceView' }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key, language: 'ko' }) }));
 jest.mock('@/hooks/useArRouteSelection', () => ({ useArRouteSelection: () => ({ product: {} }) }));
-jest.mock('@/lib/queries', () => ({useTryOnProducts: () => mockCatalog}));
+jest.mock('@/lib/queries', () => ({
+  useMe: () => ({ data: undefined, isPending: false }),
+  useTryOnProducts: () => mockCatalog,
+}));
 
 jest.mock('@/lib/api', () => ({ apiPostOwned: jest.fn(), subscribeArIdentityChange: () => () => {} }));
 import { apiPostOwned } from '@/lib/api';
@@ -509,20 +513,30 @@ it('starts practice and reports the last next step as exiting the active look',a
   for(let i=0;i<12 && step.data.active!==false;i++) step=await chat('control_practice/next','다음 단계로 넘겨줘.');
   expect(step).toMatchObject({status:'APPLIED',data:{active:false}});
 });
-it('confirms whole video look strength with the renderer and respects its lower limit',async()=>{
-  mockParams={video:'1'};
-  await act(async()=>{useMakeupStore.setState({activeLook:{id:'celebrity-e1gSkUdG6Bo',title:'Look'}});});
-  tool('set_look_strength/down'); await send('이 룩 전체를 가볍게 해줘.');
-  const cmd=face().props.renderCommand;
-  expect(cmd).toBeTruthy();
-  await act(async()=>{face().props.onRenderResult({...cmd,status:'rendered'});});
-  expect(feedback()).toMatchObject({status:'APPLIED',data:{before:1,after:0.9}});
-  for(let n=0;n<6;n++) {
+it('confirms whole video look strength with the renderer and respects its lower limit', async () => {
+  mockParams = { video: '1' };
+  await act(async () => {
+    useMakeupStore.setState({ activeLook: { id: 'celebrity-e1gSkUdG6Bo', title: 'Look' } });
+  });
+  tool('set_look_strength/down');
+  const steps = Math.ceil((LOOK_STRENGTH_DEFAULT - LOOK_STRENGTH_MIN) * 10);
+  for (let step = 0; step < steps; step++) {
     await send('이 룩 전체를 가볍게 해줘.');
-    const pending=face().props.renderCommand;
-    await act(async()=>{face().props.onRenderResult({...pending,status:'rendered'});});
+    const pending = face().props.renderCommand;
+    expect(pending).toBeTruthy();
+    await act(async () => { face().props.onRenderResult({ ...pending, status: 'rendered' }); });
+    expect(feedback()).toMatchObject({
+      status: 'APPLIED',
+      data: {
+        before: expect.closeTo(LOOK_STRENGTH_DEFAULT - step / 10),
+        after: expect.closeTo(Math.max(LOOK_STRENGTH_MIN, LOOK_STRENGTH_DEFAULT - (step + 1) / 10)),
+      },
+    });
   }
-  expect(await chat('set_look_strength/down','이 룩 전체를 가볍게 해줘.')).toMatchObject({status:'NO_CHANGE',data:{before:0.3,after:0.3}});
+  expect(await chat('set_look_strength/down', '이 룩 전체를 가볍게 해줘.')).toMatchObject({
+    status: 'NO_CHANGE',
+    data: { before: LOOK_STRENGTH_MIN, after: LOOK_STRENGTH_MIN },
+  });
 });
 
 it('adds only the current lip and does not replay a duplicate command',async()=>{

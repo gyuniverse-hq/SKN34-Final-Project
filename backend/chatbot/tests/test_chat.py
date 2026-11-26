@@ -262,9 +262,12 @@ def test_ar_context_does_not_change_general_chat_routing(client, graph, request_
 
 
 @pytest.mark.parametrize("request_type", [None, "chat"])
-def test_general_chat_ignores_invalid_ar_only_fields(client, graph, request_type):
+def test_general_chat_ignores_invalid_ar_only_fields(client, graph, request_type, monkeypatch):
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", False)
     payload = {
         "message": "립 성분 알려줘",
+        "locale": "ko",
+        "chatContext": {"unexpected": "legacy ignored"},
         "arContext": {"unexpected": "legacy ignored"},
         "requestId": "not-a-uuid",
     }

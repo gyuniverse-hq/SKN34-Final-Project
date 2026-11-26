@@ -1,31 +1,43 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { uuid } from 'expo';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { useHeaderHeight } from 'expo-router/react-navigation';
 import { useEffect, useEffectEvent, useRef, useState, type ComponentRef } from 'react';
 import {
-  ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView,
+  ActivityIndicator, AppState, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChatProducts } from '@/components/chat/ChatProducts';
 import { IngredientResult } from '@/components/chat/IngredientResult';
+import { KnowledgeCitations } from '@/components/chat/KnowledgeCitations';
+import { MemoryProposalGroup } from '@/components/chat/MemoryProposalGroup';
+import { MemorySettingsControls } from '@/components/chat/MemorySettingsControls';
 import { RecentConversations } from '@/components/chat/RecentConversations';
 import { StyleRecipeResult } from '@/components/chat/StyleRecipeResult';
 import { theme } from '@/constants/theme';
 import { useChat } from '@/hooks/useChat';
-import { ApiError } from '@/lib/api';
+import { useChatMemory } from '@/hooks/useChatMemory';
+import { useChatConversations } from '@/hooks/useChatConversations';
+import { ApiError, apiChatUserRequest } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { getSupabase } from '@/lib/auth/client';
 import { conditionsFromChatFilters, extractChatConditions } from '@/lib/chatConditions';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { useLook, useProduct, useProductsByIds, useStyleLooks } from '@/lib/queries';
 import { arHref, parseId, paramValue, productHref } from '@/lib/routes';
-import { isChatSessionExpired, useChatConversationStore, type ConversationRecord } from '@/store/chatConversationStore';
-import type { ChatCategory as Category, ChatMessage, ChatRequestSnapshot, ConversationEntry } from '@/types/chatConversation';
-import type { BeautyChatContext, ChatProductEvidence, ChatProductRef } from '@/types';
+import { chatRequestRecoveryKey } from '@/lib/storage';
+import { refersToPreviousLooks, selectedLookOrdinal, wantsDifferentStyle, wantsStyleSearch } from '@/lib/styleCoaching';
+import { canDeleteRoom, isChatSessionExpired, isRequestRecoveryPending, recentChatMessages, recentStyleMessages, useChatConversationStore, type ConversationRecord } from '@/store/chatConversationStore';
+import type { ChatCategory as Category, ChatMessage, ChatRequestSnapshot, ChatRequestTicket, ConversationEntry } from '@/types/chatConversation';
+import type { BeautyChatContext, ChatAppliedMemory, ChatMemorySettings, ChatProductEvidence, ChatProductRef } from '@/types';
 
 let observedAuthClient: ReturnType<typeof getSupabase>;
+
+function displayAssistantText(text: string) {
+  return text.replace(/\*\*([^*\n]+)\*\*/g, '$1');
+}
 
 const styleBrowseImage = require('@/assets/images/chat/style-recipe.png');
 
@@ -35,9 +47,49 @@ const categories: { id: Category; image: number; label: TranslationKey; caption:
   { id: 'style', image: styleBrowseImage, label: 'chat.ui.style', caption: 'chat.ui.styleCaption', prompts: ['chat.ui.styleQuestion1', 'chat.ui.styleQuestion2', 'chat.ui.styleQuestion3'] },
 ];
 
-function RelatedProducts({ refs, question, category, chatContext, evidence, selectedShades, onSelectShade, onSelectProduct, selectedProductId, fragrance, onOpenEvidence }: {
+function OptionSearchScope({ result }: { result: NonNullable<ChatMessage['optionSearch']> }) {
+  const { t } = useI18n();
+  const [expanded, setExpanded] = useState(false);
+  const scope = result.checkedScope;
+  if (scope.stoppedReason === 'INGREDIENT_CONFIRMATION') return null;
+  const reason = scope.stoppedReason === 'TIMEOUT' ? 'chat.option.scopeTimeout'
+    : scope.exhaustive ? 'chat.option.scopeComplete' : 'chat.option.scopeLimited';
+  return (
+    <View style={styles.conditionArea}>
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded }}
+        onPress={() => setExpanded((open) => !open)} style={styles.retry}>
+        <Text style={styles.retryText}>{t(expanded ? 'chat.option.scopeHide' : 'chat.option.scopeShow')}</Text>
+      </Pressable>
+      {expanded ? <>
+        <Text style={styles.note}>{t(reason)}</Text>
+        <Text style={styles.note}>{t('chat.option.scopeProgress', { checked: scope.checkedOptions, total: scope.candidateOptions })}</Text>
+        <Text style={styles.note}>{t('chat.option.scopeResults', {
+          matched: result.items.filter((item) => item.group === 'ELIGIBLE').length,
+          reference: result.items.filter((item) => item.group === 'REFERENCE_ONLY').length,
+          excluded: result.excludedCount,
+        })}</Text>
+        {scope.errors > 0 ? <Text style={styles.note}>{t('chat.option.scopeErrors', { count: scope.errors })}</Text> : null}
+        {scope.unidentifiedOptions > 0 ? <Text style={styles.note}>{t('chat.option.scopeUnidentified', { count: scope.unidentifiedOptions })}</Text> : null}
+        {result.omittedCount > 0 ? <Text style={styles.note}>{t('chat.option.scopeOmitted', { count: result.omittedCount })}</Text> : null}
+      </> : null}
+    </View>
+  );
+}
+
+const colorEvidenceLabels = {
+  measured: 'chat.memory.colorMeasured',
+  user_verified: 'chat.memory.colorVerified',
+  estimated: 'chat.memory.colorEstimated',
+  catalog_name: 'chat.memory.colorCatalogName',
+} as const;
+
+function RelatedProducts({ optionSearch, sourceProducts, refs, question, category, chatContext, evidence, colorMemory, ownedMemories, selectedShades, onSelectShade, onSelectProduct, selectedProductId, fragrance, onOpenEvidence }: {
+  optionSearch?: ChatMessage['optionSearch'];
+  sourceProducts?: NonNullable<ChatMessage['styleRecipe']>['products'];
   refs: ChatProductRef[]; question: string; category?: Category;
   chatContext?: BeautyChatContext; evidence?: ChatProductEvidence[];
+  colorMemory?: Extract<ChatAppliedMemory, { key: 'makeup.color' }>;
+  ownedMemories?: Extract<ChatAppliedMemory, { key: 'inventory.product' }>[];
   selectedShades: Record<string, string>;
   onSelectShade: (productId: string, shadeId: string) => void;
   onSelectProduct?: (productId: string) => void;
@@ -65,12 +117,35 @@ function RelatedProducts({ refs, question, category, chatContext, evidence, sele
   return (
     <View>
       {!fragrance ? <Text style={styles.relatedTitle}>{t('chat.relatedProducts')}</Text> : null}
+      {sourceProducts ? <Text style={styles.relatedTitle}>{t('chat.style.videoProductsCount', {
+        total: sourceProducts.length, linked: sourceProducts.filter((product) => product.productId).length,
+      })}</Text> : null}
+      {colorMemory?.matches.map(({ productId, shadeId, basis }) => {
+        const product = byId.get(productId);
+        const shade = product?.shades.find((item) => item.id === shadeId);
+        return product && shade && shade.measureMethod !== 'placeholder' && shade.colorSource !== 'placeholder'
+          ? <Text key={productId} style={styles.note}>{t(colorEvidenceLabels[basis], {
+            product: product.name, shade: shade.name,
+          })}</Text>
+          : null;
+      })}
+      {ownedMemories?.map(({ memoryId, action, productId, shadeId }) => {
+        const product = byId.get(productId);
+        const shade = action === 'include' && shadeId && product?.shades.find((item) => item.id === shadeId);
+        return product && shade
+          ? <Text key={memoryId} style={styles.note}>{t('chat.memory.ownedShade', {
+            product: product.name, shade: shade.name,
+          })}</Text>
+          : null;
+      })}
       <ChatProducts
         products={products}
+        sourceProducts={sourceProducts}
+        optionSearch={optionSearch}
         fragrance={fragrance}
         onOpenEvidence={onOpenEvidence}
         expectedIds={ids}
-        conditions={chatContext ? conditionsFromChatFilters(chatContext.filters, t) : extractChatConditions(question)}
+        conditions={chatContext?.filters.optionSearch ? [] : chatContext ? conditionsFromChatFilters(chatContext.filters, t) : extractChatConditions(question)}
         candidateOrder={chatContext?.candidateIds ?? ids}
         selectedShades={selectedShades}
         selectedProductId={selectedProductId}
@@ -86,11 +161,11 @@ function RelatedProducts({ refs, question, category, chatContext, evidence, sele
         }}
         evidence={evidence}
         showIngredients={category === 'ingredient'}
-        loading={query.isPending || query.isPlaceholderData}
-        failed={query.isError}
+        loading={ids.length > 0 && (query.isPending || query.isPlaceholderData)}
+        failed={ids.length > 0 && query.isError}
         missingCount={!query.isPending && !query.isPlaceholderData && !query.isError ? ids.length - products.length : 0}
         onRetry={() => { if (mounted.current) void query.refetch(); }}
-        onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId)); }}
+        onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId, undefined, !!sourceProducts)); }}
         onOpenAr={(productId, shadeId) => { if (mounted.current) router.push(arHref({ productId, shadeId })); }}
       />
     </View>
@@ -135,7 +210,7 @@ function FragranceSearchResult({ message, ...actions }: {
 }
 
 export default function ChatScreen() {
-  const params = useLocalSearchParams<{ recipeKind?: string; recipeLookId?: string; productId?: string; shadeId?: string }>();
+  const params = useLocalSearchParams<{ recipeKind?: string; recipeLookId?: string; productId?: string; shadeId?: string; memory?: string }>();
   const rawKind = paramValue(params.recipeKind);
   const kind = rawKind === 'video' || rawKind === 'catalog' ? rawKind : undefined;
   const rawLookId = paramValue(params.recipeLookId);
@@ -150,6 +225,11 @@ export default function ChatScreen() {
   const [active, setActive] = useState<{ routeKey: string; id?: string }>();
   const setActiveId = (id?: string) => setActive({ routeKey, id });
   const [recentVisible, setRecentVisible] = useState(false);
+  const openingRoom = useRef<symbol>(undefined);
+  const savedRooms = useChatConversations(userId, identity?.key);
+  const focused = useIsFocused();
+  const accountKey = ready && userId && identity?.userId === userId ? identity.key : undefined;
+  const activeRouteReady = active?.routeKey === routeKey;
   const { t } = useI18n();
 
   useEffect(() => {
@@ -170,10 +250,38 @@ export default function ChatScreen() {
     void Promise.resolve().then(() => {
       if (!current || useChatConversationStore.getState().identity?.userId !== userId) return;
       setActive({ routeKey, id: store.open(entry) });
+      openingRoom.current = undefined;
       setRecentVisible(false);
     });
     return () => { current = false; };
   }, [ready, userId, kind, lookId, productId, shadeId, routeKey]);
+
+  const refreshFromServer = useEffectEvent(() => {
+    void savedRooms.refresh(active?.id);
+  });
+  useEffect(() => {
+    if (!focused || !accountKey || !activeRouteReady) return;
+    const initialState = AppState.currentState;
+    if (initialState !== 'background' && initialState !== 'inactive') refreshFromServer();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshFromServer();
+    });
+    return () => subscription.remove();
+  }, [focused, accountKey, activeRouteReady]);
+
+  useEffect(() => {
+    if (!ready || !identity || identity.userId !== userId || active?.routeKey !== routeKey ||
+        !active.id || rooms[active.id]) return;
+    const missingId = active.id;
+    let current = true;
+    void Promise.resolve().then(() => {
+      const store = useChatConversationStore.getState();
+      if (!current || store.identity?.key !== identity.key || store.conversations[missingId]) return;
+      const id = store.open({ type: 'general' }, true);
+      setActive((previous) => previous === active ? { routeKey, id } : previous);
+    });
+    return () => { current = false; };
+  }, [active, identity, ready, rooms, routeKey, userId]);
 
   const record = ready && identity?.userId === userId && active?.routeKey === routeKey && active.id ? rooms[active.id] : undefined;
   if (!record) return <SafeAreaView style={styles.screen} edges={['bottom']}>
@@ -182,8 +290,17 @@ export default function ChatScreen() {
     <Pressable accessibilityLabel={t('chat.ui.send')} disabled onPress={() => {}} />
   </SafeAreaView>;
 
+  const { id: roomId, deletionState } = record.conversation;
+  const openRecent = () => { setRecentVisible(true); if (userId) void savedRooms.list(); };
+  const closeRecent = () => { openingRoom.current = undefined; setRecentVisible(false); };
+  const removeRoom = (id: string) => { void savedRooms.remove(id); };
   const startNew = () => {
     if (useChatConversationStore.getState().conversations[record.conversation.id]?.conversation.ownerKey !== record.conversation.ownerKey) return;
+    if (deletionState) {
+      setActiveId(useChatConversationStore.getState().open({ type: 'general' }, true));
+      closeRecent();
+      return;
+    }
     const { subject } = record.conversation;
     const product = record.view.linkedProduct;
     const style = record.view.activeStyle;
@@ -195,16 +312,46 @@ export default function ChatScreen() {
       ? { product: product?.productId ? { ...product, screenId: 'product-detail' } : undefined, style }
       : undefined;
     setActiveId(useChatConversationStore.getState().open(entry, true, focus));
-    setRecentVisible(false);
+    closeRecent();
   };
   return <>
-    <ChatConversation key={record.conversation.id} record={record}
-      onRecent={() => setRecentVisible(true)} onNew={startNew} />
-    {recentVisible ? <RecentConversations rooms={Object.values(rooms)} activeId={record.conversation.id}
-      onClose={() => setRecentVisible(false)} onNew={startNew}
+    {deletionState ? <SafeAreaView style={styles.screen} edges={['bottom']}>
+      <Stack.Screen options={{ title: t('chat.ui.title'), headerRight: () => null }} />
+      <View style={styles.deletingRoom}>
+        {deletionState === 'pending' ? <ActivityIndicator /> : null}
+        <Text accessibilityRole={deletionState === 'failed' ? 'alert' : undefined} accessibilityLiveRegion="polite"
+          style={styles.failureText}>{t(deletionState === 'pending' ? 'chat.room.deleting' : 'chat.room.deleteError')}</Text>
+        {deletionState === 'failed' ? <Pressable accessibilityRole="button" style={styles.retry} onPress={() => removeRoom(roomId)}>
+          <Text style={styles.retryText}>{t('common.retry')}</Text>
+        </Pressable> : null}
+        <Pressable accessibilityRole="button" style={styles.retry} onPress={openRecent}>
+          <Text style={styles.retryText}>{t('chat.room.recent')}</Text>
+        </Pressable>
+      </View>
+    </SafeAreaView> : <ChatConversation key={roomId + (params.memory === 'manage' ? ':memory' : '')} record={record}
+      initialMemoryOpen={params.memory === 'manage'}
+      onRecent={openRecent} onNew={startNew}
+      onReload={() => savedRooms.open(roomId, 'reload')}
+      onRecover={(ticket, stillSelected) => savedRooms.recover(roomId, ticket, stillSelected)}
+      onDismissRecovery={() => savedRooms.dismissRecovery(roomId)}
+      onOlder={() => { void savedRooms.older(roomId); }} olderLoading={savedRooms.detailLoading} olderError={savedRooms.detailError} />}
+    {recentVisible ? <RecentConversations rooms={Object.values(rooms)} activeId={roomId}
+      onClose={closeRecent} onNew={startNew}
+      canDelete={canDeleteRoom} onDelete={removeRoom}
+      loading={savedRooms.loading} error={savedRooms.error} hasMore={savedRooms.hasMore}
+      onRefresh={userId ? () => { void savedRooms.refresh(roomId); } : undefined}
+      onMore={() => { void savedRooms.list(true); }}
       onSelect={(id) => {
-        if (useChatConversationStore.getState().resume(id)) setActiveId(id);
-        setRecentVisible(false);
+        if (openingRoom.current) return;
+        const attempt = Symbol();
+        openingRoom.current = attempt;
+        const stillSelected = () => openingRoom.current === attempt;
+        void savedRooms.open(id, 'select', stillSelected).then((opened) => {
+          if (stillSelected() && opened && useChatConversationStore.getState().resume(opened)) {
+            setActiveId(opened);
+            closeRecent();
+          }
+        }).finally(() => { if (stillSelected()) openingRoom.current = undefined; });
       }}
       renderSubject={(item) => {
         const { subject } = item.conversation;
@@ -267,24 +414,37 @@ function InlineStyleLookPicker({ question, onSelect }: { question: string; onSel
   </View>;
 }
 
-function ChatConversation({ record, onRecent, onNew }: {
+function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload, onRecover, onDismissRecovery, onOlder, olderLoading, olderError }: {
   record: ConversationRecord;
+  initialMemoryOpen: boolean;
   onRecent: () => void;
   onNew: () => void;
+  onReload: () => Promise<string | undefined>;
+  onRecover: (ticket?: ChatRequestTicket, stillSelected?: () => boolean) => Promise<void>;
+  onDismissRecovery: () => Promise<void>;
+  onOlder: () => void;
+  olderLoading: boolean;
+  olderError: boolean;
 }) {
   const { conversation, messages, view } = record;
-  const { pending: isPending, notice: sessionNotice, activeStyle, linkedProduct, generation: conversationGeneration,
+  const { pending: chatPending, notice: sessionNotice, activeStyle, linkedProduct, generation: conversationGeneration,
     selectedShades, chosenProductId, sessionCandidateIds, draft: input, sessionExpiry } = view;
   const router = useRouter();
   const headerHeight = useHeaderHeight();
-  const { ownerKey, userId, subject } = conversation;
+  const { ownerKey, userId, subject, requestRecovery } = conversation;
   const target = { id: conversation.id, ownerKey };
   const { t, language } = useI18n();
   const { mutateAsync } = useChat();
+  const focused = useIsFocused();
+  const memory = useChatMemory(userId, language);
+  const memorySettings = memory.settings;
   const mounted = useRef(true);
   const store = useChatConversationStore.getState;
   const currentRoom = () => store().conversations[target.id]?.conversation;
-  const owned = () => store().identity?.key === ownerKey && currentRoom()?.ownerKey === ownerKey;
+  const owned = () => {
+    const room = currentRoom();
+    return store().identity?.key === ownerKey && room?.ownerKey === ownerKey && !room.deletionState;
+  };
   const setInput = (value: string) => store().setDraft(target, value);
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
@@ -292,7 +452,110 @@ function ChatConversation({ record, onRecent, onNew }: {
   const { category } = view;
   const setCategory = (next: Category) => store().setCategory(target, next);
   const [editing, setEditing] = useState(false);
+  const [memoryOpen, setMemoryOpen] = useState(initialMemoryOpen);
+  const [memoryError, setMemoryError] = useState(false);
+  const [memorySaved, setMemorySaved] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState<TranslationKey>();
+  const [proposalError, setProposalError] = useState<TranslationKey>();
+  const [dismissedProposals, setDismissedProposals] = useState<string[]>([]);
+  const [memoryEdit, setMemoryEdit] = useState<{ id: string; version: number; value: string }>();
+  const [memoryDelete, setMemoryDelete] = useState<string>();
+  const [statePending, setStatePending] = useState(false);
+  const stateBusy = useRef(false);
+  const stateRequestIds = useRef(new Map<string, string>());
+  const recoveryPending = isRequestRecoveryPending(requestRecovery);
+  const isSending = chatPending || statePending;
+  const isPending = isSending || recoveryPending || memory.busy;
   const conditions = extractChatConditions(input);
+  const structuredGroups = memory.settings?.enabled !== false && memory.proposalState?.conversationId === conversation.serverId
+    ? memory.proposalState?.groups ?? [] : [];
+
+  const applyMemoryPolicy = (current: ChatMemorySettings, force = false) => {
+    if (!mounted.current || !owned()) return;
+    store().observeMemoryPolicy(ownerKey, current, force);
+  };
+
+  const loadMemoryManagement = useEffectEvent(() => {
+    void memory.refreshSettings().then((current) => {
+      if (current) applyMemoryPolicy(current);
+    }).catch(() => {
+      if (mounted.current && owned()) setSettingsMessage('chat.memory.error');
+    });
+    if (memoryOpen) void memory.refresh().catch(() => {
+      if (mounted.current && owned()) setMemoryError(true);
+    });
+  });
+  useEffect(() => {
+    if (focused && userId) loadMemoryManagement();
+  }, [focused, userId, memoryOpen, language]);
+
+  const handleMemoryManagementError = (error: unknown) => {
+    if (!mounted.current || !owned()) return;
+    const code = error instanceof ApiError ? error.code : undefined;
+    const conflict = code === 'memory_settings_changed' || code === 'memory_conflict';
+    setSettingsMessage(conflict ? 'chat.memory.settingsChanged'
+      : code === 'memory_requires_confirmation' ? 'chat.memory.editNeedsProposal' : 'chat.memory.error');
+    if (conflict) {
+      setMemoryEdit(undefined);
+      void memory.refreshSettings().then((current) => {
+        if (current) applyMemoryPolicy(current);
+      }).catch(() => {});
+      if (memoryOpen) void memory.refresh().catch(() => {});
+    }
+  };
+
+  const changeMemorySettings = async (enabled: boolean | undefined, acknowledgeNotice?: true) => {
+    const current = memorySettings;
+    if (!current || !owned() || isPending) return;
+    try {
+      const updated = await memory.updateSettings(current, enabled, acknowledgeNotice);
+      applyMemoryPolicy(updated);
+      if (mounted.current && owned()) {
+        if (updated.enabled !== current.enabled) setMemorySaved(false);
+        setSettingsMessage(undefined);
+      }
+    } catch (error) { handleMemoryManagementError(error); }
+  };
+
+  const deleteAllMemories = async (current: ChatMemorySettings) => {
+    if (!owned() || isPending) return;
+    try {
+      applyMemoryPolicy(await memory.deleteAll(current), true);
+      if (!mounted.current || !owned()) return;
+      setMemorySaved(false);
+      setMemoryEdit(undefined);
+      setMemoryDelete(undefined);
+      setProposalError(undefined);
+      setSettingsMessage('chat.memory.deleteAllDone');
+      void memory.refresh().catch(() => {
+        if (mounted.current && owned()) setMemoryError(true);
+      });
+    } catch (error) { handleMemoryManagementError(error); }
+  };
+
+  const refreshMemoryProposals = useEffectEvent((serverId: string) => {
+    void memory.refreshProposals(serverId)
+      .then(() => { if (mounted.current && owned()) setProposalError(undefined); })
+      .catch(() => { if (mounted.current && owned()) setProposalError('chat.memory.error'); });
+  });
+  useEffect(() => {
+    if (focused && userId && conversation.serverId && subject.type === 'general' &&
+        !conversation.deletionState && memory.settings?.enabled !== false) {
+      refreshMemoryProposals(conversation.serverId);
+    }
+  }, [focused, userId, conversation.serverId, conversation.serverVersion,
+    conversation.deletionState, subject.type, memory.settings?.enabled, memory.settings?.version]);
+
+  const showProposalError = (error: unknown) => {
+    if (!mounted.current || !owned()) return;
+    const code = error instanceof ApiError ? error.code : undefined;
+    setProposalError(code === 'proposal_expired' ? 'chat.memory.expired'
+      : code === 'memory_disabled' ? 'chat.memory.offDetail'
+      : code === 'memory_proposal_changed' ? 'chat.memory.proposalChanged' : 'chat.memory.error');
+    if (conversation.serverId && (code === 'memory_proposal_changed' || code === 'proposal_expired')) {
+      void memory.refreshProposals(conversation.serverId).catch(() => {});
+    }
+  };
 
   useEffect(() => {
     mounted.current = true;
@@ -317,19 +580,73 @@ function ChatConversation({ record, onRecent, onNew }: {
   }, [sessionExpiry, isPending]);
 
   const newSearch = () => {
-    resetSession('chat.session.newSearchHint');
-    if (subject.type === 'general') store().setStyle(target);
-    setInput('');
-    inputRef.current?.focus();
+    void persistSelection('clear_selection', {}, () => {
+      resetSession('chat.session.newSearchHint');
+      if (subject.type === 'general') store().setStyle(target);
+      setInput('');
+      inputRef.current?.focus();
+    });
   };
 
-  const clearFocus = () => {
-    if (activeStyle && category === 'style') store().setStyle(target);
+  const persistSelection = async (operation: string, payload: object, apply: () => void) => {
+    const room = currentRoom();
+    if (!room || !owned() || stateBusy.current || isRequestRecoveryPending(room.requestRecovery)) return;
+    if (!userId || !room.serverId) { apply(); return; }
+    if (room.request) return;
+    stateBusy.current = true;
+    setStatePending(true);
+    const key = JSON.stringify([room.serverId, room.serverVersion, operation, payload]);
+    try {
+      const requestId = stateRequestIds.current.get(key) ?? uuid.v4();
+      stateRequestIds.current.set(key, requestId);
+      const result = await apiChatUserRequest<{ conversationVersion: number }>(
+        `/api/chat/conversations/${room.serverId}/state`, 'PATCH', userId,
+        { requestId, expectedConversationVersion: room.serverVersion, operation, payload },
+      );
+      if (!owned() || currentRoom()?.serverId !== room.serverId || currentRoom()?.generation !== room.generation) return;
+      store().bindServerRoom(target, room.serverId, result.conversationVersion);
+      stateRequestIds.current.delete(key);
+      apply();
+    } catch (error) {
+      if (owned() && currentRoom()?.generation === room.generation) {
+        const api = error instanceof ApiError ? error : undefined;
+        store().setNotice(target, api?.status === 409 ? 'chat.session.conflict' : 'chat.session.storageError');
+        if (api?.code === 'conversation_conflict') {
+          stateRequestIds.current.delete(key);
+          await onReload();
+        }
+      }
+    } finally {
+      stateBusy.current = false;
+      if (mounted.current) setStatePending(false);
+    }
+  };
+
+  const clearFocus = () => void persistSelection('clear_selection', {}, () => {
+    if (userId && currentRoom()?.serverId) {
+      store().setStyle(target);
+      store().clearProduct(target);
+    } else if (activeStyle && category === 'style') store().setStyle(target);
     else store().clearProduct(target);
-  };
+  });
 
-  const selectProduct = (productId: string, message: ChatMessage) => store().selectProduct(target, productId, message);
-  const selectShade = (productId: string, shadeId: string, message: ChatMessage) => store().selectShade(target, productId, shadeId, message);
+  const selectProduct = (productId: string, message: ChatMessage) => {
+    const room = currentRoom();
+    const session = room?.beautyContext?.session;
+    if (!room || !session || isChatSessionExpired(session.expiresAt) ||
+      message.ownerKey !== ownerKey || message.generation !== room.generation ||
+      message.resultSetId !== session.resultSetId || !room.beautyContext?.candidateIds.includes(productId)) return;
+    const shadeId = room.selection.shades[productId];
+    void persistSelection(shadeId ? 'select_shade' : 'select_product', { productId, ...(shadeId ? { shadeId } : {}) },
+      () => store().selectProduct(target, productId, message));
+  };
+  const selectShade = (productId: string, shadeId: string, message: ChatMessage) => {
+    const room = currentRoom();
+    const session = room?.beautyContext?.session;
+    if (!room || message.ownerKey !== ownerKey || message.generation !== room.generation ||
+      (session && (isChatSessionExpired(session.expiresAt) || message.resultSetId !== session.resultSetId))) return;
+    void persistSelection('select_shade', { productId, shadeId }, () => store().selectShade(target, productId, shadeId, message));
+  };
 
   useEffect(() => {
     const shown = Keyboard.addListener('keyboardDidShow', () => setEditing(true));
@@ -342,11 +659,12 @@ function ChatConversation({ record, onRecent, onNew }: {
 
   useEffect(() => {
     if (messages.length && nearBottom.current) scrollRef.current?.scrollToEnd({ animated: true });
-  }, [messages.length]);
+  }, [messages.length, structuredGroups.length]);
 
   const send = async (textToSend = input, retryId?: string, retryCategory?: Category, automatic = false) => {
     const text = textToSend.trim();
-    if (!text || !owned() || currentRoom()?.request) return;
+    if (!text || !owned() || currentRoom()?.request || stateBusy.current || memory.busy ||
+        isRequestRecoveryPending(currentRoom()?.requestRecovery)) return;
     let room = currentRoom()!;
     const expired = room.beautyContext?.session;
     if (expired && isChatSessionExpired(expired.expiresAt)) {
@@ -365,12 +683,46 @@ function ChatConversation({ record, onRecent, onNew }: {
     const shopping = /추천|구매|가격|얼마|비교|성분|향료|recommend|price|compare|ingredient|fragrance|おすすめ|比較|価格|推荐|比较|价格|成分|香料/i.test(text);
     const makeupTopic = /립|입술|아이라인|블러셔|아이섀도|화장|메이크업|\b(?:lip|lips|makeup|eyeliner|blush|eyeshadow)\b|メイク|リップ|化妆|唇|眼妆/i.test(text);
     const technique = /어떻게|방법|하는\s*법|하는\s*거|바르는\s*법|\bhow\b|やり方|方法|怎么|如何/i.test(text);
+    const styleSearchActive = messages.some((message) => message.ownerKey === ownerKey &&
+      message.generation === room.generation && message.styleCandidates !== undefined);
+    const latestLooks = messages.findLast((message) => message.ownerKey === ownerKey &&
+      message.generation === room.generation && message.styleCandidates !== undefined)?.styleCandidates;
+    const previousLookReference = refersToPreviousLooks(text);
+    const listedLooks = previousLookReference
+      ? messages.findLast((message) => message.ownerKey === ownerKey && message.generation === room.generation &&
+        message.styleCandidates?.length)?.styleCandidates : latestLooks;
+    const earlierRecipe = previousLookReference ? messages.findLast((message) => message.ownerKey === ownerKey &&
+      message.generation === room.generation && message.styleRecipe &&
+      (message.styleRecipe.kind !== room.styleContext?.kind || message.styleRecipe.lookId !== room.styleContext?.lookId))?.styleRecipe : undefined;
+    const previousLooks = earlierRecipe && !listedLooks?.some((look) => look.kind === earlierRecipe.kind && look.lookId === earlierRecipe.lookId)
+      ? [...(listedLooks ?? []), { kind: earlierRecipe.kind, lookId: earlierRecipe.lookId, title: earlierRecipe.title, tags: [] }]
+      : listedLooks;
+    const unresolvedLookReference = !room.styleContext && /(?:그|이)\s*(?:룩|스타일)|\b(?:this|that) look\b|このルック|这个妆容/i.test(text);
+    const ordinal = selectedLookOrdinal(text);
+    const compareLooks = !!previousLooks?.length && /비교|차이|compare|difference|比較|違い|比较|区别/i.test(text) &&
+      /룩|후보|첫|두|세|[123]|look|first|second|ルック|妆容/i.test(text) &&
+      !/제품|상품|product|商品|製品|产品/i.test(text);
+    const previousLookRequest = !!previousLooks?.length && (previousLookReference || unresolvedLookReference || ordinal !== undefined || compareLooks);
+    const wantsExplanation = /설명|어떻게|방법|explain|how|説明|方法|解释|怎么/i.test(text);
+    const singlePrevious = !compareLooks && previousLookRequest
+      ? ordinal !== undefined ? previousLooks?.[ordinal] : previousLooks?.length === 1 && wantsExplanation ? previousLooks[0] : undefined
+      : undefined;
+    const differentLook = wantsDifferentStyle(text);
+    const styleSearch = original?.args.styleSearch ?? ((subject.type === 'general' || (subject.type === 'look' && (differentLook || previousLookRequest))) &&
+      (previousLookRequest ? !singlePrevious : ((!room.styleContext || differentLook) &&
+        (wantsStyleSearch(text, styleSearchActive) || (room.category === 'style' && !room.styleContext &&
+          makeupTopic && !technique && !shopping && !/제품|상품|product|商品|製品|产品/i.test(text))))));
+    const requestedStyle = singlePrevious
+      ? room.styleContext?.kind === singlePrevious.kind && room.styleContext.lookId === singlePrevious.lookId
+        ? room.styleContext : { kind: singlePrevious.kind, lookId: singlePrevious.lookId, currentStep: 0 }
+      : room.styleContext;
     const generalMakeup = original?.generalMakeup ??
-      (!retryCategory && !room.styleContext && !lookReference && !shopping && makeupTopic && technique);
+      (!styleSearch && !retryCategory && !room.styleContext && !lookReference && !shopping && makeupTopic && technique);
     const requestCategory = original?.args.category ?? retryCategory ??
-      (generalMakeup ? 'product' : lookReference ? 'style' : room.category);
-    const context = generalMakeup ? undefined : room.beautyContext;
+      (styleSearch || singlePrevious ? 'style' : generalMakeup && room.category ? 'product' : lookReference ? 'style' : room.category);
+    const context = styleSearch || (generalMakeup && !room.beautyContext?.session) ? undefined : room.beautyContext;
     const focusedProduct = generalMakeup ? undefined : room.selection.screen ?? room.entryProduct;
+    const styleHistory = styleSearch ? recentStyleMessages(messages, room.ownerKey, room.generation) : [];
     const lastReply = messages.at(-1);
     const comparing = /비교|차이|\bcompar(?:e|ison)\b|\bdiffer(?:s|ent|ence|ences)?\b|比較|違い|对比|比较|区别/i;
     const comparisonTarget = !!focusedProduct?.productId && lastReply?.resultType === 'clarification' &&
@@ -387,34 +739,127 @@ function ChatConversation({ record, onRecent, onNew }: {
       styleRevision: room.styleRevision,
       generation: room.generation,
       revision: room.selection.revision,
+      serverBaseVersion: room.serverVersion,
+      statePatchId: requestId.slice(0, -1) + (parseInt(requestId.slice(-1), 16) ^ 1).toString(16),
       args: {
         message: text, locale: language, category: requestCategory, requestId, expectedUserId: userId,
-        ...(!generalMakeup && room.styleContext
-          ? { styleContext: { ...room.styleContext } } : {}),
+        ...((styleSearch || (language === 'ko' && !room.styleContext)) ? {
+          recentMessages: styleHistory.length ? styleHistory : recentChatMessages(messages, room.ownerKey, room.generation),
+          ...(!styleSearch && room.pendingClarification ? { clarificationId: room.pendingClarification.id } : {}),
+        } : {}),
+        ...(styleSearch ? { styleSearch: true, styleConditions: room.styleConditions.map((item) => ({ ...item })),
+          ...(!previousLookRequest && differentLook && room.styleContext ? { excludedStyle: { kind: room.styleContext.kind, lookId: room.styleContext.lookId } } : {}),
+          ...(compareLooks ? { styleCompare: true } : {}),
+          ...(previousLookRequest ? { previousStyleCandidates: previousLooks!.map(({ kind, lookId }) => ({ kind, lookId })),
+            ...(room.styleContext ? { previousStyleSelection: { kind: room.styleContext.kind, lookId: room.styleContext.lookId } } : {}) } : {}) } : {}),
+        ...(generalMakeup ? { generalMakeup: true } : {}),
+        ...(!styleSearch && !generalMakeup && requestedStyle
+          ? { styleContext: { ...requestedStyle } } : {}),
         ...(context ? { chatContext: { ...context, filters: { ...context.filters },
           candidateIds: [...context.candidateIds], scopeIds: [...context.scopeIds],
           ...(context.session ? { session: { ...context.session } } : {}),
           ...(context.shadeSelections ? { shadeSelections: { ...context.shadeSelections } } : {}) } } : {}),
-        ...(screen ? { screenContext: { ...screen } } : {}),
+        ...(!styleSearch && screen ? { screenContext: { ...screen } } : {}),
       },
     };
     const ticket = store().beginRequest(target, snapshot, failedMatch);
     if (!ticket) return;
     if (!failedMatch) nearBottom.current = true;
+    let recoveryMarker: string | undefined;
     try {
-      const response = await mutateAsync(snapshot.args);
-      if (snapshot.automatic && response.styleStatus === 'error') throw new ApiError(response.answer, 503);
+      const wantsMemory = /기억해|\bremember\b|覚えて|记住/i.test(text) &&
+        !/기억하지\s*마|기억하지\s*말|(?:do\s+not|don't|never)\s+remember|\b(?:i|we)\s+remember\b|覚えない|不要记住|别记住/i.test(text);
+      if (!userId && wantsMemory) throw new ApiError('Memory unavailable', 503, 'memory_unavailable');
+      if (userId && !room.serverId && room.persistenceMode !== 'disabled') {
+        try {
+          const entry = subject.type === 'product'
+            ? { ...subject, ...(room.entryProduct?.shadeId ? { shadeId: room.entryProduct.shadeId } : {}) }
+            : subject;
+          const created = await apiChatUserRequest<{ conversationId: string; conversationVersion: number }>(
+            '/api/chat/conversations', 'POST', userId, { requestId: room.id, entry },
+          );
+          if (!owned()) return;
+          store().bindServerRoom(target, created.conversationId, created.conversationVersion);
+          if (!owned()) return;
+          store().setPersistenceMode(target, 'enabled');
+        } catch (error) {
+          if (!(error instanceof ApiError) || error.status !== 503 || error.code !== 'persistence_disabled') throw error;
+          if (!owned()) return;
+          store().setPersistenceMode(target, 'disabled');
+        }
+      }
+      room = currentRoom()!;
+      if (userId && wantsMemory && memory.settings?.enabled !== false) {
+        if (!room.serverId) throw new ApiError('Memory unavailable', 503, 'memory_unavailable');
+        await memory.refresh();
+        if (!owned()) return;
+      }
+      let version = snapshot.serverBaseVersion ?? room.serverVersion;
+      if (userId && room.serverId) {
+        const style = snapshot.args.styleContext;
+        const screen = snapshot.args.screenContext;
+        const state = style ? {
+          operation: style.recipeVersion ? 'set_recipe_step' : 'select_look',
+          payload: { kind: style.kind, lookId: style.lookId,
+            ...(style.recipeVersion ? { recipeVersion: style.recipeVersion, currentStep: style.currentStep } : {}) },
+        } : screen?.productId ? {
+          operation: screen.shadeId ? 'select_shade' : 'select_product',
+          payload: { productId: screen.productId, ...(screen.shadeId ? { shadeId: screen.shadeId } : {}) },
+        } : undefined;
+        if (state) {
+          const patched = await apiChatUserRequest<{ conversationVersion: number }>(
+            `/api/chat/conversations/${room.serverId}/state`, 'PATCH', userId,
+            { requestId: snapshot.statePatchId, expectedConversationVersion: version, ...state },
+          );
+          if (!owned()) return;
+          version = patched.conversationVersion;
+          store().bindServerRoom(target, room.serverId, version);
+        }
+      }
+      if (userId && room.serverId) {
+        const marker = chatRequestRecoveryKey(userId, room.serverId, ticket.requestId);
+        await AsyncStorage.setItem(marker, '1');
+        const latest = currentRoom();
+        if (!owned() || latest?.generation !== ticket.generation || latest.request !== ticket.requestId) {
+          await AsyncStorage.removeItem(marker).catch(() => {});
+          return;
+        }
+        recoveryMarker = marker;
+      }
+      const response = await mutateAsync({ ...snapshot.args,
+        ...(room.serverId ? { conversationId: room.serverId, expectedConversationVersion: version } : {}) });
+      if (room.serverId && (!response.conversation || response.conversation.id !== room.serverId ||
+          response.conversation.persistenceStatus !== 'stored' || !Number.isSafeInteger(response.conversation.version))) {
+        throw new ApiError('Invalid conversation response', 502, 'invalid_response');
+      }
+      if (response.styleStatus === 'error') throw new ApiError(response.answer, 502, 'style_search_unavailable');
       const expectedStyle = snapshot.args.styleContext;
       const actualRecipe = response.styleRecipe;
       if (actualRecipe && (!expectedStyle || actualRecipe.kind !== expectedStyle.kind || actualRecipe.lookId !== expectedStyle.lookId)) {
         throw new ApiError('Recipe does not match the requested look', 502);
       }
-      store().completeRequest(ticket, response, comparisonTarget && lastReply?.question ? lastReply.question : text);
+      const applied = store().completeRequest(
+        ticket, response, comparisonTarget && lastReply?.question ? lastReply.question : text,
+      );
+      if (recoveryMarker && applied) {
+        void AsyncStorage.removeItem(recoveryMarker).catch(() => {});
+      }
     } catch (error) {
       const api = error instanceof ApiError ? error : undefined;
-      const fatal = api && ([403, 409, 410].includes(api.status) ||
+      if (recoveryMarker) {
+        const uncertain = !api || api.status === 0 || api.status === 401 || api.status >= 500 ||
+          api.code === 'request_in_progress' || api.code === 'request_interrupted' || api.code === 'request_failed';
+        if (uncertain) {
+          if (owned()) await onRecover(ticket, () => mounted.current && owned());
+          return;
+        }
+        void AsyncStorage.removeItem(recoveryMarker).catch(() => {});
+      }
+      const clarificationConflict = api?.code === 'chat_clarification_conflict';
+      const fatal = api && !clarificationConflict && ([403, 409, 410].includes(api.status) ||
         ['chat_owner_changed', 'chat_owner_unavailable'].includes(api.code ?? ''));
-      const errorKey: TranslationKey = api?.code === 'chat_owner_changed'
+      const errorKey: TranslationKey = api?.code === 'memory_unavailable' ? 'chat.memory.unavailable'
+        : api?.code === 'chat_owner_changed'
         ? 'chat.session.identityChanged'
         : api?.code === 'chat_owner_unavailable' ? 'chat.session.identityUnavailable'
         : api?.status === 403 ? 'chat.session.forbidden'
@@ -423,9 +868,24 @@ function ChatConversation({ record, onRecent, onNew }: {
               : api?.status === 503 && api.code?.startsWith('chat_session_') ? 'chat.session.storageError'
                 : api?.code === 'shade_not_found' ? 'chat.ingredient.shadeMissing'
                   : api?.status === 404 ? 'chat.ingredient.productMissing'
-                    : api?.status === 503 ? 'chat.ingredient.server'
+                    : api?.code === 'option_search_unavailable' ? 'chat.option.searchUnavailable'
+                    : (snapshot.args.styleSearch || snapshot.args.styleContext) && api?.status === 503 ? 'chat.ui.error'
+                      : api?.status === 503 ? 'chat.ingredient.server'
                       : api?.status === 0 ? 'chat.ingredient.network' : 'chat.ui.error';
-      store().failRequest(ticket, errorKey, !!fatal, !!api?.code?.startsWith('chat_owner_'));
+      const active = currentRoom();
+      const recover = api?.code === 'conversation_conflict' && owned() && mounted.current &&
+        active?.request === ticket.requestId && active.generation === ticket.generation && active.attempt === ticket.attempt;
+      store().failRequest(ticket, errorKey, !!fatal, !!api?.code?.startsWith('chat_owner_'), clarificationConflict);
+      if (recover) {
+        stateBusy.current = true;
+        setStatePending(true);
+        try {
+          await onReload();
+        } finally {
+          stateBusy.current = false;
+          if (mounted.current) setStatePending(false);
+        }
+      }
     }
   };
 
@@ -437,6 +897,11 @@ function ChatConversation({ record, onRecent, onNew }: {
   }, [subject]);
 
   const visibleMessages = messages.filter((message) => !message.automatic || message.failed);
+  const latestStyleMessageId = messages.findLast((message) => message.ownerKey === ownerKey &&
+    message.generation === conversationGeneration && message.styleCandidates !== undefined)?.id;
+  const hasStyleConversation = !!activeStyle || messages.some((message) => message.ownerKey === ownerKey &&
+    message.generation === conversationGeneration && (message.styleCandidates !== undefined ||
+      (message.role === 'user' && message.category === 'style')));
   const canSelect = (message: ChatMessage) => sessionCandidateIds.length > 0 &&
     message.generation === conversationGeneration && message.resultSetId === view.resultSetId;
 
@@ -447,6 +912,14 @@ function ChatConversation({ record, onRecent, onNew }: {
           : subject.type === 'product' ? t('chat.room.product') : t('chat.ui.title'),
         headerRight: () => (
         <View style={styles.headerActions}>
+          {userId ? <Pressable accessibilityRole="button" accessibilityLabel={t('chat.memory.manage')}
+            onPress={() => {
+              const next = !memoryOpen;
+              setMemoryOpen(next);
+              setMemoryError(false);
+            }} style={styles.headerAction}>
+            <Ionicons name="bookmark-outline" size={21} color={theme.colors.roseDark} />
+          </Pressable> : null}
           <Pressable accessibilityRole="button" accessibilityLabel={t('chat.room.recent')} onPress={onRecent} style={styles.headerAction}>
             <Ionicons name="time-outline" size={22} color={theme.colors.roseDark} />
           </Pressable>
@@ -462,6 +935,9 @@ function ChatConversation({ record, onRecent, onNew }: {
             const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
             nearBottom.current = contentSize.height - (contentOffset.y + layoutMeasurement.height) < 80;
           }} scrollEventThrottle={16}>
+          {conversation.olderMessageCursor ? <Pressable accessibilityRole="button" disabled={olderLoading}
+            onPress={() => { nearBottom.current = false; onOlder(); }} style={styles.retry}><Text style={styles.retryText}>{t('chat.room.older')}</Text></Pressable> : null}
+          {olderError && conversation.olderMessageCursor ? <Text accessibilityRole="alert" style={styles.failureText}>{t('chat.room.loadError')}</Text> : null}
           {!messages.length && !isPending && subject.type !== 'general' ? <View style={styles.targetWelcome}>
             <Text accessibilityRole="header" style={styles.welcomeTitle}>{t(subject.type === 'look' ? 'chat.room.look' : 'chat.room.product')}</Text>
             {subject.type === 'look' ? subject.kind === 'video' ? <VideoEntryLabel id={subject.lookId} /> : <CatalogEntryLabel id={subject.lookId} />
@@ -525,7 +1001,7 @@ function ChatConversation({ record, onRecent, onNew }: {
             </View>
           ) : (
             <View>
-              {messages.length && !editing && subject.type === 'general' ? <Text style={styles.contextNotice}>{t('chat.ui.contextNotice')}</Text> : null}
+              {messages.length && !editing && subject.type === 'general' && !hasStyleConversation ? <Text style={styles.contextNotice}>{t('chat.ui.contextNotice')}</Text> : null}
               {subject.type === 'general' ? <View style={styles.categoryChips}>
                 {categories.map((item) => (
                   <Pressable key={item.id} accessibilityRole="button" accessibilityState={{ selected: category === item.id }}
@@ -536,11 +1012,90 @@ function ChatConversation({ record, onRecent, onNew }: {
               </View> : null}
             </View>
           )}
+          {requestRecovery ? <View style={styles.failure}>
+            <Text accessibilityRole={requestRecovery.status === 'checking' ? undefined : 'alert'} accessibilityLiveRegion="polite"
+              style={styles.failureText}>{t(`chat.recovery.${requestRecovery.status}`)}</Text>
+            {recoveryPending && requestRecovery.status !== 'checking' ? <Pressable accessibilityRole="button" style={styles.retry}
+              onPress={() => { void onRecover(undefined, () => mounted.current && owned()); }}>
+              <Text style={styles.retryText}>{t('chat.recovery.check')}</Text>
+            </Pressable> : null}
+            {requestRecovery.status === 'not_found' ? <Pressable accessibilityRole="button" style={styles.retry}
+              onPress={() => { void onDismissRecovery(); }}>
+              <Text style={styles.retryText}>{t('chat.recovery.dismiss')}</Text>
+            </Pressable> : null}
+          </View> : null}
           {sessionNotice ? <View style={styles.failure}>
             <Text accessibilityRole="alert" style={styles.failureText}>{t(sessionNotice)}</Text>
             <Pressable accessibilityRole="button" onPress={newSearch} style={styles.retry}>
               <Text style={styles.retryText}>{t('chat.session.newSearch')}</Text>
             </Pressable>
+          </View> : null}
+          {memorySaved ? <Text accessibilityRole="alert" style={styles.note}>{t('chat.memory.saved')}</Text> : null}
+          {memoryError ? <Text accessibilityRole="alert" style={styles.failureText}>{t('chat.memory.error')}</Text> : null}
+          {settingsMessage ? <Text accessibilityRole="alert" style={styles.note}>{t(settingsMessage)}</Text> : null}
+          {userId && memorySettings && (memoryOpen || !memorySettings.noticeAcknowledged) ?
+            <MemorySettingsControls settings={memorySettings} busy={isPending} showManagement={memoryOpen}
+              onChange={(enabled, acknowledge) => void changeMemorySettings(enabled, acknowledge)}
+              onDeleteAll={() => void deleteAllMemories(memorySettings)} /> : null}
+          {memoryOpen && userId ? <View style={styles.conditionArea}>
+            <Text accessibilityRole="header" style={styles.conditionTitle}>{t('chat.memory.manage')}</Text>
+            {!memory.memories.length && !memory.busy && !memoryError ? <Text style={styles.note}>{t('chat.memory.empty')}</Text> : null}
+            {memory.memories.map((item) => {
+              const currentEdit = memoryEdit?.id === item.id && memoryEdit.version === item.version
+                ? memoryEdit : undefined;
+              return <View key={item.id} style={styles.conditionGroup}>
+                <Text style={styles.conditionLabel}>{t(item.kind === 'profile' ? 'chat.memory.profile'
+                  : item.kind === 'owned_product' ? 'chat.memory.ownedProduct' : 'chat.memory.preference')}</Text>
+                <Text style={styles.messageText}>{item.value}</Text>
+                {currentEdit && item.choices?.length ? <View style={styles.conditionList}>
+                  {item.choices.map(([value, label]) => <Pressable key={value} accessibilityRole="button"
+                    accessibilityState={{ selected: currentEdit.value === value }} aria-pressed={currentEdit.value === value}
+                    disabled={isPending} onPress={() => setMemoryEdit({ ...currentEdit, value })}
+                    style={styles.retry}><Text style={styles.retryText}>{label}</Text></Pressable>)}
+                </View> : currentEdit ? <TextInput accessibilityLabel={t('chat.memory.edit')}
+                  value={currentEdit.value} maxLength={500}
+                  onChangeText={(value) => setMemoryEdit({ ...currentEdit, value })} style={styles.input} /> : null}
+                <View style={styles.conditionList}>
+                  <Pressable accessibilityRole="button" disabled={isPending || (!!currentEdit && !currentEdit.value.trim())}
+                    onPress={() => {
+                      if (!currentEdit) {
+                        setMemoryEdit({ id: item.id, version: item.version, value: item.editableValue ?? item.value });
+                        return;
+                      }
+                      void memory.update(item, currentEdit.value).then(() => {
+                        if (mounted.current && owned()) {
+                          store().invalidateMemoryContext(ownerKey);
+                          setMemoryEdit(undefined); setMemoryError(false); setSettingsMessage(undefined);
+                          void memory.refreshSettings().catch(() => {});
+                        }
+                      }).catch(handleMemoryManagementError);
+                    }} style={styles.retry}>
+                    <Text style={styles.retryText}>{t(currentEdit ? 'chat.memory.saveEdit' : 'chat.memory.edit')}</Text>
+                  </Pressable>
+                  {currentEdit ? <Pressable accessibilityRole="button"
+                    onPress={() => setMemoryEdit(undefined)} style={styles.retry}>
+                    <Text style={styles.retryText}>{t('chat.memory.cancel')}</Text>
+                  </Pressable> : null}
+                  <Pressable accessibilityRole="button" disabled={memory.busy || isPending}
+                    onPress={() => {
+                      if (memoryDelete !== item.id) { setMemoryDelete(item.id); return; }
+                      void memory.remove(item).then(() => {
+                        if (mounted.current && owned()) {
+                          store().invalidateMemoryContext(ownerKey);
+                          setMemoryDelete(undefined); setMemoryError(false); setMemorySaved(false);
+                          void memory.refreshSettings().catch(() => {});
+                        }
+                      }).catch(() => { if (mounted.current && owned()) setMemoryError(true); });
+                    }} style={styles.retry}>
+                    <Text style={styles.retryText}>{t(memoryDelete === item.id ? 'chat.memory.confirmDelete' : 'chat.memory.delete')}</Text>
+                  </Pressable>
+                  {memoryDelete === item.id ? <Pressable accessibilityRole="button"
+                    onPress={() => setMemoryDelete(undefined)} style={styles.retry}>
+                    <Text style={styles.retryText}>{t('chat.memory.cancel')}</Text>
+                  </Pressable> : null}
+                </View>
+              </View>;
+            })}
           </View> : null}
           {visibleMessages.map((message, messageIndex) => (
             <View key={message.id} style={styles.messageGroup}>
@@ -548,10 +1103,10 @@ function ChatConversation({ record, onRecent, onNew }: {
                 <FragranceSearchResult message={message} selectedShades={selectedShades} selectedProductId={chosenProductId}
                   onSelectProduct={canSelect(message) ? (productId) => selectProduct(productId, message) : undefined}
                   onSelectShade={(productId, shadeId) => selectShade(productId, shadeId, message)} />
-              ) : message.role === 'assistant' && !message.styleRecipe && (message.category === 'ingredient' || message.ingredientResults?.length) ? (
+              ) : message.role === 'assistant' && !message.knowledge && !message.styleRecipe && (message.category === 'ingredient' || message.ingredientResults?.length) ? (
                 <IngredientResult
                   heading={t('chat.ui.ingredient')}
-                  summary={message.text}
+                  summary={displayAssistantText(message.text)}
                   notice={t('chat.ui.ingredientGeneralNotice')}
                   labels={{ product: t('chat.result.productInfo'), ingredients: t('chat.result.ingredientList'), source: t('chat.result.source'), unknown: t('chat.conditionUnknown') }}
                   results={message.ingredientResults}
@@ -561,7 +1116,7 @@ function ChatConversation({ record, onRecent, onNew }: {
               ) : message.role === 'assistant' && message.styleRecipe && !visibleMessages.slice(0, messageIndex).some((item) =>
                 item.styleRecipe?.recipeId === message.styleRecipe?.recipeId && item.styleRecipe?.recipeVersion === message.styleRecipe?.recipeVersion) ? (
                 <>
-                {message.text && message.styleRecipe.steps.length ? <View style={[styles.message, styles.assistantMessage]}><Text style={styles.messageText}>{message.text}</Text></View> : null}
+                {message.text && message.styleRecipe.steps.length ? <View style={[styles.message, styles.assistantMessage]}><Text style={styles.messageText}>{displayAssistantText(message.text)}</Text></View> : null}
                 <StyleRecipeResult
                   result={message.styleRecipe && message.styleRecipe.recipeId === activeStyle?.recipeId &&
                     message.styleRecipe.recipeVersion === activeStyle?.recipeVersion
@@ -569,13 +1124,19 @@ function ChatConversation({ record, onRecent, onNew }: {
                   disabled={isPending || message.ownerKey !== ownerKey ||
                     message.styleRecipe?.recipeId !== activeStyle?.recipeId || message.styleRecipe?.recipeVersion !== activeStyle?.recipeVersion}
                   onStepChange={(index) => {
-                    if (mounted.current) store().setRecipeStep(target, message.id, index);
+                    const recipe = message.styleRecipe;
+                    if (mounted.current && recipe && recipe.recipeId === activeStyle?.recipeId &&
+                      recipe.recipeVersion === activeStyle?.recipeVersion && Number.isInteger(index) && index >= 0 && index < recipe.steps.length) {
+                      void persistSelection('set_recipe_step', { kind: recipe.kind, lookId: recipe.lookId,
+                        recipeVersion: recipe.recipeVersion, currentStep: index },
+                      () => store().setRecipeStep(target, message.id, index));
+                    }
                   }}
-                  onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId)); }}
+                  onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId, undefined, message.styleRecipe?.kind === 'video')); }}
                   onOpenAr={(productId, shadeId) => { if (mounted.current) router.push(arHref({ productId, shadeId })); }}
                   onManualAr={() => { if (mounted.current) router.push(arHref()); }}
                   heading={t('chat.ui.style')}
-                  summary={message.text}
+                  summary={displayAssistantText(message.text)}
                   browseImage={styleBrowseImage}
                   browseLabel={t('chat.ui.styleBrowse')}
                   stepsLabel={t('chat.result.steps')}
@@ -594,9 +1155,70 @@ function ChatConversation({ record, onRecent, onNew }: {
                     <Text style={styles.answerTitle}>{t('chat.ui.title')}</Text>
                   </View>
                 ) : null}
-                <Text style={[styles.messageText, message.role === 'user' && styles.userMessageText]}>{message.text}</Text>
+                <Text style={[styles.messageText, message.role === 'user' && styles.userMessageText]}>{message.role === 'assistant' ? displayAssistantText(message.text) : message.text}</Text>
+                {message.role === 'assistant' && userId && memorySettings?.enabled !== false &&
+                  message.appliedMemories?.some((item) => item.tool === 'catalog.search_products' &&
+                    item.field === 'texture' && item.applicationKind === 'ranking')
+                  ? <Text style={styles.note}>{t('chat.memory.appliedMatte')}</Text> : null}
+                {message.role === 'assistant' && userId && memorySettings?.enabled !== false &&
+                  message.appliedMemories?.some((item) => item.key === 'makeup.color')
+                  ? <Text style={styles.note}>{t('chat.memory.appliedColor')}</Text> : null}
+                {message.role === 'assistant' && userId && memorySettings?.enabled !== false &&
+                  message.appliedMemories?.some((item) => item.key === 'inventory.product' && item.action === 'include')
+                  ? <Text style={styles.note}>{t('chat.memory.appliedOwnedOnly')}</Text> : null}
+                {message.role === 'assistant' && userId && memorySettings?.enabled !== false &&
+                  message.appliedMemories?.some((item) => item.key === 'inventory.product' && item.action === 'exclude')
+                  ? <Text style={styles.note}>{t('chat.memory.appliedOwnedExclude')}</Text> : null}
+                {message.role === 'assistant' && userId && memorySettings?.enabled !== false &&
+                  message.appliedMemories?.some((item) => item.key === 'skin.type' &&
+                    item.tool === 'skincare.recommend' && item.applicationKind === 'candidate_selection')
+                  ? <Text style={styles.note}>{t('chat.memory.appliedSkinType')}</Text> : null}
+                {message.knowledge ? <KnowledgeCitations evidence={message.knowledge.evidence} /> : null}
               </View>}
-              {subject.type === 'general' && message.role === 'assistant' && message.category === 'style' && !message.styleRecipe
+              {message.memoryProposal && userId && memory.settings?.enabled !== false && message.ownerKey === ownerKey &&
+                message.generation === conversationGeneration && !dismissedProposals.includes(message.memoryProposal.proposalId)
+                ? <View style={styles.conditionArea}>
+                  <Text accessibilityRole="header" style={styles.conditionTitle}>{t('chat.memory.proposal')}</Text>
+                  <Text style={styles.conditionLabel}>{t(message.memoryProposal.kind === 'profile' ? 'chat.memory.profile'
+                    : message.memoryProposal.kind === 'owned_product' ? 'chat.memory.ownedProduct' : 'chat.memory.preference')}</Text>
+                  <Text style={styles.messageText}>{message.memoryProposal.value}</Text>
+                  <Text style={styles.note}>{t('chat.memory.purpose')}</Text>
+                  <View style={styles.conditionList}>
+                    <Pressable accessibilityRole="button" disabled={memory.busy || isPending}
+                      onPress={() => {
+                        const proposal = message.memoryProposal!;
+                        void memory.confirm(proposal).then(() => {
+                          if (mounted.current && owned()) {
+                            store().invalidateMemoryContext(ownerKey);
+                            setDismissedProposals((ids) => [...ids, proposal.proposalId]);
+                            setMemorySaved(true);
+                            setMemoryError(false);
+                          }
+                        }).catch(() => { if (mounted.current && owned()) setMemoryError(true); });
+                      }} style={styles.retry}>
+                      <Text style={styles.retryText}>{t('chat.memory.confirm')}</Text>
+                    </Pressable>
+                    <Pressable accessibilityRole="button" disabled={memory.busy || isPending}
+                      onPress={() => setDismissedProposals((ids) => [...ids, message.memoryProposal!.proposalId])}
+                      style={styles.retry}>
+                      <Text style={styles.retryText}>{t('chat.memory.dismiss')}</Text>
+                    </Pressable>
+                  </View>
+                </View> : null}
+              {message.role === 'assistant' && message.styleCandidates?.length ? <View style={styles.conditionArea}>
+                {message.styleCandidates.map((look) => <Pressable key={`${look.kind}:${look.lookId}`}
+                  accessibilityRole="button" disabled={isPending || message.ownerKey !== ownerKey || message.generation !== conversationGeneration || message.id !== latestStyleMessageId}
+                  accessibilityState={{ disabled: isPending || message.ownerKey !== ownerKey || message.generation !== conversationGeneration || message.id !== latestStyleMessageId }}
+                  onPress={() => {
+                    if (!mounted.current || !owned() || currentRoom()?.request) return;
+                    store().setStyle(target, { kind: look.kind, lookId: look.lookId, currentStep: 0 });
+                    void send(t('chat.room.recipePrompt'), undefined, 'style');
+                  }} style={[styles.retry, message.id !== latestStyleMessageId && styles.retryDisabled]}>
+                  <Text style={styles.retryText}>{look.title}</Text>
+                  {look.match ? <Text style={styles.retryText}>{t('chat.style.match', { match: look.match })}</Text> : null}
+                </Pressable>)}
+              </View> : null}
+              {subject.type === 'general' && message.role === 'assistant' && message.category === 'style' && !message.styleRecipe && !message.knowledge && !message.styleCandidates && !activeStyle && message.styleStatus !== 'not_found'
                 ? <InlineStyleLookPicker question={message.question ?? ''} onSelect={(lookId) => {
                   if (!mounted.current || !owned() || currentRoom()?.request) return;
                   store().setStyle(target, { kind: 'video', lookId, currentStep: 0 });
@@ -615,14 +1237,22 @@ function ChatConversation({ record, onRecent, onNew }: {
                   </Pressable> : null}
                 </View>
               ) : null}
-              {message.role === 'assistant' && !message.fragranceSearchSummary && message.products?.length ? <RelatedProducts refs={message.products}
+              {message.role === 'assistant' && message.optionSearch ? <OptionSearchScope result={message.optionSearch} /> : null}
+              {message.role === 'assistant' && !message.fragranceSearchSummary &&
+                !!(message.products?.length || (message.styleRecipe?.kind === 'video' && message.styleRecipe.products.length)) &&
+                (!message.styleRecipe || (message.styleRecipe.productQuestion ?? /제품|상품|product|商品|製品|产品|사용한.{0,12}(?:립|입술|아이라인|아이라이너|마스카라|컨실러)/i.test(message.question ?? ''))) ? <RelatedProducts refs={message.products ?? []} optionSearch={message.optionSearch}
+                  colorMemory={userId && memorySettings?.enabled !== false
+                    ? message.appliedMemories?.find((item) => item.key === 'makeup.color') : undefined}
+                  ownedMemories={userId && memorySettings?.enabled !== false
+                    ? message.appliedMemories?.filter((item) => item.key === 'inventory.product') : undefined}
+                sourceProducts={message.styleRecipe?.kind === 'video' ? message.styleRecipe.products : undefined}
                 question={message.question ?? ''} category={message.category}
                 chatContext={message.chatContext} evidence={message.evidence}
                 selectedShades={selectedShades}
                 selectedProductId={chosenProductId}
                 onSelectProduct={canSelect(message) ? (productId) => selectProduct(productId, message) : undefined}
                 onSelectShade={(productId, shadeId) => selectShade(productId, shadeId, message)} /> : null}
-              {message.role === 'assistant' && !message.fragranceSearchSummary && !message.products?.length && message.category === 'product' &&
+              {message.role === 'assistant' && !message.fragranceSearchSummary && !message.knowledge && !message.products?.length && (message.category === 'product' || message.category === undefined) &&
                 (message.resultType === 'empty' || (!message.resultType && extractChatConditions(message.question ?? '').length)) ? (
                 <View style={styles.emptyState}>
                   <View style={styles.stateIcon}><Ionicons name="search-outline" size={22} color={theme.colors.rose} /></View>
@@ -652,7 +1282,39 @@ function ChatConversation({ record, onRecent, onNew }: {
               })}
             </View>
           ) : null}
-          {isPending ? (
+          {proposalError ? <Text accessibilityRole="alert" style={styles.failureText}>{t(proposalError)}</Text> : null}
+          {structuredGroups.map((group) => <MemoryProposalGroup key={group.groupId} group={group}
+            busy={memory.busy || isPending}
+            onEdit={async (item, value) => {
+              if (!owned()) return false;
+              try {
+                await memory.editProposal(group, item, value);
+                if (mounted.current && owned()) setProposalError(undefined);
+                return true;
+              } catch (error) { showProposalError(error); return false; }
+            }}
+            onDecide={async (decisions) => {
+              if (!owned()) return false;
+              try {
+                const result = await memory.decideProposals(group, decisions);
+                if (mounted.current && owned()) {
+                  setProposalError(undefined);
+                  const saved = result.items.some((item) => item.status === 'approved');
+                  setMemorySaved(saved);
+                  if (saved) {
+                    store().invalidateMemoryContext(ownerKey);
+                    if (memoryOpen) {
+                      void memory.refreshSettings().catch(() => {});
+                      void memory.refresh().catch(() => {
+                        if (mounted.current && owned()) setMemoryError(true);
+                      });
+                    }
+                  }
+                }
+                return true;
+              } catch (error) { showProposalError(error); return false; }
+            }} />)}
+          {isSending ? (
             <View style={[styles.message, styles.assistantMessage, styles.loading]} accessibilityRole="progressbar" accessibilityLabel={t('chat.ui.loading')}>
               <ActivityIndicator color={theme.colors.rose} size="small" />
               <Text style={styles.note}>{t('chat.ui.loading')}</Text>
@@ -702,8 +1364,8 @@ function ChatConversation({ record, onRecent, onNew }: {
             </View>
           ) : null}
           <View style={styles.inputRow}>
-            <TextInput ref={inputRef} accessibilityLabel={t('chat.ui.placeholder')} editable={!isPending} maxLength={1000}
-              multiline onChangeText={setInput} onFocus={() => setEditing(true)} onBlur={() => setEditing(false)}
+            <TextInput ref={inputRef} accessibilityLabel={t('chat.ui.placeholder')} editable={!isPending} maxLength={2000}
+              multiline onChangeText={(value) => setInput(Array.from(value).slice(0, 1000).join(''))} onFocus={() => setEditing(true)} onBlur={() => setEditing(false)}
               placeholder={t('chat.ui.placeholder')} placeholderTextColor={theme.colors.inkFaint}
               style={[styles.input, editing && styles.inputEditing]} value={input} />
             <Pressable accessibilityRole="button" accessibilityLabel={t('chat.ui.send')}
@@ -720,6 +1382,7 @@ function ChatConversation({ record, onRecent, onNew }: {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.surface },
+  deletingRoom: { padding: 20, gap: 12, alignItems: 'flex-start' },
   keyboard: { flex: 1 },
   messages: { flexGrow: 1, gap: 12, padding: 16, paddingBottom: 20 },
   welcome: { gap: 10, paddingTop: 12 },

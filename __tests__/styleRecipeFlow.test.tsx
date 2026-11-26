@@ -107,6 +107,21 @@ test('keeps reviewed instructions and exact product/shade navigation separate fr
   await act(async () => view.unmount());
 });
 
+test('shows a linked product without inventing a shade or offering AR', async () => {
+  mockDictionary = en;
+  const open = jest.fn(), ar = jest.fn();
+  const result: ChatStyleRecipe = { ...fixture, productUsageTrusted: true,
+    products: [{ label: 'Source product', productId: 'p-1', zone: 'lip', mappingStatus: 'product_only', catalogValid: false, arEligible: false }] };
+  const view = await render(result, { onOpenProduct: open, onOpenAr: ar });
+  await act(async () => view.root.findByProps({ accessibilityLabel: en['chat.style.referenceProducts'] }).props.onPress());
+  expect(texts(view)).toContain(en['chat.style.mappingProductOnly']);
+  await act(async () => view.root.findByProps({ accessibilityLabel: en['styleLooks.openProduct'] }).props.onPress());
+  expect(open).toHaveBeenCalledWith('p-1', undefined);
+  expect(view.root.findAllByProps({ accessibilityLabel: en['styleLooks.tryAr'] })).toHaveLength(0);
+  expect(ar).not.toHaveBeenCalled();
+  await act(async () => view.unmount());
+});
+
 test('does not synthesize a recipe when the server returned none', async () => {
   mockDictionary = en;
   const view = await render();

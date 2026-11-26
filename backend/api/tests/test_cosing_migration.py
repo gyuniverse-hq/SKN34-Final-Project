@@ -26,6 +26,9 @@ def scripts():
 def test_cosing_follows_develop_geometry_in_a_single_migration_chain():
     directory = scripts()
     assert len(directory.get_heads()) == 1
+    assert directory.get_revision("0034").down_revision == "0033"
+    assert directory.get_revision("0035").down_revision == "0034"
+    assert directory.get_revision("0036").down_revision == "0035"
     assert directory.get_revision("0020").down_revision == "0019"
     assert directory.get_revision("0019").down_revision == "0018"
     assert directory.get_revision("0018").down_revision == "0017"

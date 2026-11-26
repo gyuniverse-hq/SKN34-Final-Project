@@ -1,6 +1,8 @@
 # kind cluster:
 #   helm upgrade --install vishue infra/helm/vishue -n vishue --create-namespace -f infra/helm/vishue/values-local.yaml
 env: local
+admin:
+  enabled: true
 
 image:
   registry: ""
@@ -9,10 +11,14 @@ image:
   pullPolicy: Never
 
 api:
+  env:
+    ADMIN_ENABLED: "true"
   replicas: 1
   autoscaling: { enabled: false }
 
 chatbot:
+  env:
+    G1_SUPERVISOR_ENABLED: "true"
   replicas: 1
   autoscaling: { enabled: false }
 
@@ -23,7 +29,7 @@ podDisruptionBudget:
   enabled: false
 
 dataStores:
-  postgres: { enabled: true }
+  postgres: { enabled: true, image: pgvector/pgvector:0.8.2-pg17-bookworm }
   redis: { enabled: true }
   neo4j: { enabled: true }
 

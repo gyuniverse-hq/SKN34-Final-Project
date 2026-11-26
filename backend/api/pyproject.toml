@@ -9,8 +9,10 @@ dependencies = [
     "fastapi>=0.161.1",
     "httpx>=0.28.1",
     "numpy>=2.5.4",
+    "pillow>=13.0.0",
     "pydantic-settings>=2.16.1",
     "pyjwt[crypto]>=2.15.1",
+    "python-multipart>=0.0.20",
     "redis>=8.1.0",
     "sqlalchemy[asyncio]>=2.1.6",
     "uvicorn[standard]>=0.54.0",
@@ -28,6 +30,7 @@ dev = [
 ]
 recommendation = [
     "catboost>=1.2.10",
+    "optuna>=4.4,<6",
 ]
 
 [tool.uv]
@@ -46,7 +49,7 @@ target-version = "py312"
 select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC"]
 
 [tool.ruff.lint.flake8-bugbear]
-extend-immutable-calls = ["fastapi.Depends", "fastapi.Query"]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.File"]
 
 # Layer rules from docs/ARCHITECTURE.md (same role as the app's ESLint no-restricted-imports).
 [tool.importlinter]
@@ -79,5 +82,5 @@ modules = [
     "app.clients.naver_client",
     "app.clients.youtube_client",
     "app.clients.supabase_admin_client",
-    "app.clients.recommendation_v1_client",
+    "app.clients.vision_llm_client",
 ]

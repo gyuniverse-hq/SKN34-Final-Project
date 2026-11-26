@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import type { GuideMessage } from '@/lib/drawGuide';
+import { parseEnvMessage, type EnvState } from '@/lib/arEnv';
 import { parseRecorderMessage, type RecorderMessage } from '@/lib/arRecording';
 import { parseFaceFit, parseFaceFitStatus, parseFaceShape, type FaceFitHint, type FaceFitStatus, type FaceShape } from '@/lib/faceFit';
 import { parseSkinTone, type SkinTone } from '@/lib/foundationMatch';
@@ -9,6 +10,7 @@ import type { ArRenderCommand, ArRenderResult, MakeupState } from '@/types';
 import { FACE_TRACKER_HTML, type ArStatus } from './faceTrackerHtml';
 
 export type LightHint = 'low' | 'blown';
+export type PoseHint = 'closer' | 'farther' | 'front' | 'center';
 
 export interface ArFaceViewProps {
   makeup: MakeupState;
@@ -19,6 +21,10 @@ export interface ArFaceViewProps {
   fillPreview?: boolean;
   onStatus: (status: ArStatus) => void;
   onLightHint?: (hint: LightHint | null) => void;
+  poseEnabled?: boolean;
+  onPoseHint?: (hint: PoseHint | null) => void;
+  /** Settled shooting-environment state (lib/arEnv); the screen decides which message to show. */
+  onEnv?: (env: EnvState) => void;
   /** Measured skin color for the foundation shade suggestion (numbers only). */
   onSkinTone?: (tone: SkinTone) => void;
   /** Placement hints from this face's measured ratios (keys only; nothing else leaves the page). */
@@ -35,14 +41,14 @@ export interface ArFaceViewProps {
   onRecorder?: (message: RecorderMessage) => void;
 }
 
-export function ArFaceView({ makeup, compare, guide = null, fillPreview = false, recording = false, onStatus, onLightHint, onSkinTone, onFaceFit, onFaceFitStatus, onCrash, onRecorder, renderCommand = null, onRenderResult }: ArFaceViewProps) {
+export function ArFaceView({ makeup, compare, guide = null, fillPreview = false, recording = false, onStatus, onLightHint, onPoseHint, poseEnabled = false, onEnv, onSkinTone, onFaceFit, onFaceFitStatus, onCrash, onRecorder, renderCommand = null, onRenderResult }: ArFaceViewProps) {
   // react-native-webview의 타입이 제네릭 기본값을 `never`로 잡는 경우가 있어,
   // 메시지/소스에 대해 넉넉한 타입을 명시해 props 타입 추론을 정상화합니다.
   const ref = useRef<WebView<any>>(null);
   const stateSeq = useRef(0);
-  const latest = useRef({ makeup, compare, guide, fillPreview, onLightHint, onSkinTone, onFaceFit, onFaceFitStatus, onCrash, onRecorder, renderCommand, onRenderResult });
+  const latest = useRef({ makeup, compare, guide, fillPreview, poseEnabled, onLightHint, onPoseHint, onEnv, onSkinTone, onFaceFit, onFaceFitStatus, onCrash, onRecorder, renderCommand, onRenderResult });
   useEffect(() => {
-    latest.current = { makeup, compare, guide, fillPreview, onLightHint, onSkinTone, onFaceFit, onFaceFitStatus, onCrash, onRecorder, renderCommand, onRenderResult };
+    latest.current = { makeup, compare, guide, fillPreview, poseEnabled, onLightHint, onPoseHint, onEnv, onSkinTone, onFaceFit, onFaceFitStatus, onCrash, onRecorder, renderCommand, onRenderResult };
   });
 
   // The recorder is not part of the page: in development it is injected when recording starts (components/ar/recorderScript.ts).
@@ -76,9 +82,10 @@ export function ArFaceView({ makeup, compare, guide = null, fillPreview = false,
   useEffect(() => send({ type: 'compare', value: compare }), [compare, send]);
   useEffect(() => send({ type: 'guide', guide }), [guide, send]);
   useEffect(() => send({ type: 'preview', fill: fillPreview }), [fillPreview, send]);
+  useEffect(() => send({ type: 'pose_enabled', value: poseEnabled }), [poseEnabled, send]);
 
   const onMessage = (event: WebViewMessageEvent) => {
-    let message: { type?: string; status?: string; detail?: string; value?: LightHint | null; lab?: unknown; conf?: unknown; rec?: unknown; state?: unknown; shape?: unknown; commandId?: unknown; restoreId?: unknown; renderSeq?: unknown; rendererId?: unknown };
+    let message: { type?: string; status?: string; detail?: string; value?: LightHint | PoseHint | null; primary?: unknown; level?: unknown; items?: unknown; ready?: unknown; lab?: unknown; conf?: unknown; rec?: unknown; state?: unknown; shape?: unknown; commandId?: unknown; restoreId?: unknown; renderSeq?: unknown; rendererId?: unknown };
     try {
       message = JSON.parse(event.nativeEvent.data);
     } catch {
@@ -90,6 +97,7 @@ export function ArFaceView({ makeup, compare, guide = null, fillPreview = false,
       send({ type: 'compare', value: latest.current.compare });
       send({ type: 'guide', guide: latest.current.guide });
       send({ type: 'preview', fill: latest.current.fillPreview });
+      send({ type: 'pose_enabled', value: latest.current.poseEnabled });
     } else if (message.type === 'render_result') {
       const command = latest.current.renderCommand;
       if (command && command.kind !== 'restore' && message.commandId === command.commandId && message.renderSeq === command.renderSeq &&
@@ -110,6 +118,12 @@ export function ArFaceView({ makeup, compare, guide = null, fillPreview = false,
     } else if (message.type === 'light_hint') {
       const hint = message.value === 'low' || message.value === 'blown' ? message.value : null;
       latest.current.onLightHint?.(hint);
+    } else if (message.type === 'pose_hint') {
+      const hint = message.value === 'closer' || message.value === 'farther' || message.value === 'front' || message.value === 'center' ? message.value : null;
+      latest.current.onPoseHint?.(hint);
+    } else if (message.type === 'env') {
+      const env = parseEnvMessage(message);
+      if (env) latest.current.onEnv?.(env);
     } else if (message.type === 'skin_tone') {
       const tone = parseSkinTone(message);
       if (tone) latest.current.onSkinTone?.(tone);

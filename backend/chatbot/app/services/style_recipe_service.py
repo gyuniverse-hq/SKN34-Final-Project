@@ -6,6 +6,7 @@ from hashlib import sha256
 from math import isfinite
 
 from app.core.errors import UpstreamError
+from app.core.trusted_style_videos import TRUSTED_STYLE_VIDEO_IDS
 from app.schemas.chat import ChatResponse, ProductRef
 from app.schemas.style_recipe import RecipeProduct, RecipeStep, StyleContext, StyleRecipe
 from app.schemas.supervisor import EvidenceRef, ToolResult
@@ -67,11 +68,13 @@ TEXT = {
         "choose": "먼저 스타일 화면에서 안내받을 룩을 선택해 주세요.",
         "missing": "선택한 종류에서 해당 룩을 찾을 수 없습니다. 룩을 다시 선택해 주세요.",
         "error": "룩 자료를 조회하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-        "video": (
-            "제목·태그·제품 부위 메타데이터를 참고한 일반 가이드입니다. 영상 프"
-            "레임을 분석하지 않았으며, 실제 영상의 기법·순서·사용 제품은 확인되"
-            "지 않았습니다."
-        ),
+        "video": "영상의 실제 화장 순서는 확인되지 않았습니다. 아래는 일반적인 방법이에요.",
+        "video_product": "영상 정보에 등록된 제품이에요:",
+        "video_product_trusted": "영상에서 사용한 제품이에요:",
+        "video_product_empty": "요청한 제품이 영상 정보에 등록되어 있지 않아요.",
+        "video_product_unverified": "영상 속 실제 사용 여부는 확인되지 않았어요.",
+        "video_product_unlinked": "상품 상세 페이지는 아직 연결되지 않았어요.",
+        "video_product_lookup_failed": "상품 상세를 불러오지 못했어요. 다시 시도해 주세요.",
         "catalog": (
             "등록된 Catalog 메이크업 설정에 근거한 규칙 "
             "기반 가이드입니다. 사람이 검수한 영상 레시피는 아"
@@ -81,6 +84,7 @@ TEXT = {
         "changed": "룩 또는 레시피 버전이 변경되어 첫 단계로 돌아갔습니다.",
         "none": "단계 자료가 부족합니다. 영상의 화장 순서를 추측하지 않습니다.",
         "step": "현재 단계",
+        "step_missing": "요청한 단계가 없습니다. 등록된 단계를 선택해 주세요.",
         "synthetic": "테스트용 합성 콘텐츠입니다.",
         "unsupported": (
             "현재 단계 안내와 등록 상품 확인을 지원합니다. 상"
@@ -107,10 +111,17 @@ TEXT = {
             "Catalog makeup settings. It is not a h"
             "uman-reviewed video recipe."
         ),
+        "video_product": "Products listed in the video information:",
+        "video_product_trusted": "Products used in the video:",
+        "video_product_empty": "No requested products are listed in the video information.",
+        "video_product_unverified": "Actual use in the video has not been verified.",
+        "video_product_unlinked": "Product details are not yet linked.",
+        "video_product_lookup_failed": "Product details could not be loaded. Please retry.",
         "reviewed": "These steps come from the registered reviewed recipe and its source.",
         "changed": "The look or recipe version changed. Progress returned to the first step.",
         "none": ("Step information is insufficient. The video's makeup order will not be guessed."),
         "step": "Current step",
+        "step_missing": "That step is unavailable. Please choose a listed step.",
         "synthetic": "Synthetic test content.",
         "unsupported": (
             "Step guidance and registered product r"
@@ -136,10 +147,17 @@ TEXT = {
             "登録されたCatalogメイク設定に基づくルール型ガイド"
             "です。人が検証した動画レシピではありません。"
         ),
+        "video_product": "動画情報に登録された製品です:",
+        "video_product_trusted": "動画で使用された製品です:",
+        "video_product_empty": "ご希望の製品は動画情報に登録されていません。",
+        "video_product_unverified": "動画での実際の使用は未確認です。",
+        "video_product_unlinked": "商品詳細はまだ連携されていません。",
+        "video_product_lookup_failed": "商品詳細を取得できませんでした。再試行してください。",
         "reviewed": "登録された検証済みレシピの手順と出典を案内します。",
         "changed": "ルックまたはレシピの版が変わったため、最初の手順に戻りました。",
         "none": "手順の情報が不足しています。動画の順序を推測しません。",
         "step": "現在の手順",
+        "step_missing": "指定された手順はありません。登録された手順を選んでください。",
         "synthetic": "テスト用の合成コンテンツです。",
         "unsupported": (
             "手順案内と登録製品の確認に対応しています。製品推薦とAR"
@@ -156,10 +174,17 @@ TEXT = {
             "帧，视频中的实际技法、顺序和使用产品尚未确认。"
         ),
         "catalog": "这是依据已登记Catalog化妆设置生成的规则指南，并非人工审核的视频教程。",
+        "video_product": "视频信息中登记的产品：",
+        "video_product_trusted": "视频中使用的产品：",
+        "video_product_empty": "视频信息中没有登记所请求的产品。",
+        "video_product_unverified": "尚未确认视频中的实际使用情况。",
+        "video_product_unlinked": "商品详情尚未关联。",
+        "video_product_lookup_failed": "商品详情加载失败，请重试。",
         "reviewed": "以下步骤来自已登记的审核教程及其来源。",
         "changed": "妆容或教程版本已改变，已返回第一步。",
         "none": "步骤资料不足，不会猜测视频的化妆顺序。",
         "step": "当前步骤",
+        "step_missing": "没有请求的步骤，请选择已列出的步骤。",
         "synthetic": "合成测试内容。",
         "unsupported": "目前支持步骤指导和已登记产品查询，不会将产品推荐和AR执行视为已一并完成。",
     },
@@ -317,7 +342,43 @@ _GENERAL_TIP_NOTICE = {
 }
 
 
+def explicit_step(message):
+    digits = re.search(r"(?<!\d)(\d{1,2})\s*(?:번(?:째)?\s*)?단계", message)
+    if digits:
+        return int(digits.group(1))
+    korean = re.search(
+        r"(첫|두|세|네|다섯|여섯|일곱|여덟|아홉|열)\s*(?:번(?:째)?|째)?\s*단계",
+        message,
+    )
+    if korean:
+        return {
+            name: i
+            for i, name in enumerate(
+                ("첫", "두", "세", "네", "다섯", "여섯", "일곱", "여덟", "아홉", "열"), 1
+            )
+        }[korean.group(1)]
+    english = re.search(
+        r"\b(first|second|third|fourth|fifth|\d{1,2}(?:st|nd|rd|th))\s+step\b", message
+    )
+    if english:
+        value = english.group(1)
+        return {"first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5}.get(
+            value, int(value[:-2]) if value[0].isdigit() else 0
+        )
+    return None
+
+
 def style_advice(message, steps, index, locale, followup):
+    if locale == "ko" and not re.search(r"영상에서|in the video|動画では|视频里", message, re.I):
+        tips = []
+        eye = re.search(r"눈[^,.!?]{0,20}(?:덜|연하게|옅게)", message)
+        lip = re.search(r"(?:립|입술)[^,.!?]{0,20}(?:강조|진하게|더\s*진하게)", message)
+        if eye and not re.match(r"[^,.!?]{0,8}(?:하지\s*마|말아|않)", message[eye.end() :]):
+            tips.append(TIPS[locale]["eyeshadow"])
+        if lip and not re.match(r"[^,.!?]{0,8}(?:하지\s*마|말아|않)", message[lip.end() :]):
+            tips.append(TIPS[locale]["lip"])
+        if tips:
+            return "일반적인 조절 팁이에요: " + " ".join(tips)
     if not (_ADVICE.search(message) or _SMUDGING.search(message)) or re.search(
         r"영상에서|in the video|動画では|视频里", message, re.I
     ):
@@ -365,6 +426,7 @@ async def execute_style(req, catalog):
         if recipe and (recipe.look_id != look.id or recipe.kind != context.kind):
             raise UpstreamError("Recipe belongs to a different look")
         reviewed = recipe is not None and recipe.review_status == "verified"
+        products_trusted = context.kind == "video" and look.id in TRUSTED_STYLE_VIDEO_IDS
         names = dict(zip(ORDER, NAMES[req.locale], strict=True))
         makeup = None
         if context.kind == "video":
@@ -435,8 +497,20 @@ async def execute_style(req, catalog):
         eye_request = re.search(r"눈 화장|eye makeup|アイメイク|眼妆", message)
         if eye_request and not any(s.zone in {"eyeshadow", "eyeliner", "mascara"} for s in steps):
             return empty("clarification", "eye_step_unavailable", "zone_missing")
-        tip = style_advice(message, steps, index, req.locale, context.recipe_id is not None)
-        if not changed and not tip and not _ADVICE.search(message):
+        requested_step = explicit_step(message)
+        if requested_step is not None and not changed:
+            if requested_step < 1 or requested_step > len(steps):
+                return empty("clarification", "step_unavailable", "step_missing")
+            index = requested_step - 1
+        order_request = bool(
+            re.search(r"순서|단계별|\border\b|step.by.step|順番|順序|顺序", message)
+        )
+        tip = (
+            None
+            if order_request or (reviewed and requested_step is not None)
+            else style_advice(message, steps, index, req.locale, context.recipe_id is not None)
+        )
+        if not changed and requested_step is None and not tip and not _ADVICE.search(message):
             if re.search(
                 r"첫 단계|처음 단계|처음부터|first step|from the beginning|最初|第一步|从头",
                 message,
@@ -461,26 +535,104 @@ async def execute_style(req, catalog):
                 )
         links, refs, cache = [], {}, {}
         entries = look.products if context.kind == "video" else look.items
-        lip_question = re.search(r"립 제품|lip product|リップ製品|唇部产品", message)
+        requested_zone = source_zone(message)
+        specific_product = next(
+            (
+                pattern
+                for pattern in (
+                    r"컨실러|concealer|コンシーラー|遮瑕",
+                    r"마스카라|mascara|マスカラ|睫毛膏",
+                )
+                if re.search(pattern, message, re.I)
+            ),
+            None,
+        )
+        product_question = bool(
+            re.search(r"제품|상품|product|商品|製品|产品", message, re.I)
+            or (
+                (requested_zone or specific_product)
+                and re.search(
+                    r"사용한|사용된|사용했|썼|쓴|바른|\bused\b|使った|使用", message, re.I
+                )
+            )
+        )
+        listed, failed_ids, unlinked = [], set(), False
         for entry in entries:
             video = context.kind == "video"
             pid = entry.catalog_product_id if video else entry.product_id
             sid = entry.catalog_shade_id if video else entry.shade_id
             verified = entry.mapping_verified if video else True
-            zone = source_zone(entry.zone + " " + entry.category) if video else None
-            if video and lip_question and zone != "lip":
+            # The listed ampoule was incorrectly linked to a different toner product.
+            if (
+                video
+                and look.id == "L8RvSmdkR2g"
+                and entry.number == 3
+                and pid == "yt-45f63ecddcd067bb3d67"
+            ):
+                verified = False
+            zone = (
+                (source_zone(entry.zone + " " + entry.category) or source_zone(entry.name))
+                if video
+                else None
+            )
+            if video and look.id == "_yyvVZ55LuI" and entry.number == 3:
+                zone = "foundation"
+            if (
+                video
+                and product_question
+                and specific_product
+                and not re.search(specific_product, entry.name, re.I)
+            ):
+                continue
+            if (
+                video
+                and product_question
+                and not specific_product
+                and requested_zone
+                and zone != requested_zone
+            ):
                 continue
             link = RecipeProduct(
                 label=f"{entry.brand} {entry.name}" if video else pid, zone=zone or "unknown"
             )
+            if video and product_question:
+                brand = entry.brand.strip()
+                name = entry.name.strip()
+                option = entry.option.strip()
+                if brand.casefold() in {"확인 필요", "unknown"} or name.casefold().startswith(
+                    brand.casefold()
+                ):
+                    brand = ""
+                if look.id == "L8RvSmdkR2g" and entry.number == 13:
+                    name = name.replace("홀리카홀ㄹ기카", "홀리카홀리카")
+                label = " ".join(part for part in (brand, name) if part)
+                unlinked |= not (pid and verified)
+                if (
+                    option
+                    and option.casefold()
+                    not in {"원문에 명시 정보 없음", "확인 필요", "unknown", "none", "-"}
+                    and option.replace(" ", "").casefold() not in label.replace(" ", "").casefold()
+                ):
+                    label += f" ({option})"
+                if label:
+                    listed.append(label)
+                    link.label = label
             if pid and verified:
                 if pid not in cache:
-                    cache[pid] = await catalog.get_product(pid)
+                    try:
+                        cache[pid] = await catalog.get_product(pid)
+                    except UpstreamError:
+                        if not (video and product_question):
+                            raise
+                        cache[pid] = None
+                        failed_ids.add(pid)
                 product = cache[pid]
                 if product is not None and product.id == pid:
                     link.product_id = product.id
-                    link.label = f"{product.brand} {product.name}"
-                    link.zone = product.makeup_zone or zone or "unknown"
+                    if not (video and product_question):
+                        link.label = f"{product.brand} {product.name}"
+                    link.zone = zone or product.makeup_zone or "unknown"
+                    link.mapping_status = "product_only"
                     refs[pid] = ProductRef(
                         id=pid, brand=product.brand, name=product.name, category=product.category
                     )
@@ -503,7 +655,9 @@ async def execute_style(req, catalog):
                     elif sid:
                         link.mapping_status = "invalid"
                 else:
-                    link.mapping_status = "invalid"
+                    link.mapping_status = "unavailable" if pid in failed_ids else "invalid"
+                    if video and product_question and pid not in failed_ids:
+                        unlinked = True
             links.append(link)
         result = StyleRecipe(
             look_id=look.id,
@@ -518,6 +672,8 @@ async def execute_style(req, catalog):
             else "unreviewed"
             if context.kind == "video"
             else "not_applicable",
+            product_usage_trusted=products_trusted,
+            product_question=product_question,
             synthetic=recipe.synthetic if reviewed else False,
             source=source,
             evidence_id=recipe.evidence_id if reviewed else None,
@@ -537,8 +693,42 @@ async def execute_style(req, catalog):
             else "video_not_analyzed",
             makeup=makeup,
         )
-        answer = tip or text[notice]
-        if tip and context.kind == "video":
+        answer = (
+            text["video_product_trusted" if products_trusted else "video_product"]
+            if context.kind == "video" and product_question
+            else tip or text[notice]
+        )
+        if context.kind == "video" and product_question:
+            if listed:
+                answer += "\n" + "\n".join(f"- {item}" for item in listed)
+                if not products_trusted:
+                    answer += "\n" + text["video_product_unverified"]
+            else:
+                answer = text["video_product_empty"]
+            if unlinked:
+                answer += "\n" + text["video_product_unlinked"]
+            if failed_ids:
+                answer += "\n" + text["video_product_lookup_failed"]
+        if steps and not changed and not product_question:
+            if tip and requested_step is not None:
+                answer = f"{requested_step}. {steps[index].title}: {tip}"
+            elif not tip:
+                is_single_step = requested_step is not None or bool(
+                    re.search(
+                        r"다음\s*단계|이전\s*단계|next\s+step|previous\s+step|次の手順|下一步",
+                        message,
+                    )
+                )
+                shown = [steps[index]] if is_single_step else steps
+                lines = []
+                for step in shown:
+                    zone = {"foundation": "base", "blush": "cheek"}.get(step.zone, step.zone)
+                    guidance = step.description if reviewed else TIPS[req.locale].get(zone)
+                    lines.append(
+                        f"{step.order}. {step.title}" + (f": {guidance}" if guidance else "")
+                    )
+                answer += "\n" + "\n".join(lines)
+        if tip and context.kind == "video" and not product_question:
             answer += "\n" + _GENERAL_TIP_NOTICE[req.locale]
         if result.synthetic:
             answer += "\n" + text["synthetic"]

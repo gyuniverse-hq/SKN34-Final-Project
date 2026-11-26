@@ -1,12 +1,34 @@
 from typing import Annotated, Literal, Self
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, StringConstraints, model_validator
 from pydantic.alias_generators import to_camel
 
+from app.core.config import get_settings
 from app.schemas.ar_geometry import STYLE_IDS
-from app.schemas.catalog import CatalogIngredients
-from app.schemas.style_recipe import StyleContext, StyleRecipe
+from app.schemas.catalog import (
+    BaseProductType,
+    CatalogIngredients,
+    IngredientSelection,
+    OptionSearchResponse,
+)
+from app.schemas.conversation import ConversationMetadata
+from app.schemas.knowledge import KnowledgeReply
+from app.schemas.memory import (
+    AppliedColorMemory,
+    AppliedMemory,
+    AppliedOwnedProductMemory,
+    AppliedSkinTypeMemory,
+    ConsultationMemory,
+    MemoryProposal,
+)
+from app.schemas.style_recipe import (
+    StyleCandidate,
+    StyleCandidateRef,
+    StyleCondition,
+    StyleContext,
+    StyleRecipe,
+)
 from app.schemas.supervisor import IngredientComparison, ScreenContext, SupervisorResult, ToolResult
 
 Locale = Literal["en", "ko", "ja", "zh"]
@@ -148,6 +170,15 @@ class IngredientFilter(ArModel):
 
 
 class BeautyFilters(ArModel):
+    product_type: BaseProductType | None = Field(default=None, exclude_if=lambda v: v is None)
+    unsupported_conditions: list[str] = Field(
+        default_factory=list, max_length=8, exclude_if=lambda v: not v
+    )
+    option_search: bool = Field(default=False, exclude_if=lambda v: not v)
+    price_basis: Literal["current_offer", "catalog_reference", "collected_snapshot"] | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
+    texture: Literal["matte"] | None = Field(default=None, exclude_if=lambda v: v is None)
     category: Literal["lip", "cheek", "eye", "base", "skincare", "suncare"] | None = None
     max_price_krw: Annotated[int, Field(strict=True, ge=0, le=100_000_000)] | None = Field(
         default=None, alias="maxPriceKRW"
@@ -169,6 +200,9 @@ class ChatSessionRef(ArModel):
 class BeautyContext(ArModel):
     """Client-carried search context; IDs and facts are always rechecked with Catalog."""
 
+    option_scope: list[IngredientSelection] | None = Field(
+        default=None, max_length=42, exclude_if=lambda v: v is None
+    )
     version: Literal[1] = 1
     issued_at: Annotated[int, Field(strict=True, ge=0)]
     filters: BeautyFilters
@@ -188,15 +222,77 @@ class ProductEvidence(ArModel):
     fragrance_status: Literal["unknown"] = "unknown"
 
 
+class RecentChatMessage(ArModel):
+    id: ArIdentifier
+    role: Literal["user", "assistant"]
+    text: str = Field(min_length=1, max_length=2000)
+
+    @model_validator(mode="after")
+    def limit_user_text(self) -> Self:
+        if self.role == "user" and len(self.text) > 1000:
+            raise ValueError("User history exceeds 1000 characters")
+        return self
+
+
+class PendingClarification(ArModel):
+    id: UUID
+    missing_slot: Literal["product", "shade"]
+    product_id: ArIdentifier | None = None
+    result_set_id: UUID
+    created_request_id: UUID
+    created_state_version: int = Field(ge=1)
+    expires_at: int = Field(ge=0)
+    ingredient_conditions: list[IngredientFilter] = Field(default_factory=list, max_length=6)
+
+
 class ChatRequest(ApiModel):
+    structured_memory: bool = Field(default=False, strict=True, exclude_if=lambda value: not value)
+    _server_history: bool = PrivateAttr(default=False)
+    _historical_product_ids: tuple[str, ...] = PrivateAttr(default=())
+    _g7_execution: object | None = PrivateAttr(default=None)
+    _consented_memories: list[str] = PrivateAttr(default_factory=list)
+    _consultation_memories: tuple[ConsultationMemory, ...] | None = PrivateAttr(default=None)
+    _memory_epoch: int | None = PrivateAttr(default=None)
+    _memory_generation: str | None = PrivateAttr(default=None)
+    style_search: bool = Field(default=False, strict=True, exclude_if=lambda v: not v)
+    excluded_style: StyleCandidateRef | None = None
+    previous_style_candidates: list[StyleCandidateRef] = Field(
+        default_factory=list, max_length=6, exclude_if=lambda v: not v
+    )
+    previous_style_selection: StyleCandidateRef | None = None
+    style_conditions: list[StyleCondition] | None = Field(default=None, max_length=7)
+    style_compare: bool = False
+    recent_messages: list[RecentChatMessage] = Field(
+        default_factory=list, max_length=8, exclude_if=lambda v: not v
+    )
+    clarification_id: UUID | None = Field(default=None, exclude_if=lambda v: v is None)
+
+    @model_validator(mode="after")
+    def validate_recent_messages(self) -> Self:
+        ids = [m.id for m in self.recent_messages]
+        if len(ids) != len(set(ids)) or sum(len(m.text) for m in self.recent_messages) > 8000:
+            raise ValueError("Invalid recent conversation")
+        looks = [(item.kind, item.look_id) for item in self.previous_style_candidates]
+        if len(looks) != len(set(looks)):
+            raise ValueError("Duplicate previous looks")
+        slots = [item.slot for item in self.style_conditions or []]
+        if len(slots) != len(set(slots)):
+            raise ValueError("Duplicate style conditions")
+        return self
+
+    general_makeup: bool = Field(default=False, strict=True, exclude_if=lambda v: not v)
     message: str = Field(min_length=1, max_length=1000)
     locale: Locale = "en"
     skin: SkinHint | None = None
-    request_type: Literal["chat", "ar_command", "beauty_consultation", "style_consultation"] = (
-        "chat"
-    )
+    request_type: Literal[
+        "chat", "ar_command", "beauty_consultation", "style_consultation", "knowledge_consultation"
+    ] = "chat"
     chat_context: BeautyContext | None = None
     request_id: UUID | None = None
+    conversation_id: UUID | None = None
+    expected_conversation_version: Annotated[int, Field(strict=True, ge=0, le=2**53 - 1)] | None = (
+        None
+    )
     ar_context: ArContext | None = None
     screen_context: ScreenContext | None = None
     style_context: StyleContext | None = None
@@ -205,21 +301,52 @@ class ChatRequest(ApiModel):
     @classmethod
     def ignore_ar_fields_for_chat(cls, data):
         # Older chat clients could send unrecognized fields; keep them inert.
+        if not isinstance(data, dict):
+            return data
+        request_type = data.get("requestType", data.get("request_type", "chat"))
+        g2_enabled = data.get("locale", "en") == "ko" and get_settings().g1_supervisor_enabled
+        style_search = data.get("styleSearch", data.get("style_search")) is True
         if (
-            isinstance(data, dict)
-            and data.get("requestType", data.get("request_type", "chat")) != "beauty_consultation"
-        ):
+            not g2_enabled or request_type not in {"chat", "beauty_consultation"}
+        ) and not style_search:
+            ignored = {"clarificationId", "clarification_id"}
+            if not (
+                g2_enabled
+                and get_settings().g5_enabled
+                and request_type == "knowledge_consultation"
+            ):
+                ignored.update({"recentMessages", "recent_messages"})
+            data = {k: v for k, v in data.items() if k not in ignored}
+        if data.get("generalMakeup", data.get("general_makeup")) is True and not g2_enabled:
+            # The app used to omit context for these requests; preserve that OFF contract.
             data = {k: v for k, v in data.items() if k not in {"chatContext", "chat_context"}}
-        if (
-            isinstance(data, dict)
-            and data.get("requestType", data.get("request_type", "chat")) == "chat"
-        ):
+        session_chat = request_type in {"chat", "knowledge_consultation"} and g2_enabled
+        if request_type != "beauty_consultation" and not session_chat:
+            data = {k: v for k, v in data.items() if k not in {"chatContext", "chat_context"}}
+        if isinstance(data, dict) and request_type in {"chat", "knowledge_consultation"}:
             ar_fields = {"requestId", "request_id", "arContext", "ar_context"}
+            if session_chat or data.get("conversationId", data.get("conversation_id")) is not None:
+                ar_fields = {"arContext", "ar_context"}
             data = {k: v for k, v in data.items() if k not in ar_fields}
         return data
 
     @model_validator(mode="after")
     def validate_ar_request(self) -> Self:
+        if self.conversation_id is not None:
+            if self.request_type == "ar_command":
+                raise ValueError("AR commands do not support persistent conversations")
+            if self.request_id is None or self.expected_conversation_version is None:
+                raise ValueError("Persistent chat requires a request ID and expected version")
+        if self.style_search and self.request_type not in {"chat", "style_consultation"}:
+            raise ValueError("Style search is only available in chat")
+        if self.excluded_style and (not self.style_search or self.previous_style_candidates):
+            raise ValueError("Look exclusion requires a new style search")
+        if (
+            self.previous_style_candidates or self.previous_style_selection
+        ) and not self.style_search:
+            raise ValueError("Previous look references require style search")
+        if self.style_compare and (not self.style_search or not self.previous_style_candidates):
+            raise ValueError("Style comparison requires previous candidates")
         if self.request_type == "ar_command" and (
             self.request_id is None or self.ar_context is None or not self.message.strip()
         ):
@@ -380,7 +507,27 @@ class FragranceSearchSummary(ApiModel):
     verified_product_ids: list[ArIdentifier] = Field(default_factory=list)
 
 
+class ChatIngredientResult(CatalogIngredients):
+    shade_name: str | None = Field(default=None, exclude_if=lambda value: value is None)
+
+
 class ChatResponse(ApiModel):
+    conversation: ConversationMetadata | None = Field(default=None, exclude_if=lambda v: v is None)
+    memory_proposal: MemoryProposal | None = Field(default=None, exclude_if=lambda v: v is None)
+    applied_memories: list[
+        AppliedMemory | AppliedSkinTypeMemory | AppliedColorMemory | AppliedOwnedProductMemory
+    ] = Field(default_factory=list, exclude_if=lambda v: not v)
+    style_candidates: list[StyleCandidate] | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
+    style_conditions: list[StyleCondition] | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
+    knowledge: KnowledgeReply | None = Field(default=None, exclude_if=lambda v: v is None)
+    option_search: OptionSearchResponse | None = Field(default=None, exclude_if=lambda v: v is None)
+    pending_clarification: PendingClarification | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
     style_status: Literal["ready", "clarification", "not_found", "error", "unsupported"] | None = (
         Field(default=None, exclude_if=lambda v: v is None)
     )
@@ -397,7 +544,7 @@ class ChatResponse(ApiModel):
         Field(default=None, exclude_if=lambda v: v is None)
     )
     evidence: list[ProductEvidence] | None = Field(default=None, exclude_if=lambda v: v is None)
-    ingredient_results: list[CatalogIngredients] | None = Field(
+    ingredient_results: list[ChatIngredientResult] | None = Field(
         default=None, exclude_if=lambda v: v is None
     )
     ingredient_comparison: IngredientComparison | None = Field(
@@ -427,6 +574,14 @@ class ChatResponse(ApiModel):
 class ChatSessionState(ArModel):
     """Redis-only snapshot and one TTL-bound retry response, never a transcript archive."""
 
+    conversation_id: UUID | None = Field(default=None, exclude_if=lambda v: v is None)
+    pending_clarification: PendingClarification | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
+    memory_epoch: int | None = Field(default=None, exclude_if=lambda v: v is None, ge=0)
+    memory_generation: str | None = Field(
+        default=None, exclude_if=lambda v: v is None, max_length=64
+    )
     session_id: UUID
     owner: str
     owner_kind: Literal["user", "guest"]

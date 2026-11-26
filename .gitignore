@@ -64,6 +64,9 @@ __pycache__/
 /ios
 /android
 
+# Admin lip product-panel eval images (temporary, eval period only)
+/runtime/lip-eval/
+
 # Independent Python ML project
 /ml/.venv/
 /ml/data/
@@ -76,6 +79,13 @@ __pycache__/
 !/ml/runs/recommend-cat-v3/bundle/model.cbm
 !/ml/runs/recommend-cat-v3/bundle/manifest.json
 !/ml/runs/recommend-cat-v3/bundle/README.md
+!/ml/runs/recommend-cat-v4/
+/ml/runs/recommend-cat-v4/*
+!/ml/runs/recommend-cat-v4/bundle/
+/ml/runs/recommend-cat-v4/bundle/*
+!/ml/runs/recommend-cat-v4/bundle/model.cbm
+!/ml/runs/recommend-cat-v4/bundle/manifest.json
+!/ml/runs/recommend-cat-v4/bundle/README.md
 /ml/experiments/
 /reports/recommendation-v2/
 /scripts/data/recommendation/curation_decisions.json

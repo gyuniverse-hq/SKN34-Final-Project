@@ -6,6 +6,7 @@ import type {
   IdolLook,
   MeResponse,
   Product,
+  ProductDiscoveryOrder,
   ProductOffers,
   ProductQuery,
   ProductVideo,
@@ -23,6 +24,7 @@ import {
   withDevTryOnFallback,
 } from '@/lib/devCatalog';
 import { DEMO_CELEBRITY_VIDEOS, DEMO_STYLE_LOOKS } from '@/lib/demoLookBundle';
+import { hasAccountDeletionFence } from './account';
 import { ApiError, apiGet, apiPost } from './api';
 
 /** Run only after the user confirms the concerns; keep responses out of the shared product cache. */
@@ -41,13 +43,13 @@ export const meQueryKey = (userId?: string) => ['me', userId] as const;
 export function useMe(userId: string | undefined) {
   return useQuery({
     queryKey: meQueryKey(userId),
-    queryFn: () => apiGet<MeResponse>('/api/me'),
+    queryFn: () => apiGet<MeResponse>('/api/me', { expectedUserId: userId }),
     enabled: !!userId,
-    retry: 1,
+    retry: (failureCount, error) => !hasAccountDeletionFence(error) && failureCount < 1,
   });
 }
 
-export function useProducts(params: ProductQuery = {}) {
+export function useProducts(params: ProductQuery = {}, enabled = true) {
   const search = new URLSearchParams();
   if (params.q) search.set('q', params.q);
   if (params.category) search.set('category', params.category);
@@ -55,6 +57,7 @@ export function useProducts(params: ProductQuery = {}) {
   if (concerns) search.set('concerns', concerns);
   const qs = search.toString();
   return useQuery({
+    enabled,
     queryKey: ['products', params.q ?? '', params.category ?? 'all', concerns],
     queryFn: async () => {
       try {
@@ -69,6 +72,14 @@ export function useProducts(params: ProductQuery = {}) {
     },
     select: (d) => d.products,
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useProductDiscoveryOrder(preview = false, enabled = true) {
+  return useQuery({
+    enabled,
+    queryKey: ['product-discovery-order', preview],
+    queryFn: () => apiGet<ProductDiscoveryOrder>(`/api/discovery/product-order${preview ? '?preview=true' : ''}`),
   });
 }
 
@@ -269,8 +280,16 @@ export function useTutorials(query: string | undefined, max = 6) {
   });
 }
 
-export function useSkincareRecommendations(request: SkincareProfileRequest | undefined) {
-  return useQuery({ queryKey: ['skincare-recommendations', 'v4', request],
-    queryFn: () => apiPost<HybridResponse>('/api/recommendations/skincare/v4', request!),
-    enabled: request !== undefined, gcTime: 0, staleTime: 0 });
+export function useSkincareRecommendations(
+  request: SkincareProfileRequest | undefined, owner: string | undefined,
+  sessionId: string | undefined, authReady: boolean,
+) {
+  const path = '/api/recommendations/skincare/v4';
+  return useQuery({
+    queryKey: ['skincare-recommendations', 'v4', owner, sessionId, request],
+    queryFn: () => owner && sessionId
+      ? apiPost<HybridResponse>(`${path}/recorded`, { sessionId, input: request! }, { expectedUserId: owner })
+      : apiPost<HybridResponse>(path, request!),
+    enabled: authReady && request !== undefined, gcTime: 0, staleTime: 0,
+  });
 }

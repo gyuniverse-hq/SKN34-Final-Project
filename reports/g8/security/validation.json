@@ -1,0 +1,98 @@
+{
+  "utc": "2026-11-26T02:03:05.922528+00:00",
+  "version": "8.30.1",
+  "results": [
+    {
+      "case": "historical-manifests-legacy",
+      "records": 16,
+      "exitCode": 1,
+      "count": 22,
+      "rules": [
+        "generic-api-key"
+      ]
+    },
+    {
+      "case": "historical-manifests-v2",
+      "records": 16,
+      "exitCode": 0,
+      "count": 0,
+      "rules": []
+    },
+    {
+      "case": "pending-g8-new-records-legacy",
+      "records": 53,
+      "exitCode": 1,
+      "count": 2,
+      "rules": [
+        "generic-api-key"
+      ]
+    },
+    {
+      "case": "pending-g8-new-records-v2",
+      "records": 53,
+      "exitCode": 0,
+      "count": 0,
+      "rules": []
+    },
+    {
+      "case": "synthetic-new-commit-same-path-line-and-other-file",
+      "remoteTransmission": false,
+      "exitCode": 1,
+      "count": 2,
+      "rules": [
+        "generic-api-key",
+        "openai-api-key"
+      ]
+    }
+  ],
+  "originalG8TraceUnchanged": true,
+  "finalChecks": {
+    "finishedUtc": "2026-11-26T02:08:36.697604+00:00",
+    "patchFilesScanned": 8,
+    "patchGitleaksFindings": 0,
+    "originalTraceSha256Unchanged": true,
+    "originalPythonSourcesUnchanged": 9,
+    "unittest": {
+      "command": "GITLEAKS_BINARY=<8.30.1> python -m unittest discover -s scripts -p test_g8_evidence.py -v",
+      "passed": 5,
+      "seconds": 7.337
+    },
+    "g8Regression": {
+      "command": "uv run --frozen pytest tests/test_g8_compound_consultation.py tests/test_g8_owned_look.py -q -p no:cacheprovider",
+      "worktree": "original G8 worktree",
+      "passed": 67,
+      "seconds": 0.85,
+      "modelMode": "mock",
+      "actualRemoteModelCalls": 0
+    },
+    "ruff": "passed",
+    "appTypecheck": "passed in original G8 worktree",
+    "appLint": "passed in original G8 worktree",
+    "independentReview": "read-only review found no material defect; no test rerun by reviewer",
+    "remoteCi": "NOT_RUN",
+    "commitPushPr": "NOT_RUN"
+  },
+  "draftPublicationChecks": {
+    "utc": "2026-11-26T02:24:16.133224+00:00",
+    "base": "38a15de0d4fd51a1c7fa99630474c114172ccafc",
+    "app": {
+      "command": "npm run check -- -- --runInBand --silent",
+      "typecheck": "passed",
+      "lint": "passed",
+      "suites": 107,
+      "tests": 1321,
+      "seconds": 112.26
+    },
+    "securityUnitTests": {
+      "passed": 5,
+      "seconds": 54.021
+    },
+    "ruff": "passed",
+    "gitleaks": {
+      "version": "8.30.1",
+      "commitsScanned": 725,
+      "findings": 0
+    },
+    "scope": "Security patch worktree only; original G8 worktree unchanged"
+  }
+}

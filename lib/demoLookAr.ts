@@ -41,7 +41,7 @@ export const DEMO_LOOK_AR: Record<string, DemoLookSlot[]> = {
   // 딸기 토끼상
   'ZAozXs-ZZik': [
     { zone: 'foundation', productId: 'oy-a000000233171', shadeId: '19nc', match: 'video', video: '비디비치 블랙 퍼펙션 커버 핏 쿠션 19nc라이트' },
-    { zone: 'contour', productId: 'oy-a000000201055', shadeId: '02-2', match: 'video', video: '롬앤 베러 댄 컨투어 02그레이쿨' },
+    { zone: 'contour', productId: 'oy-a000000201055', shadeId: 'A000000201055-008', match: 'video', video: '롬앤 베러 댄 컨투어 02그레이쿨' },
     { zone: 'highlighter', productId: 'oy-a000000176088', shadeId: 'a000000176088-010', match: 'similar', video: '세잔느 펄 글로우 하이라이터 (피치 펄)' },
     { zone: 'blush', productId: 'oy-a000000250315', shadeId: '02', match: 'similar', video: '에이오유 보들 크림 블러셔 01 하츄볼 (피치 바닐라 핑크)' },
     { zone: 'brow', productId: 'oy-a000000138671', shadeId: '09', match: 'video', video: '페리페라 스키니 브로우 토프브라운' },
@@ -86,7 +86,7 @@ export const DEMO_LOOK_AR: Record<string, DemoLookSlot[]> = {
   // 카리나 멧갈라
   n5otfjJSSQc: [
     { zone: 'foundation', productId: 'oy-a000000251851', shadeId: '23n', match: 'video', video: '네이밍 올데이 마스터 쿠션 23N' },
-    { zone: 'contour', productId: 'oy-a000000176894', shadeId: '02', match: 'video', video: '데이지크 브이컷 블렌딩 쉐딩 쿨블렌딩' },
+    { zone: 'contour', productId: 'oy-a000000176894', shadeId: 'A000000176894-006', match: 'video', video: '데이지크 브이컷 블렌딩 쉐딩 쿨블렌딩' },
     { zone: 'highlighter', productId: 'oy-a000000263862', shadeId: 'a000000263862-007', match: 'video', video: '오프라 하이라이터 스타아일랜드' },
     { zone: 'blush', productId: 'oy-a000000137964', shadeId: '16', match: 'video', video: '릴리바이레드 러브빔 치크밤 꿀복빔' },
     { zone: 'brow', productId: 'oy-a000000154277', shadeId: '02', match: 'video', video: '키스미 헤비로테이션 내추럴 파우더 아이브로우 애쉬브라운' },
@@ -103,7 +103,7 @@ export const DEMO_LOOK_AR: Record<string, DemoLookSlot[]> = {
     // Reference: 미샤 M 퍼펙트 커버 비비크림 EX 20 쿨 베이지; the catalog only has 미샤 M초보양 비비.
     { zone: 'foundation', productId: 'oy-a000000210065', shadeId: '21', match: 'similar', video: '미샤 M 퍼펙트 커버 비비크림 EX 20 쿨 베이지' },
     { zone: 'contour', productId: 'oy-a000000180297', shadeId: '03', match: 'video', video: '페리페라 브이 쉐딩 03 그레이쉬쿨' },
-    { zone: 'highlighter', productId: 'oy-a000000232152', shadeId: '02', match: 'video', video: '캔메이크 무뉴토 하이라이터 02 로즈 쿼츠' },
+    { zone: 'highlighter', productId: 'oy-a000000232152', shadeId: 'A000000232152-002', match: 'video', video: '캔메이크 무뉴토 하이라이터 02 로즈 쿼츠' },
     { zone: 'blush', productId: 'oy-a000000225392', shadeId: '8', match: 'video', video: '비디비치 페탈 글로우 크림 블러시 08 보타닉 피치' },
     { zone: 'brow', productId: 'oy-a000000138671', shadeId: '03', match: 'video', video: '페리페라 스피디 스키니 브로우 03 내추럴 브라운' },
     { zone: 'eyeshadow', productId: 'oy-a000000168405', shadeId: '09', match: 'video', video: '삐아 레디 투 웨어 아이 섀도우 09 모태분위기' },
@@ -114,7 +114,7 @@ export const DEMO_LOOK_AR: Record<string, DemoLookSlot[]> = {
   // 윈터 또렷 청초
   fDqBPI1SaWY: [
     { zone: 'foundation', productId: 'oy-a000000207117', shadeId: '01', match: 'video', video: '어뮤즈 세라믹 스킨 퍼펙터 파운데이션 01 포슬린' },
-    { zone: 'contour', productId: 'oy-a000000201055', shadeId: '02-2', match: 'video', video: '롬앤 베러 댄 컨투어 02 그레이쿨' },
+    { zone: 'contour', productId: 'oy-a000000201055', shadeId: 'A000000201055-008', match: 'video', video: '롬앤 베러 댄 컨투어 02 그레이쿨' },
     // Reference: 투에이앤 퓨어글래시 하이라이터 슈가베일 (pale pearl); the catalog has no 투에이앤.
     { zone: 'highlighter', productId: 'oy-a000000176088', shadeId: 'a000000176088-018', match: 'similar', video: '투에이앤 퓨어글래시 하이라이터 슈가베일' },
     { zone: 'blush', productId: 'oy-a000000225392', shadeId: '04', match: 'video', video: '비디비치 페탈 글로우 크림 블러시 피오니밀크' },
@@ -136,4 +136,27 @@ export function demoLookVideoId(lookId: string): string {
 
 export function demoLookSlots(lookId: string): DemoLookSlot[] {
   return DEMO_LOOK_AR[demoLookVideoId(lookId)] ?? [];
+}
+
+/** Short on-screen titles for the six demo looks (not the long YouTube title). */
+export const DEMO_LOOK_TITLE_KEYS = {
+  'ZAozXs-ZZik': 'look.demo.strawberry',
+  '4QR0tre9yBI': 'look.demo.yearend',
+  'kWI7_DkDjZ0': 'look.demo.peach',
+  n5otfjJSSQc: 'look.demo.karina',
+  e1gSkUdG6Bo: 'look.demo.sullyoon',
+  fDqBPI1SaWY: 'look.demo.winter',
+} as const;
+
+export type DemoLookTitleKey = (typeof DEMO_LOOK_TITLE_KEYS)[keyof typeof DEMO_LOOK_TITLE_KEYS];
+
+export function isDemoLook(lookId: string): boolean {
+  return Object.prototype.hasOwnProperty.call(DEMO_LOOK_AR, demoLookVideoId(lookId));
+}
+
+export function demoLookTitleKey(lookId: string): DemoLookTitleKey | null {
+  const videoId = demoLookVideoId(lookId);
+  return Object.prototype.hasOwnProperty.call(DEMO_LOOK_TITLE_KEYS, videoId)
+    ? DEMO_LOOK_TITLE_KEYS[videoId as keyof typeof DEMO_LOOK_TITLE_KEYS]
+    : null;
 }

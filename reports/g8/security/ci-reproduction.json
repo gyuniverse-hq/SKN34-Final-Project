@@ -1,0 +1,50 @@
+{
+  "run": "https://github.com/gyuniverse-hq/SKN34-Final-Project/actions/runs/45735521253",
+  "job": 139627693743,
+  "checkout": "0473bf207e7885c3cee03a038e58da50ed6636bc",
+  "base": "c70240ae266930f357fb522e839b6dc544504836",
+  "head": "f96b23bef288b6997da069eb3c482118b9002485",
+  "version": "8.30.1",
+  "commitsScanned": 710,
+  "findings": 22,
+  "fingerprints": [
+    "4173f36658fb96086388971ceb927a651deb147b:reports/g8/n01/trace.jsonl:generic-api-key:146",
+    "4173f36658fb96086388971ceb927a651deb147b:reports/g8/n01/trace.jsonl:generic-api-key:156",
+    "1dceb38cf1eabf9f1aac9deccb7e2919fd8e4298:reports/g8/n01/trace.jsonl:generic-api-key:93",
+    "1dceb38cf1eabf9f1aac9deccb7e2919fd8e4298:reports/g8/n01/trace.jsonl:generic-api-key:141",
+    "1dceb38cf1eabf9f1aac9deccb7e2919fd8e4298:reports/g8/n01/trace.jsonl:generic-api-key:145",
+    "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:1",
+    "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:1",
+    "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:1",
+    "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:4",
+    "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:4",
+    "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:6",
+    "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:6",
+    "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:9",
+    "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:9",
+    "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:9",
+    "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:14",
+    "64188a2861a804b6ff1d4d89558fc11ce0995e00:reports/g8/n01/trace.jsonl:generic-api-key:1",
+    "64188a2861a804b6ff1d4d89558fc11ce0995e00:reports/g8/n01/trace.jsonl:generic-api-key:16",
+    "64188a2861a804b6ff1d4d89558fc11ce0995e00:reports/g8/n01/trace.jsonl:generic-api-key:32",
+    "f7b97e1b3cd2ef0134804d12d7b14e89417e0cec:reports/g8/n01/trace.jsonl:generic-api-key:49",
+    "f7b97e1b3cd2ef0134804d12d7b14e89417e0cec:reports/g8/n01/trace.jsonl:generic-api-key:74",
+    "f7b97e1b3cd2ef0134804d12d7b14e89417e0cec:reports/g8/n01/trace.jsonl:generic-api-key:92"
+  ],
+  "command": "gitleaks detect --source . --config .gitleaks.toml --verbose --redact",
+  "fetchRefspecs": [
+    "+refs/heads/*:refs/remotes/origin/*",
+    "+refs/tags/*:refs/tags/*",
+    "+0473bf207e7885c3cee03a038e58da50ed6636bc:refs/remotes/pull/294/merge"
+  ],
+  "localLinux": {
+    "sameFingerprintMultiset": true,
+    "commitsScanned": 712,
+    "checkout": "0473bf207e7885c3cee03a038e58da50ed6636bc",
+    "before": 22,
+    "after": 0,
+    "command": "gitleaks detect --source . --config .gitleaks.toml --verbose --redact",
+    "additionalRefHistory": true,
+    "remoteCiRerun": false
+  }
+}

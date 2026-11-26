@@ -8,7 +8,8 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
-    public code?: string
+    public code?: string,
+    public deletionReceipt?: string,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -57,7 +58,7 @@ export const CHAT_API_BASE_URL = resolveChatApiBaseUrl(process.env.EXPO_PUBLIC_C
 /** Sends a request to the backend (`path` starts with /api) with the Supabase access token. */
 async function apiRequest(
   path: string,
-  init: { method: 'GET' | 'POST' | 'DELETE'; headers?: Record<string, string>; body?: string | ArrayBuffer },
+  init: { method: 'GET' | 'POST' | 'PATCH' | 'DELETE'; headers?: Record<string, string>; body?: string | ArrayBuffer },
   options: { baseUrl?: string; timeoutMs?: number; fixedToken?: { value: string | null }; signal?: AbortSignal } = {}
 ): Promise<Response> {
   const baseUrl = (options.baseUrl ?? API_BASE_URL).replace(/\/+$/, '');
@@ -88,37 +89,45 @@ async function apiRequest(
   }
 
   if (!res.ok) {
-    let body: ApiErrorBody | undefined;
+    let body: (ApiErrorBody & { deletionReceipt?: unknown }) | undefined;
     try {
-      body = (await res.json()) as ApiErrorBody;
+      body = await res.json();
     } catch {
       // non-JSON error body
     }
-    throw new ApiError(body?.error ?? `Request failed (${res.status})`, res.status, body?.code);
+    const receipt = body?.code === 'account_deletion_in_progress' && typeof body.deletionReceipt === 'string'
+      ? body.deletionReceipt : undefined;
+    throw new ApiError(body?.error ?? `Request failed (${res.status})`, res.status, body?.code, receipt);
   }
   return res;
 }
 
-export async function apiGet<T>(path: string, options: { timeoutMs?: number } = {}): Promise<T> {
-  const res = await apiRequest(path, { method: 'GET' }, options);
+async function ownerToken(expectedUserId?: string) {
+  if (expectedUserId === undefined) return undefined;
+  const credentials = await arCredentials();
+  if (credentials.owner.kind !== 'user' || credentials.owner.id !== expectedUserId) {
+    throw new ApiError('Request owner changed', 0, 'owner_changed');
+  }
+  return { value: credentials.token };
+}
+
+export async function apiGet<T>(path: string, options: { timeoutMs?: number; expectedUserId?: string } = {}): Promise<T> {
+  const res = await apiRequest(path, { method: 'GET' }, { ...options, fixedToken: await ownerToken(options.expectedUserId) });
   return (await res.json()) as T;
 }
 
 export async function apiPost<T>(
   path: string,
   body: unknown,
-  options: { headers?: Record<string, string>; baseUrl?: string; timeoutMs?: number; expectedUserId?: string } = {}
+  options: { headers?: Record<string, string>; baseUrl?: string; timeoutMs?: number; expectedUserId?: string; anonymous?: true } = {}
 ): Promise<T> {
   // Feedback belongs to the user who saw the recommendation, even across an account switch.
-  const credentials = options.expectedUserId === undefined ? undefined : await arCredentials();
-  if (credentials && (credentials.owner.kind !== 'user' || credentials.owner.id !== options.expectedUserId)) {
-    throw new ApiError('Request owner changed', 0, 'owner_changed');
-  }
+  const fixedToken = options.anonymous ? { value: null } : await ownerToken(options.expectedUserId);
   const res = await apiRequest(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options.headers },
     body: JSON.stringify(body),
-  }, { ...options, ...(credentials ? { fixedToken: { value: credentials.token } } : {}) });
+  }, { ...options, fixedToken });
   return (await res.json()) as T;
 }
 
@@ -257,6 +266,48 @@ export async function apiPostChat<T>(
   }
 }
 
-export async function apiDelete(path: string): Promise<void> {
-  await apiRequest(path, { method: 'DELETE' });
+export async function apiDelete(
+  path: string,
+  options: { expectedUserId?: string; expectedStatus?: number } = {},
+): Promise<void> {
+  const response = await apiRequest(path, { method: 'DELETE' }, {
+    fixedToken: await ownerToken(options.expectedUserId),
+  });
+  if (options.expectedStatus !== undefined && response.status !== options.expectedStatus) {
+    throw new ApiError('Unexpected deletion response', response.status);
+  }
+}
+
+/** Chat memory and conversation writes stay bound to the verified signed-in owner. */
+export async function apiChatUserRequest<T>(
+  path: string,
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+  expectedUserId: string,
+  body?: unknown,
+  headers?: Record<string, string>,
+): Promise<T> {
+  const client = getSupabase();
+  let changed = false;
+  const subscription = client?.auth.onAuthStateChange((_event, session) => {
+    if (session?.user.id !== expectedUserId) changed = true;
+  }).data.subscription;
+  try {
+    const credentials = await arCredentials();
+    if (changed || credentials.owner.kind !== 'user' || credentials.owner.id !== expectedUserId) {
+      throw new ApiError('Chat owner changed', 0, 'chat_owner_changed');
+    }
+    const response = await apiRequest(path, {
+      method,
+      headers: { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...headers },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    }, { baseUrl: CHAT_API_BASE_URL, fixedToken: { value: credentials.token } });
+    const data = response.status === 204 ? undefined : await response.json();
+    const latest = await arCredentials();
+    if (changed || latest.owner.kind !== 'user' || latest.owner.id !== expectedUserId) {
+      throw new ApiError('Chat owner changed', 0, 'chat_owner_changed');
+    }
+    return data as T;
+  } finally {
+    subscription?.unsubscribe();
+  }
 }

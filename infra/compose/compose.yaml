@@ -21,6 +21,9 @@ x-ready: &ready
   retries: 12
   start_period: 10s
 
+x-api-build: &api-build
+  context: ../../backend/api
+
 services:
   # Waits for api only: shopping keeps working while the chatbot is down (nginx answers 503 for chat).
   gateway:
@@ -33,12 +36,14 @@ services:
 
   api:
     <<: *backend
-    build: ../../backend/api
+    build: *api-build
     image: vishue-api:dev
     environment:
       <<: *backend-env
       # Optional read-only artifact: add compose.ingredients.yaml (see docs/DEPLOYMENT.md).
       INGREDIENT_MAPPING_PATH: ""
+      CART_RECOMMENDATION_EXPERIMENT: '${CART_RECOMMENDATION_EXPERIMENT:-}'
+      SKIN_RECOMMENDATION_FEEDBACK_CONSENTED_MEMBERS: '${SKIN_RECOMMENDATION_FEEDBACK_CONSENTED_MEMBERS:-[]}'
       DATABASE_URL: postgresql+asyncpg://vishue:${POSTGRES_PASSWORD:-vishue}@postgres:5432/vishue_db
       REDIS_URL: redis://redis:6379/0
       NAVER_CLIENT_ID: ${NAVER_CLIENT_ID:-}
@@ -64,7 +69,8 @@ services:
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:-vishue-local}
       REDIS_URL: redis://redis:6379/1
-      CATALOG_API_URL: ${CATALOG_API_URL:-${EXPO_PUBLIC_API_BASE_URL:-http://api:8000}}
+      CHAT_DATABASE_URL: postgresql+asyncpg://${CHAT_POSTGRES_USER:-vishue_chat}:${CHAT_POSTGRES_PASSWORD:-vishue-chat-local}@postgres:5432/${CHAT_POSTGRES_DB:-vishue_chat_db}
+      CATALOG_API_URL: ${CATALOG_API_URL:-http://api:8000}
       LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_MODEL: ${LLM_MODEL:-}
@@ -80,12 +86,47 @@ services:
   # One-off jobs: schema migration before api starts, graph sync once api is ready.
   migrate:
     image: vishue-api:dev
-    build: ../../backend/api
+    build: *api-build
     command: ["alembic", "upgrade", "head"]
     environment:
       DATABASE_URL: postgresql+asyncpg://vishue:${POSTGRES_PASSWORD:-vishue}@postgres:5432/vishue_db
     depends_on:
       postgres: { condition: service_healthy }
+
+  # Explicit G7 setup; does not change the existing postgres volume at container startup.
+  chat-db-bootstrap:
+    image: pgvector/pgvector:0.8.2-pg17-bookworm
+    profiles: ["g7"]
+    entrypoint: ["sh", "/init-chat-db.sh"]
+    environment:
+      POSTGRES_USER: vishue
+      PGPASSWORD: ${POSTGRES_PASSWORD:-vishue}
+      CHAT_POSTGRES_USER: ${CHAT_POSTGRES_USER:-vishue_chat}
+      CHAT_POSTGRES_PASSWORD: ${CHAT_POSTGRES_PASSWORD:-vishue-chat-local}
+      CHAT_POSTGRES_DB: ${CHAT_POSTGRES_DB:-vishue_chat_db}
+    volumes: ["./init-chat-db.sh:/init-chat-db.sh:ro"]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  chat-migrate:
+    image: vishue-chatbot:dev
+    build: ../../backend/chatbot
+    profiles: ["g7"]
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      CHAT_DATABASE_URL: postgresql+asyncpg://${CHAT_POSTGRES_USER:-vishue_chat}:${CHAT_POSTGRES_PASSWORD:-vishue-chat-local}@postgres:5432/${CHAT_POSTGRES_DB:-vishue_chat_db}
+    depends_on:
+      chat-db-bootstrap: { condition: service_completed_successfully }
+
+  chat-checkpoint-setup:
+    image: vishue-chatbot:dev
+    build: ../../backend/chatbot
+    profiles: ["g7"]
+    command: ["python", "-m", "app.jobs.init_chat_checkpoints"]
+    environment:
+      CHAT_DATABASE_URL: postgresql+asyncpg://${CHAT_POSTGRES_USER:-vishue_chat}:${CHAT_POSTGRES_PASSWORD:-vishue-chat-local}@postgres:5432/${CHAT_POSTGRES_DB:-vishue_chat_db}
+    depends_on:
+      chat-migrate: { condition: service_completed_successfully }
 
   sync-graph:
     image: vishue-chatbot:dev
@@ -102,7 +143,7 @@ services:
   # `docker compose ... run --rm seed` to load backend/api/seed/catalog.json, then rerun sync-graph.
   seed:
     image: vishue-api:dev
-    build: ../../backend/api
+    build: *api-build
     command: ["python", "-m", "app.jobs.seed_catalog", "seed/catalog.json"]
     environment:
       DATABASE_URL: postgresql+asyncpg://vishue:${POSTGRES_PASSWORD:-vishue}@postgres:5432/vishue_db
@@ -115,7 +156,7 @@ services:
     profiles: ["tools"]
 
   postgres:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:0.8.2-pg17-bookworm
     environment:
       POSTGRES_USER: vishue
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vishue}

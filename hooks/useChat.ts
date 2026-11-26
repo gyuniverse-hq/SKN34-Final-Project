@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { uuid } from 'expo';
 import { apiPostChat } from '@/lib/api';
-import type { BeautyChatContext, ChatResponse, ChatScreenContext, ChatStyleContext } from '@/types';
+import type { RecentChatMessage, BeautyChatContext, ChatResponse, ChatScreenContext, ChatStyleCandidate, ChatStyleContext, ChatStyleCondition } from '@/types';
 
 type ChatLocale = 'en' | 'ko' | 'ja' | 'zh';
 const CHAT_TIMEOUT_MS = 90_000;
@@ -9,19 +9,40 @@ const CHAT_TIMEOUT_MS = 90_000;
 export function useChat() {
   return useMutation({
     retry: false,
-    mutationFn: async ({ message, locale, category, chatContext, screenContext, styleContext, requestId, expectedUserId }: {
+    mutationFn: async ({ message, locale, category, chatContext, screenContext, styleContext, styleSearch, excludedStyle, previousStyleCandidates, previousStyleSelection, styleConditions, styleCompare, requestId, expectedUserId, generalMakeup, recentMessages, clarificationId, conversationId, expectedConversationVersion }: {
       message: string; locale: ChatLocale; category?: 'product' | 'ingredient' | 'style';
       chatContext?: BeautyChatContext;
       screenContext?: ChatScreenContext;
       styleContext?: ChatStyleContext;
+      styleSearch?: boolean;
+      excludedStyle?: Pick<ChatStyleCandidate, 'kind' | 'lookId'>;
+      previousStyleCandidates?: Pick<ChatStyleCandidate, 'kind' | 'lookId'>[];
+      previousStyleSelection?: Pick<ChatStyleCandidate, 'kind' | 'lookId'>;
+      styleConditions?: ChatStyleCondition[];
+      styleCompare?: boolean;
       requestId?: string;
       expectedUserId?: string | null;
+      generalMakeup?: boolean;
+      recentMessages?: RecentChatMessage[];
+      clarificationId?: string;
+      conversationId?: string;
+      expectedConversationVersion?: number;
     }) =>
       apiPostChat<ChatResponse>(
         {
+          ...(recentMessages?.length ? { recentMessages } : {}),
+          ...(clarificationId ? { clarificationId } : {}),
           message, locale, requestId: requestId ?? uuid.v4(),
-          ...(category || chatContext || screenContext || styleContext
-            ? { requestType: category === 'style' && !chatContext ? 'style_consultation' : 'beauty_consultation' }
+          ...(conversationId ? { conversationId, expectedConversationVersion, structuredMemory: true } : {}),
+          ...(styleSearch ? { styleSearch: true } : {}),
+          ...(excludedStyle ? { excludedStyle } : {}),
+          ...(previousStyleCandidates?.length ? { previousStyleCandidates } : {}),
+          ...(previousStyleSelection ? { previousStyleSelection } : {}),
+          ...(styleConditions ? { styleConditions } : {}),
+          ...(styleCompare ? { styleCompare: true } : {}),
+          ...(generalMakeup ? { generalMakeup: true } : {}),
+          ...(category || (!generalMakeup && chatContext) || screenContext || styleContext || styleSearch
+            ? { requestType: styleSearch || (category === 'style' && !chatContext) ? 'style_consultation' : 'beauty_consultation' }
             : {}),
           ...(styleContext ? { styleContext } : {}),
           ...(chatContext ? { chatContext } : {}),

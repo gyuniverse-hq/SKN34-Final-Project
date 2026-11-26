@@ -10,6 +10,25 @@ One backend service: ConfigMap, Deployment, Service, HPA, PDB.
 {{- $name := printf "%s-%s" (include "vishue.fullname" $root) $c -}}
 {{- $selector := include "vishue.selector" (dict "root" $root "component" $c) -}}
 {{- $image := include "vishue.image" (dict "root" $root "name" $svc.image) -}}
+{{- $lip := dig "persistence" "lipEval" (dict) $svc -}}
+{{- $lipOn := and (eq $c "api") (dig "enabled" false $lip) -}}
+{{- if $lipOn }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $name }}-lip-eval
+  labels:
+    {{- include "vishue.labels" $root | nindent 4 }}
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with dig "storageClassName" "" $lip }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ dig "size" "20Gi" $lip | quote }}
+---
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -118,10 +137,19 @@ spec:
           {{- include "vishue.containerSecurityContext" . | nindent 10 }}
           volumeMounts:
             - { name: tmp, mountPath: /tmp }
+            {{- if $lipOn }}
+            - name: lip-eval
+              mountPath: {{ dig "mountPath" "/data/lip-eval" $lip | quote }}
+            {{- end }}
       volumes:
         - name: tmp
           emptyDir:
             sizeLimit: 64Mi
+        {{- if $lipOn }}
+        - name: lip-eval
+          persistentVolumeClaim:
+            claimName: {{ $name }}-lip-eval
+        {{- end }}
 ---
 apiVersion: v1
 kind: Service

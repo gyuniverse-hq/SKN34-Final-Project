@@ -1,6 +1,7 @@
 """Versioned serving contract. Initial ranking rules are unvalidated heuristics."""
 
 from typing import Annotated, Literal
+from uuid import UUID
 
 from pydantic import ConfigDict, Field, StringConstraints, model_validator
 
@@ -14,23 +15,6 @@ GOALS = ("dryness", "sensitivity", "pigmentation", "wrinkles", "pores", "oilines
 
 class StrictModel(ApiModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
-
-
-class SkincareRequest(StrictModel):
-    primary_goal: Goal
-    secondary_goals: list[Goal] = Field(default_factory=list, max_length=6)
-    skin_type: SkinType = "unknown"
-    irritation_signal: Literal["caution", "none", "unknown"] = "unknown"
-    goal_policy_version: Literal["care-goals-v1"]
-    limit: int = Field(default=8, ge=1, le=20, strict=True)
-    include_trace: bool = False
-
-    @model_validator(mode="after")
-    def canonicalize(self):
-        self.secondary_goals = [
-            g for g in GOALS if g in self.secondary_goals and g != self.primary_goal
-        ]
-        return self
 
 
 NonBlank = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
@@ -283,68 +267,35 @@ class GoalCoverage(ApiModel):
     status: Literal["ok", "mapping_unavailable", "no_matches"]
 
 
-class SkincareMatch(ApiModel):
-    product: Product
-    option_id: str
-    option_name: str
-    price_krw: int = Field(alias="priceKRW")
-    matched_goals: list[Goal]
-    target_concern: Goal
-    reason_code: Literal["primary", "secondary"]
-
-
-class SkincareResponse(ApiModel):
-    strategy_version: Literal["skincare-ingredient-cosing-v1"] = "skincare-ingredient-cosing-v1"
-    data_version: str | None = None
-    coverage: list[GoalCoverage]
-    matches: list[SkincareMatch]
-    trace: dict | None = None
-
-
-DetectionSource = Literal["analysis", "survey", "skinType"]
+DetectionSource = Literal["analysis", "survey", "skinType", "conversation"]
 MatchSource = Literal[
-    "primary",
-    "secondary",
     "analysis",
     "survey",
     "skinType",
     "skinProfile",
     "concern",
     "analysisSupport",
+    "conversation",
 ]
 
 
 class DetectedConcern(StrictModel):
     goal: Goal
-    sources: list[DetectionSource] = Field(min_length=1, max_length=3)
+    sources: list[DetectionSource] = Field(min_length=1, max_length=4)
 
 
 class SkincareProfileRequest(StrictModel):
     detected_concerns: list[DetectedConcern] = Field(default_factory=list, max_length=7)
-    # Only the three mobile-v4 binary models share a verified 0.5 decision threshold.
+    # Mobile v4 ROI maxima and the mobile v4.1 whole-image blemish score.
     analysis_scores: dict[
-        Literal["pores", "pigmentation", "wrinkles"],
+        Literal["pores", "pigmentation", "wrinkles", "blemish"],
         Annotated[float, Field(ge=0, le=1, strict=True, allow_inf_nan=False)],
     ] = Field(default_factory=dict)
+    blemish_threshold: (
+        Annotated[float, Field(gt=0, lt=1, strict=True, allow_inf_nan=False)] | None
+    ) = None
     skin_type: SkinType = "unknown"
     irritation_signal: Literal["caution", "none", "unknown"] = "unknown"
-
-
-class HybridRequest(SkincareProfileRequest):
-    primary_goal: Goal
-    secondary_goals: list[Goal] = Field(default_factory=list, max_length=6)
-    balance_goal: Literal["primary", "secondary"] | None = None
-
-    @model_validator(mode="after")
-    def validate_balance_goal(self):
-        balance = {"dryness", "oiliness"}
-        if self.balance_goal == "primary" and self.primary_goal not in balance:
-            raise ValueError("Primary balance requires a moisture or oil goal")
-        if self.balance_goal == "secondary" and (
-            self.primary_goal in balance or not balance.issubset(self.secondary_goals)
-        ):
-            raise ValueError("Secondary balance requires both moisture and oil goals")
-        return self
 
 
 class ConcernReason(ApiModel):
@@ -363,15 +314,23 @@ class HybridMatch(ApiModel):
     option_name: str
     price_krw: int = Field(alias="priceKRW")
     reasons: list[ConcernReason]
+    candidate_id: UUID | None = Field(default=None, exclude_if=lambda value: value is None)
+
+
+class SkincareHistory(ApiModel):
+    request_id: UUID
+    session_id: UUID
 
 
 class HybridResponse(ApiModel):
-    strategy_version: Literal["skincare-hybrid-v2-cosing-only-v1", "skincare-v4"] = (
-        "skincare-hybrid-v2-cosing-only-v1"
-    )
+    strategy_version: Literal["skincare-v4"] = "skincare-v4"
     data_version: str | None
+    history: SkincareHistory | None = Field(default=None, exclude_if=lambda value: value is None)
     coverage: list[GoalCoverage]
     overall_top5: list[HybridMatch]
+    overall_top10: list[HybridMatch] | None = Field(
+        default=None, max_length=10, exclude_if=lambda value: value is None
+    )
     by_concern: dict[Goal, list[HybridMatch]]
     balance_matches: list[HybridMatch] | None = Field(
         default=None, exclude_if=lambda value: value is None

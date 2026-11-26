@@ -1,142 +1,114 @@
-import { KStyleCollection, type KStyleCollectionTab } from '@/components/celeb/KStyleCollection';
-import { ProductCard } from '@/components/shop/ProductCard';
+import { useRouter, type Href } from 'expo-router';
+import { useMemo } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { KStyleCollection } from '@/components/celeb/KStyleCollection';
+import { HomeCategories, HomeProductSection } from '@/components/home/HomeCatalog';
+import { HomeSearch } from '@/components/home/HomeSearch';
 import { ShopHeaderActions } from '@/components/shop/ShopHeaderActions';
 import { SkinMatchSection } from '@/components/skin/SkinMatchSection';
 import { InlineState } from '@/components/ui/InlineState';
-import { SectionHeader } from '@/components/ui/SectionHeader';
+import { homeLayout, homeType } from '@/constants/homeLayout';
 import { theme } from '@/constants/theme';
-import { CELEBRITIES } from '@/constants/celebrities';
 import { useSkinMatchedProducts } from '@/hooks/useSkinMatchedProducts';
+import { orderCatalogProducts, type RankingCategory } from '@/lib/discovery';
 import { useI18n } from '@/lib/i18n';
-import { useStyleLooks, useProducts } from '@/lib/queries';
-import { celebrityHref, productHref } from '@/lib/routes';
-import { styleLookGroupLabel } from '@/lib/styleLookGroups';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRouter, type Href } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-const HOME_PRODUCT_LIMIT = 8;
-const HOME_LOOK_LIMIT = 4;
-const SKIN_TYPE_CONCERN_LIMIT = 2;
+import { useProductDiscoveryOrder, useProducts, useStyleLooks } from '@/lib/queries';
+import { celebrityHref, productHref, searchHref } from '@/lib/routes';
+import type { Product } from '@/types';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { t } = useI18n();
-  const [collectionTab, setCollectionTab] = useState<KStyleCollectionTab>('celebrity');
+  const width = Math.min(useWindowDimensions().width, homeLayout.maxWidth);
   const looks = useStyleLooks();
   const products = useProducts();
+  const discoveryOrder = useProductDiscoveryOrder(true);
   const skinMatch = useSkinMatchedProducts();
-  const skinTypeLabel = skinMatch.concerns
-    .slice(0, SKIN_TYPE_CONCERN_LIMIT)
-    .map((c) => t(`concern.${c}`))
-    .join('·');
-
-  const featuredLooks = looks.data?.filter((look, index, all) => all.findIndex((item) => item.group === look.group) === index).slice(0, HOME_LOOK_LIMIT);
-  const refreshing = looks.isRefetching || products.isRefetching || skinMatch.products.isRefetching;
-  const refresh = () => {
-    looks.refetch();
-    products.refetch();
-    skinMatch.products.refetch();
+  const shelves = useMemo(() => {
+    const productsById = new Map(products.data?.map(product => [product.id, product]));
+    const order = discoveryOrder.data;
+    return {
+      hot: orderCatalogProducts(order?.hot ?? [], productsById).map(entry => entry.product),
+      makeup: orderCatalogProducts(order?.makeup ?? [], productsById).map(entry => entry.product),
+      skincare: orderCatalogProducts(order?.skincare ?? [], productsById).map(entry => entry.product),
+      newArrivals: orderCatalogProducts(order?.newArrivals ?? [], productsById).map(entry => entry.product),
+    };
+  }, [products.data, discoveryOrder.data]);
+  const shelvesPending = products.isPending || discoveryOrder.isPending;
+  const shelvesFailed = products.isError || discoveryOrder.isError;
+  const skinTypeLabel = skinMatch.concerns.slice(0, 2).map(c => t(`concern.${c}`)).join('·');
+  const refreshProducts = () => {
+    void products.refetch();
+    void discoveryOrder.refetch();
   };
+  const refresh = () => {
+    void looks.refetch();
+    refreshProducts();
+    if (skinMatch.visible) void skinMatch.products.refetch();
+  };
+  const openProduct = (product: Product) => router.push(productHref(product.id));
+  const openChart = (category: RankingCategory) => router.push({ pathname: '/rankings', params: { category } } as Href);
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={theme.colors.rose} />}>
+      <ScrollView contentContainerStyle={[styles.content, { width }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={looks.isRefetching || products.isRefetching || discoveryOrder.isRefetching || skinMatch.products.isRefetching}
+          onRefresh={refresh} tintColor={theme.colors.rose} />}>
         <View style={styles.header}>
-          <Text style={styles.logo} accessibilityRole="header">
-            VISHUE<Text style={styles.logoDot}>.</Text>
-          </Text>
-          <View style={styles.headerActions}>
-            <Pressable accessibilityRole="button" accessibilityLabel={t('search.title')} onPress={() => router.push('/discover' as Href)} style={styles.searchButton}>
-              <Ionicons name="search-outline" size={22} color={theme.colors.ink} />
-            </Pressable>
-            <ShopHeaderActions onOpenCart={() => router.push('/cart')} />
-          </View>
+          <Text style={styles.logo} accessibilityRole="header">VISHUE<Text style={styles.logoDot}>.</Text></Text>
+          <ShopHeaderActions showLanguage={false} onOpenCart={() => router.push('/cart')} />
         </View>
-
-        <KStyleCollection
-          activeTab={collectionTab}
-          celebrities={CELEBRITIES.map((celebrity) => ({ celebrity, name: t(celebrity.nameKey) }))}
-          looks={featuredLooks}
-          looksLoading={looks.isPending}
-          looksError={looks.isError}
-          eyebrow={t('home.eyebrow')}
-          title={t('home.collectionTitle')}
-          celebrityLabel={t('home.collectionCelebrity')}
-          styleLabel={t('home.collectionStyle')}
-          viewAllLabel={t('home.viewAll')}
-          emptyMessage={collectionTab === 'celebrity' ? t('home.collectionCelebrityEmpty') : t('looks.empty')}
-          onTabChange={setCollectionTab}
-          onViewAll={() => router.push(collectionTab === 'celebrity' ? '/celebrities' as Href : '/celeb')}
-          onRetry={() => looks.refetch()}
-          onPressCelebrity={(celebrity) => router.push(celebrityHref(celebrity.id))}
-          onPressStyle={(look) => router.push({ pathname: '/style-look/[id]', params: { id: look.id } } as Href)}
-          groupLabel={(group) => styleLookGroupLabel(group, t)}
-          productLabel={(count) => t('looks.itemCount', { count })}
-        />
-
-        <View style={styles.section}>
-          <SectionHeader
-            eyebrow={t('home.pickEyebrow')}
-            title={t('home.pickTitle')}
-            actionLabel={t('home.viewAll')}
-            onAction={() => router.push('/shop')}
-          />
-          {products.isPending ? (
-            <InlineState status="loading" />
-          ) : products.isError ? (
-            <InlineState status="error" onRetry={() => products.refetch()} />
-          ) : products.data.length === 0 ? (
-            <InlineState status="empty" message={t('shop.emptyCatalog')} />
+        <HomeSearch onSearch={q => router.push(searchHref({ q, source: 'home' }))}>
+          <KStyleCollection pageWidth={width} looks={looks.data} looksLoading={looks.isPending} looksError={looks.isError}
+            onRetry={() => void looks.refetch()} onViewAll={tab => router.push(tab === 'celebrity' ? '/celebrities' : '/celeb')}
+            onPressCelebrity={id => router.push(celebrityHref(id))}
+            onPressStyle={look => router.push({ pathname: '/style-look/[id]', params: { id: look.id } } as Href)} />
+          <HomeCategories onPress={category => router.push(searchHref({ category, source: 'home' }))} />
+          {shelvesPending || shelvesFailed ? (
+            <View style={styles.catalogState}><InlineState status={shelvesPending ? 'loading' : 'error'} onRetry={refreshProducts} /></View>
           ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.productRail}>
-              {products.data.slice(0, HOME_PRODUCT_LIMIT).map((p) => (
-                <View key={p.id} style={styles.productItem}>
-                  <ProductCard
-                    product={p}
-                    shadeLabel={t('shop.shadeCount', { count: p.shades.length })}
-                    onPress={() => router.push(productHref(p.id))}
-                  />
-                </View>
-              ))}
-            </ScrollView>
+            <>
+              <HomeProductSection featured pageWidth={width} title={t('discovery.hot')} products={shelves.hot}
+                emptyMessage={t('discovery.hotEmpty')} onPress={openProduct} />
+              <HomeProductSection preview="makeup" pageWidth={width} title={t('discovery.makeupRanking')} products={shelves.makeup}
+                emptyMessage={t('discovery.rankingEmpty')} onViewAll={() => openChart('makeup')} onPress={openProduct} />
+              <HomeProductSection preview="skincare" pageWidth={width} title={t('discovery.skinRanking')} products={shelves.skincare}
+                emptyMessage={t('discovery.rankingEmpty')} onViewAll={() => openChart('skincare')} onPress={openProduct} />
+              <HomeProductSection preview="new" pageWidth={width} title={t('discovery.new')} products={shelves.newArrivals}
+                emptyMessage={t('discovery.newEmpty')} onViewAll={() => router.push(searchHref({ collection: 'new', source: 'home' }))} onPress={openProduct} />
+            </>
           )}
-        </View>
-
-        <SkinMatchSection
-          title={skinTypeLabel ? t('home.skinMatchTitle', { type: skinTypeLabel }) : t('home.skinMatchIntro')}
-          actionLabel={skinMatch.hasProfile ? t('home.skinReanalyze') : t('home.skin')}
-          products={skinMatch.products.data?.slice(0, HOME_PRODUCT_LIMIT)}
-          loading={skinMatch.products.isPending}
-          error={skinMatch.products.isError}
-          emptyMessage={t('home.skinMatchEmpty')}
-          onAction={() => router.push('/skin-analysis')}
-          onRetry={() => skinMatch.products.refetch()}
-          onPressProduct={(p) => router.push(productHref(p.id))}
-        />
-
-        <Text style={styles.disclaimer}>{t('home.disclaimer')}</Text>
+          {!products.isPending && !products.isError && (
+            <HomeProductSection pageWidth={width} title={t('home.pickTitle')} products={products.data}
+              emptyMessage={t('shop.emptyCatalog')} onViewAll={() => router.push('/shop')} onPress={openProduct} />
+          )}
+          <SkinMatchSection
+            title={skinMatch.visible && skinTypeLabel ? t('home.skinMatchTitle', { type: skinTypeLabel }) : t('skinAccess.homeTitle')}
+            actionLabel={skinMatch.checking || skinMatch.failed ? undefined :
+              t(skinMatch.visible ? 'home.skinReanalyze' : skinMatch.needsSubscription ? 'skinAccess.viewMembership' : 'skinAccess.analyze')}
+            availability={skinMatch.visible ? undefined : t(skinMatch.needsSubscription ? 'skinAccess.afterJoin' : 'skinAccess.afterAnalysis')}
+            products={skinMatch.products.data?.slice(0, 8)}
+            loading={skinMatch.checking || (skinMatch.visible && skinMatch.products.isPending)}
+            error={skinMatch.failed || (skinMatch.visible && skinMatch.products.isError)}
+            emptyMessage={t('home.skinMatchEmpty')}
+            onAction={() => router.push(skinMatch.needsSubscription ? '/membership' : '/skin-consent')}
+            onRetry={() => skinMatch.failed ? skinMatch.retry() : skinMatch.products.refetch()}
+            onPressProduct={openProduct} />
+          <Text style={styles.disclaimer}>{t('home.disclaimer')}</Text>
+        </HomeSearch>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.colors.surface },
-  content: { padding: theme.spacing.lg, paddingBottom: 104 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  logo: { fontFamily: theme.fontFamily.display, fontSize: 28, fontWeight: '700', color: theme.colors.rose, letterSpacing: -0.5 },
+  screen: { flex: 1, backgroundColor: homeLayout.background },
+  content: { alignSelf: 'center', paddingBottom: 96 },
+  header: { paddingHorizontal: 17, minHeight: homeLayout.headerHeight, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  logo: { ...homeType(34), fontFamily: homeLayout.displayFont, color: theme.colors.roseDark },
   logoDot: { color: theme.colors.accent },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  searchButton: { width: 40, height: 40, borderRadius: theme.radius.pill, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.card, alignItems: 'center', justifyContent: 'center' },
-  section: { marginTop: 28 },
-  productRail: { marginHorizontal: -6 },
-  productItem: { width: 168 },
-  disclaimer: { marginTop: 28, fontSize: 11, lineHeight: 16, color: theme.colors.inkFaint },
+  catalogState: { marginHorizontal: homeLayout.gutter, marginBottom: 23 },
+  disclaimer: { ...homeType(11), marginHorizontal: homeLayout.gutter, marginTop: 18, lineHeight: 16, color: theme.colors.inkFaint },
 });

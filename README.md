@@ -285,7 +285,7 @@ WebView 전면 카메라 ─▶ 자동 촬영 게이트 (얼굴 정렬·조명) 
 
 - 사진·ROI·텐서는 기기 메모리에서만 처리하고, 화면을 벗어나거나 취소하면 참조를 지웁니다.
 - Android 전용 빌드는 CameraX·ML Kit·ONNX Runtime 네이티브 경로를 씁니다(`modules/skin-analysis/android/`).
-- 모델 버전은 `SKIN_ANALYSIS_MODEL`(`skin-analysis-v3` / `v4`, 기본 v4)로 고르고, `npm run skin:prepare`가 선택한 버전만 ONNX로 내보냅니다.
+- 모델 버전은 `SKIN_ANALYSIS_MODEL`(`skin-analysis-v4` / `skin-analysis-v4.1`, 기본 v4)로 고르고, `npm run skin:prepare`가 선택한 버전만 ONNX로 내보냅니다.
 
 ### 4-3. 챗봇 Supervisor 파이프라인
 
@@ -349,6 +349,8 @@ collect_youtube_playlist ─▶ normalize_youtube_candidates ─▶ match_video_
 | 헬스 체크 | `/healthz`는 의존성을 보지 않음(연쇄 재시작 방지), `/readyz`는 DB·Redis 연결 확인 |
 | 관측성 | 한 줄 JSON 로그, 요청마다 `X-Request-ID` |
 | 인증 | Supabase JWT를 JWKS로 로컬 검증([ADR-0005](docs/adr/0005-supabase-auth-jwks.md)). secret 키는 회원 탈퇴용으로 `api`만 보유([ADR-0010](docs/adr/0010-account-deletion-secret-key.md)) |
+
+G5 벡터 검색에는 PostgreSQL 17과 pgvector 0.8.2가 필요합니다. 팀 로컬 Compose는 pgvector 이미지를 사용합니다. 기존 별도 G5 이력 DB는 이전 절차 검증 전 일반 이력을 적용하지 않습니다.
 
 ### 4-6. 레이어 아키텍처 (린트로 강제)
 
@@ -435,7 +437,7 @@ cd backend/api && uv run ruff check . && uv run lint-imports && uv run pytest
 | `SUPABASE_SECRET_KEY` | api 전용 | 회원 탈퇴 |
 | `LLM_API_KEY` · `LLM_MODEL` · `LLM_BASE_URL` | chatbot | 상담 챗봇 |
 | `EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS` · `SKIN_ANALYSIS_MODEL` | 앱 | 기기 내 피부 분석 활성화와 모델 선택 |
-| `RECOMMENDATION_MODEL` · `RECOMMENDATION_MODELS_DIR` | api | 추천 모델 선택(기본 `recommend-cat-v2`)과 모델 루트(기본 `ml/runs/`). [별도 모델 배치·실행](docs/recommendation-v2-comparison.md#실행) |
+| `SKIN_RECOMMENDATION_FEEDBACK_CONSENTED_MEMBERS` | api | 피부 추천의 노출·담기·결제 기록에 동의한 회원 목록. [추천 이력과 집계](docs/recommendation-v2-feedback-erd.md#현재-v3-피부-추천의-전환-측정) |
 
 | 변수 | 읽는 곳 | 용도 |
 | --- | --- | --- |

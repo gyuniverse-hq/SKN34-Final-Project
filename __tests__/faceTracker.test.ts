@@ -16,6 +16,7 @@ function renderHarness() {
   const messages: Record<string, unknown>[] = [];
   const build = new Function('state', 'messages', `
     let makeup = { lip: null }, pendingRender = null, pendingRenderZone = null, pendingRestore = null, commandRendererId = null, lastRenderSeq = -1, lastStateSeq = -1;
+    let poseEnabled = false; const clearPoseHint = () => {};
     let segCount = 0, segPerSec = 0, detectMs = 0, shapesOn = true, status = null, hasFace = true, lastFaceAt = 0, lastLightAt = 1, fpsFrames = 0, fpsAt = 0, fps = 0;
     let landmarker = { detectForVideo: () => ({ faceLandmarks: state.face ? [{}] : [] }) };
     let renderer = { get lost() { return state.lost; }, upload() {}, render() {
@@ -55,6 +56,58 @@ it('acknowledges a blush command after drawing a fresh frame without a lip produ
   expect(h.messages).toEqual([]);
   h.processFrame(2);
   expect(h.messages).toContainEqual(expect.objectContaining({ type: 'render_result', status: 'rendered' }));
+});
+
+describe('pose guidance', () => {
+  it('debounces persistent conditions and clears immediately on recovery or tracking loss', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    const tuning = script.match(/pose: (\{[^\n]+\})/)?.[1];
+    const pose = script.slice(script.indexOf('  let poseEnabled = false'), script.indexOf('  let lastLightHint = undefined'));
+    const messages: { type: string; value: string | null }[] = [];
+    const create = new Function('messages', `
+      const TUNING = { pose: ${tuning} }, canvas = { clientWidth: 100, clientHeight: 100 }, viewZoom = 1;
+      const post = (message) => messages.push(message);
+      ${pose}
+      return { postPoseHint, clearPoseHint };
+    `) as (m: typeof messages) => { postPoseHint: (face: { x: number; y: number; z: number }[], w: number, h: number, now: number) => void; clearPoseHint: () => void };
+    const tracker = create(messages);
+    const face = Array.from({ length: 455 }, () => ({ x: 0.5, y: 0.5, z: 0 }));
+    face[10].y = 0.35; face[152].y = 0.65; face[1].y = 0.515;
+    face[234].x = 0.4; face[454].x = 0.6;
+    tracker.postPoseHint(face, 100, 100, 10);
+    tracker.postPoseHint(face, 100, 100, 809);
+    expect(messages).toEqual([]);
+    tracker.postPoseHint(face, 100, 100, 810);
+    expect(messages).toEqual([{ type: 'pose_hint', value: 'closer' }]);
+    face[10].y = 0.25; face[152].y = 0.75; face[1].y = 0.525;
+    tracker.postPoseHint(face, 100, 100, 820);
+    expect(messages[1]).toEqual({ type: 'pose_hint', value: null });
+    face[10].y = 0.35; face[152].y = 0.65;
+    tracker.postPoseHint(face, 100, 100, 900);
+    tracker.postPoseHint(face, 100, 100, 1700);
+    tracker.clearPoseHint();
+    expect(messages.slice(-2)).toEqual([{ type: 'pose_hint', value: 'closer' }, { type: 'pose_hint', value: null }]);
+  });
+
+  it('prioritizes conditions and applies hysteresis', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    const tuning = script.match(/pose: (\{[^\n]+\})/)?.[1];
+    const pick = script.slice(script.indexOf('  function pickPoseHint('), script.indexOf('  function postPoseHint('));
+    const decide = new Function(`const TUNING = { pose: ${tuning} }; ${pick}; return pickPoseHint;`)() as (m: Record<string, number | boolean>, last: string | null) => string | null;
+    const face = { height: 0.5, clipped: false, yaw: 0, pitch: 0, x: 0, y: 0 };
+    expect(decide(face, null)).toBeNull();
+    expect(decide({ ...face, height: 0.3, clipped: true, yaw: 1 }, null)).toBe('closer');
+    expect(decide({ ...face, clipped: true, yaw: 1 }, null)).toBe('farther');
+    expect(decide({ ...face, pitch: 0.2, x: 0.3 }, null)).toBe('front');
+    expect(decide({ ...face, yaw: 0.4 }, null)).toBe('front');
+    expect(decide({ ...face, x: 0.21 }, null)).toBe('center');
+    expect(decide({ ...face, height: 0.37 }, 'closer')).toBe('closer');
+    expect(decide({ ...face, height: 0.40 }, 'closer')).toBeNull();
+    expect(decide({ ...face, x: 0.18 }, 'center')).toBe('center');
+    expect(script).toContain("type: 'pose_hint', value: null");
+    expect(script).toContain('now - poseSince >= TUNING.pose.debounceMs');
+    expect(script).toContain('if (poseEnabled) postPoseHint(face, W, H, now)');
+  });
 });
 
 describe('face tracker page', () => {
@@ -239,8 +292,8 @@ describe('face tracker page', () => {
     expect(script).toContain('layered *= pkSoft / max(pk, 1e-4)');
     // Estimated chip hex cannot brighten the uncovered, see-through share beyond the cap.
     expect(script).toContain('uLumGainMax');
-    // Coverage blends toward the product first; the see-through share then tints by hue only (a sheer nude or coral must not darken a red lip).
-    expect(script).toContain('vec3 mixCol = paint * mix(vec3(1.0), filt / max(lum(filt), 1e-3), cov * uLipTranslucent);');
+    // The see-through dye tints only the uncovered bare-lip contribution, never the pigment again.
+    expect(script).toContain('vec3 mixCol = paint + rPx * (filt / max(lum(filt), 1e-3) - vec3(1.0)) * (cov * uLipTranslucent * (1.0 - cov));');
     // Covered share takes only the camera brightness (no per-channel noise amplification); uncovered keeps the camera color.
     expect(script).toContain('vec3 layered = mix(camDiffuse * ratio, lumOnly, cov) * clamp(fill, 0.6, 1.6);');
     // Light is drawn once: no lightness/chroma fixed by UV position, camera highlights never amplified,
@@ -275,7 +328,10 @@ describe('face tracker page', () => {
     expect(script).toContain('lobe = mix(lobe, envLobe, envW);');
     expect(script).toContain('float peakness = mix(max(sharpK, sharpF), envPeak, envW);');
     expect(script).toContain('uniform vec4 uEnvGloss;');
-    expect(script).toContain("'1115-lip-cavity'");
+    expect(script).toContain("'1123-lip-finish-d'");
+    expect(script).toContain('float browHair = browA *');
+    expect(script).toContain('lookSkinMinFps: 10');
+    expect(script).toContain('lookSkinGate');
     // 11-11 natural highlighter (user: the forehead highlight read as a white circle): the lift multiplies the camera pixel (its own
     // colour and texture, never a white add) with headroom, the sheen and glints are the pixel's own colour, the forehead stays
     // off hair and bangs, and the mask has no hard ellipse edge. hlNatural false keeps the old composite.
@@ -384,7 +440,7 @@ describe('face tracker page', () => {
     expect(script).toContain('shadowA *= mix(occSkin, 1.0, uOccGate.y);');
     expect(script).toContain('gl.uniform1f(u.uOccOn, occOn ? 1 : 0);');
     expect(script).not.toContain('foundA *= mix(occSkin');
-    expect(script).toContain('gl.uniform1f(u.uFoundSkinOn, (foundZ || jawShadeOn) && foundSkinReady ? 1 : 0);');
+    expect(script).toContain('gl.uniform1f(u.uFoundSkinOn, (foundZ || jawShadeOn || browZ) && foundSkinReady ? 1 : 0);');
     expect(script).toContain('OCC_LIP_PTS = LIPS_OUTER');
     expect(script).toContain('OCC_EYE_PTS = EYES[0].contour.concat(EYES[1].contour)');
   });
@@ -485,14 +541,14 @@ describe('face tracker page', () => {
     expect(fitCode).toContain('let num = L.priorWeight * prior, den = L.priorWeight;');
     // 11-08 2.5D: roots at a fixed share of the lid spline's arc length; a turned head leans and shortens the strands.
     expect(script).toContain('const arcAt = (pts) => {');
-    expect(script).toContain('tips.push({ root: arcUp(u), dir, L, u });');
+    expect(script).toContain('const root = [r0[0] - nUp[0] * eyeW * TUNING.lashRootInset, r0[1] - nUp[1] * eyeW * TUNING.lashRootInset];');
     // 11-08 phone capture: strands were straight parallel sticks; they now bend toward the outer corner.
-    expect(script).toContain('strand(t0.root, t0.dir, bend(lu, t0.u, 1), t0.L,');
+    expect(script).toContain('const tipDir = unit(lean(bend(rot(lu, th + zoneCurl(u) * curlK), u, 0.6 * curlK)));');
     expect(script).toContain('lashSweep: 0.6,');
     expect(script).toContain('const lashFade = clamp((meshNrm[e.center * 3 + 2] - 0.15) / TUNING.lashFadeSpan, 0, 1);');
     expect(script).toContain('const upStretch = 1 + turn * (1 / clamp(facing, TUNING.lashFacingMin, 1) - 1);');
     expect(script).not.toContain('turnLen');
-    expect(script).toContain('strand(arcEdge(uu), dir, curl,');
+    expect(script).toContain('strand([rt[0] - nUp[0] * ins, rt[1] - nUp[1] * ins], dir, curl,');
     expect(script).not.toMatch(/along\(/);
     // 11-08: eye closure comes from the blendshapes (per eye, subject's right = EYE_LINES[0]); the lid gap is the fallback.
     expect(script).toContain('outputFaceBlendshapes: true,');
@@ -581,7 +637,7 @@ describe('face tracker page', () => {
     expect(script).toContain("'float browAt(vec2 s) {',");
     expect(script).toContain("texture2D(uBrowTex, p).g");
     expect(script).toContain("'uEye', 'uBrowTex', 'uEyeRect',");
-    expect(script).toContain('if (eyesOn && browZ) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, browCanvas);');
+    expect(script).toContain('if (eyesOn && (browZ || mascara)) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, browCanvas);');
     expect(script).toContain('gl.uniform1i(u.uBrowTex, 9);');
   });
 
@@ -662,10 +718,22 @@ describe('face tracker page', () => {
     // the hairs only (camera brightness kept, chromaticity moved). No generated strands, no flat color.
     expect(script).toContain('uniform vec2 uBrowSkin[12];');
     expect(script).toContain('float skinRef = max(max(sBelow, sAbove) / 3.0, 1e-3);');
-    expect(script).toContain('float hairW = smoothstep(0.10, 0.45, 1.0 - camL / skinRef)');
-    expect(script).toContain('col = mix(col, powder(cam, uBrowAlbedo), browA * uBrowPowder);');
-    expect(script).toContain('vec3 tinted = col * clamp(chromaP / max(chromaC, vec3(1e-4)), 0.0, 1.5);');
-    expect(script).toContain('col = mix(col, tinted, browA * hairW);');
+    // 11-17 v3: hair = darker than the LOCAL skin (8 taps), normalised by the brow's darkest hair; zone and regions are soft.
+    expect(script).toContain('float localSkin = max(min(lmax, 1.3 * skinRef), uBrowSkinFloor * skinRef);');
+    expect(script).toContain('float hairW = smoothstep(uBrowHairEdge, uBrowHairEdge + max(0.15, darkest), hairD)');
+    expect(script).toContain('col = mix(col, powder(cam, uBrowAlbedo), browA * uBrowPowder * region * mix(0.3, 1.0, hairW));');
+    expect(script).toContain('vec3 hairCol = uBrowAlbedo * uLightColor / max(lum(uBrowAlbedo * uLightColor), 1e-4) * newL;');
+    expect(script).toContain('col = mix(col, hairCol, smoothstep(0.0, 0.75, uBrowCov) * hairW * browZone * region);');
+    expect(script).not.toContain('browCore');
+    expect(script).toContain('float strandCut = smoothstep(1.0, 2.8, bangCont) * hairW;');
+    expect(script).toContain('float skinG = uFoundSkinOn > 0.5 ? smoothstep(uBrowBang.x, uBrowBang.y, texture2D(uFoundSkin, fuv).r) : 1.0;');
+    expect(script).toContain('float underHair = skinG * (1.0 - max(denseCut, 0.9 * strandCut));');
+    expect(script).toContain('bangSkin: [0.2, 0.55]');
+    expect(script).toContain("gl.uniform2f(u.uBrowBang, EYEBROW_PRESET.bangSkin[0], EYEBROW_PRESET.bangSkin[1]);");
+    expect(script).toContain('gl.uniform2fv(u.uBrowUp, bg.up);');
+    expect(script).toContain('makeup.foundation || jawline || makeup.brow || (TUNING.makeupOcclusion && occMakeupOn())');
+    expect(script).toContain('gl.uniform1f(u.uFoundSkinOn, (foundZ || jawShadeOn || browZ) && foundSkinReady ? 1 : 0);');
+    expect(script).toContain('region *= underHair;');
     expect(script).toContain('vec2 bo = uTexel * uBrowSoft;');
     expect(script).toContain('function browGuides(W, H)');
     for (const gone of ['uBrowStrand', 'strandFreq', 'recol', 'uBrowHue', 'vec3 dyed', 'localMax']) expect(script).not.toContain(gone);
@@ -693,9 +761,10 @@ describe('face tracker page', () => {
     // Second color: wedge at the outer corner and a stroke along the lower lash line, per eye, in UV mask 2 (B).
     expect(script).toContain('const shadowDark = layer(() => {');
     expect(script).toContain("rgba2[i * 4 + 2] = Math.round(clamp01(shadowDark[i] * inside) * 255);");
-    expect(script).toContain("if (darkA > 0.002) col = mix(col, powder(cam, uShadow2Albedo), darkA);");
+    // A video look keeps the powder second colour; a product shadow layers it over the first (11-17).
+    expect(script).toContain("if (darkA > 0.002) col = mix(col, uShadowZoned > 0.5 ? shadowPack(col, cam, uShadow2Albedo) : powder(cam, uShadow2Albedo), darkA);");
     expect(script).toContain('gl.uniform1f(u.uShadow2Cov, eye && eye.hexTo ? clamp01(eye.intensity) * TUNING.shadow2Coverage : 0);');
-    // Without a second color the shadow is unchanged (coverage 0), and the eyeball is never painted.
+    // The eyeball is never painted.
     expect(script).toContain('darkA = 0.0; innerA = 0.0; foundA = 0.0; browA = 0.0; }');
     // Mascara length and density come from geometry (defaults 1, clamped), never random per frame.
     expect(script).toContain("const mg = Object.assign({ length: 1, thickness: 1 }, mascara.geometry || {});");
@@ -707,10 +776,10 @@ describe('face tracker page', () => {
     expect(script).toContain('const lowerAlphaK = mg.lowerAlpha != null ? clamp(mg.lowerAlpha, 0, 4) : 1;');
     expect(script).toContain('const sweep = (u) => lashSweepK * (0.25 + clamp01(u));');
     expect(script).toContain('lashCount: 14,');
-    expect(script).toContain('const hw = 0.5 * Math.max(0.9, w * k, TUNING.lashMinPx * (w > 0 ? Math.min(1, w / (eyeW * TUNING.lashWidth)) : 1) * k) * Math.pow(1 - t, 0.9);');
+    expect(script).toContain('const wPx = Math.max(w * k, TUNING.lashMinPx * Math.min(1, w / (eyeW * TUNING.lashWidth)) * k) * (keepW ? 1 : widthShrink);');
     expect(script).toContain('lashMinPx: 1.3,');
-    expect(script).toContain('const g = Math.round(255 * (1 - TUNING.lashTipFade * (t0 + t1) * 0.5));');
-    expect(script).toContain('const pull = [(cx - own[0]) * lashClumpK * clamp01(mascara.intensity), (cy - own[1]) * lashClumpK * clamp01(mascara.intensity)];');
+    expect(script).toContain("c.fillStyle = 'rgb(0,' + Math.round(255 * clamp01(dark) * (1 - TUNING.lashTipFade * tm)) + ',0)';");
+    expect(script).toContain('const pullK = clamp01(lashClumpK * clamp01(mascara.intensity) * 2);');
     expect(script).toContain('const L = eyeW * TUNING.lashLength * lengthen * prof * (1 + (0.78 + 0.34 * seeded(i + 100) - 1) * lashJitterK) * (lashJitterK < 0.5 ? 1 : wisp);');
     expect(script).toContain('c.lineWidth = Math.max(0.6, TUNING.lashLineWidth * eyeW * k);');
     expect(script).not.toContain('0.035 * eyeW * k');
@@ -743,7 +812,7 @@ describe('face tracker page', () => {
     const script = moduleScript(FACE_TRACKER_HTML);
     expect(script).toContain('const ip = shadow && shadow.geometry && shadow.geometry.innerPoint;');
     expect(script).toContain('const len = Math.min(g.length * eyeW, 0.8 * dist(outer, edgeP));');
-    expect(script).toContain('const nLow = mg.lower === false ? 0 : mg.lowerCount != null ? clamp(Math.round(mg.lowerCount), 0, 12) : Math.min(8, Math.round(nLash / 4));');
+    expect(script).toContain('const nLow = mg.lower === false ? 0 : mg.lowerCount != null ? clamp(Math.round(mg.lowerCount), 0, 12) : Math.min(8, Math.round(nLash / 3));');
     // Named areas come from mask 3; with none named the default mask (and its pixels) is used.
     expect(script).toContain('float hlMask = uHlLegacy > 0.5 ? m2.r : clamp(dot(m3, uHlAreas), 0.0, 1.0);');
     expect(script).toContain("gl.uniform1f(u.uHlLegacy, TUNING.hlFaceLayout || !hlAreas ? 1 : 0);");
@@ -801,7 +870,7 @@ describe('face tracker page', () => {
 
   it('glides the light direction only behind its switch and snaps the estimate past the snap angle', () => {
     const script = moduleScript(FACE_TRACKER_HTML);
-    expect(script).toContain('lightDirGlide: false,');
+    expect(script).toContain('lightDirGlide: true,');
     expect(script).toContain('lightDirSec: 0.4,');
     expect(script).toContain('lightDirSnapDeg: 25,');
     // Switch off: the shader still gets the 0.5 s estimate exactly as before.
@@ -815,6 +884,7 @@ describe('face tracker page', () => {
       new Function('glideOn', `
         const TUNING = { lightDirGlide: glideOn, lightDirSec: 0.4, lightDisplaySec: 0.6, skinRefLum: 0.34, exposureRange: [0.2, 1.6] };
         const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+        const exposureFor = (v) => clamp(v / TUNING.skinRefLum, TUNING.exposureRange[0], TUNING.exposureRange[1]);   // no session reference
         const light = { color: [1, 1, 1], colorConf: 0, dir: [1, 0, 0], strength: 1.5, dirConf: 1, skinMeanLum: 0.34, sh: [1, 0, 0, 0, 0, 0, 0, 0, 0] };
         const shownLight = { color: [1, 1, 1], exposure: 1, skinMeanLum: 0.34, dir: [0, 0, 1], strength: 1, conf: 0, sh: [1, 0, 0, 0, 0, 0, 0, 0, 0], t: 0 };
         ${glideSrc}
@@ -927,8 +997,8 @@ describe('face tracker page', () => {
 
   it('mixes Gray-Edge into the background light color only behind its switch', () => {
     const script = moduleScript(FACE_TRACKER_HTML);
-    expect(script).toContain('lightColorEdge: false,');
-    expect(script).toContain('lightColorEdgeMix: [0.25, 0.75],');
+    expect(script).toContain('lightColorEdge: true,');
+    expect(script).toContain('lightColorEdgeMix: [0.75, 0.75],');
     // Off: the Gray World estimate and the one-color check on the raw sums, as before.
     expect(script).toContain('let est = [r / Y, g / Y, bl / Y];');
     expect(script).toContain('let chroma = Math.max(r, g, bl) / Math.max(1e-6, Math.min(r, g, bl));');
@@ -1141,9 +1211,10 @@ describe('face tracker page', () => {
     // Every liner is one flat opaque ink (10-29): a half-texel anti-alias read, the core snapped to full coverage,
     // no matte halo and no gloss sheen; a smudge style only adds a halo and never lowers the core.
     expect(script).not.toContain('halo');
-    expect(script).toContain('linerR = smoothstep(0.05, 0.45, linerR);');
+    expect(script).toContain('linerR = smoothstep(0.03, 0.5, linerR);');
     expect(script).toContain('linerR = max(linerR, mix(linerR, min(wide * (1.0 + 2.5 * uLinerSoft), 1.0), uLinerSoft));');
-    expect(script).toContain('col = mix(col, uLinerAlbedo * uLightColor * uExposure, linerA);');
+    expect(script).toContain('vec3 ink = uLinerAlbedo * uLightColor * uExposure * mix(1.0, clamp(lum(cam) / max(uSkinMeanLum, 1e-3), 0.7, 1.1), uLinerShade);');
+    expect(script).toContain('col = mix(col, ink, linerA);');
     expect(script).not.toContain('layer(cam, uLinerAlbedo');
     expect(script).not.toContain('uLinerCrisp');
     expect(script).toContain('thickness: 0.09');
@@ -1203,8 +1274,9 @@ describe('face tracker page', () => {
     expect(script).toContain('glossy:  { opacity: 0.25, roughness: 0.05, sparkleDensity: 0.0, specular: 0.9 }');
     expect(script).toContain('shimmerScale: 520');
     expect(script).toContain('float lidPearlFade(float maskB)');
-    expect(script).toContain('col = mix(col, col * tint, shadowA)');
-    expect(script).toContain('float isGloss = (1.0 - hasPearl) * (1.0 - step(0.97, uFaceRough.y));');
+    // Video looks keep the plain multiply; a product shadow is layered (shadowPack, 11-17).
+    expect(script).toContain('col = mix(col, uShadowZoned > 0.5 ? shadowPack(col, cam, uShadowAlbedo) : col * tint, shadowA)');
+    expect(script).toContain('float isGloss = max((1.0 - hasPearl) * (1.0 - step(0.97, uFaceRough.y)), uShadowMetal);');
     expect(script).toContain('vec3(0.93, 0.96, 1.0)');
     expect(script).toContain('glitterScale: 600');
     expect(script).toContain('if (hash(cell) >= uShadowFlakeDensity) return 0.0;');
@@ -1218,7 +1290,7 @@ describe('face tracker page', () => {
     expect(script).not.toContain('sparkleSheen:');
     expect(script).not.toContain('lidNdh * lidNdh');
     expect(script).not.toContain('uniform float uGlitter');
-    expect(script).toContain('gl.uniform1f(u.uShadowCov, eye ? clamp01(eye.intensity) * eyeFinish.opacity : 0)');
+    expect(script).toContain('gl.uniform1f(u.uShadowCov, eye ? clamp01(eye.intensity) * shadowOpacity(eye, eyeFinish) : 0)');
     expect(script).toContain('YouCam glowIntensity stays 0');
     expect(script).not.toContain('makeupar.com');
     expect(script).not.toContain('YOUCAM_API_KEY');
@@ -1238,7 +1310,7 @@ describe('face tracker page', () => {
       const paint = bare.map((b, k) => b + (albedo[k] - b) * cov);
       const filt = albedo.map((v) => Math.min(1, v / 0.85));
       const fl = lum(filt);
-      return paint.map((p, k) => p * (1 + (filt[k] / fl - 1) * cov * translucent));
+      return paint.map((p, k) => p + bare[k] * (filt[k] / fl - 1) * cov * translucent * (1 - cov));
     };
     const coral = '#F2735B';
     // Red and pale-red bare lips (linear, as the camera sees them): the result keeps at least the brightness of the
@@ -1247,6 +1319,20 @@ describe('face tracker page', () => {
       const out = sheer(bare, coral, 0.38, 3 * 0.56, 0.8);
       expect(lum(out)).toBeGreaterThan(Math.min(lum(bare), lum(rgb(coral))) * 0.97);
     }
+  });
+
+  it('does not double-filter the pigment at full coverage or change the bare lip at zero coverage', () => {
+    const bare = [0.23, 0.11, 0.09];
+    const pigment = [0.55, 0.18, 0.21];
+    const luminance = (v: number[]) => 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+    const filtered = (coverage: number, translucent: number) => {
+      const l = luminance(pigment);
+      return bare.map((v, i) => v * (1 - coverage) + pigment[i] * coverage
+        + v * (pigment[i] / l - 1) * coverage * translucent * (1 - coverage));
+    };
+    expect(filtered(0, 1)).toEqual(bare);
+    expect(filtered(1, 1)).toEqual(pigment);
+    expect(filtered(0.5, 0)).toEqual(bare.map((v, i) => (v + pigment[i]) * 0.5));
   });
 
   it('keeps medium satin coverage below a sticker-like full cover', () => {

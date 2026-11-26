@@ -1,0 +1,10 @@
+369e56ab87edb2f4f71b5b01e2f789ba205059ce *manifest.csv
+62ed6dc20ad12550cdf30883f7f8d9781f370ac0 *lapa_env.csv
+00170366785cb8ba1626fc0beaa22e089161d320 *skin_env.csv
+01a2d84e8faa8ace251debffe756f352448b9260 *lapa_pose.csv
+8116fe8499e3921eeb9814c346e01ad4e28fb727 *headless_offline_grain.json
+0f360aee8e66a273a9672833018f7e7fc455f396 *normal_summary.json
+36d2b90ffb3aa444b8e8632de8316526b72570ef *dark_ae_summary.json
+43458c2cd6ed498aea4f26f90364bab33c9167fb *dark_summary.json
+b1cacb6182437086a7234a9fc77de0499d1804da *../models/face_landmarker.task
+804dff26403f469f6b7fc66fcaaf21e522eb3b46 *../models/selfie_multiclass_256x256.tflite

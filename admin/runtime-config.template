@@ -1,0 +1,1 @@
+window.__VISHUE_ADMIN_CONFIG__ = {supabaseUrl:"${SUPABASE_URL}",supabasePublishableKey:"${SUPABASE_PUBLISHABLE_KEY}",apiBaseUrl:"${API_BASE_URL}"};

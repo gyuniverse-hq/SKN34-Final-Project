@@ -96,6 +96,14 @@ class IngredientDecision(IngredientSelection):
     query_identity: IngredientIdentity | None = None
 
 
+class ReviewedOptionEvidence(IngredientModel):
+    ingredient_identity_version: str = Field(pattern=r"^[a-f0-9]{64}$")
+    texture: Literal["matte"]
+    texture_source_ref: str = Field(pattern=r"^https://[^\s]+$", max_length=2048)
+    price_source_version: str = Field(pattern=r"^[a-f0-9]{64}$")
+    price_observed_at: AwareDatetime
+
+
 class IngredientMapping(IngredientSelection):
     reviewed_by: str | None = Field(default=None, min_length=1, max_length=128)
     reviewed_at: AwareDatetime | None = None
@@ -115,6 +123,7 @@ class IngredientMapping(IngredientSelection):
     ingredient_coverage: Literal["full", "partial", "unknown"] = "unknown"
     normalization_status: Literal["verified", "unverified"] = "unverified"
     synthetic: bool = False
+    option_review: ReviewedOptionEvidence | None = None
 
 
 class IngredientReadResult(IngredientSelection):
@@ -142,3 +151,4 @@ class IngredientReadResult(IngredientSelection):
     synthetic: bool = False
     # Repository-only evidence; unreviewed raw rows are never emitted as verified facts.
     evidence: IngredientEvidence | None = Field(default=None, exclude=True)
+    option_review: ReviewedOptionEvidence | None = Field(default=None, exclude=True)

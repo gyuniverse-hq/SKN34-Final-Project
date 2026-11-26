@@ -1,6 +1,9 @@
+import { ScrollView, StyleSheet } from 'react-native';
 import renderer, { act } from 'react-test-renderer';
 import ArTryOnScreen from '@/app/(tabs)/ar';
-import { CoverageBar } from '@/components/ar/CoverageBar';
+import { IntensityRail } from '@/components/ar/IntensityRail';
+import { ArZoneWheel } from '@/components/ar/ArZoneWheel';
+import { TextureSelect } from '@/components/ar/TextureSelect';
 import { OpenArcPalette } from '@/components/ar/OpenArcPalette';
 import { ArSheet } from '@/components/ar/ArSheet';
 import { NearbyExplorer } from '@/components/ar/NearbyExplorer';
@@ -37,7 +40,7 @@ jest.mock('expo-linear-gradient', () => ({ LinearGradient: 'LinearGradient' }));
 jest.mock('@/components/ar/ArFaceView', () => ({ ArFaceView: 'ArFaceView' }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key, language: 'ko' }) }));
 jest.mock('@/hooks/useArRouteSelection', () => ({ useArRouteSelection: () => ({ product: { data: mockRouteProduct } }) }));
-jest.mock('@/lib/queries', () => ({ useTryOnProducts: () => ({ data: mockProducts }) }));
+jest.mock('@/lib/queries', () => ({ useMe: () => ({ data: undefined, isPending: false }), useTryOnProducts: () => ({ data: mockProducts }) }));
 
 it('connects mode tabs, preview, rebase, restore and free mode without losing the lip shape or finish', async () => {
   useMakeupStore.getState().reset();
@@ -48,38 +51,25 @@ it('connects mode tabs, preview, rebase, restore and free mode without losing th
   await act(async () => { screen = renderer.create(<ArTryOnScreen />); });
   const explorer = () => screen.root.findByType(NearbyExplorer);
   expect(screen.root.findAllByType(Button).some((p) => ['ar.similar', 'ar.recommendColor'].includes(p.props.label))).toBe(false);
-  const tab = (key: string) => {
-    const found = screen.root.findAllByProps({ accessibilityRole: 'tab' }).find((p) =>
-      p.findAllByProps({ children: key }).length);
-    if (!found) throw new Error(`Missing tab: ${key}`);
-    return found;
-  };
-  const openTools = async () => { await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.arc.tools' }).props.onPress(); }); };
-  const closeTools = async () => { await act(async () => { screen.root.findByType(ArSheet).props.onClose(); }); };
-  await openTools();
+  const openSettings = async () => { await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.arc.tools' }).props.onPress(); }); };
+  const closeSettings = async () => { await act(async () => { screen.root.findByType(ArSheet).props.onClose(); }); };
+  await openSettings();
   // A color-family selection remains a free-mode filter, never a hidden nearby restriction.
   const family = screen.root.findAllByType(Chip).find((p) => p.props.label.startsWith('ar.family.'))!;
   expect(family).toBeDefined();
   const familyLabel = family.props.label;
   await act(async () => { family.props.onPress(); });
-  await closeTools();
+  await closeSettings();
   await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.explore.nearby' }).props.onPress(); });
-  await openTools();
   expect(explorer().props.active).toBe(true);
-  expect(screen.root.findAllByType(Chip).some((p) => p.props.label.startsWith('ar.family.'))).toBe(false);
-  expect(explorer().props.counts.similar).toBe(1);
-  await act(async () => {
-    screen.root.findAllByType(Chip).find((p) => p.props.label === 'ar.texture.matte')!.props.onPress();
-  });
-  expect(explorer().props.counts.similar).toBe(0);
-  await closeTools();
+  const directionWheel = screen.root.findByType(ArZoneWheel);
+  expect(directionWheel.props.directionLabel).toBe('ar.ui.direction');
+  await act(async () => { directionWheel.props.onSelect('muted'); });
+  expect(screen.root.findByType(ArZoneWheel).props.selected).toBe('muted');
+  await act(async () => { directionWheel.props.onSelect('similar'); });
+  await act(async () => { screen.root.findByType(TextureSelect).props.onChange('matte'); });
   expect(screen.root.findAllByProps({ children: 'ar.explore.empty' }).length).toBeGreaterThan(0);
-  await openTools();
-  await act(async () => {
-    screen.root.findAllByType(Chip).find((p) => p.props.label === 'ar.explore.allTextures')!.props.onPress();
-  });
-  expect(explorer().props.counts.similar).toBe(1);
-  await closeTools();
+  await act(async () => { screen.root.findByType(TextureSelect).props.onChange(null); });
   const chip = screen.root.findAllByProps({ accessibilityLabel: 'Hince Lip Candidate' })[0];
   expect(chip).toBeDefined();
   await act(async () => { chip.props.onPress(); });
@@ -98,12 +88,15 @@ it('connects mode tabs, preview, rebase, restore and free mode without losing th
   await act(async () => { explorer().props.onApplyAnchor(); });
   expect(useMakeupStore.getState().selections.lip?.productId).toBe('source');
   await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.explore.free' }).props.onPress(); });
-  await openTools();
+  await openSettings();
   expect(explorer().props.active).toBe(false);
   expect(screen.root.findAllByType(Chip).find((p) => p.props.label === familyLabel)?.props.selected).toBe(true);
-  await act(async () => { tab('ar.zone.eyeshadow').props.onPress(); });
+  await closeSettings();
+  await act(async () => { screen.root.findByType(ArZoneWheel).props.onSelect('eyeshadow'); });
+  await openSettings();
   expect(screen.root.findAllByType(NearbyExplorer)).toHaveLength(0);
-  expect(screen.root.findAllByType(Button).some((p) => p.props.label === 'ar.recommendColor')).toBe(true);
+  expect(screen.root.findAllByType(Button).some((p) => p.props.label === 'ar.recommendColor')).toBe(false);
+  expect(screen.root.findAllByType(Chip).some(p => p.props.label.startsWith('ar.family.'))).toBe(false);
   await act(async () => { screen.unmount(); });
 });
 
@@ -113,9 +106,8 @@ it('clears a lip finish filter when a product route opens blush, so there is no 
   let screen!: renderer.ReactTestRenderer;
   await act(async () => { screen = renderer.create(<ArTryOnScreen />); });
   try {
-    await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.arc.tools' }).props.onPress(); });
     await act(async () => {
-      screen.root.findAllByType(Chip).find((p) => p.props.label === 'ar.texture.matte')!.props.onPress();
+      screen.root.findByType(TextureSelect).props.onChange('matte');
       screen.root.findByType(NearbyExplorer).props.onEnter();
     });
     await act(async () => {
@@ -125,7 +117,7 @@ it('clears a lip finish filter when a product route opens blush, so there is no 
     expect(screen.root.findByType(NearbyExplorer).props.active).toBe(false);
     await act(async () => { screen.root.findByType(NearbyExplorer).props.onEnter(); });
     expect(screen.root.findByType(NearbyExplorer).props.anchor.product.id).toBe('blush');
-    expect(screen.root.findByType(NearbyExplorer).props.counts.similar).toBe(1);
+    expect(screen.root.findByType(OpenArcPalette).props.items.map((item: { product: Product }) => item.product.id)).toContain('blush-candidate');
   } finally {
     await act(async () => { screen.unmount(); });
     mockRouteProduct = undefined;
@@ -138,15 +130,18 @@ it('keeps manual adjustments inside direct exploration and preserves them throug
   useMakeupStore.getState().applyShade(mockSource, mockSource.shades[0]);
   let screen!: renderer.ReactTestRenderer;
   await act(async () => { screen = renderer.create(<ArTryOnScreen />); });
-  expect(screen.root.findAllByType(CoverageBar)).toHaveLength(0);
-  await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.arc.tools' }).props.onPress(); });
-  await act(async () => { screen.root.findByType(CoverageBar).props.onChange(0.35); });
+  const track = screen.root.findByType(IntensityRail).findByProps({ accessibilityRole: 'adjustable' });
+  await act(async () => { track.props.onLayout({ nativeEvent: { layout: { height: 256 } } }); });
+  await act(async () => { track.props.onResponderGrant({ nativeEvent: { locationY: 8 } }); });
+  expect(useMakeupStore.getState().makeup.lip?.intensity).toBe(1);
+  await act(async () => { track.props.onResponderMove({ nativeEvent: { locationY: 248 } }); });
+  expect(useMakeupStore.getState().makeup.lip?.intensity).toBe(0);
+  await act(async () => { track.props.onResponderMove({ nativeEvent: { locationY: 164 } }); });
   expect(useMakeupStore.getState().makeup.lip?.intensity).toBe(0.35);
-  await act(async () => { screen.root.findByType(ArSheet).props.onClose(); });
   const modeTab = (key: string) => screen.root.findAllByProps({ accessibilityRole: 'tab' }).find((p) => p.findAllByProps({ children: key }).length)!;
   await act(async () => { modeTab('ar.mode.chat').props.onPress(); });
-  expect(screen.root.findAllByProps({ accessibilityLabel: 'ar.arc.tools' })).toHaveLength(0);
-  expect(screen.root.findAllByType(CoverageBar)).toHaveLength(0);
+  expect(screen.root.findAllByProps({ accessibilityLabel: 'ar.ui.adjust' })).toHaveLength(0);
+  expect(screen.root.findAllByType(IntensityRail)).toHaveLength(0);
   expect(screen.root.findAllByType(OpenArcPalette)).toHaveLength(0);
   expect(screen.root.findAllByProps({ accessibilityLabel: 'ar.voice.start' }).length).toBeGreaterThan(0);
   await act(async () => { modeTab('ar.mode.direct').props.onPress(); });
@@ -154,4 +149,40 @@ it('keeps manual adjustments inside direct exploration and preserves them throug
   expect(useMakeupStore.getState().makeup.lip?.intensity).toBe(0.35);
   expect(useMakeupStore.getState().selections.lip).toEqual({ productId: 'source', shadeId: 's' });
   await act(async () => { screen.unmount(); });
+});
+
+it('offers nearby exploration after the first eligible swatch and switches the center hub', async () => {
+  useMakeupStore.getState().reset();
+  let screen!: renderer.ReactTestRenderer;
+  await act(async () => { screen = renderer.create(<ArTryOnScreen />); });
+  try {
+    expect(screen.root.findAllByProps({ children: 'ar.ui.firstHint' })).toHaveLength(0);
+    await act(async () => { screen.root.findByType(OpenArcPalette).props.onSelect({ product: mockSource, shade: mockSource.shades[0] }); });
+    expect(screen.root.findAllByProps({ children: 'ar.ui.firstHint' }).length).toBeGreaterThan(0);
+    await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.explore.nearby' }).props.onPress(); });
+    expect(screen.root.findAllByProps({ children: 'ar.ui.firstHint' })).toHaveLength(0);
+    expect(screen.root.findByType(ArZoneWheel).props.openLabel).toBe('ar.arc.direction');
+    await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.explore.free' }).props.onPress(); });
+    expect(screen.root.findByType(ArZoneWheel).props.openLabel).toBe('ar.arc.zones');
+  } finally {
+    await act(async () => { screen.unmount(); });
+  }
+});
+
+it('opens finishes below the trigger and applies the selected finish to the visible palette', async () => {
+  useMakeupStore.getState().reset();
+  let screen!: renderer.ReactTestRenderer;
+  await act(async () => { screen = renderer.create(<ArTryOnScreen />); });
+  try {
+    const select = screen.root.findByType(TextureSelect);
+    select.findByProps({ testID: 'ar-texture-anchor' }).instance.measureInWindow.mockImplementation(
+      (measure: (x: number, y: number, w: number, h: number) => void) => measure(270, 400, 80, 44));
+    await act(async () => { select.findByProps({ accessibilityLabel: 'ar.textureLabel' }).props.onPress(); });
+    expect(StyleSheet.flatten(select.findByType(ScrollView).props.style).top).toBe(444);
+    await act(async () => { select.findByProps({ accessibilityLabel: 'ar.texture.glossy' }).props.onPress(); });
+    expect(select.findAllByType(ScrollView)).toHaveLength(0);
+    expect(screen.root.findByType(OpenArcPalette).props.items.map((item: { product: Product }) => item.product.id)).toEqual(['candidate']);
+  } finally {
+    await act(async () => { screen.unmount(); });
+  }
 });

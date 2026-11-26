@@ -5,7 +5,7 @@ import { ChatProducts } from '@/components/chat/ChatProducts';
 import { ProductCompareSheet } from '@/components/chat/ProductCompareSheet';
 import { ProductImage } from '@/components/ui/ProductImage';
 import type { ChatCondition } from '@/lib/chatConditions';
-import type { Product } from '@/types';
+import type { ChatOptionSearch, Product } from '@/types';
 
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({
   t: (key: string, params?: { index?: number }) => key === 'chat.candidateNumber' ? `${key}:${params?.index}` : key,
@@ -61,6 +61,20 @@ async function renderProducts(props: Partial<Parameters<typeof ChatProducts>[0]>
 }
 
 describe('chat product cards', () => {
+  it('keeps unlinked video products in the carousel without inventing a detail link', async () => {
+    const sourceProducts = [
+      { label: '원본 립', zone: 'lip', productId: lip.id, mappingStatus: 'product_only' as const, catalogValid: false, arEligible: false },
+      { label: '원본 미연결 제품', zone: 'base', mappingStatus: 'unknown' as const, catalogValid: false, arEligible: false },
+      { label: '원본 스킨케어', zone: 'unknown', productId: care.id, mappingStatus: 'product_only' as const, catalogValid: false, arEligible: false },
+    ];
+    const { renderer } = await renderProducts({ sourceProducts, conditions: [], showIngredients: false });
+    const rows = textRows(renderer);
+    expect(rows).toContain('원본 미연결 제품');
+    expect(rows).toContain('chat.style.mappingNotLinked');
+    expect(rows.some((row) => row.includes('1 / 3'))).toBe(true);
+    expect(renderer.root.findAllByType(ProductImage)).toHaveLength(2);
+    await act(async () => { renderer.unmount(); });
+  });
   it('shows original candidate numbering and explicitly partial ingredient evidence', async () => {
     const { renderer } = await renderProducts({ products: [lip], candidateOrder: ['another', lip.id],
       evidence: [{ productId: lip.id, source: 'catalog_api', ingredientCoverage: 'key_only', fragranceStatus: 'unknown' }] });
@@ -68,6 +82,7 @@ describe('chat product cards', () => {
     expect(rows).toContain('chat.candidateNumber:2');
     expect(rows).toContain('chat.catalogEvidence');
     expect(rows).toContain('chat.keyOnlyEvidence');
+    expect(rows).toContain('chat.option.registeredPrice ₩15,000');
     expect(conditionRows(renderer).some((row) => row.includes('chat.conditionUnknown'))).toBe(true);
     await act(async () => { renderer.unmount(); });
   });
@@ -336,4 +351,183 @@ describe('chat product cards', () => {
     await act(async () => { renderer.unmount(); });
   });
 
+});
+
+
+test('G4 displays option verdicts without reclassifying current price from product reference price', async () => {
+  const { renderer } = await renderProducts({ products: [lip], optionSearch: {
+    schemaVersion: 1, status: 'PARTIAL', products: [lip], excludedCount: 0, omittedCount: 0,
+    checkedScope: { candidateProducts: 1, candidateOptions: 1, checkedOptions: 1, unidentifiedOptions: 0, exhaustive: true, stoppedReason: 'COMPLETE', errors: 0 },
+    items: [{ productId: lip.id, shadeId: 'shade-1', optionId: 'synthetic-option', sourceVersion: 'v1', synthetic: true, group: 'REFERENCE_ONLY', checks: [
+      { condition: 'identity', verdict: 'MATCH', reason: 'verified_option' },
+      { condition: 'price', verdict: 'UNKNOWN', reason: 'current_price_unverified' },
+      { condition: 'texture', verdict: 'UNKNOWN', reason: 'option_texture_unverified' },
+      { condition: 'ingredient', ingredientName: 'Fragrance', operator: 'excludes', verdict: 'UNKNOWN', reason: 'absence_not_verifiable' },
+      { condition: 'ingredient', ingredientName: 'Water', operator: 'includes', verdict: 'ERROR', reason: 'timeout' },
+    ] }],
+  } });
+  const rows = textRows(renderer).join(' ');
+  expect(rows).toContain('Rose · chat.option.reference');
+  expect(rows).toContain('chat.option.price: chat.conditionUnknown');
+  expect(rows).toContain('chat.option.textureUnverified');
+  expect(rows).toContain('chat.option.error');
+  expect(rows).not.toContain('chat.conditionMet');
+  expect(rows).not.toContain('chat.ui.candidatesMatched');
+  await act(async () => renderer.unmount());
+});
+
+test('G4 explains identity counts, texture source and recorded price without inventing a timezone', async () => {
+  const { renderer } = await renderProducts({ products: [lip], optionSearch: {
+    schemaVersion: 1, status: 'PARTIAL', products: [lip], excludedCount: 0, omittedCount: 0,
+    checkedScope: { candidateProducts: 1, candidateOptions: 1, checkedOptions: 1, unidentifiedOptions: 0, exhaustive: true, stoppedReason: 'COMPLETE', errors: 0 },
+    items: [{ productId: lip.id, shadeId: 'shade-1', optionId: 'option', sourceVersion: 'v1', synthetic: true,
+      ingredientEntryCount: 28, ingredientIdentityCount: 27, group: 'REFERENCE_ONLY',
+      checks: [{ condition: 'texture', verdict: 'UNKNOWN', reason: 'option_texture_unverified', textureBasis: 'review_survey' }],
+      price: { requestedBasis: 'collected_snapshot', observedBasis: 'collected_snapshot', amountKRW: 7600,
+        observedAtRaw: '2026-10-27T17:23:57', checkedAt: '2026-11-17T00:00:00Z',
+        sourceRef: 'fixture://price', sourceVersion: 'p1', limitations: ['timezone_unknown'] },
+    }],
+  } });
+  const rows = textRows(renderer).join(' ');
+  expect(rows).toContain('chat.option.identities');
+  expect(rows).toContain('chat.option.registeredPrice ₩15,000');
+  expect(rows).toContain('chat.option.snapshot: ₩7,600');
+  expect(rows).toContain('chat.option.textureReview');
+  expect(rows).toContain('2026-10-27T17:23:57 · chat.option.timezoneUnknown');
+  expect(rows).not.toContain('2026-10-27T17:23:57Z');
+  expect(rows).not.toContain('chat.conditionMet');
+  await act(async () => renderer.unmount());
+});
+
+test('G4 shows a confirmed option finish and its timezone-qualified snapshot', async () => {
+  const { renderer } = await renderProducts({ products: [lip], optionSearch: {
+    schemaVersion: 1, status: 'SUCCESS', products: [lip], excludedCount: 0, omittedCount: 0,
+    checkedScope: { candidateProducts: 1, candidateOptions: 1, checkedOptions: 1, unidentifiedOptions: 0, exhaustive: true, stoppedReason: 'COMPLETE', errors: 0 },
+    items: [{ productId: lip.id, shadeId: 'shade-1', optionId: 'option', sourceVersion: 'v1', synthetic: false,
+      group: 'ELIGIBLE', checks: [{ condition: 'texture', verdict: 'MATCH', reason: 'official_option_texture_reviewed', textureBasis: 'official_reviewed' }],
+      price: { requestedBasis: 'collected_snapshot', observedBasis: 'collected_snapshot', amountKRW: 12000,
+        observedAt: '2026-10-27T17:59:38+09:00', checkedAt: '2026-11-18T00:00:00Z',
+        sourceRef: 'fixture://price', sourceVersion: 'p1' },
+    }],
+  } });
+  const rows = textRows(renderer).join(' ');
+  expect(rows).toContain('Rose · chat.option.eligible');
+  expect(rows).toContain('chat.option.textureOfficial');
+  expect(rows).toContain('chat.option.texture: chat.conditionMet');
+  expect(rows).toContain('2026-10-27T17:59:38+09:00');
+  expect(rows).not.toContain('chat.option.timezoneUnknown');
+  await act(async () => renderer.unmount());
+});
+
+test('G4 displays the registered price once and explains an unverified fragrance-free claim', async () => {
+  const registeredLip = { ...lip, priceKRW: 5900 };
+  const { renderer } = await renderProducts({ products: [registeredLip], optionSearch: {
+    schemaVersion: 1, status: 'PARTIAL', products: [registeredLip], excludedCount: 0, omittedCount: 0,
+    checkedScope: { candidateProducts: 1, candidateOptions: 1, checkedOptions: 1, unidentifiedOptions: 0, exhaustive: true, stoppedReason: 'COMPLETE', errors: 0 },
+    items: [{ productId: lip.id, shadeId: 'shade-1', optionId: 'option', sourceVersion: 'v1', synthetic: false,
+      group: 'REFERENCE_ONLY', checks: [
+        { condition: 'fragrance_free', verdict: 'UNKNOWN', reason: 'unsupported_claim' },
+        { condition: 'price', verdict: 'MATCH', reason: 'requested_price_basis' },
+      ],
+      price: { requestedBasis: 'catalog_reference', observedBasis: 'catalog_reference', amountKRW: 5900,
+        checkedAt: '2026-11-18T00:00:00Z', sourceRef: '/api/products/lip', sourceVersion: 'p1' },
+    }],
+  } });
+  const rows = textRows(renderer).join(' ');
+  expect(rows).toContain('chat.option.registeredPrice ₩5,900');
+  expect(rows.split('₩5,900')).toHaveLength(2);
+  expect(rows).toContain('chat.option.fragranceUnknown');
+  expect(rows).not.toContain('chat.option.snapshot');
+  await act(async () => renderer.unmount());
+});
+
+test('G4 keeps the registered price and labels a fragrance-excluded shade during a current-price search', async () => {
+  const product = { ...lip, priceKRW: 5900, shades: [
+    ...lip.shades,
+    { id: 'shade-2', name: 'Pink', hex: '#dd3399' },
+    { id: 'shade-3', name: 'Plum', hex: '#990077' },
+  ] };
+  const reference: ChatOptionSearch['items'][number] = {
+    productId: lip.id, shadeId: 'shade-1', optionId: 'option-1', sourceVersion: 'v1', synthetic: false,
+    group: 'REFERENCE_ONLY', checks: [
+      { condition: 'fragrance_free', verdict: 'UNKNOWN', reason: 'absence_not_verifiable' },
+      { condition: 'price', verdict: 'UNKNOWN', reason: 'current_price_unverified' },
+    ],
+    price: { requestedBasis: 'current_offer', observedBasis: 'collected_snapshot', amountKRW: 7600,
+      checkedAt: '2026-11-18T00:00:00Z', sourceRef: 'fixture://price', sourceVersion: 'p1' },
+  };
+  const onSelectShade = jest.fn();
+  const { renderer } = await renderProducts({ products: [product], onSelectShade,
+    selectedShades: { [lip.id]: 'shade-3' }, optionSearch: {
+      schemaVersion: 1, status: 'PARTIAL', products: [product], excludedCount: 1, omittedCount: 0,
+      checkedScope: { candidateProducts: 1, candidateOptions: 3, checkedOptions: 3, unidentifiedOptions: 0,
+        exhaustive: true, stoppedReason: 'COMPLETE', errors: 0 },
+      items: [reference, { ...reference, shadeId: 'shade-2', optionId: 'option-2' }, {
+        ...reference, shadeId: 'shade-3', optionId: 'option-3', group: 'EXCLUDED',
+        checks: [{ condition: 'fragrance_free', verdict: 'NOT_MATCH', reason: 'ingredient_present' }],
+      }],
+    },
+  });
+  const rows = textRows(renderer);
+  expect(rows).toContain('chat.option.registeredPrice ₩5,900');
+  expect(rows.join(' ')).not.toContain('₩7,600');
+  expect(rows.filter((row) => row === 'chat.option.fragranceUnknown')).toHaveLength(1);
+  expect(rows).toContain('Plum');
+  expect(rows).toContain('chat.conditionNotMet');
+  await act(async () => buttonWithText(renderer.root, 'Plum').props.onPress());
+  expect(onSelectShade).toHaveBeenCalledWith(lip.id, 'shade-3');
+  expect(rows).not.toContain('chat.option.currentPriceUnknown');
+  await act(async () => buttonWithText(renderer.root, 'Rose').props.onPress());
+  expect(onSelectShade).toHaveBeenCalledWith(lip.id, 'shade-1');
+  await act(async () => renderer.unmount());
+});
+
+test('G4 labels each shade and preserves exact shade selection, detail and try-on', async () => {
+  const product = { ...lip, shades: [
+    ...lip.shades,
+    { id: 'shade-2', name: 'Coral', hex: '#ee7755' },
+    { id: 'shade-3', name: 'Berry', hex: '#771133' },
+    { id: 'shade-4', name: 'Peach', hex: '#dda577' },
+    { id: 'shade-5', name: 'Nude', hex: '#b08c75' },
+  ] };
+  const makeItem = (shadeId: string, group: ChatOptionSearch['items'][number]['group'],
+    checks: ChatOptionSearch['items'][number]['checks']): ChatOptionSearch['items'][number] => ({
+    productId: lip.id, shadeId, optionId: 'option-' + shadeId, sourceVersion: 'v1', synthetic: false, group, checks,
+  });
+  const onSelectShade = jest.fn();
+  const { renderer, onOpenProduct, onOpenAr } = await renderProducts({
+    products: [product], onSelectShade, optionSearch: {
+      schemaVersion: 1, status: 'PARTIAL', products: [product], excludedCount: 2, omittedCount: 0,
+      checkedScope: { candidateProducts: 1, candidateOptions: 5, checkedOptions: 4, unidentifiedOptions: 0,
+        exhaustive: false, stoppedReason: 'WORK_LIMIT', errors: 0 },
+      items: [
+        makeItem('shade-1', 'ELIGIBLE', [{ condition: 'price', verdict: 'MATCH', reason: 'requested_price_basis' }]),
+        makeItem('shade-2', 'EXCLUDED', [{ condition: 'ingredient', verdict: 'NOT_MATCH', reason: 'ingredient_present' }]),
+        makeItem('shade-3', 'EXCLUDED', [{ condition: 'price', verdict: 'NOT_MATCH', reason: 'requested_price_basis' }]),
+        makeItem('shade-4', 'REFERENCE_ONLY', [{ condition: 'ingredient', verdict: 'UNKNOWN', reason: 'absence_not_verifiable' }]),
+      ],
+    },
+  });
+  for (const [name, shadeId, label] of [
+    ['Rose', 'shade-1', 'chat.option.eligible'],
+    ['Coral', 'shade-2', 'chat.conditionNotMet'],
+    ['Berry', 'shade-3', 'chat.conditionNotMet'],
+    ['Peach', 'shade-4', 'chat.option.reference'],
+    ['Nude', 'shade-5', 'chat.conditionUnknown'],
+  ]) {
+    const button = buttonWithText(renderer.root, name);
+    expect(button.props.accessibilityLabel).toBe(`${lip.name}, ${name}, ${label}`);
+    expect(button.findAllByType(Text).some((item) => item.props.children === label)).toBe(true);
+    expect(button.props.disabled).toBe(false);
+    await act(async () => button.props.onPress());
+    expect(onSelectShade).toHaveBeenLastCalledWith(lip.id, shadeId);
+    expect(buttonWithText(renderer.root, name).props.accessibilityState.selected).toBe(true);
+    await act(async () => buttonWithText(renderer.root, 'chat.trySelectedShade').props.onPress());
+    expect(onOpenAr).toHaveBeenLastCalledWith(lip.id, shadeId);
+    const open = renderer.root.findAll((node) => typeof node.props.onPress === 'function'
+      && node.props.accessibilityLabel === `${lip.brand} ${lip.name}, chat.openProduct`)[0];
+    await act(async () => open.props.onPress());
+    expect(onOpenProduct).toHaveBeenLastCalledWith(lip.id, shadeId);
+  }
+  await act(async () => renderer.unmount());
 });

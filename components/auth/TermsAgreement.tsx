@@ -3,22 +3,18 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '@/constants/theme';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 
-export type ConsentItem = 'terms' | 'privacy' | 'age';
+type ConsentItem = 'terms' | 'privacy';
 export type ConsentState = Record<ConsentItem, boolean>;
-
-const ITEMS: { key: ConsentItem; label: TranslationKey; doc?: 'terms' | 'privacy' }[] = [
-  { key: 'terms', label: 'consent.terms', doc: 'terms' },
-  { key: 'privacy', label: 'consent.privacy', doc: 'privacy' },
-  { key: 'age', label: 'consent.age' },
+const ITEMS: { key: ConsentItem; label: TranslationKey; link: TranslationKey; doc: 'terms' | 'service-data' }[] = [
+  { key: 'terms', label: 'consent.terms', link: 'consent.viewTerms', doc: 'terms' },
+  { key: 'privacy', label: 'consent.privacy', link: 'consent.viewData', doc: 'service-data' },
 ];
-
-export const NO_CONSENT: ConsentState = { terms: false, privacy: false, age: false };
+export const NO_CONSENT: ConsentState = { terms: false, privacy: false };
 
 export function hasAllConsents(state: ConsentState) {
   return ITEMS.every((item) => state[item.key]);
 }
 
-/** Required sign-up agreements with an "agree to all" row. */
 export function TermsAgreement({
   value,
   onChange,
@@ -26,19 +22,11 @@ export function TermsAgreement({
 }: {
   value: ConsentState;
   onChange: (next: ConsentState) => void;
-  onOpenDoc: (doc: 'terms' | 'privacy') => void;
+  onOpenDoc: (doc: 'terms' | 'service-data') => void;
 }) {
   const { t } = useI18n();
-  const all = hasAllConsents(value);
   return (
     <View style={styles.box}>
-      <CheckRow
-        label={t('consent.all')}
-        checked={all}
-        strong
-        onPress={() => onChange({ terms: !all, privacy: !all, age: !all })}
-      />
-      <View style={styles.divider} />
       {ITEMS.map((item) => (
         <View key={item.key} style={styles.row}>
           <CheckRow
@@ -46,13 +34,12 @@ export function TermsAgreement({
             checked={value[item.key]}
             onPress={() => onChange({ ...value, [item.key]: !value[item.key] })}
           />
-          {item.doc ? (
-            <Pressable accessibilityRole="link" hitSlop={8} onPress={() => onOpenDoc(item.doc!)}>
-              <Text style={styles.view}>{t('consent.view')}</Text>
-            </Pressable>
-          ) : null}
+          <Pressable accessibilityRole="link" accessibilityLabel={t(item.link)} hitSlop={8} onPress={() => onOpenDoc(item.doc)}>
+            <Text style={styles.view}>{t(item.link)}</Text>
+          </Pressable>
         </View>
       ))}
+      <Text style={styles.note}>{t('consent.cameraNotice')}</Text>
     </View>
   );
 }
@@ -60,17 +47,16 @@ export function TermsAgreement({
 function CheckRow({
   label,
   checked,
-  strong,
   onPress,
 }: {
   label: string;
   checked: boolean;
-  strong?: boolean;
   onPress: () => void;
 }) {
   return (
     <Pressable
       accessibilityRole="checkbox"
+      accessibilityLabel={label}
       accessibilityState={{ checked }}
       onPress={onPress}
       style={styles.check}>
@@ -79,7 +65,7 @@ function CheckRow({
         size={22}
         color={checked ? theme.colors.rose : theme.colors.inkFaint}
       />
-      <Text style={[styles.label, strong && styles.strong]}>{label}</Text>
+      <Text style={styles.label}>{label}</Text>
     </Pressable>
   );
 }
@@ -93,10 +79,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
   },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.colors.border },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   check: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: theme.hitTarget },
   label: { flex: 1, fontSize: theme.font.small, color: theme.colors.ink, lineHeight: 19 },
-  strong: { fontSize: theme.font.body, fontWeight: '700' },
+  note: { marginLeft: 32, paddingBottom: 10, fontSize: theme.font.small, lineHeight: 19, color: theme.colors.inkMuted },
   view: { fontSize: theme.font.small, fontWeight: '700', color: theme.colors.inkMuted, textDecorationLine: 'underline' },
 });

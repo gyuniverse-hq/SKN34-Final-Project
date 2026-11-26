@@ -78,6 +78,35 @@ describe('application profile renderer controls', () => {
     for (const value of [0, 0.123456789, 0.9, 1]) expect(h.profileCoverage({ texture: 'matte' }, value)).toBe(value);
   });
 
+  it('11-23 GC: glossy covers the bare lip (no see-through tint) with half the overlay; other finishes unchanged', () => {
+    const h = rendererProfileHarness();
+    expect(h.MATERIALS.glossy).toMatchObject({ translucent: 0, overlay: 0.1, a1: 0.46, roughness: 0.16, specular: 1.15 });
+    // the see-through finishes stay see-through, the rest keep their 11-13 values
+    expect(h.MATERIALS.sheer).toMatchObject({ translucent: 0.8, overlay: 0.15 });
+    expect(h.MATERIALS.oil.translucent).toBe(1);
+    expect(h.MATERIALS.balm.translucent).toBe(0.95);
+    expect(h.MATERIALS.satin).toMatchObject({ translucent: 0.12, overlay: 0.2 });
+    expect(h.MATERIALS.matte).toMatchObject({ translucent: 0, overlay: 0, detail: 1.6, cavity: 2 });
+  });
+
+  it('11-23 finish plan D + 11-26 finishes apart: matte lines up / no form shine, velvet smoothed, glossy shine x1.6; satin / glossy rim tilt x0.3 (glossy cavity kept 1.2); others untouched', () => {
+    const h = rendererProfileHarness();
+    expect(h.MATERIALS.matte).toMatchObject({ glossScale: 0, detail: 1.6 });
+    expect(h.MATERIALS.velvet).toMatchObject({ glossScale: 0.1, overlay: 0, detail: 0.3 });
+    expect(h.MATERIALS.matte.detail).toBeGreaterThan(h.MATERIALS.velvet.detail);
+    expect(h.MATERIALS.satin).toMatchObject({ rimTilt: 0.3, cavity: 2.3, roughness: 0.42 });
+    expect(h.MATERIALS.glossy).toMatchObject({ rimTilt: 0.3, cavity: 1.2, glossScale: 1.6 });
+    for (const k of ['cream', 'sheer', 'shimmer', 'oil', 'balm']) {
+      expect(h.MATERIALS[k].glossScale).toBeUndefined();
+      expect(h.MATERIALS[k].rimTilt).toBeUndefined();
+    }
+    expect(h.MATERIALS.velvet.rimTilt).toBeUndefined();
+    expect(h.MATERIALS.matte.rimTilt).toBeUndefined();
+    expect(h.MATERIALS.satin.glossScale).toBeUndefined();
+    // only matte is rougher than the 0.8 gate of the matte specular mask, so its ridge change touches matte alone
+    expect(Object.keys(h.MATERIALS).filter((k) => h.MATERIALS[k].roughness > 0.8)).toEqual(['matte']);
+  });
+
   it('bounds explicit controls, preserves unspecified values and never mutates the defaults', () => {
     const h = rendererProfileHarness();
     const original = { ...h.MATERIALS.matte };

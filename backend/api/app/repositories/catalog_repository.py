@@ -1,7 +1,12 @@
-from sqlalchemy import Text, cast, delete, select, text
+from dataclasses import dataclass
+from datetime import date
+
+from sqlalchemy import Date, Select, Text, and_, cast, delete, func, select, text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.ar_palette import catalog_color_family
+from app.core.config import get_settings
 from app.models import (
     LookItemRow,
     LookRow,
@@ -10,8 +15,21 @@ from app.models import (
     StoreRow,
     YtCatalogProductLinkRow,
 )
+from app.models.admin import ProductAdminStateRow
+from app.models.raw_oliveyoung import RawOyCategoryRow, RawOyProductRow, RawOyReviewSummaryRow
 from app.models.skincare import SkincareServingRow
 from app.schemas.catalog import CatalogBundle, CelebLook, LookItem, Product, Shade, Store
+
+
+@dataclass(frozen=True)
+class ProductDiscoveryCandidate:
+    product_id: str
+    category: str
+    registered_on: date | None
+    is_new: bool | None
+    rating_avg: float | None
+    review_count: int | None
+    review_collected_on: date | None
 
 
 def build_search_text(product: Product) -> str:
@@ -45,6 +63,12 @@ def _product(row: ProductRow) -> Product:
                 measure_method=s.measure_method,
                 color_source=s.color_source,
                 color_confidence=s.color_confidence,
+                finish=s.finish,
+                color_family=(
+                    catalog_color_family(s.hex, s.measure_method, s.color_source)
+                    if (row.category, row.makeup_zone) in {("lip", "lip"), ("cheek", "blush")}
+                    else None
+                ),
             )
             for s in row.shades
         ],
@@ -86,8 +110,17 @@ def _store(row: StoreRow) -> Store:
     )
 
 
+def _visible_products(stmt: Select) -> Select:
+    if not get_settings().admin_enabled:
+        return stmt
+    hidden_ids = select(ProductAdminStateRow.product_id).where(
+        ProductAdminStateRow.is_visible.is_(False)
+    )
+    return stmt.where(~ProductRow.id.in_(hidden_ids))
+
+
 class CatalogRepository:
-    """PostgreSQL access for products, looks and stores. Returns API schemas, never ORM rows."""
+    """PostgreSQL access for products, looks and stores. Keeps ORM rows internal."""
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -100,7 +133,7 @@ class CatalogRepository:
         tags: list[str] | None = None,
     ) -> list[Product]:
         """`tags` matches products carrying any of them; an empty list matches nothing."""
-        stmt = select(ProductRow).order_by(ProductRow.position, ProductRow.id)
+        stmt = _visible_products(select(ProductRow).order_by(ProductRow.position, ProductRow.id))
         if ids is not None:
             stmt = stmt.where(ProductRow.id.in_(ids))
         if category:
@@ -112,7 +145,60 @@ class CatalogRepository:
         rows = (await self._session.scalars(stmt)).all()
         return [_product(r) for r in rows]
 
+    async def discovery_candidates(self) -> list[ProductDiscoveryCandidate]:
+        source = RawOyProductRow
+        review = RawOyReviewSummaryRow
+        stmt = (
+            select(
+                ProductRow.id,
+                ProductRow.category,
+                cast(source.registered_at, Date),
+                source.is_new,
+                review.rating_avg,
+                review.review_count,
+                cast(review.collected_at, Date),
+            )
+            .select_from(ProductRow)
+            .join(source, ProductRow.id == func.concat("oy-", func.lower(source.goods_no)))
+            .outerjoin(review, and_(review.goods_no == source.goods_no, review.is_latest.is_(True)))
+            .where(source.delisted_at.is_(None))
+        )
+        rows = await self._session.execute(_visible_products(stmt))
+        return [ProductDiscoveryCandidate(*row) for row in rows]
+
+    async def option_search_candidates(self, query, category, ids, limit, *, product_type=None):
+        stmt = select(ProductRow).order_by(ProductRow.position, ProductRow.id)
+        if category:
+            stmt = stmt.where(ProductRow.category == category)
+        if ids is not None:
+            stmt = stmt.where(ProductRow.id.in_(ids))
+        if product_type is not None:
+            label = {"foundation": "파운데이션", "cushion": "쿠션"}[product_type]
+            product_ids = (
+                select(func.concat("oy-", func.lower(RawOyProductRow.goods_no)))
+                .join(RawOyCategoryRow, RawOyCategoryRow.category_no == RawOyProductRow.category_no)
+                .where(
+                    RawOyProductRow.std_category_code == label,
+                    RawOyCategoryRow.category_name == label,
+                    RawOyProductRow.delisted_at.is_(None),
+                )
+            )
+            stmt = stmt.where(ProductRow.id.in_(product_ids))
+        for word in query.lower().split():
+            # Search identity, never descriptions which could swallow requested predicates.
+            identity = ProductRow.brand + " " + ProductRow.name + " " + ProductRow.name_ko
+            stmt = stmt.where(func.lower(identity).contains(word, autoescape=True))
+        count = await self._session.scalar(
+            select(func.count()).select_from(stmt.order_by(None).subquery())
+        )
+        rows = (await self._session.scalars(stmt.limit(limit))).all()
+        return [_product(row) for row in rows], count
+
     async def get_product(self, product_id: str) -> Product | None:
+        if get_settings().admin_enabled:
+            state = await self._session.get(ProductAdminStateRow, product_id)
+            if state and not state.is_visible:
+                return None
         row = await self._session.get(ProductRow, product_id)
         return _product(row) if row else None
 
@@ -131,6 +217,28 @@ class CatalogRepository:
     async def replace_catalog(self, bundle: CatalogBundle) -> None:
         """Replaces the whole catalog in one transaction (seed/import)."""
         async with self._session.begin():
+            admin_exists = await self._session.scalar(
+                text("SELECT to_regclass('public.product_admin_state') IS NOT NULL")
+            )
+            admin_states = []
+            if admin_exists:
+                # Same lock as paid/cancel/state edits: snapshot the latest stock.
+                await self._session.execute(text("SELECT pg_advisory_xact_lock(7284732)"))
+                admin_states = (
+                    (
+                        await self._session.execute(
+                            select(
+                                ProductAdminStateRow.product_id,
+                                ProductAdminStateRow.is_visible,
+                                ProductAdminStateRow.stock,
+                                ProductAdminStateRow.updated_by,
+                                ProductAdminStateRow.updated_at,
+                            )
+                        )
+                    )
+                    .mappings()
+                    .all()
+                )
             # Product rows are deleted and recreated below. Preserve reviewed source
             # links across that full replacement so the DB cascade does not erase them.
             link_table_exists = await self._session.scalar(
@@ -180,12 +288,17 @@ class CatalogRepository:
                                 measure_method=s.measure_method,
                                 color_source=s.color_source,
                                 color_confidence=s.color_confidence,
+                                finish=s.finish,
                             )
                             for i, s in enumerate(p.shades)
                         ],
                     )
                 )
             await self._session.flush()
+            live_ids = {p.id for p in bundle.products}
+            for state in admin_states:
+                if state["product_id"] in live_ids:
+                    self._session.add(ProductAdminStateRow(**dict(state)))
             for link in yt_catalog_links:
                 self._session.add(
                     YtCatalogProductLinkRow(

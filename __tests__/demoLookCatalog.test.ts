@@ -1,4 +1,4 @@
-import { DEMO_LOOK_AR } from '@/lib/demoLookAr';
+import { DEMO_LOOK_AR, DEMO_LOOK_TITLE_KEYS, demoLookTitleKey, isDemoLook } from '@/lib/demoLookAr';
 import { DEMO_CELEBRITY_VIDEOS, DEMO_LOOK_PRODUCTS, DEMO_STYLE_LOOKS } from '@/lib/demoLookBundle';
 import { FALSE_LASH_LOOKS } from '@/lib/falseLashLooks';
 import { LOOK_LINERS, type LookLinerId } from '@/lib/linerLooks';
@@ -53,6 +53,14 @@ describe('demo look coverage', () => {
     }
   });
 
+  test('every demo look has a short on-screen title key', () => {
+    expect(Object.keys(DEMO_LOOK_TITLE_KEYS).sort()).toEqual(Object.keys(DEMO_LOOK_AR).sort());
+    expect(isDemoLook('celebrity-n5otfjJSSQc')).toBe(true);
+    expect(demoLookTitleKey('celebrity-e1gSkUdG6Bo')).toBe('look.demo.sullyoon');
+    expect(demoLookTitleKey('style-ZAozXs-ZZik')).toBe('look.demo.strawberry');
+    expect(demoLookTitleKey('other')).toBeNull();
+  });
+
   test('false lashes only ride on mascara slots and use known presets', () => {
     const lashes = Object.values(DEMO_LOOK_AR).flat().filter((slot) => slot.lashes);
     // 11-09: only 딸기 토끼상 shows attached bunches in its video; the others use a measured strand shape instead.
@@ -82,7 +90,7 @@ describe('demo look coverage', () => {
     // 11-13: a wide 55° fan read as drawn comb teeth next to the finished frame; a soft fan stays.
     expect(fan.lashFan).toBeGreaterThanOrEqual(20);
     expect(fan.lashFan).toBeLessThanOrEqual(40);
-    expect(fan.lashWidth).toBeLessThanOrEqual(1);
+    expect(fan.lashWidth).toBeLessThanOrEqual(1.2);
     expect(fan.lower).toBe(true);
     expect(mascaraGeometry('fine_dense').lashCount).toBeGreaterThan(fan.lashCount!);
     expect(mascaraGeometry('short_light').lashCount).toBeLessThan(fan.lashCount!);

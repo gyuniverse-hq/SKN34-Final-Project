@@ -1,10 +1,14 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import Head from 'expo-router/head';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import { AccountDeletionProgress } from '@/components/account/AccountDeletionProgress';
 import { theme } from '@/constants/theme';
+import { AccountDeletionContext, useAccountDeletionController } from '@/hooks/useAccountDeletion';
 import { useTermsConsentGate } from '@/hooks/useTermsConsent';
 import { ApiError } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
@@ -31,25 +35,58 @@ function createQueryClient() {
 
 export default function RootLayout() {
   const [queryClient] = useState(createQueryClient);
+  const [fontsLoaded, fontError] = useFonts({
+    [theme.fontFamily.regular]: require('@/assets/fonts/NanumGothic-Regular.ttf'),
+    [theme.fontFamily.display]: require('@/assets/fonts/NanumGothic-Bold.ttf'),
+  });
 
   useEffect(() => {
-    SplashScreen.hideAsync().catch(() => {});
-  }, []);
+    if (fontsLoaded || fontError) SplashScreen.hideAsync().catch(() => {});
+  }, [fontsLoaded, fontError]);
 
+  if (!fontsLoaded && !fontError) return null;
   return (
     <QueryClientProvider client={queryClient}>
       <Head>
         <title>VISHUE</title>
       </Head>
       <StatusBar style="dark" />
-      <RootStack />
+      <AccountDeletionGate />
     </QueryClientProvider>
   );
 }
 
+function AccountDeletionGate() {
+  const deletion = useAccountDeletionController();
+  // Keep the initial web render consistent with the server's signed-out HTML.
+  const hydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
+  const waiting = hydrated && deletion.waiting;
+  if (deletion.progress) {
+    return <AccountDeletionProgress complete={deletion.progress === 'complete'}
+      busy={deletion.busy} issue={deletion.issue} signedIn={deletion.signedIn} canCheck={deletion.canCheck}
+      onCheck={() => { void deletion.check(); }} onLeave={() => { void deletion.leave(); }} />;
+  }
+  return <AccountDeletionContext.Provider value={deletion}>
+    {waiting && <View style={{ flex: 1, justifyContent: 'center', backgroundColor: theme.colors.surface }}>
+      <ActivityIndicator />
+    </View>}
+    {/* Preserve the initial route while the account's local receipt is loading. */}
+    <View style={{ flex: 1, display: waiting ? 'none' : 'flex' }}>
+      {!waiting && <TermsConsentGate />}
+      <RootStack />
+    </View>
+  </AccountDeletionContext.Provider>;
+}
+
+const subscribeToHydration = () => () => {};
+
+function TermsConsentGate() {
+  useTermsConsentGate();
+  return null;
+}
+
 function RootStack() {
   const { t } = useI18n();
-  useTermsConsentGate();
   return (
     <Stack
       screenOptions={{
@@ -93,6 +130,7 @@ function RootStack() {
         options={{ title: t('consent.title'), presentation: 'modal', gestureEnabled: false, headerBackVisible: false }}
       />
       <Stack.Screen name="membership" options={{ title: t('membership.title') }} />
+      <Stack.Screen name="settings" options={{ title: t('my.settings') }} />
       <Stack.Screen name="rewards" options={{ title: t('rewards.title') }} />
       <Stack.Screen name="saved" options={{ title: t('saved.title') }} />
       <Stack.Screen name="ingredients" options={{ title: t('ingredients.title') }} />

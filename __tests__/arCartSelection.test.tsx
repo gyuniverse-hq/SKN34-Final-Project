@@ -95,7 +95,7 @@ jest.mock('@/lib/queries', () => {
   };
   return {
     useProducts: () => ({ data: [lipProduct, shadowProduct] }),
-    useTryOnProducts: () => ({ data: [lipProduct, shadowProduct] }),
+    useMe: () => ({ data: undefined, isPending: false }), useTryOnProducts: () => ({ data: [lipProduct, shadowProduct] }),
   };
 });
 

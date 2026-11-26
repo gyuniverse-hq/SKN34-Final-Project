@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ProductCard } from '@/components/shop/ProductCard';
@@ -10,8 +10,9 @@ import { Notice } from '@/components/ui/Notice';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { orderCatalogProducts } from '@/lib/discovery';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
-import { useProducts } from '@/lib/queries';
+import { useProductDiscoveryOrder, useProducts } from '@/lib/queries';
 import { useRecentSearchStore } from '@/store/recentSearchStore';
 import {
   parseCategory,
@@ -25,7 +26,7 @@ import type { Product, ProductCategory, SkinConcern } from '@/types';
 
 /** Search results for home search and skin-analysis filters (`q`, `category`, `concerns`, `source`). */
 export default function SearchScreen() {
-  const params = useLocalSearchParams<{ q?: string; category?: string; concerns?: string; source?: string }>();
+  const params = useLocalSearchParams<{ q?: string; category?: string; concerns?: string; source?: string; collection?: string }>();
   const router = useRouter();
   const { t } = useI18n();
   const source = parseSearchSource(params.source);
@@ -35,6 +36,19 @@ export default function SearchScreen() {
   const [concerns, setConcerns] = useState<SkinConcern[]>(parseConcerns(params.concerns));
   const debouncedQuery = useDebouncedValue(query.trim(), 300);
   const products = useProducts({ q: debouncedQuery || undefined, category, concerns });
+  const newArrivals = paramValue(params.collection) === 'new';
+  const discoveryOrder = useProductDiscoveryOrder(false, newArrivals);
+  const items = useMemo(() => {
+    if (!newArrivals) return products.data;
+    const productsById = new Map(products.data?.map(product => [product.id, product]));
+    return orderCatalogProducts(discoveryOrder.data?.newArrivals ?? [], productsById).map(entry => entry.product);
+  }, [newArrivals, products.data, discoveryOrder.data]);
+  const isPending = products.isPending || (newArrivals && discoveryOrder.isPending);
+  const error = products.error ?? (newArrivals ? discoveryOrder.error : null);
+  const retry = () => {
+    void products.refetch();
+    if (newArrivals) void discoveryOrder.refetch();
+  };
 
   const renderItem = useCallback(
     ({ item }: { item: Product }) => (
@@ -81,8 +95,8 @@ export default function SearchScreen() {
           <Button label={t('search.editFilters')} variant="ghost" compact onPress={() => router.back()} style={styles.noticeBtn} />
         </Notice>
       ) : null}
-      {!products.isPending && !products.isError && products.data.length > 0 ? (
-        <Text style={styles.count}>{t('search.count', { count: products.data.length })}</Text>
+      {!isPending && !error && !!items?.length ? (
+        <Text style={styles.count}>{t('search.count', { count: items.length })}</Text>
       ) : null}
     </View>
   );
@@ -91,9 +105,9 @@ export default function SearchScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <Stack.Screen options={{ title: t(source === 'skin' ? 'search.skinTitle' : 'search.title') }} />
+      <Stack.Screen options={{ title: t(newArrivals ? 'discovery.new' : source === 'skin' ? 'search.skinTitle' : 'search.title') }} />
       <FlatList
-        data={products.data ?? []}
+        data={items ?? []}
         keyExtractor={(item) => item.id}
         numColumns={2}
         renderItem={renderItem}
@@ -102,15 +116,15 @@ export default function SearchScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         ListEmptyComponent={
-          products.isPending ? (
+          isPending ? (
             <LoadingState />
-          ) : products.isError ? (
-            <ErrorState error={products.error} onRetry={() => products.refetch()} />
+          ) : error ? (
+            <ErrorState error={error} onRetry={retry} />
           ) : (
             <EmptyState
               icon={filtered ? 'search-outline' : 'cube-outline'}
-              title={filtered ? t('shop.noResults') : t('shop.emptyCatalog')}
-              body={filtered ? t('search.noResultsBody') : t('shop.emptyCatalogBody')}
+              title={filtered ? t('shop.noResults') : t(newArrivals ? 'discovery.newEmpty' : 'shop.emptyCatalog')}
+              body={filtered ? t('search.noResultsBody') : newArrivals ? undefined : t('shop.emptyCatalogBody')}
               action={
                 filtered ? (
                   <Button

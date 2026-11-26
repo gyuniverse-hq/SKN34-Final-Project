@@ -1,4 +1,4 @@
-import { readSkincareRecord } from '@/lib/skincareRecord';
+import { getCurrentUserId } from '@/lib/auth';
 import { Stack, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
@@ -56,14 +56,13 @@ export default function SkinBenchmarkScreen() {
     {__DEV__ && <View style={styles.card}>
       <Button label={t('support.devRecord')} variant="secondary" onPress={() => {
         if (record !== null) { setRecord(null); return; }
-        void readSkinProfile().then(profile => {
+        void getCurrentUserId().then(readSkinProfile).then(profile => {
           if (!profile) { setRecord(t('support.devEmpty')); return; }
           setRecord(JSON.stringify({ version: profile.version, registeredAt: profile.registeredAt,
             questionnaire: profile.questionnaire, imageType: profile.analysis.skinType,
             ...(profile.version === 2 || profile.version === 4 ? { fusion: profile.fusion } : {}) }, null, 2));
         }).catch(() => setFailed(true));
       }} />
-      <Button label={t('skincare.devRecord')} onPress={() => { void readSkincareRecord().then(value => setRecord(value ?? t('skincare.devEmpty'))).catch(() => setFailed(true)); }} />
       {record !== null && <Text selectable>{record}</Text>}
     </View>}
     {failed && <Text accessibilityRole="alert">{t('skin.storageFailed')}</Text>}

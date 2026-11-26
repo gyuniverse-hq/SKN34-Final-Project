@@ -1,7 +1,7 @@
 """Public Style contracts. Client progress is a hint, never content or AR authority."""
 
 import re
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
@@ -24,6 +24,32 @@ class StyleModel(BaseModel):
     model_config = ConfigDict(
         alias_generator=to_camel, populate_by_name=True, serialize_by_alias=True, extra="forbid"
     )
+
+
+class StyleCandidateRef(StyleModel):
+    kind: LookKind
+    look_id: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-][A-Za-z0-9._-]*$")
+
+    @model_validator(mode="after")
+    def validate_namespace(self):
+        if self.kind == "video" and not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", self.look_id):
+            raise ValueError("Invalid video look ID")
+        if self.kind == "catalog" and not re.fullmatch(
+            r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", self.look_id
+        ):
+            raise ValueError("Invalid catalog look ID")
+        return self
+
+
+class StyleCandidate(StyleCandidateRef):
+    title: str = Field(min_length=1, max_length=200)
+    tags: list[Annotated[str, Field(max_length=100)]] = Field(default_factory=list, max_length=20)
+    match: str | None = Field(default=None, max_length=40)
+
+
+class StyleCondition(StyleModel):
+    slot: Literal["occasion", "mood", "eyes", "lips", "sparkle", "color", "finish"]
+    value: str = Field(min_length=1, max_length=100)
 
 
 class StyleContext(StyleModel):
@@ -92,7 +118,9 @@ class RecipeProduct(StyleModel):
     zone: str
     product_id: str | None = None
     shade_id: str | None = None
-    mapping_status: Literal["verified", "unknown", "invalid"] = "unknown"
+    mapping_status: Literal["verified", "product_only", "unknown", "invalid", "unavailable"] = (
+        "unknown"
+    )
     catalog_valid: bool = False
     ar_eligible: bool = False
 
@@ -106,6 +134,8 @@ class StyleRecipe(StyleModel):
     title: str
     basis: Literal["reviewed_recipe", "catalog_settings", "video_metadata"]
     review_status: Literal["verified", "unreviewed", "not_applicable"]
+    product_usage_trusted: bool = False
+    product_question: bool = False
     video_analyzed: Literal[False] = False
     synthetic: bool = False
     source: str

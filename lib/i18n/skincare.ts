@@ -1,8 +1,9 @@
 export const skincareEn = {
-  "skincare.aiTop5": "AI picks · Top 5",
+  "skincare.feedbackFailed": "Some recommendation activity could not be saved.",
+  "skincare.topPicks": "Recommended for you · Top {limit}",
   "skincare.concernTop5": "Top 5 by concern",
-  "skincare.aiDescription": "Selected using your skin analysis and survey.",
-  "skincare.emptyAi": "No AI picks match your current profile. Browse recommendations by concern below.",
+  "skincare.profileDescription": "Selected using your skin analysis and survey.",
+  "skincare.emptyProfileMatches": "No matching products were found for your current profile.",
   "skincare.reason.concern": "Matches ingredients associated with {goal}.",
   "skincare.requestPrompt": "Complete your skin profile to see recommendations.",
   "skincare.reason.skinProfile": "Supports {goal} care based on your skin characteristics.",
@@ -12,17 +13,14 @@ export const skincareEn = {
   "skincare.reason.skinType": "Matches {goal} suggested by your skin type.",
   "skincare.disclosure": "Recommendations use CosIng ingredient function classifications for your goals and skin characteristics. Product concentrations, formulations and effectiveness have not been verified. Photos and original answers stay on this device.",
   "skincare.mapping_unavailable": "Recommendations are being prepared for {goal}.",
-  "skincare.no_matches": "No matching products for {goal}.",
-  "skincare.reason.primary": "Chosen around your {goal} care goal.",
-  "skincare.reason.secondary": "For your additional {goal} care goal.",
-  "skincare.devRecord": "Developer recommendation record",
-  "skincare.devEmpty": "No recommendation record saved."
+  "skincare.no_matches": "No matching products for {goal}."
 };
 export const skincareKo = {
-  "skincare.aiTop5": "AI 추천 TOP 5",
+  "skincare.feedbackFailed": "일부 추천 반응을 저장하지 못했어요.",
+  "skincare.topPicks": "내 피부 추천 TOP {limit}",
   "skincare.concernTop5": "개별 고민 TOP 5",
-  "skincare.aiDescription": "피부 분석과 설문 결과를 함께 고려해 골랐어요.",
-  "skincare.emptyAi": "현재 분석·설문 결과에 맞는 추천 제품이 없어요. 아래에서 고민별 추천을 둘러보세요.",
+  "skincare.profileDescription": "피부 분석과 설문 결과를 함께 고려해 골랐어요.",
+  "skincare.emptyProfileMatches": "현재 분석·설문 결과에 맞는 추천 제품이 없어요.",
   "skincare.reason.concern": "{goal}에 연결된 성분이 들어 있어요.",
   "skincare.requestPrompt": "피부 분석과 설문을 완료하면 추천을 볼 수 있어요.",
   "skincare.reason.skinProfile": "피부 특성을 고려한 {goal} 관리에 맞춰 골랐어요.",
@@ -32,17 +30,14 @@ export const skincareKo = {
   "skincare.reason.skinType": "피부 타입에서 파생된 {goal} 고민과 일치해요.",
   "skincare.disclosure": "목표와 피부 특성에 관련된 CosIng 성분 기능 분류를 참고해요. 제품의 성분 농도·제형과 효과는 확인되지 않았어요. 사진과 원본 응답은 기기에 보관해요.",
   "skincare.mapping_unavailable": "{goal} 추천을 준비 중이에요.",
-  "skincare.no_matches": "{goal}에 맞는 추천 제품이 아직 없어요.",
-  "skincare.reason.primary": "선택하신 {goal} 관리를 중심으로 골랐어요.",
-  "skincare.reason.secondary": "함께 확인한 {goal} 관리에 참고할 제품이에요.",
-  "skincare.devRecord": "개발용 추천 기록",
-  "skincare.devEmpty": "저장된 추천 기록이 없어요."
+  "skincare.no_matches": "{goal}에 맞는 추천 제품이 아직 없어요."
 };
 export const skincareJa = {
-  "skincare.aiTop5": "AIおすすめ TOP 5",
+  "skincare.feedbackFailed": "一部のおすすめへの反応を保存できませんでした。",
+  "skincare.topPicks": "あなたの肌におすすめ TOP {limit}",
   "skincare.concernTop5": "お悩み別 TOP 5",
-  "skincare.aiDescription": "肌分析とアンケート結果をもとに選びました。",
-  "skincare.emptyAi": "現在の結果に合うAIおすすめはありません。下のお悩み別おすすめをご覧ください。",
+  "skincare.profileDescription": "肌分析とアンケート結果をもとに選びました。",
+  "skincare.emptyProfileMatches": "現在の結果に合うおすすめ商品はありません。",
   "skincare.reason.concern": "{goal}に関連する成分が含まれています。",
   "skincare.requestPrompt": "肌の分析とアンケートを完了するとおすすめを表示します。",
   "skincare.reason.skinProfile": "肌の特徴に合わせた{goal}ケアのために選びました。",
@@ -52,17 +47,14 @@ export const skincareJa = {
   "skincare.reason.skinType": "肌タイプから推定した{goal}に一致します。",
   "skincare.disclosure": "目標や肌の特徴に関連するCosIngの成分機能分類を参考にしています。商品の成分濃度・処方と効果は確認されていません。写真と元の回答は端末内に保管します。",
   "skincare.mapping_unavailable": "{goal}のおすすめを準備中です。",
-  "skincare.no_matches": "{goal}に合う商品はまだありません。",
-  "skincare.reason.primary": "選択した{goal}ケアを中心に選びました。",
-  "skincare.reason.secondary": "追加の{goal}ケアの参考商品です。",
-  "skincare.devRecord": "開発用おすすめ記録",
-  "skincare.devEmpty": "保存した記録はありません。"
+  "skincare.no_matches": "{goal}に合う商品はまだありません。"
 };
 export const skincareZh = {
-  "skincare.aiTop5": "AI 推荐 TOP 5",
+  "skincare.feedbackFailed": "部分推荐反馈未能保存。",
+  "skincare.topPicks": "适合你的护肤品 TOP {limit}",
   "skincare.concernTop5": "按肌肤困扰推荐 TOP 5",
-  "skincare.aiDescription": "根据肌肤分析和问卷结果挑选。",
-  "skincare.emptyAi": "暂无符合当前结果的AI推荐，请浏览下方的专项推荐。",
+  "skincare.profileDescription": "根据肌肤分析和问卷结果挑选。",
+  "skincare.emptyProfileMatches": "暂无符合当前结果的推荐产品。",
   "skincare.reason.concern": "含有与{goal}相关的成分。",
   "skincare.requestPrompt": "完成皮肤分析和问卷后即可查看推荐。",
   "skincare.reason.skinProfile": "根据您的皮肤特点，帮助进行{goal}护理。",
@@ -72,9 +64,5 @@ export const skincareZh = {
   "skincare.reason.skinType": "符合根据肤质推断的{goal}需求。",
   "skincare.disclosure": "根据目标和皮肤特点，参考CosIng成分功能分类。产品的成分浓度、配方和效果尚未核实。照片和原始回答保留在设备上。",
   "skincare.mapping_unavailable": "正在准备{goal}推荐。",
-  "skincare.no_matches": "暂无符合{goal}的产品。",
-  "skincare.reason.primary": "围绕您选择的{goal}护理目标挑选。",
-  "skincare.reason.secondary": "供其他{goal}护理目标参考。",
-  "skincare.devRecord": "开发推荐记录",
-  "skincare.devEmpty": "暂无推荐记录。"
+  "skincare.no_matches": "暂无符合{goal}的产品。"
 };

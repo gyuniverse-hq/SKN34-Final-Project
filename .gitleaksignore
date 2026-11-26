@@ -1,0 +1,18 @@
+# Verified G8 source SHA-256 only. See reports/g8/security/gitleaks-audit.md.
+# All findings sharing each fingerprint were recomputed; no path/rule exclusions.
+1dceb38cf1eabf9f1aac9deccb7e2919fd8e4298:reports/g8/n01/trace.jsonl:generic-api-key:141
+1dceb38cf1eabf9f1aac9deccb7e2919fd8e4298:reports/g8/n01/trace.jsonl:generic-api-key:145
+1dceb38cf1eabf9f1aac9deccb7e2919fd8e4298:reports/g8/n01/trace.jsonl:generic-api-key:93
+4173f36658fb96086388971ceb927a651deb147b:reports/g8/n01/trace.jsonl:generic-api-key:146
+4173f36658fb96086388971ceb927a651deb147b:reports/g8/n01/trace.jsonl:generic-api-key:156
+5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:1
+5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:14
+5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:4
+5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:6
+5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:9
+64188a2861a804b6ff1d4d89558fc11ce0995e00:reports/g8/n01/trace.jsonl:generic-api-key:1
+64188a2861a804b6ff1d4d89558fc11ce0995e00:reports/g8/n01/trace.jsonl:generic-api-key:16
+64188a2861a804b6ff1d4d89558fc11ce0995e00:reports/g8/n01/trace.jsonl:generic-api-key:32
+f7b97e1b3cd2ef0134804d12d7b14e89417e0cec:reports/g8/n01/trace.jsonl:generic-api-key:49
+f7b97e1b3cd2ef0134804d12d7b14e89417e0cec:reports/g8/n01/trace.jsonl:generic-api-key:74
+f7b97e1b3cd2ef0134804d12d7b14e89417e0cec:reports/g8/n01/trace.jsonl:generic-api-key:92

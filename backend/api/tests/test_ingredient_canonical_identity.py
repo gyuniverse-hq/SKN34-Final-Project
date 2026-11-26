@@ -310,3 +310,49 @@ async def test_unreviewed_official_alias_collision_stays_unresolved(name, offici
     # A link to the competing ID cannot become a confirmed synonym either.
     other_entry = IngredientIdentityRepository(Session([[tuple(other)], standards]))
     assert await other_entry.for_entries([101]) == {}
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "name,standard,expected_id",
+    [
+        ("미네랄 오일", "미네랄오일", 317),
+        ("판 테 놀", "판테놀", 123),
+    ],
+)
+async def test_unique_hangul_spacing_resolves_through_official_owner(name, standard, expected_id):
+    hit = row(expected_id)
+    hit = (hit[0], standard, *hit[2:])
+    repo = IngredientIdentityRepository(Session([[], [hit], [hit + (True, False, True)]]))
+    result = await repo.resolve_option_name(name)
+    assert result.status == "resolved" and result.identity.mfds_ingredient_id == expected_id
+
+
+@pytest.mark.anyio
+async def test_compact_spelling_preserves_competing_owners():
+    first, second = row(317), row(318)
+    repo = IngredientIdentityRepository(Session([[], [first, second]]))
+    result = await repo.resolve_option_name("미네랄 오일")
+    assert result.identity is None and result.status == "ambiguous"
+    assert result.suggestions == ("standard-317", "standard-318")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "digest,expected",
+    [(None, "unverified_alias"), ("b" * 64, "unverified_alias"), ("a" * 64, "resolved")],
+)
+async def test_split_english_field_needs_current_source_approval(monkeypatch, digest, expected):
+    import app.core.ingredient_alias_approval as policy
+
+    monkeypatch.setattr(
+        policy, "get_ingredient_alias_approvals", lambda: {(317, "mineral oil", digest)}
+    )
+    hit = row(317)
+    hit = (*hit[:9], "Mineral Oil,Paraffinum Liquidum", *hit[10:])
+    repo = IngredientIdentityRepository(Session([[], [hit]]))
+    result = await repo.resolve_option_name("Mineral Oil")
+    assert result.status == expected
+    assert (result.identity.mfds_ingredient_id if result.identity else None) == (
+        317 if expected == "resolved" else None
+    )

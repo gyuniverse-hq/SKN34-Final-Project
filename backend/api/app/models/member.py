@@ -12,5 +12,8 @@ class MemberRow(Base):
     __tablename__ = "members"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    first_ar_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    skin_trial_run: Mapped[str | None] = mapped_column(String(128))
+    skin_subscription_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     terms_version: Mapped[str] = mapped_column(String(32))
     terms_agreed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

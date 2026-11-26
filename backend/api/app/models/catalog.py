@@ -29,7 +29,7 @@ class ProductRow(Base):
     makeup_zone: Mapped[str | None] = mapped_column(String(20))
     texture: Mapped[str | None] = mapped_column(String(20), nullable=True)
     price_krw: Mapped[int] = mapped_column(Integer)
-    volume: Mapped[str] = mapped_column(String(50))
+    volume: Mapped[str] = mapped_column(Text)
     description: Mapped[str] = mapped_column(Text)
     key_ingredients: Mapped[list[str]] = mapped_column(JsonType)
     tags: Mapped[list[str]] = mapped_column(JsonType)
@@ -56,6 +56,8 @@ class ShadeRow(Base):
     measure_method: Mapped[str | None] = mapped_column(String(20), nullable=True)
     color_source: Mapped[str | None] = mapped_column(String(20), nullable=True)
     color_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Eyeshadow finish of this shade (raw_oy_option_finish). Other products leave it empty.
+    finish: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
 
 class LookRow(Base):

@@ -8,44 +8,36 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from app.core.config import Settings
+from app.core.db import get_session
 from app.core.errors import ApiError
-from app.schemas.recommendation_feedback import (
-    RecommendationEventInput,
-    RecommendationImpressionInput,
-    RecordedComparisonInput,
-)
+from app.repositories.recommendation_feedback_repository import RecommendationFeedbackRepository
+from app.schemas.recommendation_feedback import SkincareEventInput, SkincareImpressionInput
+from app.schemas.skincare import SkincareProfileRequest
 from app.services.recommendation_feedback_service import RecommendationFeedbackService
-from app.services.recommendation_v2_service import rank_products
-from tests.test_recommendation_comparison import body, catalog, option
+from app.services.skincare_service import get_skincare_service, recommend_hybrid
+
+PATH = "/api/recommendations/skincare/v4"
 
 
 def service():
     repo = SimpleNamespace(
-        **{
-            key: AsyncMock()
-            for key in (
-                "begin",
-                "finish",
-                "candidate",
-                "impression",
-                "insert_impression",
-                "insert_event",
-            )
-        }
+        candidate=AsyncMock(return_value=None),
+        impression=AsyncMock(return_value=None),
+        insert_impression=AsyncMock(),
+        insert_skincare_event=AsyncMock(),
     )
     members = SimpleNamespace(get=AsyncMock(return_value=True))
-    comparison = SimpleNamespace(compare=AsyncMock())
-    return RecommendationFeedbackService(repo, members, comparison, "test")
+    return RecommendationFeedbackService(repo, members, "test", {"owner"})
 
 
 def impression(**changes):
-    return RecommendationImpressionInput.model_validate(
+    return SkincareImpressionInput.model_validate(
         {
             "impressionId": str(uuid4()),
             "candidateId": str(uuid4()),
             "viewInstanceId": str(uuid4()),
             "displayedPosition": 1,
+            "surface": "skin_recommendations",
             "occurredAt": datetime.now(UTC),
             "visibilityPolicyVersion": "half-visible-500ms-v1",
             **changes,
@@ -54,7 +46,7 @@ def impression(**changes):
 
 
 def event(**changes):
-    return RecommendationEventInput.model_validate(
+    return SkincareEventInput.model_validate(
         {
             "eventId": str(uuid4()),
             "impressionId": str(uuid4()),
@@ -68,111 +60,42 @@ def event(**changes):
     )
 
 
-def test_audit_preserves_all_options_and_does_not_change_rankings():
-    duplicate = option("p0", [1]).model_copy(update={"option_id": "p0-other"})
-    data = catalog(
-        [option(f"p{i}", [1]) for i in range(7)] + [duplicate, option("irrelevant", [9])]
-    )
-    seeds = [{"id": 1, "score": 0.8}]
-    original = rank_products(seeds, [], data, "pores")
-    audit = {}
-    assert rank_products(seeds, [], data, "pores", audit=audit) == original
-    assert len(audit["candidates"]) == 8
-    assert sum("rank" in row for row in audit["candidates"]) == 5
-    for row in audit["candidates"]:
-        assert row["catalogOption"]["ingredientIds"] == [1]
-        assert "surveyRatios" in row["catalogOption"]["review"]
-        if "rank" not in row:
-            assert "selectionScore" not in row and "diversityPenalty" not in row
-
-
-def test_recorded_run_saves_all_candidates_versions_and_server_owned_member():
+def test_impression_requires_consent_owned_candidate_and_original_rank():
     flow = service()
-    source = catalog([option(f"p{i}", [1]) for i in range(6)])
-
-    async def compare(_body, *, audit):
-        result = rank_products([{"id": 1, "score": 0.8}], [], source, "pores", audit=audit)
-        return {
-            "v2": {"status": "ok", "model": {"version": "model-v1", "sha256": "hash"}, **result},
-            "versions": {"catalogVersion": "catalog-v1", "catalogDigest": "digest"},
-        }
-
-    flow.comparison.compare.side_effect = compare
-    request = RecordedComparisonInput(session_id=uuid4(), input=body())
-    result = asyncio.run(flow.compare(request, "member-a"))
-    start = flow.repository.begin.call_args.args[0]
-    assert start["member_id"] == "member-a" and start["environment"] == "test"
-    assert start["input_snapshot"]["scoreKind"] == "binary_caution_probability"
-    assert start["input_snapshot"]["aggregation"] == request.input.aggregation
-    request_id, finish, candidates = flow.repository.finish.call_args.args
-    assert str(request_id) == result["history"]["requestId"]
-    assert finish["status"] == "completed" and finish["catalog_digest"] == "digest"
-    assert finish["completed_at"] >= start["requested_at"]
-    assert len(candidates) == 6
-    assert {str(c["candidate_id"]) for c in candidates if c["final_rank"]} == {
-        r["candidateId"] for r in result["v2"]["matches"]
-    }
-    unused = next(c for c in candidates if c["final_rank"] is None)
-    assert unused["selection_score"] is None and unused["diversity_penalty"] is None
-
-
-@pytest.mark.parametrize("status", ["catalog_unavailable", "v2_failed"])
-def test_failed_branch_is_recorded_without_fake_candidates(status):
-    flow = service()
-    flow.comparison.compare.return_value = {"v2": {"status": status, "matches": []}, "versions": {}}
-    asyncio.run(flow.compare(RecordedComparisonInput(session_id=uuid4(), input=body()), "member"))
-    _, values, rows = flow.repository.finish.call_args.args
-    assert values["status"] == "failed" and values["failure_code"] == status and rows == []
-
-
-def test_exception_records_bounded_failure_and_missing_member_never_starts():
-    flow = service()
-    request = RecordedComparisonInput(session_id=uuid4(), input=body())
-    flow.members.get.return_value = None
-    with pytest.raises(ApiError):
-        asyncio.run(flow.compare(request, "unknown"))
-    flow.repository.begin.assert_not_called()
-    flow.members.get.return_value = True
-    flow.comparison.compare.side_effect = RuntimeError("sensitive details")
-    with pytest.raises(RuntimeError):
-        asyncio.run(flow.compare(request, "member"))
-    values = flow.repository.finish.call_args.args[1]
-    assert values["failure_code"] == "comparison_failed"
-    assert "sensitive" not in str(values)
-
-
-def test_impression_requires_owned_selected_candidate_and_original_rank():
-    flow = service()
-    payload = impression()
-    flow.repository.candidate.return_value = None
-    with pytest.raises(ApiError):
+    payload = impression(displayedPosition=10)
+    with pytest.raises(ApiError) as error:
         asyncio.run(flow.impression(payload, "other-member"))
-    flow.repository.insert_impression.assert_not_called()
-    flow.repository.candidate.return_value = {"final_rank": 2}
-    with pytest.raises(ApiError):
+    assert error.value.code == "feedback_disabled"
+    flow.repository.candidate.assert_not_awaited()
+    with pytest.raises(ApiError) as error:
         asyncio.run(flow.impression(payload, "owner"))
-    flow.repository.candidate.return_value = {"final_rank": 1}
-    asyncio.run(flow.impression(payload, "owner"))
+    assert error.value.code == "candidate_not_found"
+    flow.repository.candidate.return_value = {"final_rank": 2}
+    with pytest.raises(ApiError) as error:
+        asyncio.run(flow.impression(payload, "owner"))
+    assert error.value.code == "position_mismatch"
+    flow.repository.insert_impression.assert_not_awaited()
+    flow.repository.candidate.return_value["final_rank"] = 10
+    assert asyncio.run(flow.impression(payload, "owner")) == {
+        "impressionId": str(payload.impression_id),
+    }
     flow.repository.candidate.assert_awaited_with(payload.candidate_id, "owner")
-    assert (
-        flow.repository.insert_impression.call_args.args[0]["impression_id"]
-        == payload.impression_id
-    )
 
 
 @pytest.mark.parametrize("field", ["session_id", "product_id", "option_id"])
 def test_event_rejects_missing_or_mismatched_attribution(field):
     flow = service()
     payload = event()
-    flow.repository.impression.return_value = None
-    with pytest.raises(ApiError):
-        asyncio.run(flow.event(payload, "other-member"))
+    with pytest.raises(ApiError) as error:
+        asyncio.run(flow.event(payload, "owner"))
+    assert error.value.code == "impression_not_found"
     row = {key: getattr(payload, key) for key in ("session_id", "product_id", "option_id")}
     row[field] = uuid4() if field == "session_id" else "other"
     flow.repository.impression.return_value = row
-    with pytest.raises(ApiError):
-        asyncio.run(flow.event(payload, "member"))
-    flow.repository.insert_event.assert_not_called()
+    with pytest.raises(ApiError) as error:
+        asyncio.run(flow.event(payload, "owner"))
+    assert error.value.code == "attribution_mismatch"
+    flow.repository.insert_skincare_event.assert_not_awaited()
 
 
 def test_cart_is_product_level_and_client_cannot_claim_purchase_or_context():
@@ -180,15 +103,17 @@ def test_cart_is_product_level_and_client_cannot_claim_purchase_or_context():
     payload = event(eventType="cart_add", optionId=None)
     flow.repository.impression.return_value = {
         "session_id": payload.session_id,
-        "product_id": "p",
+        "product_id": payload.product_id,
         "option_id": "p-1",
     }
-    asyncio.run(flow.event(payload, "owner"))
-    values = flow.repository.insert_event.call_args.args[0]
-    assert values["member_id"] == "owner" and values["event_source"] == "client"
-    assert values["option_id"] is None and values["context_snapshot"] == {"scope": "product"}
+    assert asyncio.run(flow.event(payload, "owner")) == {"eventId": str(payload.event_id)}
+    flow.repository.insert_skincare_event.assert_awaited_once_with(payload)
+    with pytest.raises(ApiError) as error:
+        asyncio.run(flow.event(payload.model_copy(update={"option_id": "p-1"}), "owner"))
+    assert error.value.code == "attribution_mismatch"
     for changes in (
         {"eventType": "purchase_confirmed"},
+        {"eventType": "outbound_click"},
         {"memberId": "other"},
         {"contextSnapshot": {"image": "private"}},
         {"eventSource": "server"},
@@ -196,27 +121,26 @@ def test_cart_is_product_level_and_client_cannot_claim_purchase_or_context():
     ):
         with pytest.raises(ValidationError):
             event(**changes)
-    with pytest.raises(ApiError):
+    with pytest.raises(ApiError) as error:
         asyncio.run(
             flow.impression(impression(occurredAt=datetime.now(UTC) + timedelta(days=1)), "owner")
         )
+    assert error.value.code == "invalid_event_time"
 
 
-def test_recording_routes_keep_production_gate(client):
-    with patch(
-        "app.routers.recommendation_comparison.get_settings",
-        return_value=Settings(
-            env="production",
-            recommendation_comparison_enabled=True,
-        ),
+def test_legacy_recommendation_routes_are_retired(client):
+    for path in (
+        "/api/recommendations/skincare",
+        "/api/recommendations/skincare/v2",
+        "/api/recommendations/skin-v2",
+        "/api/recommendations/skin-v2/recorded",
+        "/api/recommendations/skin-v2/events",
+        "/api/dev/recommendations/compare",
     ):
-        for route in ("compare/recorded", "impressions", "events"):
-            assert client.post(f"/api/dev/recommendations/{route}", json={}).status_code == 404
+        assert client.post(path, json={}).status_code == 404
 
 
 def test_recorded_route_requires_token_and_passes_only_verified_member(client):
-    from app.core.db import get_session
-
     verifier = SimpleNamespace(
         verify=AsyncMock(
             return_value={
@@ -226,45 +150,30 @@ def test_recorded_route_requires_token_and_passes_only_verified_member(client):
             }
         )
     )
-    flow = SimpleNamespace(compare=AsyncMock(return_value={"history": {"requestId": "test"}}))
+    result = recommend_hybrid(None, SkincareProfileRequest())
+    flow = SimpleNamespace(recommend_recorded=AsyncMock(return_value=result))
     client.app.dependency_overrides[get_session] = lambda: None
-    payload = RecordedComparisonInput(session_id=uuid4(), input=body()).model_dump(mode="json")
-    with (
-        patch(
-            "app.routers.recommendation_comparison.get_settings",
-            return_value=Settings(
-                env="test",
-                recommendation_comparison_enabled=True,
-            ),
-        ),
-        patch("app.core.auth.get_verifier", return_value=verifier),
-        patch("app.routers.recommendation_comparison.feedback_service", return_value=flow),
-    ):
-        assert (
-            client.post("/api/dev/recommendations/compare/recorded", json=payload).status_code
-            == 401
-        )
-        response = client.post(
-            "/api/dev/recommendations/compare/recorded",
-            json=payload,
-            headers={"Authorization": "Bearer test-token"},
-        )
+    client.app.dependency_overrides[get_skincare_service] = lambda: flow
+    payload = {"sessionId": str(uuid4()), "input": {"skinType": "dry"}}
+    url = f"{PATH}/recorded"
+    with patch("app.core.auth.get_verifier", return_value=verifier):
+        assert client.post(url, json=payload).status_code == 401
+        response = client.post(url, json=payload, headers={"Authorization": "Bearer test-token"})
         assert response.status_code == 200
         assert response.headers["Cache-Control"] == "no-store"
-        assert flow.compare.call_args.args[1] == "verified-member"
+        assert flow.recommend_recorded.await_args.args[1] == "verified-member"
         assert (
             client.post(
-                "/api/dev/recommendations/compare/recorded",
+                url,
                 json={**payload, "memberId": "fake"},
                 headers={"Authorization": "Bearer test-token"},
             ).status_code
             == 400
         )
+        flow.recommend_recorded.assert_awaited_once()
 
 
 def test_repository_duplicate_payload_is_idempotent_and_conflicts_roll_back():
-    from app.repositories.recommendation_feedback_repository import RecommendationFeedbackRepository
-
     payload = impression().model_dump(by_alias=False)
     session = SimpleNamespace(
         execute=AsyncMock(),
@@ -280,3 +189,56 @@ def test_repository_duplicate_payload_is_idempotent_and_conflicts_roll_back():
         asyncio.run(repo.insert_impression(payload))
     session.rollback.assert_awaited_once()
     session.commit.assert_awaited_once()
+
+
+def test_recorded_route_accepts_conversation_without_relabeling(client):
+    from tests.test_skincare_concern_fit import product, rule, snapshot
+
+    verifier = SimpleNamespace(
+        verify=AsyncMock(return_value={"sub": "verified-member", "role": "authenticated"})
+    )
+    request = {
+        "detectedConcerns": [{"goal": "pores", "sources": ["conversation"]}],
+    }
+    data = snapshot([product("p", "p")], [rule("p", "pores", "ASTRINGENT")])
+    result = recommend_hybrid(data, SkincareProfileRequest.model_validate(request))
+    flow = SimpleNamespace(recommend_recorded=AsyncMock(return_value=result))
+    client.app.dependency_overrides[get_session] = lambda: None
+    client.app.dependency_overrides[get_skincare_service] = lambda: flow
+    with patch("app.core.auth.get_verifier", return_value=verifier):
+        response = client.post(
+            f"{PATH}/recorded",
+            json={"sessionId": str(uuid4()), "input": request},
+            headers={"Authorization": "Bearer test-token"},
+        )
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    stored_request = flow.recommend_recorded.await_args.args[0].input
+    assert stored_request.detected_concerns[0].sources == ["conversation"]
+    assert stored_request.analysis_scores == {}
+    assert stored_request.skin_type == stored_request.irritation_signal == "unknown"
+    assert response.json()["overallTop10"][0]["reasons"][0]["sources"] == ["conversation"]
+
+
+def test_recorded_conversation_keeps_existing_private_snapshot_policy():
+    from app.schemas.recommendation_feedback import RecordedSkincareInput
+    from app.services.skincare_service import SkincareService
+    from tests.test_skincare_concern_fit import product, rule, snapshot
+
+    data = snapshot([product("p", "p")], [rule("p", "pores", "ASTRINGENT")])
+    repo = SimpleNamespace(read=AsyncMock(return_value=data))
+    feedback = service()
+    feedback.repository.record_completed = AsyncMock()
+    req = RecordedSkincareInput.model_validate(
+        {
+            "sessionId": str(uuid4()),
+            "input": {"detectedConcerns": [{"goal": "pores", "sources": ["conversation"]}]},
+        }
+    )
+    result = asyncio.run(SkincareService(repo).recommend_recorded(req, "owner", feedback))
+    request_record, candidates = feedback.repository.record_completed.await_args.args
+    assert request_record["input_snapshot"] == {}
+    assert request_record["policy_snapshot"] == {}
+    assert all(candidate["evidence_snapshot"] == {} for candidate in candidates)
+    assert result.history is not None
+    assert result.overall_top10[0].reasons[0].sources == ["conversation"]

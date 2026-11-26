@@ -1,11 +1,10 @@
-import type { CareGoal, HybridMatch } from '@/types/skincare';
 import { SUPPORT_PRIORITY_CONCERNS } from '@/constants/skinSurvey';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
+import { Stack, useFocusEffect, useLocalSearchParams, usePreventRemove, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { AppState, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { SkinConcernRail, SkinReportDetail } from '@/components/skin/SkinReportDetail';
+import { SkinReportDetail } from '@/components/skin/SkinReportDetail';
 import { SkinCareHighlights, SkinReportOverview } from '@/components/skin/SkinReportOverview';
 import { SkinRoutine, SkinSolution } from '@/components/skin/SkinSolution';
 import { ProductLineCard } from '@/components/shop/ProductLineCard';
@@ -14,10 +13,13 @@ import { InlineState } from '@/components/ui/InlineState';
 import { Notice } from '@/components/ui/Notice';
 import { LoadingState } from '@/components/ui/StateViews';
 import { theme } from '@/constants/theme';
+import { useSkinAccess } from '@/hooks/useSkinAccess';
+import { offerAction } from '@/lib/confirm';
+import { useRecommendationCardFeedback } from '@/hooks/useRecommendationFeedback';
 import { useSkinReport } from '@/hooks/useSkinReport';
 import { useI18n } from '@/lib/i18n';
-import { displayCareGoal, displayCareGroups } from '@/lib/skincare';
-import { productHref, searchHref } from '@/lib/routes';
+import { displayCareGoal } from '@/lib/skincare';
+import { searchHref } from '@/lib/routes';
 import type { SkinConcern } from '@/types';
 import { useSkinPreviewStore } from '@/store/skinPreviewStore';
 
@@ -25,7 +27,25 @@ import { useSkinPreviewStore } from '@/store/skinPreviewStore';
 export default function SkinRecommendationsScreen() {
   const router = useRouter();
   const { t } = useI18n();
-  const flow = useSkinReport();
+  const access = useSkinAccess();
+  const flow = useSkinReport(access.subscribed);
+  const { freeTrial } = useLocalSearchParams<{ freeTrial?: string }>();
+  const [invited, setInvited] = useState(false);
+  const offering = useRef(false);
+  const shouldOffer = freeTrial === '1' && flow.live && !access.subscribed && !invited;
+  const disablePrevention = usePreventRemove(shouldOffer, ({ repeat }) => invite(repeat));
+  function invite(leave: () => void) {
+    if (!shouldOffer) { leave(); return; }
+    if (offering.current) return;
+    offering.current = true;
+    const finish = (action: () => void) => {
+      setInvited(true);
+      disablePrevention();
+      action();
+    };
+    offerAction(t('skinAccess.reportInvite'), t('skinAccess.viewMembership'), t('skinAccess.later'),
+      () => finish(() => router.replace('/membership')), () => finish(leave));
+  }
   useFocusEffect(useCallback(() => () => { useSkinPreviewStore.getState().clear(); }, []));
   useEffect(() => {
     const listener = AppState.addEventListener('change', state => {
@@ -34,9 +54,9 @@ export default function SkinRecommendationsScreen() {
     return () => listener.remove();
   }, []);
   const [tab, setTab] = useState<'solution' | 'results'>('solution');
-  const [browseGoal, setBrowseGoal] = useState<CareGoal>('dryness');
   const [expanded, setExpanded] = useState(true);
   const [history, setHistory] = useState(false);
+  const [tabsHeight, setTabsHeight] = useState(0);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const tabsY = useRef(0);
   const switchTab = (id: 'solution' | 'results') => {
@@ -46,19 +66,15 @@ export default function SkinRecommendationsScreen() {
   const showDetail = (concern: SkinConcern) => {
     flow.setActive(concern); switchTab('results');
   };
-  const start = () => router.push('/skin-analysis');
-  function productCard(match: HybridMatch, group?: CareGoal) {
-    const reasons = group ? match.reasons.filter(r => displayCareGoal(r.goal) === group) : match.reasons;
-    const note = [...new Set(reasons.map(reason => {
-      const source = reason.sources[0];
-      return t(`skincare.reason.${source}`, { goal: t(`support.priorityChoice.${displayCareGoal(reason.goal)}`) });
-    }))].join('\n');
-    return <ProductLineCard key={match.product.id} product={{ ...match.product, priceKRW: match.priceKRW }}
-      eyebrow={match.optionName} note={note}
-      onPress={() => router.push(productHref(match.product.id))} />;
-  }
-  const data = flow.recommendations.data;
-  const browseGroup = data && displayCareGroups(data).find(group => group.goal === browseGoal);
+  const start = () => invite(() => router.push('/skin-analysis'));
+  const { recommendations } = flow;
+  const data = recommendations.data;
+  const matches = data?.overallTop10 ?? data?.overallTop5;
+  const cards = useMemo(() => matches?.map((match, index) => ({
+    productId: match.product.id, optionId: match.optionId, candidateId: match.candidateId, rank: index + 1,
+  })), [matches]);
+  const { viewportRef, refresh, setCard, href } = useRecommendationCardFeedback(data?.history, cards, flow.owner,
+    tab === 'solution' && !history, tabsHeight);
   if (flow.loading) return <LoadingState />;
   if (flow.loadFailed) return <SafeAreaView style={styles.screen}>
     <InlineState status="error" message={t('skin.loadFailed')} onRetry={() => { void flow.reload(); }} />
@@ -69,21 +85,26 @@ export default function SkinRecommendationsScreen() {
     <Stack.Screen options={{ headerShown: false }} />
     <View style={styles.header}>
       <Pressable accessibilityRole="button" accessibilityLabel={t('common.back')} style={styles.iconButton}
-        onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); }}>
+        onPress={() => invite(() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); })}>
         <Ionicons name="arrow-back" size={23} color={theme.colors.ink} />
       </Pressable>
       <View style={styles.headerTitle}><Text style={styles.headerLabel}>{t('report.title')}</Text></View>
       <Pressable accessibilityRole="button" accessibilityLabel={t('report.latest')} onPress={() => setHistory(true)} style={styles.iconButton}>
         <Ionicons name="reader-outline" size={23} color={theme.colors.ink} />
       </Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel={t('tabs.home')} onPress={() => router.replace('/(tabs)')} style={styles.iconButton}>
+      <Pressable accessibilityRole="button" accessibilityLabel={t('tabs.home')} onPress={() => invite(() => router.replace('/(tabs)'))} style={styles.iconButton}>
         <Ionicons name="home-outline" size={23} color={theme.colors.ink} />
       </Pressable>
     </View>
-    <ScrollView ref={scroll} style={styles.scroll} contentContainerStyle={styles.page} stickyHeaderIndices={[2]}>
+    <View ref={viewportRef} collapsable={false} style={styles.scroll}>
+    <ScrollView ref={scroll} style={styles.scroll} contentContainerStyle={styles.page} stickyHeaderIndices={[2]}
+      onScroll={refresh} scrollEventThrottle={100}>
       <SkinReportOverview report={flow.report} example={flow.example} expanded={expanded} onExpand={() => setExpanded(!expanded)} onStart={start} />
       <SkinCareHighlights metrics={flow.report.priorities} allMetrics={flow.report.metrics} onPress={showDetail} />
-      <View style={styles.tabs} onLayout={(event) => { tabsY.current = event.nativeEvent.layout.y; }}>
+      <View style={styles.tabs} onLayout={({ nativeEvent: { layout } }) => {
+        tabsY.current = layout.y;
+        setTabsHeight(layout.height);
+      }}>
         <View style={styles.tabsRow}>
           {(['solution', 'results'] as const).map((id) => <Pressable key={id} onPress={() => switchTab(id)} accessibilityRole="tab" accessibilityState={{ selected: tab === id }} style={[styles.tab, tab === id && styles.tabOn]}>
             <Text style={[styles.tabLabel, tab === id && styles.tabLabelOn]}>{t(`report.${id}`)}</Text>
@@ -96,35 +117,32 @@ export default function SkinRecommendationsScreen() {
           <Text style={styles.title} accessibilityRole="header">{t('report.products')}</Text>
           <Text style={styles.caption}>{t('skincare.disclosure')}</Text>
           {!flow.live ? <Text style={styles.caption}>{t('skincare.requestPrompt')}</Text>
-            : flow.recommendations.isPending ? <InlineState status="loading" />
-            : flow.recommendations.isError ? <InlineState status="error" onRetry={() => flow.recommendations.refetch()} />
-              : data && <>
-                <View style={styles.concernPanel}>
-                  <Text style={styles.panelTitle} accessibilityRole="header">{t('skincare.aiTop5')}</Text>
-                  {data.overallTop5.length ? <>
-                    <Text style={styles.caption}>{t('skincare.aiDescription')}</Text>
-                    {data.overallTop5.map(match => productCard(match))}
-                  </> : <Text style={styles.caption}>{t('skincare.emptyAi')}</Text>}
-                </View>
-                <View style={styles.concernPanel}>
-                  <Text style={styles.panelTitle} accessibilityRole="header">{t('skincare.concernTop5')}</Text>
-                  <SkinConcernRail concerns={SUPPORT_PRIORITY_CONCERNS} active={browseGoal} onChange={setBrowseGoal} goalLabels />
-                  {browseGroup?.status === 'ok' ? browseGroup.matches.map(match => productCard(match, browseGoal))
-                    : <Text style={styles.caption}>{t(browseGroup?.status === 'no_matches' ? 'skincare.no_matches' : 'skincare.mapping_unavailable', { goal: t(`support.priorityChoice.${browseGoal}`) })}</Text>}
-                </View>
-              </>}
-          <Button label={t('skinFlow.skip')} variant="ghost" onPress={() => router.push(searchHref({ source: 'skin' }))} />
+            : !access.subscribed ? <Button label={t('skinAccess.viewMembership')} variant="secondary"
+                onPress={() => { setInvited(true); disablePrevention(); router.push('/membership'); }} />
+            : recommendations.isPending ? <InlineState status="loading" />
+            : recommendations.isError ? <InlineState status="error" onRetry={() => recommendations.refetch()} />
+              : matches && cards && <View style={styles.concernPanel}>
+                <Text style={styles.panelTitle} accessibilityRole="header">{t('skincare.topPicks', { limit: data?.overallTop10 ? 10 : 5 })}</Text>
+                {matches.length ? <>
+                  <Text style={styles.caption}>{t('skincare.profileDescription')}</Text>
+                  {matches.map((match, index) => <View key={match.product.id} collapsable={false}
+                    ref={node => setCard(cards[index], node)}>
+                    <ProductLineCard product={{ ...match.product, priceKRW: match.priceKRW }} eyebrow={match.optionName}
+                      onPress={() => router.push(href(cards[index]))} />
+                  </View>)}
+                </> : <Text style={styles.caption}>{t('skincare.emptyProfileMatches')}</Text>}
+              </View>}
+          <Button label={t('skinFlow.skip')} variant="ghost" onPress={() => invite(() => router.push(searchHref({ source: 'skin' })))} />
         </View>
         <SkinRoutine />
       </View> : <SkinReportDetail metrics={flow.report.metrics} active={flow.activeConcern} onChange={flow.setActive} preview={flow.preview} />}
       <View style={styles.footer}>
-        {__DEV__ ? <Button label={t('comparison.title')} variant="secondary"
-          onPress={() => router.push('/dev/recommendation-comparison')} /> : null}
         <Notice title={t('skinFlow.notMedicalTitle')} body={t('skinFlow.notMedicalBody')} />
         <Button label={t('report.retake')} variant="secondary" onPress={start} />
         <Button label={t('report.top')} variant="ghost" icon="arrow-up" onPress={() => scroll.current?.scrollTo({ y: 0, animated: true })} />
       </View>
     </ScrollView>
+    </View>
     <Modal visible={history} transparent animationType="fade" onRequestClose={() => setHistory(false)}>
       <View style={styles.overlay}><View style={styles.dialog} accessibilityViewIsModal>
         <Text style={styles.title}>{t('report.latest')}</Text>

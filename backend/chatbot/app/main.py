@@ -5,11 +5,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
+from app.core.db import dispose_chat_engine
 from app.core.errors import install_error_handlers
 from app.core.graph import close_driver
 from app.core.observability import RequestContextMiddleware, configure_logging
 from app.core.ratelimit import close_redis
-from app.routers import chat, health, voice
+from app.routers import chat, conversations, health, internal_account_deletion, memories, voice
 
 
 @asynccontextmanager
@@ -17,6 +18,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     yield
     await close_driver()
     await close_redis()
+    await dispose_chat_engine()
 
 
 def create_app() -> FastAPI:
@@ -35,10 +37,11 @@ def create_app() -> FastAPI:
         app.add_middleware(
             CORSMiddleware,
             allow_origins=settings.cors_origins,
-            allow_methods=["POST"],
+            allow_methods=["GET", "POST", "PATCH", "DELETE"],
             allow_headers=[
                 "Authorization",
                 "Content-Type",
+                "Idempotency-Key",
                 "X-Request-ID",
                 "X-Vishue-Anonymous-Id",
             ],
@@ -48,6 +51,10 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(chat.router)
     app.include_router(voice.router)
+    app.include_router(conversations.router)
+    app.include_router(memories.router)
+    if settings.env in {"local", "test"} and settings.g7_internal_deletion_enabled:
+        app.include_router(internal_account_deletion.router)
     return app
 
 

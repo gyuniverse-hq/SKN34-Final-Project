@@ -49,12 +49,16 @@ flowchart LR
 ```
 
 - 앱은 진입점 하나(`https://api.<도메인>`)만 압니다. 서비스가 늘거나 나뉘어도 앱 코드는 바뀌지 않습니다.
-- 데이터 소유권은 서비스별로 나뉩니다. PostgreSQL은 `api`만, Neo4j는 `chatbot`만 접근합니다. 챗봇은 카탈로그를 PostgreSQL에서 직접 읽지 않고 `api`의 HTTP 계약으로 받아 갑니다.
+- 데이터 소유권은 서비스별로 나뉩니다. 카탈로그 PostgreSQL은 `api`가 소유하고 챗봇은 Catalog HTTP 계약으로 읽습니다. G7은 같은 PostgreSQL 인스턴스의 **챗봇 전용 대화 DB**를 별도 역할로 관리합니다. 영속 기능은 아직 꺼져 있습니다. 기존 Neo4j 경로는 남아 있으나 [ADR-0012](adr/0012-pgvector-instead-of-neo4j.md)에 따라 교체 대상입니다.
 - 같은 Dockerfile이 로컬(Docker Compose), 로컬 쿠버네티스(kind), 팀 공용 dev 서버(Render), 운영(AWS EKS)에서 그대로 돌아갑니다. 위 그림은 운영 기준이고, dev 서버는 Gateway 없이 서버마다 주소가 따로 있습니다. 실행 방법과 배포 흐름은 [`DEPLOYMENT.md`](DEPLOYMENT.md), 결정 이유는 [`adr/`](adr/README.md)에 있습니다.
 
 앱은 `lib/api.ts`를 통해 백엔드만 호출합니다. 저장소 안의 Expo 서버(`app/api/dev/`, `server/`)에는 피부 분석 연구용 개발 도구만 남아 있고, 운영 환경에서는 차단됩니다.
 
 ## 저장소 구성
+
+관리자 웹은 `admin/`의 독립 Vite·React 앱이다. `src/App.tsx`·`pages/` → `src/api/client.ts`·`types.ts` 계층으로 `/api/admin/*`를 호출한다. 모바일 코드·backend·research를 import하지 않는다. 루트 tsconfig·ESLint에서 제외하며 루트 Jest의 기존 `__tests__/` roots로 격리한다. 자체 TypeScript·ESLint·Vitest 설정을 쓴다. [ADR-0013](adr/0013-admin-web.md)을 따른다.
+
+관리자 백엔드는 `routers/admin.py` → `services/admin_service.py`, `admin_auth_service.py`, `inventory_service.py` → `repositories/admin_repository.py`, `inventory_repository.py` 및 `clients/toss_client.py` → 모델·스키마·core 순서다. `core/auth.py`의 토큰 검증을 재사용하되 직원 DB 조회는 서비스에 둔다. `ADMIN_ENABLED=false`는 관리자 API를 끈다. 새 서버 배포 전 확장 migration 적용은 필요하다.
 
 | 영역 | 위치 | 역할 |
 | --- | --- | --- |
@@ -79,7 +83,7 @@ flowchart LR
 `lib/skinAnalysis.ts`의 실행 환경 선택 → `modules/skin-analysis/` 순서로 호출합니다.
 모듈은 상위 앱 레이어를 import하지 않으며 TypeScript 레이어 경계를 린트로 검사합니다.
 기기 내 분석은 `EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS=1`에서 활성화합니다. 이전 서버 모드 환경 변수는 무시합니다.
-모델은 루트 환경 설정의 `SKIN_ANALYSIS_MODEL`로 선택합니다(`skin-analysis-v3` / `skin-analysis-v4`, 기본 v4). `npm run skin:prepare`는 선택한 모델만 준비하며, 다른 버전을 처음 선택할 때는 해당 가중치로 다시 준비해야 합니다. 이미 준비한 버전은 Expo Go에서 개발 서버 재시작과 앱 새로고침으로 전환됩니다. 네이티브 패키지는 선택 변경 후 에셋 준비와 재빌드가 필요합니다.
+모델은 루트 환경 설정의 `SKIN_ANALYSIS_MODEL`로 선택합니다(`skin-analysis-v4` / `skin-analysis-v4.1`, 기본 v4). `npm run skin:prepare`는 선택한 모델만 준비하며, 다른 버전을 처음 선택할 때는 해당 가중치로 다시 준비해야 합니다. 이미 준비한 버전은 Expo Go에서 개발 서버 재시작과 앱 새로고침으로 전환됩니다. v4.1은 Expo Go 경로에서 전체 이미지의 여드름 점수를 추가합니다. 기존 네이티브 패키지는 v4.1을 지원하지 않습니다.
 모바일 Expo Go에서는 `components/skin/SkinCamera.tsx`의 WebView를 통해
 `modules/skin-analysis/web/`의 카메라·자동 촬영·ONNX Runtime Web CPU 추론을 실행합니다.
 브라우저 런타임은 상위 앱 코드를 import하지 않습니다. 촬영 사진·얼굴 윤곽·입력 영역은 결과 화면 표시를 위해 제한된 청크로 앱 메모리에만 전달합니다.
@@ -103,6 +107,13 @@ Expo Go에서는 사진을 분석 후 결과 화면까지 기기 메모리에서
 [`reports/skin-analysis/`](../reports/skin-analysis/README.md)에 모읍니다. 가중치·원본 데이터·
 개별 표본 결과는 Git에서 제외합니다. 향후 LLM 외부 호출과 서비스 조합은 기존
 `server/clients/`·`server/services/` 레이어를 따릅니다.
+
+피부 결과 화면은 `/api/recommendations/skincare/v4`에서 `recommend-v3`의 규칙 기반 종합 추천을 받습니다.
+피부 타입·고민·설문에서 도출한 자극 신호와 사용 가능한 분석 점수를 보내면, 서버는 발행된
+CosIng 성분 매핑으로 제품 후보를 찾습니다. 순위에는 경험적 베이즈 보정 별점과 응답 적합도를
+사용합니다. 계산과 입력 계약은 [기초 화장품 추천](skincare-recommendations.md)을 따릅니다.
+수집에 동의한 회원의 TOP 10 노출과 장바구니·결제 전환은 [피부 추천 이력](recommendation-v2-feedback-erd.md#현재-v3-피부-추천의-전환-측정)에 연결합니다.
+AR과 피부 분석 추천을 한 릴리스로 묶은 결정과 V1·V2에서 이어진 변경은 [recommend-v3 개발 이력](recommend-v3.md)을 참고합니다.
 
 로컬 NIA 연구 도구의 화면은 `app/dev/nia.tsx`, 사진 분석·결과 요청 훅은 `hooks/useNia*.ts`,
 표현 컴포넌트는 `components/nia/`에 둡니다. 컴포넌트는 화면에서 결과와 동작을 props로
@@ -144,19 +155,8 @@ constants/ · types/           테마, 정적 상수, 공용 타입
 
 ## 개발 전용 도구 (피부 분석 연구)
 
-V1·V2 추천 비교는 `app/dev/recommendation-comparison.tsx` →
-`hooks/useRecommendationComparison.ts` → `lib/recommendationComparison.ts` →
-`backend/api/app/routers/recommendation_comparison.py`로 호출한다.
-백엔드 서비스는 기존 V1을 `clients/recommendation_v1_client.py`의 HTTP 호출로 읽고,
-COSING·제품 자료는 전용 repository의 읽기 전용 트랜잭션으로 조회한다.
-CatBoost는 선택 의존성 그룹 `recommendation`과 해시 검증된 로컬 번들을 사용한다.
-`RECOMMENDATION_MODEL`(기본 `recommend-cat-v2`)로 선택하며 `ml/runs/<모델 이름>/bundle/`에
-가중치와 manifest를 별도 배치한다. 피부 분석 원본과 같은 디렉터리 체계지만 추천 추론은 서버에서만 실행한다.
-별도 서버 볼륨은 `RECOMMENDATION_MODELS_DIR`로 지정하며 이름·해시·입력 계약을 검증한다.
-현재 Docker V1과 작업 공간의 스키마가 다르므로 기존 컨테이너를 교체하지 않고
-별도 로컬 포트 8082에서 비교한다. 얼굴 이미지·ROI는 전달하지 않는다.
-개발 플래그와 환경 검사를 모두 통과해야 실행되며 입력 본문은 저장하지 않는다.
-입력 계약·리뷰 응답 수 부족·실행 방법은 [V2 비교](recommendation-v2-comparison.md)에 있다.
+피부 추천의 과거 비교 실험과 그 결과는 [V1·V2 비교 기록](recommendation-v2-comparison.md)에 남겼습니다.
+백엔드 `recommendation` 의존성 그룹의 CatBoost와 Optuna는 [AR 팔레트 모델](ar-recommendation-mlops-v1.0.md)에 사용합니다.
 
 피부 모델 연구 환경은 운영 흐름과 별도로 관리합니다. `ml/src/`에는 학습·평가 코드,
 `ml/configs/`에는 설정, `ml/tests/`에는 자동 테스트를 두고, 실행 방법과 결과 요약은
@@ -201,7 +201,7 @@ CatBoost는 선택 의존성 그룹 `recommendation`과 해시 검증된 로컬 
 | 서비스 | 맡는 것 | 데이터 | 외부 호출 |
 | --- | --- | --- | --- |
 | `backend/api` | 카탈로그(제품·셰이드·룩·매장), 온라인 판매처·제품 이미지, 튜토리얼 검색, 셰이드 추천(CIEDE2000 ΔE), 피부 고민 기반 케어 추천(`/api/recommendations/skin`), 회원(`/api/me`: 약관 동의, 탈퇴) | PostgreSQL(원본), Redis(캐시·레이트 리밋) | 네이버 검색 API, YouTube Data API, Supabase Auth(토큰 검증, 계정 삭제) |
-| `backend/chatbot` | 챗봇(`/api/chat`), PostgreSQL → Neo4j 동기화 잡 | Neo4j(사본), Redis(레이트 리밋) | LLM API, `api` 서비스 |
+| `backend/chatbot` | 챗봇(`/api/chat`), 기존 카탈로그 동기화 잡, G7 대화 저장 기반 | G7 전용 PostgreSQL DB(비활성), Neo4j(기존 사본), Redis(레이트 리밋) | LLM API, `api` 서비스 |
 
 서비스를 둘로 나눈 이유는 [ADR-0001](adr/0001-two-backend-services.md)에 있습니다. LLM 호출은 느리고 비용이 들어서 따로 확장하고 따로 제한해야 합니다. 챗봇 장애가 쇼핑 기능으로 번지지 않아야 하고, LLM 키는 챗봇 Pod에만 있어야 합니다.
 
@@ -215,7 +215,7 @@ CatBoost는 선택 의존성 그룹 `recommendation`과 해시 검증된 로컬 
 | 원본 DB | PostgreSQL 17, 접근은 SQLAlchemy 2(async, asyncpg), 스키마 변경은 Alembic |
 | 검색 | PostgreSQL `pg_trgm` GIN 인덱스 (`products.search_text`) |
 | 캐시·레이트 리밋 | Redis (없으면 캐시 없이 동작, 레이트 리밋은 프로세스 메모리) |
-| 챗봇용 그래프 DB | Neo4j 5, 공식 `neo4j` Python 드라이버 |
+| 챗봇 기존 그래프 DB | Neo4j 5, 공식 `neo4j` Python 드라이버 (ADR-0012에 따라 교체 대상) |
 | 인증 | Supabase Auth 토큰을 JWKS로 로컬 검증 ([ADR-0005](adr/0005-supabase-auth-jwks.md)) |
 | 테스트 | pytest (단위 테스트는 가짜 저장소, PostgreSQL 통합 테스트는 CI) |
 | 린트·레이어 강제 | ruff, import-linter |
@@ -231,7 +231,7 @@ CatBoost는 선택 의존성 그룹 `recommendation`과 해시 검증된 로컬 
 ```text
 backend/<service>/
   pyproject.toml · uv.lock · .python-version · Dockerfile · .env.example
-  alembic/                 마이그레이션 (api만)
+  alembic/                 서비스별 독립 마이그레이션
   seed/catalog.json        카탈로그 시드, types/index.ts의 Product·CelebLook·Store 형태 (api만)
   app/
     main.py                앱 조립: 미들웨어, 에러 핸들러, 라우터
@@ -240,7 +240,7 @@ backend/<service>/
     services/              비즈니스 로직
     repositories/          DB 접근
     clients/               외부 API 호출, 키는 여기서만 (naver, youtube, llm, catalog)
-    models/                PostgreSQL 테이블 (api만)
+    models/                각 서비스가 소유한 PostgreSQL 테이블
     schemas/               Pydantic 요청·응답 형태
     core/                  설정, DB·Redis 연결, 인증, 에러, 로깅, 레이트 리밋
   tests/
@@ -268,6 +268,7 @@ backend/<service>/
 | 경로 | 서비스 | 비고 |
 | --- | --- | --- |
 | `GET /api/products?q=&category=&ids=&concerns=` | api | `{ products }`, 5분 캐시, 네이버 이미지로 보강. `concerns`는 피부 고민 코드 → 케어 태그(`catalog_service.CONCERN_TAGS`) |
+| `GET /api/discovery/product-order?preview=true` | api | `{ hot, makeup, skincare, newArrivals }`, 올리브영 등록일과 최신 리뷰로 정렬한 상품 ID. `preview=true`는 각 목록의 앞 8개 |
 | `GET /api/products/{id}` | api | `{ product }` |
 | `GET /api/products/{id}/offers` | api | `{ configured, offers }`, 네이버 쇼핑 판매처·최저가 (6시간 캐시) |
 | `GET /api/youtube/search?q=&max=` | api | `{ configured, videos }`, IP당 분당 20회, 12시간 캐시 |
@@ -293,11 +294,12 @@ backend/<service>/
 | DB | 담는 것 | 접근 |
 | --- | --- | --- |
 | PostgreSQL (원본) | 제품, 셰이드, 룩, 룩 구성, 매장 | `api`의 `catalog_repository`만 |
+| PostgreSQL (G7 전용 DB) | 챗봇 대화·메시지·요청·동의 기억·Checkpoint | 챗봇 전용 역할·저장소; 운영 비활성 |
 | Neo4j (사본) | `(:Product)-[:HAS_SHADE\|CONTAINS\|TAGGED]->`, `(:Look)-[:USES]->(:Product)` | `chatbot`의 `graph_repository`만 |
 
 1. 데이터 추가와 수정은 **PostgreSQL에서만** 합니다(`seed_catalog` 잡 또는 이후 관리 API). Neo4j에 직접 쓰지 않습니다.
 2. Neo4j는 `sync_graph` 잡이 `api`의 `GET /api/products`, `GET /api/looks`를 읽어 **한 방향으로만** 채웁니다. 쓰기는 트랜잭션 하나로 이뤄져서, 읽는 쪽은 이전 그래프나 새 그래프 중 하나만 봅니다.
-3. 잡은 30분마다(CronJob) 돌고, 배포 직후에도 한 번 돕니다. 챗봇 서비스는 PostgreSQL 접속 정보를 갖지 않습니다 ([ADR-0002](adr/0002-postgres-source-neo4j-copy.md)).
+3. 기존 잡은 30분마다(CronJob) 돌고, 배포 직후에도 한 번 돕니다. 이 Neo4j 전제는 [ADR-0012](adr/0012-pgvector-instead-of-neo4j.md)로 대체됐지만 기존 코드·인프라 전환은 별도 작업입니다. G7의 개인 대화 DB는 Catalog DB와 분리하며 Catalog 직접 조회에 쓰지 않습니다.
 
 ### 운영 원칙
 
@@ -317,12 +319,14 @@ backend/<service>/
 
 | 항목 | 현재 결정 | 바꿀 조건 |
 | --- | --- | --- |
-| 개발 서버 | Render 무료 플랜 + Supabase + Neo4j AuraDB Free ([ADR-0009](adr/0009-render-dev-environment.md)) | 잠들기·사용 시간 제약이 불편해지면 `vishue-api`만 유료로 |
-| 운영 배포처 | AWS EKS (서울 리전, Terraform) + Argo CD ([ADR-0008](adr/0008-aws-environments.md)) | 확정 (캠프 AWS 지원, 배포 단계에 적용) |
-| 운영 데이터 저장소 | RDS PostgreSQL, ElastiCache, Neo4j AuraDB | 운영 DB 비용이 문제면 Supabase로 바꿉니다(`DATABASE_URL`만 교체) |
-| 카탈로그 데이터 | dev는 Git의 `seed/catalog.json`이 원본, 바뀌면 `dev-data` 워크플로가 반영 ([`DATA.md`](DATA.md)) | 크롤링 데이터가 파일 하나로 감당하기 어려워지면 가져오기 방식을 바꿉니다 |
+| 개발 서버 | Render + Supabase는 보조. 용량 한계 이후에는 덤프·로컬 DB로 개발 ([ADR-0009](adr/0009-render-dev-environment.md), [ADR-0011](adr/0011-production-cutover.md)) | 운영 Gateway가 안정되면 팀 공용은 운영 API로 모은다 |
+| 운영 배포처 | AWS EKS (서울 리전, Terraform) + Argo CD + GHCR + Envoy Gateway ([ADR-0008](adr/0008-aws-environments.md), [ADR-0011](adr/0011-production-cutover.md)) | 확정 |
+| 운영 데이터 저장소 | RDS PostgreSQL(공용 원본), ElastiCache, Neo4j AuraDB, S3(백업·에셋) | 초기 적재는 덤프 복원 후 시드 보정 ([ADR-0011](adr/0011-production-cutover.md)) |
+| 카탈로그 데이터 | Git `seed/catalog.json`이 배포 기준. 운영 컷오버 시 덤프와 맞춘 뒤 시드로 보정 ([`DATA.md`](DATA.md)) | 크롤링 데이터가 파일 하나로 감당하기 어려워지면 가져오기 방식을 바꿉니다 |
+| 운영 1차 부가 | pause/resume 런북, gitleaks CI, 배포 경로 검증 ([ADR-0011](adr/0011-production-cutover.md)) | 관측(Prometheus·Grafana)·Langfuse는 2차 ([ADR-0007](adr/0007-observability.md)) |
 | 챗봇 LLM | OpenAI 호환 API, 모델은 `LLM_MODEL`로 지정 | 모델 선정은 평가 세트를 만든 뒤에 합니다 |
 | 챗봇 대화 기록 | 저장하지 않음 | 저장하려면 보관 기간과 동의 절차를 먼저 정합니다 |
+| GPU 추론 서버 | 운영 경로에 두지 않음(AR·피부분석은 기기 내) | 배치·연구 전용으로 범위가 정해질 때만 별도 검토 |
 
 
 새 기초 추천의 파생 입력·검수 데이터 발행·추적 계약은 [기초 추천 v1](skincare-recommendations.md)을 따른다.

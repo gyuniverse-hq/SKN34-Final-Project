@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,6 +15,7 @@ class Settings(BaseSettings):
     neo4j_user: str = "neo4j"
     neo4j_password: str | None = None
     redis_url: str | None = None
+    chat_database_url: str | None = None
     # The api service owns PostgreSQL; the graph sync job reads the catalog over its HTTP API.
     catalog_api_url: str = "http://localhost:8000"
     # Any OpenAI-compatible Chat Completions endpoint. Unset key or model disables the chatbot.
@@ -23,6 +25,16 @@ class Settings(BaseSettings):
     stt_model: str | None = None
     tts_model: str | None = None
     llm_timeout_seconds: float = 30
+    g1_supervisor_enabled: bool = False
+    g5_enabled: bool = False
+    g5_openai_api_key: str | None = None
+    g5_internal_token: str | None = None
+    g7_persistence_enabled: bool = False
+    g7_memory_enabled: bool = False
+    g7_structured_memory_enabled: bool = False
+    g7_owner_deletion_guard_enabled: bool = False
+    g7_internal_deletion_enabled: bool = False
+    g7_internal_deletion_key: SecretStr | None = None
     chat_requests_per_minute: int = 10
     supabase_url: str | None = None
     supabase_publishable_key: str | None = None

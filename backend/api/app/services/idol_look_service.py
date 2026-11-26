@@ -15,6 +15,7 @@ class IdolLookStore(Protocol):
     async def get_published(self, look_id: str) -> IdolLook | None: ...
     async def products_for(self, look: IdolLook): ...
     async def update_video_metadata(self, metadata: YoutubeVideoMetadata) -> None: ...
+    async def video_ids(self, include_ready: bool) -> tuple[str, ...]: ...
 
 
 class IdolLookService:
@@ -35,6 +36,10 @@ class IdolLookService:
     async def detail(self, look_id: str):
         look = await self._store.get_published(look_id)
         return (look, await self._store.products_for(look)) if look else None
+
+    async def registered_video_ids(self, include_ready: bool = False) -> tuple[str, ...]:
+        """Videos whose metadata still needs refreshing, or every video with include_ready."""
+        return await self._store.video_ids(include_ready)
 
     async def refresh_metadata(self, video_id: str) -> bool:
         """Persist official metadata; unavailable keys/videos leave fallback fields intact."""

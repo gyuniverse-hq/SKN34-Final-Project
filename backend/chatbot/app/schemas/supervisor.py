@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
+from app.schemas.catalog import BaseProductType
 from app.schemas.style_recipe import StyleContext
 
 ToolName = Literal["beauty", "graph_chat", "ar_command", "style", "knowledge"]
@@ -59,6 +60,11 @@ class IngredientPlanCondition(SupervisorModel):
 
 
 class SearchPlan(SupervisorModel):
+    product_type: BaseProductType | None = Field(default=None, exclude_if=lambda v: v is None)
+    option_search: bool = Field(default=False, exclude_if=lambda v: not v)
+    price_basis: Literal["current_offer", "catalog_reference", "collected_snapshot"] | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
     intent: Literal["search", "refine", "detail", "price", "general"]
     scope: Literal["catalog", "previous"] = "catalog"
     selection: Literal["lowest_price"] | None = None
@@ -68,6 +74,8 @@ class SearchPlan(SupervisorModel):
     )
     fragrance_free: bool | None = None
     moisturizing: bool | None = None
+    texture: Literal["matte"] | None = None
+    unsupported_conditions: list[str] = Field(default_factory=list, max_length=8)
     query: str | None = Field(default=None, max_length=80)
     ordinal: int | None = Field(default=None, ge=1, le=6)
     ingredient_name: str | None = Field(default=None, min_length=1, max_length=500)
@@ -80,17 +88,19 @@ class SearchPlan(SupervisorModel):
     clear_filters: list[
         Literal[
             "category",
+            "productType",
             "maxPriceKRW",
             "fragranceFree",
             "moisturizing",
             "query",
             "ingredientConditions",
+            "texture",
         ]
-    ] = Field(default_factory=list, max_length=6)
+    ] = Field(default_factory=list, max_length=8)
 
 
 class IntentDecision(SupervisorModel):
-    intent: Literal["product", "ingredient", "general", "style", "ar", "compound"]
+    intent: Literal["product", "ingredient", "general", "style", "ar", "compound", "knowledge"]
     request_type_hint: str
     slots: SearchPlan | None = None
 

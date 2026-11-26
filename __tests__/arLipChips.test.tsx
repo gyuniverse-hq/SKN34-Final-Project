@@ -1,3 +1,5 @@
+import { OpenArcPalette } from '@/components/ar/OpenArcPalette';
+import { TextureSelect } from '@/components/ar/TextureSelect';
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 import ArTryOnScreen from '@/app/(tabs)/ar';
@@ -44,7 +46,7 @@ jest.mock('@/lib/queries', () => {
     lip('balm', '이니스프리 유채꿀 립밤', 'satin', '#F1C7CF'),
     lip('essence', '토리든 솔리드인 세라마이드 립 에센스', 'glossy', '#ECDDAE'),
   ];
-  return { useProducts: () => ({ data: products }), useTryOnProducts: () => ({ data: products }) };
+  return { useProducts: () => ({ data: products }), useMe: () => ({ data: undefined, isPending: false }), useTryOnProducts: () => ({ data: products }) };
 });
 
 const chipLabels = (screen: renderer.ReactTestRenderer) => screen.root.findAllByType(Chip).map((c) => c.props.label as string);
@@ -56,29 +58,30 @@ const swatch = (screen: renderer.ReactTestRenderer, id: string) =>
     (n) => typeof n.props.accessibilityLabel === 'string' && n.props.accessibilityLabel.endsWith(` ${id}`) && typeof n.props.onPress === 'function'
   )[0];
 
-describe('AR lip tab chips in the tools sheet', () => {
+describe('AR lip finishes and contextual tools', () => {
   beforeEach(() => useMakeupStore.getState().reset());
 
   it('shows finish and care chips alongside the colour-family filters', async () => {
     let screen!: renderer.ReactTestRenderer;
     await act(async () => { screen = renderer.create(<ArTryOnScreen />); });
     await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.arc.tools' }).props.onPress(); });
-    expect(filterChips(screen)).toEqual(expect.arrayContaining(['ar.texture.matte', 'ar.texture.cream', 'ar.texture.glossy', 'ar.texture.shimmer', 'ar.chip.lipCare']));
+    expect(screen.root.findByType(TextureSelect).props.options).toEqual(['matte', 'cream', 'satin', 'glossy', 'shimmer']);
+    expect(filterChips(screen)).toContain('ar.chip.lipCare');
+    expect(filterChips(screen).some(label => label.startsWith('ar.texture.'))).toBe(false);
     expect(filterChips(screen).some((label) => label.startsWith('ar.family.'))).toBe(true);
     await act(async () => { screen.unmount(); });
   });
 
-  it('groups velvet with matte, satin with cream, sheer with glossy and leaves lip skincare out', async () => {
+  it('keeps satin separate from cream and shows only the matching lip finishes', async () => {
     let screen!: renderer.ReactTestRenderer;
     await act(async () => { screen = renderer.create(<ArTryOnScreen />); });
-    await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.arc.tools' }).props.onPress(); });
-    expect(swatch(screen, 'essence')).toBeUndefined();
-    expect(swatch(screen, 'oil')).toBeUndefined();
-    const matte = screen.root.findAllByType(Chip).find((c) => c.props.label === 'ar.texture.matte')!;
-    await act(async () => { matte.props.onPress(); });
-    expect(swatch(screen, 'matte')).toBeDefined();
-    expect(swatch(screen, 'velvet')).toBeDefined();
-    expect(swatch(screen, 'satin')).toBeUndefined();
+    const ids = () => screen.root.findByType(OpenArcPalette).props.items.map((item: { product: { id: string } }) => item.product.id);
+    expect(ids()).not.toContain('essence');
+    expect(ids()).not.toContain('oil');
+    for (const [finish, expected] of [['matte', ['matte', 'velvet']], ['satin', ['satin']], ['cream', ['cream']]] as const) {
+      await act(async () => { screen.root.findByType(TextureSelect).props.onChange(finish); });
+      expect(ids()).toEqual(expected);
+    }
     await act(async () => { screen.unmount(); });
   });
 
@@ -89,11 +92,9 @@ describe('AR lip tab chips in the tools sheet', () => {
     const care = screen.root.findAllByType(Chip).find((c) => c.props.label === 'ar.chip.lipCare')!;
     await act(async () => { care.props.onPress(); });
     expect(filterChips(screen)).toEqual([
-      'ar.filter.all', 'ar.texture.matte', 'ar.texture.cream', 'ar.texture.glossy', 'ar.texture.shimmer', 'ar.chip.lipCare', 'ar.care.oil', 'ar.care.balm',
+      'ar.chip.lipCare', 'ar.care.oil', 'ar.care.balm',
     ]);
-    expect(swatch(screen, 'oil')).toBeDefined();
-    expect(swatch(screen, 'balm')).toBeDefined();
-    expect(swatch(screen, 'matte')).toBeUndefined();
+    expect(screen.root.findByType(OpenArcPalette).props.items.map((item: { product: { id: string } }) => item.product.id)).toEqual(['oil', 'balm']);
     await act(async () => { screen.unmount(); });
   });
 

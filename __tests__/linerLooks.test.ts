@@ -1,6 +1,6 @@
 import { FACE_TRACKER_HTML } from '@/components/ar/faceTrackerHtml';
 import { LINER_LOOK_IDS, LINER_LOOKS, matchingLinerLook } from '@/lib/linerLooks';
-import { shadowFinishOf } from '@/lib/shadowFinishes';
+import { SHADOW_FINISH_IDS, shadowFinishOf } from '@/lib/shadowFinishes';
 import { useMakeupStore } from '@/store/makeupStore';
 import type { Product, Shade, ZoneSetting } from '@/types';
 
@@ -75,5 +75,10 @@ describe('eyeshadow finish chips', () => {
     expect(shadowFinishOf({ texture: 'shimmer' } as ZoneSetting)).toBe('shimmer');
     expect(shadowFinishOf({ texture: 'glossy' } as ZoneSetting)).toBe('glossy');
     expect(shadowFinishOf({ texture: 'matte' } as ZoneSetting)).toBe('matte');
+  });
+
+  it('shows one glitter chip and reads an older metallic state as glitter (11-17 v7)', () => {
+    expect(SHADOW_FINISH_IDS).toEqual(['matte', 'satin', 'shimmer', 'glitter', 'glossy']);
+    expect(shadowFinishOf({ texture: 'matte', geometry: { shadowFinish: 'metallic' } } as ZoneSetting)).toBe('glitter');
   });
 });

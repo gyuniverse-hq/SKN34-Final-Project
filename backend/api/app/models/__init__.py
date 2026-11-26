@@ -1,3 +1,12 @@
+from app.models.account_deletion import AccountDeletionJobRow
+from app.models.admin import (
+    AdminAuditLogRow,
+    EvalRunRow,
+    LipEvalProductRow,
+    LipEvalSlotRow,
+    ProductAdminStateRow,
+    StaffRoleRow,
+)
 from app.models.aihub import (
     AihubClaimReviewRow,
     AihubDatasetReleaseRow,
@@ -10,6 +19,16 @@ from app.models.aihub import (
     AihubSkinConcernRow,
     AihubSkinTypeRow,
 )
+from app.models.ar_personalization import (
+    ArActivityEventRow,
+    ArRecommendationCandidateRow,
+    ArRecommendationImpressionRow,
+    ArRecommendationRequestRow,
+)
+from app.models.cart_recommendation import (
+    CartRecommendationImpressionRow,
+    CartRecommendationVisitRow,
+)
 from app.models.catalog import LookItemRow, LookRow, ProductRow, ShadeRow, StoreRow
 from app.models.cosing import (
     CosingFunctionRow,
@@ -17,7 +36,26 @@ from app.models.cosing import (
     FunctionConcernRow,
     IngredientFunctionRow,
 )
-from app.models.idol_look import LookArSettingRow, LookProductRow, MakeupLookRow, YoutubeVideoRow
+from app.models.idol_look import (
+    LookArSettingRow,
+    LookProductRow,
+    LookVideoTagRow,
+    MakeupLookRow,
+    YoutubeVideoRow,
+)
+from app.models.knowledge import (
+    AihubDocumentBlockRow,
+    AihubDocumentExtractionRow,
+    AihubQuoteAlignmentRow,
+)
+from app.models.makeup_troubleshooting import (
+    MakeupTroubleshootingProblemEvidenceRow,
+    MakeupTroubleshootingProblemRow,
+    MakeupTroubleshootingReleaseRow,
+    MakeupTroubleshootingSituationEvidenceRow,
+    MakeupTroubleshootingSituationRow,
+    MakeupTroubleshootingSourceRow,
+)
 from app.models.member import MemberRow
 from app.models.order import OrderLineRow, OrderRow
 from app.models.oy_catalog_category_rule import OyCatalogCategoryRuleRow
@@ -74,12 +112,23 @@ from app.models.recommendation_feedback import (
     RecommendationRequestRow,
     UserBehaviorEventRow,
 )
+from app.models.reward import RewardAttendanceRow, RewardCouponRow
 from app.models.skincare import SkincareServingRow
 
 __all__ = [
+    "AccountDeletionJobRow",
+    "AdminAuditLogRow",
+    "EvalRunRow",
+    "LipEvalProductRow",
+    "LipEvalSlotRow",
+    "ProductAdminStateRow",
+    "StaffRoleRow",
     "AihubClaimReviewRow",
     "AihubDatasetReleaseRow",
+    "AihubDocumentBlockRow",
+    "AihubDocumentExtractionRow",
     "AihubIngredientMentionRow",
+    "AihubQuoteAlignmentRow",
     "AihubKnowledgeDocumentFileRow",
     "AihubKnowledgeDocumentRow",
     "AihubQaCaseRawRow",
@@ -87,6 +136,12 @@ __all__ = [
     "AihubQaSourceLinkRow",
     "AihubSkinConcernRow",
     "AihubSkinTypeRow",
+    "ArActivityEventRow",
+    "ArRecommendationCandidateRow",
+    "ArRecommendationImpressionRow",
+    "ArRecommendationRequestRow",
+    "CartRecommendationImpressionRow",
+    "CartRecommendationVisitRow",
     "CosingFunctionRow",
     "CosingIngredientLookupRow",
     "FunctionConcernRow",
@@ -95,8 +150,15 @@ __all__ = [
     "LookArSettingRow",
     "LookItemRow",
     "LookProductRow",
+    "LookVideoTagRow",
     "LookRow",
     "MakeupLookRow",
+    "MakeupTroubleshootingProblemEvidenceRow",
+    "MakeupTroubleshootingProblemRow",
+    "MakeupTroubleshootingReleaseRow",
+    "MakeupTroubleshootingSituationEvidenceRow",
+    "MakeupTroubleshootingSituationRow",
+    "MakeupTroubleshootingSourceRow",
     "MemberRow",
     "OrderLineRow",
     "OrderRow",
@@ -121,6 +183,8 @@ __all__ = [
     "RecommendationLegacyArchiveRow",
     "RecommendationRequestRow",
     "UserBehaviorEventRow",
+    "RewardAttendanceRow",
+    "RewardCouponRow",
     "RawOyBrandRow",
     "RawOyCategoryRow",
     "RawOyCrawlLogRow",

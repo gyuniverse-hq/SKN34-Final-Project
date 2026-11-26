@@ -1,0 +1,67 @@
+{{- if .Values.admin.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "vishue.fullname" . }}-admin
+  labels:
+    {{- include "vishue.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "vishue.selector" (dict "root" . "component" "admin") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "vishue.selector" (dict "root" . "component" "admin") | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext: { runAsNonRoot: true, runAsUser: 101, runAsGroup: 101, fsGroup: 101 }
+      containers:
+        - name: admin
+          image: {{ printf "%s%s:%s" (ternary (printf "%s/" .Values.image.registry) "" (ne .Values.image.registry "")) .Values.admin.image (.Values.image.tag | default .Chart.AppVersion) | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports: [{ name: http, containerPort: 8080 }]
+          env:
+            - { name: SUPABASE_URL, value: {{ .Values.supabase.url | quote }} }
+            - { name: SUPABASE_PUBLISHABLE_KEY, value: {{ .Values.supabase.publishableKey | quote }} }
+            - { name: API_BASE_URL, value: {{ .Values.admin.apiBaseUrl | quote }} }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          resources: { requests: {cpu: 25m, memory: 32Mi}, limits: {memory: 96Mi} }
+          readinessProbe: { httpGet: {path: /, port: http} }
+          livenessProbe: { httpGet: {path: /, port: http} }
+          volumeMounts: [{ name: tmp, mountPath: /tmp }]
+      volumes: [{ name: tmp, emptyDir: {} }]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "vishue.fullname" . }}-admin
+spec:
+  selector:
+    {{- include "vishue.selector" (dict "root" . "component" "admin") | nindent 4 }}
+  ports: [{ name: http, port: 8080, targetPort: http }]
+{{- if .Values.gateway.enabled }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "vishue.fullname" . }}-admin
+spec:
+  parentRefs:
+    - name: {{ include "vishue.fullname" . }}
+      sectionName: {{ ternary "https" "http" .Values.gateway.tls.enabled }}
+  {{- with .Values.gateway.hostname }}
+  hostnames: [{{ . | quote }}]
+  {{- end }}
+  rules:
+    - matches: [{ path: {type: PathPrefix, value: /} }]
+      backendRefs: [{ name: {{ include "vishue.fullname" . }}-admin, port: 8080 }]
+{{- end }}
+{{- end }}

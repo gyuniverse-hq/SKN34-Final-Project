@@ -11,5 +11,5 @@ export default function LooksTab() {
   const debounced = useDebouncedValue(query.trim(), 600);
   const looks = useStyleLooks();
   const tutorials = useTutorials(debounced.length >= 2 ? debounced : undefined, 8);
-  return <LooksScreen searchBar={<SearchBar value={query} onChangeText={setQuery} placeholder={t('looks.searchPlaceholder')} />} looks={looks} tutorials={tutorials} />;
+  return <LooksScreen searchBar={<SearchBar tonal value={query} onChangeText={setQuery} placeholder={t('looks.searchPlaceholder')} />} looks={looks} tutorials={tutorials} />;
 }

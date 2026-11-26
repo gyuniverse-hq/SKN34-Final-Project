@@ -7,9 +7,9 @@ import { appendSkinTiming, validateSkinAnalysis } from '@/lib/skinProfile';
 import { useSkinProfileStore } from '@/store/skinProfileStore';
 import { useSkinPreviewStore } from '@/store/skinPreviewStore';
 import { SkinPreviewAssembler } from '@/lib/skinPreview';
-import type { SkinAnalysisResult, SkinCameraEvent, SkinIndicator, SkinSurveyV3, SkinWebRun, SkinWebEvent, SkinPreview } from '@/types/skin';
+import type { SkinAnalysisResult, SkinCameraEvent, SkinIndicator, SkinSurveyV3, SkinWebRun, SkinWebEvent, SkinPreview, SkinProfileV4 } from '@/types/skin';
 
-export function useSkinAnalysis() {
+export function useSkinAnalysis(register?: (profile: SkinProfileV4) => Promise<void>) {
   const [phase, setPhase] = useState<'ready' | 'camera' | 'analysis' | 'survey' | 'saving' | 'done' | 'error'>('ready');
   const [camera, setCamera] = useState<SkinCameraEvent>({ guidance: 'noFace', progress: 0 });
   const [indicator, setIndicator] = useState<SkinIndicator>('pore');
@@ -116,7 +116,7 @@ export function useSkinAnalysis() {
     } else if (event.type === 'result') {
       try {
         if (event.result.timing.runId !== webRun.run.runId) throw new Error('Invalid run');
-        if (!['skin-analysis-mobile-v1', 'skin-analysis-mobile-v2', 'skin-analysis-mobile-v3', 'skin-analysis-mobile-v4'].includes(event.result.schema)) throw new Error('Invalid on-device result');
+        if (!['skin-analysis-mobile-v1', 'skin-analysis-mobile-v2', 'skin-analysis-mobile-v3', 'skin-analysis-mobile-v4', 'skin-analysis-mobile-v4.1'].includes(event.result.schema)) throw new Error('Invalid on-device result');
         validateSkinAnalysis(event.result);
         receivedAt.current = performance.now(); setResult(event.result); setWebRun(undefined); setPhase('survey');
       } catch { previewAssembler.current?.clear(); pendingPreview.current = null; setError('model'); setPhase('error'); }
@@ -161,7 +161,7 @@ export function useSkinAnalysis() {
     setPhase('saving'); setError(null);
     try {
       await appendSkinTiming(result.timing);
-      await save({ version: 4, registeredAt: new Date().toISOString(), analysis: result, questionnaire: answers,
+      await (register ?? save)({ version: 4, registeredAt: new Date().toISOString(), analysis: result, questionnaire: answers,
         fusion: fuseSupportSkinType(result.skinType, answers) });
       if (pendingPreview.current?.runId === result.timing.runId) {
         useSkinPreviewStore.getState().setPreview(pendingPreview.current);

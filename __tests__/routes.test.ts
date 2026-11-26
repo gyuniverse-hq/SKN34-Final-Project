@@ -56,8 +56,10 @@ describe('route param parsing', () => {
     expect(parseFlag('true')).toBe(false);
   });
 
-  it('only allows checkout as a post-login destination', () => {
+  it('accepts known post-login destinations', () => {
     expect(parseLoginReturnTo('checkout')).toBe('checkout');
+    expect(parseLoginReturnTo('membership')).toBe('membership');
+    expect(parseLoginReturnTo('rewards')).toBe('rewards');
     expect(parseLoginReturnTo('/my')).toBeUndefined();
   });
 });
@@ -66,6 +68,7 @@ describe('route builders pass ids, never names', () => {
   it('product detail keeps the exact shade', () => {
     expect(productHref('p1', '02')).toEqual({ pathname: '/product/[id]', params: { id: 'p1', shade: '02' } });
     expect(productHref('p1')).toEqual({ pathname: '/product/[id]', params: { id: 'p1' } });
+    expect(productHref('p1', undefined, undefined, true)).toEqual({ pathname: '/product/[id]', params: { id: 'p1', requireShade: '1' } });
   });
 
   it('AR carries product + shade, and drops a shade without a product', () => {
@@ -96,7 +99,8 @@ describe('route builders pass ids, never names', () => {
     });
   });
 
-  it('login return links are limited to the checkout flow', () => {
+  it('login links retain the requested destination', () => {
+    expect(loginHref('rewards')).toEqual({ pathname: '/login', params: { returnTo: 'rewards' } });
     expect(loginHref('checkout')).toEqual({ pathname: '/login', params: { returnTo: 'checkout' } });
   });
 

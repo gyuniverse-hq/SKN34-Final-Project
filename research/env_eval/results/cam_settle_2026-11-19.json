@@ -1,0 +1,1520 @@
+{
+ "steady|before|lapa": {
+  "n": 80,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 18.8,
+  "colourCondIn6sPct": 7.5,
+  "warmOnPct": 7.5,
+  "warmOnMedianMs": 0,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "dark": 5,
+   "warmLight": 6,
+   "blown": 4
+  }
+ },
+ "steady|3a|lapa": {
+  "n": 80,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 18.8,
+  "colourCondIn6sPct": 7.5,
+  "warmOnPct": 7.5,
+  "warmOnMedianMs": 0,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "dark": 5,
+   "warmLight": 6,
+   "blown": 4
+  }
+ },
+ "steady|resnap|lapa": {
+  "n": 80,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 18.8,
+  "colourCondIn6sPct": 7.5,
+  "warmOnPct": 7.5,
+  "warmOnMedianMs": 0,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "dark": 5,
+   "warmLight": 6,
+   "blown": 4
+  }
+ },
+ "steady|snapOnly|lapa": {
+  "n": 80,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 18.8,
+  "colourCondIn6sPct": 7.5,
+  "warmOnPct": 7.5,
+  "warmOnMedianMs": 0,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "dark": 5,
+   "warmLight": 6,
+   "blown": 4
+  }
+ },
+ "steady|fastResample|lapa": {
+  "n": 80,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 18.8,
+  "colourCondIn6sPct": 7.5,
+  "warmOnPct": 7.5,
+  "warmOnMedianMs": 0,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "dark": 5,
+   "warmLight": 6,
+   "blown": 4
+  }
+ },
+ "transient|before|lapa": {
+  "n": 80,
+  "colourErr4s": 0.076,
+  "msgIn6sAfterLockPct": 18.8,
+  "colourCondIn6sPct": 7.5,
+  "warmOnPct": 7.5,
+  "warmOnMedianMs": 0,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "dark": 5,
+   "warmLight": 6,
+   "blown": 4
+  }
+ },
+ "transient|3a|lapa": {
+  "n": 80,
+  "colourErr4s": 0.19,
+  "msgIn6sAfterLockPct": 18.8,
+  "colourCondIn6sPct": 7.5,
+  "warmOnPct": 7.5,
+  "warmOnMedianMs": 0,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "dark": 5,
+   "warmLight": 6,
+   "blown": 4
+  }
+ },
+ "transient|resnap|lapa": {
+  "n": 80,
+  "colourErr4s": 0.038,
+  "msgIn6sAfterLockPct": 18.8,
+  "colourCondIn6sPct": 7.5,
+  "warmOnPct": 7.5,
+  "warmOnMedianMs": 0,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "dark": 5,
+   "warmLight": 6,
+   "blown": 4
+  }
+ },
+ "transient|snapOnly|lapa": {
+  "n": 80,
+  "colourErr4s": 0.19,
+  "msgIn6sAfterLockPct": 77.5,
+  "colourCondIn6sPct": 70,
+  "warmOnPct": 70,
+  "warmOnMedianMs": 1500,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "warmLight": 53,
+   "dark": 5,
+   "blown": 4
+  }
+ },
+ "transient|fastResample|lapa": {
+  "n": 80,
+  "colourErr4s": 0.078,
+  "msgIn6sAfterLockPct": 18.8,
+  "colourCondIn6sPct": 7.5,
+  "warmOnPct": 7.5,
+  "warmOnMedianMs": 0,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "dark": 5,
+   "warmLight": 6,
+   "blown": 4
+  }
+ },
+ "transient2s|before|lapa": {
+  "n": 80,
+  "colourErr4s": 0.177,
+  "msgIn6sAfterLockPct": 77.5,
+  "colourCondIn6sPct": 70,
+  "warmOnPct": 70,
+  "warmOnMedianMs": 2500,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "warmLight": 53,
+   "dark": 6,
+   "blown": 4
+  }
+ },
+ "transient2s|3a|lapa": {
+  "n": 80,
+  "colourErr4s": 0.114,
+  "msgIn6sAfterLockPct": 18.8,
+  "colourCondIn6sPct": 7.5,
+  "warmOnPct": 7.5,
+  "warmOnMedianMs": 0,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "dark": 6,
+   "warmLight": 6,
+   "blown": 4
+  }
+ },
+ "transient2s|resnap|lapa": {
+  "n": 80,
+  "colourErr4s": 0.162,
+  "msgIn6sAfterLockPct": 77.5,
+  "colourCondIn6sPct": 70,
+  "warmOnPct": 70,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "warmLight": 53,
+   "dark": 6,
+   "blown": 4
+  }
+ },
+ "transient2s|snapOnly|lapa": {
+  "n": 80,
+  "colourErr4s": 0.114,
+  "msgIn6sAfterLockPct": 77.5,
+  "colourCondIn6sPct": 70,
+  "warmOnPct": 70,
+  "warmOnMedianMs": 1500,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "warmLight": 53,
+   "dark": 6,
+   "blown": 4
+  }
+ },
+ "transient2s|fastResample|lapa": {
+  "n": 80,
+  "colourErr4s": 0.088,
+  "msgIn6sAfterLockPct": 18.8,
+  "colourCondIn6sPct": 7.5,
+  "warmOnPct": 7.5,
+  "warmOnMedianMs": 0,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "dark": 6,
+   "warmLight": 6,
+   "blown": 4
+  }
+ },
+ "transient2_5s|before|lapa": {
+  "n": 80,
+  "colourErr4s": 0.188,
+  "msgIn6sAfterLockPct": 77.5,
+  "colourCondIn6sPct": 70,
+  "warmOnPct": 70,
+  "warmOnMedianMs": 2500,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "warmLight": 53,
+   "dark": 6,
+   "blown": 4
+  }
+ },
+ "transient2_5s|3a|lapa": {
+  "n": 80,
+  "colourErr4s": 0.138,
+  "msgIn6sAfterLockPct": 77.5,
+  "colourCondIn6sPct": 70,
+  "warmOnPct": 70,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "warmLight": 53,
+   "dark": 6,
+   "blown": 4
+  }
+ },
+ "transient2_5s|resnap|lapa": {
+  "n": 80,
+  "colourErr4s": 0.125,
+  "msgIn6sAfterLockPct": 77.5,
+  "colourCondIn6sPct": 70,
+  "warmOnPct": 70,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "warmLight": 53,
+   "dark": 6,
+   "blown": 4
+  }
+ },
+ "transient2_5s|snapOnly|lapa": {
+  "n": 80,
+  "colourErr4s": 0.138,
+  "msgIn6sAfterLockPct": 77.5,
+  "colourCondIn6sPct": 70,
+  "warmOnPct": 70,
+  "warmOnMedianMs": 1500,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "warmLight": 53,
+   "dark": 6,
+   "blown": 4
+  }
+ },
+ "transient2_5s|fastResample|lapa": {
+  "n": 80,
+  "colourErr4s": 0.098,
+  "msgIn6sAfterLockPct": 18.8,
+  "colourCondIn6sPct": 7.5,
+  "warmOnPct": 7.5,
+  "warmOnMedianMs": 0,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "dark": 6,
+   "warmLight": 6,
+   "blown": 4
+  }
+ },
+ "persistent|before|lapa": {
+  "n": 80,
+  "colourErr4s": 0.222,
+  "msgIn6sAfterLockPct": 77.5,
+  "colourCondIn6sPct": 70,
+  "warmOnPct": 70,
+  "warmOnMedianMs": 2500,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "warmLight": 53,
+   "dark": 6,
+   "blown": 4
+  }
+ },
+ "persistent|3a|lapa": {
+  "n": 80,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 77.5,
+  "colourCondIn6sPct": 70,
+  "warmOnPct": 70,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "warmLight": 53,
+   "dark": 6,
+   "blown": 4
+  }
+ },
+ "persistent|resnap|lapa": {
+  "n": 80,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 77.5,
+  "colourCondIn6sPct": 70,
+  "warmOnPct": 70,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "warmLight": 53,
+   "dark": 6,
+   "blown": 4
+  }
+ },
+ "persistent|snapOnly|lapa": {
+  "n": 80,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 77.5,
+  "colourCondIn6sPct": 70,
+  "warmOnPct": 70,
+  "warmOnMedianMs": 1500,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "warmLight": 53,
+   "dark": 6,
+   "blown": 4
+  }
+ },
+ "persistent|fastResample|lapa": {
+  "n": 80,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 77.5,
+  "colourCondIn6sPct": 70,
+  "warmOnPct": 70,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "warmLight": 53,
+   "dark": 6,
+   "blown": 4
+  }
+ },
+ "realWarm|before|lapa": {
+  "n": 80,
+  "colourErr4s": 0.184,
+  "msgIn6sAfterLockPct": 77.5,
+  "colourCondIn6sPct": 70,
+  "warmOnPct": 70,
+  "warmOnMedianMs": 2500,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "warmLight": 53,
+   "dark": 6,
+   "blown": 4
+  }
+ },
+ "realWarm|3a|lapa": {
+  "n": 80,
+  "colourErr4s": 0.228,
+  "msgIn6sAfterLockPct": 77.5,
+  "colourCondIn6sPct": 70,
+  "warmOnPct": 70,
+  "warmOnMedianMs": 3500,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "warmLight": 53,
+   "dark": 6,
+   "blown": 4
+  }
+ },
+ "realWarm|resnap|lapa": {
+  "n": 80,
+  "colourErr4s": 0.076,
+  "msgIn6sAfterLockPct": 77.5,
+  "colourCondIn6sPct": 70,
+  "warmOnPct": 70,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "warmLight": 53,
+   "dark": 6,
+   "blown": 4
+  }
+ },
+ "realWarm|snapOnly|lapa": {
+  "n": 80,
+  "colourErr4s": 0.228,
+  "msgIn6sAfterLockPct": 77.5,
+  "colourCondIn6sPct": 70,
+  "warmOnPct": 70,
+  "warmOnMedianMs": 3500,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "warmLight": 53,
+   "dark": 6,
+   "blown": 4
+  }
+ },
+ "realWarm|fastResample|lapa": {
+  "n": 80,
+  "colourErr4s": 0.075,
+  "msgIn6sAfterLockPct": 77.5,
+  "colourCondIn6sPct": 70,
+  "warmOnPct": 70,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 18.8,
+  "msgs": {
+   "warmLight": 53,
+   "dark": 6,
+   "blown": 4
+  }
+ },
+ "steady|before|dark": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 1
+  }
+ },
+ "steady|3a|dark": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 1
+  }
+ },
+ "steady|resnap|dark": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 1
+  }
+ },
+ "steady|snapOnly|dark": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 1
+  }
+ },
+ "steady|fastResample|dark": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 1
+  }
+ },
+ "transient|before|dark": {
+  "n": 40,
+  "colourErr4s": 0.081,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 1
+  }
+ },
+ "transient|3a|dark": {
+  "n": 40,
+  "colourErr4s": 0.203,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 1
+  }
+ },
+ "transient|resnap|dark": {
+  "n": 40,
+  "colourErr4s": 0.04,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 1
+  }
+ },
+ "transient|snapOnly|dark": {
+  "n": 40,
+  "colourErr4s": 0.203,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 1
+  }
+ },
+ "transient|fastResample|dark": {
+  "n": 40,
+  "colourErr4s": 0.083,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 1
+  }
+ },
+ "transient2s|before|dark": {
+  "n": 40,
+  "colourErr4s": 0.19,
+  "msgIn6sAfterLockPct": 5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 2
+  }
+ },
+ "transient2s|3a|dark": {
+  "n": 40,
+  "colourErr4s": 0.122,
+  "msgIn6sAfterLockPct": 5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 2
+  }
+ },
+ "transient2s|resnap|dark": {
+  "n": 40,
+  "colourErr4s": 0.174,
+  "msgIn6sAfterLockPct": 5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 2
+  }
+ },
+ "transient2s|snapOnly|dark": {
+  "n": 40,
+  "colourErr4s": 0.122,
+  "msgIn6sAfterLockPct": 5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 2
+  }
+ },
+ "transient2s|fastResample|dark": {
+  "n": 40,
+  "colourErr4s": 0.095,
+  "msgIn6sAfterLockPct": 5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 2
+  }
+ },
+ "transient2_5s|before|dark": {
+  "n": 40,
+  "colourErr4s": 0.202,
+  "msgIn6sAfterLockPct": 5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 2
+  }
+ },
+ "transient2_5s|3a|dark": {
+  "n": 40,
+  "colourErr4s": 0.148,
+  "msgIn6sAfterLockPct": 5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 2
+  }
+ },
+ "transient2_5s|resnap|dark": {
+  "n": 40,
+  "colourErr4s": 0.134,
+  "msgIn6sAfterLockPct": 5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 2
+  }
+ },
+ "transient2_5s|snapOnly|dark": {
+  "n": 40,
+  "colourErr4s": 0.148,
+  "msgIn6sAfterLockPct": 5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 2
+  }
+ },
+ "transient2_5s|fastResample|dark": {
+  "n": 40,
+  "colourErr4s": 0.105,
+  "msgIn6sAfterLockPct": 5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 2
+  }
+ },
+ "persistent|before|dark": {
+  "n": 40,
+  "colourErr4s": 0.237,
+  "msgIn6sAfterLockPct": 5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 2
+  }
+ },
+ "persistent|3a|dark": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 2
+  }
+ },
+ "persistent|resnap|dark": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 2
+  }
+ },
+ "persistent|snapOnly|dark": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 2
+  }
+ },
+ "persistent|fastResample|dark": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 2
+  }
+ },
+ "realWarm|before|dark": {
+  "n": 40,
+  "colourErr4s": 0.197,
+  "msgIn6sAfterLockPct": 5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 2
+  }
+ },
+ "realWarm|3a|dark": {
+  "n": 40,
+  "colourErr4s": 0.244,
+  "msgIn6sAfterLockPct": 5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 2
+  }
+ },
+ "realWarm|resnap|dark": {
+  "n": 40,
+  "colourErr4s": 0.081,
+  "msgIn6sAfterLockPct": 5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 2
+  }
+ },
+ "realWarm|snapOnly|dark": {
+  "n": 40,
+  "colourErr4s": 0.244,
+  "msgIn6sAfterLockPct": 5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 2
+  }
+ },
+ "realWarm|fastResample|dark": {
+  "n": 40,
+  "colourErr4s": 0.081,
+  "msgIn6sAfterLockPct": 5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "dark": 2
+  }
+ },
+ "steady|before|fair": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "steady|3a|fair": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "steady|resnap|fair": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "steady|snapOnly|fair": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "steady|fastResample|fair": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "transient|before|fair": {
+  "n": 40,
+  "colourErr4s": 0.077,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "transient|3a|fair": {
+  "n": 40,
+  "colourErr4s": 0.195,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "transient|resnap|fair": {
+  "n": 40,
+  "colourErr4s": 0.039,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "transient|snapOnly|fair": {
+  "n": 40,
+  "colourErr4s": 0.195,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 2.5,
+  "warmOnPct": 2.5,
+  "warmOnMedianMs": 1500,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "transient|fastResample|fair": {
+  "n": 40,
+  "colourErr4s": 0.08,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "transient2s|before|fair": {
+  "n": 40,
+  "colourErr4s": 0.181,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 2.5,
+  "warmOnPct": 2.5,
+  "warmOnMedianMs": 2500,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "transient2s|3a|fair": {
+  "n": 40,
+  "colourErr4s": 0.117,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "transient2s|resnap|fair": {
+  "n": 40,
+  "colourErr4s": 0.167,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 2.5,
+  "warmOnPct": 2.5,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "transient2s|snapOnly|fair": {
+  "n": 40,
+  "colourErr4s": 0.117,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 2.5,
+  "warmOnPct": 2.5,
+  "warmOnMedianMs": 1500,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "transient2s|fastResample|fair": {
+  "n": 40,
+  "colourErr4s": 0.091,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "transient2_5s|before|fair": {
+  "n": 40,
+  "colourErr4s": 0.193,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 2.5,
+  "warmOnPct": 2.5,
+  "warmOnMedianMs": 2500,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "transient2_5s|3a|fair": {
+  "n": 40,
+  "colourErr4s": 0.141,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 2.5,
+  "warmOnPct": 2.5,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "transient2_5s|resnap|fair": {
+  "n": 40,
+  "colourErr4s": 0.128,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 2.5,
+  "warmOnPct": 2.5,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "transient2_5s|snapOnly|fair": {
+  "n": 40,
+  "colourErr4s": 0.141,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 2.5,
+  "warmOnPct": 2.5,
+  "warmOnMedianMs": 1500,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "transient2_5s|fastResample|fair": {
+  "n": 40,
+  "colourErr4s": 0.101,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "persistent|before|fair": {
+  "n": 40,
+  "colourErr4s": 0.227,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 2.5,
+  "warmOnPct": 2.5,
+  "warmOnMedianMs": 2500,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "persistent|3a|fair": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 2.5,
+  "warmOnPct": 2.5,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "persistent|resnap|fair": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 2.5,
+  "warmOnPct": 2.5,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "persistent|snapOnly|fair": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 2.5,
+  "warmOnPct": 2.5,
+  "warmOnMedianMs": 1500,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "persistent|fastResample|fair": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 2.5,
+  "warmOnPct": 2.5,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "realWarm|before|fair": {
+  "n": 40,
+  "colourErr4s": 0.189,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 2.5,
+  "warmOnPct": 2.5,
+  "warmOnMedianMs": 2500,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "realWarm|3a|fair": {
+  "n": 40,
+  "colourErr4s": 0.233,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 2.5,
+  "warmOnPct": 2.5,
+  "warmOnMedianMs": 3500,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "realWarm|resnap|fair": {
+  "n": 40,
+  "colourErr4s": 0.077,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 2.5,
+  "warmOnPct": 2.5,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "realWarm|snapOnly|fair": {
+  "n": 40,
+  "colourErr4s": 0.233,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 2.5,
+  "warmOnPct": 2.5,
+  "warmOnMedianMs": 3500,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "realWarm|fastResample|fair": {
+  "n": 40,
+  "colourErr4s": 0.077,
+  "msgIn6sAfterLockPct": 17.5,
+  "colourCondIn6sPct": 2.5,
+  "warmOnPct": 2.5,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 17.5,
+  "msgs": {
+   "blown": 7
+  }
+ },
+ "steady|before|light": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "blown": 1
+  }
+ },
+ "steady|3a|light": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "blown": 1
+  }
+ },
+ "steady|resnap|light": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "blown": 1
+  }
+ },
+ "steady|snapOnly|light": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "blown": 1
+  }
+ },
+ "steady|fastResample|light": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "blown": 1
+  }
+ },
+ "transient|before|light": {
+  "n": 40,
+  "colourErr4s": 0.079,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "blown": 1
+  }
+ },
+ "transient|3a|light": {
+  "n": 40,
+  "colourErr4s": 0.199,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "blown": 1
+  }
+ },
+ "transient|resnap|light": {
+  "n": 40,
+  "colourErr4s": 0.04,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "blown": 1
+  }
+ },
+ "transient|snapOnly|light": {
+  "n": 40,
+  "colourErr4s": 0.199,
+  "msgIn6sAfterLockPct": 7.5,
+  "colourCondIn6sPct": 5,
+  "warmOnPct": 5,
+  "warmOnMedianMs": 1500,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "warmLight": 2,
+   "blown": 1
+  }
+ },
+ "transient|fastResample|light": {
+  "n": 40,
+  "colourErr4s": 0.082,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "blown": 1
+  }
+ },
+ "transient2s|before|light": {
+  "n": 40,
+  "colourErr4s": 0.185,
+  "msgIn6sAfterLockPct": 7.5,
+  "colourCondIn6sPct": 5,
+  "warmOnPct": 5,
+  "warmOnMedianMs": 2500,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "warmLight": 2,
+   "blown": 1
+  }
+ },
+ "transient2s|3a|light": {
+  "n": 40,
+  "colourErr4s": 0.12,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "blown": 1
+  }
+ },
+ "transient2s|resnap|light": {
+  "n": 40,
+  "colourErr4s": 0.17,
+  "msgIn6sAfterLockPct": 7.5,
+  "colourCondIn6sPct": 5,
+  "warmOnPct": 5,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "warmLight": 2,
+   "blown": 1
+  }
+ },
+ "transient2s|snapOnly|light": {
+  "n": 40,
+  "colourErr4s": 0.12,
+  "msgIn6sAfterLockPct": 7.5,
+  "colourCondIn6sPct": 5,
+  "warmOnPct": 5,
+  "warmOnMedianMs": 1500,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "warmLight": 2,
+   "blown": 1
+  }
+ },
+ "transient2s|fastResample|light": {
+  "n": 40,
+  "colourErr4s": 0.093,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "blown": 1
+  }
+ },
+ "transient2_5s|before|light": {
+  "n": 40,
+  "colourErr4s": 0.197,
+  "msgIn6sAfterLockPct": 7.5,
+  "colourCondIn6sPct": 5,
+  "warmOnPct": 5,
+  "warmOnMedianMs": 2500,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "warmLight": 2,
+   "blown": 1
+  }
+ },
+ "transient2_5s|3a|light": {
+  "n": 40,
+  "colourErr4s": 0.145,
+  "msgIn6sAfterLockPct": 7.5,
+  "colourCondIn6sPct": 5,
+  "warmOnPct": 5,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "warmLight": 2,
+   "blown": 1
+  }
+ },
+ "transient2_5s|resnap|light": {
+  "n": 40,
+  "colourErr4s": 0.131,
+  "msgIn6sAfterLockPct": 7.5,
+  "colourCondIn6sPct": 5,
+  "warmOnPct": 5,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "warmLight": 2,
+   "blown": 1
+  }
+ },
+ "transient2_5s|snapOnly|light": {
+  "n": 40,
+  "colourErr4s": 0.145,
+  "msgIn6sAfterLockPct": 7.5,
+  "colourCondIn6sPct": 5,
+  "warmOnPct": 5,
+  "warmOnMedianMs": 1500,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "warmLight": 2,
+   "blown": 1
+  }
+ },
+ "transient2_5s|fastResample|light": {
+  "n": 40,
+  "colourErr4s": 0.103,
+  "msgIn6sAfterLockPct": 2.5,
+  "colourCondIn6sPct": 0,
+  "warmOnPct": 0,
+  "warmOnMedianMs": null,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "blown": 1
+  }
+ },
+ "persistent|before|light": {
+  "n": 40,
+  "colourErr4s": 0.232,
+  "msgIn6sAfterLockPct": 7.5,
+  "colourCondIn6sPct": 5,
+  "warmOnPct": 5,
+  "warmOnMedianMs": 2500,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "warmLight": 2,
+   "blown": 1
+  }
+ },
+ "persistent|3a|light": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 7.5,
+  "colourCondIn6sPct": 5,
+  "warmOnPct": 5,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "warmLight": 2,
+   "blown": 1
+  }
+ },
+ "persistent|resnap|light": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 7.5,
+  "colourCondIn6sPct": 5,
+  "warmOnPct": 5,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "warmLight": 2,
+   "blown": 1
+  }
+ },
+ "persistent|snapOnly|light": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 7.5,
+  "colourCondIn6sPct": 5,
+  "warmOnPct": 5,
+  "warmOnMedianMs": 1500,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "warmLight": 2,
+   "blown": 1
+  }
+ },
+ "persistent|fastResample|light": {
+  "n": 40,
+  "colourErr4s": 0,
+  "msgIn6sAfterLockPct": 7.5,
+  "colourCondIn6sPct": 5,
+  "warmOnPct": 5,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "warmLight": 2,
+   "blown": 1
+  }
+ },
+ "realWarm|before|light": {
+  "n": 40,
+  "colourErr4s": 0.193,
+  "msgIn6sAfterLockPct": 7.5,
+  "colourCondIn6sPct": 5,
+  "warmOnPct": 5,
+  "warmOnMedianMs": 2500,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "warmLight": 2,
+   "blown": 1
+  }
+ },
+ "realWarm|3a|light": {
+  "n": 40,
+  "colourErr4s": 0.239,
+  "msgIn6sAfterLockPct": 7.5,
+  "colourCondIn6sPct": 5,
+  "warmOnPct": 5,
+  "warmOnMedianMs": 3500,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "warmLight": 2,
+   "blown": 1
+  }
+ },
+ "realWarm|resnap|light": {
+  "n": 40,
+  "colourErr4s": 0.079,
+  "msgIn6sAfterLockPct": 7.5,
+  "colourCondIn6sPct": 5,
+  "warmOnPct": 5,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "warmLight": 2,
+   "blown": 1
+  }
+ },
+ "realWarm|snapOnly|light": {
+  "n": 40,
+  "colourErr4s": 0.239,
+  "msgIn6sAfterLockPct": 7.5,
+  "colourCondIn6sPct": 5,
+  "warmOnPct": 5,
+  "warmOnMedianMs": 3500,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "warmLight": 2,
+   "blown": 1
+  }
+ },
+ "realWarm|fastResample|light": {
+  "n": 40,
+  "colourErr4s": 0.079,
+  "msgIn6sAfterLockPct": 7.5,
+  "colourCondIn6sPct": 5,
+  "warmOnPct": 5,
+  "warmOnMedianMs": 3000,
+  "msgBeforeLockPct": 2.5,
+  "msgs": {
+   "warmLight": 2,
+   "blown": 1
+  }
+ }
+}

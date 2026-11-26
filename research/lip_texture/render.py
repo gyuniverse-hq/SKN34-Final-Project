@@ -62,10 +62,12 @@ def page_html() -> str:
     return html.replace(marker, "const TUNING = window.__TUNING = {")
 
 
-def routes(page: Page, face_png: bytes, html: str) -> None:
+def routes(page: Page, face_png: bytes, html: str, offline_strict: bool = False) -> None:
     def fulfill(body: bytes, ctype: str):
         return lambda route: route.fulfill(status=200, body=body, headers={"content-type": ctype, "access-control-allow-origin": "*"})
 
+    if offline_strict:
+        page.route("**/*", lambda route: route.abort())
     page.route("https://localhost/", fulfill(html.encode("utf-8"), "text/html"))
     page.route("https://localhost/face.png", fulfill(face_png, "image/png"))
 
@@ -121,13 +123,19 @@ def shot(page: Page, path: Path, n: int = 3) -> None:
 
 
 def main() -> None:
+    global DATA
     ap = argparse.ArgumentParser()
     ap.add_argument("--tag", required=True)
     ap.add_argument("--config", action="append", default=[], help="name=JSON TUNING override (empty = defaults)")
     ap.add_argument("--faces", default=",".join(FACES))
     ap.add_argument("--shades", default=",".join(SHADES))
     ap.add_argument("--settle", type=float, default=5.0)
+    ap.add_argument("--data-dir", type=Path, default=DATA, help="input/output directory")
+    ap.add_argument("--offline-strict", action="store_true", help="block all non-local intercepted requests")
+    ap.add_argument("--no-freeze", action="store_true", help="preserve app-default TUNING")
+    ap.add_argument("--off-only", action="store_true", help="capture only the unpainted camera frame")
     args = ap.parse_args()
+    DATA = args.data_dir
     configs = {}
     for c in args.config or ["base="]:
         name, _, js = c.partition("=")
@@ -143,18 +151,23 @@ def main() -> None:
             page = ctx.new_page()
             page.on("pageerror", lambda e: print("pageerror", e))
             page.add_init_script(FAKE_CAMERA)
-            routes(page, (DATA / "faces" / f"{face}.png").read_bytes(), html)
+            routes(page, (DATA / "faces" / f"{face}.png").read_bytes(), html, offline_strict=args.offline_strict)
             page.goto("https://localhost/")
             wait_status(page, "tracking")
             defaults = page.evaluate("JSON.parse(JSON.stringify(window.__TUNING))")
             time.sleep(args.settle)
             # Freeze the light / lip-mean estimate (0.5 s) and segmentation once settled, so configs differ only by their own values.
-            defaults.update(lightEveryMs=1e12, segmentEveryMs=1e12, segmentEveryMsAuto=1e12)
-            set_tuning(page, defaults, {})
+            if not args.no_freeze:
+                defaults.update(lightEveryMs=1e12, segmentEveryMs=1e12, segmentEveryMsAuto=1e12)
+                set_tuning(page, defaults, {})
             time.sleep(3.0)
             send_makeup(page, None)
             time.sleep(1.0)
             shot(page, out / f"{face}__off.png")
+            if args.off_only:
+                print(face, "done (off only)")
+                ctx.close()
+                continue
             for shade in args.shades.split(","):
                 send_makeup(page, dict(SHADES[shade], intensity=INTENSITY))
                 time.sleep(1.5)

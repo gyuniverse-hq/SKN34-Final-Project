@@ -4,6 +4,28 @@
 # the api runs without a cache and rate limits are kept in memory.
 services:
   - type: web
+    name: vishue-admin
+    runtime: static
+    branch: develop
+    rootDir: admin
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    autoDeployTrigger: checksPass
+    buildFilter:
+      paths: ["admin/**"]
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: VITE_API_BASE_URL
+        sync: false
+
+  - type: web
     name: vishue-api
     runtime: docker
     plan: free
@@ -24,7 +46,10 @@ services:
       - key: RUN_MIGRATIONS
         value: "true"
       - key: CORS_ORIGINS
-        value: '["http://localhost:8081"]'
+        sync: false
+      - key: ADMIN_ENABLED
+        # Flip to "true" after staff grant + CORS include admin origin. See admin-ops-web-rollout.md.
+        value: "false"
       - key: DATABASE_URL
         sync: false
       - key: SUPABASE_URL

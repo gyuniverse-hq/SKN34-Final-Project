@@ -1,31 +1,59 @@
-import { Stack, useRouter } from 'expo-router';
+import { Redirect, Stack, useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
+import { skinAccessKey, useSkinAccess } from '@/hooks/useSkinAccess';
+import { ApiError } from '@/lib/api';
+import { registerSkinReport } from '@/lib/skinRegistration';
+import type { SkinProfileV4 } from '@/types/skin';
 import { useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, BackHandler, Linking, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, BackHandler, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
 import { SkinCamera } from '@/components/skin/SkinCamera';
 import { SkinSurvey } from '@/components/skin/SkinSurvey';
 import { theme } from '@/constants/theme';
+import { useMemberCameraConsent } from '@/hooks/useMemberCameraConsent';
 import { useSkinAnalysis } from '@/hooks/useSkinAnalysis';
 import { useI18n } from '@/lib/i18n';
 import { skinAnalysisSupported, skinAnalysisUsesWebView } from '@/lib/skinAnalysis';
 
 export default function SkinAnalysisScreen() {
+  const access = useSkinAccess();
+  const cameraChoice = useMemberCameraConsent();
+  if (cameraChoice.loading) return <ActivityIndicator color={theme.colors.rose} />;
+  if (cameraChoice.member && !cameraChoice.granted) return <Redirect href="/skin-consent" />;
+  return <AnalysisSession key={access.owner} access={access} />;
+}
+
+function AnalysisSession({ access }: { access: ReturnType<typeof useSkinAccess> }) {
   const { t } = useI18n();
   const router = useRouter();
+  const usedFreeAnalysis = useRef(false);
+  const cache = useQueryClient();
+  const register = async (profile: SkinProfileV4) => {
+    try { usedFreeAnalysis.current = await registerSkinReport(profile, access.owner) === 'free'; }
+    catch (error) {
+      if (error instanceof ApiError && error.code === 'skin_access_required') {
+        void access.retry();
+        router.replace('/membership');
+      }
+      throw error;
+    }
+    void cache.invalidateQueries({ queryKey: skinAccessKey(access.owner) });
+  };
   const [permission, requestPermission] = useCameraPermissions();
-  const flow = useSkinAnalysis();
+  const flow = useSkinAnalysis(register);
   const [photoError, setPhotoError] = useState(false);
   const { phase, cancel } = flow;
   useEffect(() => {
-    if (phase === 'done') router.replace('/skin-recommendations');
+    if (phase === 'done') router.replace(usedFreeAnalysis.current
+      ? { pathname: '/skin-recommendations', params: { freeTrial: '1' } } : '/skin-recommendations');
   }, [phase, router]);
-  const leave = () => { flow.cancel(); if (router.canGoBack()) router.back(); else router.replace('/(tabs)/my'); };
+  const leave = () => { flow.cancel(); if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); };
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (phase !== 'saving') { cancel(); if (router.canGoBack()) router.back(); else router.replace('/(tabs)/my'); }
+      if (phase !== 'saving') { cancel(); if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); }
       return true;
     });
     return () => subscription.remove();
@@ -51,7 +79,13 @@ export default function SkinAnalysisScreen() {
       state={flow.camera} onCapture={flow.onCapture} webRun={flow.webRun} onWebEvent={flow.onWebEvent} analyzing={flow.phase === 'analysis'} />}
     {!skinAnalysisSupported ? <View style={styles.center}>
       <Text style={styles.body}>{t('skin.unsupported')}</Text>
-    </View> : flow.phase === 'ready' ? <View style={styles.center}>
+    </View> : flow.phase === 'ready' && !access.ready ? <View style={styles.center}>
+      {access.error ? <Button label={t('skin.retry')} onPress={() => { void access.retry(); }} />
+        : <ActivityIndicator color={theme.colors.rose} />}
+    </View> : flow.phase === 'ready' && access.trialUsed && !access.subscribed ? <View style={styles.center}>
+      <Text style={styles.body}>{t('skinAccess.used')}</Text>
+      <Button label={t('skinAccess.viewMembership')} onPress={() => router.replace('/membership')} />
+    </View> : flow.phase === 'ready' ? <ScrollView contentContainerStyle={styles.ready} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>{t('skin.title')}</Text>
       <Text style={styles.body}>{t('skin.instructions')}</Text>
       <Text style={styles.body}>{t('skin.localNotice')}</Text>
@@ -62,7 +96,7 @@ export default function SkinAnalysisScreen() {
         <Button label={t('skin.openSettings')} onPress={() => { void Linking.openSettings(); }} />
       </> : <Button label={t('skin.start')} onPress={() => { void begin(); }} />}
       {skinAnalysisUsesWebView && <Button label={t('skin.choosePhoto')} variant="secondary" onPress={() => { void choosePhoto(); }} />}
-    </View> : flow.phase === 'camera' ? <>
+    </ScrollView> : flow.phase === 'camera' ? <>
       <Text style={styles.help}>{t('skin.instructions')}</Text>
     </> : flow.phase === 'analysis' ? <View style={styles.center}>
       <ActivityIndicator size="large" color={theme.colors.rose} />
@@ -83,6 +117,7 @@ export default function SkinAnalysisScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, padding: 20, gap: 16, backgroundColor: theme.colors.surface },
   center: { flex: 1, justifyContent: 'center', gap: 24 },
+  ready: { flexGrow: 1, justifyContent: 'center', gap: 18, paddingVertical: 12 },
   title: { fontSize: 24, fontWeight: '700', textAlign: 'center', color: theme.colors.ink },
   body: { fontSize: 16, lineHeight: 25, textAlign: 'center', color: theme.colors.inkMuted },
   help: { fontSize: 14, color: theme.colors.inkMuted, textAlign: 'center' },

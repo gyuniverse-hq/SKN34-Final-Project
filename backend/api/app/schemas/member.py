@@ -10,6 +10,18 @@ class MemberRecord(BaseModel):
     id: str
     terms_version: str
     terms_agreed_at: datetime
+    skin_trial_run: str | None = None
+    skin_subscription_until: datetime | None = None
+
+
+class SkinAccess(ApiModel):
+    expires_at: datetime | None
+    subscribed: bool
+    trial_used: bool
+
+
+class CompleteAnalysisRequest(ApiModel):
+    run_id: str = Field(min_length=1, max_length=128)
 
 
 class TermsStatus(ApiModel):
@@ -25,3 +37,7 @@ class MeResponse(ApiModel):
 
 class AgreeTermsRequest(ApiModel):
     version: str = Field(min_length=1, max_length=32)
+
+
+class AccountDeletionStatusRequest(ApiModel):
+    receipt: str = Field(pattern=r"^[0-9a-f]{32}\.[0-9a-f]{64}$")

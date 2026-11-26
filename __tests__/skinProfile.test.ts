@@ -6,6 +6,9 @@ const COMPLETE_SKIN_SURVEY: SkinSurveyV3 = {
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { appendSkinTiming, clearSkinTimings, comparableSkinTimings, readSkinProfile, readSkinTimings, summarizeSkinTimings, validateSkinAnalysis } from '@/lib/skinProfile';
+import * as auth from '@/lib/auth';
+import * as api from '@/lib/api';
+import { registerSkinReport } from '@/lib/skinRegistration';
 import { STORAGE_KEYS } from '@/lib/storage';
 import { useSkinProfileStore } from '@/store/skinProfileStore';
 import type { SkinAnalysisResult, LegacySkinProfile, SkinTiming } from '@/types/skin';
@@ -370,4 +373,29 @@ it('keeps a native preview out of the persisted analysis result', async () => {
     expect(useSkinPreviewStore.getState().preview?.jpeg).toBe('/9j/');
     expect(JSON.stringify(await AsyncStorage.multiGet(Object.values(STORAGE_KEYS)))).not.toContain('/9j/');
   } finally { await act(async () => { renderer.unmount(); }); useSkinPreviewStore.getState().clear(); }
+});
+
+it('classifies the guest report as free and rejects a second run', async () => {
+  const user = jest.spyOn(auth, 'getCurrentUserId').mockResolvedValue(null);
+  try {
+    const first = profile();
+    expect(await registerSkinReport(first, null)).toBe('free');
+    const next = profile();
+    next.analysis.timing.runId = 'another-run';
+    await expect(registerSkinReport(next, null)).rejects.toMatchObject({ code: 'skin_access_required' });
+    expect((await readSkinProfile())?.analysis.timing.runId).toBe(first.analysis.timing.runId);
+  } finally { user.mockRestore(); }
+});
+
+it.each([false, true])('classifies the saved report using membership at completion (subscribed %s)', async subscribed => {
+  const user = jest.spyOn(auth, 'getCurrentUserId').mockResolvedValue('member');
+  const post = jest.spyOn(api, 'apiPost').mockResolvedValue({ subscribed });
+  try {
+    const saved = profile();
+    expect(await registerSkinReport(saved, 'member')).toBe(subscribed ? 'subscription' : 'free');
+    expect(post).toHaveBeenCalledWith('/api/me/skin-access/complete', { runId: saved.analysis.timing.runId },
+      { expectedUserId: 'member' });
+    expect(await readSkinProfile('member')).toEqual(saved);
+    expect(await readSkinProfile()).toBeNull();
+  } finally { user.mockRestore(); post.mockRestore(); }
 });

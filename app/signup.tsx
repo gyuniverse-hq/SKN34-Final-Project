@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/Button';
 import { useSaveTermsConsent } from '@/hooks/useTermsConsent';
 import {
   authErrorMessageKey,
-  getCurrentUserId,
   isAuthConfigured,
   isValidEmail,
   MIN_PASSWORD_LENGTH,
@@ -32,7 +31,8 @@ export default function SignupScreen() {
   const [confirm, setConfirm] = useState('');
   const [consent, setConsent] = useState(NO_CONSENT);
   const [code, setCode] = useState('');
-  const [step, setStep] = useState<'form' | 'verify'>(params.verify && params.email ? 'verify' : 'form');
+  const [step, setStep] = useState<'form' | 'verify' | 'consent'>(params.verify && params.email ? 'verify' : 'form');
+  const [verifiedUserId, setVerifiedUserId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -52,10 +52,18 @@ export default function SignupScreen() {
     }
   };
 
-  /** The account exists and is signed in. Consent was given on the form; the gate asks again if saving fails. */
-  const finish = async () => {
-    const userId = await getCurrentUserId();
-    if (userId) await saveConsent(userId).catch(() => {});
+  /** A retry after verification reuses the choices already made on the form. */
+  const finish = async (userId: string | null) => {
+    if (userId && hasAllConsents(consent)) {
+      setVerifiedUserId(userId);
+      setStep('consent');
+      try {
+        await saveConsent(userId);
+      } catch {
+        setError(t('consent.failed'));
+        return;
+      }
+    }
     if (returnTo) router.replace(`/${returnTo}`);
     else router.dismissTo('/my');
   };
@@ -67,16 +75,16 @@ export default function SignupScreen() {
       return;
     }
     return run(async () => {
-      const { needsVerification } = await signUpWithEmail(address, password);
+      const { needsVerification, userId } = await signUpWithEmail(address, password);
       if (needsVerification) setStep('verify');
-      else await finish();
+      else await finish(userId);
     });
   };
 
   const submitCode = () =>
     run(async () => {
-      await verifySignupCode(address, code.trim());
-      await finish();
+      const userId = await verifySignupCode(address, code.trim());
+      await finish(userId);
     });
 
   const resend = () =>
@@ -84,6 +92,15 @@ export default function SignupScreen() {
       await resendSignupCode(address);
       setInfo(t('auth.codeResent'));
     });
+
+  if (step === 'consent') {
+    return (
+      <AuthScreen title={t('consent.title')}>
+        <FormMessage tone="error" text={error} />
+        <Button label={t('consent.submit')} onPress={() => run(() => finish(verifiedUserId))} loading={busy} />
+      </AuthScreen>
+    );
+  }
 
   if (step === 'verify') {
     return (

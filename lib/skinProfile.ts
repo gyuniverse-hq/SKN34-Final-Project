@@ -14,9 +14,10 @@ const FEATURE_MAX: Record<keyof SkinAnalysisResult['features'], number> = {
 
 export function validateSkinAnalysis(result: SkinAnalysisResult): void {
   const server = result?.schema === 'skin-analysis-server-v1';
-  const binary = result?.schema === 'skin-analysis-mobile-v4';
-  const withoutAcne = binary || result?.schema === 'skin-analysis-mobile-v3';
-  const v3 = withoutAcne || result?.schema === 'skin-analysis-mobile-v2';
+  const v41 = result?.schema === 'skin-analysis-mobile-v4.1';
+  const binary = result?.schema === 'skin-analysis-mobile-v4' || v41;
+  const withoutAcne = result?.schema === 'skin-analysis-mobile-v4' || result?.schema === 'skin-analysis-mobile-v3';
+  const v3 = v41 || withoutAcne || result?.schema === 'skin-analysis-mobile-v2';
   const indicators = withoutAcne ? ['pore', 'pigmentation', 'wrinkle', 'skinType']
     : v3 ? ['acne', 'pore', 'pigmentation', 'wrinkle', 'skinType'] : ['acne', 'pore', 'pigmentation', 'wrinkle'];
   const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0;
@@ -63,8 +64,12 @@ export function validateSkinAnalysis(result: SkinAnalysisResult): void {
   } else if (result.skinType !== undefined) throw new Error('skin.analysisFailed');
 }
 
-export async function readSkinProfile(): Promise<SkinProfile | null> {
-  const raw = await AsyncStorage.getItem(STORAGE_KEYS.skinProfile);
+export function skinProfileKey(owner: string | null) {
+  return owner ? `${STORAGE_KEYS.skinProfile}:${owner}` : STORAGE_KEYS.skinProfile;
+}
+
+export async function readSkinProfile(owner: string | null = null): Promise<SkinProfile | null> {
+  const raw = await AsyncStorage.getItem(skinProfileKey(owner));
   if (!raw) return null;
   const profile: SkinProfile = JSON.parse(raw);
   validateSkinProfile(profile);
@@ -94,14 +99,19 @@ export function validateSkinProfile(profile: SkinProfile): void {
   } else if (profile.version === 3) {
     if (!isCompleteSupportSurvey(profile.questionnaire) || 'fusion' in profile) throw new Error('skin.storageFailed');
   } else if (profile.version === 4) {
+    if (profile.demographics && ((profile.demographics.age !== undefined &&
+        (!Number.isInteger(profile.demographics.age) || profile.demographics.age < 0 || profile.demographics.age > 120)) ||
+        (profile.demographics.birthYear !== undefined && (!Number.isInteger(profile.demographics.birthYear) ||
+          profile.demographics.birthYear < 1900 || profile.demographics.birthYear > 9999)) ||
+        (profile.demographics.gender !== undefined && !['남성', '여성'].includes(profile.demographics.gender)))) throw new Error('skin.storageFailed');
     if (!isCompleteSupportSurvey(profile.questionnaire) || profile.fusion?.policy !== 'support-dry-oily-v1' || !profile.fusion.settings ||
         !matchesFusionSnapshot(profile.fusion, fuseSupportSkinType(profile.analysis.skinType, profile.questionnaire, profile.fusion.settings))) throw new Error('skin.storageFailed');
   } else throw new Error('skin.storageFailed');
 }
 
-export async function writeSkinProfile(profile: SkinProfile) {
+export async function writeSkinProfile(profile: SkinProfile, owner: string | null = null) {
   validateSkinProfile(profile);
-  await AsyncStorage.setItem(STORAGE_KEYS.skinProfile, JSON.stringify(profile));
+  await AsyncStorage.setItem(skinProfileKey(owner), JSON.stringify(profile));
 }
 
 let timingWrites: Promise<unknown> = Promise.resolve();
