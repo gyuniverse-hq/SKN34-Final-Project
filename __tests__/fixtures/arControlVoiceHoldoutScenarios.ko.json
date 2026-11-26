@@ -1,0 +1,674 @@
+{
+  "version": 1,
+  "language": "ko",
+  "tool": "ar_control",
+  "catalog": "lib/devCatalog/oyCatalog.json",
+  "evaluation": {
+    "purpose": "수정에 사용한 녹음과 다른 34턴으로 현재 AR 음성 제어의 통과율을 측정한다. 첫 실행은 프롬프트와 앱 버전을 고정하고 기대값을 먼저 확정한 상태에서 채점한다.",
+    "start": "각 시나리오는 새 AR 세션과 새 테스트 사용자로 시작한다. 카탈로그, 착용, 장바구니, 적용 이력을 setup에 맞춘다.",
+    "sequence": "한 시나리오 안에서는 실제 화면과 이력을 이어 간다. 각 발화 뒤 앱 상태와 필요한 렌더 확인·ACK가 확정되면 다음 발화를 보낸다. manualBefore에 적힌 수동 조작만 중간에 수행한다.",
+    "prerequisite": "앞 턴 실패로 requires를 만족할 수 없는 발화는 전제 미충족으로 표시하고 그대로 진행한다. 현재 상태에서 평가 가능한 이후 발화는 해당 상태로 판정한다.",
+    "judgment": "기대 동작, 필수 인자, 결과 상태, 시작과 종료 화면, 답변의 실제 일치 여부를 기록한다. API가 선택한 동작과 사용자 목표가 달성됐는지를 각각 집계한다.",
+    "coverage": "operations의 32개 조작이 각 1회 이상 유효한 시작 상태에서 직접 호출되고 기대 반환과 화면을 모두 만족했는지 확인한다. 동일한 목표를 다른 동작이 달성하면 목표 성공과 실제 호출된 조작을 각각 기록한다. 없는 호수 되묻기는 별도 보호 사례로 집계한다.",
+    "details": "전사문과 녹음 대본은 의미와 핵심 고유명사 기준으로 비교한다. steps를 생략해 한 칸 이동한 경우 steps=1과 같은 결과로 본다. 제품 ID와 호수 ID는 해석과 카탈로그 확인이 끝난 앱의 제안을 확인할 때 사용한다. 피부색은 기기 측정값 또는 테스트 수치를 사용할 수 있다."
+  },
+  "operations": [
+    {
+      "id": "OP01",
+      "name": "립 팔레트 열기",
+      "choice": "select_zone/lip"
+    },
+    {
+      "id": "OP02",
+      "name": "착용 중인 립 호수 조회",
+      "choice": "get_state/lip"
+    },
+    {
+      "id": "OP03",
+      "name": "착용색 기준 밝은 주변색 열기",
+      "choice": "explore_nearby/show/lighter"
+    },
+    {
+      "id": "OP04",
+      "name": "주변색 탐색 종료",
+      "choice": "explore_nearby/exit"
+    },
+    {
+      "id": "OP05",
+      "name": "립 팔레트 제형 필터 적용",
+      "choice": "set_palette_filter/matte"
+    },
+    {
+      "id": "OP06",
+      "name": "색감으로 립 호수 조회",
+      "choice": "find_shades/lip/by_color"
+    },
+    {
+      "id": "OP07",
+      "name": "색감으로 립 하나 적용",
+      "choice": "apply_shade/lip/by_color"
+    },
+    {
+      "id": "OP08",
+      "name": "컬러 립 위에 립오일 적용",
+      "choice": "apply_shade/lip/oil"
+    },
+    {
+      "id": "OP09",
+      "name": "립오일 레이어만 제거",
+      "choice": "clear_layer/lipCare"
+    },
+    {
+      "id": "OP10",
+      "name": "착용색과 어울리는 블러셔 적용",
+      "choice": "apply_shade/blush/pick"
+    },
+    {
+      "id": "OP11",
+      "name": "블러셔 강도 낮추기",
+      "choice": "adjust_intensity/blush/down"
+    },
+    {
+      "id": "OP12",
+      "name": "아이섀도 표현을 매트로 변경",
+      "choice": "set_style/eyeshadow/matte"
+    },
+    {
+      "id": "OP13",
+      "name": "눈꼬리에 포인트 색 적용",
+      "choice": "set_shadow_point/by_color"
+    },
+    {
+      "id": "OP14",
+      "name": "눈꼬리 포인트 색 제거",
+      "choice": "set_shadow_point/clear"
+    },
+    {
+      "id": "OP15",
+      "name": "아이섀도 강도를 현재의 절반으로 설정",
+      "choice": "set_intensity/eyeshadow/half"
+    },
+    {
+      "id": "OP16",
+      "name": "전후 비교 켜기",
+      "choice": "set_view/compare/on"
+    },
+    {
+      "id": "OP17",
+      "name": "전후 비교 끄기",
+      "choice": "set_view/compare/off"
+    },
+    {
+      "id": "OP18",
+      "name": "얼굴 대신 색상표로 보기",
+      "choice": "control_camera/swatches_only"
+    },
+    {
+      "id": "OP19",
+      "name": "상품 목록 재조회",
+      "choice": "retry_catalog"
+    },
+    {
+      "id": "OP20",
+      "name": "피부색에 맞는 파운데이션 추천 표시",
+      "choice": "get_recommendations/foundation_match"
+    },
+    {
+      "id": "OP21",
+      "name": "추천 목록의 두 번째 호수 적용",
+      "choice": "apply_recommendation/foundation_match/2"
+    },
+    {
+      "id": "OP22",
+      "name": "현재 제품 장바구니 담기",
+      "choice": "add_to_cart/current_product"
+    },
+    {
+      "id": "OP23",
+      "name": "장바구니 화면 열기",
+      "choice": "navigate/cart"
+    },
+    {
+      "id": "OP24",
+      "name": "영상 룩의 원본 립 복원",
+      "choice": "restore_makeup/lip"
+    },
+    {
+      "id": "OP25",
+      "name": "영상 룩 전체 강도 낮추기",
+      "choice": "set_look_strength/down"
+    },
+    {
+      "id": "OP26",
+      "name": "따라 하기 첫 단계 열기",
+      "choice": "control_practice/start"
+    },
+    {
+      "id": "OP27",
+      "name": "따라 하기 다음 단계",
+      "choice": "control_practice/next"
+    },
+    {
+      "id": "OP28",
+      "name": "따라 하기 이전 단계",
+      "choice": "control_practice/previous"
+    },
+    {
+      "id": "OP29",
+      "name": "따라 하기 종료",
+      "choice": "control_practice/exit"
+    },
+    {
+      "id": "OP30",
+      "name": "카탈로그에 있는 호수명으로 립 적용",
+      "choice": "apply_shade/product_shade"
+    },
+    {
+      "id": "OP31",
+      "name": "오른쪽 컬러칩 한 칸 적용",
+      "choice": "step_shade/next"
+    },
+    {
+      "id": "OP32",
+      "name": "이번 세션의 두 번째 립 체험 복원",
+      "choice": "reapply_try_on/lip"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "A",
+      "title": "립을 둘러보다 코랄로 바꾸기",
+      "goal": "볼에서 립으로 넘어가 직접 고른 색을 확인한 다음, 밝고 차분한 코랄을 찾고 발라본다.",
+      "setup": [
+        "얼굴 추적이 켜진 일반 AR 대화 모드의 볼 팔레트로 시작한다. 볼터치는 착용하고 컬러 립과 립오일은 비워 둔다.",
+        "카탈로그가 준비되어 있고 립 필터와 주변색 기준은 비어 있다. 롬앤 듀이풀 워터 틴트 08 베리 디바인의 밝은 주변색과 밝고 낮은 채도의 코랄 립이 카탈로그에 있다."
+      ],
+      "turns": [
+        {
+          "id": "A01",
+          "operationId": "OP01",
+          "utterance": "볼은 다 봤고, 이제 입술 쪽 색상표 좀 볼 수 있어?",
+          "requires": "볼 팔레트가 열려 있다.",
+          "expected": {
+            "choice": "select_zone/lip",
+            "status": "APPLIED",
+            "screen": "립 팔레트가 열린다. 블러셔와 컬러 립 착용 상태가 유지된다.",
+            "reply": "립을 발랐다는 말 없이 립 색을 볼 수 있게 안내한다."
+          }
+        },
+        {
+          "id": "A02",
+          "operationId": "OP02",
+          "utterance": "방금 내가 누른 색 이름이 뭐였지? 몇 호였는지도 궁금해.",
+          "manualBefore": [
+            "립 팔레트에서 롬앤 듀이풀 워터 틴트의 08 베리 디바인 칩을 사용자가 직접 누른다."
+          ],
+          "requires": "사용자가 직접 고른 베리 디바인 08이 실제로 착용 중이다.",
+          "expected": {
+            "choice": "get_state/lip",
+            "status": "OK",
+            "screen": "착용 중인 제품 ID oy-a000000158893와 호수 ID 08이 반환된다. 착용, 팔레트와 다른 층은 유지된다.",
+            "reply": "실제 착용 중인 베리 디바인과 08호를 말한다."
+          }
+        },
+        {
+          "id": "A03",
+          "operationId": "OP03",
+          "utterance": "지금 바른 거랑 비슷한데 한 톤 밝은 건 어떤 색이야? 발라보진 말고 칩으로만 띄워봐.",
+          "requires": "직접 고른 컬러 립이 있고 밝은 주변색 후보가 있다.",
+          "expected": {
+            "choice": "explore_nearby/show/lighter",
+            "status": "APPLIED",
+            "screen": "현재 착용한 립을 기준으로 밝은 주변색 팔레트가 열린다. 반환된 기준 호수는 현재 착용과 같고 후보가 1개 이상이다. 발색은 유지된다.",
+            "reply": "현재 색보다 밝은 후보를 보여준다고 안내한다."
+          }
+        },
+        {
+          "id": "A04",
+          "operationId": "OP04",
+          "utterance": "이 근처 색은 다 봤어. 전체 립 컬러 다시 볼래.",
+          "requires": "밝은 주변색 팔레트가 열려 있다.",
+          "expected": {
+            "choice": "explore_nearby/exit",
+            "status": "APPLIED",
+            "screen": "주변색 기준이 해제되고 전체 립 팔레트로 돌아온다. 반환은 `active: false`이고 립 착용은 유지된다.",
+            "reply": "전체 립을 다시 볼 수 있게 안내한다."
+          }
+        },
+        {
+          "id": "A05",
+          "operationId": "OP05",
+          "utterance": "이번엔 윤기 도는 거 빼고 보송하게 마무리되는 것들만 보여줘.",
+          "requires": "전체 립 팔레트가 열려 있고 매트 필터는 꺼져 있다.",
+          "expected": {
+            "choice": "set_palette_filter/matte",
+            "status": "APPLIED",
+            "screen": "팔레트와 반환값의 제형이 `matte`가 된다. 표시된 칩은 매트 필터 조건에 맞고 이미 바른 립은 유지된다.",
+            "reply": "매트한 색만 화면에 모았다고 안내한다."
+          }
+        },
+        {
+          "id": "A06",
+          "operationId": "OP06",
+          "utterance": "제형은 상관없는데 밝고 차분한 코랄 뭐 있어? 일단 이름만 몇 개 들어볼래.",
+          "requires": "립 팔레트에 매트 필터가 켜져 있고 전체 카탈로그에는 밝고 낮은 채도의 코랄 립 후보가 있다.",
+          "expected": {
+            "choice": "find_shades/lip/by_color",
+            "status": "OK",
+            "args": {
+              "family": "coral",
+              "lightness": "light",
+              "chroma": "muted",
+              "lookupDetail": "list"
+            },
+            "screen": "세 조건에 맞는 실제 립 호수 후보가 1개 이상 반환된다. 착용, 팔레트와 매트 필터는 유지된다.",
+            "reply": "반환된 실제 호수 이름을 짧게 말한다."
+          }
+        },
+        {
+          "id": "A07",
+          "operationId": "OP07",
+          "utterance": "그럼 밝은 코랄 중에 톤이 부드러운 걸로 하나 발라보자.",
+          "requires": "밝고 낮은 채도의 코랄 후보가 있으며 기존에 바른 베리 디바인과 다른 호수를 고를 수 있다.",
+          "expected": {
+            "choice": "apply_shade/lip/by_color",
+            "status": "APPLIED",
+            "args": {
+              "family": "coral",
+              "lightness": "light",
+              "chroma": "muted"
+            },
+            "screen": "세 조건을 충족하는 카탈로그 호수 하나가 입술에 적용된다. 착용 ID와 렌더 색이 선택한 호수와 일치하고 블러셔는 유지된다.",
+            "reply": "실제 바른 호수의 밝고 부드러운 코랄 색감을 짧게 안내한다."
+          }
+        },
+        {
+          "id": "A08",
+          "operationId": "OP08",
+          "utterance": "이 색 괜찮네. 그 위에 립오일도 한번 얹어봐.",
+          "requires": "컬러 립을 착용 중이고 립오일은 비어 있다.",
+          "expected": {
+            "choice": "apply_shade/lip/oil",
+            "status": "APPLIED",
+            "screen": "카탈로그의 립오일 한 호수가 별도 레이어에 적용된다. 컬러 립의 호수와 강도는 유지된다.",
+            "reply": "오일을 더한 결과를 기존 립 색과 구분해 말한다."
+          }
+        },
+        {
+          "id": "A09",
+          "operationId": "OP09",
+          "utterance": "생각보다 번들거리네. 덧바른 오일만 걷고 원래 색은 그대로 둘래.",
+          "requires": "립오일과 컬러 립을 함께 착용 중이다.",
+          "expected": {
+            "choice": "clear_layer/lipCare",
+            "status": "APPLIED",
+            "screen": "립오일 착용과 렌더 레이어가 제거된다. 컬러 립의 호수와 강도는 유지된다.",
+            "reply": "오일을 걷어낸 것을 알려준다."
+          }
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "title": "립에 맞춰 볼과 눈 화장 다듬기",
+      "goal": "이미 바른 립에 볼터치를 맞추고, 부위별 발색과 표현을 손본 뒤 전후 화면을 확인한다.",
+      "setup": [
+        "일반 AR 대화 모드에서 어뮤즈 젤핏 틴트 04 장미 우유와 펄 있는 아이섀도 베이스를 착용한다. 블러셔, 눈꼬리 포인트, 직전 강도 조절 기록은 비워 둔다.",
+        "얼굴 추적과 카탈로그가 준비되어 있고 비교 화면은 닫혀 있다. 적용 가능한 블러셔와 짙은 브라운 아이섀도 후보가 있다."
+      ],
+      "turns": [
+        {
+          "id": "B01",
+          "operationId": "OP10",
+          "utterance": "눈은 이대로 두고, 지금 입술에 맞춰서 볼에도 생기 좀 넣어볼까?",
+          "requires": "장미 우유 립과 아이섀도 베이스가 보이고 블러셔가 비어 있다.",
+          "expected": {
+            "choice": "apply_shade/blush/pick",
+            "status": "APPLIED",
+            "screen": "블러셔가 하나 적용된다. 반환된 matchedTo는 현재 착용 중인 립에만 근거한다. 립과 아이섀도 베이스는 유지된다.",
+            "reply": "실제로 바른 블러셔가 기존 립과 어떻게 어우러지는지 짧게 말한다."
+          }
+        },
+        {
+          "id": "B02",
+          "operationId": "OP11",
+          "utterance": "볼터치가 생각보다 확 올라왔네. 볼만 지금보다 살짝 옅게.",
+          "requires": "블러셔가 발려 있고 두 번 낮출 여유가 있다. 세션에 직전 강도 조절 기록은 없다.",
+          "expected": {
+            "choice": "adjust_intensity/blush/down",
+            "status": "APPLIED",
+            "screen": "기본 조절 폭인 0.10만큼 블러셔가 옅어지고 호수는 유지된다. 반환된 전후 강도와 앱 확인 기록이 일치하며 립과 눈 화장은 유지된다.",
+            "reply": "블러셔를 살짝 덜어낸 결과를 말한다."
+          }
+        },
+        {
+          "id": "B03",
+          "operationId": "OP11",
+          "utterance": "응, 거기서 아주 살짝만 더.",
+          "requires": "B02의 블러셔 변경이 확인됐고 같은 AR 세션과 도구 상태가 이어진다.",
+          "expected": {
+            "choice": "adjust_intensity/blush/down",
+            "status": "APPLIED",
+            "args": {
+              "fineAdjustment": true
+            },
+            "screen": "직전 변경에서 블러셔와 하향 방향을 이어받고 이전 폭의 절반을 0.01 단위로 반올림해 적용한다. 직전 폭이 0.10이면 이번 폭은 0.05이며 다른 부위는 유지된다.",
+            "reply": "볼을 한 번 더 가볍게 조절했다고 말한다."
+          }
+        },
+        {
+          "id": "B04",
+          "operationId": "OP12",
+          "utterance": "눈 색은 예쁜데 반짝거리는 건 없어도 되겠어. 펄만 뺄 수 있어?",
+          "requires": "펄이 있는 아이섀도 베이스가 발려 있다.",
+          "expected": {
+            "choice": "set_style/eyeshadow/matte",
+            "status": "APPLIED",
+            "screen": "아이섀도 표현이 `matte`로 바뀐다. 베이스의 호수, 색, 강도는 유지된다.",
+            "reply": "색을 유지한 채 펄을 덜어낸 결과를 안내한다."
+          }
+        },
+        {
+          "id": "B05",
+          "operationId": "OP13",
+          "utterance": "눈두덩이는 그대로 두고 눈 바깥쪽에만 어두운 브라운 좀 얹어볼래.",
+          "requires": "아이섀도 베이스가 있고 눈꼬리 포인트는 비어 있다.",
+          "expected": {
+            "choice": "set_shadow_point/by_color",
+            "status": "APPLIED",
+            "args": {
+              "family": "brown",
+              "lightness": "deep"
+            },
+            "screen": "짙은 갈색 포인트가 눈꼬리에 적용된다. `pointShade`의 카탈로그 색과 `hexTo`가 일치하고 베이스 호수, 색, 강도와 매트 표현은 유지된다.",
+            "reply": "눈꼬리에만 더한 색을 설명한다."
+          }
+        },
+        {
+          "id": "B06",
+          "operationId": "OP14",
+          "utterance": "아, 방금 눈 끝에 덧댄 건 빼자. 처음 섀도는 괜찮아.",
+          "requires": "B05에서 추가한 눈꼬리 포인트가 남아 있다.",
+          "expected": {
+            "choice": "set_shadow_point/clear",
+            "status": "APPLIED",
+            "screen": "`hexTo`가 비워져 포인트만 사라진다. 아이섀도 베이스의 호수, 색, 강도와 매트 표현은 유지된다.",
+            "reply": "포인트 색을 걷어낸 것을 안내한다."
+          }
+        },
+        {
+          "id": "B07",
+          "operationId": "OP15",
+          "utterance": "눈두덩이는 이 색으로 두고 발색만 지금의 반쯤 남기면 좋겠어.",
+          "requires": "아이섀도 베이스가 발려 있다.",
+          "expected": {
+            "choice": "set_intensity/eyeshadow/half",
+            "status": "APPLIED",
+            "screen": "조절 직전 아이섀도 강도의 절반이 적용된다. 호수와 매트 표현은 유지되고 다른 부위는 바뀌지 않는다.",
+            "reply": "같은 섀도를 더 옅게 조절했다고 말한다."
+          }
+        },
+        {
+          "id": "B08",
+          "operationId": "OP16",
+          "utterance": "처음 얼굴이랑 얼마나 달라졌는지 궁금해. 두 화면 같이 볼 수 있어?",
+          "requires": "얼굴 추적 중이며 비교 화면은 꺼져 있다.",
+          "expected": {
+            "choice": "set_view/compare/on",
+            "status": "APPLIED",
+            "screen": "비교 상태가 켜지고 전후 화면이 보인다. 메이크업 상태는 유지된다.",
+            "reply": "전후를 비교할 수 있게 안내한다."
+          }
+        },
+        {
+          "id": "B09",
+          "operationId": "OP17",
+          "utterance": "비교는 다 봤어. 지금 화장한 얼굴 하나만 볼래.",
+          "requires": "전후 비교 화면이 열려 있다.",
+          "expected": {
+            "choice": "set_view/compare/off",
+            "status": "APPLIED",
+            "screen": "비교 상태와 분할 표시가 꺼진다. 얼굴 AR 화면과 메이크업이 유지된다.",
+            "reply": "화장한 화면을 다시 볼 수 있게 안내한다."
+          }
+        },
+        {
+          "id": "B10",
+          "operationId": "OP18",
+          "utterance": "얼굴 보면서 할 필요는 없고, 이제 칩 색만 보고 싶어.",
+          "requires": "얼굴 AR 화면을 보고 있다.",
+          "expected": {
+            "choice": "control_camera/swatches_only",
+            "status": "APPLIED",
+            "screen": "표시 모드가 `swatches_only`가 된다. 얼굴 미리보기가 내려가고 색상표와 기존 착용 정보는 유지된다.",
+            "reply": "색상표로 전환했다고 안내한다."
+          }
+        }
+      ]
+    },
+    {
+      "id": "C",
+      "title": "피부에 맞는 베이스 골라 담기",
+      "goal": "안 뜨는 파운데이션 목록을 다시 열고, 내 피부에 맞는 후보를 본 뒤 하나 골라 담는다.",
+      "setup": [
+        "일반 AR 대화 모드의 파운데이션 팔레트에서 시작한다. 첫 카탈로그 요청은 오류 상태로 두고 재조회에는 정상 응답을 준비한다.",
+        "파운데이션 착용과 테스트 장바구니를 비워 둔다. 유효한 피부색 신호를 준비한다. 대체 테스트 값은 L=60.8, a=14.8, b=14.3, conf=1.0이다. 추천 후보가 2개 이상 표시될 수 있어야 한다."
+      ],
+      "turns": [
+        {
+          "id": "C01",
+          "operationId": "OP19",
+          "utterance": "어? 여긴 색이 하나도 안 뜨네. 다시 불러올 수 있어?",
+          "requires": "파운데이션 탭에서 카탈로그 조회 오류가 표시된다.",
+          "expected": {
+            "choice": "retry_catalog",
+            "status": "APPLIED",
+            "screen": "오류가 해제되고 파운데이션 목록이 다시 열린다. 반환에 표시 가능한 호수 개수가 들어 있고 기존 얼굴과 장바구니는 유지된다.",
+            "reply": "색 목록을 다시 불러온 결과를 안내한다."
+          }
+        },
+        {
+          "id": "C02",
+          "operationId": "OP20",
+          "utterance": "내 피부에서 동동 안 뜰 만한 파운데이션 몇 개만 먼저 볼래. 아직 바르진 말고.",
+          "requires": "카탈로그가 준비됐고 피부색 신호가 유효하다.",
+          "expected": {
+            "choice": "get_recommendations/foundation_match",
+            "status": "OK",
+            "screen": "추천 호수가 순서대로 2개 이상 보인다. 반환된 목록과 화면 순서가 일치하고 파운데이션 착용은 비어 있다.",
+            "reply": "실제로 표시된 후보를 짧게 소개한다."
+          }
+        },
+        {
+          "id": "C03",
+          "operationId": "OP21",
+          "utterance": "맨 위에 거 말고 그 바로 밑에 거 있지? 그 색으로 발라보자.",
+          "requires": "C02가 띄운 추천 목록에 두 번째 카드가 표시된다.",
+          "expected": {
+            "choice": "apply_recommendation/foundation_match/2",
+            "status": "APPLIED",
+            "screen": "화면에서 첫 카드 바로 아래의 두 번째 항목과 동일한 제품 ID와 호수 ID가 착용된다. 그 호수의 색이 렌더에 전달된다.",
+            "reply": "실제 발린 호수와 색감을 안내한다."
+          }
+        },
+        {
+          "id": "C04",
+          "operationId": "OP22",
+          "utterance": "오, 괜찮네. 지금 바른 호수로 한 개 담아 놔.",
+          "requires": "C03에서 고른 파운데이션이 현재 선택되어 있고 장바구니는 비어 있다.",
+          "expected": {
+            "choice": "add_to_cart/current_product",
+            "status": "APPLIED",
+            "screen": "현재 적용한 제품과 똑같은 호수가 수량 1로 담긴다. 반환된 상품과 장바구니가 일치하고 다른 상품은 추가되지 않는다.",
+            "reply": "해당 호수 하나를 담았다고 안내한다."
+          }
+        },
+        {
+          "id": "C05",
+          "operationId": "OP23",
+          "utterance": "담은 거 확인하고 싶어. 장바구니 화면 좀 열어봐.",
+          "requires": "C04의 테스트 장바구니에 파운데이션 한 줄이 담겨 있다.",
+          "expected": {
+            "choice": "navigate/cart",
+            "status": "APPLIED",
+            "screen": "앱이 `/cart`로 이동하고 같은 제품과 호수가 수량 1로 보인다.",
+            "reply": "장바구니를 열었다고 안내한다."
+          }
+        }
+      ]
+    },
+    {
+      "id": "D",
+      "title": "영상 룩을 내 얼굴에서 보고 연습하기",
+      "goal": "영상의 원본 립을 되찾고 전체 발색을 조정한 뒤 단계별 설명을 보면서 연습한다.",
+      "setup": [
+        "설윤 영상 e1gSkUdG6Bo의 룩 상세에서 AR에 진입한다. 원본 룩을 저장한 뒤 립만 롬앤 제로 벨벳 틴트 23 빈티지 토프로 바꿔 둔다.",
+        "룩 강도는 0.70이고 가이드는 꺼져 있다. 얼굴 추적이 정상이며 가이드의 첫 단계는 눈썹이다."
+      ],
+      "turns": [
+        {
+          "id": "D01",
+          "operationId": "OP24",
+          "utterance": "내가 바꿔본 립보다 영상에 나온 색이 더 잘 어울리네. 입술만 영상 색으로 돌려보자.",
+          "requires": "활성 영상 룩이 있고 현재 립이 원본과 다르다.",
+          "expected": {
+            "choice": "restore_makeup/lip",
+            "status": "APPLIED",
+            "screen": "영상 룩에 기록된 원래 립의 호수와 발색이 복원된다. 다른 레이어와 전체 룩 강도는 유지된다.",
+            "reply": "영상 속 립으로 돌아간 결과를 안내한다."
+          }
+        },
+        {
+          "id": "D02",
+          "operationId": "OP25",
+          "utterance": "룩은 좋은데 화면에선 전체적으로 좀 진하네. 발색만 살짝 눌러줄래?",
+          "requires": "전체 강도가 0.70인 영상 룩이고 얼굴 추적이 정상이다.",
+          "expected": {
+            "choice": "set_look_strength/down",
+            "status": "APPLIED",
+            "screen": "룩 전체 강도가 0.70에서 0.60으로 바뀐다. 각 부위에 바른 호수와 개별 강도는 유지된다.",
+            "reply": "전체 발색을 가볍게 했다고 안내한다."
+          }
+        },
+        {
+          "id": "D03",
+          "operationId": "OP26",
+          "utterance": "나도 집에서 이 메이크업 직접 해보고 싶어. 뭐부터 하면 되는지 같이 해보자.",
+          "requires": "따라 하기가 꺼져 있는 영상 룩이다.",
+          "expected": {
+            "choice": "control_practice/start",
+            "status": "APPLIED",
+            "screen": "첫 단계인 눈썹 가이드가 열린다. 화면의 안내와 반환된 단계가 일치하고 착용 상태는 유지된다.",
+            "reply": "눈썹을 어떻게 시작할지 알려준다."
+          }
+        },
+        {
+          "id": "D04",
+          "operationId": "OP27",
+          "utterance": "눈썹은 다 됐어. 그다음은 어디야?",
+          "requires": "첫 단계인 눈썹 가이드를 보고 있다.",
+          "expected": {
+            "choice": "control_practice/next",
+            "status": "APPLIED",
+            "screen": "가이드가 첫 단계에서 두 번째 단계로 이동한다. 화면에 새 단계의 안내가 보인다.",
+            "reply": "새 단계에서 할 일을 말한다."
+          }
+        },
+        {
+          "id": "D05",
+          "operationId": "OP28",
+          "utterance": "잠깐, 눈썹 끝을 어디까지 그리는지 다시 보고 싶어. 눈썹 단계로 돌아갈래.",
+          "requires": "두 번째 가이드 단계가 열려 있다.",
+          "expected": {
+            "choice": "control_practice/previous",
+            "status": "APPLIED",
+            "screen": "가이드가 두 번째 단계에서 첫 단계로 돌아간다. 같은 눈썹 안내가 화면에 표시된다.",
+            "reply": "돌아온 눈썹 단계의 안내를 한다."
+          }
+        },
+        {
+          "id": "D06",
+          "operationId": "OP29",
+          "utterance": "응, 연습은 나중에 마저 할래. 이쯤에서 멈추자.",
+          "requires": "따라 하기 가이드가 열려 있다.",
+          "expected": {
+            "choice": "control_practice/exit",
+            "status": "APPLIED",
+            "screen": "가이드가 닫히고 영상 룩 화면으로 돌아온다. 실제 착용과 전체 룩 강도는 유지된다.",
+            "reply": "따라 하기를 마친 결과를 알려준다."
+          }
+        }
+      ]
+    },
+    {
+      "id": "E",
+      "title": "틴트 몇 가지 발라보고 돌아가기",
+      "goal": "직접 고른 색부터 체험한 뒤 제품의 옆 칩과 지난 체험을 찾아보고, 들은 호수명도 확인한다.",
+      "setup": [
+        "일반 AR 대화 모드의 립 팔레트를 열고 이번 방문의 착용 이력이 비어 있는지 확인한다. 추천 목록과 주변색 팔레트는 열지 않는다.",
+        "첫 발화 전에 사용자가 에뛰드 픽싱 틴트(oy-a000000181619) 05 미드나잇 모브를 직접 바른다. 같은 제품의 11 로즈 블렌딩과 바로 오른쪽 12 살몬 브릭이 있다.",
+        "채점용 카탈로그에서 에뛰드의 살몬 브릭 라이트라는 전체 호수명이 없음을 확인한다. 살몬 브릭은 카탈로그에 있는 별도의 호수다."
+      ],
+      "turns": [
+        {
+          "id": "E01",
+          "operationId": "OP30",
+          "utterance": "에뛰드 픽싱 틴트에 로즈 블렌딩 있잖아. 그 색도 한번 발라볼까?",
+          "requires": "이번 방문의 첫 립 체험은 직접 고른 05 미드나잇 모브이며 에뛰드 픽싱 틴트에 로즈 블렌딩이 확인된다.",
+          "expected": {
+            "choice": "apply_shade/product_shade",
+            "status": "APPLIED",
+            "args": {
+              "productId": "oy-a000000181619",
+              "shadeId": "11"
+            },
+            "screen": "에뛰드 픽싱 틴트 11 로즈 블렌딩이 발리고 두 번째 립 체험으로 기록된다. 반환값과 실제 착용에 같은 제품 및 호수 ID가 들어간다.",
+            "reply": "실제로 바른 로즈 블렌딩과 그 색감을 알려준다."
+          }
+        },
+        {
+          "id": "E02",
+          "operationId": "OP31",
+          "utterance": "이거 옆에 있는 색도 궁금하네. 오른쪽에 붙어 있는 거 발라볼까?",
+          "requires": "에뛰드 픽싱 틴트 11 로즈 블렌딩이 선택되어 있고 같은 제품의 12 살몬 브릭이 오른쪽 한 칸에 보인다.",
+          "expected": {
+            "choice": "step_shade/next",
+            "status": "APPLIED",
+            "args": {
+              "steps": 1
+            },
+            "screen": "제품 팔레트에서 선택 칩 바로 오른쪽의 12 살몬 브릭이 선택되고 입술에 적용된다. 세 번째 립 체험으로 기록된다.",
+            "reply": "오른쪽 칩에서 실제로 바른 살몬 브릭을 안내한다."
+          }
+        },
+        {
+          "id": "E03",
+          "operationId": "OP32",
+          "utterance": "아까 내가 처음 고른 색 다음에 발랐던 거 있지? 그걸 다시 바를래.",
+          "requires": "현재 착용은 세 번째 체험인 12 살몬 브릭이다. 이번 방문의 첫 체험인 05 뒤에 11 로즈 블렌딩이 기록되어 있다.",
+          "expected": {
+            "choice": "reapply_try_on/lip",
+            "status": "APPLIED",
+            "args": {
+              "ordinal": 2
+            },
+            "screen": "첫 립 다음에 실제로 발라본 11 로즈 블렌딩이 같은 제품과 호수로 복원된다. 다른 부위는 유지되고 립 체험 순서는 05 → 11 → 12 → 11이다.",
+            "reply": "다시 적용한 로즈 블렌딩의 색감을 짧게 안내한다."
+          }
+        },
+        {
+          "id": "E04",
+          "operationId": null,
+          "utterance": "에뛰드에 살몬 브릭 라이트라는 것도 있어? 있으면 그 색 한번 써볼래.",
+          "requires": "11 로즈 블렌딩을 착용 중이다. 에뛰드에는 살몬 브릭 12가 있으며 요청한 전체 호수명인 살몬 브릭 라이트는 없다.",
+          "expected": {
+            "choice": null,
+            "status": "clarification",
+            "screen": "호수명이 부분 일치하는 12 살몬 브릭을 비롯해 어떤 색도 적용하지 않는다. 조작 제안이 없고 착용과 체험 이력이 유지된다.",
+            "reply": "전체 호수명을 확인하기 어렵다고 자연스럽게 되묻는다."
+          }
+        }
+      ]
+    }
+  ]
+}
