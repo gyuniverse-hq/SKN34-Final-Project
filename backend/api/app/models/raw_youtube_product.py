@@ -1,8 +1,10 @@
 """Raw YouTube product research, mentions and unconfirmed Olive Young candidates."""
 
 from datetime import date, datetime
+from typing import Any
 
 from sqlalchemy import (
+    JSON,
     BigInteger,
     CheckConstraint,
     Date,
@@ -16,6 +18,7 @@ from sqlalchemy import (
     Text,
     text,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -60,6 +63,10 @@ class RawYtProductMentionRow(Base):
     __table_args__ = (
         Index("ix_raw_yt_mention_product", "yt_product_id"),
         Index("ix_raw_yt_mention_video", "video_id"),
+        CheckConstraint(
+            "source_payload IS NULL OR jsonb_typeof(source_payload) = 'object'",
+            name="ck_raw_yt_mention_source_payload",
+        ),
     )
 
     source_row_id: Mapped[str] = mapped_column(Text, primary_key=True)
@@ -75,6 +82,11 @@ class RawYtProductMentionRow(Base):
     video_use_evidence: Mapped[str | None] = mapped_column(Text)
     research_status: Mapped[str | None] = mapped_column(Text)
     review_reason: Mapped[str | None] = mapped_column(Text)
+    # The product as the curated style/celebrity screens showed it (0040). The research
+    # columns above stay as collected; None for mentions that never had a curated entry.
+    source_payload: Mapped[dict[str, Any] | None] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql")
+    )
 
 
 class YtOyProductMatchRow(Base):
