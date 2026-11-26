@@ -1,6 +1,7 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 import { ArSheet } from '@/components/ar/ArSheet';
+import { ZONE_WHEEL_HUB_CENTER_FROM_BOTTOM } from '@/components/ar/ArZoneWheel';
 import { OpenArcPalette } from '@/components/ar/OpenArcPalette';
 import { shadeTone, type ShadePreference } from '@/lib/arShadePreference';
 import { colorFamily } from '@/lib/colorFamily';
@@ -18,9 +19,10 @@ const lip = products.find((product) => product.id === 'oy-a000000120880')!;
 const blush = products.find((product) => product.makeupZone === 'blush' && product.texture && product.shades.length)!;
 const shade = lip.shades.find((item) => item.id === '23')!;
 
+let mockBottomInset = 0;
 jest.mock('react-native-safe-area-context', () => {
   const actual = jest.requireActual('react-native-safe-area-context') as typeof import('react-native-safe-area-context');
-  return { ...actual, useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }) };
+  return { ...actual, useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: mockBottomInset, left: 0 }) };
 });
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 let mockPermission = { granted:true, canAskAgain:true };
@@ -33,6 +35,11 @@ jest.mock('expo-camera', () => ({ useCameraPermissions: () => [mockPermission, m
 jest.mock('expo-speech', () => ({ speak: jest.fn(), stop: jest.fn(async () => {}) }));
 import * as speech from 'expo-speech';
 let mockMicLevel = -90;
+async function finishTestUtterance() {
+  await act(async () => { jest.advanceTimersByTime(400); });
+  mockMicLevel = -90;
+  await act(async () => { jest.advanceTimersByTime(1300); });
+}
 jest.mock('expo-audio', () => ({
   requestRecordingPermissionsAsync: async () => ({ granted: true }),
   setAudioModeAsync: async () => {},
@@ -83,7 +90,7 @@ jest.mock('@/lib/queries', () => ({
 jest.mock('@/lib/api', () => ({ apiPostOwned: jest.fn(), subscribeArIdentityChange: () => () => {} }));
 import { apiPostOwned } from '@/lib/api';
 import { useRouter } from 'expo-router';
-import { Alert, AppState, Text, TextInput } from 'react-native';
+import { Alert, AppState, StyleSheet, Text, TextInput, type ViewStyle } from 'react-native';
 const post = jest.mocked(apiPostOwned);
 let screen: renderer.ReactTestRenderer;
 let serial = 0;
@@ -112,7 +119,13 @@ function feedback() {
   return JSON.parse((calls[calls.length - 1][1] as {result:string}).result);
 }
 function face() { return screen.root.findByType('ArFaceView' as never); }
+function conversationToggle() { return screen.root.findByProps({ testID: 'ar-conversation-toggle' }); }
+async function toggleConversation() {
+  await act(async () => { conversationToggle().props.onPress(); });
+}
 async function openTestKeyboard() {
+  const toggle = screen.root.findAllByProps({ testID: 'ar-conversation-toggle' })[0];
+  if (toggle && !toggle.props.accessibilityState.expanded) await toggleConversation();
   if (!screen.root.findAllByType(TextInput).length) {
     await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.voice.testKeyboard' }).props.onPress(); });
   }
@@ -124,6 +137,7 @@ async function send(text: string) {
 }
 beforeEach(async () => {
   jest.clearAllMocks();
+  mockBottomInset = 0;
   mockPermission = {granted:true,canAskAgain:true};
   mockParams = {};
   useCartStore.getState().clear();
@@ -288,9 +302,7 @@ it('sends the spoken request from the mic button, applies it and speaks after th
     post.mockResolvedValueOnce(owned({ text: message }) as never);
     mockMicLevel = -22;
     await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.voice.start' }).props.onPress(); });
-    await act(async () => { jest.advanceTimersByTime(400); });
-    mockMicLevel = -90;
-    await act(async () => { jest.advanceTimersByTime(1300); });
+    await finishTestUtterance();
     expect(screen.root.findAllByType(TextInput)).toHaveLength(0);
     expect(post.mock.calls.filter(([path]) => path === '/api/chat')).toHaveLength(1);
     expect(post).toHaveBeenCalledWith('/api/chat', expect.objectContaining({ message }), expect.anything());
@@ -300,8 +312,77 @@ it('sends the spoken request from the mic button, applies it and speaks after th
     await act(async () => { face().props.onRenderResult({ ...frame, status: 'rendered' }); });
     expect(useMakeupStore.getState().makeup.blush!.intensity).toBeLessThan(before);
     expect(speech.speak).toHaveBeenCalledWith('테스트 응답', expect.anything());
+    expect(conversationToggle().props.accessibilityState.expanded).toBe(false);
+    expect(screen.root.findAllByProps({ children: message })).toHaveLength(0);
+    await toggleConversation();
+    expect(screen.root.findAllByProps({ children: message }).length).toBeGreaterThan(0);
+    expect(screen.root.findAllByProps({ children: '테스트 응답' }).length).toBeGreaterThan(0);
     await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.voice.finish' }).props.onPress(); });
   } finally {
+    consent.mockRestore();
+    jest.useRealTimers();
+  }
+});
+
+it.each([
+  ['거울 크게 열어줘.', 'set_view/mirror/on', 'set_view/mirror/off'],
+  ['안내를 열어줘.', 'set_view/panel/info', 'set_view/panel/closed'],
+])('opens %s and accepts the spoken follow-up in the same session', async (message, openChoice, closeChoice) => {
+  jest.useFakeTimers();
+  const consent = jest.spyOn(Alert, 'alert').mockImplementation((_title, _message, buttons) => buttons?.[1]?.onPress?.());
+  const opened = () => openChoice.startsWith('set_view/mirror/')
+    ? screen.root.findAllByProps({ accessibilityLabel: 'ar.mirror.exit' }).length > 0
+    : screen.root.findAllByType(ArSheet).length > 0;
+  try {
+    tool(openChoice);
+    post.mockResolvedValueOnce(owned({ text: message }) as never);
+    mockMicLevel = -22;
+    await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.voice.start' }).props.onPress(); });
+    await finishTestUtterance();
+    expect(opened()).toBe(true);
+    expect(feedback()).toMatchObject({ choice: openChoice, status: 'APPLIED' });
+    expect(screen.root.findByProps({ accessibilityLabel: 'ar.voice.finish' })).toBeTruthy();
+
+    tool(closeChoice);
+    post.mockResolvedValueOnce(owned({ text: '이제 닫아줘.' }) as never);
+    mockMicLevel = -22;
+    await act(async () => { jest.mocked(speech.speak).mock.lastCall?.[1]?.onDone?.(); });
+    await finishTestUtterance();
+    expect(opened()).toBe(false);
+    expect(feedback()).toMatchObject({ choice: closeChoice, status: 'APPLIED' });
+    expect(post.mock.calls.filter(([path]) => path === '/api/chat')).toHaveLength(2);
+    expect(consent).toHaveBeenCalledTimes(1);
+    await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.voice.finish' }).props.onPress(); });
+  } finally {
+    mockMicLevel = -90;
+    consent.mockRestore();
+    jest.useRealTimers();
+  }
+});
+
+it('starts voice from a product fitting screen and adds only its fixed shade', async () => {
+  await act(async () => { screen.unmount(); });
+  useMakeupStore.getState().startFit(lip, shade);
+  await act(async () => { screen = renderer.create(<ArTryOnScreen />); });
+  await act(async () => { face().props.onStatus('tracking'); });
+  expect(screen.root.findAllByProps({ accessibilityRole: 'tab' })).toHaveLength(0);
+
+  jest.useFakeTimers();
+  const consent = jest.spyOn(Alert, 'alert').mockImplementation((_title, _message, buttons) => buttons?.[1]?.onPress?.());
+  try {
+    tool('add_to_cart/fit_product');
+    post.mockResolvedValueOnce(owned({ text: '지금 이 호수 하나 담아줘.' }) as never);
+    mockMicLevel = -22;
+    await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.voice.start' }).props.onPress(); });
+    await finishTestUtterance();
+    const [, request] = post.mock.calls.find(([path]) => path === '/api/chat')!;
+    const offered = (request as { arContext: { control: { choices: string[] } } }).arContext.control.choices;
+    expect(offered).toContain('add_to_cart/fit_product');
+    expect(offered).not.toContain('apply_shade/lip/pick');
+    expect(useCartStore.getState().items).toMatchObject([{ productId: lip.id, shadeId: shade.id, quantity: 1 }]);
+    await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.voice.finish' }).props.onPress(); });
+  } finally {
+    mockMicLevel = -90;
     consent.mockRestore();
     jest.useRealTimers();
   }
@@ -399,8 +480,90 @@ async function startBareChat(catalog: Product[]) {
     face().props.onStatus('tracking');
   });
   expect(Object.values(useMakeupStore.getState().selections).filter(Boolean)).toEqual([]);
-  expect(screen.root.findAllByProps({children:'ar.chatFirstProduct'}).length).toBeGreaterThan(0);
+  expect(screen.root.findByProps({ testID: 'ar-conversation-guide' })).toBeTruthy();
 }
+
+it.each([0, 34])('aligns the microphone with the direct exploration hub at bottom inset %i', async (bottomInset) => {
+  mockBottomInset = bottomInset;
+  await refresh();
+  const dock = screen.root.findByProps({ testID: 'ar-conversation-dock' });
+  const mic = screen.root.findByProps({ accessibilityRole: 'button', accessibilityLabel: 'ar.voice.start' });
+  const paddingBottom = StyleSheet.flatten<ViewStyle>(dock.props.style)?.paddingBottom;
+  const micHeight = StyleSheet.flatten<ViewStyle>(mic.props.style)?.height;
+  const centerFromBottom = Number(paddingBottom) + Number(micHeight) / 2;
+  expect(centerFromBottom).toBe(Math.max(24, bottomInset) + ZONE_WHEEL_HUB_CENTER_FROM_BOTTOM);
+});
+
+it('replaces the entry guide with the confirmed product’s own shades and keeps them after a failed product change', async () => {
+  const [first, second] = lip.shades;
+  const product = { ...lip, shades: [first, second] };
+  const other = { ...lip, id: 'other-lip', shades: [{ ...first, name: '다른 립의 호수', hex: '#D26280' }] };
+  await startBareChat([product, other]);
+  expect(conversationToggle().props.accessibilityState.expanded).toBe(false);
+  const guide = screen.root.findByProps({ testID: 'ar-conversation-guide' });
+  const cardText = guide.findAllByType(Text).map(node => node.props.children);
+  expect(cardText).toEqual([
+    'ar.conversation.step', 'ar.conversation.startMic',
+    'ar.conversation.step', 'ar.conversation.askProduct',
+    'ar.conversation.step', 'ar.conversation.tryColor',
+  ]);
+  expect(screen.root.findAllByProps({ testID: 'ar-conversation-shades' })).toHaveLength(0);
+
+  tool('apply_shade/product_shade', undefined, { productId: product.id, shadeId: first.id });
+  await send('이 립 한번 발라줘.');
+  await toggleConversation();
+  expect(screen.root.findByProps({ testID: 'ar-conversation-guide' })).toBeTruthy();
+  expect(screen.root.findAllByProps({ testID: 'ar-conversation-shades' })).toHaveLength(0);
+  await act(async () => { face().props.onRenderResult({ ...face().props.renderCommand, status: 'rendered' }); });
+
+  const chip = (label: string) => screen.root.findByProps({ testID: 'ar-conversation-shades' })
+    .findByProps({ accessibilityRole: 'radio', accessibilityLabel: label });
+  expect(screen.root.findAllByProps({ testID: 'ar-conversation-guide' })).toHaveLength(0);
+  expect(chip(first.name).props.accessibilityState.checked).toBe(true);
+  expect(chip(second.name).props.accessibilityState.checked).toBe(false);
+  expect(screen.root.findAllByProps({ accessibilityLabel: other.shades[0].name })).toHaveLength(0);
+  await act(async () => { chip(second.name).props.onPress(); });
+  expect(chip(second.name).props.accessibilityState.checked).toBe(true);
+  expect(useMakeupStore.getState().selections.lip).toEqual({ productId: product.id, shadeId: second.id });
+  expect(face().props.makeup.lip.hex).toBe(second.hex);
+  await act(async () => { chip(second.name).props.onPress(); });
+  expect(useMakeupStore.getState().selections.lip?.shadeId).toBe(second.id);
+
+  tool('apply_shade/product_shade', undefined, { productId: other.id, shadeId: other.shades[0].id });
+  await send('다른 제품도 궁금해.');
+  await act(async () => { face().props.onRenderResult({ ...face().props.renderCommand, status: 'failed' }); });
+  expect(feedback().status).toBe('FAILED');
+  expect(chip(second.name).props.accessibilityState.checked).toBe(true);
+  expect(screen.root.findAllByProps({ accessibilityLabel: other.shades[0].name })).toHaveLength(0);
+});
+
+it('retains requests and replies across a closed conversation and camera suspension', async () => {
+  expect(useMakeupStore.getState().selections.lip?.shadeId).toBe(shade.id);
+  expect(screen.root.findByProps({ testID: 'ar-conversation-guide' })).toBeTruthy();
+  const turns = [
+    { message: '눈화장은 어떻게 할까?', answer: '눈꼬리에만 살짝 포인트를 줘 보세요.' },
+    { message: '립은 어떤 느낌이 어울릴까?', answer: '차분한 장밋빛도 잘 어울릴 거예요.' },
+  ];
+  post.mockImplementation(async (_path, body: any) => owned({
+    answer: turns.find(turn => turn.message === body.message)!.answer,
+    arResult: { requestId: body.requestId, status: 'noop' },
+  }) as never);
+  for (const turn of turns) await send(turn.message);
+  await toggleConversation();
+  for (const text of turns.flatMap(turn => [turn.message, turn.answer])) {
+    expect(screen.root.findAllByProps({ children: text })).toHaveLength(0);
+  }
+  const [, onAppStateChange] = jest.mocked(AppState.addEventListener).mock.calls.find(([event]) => event === 'change')!;
+  await act(async () => { onAppStateChange('inactive'); });
+  expect(screen.root.findAllByType('ArFaceView' as never)).toHaveLength(0);
+  await act(async () => { onAppStateChange('active'); });
+  expect(face()).toBeTruthy();
+  await toggleConversation();
+  const messages = screen.root.findAllByType(Text).map(node => node.props.children);
+  const ordered = turns.flatMap(turn => [turn.message, turn.answer]);
+  expect(messages.filter(message => ordered.includes(message))).toEqual(ordered);
+  expect(post.mock.calls.filter(([path]) => path === '/api/chat')).toHaveLength(2);
+});
 
 it('can send the first chat while the camera and catalog are starting', async () => {
   await startBareChat([]);
@@ -443,7 +606,11 @@ it.each([...AR_PAINT_ZONES,'oil','balm'])('starts %s in chat with a bare face an
   const outcome = feedback();
   expect(outcome.status).toBe('APPLIED');
   const row = screen.root.findByProps({testID:'ar-current-product'});
-  expect(row.findAllByProps({children:'ar.zone.'+zone+' · '+outcome.featuredShade.shade}).length).toBeGreaterThan(0);
+  const displayedText = row.findAllByType(Text).map(node => React.Children.toArray(node.props.children).join(''));
+  expect(displayedText).toContain(`ar.zone.${zone} · ${outcome.featuredShade.shade}`);
+  const selected = screen.root.findByProps({ testID: 'ar-conversation-shades' })
+    .findByProps({ accessibilityRole: 'radio', accessibilityLabel: outcome.featuredShade.shade });
+  expect(selected.props.accessibilityState.checked).toBe(true);
   expect(useMakeupStore.getState().selections.lip == null).toBe(zone !== 'lip' || care);
 });
 async function chat(choice:string,text:string) { tool(choice); await send(text); return feedback(); }
@@ -531,7 +698,8 @@ it('applies and opens the exact second shade from the shown recommendation list'
 it('changes only the eyeshadow accent and keeps the shade that was worn underneath', async () => {
   const base = { ...shade, id: 'eye-base', name: '베이지', hex: '#906C58' };
   const accent = { ...shade, id: 'eye-accent', name: '브라운', hex: '#704434' };
-  const product: Product = { ...blush, id: 'eye-accent-test', makeupZone: 'eyeshadow', shades: [base, accent] };
+  const plum = { ...shade, id: 'eye-plum', name: '플럼', hex: '#854458' };
+  const product: Product = { ...blush, id: 'eye-accent-test', makeupZone: 'eyeshadow', shades: [base, accent, plum] };
   mockCatalog = { data: [...mockCatalog.data, product] };
   await refresh();
   await act(async () => { useMakeupStore.getState().applyShade(product, base); });
@@ -544,7 +712,20 @@ it('changes only the eyeshadow accent and keeps the shade that was worn undernea
   expect(useMakeupStore.getState().makeup.eyeshadow).toEqual(before);
   await act(async () => { face().props.onRenderResult({ ...addFrame, status: 'rendered' }); });
   expect(feedback()).toMatchObject({ status: 'APPLIED', data: { pointShade: { shadeId: accent.id } } });
+  const pointChip = (name: string) => screen.root.findByProps({ testID: 'ar-conversation-shades' })
+    .findByProps({ accessibilityRole: 'radio', accessibilityLabel: name });
+  expect(pointChip(accent.name).props.accessibilityState.checked).toBe(true);
+  await act(async () => { pointChip(plum.name).props.onPress(); });
+  expect(pointChip(plum.name).props.accessibilityState.checked).toBe(true);
+  expect(face().props.makeup.eyeshadow).toMatchObject({ hex: base.hex, hexTo: plum.hex });
+  expect(useMakeupStore.getState().selections.eyeshadow).toEqual({ productId: product.id, shadeId: base.id });
 
+  tool('step_shade/previous');
+  await send('바로 전 색으로 해볼까?');
+  const previousFrame = face().props.renderCommand;
+  expect(previousFrame.makeup.eyeshadow).toMatchObject({ hex: base.hex, hexTo: accent.hex });
+  await act(async () => { face().props.onRenderResult({ ...previousFrame, status: 'rendered' }); });
+  expect(pointChip(accent.name).props.accessibilityState.checked).toBe(true);
   tool('set_shadow_point/clear');
   await send('눈꼬리에 얹은 포인트 색만 빼줘.');
   const clearFrame = face().props.renderCommand;

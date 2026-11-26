@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
 import { useFirstArExit } from '@/hooks/useFirstArExit';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -27,8 +27,9 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArFaceView, type PoseHint } from '@/components/ar/ArFaceView';
+import { ArConversationGuide, ArConversationShades } from '@/components/ar/ArConversationPalette';
 import { ArSheet } from '@/components/ar/ArSheet';
-import { ArZoneWheel, zoneWheelRadius } from '@/components/ar/ArZoneWheel';
+import { ArZoneWheel, ZONE_WHEEL_HUB_CENTER_FROM_BOTTOM, zoneWheelRadius } from '@/components/ar/ArZoneWheel';
 import { IntensityRail } from '@/components/ar/IntensityRail';
 import { TextureSelect } from '@/components/ar/TextureSelect';
 import { NEARBY_DIRECTIONS, type ColorSwatch } from '@/lib/nearbyColors';
@@ -89,6 +90,7 @@ import { useSettingsStore } from '@/store/settingsStore';
 import type { HighlightFace, MakeupZone, Product, Shade, Texture } from '@/types';
 
 type Mode = 'direct' | 'chat';
+type ConversationContent = { kind: 'product'; item: ColorSwatch; point: boolean } | { kind: 'palette' | 'recommendations' };
 type RecommendationKind = 'foundation_match' | 'look_gap' | 'similar_shades' | 'personalized';
 interface RecommendationList {
   kind: RecommendationKind;
@@ -104,19 +106,15 @@ const DETAIL_CONTROL_CHOICES = new Set([
 
 const VoiceSessionView = lazy(() => import('@/components/ar/VoiceSessionView').then(module => ({ default: module.VoiceSessionView })));
 const HIDDEN_TAB_BAR_STYLE = { ...TAB_BAR_STYLE, display: 'none' as const, height: 0 };
-// Both modes share the palette (112) + category hub (88) footprint below the product row.
+// Direct exploration reserves space for the palette and category hub below the product row.
 const AR_DOCK_BODY_HEIGHT = 200;
 const AR_PRODUCT_ROW_HEIGHT = 44;
+const AR_MIC_BUTTON_SIZE = 60;
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const CHAT_EXAMPLES = [
-  { label: 'ar.chatSuggestion.lip', request: 'ar.chatExample1' },
-  { label: 'ar.chatSuggestion.blush', request: 'ar.chatExample2' },
-  { label: 'ar.chatSuggestion.coral', request: 'ar.chatExample3' },
-] as const;
 const AR_COMMAND_STATUS = {
   interpreting: 'ar.command.interpreting',
   proposed: 'ar.command.proposed',
@@ -175,6 +173,7 @@ export default function ArTryOnScreen() {
   const { t, language } = useI18n();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const dockBottom = Math.max(24, insets.bottom);
+  const conversationBottom = dockBottom + ZONE_WHEEL_HUB_CENTER_FROM_BOTTOM - AR_MIC_BUTTON_SIZE / 2;
   const cameraChoice = useMemberCameraConsent();
   const guestCameraConsent = useSettingsStore((s) => s.cameraConsent);
   const cameraConsent = cameraChoice.member ? cameraChoice.granted : guestCameraConsent;
@@ -232,16 +231,27 @@ export default function ArTryOnScreen() {
   const [addedShade, setAddedShade] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [testKeyboard, setTestKeyboard] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [conversationContent, setConversationContent] = useState<ConversationContent | null>(null);
+  const [chatTurns, setChatTurns] = useState<{ request: string; reply: string }[]>([]);
+  const [hasTranscript, setHasTranscript] = useState(false);
+  const chatScroll = useRef<ComponentRef<typeof ScrollView>>(null);
   function switchMode(next: Mode) {
-    if (next !== mode) setTestKeyboard(false);
+    if (next !== mode) {
+      setTestKeyboard(false);
+      setChatOpen(false);
+      setConversationContent(null);
+    }
     setMode(next);
   }
   const [sendingChat, setSendingChat] = useState(false);
-  const [chatRequest, setChatRequest] = useState('');
   const clearConversation = useCallback(() => {
+    setChatOpen(false);
     setTestKeyboard(false);
+    setConversationContent(null);
     setRecommendationList(null);
-    setChatRequest('');
+    setChatTurns([]);
+    setHasTranscript(false);
     setDraft('');
   }, []);
   useEffect(() => subscribeArIdentityChange(clearConversation), [clearConversation]);
@@ -434,6 +444,7 @@ export default function ArTryOnScreen() {
   const rendererMounted = !!liveCamera && cameraActive;
   const applyDirect = (product: Product, shade: Shade, fromPalette = false) => {
     applyShade(product, shade);
+    if (mode === 'chat') setConversationContent({ kind: 'product', item: { product, shade }, point: false });
     if (fromPalette && !careOpen && !nearby.active && nearby.supported && recommendHint === 'new' &&
         ![shade.measureMethod, shade.colorSource].includes('placeholder') && product.texture) setRecommendHint('visible');
     if (!direct || !rendererMounted || status !== 'tracking' || !activity.history || !product.makeupZone) return;
@@ -442,6 +453,17 @@ export default function ArTryOnScreen() {
       .find(s => s?.productId === product.id && s.shadeId === shade.id);
     if (selection) void activity.history.event('try_on', selection, product.makeupZone,
       fromPalette && activity.view?.contains(product.id, shade.id) ? activity.view : undefined).catch(noteArFailure);
+  };
+  const selectPaletteShade = ({ product, shade }: ColorSwatch, fromPalette = false) => {
+    if (shadowPointing) {
+      const next = makeup.eyeshadow?.hexTo === shade.hex ? null : shade.hex;
+      setShadowPoint(next);
+      if (next && mode === 'chat') setConversationContent({ kind: 'product', item: { product, shade }, point: true });
+    }
+    else if (careOpen && careSelection?.productId === product.id && careSelection.shadeId === shade.id) clearLipCare();
+    else if (!careOpen && selections[zone]?.productId === product.id && selections[zone]?.shadeId === shade.id) clearZone(zone);
+    else applyDirect(product, shade, fromPalette);
+    Haptics.selectionAsync().catch(() => {});
   };
   const rendererId = useMemo(() => [arKey, rendererMounted, uuid.v4()].join(':'), [arKey, rendererMounted]);
   const submittedDraft = useRef<string | null>(null);
@@ -635,11 +657,12 @@ export default function ArTryOnScreen() {
       if (isFullscreenAR) setMirrorMode(false);
       else if (sheet) setSheet(null);
       else if (zoneMenuOpen) setZoneMenuOpen(false);
+      else if (mode === 'chat' && chatOpen) setChatOpen(false);
       else void exitAr(exitToPrevious);
       return true;
     });
     return () => sub.remove();
-  }, [exitAr, exitToPrevious, isFullscreenAR, setMirrorMode, sheet, zoneMenuOpen]));
+  }, [exitAr, exitToPrevious, isFullscreenAR, setMirrorMode, sheet, zoneMenuOpen, mode, chatOpen]));
 
   useFocusEffect(
     useCallback(() => {
@@ -669,31 +692,50 @@ export default function ArTryOnScreen() {
   };
 
   const currentSwatch = careOpen ? selectedCare : selectedTryOn;
+  const picked = conversationContent?.kind === 'product' ? conversationContent : null;
+  const conversationSwatch = picked?.point
+    ? (zone === 'eyeshadow' && makeup.eyeshadow?.hexTo === picked.item.shade.hex ? picked.item : null)
+    : (picked && currentSwatch?.product.id === picked.item.product.id ? currentSwatch : null);
   const paletteSelection = shadowPointing ? displayedSwatches.find(s => s.shade.hex === makeup.eyeshadow?.hexTo) : currentSwatch;
-  const center = Math.max(0, displayedSwatches.findIndex(s => s.product.id === paletteSelection?.product.id && s.shade.id === paletteSelection?.shade.id));
+  const controlSwatches = conversationSwatch ? conversationSwatch.product.shades.map(shade => ({ product: conversationSwatch.product, shade })) : displayedSwatches;
+  const controlPoint = picked && conversationSwatch ? picked.point : !!shadowPointing;
+  const centerSelection = conversationSwatch ?? paletteSelection;
+  const center = Math.max(0, controlSwatches.findIndex(s => s.product.id === centerSelection?.product.id && s.shade.id === centerSelection?.shade.id));
   const displayMode = liveCamera ? 'face' : swatchOnly ? 'swatches_only' : 'unavailable';
   const tracking = rendererMounted && status === 'tracking';
   const catalogReady = !products.isError && !products.isPending;
+  const showPalette = () => { if (mode === 'chat') setConversationContent({ kind: 'palette' }); };
+  const selectShadowPointMode = (on: boolean) => {
+    setShadowPointMode(on);
+    if (on || picked?.point) showPalette();
+  };
   const choices = new Map<string, ControlOperation>();
-  const { apply, recommend } = makeupControls(choices, { products: tryOnProducts, ready: catalogReady, display: displayedSwatches,
+  const { apply, recommend } = makeupControls(choices, { products: tryOnProducts, ready: catalogReady, display: controlSwatches,
     center, tracking, swatchesOnly: swatchOnly, faceShape, visibleMakeup:shownMakeup,
     faceTemporarilyMissing: rendererMounted && status === 'no-face',
-    shadowPointing,
-    onShadowPointCleared: () => setShadowPointMode(false),
-    onShadeSelected: (selectedZone, care, _item, point) => {
+    shadowPointing: controlPoint,
+    onShadowPointCleared: () => selectShadowPointMode(false),
+    onShadeSelected: (selectedZone, care, item, point) => {
       if (zone !== selectedZone) chooseZone(selectedZone);
       if (care || careOpen) setCareChip(care);
-      if (mode === 'chat' && selectedZone === 'eyeshadow') setShadowPointMode(point);
+      if (mode === 'chat') {
+        if (selectedZone === 'eyeshadow') setShadowPointMode(point);
+        setConversationContent({ kind: 'product', item, point });
+      }
     } });
   const change = (same: boolean, perform: () => void, data: unknown) => {
     if (same) return result('NO_CHANGE', data);
     perform();
     return result('APPLIED', data);
   };
-  for (const z of AR_PAINT_ZONES) choices.set('select_zone/' + z, () => change(zone === z, () => chooseZone(z),
-    { activeZone: z, count: zone === z ? displayedSwatches.length : colorProducts.filter(p => p.makeupZone === z).reduce((n,p) => n + p.shades.length,0) }));
+  for (const z of AR_PAINT_ZONES) choices.set('select_zone/' + z, () => {
+    showPalette();
+    return change(zone === z, () => chooseZone(z), { activeZone: z,
+      count: zone === z ? displayedSwatches.length : colorProducts.filter(p => p.makeupZone === z).reduce((n,p) => n + p.shades.length,0) });
+  });
   const filter = (texture: Texture | null, family: ColorFamily | null, care: typeof careChip, keepNearby = false) => {
     if (!catalogReady) return reject('catalog unavailable');
+    showPalette();
     const staysNearby = keepNearby && nearby.active;
     const count = staysNearby ? nearby.candidates(nearby.direction, texture).length :
       care ? careSwatches.filter(s => care === 'all' || lipCareKind(s.product) === care).length :
@@ -725,6 +767,7 @@ export default function ArTryOnScreen() {
     for (const dir of NEARBY_DIRECTIONS) {
       choices.set('explore_nearby/show/' + dir, () => {
         if (!nearby.active && !nearby.canEnter) return reject('no applied anchor shade');
+        showPalette();
         const items = nearby.candidates(dir);
         return change(nearby.active && nearby.direction === dir, () => {
           setCareChip(null);
@@ -753,6 +796,10 @@ export default function ArTryOnScreen() {
     (recommendationList.kind !== 'personalized' || activity.canRecommend) ? recommendationList : null;
   if (recommendationList && !recentRecommendations) setRecommendationList(null);
   const showRecommendations = (kind: RecommendationKind, items: readonly ColorSwatch[]) => {
+    if (mode !== 'chat') switchMode('chat');
+    if (isFullscreenAR) setMirrorMode(false);
+    if (sheet) setSheet(null);
+    setConversationContent({ kind: 'recommendations' });
     setRecommendationList({ kind, items, scope: recommendationScope, catalog: tryOnProducts });
     return result('OK', items.map(shadeInfo));
   };
@@ -796,6 +843,7 @@ export default function ArTryOnScreen() {
   }
   choices.set('set_shadow_point/show', () => {
     if (!makeup.eyeshadow || practicing) return reject('no eyeshadow palette available');
+    showPalette();
     return change(!!shadowPointing && !sheet && !isFullscreenAR, () => {
       if (zone !== 'eyeshadow') chooseZone('eyeshadow');
       setShadowPointMode(true);
@@ -803,8 +851,8 @@ export default function ArTryOnScreen() {
       if (isFullscreenAR) setMirrorMode(false);
     }, { shadowPointing: true });
   });
-  choices.set('set_shadow_point/hide', () => change(!shadowPointMode && !shadowPointing, () => {
-    setShadowPointMode(false);
+  choices.set('set_shadow_point/hide', () => change(!shadowPointMode && !controlPoint, () => {
+    selectShadowPointMode(false);
   }, { shadowPointing: false }));
   for (const on of [true,false]) {
     const key = on ? 'on' : 'off';
@@ -920,12 +968,12 @@ export default function ArTryOnScreen() {
     look:activeLook?.id, lookStrength, practice:practicing ? practiceIndex : null, peek,
     catalogReady, catalogError:products.isError, cameraStatus:status, permission:permission?.status,
     foundationMeasured:!!skinTone && skinTone.conf >= MIN_TONE_CONF, lookStrengthAvailable:lookFinishOn,
-    current:shadeInfo(selectedTryOn), care:shadeInfo(selectedCare), center:shadeInfo(displayedSwatches[center]),
+    current:shadeInfo(selectedTryOn), care:shadeInfo(selectedCare), center:shadeInfo(controlSwatches[center]),
     anchor:shadeInfo(nearby.anchor), direction:nearby.direction, textureFilter, familyFilter, careChip,
-    shadowPointing,
+    shadowPointing: controlPoint,
     recommendations:recentRecommendations && {kind:recentRecommendations.kind, items:recentRecommendations.items.map(shadeInfo)},
     lipTypes:['lipstick','tint','gloss'],
-    count:displayedSwatches.length, worn:AR_PAINT_ZONES.map(z=>worn(useMakeupStore.getState(),z,tryOnProducts,shownMakeup)) };
+    count:controlSwatches.length, worn:AR_PAINT_ZONES.map(z=>worn(useMakeupStore.getState(),z,tryOnProducts,shownMakeup)) };
   choices.set('get_state/' + zone, () => result('OK', { ...worn(useMakeupStore.getState(),zone,tryOnProducts),
     center:screenState.center, anchor:screenState.anchor, activeZone:zone }));
   const summary = JSON.stringify(screenState);
@@ -944,7 +992,7 @@ export default function ArTryOnScreen() {
   // Keep it bound to the user's view and filters, independently of readiness notifications.
   const catalogApplyKey = JSON.stringify([zone, mode, displayMode, sheet, compare, isFullscreenAR,
     fit?.productId, activeLook?.id, lookStrength, practicing, practiceIndex, peek, textureFilter,
-    familyFilter, careChip, shadowPointing, screenState.anchor, nearby.direction]);
+    familyFilter, careChip, shadowPointing, screenState.anchor, nearby.direction, conversationSwatch?.product.id]);
   const control: ControlScreen = {summary, choices, displayMode, contextKey:summary, catalogApplyKey,
     matchCatalog: message => catalogMatches(tryOnProducts, message) };
   const arCommand = useArCommand({active:cameraActive, enabled:tracking, locale:language, rendererId, activeZone:zone, control,
@@ -962,22 +1010,34 @@ export default function ArTryOnScreen() {
       {fromVideo,cameraActive,fittingProduct:!!fit || !!routeProductId,lookId:activeLook?.id ?? null,modified:edited,strength})});
   const commandBusy = arCommand.state==='interpreting' || arCommand.state==='proposed' ||
     arCommand.state==='applying' || arCommand.restoreState==='pending';
+  const chatReply = hasTranscript ? arCommand.message || (arCommand.state === 'idle' ? '' : t(AR_COMMAND_STATUS[arCommand.state])) : '';
+  // The command hook resets when the camera is suspended. Keep finished replies until this AR visit ends.
+  const lastTurn = chatTurns[chatTurns.length - 1];
+  if (lastTurn && chatReply && lastTurn.reply !== chatReply && arCommand.state !== 'idle' &&
+      arCommand.state !== 'interpreting' && arCommand.state !== 'proposed' && arCommand.state !== 'applying') {
+    setChatTurns([...chatTurns.slice(0, -1), { ...lastTurn, reply: chatReply }]);
+  }
   async function submitRequest(text: string, signal?: AbortSignal, onPainted?: () => void) {
     if (!cameraActive || !text || commandBusy || submittedDraft.current) return;
     submittedDraft.current = text;
-    setChatRequest(text);
+    setHasTranscript(true);
+    setChatTurns(turns => [...turns, { request: text, reply: '' }]);
     setSendingChat(true);
     try { return await arCommand.send(text, signal, undefined, onPainted); }
     finally { submittedDraft.current = null; setSendingChat(false); }
   }
-  const voiceEnabled = voiceActive && mode === 'chat' && !isFullscreenAR && !sheet;
+  const voiceEnabled = voiceActive;
   const useIntegratedVoice = !!integratedVoiceModel && language === 'ko';
   const recordedVoice = useArVoice(voiceEnabled && !useIntegratedVoice, submitRequest, () => {
-    const recommendationPalette = recentRecommendations?.items;
-    return arVoiceKeywords(tryOnProducts, recommendationPalette ?? displayedSwatches, recommendationPalette ? 0 : center,
+    const recommendationPalette = conversationContent?.kind === 'recommendations' ? recentRecommendations?.items : undefined;
+    return arVoiceKeywords(tryOnProducts, recommendationPalette ?? controlSwatches, recommendationPalette ? 0 : center,
       [zoneSelection, careSelection, ...Object.values(selections)]);
   });
-  const integratedVoice = useArVoiceSession(voiceEnabled && useIntegratedVoice && recordedVoice.available, control, arCommand.send);
+  const integratedVoice = useArVoiceSession(voiceEnabled && useIntegratedVoice && recordedVoice.available, control, (text, signal, call) => {
+    // The development-only audio comparison session sends a tool call without a user transcript.
+    setHasTranscript(false);
+    return arCommand.send(text, signal, call);
+  });
   const voice = useIntegratedVoice ? { ...recordedVoice, ...integratedVoice } : recordedVoice;
   const keyboardVisible = __DEV__ && (testKeyboard || !voice.available);
   const inConversation = voice.phase !== 'idle';
@@ -988,16 +1048,41 @@ export default function ArTryOnScreen() {
     void submitRequest(draft.trim()).then(speak);
     setDraft('');
   };
+  const voiceStatus = t(voice.notice ?? (voice.phase === 'idle' ? 'ar.voice.start' : `ar.voice.${voice.phase}`));
+  const microphoneButton = (compact = false) => (
+    <Pressable accessibilityRole="button" accessibilityLabel={t(inConversation ? 'ar.voice.finish' : 'ar.voice.start')}
+      disabled={!voice.available || voice.phase === 'ending' || (!inConversation && (sendingChat || commandBusy))}
+      onPress={voice.microphone} style={[styles.voiceButton, compact && styles.compactVoiceButton]}>
+      <Ionicons name={inConversation ? 'stop' : 'mic'} size={compact ? 20 : 26} color="#FFFFFF" />
+    </Pressable>
+  );
+  const compactVoice = voiceEnabled && voice.available ? (
+    <View style={styles.compactVoice}>
+      {inConversation || voice.notice ? <Text accessibilityLiveRegion="polite" style={styles.voiceStatus}>{voiceStatus}</Text> : null}
+      {microphoneButton(true)}
+    </View>
+  ) : null;
+  const keyboardComposer = (
+    <View style={styles.chatInputRow}>
+      <TextInput value={draft} onChangeText={setDraft}
+        accessibilityLabel={t('ar.chatPlaceholder')} placeholder={t('ar.chatPlaceholder')} placeholderTextColor="rgba(255,255,255,0.8)"
+        style={styles.chatInput} underlineColorAndroid="transparent" returnKeyType="send" onSubmitEditing={sendCommand} />
+      <Pressable accessibilityRole="button" accessibilityLabel={t('ar.send')} disabled={!canSendCommand} onPress={sendCommand} style={[styles.sendBtn, !canSendCommand && { opacity: 0.5 }]}>
+        <Ionicons name="send" size={18} color="#FFFFFF" />
+      </Pressable>
+    </View>
+  );
+  const contextualVoice = mode === 'chat' && keyboardVisible && !inConversation ? keyboardComposer : compactVoice;
+  const swatchContentTop = mode === 'chat' && chatOpen && windowHeight < 740 ? insets.top + 64 : undefined;
   let stage: ReactNode;
   if (cameraChoice.loading) {
     stage = <ActivityIndicator color={theme.colors.rose} />;
   } else if (swatchOnly) {
     stage = (
-      <View style={styles.fill}>
-        <SwatchFallback message={t('ar.swatchOnly')} />
-        <View style={styles.stageActions}>
+      <View style={[styles.fill, mode === 'chat' && chatOpen && styles.swatchWithTools]}>
+        <SwatchFallback message={t('ar.swatchOnly')} contentTop={swatchContentTop}>
           <Button label={t('ar.useCamera')} icon="camera-outline" variant="secondary" compact onPress={onAllow} />
-        </View>
+        </SwatchFallback>
       </View>
     );
   } else if (!cameraConsent || (!permissionGranted && !permissionBlocked)) {
@@ -1028,14 +1113,15 @@ export default function ArTryOnScreen() {
     );
   } else if (status === 'unavailable') {
     stage = (
-      <View style={styles.fill}>
-        <SwatchFallback message={t('ar.unavailable')} />
-        <View style={styles.stageActions}>
-          <Button label={t('common.retry')} icon="refresh" variant="secondary" compact onPress={retry} />
-          {routeProductId ? (
-            <Button label={t('ar.backToProduct')} variant="secondary" compact onPress={backToProduct} />
-          ) : null}
-        </View>
+      <View style={[styles.fill, mode === 'chat' && chatOpen && styles.swatchWithTools]}>
+        <SwatchFallback message={t('ar.unavailable')} contentTop={swatchContentTop}>
+          <View style={styles.stageActions}>
+            <Button label={t('common.retry')} icon="refresh" variant="secondary" compact onPress={retry} />
+            {routeProductId ? (
+              <Button label={t('ar.backToProduct')} variant="secondary" compact onPress={backToProduct} />
+            ) : null}
+          </View>
+        </SwatchFallback>
       </View>
     );
   } else if (cameraActive) {
@@ -1345,6 +1431,7 @@ export default function ArTryOnScreen() {
   return (
     <View style={styles.screen}>
       <View style={StyleSheet.absoluteFill}>{stage}</View>
+      {integratedVoice.mounted && voiceEnabled ? <Suspense fallback={null}><VoiceSessionView {...integratedVoice} /></Suspense> : null}
       <LinearGradient pointerEvents="none" colors={['transparent', 'rgba(25,15,21,0.84)']} style={styles.bottomShade} />
       <SafeAreaView pointerEvents="box-none" style={styles.overlayScreen} edges={['top', 'left', 'right']}>
         <View pointerEvents="box-none" style={styles.topbar}>
@@ -1380,8 +1467,9 @@ export default function ArTryOnScreen() {
               onChange={level => setIntensity(zone, level)} />
           </View>
         ) : null}
-        {!isFullscreenAR && !fit && !practicing ? (
-          <View testID="ar-side-controls" pointerEvents="box-none" style={[styles.sideControls, { bottom: dockBottom + AR_DOCK_BODY_HEIGHT + AR_PRODUCT_ROW_HEIGHT }]}>
+        {!isFullscreenAR && !fit && !practicing && (mode === 'direct' || chatOpen) ? (
+          <View testID="ar-side-controls" pointerEvents="box-none" style={[styles.sideControls, mode === 'direct'
+            ? { bottom: dockBottom + AR_DOCK_BODY_HEIGHT + AR_PRODUCT_ROW_HEIGHT } : { top: insets.top + 64 }]}>
             {mode === 'direct' ? explorationControls : (
               <Pressable accessibilityRole="button" accessibilityLabel={t('ar.mirror.enter')} disabled={!liveCamera}
                 accessibilityState={{ disabled: !liveCamera }} onPress={() => setMirrorMode(true)} style={[styles.chatMirror, !liveCamera && { opacity: 0.45 }]}>
@@ -1402,111 +1490,111 @@ export default function ArTryOnScreen() {
           </View>
         ) : null}
         {isFullscreenAR ? (
-          <Pressable accessibilityRole="button" accessibilityLabel={t('ar.mirror.exit')} onPress={() => setMirrorMode(false)} style={[styles.mirrorExpandBtn, { bottom: Math.max(16, insets.bottom + 12) }]}>
-            <Ionicons name="chevron-up" size={22} color="#FFFFFF" />
-          </Pressable>
-        ) : (fit || practicing) && mode !== 'chat' ? (
+          <>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('ar.mirror.exit')} onPress={() => setMirrorMode(false)} style={[styles.mirrorExpandBtn, { bottom: Math.max(16, insets.bottom + 12) }]}>
+              <Ionicons name="chevron-up" size={22} color="#FFFFFF" />
+            </Pressable>
+            {contextualVoice ? <View style={[styles.mirrorVoice, { top: insets.top + 12 }, mode === 'chat' && keyboardVisible && { left: 72 }]}>{contextualVoice}</View> : null}
+          </>
+        ) : fit || practicing ? (
           <KeyboardAvoidingView pointerEvents="box-none" style={styles.chatDock} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <View style={{ flex: 1 }} pointerEvents="none" />
-            <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: windowHeight * 0.55, flexGrow: 0 }} contentContainerStyle={{ paddingBottom: Math.max(12, insets.bottom) }}>
+            <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: windowHeight * 0.55, flexGrow: 0 }} contentContainerStyle={{ paddingBottom: contextualVoice ? 8 : Math.max(12, insets.bottom) }}>
               {detailPanel}
             </ScrollView>
+            {contextualVoice && !sheet ? <View style={[styles.contextVoiceDock, { paddingBottom: dockBottom }]}>{contextualVoice}</View> : null}
           </KeyboardAvoidingView>
         ) : mode === 'chat' ? (
           <KeyboardAvoidingView pointerEvents="box-none" style={styles.chatDock} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-            <View style={[styles.chat, { height: AR_PRODUCT_ROW_HEIGHT + AR_DOCK_BODY_HEIGHT + dockBottom, paddingBottom: dockBottom }]}>
-              <View testID="ar-current-product" style={styles.currentRow}>
-                 <Pressable disabled={!currentSwatch} accessibilityRole="button" accessibilityLabel={t('ar.openProduct')} onPress={() => setSheet('product')} style={styles.currentProduct}>
-                   <Text numberOfLines={1} style={styles.currentName}>{currentSwatch ? `${t(`ar.zone.${zone}` as TranslationKey)} · ${currentSwatch.shade.name}` : t('ar.chatFirstProduct')}</Text>
-                  <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
-                </Pressable>
-                 <Pressable disabled={!currentSwatch} accessibilityRole="button" accessibilityLabel={t('ar.addThisProduct')} onPress={onAddCurrent} style={styles.addCurrent}>
-                  <Ionicons name={currentAdded ? 'checkmark' : 'bag-add-outline'} size={23} color="#FFFFFF" />
-                </Pressable>
-              </View>
-              <ScrollView style={styles.chatHistory} contentContainerStyle={styles.chatHistoryContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-                {currentAdded ? <Text style={styles.addedNote} accessibilityLiveRegion="polite">{t('ar.addedSelection')}</Text> : null}
-                {chatRequest ? (
-                  <View style={styles.chatMessages}>
-                    <View style={styles.chatUserBubble}><Text style={styles.chatMessageText}>{chatRequest}</Text></View>
-                    {arCommand.state !== 'idle' ? (
-                      <View style={styles.chatReplyRow}>
-                        <Ionicons name="chatbubble-ellipses" size={24} color="#F0DCE3" />
-                        <View style={styles.chatReplyBubble}>
-                          <Text style={styles.chatMessageText} accessibilityLiveRegion="polite">
-                            {arCommand.message || t(AR_COMMAND_STATUS[arCommand.state])}
-                          </Text>
-                        </View>
-                      </View>
-                    ) : null}
-                  </View>
-                ) : keyboardVisible ? (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chatSuggestions} contentContainerStyle={styles.chatExamples} keyboardShouldPersistTaps="handled">
-                    {CHAT_EXAMPLES.map(({ label, request }) => (
-                      <Pressable key={request} accessibilityRole="button" accessibilityLabel={t(request)} onPress={() => setDraft(t(request))} style={styles.chatSuggestion}>
-                        <Text style={styles.chatSuggestionText}>{t(label)}</Text>
-                      </Pressable>
-                    ))}
-                  </ScrollView>
-                ) : null}
-                {arCommand.controlResult && ['APPLIED','NO_CHANGE'].includes(arCommand.controlResult.status) &&
-                  /^(select_zone|set_palette_filter|explore_nearby\/show)\//.test(arCommand.controlChoice) ? (
-                     displayedSwatches.length ? <OpenArcPalette items={displayedSwatches} selected={currentSwatch ?? undefined}
-                       label={t('ar.arc.palette')} hint={t('ar.arc.swipe')} onSelect={({product,shade}) => applyDirect(product,shade)} /> :
-                      <Text style={styles.arcEmpty}>{t(nearby.active ? 'ar.explore.empty' : zoneSwatches.length ? 'ar.filter.empty' : 'ar.noProducts')}</Text>
-                  ) : null}
-                {arCommand.restoreState !== 'idle' || arCommand.ackPending ? <View style={styles.chatStatus}>
-                  {arCommand.restoreState !== 'idle' ? <Text style={styles.chatNotice} accessibilityLiveRegion="polite">{t(AR_RESTORE_STATUS[arCommand.restoreState])}</Text> : null}
-                  {arCommand.ackPending ? <View>
-                    <Text style={styles.chatNotice}>{t('ar.command.ackPending')}</Text>
-                    <Pressable accessibilityRole="button" onPress={() => void arCommand.retryAck()} style={styles.chatRetry}>
-                      <Text style={styles.chatSuggestionText}>{t('ar.command.retryAck')}</Text>
+            <View testID="ar-conversation-dock" pointerEvents="box-none" style={[styles.chat, { paddingBottom: conversationBottom }]}>
+              {conversationContent?.kind === 'palette' ? (
+                displayedSwatches.length ? <OpenArcPalette items={displayedSwatches} selected={paletteSelection ?? undefined}
+                  label={t('ar.arc.palette')} hint={t('ar.arc.swipe')} onSelect={selectPaletteShade} /> :
+                  <Text style={styles.arcEmpty}>{t(nearby.active ? 'ar.explore.empty' : zoneSwatches.length ? 'ar.filter.empty' : 'ar.noProducts')}</Text>
+              ) : conversationContent?.kind === 'recommendations' && recentRecommendations?.items.length ? (
+                <ScrollView style={{ maxHeight: windowHeight * 0.18, flexGrow: 0 }} keyboardShouldPersistTaps="handled">
+                  {recentRecommendations.items.map((item, index) => (
+                    <Pressable key={JSON.stringify([item.product.id, item.shade.id])} accessibilityRole="button"
+                      onPress={() => {
+                        if (item.product.makeupZone && item.product.makeupZone !== zone) chooseZone(item.product.makeupZone);
+                        applyDirect(item.product, item.shade);
+                      }} style={styles.matchCard}>
+                      <Text style={styles.matchName}>{index + 1}. {item.product.brand} {item.product.name} · {item.shade.name}</Text>
                     </Pressable>
-                  </View> : null}
-                </View> : null}
-              </ScrollView>
-              <View style={styles.chatComposer}>
-                {integratedVoice.mounted && voiceEnabled ? <Suspense fallback={null}><VoiceSessionView {...integratedVoice} /></Suspense> : null}
-                {keyboardVisible ? <View style={styles.chatInputRow}>
-                  {voice.available ? <Pressable accessibilityRole="button" accessibilityLabel={t('ar.voice.start')}
-                    onPress={() => setTestKeyboard(false)} style={styles.sendBtn}>
-                    <Ionicons name="mic-outline" size={20} color="#FFFFFF" />
-                  </Pressable> : null}
-                  <TextInput value={draft} onChangeText={setDraft}
-                    accessibilityLabel={t('ar.chatPlaceholder')} placeholder={t('ar.chatPlaceholder')} placeholderTextColor="rgba(255,255,255,0.8)"
-                    style={styles.chatInput} underlineColorAndroid="transparent" returnKeyType="send" onSubmitEditing={sendCommand} />
-                  <Pressable accessibilityRole="button" accessibilityLabel={t('ar.send')} disabled={!canSendCommand} onPress={sendCommand} style={[styles.sendBtn, !canSendCommand && { opacity: 0.5 }]}>
-                    <Ionicons name="send" size={18} color="#FFFFFF" />
+                  ))}
+                </ScrollView>
+              ) : conversationSwatch ? (
+                <ArConversationShades product={conversationSwatch.product} selectedShadeId={conversationSwatch.shade.id} onSelect={shade => {
+                  if (picked?.point) {
+                    setShadowPoint(shade.hex);
+                    setConversationContent({ kind: 'product', item: { product: conversationSwatch.product, shade }, point: true });
+                  } else applyDirect(conversationSwatch.product, shade);
+                  void Haptics.selectionAsync().catch(() => {});
+                }} />
+              ) : !chatOpen ? <ArConversationGuide /> : null}
+              {chatOpen ? <>
+                {currentSwatch ? <View testID="ar-current-product" style={[styles.currentRow, styles.chatProduct]}>
+                  <Pressable accessibilityRole="button" accessibilityLabel={t('ar.openProduct')} onPress={() => setSheet('product')} style={styles.currentProduct}>
+                    <Text numberOfLines={1} style={styles.currentName}>{t(`ar.zone.${zone}`)} · {currentSwatch.shade.name}</Text>
+                    <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
                   </Pressable>
-                </View> : voice.available ? <>
-                  <Text accessibilityLiveRegion="polite" style={styles.voiceStatus}>
-                    {t(voice.notice ?? (voice.phase === 'idle' ? 'ar.voice.start' : `ar.voice.${voice.phase}`))}
-                  </Text>
-                  <View style={styles.voiceControls}>
-                    <View style={styles.voiceSide}>
-                      {__DEV__ && !inConversation ? <Pressable accessibilityRole="button" accessibilityLabel={t('ar.voice.testKeyboard')}
-                        onPress={() => setTestKeyboard(true)} style={styles.voiceAccessory}>
-                        <Ionicons name="keypad-outline" size={20} color="#FFFFFF" />
-                      </Pressable> : null}
-                    </View>
-                    <Pressable accessibilityRole="button" accessibilityLabel={t(inConversation ? 'ar.voice.finish' : 'ar.voice.start')}
-                      disabled={voice.phase === 'ending' || (!inConversation && (sendingChat || commandBusy))}
-                      onPress={voice.microphone} style={styles.voiceButton}>
-                      <Ionicons name={inConversation ? 'stop' : 'mic'} size={26} color="#FFFFFF" />
-                    </Pressable>
-                    <View style={styles.voiceSide}>
-                      {!integratedVoiceModel && <Pressable accessibilityRole="button" accessibilityLabel={t(voice.muted ? 'ar.voice.unmute' : 'ar.voice.mute')}
-                        onPress={voice.toggleSound} style={styles.voiceAccessory}>
-                        <Ionicons name={voice.muted ? 'volume-mute-outline' : 'volume-high-outline'} size={20} color="#FFFFFF" />
-                      </Pressable>}
-                    </View>
-                  </View>
-                </> : <Text style={styles.voiceStatus}>{t('ar.voice.unavailable')}</Text>}
-              </View>
+                  <Pressable accessibilityRole="button" accessibilityLabel={t('ar.addThisProduct')} onPress={onAddCurrent} style={styles.addCurrent}>
+                    <Ionicons name={currentAdded ? 'checkmark' : 'bag-add-outline'} size={23} color="#FFFFFF" />
+                  </Pressable>
+                </View> : null}
+                {currentAdded ? <Text style={styles.addedNote} accessibilityLiveRegion="polite">{t('ar.addedSelection')}</Text> : null}
+                <ScrollView ref={chatScroll} style={[styles.chatHistory, { maxHeight: windowHeight * 0.24 }]} contentContainerStyle={styles.chatHistoryContent}
+                  keyboardShouldPersistTaps="handled" onContentSizeChange={() => chatScroll.current?.scrollToEnd({ animated: false })}>
+                  {chatTurns.length ? chatTurns.map((turn, index) => {
+                    const reply = index === chatTurns.length - 1 ? chatReply || turn.reply : turn.reply;
+                    return (
+                      <View key={index} style={styles.chatMessages}>
+                        <View style={styles.chatUserBubble}><Text style={styles.chatMessageText}>{turn.request}</Text></View>
+                        {reply ? <View style={styles.chatReplyRow}>
+                          <View style={styles.chatReplyBubble}><Text style={styles.chatMessageText} accessibilityLiveRegion="polite">{reply}</Text></View>
+                        </View> : null}
+                      </View>
+                    );
+                  }) : <Text style={styles.chatNotice}>{t('ar.conversation.empty')}</Text>}
+                </ScrollView>
+              </> : null}
+              {arCommand.restoreState !== 'idle' || arCommand.ackPending ? <View style={styles.chatStatus}>
+                {arCommand.restoreState !== 'idle' ? <Text style={styles.chatNotice} accessibilityLiveRegion="polite">{t(AR_RESTORE_STATUS[arCommand.restoreState])}</Text> : null}
+                {arCommand.ackPending ? <View>
+                  <Text style={styles.chatNotice}>{t('ar.command.ackPending')}</Text>
+                  <Pressable accessibilityRole="button" onPress={() => void arCommand.retryAck()} style={styles.chatRetry}>
+                    <Text style={styles.chatSuggestionText}>{t('ar.command.retryAck')}</Text>
+                  </Pressable>
+                </View> : null}
+              </View> : null}
+              {!sheet ? <View style={styles.chatComposer}>
+                {chatOpen && __DEV__ && !inConversation && (keyboardVisible ? keyboardComposer : (
+                  <Pressable accessibilityRole="button" accessibilityLabel={t('ar.voice.testKeyboard')} onPress={() => setTestKeyboard(true)} style={styles.keyboardToggle}>
+                    <Ionicons name="keypad-outline" size={18} color="#FFFFFF" />
+                    <Text style={styles.chatSuggestionText}>{t('ar.voice.testKeyboard')}</Text>
+                  </Pressable>
+                ))}
+                {inConversation || voice.notice || !voice.available ? <Text accessibilityLiveRegion="polite" style={styles.voiceStatus}>
+                  {voice.available ? voiceStatus : t('ar.voice.unavailable')}
+                </Text> : null}
+                <View style={styles.voiceControls}>
+                  <Pressable testID="ar-conversation-toggle" accessibilityRole="button" accessibilityState={{ expanded: chatOpen }}
+                    accessibilityLabel={t(chatOpen ? 'ar.conversation.close' : 'ar.conversation.open')}
+                    onPress={() => setChatOpen(open => !open)} style={[styles.voiceAccessory, chatOpen && styles.selectedTool]}>
+                    <Ionicons name={chatOpen ? 'chatbubbles' : 'chatbubbles-outline'} size={21} color="#FFFFFF" />
+                  </Pressable>
+                  {microphoneButton()}
+                  {!integratedVoiceModel ? <Pressable accessibilityRole="button" accessibilityLabel={t(voice.muted ? 'ar.voice.unmute' : 'ar.voice.mute')}
+                    onPress={voice.toggleSound} style={styles.voiceAccessory}>
+                    <Ionicons name={voice.muted ? 'volume-mute-outline' : 'volume-high-outline'} size={21} color="#FFFFFF" />
+                  </Pressable> : <View style={styles.voiceSide} />}
+                </View>
+              </View> : null}
             </View>
           </KeyboardAvoidingView>
         ) : (
           <View pointerEvents="box-none" style={[styles.arcDock, { paddingBottom: dockBottom }]}>
+            {inConversation && !sheet ? compactVoice : null}
             {!zoneMenuOpen ? <View pointerEvents="box-none" style={styles.arcStatus}>
               {shadowPointing ? <Text style={styles.arcEmpty}>{t('ar.shadow.pointHint')}</Text> : null}
               {products.isPending ? <ActivityIndicator color="#FFFFFF" /> : null}
@@ -1541,13 +1629,7 @@ export default function ArTryOnScreen() {
               items={displayedSwatches} selected={paletteSelection ?? undefined} label={t('ar.arc.palette')} hint={t('ar.arc.swipe')}
               onVisible={activity.visible}
               recommendedItems={activity.recommendedItems} recommendedLabel={t('ar.arc.recommended')}
-              onSelect={({ product, shade }) => {
-                if (shadowPointing) setShadowPoint(makeup.eyeshadow?.hexTo === shade.hex ? null : shade.hex);
-                else if (careOpen && careSelection?.productId === product.id && careSelection.shadeId === shade.id) clearLipCare();
-                else if (!careOpen && selections[zone]?.productId === product.id && selections[zone]?.shadeId === shade.id) clearZone(zone);
-                else applyDirect(product, shade, true);
-                Haptics.selectionAsync().catch(() => {});
-              }} />
+              onSelect={item => selectPaletteShade(item, true)} />
             </View>
             <View style={[styles.hubRow, zoneMenuOpen && { marginTop: -zoneWheelRadius(windowWidth) }]}>
               {!zoneMenuOpen && nearby.active && nearby.canRebase ? <Pressable accessibilityRole="button" accessibilityLabel={t('ar.explore.rebase')} onPress={nearby.rebase} style={styles.rebase}>
@@ -1693,7 +1775,7 @@ export default function ArTryOnScreen() {
                     label={t('ar.shadow.point')}
                     selected={shadowPointing}
                     onPress={() => {
-                        setShadowPointMode(!shadowPointing);
+                        selectShadowPointMode(!shadowPointing);
                         if (!shadowPointing) setSheet(null);
                       }}
                   />
@@ -1883,6 +1965,7 @@ export default function ArTryOnScreen() {
               <Text style={styles.disclaimer}>{t('ar.disclaimer')}</Text>
             </ScrollView>
           )}
+          {mode === 'chat' || inConversation ? contextualVoice : null}
         </ArSheet>
       ) : null}
     </View>
@@ -1933,6 +2016,7 @@ const styles = StyleSheet.create({
   arcShadeName: { fontSize: 11, color: 'rgba(255,255,255,0.85)' },
   arcCart: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   currentRow: { paddingHorizontal: 40, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', height: AR_PRODUCT_ROW_HEIGHT, flexShrink: 0 },
+  chatProduct: { alignSelf: 'center', maxWidth: '94%', paddingHorizontal: 12, borderRadius: 22, backgroundColor: theme.colors.overlay },
   currentProduct: { flexShrink: 1, flexDirection: 'row', gap: 5, minHeight: 44, alignItems: 'center' },
   currentName: { flexShrink: 1, color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   addCurrent: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: 10 },
@@ -1966,7 +2050,8 @@ const styles = StyleSheet.create({
   point: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', alignSelf: 'stretch' },
   pointText: { flex: 1, fontSize: theme.font.body, color: theme.colors.inkMuted, lineHeight: 21, textAlign: 'left' },
   consentBtn: { alignSelf: 'stretch', marginTop: 10 },
-  stageActions: { position: 'absolute', top: 160, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 8 },
+  swatchWithTools: { paddingHorizontal: 40, backgroundColor: theme.colors.surfaceAlt },
+  stageActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
   overlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: 'rgba(0,0,0,0.35)' },
   overlayText: { color: theme.colors.white, fontSize: theme.font.small, fontWeight: '600' },
   noFace: { position: 'absolute', top: 120, left: 16, right: 16, alignItems: 'center', gap: 8, backgroundColor: theme.colors.overlay, padding: 12, borderRadius: theme.radius.md },
@@ -2030,18 +2115,23 @@ const styles = StyleSheet.create({
   modeTabFocused: { borderColor: '#FFFFFF' },
   modeText: { fontSize: 11, fontWeight: '600', color: '#FFFFFF' },
   modeTextActive: { color: theme.colors.white },
-  chat: { flexShrink: 1 },
+  chat: { flexShrink: 1, gap: 8 },
   chatMirror: { position: 'absolute', top: 0, left: 16, width: 44, minHeight: 52, alignItems: 'center', justifyContent: 'center', gap: 3 },
-  chatHistory: { flex: 1 },
-  chatHistoryContent: { flexGrow: 1, justifyContent: 'flex-end', paddingHorizontal: 18, paddingBottom: 12, gap: 8 },
-  chatComposer: { minHeight: 88, flexShrink: 0, paddingTop: 4, paddingHorizontal: 18 },
+  chatHistory: { flexGrow: 0, flexShrink: 1 },
+  chatHistoryContent: { paddingHorizontal: 18, gap: 8 },
+  chatComposer: { flexShrink: 0, gap: 6, paddingHorizontal: 18 },
+  keyboardToggle: { flexDirection: 'row', gap: 6, minHeight: 44, paddingHorizontal: 12, alignSelf: 'center', alignItems: 'center', borderRadius: 22, backgroundColor: theme.colors.overlay },
   voiceStatus: { color: '#FFFFFF', fontSize: 13, textAlign: 'center', alignSelf: 'center', backgroundColor: 'rgba(30,22,27,0.65)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 2 },
   voiceControls: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 16, marginTop: 4 },
   voiceSide: { width: 44 },
-  voiceAccessory: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(30,22,27,0.6)', alignItems: 'center', justifyContent: 'center' },
-  voiceButton: { width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.rose, alignItems: 'center', justifyContent: 'center' },
+  voiceAccessory: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.72)', backgroundColor: theme.colors.overlay, alignItems: 'center', justifyContent: 'center' },
+  voiceButton: { width: AR_MIC_BUTTON_SIZE, height: AR_MIC_BUTTON_SIZE, borderRadius: AR_MIC_BUTTON_SIZE / 2, borderWidth: 2, borderColor: theme.colors.white, backgroundColor: theme.colors.rose, alignItems: 'center', justifyContent: 'center' },
+  compactVoice: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, paddingHorizontal: 12, paddingVertical: 4 },
+  compactVoiceButton: { width: 44, height: 44, borderRadius: 22 },
+  contextVoiceDock: { paddingHorizontal: 12 },
+  mirrorVoice: { position: 'absolute', right: 12, zIndex: 9 },
   chatMessages: { gap: 10, paddingVertical: 2 },
-  chatUserBubble: { alignSelf: 'flex-end', maxWidth: '86%', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#F0DCE3', borderRadius: 22, borderBottomRightRadius: 5 },
+  chatUserBubble: { alignSelf: 'flex-end', maxWidth: '86%', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: theme.colors.roseSoft, borderRadius: 22, borderBottomRightRadius: 5 },
   chatReplyRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, paddingRight: 12 },
   chatReplyBubble: { flexShrink: 1, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: 'rgba(255,248,250,0.93)', borderRadius: 18, borderBottomLeftRadius: 5 },
   chatMessageText: { fontSize: 14, lineHeight: 21, color: theme.colors.ink },
@@ -2049,9 +2139,6 @@ const styles = StyleSheet.create({
   chatNotice: { fontSize: 12, lineHeight: 18, color: '#FFFFFF', backgroundColor: 'rgba(30,22,27,0.65)', borderRadius: 12, padding: 8 },
   panelFold: { alignSelf: 'center', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   chatRetry: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center', paddingHorizontal: 12 },
-  chatSuggestions: { flexGrow: 0, marginHorizontal: -18 },
-  chatExamples: { gap: 10, paddingHorizontal: 24, paddingVertical: 2 },
-  chatSuggestion: { minHeight: 44, borderRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)', backgroundColor: 'rgba(30,22,27,0.26)', justifyContent: 'center', paddingHorizontal: 16 },
   chatSuggestionText: { color: '#FFFFFF', fontSize: 13, fontWeight: '500' },
   chatInputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.85)', backgroundColor: 'rgba(30,22,27,0.4)', borderRadius: 28, padding: 3 },
   chatInput: { flex: 1, minWidth: 0, minHeight: 44, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: '#FFFFFF' },

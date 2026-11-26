@@ -1,10 +1,11 @@
 import { StyleSheet, Text, View } from 'react-native';
+import type { ReactNode } from 'react';
 import { theme } from '@/constants/theme';
 import { useI18n } from '@/lib/i18n';
 import { useMakeupStore } from '@/store/makeupStore';
 
 /** Static face illustration used when live camera try-on isn't available. */
-export function SwatchFallback({ message }: { message?: string }) {
+export function SwatchFallback({ message, children, contentTop }: { message?: string; children?: ReactNode; contentTop?: number }) {
   const { t } = useI18n();
   const makeup = useMakeupStore((s) => s.makeup);
   const lip = makeup.lip;
@@ -12,9 +13,10 @@ export function SwatchFallback({ message }: { message?: string }) {
   const eye = makeup.eyeshadow;
 
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, contentTop !== undefined && { justifyContent: 'flex-start', paddingTop: contentTop }]}>
       <Text style={styles.title}>{t('ar.previewTitle')}</Text>
       {message ? <Text style={styles.hint}>{message}</Text> : null}
+      {children}
       <View style={styles.face} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {eye ? (
           <>

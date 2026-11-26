@@ -1,5 +1,12 @@
 /** UI MVP flows: home, search, compare, AR recommendations, external sellers, skin filters. */
 export const flowsEn = {
+  'ar.conversation.open': 'Open conversation',
+  'ar.conversation.close': 'Close conversation',
+  'ar.conversation.empty': 'Your conversation with Luna will appear here.',
+  'ar.conversation.step': 'STEP {number}',
+  'ar.conversation.startMic': 'Tap the mic to start.',
+  'ar.conversation.askProduct': 'Ask for a product or look.',
+  'ar.conversation.tryColor': 'Tap a shade to try it.',
   'chat.candidateNumber': 'Candidate {index}',
   'chat.catalogEvidence': 'Source: Catalog API · product reference price',
   'chat.keyOnlyEvidence': 'Key ingredients only. Full ingredients and fragrance-free status are unknown.',
@@ -335,6 +342,13 @@ export const flowsEn = {
 type FlowsDictionary = Record<keyof typeof flowsEn, string>;
 
 export const flowsKo: FlowsDictionary = {
+  'ar.conversation.open': '대화 내역 열기',
+  'ar.conversation.close': '대화 내역 닫기',
+  'ar.conversation.empty': 'Luna와 나눈 대화가 여기에 표시돼요.',
+  'ar.conversation.step': 'STEP {number}',
+  'ar.conversation.startMic': '마이크를 눌러 대화를 시작해요',
+  'ar.conversation.askProduct': '원하는 제품이나 느낌을 말해요',
+  'ar.conversation.tryColor': '컬러칩을 눌러 색을 바꿔봐요',
   'chat.candidateNumber': '후보 {index}',
   'chat.catalogEvidence': '근거: Catalog API · 상품 기준가격',
   'chat.keyOnlyEvidence': '주요 성분만 제공됩니다. 전성분과 향료 무첨가 여부는 미확인입니다.',
@@ -668,6 +682,13 @@ export const flowsKo: FlowsDictionary = {
 };
 
 export const flowsJa: FlowsDictionary = {
+  'ar.conversation.open': '会話履歴を開く',
+  'ar.conversation.close': '会話履歴を閉じる',
+  'ar.conversation.empty': 'Lunaとの会話がここに表示されます。',
+  'ar.conversation.step': 'STEP {number}',
+  'ar.conversation.startMic': 'マイクを押して会話を始めます',
+  'ar.conversation.askProduct': '欲しい商品や好みを伝えます',
+  'ar.conversation.tryColor': '色をタップして試します',
   'chat.candidateNumber': '候補 {index}',
   'chat.catalogEvidence': '根拠：Catalog API・商品参考価格',
   'chat.keyOnlyEvidence': '主要成分のみです。全成分と香料不使用かは未確認です。',
@@ -1001,6 +1022,13 @@ export const flowsJa: FlowsDictionary = {
 };
 
 export const flowsZh: FlowsDictionary = {
+  'ar.conversation.open': '打开对话记录',
+  'ar.conversation.close': '关闭对话记录',
+  'ar.conversation.empty': '与 Luna 的对话会显示在这里。',
+  'ar.conversation.step': '第 {number} 步',
+  'ar.conversation.startMic': '轻点麦克风开始对话',
+  'ar.conversation.askProduct': '说出想试的产品或妆感',
+  'ar.conversation.tryColor': '轻点色卡试试不同色号',
   'chat.candidateNumber': '候选 {index}',
   'chat.catalogEvidence': '依据：Catalog API·产品参考价格',
   'chat.keyOnlyEvidence': '仅提供主要成分，全成分和是否不含香料均未确认。',
