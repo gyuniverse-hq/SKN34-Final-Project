@@ -1,8 +1,9 @@
 """The style/celebrity screens read the database: their responses must equal the old JSON.
 
 Needs a migrated PostgreSQL (CI sets TEST_DATABASE_URL after `alembic upgrade head`).
-- Empty database (CI): videos, looks and mentions are inserted from the JSON and classified
-  with the load job inside a transaction that is rolled back.
+- Database without curated looks (CI: only the migration's three looks): the missing videos,
+  looks and mentions are inserted from the JSON and classified with the load job inside a
+  transaction that is rolled back.
 - Database that already holds the curated looks (a local copy): it is compared as it is.
 """
 
@@ -56,21 +57,33 @@ async def _insert_from_json(conn, style: list[dict], celebrity: list[dict]) -> N
         )
     )
     for index, (video_id, title, channel) in enumerate(videos):
-        await conn.execute(
-            text(
-                "INSERT INTO youtube_videos (id, video_id, youtube_url, start_seconds, title,"
-                " channel_name, thumbnail_url, analysis_status, product_mapping_status)"
-                " VALUES (:id, :video_id, 'u', 0, :title, :channel, '', 'registered',"
-                " 'unreviewed')"
-            ),
-            {"id": f"VIDEO-T{index:03}", "video_id": video_id, "title": title, "channel": channel},
-        )
+        # Migration 0002 already registers three of these videos (VIDEO-001..003 with a
+        # look each), so reuse an existing row and only add what is missing.
+        row_id = (
+            await conn.execute(
+                text(
+                    "INSERT INTO youtube_videos (id, video_id, youtube_url, start_seconds,"
+                    " title, channel_name, thumbnail_url, analysis_status,"
+                    " product_mapping_status) VALUES (:id, :video_id, 'u', 0, :title,"
+                    " :channel, '', 'registered', 'unreviewed') ON CONFLICT (video_id) DO"
+                    " UPDATE SET title = EXCLUDED.title, channel_name = EXCLUDED.channel_name"
+                    " RETURNING id"
+                ),
+                {
+                    "id": f"VIDEO-T{index:03}",
+                    "video_id": video_id,
+                    "title": title,
+                    "channel": channel,
+                },
+            )
+        ).scalar_one()
         await conn.execute(
             text(
                 "INSERT INTO makeup_looks (id, video_id, display_name, style_description,"
                 " is_published) VALUES (:id, :video, 'd', 's', false)"
+                " ON CONFLICT (video_id) DO NOTHING"
             ),
-            {"id": f"LOOK-T{index:03}", "video": f"VIDEO-T{index:03}"},
+            {"id": f"LOOK-T{index:03}", "video": row_id},
         )
     for source, items in (("style", style), ("celebrity", celebrity)):
         for item in items:
@@ -80,11 +93,12 @@ async def _insert_from_json(conn, style: list[dict], celebrity: list[dict]) -> N
                     text(
                         "INSERT INTO raw_yt_product_mention (source_row_id, yt_product_id,"
                         " source_product_record_id, source, video_id, mention_number,"
-                        " video_url) VALUES (:key, 'yt-curatedtest', :key, :source, :video,"
+                        " video_url) VALUES (:key, 'yt-curatedtest', :record, :source, :video,"
                         " :number, 'u')"
                     ),
                     {
                         "key": key,
+                        "record": key,
                         "source": source,
                         "video": item["id"],
                         "number": product["number"],
