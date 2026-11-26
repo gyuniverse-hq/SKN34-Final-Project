@@ -6,6 +6,7 @@ import importlib.util
 import io
 import json
 import time
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -16,15 +17,27 @@ from playwright.sync_api import sync_playwright
 from blend_modes import DATA, ROOT, landmarks
 from render_photos import PHOTOS, VIEW, face_box, panel, write
 
-STRENGTHS = (0.3, 0.6, 1, 1.35, 1.7)
+STRENGTHS = (0.4, 0.55, 0.7, 0.85, 1)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('--video', default='e1gSkUdG6Bo')
     parser.add_argument('--photo', default='front', choices=sorted(PHOTOS))
+    parser.add_argument('--source', type=Path, help='Local photo to render at all strengths')
+    parser.add_argument('--reference', type=Path, help='Optional local image of the finished look')
+    parser.add_argument('--states', type=Path, help='Directory containing exported strength JSON files')
+    parser.add_argument('--out', type=Path, help='Output directory for this run')
     args = parser.parse_args()
-    out = DATA / args.video / 'strength'
+    states_dir = args.states or DATA / args.video
+    out = args.out or states_dir / 'strength'
+    source = args.source or DATA / 'manual' / PHOTOS[args.photo]
+    reference = args.reference
+    frames_file = DATA / args.video / 'frames.json'
+    if reference is None and args.source is None and args.photo == 'front' and frames_file.is_file():
+        final_name = json.loads(frames_file.read_text(encoding='utf-8'))['selected'].get('final')
+        if final_name and (DATA / 'manual' / final_name).is_file():
+            reference = DATA / 'manual' / final_name
     out.mkdir(parents=True, exist_ok=True)
     spec = importlib.util.spec_from_file_location('offline_renderer', ROOT / 'research/lip_texture/render.py')
     helper = importlib.util.module_from_spec(spec)
@@ -37,10 +50,10 @@ def main() -> None:
   };
 """ + marker, 1)
     html = html.replace('  function processFrame(now) {', '  function processFrame(now) {\n    if (window.__photoPaused) return;', 1)
-    states = {f'{s}': json.loads((DATA / args.video / f'strength_{s}_makeup.json').read_text(encoding='utf-8'))['makeup'] for s in STRENGTHS}
-    with Image.open(DATA / 'manual' / PHOTOS[args.photo]) as source:
+    states = {f'{s:g}': json.loads((states_dir / f'strength_{s:g}_makeup.json').read_text(encoding='utf-8'))['makeup'] for s in STRENGTHS}
+    with Image.open(source) as photo:
         buffer = io.BytesIO()
-        ImageOps.pad(source.convert('RGB'), VIEW, color=(32, 32, 32)).save(buffer, format='PNG')
+        ImageOps.pad(photo.convert('RGB'), VIEW, color=(32, 32, 32)).save(buffer, format='PNG')
     with sync_playwright() as pw:
         browser = pw.chromium.launch(executable_path=helper.CHROME, headless=True,
                                      args=['--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'])
@@ -69,15 +82,15 @@ def main() -> None:
         finally:
             browser.close()
     read = lambda p: cv2.cvtColor(cv2.imread(str(p)), cv2.COLOR_BGR2RGB)  # noqa: E731
-    final = read(DATA / 'manual' / json.loads((DATA / args.video / 'frames.json').read_text(encoding='utf-8'))['selected']['final'])
     opts = vision.FaceLandmarkerOptions(
         base_options=BaseOptions(model_asset_path=str(ROOT / 'research/data/models/face_landmarker.task')), num_faces=1)
     with vision.FaceLandmarker.create_from_options(opts) as det:
         bare = read(out / f'{args.photo}_bare.png')
         box = face_box(landmarks(det, bare), bare.shape)
         panels = [panel(bare, box, 'bare', 520)]
-        panels += [panel(read(out / f'{args.photo}_s{s}.png'), box, f'strength {s}', 520) for s in STRENGTHS]
-        if args.photo == 'front':
+        panels += [panel(read(out / f'{args.photo}_s{s:g}.png'), box, f'{s:.0%}', 520) for s in STRENGTHS]
+        if reference is not None:
+            final = read(reference)
             panels.append(panel(final, face_box(landmarks(det, final), final.shape), 'video final', 520))
     write(out / f'{args.photo}_ladder.jpg', np.hstack(panels))
     print('wrote', out / f'{args.photo}_ladder.jpg')

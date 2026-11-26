@@ -6,28 +6,42 @@ function moduleScript(html: string) {
   return match[1];
 }
 
-type RenderState = { face: boolean; drawn: boolean; lost: boolean; failDraw: boolean; failFilter: boolean; values: number[] };
+type RenderState = {
+  face: boolean; drawn: boolean; lost: boolean; failDraw: boolean; failFilter: boolean; values: number[];
+  still: boolean; settling: boolean; skinReady: boolean; lightNeedsMask: boolean; trace: string[];
+};
 
 function renderHarness() {
   const script = moduleScript(FACE_TRACKER_HTML);
   const messaging = script.slice(script.indexOf('  function post(message) {'), script.indexOf('  window.__kb'));
-  const frame = script.slice(script.indexOf('  function processFrame(now) {'), script.indexOf('  // Prefer requestVideoFrameCallback'));
-  const state: RenderState = { face: true, drawn: true, lost: false, failDraw: false, failFilter: false, values: [] };
+  const frame = script.slice(script.indexOf('  function deferLookSceneForSkin('), script.indexOf('  // Prefer requestVideoFrameCallback'));
+  const state: RenderState = {
+    face: true, drawn: true, lost: false, failDraw: false, failFilter: false, values: [],
+    still: true, settling: false, skinReady: false, lightNeedsMask: false, trace: [],
+  };
   const messages: Record<string, unknown>[] = [];
   const build = new Function('state', 'messages', `
     let makeup = { lip: null }, pendingRender = null, pendingRestore = null, commandRendererId = null, lastRenderSeq = -1, lastStateSeq = -1;
+    let lookMode = false, lookSceneDeferred = false;
     let poseEnabled = false; const clearPoseHint = () => {};
     let segCount = 0, segPerSec = 0, detectMs = 0, shapesOn = true, status = null, hasFace = true, lastFaceAt = 0, lastLightAt = 1, fpsFrames = 0, fpsAt = 0, fps = 0;
-    let landmarker = { detectForVideo: () => ({ faceLandmarks: state.face ? [{}] : [] }) };
+    let landmarker = { detectForVideo: () => { state.trace.push('track'); return { faceLandmarks: state.face ? [{}] : [] }; } };
     let renderer = { get lost() { return state.lost; }, upload() {}, render() {
       if (state.failDraw) throw Error('draw failed');
       state.values.push(makeup.lip && makeup.lip.intensity);
+      state.trace.push('draw');
       return state.drawn;
     } };
     const window = { ReactNativeWebView: { postMessage: (s) => messages.push(JSON.parse(s)) } };
     const video = { readyState: 2, videoWidth: 100, videoHeight: 100 };
-    const filterLandmarks = () => { if (state.failFilter) throw Error('landmarks failed'); }, updateMesh = () => {}, readBlink = () => {}, TUNING = { lightEveryMs: 1000 };
-    const wantSkinMask = () => false, occGate = { lip: 1, eye: 1, cheek: 1 };
+    let faceSpeed = 0, sceneChange = 0, lastSceneAt = 0, lastFoundSegAt = 0, foundSkinReady = false;
+    const filterLandmarks = () => { if (state.failFilter) throw Error('landmarks failed'); faceSpeed = state.still ? 0 : 2; foundSkinReady = state.skinReady; };
+    const updateMesh = () => {}, readBlink = () => {}, TUNING = { lightEveryMs: 1000, faceStillSpeed: 1, sceneStillDiff: 1, lightStillMs: 1000 };
+    const wantSkinMask = () => state.skinReady, occGate = { lip: 1, eye: 1, cheek: 1 };
+    const camSettling = () => state.settling, lightSegDue = () => state.lightNeedsMask, segmenter = {}, segmentBusy = false;
+    const skinSegGap = () => 100, sampleScene = () => state.trace.push('scene');
+    const runSegmenter = (now, _light, skin) => { if (skin) { lastFoundSegAt = now; state.trace.push('skin'); } };
+    const envEvaluate = () => {}, maybeLockWhiteBalance = () => {}, measureLipThickness = () => {}, measureLipEdge = () => {}, updateHud = () => {};
     const hudOn = false, guide = null;
     let renderErrors = 0, renderErrLast = '';   // the render's catch records the error it used to swallow
     const console = { error: () => {} };
@@ -103,6 +117,45 @@ describe('pose guidance', () => {
 });
 
 describe('face tracker page', () => {
+  it('separates a steady look’s scene sampling and skin mask without skipping tracking or drawing', () => {
+    const h = renderHarness();
+    h.state.skinReady = true;
+    h.handleMessage({ type: 'look_mode', value: true });
+    h.processFrame(1100);
+    h.processFrame(1133);
+    expect(h.state.trace).toEqual(['track', 'skin', 'draw', 'track', 'scene', 'draw']);
+  });
+
+  it.each(['product', 'moving', 'settling', 'light mask', 'first mask'])('keeps normal scene timing for %s', (caseName) => {
+    const h = renderHarness();
+    h.handleMessage({ type: 'look_mode', value: caseName !== 'product' });
+    h.state.skinReady = caseName !== 'first mask';
+    h.state.still = caseName !== 'moving';
+    h.state.settling = caseName === 'settling';
+    h.state.lightNeedsMask = caseName === 'light mask';
+    h.processFrame(1100);
+    expect(h.state.trace.slice(0, 2)).toEqual(['track', 'scene']);
+    expect(h.state.trace.at(-1)).toBe('draw');
+  });
+
+  it('reuses eye texture storage in look mode and uploads current pixels on every draw', () => {
+    const script = moduleScript(FACE_TRACKER_HTML);
+    const upload = script.slice(script.indexOf('  function uploadEyeLayer('), script.indexOf('  function createGLRenderer('));
+    const build = new Function('lookMode', `${upload}; return uploadEyeLayer;`);
+    const gl = { texImage2D: jest.fn(), texSubImage2D: jest.fn() };
+    const size = { width: 1, height: 1 };
+    const draw = build(true);
+    draw(gl, { width: 10, height: 8 }, size);
+    const nextCanvas = { width: 10, height: 8 };
+    draw(gl, nextCanvas, size);
+    expect(gl.texImage2D).toHaveBeenCalledTimes(1);
+    expect(gl.texSubImage2D.mock.calls[0].at(-1)).toBe(nextCanvas);
+    draw(gl, { width: 11, height: 8 }, size);
+    build(false)(gl, { width: 11, height: 8 }, size);
+    expect(gl.texImage2D).toHaveBeenCalledTimes(3);
+    expect(gl.texSubImage2D).toHaveBeenCalledTimes(1);
+  });
+
   it.each([0, 0.01, 0.5, 1])('acknowledges intensity %s only after a matching face and draw', (value) => {
     const h = renderHarness();
     h.handleMessage(renderCommand(value));
@@ -320,7 +373,7 @@ describe('face tracker page', () => {
     expect(script).toContain('lobe = mix(lobe, envLobe, envW);');
     expect(script).toContain('float peakness = mix(max(sharpK, sharpF), envPeak, envW);');
     expect(script).toContain('uniform vec4 uEnvGloss;');
-    expect(script).toContain("'1123-lip-finish-d'");
+    expect(script).toContain("const EYE_HUD_BUILD = '1125-lip-3ce-murmuring';");
     expect(script).toContain('float browHair = browA *');
     expect(script).toContain('lookSkinMinFps: 10');
     expect(script).toContain('lookSkinGate');
@@ -629,7 +682,7 @@ describe('face tracker page', () => {
     expect(script).toContain("'float browAt(vec2 s) {',");
     expect(script).toContain("texture2D(uBrowTex, p).g");
     expect(script).toContain("'uEye', 'uBrowTex', 'uEyeRect',");
-    expect(script).toContain('if (eyesOn && (browZ || mascara)) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, browCanvas);');
+    expect(script).toContain('if (eyesOn && (browZ || mascara)) uploadEyeLayer(gl, browCanvas, browTexSize);');
     expect(script).toContain('gl.uniform1i(u.uBrowTex, 9);');
   });
 
@@ -679,7 +732,7 @@ describe('face tracker page', () => {
     // 11-08 debug: a HUD-only button flips lightMatch on / off for an on-phone comparison.
     expect(script).toContain("lightBtn.addEventListener('click'");
     expect(script).toContain('TUNING.lightMatch = !TUNING.lightMatch;');
-    expect(script).toContain('now - lastSceneAt >= (faceSpeed < TUNING.faceStillSpeed');
+    expect(script).toContain('now - lastSceneAt >= (still ? TUNING.lightStillMs : 0)');
     expect(script).toContain('now - lastFoundSegAt > skinSegGap()');
     expect(script).toContain('faceSpeed < TUNING.faceStillSpeed && sceneChange < TUNING.sceneStillDiff');
     // Forehead: the mesh stops at landmark 10, so a foundation-only cap continues it to the hairline; the skin mask cuts the hair.

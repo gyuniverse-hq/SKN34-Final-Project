@@ -67,7 +67,7 @@ describe('the Sullyoon video look finish', () => {
   });
 
   it('leaves other unfinished looks, product try-on and changed zones exactly as they were', () => {
-    for (const id of ['style-kWI7_DkDjZ0']) {
+    for (const id of ['style-example']) {
       expect(videoLookMakeup(makeup, { ...options, lookId: id })).toBe(makeup);
     }
     for (const disabled of [
@@ -80,13 +80,24 @@ describe('the Sullyoon video look finish', () => {
   });
 
   it('scales coverage on looks without a per-zone finish when strength moves off 1', () => {
-    const soft = videoLookMakeup(makeup, { ...options, lookId: 'style-kWI7_DkDjZ0', strength: 0.5 });
-    const bold = videoLookMakeup(makeup, { ...options, lookId: 'style-kWI7_DkDjZ0', strength: 1.5 });
-    expect(videoLookMakeup(makeup, { ...options, lookId: 'style-kWI7_DkDjZ0', strength: 1 })).toBe(makeup);
+    const soft = videoLookMakeup(makeup, { ...options, lookId: 'style-example', strength: 0.5 });
+    const bold = videoLookMakeup(makeup, { ...options, lookId: 'style-example', strength: 1.5 });
+    expect(videoLookMakeup(makeup, { ...options, lookId: 'style-example', strength: 1 })).toBe(makeup);
     expect(soft.lip?.applicationProfile?.coverageMultiplier).toBeCloseTo(0.5);
     expect(bold.blush?.applicationProfile?.coverageMultiplier).toBeCloseTo(1.5);
     expect(soft.lip?.hex).toBe(makeup.lip?.hex);
     expect(bold.blush?.hex).toBe(makeup.blush?.hex);
+  });
+
+  it('adds a peach look finish at the default strength while keeping its catalog colors', () => {
+    const lookId = 'style-kWI7_DkDjZ0';
+    const base = { ...makeup, lip: { hex: '#C3848E', intensity: 0.65, texture: 'velvet' as const } };
+    const rendered = videoLookMakeup(base, { ...options, lookId, strength: 0.7 });
+    expect(rendered.lip).toMatchObject({ hex: '#C3848E', texture: 'glossy' });
+    expect(rendered.lip?.applicationProfile?.coverageMultiplier).toBeCloseTo(0.315);
+    expect(rendered.blush?.geometry?.blushPlacement).toBe('apple');
+    expect(videoLookMakeup(base, { ...options, lookId, modified: ['lip'] }).lip).toBe(base.lip);
+    expect(videoLookMakeup(base, { ...options, lookId, fittingProduct: true })).toBe(base);
   });
 
   it('replaces the strawberry catalog mask, false lashes and lavender lip with the pair-fit finish', () => {
@@ -98,7 +109,7 @@ describe('the Sullyoon video look finish', () => {
     const before = JSON.parse(JSON.stringify(full));
     const rendered = videoLookMakeup(full, { ...options, lookId: 'style-ZAozXs-ZZik' });
     expect(rendered.mascara?.geometry?.falseLash).toEqual([]);
-    expect(rendered.lip).toMatchObject({ hex: '#D2504E', applicationProfile: { lipGradient: 1, coverageMultiplier: 0.55 } });
+    expect(rendered.lip).toMatchObject({ hex: '#D2504E', texture: 'velvet', applicationProfile: { lipGradient: 1, coverageMultiplier: 0.55 } });
     expect(rendered.blush).toMatchObject({ hex: '#E2687A', geometry: { blushPlacement: 'apple', blushSize: 1.5 } });
     expect(rendered.contour?.hex).toBe('#B48C80');
     expect(rendered.foundation?.applicationProfile).toMatchObject({ skinEven: 1, skinWide: 0.45, coverageMultiplier: 0.25 });
@@ -108,7 +119,7 @@ describe('the Sullyoon video look finish', () => {
   it('gives the year-end look a cool under-eye flush and a muted sheer rose gloss', () => {
     const rendered = videoLookMakeup(makeup, { ...options, lookId: 'style-4QR0tre9yBI' });
     expect(rendered.blush).toMatchObject({ hex: '#EC8A9E', geometry: { blushPlacement: 'under_eye' } });
-    expect(rendered.lip).toMatchObject({ hex: '#B85A6C', applicationProfile: { lipColor: 0.4, lipGloss: 2.8 } });
+    expect(rendered.lip).toMatchObject({ hex: '#B85A6C', texture: 'glossy', applicationProfile: { lipColor: 0.4, lipGloss: 1.8 } });
     expect(makeup.lip).toEqual({ hex: '#E77671', intensity: 0.65, texture: 'glossy' });
   });
 
@@ -125,7 +136,7 @@ describe('the Sullyoon video look finish', () => {
       hex: '#E8A8B0', hexTo: '#B87880', geometry: { glitter: false, sparkle: 0 },
       applicationProfile: { underEyePearl: 0.45 },
     });
-    expect(rendered.lip).toMatchObject({ hex: '#A8586A', applicationProfile: { lipGradient: 1, lipGloss: 2.6 } });
+    expect(rendered.lip).toMatchObject({ hex: '#A8586A', texture: 'glossy', applicationProfile: { lipGradient: 1, lipGloss: 1.65 } });
     expect(rendered.foundation?.applicationProfile).toMatchObject({ skinEven: 1, skinWide: 0.45, coverageMultiplier: 0.25 });
     expect(rendered.contour?.hex).toBe('#A89898');
     expect(full).toEqual(before);

@@ -117,5 +117,10 @@ describe('application profile renderer controls', () => {
       .toMatchObject({ opacity: 0, specular: 2, sparkleDensity: h.SHADOW_FINISHES.shimmer.sparkleDensity });
     expect(h.profileCoverage({ applicationProfile: { coverageMultiplier: 99 } }, 0.7)).toBe(1);
     expect(h.profileCoverage({ applicationProfile: { coverageMultiplier: NaN } }, 0.7)).toBe(0.7);
+    const soft = h.material({
+      texture: 'matte',
+      applicationProfile: { material: { glossScale: 3, overlay: -1, cavity: 0.1, opacity: 1.5 } },
+    });
+    expect(soft).toMatchObject({ glossScale: 2, overlay: 0, cavity: 0.5, opacity: 1 });
   });
 });
