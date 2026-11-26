@@ -16,17 +16,16 @@ class ArHistoryService:
     def __init__(self, repo: ArHistoryRepository):
         self.repo = repo
 
-    async def enabled(self, owner: str) -> bool:
-        return (
-            owner in get_settings().ar_activity_consented_members
-            and await self.repo.member_terms(owner) == TERMS_VERSION
-        )
+    async def access(self, owner: str) -> tuple[bool, bool]:
+        return await self.repo.access(owner, TERMS_VERSION)
 
     async def recommended(self, owner: str) -> bool:
-        return owner in get_settings().ar_activity_enrolled_members and await self.enabled(owner)
+        _, subscribed = await self.access(owner)
+        return subscribed
 
     async def require_enabled(self, owner: str):
-        if not await self.enabled(owner):
+        enabled, _ = await self.access(owner)
+        if not enabled:
             raise ApiError(403, "AR activity collection is disabled", "ar_history_disabled")
 
     async def palette(self, owner: str, zone: str) -> PaletteInputs:

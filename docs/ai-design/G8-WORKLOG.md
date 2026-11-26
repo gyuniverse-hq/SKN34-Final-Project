@@ -315,3 +315,20 @@ API는 현재 소스를 사용했다. G5 검색 API 19828은 기존 G5 DB 15441�
 커밋 전 검사(2026-11-26 13시 KST 실행, 13:10 이전 종료): npm run check -- -- --runInBand --silent는 타입·린트·105 suites/1,320 tests 통과(114.875초). chatbot에서 기존 G7 잠금 venv를 UV_PROJECT_ENVIRONMENT로 지정한 uv run --frozen ruff check . 및 uv run --frozen lint-imports는 통과(3 KEPT). 최초 uv run --frozen pytest -q -p no:cacheprovider는 1,448 통과·99 건너뜀·17 setup 오류(55.87초): 공용 pytest 임시 폴더의 WinError 5이며 통과로 세지 않는다. --basetemp에 새 GUID 임시 경로를 지정한 전체 재실행은 1,465 통과·99 건너뜀(48.68초). PG 등 환경 필요 99건은 이번 실행에서 검증하지 않았다. 테스트별 정확한 시작 시각은 별도 보존하지 않았다.
 
 Gitleaks 8.30.1 dir 검사: 변경 13개 파일 중 trace는 신규 53개만 복사하고 기존 설정·빈 ignore·redact로 검사하여 exit 0. 게시 prefix 156개는 유지한다. git diff --check 통과. 최신 develop에는 PR #296의 정확한 fingerprint 예외 및 증빙 도구 외에 PR #297의 HEAD 이력 검사 범위와 룩 상담 데이터 API 등 팀 변경도 있다. 이를 임의 재구현하지 않고 통합 후 검증한다. push·G8 PR 생성·배포는 이번 실행에 포함하지 않는다.
+
+### 로컬 커밋 보존·develop 통합 검증 — 2026-11-26 13:15 KST
+
+구현·테스트 commit 8ca23b3, 문서·증빙 commit f3fe8ab로 보존했다. f5adb4e60202bdc4c98bdefe36669f96f90e9b55를 --no-commit --no-ff로 병합해 충돌 0건을 확인했다. 자동 병합된 types/index.ts와 4개 번역에서 G8 계약을 보존했다. chatbot 소스는 병합 전과 동일하고 backend/api 전체는 develop과 동일하다. 병합 검증 후 별도 merge commit으로 보존하며 push·G8 PR·배포는 하지 않는다.
+
+검증은 f3fe8ab + 위 develop의 미커밋 자동 병합 결과를 대상으로 13:10~13:15 KST에 실행했다. 임의 기능 수정은 없고 두 부모와 merge 결과로 소스를 재현할 수 있다.
+
+- 앱: npm run check -- -- --runInBand --silent 통과. 타입·린트, 107 suites/1,325 tests, 129.574초.
+- chatbot: 기존 G7 venv와 uv run --frozen 사용. ruff check ., lint-imports(3 KEPT), ruff format --check .(153 files) 통과. pytest -q -p no:cacheprovider --basetemp <새 GUID 임시 경로>: 1,465 통과·99 건너뜀, 38.52초.
+- API: 현재 uv.lock과 SHA256이 동일한 skin-conversation-api venv 사용. ruff check ., lint-imports(3 KEPT), ruff format --check .(329 files) 통과. 같은 pytest 명령: 628 통과·52 건너뜀·2 실패, 67.06초. test_celebrity_videos_endpoint_uses_client_contract 및 test_style_looks_endpoint_uses_client_field_names는 기본 로컬 PostgreSQL 인증 실패로 HTTP 500. 환경 차단이며 전체 API 통과로 기록하지 않는다. 기존 DB 계정·데이터는 변경하지 않았다. test_look_consult_api.py 집중 재실행은 4 통과, 0.39초(계약·모의 검증).
+- 증빙 도구: 저장소 루트에서 GITLEAKS_BINARY=8.30.1 실행 파일을 지정하고 python -m unittest discover -s scripts -p test_g8_evidence.py, 5 통과/13.215초. 22개 과거 해시 재계산과 가상 비밀 키 차단을 포함한다. 최초 chatbot 하위 폴더 실행은 Git 경로 기준 때문에 1 실패·1 건너뜀이었으며 성공으로 세지 않는다.
+- Gitleaks 8.30.1: 병합 양쪽 부모를 --log-opts="--full-history --diff-filter=tuxdb HEAD origin/develop"로 검사, 87 commits/0 leaks/exit 0. 설정은 develop의 병합된 .gitleaksignore와 .gitleaks.toml 그대로다. 최초 출력 수집은 Windows cp949 decode 오류(스캐너 exit 0)가 발생해 UTF-8로 다시 실행한 결과를 채택했다. 민감한 탐지값은 출력하지 않았다.
+- git diff --cached --check 통과. 실제 모델/API/PG 상담 재실행, 실기기 앱, 전체 G8 평가는 NOT_RUN. 기존 live 증빙은 그대로 유지한다.
+
+현재 위치 상세: ① 착수 설계와 ② 계약 및 ③ 첫 실행 구조는 존재하며 ④ 첫 복합 상담은 구현·부분 실제 검증 상태다. ⑤-1 N01은 지식→조건→옵션 요청·후속 저장 연결을 확인했으나 원래 들뜸 사례의 설명 근거·품질과 조건 충족 카드가 남았다. ⑤-2 N02는 보유품→검수 룩→부족 부위→정확한 상품·호수의 첫 연결만 구현했다. 일반 대체품 적합성, 후속 턴, 실제 Catalog/PG/모델 검증은 남았다. E01/B01 전체, 재계획·취소·재개도 남아 있다. ⑥ 통합 평가 및 ⑦ G8 PR 인계는 미완료다.
+
+다음 기능 순서: N02의 G7 룩 선택·동의 기억 저장/복원 실제 경로 확인 → 필요한 상품만 조회하는 실제 연결과 후속 조건 검증. 병행할 N01 근거 보완 후보는 develop의 검수된 troubleshooting/룩 태그 API이며 아직 chatbot에서 연결하지 않았다. 데이터·근거 계약을 먼저 대조한다. 로컬 API 환경 차단 2건은 통합 검증의 미해결 항목으로 유지한다. 보안 우회나 광범위 제외는 추가하지 않는다.

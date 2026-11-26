@@ -1,7 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { BottomSheet } from '@/components/ui/BottomSheet';
+import { Button } from '@/components/ui/Button';
+import { defaultNickname, localNicknameKey, readNickname, saveNickname, validNickname } from '@/lib/localNickname';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ListRow } from '@/components/ui/ListRow';
 import { MenuSection } from '@/components/ui/MenuSection';
 import { homeLayout, tabTitle } from '@/constants/homeLayout';
@@ -10,6 +15,46 @@ import { authErrorMessageKey, signOut, useAuth } from '@/lib/auth';
 import { confirmAction, notify } from '@/lib/confirm';
 import { useI18n } from '@/lib/i18n';
 import { useShoppingListStore } from '@/store/shoppingListStore';
+
+function MemberProfile({ owner }: { owner: string }) {
+  const { t } = useI18n();
+  const nickname = useQuery({ queryKey: [localNicknameKey(owner)], queryFn: () => readNickname(owner) });
+  const { refetch } = nickname;
+  useFocusEffect(useCallback(() => { void refetch({ cancelRefetch: false }); }, [refetch]));
+  const displayName = nickname.data ?? defaultNickname(owner);
+  const cache = useQueryClient();
+  const { bottom } = useSafeAreaInsets();
+  const [draft, setDraft] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const name = draft?.trim().normalize('NFC') ?? '';
+  const valid = validNickname(name);
+  const save = async () => {
+    if (!valid || busy) return;
+    setBusy(true);
+    try {
+      const saved = await saveNickname(owner, name);
+      await cache.cancelQueries({ queryKey: [localNicknameKey(owner)] });
+      cache.setQueryData([localNicknameKey(owner)], saved);
+      setDraft(null);
+    } catch { setFailed(true); }
+    finally { setBusy(false); }
+  };
+  return <>
+    <ListRow prominent icon="person-circle-outline" label={displayName}
+      onPress={() => { setFailed(false); setDraft(displayName); }} />
+    {draft !== null && <BottomSheet title={t('my.nicknameEdit')} closeLabel={t('common.cancel')} bottomInset={bottom}
+      onClose={() => { if (!busy) setDraft(null); }}>
+      <View style={styles.editor}>
+        <TextInput editable={!busy} value={draft} onChangeText={setDraft} autoFocus autoCapitalize="none"
+          accessibilityLabel={t('my.nicknameEdit')} style={styles.input} />
+        <Text style={styles.hint}>{t('my.nicknameHelp')}</Text>
+        {failed && <Text accessibilityRole="alert">{t('my.nicknameError')}</Text>}
+        <Button label={t('my.nicknameSave')} disabled={!valid || busy} loading={busy} onPress={save} />
+      </View>
+    </BottomSheet>}
+  </>;
+}
 
 export default function MyScreen() {
   const router = useRouter();
@@ -33,7 +78,7 @@ export default function MyScreen() {
         </View>
         <View style={styles.profile}>
           {user ? (
-            <ListRow prominent icon="person-circle-outline" label={t('auth.signedInAs', { email: user.email ?? '' })} />
+            <MemberProfile key={user.id} owner={user.id} />
           ) : (
             <ListRow prominent icon="person-circle-outline" label={t('my.login')} onPress={() => router.push('/login')} />
           )}
@@ -63,5 +108,8 @@ const styles = StyleSheet.create({
   header: { minHeight: homeLayout.headerHeight, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   settingsButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
   pressed: { backgroundColor: theme.colors.surfaceAlt },
+  editor: { padding: 16, gap: 12 },
+  hint: { color: theme.colors.inkMuted },
+  input: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.radius.md, padding: 12, color: theme.colors.ink },
   profile: { marginBottom: 22, borderRadius: theme.radius.md, overflow: 'hidden' },
 });

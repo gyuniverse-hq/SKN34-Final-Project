@@ -43,8 +43,6 @@ def test_purchase_experiment_links_only_verified_order_lines_and_keeps_cart_labe
     candidate_dir = Path("candidate")
     settings = get_settings()
     for key, value in {
-        "ar_activity_enrolled_members": members,
-        "ar_activity_consented_members": members,
         "ar_palette_mode": "experiment",
         "ar_palette_experiment": experiment,
         "ar_palette_baseline_model_dir": control_dir,
@@ -82,7 +80,13 @@ def test_purchase_experiment_links_only_verified_order_lines_and_keeps_cart_labe
         product_id = "oy-" + goods
         async with AsyncSession(conn, join_transaction_mode="create_savepoint") as db:
             db.add_all(
-                MemberRow(id=u, terms_version=TERMS_VERSION, terms_agreed_at=now) for u in members
+                MemberRow(
+                    id=u,
+                    terms_version=TERMS_VERSION,
+                    terms_agreed_at=now,
+                    skin_subscription_until=now + timedelta(days=30),
+                )
+                for u in members
             )
             db.add(
                 ProductRow(
@@ -246,7 +250,6 @@ def test_purchase_experiment_links_only_verified_order_lines_and_keeps_cart_labe
                 end=now + timedelta(hours=1),
                 window=timedelta(days=1),
                 grace=timedelta(days=1),
-                members=members,
                 terms=TERMS_VERSION,
             )
             early = await repo.experiment_sessions(
@@ -275,10 +278,10 @@ def test_purchase_experiment_links_only_verified_order_lines_and_keeps_cart_labe
                     as_of=now + timedelta(days=8),
                     window=timedelta(days=1),
                     grace=timedelta(days=1),
-                    members=members,
                     terms=TERMS_VERSION,
                 )
             ]
+            labeled = [row for row in labeled if row["member_id"] in members]
             assert len(labeled) == 3 and all(row["added_to_cart"] for row in labeled)
 
     async def verify():

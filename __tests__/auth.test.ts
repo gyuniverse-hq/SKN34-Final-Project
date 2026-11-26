@@ -1,3 +1,4 @@
+import { TERMS_VERSION } from '@/constants/legal';
 import { needsTermsConsent } from '@/lib/account';
 import { AuthFlowError, authErrorMessageKey } from '@/lib/auth/errors';
 import { parseAuthRedirect } from '@/lib/auth/redirect';
@@ -20,10 +21,10 @@ describe('sign-up input checks', () => {
 
 describe('needsTermsConsent', () => {
   it('asks until the current version is agreed', () => {
-    const terms = { version: 'v2', agreedVersion: null, agreedAt: null };
+    const terms = { version: TERMS_VERSION, agreedVersion: null, agreedAt: null };
     expect(needsTermsConsent(terms)).toBe(true);
     expect(needsTermsConsent({ ...terms, agreedVersion: 'v1', agreedAt: '2026-01-01T00:00:00Z' })).toBe(true);
-    expect(needsTermsConsent({ ...terms, agreedVersion: 'v2', agreedAt: '2026-01-01T00:00:00Z' })).toBe(false);
+    expect(needsTermsConsent({ ...terms, agreedVersion: TERMS_VERSION, agreedAt: '2026-01-01T00:00:00Z' })).toBe(false);
   });
 });
 

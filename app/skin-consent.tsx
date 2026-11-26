@@ -1,13 +1,14 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
 import { Notice } from '@/components/ui/Notice';
 import { theme } from '@/constants/theme';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { skinAnalysisEnabled, skinAnalysisSupported } from '@/lib/skinAnalysis';
+import { useMemberCameraConsent } from '@/hooks/useMemberCameraConsent';
 import { useOwnedSkinProfile } from '@/hooks/useOwnedSkinProfile';
 
 /** Separate consent before skin capture. Manual concern selection never needs the camera. */
@@ -16,7 +17,11 @@ export default function SkinConsentScreen() {
   const { t } = useI18n();
   const [agreed, setAgreed] = useState(false);
   const { profile } = useOwnedSkinProfile();
+  const cameraChoice = useMemberCameraConsent();
   const canCapture = skinAnalysisEnabled && skinAnalysisSupported;
+
+  if (cameraChoice.loading) return <ActivityIndicator color={theme.colors.rose} />;
+  if (canCapture && cameraChoice.granted) return <Redirect href="/skin-analysis" />;
 
   const points: TranslationKey[] = [
     'skinFlow.consent.notMedical',
@@ -46,7 +51,7 @@ export default function SkinConsentScreen() {
           ))}
         </View>
 
-        {canCapture ? (
+        {canCapture && !cameraChoice.member ? (
           <Pressable
             onPress={() => setAgreed((v) => !v)}
             accessibilityRole="checkbox"
@@ -55,17 +60,15 @@ export default function SkinConsentScreen() {
             <Ionicons name={agreed ? 'checkbox' : 'square-outline'} size={24} color={agreed ? theme.colors.rose : theme.colors.inkFaint} />
             <Text style={styles.agreeText}>{t('skinFlow.consent.agree')}</Text>
           </Pressable>
-        ) : (
-          <Notice tone="warning" body={t('skinFlow.consent.captureOff')} />
-        )}
+        ) : !canCapture ? <Notice tone="warning" body={t('skinFlow.consent.captureOff')} /> : null}
       </ScrollView>
       <View style={styles.footer}>
         {canCapture ? (
           <Button
-            label={t('skinFlow.consent.start')}
+            label={t(cameraChoice.member ? 'consent.review' : 'skinFlow.consent.start')}
             icon="camera-outline"
-            disabled={!agreed}
-            onPress={() => router.push('/skin-analysis')}
+            disabled={!cameraChoice.member && !agreed}
+            onPress={() => router.push(cameraChoice.member ? '/terms-consent' : '/skin-analysis')}
           />
         ) : null}
         {profile ? (

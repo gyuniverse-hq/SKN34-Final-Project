@@ -975,13 +975,29 @@ export interface ApiErrorBody {
   code?: string;
 }
 
+export interface RewardCoupon {
+  id: string;
+  expiresAt: string;
+  status: 'available' | 'reserved' | 'used' | 'expired';
+  reservedOrderId: string | null;
+}
+
+export interface RewardWallet {
+  stamps: number;
+  goal: number;
+  checkedToday: boolean;
+  refreshAt: string;
+  coupons: RewardCoupon[];
+}
+
 export interface CreateOrderResponse {
   orderId: string;
   amount: number;
   checkoutUrl: string;
+  localCheckoutPath?: string | null;
 }
 
 export interface OrderStatusResponse {
   orderId: string;
-  status: 'pending' | 'paid';
+  status: 'pending' | 'paid' | 'canceled';
 }

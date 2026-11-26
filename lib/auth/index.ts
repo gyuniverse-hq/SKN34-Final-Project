@@ -64,12 +64,13 @@ export async function signUpWithEmail(email: string, password: string) {
   if (error) throw error;
   // With email confirmation on, Supabase answers an existing address with an identity-less user instead of an error.
   if (data.user && data.user.identities?.length === 0) throw new AuthFlowError('user_already_exists');
-  return { needsVerification: !data.session };
+  return { needsVerification: !data.session, userId: data.session?.user.id ?? null };
 }
 
 export async function verifySignupCode(email: string, code: string) {
-  const { error } = await requireClient().auth.verifyOtp({ email, token: code, type: 'signup' });
+  const { data, error } = await requireClient().auth.verifyOtp({ email, token: code, type: 'signup' });
   if (error) throw error;
+  return data.session?.user.id ?? null;
 }
 
 export async function resendSignupCode(email: string) {

@@ -46,7 +46,7 @@ jest.mock('@/lib/queries', () => {
     lip('balm', '이니스프리 유채꿀 립밤', 'satin', '#F1C7CF'),
     lip('essence', '토리든 솔리드인 세라마이드 립 에센스', 'glossy', '#ECDDAE'),
   ];
-  return { useProducts: () => ({ data: products }), useTryOnProducts: () => ({ data: products }) };
+  return { useProducts: () => ({ data: products }), useMe: () => ({ data: undefined, isPending: false }), useTryOnProducts: () => ({ data: products }) };
 });
 
 const chipLabels = (screen: renderer.ReactTestRenderer) => screen.root.findAllByType(Chip).map((c) => c.props.label as string);

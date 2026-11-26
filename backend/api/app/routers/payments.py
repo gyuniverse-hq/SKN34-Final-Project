@@ -36,6 +36,15 @@ async def order_status(
     return await service.order_status(user.id, order_id)
 
 
+@api.post("/orders/{order_id}/close", response_model=OrderStatus)
+async def close_checkout(
+    order_id: str,
+    user: AuthUser = Depends(require_user),
+    service: PaymentService = Depends(get_payment_service),
+) -> OrderStatus:
+    return await service.close_checkout(user.id, order_id)
+
+
 @api.post("/confirm", response_model=PaymentResult)
 async def confirm(
     body: ConfirmPaymentRequest, service: PaymentService = Depends(get_payment_service)

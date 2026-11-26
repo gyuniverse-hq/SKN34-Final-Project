@@ -179,7 +179,6 @@ async def experiment_report(*, experiment, start, end, as_of, window_hours):
             end=end,
             as_of=as_of,
             window_hours=window_hours,
-            owners=get_settings().ar_activity_consented_members,
             terms=TERMS_VERSION,
         )
     counts = (
