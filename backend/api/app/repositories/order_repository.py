@@ -55,11 +55,16 @@ class OrderRepository:
             await self._attach_skincare_checkout_sources(order, skincare_cart_events)
         await self._session.commit()
 
+    async def commit(self) -> None:
+        await self._session.commit()
+
     async def get(self, order_id: str, *, lock: bool = False) -> OrderRow | None:
         query = (
             select(OrderRow).options(selectinload(OrderRow.lines)).where(OrderRow.id == order_id)
         )
-        return await self._session.scalar(query.with_for_update() if lock else query)
+        if lock:
+            query = query.with_for_update().execution_options(populate_existing=True)
+        return await self._session.scalar(query)
 
     async def _attach_cart_recommendation_sources(self, order, visit_id, cart_events, terms):
         visit = CartRecommendationVisitRow

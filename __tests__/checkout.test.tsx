@@ -8,6 +8,9 @@ import { useCartStore } from '@/store/cartStore';
 
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('@/components/ui/StateViews', () => ({ EmptyState: 'EmptyState', LoadingState: 'LoadingState' }));
+const mockWallet = { data: { coupons: [] as { id: string; status: string }[] }, refetch: jest.fn() };
+jest.mock('@/hooks/useRewards', () => ({ useRewards: () => mockWallet }));
+let mockSubtotal = 1000;
 const mockSearchParams: { cartVisitId?: string } = {};
 jest.mock('expo-router', () => ({
   useRouter: () => ({ replace: jest.fn() }),
@@ -15,7 +18,7 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('expo-web-browser', () => ({ openAuthSessionAsync: jest.fn() }));
 jest.mock('@/lib/auth', () => ({ useAuth: () => ({ user: { id: 'user-1' }, ready: true }) }));
-jest.mock('@/lib/api', () => ({ apiGet: jest.fn(), apiPost: jest.fn() }));
+jest.mock('@/lib/api', () => ({ apiGet: jest.fn(), apiPost: jest.fn(), API_BASE_URL: 'http://localhost:8080' }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 jest.mock('@/hooks/useCartLines', () => {
   const { useCartStore } = jest.requireActual('@/store/cartStore');
@@ -23,7 +26,7 @@ jest.mock('@/hooks/useCartLines', () => {
     useCartLines: () => ({
       lines: [{ key: 'p::s', item: useCartStore.getState().items[0] ?? { productId: 'p', shadeId: 's', quantity: 1 },
         product: { id: 'p', brand: 'B', name: 'P' }, shade: { id: 's', name: 'S' }, lineTotal: 1000 }],
-      total: 1000,
+      total: mockSubtotal,
       query: { isPending: false },
     }),
   };
@@ -36,6 +39,8 @@ let mounted: renderer.ReactTestRenderer | undefined;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockWallet.data.coupons = [];
+  mockSubtotal = 1000;
   delete mockSearchParams.cartVisitId;
   useCartStore.setState({ items: [{ productId: 'p', shadeId: 's', quantity: 1 }], pendingPayment: null });
   post.mockResolvedValue({ orderId: 'order-1', checkoutUrl: 'https://example.com/pay', amount: 1000 });
@@ -58,7 +63,7 @@ it('clears paid items only after the server confirms the order', async () => {
   browser.mockResolvedValue({ type: 'success', url: 'kbeautyar://payment-result?orderId=order-1' });
   get.mockResolvedValue({ orderId: 'order-1', status: 'paid' });
   const screen = await start();
-  expect(get).toHaveBeenCalledWith('/api/payments/orders/order-1');
+  expect(get).toHaveBeenCalledWith('/api/payments/orders/order-1', { expectedUserId: 'user-1' });
   expect(useCartStore.getState().items).toHaveLength(0);
   expect(JSON.stringify(screen.toJSON())).toContain('checkout.paid');
 });
@@ -113,6 +118,26 @@ it('does not treat an unverified success redirect as payment', async () => {
   expect(useCartStore.getState().items).toHaveLength(1);
   expect(useCartStore.getState().pendingPayment?.orderId).toBe('order-1');
   expect(JSON.stringify(screen.toJSON())).toContain('checkout.checkFailed');
+});
+
+it.each(['canceled', 'pending', 'paid'])('uses the server result when a coupon checkout closes: %s', async (status) => {
+  mockWallet.data.coupons = [{ id: 'coupon-id', status: 'available' }];
+  mockSubtotal = 25000;
+  post.mockResolvedValueOnce({ orderId: 'order-1', checkoutUrl: 'https://example.com/pay', localCheckoutPath: '/pay/order-1?token=test', amount: 23000 })
+    .mockResolvedValueOnce({ orderId: 'order-1', status });
+  browser.mockResolvedValue({ type: 'cancel' as WebBrowser.WebBrowserResultType.CANCEL });
+  await act(async () => { mounted = renderer.create(<CheckoutScreen />); });
+  const press = async (label: string) => {
+    const button = mounted!.root.findAllByType(Button).find(node => node.props.label === label);
+    await act(async () => { await button!.props.onPress(); });
+  };
+  await press('checkout.useCoupon');
+  await press('checkout.payment');
+  expect(post).toHaveBeenCalledWith('/api/payments/orders', expect.objectContaining({ couponId: 'coupon-id' }), { expectedUserId: 'user-1' });
+  expect(browser).toHaveBeenCalledWith('http://localhost:8080/pay/order-1?token=test', 'kbeautyar://payment-result');
+  expect(post).toHaveBeenCalledWith('/api/payments/orders/order-1/close', {}, { expectedUserId: 'user-1' });
+  expect(useCartStore.getState().pendingPayment?.orderId).toBe(status === 'pending' ? 'order-1' : undefined);
+  expect(useCartStore.getState().items).toHaveLength(status === 'paid' ? 0 : 1);
 });
 
 it('shows a failure without discarding the cart', async () => {

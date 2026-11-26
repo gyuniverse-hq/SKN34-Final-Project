@@ -12,6 +12,7 @@ export function cartLineKey(item: Pick<CartItem, 'productId' | 'shadeId'>) {
 
 export interface PendingPayment {
   orderId: string;
+  couponId?: string;
   userId: string;
   items: CartItem[];
 }
@@ -26,6 +27,7 @@ interface CartState {
   clear: () => void;
   reset: () => void;
   setPendingPayment: (payment: PendingPayment) => void;
+  dismissPayment: (orderId: string) => void;
   completePayment: (orderId: string) => void;
 }
 
@@ -75,6 +77,7 @@ export const useCartStore = create<CartState>()(
       clear: () => set({ items: [] }),
       reset: () => set({ items: [], pendingPayment: null }),
       setPendingPayment: (payment) => set({ pendingPayment: payment }),
+      dismissPayment: (orderId) => set(s => s.pendingPayment?.orderId === orderId ? { pendingPayment: null } : s),
       completePayment: (orderId) =>
         set((s) => {
           if (s.pendingPayment?.orderId !== orderId) return s;

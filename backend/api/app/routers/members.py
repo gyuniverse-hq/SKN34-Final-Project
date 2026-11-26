@@ -9,9 +9,28 @@ from app.schemas.member import (
     SkinAccess,
     TermsStatus,
 )
+from app.schemas.reward import RewardWallet
 from app.services.member_service import MemberService, get_member_service
+from app.services.reward_service import RewardService, get_reward_service
 
 router = APIRouter(prefix="/api", tags=["members"])
+
+
+@router.get("/me/rewards")
+async def rewards(
+    response: Response,
+    user: AuthUser = Depends(require_user),
+    service: RewardService = Depends(get_reward_service),
+) -> RewardWallet:
+    response.headers["Cache-Control"] = "private, no-store"
+    return await service.wallet(user.id)
+
+
+@router.post("/me/rewards/attendance")
+async def attend(
+    user: AuthUser = Depends(require_user), service: RewardService = Depends(get_reward_service)
+) -> RewardWallet:
+    return await service.wallet(user.id, attend=True)
 
 
 @router.get("/me", response_model=MeResponse)

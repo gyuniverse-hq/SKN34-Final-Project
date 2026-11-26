@@ -20,6 +20,7 @@ class OrderLineRequest(BaseModel):
 
 
 class CreateOrderRequest(BaseModel):
+    coupon_id: UUID | None = Field(None, alias="couponId")
     lines: list[OrderLineRequest] = Field(min_length=1, max_length=30)
     cart_visit_id: UUID | None = Field(default=None, alias="cartVisitId")
 
@@ -28,6 +29,7 @@ class CreateOrderResponse(BaseModel):
     order_id: str = Field(alias="orderId")
     amount: int
     checkout_url: str = Field(alias="checkoutUrl")
+    local_checkout_path: str | None = Field(None, alias="localCheckoutPath")
 
 
 class ConfirmPaymentRequest(BaseModel):
