@@ -17,6 +17,8 @@ import { ApiError } from '@/lib/api';
 import { signOut, useAuth } from '@/lib/auth';
 import { confirmAction, notify } from '@/lib/confirm';
 import { LANGUAGE_LABELS, LANGUAGES, useI18n, type LanguagePreference } from '@/lib/i18n';
+import { localNicknameKey } from '@/lib/localNickname';
+import { rewardsKey } from '@/hooks/useRewards';
 import { STORAGE_KEYS } from '@/lib/storage';
 import { pendingProfileKey } from '@/lib/skinRegistration';
 import { clearSkinTimings, skinProfileKey } from '@/lib/skinProfile';
@@ -72,11 +74,11 @@ export default function SettingsScreen() {
       useShoppingListStore.getState().clear();
       useSettingsStore.getState().reset();
       useMakeupStore.getState().reset();
-      queryClient.clear();
       await clearSkinTimings();
-      const profileKeys = (await AsyncStorage.getAllKeys()).filter(key =>
-        key.startsWith(`${STORAGE_KEYS.skinProfile}:`) || key.startsWith(`${STORAGE_KEYS.firstArInvitation}:`));
-      await AsyncStorage.multiRemove([...Object.values(STORAGE_KEYS), ...profileKeys]);
+      const scopedPrefixes = [STORAGE_KEYS.skinProfile, STORAGE_KEYS.firstArInvitation, STORAGE_KEYS.rewards, STORAGE_KEYS.nickname];
+      const scopedKeys = (await AsyncStorage.getAllKeys()).filter(key => scopedPrefixes.some(prefix => key.startsWith(`${prefix}:`)));
+      await AsyncStorage.multiRemove([...Object.values(STORAGE_KEYS), ...scopedKeys]);
+      queryClient.clear();
       useSkinProfileStore.getState().reset();
       notify(t('my.deleteDataDone'));
     });
@@ -90,7 +92,12 @@ export default function SettingsScreen() {
         notify(t(unavailable ? 'account.deleteUnavailable' : 'auth.error.generic'));
         return;
       }
-      if (user) await AsyncStorage.multiRemove([skinProfileKey(user.id), pendingProfileKey(user.id), `${STORAGE_KEYS.firstArInvitation}:${user.id}`]);
+      if (user) {
+        await AsyncStorage.multiRemove([skinProfileKey(user.id), pendingProfileKey(user.id), `${STORAGE_KEYS.firstArInvitation}:${user.id}`,
+          localNicknameKey(user.id), `${STORAGE_KEYS.rewards}:${user.id}`]);
+        queryClient.removeQueries({ queryKey: [localNicknameKey(user.id)] });
+        queryClient.removeQueries({ queryKey: rewardsKey(user.id) });
+      }
       useSkinProfileStore.getState().reset();
       await signOut().catch(() => {});
       queryClient.removeQueries({ queryKey: ['me'] });

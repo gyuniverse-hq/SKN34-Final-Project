@@ -4,6 +4,8 @@ import { createJSONStorage } from 'zustand/middleware';
 export const persistStorage = createJSONStorage(() => AsyncStorage);
 
 export const STORAGE_KEYS = {
+  rewards: 'kb.rewards.v1',
+  nickname: 'kb.nickname.v1',
   cart: 'kb.cart.v1',
   compare: 'kb.compare.v1',
   settings: 'kb.settings.v1',
