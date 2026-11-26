@@ -107,6 +107,7 @@ export const zh: Dictionary = {
   'chat.option.unsupported': '不支持的条件',
   'chat.option.error': '查询失败',
   'chat.compound.outcomes': '候选项中，符合条件 {eligible} 个 · 已排除 {excluded} 个 · 未确认 {unknown} 个 · 查询失败 {failed} 个',
+  'chat.option.evidenceSource': '依据来源 · {source}',
   'chat.compound.amount': '{amount} 韩元',
   'chat.compound.priceInfo': '价格信息',
   'chat.compound.catalogPrice': '商品目录中登记的参考价格。',

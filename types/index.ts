@@ -699,7 +699,16 @@ export interface CompoundConsultation {
   limitations: string[];
 }
 
+export interface OwnedLookOptionDisplay {
+  selections: { productId: string; shadeId: string; optionId: string;
+    productName: string; brand: string; shadeName: string }[];
+  batches: ChatOptionSearch[];
+  failedProductIds: string[];
+}
+
 export interface ChatResponse {
+  ownedLookOptions?: OwnedLookOptionDisplay;
+
   compound?: CompoundConsultation | null;
   conversation?: { id: string; version: number; turnId: string; persistenceStatus: 'stored' };
   memoryProposal?: ChatMemoryProposal | null;

@@ -9,7 +9,7 @@ import {
   StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChatProducts, CompoundProductCards } from '@/components/chat/ChatProducts';
+import { ChatProducts, CompoundProductCards, OwnedLookOptionCards } from '@/components/chat/ChatProducts';
 import { IngredientResult } from '@/components/chat/IngredientResult';
 import { KnowledgeCitations } from '@/components/chat/KnowledgeCitations';
 import { MemoryProposalGroup } from '@/components/chat/MemoryProposalGroup';
@@ -1260,10 +1260,12 @@ function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload
                   </Pressable> : null}
                 </View>
               ) : null}
+              {message.role === 'assistant' && message.ownedLookOptions ? <OwnedLookOptionCards result={message.ownedLookOptions}
+                onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId, undefined, true)); }} /> : null}
               {message.role === 'assistant' && message.compound ? <CompoundProductCards result={message.compound}
                 onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId, undefined, true)); }} /> : null}
               {message.role === 'assistant' && !message.compound && message.optionSearch ? <OptionSearchScope result={message.optionSearch} /> : null}
-              {message.role === 'assistant' && !message.compound && !message.fragranceSearchSummary &&
+              {message.role === 'assistant' && !message.compound && !message.ownedLookOptions && !message.fragranceSearchSummary &&
                 !!(message.products?.length || (message.styleRecipe?.kind === 'video' && message.styleRecipe.products.length)) &&
                 (!message.styleRecipe || (message.styleRecipe.productQuestion ?? /제품|상품|product|商品|製品|产品|사용한.{0,12}(?:립|입술|아이라인|아이라이너|마스카라|컨실러)/i.test(message.question ?? ''))) ? <RelatedProducts refs={message.products ?? []} optionSearch={message.optionSearch}
                   colorMemory={userId && memorySettings?.enabled !== false
@@ -1277,7 +1279,7 @@ function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload
                 selectedProductId={chosenProductId}
                 onSelectProduct={canSelect(message) ? (productId) => selectProduct(productId, message) : undefined}
                 onSelectShade={(productId, shadeId) => selectShade(productId, shadeId, message)} /> : null}
-              {message.role === 'assistant' && !message.compound && !message.fragranceSearchSummary && !message.knowledge && !message.products?.length && (message.category === 'product' || message.category === undefined) &&
+              {message.role === 'assistant' && !message.compound && !message.ownedLookOptions && !message.fragranceSearchSummary && !message.knowledge && !message.products?.length && (message.category === 'product' || message.category === undefined) &&
                 (message.resultType === 'empty' || (!message.resultType && extractChatConditions(message.question ?? '').length)) ? (
                 <View style={styles.emptyState}>
                   <View style={styles.stateIcon}><Ionicons name="search-outline" size={22} color={theme.colors.rose} /></View>

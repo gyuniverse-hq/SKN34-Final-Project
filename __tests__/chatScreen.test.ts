@@ -4,7 +4,7 @@ import { AppState, Keyboard, KeyboardAvoidingView, Platform, Text, TextInput, ty
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import ChatScreen from '@/app/chat';
 import type { BeautyChatContext, ChatStyleRecipe } from '@/types';
-import { ChatProducts, CompoundProductCards } from '@/components/chat/ChatProducts';
+import { ChatProducts, CompoundProductCards, OwnedLookOptionCards } from '@/components/chat/ChatProducts';
 import { IngredientResult } from '@/components/chat/IngredientResult';
 import { RecentConversations } from '@/components/chat/RecentConversations';
 import { StyleRecipeResult } from '@/components/chat/StyleRecipeResult';
@@ -68,7 +68,7 @@ jest.mock('@/lib/queries', () => ({
   useLook: () => ({}),
   useProduct: (id: string) => ({ data: { id, name: id, shades: [{ id: `${id}-01`, name: '01' }, { id: `${id}-02`, name: '02' }] } }),
 }));
-jest.mock('@/components/chat/ChatProducts', () => ({ ChatProducts: () => null, CompoundProductCards: () => null }));
+jest.mock('@/components/chat/ChatProducts', () => ({ ChatProducts: () => null, CompoundProductCards: () => null, OwnedLookOptionCards: () => null }));
 jest.mock('@expo/vector-icons/Ionicons', () => () => null);
 const mockRouteParams: { recipeKind?: string; recipeLookId?: string; productId?: string; shadeId?: string } = {};
 jest.mock('expo-router', () => ({
@@ -1644,6 +1644,20 @@ describe('standalone chat input', () => {
       await act(async () => { view.unmount(); });
     }
   );
+  it('routes N02 option evidence to exact cards without refetching product headline prices', async () => {
+    const ownedLookOptions = { selections: [], batches: [], failedProductIds: [] };
+    mockMutateAsync.mockResolvedValueOnce({ answer: '조건 확인', products: [{ id: 'p1' }], ownedLookOptions });
+    const view = await renderScreen();
+    await act(async () => { view.root.findByType(TextInput).props.onChangeText('이 룩 제품 추천'); });
+    await act(async () => { view.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress(); });
+    const cards = view.root.findByType(OwnedLookOptionCards);
+    expect(cards.props.result).toEqual(ownedLookOptions);
+    expect(view.root.findAllByType(ChatProducts)).toHaveLength(0);
+    expect(mockProductsByIds).not.toHaveBeenCalled();
+    await act(async () => { cards.props.onOpenProduct('p1', 'shade-1'); });
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/product/[id]', params: { id: 'p1', shade: 'shade-1', requireShade: '1' } });
+    await act(async () => { view.unmount(); });
+  });
   it('hides answer emphasis without changing the question, stored answer, or source quote', async () => {
     const question = '질문 **그대로**';
     const answer = '답변 **강조** 그리고 **미완성';

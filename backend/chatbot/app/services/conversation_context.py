@@ -23,6 +23,7 @@ from app.schemas.supervisor import ScreenContext
 from app.services.style_recipe_service import execute_style
 
 _DISPLAY_FIELDS = {
+    "ownedLookOptions",
     "compound",
     "appliedMemories",
     "products",
@@ -363,6 +364,10 @@ def display_payload(response: ChatResponse) -> dict:
     if response.compound is not None:
         # Persist the same nullable evidence fields that the live card received.
         payload["compound"] = response.compound.model_dump(mode="json", by_alias=True)
+    if response.owned_look_options is not None:
+        payload["ownedLookOptions"] = response.owned_look_options.model_dump(
+            mode="json", by_alias=True
+        )
     result = _sanitize({key: value for key, value in payload.items() if key in _DISPLAY_FIELDS})
     for item in result.get("ingredientResults", []):
         item.setdefault("shadeId", None)

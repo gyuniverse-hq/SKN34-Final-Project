@@ -51,6 +51,7 @@ _FORBIDDEN = {
     "videoframe",
 }
 _DISPLAY_KEYS = {
+    "ownedLookOptions",
     "compound",
     "appliedMemories",
     "products",

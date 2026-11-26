@@ -1572,20 +1572,61 @@ def test_n02_consented_inventory_selected_look_persistence_and_replay(
     assert following["appliedMemories"][0]["productId"] == "lip-a"
     assert [p["id"] for p in following["products"]] == ["blush-b"]
     assert "블러셔 제품도 가지고 있나요" not in following["answer"]
+    priced_request_id = str(uuid4())
     priced = ask(
-        client, room, following["conversation"]["version"], "2만원 이하, 향료 제외", structured=True
+        client,
+        room,
+        following["conversation"]["version"],
+        "2만원 이하, 향료 제외",
+        request_id=priced_request_id,
+        structured=True,
     )
     assert [p["id"] for p in priced["products"]] == ["blush-b"]
+    display = priced["ownedLookOptions"]
+    assert display["selections"][0]["optionId"] == "blush-b-sale"
+    assert display["batches"][0]["items"][0]["price"]["amountKRW"] == 15000
+    restored = client.get(detail, headers=AUTH).json()["messages"][-1]["displayPayload"]
+    assert restored["ownedLookOptions"] == display
+    calls_before_replay = (len(catalog.option_calls), len(tasks))
+    replay_priced = ask(
+        client,
+        room,
+        following["conversation"]["version"],
+        "2만원 이하, 향료 제외",
+        request_id=priced_request_id,
+        structured=True,
+    )
+    assert replay_priced == priced
+    assert calls_before_replay == (len(catalog.option_calls), len(tasks))
+
     lowered = ask(
         client, room, priced["conversation"]["version"], "예산은 1만원 이하", structured=True
     )
     assert not lowered["products"]
     assert catalog.option_calls[-1].max_price_krw == 10000
     assert catalog.option_calls[-1].ingredient_conditions[0].ingredient_name == "향료"
+    reversed_release = ask(
+        client,
+        room,
+        lowered["conversation"]["version"],
+        "향료 제외. 성분 조건 전체 해제해줘.",
+        structured=True,
+    )
+    assert not catalog.option_calls[-1].ingredient_conditions
+    assert catalog.option_calls[-1].max_price_krw == 10000
     filter_clear = ask(
-        client, room, lowered["conversation"]["version"], "상품 조건 전체 해제해줘", structured=True
+        client,
+        room,
+        reversed_release["conversation"]["version"],
+        "상품 조건 전체 해제해줘. 예산은 2만원 이하. 판테놀 제외.",
+        structured=True,
     )
     assert [p["id"] for p in filter_clear["products"]] == ["blush-b"]
+    assert catalog.option_calls[-1].max_price_krw == 20000
+    assert [c.ingredient_name for c in catalog.option_calls[-1].ingredient_conditions] == ["판테놀"]
+    restored = client.get(detail, headers=AUTH).json()["messages"][-1]["displayPayload"]
+    assert restored["ownedLookOptions"] == filter_clear["ownedLookOptions"]
+
     changed = ask(
         client,
         room,
@@ -1653,6 +1694,8 @@ def test_n02_consented_inventory_selected_look_persistence_and_replay(
                 "answer": reply["answer"],
                 "products": reply["products"],
                 "replayAdditionalCalls": 0,
+                "optionDisplayStoredAndReplayed": display,
+                "orderedConditionTurns": [lowered, reversed_release, filter_clear],
                 "serverLookRestored": True,
                 "ownerIsolation": True,
                 "followup": following["answer"],

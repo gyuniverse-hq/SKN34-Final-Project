@@ -9,7 +9,7 @@ import type { ChatCondition } from '@/lib/chatConditions';
 import { formatKRW } from '@/lib/format';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { parseCategory, parseId } from '@/lib/routes';
-import type { CompoundConsultation, ChatOptionSearch, ChatProductEvidence, ChatStyleRecipe, Product } from '@/types';
+import type { OwnedLookOptionDisplay, CompoundConsultation, ChatOptionSearch, ChatProductEvidence, ChatStyleRecipe, Product } from '@/types';
 
 interface Props {
   optionSearch?: ChatOptionSearch;
@@ -160,6 +160,56 @@ export function CompoundProductCards({ result, onOpenProduct }: {
       </View> : null}
     </View>
   );
+}
+
+/** N02 keeps batch evidence and selects exact sale options, never the product headline price. */
+export function OwnedLookOptionCards({ result, onOpenProduct }: {
+  result: OwnedLookOptionDisplay;
+  onOpenProduct: (id: string, shadeId?: string) => void;
+}) {
+  const { t } = useI18n();
+  const [showScope, setShowScope] = useState(false);
+  const cards = result.selections.flatMap((selection) => {
+    const matches = result.batches.filter(batch => batch.status !== 'ERROR' && batch.effectiveRequest?.priceBasis !== 'current_offer').flatMap(batch => batch.items)
+      .filter(item => item.productId === selection.productId && item.shadeId === selection.shadeId && item.optionId === selection.optionId);
+    // Conflicting or duplicated evidence cannot silently select a different sale option.
+    if (matches.length !== 1 || matches[0].group !== 'ELIGIBLE' || !matches[0].checks.length ||
+        matches[0].checks.some(check => check.verdict !== 'MATCH')) return [];
+    return [{ selection, item: matches[0] }];
+  });
+  return <View style={styles.list}>
+    {cards.map(({ selection, item }) => <View key={JSON.stringify([selection.productId, selection.shadeId, selection.optionId])} style={styles.card}>
+      <Text style={styles.brand}>{selection.brand}</Text>
+      <Text style={styles.name}>{selection.productName} · {selection.shadeName}</Text>
+      {item.synthetic ? <Text style={styles.notice}>{t('chat.option.synthetic')}</Text> : null}
+      {item.price ? <CompoundPrice price={item.price} /> : <Text style={styles.notice}>{t('chat.conditionUnknown')}</Text>}
+      {item.checks.flatMap((check, index) => {
+        if (check.condition === 'fragrance_free') return <Text key={index} style={styles.conditionLabel}>{t('chat.ingredient.fragranceVerified')}</Text>;
+        if (check.condition !== 'ingredient' || !check.ingredientName || !check.operator) return [];
+        return <Text key={index} style={styles.conditionLabel}>{t(check.operator === 'excludes'
+          ? 'chat.compound.ingredientAbsent' : 'chat.compound.ingredientPresent', { name: check.ingredientName })}</Text>;
+      })}
+      {parseId(selection.productId) === selection.productId && parseId(selection.shadeId) === selection.shadeId ?
+        <Pressable accessibilityRole="button" style={styles.open} onPress={() => onOpenProduct(selection.productId, selection.shadeId)}>
+          <Text style={styles.link}>{t('styleLooks.openProduct')}</Text>
+        </Pressable> : null}
+    </View>)}
+    <Pressable accessibilityRole="button" aria-expanded={showScope} onPress={() => setShowScope(value => !value)} style={styles.retry}>
+      <Text style={styles.link}>{t(showScope ? 'chat.option.scopeHide' : 'chat.option.scopeShow')}</Text>
+    </Pressable>
+    {showScope ? <View style={styles.conditionPanel}>
+      {result.batches.map((batch, index) => <View key={index}>
+        <Text style={styles.notice}>{t(batch.checkedScope.stoppedReason === 'TIMEOUT' ? 'chat.option.scopeTimeout'
+          : batch.checkedScope.exhaustive ? 'chat.option.scopeComplete' : 'chat.option.scopeLimited')}</Text>
+        <Text style={styles.notice}>{t('chat.option.scopeProgress', { checked: batch.checkedScope.checkedOptions, total: batch.checkedScope.candidateOptions })}</Text>
+        {batch.checkedScope.errors ? <Text style={styles.notice}>{t('chat.option.scopeErrors', { count: batch.checkedScope.errors })}</Text> : null}
+        <Text style={styles.notice}>{batch.checkedAt}</Text>
+        {batch.items.flatMap(item => item.checks.filter(check => check.sourceRef).map((check, checkIndex) =>
+          <Text key={JSON.stringify([item.productId, item.optionId, checkIndex])} style={styles.notice}>{t('chat.option.evidenceSource', { source: check.sourceRef! })}</Text>))}
+      </View>)}
+      {result.failedProductIds.length ? <Text style={styles.notice}>{t('chat.option.scopeErrors', { count: result.failedProductIds.length })}</Text> : null}
+    </View> : null}
+  </View>;
 }
 
 export function ChatProducts({ optionSearch, sourceProducts, products, loading, failed, missingCount, conditions, showIngredients, onRetry, onOpenProduct, onOpenAr, disabledActions = false, previewImage, candidateOrder, evidence, selectedShades: controlledShades, onSelectShade, onSelectProduct, selectedProductId, expectedIds, fragrance, onOpenEvidence }: Props) {

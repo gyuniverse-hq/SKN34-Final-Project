@@ -107,6 +107,7 @@ export const ja: Dictionary = {
   'chat.option.unsupported': '未対応の条件',
   'chat.option.error': '取得失敗',
   'chat.compound.outcomes': '候補のうち条件一致 {eligible}件・除外 {excluded}件・未確認 {unknown}件・取得失敗 {failed}件',
+  'chat.option.evidenceSource': '根拠資料 · {source}',
   'chat.compound.amount': '{amount}ウォン',
   'chat.compound.priceInfo': '価格について',
   'chat.compound.catalogPrice': '商品カタログに登録された参考価格です。',

@@ -16,7 +16,12 @@ from app.schemas.owned_look_consultation import (
     OwnedLookResult,
     OwnedLookTask,
 )
-from app.schemas.owned_look_context import OwnedLookContext, OwnershipDeclaration
+from app.schemas.owned_look_context import (
+    OwnedLookContext,
+    OwnedLookOptionDisplay,
+    OwnedLookOptionRef,
+    OwnershipDeclaration,
+)
 from app.services.consultation_memory import (
     CONSULTATION_MEMORY_LIMIT,
     ignores_memory,
@@ -317,7 +322,9 @@ async def execute_owned_look(req, catalog, *, trace=None):
         elif zone in declarations or alternatives:
             state, reason = (
                 "evidence_missing",
-                "보유한다고 알려주셨지만 정확한 상품·호수는 아직 확인하지 못했어요.",
+                "보유 제품은 확인했지만 이 룩의 대체품으로 적합한지는 아직 확인하지 못했어요."
+                if alternatives
+                else "보유한다고 알려주셨지만 정확한 상품·호수는 아직 확인하지 못했어요.",
             )
         else:
             state, reason = (
@@ -407,6 +414,9 @@ async def execute_owned_look(req, catalog, *, trace=None):
                 option_results.append(result)
             except (UpstreamError, ValueError):
                 option_failures.extend(option_request.product_ids)
+    # Catalog currently has no live-price evidence type. Without a budget it may
+    # omit the price check altogether; ELIGIBLE alone does not verify this user request.
+    current_price_unverified = filters.price_basis == "current_offer"
     v1 = record(
         "V1",
         "options",
@@ -418,20 +428,24 @@ async def execute_owned_look(req, catalog, *, trace=None):
         },
         bindings=(("P1", "products"), ("S1", "recipe")),
         status="partial"
-        if option_failures or any(r.status != "SUCCESS" for r in option_results)
+        if current_price_unverified
+        or option_failures
+        or any(r.status != "SUCCESS" for r in option_results)
         else "complete"
         if option_requests
         else "skipped",
         option_searches=option_results,
-        limitations=["옵션 조회 실패: " + pid for pid in option_failures],
+        limitations=["옵션 조회 실패: " + pid for pid in option_failures]
+        + (["실시간 현재가 근거 미확인"] if current_price_unverified else []),
     )
     eligible_options = {
         (item.product_id, item.shade_id)
         for result in v1.option_searches
         for item in result.items
-        if item.group == "ELIGIBLE" and result.status != "ERROR"
+        if item.group == "ELIGIBLE" and result.status != "ERROR" and not current_price_unverified
     }
     selected, selected_ids = [], set()
+    option_refs = {}
     for gap in n1.coverage:
         if gap.status != "confirmed_missing":
             continue
@@ -444,6 +458,28 @@ async def execute_owned_look(req, catalog, *, trace=None):
                 and (not check_options or (product.id, link.shade_id) in eligible_options)
             ):
                 selected_ids.add(product.id)
+                if check_options:
+                    for batch in option_results:
+                        if batch.status == "ERROR":
+                            continue
+                        for item in batch.items:
+                            if (item.product_id, item.shade_id) != (
+                                product.id,
+                                link.shade_id,
+                            ) or item.group != "ELIGIBLE":
+                                continue
+                            option_refs[(item.product_id, item.shade_id, item.option_id)] = (
+                                OwnedLookOptionRef(
+                                    product_id=product.id,
+                                    shade_id=link.shade_id,
+                                    option_id=item.option_id,
+                                    product_name=product.name,
+                                    brand=product.brand,
+                                    shade_name=next(
+                                        s.name for s in product.shades if s.id == link.shade_id
+                                    ),
+                                )
+                            )
     selected = [p for p in p1.products if p.id in selected_ids]
     record(
         "R1",
@@ -497,7 +533,15 @@ async def execute_owned_look(req, catalog, *, trace=None):
             if (item.product_id, item.shade_id) in exact
         ]
         counts = {
-            group: sum(item.group == group for item in checked)
+            group: sum(
+                (
+                    "REFERENCE_ONLY"
+                    if current_price_unverified and item.group == "ELIGIBLE"
+                    else item.group
+                )
+                == group
+                for item in checked
+            )
             for group in ("ELIGIBLE", "EXCLUDED", "REFERENCE_ONLY")
         }
         lines.append(
@@ -534,5 +578,16 @@ async def execute_owned_look(req, catalog, *, trace=None):
             else "empty",
         }
     )
+    if check_options:
+        response.owned_look_options = OwnedLookOptionDisplay(
+            selections=list(option_refs.values()),
+            batches=option_results,
+            failed_product_ids=option_failures,
+        )
+        if filters.price_basis == "current_offer":
+            response.answer += (
+                "\n실시간 현재가는 확인하지 못했어요. "
+                "가격 정보의 확인 시점과 구매 화면을 확인해 주세요."
+            )
     response._owned_look_context = owned_state
     return response

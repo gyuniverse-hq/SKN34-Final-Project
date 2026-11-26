@@ -105,6 +105,7 @@ export const en = {
   'chat.option.unsupported': 'Unsupported condition',
   'chat.option.error': 'Lookup failed',
   'chat.compound.outcomes': 'Among the candidates, {eligible} verified · {excluded} excluded · {unknown} unconfirmed · {failed} failed to load',
+  'chat.option.evidenceSource': 'Evidence source · {source}',
   'chat.compound.amount': '₩{amount}',
   'chat.compound.priceInfo': 'Price details',
   'chat.compound.catalogPrice': 'Reference price listed in the product catalog.',

@@ -1,7 +1,7 @@
 import { createElement } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
-import { ChatProducts, CompoundProductCards } from '@/components/chat/ChatProducts';
+import { ChatProducts, CompoundProductCards, OwnedLookOptionCards } from '@/components/chat/ChatProducts';
 import { ProductCompareSheet } from '@/components/chat/ProductCompareSheet';
 import { ProductImage } from '@/components/ui/ProductImage';
 import type { ChatCondition } from '@/lib/chatConditions';
@@ -588,4 +588,38 @@ test('G4 labels each shade and preserves exact shade selection, detail and try-o
     expect(onOpenProduct).toHaveBeenLastCalledWith(lip.id, shadeId);
   }
   await act(async () => renderer.unmount());
+});
+
+
+test('N02 renders the verified option price and shade, not the product headline price', async () => {
+  const batch: ChatOptionSearch = {
+    schemaVersion: 1, status: 'SUCCESS', products: [{ ...lip, priceKRW: 5900 }],
+    items: [{ productId: lip.id, shadeId: 'shade-1', optionId: 'sale-1', sourceVersion: 'synthetic-v1',
+      group: 'ELIGIBLE', synthetic: true,
+      checks: [{ condition: 'price', verdict: 'MATCH', reason: 'fixture', evidenceId: 'price-proof' }],
+      price: { amountKRW: 7600, requestedBasis: 'collected_snapshot', observedBasis: 'collected_snapshot',
+        observedAt: '2026-11-25T00:00:00Z', checkedAt: '2026-11-26T00:00:00Z', sourceRef: 'https://example.test/sale', sourceVersion: 'synthetic-v1' } }],
+    checkedScope: { candidateProducts: 1, candidateOptions: 1, checkedOptions: 1, unidentifiedOptions: 0,
+      exhaustive: true, stoppedReason: 'COMPLETE', errors: 0 }, excludedCount: 0, omittedCount: 0,
+  };
+  const result = { selections: [{ productId: lip.id, shadeId: 'shade-1', optionId: 'sale-1',
+    productName: lip.name, brand: lip.brand, shadeName: 'Rose' }], batches: [batch], failedProductIds: [] };
+  let renderer!: ReactTestRenderer;
+  const onOpenProduct = jest.fn();
+  await act(async () => { renderer = create(createElement(OwnedLookOptionCards, { result, onOpenProduct })); });
+  expect(textRows(renderer)).toContain('7,600원');
+  expect(textRows(renderer).join(' ')).not.toContain('5,900');
+  expect(textRows(renderer)).toContain('Lip product · Rose');
+  await act(async () => { buttonWithText(renderer.root, 'styleLooks.openProduct').props.onPress(); });
+  expect(onOpenProduct).toHaveBeenCalledWith(lip.id, 'shade-1');
+  await act(async () => { buttonWithText(renderer.root, '가격 정보').props.onPress(); });
+  expect(textRows(renderer).join(' ')).toContain('판매처에서 확인한 당시 가격');
+  await act(async () => { renderer.update(createElement(OwnedLookOptionCards, { result: { ...result,
+    selections: [{ ...result.selections[0], shadeId: 'different' }] }, onOpenProduct })); });
+  expect(textRows(renderer)).not.toContain('7,600원');
+  const liveBasisBatch: ChatOptionSearch = { ...batch, effectiveRequest: { query: '', priceBasis: 'current_offer',
+    ingredientConditions: [], fragranceFree: false, moisturizing: false, unsupportedConditions: [] } };
+  await act(async () => { renderer.update(createElement(OwnedLookOptionCards, { result: { ...result, batches: [liveBasisBatch] }, onOpenProduct })); });
+  expect(textRows(renderer)).not.toContain('7,600원');
+  await act(async () => { renderer.unmount(); });
 });

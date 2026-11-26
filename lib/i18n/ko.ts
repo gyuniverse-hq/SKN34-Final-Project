@@ -107,6 +107,7 @@ export const ko: Dictionary = {
   'chat.option.unsupported': '미지원 조건',
   'chat.option.error': '조회 실패',
   'chat.compound.outcomes': '후보 중 조건 충족 {eligible}개 · 제외 {excluded}개 · 미확인 {unknown}개 · 조회 실패 {failed}개',
+  'chat.option.evidenceSource': '근거 자료 · {source}',
   'chat.compound.amount': '{amount}원',
   'chat.compound.priceInfo': '가격 정보',
   'chat.compound.catalogPrice': '상품 카탈로그에 등록된 참고 가격이에요.',

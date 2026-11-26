@@ -23,7 +23,7 @@ from app.schemas.memory import (
     ConsultationMemory,
     MemoryProposal,
 )
-from app.schemas.owned_look_context import OwnedLookContext
+from app.schemas.owned_look_context import OwnedLookContext, OwnedLookOptionDisplay
 from app.schemas.style_recipe import (
     StyleCandidate,
     StyleCandidateRef,
@@ -422,6 +422,9 @@ class ChatIngredientResult(CatalogIngredients):
 
 
 class ChatResponse(ApiModel):
+    owned_look_options: OwnedLookOptionDisplay | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
     _owned_look_context: OwnedLookContext | None = PrivateAttr(default=None)
 
     compound: CompoundDisplay | None = Field(default=None, exclude_if=lambda v: v is None)

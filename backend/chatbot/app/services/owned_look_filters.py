@@ -29,54 +29,74 @@ def update_filters(previous, message):
     if re.search(r"\?|라고|다고|친구|말고|하지\s*마|아니", message):
         filters.unsupported = ["조건 변경의 의미 확인 필요"]
         return filters
-    remaining = message
-    if re.search(r"상품\s*조건\s*(?:전체|전부|모두)?\s*(?:해제|취소)", remaining):
-        return OwnedLookFilters()
-    if re.search(r"(?:예산|가격)\s*(?:조건\s*)?(?:해제|취소)", remaining):
-        filters.max_price_krw = None
-        remaining = re.sub(r"(?:예산|가격)\s*(?:조건\s*)?(?:해제|취소)\w*", "", remaining)
-    budget = _explicit_krw_budget(remaining)
-    if budget is not None:
-        filters.max_price_krw = budget
-        remaining = re.sub(r"[\d,만천\s]+원\s*(?:이하|미만)", "", remaining)
-        remaining = re.sub(r"예산(?:은|을)?", "", remaining)
-    if re.search(r"현재가|실시간", message):
-        filters.price_basis = "current_offer"
-    if re.search(r"성분\s*조건\s*(?:전체|전부|모두)?\s*(?:해제|취소)", remaining):
-        filters.ingredient_conditions = []
-        filters.fragrance_free = False
-        remaining = re.sub(r"성분\s*조건\s*(?:전체|전부|모두)?\s*(?:해제|취소)\w*", "", remaining)
-    if re.search(r"무향료\s*(?:조건\s*)?(?:해제|취소)", remaining):
-        filters.fragrance_free = False
-        remaining = re.sub(r"무향료\s*(?:조건\s*)?(?:해제|취소)\w*", "", remaining)
-    if "무향료" in remaining:
-        filters.fragrance_free = True
-        remaining = remaining.replace("무향료", "")
-    by_name = {normalized_ingredient(c.ingredient_name): c for c in filters.ingredient_conditions}
-    for match in _INGREDIENT.finditer(remaining):
-        name = match["quoted"] or match["named"]
-        if name in {"제품", "상품", "립", "블러셔", "기억", "보유품"}:
+    # Resolve explicit operations in textual order, including multiple operations per clause.
+    patterns = {
+        "all": r"상품\s*조건\s*(?:전체|전부|모두)?\s*(?:해제|취소)\w*",
+        "ingredients": r"성분\s*조건\s*(?:전체|전부|모두)?\s*(?:해제|취소)\w*",
+        "budget_clear": r"(?:예산|가격)\s*(?:조건\s*)?(?:해제|취소)\w*",
+        "budget": r"[\d,만천]+(?:\s*[\d,만천]+)*\s*원\s*(?:이하|미만)",
+        "fragrance_clear": r"무향료\s*(?:조건\s*)?(?:해제|취소)\w*",
+        "fragrance": r"무향료",
+        "basis": r"현재가|실시간",
+        "ingredient": _INGREDIENT,
+    }
+    events = sorted(
+        (
+            (m.start(), -len(m.group()), kind, m)
+            for kind, pattern in patterns.items()
+            for m in re.finditer(pattern, message)
+        ),
+        key=lambda item: item[:2],
+    )
+    remaining = list(message)
+    end = 0
+    for start, _, kind, match in events:
+        if start < end:
             continue
-        key = normalized_ingredient(name)
-        if match["clear"]:
-            by_name.pop(key, None)
+        end = match.end()
+        if kind == "all":
+            filters = OwnedLookFilters()
+        elif kind == "ingredients":
+            filters.ingredient_conditions = []
+            filters.fragrance_free = False
+        elif kind == "budget_clear":
+            filters.max_price_krw = None
+        elif kind == "budget":
+            filters.max_price_krw = _explicit_krw_budget(match.group())
+        elif kind == "basis":
+            filters.price_basis = "current_offer"
+        elif kind in {"fragrance", "fragrance_clear"}:
+            filters.fragrance_free = kind == "fragrance"
         else:
-            by_name[key] = SearchIngredient(
-                ingredient_name=name, operator="includes" if match["op"] == "포함" else "excludes"
-            )
-        remaining = remaining.replace(match.group(), "", 1)
-    if len(by_name) > 6:
-        filters.unsupported = ["성분 조건은 별칭을 합쳐 최대 6개까지 확인 가능"]
-    else:
-        filters.ingredient_conditions = list(by_name.values())
-    if re.search(
-        r"성분|향료|무향|저자극|제형|매트|글로시|지속력|포함|제외|\d\s*원|만원|예산", remaining
-    ):
+            name = match["quoted"] or match["named"]
+            if name in {"제품", "상품", "립", "블러셔", "기억", "보유품"}:
+                continue
+            by_name = {
+                normalized_ingredient(c.ingredient_name): c for c in filters.ingredient_conditions
+            }
+            key = normalized_ingredient(name)
+            if match["clear"]:
+                by_name.pop(key, None)
+            else:
+                by_name[key] = SearchIngredient(
+                    ingredient_name=name,
+                    operator="includes" if match["op"] == "포함" else "excludes",
+                )
+            if len(by_name) > 6:
+                filters.unsupported = ["성분 조건은 별칭을 합쳐 최대 6개까지 확인 가능"]
+            else:
+                filters.ingredient_conditions = list(by_name.values())
+        remaining[start:end] = " " * (end - start)
+    leftover = re.sub(r"예산(?:은|을)?", "", "".join(remaining))
+    if re.search(r"성분|향료|무향|저자극|제형|매트|글로시|지속력|포함|제외|\d\s*원|만원", leftover):
         filters.unsupported = list(dict.fromkeys([*filters.unsupported, "해석되지 않은 상품 조건"]))
     return filters
 
 
 def has_filters(filters):
     return bool(
-        filters.max_price_krw is not None or filters.ingredient_conditions or filters.fragrance_free
+        filters.max_price_krw is not None
+        or filters.ingredient_conditions
+        or filters.fragrance_free
+        or filters.price_basis != "collected_snapshot"
     )

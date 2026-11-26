@@ -460,7 +460,11 @@ class FilteredCatalog(Catalog):
                 checks.append(
                     {
                         "condition": "price",
-                        "verdict": "MATCH" if p.price_krw <= req.max_price_krw else "NOT_MATCH",
+                        "verdict": "UNKNOWN"
+                        if req.price_basis == "current_offer"
+                        else "MATCH"
+                        if req.max_price_krw >= 15000
+                        else "NOT_MATCH",
                         "reason": "fixture_price",
                     }
                 )
@@ -498,6 +502,15 @@ class FilteredCatalog(Catalog):
                     "shadeId": "wrong-shade" if self.wrong_shade else p.shades[0].id,
                     "optionId": pid + "-sale",
                     "sourceVersion": "synthetic-v1",
+                    "price": {
+                        "amountKRW": 15000,
+                        "requestedBasis": req.price_basis,
+                        "observedBasis": "collected_snapshot",
+                        "observedAt": "2026-11-25T00:00:00Z",
+                        "checkedAt": "2026-11-26T00:00:00Z",
+                        "sourceRef": "https://example.test/option",
+                        "sourceVersion": "synthetic-v1",
+                    },
                     "synthetic": True,
                     "group": group,
                     "checks": checks,
@@ -617,6 +630,8 @@ async def test_option_batches_do_not_drop_seventh_recipe_candidate():
     )
     assert len(response.products) == 8
     assert [len(call.product_ids) for call in catalog.option_calls] == [6, 2]
+    assert len(response.owned_look_options.selections) == 8
+    assert [len(b.items) for b in response.owned_look_options.batches] == [6, 2]
 
 
 @pytest.mark.anyio
@@ -632,6 +647,7 @@ async def test_same_zone_owned_alternative_is_not_a_verified_substitute():
     assert lip["substitutionStatus"] == "unverified"
     assert lip["alternativeProductIds"] == ["different-lip"]
     assert lip["substitutionEvidence"] is None
+    assert "대체품으로 적합한지는 아직 확인하지 못했어요" in response.answer
     assert not response.products and not response.applied_memories
 
 
@@ -671,7 +687,13 @@ async def test_live_catalog_budget_ingredient_option_contract(record_property):
     product = next(p for p in products if p.shades)
     observations = []
     filters = None
-    for text in ["2만원 이하", "예산은 1만원 이하, 향료 제외", "성분 조건 전체 해제해줘"]:
+    for text in [
+        "2만원 이하",
+        "예산은 1만원 이하, 향료 제외",
+        "성분 조건 전체 해제해줘",
+        "상품 조건 전체 해제해줘. 예산은 1만원 이하.",
+        "상품 조건 전체 해제해줘. 현재가 기준으로 추천해줘.",
+    ]:
         filters = update_filters(filters, text)
         assert not filters.unsupported
         req = OptionSearchRequest(
@@ -699,6 +721,15 @@ async def test_live_catalog_budget_ingredient_option_contract(record_property):
     assert observations[1]["request"]["maxPriceKRW"] == 10000
     assert len(observations[1]["request"]["ingredientConditions"]) == 1
     assert observations[2]["request"]["ingredientConditions"] == []
+    assert observations[3]["request"]["maxPriceKRW"] == 10000
+    assert observations[4]["request"]["priceBasis"] == "current_offer"
+    # Actual Catalog omits price evaluation without a budget. This is NOT live-price success.
+    assert all(item["price"] is None for item in observations[4]["result"]["items"])
+    assert not any(
+        c["condition"] == "price" and c["verdict"] == "MATCH"
+        for item in observations[4]["result"]["items"]
+        for c in item["checks"]
+    )
     record_property(
         "n02_filters_live_options",
         json.dumps(
@@ -726,3 +757,73 @@ async def test_recipe_revision_does_not_silently_drop_explicit_shopping_filters(
     assert not second.products
     assert catalog.option_calls[-1].max_price_krw == 10000
     assert catalog.option_calls[-1].ingredient_conditions[0].ingredient_name == "향료"
+
+
+@pytest.mark.parametrize(
+    "message, price, ingredients",
+    [
+        ("상품 조건 전체 해제해줘. 예산은 1만원 이하.", 10000, []),
+        ("상품 조건 전체 해제해줘. 판테놀 제외.", None, ["판테놀"]),
+        ("향료 제외. 성분 조건 전체 해제해줘.", 20000, []),
+        ("성분 조건 전체 해제해줘. 향료 제외.", 20000, ["향료"]),
+        ("상품 조건 전체 해제하고 예산은 1만원 이하", 10000, []),
+        ("1만원 이하. 예산 조건 해제해줘.", None, ["향료"]),
+    ],
+)
+def test_filter_operations_follow_user_order(message, price, ingredients):
+    from app.services.owned_look_filters import update_filters
+
+    previous = update_filters(None, "2만원 이하, 향료 제외")
+    result = update_filters(previous, message)
+    assert not result.unsupported
+    assert result.max_price_krw == price
+    assert [c.ingredient_name for c in result.ingredient_conditions] == ingredients
+
+
+@pytest.mark.anyio
+async def test_public_options_preserve_exact_selection_batch_price_and_serialization(
+    record_property,
+):
+    from app.schemas.chat import ChatResponse
+
+    catalog = FilteredCatalog()
+    req = request([owned("lip-a", "lip-a-shade")], "블러셔는 없어. 2만원 이하, 향료 제외.")
+    response = await execute_owned_look(req, catalog)
+    payload = response.model_dump(mode="json", by_alias=True)
+    display = payload["ownedLookOptions"]
+    assert display["selections"][0]["shadeId"] == "blush-b-shade"
+    assert display["selections"][0]["optionId"] == "blush-b-sale"
+    assert display["batches"][0]["items"][0]["price"]["amountKRW"] == 15000
+    assert display["batches"][0]["products"][0]["priceKRW"] != 15000
+    assert ChatResponse.model_validate(payload).owned_look_options == response.owned_look_options
+    req._owned_look_context = response._owned_look_context
+    req.message = "상품 조건 전체 해제해줘. 예산은 1만원 이하."
+    lower = await execute_owned_look(req, catalog)
+    assert catalog.option_calls[-1].max_price_krw == 10000
+    assert not catalog.option_calls[-1].ingredient_conditions
+    assert not lower.products and not lower.owned_look_options.selections
+    req._owned_look_context = lower._owned_look_context
+    req.message = "상품 조건 전체 해제해줘. 현재가 기준으로 추천해줘."
+    current = await execute_owned_look(req, catalog)
+    assert catalog.option_calls[-1].price_basis == "current_offer"
+    assert current.owned_look_options.batches
+    assert not current.products and not current.owned_look_options.selections
+    assert "실시간 현재가는 확인하지 못했어요" in current.answer
+    record_property(
+        "n02_option_delivery_mock",
+        __import__("json").dumps(
+            {
+                "catalogMode": "mock",
+                "actualModelCalls": 0,
+                "turns": [
+                    payload,
+                    lower.model_dump(mode="json", by_alias=True),
+                    current.model_dump(mode="json", by_alias=True),
+                ],
+                "requests": [
+                    q.model_dump(mode="json", by_alias=True) for q in catalog.option_calls
+                ],
+            },
+            ensure_ascii=False,
+        ),
+    )

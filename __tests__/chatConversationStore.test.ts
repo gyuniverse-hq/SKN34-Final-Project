@@ -366,3 +366,18 @@ test('G4 keeps option results with their original message and ignores late owner
   store().completeRequest(late, { answer: 'late', products: [], optionSearch }, 'question');
   expect(store().conversations).toEqual({});
 });
+
+
+test('keeps N02 option selections and original batch scopes on reply and server restoration', () => {
+  const id = store().open({ type: 'general' })!;
+  const target = store().conversations[id].conversation;
+  store().bindServerRoom(target, 'server', 1);
+  const ownedLookOptions = { selections: [{ productId: 'p', shadeId: 's', optionId: 'sale', productName: 'P', brand: 'B', shadeName: 'S' }], batches: [], failedProductIds: ['failed'] };
+  const ticket = store().beginRequest(target, request(target))!;
+  store().completeRequest(ticket, { answer: '추천', products: [], ownedLookOptions }, 'question');
+  expect(store().conversations[id].messages.at(-1)?.ownedLookOptions).toEqual(ownedLookOptions);
+  store().restoreServerRoom(target, { conversationId: 'server', conversationVersion: 3, subject: { type: 'general' },
+    context: {}, messages: [{ id: 'persisted', role: 'assistant', createdAt: '2026-11-26', text: '추천',
+      displayPayload: { products: [], ownedLookOptions } }] }, target.generation, true);
+  expect(store().conversations[id].messages.at(-1)?.ownedLookOptions).toEqual(ownedLookOptions);
+});

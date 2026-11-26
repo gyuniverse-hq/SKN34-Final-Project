@@ -54,6 +54,7 @@ export type ChatMessage = {
   resultType?: ChatResponse['resultType'];
   optionSearch?: ChatResponse['optionSearch'];
   compound?: ChatResponse['compound'];
+  ownedLookOptions?: ChatResponse['ownedLookOptions'];
   ingredientResults?: ChatResponse['ingredientResults'];
   knowledge?: ChatResponse['knowledge'];
   ingredientComparison?: ChatResponse['ingredientComparison'];

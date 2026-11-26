@@ -5,7 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-from app.schemas.catalog import PriceBasis, SearchIngredient
+from app.schemas.catalog import OptionSearchResponse, PriceBasis, SearchIngredient
 from app.schemas.style_recipe import LookKind, Zone
 
 
@@ -36,3 +36,22 @@ class OwnedLookContext(BaseModel):
     # Closed Zone enum naturally bounds this map to nine areas.
     declarations: dict[Zone, OwnershipDeclaration] = Field(default_factory=dict)
     filters: OwnedLookFilters = Field(default_factory=OwnedLookFilters)
+
+
+class OwnedLookOptionRef(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
+
+    product_id: str
+    shade_id: str
+    option_id: str
+    product_name: str
+    brand: str
+    shade_name: str
+
+
+class OwnedLookOptionDisplay(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
+
+    selections: list[OwnedLookOptionRef] = Field(default_factory=list)
+    batches: list[OptionSearchResponse] = Field(default_factory=list)
+    failed_product_ids: list[str] = Field(default_factory=list)
