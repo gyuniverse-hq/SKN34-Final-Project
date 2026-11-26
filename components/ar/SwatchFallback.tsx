@@ -1,12 +1,11 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { theme } from '@/constants/theme';
 import { useI18n } from '@/lib/i18n';
-import { useMakeupStore } from '@/store/makeupStore';
+import type { MakeupState } from '@/types';
 
 /** Static face illustration used when live camera try-on isn't available. */
-export function SwatchFallback({ message }: { message?: string }) {
+export function SwatchFallback({ makeup, message }: { makeup: MakeupState; message?: string }) {
   const { t } = useI18n();
-  const makeup = useMakeupStore((s) => s.makeup);
   const lip = makeup.lip;
   const blush = makeup.blush;
   const eye = makeup.eyeshadow;
