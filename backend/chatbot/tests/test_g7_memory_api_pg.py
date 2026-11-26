@@ -24,7 +24,7 @@ from app.services import memory_service
 from app.services.chat_service import ChatService, build_messages, get_chat_service
 from app.services.conversation_service import ConversationService
 from app.services.skincare_recommendation_tool import SkincareRecommendationTool
-from tests.conftest import FakeGraph
+from tests.conftest import FakeGraph, FakeLlm
 from tests.test_beauty_consultation import Catalog, PlanLlm, product
 from tests.test_chat_sessions import SessionCatalog
 from tests.test_g2_multiturn import G2Llm
@@ -1456,3 +1456,362 @@ def test_use_only_or_exclude_verified_owned_products_without_changing_memory(
     assert not ignored["products"] and "appliedMemories" not in ignored
     stored = client.get(detail, headers=AUTH).json()["messages"][-1]["displayPayload"]
     assert "appliedMemories" not in stored
+
+
+def test_n02_consented_inventory_selected_look_persistence_and_replay(
+    memory_api, monkeypatch, record_property
+):
+    from app.services import owned_look_consultation_service as owned_service
+    from tests.test_g8_owned_look import FilteredCatalog as LookCatalog
+
+    client, _ = memory_api
+    settings = get_settings()
+    for name in ("g7_structured_memory_enabled", "g8_enabled"):
+        monkeypatch.setattr(settings, name, True)
+    monkeypatch.setattr(settings, "g1_supervisor_enabled", False)
+    catalog = LookCatalog()
+
+    class NoModel(FakeLlm):
+        async def complete(self, *args, **kwargs):
+            raise AssertionError("N02 exact-match path must not call a model")
+
+    service = ChatService(FakeGraph(), FakeLlm(), catalog)
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    tasks = []
+    original = owned_service.execute_owned_look
+
+    async def observed(req, catalog):
+        return await original(req, catalog, trace=tasks)
+
+    monkeypatch.setattr(owned_service, "execute_owned_look", observed)
+
+    def select(room, version, operation, payload):
+        response = client.patch(
+            f"/api/chat/conversations/{room}/state",
+            headers=AUTH,
+            json={
+                "requestId": str(uuid4()),
+                "expectedConversationVersion": version,
+                "operation": operation,
+                "payload": payload,
+            },
+        )
+        assert response.status_code == 200, response.text
+        return response.json()["conversationVersion"]
+
+    origin = new_room(client)
+    version = select(origin, 0, "select_shade", {"productId": "lip-a", "shadeId": "lip-a-shade"})
+    ask(
+        client,
+        origin,
+        version,
+        "Please remember that I own Fixture lip-a Fixture shade",
+        structured=True,
+    )
+    path = "/api/chat/v2/memory-proposals"
+    (group,) = client.get(path, headers=AUTH, params={"conversationId": origin}).json()
+    (item,) = group["items"]
+    assert item["value"]["productId"] == "lip-a"
+    assert item["value"]["shadeId"] == "lip-a-shade"
+    approved = client.post(
+        f"{path}/{group['groupId']}/decisions",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "decisions": [
+                {
+                    "itemId": item["itemId"],
+                    "expectedVersion": item["version"],
+                    "action": "approve",
+                    "confirmed": True,
+                }
+            ],
+        },
+    )
+    assert approved.status_code == 200, approved.text
+    service = ChatService(FakeGraph(), NoModel(), catalog)
+    room = new_room(client)
+    version = select(room, 0, "select_look", {"kind": "catalog", "lookId": "fixture-look"})
+    body = {
+        "conversationId": room,
+        "expectedConversationVersion": version,
+        "requestId": str(uuid4()),
+        "locale": "ko",
+        "structuredMemory": True,
+        "message": "내가 가진 립으로 이 룩을 따라 해보고 필요한 것만 추가 추천해줘. 블러셔는 없어.",
+        "styleContext": {"kind": "catalog", "lookId": "client-forged-look"},
+    }
+    catalog.searches.clear()
+    first = client.post("/api/chat", headers=AUTH, json=body)
+    assert first.status_code == 200, first.text
+    reply = first.json()
+    assert [p["id"] for p in reply["products"]] == ["blush-b"]
+    assert reply["appliedMemories"][0]["productId"] == "lip-a"
+    assert reply["appliedMemories"][0]["shadeId"] == "lip-a-shade"
+    assert catalog.searches == [{"ids": ["lip-a"]}, {"ids": ["blush-b"]}]
+    assert all(look_id == "fixture-look" for _, look_id in catalog.look_calls)
+    before = (len(catalog.searches), len(catalog.look_calls), len(tasks))
+    replay = client.post("/api/chat", headers=AUTH, json=body)
+    assert replay.json() == reply
+    assert before == (len(catalog.searches), len(catalog.look_calls), len(tasks))
+    detail = f"/api/chat/conversations/{room}"
+    stored = client.get(detail, headers=AUTH).json()["messages"][-1]["displayPayload"]
+    assert stored["products"] == reply["products"]
+    assert stored["appliedMemories"] == reply["appliedMemories"]
+    assert client.get(detail, headers=OTHER).status_code == 404
+    denied = client.post("/api/chat", headers=OTHER, json={**body, "requestId": str(uuid4())})
+    assert denied.status_code == 404
+    assert before == (len(catalog.searches), len(catalog.look_calls), len(tasks))
+    following = ask(
+        client,
+        room,
+        reply["conversation"]["version"],
+        "내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘.",
+        structured=True,
+    )
+    assert following["appliedMemories"][0]["productId"] == "lip-a"
+    assert [p["id"] for p in following["products"]] == ["blush-b"]
+    assert "블러셔 제품도 가지고 있나요" not in following["answer"]
+    priced = ask(
+        client, room, following["conversation"]["version"], "2만원 이하, 향료 제외", structured=True
+    )
+    assert [p["id"] for p in priced["products"]] == ["blush-b"]
+    lowered = ask(
+        client, room, priced["conversation"]["version"], "예산은 1만원 이하", structured=True
+    )
+    assert not lowered["products"]
+    assert catalog.option_calls[-1].max_price_krw == 10000
+    assert catalog.option_calls[-1].ingredient_conditions[0].ingredient_name == "향료"
+    filter_clear = ask(
+        client, room, lowered["conversation"]["version"], "상품 조건 전체 해제해줘", structured=True
+    )
+    assert [p["id"] for p in filter_clear["products"]] == ["blush-b"]
+    changed = ask(
+        client,
+        room,
+        filter_clear["conversation"]["version"],
+        "블러셔는 이제 있어.",
+        structured=True,
+    )
+    assert not changed["products"]
+    assert "보유한다고 알려주셨지만" in changed["answer"]
+    released = ask(
+        client,
+        room,
+        changed["conversation"]["version"],
+        "블러셔 미보유 조건 해제해줘",
+        structured=True,
+    )
+    assert not released["products"]
+    assert "블러셔 제품도 가지고 있나요" in released["answer"]
+    reset_missing = ask(
+        client, room, released["conversation"]["version"], "블러셔는 없어.", structured=True
+    )
+    assert [p["id"] for p in reset_missing["products"]] == ["blush-b"]
+    clear_all = ask(
+        client,
+        room,
+        reset_missing["conversation"]["version"],
+        "미보유 조건 전부 해제해줘",
+        structured=True,
+    )
+    assert not clear_all["products"]
+    task_count = len(tasks)
+    search_count = len(catalog.searches)
+    opted_out = ask(
+        client,
+        room,
+        clear_all["conversation"]["version"],
+        "내가 가진 립으로 이 룩에 필요한 제품 추천해줘. 기억은 쓰지 마.",
+        structured=True,
+    )
+    assert not opted_out["products"] and not opted_out.get("appliedMemories")
+    assert (len(tasks), len(catalog.searches)) == (task_count, search_count)
+    look_room = client.post(
+        "/api/chat/conversations",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "entry": {"type": "look", "kind": "catalog", "lookId": "fixture-look"},
+        },
+    )
+    assert look_room.status_code == 201, look_room.text
+    look_reply = ask(
+        client, look_room.json()["conversationId"], 0, body["message"], structured=True
+    )
+    assert not look_reply["products"] and not look_reply.get("appliedMemories")
+    assert (len(tasks), len(catalog.searches)) == (task_count, search_count)
+    record_property(
+        "n02_pg_evidence",
+        json.dumps(
+            {
+                "catalogMode": "mock",
+                "postgresMode": "live",
+                "modelMode": "mock-forbidden",
+                "actualModelCalls": 0,
+                "tasks": tasks,
+                "answer": reply["answer"],
+                "products": reply["products"],
+                "replayAdditionalCalls": 0,
+                "serverLookRestored": True,
+                "ownerIsolation": True,
+                "followup": following["answer"],
+                "absenceDecisionPersistence": "passed: keep/change/release/restore/clear-all",
+                "memoryOptout": "passed",
+                "directLookEntryMemoryBoundary": "passed: no inventory consumption",
+            },
+            ensure_ascii=False,
+        ),
+    )
+
+
+@pytest.mark.skipif(
+    not os.environ.get("G8_N02_LIVE_CATALOG"), reason="live Catalog opt-in required"
+)
+def test_n02_live_catalog_pg_evidence_boundary(memory_api, monkeypatch, record_property):
+    import asyncio
+    import hashlib
+
+    from app.services import owned_look_consultation_service as owned_service
+
+    client, _ = memory_api
+    settings = get_settings()
+    monkeypatch.setattr(settings, "g7_structured_memory_enabled", True)
+    monkeypatch.setattr(settings, "g8_enabled", True)
+    monkeypatch.setattr(settings, "g1_supervisor_enabled", False)
+    queries, tasks = [], []
+
+    class ObservedCatalog(CatalogClient):
+        async def search_products(self, **query):
+            rows = await super().search_products(**query)
+            queries.append({"request": query, "resultIds": [p.id for p in rows]})
+            return rows
+
+    catalog = ObservedCatalog(os.environ["G8_N02_LIVE_CATALOG"])
+
+    async def select_data():
+        looks = await catalog.fetch_style_looks()
+        products = await catalog.search_products(category="lip")
+        for product in products:
+            for shade in product.shades:
+                label = f"{product.brand} {product.name} {shade.name}"
+                if product.makeup_zone == "lip" and not any(
+                    c in label for c in ",;.!?。！？；，\n"
+                ):
+                    return looks[0], product, shade
+        pytest.skip("Live Catalog has no lip/shade suitable for an exact memory label")
+
+    look, product, shade = asyncio.run(select_data())
+    # This fixture is a real-data evidence-gap case, never a fabricated positive recipe.
+    assert look.recipe is None, "Dataset changed: review this evidence-gap expectation"
+    service = ChatService(FakeGraph(), FakeLlm(), catalog)
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    original = owned_service.execute_owned_look
+
+    async def observed(req, catalog):
+        return await original(req, catalog, trace=tasks)
+
+    monkeypatch.setattr(owned_service, "execute_owned_look", observed)
+    room = new_room(client)
+    selected = client.patch(
+        f"/api/chat/conversations/{room}/state",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": 0,
+            "operation": "select_shade",
+            "payload": {"productId": product.id, "shadeId": shade.id},
+        },
+    )
+    assert selected.status_code == 200, selected.text
+    ask(
+        client,
+        room,
+        selected.json()["conversationVersion"],
+        f"Please remember that I own {product.brand} {product.name} {shade.name}",
+        structured=True,
+    )
+    path = "/api/chat/v2/memory-proposals"
+    (group,) = client.get(path, headers=AUTH, params={"conversationId": room}).json()
+    item = next(i for i in group["items"] if i["key"] == "inventory.product")
+    assert item["value"]["productId"] == product.id
+    assert item["value"]["shadeId"] == shade.id
+    consent = client.post(
+        f"{path}/{group['groupId']}/decisions",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "decisions": [
+                {
+                    "itemId": item["itemId"],
+                    "expectedVersion": item["version"],
+                    "action": "approve",
+                    "confirmed": True,
+                }
+            ],
+        },
+    )
+    assert consent.status_code == 200, consent.text
+    room = new_room(client)
+    selected = client.patch(
+        f"/api/chat/conversations/{room}/state",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": 0,
+            "operation": "select_look",
+            "payload": {"kind": "video", "lookId": look.id},
+        },
+    )
+    assert selected.status_code == 200, selected.text
+    replies = []
+    version = selected.json()["conversationVersion"]
+    for text in [
+        "내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘. 블러셔는 없어.",
+        "블러셔는 이제 있어.",
+        "블러셔 미보유 조건 해제해줘",
+    ]:
+        reply = ask(client, room, version, text, structured=True)
+        assert not reply["products"]
+        assert "근거가 부족" in reply["answer"]
+        replies.append(
+            {
+                "text": text,
+                "answer": reply["answer"],
+                "products": reply["products"],
+                "modelSettingsMode": "mock",
+                "actualExternalModelCalls": 0,
+            }
+        )
+        version = reply["conversation"]["version"]
+    assert any(q["request"].get("ids") == [product.id] for q in queries)
+    assert all(
+        c["status"] == "evidence_missing"
+        for t in tasks
+        if t["task"]["taskId"] == "N1"
+        for c in t["result"]["coverage"]
+    )
+    record_property(
+        "n02_live_catalog_evidence",
+        json.dumps(
+            {
+                "catalogMode": "live HTTP",
+                "postgresMode": "live isolated",
+                "lookId": look.id,
+                "productId": product.id,
+                "shadeId": shade.id,
+                "lookSnapshotSha256": hashlib.sha256(look.model_dump_json().encode()).hexdigest(),
+                "productSnapshotSha256": hashlib.sha256(
+                    product.model_dump_json().encode()
+                ).hexdigest(),
+                "dataVersion": "API does not expose snapshot version; response digests recorded",
+                "recipe": "absent",
+                "ownedProductRelationToLook": "not established; no substitution claim",
+                "positiveRecommendation": "BLOCKED: no reviewed recipe",
+                "queries": queries,
+                "tasks": tasks,
+                "turns": replies,
+            },
+            ensure_ascii=False,
+        ),
+    )

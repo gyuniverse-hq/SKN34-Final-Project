@@ -183,6 +183,12 @@ def prepare_request(
     )
     result._server_history = True
     result._compound_context = context.compound
+    if (
+        style
+        and context.owned_look
+        and (style.kind, style.look_id) == (context.owned_look.kind, context.owned_look.look_id)
+    ):
+        result._owned_look_context = context.owned_look
     if context.product and beauty and not beauty.filters.option_search:
         result._historical_product_ids = tuple(context.product.historical_candidate_refs)
     return result
@@ -221,6 +227,7 @@ async def revalidate_request(chat, request: ChatRequest) -> None:
 
 def updated_context(raw: dict, response: ChatResponse) -> dict:
     context = read_context(raw)
+    context.owned_look = response._owned_look_context
     compound = response.compound
     context.compound = (
         CompoundContext(
@@ -274,6 +281,7 @@ async def apply_state_update(
             context.product.selected_product_id = None
             context.product.selected_shade_id = None
         context.style = None
+        context.owned_look = None
         return context.model_dump(mode="json", by_alias=True, exclude_none=True)
 
     catalog = getattr(chat, "_catalog", None)
@@ -300,6 +308,11 @@ async def apply_state_update(
                 look = await catalog.get_style_look(kind, look_id)
                 if look is None or look.id != look_id:
                     raise ApiError(404, "Look not found", "style_look_not_found")
+                if context.style is None or (context.style.kind, context.style.look_id) != (
+                    kind,
+                    look_id,
+                ):
+                    context.owned_look = None
                 context.style = StoredStyleContext(kind=kind, look_id=look_id)
             else:
                 selected = context.style

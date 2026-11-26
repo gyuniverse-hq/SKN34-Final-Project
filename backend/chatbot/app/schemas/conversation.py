@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
 from app.schemas.compound_consultation import CompoundContext
+from app.schemas.owned_look_context import OwnedLookContext
 from app.schemas.style_recipe import StyleCandidateRef, StyleCondition, StyleContext
 
 
@@ -125,6 +126,7 @@ class StoredMemoryRef(ConversationModel):
 
 class StoredConversationContext(ConversationModel):
     schema_version: Literal[1] = 1
+    owned_look: OwnedLookContext | None = Field(default=None, exclude_if=lambda v: v is None)
     current_goal: StoredGoal | None = None
     compound: CompoundContext | None = Field(default=None, exclude_if=lambda v: v is None)
     product: StoredProductContext | None = None

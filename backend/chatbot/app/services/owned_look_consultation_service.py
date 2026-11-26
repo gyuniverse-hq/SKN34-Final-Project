@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from app.core.config import get_settings
 from app.core.errors import UpstreamError
+from app.schemas.catalog import OptionSearchRequest
 from app.schemas.chat import ChatResponse, ProductRef
 from app.schemas.owned_look_consultation import (
     OwnedLookBinding,
@@ -15,13 +16,14 @@ from app.schemas.owned_look_consultation import (
     OwnedLookResult,
     OwnedLookTask,
 )
-from app.services.beauty_consultation_service import _explicit_krw_budget
+from app.schemas.owned_look_context import OwnedLookContext, OwnershipDeclaration
 from app.services.consultation_memory import (
     CONSULTATION_MEMORY_LIMIT,
     ignores_memory,
     verified_inventory_matches,
 )
 from app.services.g1_catalog_tool import validate_catalog_product
+from app.services.owned_look_filters import filter_followup, has_filters, update_filters
 from app.services.style_recipe_service import NAMES, ORDER, execute_style
 
 _OWNED = re.compile(r"보유|(?:내가|제가|이미)\s*가진|갖고\s*있는|가지고\s*있는")
@@ -53,27 +55,65 @@ def may_consult_owned_look(req):
         and req.request_type in {"chat", "beauty_consultation"}
         and not (req.ar_context or req.screen_context or req.style_search)
         and not _STATE_REQUEST.search(req.message)
-        and _OWNED.search(req.message)
-        and re.search(r"룩|스타일|따라", req.message)
-        and re.search(r"추천|추가|필요|부족", req.message)
+        and (
+            (
+                _OWNED.search(req.message)
+                and re.search(r"룩|스타일|따라", req.message)
+                and re.search(r"추천|추가|필요|부족", req.message)
+            )
+            or (
+                req._owned_look_context is not None
+                and req.style_context is not None
+                and (req.style_context.kind, req.style_context.look_id)
+                == (req._owned_look_context.kind, req._owned_look_context.look_id)
+                and (
+                    declaration_updates(req.message)[0]
+                    or declaration_updates(req.message)[1]
+                    or filter_followup(req.message)
+                    or re.fullmatch(
+                        r"(?:그럼\s*)?(?:다시\s*)?추천해\s*줘[.!]?", req.message.strip()
+                    )
+                )
+            )
+        )
     )
 
 
-def _explicit_absences(message):
-    """Only direct first-person absence, never absence from a saved inventory list."""
-    if re.search(r"친구|엄마|동생|언니|누나|타인|다른\s*사람", message):
-        return {}
-    result = {}
+def declaration_updates(message):
+    """Only explicit self declarations and scoped condition releases; no state execution."""
+    if re.search(r"친구|엄마|동생|언니|누나|타인|다른\s*사람|기억|장바구니|\bAR\b", message):
+        return {}, False
+    updates = {}
+    clear_all = False
     for clause in re.split(r"[.!\n]", message):
         if "?" in clause or re.search(r"(?:라고|다는|다고)\s*(?:말|했|하|기억)", clause):
             continue
+        if re.fullmatch(
+            r"\s*(?:전체\s*|모든\s*)?미보유\s*조건(?:을|은)?\s*(?:전부\s*)?(?:해제|취소)해\s*줘\s*",
+            clause,
+        ):
+            updates.clear()
+            clear_all = True
+            continue
         for zone, terms in _ZONE_TERMS.items():
+            release = re.search(
+                rf"(?:{terms})(?:의)?\s*(?:미보유|보유)?\s*조건(?:을|은)?\s*(?:해제|취소)해\s*줘",
+                clause,
+            )
+            if release:
+                updates[zone] = None
+                continue
             match = re.search(
-                rf"(?:{terms})(?:은|는|이|가)?\s*없(?:어요|습니다|어|다)(?!도|면)", clause
+                rf"(?:{terms})(?:은|는|이|가)?\s*(?:이제\s*)?(?P<state>없|있)"
+                r"(?:어요|습니다|어|다)(?=$|\s|[,])",
+                clause,
             )
             if match:
-                result[zone] = match.group(0)
-    return result
+                updates[zone] = OwnershipDeclaration(
+                    status="missing" if match["state"] == "없" else "present",
+                    quote=match.group(0),
+                )
+    return updates, clear_all
 
 
 def _exact_links(recipe, zone):
@@ -86,6 +126,36 @@ def _exact_links(recipe, zone):
         and link.product_id
         and link.shade_id
     ]
+
+
+def next_context(req, recipe_version):
+    previous = req._owned_look_context
+    same_look = previous is not None and (previous.kind, previous.look_id) == (
+        req.style_context.kind,
+        req.style_context.look_id,
+    )
+    same_recipe = previous is not None and (
+        previous.kind,
+        previous.look_id,
+        previous.recipe_version,
+    ) == (req.style_context.kind, req.style_context.look_id, recipe_version)
+    declarations = dict(previous.declarations) if same_recipe else {}
+    updates, clear_all = declaration_updates(req.message)
+    if clear_all:
+        declarations.clear()
+    for zone, declaration in updates.items():
+        if declaration is None:
+            declarations.pop(zone, None)
+        else:
+            declarations[zone] = declaration
+    return OwnedLookContext(
+        kind=req.style_context.kind,
+        look_id=req.style_context.look_id,
+        recipe_version=recipe_version,
+        version=previous.version + 1 if same_recipe else 1,
+        declarations=declarations,
+        filters=update_filters(previous.filters if same_look else None, req.message),
+    )
 
 
 async def execute_owned_look(req, catalog, *, trace=None):
@@ -108,9 +178,12 @@ async def execute_owned_look(req, catalog, *, trace=None):
             answer="먼저 따라 해 볼 룩을 선택해 주세요.", products=[], result_type="clarification"
         )
     if catalog is None:
-        return ChatResponse(
+        response = ChatResponse(
             answer="상품 자료를 조회하지 못했어요. 잠시 후 다시 시도해 주세요.", products=[]
         )
+        if req._owned_look_context is not None:
+            response._owned_look_context = next_context(req, req._owned_look_context.recipe_version)
+        return response
 
     plan_id = uuid4()
     results = {}
@@ -217,9 +290,13 @@ async def execute_owned_look(req, catalog, *, trace=None):
     recipe = s1.recipe
     if recipe is None:
         style.products = []
+        if style.style_status == "error" and req._owned_look_context is not None:
+            style._owned_look_context = next_context(req, req._owned_look_context.recipe_version)
         return style
     verified_recipe = recipe.basis == "reviewed_recipe" and recipe.review_status == "verified"
-    absences = _explicit_absences(req.message)
+    owned_state = next_context(req, recipe.recipe_version)
+    declarations = owned_state.declarations
+    absences = {zone: d.quote for zone, d in declarations.items() if d.status == "missing"}
     coverage = []
     for zone in dict.fromkeys(step.zone for step in recipe.steps):
         links = _exact_links(recipe, zone)
@@ -228,12 +305,20 @@ async def execute_owned_look(req, catalog, *, trace=None):
             for m in o1.owned_products
             if any((m.product_id, m.shade_id) == (link.product_id, link.shade_id) for link in links)
         ]
+        alternatives = [
+            m.product_id for m in o1.owned_products if m.zone == zone and m not in owned_here
+        ]
         if not verified_recipe or not links:
             state, reason = "evidence_missing", "검수된 룩의 정확한 상품·호수 근거가 부족해요."
         elif owned_here and zone not in absences:
             state, reason = "fulfilled", "보유 제품의 상품·호수가 검수 룩과 일치해요."
         elif zone in absences:
             state, reason = "confirmed_missing", "사용자가 해당 부위 제품이 없다고 밝혔어요."
+        elif zone in declarations or alternatives:
+            state, reason = (
+                "evidence_missing",
+                "보유한다고 알려주셨지만 정확한 상품·호수는 아직 확인하지 못했어요.",
+            )
         else:
             state, reason = (
                 "ownership_unknown",
@@ -245,7 +330,16 @@ async def execute_owned_look(req, catalog, *, trace=None):
                 status=state,
                 product_ids=[m.product_id for m in owned_here],
                 reason=reason,
-                user_quote=absences.get(zone),
+                user_quote=declarations[zone].quote if zone in declarations else None,
+                substitution_status="exact_match"
+                if owned_here and verified_recipe
+                else "unverified"
+                if alternatives
+                else "not_assessed",
+                alternative_product_ids=alternatives,
+                substitution_evidence=recipe.evidence_id
+                if owned_here and verified_recipe
+                else None,
             )
         )
     n1 = record(
@@ -258,13 +352,11 @@ async def execute_owned_look(req, catalog, *, trace=None):
     )
 
     candidate_rows, product_queries = {}, []
-    unsupported_conditions = bool(
-        _explicit_krw_budget(req.message) is not None
-        or re.search(r"제외|성분|향료|무향|저자극|제형|매트|글로시|조건", req.message)
-    )
+    filters = owned_state.filters
+    unsupported_conditions = bool(filters.unsupported)
     if unsupported_conditions:
         failures.append(
-            "추가하신 가격·성분·제형 조건은 이 룩 연결 경로에서 아직 확인하지 못했어요. "
+            "요청하신 상품 조건 중 해석하거나 지원하지 못한 내용이 있어요. "
             "조건을 확인하기 전에는 추가 상품을 추천하지 않을게요."
         )
     for gap in n1.coverage:
@@ -293,6 +385,52 @@ async def execute_owned_look(req, catalog, *, trace=None):
         status="partial" if failures else "complete" if product_queries else "skipped",
         products=refs,
     )
+    option_results, option_requests, option_failures = [], [], []
+    check_options = has_filters(filters)
+    if check_options and not unsupported_conditions:
+        ids = [p.id for p in p1.products]
+        for i in range(0, len(ids), 6):
+            option_request = OptionSearchRequest(
+                product_ids=ids[i : i + 6],
+                maxPriceKRW=filters.max_price_krw,
+                price_basis=filters.price_basis,
+                ingredient_conditions=filters.ingredient_conditions,
+                fragrance_free=filters.fragrance_free,
+            )
+            option_requests.append(option_request.model_dump(mode="json", by_alias=True))
+            try:
+                if not hasattr(catalog, "search_options"):
+                    raise UpstreamError("Option lookup unavailable")
+                result = await catalog.search_options(option_request)
+                if result.effective_request != option_request:
+                    raise UpstreamError("Option request changed")
+                option_results.append(result)
+            except (UpstreamError, ValueError):
+                option_failures.extend(option_request.product_ids)
+    v1 = record(
+        "V1",
+        "options",
+        {
+            "products": p1.products,
+            "recipe": recipe,
+            "requests": option_requests,
+            "userFilters": filters.model_dump(mode="json", by_alias=True),
+        },
+        bindings=(("P1", "products"), ("S1", "recipe")),
+        status="partial"
+        if option_failures or any(r.status != "SUCCESS" for r in option_results)
+        else "complete"
+        if option_requests
+        else "skipped",
+        option_searches=option_results,
+        limitations=["옵션 조회 실패: " + pid for pid in option_failures],
+    )
+    eligible_options = {
+        (item.product_id, item.shade_id)
+        for result in v1.option_searches
+        for item in result.items
+        if item.group == "ELIGIBLE" and result.status != "ERROR"
+    }
     selected, selected_ids = [], set()
     for gap in n1.coverage:
         if gap.status != "confirmed_missing":
@@ -303,14 +441,25 @@ async def execute_owned_look(req, catalog, *, trace=None):
                 product
                 and product.makeup_zone == gap.zone
                 and any(s.id == link.shade_id for s in product.shades)
+                and (not check_options or (product.id, link.shade_id) in eligible_options)
             ):
                 selected_ids.add(product.id)
     selected = [p for p in p1.products if p.id in selected_ids]
     record(
         "R1",
         "review",
-        {"products": p1.products, "recipe": recipe, "coverage": n1.coverage},
-        bindings=(("P1", "products"), ("S1", "recipe"), ("N1", "coverage")),
+        {
+            "products": p1.products,
+            "recipe": recipe,
+            "coverage": n1.coverage,
+            "option_searches": v1.option_searches,
+        },
+        bindings=(
+            ("P1", "products"),
+            ("S1", "recipe"),
+            ("N1", "coverage"),
+            ("V1", "option_searches"),
+        ),
         status="partial"
         if len(selected) != len(p1.products) or any(c.status != "fulfilled" for c in coverage)
         else "complete",
@@ -330,13 +479,50 @@ async def execute_owned_look(req, catalog, *, trace=None):
         )
     if any(c.status == "confirmed_missing" for c in coverage) and not selected:
         lines.append("추가로 필요한 부위의 정확한 상품·호수를 다시 확인하지 못했어요.")
+    if check_options:
+        lines.append(
+            "가격·성분 조건은 추가 추천 후보에 적용했어요. "
+            "보유품의 성분 적합성은 별도로 확인해야 해요."
+        )
+        exact = {
+            (link.product_id, link.shade_id)
+            for gap in coverage
+            if gap.status == "confirmed_missing"
+            for link in _exact_links(recipe, gap.zone)
+        }
+        checked = [
+            item
+            for result in option_results
+            for item in result.items
+            if (item.product_id, item.shade_id) in exact
+        ]
+        counts = {
+            group: sum(item.group == group for item in checked)
+            for group in ("ELIGIBLE", "EXCLUDED", "REFERENCE_ONLY")
+        }
+        lines.append(
+            f"조회된 해당 호수 옵션의 조건 확인 결과: 충족 {counts['ELIGIBLE']}개, "
+            f"불일치 {counts['EXCLUDED']}개, 미확인 {counts['REFERENCE_ONLY']}개."
+        )
+        if option_failures:
+            lines.append(
+                "일부 상품의 옵션 조회에 실패했어요. 확인되지 않은 상품은 추천하지 않았어요."
+            )
+        if not checked and not option_failures:
+            lines.append(
+                "해당 호수의 옵션 근거를 확보하지 못했어요. 조건 충족으로 판단하지 않았어요."
+            )
+        if any(not r.checked_scope.exhaustive or r.omitted_count for r in option_results):
+            lines.append("조회 범위가 제한되어 일부 옵션은 확인하지 못했어요.")
+        if filters.max_price_krw is not None:
+            lines.append("가격은 변동될 수 있어요. 구매 전에 상품 화면에서 다시 확인해 주세요.")
     if not entries:
         lines.append(
             "동의한 등록 목록에서 보유 제품을 확인하지 못했어요. 실제 미보유를 뜻하지는 않아요."
         )
     lines.extend(dict.fromkeys(failures))
     used = {pid for c in coverage if c.status == "fulfilled" for pid in c.product_ids}
-    return style.model_copy(
+    response = style.model_copy(
         update={
             "answer": "\n".join(lines),
             "products": selected,
@@ -348,3 +534,5 @@ async def execute_owned_look(req, catalog, *, trace=None):
             else "empty",
         }
     )
+    response._owned_look_context = owned_state
+    return response

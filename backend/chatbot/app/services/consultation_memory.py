@@ -309,6 +309,11 @@ def select_consultation_memories(
     current = _topics(text)
     if _inventory_intent(text):
         current.add("owned")
+    elif request._owned_look_context is not None:
+        from app.services.owned_look_consultation_service import may_consult_owned_look
+
+        if may_consult_owned_look(request):
+            current.add("owned")
     topics = current
     work = bool(_WORK.search(text))
     if not current and _FOLLOW_UP.search(text):
