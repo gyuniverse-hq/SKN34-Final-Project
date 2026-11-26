@@ -295,6 +295,7 @@ class Planner:
             }, 0
         assert required_tool == "plan_skin_consultation"
         decision = {
+            "scope": "consultation",
             "action": "start",
             "goal": GOAL.model_dump(mode="json", by_alias=True),
             "question": CARE_QUESTION,
@@ -574,6 +575,33 @@ async def test_three_turn_goal_change_through_chat_service(monkeypatch, connecti
     assert calls[-1]["detectedConcerns"] == [{"goal": "sensitivity", "sources": ["conversation"]}]
 
 
+@pytest.mark.parametrize("invalid", [None, "claim", "quote", "citation"])
+def test_search_condition_accepts_paraphrase_only_with_linked_source(monkeypatch, invalid):
+    from app.schemas.compound_consultation import KnowledgeSearchCondition
+
+    knowledge = install_knowledge(monkeypatch).return_value.reply
+    knowledge.claims[0].claim = "보습을 위해 글리세린을 함유한 제품을 고려할 수 있습니다."
+    quote = "글리세린 성분은 피부의 수분 유지에 도움을 줍니다."
+    knowledge.evidence[0].quote = quote
+    proposal = KnowledgeSearchCondition(
+        ingredient_name="글리세린",
+        operator="includes",
+        claim_index=0,
+        evidence_id="E1",
+        quote=quote,
+    )
+    if invalid == "claim":
+        knowledge.claims[0].claim = "순한 세안 방법을 사용하세요."
+    elif invalid == "quote":
+        proposal.quote = "글리세린에 대한 원문에 없는 설명"
+    elif invalid == "citation":
+        knowledge.claims[0].citations = []
+    accepted, decisions = specialists.validate_search_conditions(GOAL, knowledge, [proposal])
+    assert bool(accepted) is (invalid is None)
+    if invalid:
+        assert decisions[0]["decision"] == "unverified_evidence"
+
+
 def test_search_condition_rejects_unlinked_and_conflicting_evidence(monkeypatch):
     from app.schemas.compound_consultation import KnowledgeSearchCondition
 
@@ -592,6 +620,21 @@ def test_search_condition_rejects_unlinked_and_conflicting_evidence(monkeypatch)
         GOAL, knowledge, [proposal, proposal.model_copy(update={"operator": "excludes"})]
     )
     assert not accepted and decisions[-1]["decision"] == "conflicting_suggestions"
+
+
+@pytest.mark.anyio
+async def test_unknown_inclusion_is_not_described_as_exclusion(monkeypatch, connections):
+    _, skincare, catalog = connections
+    install_knowledge(monkeypatch)
+    response = await graph.run_compound(GOAL, CARE_QUESTION, skincare, catalog)
+    display = response.compound.model_copy(deep=True)
+    display.options = [o for o in display.options if o.outcome == "unknown"]
+    check = next(c for c in display.options[0].verification.checks if c.condition == "ingredient")
+    check.operator = "includes"
+    check.ingredient_name = "판테놀"
+    answer = specialists.compose(display, None)
+    assert "‘판테놀’ 포함 여부" in answer
+    assert "‘판테놀’ 제외 여부" not in answer
 
 
 @pytest.mark.anyio
@@ -843,7 +886,8 @@ async def test_condition_verbs_through_chat_service(
 def test_condition_change_does_not_bypass_execution_guard(monkeypatch, message):
     monkeypatch.setattr(get_settings(), "g8_enabled", True)
     assert not graph.is_search_condition_change(message)
-    assert not graph.may_plan(ChatRequest(message=message, locale="ko"), previous=True)
+    if any(word in message for word in ("기억", "AR")):
+        assert not graph.may_plan(ChatRequest(message=message, locale="ko"), previous=True)
 
 
 def test_condition_routing_preserves_g8_disabled_contract(monkeypatch):
@@ -857,7 +901,9 @@ def test_condition_routing_preserves_g8_disabled_contract(monkeypatch):
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("execution", ["얼굴에 발라", "강도를 조절해줘", "립 색도 설정해줘"])
+@pytest.mark.parametrize(
+    "execution", ["얼굴에 발라", "강도를 조절해줘", "립 색도 설정해줘", "얼굴에 발라줄래?"]
+)
 async def test_mixed_execution_uses_existing_chat_path(
     monkeypatch, connections, execution, record_property
 ):
@@ -866,19 +912,40 @@ async def test_mixed_execution_uses_existing_chat_path(
     api, skincare, catalog = connections
     message = "검색 조건을 다시 적용해서 제품 추천하고 " + execution
     planner = Planner()
-    planner.complete_with_tools = AsyncMock(side_effect=AssertionError("Must not plan G8"))
+    planner.complete_with_tools = AsyncMock(
+        return_value=(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": "plan_skin_consultation",
+                                        "arguments": json.dumps(
+                                            {"scope": "mixed", "action": "other"}
+                                        ),
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            0,
+        )
+    )
     outputs = []
     for enabled in (False, True):
         monkeypatch.setattr(get_settings(), "g8_enabled", enabled)
         req = ChatRequest(message=message, locale="ko")
         assert route_intent(resolve_context(req)).intent == "compound"
-        assert not graph.may_plan(req, previous=True)
         response = await ChatService(None, planner, catalog, skincare=skincare).answer(req)
         assert response.compound is None and response.ar_result is None
         outputs.append(response.model_dump(mode="json"))
     assert outputs[0] == outputs[1]
     assert api.calls == []
-    planner.complete_with_tools.assert_not_awaited()
+    assert planner.complete_with_tools.await_count == 1
     record_property(
         "mixed_execution",
         {
@@ -908,6 +975,7 @@ async def test_original_n01_requests_situation_before_inventing_goal(
             f = response["choices"][0]["message"]["tool_calls"][0]["function"]
             f["arguments"] = json.dumps(
                 {
+                    "scope": "consultation",
                     "action": "clarify",
                     "question": (
                         "당김·각질이 있나요, 유분 때문에 뭉치나요? "
@@ -967,3 +1035,236 @@ async def test_original_n01_requests_situation_before_inventing_goal(
             "actualRemoteModelCalls": 0,
         },
     )
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("unsupported", [[], ["실리콘 베이스 밀림 방지 제형"]])
+async def test_usage_question_uses_knowledge_without_inferred_goal(
+    monkeypatch, connections, unsupported
+):
+    from app.services import chat_service
+
+    api, skincare, catalog = connections
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    consult = install_knowledge(monkeypatch)
+    monkeypatch.setattr(chat_service, "consult_knowledge", consult)
+    question = "세럼과 크림은 어떤 순서로 발라야 해?"
+    planner = Planner()
+    planner.complete_with_tools = AsyncMock(
+        return_value=(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": "plan_skin_consultation",
+                                        "arguments": json.dumps(
+                                            {
+                                                "scope": "consultation",
+                                                "action": "knowledge",
+                                                "goal": {"goals": []},
+                                                "wantsProducts": True,
+                                                "wantsKnowledge": True,
+                                                "question": question,
+                                                "unsupportedProductConditions": unsupported,
+                                            }
+                                        ),
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            0,
+        )
+    )
+    response = await ChatService(None, planner, catalog, skincare=skincare).answer(
+        ChatRequest(message=question, locale="ko")
+    )
+    consult.assert_awaited_once_with(question)
+    assert response.knowledge is not None and not response.products and response.compound is None
+    assert api.calls == []
+    if unsupported:
+        assert unsupported[0] in response.answer
+
+
+@pytest.mark.anyio
+async def test_usage_advice_preserves_reapplication_and_goal_change(
+    monkeypatch, connections, record_property
+):
+    from app.services.conversation_context import read_context, updated_context
+
+    api, skincare, catalog = connections
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    reply = resolved_ingredient_reply(monkeypatch)
+    consult = AsyncMock(return_value=Consultation(reply=reply, trace={}))
+    monkeypatch.setattr(specialists, "consult_knowledge", consult)
+    extractor = IngredientExtractor()
+    first = await graph.run_compound(GOAL, CARE_QUESTION, skincare, catalog, llm=extractor)
+    cleared = await graph.run_compound(
+        GOAL,
+        CARE_QUESTION,
+        skincare,
+        catalog,
+        previous=first.chat_context.compound,
+        llm=extractor,
+        knowledge_action="clear",
+    )
+    state = read_context(updated_context({}, cleared)).compound
+    assert state.knowledge_search.cleared
+    observations = []
+
+    class UsagePlanner(Planner):
+        async def complete_with_tools(self, messages, tools, *, required_tool=None):
+            if required_tool == "extract_knowledge_search_conditions":
+                return await extractor.complete_with_tools(
+                    messages, tools, required_tool=required_tool
+                )
+            response, ms = await super().complete_with_tools(
+                messages, tools, required_tool=required_tool
+            )
+            f = response["choices"][0]["message"]["tool_calls"][0]["function"]
+            data = json.loads(messages[-1]["content"])
+            plan = json.loads(f["arguments"])
+            plan.update(action="refine", question=data["utterance"])
+            if "민감함" in data["utterance"]:
+                plan["goal"].update(goals=["sensitivity"], wantsProducts=False)
+            else:
+                plan["knowledgeAction"] = "reevaluate"
+            f["arguments"] = json.dumps(plan)
+            return response, ms
+
+    chat = ChatService(None, UsagePlanner(), catalog, skincare=skincare)
+    for message in [
+        "검색 조건은 다시 적용해 줘. 세럼은 아침에 발라도 돼?",
+        "모공 말고 민감함 관리로 바꿀래. 세럼과 크림은 어떤 순서로 발라야 하는지 방법만 설명해 줘.",
+    ]:
+        req = ChatRequest(message=message, locale="ko")
+        req._compound_context = state
+        before = len(api.calls)
+        result = await chat.answer(req)
+        state = read_context(updated_context({}, result)).compound
+        if "민감함" in message:
+            assert state.goal.goals == ["sensitivity"]
+            assert state.candidates == [] and state.candidate_goals is None
+            assert len(api.calls) == before
+        else:
+            assert not state.knowledge_search.cleared
+            assert {"ingredientName": "글리세린", "operator": "includes"} in api.calls[-1][1][
+                "ingredientConditions"
+            ]
+        assert consult.call_args.args[0] == message
+        observations.append(
+            {
+                "input": message,
+                "goal": state.goal.model_dump(by_alias=True),
+                "candidateCount": len(state.candidates),
+                "toolRequests": api.calls[before:],
+                "modelConfiguredMode": "mock",
+                "actualRemoteModelCalls": 0,
+            }
+        )
+    record_property("usage_advice", observations)
+
+
+@pytest.mark.anyio
+async def test_memory_and_conditions_stay_on_existing_owner_path(monkeypatch, connections):
+    from tests.conftest import FakeGraph, FakeLlm
+
+    api, skincare, catalog = connections
+    llm = FakeLlm()
+    llm.complete_with_tools = AsyncMock(side_effect=AssertionError("Protected memory path"))
+    outputs = []
+    for enabled in (False, True):
+        monkeypatch.setattr(get_settings(), "g8_enabled", enabled)
+        result = await ChatService(FakeGraph(), llm, catalog, skincare=skincare).answer(
+            ChatRequest(message="성분 조건을 삭제하고 내 기억도 삭제해 줘", locale="ko")
+        )
+        outputs.append(result.model_dump(mode="json"))
+        assert result.compound is None and result.ar_result is None
+    assert outputs[0] == outputs[1] and api.calls == []
+    llm.complete_with_tools.assert_not_awaited()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("action", ["knowledge", "clarify"])
+async def test_question_plan_cannot_discard_condition_mutation(monkeypatch, action):
+    from app.core.errors import ApiError
+
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    planner = Planner()
+    planner.complete_with_tools = AsyncMock(
+        return_value=(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": "plan_skin_consultation",
+                                        "arguments": json.dumps(
+                                            {
+                                                "scope": "consultation",
+                                                "action": action,
+                                                "question": CARE_QUESTION,
+                                                "knowledgeAction": "reevaluate",
+                                            }
+                                        ),
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            0,
+        )
+    )
+    with pytest.raises(ApiError):
+        await graph.interpret(ChatRequest(message=QUESTION, locale="ko"), planner, None)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("scope", ["state_change", "mixed", "unknown"])
+async def test_semantic_execution_scope_is_not_lost_in_lexical_fallback(
+    monkeypatch, connections, scope
+):
+    api, skincare, catalog = connections
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    planner = Planner()
+    planner.complete_with_tools = AsyncMock(
+        return_value=(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": "plan_skin_consultation",
+                                        "arguments": json.dumps(
+                                            {"scope": scope, "action": "other"}
+                                        ),
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            0,
+        )
+    )
+    result = await ChatService(None, planner, catalog, skincare=skincare).answer(
+        ChatRequest(
+            message="검색 조건을 다시 적용하고 제품 추천해 줘. 눈썹을 더 진하게 해줄래?",
+            locale="ko",
+        )
+    )
+    assert result.products == [] and result.compound is None and result.ar_result is None
+    assert result.answer
+    assert api.calls == [] and planner.complete_with_tools.await_count == 1

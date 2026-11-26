@@ -95,9 +95,7 @@ async def extract_search_conditions(reply, goal, llm):
             "content": json.dumps(
                 {
                     "goal": goal.model_dump(mode="json", by_alias=True),
-                    "knowledge": reply.model_dump(
-                        mode="json", by_alias=True, exclude={"findings"}
-                    ),
+                    "knowledge": reply.model_dump(mode="json", by_alias=True, exclude={"findings"}),
                 },
                 ensure_ascii=False,
             ),
@@ -168,7 +166,8 @@ def validate_search_conditions(goal, knowledge, proposals):
             or not ref
             or proposal.evidence_id not in claim.citations
             or proposal.quote not in ref.quote
-            or proposal.quote not in claim.claim
+            or normalized_ingredient(proposal.ingredient_name)
+            not in normalized_ingredient(claim.claim)
             or normalized_ingredient(proposal.ingredient_name)
             not in normalized_ingredient(proposal.quote)
         ):
@@ -398,7 +397,7 @@ def compose(display: CompoundDisplay, knowledge: KnowledgeReply | None) -> str:
                 if not any(c.condition == "price" and c.verdict == "MATCH" for c in item.checks):
                     continue
                 missing = [
-                    f"‘{c.ingredient_name}’ 제외 여부"
+                    f"‘{c.ingredient_name}’ {'포함' if c.operator == 'includes' else '제외'} 여부"
                     if c.condition == "ingredient"
                     else "무향료 표시"
                     for c in item.checks

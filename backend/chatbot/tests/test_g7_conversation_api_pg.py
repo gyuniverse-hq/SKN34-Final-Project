@@ -246,6 +246,7 @@ def test_g8_graph_commits_replays_and_rechecks_the_saved_budget(api, monkeypatch
                 call = reply["choices"][0]["message"]["tool_calls"][0]
                 call["function"]["arguments"] = json.dumps(
                     {
+                        "scope": "consultation",
                         "action": "refine",
                         "goal": goal.model_dump(by_alias=True),
                         "question": "",
@@ -1522,7 +1523,7 @@ def test_original_n01_pg_restores_clarification_without_client_history(
                 data = json.loads(messages[-1]["content"])
                 f = response["choices"][0]["message"]["tool_calls"][0]["function"]
                 if data["utterance"] == first:
-                    plan = {"action": "clarify", "question": question}
+                    plan = {"scope": "consultation", "action": "clarify", "question": question}
                 else:
                     assert data["utterance"] == followup
                     self.restored = [(m["role"], m["text"]) for m in data["recentMessages"]]

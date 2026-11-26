@@ -33,24 +33,46 @@ from app.services.beauty_consultation_service import _explicit_krw_budget, _requ
 
 
 class Interpretation(CompoundModel):
-    action: Literal["start", "refine", "clarify", "other"]
-    goal: CompoundGoal | None = None
+    scope: Literal["consultation", "state_change", "mixed", "unknown"]
+    action: Literal["start", "refine", "clarify", "knowledge", "other"]
+    goal: CompoundGoal | None = Field(
+        default=None,
+        description="Only start/refine have a goal. For knowledge/clarify/other this MUST be null.",
+    )
     question: str = Field(default="", max_length=1000)
     knowledge_action: Literal["keep", "clear", "reevaluate"] = "keep"
     remove_knowledge_ingredients: list[str] = Field(default_factory=list, max_length=6)
+    unsupported_product_conditions: list[str] = Field(default_factory=list, max_length=8)
 
 
 _PLAN_TOOL = "plan_skin_consultation"
 _PLAN_PROMPT = """한국어 피부 관리 상담의 요청을 분류하는 계획기다. 제공된 함수로만 응답한다.
+먼저 scope를 문장의 대상과 목적으로 판별한다. 사용 방법·순서·가능 여부 설명 및 검색 조건
+변경은 consultation. 기기/얼굴의 실제 적용·강도·색상 변경, 기억·장바구니 변경은 state_change.
+상담/검색 조건과 실제 상태 변경을 함께 요청하면 mixed, 구분할 수 없으면 unknown.
+질문형이라고 설명 요청인 것은 아니다. 상대에게 실제로 발라달라는 부탁도 상태 변경이다.
+state_change/mixed/unknown이면 action=other로 기존 실행 경계에 돌려보낸다.
+목표 없이 사용 순서나 방법만 묻는 consultation은 action=knowledge, goal=null,
+question에는 제품 종류·상황·사용 목적을 유지한 질문을 담는다.
 처음에는 피부 관리 설명과 실제 제품 추천을 함께 요청하고 7개 관리 목표 중 하나 이상이 명시된
-경우에만 start. 제품만/설명만/스타일/기억/AR/다른 행동은 other.
+경우에만 start. 제품만/스타일/기억/AR/다른 행동은 other.
 화장이 뜨는 원인 설명과 제품 탐색처럼 목표를 아직 특정할 수 없는 복합 요청은 clarify.
 화장 뜸을 건조함으로 단정하지 않는다. question에 당김·각질인지 유분·뭉침인지,
 사용 중인 기초·베이스와 발생 상황을 묻는 짧은 질문을 담고 goal은 비운다.
+단, 유분 또는 당김·각질 같은 지원 목표와 상황이 이미 명시되었으면 start로 가능한 설명과
+상품 조회를 바로 진행한다. 이미 답한 사항을 반복 질문하거나 피부 타입을 필수로 요구하지 않는다.
+사용 순서·베이스 제형의 밀림 문제처럼 정보는 충분하지만 7개 피부 목표로 환원할 수 없는 경우
+피부 고민을 만들어 넣지 않는다. action=knowledge, goal=null로 해당 설명을 조사한다.
+상품도 요청했다면
+unsupportedProductConditions에 지원하지 않는 제형·사용 조건을 명시한다.
+knowledge/clarify에서는 goal을 절대 생성하지 않는다. 미지원 상품 조건을 담으려고
+goal.goals에 임의의 dryness 등을 추가하면 안 된다. unsupportedProductConditions만 사용한다.
 recentMessages의 상황 확인에 답한 경우 원래 설명·상품 요청을 유지한다.
 사용자가 확인한 목표로 start하고 question에 원래 상황과 확인된 정보를 함께 담는다.
 기존 목표가 있고 사용자가 목표, 설명만 요청, 제품 재요청, 예산,
 제외 성분 또는 조회 범위를 조정하면 refine.
+기존 목표의 조건 재적용/해제와 설명을 함께 요청해도 refine이다.
+knowledge/clarify에는 조건 변경을 담지 않는다(knowledgeAction=keep, 제거 목록은 비움).
 goal에는 현재 적용할 완전한 목표와 조건을 채운다. 현재 발화의 변경과 취소가 우선한다.
 목표와 피부 타입을 혼동하지 않는다.
 dryness sensitivity pigmentation wrinkles pores oiliness blemish만 사용한다.
@@ -64,7 +86,7 @@ previousKnowledgeConditions는 지식 제안이며 사용자 excludedIngredients
 예산만 변경하면 knowledgeAction=keep. 지식 조건 전체 해제 요청은 clear.
 특정 지식 성분 조건 해제는 removeKnowledgeIngredients에 이름을 넣는다.
 지식 조건 재적용/재평가 요청은 reevaluate. 사용자 명시 제외 조건은 별도로 유지한다."""
-_ADVICE = re.compile(r"관리|케어|설명|방법|알려|어떻게|원인|루틴|도움|팁|해결|왜|조언|완화")
+_ADVICE = re.compile(r"관리|케어|설명|방법|순서|알려|어떻게|원인|루틴|도움|팁|해결|왜|조언|완화")
 _SHOP = re.compile(r"제품|상품|추천|찾아|골라|살\s*만|구매|살\s*수|화장품|보습제|크림|세럼|토너")
 _ACTION = re.compile(
     r"기억해|저장해|삭제해|적용해|발라줘|발라\s*줘|장바구니|AR\s*(?:해|켜|적용)", re.I
@@ -98,14 +120,17 @@ def may_plan(req, *, previous=False):
             or req.style_search
             or req.screen_context
             or req.clarification_id
-            or (
-                (_ACTION.search(req.message) or EXECUTION_REQUEST.search(req.message))
-                and not is_search_condition_change(req.message)
-            )
+            # Explicit protected surfaces stay on their existing owner paths.
+            # Verb meaning inside ordinary consultation is resolved by Interpretation.scope.
+            or re.search(r"기억|저장|장바구니|\bAR\b|가상\s*메이크업", req.message, re.I)
         )
         and (
             previous
-            or (_SHOP.search(req.message) and _ADVICE.search(req.message))
+            or (
+                _SHOP.search(req.message)
+                and (_ADVICE.search(req.message) or EXECUTION_REQUEST.search(req.message))
+            )
+            or _CONDITION_CHANGE.search(req.message)
             or any(
                 turn.role == "user" and _SHOP.search(turn.text) and _ADVICE.search(turn.text)
                 for turn in req.recent_messages
@@ -153,12 +178,23 @@ async def interpret(req, llm, previous: CompoundContext | None):
         (call,) = result["choices"][0]["message"]["tool_calls"]
         if call["function"]["name"] != _PLAN_TOOL:
             raise ValueError("Unexpected planner tool")
-        plan = Interpretation.model_validate_json(call["function"]["arguments"])
+        arguments = json.loads(call["function"]["arguments"])
+        if arguments.get("scope") == "consultation" and arguments.get("action") == "knowledge":
+            # Explanation-only plans cannot create or modify search state. Some models
+            # populate the optional goal schema anyway; never execute or persist it.
+            arguments["goal"] = None
+            arguments.pop("wantsKnowledge", None)
+            arguments.pop("wantsProducts", None)
+        plan = Interpretation.model_validate(arguments)
+        if plan.scope != "consultation":
+            return plan
         if plan.action == "other" or (plan.action == "refine" and previous is None):
             return None
-        if plan.action == "clarify":
+        if plan.action in {"clarify", "knowledge"}:
             if plan.goal is not None or not plan.question.strip():
                 raise ValueError("Clarification needs a question without inferred goals")
+            if plan.knowledge_action != "keep" or plan.remove_knowledge_ingredients:
+                raise ValueError("Condition changes require a refinement goal")
             return plan
         if not plan.goal:
             raise ValueError("Missing goal")

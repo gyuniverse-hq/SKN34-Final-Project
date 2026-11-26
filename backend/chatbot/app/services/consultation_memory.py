@@ -48,7 +48,8 @@ _TOPICS = {
         r"제형|마무리|매트|글로시|새틴|물광|\b(?:finish|matte|gloss|glossy|satin|dewy)\b|仕上げ|妆效"
     ),
     "owned": re.compile(
-        r"보유|갖고\s*있|가지고\s*있|\b(?:i own|i already have|my products)\b|持って|我有"
+        r"보유|갖고\s*있|가지고\s*있|(?:내가|제가|이미)\s*가진|"
+        r"\b(?:i own|i already have|my products)\b|持って|我有"
     ),
 }
 _AREAS = frozenset(("lip", "cheek", "base", "eye"))

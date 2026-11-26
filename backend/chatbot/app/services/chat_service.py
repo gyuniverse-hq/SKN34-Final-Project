@@ -374,9 +374,12 @@ def route_intent(context: ResolvedContext) -> IntentDecision:
     shopping = _SHOPPING.search(text)
     execution = compound_graph.EXECUTION_REQUEST.search(text)
     intent = "general"
-    if shopping and execution and not (
-        get_settings().g8_enabled
-        and compound_graph.is_search_condition_change(context.message)
+    if (
+        shopping
+        and execution
+        and not (
+            get_settings().g8_enabled and compound_graph.is_search_condition_change(context.message)
+        )
     ):
         intent = "compound"
     elif context.request_type == "ar_command":
@@ -663,10 +666,16 @@ class ChatService:
             req = req.model_copy(update={"request_type": "chat"})
         context = resolve_context(req)
         decision = route_intent(context)
+        if not explicit_knowledge and decision.intent not in {"ar", "compound"}:
+            from app.services.owned_look_consultation_service import execute_owned_look
+
+            owned_look = await execute_owned_look(req, self._catalog)
+            if owned_look is not None:
+                return owned_look
         session_ref = req.chat_context.session if req.chat_context else None
         if (
             not explicit_knowledge
-            and decision.intent not in {"ar", "style", "compound"}
+            and decision.intent not in {"ar", "style"}
             and compound_graph.may_plan(req, previous=bool(req._compound_context or session_ref))
         ):
             if self._sessions is not None and principal_key:
@@ -804,6 +813,25 @@ class ChatService:
         active_previous = previous if choice.action == "refine" else None
 
         async def execute(_req, _decision, _plan):
+            if choice.scope != "consultation":
+                return await self._execute_turn(
+                    req,
+                    decision.model_copy(update={"intent": "compound"}),
+                    TaskPlan(stop_reason="compound_request_unsupported"),
+                )
+            if choice.action == "knowledge":
+                response = await self._execute_turn(
+                    req.model_copy(update={"message": choice.question}),
+                    decision.model_copy(update={"intent": "knowledge"}),
+                    TaskPlan(tasks=["knowledge"]),
+                )
+                if choice.unsupported_product_conditions:
+                    response.answer += (
+                        "\n\n요청하신 상품 조건("
+                        + ", ".join(choice.unsupported_product_conditions)
+                        + ")은 현재 상품 검색에서 확인할 수 없어 추천을 연결하지 못했어요."
+                    )
+                return response
             if choice.action == "clarify":
                 return ChatResponse(
                     answer=choice.question, products=[], result_type="clarification"
