@@ -407,3 +407,41 @@ Gitleaks 8.30.1 dir 검사: 변경 13개 파일 중 trace는 신규 53개만 복
 게시 전 재검증(14:24~14:28 KST): npm run check -- -- --runInBand --silent는 타입·린트 및 107 suites/1,325 tests 통과(146.419초). 변경 chatbot에서 기존 잠금 venv와 uv run --frozen ruff check ., lint-imports(3 KEPT), pytest -q -p no:cacheprovider --basetemp <새 GUID 임시 경로> --tb=short는 1,485 통과·102 건너뜀(45.67초). 테스트 대상은 d5942bf와 동일한 소스이며 직전 실제 연결 기록의 최종 11개 exact-byte 소스 해시도 모두 일치했다. 이번 게시 검증에서는 실제 Catalog/PG/LLM을 재실행하지 않았다.
 
 신규 N02 trace 7건 전체에서 비어 있지 않은 인증정보 필드가 발견되지 않았다. 변경·신규 14개 파일을 임시 복사하고 Gitleaks 8.30.1 dir, 저장소 config, 빈 ignore, --redact 검사 exit 0을 확인했다. 기존 trace 3건과 신규 4건을 재작성하지 않았다. git diff --check 및 첫 커밋 staged 검사 통과. 실제 조건 UNKNOWN, 검수 룩 양성 BLOCKED, 실기기·전체 G8 미실행 상태는 유지한다.
+
+
+## N02 조건 순서·검증 옵션의 응답/저장/카드 연결 — 2026-11-26
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성(N02 사용자 결과 연결)** → ⑥ 통합 검증 → ⑦ PR 인계. 작업/원격 기준 7b4b599ed585078bd54fac2b095f923ce942bff0, branch feat/compound-consultation, develop 통합 기준 f5adb4e. 이번 작업에서 원격 최신 develop을 다시 fetch하거나 통합하지 않았다. 사용자 승인한 조건 처리·가격 기준·미확인 문구와 옵션 전달 범위를 구현했다. commit/push/PR/배포 없음.
+
+수정 범위: backend/chatbot의 services/owned_look_filters.py, owned_look_consultation_service.py, conversation_context.py, schemas/owned_look_context.py, chat.py, repositories/conversation_repository.py, tests/test_g8_owned_look.py 및 test_g7_memory_api_pg.py. 앱 types/index.ts, types/chatConversation.ts, store/chatConversationStore.ts, app/chat.tsx, components/chat/ChatProducts.tsx, lib/i18n 4개 사전, __tests__/chatProducts.test.ts·chatConversationStore.test.ts·chatScreen.test.ts. 기존 두 G8 문서와 reports/g8/n02/trace.jsonl을 갱신한다. 선택적 공개 ownedLookOptions 외 기존 API 응답·DB migration·AR 실행 계약 변경 없음.
+
+조건 해제/설정을 등장 순서대로 적용한다. 전체 해제→새 예산/성분, 성분 설정→전체 해제, 반대 순서, 예산만 변경을 확인했다. 현재가 단독 요청은 옵션 조회 대상이며, 근거가 없으면 충족 추천하지 않는다. 다른 보유품은 상품 식별 미확인과 룩 대체 적합성 미확인을 구분해 설명한다.
+
+공개 옵션 결과: 정확한 상품·호수·옵션 selections와 각 원본 batch의 요청/가격/조건 판정/근거/조회 범위 및 실패 상품을 보존한다. 여러 배치를 단일 요청으로 합치지 않는다. G7 displayPayload의 허용 필드와 nullable 근거를 보존해 저장·복원한다. 앱은 일반 상품 재조회 카드를 생략하고 정확히 일치하는 옵션의 검증 가격을 표시한다. 모의 카드 테스트에서 대표가격 5,900원 대신 판매 옵션 7,600원, 해당 호수 상세 진입, 잘못된 호수/현재가 배치 차단을 확인했다. 화면 라우트의 실제 계약은 shade이며 최초 새 테스트가 shadeId를 예상한 1건 실패는 테스트를 바로잡아 해결했다. 서비스 라우트를 바꾸지 않았다.
+
+실제 연결 환경: 기존 전용 WSL PG /var/tmp/g8-n02-filters-20261126를 재사용했다. 최초 포트 미지정 시작은 기본 5432의 기존 서비스와 충돌해 실패했으며 기존 서비스에 영향 없이 localhost 56947로 다시 시작했다. DB vishue_chat_test, PostgreSQL 17.12. 실제 Catalog는 현재 HEAD와 동일한 API 소스, localhost 19829, 기존 .env.local의 DATABASE_URL/INGREDIENT_MAPPING_PATH를 메모리에만 사용했다. DB default_transaction_read_only=on, refresh=false, G5=false. 기존 매핑 파일과 데이터는 수정하지 않았다. 모델은 N02에서 호출하지 않으며 실제 외부 모델 호출 0회. 합성 인증/계정을 사용했다.
+
+실제 API로 발견한 차이: 현재가 단독 요청은 Catalog에서 예산 상한이 없어 price check와 price를 반환하지 않으면서 ELIGIBLE일 수 있었다. 최초 검증에서 UNKNOWN price check가 있을 것이라는 기대가 실패했다(97 통과·1 실패). 이를 단순 기대 변경만으로 처리하지 않고 N02의 실제 현재가 근거 부재를 별도로 차단했다. 원본 API 결과는 그대로 보존하고 V1 제한·답변·선택 목록·앱 카드에서 현재가 충족으로 승격하지 않는다. 공용 Catalog 구현은 변경하지 않았다. 모의 Catalog에도 가격 검사 생략 동작을 재현해 추천이 비는 것을 검증했다.
+
+최종 백엔드 검증: 98 통과/51.57초(집중, 실제 HTTP/PG와 모의 범위 분리), 전체 챗봇 1,492 통과·102 건너뜀/41.93초. ruff check ., ruff format --check .(155 files), lint-imports(3 KEPT) 통과. 최초 포맷 후 긴 줄/비교식 린트 2건은 수정 후 재검증했다. 최종 소스 20개를 실행 전에 고정하고 trace에서 exact-byte 해시로 식별한다.
+
+집중 명령: backend/chatbot에서 UV_PROJECT_ENVIRONMENT=기존 g7-pr-review 잠금 venv, TEST_CHAT_DATABASE_URL=격리 PG, G8_N02_LIVE_CATALOG=http://127.0.0.1:19829. uv run --frozen python -c에서 WindowsSelectorEventLoopPolicy 설정 후 pytest.main(['-q','-p','no:cacheprovider','tests/test_g8_owned_look.py','tests/test_g8_compound_consultation.py','tests/test_g7_memory_api_pg.py::test_n02_consented_inventory_selected_look_persistence_and_replay','tests/test_g7_memory_api_pg.py::test_n02_live_catalog_pg_evidence_boundary','tests/test_g7_memory_api_pg.py::test_consent_ownership_idempotency_and_redaction','--tb=short','-o','junit_family=legacy','--junitxml=C:/Users/playdata2/AppData/Local/Temp/g8-n02-delivery-final.xml']). 전체 회귀는 실제 연동 env 없는 별도 프로세스의 uv run --frozen pytest -q -p no:cacheprovider --basetemp <새 GUID 임시 경로> --tb=short. XML의 정확한 시작 시각/해시는 신규 trace에 기록한다.
+
+검증 범위: 실제 PG+모의 Catalog는 정상 ChatService에서 조건 순서·검증 옵션 공개 응답의 저장/복원·같은 요청 재전송 추가 호출 0회를 확인한다. 실제 Catalog 직접 옵션 5턴은 예산/성분 변경·전체 해제 후 예산 재설정·현재가 단독 요청의 실제 입력과 결과를 확인한다. 실제 Catalog+PG는 실제 상품/룩 근거 부족 보존을 확인한다. 합성 검수 룩의 양성을 실제 룩 양성으로 기록하지 않는다. 실기기 UI·실사용자 인증·실제 LLM·사람 검토·전체 G8 평가는 NOT_RUN, 검수 룩+정확한 상품/호수 근거가 필요한 N02 종단 양성은 BLOCKED다.
+
+다음 작업: 실제 룩의 근거 확보와 종단 앱 검증, 공통 부모의 목표/작업/부족 입력/후속 제안 계약 및 N01/N02 어댑터 연결. 일반 대체품 적합성, N01 원래 상담 품질, E01/B01 전체, 취소·미완료 실행 재개는 남아 있다. 이번 변경으로 ⑤ 또는 G8 전체를 완료 처리하지 않는다.
+
+최종 앱 검증: npm run typecheck 및 npm run lint 통과. npm test -- --runInBand --silent --json --outputFile=C:/Users/playdata2/AppData/Local/Temp/g8-n02-delivery-app-final.json: 107 suites/1,328 tests 통과, 113.416초. 최초 전체 앱 실행도 1,328 통과였으나 마지막 현재가 차단 수정 시점과 겹쳐 최종 증빙으로 사용하지 않고 고정 소스로 재실행했다. 별도 집중 162건도 통과했다. 원본 Jest 시작 시각/해시와 최종 소스 20개를 trace에 남겼다. 최종 백엔드 집중 시작은 2026-11-26T15:33:09.761918+09:00이다.
+
+신규 trace는 실제/모의 backend 5건과 앱 자동 검증 1건 총 6건을 추가해 13건이다. 이전 7건의 byte prefix를 보존했으며 새 기록마다 Gitleaks 8.30.1 빈 ignore 검사를 통과했다. trace SHA256: 5bad16e6151011bc1c6521e97634b3fa731a09ef82a10b1af584f658320db496. 기존 환경 자격증명 값을 출력하지 않고 trace와 대조해 불포함을 확인했다. 매핑 파일 SHA256은 이전 기록과 동일했다. 검증용 API·PG는 종료했고 격리 DB·로그는 보존했다. 실제 모델 호출 0회이며 실기기 확인으로 기록하지 않는다.
+
+최종 변경 파일 전체 23개를 Gitleaks 8.30.1 dir, 저장소 config, 빈 ignore, --redact로 검사하여 exit 0을 확인했다. git diff --check 통과. 현재 미커밋이며 push·PR 생성은 하지 않았다.
+
+
+## N02 옵션 전달 보완 게시 전 검증 — 2026-11-26 15:42 KST
+
+사용자 승인에 따라 구현·테스트·번역 20개 파일을 6399b2c367a5e9c5f45302fb1aa99dacd28ff20e로 보존하고 설계·작업 기록·신규 증빙을 별도 문서 커밋으로 분리한다. fetch한 원격 feat/compound-consultation은 7b4b599ed585078bd54fac2b095f923ce942bff0이며 시작 시 로컬과 차이 0개다. 이 절은 push 전 상태이며 게시 후 원격 HEAD를 별도 조회해 확인한다. PR 생성·강제 push·운영 반영 없음. 현재 단계는 ⑤ 협력 완성 중 N02이며 기존 미완료 항목을 유지한다.
+
+게시 전 검사(15:39~15:42 KST): npm run check -- -- --runInBand --silent는 타입·린트·107 suites/1,328 tests 통과(119.052초). backend/chatbot에서 기존 잠금 venv를 UV_PROJECT_ENVIRONMENT로 지정한 uv run --frozen ruff check ., lint-imports(3 KEPT), pytest -q -p no:cacheprovider --basetemp <새 GUID 임시 경로> --tb=short는 1,492 통과·102 건너뜀(52.90초). 소스는 6399b2c와 같으며 신규 trace 6건의 20개 exact-byte manifest와도 모두 일치했다. 이번 게시 검사에서는 실제 Catalog/PG/LLM을 재실행하지 않았다.
+
+신규 trace 6건의 인증정보 필드 검사와 환경 비밀값 대조에서 노출을 발견하지 않았다(값 자체는 출력하지 않음). 이전 7건의 byte prefix SHA256 5fd0e811fb8b16d67b089ca6d0902cbf23f2b80a906e616ab1fdd910b0ecd700을 유지했다. 변경 파일 23개 전체를 Gitleaks 8.30.1 dir, 저장소 config, 빈 ignore, --redact로 재검사해 exit 0을 확인했다. git diff --check와 구현 커밋 staged 검사 통과. 커밋 후 CI와 같은 HEAD 전체 이력 보안 검사를 통과한 경우에만 정상 push한다.
