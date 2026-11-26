@@ -1,0 +1,486 @@
+[
+  {
+    "number": 1,
+    "commit": "4173f36658fb96086388971ceb927a651deb147b",
+    "trace": "reports/g8/n01/trace.jsonl",
+    "line": 146,
+    "rule": "generic-api-key",
+    "fingerprint": "4173f36658fb96086388971ceb927a651deb147b:reports/g8/n01/trace.jsonl:generic-api-key:146",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+        "sourceCommit": "8cade25fd2cfd45ad47a26ce266d3c783fb37d5f",
+        "blob": "8e15d540acaca19c613d348025c2b973d02de9c1",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 67294
+      }
+    ],
+    "traceField": [
+      "sourceSha256",
+      "backend/chatbot/tests/test_g7_conversation_api_pg.py"
+    ]
+  },
+  {
+    "number": 2,
+    "commit": "4173f36658fb96086388971ceb927a651deb147b",
+    "trace": "reports/g8/n01/trace.jsonl",
+    "line": 156,
+    "rule": "generic-api-key",
+    "fingerprint": "4173f36658fb96086388971ceb927a651deb147b:reports/g8/n01/trace.jsonl:generic-api-key:156",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+        "sourceCommit": "8cade25fd2cfd45ad47a26ce266d3c783fb37d5f",
+        "blob": "8e15d540acaca19c613d348025c2b973d02de9c1",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 67294
+      }
+    ],
+    "traceField": [
+      "sourceSha256",
+      "backend/chatbot/tests/test_g7_conversation_api_pg.py"
+    ]
+  },
+  {
+    "number": 3,
+    "commit": "1dceb38cf1eabf9f1aac9deccb7e2919fd8e4298",
+    "trace": "reports/g8/n01/trace.jsonl",
+    "line": 93,
+    "rule": "generic-api-key",
+    "fingerprint": "1dceb38cf1eabf9f1aac9deccb7e2919fd8e4298:reports/g8/n01/trace.jsonl:generic-api-key:93",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+        "sourceCommit": "3bb4798fb9601cae2a1a22264eb5e330e80db0d9",
+        "blob": "d3b8f4217477506e9dc4f8c148aa31f0ad5ebaa3",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 62584
+      }
+    ],
+    "traceField": [
+      "sourceSha256",
+      "backend/chatbot/tests/test_g7_conversation_api_pg.py"
+    ]
+  },
+  {
+    "number": 4,
+    "commit": "1dceb38cf1eabf9f1aac9deccb7e2919fd8e4298",
+    "trace": "reports/g8/n01/trace.jsonl",
+    "line": 141,
+    "rule": "generic-api-key",
+    "fingerprint": "1dceb38cf1eabf9f1aac9deccb7e2919fd8e4298:reports/g8/n01/trace.jsonl:generic-api-key:141",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+        "sourceCommit": "3bb4798fb9601cae2a1a22264eb5e330e80db0d9",
+        "blob": "d3b8f4217477506e9dc4f8c148aa31f0ad5ebaa3",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 62584
+      }
+    ],
+    "traceField": [
+      "sourceSha256",
+      "backend/chatbot/tests/test_g7_conversation_api_pg.py"
+    ]
+  },
+  {
+    "number": 5,
+    "commit": "1dceb38cf1eabf9f1aac9deccb7e2919fd8e4298",
+    "trace": "reports/g8/n01/trace.jsonl",
+    "line": 145,
+    "rule": "generic-api-key",
+    "fingerprint": "1dceb38cf1eabf9f1aac9deccb7e2919fd8e4298:reports/g8/n01/trace.jsonl:generic-api-key:145",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+        "sourceCommit": "3bb4798fb9601cae2a1a22264eb5e330e80db0d9",
+        "blob": "d3b8f4217477506e9dc4f8c148aa31f0ad5ebaa3",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 62584
+      }
+    ],
+    "traceField": [
+      "sourceSha256",
+      "backend/chatbot/tests/test_g7_conversation_api_pg.py"
+    ]
+  },
+  {
+    "number": 6,
+    "commit": "5ed8ac159af50cbe459eaea445c285e0ff2c9529",
+    "trace": "reports/g8/first-compound/trace.jsonl",
+    "line": 1,
+    "rule": "generic-api-key",
+    "fingerprint": "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:1",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/app/core/auth.py",
+        "sourceCommit": "8bde587dcc55f1e6b652f72d0f81d878f2c21252",
+        "blob": "96f1182b8317b4b42dde0d397387fe90e46e1726",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 5442
+      }
+    ],
+    "traceField": [
+      "sourceFileSha256",
+      "backend/chatbot/app/core/auth.py"
+    ]
+  },
+  {
+    "number": 7,
+    "commit": "5ed8ac159af50cbe459eaea445c285e0ff2c9529",
+    "trace": "reports/g8/first-compound/trace.jsonl",
+    "line": 1,
+    "rule": "generic-api-key",
+    "fingerprint": "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:1",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/app/core/internal_deletion_auth.py",
+        "sourceCommit": "8bde587dcc55f1e6b652f72d0f81d878f2c21252",
+        "blob": "2078b4b2a17555c847e1642a80cfc11d5054f30b",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 2924
+      }
+    ],
+    "traceField": [
+      "sourceFileSha256",
+      "backend/chatbot/app/core/internal_deletion_auth.py"
+    ]
+  },
+  {
+    "number": 8,
+    "commit": "5ed8ac159af50cbe459eaea445c285e0ff2c9529",
+    "trace": "reports/g8/first-compound/trace.jsonl",
+    "line": 1,
+    "rule": "generic-api-key",
+    "fingerprint": "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:1",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+        "sourceCommit": "0e3973f03b2f66bb71f3a48adffe165c8243fa6b",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 55539,
+        "reconstruction": "restore_initial_test(): reverse checkpoint and citation edits"
+      }
+    ],
+    "traceField": [
+      "sourceFileSha256",
+      "backend/chatbot/tests/test_g7_conversation_api_pg.py"
+    ]
+  },
+  {
+    "number": 9,
+    "commit": "5ed8ac159af50cbe459eaea445c285e0ff2c9529",
+    "trace": "reports/g8/first-compound/trace.jsonl",
+    "line": 4,
+    "rule": "generic-api-key",
+    "fingerprint": "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:4",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/app/core/auth.py",
+        "sourceCommit": "8bde587dcc55f1e6b652f72d0f81d878f2c21252",
+        "blob": "96f1182b8317b4b42dde0d397387fe90e46e1726",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 5442
+      }
+    ],
+    "traceField": [
+      "backendSourceSha256",
+      "backend/chatbot/app/core/auth.py"
+    ]
+  },
+  {
+    "number": 10,
+    "commit": "5ed8ac159af50cbe459eaea445c285e0ff2c9529",
+    "trace": "reports/g8/first-compound/trace.jsonl",
+    "line": 4,
+    "rule": "generic-api-key",
+    "fingerprint": "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:4",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/app/core/internal_deletion_auth.py",
+        "sourceCommit": "8bde587dcc55f1e6b652f72d0f81d878f2c21252",
+        "blob": "2078b4b2a17555c847e1642a80cfc11d5054f30b",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 2924
+      }
+    ],
+    "traceField": [
+      "backendSourceSha256",
+      "backend/chatbot/app/core/internal_deletion_auth.py"
+    ]
+  },
+  {
+    "number": 11,
+    "commit": "5ed8ac159af50cbe459eaea445c285e0ff2c9529",
+    "trace": "reports/g8/first-compound/trace.jsonl",
+    "line": 6,
+    "rule": "generic-api-key",
+    "fingerprint": "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:6",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/app/core/auth.py",
+        "sourceCommit": "8bde587dcc55f1e6b652f72d0f81d878f2c21252",
+        "blob": "96f1182b8317b4b42dde0d397387fe90e46e1726",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 5442
+      }
+    ],
+    "traceField": [
+      "backendSourceSha256",
+      "backend/chatbot/app/core/auth.py"
+    ]
+  },
+  {
+    "number": 12,
+    "commit": "5ed8ac159af50cbe459eaea445c285e0ff2c9529",
+    "trace": "reports/g8/first-compound/trace.jsonl",
+    "line": 6,
+    "rule": "generic-api-key",
+    "fingerprint": "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:6",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/app/core/internal_deletion_auth.py",
+        "sourceCommit": "8bde587dcc55f1e6b652f72d0f81d878f2c21252",
+        "blob": "2078b4b2a17555c847e1642a80cfc11d5054f30b",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 2924
+      }
+    ],
+    "traceField": [
+      "backendSourceSha256",
+      "backend/chatbot/app/core/internal_deletion_auth.py"
+    ]
+  },
+  {
+    "number": 13,
+    "commit": "5ed8ac159af50cbe459eaea445c285e0ff2c9529",
+    "trace": "reports/g8/first-compound/trace.jsonl",
+    "line": 9,
+    "rule": "generic-api-key",
+    "fingerprint": "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:9",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/app/core/auth.py",
+        "sourceCommit": "8bde587dcc55f1e6b652f72d0f81d878f2c21252",
+        "blob": "96f1182b8317b4b42dde0d397387fe90e46e1726",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 5442
+      }
+    ],
+    "traceField": [
+      "sourceFileSha256",
+      "backend/chatbot/app/core/auth.py"
+    ]
+  },
+  {
+    "number": 14,
+    "commit": "5ed8ac159af50cbe459eaea445c285e0ff2c9529",
+    "trace": "reports/g8/first-compound/trace.jsonl",
+    "line": 9,
+    "rule": "generic-api-key",
+    "fingerprint": "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:9",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/app/core/internal_deletion_auth.py",
+        "sourceCommit": "8bde587dcc55f1e6b652f72d0f81d878f2c21252",
+        "blob": "2078b4b2a17555c847e1642a80cfc11d5054f30b",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 2924
+      }
+    ],
+    "traceField": [
+      "sourceFileSha256",
+      "backend/chatbot/app/core/internal_deletion_auth.py"
+    ]
+  },
+  {
+    "number": 15,
+    "commit": "5ed8ac159af50cbe459eaea445c285e0ff2c9529",
+    "trace": "reports/g8/first-compound/trace.jsonl",
+    "line": 9,
+    "rule": "generic-api-key",
+    "fingerprint": "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:9",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+        "sourceCommit": "0e3973f03b2f66bb71f3a48adffe165c8243fa6b",
+        "blob": "60191e3d848312df448c239b402e45546380f77d",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 56870
+      }
+    ],
+    "traceField": [
+      "sourceFileSha256",
+      "backend/chatbot/tests/test_g7_conversation_api_pg.py"
+    ]
+  },
+  {
+    "number": 16,
+    "commit": "5ed8ac159af50cbe459eaea445c285e0ff2c9529",
+    "trace": "reports/g8/first-compound/trace.jsonl",
+    "line": 14,
+    "rule": "generic-api-key",
+    "fingerprint": "5ed8ac159af50cbe459eaea445c285e0ff2c9529:reports/g8/first-compound/trace.jsonl:generic-api-key:14",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+        "sourceCommit": "0e3973f03b2f66bb71f3a48adffe165c8243fa6b",
+        "blob": "60191e3d848312df448c239b402e45546380f77d",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 56870
+      }
+    ],
+    "traceField": [
+      "files",
+      "backend/chatbot/tests/test_g7_conversation_api_pg.py"
+    ]
+  },
+  {
+    "number": 17,
+    "commit": "64188a2861a804b6ff1d4d89558fc11ce0995e00",
+    "trace": "reports/g8/n01/trace.jsonl",
+    "line": 1,
+    "rule": "generic-api-key",
+    "fingerprint": "64188a2861a804b6ff1d4d89558fc11ce0995e00:reports/g8/n01/trace.jsonl:generic-api-key:1",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+        "sourceCommit": "9b1df1da7331b9bbb4782373dc4d1536ec9ed76b",
+        "blob": "28c75c5bde8234ac6a94598c45d1fb9cc3fe5880",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 57086
+      }
+    ],
+    "traceField": [
+      "sourceSha256",
+      "backend/chatbot/tests/test_g7_conversation_api_pg.py"
+    ]
+  },
+  {
+    "number": 18,
+    "commit": "64188a2861a804b6ff1d4d89558fc11ce0995e00",
+    "trace": "reports/g8/n01/trace.jsonl",
+    "line": 16,
+    "rule": "generic-api-key",
+    "fingerprint": "64188a2861a804b6ff1d4d89558fc11ce0995e00:reports/g8/n01/trace.jsonl:generic-api-key:16",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+        "sourceCommit": "9b1df1da7331b9bbb4782373dc4d1536ec9ed76b",
+        "blob": "28c75c5bde8234ac6a94598c45d1fb9cc3fe5880",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 57086
+      }
+    ],
+    "traceField": [
+      "sourceSha256",
+      "backend/chatbot/tests/test_g7_conversation_api_pg.py"
+    ]
+  },
+  {
+    "number": 19,
+    "commit": "64188a2861a804b6ff1d4d89558fc11ce0995e00",
+    "trace": "reports/g8/n01/trace.jsonl",
+    "line": 32,
+    "rule": "generic-api-key",
+    "fingerprint": "64188a2861a804b6ff1d4d89558fc11ce0995e00:reports/g8/n01/trace.jsonl:generic-api-key:32",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+        "sourceCommit": "9b1df1da7331b9bbb4782373dc4d1536ec9ed76b",
+        "blob": "28c75c5bde8234ac6a94598c45d1fb9cc3fe5880",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 57086
+      }
+    ],
+    "traceField": [
+      "sourceSha256",
+      "backend/chatbot/tests/test_g7_conversation_api_pg.py"
+    ]
+  },
+  {
+    "number": 20,
+    "commit": "f7b97e1b3cd2ef0134804d12d7b14e89417e0cec",
+    "trace": "reports/g8/n01/trace.jsonl",
+    "line": 49,
+    "rule": "generic-api-key",
+    "fingerprint": "f7b97e1b3cd2ef0134804d12d7b14e89417e0cec:reports/g8/n01/trace.jsonl:generic-api-key:49",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+        "sourceCommit": "b0435a627fd70d17e698359676927c8b2ef8fbf1",
+        "blob": "83fa2116a5b24a4236415328abf150388c81cce2",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 62240
+      }
+    ],
+    "traceField": [
+      "sourceSha256",
+      "backend/chatbot/tests/test_g7_conversation_api_pg.py"
+    ]
+  },
+  {
+    "number": 21,
+    "commit": "f7b97e1b3cd2ef0134804d12d7b14e89417e0cec",
+    "trace": "reports/g8/n01/trace.jsonl",
+    "line": 74,
+    "rule": "generic-api-key",
+    "fingerprint": "f7b97e1b3cd2ef0134804d12d7b14e89417e0cec:reports/g8/n01/trace.jsonl:generic-api-key:74",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+        "sourceCommit": "b0435a627fd70d17e698359676927c8b2ef8fbf1",
+        "blob": "83fa2116a5b24a4236415328abf150388c81cce2",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 62240
+      }
+    ],
+    "traceField": [
+      "sourceSha256",
+      "backend/chatbot/tests/test_g7_conversation_api_pg.py"
+    ]
+  },
+  {
+    "number": 22,
+    "commit": "f7b97e1b3cd2ef0134804d12d7b14e89417e0cec",
+    "trace": "reports/g8/n01/trace.jsonl",
+    "line": 92,
+    "rule": "generic-api-key",
+    "fingerprint": "f7b97e1b3cd2ef0134804d12d7b14e89417e0cec:reports/g8/n01/trace.jsonl:generic-api-key:92",
+    "status": "verified_source_digest",
+    "sourceMatches": [
+      {
+        "path": "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+        "sourceCommit": "b0435a627fd70d17e698359676927c8b2ef8fbf1",
+        "blob": "83fa2116a5b24a4236415328abf150388c81cce2",
+        "byteBasis": "UTF-8-CRLF",
+        "bytes": 62240
+      }
+    ],
+    "traceField": [
+      "sourceSha256",
+      "backend/chatbot/tests/test_g7_conversation_api_pg.py"
+    ]
+  }
+]
