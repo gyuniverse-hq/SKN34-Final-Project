@@ -6,6 +6,8 @@ export type LookProduct = { productId: string; shadeId?: string | null };
 export type LookPost = {
   id: string;
   title: string;
+  example?: boolean;
+  displayName?: string | null;
   description: string;
   products: LookProduct[];
   votes: number;

@@ -1,16 +1,20 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/ui/Button';
+import { InlineState } from '@/components/ui/InlineState';
+import { homeLayout } from '@/constants/homeLayout';
 import { theme } from '@/constants/theme';
-import { apiDelete, apiGet } from '@/lib/api';
+import { ApiError, apiDelete, apiGet } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { confirmAction, notify } from '@/lib/confirm';
 import { useI18n } from '@/lib/i18n';
-import { communityPostHref, communityWriteHref, LOOK_COMMUNITY, lookPhoto, type LookPost } from '@/lib/lookCommunity';
+import { communityMineHref, communityPostHref, communityWriteHref, LOOK_COMMUNITY, lookPhoto, type LookPost } from '@/lib/lookCommunity';
 import { loginHref } from '@/lib/routes';
+import { LookPostAuthor, LookPostVotes } from './LookPostMeta';
 
 export function LookCommunityFeed({ mine = false }: { mine?: boolean }) {
   const { t } = useI18n();
@@ -25,6 +29,7 @@ export function LookCommunityFeed({ mine = false }: { mine?: boolean }) {
     }),
     initialPageParam: 0,
     getNextPageParam: (last, _pages, offset) => last.length === 20 ? offset + 20 : undefined,
+    retry: (count, error) => !(error instanceof ApiError && error.status >= 400 && error.status < 500) && count < 2,
     enabled: !mine || !!user,
   });
   const rows = [...new Map(feed.data?.pages.flat().map(post => [post.id, post])).values()];
@@ -38,49 +43,66 @@ export function LookCommunityFeed({ mine = false }: { mine?: boolean }) {
     });
   }
 
-  if (mine && !user) return <View style={styles.intro}><Button label={t('my.login')} onPress={() => router.push(loginHref('community-mine'))} /></View>;
+  if (mine && !user) return <View style={styles.list}><Button label={t('my.login')} onPress={() => router.push(loginHref('community-mine'))} /></View>;
+
+  const unavailable = feed.error instanceof ApiError && feed.error.status === 404;
 
   return (
     <FlatList
       data={rows}
+      style={styles.feed}
       keyExtractor={post => post.id}
       contentContainerStyle={styles.list}
       onRefresh={() => void feed.refetch()}
       refreshing={feed.isRefetching}
       ListHeaderComponent={
-        <View style={styles.intro}>
-          <Text accessibilityRole="header" style={styles.heading}>{t(mine ? 'community.mine' : 'community.heading')}</Text>
-          {!mine ? <Text style={styles.muted}>{t('community.intro')}</Text> : null}
-          <Button label={t('community.write')} onPress={() => router.push(communityWriteHref())} />
+        <View style={styles.toolbar}>
           {!mine ? (
-            <View style={styles.filters}>
+            <View accessibilityRole="tablist" style={styles.filters}>
               {([false, true] as const).map(value => (
                 <Pressable key={String(value)} accessibilityRole="tab" accessibilityState={{ selected: popular === value }}
-                  onPress={() => setPopular(value)} style={[styles.chip, popular === value && styles.active]}>
-                  <Text style={styles.label}>{t(value ? 'community.popular' : 'community.latest')}</Text>
+                  onPress={() => setPopular(value)} style={styles.filter}>
+                  <Text style={[styles.filterLabel, popular === value && styles.selected]}>{t(value ? 'community.popular' : 'community.latest')}</Text>
                 </Pressable>
               ))}
             </View>
           ) : null}
+          <View style={styles.toolbarActions}>
+            {!mine ? <Pressable accessibilityRole="button" accessibilityLabel={t('community.mine')}
+              onPress={() => router.push(communityMineHref)} style={styles.mineButton}>
+              <Ionicons name="person-circle-outline" size={24} color={theme.colors.roseDark} />
+            </Pressable> : null}
+            <Pressable accessibilityRole="button" disabled={unavailable} accessibilityState={{ disabled: unavailable }}
+              onPress={() => router.push(communityWriteHref())}
+              style={({ pressed }) => [styles.write, pressed && styles.pressed, unavailable && styles.disabled]}>
+              <Ionicons name="add" size={19} color={theme.colors.roseDark} />
+              <Text style={styles.writeLabel}>{t('community.write')}</Text>
+            </Pressable>
+          </View>
         </View>
       }
       ListEmptyComponent={
-        <View style={styles.empty}>
-          <Text style={styles.muted}>{t(feed.isPending ? 'community.loading' : feed.isError ? 'community.error' : 'community.empty')}</Text>
-          {feed.isError ? <Button label={t('common.retry')} variant="secondary" onPress={() => void feed.refetch()} /> : null}
-        </View>
+        <InlineState status={feed.isPending ? 'loading' : feed.isError ? 'error' : 'empty'}
+          message={t(feed.isError ? (unavailable ? 'community.unavailable' : 'community.feedError')
+            : mine ? 'community.mineEmpty' : 'community.empty')}
+          onRetry={unavailable ? undefined : () => void feed.refetch()} />
       }
       ListFooterComponent={feed.hasNextPage ? <Button label={t(feed.isFetchNextPageError ? 'common.retry' : 'community.more')}
         variant="secondary" loading={feed.isFetchingNextPage} onPress={() => void feed.fetchNextPage()} /> : undefined}
       renderItem={({ item }) => (
         <View style={styles.card}>
-          <Pressable accessibilityRole="button" disabled={item.hidden} onPress={() => router.push(communityPostHref(item.id))}>
+          <Pressable accessibilityRole="button" disabled={item.hidden}
+            style={({ pressed }) => [styles.postRow, pressed && styles.pressed]}
+            onPress={() => router.push(communityPostHref(item.id))}>
             {!item.hidden ? <Image source={{ uri: lookPhoto(item.id) }} contentFit="cover" style={styles.photo}
               cachePolicy="none" accessibilityLabel={t('community.photo')} /> : null}
             <View style={styles.body}>
               <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
-              {item.description ? <Text style={styles.muted} numberOfLines={2}>{item.description}</Text> : null}
-              <Text style={styles.label}>{item.hidden ? t('community.hidden') : t('community.count', { count: item.votes })}</Text>
+              {item.description ? <Text style={styles.description} numberOfLines={2}>{item.description}</Text> : null}
+              <View style={styles.meta}>
+                <LookPostAuthor compact displayName={item.example ? 'VISHUE' : item.displayName} createdAt={item.createdAt} />
+                {item.hidden ? <Text style={styles.muted}>{t('community.hidden')}</Text> : <LookPostVotes count={item.votes} />}
+              </View>
             </View>
           </Pressable>
           {mine ? <View style={styles.actions}>
@@ -94,18 +116,28 @@ export function LookCommunityFeed({ mine = false }: { mine?: boolean }) {
 }
 
 const styles = StyleSheet.create({
-  list: { padding: 18, gap: 16, width: '100%', maxWidth: 600, alignSelf: 'center' },
-  intro: { gap: 12, marginBottom: 8 },
-  heading: { fontSize: 26, fontWeight: '800', color: theme.colors.ink },
-  title: { fontSize: 18, fontWeight: '700', color: theme.colors.ink },
-  muted: { color: theme.colors.inkMuted, lineHeight: 21 },
-  filters: { flexDirection: 'row', gap: 8 },
-  chip: { paddingHorizontal: 16, minHeight: 44, justifyContent: 'center', borderRadius: 24 },
-  active: { backgroundColor: theme.colors.roseSoft },
-  label: { color: theme.colors.roseDark, fontWeight: '700' },
+  feed: { flex: 1 },
+  list: { paddingHorizontal: homeLayout.gutter, paddingBottom: 92, gap: 10, width: '100%', maxWidth: 600, alignSelf: 'center' },
+  toolbar: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 6 },
+  toolbarActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, alignItems: 'center', marginLeft: 'auto' },
+  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  filter: { minHeight: 44, justifyContent: 'center', paddingVertical: 5, paddingHorizontal: 2 },
+  filterLabel: { fontSize: 14, color: theme.colors.inkMuted, fontWeight: '600' },
+  selected: { color: theme.colors.roseDark, fontWeight: '800' },
+  mineButton: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' },
+  write: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, paddingHorizontal: 10,
+    paddingVertical: 7, backgroundColor: theme.colors.roseSoft, borderRadius: 10, flexShrink: 1 },
+  writeLabel: { fontSize: 14, color: theme.colors.roseDark, fontWeight: '700', flexShrink: 1 },
+  pressed: { opacity: 0.75 },
+  disabled: { opacity: 0.55 },
+  title: { fontSize: 17, lineHeight: 23, fontWeight: '800', color: theme.colors.ink },
+  description: { fontSize: 13, lineHeight: 19, color: theme.colors.inkMuted, marginBottom: 2 },
+  muted: { fontSize: 14, color: theme.colors.inkMuted, lineHeight: 19 },
+  meta: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end',
+    columnGap: 8, rowGap: 4, marginTop: 3 },
   card: { backgroundColor: theme.colors.card, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.border },
-  photo: { width: '100%', aspectRatio: 1.25, backgroundColor: theme.colors.cream },
-  body: { padding: 15, gap: 6 },
-  empty: { paddingVertical: 32, alignItems: 'center', gap: 12 },
-  actions: { flexDirection: 'row', gap: 8, padding: 12, paddingTop: 0 },
+  postRow: { flexDirection: 'row', alignItems: 'center', padding: 11, gap: 12 },
+  photo: { width: 86, height: 96, flexShrink: 0, borderRadius: 10, backgroundColor: theme.colors.cream },
+  body: { flex: 1, minWidth: 0, gap: 5 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 12, paddingTop: 0 },
 });
