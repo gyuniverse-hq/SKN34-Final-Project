@@ -525,7 +525,7 @@ class FakeLegacyChat:
         self.calls += 1
         return ChatResponse(answer="synthetic", products=[])
 
-    def acknowledge_ar(self, principal_key, body):
+    async def acknowledge_ar(self, principal_key, body):
         self.acks += 1
 
 
