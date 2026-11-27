@@ -1,5 +1,5 @@
 import { apiPost, apiPostOwned } from '@/lib/api';
-import { pendingArAcks, queueArAck, retryArAcks } from '@/lib/arCommandAck';
+import { pendingArAcks, queueArAck, retryArAcks, retryableArAcks } from '@/lib/arCommandAck';
 import { getSupabase, isAuthConfigured } from '@/lib/auth/client';
 import { getAccessToken } from '@/lib/auth';
 import { getAnonymousChatId } from '@/lib/chatIdentity';
@@ -149,6 +149,20 @@ it('keeps an ACK after loss and does not send it as another user', async () => {
   expect(globalThis.fetch).toHaveBeenCalledTimes(2);
   expect(pendingArAcks()).toBe(0);
   expect((jest.mocked(globalThis.fetch).mock.calls[1][1] as RequestInit).body).toBe(JSON.stringify(body));
+});
+
+it('offers an ACK retry only after the first send fails', async () => {
+  let finish!: (response: Response) => void;
+  jest.mocked(globalThis.fetch).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  queueArAck(body, guest);
+  await flush();
+  expect(pendingArAcks()).toBe(1);
+  expect(retryableArAcks()).toBe(0);
+  finish(response(false) as Response);
+  await flush();
+  expect(retryableArAcks()).toBe(1);
+  await retryArAcks();
+  expect(retryableArAcks()).toBe(0);
 });
 
 it('holds a user ACK on logout or account switch and resumes with a refreshed token for that user', async () => {

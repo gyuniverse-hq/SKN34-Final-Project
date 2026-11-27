@@ -1558,9 +1558,9 @@ export default function ArTryOnScreen() {
                   }) : <Text style={styles.chatNotice}>{t('ar.conversation.empty')}</Text>}
                 </ScrollView>
               </> : null}
-              {arCommand.restoreState !== 'idle' || arCommand.ackPending ? <View style={styles.chatStatus}>
+              {arCommand.restoreState !== 'idle' || arCommand.ackNeedsRetry ? <View style={styles.chatStatus}>
                 {arCommand.restoreState !== 'idle' ? <Text style={styles.chatNotice} accessibilityLiveRegion="polite">{t(AR_RESTORE_STATUS[arCommand.restoreState])}</Text> : null}
-                {arCommand.ackPending ? <View>
+                {arCommand.ackNeedsRetry ? <View>
                   <Text style={styles.chatNotice}>{t('ar.command.ackPending')}</Text>
                   <Pressable accessibilityRole="button" onPress={() => void arCommand.retryAck()} style={styles.chatRetry}>
                     <Text style={styles.chatSuggestionText}>{t('ar.command.retryAck')}</Text>

@@ -1,7 +1,7 @@
 import { uuid } from 'expo';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { apiPostOwned, subscribeArIdentityChange, type ArRequestOwner } from '@/lib/api';
-import { confirmArAck, pendingArAcks, queueArAck, retryArAcks, subscribeArAcks } from '@/lib/arCommandAck';
+import { confirmArAck, pendingArAcks, queueArAck, retryArAcks, retryableArAcks, subscribeArAcks } from '@/lib/arCommandAck';
 import { revealedMakeup } from '@/lib/practice';
 import { reject, type ConfirmPaint, type ControlResult, type ControlScreen } from '@/lib/arControl';
 import { readShadePreference } from '@/lib/arShadePreference';
@@ -75,6 +75,7 @@ export function useArCommand(options: Options) {
   const [renderCommand, setRenderCommand] = useState<ArRenderCommand | null>(null);
   const [restoreState, setRestoreState] = useState<RestorePhase>('idle');
   const [ackPending, setAckPending] = useState(pendingArAcks);
+  const [ackNeedsRetry, setAckNeedsRetry] = useState(retryableArAcks);
   const current = useRef(options);
   const session = useRef<string | null>(null);
   const lastAdjustment = useRef<{ commandId: string; version: number; amount: number } | null>(null);
@@ -96,7 +97,10 @@ export function useArCommand(options: Options) {
   const authEpoch = useRef(0);
 
   useLayoutEffect(() => { current.current = options; }, [options]);
-  useEffect(() => subscribeArAcks(() => setAckPending(pendingArAcks())), []);
+  useEffect(() => subscribeArAcks(() => {
+    setAckPending(pendingArAcks());
+    setAckNeedsRetry(retryableArAcks());
+  }), []);
 
   const startRestore = useCallback((cmd: Command) => {
     if (restoreTimer.current) clearTimeout(restoreTimer.current);
@@ -440,5 +444,5 @@ export function useArCommand(options: Options) {
     }
   }, [complete]);
 
-  return { state, applied, controlChoice, controlResult, message, restoreState, ackPending, send, retryAck: retryArAcks, renderCommand, onRenderResult };
+  return { state, applied, controlChoice, controlResult, message, restoreState, ackPending, ackNeedsRetry, send, retryAck: retryArAcks, renderCommand, onRenderResult };
 }

@@ -8,7 +8,7 @@ export type ArAck = Omit<ArOutcome, 'status'> & {
 };
 
 // Development-only outbox: retained while the JS process lives, never re-executes a command.
-const outbox = new Map<string, { body: ArAck; owner: ArRequestOwner }>();
+const outbox = new Map<string, { body: ArAck; owner: ArRequestOwner; needsRetry: boolean }>();
 const inflight = new Map<string, Promise<void>>();
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((listener) => listener());
@@ -19,6 +19,9 @@ export function subscribeArAcks(listener: () => void) {
 }
 
 export function pendingArAcks() { return outbox.size; }
+export function retryableArAcks() {
+  return [...outbox.values()].filter(entry => entry.needsRetry).length;
+}
 
 export async function retryArAcks() {
   await Promise.all([...outbox.keys()].map(sendAck));
@@ -43,6 +46,7 @@ async function sendAck(commandId: string): Promise<void> {
     } catch {
       // Keep the exact same ACK for a later retry; never issue the command again.
     } finally {
+      if (outbox.has(commandId)) entry.needsRetry = true;
       inflight.delete(commandId);
       notify();
     }
@@ -53,7 +57,7 @@ async function sendAck(commandId: string): Promise<void> {
 
 export function queueArAck(body: ArAck, owner: ArRequestOwner) {
   if (outbox.has(body.commandId)) return;
-  outbox.set(body.commandId, { body: { ...body }, owner: { ...owner } });
+  outbox.set(body.commandId, { body: { ...body }, owner: { ...owner }, needsRetry: false });
   notify();
   void sendAck(body.commandId);
 }
