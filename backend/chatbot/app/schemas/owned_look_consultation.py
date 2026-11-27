@@ -8,6 +8,7 @@ from pydantic.alias_generators import to_camel
 
 from app.schemas.catalog import OptionSearchResponse
 from app.schemas.chat import ProductRef
+from app.schemas.owned_look_context import OwnedLookOutcome
 from app.schemas.style_recipe import StyleRecipe, Zone
 
 
@@ -25,6 +26,15 @@ class OwnedLookProduct(OwnedLookModel):
 
 
 class OwnedLookCoverage(OwnedLookModel):
+    need_id: str = ""
+    product_id: str | None = None
+    option_id: str | None = None
+    shade_id: str | None = None
+    label: str = ""
+    step_orders: list[int] = Field(default_factory=list)
+    role_basis: Literal["reviewed_usage", "product_listing"] = "product_listing"
+    # Listing alone does not establish joint use, necessity, or substitutability.
+    relationship: Literal["unconfirmed"] = "unconfirmed"
     zone: Zone
     status: Literal["fulfilled", "confirmed_missing", "ownership_unknown", "evidence_missing"]
     product_ids: list[str] = Field(default_factory=list)
@@ -62,3 +72,4 @@ class OwnedLookResult(OwnedLookModel):
     products: list[ProductRef] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)
     option_searches: list[OptionSearchResponse] = Field(default_factory=list)
+    outcome: OwnedLookOutcome | None = None

@@ -24,7 +24,11 @@ from app.schemas.memory import (
     ConsultationMemory,
     MemoryProposal,
 )
-from app.schemas.owned_look_context import OwnedLookContext, OwnedLookOptionDisplay
+from app.schemas.owned_look_context import (
+    OwnedLookContext,
+    OwnedLookOptionDisplay,
+    OwnedLookOutcome,
+)
 from app.schemas.style_recipe import (
     StyleCandidate,
     StyleCandidateRef,
@@ -186,6 +190,7 @@ class ChatRequest(ApiModel):
     _historical_product_ids: tuple[str, ...] = PrivateAttr(default=())
     _compound_context: CompoundContext | None = PrivateAttr(default=None)
     _owned_look_context: OwnedLookContext | None = PrivateAttr(default=None)
+    _owned_look_answer: tuple[str, str, str] | None = PrivateAttr(default=None)
     _g7_execution: object | None = PrivateAttr(default=None)
     _consented_memories: list[str] = PrivateAttr(default_factory=list)
     _consultation_memories: tuple[ConsultationMemory, ...] | None = PrivateAttr(default=None)
@@ -431,6 +436,7 @@ class ChatResponse(ApiModel):
         default=None, exclude_if=lambda v: v is None
     )
     _owned_look_context: OwnedLookContext | None = PrivateAttr(default=None)
+    _owned_look_outcome: OwnedLookOutcome | None = PrivateAttr(default=None)
 
     compound: CompoundDisplay | None = Field(default=None, exclude_if=lambda v: v is None)
     conversation: ConversationMetadata | None = Field(default=None, exclude_if=lambda v: v is None)

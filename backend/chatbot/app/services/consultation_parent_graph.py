@@ -50,7 +50,12 @@ def restore_followup(req, parent):
     answer = _ANSWERS.get(req.message.strip().rstrip(".!"))
     if question and question.input_key == "ownership" and question.zone and answer:
         name = dict(zip(ORDER, NAMES["ko"], strict=True))[question.zone]
-        req = req.model_copy(update={"message": f"{name}는 {answer}. 추가 추천해줘."})
+        if question.need_id and question.recipe_version:
+            req = req.model_copy(update={"message": f"{name} 상품 확인 답변. 추가 추천해줘."})
+            req._owned_look_answer = (question.need_id, question.recipe_version, answer)
+        else:
+            # Compatibility with stored questions predating product-level targets.
+            req = req.model_copy(update={"message": f"{name}는 {answer}. 추가 추천해줘."})
     return req
 
 
@@ -164,48 +169,36 @@ async def run_parent(
                 if response.style_status == "error":
                     task.status = "failed"
                 if kind == "owned_look":
-                    coverage = next(
-                        (
-                            e["result"]["coverage"]
-                            for e in specialist_trace
-                            if e["task"]["taskId"] == "N1"
-                        ),
-                        [],
-                    )
-                    unknown = [c for c in coverage if c["status"] == "ownership_unknown"]
-                    if unknown:
-                        zone = unknown[0]["zone"]
-                        name = dict(zip(ORDER, NAMES["ko"], strict=True))[zone]
-                        text = f"{name} 제품을 가지고 있나요?"
-                        parent.question = ParentQuestion(
-                            goal=kind,
-                            version=parent.version,
-                            text=text,
-                            input_key="ownership",
-                            zone=zone,
-                        )
-                        names = dict(zip(ORDER, NAMES["ko"], strict=True))
-                        aggregate = (
-                            "추가로 필요한지 확인할게요. "
-                            + ", ".join(names[c["zone"]] for c in unknown)
-                            + " 제품도 가지고 있나요?"
-                        )
-                        response.answer = response.answer.replace(aggregate, text)
-                        task.status = "waiting_user"
-                    elif (
-                        coverage
-                        and all(c["status"] == "fulfilled" for c in coverage)
-                        or (
-                            coverage
-                            and not any(
-                                c["status"] in {"evidence_missing", "ownership_unknown"}
-                                for c in coverage
+                    outcome = response._owned_look_outcome
+                    if outcome is not None:
+                        task.status = outcome.status
+                        task.limitations = [
+                            f"{item.label}: {item.status}"
+                            for item in outcome.items
+                            if item.status not in {"owned", "recommended"}
+                        ]
+                        unknown = [
+                            item for item in outcome.items if item.status == "ownership_unknown"
+                        ]
+                        parent.question = None
+                        if unknown:
+                            item = unknown[0]
+                            text = f"{item.label} 제품을 가지고 있나요?"
+                            parent.question = ParentQuestion(
+                                goal=kind,
+                                version=parent.version,
+                                text=text,
+                                input_key="ownership",
+                                zone=item.zone,
+                                need_id=item.need_id,
+                                recipe_version=response.style_recipe.recipe_version,
                             )
-                            and response.products
-                            and not response.owned_look_options
-                        )
-                    ):
-                        task.status = "completed"
+                            aggregate = (
+                                "추가로 필요한지 확인할게요. "
+                                + ", ".join(i.label for i in unknown)
+                                + " 제품도 가지고 있나요?"
+                            )
+                            response.answer = response.answer.replace(aggregate, text)
                 if response.knowledge and kind == "skin":
                     task.result_refs += [e.id for e in response.knowledge.evidence]
                 if kind == "skin" and response.compound:

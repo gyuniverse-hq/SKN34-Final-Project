@@ -13,6 +13,7 @@ class OwnershipDeclaration(BaseModel):
     source: Literal["user"] = "user"
     status: Literal["missing", "present"]
     quote: str = Field(min_length=1, max_length=500)
+    confirmed_current: bool = False
 
 
 class OwnedLookFilters(BaseModel):
@@ -35,6 +36,8 @@ class OwnedLookContext(BaseModel):
     version: int = Field(default=1, ge=1)
     # Closed Zone enum naturally bounds this map to nine areas.
     declarations: dict[Zone, OwnershipDeclaration] = Field(default_factory=dict)
+    # Keys are bounded by the current recipe, pruned on every execution.
+    item_declarations: dict[str, OwnershipDeclaration] = Field(default_factory=dict)
     filters: OwnedLookFilters = Field(default_factory=OwnedLookFilters)
 
 
@@ -55,3 +58,23 @@ class OwnedLookOptionDisplay(BaseModel):
     selections: list[OwnedLookOptionRef] = Field(default_factory=list)
     batches: list[OptionSearchResponse] = Field(default_factory=list)
     failed_product_ids: list[str] = Field(default_factory=list)
+
+
+class OwnedLookOutcomeItem(BaseModel):
+    """Final resolution of one listed product/option, not a claim it is mandatory."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
+
+    need_id: str
+    zone: Zone
+    label: str
+    status: Literal[
+        "owned", "recommended", "ownership_unknown", "evidence_missing", "excluded", "lookup_failed"
+    ]
+
+
+class OwnedLookOutcome(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
+
+    status: Literal["completed", "partial", "waiting_user", "failed"]
+    items: list[OwnedLookOutcomeItem] = Field(default_factory=list)

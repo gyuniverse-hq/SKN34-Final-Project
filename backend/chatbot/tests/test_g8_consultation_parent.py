@@ -258,3 +258,75 @@ def test_specific_explanation_withdrawal_preserves_other_question():
     assert parent.wants_explanation("원인은 설명해주고 사용법은 빼줘")
     assert parent.wants_explanation("설명은 빼고 주의점은 알려줘")
     assert not parent.wants_explanation("설명은 필요 없고 상품만")
+
+
+@pytest.mark.anyio
+async def test_same_zone_question_only_changes_target_and_final_option_result(record_property):
+    from tests.test_g8_owned_look import MultiLipCatalog
+
+    catalog = MultiLipCatalog()
+    service = ChatService(None, FakeLlm(configured=False), catalog)
+    req = request(
+        [owned("lip-a", "lip-a-shade"), owned("blush-b", "blush-b-shade")], "2만원 이하로 추천해줘."
+    )
+    first = await service.answer(req)
+    question = first._consultation_parent.question
+    assert question.zone == "lip" and "lip-b" in question.text and question.need_id
+    raw = updated_context({}, first)
+    next_req = prepare_request(req.model_copy(update={"message": "없어"}), raw, [])
+    second = await service.answer(next_req)
+    assert [p.id for p in second.products] == ["lip-b"]
+    assert catalog.option_calls[-1].product_ids == ["lip-b"]
+    assert second.owned_look_options.selections
+    assert second._consultation_parent.tasks[0].status == "completed"
+    assert second._consultation_parent.question is None
+    assert second._owned_look_context.declarations == {}
+    assert set(second._owned_look_context.item_declarations) == {question.need_id}
+    persisted = updated_context(raw, second)
+    assert persisted["consultationParent"]["tasks"][0]["status"] == "completed"
+    third_req = prepare_request(
+        req.model_copy(update={"message": "예산 1만원 이하로 바꿔줘."}), persisted, []
+    )
+    third = await service.answer(third_req)
+    assert third._consultation_parent.tasks[0].status == "partial"
+    assert third._consultation_parent.question is None
+    assert not third.products
+    record_property(
+        "multi_item_parent_mock",
+        json.dumps(
+            {
+                "catalogMode": "mock",
+                "modelConfiguredMode": "disabled",
+                "actualExternalModelCalls": 0,
+                "turns": [
+                    {
+                        "modelMode": "disabled",
+                        "actualModelCalls": 0,
+                        "parent": r._consultation_parent.model_dump(mode="json", by_alias=True),
+                        "tasks": r._parent_trace,
+                        "response": r.model_dump(mode="json", by_alias=True),
+                    }
+                    for r in [first, second, third]
+                ],
+            },
+            ensure_ascii=False,
+        ),
+    )
+
+
+@pytest.mark.anyio
+async def test_parent_preserves_owned_success_on_option_failure():
+    from tests.test_g8_owned_look import MultiLipCatalog
+
+    catalog = MultiLipCatalog()
+    catalog.fail_options = True
+    response = await ChatService(None, FakeLlm(configured=False), catalog).answer(
+        request(
+            [owned("lip-a", "lip-a-shade"), owned("blush-b", "blush-b-shade")],
+            "lip-b는 없어. 2만원 이하로 추천해줘.",
+        )
+    )
+    assert response._consultation_parent.tasks[0].status == "partial"
+    assert [i.status for i in response._owned_look_outcome.items].count("lookup_failed") == 1
+    assert len(response.applied_memories) == 2
+    assert not response.products and response._consultation_parent.question is None

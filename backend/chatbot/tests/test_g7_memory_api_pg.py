@@ -1561,7 +1561,7 @@ def test_n02_consented_inventory_selected_look_persistence_and_replay(
         structured=True,
     )
     assert not parent_first["products"]
-    assert "블러셔 제품을 가지고 있나요" in parent_first["answer"]
+    assert "Fixture blush-b 제품을 가지고 있나요" in parent_first["answer"]
     assert knowledge_inputs[0]["styleRecipe"]["lookId"] == "fixture-look"
     parent_second = ask(
         client, parent_room, parent_first["conversation"]["version"], "없어", structured=True
@@ -1638,7 +1638,7 @@ def test_n02_consented_inventory_selected_look_persistence_and_replay(
     assert following["appliedMemories"][0]["productId"] == "lip-a"
     assert [p["id"] for p in following["products"]] == ["blush-b"]
     assert "블러셔 제품도 가지고 있나요" not in following["answer"]
-    assert "블러셔 제품을 가지고 있나요" not in following["answer"]
+    assert "Fixture blush-b 제품을 가지고 있나요" not in following["answer"]
     priced_request_id = str(uuid4())
     priced = ask(
         client,
@@ -1711,7 +1711,7 @@ def test_n02_consented_inventory_selected_look_persistence_and_replay(
         structured=True,
     )
     assert not released["products"]
-    assert "블러셔 제품을 가지고 있나요" in released["answer"]
+    assert "Fixture blush-b 제품을 가지고 있나요" in released["answer"]
     reset_missing = ask(
         client, room, released["conversation"]["version"], "블러셔는 없어.", structured=True
     )
@@ -2192,3 +2192,64 @@ def test_sale_option_normal_proposal_pg_restore_and_n02(memory_api, monkeypatch,
             ensure_ascii=False,
         ),
     )
+
+
+def test_same_zone_item_question_pg_restore_and_final_status(
+    memory_api, monkeypatch, record_property
+):
+    from tests.test_g8_owned_look import MultiLipCatalog
+
+    client, _ = memory_api
+    settings = get_settings()
+    monkeypatch.setattr(settings, "g7_structured_memory_enabled", True)
+    monkeypatch.setattr(settings, "g8_enabled", True)
+    monkeypatch.setattr(settings, "g1_supervisor_enabled", False)
+    catalog = MultiLipCatalog()
+    service = ChatService(FakeGraph(), FakeLlm(configured=False), catalog)
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    room = new_room(client)
+    selected = client.patch(
+        f"/api/chat/conversations/{room}/state",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": 0,
+            "operation": "select_look",
+            "payload": {"kind": "catalog", "lookId": "fixture-look"},
+        },
+    )
+    assert selected.status_code == 200, selected.text
+    version = selected.json()["conversationVersion"]
+    turns = []
+    # First answer resolves blush, second lip-a, third lip-b; all are independent.
+    for message in [
+        "내가 보유한 제품으로 이 룩을 구성하고 필요한 것만 추천해줘. 2만원 이하로 추천해줘.",
+        "있어",
+        "있어",
+        "없어",
+        "예산 1만원 이하로 바꿔줘.",
+        "lip-b 미보유 조건 해제해줘.",
+    ]:
+        response = ask(client, room, version, message, structured=True)
+        restored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+        display = restored["messages"][-1]["displayPayload"]
+        assert display.get("ownedLookOptions") == response.get("ownedLookOptions")
+        turns.append(
+            {
+                "message": message,
+                "response": response,
+                "restoredDisplay": display,
+                "catalogMode": "mock",
+                "postgresMode": "live_disposable",
+                "authenticationMode": "mock",
+                "modelConfiguredMode": "disabled",
+                "actualModelCalls": 0,
+            }
+        )
+        version = response["conversation"]["version"]
+    assert [p["id"] for p in turns[3]["response"]["products"]] == ["lip-b"]
+    assert not turns[4]["response"]["products"]
+    assert "lip-b" in turns[5]["response"]["answer"]
+    assert "가지고 있나요" in turns[5]["response"]["answer"]
+    assert all(q.product_ids == ["lip-b"] for q in catalog.option_calls)
+    record_property("item_question_pg_roundtrip", json.dumps(turns, ensure_ascii=False))

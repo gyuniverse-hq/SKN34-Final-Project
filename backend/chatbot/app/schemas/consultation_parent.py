@@ -34,6 +34,8 @@ class ParentQuestion(ParentModel):
     text: str
     input_key: Literal["ownership", "situation", "selection", "consent"]
     zone: Zone | None = None
+    need_id: str | None = None
+    recipe_version: str | None = None
 
 
 class ConsultationParent(ParentModel):

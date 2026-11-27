@@ -184,6 +184,8 @@ def prepare_request(
             "style_compare": bool(request.style_compare and context.style_candidates),
         },
     )
+    result._owned_look_answer = None
+    result._owned_look_context = None
     result._server_history = True
     result._compound_context = context.compound
     if (

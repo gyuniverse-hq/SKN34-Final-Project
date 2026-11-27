@@ -376,7 +376,7 @@ async def test_product_result_is_rechecked_against_recipe_shade():
         request([owned("lip-a", "lip-a-shade")], "블러셔는 없어."), catalog
     )
     assert not response.products
-    assert "정확한 상품·호수를 다시 확인하지 못했어요" in response.answer
+    assert "추가 후보를 확정하지 못했어요" in response.answer
 
 
 @pytest.mark.anyio
@@ -1217,4 +1217,371 @@ async def test_live_other_looks_owned_and_alternative_boundary(
             },
             ensure_ascii=False,
         ),
+    )
+
+
+class MultiLipCatalog(FilteredCatalog):
+    """Two different listed lip products; joint use is deliberately unverified."""
+
+    def __init__(self):
+        super().__init__()
+        self.products["lip-b"] = product("lip-b", "lip")
+        self.look.items.append(
+            self.look.items[0].model_copy(update={"product_id": "lip-b", "shade_id": "lip-b-shade"})
+        )
+
+
+@pytest.mark.anyio
+async def test_multiple_products_same_zone_do_not_collapse(record_property):
+    catalog = MultiLipCatalog()
+    req = request([owned("lip-a", "lip-a-shade"), owned("blush-b", "blush-b-shade")])
+    trace = []
+    response = await execute_owned_look(req, catalog, trace=trace)
+    coverage = next(e["result"]["coverage"] for e in trace if e["task"]["taskId"] == "N1")
+    lips = [c for c in coverage if c["zone"] == "lip"]
+    assert [(c["productId"], c["status"]) for c in lips] == [
+        ("lip-a", "fulfilled"),
+        ("lip-b", "ownership_unknown"),
+    ]
+    assert len({c["needId"] for c in lips}) == 2
+    assert all(c["roleBasis"] == "product_listing" for c in lips)
+    assert all(c["relationship"] == "unconfirmed" for c in lips)
+    assert "모두 함께 써야 하는지" in response.answer
+    assert not response.products
+    assert response._owned_look_outcome.status == "waiting_user"
+    record_property(
+        "same_zone_mock",
+        {
+            "catalogMode": "mock",
+            "modelConfiguredMode": "disabled",
+            "actualModelCalls": 0,
+            "tasks": trace,
+            "answer": response.answer,
+        },
+    )
+
+
+@pytest.mark.anyio
+async def test_named_item_missing_budget_change_release_and_recipe_change():
+    catalog = MultiLipCatalog()
+    req = request(
+        [owned("lip-a", "lip-a-shade"), owned("blush-b", "blush-b-shade")],
+        "lip-b는 없어. 2만원 이하로 추천해줘.",
+    )
+    first = await execute_owned_look(req, catalog)
+    assert [p.id for p in first.products] == ["lip-b"]
+    assert first._owned_look_outcome.status == "completed"
+    (key,) = first._owned_look_context.item_declarations
+    req._owned_look_context = first._owned_look_context
+    req.message = "예산 1만원 이하로 바꿔줘."
+    second = await execute_owned_look(req, catalog)
+    assert key in second._owned_look_context.item_declarations
+    assert not second.products
+    assert (
+        next(i.status for i in second._owned_look_outcome.items if i.need_id == key) == "excluded"
+    )
+    assert second._owned_look_outcome.status == "partial"
+    req._owned_look_context = second._owned_look_context
+    req.message = "lip-b 미보유 조건 해제해줘."
+    third = await execute_owned_look(req, catalog)
+    assert not third._owned_look_context.item_declarations
+    assert third._owned_look_outcome.status == "waiting_user"
+    req._owned_look_context = first._owned_look_context
+    req.message = "다시 추천해줘"
+    catalog.look.recipe.version = "fixture-v2"
+    fourth = await execute_owned_look(req, catalog)
+    assert not fourth._owned_look_context.item_declarations
+    assert fourth._owned_look_outcome.status == "waiting_user"
+
+
+@pytest.mark.anyio
+async def test_same_product_two_sale_options_exact_scope_and_memory(monkeypatch):
+    from app.schemas.catalog import CatalogProductOption, OptionSearchResponse
+    from app.schemas.style_recipe import StyleRecipe
+    from app.services import owned_look_consultation_service as module
+
+    catalog = Catalog()
+    recipe = StyleRecipe(
+        kind="catalog",
+        look_id="fixture-look",
+        source_look_id="fixture-look",
+        source="fixture:catalog",
+        features=[],
+        current_step=0,
+        reason="catalog_settings",
+        recipe_id="fixture-two-options",
+        recipe_version="fixture-two-options-v1",
+        title="Two options",
+        basis="catalog_settings",
+        review_status="unreviewed",
+        synthetic=True,
+        steps=[{"order": 1, "zone": "lip", "title": "립"}],
+        products=[
+            {
+                "label": "같은 립",
+                "zone": "lip",
+                "productId": "lip-a",
+                "optionId": oid,
+                "optionName": oid,
+                "mappingStatus": "verified",
+                "catalogValid": True,
+            }
+            for oid in ("sale-a", "sale-b")
+        ],
+        ar_eligible=False,
+    )
+
+    async def style(*args):
+        return ChatResponse(answer="상품 목록 안내", products=[], style_recipe=recipe), None
+
+    calls = []
+
+    async def options(req):
+        calls.append(req)
+        return OptionSearchResponse.model_validate(
+            {
+                "effectiveRequest": req,
+                "checkedAt": "2026-11-27T00:00:00Z",
+                "status": "SUCCESS",
+                "items": [
+                    {
+                        "productId": "lip-a",
+                        "optionId": "sale-b",
+                        "shadeId": None,
+                        "sourceVersion": "fixture-v1",
+                        "synthetic": True,
+                        "group": "ELIGIBLE",
+                        "checks": [
+                            {"condition": "identity", "verdict": "MATCH", "reason": "fixture"}
+                        ],
+                    }
+                ],
+                "products": [catalog.products["lip-a"]],
+                "limitations": [],
+                "excludedCount": 0,
+                "omittedCount": 0,
+                "checkedScope": {
+                    "candidateProducts": 1,
+                    "candidateOptions": 1,
+                    "checkedOptions": 1,
+                    "unidentifiedOptions": 0,
+                    "stoppedReason": "COMPLETE",
+                    "errors": 0,
+                    "exhaustive": True,
+                },
+            }
+        )
+
+    async def option(pid, oid):
+        return CatalogProductOption(product_id=pid, option_id=oid, name=oid)
+
+    monkeypatch.setattr(module, "execute_style", style)
+    catalog.search_options = options
+    catalog.get_product_option = option
+    memory = owned("lip-a")
+    memory.structured.value["optionId"] = "sale-a"
+    req = request([memory], "sale-b는 없어.")
+    first = await execute_owned_look(req, catalog)
+    assert [s.option_id for s in calls[0].option_scope] == ["sale-b"]
+    assert first.owned_look_options.selections[0].option_id == "sale-b"
+    assert first.applied_memories[0].memory_id == memory.id
+    assert first._owned_look_outcome.status == "completed"
+    assert [i.label for i in first._owned_look_outcome.items] == [
+        "같은 립 (sale-a)",
+        "같은 립 (sale-b)",
+    ]
+    assert first.ar_result is None
+
+
+@pytest.mark.anyio
+async def test_live_multi_item_catalog_independent_targets(record_property):
+    import json
+    import os
+
+    from app.clients.catalog_client import CatalogClient
+
+    base = os.environ.get("G8_N02_LIVE_CATALOG")
+    if not base:
+        pytest.skip("read-only live Catalog required")
+    catalog = CatalogClient(base)
+    req = request([])
+    req.style_context.kind = "video"
+    req.style_context.look_id = "XyqUi5HKkX8"
+    first_trace = []
+    first = await execute_owned_look(req, catalog, trace=first_trace)
+    coverage = next(t["result"]["coverage"] for t in first_trace if t["task"]["taskId"] == "N1")
+    pairs = [
+        (a, b)
+        for a in coverage
+        for b in coverage
+        if a["zone"] == b["zone"]
+        and a["needId"] != b["needId"]
+        and a["productId"]
+        and b["productId"]
+        and a["optionId"]
+        and b["optionId"]
+    ]
+    assert pairs, (
+        "Live look has no verified same-zone sale-option pair; do not substitute mock data"
+    )
+    a, b = pairs[0]
+    memory = owned(a["productId"])
+    memory.structured.value["optionId"] = a["optionId"]
+    req._consultation_memories = (memory,)
+    req._owned_look_context = first._owned_look_context
+    req._owned_look_answer = (b["needId"], first.style_recipe.recipe_version, "없어")
+    second_trace = []
+    second = await execute_owned_look(req, catalog, trace=second_trace)
+    after = next(t["result"]["coverage"] for t in second_trace if t["task"]["taskId"] == "N1")
+    assert next(c["status"] for c in after if c["needId"] == a["needId"]) == "fulfilled"
+    assert next(c["status"] for c in after if c["needId"] == b["needId"]) == "confirmed_missing"
+    v1 = next(t for t in second_trace if t["task"]["taskId"] == "V1")
+    assert [o["optionId"] for q in v1["inputs"]["requests"] for o in q["optionScope"]] == [
+        b["optionId"]
+    ]
+    assert any(o.option_id == b["optionId"] for o in second.owned_look_options.selections)
+    assert second.ar_result is None
+    assert all(c["relationship"] == "unconfirmed" for c in after)
+    record_property(
+        "same_zone_live_catalog",
+        json.dumps(
+            {
+                "catalogMode": "live_http",
+                "catalogBase": base,
+                "storageMode": "none",
+                "modelConfiguredMode": "disabled",
+                "actualExternalModelCalls": 0,
+                "syntheticInventory": True,
+                "lookId": req.style_context.look_id,
+                "recipeVersion": first.style_recipe.recipe_version,
+                "chosenTargets": [a, b],
+                "turns": [
+                    {
+                        "modelMode": "disabled",
+                        "actualModelCalls": 0,
+                        "tasks": trace,
+                        "response": response.model_dump(mode="json", by_alias=True),
+                    }
+                    for trace, response in [(first_trace, first), (second_trace, second)]
+                ],
+            },
+            ensure_ascii=False,
+        ),
+    )
+
+
+@pytest.mark.anyio
+async def test_item_present_and_missing_in_one_sentence():
+    catalog = MultiLipCatalog()
+    result = await execute_owned_look(
+        request([owned("blush-b", "blush-b-shade")], "lip-a는 있고 lip-b는 없어."), catalog
+    )
+    assert [p.id for p in result.products] == ["lip-b"]
+    assert result._owned_look_outcome.status == "completed"
+    assert len(result._owned_look_context.item_declarations) == 2
+
+
+@pytest.mark.anyio
+async def test_all_option_queries_fail_is_failed_not_completed():
+    catalog = FilteredCatalog()
+    catalog.fail_options = True
+    result = await execute_owned_look(
+        request([], "립은 없어. 블러셔는 없어. 2만원 이하로 추천해줘."), catalog
+    )
+    assert result._owned_look_outcome.status == "failed"
+    assert {i.status for i in result._owned_look_outcome.items} == {"lookup_failed"}
+
+
+@pytest.mark.anyio
+async def test_item_missing_conflict_requires_confirmation_not_memory_write():
+    catalog = MultiLipCatalog()
+    memories = [owned("lip-a", "lip-a-shade"), owned("blush-b", "blush-b-shade")]
+    req = request(memories, "lip-a는 없어. lip-b는 있어.")
+    first = await execute_owned_look(req, catalog)
+    item = next(i for i in first._owned_look_outcome.items if "lip-a" in i.label)
+    assert item.status == "ownership_unknown"
+    req._owned_look_context = first._owned_look_context
+    req.message = "추가 추천해줘"
+    req._owned_look_answer = (item.need_id, first.style_recipe.recipe_version, "없어")
+    second = await execute_owned_look(req, catalog)
+    assert [p.id for p in second.products] == ["lip-a"]
+    assert second._owned_look_outcome.status == "completed"
+    assert not second.memory_proposal
+    assert req._consultation_memories == tuple(memories)
+
+
+@pytest.mark.anyio
+async def test_reviewed_usage_keeps_distinct_same_zone_step_roles():
+    from app.schemas.style_recipe import RecipeStep, ReviewedProductUsage
+
+    catalog = MultiLipCatalog()
+    catalog.look.recipe.steps.append(
+        RecipeStep(order=3, zone="lip", title="립 포인트", description="합성 포인트 단계")
+    )
+    catalog.look.recipe.product_usages = [
+        ReviewedProductUsage(
+            step_order=step,
+            product_id=pid,
+            shade_id=pid + "-shade",
+            source="fixture:usage",
+            evidence_id="fixture:usage-" + pid,
+        )
+        for step, pid in [(1, "blush-b"), (2, "lip-a"), (3, "lip-b")]
+    ]
+    from app.schemas.catalog import CatalogStyleLook
+
+    recipe = catalog.look.recipe.model_copy(update={"kind": "video"})
+    catalog.look = CatalogStyleLook.model_validate(
+        {
+            "id": "fixture-look",
+            "title": "Synthetic roles",
+            "group": "fixture",
+            "tag": "fixture",
+            "videoUrl": "https://www.youtube.com/watch?v=fixture-look",
+            "recipe": recipe,
+            "products": [
+                {
+                    "number": i,
+                    "brand": "Fixture",
+                    "name": pid,
+                    "option": "Fixture shade",
+                    "category": zone,
+                    "zone": zone,
+                    "reviewStatus": "verified",
+                    "mappingVerified": True,
+                    "catalogProductId": pid,
+                    "catalogShadeId": pid + "-shade",
+                }
+                for i, (pid, zone) in enumerate(
+                    [("blush-b", "blush"), ("lip-a", "lip"), ("lip-b", "lip")], 1
+                )
+            ],
+        }
+    )
+
+    async def selected(kind, look_id):
+        return catalog.look if (kind, look_id) == ("video", "fixture-look") else None
+
+    catalog.get_style_look = selected
+    req = request([owned("lip-a", "lip-a-shade")])
+    req.style_context.kind = "video"
+    trace = []
+    await execute_owned_look(req, catalog, trace=trace)
+    coverage = next(t["result"]["coverage"] for t in trace if t["task"]["taskId"] == "N1")
+    lips = [c for c in coverage if c["zone"] == "lip"]
+    assert [(c["productId"], c["stepOrders"]) for c in lips] == [("lip-a", [2]), ("lip-b", [3])]
+    assert all(c["roleBasis"] == "reviewed_usage" for c in lips)
+
+
+@pytest.mark.anyio
+async def test_unidentified_sibling_is_preserved_in_final_coverage():
+    catalog = MultiLipCatalog()
+    catalog.look.items[-1].shade_id = "stale-shade"
+    response = await execute_owned_look(
+        request([owned("lip-a", "lip-a-shade"), owned("blush-b", "blush-b-shade")]), catalog
+    )
+    assert response._owned_look_outcome.status == "partial"
+    assert any(
+        i.status == "evidence_missing" and "lip-b" in i.label
+        for i in response._owned_look_outcome.items
     )
