@@ -14,7 +14,7 @@ from app.schemas.member import MemberRecord, MeResponse, SkinAccess, TermsStatus
 from app.services.account_deletion_service import AccountDeletionRequests
 
 # Same value as TERMS_VERSION in the app's constants/legal.ts. Bump both when the terms change.
-TERMS_VERSION = "2026-11-26"
+TERMS_VERSION = "2026-11-27"
 
 
 class MemberStore(Protocol):

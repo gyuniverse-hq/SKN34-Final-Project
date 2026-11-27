@@ -10,7 +10,7 @@ export type StaffMe = {
 };
 
 /** Keep in sync with constants/legal.ts and backend member_service.TERMS_VERSION. */
-export const TERMS_VERSION = "2026-11-26";
+export const TERMS_VERSION = "2026-11-27";
 export const MIN_PASSWORD_LENGTH = 8;
 
 export function isAuthConfigured() {
