@@ -7,10 +7,11 @@ import { demoLookProduct } from '@/lib/demoLookBundle';
 import { demoLookSlots, demoLookVideoId } from '@/lib/demoLookAr';
 import { falseLashClusters } from '@/lib/falseLashLooks';
 import { MASCARA_LOOKS, type MascaraLookId } from '@/lib/mascaraLooks';
-import { arHref, parseId } from '@/lib/routes';
+import { lookPreviewHref, parseId } from '@/lib/routes';
 import { geometryFromStyle } from '@/lib/zoneRecipe';
 import { missingCoreZones } from '@/lib/lookProductMatch';
-import { DEFAULT_INTENSITY, isLookPaintZone, useMakeupStore } from '@/store/makeupStore';
+import { DEFAULT_INTENSITY, isLookPaintZone } from '@/store/makeupStore';
+import { useLookPreviewStore } from '@/store/lookPreviewStore';
 import type { CelebLook, LookItem, MakeupState, MakeupZone, Product, VideoProductMapping } from '@/types';
 
 const STEPS: Record<MakeupZone, LookItem['step']> = {
@@ -68,8 +69,6 @@ const DEV_FETCH_TIMEOUT_MS = 8000;
 
 export function useVideoTryOn(items: VideoProductMapping[], id: string, title: string) {
   const router = useRouter();
-  const applyLook = useMakeupStore((store) => store.applyLook);
-  const endFit = useMakeupStore((store) => store.endFit);
   const verifiedIds = items.flatMap((item) => item.mappingVerified === true && parseId(item.catalogProductId) ? [item.catalogProductId!] : []);
   const demoIds = demoLookSlots(id).flatMap((slot) => (slot.to ? [slot.productId, slot.to.productId] : [slot.productId]));
   // Demo look products ship in the app (lib/demoLookBundle.json): no network wait before the look paints.
@@ -127,35 +126,32 @@ export function useVideoTryOn(items: VideoProductMapping[], id: string, title: s
     // The product lookup failed and nothing could be painted: stay here (the screen shows the error)
     // instead of opening an AR camera without the look.
     if (products.isError && !selected.length) return;
-    endFit();
-    if (selected.length) {
-      const makeup: MakeupState = { ...EMPTY_MAKEUP };
-      const lookItems: LookItem[] = [];
-      for (const { product, shade, zone, texture, style, lashes, hexTo } of selected) {
-        const base = style ? geometryFromStyle(zone, style) : null;
-        const initialGeometry = zone === 'mascara' && lashes ? { ...base, falseLash: falseLashClusters(lashes) } : base;
-        const lookProfile = lookApplicationProfileFor(demoLookVideoId(id), zone);
-        // A look-specific color profile belongs exclusively to the video renderer, not the product state.
-        const storedProfile = lookProfile?.lookHex ? undefined : lookProfile;
-        const geometry = storedProfile?.geometry ? { ...initialGeometry, ...storedProfile.geometry } : initialGeometry;
-        const mascara = zone === 'mascara' && style && style in MASCARA_LOOKS
-          ? MASCARA_LOOKS[style as MascaraLookId]
-          : null;
-        const applicationProfile = storedProfile?.overrides ?? applicationProfileFor(product.id, shade.id) ?? validatedApplicationProfile(shade.applicationProfile);
-        makeup[zone] = {
-          hex: shade.hex,
-          intensity: mascara?.intensity ?? DEFAULT_INTENSITY[zone],
-          texture,
-          ...(geometry ? { geometry } : {}),
-          ...(hexTo ? { hexTo } : {}),
-          ...(applicationProfile ? { applicationProfile } : {}),
-        };
-        lookItems.push({ productId: product.id, shadeId: shade.id, step: STEPS[zone] });
-      }
-      const look: CelebLook = { id, title, inspiration: '', description: '', thumbnailUrl: '', tutorialQuery: '', items: lookItems, makeup, tags: [] };
-      applyLook(look, selected.map((item) => item.product));
+    const makeup: MakeupState = { ...EMPTY_MAKEUP };
+    const lookItems: LookItem[] = [];
+    for (const { product, shade, zone, texture, style, lashes, hexTo } of selected) {
+      const base = style ? geometryFromStyle(zone, style) : null;
+      const initialGeometry = zone === 'mascara' && lashes ? { ...base, falseLash: falseLashClusters(lashes) } : base;
+      const lookProfile = lookApplicationProfileFor(demoLookVideoId(id), zone);
+      // A look-specific color profile belongs exclusively to the video renderer, not the product state.
+      const storedProfile = lookProfile?.lookHex ? undefined : lookProfile;
+      const geometry = storedProfile?.geometry ? { ...initialGeometry, ...storedProfile.geometry } : initialGeometry;
+      const mascara = zone === 'mascara' && style && style in MASCARA_LOOKS
+        ? MASCARA_LOOKS[style as MascaraLookId]
+        : null;
+      const applicationProfile = storedProfile?.overrides ?? applicationProfileFor(product.id, shade.id) ?? validatedApplicationProfile(shade.applicationProfile);
+      makeup[zone] = {
+        hex: shade.hex,
+        intensity: mascara?.intensity ?? DEFAULT_INTENSITY[zone],
+        texture,
+        ...(geometry ? { geometry } : {}),
+        ...(hexTo ? { hexTo } : {}),
+        ...(applicationProfile ? { applicationProfile } : {}),
+      };
+      lookItems.push({ productId: product.id, shadeId: shade.id, step: STEPS[zone] });
     }
-    router.push(arHref(selected.length ? { video: true } : {}));
+    const look: CelebLook = { id, title, inspiration: '', description: '', thumbnailUrl: '', tutorialQuery: '', items: lookItems, makeup, tags: [] };
+    useLookPreviewStore.setState({ draft: { look, products: catalog, video: true } });
+    router.push(lookPreviewHref({ lookId: id, title }));
   };
   const productsById = Object.fromEntries(catalog.map((product) => [product.id, product]));
   return {

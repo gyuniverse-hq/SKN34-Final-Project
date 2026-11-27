@@ -1,7 +1,9 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 import { resolveVideoProducts, useVideoTryOn } from '@/hooks/useVideoTryOn';
-import { useMakeupStore } from '@/store/makeupStore';
+import { buildLookPreview } from '@/lib/lookPreview';
+import { useLookPreviewStore } from '@/store/lookPreviewStore';
+import { useLookMakeupStore, useMakeupStore } from '@/store/makeupStore';
 import type { Product, VideoProductMapping } from '@/types';
 
 const mockPush = jest.fn();
@@ -48,7 +50,7 @@ test('uses only verified exact shades, excludes placeholders and chooses one pro
   expect(resolveVideoProducts(items, [lip, eye, placeholder, unknownTexture]).map((item) => item.index)).toEqual([2, 6]);
 });
 
-test('applies only confirmed products before opening AR; unmatched videos leave selections intact', async () => {
+test('stages the resolved look without applying paint or opening AR', async () => {
   useMakeupStore.getState().reset();
   mockPush.mockClear();
   const lip = product('lip', 'lip', 'red');
@@ -61,13 +63,14 @@ test('applies only confirmed products before opening AR; unmatched videos leave 
   let screen!: renderer.ReactTestRenderer;
   await act(async () => { screen = renderer.create(React.createElement(Screen, { items: [{ mappingVerified: true, catalogProductId: 'lip', catalogShadeId: 'red' }] })); });
   await act(async () => { open(); });
-  expect(useMakeupStore.getState().selections.lip).toEqual({ productId: 'lip', shadeId: 'red' });
-  expect(mockPush).toHaveBeenCalledWith({ pathname: '/ar', params: { video: '1' } });
+  expect(useMakeupStore.getState().selections.lip).toBeUndefined();
+  expect(useLookMakeupStore.getState().activeLook).toBeNull();
+  expect(useLookPreviewStore.getState().draft?.look.items).toEqual([{ productId: 'lip', shadeId: 'red', step: 'lips' }]);
+  expect(mockPush).toHaveBeenCalledWith({ pathname: '/look-preview', params: { id: 'video-1', title: 'Test' } });
   await act(async () => { screen.update(React.createElement(Screen, { items: [] })); });
   await act(async () => { open(); });
-  expect(useMakeupStore.getState().selections.lip).toEqual({ productId: 'lip', shadeId: 'red' });
-  expect(mockPush).toHaveBeenLastCalledWith({ pathname: '/ar', params: {} });
-  expect(useMakeupStore.getState().activeLook?.id).toBe('video-1');
+  expect(useLookPreviewStore.getState().draft?.look.items).toEqual([]);
+  expect(mockPush).toHaveBeenLastCalledWith({ pathname: '/look-preview', params: { id: 'video-1', title: 'Test' } });
   await act(async () => { screen.unmount(); });
   useMakeupStore.getState().reset();
 });
@@ -101,7 +104,7 @@ test('fetches product-only approvals in chunks and does not fetch unverified IDs
 });
 
 test('applies catalog shades for the six demo looks without treating them as mappingVerified', async () => {
-  useMakeupStore.getState().reset();
+  useLookMakeupStore.getState().reset();
   mockPush.mockClear();
   const contour = product('oy-a000000201055', 'contour', 'A000000201055-008');
   const mascara = product('oy-a000000198027', 'mascara', '01');
@@ -116,26 +119,36 @@ test('applies catalog shades for the six demo looks without treating them as map
   let screen!: renderer.ReactTestRenderer;
   await act(async () => { screen = renderer.create(React.createElement(Screen)); });
   await act(async () => { open(); });
-  expect(useMakeupStore.getState().makeup.contour?.hex).toBe('#112233');
-  expect(useMakeupStore.getState().makeup.mascara?.hex).toBe('#112233');
-  expect(useMakeupStore.getState().makeup.mascara?.geometry).toMatchObject({
+  const { look, products } = useLookPreviewStore.getState().draft!;
+  useLookMakeupStore.getState().applyLook(look, products);
+  expect(useLookMakeupStore.getState().makeup.contour?.hex).toBe('#112233');
+  expect(useLookMakeupStore.getState().makeup.mascara?.hex).toBe('#112233');
+  expect(useLookMakeupStore.getState().makeup.mascara?.geometry).toMatchObject({
     length: 1.25, thickness: 0.6, lower: true, lashCount: 10, lowerLen: 2.4, lowerCount: 7,   // spiky_long, video close-ups + eye photo (11-11)
   });
-  expect(useMakeupStore.getState().makeup.mascara?.intensity).toBe(0.8);
-  expect(useMakeupStore.getState().selections.contour).toEqual({ productId: 'oy-a000000201055', shadeId: 'A000000201055-008' });
-  expect(useMakeupStore.getState().selections.mascara).toEqual({ productId: 'oy-a000000198027', shadeId: '01' });
-  const eyeshadow = useMakeupStore.getState().makeup.eyeshadow;
+  expect(useLookMakeupStore.getState().makeup.mascara?.intensity).toBe(0.8);
+  expect(useLookMakeupStore.getState().selections.contour).toEqual({ productId: 'oy-a000000201055', shadeId: 'A000000201055-008' });
+  expect(useLookMakeupStore.getState().selections.mascara).toEqual({ productId: 'oy-a000000198027', shadeId: '01' });
+  const preview = buildLookPreview(look, products, true).find(({ zone }) => zone === 'eyeshadow');
+  expect(preview).toMatchObject({
+    product: { product: { id: shadow.id }, shade: { id: '04' } },
+    secondaryProduct: { product: { id: shadowTo.id }, shade: { id: 'a000000174309-027' } },
+  });
+  const eyeshadow = useLookMakeupStore.getState().makeup.eyeshadow;
   expect(eyeshadow?.hex).toBe('#112233');
   expect(eyeshadow?.hexTo).toBe('#112233');
-  expect(useMakeupStore.getState().lookOrigin?.makeup.eyeshadow?.hexTo).toBe('#112233');
-  expect(useMakeupStore.getState().makeup.mascara?.geometry?.falseLash).toHaveLength(5);   // wispies (YouCam "Wispies"): the video shows long spiky bunches
-  expect(mockPush).toHaveBeenCalledWith({ pathname: '/ar', params: { video: '1' } });
+  expect(useLookMakeupStore.getState().lookOrigin?.makeup.eyeshadow?.hexTo).toBe('#112233');
+  expect(useLookMakeupStore.getState().makeup.mascara?.geometry?.falseLash).toHaveLength(5);   // wispies (YouCam "Wispies"): the video shows long spiky bunches
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: '/look-preview',
+    params: { id: 'style-ZAozXs-ZZik', title: 'Strawberry' },
+  });
   await act(async () => { screen.unmount(); });
-  useMakeupStore.getState().reset();
+  useLookMakeupStore.getState().reset();
 });
 
 test('peach look mascara is a thin short fan with faint lower lashes and no attached bunches', async () => {
-  useMakeupStore.getState().reset();
+  useLookMakeupStore.getState().reset();
   mockProducts = [product('oy-a000000205718', 'mascara', 'a000000205718-006')];
   let open!: () => void;
   function Screen() {
@@ -145,18 +158,20 @@ test('peach look mascara is a thin short fan with faint lower lashes and no atta
   let screen!: renderer.ReactTestRenderer;
   await act(async () => { screen = renderer.create(React.createElement(Screen)); });
   await act(async () => { open(); });
-  const geometry = useMakeupStore.getState().makeup.mascara?.geometry;
+  const { look, products } = useLookPreviewStore.getState().draft!;
+  useLookMakeupStore.getState().applyLook(look, products);
+  const geometry = useLookMakeupStore.getState().makeup.mascara?.geometry;
   expect(geometry).toMatchObject({ length: 1.3, thickness: 0.9, lower: true, lashCount: 16, lowerLen: 1.9, lowerCount: 4 });   // 11-11 eye photo: pointed bunches (lashClump 0.3)
   expect(geometry?.falseLash).toBeUndefined();   // the video shows plain strands, no bunches
   await act(async () => { screen.unmount(); });
-  useMakeupStore.getState().reset();
+  useLookMakeupStore.getState().reset();
 });
 
 describe('dead backend (development)', () => {
   afterEach(() => { mockIsError = false; jest.mocked(apiGet).mockReset(); jest.mocked(apiGet).mockResolvedValue({ products: [] }); });
 
   test('the Karina demo look paints from the app bundle with no network at all', async () => {
-    useMakeupStore.getState().reset();
+    useLookMakeupStore.getState().reset();
     mockPush.mockClear();
     jest.mocked(apiGet).mockRejectedValue({ status: 0 });
     let open!: () => void;
@@ -171,15 +186,20 @@ describe('dead backend (development)', () => {
     expect(mockQueryOptions.enabled).toBe(false);
     mockProducts = [];
     await act(async () => { open(); });
+    const { look, products } = useLookPreviewStore.getState().draft!;
+    useLookMakeupStore.getState().applyLook(look, products);
     expect(apiGet).not.toHaveBeenCalled();
-    const makeup = useMakeupStore.getState().makeup;
+    const makeup = useLookMakeupStore.getState().makeup;
     expect(makeup.lip?.hex).toBe('#9E5C52');
     expect(makeup.eyeshadow?.hexTo).toBeTruthy();
     expect(makeup.mascara?.geometry).toMatchObject({ lashCount: 22, lowerLen: 3, lowerAlpha: 4, lowerCount: 8 });   // thin_lower: the lower lashes are clearly drawn
     expect(makeup.mascara?.geometry?.falseLash).toBeUndefined();
-    expect(mockPush).toHaveBeenCalledWith({ pathname: '/ar', params: { video: '1' } });
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/look-preview',
+      params: { id: 'celebrity-n5otfjJSSQc', title: 'Karina' },
+    });
     await act(async () => { screen.unmount(); });
-    useMakeupStore.getState().reset();
+    useLookMakeupStore.getState().reset();
   });
 
   test('a real server error is not hidden by the local catalog', async () => {

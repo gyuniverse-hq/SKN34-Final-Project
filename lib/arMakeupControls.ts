@@ -93,12 +93,12 @@ interface Palette {
   onShadowPointCleared?: () => void;
   onShadeSelected?: (zone: MakeupZone, care: ReturnType<typeof lipCareKind>, item: ColorSwatch, point: boolean) => void;
 }
-export function makeupControls(choices: Map<string, ControlOperation>, p: Palette) {
-  const store = useMakeupStore.getState();
+export function makeupControls(choices: Map<string, ControlOperation>, p: Palette, makeupStore = useMakeupStore) {
+  const store = makeupStore.getState();
   const paint = (zone: MakeupZone, edit: (s: Store) => void, confirm: ConfirmPaint, selectOnly = false) => {
     const skipFrame = p.swatchesOnly || selectOnly;
     return !p.tracking && !skipFrame ? reject('face tracking unavailable') :
-      paintControl(edit, confirm, skipFrame, s => worn(s, zone, p.products));
+      paintControl(edit, confirm, skipFrame, s => worn(s, zone, p.products), makeupStore);
   };
   const apply = async (item: ColorSwatch | undefined, confirm: ConfirmPaint) => {
     if (!p.ready || !item || !item.product.makeupZone) return reject('no available shade');
@@ -156,7 +156,7 @@ export function makeupControls(choices: Map<string, ControlOperation>, p: Palett
   for (const scope of ['all', ...AR_PAINT_ZONES, 'lipCare']) {
     choices.set('reapply_try_on/' + scope, ({ ordinal }, confirm) => {
       if (ordinal === undefined || !Number.isSafeInteger(ordinal) || ordinal < 1) return reject('invalid try-on position');
-      const history = useMakeupStore.getState().tryOnHistory ?? [];
+      const history = makeupStore.getState().tryOnHistory ?? [];
       const entries = scope === 'all' ? history : history.filter(entry => entry.zone === scope);
       const entry = entries[ordinal - 1];
       if (!entry) return { status: 'REJECTED', reason: 'no try-on at that position in this session',

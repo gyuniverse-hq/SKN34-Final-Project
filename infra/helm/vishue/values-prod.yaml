@@ -29,7 +29,7 @@ api:
 image:
   # Temporary cutover registry (ECR in the camp account). Switch back to GHCR after org push rights exist.
   registry: 027099020675.dkr.ecr.ap-northeast-2.amazonaws.com
-  tag: "sha-a785976"
+  tag: "sha-2f5710e"
   pullPolicy: IfNotPresent
 
 supabase:

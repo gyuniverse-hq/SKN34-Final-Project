@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, api, apiBlob, apiForm } from "../api/client";
 import type {
@@ -8,6 +8,11 @@ import type {
   LipEvalSlot,
   TechMetricId,
 } from "../api/types";
+import { NaturalnessCriteriaGuide } from "../components/NaturalnessCriteriaGuide";
+import {
+  anchorFor,
+  type NaturalnessCriteria,
+} from "../lib/naturalnessCriteria";
 import {
   buildLipEvalCsv,
   downloadTextFile,
@@ -250,23 +255,23 @@ function SlotDetail({
   product,
   slot,
   onSaved,
+  criteria,
+  editable,
 }: {
   product: LipEvalProduct;
   slot: LipEvalSlot;
   onSaved: (product: LipEvalProduct) => void;
+  criteria?: NaturalnessCriteria;
+  editable: boolean;
 }) {
   const [bare, setBare] = useState<File | null>(null);
   const [real, setReal] = useState<File | null>(null);
   const [ar, setAr] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setBare(null);
-    setReal(null);
-    setAr(null);
-    setError(null);
-  }, [product.id, slot.raterId]);
+  const bareInput = useRef<HTMLInputElement>(null);
+  const realInput = useRef<HTMLInputElement>(null);
+  const arInput = useRef<HTMLInputElement>(null);
 
   async function saveRefs() {
     if (!bare || !real) {
@@ -287,6 +292,8 @@ function SlotDetail({
       );
       setBare(null);
       setReal(null);
+      if (bareInput.current) bareInput.current.value = "";
+      if (realInput.current) realInput.current.value = "";
     } catch (e) {
       setError(
         e instanceof ApiError
@@ -317,6 +324,7 @@ function SlotDetail({
         ),
       );
       setAr(null);
+      if (arInput.current) arInput.current.value = "";
     } catch (e) {
       setError(
         e instanceof ApiError
@@ -342,10 +350,11 @@ function SlotDetail({
         </p>
       </div>
 
-      <div className="lip-upload-grid">
+      {editable ? <div className="lip-upload-grid">
         <label className={bare ? "has-file" : undefined}>
           <span>화장 전 · 맨입술</span>
           <input
+            ref={bareInput}
             type="file"
             accept="image/jpeg,image/png,image/webp"
             onChange={(e) => setBare(e.target.files?.[0] || null)}
@@ -355,6 +364,7 @@ function SlotDetail({
         <label className={real ? "has-file" : undefined}>
           <span>실제 바른 입술</span>
           <input
+            ref={realInput}
             type="file"
             accept="image/jpeg,image/png,image/webp"
             onChange={(e) => setReal(e.target.files?.[0] || null)}
@@ -364,6 +374,7 @@ function SlotDetail({
         <label className={ar ? "has-file" : undefined}>
           <span>AR 적용</span>
           <input
+            ref={arInput}
             type="file"
             accept="image/jpeg,image/png,image/webp"
             disabled={!slot.readyForAr}
@@ -373,21 +384,21 @@ function SlotDetail({
             {!slot.readyForAr ? "기준 저장 후" : ar ? ar.name : "미선택"}
           </small>
         </label>
-      </div>
+      </div> : <p className="admin-hint">사진 저장과 채점은 관리자 계정에서 사용할 수 있습니다.</p>}
 
-      <div className="lip-detail-actions">
-        <button type="button" disabled={busy} onClick={saveRefs}>
+      {editable && <div className="lip-detail-actions">
+        <button type="button" disabled={busy || !bare || !real} onClick={saveRefs}>
           기준 사진 저장
         </button>
         <button
           type="button"
           className="secondary"
-          disabled={busy || !slot.readyForAr}
+          disabled={busy || !slot.readyForAr || !ar}
           onClick={scoreAr}
         >
           {busy ? "채점 중…" : "두 트랙 채점"}
         </button>
-      </div>
+      </div>}
 
       <SlotImages slot={slot} />
       {error && <p className="form-error">{error}</p>}
@@ -397,11 +408,29 @@ function SlotDetail({
           <div className="slot-score-row">
             <span>
               자연스러움 <strong>{slot.naturalness.mean}</strong>
+              <small className="muted">
+                {" "}
+                · {slot.naturalness.criteriaVersion}
+              </small>
             </span>
             <span>
               테크니컬 <strong>{verdictKo[slot.technical.overall]}</strong>
             </span>
           </div>
+          <ul className="slot-nat-list">
+            {(Object.keys(techNames) as TechMetricId[]).map((id) => {
+              const score = slot.naturalness?.scores?.[id];
+              const anchor = anchorFor(criteria, id, score);
+              return (
+                <li key={id}>
+                  <span className="slot-nat-metric">
+                    {techNames[id]} <strong>{score ?? "—"}</strong>
+                  </span>
+                  {anchor ? <span className="slot-nat-anchor">{anchor}</span> : null}
+                </li>
+              );
+            })}
+          </ul>
           {slot.naturalness.briefReason && (
             <p>
               <small>{slot.naturalness.briefReason}</small>
@@ -427,11 +456,16 @@ function SlotDetail({
   );
 }
 
-export function LipEvalPanel() {
+export function LipEvalPanel({ editable }: { editable: boolean }) {
   const qc = useQueryClient();
   const list = useQuery({
     queryKey: ["lip-eval-products"],
     queryFn: () => api<LipEvalProductList>("/lip-eval/products"),
+  });
+  const criteriaQ = useQuery({
+    queryKey: ["lip-eval-naturalness-criteria"],
+    queryFn: () =>
+      api<NaturalnessCriteria>("/lip-eval/naturalness-criteria"),
   });
   const [productId, setProductId] = useState("");
   const [raterId, setRaterId] = useState(1);
@@ -469,9 +503,10 @@ export function LipEvalPanel() {
   if (list.isPending) return <p>제품 패널을 불러오는 중…</p>;
   if (list.error)
     return (
-      <p className="form-error">
-        {list.error instanceof Error ? list.error.message : "목록을 불러오지 못했습니다."}
-      </p>
+      <div className="admin-request-error" role="alert">
+        <p className="form-error">{list.error.message}</p>
+        <button type="button" className="secondary" onClick={() => void list.refetch()}>다시 시도</button>
+      </div>
     );
 
   function selectCell(nextProductId: string, nextRaterId: number) {
@@ -524,6 +559,14 @@ export function LipEvalPanel() {
         </div>
       </div>
 
+      <NaturalnessCriteriaGuide
+        criteria={criteriaQ.data}
+        pending={criteriaQ.isPending}
+        error={
+          criteriaQ.error instanceof Error ? criteriaQ.error.message : null
+        }
+      />
+
       {items.length > 0 && (
         <ProgressBoard
           items={items}
@@ -546,7 +589,14 @@ export function LipEvalPanel() {
             ))}
             <AggregateCard aggregate={product.aggregate} />
           </div>
-          <SlotDetail product={product} slot={slot} onSaved={onSaved} />
+          <SlotDetail
+            key={`${product.id}:${slot.raterId}`}
+            product={product}
+            slot={slot}
+            onSaved={onSaved}
+            criteria={criteriaQ.data}
+            editable={editable}
+          />
         </div>
       )}
     </section>

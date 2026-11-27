@@ -276,6 +276,26 @@ class LipTriadEvalResponse(Contract):
     retained_images: bool = False
 
 
+class NaturalnessCriteriaScale(Contract):
+    min: int = Field(ge=1, le=5, strict=True)
+    max: int = Field(ge=1, le=5, strict=True)
+    note: str = ""
+
+
+class NaturalnessCriteriaItem(Contract):
+    id: str
+    label: str
+    text: str
+    likert: dict[str, str]
+
+
+class NaturalnessCriteriaResponse(Contract):
+    version: Version
+    title: str
+    scale: NaturalnessCriteriaScale
+    items: list[NaturalnessCriteriaItem]
+
+
 class LipEvalRater(Contract):
     id: int
     label: str

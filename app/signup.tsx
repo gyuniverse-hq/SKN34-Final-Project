@@ -16,15 +16,16 @@ import {
   verifySignupCode,
 } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
-import { loginHref, parseLoginReturnTo } from '@/lib/routes';
+import { checkoutHref, loginHref, parseCheckoutSelection, parseLoginReturnTo } from '@/lib/routes';
 
 const MIN_CODE_LENGTH = 6;
 
 export default function SignupScreen() {
   const router = useRouter();
   const { t } = useI18n();
-  const params = useLocalSearchParams<{ email?: string; verify?: string; returnTo?: string }>();
+  const params = useLocalSearchParams<{ email?: string; verify?: string; returnTo?: string; productId?: string; shadeId?: string }>();
   const returnTo = parseLoginReturnTo(params.returnTo);
+  const selection = returnTo === 'checkout' ? parseCheckoutSelection(params) : undefined;
   const saveConsent = useSaveTermsConsent();
   const [email, setEmail] = useState(params.email ?? '');
   const [password, setPassword] = useState('');
@@ -64,7 +65,9 @@ export default function SignupScreen() {
         return;
       }
     }
-    if (returnTo) router.replace(`/${returnTo}`);
+    if (selection) router.replace(checkoutHref(selection));
+    else if (returnTo?.startsWith('community-') && router.canGoBack()) router.back();
+    else if (returnTo) router.replace(`/${returnTo}`);
     else router.dismissTo('/my');
   };
 
@@ -164,7 +167,7 @@ export default function SignupScreen() {
           disabled={!configured || !address || !password || !confirm || !hasAllConsents(consent)}
         />
       </View>
-      <Pressable accessibilityRole="button" style={authStyles.link} onPress={() => router.replace(loginHref(returnTo))}>
+      <Pressable accessibilityRole="button" style={authStyles.link} onPress={() => router.replace(loginHref(returnTo, selection))}>
         <Text style={authStyles.linkText}>{t('signup.haveAccount')}</Text>
       </Pressable>
     </AuthScreen>

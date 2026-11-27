@@ -245,7 +245,22 @@ export interface ZoneCare {
 
 /** Bounded renderer controls; omitted fields retain the existing texture defaults. */
 export interface ApplicationProfileOverrides {
-  material?: Partial<Record<'a1' | 'translucent' | 'detail' | 'roughness' | 'specular', number>>;
+  material?: Partial<
+    Record<
+      | 'a1'
+      | 'translucent'
+      | 'detail'
+      | 'roughness'
+      | 'specular'
+      | 'glossScale'
+      | 'rimTilt'
+      | 'overlay'
+      | 'opacity'
+      | 'cavity'
+      | 'shadeMatch',
+      number
+    >
+  >;
   shadowFinish?: Partial<Record<'opacity' | 'roughness' | 'sparkleDensity' | 'specular', number>>;
   /** Multiplies the existing coverage, preserving the user's intensity control. */
   coverageMultiplier?: number;

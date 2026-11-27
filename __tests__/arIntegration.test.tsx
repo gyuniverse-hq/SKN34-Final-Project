@@ -9,7 +9,7 @@ import { colorFamily } from '@/lib/colorFamily';
 import { isLipBaseCare, lipCareKind } from '@/lib/lipCare';
 import { LOOK_STRENGTH_DEFAULT, LOOK_STRENGTH_MIN } from '@/lib/videoLookMakeup';
 import ArTryOnScreen from '@/app/(tabs)/ar';
-import { AR_PAINT_ZONES, useMakeupStore } from '@/store/makeupStore';
+import { AR_PAINT_ZONES, useLookMakeupStore, useMakeupStore } from '@/store/makeupStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useCartStore } from '@/store/cartStore';
 import type { MakeupZone, Product } from '@/types';
@@ -805,8 +805,27 @@ it('starts practice and reports the last next step as exiting the active look',a
 it('confirms whole video look strength with the renderer and respects its lower limit', async () => {
   mockParams = { video: '1' };
   await act(async () => {
-    useMakeupStore.setState({ activeLook: { id: 'celebrity-e1gSkUdG6Bo', title: 'Look' } });
+    useLookMakeupStore.getState().reset();
+    useLookMakeupStore.getState().applyShade(lip, shade);
+    useLookMakeupStore.setState({ activeLook: { id: 'celebrity-e1gSkUdG6Bo', title: 'Look' } });
   });
+  await refresh();
+  await act(async () => {
+    screen.root.findAllByProps({ accessibilityRole: 'tab' }).find(tab =>
+      tab.findAllByProps({ children: 'ar.mode.chat' }).length)!.props.onPress();
+    face().props.onStatus('tracking');
+  });
+  const productMakeup = useMakeupStore.getState().makeup;
+  const lookIntensity = useLookMakeupStore.getState().makeup.lip!.intensity;
+  tool('adjust_intensity/lip/down');
+  await send('립만 조금 연하게 해줘.');
+  await act(async () => {
+    face().props.onRenderResult({ ...face().props.renderCommand, status: 'rendered' });
+  });
+  expect(feedback().status).toBe('APPLIED');
+  expect(useLookMakeupStore.getState().makeup.lip!.intensity).toBeLessThan(lookIntensity);
+  expect(useMakeupStore.getState().makeup).toBe(productMakeup);
+
   tool('set_look_strength/down');
   const steps = Math.ceil((LOOK_STRENGTH_DEFAULT - LOOK_STRENGTH_MIN) * 10);
   for (let step = 0; step < steps; step++) {

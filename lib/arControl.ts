@@ -32,8 +32,8 @@ type Store = ReturnType<typeof useMakeupStore.getState>;
 
 /** Run the same manual control on an isolated state. Commit only after the frame is confirmed. */
 export async function paintControl(edit: (s: Store) => void, confirm: ConfirmPaint, swatches: boolean,
-  describe: (s: Store) => unknown): Promise<ControlResult> {
-  const source = useMakeupStore.getState();
+  describe: (s: Store) => unknown, store = useMakeupStore): Promise<ControlResult> {
+  const source = store.getState();
   if (source.fit) return reject('product locked');
   const draft = createMakeupStore();
   const { makeup, selections, careSelection, colorLinks, activeLook, modified, lookOrigin } = source;
@@ -47,9 +47,9 @@ export async function paintControl(edit: (s: Store) => void, confirm: ConfirmPai
     return { status: 'NO_CHANGE', before, after };
   }
   const frame = swatches ? 'rendered' : await confirm(next.makeup, undefined, next.modified);
-  if (frame === 'stale' || source.arVersion !== useMakeupStore.getState().arVersion) return reject('state changed');
+  if (frame === 'stale' || source.arVersion !== store.getState().arVersion) return reject('state changed');
   if (frame !== 'rendered') return { status: frame === 'failed' ? 'FAILED' : 'UNKNOWN', reason: 'render ' + frame };
-  edit(useMakeupStore.getState());
+  edit(store.getState());
   return { status: 'APPLIED', before, after };
 }
 

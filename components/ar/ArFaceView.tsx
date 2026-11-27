@@ -22,6 +22,7 @@ export interface ArFaceViewProps {
   onStatus: (status: ArStatus) => void;
   onLightHint?: (hint: LightHint | null) => void;
   poseEnabled?: boolean;
+  lookMode?: boolean;
   onPoseHint?: (hint: PoseHint | null) => void;
   /** Settled shooting-environment state (lib/arEnv); the screen decides which message to show. */
   onEnv?: (env: EnvState) => void;
@@ -41,14 +42,14 @@ export interface ArFaceViewProps {
   onRecorder?: (message: RecorderMessage) => void;
 }
 
-export function ArFaceView({ makeup, compare, guide = null, fillPreview = false, recording = false, onStatus, onLightHint, onPoseHint, poseEnabled = false, onEnv, onSkinTone, onFaceFit, onFaceFitStatus, onCrash, onRecorder, renderCommand = null, onRenderResult }: ArFaceViewProps) {
+export function ArFaceView({ makeup, compare, guide = null, fillPreview = false, recording = false, onStatus, onLightHint, onPoseHint, poseEnabled = false, lookMode = false, onEnv, onSkinTone, onFaceFit, onFaceFitStatus, onCrash, onRecorder, renderCommand = null, onRenderResult }: ArFaceViewProps) {
   // react-native-webview의 타입이 제네릭 기본값을 `never`로 잡는 경우가 있어,
   // 메시지/소스에 대해 넉넉한 타입을 명시해 props 타입 추론을 정상화합니다.
   const ref = useRef<WebView<any>>(null);
   const stateSeq = useRef(0);
-  const latest = useRef({ makeup, compare, guide, fillPreview, poseEnabled, onLightHint, onPoseHint, onEnv, onSkinTone, onFaceFit, onFaceFitStatus, onCrash, onRecorder, renderCommand, onRenderResult });
+  const latest = useRef({ makeup, compare, guide, fillPreview, poseEnabled, lookMode, onLightHint, onPoseHint, onEnv, onSkinTone, onFaceFit, onFaceFitStatus, onCrash, onRecorder, renderCommand, onRenderResult });
   useEffect(() => {
-    latest.current = { makeup, compare, guide, fillPreview, poseEnabled, onLightHint, onPoseHint, onEnv, onSkinTone, onFaceFit, onFaceFitStatus, onCrash, onRecorder, renderCommand, onRenderResult };
+    latest.current = { makeup, compare, guide, fillPreview, poseEnabled, lookMode, onLightHint, onPoseHint, onEnv, onSkinTone, onFaceFit, onFaceFitStatus, onCrash, onRecorder, renderCommand, onRenderResult };
   });
 
   // The recorder is not part of the page: in development it is injected when recording starts (components/ar/recorderScript.ts).
@@ -83,6 +84,7 @@ export function ArFaceView({ makeup, compare, guide = null, fillPreview = false,
   useEffect(() => send({ type: 'guide', guide }), [guide, send]);
   useEffect(() => send({ type: 'preview', fill: fillPreview }), [fillPreview, send]);
   useEffect(() => send({ type: 'pose_enabled', value: poseEnabled }), [poseEnabled, send]);
+  useEffect(() => send({ type: 'look_mode', value: lookMode }), [lookMode, send]);
 
   const onMessage = (event: WebViewMessageEvent) => {
     let message: { type?: string; status?: string; detail?: string; value?: LightHint | PoseHint | null; primary?: unknown; level?: unknown; items?: unknown; ready?: unknown; lab?: unknown; conf?: unknown; rec?: unknown; state?: unknown; shape?: unknown; commandId?: unknown; restoreId?: unknown; renderSeq?: unknown; rendererId?: unknown };
@@ -98,6 +100,7 @@ export function ArFaceView({ makeup, compare, guide = null, fillPreview = false,
       send({ type: 'guide', guide: latest.current.guide });
       send({ type: 'preview', fill: latest.current.fillPreview });
       send({ type: 'pose_enabled', value: latest.current.poseEnabled });
+      send({ type: 'look_mode', value: latest.current.lookMode });
     } else if (message.type === 'render_result') {
       const command = latest.current.renderCommand;
       if (command && command.kind !== 'restore' && message.commandId === command.commandId && message.renderSeq === command.renderSeq &&

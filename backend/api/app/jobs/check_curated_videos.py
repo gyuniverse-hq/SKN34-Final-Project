@@ -4,15 +4,20 @@ import csv
 from collections import Counter
 from pathlib import Path
 
+from app.core.db import dispose_engine, session_scope
 from app.services.curated_video_check_service import get_curated_video_check_service
 
 
 async def run(start: int, output: Path | None) -> None:
-    service = get_curated_video_check_service()
-    if not service.youtube.configured:
-        print("YOUTUBE_API_KEY 없음")
-        return
-    results = await service.check(start)
+    try:
+        async with session_scope() as session:
+            service = get_curated_video_check_service(session)
+            if not service.youtube.configured:
+                print("YOUTUBE_API_KEY 없음")
+                return
+            results = await service.check(start)
+    finally:
+        await dispose_engine()
     for row in results:
         print(f"{row['index']} {row['source']} {row['videoId']} {row['status']}")
     print(f"counts={dict(Counter(row['status'] for row in results))}")

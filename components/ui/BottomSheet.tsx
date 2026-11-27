@@ -1,14 +1,15 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ReactNode } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '@/constants/theme';
 
-export function BottomSheet({ title, closeLabel, bottomInset, onClose, children, compact }: {
+export function BottomSheet({ title, closeLabel, bottomInset, onClose, children, compact, avoidKeyboard = false }: {
   title: string; closeLabel: string; bottomInset: number; onClose: () => void; children: ReactNode; compact?: boolean;
+  avoidKeyboard?: boolean;
 }) {
   return (
     <Modal transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <View style={styles.scrim}>
+      <KeyboardAvoidingView style={styles.scrim} enabled={avoidKeyboard} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel={closeLabel} onPress={onClose} />
         <View style={[styles.sheet, compact && styles.compact, { paddingBottom: Math.max(12, bottomInset) }]} accessibilityViewIsModal>
           <View style={styles.handle} />
@@ -20,7 +21,7 @@ export function BottomSheet({ title, closeLabel, bottomInset, onClose, children,
           </View>
           {children}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

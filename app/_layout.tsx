@@ -98,6 +98,9 @@ function RootStack() {
         contentStyle: { backgroundColor: theme.colors.surface },
       }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="community-write" options={{ title: t('community.write') }} />
+      <Stack.Screen name="community-post" options={{ title: t('community.heading') }} />
+      <Stack.Screen name="community-mine" options={{ title: t('community.mine') }} />
       <Stack.Screen name="chat" options={{ title: t('chat.title') }} />
       <Stack.Screen name="style-browse" options={{ title: t('tabs.looks') }} />
       <Stack.Screen name="product/[id]" options={{ title: '' }} />
@@ -107,6 +110,7 @@ function RootStack() {
       <Stack.Screen name="celebrities/index" options={{ title: '' }} />
       <Stack.Screen name="celebrities/[id]" options={{ title: '' }} />
       <Stack.Screen name="celebrity-video/[id]" options={{ title: '' }} />
+      <Stack.Screen name="look-preview" options={{ title: '' }} />
       <Stack.Screen name="search" options={{ title: t('search.title') }} />
       <Stack.Screen name="discover" options={{ title: t('search.title') }} />
       <Stack.Screen name="rankings" options={{ title: t('discovery.ranking') }} />

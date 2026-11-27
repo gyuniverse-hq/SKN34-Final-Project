@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Route, Routes, useParams } from "react-router";
+import { Link, Route, Routes, useLocation, useParams, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import type { Audit, Order, Page, Product, Staff, Status } from "../api/types";
@@ -14,19 +14,27 @@ export const statusLabels: Record<Status, string> = {
 const money = (n: number) => `${n.toLocaleString("ko-KR")}원`;
 const date = (v: string | null) =>
   v ? new Date(v).toLocaleString("ko-KR") : "기록 없음";
+
+function BackToList({ label }: { label: string }) {
+  const { search } = useLocation();
+  return <Link to={{ pathname: "..", search }}>← {label}</Link>;
+}
 export function LoadingError({
   pending,
   error,
+  onRetry,
 }: {
   pending: boolean;
   error: unknown;
+  onRetry?: () => void;
 }) {
   return pending ? (
     <p role="status">불러오는 중…</p>
   ) : error ? (
-    <p role="alert">
-      요청을 처리하지 못했습니다. {error instanceof Error ? error.message : ""}
-    </p>
+    <div className="admin-request-error" role="alert">
+      <p>{error instanceof Error ? error.message : "요청을 처리하지 못했습니다."}</p>
+      {onRetry && <button type="button" className="secondary" onClick={onRetry}>다시 시도</button>}
+    </div>
   ) : null;
 }
 export function Orders({ staff }: { staff: Staff }) {
@@ -38,15 +46,14 @@ export function Orders({ staff }: { staff: Staff }) {
   );
 }
 function OrderList() {
-  const [status, setStatus] = useState("");
+  const [params, setParams] = useSearchParams();
+  const status = params.get("status") ?? "";
   const [cursor, setCursor] = useState("");
   const [history, setHistory] = useState<string[]>([]);
   const q = useQuery({
     queryKey: ["orders", status, cursor],
     queryFn: () =>
-      api<Page<Order>>(
-        `/orders?${new URLSearchParams({ status, cursor, ...(!status ? {} : { status }) }).toString().replace("status=&", "")}`,
-      ),
+      api<Page<Order>>(`/orders?${new URLSearchParams({ ...(status ? { status } : {}), ...(cursor ? { cursor } : {}) })}`),
   });
   return (
     <>
@@ -59,7 +66,7 @@ function OrderList() {
           <select
             value={status}
             onChange={(e) => {
-              setStatus(e.target.value);
+              setParams(e.target.value ? { status: e.target.value } : {});
               setCursor("");
               setHistory([]);
             }}
@@ -73,7 +80,7 @@ function OrderList() {
           </select>
         </label>
       </div>
-      <LoadingError pending={q.isPending} error={q.error} />
+      <LoadingError pending={q.isPending} error={q.error} onRetry={() => void q.refetch()} />
       <div className="panel table-wrap">
         <table>
           <thead>
@@ -89,7 +96,7 @@ function OrderList() {
             {q.data?.items.map((r) => (
               <tr key={r.id}>
                 <td>
-                  <Link to={r.id}>{r.orderName}</Link>
+                  <Link to={{ pathname: encodeURIComponent(r.id), search: params.toString() }}>{r.orderName}</Link>
                   <small>{r.id}</small>
                 </td>
                 <td>{r.userId}</td>
@@ -204,9 +211,12 @@ function OrderDetail({ staff }: { staff: Staff }) {
   });
   return (
     <>
-      <Link to="..">← 주문 목록</Link>
+      <BackToList label="주문 목록" />
       <h1>주문 상세</h1>
-      <LoadingError pending={q.isPending} error={q.error || mutation.error} />
+      <LoadingError pending={q.isPending} error={q.error} onRetry={() => void q.refetch()} />
+      <LoadingError pending={false} error={mutation.error} />
+      {mutation.isPending && <p role="status">주문 상태를 변경하는 중…</p>}
+      {mutation.isSuccess && <p role="status">주문 상태를 변경했습니다.</p>}
       {q.data && (
         <>
           <section className="panel">
@@ -258,9 +268,10 @@ export function Products({ staff }: { staff: Staff }) {
   );
 }
 function ProductList() {
-  const [query, setQuery] = useState("");
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("");
+  const [params, setParams] = useSearchParams();
+  const search = params.get("query") ?? "";
+  const category = params.get("category") ?? "";
+  const [query, setQuery] = useState(search);
   const [cursor, setCursor] = useState("");
   const [history, setHistory] = useState<string[]>([]);
   const q = useQuery({
@@ -279,7 +290,7 @@ function ProductList() {
         className="toolbar"
         onSubmit={(e) => {
           e.preventDefault();
-          setSearch(query);
+          setParams({ ...(query.trim() ? { query: query.trim() } : {}), ...(category ? { category } : {}) });
           setCursor("");
           setHistory([]);
         }}
@@ -297,7 +308,7 @@ function ProductList() {
           <select
             value={category}
             onChange={(e) => {
-              setCategory(e.target.value);
+              setParams({ ...(search ? { query: search } : {}), ...(e.target.value ? { category: e.target.value } : {}) });
               setCursor("");
               setHistory([]);
             }}
@@ -310,7 +321,7 @@ function ProductList() {
         </label>
         <button>검색</button>
       </form>
-      <LoadingError pending={q.isPending} error={q.error} />
+      <LoadingError pending={q.isPending} error={q.error} onRetry={() => void q.refetch()} />
       <div className="panel table-wrap">
         <table>
           <thead>
@@ -327,7 +338,7 @@ function ProductList() {
               <tr key={p.id}>
                 <td>
                   <small>{p.brand}</small>
-                  <Link to={p.id}>{p.name}</Link>
+                  <Link to={{ pathname: encodeURIComponent(p.id), search: params.toString() }}>{p.name}</Link>
                 </td>
                 <td>{money(p.priceKRW)}</td>
                 <td>{p.isVisible ? "노출" : "숨김"}</td>
@@ -433,9 +444,11 @@ function ProductDetail({ staff }: { staff: Staff }) {
   });
   return (
     <>
-      <Link to="..">← 상품 목록</Link>
+      <BackToList label="상품 목록" />
       <h1>{q.data?.name || "상품 상세"}</h1>
-      <LoadingError pending={q.isPending} error={q.error || m.error} />
+      <LoadingError pending={q.isPending} error={q.error} onRetry={() => void q.refetch()} />
+      <LoadingError pending={false} error={m.error} />
+      {m.isPending && <p role="status">상품을 저장하는 중…</p>}
       {m.isSuccess && <p role="status">저장했습니다.</p>}
       {q.data && (
         <>
@@ -512,7 +525,7 @@ export function AuditLog() {
       <p className="eyebrow">ACCOUNTABILITY</p>
       <h1>감사 로그</h1>
       <p>관리자 변경 이력을 최근 순서로 확인합니다.</p>
-      <LoadingError pending={q.isPending} error={q.error} />
+      <LoadingError pending={q.isPending} error={q.error} onRetry={() => void q.refetch()} />
       <section className="panel">
         {q.data?.items.map((a) => (
           <details key={a.id}>

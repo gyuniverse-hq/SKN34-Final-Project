@@ -21,8 +21,9 @@ export function buildCartLines(items: CartItem[], products: Product[] | undefine
  * Joins persisted cart items (product + exact shade) with live catalog data. Lines whose product
  * or shade disappeared stay visible as unavailable so the user can see and remove them.
  */
-export function useCartLines() {
-  const items = useCartStore((s) => s.items);
+export function useCartLines(orderItems?: CartItem[]) {
+  const cartItems = useCartStore((s) => s.items);
+  const items = orderItems ?? cartItems;
   const products = useProductsByIds(items.map((i) => i.productId));
 
   const allLines = useMemo(() => buildCartLines(items, products.data), [items, products.data]);

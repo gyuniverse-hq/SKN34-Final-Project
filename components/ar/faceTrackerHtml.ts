@@ -798,7 +798,11 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   }
   // Video-fit overrides affect only explicitly profiled products. Without an
   // override, retain the original material object and exact coverage value.
-  const MATERIAL_PROFILE_RANGES = { a1: [0, 1], translucent: [0, 1], detail: [0, 2], roughness: [0.02, 1], specular: [0, 2] };
+  // Product lip finishes (lib/productLipFinishes.ts) may also set glossScale / rimTilt / overlay / opacity / cavity / shadeMatch.
+  const MATERIAL_PROFILE_RANGES = {
+    a1: [0, 1], translucent: [0, 1], detail: [0, 2], roughness: [0.02, 1], specular: [0, 2],
+    glossScale: [0, 2], rimTilt: [0, 2], overlay: [0, 1], opacity: [0, 1], cavity: [0.5, 4], shadeMatch: [0, 1],
+  };
   const SHADOW_PROFILE_RANGES = { opacity: [0, 1], roughness: [0.02, 1], sparkleDensity: [0, 1], specular: [0, 2] };
   function applyProfileValues(base, overrides, ranges) {
     if (!overrides || typeof overrides !== 'object') return base;
@@ -979,6 +983,8 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   let lastRenderSeq = -1;
   let lastStateSeq = -1;
   let compare = false;
+  let lookMode = false;
+  let lookSceneDeferred = false;
   // Drawing guide (AR_SPEC 6-5-11): null, or { step, angle, length, style } from the app.
   let guide = null;
   let landmarker = null;
@@ -1039,6 +1045,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       }
     }
     if (msg.type === 'compare') compare = !!msg.value;
+    if (msg.type === 'look_mode') { lookMode = msg.value === true; lookSceneDeferred = false; }
     if (msg.type === 'pose_enabled') { poseEnabled = msg.value === true; clearPoseHint(); }
     if (msg.type === 'preview') { /* capture already matches the phone screen; cover stays edge-to-edge */ }
     if (msg.type === 'guide') {
@@ -3668,7 +3675,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   let guardErrors = 0, guardLast = '', renderErrors = 0, renderErrLast = '';
   // HUD 'eye' line (11-06 /ar-debug: look mascara and lashes not seen on the phone): which eye paint reached this page and
   // whether the eye canvas was drawn this frame. 'build' tells a stale Expo Go bundle apart from a renderer fault.
-  const EYE_HUD_BUILD = '1123-lip-finish-d';
+  const EYE_HUD_BUILD = '1125-lip-3ce-murmuring';
   const eyeDbg = { liner: '-', mascara: '-', lashes: 0, on: false, cw: 0, ch: 0 };
   // Blink (11-08): MediaPipe blendshape eyeBlinkRight/Left (0 open .. 1 closed) per EYE_LINES entry (0 = subject's right
   // eye, landmarks 33/133; 1 = left). NaN until the model returns blendshapes; drawing then falls back to the lid gap.
@@ -4092,9 +4099,9 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   let segCount = 0, segPerSec = 0;   // HUD: segmentation calls in the last second
   let foundSegMs = 0;   // moving mean of one segmentation call, ms (HUD)
   // Selfie multiclass: 0 bg, 1 hair, 2 body, 3 face skin, 4 clothes, 5 accessory.
-  function applyFoundSkinMask(mask, conf) {
+  function applyFoundSkinMask(mask, conf, categoryPixels) {
     if (!mask || !renderer) return;
-    const mw = mask.width, mh = mask.height, cat = mask.getAsUint8Array();
+    const mw = mask.width, mh = mask.height, cat = categoryPixels || mask.getAsUint8Array();
     ensureFoundSkinBuffers(mw, mh);
     const n = mw * mh;
     let prob = null;
@@ -4230,10 +4237,15 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         segmentBusy = false;
         const mask = result.categoryMask;
         if (!mask) return;
-        try { envKeepBackground(mask.getAsUint8Array(), mask.width, mask.height); } catch (e) { /* backlight ratio is best-effort */ }
-        if (forSkin && wantSkinMask()) applyFoundSkinMask(mask, result.confidenceMasks);
+        let categoryPixels;
+        try {
+          const pixels = mask.getAsUint8Array();
+          if (lookMode) categoryPixels = pixels;
+          envKeepBackground(pixels, mask.width, mask.height);
+        } catch (e) { /* backlight ratio is best-effort */ }
+        if (forSkin && wantSkinMask()) applyFoundSkinMask(mask, result.confidenceMasks, categoryPixels);
         if (!forLight || !lightSnap) return;
-        const mw = mask.width, mh = mask.height, cat = mask.getAsUint8Array();
+        const mw = mask.width, mh = mask.height, cat = categoryPixels || mask.getAsUint8Array();
         const sw = lightSnap.width, sh = lightSnap.height;
         const sums = bgColorSums(cat, mw, mh, lightSnap.data, sw, sh);
         const r = sums.r, g = sums.g, bl = sums.bl, n = sums.n;
@@ -4280,6 +4292,11 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       const segMs = performance.now() - segT0;
       foundSegMs = foundSegMs ? foundSegMs + 0.2 * (segMs - foundSegMs) : segMs;
     } catch (e) { segmentBusy = false; }
+  }
+  function lightSegDue(now) {
+    const segEvery = wbLocked ? TUNING.segmentEveryMs : TUNING.segmentEveryMsAuto;
+    return light.snapColor || (camSettling(now) && now - lastSegmentAt >= TUNING.env.camResampleMs) ||
+      (now - lastSegmentAt > segEvery && (lastSegmentAt < 0 || fps >= TUNING.segmentMinFps));
   }
   function sampleScene(now, W, H) {
     const t0 = performance.now();
@@ -4447,9 +4464,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     }
 
     // Color: Gray World over background pixels (segmenter class 0), blown-out and dark pixels excluded.
-    const segEvery = wbLocked ? TUNING.segmentEveryMs : TUNING.segmentEveryMsAuto;
-    const lightDue = light.snapColor || (camSettling(now) && now - lastSegmentAt >= TUNING.env.camResampleMs) ||
-      (now - lastSegmentAt > segEvery && (lastSegmentAt < 0 || fps >= TUNING.segmentMinFps));
+    const lightDue = lightSegDue(now);
     const skinDue = wantSkinMask() && now - lastFoundSegAt > skinSegGap();
     runSegmenter(now, lightDue, skinDue);
     postLightHint();
@@ -5843,6 +5858,15 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '}',
   ].join(NL);
 
+  function uploadEyeLayer(gl, canvas, size) {
+    // The canvas pixels follow the current landmarks. Reuse only the texture storage.
+    if (lookMode && size.width === canvas.width && size.height === canvas.height) {
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+      return;
+    }
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+    size.width = canvas.width; size.height = canvas.height;
+  }
   function createGLRenderer() {
     const opts = { alpha: false, antialias: false, premultipliedAlpha: false, depth: true };
     let gl = glCanvas.getContext('webgl2', opts);
@@ -6021,6 +6045,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
 
     // Screen-space eye canvas (eyeliner, mascara), refreshed every frame they are on.
     const eyeTex = gl.createTexture();
+    const eyeTexSize = { width: 1, height: 1 };
     gl.activeTexture(gl.TEXTURE5);
     gl.bindTexture(gl.TEXTURE_2D, eyeTex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
@@ -6031,6 +6056,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
 
     // Brow canvas (green), its own texture so the eye canvas never needs an alpha channel.
     const browTex = gl.createTexture();
+    const browTexSize = { width: 1, height: 1 };
     gl.activeTexture(gl.TEXTURE9);
     gl.bindTexture(gl.TEXTURE_2D, browTex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
@@ -6221,11 +6247,11 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         eyeDbg.on = !!eyesOn; eyeDbg.cw = eyeCanvas.width; eyeDbg.ch = eyeCanvas.height;
         gl.activeTexture(gl.TEXTURE5);
         gl.bindTexture(gl.TEXTURE_2D, eyeTex);
-        if (eyesOn) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, eyeCanvas);
+        if (eyesOn) uploadEyeLayer(gl, eyeCanvas, eyeTexSize);
         gl.uniform1i(u.uEye, 5);
         gl.activeTexture(gl.TEXTURE9);
         gl.bindTexture(gl.TEXTURE_2D, browTex);
-        if (eyesOn && (browZ || mascara)) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, browCanvas);
+        if (eyesOn && (browZ || mascara)) uploadEyeLayer(gl, browCanvas, browTexSize);
         gl.uniform1i(u.uBrowTex, 9);
         gl.activeTexture(gl.TEXTURE5);   // leave the active unit as before this texture existed
         if (eyesOn) gl.uniform4f(u.uEyeRect, eyeRect[0], eyeRect[1], eyeRect[2], eyeRect[3]);
@@ -6964,6 +6990,12 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
 
   // ── Main loop ────────────────────────────────────────────────────────
   // Runs once per new camera frame: upload → detect on that frame → draw.
+  function deferLookSceneForSkin(now, still, settling) {
+    // A steady look can wait one frame for scene sampling while the skin mask is refreshed.
+    // When lighting needs its own mask, the existing sample path shares a single inference.
+    return !lookSceneDeferred && still && !settling && !lightSegDue(now) &&
+      segmenter && !segmentBusy && foundSkinReady && wantSkinMask() && now - lastFoundSegAt > skinSegGap();
+  }
   function processFrame(now) {
     if (video.readyState < 2) return;
     const W = video.videoWidth, H = video.videoHeight;
@@ -7026,19 +7058,27 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         try { measureLipInner(W, H, now); } catch (e) { /* inner line measurement is best-effort */ }
       }
       if (now - lastLightAt > TUNING.lightEveryMs) {
-        lastLightAt = now;
         // The light estimate (22-35 ms on the phone, 11-08 HUD) only changes when the scene does: a still face in a still
         // scene re-reads it every lightStillMs instead. The lip measurements below keep their own pace (the mouth moves
         // while the face is still).
-        if (camSettling(now) || now - lastSceneAt >= (faceSpeed < TUNING.faceStillSpeed && sceneChange < TUNING.sceneStillDiff ? TUNING.lightStillMs : 0)) {
-          lastSceneAt = now;
-          try { sampleScene(now, W, H); } catch (e) { /* light estimation is best-effort */ }
+        const settling = camSettling(now);
+        const still = faceSpeed < TUNING.faceStillSpeed && sceneChange < TUNING.sceneStillDiff;
+        const sceneDue = settling || now - lastSceneAt >= (still ? TUNING.lightStillMs : 0);
+        if (sceneDue && lookMode && faceThisFrame && deferLookSceneForSkin(now, still, settling)) {
+          lookSceneDeferred = true;
+        } else {
+          lookSceneDeferred = false;
+          lastLightAt = now;
+          if (sceneDue) {
+            lastSceneAt = now;
+            try { sampleScene(now, W, H); } catch (e) { /* light estimation is best-effort */ }
+          }
+          try { envEvaluate(now, W, H); } catch (e) { /* environment guidance is best-effort */ }
+          maybeLockWhiteBalance();
+          measureLipThickness(W, H);
+          try { measureLipEdge(W, H); } catch (e) { /* edge measurement is best-effort */ }
+          updateHud();
         }
-        try { envEvaluate(now, W, H); } catch (e) { /* environment guidance is best-effort */ }
-        maybeLockWhiteBalance();
-        measureLipThickness(W, H);
-        try { measureLipEdge(W, H); } catch (e) { /* edge measurement is best-effort */ }
-        updateHud();
       }
     }
     if (wantSkinMask()) {

@@ -36,6 +36,8 @@ async def test_replace_and_search_round_trip():
         async with AsyncSession(engine) as session:
             repo = CatalogRepository(session)
             assert [p.id for p in await repo.search_products([], "base")] == ["base-1", "base-2"]
+            page = await repo.search_products([], "base", limit=1, offset=1)
+            assert [p.id for p in page] == ["base-2"]
             assert [p.id for p in await repo.search_products(["제품", "lip-1"])] == ["lip-1"]
             assert await repo.search_products(["100%"]) == []
             assert len(await repo.search_products([], tags=["bestseller", "x"])) == 3

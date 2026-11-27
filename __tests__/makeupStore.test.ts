@@ -423,3 +423,37 @@ describe('AR command state', () => {
     expect(useMakeupStore.getState().makeup.highlighter).toEqual({ ...before, geometry: { hlStyle: 'nose_tip' } });
   });
 });
+
+describe('product lip finish on applyShade', () => {
+  beforeEach(() => useMakeupStore.getState().reset());
+
+  it('attaches the 3CE Murmuring soft-matte profile and keeps catalog hex', () => {
+    const product = {
+      id: 'oy-a000000148167',
+      makeupZone: 'lip',
+      texture: 'matte',
+      name: '3CE Soft Matte',
+      shades: [],
+    } as unknown as Product;
+    const shade = { id: 'a000000148167-017', name: '머머링', hex: '#DD7C6F' };
+    useMakeupStore.getState().applyShade(product, shade);
+    expect(useMakeupStore.getState().makeup.lip).toMatchObject({
+      hex: '#DD7C6F',
+      texture: 'matte',
+      applicationProfile: { coverageMultiplier: 0.9, material: { a1: 0.52, glossScale: 0.2 } },
+    });
+  });
+
+  it('leaves other lip shades on texture defaults', () => {
+    const product = {
+      id: 'oy-a000000148167',
+      makeupZone: 'lip',
+      texture: 'matte',
+      name: '3CE Soft Matte',
+      shades: [],
+    } as unknown as Product;
+    useMakeupStore.getState().applyShade(product, { id: 'a000000148167-009', name: '웨이백', hex: '#C37463' });
+    expect(useMakeupStore.getState().makeup.lip).toMatchObject({ hex: '#C37463', texture: 'matte' });
+    expect(useMakeupStore.getState().makeup.lip?.applicationProfile).toBeUndefined();
+  });
+});

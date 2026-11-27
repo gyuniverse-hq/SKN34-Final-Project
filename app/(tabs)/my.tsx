@@ -12,6 +12,7 @@ import { MenuSection } from '@/components/ui/MenuSection';
 import { homeLayout, tabTitle } from '@/constants/homeLayout';
 import { theme } from '@/constants/theme';
 import { authErrorMessageKey, signOut, useAuth } from '@/lib/auth';
+import { communityMineHref } from '@/lib/lookCommunity';
 import { confirmAction, notify } from '@/lib/confirm';
 import { useI18n } from '@/lib/i18n';
 import { useShoppingListStore } from '@/store/shoppingListStore';
@@ -86,6 +87,7 @@ export default function MyScreen() {
         <MenuSection title={t('my.benefits')}>
           <ListRow icon="star-outline" label={t('my.membership')} onPress={() => router.push('/membership')} />
           <ListRow icon="ticket-outline" label={t('my.rewards')} onPress={() => router.push('/rewards')} />
+          <ListRow icon="images-outline" label={t('community.mine')} onPress={() => router.push(communityMineHref)} />
         </MenuSection>
         <MenuSection title={t('my.library')}>
           <ListRow icon="heart-outline" label={t('my.saved')} onPress={() => router.push('/saved')} />

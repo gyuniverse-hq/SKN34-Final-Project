@@ -25,4 +25,4 @@ class StyleLookService:
 
 
 def get_style_look_service(session: AsyncSession = Depends(get_session)) -> StyleLookService:
-    return StyleLookService(StyleLookRepository(), VerifiedVideoProductRepository(session))
+    return StyleLookService(StyleLookRepository(session), VerifiedVideoProductRepository(session))

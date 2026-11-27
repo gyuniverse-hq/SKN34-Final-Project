@@ -11,7 +11,8 @@ type Session = { controller: AbortController; screen: ControlScreen; version: nu
 type Phase = 'idle' | 'preparing' | 'recording' | 'thinking' | 'speaking';
 
 export function useArVoiceSession(active: boolean, screen: ControlScreen,
-  send: (text: string, signal: AbortSignal, call: VoiceToolCall) => Promise<string | undefined>) {
+  send: (text: string, signal: AbortSignal, call: VoiceToolCall) => Promise<string | undefined>,
+  store = useMakeupStore) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [notice, setNotice] = useState<TranslationKey | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -29,7 +30,7 @@ export function useArVoiceSession(active: boolean, screen: ControlScreen,
   const microphone = async () => {
     if (session.current) { stop(); return; }
     if (!active || !integratedVoiceModel) return;
-    const run: Session = { controller: new AbortController(), screen, version: useMakeupStore.getState().arVersion };
+    const run: Session = { controller: new AbortController(), screen, version: store.getState().arVersion };
     session.current = run;
     setNotice(null); setPhase('preparing');
     try {

@@ -1,34 +1,41 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ProductImage } from '@/components/ui/ProductImage';
 import { homeLayout, homeType } from '@/constants/homeLayout';
 import { theme } from '@/constants/theme';
 import { formatKRW } from '@/lib/format';
-import type { Product } from '@/types';
+import type { Product, Shade } from '@/types';
+import { ProductImage } from './ProductImage';
 
 interface Props {
   product: Product;
   shadeLabel: string;
+  selectedShade?: Shade;
   onPress: () => void;
 }
 
-export const ProductCard = memo(function ProductCard({ product, shadeLabel, onPress }: Props) {
+export const ProductCard = memo(function ProductCard({ product, shadeLabel, selectedShade, onPress }: Props) {
+  const price = formatKRW(product.priceKRW);
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${product.brand} ${product.name}, ${formatKRW(product.priceKRW)}`}
-      style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}>
-      <ProductImage uri={product.imageUrl} category={product.category} style={styles.image} recyclingKey={product.id} />
-      <View style={styles.body}>
+      accessibilityLabel={`${product.brand} ${product.name}, ${selectedShade ? `${selectedShade.name}, ` : ''}${price}`}
+      style={({ pressed }) => [selectedShade ? styles.listCard : styles.card, pressed && { opacity: 0.9 }]}>
+      <ProductImage uri={product.imageUrl} category={product.category} style={[styles.image, selectedShade && styles.listImage]} recyclingKey={product.id} compact={!!selectedShade} />
+      <View style={[styles.body, selectedShade && styles.listBody]}>
         <Text style={styles.brand} numberOfLines={1}>
           {product.brand}
         </Text>
         <Text style={styles.name} numberOfLines={2}>
           {product.name}
         </Text>
-        <Text style={styles.price}>{formatKRW(product.priceKRW)}</Text>
-        {product.shades.length > 1 ? (
+        <Text style={styles.price}>{price}</Text>
+        {selectedShade ? (
+          <View style={styles.shades}>
+            <View style={[styles.dot, { backgroundColor: selectedShade.hex }]} />
+            <Text style={styles.shadeLabel}>{selectedShade.name}</Text>
+          </View>
+        ) : product.shades.length > 1 ? (
           <View style={styles.shades}>
             {product.shades.slice(0, 5).map((s) => (
               <View key={s.id} style={[styles.dot, { backgroundColor: s.hex }]} />
@@ -48,6 +55,9 @@ const styles = StyleSheet.create({
     paddingBottom: 18,
   },
   image: { width: '100%', aspectRatio: 1, borderRadius: 10, backgroundColor: theme.colors.cream },
+  listCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  listImage: { width: 76 },
+  listBody: { flex: 1, minWidth: 0, paddingTop: 0 },
   body: { paddingTop: 8, paddingHorizontal: 2, gap: 2 },
   brand: { ...homeType(11), color: theme.colors.roseDark, fontWeight: '500' },
   name: { ...homeType(14), lineHeight: 19, color: theme.colors.ink },
