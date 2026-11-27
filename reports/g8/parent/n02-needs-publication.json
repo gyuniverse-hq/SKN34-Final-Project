@@ -1,0 +1,86 @@
+{
+  "case": "G8-N02-PER-ITEM-PUBLICATION-CHECK",
+  "recordedAt": "2026-11-27T15:31:44.992940+09:00",
+  "implementationCommit": "c81bf2f51d619fbde6dbec24802304de6d536c86",
+  "previousRemote": "f24fc81656b68f26c084e5740a9b5436f140af13",
+  "develop": "991dd634dba33b99ceeb1c03de4dd8d921ce07f9",
+  "sourceSha256": [
+    {
+      "path": "backend/chatbot/app/schemas/chat.py",
+      "sha256": "d3a11a3c32d67ab06fca75b44e25ab60fe4adfa61061615ecffbfa5e33f9de29"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/consultation_parent.py",
+      "sha256": "8b7ede90365345afe69885d6047d0cf910d5dc355cadbbe9365ce7bdce67bcb2"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/owned_look_consultation.py",
+      "sha256": "ea06577751315317341c2893d74852f5eaf9871d27a0904c52fc7ed0057b170d"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/owned_look_context.py",
+      "sha256": "0a90b42efe5fa0657a0af939b960ebedac6c8e2809149ceb58bef9aad38d2c73"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_parent_graph.py",
+      "sha256": "e7eed04ca939bc5cee0b30f9137fdc71c7bf50603b9d689b4abe279dc59951a5"
+    },
+    {
+      "path": "backend/chatbot/app/services/conversation_context.py",
+      "sha256": "b0982069a057f7822584abb4df3f1b57592346e1fdeb6a767d174851d9a07e9f"
+    },
+    {
+      "path": "backend/chatbot/app/services/owned_look_consultation_service.py",
+      "sha256": "48eadcdbf2bf9f1f8767dfacfec0c83dd81b82ffa76e686cb99005db4d279d42"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g7_memory_api_pg.py",
+      "sha256": "7dddc17d8c0ae7344de772095e9da64728b19d702be9249399cde6338a260480"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_consultation_parent.py",
+      "sha256": "16bcb6f80d24832d94135145932a5793819fa6f1796545874e4943dd308a22c3"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_owned_look.py",
+      "sha256": "aadb342f66181a816543889d0ca109a0a73f04fc4630e3086ed2622554372dea"
+    }
+  ],
+  "sourceByteBasis": "worktree-exact",
+  "stage": "5-collaboration-partial",
+  "backend": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "109",
+    "tests": "1658",
+    "time": "55.434",
+    "timestamp": "2026-11-27T15:29:14.228303+09:00",
+    "hostname": "playdata"
+  },
+  "app": {
+    "typecheck": "PASS",
+    "lint": "PASS",
+    "suites": 108,
+    "passed": 1338
+  },
+  "security": {
+    "newTraceRows": 2,
+    "historicalRowsPreserved": 17,
+    "changedFilesScanned": 46,
+    "gitleaks": "8.30.1",
+    "ignore": "empty",
+    "result": "PASS"
+  },
+  "modelConfiguredMode": "mock/disabled",
+  "actualExternalModelCalls": 0,
+  "statusAtRecordTime": "implementation committed; documentation commit and push pending",
+  "prCreated": false,
+  "commands": [
+    "npm run check",
+    "uv run ruff check .",
+    "uv run lint-imports",
+    "uv run pytest -q --tb=short --basetemp=C:/Users/playdata2/AppData/Local/Temp/g8-needs-publish --junitxml=../../reports/g8/parent/n02-needs-publish-backend.xml"
+  ],
+  "evidencePrefix": "reports/g8/parent/n02-needs-publish-"
+}

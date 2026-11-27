@@ -1,0 +1,67 @@
+Disposable PostgreSQL: vishue_chat_test, port 15434
+..........s....Fsss..............ssss........                            [100%]
+================================== FAILURES ===================================
+______ test_n02_consented_inventory_selected_look_persistence_and_replay ______
+tests\test_g7_memory_api_pg.py:1564: in test_n02_consented_inventory_selected_look_persistence_and_replay
+    assert "블러셔 제품을 가지고 있나요" in parent_first["answer"]
+E   AssertionError: assert '블러셔 제품을 가지고 있나요' in '등록된 검수 레시피의 단계와 출처를 안내합니다.\n1. 블러셔: 합성 볼 단계\n2. 립: 합성 립 단계\n테스트용 합성 콘텐츠입니다.\n블러셔 · Fixture blush-b: 등록 목록만으로 실제 보유 여부나 대체 적합성을 확정할 수 없어요.\n립 · Fixture lip-a: 영상·룩에 연결된 상품·옵션과 같은 제품의 보유를 확인했어요.\nFixture blush-b 제품을 가지고 있나요?\n\n합성 근거 부족'
+---------------------------- Captured stderr call -----------------------------
+{"ts": "2026-11-27T15:15:04+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat/conversations \"HTTP/1.1 201 Created\"", "request_id": "-"}
+{"ts": "2026-11-27T15:15:04+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "0ebee630d52d4ada9213b9ff04b61223", "method": "POST", "path": "/api/chat/conversations", "status": 201, "duration_ms": 125.6}
+{"ts": "2026-11-27T15:15:04+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: PATCH http://testserver/api/chat/conversations/42fdf028-f59c-4ec4-873e-e874616d38a1/state \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T15:15:04+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "796b4fc93ca84366898f76d24a704524", "method": "PATCH", "path": "/api/chat/conversations/42fdf028-f59c-4ec4-873e-e874616d38a1/state", "status": 200, "duration_ms": 84.0}
+{"ts": "2026-11-27T15:15:04+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T15:15:04+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "3e41066bc8d045dab7f23290859b9ffc", "method": "POST", "path": "/api/chat", "status": 200, "duration_ms": 91.1}
+{"ts": "2026-11-27T15:15:04+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: GET http://testserver/api/chat/v2/memory-proposals?conversationId=42fdf028-f59c-4ec4-873e-e874616d38a1 \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T15:15:04+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "69c9ec323d184dc09ea63043f0610d39", "method": "GET", "path": "/api/chat/v2/memory-proposals", "status": 200, "duration_ms": 31.6}
+{"ts": "2026-11-27T15:15:04+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat/v2/memory-proposals/99a5b88e-b105-4277-ae10-6e94a43e6cbb/decisions \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T15:15:04+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "cf8756ba9980461382a8cdc6b09ced5e", "method": "POST", "path": "/api/chat/v2/memory-proposals/99a5b88e-b105-4277-ae10-6e94a43e6cbb/decisions", "status": 200, "duration_ms": 37.8}
+{"ts": "2026-11-27T15:15:04+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat/conversations \"HTTP/1.1 201 Created\"", "request_id": "-"}
+{"ts": "2026-11-27T15:15:04+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "cb9f81e2ba9843e89c80c0cdfc13a4cc", "method": "POST", "path": "/api/chat/conversations", "status": 201, "duration_ms": 15.5}
+{"ts": "2026-11-27T15:15:04+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: PATCH http://testserver/api/chat/conversations/187fb59a-a50a-4a22-b308-de189960c703/state \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T15:15:04+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "699edf56d82b453eb319bb0f73156697", "method": "PATCH", "path": "/api/chat/conversations/187fb59a-a50a-4a22-b308-de189960c703/state", "status": 200, "duration_ms": 40.0}
+{"ts": "2026-11-27T15:15:04+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T15:15:04+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "7c997d9870b244009ad0e4ea7e3f5a4a", "method": "POST", "path": "/api/chat", "status": 200, "duration_ms": 175.8}
+------------------------------ Captured log call ------------------------------
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat/conversations "HTTP/1.1 201 Created"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: PATCH http://testserver/api/chat/conversations/42fdf028-f59c-4ec4-873e-e874616d38a1/state "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://testserver/api/chat/v2/memory-proposals?conversationId=42fdf028-f59c-4ec4-873e-e874616d38a1 "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat/v2/memory-proposals/99a5b88e-b105-4277-ae10-6e94a43e6cbb/decisions "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat/conversations "HTTP/1.1 201 Created"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: PATCH http://testserver/api/chat/conversations/187fb59a-a50a-4a22-b308-de189960c703/state "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+============================== warnings summary ===============================
+tests/test_g7_memory_api_pg.py::test_n02_consented_inventory_selected_look_persistence_and_replay
+  tests\test_g7_memory_api_pg.py:1461: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    def test_n02_consented_inventory_selected_look_persistence_and_replay(
+
+tests/test_g7_memory_api_pg.py::test_same_zone_item_question_pg_restore_and_final_status
+  tests\test_g7_memory_api_pg.py:2197: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    def test_same_zone_item_question_pg_restore_and_final_status(
+
+tests/test_g7_conversation_api_pg.py::test_g8_graph_commits_replays_and_rechecks_the_saved_budget
+  tests\test_g7_conversation_api_pg.py:217: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    def test_g8_graph_commits_replays_and_rechecks_the_saved_budget(api, monkeypatch, record_property):
+
+tests/test_g7_conversation_api_pg.py::test_n01_condition_provenance_survives_pg_followups
+  tests\test_g7_conversation_api_pg.py:1374: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    def test_n01_condition_provenance_survives_pg_followups(api, monkeypatch, record_property):
+
+tests/test_g7_conversation_api_pg.py::test_original_n01_pg_restores_clarification_without_client_history[False]
+tests/test_g7_conversation_api_pg.py::test_original_n01_pg_restores_clarification_without_client_history[True]
+  tests\test_g7_conversation_api_pg.py:1496: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.parametrize("g1_enabled", [False, True])
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_g7_memory_api_pg.py::test_n02_consented_inventory_selected_look_persistence_and_replay
+1 failed, 36 passed, 8 skipped, 6 warnings in 24.48s
