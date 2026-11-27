@@ -296,13 +296,16 @@ it('submits only once when the keyboard and send button fire together', async ()
 
 it('sends the spoken request from the mic button, applies it and speaks after the frame is painted', async () => {
   jest.useFakeTimers();
-  const consent = jest.spyOn(Alert, 'alert').mockImplementation((_title, _message, buttons) => buttons?.[1]?.onPress?.());
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   try {
     const message = '볼 색을 좀만 연하게 해줘';
     tool('adjust_intensity/blush/down');
     post.mockResolvedValueOnce(owned({ text: message }) as never);
+    expect(screen.root.findAllByProps({ accessibilityLabel: 'ar.voice.about' })).toHaveLength(0);
+    expect(screen.root.findAllByProps({ children: 'ar.voice.consent' })).toHaveLength(0);
     mockMicLevel = -22;
     await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.voice.start' }).props.onPress(); });
+    expect(alert).not.toHaveBeenCalled();
     await finishTestUtterance();
     expect(screen.root.findAllByType(TextInput)).toHaveLength(0);
     expect(post.mock.calls.filter(([path]) => path === '/api/chat')).toHaveLength(1);
@@ -320,7 +323,7 @@ it('sends the spoken request from the mic button, applies it and speaks after th
     expect(screen.root.findAllByProps({ children: '테스트 응답' }).length).toBeGreaterThan(0);
     await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.voice.finish' }).props.onPress(); });
   } finally {
-    consent.mockRestore();
+    alert.mockRestore();
     jest.useRealTimers();
   }
 });
@@ -330,7 +333,6 @@ it.each([
   ['안내를 열어줘.', 'set_view/panel/info', 'set_view/panel/closed'],
 ])('opens %s and accepts the spoken follow-up in the same session', async (message, openChoice, closeChoice) => {
   jest.useFakeTimers();
-  const consent = jest.spyOn(Alert, 'alert').mockImplementation((_title, _message, buttons) => buttons?.[1]?.onPress?.());
   const opened = () => openChoice.startsWith('set_view/mirror/')
     ? screen.root.findAllByProps({ accessibilityLabel: 'ar.mirror.exit' }).length > 0
     : screen.root.findAllByType(ArSheet).length > 0;
@@ -352,11 +354,9 @@ it.each([
     expect(opened()).toBe(false);
     expect(feedback()).toMatchObject({ choice: closeChoice, status: 'APPLIED' });
     expect(post.mock.calls.filter(([path]) => path === '/api/chat')).toHaveLength(2);
-    expect(consent).toHaveBeenCalledTimes(1);
     await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.voice.finish' }).props.onPress(); });
   } finally {
     mockMicLevel = -90;
-    consent.mockRestore();
     jest.useRealTimers();
   }
 });
@@ -369,7 +369,6 @@ it('starts voice from a product fitting screen and adds only its fixed shade', a
   expect(screen.root.findAllByProps({ accessibilityRole: 'tab' })).toHaveLength(0);
 
   jest.useFakeTimers();
-  const consent = jest.spyOn(Alert, 'alert').mockImplementation((_title, _message, buttons) => buttons?.[1]?.onPress?.());
   try {
     tool('add_to_cart/fit_product');
     post.mockResolvedValueOnce(owned({ text: '지금 이 호수 하나 담아줘.' }) as never);
@@ -384,7 +383,6 @@ it('starts voice from a product fitting screen and adds only its fixed shade', a
     await act(async () => { screen.root.findByProps({ accessibilityLabel: 'ar.voice.finish' }).props.onPress(); });
   } finally {
     mockMicLevel = -90;
-    consent.mockRestore();
     jest.useRealTimers();
   }
 });

@@ -9,6 +9,7 @@ import * as Speech from 'expo-speech';
 const mockDelete = jest.fn();
 const mockRelease = jest.fn();
 const mockStopRecording = jest.fn(async () => {});
+const mockPermission = jest.fn(async () => ({ granted: true }));
 const mockOnText = jest.fn(async (_text: string) => '이 색 어때요?');
 let mockLevel: number | undefined = -90;
 let mockLanguage: Language = 'ko';
@@ -21,7 +22,7 @@ jest.mock('expo-file-system', () => ({ File: class {
   async arrayBuffer() { return new ArrayBuffer(8); }
 } }));
 jest.mock('expo-audio', () => ({
-  requestRecordingPermissionsAsync: async () => ({ granted: true }),
+  requestRecordingPermissionsAsync: () => mockPermission(),
   setAudioModeAsync: async () => {},
   RecordingPresets: { HIGH_QUALITY: { ios: {}, android: {} } },
   AudioModule: { AudioRecorder: class {
@@ -47,7 +48,8 @@ beforeEach(async () => {
   mockLanguage = 'ko';
   mockKeywords = [];
   jest.clearAllMocks();
-  jest.spyOn(Alert, 'alert').mockImplementation((_title, _message, buttons) => buttons?.[1]?.onPress?.());
+  mockPermission.mockResolvedValue({ granted: true });
+  jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   await act(async () => { tree = renderer.create(<Panel active />); });
 });
 afterEach(async () => {
@@ -60,6 +62,16 @@ async function levels(db: number, milliseconds: number) {
   mockLevel = db;
   await act(async () => { jest.advanceTimersByTime(milliseconds); });
 }
+
+it('asks for microphone permission directly without an app popup', async () => {
+  mockPermission.mockResolvedValueOnce({ granted: false });
+  await act(async () => { voice.microphone(); });
+  expect(Alert.alert).not.toHaveBeenCalled();
+  expect(mockPermission).toHaveBeenCalledTimes(1);
+  expect(voice.phase).toBe('idle');
+  expect(voice.notice).toBe('ar.voice.permission');
+  expect(apiPostOwned).not.toHaveBeenCalled();
+});
 
 it.each([
   ['ambient noise above the old cutoff', -38, -21],

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import type { AudioRecorder } from 'expo-audio';
 import { File } from 'expo-file-system';
 import * as Speech from 'expo-speech';
@@ -151,13 +151,12 @@ export function useArVoice(
   onTranscript: (text: string, signal: AbortSignal, onPainted?: () => void) => Promise<string | undefined>,
   getKeywords: () => readonly string[],
 ) {
-  const { t, language } = useI18n();
+  const { language } = useI18n();
   const available = Platform.OS === 'ios' || Platform.OS === 'android';
   const enabled = active && available;
   const [phase, setPhase] = useState<Phase>('idle');
   const [notice, setNotice] = useState<TranslationKey | null>(null);
   const [muted, setMuted] = useState(false);
-  const consent = useRef(false);
   const generation = useRef(0);
   const session = useRef<AbortController | null>(null);
   const output = useRef(true);
@@ -262,14 +261,7 @@ export function useArVoice(
   function microphone() {
     if (session.current) { end(); return; }
     if (!enabled) return;
-    if (consent.current) { void run(); return; }
-    const turn = generation.current;
-    Alert.alert(t('ar.voice.start'), t('ar.voice.consent'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('ar.voice.start'), onPress: () => {
-        if (turn === generation.current) { consent.current = true; void run(); }
-      } },
-    ]);
+    void run();
   }
 
   function toggleSound() {

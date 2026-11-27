@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert } from 'react-native';
 import { apiPostOwned, subscribeArIdentityChange, type ArRequestOwner } from '@/lib/api';
-import { useI18n, type TranslationKey } from '@/lib/i18n';
+import type { TranslationKey } from '@/lib/i18n';
 import type { ControlScreen } from '@/lib/arControl';
 import { useMakeupStore } from '@/store/makeupStore';
 import type { VoiceToolCall } from './useArCommand';
@@ -13,12 +12,10 @@ type Phase = 'idle' | 'preparing' | 'recording' | 'thinking' | 'speaking';
 
 export function useArVoiceSession(active: boolean, screen: ControlScreen,
   send: (text: string, signal: AbortSignal, call: VoiceToolCall) => Promise<string | undefined>) {
-  const { t } = useI18n();
   const [phase, setPhase] = useState<Phase>('idle');
   const [notice, setNotice] = useState<TranslationKey | null>(null);
   const [mounted, setMounted] = useState(false);
   const session = useRef<Session | null>(null);
-  const consent = useRef(false);
   const stop = useCallback(() => {
     session.current?.controller.abort(); session.current = null;
     setMounted(false); setPhase('idle');
@@ -29,26 +26,19 @@ export function useArVoiceSession(active: boolean, screen: ControlScreen,
     return () => { unsubscribe(); stop(); };
   }, [active, stop]);
   const failed = () => { setNotice('ar.voice.failed'); stop(); };
-  const microphone = () => {
+  const microphone = async () => {
     if (session.current) { stop(); return; }
     if (!active || !integratedVoiceModel) return;
     const run: Session = { controller: new AbortController(), screen, version: useMakeupStore.getState().arVersion };
     session.current = run;
-    const start = async () => {
+    setNotice(null); setPhase('preparing');
+    try {
+      const { requestRecordingPermissionsAsync } = require('expo-audio') as typeof import('expo-audio');
+      const permission = await requestRecordingPermissionsAsync();
       if (session.current !== run) return;
-      consent.current = true; setNotice(null); setPhase('preparing');
-      try {
-        const { requestRecordingPermissionsAsync } = require('expo-audio') as typeof import('expo-audio');
-        const permission = await requestRecordingPermissionsAsync();
-        if (session.current !== run) return;
-        if (!permission.granted) { stop(); setNotice('ar.voice.permission'); return; }
-        setMounted(true);
-      } catch { if (session.current === run) failed(); }
-    };
-    if (consent.current) void start();
-    else Alert.alert(t('ar.voice.start'), t('ar.voice.liveConsent'), [
-      { text: t('common.cancel'), onPress: stop }, { text: t('ar.voice.start'), onPress: () => void start() },
-    ], { cancelable: false });
+      if (!permission.granted) { stop(); setNotice('ar.voice.permission'); return; }
+      setMounted(true);
+    } catch { if (session.current === run) failed(); }
   };
   const onOffer = async (sdp: string) => {
     const run = session.current;

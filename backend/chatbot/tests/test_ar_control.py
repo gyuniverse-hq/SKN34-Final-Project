@@ -659,7 +659,7 @@ def test_artist_can_name_a_selected_shade_while_the_face_render_is_pending():
     )
     assert facts["renderPending"] is True
     assert facts["selectedShade"]["product"] == "파운데이션"
-    assert facts["selectedShade"]["shade"] == "02"
+    assert "shade" not in facts["selectedShade"]
     assert "noMatchingShade" not in facts
 
 
@@ -675,6 +675,7 @@ def test_artist_receives_only_the_confirmed_pick(status):
             "productKo": "로즈 틴트",
             "brand": "테스트",
             "shade": "01 새벽",
+            "shadeNumber": "01",
             "family": "pink",
         },
     }
@@ -684,11 +685,11 @@ def test_artist_receives_only_the_confirmed_pick(status):
         "selectedShade": {
             "brand": "테스트",
             "product": "로즈 틴트",
-            "shade": "01 새벽",
+            "shadeNumber": "01",
             "colorFamily": "pink",
         },
     }
-    artist_reply = "새벽 핑크를 올려봤어요. 이 느낌은 어때요?"
+    artist_reply = "은은한 핑크를 올려봤어요. 이 느낌은 어때요?"
     if status != "APPLIED":
         raw["reason"] = "state changed" if status == "REJECTED" else "render failed"
         artist_reply = "이번에는 색을 올리지 못했어요."
@@ -701,7 +702,7 @@ def test_artist_receives_only_the_confirmed_pick(status):
                 assert facts == applied_facts
             else:
                 assert facts == {"status": status, "displayMode": "face", "reason": raw["reason"]}
-            return artist_reply
+            return f"**{artist_reply}**"
 
     async def exercise():
         model, requests = Artist(raw["choice"]), MemoryArRequestRepository()

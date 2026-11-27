@@ -1,5 +1,5 @@
 import json
-from re import fullmatch
+from re import MULTILINE, fullmatch, sub
 from unicodedata import normalize
 from uuid import uuid4
 
@@ -24,10 +24,25 @@ from app.schemas.chat import (
 )
 
 AR_PERSONA = (
-    "You are Luna, a warm makeup artist. Speak briefly in the user's language with natural "
+    "You are VISHUE, a warm makeup artist. Speak briefly in the user's language with natural "
     "makeup vocabulary. Use warm, polite speech in Korean. Never invent observations about "
-    "the user's face."
+    "the user's face. Write for someone hearing the reply aloud. Use plain text with "
+    "no Markdown, asterisks or decorative symbols. Describe the verified color, finish or "
+    "makeup effect in a short conversational sentence. If useful, give the brand, a short "
+    "recognizable product name or the verified shade number. Omit catalog banners, sizes, "
+    "variant counts and decorative shade names, including names styled as clock times, "
+    "from routine confirmations. Give the exact registered label when the user asks to "
+    "identify the product or shade by name. Never invent a shorter name or a shade number."
 )
+
+
+def _plain_reply(text: object) -> str:
+    if not isinstance(text, str):
+        return ""
+    text = sub(r"^[ \t]{0,3}(?:#{1,6}|[-+*])[ \t]+", "", text, flags=MULTILINE)
+    text = sub(r"(\*{1,3}|_{1,3}|`+)(\S(?:[^\r\n]*?\S)?)\1", r"\2", text)
+    return sub(r"\*{2,}", "", text).strip()
+
 
 GUIDE = (
     AR_PERSONA
@@ -280,7 +295,7 @@ def _shade_clarification(
 
 
 def _intensity_clarification(req: ChatRequest, question: object = None) -> ChatResponse:
-    answer = question.strip() if isinstance(question, str) else ""
+    answer = _plain_reply(question)
     return ChatResponse(
         answer=answer if 0 < len(answer) <= 180 else _INTENSITY_CLARIFICATION[req.locale],
         products=[],
@@ -311,15 +326,10 @@ def _recommendation_facts(outcome: dict, locale: str) -> dict:
                 "brand": chosen.get("brand"),
                 "product": (chosen.get("productKo") if locale == "ko" else None)
                 or chosen.get("product"),
-                "shade": chosen.get("shade"),
                 "colorFamily": family,
             }
             number = chosen.get("shadeNumber")
-            if (
-                outcome["choice"] in {PRODUCT_PICK, "apply_shade/product_shade"}
-                and isinstance(number, str)
-                and fullmatch(r"[0-9]{1,3}", number)
-            ):
+            if isinstance(number, str) and fullmatch(r"[0-9]{1,3}", number):
                 facts["selectedShade"]["shadeNumber"] = number
             for dimension in ("lightness", "chroma"):
                 if chosen.get(dimension):
@@ -535,10 +545,11 @@ class ArControlAgent:
                         },
                     ]
             if "arguments" not in reply:
-                if not isinstance(reply.get("answer"), str) or not reply["answer"].strip():
+                answer = _plain_reply(reply.get("answer"))
+                if not answer:
                     raise ValueError("Empty answer")
                 return ChatResponse(
-                    answer=reply["answer"],
+                    answer=answer,
                     products=[],
                     ar_result=ArResult(request_id=req.request_id, status="noop"),
                 )
@@ -547,7 +558,7 @@ class ArControlAgent:
             relative = (action == "adjust_intensity" and mode in {"up", "down"}) or (
                 action == "set_intensity" and mode == "half"
             )
-            prepared = draft.strip() if relative and isinstance(draft, str) else ""
+            prepared = _plain_reply(draft) if relative else ""
             proposal = ArControlProposal(
                 **selected.model_dump(),
                 session_id=ctx.session_id,
@@ -600,6 +611,7 @@ class ArControlAgent:
                 or proposal.choice.startswith("explore_nearby/apply/")
                 or proposal.choice.startswith("reapply_try_on/")
                 or action == "apply_recommendation"
+                or isinstance(outcome.get("featuredShade"), dict)
                 or outcome.get("renderPending") is True
             ):
                 outcome = _recommendation_facts(outcome, body.locale)
@@ -632,7 +644,7 @@ class ArControlAgent:
                 }
                 if target == "eyeshadow":
                     outcome["data"]["point"] = data.get("point")
-            return await self.llm.complete(
+            answer = await self.llm.complete(
                 [
                     {
                         "role": "system",
@@ -646,16 +658,24 @@ class ArControlAgent:
                             "If hasAppliedLayer is false, explicitly say no color is worn there. "
                             "Palette center and anchor are not worn shades. "
                             "Describe intensity in makeup terms, without decimals "
-                            "or percentages unless explicitly requested. For selectedShade name "
-                            "only that product, shade and its color in one natural sentence. "
-                            "When selectedShade includes shadeNumber, explicitly say the exact "
-                            "shade number together with its shade name. Keep leading zeroes. "
+                            "or percentages unless explicitly requested. For selectedShade, "
+                            "talk about that verified shade in one natural sentence. Say a "
+                            "shade number only from selectedShade.shadeNumber. If it is absent, "
+                            "omit the number. Never use digits from a shade name, time, "
+                            "product size, variant count or identifier as a shade number. For a "
+                            "named product pick, mention its verified shade number when "
+                            "available. If asked for the exact shade name, include the literal "
+                            "registered text from wornProduct.shade when supplied, "
+                            "even if it looks like a time. The number alone does not answer a "
+                            "name question. Keep leading zeroes in shade numbers. "
                             "If renderPending is true, say the shade was selected and will show "
                             "when face tracking resumes. Do not say it was applied to the face. "
                             "If matchedTo is present relate the shade to the main worn accent. "
                             "For requested lists, keep candidates in the supplied order. "
                             "Avoid search totals and process commentary. For a lookup mention "
-                            "counts only if asked. Write plain text."
+                            "counts only if asked. Use natural wording in the user's language "
+                            "instead of labels from these instructions or the data. "
+                            "Write plain text."
                         ),
                     },
                     {
@@ -668,6 +688,10 @@ class ArControlAgent:
                 ],
                 ar_feedback=True,
             )
+            cleaned = _plain_reply(answer)
+            if not cleaned:
+                raise UpstreamError("Empty AR reply")
+            return cleaned
         except (ValueError, TypeError) as exc:
             raise ApiError(422, "Invalid AR result", "invalid_ar_result") from exc
         except (UpstreamError, KeyError, AttributeError) as exc:

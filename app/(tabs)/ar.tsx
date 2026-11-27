@@ -1001,9 +1001,10 @@ export default function ArTryOnScreen() {
      visibleZones: practicing && !peek && practice ? practice.visited : null,
      fallbackText:r => {
        const label = r.featuredShade ? [
-         r.featuredShade.family && t(`ar.family.${r.featuredShade.family}`), r.featuredShade.brand,
-         language === 'ko' && r.featuredShade.productKo || r.featuredShade.product, r.featuredShade.shade,
-       ].filter(Boolean).join(' · ') : '';
+         r.featuredShade.brand,
+         r.featuredShade.shadeNumber && t('ar.control.shadeNumber', { number: r.featuredShade.shadeNumber }),
+         r.featuredShade.family && t(`ar.family.${r.featuredShade.family}`),
+       ].filter(Boolean).join(' ') : '';
        if (r.renderPending) return t('ar.control.selectionPending', { shade: label });
        return label || t(r.status === 'OK' ? 'ar.control.checked' : r.status === 'APPLIED' ? 'ar.control.changed' :
          r.status === 'NO_CHANGE' ? 'ar.control.unchanged' : AR_COMMAND_STATUS[r.status.toLowerCase() as keyof typeof AR_COMMAND_STATUS]);
@@ -1050,7 +1051,7 @@ export default function ArTryOnScreen() {
     void submitRequest(draft.trim()).then(speak);
     setDraft('');
   };
-  const voiceStatus = t(voice.notice ?? (voice.phase === 'idle' ? 'ar.voice.start' : `ar.voice.${voice.phase}`));
+  const voiceStatusKey = voice.notice ?? (voice.phase === 'idle' ? null : `ar.voice.${voice.phase}` as const);
   const microphoneButton = (compact = false) => (
     <Pressable accessibilityRole="button" accessibilityLabel={t(inConversation ? 'ar.voice.finish' : 'ar.voice.start')}
       disabled={!voice.available || voice.phase === 'ending' || (!inConversation && (sendingChat || commandBusy))}
@@ -1060,7 +1061,8 @@ export default function ArTryOnScreen() {
   );
   const compactVoice = voiceEnabled && voice.available ? (
     <View style={styles.compactVoice}>
-      {inConversation || voice.notice ? <Text accessibilityLiveRegion="polite" style={styles.voiceStatus}>{voiceStatus}</Text> : null}
+      {voiceStatusKey ? <Text accessibilityLiveRegion="polite"
+        style={[styles.voiceStatus, styles.compactVoiceStatus]}>{t(voiceStatusKey)}</Text> : null}
       {microphoneButton(true)}
     </View>
   ) : null;
@@ -1572,9 +1574,11 @@ export default function ArTryOnScreen() {
                     <Text style={styles.chatSuggestionText}>{t('ar.voice.testKeyboard')}</Text>
                   </Pressable>
                 ))}
-                {inConversation || voice.notice || !voice.available ? <Text accessibilityLiveRegion="polite" style={styles.voiceStatus}>
-                  {voice.available ? voiceStatus : t('ar.voice.unavailable')}
-                </Text> : null}
+                {(!voice.available || voiceStatusKey) && (
+                  <Text accessibilityLiveRegion="polite" style={styles.voiceStatus}>
+                    {t(voice.available && voiceStatusKey ? voiceStatusKey : 'ar.voice.unavailable')}
+                  </Text>
+                )}
                 <View style={styles.voiceControls}>
                   <Pressable testID="ar-conversation-toggle" accessibilityRole="button" accessibilityState={{ expanded: chatOpen }}
                     accessibilityLabel={t(chatOpen ? 'ar.conversation.close' : 'ar.conversation.open')}
@@ -2120,6 +2124,7 @@ const styles = StyleSheet.create({
   chatComposer: { flexShrink: 0, gap: 6, paddingHorizontal: 18 },
   keyboardToggle: { flexDirection: 'row', gap: 6, minHeight: 44, paddingHorizontal: 12, alignSelf: 'center', alignItems: 'center', borderRadius: 22, backgroundColor: theme.colors.overlay },
   voiceStatus: { color: '#FFFFFF', fontSize: 13, textAlign: 'center', alignSelf: 'center', backgroundColor: 'rgba(30,22,27,0.65)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 2 },
+  compactVoiceStatus: { flexShrink: 1 },
   voiceControls: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 16, marginTop: 4 },
   voiceSide: { width: 44 },
   voiceAccessory: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.72)', backgroundColor: theme.colors.overlay, alignItems: 'center', justifyContent: 'center' },
