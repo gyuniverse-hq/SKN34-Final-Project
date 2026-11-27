@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="7.064" timestamp="2026-11-27T14:49:57.713938+09:00" hostname="playdata"><testcase classname="tests.test_style_recipe" name="test_real_catalog_and_chat_http_with_bundled_unreviewed_content" time="7.001" /></testsuite></testsuites>

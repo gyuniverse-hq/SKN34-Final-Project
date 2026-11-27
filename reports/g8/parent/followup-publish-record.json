@@ -1,0 +1,44 @@
+{
+  "case": "G8-FOLLOWUP-OPTION-PUBLICATION-CHECK",
+  "recordedAt": "2026-11-27T14:51:27.899992+09:00",
+  "implementationCommit": "3ba5d56bd37940bd8412a04d19a935b65159002e",
+  "branch": "feat/compound-consultation",
+  "developSha": "991dd634dba33b99ceeb1c03de4dd8d921ce07f9",
+  "app": {
+    "command": "npm run check",
+    "passed": 1338,
+    "suites": 108,
+    "typecheck": "PASS",
+    "lint": "PASS"
+  },
+  "chatbot": {
+    "fullRunPassed": 1538,
+    "fullRunFailed": 1,
+    "skipped": 107,
+    "failure": "test_style_recipe.py::test_real_catalog_and_chat_http_with_bundled_unreviewed_content: child HTTP readiness timeout",
+    "isolatedRetryPassed": 1,
+    "ruff": "PASS",
+    "importContractsKept": 3
+  },
+  "traceAudit": {
+    "historicalRowsUnchanged": 15,
+    "newRowsChecked": 1,
+    "nonemptyCredentialOrFaceFields": 0,
+    "privateKeyHeaders": 0,
+    "sourceHashMatches": 29
+  },
+  "security": {
+    "version": "8.30.1",
+    "ignore": "empty",
+    "newFilesAndTrace": "PASS"
+  },
+  "externalModelCalls": 0,
+  "publicationStateAtRecord": "implementation committed; documentation commit and push pending",
+  "artifacts": [
+    "reports/g8/parent/followup-publish-app.log",
+    "reports/g8/parent/followup-publish-chatbot.log",
+    "reports/g8/parent/followup-publish-chatbot.xml",
+    "reports/g8/parent/followup-publish-chatbot-retry.log",
+    "reports/g8/parent/followup-publish-chatbot-retry.xml"
+  ]
+}

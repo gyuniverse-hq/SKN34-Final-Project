@@ -6,11 +6,33 @@
 
 | ⑤ 내부 순서 | 상태 | 남은 일 |
 | --- | --- | --- |
-| A 공통 부모와 N01·N02, 목표·후속 질문 연결 | 구현·부분 검증 | 범용 목표 분해와 실행 재개 미완료 |
+| A 공통 부모와 N01·N02, 목표·후속 질문 연결 | 부모 후속 오분기·설명 철회 수정 및 회귀 통과 | 범용 목표 분해와 실행 재개 미완료 |
 | B N02 보유품·조건·단계별 상품 사용 근거 | 3개 룩 범위 부분 실제 검증 | 추가 2개 룩에서 동일 옵션 보유·미보유 확인, 다른 보유품은 활용 후보로만 안내 |
 | C 실행 기준 확정 및 판매 옵션/AR 정보 분리 | 이번 범위 구현·검증 완료 | C1/C2 실행 기준 확인, C3-2 검수 조건/판매 옵션/AR 분리, C4-2 실제 3턴·회귀 완료 |
-| D 실제 상담→상품 카드→저장·복원 | 판매 optionId 상세·장바구니 구현, 실제 웹 저장·재로드 확인 | 옵션 결제는 승인대로 제한. Expo Go 및 변경 후 로그인 상담 종단 미실행 |
+| D 실제 상담→상품 카드→저장·복원 | 판매 optionId 상세·장바구니에 이어 상담·명시 보유 기억·N02 입력 연결 실제 API/PG 통과 | 옵션 결제 제한 유지. Expo Go 및 로그인 앱 종단 미실행 |
 | E 남은 협력·E01/B01·취소·재개 | 후속 | 개별 사례 통과와 전체 완료 구분 |
+
+### 이번 보완 — 부모 후속·판매 옵션 상담/기억 (2026-11-27)
+
+기준 feat/compound-consultation / c4fe95497538e7c26e62c8ff27ad6bcff6c70672, 미커밋 변경. 기존 두 게시 커밋은 2ee4d3d(구현·테스트), c4fe954(문서·증빙)이며 당시 원격 동일 SHA/clean을 확인했다. 이번 원격 develop 재조회·merge·commit·push·PR 없음. 이번 source manifest와 diff는 reports/g8/parent/followup-option-*에 보존한다.
+
+변경: skin 부모의 설명 후속이 Style로 오분기하지 않도록 현재 룩/부모 작업 종류를 확인한다. N02 설명 철회 시 추가 G5를 생략하고 이전 작업은 superseded로 둔다. 판매 optionId를 카드/룩 결과→상세→상담 entry/screen→서버 맥락→보유 제안/승인→N02로 연결했다. 같은 상품의 옵션 A/B와 legacy 기억은 구분하며 사라진 AR 색상을 보유 사실의 삭제 조건으로 쓰지 않는다. 상품 상담의 구조화 기억 진입은 명시적 선택 옵션 보유 요청에만 제한했다. 자동 기억 적용/AR 실행/결제 확대는 없다.
+
+승인 범위에 추가로 StyleRecipeResult.tsx 및 신규 styleRecipeResult.test.tsx를 사용자 승인받았다. 테스트 파일이 기존에 없음을 확인해 신규 파일로 생성했다. 제공 AGENTS.md의 파일 범위 규칙을 적용했다. 개발 하위 에이전트는 사용하지 않았다.
+
+실제 실행 결과:
+- 챗봇 관련 모의 회귀 133 pass/4 skip. 실제 부모/N01/N02 코드, 계획·G5·Catalog는 모의. 전체 챗봇 1,539 pass/107 skip, 외부 모델 0회.
+- 실제 Catalog HTTP + PostgreSQL: 1 pass. 19831의 기존 현재 소스 API(상품 DB 15434/vishue_db는 읽기 전용)와 별도 15434/vishue_chat_test를 사용했다. 격리 DB가 없어 신규 생성하고 기존 Alembic 마이그레이션을 적용했다. AR 없는 A000000162667-012 및 -001을 정상 /api/chat에서 각각 제안, 명시 승인, 저장/복원하고 영상 L8RvSmdkR2g의 N02 O1 입력에 두 옵션이 유지됨을 확인했다. API 테스트 인증은 합성 fixture, 모델 설정 mock-configured/FakeLlm, 실제 외부 모델 호출 0회. 로그인된 실사용자 앱 종단 검증은 아니다.
+- G7 실제 PG 회귀 36 pass/8 skip. Catalog/모델은 모의. 첫 실행 25 pass/11 fail/8 skip은 새 DB의 LangGraph checkpoints 미초기화가 원인이었다. 기존 app.jobs.init_chat_checkpoints를 실행한 뒤 재검증했다. 제품 코드로 환경 실패를 숨기지 않았다.
+- 앱 관련 7 suites/193 pass. 타입 검사와 lint 통과. React renderer 모의이며 실제 기기 검증과 구분한다. 상세→상담 ID/이름, 같은 상품의 옵션 변경, 카드/룩 결과 상세 콜백, 기존 장바구니/AR 회귀를 포함한다.
+
+재실행 경위: 초기 합성 Catalog에 get_product_option 모의 누락, 신규 테스트 필수 version/reason 누락, 번역 모의의 매개변수 미반영을 바로잡았다. 실제 연결에서는 최초 모의 모델 configured=False를 정상 mock-configured로 바꿨고, 기존 general-only 구조화 제안 제한 때문에 상품 옵션 요청의 제안이 없던 경로를 위의 좁은 계약으로 보완했다. 이전 기록의 설윤 룩 ID를 추정 사용한 조회는 404였고, 현재 Catalog에서 실제 옵션 연결 룩 L8RvSmdkR2g를 확인해 사용했다. 브라우저에서는 오래된 Expo 번들이 optionId 없는 URL로 이동하여 현재 워크트리의 검증 서버를 캐시 초기화 후 재시작했다.
+
+Aside 실제 웹 DOM 검증: 캐시 초기화 후 실제 옵션 상세의 VISHUE 상담 버튼이 /chat?productId=oy-a000000162667&optionId=A000000162667-012로 이동했고, 상담 대상에 “[단품] 07 웜 베이지”가 표시됐다. 게스트·읽기 전용 화면 확인이며 발화를 전송하지 않았다. 증빙 followup-option-browser.json.
+
+보안: Gitleaks 8.30.1/저장소 설정/빈 ignore로 변경 소스·문서·신규 증빙 42파일 통과 후, 같은 방식으로 새 trace 행을 별도 검사하여 append했다. 신규 trace의 실제 연결 기록은 합성 테스트 사용자/동의 기록이며 실제 사용자 대화·인증정보·얼굴 자료를 포함하지 않는다. 기존 trace/보안 설정/이력은 수정하지 않았다. source exact-byte manifest 29파일 일치 확인, 미커밋 tracked diff와 신규 테스트 원문을 보존했다. 실행 명령/시각/결과는 followup-option-*.xml·app-tests.json·browser.json·security.log 및 신규 trace에 기록했다.
+
+이번 운영 변경은 없음. 실제 LLM·Expo Go·로그인 앱에서 승인 버튼까지의 전체 종단은 NOT_RUN. 전체 G8/⑤/N02 완료가 아니다. 다음 우선순위는 N02 같은 부위 내 여러 상품 역할의 필요/충족 판정과 부모 완료 판정 보완, 이어 E01/B01 전체 및 취소/재개다.
 
 C1/C2 결과: Docker Desktop이 중지된 것을 확인하고 기존 서비스 복구 승인 범위에서 시작했다. 이전 8082는 vishue-pr233-api(2026-11-16 생성, 이미지 revision 라벨 42af81d06bf1d84bd51636543eeb5014acaebf7b)이며 vishue-pr233-postgres/vishue_db를 사용한다. 별도 G5 DB 15441과 동일하지 않다. 기본 vishue-api-1(2026-11-24 생성)은 vishue-postgres-0033/vishue_db를 사용한다. 이미지 라벨만으로 소스 commit 전체를 독립 검증했다고 주장하지 않는다.
 
@@ -760,3 +782,12 @@ Windows computer-use 스킬을 읽고 native 도구 초기화를 시도했으나
 권장 후속 설계: 검증된 판매 optionId와 선택적 AR shadeId를 구분한다. 원본 confirmed 판매 옵션은 별도의 근거 계약으로 상담에 전달하고 AR은 기존 색상·제형·부위 검증을 그대로 적용한다. 색상값을 만들어 shades에 넣거나 미확인 매핑을 자동 승인하는 해결책은 사용하지 않는다. 기존 카드/저장/옵션 가격·성분 조회 계약과의 영향 범위를 먼저 정리한 뒤 수정한다. 이번 조사만으로 데이터 재수집·DB import·매핑 변경을 실행하지 않았다.
 
 증빙: parent trace G8-RAW-VERSUS-SERVING-OPTIONS에 실행한 SELECT, 실제 원본/서빙/영상 매핑 결과, DB 식별 범위, 관련 코드와 seed exact-byte 해시를 저장했다. Gitleaks 8.30.1/빈 ignore 검사 통과 후 append. 모델 호출 0, 신규 기능 회귀/앱/실제 N02 종단 검증은 NOT_RUN. 기존 데이터 준비도 기록은 당시 API 관측으로 보존하며 본 절에서 의미를 정정한다.
+
+
+### 부모 후속·옵션 기억 게시 전 검사 — 2026-11-27T14:51:27.899992+09:00
+
+전체 ①→②→③→④→⑤ 협력 완성→⑥ 통합 검증→⑦ PR 인계 중 ⑤를 유지한다. 사용자 지시로 구현·테스트와 문서·증빙을 두 커밋으로 분리한다. 첫 구현·테스트 커밋은 3ba5d56bd37940bd8412a04d19a935b65159002e (29파일). 원격 시작점 c4fe954 및 최신 develop 991dd634dba33b99ceeb1c03de4dd8d921ce07f9를 fetch로 확인했다. develop 병합은 하지 않았다.
+
+커밋 전 npm run check: 타입·lint 및 108 suites/1,338 tests 통과. 챗봇 ruff/레이어 3개 통과. 전체 pytest는 1,538 pass/107 skip/1 fail: 기존 하위 HTTP 서버 readiness 제한 시간 초과였다. 코드를 바꾸지 않고 해당 사례만 단독 실행해 1 pass(7.07초). 전체 단일 실행 통과로 표현하지 않는다. 실제 외부 모델 호출 0회. 원본 명령·시각은 followup-publish-* 로그/JUnit 및 publication trace 참조.
+
+이전 trace 15행은 그대로 보존됐고 신규 1행의 인증정보·얼굴 데이터 필드/개인키 헤더 0, 소스 해시 29개 일치를 확인했다. Gitleaks 8.30.1/빈 ignore로 신규 trace 원문을 포함한 게시 파일 검사를 통과했다. 이후 추가하는 게시 기록도 별도 검사 후 append한다. 공용 보안 설정 변경 없음. 이 기록 시점에는 두 번째 문서 커밋·최종 이력 검사·push 대기 상태이며 실제 게시 결과는 완료 보고의 원격 SHA를 기준으로 확인한다. PR은 생성하지 않는다.
