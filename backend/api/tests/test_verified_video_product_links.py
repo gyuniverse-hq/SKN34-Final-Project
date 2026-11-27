@@ -119,3 +119,14 @@ def test_product_video_lookup_includes_confirmed_database_matches():
         ("celebrity", "video-1", "A1-001"),
         ("style", "look-1", None),
     ]
+
+
+def test_sale_option_mapping_does_not_manufacture_ar_shade():
+    [mapped] = attach_verified_links(
+        [celebrity_video()],
+        [VerifiedVideoProductLink("celebrity", "video-1", 1, "oy-a1", None, option_id="A1-001")],
+        "celebrity",
+    )
+    assert mapped.products[0].catalog_option_id == "A1-001"
+    assert mapped.products[0].catalog_option_source == "raw_oy_product_option:A1-001"
+    assert mapped.products[0].catalog_shade_id is None

@@ -1070,4 +1070,12 @@ export const ja: Dictionary = {
   'idol.verified': '実使用を確認',
   'idol.similar': '類似製品のおすすめ',
   'idol.unverified': '実製品・色番未確認',
+  'sale.unavailable': "選択した販売オプションを確認できません。",
+  'sale.priceUnknown': "価格の確認が必要です",
+  'sale.checkoutBlocked': "このオプションはカートに保存できます。アプリ決済には未対応です。他の商品を購入するにはこのオプションを削除してください。",
+  'sale.image.option': "オプション画像",
+  'sale.image.color_chip': "発色の参考画像",
+  'sale.image.color_compare': "色比較の参考画像",
+  'sale.image.missing': "このオプションの画像はありません。",
+  'sale.observedAt': "価格記録日: {date}",
 };

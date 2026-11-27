@@ -20,6 +20,7 @@ class OwnedLookProduct(OwnedLookModel):
     memory_version: int
     product_id: str
     shade_id: str | None = None
+    option_id: str | None = None
     zone: str | None = None
 
 

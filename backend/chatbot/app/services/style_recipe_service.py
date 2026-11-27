@@ -208,7 +208,7 @@ GRADIENT_LIP_GUIDE = {
 }
 
 
-def source_zone(value):
+def source_zones(value):
     value = value.casefold()
     aliases = {
         "foundation": ("foundation", "베이스", "파운데이션", "base"),
@@ -221,7 +221,20 @@ def source_zone(value):
         "highlighter": ("highlighter", "하이라이터"),
         "lip": ("lip", "립", "입술"),
     }
-    return next((zone for zone, terms in aliases.items() if any(t in value for t in terms)), None)
+    return [zone for zone, terms in aliases.items() if any(t in value for t in terms)]
+
+
+def source_zone(value):
+    # Preserve existing utterance routing and general step selection.
+    return next(iter(source_zones(value)), None)
+
+
+def video_product_zone(entry):
+    """A broad source classification must not become a definite video usage zone."""
+    matches = source_zones(entry.zone + " " + entry.category)
+    if not matches:
+        matches = source_zones(entry.name)
+    return (matches[0], False) if len(matches) == 1 else (None, len(matches) > 1)
 
 
 # General techniques, independent of what the source video actually shows.
@@ -431,7 +444,7 @@ async def execute_style(req, catalog):
         makeup = None
         if context.kind == "video":
             basis, notice, source = "video_metadata", "video", look.video_url
-            zones = {source_zone(p.zone + " " + p.category) for p in look.products}
+            zones = {z for p in look.products for z in source_zones(p.zone + " " + p.category)}
             features = [v for v in (look.title, look.group, look.tag) if v]
             order = list(ORDER)
         else:
@@ -570,12 +583,30 @@ async def execute_style(req, catalog):
                 and pid == "yt-45f63ecddcd067bb3d67"
             ):
                 verified = False
-            zone = (
-                (source_zone(entry.zone + " " + entry.category) or source_zone(entry.name))
-                if video
-                else None
+            zone, ambiguous_zone = video_product_zone(entry) if video else (None, False)
+            usages = (
+                [u for u in recipe.product_usages if u.product_id == pid]
+                if video and reviewed
+                else []
             )
-            if video and look.id == "_yyvVZ55LuI" and entry.number == 3:
+            matched_usages = [u for u in usages if u.shade_id == sid]
+            if usages:
+                usage_zones = {recipe.steps[u.step_order - 1].zone for u in matched_usages}
+                source_matches = source_zones(entry.zone + " " + entry.category)
+                if len(usage_zones) == 1 and (
+                    not source_matches or usage_zones.issubset(source_matches)
+                ):
+                    zone, ambiguous_zone = next(iter(usage_zones)), False
+                else:
+                    zone, ambiguous_zone = None, True
+                    matched_usages = []
+            if (
+                video
+                and not usages
+                and not ambiguous_zone
+                and look.id == "_yyvVZ55LuI"
+                and entry.number == 3
+            ):
                 zone = "foundation"
             if (
                 video
@@ -631,7 +662,22 @@ async def execute_style(req, catalog):
                     link.product_id = product.id
                     if not (video and product_question):
                         link.label = f"{product.brand} {product.name}"
-                    link.zone = zone or product.makeup_zone or "unknown"
+                    link.zone = (
+                        "unknown" if ambiguous_zone else zone or product.makeup_zone or "unknown"
+                    )
+                    source_matches = (
+                        source_zones(entry.zone + " " + entry.category) if video else []
+                    )
+                    if product.makeup_zone and (
+                        not source_matches or product.makeup_zone in source_matches
+                    ):
+                        link.consultation_zone = product.makeup_zone
+                    elif not product.makeup_zone and len(source_matches) == 1:
+                        link.consultation_zone = source_matches[0]
+                    if video and entry.catalog_option_id and entry.catalog_option_source:
+                        link.option_id = entry.catalog_option_id
+                        link.option_name = entry.option
+                        link.option_source = entry.catalog_option_source
                     link.mapping_status = "product_only"
                     refs[pid] = ProductRef(
                         id=pid, brand=product.brand, name=product.name, category=product.category
@@ -643,8 +689,11 @@ async def execute_style(req, catalog):
                             True,
                             "verified",
                         )
+                        if matched_usages and not ambiguous_zone:
+                            link.product_usages = matched_usages
                         link.ar_eligible = bool(
-                            product.makeup_zone in PAINT
+                            not ambiguous_zone
+                            and product.makeup_zone in PAINT
                             and product.texture
                             in {"matte", "velvet", "glossy", "satin", "sheer", "cream", "shimmer"}
                             and re.fullmatch(r"#[0-9A-Fa-f]{6}", shade.hex)
@@ -658,6 +707,11 @@ async def execute_style(req, catalog):
                     link.mapping_status = "unavailable" if pid in failed_ids else "invalid"
                     if video and product_question and pid not in failed_ids:
                         unlinked = True
+            if link.option_id and link.product_id:
+                link.catalog_valid = True
+                link.mapping_status = "verified"
+            if usages and not link.product_usages:
+                link.zone, link.ar_eligible = "unknown", False
             links.append(link)
         result = StyleRecipe(
             look_id=look.id,

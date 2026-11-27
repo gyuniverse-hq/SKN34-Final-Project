@@ -42,7 +42,7 @@ class OwnedLookOptionRef(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
 
     product_id: str
-    shade_id: str
+    shade_id: str | None = None
     option_id: str
     product_name: str
     brand: str

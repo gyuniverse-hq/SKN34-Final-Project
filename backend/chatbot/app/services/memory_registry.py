@@ -158,8 +158,12 @@ def build_value(
     if key == "inventory.product":
         if (
             not expected <= value.keys()
-            or not value.keys() <= expected | {"productId", "shadeId"}
-            or ("shadeId" in value and "productId" not in value)
+            or not value.keys() <= expected | {"productId", "shadeId", "optionId"}
+            or (("shadeId" in value or "optionId" in value) and "productId" not in value)
+            or (
+                "optionId" in value
+                and (not value["optionId"].strip() or len(value["optionId"]) > 128)
+            )
             or not item.strip()
             or len(item) > 500
             or _SENSITIVE_PRODUCT_NAME.search(item)

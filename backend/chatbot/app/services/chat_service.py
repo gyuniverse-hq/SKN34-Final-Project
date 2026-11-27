@@ -667,9 +667,9 @@ class ChatService:
         context = resolve_context(req)
         decision = route_intent(context)
         if not explicit_knowledge and decision.intent not in {"ar", "compound"}:
-            from app.services.owned_look_consultation_service import execute_owned_look
+            from app.services.consultation_parent_graph import try_owned_look
 
-            owned_look = await execute_owned_look(req, self._catalog)
+            owned_look = await try_owned_look(req, self._catalog)
             if owned_look is not None:
                 return owned_look
         session_ref = req.chat_context.session if req.chat_context else None
@@ -851,10 +851,17 @@ class ChatService:
                 remove_knowledge_ingredients=choice.remove_knowledge_ingredients,
             )
 
+        async def coordinated(*_):
+            from app.services.consultation_parent_graph import run_parent
+
+            if choice.scope != "consultation":
+                return await execute(req, decision, None)
+            return await run_parent(req, "skin", lambda: execute(req, decision, None))
+
         if req._g7_execution is not None:
-            runtime = SupervisorRuntime(req, context, lambda *_: TaskPlan(), execute)
+            runtime = SupervisorRuntime(req, context, lambda *_: TaskPlan(), coordinated)
             return await self._run_durable(req._g7_execution, runtime, decision)
-        return await execute(req, decision, None)
+        return await coordinated()
 
     @staticmethod
     async def _run_durable(execution, supervisor_runtime, decision):

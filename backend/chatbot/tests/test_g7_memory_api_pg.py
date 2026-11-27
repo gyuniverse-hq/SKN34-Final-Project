@@ -1480,8 +1480,13 @@ def test_n02_consented_inventory_selected_look_persistence_and_replay(
     tasks = []
     original = owned_service.execute_owned_look
 
-    async def observed(req, catalog):
-        return await original(req, catalog, trace=tasks)
+    async def observed(req, catalog, *, trace=None):
+        local = []
+        response = await original(req, catalog, trace=local)
+        tasks.extend(local)
+        if trace is not None:
+            trace.extend(local)
+        return response
 
     monkeypatch.setattr(owned_service, "execute_owned_look", observed)
 
@@ -1530,6 +1535,67 @@ def test_n02_consented_inventory_selected_look_persistence_and_replay(
     )
     assert approved.status_code == 200, approved.text
     service = ChatService(FakeGraph(), NoModel(), catalog)
+    # Shared-parent conversational resume, using real PostgreSQL and synthetic Catalog/G5.
+    from app.schemas.knowledge import KnowledgeReply
+    from app.services import consultation_parent_graph as parent_graph
+    from app.services.knowledge_service import Consultation
+
+    knowledge_inputs = []
+
+    async def mock_knowledge(question, *, prior_user_context):
+        knowledge_inputs.append(json.loads(prior_user_context))
+        return Consultation(
+            KnowledgeReply(status="insufficient_evidence", limitations="합성 근거 부족"), {}
+        )
+
+    monkeypatch.setattr(parent_graph.knowledge_service, "consult_knowledge", mock_knowledge)
+    parent_room = new_room(client)
+    parent_version = select(
+        parent_room, 0, "select_look", {"kind": "catalog", "lookId": "fixture-look"}
+    )
+    parent_first = ask(
+        client,
+        parent_room,
+        parent_version,
+        "내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘. 순서의 이유도 설명해줘.",
+        structured=True,
+    )
+    assert not parent_first["products"]
+    assert "블러셔 제품을 가지고 있나요" in parent_first["answer"]
+    assert knowledge_inputs[0]["styleRecipe"]["lookId"] == "fixture-look"
+    parent_second = ask(
+        client, parent_room, parent_first["conversation"]["version"], "없어", structured=True
+    )
+    assert [p["id"] for p in parent_second["products"]] == ["blush-b"]
+    assert len(knowledge_inputs) == 1  # No repeat G5 call for a resolved ownership question.
+    parent_third = ask(
+        client,
+        parent_room,
+        parent_second["conversation"]["version"],
+        "상품은 됐고 사용 순서만 알려줘",
+        structured=True,
+    )
+    assert not parent_third["products"] and parent_third["styleRecipe"]
+    restored_parent = client.get(f"/api/chat/conversations/{parent_room}", headers=AUTH).json()
+    assert restored_parent["messages"][-1]["displayPayload"]["products"] == []
+    record_property(
+        "parent_pg_evidence",
+        json.dumps(
+            {
+                "postgresMode": "live",
+                "catalogMode": "mock",
+                "authenticationMode": "mock",
+                "modelConfiguredMode": "mock",
+                "externalModelCalls": 0,
+                "knowledgeInputs": knowledge_inputs,
+                "turns": [
+                    {"modelMode": "mock", "externalModelCalls": 0, "response": value}
+                    for value in (parent_first, parent_second, parent_third)
+                ],
+            },
+            ensure_ascii=False,
+        ),
+    )
     room = new_room(client)
     version = select(room, 0, "select_look", {"kind": "catalog", "lookId": "fixture-look"})
     body = {
@@ -1572,6 +1638,7 @@ def test_n02_consented_inventory_selected_look_persistence_and_replay(
     assert following["appliedMemories"][0]["productId"] == "lip-a"
     assert [p["id"] for p in following["products"]] == ["blush-b"]
     assert "블러셔 제품도 가지고 있나요" not in following["answer"]
+    assert "블러셔 제품을 가지고 있나요" not in following["answer"]
     priced_request_id = str(uuid4())
     priced = ask(
         client,
@@ -1644,7 +1711,7 @@ def test_n02_consented_inventory_selected_look_persistence_and_replay(
         structured=True,
     )
     assert not released["products"]
-    assert "블러셔 제품도 가지고 있나요" in released["answer"]
+    assert "블러셔 제품을 가지고 있나요" in released["answer"]
     reset_missing = ask(
         client, room, released["conversation"]["version"], "블러셔는 없어.", structured=True
     )
@@ -1745,14 +1812,19 @@ def test_n02_live_catalog_pg_evidence_boundary(memory_api, monkeypatch, record_p
         pytest.skip("Live Catalog has no lip/shade suitable for an exact memory label")
 
     look, product, shade = asyncio.run(select_data())
-    # This fixture is a real-data evidence-gap case, never a fabricated positive recipe.
-    assert look.recipe is None, "Dataset changed: review this evidence-gap expectation"
+    # General consultation does not require a reviewed recipe. Availability of
+    # exact sale options and actual usage evidence are evaluated separately.
     service = ChatService(FakeGraph(), FakeLlm(), catalog)
     client.app.dependency_overrides[get_chat_service] = lambda: service
     original = owned_service.execute_owned_look
 
-    async def observed(req, catalog):
-        return await original(req, catalog, trace=tasks)
+    async def observed(req, catalog, *, trace=None):
+        local = []
+        response = await original(req, catalog, trace=local)
+        tasks.extend(local)
+        if trace is not None:
+            trace.extend(local)
+        return response
 
     monkeypatch.setattr(owned_service, "execute_owned_look", observed)
     room = new_room(client)
@@ -1815,8 +1887,15 @@ def test_n02_live_catalog_pg_evidence_boundary(memory_api, monkeypatch, record_p
         "블러셔 미보유 조건 해제해줘",
     ]:
         reply = ask(client, room, version, text, structured=True)
-        assert not reply["products"]
-        assert "근거가 부족" in reply["answer"]
+        assert reply["styleRecipe"]
+        restored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+        display = restored["messages"][-1]["displayPayload"]
+        from app.schemas.style_recipe import StyleRecipe
+
+        assert StyleRecipe.model_validate(display["styleRecipe"]) == StyleRecipe.model_validate(
+            reply["styleRecipe"]
+        )
+        assert display.get("ownedLookOptions") == reply.get("ownedLookOptions")
         replies.append(
             {
                 "text": text,
@@ -1828,12 +1907,7 @@ def test_n02_live_catalog_pg_evidence_boundary(memory_api, monkeypatch, record_p
         )
         version = reply["conversation"]["version"]
     assert any(q["request"].get("ids") == [product.id] for q in queries)
-    assert all(
-        c["status"] == "evidence_missing"
-        for t in tasks
-        if t["task"]["taskId"] == "N1"
-        for c in t["result"]["coverage"]
-    )
+    assert any(t["task"]["taskId"] == "N1" for t in tasks)
     record_property(
         "n02_live_catalog_evidence",
         json.dumps(
@@ -1848,9 +1922,9 @@ def test_n02_live_catalog_pg_evidence_boundary(memory_api, monkeypatch, record_p
                     product.model_dump_json().encode()
                 ).hexdigest(),
                 "dataVersion": "API does not expose snapshot version; response digests recorded",
-                "recipe": "absent",
+                "recipe": "present" if look.recipe else "absent",
                 "ownedProductRelationToLook": "not established; no substitution claim",
-                "positiveRecommendation": "BLOCKED: no reviewed recipe",
+                "positiveRecommendation": any(t["products"] for t in replies),
                 "queries": queries,
                 "tasks": tasks,
                 "turns": replies,
@@ -1858,3 +1932,71 @@ def test_n02_live_catalog_pg_evidence_boundary(memory_api, monkeypatch, record_p
             ensure_ascii=False,
         ),
     )
+
+
+@pytest.mark.skipif(not os.environ.get("G8_SALE_CATALOG_URL"), reason="current Catalog required")
+def test_live_sale_without_ar_persists_and_restores(memory_api, monkeypatch, record_property):
+    client, _ = memory_api
+    settings = get_settings()
+    monkeypatch.setattr(settings, "g7_structured_memory_enabled", True)
+    monkeypatch.setattr(settings, "g8_enabled", True)
+    monkeypatch.setattr(settings, "g1_supervisor_enabled", False)
+    catalog = CatalogClient(os.environ["G8_SALE_CATALOG_URL"])
+
+    class NoModel(FakeLlm):
+        async def complete(self, *args, **kwargs):
+            raise AssertionError("No model call expected")
+
+    service = ChatService(FakeGraph(), NoModel(configured=False), catalog)
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    room = new_room(client)
+    selected = client.patch(
+        f"/api/chat/conversations/{room}/state",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": 0,
+            "operation": "select_look",
+            "payload": {"kind": "video", "lookId": "AG03mUj4vnY"},
+        },
+    )
+    assert selected.status_code == 200
+    version = selected.json()["conversationVersion"]
+    turns = []
+    for message, expected in [
+        ("내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘. 아이섀도는 없어.", True),
+        ("향료 제외 조건 추가해줘", False),
+        ("향료 제외 조건 해제해줘", True),
+    ]:
+        reply = ask(client, room, version, message, structured=True)
+        assert ("oy-a000000162667" in [p["id"] for p in reply["products"]]) is expected
+        restored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+        display = restored["messages"][-1]["displayPayload"]
+        assert display["ownedLookOptions"] == reply["ownedLookOptions"]
+        from app.schemas.style_recipe import StyleRecipe
+
+        assert StyleRecipe.model_validate(display["styleRecipe"]) == StyleRecipe.model_validate(
+            reply["styleRecipe"]
+        )
+        assert not reply.get("arResult")
+        if expected:
+            option = next(
+                o
+                for o in display["ownedLookOptions"]["selections"]
+                if o["productId"] == "oy-a000000162667"
+            )
+            assert option["optionId"] == "A000000162667-012" and option.get("shadeId") is None
+        turns.append(
+            {
+                "message": message,
+                "response": reply,
+                "restoredDisplay": display,
+                "catalogMode": "live_http_current_source",
+                "postgresMode": "live_disposable",
+                "authenticationMode": "mock",
+                "modelConfiguredMode": "disabled",
+                "actualRemoteModelCalls": 0,
+            }
+        )
+        version = reply["conversation"]["version"]
+    record_property("live_sale_pg_roundtrip", json.dumps(turns, ensure_ascii=False))

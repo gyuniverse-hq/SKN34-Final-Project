@@ -180,6 +180,117 @@ async def test_normal_chat_service_connects_owned_look_without_model():
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    "ambiguous,usage,catalog_zone,stale_shade",
+    [
+        (True, False, "blush", False),
+        (False, False, "blush", False),
+        (True, True, "blush", False),
+        (True, True, None, False),
+        (False, False, None, False),
+        (True, True, "lip", False),
+        (True, True, None, True),
+    ],
+)
+async def test_video_zone_ambiguity_does_not_satisfy_or_recommend_step(
+    ambiguous, usage, catalog_zone, stale_shade, record_property
+):
+    import json
+
+    from app.schemas.catalog import CatalogStyleLook
+
+    catalog = Catalog()
+    recipe = catalog.look.recipe.model_copy(update={"kind": "video"})
+    catalog.look = CatalogStyleLook.model_validate(
+        {
+            "id": "fixture-look",
+            "title": "Synthetic video",
+            "group": "fixture",
+            "tag": "fixture",
+            "videoUrl": "https://www.youtube.com/watch?v=fixture-look",
+            "recipe": recipe,
+            "products": [
+                {
+                    "number": i,
+                    "brand": "Fixture",
+                    "name": pid,
+                    "option": "Fixture shade",
+                    "category": "cheek" if zone == "blush" else "lip",
+                    "zone": "베이스·블러셔" if zone == "blush" and ambiguous else zone,
+                    "reviewStatus": "verified",
+                    "mappingVerified": True,
+                    "catalogProductId": pid,
+                    "catalogShadeId": pid + "-shade",
+                }
+                for i, (pid, zone) in enumerate([("blush-b", "blush"), ("lip-a", "lip")], 1)
+            ],
+        }
+    )
+
+    if usage:
+        from app.schemas.style_recipe import ReviewedProductUsage
+
+        catalog.look.recipe.product_usages = [
+            ReviewedProductUsage(
+                stepOrder=1,
+                productId="blush-b",
+                shadeId="blush-b-shade",
+                evidenceId="fixture:usage",
+                source="fixture:segment",
+            )
+        ]
+    catalog.products["blush-b"].makeup_zone = catalog_zone
+    catalog.stale_shade = stale_shade
+    unresolved = ambiguous and not usage
+    eligible = not stale_shade and (
+        catalog_zone == "blush" or (catalog_zone is None and (usage or not ambiguous))
+    )
+
+    async def selected(kind, look_id):
+        return catalog.look if (kind, look_id) == ("video", "fixture-look") else None
+
+    catalog.get_style_look = selected
+    req = request(
+        [owned("lip-a", "lip-a-shade"), owned("blush-b", "blush-b-shade")], "블러셔는 없어."
+    )
+    req.style_context.kind = "video"
+    trace = []
+    response = await execute_owned_look(req, catalog, trace=trace)
+    needs = next(row["result"]["coverage"] for row in trace if row["task"]["taskId"] == "N1")
+    blush = next(c for c in needs if c["zone"] == "blush")
+    assert next(c for c in needs if c["zone"] == "lip")["status"] == "fulfilled"
+    assert blush["status"] == "confirmed_missing"
+    assert [p.id for p in response.products] == (["blush-b"] if eligible else [])
+    link = next(p for p in response.style_recipe.products if p.product_id == "blush-b")
+    assert link.zone == ("unknown" if unresolved else "blush")
+    if catalog_zone is None or catalog_zone == "lip":
+        assert not link.ar_eligible
+    if usage:
+        assert link.product_usages[0].evidence_id == "fixture:usage"
+    if unresolved:
+        assert not link.ar_eligible
+        assert blush["productIds"] == ["blush-b"]
+        assert catalog.searches == [{"ids": ["lip-a", "blush-b"]}, {"ids": ["blush-b"]}]
+    record_property(
+        "zone_ambiguity_evidence",
+        json.dumps(
+            {
+                "catalogMode": "mock",
+                "modelMode": "not_used",
+                "externalModelCalls": 0,
+                "ambiguous": ambiguous,
+                "reviewedUsage": usage,
+                "catalogZone": catalog_zone,
+                "staleShade": stale_shade,
+                "tasks": trace,
+                "response": response.model_dump(mode="json", by_alias=True),
+            },
+            ensure_ascii=False,
+        ),
+    )
+
+
+@pytest.mark.anyio
 async def test_changed_owned_and_missing_zone_changes_downstream_request():
     catalog = Catalog()
     req = request([owned("blush-b", "blush-b-shade")], "립은 없어. 추가 추천해줘.")
@@ -236,14 +347,16 @@ async def test_unscoped_or_opted_out_memory_is_not_read(mode):
 
 
 @pytest.mark.anyio
-async def test_unverified_recipe_or_retired_shade_never_becomes_match():
+async def test_general_guide_allows_exact_product_but_retired_shade_stays_unmatched():
     catalog = Catalog()
     catalog.look.recipe = None
     response = await execute_owned_look(
         request([owned("lip-a", "lip-a-shade")], "블러셔는 없어."), catalog
     )
-    assert not response.products and not response.applied_memories
-    assert len(catalog.searches) == 1
+    assert [p.id for p in response.products] == ["blush-b"]
+    assert len(response.applied_memories) == 1
+    assert response.style_recipe.basis != "reviewed_recipe"
+    assert len(catalog.searches) == 2
     catalog = Catalog()
     response = await execute_owned_look(request([owned("lip-a", "retired-shade")]), catalog)
     assert not response.applied_memories and not response.products
@@ -823,6 +936,279 @@ async def test_public_options_preserve_exact_selection_batch_price_and_serializa
                 "requests": [
                     q.model_dump(mode="json", by_alias=True) for q in catalog.option_calls
                 ],
+            },
+            ensure_ascii=False,
+        ),
+    )
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("condition", [False, True])
+async def test_unreviewed_video_sale_option_without_ar_is_queried_exactly(
+    condition, record_property
+):
+    import json
+
+    from app.schemas.catalog import CatalogStyleLook, OptionSearchResponse
+
+    catalog = Catalog()
+    catalog.products["blush-b"].shades = []
+    look = CatalogStyleLook.model_validate(
+        {
+            "id": "fixture-look",
+            "title": "General guide fixture",
+            "group": "fixture",
+            "tag": "fixture",
+            "videoUrl": "https://www.youtube.com/watch?v=fixture-look",
+            "products": [
+                {
+                    "number": 1,
+                    "brand": "Fixture",
+                    "name": "blush-b",
+                    "option": "01",
+                    "category": "cheek",
+                    "zone": "blush",
+                    "reviewStatus": "ok",
+                    "mappingVerified": True,
+                    "catalogProductId": "blush-b",
+                    "catalogOptionId": "sale-01",
+                    "catalogOptionSource": "raw_oy_product_option:sale-01",
+                }
+            ],
+        }
+    )
+    calls = []
+
+    async def selected(kind, look_id):
+        return look
+
+    async def options(req):
+        calls.append(req)
+        return OptionSearchResponse.model_validate(
+            {
+                "effectiveRequest": req,
+                "checkedAt": "2026-11-27T00:00:00Z",
+                "status": "PARTIAL" if condition else "SUCCESS",
+                "products": [catalog.products["blush-b"]],
+                "items": [
+                    {
+                        "productId": "blush-b",
+                        "shadeId": None,
+                        "optionId": "sale-01",
+                        "optionName": "01 Rose",
+                        "sourceVersion": "fixture",
+                        "group": "REFERENCE_ONLY" if condition else "ELIGIBLE",
+                        "checks": [
+                            {"condition": "identity", "verdict": "MATCH", "reason": "fixture"}
+                        ]
+                        + (
+                            [
+                                {
+                                    "condition": "fragrance",
+                                    "verdict": "UNKNOWN",
+                                    "reason": "no_evidence",
+                                }
+                            ]
+                            if condition
+                            else []
+                        ),
+                    }
+                ],
+                "checkedScope": {
+                    "candidateProducts": 1,
+                    "candidateOptions": 1,
+                    "checkedOptions": 1,
+                    "unidentifiedOptions": 0,
+                    "exhaustive": True,
+                    "stoppedReason": "COMPLETE",
+                    "errors": 0,
+                },
+                "excludedCount": 0,
+                "omittedCount": 0,
+            }
+        )
+
+    catalog.get_style_look = selected
+    catalog.search_options = options
+    req = request([], "블러셔는 없어." + (" 향료 제외." if condition else ""))
+    req.style_context.kind = "video"
+    trace = []
+    response = await execute_owned_look(req, catalog, trace=trace)
+    assert len(calls) == 1
+    assert calls[0].option_scope[0].option_id == "sale-01"
+    assert calls[0].option_scope[0].shade_id is None
+    assert [p.id for p in response.products] == ([] if condition else ["blush-b"])
+    assert not response.style_recipe.products[0].ar_eligible
+    assert response.style_recipe.basis == "video_metadata"
+    if not condition:
+        assert response.owned_look_options.selections[0].shade_id is None
+        assert response.owned_look_options.selections[0].shade_name == "01 Rose"
+        memory = owned("blush-b")
+        memory.structured.value["optionId"] = "sale-01"
+        held = request([memory])
+        held.style_context.kind = "video"
+        held_response = await execute_owned_look(held, catalog)
+        assert [m.product_id for m in held_response.applied_memories] == ["blush-b"]
+        assert not held_response.products
+        memory.structured.value["optionId"] = "other-sale"
+        other_response = await execute_owned_look(held, catalog)
+        assert not other_response.applied_memories
+    record_property(
+        "sale_option_without_ar",
+        json.dumps(
+            {
+                "catalogMode": "mock",
+                "modelConfiguredMode": "not_used",
+                "actualRemoteModelCalls": 0,
+                "tasks": trace,
+                "response": response.model_dump(mode="json", by_alias=True),
+            },
+            ensure_ascii=False,
+        ),
+    )
+
+
+@pytest.mark.anyio
+async def test_live_sale_option_without_ar_uses_current_catalog(record_property, monkeypatch):
+    import json
+    import os
+
+    from app.clients.catalog_client import CatalogClient
+
+    base = os.environ.get("G8_SALE_CATALOG_URL")
+    if not base:
+        pytest.skip("G8_SALE_CATALOG_URL current-source read-only Catalog required")
+    from app.services import owned_look_consultation_service as owned_service
+    from tests.conftest import FakeLlm
+
+    catalog = CatalogClient(base)
+    captured = []
+    original = owned_service.execute_owned_look
+
+    async def observed(req, catalog, *, trace=None):
+        local = []
+        result = await original(req, catalog, trace=local)
+        captured.extend(local)
+        if trace is not None:
+            trace.extend(local)
+        return result
+
+    monkeypatch.setattr(owned_service, "execute_owned_look", observed)
+    service = ChatService(None, FakeLlm(configured=False), catalog)
+    req = request([], "아이섀도는 없어. 추가 추천해줘.")
+    req.style_context.kind = "video"
+    req.style_context.look_id = "AG03mUj4vnY"
+    turns = []
+    for message, expected in [
+        (req.message, True),
+        ("향료 제외 조건 추가해줘", False),
+        ("향료 제외 조건 해제해줘", True),
+    ]:
+        req.message = message
+        trace = []
+        captured.clear()
+        response = await service.answer(req)
+        trace.extend(captured)
+        req._owned_look_context = response._owned_look_context
+        link = next(p for p in response.style_recipe.products if p.product_id == "oy-a000000162667")
+        assert link.option_id == "A000000162667-012" and link.shade_id is None
+        assert not link.ar_eligible
+        assert ("oy-a000000162667" in [p.id for p in response.products]) is expected
+        assert response.style_recipe.basis != "reviewed_recipe"
+        assert response.ar_result is None
+        turns.append(
+            {
+                "message": message,
+                "catalogMode": "live_http_current_source",
+                "databaseMode": "live_read_only",
+                "modelConfiguredMode": "not_used",
+                "actualRemoteModelCalls": 0,
+                "tasks": trace,
+                "response": response.model_dump(mode="json", by_alias=True),
+            }
+        )
+    record_property("live_sale_option_without_ar", json.dumps(turns, ensure_ascii=False))
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "look_id,pid,oid,zone,label",
+    [
+        ("kWI7_DkDjZ0", "oy-a000000183683", "A000000183683-004", "lip", "립"),
+        ("EiYeC-hlMNQ", "oy-a000000180532", "A000000180532-023", "eyeshadow", "아이섀도"),
+    ],
+)
+async def test_live_other_looks_owned_and_alternative_boundary(
+    look_id, pid, oid, zone, label, record_property
+):
+    import json
+    import os
+
+    from app.clients.catalog_client import CatalogClient
+
+    base = os.environ.get("G8_SALE_CATALOG_URL")
+    if not base:
+        pytest.skip("current-source live Catalog required")
+    catalog = CatalogClient(base)
+    req = request([], f"{label}는 없어. 필요한 제품만 추가 추천해줘.")
+    req.style_context.kind = "video"
+    req.style_context.look_id = look_id
+    cases = []
+    trace = []
+    reply = await execute_owned_look(req, catalog, trace=trace)
+    assert pid in [p.id for p in reply.products]
+    assert any(o.option_id == oid for o in reply.owned_look_options.selections)
+    cases.append(
+        {
+            "case": "missing",
+            "response": reply.model_dump(mode="json", by_alias=True),
+            "tasks": trace,
+        }
+    )
+    memory = owned(pid)
+    memory.structured.value["optionId"] = oid
+    req._consultation_memories = (memory,)
+    req.message = "내가 가진 제품으로 이 룩을 따라 하고 필요한 것만 추천해줘."
+    trace = []
+    reply = await execute_owned_look(req, catalog, trace=trace)
+    assert pid not in [p.id for p in reply.products]
+    assert pid in [p.product_id for p in reply.applied_memories]
+    cases.append(
+        {
+            "case": "same_sale_option",
+            "response": reply.model_dump(mode="json", by_alias=True),
+            "tasks": trace,
+        }
+    )
+    if zone == "lip":
+        alternative = await catalog.get_product("oy-a000000158896")
+        assert alternative.makeup_zone == "lip"
+        req._consultation_memories = (owned(alternative.id),)
+        trace = []
+        reply = await execute_owned_look(req, catalog, trace=trace)
+        coverage = next(t["result"]["coverage"] for t in trace if t["task"]["taskId"] == "N1")
+        area = next(c for c in coverage if c["zone"] == "lip")
+        assert alternative.id in area["alternativeProductIds"]
+        assert area["substitutionStatus"] == "unverified"
+        assert not reply.applied_memories
+        assert "같은 부위의 활용 후보" in reply.answer
+        cases.append(
+            {
+                "case": "different_owned_product",
+                "response": reply.model_dump(mode="json", by_alias=True),
+                "tasks": trace,
+            }
+        )
+    record_property(
+        "live_other_look_cases",
+        json.dumps(
+            {
+                "lookId": look_id,
+                "catalogMode": "live_http_current_source",
+                "inventoryMode": "synthetic_consented_fixture",
+                "modelConfiguredMode": "not_used",
+                "actualRemoteModelCalls": 0,
+                "cases": cases,
             },
             ensure_ascii=False,
         ),

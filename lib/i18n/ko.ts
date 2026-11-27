@@ -1070,4 +1070,12 @@ export const ko: Dictionary = {
   'idol.verified': '실제 사용 확인',
   'idol.similar': '유사 제품 추천',
   'idol.unverified': '실제 제품·색상 미확인',
+  'sale.unavailable': "선택한 판매 옵션을 확인할 수 없어요.",
+  'sale.priceUnknown': "가격 확인 필요",
+  'sale.checkoutBlocked': "이 옵션은 장바구니에 보관할 수 있어요. 앱 결제는 아직 지원하지 않아요. 결제하려면 이 옵션을 장바구니에서 제외해 주세요.",
+  'sale.image.option': "옵션 이미지",
+  'sale.image.color_chip': "발색 참고 이미지",
+  'sale.image.color_compare': "색상 비교 참고 이미지",
+  'sale.image.missing': "해당 옵션 이미지가 없어요.",
+  'sale.observedAt': "가격 기준일: {date}",
 };

@@ -372,7 +372,7 @@ test('keeps N02 option selections and original batch scopes on reply and server 
   const id = store().open({ type: 'general' })!;
   const target = store().conversations[id].conversation;
   store().bindServerRoom(target, 'server', 1);
-  const ownedLookOptions = { selections: [{ productId: 'p', shadeId: 's', optionId: 'sale', productName: 'P', brand: 'B', shadeName: 'S' }], batches: [], failedProductIds: ['failed'] };
+  const ownedLookOptions = { selections: [{ productId: 'p', shadeId: null, optionId: 'sale', productName: 'P', brand: 'B', shadeName: 'S' }], batches: [], failedProductIds: ['failed'] };
   const ticket = store().beginRequest(target, request(target))!;
   store().completeRequest(ticket, { answer: '추천', products: [], ownedLookOptions }, 'question');
   expect(store().conversations[id].messages.at(-1)?.ownedLookOptions).toEqual(ownedLookOptions);

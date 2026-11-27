@@ -21,7 +21,7 @@ interface Props {
   conditions: ChatCondition[];
   showIngredients: boolean;
   onRetry: () => void;
-  onOpenProduct: (id: string, shadeId?: string) => void;
+  onOpenProduct: (id: string, shadeId?: string, optionId?: string) => void;
   onOpenAr: (productId: string, shadeId: string) => void;
   disabledActions?: boolean;
   previewImage?: number;
@@ -100,7 +100,7 @@ function CompoundPrice({ price }: { price: VerifiedPrice }) {
 /** Use the exact option snapshot the server verified, including options without a shade. */
 export function CompoundProductCards({ result, onOpenProduct }: {
   result: CompoundConsultation;
-  onOpenProduct: (id: string, shadeId?: string) => void;
+  onOpenProduct: (id: string, shadeId?: string, optionId?: string) => void;
 }) {
   const { t } = useI18n();
   const [showScope, setShowScope] = useState(false);
@@ -132,7 +132,7 @@ export function CompoundProductCards({ result, onOpenProduct }: {
               ? 'chat.compound.ingredientAbsent' : 'chat.compound.ingredientPresent', { name: check.ingredientName })}</Text>;
           })}
           {parseId(candidate.productId) === candidate.productId ? <Pressable accessibilityRole="button" style={styles.open}
-            onPress={() => onOpenProduct(candidate.productId, verification.shadeId ?? undefined)}>
+            onPress={() => onOpenProduct(candidate.productId, verification.shadeId ?? undefined, candidate.optionId)}>
             <Text style={styles.link}>{t('styleLooks.openProduct')}</Text>
           </Pressable> : null}
         </View>;
@@ -165,13 +165,13 @@ export function CompoundProductCards({ result, onOpenProduct }: {
 /** N02 keeps batch evidence and selects exact sale options, never the product headline price. */
 export function OwnedLookOptionCards({ result, onOpenProduct }: {
   result: OwnedLookOptionDisplay;
-  onOpenProduct: (id: string, shadeId?: string) => void;
+  onOpenProduct: (id: string, shadeId?: string, optionId?: string) => void;
 }) {
   const { t } = useI18n();
   const [showScope, setShowScope] = useState(false);
   const cards = result.selections.flatMap((selection) => {
     const matches = result.batches.filter(batch => batch.status !== 'ERROR' && batch.effectiveRequest?.priceBasis !== 'current_offer').flatMap(batch => batch.items)
-      .filter(item => item.productId === selection.productId && item.shadeId === selection.shadeId && item.optionId === selection.optionId);
+      .filter(item => item.productId === selection.productId && (item.shadeId ?? null) === (selection.shadeId ?? null) && item.optionId === selection.optionId);
     // Conflicting or duplicated evidence cannot silently select a different sale option.
     if (matches.length !== 1 || matches[0].group !== 'ELIGIBLE' || !matches[0].checks.length ||
         matches[0].checks.some(check => check.verdict !== 'MATCH')) return [];
@@ -189,8 +189,8 @@ export function OwnedLookOptionCards({ result, onOpenProduct }: {
         return <Text key={index} style={styles.conditionLabel}>{t(check.operator === 'excludes'
           ? 'chat.compound.ingredientAbsent' : 'chat.compound.ingredientPresent', { name: check.ingredientName })}</Text>;
       })}
-      {parseId(selection.productId) === selection.productId && parseId(selection.shadeId) === selection.shadeId ?
-        <Pressable accessibilityRole="button" style={styles.open} onPress={() => onOpenProduct(selection.productId, selection.shadeId)}>
+      {parseId(selection.productId) === selection.productId && (!selection.shadeId || parseId(selection.shadeId) === selection.shadeId) ?
+        <Pressable accessibilityRole="button" style={styles.open} onPress={() => onOpenProduct(selection.productId, selection.shadeId ?? undefined, selection.optionId)}>
           <Text style={styles.link}>{t('styleLooks.openProduct')}</Text>
         </Pressable> : null}
     </View>)}

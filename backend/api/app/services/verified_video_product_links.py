@@ -23,6 +23,19 @@ def attach_verified_links(
         for product in video.products:
             candidates = by_mention.get((video.id, product.number), [])
             if product.mapping_verified is True:
+                same = [
+                    link
+                    for link in candidates
+                    if link.product_id == product.catalog_product_id
+                    and (not product.catalog_shade_id or link.shade_id == product.catalog_shade_id)
+                ]
+                if len(same) == 1 and same[0].option_id:
+                    product = product.model_copy(
+                        update={
+                            "catalog_option_id": same[0].option_id,
+                            "catalog_option_source": "raw_oy_product_option:" + same[0].option_id,
+                        }
+                    )
                 products.append(product)
                 continue
             if len(candidates) > 1 and all(link.link_type == "split" for link in candidates):
@@ -31,6 +44,10 @@ def attach_verified_links(
                         "mapping_verified": True,
                         "catalog_product_id": link.product_id,
                         "catalog_shade_id": link.shade_id,
+                        "catalog_option_id": link.option_id,
+                        "catalog_option_source": "raw_oy_product_option:" + link.option_id
+                        if link.option_id
+                        else None,
                     }
                     if link.display_brand:
                         update["brand"] = link.display_brand
@@ -50,6 +67,10 @@ def attach_verified_links(
                         "mapping_verified": True,
                         "catalog_product_id": link.product_id,
                         "catalog_shade_id": link.shade_id,
+                        "catalog_option_id": link.option_id,
+                        "catalog_option_source": "raw_oy_product_option:" + link.option_id
+                        if link.option_id
+                        else None,
                     }
                 )
             )

@@ -23,7 +23,9 @@ export default function CartScreen() {
   const { t } = useI18n();
   const { user, ready } = useAuth();
   const { items, lines, unavailable, total, query } = useCartLines();
-  const catalogReady = ready && !query.isPending && !query.isError;
+  const hasSaleOptions = items.some(i => !!i.optionId);
+  const unknownPrice = lines.some(l => l.priceUnknown);
+  const catalogReady = !hasSaleOptions && ready && !query.isPending && !query.isError;
   const recommendation = useCartRecommendations(user?.id, items, lines, catalogReady);
   const { viewportRef, clipRef, setCard, refresh } = useVisibleCards(
     recommendation.ids, recommendation.onImpression, catalogReady && lines.length > 0,
@@ -58,10 +60,10 @@ export default function CartScreen() {
                 {line.product ? `${line.product.brand} ${line.product.name}` : line.item.productId}
               </Text>
               <Text style={styles.changedReason}>
-                {t(line.availability === 'shade_unavailable' ? 'catalog.shadeUnavailable' : 'catalog.productUnavailable')}
+                {t(line.availability === 'option_unavailable' ? 'sale.unavailable' : line.availability === 'shade_unavailable' ? 'catalog.shadeUnavailable' : 'catalog.productUnavailable')}
               </Text>
             </View>
-            {line.product ? (
+            {line.product && !line.item.optionId ? (
               <Button
                 label={t('cart.pickShade')}
                 variant="secondary"
@@ -88,16 +90,21 @@ export default function CartScreen() {
           renderItem={({ item: line }) => (
             <View style={styles.row}>
               <Pressable
-                onPress={() => router.push(productHref(line.product.id, line.shade?.id))}
+                onPress={() => router.push(productHref(line.product.id, line.shade?.id, undefined, !!line.item.optionId, line.item.optionId))}
                 accessibilityRole="button"
                 accessibilityLabel={`${line.product.brand} ${line.product.name}`}>
-                <ProductImage uri={line.product.imageUrl} category={line.product.category} style={styles.thumb} compact />
+                <ProductImage uri={line.item.optionId ? line.option?.image?.url ?? '' : line.product.imageUrl} category={line.product.category} style={styles.thumb} compact />
               </Pressable>
               <View style={styles.info}>
                 <Text style={styles.brand}>{line.product.brand}</Text>
                 <Text style={styles.name} numberOfLines={2}>
                   {line.product.name}
                 </Text>
+                {line.option ? <>
+                  <Text style={styles.shadeName}>{line.option.name}</Text>
+                  <Text style={styles.priceNote}>{t(line.option.image ? `sale.image.${line.option.image.kind}` : 'sale.image.missing')}</Text>
+                  <Text style={styles.priceNote}>{t('product.referencePrice')}</Text>
+                </> : null}
                 {line.shade ? (
                   <View style={styles.shadeRow}>
                     <View style={[styles.shadeDot, { backgroundColor: line.shade.hex }]} />
@@ -111,10 +118,10 @@ export default function CartScreen() {
                     max={MAX_QUANTITY}
                     onChange={(q) => setQuantity(line.key, q)}
                   />
-                  <Text style={styles.price}>{formatKRW(line.lineTotal)}</Text>
+                  <Text style={styles.price}>{line.priceUnknown ? t('sale.priceUnknown') : formatKRW(line.lineTotal)}</Text>
                 </View>
                 <Pressable
-                  onPress={() => router.push(productHref(line.product.id, line.shade?.id))}
+                  onPress={() => router.push(productHref(line.product.id, line.shade?.id, undefined, !!line.item.optionId, line.item.optionId))}
                   accessibilityRole="link"
                   hitSlop={8}
                   style={styles.sellerLink}>
@@ -145,13 +152,13 @@ export default function CartScreen() {
       <View style={styles.footer}>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>{t('cart.subtotal')}</Text>
-          <Text style={styles.totalValue}>{formatKRW(total)}</Text>
+          <Text style={styles.totalValue}>{unknownPrice ? t('sale.priceUnknown') : formatKRW(total)}</Text>
         </View>
-        <Text style={styles.priceNote}>{t('cart.priceNote')}</Text>
+        <Text style={styles.priceNote}>{t(hasSaleOptions ? 'sale.checkoutBlocked' : 'cart.priceNote')}</Text>
         <Button
           label={t('cart.checkout')}
           icon="card-outline"
-          disabled={!ready || lines.length === 0}
+          disabled={!ready || lines.length === 0 || hasSaleOptions}
           onPress={() => router.push(!user ? loginHref('checkout') : recommendation.cartVisitId
             ? { pathname: '/checkout', params: { cartVisitId: recommendation.cartVisitId } }
             : '/checkout')}

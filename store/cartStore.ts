@@ -6,8 +6,8 @@ import type { CartItem } from '@/types';
 
 export const MAX_QUANTITY = 20;
 
-export function cartLineKey(item: Pick<CartItem, 'productId' | 'shadeId'>) {
-  return `${item.productId}::${item.shadeId ?? ''}`;
+export function cartLineKey(item: Pick<CartItem, 'productId' | 'shadeId' | 'optionId'>) {
+  return item.optionId ? `${item.productId}::option::${item.optionId}` : `${item.productId}::${item.shadeId ?? ''}`;
 }
 
 export interface PendingPayment {

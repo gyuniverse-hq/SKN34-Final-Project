@@ -155,3 +155,12 @@ it('keeps the order pending when the payment window cannot be opened', async () 
   expect(useCartStore.getState().pendingPayment?.orderId).toBe('order-1');
   expect(JSON.stringify(screen.toJSON())).toContain('checkout.pending');
 });
+
+
+it('blocks sale-option checkout including mixed carts without posting an order', async () => {
+  useCartStore.getState().add({ productId: 'p', optionId: 'sale-02' });
+  const screen = await start();
+  expect(JSON.stringify(screen.toJSON())).toContain('sale.checkoutBlocked');
+  expect(post).not.toHaveBeenCalled();
+  expect(browser).not.toHaveBeenCalled();
+});

@@ -72,6 +72,8 @@ class CatalogStyleProduct(_CatalogModel):
     mapping_verified: bool = Field(default=False, strict=True)
     catalog_product_id: str | None = None
     catalog_shade_id: str | None = None
+    catalog_option_id: str | None = None
+    catalog_option_source: str | None = None
 
 
 class CatalogStyleLook(_CatalogModel):
@@ -308,6 +310,7 @@ class OptionPrice(IngredientModel):
 
 
 class OptionCandidate(IngredientSelection):
+    option_name: str | None = Field(default=None, exclude_if=lambda v: v is None)
     product_type: BaseProductType | None = Field(default=None, exclude_if=lambda v: v is None)
     option_id: str = Field(min_length=1, max_length=128)
     source_version: str

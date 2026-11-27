@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { ShadePicker } from '@/components/ui/ShadePicker';
 import { productHref } from '@/lib/routes';
 import { useCartStore } from '@/store/cartStore';
-import type { Product } from '@/types';
+import type { Product, ProductOption } from '@/types';
 
 const mockProduct = { id: 'lip', brand: 'Fixture', name: 'Test lip', nameKo: '', category: 'lip',
   makeupZone: 'lip', texture: 'matte', priceKRW: 10000, volume: '', description: '', keyIngredients: [],
@@ -13,12 +13,13 @@ const mockProduct = { id: 'lip', brand: 'Fixture', name: 'Test lip', nameKo: '',
     { id: 'first', name: 'First', hex: '#112233' }, { id: 'selected', name: 'Selected', hex: '#445566' },
   ] } as Product;
 const mockHref = productHref(mockProduct.id, 'selected');
-const mockRoute = (typeof mockHref === 'object' ? mockHref.params : {}) as { id?: string; shade?: string; requireShade?: string };
+const mockRoute = (typeof mockHref === 'object' ? mockHref.params : {}) as { id?: string; shade?: string; requireShade?: string; optionId?: string };
 const mockNotify = jest.fn();
 jest.mock('expo-router', () => ({ Stack: { Screen: () => null },
   useLocalSearchParams: () => mockRoute, useRouter: () => ({ push: jest.fn(), setParams: jest.fn() }),
 }));
-jest.mock('@/lib/queries', () => ({ useProduct: () => ({ data: mockProduct, isPending: false, isError: false }), useProductVideos: () => ({ data: [] }) }));
+let mockSale: ProductOption | undefined;
+jest.mock('@/lib/queries', () => ({ useProductOption: () => ({ data: mockSale, isPending: false, isError: false }), useProduct: () => ({ data: mockProduct, isPending: false, isError: false }), useProductVideos: () => ({ data: [] }) }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: ({ children }: { children: unknown }) => children }));
 jest.mock('@/components/ui/ProductImage', () => ({ ProductImage: () => null }));
@@ -56,4 +57,35 @@ it('does not select or add a shade when a video product has no linked shade', as
   delete mockRoute.requireShade;
   mockRoute.shade = 'selected';
   useCartStore.getState().reset();
+});
+
+
+it('preserves sale option through detail and cart, ignoring an unrelated route shade', async () => {
+  useCartStore.getState().reset();
+  mockRoute.optionId = 'sale-02';
+  mockRoute.shade = 'first';
+  mockSale = { productId: 'lip', optionId: 'sale-02', name: 'Sale 02', priceKRW: null,
+    priceBasis: 'collected_snapshot', observedAt: null, sourceUrl: null, image: null, arShadeId: null };
+  let view!: ReactTestRenderer;
+  await act(async () => { view = create(createElement(ProductDetail)); });
+  expect(view.root.findAllByType(ShadePicker)).toHaveLength(0);
+  expect(view.root.findAllByType(Button).some(b => b.props.label === 'product.tryInAr')).toBe(false);
+  expect(JSON.stringify(view.toJSON())).toContain('sale.priceUnknown');
+  await act(async () => { view.root.findAllByType(Button).find(b => b.props.label === 'product.addToCart')!.props.onPress(); });
+  expect(useCartStore.getState().items).toEqual([{ productId: 'lip', optionId: 'sale-02', quantity: 1 }]);
+  await act(async () => { view.unmount(); });
+  delete mockRoute.optionId;
+  mockRoute.shade = 'selected';
+  mockSale = undefined;
+  useCartStore.getState().reset();
+});
+
+it('does not fall back to a product purchase for an unresolvable sale option', async () => {
+  mockRoute.optionId = 'gone';
+  mockSale = undefined;
+  let view!: ReactTestRenderer;
+  await act(async () => { view = create(createElement(ProductDetail)); });
+  expect(view.root.findAllByType(Button)).toHaveLength(0);
+  await act(async () => { view.unmount(); });
+  delete mockRoute.optionId;
 });

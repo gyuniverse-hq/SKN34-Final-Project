@@ -15,6 +15,7 @@ from app.schemas.conversation import ConversationEntry
 
 _ENTRY = TypeAdapter(ConversationEntry)
 _CONTEXT_KEYS = {
+    "consultationParent",
     "ownedLook",
     "compound",
     "schemaVersion",

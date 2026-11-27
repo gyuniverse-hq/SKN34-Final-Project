@@ -1069,4 +1069,12 @@ export const zh: Dictionary = {
   'idol.verified': '已确认实际使用',
   'idol.similar': '相似产品推荐',
   'idol.unverified': '实际产品／色号未确认',
+  'sale.unavailable': "无法确认此销售选项。",
+  'sale.priceUnknown': "价格待确认",
+  'sale.checkoutBlocked': "此选项可保存在购物车中，暂不支持应用内结算。请移除此选项后结算其他商品。",
+  'sale.image.option': "选项图片",
+  'sale.image.color_chip': "显色参考图",
+  'sale.image.color_compare': "颜色对比参考图",
+  'sale.image.missing': "暂无此选项图片。",
+  'sale.observedAt': "价格记录日期：{date}",
 };

@@ -167,6 +167,41 @@ async def test_est_04_05_exact_mapping_required_and_no_first_shade():
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    "zone,category,name",
+    [
+        ("베이스·윤곽", "베이스 메이크업", "립"),
+        ("립/블러셔", "test", "립"),
+        ("립", "베이스 메이크업", "립"),
+        ("미확인", "test", "립 블러셔"),
+    ],
+)
+async def test_ambiguous_video_zone_preserves_identity_but_blocks_usage(zone, category, name):
+    look = video()
+    entry = look.products[-1]
+    entry.zone, entry.category, entry.name = zone, category, name
+    entry.mapping_verified = True
+    entry.catalog_product_id, entry.catalog_shade_id = "a", "real-shade"
+    response = await ask(StyleCatalog(look))
+    link = response.style_recipe.products[-1]
+    assert (link.product_id, link.shade_id) == ("a", "real-shade")
+    assert link.catalog_valid and link.mapping_status == "verified"
+    assert link.zone == "unknown" and not link.ar_eligible
+    assert not response.style_recipe.ar_eligible
+
+
+@pytest.mark.anyio
+async def test_single_zone_aliases_do_not_create_false_ambiguity():
+    look = video()
+    entry = look.products[-1]
+    entry.zone, entry.category = "립 입술", "lip"
+    entry.mapping_verified = True
+    entry.catalog_product_id, entry.catalog_shade_id = "a", "real-shade"
+    link = (await ask(StyleCatalog(look))).style_recipe.products[-1]
+    assert link.zone == "lip" and link.ar_eligible
+
+
+@pytest.mark.anyio
 async def test_video_product_questions_use_original_names_options_and_requested_zone():
     look = video()
     eye, cheek, lip = look.products
@@ -802,3 +837,103 @@ uvicorn.run(app,host="127.0.0.1",port={chat_port},access_log=False,log_level="wa
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait(timeout=5)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "mode",
+    [
+        "valid",
+        "wrong_shade",
+        "conflict",
+        "missing_shade",
+        "unreviewed",
+        "two_zones",
+        "other_option",
+        "legacy_override",
+    ],
+)
+async def test_reviewed_usage_requires_exact_option_and_consistent_zone(mode):
+    look = video()
+    entry = look.products[-1]
+    entry.zone, entry.category = "lip blush", "test"
+    entry.mapping_verified = True
+    entry.catalog_product_id, entry.catalog_shade_id = "a", "real-shade"
+    usage = {
+        "stepOrder": 1,
+        "productId": "a",
+        "shadeId": "real-shade",
+        "evidenceId": "fixture:usage",
+        "source": "fixture:segment",
+    }
+    if mode == "wrong_shade":
+        usage["shadeId"] = "other-shade"
+    if mode == "conflict":
+        entry.zone = "blush"
+    look.recipe = ReviewedRecipe(
+        kind="video",
+        lookId=look.id,
+        version="fixture",
+        reviewStatus="unreviewed" if mode == "unreviewed" else "verified",
+        source="fixture:recipe",
+        evidenceId="fixture:recipe",
+        reviewerId="fixture-reviewer",
+        synthetic=True,
+        steps=[
+            {"order": 1, "zone": "lip", "title": "Lip", "description": "Synthetic"},
+            {"order": 2, "zone": "blush", "title": "Blush", "description": "Synthetic"},
+        ],
+        productUsages=[usage] + ([{**usage, "stepOrder": 2}] if mode == "two_zones" else []),
+    )
+    if mode == "other_option":
+        look.recipe.product_usages.append(
+            look.recipe.product_usages[0].model_copy(update={"shade_id": "other-shade"})
+        )
+    if mode == "legacy_override":
+        look.id = look.recipe.look_id = "_yyvVZ55LuI"
+    catalog = StyleCatalog(look)
+    context = StyleContext(kind="video", lookId=look.id)
+    if mode == "missing_shade":
+        catalog.products[0].shades = []
+    result = await ask(catalog, context=context)
+    link = result.style_recipe.products[-1]
+    if mode in {"valid", "other_option", "legacy_override"}:
+        assert link.zone == "lip" and link.product_usages[0].evidence_id == "fixture:usage"
+        assert (
+            ChatResponse.model_validate(result.model_dump(mode="json"))
+            .style_recipe.products[-1]
+            .product_usages
+            == link.product_usages
+        )
+        old_version = result.style_recipe.recipe_version
+        look.recipe.product_usages[0].evidence_id = "fixture:revised"
+        assert (await ask(catalog, context=context)).style_recipe.recipe_version != old_version
+    else:
+        assert not link.product_usages
+        if mode != "missing_shade":
+            assert link.zone == "unknown" and not link.ar_eligible
+
+
+@pytest.mark.parametrize("usages", [[{"stepOrder": 3}], [{"stepOrder": 1}, {"stepOrder": 1}]])
+def test_usage_step_reference_and_duplicates_rejected(usages):
+    with pytest.raises(ValidationError):
+        ReviewedRecipe(
+            kind="video",
+            lookId="test",
+            version="fixture",
+            reviewStatus="verified",
+            source="fixture:source",
+            evidenceId="fixture:recipe",
+            reviewerId="fixture-reviewer",
+            steps=[{"order": 1, "zone": "lip", "title": "Lip", "description": "Synthetic"}],
+            productUsages=[
+                {
+                    "productId": "a",
+                    "shadeId": "s",
+                    "evidenceId": "fixture:e",
+                    "source": "fixture:s",
+                    **u,
+                }
+                for u in usages
+            ],
+        )

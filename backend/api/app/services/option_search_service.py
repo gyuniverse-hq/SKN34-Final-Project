@@ -20,7 +20,7 @@ from app.repositories.catalog_repository import CatalogRepository
 from app.repositories.ingredient_identity_repository import OptionIngredientMatch
 from app.repositories.ingredient_repository import IngredientRepository, fingerprint
 from app.repositories.oy_catalog_repository import OyCatalogRepository
-from app.schemas.ingredient import IngredientCondition, IngredientLookupResult
+from app.schemas.ingredient import IngredientCondition, IngredientLookupResult, IngredientReadResult
 from app.schemas.option_search import (
     CheckedScope,
     OptionCandidate,
@@ -284,21 +284,26 @@ class OptionSearchService:
                 # Product metadata narrows candidates; it never proves an option texture.
                 if request.texture:
                     targets = [(p, sid) for p, sid in targets if p.texture == request.texture]
-                scope = (
-                    None
-                    if request.option_scope is None
-                    else {(r.product_id, r.shade_id): r.option_id for r in request.option_scope}
-                )
+                scope = request.option_scope
                 if scope is not None:
-                    targets = [(p, sid) for p, sid in targets if (p.id, sid) in scope]
+                    by_id = {p.id: p for p in products}
+                    scoped = {(r.product_id, r.shade_id, r.option_id) for r in scope}
+                    targets = [
+                        (by_id[pid], sid, oid)
+                        for pid, sid, oid in sorted(scoped, key=str)
+                        if pid in by_id
+                        and (sid is None or any(s.id == sid for s in by_id[pid].shades))
+                    ]
+                else:
+                    targets = [(p, sid, None) for p, sid in targets]
                 candidate_options = len(targets)
                 if scope is not None:
-                    missing = len(scope) - len(targets)
+                    missing = len(scoped) - len(targets)
                     candidate_options += missing
                     checked += missing
                     unidentified += missing
                 if request.ingredient_conditions and request.product_ids is None and targets:
-                    keys = {(product.id, shade_id) for product, shade_id in targets}
+                    keys = {(product.id, shade_id) for product, shade_id, _ in targets}
                     try:
                         prioritized = self.ingredients.prioritized_option_keys(keys)
                     except ApiError:
@@ -310,7 +315,7 @@ class OptionSearchService:
                             (target[0].id, target[1]) not in prioritized,
                         )
                     )
-                for product, shade_id in targets:
+                for product, shade_id, requested_option in targets:
                     in_progress = None
                     cost = (
                         1
@@ -323,17 +328,47 @@ class OptionSearchService:
                         reason = "WORK_LIMIT"
                         break
                     work += cost
+                    raw_identity = None
+                    option_name = None
                     try:
+                        if requested_option and hasattr(self.prices, "option_identity"):
+                            raw_identity = await self.prices.option_identity(
+                                requested_option, product.id
+                            )
+                            if raw_identity is None:
+                                checked += 1
+                                unidentified += 1
+                                continue
                         lookup = await self.ingredients.lookup(product.id, shade_id)
                     except (ApiError, SQLAlchemyError):
-                        checked += 1
-                        unidentified += 1
-                        errors += 1
-                        continue
-                    if (
+                        if raw_identity is None:
+                            checked += 1
+                            unidentified += 1
+                            errors += 1
+                            continue
+                        lookup = IngredientReadResult(
+                            product_id=product.id,
+                            shade_id=shade_id,
+                            reason="ingredient_lookup_failed",
+                        )
+                    if raw_identity:
+                        option_name = raw_identity[1]
+                        if (
+                            lookup.option_id != requested_option
+                            or not IngredientRepository.verified_option(lookup)
+                            or (settings.is_production and lookup.synthetic)
+                        ):
+                            lookup = IngredientReadResult(
+                                product_id=product.id,
+                                shade_id=shade_id,
+                                option_id=requested_option,
+                                source_version=fingerprint(list(raw_identity)),
+                                reason="ingredient_evidence_unverified",
+                            )
+                    elif (
                         not IngredientRepository.verified_option(lookup)
                         or (settings.is_production and lookup.synthetic)
-                        or (scope is not None and scope[(product.id, shade_id)] != lookup.option_id)
+                        or (requested_option is not None and requested_option != lookup.option_id)
                     ):
                         checked += 1
                         unidentified += 1
@@ -470,6 +505,7 @@ class OptionSearchService:
                             product_id=product.id,
                             shade_id=shade_id,
                             option_id=lookup.option_id,
+                            option_name=option_name,
                             product_type=request.product_type,
                             source_version=lookup.source_version,
                             group=group,

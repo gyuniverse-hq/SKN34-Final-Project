@@ -113,3 +113,10 @@ describe('route builders pass ids, never names', () => {
     });
   });
 });
+
+
+it('carries sale option independently of shade in product links', () => {
+  expect(productHref('p', undefined, undefined, true, 'sale-02')).toEqual({
+    pathname: '/product/[id]', params: { id: 'p', requireShade: '1', optionId: 'sale-02' },
+  });
+});

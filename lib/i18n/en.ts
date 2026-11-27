@@ -1068,6 +1068,14 @@ export const en = {
   'chat.style.hideSource': "Hide source and version",
   'chat.style.showSteps': "View all steps",
   'chat.style.hideSteps': "Hide all steps",
+  'sale.unavailable': "This sale option is unavailable.",
+  'sale.priceUnknown': "Price unavailable",
+  'sale.checkoutBlocked': "You can save this option in your cart. In-app checkout is not supported yet. Remove this option to check out other items.",
+  'sale.image.option': "Option image",
+  'sale.image.color_chip': "Color swatch reference",
+  'sale.image.color_compare': "Color comparison reference",
+  'sale.image.missing': "No image for this option.",
+  'sale.observedAt': "Price recorded: {date}",
 };
 
 export type TranslationKey = keyof typeof en;

@@ -368,6 +368,8 @@ export interface VideoProductMapping {
   mappingVerified?: boolean;
   catalogProductId?: string;
   catalogShadeId?: string;
+  catalogOptionId?: string;
+  catalogOptionSource?: string;
 }
 
 export interface ProductVideo {
@@ -412,12 +414,36 @@ export interface StyleLookProduct extends VideoProductMapping {
 }
 
 export interface StyleLook {
+  recipe?: ReviewedStyleRecipe;
   id: string;
   title: string;
   group: string;
   tag: string;
   videoUrl: string;
   products: StyleLookProduct[];
+}
+
+/** Reviewed consultation instructions; not AR geometry or product efficacy evidence. */
+export interface ReviewedProductUsage {
+  stepOrder: number;
+  productId: string;
+  shadeId: string;
+  evidenceId: string;
+  source: string;
+}
+
+export interface ReviewedStyleRecipe {
+  productUsages?: ReviewedProductUsage[];
+  lookId: string;
+  kind: 'video';
+  version: string;
+  reviewStatus: 'verified';
+  reviewerId: string;
+  source: string;
+  evidenceId: string;
+  synthetic: boolean;
+  features: string[];
+  steps: { order: number; zone: MakeupZone; title: string; description: string; guideKey?: MakeupZone | null }[];
 }
 
 export interface CelebLook {
@@ -457,6 +483,8 @@ export interface CartEventSource {
 }
 
 export interface CartItem {
+  /** Exact sale identity, independent of AR shade. */
+  optionId?: string;
   productId: string;
   shadeId?: string;
   quantity: number;
@@ -637,7 +665,7 @@ export interface ChatOptionSearch {
   checkedAt?: string | null;
   status: 'SUCCESS' | 'PARTIAL' | 'ERROR';
   items: {
-    productId: string; shadeId: string | null; optionId: string; sourceVersion: string;
+    productId: string; shadeId: string | null; optionId: string; optionName?: string | null; sourceVersion: string;
     productType?: ChatBaseProductType | null;
     group: 'ELIGIBLE' | 'REFERENCE_ONLY' | 'EXCLUDED'; synthetic: boolean;
     ingredientEntryCount?: number | null; ingredientIdentityCount?: number | null;
@@ -700,7 +728,7 @@ export interface CompoundConsultation {
 }
 
 export interface OwnedLookOptionDisplay {
-  selections: { productId: string; shadeId: string; optionId: string;
+  selections: { productId: string; shadeId?: string | null; optionId: string;
     productName: string; brand: string; shadeName: string }[];
   batches: ChatOptionSearch[];
   failedProductIds: string[];
@@ -843,7 +871,8 @@ export interface ChatStyleRecipe {
   steps: { order: number; zone: MakeupZone; title: string; description?: string | null; guideKey?: MakeupZone | null }[];
   currentStep: number;
   products: { label: string; zone: string; productId?: string | null; shadeId?: string | null;
-    mappingStatus: 'verified' | 'product_only' | 'unknown' | 'invalid' | 'unavailable'; catalogValid: boolean; arEligible: boolean }[];
+    optionId?: string | null; optionName?: string | null; optionSource?: string | null; consultationZone?: string | null;
+    mappingStatus: 'verified' | 'product_only' | 'unknown' | 'invalid' | 'unavailable'; catalogValid: boolean; arEligible: boolean; productUsages?: ReviewedProductUsage[] }[];
   arEligible: boolean;
   reason: 'reviewed_recipe' | 'catalog_settings' | 'video_not_analyzed' | 'no_steps' | 'recipe_changed';
   makeup?: Partial<MakeupState> | null;
@@ -1009,4 +1038,16 @@ export interface CreateOrderResponse {
 export interface OrderStatusResponse {
   orderId: string;
   status: 'pending' | 'paid' | 'canceled';
+}
+
+export interface ProductOption {
+  productId: string;
+  optionId: string;
+  name: string;
+  priceKRW: number | null;
+  priceBasis: 'collected_snapshot';
+  observedAt: string | null;
+  sourceUrl: string | null;
+  image: { url: string; kind: 'option' | 'color_chip' | 'color_compare' } | null;
+  arShadeId: string | null;
 }

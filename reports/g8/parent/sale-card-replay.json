@@ -1,0 +1,116 @@
+{
+  "message": "내가 가진 립으로 이 룩을 따라 해보고, 필요한 것만 추가 추천해줘. 아이섀도는 없어. 추가 추천해줘.",
+  "response": {
+    "ownedLookOptions": {
+      "selections": [
+        {
+          "productId": "oy-a000000162667",
+          "shadeId": null,
+          "optionId": "A000000162667-012",
+          "productName": "[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+          "brand": "삐아",
+          "shadeName": "[단품] 07 웜 베이지"
+        }
+      ],
+      "batches": [
+        {
+          "schemaVersion": 1,
+          "limitations": [
+            "rights_unverified"
+          ],
+          "effectiveRequest": {
+            "query": "",
+            "category": null,
+            "productIds": [
+              "oy-a000000162667"
+            ],
+            "optionScope": [
+              {
+                "productId": "oy-a000000162667",
+                "shadeId": null,
+                "optionId": "A000000162667-012"
+              }
+            ],
+            "texture": null,
+            "maxPriceKRW": null,
+            "priceBasis": "collected_snapshot",
+            "ingredientConditions": [],
+            "fragranceFree": false,
+            "moisturizing": false,
+            "unsupportedConditions": []
+          },
+          "checkedAt": "2026-11-27T03:30:56.758224Z",
+          "status": "SUCCESS",
+          "items": [
+            {
+              "productId": "oy-a000000162667",
+              "shadeId": null,
+              "optionId": "A000000162667-012",
+              "optionName": "[단품] 07 웜 베이지",
+              "sourceVersion": "4573b99efc8b3be138658a2952c026cd4072c94229947e081483720ca99202b6",
+              "group": "ELIGIBLE",
+              "checks": [
+                {
+                  "condition": "identity",
+                  "verdict": "MATCH",
+                  "reason": "verified_option",
+                  "ingredientName": null,
+                  "operator": null,
+                  "evidenceId": null,
+                  "sourceVersion": "4573b99efc8b3be138658a2952c026cd4072c94229947e081483720ca99202b6",
+                  "sourceRef": null,
+                  "reviewRef": null,
+                  "observedAt": null,
+                  "reviewedAt": null,
+                  "ingredientCoverage": null,
+                  "normalizationStatus": null,
+                  "reviewStatus": null,
+                  "limitations": [],
+                  "textureBasis": null,
+                  "textureCode": null
+                }
+              ],
+              "price": null,
+              "synthetic": false,
+              "ingredientEntryCount": null,
+              "ingredientIdentityCount": null
+            }
+          ],
+          "products": [
+            {
+              "id": "oy-a000000162667",
+              "brand": "삐아",
+              "name": "[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+              "nameKo": "[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+              "category": "eye",
+              "makeupZone": null,
+              "texture": "satin",
+              "priceKRW": 17000,
+              "priceEvidence": null,
+              "description": "",
+              "keyIngredients": [],
+              "tags": [
+                "oliveyoung",
+                "아이섀도우"
+              ],
+              "shades": []
+            }
+          ],
+          "checkedScope": {
+            "candidateProducts": 1,
+            "candidateOptions": 1,
+            "checkedOptions": 1,
+            "unidentifiedOptions": 0,
+            "exhaustive": true,
+            "stoppedReason": "COMPLETE",
+            "errors": 0
+          },
+          "excludedCount": 0,
+          "omittedCount": 0
+        }
+      ],
+      "failedProductIds": []
+    }
+  },
+  "mode": "replay_of_live_catalog_response"
+}

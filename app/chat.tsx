@@ -1261,9 +1261,9 @@ function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload
                 </View>
               ) : null}
               {message.role === 'assistant' && message.ownedLookOptions ? <OwnedLookOptionCards result={message.ownedLookOptions}
-                onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId, undefined, true)); }} /> : null}
+                onOpenProduct={(id, shadeId, optionId) => { if (mounted.current) router.push(productHref(id, shadeId, undefined, true, optionId)); }} /> : null}
               {message.role === 'assistant' && message.compound ? <CompoundProductCards result={message.compound}
-                onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId, undefined, true)); }} /> : null}
+                onOpenProduct={(id, shadeId, optionId) => { if (mounted.current) router.push(productHref(id, shadeId, undefined, true, optionId)); }} /> : null}
               {message.role === 'assistant' && !message.compound && message.optionSearch ? <OptionSearchScope result={message.optionSearch} /> : null}
               {message.role === 'assistant' && !message.compound && !message.ownedLookOptions && !message.fragranceSearchSummary &&
                 !!(message.products?.length || (message.styleRecipe?.kind === 'video' && message.styleRecipe.products.length)) &&

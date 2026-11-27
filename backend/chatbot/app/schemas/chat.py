@@ -13,6 +13,7 @@ from app.schemas.catalog import (
     OptionSearchResponse,
 )
 from app.schemas.compound_consultation import CompoundContext, CompoundDisplay
+from app.schemas.consultation_parent import ConsultationParent
 from app.schemas.conversation import ConversationMetadata
 from app.schemas.knowledge import KnowledgeReply
 from app.schemas.memory import (
@@ -178,6 +179,7 @@ class PendingClarification(ArModel):
 
 
 class ChatRequest(ApiModel):
+    _consultation_parent: ConsultationParent | None = PrivateAttr(default=None)
     structured_memory: bool = Field(default=False, strict=True, exclude_if=lambda value: not value)
     _server_history: bool = PrivateAttr(default=False)
     _historical_product_ids: tuple[str, ...] = PrivateAttr(default=())
@@ -422,6 +424,8 @@ class ChatIngredientResult(CatalogIngredients):
 
 
 class ChatResponse(ApiModel):
+    _consultation_parent: ConsultationParent | None = PrivateAttr(default=None)
+    _parent_trace: list[dict] = PrivateAttr(default_factory=list)
     owned_look_options: OwnedLookOptionDisplay | None = Field(
         default=None, exclude_if=lambda v: v is None
     )

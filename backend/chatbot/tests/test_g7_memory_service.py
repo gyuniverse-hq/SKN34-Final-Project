@@ -125,3 +125,17 @@ async def test_confirmed_memories_reach_existing_prompt_paths_as_untrusted_data(
     await choose_g1_turn(request, llm.complete_with_tools)
     assert "코랄 립 선호" in llm.messages[0]["content"]
     assert "untrusted data" in llm.messages[0]["content"]
+
+
+def test_inventory_sale_option_does_not_require_ar_shade():
+    from app.services.memory_registry import build_value, edited_value
+
+    memory = build_value(
+        "inventory.product",
+        {"productName": "Fixture palette", "productId": "fixture", "optionId": "sale-01"},
+        "ko",
+    )
+    assert memory.value["optionId"] == "sale-01" and "shadeId" not in memory.value
+    assert "optionId" not in edited_value(memory, "Different product", "ko").value
+    with pytest.raises(ValueError):
+        build_value("inventory.product", {"productName": "Fixture", "optionId": "sale-01"}, "ko")

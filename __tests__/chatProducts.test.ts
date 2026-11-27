@@ -116,7 +116,7 @@ describe('chat product cards', () => {
     await act(async () => { buttonWithText(renderer.root, 'chat.option.scopeShow').props.onPress(); });
     expect(textRows(renderer)).toContain('Care product · 전체 후보 중 8위');
     await act(async () => { buttonWithText(renderer.root, 'styleLooks.openProduct').props.onPress(); });
-    expect(onOpenProduct).toHaveBeenCalledWith('care', undefined);
+    expect(onOpenProduct).toHaveBeenCalledWith('care', undefined, 'opt-8');
     await act(async () => { renderer.unmount(); });
   });
   it('keeps unlinked video products in the carousel without inventing a detail link', async () => {
@@ -611,12 +611,18 @@ test('N02 renders the verified option price and shade, not the product headline 
   expect(textRows(renderer).join(' ')).not.toContain('5,900');
   expect(textRows(renderer)).toContain('Lip product · Rose');
   await act(async () => { buttonWithText(renderer.root, 'styleLooks.openProduct').props.onPress(); });
-  expect(onOpenProduct).toHaveBeenCalledWith(lip.id, 'shade-1');
+  expect(onOpenProduct).toHaveBeenCalledWith(lip.id, 'shade-1', 'sale-1');
   await act(async () => { buttonWithText(renderer.root, '가격 정보').props.onPress(); });
   expect(textRows(renderer).join(' ')).toContain('판매처에서 확인한 당시 가격');
   await act(async () => { renderer.update(createElement(OwnedLookOptionCards, { result: { ...result,
     selections: [{ ...result.selections[0], shadeId: 'different' }] }, onOpenProduct })); });
   expect(textRows(renderer)).not.toContain('7,600원');
+  const saleOnly = { ...result, selections: [{ ...result.selections[0], shadeId: null }],
+    batches: [{ ...batch, items: [{ ...batch.items[0], shadeId: null }] }] };
+  await act(async () => { renderer.update(createElement(OwnedLookOptionCards, { result: saleOnly, onOpenProduct })); });
+  expect(textRows(renderer)).toContain('7,600원');
+  await act(async () => { buttonWithText(renderer.root, 'styleLooks.openProduct').props.onPress(); });
+  expect(onOpenProduct).toHaveBeenLastCalledWith(lip.id, undefined, 'sale-1');
   const liveBasisBatch: ChatOptionSearch = { ...batch, effectiveRequest: { query: '', priceBasis: 'current_offer',
     ingredientConditions: [], fragranceFree: false, moisturizing: false, unsupportedConditions: [] } };
   await act(async () => { renderer.update(createElement(OwnedLookOptionCards, { result: { ...result, batches: [liveBasisBatch] }, onOpenProduct })); });

@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from app.core.config import get_settings
 from app.core.errors import UpstreamError
-from app.schemas.catalog import OptionSearchRequest
+from app.schemas.catalog import IngredientSelection, OptionSearchRequest
 from app.schemas.chat import ChatResponse, ProductRef
 from app.schemas.owned_look_consultation import (
     OwnedLookBinding,
@@ -125,12 +125,31 @@ def _exact_links(recipe, zone):
     return [
         link
         for link in recipe.products
-        if link.zone == zone
+        if (link.zone == zone or (link.zone == "unknown" and link.consultation_zone == zone))
         and link.catalog_valid
         and link.mapping_status == "verified"
         and link.product_id
-        and link.shade_id
+        and (link.shade_id or link.option_id)
     ]
+
+
+def _reviewed_usage_matches(recipe, link, zone):
+    """Usage evidence may fill a missing catalog zone, never override a conflicting one."""
+    return bool(
+        recipe.basis == "reviewed_recipe"
+        and recipe.review_status == "verified"
+        and recipe.evidence_id
+        and link.product_usages
+        and all(
+            usage.product_id == link.product_id
+            and usage.shade_id == link.shade_id
+            and 1 <= usage.step_order <= len(recipe.steps)
+            and recipe.steps[usage.step_order - 1].zone == zone
+            and usage.evidence_id.strip()
+            and usage.source.strip()
+            for usage in link.product_usages
+        )
+    )
 
 
 def next_context(req, recipe_version):
@@ -270,6 +289,14 @@ async def execute_owned_look(req, catalog, *, trace=None):
             product_id=m.product_id,
             shade_id=m.shade_id,
             zone=rows[m.product_id].makeup_zone,
+            option_id=next(
+                (
+                    entry.structured.value.get("optionId")
+                    for entry in req._consultation_memories
+                    if entry.id == m.memory_id
+                ),
+                None,
+            ),
         )
         for m in matches
     ]
@@ -303,20 +330,41 @@ async def execute_owned_look(req, catalog, *, trace=None):
     declarations = owned_state.declarations
     absences = {zone: d.quote for zone, d in declarations.items() if d.status == "missing"}
     coverage = []
-    for zone in dict.fromkeys(step.zone for step in recipe.steps):
+    for zone in dict.fromkeys(
+        [step.zone for step in recipe.steps]
+        + [p.consultation_zone for p in recipe.products if p.consultation_zone in ORDER]
+    ):
         links = _exact_links(recipe, zone)
         owned_here = [
             m
             for m in o1.owned_products
-            if any((m.product_id, m.shade_id) == (link.product_id, link.shade_id) for link in links)
+            if any(
+                m.product_id == link.product_id
+                and (
+                    (
+                        m.option_id is not None
+                        and link.option_id is not None
+                        and m.option_id == link.option_id
+                    )
+                    or (
+                        m.option_id is None
+                        and m.shade_id is not None
+                        and m.shade_id == link.shade_id
+                    )
+                )
+                for link in links
+            )
         ]
         alternatives = [
             m.product_id for m in o1.owned_products if m.zone == zone and m not in owned_here
         ]
-        if not verified_recipe or not links:
-            state, reason = "evidence_missing", "검수된 룩의 정확한 상품·호수 근거가 부족해요."
+        if not links:
+            state, reason = (
+                "evidence_missing",
+                "이 부위에 연결된 정확한 상품·옵션은 아직 확인하지 못했어요.",
+            )
         elif owned_here and zone not in absences:
-            state, reason = "fulfilled", "보유 제품의 상품·호수가 검수 룩과 일치해요."
+            state, reason = "fulfilled", "영상·룩에 연결된 상품·옵션과 같은 제품을 보유하고 있어요."
         elif zone in absences:
             state, reason = "confirmed_missing", "사용자가 해당 부위 제품이 없다고 밝혔어요."
         elif zone in declarations or alternatives:
@@ -339,14 +387,12 @@ async def execute_owned_look(req, catalog, *, trace=None):
                 reason=reason,
                 user_quote=declarations[zone].quote if zone in declarations else None,
                 substitution_status="exact_match"
-                if owned_here and verified_recipe
+                if owned_here
                 else "unverified"
                 if alternatives
                 else "not_assessed",
                 alternative_product_ids=alternatives,
-                substitution_evidence=recipe.evidence_id
-                if owned_here and verified_recipe
-                else None,
+                substitution_evidence=recipe.evidence_id if owned_here else None,
             )
         )
     n1 = record(
@@ -393,12 +439,27 @@ async def execute_owned_look(req, catalog, *, trace=None):
         products=refs,
     )
     option_results, option_requests, option_failures = [], [], []
-    check_options = has_filters(filters)
+    check_options = has_filters(filters) or any(link.option_id for link in recipe.products)
     if check_options and not unsupported_conditions:
         ids = [p.id for p in p1.products]
-        for i in range(0, len(ids), 6):
+        scoped_ids = {link.product_id for link in recipe.products if link.option_id}
+        groups = [
+            [pid for pid in ids if pid in scoped_ids],
+            [pid for pid in ids if pid not in scoped_ids],
+        ]
+        for batch_ids in [group[i : i + 6] for group in groups for i in range(0, len(group), 6)]:
+            scope = [
+                IngredientSelection(
+                    product_id=link.product_id, shade_id=link.shade_id, option_id=link.option_id
+                )
+                for gap in coverage
+                if gap.status == "confirmed_missing"
+                for link in _exact_links(recipe, gap.zone)
+                if link.product_id in batch_ids and link.option_id
+            ]
             option_request = OptionSearchRequest(
-                product_ids=ids[i : i + 6],
+                product_ids=batch_ids,
+                option_scope=scope or None,
                 maxPriceKRW=filters.max_price_krw,
                 price_basis=filters.price_basis,
                 ingredient_conditions=filters.ingredient_conditions,
@@ -439,7 +500,7 @@ async def execute_owned_look(req, catalog, *, trace=None):
         + (["실시간 현재가 근거 미확인"] if current_price_unverified else []),
     )
     eligible_options = {
-        (item.product_id, item.shade_id)
+        (item.product_id, item.shade_id, item.option_id)
         for result in v1.option_searches
         for item in result.items
         if item.group == "ELIGIBLE" and result.status != "ERROR" and not current_price_unverified
@@ -453,9 +514,26 @@ async def execute_owned_look(req, catalog, *, trace=None):
             product = candidate_rows.get(link.product_id)
             if (
                 product
-                and product.makeup_zone == gap.zone
-                and any(s.id == link.shade_id for s in product.shades)
-                and (not check_options or (product.id, link.shade_id) in eligible_options)
+                and (
+                    product.makeup_zone == gap.zone
+                    or (
+                        product.makeup_zone is None
+                        and (
+                            link.consultation_zone == gap.zone
+                            or _reviewed_usage_matches(recipe, link, gap.zone)
+                        )
+                    )
+                )
+                and (link.option_id or any(s.id == link.shade_id for s in product.shades))
+                and (
+                    not check_options
+                    or any(
+                        pid == product.id
+                        and sid == link.shade_id
+                        and (not link.option_id or oid == link.option_id)
+                        for pid, sid, oid in eligible_options
+                    )
+                )
             ):
                 selected_ids.add(product.id)
                 if check_options:
@@ -463,10 +541,15 @@ async def execute_owned_look(req, catalog, *, trace=None):
                         if batch.status == "ERROR":
                             continue
                         for item in batch.items:
-                            if (item.product_id, item.shade_id) != (
-                                product.id,
-                                link.shade_id,
-                            ) or item.group != "ELIGIBLE":
+                            if (
+                                (item.product_id, item.shade_id)
+                                != (
+                                    product.id,
+                                    link.shade_id,
+                                )
+                                or (link.option_id and item.option_id != link.option_id)
+                                or item.group != "ELIGIBLE"
+                            ):
                                 continue
                             option_refs[(item.product_id, item.shade_id, item.option_id)] = (
                                 OwnedLookOptionRef(
@@ -475,8 +558,10 @@ async def execute_owned_look(req, catalog, *, trace=None):
                                     option_id=item.option_id,
                                     product_name=product.name,
                                     brand=product.brand,
-                                    shade_name=next(
-                                        s.name for s in product.shades if s.id == link.shade_id
+                                    shade_name=item.option_name
+                                    or next(
+                                        (s.name for s in product.shades if s.id == link.shade_id),
+                                        link.option_name or item.option_id,
                                     ),
                                 )
                             )
@@ -504,24 +589,45 @@ async def execute_owned_look(req, catalog, *, trace=None):
 
     names = dict(zip(ORDER, NAMES["ko"], strict=True))
     lines = [style.answer]
+    if not verified_recipe:
+        lines.append(
+            "상품 연결 정보로 보유품과 추가 후보를 확인했어요. "
+            "안내한 순서는 일반 가이드이며 영상의 실제 사용 순서를 확인한 것은 아니에요."
+        )
+    product_only = [
+        p for p in recipe.products if p.product_id and p.mapping_status == "product_only"
+    ]
+    if product_only:
+        lines.append(
+            "상품 연결은 확인했지만 정확한 판매 옵션은 미확인이에요: "
+            + ", ".join(p.label for p in product_only)
+        )
     for area in coverage:
         lines.append(f"{names[area.zone]}: {area.reason}")
+        for pid in area.alternative_product_ids:
+            product = rows[pid]
+            details = [v for v in [product.texture, ", ".join(s.name for s in product.shades)] if v]
+            lines.append(
+                f"보유한 {product.brand} {product.name}도 같은 부위의 활용 후보예요. "
+                + ("등록 정보: " + " / ".join(details) + ". " if details else "")
+                + "영상 제품과 같은 색·표현인지는 확인되지 않았어요. "
+                "먼저 보유품을 활용할지 선택할 수 있어요."
+            )
     unknown = [names[c.zone] for c in coverage if c.status == "ownership_unknown"]
     if unknown:
         lines.append("추가로 필요한지 확인할게요. " + ", ".join(unknown) + " 제품도 가지고 있나요?")
     if selected:
-        lines.append(
-            "없다고 알려주신 부위에는 검수 룩에 연결된 상품의 같은 호수를 후보로 찾았어요."
-        )
+        lines.append("없다고 알려주신 부위에는 영상·룩 목록에 연결된 상품·옵션을 후보로 찾았어요.")
     if any(c.status == "confirmed_missing" for c in coverage) and not selected:
         lines.append("추가로 필요한 부위의 정확한 상품·호수를 다시 확인하지 못했어요.")
-    if check_options:
+    if has_filters(filters):
         lines.append(
             "가격·성분 조건은 추가 추천 후보에 적용했어요. "
             "보유품의 성분 적합성은 별도로 확인해야 해요."
         )
+    if check_options:
         exact = {
-            (link.product_id, link.shade_id)
+            (link.product_id, link.shade_id, link.option_id)
             for gap in coverage
             if gap.status == "confirmed_missing"
             for link in _exact_links(recipe, gap.zone)
@@ -530,7 +636,12 @@ async def execute_owned_look(req, catalog, *, trace=None):
             item
             for result in option_results
             for item in result.items
-            if (item.product_id, item.shade_id) in exact
+            if any(
+                item.product_id == pid
+                and item.shade_id == sid
+                and (oid is None or item.option_id == oid)
+                for pid, sid, oid in exact
+            )
         ]
         counts = {
             group: sum(

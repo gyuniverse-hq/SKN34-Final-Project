@@ -30,6 +30,7 @@ export default function CheckoutScreen() {
   const { t } = useI18n();
   const { user, ready } = useAuth();
   const { lines, total, query } = useCartLines();
+  const hasSaleOptions = useCartStore(s => s.items.some(i => !!i.optionId));
   const wallet = useRewards(user?.id);
   const [choice, setChoice] = useState<{ owner: string; id: string } | null>(null);
   const available = wallet.data?.coupons.filter(c => c.status === 'available') ?? [];
@@ -90,7 +91,7 @@ export default function CheckoutScreen() {
   };
 
   const startPayment = async () => {
-    if (busy.current || pending) return;
+    if (busy.current || pending || lines.some(l => !!l.item.optionId) || useCartStore.getState().items.some(i => !!i.optionId)) return;
     busy.current = true;
     setPaymentBusy(true);
     setNotice(null);
@@ -163,6 +164,7 @@ export default function CheckoutScreen() {
       </View>
     );
   }
+  if (hasSaleOptions) return <View style={styles.content}><Notice body={t('sale.checkoutBlocked')} /><Button label={t('checkout.goCart')} onPress={() => router.replace('/cart')} /></View>;
   if (query.isPending) return <LoadingState />;
   if (lines.length === 0) return <EmptyState icon="cart-outline" title={t('checkout.empty')} />;
 

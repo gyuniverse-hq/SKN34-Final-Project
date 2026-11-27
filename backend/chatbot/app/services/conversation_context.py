@@ -192,7 +192,9 @@ def prepare_request(
         result._owned_look_context = context.owned_look
     if context.product and beauty and not beauty.filters.option_search:
         result._historical_product_ids = tuple(context.product.historical_candidate_refs)
-    return result
+    from app.services.consultation_parent_graph import restore_followup
+
+    return restore_followup(result, context.consultation_parent)
 
 
 async def revalidate_request(chat, request: ChatRequest) -> None:
@@ -228,6 +230,7 @@ async def revalidate_request(chat, request: ChatRequest) -> None:
 
 def updated_context(raw: dict, response: ChatResponse) -> dict:
     context = read_context(raw)
+    context.consultation_parent = response._consultation_parent
     context.owned_look = response._owned_look_context
     compound = response.compound
     context.compound = (
@@ -283,6 +286,7 @@ async def apply_state_update(
             context.product.selected_shade_id = None
         context.style = None
         context.owned_look = None
+        context.consultation_parent = None
         return context.model_dump(mode="json", by_alias=True, exclude_none=True)
 
     catalog = getattr(chat, "_catalog", None)
@@ -314,6 +318,7 @@ async def apply_state_update(
                     look_id,
                 ):
                     context.owned_look = None
+                    context.consultation_parent = None
                 context.style = StoredStyleContext(kind=kind, look_id=look_id)
             else:
                 selected = context.style
