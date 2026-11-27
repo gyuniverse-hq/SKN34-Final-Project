@@ -20,6 +20,17 @@ from app.services import knowledge_service, owned_look_consultation_service
 from app.services.style_recipe_service import NAMES, ORDER, execute_style
 
 _EXPLAIN = re.compile(r"왜|원인|주의|원리|설명")
+_EXPLANATION_WITHDRAWAL = re.compile(
+    r"(?:설명|원인|주의점|원리)(?:은|는|을|를)?\s*(?:필요\s*없|빼|말고|하지\s*마|됐)"
+)
+
+
+def wants_explanation(message):
+    # Remove only withdrawn clauses: an independent positive request still survives.
+    clauses = re.split(r"[,.;!?]|(?:고|지만)\s+", message)
+    return any(_EXPLAIN.search(c) and not _EXPLANATION_WITHDRAWAL.search(c) for c in clauses)
+
+
 _STYLE_ONLY = re.compile(r"(?:상품|제품|추천)은?\s*(?:됐고|빼고|말고|필요\s*없고).*(?:순서|방법)")
 _ANSWERS = {"없어": "없어", "없어요": "없어", "있어": "있어", "있어요": "있어"}
 
@@ -63,12 +74,16 @@ async def run_parent(
     events = trace if trace is not None else []
     response = None
     specialist_trace = []
-    wants_explanation = kind == "owned_look" and bool(_EXPLAIN.search(req.message))
+    explanation_requested = kind == "owned_look" and wants_explanation(req.message)
 
     class State(TypedDict):
         next_goal: str
 
     def plan(_state):
+        if _EXPLANATION_WITHDRAWAL.search(req.message) and not explanation_requested:
+            for task in parent.tasks:
+                if task.goal == "knowledge":
+                    task.status = "superseded"
         if kind == "style":
             for task in parent.tasks:
                 if task.goal == "owned_look":
@@ -233,7 +248,7 @@ async def run_parent(
             for task in parent.tasks:
                 if "owned_look" in task.depends_on and task.reference_digest != digest:
                     task.status = "superseded"
-        if state["next_goal"] == "owned_look" and wants_explanation:
+        if state["next_goal"] == "owned_look" and explanation_requested:
             # A requested independent explanation survives missing recipe/product evidence.
             accept_task(
                 parent,
@@ -279,7 +294,17 @@ async def run_parent(
 async def try_owned_look(req, catalog):
     if not get_settings().g8_enabled:
         return None
-    style_only = bool(req._consultation_parent and _STYLE_ONLY.search(req.message))
+    previous = req._consultation_parent
+    style_only = bool(
+        previous
+        and previous.look
+        and req.style_context
+        and (previous.look.kind, previous.look.look_id)
+        == (req.style_context.kind, req.style_context.look_id)
+        and any(t.goal in {"owned_look", "style"} for t in previous.tasks)
+        and not any(t.goal == "skin" for t in previous.tasks)
+        and _STYLE_ONLY.search(req.message)
+    )
     if style_only and not owned_look_consultation_service._STATE_REQUEST.search(req.message):
 
         async def style():

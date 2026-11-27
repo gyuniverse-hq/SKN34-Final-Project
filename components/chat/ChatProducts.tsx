@@ -462,7 +462,7 @@ export function ChatProducts({ optionSearch, sourceProducts, products, loading, 
                       accessibilityLabel={`${product.brand} ${product.name}, ${t('chat.openProduct')}`}
                       accessibilityState={{ disabled: disabledActions }}
                       disabled={disabledActions}
-                      onPress={disabledActions ? undefined : () => onOpenProduct(product.id, selectedShade?.id)}
+                      onPress={disabledActions ? undefined : () => group.source?.productId === product.id && group.source.optionId ? onOpenProduct(product.id, selectedShade?.id, group.source.optionId) : onOpenProduct(product.id, selectedShade?.id)}
                       style={({ pressed }) => [styles.open, pressed && styles.pressed, disabledActions && styles.disabled]}>
                       <Text style={styles.link}>{t('chat.openProduct')} ›</Text>
                     </Pressable> : null}

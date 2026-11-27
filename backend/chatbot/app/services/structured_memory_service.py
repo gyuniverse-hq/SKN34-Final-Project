@@ -81,6 +81,11 @@ def _stored_item(row: ChatMemory, locale: str) -> dict:
 def _same_value(key: str, left: dict, right: dict) -> bool:
     if key != "inventory.product":
         return left == right
+    if left.get("optionId") or right.get("optionId"):
+        return bool(left.get("productId") and left.get("optionId")) and (
+            left.get("productId"),
+            left.get("optionId"),
+        ) == (right.get("productId"), right.get("optionId"))
     if left.get("productId") and right.get("productId"):
         return (left["productId"], left.get("shadeId")) == (
             right["productId"],

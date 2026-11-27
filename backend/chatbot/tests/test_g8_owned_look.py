@@ -91,6 +91,11 @@ class Catalog:
         self.look_calls.append((kind, look_id))
         return self.look if (kind, look_id) == ("catalog", "fixture-look") else None
 
+    async def get_product_option(self, pid, oid):
+        from app.schemas.catalog import CatalogProductOption
+
+        return CatalogProductOption(product_id=pid, option_id=oid, name="Synthetic option")
+
     async def get_product(self, pid):
         return self.products.get(pid)
 

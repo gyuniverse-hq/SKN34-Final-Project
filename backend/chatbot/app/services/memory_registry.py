@@ -244,6 +244,26 @@ def with_verified_product(
     return build_value(draft.key, value, locale, draft.context)
 
 
+def with_verified_option(draft, product, option, locale):
+    if option is None or option.product_id != product.id:
+        return draft
+    label = normalize(draft.value["productName"])
+    deictic = label in {
+        normalize(v) for v in ("이 옵션", "이 상품 옵션", "선택한 옵션", "this option")
+    }
+    exact = label == normalize(f"{product.name} {option.name}")
+    if not (deictic or exact):
+        return draft
+    value = {
+        "productName": f"{product.name} {option.name}",
+        "productId": product.id,
+        "optionId": option.option_id,
+    }
+    if option.ar_shade_id and any(s.id == option.ar_shade_id for s in product.shades):
+        value["shadeId"] = option.ar_shade_id
+    return build_value(draft.key, value, locale, draft.context)
+
+
 def extract_values(text: str, locale: str) -> list[StructuredMemoryValue]:
     drafts = []
     for clause in re.split(r"[,;.!?。！？；，\n]+|(?:\s+(?:and|그리고)\s+)", text, flags=re.I):

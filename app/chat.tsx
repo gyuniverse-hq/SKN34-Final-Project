@@ -25,7 +25,7 @@ import { useAuth } from '@/lib/auth';
 import { getSupabase } from '@/lib/auth/client';
 import { conditionsFromChatFilters, extractChatConditions } from '@/lib/chatConditions';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
-import { useLook, useProduct, useProductsByIds, useStyleLooks } from '@/lib/queries';
+import { useLook, useProduct, useProductOption, useProductsByIds, useStyleLooks } from '@/lib/queries';
 import { arHref, parseId, paramValue, productHref } from '@/lib/routes';
 import { chatRequestRecoveryKey } from '@/lib/storage';
 import { refersToPreviousLooks, selectedLookOrdinal, wantsDifferentStyle, wantsStyleSearch } from '@/lib/styleCoaching';
@@ -188,7 +188,7 @@ function RelatedProducts({ optionSearch, sourceProducts, refs, question, categor
         failed={ids.length > 0 && query.isError}
         missingCount={!query.isPending && !query.isPlaceholderData && !query.isError ? ids.length - products.length : 0}
         onRetry={() => { if (mounted.current) void query.refetch(); }}
-        onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId, undefined, !!sourceProducts)); }}
+        onOpenProduct={(id, shadeId, optionId) => { if (mounted.current) router.push(productHref(id, shadeId, undefined, !!sourceProducts, optionId)); }}
         onOpenAr={(productId, shadeId) => { if (mounted.current) router.push(arHref({ productId, shadeId })); }}
       />
     </View>
@@ -233,18 +233,19 @@ function FragranceSearchResult({ message, ...actions }: {
 }
 
 export default function ChatScreen() {
-  const params = useLocalSearchParams<{ recipeKind?: string; recipeLookId?: string; productId?: string; shadeId?: string; memory?: string }>();
+  const params = useLocalSearchParams<{ recipeKind?: string; recipeLookId?: string; productId?: string; shadeId?: string; optionId?: string; memory?: string }>();
   const rawKind = paramValue(params.recipeKind);
   const kind = rawKind === 'video' || rawKind === 'catalog' ? rawKind : undefined;
   const rawLookId = paramValue(params.recipeLookId);
   const lookId = kind === 'video' ? rawLookId && /^[A-Za-z0-9_-]{1,64}$/.test(rawLookId) ? rawLookId : undefined : parseId(params.recipeLookId);
   const productId = kind && lookId ? undefined : parseId(params.productId);
   const shadeId = parseId(params.shadeId);
+  const optionId = parseId(params.optionId);
   const { user, ready } = useAuth();
   const userId = user?.id ?? null;
   const identity = useChatConversationStore((state) => state.identity);
   const rooms = useChatConversationStore((state) => state.conversations);
-  const routeKey = JSON.stringify([userId, kind, lookId, productId, shadeId]);
+  const routeKey = JSON.stringify([userId, kind, lookId, productId, shadeId, optionId]);
   const [active, setActive] = useState<{ routeKey: string; id?: string }>();
   const setActiveId = (id?: string) => setActive({ routeKey, id });
   const [recentVisible, setRecentVisible] = useState(false);
@@ -268,7 +269,7 @@ export default function ChatScreen() {
     if (!ready) return;
     if (store.identity?.userId !== userId) store.activate(userId);
     const entry: ConversationEntry = kind && lookId ? { type: 'look', kind, lookId }
-      : productId ? { type: 'product', productId, shadeId } : { type: 'general' };
+      : productId ? { type: 'product', productId, shadeId, optionId } : { type: 'general' };
     let current = true;
     void Promise.resolve().then(() => {
       if (!current || useChatConversationStore.getState().identity?.userId !== userId) return;
@@ -277,7 +278,7 @@ export default function ChatScreen() {
       setRecentVisible(false);
     });
     return () => { current = false; };
-  }, [ready, userId, kind, lookId, productId, shadeId, routeKey]);
+  }, [ready, userId, kind, lookId, productId, shadeId, optionId, routeKey]);
 
   const refreshFromServer = useEffectEvent(() => {
     void savedRooms.refresh(active?.id);
@@ -329,7 +330,8 @@ export default function ChatScreen() {
     const style = record.view.activeStyle;
     const entry = subject.type === 'product'
       ? { ...subject, shadeId: product?.productId === subject.productId ? product?.shadeId ?? undefined
-        : record.conversation.entryProduct?.shadeId ?? undefined }
+        : record.conversation.entryProduct?.shadeId ?? undefined,
+        optionId: product?.productId === subject.productId ? product.optionId ?? undefined : record.conversation.entryProduct?.optionId ?? undefined }
       : subject;
     const focus = subject.type === 'general'
       ? { product: product?.productId ? { ...product, screenId: 'product-detail' } : undefined, style }
@@ -396,14 +398,21 @@ function CatalogEntryLabel({ id }: { id: string }) {
   return <EntryLabel name={query.data?.look.id === id ? query.data.look.title : undefined} />;
 }
 
-function ProductEntryLabel({ id, shadeId, showShade = true }: { id: string; shadeId?: string | null; showShade?: boolean }) {
+function ProductEntryLabel({ id, shadeId, optionId, showShade = true }: { id: string; shadeId?: string | null; optionId?: string | null; showShade?: boolean }) {
   const query = useProduct(id);
   const product = query.data;
   const shade = product?.shades?.find((item) => item.id === shadeId)?.name;
   const { t } = useI18n();
   if (product?.id !== id) return <EntryLabel name={query.isError && query.error instanceof ApiError && query.error.status === 404
     ? t('chat.ingredient.productMissing') : undefined} />;
+  if (optionId) return <SaleEntryLabel productId={id} optionId={optionId} name={product.name} />;
   return <EntryLabel name={showShade ? `${product.name} · ${shade ?? t('chat.room.shadeUnselected')}` : product.name} />;
+}
+
+function SaleEntryLabel({ productId, optionId, name }: { productId: string; optionId: string; name: string }) {
+  const query = useProductOption(productId, optionId);
+  const option = query.data?.productId === productId && query.data.optionId === optionId ? query.data : undefined;
+  return <EntryLabel name={option ? `${name} · ${option.name}` : name} />;
 }
 
 function EntryLabel({ name }: { name?: string }) {
@@ -562,7 +571,7 @@ function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload
       .catch(() => { if (mounted.current && owned()) setProposalError('chat.memory.error'); });
   });
   useEffect(() => {
-    if (focused && userId && conversation.serverId && subject.type === 'general' &&
+    if (focused && userId && conversation.serverId && (subject.type === 'general' || subject.type === 'product') &&
         !conversation.deletionState && memory.settings?.enabled !== false) {
       refreshMemoryProposals(conversation.serverId);
     }
@@ -796,7 +805,7 @@ function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload
       if (userId && !room.serverId && room.persistenceMode !== 'disabled') {
         try {
           const entry = subject.type === 'product'
-            ? { ...subject, ...(room.entryProduct?.shadeId ? { shadeId: room.entryProduct.shadeId } : {}) }
+            ? { ...subject, ...(room.entryProduct?.shadeId ? { shadeId: room.entryProduct.shadeId } : {}), ...(room.entryProduct?.optionId ? { optionId: room.entryProduct.optionId } : {}) }
             : subject;
           const created = await apiChatUserRequest<{ conversationId: string; conversationVersion: number }>(
             '/api/chat/conversations', 'POST', userId, { requestId: room.id, entry },
@@ -827,7 +836,7 @@ function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload
             ...(style.recipeVersion ? { recipeVersion: style.recipeVersion, currentStep: style.currentStep } : {}) },
         } : screen?.productId ? {
           operation: screen.shadeId ? 'select_shade' : 'select_product',
-          payload: { productId: screen.productId, ...(screen.shadeId ? { shadeId: screen.shadeId } : {}) },
+          payload: { productId: screen.productId, ...(screen.shadeId ? { shadeId: screen.shadeId } : {}), ...(screen.optionId ? { optionId: screen.optionId } : {}) },
         } : undefined;
         if (state) {
           const patched = await apiChatUserRequest<{ conversationVersion: number }>(
@@ -964,7 +973,7 @@ function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload
           {!messages.length && !isPending && subject.type !== 'general' ? <View style={styles.targetWelcome}>
             <Text accessibilityRole="header" style={styles.welcomeTitle}>{t(subject.type === 'look' ? 'chat.room.look' : 'chat.room.product')}</Text>
             {subject.type === 'look' ? subject.kind === 'video' ? <VideoEntryLabel id={subject.lookId} /> : <CatalogEntryLabel id={subject.lookId} />
-              : <ProductEntryLabel id={subject.productId} shadeId={linkedProduct?.shadeId} />}
+              : <ProductEntryLabel id={subject.productId} shadeId={linkedProduct?.shadeId} optionId={linkedProduct?.optionId} />}
             <Text style={styles.welcomeBody}>{t('chat.welcome.ask')}</Text>
             {(subject.type === 'look'
               ? ['chat.room.recipePrompt', 'chat.room.lookTip', 'chat.room.lookProduct'] as const
@@ -1155,7 +1164,7 @@ function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload
                       () => store().setRecipeStep(target, message.id, index));
                     }
                   }}
-                  onOpenProduct={(id, shadeId) => { if (mounted.current) router.push(productHref(id, shadeId, undefined, message.styleRecipe?.kind === 'video')); }}
+                  onOpenProduct={(id, shadeId, optionId) => { if (mounted.current) router.push(productHref(id, shadeId, undefined, message.styleRecipe?.kind === 'video', optionId)); }}
                   onOpenAr={(productId, shadeId) => { if (mounted.current) router.push(arHref({ productId, shadeId })); }}
                   onManualAr={() => { if (mounted.current) router.push(arHref()); }}
                   heading={t('chat.ui.style')}
@@ -1353,7 +1362,7 @@ function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload
             <View style={styles.selectionInfo}>
               {activeStyle && (subject.type === 'look' || category === 'style')
                 ? activeStyle.kind === 'video' ? <VideoEntryLabel id={activeStyle.lookId} /> : <CatalogEntryLabel id={activeStyle.lookId} />
-                : linkedProduct?.productId ? <ProductEntryLabel id={linkedProduct.productId} shadeId={linkedProduct.shadeId} /> : null}
+                : linkedProduct?.productId ? <ProductEntryLabel id={linkedProduct.productId} shadeId={linkedProduct.shadeId} optionId={linkedProduct.optionId} /> : null}
             </View>
             {subject.type === 'general' ? <Pressable accessibilityRole="button" accessibilityLabel={t('chat.room.clearFocus')}
               onPress={clearFocus} style={styles.headerAction}><Ionicons name="close" size={20} color={theme.colors.roseDark} /></Pressable> : null}

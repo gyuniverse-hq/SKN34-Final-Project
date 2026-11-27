@@ -61,16 +61,17 @@ jest.mock('@/lib/auth/client', () => ({
   } } } : null,
   isAuthConfigured: () => false,
 }));
-jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => mockDictionary?.[key] ?? key, language: mockLanguage }) }));
+jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string, params?: Record<string, string>) => Object.entries(params ?? {}).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, value), mockDictionary?.[key] ?? key), language: mockLanguage }) }));
 jest.mock('@/lib/queries', () => ({
   useProductsByIds: (ids: string[]) => mockProductsByIds(ids),
   useStyleLooks: () => ({ data: [{ id: '_video-1', title: 'Test look', products: [{ zone: 'lip' }] }, { id: '_video-2', title: 'Other look', products: [] }] }),
   useLook: () => ({}),
+  useProductOption: (productId: string, optionId: string) => ({ data: { productId, optionId, name: `Sale ${optionId}` } }),
   useProduct: (id: string) => ({ data: { id, name: id, shades: [{ id: `${id}-01`, name: '01' }, { id: `${id}-02`, name: '02' }] } }),
 }));
 jest.mock('@/components/chat/ChatProducts', () => ({ ChatProducts: () => null, CompoundProductCards: () => null, OwnedLookOptionCards: () => null }));
 jest.mock('@expo/vector-icons/Ionicons', () => () => null);
-const mockRouteParams: { recipeKind?: string; recipeLookId?: string; productId?: string; shadeId?: string } = {};
+const mockRouteParams: { recipeKind?: string; recipeLookId?: string; productId?: string; shadeId?: string; optionId?: string } = {};
 jest.mock('expo-router', () => ({
   Stack: { Screen: ({ options }: { options: { headerRight?: () => unknown } }) => options.headerRight?.() ?? null },
   useRouter: () => ({ push: mockPush }),
@@ -105,7 +106,7 @@ beforeEach(async () => {
   jest.spyOn(chatApi, 'apiChatUserRequest').mockRejectedValue(new ApiError('disabled', 503, 'persistence_disabled'));
   useChatConversationStore.setState({ identity: undefined, conversations: {}, latest: {} });
   delete mockRouteParams.recipeKind; delete mockRouteParams.recipeLookId;
-  delete mockRouteParams.productId; delete mockRouteParams.shadeId;
+  delete mockRouteParams.productId; delete mockRouteParams.shadeId; delete mockRouteParams.optionId;
   mockMutateAsync.mockReset();
   mockMemoryRefresh.mockReset().mockRejectedValue(new ApiError('Memory unavailable', 503, 'memory_unavailable'));
   mockMemoryProposalRefresh.mockReset().mockResolvedValue(undefined);
@@ -2124,4 +2125,19 @@ test('G4 ingredient confirmation does not show a search scope', async () => {
   expect(view.root.findAllByType(Text).some((n) => n.props.children === 'chat.option.scopeShow')).toBe(false);
   expect(view.root.findAllByType(ChatProducts)).toHaveLength(0);
   await act(async () => view.unmount());
+});
+
+
+test('keeps a sale option in the chat entry, label and outgoing screen context', async () => {
+  mockDictionary = { 'chat.entry.context': '{name}' };
+  Object.assign(mockRouteParams, { productId: 'p1', optionId: 'sale-a' });
+  const view = await renderScreen();
+  expect(JSON.stringify(view.toJSON())).toContain('Sale sale-a');
+  mockMutateAsync.mockResolvedValue({ answer: '설명', products: [] });
+  await act(async () => view.root.findByType(TextInput).props.onChangeText('이 옵션 설명해줘'));
+  await act(async () => view.root.findByProps({ accessibilityLabel: 'chat.ui.send' }).props.onPress());
+  expect(mockMutateAsync.mock.calls.at(-1)?.[0].screenContext).toMatchObject({ productId: 'p1', optionId: 'sale-a' });
+  await act(async () => view.unmount());
+  delete mockRouteParams.optionId;
+  delete mockRouteParams.productId;
 });

@@ -30,7 +30,7 @@ export type LoginReturnTo = 'checkout' | 'membership' | 'rewards';
 type RawParam = string | string[] | undefined;
 
 export function chatHref(target?: { recipeKind: 'video' | 'catalog'; recipeLookId: string } |
-  { productId: string; shadeId?: string }): Href {
+  { productId: string; shadeId?: string; optionId?: string }): Href {
   return target ? { pathname: '/chat', params: target } : '/chat';
 }
 

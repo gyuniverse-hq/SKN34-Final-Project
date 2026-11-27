@@ -211,6 +211,7 @@ def verified_inventory_matches(
     mode: InventoryMode,
     *,
     match_names: bool,
+    verified_options: dict | None = None,
 ) -> tuple[list[AppliedOwnedProductMemory], bool]:
     entries = [
         entry
@@ -246,6 +247,14 @@ def verified_inventory_matches(
             if len(candidates) == 1:
                 product_id, shade_id = candidates[0]
         product = valid.get(product_id)
+        option_id = draft.value.get("optionId")
+        if option_id:
+            option = (verified_options or {}).get((product_id, option_id))
+            if option is None or (option.product_id, option.option_id) != (product_id, option_id):
+                continue
+            shade_id = option.ar_shade_id
+            if product and shade_id and not any(s.id == shade_id for s in product.shades):
+                shade_id = None
         if product is None or (
             shade_id is not None and not any(shade.id == shade_id for shade in product.shades)
         ):

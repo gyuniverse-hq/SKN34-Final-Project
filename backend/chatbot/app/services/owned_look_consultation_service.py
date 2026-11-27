@@ -279,8 +279,23 @@ async def execute_owned_look(req, catalog, *, trace=None):
                     rows[product.id] = product
         except (UpstreamError, ValueError):
             failures.append("보유 제품 일부를 현재 상품 정보와 대조하지 못했어요.")
+    verified_options = {}
+    for entry in entries:
+        value = entry.structured.value
+        pid, oid = value.get("productId"), value.get("optionId")
+        if pid in rows and oid and (pid, oid) not in verified_options:
+            try:
+                option = await catalog.get_product_option(pid, oid)
+                if option and (option.product_id, option.option_id) == (pid, oid):
+                    verified_options[(pid, oid)] = option
+            except UpstreamError:
+                failures.append("보유 옵션 일부를 현재 상품 정보와 대조하지 못했어요.")
     matches, unresolved = verified_inventory_matches(
-        req, list(rows.values()), "exclude", match_names=True
+        req,
+        list(rows.values()),
+        "exclude",
+        match_names=True,
+        verified_options=verified_options,
     )
     owned = [
         OwnedLookProduct(

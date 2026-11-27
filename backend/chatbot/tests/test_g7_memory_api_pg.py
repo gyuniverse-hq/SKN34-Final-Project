@@ -2000,3 +2000,195 @@ def test_live_sale_without_ar_persists_and_restores(memory_api, monkeypatch, rec
         )
         version = reply["conversation"]["version"]
     record_property("live_sale_pg_roundtrip", json.dumps(turns, ensure_ascii=False))
+
+
+@pytest.mark.skipif(not os.environ.get("G8_N02_LIVE_CATALOG"), reason="live Catalog required")
+def test_sale_option_normal_proposal_pg_restore_and_n02(memory_api, monkeypatch, record_property):
+    from app.services import owned_look_consultation_service as owned_service
+
+    client, _ = memory_api
+    settings = get_settings()
+    monkeypatch.setattr(settings, "g7_structured_memory_enabled", True)
+    monkeypatch.setattr(settings, "g8_enabled", True)
+    monkeypatch.setattr(settings, "g1_supervisor_enabled", False)
+    calls, tasks = [], []
+
+    class ObservedCatalog(CatalogClient):
+        async def get_product_option(self, pid, oid):
+            result = await super().get_product_option(pid, oid)
+            calls.append(
+                {
+                    "productId": pid,
+                    "optionId": oid,
+                    "found": result is not None,
+                    "arShadeId": result.ar_shade_id if result else None,
+                }
+            )
+            return result
+
+    catalog = ObservedCatalog(os.environ["G8_N02_LIVE_CATALOG"])
+
+    class RecordingLlm(FakeLlm):
+        call_count = 0
+
+        async def complete(self, messages):
+            self.call_count += 1
+            return await super().complete(messages)
+
+    llm = RecordingLlm()
+    service = ChatService(FakeGraph(), llm, catalog)
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    original = owned_service.execute_owned_look
+
+    async def observed(req, catalog, *, trace=None):
+        local = []
+        response = await original(req, catalog, trace=local)
+        tasks.extend(local)
+        if trace is not None:
+            trace.extend(local)
+        return response
+
+    monkeypatch.setattr(owned_service, "execute_owned_look", observed)
+    pid = "oy-a000000162667"
+    oid = "A000000162667-012"
+    created = client.post(
+        "/api/chat/conversations",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "entry": {"type": "product", "productId": pid, "optionId": oid},
+        },
+    )
+    assert created.status_code == 201, created.text
+    room = created.json()["conversationId"]
+    reply = ask(client, room, 0, "이 옵션을 가지고 있다고 기억해줘", structured=True)
+    first_calls = llm.call_count
+    path = "/api/chat/v2/memory-proposals"
+    (group,) = client.get(path, headers=AUTH, params={"conversationId": room}).json()
+    (item,) = [i for i in group["items"] if i["key"] == "inventory.product"]
+    assert item["value"]["optionId"] == oid
+    assert "shadeId" not in item["value"]
+    # A proposal is not consent. Only this explicit decision writes a memory.
+    consent = client.post(
+        f"{path}/{group['groupId']}/decisions",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "decisions": [
+                {
+                    "itemId": item["itemId"],
+                    "expectedVersion": item["version"],
+                    "action": "approve",
+                    "confirmed": True,
+                }
+            ],
+        },
+    )
+    assert consent.status_code == 200, consent.text
+    restored = client.get(f"/api/chat/conversations/{room}", headers=AUTH)
+    assert restored.status_code == 200, restored.text
+    assert restored.json()["context"]["product"]["selectedOptionId"] == oid
+    # Same product, different sale option, both without AR: independent consented memories.
+    changed = client.patch(
+        f"/api/chat/conversations/{room}/state",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": reply["conversation"]["version"],
+            "operation": "select_product",
+            "payload": {"productId": pid, "optionId": "A000000162667-001"},
+        },
+    )
+    assert changed.status_code == 200, changed.text
+    ask(
+        client,
+        room,
+        changed.json()["conversationVersion"],
+        "이 옵션을 가지고 있다고 기억해줘",
+        structured=True,
+    )
+    second_calls = llm.call_count - first_calls
+    groups = client.get(path, headers=AUTH, params={"conversationId": room}).json()
+    group_b = next(
+        g
+        for g in groups
+        if any(i["value"].get("optionId") == "A000000162667-001" for i in g["items"])
+    )
+    item_b = next(i for i in group_b["items"] if i["value"].get("optionId") == "A000000162667-001")
+    saved_b = client.post(
+        f"{path}/{group_b['groupId']}/decisions",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "decisions": [
+                {
+                    "itemId": item_b["itemId"],
+                    "expectedVersion": item_b["version"],
+                    "action": "approve",
+                    "confirmed": True,
+                }
+            ],
+        },
+    )
+    assert saved_b.status_code == 200, saved_b.text
+    look_room = new_room(client)
+    selected = client.patch(
+        f"/api/chat/conversations/{look_room}/state",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": 0,
+            "operation": "select_look",
+            "payload": {"kind": "video", "lookId": "L8RvSmdkR2g"},
+        },
+    )
+    assert selected.status_code == 200, selected.text
+    response = ask(
+        client,
+        look_room,
+        selected.json()["conversationVersion"],
+        "내가 보유한 제품으로 이 룩을 구성하고 없는 제품만 추천해줘",
+        structured=True,
+    )
+    owned_tasks = [t for t in tasks if t.get("task", {}).get("taskId") == "O1"]
+    assert owned_tasks and oid in json.dumps(owned_tasks, ensure_ascii=False)
+    assert "A000000162667-001" in json.dumps(owned_tasks, ensure_ascii=False)
+    assert response.get("arResult") is None
+    record_property(
+        "option_memory_evidence",
+        json.dumps(
+            {
+                "catalogMode": "live",
+                "storageMode": "PostgreSQL",
+                "modelConfiguredMode": "mock-configured",
+                "actualExternalModelCalls": 0,
+                "optionCalls": calls,
+                "ownedTasks": owned_tasks,
+                "proposalValue": item["value"],
+                "restoredOptionId": oid,
+                "turns": [
+                    {
+                        "modelMode": "mock",
+                        "externalModelCalls": 0,
+                        "mockCompleteCalls": first_calls,
+                        "purpose": "memory-proposal-A",
+                    },
+                    {
+                        "modelMode": "mock",
+                        "externalModelCalls": 0,
+                        "mockCompleteCalls": second_calls,
+                        "purpose": "memory-proposal-B",
+                    },
+                    {
+                        "modelMode": "mock",
+                        "externalModelCalls": 0,
+                        "mockCompleteCalls": llm.call_count - first_calls - second_calls,
+                        "purpose": "N02-memory-use",
+                    },
+                ],
+                "memoryReply": reply["answer"],
+                "n02Answer": response["answer"],
+            },
+            ensure_ascii=False,
+        ),
+    )

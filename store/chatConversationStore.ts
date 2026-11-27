@@ -53,7 +53,7 @@ export function isChatSessionExpired(expiresAt: number) {
 
 function screenForEntry(entry: ConversationEntry): ChatScreenContext | undefined {
   if (entry.type !== 'product') return;
-  return { screenId: 'product-detail', productId: entry.productId, ...(entry.shadeId ? { shadeId: entry.shadeId } : {}) };
+  return { screenId: 'product-detail', productId: entry.productId, ...(entry.shadeId ? { shadeId: entry.shadeId } : {}), ...(entry.optionId ? { optionId: entry.optionId } : {}) };
 }
 
 export type RequestRecoveryStatus = 'checking' | 'in_progress' | 'not_found' | 'auth' | 'unconfirmed' | 'interrupted' | 'failed';
@@ -275,7 +275,7 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
         const room = existing.conversation;
         const screen = screenForEntry(entry);
         if (entry.type === 'product' && screen &&
-          (room.selection.screen || room.entryProduct?.shadeId !== screen.shadeId)) {
+          (room.selection.screen || room.entryProduct?.shadeId !== screen.shadeId || room.entryProduct?.optionId !== screen.optionId)) {
           change(room, (draft) => {
             draft.entryProduct = screen;
             draft.selection.revision += 1;
@@ -360,7 +360,8 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
       room.olderMessageCursor = detail.nextMessageCursor ?? undefined;
       const product = detail.context.product;
       if (product?.selectedProductId) room.selection.screen = { screenId: 'chat', productId: product.selectedProductId,
-        ...(product.selectedShadeId ? { shadeId: product.selectedShadeId } : {}) };
+        ...(product.selectedShadeId ? { shadeId: product.selectedShadeId } : {}),
+        ...(product.selectedOptionId ? { optionId: product.selectedOptionId } : {}) };
       if (product?.selectedProductId && product.selectedShadeId) room.selection.shades[product.selectedProductId] = product.selectedShadeId;
       const style = detail.context.style;
       room.styleContext = style ? { kind: style.kind, lookId: style.lookId,

@@ -142,6 +142,7 @@ class BeautyContext(ArModel):
     candidate_ids: list[ArIdentifier] = Field(default_factory=list, max_length=6)
     scope_ids: list[ArIdentifier] = Field(default_factory=list, max_length=6)
     selected_product_id: ArIdentifier | None = None
+    selected_option_id: str | None = Field(default=None, max_length=128)
     shade_selections: dict[ArIdentifier, ArIdentifier] = Field(
         default_factory=dict, max_length=6, exclude_if=lambda v: not v
     )

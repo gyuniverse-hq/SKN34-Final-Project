@@ -16,6 +16,13 @@ class _CatalogModel(BaseModel):
 ColorFamily = Literal["red", "coral", "pink", "berry", "nude", "brown"]
 
 
+class CatalogProductOption(_CatalogModel):
+    product_id: str
+    option_id: str
+    name: str
+    ar_shade_id: str | None = None
+
+
 class CatalogShade(_CatalogModel):
     id: str
     name: str

@@ -2,6 +2,7 @@ import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import ProductDetail from '@/app/product/[id]';
 import { Button } from '@/components/ui/Button';
+import { HomeChatButton } from '@/components/chat/HomeChatButton';
 import { ShadePicker } from '@/components/ui/ShadePicker';
 import { productHref } from '@/lib/routes';
 import { useCartStore } from '@/store/cartStore';
@@ -15,8 +16,9 @@ const mockProduct = { id: 'lip', brand: 'Fixture', name: 'Test lip', nameKo: '',
 const mockHref = productHref(mockProduct.id, 'selected');
 const mockRoute = (typeof mockHref === 'object' ? mockHref.params : {}) as { id?: string; shade?: string; requireShade?: string; optionId?: string };
 const mockNotify = jest.fn();
+const mockPush = jest.fn();
 jest.mock('expo-router', () => ({ Stack: { Screen: () => null },
-  useLocalSearchParams: () => mockRoute, useRouter: () => ({ push: jest.fn(), setParams: jest.fn() }),
+  useLocalSearchParams: () => mockRoute, useRouter: () => ({ push: mockPush, setParams: jest.fn() }),
 }));
 let mockSale: ProductOption | undefined;
 jest.mock('@/lib/queries', () => ({ useProductOption: () => ({ data: mockSale, isPending: false, isError: false }), useProduct: () => ({ data: mockProduct, isPending: false, isError: false }), useProductVideos: () => ({ data: [] }) }));
@@ -73,6 +75,8 @@ it('preserves sale option through detail and cart, ignoring an unrelated route s
   expect(JSON.stringify(view.toJSON())).toContain('sale.priceUnknown');
   await act(async () => { view.root.findAllByType(Button).find(b => b.props.label === 'product.addToCart')!.props.onPress(); });
   expect(useCartStore.getState().items).toEqual([{ productId: 'lip', optionId: 'sale-02', quantity: 1 }]);
+  await act(async () => { view.root.findByType(HomeChatButton).props.onPress(); });
+  expect(mockPush).toHaveBeenCalledWith({ pathname: '/chat', params: { productId: 'lip', shadeId: undefined, optionId: 'sale-02' } });
   await act(async () => { view.unmount(); });
   delete mockRoute.optionId;
   mockRoute.shade = 'selected';

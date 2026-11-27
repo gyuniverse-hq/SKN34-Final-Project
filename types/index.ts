@@ -896,6 +896,7 @@ export interface ChatIngredientComparison {
 }
 
 export interface ChatScreenContext {
+  optionId?: string | null;
   ingredientComparison?: ChatIngredientComparison;
   screenId?: string | null;
   productId?: string | null;
@@ -980,6 +981,7 @@ export interface BeautyChatContext {
   candidateIds: string[];
   scopeIds: string[];
   selectedProductId: string | null;
+  selectedOptionId?: string | null;
   shadeSelections?: Record<string, string>;
   session?: ChatSessionRef;
 }

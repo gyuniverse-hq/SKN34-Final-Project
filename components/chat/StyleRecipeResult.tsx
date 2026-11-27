@@ -11,7 +11,7 @@ import type { ChatStyleRecipe } from '@/types';
 export type StyleRecipeResultProps = {
   result?: ChatStyleRecipe;
   onStepChange?: (index: number) => void;
-  onOpenProduct?: (productId: string, shadeId?: string) => void;
+  onOpenProduct?: (productId: string, shadeId?: string, optionId?: string) => void;
   onOpenAr?: (productId: string, shadeId: string) => void;
   onManualAr?: () => void;
   disabled?: boolean;
@@ -198,7 +198,7 @@ export function StyleRecipeResult({ heading, summary, browseImage, browseLabel, 
               : product.mappingStatus === 'unavailable' ? 'chat.productLoadFailed'
                 : result.productUsageTrusted ? 'chat.style.mappingNotLinked' : 'chat.style.mappingUnknown')}</Text>
           {product.productId && onOpenProduct ? <Pressable accessibilityRole="button" accessibilityLabel={t('styleLooks.openProduct')} style={styles.stepControl}
-            onPress={() => onOpenProduct(product.productId!, product.catalogValid && product.mappingStatus === 'verified' ? product.shadeId ?? undefined : undefined)}><Text>{t('styleLooks.openProduct')}</Text></Pressable> : null}
+            onPress={() => { const shade = product.catalogValid && product.mappingStatus === 'verified' ? product.shadeId ?? undefined : undefined; if (product.optionId) onOpenProduct(product.productId!, shade, product.optionId); else onOpenProduct(product.productId!, shade); }}><Text>{t('styleLooks.openProduct')}</Text></Pressable> : null}
           {product.arEligible && product.catalogValid && product.mappingStatus === 'verified' && product.productId && product.shadeId && onOpenAr ? <Pressable accessibilityRole="button" accessibilityLabel={t('styleLooks.tryAr')} style={styles.stepControl}
             disabled={disabled} accessibilityState={{ disabled }}
             onPress={() => { if (!disabled) onOpenAr(product.productId!, product.shadeId!); }}><Text>{t('styleLooks.tryAr')}</Text></Pressable> : null}

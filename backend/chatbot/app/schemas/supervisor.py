@@ -26,6 +26,7 @@ class IngredientComparison(SupervisorModel):
 
 
 class ScreenContext(SupervisorModel):
+    option_id: str | None = Field(default=None, max_length=128)
     ingredient_comparison: IngredientComparison | None = Field(
         default=None, exclude_if=lambda value: value is None
     )

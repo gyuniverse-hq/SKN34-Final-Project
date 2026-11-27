@@ -208,3 +208,53 @@ async def test_price_only_change_retains_explanation_reference(monkeypatch):
         next(t for t in third._consultation_parent.tasks if t.goal == "knowledge").status
         == "superseded"
     )
+
+
+@pytest.mark.anyio
+async def test_skin_explanation_followup_never_enters_style(monkeypatch):
+    from app.services import compound_consultation_graph as skin
+
+    calls = []
+
+    async def interpret(req, *_args):
+        calls.append(req.message)
+        return skin.Interpretation(
+            scope="consultation", action="clarify", question="사용 순서를 설명할게요."
+        )
+
+    async def forbidden(*_args, **_kwargs):
+        raise AssertionError("Skin follow-up must not execute Style")
+
+    monkeypatch.setattr(skin, "interpret", interpret)
+    monkeypatch.setattr(parent, "execute_style", forbidden)
+    req = ChatRequest(message="상품은 됐고 사용 순서만 알려줘", locale="ko")
+    req._consultation_parent = ConsultationParent(tasks=[ParentTask(goal="skin", version=1)])
+    from app.schemas.compound_consultation import CompoundContext, CompoundGoal
+
+    req._compound_context = CompoundContext(plan_version=1, goal=CompoundGoal(goals=["dryness"]))
+    result = await ChatService(None, FakeLlm(configured=False), Catalog()).answer(req)
+    assert calls == [req.message]
+    assert result._consultation_parent.tasks[0].goal == "skin"
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "message",
+    ["블러셔는 없어. 설명은 필요 없고 상품만 추천해줘", "블러셔는 없어. 설명은 빼고 상품만 찾아줘"],
+)
+async def test_normal_owned_look_withdrawal_skips_knowledge(monkeypatch, message):
+    async def forbidden(*_args, **_kwargs):
+        raise AssertionError("Withdrawn explanation must not call G5")
+
+    monkeypatch.setattr(parent.knowledge_service, "consult_knowledge", forbidden)
+    result = await ChatService(None, FakeLlm(configured=False), Catalog()).answer(
+        request([owned("lip-a", "lip-a-shade")], message)
+    )
+    assert result.products
+    assert all(t.goal != "knowledge" for t in result._consultation_parent.tasks)
+
+
+def test_specific_explanation_withdrawal_preserves_other_question():
+    assert parent.wants_explanation("원인은 설명해주고 사용법은 빼줘")
+    assert parent.wants_explanation("설명은 빼고 주의점은 알려줘")
+    assert not parent.wants_explanation("설명은 필요 없고 상품만")

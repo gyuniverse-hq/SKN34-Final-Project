@@ -381,3 +381,13 @@ test('keeps N02 option selections and original batch scopes on reply and server 
       displayPayload: { products: [], ownedLookOptions } }] }, target.generation, true);
   expect(store().conversations[id].messages.at(-1)?.ownedLookOptions).toEqual(ownedLookOptions);
 });
+
+
+test('switches sale options in the same product room and clears option on legacy entry', () => {
+  const id = store().open({ type: 'product', productId: 'same-product', optionId: 'sale-a' })!;
+  expect(store().conversations[id].view.linkedProduct?.optionId).toBe('sale-a');
+  expect(store().open({ type: 'product', productId: 'same-product', optionId: 'sale-b' })).toBe(id);
+  expect(store().conversations[id].view.linkedProduct?.optionId).toBe('sale-b');
+  store().open({ type: 'product', productId: 'same-product' });
+  expect(store().conversations[id].view.linkedProduct?.optionId).toBeUndefined();
+});

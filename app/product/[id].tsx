@@ -190,7 +190,7 @@ export default function ProductDetailScreen() {
           </View>
         </ScrollView>
         <HomeChatButton label={t('home.chatFab')} hint={t('home.chatFabHint')}
-          onPress={() => router.push(chatHref({ productId: p.id, shadeId: arShade?.id }))} />
+          onPress={() => router.push(chatHref({ productId: p.id, shadeId: arShade?.id, optionId: option?.optionId }))} />
       </View>
 
       <View style={styles.footer}>

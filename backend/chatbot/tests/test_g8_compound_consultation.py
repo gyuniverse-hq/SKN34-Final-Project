@@ -1268,3 +1268,47 @@ async def test_semantic_execution_scope_is_not_lost_in_lexical_fallback(
     assert result.products == [] and result.compound is None and result.ar_result is None
     assert result.answer
     assert api.calls == [] and planner.complete_with_tools.await_count == 1
+
+
+@pytest.mark.anyio
+async def test_skin_parent_usage_only_preserves_goal_without_product_tools(
+    monkeypatch, connections
+):
+    from app.services.conversation_context import prepare_request, updated_context
+
+    api, skincare, catalog = connections
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    consult = install_knowledge(monkeypatch)
+
+    class FollowupPlanner(Planner):
+        async def complete_with_tools(self, messages, tools, *, required_tool=None):
+            response, ms = await super().complete_with_tools(
+                messages, tools, required_tool=required_tool
+            )
+            fn = response["choices"][0]["message"]["tool_calls"][0]["function"]
+            incoming = json.loads(messages[-1]["content"])
+            plan = json.loads(fn["arguments"])
+            if incoming.get("previousGoal"):
+                plan.update(action="refine", question=incoming["utterance"])
+                plan["goal"] = {
+                    **incoming["previousGoal"],
+                    "wantsProducts": False,
+                    "wantsKnowledge": True,
+                }
+            fn["arguments"] = json.dumps(plan)
+            return response, ms
+
+    service = ChatService(None, FollowupPlanner(), catalog, skincare=skincare)
+    first = await service.answer(ChatRequest(message=QUESTION, locale="ko"))
+    raw = updated_context({}, first)
+    before = len(api.calls)
+    followup = prepare_request(
+        ChatRequest(message="상품은 됐고 사용 순서만 알려줘", locale="ko"), raw, []
+    )
+    result = await service.answer(followup)
+    assert len(api.calls) == before
+    assert result.compound.goal.goals == GOAL.goals
+    assert result.compound.goal.wants_products is False
+    assert result.style_recipe is None
+    assert consult.call_args.args[0] == followup.message
+    assert result._consultation_parent.plan_id == first._consultation_parent.plan_id

@@ -47,6 +47,7 @@ from app.services.memory_registry import (
     extract_values,
     is_explicit_request,
     refers_to_prior,
+    with_verified_option,
     with_verified_product,
 )
 from app.services.memory_service import (
@@ -166,6 +167,27 @@ class ConversationService:
         return get_chat_sessionmaker()
 
     async def create(self, owner_id: str, body: CreateConversationRequest) -> dict:
+        initial_context = None
+        needs_option_validation = body.entry.type == "product" and body.entry.option_id
+        if needs_option_validation:
+            # A committed creation replay does not depend on current Catalog availability.
+            async with self._sessions()() as session:
+                previous = await ConversationRepository(session).get_creation(
+                    owner_id, body.request_id
+                )
+                needs_option_validation = previous is None
+        if needs_option_validation:
+            initial_context = await apply_state_update(
+                {},
+                {},
+                UpdateConversationStateRequest(
+                    request_id=body.request_id,
+                    expected_conversation_version=0,
+                    operation="select_product",
+                    payload={"productId": body.entry.product_id, "optionId": body.entry.option_id},
+                ),
+                self.chat,
+            )
         fingerprint = _fingerprint(
             owner_id,
             "conversation_create",
@@ -195,6 +217,8 @@ class ConversationService:
                     )
                     if room is None:
                         raise ApiError(403, "Account is unavailable", "account_unavailable")
+                    if initial_context is not None:
+                        room.context_json = initial_context
                     await repo.record_creation(owner_id, body.request_id, fingerprint, room.id)
                 return {
                     "conversationId": str(room.id),
@@ -425,7 +449,14 @@ class ConversationService:
                         memory_enabled
                         and request.structured_memory
                         and structured_memory_enabled()
-                        and room.subject_json.get("type") == "general"
+                        and (
+                            room.subject_json.get("type") == "general"
+                            or (
+                                room.subject_json.get("type") == "product"
+                                and room.context_json.get("product", {}).get("selectedOptionId")
+                                and is_explicit_request(request.message)
+                            )
+                        )
                         and request.request_type in {"chat", "beauty_consultation"}
                     )
                     memory_generation = await memory_repo.generation(owner_id, memory_enabled)
@@ -529,15 +560,31 @@ class ConversationService:
             if catalog and selected and any(draft.key == "inventory.product" for draft in drafts):
                 try:
                     product = await catalog.get_product(selected)
+                    option_id = prepared.chat_context.selected_option_id
+                    option = (
+                        await catalog.get_product_option(selected, option_id) if option_id else None
+                    )
                 except UpstreamError:
                     product = None
+                    option = None
                 if product and product.id == selected:
                     drafts = [
-                        with_verified_product(draft, product, request.locale)
+                        (
+                            with_verified_option(draft, product, option, request.locale)
+                            if prepared.chat_context.selected_option_id
+                            else with_verified_product(draft, product, request.locale)
+                        )
                         if draft.key == "inventory.product"
                         else draft
                         for draft in drafts
                     ]
+            if room.subject_json.get("type") == "product":
+                # Product entry may propose only its verified sale option, on explicit request.
+                # It does not gain automatic consultation-memory consumption or AR permission.
+                drafts = [
+                    d for d in drafts if d.key == "inventory.product" and d.value.get("optionId")
+                ]
+                previous_source = False
             if structured:
                 if explicit_memory:
                     response.answer = _STRUCTURED_MEMORY_REPLY[request.locale]

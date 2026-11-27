@@ -25,6 +25,7 @@ class GeneralEntry(ConversationModel):
 
 
 class ProductEntry(ConversationModel):
+    option_id: str | None = Field(default=None, min_length=1, max_length=128)
     type: Literal["product"]
     product_id: str = Field(min_length=1, max_length=128)
     shade_id: str | None = Field(default=None, min_length=1, max_length=128)
@@ -50,6 +51,7 @@ class CreateConversationResponse(ConversationModel):
 
 
 class SelectProductPayload(ConversationModel):
+    option_id: str | None = Field(default=None, min_length=1, max_length=128)
     product_id: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
@@ -108,6 +110,7 @@ class StoredGoal(ConversationModel):
 
 
 class StoredProductContext(ConversationModel):
+    selected_option_id: str | None = Field(default=None, max_length=128)
     selected_product_id: str | None = Field(default=None, max_length=128)
     selected_shade_id: str | None = Field(default=None, max_length=128)
     filters: dict[str, object] = Field(default_factory=dict)
