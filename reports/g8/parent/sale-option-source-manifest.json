@@ -1,0 +1,249 @@
+{
+  "head": "fc1b6279e2a8cca3b899dd255aa8a1ee4156b459",
+  "files": [
+    {
+      "path": "__tests__/cartStore.test.ts",
+      "sha256": "465066c82d3b7376d485143618e2df98757f3c9c22850eb7bd331689259c8f0c"
+    },
+    {
+      "path": "__tests__/catalogView.test.ts",
+      "sha256": "5bff1ca166444b3a478913589bcd704b2668860055184eda3d2614d93d7af0eb"
+    },
+    {
+      "path": "__tests__/chatConversationStore.test.ts",
+      "sha256": "dd710e5b7fded4027a326b7f528dd144b9c5173f0f724b5124beea6117e09923"
+    },
+    {
+      "path": "__tests__/chatProductDetail.test.tsx",
+      "sha256": "0fd0f40eb3d75807461446c41010af91f2b93850f111fa27f8501e49c3abfe9c"
+    },
+    {
+      "path": "__tests__/chatProducts.test.ts",
+      "sha256": "5652961ef2e1d57293c0d7256cf36ef9fa26cc5a9ce45b86afea811790ac1f2d"
+    },
+    {
+      "path": "__tests__/chatUiPreview.test.tsx",
+      "sha256": "2e97b99bc742b4c7467a474883a0594ce27c282a46761a613e0f88328e3fd4b8"
+    },
+    {
+      "path": "__tests__/checkout.test.tsx",
+      "sha256": "b0105b3a6aa9250391e2e6f8e2fb67059ff5f8de40e3e6dbb47f81b5f66a1f5b"
+    },
+    {
+      "path": "__tests__/routes.test.ts",
+      "sha256": "c58adcacda259622f3aad95e1ce269a578077e2f609219ce13a3d4fea14fe504"
+    },
+    {
+      "path": "__tests__/useArRouteSelection.test.tsx",
+      "sha256": "b1159fa1457aa55648c5629e9707e017ade2bbed182ecd466b5dc6eedb5dcbd4"
+    },
+    {
+      "path": "app/cart.tsx",
+      "sha256": "afca832d31f4a4c768b3ba01858caa116897852c8244eadae335e7cbe9f46209"
+    },
+    {
+      "path": "app/chat-ui-preview.tsx",
+      "sha256": "cc4a59b15c497598313ce10d08239a592ca9da04794589ca71ca66349873a210"
+    },
+    {
+      "path": "app/chat.tsx",
+      "sha256": "a2b1adfba9661774e913dd39368ebd11eed80eb09f4eddeb2fe881bc51b6ebd9"
+    },
+    {
+      "path": "app/checkout.tsx",
+      "sha256": "f28e4e3aec0e836222b3338ef72ac4fe669a20155fa83014d55cda7778f33cdb"
+    },
+    {
+      "path": "app/product/[id].tsx",
+      "sha256": "88d5f6008c25599dad2106f0a8a3ca3b1b3efde363a07474a9604471d53bb83c"
+    },
+    {
+      "path": "backend/api/app/repositories/oy_catalog_repository.py",
+      "sha256": "418f3f5897f6e7065b997243b1d7bc622642360aa6c84d508d8c34dd43ffca0d"
+    },
+    {
+      "path": "backend/api/app/repositories/style_look_repository.py",
+      "sha256": "d01e60031f4c44ca2d378fb1986233175a2ba089aa5fe282f98ca728e6e9256a"
+    },
+    {
+      "path": "backend/api/app/repositories/verified_video_product_repository.py",
+      "sha256": "59df6ec9da809f60b7a812d531187aeec3096d29d69b7053ae22be2ddf59f43a"
+    },
+    {
+      "path": "backend/api/app/routers/catalog.py",
+      "sha256": "d0221c54f53c3209639c208744d0a8dcf3171a934e722c536f81ba51de797c0a"
+    },
+    {
+      "path": "backend/api/app/schemas/celebrity_video.py",
+      "sha256": "ec3265c521337b070da6d16b57183516f201e4c941a69e959d296a670172a8c1"
+    },
+    {
+      "path": "backend/api/app/schemas/consultation_recipe.py",
+      "sha256": "be692ec12e0390d655c837ea8040e0c8ac995dee2e8caf91880e006fe0e64173"
+    },
+    {
+      "path": "backend/api/app/schemas/option_search.py",
+      "sha256": "ce0dffd5fbf0d111a023bde5f25b147acf7b29174f2fd308f26aa8a38febcc41"
+    },
+    {
+      "path": "backend/api/app/schemas/product_option.py",
+      "sha256": "cf7024657938fe02814449b3c27201af8a08bf1af4591b5e3a1fc1d00a1a33f3"
+    },
+    {
+      "path": "backend/api/app/schemas/style_look.py",
+      "sha256": "b7dae082d32a451f225bab23ec3b6499d0bf4f36a42a67818d53219288a85b3c"
+    },
+    {
+      "path": "backend/api/app/services/option_search_service.py",
+      "sha256": "4dc043448ef8dabc2e1db01148305f0a80c7c0a48bfe9afff7f55358691b1870"
+    },
+    {
+      "path": "backend/api/app/services/product_option_service.py",
+      "sha256": "c1c221b8a71707677f03f40929dcfb4f4b5ebda120aa0aaa9f11974cc9a64cc9"
+    },
+    {
+      "path": "backend/api/app/services/verified_video_product_links.py",
+      "sha256": "bdd992f560e35606d33eed5c767358f393dd0b6958eee86f96d2955557927f5d"
+    },
+    {
+      "path": "backend/api/tests/test_option_search.py",
+      "sha256": "803241899f672cedba644df30923678cea4331f619f3aed58818dc709a94dac8"
+    },
+    {
+      "path": "backend/api/tests/test_product_options.py",
+      "sha256": "d592d3a84355e9f32ad1d3604d266a203b2106d62805e3566b1b48fa5780d092"
+    },
+    {
+      "path": "backend/api/tests/test_style_looks.py",
+      "sha256": "20fd5b435d04c560a7fb136dd19a382f8caa200ca42058c51cb5942d45b58a3e"
+    },
+    {
+      "path": "backend/api/tests/test_verified_video_product_links.py",
+      "sha256": "0ffeaa0e68b259a81e237b1233c72338c2ff1ad87777ca97e81c76101b9a36a7"
+    },
+    {
+      "path": "backend/chatbot/app/repositories/conversation_repository.py",
+      "sha256": "5fc45835e3ca94a2daa023ae8176c21db331dd56134933b6744f7067c6b131f9"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/catalog.py",
+      "sha256": "79f5c347baf50c23bc2d9c9b28f4be38a90a6c959843b2a1a74d7f21ea87c6b1"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/chat.py",
+      "sha256": "2b0a4c043502b3d8d903511812dad0d6f3f4db3171b68f6e70968c6385d68393"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/consultation_parent.py",
+      "sha256": "2561305d17937d160e8ca3850560a4673178a6b0e6bece5bc87b3e0f41a4615e"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/conversation.py",
+      "sha256": "28d366c22693339440c71d5cd67305dd6a7d2b1c6f6c357a4f462123c56f8312"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/owned_look_consultation.py",
+      "sha256": "f1eb649357a28c77dd5b07a4883f638883f765eb146dae619a80b5d71dc58984"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/owned_look_context.py",
+      "sha256": "0d8432aa6f7d59dcc7acb19257772e68db4c21b0450ae10ce6497c1fdec16714"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/style_recipe.py",
+      "sha256": "a4bbbc0833aa7eb56add82941c9cbe6c834d17006da4483b895b9b328fbe664a"
+    },
+    {
+      "path": "backend/chatbot/app/services/chat_service.py",
+      "sha256": "5a742fe338557c6bb959ba6dda6e24686bcf9a30662986a9983daf2685751cd4"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_parent_graph.py",
+      "sha256": "a4a65fdea39caa3b39f9effe746d41f3cf2e740c517b6fd2c14cf3c8ebea9ae6"
+    },
+    {
+      "path": "backend/chatbot/app/services/conversation_context.py",
+      "sha256": "c309cc5c1bbd7c4aa83874a5a534b62bd33ce8c9aeb18dcddff41044e19e129c"
+    },
+    {
+      "path": "backend/chatbot/app/services/memory_registry.py",
+      "sha256": "2052e328289b001eeb963c09e85f7742233db6822e2f0c5c19ef488f3c37ed85"
+    },
+    {
+      "path": "backend/chatbot/app/services/owned_look_consultation_service.py",
+      "sha256": "6043401432b11202872a4565a6aa36e494e2cd5bd3a31eda71c7dfe02eb72889"
+    },
+    {
+      "path": "backend/chatbot/app/services/style_recipe_service.py",
+      "sha256": "e50cdce6dbac85056be21cb9752c5e4e7d786c15c59b2e980726cd713b837674"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g7_memory_api_pg.py",
+      "sha256": "38eed660ccf633594a92642b2deef008093292c1562ba88ce8893a82aa6b5011"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g7_memory_service.py",
+      "sha256": "45b538fb8041e1527065def7509f1b1661f142832af57a0d5c81ef0f7b3cd16b"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_consultation_parent.py",
+      "sha256": "d367f2a0d999f183b46797b33347fd3cf43f57a87eeef8b9b24e786aef14ccb6"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_owned_look.py",
+      "sha256": "638d30f06ad1669c03b039b5584da9d5aba06b29a756ae10a7bb082d27c96d82"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_recipe_delivery.py",
+      "sha256": "c40ccbb3b78f050b90780e627eccc94588ec48e845782891c376af0b70698a51"
+    },
+    {
+      "path": "backend/chatbot/tests/test_style_recipe.py",
+      "sha256": "30b9f502d38a15eb343c33c30d23e0f0d468c3d6fd326ecae614797b571c41f9"
+    },
+    {
+      "path": "components/chat/ChatProducts.tsx",
+      "sha256": "fd21149acbf1a748f848ab44ca8b14e1f3e2b67040537e3bba03256470b5c835"
+    },
+    {
+      "path": "hooks/useCartLines.ts",
+      "sha256": "9b5102fc9babfcf367bd506596f9a2b354afe9be6c6a3af696992adbe6d7ef02"
+    },
+    {
+      "path": "lib/i18n/en.ts",
+      "sha256": "3006661ec4f5183c84da2772d4cec20ad57ff00c47a78020f5e18b175e32921a"
+    },
+    {
+      "path": "lib/i18n/ja.ts",
+      "sha256": "17c722884b8491fe14336db9b9fd7d1ccc82ba07c705c486d55afbe7cab93ce4"
+    },
+    {
+      "path": "lib/i18n/ko.ts",
+      "sha256": "c8e6dacc605b86a2c46813fc2289720712aecc1cf186ddd98e4edcb4d922d2a6"
+    },
+    {
+      "path": "lib/i18n/zh.ts",
+      "sha256": "774fb6d572881e24534c4bc8a19d9eb99c92ef0b4897139e2f61024017fffd5b"
+    },
+    {
+      "path": "lib/queries.ts",
+      "sha256": "2a79b57c908dbe8b05a75e45bce26d93beea39fd8dc9158d7632d08c7a5705f5"
+    },
+    {
+      "path": "lib/routes.ts",
+      "sha256": "39fd707ab287c43330e6fba42f7dd6fb74d0f0ee7595fece3d088aaa055233d4"
+    },
+    {
+      "path": "store/cartStore.ts",
+      "sha256": "6c3c9149e378a36ea379e9f4f78e671c640c63dc7d1870e1985263dd5e542f5f"
+    },
+    {
+      "path": "types/index.ts",
+      "sha256": "a894a9d7e93e880809f770304bcf27c481591a48475e67b846fedf16bb0c0074"
+    },
+    {
+      "path": "types/view.ts",
+      "sha256": "c6b5b5ec10589a31b32d87f44f7d2aebe1192b04ed1f000fdec84e6648d6c0a6"
+    }
+  ]
+}

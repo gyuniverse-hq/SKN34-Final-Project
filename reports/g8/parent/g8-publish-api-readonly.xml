@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="0.631" timestamp="2026-11-27T13:34:25.194007+09:00" hostname="playdata"><testcase classname="tests.test_celebrity_videos" name="test_celebrity_videos_endpoint_uses_client_contract" time="0.547" /></testsuite></testsuites>

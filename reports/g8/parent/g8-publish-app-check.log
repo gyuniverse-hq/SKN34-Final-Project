@@ -1,0 +1,71 @@
+
+> final_project@1.0.0 check
+> npm run typecheck && npm run lint && npm test
+
+
+> final_project@1.0.0 typecheck
+> tsc --noEmit
+
+
+> final_project@1.0.0 lint
+> expo lint
+
+
+> final_project@1.0.0 test
+> jest
+
+FAIL __tests__/arNearbyExploration.test.tsx (22.032 s)
+  ● connects mode tabs, preview, rebase, restore and free mode without losing the lip shape or finish
+
+    thrown: "Exceeded timeout of 5000 ms for a test.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      at _getError (node_modules/jest-circus/build/jestAdapterInit.js:1985:12)
+          at Array.map (<anonymous>)
+
+    Cause:
+        thrown: "Exceeded timeout of 5000 ms for a test.
+        Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+          43 | jest.mock('@/lib/queries', () => ({ useMe: () => ({ data: undefined, isPending: false }), useTryOnProducts: () => ({ data: mockProducts }) }));
+          44 |
+        > 45 | it('connects mode tabs, preview, rebase, restore and free mode without losing the lip shape or finish', async () => {
+             | ^
+          46 |   useMakeupStore.getState().reset();
+          47 |   useMakeupStore.getState().applyShade(mockSource, mockSource.shades[0]);
+          48 |   useMakeupStore.getState().patchGeometry('lip', { overlip: 0.2 });
+
+          at Object.it (__tests__/arNearbyExploration.test.tsx:45:1)
+
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+
+Summary of all failing tests
+FAIL __tests__/arNearbyExploration.test.tsx (22.032 s)
+  ● connects mode tabs, preview, rebase, restore and free mode without losing the lip shape or finish
+
+    thrown: "Exceeded timeout of 5000 ms for a test.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      at _getError (node_modules/jest-circus/build/jestAdapterInit.js:1985:12)
+          at Array.map (<anonymous>)
+
+    Cause:
+        thrown: "Exceeded timeout of 5000 ms for a test.
+        Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+          43 | jest.mock('@/lib/queries', () => ({ useMe: () => ({ data: undefined, isPending: false }), useTryOnProducts: () => ({ data: mockProducts }) }));
+          44 |
+        > 45 | it('connects mode tabs, preview, rebase, restore and free mode without losing the lip shape or finish', async () => {
+             | ^
+          46 |   useMakeupStore.getState().reset();
+          47 |   useMakeupStore.getState().applyShade(mockSource, mockSource.shades[0]);
+          48 |   useMakeupStore.getState().patchGeometry('lip', { overlip: 0.2 });
+
+          at Object.it (__tests__/arNearbyExploration.test.tsx:45:1)
+
+
+Test Suites: 1 failed, 106 passed, 107 total
+Tests:       1 failed, 1334 passed, 1335 total
+Snapshots:   0 total
+Time:        65.638 s
+Ran all test suites.

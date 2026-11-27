@@ -1,0 +1,164 @@
+{
+  "at": "2026-11-27T13:24:35.651914+09:00",
+  "mode": "live_catalog_readonly",
+  "modelCalls": 0,
+  "previousRun": {
+    "at": "2026-11-27T13:23:31.995561+09:00",
+    "mode": "live_catalog_readonly",
+    "modelCalls": 0,
+    "cases": [
+      {
+        "productId": "oy-a000000162667",
+        "optionId": "A000000162667-012",
+        "status": 200,
+        "response": {
+          "productId": "oy-a000000162667",
+          "optionId": "A000000162667-012",
+          "name": "[단품] 07 웜 베이지",
+          "priceKRW": 17000,
+          "priceBasis": "catalog_snapshot",
+          "observedAt": "2026-10-28T10:06:07",
+          "sourceUrl": "https://m.oliveyoung.co.kr/m/goods/getGoodsDetail.do?goodsNo=A000000162667",
+          "image": {
+            "url": "https://image.oliveyoung.co.kr/cfimages/cf-goods/uploads/images/item/2026/3/5528245124652825119.jpg",
+            "kind": "color_chip"
+          },
+          "arShadeId": null
+        }
+      },
+      {
+        "productId": "oy-a000000183683",
+        "optionId": "A000000183683-004",
+        "status": 200,
+        "response": {
+          "productId": "oy-a000000183683",
+          "optionId": "A000000183683-004",
+          "name": "06 로즈베이지",
+          "priceKRW": 11900,
+          "priceBasis": "catalog_snapshot",
+          "observedAt": "2026-10-27T17:45:00",
+          "sourceUrl": "https://m.oliveyoung.co.kr/m/goods/getGoodsDetail.do?goodsNo=A000000183683",
+          "image": {
+            "url": "https://image.oliveyoung.co.kr/cfimages/cf-goods/uploads/images/item/2024/5/5812865809585604325.jpg",
+            "kind": "color_chip"
+          },
+          "arShadeId": "06"
+        }
+      },
+      {
+        "productId": "oy-a000000180532",
+        "optionId": "A000000180532-023",
+        "status": 200,
+        "response": {
+          "productId": "oy-a000000180532",
+          "optionId": "A000000180532-023",
+          "name": "13 블루코어 블러링",
+          "priceKRW": 23800,
+          "priceBasis": "catalog_snapshot",
+          "observedAt": "2026-10-28T09:57:54",
+          "sourceUrl": "https://m.oliveyoung.co.kr/m/goods/getGoodsDetail.do?goodsNo=A000000180532",
+          "image": {
+            "url": "https://image.oliveyoung.co.kr/cfimages/cf-goods/uploads/images/item/2023/10/5569008668383357188.jpg",
+            "kind": "color_chip"
+          },
+          "arShadeId": null
+        }
+      },
+      {
+        "productId": "oy-a000000183683",
+        "optionId": "A000000162667-012",
+        "status": 404,
+        "response": {
+          "error": "Sale option not found",
+          "code": "option_not_found"
+        }
+      },
+      {
+        "productId": "oy-a000000162667",
+        "optionId": "missing-option",
+        "status": 404,
+        "response": {
+          "error": "Sale option not found",
+          "code": "option_not_found"
+        }
+      }
+    ]
+  },
+  "cases": [
+    {
+      "productId": "oy-a000000162667",
+      "optionId": "A000000162667-012",
+      "status": 200,
+      "response": {
+        "productId": "oy-a000000162667",
+        "optionId": "A000000162667-012",
+        "name": "[단품] 07 웜 베이지",
+        "priceKRW": 17000,
+        "priceBasis": "collected_snapshot",
+        "observedAt": "2026-10-28T10:06:07",
+        "sourceUrl": "https://m.oliveyoung.co.kr/m/goods/getGoodsDetail.do?goodsNo=A000000162667",
+        "image": {
+          "url": "https://image.oliveyoung.co.kr/cfimages/cf-goods/uploads/images/item/2026/3/5528245124652825119.jpg",
+          "kind": "color_chip"
+        },
+        "arShadeId": null
+      }
+    },
+    {
+      "productId": "oy-a000000183683",
+      "optionId": "A000000183683-004",
+      "status": 200,
+      "response": {
+        "productId": "oy-a000000183683",
+        "optionId": "A000000183683-004",
+        "name": "06 로즈베이지",
+        "priceKRW": 11900,
+        "priceBasis": "collected_snapshot",
+        "observedAt": "2026-10-27T17:45:00",
+        "sourceUrl": "https://m.oliveyoung.co.kr/m/goods/getGoodsDetail.do?goodsNo=A000000183683",
+        "image": {
+          "url": "https://image.oliveyoung.co.kr/cfimages/cf-goods/uploads/images/item/2024/5/5812865809585604325.jpg",
+          "kind": "color_chip"
+        },
+        "arShadeId": "06"
+      }
+    },
+    {
+      "productId": "oy-a000000180532",
+      "optionId": "A000000180532-023",
+      "status": 200,
+      "response": {
+        "productId": "oy-a000000180532",
+        "optionId": "A000000180532-023",
+        "name": "13 블루코어 블러링",
+        "priceKRW": 23800,
+        "priceBasis": "collected_snapshot",
+        "observedAt": "2026-10-28T09:57:54",
+        "sourceUrl": "https://m.oliveyoung.co.kr/m/goods/getGoodsDetail.do?goodsNo=A000000180532",
+        "image": {
+          "url": "https://image.oliveyoung.co.kr/cfimages/cf-goods/uploads/images/item/2023/10/5569008668383357188.jpg",
+          "kind": "color_chip"
+        },
+        "arShadeId": null
+      }
+    },
+    {
+      "productId": "oy-a000000183683",
+      "optionId": "A000000162667-012",
+      "status": 404,
+      "response": {
+        "error": "Sale option not found",
+        "code": "option_not_found"
+      }
+    },
+    {
+      "productId": "oy-a000000162667",
+      "optionId": "missing-option",
+      "status": 404,
+      "response": {
+        "error": "Sale option not found",
+        "code": "option_not_found"
+      }
+    }
+  ]
+}

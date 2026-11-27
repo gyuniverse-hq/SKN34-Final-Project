@@ -1,5 +1,118 @@
 # G8 진행 기록
 
+## 현재 진행판 — 2026-11-27
+
+전체: ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. 아래의 과거 날짜별 기록은 당시 상태로 보존한다.
+
+| ⑤ 내부 순서 | 상태 | 남은 일 |
+| --- | --- | --- |
+| A 공통 부모와 N01·N02, 목표·후속 질문 연결 | 구현·부분 검증 | 범용 목표 분해와 실행 재개 미완료 |
+| B N02 보유품·조건·단계별 상품 사용 근거 | 3개 룩 범위 부분 실제 검증 | 추가 2개 룩에서 동일 옵션 보유·미보유 확인, 다른 보유품은 활용 후보로만 안내 |
+| C 실행 기준 확정 및 판매 옵션/AR 정보 분리 | 이번 범위 구현·검증 완료 | C1/C2 실행 기준 확인, C3-2 검수 조건/판매 옵션/AR 분리, C4-2 실제 3턴·회귀 완료 |
+| D 실제 상담→상품 카드→저장·복원 | 판매 optionId 상세·장바구니 구현, 실제 웹 저장·재로드 확인 | 옵션 결제는 승인대로 제한. Expo Go 및 변경 후 로그인 상담 종단 미실행 |
+| E 남은 협력·E01/B01·취소·재개 | 후속 | 개별 사례 통과와 전체 완료 구분 |
+
+C1/C2 결과: Docker Desktop이 중지된 것을 확인하고 기존 서비스 복구 승인 범위에서 시작했다. 이전 8082는 vishue-pr233-api(2026-11-16 생성, 이미지 revision 라벨 42af81d06bf1d84bd51636543eeb5014acaebf7b)이며 vishue-pr233-postgres/vishue_db를 사용한다. 별도 G5 DB 15441과 동일하지 않다. 기본 vishue-api-1(2026-11-24 생성)은 vishue-postgres-0033/vishue_db를 사용한다. 이미지 라벨만으로 소스 commit 전체를 독립 검증했다고 주장하지 않는다.
+
+실제 연결 DB의 읽기 전용 SQL 비교: PR233 DB는 products 8,533/shades 10,239, 기본 API DB는 products 9,035/shades 11,231이다. 원본 옵션은 각각 21,951행이다. 기본 DB에는 세잔느 A000000216419와 shade 4개가 있고 실제 영상 HTTP 응답에도 상품 링크가 나온다. PR233에는 상품이 없다. 롬앤 A000000201055의 makeup_zone은 PR233에서 NULL, 기본 DB에서 contour다. 앞선 '실제 롬앤 부위 누락'은 구버전 환경의 관측으로 범위를 정정한다. 부위 누락 시 검수 근거가 있어도 N02 추천이 탈락하는 모의 재현 자체는 별개로 유효하다.
+
+실행 소스 파일 비교: 두 컨테이너 모두 현재 작업의 app/services/option_search_service.py가 없다. verified_video_product_repository.py도 현재 작업 bytes와 다르다. 따라서 기본 API도 최신 G8 검증 서버로 간주하지 않는다. 데이터 공급 경로 조사와 현재 구현의 종단 검증을 분리한다. 두 API의 실제 응답·관련 파일 존재/해시·이미지/DB 대상은 parent trace G8-RUNTIME-BASELINE-CORRECTION에 보존한다. 초기 파일 해시 조사에서 없는 옵션 서비스 파일을 읽다가 exit 1이 났으며, 존재 여부를 구분한 최종 수집으로 재실행했다.
+
+C3 당시 계획(아래 C3-2에서 승인·구현 반영): 먼저 검수된 단계별 사용 근거가 있고 Catalog makeupZone만 비어 있을 때의 N02 판정 수정 범위를 제시했다. 이전 승인에 없던 owned_look_consultation_service.py 추가 수정은 승인 대기다. 판매 optionId와 선택적 AR shadeId 분리는 영상 매핑/API, 옵션 조회, N02, 카드·저장 계약을 함께 대조한 뒤 별도 파일 범위를 확정한다. 데이터 재수집·색상 임의 생성·기존 DB 덮어쓰기 없이 진행한다. C4는 실제 데이터 형태(옵션 존재/색 없음, 부위 NULL, 명시 옵션 충돌)로 검증한다.
+
+이번 실행은 실제 컨테이너/HTTP/DB 조사이며 코드 회귀·실제 LLM·현재 G8 종단 검증은 미실행이다. DB 쓰기·배포 재빌드·commit/push/PR 없음. 외부 모델 호출 0회. 기존 미커밋 작업을 보존했다. 새 증빙은 Gitleaks 검사 후 append한다.
+
+### ⑤ 게시 준비·회귀 재확인 — 2026-11-27
+
+사용자 승인: 신규 trace 보안 검사 후 구현·테스트와 문서·증빙 두 커밋으로 feat/compound-consultation에 push. PR 생성 금지. 기존 기준 fc1b6279에서 구현 커밋 `2ee4d3df6b5958791d52be613a6d1fd03ba8daba`를 생성했다. 개발 미리보기의 필수 require 대상 sale-card-replay.json은 구현 커밋에 포함했다. 나머지 문서/증빙은 두 번째 커밋이다. 이 기록 시점 push는 대기 상태이며 실제 원격 확인 결과는 게시 보고로 구분한다. 최신 조회 develop은 991dd634dba33b99ceeb1c03de4dd8d921ce07f9이고 이번에 병합하지 않았다.
+
+소스 61개 exact-byte manifest는 이전 실제 검증 이후 변경 없음. 커밋 전 npm run check의 타입/린트 통과, jest 병렬 1,334 pass/기존 AR 1 timeout(5초). 코드·timeout을 바꾸지 않고 npm test -- --runInBand로 107 suites/1,335 pass(75.689초). backend 두 서비스 모두 uv run ruff check . / uv run lint-imports 통과(각 3 KEPT).
+
+API 전체 uv run pytest: 653 pass/45 skip/5 fail. catboost 선택 그룹 누락 3건, 기본 DB 인증 실패 1건, HTTP 하위 실행 25초 timeout 1건이었다. 기존 recommendation 그룹을 --frozen으로 사용해 test_ar_palette_ml.py 및 test_ingredient_http_integration.py를 재실행해 22 pass(55.30초). DB 사례는 현재 Catalog DB 15434의 read-only engine으로 단독 재실행해 1 pass(0.63초). 실패한 5건 모두 재검증 통과했으나 전체 API 단일 실행 통과로 표현하지 않는다. pyproject/lock 변경 없음. 챗봇 전체 1,526 pass/106 skip(85.50초). skip된 실제 연결 검사를 통과로 기록하지 않는다. 이번 게시 검사 모델 호출 0회.
+
+보안: 신규 trace 14행 JSON 확인, 비어 있지 않은 인증정보 필드/개인키 헤더 0. 이메일 형태 67건은 모두 Python 데코레이터 코드였다. Gitleaks 8.30.1/저장소 설정/빈 ignore로 게시 대상 83파일 통과. 기존 Git 이력은 CI 조건(--full-history --diff-filter=tuxdb)과 저장소 fingerprint ignore로 666 commits/63.50MB 통과. 공용 보안 설정 변경 없음. 중간 사용량 한도로 자동 승인 검토가 실행되지 못했으며, 재개 지시 후 같은 이력 검사가 정상 실행됐다. 우회 실행하지 않았다.
+
+원본 명령/시각/결과: reports/g8/parent의 g8-publish-* 로그·JUnit과 publish-validation.json, 신규 append trace 참조. 임시 파일 생성 권한 실패는 정상 권한 실행으로 재시도했다. 현재 전체 단계는 여전히 ⑤ 협력 완성(D 상세·장바구니 부분 실제 검증), Expo Go·로그인 상담 종단·E01/B01·범용 재계획/취소/재개·⑥ 전체 통합·⑦ PR 인계는 남아 있다.
+
+### ⑤-D 판매 optionId 상세·장바구니 연결 — 2026-11-27
+
+전체 순서는 ①→②→③→④→⑤ 협력 완성→⑥ 통합 검증→⑦ PR 인계다. 현재 A 공통 부모/후속 계약 부분 구현, B 3개 룩·보유품 범위 실제 검증, C 검수 조건/판매 옵션/AR 분리, D 이번 상세·장바구니 연결 완료 및 부분 실제 검증, E E01/B01·범용 재계획·취소/재개 후속이다. G8/N02 전체 완료가 아니다.
+
+기준 feat/compound-consultation / fc1b6279e2a8cca3b899dd255aa8a1ee4156b459 위 미커밋 변경. 원격 develop 재조회 없음. 기존 변경을 보존했으며 commit/push/PR 없음. 승인된 파일 범위와 추가 승인된 __tests__/useArRouteSelection.test.tsx, __tests__/chatUiPreview.test.tsx만 수정했다. 변경 소스 목록·정확 바이트 해시·tracked diff는 이번 trace/증빙에 남긴다.
+
+구현: 별도 상품 판매 옵션 API/서비스/스키마, 소속·활성 조회, 옵션 이미지 유형·기록 가격·AR 연결 독립 응답. N01/N02 카드와 상세 경로 optionId 전달. 장바구니 옵션별 분리·동일 옵션 합산·기존 저장소 복원. 가격/이미지 없음을 대표 값으로 채우지 않음. 판매 옵션을 포함한 혼합 장바구니 결제 제한(버튼·직접 checkout·주문 생성 핸들러), 기존 결제 확인 경로 보존. 옵션 미지원 비교/장바구니 추천은 제한한다. 정책/설정 상세는 SPEC의 같은 날짜 계약을 따른다.
+
+모의 검사:
+- 최초 관련 앱 검사 74 pass/3 fail은 기대값 수정 중 일반 shade 선택 콜백까지 optionId를 기대한 실수였다. 범위를 고쳐 재실행했다.
+- 앱 전체 첫 검사 1,328 pass/7 fail(107 suites 중 2 fail). 기존 미리보기 모의 useLocalSearchParams 누락 1건, 새 상세 조회 훅 useProductOption 모의 누락 6건. 사용자 추가 승인 후 모의 설정만 보완했다. 최초 명령 npm run check -- --runInBand는 npm 경고와 함께 jest 병렬로 실행돼 순차 실행이라고 기록하지 않는다.
+- 보완 후 npm test -- --runInBand: 107 suites / 1,335 pass, 64.437초. 이후 최종 가격 기준 enum·담기 상태·조회 오류 처리 보완에 대해 관련 8 suites / 91 pass, 7.897초 재확인. 최종 npm run typecheck 및 npm run lint 통과. 원본 g8-sale-option-jest-final.log / g8-sale-option-final-focused.log / typecheck·lint 로그.
+- API ruff check 전체 및 lint-imports 3 KEPT, 관련 test_product_options/test_option_search/test_verified_video_product_links 59 pass. 첫 회귀는 임시 폴더 접근 오류로 57 pass/2 setup error였고 전용 basetemp로 59 pass. 최종 XML g8-sale-option-api-final.xml(0.58초). 초기 uv 캐시 권한 오류도 있었고 승인된 로컬 실행으로 해결했다.
+- 정확 옵션 경로·옵션별 합산/분리·version1 재수화·가격 UNKNOWN·미연결 AR·checkout 혼합 장바구니 차단·기존 구매/AR 회귀를 포함한다. 테스트 구현/저장 mock을 실제 PG나 실제 결제로 기록하지 않는다.
+
+실제 조회: 현재 소스 API 19831, 읽기 전용 vishue-postgres-0033/vishue_db(15434). 기존 실행 스크립트의 read-only session override 사용, DB 쓰기 없음. sale-option-live.json에 최초/최종 두 실행 시각과 5개 요청/응답을 보존했다. A000000162667-012 17,000원/arShadeId null, A000000183683-004 11,900원/arShadeId 06, A000000180532-023 23,800원/arShadeId null. 모두 color_chip 자료. 다른 상품 소속 옵션과 없는 옵션은 404. 가격 기준은 collected_snapshot이며 실제 실시간 가격 검증이 아니다. 데이터 근거는 응답별 observedAt/sourceUrl과 기존 DB 기준으로 구분한다.
+
+실제 앱: Aside skill/CLI 지속 REPL, 390×844 웹. 과거 실제 상담 응답 재생 카드→상품 보기 클릭의 URL에 optionId=A000000162667-012 유지. 상세 07 웜 베이지·발색 참고 이미지·17,000원·기준일 표시, AR 버튼 없음. 담기 클릭 후 cart로 전체 페이지 이동/재로드해 동일 옵션·수량 1 복원, 주문 버튼 disabled. 장바구니의 상세 보기 클릭도 같은 optionId 유지. 최종 소스 서버 재시작 후 상세/장바구니 재로드 재확인. 인증 없는 로컬 브라우저 저장이며 실제 사용자 로그인 상담·G7 종단을 새로 검증한 것이 아니다. 모델 설정 not_used, 실제 호출 0회. 원본 snapshots는 sale-option-browser.json. 첫 ref는 언어 복원 후 stale이 되어 새 snapshot으로 재시도했다. screenshot은 CDP 30초 timeout으로 실패했고 PNG 증빙 없음. DOM상 표시와 이미지 URL 계약만 확인했으며 픽셀 품질 검증으로 기록하지 않는다.
+
+남은 항목: Expo Go 실기기, 변경 후 로그인 상담→G7→카드 종단, 옵션 주문/결제 서버 계약(이번 범위 제외), 상품 이미지 자체의 육안 품질, E01/B01·범용 재계획·취소/재개, 전체 G8 통합 평가와 사람 검토. 다음 우선순위는 D 실기기/실제 상담 확인 및 E 협력 잔여 범위 정리. 사용자 추가 판단 현재 없음. 보안: Gitleaks 8.30.1/빈 ignore/--redact로 변경·신규 82개 파일 검사 exit 0, 신규 trace도 별도 scan 통과 후 append. source manifest 61개와 tracked diff/untracked 원문을 보존했다. WSL Git은 Windows worktree 포인터를 해석하지 못해 파일 목록은 Windows Git으로 수집하고 WSL에서는 같은 파일을 검사했다. 보안 로그 sale-option-security.log.
+
+### ⑤-B/D 추가 검증: 다른 룩·보유품·실행 앱 — 2026-11-27
+
+이번 추가 변경 범위는 승인받은 app/chat-ui-preview.tsx, backend/chatbot/tests/test_g8_owned_look.py, 이 문서와 reports/g8/parent/ 증빙이다. feat/compound-consultation / fc1b6279e2a8cca3b899dd255aa8a1ee4156b459 위 미커밋 변경이며 기존 사용자·G8 변경을 보존했다. commit/push/PR 없음. 원격 develop은 이번에 재조회하지 않았다.
+
+앱 개발 전용 경로 /chat-ui-preview?g8=sale에 앞서 실제 Catalog로 생성한 응답의 판매 옵션 카드 재생을 추가했다. 기본 미리보기 동작과 production Redirect를 유지한다. 실제 상담·인증·모델 호출은 이 화면에서 하지 않는다. 화면의 상품 보기 버튼은 실제 앱과 같은 productHref(id, shadeId, undefined, true)를 사용한다. 재생 자료는 sale-card-replay.json이며 실사용자 대화가 아닌 검증용 예시다.
+
+확장된 실제 Catalog 검증: kWI7_DkDjZ0(청초 물복숭아 메이크업)의 oy-a000000183683 / A000000183683-004와 EiYeC-hlMNQ(서늘한 냉미녀 메이크업)의 oy-a000000180532 / A000000180532-023. 각 룩에서 미보유면 해당 옵션 추천, 동일 옵션 보유면 추가 추천 제외·적용 기억 표시를 확인했다. 립 룩에서는 다른 보유품 oy-a000000158896을 같은 부위 활용 후보로 안내하되 substitutionStatus=unverified, 자동 대체·동일 표현 보장·추가 구매 추천 없음도 확인했다. Catalog는 current-source 실제 HTTP/DB read-only, 보유 기억은 합성 동의 fixture, 모델은 미사용(실제 외부 호출 0)이다. 따라서 실제 사용자의 기억·인증 종단 검증이라고 하지 않는다.
+
+실행 원본: C:/Users/playdata2/AppData/Local/Temp/g8-other-looks.xml (2026-11-27 12:40:04 KST, 2 tests/5 cases 통과, 42.169초), g8-other-looks-mock.xml (12:41:34 KST, 57 통과·4 skip, 0.533초). 첫 실행은 저장소 루트에서 backend 명령을 실행해 ruff 미발견/테스트 미수집으로 실패했고 올바른 chatbot 위치에서 실행했다. ruff check·lint-imports 3 KEPT, 앱 typecheck/lint 통과. 카드/대화 스토어 51 tests는 최초 기존 사례 1건의 5초 timeout 후 설정을 바꾸지 않고 재실행해 51 통과(4.167초, g8-other-card-tests.log). 전체 G8 평가는 재실행하지 않았다.
+
+브라우저 환경과 구분: 기존 Chrome 검증은 URL 판별 안전장치로 중단되어 완료 처리하지 않았다. 이후 Aside Windows 창에서 실제 카드 화면과 마우스 상품 보기 → 상품 상세 이동, 스크롤·스크린샷이 확인됐다. 직접 브라우저 탭 연결은 당시 목록에 없었고 사용자 지적 후 로컬 aside-browser skill과 PATH 밖 CLI를 발견해 전용 REPL 검증으로 전환했다. Aside skill 경로: C:/Users/playdata2/.agents/skills/aside-browser/SKILL.md; CLI 1.26.1126.1735. 사전 catalog 호출의 CORS 헤더 누락을 발견해 검증용 API 프로세스에만 CORS_ORIGINS=[http://localhost:19832]를 설정했다. 최종 실제 GET 200 및 Access-Control-Allow-Origin 일치를 확인했다. 저장소·운영 CORS 변경 없음.
+
+발견한 미완료 사용자 경험: 카드의 실제 옵션명은 [단품] 07 웜 베이지다(이전 보고의 '월 베이지'는 잘못 옮긴 표기). 상세 URL은 /product/oy-a000000162667?requireShade=1이며 optionId가 없고, 상세 대표 이미지는 #11 애플 블러쉬를 표시한다. 상세는 상품 단위 참고 가격 17,000원과 공통 정보를 표시하며 07 옵션을 선택·유지하지 않는다. AR 색상은 0개여서 AR 적용/호수 선택 UI는 나타나지 않는다. 따라서 상품 상세 도달만 PASS이고 정확한 판매 옵션의 상세·장바구니 유지 및 옵션별 이미지/가격 연결은 미구현이다. 장바구니 담기·구매는 실행하지 않았다.
+
+Aside 전용 최종 검증: aside guide 및 guide repl을 읽고 명시 프로필로 실행했다. listBrowserTabs는 빈 배열이어서 승인된 로컬 앱을 새 REPL 탭으로 열었다. 390×844 viewport에서 카드 snapshot → 실제 상품 보기 click → 상세 snapshot이 통과했고 reports/g8/parent/aside-verification.log에 원본 tree/diff와 URL을 저장했다. 전용 CLI page.screenshot은 CDP timeout으로 실패했고 이 실패를 성공으로 기록하지 않는다. 별도 Aside Windows 창에서는 실제 카드/상세 스크린샷이 이 대화의 도구 결과로 표시돼 상품 공통 이미지 #11과 카드 옵션 #07 차이를 육안 확인했다. 파일로 저장된 PNG는 없다. 모바일 폭의 웹 검증이며 Expo Go 실기기 검증은 아니다.
+
+최종 증빙/보안: parent trace에 G8-N02-OTHER-LOOKS-ASIDE-UI 1행을 신규 Gitleaks 검사 후 append했다. 과거 trace 보존. 변경·신규 44개 파일 전체도 Gitleaks 8.30.1 / 저장소 설정 / 빈 ignore / --redact 검사 exit 0. 원본 로그 C:/Users/playdata2/AppData/Local/Temp/g8-aside-security.log. 검증 서버는 사용자 Aside 확인을 위해 유지했다.
+
+다음 우선순위: 판매 optionId의 상품 상세·장바구니 공용 계약과 정확 옵션 표시/이미지/가격 범위를 정리한 뒤 수정 범위 승인을 받는다. 이후 실제 모바일 Expo Go 확인과 E01/B01·취소/재개 등 ⑤ 잔여 및 ⑥ 전체 통합 평가로 이어간다. 이번 검증으로 N02 또는 ⑤ 전체 완료를 선언하지 않는다.
+
+### ⑤-C3-2/C4-2 및 D 일부: 검수 조건·판매 옵션·AR 분리 — 2026-11-27
+
+사용자 승인 범위에서 API 옵션/영상 연결, N02 및 스타일 서비스·기억 registry, 응답 스키마·카드, 관련 테스트와 이 문서를 수정했다. 기존 공통 부모·레시피 작업은 보존했다. feat/compound-consultation HEAD fc1b6279e2a8cca3b899dd255aa8a1ee4156b459 위 미커밋 변경이다. 로컬 origin/develop 참조는 f5adb4e60202bdc4c98bdefe36669f96f90e9b55이며 이번 실행에서 원격 최신 조회는 하지 않았다. PR·commit·push·운영 반영 없음.
+
+변경: 일반 가이드·연결 상품 조회를 검수 레시피 유무로 막던 조건을 제거했다. 영상 실제 사용법·대체품의 동일 표현·AR 적합성은 별도 근거로 판단한다. API는 활성 판매 옵션 소속을 검증해 catalogOptionId를 반환하고 optionScope에 AR shade가 없어도 정확한 옵션을 조회한다. N02는 이를 실제 다음 옵션 요청에 넘기며 optionName을 카드·저장 응답으로 연결한다. 성분 근거가 없으면 UNKNOWN, 옵션 자체가 없거나 소속이 다르면 추천 근거로 사용하지 않는다. 옵션이 있다는 이유로 성분 검수나 AR 색상이 생기지 않는다.
+
+실제 검증: 현재 작업 소스 API를 임시 localhost:19831로 실행해 vishue-postgres-0033/vishue_db(15434)에 read-only 연결했다. 기존 8082/8080 이미지를 현재 소스로 간주하지 않았다. AG03mUj4vnY의 삐아 oy-a000000162667 / A000000162667-012 / [단품] 07 월 베이지를 대상으로 AR shade 없음·검수 recipe 없음 상태에서 추천 양성을 확인했다. 정상 ChatService의 3턴은 추천 → 향료 제외 추가(근거 부족으로 미확인·추천 제외) → 제외 조건 해제(다시 추천)다. 각 턴 O1/S1/N1/P1/V1/R1 입력·결과, 응답과 옵션 요청은 parent trace에 보존한다. 실제 모델 호출은 0회, 모델 설정 disabled/not_used이며 모의 모델의 응답을 실제 LLM 결과로 기록하지 않는다.
+
+실제 저장: 별도 일회용 PostgreSQL vishue_chat_test를 로컬 임시 포트로 시작하고 chatbot alembic head 적용 후 같은 실제 Catalog 3턴을 ConversationService로 실행했다. 응답 ownedLookOptions와 재조회 displayPayload 일치, optionId 유지·shadeId 없음, styleRecipe 의미 일치와 후속 조건 복원을 확인했다. 인증은 mock, DB는 실제 일회용, Catalog는 실제 HTTP/기존 DB read-only, 외부 모델 호출 0회다. 생성한 임시 DB 컨테이너는 종료·자동 제거했다. 기존 DB 쓰기나 데이터 재수집은 하지 않았다.
+
+검증 결과와 경위:
+- API 전체 pytest: 646 통과·52 skip·1 실패. 실패는 기존 celebrity endpoint 테스트의 기본 DB 인증 설정 불일치다. 같은 테스트를 현재 DB 설정/read-only로 재실행하여 1 통과. 전체 단일 실행을 무실패였다고 기록하지 않는다. 판매 옵션/성분 UNKNOWN/동일 상품의 색상 없는 여러 옵션·생산 환경 합성근거 차단 신규 테스트 포함.
+- chatbot 전체: 1,524 통과·103 skip. 이후 추가한 기억 및 보유 옵션 사례 집중 검사: 66 통과·2 skip. 정상 ChatService 실제 Catalog 3턴: 1 통과. 실제 Catalog+일회용 PG 3턴: 1 통과. 처음 PG 비교는 저장 시 null 생략과 응답의 명시 null을 그대로 비교해 실패했고 스키마 모델로 의미를 비교하도록 테스트 수정 후 재실행했다.
+- 앱 npm run check: typecheck/lint 통과, 병렬 Jest 1,326 통과·2 실패. 같은 전체 테스트 npm test -- --runInBand 재실행 107 suites / 1,328 tests 통과(77.865초). 이후 typecheck/lint 재확인 통과. 최초 병렬 실패를 기능 결함 또는 시간초과로 확정하지 않는다.
+- backend ruff check 및 lint-imports 양쪽 통과(각 3 KEPT), git diff --check 통과. 앱 카드/스토어는 모의 renderer·저장 테스트이며 Expo Go 실제 화면 검증이 아니다.
+
+원본 XML/로그: C:/Users/playdata2/AppData/Local/Temp/g8-sale-{api,chat,final-focused,live-chatservice,live-pg-final}.xml, g8-sale-api-db-retry.xml, g8-sale-app-sequential.log. XML에 실행 시각과 개별 테스트 결과가 있다. trace G8-N02-SALE-OPTION-AR-SEPARATION은 소스 exact-byte manifest, 미커밋 diff, JUnit 요약 및 실제 입력/결과를 보존한다. 데이터 배포 버전 필드가 없어 실제 응답과 sourceVersion을 증거로 남기며 별도 데이터 릴리스를 확인했다고 하지 않는다.
+
+보안: 신규 trace는 Gitleaks 8.30.1, 저장소 .gitleaks.toml, 빈 ignore, --redact 검사 통과 후 1행 append했다. 과거 trace는 변경하지 않았다. 최종 변경·신규 41개 파일 전체도 같은 설정/빈 ignore 검사 exit 0 (C:/Users/playdata2/AppData/Local/Temp/g8-sale-security.log). 신규 증빙의 소스 37개 해시가 현재 파일과 모두 일치한다. 이번 검증용 API 프로세스도 종료했다.
+
+남은 일: 실제 앱 시각/상세 이동 확인, 옵션 자동 선택(이번 변경은 옵션 표시와 상품 상세 연결), 다른 룩과 보유 대체품 사례 확대, N01/N02 공통 부모의 범용 재계획·중단/재개, E01/B01 및 전체 ⑥ 평가. ⑤ 전체 완료 아님. 사용자 추가 판단은 현재 없음.
+
+### ⑤-C3-1/C4-1: N02 부위 NULL 보완 완료 — 2026-11-27
+
+사용자의 후속 승인으로 owned_look_consultation_service.py, test_g8_owned_look.py 및 기존 SPEC/WORKLOG/parent trace를 갱신했다. HEAD fc1b6279e2a8cca3b899dd255aa8a1ee4156b459, feat/compound-consultation의 기존 미커밋 변경을 보존했다. 원격 develop 최신 상태는 재조회하지 않았다.
+
+최종 상품 판정에서 Catalog makeupZone이 NULL일 때만 검수된 단계별 productUsages를 보조 근거로 허용한다. verified recipe/evidence, 상품·호수 일치, 유효 stepOrder와 같은 단계 zone, 비어 있지 않은 개별 근거·출처가 모두 필요하다. 기존 Catalog 부위가 다른 값이면 허용하지 않는다. 후보 재조회에서 정확한 호수가 사라지거나 옵션 조건 검증이 실패해도 선택하지 않는다. AR eligibility는 변경하지 않았다. 새 설정·제한값은 추가하지 않았다.
+
+모의 검증 7개 조합은 기존 복수 부위 미확인/명확한 부위/검수 연결 양성에 NULL+근거 양성, NULL+근거 없음, 명시 부위 충돌, 재조회 옵션 소실을 추가했다. 유효 근거와 NULL 조합에서는 추천이 유지되지만 해당 상품의 AR은 false다. 검증한 전문 작업 입출력·응답은 trace mockCases에 보존한다. API 생성 합성 응답은 이전 g8-usage-api-pass.xml을 G8_RECIPE_API_JUNIT으로 재생했으며 새 실제 API 검증이라고 부르지 않는다.
+
+실제 데이터 기준: 현재 작업 디렉터리 backend/api/app/services/style_look_service.py를 로드하고 기본 API와 같은 vishue-postgres-0033/vishue_db(호스트 127.0.0.1:15434)에 SQLAlchemy 읽기 전용 연결했다. default_transaction_read_only=on, statement_timeout=10000으로 실행했다. 현재 StyleLookService/VerifiedVideoProductRepository/CatalogRepository가 반환한 AG03mUj4vnY 및 표본 상품을 보존했다. 롬앤 contour/6 shades, 삐아 NULL/0 shades, 세잔느 highlighter/4 shades, 키스미 brow/1 shade를 확인했다. 현재 소스의 대상 영상 recipe는 없음이다. 이것은 현재 소스→실제 DB 조회 검증이며 현재 HTTP 서버 배포, 실제 검수 레시피 N02 양성, PG 대화 저장 검증은 아니다. 자격증명은 컨테이너 설정에서 메모리로만 전달하고 출력/증빙에 넣지 않았다.
+
+검사: 집중 55 통과·1 skip(g8-zone-fallback-focused.xml), 최종 챗봇 전체 1,523 통과·102 skip/41.31초(g8-zone-fallback-all.xml). ruff check, lint-imports 3 KEPT, 앱 npm run typecheck/lint 통과. XML 및 실제 DB 조회 g8-current-source-db.json은 C:/Users/playdata2/AppData/Local/Temp/ 아래에 있다. parent trace G8-N02-REVIEWED-ZONE-FALLBACK에 실행 시각·명령·XML 해시, 최종 소스 21개 exact-byte manifest와 diff, 모의/실제 DB 증거를 구분해 저장했다. 신규 trace는 Gitleaks 8.30.1/빈 ignore 검사 후 append했다.
+
+미실행: 실제 N02 양성, 실제 LLM, 최신 변경의 G7 PG 저장·복원, 앱 시각 확인, 사람 검수. 외부 모델 호출 0회. API 코드 변경/DB 쓰기/레지스트리 등록/commit/push/PR 없음. C3-2 판매 옵션과 AR shade의 분리는 아직 미구현이며 이번 보완으로 해결됐다고 표시하지 않는다. 다음은 영상 매핑→판매 옵션 조회→N02→응답·카드·저장 전체의 optionId 중심 계약과 수정 파일 범위를 확정하는 작업이다.
+
+최종 보안 검사: 변경·신규 25개 파일을 Gitleaks 8.30.1/빈 ignore/--redact로 검사해 exit 0. 로그 C:/Users/playdata2/AppData/Local/Temp/g8-zone-fallback-security.log. 신규 trace의 소스 21개 해시가 현재 bytes와 모두 일치하고 git diff --check 통과했다.
+
 ① 설계 → ② 기준·계약 → ③ 실행 구조 → **④ 첫 복합 상담** → ⑤ 협력 완성 → ⑥ 통합 검증 → ⑦ PR 인계
 
 2026-11-26 KST. [구현 정본](G8-IMPLEMENTATION-SPEC.md). ① 인계 완료. ② 두 정본 및 기준선 작성. ③ 실제 부모 그래프와 첫 세 전문 작업 연결. ④ 코드·계약·화면·저장 검증, 실제 데이터와 모델 결과는 아래 기록을 기준으로 판단한다.
@@ -445,3 +558,205 @@ Gitleaks 8.30.1 dir 검사: 변경 13개 파일 중 trace는 신규 53개만 복
 게시 전 검사(15:39~15:42 KST): npm run check -- -- --runInBand --silent는 타입·린트·107 suites/1,328 tests 통과(119.052초). backend/chatbot에서 기존 잠금 venv를 UV_PROJECT_ENVIRONMENT로 지정한 uv run --frozen ruff check ., lint-imports(3 KEPT), pytest -q -p no:cacheprovider --basetemp <새 GUID 임시 경로> --tb=short는 1,492 통과·102 건너뜀(52.90초). 소스는 6399b2c와 같으며 신규 trace 6건의 20개 exact-byte manifest와도 모두 일치했다. 이번 게시 검사에서는 실제 Catalog/PG/LLM을 재실행하지 않았다.
 
 신규 trace 6건의 인증정보 필드 검사와 환경 비밀값 대조에서 노출을 발견하지 않았다(값 자체는 출력하지 않음). 이전 7건의 byte prefix SHA256 5fd0e811fb8b16d67b089ca6d0902cbf23f2b80a906e616ab1fdd910b0ecd700을 유지했다. 변경 파일 23개 전체를 Gitleaks 8.30.1 dir, 저장소 config, 빈 ignore, --redact로 재검사해 exit 0을 확인했다. git diff --check와 구현 커밋 staged 검사 통과. 커밋 후 CI와 같은 HEAD 전체 이력 보안 검사를 통과한 경우에만 정상 push한다.
+
+## 공통 부모 A–E 구현·검증 — 2026-11-26
+
+전체: ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성(공통 부모 첫 연결)** → ⑥ 통합 검증 → ⑦ PR 인계. 원래 N01·성분 하위 사례·N02·전체 G8 완료는 각각 구분하며 이번에 완료로 승격하지 않는다.
+
+기준: feat/compound-consultation, HEAD fc1b6279e2a8cca3b899dd255aa8a1ee4156b459. 시작 시 변경 없음. 로컬 origin/develop 및 기존 통합 기준은 f5adb4e60202bdc4c98bdefe36669f96f90e9b55이며 이번에는 fetch하지 않아 최신 원격 develop이라고 주장하지 않는다. 승인된 구현·증빙은 미커밋 상태로 남긴다. commit/push/PR/배포 없음. 개발 하위 에이전트 위임 없이 메인 에이전트가 수행했다.
+
+수정: backend/chatbot/app/schemas/consultation_parent.py(신규), chat.py, conversation.py; services/consultation_parent_graph.py(신규), chat_service.py, conversation_context.py; repositories/conversation_repository.py; tests/test_g8_consultation_parent.py(신규), test_g7_memory_api_pg.py. 문서는 기존 SPEC/WORKLOG를 갱신하고 신규 reports/g8/parent/trace.jsonl 및 implementation.patch를 추가했다. 앱·Catalog API·공용 보안 설정·기존 N01/N02 trace는 수정하지 않았다.
+
+A 계약: 부모의 목표·작업 상태·결과 참조·질문·plan version을 서버 스키마로 정의했다. B 연결: 기존 N01과 N02 전문 실행을 부모에 연결했으며 저장 책임을 중복하지 않는다. C 실행: 부모의 assess가 N02 결과를 G5의 구조화 참조 맥락에 연결하고 요청된 설명을 추가 실행한다. D 후속: 같은 룩의 단일 부위 질문을 저장·복원해 짧은 명시 답을 연결하고, 상품 중단→순서만 안내 및 레시피 변경→종속 지식 결과 무효화를 구현했다. E 검증: 아래 범위에서 실행했다. 임의 목표 전체 분해/자동 작업 제안 채택/중단 실행 재개(F)는 미구현이며 고정 역할 네 종류를 전체 Supervisor 완성으로 표현하지 않는다.
+
+실제 PG: WSL vishue-g5의 기존 전용 /var/tmp/g8-n02-filters-20261126, localhost:56947/vishue_chat_test를 재사용했다. PostgreSQL은 실제, 인증·Catalog·G5는 모의다. 일반 /api/chat 경로에서 등록 동의된 립 + 선택 룩 → 블러셔 보유 질문·추가 설명 → “없어”의 부위 복원과 추가 추천 → “상품은 됐고 사용 순서만”의 카드 생략을 확인했다. G5 모의 호출은 첫 턴만 발생하고 외부 모델 호출은 매 턴 0회다. 기존 소유권·동의·재전송 테스트도 통과했다. 새 질문 문구를 단일 부위로 바꾼 후 기존 PG 기대 문구 1건이 실패해 기대 문구를 수정하고 재실행했다. 신규 3턴 자체는 이 실패 전에도 통과했지만 최종 집중 실행 전체가 통과하기 전에는 완료 증빙으로 쓰지 않았다.
+
+모의 계약: 룩 레시피 설명을 변경하면 G5 경계의 referenceContext 실제 인자가 바뀐다. 지식 조회 실패 시 상품 결과를 보존한다. 예산만 변경하면 기존 설명 참조를 보존하고 지식 재호출을 생략한다. 레시피 내용이 달라지면 종속 결과를 superseded로 표시한다. 다른 룩/모호한 답/구버전 작업 결과 거부, 원래 N01 발화의 ChatService→부모 상황 질문 진입을 확인했다. 최초 Style 어댑터는 기존 함수의 (응답, ToolResult) 튜플을 처리하지 못했고, 순서 전용 턴에도 기존 상품 목록이 남는 문제가 있어 수정 후 통과했다. 원래 N01 진입 테스트의 locale 누락도 ko로 바로잡았다. 실제 LLM 품질 검증은 아니다.
+
+최종 집중 실행: 2026-11-26 16:09:02 KST 시작, **104 통과·1 건너뜀, 9.855초**. backend/chatbot에서 UV_PROJECT_ENVIRONMENT를 기존 g7-pr-review 잠금 venv로, TEST_CHAT_DATABASE_URL을 위 격리 DB로 지정했다. uv run --frozen python에서 WindowsSelectorEventLoopPolicy를 설정하고 pytest.main으로 test_g8_consultation_parent.py, test_g8_owned_look.py, test_g8_compound_consultation.py, test_g7_memory_api_pg.py의 test_n02_consented_inventory_selected_look_persistence_and_replay 및 test_consent_ownership_idempotency_and_redaction을 실행했다. 옵션은 -q -p no:cacheprovider --tb=short --show-capture=no -o junit_family=legacy. 원본 XML은 C:/Users/playdata2/AppData/Local/Temp/g8-parent-final-pass.xml이며 전체 명령·시각·SHA·9개 최종 소스 exact-byte manifest·전문 작업 입력/결과·답변은 신규 trace에 보존했다. 미커밋 tracked diff는 implementation.patch, 신규 소스 식별값은 manifest에 있다.
+
+전체 챗봇 회귀: 실제 연동 env 없는 프로세스에서 uv run --frozen pytest -q -p no:cacheprovider --basetemp <새 GUID 임시 경로> --tb=short --junitxml=C:/Users/playdata2/AppData/Local/Temp/g8-parent-all.xml, **1,500 통과·102 건너뜀/53.68초**. 이후 바뀐 코드는 없고 건너뛴 PG 테스트의 질문 문구 기대만 수정되어 위 최종 집중 실행으로 확인했다. xunit2/record_property 경고 15건이 있어 최종 집중 증빙은 legacy로 생성했다. ruff check/format check(158 files), lint-imports(3 KEPT), 앱 npm run typecheck 및 npm run lint 통과. 앱 소스 변경 없음. 이번 앱 전체 Jest/실기기 UI/실제 G5·LLM/전체 G8 평가/사람 검토는 NOT_RUN이다.
+
+실제 룩 준비: 16:02:41 KST localhost:8082 HTTP 조회로 catalog 룩 0, 영상 룩 73, 반환 검수 레시피 0을 확인했다. 서버 소스 및 데이터 릴리스 버전은 미확인이다. 로컬 검토 원본 24건은 승인/검토자/룩 연결 모두 0건이다. 저장소 API StyleLook에는 recipe 필드가 없고 정적 목록 서빙이며, 기존 apply_look_recipe는 AR geometry 반영 작업이다. 따라서 과거 “검수 룩 데이터 부족”을 **자료 검수·상품 호수 연결 부족 + 상담 레시피 API 서빙 계약 공백**으로 구체화한다. 데이터나 승인 상태를 임의 생성하지 않았다. 실제 검수 룩 종단 양성은 BLOCKED이며 모의 양성으로 대체하지 않는다.
+
+새 trace는 credential-shaped 필드 검사를 하고 g8_evidence.append_record의 Gitleaks 8.30.1/저장소 config/빈 ignore/--redact 검사를 통과한 뒤 기록했다. trace SHA256은 1f3f8d22e260df8b682b40a66feeab4632365fd89de7c4a874ce4dc7ddd64391이다. 과거 이력은 재작성하지 않았다.
+
+다음 작업: 실제 룩 1개의 단계·출처·검수자·상품/호수 근거 준비와 상담 레시피 API 서빙 연결을 분리해 진행하고, 그 후 실제 G5/Catalog/PG/앱 양성을 확인한다. 병행 가능한 범위는 부모의 더 넓은 목표 변경·전문 작업 제안 계약 및 E01/B01이다. 현재 즉시 필요한 사용자 판단은 없으며 실제 자료 검수자의 승인 사실은 근거를 확보하기 전 주장하지 않는다.
+
+최종 정리: 변경·신규 13개 파일 전체를 임시 복사하여 Gitleaks 8.30.1/빈 ignore/--redact로 검사했고 exit 0이다(로컬 원본 C:/Users/playdata2/AppData/Local/Temp/g8-parent-security.log). 최종 검증 manifest의 소스 9개가 모두 현재 bytes와 일치하며, 기존 N01·N02·first-compound trace는 HEAD bytes와 일치한다. git diff --check 통과. 이번에 시작한 전용 PG만 정상 종료했고 DB 파일은 보존했다.
+
+## 상담 레시피 API 계약·N02 전달 검증 — 2026-11-26
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성(레시피 서빙 연결)** → ⑥ 통합 검증 → ⑦ PR 인계. 기준 HEAD fc1b6279e2a8cca3b899dd255aa8a1ee4156b459/feat/compound-consultation, 기존 develop 통합 f5adb4e. 원격 fetch 없음. 이전 공통 부모 미커밋 변경을 보존하고 이번 승인 범위를 추가했다. 커밋·push·PR·배포 없음.
+
+변경한 7개 코드/자료 파일: backend/api/app/schemas/consultation_recipe.py(신규), schemas/style_look.py, repositories/style_look_repository.py, catalog_data/reviewed_style_recipes.json(신규 빈 목록), backend/api/tests/test_style_looks.py, types/index.ts, backend/chatbot/tests/test_g8_recipe_delivery.py(신규). 기존 SPEC/WORKLOG 및 parent trace만 갱신했다. API 라우트·DB·AR geometry·기존 영상 메타 원본은 변경하지 않았다.
+
+API는 별도 검수 레지스트리와 같은 lookId를 연결한다. 미승인·검수자/근거 누락·잘못된 단계 순서·다른 룩·합성 자료·중복 버전은 제공하지 않고 기존 룩은 유지한다. 챗봇이 이미 지원하는 ReviewedRecipe와 같은 응답 계약이다. 정상 API 라우트가 만든 JSON을 다른 프로세스의 챗봇 검증에 넘겨, 실제 CatalogClient 파싱→N02 레시피/정확한 호수→부모 결과까지 확인했다. HTTP 전송·Catalog 데이터·검수자·상품은 모의이며 실제 모델 호출 0회, 이번 PG 저장/실기기/실제 G5 검증은 NOT_RUN이다.
+
+실제 자료 준비: 기존 검토 자료 24건에 승인/검수자/룩 연결이 없음을 유지한다. 현재 영상 목록과 교집합인 뉴트럴 바닐라 메이크업(1qj6SactPVM, 초안 9단계) 등은 준비 후보일 뿐 원문 영상 검토·단계 설명·상품/호수 증빙을 확보한 완료 자료가 아니다. 실제 영상은 이번에 시청하지 않았다. 서빙 레지스트리는 0건이며 합성 fixture를 실제 자료로 등록하지 않았다. 실제 양성 BLOCKED 원인 중 API 코드 공백은 보완됐지만 데이터/사람 검토 공백은 남는다.
+
+검증:
+- API 집중 12 통과, 16:27:23 KST 시작. 원본 C:/Users/playdata2/AppData/Local/Temp/g8-recipe-api-pass.xml. uv run --frozen pytest -q -p no:cacheprovider tests/test_style_looks.py --basetemp <새 임시 경로> --tb=short -o junit_family=legacy --junitxml=<위 경로>.
+- 챗봇 집중 57 통과·1 건너뜀, 16:28:09 KST 시작. G8_RECIPE_API_JUNIT에 위 API XML을 전달하고 test_g8_recipe_delivery.py, test_g8_consultation_parent.py, test_g8_owned_look.py 실행. 원본 g8-recipe-chatbot.xml(같은 임시 디렉터리). 마지막 파일의 opt-in 실제 Catalog 검사는 미실행으로 건너뛴다.
+- 챗봇 전체 1,501 통과·102 건너뜀/48.79초. uv run --frozen pytest -q -p no:cacheprovider --basetemp <새 임시 경로> --tb=short --show-capture=no -o junit_family=legacy --junitxml=<g8-recipe-chat-all.xml>. 같은 API XML을 전달했다.
+- API 전체 638 통과·52 건너뜀·1 실패/88.42초. uv run --frozen pytest -q -p no:cacheprovider --basetemp <새 임시 경로> --tb=short --show-capture=no --maxfail=5 --junitxml=<g8-recipe-api-full.xml>. 실패는 test_celebrity_videos_endpoint_uses_client_contract의 기본 로컬 DB 인증 오류다. 기존 검증 설정을 메모리에만 읽고 read-only PG 연결로 해당 1건을 재시도했으나 localhost:15441 연결 거절로 실패했다(g8-recipe-api-db-retry.xml). API 전체 통과로 기록하지 않으며 DB 환경 복구 후 재검증이 남았다. 자격증명은 출력·파일 기록하지 않았다.
+- API/챗봇 ruff check 및 lint-imports 각각 3 KEPT, 앱 npm run typecheck/lint 통과. 처음 API 응답 형식 검사가 DB 인증에 의존해 실패해, 승인된 test_style_looks.py 안에서 DB 없는 서비스 주입으로 계약 테스트를 분리했다. 별도 유명인 API 테스트는 수정하지 않았다. httpx TestClient deprecation 및 전체 API xunit2/record_property 경고는 기능 통과와 분리한다.
+
+UV_PROJECT_ENVIRONMENT는 API의 기존 skin-conversation-api venv, 챗봇의 기존 g7-pr-review venv를 사용했으며 --frozen으로 실행했다. 최종 미커밋 소스 16개 exact-byte manifest와 tracked diff, 원본 XML 해시·시각, API JSON·전문 작업별 입력/결과는 parent trace의 G8-RECIPE-API-DELIVERY에 보존했다. 이전 parent trace 첫 기록의 bytes를 보존했으며 신규 기록은 Gitleaks 8.30.1/빈 ignore 검사를 통과한 뒤 추가했다.
+
+다음: 실제 룩 한 개의 사람 검토 가능한 자료 준비, 레지스트리 등록 근거 확인, 실제 상품/호수와 Catalog→G7→앱 양성. 공통 부모의 범용 목표 분해·실행 취소/재개·E01/B01·⑥ 전체 검증은 여전히 후속 범위다.
+
+최종 보안 확인: 이전 공통 부모 변경을 포함한 변경·신규 20개 파일 전체를 Gitleaks 8.30.1/빈 ignore/--redact로 검사해 exit 0을 확인했다. 로그는 C:/Users/playdata2/AppData/Local/Temp/g8-recipe-security.log. 검증 manifest의 소스 16개 모두 현재 bytes와 일치하며 git diff --check 통과. API 환경 실패는 해결되지 않은 상태로 유지한다.
+
+## 실제 룩 준비 및 WSL 조회 경로 확인 — 2026-11-26
+
+전체 ①→②→③→④→**⑤ 협력 완성: 실제 룩 검수 준비**→⑥ 통합 검증→⑦ PR 인계. HEAD/branch와 이전 구현 변경은 유지했다. 이번에는 코드·서빙 자료·승인 상태를 변경하지 않고 기존 WORKLOG/SPEC/parent trace에 조사 증빙만 추가한다. commit/push/PR 없음.
+
+사용자가 주소 탐색·필요한 서비스 시작을 지시해 환경을 직접 조사했다. Windows localhost:8082/19829/15441의 접근 실패만으로 서비스 중단을 단정할 수 없었다. WSL vishue-g5 안에서 g5integration PostgreSQL 15441과 기존 Catalog 8082가 동작하고 HTTP 조회가 가능했다. 현재 코드의 임시 Windows API 19829도 읽기 전용 DB 설정으로 실행했으나 Windows→WSL 접속이 실패해 종료했다. 기존 WSL 서비스는 유지했으며 DB 초기화·설정 변경은 하지 않았다. Windows localhost 전달 문제 자체가 해결된 것은 아니다. Docker ps는 응답하지 않아 해당 조사 명령만 중단했다.
+
+자료 비교: description-rules 초안 24건과 현재 영상 목록 73건의 교집합은 11건이다. 정적 CSV는 결정/검토자가 없는 과거 후보이며 실제 API의 확인된 연결과 구분했다. 실제 WSL Catalog에서 DiDEgRAin9g와 AG03mUj4vnY에 각각 정확한 호수 연결 1건을 확인했다. 전자는 3CE 화이트 컨실러, 후자는 롬앤 컨투어 그레이 쿨이다. 과거 CSV의 눈썹 상품 후보 호수는 확인된 연결이 아니며 검수 근거로 사용하지 않았다.
+
+웹 도구는 YouTube 페이지를 가져오지 못했고 브라우저 도구는 초기화 단계에서 실패했다. WSL의 공개 watch 페이지에서 원본 설명을 읽는 경로는 성공했다. DiDEgRAin9g의 원본 설명에는 키스미 눈썹 제품 05 라이트 브라운이 있어 과거 후보의 그레이시 베이지와 달랐다. 저장소 목록의 '원문에 명시 정보 없음'도 최신 원문 확인 결과와 달랐다. 원본 설명과 후보의 출처를 구분하며 기존 수집 자료를 임의 수정하지 않았다. 공개 한국어 자막 트랙 요청은 빈 응답이었다. 영상 재생·화면 속 실제 사용 동작은 확인하지 않았다.
+
+우선 검수 대상: **사진발 윤곽 보정 메이크업**, AG03mUj4vnY, 원본 https://www.youtube.com/watch?v=AG03mUj4vnY . 원본 설명의 롬앤 베러 댄 컨투어 02그레이쿨과 실제 Catalog의 productId=oy-a000000201055 / shadeId=A000000201055-002 / 호수명 그레이 쿨이 일치한다. API mappingVerified=true이며 상품 상세에도 해당 호수가 존재한다. 색상 측정은 estimated/color_compare이므로 실제 발색 검증으로 확대하지 않는다. 실행 중인 기존 API의 소스 SHA·데이터 릴리스 버전은 미확인이다.
+
+| 준비 항목 | 확인 결과 | 남은 확인 |
+| --- | --- | --- |
+| 원문 상품·호수 ↔ 실제 Catalog | 일치 확인 | 해당 상품을 쓰는 실제 영상 구간 |
+| 02:56 초안 | 베이스·윤곽이 같은 시각으로 중복 | 두 작업의 순서와 실제 설명 |
+| 04:41·08:21·09:51·11:13·13:38 | 원문 설명에 여러 윤곽 관련 구간 존재 | 단계 반복/부위/사용 상품을 직접 확인 |
+| 16:47·17:44·22:13 | 설명에서 블러셔·눈·하이라이터 구간 확인 | 실제 사용법과 단계별 상품 |
+| 완료 레시피 | 미등록, 승인자 없음 | 원문 구간·방법·근거 검토 후 등록 |
+
+기존 초안 5단계는 키워드가 처음 등장한 시각만 남긴 결과다. 전체 영상의 완전한 단계나 관찰한 사용법으로 취급하지 않는다. 원문 제목·장 목록만으로 바르는 위치/방향/양/순서를 만들어내지 않는다. 레시피 registry는 계속 0건이고 실제 N02 양성은 아직 BLOCKED다.
+
+증빙: parent trace의 G8-REAL-LOOK-READINESS에 실제 HTTP 상품/호수 응답, 원문 설명의 SHA와 필요한 상품명 한 줄, 장 시작 시각, 기존 초안, 관련 로컬 원본 5개 exact-byte manifest를 저장했다. 원문 전체·공개 연락처·자격증명은 저장하지 않았다. 모델 호출 0회. Windows 임시 Gitleaks 실행 파일이 없어 첫 append는 쓰기 전에 실패했다. 기존 WSL의 Gitleaks 8.30.1로 동일한 helper/빈 ignore 검사를 수행해 통과 후 추가했다. 이번은 조사·근거 검증이며 코드 회귀/실제 LLM/PG 저장/앱 UI는 재실행하지 않았다.
+
+다음: 위 영상의 실제 사용 구간을 확인해 검토 가능한 단계별 설명을 채우고, 상품 사용 구간과 출처를 연결한 뒤 승인 자료만 레지스트리에 등록한다. 원본에 없는 설명을 보충하거나 이 단계에서 verified를 설정하지 않는다.
+
+## 실제 영상 미리보기 관찰·부위 해석 결함 — 2026-11-26
+
+현재는 ⑤ 협력 완성 중 실제 룩 검수 준비다. 이전 구현과 승인 레지스트리는 유지했다. 이번 변경은 기존 SPEC/WORKLOG/parent trace의 조사 기록이며 코드 수정·commit/push/PR은 없다.
+
+Windows computer-use 스킬을 읽고 native 도구 초기화를 시도했으나 내장 브라우저와 같은 kernel assets 경로 오류로 실패했다. 공개 YouTube watch 페이지가 제공하는 level 3 storyboard는 정상 응답했다. 320×180 프레임, 10초 간격, 3×3 묶음의 미리보기 10장을 임시 검토 폴더에서 직접 확인했다. 연속 영상/음성/전체 프레임을 본 것으로 기록하지 않는다. source 영상은 AG03mUj4vnY이며 이미지 source SHA와 명목 시각은 trace에 있다.
+
+검토 가능한 관찰 초안(시각은 미리보기의 명목 시각):
+
+| 구간 | 화면에서 직접 확인한 내용 | 확정하지 않은 내용 |
+| --- | --- | --- |
+| 약 04:00 | 퍼프가 볼 부위에 닿는 장면 | 바르는 양·횟수·해당 쿠션 호수 |
+| 약 05:20 | 스틱이 관자놀이 주변에 닿는 장면 | 전체 이동 방향과 반복 |
+| 약 11:40 | 팔레트를 펼쳐 보여 주며 화면에 롬앤 표기가 나타남 | 작은 호수 글자의 독립 판독 |
+| 약 12:00~12:30 | 브러시가 눈 앞머리·콧대 주변·코 옆에 닿는 장면 | 각 부위의 적용량과 연속 동작 |
+| 약 14:10~14:50 | 목 앞쪽에 스틱, 턱선 아래에 브러시가 닿는 장면 | 모든 구간이 동일 상품인지 여부 |
+| 약 15:40~16:10 | 이마에 밝은 제형, 턱에 퍼프가 닿는 장면 | 제형의 정확한 상품·호수와 두드림 횟수 |
+| 약 17:10~17:40 | 블러셔 팬 제시 후 볼 앞쪽에 브러시가 닿는 장면 | 실제 색 재현·사용량 |
+| 약 18:10~18:50 | 브러시가 윗눈꺼풀과 아래 눈가에 닿는 장면 | 팔레트 개별 칸과 모든 단계 순서 |
+| 약 21:20 | 속눈썹 부근에 도구를 대는 장면 | 연속 부착 과정과 재료 규격 |
+| 약 21:50~22:10 | 입술 가장자리 펜슬·입술 어플리케이터 장면 | 정확한 덧바름 횟수 |
+| 약 22:40 | 작은 브러시가 눈 앞머리에 닿는 장면 | 사용량 및 전체 하이라이터 범위 |
+
+이 표는 AI 관찰 초안이다. 사람 검수·완성 레시피·효능 평가가 아니다. 원문 설명의 롬앤 02그레이쿨과 실제 Catalog의 정확한 호수 연결은 앞 조사 근거로 유지하며, 미리보기의 작은 호수 문자를 읽었다고 확대하지 않는다. 불명확한 상품/사용법을 채워 verified 레지스트리에 넣지 않았다.
+
+실제 데이터 연결과 관련된 별도 코드 문제를 발견했다. 기존 style_recipe_service.source_zone('베이스·윤곽 베이스 메이크업') 호출 결과가 foundation임을 uv run --frozen python으로 실행해 확인했다. source_zone은 먼저 발견한 부위를 택하며, video 상품의 zone+category 조합에도 사용된다. 해당 값이 RecipeProduct.zone에 들어가므로 N02의 contour 단계와 정확한 상품/호수를 연결하지 못하거나 foundation으로 분류할 수 있다. 실제 전체 N02 오추천을 실행한 결과로 확대하지 않으며, 함수 출력과 연결 코드로 확인한 위험이다.
+
+권장 다음 수정: 상품의 복수 부위 표기를 모호함으로 보존하고, 상품 이름·기본 Catalog 부위만으로 영상 사용 부위를 확정하지 않는다. 명확한 단일 부위의 기존 동작은 유지한다. N02는 모호한 상품을 정확한 단계 충족·AR 가능 결과로 승격하지 않고 근거 부족으로 남긴다. 정확한 사용 부위는 별도 검수 근거가 확보된 뒤 연결한다. 수정 예정 파일은 backend/chatbot/app/services/style_recipe_service.py, tests/test_style_recipe.py, tests/test_g8_owned_look.py이며 새 수정 범위 승인을 받기 전에는 변경하지 않았다.
+
+증빙은 C:/Users/playdata2/AppData/Local/Temp/g8-look-review-20261126의 원본 미리보기·manifest와 parent trace의 G8-REAL-LOOK-FRAME-REVIEW다. 17개 관찰 기록과 이미지 10장의 SHA, 코드 재현 입력/결과를 보존한다. 임시 이미지가 없어지면 해시만으로 재열람은 불가능하므로 필요 시 공개 원본에서 다시 확인해야 한다. repository에는 원본 이미지나 영상 전체를 넣지 않았다. 신규 trace는 기존 Linux Gitleaks 8.30.1/빈 ignore 검사 후 append했다. 이번에 실제 모델 호출·코드 회귀·앱 UI 검증은 실행하지 않았다.
+
+## 복수 영상 상품 부위 수정 및 검증 — 2026-11-26
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. 사용자 승인 후 앞 절의 세 파일(style_recipe_service.py, test_style_recipe.py, test_g8_owned_look.py)을 수정했다. branch feat/compound-consultation, HEAD fc1b6279e2a8cca3b899dd255aa8a1ee4156b459. 기존 확인 develop f5adb4e60202bdc4c98bdefe36669f96f90e9b55이며 이번에 원격 최신 여부를 다시 확인하지 않았다. 이전 공통 부모/API 변경을 보존한 미커밋 작업이다. commit/push/PR 없음.
+
+변경: 영상 상품 메타데이터의 서로 다른 부위를 모아 복수이면 unknown으로 유지한다. 같은 부위 별칭은 하나로 계산한다. 정확한 상품·호수 연결은 보존하지만 Catalog 기본 부위/상품명으로 모호함을 지우거나 AR 가능으로 승격하지 않는다. 일반 발화의 기존 source_zone 선택은 유지했다. N02는 이 상품으로 단계를 충족하거나 추가 상품을 추천하지 않고 evidence_missing을 반환하며 다른 유효한 상품은 보존한다. 새 공용 스키마/제한값은 없다.
+
+실제 실행 결과:
+- 집중 테스트: 109 통과·2 skip. 17:23:12 KST 시작, 원본 C:/Users/playdata2/AppData/Local/Temp/g8-zone-focused.xml. 명령: uv run --frozen pytest -q -p no:cacheprovider tests/test_style_recipe.py tests/test_g8_owned_look.py tests/test_g8_consultation_parent.py --tb=short --show-capture=no -o junit_family=legacy --junitxml=<위 경로>.
+- 챗봇 전체: 1,507 통과·103 skip·실패 0, 17:23:33 KST 시작, 약 46초. 원본 C:/Users/playdata2/AppData/Local/Temp/g8-zone-all.xml. 명령: uv run --frozen pytest -q -p no:cacheprovider --basetemp <새 임시 경로> --tb=short --show-capture=no -o junit_family=legacy --junitxml=<위 경로>. 이번에는 G8_RECIPE_API_JUNIT을 설정하지 않아 해당 opt-in 연결 검사는 skip했다. 이전 실행과 skip 수 차이를 성공으로 합산하지 않는다.
+- chatbot ruff check ., lint-imports(3 KEPT), 앱 npm run typecheck 및 npm run lint 통과. 기존 g7-pr-review venv를 UV_PROJECT_ENVIRONMENT로 지정하고 --frozen 사용. API 코드는 이번에 수정하지 않았으며 앞선 API 전체 실패를 해결했다고 주장하지 않는다.
+- 모의 검증: 복수 부위 네 경우·동일 부위 별칭, 합성 검수 영상의 모호/명확 부위 두 경우. 후자의 전문 작업 입력·결과·최종 응답은 JUnit 속성과 trace mockCases에 보존했다. 모호한 블러셔의 evidence_missing과 정상 립 결과 보존, 명확한 블러셔의 미보유 추천을 확인했다. 실제 검수 자료가 아니다.
+- 실제 HTTP: WSL 내부 Catalog 8082의 /api/style-looks 응답 중 AG03mUj4vnY / oy-a000000201055 / A000000201055-002를 현재 스키마와 video_product_zone에 전달해 (None, True)를 확인했다. 현재 코드의 전체 N02 서비스 배포 검증이 아니며 실행 중 API 소스 SHA·데이터 버전은 미확인이다. 원본 C:/Users/playdata2/AppData/Local/Temp/g8-zone-live.json.
+
+증빙: reports/g8/parent/trace.jsonl의 G8-AMBIGUOUS-VIDEO-ZONE에 미커밋 소스 19개 exact-byte manifest, tracked 구현 diff, XML 해시·실행 시각·명령, 모의 입출력, 실제 HTTP 부위 해석 결과를 보존했다. 신규 기록은 Gitleaks 8.30.1/빈 ignore 검사 통과 후 append했으며 과거 기록을 수정하지 않았다. 외부 모델 호출 0회. 실제 LLM/PG 저장/앱 표시/사람 검토는 이번에 NOT_RUN이다.
+
+남은 작업: 실제 영상 사용 부위와 단계 설명·상품/호수의 검수 근거를 확보하고 승인 레지스트리 등록 후 실제 Catalog→N02→G7→앱 양성을 검증한다. registry는 여전히 0건이며 실제 룩 양성은 BLOCKED다. 공통 부모의 범용 목표 분해·미완료 실행 재개·E01/B01·⑥ 통합 검증은 후속 범위다. 현재 수정에 추가 사용자 판단은 필요하지 않으며 실제 자료를 사람 검수 완료로 임의 승격하지 않는다.
+
+최종 확인: 변경·신규 23개 파일을 Gitleaks 8.30.1/빈 ignore/--redact로 검사해 exit 0을 확인했다. 로그는 C:/Users/playdata2/AppData/Local/Temp/g8-zone-security.log. 처음 Windows subprocess의 cp949 출력 디코딩 및 제한 환경 WSL 호출이 실패해 검사가 완료됐다고 취급하지 않았으며, bytes 출력과 승인된 WSL 실행으로 재시도했다. 소스 manifest 19개가 현재 bytes와 모두 일치하고 git diff --check도 통과했다.
+
+## 실제 룩 검수 자료와 단계별 상품 연결 공백 — 2026-11-26
+
+현재 ⑤ 협력 완성, branch/HEAD 및 미커밋 구현 유지. 기존 프레임 원본 10개가 모두 존재하며 저장된 SHA와 일치함을 재확인했다. page7/8/9를 다시 열어 관찰했다. 약 11:40에는 팔레트 제시, 12:00~13:20에는 코 주변 브러시 접촉, 14:10에는 목 앞 스틱 접촉, 14:50에는 턱 아래 브러시 접촉이 있다. 서로 다른 상품이 사용되므로 전체 윤곽 구간을 롬앤 단일 상품 사용으로 합치지 않는다. 프레임 관찰은 연속 영상·음성·사람 검수 완료가 아니다.
+
+검수 순서와 필요한 산출물:
+1. 원본 AG03mUj4vnY의 11:30~13:30 구간: 팔레트 제시와 코 주변 사용의 연속성을 확인하고 정확한 상품/호수 및 적용 방법을 연결한다. 현재 설명/Catalog로 확인한 oy-a000000201055 / A000000201055-002를 후보로만 둔다.
+2. 13:30~15:00 구간: 목 스틱과 턱 브러시를 별도 단계로 검토한다. 동일 상품이라고 추정하지 않는다.
+3. 나머지 베이스·블러셔·눈·립·하이라이터를 검토해 전체 단계의 누락 여부를 확인한다. 코 윤곽 일부만으로 전체 영상 레시피를 verified 처리하지 않는다.
+
+코드에서 확인한 추가 공백: API ConsultationStep과 챗봇 RecipeStep/ReviewedRecipe는 단계 설명과 레시피 단위 evidence를 전달하지만 단계별 정확한 상품·호수·사용 부위 연결을 담지 않는다. Style 실행은 상품 부위를 기존 영상 메타데이터에서 별도로 해석하고 N02 _exact_links는 link.zone 일치를 요구한다. 따라서 현재 복수 부위 방어는 유지하면서, 추후 실제 검수로 부위를 확정할 수 있는 명시적 입력 계약이 필요하다. 레지스트리에 단계 설명만 등록하는 것으로 해결되지 않는다.
+
+다음 구현 제안(아직 미적용): 검수 레시피에 선택적 단계별 상품 연결을 추가하고 stepOrder/productId/shadeId/evidenceId/source를 보존한다. 참조 단계의 부위와 정확한 Catalog 상품/호수 존재를 검증하며, 충돌·부재·무효 연결은 기존 unknown/evidence_missing을 유지한다. 기존 레시피는 필드 생략 시 동작을 유지한다. 연결 근거가 있어도 AR 색/제형 적합성이나 대체품 효능 근거를 자동 승인하지 않는다. 실제 자료 승인과 계약의 합성 검증은 분리한다.
+
+이번은 기존 자료/코드 대조 및 검수 계획 정리다. 코드·레지스트리 변경, 신규 모델 호출, 실제 PG/앱 검증, commit/push/PR 없음. 테스트를 새로 통과했다고 기록하지 않는다. 다음 계약 수정 파일 범위를 제시하고 승인 후 구현한다.
+
+## 검수 단계별 상품 사용 연결 구현 — 2026-11-26
+
+전체 ①→②→③→④→**⑤ 협력 완성: N02 검수 근거 연결**→⑥→⑦. 사용자 승인 후 제시한 API 스키마/테스트, 챗봇 스키마/Style 서비스/관련 세 테스트, types/index.ts와 기존 문서·증빙을 수정했다. feat/compound-consultation / fc1b6279e2a8cca3b899dd255aa8a1ee4156b459의 미커밋 변경이며 앞선 공통 부모·API 작업을 보존했다. develop의 원격 최신 여부는 재조회하지 않았다. commit/push/PR 없음.
+
+완료: 선택적 productUsages(stepOrder/productId/shadeId/evidenceId/source)로 단계 설명과 정확한 옵션의 사용 근거를 연결했다. 검수 레시피·mappingVerified·실제 Catalog 반환 상품/호수 일치가 필요하다. 부위 충돌·옵션 부재·미검수는 채택하지 않는다. 같은 상품의 다른 호수를 구분하고, 특정 영상의 기존 예외가 검수 연결을 덮지 않게 했다. 기존 레시피는 새 필드 없이 유지된다. 근거를 상품 응답에 담으며 응답 직렬화 복원과 근거 변경에 따른 레시피 버전 변경을 검증했다. 실제 G7 PG 저장 완료를 뜻하지 않는다.
+
+검증 결과:
+- API 집중 최종 17 통과(17:36:02 KST 시작). g8-usage-api-pass.xml. 최초 g8-usage-api.xml은 기존 pytest 임시 폴더 권한으로 3 통과/14 setup 오류였으며, 고유 --basetemp로 재실행했다. fixture가 임시 레지스트리를 대체하며 실제 서빙 데이터는 변경하지 않았다.
+- 챗봇 최종 집중 113 통과·2 skip(17:38:06 KST 시작). g8-usage-final-focused.xml. test_style_recipe.py, test_g8_owned_look.py, test_g8_recipe_delivery.py 실행. 정상/잘못된 옵션/부위 충돌/옵션 부재/미검수/여러 부위/동일 상품 다른 옵션/기존 영상 예외/잘못된 단계 참조·중복을 확인했다.
+- 챗봇 최종 전체 1,519 통과·102 skip/41.21초. g8-usage-final-all.xml. 첫 전체 실행 1,517 통과 이후 옵션/예외 경계를 추가하고 최종 상태를 재실행했다. 첫 결과를 최종 소스 증거로 사용하지 않는다.
+- API 전체 643 통과·52 skip·1 실패/51.18초. g8-usage-api-all.xml. 기존 test_celebrity_videos_endpoint_uses_client_contract의 PostgreSQL 인증 실패다. 이번 계약 검증 실패와 구분하며 API 전체 통과로 표시하지 않는다.
+- 양쪽 backend ruff check 및 lint-imports 각각 3 KEPT, 앱 npm run typecheck/lint 통과. 코드 변경은 승인한 범위이며 새 UI/API 호출 라이브러리는 추가하지 않았다.
+
+원본 XML은 C:/Users/playdata2/AppData/Local/Temp/ 아래에 있다. API uv 환경은 기존 skin-conversation-api, 챗봇은 기존 g7-pr-review의 .venv를 UV_PROJECT_ENVIRONMENT로 지정했다. 모두 uv run --frozen pytest -q -p no:cacheprovider, JUnit은 -o junit_family=legacy 사용. API 집중은 tests/test_style_looks.py, 전체는 테스트 경로 생략. 전체/최종 API 집중은 고유 --basetemp 사용, 출력은 --show-capture=no. 정확한 실행 시각·XML 해시·명령과 최종 소스 exact-byte manifest/diff는 parent trace의 G8-REVIEWED-PRODUCT-USAGE에 기록한다.
+
+모의/실제 구분: API TestClient의 합성 검수 응답을 G8_RECIPE_API_JUNIT=g8-usage-api-pass.xml로 전달해 실제 CatalogClient 코드의 MockTransport에서 재생했다. API 경로→챗봇→N02 추가 상품 응답에 사용 근거가 유지되고, 모호함만 있으면 조회가 생략되지만 유효 근거가 추가되면 실제 모의 Catalog 검색 인자가 바뀌는 것을 확인했다. 합성 승인 메타데이터는 서빙 스키마 검증용이며 사람 검수가 아니다. 모델 configured mode=not_used, 실제 외부 모델 호출 0회. 실제 Catalog HTTP/LLM/PG 저장/앱 UI/사람 검토는 이번에 NOT_RUN. registry 0건을 유지한다.
+
+설계 결정: 최대 사용 연결 100, ID 128자 제한·초과 처리·조정 기준은 SPEC에 기록했다. 같은 옵션이 실제 여러 부위에 쓰이는 경우 현재 단일 zone 구조에서 임의 선택하지 않고 미확인으로 보존한다. 효능·대체 적합성·AR 색 검사를 완화하지 않았다.
+
+다음: 실제 영상 검수 구간과 단계별 옵션 사용 근거를 확보한 뒤 승인 자료를 등록하고 실제 Catalog→N02→G7→앱을 검증한다. API 전체의 DB 인증 환경 실패도 남는다. 범용 부모 계획/실행 재개/E01/B01 및 ⑥ 전체 검증은 여전히 후속 범위다.
+
+최종 증빙 검사: 신규 trace는 Gitleaks 8.30.1/빈 ignore 검사 후 append했고, 변경·신규 24개 파일 전체도 같은 scanner/빈 ignore/--redact로 exit 0을 확인했다. 로그 C:/Users/playdata2/AppData/Local/Temp/g8-usage-security.log. 신규 trace 소스 20개 exact-byte 해시 모두 현재 파일과 일치하며 git diff --check 통과. 과거 trace는 보존했다.
+
+## 실제 룩 전체 상품·옵션 준비도 확인 — 2026-11-26
+
+현재 ⑤ 협력 완성 중 실제 데이터 준비. 기존 branch/HEAD/미커밋 구현 유지. WSL 내부 Catalog 8082의 /api/style-looks와 대상 상품 상세를 읽기 전용으로 조회했다. AG03mUj4vnY의 14개 상품 중 정확한 옵션 연결 1개, 상품만 연결 11개, 상품 연결 없음 2개다. 연결된 상품 12개는 모두 상세 응답의 ID가 요청 ID와 일치했다. 조회 실패는 없었다. 실행 API 소스 SHA·데이터 릴리스 버전은 여전히 미확인이다.
+
+| 영상 항목 | 실제 Catalog 준비 상태 | 남은 준비 |
+| --- | --- | --- |
+| 2 롬앤 컨투어 02그레이쿨 | oy-a000000201055 / A000000201055-002 존재 | 영상 단계별 사용 검수; 같은 이름의 다른 옵션으로 교체 금지 |
+| 1 쿠션, 3 헤어섀도, 4 컨실러, 5 파우더, 6 치크, 7 아이팔레트, 8 라이너, 9 마스카라, 11 샤인밤, 13 틴트 | 상품 상세 존재, 현재 응답 shades가 비어 있음 | 정확한 판매 옵션 데이터와 원본 사용 호수 연결 |
+| 10 키스미 눈썹 펜슬 03호 | 상품 상세 존재, 반환된 호수는 12/그레이시 베이지 | 영상 03호와 동일 옵션임을 확인할 수 없음; 첫 호수 선택 금지 |
+| 12 밀크터치 립 펜슬, 14 세잔느 하이라이터 | 영상→상품 연결 없음 | 상품 정체성·옵션·사용 구간 근거 |
+
+후보 변경이 문제를 해결하는지도 확인했다. 영상 73개 중 정확한 옵션 링크 메타데이터를 가진 영상은 4개이며 각각 1개뿐이다. DiDEgRAin9g 1/10, AG03mUj4vnY 1/14, SeBpQnxm_4Q 1/18, ZAozXs-ZZik 1/24다. 이 순위는 목록 메타데이터 비교이며 다른 세 영상의 모든 상품 상세 검증은 아니다. 단순히 후보를 바꾸는 것으로 전체 단계의 옵션 공백이 해결되지 않아 기존 검수 후보를 유지한다.
+
+결론: 사람 검수만 기다리는 문제가 아니라 현재 실행 데이터의 판매 옵션 공백도 있다. 전체 룩의 모든 상품이 준비돼야 일부 유효 결과를 반환할 수 있다는 뜻은 아니다. 근거 있는 단계는 활용하고 나머지는 evidence_missing으로 보존하는 부분 성공 계약을 유지한다. 다만 미검수 자료를 등록해 실제 양성으로 만들거나 한 구간만으로 전체 영상의 완료 레시피를 선언하지 않는다.
+
+증빙: parent trace G8-REAL-LOOK-OPTION-READINESS에 실제 14개 항목의 상태, 상품 상세의 옵션 ID/이름, 73개 영상 메타데이터 비교, 확인 시각과 현재 관련 소스 3개 해시를 추가했다. Gitleaks 8.30.1/빈 ignore 검사 후 append했다. 3개 병렬 읽기·요청당 20초는 이번 조사에만 사용한 실행 설정이며 제품의 새 제한값이 아니다. 실제 모델 호출 0회, 연속 영상 재생/사람 검수/N02 전체/PG/앱은 NOT_RUN. 웹 도구의 원본 YouTube 페이지 조회는 실패했으며 이를 영상 검수 증거로 사용하지 않았다.
+
+다음 작업은 두 갈래로 구분한다. (A) 기존 영상 관찰 구간의 사용법·상품 연결 검수 자료 준비, (B) 실행 Catalog와 저장소 데이터의 옵션 공급 경로 대조 및 정확한 옵션 준비 가능 여부 확인. 데이터가 준비되지 않은 항목을 미확인으로 유지하면서 E01/B01과 후속 통합 검증은 독립적으로 진행할 수 있다. 이번에 API/DB 데이터·소스 코드·레지스트리 변경, commit/push/PR은 하지 않았다.
+
+공급 경로의 코드 확인: 현재 CatalogService.get_product는 저장소 상세를 직접 읽고 이미지 보강 후 반환한다. CatalogRepository.get_product는 PG ProductRow를 읽는다. 따라서 현재 코드 기준으로 단순 목록 캐시 비우기가 옵션 공백의 해결책이라고 볼 근거가 없다. OyCatalogRepository는 원본 옵션/색상 테이블을 읽는 별도 경로이며 VerifiedVideoProductRepository에는 확인된 상품의 미해결 호수를 원본 옵션 근거로 해석하는 경로가 있다. 실행 서버가 이 현재 소스와 일치하는지는 미확인이므로 원본 DB의 해당 옵션 존재 여부와 서빙 반영 여부를 다음에 나누어 확인한다. 이번에 원본 테이블을 직접 조회하거나 import job을 실행하지 않았다. 문서/증빙 변경 뒤 git diff --check 및 신규 trace 소스 해시 일치를 확인했다.
+
+## 정정: 원본 판매 옵션과 AR 서빙 shade의 차이 — 2026-11-26
+
+사용자 요청으로 원본→서빙→영상 매핑을 추가 조사했다. 앞 절의 '옵션 연결 1개'는 로컬 HTTP 응답의 catalogShadeId 기준 관측이며 전체 원본 판매 옵션 부족을 뜻하지 않는다. 원본 데이터가 없다는 결론으로 확대하면 잘못이다. 현재 ⑤ 협력 완성 중 계약/데이터 경계 조사이며 기능·데이터 수정은 하지 않았다.
+
+실제 읽기 전용 PostgreSQL: 기존 프로젝트 .env.local의 vishue_g5_integration(15441)에 연결해 products 9,031 / shades 11,231 / raw_oy_product 8,215 / raw_oy_product_option 21,951행을 확인했다. 모든 SQL은 default_transaction_read_only와 statement_timeout을 적용했다. 인증정보는 기록하지 않았다. 이 DB가 8082 API의 실제 연결 DB인지는 아직 입증하지 못했다. Docker CLI는 제한 시간 내 응답하지 않았으며 WSL 안에서 API 프로세스/소켓을 식별하지 못했다. 다만 세 표본의 seed/catalog.json·이 DB의 serving shade·8082 응답 내용은 일치한다.
+
+확인된 사례:
+- 키스미 A000000137019 원본에는 03 애쉬 브라운(A000000137019-001)을 포함한 6개 옵션이 실제 존재한다. 03~09 옵션은 유효 HEX 행 0개, 12 그레이시 베이지는 1개다. 서빙 shades에는 id=12만 있다. 영상 매핑은 상품 confirmed이지만 oy_option_id는 NULL이다. 원본 옵션 존재와 영상→정확한 판매 옵션 확정은 별개다.
+- 삐아 아이팔레트는 영상 매핑에 A000000162667-012가 이미 confirmed로 존재한다. 그런데 앞선 HTTP에는 catalogProductId만 있고 catalogShadeId가 없었다. 따라서 '정확한 옵션 매핑 자체가 전부 없다'는 해석도 틀리다.
+- 롬앤은 A000000201055-002의 원본 옵션/confirmed 영상 매핑/서빙 shade/API 연결이 이어진다.
+- 쿠션 등 YouTube 출처 상품에는 원본 option_name이 있으나 색상값이 없다. 이를 판매 옵션 정보가 전혀 없다고 표현하지 않는다. 별도 판매 옵션 정체성/출처 검증 없이 option_name만으로 임의 ID를 만들지도 않는다.
+- 세잔느는 이 DB의 영상 매핑에 상품 A000000216419 confirmed가 있으나 앞선 API에 상품 링크가 없었다. 서빙 ProductRow 포함 여부와 실행 환경 차이는 추가 확인 대상이다.
+
+코드 근거: app/services/oy_catalog.py의 build_oy_catalog는 유효 HEX가 없는 옵션을 shades에서 제외한다. app/repositories/verified_video_product_repository.py는 confirmed 원본 옵션을 서빙 ShadeRow.id와 연결하고, 실패 시 색 근거를 요구하는 video_shade_resolution fallback을 사용한다. 즉 판매 옵션 전체와 AR 색상 표현이 가능한 shade 목록은 동일하지 않다. API/N02가 catalogShadeId만 정확한 옵션의 근거로 요구하면 판매 옵션이 존재해도 상담 연결이 막힐 수 있다. 최근 추가한 productUsages.shadeId 역시 현재 서빙 shade 계약이므로 이 구분을 보완해야 한다.
+
+권장 후속 설계: 검증된 판매 optionId와 선택적 AR shadeId를 구분한다. 원본 confirmed 판매 옵션은 별도의 근거 계약으로 상담에 전달하고 AR은 기존 색상·제형·부위 검증을 그대로 적용한다. 색상값을 만들어 shades에 넣거나 미확인 매핑을 자동 승인하는 해결책은 사용하지 않는다. 기존 카드/저장/옵션 가격·성분 조회 계약과의 영향 범위를 먼저 정리한 뒤 수정한다. 이번 조사만으로 데이터 재수집·DB import·매핑 변경을 실행하지 않았다.
+
+증빙: parent trace G8-RAW-VERSUS-SERVING-OPTIONS에 실행한 SELECT, 실제 원본/서빙/영상 매핑 결과, DB 식별 범위, 관련 코드와 seed exact-byte 해시를 저장했다. Gitleaks 8.30.1/빈 ignore 검사 통과 후 append. 모델 호출 0, 신규 기능 회귀/앱/실제 N02 종단 검증은 NOT_RUN. 기존 데이터 준비도 기록은 당시 API 관측으로 보존하며 본 절에서 의미를 정정한다.

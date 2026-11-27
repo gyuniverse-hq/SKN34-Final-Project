@@ -1,0 +1,259 @@
+diff --git a/backend/chatbot/app/repositories/conversation_repository.py b/backend/chatbot/app/repositories/conversation_repository.py
+index 98b4647..449ed24 100644
+--- a/backend/chatbot/app/repositories/conversation_repository.py
++++ b/backend/chatbot/app/repositories/conversation_repository.py
+@@ -15,6 +15,7 @@ from app.schemas.conversation import ConversationEntry
+ 
+ _ENTRY = TypeAdapter(ConversationEntry)
+ _CONTEXT_KEYS = {
++    "consultationParent",
+     "ownedLook",
+     "compound",
+     "schemaVersion",
+diff --git a/backend/chatbot/app/schemas/chat.py b/backend/chatbot/app/schemas/chat.py
+index 4f96734..91e52f2 100644
+--- a/backend/chatbot/app/schemas/chat.py
++++ b/backend/chatbot/app/schemas/chat.py
+@@ -13,6 +13,7 @@ from app.schemas.catalog import (
+     OptionSearchResponse,
+ )
+ from app.schemas.compound_consultation import CompoundContext, CompoundDisplay
++from app.schemas.consultation_parent import ConsultationParent
+ from app.schemas.conversation import ConversationMetadata
+ from app.schemas.knowledge import KnowledgeReply
+ from app.schemas.memory import (
+@@ -178,6 +179,7 @@ class PendingClarification(ArModel):
+ 
+ 
+ class ChatRequest(ApiModel):
++    _consultation_parent: ConsultationParent | None = PrivateAttr(default=None)
+     structured_memory: bool = Field(default=False, strict=True, exclude_if=lambda value: not value)
+     _server_history: bool = PrivateAttr(default=False)
+     _historical_product_ids: tuple[str, ...] = PrivateAttr(default=())
+@@ -422,6 +424,8 @@ class ChatIngredientResult(CatalogIngredients):
+ 
+ 
+ class ChatResponse(ApiModel):
++    _consultation_parent: ConsultationParent | None = PrivateAttr(default=None)
++    _parent_trace: list[dict] = PrivateAttr(default_factory=list)
+     owned_look_options: OwnedLookOptionDisplay | None = Field(
+         default=None, exclude_if=lambda v: v is None
+     )
+diff --git a/backend/chatbot/app/schemas/conversation.py b/backend/chatbot/app/schemas/conversation.py
+index f0df1fc..5e82c57 100644
+--- a/backend/chatbot/app/schemas/conversation.py
++++ b/backend/chatbot/app/schemas/conversation.py
+@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
+ from pydantic.alias_generators import to_camel
+ 
+ from app.schemas.compound_consultation import CompoundContext
++from app.schemas.consultation_parent import ConsultationParent
+ from app.schemas.owned_look_context import OwnedLookContext
+ from app.schemas.style_recipe import StyleCandidateRef, StyleCondition, StyleContext
+ 
+@@ -125,6 +126,9 @@ class StoredMemoryRef(ConversationModel):
+ 
+ 
+ class StoredConversationContext(ConversationModel):
++    consultation_parent: ConsultationParent | None = Field(
++        default=None, exclude_if=lambda v: v is None
++    )
+     schema_version: Literal[1] = 1
+     owned_look: OwnedLookContext | None = Field(default=None, exclude_if=lambda v: v is None)
+     current_goal: StoredGoal | None = None
+diff --git a/backend/chatbot/app/services/chat_service.py b/backend/chatbot/app/services/chat_service.py
+index 4bee85c..d2ddc59 100644
+--- a/backend/chatbot/app/services/chat_service.py
++++ b/backend/chatbot/app/services/chat_service.py
+@@ -667,9 +667,9 @@ class ChatService:
+         context = resolve_context(req)
+         decision = route_intent(context)
+         if not explicit_knowledge and decision.intent not in {"ar", "compound"}:
+-            from app.services.owned_look_consultation_service import execute_owned_look
++            from app.services.consultation_parent_graph import try_owned_look
+ 
+-            owned_look = await execute_owned_look(req, self._catalog)
++            owned_look = await try_owned_look(req, self._catalog)
+             if owned_look is not None:
+                 return owned_look
+         session_ref = req.chat_context.session if req.chat_context else None
+@@ -851,10 +851,17 @@ class ChatService:
+                 remove_knowledge_ingredients=choice.remove_knowledge_ingredients,
+             )
+ 
++        async def coordinated(*_):
++            from app.services.consultation_parent_graph import run_parent
++
++            if choice.scope != "consultation":
++                return await execute(req, decision, None)
++            return await run_parent(req, "skin", lambda: execute(req, decision, None))
++
+         if req._g7_execution is not None:
+-            runtime = SupervisorRuntime(req, context, lambda *_: TaskPlan(), execute)
++            runtime = SupervisorRuntime(req, context, lambda *_: TaskPlan(), coordinated)
+             return await self._run_durable(req._g7_execution, runtime, decision)
+-        return await execute(req, decision, None)
++        return await coordinated()
+ 
+     @staticmethod
+     async def _run_durable(execution, supervisor_runtime, decision):
+diff --git a/backend/chatbot/app/services/conversation_context.py b/backend/chatbot/app/services/conversation_context.py
+index 7b5b12d..96c81cd 100644
+--- a/backend/chatbot/app/services/conversation_context.py
++++ b/backend/chatbot/app/services/conversation_context.py
+@@ -192,7 +192,9 @@ def prepare_request(
+         result._owned_look_context = context.owned_look
+     if context.product and beauty and not beauty.filters.option_search:
+         result._historical_product_ids = tuple(context.product.historical_candidate_refs)
+-    return result
++    from app.services.consultation_parent_graph import restore_followup
++
++    return restore_followup(result, context.consultation_parent)
+ 
+ 
+ async def revalidate_request(chat, request: ChatRequest) -> None:
+@@ -228,6 +230,7 @@ async def revalidate_request(chat, request: ChatRequest) -> None:
+ 
+ def updated_context(raw: dict, response: ChatResponse) -> dict:
+     context = read_context(raw)
++    context.consultation_parent = response._consultation_parent
+     context.owned_look = response._owned_look_context
+     compound = response.compound
+     context.compound = (
+@@ -283,6 +286,7 @@ async def apply_state_update(
+             context.product.selected_shade_id = None
+         context.style = None
+         context.owned_look = None
++        context.consultation_parent = None
+         return context.model_dump(mode="json", by_alias=True, exclude_none=True)
+ 
+     catalog = getattr(chat, "_catalog", None)
+@@ -314,6 +318,7 @@ async def apply_state_update(
+                     look_id,
+                 ):
+                     context.owned_look = None
++                    context.consultation_parent = None
+                 context.style = StoredStyleContext(kind=kind, look_id=look_id)
+             else:
+                 selected = context.style
+diff --git a/backend/chatbot/tests/test_g7_memory_api_pg.py b/backend/chatbot/tests/test_g7_memory_api_pg.py
+index 4365b11..0e21870 100644
+--- a/backend/chatbot/tests/test_g7_memory_api_pg.py
++++ b/backend/chatbot/tests/test_g7_memory_api_pg.py
+@@ -1480,8 +1480,13 @@ def test_n02_consented_inventory_selected_look_persistence_and_replay(
+     tasks = []
+     original = owned_service.execute_owned_look
+ 
+-    async def observed(req, catalog):
+-        return await original(req, catalog, trace=tasks)
++    async def observed(req, catalog, *, trace=None):
++        local = []
++        response = await original(req, catalog, trace=local)
++        tasks.extend(local)
++        if trace is not None:
++            trace.extend(local)
++        return response
+ 
+     monkeypatch.setattr(owned_service, "execute_owned_look", observed)
+ 
+@@ -1530,6 +1535,67 @@ def test_n02_consented_inventory_selected_look_persistence_and_replay(
+     )
+     assert approved.status_code == 200, approved.text
+     service = ChatService(FakeGraph(), NoModel(), catalog)
++    # Shared-parent conversational resume, using real PostgreSQL and synthetic Catalog/G5.
++    from app.schemas.knowledge import KnowledgeReply
++    from app.services import consultation_parent_graph as parent_graph
++    from app.services.knowledge_service import Consultation
++
++    knowledge_inputs = []
++
++    async def mock_knowledge(question, *, prior_user_context):
++        knowledge_inputs.append(json.loads(prior_user_context))
++        return Consultation(
++            KnowledgeReply(status="insufficient_evidence", limitations="합성 근거 부족"), {}
++        )
++
++    monkeypatch.setattr(parent_graph.knowledge_service, "consult_knowledge", mock_knowledge)
++    parent_room = new_room(client)
++    parent_version = select(
++        parent_room, 0, "select_look", {"kind": "catalog", "lookId": "fixture-look"}
++    )
++    parent_first = ask(
++        client,
++        parent_room,
++        parent_version,
++        "내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘. 순서의 이유도 설명해줘.",
++        structured=True,
++    )
++    assert not parent_first["products"]
++    assert "블러셔 제품을 가지고 있나요" in parent_first["answer"]
++    assert knowledge_inputs[0]["styleRecipe"]["lookId"] == "fixture-look"
++    parent_second = ask(
++        client, parent_room, parent_first["conversation"]["version"], "없어", structured=True
++    )
++    assert [p["id"] for p in parent_second["products"]] == ["blush-b"]
++    assert len(knowledge_inputs) == 1  # No repeat G5 call for a resolved ownership question.
++    parent_third = ask(
++        client,
++        parent_room,
++        parent_second["conversation"]["version"],
++        "상품은 됐고 사용 순서만 알려줘",
++        structured=True,
++    )
++    assert not parent_third["products"] and parent_third["styleRecipe"]
++    restored_parent = client.get(f"/api/chat/conversations/{parent_room}", headers=AUTH).json()
++    assert restored_parent["messages"][-1]["displayPayload"]["products"] == []
++    record_property(
++        "parent_pg_evidence",
++        json.dumps(
++            {
++                "postgresMode": "live",
++                "catalogMode": "mock",
++                "authenticationMode": "mock",
++                "modelConfiguredMode": "mock",
++                "externalModelCalls": 0,
++                "knowledgeInputs": knowledge_inputs,
++                "turns": [
++                    {"modelMode": "mock", "externalModelCalls": 0, "response": value}
++                    for value in (parent_first, parent_second, parent_third)
++                ],
++            },
++            ensure_ascii=False,
++        ),
++    )
+     room = new_room(client)
+     version = select(room, 0, "select_look", {"kind": "catalog", "lookId": "fixture-look"})
+     body = {
+@@ -1572,6 +1638,7 @@ def test_n02_consented_inventory_selected_look_persistence_and_replay(
+     assert following["appliedMemories"][0]["productId"] == "lip-a"
+     assert [p["id"] for p in following["products"]] == ["blush-b"]
+     assert "블러셔 제품도 가지고 있나요" not in following["answer"]
++    assert "블러셔 제품을 가지고 있나요" not in following["answer"]
+     priced_request_id = str(uuid4())
+     priced = ask(
+         client,
+@@ -1644,7 +1711,7 @@ def test_n02_consented_inventory_selected_look_persistence_and_replay(
+         structured=True,
+     )
+     assert not released["products"]
+-    assert "블러셔 제품도 가지고 있나요" in released["answer"]
++    assert "블러셔 제품을 가지고 있나요" in released["answer"]
+     reset_missing = ask(
+         client, room, released["conversation"]["version"], "블러셔는 없어.", structured=True
+     )
+@@ -1751,8 +1818,13 @@ def test_n02_live_catalog_pg_evidence_boundary(memory_api, monkeypatch, record_p
+     client.app.dependency_overrides[get_chat_service] = lambda: service
+     original = owned_service.execute_owned_look
+ 
+-    async def observed(req, catalog):
+-        return await original(req, catalog, trace=tasks)
++    async def observed(req, catalog, *, trace=None):
++        local = []
++        response = await original(req, catalog, trace=local)
++        tasks.extend(local)
++        if trace is not None:
++            trace.extend(local)
++        return response
+ 
+     monkeypatch.setattr(owned_service, "execute_owned_look", observed)
+     room = new_room(client)

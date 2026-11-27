@@ -1,0 +1,63 @@
+{
+  "case": "G8-PARENT-SALE-OPTION-PRE-PUSH",
+  "at": "2026-11-27T13:40:55.957754+09:00",
+  "implementationCommit": "2ee4d3df6b5958791d52be613a6d1fd03ba8daba",
+  "baseCommit": "fc1b6279e2a8cca3b899dd255aa8a1ee4156b459",
+  "developObserved": "991dd634dba33b99ceeb1c03de4dd8d921ce07f9",
+  "models": {
+    "mode": "not_used",
+    "actualCalls": 0
+  },
+  "app": {
+    "initialPassed": 1334,
+    "initialTimeout": 1,
+    "sequentialPassed": 1335,
+    "suites": 107,
+    "typecheck": "PASS",
+    "lint": "PASS"
+  },
+  "api": {
+    "initialPassed": 653,
+    "initialFailed": 5,
+    "skipped": 45,
+    "retryPassed": 22,
+    "readonlyRetryPassed": 1,
+    "failureCauses": [
+      "catboost optional group missing: 3",
+      "default DB auth: 1",
+      "child HTTP test timeout: 1"
+    ],
+    "ruff": "PASS",
+    "importContracts": 3
+  },
+  "chatbot": {
+    "passed": 1526,
+    "skipped": 106,
+    "ruff": "PASS",
+    "importContracts": 3
+  },
+  "security": {
+    "gitleaks": "8.30.1",
+    "changedFiles": 83,
+    "changedScan": "PASS with empty ignore",
+    "historyCommits": 666,
+    "historyScan": "PASS with repository ignore"
+  },
+  "tracePrivacy": {
+    "credentialFields": 0,
+    "privateKeyHeaders": 0,
+    "emailPatternMatches": 67,
+    "classification": "All code decorators, not email addresses"
+  },
+  "artifacts": [
+    "g8-publish-app-check.log",
+    "g8-publish-app-sequential.log",
+    "g8-publish-api.xml",
+    "g8-publish-api-rerun.xml",
+    "g8-publish-api-readonly.xml",
+    "g8-publish-chatbot.xml",
+    "g8-publish-security.log",
+    "g8-publish-history-before.log"
+  ],
+  "publication": "implementation committed; documentation commit and push pending; PR not requested"
+}
