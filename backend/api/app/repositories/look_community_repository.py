@@ -7,8 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.look_community import LookPost, LookPostContent, LookPostViewer, ReportedLookPost
 
 _POST = """
-SELECT p.id, p.title, p.description, p.products, p.created_at, p.hidden,
-       (SELECT count(*) FROM look_post_votes v WHERE v.post_id = p.id) AS votes
+SELECT p.id, p.title, p.display_name, p.description, p.products, p.created_at, p.hidden,
+       p.owner_id IS NULL AS example,
+       p.example_votes + (SELECT count(*) FROM look_post_votes v WHERE v.post_id = p.id) AS votes
 FROM look_posts p
 """
 
@@ -61,7 +62,7 @@ class LookCommunityRepository:
     async def viewer(self, post_id: UUID, member: str) -> LookPostViewer | None:
         rows = await self.session.execute(
             text("""
-                SELECT p.owner_id = :member AS owned,
+                SELECT COALESCE(p.owner_id = :member, false) AS owned,
                        EXISTS (SELECT 1 FROM look_post_votes WHERE post_id = p.id
                                AND member_id = :member) AS recommended,
                        EXISTS (SELECT 1 FROM look_post_reports WHERE post_id = p.id
@@ -76,7 +77,7 @@ class LookCommunityRepository:
     async def save(
         self,
         post_id: UUID,
-        owner: str,
+        owner: str | None,
         content: LookPostContent,
         photo: bytes | None,
         *,
@@ -86,17 +87,23 @@ class LookCommunityRepository:
             "id": post_id,
             "owner": owner,
             "title": content.title,
+            "display_name": content.display_name,
+            "set_display_name": "display_name" in content.model_fields_set,
             "description": content.description,
             "products": json.dumps(content.model_dump(by_alias=True)["products"]),
             "photo": photo,
         }
         if create:
-            query = """INSERT INTO look_posts (id, owner_id, title, description, products, photo)
-                       VALUES (:id, :owner, :title, :description, CAST(:products AS jsonb), :photo)
+            query = """INSERT INTO look_posts
+                           (id, owner_id, title, display_name, description, products, photo)
+                       VALUES (:id, :owner, :title, :display_name, :description,
+                               CAST(:products AS jsonb), :photo)
                        ON CONFLICT (id) DO NOTHING RETURNING id"""
         else:
             photo_update = ", photo = :photo" if photo is not None else ""
             query = f"""UPDATE look_posts SET title = :title, description = :description,
+                        display_name = CASE WHEN :set_display_name THEN :display_name
+                                            ELSE display_name END,
                         products = CAST(:products AS jsonb){photo_update}
                         WHERE id = :id AND owner_id = :owner AND NOT hidden RETURNING id"""
         return bool(await self.session.scalar(text(query), values))
@@ -110,11 +117,12 @@ class LookCommunityRepository:
         )
 
     async def interact(self, post_id: UUID, owner: str, reason: str | None) -> bool:
-        target = await self.session.scalar(
+        result = await self.session.execute(
             text("SELECT owner_id FROM look_posts WHERE id = :id AND NOT hidden FOR UPDATE"),
             {"id": post_id},
         )
-        if target is None or target == owner:
+        target = result.one_or_none()
+        if target is None or target[0] == owner:
             return False
         query = (
             "INSERT INTO look_post_votes (post_id, member_id) "

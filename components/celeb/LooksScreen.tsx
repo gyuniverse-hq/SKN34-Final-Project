@@ -24,12 +24,13 @@ function LookSeparator() {
 
 type LooksScreenProps = {
   inStack?: boolean;
+  showTitle?: boolean;
   searchBar: ReactNode;
   looks: { data?: StyleLook[]; isPending: boolean; isError: boolean; refetch: () => unknown };
   tutorials: { data?: YoutubeSearchResult; isFetching: boolean; isError: boolean };
 };
 
-export default function LooksScreen({ inStack = false, searchBar, looks, tutorials }: LooksScreenProps) {
+export default function LooksScreen({ inStack = false, showTitle = true, searchBar, looks, tutorials }: LooksScreenProps) {
   const router = useRouter();
   const { t } = useI18n();
   const { width } = useWindowDimensions();
@@ -43,9 +44,9 @@ export default function LooksScreen({ inStack = false, searchBar, looks, tutoria
   return (
     <SafeAreaView style={styles.screen} edges={inStack ? [] : ['top']}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
-        <View style={styles.header}>
+        {showTitle ? <View style={styles.header}>
           <Text style={tabTitle} accessibilityRole="header">{t('looks.title')}</Text>
-        </View>
+        </View> : null}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={homeHeading} accessibilityRole="header">{t('home.collectionCelebrity')}</Text>

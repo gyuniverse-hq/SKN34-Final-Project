@@ -16,12 +16,16 @@ class LookPostProduct(ApiModel):
 
 class LookPostContent(ApiModel):
     title: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)]
+    display_name: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=24)] | None
+    ) = None
     description: Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)] = ""
     products: list[LookPostProduct] = Field(default_factory=list, max_length=12)
 
 
 class LookPost(LookPostContent):
     id: UUID
+    example: bool = False
     created_at: datetime
     votes: int
     hidden: bool

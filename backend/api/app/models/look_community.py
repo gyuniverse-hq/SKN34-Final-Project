@@ -21,11 +21,15 @@ class LookPostRow(Base):
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True)
-    owner_id: Mapped[str] = mapped_column(String(64), ForeignKey("members.id", ondelete="CASCADE"))
+    owner_id: Mapped[str | None] = mapped_column(
+        String(64), ForeignKey("members.id", ondelete="CASCADE")
+    )
     title: Mapped[str] = mapped_column(String(80))
+    display_name: Mapped[str | None] = mapped_column(String(24))
     description: Mapped[str] = mapped_column(String(500))
     products: Mapped[list[dict[str, str]]] = mapped_column(JSONB)
     photo: Mapped[bytes]
+    example_votes: Mapped[int] = mapped_column(server_default=text("0"))
     hidden: Mapped[bool] = mapped_column(server_default=text("false"))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=text("now()")

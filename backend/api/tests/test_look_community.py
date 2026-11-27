@@ -80,6 +80,28 @@ def test_community_post_lifecycle():
     asyncio.run(seed_members())
     try:
         with TestClient(app) as client:
+            examples = [post for post in client.get(PUBLIC).json() if post["example"]]
+            assert len(examples) == 6
+            assert len({post["createdAt"] for post in examples}) == 6
+            assert len({post["votes"] for post in examples}) == 6
+            popular = client.get(PUBLIC, params={"popular": "true"}).json()
+            assert [post["votes"] for post in popular] == sorted(
+                [post["votes"] for post in popular], reverse=True
+            )
+            for example in examples:
+                assert example["products"]
+                image = client.get(f"{PUBLIC}/{example['id']}/photo")
+                assert image.headers["content-type"] == "image/jpeg"
+                with Image.open(BytesIO(image.content)) as photo:
+                    photo.verify()
+            example_url = f"{PUBLIC}/{examples[0]['id']}"
+            reader_headers = {"x-member": reader}
+            assert (
+                client.get(example_url + "/viewer", headers=reader_headers).json()["owned"] is False
+            )
+            reaction = client.post(example_url + "/recommend", headers=reader_headers)
+            assert reaction.status_code == 200
+            assert reaction.json()["votes"] == examples[0]["votes"] + 1
             exercise_post(client, owner, reader)
     finally:
         asyncio.run(clean_up())
@@ -90,7 +112,13 @@ def exercise_post(client: TestClient, owner: str, reader: str):
     post_url = f"{PUBLIC}/{post_id}"
     admin_url = f"{ADMIN}/{post_id}"
     writer, viewer, moderator = {"x-member": owner}, {"x-member": reader}, {"x-staff": "yes"}
-    content = json.dumps({"title": "Rose makeup", "products": [{"productId": "lip-1"}]})
+    content = json.dumps(
+        {
+            "title": "Rose makeup",
+            "displayName": " Rose Studio ",
+            "products": [{"productId": "lip-1", "shadeId": "rose"}, {"productId": "cheek-1"}],
+        }
+    )
     files = {"image": ("look.jpg", sample_photo(), "image/jpeg")}
     assert (
         client.post(post_url, headers=writer, data={"content": content}, files=files).status_code
@@ -101,11 +129,31 @@ def exercise_post(client: TestClient, owner: str, reader: str):
         published = client.post(post_url, headers=writer, data=fields, files=files)
         assert published.status_code == 201
         assert published.json()["id"] == post_id
-    assert [p["id"] for p in client.get(PUBLIC + "/mine", headers=writer).json()] == [post_id]
+        assert published.json()["displayName"] == "Rose Studio"
+    mine = client.get(PUBLIC + "/mine", headers=writer).json()
+    assert [p["id"] for p in mine] == [post_id]
+    expected_products = [
+        {"productId": "lip-1", "shadeId": "rose"},
+        {"productId": "cheek-1", "shadeId": None},
+    ]
+    assert mine[0]["products"] == expected_products
+    assert client.get(post_url).json()["products"] == expected_products
+    assert next(p for p in client.get(PUBLIC).json() if p["id"] == post_id)["products"] == (
+        expected_products
+    )
     assert client.get(post_url + "/photo").headers["cache-control"] == "no-store"
     assert client.patch(post_url, headers=viewer, data=fields).status_code == 404
     changed = client.patch(post_url, headers=writer, data={"content": '{"title":"New title"}'})
     assert changed.json()["title"] == "New title"
+    assert changed.json()["displayName"] == "Rose Studio"
+    public_post = next(post for post in client.get(PUBLIC).json() if post["id"] == post_id)
+    assert public_post["displayName"] == "Rose Studio"
+    assert "ownerId" not in public_post and "email" not in public_post
+    cleared = client.patch(
+        post_url, headers=writer, data={"content": '{"title":"New title","displayName":null}'}
+    )
+    assert cleared.status_code == 200
+    assert client.get(post_url).json()["displayName"] is None
     rec_url = f"{post_url}/recommend"
     assert client.post(rec_url, headers=writer).status_code == 409
     for _ in range(2):
