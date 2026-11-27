@@ -3,6 +3,7 @@ import renderer, { act } from 'react-test-renderer';
 import { ArSheet } from '@/components/ar/ArSheet';
 import { ZONE_WHEEL_HUB_CENTER_FROM_BOTTOM } from '@/components/ar/ArZoneWheel';
 import { OpenArcPalette } from '@/components/ar/OpenArcPalette';
+import { ArConversationShades } from '@/components/ar/ArConversationPalette';
 import { shadeTone, type ShadePreference } from '@/lib/arShadePreference';
 import { colorFamily } from '@/lib/colorFamily';
 import { isLipBaseCare, lipCareKind } from '@/lib/lipCare';
@@ -639,6 +640,21 @@ it('keeps the nearby anchor and direction when filtering only the texture', asyn
     nearby: true, anchor: opened.data.anchor, direction: 'muted', texture: 'matte', count: expect.any(Number),
   } });
 });
+
+it('shows nearby candidates in a horizontal conversation strip and applies the tapped product shade', async () => {
+  const first = { ...lip, id: 'nearby-a', name: '비슷한 립 A', shades: [shade] };
+  const second = { ...lip, id: 'nearby-b', name: '비슷한 립 B', shades: [shade] };
+  mockCatalog = { data: [lip, second, first] };
+  await refresh();
+  const opened = await chat('explore_nearby/show/similar', '지금 입술이랑 비슷한 색 좀 볼래.');
+  expect(opened.data.shades.map((item: { productId: string }) => item.productId)).toEqual([first.id, second.id]);
+  expect(screen.root.findAllByType(OpenArcPalette)).toHaveLength(0);
+  const strip = screen.root.findByType(ArConversationShades);
+  expect(strip.props.items.map((item: { product: Product }) => item.product.id)).toEqual([first.id, second.id]);
+  const secondChip = strip.findByProps({ accessibilityRole: 'radio', accessibilityLabel: [second.brand, second.name, shade.name].join(' · ') });
+  await act(async () => { secondChip.props.onPress(); });
+  expect(useMakeupStore.getState().selections.lip).toEqual({ productId: second.id, shadeId: shade.id });
+});
 it('reports the actual active zone, including zero results and a repeated selection',async()=>{
   mockCatalog={data:[{...blush,makeupZone:'brow',shades:blush.shades.slice(0,1).concat(shade)}]};
   await refresh();
@@ -667,6 +683,9 @@ it('applies and opens the exact second shade from the shown recommendation list'
   await chat('select_zone/foundation', '파운데이션도 좀 볼래.');
   const shown = await chat('get_recommendations/foundation_match', '내 피부색에 가까운 색 몇 개 보여줘.');
   expect(shown).toMatchObject({ status: 'OK', data: expect.arrayContaining([expect.objectContaining({ productId: foundation.id })]) });
+  const strip = screen.root.findByType(ArConversationShades);
+  expect(strip.props.items.map((item: { shade: { id: string } }) => item.shade.id))
+    .toEqual(shown.data.map((item: { shadeId: string }) => item.shadeId));
   expect(useMakeupStore.getState().selections.foundation).toBeUndefined();
   const second = shown.data[1];
   // A fresh skin tone can change a later ranking, but the displayed order is still the user's reference.

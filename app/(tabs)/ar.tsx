@@ -697,6 +697,8 @@ export default function ArTryOnScreen() {
     ? (zone === 'eyeshadow' && makeup.eyeshadow?.hexTo === picked.item.shade.hex ? picked.item : null)
     : (picked && currentSwatch?.product.id === picked.item.product.id ? currentSwatch : null);
   const paletteSelection = shadowPointing ? displayedSwatches.find(s => s.shade.hex === makeup.eyeshadow?.hexTo) : currentSwatch;
+  const paletteKey = JSON.stringify([zone, nearby.active, nearby.anchor?.product.id, nearby.anchor?.shade.id, nearby.direction, textureFilter, familyFilter, careChip]);
+  const paletteShadeLabel = ({ product, shade }: ColorSwatch) => [product.brand, product.name, shade.name].filter(Boolean).join(' · ');
   const controlSwatches = conversationSwatch ? conversationSwatch.product.shades.map(shade => ({ product: conversationSwatch.product, shade })) : displayedSwatches;
   const controlPoint = picked && conversationSwatch ? picked.point : !!shadowPointing;
   const centerSelection = conversationSwatch ?? paletteSelection;
@@ -1508,23 +1510,19 @@ export default function ArTryOnScreen() {
           <KeyboardAvoidingView pointerEvents="box-none" style={styles.chatDock} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <View testID="ar-conversation-dock" pointerEvents="box-none" style={[styles.chat, { paddingBottom: conversationBottom }]}>
               {conversationContent?.kind === 'palette' ? (
-                displayedSwatches.length ? <OpenArcPalette items={displayedSwatches} selected={paletteSelection ?? undefined}
-                  label={t('ar.arc.palette')} hint={t('ar.arc.swipe')} onSelect={selectPaletteShade} /> :
+                displayedSwatches.length ? <ArConversationShades key={paletteKey} items={displayedSwatches} selected={paletteSelection}
+                  itemLabel={paletteShadeLabel} onSelect={selectPaletteShade} selectOnSwipe /> :
                   <Text style={styles.arcEmpty}>{t(nearby.active ? 'ar.explore.empty' : zoneSwatches.length ? 'ar.filter.empty' : 'ar.noProducts')}</Text>
               ) : conversationContent?.kind === 'recommendations' && recentRecommendations?.items.length ? (
-                <ScrollView style={{ maxHeight: windowHeight * 0.18, flexGrow: 0 }} keyboardShouldPersistTaps="handled">
-                  {recentRecommendations.items.map((item, index) => (
-                    <Pressable key={JSON.stringify([item.product.id, item.shade.id])} accessibilityRole="button"
-                      onPress={() => {
-                        if (item.product.makeupZone && item.product.makeupZone !== zone) chooseZone(item.product.makeupZone);
-                        applyDirect(item.product, item.shade);
-                      }} style={styles.matchCard}>
-                      <Text style={styles.matchName}>{index + 1}. {item.product.brand} {item.product.name} · {item.shade.name}</Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
+                <ArConversationShades key={recentRecommendations.kind + recentRecommendations.scope} items={recentRecommendations.items}
+                  selected={currentSwatch} itemLabel={(item, index) => `${index + 1}. ${paletteShadeLabel(item)}`}
+                  onSelect={({ product, shade }) => {
+                    if (product.makeupZone && product.makeupZone !== zone) chooseZone(product.makeupZone);
+                    applyDirect(product, shade);
+                  }} />
               ) : conversationSwatch ? (
-                <ArConversationShades product={conversationSwatch.product} selectedShadeId={conversationSwatch.shade.id} onSelect={shade => {
+                <ArConversationShades key={'product:' + conversationSwatch.product.id} items={controlSwatches} selected={conversationSwatch} onSelect={({ shade }) => {
+                  if (shade.id === conversationSwatch.shade.id) return;
                   if (picked?.point) {
                     setShadowPoint(shade.hex);
                     setConversationContent({ kind: 'product', item: { product: conversationSwatch.product, shade }, point: true });
@@ -1625,7 +1623,7 @@ export default function ArTryOnScreen() {
                 onChange={setTexture} /> : null}
             </View>
             <View pointerEvents={zoneMenuOpen ? 'none' : 'auto'} aria-hidden={zoneMenuOpen} accessibilityElementsHidden={zoneMenuOpen} importantForAccessibility={zoneMenuOpen ? 'no-hide-descendants' : 'auto'} style={zoneMenuOpen ? { opacity: 0 } : undefined}>
-            <OpenArcPalette key={JSON.stringify([zone, nearby.active, nearby.anchor?.product.id, nearby.anchor?.shade.id, nearby.direction, textureFilter, familyFilter, careChip])}
+            <OpenArcPalette key={paletteKey}
               items={displayedSwatches} selected={paletteSelection ?? undefined} label={t('ar.arc.palette')} hint={t('ar.arc.swipe')}
               onVisible={activity.visible}
               recommendedItems={activity.recommendedItems} recommendedLabel={t('ar.arc.recommended')}
