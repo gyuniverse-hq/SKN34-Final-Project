@@ -1,0 +1,150 @@
+{
+  "at": "2026-11-28T12:34:43.387870+00:00",
+  "baseHead": "d4ae462c5d89f9efd3710a5a60fa0e281d64fd31",
+  "develop": "991dd634dba33b99ceeb1c03de4dd8d921ce07f9",
+  "workingTree": "uncommitted",
+  "scope": {
+    "formatFiles": 21,
+    "documents": 2,
+    "newEvidenceFiles": 6
+  },
+  "ast": {
+    "equal": 21,
+    "different": 0,
+    "typeCommentsIncluded": true,
+    "locationAttributesExcluded": true
+  },
+  "integrity": {
+    "sourcesChecked": 960,
+    "changedSources": 21,
+    "oldEvidenceChecked": 1469,
+    "oldEvidenceChanged": 0,
+    "outsideApproval": [],
+    "headUnchanged": true
+  },
+  "checks": {
+    "api": {
+      "format": "PASS",
+      "ruff": "PASS",
+      "layers": "PASS",
+      "pytest": {
+        "passed": 675,
+        "skipped": 67,
+        "warnings": 1,
+        "seconds": 80.94
+      }
+    },
+    "chatbot": {
+      "format": "PASS",
+      "ruff": "PASS",
+      "layers": "PASS",
+      "pytest": {
+        "passed": 1814,
+        "skipped": 139,
+        "seconds": 55.97
+      }
+    },
+    "app": {
+      "typecheck": "PASS",
+      "lint": "PASS",
+      "Jest": {
+        "mode": "REUSED",
+        "passed": 1387,
+        "proof": "../closing-last/checks.log"
+      }
+    },
+    "newAuditTool": "format/lint and invoked assertion checks PASS",
+    "workingDiffWhitespace": "PASS"
+  },
+  "environment": "basic tests; new private TEMP per service; DB/Redis/live opt-ins disabled",
+  "reusedActualProofs": [
+    "../closing-last/verification.json",
+    "../closing-last/trace.jsonl",
+    "../closing-last/closure-matrix.json",
+    "../closing5/verification.json",
+    "../e01-fix/verification.json",
+    "../closing4/verification.json"
+  ],
+  "actualModelsCatalogPGLoginApp": "NOT_RUN this phase; previous actual evidence retained",
+  "newPaidModelCalls": 0,
+  "sourceLink": "baseline HEAD plus per-file before/after byte hashes, identical AST and formatting.patch",
+  "security": {
+    "supplementalCounts": {
+      "protectedValue": 0,
+      "jwt": 0,
+      "privateKey": 0,
+      "email": 0
+    },
+    "gitleaks": {
+      "version": "8.30.1",
+      "newEvidence": "PASS",
+      "workingDiff": "PASS",
+      "existingConfig": true,
+      "ignore": "empty",
+      "redact": true
+    },
+    "committedHistory": {
+      "mode": "REUSED actual current BASE scan, not rerun",
+      "commits": 695,
+      "leaks": 0,
+      "proof": "security.log"
+    }
+  },
+  "status": {
+    "localHandoffPreparation": "PASS; uncommitted only; remote PR gates remain pending",
+    "remoteIncludesFormatting": false,
+    "PR": "NOT_CREATED",
+    "remoteCI": "NOT_RUN",
+    "teamReview": "NOT_RUN",
+    "commitPushDeploy": "NOT_RUN"
+  },
+  "residualRisks": [
+    "Historical initial skin plan failure cause unconfirmed",
+    "Parent duplicate update was safely rejected in one previous actual sample",
+    "N02 specific video use/substitution evidence blocked independently of general advice",
+    "Previous PNG capture failure; DOM/PG passed",
+    "API Starlette TestClient/httpx deprecation warning observed; no dependency change"
+  ],
+  "changedFiles": 29,
+  "stagedFiles": 0,
+  "publication": {
+    "at": "2026-11-28T12:41:56.197209+00:00",
+    "formatCommit": "325a836495cf27cd41ab6f15c7264c53e53aedca",
+    "prePushRemote": "d4ae462c5d89f9efd3710a5a60fa0e281d64fd31",
+    "develop": "991dd634dba33b99ceeb1c03de4dd8d921ce07f9",
+    "branch": "feat/compound-consultation",
+    "status": "FORMATTING_COMMITTED; DOCUMENTS_COMMIT_AND_PUSH_PENDING",
+    "authorization": {
+      "commit": true,
+      "push": true,
+      "PR": false,
+      "deploy": false
+    },
+    "preserveOriginalPhaseRecords": true,
+    "appReexecuted": {
+      "command": "npm run check -- -- --runInBand",
+      "typecheck": "PASS",
+      "lint": "PASS",
+      "suitesPassed": 113,
+      "testsPassed": 1387,
+      "testSeconds": 65.69,
+      "processSeconds": 90.042
+    },
+    "backendFastChecksReexecuted": "format/ruff/import contracts PASS for both services",
+    "backendPytest": {
+      "mode": "REUSED exact same source hashes; not rerun",
+      "apiPassed": 675,
+      "apiSkipped": 67,
+      "chatbotPassed": 1814,
+      "chatbotSkipped": 139
+    },
+    "ASTEqual": 21,
+    "oldEvidenceUnchanged": 1469,
+    "newPaidModelCalls": 0,
+    "originalChecksPrefixRetained": {
+      "bytes": 26501,
+      "sha256": "a84b01a3ab0d8f8042e41301adcdcea058b8db52705ef2878a216eb889cd918e",
+      "matches": true
+    }
+  }
+}

@@ -1,0 +1,1546 @@
+diff --git a/backend/api/app/repositories/oy_catalog_repository.py b/backend/api/app/repositories/oy_catalog_repository.py
+index 6f375c0a..29287cab 100644
+--- a/backend/api/app/repositories/oy_catalog_repository.py
++++ b/backend/api/app/repositories/oy_catalog_repository.py
+@@ -58,14 +58,17 @@ class OyCatalogRepository:
+         return tuple(row) if row else None
+ 
+     async def option_image(self, option_id: str, product_id: str):
+-        rows = (await self._session.execute(
+-            select(RawOyImageRow.image_url, RawOyImageRow.image_type)
+-            .where(
+-                RawOyImageRow.option_id == option_id,
+-                RawOyImageRow.goods_no == product_id.removeprefix("oy-").upper(),
+-                RawOyImageRow.image_type.in_(["option", "color_chip", "color_compare"]),
+-            ).order_by(RawOyImageRow.sort_seq, RawOyImageRow.image_id)
+-        )).all()
++        rows = (
++            await self._session.execute(
++                select(RawOyImageRow.image_url, RawOyImageRow.image_type)
++                .where(
++                    RawOyImageRow.option_id == option_id,
++                    RawOyImageRow.goods_no == product_id.removeprefix("oy-").upper(),
++                    RawOyImageRow.image_type.in_(["option", "color_chip", "color_compare"]),
++                )
++                .order_by(RawOyImageRow.sort_seq, RawOyImageRow.image_id)
++            )
++        ).all()
+         for kind in ("option", "color_chip", "color_compare"):
+             for url, image_type in rows:
+                 if image_type == kind and url and url.startswith("https://"):
+@@ -74,22 +77,49 @@ class OyCatalogRepository:
+ 
+     async def option_ar_shade(self, option_id: str, product_id: str):
+         # Reuse the existing conservative raw-to-serving mapping, never route shade input.
+-        options = (await self._session.execute(select(RawOyProductOptionRow).where(
+-            RawOyProductOptionRow.goods_no == product_id.removeprefix("oy-").upper(),
+-            RawOyProductOptionRow.delisted_at.is_(None),
+-        ))).scalars().all()
+-        shades = (await self._session.execute(select(ShadeRow).where(
+-            ShadeRow.product_id == product_id,
+-        ))).scalars().all()
+-        color = (await self._session.execute(select(RawOyOptionColorRow).where(
+-            RawOyOptionColorRow.option_id == option_id,
+-        ).order_by(RawOyOptionColorRow.collected_at.desc()).limit(1))).scalar_one_or_none()
++        options = (
++            (
++                await self._session.execute(
++                    select(RawOyProductOptionRow).where(
++                        RawOyProductOptionRow.goods_no == product_id.removeprefix("oy-").upper(),
++                        RawOyProductOptionRow.delisted_at.is_(None),
++                    )
++                )
++            )
++            .scalars()
++            .all()
++        )
++        shades = (
++            (
++                await self._session.execute(
++                    select(ShadeRow).where(
++                        ShadeRow.product_id == product_id,
++                    )
++                )
++            )
++            .scalars()
++            .all()
++        )
++        color = (
++            await self._session.execute(
++                select(RawOyOptionColorRow)
++                .where(
++                    RawOyOptionColorRow.option_id == option_id,
++                )
++                .order_by(RawOyOptionColorRow.collected_at.desc())
++                .limit(1)
++            )
++        ).scalar_one_or_none()
+         return resolve_confirmed_shade_fallback(
+-            product_id=product_id, raw_option_id=option_id,
+-            options=[RawShadeOption(o.option_id, o.goods_no, o.shade_code, o.shade_name)
+-                     for o in options],
+-            shades=[ServingShade(s.product_id, s.id, s.name, s.hex,
+-                                 s.measure_method, s.color_source) for s in shades],
++            product_id=product_id,
++            raw_option_id=option_id,
++            options=[
++                RawShadeOption(o.option_id, o.goods_no, o.shade_code, o.shade_name) for o in options
++            ],
++            shades=[
++                ServingShade(s.product_id, s.id, s.name, s.hex, s.measure_method, s.color_source)
++                for s in shades
++            ],
+             color=RawShadeColor(color.hex_code, color.color_method) if color else None,
+         )
+ 
+diff --git a/backend/api/app/schemas/product_option.py b/backend/api/app/schemas/product_option.py
+index aef8ef27..d74384de 100644
+--- a/backend/api/app/schemas/product_option.py
++++ b/backend/api/app/schemas/product_option.py
+@@ -1,4 +1,5 @@
+ """Sale identity and recorded price; independent of AR capability."""
++
+ from typing import Literal
+ 
+ from pydantic import Field
+diff --git a/backend/api/app/services/product_option_service.py b/backend/api/app/services/product_option_service.py
+index 41aeb5a1..b44e8889 100644
+--- a/backend/api/app/services/product_option_service.py
++++ b/backend/api/app/services/product_option_service.py
+@@ -1,4 +1,5 @@
+ """Read one active sale option; no order, ingredient or AR approval side effects."""
++
+ from fastapi import Depends
+ from sqlalchemy.ext.asyncio import AsyncSession
+ 
+@@ -19,7 +20,9 @@ class ProductOptionService:
+         price = await self.repository.option_price(option_id, product_id)
+         image = await self.repository.option_image(option_id, product_id)
+         return ProductOption(
+-            product_id=product_id, option_id=identity[0], name=identity[1] or identity[0],
++            product_id=product_id,
++            option_id=identity[0],
++            name=identity[1] or identity[0],
+             price_krw=price[1] if price and price[1] is not None and price[1] >= 0 else None,
+             observed_at=price[2].isoformat() if price and price[2] else None,
+             source_url=identity[3],
+diff --git a/backend/api/tests/test_product_options.py b/backend/api/tests/test_product_options.py
+index fb2426aa..698c0a7f 100644
+--- a/backend/api/tests/test_product_options.py
++++ b/backend/api/tests/test_product_options.py
+@@ -1,4 +1,5 @@
+ """Mock repository/HTTP contracts. Live Catalog evidence is recorded separately."""
++
+ from datetime import datetime
+ from types import SimpleNamespace
+ from unittest.mock import AsyncMock
+@@ -20,7 +21,9 @@ def anyio_backend():
+ def repository():
+     return SimpleNamespace(
+         option_identity=AsyncMock(return_value=("o2", "Option 2", None, "https://example.test/p")),
+-        option_price=AsyncMock(return_value=(1, 1200, datetime(2026, 10, 28), "https://example.test/p")),
++        option_price=AsyncMock(
++            return_value=(1, 1200, datetime(2026, 10, 28), "https://example.test/p")
++        ),
+         option_image=AsyncMock(return_value=("https://example.test/chip.jpg", "color_chip")),
+         option_ar_shade=AsyncMock(return_value=None),
+     )
+diff --git a/backend/api/tests/test_style_looks.py b/backend/api/tests/test_style_looks.py
+index bb4492c9..a8f7b237 100644
+--- a/backend/api/tests/test_style_looks.py
++++ b/backend/api/tests/test_style_looks.py
+@@ -36,8 +36,15 @@ def catalog_rows(monkeypatch):
+ 
+     async def published(session, source):
+         assert source == "style"
+-        return [{"video_id": r["id"], "catalog_title": r["title"],
+-                 "style_group": r["group"], "style_tag": r["tag"]} for r in rows()]
++        return [
++            {
++                "video_id": r["id"],
++                "catalog_title": r["title"],
++                "style_group": r["group"],
++                "style_tag": r["tag"],
++            }
++            for r in rows()
++        ]
+ 
+     async def mentions(session, source):
+         assert source == "style"
+diff --git a/backend/chatbot/app/schemas/consultation_parent.py b/backend/chatbot/app/schemas/consultation_parent.py
+index a13f525f..ecc5d3ba 100644
+--- a/backend/chatbot/app/schemas/consultation_parent.py
++++ b/backend/chatbot/app/schemas/consultation_parent.py
+@@ -118,7 +118,8 @@ class ConsultationParent(ParentModel):
+             raise ValueError("Stale question revision")
+         if self.question and self.question.task_id is None:
+             owners = [
+-                task for task in self.tasks
++                task
++                for task in self.tasks
+                 if task.goal == self.question.goal and task.status == "waiting_user"
+             ]
+             if len(owners) == 1:
+diff --git a/backend/chatbot/app/services/beauty_consultation_service.py b/backend/chatbot/app/services/beauty_consultation_service.py
+index 214bb497..efa47c69 100644
+--- a/backend/chatbot/app/services/beauty_consultation_service.py
++++ b/backend/chatbot/app/services/beauty_consultation_service.py
+@@ -589,19 +589,21 @@ def _comparison_pair(req, plan):
+ def direct_comparison(req, plan):
+     return bool(
+         _comparison_pair(req, plan)
+-        or (not (
+-            len(set(plan.compare_ordinals)) == 2
+-            and all(_comparison_ordinal(req.message, n) for n in plan.compare_ordinals)
+-        )
+-        and (
+-            _COMPARE.search(req.message)
+-            or req._comparison_followup
+-            or (req.screen_context and req.screen_context.screen_id in COMPARISON_SCREENS)
++        or (
++            not (
++                len(set(plan.compare_ordinals)) == 2
++                and all(_comparison_ordinal(req.message, n) for n in plan.compare_ordinals)
++            )
++            and (
++                _COMPARE.search(req.message)
++                or req._comparison_followup
++                or (req.screen_context and req.screen_context.screen_id in COMPARISON_SCREENS)
++            )
++            and (
++                (req.screen_context and req.screen_context.product_id)
++                or (req.chat_context and req.chat_context.selected_product_id)
++            )
+         )
+-        and (
+-            (req.screen_context and req.screen_context.product_id)
+-            or (req.chat_context and req.chat_context.selected_product_id)
+-        ))
+     )
+ 
+ 
+@@ -735,8 +737,10 @@ async def _compare_product(req, plan, catalog):
+ 
+ async def _compare_pair(req, plan, catalog):
+     previous = req.chat_context
+-    context = previous.model_copy(deep=True) if previous else _context(
+-        BeautyFilters(), [], int(time.time())
++    context = (
++        previous.model_copy(deep=True)
++        if previous
++        else _context(BeautyFilters(), [], int(time.time()))
+     )
+     clarify, unverified = _COMPARISON_COPY[req.locale]
+     if _comparison_pair(req, plan) == "ordinals":
+@@ -757,9 +761,13 @@ async def _compare_pair(req, plan, catalog):
+         matches = []
+         for name in names:
+             rows = await catalog.search_products(q=name)
+-            matches.append(list({
+-                p.id: p for p in rows if p.id == name or _matches_product_name(p, name)
+-            }.values()))
++            matches.append(
++                list(
++                    {
++                        p.id: p for p in rows if p.id == name or _matches_product_name(p, name)
++                    }.values()
++                )
++            )
+         if any(len(items) != 1 for items in matches):
+             unique = next((i for i, items in enumerate(matches) if len(items) == 1), None)
+             if unique is not None:
+@@ -769,17 +777,20 @@ async def _compare_pair(req, plan, catalog):
+ 
+                     context.selected_product_id = matches[unique][0].id
+                     return _comparison_choice_reply(
+-                        context, context.selected_product_id,
++                        context,
++                        context.selected_product_id,
+                         [ComparisonChoice(product_id=p.id, label=p.name) for p in other],
+-                        req.locale, _requested_price_basis(req.message),
++                        req.locale,
++                        _requested_price_basis(req.message),
+                     )
+             return _reply(unverified, context, preserve_selection=True)
+         products = [items[0] for items in matches]
+     if products[0].id == products[1].id:
+         return _reply(unverified, context, preserve_selection=True)
+     if previous is None:
+-        context = _context(BeautyFilters(), [p.id for p in products], int(time.time()),
+-                           selected=products[0].id)
++        context = _context(
++            BeautyFilters(), [p.id for p in products], int(time.time()), selected=products[0].id
++        )
+     return await _comparison_result(req, catalog, context, *products)
+ 
+ 
+diff --git a/backend/chatbot/app/services/chat_service.py b/backend/chatbot/app/services/chat_service.py
+index c08a5c86..68c97138 100644
+--- a/backend/chatbot/app/services/chat_service.py
++++ b/backend/chatbot/app/services/chat_service.py
+@@ -384,11 +384,8 @@ def route_intent(context: ResolvedContext) -> IntentDecision:
+     shopping = _SHOPPING.search(text)
+     execution = compound_graph.EXECUTION_REQUEST.search(text)
+     intent = "general"
+-    if (
+-        ((shopping and execution) or _explicit_protected_action(text))
+-        and not (
+-            get_settings().g8_enabled and compound_graph.is_search_condition_change(context.message)
+-        )
++    if ((shopping and execution) or _explicit_protected_action(text)) and not (
++        get_settings().g8_enabled and compound_graph.is_search_condition_change(context.message)
+     ):
+         intent = "compound"
+     elif context.request_type == "ar_command":
+@@ -711,11 +708,7 @@ class ChatService:
+             return control
+         from app.services.consultation_parent_graph import run_id_tasks
+ 
+-        delegated = (
+-            await run_id_tasks(req, self._dispatch_parent_read)
+-            if g8_enabled
+-            else None
+-        )
++        delegated = await run_id_tasks(req, self._dispatch_parent_read) if g8_enabled else None
+         if delegated is not None:
+             return delegated
+         intent = req._parent_intent if g8_enabled else None
+@@ -2073,8 +2066,7 @@ class ChatService:
+                             "지금 얼굴에 적용한 상태는 아니에요."
+                         ),
+                         "memory": (
+-                            "기억에는 어떤 내용을 저장할지 먼저 확인할게요. "
+-                            "아직 저장하지 않았어요."
++                            "기억에는 어떤 내용을 저장할지 먼저 확인할게요. 아직 저장하지 않았어요."
+                         ),
+                         "other": (
+                             "실제 변경은 해당 화면에서 내용을 확인한 뒤 진행해 주세요. "
+diff --git a/backend/chatbot/app/services/compound_consultation_graph.py b/backend/chatbot/app/services/compound_consultation_graph.py
+index 72f55690..c2c2d924 100644
+--- a/backend/chatbot/app/services/compound_consultation_graph.py
++++ b/backend/chatbot/app/services/compound_consultation_graph.py
+@@ -231,15 +231,20 @@ async def interpret(req, llm, previous: CompoundContext | None):
+         return plan
+     except Exception as exc:
+         # Keep only server-owned categories/types; never log model/user payloads or error text.
+-        schema_errors = sorted({e["type"] for e in exc.errors(include_input=False)}) if (
+-            isinstance(exc, ValidationError)
+-        ) else []
++        schema_errors = (
++            sorted({e["type"] for e in exc.errors(include_input=False)})
++            if (isinstance(exc, ValidationError))
++            else []
++        )
+         logger.warning(
+             "g8_skin_plan_failed stage=%s reason=%s errorType=%s causeType=%s "
+             "ms=%.1f schemaErrors=%s",
+-            stage, reason, type(exc).__name__,
++            stage,
++            reason,
++            type(exc).__name__,
+             type(exc.__cause__).__name__ if exc.__cause__ else None,
+-            (monotonic() - started) * 1000, schema_errors,
++            (monotonic() - started) * 1000,
++            schema_errors,
+         )
+         if isinstance(exc, (KeyError, IndexError, TypeError, ValueError, UpstreamError)):
+             raise ApiError(
+diff --git a/backend/chatbot/app/services/consultation_intent_service.py b/backend/chatbot/app/services/consultation_intent_service.py
+index 5b430608..98af6200 100644
+--- a/backend/chatbot/app/services/consultation_intent_service.py
++++ b/backend/chatbot/app/services/consultation_intent_service.py
+@@ -461,7 +461,8 @@ def intent_schema(parent):
+     schema["properties"]["planId"]["enum"] = [str(parent.plan_id)]
+     schema["properties"]["version"]["enum"] = [parent.version]
+     questions = [
+-        q for q in parent.pending_questions or ([parent.question] if parent.question else [])
++        q
++        for q in parent.pending_questions or ([parent.question] if parent.question else [])
+         if q.task_id is not None
+     ]
+     if not questions:
+@@ -673,15 +674,29 @@ async def prepare_turn(req, llm, *, initial=False, _repair_omitted=True):
+             audit["rejectionCode"] = reasons.get(str(exc), "invalid_contract")
+             if isinstance(exc, ValidationError):
+                 audit["rejectionCode"] = "schema_validation"
+-                fields = set(ConsultationIntent.model_fields) | {
+-                    f.alias for f in ConsultationIntent.model_fields.values()
+-                } | {"taskId", "inputKey", "needId", "operation", "quote", "productOperation",
+-                     "capability", "sharedQuotes", "explanationQuote"}
++                fields = (
++                    set(ConsultationIntent.model_fields)
++                    | {f.alias for f in ConsultationIntent.model_fields.values()}
++                    | {
++                        "taskId",
++                        "inputKey",
++                        "needId",
++                        "operation",
++                        "quote",
++                        "productOperation",
++                        "capability",
++                        "sharedQuotes",
++                        "explanationQuote",
++                    }
++                )
+                 audit["schemaErrors"] = [
+-                    {"type": e["type"], "path": [
+-                        p if isinstance(p, int) or p in fields else "unknown_field"
+-                        for p in e["loc"]
+-                    ]}
++                    {
++                        "type": e["type"],
++                        "path": [
++                            p if isinstance(p, int) or p in fields else "unknown_field"
++                            for p in e["loc"]
++                        ],
++                    }
+                     for e in exc.errors(include_input=False, include_context=False)
+                 ]
+             return control_response(
+diff --git a/backend/chatbot/app/services/consultation_parent_graph.py b/backend/chatbot/app/services/consultation_parent_graph.py
+index 0233ad17..4e8ba333 100644
+--- a/backend/chatbot/app/services/consultation_parent_graph.py
++++ b/backend/chatbot/app/services/consultation_parent_graph.py
+@@ -385,9 +385,7 @@ def task_scope_components(req, task=None, *, legacy=False):
+         else None,
+     }
+     # A cached task's reference to its own earlier result is history, not a sibling input.
+-    source_refs = task and any(
+-        ref.rsplit(":", 1)[-1] != task.task_id for ref in task.input_refs
+-    )
++    source_refs = task and any(ref.rsplit(":", 1)[-1] != task.task_id for ref in task.input_refs)
+     if not legacy and task and not task.depends_on and not source_refs:
+         if task.goal == "style":
+             catalog = {key: catalog[key] for key in ("style", "conditions")}
+@@ -396,17 +394,16 @@ def task_scope_components(req, task=None, *, legacy=False):
+                 key: value for key, value in catalog.items() if key not in {"style", "conditions"}
+             }
+     values = {
+-            "catalog": catalog,
+-            "memoryEpoch": req._memory_epoch,
+-            "memoryGeneration": req._memory_generation,
+-            # None and an empty read contain no structured personal data. Consent/data
+-            # changes still invalidate via epoch, generation, opt-out and exact refs.
+-            "memoryAvailable": (
+-                req._consultation_memories is not None
+-                if legacy else bool(req._consultation_memories)
+-            ),
+-            "ignoreMemory": ignores_memory(req.message),
+-            "memoryRefs": sorted([str(m.id), m.version] for m in req._consultation_memories or ()),
++        "catalog": catalog,
++        "memoryEpoch": req._memory_epoch,
++        "memoryGeneration": req._memory_generation,
++        # None and an empty read contain no structured personal data. Consent/data
++        # changes still invalidate via epoch, generation, opt-out and exact refs.
++        "memoryAvailable": (
++            req._consultation_memories is not None if legacy else bool(req._consultation_memories)
++        ),
++        "ignoreMemory": ignores_memory(req.message),
++        "memoryRefs": sorted([str(m.id), m.version] for m in req._consultation_memories or ()),
+     }
+     if not legacy:
+         values["version"] = 2
+@@ -421,8 +418,7 @@ def scope_matches(req, task):
+     expected = task_scope(req, task)
+     if task.scope_snapshot is not None:
+         return (
+-            fingerprint(task.scope_snapshot) == task.scope_digest
+-            and task.scope_digest == expected
++            fingerprint(task.scope_snapshot) == task.scope_digest and task.scope_digest == expected
+         )
+     if task.scope_digest in {expected, task_scope(req)}:
+         return True
+@@ -579,7 +575,8 @@ async def run_id_tasks(req, dispatch):
+             if child._question_answers:
+                 quotes = [quote for _, quote in child._question_answers]
+                 quotes.extend(
+-                    c.quote for c in intent.changes
++                    c.quote
++                    for c in intent.changes
+                     if c.task_id == current.task_id and c.operation == "update"
+                 )
+                 child.message = "\n".join(dict.fromkeys(quotes))
+@@ -590,8 +587,11 @@ async def run_id_tasks(req, dispatch):
+             if current.goal == "skin":
+                 child._compound_context = current.compound_context
+                 update = next(
+-                    (c for c in intent.changes
+-                     if c.task_id == current.task_id and c.operation == "update"),
++                    (
++                        c
++                        for c in intent.changes
++                        if c.task_id == current.task_id and c.operation == "update"
++                    ),
+                     None,
+                 )
+                 if update and current.compound_context is not None:
+diff --git a/backend/chatbot/app/services/owned_look_consultation_service.py b/backend/chatbot/app/services/owned_look_consultation_service.py
+index cfe41fe4..1911eb87 100644
+--- a/backend/chatbot/app/services/owned_look_consultation_service.py
++++ b/backend/chatbot/app/services/owned_look_consultation_service.py
+@@ -462,10 +462,15 @@ async def execute_owned_look(req, catalog, *, trace=None):
+     bound_answers = [(q, quote) for q, quote in req._question_answers if q.input_key == "ownership"]
+     # Question answers are applied only after validating their exact recipe target.
+     answered = {quote.strip().rstrip(".!?") for _, quote in bound_answers}
+-    remaining = "\n".join(
+-        clause for clause in re.split(r"(?<=[.!?])\s+|\n+", req.message)
+-        if clause.strip().rstrip(".!?") not in answered
+-    ) if bound_answers else req.message
++    remaining = (
++        "\n".join(
++            clause
++            for clause in re.split(r"(?<=[.!?])\s+|\n+", req.message)
++            if clause.strip().rstrip(".!?") not in answered
++        )
++        if bound_answers
++        else req.message
++    )
+     declaration_message, item_updates = _scoped_declarations(remaining, recipe)
+     owned_state = next_context(req, recipe.recipe_version, declaration_message=declaration_message)
+     refs = owned_look_interpreter.snapshot(recipe)
+@@ -508,17 +513,25 @@ async def execute_owned_look(req, catalog, *, trace=None):
+             response._task_results = list(task_results)
+             return response
+         answer_plans.append((answer_plan, quote))
+-    extra_statements = [
+-        clause for clause in re.split(r"(?<=[.!?])\s+|\n+", declaration_message)
+-        if _self_declaration(clause)
+-        and re.search(r"보유|갖고|가지고|(?:있|없)(?:어|고|습니다)", clause)
+-    ] if bound_answers else []
+-    reference_message = "\n".join(extra_statements) if extra_statements else (
+-        declaration_message if bound_answers else req.message
++    extra_statements = (
++        [
++            clause
++            for clause in re.split(r"(?<=[.!?])\s+|\n+", declaration_message)
++            if _self_declaration(clause)
++            and re.search(r"보유|갖고|가지고|(?:있|없)(?:어|고|습니다)", clause)
++        ]
++        if bound_answers
++        else []
+     )
+-    if extra_statements or (req._owned_look_reference and (
+-        not bound_answers or owned_look_interpreter.needs_reference(reference_message)
+-    )):
++    reference_message = (
++        "\n".join(extra_statements)
++        if extra_statements
++        else (declaration_message if bound_answers else req.message)
++    )
++    if extra_statements or (
++        req._owned_look_reference
++        and (not bound_answers or owned_look_interpreter.needs_reference(reference_message))
++    ):
+         previous_refs = req._owned_look_context.references if req._owned_look_context else None
+         if (
+             previous_refs is None
+diff --git a/backend/chatbot/tests/test_beauty_consultation.py b/backend/chatbot/tests/test_beauty_consultation.py
+index d0c17929..ff57a38a 100644
+--- a/backend/chatbot/tests/test_beauty_consultation.py
++++ b/backend/chatbot/tests/test_beauty_consultation.py
+@@ -76,13 +76,18 @@ async def test_two_explicit_names_resolve_both_catalog_identities_without_select
+ 
+ @pytest.mark.anyio
+ async def test_pair_price_comparison_keeps_previous_candidate_order_and_selection(setup):
+-    context = BeautyContext(issued_at=1000, filters=BeautyFilters(),
+-                            candidate_ids=["c", "a", "b"], selected_product_id="b")
++    context = BeautyContext(
++        issued_at=1000,
++        filters=BeautyFilters(),
++        candidate_ids=["c", "a", "b"],
++        selected_product_id="b",
++    )
+     req = request("1번과 2번 가격 비교해줘")
+     req.chat_context = context  # Server-restored context, not untrusted client input.
+     result = await beauty.answer_beauty(
+         req,
+-        PlanLlm(intent="detail", compareOrdinals=[1, 2]), setup,
++        PlanLlm(intent="detail", compareOrdinals=[1, 2]),
++        setup,
+     )
+     assert "25,000" in result.answer and "15,000" in result.answer
+     assert result.chat_context.candidate_ids == ["c", "a", "b"]
+@@ -98,7 +103,8 @@ async def test_named_pair_ambiguity_keeps_unique_base_and_asks_for_actual_choice
+     ]
+     response = await beauty.answer_beauty(
+         request("Sol Cream과 Rain Toner 가격 비교"),
+-        PlanLlm(intent="detail", comparisonNames=["Sol Cream", "Rain Toner"]), setup,
++        PlanLlm(intent="detail", comparisonNames=["Sol Cream", "Rain Toner"]),
++        setup,
+     )
+     assert response.result_type == "clarification"
+     assert {c.product_id for c in response._comparison_choices} == {"a", "c"}
+@@ -108,16 +114,20 @@ async def test_named_pair_ambiguity_keeps_unique_base_and_asks_for_actual_choice
+ 
+ @pytest.mark.anyio
+ async def test_named_comparison_does_not_invent_live_price_or_accept_unquoted_names(setup):
+-    setup.products = [product("a", 15000).model_copy(update={"name": "Sol Cream"}),
+-                      product("b", 19000).model_copy(update={"name": "Rain Toner"})]
++    setup.products = [
++        product("a", 15000).model_copy(update={"name": "Sol Cream"}),
++        product("b", 19000).model_copy(update={"name": "Rain Toner"}),
++    ]
+     result = await beauty.answer_beauty(
+         request("Sol Cream과 Rain Toner 현재가 비교"),
+-        PlanLlm(intent="detail", comparisonNames=["Sol Cream", "Rain Toner"]), setup,
++        PlanLlm(intent="detail", comparisonNames=["Sol Cream", "Rain Toner"]),
++        setup,
+     )
+     assert "실제 판매가" in result.answer and "미확인" in result.answer
+     bad = await beauty.answer_beauty(
+         request("이 제품과 다른 제품 비교"),
+-        PlanLlm(intent="detail", comparisonNames=["Sol Cream", "Rain Toner"]), setup,
++        PlanLlm(intent="detail", comparisonNames=["Sol Cream", "Rain Toner"]),
++        setup,
+     )
+     assert bad.result_type == "clarification" and bad._product_assessment is None
+ 
+diff --git a/backend/chatbot/tests/test_g4_option_search.py b/backend/chatbot/tests/test_g4_option_search.py
+index fbbb2bba..1f8b6181 100644
+--- a/backend/chatbot/tests/test_g4_option_search.py
++++ b/backend/chatbot/tests/test_g4_option_search.py
+@@ -1106,16 +1106,27 @@ async def test_disabled_option_requirement_stays_partial_in_parent_answer(monkey
+ 
+     class Model(EntryModel):
+         async def complete(self, messages):
+-            return await PlanLlm(intent="search", category="lip", maxPriceKRW=10000,
+-                optionSearch=True, productRequirement={"operation": "keep"}).complete(messages)
++            return await PlanLlm(
++                intent="search",
++                category="lip",
++                maxPriceKRW=10000,
++                optionSearch=True,
++                productRequirement={"operation": "keep"},
++            ).complete(messages)
+ 
+     monkeypatch.setattr(get_settings(), "g8_enabled", True)
+     monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", False)
+     quote = "만원 이하 립 옵션 찾아줘"
+     catalog = OptionCatalog()
+-    result = await ChatService(FakeGraph(), Model([
+-        {"capability": "product", "productOperation": "search", "quote": quote},
+-    ]), catalog).answer(ChatRequest(message=quote, locale="ko"))
++    result = await ChatService(
++        FakeGraph(),
++        Model(
++            [
++                {"capability": "product", "productOperation": "search", "quote": quote},
++            ]
++        ),
++        catalog,
++    ).answer(ChatRequest(message=quote, locale="ko"))
+     assert result.consultation.status == "partial"
+     task = result._consultation_parent.tasks[0]
+     assert task.product_assessment.outcome == "unsupported"
+diff --git a/backend/chatbot/tests/test_g7_conversation_api_pg.py b/backend/chatbot/tests/test_g7_conversation_api_pg.py
+index 03e4f17e..d4f02973 100644
+--- a/backend/chatbot/tests/test_g7_conversation_api_pg.py
++++ b/backend/chatbot/tests/test_g7_conversation_api_pg.py
+@@ -122,8 +122,13 @@ def test_real_checkpoint_cancel_then_replacement_before_old_finishes(api, record
+     client.app.dependency_overrides[get_chat_service] = lambda: DurableChat()
+     room = create(client)[0]["conversationId"]
+     request_id = str(uuid4())
+-    body = {"conversationId": room, "requestId": request_id, "expectedConversationVersion": 0,
+-            "message": "old durable read", "locale": "en"}
++    body = {
++        "conversationId": room,
++        "requestId": request_id,
++        "expectedConversationVersion": 0,
++        "message": "old durable read",
++        "locale": "en",
++    }
+     with ThreadPoolExecutor(max_workers=1) as pool:
+         pending = pool.submit(client.post, "/api/chat", json=body, headers=AUTH)
+         try:
+@@ -134,11 +139,19 @@ def test_real_checkpoint_cancel_then_replacement_before_old_finishes(api, record
+             assert cancelled.status_code == 200
+             replacement_body = {**body, "requestId": str(uuid4()), "message": "new durable read"}
+             replacement = client.post("/api/chat", json=replacement_body, headers=AUTH)
+-            record_property("real_checkpoint_replacement", json.dumps({
+-                "postgres": "actual", "checkpoint": "actual durable_supervisor/fresh_writer",
+-                "model": "controlled mock; zero external calls", "oldReleased": release.is_set(),
+-                "replacementStatus": replacement.status_code, "errors": errors,
+-            }))
++            record_property(
++                "real_checkpoint_replacement",
++                json.dumps(
++                    {
++                        "postgres": "actual",
++                        "checkpoint": "actual durable_supervisor/fresh_writer",
++                        "model": "controlled mock; zero external calls",
++                        "oldReleased": release.is_set(),
++                        "replacementStatus": replacement.status_code,
++                        "errors": errors,
++                    }
++                ),
++            )
+             assert replacement.status_code == 200, replacement.text
+             assert not release.is_set()
+         finally:
+@@ -148,7 +161,8 @@ def test_real_checkpoint_cancel_then_replacement_before_old_finishes(api, record
+     assert late.json()["code"] == "request_interrupted"
+     restored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+     assert [m["text"] for m in restored["messages"]] == [
+-        "new durable read", "new durable read result"
++        "new durable read",
++        "new durable read result",
+     ]
+     replay = client.post("/api/chat", json=replacement_body, headers=AUTH)
+     assert replay.json() == replacement.json()
+@@ -1825,10 +1839,19 @@ def test_style_only_retry_preserves_comparison_across_empty_memory_shape_pg(api,
+     monkeypatch.setattr(get_settings(), "g8_enabled", True)
+     monkeypatch.setattr(get_settings(), "g8_read_retries", 0)
+     room = create(client)[0]["conversationId"]
+-    service = ChatService(None, EntryModel([
+-        {"capability": "product", "quote": "두 상품 가격 비교", "productOperation": "compare"},
+-        {"capability": "style", "quote": "출근 룩 찾아줘"},
+-    ]))
++    service = ChatService(
++        None,
++        EntryModel(
++            [
++                {
++                    "capability": "product",
++                    "quote": "두 상품 가격 비교",
++                    "productOperation": "compare",
++                },
++                {"capability": "style", "quote": "출근 룩 찾아줘"},
++            ]
++        ),
++    )
+     calls, seen = [], []
+ 
+     async def dispatch(capability, req):
+@@ -1842,8 +1865,12 @@ def test_style_only_retry_preserves_comparison_across_empty_memory_shape_pg(api,
+             issued_at=1, filters=BeautyFilters(), candidate_ids=["a", "b"], selected_product_id="a"
+         )
+         result._product_assessment = ProductAssessment(
+-            status="completed", outcome="matched", requirement=ProductRequirement(),
+-            inspected=2, matched=2, evidence=[{"productId": "a"}, {"productId": "b"}],
++            status="completed",
++            outcome="matched",
++            requirement=ProductRequirement(),
++            inspected=2,
++            matched=2,
++            evidence=[{"productId": "a"}, {"productId": "b"}],
+         )
+         return result
+ 
+@@ -1857,18 +1884,28 @@ def test_style_only_retry_preserves_comparison_across_empty_memory_shape_pg(api,
+         return result
+ 
+     monkeypatch.setattr(fake, "answer", answer)
+-    body = {"conversationId": room, "requestId": str(uuid4()),
+-            "expectedConversationVersion": 0, "message": "두 상품 가격 비교하고 출근 룩 찾아줘"}
++    body = {
++        "conversationId": room,
++        "requestId": str(uuid4()),
++        "expectedConversationVersion": 0,
++        "message": "두 상품 가격 비교하고 출근 룩 찾아줘",
++    }
+     first = client.post("/api/chat", headers=AUTH, json=body)
+     assert first.status_code == 200, first.text
+     product_task = next(t for t in seen[0].tasks if t.goal == "product")
+     style_task = next(t for t in seen[0].tasks if t.goal == "style")
+     assert product_task.status == "completed" and style_task.status == "failed"
+     service._llm = IntentModel("retry", [style_task.task_id])
+-    second = client.post("/api/chat", headers=AUTH, json={
+-        **body, "requestId": str(uuid4()), "expectedConversationVersion": 1,
+-        "message": "룩만 다시 찾아줘",
+-    })
++    second = client.post(
++        "/api/chat",
++        headers=AUTH,
++        json={
++            **body,
++            "requestId": str(uuid4()),
++            "expectedConversationVersion": 1,
++            "message": "룩만 다시 찾아줘",
++        },
++    )
+     assert second.status_code == 200, second.text
+     assert calls == ["product", "style", "style"]
+     preserved = next(t for t in seen[1].tasks if t.task_id == product_task.task_id)
+@@ -1976,16 +2013,26 @@ def test_additional_product_ownership_survives_real_pg_followup(api, monkeypatch
+     headers = {"Authorization": f"Bearer ok-owned-extra-{uuid4()}"}
+     settings_path = "/api/chat/v2/memory-settings"
+     setting = client.get(settings_path, headers=headers).json()
+-    result = client.patch(settings_path, headers=headers, json={
+-        "requestId": str(uuid4()), "expectedVersion": setting["version"], "enabled": True,
+-    })
++    result = client.patch(
++        settings_path,
++        headers=headers,
++        json={
++            "requestId": str(uuid4()),
++            "expectedVersion": setting["version"],
++            "enabled": True,
++        },
++    )
+     assert result.status_code == 200, result.text
+     catalog = KoreanScopeCatalog()
+     fake._catalog = catalog
+-    created = client.post("/api/chat/conversations", headers=headers, json={
+-        "requestId": str(uuid4()),
+-        "entry": {"type": "look", "kind": "video", "lookId": "fixture-look"},
+-    })
++    created = client.post(
++        "/api/chat/conversations",
++        headers=headers,
++        json={
++            "requestId": str(uuid4()),
++            "entry": {"type": "look", "kind": "video", "lookId": "fixture-look"},
++        },
++    )
+     assert created.status_code == 201, created.text
+     room, responses, observed = created.json()["conversationId"], [], []
+ 
+@@ -1993,9 +2040,13 @@ def test_additional_product_ownership_survives_real_pg_followup(api, monkeypatch
+         from app.schemas.consultation_parent import ParentQuestion
+ 
+         req.style_context = StyleContext(kind="video", look_id="fixture-look")
+-        observed.append({"structured": req.structured_memory,
+-                         "memoryRead": req._consultation_memories is not None,
+-                         "execution": req._g7_execution is not None})
++        observed.append(
++            {
++                "structured": req.structured_memory,
++                "memoryRead": req._consultation_memories is not None,
++                "execution": req._g7_execution is not None,
++            }
++        )
+         if not responses:
+             guide = ChatResponse(
+                 answer="합성 룩 안내", products=[], style_context=req.style_context
+@@ -2003,29 +2054,50 @@ def test_additional_product_ownership_survives_real_pg_followup(api, monkeypatch
+             responses.append(guide)
+             return guide
+         if len(responses) == 2:
+-            original = next(i for i in responses[1]._owned_look_outcome.items
+-                            if "하트퍼센트" in i.label)
+-            req._question_answers = [(ParentQuestion(
+-                task_id="task-look", goal="owned_look", version=1, text="첫 상품 있나요?",
+-                input_key="ownership", need_id=original.need_id,
+-                recipe_version=responses[1].style_recipe.recipe_version,
+-                ownership_scope="option",
+-            ), "없어")]
++            original = next(
++                i for i in responses[1]._owned_look_outcome.items if "하트퍼센트" in i.label
++            )
++            req._question_answers = [
++                (
++                    ParentQuestion(
++                        task_id="task-look",
++                        goal="owned_look",
++                        version=1,
++                        text="첫 상품 있나요?",
++                        input_key="ownership",
++                        need_id=original.need_id,
++                        recipe_version=responses[1].style_recipe.recipe_version,
++                        ownership_scope="option",
++                    ),
++                    "없어",
++                )
++            ]
+         reply = await execute_owned_look(req, catalog)
+         assert reply is not None, observed
+         responses.append(reply)
+         return reply
+ 
+     monkeypatch.setattr(fake, "answer", answer)
+-    utterances = ["이 룩 안내해줘", "내가 가진 립으로 이 룩을 따라 하고 필요한 것만 추천해줘",
+-                  "없어. 롬앤 쥬시 래스팅 틴트는 갖고 있어. 각각 2만원 이하로 찾아줘.",
+-                  "예산만 3만원 이하로 바꿔줘"]
++    utterances = [
++        "이 룩 안내해줘",
++        "내가 가진 립으로 이 룩을 따라 하고 필요한 것만 추천해줘",
++        "없어. 롬앤 쥬시 래스팅 틴트는 갖고 있어. 각각 2만원 이하로 찾아줘.",
++        "예산만 3만원 이하로 바꿔줘",
++    ]
+     for version, message in enumerate(utterances):
+-        result = client.post("/api/chat", headers=headers, json={
+-            "conversationId": room, "requestId": str(uuid4()),
+-            "expectedConversationVersion": version, "locale": "ko", "message": message,
+-            "structuredMemory": True, "requestType": "style_consultation",
+-        })
++        result = client.post(
++            "/api/chat",
++            headers=headers,
++            json={
++                "conversationId": room,
++                "requestId": str(uuid4()),
++                "expectedConversationVersion": version,
++                "locale": "ko",
++                "message": message,
++                "structuredMemory": True,
++                "requestType": "style_consultation",
++            },
++        )
+         assert result.status_code == 200, (version, result.text, observed)
+     extra = next(i for i in responses[2]._owned_look_outcome.items if "롬앤" in i.label)
+     declaration = responses[2]._owned_look_context.item_declarations[extra.need_id]
+diff --git a/backend/chatbot/tests/test_g7_memory_api_pg.py b/backend/chatbot/tests/test_g7_memory_api_pg.py
+index 3e98bd1d..b1201877 100644
+--- a/backend/chatbot/tests/test_g7_memory_api_pg.py
++++ b/backend/chatbot/tests/test_g7_memory_api_pg.py
+@@ -3447,7 +3447,10 @@ def test_added_same_role_task_ids_pg_restore_and_targeted_retry(memory_api, monk
+     assert [e["documentId"] for e in saved_first.display_result["knowledge"]["evidence"]] == [1]
+     service._llm = AdditionModel(action="show", targets=[task_ids[0]])
+     shown = ask(
+-        client, room, recovered["conversation"]["version"], "보습 설명 다시 보여줘",
++        client,
++        room,
++        recovered["conversation"]["version"],
++        "보습 설명 다시 보여줘",
+         request_type="beauty_consultation",
+     )
+     assert [e["documentId"] for e in shown["knowledge"]["evidence"]] == [1]
+diff --git a/backend/chatbot/tests/test_g8_compound_consultation.py b/backend/chatbot/tests/test_g8_compound_consultation.py
+index af830829..c7fa1fcb 100644
+--- a/backend/chatbot/tests/test_g8_compound_consultation.py
++++ b/backend/chatbot/tests/test_g8_compound_consultation.py
+@@ -654,39 +654,59 @@ def test_search_condition_needs_name_in_exact_cited_passage(monkeypatch, ingredi
+     knowledge.claims[0].claim = f"보습을 위해 {ingredient} 함유 제품을 고려하세요."
+     knowledge.claims[0].citations = ["E1", "E2"]
+     knowledge.evidence[0].quote = "이 성분이 들어 있는지 확인하세요."
+-    knowledge.evidence.append(knowledge.evidence[0].model_copy(update={
+-        "id": "E2", "quote": f"{ingredient} 함유 제품을 선택할 수 있습니다.",
+-    }))
++    knowledge.evidence.append(
++        knowledge.evidence[0].model_copy(
++            update={
++                "id": "E2",
++                "quote": f"{ingredient} 함유 제품을 선택할 수 있습니다.",
++            }
++        )
++    )
+     proposal = KnowledgeSearchCondition(
+-        ingredient_name=ingredient, operator="includes", claim_index=0,
+-        evidence_id="E1", quote=knowledge.evidence[0].quote,
++        ingredient_name=ingredient,
++        operator="includes",
++        claim_index=0,
++        evidence_id="E1",
++        quote=knowledge.evidence[0].quote,
+     )
+     accepted, decisions = specialists.validate_search_conditions(GOAL, knowledge, [proposal])
+     assert not accepted and decisions[0]["decision"] == "unverified_evidence"
+-    linked = proposal.model_copy(update={
+-        "evidence_id": "E2", "quote": knowledge.evidence[1].quote,
+-    })
++    linked = proposal.model_copy(
++        update={
++            "evidence_id": "E2",
++            "quote": knowledge.evidence[1].quote,
++        }
++    )
+     assert specialists.validate_search_conditions(GOAL, knowledge, [linked])[0] == [linked]
+     excluded = GOAL.model_copy(update={"excluded_ingredients": [ingredient]})
+     accepted, decisions = specialists.validate_search_conditions(excluded, knowledge, [linked])
+     assert not accepted and decisions[0]["decision"] == "user_condition_precedes"
+-    for invalid in (linked.model_copy(update={"claim_index": 1}),
+-                    linked.model_copy(update={"evidence_id": "not-cited"})):
++    for invalid in (
++        linked.model_copy(update={"claim_index": 1}),
++        linked.model_copy(update={"evidence_id": "not-cited"}),
++    ):
+         assert not specialists.validate_search_conditions(GOAL, knowledge, [invalid])[0]
+ 
+ 
+ @pytest.mark.anyio
+-@pytest.mark.parametrize("failure,stage,reason", [
+-    ("call", "model_call", "model_call_failed"),
+-    ("envelope", "response_structure", "invalid_tool_envelope"),
+-    ("tool", "response_structure", "unexpected_tool"),
+-    ("json", "arguments_json", "invalid_arguments_json"),
+-    ("schema", "schema_validation", "invalid_schema"),
+-    ("semantic", "semantic_validation", "clarification_contract"),
+-    ("unknown", "model_call", "model_call_failed"),
+-])
++@pytest.mark.parametrize(
++    "failure,stage,reason",
++    [
++        ("call", "model_call", "model_call_failed"),
++        ("envelope", "response_structure", "invalid_tool_envelope"),
++        ("tool", "response_structure", "unexpected_tool"),
++        ("json", "arguments_json", "invalid_arguments_json"),
++        ("schema", "schema_validation", "invalid_schema"),
++        ("semantic", "semantic_validation", "clarification_contract"),
++        ("unknown", "model_call", "model_call_failed"),
++    ],
++)
+ async def test_skin_plan_diagnostics_keep_payload_private(
+-    monkeypatch, caplog, failure, stage, reason,
++    monkeypatch,
++    caplog,
++    failure,
++    stage,
++    reason,
+ ):
+     from app.core.errors import ApiError
+ 
+@@ -704,12 +724,19 @@ async def test_skin_plan_diagnostics_keep_payload_private(
+             arguments["scope"] = marker
+         if failure == "semantic":
+             arguments["goal"] = GOAL.model_dump(mode="json", by_alias=True)
+-        call = {"function": {"name": marker if failure == "tool" else "plan_skin_consultation",
+-                             "arguments": "{" + marker if failure == "json"
+-                             else json.dumps(arguments)}}
+-        return {"choices": [] if failure == "envelope" else [
+-            {"message": {"tool_calls": [call]}},
+-        ]}, 0
++        call = {
++            "function": {
++                "name": marker if failure == "tool" else "plan_skin_consultation",
++                "arguments": "{" + marker if failure == "json" else json.dumps(arguments),
++            }
++        }
++        return {
++            "choices": []
++            if failure == "envelope"
++            else [
++                {"message": {"tool_calls": [call]}},
++            ]
++        }, 0
+ 
+     planner.complete_with_tools = choose
+     caplog.set_level("WARNING", logger=graph.__name__)
+@@ -733,8 +760,11 @@ def test_translated_name_is_not_literal_evidence_match(monkeypatch, name, source
+     knowledge.claims[0].claim = f"{name} 함유 보습제를 고려하세요."
+     knowledge.evidence[0].quote = f"Choose a moisturizer with {source_name}."
+     proposal = KnowledgeSearchCondition(
+-        ingredient_name=name, operator="includes", claim_index=0,
+-        evidence_id="E1", quote=knowledge.evidence[0].quote,
++        ingredient_name=name,
++        operator="includes",
++        claim_index=0,
++        evidence_id="E1",
++        quote=knowledge.evidence[0].quote,
+     )
+     assert not specialists.validate_search_conditions(GOAL, knowledge, [proposal])[0]
+     knowledge.claims[0].claim = f"{name}({source_name}) 함유 보습제를 고려하세요."
+diff --git a/backend/chatbot/tests/test_g8_consultation_intent.py b/backend/chatbot/tests/test_g8_consultation_intent.py
+index c3220abf..d26093ff 100644
+--- a/backend/chatbot/tests/test_g8_consultation_intent.py
++++ b/backend/chatbot/tests/test_g8_consultation_intent.py
+@@ -26,10 +26,13 @@ def test_unique_legacy_question_is_bound_and_ambiguous_owner_is_not_guessed():
+     )
+     assert single.question.task_id == "skin"
+     assert single.pending_questions[0].task_id == "skin"
+-    ambiguous = ConsultationParent(tasks=[
+-        ParentTask(task_id="skin-a", goal="skin", version=1, status="waiting_user"),
+-        ParentTask(task_id="skin-b", goal="skin", version=1, status="waiting_user"),
+-    ], question=question)
++    ambiguous = ConsultationParent(
++        tasks=[
++            ParentTask(task_id="skin-a", goal="skin", version=1, status="waiting_user"),
++            ParentTask(task_id="skin-b", goal="skin", version=1, status="waiting_user"),
++        ],
++        question=question,
++    )
+     assert ambiguous.question.task_id is None and ambiguous.pending_questions == []
+     assert intent_schema(ambiguous)["properties"]["questionChanges"]["maxItems"] == 0
+ 
+@@ -120,9 +123,13 @@ def test_question_answer_retains_extra_ownership_clause_for_the_same_workflow():
+     proposal.question_changes = proposal.question_changes[:1]
+     from app.schemas.consultation_parent import ConsultationChange
+ 
+-    proposal.changes.append(ConsultationChange(
+-        task_id="task-look", operation="update", quote=extra,
+-    ))
++    proposal.changes.append(
++        ConsultationChange(
++            task_id="task-look",
++            operation="update",
++            quote=extra,
++        )
++    )
+     result = validate_intent(proposal, req)
+     assert next(c.quote for c in result.changes if c.task_id == "task-look") == (
+         "삐아는 없어\n" + extra
+@@ -149,9 +156,13 @@ def test_redundant_targets_can_include_a_separately_grounded_sibling_change(extr
+     req.message = "삐아는 없어. 피부 상담은 오후 각질로 설명해줘."
+     proposal = question_proposal(req)
+     proposal.question_changes = proposal.question_changes[:1]
+-    proposal.changes = [ConsultationChange(
+-        task_id="task-skin", operation="update", quote="피부 상담은 오후 각질로 설명해줘.",
+-    )]
++    proposal.changes = [
++        ConsultationChange(
++            task_id="task-skin",
++            operation="update",
++            quote="피부 상담은 오후 각질로 설명해줘.",
++        )
++    ]
+     proposal.targets = ["task-look", "task-skin"] + ([extra_target] if extra_target else [])
+     if not valid:
+         with pytest.raises(ValueError):
+@@ -164,9 +175,13 @@ def test_redundant_targets_can_include_a_separately_grounded_sibling_change(extr
+ 
+ 
+ @pytest.mark.anyio
+-@pytest.mark.parametrize("kind,expected", [
+-    ("schema", "schema_validation"), ("duplicate", "conflicting_task_changes"),
+-])
++@pytest.mark.parametrize(
++    "kind,expected",
++    [
++        ("schema", "schema_validation"),
++        ("duplicate", "conflicting_task_changes"),
++    ],
++)
+ async def test_parent_rejection_audit_is_specific_without_raw_input(kind, expected):
+     from app.services.consultation_intent_service import prepare_turn
+ 
+@@ -176,16 +191,34 @@ async def test_parent_rejection_audit_is_specific_without_raw_input(kind, expect
+         configured = True
+ 
+         async def complete_with_tools(self, messages, tools, *, required_tool=None):
+-            args = {"planId": str(req._consultation_parent.plan_id), "version": 1,
+-                    "action": "continue", "changes": []}
++            args = {
++                "planId": str(req._consultation_parent.plan_id),
++                "version": 1,
++                "action": "continue",
++                "changes": [],
++            }
+             if kind == "schema":
+                 args["private-freeform-field"] = "DO-NOT-LOG-PRIVATE-INPUT"
+             else:
+-                args["changes"] = [{"taskId": "task-look", "operation": "update",
+-                                    "quote": "삐아는 없어"}] * 2
+-            return {"choices": [{"message": {"tool_calls": [{"function": {
+-                "name": required_tool, "arguments": json.dumps(args),
+-            }}]}}]}, 0
++                args["changes"] = [
++                    {"taskId": "task-look", "operation": "update", "quote": "삐아는 없어"}
++                ] * 2
++            return {
++                "choices": [
++                    {
++                        "message": {
++                            "tool_calls": [
++                                {
++                                    "function": {
++                                        "name": required_tool,
++                                        "arguments": json.dumps(args),
++                                    }
++                                }
++                            ]
++                        }
++                    }
++                ]
++            }, 0
+ 
+     result = await prepare_turn(req, InvalidModel())
+     assert result.result_type == "clarification"
+@@ -1715,15 +1748,25 @@ async def test_g5_flag_applies_to_initial_and_restored_knowledge_without_losing_
+ 
+     class Model(EntryModel):
+         async def complete(self, messages):
+-            return json.dumps({
+-                "intent": "search", "category": "lip", "productRequirement": {"operation": "keep"},
+-            })
++            return json.dumps(
++                {
++                    "intent": "search",
++                    "category": "lip",
++                    "productRequirement": {"operation": "keep"},
++                }
++            )
+ 
+     catalog = ProductCatalog()
+-    first = await ChatService(FakeGraph(), Model([
+-        {"capability": "knowledge", "quote": explanation},
+-        {"capability": "product", "productOperation": "search", "quote": shopping},
+-    ]), catalog).answer(ChatRequest(message=explanation + ". " + shopping, locale="ko"))
++    first = await ChatService(
++        FakeGraph(),
++        Model(
++            [
++                {"capability": "knowledge", "quote": explanation},
++                {"capability": "product", "productOperation": "search", "quote": shopping},
++            ]
++        ),
++        catalog,
++    ).answer(ChatRequest(message=explanation + ". " + shopping, locale="ko"))
+     tasks = {t.goal: t for t in first._consultation_parent.tasks}
+     assert first.products and tasks["product"].status == "completed"
+     assert tasks["knowledge"].status == ("completed" if g5_enabled else "failed")
+@@ -1733,9 +1776,19 @@ async def test_g5_flag_applies_to_initial_and_restored_knowledge_without_losing_
+         assert first.consultation.status == "partial"
+     raw = json.loads(json.dumps(updated_context({}, first)))
+     req = prepare_request(ChatRequest(message=explanation, locale="ko"), raw, [])
+-    second = await ChatService(FakeGraph(), AdditionModel(changes=[{
+-        "taskId": tasks["knowledge"].task_id, "operation": "update", "quote": explanation,
+-    }]), catalog).answer(req)
++    second = await ChatService(
++        FakeGraph(),
++        AdditionModel(
++            changes=[
++                {
++                    "taskId": tasks["knowledge"].task_id,
++                    "operation": "update",
++                    "quote": explanation,
++                }
++            ]
++        ),
++        catalog,
++    ).answer(req)
+     assert {p.id for p in second.products} == {p.id for p in first.products}
+     assert len(calls) == (2 if g5_enabled else 0)
+     assert next(t for t in second._consultation_parent.tasks if t.goal == "knowledge").status == (
+@@ -1750,13 +1803,20 @@ async def test_g5_off_can_display_saved_answer_without_a_new_knowledge_read(monk
+     monkeypatch.setattr(get_settings(), "g5_enabled", False)
+     req = ChatRequest(message="이전 설명 보여줘", locale="ko")
+     stored = knowledge_result("보습", 1)
+-    req._consultation_parent = ConsultationParent(tasks=[ParentTask(
+-        task_id="task-saved", goal="knowledge", version=1, status="completed",
+-        scope_digest=task_scope(req),
+-        display_result=ChatResponse(
+-            answer=stored.answer, products=[], knowledge=stored.reply
+-        ).model_dump(mode="json", by_alias=True),
+-    )])
++    req._consultation_parent = ConsultationParent(
++        tasks=[
++            ParentTask(
++                task_id="task-saved",
++                goal="knowledge",
++                version=1,
++                status="completed",
++                scope_digest=task_scope(req),
++                display_result=ChatResponse(
++                    answer=stored.answer, products=[], knowledge=stored.reply
++                ).model_dump(mode="json", by_alias=True),
++            )
++        ]
++    )
+ 
+     async def forbidden(*args, **kwargs):
+         pytest.fail("Saved display must not execute knowledge")
+@@ -1780,11 +1840,19 @@ async def test_g8_off_saved_parent_does_not_intercept_or_disappear(monkeypatch,
+ 
+     monkeypatch.setattr(get_settings(), "g8_enabled", False)
+     monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", False)
+-    original = ConsultationParent(execution_state=state, tasks=[ParentTask(
+-        task_id="task-old", goal="knowledge", version=1,
+-        status="completed" if state == "active" else "cancelled", objective="과거 목표",
+-        display_result={"answer": "저장한 설명", "products": []},
+-    )])
++    original = ConsultationParent(
++        execution_state=state,
++        tasks=[
++            ParentTask(
++                task_id="task-old",
++                goal="knowledge",
++                version=1,
++                status="completed" if state == "active" else "cancelled",
++                objective="과거 목표",
++                display_result={"answer": "저장한 설명", "products": []},
++            )
++        ],
++    )
+     stored = ChatResponse(answer="저장한 설명", products=[])
+     stored._consultation_parent = original
+     raw = updated_context({}, stored)
+@@ -1817,9 +1885,15 @@ def test_restored_ownership_answer_is_interpreted_only_when_g8_enabled(monkeypat
+     old = ConsultationParent(
+         tasks=[ParentTask(goal="owned_look", version=1, status="waiting_user")],
+         question=ParentQuestion(
+-            task_id="owned_look", goal="owned_look", version=1, text="립 있나요?",
+-            input_key="ownership", zone="lip", need_id="lip-option",
+-            recipe_version="recipe-v1", ownership_scope="option",
++            task_id="owned_look",
++            goal="owned_look",
++            version=1,
++            text="립 있나요?",
++            input_key="ownership",
++            zone="lip",
++            need_id="lip-option",
++            recipe_version="recipe-v1",
++            ownership_scope="option",
+         ),
+     )
+     before = old.model_dump_json()
+diff --git a/backend/chatbot/tests/test_g8_consultation_parent.py b/backend/chatbot/tests/test_g8_consultation_parent.py
+index ed5b78df..cf14db54 100644
+--- a/backend/chatbot/tests/test_g8_consultation_parent.py
++++ b/backend/chatbot/tests/test_g8_consultation_parent.py
+@@ -74,18 +74,44 @@ async def test_question_answer_and_extra_ownership_reach_only_their_workflow():
+ 
+         async def complete_with_tools(self, messages, tools, *, required_tool=None):
+             state = json.loads(messages[-1]["content"])
+-            args = {"planId": state["planId"], "version": state["version"],
+-                    "action": "continue", "questionChanges": [{
+-                        "taskId": "task-look", "inputKey": "ownership", "needId": "bbia",
+-                        "operation": "answer", "quote": "삐아는 없어",
+-                    }], "changes": [
+-                        {"taskId": "task-look", "operation": "update", "quote": extra},
+-                        {"taskId": "task-skin", "operation": "preserve",
+-                         "quote": "피부 설명은 유지해줘"},
+-                    ]}
+-            return {"choices": [{"message": {"tool_calls": [{"function": {
+-                "name": required_tool, "arguments": json.dumps(args),
+-            }}]}}]}, 0
++            args = {
++                "planId": state["planId"],
++                "version": state["version"],
++                "action": "continue",
++                "questionChanges": [
++                    {
++                        "taskId": "task-look",
++                        "inputKey": "ownership",
++                        "needId": "bbia",
++                        "operation": "answer",
++                        "quote": "삐아는 없어",
++                    }
++                ],
++                "changes": [
++                    {"taskId": "task-look", "operation": "update", "quote": extra},
++                    {
++                        "taskId": "task-skin",
++                        "operation": "preserve",
++                        "quote": "피부 설명은 유지해줘",
++                    },
++                ],
++            }
++            return {
++                "choices": [
++                    {
++                        "message": {
++                            "tool_calls": [
++                                {
++                                    "function": {
++                                        "name": required_tool,
++                                        "arguments": json.dumps(args),
++                                    }
++                                }
++                            ]
++                        }
++                    }
++                ]
++            }, 0
+ 
+     assert await prepare_turn(req, Model()) is None
+     seen = []
+@@ -122,15 +148,20 @@ async def test_skin_condition_update_passes_current_utterance_and_structured_goa
+     req = ChatRequest(message=quote)
+     compound = CompoundContext(planVersion=1, goal=CompoundGoal(goals=["dryness"]))
+     task = ParentTask(
+-        task_id="task-skin", goal="skin", version=1,
+-        objective="원인과 관리 방법을 설명하고 제품도 추천", compound_context=compound,
++        task_id="task-skin",
++        goal="skin",
++        version=1,
++        objective="원인과 관리 방법을 설명하고 제품도 추천",
++        compound_context=compound,
+     )
+     req._consultation_parent = ConsultationParent(tasks=[task])
+     req._parent_intent = ConsultationIntent(
+-        plan_id=req._consultation_parent.plan_id, version=1, action="continue",
++        plan_id=req._consultation_parent.plan_id,
++        version=1,
++        action="continue",
+         changes=[ConsultationChange(task_id=task.task_id, operation="update", quote=quote)],
+     )
+-    req._parent_replan = {"updated":[task.task_id], "invalidated":[task.task_id], "withdrawn":[]}
++    req._parent_replan = {"updated": [task.task_id], "invalidated": [task.task_id], "withdrawn": []}
+     seen = []
+ 
+     async def dispatch(kind, child):
+@@ -152,7 +183,9 @@ async def test_skin_situation_answer_retains_original_workflow_until_goal_is_str
+     task = ParentTask(task_id="task-skin", goal="skin", version=1, objective=objective)
+     req._consultation_parent = ConsultationParent(tasks=[task])
+     req._parent_intent = ConsultationIntent(
+-        plan_id=req._consultation_parent.plan_id, version=1, action="continue",
++        plan_id=req._consultation_parent.plan_id,
++        version=1,
++        action="continue",
+         changes=[ConsultationChange(task_id=task.task_id, operation="update", quote=quote)],
+     )
+     req._parent_replan = {"updated": [task.task_id], "invalidated": [task.task_id], "withdrawn": []}
+@@ -997,8 +1030,9 @@ def test_independent_style_and_compare_scope_ignore_only_unrelated_inputs():
+     req._memory_epoch = 7
+     req._memory_generation = "enabled-same"
+     style = ParentTask(task_id="task-style", goal="style", version=1)
+-    compare = ParentTask(task_id="task-compare", goal="product", product_operation="compare",
+-                         version=1)
++    compare = ParentTask(
++        task_id="task-compare", goal="product", product_operation="compare", version=1
++    )
+     for task in (style, compare):
+         task.scope_snapshot = parent.task_scope_components(req, task)
+         task.scope_digest = fingerprint(task.scope_snapshot)
+@@ -1007,8 +1041,9 @@ def test_independent_style_and_compare_scope_ignore_only_unrelated_inputs():
+     for task in (style, compare):
+         task.input_refs = [f"previous-plan:1:{task.task_id}"]
+     assert parent.scope_matches(req, style) and parent.scope_matches(req, compare)
+-    req.chat_context = BeautyContext(issued_at=1, filters=BeautyFilters(),
+-                                     selected_product_id="new-product")
++    req.chat_context = BeautyContext(
++        issued_at=1, filters=BeautyFilters(), selected_product_id="new-product"
++    )
+     assert parent.scope_matches(req, style)
+     assert not parent.scope_matches(req, compare)
+     req.chat_context = None
+@@ -1030,12 +1065,16 @@ def test_legacy_scope_compatibility_does_not_relax_consent_or_selection_fences()
+     req = ChatRequest(message="룩만 다시", locale="ko")
+     req._memory_epoch = 0
+     req._memory_generation = "same-generation"
+-    task = ParentTask(goal="style", version=1,
+-                      scope_digest=fingerprint(parent.task_scope_components(req, legacy=True)))
++    task = ParentTask(
++        goal="style",
++        version=1,
++        scope_digest=fingerprint(parent.task_scope_components(req, legacy=True)),
++    )
+     req._consultation_memories = ()
+     assert parent.scope_matches(req, task)
+-    req.chat_context = BeautyContext(issued_at=1, filters=BeautyFilters(),
+-                                     selected_product_id="actually-changed")
++    req.chat_context = BeautyContext(
++        issued_at=1, filters=BeautyFilters(), selected_product_id="actually-changed"
++    )
+     assert not parent.scope_matches(req, task)
+     req.chat_context = None
+     req._memory_epoch += 1
+@@ -1313,9 +1352,11 @@ async def test_g5_disabled_explanation_preserves_owned_look_results(monkeypatch,
+     if entry == "legacy":
+         result = await parent.run_parent(req, "owned_look", lambda: None, catalog=catalog)
+     else:
+-        model = EntryModel([
+-            {"capability": "owned_look", "quote": req.message, "explanationQuote": quote},
+-        ])
++        model = EntryModel(
++            [
++                {"capability": "owned_look", "quote": req.message, "explanationQuote": quote},
++            ]
++        )
+         result = await ChatService(None, model, catalog).answer(req)
+     task = next(t for t in result._consultation_parent.tasks if t.goal == "knowledge")
+     assert task.status == "failed" and task.reason == "g5_disabled"
+@@ -1338,7 +1379,8 @@ async def test_g8_off_ordinary_reply_preserves_saved_owned_look_context(monkeypa
+     response = await ChatService(FakeGraph(), FakeLlm()).answer(restored)
+     again = prepare_request(
+         req.model_copy(update={"message": "안녕", "request_type": "chat"}),
+-        updated_context(raw, response), [],
++        updated_context(raw, response),
++        [],
+     )
+     assert again._owned_look_context == first._owned_look_context
+     assert again._consultation_parent == first._consultation_parent
+diff --git a/backend/chatbot/tests/test_g8_owned_look.py b/backend/chatbot/tests/test_g8_owned_look.py
+index 36d3f218..dfaf9aa4 100644
+--- a/backend/chatbot/tests/test_g8_owned_look.py
++++ b/backend/chatbot/tests/test_g8_owned_look.py
+@@ -1691,11 +1691,21 @@ async def test_bound_answer_keeps_additional_named_product_ownership_and_budget(
+     first = await execute_owned_look(req, catalog)
+     first_item = next(i for i in first._owned_look_outcome.items if "하트퍼센트" in i.label)
+     req._owned_look_context = first._owned_look_context
+-    req._question_answers = [(ParentQuestion(
+-        task_id="task-look", goal="owned_look", version=1, text="첫 상품 있나요?",
+-        input_key="ownership", need_id=first_item.need_id,
+-        recipe_version=first.style_recipe.recipe_version, ownership_scope="option",
+-    ), "없어")]
++    req._question_answers = [
++        (
++            ParentQuestion(
++                task_id="task-look",
++                goal="owned_look",
++                version=1,
++                text="첫 상품 있나요?",
++                input_key="ownership",
++                need_id=first_item.need_id,
++                recipe_version=first.style_recipe.recipe_version,
++                ownership_scope="option",
++            ),
++            "없어",
++        )
++    ]
+     req.message = f"없어. 롬앤 쥬시 래스팅 틴트는 {possession}. 각각 2만원 이하로 찾아줘."
+     result = await execute_owned_look(req, catalog)
+     state = result._owned_look_context
+@@ -1726,11 +1736,21 @@ async def test_additional_name_variant_uses_existing_reference_interpreter_witho
+     first = await execute_owned_look(req, catalog)
+     target = next(i for i in first._owned_look_outcome.items if "하트퍼센트" in i.label)
+     req._owned_look_context = first._owned_look_context
+-    req._question_answers = [(ParentQuestion(
+-        task_id="task-look", goal="owned_look", version=1, text="첫 상품 있나요?",
+-        input_key="ownership", need_id=target.need_id,
+-        recipe_version=first.style_recipe.recipe_version, ownership_scope="option",
+-    ), "없어")]
++    req._question_answers = [
++        (
++            ParentQuestion(
++                task_id="task-look",
++                goal="owned_look",
++                version=1,
++                text="첫 상품 있나요?",
++                input_key="ownership",
++                need_id=target.need_id,
++                recipe_version=first.style_recipe.recipe_version,
++                ownership_scope="option",
++            ),
++            "없어",
++        )
++    ]
+     req.message = "없어. 롬앤 틴트는 갖고 있어. 각각 2만원 이하로 찾아줘."
+     calls = []
+ 
+@@ -1742,13 +1762,34 @@ async def test_additional_name_variant_uses_existing_reference_interpreter_witho
+             calls.append(payload)
+             snapshot = payload["snapshot"]
+             extra = next(t for t in snapshot["targets"] if t["productId"] == "lip-b")
+-            args = {"snapshotVersion": snapshot["version"], "action": "update", "operations": [
+-                {"action": "declare", "targetId": extra["targetId"],
+-                 "scope": "product", "status": "present"},
+-            ]}
+-            return {"choices": [{"message": {"tool_calls": [{"function": {
+-                "name": required_tool, "arguments": json.dumps(args),
+-            }}]}}]}, 0
++            args = {
++                "snapshotVersion": snapshot["version"],
++                "action": "update",
++                "operations": [
++                    {
++                        "action": "declare",
++                        "targetId": extra["targetId"],
++                        "scope": "product",
++                        "status": "present",
++                    },
++                ],
++            }
++            return {
++                "choices": [
++                    {
++                        "message": {
++                            "tool_calls": [
++                                {
++                                    "function": {
++                                        "name": required_tool,
++                                        "arguments": json.dumps(args),
++                                    }
++                                }
++                            ]
++                        }
++                    }
++                ]
++            }, 0
+ 
+     req._owned_look_llm = Model()
+     result = await execute_owned_look(req, catalog)
+diff --git a/backend/chatbot/tests/test_knowledge_service.py b/backend/chatbot/tests/test_knowledge_service.py
+index ca739e57..cd77c268 100644
+--- a/backend/chatbot/tests/test_knowledge_service.py
++++ b/backend/chatbot/tests/test_knowledge_service.py
+@@ -839,7 +839,9 @@ def test_one_claim_can_fully_answer_some_requirements_without_fulfilling_the_res
+     reply = resolve(draft, audit, evidence, coverage=coverage)
+     assert reply.status == "partial" and len(reply.claims) == 1
+     assert [(r.requirement_id, r.fulfilled) for r in coverage.requirements] == [
+-        ("R1", True), ("R2", True), ("R3", False),
++        ("R1", True),
++        ("R2", True),
++        ("R3", False),
+     ]
+     assert "아직 답하지 않은 관리 방법" in reply.limitations
+     audit["reviews"][0]["match"] = "PARTIAL_MATCH"

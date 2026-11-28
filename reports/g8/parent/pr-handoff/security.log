@@ -1,0 +1,116 @@
+{"at": "2026-11-28T12:33:22.358910+00:00", "mode": "REUSED actual current BASE committed-history scan; not rerun", "source": "C:\\Users\\playdata2\\AppData\\Local\\Temp\\vishue-g8-push-d4ae462c-security-valid.log", "sha256": "c77038c1dbd215869d743fe264cf387138a9edc9504987610275f80e7a1ee6f2"}
+2026-11-28T12:09:15.383342+00:00 exact CI full-history conditions; explicit WSL git path;HEAD=d4ae462c5d89f9efd3710a5a60fa0e281d64fd31;exit=0
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m9:09PM[0m [32mINF[0m [1m695 commits scanned.[0m
+[90m9:09PM[0m [32mINF[0m [1mscanned ~285711438 bytes (285.71 MB) in 28.4s[0m
+[90m9:09PM[0m [32mINF[0m [1mno leaks found[0m
+{"at": "2026-11-28T12:33:33.609684+00:00", "counts": {"protectedValue": 0, "jwt": 0, "privateKey": 0, "email": 0}, "pytestDecoratorClassificationOnly": true}
+
+{"at": "2026-11-28T12:33:39.648678+00:00", "scan": "new-evidence", "command": ["wsl", "-d", "vishue-g5", "--", "/var/tmp/g8-gitleaks-audit-20261126/gitleaks", "dir", "/mnt/c/Users/playdata2/.codex/worktrees/vishue-compound-consultation/SKN34-Final-Project/reports/g8/parent/pr-handoff", "--config", "/mnt/c/Users/playdata2/.codex/worktrees/vishue-compound-consultation/SKN34-Final-Project/.gitleaks.toml", "--gitleaks-ignore-path", "/dev/null", "--redact", "--verbose"], "exit": 0, "version": "8.30.1"}
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m9:33PM[0m [32mINF[0m [1mscanned ~524921 bytes (524.92 KB) in 146ms[0m
+[90m9:33PM[0m [32mINF[0m [1mno leaks found[0m
+
+{"at": "2026-11-28T12:33:40.488161+00:00", "scan": "working-diff", "command": ["wsl", "-d", "vishue-g5", "--", "/var/tmp/g8-gitleaks-audit-20261126/gitleaks", "stdin", "--config", "/mnt/c/Users/playdata2/.codex/worktrees/vishue-compound-consultation/SKN34-Final-Project/.gitleaks.toml", "--gitleaks-ignore-path", "/dev/null", "--redact", "--verbose"], "exit": 0, "version": "8.30.1"}
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m9:33PM[0m [32mINF[0m [1mscanned ~85665 bytes (85.67 KB) in 323ms[0m
+[90m9:33PM[0m [32mINF[0m [1mno leaks found[0m
+{"at": "2026-11-28T12:34:57.196563+00:00", "counts": {"protectedValue": 0, "jwt": 0, "privateKey": 0, "email": 0}, "pytestDecoratorClassificationOnly": true}
+
+{"at": "2026-11-28T12:35:03.430462+00:00", "scan": "new-evidence", "command": ["wsl", "-d", "vishue-g5", "--", "/var/tmp/g8-gitleaks-audit-20261126/gitleaks", "dir", "/mnt/c/Users/playdata2/.codex/worktrees/vishue-compound-consultation/SKN34-Final-Project/reports/g8/parent/pr-handoff", "--config", "/mnt/c/Users/playdata2/.codex/worktrees/vishue-compound-consultation/SKN34-Final-Project/.gitleaks.toml", "--gitleaks-ignore-path", "/dev/null", "--redact", "--verbose"], "exit": 0, "version": "8.30.1"}
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m9:35PM[0m [32mINF[0m [1mscanned ~533507 bytes (533.51 KB) in 124ms[0m
+[90m9:35PM[0m [32mINF[0m [1mno leaks found[0m
+
+{"at": "2026-11-28T12:35:04.125653+00:00", "scan": "working-diff", "command": ["wsl", "-d", "vishue-g5", "--", "/var/tmp/g8-gitleaks-audit-20261126/gitleaks", "stdin", "--config", "/mnt/c/Users/playdata2/.codex/worktrees/vishue-compound-consultation/SKN34-Final-Project/.gitleaks.toml", "--gitleaks-ignore-path", "/dev/null", "--redact", "--verbose"], "exit": 0, "version": "8.30.1"}
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m9:35PM[0m [32mINF[0m [1mscanned ~86431 bytes (86.43 KB) in 226ms[0m
+[90m9:35PM[0m [32mINF[0m [1mno leaks found[0m
+{"at": "2026-11-28T12:38:25.711066+00:00", "counts": {"protectedValue": 0, "jwt": 0, "privateKey": 0, "email": 0}, "pytestDecoratorClassificationOnly": true}
+
+{"at": "2026-11-28T12:38:33.073185+00:00", "scan": "new-evidence", "command": ["wsl", "-d", "vishue-g5", "--", "/var/tmp/g8-gitleaks-audit-20261126/gitleaks", "dir", "/mnt/c/Users/playdata2/.codex/worktrees/vishue-compound-consultation/SKN34-Final-Project/reports/g8/parent/pr-handoff", "--config", "/mnt/c/Users/playdata2/.codex/worktrees/vishue-compound-consultation/SKN34-Final-Project/.gitleaks.toml", "--gitleaks-ignore-path", "/dev/null", "--redact", "--verbose"], "exit": 0, "version": "8.30.1"}
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m9:38PM[0m [32mINF[0m [1mscanned ~539025 bytes (539.03 KB) in 175ms[0m
+[90m9:38PM[0m [32mINF[0m [1mno leaks found[0m
+
+{"at": "2026-11-28T12:38:34.122818+00:00", "scan": "working-diff", "command": ["wsl", "-d", "vishue-g5", "--", "/var/tmp/g8-gitleaks-audit-20261126/gitleaks", "stdin", "--config", "/mnt/c/Users/playdata2/.codex/worktrees/vishue-compound-consultation/SKN34-Final-Project/.gitleaks.toml", "--gitleaks-ignore-path", "/dev/null", "--redact", "--verbose"], "exit": 0, "version": "8.30.1"}
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m9:38PM[0m [32mINF[0m [1mscanned ~86431 bytes (86.43 KB) in 330ms[0m
+[90m9:38PM[0m [32mINF[0m [1mno leaks found[0m
+{"at": "2026-11-28T12:42:45.526331+00:00", "note": "Publication: new-evidence and supplemental scans below; unstaged diff is empty; complete staged diff scanned separately next."}
+{"at": "2026-11-28T12:42:46.284076+00:00", "counts": {"protectedValue": 0, "jwt": 0, "privateKey": 0, "email": 0}, "pytestDecoratorClassificationOnly": true}
+
+{"at": "2026-11-28T12:42:51.956469+00:00", "scan": "new-evidence", "command": ["wsl", "-d", "vishue-g5", "--", "/var/tmp/g8-gitleaks-audit-20261126/gitleaks", "dir", "/mnt/c/Users/playdata2/.codex/worktrees/vishue-compound-consultation/SKN34-Final-Project/reports/g8/parent/pr-handoff", "--config", "/mnt/c/Users/playdata2/.codex/worktrees/vishue-compound-consultation/SKN34-Final-Project/.gitleaks.toml", "--gitleaks-ignore-path", "/dev/null", "--redact", "--verbose"], "exit": 0, "version": "8.30.1"}
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m9:42PM[0m [32mINF[0m [1mscanned ~552781 bytes (552.78 KB) in 173ms[0m
+[90m9:42PM[0m [32mINF[0m [1mno leaks found[0m
+
+{"at": "2026-11-28T12:42:52.695951+00:00", "scan": "working-diff", "command": ["wsl", "-d", "vishue-g5", "--", "/var/tmp/g8-gitleaks-audit-20261126/gitleaks", "stdin", "--config", "/mnt/c/Users/playdata2/.codex/worktrees/vishue-compound-consultation/SKN34-Final-Project/.gitleaks.toml", "--gitleaks-ignore-path", "/dev/null", "--redact", "--verbose"], "exit": 0, "version": "8.30.1"}
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m9:42PM[0m [32mINF[0m [1mscanned ~719 bytes (719 bytes) in 300ms[0m
+[90m9:42PM[0m [32mINF[0m [1mno leaks found[0m
+
+{"at": "2026-11-28T12:42:53.483548+00:00", "scan": "complete staged documents+evidence", "command": ["wsl", "-d", "vishue-g5", "--", "/var/tmp/g8-gitleaks-audit-20261126/gitleaks", "stdin", "--config", "/mnt/c/Users/playdata2/.codex/worktrees/vishue-compound-consultation/SKN34-Final-Project/.gitleaks.toml", "--gitleaks-ignore-path", "/dev/null", "--redact", "--verbose"], "inputBytes": 572431, "inputSha256": "511ceca798e165e6d5bb6b1a3ec90db7d95923210f817d22427348decbeeaf7a", "exit": 0}
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m9:42PM[0m [32mINF[0m [1mscanned ~572431 bytes (572.43 KB) in 323ms[0m
+[90m9:42PM[0m [32mINF[0m [1mno leaks found[0m
