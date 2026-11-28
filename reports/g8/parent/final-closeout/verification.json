@@ -1,0 +1,550 @@
+{
+  "at": "2026-11-28T10:43:46.257836+00:00",
+  "head": "506ab47f617b8fcdae7e78d9de651d9c6c1fb3f5",
+  "uncommitted": true,
+  "productCodeModifiedInTask": false,
+  "integrity": {
+    "sources": {
+      "checked": 802,
+      "changed": []
+    },
+    "priorEvidence": {
+      "checked": 1444,
+      "changed": []
+    }
+  },
+  "regression": {
+    "app": {
+      "passed": 1387,
+      "typecheck": "PASS",
+      "lint": "PASS"
+    },
+    "api": {
+      "passed": 721,
+      "skipped": 21,
+      "initialErrors": 61,
+      "errorClass": "preexisting pytest shared Temp ACL",
+      "retryPassed": 61,
+      "ruff": "PASS",
+      "layers": "PASS"
+    },
+    "chatbot": {
+      "passed": 1902,
+      "skipped": 40,
+      "initialErrors": 17,
+      "errorClass": "same Temp ACL",
+      "retryPassed": 17,
+      "ruff": "PASS",
+      "layers": "PASS"
+    },
+    "totalPassed": 4010,
+    "totalSkipped": 61,
+    "models": "mocks/doubles in full regression;real isolated PG where configured;paid live opt-ins absent"
+  },
+  "db": {
+    "currentRevisions": {
+      "vishue_api_test": "0044",
+      "vishue_api_g7_test": "0044",
+      "vishue_chat_test": "0005_g7_memory_settings",
+      "vishue_final_catalog": "0044",
+      "vishue_final_knowledge": "0044"
+    },
+    "knowledgeEmbeddings": 36040,
+    "originalReadOnlyMetadata": {
+      "revision": "0033",
+      "products": 9035,
+      "rawOptions": 21951
+    },
+    "originalWriteCommands": 0,
+    "hnswRebuildSkipped": true
+  },
+  "skin": {
+    "currentThreeNormalClarifications": true,
+    "samples": [
+      {
+        "at": "2026-11-28T10:18:05.319421+00:00",
+        "kind": "skin_probe",
+        "sample": 1,
+        "mode": "live model; direct planner, not app/PG",
+        "question": "오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘",
+        "plan": {
+          "scope": "consultation",
+          "action": "clarify",
+          "goal": null,
+          "question": "오후에 화장이 뜰 때 당김·각질이 있나요, 아니면 유분이 많거나 베이스가 뭉치나요? 사용 중인 기초·베이스 제품과 화장이 뜨는 상황도 알려주세요.",
+          "knowledgeAction": "keep",
+          "removeKnowledgeIngredients": [],
+          "unsupportedProductConditions": []
+        },
+        "seconds": 3.343
+      },
+      {
+        "at": "2026-11-28T10:18:08.085197+00:00",
+        "kind": "skin_probe",
+        "sample": 2,
+        "mode": "live model; direct planner, not app/PG",
+        "question": "오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘",
+        "plan": {
+          "scope": "consultation",
+          "action": "clarify",
+          "goal": null,
+          "question": "오후에 화장이 뜰 때 당김·각질이 있나요, 아니면 유분·뭉침이 주된가요? 사용 중인 기초·베이스 제품과 화장이 뜨는 상황도 알려주세요.",
+          "knowledgeAction": "keep",
+          "removeKnowledgeIngredients": [],
+          "unsupportedProductConditions": []
+        },
+        "seconds": 2.75
+      },
+      {
+        "at": "2026-11-28T10:18:10.574937+00:00",
+        "kind": "skin_probe",
+        "sample": 3,
+        "mode": "live model; direct planner, not app/PG",
+        "question": "오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘",
+        "plan": {
+          "scope": "consultation",
+          "action": "clarify",
+          "goal": null,
+          "question": "오후에 화장이 뜰 때 당김·각질이 있나요, 아니면 유분이 많고 베이스가 뭉치나요? 사용 중인 기초·베이스 제품과 화장이 뜨는 상황도 알려주세요.",
+          "knowledgeAction": "keep",
+          "removeKnowledgeIngredients": [],
+          "unsupportedProductConditions": []
+        },
+        "seconds": 2.484
+      }
+    ],
+    "historicalFailedValidRequests": 2,
+    "historicalRawPlansAvailable": false,
+    "status": "PARTIAL"
+  },
+  "knowledgePositive": {
+    "currentAllLive": [
+      {
+        "variant": 1,
+        "knowledgeStatus": "complete",
+        "acceptedConditions": [
+          {
+            "ingredientName": "향료",
+            "operator": "excludes",
+            "claimIndex": 1,
+            "evidenceId": "K1.E4",
+            "quote": "피해야 할 자극적인 성분(향료, 색소, 에탄올 등)은 없는지"
+          },
+          {
+            "ingredientName": "색소",
+            "operator": "excludes",
+            "claimIndex": 1,
+            "evidenceId": "K1.E4",
+            "quote": "피해야 할 자극적인 성분(향료, 색소, 에탄올 등)은 없는지"
+          },
+          {
+            "ingredientName": "에탄올",
+            "operator": "excludes",
+            "claimIndex": 1,
+            "evidenceId": "K1.E4",
+            "quote": "피해야 할 자극적인 성분(향료, 색소, 에탄올 등)은 없는지"
+          }
+        ],
+        "conditionDecisions": [
+          {
+            "condition": {
+              "ingredientName": "판테놀",
+              "operator": "includes",
+              "claimIndex": 0,
+              "evidenceId": "K1.E1",
+              "quote": "피부 속 수분을 끌어당겨 촉촉함을 유지시켜 주고"
+            },
+            "decision": "unverified_evidence"
+          },
+          {
+            "condition": {
+              "ingredientName": "향료",
+              "operator": "excludes",
+              "claimIndex": 1,
+              "evidenceId": "K1.E4",
+              "quote": "피해야 할 자극적인 성분(향료, 색소, 에탄올 등)은 없는지"
+            },
+            "decision": "accepted"
+          },
+          {
+            "condition": {
+              "ingredientName": "색소",
+              "operator": "excludes",
+              "claimIndex": 1,
+              "evidenceId": "K1.E4",
+              "quote": "피해야 할 자극적인 성분(향료, 색소, 에탄올 등)은 없는지"
+            },
+            "decision": "accepted"
+          },
+          {
+            "condition": {
+              "ingredientName": "에탄올",
+              "operator": "excludes",
+              "claimIndex": 1,
+              "evidenceId": "K1.E4",
+              "quote": "피해야 할 자극적인 성분(향료, 색소, 에탄올 등)은 없는지"
+            },
+            "decision": "accepted"
+          }
+        ],
+        "requests": [
+          {
+            "query": "",
+            "category": "skincare",
+            "productIds": [
+              "oy-a000000260338",
+              "oy-a000000219754",
+              "oy-a000001002051",
+              "oy-a000000233337",
+              "oy-a000000229464",
+              "oy-a000000259950"
+            ],
+            "optionScope": [
+              {
+                "productId": "oy-a000000260338",
+                "shadeId": null,
+                "optionId": "A000000260338-001"
+              },
+              {
+                "productId": "oy-a000000219754",
+                "shadeId": null,
+                "optionId": "A000000219754-001"
+              },
+              {
+                "productId": "oy-a000001002051",
+                "shadeId": null,
+                "optionId": "A000001002051-001"
+              },
+              {
+                "productId": "oy-a000000233337",
+                "shadeId": null,
+                "optionId": "A000000233337-001"
+              },
+              {
+                "productId": "oy-a000000229464",
+                "shadeId": null,
+                "optionId": "A000000229464-001"
+              },
+              {
+                "productId": "oy-a000000259950",
+                "shadeId": null,
+                "optionId": "A000000259950-001"
+              }
+            ],
+            "texture": null,
+            "maxPriceKRW": 20000,
+            "priceBasis": "collected_snapshot",
+            "ingredientConditions": [
+              {
+                "ingredientName": "향료",
+                "operator": "excludes"
+              },
+              {
+                "ingredientName": "색소",
+                "operator": "excludes"
+              },
+              {
+                "ingredientName": "에탄올",
+                "operator": "excludes"
+              }
+            ],
+            "fragranceFree": false,
+            "moisturizing": false,
+            "unsupportedConditions": []
+          },
+          {
+            "query": "",
+            "category": "skincare",
+            "productIds": [
+              "oy-a000000260338",
+              "oy-a000000219754",
+              "oy-a000001002051",
+              "oy-a000000233337",
+              "oy-a000000229464",
+              "oy-a000000259950"
+            ],
+            "optionScope": [
+              {
+                "productId": "oy-a000000260338",
+                "shadeId": null,
+                "optionId": "A000000260338-001"
+              },
+              {
+                "productId": "oy-a000000219754",
+                "shadeId": null,
+                "optionId": "A000000219754-001"
+              },
+              {
+                "productId": "oy-a000001002051",
+                "shadeId": null,
+                "optionId": "A000001002051-001"
+              },
+              {
+                "productId": "oy-a000000233337",
+                "shadeId": null,
+                "optionId": "A000000233337-001"
+              },
+              {
+                "productId": "oy-a000000229464",
+                "shadeId": null,
+                "optionId": "A000000229464-001"
+              },
+              {
+                "productId": "oy-a000000259950",
+                "shadeId": null,
+                "optionId": "A000000259950-001"
+              }
+            ],
+            "texture": null,
+            "maxPriceKRW": 20000,
+            "priceBasis": "collected_snapshot",
+            "ingredientConditions": [
+              {
+                "ingredientName": "향료",
+                "operator": "excludes"
+              },
+              {
+                "ingredientName": "에탄올",
+                "operator": "excludes"
+              }
+            ],
+            "fragranceFree": false,
+            "moisturizing": false,
+            "unsupportedConditions": []
+          },
+          {
+            "query": "",
+            "category": "skincare",
+            "productIds": [
+              "oy-a000000234358",
+              "oy-a000000248374",
+              "oy-a000000176352",
+              "oy-a000000244812"
+            ],
+            "optionScope": [
+              {
+                "productId": "oy-a000000234358",
+                "shadeId": null,
+                "optionId": "A000000234358-001"
+              },
+              {
+                "productId": "oy-a000000248374",
+                "shadeId": null,
+                "optionId": "A000000248374-001"
+              },
+              {
+                "productId": "oy-a000000176352",
+                "shadeId": null,
+                "optionId": "A000000176352-001"
+              },
+              {
+                "productId": "oy-a000000244812",
+                "shadeId": null,
+                "optionId": "A000000244812-001"
+              }
+            ],
+            "texture": null,
+            "maxPriceKRW": 20000,
+            "priceBasis": "collected_snapshot",
+            "ingredientConditions": [
+              {
+                "ingredientName": "향료",
+                "operator": "excludes"
+              },
+              {
+                "ingredientName": "에탄올",
+                "operator": "excludes"
+              }
+            ],
+            "fragranceFree": false,
+            "moisturizing": false,
+            "unsupportedConditions": []
+          }
+        ],
+        "eligible": 0,
+        "unknown": 3,
+        "seconds": 33.656,
+        "allLivePositive": false
+      },
+      {
+        "variant": 2,
+        "knowledgeStatus": "failed",
+        "acceptedConditions": [],
+        "conditionDecisions": [],
+        "requests": [
+          {
+            "query": "",
+            "category": "skincare",
+            "productIds": [
+              "oy-a000000260338",
+              "oy-a000000219754",
+              "oy-a000001002051",
+              "oy-a000000233337",
+              "oy-a000000229464",
+              "oy-a000000259950"
+            ],
+            "optionScope": [
+              {
+                "productId": "oy-a000000260338",
+                "shadeId": null,
+                "optionId": "A000000260338-001"
+              },
+              {
+                "productId": "oy-a000000219754",
+                "shadeId": null,
+                "optionId": "A000000219754-001"
+              },
+              {
+                "productId": "oy-a000001002051",
+                "shadeId": null,
+                "optionId": "A000001002051-001"
+              },
+              {
+                "productId": "oy-a000000233337",
+                "shadeId": null,
+                "optionId": "A000000233337-001"
+              },
+              {
+                "productId": "oy-a000000229464",
+                "shadeId": null,
+                "optionId": "A000000229464-001"
+              },
+              {
+                "productId": "oy-a000000259950",
+                "shadeId": null,
+                "optionId": "A000000259950-001"
+              }
+            ],
+            "texture": null,
+            "maxPriceKRW": 20000,
+            "priceBasis": "collected_snapshot",
+            "ingredientConditions": [],
+            "fragranceFree": false,
+            "moisturizing": false,
+            "unsupportedConditions": []
+          },
+          {
+            "query": "",
+            "category": "skincare",
+            "productIds": [
+              "oy-a000000234358",
+              "oy-a000000248374",
+              "oy-a000000176352",
+              "oy-a000000244812"
+            ],
+            "optionScope": [
+              {
+                "productId": "oy-a000000234358",
+                "shadeId": null,
+                "optionId": "A000000234358-001"
+              },
+              {
+                "productId": "oy-a000000248374",
+                "shadeId": null,
+                "optionId": "A000000248374-001"
+              },
+              {
+                "productId": "oy-a000000176352",
+                "shadeId": null,
+                "optionId": "A000000176352-001"
+              },
+              {
+                "productId": "oy-a000000244812",
+                "shadeId": null,
+                "optionId": "A000000244812-001"
+              }
+            ],
+            "texture": null,
+            "maxPriceKRW": 20000,
+            "priceBasis": "collected_snapshot",
+            "ingredientConditions": [],
+            "fragranceFree": false,
+            "moisturizing": false,
+            "unsupportedConditions": []
+          }
+        ],
+        "eligible": 4,
+        "unknown": 0,
+        "seconds": 38.938,
+        "allLivePositive": false
+      }
+    ],
+    "manualProposalActualCatalog": {
+      "allLive": false,
+      "additionalModels": 0,
+      "eligible": 4,
+      "optionIds": [
+        "A000001002051-001",
+        "A000000259950-001",
+        "A000000234358-001",
+        "A000000176352-001"
+      ],
+      "status": "PASS:stated mixed component scope only"
+    },
+    "dataUnavailable": false,
+    "overallStatus": "PARTIAL"
+  },
+  "e01": {
+    "reusedAssertions": {
+      "beforeNamedPairDidNotEnterComparison": true,
+      "beforeRetryBlockedWithoutTools": true,
+      "afterTwoNamesEnteredComparison": true,
+      "comparisonInspectedTwo": true,
+      "comparisonAnswerPreserved": true,
+      "comparisonAssessmentPreserved": true,
+      "comparisonScopePreserved": true,
+      "retryStyleSameTask": true,
+      "retryDidStyleHTTP": true,
+      "retryNoProductHTTP": true,
+      "retryStyleNoLongerFailed": true,
+      "allAnswersSavedExactly": true,
+      "finalSourceHashesMatch": true,
+      "finalSourceASTMatchesActualRun": true,
+      "priorEvidenceUnchanged": true
+    },
+    "currentSourceByteComparison": [
+      {
+        "path": "backend/chatbot/app/schemas/supervisor.py",
+        "sameBytes": true
+      },
+      {
+        "path": "backend/chatbot/app/schemas/consultation_parent.py",
+        "sameBytes": true
+      },
+      {
+        "path": "backend/chatbot/app/services/beauty_consultation_service.py",
+        "sameBytes": true
+      },
+      {
+        "path": "backend/chatbot/app/services/consultation_parent_graph.py",
+        "sameBytes": true
+      },
+      {
+        "path": "backend/chatbot/app/services/consultation_intent_service.py",
+        "sameBytes": false
+      }
+    ],
+    "changedSharedFileRegression": "current full parent/intent/API tests passed;no identical live replay"
+  },
+  "b01": {
+    "reused": "../closing4/verification.json",
+    "physicalAR": "NOT_RUN",
+    "unauthorizedWritesAndReplayBoundary": "PASS"
+  },
+  "priorN01N02": {
+    "reused": "../closing5/verification.json",
+    "checks": {
+      "allFinalAnswersSavedExactly": true,
+      "finalSourceHashesMatch": true,
+      "priorEvidenceUnchanged": true,
+      "parentThreeLiveSamplesAccepted": true,
+      "n02ExplicitProductOwnershipStored": true,
+      "n02ProductNotUpgradedToOption": true,
+      "n01FinalActualResolutionObserved": true,
+      "n01LatestAppRequirementsFulfilled": true
+    }
+  },
+  "closure": "PARTIAL;review handoff possible,merge withheld",
+  "newLiveMode": "3 real planner probes+2 real graphs;manual proposal component separately labelled",
+  "pushPrDeploy": false
+}

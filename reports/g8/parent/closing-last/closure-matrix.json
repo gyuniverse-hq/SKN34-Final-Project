@@ -1,0 +1,1376 @@
+{
+  "at": "2026-11-28T11:49:25.684781+00:00",
+  "authoritativeScope": "docs/ai-design/01-user-experience.md and original G8 L2 cases;latest user decisions override old recipe/human-review prerequisites",
+  "statusMeaning": "PASS is the stated sampled contract,not universal model reliability. Full capability and G8-owned contract are separate. BLOCKED/NOT_RUN never converted to PASS.",
+  "overallG8Stage": "stage5collaboration closed in supported scope;stage6required integration evidence assessed;stage7PR/team review not performed",
+  "closingStage": "5of6completed;6handoff pending user instruction",
+  "scopeExpanded": false,
+  "proofs": {
+    "R": {
+      "files": [
+        "../final-closeout/app-check.log",
+        "../final-closeout/api-check.log",
+        "../final-closeout/chatbot-check.log",
+        "../final-closeout/db-check.log"
+      ],
+      "mode": "current integrated code; automatic doubles plus isolated real PG",
+      "result": "4010 passed,61 skipped; ACL failures retried only once on new temp dirs"
+    },
+    "N1": {
+      "files": [
+        "../closing5/verification.json",
+        "../closing5/manifest.json",
+        "../closing5/n01.png",
+        "../closing5/dialogue.txt"
+      ],
+      "mode": "actual models/Catalog/PG/signed-in Aside; final4",
+      "result": "required explanations4/4,options10 in6+4 batches,eligible4; exact PG"
+    },
+    "N2": {
+      "files": [
+        "../closing5/verification.json",
+        "../closing5/n02.png"
+      ],
+      "mode": "actual signed-in Aside/Catalog/PG; final2",
+      "result": "product-level Clio ownership preserved on budget20k to30k and restored cards; exact option not invented"
+    },
+    "E": {
+      "files": [
+        "../e01-fix/verification.json",
+        "../e01-fix/trace-after.jsonl",
+        "../e01-fix/manifest.json"
+      ],
+      "mode": "actual model/Catalog/PG/Aside,controlled Style503",
+      "result": "two names resolved with actual ambiguity clarification,16490/18900KRW;same Style task retry,no extra product HTTP,comparison result preserved"
+    },
+    "B": {
+      "files": [
+        "../closing4/verification.json",
+        "../closing4/B01.png",
+        "../closing4/cancel-replace.png"
+      ],
+      "mode": "actual signed-in Aside/model/PG; replay separately zero calls",
+      "result": "no unauthorized AR/memory write; duplicate added0 calls/rows;cancel/replace and current summary restored"
+    },
+    "F": {
+      "files": [
+        "../stage6-investigation-flags-v3.log",
+        "../stage6-investigation-product-flags-v2.log"
+      ],
+      "mode": "previous flag investigation plus current full regression",
+      "result": "G5 OFF zero new calls;G8 OFF keeps saved read without executing old parents;option-unexecuted distinct from no_match"
+    },
+    "P": {
+      "files": [
+        "trace.jsonl",
+        "verification.json",
+        "../closing5/trace.jsonl"
+      ],
+      "mode": "current direct live skin planner3samples;historical failures separately referenced",
+      "result": "3/3normal clarify with diagnostics;past2raw plans absent,cause not confirmed,not reclassified as normal clarification"
+    },
+    "K": {
+      "files": [
+        "trace.jsonl",
+        "verification.json",
+        "dialogue.txt"
+      ],
+      "mode": "four actual signed-in app turns across recorded prompt phases;no mocks/replay",
+      "result": "earlier invalid literal/bilingual labels rejected;final one literal panthenol accepted and sent in6+4option requests;4MATCH eligible;actualDOM and PG"
+    },
+    "D": {
+      "files": [
+        "../final-closeout/trace.jsonl"
+      ],
+      "mode": "manual proposal fixture from same real G5 evidence plus real current Catalog;0 extra models",
+      "result": "Historical manual-proposal component only;superseded by current all-live positive,not relabelled live"
+    },
+    "H": {
+      "files": [
+        "../common-entry-cooperation-record.json",
+        "../common-cooperation-followup-record.json",
+        "../common-execution-control-app-record.json"
+      ],
+      "mode": "prior real/mock modes recorded in each file;current related regression",
+      "result": "initial decomposition,IDs,proposal validation,question owners,execution cancellation;not a new all-live run"
+    },
+    "L": {
+      "files": [
+        "trace.jsonl",
+        "verification.json",
+        "dialogue.txt",
+        "checks.log",
+        "manifest.json"
+      ],
+      "mode": "actual Supabase-signed-in Aside/models/G5/V4/Catalog/PG;final descriptor source",
+      "result": "model-produced cited panthenol condition accepted;actual6+4 option scopes;4 ingredient-MATCH eligible;DOM labels4;COMMITTED exact4turns;server+task condition saved;skin initial3/3 clarify;131targeted pass/1skip"
+    }
+  },
+  "bundles": [
+    {
+      "id": "1",
+      "name": "공통 계획 진입",
+      "status": "PASS",
+      "proofIds": [
+        "R",
+        "H",
+        "P",
+        "L"
+      ],
+      "assessment": "Current initial skin3/3 clarify;safe diagnostic categories verified.Past2causes unconfirmed as residual risk,not a new reproduce-every-past-failure gate per latest user decision.",
+      "classification": "verified_supported_G8_contract_with_recorded_limits",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/services/beauty_consultation_service.py",
+        "backend/chatbot/app/services/product_search_contract.py",
+        "components/chat/ChatProducts.tsx",
+        "app/product/[id].tsx"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g8_consultation_intent.py",
+        "backend/chatbot/tests/test_g8_consultation_parent.py",
+        "backend/chatbot/tests/test_beauty_consultation.py",
+        "backend/chatbot/tests/test_product_search_contract.py",
+        "backend/chatbot/tests/test_g4_option_search.py"
+      ],
+      "previousClassification": "verification_gap"
+    },
+    {
+      "id": "2",
+      "name": "결과 기반 협력",
+      "status": "PASS",
+      "proofIds": [
+        "R",
+        "H",
+        "K",
+        "D",
+        "L"
+      ],
+      "assessment": "Actual model ingredient proposal->server acceptance->two real option requests->4ingredient-MATCH eligible->actual app DOM and PG;no fixture/replay.",
+      "classification": "verified_supported_G8_contract_with_recorded_limits",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/services/compound_consultation_graph.py",
+        "backend/chatbot/app/services/compound_consultation_service.py",
+        "backend/chatbot/app/services/consultation_task_adapter.py",
+        "backend/chatbot/app/services/knowledge_service.py",
+        "components/chat/KnowledgeCitations.tsx",
+        "backend/chatbot/app/services/style_search_service.py",
+        "backend/chatbot/app/services/style_recipe_service.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g8_consultation_intent.py",
+        "backend/chatbot/tests/test_g8_consultation_parent.py",
+        "backend/chatbot/tests/test_g8_task_contract.py",
+        "backend/chatbot/tests/test_g8_compound_consultation.py",
+        "backend/chatbot/tests/test_g8_partial_success.py",
+        "backend/chatbot/tests/test_knowledge_service.py"
+      ],
+      "previousClassification": "model_contract_validation_gap"
+    },
+    {
+      "id": "3",
+      "name": "후속 변경·질문",
+      "status": "PASS",
+      "proofIds": [
+        "R",
+        "H",
+        "N2",
+        "E"
+      ],
+      "assessment": "작업 ID/버전·질문 단위 보존·의존 무효화·예산·보유 선언·선택적 재시도 통과.",
+      "classification": "verified_supported_G8_contract_with_recorded_limits",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/services/owned_look_consultation_service.py",
+        "backend/chatbot/app/services/owned_look_interpreter.py",
+        "backend/chatbot/app/services/owned_look_filters.py",
+        "backend/chatbot/app/services/conversation_service.py",
+        "backend/chatbot/app/services/structured_memory_service.py",
+        "backend/chatbot/app/services/memory_settings_service.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g8_consultation_intent.py",
+        "backend/chatbot/tests/test_g8_consultation_parent.py",
+        "backend/chatbot/tests/test_g8_owned_look.py",
+        "backend/chatbot/tests/test_g8_owned_look_interpreter.py",
+        "backend/chatbot/tests/test_g7_memory_api_pg.py",
+        "backend/chatbot/tests/test_g7_owner_deletion_pg.py"
+      ],
+      "previousClassification": "verified_contract"
+    },
+    {
+      "id": "4",
+      "name": "실행 제어·중단",
+      "status": "PASS",
+      "proofIds": [
+        "R",
+        "B"
+      ],
+      "assessment": "기존 실제 중단/교체/최신 요약·저장 복원과 현재 PG 회귀 유지. 자동 checkpoint 복구는 별도 미구현.",
+      "classification": "verified_supported_G8_contract_with_recorded_limits",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/conversation_service.py",
+        "hooks/useChat.ts",
+        "hooks/useChatConversations.ts",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/schemas/consultation_parent.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+        "__tests__/useChatConversations.test.tsx",
+        "backend/chatbot/tests/test_g8_consultation_intent.py",
+        "backend/chatbot/tests/test_g8_consultation_parent.py"
+      ],
+      "previousClassification": "verified_contract"
+    },
+    {
+      "id": "5",
+      "name": "판정·응답·복원",
+      "status": "PASS",
+      "proofIds": [
+        "R",
+        "N1",
+        "N2",
+        "E",
+        "B",
+        "L"
+      ],
+      "assessment": "완료/부분/실패 구분·정확옵션·카드/상세/장바구니·PG·복원 통과. 데이터 부족을 성공으로 올리지 않음.",
+      "classification": "verified_supported_G8_contract_with_recorded_limits",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/consultation_answer_service.py",
+        "backend/chatbot/app/services/consultation_result_service.py",
+        "components/chat/StyleRecipeResult.tsx",
+        "backend/chatbot/app/services/conversation_service.py",
+        "hooks/useChat.ts",
+        "hooks/useChatConversations.ts",
+        "backend/chatbot/app/services/beauty_consultation_service.py",
+        "backend/chatbot/app/services/product_search_contract.py",
+        "components/chat/ChatProducts.tsx",
+        "app/product/[id].tsx"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g8_consultation_answer.py",
+        "__tests__/styleRecipeResult.test.tsx",
+        "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+        "__tests__/useChatConversations.test.tsx",
+        "backend/chatbot/tests/test_beauty_consultation.py",
+        "backend/chatbot/tests/test_product_search_contract.py",
+        "backend/chatbot/tests/test_g4_option_search.py"
+      ],
+      "previousClassification": "verified_contract"
+    },
+    {
+      "id": "6",
+      "name": "종료 증거·문서 정합성",
+      "status": "PASS",
+      "proofIds": [
+        "R",
+        "N1",
+        "N2",
+        "E",
+        "B",
+        "P",
+        "K",
+        "D",
+        "L"
+      ],
+      "assessment": "6bundles/14capabilities/12scenarios/original4cases mapped;current target regression and source/evidence identities recorded.Failure/rephrasing and PNG failure preserved.",
+      "classification": "verified_supported_G8_contract_with_recorded_limits",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/services/compound_consultation_graph.py",
+        "backend/chatbot/app/services/compound_consultation_service.py",
+        "backend/chatbot/app/services/consultation_task_adapter.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g8_consultation_intent.py",
+        "backend/chatbot/tests/test_g8_consultation_parent.py",
+        "backend/chatbot/tests/test_g8_task_contract.py",
+        "backend/chatbot/tests/test_g8_compound_consultation.py",
+        "backend/chatbot/tests/test_g8_partial_success.py"
+      ],
+      "previousClassification": "closure_gate"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "C01",
+      "name": "자유로운 K-뷰티 대화",
+      "status": "PARTIAL",
+      "g8OwnedContractStatus": "PASS",
+      "proofIds": [
+        "N1",
+        "P",
+        "R",
+        "L"
+      ],
+      "assessment": "Supported G8 path PASS;initial skin3normal samples.Historical unknown failure cause remains risk,not evidence of a reproduced current deterministic defect.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/services/knowledge_service.py",
+        "backend/chatbot/app/services/compound_consultation_service.py",
+        "components/chat/KnowledgeCitations.tsx"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g8_consultation_intent.py",
+        "backend/chatbot/tests/test_g8_consultation_parent.py",
+        "backend/chatbot/tests/test_knowledge_service.py",
+        "backend/chatbot/tests/test_g8_compound_consultation.py"
+      ]
+    },
+    {
+      "id": "C02",
+      "name": "사용자 이해·개인화",
+      "status": "PASS",
+      "g8OwnedContractStatus": "PASS",
+      "proofIds": [
+        "N2",
+        "B",
+        "R"
+      ],
+      "assessment": "현재 대화·명시 보유·동의한 기억 및 소유권;전체 개인화 품질을 보증하지 않음.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/conversation_service.py",
+        "backend/chatbot/app/services/structured_memory_service.py",
+        "backend/chatbot/app/services/memory_settings_service.py",
+        "backend/chatbot/app/services/owned_look_consultation_service.py",
+        "backend/chatbot/app/services/owned_look_interpreter.py",
+        "backend/chatbot/app/services/owned_look_filters.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g7_memory_api_pg.py",
+        "backend/chatbot/tests/test_g7_owner_deletion_pg.py",
+        "backend/chatbot/tests/test_g8_owned_look.py",
+        "backend/chatbot/tests/test_g8_owned_look_interpreter.py"
+      ]
+    },
+    {
+      "id": "C03",
+      "name": "상품 탐색·추천",
+      "status": "PASS",
+      "g8OwnedContractStatus": "PASS",
+      "proofIds": [
+        "N1",
+        "E",
+        "R"
+      ],
+      "assessment": "실상품/V4/정확옵션·가격 기준·조건·카드. 실시간 현재가 미지원은 명시.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/beauty_consultation_service.py",
+        "backend/chatbot/app/services/product_search_contract.py",
+        "components/chat/ChatProducts.tsx",
+        "app/product/[id].tsx",
+        "backend/chatbot/app/services/compound_consultation_graph.py",
+        "backend/chatbot/app/services/compound_consultation_service.py",
+        "backend/chatbot/app/services/consultation_task_adapter.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_beauty_consultation.py",
+        "backend/chatbot/tests/test_product_search_contract.py",
+        "backend/chatbot/tests/test_g4_option_search.py",
+        "backend/chatbot/tests/test_g8_task_contract.py",
+        "backend/chatbot/tests/test_g8_compound_consultation.py",
+        "backend/chatbot/tests/test_g8_partial_success.py"
+      ]
+    },
+    {
+      "id": "C04",
+      "name": "상품 비교·대체",
+      "status": "PARTIAL",
+      "g8OwnedContractStatus": "PASS",
+      "proofIds": [
+        "E",
+        "N2",
+        "R"
+      ],
+      "assessment": "비교는 통과. 미확인 옵션·보유품 대체 적합성은 근거 부족으로 BLOCKED 하위항목.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/beauty_consultation_service.py",
+        "backend/chatbot/app/services/product_search_contract.py",
+        "components/chat/ChatProducts.tsx",
+        "app/product/[id].tsx",
+        "backend/chatbot/app/services/owned_look_consultation_service.py",
+        "backend/chatbot/app/services/owned_look_interpreter.py",
+        "backend/chatbot/app/services/owned_look_filters.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_beauty_consultation.py",
+        "backend/chatbot/tests/test_product_search_contract.py",
+        "backend/chatbot/tests/test_g4_option_search.py",
+        "backend/chatbot/tests/test_g8_owned_look.py",
+        "backend/chatbot/tests/test_g8_owned_look_interpreter.py"
+      ]
+    },
+    {
+      "id": "C05",
+      "name": "성분·피부 고민 상담",
+      "status": "PARTIAL",
+      "g8OwnedContractStatus": "PASS",
+      "proofIds": [
+        "K",
+        "D",
+        "N1",
+        "R",
+        "L"
+      ],
+      "assessment": "Current all-live ingredient cooperation verified.Supported scope PASS;full broader capability/owner-team coverage remains separately scoped.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/knowledge_service.py",
+        "backend/chatbot/app/services/compound_consultation_service.py",
+        "components/chat/KnowledgeCitations.tsx",
+        "backend/chatbot/app/services/compound_consultation_graph.py",
+        "backend/chatbot/app/services/consultation_task_adapter.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_knowledge_service.py",
+        "backend/chatbot/tests/test_g8_compound_consultation.py",
+        "backend/chatbot/tests/test_g8_task_contract.py",
+        "backend/chatbot/tests/test_g8_partial_success.py"
+      ]
+    },
+    {
+      "id": "C06",
+      "name": "스타일·룩 탐색",
+      "status": "PASS",
+      "g8OwnedContractStatus": "PASS",
+      "proofIds": [
+        "E",
+        "N2",
+        "R"
+      ],
+      "assessment": "현재 등록 룩 조회와 실패 후 선택적 재시도. 신규 영상 검수는 수행하지 않음.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/style_search_service.py",
+        "backend/chatbot/app/services/style_recipe_service.py"
+      ],
+      "testRefs": []
+    },
+    {
+      "id": "C07",
+      "name": "화장법 코칭",
+      "status": "PARTIAL",
+      "g8OwnedContractStatus": "PASS",
+      "proofIds": [
+        "N2",
+        "R"
+      ],
+      "assessment": "일반 순서 안내 가능. 영상 실제 사용법·특정 대체 적합성의 자료 근거는 별도 BLOCKED.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/owned_look_consultation_service.py",
+        "backend/chatbot/app/services/owned_look_interpreter.py",
+        "backend/chatbot/app/services/owned_look_filters.py",
+        "backend/chatbot/app/services/style_search_service.py",
+        "backend/chatbot/app/services/style_recipe_service.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g8_owned_look.py",
+        "backend/chatbot/tests/test_g8_owned_look_interpreter.py"
+      ]
+    },
+    {
+      "id": "C08",
+      "name": "수정화장·문제 해결",
+      "status": "PARTIAL",
+      "g8OwnedContractStatus": "PASS",
+      "proofIds": [
+        "N1",
+        "P",
+        "R",
+        "L"
+      ],
+      "assessment": "Supported G8 path PASS;initial skin3normal samples.Historical unknown failure cause remains risk,not evidence of a reproduced current deterministic defect.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/knowledge_service.py",
+        "backend/chatbot/app/services/compound_consultation_service.py",
+        "components/chat/KnowledgeCitations.tsx",
+        "backend/chatbot/app/services/compound_consultation_graph.py",
+        "backend/chatbot/app/services/consultation_task_adapter.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_knowledge_service.py",
+        "backend/chatbot/tests/test_g8_compound_consultation.py",
+        "backend/chatbot/tests/test_g8_task_contract.py",
+        "backend/chatbot/tests/test_g8_partial_success.py"
+      ]
+    },
+    {
+      "id": "C09",
+      "name": "AR 메이크업 체험",
+      "status": "PARTIAL",
+      "g8OwnedContractStatus": "PASS",
+      "proofIds": [
+        "B",
+        "R"
+      ],
+      "assessment": "G8의 무단 실행 방어·handoff 경계 통과. 실기기 색상/ACK/Undo 전체는 AR 소유팀 범위.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/ar_command_service.py",
+        "backend/chatbot/app/services/memory_service.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g7_contract.py",
+        "backend/chatbot/tests/test_g7_auth.py"
+      ]
+    },
+    {
+      "id": "C10",
+      "name": "자연스러운 연속 대화",
+      "status": "PASS",
+      "g8OwnedContractStatus": "PASS",
+      "proofIds": [
+        "H",
+        "N2",
+        "E",
+        "B",
+        "R"
+      ],
+      "assessment": "ID/지시어·정정·형제 보존·질문·저장 복원·중단/교체의 표적 범위 통과.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/services/conversation_service.py",
+        "hooks/useChat.ts",
+        "hooks/useChatConversations.ts"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g8_consultation_intent.py",
+        "backend/chatbot/tests/test_g8_consultation_parent.py",
+        "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+        "__tests__/useChatConversations.test.tsx"
+      ]
+    },
+    {
+      "id": "C11",
+      "name": "복합 작업 수행",
+      "status": "PARTIAL",
+      "g8OwnedContractStatus": "PASS",
+      "proofIds": [
+        "H",
+        "K",
+        "D",
+        "P",
+        "R",
+        "L"
+      ],
+      "assessment": "Current all-live ingredient cooperation verified.Supported scope PASS;full broader capability/owner-team coverage remains separately scoped.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/services/compound_consultation_graph.py",
+        "backend/chatbot/app/services/compound_consultation_service.py",
+        "backend/chatbot/app/services/consultation_task_adapter.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g8_consultation_intent.py",
+        "backend/chatbot/tests/test_g8_consultation_parent.py",
+        "backend/chatbot/tests/test_g8_task_contract.py",
+        "backend/chatbot/tests/test_g8_compound_consultation.py",
+        "backend/chatbot/tests/test_g8_partial_success.py"
+      ]
+    },
+    {
+      "id": "C12",
+      "name": "다국어·음성 대화",
+      "status": "PARTIAL",
+      "g8OwnedContractStatus": "PASS",
+      "proofIds": [
+        "N1",
+        "N2",
+        "R"
+      ],
+      "assessment": "1차ko 상담 경계 유지. STT/TTS·다국어 실기기 공동 종단 NOT_RUN;타팀/후속 소유.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/ar_command_service.py",
+        "backend/chatbot/app/services/memory_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/schemas/consultation_parent.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g7_contract.py",
+        "backend/chatbot/tests/test_g7_auth.py",
+        "backend/chatbot/tests/test_g8_consultation_intent.py",
+        "backend/chatbot/tests/test_g8_consultation_parent.py"
+      ]
+    },
+    {
+      "id": "C13",
+      "name": "시각 자료 이해·활용",
+      "status": "PARTIAL",
+      "g8OwnedContractStatus": "PASS",
+      "proofIds": [
+        "N2",
+        "E",
+        "R"
+      ],
+      "assessment": "등록 룩/영상 메타데이터 참조 확인. 사용자 업로드·영상 관찰/분석은 별도 미검증.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/style_search_service.py",
+        "backend/chatbot/app/services/style_recipe_service.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/ar_command_service.py",
+        "backend/chatbot/app/services/memory_service.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g7_contract.py",
+        "backend/chatbot/tests/test_g7_auth.py"
+      ]
+    },
+    {
+      "id": "C14",
+      "name": "피부 분석 연계 상담",
+      "status": "NOT_RUN",
+      "g8OwnedContractStatus": "PARTIAL",
+      "proofIds": [
+        "R"
+      ],
+      "assessment": "자기보고 목표·프로필 입력 경계는 회귀 확인. 실제 피부 분석 결과→G8 상담 종단은 미실행·타팀 연계.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/schemas/skincare_recommendation.py",
+        "backend/chatbot/app/services/skincare_recommendation_tool.py",
+        "backend/chatbot/app/services/conversation_service.py",
+        "backend/chatbot/app/services/structured_memory_service.py",
+        "backend/chatbot/app/services/memory_settings_service.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_skincare_recommendation_tool.py",
+        "backend/chatbot/tests/test_g7_memory_api_pg.py",
+        "backend/chatbot/tests/test_g7_owner_deletion_pg.py"
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "S01",
+      "name": "K-뷰티 입문",
+      "status": "PARTIAL",
+      "proofIds": [
+        "N1",
+        "R"
+      ],
+      "assessment": "일반 설명·질문 계약 연결;입문 질문 자체의 새 live 표본은 NOT_RUN.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/services/knowledge_service.py",
+        "backend/chatbot/app/services/compound_consultation_service.py",
+        "components/chat/KnowledgeCitations.tsx"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g8_consultation_intent.py",
+        "backend/chatbot/tests/test_g8_consultation_parent.py",
+        "backend/chatbot/tests/test_knowledge_service.py",
+        "backend/chatbot/tests/test_g8_compound_consultation.py"
+      ]
+    },
+    {
+      "id": "S02",
+      "name": "취향·스타일 탐색",
+      "status": "PARTIAL",
+      "proofIds": [
+        "E",
+        "H",
+        "R"
+      ],
+      "assessment": "등록 룩 탐색/후속 확인;전체 취향 탐색 UX 품질 평가는 별도.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/style_search_service.py",
+        "backend/chatbot/app/services/style_recipe_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/schemas/consultation_parent.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g8_consultation_intent.py",
+        "backend/chatbot/tests/test_g8_consultation_parent.py"
+      ]
+    },
+    {
+      "id": "S03",
+      "name": "상품 검색·비교",
+      "status": "PASS",
+      "proofIds": [
+        "E",
+        "N1",
+        "R"
+      ],
+      "assessment": "직접 상품명/선택/기존 후보 비교·옵션·가격·후속·카드 확인.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/beauty_consultation_service.py",
+        "backend/chatbot/app/services/product_search_contract.py",
+        "components/chat/ChatProducts.tsx",
+        "app/product/[id].tsx"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_beauty_consultation.py",
+        "backend/chatbot/tests/test_product_search_contract.py",
+        "backend/chatbot/tests/test_g4_option_search.py"
+      ]
+    },
+    {
+      "id": "S04",
+      "name": "성분·피부 고민",
+      "status": "PARTIAL",
+      "proofIds": [
+        "N1",
+        "K",
+        "D",
+        "R",
+        "L"
+      ],
+      "assessment": "Current all-live ingredient cooperation verified.Supported scope PASS;full broader capability/owner-team coverage remains separately scoped.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/knowledge_service.py",
+        "backend/chatbot/app/services/compound_consultation_service.py",
+        "components/chat/KnowledgeCitations.tsx",
+        "backend/chatbot/app/services/compound_consultation_graph.py",
+        "backend/chatbot/app/services/consultation_task_adapter.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_knowledge_service.py",
+        "backend/chatbot/tests/test_g8_compound_consultation.py",
+        "backend/chatbot/tests/test_g8_task_contract.py",
+        "backend/chatbot/tests/test_g8_partial_success.py"
+      ]
+    },
+    {
+      "id": "S05",
+      "name": "룩·영상·화장법",
+      "status": "PARTIAL",
+      "proofIds": [
+        "N2",
+        "E",
+        "R"
+      ],
+      "assessment": "일반 안내·등록 상품은 가능. 영상에서 실제 사용한 기법 근거는 BLOCKED_DATA 하위항목.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/style_search_service.py",
+        "backend/chatbot/app/services/style_recipe_service.py",
+        "backend/chatbot/app/services/owned_look_consultation_service.py",
+        "backend/chatbot/app/services/owned_look_interpreter.py",
+        "backend/chatbot/app/services/owned_look_filters.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g8_owned_look.py",
+        "backend/chatbot/tests/test_g8_owned_look_interpreter.py"
+      ]
+    },
+    {
+      "id": "S06",
+      "name": "보유 제품 활용",
+      "status": "PARTIAL",
+      "proofIds": [
+        "N2",
+        "R"
+      ],
+      "assessment": "상품 단위 보유 선언과부족 상품만 추가 추천 통과;확인 안 된 정확 호수·대체 적합성은 별도.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/owned_look_consultation_service.py",
+        "backend/chatbot/app/services/owned_look_interpreter.py",
+        "backend/chatbot/app/services/owned_look_filters.py",
+        "backend/chatbot/app/services/conversation_service.py",
+        "backend/chatbot/app/services/structured_memory_service.py",
+        "backend/chatbot/app/services/memory_settings_service.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g8_owned_look.py",
+        "backend/chatbot/tests/test_g8_owned_look_interpreter.py",
+        "backend/chatbot/tests/test_g7_memory_api_pg.py",
+        "backend/chatbot/tests/test_g7_owner_deletion_pg.py"
+      ]
+    },
+    {
+      "id": "S07",
+      "name": "수정화장 상담",
+      "status": "PARTIAL",
+      "proofIds": [
+        "N1",
+        "P",
+        "R",
+        "L"
+      ],
+      "assessment": "원래 오후 들뜸 상담 최종 설명/상품 통과;과거 최초 계획 실패 원인 미확정.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/knowledge_service.py",
+        "backend/chatbot/app/services/compound_consultation_service.py",
+        "components/chat/KnowledgeCitations.tsx",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/schemas/consultation_parent.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_knowledge_service.py",
+        "backend/chatbot/tests/test_g8_compound_consultation.py",
+        "backend/chatbot/tests/test_g8_consultation_intent.py",
+        "backend/chatbot/tests/test_g8_consultation_parent.py"
+      ]
+    },
+    {
+      "id": "S08",
+      "name": "AR 적용·조절·복원",
+      "status": "PARTIAL",
+      "proofIds": [
+        "B",
+        "R"
+      ],
+      "assessment": "G8 읽기부모 권한·중복 방어 통과;실제 기기 AR 실행은 소유팀 공동검증 NOT_RUN.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/ar_command_service.py",
+        "backend/chatbot/app/services/memory_service.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g7_contract.py",
+        "backend/chatbot/tests/test_g7_auth.py"
+      ]
+    },
+    {
+      "id": "S09",
+      "name": "복합·장기 상담",
+      "status": "PARTIAL",
+      "proofIds": [
+        "H",
+        "E",
+        "N2",
+        "B",
+        "P",
+        "K",
+        "R",
+        "L"
+      ],
+      "assessment": "Current all-live ingredient cooperation verified.Supported scope PASS;full broader capability/owner-team coverage remains separately scoped.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/services/compound_consultation_graph.py",
+        "backend/chatbot/app/services/compound_consultation_service.py",
+        "backend/chatbot/app/services/consultation_task_adapter.py",
+        "backend/chatbot/app/services/conversation_service.py",
+        "hooks/useChat.ts",
+        "hooks/useChatConversations.ts"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g8_consultation_intent.py",
+        "backend/chatbot/tests/test_g8_consultation_parent.py",
+        "backend/chatbot/tests/test_g8_task_contract.py",
+        "backend/chatbot/tests/test_g8_compound_consultation.py",
+        "backend/chatbot/tests/test_g8_partial_success.py",
+        "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+        "__tests__/useChatConversations.test.tsx"
+      ]
+    },
+    {
+      "id": "S10",
+      "name": "다국어·음성 상담",
+      "status": "NOT_RUN",
+      "proofIds": [
+        "B",
+        "R"
+      ],
+      "assessment": "텍스트 중단/교체와 음성 끼어들기는 구분. 음성/다국어 실기기 종단은 타팀/후속.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/ar_command_service.py",
+        "backend/chatbot/app/services/memory_service.py",
+        "backend/chatbot/app/services/conversation_service.py",
+        "hooks/useChat.ts",
+        "hooks/useChatConversations.ts"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g7_contract.py",
+        "backend/chatbot/tests/test_g7_auth.py",
+        "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+        "__tests__/useChatConversations.test.tsx"
+      ]
+    },
+    {
+      "id": "S11",
+      "name": "피부 분석 연계",
+      "status": "NOT_RUN",
+      "proofIds": [
+        "R"
+      ],
+      "assessment": "실제 피부 분석→일반 상담 공동 종단 미실행;자기보고 목표 추천과 구분.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/schemas/skincare_recommendation.py",
+        "backend/chatbot/app/services/skincare_recommendation_tool.py",
+        "backend/chatbot/app/services/conversation_service.py",
+        "backend/chatbot/app/services/structured_memory_service.py",
+        "backend/chatbot/app/services/memory_settings_service.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_skincare_recommendation_tool.py",
+        "backend/chatbot/tests/test_g7_memory_api_pg.py",
+        "backend/chatbot/tests/test_g7_owner_deletion_pg.py"
+      ]
+    },
+    {
+      "id": "S12",
+      "name": "이미지·영상 기반 상담",
+      "status": "PARTIAL",
+      "proofIds": [
+        "N2",
+        "E",
+        "B",
+        "R"
+      ],
+      "assessment": "등록 영상 참조는 확인.사용자 이미지/영상 분석·AR 공동 실행은 별도 소유 범위.",
+      "requiredBeforeMerge": false,
+      "codeRefs": [
+        "backend/chatbot/app/services/style_search_service.py",
+        "backend/chatbot/app/services/style_recipe_service.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/ar_command_service.py",
+        "backend/chatbot/app/services/memory_service.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g7_contract.py",
+        "backend/chatbot/tests/test_g7_auth.py"
+      ]
+    }
+  ],
+  "representativeCases": [
+    {
+      "id": "G8-N01",
+      "originalQuestion": "\"오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘\"",
+      "requiredEnvironments": [
+        "E0",
+        "E1",
+        "E3",
+        "E4",
+        "E5"
+      ],
+      "conditionalEnvironments": [],
+      "status": "PASS",
+      "proofIds": [
+        "N1",
+        "P",
+        "K",
+        "D",
+        "R",
+        "L"
+      ],
+      "policy": "original meaning retained",
+      "semanticReview": "Codex evaluated actual saved replies/Aside evidence;user-authorized replacement,not independent human Gold approval",
+      "codeRefs": [
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/services/knowledge_service.py",
+        "backend/chatbot/app/services/compound_consultation_service.py",
+        "components/chat/KnowledgeCitations.tsx",
+        "backend/chatbot/app/services/compound_consultation_graph.py",
+        "backend/chatbot/app/services/consultation_task_adapter.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g8_consultation_intent.py",
+        "backend/chatbot/tests/test_g8_consultation_parent.py",
+        "backend/chatbot/tests/test_knowledge_service.py",
+        "backend/chatbot/tests/test_g8_compound_consultation.py",
+        "backend/chatbot/tests/test_g8_task_contract.py",
+        "backend/chatbot/tests/test_g8_partial_success.py"
+      ],
+      "assessment": "Original afternoon/makeup-lifting N01 evidence reused;current ingredient subcase adds actual positive cooperation without replacing original utterance."
+    },
+    {
+      "id": "G8-N02",
+      "originalQuestion": "\"내가 가진 립으로 이 룩을 따라 해보고, 필요한 것만 추가 추천해줘\"",
+      "requiredEnvironments": [
+        "E0",
+        "E1",
+        "E2",
+        "E3",
+        "E5"
+      ],
+      "conditionalEnvironments": [],
+      "status": "PARTIAL",
+      "proofIds": [
+        "N2",
+        "R"
+      ],
+      "policy": "N02 general advice/recommendation does not require a human-reviewed video recipe;actual video use/substitution remains separately evidence-gated",
+      "semanticReview": "Codex evaluated actual saved replies/Aside evidence;user-authorized replacement,not independent human Gold approval",
+      "codeRefs": [
+        "backend/chatbot/app/services/owned_look_consultation_service.py",
+        "backend/chatbot/app/services/owned_look_interpreter.py",
+        "backend/chatbot/app/services/owned_look_filters.py",
+        "backend/chatbot/app/services/conversation_service.py",
+        "backend/chatbot/app/services/structured_memory_service.py",
+        "backend/chatbot/app/services/memory_settings_service.py",
+        "backend/chatbot/app/services/style_search_service.py",
+        "backend/chatbot/app/services/style_recipe_service.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g8_owned_look.py",
+        "backend/chatbot/tests/test_g8_owned_look_interpreter.py",
+        "backend/chatbot/tests/test_g7_memory_api_pg.py",
+        "backend/chatbot/tests/test_g7_owner_deletion_pg.py"
+      ],
+      "generalAdviceRecommendation": "PASS",
+      "specificVideoUseAndSubstitution": "BLOCKED:insufficient evidence;not general-advice prerequisite"
+    },
+    {
+      "id": "G8-E01",
+      "originalQuestion": "\"브랜드 비교하고 비슷한 룩도 찾아줘\" + Style API 503",
+      "requiredEnvironments": [
+        "E0",
+        "E1",
+        "E3",
+        "E5"
+      ],
+      "conditionalEnvironments": [],
+      "status": "PASS",
+      "proofIds": [
+        "E",
+        "R"
+      ],
+      "policy": "original meaning retained",
+      "semanticReview": "Codex evaluated actual saved replies/Aside evidence;user-authorized replacement,not independent human Gold approval",
+      "codeRefs": [
+        "backend/chatbot/app/services/beauty_consultation_service.py",
+        "backend/chatbot/app/services/product_search_contract.py",
+        "components/chat/ChatProducts.tsx",
+        "app/product/[id].tsx",
+        "backend/chatbot/app/services/style_search_service.py",
+        "backend/chatbot/app/services/style_recipe_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/schemas/consultation_parent.py"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_beauty_consultation.py",
+        "backend/chatbot/tests/test_product_search_contract.py",
+        "backend/chatbot/tests/test_g4_option_search.py",
+        "backend/chatbot/tests/test_g8_consultation_intent.py",
+        "backend/chatbot/tests/test_g8_consultation_parent.py"
+      ]
+    },
+    {
+      "id": "G8-B01",
+      "originalQuestion": "\"지금 바로 얼굴에 발라주고 내 기억에도 저장해\" + 재전송",
+      "requiredEnvironments": [
+        "E0",
+        "E2",
+        "E3",
+        "E5"
+      ],
+      "conditionalEnvironments": [
+        {
+          "environment": "E7",
+          "activationCondition": "AR/피부/미디어 소유 팀의 E6 실기기 실행이 관련 공동 인계 계약에 포함될 때",
+          "ifActivated": "REQUIRED_NOT_SKIPPABLE"
+        }
+      ],
+      "status": "PASS",
+      "proofIds": [
+        "B",
+        "R"
+      ],
+      "policy": "original meaning retained",
+      "semanticReview": "Codex evaluated actual saved replies/Aside evidence;user-authorized replacement,not independent human Gold approval",
+      "codeRefs": [
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/ar_command_service.py",
+        "backend/chatbot/app/services/memory_service.py",
+        "backend/chatbot/app/services/conversation_service.py",
+        "backend/chatbot/app/services/structured_memory_service.py",
+        "backend/chatbot/app/services/memory_settings_service.py",
+        "hooks/useChat.ts",
+        "hooks/useChatConversations.ts"
+      ],
+      "testRefs": [
+        "backend/chatbot/tests/test_g7_contract.py",
+        "backend/chatbot/tests/test_g7_auth.py",
+        "backend/chatbot/tests/test_g7_memory_api_pg.py",
+        "backend/chatbot/tests/test_g7_owner_deletion_pg.py",
+        "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+        "__tests__/useChatConversations.test.tsx"
+      ]
+    }
+  ],
+  "mergeReady": true,
+  "reviewHandoffReady": true,
+  "notG8MergePrerequisites": [
+    "human-reviewed recipe for ordinary N02 advice",
+    "unsupported option checkout/real purchase",
+    "physical AR/voice/media/skin-analysis full owner-team E2E",
+    "automatic checkpoint recovery",
+    "operations deployment/load hardening"
+  ],
+  "dataDependent": [
+    {
+      "status": "BLOCKED",
+      "scope": "N02 exact unknown options,actual video technique andspecific substitution",
+      "requiredBeforeMergeForGeneralAdvice": false
+    }
+  ],
+  "costStatus": "NOT_RUN:billed amount/rate card absent;all25this-task usage responses captured in performance.json",
+  "newProductCodeEdits": true,
+  "pushPrDeploy": false,
+  "minimumDistinctProductAndTestFiles": [
+    "backend/chatbot/app/services/compound_consultation_service.py",
+    "backend/chatbot/tests/test_g8_compound_consultation.py",
+    "backend/chatbot/app/services/compound_consultation_graph.py"
+  ],
+  "historicalSubcheckStatuses": [
+    {
+      "id": "SKIN-HISTORICAL-2",
+      "status": "FAIL",
+      "when": "closing5 diagnostic/final",
+      "reason": "valid initial request ended as compound_plan_unavailable,not normal clarification",
+      "currentCause": "unconfirmed;raw model proposals absent"
+    },
+    {
+      "id": "SKIN-CURRENT-3",
+      "status": "PASS",
+      "when": "current direct planner",
+      "reason": "all3 action=clarify,goal=null;not app/PG"
+    },
+    {
+      "id": "K1-CURRENT-1",
+      "status": "PARTIAL",
+      "reason": "knowledge answered,nonempty accepted exclusions actually transmitted;panthenol proposal invalid and no eligible option"
+    },
+    {
+      "id": "K1-INVALID-QUOTE-GUARD",
+      "status": "PASS",
+      "reason": "proposal quote omitted ingredient name and was rejected;guard not weakened"
+    },
+    {
+      "id": "K1-CURRENT-2-KNOWLEDGE",
+      "status": "FAIL",
+      "reason": "actual G5 returned error;cause not fully captured,not called data insufficiency"
+    },
+    {
+      "id": "K1-CURRENT-2-PARTIAL-PRESERVATION",
+      "status": "PASS",
+      "reason": "4 valid product options survived actual G5 error"
+    },
+    {
+      "id": "K1-MIXED-COMPONENT",
+      "status": "PASS",
+      "reason": "manual proposal+actual G5 evidence/V4/Catalog yields4 eligible;not all-live extraction"
+    },
+    {
+      "id": "N02-SPECIFIC-VIDEO-SUBSTITUTION",
+      "status": "BLOCKED",
+      "reason": "specific use/substitution proof absent;not required for general advice"
+    },
+    {
+      "id": "PHYSICAL-VOICE-MEDIA-SKIN-TEAM-E2E",
+      "status": "NOT_RUN",
+      "reason": "separate owner-team scope,not G8 feature expansion"
+    },
+    {
+      "id": "BILLED-COST",
+      "status": "NOT_RUN",
+      "reason": "167 calls observed,usage on39;no complete rate card or billing ledger"
+    }
+  ],
+  "previousRequiredBeforeMerge": [
+    {
+      "id": "K1-LIVE-POSITIVE",
+      "type": "model contract/validation gap;data exists",
+      "status": "PARTIAL",
+      "evidence": [
+        "K",
+        "D"
+      ],
+      "minimumScope": [
+        "backend/chatbot/app/services/compound_consultation_service.py",
+        "backend/chatbot/tests/test_g8_compound_consultation.py"
+      ],
+      "direction": "Align extractor instructions with existing validator: exact cited substring must include ingredient name;use another cited passage if valid,otherwise abstain. Preserve guards;then bounded actual model/Catalog revalidation. No product edit in this task."
+    },
+    {
+      "id": "SKIN-ENTRY-HISTORY",
+      "type": "historical failed valid request;cause unresolved",
+      "status": "PARTIAL",
+      "evidence": [
+        "P",
+        "N1"
+      ],
+      "minimumScope": [
+        "backend/chatbot/app/services/compound_consultation_graph.py",
+        "backend/chatbot/tests/test_g8_compound_consultation.py"
+      ],
+      "direction": "Do not call old failures normal clarification or change goals speculatively. If diagnostics are authorized,record server-owned validation reason/type without raw input;reproduce then fix only identified cause. Current3samples clarify;historical raw plans absent."
+    }
+  ],
+  "mergeReadinessScope": "technical merge review can proceed against tested integrated develop991dd634 and working source;not a merge/deployment or universal model quality claim",
+  "requiredBeforeMerge": [],
+  "userClosureDecisionApplied": "Latest user D:unreproduced past failures remain unknown risks;do not add perfect answers or reproducing every past failure as new closure criteria.",
+  "approvedChangedFiles": [
+    "backend/chatbot/app/services/compound_consultation_service.py",
+    "backend/chatbot/app/services/compound_consultation_graph.py",
+    "backend/chatbot/tests/test_g8_compound_consultation.py"
+  ],
+  "residualRisks": [
+    "Historical2initial skin failures have no raw plan to determine cause;current3normal samples do not guarantee all future calls.",
+    "One actual parent model proposed two updates for one task and was safely rejected;parent state identical;rephrasing continued.No parent code changed.",
+    "Current producer positive is a bounded actual-data sample,not all ingredients/products/utterances coverage."
+  ],
+  "explicitSubcheckStatuses": [
+    {
+      "id": "LAST-APP-1",
+      "status": "PARTIAL",
+      "reason": "Korean names against English quote rejected;knowledge exclusion transmitted but0eligible."
+    },
+    {
+      "id": "LAST-APP-2",
+      "status": "PARTIAL",
+      "reason": "Duplicate same-task model changes rejected;no specialist read,parent unchanged,rephrased by synthetic tester."
+    },
+    {
+      "id": "LAST-APP-3",
+      "status": "PARTIAL",
+      "reason": "Bilingual display label rejected as ingredientName;4cards with empty conditions are NOT the positive proof."
+    },
+    {
+      "id": "LAST-APP-4",
+      "status": "PASS",
+      "reason": "Final model-tool descriptions;one literal cited panthenol condition;actual request/4MATCH/DOM/PG."
+    },
+    {
+      "id": "SKIN-LIVE-3",
+      "status": "PASS",
+      "reason": "Current initial planner3normal clarify;historical cause stays unconfirmed."
+    },
+    {
+      "id": "DIAGNOSTIC-MOCK",
+      "status": "PASS",
+      "reason": "7mock failure categories preserve public behavior and omit payloads."
+    },
+    {
+      "id": "PNG",
+      "status": "FAIL",
+      "reason": "Aside CDP30s/10s capture timeouts;actual DOM passes;no PNG fabricated."
+    },
+    {
+      "id": "N02-VIDEO-SUBSTITUTION",
+      "status": "BLOCKED",
+      "reason": "Specific proof absent;general policy unchanged."
+    },
+    {
+      "id": "PHYSICAL-DEPLOY-BILLING",
+      "status": "NOT_RUN",
+      "reason": "Separate scope;no bill/rate card or immutable provider snapshot."
+    }
+  ],
+  "sourceMatrixRecordedAt": "2026-11-28T10:38:22.368113+00:00",
+  "finalSecurityAndCleanup": {
+    "newEvidenceGitleaks": {
+      "version": "8.30.1",
+      "existingConfig": true,
+      "ignore": "empty",
+      "redact": true,
+      "exit": 0
+    },
+    "worktreeDiffGitleaks": {
+      "exit": 0,
+      "ignore": "empty"
+    },
+    "history": {
+      "mode": "reused actual run; unchanged HEAD",
+      "commits": 693,
+      "exit": 0,
+      "proof": "../final-closeout/security.log"
+    },
+    "protectedValuesJWTPrivateKeyEmail": {
+      "matches": 0,
+      "proof": "security.log"
+    },
+    "cleanup": "cleanup.json"
+  },
+  "publication": {
+    "at": "2026-11-28T12:06:08.961696+00:00",
+    "implementationCommit": "b54b114ab16cb3f6b9642fcc8fbdf7f4bb71b9bd",
+    "prePushRemote": "200010e1a6bad86ad0364f981f47a6ab1ba721fc",
+    "branch": "feat/compound-consultation",
+    "status": "LOCAL_IMPLEMENTATION_COMMIT; DOCUMENTS_COMMIT_AND_PUSH_PENDING",
+    "newCommitsRequested": 2,
+    "preserveExistingLocalIntegrationHistory": true,
+    "app": {
+      "command": "npm run check -- -- --runInBand",
+      "exit": 0,
+      "suitesPassed": 113,
+      "testsPassed": 1387,
+      "typecheck": "PASS",
+      "lint": "PASS"
+    },
+    "chatbot": {
+      "ruff": "PASS",
+      "importContractsKept": 3,
+      "pytestPassed": 1814,
+      "pytestSkipped": 139,
+      "PGRedisLiveCatalogOptIn": "not enabled; prior actual evidence retained"
+    },
+    "sensitiveCounts": {
+      "protectedValue": 0,
+      "jwt": 0,
+      "privateKey": 0,
+      "email": 0
+    },
+    "gitleaksPendingFiles": {
+      "version": "8.30.1",
+      "files": 144,
+      "existingConfig": true,
+      "ignore": "empty",
+      "redact": true,
+      "exit": 0
+    },
+    "newPaidModelCalls": 0,
+    "PRCreated": false,
+    "deployed": false
+  }
+}

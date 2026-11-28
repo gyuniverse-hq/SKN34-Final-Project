@@ -1,0 +1,1171 @@
+{
+  "before": {
+    "turns": [
+      {
+        "turn": "6794df1ca273",
+        "at": "2026-11-28T08:15:40.384511+00:00",
+        "configuredMode": "live",
+        "modelHTTPStarts": 2,
+        "models": [
+          "gpt-6-luna",
+          "gpt-6-luna"
+        ],
+        "exactAnswerSaved": true,
+        "displayPayloads": [
+          {
+            "products": [],
+            "resultType": "clarification",
+            "consultation": {
+              "status": "waiting_user",
+              "displayChoices": [],
+              "hasPendingInput": true,
+              "displaySelectionRequired": false
+            }
+          },
+          {
+            "products": [],
+            "resultType": "clarification",
+            "consultation": {
+              "status": "waiting_user",
+              "displayChoices": [],
+              "hasPendingInput": true,
+              "displaySelectionRequired": false
+            }
+          },
+          {
+            "products": [],
+            "resultType": "clarification",
+            "consultation": {
+              "status": "waiting_user",
+              "displayChoices": [],
+              "hasPendingInput": true,
+              "displaySelectionRequired": false
+            }
+          }
+        ],
+        "toolRequests": [
+          {
+            "path": "/api/style-looks",
+            "query": {},
+            "input": null,
+            "status": 503
+          },
+          {
+            "path": "/api/style-looks",
+            "query": {},
+            "input": null,
+            "status": 503
+          }
+        ],
+        "ms": 6235.0
+      },
+      {
+        "turn": "f1e19c106455",
+        "at": "2026-11-28T08:16:25.425078+00:00",
+        "configuredMode": "live",
+        "modelHTTPStarts": 2,
+        "models": [
+          "gpt-6-luna",
+          "gpt-6-luna"
+        ],
+        "exactAnswerSaved": true,
+        "displayPayloads": [
+          {
+            "products": [],
+            "resultType": "clarification",
+            "consultation": {
+              "status": "waiting_user",
+              "displayChoices": [],
+              "hasPendingInput": true,
+              "displaySelectionRequired": false
+            }
+          },
+          {
+            "products": [],
+            "resultType": "clarification",
+            "consultation": {
+              "status": "waiting_user",
+              "displayChoices": [],
+              "hasPendingInput": true,
+              "displaySelectionRequired": false
+            }
+          }
+        ],
+        "toolRequests": [
+          {
+            "path": "/api/style-looks",
+            "query": {},
+            "input": null,
+            "status": 503
+          },
+          {
+            "path": "/api/style-looks",
+            "query": {},
+            "input": null,
+            "status": 503
+          }
+        ],
+        "ms": 9594.0
+      },
+      {
+        "turn": "279780a4ca34",
+        "at": "2026-11-28T08:17:17.089764+00:00",
+        "configuredMode": "live",
+        "modelHTTPStarts": 1,
+        "models": [
+          "gpt-6-luna"
+        ],
+        "exactAnswerSaved": true,
+        "displayPayloads": [
+          {
+            "products": [],
+            "resultType": "clarification",
+            "consultation": {
+              "status": "waiting_user",
+              "displayChoices": [],
+              "hasPendingInput": true,
+              "displaySelectionRequired": false
+            }
+          }
+        ],
+        "toolRequests": [],
+        "ms": 2735.0
+      }
+    ],
+    "modelHTTPStarts": 5,
+    "modelHTTPEnds": 5,
+    "modelHTTPFailures": [],
+    "knowledgeCalls": 0
+  },
+  "after": {
+    "turns": [
+      {
+        "turn": "4f5616849641",
+        "at": "2026-11-28T08:26:44.672287+00:00",
+        "configuredMode": "live",
+        "modelHTTPStarts": 2,
+        "models": [
+          "gpt-6-luna",
+          "gpt-6-luna"
+        ],
+        "exactAnswerSaved": true,
+        "displayPayloads": [
+          {
+            "products": [],
+            "resultType": "clarification",
+            "consultation": {
+              "status": "waiting_user",
+              "displayChoices": [],
+              "hasPendingInput": true,
+              "displaySelectionRequired": false
+            }
+          },
+          {
+            "products": [],
+            "resultType": "clarification",
+            "consultation": {
+              "status": "waiting_user",
+              "displayChoices": [],
+              "hasPendingInput": true,
+              "displaySelectionRequired": false
+            }
+          }
+        ],
+        "toolRequests": [
+          {
+            "path": "/api/style-looks",
+            "query": {},
+            "input": null,
+            "status": 503
+          },
+          {
+            "path": "/api/style-looks",
+            "query": {},
+            "input": null,
+            "status": 503
+          }
+        ],
+        "ms": 7125.0
+      },
+      {
+        "turn": "a6035d5248a7",
+        "at": "2026-11-28T08:27:39.447462+00:00",
+        "configuredMode": "live",
+        "modelHTTPStarts": 2,
+        "models": [
+          "gpt-6-luna",
+          "gpt-6-luna"
+        ],
+        "exactAnswerSaved": true,
+        "displayPayloads": [
+          {
+            "products": [],
+            "resultType": "clarification",
+            "consultation": {
+              "status": "waiting_user",
+              "displayChoices": [],
+              "hasPendingInput": true,
+              "displaySelectionRequired": false
+            }
+          },
+          {
+            "products": [],
+            "resultType": "clarification",
+            "consultation": {
+              "status": "waiting_user",
+              "displayChoices": [],
+              "hasPendingInput": true,
+              "displaySelectionRequired": false
+            }
+          }
+        ],
+        "toolRequests": [
+          {
+            "path": "/api/products",
+            "query": {
+              "q": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml"
+            },
+            "input": null,
+            "status": 200
+          },
+          {
+            "path": "/api/products",
+            "query": {
+              "q": "오브제 모이스처 프로틴 장벽 토너 200ml"
+            },
+            "input": null,
+            "status": 200
+          },
+          {
+            "path": "/api/style-looks",
+            "query": {},
+            "input": null,
+            "status": 503
+          },
+          {
+            "path": "/api/style-looks",
+            "query": {},
+            "input": null,
+            "status": 503
+          }
+        ],
+        "ms": 7516.0
+      },
+      {
+        "turn": "82cd50733e97",
+        "at": "2026-11-28T08:28:40.352552+00:00",
+        "configuredMode": "live",
+        "modelHTTPStarts": 2,
+        "models": [
+          "gpt-6-luna",
+          "gpt-6-luna"
+        ],
+        "exactAnswerSaved": true,
+        "displayPayloads": [
+          {
+            "products": [],
+            "consultation": {
+              "status": "partial",
+              "displayChoices": [],
+              "hasPendingInput": false,
+              "displaySelectionRequired": false
+            }
+          },
+          {
+            "products": [],
+            "consultation": {
+              "status": "partial",
+              "displayChoices": [],
+              "hasPendingInput": false,
+              "displaySelectionRequired": false
+            }
+          }
+        ],
+        "toolRequests": [
+          {
+            "path": "/api/products/oy-a000000234358",
+            "query": {},
+            "input": null,
+            "status": 200
+          },
+          {
+            "path": "/api/products/oy-a000001002051",
+            "query": {},
+            "input": null,
+            "status": 200
+          }
+        ],
+        "ms": 6328.0
+      },
+      {
+        "turn": "10f49b396c4c",
+        "at": "2026-11-28T08:31:06.169439+00:00",
+        "configuredMode": "live",
+        "modelHTTPStarts": 3,
+        "models": [
+          "gpt-6-luna",
+          "gpt-6-luna",
+          "gpt-6-luna"
+        ],
+        "exactAnswerSaved": true,
+        "displayPayloads": [
+          {
+            "products": [],
+            "consultation": {
+              "status": "completed",
+              "displayChoices": [],
+              "hasPendingInput": false,
+              "displaySelectionRequired": false
+            },
+            "styleCandidates": [
+              {
+                "kind": "video",
+                "tags": [
+                  "시즌·데일리",
+                  "#가을출근스피드"
+                ],
+                "match": "가을 출근",
+                "title": "가을 출근 스피드 메이크업",
+                "lookId": "-sEFzOlm5xg"
+              },
+              {
+                "kind": "video",
+                "tags": [
+                  "시즌·데일리",
+                  "#가을청순음영"
+                ],
+                "match": "가을",
+                "title": "가을 청순 음영 메이크업",
+                "lookId": "wVBx7ZbXV0U"
+              },
+              {
+                "kind": "video",
+                "tags": [
+                  "컬러·톤 스타일",
+                  "#가을뮤트음영"
+                ],
+                "match": "가을",
+                "title": "가을 뮤트 음영 메이크업",
+                "lookId": "i4Mmb6BqFbo"
+              }
+            ]
+          }
+        ],
+        "toolRequests": [
+          {
+            "path": "/api/style-looks",
+            "query": {},
+            "input": null,
+            "status": 200
+          },
+          {
+            "path": "/api/looks",
+            "query": {},
+            "input": null,
+            "status": 200
+          }
+        ],
+        "ms": 6375.0
+      },
+      {
+        "turn": "baad4a9be84a",
+        "at": "2026-11-28T08:35:37.844448+00:00",
+        "configuredMode": "live",
+        "modelHTTPStarts": 2,
+        "models": [
+          "gpt-6-luna",
+          "gpt-6-luna"
+        ],
+        "exactAnswerSaved": true,
+        "displayPayloads": [
+          {
+            "products": [],
+            "resultType": "clarification",
+            "consultation": {
+              "status": "waiting_user",
+              "displayChoices": [],
+              "hasPendingInput": true,
+              "displaySelectionRequired": false
+            }
+          }
+        ],
+        "toolRequests": [
+          {
+            "path": "/api/style-looks",
+            "query": {},
+            "input": null,
+            "status": 503
+          },
+          {
+            "path": "/api/style-looks",
+            "query": {},
+            "input": null,
+            "status": 503
+          }
+        ],
+        "ms": 8375.0
+      },
+      {
+        "turn": "9a469f0bd760",
+        "at": "2026-11-28T08:36:07.869513+00:00",
+        "configuredMode": "live",
+        "modelHTTPStarts": 1,
+        "models": [
+          "gpt-6-luna"
+        ],
+        "exactAnswerSaved": true,
+        "displayPayloads": [
+          {
+            "products": [],
+            "resultType": "clarification",
+            "consultation": {
+              "status": "waiting_user",
+              "displayChoices": [],
+              "hasPendingInput": true,
+              "displaySelectionRequired": false
+            }
+          }
+        ],
+        "toolRequests": [],
+        "ms": 2953.0
+      },
+      {
+        "turn": "6b3f956538bc",
+        "at": "2026-11-28T08:36:45.800517+00:00",
+        "configuredMode": "live",
+        "modelHTTPStarts": 2,
+        "models": [
+          "gpt-6-luna",
+          "gpt-6-luna"
+        ],
+        "exactAnswerSaved": true,
+        "displayPayloads": [
+          {
+            "products": [],
+            "resultType": "clarification",
+            "consultation": {
+              "status": "waiting_user",
+              "displayChoices": [],
+              "hasPendingInput": true,
+              "displaySelectionRequired": false
+            }
+          }
+        ],
+        "toolRequests": [],
+        "ms": 9235.0
+      },
+      {
+        "turn": "1d4f7749c99c",
+        "at": "2026-11-28T08:37:29.202816+00:00",
+        "configuredMode": "live",
+        "modelHTTPStarts": 2,
+        "models": [
+          "gpt-6-luna",
+          "gpt-6-luna"
+        ],
+        "exactAnswerSaved": true,
+        "displayPayloads": [
+          {
+            "products": [],
+            "resultType": "clarification",
+            "consultation": {
+              "status": "waiting_user",
+              "displayChoices": [],
+              "hasPendingInput": true,
+              "displaySelectionRequired": false
+            }
+          }
+        ],
+        "toolRequests": [
+          {
+            "path": "/api/products",
+            "query": {
+              "q": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml"
+            },
+            "input": null,
+            "status": 200
+          },
+          {
+            "path": "/api/products",
+            "query": {
+              "q": "오브제 모이스처 프로틴 장벽 토너 200ml"
+            },
+            "input": null,
+            "status": 200
+          },
+          {
+            "path": "/api/style-looks",
+            "query": {},
+            "input": null,
+            "status": 503
+          },
+          {
+            "path": "/api/style-looks",
+            "query": {},
+            "input": null,
+            "status": 503
+          }
+        ],
+        "ms": 7109.0
+      },
+      {
+        "turn": "4139ba5e8458",
+        "at": "2026-11-28T08:37:53.477161+00:00",
+        "configuredMode": "live",
+        "modelHTTPStarts": 2,
+        "models": [
+          "gpt-6-luna",
+          "gpt-6-luna"
+        ],
+        "exactAnswerSaved": true,
+        "displayPayloads": [
+          {
+            "products": [],
+            "consultation": {
+              "status": "partial",
+              "displayChoices": [],
+              "hasPendingInput": false,
+              "displaySelectionRequired": false
+            }
+          }
+        ],
+        "toolRequests": [
+          {
+            "path": "/api/products/oy-a000000234358",
+            "query": {},
+            "input": null,
+            "status": 200
+          },
+          {
+            "path": "/api/products/oy-a000001002051",
+            "query": {},
+            "input": null,
+            "status": 200
+          }
+        ],
+        "ms": 5515.0
+      },
+      {
+        "turn": "1fd986c2ffb3",
+        "at": "2026-11-28T08:38:28.142743+00:00",
+        "configuredMode": "live",
+        "modelHTTPStarts": 3,
+        "models": [
+          "gpt-6-luna",
+          "gpt-6-luna",
+          "gpt-6-luna"
+        ],
+        "exactAnswerSaved": true,
+        "displayPayloads": [
+          {
+            "products": [],
+            "consultation": {
+              "status": "completed",
+              "displayChoices": [],
+              "hasPendingInput": false,
+              "displaySelectionRequired": false
+            },
+            "styleCandidates": [
+              {
+                "kind": "video",
+                "tags": [
+                  "시즌·데일리",
+                  "#가을출근스피드"
+                ],
+                "match": "가을 출근",
+                "title": "가을 출근 스피드 메이크업",
+                "lookId": "-sEFzOlm5xg"
+              }
+            ]
+          }
+        ],
+        "toolRequests": [
+          {
+            "path": "/api/style-looks",
+            "query": {},
+            "input": null,
+            "status": 200
+          },
+          {
+            "path": "/api/looks",
+            "query": {},
+            "input": null,
+            "status": 200
+          }
+        ],
+        "ms": 5329.0
+      }
+    ],
+    "modelHTTPStarts": 21,
+    "modelHTTPEnds": 21,
+    "modelHTTPFailures": [],
+    "knowledgeCalls": 0
+  },
+  "checks": {
+    "beforeNamedPairDidNotEnterComparison": true,
+    "beforeRetryBlockedWithoutTools": true,
+    "afterTwoNamesEnteredComparison": true,
+    "comparisonInspectedTwo": true,
+    "comparisonAnswerPreserved": true,
+    "comparisonAssessmentPreserved": true,
+    "comparisonScopePreserved": true,
+    "retryStyleSameTask": true,
+    "retryDidStyleHTTP": true,
+    "retryNoProductHTTP": true,
+    "retryStyleNoLongerFailed": true,
+    "allAnswersSavedExactly": true,
+    "finalSourceHashesMatch": true,
+    "finalSourceASTMatchesActualRun": true,
+    "priorEvidenceUnchanged": true
+  },
+  "comparison": {
+    "answer": "오브제 모이스처 프로틴 장벽 토너 200ml의 앱 등록 가격은 18,900원이에요.\n\n[NEW/물광수분] 메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml의 앱 등록 가격은 16,490원이에요.",
+    "assessment": {
+      "status": "completed",
+      "outcome": "matched",
+      "requirement": {
+        "kind": null
+      },
+      "inspected": 2,
+      "matched": 2,
+      "unknown": 0,
+      "evidence": [
+        {
+          "productId": "oy-a000000234358",
+          "source": "catalog_identity_lookup"
+        },
+        {
+          "productId": "oy-a000001002051",
+          "source": "catalog_identity_lookup"
+        }
+      ],
+      "limitations": []
+    }
+  },
+  "retry": {
+    "answer": "앞서 비교한 내용은 그대로 유지했어요.\n\n말씀하신 조건과 제목·태그가 직접 연결되는 참고 후보예요. 실제 눈·립 표현은 영상에서 확인해 주세요.",
+    "styleStatus": "completed",
+    "styleCandidates": [
+      {
+        "kind": "video",
+        "lookId": "-sEFzOlm5xg",
+        "title": "가을 출근 스피드 메이크업",
+        "tags": [
+          "시즌·데일리",
+          "#가을출근스피드"
+        ],
+        "match": "가을 출근"
+      }
+    ]
+  },
+  "savedContexts": [
+    {
+      "memoryRefs": [],
+      "schemaVersion": 1,
+      "styleCandidates": [],
+      "styleConditions": [],
+      "consultationParent": {
+        "tasks": [
+          {
+            "goal": "product",
+            "status": "waiting_user",
+            "taskId": "task-07b4131ce7234b1c901df178fcfb9439",
+            "version": 3,
+            "attempts": 1,
+            "dependsOn": [],
+            "inputRefs": [],
+            "objective": "브랜드 비교하고\n현재 변경 요청: 메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘.",
+            "inputNeeds": [
+              {
+                "key": "selection",
+                "question": "상품 종류와 조건을 알려주시거나, 최근 후보의 번호를 지정해 주세요.",
+                "comparison_choices": []
+              }
+            ],
+            "resultRefs": [],
+            "limitations": [],
+            "scopeDigest": "585869ab024b60c40aaa25eaf89b1aa0d2a2a8758f5ed8de8abab162a854e22d",
+            "toolTraceIds": [
+              "049a2f20-abd2-4dd4-9b7c-8b081d6f5f5a:3:task-07b4131ce7234b1c901df178fcfb9439:1"
+            ],
+            "displayResult": {
+              "answer": "상품 종류와 조건을 알려주시거나, 최근 후보의 번호를 지정해 주세요.",
+              "evidence": [],
+              "products": [],
+              "resultType": "clarification"
+            },
+            "productContext": {
+              "filters": {
+                "query": "",
+                "category": null,
+                "maxPriceKRW": null,
+                "moisturizing": false,
+                "fragranceFree": false,
+                "ingredientConditions": []
+              },
+              "version": 1,
+              "issuedAt": 1795853784,
+              "scopeIds": [],
+              "candidateIds": [],
+              "selectedOptionId": null,
+              "selectedProductId": null
+            },
+            "explanationQuote": "",
+            "productOperation": "compare"
+          },
+          {
+            "goal": "style",
+            "reason": "style_search_unavailable",
+            "status": "failed",
+            "taskId": "task-6bf875c996e4496883b15e51f61fca95",
+            "version": 3,
+            "attempts": 2,
+            "dependsOn": [],
+            "inputRefs": [],
+            "objective": "비슷한 룩도 찾아줘\n현재 변경 요청: 룩은 가을 출근용으로 찾아줘.",
+            "inputNeeds": [],
+            "resultRefs": [],
+            "limitations": [
+              "style_search_unavailable"
+            ],
+            "scopeDigest": "585869ab024b60c40aaa25eaf89b1aa0d2a2a8758f5ed8de8abab162a854e22d",
+            "toolTraceIds": [
+              "049a2f20-abd2-4dd4-9b7c-8b081d6f5f5a:3:task-6bf875c996e4496883b15e51f61fca95:1",
+              "049a2f20-abd2-4dd4-9b7c-8b081d6f5f5a:3:task-6bf875c996e4496883b15e51f61fca95:2"
+            ],
+            "explanationQuote": ""
+          }
+        ],
+        "planId": "049a2f20-abd2-4dd4-9b7c-8b081d6f5f5a",
+        "version": 3,
+        "question": {
+          "goal": "product",
+          "text": "상품 종류와 조건을 알려주시거나, 최근 후보의 번호를 지정해 주세요.",
+          "taskId": "task-07b4131ce7234b1c901df178fcfb9439",
+          "version": 3,
+          "inputKey": "selection",
+          "comparisonChoices": []
+        },
+        "schemaVersion": 1,
+        "executionState": "active",
+        "pendingQuestions": [
+          {
+            "goal": "product",
+            "text": "상품 종류와 조건을 알려주시거나, 최근 후보의 번호를 지정해 주세요.",
+            "taskId": "task-07b4131ce7234b1c901df178fcfb9439",
+            "version": 3,
+            "inputKey": "selection",
+            "comparisonChoices": []
+          }
+        ]
+      },
+      "memoryRevocationEpoch": 0
+    },
+    {
+      "memoryRefs": [],
+      "schemaVersion": 1,
+      "styleCandidates": [
+        {
+          "kind": "video",
+          "lookId": "-sEFzOlm5xg"
+        },
+        {
+          "kind": "video",
+          "lookId": "wVBx7ZbXV0U"
+        },
+        {
+          "kind": "video",
+          "lookId": "i4Mmb6BqFbo"
+        }
+      ],
+      "styleConditions": [],
+      "consultationParent": {
+        "tasks": [
+          {
+            "goal": "product",
+            "reason": "preserved_completed_result",
+            "status": "completed",
+            "taskId": "task-fbadc4b9e656485f8700fdf990b6a054",
+            "version": 5,
+            "attempts": 0,
+            "dependsOn": [],
+            "inputRefs": [
+              "6a6c73cc-9297-4195-bd2e-6053f194c8c5:4:task-fbadc4b9e656485f8700fdf990b6a054"
+            ],
+            "objective": "브랜드 비교하고\n현재 변경 요청: 메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘.\n현재 변경 요청: 1번 상품으로 가격 비교해줘",
+            "inputNeeds": [],
+            "resultRefs": [],
+            "limitations": [],
+            "scopeDigest": "7e325b4294b0baa6794980849f803e20921f2b218d9b8790b3c8afe476186b16",
+            "toolTraceIds": [],
+            "displayResult": {
+              "answer": "오브제 모이스처 프로틴 장벽 토너 200ml의 앱 등록 가격은 18,900원이에요.\n\n[NEW/물광수분] 메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml의 앱 등록 가격은 16,490원이에요.",
+              "evidence": [],
+              "products": [],
+              "resultType": "product_detail"
+            },
+            "scopeSnapshot": {
+              "catalog": {
+                "style": null,
+                "option": null,
+                "product": null,
+                "conditions": [],
+                "screenOption": null,
+                "screenProduct": null
+              },
+              "version": 2,
+              "memoryRefs": [],
+              "memoryEpoch": 0,
+              "ignoreMemory": false,
+              "memoryAvailable": false,
+              "memoryGeneration": "51401585123a58c028fb77fe15d8b7797f7c66718469e10d643f6c6774a1e3a1"
+            },
+            "productContext": {
+              "filters": {
+                "query": "",
+                "category": null,
+                "maxPriceKRW": null,
+                "moisturizing": false,
+                "fragranceFree": false,
+                "ingredientConditions": []
+              },
+              "version": 1,
+              "issuedAt": 1795854457,
+              "scopeIds": [],
+              "candidateIds": [],
+              "selectedOptionId": null,
+              "selectedProductId": "oy-a000000234358"
+            },
+            "explanationQuote": "",
+            "productOperation": "compare",
+            "productAssessment": {
+              "status": "completed",
+              "matched": 2,
+              "outcome": "matched",
+              "unknown": 0,
+              "evidence": [
+                {
+                  "source": "catalog_identity_lookup",
+                  "productId": "oy-a000000234358"
+                },
+                {
+                  "source": "catalog_identity_lookup",
+                  "productId": "oy-a000001002051"
+                }
+              ],
+              "inspected": 2,
+              "limitations": [],
+              "requirement": {}
+            },
+            "productRequirement": {}
+          },
+          {
+            "goal": "style",
+            "status": "completed",
+            "taskId": "task-d749f95756e94b9a940ecf41ede4f80d",
+            "version": 5,
+            "attempts": 1,
+            "dependsOn": [],
+            "inputRefs": [],
+            "objective": "브랜드 비교하고 비슷한 룩도 찾아줘\n현재 변경 요청: 룩은 가을 출근용으로 찾아줘.",
+            "inputNeeds": [],
+            "resultRefs": [
+              "video:-sEFzOlm5xg",
+              "video:wVBx7ZbXV0U",
+              "video:i4Mmb6BqFbo"
+            ],
+            "limitations": [],
+            "scopeDigest": "0cbd4308b19d61a366bb6a030b9514c8610ac31845d8f99622dd61b379d00ca4",
+            "toolTraceIds": [
+              "6a6c73cc-9297-4195-bd2e-6053f194c8c5:5:task-d749f95756e94b9a940ecf41ede4f80d:1"
+            ],
+            "displayResult": {
+              "answer": "가을 출근용으로 찾아달라는 요청을 확인했어요!\n말씀하신 조건과 제목·태그가 직접 연결되는 참고 후보예요. 실제 눈·립 표현은 영상에서 확인해 주세요.",
+              "products": [],
+              "styleStatus": "ready",
+              "styleCandidates": [
+                {
+                  "kind": "video",
+                  "tags": [
+                    "시즌·데일리",
+                    "#가을출근스피드"
+                  ],
+                  "match": "가을 출근",
+                  "title": "가을 출근 스피드 메이크업",
+                  "lookId": "-sEFzOlm5xg"
+                },
+                {
+                  "kind": "video",
+                  "tags": [
+                    "시즌·데일리",
+                    "#가을청순음영"
+                  ],
+                  "match": "가을",
+                  "title": "가을 청순 음영 메이크업",
+                  "lookId": "wVBx7ZbXV0U"
+                },
+                {
+                  "kind": "video",
+                  "tags": [
+                    "컬러·톤 스타일",
+                    "#가을뮤트음영"
+                  ],
+                  "match": "가을",
+                  "title": "가을 뮤트 음영 메이크업",
+                  "lookId": "i4Mmb6BqFbo"
+                }
+              ],
+              "styleConditions": [
+                {
+                  "slot": "occasion",
+                  "value": "가을 출근용"
+                }
+              ]
+            },
+            "scopeSnapshot": {
+              "catalog": {
+                "style": null,
+                "conditions": []
+              },
+              "version": 2,
+              "memoryRefs": [],
+              "memoryEpoch": 0,
+              "ignoreMemory": false,
+              "memoryAvailable": false,
+              "memoryGeneration": "51401585123a58c028fb77fe15d8b7797f7c66718469e10d643f6c6774a1e3a1"
+            },
+            "explanationQuote": ""
+          }
+        ],
+        "planId": "6a6c73cc-9297-4195-bd2e-6053f194c8c5",
+        "version": 5,
+        "schemaVersion": 1,
+        "executionState": "active",
+        "pendingQuestions": []
+      },
+      "memoryRevocationEpoch": 0
+    },
+    {
+      "memoryRefs": [],
+      "schemaVersion": 1,
+      "styleCandidates": [
+        {
+          "kind": "video",
+          "lookId": "-sEFzOlm5xg"
+        }
+      ],
+      "styleConditions": [],
+      "consultationParent": {
+        "tasks": [
+          {
+            "goal": "product",
+            "reason": "preserved_completed_result",
+            "status": "completed",
+            "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+            "version": 6,
+            "attempts": 0,
+            "dependsOn": [],
+            "inputRefs": [
+              "6c13db42-29a9-47cc-a1fc-ddc3715b73f8:5:task-85d24d6d48024d20b7c32df090d4333a"
+            ],
+            "objective": "브랜드 비교하고\n현재 변경 요청: 1번 상품으로\n가격 비교해줘\n현재 변경 요청: 메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘.\n현재 변경 요청: 1번 상품으로",
+            "inputNeeds": [],
+            "resultRefs": [],
+            "limitations": [],
+            "scopeDigest": "84bf59af39a7cc1ae513e66695ea1aafc9860124d7497fb818be2d04a59442b3",
+            "toolTraceIds": [],
+            "displayResult": {
+              "answer": "오브제 모이스처 프로틴 장벽 토너 200ml의 앱 등록 가격은 18,900원이에요.\n\n[NEW/물광수분] 메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml의 앱 등록 가격은 16,490원이에요.",
+              "evidence": [],
+              "products": [],
+              "resultType": "product_detail"
+            },
+            "scopeSnapshot": {
+              "catalog": {
+                "option": null,
+                "product": null,
+                "screenOption": null,
+                "screenProduct": null
+              },
+              "version": 2,
+              "memoryRefs": [],
+              "memoryEpoch": 0,
+              "ignoreMemory": false,
+              "memoryAvailable": false,
+              "memoryGeneration": "51401585123a58c028fb77fe15d8b7797f7c66718469e10d643f6c6774a1e3a1"
+            },
+            "productContext": {
+              "filters": {
+                "query": "",
+                "category": null,
+                "maxPriceKRW": null,
+                "moisturizing": false,
+                "fragranceFree": false,
+                "ingredientConditions": []
+              },
+              "version": 1,
+              "issuedAt": 1795855005,
+              "scopeIds": [],
+              "candidateIds": [],
+              "selectedOptionId": null,
+              "selectedProductId": "oy-a000000234358"
+            },
+            "explanationQuote": "",
+            "productOperation": "compare",
+            "productAssessment": {
+              "status": "completed",
+              "matched": 2,
+              "outcome": "matched",
+              "unknown": 0,
+              "evidence": [
+                {
+                  "source": "catalog_identity_lookup",
+                  "productId": "oy-a000000234358"
+                },
+                {
+                  "source": "catalog_identity_lookup",
+                  "productId": "oy-a000001002051"
+                }
+              ],
+              "inspected": 2,
+              "limitations": [],
+              "requirement": {}
+            },
+            "productRequirement": {}
+          },
+          {
+            "goal": "style",
+            "status": "completed",
+            "taskId": "task-7e5eacbffd9442efb20cd5b6d2f36235",
+            "version": 6,
+            "attempts": 1,
+            "dependsOn": [],
+            "inputRefs": [],
+            "objective": "비슷한 룩도 찾아줘\n현재 변경 요청: 룩은 가을 출근용으로 찾아줘.",
+            "inputNeeds": [],
+            "resultRefs": [
+              "video:-sEFzOlm5xg"
+            ],
+            "limitations": [],
+            "scopeDigest": "0cbd4308b19d61a366bb6a030b9514c8610ac31845d8f99622dd61b379d00ca4",
+            "toolTraceIds": [
+              "6c13db42-29a9-47cc-a1fc-ddc3715b73f8:6:task-7e5eacbffd9442efb20cd5b6d2f36235:1"
+            ],
+            "displayResult": {
+              "answer": "말씀하신 조건과 제목·태그가 직접 연결되는 참고 후보예요. 실제 눈·립 표현은 영상에서 확인해 주세요.",
+              "products": [],
+              "styleStatus": "ready",
+              "styleCandidates": [
+                {
+                  "kind": "video",
+                  "tags": [
+                    "시즌·데일리",
+                    "#가을출근스피드"
+                  ],
+                  "match": "가을 출근",
+                  "title": "가을 출근 스피드 메이크업",
+                  "lookId": "-sEFzOlm5xg"
+                }
+              ],
+              "styleConditions": []
+            },
+            "scopeSnapshot": {
+              "catalog": {
+                "style": null,
+                "conditions": []
+              },
+              "version": 2,
+              "memoryRefs": [],
+              "memoryEpoch": 0,
+              "ignoreMemory": false,
+              "memoryAvailable": false,
+              "memoryGeneration": "51401585123a58c028fb77fe15d8b7797f7c66718469e10d643f6c6774a1e3a1"
+            },
+            "explanationQuote": ""
+          }
+        ],
+        "planId": "6c13db42-29a9-47cc-a1fc-ddc3715b73f8",
+        "version": 6,
+        "schemaVersion": 1,
+        "executionState": "active",
+        "pendingQuestions": []
+      },
+      "memoryRevocationEpoch": 0
+    }
+  ],
+  "rejectedParentProposals": [
+    {
+      "turn": "9a469f0bd760",
+      "question": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘. 룩은 가을 출근용으로 찾아줘.",
+      "answer": "어떤 상담 작업을 변경할지 다시 알려주세요.",
+      "audit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 2,
+        "status": "rejected_proposal",
+        "rejectionCode": "invalid_contract"
+      }
+    }
+  ],
+  "remainingEvaluation": {
+    "evidence": "closing4 immutable original run; no new N01/N02 live calls",
+    "N01": [
+      {
+        "question": "오후에 볼이 당기고 각질이 떠. 건성이고 촉촉한 쿠션을 써. 2만 원 이하 보습 제품을 찾아줘.",
+        "coverage": {
+          "scope": "explanation",
+          "requirements": [
+            {
+              "requirement_id": "R1",
+              "description": "건성 볼 당김·각질과 촉촉한 쿠션 화장 들뜸의 가능한 원인 설명",
+              "fulfilled": false
+            }
+          ]
+        }
+      },
+      {
+        "question": "건조함과 모공이 고민이야. 관리 방법을 설명해 주고, 2만 원 이하에서 향료 제외 조건을 확인할 수 있는 제품을 추천해 줘.",
+        "coverage": {
+          "scope": "explanation",
+          "requirements": [
+            {
+              "requirement_id": "R1",
+              "description": "건조함의 원인과 관리 설명(필수)",
+              "fulfilled": true
+            },
+            {
+              "requirement_id": "R2",
+              "description": "모공 확장 원인과 관리 설명(필수)",
+              "fulfilled": false
+            }
+          ]
+        }
+      }
+    ],
+    "N01Cause": "G5 resolve leaves required coverage unfulfilled. Accepted claims exist; whole-corpus data absence and exact audit/root cause not proven. Knowledge ingredient conditions adopted=0; nonempty positive link unverified.",
+    "N02": {
+      "question": "삐아 아이 팔레트는 없어. 립은 이 룩의 클리오 허그 블러 틴트 006 베스트버디피치를 갖고 있어. 그 외 나머지 제품은 없어. 필요한 것만 각각 2만 원 이하에서 추천해줘.",
+      "parentChanges": [
+        [
+          {
+            "taskId": "task-0e16a42ee3e34ba19b44af6857691cb6",
+            "operation": "update",
+            "quote": "삐아 아이 팔레트는 없어.\n그 외 나머지 제품은 없어.\n필요한 것만 각각 2만 원 이하에서 추천해줘.",
+            "productOperation": null
+          }
+        ]
+      ],
+      "productDeclarations": {},
+      "blockingExecutionDefect": "Explicit Clio-owned clause omitted from forwarded parent change; not a data shortage.",
+      "separateDataLimit": "Clio product yt-28606e8bcb5aa9552720: exact sale option and AR shade unconfirmed; application/substitution evidence not established. Ordinary guidance remains supported."
+    },
+    "stage5Readiness": "Final regression may proceed; closure must remain pending until N02 ownership omission and N01 required coverage disposition are resolved. Parent-model rejection observed; do not report all live turns PASS."
+  },
+  "modes": {
+    "plannerAndStyle": "actual OpenAI gpt-6-luna",
+    "Catalog": "actual cloned data HTTP",
+    "PG": "actual isolated PG17.10",
+    "fault": "controlled proxy Style HTTP503; other calls real",
+    "G5": "OFF; original N01 reused from closing4"
+  }
+}

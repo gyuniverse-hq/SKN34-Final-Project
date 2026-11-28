@@ -1,0 +1,793 @@
+{
+  "question": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘. 룩은 가을 출근용으로 찾아줘.",
+  "fixedContext": {
+    "schemaVersion": 1,
+    "planId": "6c13db42-29a9-47cc-a1fc-ddc3715b73f8",
+    "version": 2,
+    "tasks": [
+      {
+        "compoundContext": null,
+        "productOperation": "compare",
+        "productRequirement": null,
+        "productAssessment": null,
+        "productContext": null,
+        "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+        "attempts": 1,
+        "reason": null,
+        "toolTraceIds": [
+          "6c13db42-29a9-47cc-a1fc-ddc3715b73f8:2:task-85d24d6d48024d20b7c32df090d4333a:1"
+        ],
+        "goal": "product",
+        "objective": "브랜드 비교하고",
+        "explanationQuote": "",
+        "status": "waiting_user",
+        "version": 2,
+        "dependsOn": [],
+        "inputRefs": [],
+        "referenceDigest": null,
+        "resultRefs": [],
+        "limitations": [],
+        "displayResult": {
+          "answer": "찾을 상품이나 비교 대상을 알려주세요.",
+          "products": [],
+          "resultType": "clarification"
+        },
+        "scopeDigest": "84bf59af39a7cc1ae513e66695ea1aafc9860124d7497fb818be2d04a59442b3",
+        "scopeSnapshot": {
+          "catalog": {
+            "product": null,
+            "option": null,
+            "screenProduct": null,
+            "screenOption": null
+          },
+          "memoryEpoch": 0,
+          "memoryGeneration": "51401585123a58c028fb77fe15d8b7797f7c66718469e10d643f6c6774a1e3a1",
+          "memoryAvailable": false,
+          "ignoreMemory": false,
+          "memoryRefs": [],
+          "version": 2
+        },
+        "inputNeeds": [
+          {
+            "key": "selection",
+            "question": "찾을 상품이나 비교 대상을 알려주세요.",
+            "zone": null,
+            "need_id": null,
+            "recipe_version": null,
+            "ownership_scope": null,
+            "comparison_price_basis": null,
+            "comparison_base_id": null,
+            "comparison_choices": []
+          }
+        ]
+      },
+      {
+        "compoundContext": null,
+        "productOperation": null,
+        "productRequirement": null,
+        "productAssessment": null,
+        "productContext": null,
+        "taskId": "task-7e5eacbffd9442efb20cd5b6d2f36235",
+        "attempts": 2,
+        "reason": "style_search_unavailable",
+        "toolTraceIds": [
+          "6c13db42-29a9-47cc-a1fc-ddc3715b73f8:2:task-7e5eacbffd9442efb20cd5b6d2f36235:1",
+          "6c13db42-29a9-47cc-a1fc-ddc3715b73f8:2:task-7e5eacbffd9442efb20cd5b6d2f36235:2"
+        ],
+        "goal": "style",
+        "objective": "비슷한 룩도 찾아줘",
+        "explanationQuote": "",
+        "status": "failed",
+        "version": 2,
+        "dependsOn": [],
+        "inputRefs": [],
+        "referenceDigest": null,
+        "resultRefs": [],
+        "limitations": [
+          "style_search_unavailable"
+        ],
+        "displayResult": null,
+        "scopeDigest": "0cbd4308b19d61a366bb6a030b9514c8610ac31845d8f99622dd61b379d00ca4",
+        "scopeSnapshot": {
+          "catalog": {
+            "style": null,
+            "conditions": []
+          },
+          "memoryEpoch": 0,
+          "memoryGeneration": "51401585123a58c028fb77fe15d8b7797f7c66718469e10d643f6c6774a1e3a1",
+          "memoryAvailable": false,
+          "ignoreMemory": false,
+          "memoryRefs": [],
+          "version": 2
+        },
+        "inputNeeds": []
+      }
+    ],
+    "question": {
+      "comparisonPriceBasis": null,
+      "comparisonBaseId": null,
+      "comparisonChoices": [],
+      "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+      "goal": "product",
+      "version": 2,
+      "text": "찾을 상품이나 비교 대상을 알려주세요.",
+      "inputKey": "selection",
+      "zone": null,
+      "needId": null,
+      "recipeVersion": null,
+      "ownershipScope": null
+    },
+    "pendingQuestions": [
+      {
+        "comparisonPriceBasis": null,
+        "comparisonBaseId": null,
+        "comparisonChoices": [],
+        "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+        "goal": "product",
+        "version": 2,
+        "text": "찾을 상품이나 비교 대상을 알려주세요.",
+        "inputKey": "selection",
+        "zone": null,
+        "needId": null,
+        "recipeVersion": null,
+        "ownershipScope": null
+      }
+    ],
+    "resultSelection": null,
+    "look": null,
+    "executionState": "active"
+  },
+  "configuredMode": "live",
+  "runs": [
+    {
+      "question": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘. 룩은 가을 출근용으로 찾아줘.",
+      "fixedContext": {
+        "schemaVersion": 1,
+        "planId": "6c13db42-29a9-47cc-a1fc-ddc3715b73f8",
+        "version": 2,
+        "tasks": [
+          {
+            "compoundContext": null,
+            "productOperation": "compare",
+            "productRequirement": null,
+            "productAssessment": null,
+            "productContext": null,
+            "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+            "attempts": 1,
+            "reason": null,
+            "toolTraceIds": [
+              "6c13db42-29a9-47cc-a1fc-ddc3715b73f8:2:task-85d24d6d48024d20b7c32df090d4333a:1"
+            ],
+            "goal": "product",
+            "objective": "브랜드 비교하고",
+            "explanationQuote": "",
+            "status": "waiting_user",
+            "version": 2,
+            "dependsOn": [],
+            "inputRefs": [],
+            "referenceDigest": null,
+            "resultRefs": [],
+            "limitations": [],
+            "displayResult": {
+              "answer": "찾을 상품이나 비교 대상을 알려주세요.",
+              "products": [],
+              "resultType": "clarification"
+            },
+            "scopeDigest": "84bf59af39a7cc1ae513e66695ea1aafc9860124d7497fb818be2d04a59442b3",
+            "scopeSnapshot": {
+              "catalog": {
+                "product": null,
+                "option": null,
+                "screenProduct": null,
+                "screenOption": null
+              },
+              "memoryEpoch": 0,
+              "memoryGeneration": "51401585123a58c028fb77fe15d8b7797f7c66718469e10d643f6c6774a1e3a1",
+              "memoryAvailable": false,
+              "ignoreMemory": false,
+              "memoryRefs": [],
+              "version": 2
+            },
+            "inputNeeds": [
+              {
+                "key": "selection",
+                "question": "찾을 상품이나 비교 대상을 알려주세요.",
+                "zone": null,
+                "need_id": null,
+                "recipe_version": null,
+                "ownership_scope": null,
+                "comparison_price_basis": null,
+                "comparison_base_id": null,
+                "comparison_choices": []
+              }
+            ]
+          },
+          {
+            "compoundContext": null,
+            "productOperation": null,
+            "productRequirement": null,
+            "productAssessment": null,
+            "productContext": null,
+            "taskId": "task-7e5eacbffd9442efb20cd5b6d2f36235",
+            "attempts": 2,
+            "reason": "style_search_unavailable",
+            "toolTraceIds": [
+              "6c13db42-29a9-47cc-a1fc-ddc3715b73f8:2:task-7e5eacbffd9442efb20cd5b6d2f36235:1",
+              "6c13db42-29a9-47cc-a1fc-ddc3715b73f8:2:task-7e5eacbffd9442efb20cd5b6d2f36235:2"
+            ],
+            "goal": "style",
+            "objective": "비슷한 룩도 찾아줘",
+            "explanationQuote": "",
+            "status": "failed",
+            "version": 2,
+            "dependsOn": [],
+            "inputRefs": [],
+            "referenceDigest": null,
+            "resultRefs": [],
+            "limitations": [
+              "style_search_unavailable"
+            ],
+            "displayResult": null,
+            "scopeDigest": "0cbd4308b19d61a366bb6a030b9514c8610ac31845d8f99622dd61b379d00ca4",
+            "scopeSnapshot": {
+              "catalog": {
+                "style": null,
+                "conditions": []
+              },
+              "memoryEpoch": 0,
+              "memoryGeneration": "51401585123a58c028fb77fe15d8b7797f7c66718469e10d643f6c6774a1e3a1",
+              "memoryAvailable": false,
+              "ignoreMemory": false,
+              "memoryRefs": [],
+              "version": 2
+            },
+            "inputNeeds": []
+          }
+        ],
+        "question": {
+          "comparisonPriceBasis": null,
+          "comparisonBaseId": null,
+          "comparisonChoices": [],
+          "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+          "goal": "product",
+          "version": 2,
+          "text": "찾을 상품이나 비교 대상을 알려주세요.",
+          "inputKey": "selection",
+          "zone": null,
+          "needId": null,
+          "recipeVersion": null,
+          "ownershipScope": null
+        },
+        "pendingQuestions": [
+          {
+            "comparisonPriceBasis": null,
+            "comparisonBaseId": null,
+            "comparisonChoices": [],
+            "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+            "goal": "product",
+            "version": 2,
+            "text": "찾을 상품이나 비교 대상을 알려주세요.",
+            "inputKey": "selection",
+            "zone": null,
+            "needId": null,
+            "recipeVersion": null,
+            "ownershipScope": null
+          }
+        ],
+        "resultSelection": null,
+        "look": null,
+        "executionState": "active"
+      },
+      "configuredMode": "live",
+      "samples": [
+        {
+          "sample": 1,
+          "audit": {
+            "configured": true,
+            "invocations": 1,
+            "planVersion": 2,
+            "status": "validated",
+            "elapsedMs": 3643.7,
+            "result": {
+              "planId": "6c13db42-29a9-47cc-a1fc-ddc3715b73f8",
+              "version": 2,
+              "action": "continue",
+              "targets": [],
+              "resultPosition": null,
+              "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘. 룩은 가을 출근용으로 찾아줘.",
+              "question": "",
+              "clarificationScope": null,
+              "changes": [
+                {
+                  "taskId": "task-7e5eacbffd9442efb20cd5b6d2f36235",
+                  "operation": "update",
+                  "quote": "룩은 가을 출근용으로 찾아줘.",
+                  "productOperation": null
+                },
+                {
+                  "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+                  "operation": "update",
+                  "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘.",
+                  "productOperation": "compare"
+                }
+              ],
+              "questionChanges": [
+                {
+                  "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+                  "inputKey": "selection",
+                  "needId": null,
+                  "operation": "answer",
+                  "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘."
+                }
+              ],
+              "additions": []
+            },
+            "replan": {
+              "withdrawn": [],
+              "updated": [
+                "task-7e5eacbffd9442efb20cd5b6d2f36235",
+                "task-85d24d6d48024d20b7c32df090d4333a"
+              ],
+              "invalidated": [
+                "task-7e5eacbffd9442efb20cd5b6d2f36235",
+                "task-85d24d6d48024d20b7c32df090d4333a"
+              ],
+              "preserved": []
+            }
+          },
+          "answer": null
+        },
+        {
+          "sample": 2,
+          "audit": {
+            "configured": true,
+            "invocations": 1,
+            "planVersion": 2,
+            "status": "rejected_proposal",
+            "rejectionCode": "inactive_question_change"
+          },
+          "answer": "어떤 상담 작업을 변경할지 다시 알려주세요."
+        },
+        {
+          "sample": 3,
+          "audit": {
+            "configured": true,
+            "invocations": 1,
+            "planVersion": 2,
+            "status": "validated",
+            "elapsedMs": 2836.4,
+            "result": {
+              "planId": "6c13db42-29a9-47cc-a1fc-ddc3715b73f8",
+              "version": 2,
+              "action": "continue",
+              "targets": [],
+              "resultPosition": null,
+              "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘. 룩은 가을 출근용으로 찾아줘.",
+              "question": "",
+              "clarificationScope": null,
+              "changes": [
+                {
+                  "taskId": "task-7e5eacbffd9442efb20cd5b6d2f36235",
+                  "operation": "update",
+                  "quote": "룩은 가을 출근용으로 찾아줘.",
+                  "productOperation": null
+                },
+                {
+                  "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+                  "operation": "update",
+                  "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘.",
+                  "productOperation": "compare"
+                }
+              ],
+              "questionChanges": [
+                {
+                  "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+                  "inputKey": "selection",
+                  "needId": null,
+                  "operation": "answer",
+                  "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘."
+                }
+              ],
+              "additions": []
+            },
+            "replan": {
+              "withdrawn": [],
+              "updated": [
+                "task-7e5eacbffd9442efb20cd5b6d2f36235",
+                "task-85d24d6d48024d20b7c32df090d4333a"
+              ],
+              "invalidated": [
+                "task-7e5eacbffd9442efb20cd5b6d2f36235",
+                "task-85d24d6d48024d20b7c32df090d4333a"
+              ],
+              "preserved": []
+            }
+          },
+          "answer": null
+        }
+      ]
+    },
+    {
+      "phase": "final",
+      "samples": [
+        {
+          "sample": 1,
+          "audit": {
+            "configured": true,
+            "invocations": 1,
+            "planVersion": 2,
+            "status": "validated",
+            "elapsedMs": 3224.5,
+            "result": {
+              "planId": "6c13db42-29a9-47cc-a1fc-ddc3715b73f8",
+              "version": 2,
+              "action": "continue",
+              "targets": [],
+              "resultPosition": null,
+              "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘.",
+              "question": "",
+              "clarificationScope": null,
+              "changes": [
+                {
+                  "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+                  "operation": "update",
+                  "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘.",
+                  "productOperation": "compare"
+                }
+              ],
+              "questionChanges": [
+                {
+                  "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+                  "inputKey": "selection",
+                  "needId": null,
+                  "operation": "answer",
+                  "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘."
+                }
+              ],
+              "additions": [
+                {
+                  "capability": "style",
+                  "quote": "룩은 가을 출근용으로 찾아줘.",
+                  "explanationQuote": "",
+                  "sharedQuotes": [],
+                  "productOperation": null
+                }
+              ]
+            },
+            "replan": {
+              "withdrawn": [],
+              "updated": [
+                "task-85d24d6d48024d20b7c32df090d4333a"
+              ],
+              "invalidated": [
+                "task-85d24d6d48024d20b7c32df090d4333a"
+              ],
+              "preserved": [
+                "task-7e5eacbffd9442efb20cd5b6d2f36235"
+              ]
+            }
+          },
+          "answer": null
+        },
+        {
+          "sample": 2,
+          "audit": {
+            "configured": true,
+            "invocations": 1,
+            "planVersion": 2,
+            "status": "validated",
+            "elapsedMs": 2688.2,
+            "result": {
+              "planId": "6c13db42-29a9-47cc-a1fc-ddc3715b73f8",
+              "version": 2,
+              "action": "continue",
+              "targets": [],
+              "resultPosition": null,
+              "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘. 룩은 가을 출근용으로 찾아줘.",
+              "question": "",
+              "clarificationScope": null,
+              "changes": [
+                {
+                  "taskId": "task-7e5eacbffd9442efb20cd5b6d2f36235",
+                  "operation": "update",
+                  "quote": "룩은 가을 출근용으로 찾아줘.",
+                  "productOperation": null
+                },
+                {
+                  "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+                  "operation": "update",
+                  "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘.",
+                  "productOperation": "compare"
+                }
+              ],
+              "questionChanges": [
+                {
+                  "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+                  "inputKey": "selection",
+                  "needId": null,
+                  "operation": "answer",
+                  "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘."
+                }
+              ],
+              "additions": []
+            },
+            "replan": {
+              "withdrawn": [],
+              "updated": [
+                "task-7e5eacbffd9442efb20cd5b6d2f36235",
+                "task-85d24d6d48024d20b7c32df090d4333a"
+              ],
+              "invalidated": [
+                "task-7e5eacbffd9442efb20cd5b6d2f36235",
+                "task-85d24d6d48024d20b7c32df090d4333a"
+              ],
+              "preserved": []
+            }
+          },
+          "answer": null
+        },
+        {
+          "sample": 3,
+          "audit": {
+            "configured": true,
+            "invocations": 1,
+            "planVersion": 2,
+            "status": "validated",
+            "elapsedMs": 2737.8,
+            "result": {
+              "planId": "6c13db42-29a9-47cc-a1fc-ddc3715b73f8",
+              "version": 2,
+              "action": "continue",
+              "targets": [],
+              "resultPosition": null,
+              "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘.",
+              "question": "",
+              "clarificationScope": null,
+              "changes": [
+                {
+                  "taskId": "task-7e5eacbffd9442efb20cd5b6d2f36235",
+                  "operation": "update",
+                  "quote": "룩은 가을 출근용으로 찾아줘.",
+                  "productOperation": null
+                },
+                {
+                  "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+                  "operation": "update",
+                  "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘.",
+                  "productOperation": "compare"
+                }
+              ],
+              "questionChanges": [
+                {
+                  "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+                  "inputKey": "selection",
+                  "needId": null,
+                  "operation": "answer",
+                  "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘."
+                }
+              ],
+              "additions": []
+            },
+            "replan": {
+              "withdrawn": [],
+              "updated": [
+                "task-7e5eacbffd9442efb20cd5b6d2f36235",
+                "task-85d24d6d48024d20b7c32df090d4333a"
+              ],
+              "invalidated": [
+                "task-7e5eacbffd9442efb20cd5b6d2f36235",
+                "task-85d24d6d48024d20b7c32df090d4333a"
+              ],
+              "preserved": []
+            }
+          },
+          "answer": null
+        }
+      ],
+      "sources": [
+        {
+          "path": "backend/chatbot/app/services/consultation_intent_service.py",
+          "sha256": "043bcd17c1fd66acf9e7687341a272cfc767584ba4832c40a467b897fa8f627c"
+        },
+        {
+          "path": "backend/chatbot/app/services/owned_look_consultation_service.py",
+          "sha256": "f1ded6c5b072788811e65bfc726be563bb6b50492e0633b35013ada4e517942f"
+        },
+        {
+          "path": "backend/chatbot/app/services/knowledge_service.py",
+          "sha256": "85040113682fdae729a51a2cca084d2c0c700d6db9004e8409bf67c5443edad7"
+        }
+      ]
+    },
+    {
+      "phase": "final2",
+      "samples": [
+        {
+          "sample": 1,
+          "audit": {
+            "configured": true,
+            "invocations": 1,
+            "planVersion": 2,
+            "status": "validated",
+            "elapsedMs": 3108.1,
+            "result": {
+              "planId": "6c13db42-29a9-47cc-a1fc-ddc3715b73f8",
+              "version": 2,
+              "action": "continue",
+              "targets": [],
+              "resultPosition": null,
+              "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘. 룩은 가을 출근용으로 찾아줘.",
+              "question": "",
+              "clarificationScope": null,
+              "changes": [
+                {
+                  "taskId": "task-7e5eacbffd9442efb20cd5b6d2f36235",
+                  "operation": "update",
+                  "quote": "룩은 가을 출근용으로 찾아줘.",
+                  "productOperation": null
+                },
+                {
+                  "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+                  "operation": "update",
+                  "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘.",
+                  "productOperation": "compare"
+                }
+              ],
+              "questionChanges": [
+                {
+                  "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+                  "inputKey": "selection",
+                  "needId": null,
+                  "operation": "answer",
+                  "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘."
+                }
+              ],
+              "additions": []
+            },
+            "replan": {
+              "withdrawn": [],
+              "updated": [
+                "task-7e5eacbffd9442efb20cd5b6d2f36235",
+                "task-85d24d6d48024d20b7c32df090d4333a"
+              ],
+              "invalidated": [
+                "task-7e5eacbffd9442efb20cd5b6d2f36235",
+                "task-85d24d6d48024d20b7c32df090d4333a"
+              ],
+              "preserved": []
+            }
+          },
+          "answer": null
+        },
+        {
+          "sample": 2,
+          "audit": {
+            "configured": true,
+            "invocations": 1,
+            "planVersion": 2,
+            "status": "validated",
+            "elapsedMs": 2431.7,
+            "result": {
+              "planId": "6c13db42-29a9-47cc-a1fc-ddc3715b73f8",
+              "version": 2,
+              "action": "continue",
+              "targets": [],
+              "resultPosition": null,
+              "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘.",
+              "question": "",
+              "clarificationScope": null,
+              "changes": [
+                {
+                  "taskId": "task-7e5eacbffd9442efb20cd5b6d2f36235",
+                  "operation": "update",
+                  "quote": "룩은 가을 출근용으로 찾아줘.",
+                  "productOperation": null
+                },
+                {
+                  "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+                  "operation": "update",
+                  "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘.",
+                  "productOperation": "compare"
+                }
+              ],
+              "questionChanges": [
+                {
+                  "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+                  "inputKey": "selection",
+                  "needId": null,
+                  "operation": "answer",
+                  "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘."
+                }
+              ],
+              "additions": []
+            },
+            "replan": {
+              "withdrawn": [],
+              "updated": [
+                "task-7e5eacbffd9442efb20cd5b6d2f36235",
+                "task-85d24d6d48024d20b7c32df090d4333a"
+              ],
+              "invalidated": [
+                "task-7e5eacbffd9442efb20cd5b6d2f36235",
+                "task-85d24d6d48024d20b7c32df090d4333a"
+              ],
+              "preserved": []
+            }
+          },
+          "answer": null
+        },
+        {
+          "sample": 3,
+          "audit": {
+            "configured": true,
+            "invocations": 1,
+            "planVersion": 2,
+            "status": "validated",
+            "elapsedMs": 2759.5,
+            "result": {
+              "planId": "6c13db42-29a9-47cc-a1fc-ddc3715b73f8",
+              "version": 2,
+              "action": "continue",
+              "targets": [],
+              "resultPosition": null,
+              "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘. 룩은 가을 출근용으로 찾아줘.",
+              "question": "",
+              "clarificationScope": null,
+              "changes": [
+                {
+                  "taskId": "task-7e5eacbffd9442efb20cd5b6d2f36235",
+                  "operation": "update",
+                  "quote": "룩은 가을 출근용으로 찾아줘.",
+                  "productOperation": null
+                },
+                {
+                  "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+                  "operation": "update",
+                  "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘.",
+                  "productOperation": "compare"
+                }
+              ],
+              "questionChanges": [
+                {
+                  "taskId": "task-85d24d6d48024d20b7c32df090d4333a",
+                  "inputKey": "selection",
+                  "needId": null,
+                  "operation": "answer",
+                  "quote": "메디필 물톡스 펩타이드 글로우 캡슐 세럼 30ml와 오브제 모이스처 프로틴 장벽 토너 200ml의 가격을 비교해줘."
+                }
+              ],
+              "additions": []
+            },
+            "replan": {
+              "withdrawn": [],
+              "updated": [
+                "task-7e5eacbffd9442efb20cd5b6d2f36235",
+                "task-85d24d6d48024d20b7c32df090d4333a"
+              ],
+              "invalidated": [
+                "task-7e5eacbffd9442efb20cd5b6d2f36235",
+                "task-85d24d6d48024d20b7c32df090d4333a"
+              ],
+              "preserved": []
+            }
+          },
+          "answer": null
+        }
+      ],
+      "sources": [
+        {
+          "path": "backend/chatbot/app/services/consultation_intent_service.py",
+          "sha256": "0d73af476c78a66c13c35806e2a903e9f87386cee8b15ca9ce787232a897bddf"
+        },
+        {
+          "path": "backend/chatbot/app/services/owned_look_consultation_service.py",
+          "sha256": "f6c9e2ad8a894eef61740797be9934e1748e2d7e735959c84808868b251008d2"
+        },
+        {
+          "path": "backend/chatbot/app/services/knowledge_service.py",
+          "sha256": "85040113682fdae729a51a2cca084d2c0c700d6db9004e8409bf67c5443edad7"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{"at": "2026-11-28T09:25:14.209629+00:00", "textFiles": 10, "matches": {"protectedValues": 0, "jwt": 0, "privateKey": 0, "email": 0}}
+{"at": "2026-11-28T09:52:22.639485+00:00", "textFiles": 11, "matches": {"protectedValues": 0, "jwt": 0, "privateKey": 0, "email": 7}}
+{"at": "2026-11-28T09:53:08.468161+00:00", "textFiles": 11, "matches": {"protectedValues": 0, "jwt": 0, "privateKey": 0, "email": 0}, "sourcePythonDecoratorLinesClassified": 11}
+
+2026-11-28T09:53:46.189994+00:00 gitleaks8.30.1 new_evidence empty-ignore redacted exit=0
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m6:53PM[0m [32mINF[0m [1mscanned ~11466639 bytes (11.47 MB) in 1s[0m
+[90m6:53PM[0m [32mINF[0m [1mno leaks found[0m
+
+2026-11-28T09:53:47.017887+00:00 gitleaks8.30.1 uncommitted_diff empty-ignore redacted exit=0
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m6:53PM[0m [32mINF[0m [1mscanned ~106018 bytes (106.02 KB) in 323ms[0m
+[90m6:53PM[0m [32mINF[0m [1mno leaks found[0m
+
+2026-11-28T09:55:15.653609+00:00 gitleaks8.30.1 final_evidence empty-ignore redacted exit=0
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m6:55PM[0m [32mINF[0m [1mscanned ~11470456 bytes (11.47 MB) in 1.03s[0m
+[90m6:55PM[0m [32mINF[0m [1mno leaks found[0m
+
+2026-11-28T09:55:16.457543+00:00 gitleaks8.30.1 final_diff empty-ignore redacted exit=0
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m6:55PM[0m [32mINF[0m [1mscanned ~107178 bytes (107.18 KB) in 293ms[0m
+[90m6:55PM[0m [32mINF[0m [1mno leaks found[0m
+
+Post-cleanup supplemental environment-value recheck NOT_RUN: approved evaluation container already removed, so environment loader could not inspect it. Last environment-value/JWT/private-key/email scan before cleanup had0 real matches. Final evidence+diff Gitleaks scans after cleanup both exit0. No container recreated and no secret values printed.

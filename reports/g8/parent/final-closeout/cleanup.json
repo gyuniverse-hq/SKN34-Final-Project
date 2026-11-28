@@ -1,0 +1,28 @@
+{
+  "at": "2026-11-28T10:45:05.707934+00:00",
+  "container": "vishue-g8-final-closeout-pg",
+  "containerRemovalExit": 0,
+  "stopped": [
+    {
+      "role": "catalog",
+      "pid": 22128,
+      "exitCode": 0
+    },
+    {
+      "role": "g5",
+      "pid": 10764,
+      "exitCode": 0
+    }
+  ],
+  "originalWriteCommands": 0,
+  "integrity": {
+    "sources": {
+      "checked": 802,
+      "changed": []
+    },
+    "priorEvidence": {
+      "checked": 1444,
+      "changed": []
+    }
+  }
+}

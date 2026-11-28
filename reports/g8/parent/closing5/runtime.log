@@ -1,0 +1,125 @@
+Starting project at C:\Users\playdata2\.codex\worktrees\vishue-compound-consultation\SKN34-Final-Project
+Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
+Starting Metro Bundler
+
+Waiting on http://localhost:19836
+
+Logs for your project will appear below.
+| (node:43768) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:43768) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:43768) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:43768) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:43768) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:43768) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+λ Bundled 4643ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1752 modules)
+Web Bundled 976ms node_modules\expo-router\entry.js (827 modules)
+λ Bundled 42ms app\chat.tsx (1 module)
+Web Bundled 504ms node_modules\expo-router\entry.js (815 modules)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams: {"hydrate": true, "rootTag": "#root"}
+Web Bundled 629ms app\_layout.tsx (978 modules)
+Web Bundled 628ms app\(tabs)\_layout.tsx (892 modules)
+Web Bundled 1300ms app\(tabs)\index.tsx (1385 modules)
+Web Bundled 1351ms app\chat.tsx (1011 modules)
+Starting project at C:\Users\playdata2\.codex\worktrees\vishue-compound-consultation\SKN34-Final-Project
+Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
+Starting Metro Bundler
+
+Waiting on http://localhost:19836
+
+Logs for your project will appear below.
+| (node:16160) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:16160) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:16160) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:16160) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:16160) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:16160) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+λ Bundled 2436ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1744 modules)
+Web Bundled 1271ms node_modules\expo-router\entry.js (831 modules)
+λ Bundled 182ms app\chat.tsx (6 modules)
+Web Bundled 564ms node_modules\expo-router\entry.js (829 modules)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams: {"hydrate": true, "rootTag": "#root"}
+Web Bundled 615ms app\_layout.tsx (979 modules)
+Web Bundled 486ms app\(tabs)\_layout.tsx (899 modules)
+Web Bundled 1367ms app\(tabs)\index.tsx (1316 modules)
+Web Bundled 1155ms app\chat.tsx (1039 modules)
+Starting project at C:\Users\playdata2\.codex\worktrees\vishue-compound-consultation\SKN34-Final-Project
+Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
+Starting Metro Bundler
+
+Waiting on http://localhost:19836
+
+Logs for your project will appear below.
+| (node:36356) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:36356) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:36356) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:36356) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:36356) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:36356) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+λ Bundled 2375ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1803 modules)
+Web Bundled 782ms node_modules\expo-router\entry.js (831 modules)
+λ Bundled 75ms app\chat.tsx (1 module)
+Web Bundled 440ms node_modules\expo-router\entry.js (710 modules)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams: {"hydrate": true, "rootTag": "#root"}
+Web Bundled 561ms app\_layout.tsx (938 modules)
+Web Bundled 372ms app\(tabs)\_layout.tsx (897 modules)
+Web Bundled 950ms app\(tabs)\index.tsx (1415 modules)
+Web Bundled 939ms app\chat.tsx (1032 modules)
+Starting project at C:\Users\playdata2\.codex\worktrees\vishue-compound-consultation\SKN34-Final-Project
+Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
+Starting Metro Bundler
+
+Waiting on http://localhost:19836
+
+Logs for your project will appear below.
+| (node:26916) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:26916) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:26916) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:26916) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:26916) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:26916) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+Starting project at C:\Users\playdata2\.codex\worktrees\vishue-compound-consultation\SKN34-Final-Project
+Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
+Starting Metro Bundler
+
+Waiting on http://localhost:19836
+
+Logs for your project will appear below.
+| (node:18020) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:18020) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:18020) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:18020) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:18020) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:18020) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)

@@ -1,0 +1,69 @@
+{"at": "2026-11-28T11:50:44.927812+00:00", "matches": {"protectedValue": 0, "jwt": 0, "privateKey": 0, "email": 0}, "sourceDecoratorClassificationOnly": true}
+
+2026-11-28T11:53:01.098010+00:00 Gitleaks8.30.1 new-evidence empty-ignore redact exit=0
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m8:53PM[0m [32mINF[0m [1mscanned ~3507430 bytes (3.51 MB) in 250ms[0m
+[90m8:53PM[0m [32mINF[0m [1mno leaks found[0m
+
+2026-11-28T11:53:02.002298+00:00 Gitleaks8.30.1 worktree-diff empty-ignore redact exit=0
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m8:53PM[0m [32mINF[0m [1mscanned ~153532 bytes (153.53 KB) in 364ms[0m
+[90m8:53PM[0m [32mINF[0m [1mno leaks found[0m
+
+2026-11-28T11:54:01.396360+00:00 Gitleaks8.30.1 sealed-new-evidence empty-ignore redact exit=0
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m8:54PM[0m [32mINF[0m [1mscanned ~3530163 bytes (3.53 MB) in 235ms[0m
+[90m8:54PM[0m [32mINF[0m [1mno leaks found[0m
+
+2026-11-28T11:54:02.075039+00:00 Gitleaks8.30.1 sealed-worktree-diff empty-ignore redact exit=0
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m8:54PM[0m [32mINF[0m [1mscanned ~154809 bytes (154.81 KB) in 305ms[0m
+[90m8:54PM[0m [32mINF[0m [1mno leaks found[0m
+{"sealedSensitiveScan": {"protectedValue": 0, "jwt": 0, "privateKey": 0, "email": 0}, "pytestDecoratorClassificationOnly": true, "environmentValuesRechecked": true}
+{"at": "2026-11-28T12:02:56.409361+00:00", "prePushUntrackedFiles": 126, "sensitiveCounts": {"protectedValue": 0, "jwt": 0, "privateKey": 0, "email": 0}, "flaggedMetadata": [], "pytestDecoratorClassificationOnly": true}
+
+2026-11-28T12:03:11.170355+00:00 pre-push all pending approved G8 files Gitleaks8.30.1 empty-ignore redact exit=0
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m9:03PM[0m [32mINF[0m [1mscanned ~30105664 bytes (30.11 MB) in 4.29s[0m
+[90m9:03PM[0m [32mINF[0m [1mno leaks found[0m
+
+2026-11-28T12:07:33.699197+00:00 final staged docs+evidence Gitleaks8.30.1 existing config empty-ignore redact exit=0
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m9:07PM[0m [32mINF[0m [1mscanned ~28759649 bytes (28.76 MB) in 2.18s[0m
+[90m9:07PM[0m [32mINF[0m [1mno leaks found[0m

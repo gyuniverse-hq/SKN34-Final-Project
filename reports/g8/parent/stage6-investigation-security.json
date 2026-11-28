@@ -1,0 +1,10 @@
+{
+  "version": "8.30.1",
+  "mode": "stdin, repository config, empty ignore, redact; new investigation evidence only",
+  "findings": 0,
+  "knownCredentialComparison": "PASS",
+  "accountIdentifierComparison": "PASS",
+  "firstPassFiles": 49,
+  "firstPassBytes": 247296,
+  "finalPass": "includes generated security metadata and record; see security.log"
+}

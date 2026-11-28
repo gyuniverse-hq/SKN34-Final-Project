@@ -1,0 +1,308 @@
+........................................................................ [ 30%]
+........................................................................ [ 60%]
+........................................................................ [ 90%]
+........................                                                 [100%]
+240 passed in 4.72s
+FFFFFFFFFFFFFFssssFFFFFFFFFsFFFFFFF                                      [100%]
+================================== FAILURES ===================================
+______ test_real_checkpoint_cancel_then_replacement_before_old_finishes _______
+tests\test_g7_conversation_api_pg.py:123: in test_real_checkpoint_cancel_then_replacement_before_old_finishes
+    room = create(client)[0]["conversationId"]
+           ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+__________ test_two_turns_replay_server_history_and_owner_isolation ___________
+tests\test_g7_conversation_api_pg.py:159: in test_two_turns_replay_server_history_and_owner_isolation
+    created, create_body = create(client)
+                           ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+__________ test_compound_options_replay_and_restore_from_server_only __________
+tests\test_g7_conversation_api_pg.py:217: in test_compound_options_replay_and_restore_from_server_only
+    room = create(client)[0]["conversationId"]
+           ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+_________ test_g8_graph_commits_replays_and_rechecks_the_saved_budget _________
+tests\test_g7_conversation_api_pg.py:345: in test_g8_graph_commits_replays_and_rechecks_the_saved_budget
+    room = create(client)[0]["conversationId"]
+           ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+___ test_room_deletion_is_retryable_and_does_not_resurrect_on_create_replay ___
+tests\test_g7_conversation_api_pg.py:459: in test_room_deletion_is_retryable_and_does_not_resurrect_on_create_replay
+    created, body = create(client)
+                    ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+________________ test_room_delete_removes_existing_checkpoint _________________
+tests\test_g7_conversation_api_pg.py:482: in test_room_delete_removes_existing_checkpoint
+    room = create(client)[0]["conversationId"]
+           ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+___ test_room_delete_preserves_approved_memory_and_removes_pending_proposal ___
+tests\test_g7_conversation_api_pg.py:510: in test_room_delete_preserves_approved_memory_and_removes_pending_proposal
+    room = create(client, headers=headers)[0]["conversationId"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+___________ test_pagination_returns_latest_rooms_and_message_pages ____________
+tests\test_g7_conversation_api_pg.py:566: in test_pagination_returns_latest_rooms_and_message_pages
+    assert result.status_code == 201
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+_____ test_list_summarizes_first_user_message_only_and_keeps_keyset_order _____
+tests\test_g7_conversation_api_pg.py:582: in test_list_summarizes_first_user_message_only_and_keeps_keyset_order
+    product_room = create(client, headers=owner)[0]["conversationId"]
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+________ test_real_chat_service_receives_persisted_history_with_g1_off ________
+tests\test_g7_conversation_api_pg.py:644: in test_real_chat_service_receives_persisted_history_with_g1_off
+    room = client.post(
+E   KeyError: 'conversationId'
+_ test_actual_graph_uses_safe_checkpoints_and_never_restores_unapproved_latest _
+tests\test_g7_conversation_api_pg.py:702: in test_actual_graph_uses_safe_checkpoints_and_never_restores_unapproved_latest
+    room = create(client)[0]["conversationId"]
+           ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+________ test_checkpoint_is_not_accepted_if_completed_reply_rolls_back ________
+tests\test_g7_conversation_api_pg.py:788: in test_checkpoint_is_not_accepted_if_completed_reply_rolls_back
+    room = create(client)[0]["conversationId"]
+           ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+________________ test_checkpoint_failure_does_not_commit_reply ________________
+tests\test_g7_conversation_api_pg.py:840: in test_checkpoint_failure_does_not_commit_reply
+    room = create(client)[0]["conversationId"]
+           ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+________ test_restored_product_price_revalidates_the_server_candidates ________
+tests\test_g7_conversation_api_pg.py:864: in test_restored_product_price_revalidates_the_server_candidates
+    room = create(client)[0]["conversationId"]
+           ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+_________ test_redis_session_capability_is_not_persisted_or_replayed __________
+tests\test_g7_conversation_api_pg.py:1289: in test_redis_session_capability_is_not_persisted_or_replayed
+    room = create(client)[0]["conversationId"]
+           ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+_______ test_state_patch_replays_original_snapshot_after_later_changes ________
+tests\test_g7_conversation_api_pg.py:1322: in test_state_patch_replays_original_snapshot_after_later_changes
+    room = create(client)[0]["conversationId"]
+           ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+___________ test_state_patch_rejects_unverified_or_unexpected_input ___________
+tests\test_g7_conversation_api_pg.py:1361: in test_state_patch_rejects_unverified_or_unexpected_input
+    room = create(client)[0]["conversationId"]
+           ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+_________ test_clearing_selection_removes_selected_product_and_shade __________
+tests\test_g7_conversation_api_pg.py:1391: in test_clearing_selection_removes_selected_product_and_shade
+    room = create(client)[0]["conversationId"]
+           ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+______________ test_deleting_room_removes_state_result_snapshot _______________
+tests\test_g7_conversation_api_pg.py:1414: in test_deleting_room_removes_state_result_snapshot
+    room = create(client)[0]["conversationId"]
+           ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+_____________ test_n01_condition_provenance_survives_pg_followups _____________
+tests\test_g7_conversation_api_pg.py:1501: in test_n01_condition_provenance_survives_pg_followups
+    room = create(client)[0]["conversationId"]
+           ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+__ test_original_n01_pg_restores_clarification_without_client_history[False] __
+tests\test_g7_conversation_api_pg.py:1626: in test_original_n01_pg_restores_clarification_without_client_history
+    room = create(client)[0]["conversationId"]
+           ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+__ test_original_n01_pg_restores_clarification_without_client_history[True] ___
+tests\test_g7_conversation_api_pg.py:1626: in test_original_n01_pg_restores_clarification_without_client_history
+    room = create(client)[0]["conversationId"]
+           ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+_______________ test_execution_control_cancel_replace_pg[False] _______________
+tests\test_g7_conversation_api_pg.py:1752: in test_execution_control_cancel_replace_pg
+    room = create(client)[0]["conversationId"]
+           ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+___ test_style_only_retry_preserves_comparison_across_empty_memory_shape_pg ___
+tests\test_g7_conversation_api_pg.py:1827: in test_style_only_retry_preserves_comparison_across_empty_memory_shape_pg
+    room = create(client)[0]["conversationId"]
+           ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+_____ test_completion_restore_keeps_two_query_scopes_and_selected_result ______
+tests\test_g7_conversation_api_pg.py:1892: in test_completion_restore_keeps_two_query_scopes_and_selected_result
+    room = create(client)[0]["conversationId"]
+           ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+____________ test_pending_questions_consume_only_answered_task_pg _____________
+tests\test_g7_conversation_api_pg.py:1974: in test_pending_questions_consume_only_answered_task_pg
+    room = create(client)[0]["conversationId"]
+           ^^^^^^^^^^^^^^
+tests\test_g7_conversation_api_pg.py:85: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 201
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+_ test_owned_parent_reads_memory_after_request_type_change_pg[beauty_consultation-True-True-True] _
+tests\test_g7_conversation_api_pg.py:2094: in test_owned_parent_reads_memory_after_request_type_change_pg
+    "expectedVersion": settings["version"],
+                       ^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'version'
+_ test_owned_parent_reads_memory_after_request_type_change_pg[chat-True-True-True] _
+tests\test_g7_conversation_api_pg.py:2094: in test_owned_parent_reads_memory_after_request_type_change_pg
+    "expectedVersion": settings["version"],
+                       ^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'version'
+_ test_owned_parent_reads_memory_after_request_type_change_pg[beauty_consultation-False-True-False] _
+tests\test_g7_conversation_api_pg.py:2094: in test_owned_parent_reads_memory_after_request_type_change_pg
+    "expectedVersion": settings["version"],
+                       ^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'version'
+_ test_owned_parent_reads_memory_after_request_type_change_pg[beauty_consultation-True-False-False] _
+tests\test_g7_conversation_api_pg.py:2094: in test_owned_parent_reads_memory_after_request_type_change_pg
+    "expectedVersion": settings["version"],
+                       ^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'version'
+=========================== short test summary info ===========================
+FAILED tests/test_g7_conversation_api_pg.py::test_real_checkpoint_cancel_then_replacement_before_old_finishes
+FAILED tests/test_g7_conversation_api_pg.py::test_two_turns_replay_server_history_and_owner_isolation
+FAILED tests/test_g7_conversation_api_pg.py::test_compound_options_replay_and_restore_from_server_only
+FAILED tests/test_g7_conversation_api_pg.py::test_g8_graph_commits_replays_and_rechecks_the_saved_budget
+FAILED tests/test_g7_conversation_api_pg.py::test_room_deletion_is_retryable_and_does_not_resurrect_on_create_replay
+FAILED tests/test_g7_conversation_api_pg.py::test_room_delete_removes_existing_checkpoint
+FAILED tests/test_g7_conversation_api_pg.py::test_room_delete_preserves_approved_memory_and_removes_pending_proposal
+FAILED tests/test_g7_conversation_api_pg.py::test_pagination_returns_latest_rooms_and_message_pages
+FAILED tests/test_g7_conversation_api_pg.py::test_list_summarizes_first_user_message_only_and_keeps_keyset_order
+FAILED tests/test_g7_conversation_api_pg.py::test_real_chat_service_receives_persisted_history_with_g1_off
+FAILED tests/test_g7_conversation_api_pg.py::test_actual_graph_uses_safe_checkpoints_and_never_restores_unapproved_latest
+FAILED tests/test_g7_conversation_api_pg.py::test_checkpoint_is_not_accepted_if_completed_reply_rolls_back
+FAILED tests/test_g7_conversation_api_pg.py::test_checkpoint_failure_does_not_commit_reply
+FAILED tests/test_g7_conversation_api_pg.py::test_restored_product_price_revalidates_the_server_candidates
+FAILED tests/test_g7_conversation_api_pg.py::test_redis_session_capability_is_not_persisted_or_replayed
+FAILED tests/test_g7_conversation_api_pg.py::test_state_patch_replays_original_snapshot_after_later_changes
+FAILED tests/test_g7_conversation_api_pg.py::test_state_patch_rejects_unverified_or_unexpected_input
+FAILED tests/test_g7_conversation_api_pg.py::test_clearing_selection_removes_selected_product_and_shade
+FAILED tests/test_g7_conversation_api_pg.py::test_deleting_room_removes_state_result_snapshot
+FAILED tests/test_g7_conversation_api_pg.py::test_n01_condition_provenance_survives_pg_followups
+FAILED tests/test_g7_conversation_api_pg.py::test_original_n01_pg_restores_clarification_without_client_history[False]
+FAILED tests/test_g7_conversation_api_pg.py::test_original_n01_pg_restores_clarification_without_client_history[True]
+FAILED tests/test_g7_conversation_api_pg.py::test_execution_control_cancel_replace_pg[False]
+FAILED tests/test_g7_conversation_api_pg.py::test_style_only_retry_preserves_comparison_across_empty_memory_shape_pg
+FAILED tests/test_g7_conversation_api_pg.py::test_completion_restore_keeps_two_query_scopes_and_selected_result
+FAILED tests/test_g7_conversation_api_pg.py::test_pending_questions_consume_only_answered_task_pg
+FAILED tests/test_g7_conversation_api_pg.py::test_owned_parent_reads_memory_after_request_type_change_pg[beauty_consultation-True-True-True]
+FAILED tests/test_g7_conversation_api_pg.py::test_owned_parent_reads_memory_after_request_type_change_pg[chat-True-True-True]
+FAILED tests/test_g7_conversation_api_pg.py::test_owned_parent_reads_memory_after_request_type_change_pg[beauty_consultation-False-True-False]
+FAILED tests/test_g7_conversation_api_pg.py::test_owned_parent_reads_memory_after_request_type_change_pg[beauty_consultation-True-False-False]
+30 failed, 5 skipped in 5.44s
+.............Fssss.........s.......                                      [100%]
+================================== FAILURES ===================================
+________ test_restored_product_price_revalidates_the_server_candidates ________
+tests\test_g7_conversation_api_pg.py:896: in test_restored_product_price_revalidates_the_server_candidates
+    assert followup.status_code == 200, followup.text
+E   AssertionError: {"error":"Consultation planner is unavailable","code":"chatbot_unavailable"}
+E   assert 503 == 200
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+=========================== short test summary info ===========================
+FAILED tests/test_g7_conversation_api_pg.py::test_restored_product_price_revalidates_the_server_candidates
+1 failed, 29 passed, 5 skipped in 16.92s
+..............ssss.........s.......                                      [100%]
+30 passed, 5 skipped in 15.96s
+..............ssss.........s.................s.....sss.......sssss..ss   [100%]
+54 passed, 16 skipped in 45.10s
+
+Final non-PG checks recorded 2026-11-28T08:37:23.773275+00:00
+uv run --frozen --no-sync python -B -m pytest -q --tb=short -p no:cacheprovider tests/test_beauty_consultation.py tests/test_g8_consultation_parent.py tests/test_g8_consultation_intent.py tests/test_g8_partial_success.py tests/test_style_search.py tests/test_style_recipe.py
+281 passed, 1 skipped in 16.09s
+uv run --frozen --no-sync ruff check .: exit 0
+uv run --frozen --no-sync lint-imports: 3 kept, 0 broken
+npm run typecheck: exit 0; npm run lint: exit 0
+PG final: actual disposable vishue_chat_test; tests/test_g7_conversation_api_pg.py tests/test_g7_memory_api_pg.py; G8 default OFF, each scenario enables it; 54 passed,16 skipped in45.10s. Models mock. Missing optional Catalog/Redis/live opt-ins are skipped, not live PASS.
+Earlier environment failures retained: empty test schema then harness G8 default ON; final run uses migrated test DB and normal test defaults.

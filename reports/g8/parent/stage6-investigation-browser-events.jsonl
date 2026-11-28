@@ -1,0 +1,606 @@
+{"at": "2026-11-28T02:28:06.192Z", "phase": "auth.start", "span": 1}
+{"at": "2026-11-28T02:28:06.194Z", "phase": "auth.session.before", "span": 1}
+{"at": "2026-11-28T02:28:06.195Z", "phase": "auth.session.after", "span": 1}
+{"at": "2026-11-28T02:28:06.200Z", "phase": "auth.claims.before", "span": 1}
+{"at": "2026-11-28T02:28:09.610Z", "phase": "auth.claims.after", "span": 1}
+{"at": "2026-11-28T02:28:09.611Z", "phase": "auth.recheck.before", "span": 1}
+{"at": "2026-11-28T02:28:09.611Z", "phase": "auth.recheck.after", "span": 1}
+{"at": "2026-11-28T02:28:13.674Z", "phase": "api.start", "span": 2, "route": "other", "method": "GET"}
+{"at": "2026-11-28T02:28:13.675Z", "phase": "auth.start", "span": 3, "parent": 2}
+{"at": "2026-11-28T02:28:13.676Z", "phase": "auth.session.before", "span": 3}
+{"at": "2026-11-28T02:28:13.704Z", "phase": "auth.start", "span": 4}
+{"at": "2026-11-28T02:28:13.705Z", "phase": "auth.session.before", "span": 4}
+{"at": "2026-11-28T02:28:13.707Z", "phase": "auth.session.after", "span": 3}
+{"at": "2026-11-28T02:28:13.710Z", "phase": "auth.claims.before", "span": 3}
+{"at": "2026-11-28T02:28:13.717Z", "phase": "auth.session.after", "span": 4}
+{"at": "2026-11-28T02:28:13.720Z", "phase": "auth.claims.before", "span": 4}
+{"at": "2026-11-28T02:28:13.723Z", "phase": "auth.claims.after", "span": 3}
+{"at": "2026-11-28T02:28:13.724Z", "phase": "auth.recheck.before", "span": 3}
+{"at": "2026-11-28T02:28:13.726Z", "phase": "auth.claims.after", "span": 4}
+{"at": "2026-11-28T02:28:13.729Z", "phase": "auth.recheck.before", "span": 4}
+{"at": "2026-11-28T02:28:13.730Z", "phase": "auth.recheck.after", "span": 3}
+{"at": "2026-11-28T02:28:13.731Z", "phase": "api.credentials.ready", "span": 2}
+{"at": "2026-11-28T02:28:13.737Z", "phase": "auth.recheck.after", "span": 4}
+{"at": "2026-11-28T02:28:15.256Z", "phase": "api.response", "span": 2, "status": 200}
+{"at": "2026-11-28T02:28:15.278Z", "phase": "api.body", "span": 2}
+{"at": "2026-11-28T02:28:15.280Z", "phase": "api.recheck.before", "span": 2}
+{"at": "2026-11-28T02:28:15.282Z", "phase": "auth.start", "span": 5, "parent": 2}
+{"at": "2026-11-28T02:28:15.283Z", "phase": "auth.session.before", "span": 5}
+{"at": "2026-11-28T02:28:15.285Z", "phase": "auth.session.after", "span": 5}
+{"at": "2026-11-28T02:28:15.293Z", "phase": "auth.claims.before", "span": 5}
+{"at": "2026-11-28T02:28:15.299Z", "phase": "auth.claims.after", "span": 5}
+{"at": "2026-11-28T02:28:15.300Z", "phase": "auth.recheck.before", "span": 5}
+{"at": "2026-11-28T02:28:15.304Z", "phase": "auth.recheck.after", "span": 5}
+{"at": "2026-11-28T02:28:15.310Z", "phase": "api.recheck.after", "span": 2}
+{"at": "2026-11-28T02:28:15.311Z", "phase": "api.finally", "span": 2}
+{"at": "2026-11-28T02:28:32.289Z", "phase": "screen.appstate", "state": "active"}
+{"at": "2026-11-28T02:28:32.315Z", "phase": "hook.status", "listLoading": true, "listError": false, "detailError": false}
+{"at": "2026-11-28T02:28:32.316Z", "phase": "open.start", "span": 6, "mode": "refresh", "reading": false, "current": true}
+{"at": "2026-11-28T02:28:32.318Z", "phase": "api.start", "span": 7, "route": "list", "method": "GET"}
+{"at": "2026-11-28T02:28:32.320Z", "phase": "auth.session.before", "span": 8}
+{"at": "2026-11-28T02:28:32.319Z", "phase": "auth.start", "span": 8, "parent": 7}
+{"at": "2026-11-28T02:28:32.321Z", "phase": "auth.session.after", "span": 8}
+{"at": "2026-11-28T02:28:32.321Z", "phase": "auth.claims.before", "span": 8}
+{"at": "2026-11-28T02:28:32.323Z", "phase": "auth.claims.after", "span": 8}
+{"at": "2026-11-28T02:28:32.324Z", "phase": "auth.recheck.before", "span": 8}
+{"at": "2026-11-28T02:28:32.324Z", "phase": "auth.recheck.after", "span": 8}
+{"at": "2026-11-28T02:28:32.324Z", "phase": "api.credentials.ready", "span": 7}
+{"at": "2026-11-28T02:28:32.327Z", "phase": "auth.start", "span": 9}
+{"at": "2026-11-28T02:28:32.328Z", "phase": "auth.session.before", "span": 9}
+{"at": "2026-11-28T02:28:32.328Z", "phase": "auth.session.after", "span": 9}
+{"at": "2026-11-28T02:28:32.329Z", "phase": "auth.claims.before", "span": 9}
+{"at": "2026-11-28T02:28:32.330Z", "phase": "auth.claims.after", "span": 9}
+{"at": "2026-11-28T02:28:32.331Z", "phase": "auth.recheck.before", "span": 9}
+{"at": "2026-11-28T02:28:32.331Z", "phase": "auth.recheck.after", "span": 9}
+{"at": "2026-11-28T02:28:32.637Z", "phase": "api.response", "span": 7, "status": 200}
+{"at": "2026-11-28T02:28:32.641Z", "phase": "api.body", "span": 7}
+{"at": "2026-11-28T02:28:32.642Z", "phase": "api.recheck.before", "span": 7}
+{"at": "2026-11-28T02:28:32.642Z", "phase": "auth.start", "span": 10, "parent": 7}
+{"at": "2026-11-28T02:28:32.643Z", "phase": "auth.session.before", "span": 10}
+{"at": "2026-11-28T02:28:32.644Z", "phase": "auth.session.after", "span": 10}
+{"at": "2026-11-28T02:28:32.644Z", "phase": "auth.claims.before", "span": 10}
+{"at": "2026-11-28T02:28:32.645Z", "phase": "auth.claims.after", "span": 10}
+{"at": "2026-11-28T02:28:32.646Z", "phase": "auth.recheck.before", "span": 10}
+{"at": "2026-11-28T02:28:32.647Z", "phase": "auth.recheck.after", "span": 10}
+{"at": "2026-11-28T02:28:32.648Z", "phase": "api.recheck.after", "span": 7}
+{"at": "2026-11-28T02:28:32.648Z", "phase": "api.finally", "span": 7}
+{"at": "2026-11-28T02:28:32.651Z", "phase": "hook.status", "cursor": true}
+{"at": "2026-11-28T02:28:32.652Z", "phase": "hook.status", "listLoading": false}
+{"at": "2026-11-28T02:28:32.698Z", "phase": "screen.appstate", "state": "background"}
+{"at": "2026-11-28T02:28:54.245Z", "phase": "screen.appstate", "state": "active"}
+{"at": "2026-11-28T02:28:54.247Z", "phase": "hook.status", "listLoading": true, "listError": false, "detailError": false}
+{"at": "2026-11-28T02:28:54.247Z", "phase": "api.start", "span": 11, "route": "list", "method": "GET"}
+{"at": "2026-11-28T02:28:54.248Z", "phase": "auth.start", "span": 12, "parent": 11}
+{"at": "2026-11-28T02:28:54.248Z", "phase": "auth.session.before", "span": 12}
+{"at": "2026-11-28T02:28:54.249Z", "phase": "open.start", "span": 13, "mode": "refresh", "reading": false, "current": true}
+{"at": "2026-11-28T02:28:54.249Z", "phase": "auth.session.after", "span": 12}
+{"at": "2026-11-28T02:28:54.250Z", "phase": "auth.claims.before", "span": 12}
+{"at": "2026-11-28T02:28:54.251Z", "phase": "auth.claims.after", "span": 12}
+{"at": "2026-11-28T02:28:54.252Z", "phase": "auth.recheck.before", "span": 12}
+{"at": "2026-11-28T02:28:54.253Z", "phase": "auth.recheck.after", "span": 12}
+{"at": "2026-11-28T02:28:54.253Z", "phase": "api.credentials.ready", "span": 11}
+{"at": "2026-11-28T02:28:54.255Z", "phase": "auth.start", "span": 14}
+{"at": "2026-11-28T02:28:54.255Z", "phase": "auth.session.before", "span": 14}
+{"at": "2026-11-28T02:28:54.256Z", "phase": "auth.session.after", "span": 14}
+{"at": "2026-11-28T02:28:54.256Z", "phase": "auth.claims.before", "span": 14}
+{"at": "2026-11-28T02:28:54.258Z", "phase": "auth.claims.after", "span": 14}
+{"at": "2026-11-28T02:28:54.260Z", "phase": "auth.recheck.before", "span": 14}
+{"at": "2026-11-28T02:28:54.260Z", "phase": "auth.recheck.after", "span": 14}
+{"at": "2026-11-28T02:28:54.460Z", "phase": "api.response", "span": 11, "status": 200}
+{"at": "2026-11-28T02:28:54.471Z", "phase": "api.body", "span": 11}
+{"at": "2026-11-28T02:28:54.472Z", "phase": "api.recheck.before", "span": 11}
+{"at": "2026-11-28T02:28:54.472Z", "phase": "auth.start", "span": 15, "parent": 11}
+{"at": "2026-11-28T02:28:54.473Z", "phase": "auth.session.before", "span": 15}
+{"at": "2026-11-28T02:28:54.473Z", "phase": "auth.session.after", "span": 15}
+{"at": "2026-11-28T02:28:54.474Z", "phase": "auth.claims.before", "span": 15}
+{"at": "2026-11-28T02:28:54.475Z", "phase": "auth.claims.after", "span": 15}
+{"at": "2026-11-28T02:28:54.476Z", "phase": "auth.recheck.before", "span": 15}
+{"at": "2026-11-28T02:28:54.476Z", "phase": "auth.recheck.after", "span": 15}
+{"at": "2026-11-28T02:28:54.477Z", "phase": "api.recheck.after", "span": 11}
+{"at": "2026-11-28T02:28:54.477Z", "phase": "api.finally", "span": 11}
+{"at": "2026-11-28T02:28:54.479Z", "phase": "hook.status", "cursor": true}
+{"at": "2026-11-28T02:28:54.479Z", "phase": "hook.status", "listLoading": false}
+{"at": "2026-11-28T02:28:54.593Z", "phase": "hook.status", "listLoading": true, "listError": false, "detailError": false}
+{"at": "2026-11-28T02:28:54.594Z", "phase": "api.start", "span": 16, "route": "list", "method": "GET"}
+{"at": "2026-11-28T02:28:54.595Z", "phase": "auth.start", "span": 17, "parent": 16}
+{"at": "2026-11-28T02:28:54.595Z", "phase": "auth.session.before", "span": 17}
+{"at": "2026-11-28T02:28:54.720Z", "phase": "auth.session.after", "span": 17}
+{"at": "2026-11-28T02:28:54.721Z", "phase": "auth.claims.before", "span": 17}
+{"at": "2026-11-28T02:28:54.737Z", "phase": "auth.claims.after", "span": 17}
+{"at": "2026-11-28T02:28:54.738Z", "phase": "auth.recheck.before", "span": 17}
+{"at": "2026-11-28T02:28:54.739Z", "phase": "auth.recheck.after", "span": 17}
+{"at": "2026-11-28T02:28:54.739Z", "phase": "api.credentials.ready", "span": 16}
+{"at": "2026-11-28T02:28:54.799Z", "phase": "api.response", "span": 16, "status": 200}
+{"at": "2026-11-28T02:28:54.803Z", "phase": "api.body", "span": 16}
+{"at": "2026-11-28T02:28:54.804Z", "phase": "api.recheck.before", "span": 16}
+{"at": "2026-11-28T02:28:54.805Z", "phase": "auth.start", "span": 18, "parent": 16}
+{"at": "2026-11-28T02:28:54.805Z", "phase": "auth.session.before", "span": 18}
+{"at": "2026-11-28T02:28:54.806Z", "phase": "auth.session.after", "span": 18}
+{"at": "2026-11-28T02:28:54.806Z", "phase": "auth.claims.before", "span": 18}
+{"at": "2026-11-28T02:28:54.807Z", "phase": "auth.claims.after", "span": 18}
+{"at": "2026-11-28T02:28:54.808Z", "phase": "auth.recheck.before", "span": 18}
+{"at": "2026-11-28T02:28:54.809Z", "phase": "auth.recheck.after", "span": 18}
+{"at": "2026-11-28T02:28:54.810Z", "phase": "api.recheck.after", "span": 16}
+{"at": "2026-11-28T02:28:54.811Z", "phase": "api.finally", "span": 16}
+{"at": "2026-11-28T02:28:54.812Z", "phase": "hook.status", "cursor": true}
+{"at": "2026-11-28T02:28:54.812Z", "phase": "hook.status", "listLoading": false}
+{"at": "2026-11-28T02:28:56.434Z", "phase": "screen.appstate", "state": "background"}
+{"at": "2026-11-28T02:29:34.502Z", "phase": "screen.appstate", "state": "active"}
+{"at": "2026-11-28T02:29:34.503Z", "phase": "hook.status", "listLoading": true, "listError": false, "detailError": false}
+{"at": "2026-11-28T02:29:34.503Z", "phase": "api.start", "span": 19, "route": "list", "method": "GET"}
+{"at": "2026-11-28T02:29:34.503Z", "phase": "auth.start", "span": 20, "parent": 19}
+{"at": "2026-11-28T02:29:34.504Z", "phase": "auth.session.before", "span": 20}
+{"at": "2026-11-28T02:29:34.504Z", "phase": "open.start", "span": 21, "mode": "refresh", "reading": false, "current": true}
+{"at": "2026-11-28T02:29:34.505Z", "phase": "auth.session.after", "span": 20}
+{"at": "2026-11-28T02:29:34.506Z", "phase": "auth.claims.before", "span": 20}
+{"at": "2026-11-28T02:29:34.507Z", "phase": "auth.claims.after", "span": 20}
+{"at": "2026-11-28T02:29:34.508Z", "phase": "auth.recheck.before", "span": 20}
+{"at": "2026-11-28T02:29:34.508Z", "phase": "auth.recheck.after", "span": 20}
+{"at": "2026-11-28T02:29:34.509Z", "phase": "api.credentials.ready", "span": 19}
+{"at": "2026-11-28T02:29:34.511Z", "phase": "auth.start", "span": 22}
+{"at": "2026-11-28T02:29:34.511Z", "phase": "auth.session.before", "span": 22}
+{"at": "2026-11-28T02:29:34.512Z", "phase": "auth.session.after", "span": 22}
+{"at": "2026-11-28T02:29:34.512Z", "phase": "auth.claims.before", "span": 22}
+{"at": "2026-11-28T02:29:34.513Z", "phase": "auth.claims.after", "span": 22}
+{"at": "2026-11-28T02:29:34.514Z", "phase": "auth.recheck.before", "span": 22}
+{"at": "2026-11-28T02:29:34.514Z", "phase": "auth.recheck.after", "span": 22}
+{"at": "2026-11-28T02:29:34.708Z", "phase": "api.response", "span": 19, "status": 200}
+{"at": "2026-11-28T02:29:34.712Z", "phase": "api.body", "span": 19}
+{"at": "2026-11-28T02:29:34.712Z", "phase": "api.recheck.before", "span": 19}
+{"at": "2026-11-28T02:29:34.713Z", "phase": "auth.start", "span": 23, "parent": 19}
+{"at": "2026-11-28T02:29:34.713Z", "phase": "auth.session.before", "span": 23}
+{"at": "2026-11-28T02:29:34.713Z", "phase": "auth.session.after", "span": 23}
+{"at": "2026-11-28T02:29:34.714Z", "phase": "auth.claims.before", "span": 23}
+{"at": "2026-11-28T02:29:34.715Z", "phase": "auth.claims.after", "span": 23}
+{"at": "2026-11-28T02:29:34.715Z", "phase": "auth.recheck.before", "span": 23}
+{"at": "2026-11-28T02:29:34.716Z", "phase": "auth.recheck.after", "span": 23}
+{"at": "2026-11-28T02:29:34.716Z", "phase": "api.recheck.after", "span": 19}
+{"at": "2026-11-28T02:29:34.716Z", "phase": "api.finally", "span": 19}
+{"at": "2026-11-28T02:29:34.717Z", "phase": "hook.status", "cursor": true}
+{"at": "2026-11-28T02:29:34.717Z", "phase": "hook.status", "listLoading": false}
+{"at": "2026-11-28T02:29:34.841Z", "phase": "screen.select", "alreadyOpening": false}
+{"at": "2026-11-28T02:29:34.842Z", "phase": "open.start", "span": 24, "mode": "select", "reading": false, "current": true}
+{"at": "2026-11-28T02:29:34.842Z", "phase": "hook.status", "detailLoading": true, "detailError": false}
+{"at": "2026-11-28T02:29:34.842Z", "phase": "open.detail.before", "span": 24}
+{"at": "2026-11-28T02:29:34.842Z", "phase": "api.start", "span": 25, "route": "detail", "method": "GET"}
+{"at": "2026-11-28T02:29:34.843Z", "phase": "auth.start", "span": 26, "parent": 25}
+{"at": "2026-11-28T02:29:34.843Z", "phase": "auth.session.before", "span": 26}
+{"at": "2026-11-28T02:29:34.905Z", "phase": "auth.session.after", "span": 26}
+{"at": "2026-11-28T02:29:34.906Z", "phase": "auth.claims.before", "span": 26}
+{"at": "2026-11-28T02:29:34.907Z", "phase": "auth.claims.after", "span": 26}
+{"at": "2026-11-28T02:29:34.908Z", "phase": "auth.recheck.before", "span": 26}
+{"at": "2026-11-28T02:29:34.908Z", "phase": "auth.recheck.after", "span": 26}
+{"at": "2026-11-28T02:29:34.909Z", "phase": "api.credentials.ready", "span": 25}
+{"at": "2026-11-28T02:29:34.974Z", "phase": "api.response", "span": 25, "status": 200}
+{"at": "2026-11-28T02:29:34.976Z", "phase": "api.body", "span": 25}
+{"at": "2026-11-28T02:29:34.977Z", "phase": "api.recheck.before", "span": 25}
+{"at": "2026-11-28T02:29:34.978Z", "phase": "auth.start", "span": 27, "parent": 25}
+{"at": "2026-11-28T02:29:34.978Z", "phase": "auth.session.before", "span": 27}
+{"at": "2026-11-28T02:29:34.979Z", "phase": "auth.session.after", "span": 27}
+{"at": "2026-11-28T02:29:34.979Z", "phase": "auth.claims.before", "span": 27}
+{"at": "2026-11-28T02:29:34.980Z", "phase": "auth.claims.after", "span": 27}
+{"at": "2026-11-28T02:29:34.980Z", "phase": "auth.recheck.before", "span": 27}
+{"at": "2026-11-28T02:29:34.981Z", "phase": "auth.recheck.after", "span": 27}
+{"at": "2026-11-28T02:29:34.982Z", "phase": "api.recheck.after", "span": 25}
+{"at": "2026-11-28T02:29:34.982Z", "phase": "api.finally", "span": 25}
+{"at": "2026-11-28T02:29:34.983Z", "phase": "open.detail.after", "span": 24, "current": true, "selected": true}
+{"at": "2026-11-28T02:29:34.983Z", "phase": "open.restore", "span": 24, "opened": true}
+{"at": "2026-11-28T02:29:34.984Z", "phase": "open.recover.before", "span": 24}
+{"at": "2026-11-28T02:29:35.024Z", "phase": "open.recover.after", "span": 24}
+{"at": "2026-11-28T02:29:35.025Z", "phase": "open.finally", "span": 24, "mode": "select", "current": true}
+{"at": "2026-11-28T02:29:35.026Z", "phase": "hook.status", "detailLoading": false}
+{"at": "2026-11-28T02:29:35.026Z", "phase": "screen.open.result", "opened": true, "selected": true}
+{"at": "2026-11-28T02:29:35.093Z", "phase": "api.start", "span": 28, "route": "other", "method": "GET"}
+{"at": "2026-11-28T02:29:35.094Z", "phase": "auth.start", "span": 29, "parent": 28}
+{"at": "2026-11-28T02:29:35.094Z", "phase": "auth.session.before", "span": 29}
+{"at": "2026-11-28T02:29:35.095Z", "phase": "api.start", "span": 30, "route": "other", "method": "GET"}
+{"at": "2026-11-28T02:29:35.095Z", "phase": "auth.start", "span": 31, "parent": 30}
+{"at": "2026-11-28T02:29:35.095Z", "phase": "auth.session.before", "span": 31}
+{"at": "2026-11-28T02:29:35.107Z", "phase": "auth.session.after", "span": 29}
+{"at": "2026-11-28T02:29:35.108Z", "phase": "auth.claims.before", "span": 29}
+{"at": "2026-11-28T02:29:35.109Z", "phase": "auth.session.after", "span": 31}
+{"at": "2026-11-28T02:29:35.110Z", "phase": "auth.claims.before", "span": 31}
+{"at": "2026-11-28T02:29:35.115Z", "phase": "auth.claims.after", "span": 29}
+{"at": "2026-11-28T02:29:35.118Z", "phase": "auth.recheck.before", "span": 29}
+{"at": "2026-11-28T02:29:35.119Z", "phase": "auth.claims.after", "span": 31}
+{"at": "2026-11-28T02:29:35.119Z", "phase": "auth.recheck.before", "span": 31}
+{"at": "2026-11-28T02:29:35.120Z", "phase": "auth.recheck.after", "span": 29}
+{"at": "2026-11-28T02:29:35.121Z", "phase": "auth.recheck.after", "span": 31}
+{"at": "2026-11-28T02:29:35.122Z", "phase": "api.credentials.ready", "span": 28}
+{"at": "2026-11-28T02:29:35.123Z", "phase": "api.credentials.ready", "span": 30}
+{"at": "2026-11-28T02:29:35.222Z", "phase": "api.response", "span": 28, "status": 200}
+{"at": "2026-11-28T02:29:35.231Z", "phase": "api.body", "span": 28}
+{"at": "2026-11-28T02:29:35.231Z", "phase": "api.recheck.before", "span": 28}
+{"at": "2026-11-28T02:29:35.232Z", "phase": "auth.start", "span": 32, "parent": 28}
+{"at": "2026-11-28T02:29:35.233Z", "phase": "auth.session.before", "span": 32}
+{"at": "2026-11-28T02:29:35.233Z", "phase": "auth.session.after", "span": 32}
+{"at": "2026-11-28T02:29:35.233Z", "phase": "auth.claims.before", "span": 32}
+{"at": "2026-11-28T02:29:35.235Z", "phase": "auth.claims.after", "span": 32}
+{"at": "2026-11-28T02:29:35.236Z", "phase": "auth.recheck.before", "span": 32}
+{"at": "2026-11-28T02:29:35.236Z", "phase": "auth.recheck.after", "span": 32}
+{"at": "2026-11-28T02:29:35.237Z", "phase": "api.recheck.after", "span": 28}
+{"at": "2026-11-28T02:29:35.237Z", "phase": "api.finally", "span": 28}
+{"at": "2026-11-28T02:29:35.328Z", "phase": "api.start", "span": 33, "route": "other", "method": "GET"}
+{"at": "2026-11-28T02:29:35.331Z", "phase": "auth.start", "span": 34, "parent": 33}
+{"at": "2026-11-28T02:29:35.340Z", "phase": "auth.session.before", "span": 34}
+{"at": "2026-11-28T02:29:35.352Z", "phase": "auth.session.after", "span": 34}
+{"at": "2026-11-28T02:29:35.352Z", "phase": "auth.claims.before", "span": 34}
+{"at": "2026-11-28T02:29:35.354Z", "phase": "auth.claims.after", "span": 34}
+{"at": "2026-11-28T02:29:35.355Z", "phase": "auth.recheck.before", "span": 34}
+{"at": "2026-11-28T02:29:35.355Z", "phase": "auth.recheck.after", "span": 34}
+{"at": "2026-11-28T02:29:35.355Z", "phase": "api.credentials.ready", "span": 33}
+{"at": "2026-11-28T02:29:35.361Z", "phase": "api.response", "span": 30, "status": 200}
+{"at": "2026-11-28T02:29:35.364Z", "phase": "api.body", "span": 30}
+{"at": "2026-11-28T02:29:35.365Z", "phase": "api.recheck.before", "span": 30}
+{"at": "2026-11-28T02:29:35.365Z", "phase": "auth.start", "span": 35, "parent": 30}
+{"at": "2026-11-28T02:29:35.366Z", "phase": "auth.session.before", "span": 35}
+{"at": "2026-11-28T02:29:35.366Z", "phase": "auth.session.after", "span": 35}
+{"at": "2026-11-28T02:29:35.367Z", "phase": "auth.claims.before", "span": 35}
+{"at": "2026-11-28T02:29:35.368Z", "phase": "auth.claims.after", "span": 35}
+{"at": "2026-11-28T02:29:35.369Z", "phase": "auth.recheck.before", "span": 35}
+{"at": "2026-11-28T02:29:35.369Z", "phase": "auth.recheck.after", "span": 35}
+{"at": "2026-11-28T02:29:35.370Z", "phase": "api.recheck.after", "span": 30}
+{"at": "2026-11-28T02:29:35.370Z", "phase": "api.finally", "span": 30}
+{"at": "2026-11-28T02:29:35.422Z", "phase": "api.response", "span": 33, "status": 200}
+{"at": "2026-11-28T02:29:35.423Z", "phase": "api.body", "span": 33}
+{"at": "2026-11-28T02:29:35.424Z", "phase": "api.recheck.before", "span": 33}
+{"at": "2026-11-28T02:29:35.424Z", "phase": "auth.start", "span": 36, "parent": 33}
+{"at": "2026-11-28T02:29:35.425Z", "phase": "auth.session.before", "span": 36}
+{"at": "2026-11-28T02:29:35.425Z", "phase": "auth.session.after", "span": 36}
+{"at": "2026-11-28T02:29:35.426Z", "phase": "auth.claims.before", "span": 36}
+{"at": "2026-11-28T02:29:35.427Z", "phase": "auth.claims.after", "span": 36}
+{"at": "2026-11-28T02:29:35.428Z", "phase": "auth.recheck.before", "span": 36}
+{"at": "2026-11-28T02:29:35.428Z", "phase": "auth.recheck.after", "span": 36}
+{"at": "2026-11-28T02:29:35.429Z", "phase": "api.recheck.after", "span": 33}
+{"at": "2026-11-28T02:29:35.429Z", "phase": "api.finally", "span": 33}
+{"at": "2026-11-28T02:29:36.595Z", "phase": "screen.appstate", "state": "background"}
+{"at": "2026-11-28T02:30:17.290Z", "phase": "screen.appstate", "state": "active"}
+{"at": "2026-11-28T02:30:17.291Z", "phase": "hook.status", "listLoading": true, "listError": false, "detailError": false}
+{"at": "2026-11-28T02:30:17.292Z", "phase": "api.start", "span": 37, "route": "list", "method": "GET"}
+{"at": "2026-11-28T02:30:17.292Z", "phase": "auth.start", "span": 38, "parent": 37}
+{"at": "2026-11-28T02:30:17.293Z", "phase": "auth.session.before", "span": 38}
+{"at": "2026-11-28T02:30:17.294Z", "phase": "open.start", "span": 39, "mode": "refresh", "reading": false, "current": true}
+{"at": "2026-11-28T02:30:17.294Z", "phase": "open.detail.before", "span": 39}
+{"at": "2026-11-28T02:30:17.295Z", "phase": "api.start", "span": 40, "route": "detail", "method": "GET"}
+{"at": "2026-11-28T02:30:17.296Z", "phase": "auth.start", "span": 41, "parent": 40}
+{"at": "2026-11-28T02:30:17.296Z", "phase": "auth.session.before", "span": 41}
+{"at": "2026-11-28T02:30:17.296Z", "phase": "auth.session.after", "span": 38}
+{"at": "2026-11-28T02:30:17.297Z", "phase": "auth.claims.before", "span": 38}
+{"at": "2026-11-28T02:30:17.297Z", "phase": "auth.session.after", "span": 41}
+{"at": "2026-11-28T02:30:17.298Z", "phase": "auth.claims.before", "span": 41}
+{"at": "2026-11-28T02:30:17.299Z", "phase": "auth.claims.after", "span": 38}
+{"at": "2026-11-28T02:30:17.299Z", "phase": "auth.recheck.before", "span": 38}
+{"at": "2026-11-28T02:30:17.300Z", "phase": "auth.claims.after", "span": 41}
+{"at": "2026-11-28T02:30:17.301Z", "phase": "auth.recheck.before", "span": 41}
+{"at": "2026-11-28T02:30:17.301Z", "phase": "auth.recheck.after", "span": 38}
+{"at": "2026-11-28T02:30:17.301Z", "phase": "auth.recheck.after", "span": 41}
+{"at": "2026-11-28T02:30:17.302Z", "phase": "api.credentials.ready", "span": 37}
+{"at": "2026-11-28T02:30:17.303Z", "phase": "api.credentials.ready", "span": 40}
+{"at": "2026-11-28T02:30:17.304Z", "phase": "auth.start", "span": 42}
+{"at": "2026-11-28T02:30:17.305Z", "phase": "auth.session.before", "span": 42}
+{"at": "2026-11-28T02:30:17.305Z", "phase": "auth.session.after", "span": 42}
+{"at": "2026-11-28T02:30:17.306Z", "phase": "auth.claims.before", "span": 42}
+{"at": "2026-11-28T02:30:17.306Z", "phase": "auth.claims.after", "span": 42}
+{"at": "2026-11-28T02:30:17.307Z", "phase": "auth.recheck.before", "span": 42}
+{"at": "2026-11-28T02:30:17.307Z", "phase": "auth.recheck.after", "span": 42}
+{"at": "2026-11-28T02:30:17.557Z", "phase": "api.response", "span": 37, "status": 200}
+{"at": "2026-11-28T02:30:17.558Z", "phase": "api.response", "span": 40, "status": 200}
+{"at": "2026-11-28T02:30:17.561Z", "phase": "api.body", "span": 37}
+{"at": "2026-11-28T02:30:17.562Z", "phase": "api.recheck.before", "span": 37}
+{"at": "2026-11-28T02:30:17.563Z", "phase": "auth.start", "span": 43, "parent": 37}
+{"at": "2026-11-28T02:30:17.564Z", "phase": "auth.session.before", "span": 43}
+{"at": "2026-11-28T02:30:17.566Z", "phase": "auth.session.after", "span": 43}
+{"at": "2026-11-28T02:30:17.566Z", "phase": "auth.claims.before", "span": 43}
+{"at": "2026-11-28T02:30:17.567Z", "phase": "auth.claims.after", "span": 43}
+{"at": "2026-11-28T02:30:17.568Z", "phase": "auth.recheck.before", "span": 43}
+{"at": "2026-11-28T02:30:17.569Z", "phase": "auth.recheck.after", "span": 43}
+{"at": "2026-11-28T02:30:17.570Z", "phase": "api.recheck.after", "span": 37}
+{"at": "2026-11-28T02:30:17.570Z", "phase": "api.finally", "span": 37}
+{"at": "2026-11-28T02:30:17.571Z", "phase": "hook.status", "cursor": true}
+{"at": "2026-11-28T02:30:17.571Z", "phase": "hook.status", "listLoading": false}
+{"at": "2026-11-28T02:30:17.637Z", "phase": "api.body", "span": 40}
+{"at": "2026-11-28T02:30:17.638Z", "phase": "api.recheck.before", "span": 40}
+{"at": "2026-11-28T02:30:17.638Z", "phase": "auth.start", "span": 44, "parent": 40}
+{"at": "2026-11-28T02:30:17.638Z", "phase": "auth.session.before", "span": 44}
+{"at": "2026-11-28T02:30:17.639Z", "phase": "auth.session.after", "span": 44}
+{"at": "2026-11-28T02:30:17.639Z", "phase": "auth.claims.before", "span": 44}
+{"at": "2026-11-28T02:30:17.641Z", "phase": "auth.claims.after", "span": 44}
+{"at": "2026-11-28T02:30:17.642Z", "phase": "auth.recheck.before", "span": 44}
+{"at": "2026-11-28T02:30:17.643Z", "phase": "auth.recheck.after", "span": 44}
+{"at": "2026-11-28T02:30:17.644Z", "phase": "api.recheck.after", "span": 40}
+{"at": "2026-11-28T02:30:17.645Z", "phase": "api.finally", "span": 40}
+{"at": "2026-11-28T02:30:17.646Z", "phase": "open.detail.after", "span": 39, "current": true, "selected": true}
+{"at": "2026-11-28T02:30:17.647Z", "phase": "open.restore", "span": 39, "opened": true}
+{"at": "2026-11-28T02:30:17.647Z", "phase": "open.recover.before", "span": 39}
+{"at": "2026-11-28T02:30:17.648Z", "phase": "open.recover.after", "span": 39}
+{"at": "2026-11-28T02:30:17.649Z", "phase": "open.finally", "span": 39, "mode": "refresh", "current": true}
+{"at": "2026-11-28T02:30:17.746Z", "phase": "hook.status", "listLoading": true, "listError": false, "detailError": false}
+{"at": "2026-11-28T02:30:17.747Z", "phase": "api.start", "span": 45, "route": "list", "method": "GET"}
+{"at": "2026-11-28T02:30:17.748Z", "phase": "auth.start", "span": 46, "parent": 45}
+{"at": "2026-11-28T02:30:17.748Z", "phase": "auth.session.before", "span": 46}
+{"at": "2026-11-28T02:30:17.925Z", "phase": "auth.session.after", "span": 46}
+{"at": "2026-11-28T02:30:17.925Z", "phase": "auth.claims.before", "span": 46}
+{"at": "2026-11-28T02:30:17.927Z", "phase": "auth.claims.after", "span": 46}
+{"at": "2026-11-28T02:30:17.928Z", "phase": "auth.recheck.before", "span": 46}
+{"at": "2026-11-28T02:30:17.928Z", "phase": "auth.recheck.after", "span": 46}
+{"at": "2026-11-28T02:30:17.928Z", "phase": "api.credentials.ready", "span": 45}
+{"at": "2026-11-28T02:30:18.003Z", "phase": "api.response", "span": 45, "status": 200}
+{"at": "2026-11-28T02:30:18.005Z", "phase": "api.body", "span": 45}
+{"at": "2026-11-28T02:30:18.005Z", "phase": "api.recheck.before", "span": 45}
+{"at": "2026-11-28T02:30:18.006Z", "phase": "auth.start", "span": 47, "parent": 45}
+{"at": "2026-11-28T02:30:18.006Z", "phase": "auth.session.before", "span": 47}
+{"at": "2026-11-28T02:30:18.007Z", "phase": "auth.session.after", "span": 47}
+{"at": "2026-11-28T02:30:18.007Z", "phase": "auth.claims.before", "span": 47}
+{"at": "2026-11-28T02:30:18.008Z", "phase": "auth.claims.after", "span": 47}
+{"at": "2026-11-28T02:30:18.009Z", "phase": "auth.recheck.before", "span": 47}
+{"at": "2026-11-28T02:30:18.009Z", "phase": "auth.recheck.after", "span": 47}
+{"at": "2026-11-28T02:30:18.010Z", "phase": "api.recheck.after", "span": 45}
+{"at": "2026-11-28T02:30:18.010Z", "phase": "api.finally", "span": 45}
+{"at": "2026-11-28T02:30:18.011Z", "phase": "hook.status", "cursor": true}
+{"at": "2026-11-28T02:30:18.011Z", "phase": "hook.status", "listLoading": false}
+{"at": "2026-11-28T02:30:20.563Z", "phase": "screen.appstate", "state": "background"}
+{"at": "2026-11-28T02:31:28.493Z", "phase": "screen.appstate", "state": "active"}
+{"at": "2026-11-28T02:31:28.493Z", "phase": "hook.status", "listLoading": true, "listError": false, "detailError": false}
+{"at": "2026-11-28T02:31:28.494Z", "phase": "api.start", "span": 48, "route": "list", "method": "GET"}
+{"at": "2026-11-28T02:31:28.495Z", "phase": "auth.start", "span": 49, "parent": 48}
+{"at": "2026-11-28T02:31:28.495Z", "phase": "auth.session.before", "span": 49}
+{"at": "2026-11-28T02:31:28.496Z", "phase": "open.start", "span": 50, "mode": "refresh", "reading": false, "current": true}
+{"at": "2026-11-28T02:31:28.496Z", "phase": "open.detail.before", "span": 50}
+{"at": "2026-11-28T02:31:28.497Z", "phase": "api.start", "span": 51, "route": "detail", "method": "GET"}
+{"at": "2026-11-28T02:31:28.498Z", "phase": "auth.start", "span": 52, "parent": 51}
+{"at": "2026-11-28T02:31:28.498Z", "phase": "auth.session.before", "span": 52}
+{"at": "2026-11-28T02:31:28.499Z", "phase": "auth.session.after", "span": 49}
+{"at": "2026-11-28T02:31:28.499Z", "phase": "auth.claims.before", "span": 49}
+{"at": "2026-11-28T02:31:28.501Z", "phase": "auth.session.after", "span": 52}
+{"at": "2026-11-28T02:31:28.501Z", "phase": "auth.claims.before", "span": 52}
+{"at": "2026-11-28T02:31:28.503Z", "phase": "auth.claims.after", "span": 49}
+{"at": "2026-11-28T02:31:28.504Z", "phase": "auth.recheck.before", "span": 49}
+{"at": "2026-11-28T02:31:28.505Z", "phase": "auth.claims.after", "span": 52}
+{"at": "2026-11-28T02:31:28.505Z", "phase": "auth.recheck.before", "span": 52}
+{"at": "2026-11-28T02:31:28.506Z", "phase": "auth.recheck.after", "span": 49}
+{"at": "2026-11-28T02:31:28.507Z", "phase": "auth.recheck.after", "span": 52}
+{"at": "2026-11-28T02:31:28.507Z", "phase": "api.credentials.ready", "span": 48}
+{"at": "2026-11-28T02:31:28.509Z", "phase": "api.credentials.ready", "span": 51}
+{"at": "2026-11-28T02:31:28.510Z", "phase": "auth.start", "span": 53}
+{"at": "2026-11-28T02:31:28.511Z", "phase": "auth.session.before", "span": 53}
+{"at": "2026-11-28T02:31:28.511Z", "phase": "auth.session.after", "span": 53}
+{"at": "2026-11-28T02:31:28.512Z", "phase": "auth.claims.before", "span": 53}
+{"at": "2026-11-28T02:31:28.513Z", "phase": "auth.claims.after", "span": 53}
+{"at": "2026-11-28T02:31:28.513Z", "phase": "auth.recheck.before", "span": 53}
+{"at": "2026-11-28T02:31:28.514Z", "phase": "auth.recheck.after", "span": 53}
+{"at": "2026-11-28T02:31:28.800Z", "phase": "api.response", "span": 48, "status": 200}
+{"at": "2026-11-28T02:31:28.801Z", "phase": "api.response", "span": 51, "status": 200}
+{"at": "2026-11-28T02:31:28.807Z", "phase": "api.body", "span": 48}
+{"at": "2026-11-28T02:31:28.807Z", "phase": "api.recheck.before", "span": 48}
+{"at": "2026-11-28T02:31:28.808Z", "phase": "auth.start", "span": 54, "parent": 48}
+{"at": "2026-11-28T02:31:28.808Z", "phase": "auth.session.before", "span": 54}
+{"at": "2026-11-28T02:31:28.810Z", "phase": "auth.session.after", "span": 54}
+{"at": "2026-11-28T02:31:28.811Z", "phase": "auth.claims.before", "span": 54}
+{"at": "2026-11-28T02:31:28.812Z", "phase": "auth.claims.after", "span": 54}
+{"at": "2026-11-28T02:31:28.812Z", "phase": "auth.recheck.before", "span": 54}
+{"at": "2026-11-28T02:31:28.813Z", "phase": "auth.recheck.after", "span": 54}
+{"at": "2026-11-28T02:31:28.813Z", "phase": "api.recheck.after", "span": 48}
+{"at": "2026-11-28T02:31:28.813Z", "phase": "api.finally", "span": 48}
+{"at": "2026-11-28T02:31:28.814Z", "phase": "hook.status", "cursor": true}
+{"at": "2026-11-28T02:31:28.814Z", "phase": "hook.status", "listLoading": false}
+{"at": "2026-11-28T02:31:28.915Z", "phase": "api.body", "span": 51}
+{"at": "2026-11-28T02:31:28.916Z", "phase": "api.recheck.before", "span": 51}
+{"at": "2026-11-28T02:31:28.916Z", "phase": "auth.start", "span": 55, "parent": 51}
+{"at": "2026-11-28T02:31:28.917Z", "phase": "auth.session.before", "span": 55}
+{"at": "2026-11-28T02:31:28.917Z", "phase": "auth.session.after", "span": 55}
+{"at": "2026-11-28T02:31:28.917Z", "phase": "auth.claims.before", "span": 55}
+{"at": "2026-11-28T02:31:28.918Z", "phase": "auth.claims.after", "span": 55}
+{"at": "2026-11-28T02:31:28.920Z", "phase": "auth.recheck.before", "span": 55}
+{"at": "2026-11-28T02:31:28.920Z", "phase": "auth.recheck.after", "span": 55}
+{"at": "2026-11-28T02:31:28.920Z", "phase": "api.recheck.after", "span": 51}
+{"at": "2026-11-28T02:31:28.920Z", "phase": "api.finally", "span": 51}
+{"at": "2026-11-28T02:31:28.921Z", "phase": "open.detail.after", "span": 50, "current": true, "selected": true}
+{"at": "2026-11-28T02:31:28.921Z", "phase": "open.restore", "span": 50, "opened": true}
+{"at": "2026-11-28T02:31:28.922Z", "phase": "open.recover.before", "span": 50}
+{"at": "2026-11-28T02:31:28.922Z", "phase": "open.recover.after", "span": 50}
+{"at": "2026-11-28T02:31:28.922Z", "phase": "open.finally", "span": 50, "mode": "refresh", "current": true}
+{"at": "2026-11-28T02:31:28.996Z", "phase": "screen.select", "alreadyOpening": false}
+{"at": "2026-11-28T02:31:28.997Z", "phase": "open.start", "span": 56, "mode": "select", "reading": false, "current": true}
+{"at": "2026-11-28T02:31:28.997Z", "phase": "hook.status", "detailLoading": true, "detailError": false}
+{"at": "2026-11-28T02:31:28.998Z", "phase": "open.detail.before", "span": 56}
+{"at": "2026-11-28T02:31:28.998Z", "phase": "api.start", "span": 57, "route": "detail", "method": "GET"}
+{"at": "2026-11-28T02:31:28.998Z", "phase": "auth.start", "span": 58, "parent": 57}
+{"at": "2026-11-28T02:31:28.999Z", "phase": "auth.session.before", "span": 58}
+{"at": "2026-11-28T02:31:29.098Z", "phase": "auth.session.after", "span": 58}
+{"at": "2026-11-28T02:31:29.099Z", "phase": "auth.claims.before", "span": 58}
+{"at": "2026-11-28T02:31:29.100Z", "phase": "auth.claims.after", "span": 58}
+{"at": "2026-11-28T02:31:29.100Z", "phase": "auth.recheck.before", "span": 58}
+{"at": "2026-11-28T02:31:29.101Z", "phase": "auth.recheck.after", "span": 58}
+{"at": "2026-11-28T02:31:29.102Z", "phase": "api.credentials.ready", "span": 57}
+{"at": "2026-11-28T02:31:29.170Z", "phase": "api.response", "span": 57, "status": 200}
+{"at": "2026-11-28T02:31:29.174Z", "phase": "api.body", "span": 57}
+{"at": "2026-11-28T02:31:29.174Z", "phase": "api.recheck.before", "span": 57}
+{"at": "2026-11-28T02:31:29.175Z", "phase": "auth.start", "span": 59, "parent": 57}
+{"at": "2026-11-28T02:31:29.175Z", "phase": "auth.session.before", "span": 59}
+{"at": "2026-11-28T02:31:29.176Z", "phase": "auth.session.after", "span": 59}
+{"at": "2026-11-28T02:31:29.176Z", "phase": "auth.claims.before", "span": 59}
+{"at": "2026-11-28T02:31:29.177Z", "phase": "auth.claims.after", "span": 59}
+{"at": "2026-11-28T02:31:29.178Z", "phase": "auth.recheck.before", "span": 59}
+{"at": "2026-11-28T02:31:29.178Z", "phase": "auth.recheck.after", "span": 59}
+{"at": "2026-11-28T02:31:29.178Z", "phase": "api.recheck.after", "span": 57}
+{"at": "2026-11-28T02:31:29.179Z", "phase": "api.finally", "span": 57}
+{"at": "2026-11-28T02:31:29.179Z", "phase": "open.detail.after", "span": 56, "current": true, "selected": true}
+{"at": "2026-11-28T02:31:29.179Z", "phase": "open.restore", "span": 56, "opened": true}
+{"at": "2026-11-28T02:31:29.180Z", "phase": "open.recover.before", "span": 56}
+{"at": "2026-11-28T02:31:29.270Z", "phase": "open.recover.after", "span": 56}
+{"at": "2026-11-28T02:31:29.271Z", "phase": "open.finally", "span": 56, "mode": "select", "current": true}
+{"at": "2026-11-28T02:31:29.272Z", "phase": "hook.status", "detailLoading": false}
+{"at": "2026-11-28T02:31:29.272Z", "phase": "screen.open.result", "opened": true, "selected": true}
+{"at": "2026-11-28T02:31:29.420Z", "phase": "api.start", "span": 60, "route": "other", "method": "GET"}
+{"at": "2026-11-28T02:31:29.421Z", "phase": "auth.start", "span": 61, "parent": 60}
+{"at": "2026-11-28T02:31:29.421Z", "phase": "auth.session.before", "span": 61}
+{"at": "2026-11-28T02:31:29.447Z", "phase": "auth.session.after", "span": 61}
+{"at": "2026-11-28T02:31:29.448Z", "phase": "auth.claims.before", "span": 61}
+{"at": "2026-11-28T02:31:29.448Z", "phase": "auth.claims.after", "span": 61}
+{"at": "2026-11-28T02:31:29.449Z", "phase": "auth.recheck.before", "span": 61}
+{"at": "2026-11-28T02:31:29.449Z", "phase": "auth.recheck.after", "span": 61}
+{"at": "2026-11-28T02:31:29.449Z", "phase": "api.credentials.ready", "span": 60}
+{"at": "2026-11-28T02:31:29.500Z", "phase": "api.response", "span": 60, "status": 200}
+{"at": "2026-11-28T02:31:29.502Z", "phase": "api.body", "span": 60}
+{"at": "2026-11-28T02:31:29.502Z", "phase": "api.recheck.before", "span": 60}
+{"at": "2026-11-28T02:31:29.503Z", "phase": "auth.start", "span": 62, "parent": 60}
+{"at": "2026-11-28T02:31:29.503Z", "phase": "auth.session.before", "span": 62}
+{"at": "2026-11-28T02:31:29.504Z", "phase": "auth.session.after", "span": 62}
+{"at": "2026-11-28T02:31:29.504Z", "phase": "auth.claims.before", "span": 62}
+{"at": "2026-11-28T02:31:29.506Z", "phase": "auth.claims.after", "span": 62}
+{"at": "2026-11-28T02:31:29.507Z", "phase": "auth.recheck.before", "span": 62}
+{"at": "2026-11-28T02:31:29.508Z", "phase": "auth.recheck.after", "span": 62}
+{"at": "2026-11-28T02:31:29.508Z", "phase": "api.recheck.after", "span": 60}
+{"at": "2026-11-28T02:31:29.509Z", "phase": "api.finally", "span": 60}
+{"at": "2026-11-28T02:31:30.684Z", "phase": "screen.appstate", "state": "background"}
+{"at": "2026-11-28T02:31:58.728Z", "phase": "screen.appstate", "state": "active"}
+{"at": "2026-11-28T02:31:58.729Z", "phase": "hook.status", "listLoading": true, "listError": false, "detailError": false}
+{"at": "2026-11-28T02:31:58.730Z", "phase": "api.start", "span": 63, "route": "list", "method": "GET"}
+{"at": "2026-11-28T02:31:58.731Z", "phase": "auth.start", "span": 64, "parent": 63}
+{"at": "2026-11-28T02:31:58.732Z", "phase": "auth.session.before", "span": 64}
+{"at": "2026-11-28T02:31:58.733Z", "phase": "open.start", "span": 65, "mode": "refresh", "reading": false, "current": true}
+{"at": "2026-11-28T02:31:58.734Z", "phase": "open.detail.before", "span": 65}
+{"at": "2026-11-28T02:31:58.735Z", "phase": "api.start", "span": 66, "route": "detail", "method": "GET"}
+{"at": "2026-11-28T02:31:58.735Z", "phase": "auth.start", "span": 67, "parent": 66}
+{"at": "2026-11-28T02:31:58.735Z", "phase": "auth.session.before", "span": 67}
+{"at": "2026-11-28T02:31:58.736Z", "phase": "auth.session.after", "span": 64}
+{"at": "2026-11-28T02:31:58.737Z", "phase": "auth.claims.before", "span": 64}
+{"at": "2026-11-28T02:31:58.738Z", "phase": "auth.session.after", "span": 67}
+{"at": "2026-11-28T02:31:58.738Z", "phase": "auth.claims.before", "span": 67}
+{"at": "2026-11-28T02:31:58.740Z", "phase": "auth.claims.after", "span": 64}
+{"at": "2026-11-28T02:31:58.740Z", "phase": "auth.recheck.before", "span": 64}
+{"at": "2026-11-28T02:31:58.741Z", "phase": "auth.claims.after", "span": 67}
+{"at": "2026-11-28T02:31:58.741Z", "phase": "auth.recheck.before", "span": 67}
+{"at": "2026-11-28T02:31:58.742Z", "phase": "auth.recheck.after", "span": 64}
+{"at": "2026-11-28T02:31:58.742Z", "phase": "auth.recheck.after", "span": 67}
+{"at": "2026-11-28T02:31:58.742Z", "phase": "api.credentials.ready", "span": 63}
+{"at": "2026-11-28T02:31:58.743Z", "phase": "api.credentials.ready", "span": 66}
+{"at": "2026-11-28T02:31:58.744Z", "phase": "auth.start", "span": 68}
+{"at": "2026-11-28T02:31:58.744Z", "phase": "auth.session.before", "span": 68}
+{"at": "2026-11-28T02:31:58.745Z", "phase": "auth.session.after", "span": 68}
+{"at": "2026-11-28T02:31:58.745Z", "phase": "auth.claims.before", "span": 68}
+{"at": "2026-11-28T02:31:58.747Z", "phase": "auth.claims.after", "span": 68}
+{"at": "2026-11-28T02:31:58.749Z", "phase": "auth.recheck.before", "span": 68}
+{"at": "2026-11-28T02:31:58.749Z", "phase": "auth.recheck.after", "span": 68}
+{"at": "2026-11-28T02:31:58.919Z", "phase": "api.response", "span": 63, "status": 200}
+{"at": "2026-11-28T02:31:58.920Z", "phase": "api.response", "span": 66, "status": 200}
+{"at": "2026-11-28T02:31:58.924Z", "phase": "api.body", "span": 63}
+{"at": "2026-11-28T02:31:58.925Z", "phase": "api.recheck.before", "span": 63}
+{"at": "2026-11-28T02:31:58.926Z", "phase": "auth.start", "span": 69, "parent": 63}
+{"at": "2026-11-28T02:31:58.926Z", "phase": "auth.session.before", "span": 69}
+{"at": "2026-11-28T02:31:58.927Z", "phase": "auth.session.after", "span": 69}
+{"at": "2026-11-28T02:31:58.927Z", "phase": "auth.claims.before", "span": 69}
+{"at": "2026-11-28T02:31:58.928Z", "phase": "auth.claims.after", "span": 69}
+{"at": "2026-11-28T02:31:58.929Z", "phase": "auth.recheck.before", "span": 69}
+{"at": "2026-11-28T02:31:58.929Z", "phase": "auth.recheck.after", "span": 69}
+{"at": "2026-11-28T02:31:58.930Z", "phase": "api.recheck.after", "span": 63}
+{"at": "2026-11-28T02:31:58.931Z", "phase": "api.finally", "span": 63}
+{"at": "2026-11-28T02:31:58.932Z", "phase": "hook.status", "cursor": true}
+{"at": "2026-11-28T02:31:58.933Z", "phase": "hook.status", "listLoading": false}
+{"at": "2026-11-28T02:31:58.958Z", "phase": "api.body", "span": 66}
+{"at": "2026-11-28T02:31:58.959Z", "phase": "api.recheck.before", "span": 66}
+{"at": "2026-11-28T02:31:58.959Z", "phase": "auth.start", "span": 70, "parent": 66}
+{"at": "2026-11-28T02:31:58.960Z", "phase": "auth.session.before", "span": 70}
+{"at": "2026-11-28T02:31:58.961Z", "phase": "auth.session.after", "span": 70}
+{"at": "2026-11-28T02:31:58.962Z", "phase": "auth.claims.before", "span": 70}
+{"at": "2026-11-28T02:31:58.963Z", "phase": "auth.claims.after", "span": 70}
+{"at": "2026-11-28T02:31:58.964Z", "phase": "auth.recheck.before", "span": 70}
+{"at": "2026-11-28T02:31:58.965Z", "phase": "auth.recheck.after", "span": 70}
+{"at": "2026-11-28T02:31:58.965Z", "phase": "api.recheck.after", "span": 66}
+{"at": "2026-11-28T02:31:58.966Z", "phase": "api.finally", "span": 66}
+{"at": "2026-11-28T02:31:58.966Z", "phase": "open.detail.after", "span": 65, "current": true, "selected": true}
+{"at": "2026-11-28T02:31:58.967Z", "phase": "open.restore", "span": 65, "opened": true}
+{"at": "2026-11-28T02:31:58.968Z", "phase": "open.recover.before", "span": 65}
+{"at": "2026-11-28T02:31:58.968Z", "phase": "open.recover.after", "span": 65}
+{"at": "2026-11-28T02:31:58.968Z", "phase": "open.finally", "span": 65, "mode": "refresh", "current": true}
+{"at": "2026-11-28T02:32:05.866Z", "phase": "auth.start", "span": 1}
+{"at": "2026-11-28T02:32:05.886Z", "phase": "auth.session.before", "span": 1}
+{"at": "2026-11-28T02:32:05.890Z", "phase": "auth.session.after", "span": 1}
+{"at": "2026-11-28T02:32:05.890Z", "phase": "auth.claims.before", "span": 1}
+{"at": "2026-11-28T02:32:05.927Z", "phase": "auth.claims.after", "span": 1}
+{"at": "2026-11-28T02:32:05.928Z", "phase": "auth.recheck.before", "span": 1}
+{"at": "2026-11-28T02:32:05.929Z", "phase": "auth.recheck.after", "span": 1}
+{"at": "2026-11-28T02:32:07.403Z", "phase": "auth.start", "span": 2}
+{"at": "2026-11-28T02:32:07.403Z", "phase": "auth.session.before", "span": 2}
+{"at": "2026-11-28T02:32:07.404Z", "phase": "auth.session.after", "span": 2}
+{"at": "2026-11-28T02:32:07.404Z", "phase": "auth.claims.before", "span": 2}
+{"at": "2026-11-28T02:32:07.409Z", "phase": "auth.claims.after", "span": 2}
+{"at": "2026-11-28T02:32:07.410Z", "phase": "auth.recheck.before", "span": 2}
+{"at": "2026-11-28T02:32:07.411Z", "phase": "auth.recheck.after", "span": 2}
+{"at": "2026-11-28T02:32:37.194Z", "phase": "auth.start", "span": 3}
+{"at": "2026-11-28T02:32:37.194Z", "phase": "auth.session.before", "span": 3}
+{"at": "2026-11-28T02:32:37.196Z", "phase": "auth.session.after", "span": 3}
+{"at": "2026-11-28T02:32:37.196Z", "phase": "auth.claims.before", "span": 3}
+{"at": "2026-11-28T02:32:37.199Z", "phase": "auth.claims.after", "span": 3}
+{"at": "2026-11-28T02:32:37.200Z", "phase": "auth.recheck.before", "span": 3}
+{"at": "2026-11-28T02:32:37.201Z", "phase": "auth.recheck.after", "span": 3}
+{"at": "2026-11-28T02:33:09.459Z", "phase": "auth.start", "span": 4}
+{"at": "2026-11-28T02:33:09.459Z", "phase": "auth.session.before", "span": 4}
+{"at": "2026-11-28T02:33:09.460Z", "phase": "auth.session.after", "span": 4}
+{"at": "2026-11-28T02:33:09.461Z", "phase": "auth.claims.before", "span": 4}
+{"at": "2026-11-28T02:33:09.462Z", "phase": "auth.claims.after", "span": 4}
+{"at": "2026-11-28T02:33:09.462Z", "phase": "auth.recheck.before", "span": 4}
+{"at": "2026-11-28T02:33:09.463Z", "phase": "auth.recheck.after", "span": 4}
+{"at": "2026-11-28T02:33:52.458Z", "phase": "auth.start", "span": 5}
+{"at": "2026-11-28T02:33:52.459Z", "phase": "auth.session.before", "span": 5}
+{"at": "2026-11-28T02:33:52.460Z", "phase": "auth.session.after", "span": 5}
+{"at": "2026-11-28T02:33:52.461Z", "phase": "auth.claims.before", "span": 5}
+{"at": "2026-11-28T02:33:52.464Z", "phase": "auth.claims.after", "span": 5}
+{"at": "2026-11-28T02:33:52.464Z", "phase": "auth.recheck.before", "span": 5}
+{"at": "2026-11-28T02:33:52.465Z", "phase": "auth.recheck.after", "span": 5}
+{"at": "2026-11-28T02:39:00.524Z", "phase": "runtime.getSession.before", "span": 1}
+{"at": "2026-11-28T02:39:00.524Z", "phase": "runtime.getSession.after", "span": 1}
+{"at": "2026-11-28T02:39:00.526Z", "phase": "runtime.getClaims.after", "span": 2}
+{"at": "2026-11-28T02:39:00.524Z", "phase": "runtime.getClaims.before", "span": 2}
+{"at": "2026-11-28T02:39:00.526Z", "phase": "runtime.getSession.before", "span": 3}
+{"at": "2026-11-28T02:39:00.527Z", "phase": "runtime.getSession.after", "span": 3}
+{"at": "2026-11-28T02:39:00.696Z", "phase": "runtime.api.before", "span": 4, "route": "detail"}
+{"at": "2026-11-28T02:39:00.696Z", "phase": "runtime.getSession.before", "span": 5}
+{"at": "2026-11-28T02:39:00.758Z", "phase": "runtime.getSession.after", "span": 5}
+{"at": "2026-11-28T02:39:00.758Z", "phase": "runtime.getClaims.before", "span": 6}
+{"at": "2026-11-28T02:39:00.759Z", "phase": "runtime.getClaims.after", "span": 6}
+{"at": "2026-11-28T02:39:00.759Z", "phase": "runtime.getSession.before", "span": 7}
+{"at": "2026-11-28T02:39:00.759Z", "phase": "runtime.getSession.after", "span": 7}
+{"at": "2026-11-28T02:39:00.825Z", "phase": "runtime.getSession.before", "span": 8}
+{"at": "2026-11-28T02:39:00.825Z", "phase": "runtime.getSession.after", "span": 8}
+{"at": "2026-11-28T02:39:00.825Z", "phase": "runtime.getClaims.before", "span": 9}
+{"at": "2026-11-28T02:39:00.826Z", "phase": "runtime.getClaims.after", "span": 9}
+{"at": "2026-11-28T02:39:00.826Z", "phase": "runtime.getSession.before", "span": 10}
+{"at": "2026-11-28T02:39:00.826Z", "phase": "runtime.getSession.after", "span": 10}
+{"at": "2026-11-28T02:39:00.826Z", "phase": "runtime.api.after", "span": 4, "route": "detail"}
+{"at": "2026-11-28T02:39:01.002Z", "phase": "runtime.api.before", "span": 11, "route": "other"}
+{"at": "2026-11-28T02:39:01.002Z", "phase": "runtime.getSession.before", "span": 12}
+{"at": "2026-11-28T02:39:01.017Z", "phase": "runtime.getSession.after", "span": 12}
+{"at": "2026-11-28T02:39:01.017Z", "phase": "runtime.getClaims.before", "span": 13}
+{"at": "2026-11-28T02:39:01.018Z", "phase": "runtime.getClaims.after", "span": 13}
+{"at": "2026-11-28T02:39:01.018Z", "phase": "runtime.getSession.before", "span": 14}
+{"at": "2026-11-28T02:39:01.018Z", "phase": "runtime.getSession.after", "span": 14}
+{"at": "2026-11-28T02:39:01.063Z", "phase": "runtime.getSession.before", "span": 15}
+{"at": "2026-11-28T02:39:01.063Z", "phase": "runtime.getSession.after", "span": 15}
+{"at": "2026-11-28T02:39:01.063Z", "phase": "runtime.getClaims.before", "span": 16}
+{"at": "2026-11-28T02:39:01.065Z", "phase": "runtime.getClaims.after", "span": 16}
+{"at": "2026-11-28T02:39:01.065Z", "phase": "runtime.getSession.before", "span": 17}
+{"at": "2026-11-28T02:39:01.065Z", "phase": "runtime.getSession.after", "span": 17}
+{"at": "2026-11-28T02:39:01.065Z", "phase": "runtime.api.after", "span": 11, "route": "other"}
+{"at": "2026-11-28T02:40:03.632Z", "phase": "runtime.api.before", "span": 18, "route": "list"}
+{"at": "2026-11-28T02:40:03.632Z", "phase": "runtime.getSession.before", "span": 19}
+{"at": "2026-11-28T02:40:03.632Z", "phase": "runtime.api.before", "span": 20, "route": "detail"}
+{"at": "2026-11-28T02:40:03.632Z", "phase": "runtime.getSession.before", "span": 21}
+{"at": "2026-11-28T02:40:03.633Z", "phase": "runtime.getSession.after", "span": 19}
+{"at": "2026-11-28T02:40:03.633Z", "phase": "runtime.getSession.after", "span": 21}
+{"at": "2026-11-28T02:40:03.633Z", "phase": "runtime.getClaims.before", "span": 22}
+{"at": "2026-11-28T02:40:03.633Z", "phase": "runtime.getClaims.before", "span": 23}
+{"at": "2026-11-28T02:40:03.634Z", "phase": "runtime.getClaims.after", "span": 22}
+{"at": "2026-11-28T02:40:03.634Z", "phase": "runtime.getClaims.after", "span": 23}
+{"at": "2026-11-28T02:40:03.634Z", "phase": "runtime.getSession.before", "span": 24}
+{"at": "2026-11-28T02:40:03.634Z", "phase": "runtime.getSession.before", "span": 25}
+{"at": "2026-11-28T02:40:03.634Z", "phase": "runtime.getSession.after", "span": 24}
+{"at": "2026-11-28T02:40:03.634Z", "phase": "runtime.getSession.after", "span": 25}
+{"at": "2026-11-28T02:40:03.636Z", "phase": "runtime.getSession.before", "span": 26}
+{"at": "2026-11-28T02:40:03.636Z", "phase": "runtime.getSession.after", "span": 26}
+{"at": "2026-11-28T02:40:03.636Z", "phase": "runtime.getClaims.before", "span": 27}
+{"at": "2026-11-28T02:40:03.637Z", "phase": "runtime.getClaims.after", "span": 27}
+{"at": "2026-11-28T02:40:03.637Z", "phase": "runtime.getSession.before", "span": 28}
+{"at": "2026-11-28T02:40:03.638Z", "phase": "runtime.getSession.after", "span": 28}
+{"at": "2026-11-28T02:43:47.018Z", "phase": "plain.click.capture", "state": "HTML", "mode": "original bundle; DOM capture listener only"}
+{"at": "2026-11-28T02:44:04.027Z", "phase": "plain.click.capture", "state": "selected-room", "mode": "original bundle; DOM capture listener only"}

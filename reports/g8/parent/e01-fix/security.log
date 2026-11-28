@@ -1,0 +1,29 @@
+{"recordedAt": "2026-11-28T08:42:11.539065+00:00", "textFiles": 11, "matches": {"protectedValues": 0, "jwt": 0, "privateKey": 0, "email": 0}}
+{"recordedAt": "2026-11-28T08:43:23.998463+00:00", "textFiles": 12, "matches": {"protectedValues": 0, "jwt": 0, "privateKey": 0, "email": 0}}
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m5:44PM[0m [32mINF[0m [1mscanned ~855390 bytes (855.39 KB) in 324ms[0m
+[90m5:44PM[0m [32mINF[0m [1mno leaks found[0m
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m5:44PM[0m [32mINF[0m [1mscanned ~57677 bytes (57.68 KB) in 241ms[0m
+[90m5:44PM[0m [32mINF[0m [1mno leaks found[0m
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+[90m5:45PM[0m [32mINF[0m [1mscanned ~886844 bytes (886.84 KB) in 296ms[0m
+[90m5:45PM[0m [32mINF[0m [1mno leaks found[0m
