@@ -287,9 +287,10 @@ it('ignores legacy photo events even if the old server mode is configured', asyn
 it('loads only the on-device WebView runtime even with a legacy server-mode configuration', () => {
   const config = { mode: 'server', assetsUrl: 'http://localhost:8081/skin-runtime/',
     run: { runId: 'local', processId: 'session', firstInProcess: true, device: 'test', androidVersion: 'android', build: 'expo-go' } };
-  const html = skinWebHtml(config, 'Capture');
+  const html = skinWebHtml(config);
   expect(html).toContain("import(config.assetsUrl+'runtime.mjs')");
   expect(html).not.toContain('capture.mjs');
+  expect(html).toContain('<button id="capture" type="button" hidden disabled></button>');
 });
 
 it('waits for camera readiness, times out a stalled startup, and permits a fresh retry', async () => {

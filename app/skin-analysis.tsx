@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Redirect, Stack, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { skinAccessKey, useSkinAccess } from '@/hooks/useSkinAccess';
@@ -6,11 +7,12 @@ import { registerSkinReport } from '@/lib/skinRegistration';
 import type { SkinProfileV4 } from '@/types/skin';
 import { useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
-import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, BackHandler, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, BackHandler, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
 import { SkinCamera } from '@/components/skin/SkinCamera';
+import { SkinCaptureGuide } from '@/components/skin/SkinCaptureGuide';
 import { SkinSurvey } from '@/components/skin/SkinSurvey';
 import { theme } from '@/constants/theme';
 import { useMemberCameraConsent } from '@/hooks/useMemberCameraConsent';
@@ -50,14 +52,34 @@ function AnalysisSession({ access }: { access: ReturnType<typeof useSkinAccess> 
     if (phase === 'done') router.replace(usedFreeAnalysis.current
       ? { pathname: '/skin-recommendations', params: { freeTrial: '1' } } : '/skin-recommendations');
   }, [phase, router]);
-  const leave = () => { flow.cancel(); if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); };
+  const saving = phase === 'saving';
+  const done = phase === 'done';
+  const leave = useCallback(() => {
+    if (saving || done) return;
+    cancel();
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)');
+  }, [cancel, done, router, saving]);
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (phase !== 'saving') { cancel(); if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); }
+      leave();
       return true;
     });
     return () => subscription.remove();
-  }, [phase, cancel, router]);
+  }, [leave]);
+  const headerOptions = useMemo(() => ({
+    title: t('skin.title'),
+    headerTitleAlign: 'center' as const,
+    headerBackVisible: false,
+    gestureEnabled: false,
+    headerLeft: () => done ? null : (
+      <Pressable accessibilityRole="button" accessibilityLabel={t('common.back')}
+        accessibilityState={{ disabled: saving }} disabled={saving} onPress={leave}
+        style={({ pressed }) => [styles.backButton, (saving || pressed) && styles.backButtonFaded]}>
+        <Ionicons name="arrow-back" size={23} color={theme.colors.ink} />
+      </Pressable>
+    ),
+  }), [done, leave, saving, t]);
 
   async function begin() {
     const allowed = permission?.granted || (await requestPermission()).granted;
@@ -74,7 +96,7 @@ function AnalysisSession({ access }: { access: ReturnType<typeof useSkinAccess> 
     } catch { setPhotoError(true); }
   }
   return <SafeAreaView edges={['bottom']} style={styles.screen}>
-    <Stack.Screen options={{ title: t('skin.title'), headerBackVisible: false, gestureEnabled: false }} />
+    <Stack.Screen options={headerOptions} />
     {(flow.phase === 'camera' || (flow.phase === 'analysis' && flow.webRun)) && <SkinCamera
       state={flow.camera} onCapture={flow.onCapture} webRun={flow.webRun} onWebEvent={flow.onWebEvent} analyzing={flow.phase === 'analysis'} />}
     {!skinAnalysisSupported ? <View style={styles.center}>
@@ -86,19 +108,18 @@ function AnalysisSession({ access }: { access: ReturnType<typeof useSkinAccess> 
       <Text style={styles.body}>{t('skinAccess.used')}</Text>
       <Button label={t('skinAccess.viewMembership')} onPress={() => router.replace('/membership')} />
     </View> : flow.phase === 'ready' ? <ScrollView contentContainerStyle={styles.ready} keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>{t('skin.title')}</Text>
-      <Text style={styles.body}>{t('skin.instructions')}</Text>
-      <Text style={styles.body}>{t('skin.localNotice')}</Text>
-      {skinAnalysisUsesWebView && <Text style={styles.help}>{t('skin.expoHelp')}</Text>}
+      <SkinCaptureGuide />
+      <Text style={styles.notice}>{t('skin.localNotice')}</Text>
       {photoError && <Text accessibilityRole="alert" style={styles.body}>{t('skin.photoError')}</Text>}
-      {permission && !permission.granted && !permission.canAskAgain ? <>
-        <Text style={styles.body}>{t('skin.permissionDenied')}</Text>
-        <Button label={t('skin.openSettings')} onPress={() => { void Linking.openSettings(); }} />
-      </> : <Button label={t('skin.start')} onPress={() => { void begin(); }} />}
-      {skinAnalysisUsesWebView && <Button label={t('skin.choosePhoto')} variant="secondary" onPress={() => { void choosePhoto(); }} />}
-    </ScrollView> : flow.phase === 'camera' ? <>
-      <Text style={styles.help}>{t('skin.instructions')}</Text>
-    </> : flow.phase === 'analysis' ? <View style={styles.center}>
+      <View style={styles.readyActions}>
+        {permission && !permission.granted && !permission.canAskAgain ? <>
+          <Text style={styles.body}>{t('skin.permissionDenied')}</Text>
+          <Button label={t('skin.openSettings')} onPress={() => { void Linking.openSettings(); }} />
+        </> : <Button label={t('skin.start')} onPress={() => { void begin(); }} />}
+        {skinAnalysisUsesWebView && <Button label={t('skin.choosePhoto')} variant="secondary" onPress={() => { void choosePhoto(); }} />}
+      </View>
+      {skinAnalysisUsesWebView && <Text style={styles.help}>{t('skin.expoHelp')}</Text>}
+    </ScrollView> : flow.phase === 'camera' ? null : flow.phase === 'analysis' ? <View style={styles.center}>
       <ActivityIndicator size="large" color={theme.colors.rose} />
       <Text style={styles.title}>{t('skin.analyzing')}</Text>
       <Text accessibilityLiveRegion="polite" style={styles.body}>{t(`skin.indicator.${flow.indicator}`)}</Text>
@@ -111,13 +132,30 @@ function AnalysisSession({ access }: { access: ReturnType<typeof useSkinAccess> 
         <Button label={t('skin.retry')} onPress={() => { void begin(); }} />
         {skinAnalysisUsesWebView && <Button label={t('skin.choosePhoto')} variant="secondary" onPress={() => { void choosePhoto(); }} />}
       </View>}
-    {flow.phase !== 'done' && <Button variant="ghost" label={t('common.cancel')} disabled={flow.phase === 'saving'} onPress={leave} />}
   </SafeAreaView>;
 }
 const styles = StyleSheet.create({
   screen: { flex: 1, padding: 20, gap: 16, backgroundColor: theme.colors.surface },
+  backButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  backButtonFaded: { opacity: 0.45 },
   center: { flex: 1, justifyContent: 'center', gap: 24 },
-  ready: { flexGrow: 1, justifyContent: 'center', gap: 18, paddingVertical: 12 },
+  ready: {
+    flexGrow: 1,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 480,
+    gap: theme.spacing.md,
+    paddingBottom: theme.spacing.md,
+  },
+  readyActions: { gap: theme.spacing.sm },
+  notice: {
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.roseSoft,
+    fontSize: theme.font.small,
+    lineHeight: 19,
+    color: theme.colors.inkMuted,
+  },
   title: { fontSize: 24, fontWeight: '700', textAlign: 'center', color: theme.colors.ink },
   body: { fontSize: 16, lineHeight: 25, textAlign: 'center', color: theme.colors.inkMuted },
   help: { fontSize: 14, color: theme.colors.inkMuted, textAlign: 'center' },
