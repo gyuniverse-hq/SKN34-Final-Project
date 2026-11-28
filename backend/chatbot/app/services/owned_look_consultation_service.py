@@ -220,7 +220,8 @@ def _scoped_declarations(message, recipe):
                 aliases.setdefault(f"{product} ({alias})", []).append((target, "option"))
     candidates = []
     suffix = (
-        r"(?:은|는|이|가)?\s*(?:(?P<state>없어|있어|없고|있고)(?:요)?(?=[.,!\s]|$)"
+        r"(?:은|는|이|가)?\s*(?:(?:(?:갖고|가지고)\s*)?"
+        r"(?P<state>없어|있어|없고|있고)(?:요)?(?=[.,!\s]|$)"
         r"|(?:의\s*)?(?:미보유|보유)?\s*조건(?:을|은)?\s*(?P<release>해제|취소)"
         r"(?:해\s*줘)?(?=$|[.! ,\s]))"
     )
@@ -460,9 +461,12 @@ async def execute_owned_look(req, catalog, *, trace=None):
     verified_recipe = recipe.basis == "reviewed_recipe" and recipe.review_status == "verified"
     bound_answers = [(q, quote) for q, quote in req._question_answers if q.input_key == "ownership"]
     # Question answers are applied only after validating their exact recipe target.
-    declaration_message, item_updates = _scoped_declarations(
-        "" if bound_answers else req.message, recipe
-    )
+    answered = {quote.strip().rstrip(".!?") for _, quote in bound_answers}
+    remaining = "\n".join(
+        clause for clause in re.split(r"(?<=[.!?])\s+|\n+", req.message)
+        if clause.strip().rstrip(".!?") not in answered
+    ) if bound_answers else req.message
+    declaration_message, item_updates = _scoped_declarations(remaining, recipe)
     owned_state = next_context(req, recipe.recipe_version, declaration_message=declaration_message)
     refs = owned_look_interpreter.snapshot(recipe)
     audit = None
@@ -504,7 +508,17 @@ async def execute_owned_look(req, catalog, *, trace=None):
             response._task_results = list(task_results)
             return response
         answer_plans.append((answer_plan, quote))
-    if req._owned_look_reference and not bound_answers:
+    extra_statements = [
+        clause for clause in re.split(r"(?<=[.!?])\s+|\n+", declaration_message)
+        if _self_declaration(clause)
+        and re.search(r"보유|갖고|가지고|(?:있|없)(?:어|고|습니다)", clause)
+    ] if bound_answers else []
+    reference_message = "\n".join(extra_statements) if extra_statements else (
+        declaration_message if bound_answers else req.message
+    )
+    if extra_statements or (req._owned_look_reference and (
+        not bound_answers or owned_look_interpreter.needs_reference(reference_message)
+    )):
         previous_refs = req._owned_look_context.references if req._owned_look_context else None
         if (
             previous_refs is None
@@ -521,7 +535,7 @@ async def execute_owned_look(req, catalog, *, trace=None):
             }
         else:
             plan, audit = await owned_look_interpreter.interpret(
-                req.message,
+                reference_message,
                 previous_refs,
                 req._consultation_parent.question if req._consultation_parent else None,
                 req._owned_look_llm,
@@ -546,7 +560,7 @@ async def execute_owned_look(req, catalog, *, trace=None):
             owned_state.item_declarations.pop(target.target_id, None)
             owned_state.product_declarations.pop(target.product_id, None)
     if plan:
-        apply_reference_plan(owned_state, refs, plan, req.message)
+        apply_reference_plan(owned_state, refs, plan, reference_message)
     for answer_plan, quote in answer_plans:
         apply_reference_plan(owned_state, refs, answer_plan, quote)
     owned_state.references = refs

@@ -363,7 +363,7 @@ TASK_DISPLAY_FIELDS = {
 }
 
 
-def task_scope(req):
+def task_scope_components(req, task=None, *, legacy=False):
     from app.services.consultation_memory import ignores_memory
 
     beauty = req.chat_context
@@ -384,17 +384,57 @@ def task_scope(req):
         if beauty
         else None,
     }
-
-    return fingerprint(
-        {
+    # A cached task's reference to its own earlier result is history, not a sibling input.
+    source_refs = task and any(
+        ref.rsplit(":", 1)[-1] != task.task_id for ref in task.input_refs
+    )
+    if not legacy and task and not task.depends_on and not source_refs:
+        if task.goal == "style":
+            catalog = {key: catalog[key] for key in ("style", "conditions")}
+        elif task.goal == "product" and task.product_operation == "compare":
+            catalog = {
+                key: value for key, value in catalog.items() if key not in {"style", "conditions"}
+            }
+    values = {
             "catalog": catalog,
             "memoryEpoch": req._memory_epoch,
             "memoryGeneration": req._memory_generation,
-            "memoryAvailable": req._consultation_memories is not None,
+            # None and an empty read contain no structured personal data. Consent/data
+            # changes still invalidate via epoch, generation, opt-out and exact refs.
+            "memoryAvailable": (
+                req._consultation_memories is not None
+                if legacy else bool(req._consultation_memories)
+            ),
             "ignoreMemory": ignores_memory(req.message),
-            "memoryRefs": sorted((str(m.id), m.version) for m in req._consultation_memories or ()),
-        }
-    )
+            "memoryRefs": sorted([str(m.id), m.version] for m in req._consultation_memories or ()),
+    }
+    if not legacy:
+        values["version"] = 2
+    return values
+
+
+def task_scope(req, task=None):
+    return fingerprint(task_scope_components(req, task))
+
+
+def scope_matches(req, task):
+    expected = task_scope(req, task)
+    if task.scope_snapshot is not None:
+        return (
+            fingerprint(task.scope_snapshot) == task.scope_digest
+            and task.scope_digest == expected
+        )
+    if task.scope_digest in {expected, task_scope(req)}:
+        return True
+    # Old snapshots contain only a digest. Reconstruct only exact legacy values;
+    # an empty-read representation may differ, but no other fence may change.
+    legacy = task_scope_components(req, legacy=True)
+    if task.scope_digest == fingerprint(legacy):
+        return True
+    if not legacy["memoryRefs"]:
+        legacy["memoryAvailable"] = not legacy["memoryAvailable"]
+        return task.scope_digest == fingerprint(legacy)
+    return False
 
 
 async def run_id_tasks(req, dispatch):
@@ -413,7 +453,7 @@ async def run_id_tasks(req, dispatch):
         chosen = [t for t in previous.tasks if t.task_id in intent.targets]
         if any(
             t.display_result is None
-            or t.scope_digest != task_scope(req)
+            or not scope_matches(req, t)
             or t.status in {"cancelled", "superseded", "failed"}
             for t in chosen
         ):
@@ -473,10 +513,9 @@ async def run_id_tasks(req, dispatch):
     selected.update(new_ids)
     # Revalidate after additions; the existing task-count bound must never truncate work.
     plan = ConsultationParent.model_validate(plan.model_dump())
-    scope = task_scope(req)
     tasks = {t.task_id: t for t in plan.tasks}
     if intent.action in {"retry", "resume"} and any(
-        tasks[task_id].scope_digest is not None and tasks[task_id].scope_digest != scope
+        tasks[task_id].scope_digest is not None and not scope_matches(req, tasks[task_id])
         for task_id in selected
         if task_id not in new_ids
     ):
@@ -491,10 +530,10 @@ async def run_id_tasks(req, dispatch):
             task.display_result is not None
             and task_id not in selected
             and task.status in {"completed", "partial", "waiting_user"}
-            and task.scope_digest == scope
+            and scope_matches(req, task)
         ):
             cached[task_id] = ChatResponse.model_validate(task.display_result)
-        if task.display_result is not None and task.scope_digest != scope:
+        if task.display_result is not None and not scope_matches(req, task):
             task.display_result = None
             task.result_refs = []
             task.status = "superseded"
@@ -512,7 +551,7 @@ async def run_id_tasks(req, dispatch):
             capability=task.goal,
             inputs={
                 "objective": task.objective,
-                "scopeDigest": scope,
+                "scopeDigest": task_scope(req, task),
                 "productRequirement": task.product_requirement.model_dump()
                 if task.product_requirement
                 else None,
@@ -678,7 +717,7 @@ async def run_id_tasks(req, dispatch):
             requests[tid] = ConsultationTaskRequest(
                 task_id=tid,
                 capability=proposal.capability,
-                inputs={"objective": proposal.objective, "scopeDigest": scope},
+                inputs={"objective": proposal.objective, "scopeDigest": task_scope(req, task)},
                 depends_on=[source_id],
                 requires_success=False,
             )
@@ -727,7 +766,8 @@ async def run_id_tasks(req, dispatch):
     for task in parent.tasks:
         source = tasks[task.task_id]
         task.depends_on = source.depends_on
-        task.scope_digest = scope
+        task.scope_snapshot = task_scope_components(req, task)
+        task.scope_digest = fingerprint(task.scope_snapshot)
         result = results.get(task.task_id)
         task.display_result = (
             result.model_dump(mode="json", by_alias=True, include=TASK_DISPLAY_FIELDS)

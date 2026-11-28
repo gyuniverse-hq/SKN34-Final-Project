@@ -61,6 +61,47 @@ def test_common_completion_uses_all_active_goal_states(states, question, expecte
 
 
 @pytest.mark.anyio
+async def test_question_answer_and_extra_ownership_reach_only_their_workflow():
+    from app.services.consultation_intent_service import prepare_turn
+    from tests.test_g8_consultation_intent import question_scope_request
+
+    req = question_scope_request()
+    extra = "클리오 틴트는 가지고 있어"
+    req.message = "삐아는 없어. " + extra + ". 피부 설명은 유지해줘"
+
+    class Model:
+        configured = True
+
+        async def complete_with_tools(self, messages, tools, *, required_tool=None):
+            state = json.loads(messages[-1]["content"])
+            args = {"planId": state["planId"], "version": state["version"],
+                    "action": "continue", "questionChanges": [{
+                        "taskId": "task-look", "inputKey": "ownership", "needId": "bbia",
+                        "operation": "answer", "quote": "삐아는 없어",
+                    }], "changes": [
+                        {"taskId": "task-look", "operation": "update", "quote": extra},
+                        {"taskId": "task-skin", "operation": "preserve",
+                         "quote": "피부 설명은 유지해줘"},
+                    ]}
+            return {"choices": [{"message": {"tool_calls": [{"function": {
+                "name": required_tool, "arguments": json.dumps(args),
+            }}]}}]}, 0
+
+    assert await prepare_turn(req, Model()) is None
+    seen = []
+
+    async def dispatch(capability, child):
+        seen.append((capability, child.message, child._question_answers))
+        return ChatResponse(answer="확인", products=[])
+
+    await parent.run_id_tasks(req, dispatch)
+    assert len(seen) == 1 and seen[0][0] == "owned_look"
+    assert "삐아는 없어" in seen[0][1] and extra in seen[0][1]
+    assert "피부 설명은 유지해줘" not in seen[0][1]
+    assert len(seen[0][2]) == 1 and seen[0][2][0][0].need_id == "bbia"
+
+
+@pytest.mark.anyio
 async def test_direct_specialist_question_has_owner_and_persistent_queue():
     async def clarify():
         return ChatResponse(answer="당김인가요?", products=[], result_type="clarification")
@@ -945,6 +986,60 @@ def test_parent_scope_ignores_sibling_filters_but_keeps_selection_and_memory_fen
     req.chat_context.selected_product_id = None
     req._memory_generation = "changed-generation"
     assert parent.task_scope(req) != baseline
+
+
+def test_independent_style_and_compare_scope_ignore_only_unrelated_inputs():
+    from app.schemas.chat import BeautyContext, BeautyFilters
+    from app.schemas.style_recipe import StyleContext
+    from app.services.consultation_task_adapter import fingerprint
+
+    req = ChatRequest(message="룩 다시", locale="ko")
+    req._memory_epoch = 7
+    req._memory_generation = "enabled-same"
+    style = ParentTask(task_id="task-style", goal="style", version=1)
+    compare = ParentTask(task_id="task-compare", goal="product", product_operation="compare",
+                         version=1)
+    for task in (style, compare):
+        task.scope_snapshot = parent.task_scope_components(req, task)
+        task.scope_digest = fingerprint(task.scope_snapshot)
+    req._consultation_memories = ()
+    assert parent.scope_matches(req, style) and parent.scope_matches(req, compare)
+    for task in (style, compare):
+        task.input_refs = [f"previous-plan:1:{task.task_id}"]
+    assert parent.scope_matches(req, style) and parent.scope_matches(req, compare)
+    req.chat_context = BeautyContext(issued_at=1, filters=BeautyFilters(),
+                                     selected_product_id="new-product")
+    assert parent.scope_matches(req, style)
+    assert not parent.scope_matches(req, compare)
+    req.chat_context = None
+    req.style_context = StyleContext(kind="video", lookId="different-look")
+    assert not parent.scope_matches(req, style)
+    assert parent.scope_matches(req, compare)
+    req.style_context = None
+    req._memory_generation = "consent-disabled"
+    assert not parent.scope_matches(req, style) and not parent.scope_matches(req, compare)
+    req._memory_generation = "enabled-same"
+    req._memory_epoch = 8
+    assert not parent.scope_matches(req, style)
+
+
+def test_legacy_scope_compatibility_does_not_relax_consent_or_selection_fences():
+    from app.schemas.chat import BeautyContext, BeautyFilters
+    from app.services.consultation_task_adapter import fingerprint
+
+    req = ChatRequest(message="룩만 다시", locale="ko")
+    req._memory_epoch = 0
+    req._memory_generation = "same-generation"
+    task = ParentTask(goal="style", version=1,
+                      scope_digest=fingerprint(parent.task_scope_components(req, legacy=True)))
+    req._consultation_memories = ()
+    assert parent.scope_matches(req, task)
+    req.chat_context = BeautyContext(issued_at=1, filters=BeautyFilters(),
+                                     selected_product_id="actually-changed")
+    assert not parent.scope_matches(req, task)
+    req.chat_context = None
+    req._memory_epoch += 1
+    assert not parent.scope_matches(req, task)
 
 
 @pytest.mark.anyio

@@ -5,6 +5,8 @@ import json
 import re
 from time import monotonic
 
+from pydantic import ValidationError
+
 from app.core.config import get_settings
 from app.core.errors import UpstreamError
 from app.schemas.chat import ChatResponse
@@ -119,6 +121,12 @@ Check the named product/role against the question text before choosing needId. E
 question at most once. If the SAME question is both answered and explicitly retracted or
 left unanswered by conflicting clauses, clarify instead of selecting an interpretation.
 Whole-task preservation/withdrawal cannot coexist with an answer to one of its questions.
+An ownership reply can ALSO declare another product not listed in pendingQuestions.
+Keep every such explicit statement in an update quote for the SAME owned_look task,
+alongside the listed question answers and budget conditions. Do not invent a question ID
+for the additional product or drop it because its option is unknown. The specialist resolves
+product/option identity and ownership. Copy one complete original span when several sentences
+belong together; never rewrite or reduce it to only the product that was asked about.
 
 """
 
@@ -154,14 +162,17 @@ def validate_intent(intent, req):
         from app.schemas.consultation_parent import ConsultationChange
 
         answer_owners = {c.task_id for c in intent.question_changes if c.operation == "answer"}
+        explicit_owners = answer_owners | {
+            c.task_id for c in intent.changes if c.operation == "update"
+        }
         if (
             intent.action != "continue"
             or parent.execution_state == "cancelled"
             or (
                 intent.targets
                 and (
-                    set(intent.targets) != answer_owners
-                    or len(intent.targets) != len(answer_owners)
+                    not answer_owners <= set(intent.targets) <= explicit_owners
+                    or len(intent.targets) != len(set(intent.targets))
                 )
             )
         ):
@@ -447,6 +458,8 @@ def control_response(req, text, *, parent=None, clarification=False):
 def intent_schema(parent):
     """Expose only actual server question identities in the model's proposal domain."""
     schema = ConsultationIntent.model_json_schema(by_alias=True)
+    schema["properties"]["planId"]["enum"] = [str(parent.plan_id)]
+    schema["properties"]["version"]["enum"] = [parent.version]
     questions = [
         q for q in parent.pending_questions or ([parent.question] if parent.question else [])
         if q.task_id is not None
@@ -471,7 +484,7 @@ async def prepare_turn(req, llm, *, initial=False, _repair_omitted=True):
 
     parent = req._consultation_parent
     if parent and req._product_style_context:
-        from app.services.consultation_parent_graph import task_scope
+        from app.services.consultation_parent_graph import task_scope, task_scope_components
         from app.services.product_style_consultation_service import scope_digest
 
         # Old persisted comparison+look plans have a known producer, unlike arbitrary
@@ -494,7 +507,8 @@ async def prepare_turn(req, llm, *, initial=False, _repair_omitted=True):
                 task.display_result = (
                     legacy.product_result if task.task_id == "product" else legacy.style_result
                 )
-                task.scope_digest = task_scope(req)
+                task.scope_snapshot = task_scope_components(req, task)
+                task.scope_digest = task_scope(req, task)
         req._consultation_parent = parent
     if (
         not get_settings().g8_enabled
@@ -636,8 +650,40 @@ async def prepare_turn(req, llm, *, initial=False, _repair_omitted=True):
                 "Invalid specialist clarification target": "invalid_question_target",
                 "Invalid question reference": "invalid_question_reference",
                 "Conflicting task and question changes": "conflicting_question_scope",
+                "Conflicting task changes": "conflicting_task_changes",
+                "Invalid result position": "invalid_result_position",
+                "Conflicting result target": "conflicting_result_target",
+                "Question changes require active continuation": "inactive_question_change",
+                "New goals require active continuation": "inactive_new_goal",
+                "Parent task capacity exceeded": "task_capacity",
+                "Ungrounded new goal": "ungrounded_new_goal",
+                "Ungrounded specialist followup": "ungrounded_followup",
+                "Duplicate new goal": "duplicate_new_goal",
+                "Composite context requires a unique owner": "ambiguous_composite_owner",
+                "Combined changes require continue": "invalid_combined_action",
+                "Cancelled work needs explicit resume": "resume_required",
+                "Product operation on another capability": "wrong_operation_owner",
+                "Unanchored parent action": "ungrounded_action",
+                "Retry requires unfinished work": "invalid_retry_state",
+                "Resume requires cancelled work": "invalid_resume_state",
+                "Missing clarification": "missing_clarification",
+                "Invalid change targets": "invalid_change_targets",
+                "Preserved result depends on changed inputs": "changed_preserved_dependency",
             }
             audit["rejectionCode"] = reasons.get(str(exc), "invalid_contract")
+            if isinstance(exc, ValidationError):
+                audit["rejectionCode"] = "schema_validation"
+                fields = set(ConsultationIntent.model_fields) | {
+                    f.alias for f in ConsultationIntent.model_fields.values()
+                } | {"taskId", "inputKey", "needId", "operation", "quote", "productOperation",
+                     "capability", "sharedQuotes", "explanationQuote"}
+                audit["schemaErrors"] = [
+                    {"type": e["type"], "path": [
+                        p if isinstance(p, int) or p in fields else "unknown_field"
+                        for p in e["loc"]
+                    ]}
+                    for e in exc.errors(include_input=False, include_context=False)
+                ]
             return control_response(
                 req, "어떤 상담 작업을 변경할지 다시 알려주세요.", clarification=True
             )

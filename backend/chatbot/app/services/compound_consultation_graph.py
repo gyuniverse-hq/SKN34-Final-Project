@@ -3,6 +3,7 @@
 import asyncio
 import hashlib
 import json
+import logging
 import re
 from dataclasses import dataclass, field
 from graphlib import TopologicalSorter
@@ -31,6 +32,8 @@ from app.schemas.compound_consultation import (
 from app.services import compound_consultation_service as specialists
 from app.services.beauty_consultation_service import _explicit_krw_budget, _requested_price_basis
 from app.services.consultation_task_adapter import adapt_specialist
+
+logger = logging.getLogger(__name__)
 
 
 class Interpretation(CompoundModel):
@@ -145,6 +148,7 @@ async def interpret(req, llm, previous: CompoundContext | None):
         return None
     choose = getattr(llm, "complete_with_tools", None)
     if choose is None or not llm.configured:
+        logger.warning("g8_skin_plan_failed stage=availability reason=model_unavailable")
         raise ApiError(503, "Consultation planner is unavailable", "chatbot_unavailable")
     messages = [
         {"role": "system", "content": _PLAN_PROMPT},
@@ -174,11 +178,16 @@ async def interpret(req, llm, previous: CompoundContext | None):
             "parameters": Interpretation.model_json_schema(by_alias=True),
         },
     }
+    started = monotonic()
+    stage, reason = "model_call", "model_call_failed"
     try:
         result, _ = await choose(messages, [tool], required_tool=_PLAN_TOOL)
+        stage, reason = "response_structure", "invalid_tool_envelope"
         (call,) = result["choices"][0]["message"]["tool_calls"]
         if call["function"]["name"] != _PLAN_TOOL:
+            reason = "unexpected_tool"
             raise ValueError("Unexpected planner tool")
+        stage, reason = "arguments_json", "invalid_arguments_json"
         arguments = json.loads(call["function"]["arguments"])
         if arguments.get("scope") == "consultation" and arguments.get("action") == "knowledge":
             # Explanation-only plans cannot create or modify search state. Some models
@@ -186,18 +195,23 @@ async def interpret(req, llm, previous: CompoundContext | None):
             arguments["goal"] = None
             arguments.pop("wantsKnowledge", None)
             arguments.pop("wantsProducts", None)
+        stage, reason = "schema_validation", "invalid_schema"
         plan = Interpretation.model_validate(arguments)
+        stage, reason = "semantic_validation", "invalid_plan"
         if plan.scope != "consultation":
             return plan
         if plan.action == "other" or (plan.action == "refine" and previous is None):
             return None
         if plan.action in {"clarify", "knowledge"}:
             if plan.goal is not None or not plan.question.strip():
+                reason = "clarification_contract"
                 raise ValueError("Clarification needs a question without inferred goals")
             if plan.knowledge_action != "keep" or plan.remove_knowledge_ingredients:
+                reason = "condition_change_without_refine"
                 raise ValueError("Condition changes require a refinement goal")
             return plan
         if not plan.goal:
+            reason = "missing_goal"
             raise ValueError("Missing goal")
         budget = _explicit_krw_budget(req.message)
         if budget is not None:
@@ -212,12 +226,26 @@ async def interpret(req, llm, previous: CompoundContext | None):
         if plan.action == "start" and not (plan.goal.wants_products and plan.goal.wants_knowledge):
             return None
         if plan.goal.wants_knowledge and not plan.question.strip():
+            reason = "missing_knowledge_question"
             raise ValueError("Missing knowledge question")
         return plan
-    except (KeyError, IndexError, TypeError, ValueError, UpstreamError) as exc:
-        raise ApiError(
-            502, "Could not interpret consultation", "compound_plan_unavailable"
-        ) from exc
+    except Exception as exc:
+        # Keep only server-owned categories/types; never log model/user payloads or error text.
+        schema_errors = sorted({e["type"] for e in exc.errors(include_input=False)}) if (
+            isinstance(exc, ValidationError)
+        ) else []
+        logger.warning(
+            "g8_skin_plan_failed stage=%s reason=%s errorType=%s causeType=%s "
+            "ms=%.1f schemaErrors=%s",
+            stage, reason, type(exc).__name__,
+            type(exc.__cause__).__name__ if exc.__cause__ else None,
+            (monotonic() - started) * 1000, schema_errors,
+        )
+        if isinstance(exc, (KeyError, IndexError, TypeError, ValueError, UpstreamError)):
+            raise ApiError(
+                502, "Could not interpret consultation", "compound_plan_unavailable"
+            ) from exc
+        raise
 
 
 class RunState(TypedDict, total=False):

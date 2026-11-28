@@ -57,6 +57,17 @@ _EXPLANATION_SCOPE = (
     "give every requirement a unique nonempty ID and description, and mark at least one actual "
     "requested explanation as required. Excluding Catalog work never makes all explanation "
     "requirements optional."
+    " Each requirement must cover one requested fact or action. Split distinct causes, "
+    "and split causes from care, so an answered part is not reported as wholly missing. "
+    "User background symptoms, timing and product type constrain applicability; they do not "
+    "require an exhaustive causal explanation for every background detail. Preserve an explicit "
+    "request about makeup lifting as its own required item even if general dryness is answered. "
+    "Ingredient or product-class tips are optional unless explicitly requested as explanation."
+    " For ordinary cause questions, require source-supported possible mechanisms relevant to "
+    "the stated skin state, not proof of the cause of this person's episode at that time. "
+    "A directly supported general dryness mechanism can meet that explanation without an "
+    "afternoon-specific study; this does not establish individual causation. Still require "
+    "a supported mechanism for makeup lifting when asked; dryness alone does not answer it."
 )
 _MISSING = "제공된 원문으로는 질문에 필요한 내용을 확인할 수 없습니다."
 _PARTIAL = "일부 내용은 제공된 원문으로 확인하기 어렵습니다."
@@ -104,6 +115,10 @@ DIFFERENT_CONTEXT or UNVERIFIED for this link, and NONE with an empty list when 
 2. Question match. MATCHED fully answers each listed requirement; PARTIAL_MATCH answers part.
 Use MISMATCHED for the wrong requested measure, product or application, IRRELEVANT for unrelated
 information, UNCERTAIN when unclear. Link only requirement_ids that the claim addresses.
+If a claim fully answers some requirements but only part of another, use MATCHED and list
+ONLY the fully answered requirement_ids. Do not downgrade those items because another item
+is partial. Use PARTIAL_MATCH with the partially addressed IDs when none is fully answered.
+Unlisted required items remain unfulfilled; never add an ID merely to improve coverage.
 3. Applicability. Compare each explicit user condition against the scope of the supporting
 excerpts and any linked conditions for the action or outcome actually claimed. Background
 context alone does not make a general preparation step a claim of special efficacy or safety.

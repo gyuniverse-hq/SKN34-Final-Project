@@ -646,6 +646,104 @@ def test_search_condition_accepts_paraphrase_only_with_linked_source(monkeypatch
         assert decisions[0]["decision"] == "unverified_evidence"
 
 
+@pytest.mark.parametrize("ingredient", ["글리세린", "나이아신아마이드"])
+def test_search_condition_needs_name_in_exact_cited_passage(monkeypatch, ingredient):
+    from app.schemas.compound_consultation import KnowledgeSearchCondition
+
+    knowledge = install_knowledge(monkeypatch).return_value.reply
+    knowledge.claims[0].claim = f"보습을 위해 {ingredient} 함유 제품을 고려하세요."
+    knowledge.claims[0].citations = ["E1", "E2"]
+    knowledge.evidence[0].quote = "이 성분이 들어 있는지 확인하세요."
+    knowledge.evidence.append(knowledge.evidence[0].model_copy(update={
+        "id": "E2", "quote": f"{ingredient} 함유 제품을 선택할 수 있습니다.",
+    }))
+    proposal = KnowledgeSearchCondition(
+        ingredient_name=ingredient, operator="includes", claim_index=0,
+        evidence_id="E1", quote=knowledge.evidence[0].quote,
+    )
+    accepted, decisions = specialists.validate_search_conditions(GOAL, knowledge, [proposal])
+    assert not accepted and decisions[0]["decision"] == "unverified_evidence"
+    linked = proposal.model_copy(update={
+        "evidence_id": "E2", "quote": knowledge.evidence[1].quote,
+    })
+    assert specialists.validate_search_conditions(GOAL, knowledge, [linked])[0] == [linked]
+    excluded = GOAL.model_copy(update={"excluded_ingredients": [ingredient]})
+    accepted, decisions = specialists.validate_search_conditions(excluded, knowledge, [linked])
+    assert not accepted and decisions[0]["decision"] == "user_condition_precedes"
+    for invalid in (linked.model_copy(update={"claim_index": 1}),
+                    linked.model_copy(update={"evidence_id": "not-cited"})):
+        assert not specialists.validate_search_conditions(GOAL, knowledge, [invalid])[0]
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("failure,stage,reason", [
+    ("call", "model_call", "model_call_failed"),
+    ("envelope", "response_structure", "invalid_tool_envelope"),
+    ("tool", "response_structure", "unexpected_tool"),
+    ("json", "arguments_json", "invalid_arguments_json"),
+    ("schema", "schema_validation", "invalid_schema"),
+    ("semantic", "semantic_validation", "clarification_contract"),
+    ("unknown", "model_call", "model_call_failed"),
+])
+async def test_skin_plan_diagnostics_keep_payload_private(
+    monkeypatch, caplog, failure, stage, reason,
+):
+    from app.core.errors import ApiError
+
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    marker = "private-diagnostic-payload"
+    planner = Planner()
+
+    async def choose(*args, **kwargs):
+        if failure == "call":
+            raise UpstreamError(marker) from httpx.ConnectTimeout(marker)
+        if failure == "unknown":
+            raise RuntimeError(marker)
+        arguments = {"scope": "consultation", "action": "clarify", "question": marker}
+        if failure == "schema":
+            arguments["scope"] = marker
+        if failure == "semantic":
+            arguments["goal"] = GOAL.model_dump(mode="json", by_alias=True)
+        call = {"function": {"name": marker if failure == "tool" else "plan_skin_consultation",
+                             "arguments": "{" + marker if failure == "json"
+                             else json.dumps(arguments)}}
+        return {"choices": [] if failure == "envelope" else [
+            {"message": {"tool_calls": [call]}},
+        ]}, 0
+
+    planner.complete_with_tools = choose
+    caplog.set_level("WARNING", logger=graph.__name__)
+    with pytest.raises(RuntimeError if failure == "unknown" else ApiError) as error:
+        await graph.interpret(ChatRequest(message=QUESTION + marker, locale="ko"), planner, None)
+    if failure != "unknown":
+        assert error.value.code == "compound_plan_unavailable"
+    assert f"stage={stage} reason={reason}" in caplog.text
+    assert marker not in caplog.text
+    if failure == "call":
+        assert "causeType=ConnectTimeout" in caplog.text
+    if failure == "schema":
+        assert "literal_error" in caplog.text
+
+
+@pytest.mark.parametrize("name,source_name", [("글리세린", "glycerin"), ("판테놀", "panthenol")])
+def test_translated_name_is_not_literal_evidence_match(monkeypatch, name, source_name):
+    from app.schemas.compound_consultation import KnowledgeSearchCondition
+
+    knowledge = install_knowledge(monkeypatch).return_value.reply
+    knowledge.claims[0].claim = f"{name} 함유 보습제를 고려하세요."
+    knowledge.evidence[0].quote = f"Choose a moisturizer with {source_name}."
+    proposal = KnowledgeSearchCondition(
+        ingredient_name=name, operator="includes", claim_index=0,
+        evidence_id="E1", quote=knowledge.evidence[0].quote,
+    )
+    assert not specialists.validate_search_conditions(GOAL, knowledge, [proposal])[0]
+    knowledge.claims[0].claim = f"{name}({source_name}) 함유 보습제를 고려하세요."
+    combined = proposal.model_copy(update={"ingredient_name": f"{name} ({source_name})"})
+    assert not specialists.validate_search_conditions(GOAL, knowledge, [combined])[0]
+    same_spelling = proposal.model_copy(update={"ingredient_name": source_name.upper()})
+    assert specialists.validate_search_conditions(GOAL, knowledge, [same_spelling])[0]
+
+
 def test_search_condition_rejects_unlinked_and_conflicting_evidence(monkeypatch):
     from app.schemas.compound_consultation import KnowledgeSearchCondition
 

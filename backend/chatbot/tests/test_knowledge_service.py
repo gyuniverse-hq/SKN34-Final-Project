@@ -825,6 +825,29 @@ def test_delegated_explanation_scope_reaches_all_g5_stages_and_keeps_coverage():
     ]
 
 
+def test_one_claim_can_fully_answer_some_requirements_without_fulfilling_the_rest():
+    from app.schemas.consultation_answer import KnowledgeCoverage
+
+    evidence, loc, _ = verify_selection([SELECTED], {"C1": HIT})
+    _, evidence, _ = pack(evidence, loc, originals(loc), [HIT])
+    draft = {"claims": [{"claim": QUOTE, "citations": ["E1"]}], "limitations": ""}
+    audit = verification(
+        check(1, requirements=["R1", "R2"], citations=["E1"]),
+        required=["요구 하나", "요구 둘", "아직 답하지 않은 관리 방법"],
+    )
+    coverage = KnowledgeCoverage(scope="explanation")
+    reply = resolve(draft, audit, evidence, coverage=coverage)
+    assert reply.status == "partial" and len(reply.claims) == 1
+    assert [(r.requirement_id, r.fulfilled) for r in coverage.requirements] == [
+        ("R1", True), ("R2", True), ("R3", False),
+    ]
+    assert "아직 답하지 않은 관리 방법" in reply.limitations
+    audit["reviews"][0]["match"] = "PARTIAL_MATCH"
+    reply = resolve(draft, audit, evidence, coverage=coverage)
+    assert reply.status == "partial"
+    assert not any(r.fulfilled for r in coverage.requirements)
+
+
 def test_coverage_uses_original_review_ids_after_first_claim_dropped():
     from app.schemas.consultation_answer import KnowledgeCoverage
 

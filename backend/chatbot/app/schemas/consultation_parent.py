@@ -62,6 +62,9 @@ class ParentTask(ParentModel):
     limitations: list[str] = Field(default_factory=list)
     display_result: dict[str, JsonValue] | None = None
     scope_digest: str | None = None
+    scope_snapshot: dict[str, JsonValue] | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
     input_needs: list[TaskInputNeed] = Field(default_factory=list)
 
     @model_validator(mode="after")

@@ -1681,6 +1681,86 @@ def scope_request(message, *, other_option=False):
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("possession", ["있어", "갖고 있어", "가지고 있어", "없어"])
+async def test_bound_answer_keeps_additional_named_product_ownership_and_budget(possession):
+    from app.schemas.consultation_parent import ParentQuestion
+
+    catalog = KoreanScopeCatalog()
+    req = scope_request("이 룩에 필요한 상품 추천해줘")
+    req._consultation_memories = ()
+    first = await execute_owned_look(req, catalog)
+    first_item = next(i for i in first._owned_look_outcome.items if "하트퍼센트" in i.label)
+    req._owned_look_context = first._owned_look_context
+    req._question_answers = [(ParentQuestion(
+        task_id="task-look", goal="owned_look", version=1, text="첫 상품 있나요?",
+        input_key="ownership", need_id=first_item.need_id,
+        recipe_version=first.style_recipe.recipe_version, ownership_scope="option",
+    ), "없어")]
+    req.message = f"없어. 롬앤 쥬시 래스팅 틴트는 {possession}. 각각 2만원 이하로 찾아줘."
+    result = await execute_owned_look(req, catalog)
+    state = result._owned_look_context
+    assert state.item_declarations[first_item.need_id].status == "missing"
+    extra = next(i for i in result._owned_look_outcome.items if "롬앤" in i.label)
+    declaration = state.item_declarations[extra.need_id]
+    assert declaration.status == ("missing" if possession == "없어" else "present")
+    assert declaration.scope == "product"
+    assert extra.status != "fulfilled"  # A product statement never proves its exact sale option.
+    assert state.filters.max_price_krw == 20000
+    req._owned_look_context = state
+    req._question_answers = []
+    req.message = "예산만 3만원 이하로 바꿔줘"
+    follow = await execute_owned_look(req, catalog)
+    assert follow._owned_look_context.item_declarations[extra.need_id] == declaration
+    assert follow._owned_look_context.filters.max_price_krw == 30000
+
+
+@pytest.mark.anyio
+async def test_additional_name_variant_uses_existing_reference_interpreter_without_budget():
+    import json
+
+    from app.schemas.consultation_parent import ParentQuestion
+
+    req = scope_request("이 룩에 필요한 상품 추천해줘")
+    req._consultation_memories = ()
+    catalog = KoreanScopeCatalog()
+    first = await execute_owned_look(req, catalog)
+    target = next(i for i in first._owned_look_outcome.items if "하트퍼센트" in i.label)
+    req._owned_look_context = first._owned_look_context
+    req._question_answers = [(ParentQuestion(
+        task_id="task-look", goal="owned_look", version=1, text="첫 상품 있나요?",
+        input_key="ownership", need_id=target.need_id,
+        recipe_version=first.style_recipe.recipe_version, ownership_scope="option",
+    ), "없어")]
+    req.message = "없어. 롬앤 틴트는 갖고 있어. 각각 2만원 이하로 찾아줘."
+    calls = []
+
+    class Model:
+        configured = True
+
+        async def complete_with_tools(self, messages, tools, *, required_tool=None):
+            payload = json.loads(messages[-1]["content"])
+            calls.append(payload)
+            snapshot = payload["snapshot"]
+            extra = next(t for t in snapshot["targets"] if t["productId"] == "lip-b")
+            args = {"snapshotVersion": snapshot["version"], "action": "update", "operations": [
+                {"action": "declare", "targetId": extra["targetId"],
+                 "scope": "product", "status": "present"},
+            ]}
+            return {"choices": [{"message": {"tool_calls": [{"function": {
+                "name": required_tool, "arguments": json.dumps(args),
+            }}]}}]}, 0
+
+    req._owned_look_llm = Model()
+    result = await execute_owned_look(req, catalog)
+    assert len(calls) == 1
+    assert calls[0]["utterance"].strip() == "롬앤 틴트는 갖고 있어."
+    state = result._owned_look_context
+    assert state.item_declarations[target.need_id].status == "missing"
+    assert state.product_declarations["lip-b"].status == "present"
+    assert state.filters.max_price_krw == 20000
+
+
+@pytest.mark.anyio
 async def test_korean_product_missing_never_expands_to_zone_and_release_is_scoped():
     from app.schemas.owned_look_context import OwnershipDeclaration
 

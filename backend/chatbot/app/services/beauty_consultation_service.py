@@ -185,7 +185,13 @@ When lookProfile is provided, use it as context only. Set query to a product or 
 explicitly named by the user, using the user's exact wording. Never use a look title,
 style description or an inferred brand as query.
 shadeName: explicitly requested shade label only; never invent IDs or select a shade.
-compareOrdinals: exactly two explicitly referenced candidate numbers (1..6) for ingredients.
+compareOrdinals: exactly two explicitly referenced candidate numbers (1..6) for comparison.
+comparisonNames: exactly two product names explicitly written in the current request,
+copied as separate exact spans. Use intent detail and scope catalog, omit query, even for
+a price comparison. Never combine two identities into query. Do not put pronouns such as
+this product in comparisonNames. A screen-selected product plus one named counterpart
+continues to use query for that counterpart. More than two or ambiguous references need
+clarification; never silently drop an operand. Do not invent product IDs.
 When comparing the current product with one other product, use intent detail.
 Set query to the other product name as written in the message, never the current product.
 For one candidate number use ordinal. If no other target is named, omit query and ordinal.
@@ -566,9 +572,24 @@ _COMPARISON_COPY = {
 }
 
 
+def _comparison_pair(req, plan):
+    if not (_COMPARE.search(req.message) or req._product_operation == "compare"):
+        return None
+    if len(plan.comparison_names) == 2:
+        return "names"
+    if (
+        not _INGREDIENT_TOPIC.search(req.message)
+        and len(set(plan.compare_ordinals)) == 2
+        and all(_comparison_ordinal(req.message, n) for n in plan.compare_ordinals)
+    ):
+        return "ordinals"
+    return None
+
+
 def direct_comparison(req, plan):
     return bool(
-        not (
+        _comparison_pair(req, plan)
+        or (not (
             len(set(plan.compare_ordinals)) == 2
             and all(_comparison_ordinal(req.message, n) for n in plan.compare_ordinals)
         )
@@ -580,7 +601,7 @@ def direct_comparison(req, plan):
         and (
             (req.screen_context and req.screen_context.product_id)
             or (req.chat_context and req.chat_context.selected_product_id)
-        )
+        ))
     )
 
 
@@ -634,10 +655,14 @@ def _comparison_choice_reply(context, base_id, choices, locale, price_basis=None
 
 
 async def _compare_product(req, plan, catalog):
+    if _comparison_pair(req, plan):
+        return await _compare_pair(req, plan, catalog)
     now = int(time.time())
     screen = req.screen_context
     previous = req.chat_context
-    product_id = (screen.product_id if screen else None) or previous.selected_product_id
+    product_id = (screen.product_id if screen else None) or (
+        previous.selected_product_id if previous else None
+    )
     context = previous or _context(BeautyFilters(), [product_id], now, selected=product_id)
     clarify, unverified = _COMPARISON_COPY[req.locale]
     pending_target = (
@@ -705,6 +730,65 @@ async def _compare_product(req, plan, catalog):
     if candidate is None or candidate.id == current.id:
         return _reply(unverified, context, preserve_selection=True)
 
+    return await _comparison_result(req, catalog, context, current, candidate, continuation)
+
+
+async def _compare_pair(req, plan, catalog):
+    previous = req.chat_context
+    context = previous.model_copy(deep=True) if previous else _context(
+        BeautyFilters(), [], int(time.time())
+    )
+    clarify, unverified = _COMPARISON_COPY[req.locale]
+    if _comparison_pair(req, plan) == "ordinals":
+        if previous is None:
+            return _reply(clarify, context, preserve_selection=True)
+        if not 0 <= int(time.time()) - previous.issued_at <= CONTEXT_TTL_SECONDS:
+            return _reply(TEXT[req.locale]["expired"], context, preserve_selection=True)
+        if any(n > len(previous.candidate_ids) for n in plan.compare_ordinals):
+            return _reply(clarify, context, preserve_selection=True)
+        ids = [previous.candidate_ids[n - 1] for n in plan.compare_ordinals]
+        products = [await catalog.get_product(pid) for pid in ids]
+        if any(p is None or p.id != pid for p, pid in zip(products, ids, strict=True)):
+            return _reply(unverified, context, preserve_selection=True)
+    else:
+        names = [_comparison_name(req.message, name) for name in plan.comparison_names]
+        if not all(names):
+            return _reply(clarify, context, preserve_selection=True)
+        matches = []
+        for name in names:
+            rows = await catalog.search_products(q=name)
+            matches.append(list({
+                p.id: p for p in rows if p.id == name or _matches_product_name(p, name)
+            }.values()))
+        if any(len(items) != 1 for items in matches):
+            unique = next((i for i, items in enumerate(matches) if len(items) == 1), None)
+            if unique is not None:
+                other = matches[1 - unique]
+                if 1 < len(other) <= 6:
+                    from app.schemas.consultation_parent import ComparisonChoice
+
+                    context.selected_product_id = matches[unique][0].id
+                    return _comparison_choice_reply(
+                        context, context.selected_product_id,
+                        [ComparisonChoice(product_id=p.id, label=p.name) for p in other],
+                        req.locale, _requested_price_basis(req.message),
+                    )
+            return _reply(unverified, context, preserve_selection=True)
+        products = [items[0] for items in matches]
+    if products[0].id == products[1].id:
+        return _reply(unverified, context, preserve_selection=True)
+    if previous is None:
+        context = _context(BeautyFilters(), [p.id for p in products], int(time.time()),
+                           selected=products[0].id)
+    return await _comparison_result(req, catalog, context, *products)
+
+
+async def _comparison_result(req, catalog, context, current, candidate, continuation=None):
+    screen = req.screen_context
+    price_basis = _requested_price_basis(req.message)
+    question = req._comparison_question
+    if question and question.comparison_base_id == current.id:
+        price_basis = price_basis or question.comparison_price_basis
     if (screen and screen.screen_id == "product-ingredient-comparison") or _INGREDIENT_TOPIC.search(
         req.message
     ):
@@ -1071,12 +1155,13 @@ async def interpret_beauty(
     ):
         raise ApiError(502, "Invalid price selection", "invalid_chat_plan")
     if direct_comparison(req, plan):
+        ordinal_pair = _comparison_pair(req, plan) == "ordinals"
         return plan.model_copy(
             update={
                 "intent": "detail",
-                "scope": "catalog",
+                "scope": "previous" if ordinal_pair else "catalog",
                 "selection": None,
-                "compare_ordinals": [],
+                "compare_ordinals": plan.compare_ordinals if ordinal_pair else [],
             }
         )
     if plan.compare_ordinals and plan.intent in {"search", "refine"}:

@@ -1,6 +1,6 @@
 """Internal Supervisor contracts; never authorize writes or claim app execution."""
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -88,6 +88,9 @@ class SearchPlan(SupervisorModel):
     ingredient_conditions: list[IngredientPlanCondition] = Field(default_factory=list, max_length=6)
     shade_name: str | None = Field(default=None, min_length=1, max_length=128)
     compare_ordinals: list[int] = Field(default_factory=list, max_length=2)
+    comparison_names: list[Annotated[str, Field(min_length=2, max_length=80)]] = Field(
+        default_factory=list, max_length=2, exclude_if=lambda v: not v
+    )
     clear_filters: list[
         Literal[
             "category",

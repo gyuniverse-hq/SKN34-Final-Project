@@ -112,6 +112,88 @@ def test_question_answer_and_sibling_preservation_normalize_one_owner_update():
     assert len(req._consultation_parent.pending_questions) == 2
 
 
+def test_question_answer_retains_extra_ownership_clause_for_the_same_workflow():
+    req = question_scope_request()
+    extra = "클리오 틴트는 가지고 있어"
+    req.message = "삐아는 없어. " + extra + ". 피부 설명은 유지해줘"
+    proposal = question_proposal(req)
+    proposal.question_changes = proposal.question_changes[:1]
+    from app.schemas.consultation_parent import ConsultationChange
+
+    proposal.changes.append(ConsultationChange(
+        task_id="task-look", operation="update", quote=extra,
+    ))
+    result = validate_intent(proposal, req)
+    assert next(c.quote for c in result.changes if c.task_id == "task-look") == (
+        "삐아는 없어\n" + extra
+    )
+    assert len(result.question_changes) == 1
+
+
+def test_parent_proposal_schema_limits_identity_to_current_server_plan():
+    from app.services.consultation_intent_service import intent_schema
+
+    parent = question_scope_request()._consultation_parent
+    schema = intent_schema(parent)
+    assert schema["properties"]["planId"]["enum"] == [str(parent.plan_id)]
+    assert schema["properties"]["version"]["enum"] == [parent.version]
+    newer = parent.model_copy(update={"version": parent.version + 1})
+    assert intent_schema(newer)["properties"]["version"]["enum"] == [newer.version]
+
+
+@pytest.mark.parametrize("extra_target,valid", [(None, True), ("unknown-task", False)])
+def test_redundant_targets_can_include_a_separately_grounded_sibling_change(extra_target, valid):
+    req = question_scope_request()
+    from app.schemas.consultation_parent import ConsultationChange
+
+    req.message = "삐아는 없어. 피부 상담은 오후 각질로 설명해줘."
+    proposal = question_proposal(req)
+    proposal.question_changes = proposal.question_changes[:1]
+    proposal.changes = [ConsultationChange(
+        task_id="task-skin", operation="update", quote="피부 상담은 오후 각질로 설명해줘.",
+    )]
+    proposal.targets = ["task-look", "task-skin"] + ([extra_target] if extra_target else [])
+    if not valid:
+        with pytest.raises(ValueError):
+            validate_intent(proposal, req)
+        return
+    result = validate_intent(proposal, req)
+    assert not result.targets
+    assert {c.task_id for c in result.changes} == {"task-look", "task-skin"}
+    assert all(c.operation == "update" for c in result.changes)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("kind,expected", [
+    ("schema", "schema_validation"), ("duplicate", "conflicting_task_changes"),
+])
+async def test_parent_rejection_audit_is_specific_without_raw_input(kind, expected):
+    from app.services.consultation_intent_service import prepare_turn
+
+    req = question_scope_request()
+
+    class InvalidModel:
+        configured = True
+
+        async def complete_with_tools(self, messages, tools, *, required_tool=None):
+            args = {"planId": str(req._consultation_parent.plan_id), "version": 1,
+                    "action": "continue", "changes": []}
+            if kind == "schema":
+                args["private-freeform-field"] = "DO-NOT-LOG-PRIVATE-INPUT"
+            else:
+                args["changes"] = [{"taskId": "task-look", "operation": "update",
+                                    "quote": "삐아는 없어"}] * 2
+            return {"choices": [{"message": {"tool_calls": [{"function": {
+                "name": required_tool, "arguments": json.dumps(args),
+            }}]}}]}, 0
+
+    result = await prepare_turn(req, InvalidModel())
+    assert result.result_type == "clarification"
+    assert req._parent_intent_audit["rejectionCode"] == expected
+    assert "PRIVATE-INPUT" not in json.dumps(req._parent_intent_audit)
+    assert "private-freeform-field" not in json.dumps(req._parent_intent_audit)
+
+
 @pytest.mark.parametrize("invalid", ["unknown", "same_question", "task_preserve", "stale"])
 def test_question_scope_rejects_conflicts_and_stale_references_without_mutation(invalid):
     req = question_scope_request()
