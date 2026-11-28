@@ -343,6 +343,7 @@ export const en = {
   "celebrity.haerin": "Haerin",
   "celebrity.wony": "Wony",
   "celebrity.choose": "Choose a celebrity",
+  "celebrity.comingSoon": "COMING SOON",
   "celebrity.videosTitle": "Makeup videos",
   "celebrity.videosEmpty": "Videos are coming soon.",
   "celebrity.notFound": "Celebrity not found.",

@@ -384,6 +384,7 @@ export const ja: Dictionary = {
   "celebrity.haerin": "ヘリン",
   "celebrity.wony": "ウォニ",
   "celebrity.choose": "セレブを選んでメイク動画を見てみましょう。",
+  "celebrity.comingSoon": "COMING SOON",
   "celebrity.videosTitle": "メイク動画",
   "celebrity.videosEmpty": "動画はまだありません。近日公開予定です。",
   "celebrity.notFound": "セレブが見つかりません。",

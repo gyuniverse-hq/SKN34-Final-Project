@@ -384,6 +384,7 @@ export const zh: Dictionary = {
   "celebrity.haerin": "Haerin",
   "celebrity.wony": "Wony",
   "celebrity.choose": "选择明星，探索妆容视频。",
+  "celebrity.comingSoon": "COMING SOON",
   "celebrity.videosTitle": "妆容视频",
   "celebrity.videosEmpty": "视频即将上线。",
   "celebrity.notFound": "未找到该明星。",

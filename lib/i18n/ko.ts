@@ -384,6 +384,7 @@ export const ko: Dictionary = {
   "celebrity.haerin": "해린",
   "celebrity.wony": "원이",
   "celebrity.choose": "연예인을 선택해 메이크업 영상을 만나보세요.",
+  "celebrity.comingSoon": "COMING SOON",
   "celebrity.videosTitle": "메이크업 영상",
   "celebrity.videosEmpty": "아직 등록된 영상이 없어요. 곧 찾아올게요.",
   "celebrity.notFound": "연예인을 찾을 수 없어요.",
