@@ -1,6 +1,8 @@
 """Real parent LangGraph, synthetic specialists/Catalog. No external model calls."""
 
+import asyncio
 import json
+from time import monotonic
 from uuid import uuid4
 
 import pytest
@@ -16,6 +18,138 @@ from app.services.conversation_context import prepare_request, updated_context
 from app.services.knowledge_service import Consultation
 from tests.conftest import FakeLlm
 from tests.test_g8_owned_look import Catalog, owned, request
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "mode", ["changed", "same", "stable_child", "legacy", "failure", "deadline", "error_payload"]
+)
+async def test_review_p1_dependency_retry_uses_current_binding(monkeypatch, mode):
+    from app.core.errors import ApiError
+    from app.schemas.consultation_task import ConsultationTaskRequest
+
+    monkeypatch.setattr(get_settings(), "g8_read_retries", 0)
+    calls = dict.fromkeys("abcd", 0)
+    state = {"value": "v1", "second": False}
+    requests = {
+        f"task-{key}": ConsultationTaskRequest(
+            task_id=f"task-{key}",
+            capability="knowledge",
+            inputs={"objective": key},
+            depends_on=[f"task-{source}"] if source else [],
+        )
+        for key, source in [("a", None), ("b", "a"), ("c", "b"), ("d", None)]
+    }
+
+    def bind(tid, results, spec):
+        if spec.depends_on:
+            source = results.get(spec.depends_on[0])
+            spec.inputs["referenceContext"] = {"value": source.answer if source else None}
+
+    def operation(key):
+        async def call():
+            calls[key] += 1
+            if key == "a":
+                if state["second"] and mode == "failure":
+                    raise ApiError(503, "synthetic failure", "synthetic_failure")
+                if state["second"] and mode == "deadline":
+                    await asyncio.sleep(1)
+                value = state["value"]
+                if state["second"] and mode == "error_payload":
+                    return ChatResponse(
+                        answer=value,
+                        products=[],
+                        knowledge=KnowledgeReply(status="error", limitations="synthetic"),
+                    )
+            elif key in "bc":
+                value = (
+                    "stable"
+                    if mode == "stable_child" and key == "b"
+                    else (
+                        key + ":" + str(requests[f"task-{key}"].inputs["referenceContext"]["value"])
+                    )
+                )
+            else:
+                value = "independent"
+            return ChatResponse(answer=value, products=[])
+
+        return call
+
+    operations = {f"task-{key}": operation(key) for key in calls}
+    previous, results, _ = await parent.run_independent_reads(
+        "synthetic",
+        operations,
+        {},
+        requests=requests,
+        bind_inputs=bind,
+    )
+    digests = {task.task_id: task.reference_digest for task in previous.tasks}
+    for task in previous.tasks:
+        if task.depends_on:
+            if mode == "legacy":
+                task.reference_digest = None
+            task.result_refs = ["old-reference"]
+    state.update(second=True, value="v1" if mode in {"same", "legacy", "error_payload"} else "v2")
+    revised, current, _ = await parent.run_independent_reads(
+        "retry source",
+        operations,
+        {k: v for k, v in results.items() if k != "task-a"},
+        previous=previous,
+        selected={"task-a"},
+        requests=requests,
+        bind_inputs=bind,
+        deadline=monotonic() + 0.02 if mode == "deadline" else None,
+    )
+    tasks = {t.task_id: t for t in revised.tasks}
+    assert calls["d"] == 1 and current["task-d"].answer == "independent"
+    if mode in {"failure", "deadline", "error_payload"}:
+        assert "task-b" not in current and "task-c" not in current
+        for tid in ["task-b", "task-c"]:
+            assert tasks[tid].status != "completed" and tasks[tid].result_refs == []
+    else:
+        assert calls["b"] == (1 if mode == "same" else 2)
+        assert calls["c"] == (1 if mode in {"same", "stable_child"} else 2)
+        assert tasks["task-b"].reference_digest
+        assert (tasks["task-b"].reference_digest != digests["task-b"]) == (
+            mode in {"changed", "stable_child"}
+        )
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("action", ["retry", "resume"])
+async def test_review_p1_id_source_refreshes_dependent_display(monkeypatch, action):
+    from app.services import chat_service
+    from tests.test_g8_consultation_intent import AdditionModel, EntryModel, knowledge_result
+
+    contexts = []
+
+    async def knowledge(question, *, prior_user_context):
+        contexts.append(json.loads(prior_user_context))
+        return knowledge_result(question, len(contexts))
+
+    monkeypatch.setattr(chat_service, "consult_knowledge", knowledge)
+    catalog = Catalog()
+    quote = "이 룩 순서의 이유도 설명해줘."
+    req = request([owned("lip-a", "lip-a-shade")], "블러셔는 없어. " + quote)
+    first = await ChatService(
+        None,
+        EntryModel([{"capability": "owned_look", "quote": req.message, "explanationQuote": quote}]),
+        catalog,
+    ).answer(req)
+    source, dependent = first._consultation_parent.tasks
+    source.status = "cancelled" if action == "resume" else "partial"
+    catalog.look.recipe.steps[0].description = "합성 변경된 순서"
+    follow = prepare_request(
+        req.model_copy(update={"message": "룩 추천만 다시 이어줘"}), updated_context({}, first), []
+    )
+    second = await ChatService(
+        None, AdditionModel(action=action, targets=[source.task_id]), catalog
+    ).answer(follow)
+    assert len(contexts) == 2
+    assert contexts[-1]["styleRecipe"]["steps"][0]["description"] == "합성 변경된 순서"
+    refreshed = next(t for t in second._consultation_parent.tasks if t.task_id == dependent.task_id)
+    assert refreshed.status == "completed" and refreshed.reason != "preserved_completed_result"
+    assert refreshed.reference_digest != dependent.reference_digest
 
 
 @pytest.fixture

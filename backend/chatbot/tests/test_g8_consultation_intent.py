@@ -16,6 +16,112 @@ from app.services.conversation_context import prepare_request, updated_context
 from tests.test_g8_partial_success import Catalog, CombinedModel, request
 
 
+def review_p1_parent():
+    from app.schemas.consultation_parent import ParentQuestion, ResultSelection
+
+    return ConsultationParent(
+        tasks=[
+            ParentTask(
+                task_id="task-a",
+                goal="product",
+                version=1,
+                status="completed",
+                result_refs=["a-ref"],
+                display_result={"answer": "synthetic a", "products": []},
+            ),
+            ParentTask(
+                task_id="task-b",
+                goal="knowledge",
+                version=1,
+                status="waiting_user",
+                depends_on=["task-a"],
+                input_refs=["a-input"],
+                input_needs=[{"key": "situation", "question": "synthetic question"}],
+                result_refs=["b-ref"],
+                display_result={"answer": "synthetic b", "products": []},
+            ),
+            ParentTask(
+                task_id="task-c",
+                goal="knowledge",
+                version=1,
+                status="waiting_user",
+                display_result={"answer": "synthetic c", "products": []},
+            ),
+        ],
+        pending_questions=[
+            ParentQuestion(
+                task_id=tid,
+                goal="knowledge",
+                version=1,
+                text="synthetic question",
+                input_key="situation",
+            )
+            for tid in ["task-b", "task-c"]
+        ],
+        result_selection=ResultSelection(
+            version=1, task_ids=["task-a", "task-b", "task-c"], selected_task_id="task-a"
+        ),
+    )
+
+
+@pytest.mark.anyio
+async def test_review_p1_standalone_withdraw_matches_combined_and_keeps_sibling(monkeypatch):
+    from app.services.consultation_intent_service import prepare_turn
+    from app.services.consultation_result_service import finalize_result
+
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    initial = review_p1_parent()
+    snapshots = []
+    for model in [
+        IntentModel("withdraw", ["task-a"]),
+        AdditionModel(
+            changes=[{"taskId": "task-a", "operation": "withdraw", "quote": "첫 작업은 빼줘"}]
+        ),
+    ]:
+        req = ChatRequest(message="첫 작업은 빼줘", locale="ko")
+        req._consultation_parent = initial.model_copy(deep=True)
+        result = finalize_result(await prepare_turn(req, model))
+        p = result._consultation_parent
+        by_id = {t.task_id: t for t in p.tasks}
+        assert by_id["task-a"].status == by_id["task-b"].status == "superseded"
+        assert by_id["task-a"].result_refs == by_id["task-b"].result_refs == []
+        assert by_id["task-b"].input_refs == by_id["task-b"].input_needs == []
+        assert by_id["task-a"].display_result is by_id["task-b"].display_result is None
+        assert [q.task_id for q in p.pending_questions] == ["task-c"]
+        assert p.question.task_id == "task-c"
+        assert by_id["task-c"].display_result == initial.tasks[2].display_result
+        snapshots.append(p.model_dump())
+    assert snapshots[0] == snapshots[1]
+    assert initial.tasks[0].status == "completed"
+
+
+def test_review_p1_number_selection_matches_visible_order_without_mutating_proposal():
+    from app.services.consultation_result_service import finalize_result
+
+    p = review_p1_parent()
+    p.tasks[0].status = "superseded"
+    before = p.model_dump()
+    req = ChatRequest(message="1번 보여줘", locale="ko")
+    req._consultation_parent = p
+    proposed = ConsultationIntent(
+        plan_id=p.plan_id, version=1, action="show", quote="1번", result_position=1
+    )
+    assert validate_intent(proposed, req).targets == ["task-b"]
+    assert p.model_dump() == before
+    response = ChatResponse(answer="synthetic", products=[])
+    response._consultation_parent = p
+    finalize_result(response)
+    assert (
+        p.result_selection.task_ids
+        == [c.task_id for c in response.consultation.display_choices]
+        == ["task-b", "task-c"]
+    )
+    assert p.result_selection.selected_task_id is None
+    proposed.version = 2
+    with pytest.raises(ValueError, match="Stale parent intent"):
+        validate_intent(proposed, req)
+
+
 def test_unique_legacy_question_is_bound_and_ambiguous_owner_is_not_guessed():
     from app.schemas.consultation_parent import ParentQuestion
     from app.services.consultation_intent_service import intent_schema
@@ -1540,7 +1646,16 @@ def test_display_position_uses_saved_order_not_task_or_question_order(order):
     req = question_scope_request()
     req.message = "2번 결과 보여줘"
     p = req._consultation_parent
-    p.tasks.extend(ParentTask(task_id=tid, goal="product", version=1) for tid in order)
+    p.tasks.extend(
+        ParentTask(
+            task_id=tid,
+            goal="product",
+            version=1,
+            status="completed",
+            display_result={"answer": tid, "products": []},
+        )
+        for tid in order
+    )
     p.result_selection = ResultSelection(version=1, task_ids=order)
     intent = ConsultationIntent(
         plan_id=p.plan_id, version=1, action="show", result_position=2, quote=req.message
@@ -1560,7 +1675,14 @@ def test_display_position_rejects_invalid_or_non_display_proposals(invalid):
     req.message = "2번 결과 보여줘"
     p = req._consultation_parent
     p.tasks.extend(
-        ParentTask(task_id=tid, goal="product", version=1) for tid in ["task-a", "task-b"]
+        ParentTask(
+            task_id=tid,
+            goal="product",
+            version=1,
+            status="completed",
+            display_result={"answer": tid, "products": []},
+        )
+        for tid in ["task-a", "task-b"]
     )
     p.result_selection = ResultSelection(version=1, task_ids=["task-b", "task-a"])
     intent = ConsultationIntent(

@@ -17,10 +17,31 @@ def result_label(task):
     )
 
 
+def selection_task_ids(parent):
+    selection = parent.result_selection
+    if selection is None or selection.version != parent.version:
+        return []
+    tasks = {t.task_id: t for t in parent.tasks}
+    return [
+        tid
+        for tid in selection.task_ids
+        if tid in tasks
+        and tasks[tid].status in {"completed", "partial", "waiting_user"}
+        and tasks[tid].display_result is not None
+    ]
+
+
 def finalize_result(response):
     parent = response._consultation_parent
     if parent is None:
         return response
+    if parent.result_selection:
+        selection = parent.result_selection
+        selection.task_ids = selection_task_ids(parent)
+        if selection.selected_task_id not in selection.task_ids:
+            selection.selected_task_id = None
+        if not selection.task_ids:
+            parent.result_selection = None
     active = [t for t in parent.tasks if t.status not in {"cancelled", "superseded"}]
     statuses = {t.status for t in active}
     needs_input = (

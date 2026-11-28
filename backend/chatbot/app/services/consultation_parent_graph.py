@@ -233,6 +233,7 @@ async def run_independent_reads(
                 product_context=prior.product_context if prior else None,
                 input_needs=list(prior.input_needs) if prior else [],
                 compound_context=prior.compound_context if prior else None,
+                reference_digest=prior.reference_digest if prior else None,
                 goal=requests[goal].capability if requests else goal,
                 depends_on=list(requests[goal].depends_on) if requests else [],
                 explanation_quote=prior.explanation_quote if prior else "",
@@ -259,14 +260,65 @@ async def run_independent_reads(
         index: int
         retry: bool
 
+    refreshed = set(operations if selected is None else selected)
+    visited = set()
+    by_task_id = {task.task_id: task for task in parent.tasks}
+
+    def binding_digest(request):
+        return fingerprint(
+            {
+                "sources": request.depends_on,
+                "referenceContext": request.inputs.get("referenceContext"),
+            }
+        )
+
+    def refresh_binding(task):
+        if not requests or not bind_inputs:
+            return False
+        request = requests[task.task_id]
+        if not set(request.depends_on) & refreshed:
+            return False
+        if task.status in {"cancelled", "superseded"}:
+            refreshed.add(task.task_id)
+            return False
+        bind_inputs(task.task_id, results, request)
+        available = all(
+            source in results
+            and (not request.requires_success or by_task_id[source].status == "completed")
+            for source in request.depends_on
+        )
+        if (
+            task.task_id in results
+            and available
+            and task.reference_digest == binding_digest(request)
+        ):
+            return False
+        # Revalidate only the producer's dependency cone; unrelated reads keep their cache.
+        results.pop(task.task_id, None)
+        task.result_refs = []
+        task.input_refs = []
+        task.input_needs = []
+        task.product_assessment = None
+        task.reference_digest = None
+        task.display_result = None
+        task.status = "pending"
+        task.reason = "inputs_changed"
+        refreshed.add(task.task_id)
+        if selected is not None:
+            selected.add(task.task_id)
+        return True
+
     async def execute(state):
         task = parent.tasks[state["index"]]
+        visited.add(task.task_id)
+        refresh_binding(task)
         if task.task_id in results:
             return {"retry": False}
         if selected is not None and task.task_id not in selected:
             return {"retry": False}
         if bind_inputs:
             bind_inputs(task.task_id, results, requests[task.task_id])
+        task.reference_digest = None
         result, retry = await execute_request(
             parent,
             task,
@@ -281,6 +333,8 @@ async def run_independent_reads(
         )
         if result is not None:
             results[task.task_id] = result
+            if requests and requests[task.task_id].depends_on:
+                task.reference_digest = binding_digest(requests[task.task_id])
         events.append(
             {
                 "planId": str(parent.plan_id),
@@ -318,8 +372,11 @@ async def run_independent_reads(
             )
     except TimeoutError:
         for task in parent.tasks:
-            if task.status == "pending" or (
-                task.status == "failed" and task.task_id not in results
+            unvisited_change = task.task_id not in visited and refresh_binding(task)
+            if (
+                task.status == "pending"
+                or (task.status == "failed" and task.task_id not in results)
+                or unvisited_change
             ):
                 task.status = "failed"
                 task.reason = "deadline_exceeded"
@@ -773,6 +830,9 @@ async def run_id_tasks(req, dispatch):
             result.model_dump(mode="json", by_alias=True, include=TASK_DISPLAY_FIELDS)
             if result is not None
             else source.display_result
+            if task.task_id not in selected
+            and task.status not in {"failed", "cancelled", "superseded"}
+            else None
         )
     if continuation_limits:
         records[:] = validate_results(

@@ -48,6 +48,184 @@ AUTH = {"Authorization": "Bearer ok-1"}
 OTHER = {"Authorization": "Bearer ok-2"}
 
 
+@pytest.mark.parametrize("mode", ["changed", "same", "failure"])
+def test_review_p1_retry_withdraw_number_selection_survive_pg(api, monkeypatch, mode):
+    from app.core.errors import ApiError
+    from app.schemas.consultation_task import (
+        ProductAssessment,
+        ProductRequirement,
+        TaskContinuation,
+    )
+    from app.schemas.style_recipe import StyleRecipe
+    from app.services.consultation_task_adapter import fingerprint
+    from tests.test_g8_consultation_intent import EntryModel, IntentModel
+    from tests.test_g8_consultation_parent import scoped_display_result
+
+    client, fake = api
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    monkeypatch.setattr(get_settings(), "g8_read_retries", 0)
+    recipe = StyleRecipe(
+        look_id="fixture-look",
+        source_look_id="fixture-look",
+        kind="catalog",
+        recipe_id="fixture-recipe",
+        recipe_version="v1",
+        title="synthetic look",
+        basis="catalog_settings",
+        review_status="not_applicable",
+        source="fixture",
+        features=[],
+        steps=[{"order": 1, "zone": "lip", "title": "synthetic", "description": "v1"}],
+        current_step=0,
+        products=[],
+        ar_eligible=False,
+        reason="catalog_settings",
+        synthetic=True,
+    )
+    calls = {"owned_look": 0, "knowledge": 0, "product": 0}
+    state = {"fail": False}
+    source_quote, explanation, c_quote, d_quote = (
+        "합성 룩 추천",
+        "순서 이유 설명",
+        "합성 C 찾아줘",
+        "합성 D 찾아줘",
+    )
+    service = ChatService(
+        None,
+        EntryModel(
+            [
+                {
+                    "capability": "owned_look",
+                    "quote": source_quote,
+                    "explanationQuote": explanation,
+                },
+                {"capability": "product", "quote": c_quote, "productOperation": "search"},
+                {"capability": "product", "quote": d_quote, "productOperation": "search"},
+            ]
+        ),
+    )
+
+    async def dispatch(capability, req):
+        calls[capability] += 1
+        if capability == "owned_look":
+            if state["fail"]:
+                raise ApiError(503, "synthetic unavailable", "synthetic_unavailable")
+            result = ChatResponse(
+                answer="synthetic look",
+                products=[],
+                style_recipe=recipe.model_copy(deep=True),
+                style_status="unsupported",
+            )
+            result._proposed_next_tasks = [
+                TaskContinuation(
+                    objective=explanation, source_fingerprint=fingerprint(result.style_recipe)
+                )
+            ]
+            return result
+        if capability == "knowledge":
+            source = next(iter(req._parent_sources.values()))
+            return ChatResponse(
+                answer="synthetic explanation " + source.style_recipe.steps[0].description,
+                products=[],
+            )
+        result = scoped_display_result(req.message)
+        result._product_assessment = ProductAssessment(
+            status="completed", outcome="no_match", requirement=ProductRequirement()
+        )
+        return result
+
+    service._dispatch_parent_read = dispatch
+
+    async def answer(req, principal):
+        return await service.answer(req, principal)
+
+    monkeypatch.setattr(fake, "answer", answer)
+    room = create(client)[0]["conversationId"]
+    body = {
+        "conversationId": room,
+        "requestId": str(uuid4()),
+        "expectedConversationVersion": 0,
+        "message": ". ".join([source_quote, explanation, c_quote, d_quote]),
+        "locale": "ko",
+    }
+    first = client.post("/api/chat", json=body, headers=AUTH)
+    assert first.status_code == 200, first.status_code
+    dsn = make_url(URL).set(drivername="postgresql").render_as_string(hide_password=False)
+
+    def context():
+        with psycopg.connect(dsn) as conn:
+            return conn.execute(
+                "SELECT context_json FROM chat_conversations WHERE id = %s", (room,)
+            ).fetchone()[0]["consultationParent"]
+
+    original = context()
+    a = next(t for t in original["tasks"] if t["goal"] == "owned_look")
+    b = next(t for t in original["tasks"] if t["goal"] == "knowledge")
+    independent = [t["taskId"] for t in original["tasks"] if t["goal"] == "product"]
+    assert b["referenceDigest"] and calls == {"owned_look": 1, "knowledge": 1, "product": 2}
+    if mode == "changed":
+        recipe.steps[0].description = "v2"
+    state["fail"] = mode == "failure"
+    service._llm = IntentModel("retry", [a["taskId"]])
+    retry = client.post(
+        "/api/chat",
+        headers=AUTH,
+        json={
+            **body,
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": 1,
+            "message": "룩만 다시 확인해줘",
+        },
+    )
+    assert retry.status_code == 200, retry.status_code
+    after = context()
+    dependent = next(t for t in after["tasks"] if t["taskId"] == b["taskId"])
+    assert calls["product"] == 2 and calls["knowledge"] == (2 if mode == "changed" else 1)
+    if mode == "failure":
+        assert dependent.get("displayResult") is None and dependent["resultRefs"] == []
+    else:
+        assert (dependent["referenceDigest"] != b["referenceDigest"]) == (mode == "changed")
+    service._llm = IntentModel("withdraw", [a["taskId"]])
+    removed = client.post(
+        "/api/chat",
+        headers=AUTH,
+        json={
+            **body,
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": 2,
+            "message": "룩 추천은 빼줘",
+        },
+    )
+    assert removed.status_code == 200, removed.status_code
+    saved = context()
+    tasks = {t["taskId"]: t for t in saved["tasks"]}
+    assert tasks[a["taskId"]]["status"] == tasks[b["taskId"]]["status"] == "superseded"
+    assert tasks[b["taskId"]].get("displayResult") is None
+    assert saved["resultSelection"]["taskIds"] == independent
+    assert [c["taskId"] for c in removed.json()["consultation"]["displayChoices"]] == independent
+    service._llm = IntentModel("show", [], result_position=1)
+    shown = client.post(
+        "/api/chat",
+        headers=AUTH,
+        json={
+            **body,
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": 3,
+            "message": "1번 보여줘",
+        },
+    )
+    assert (
+        shown.status_code == 200
+        and shown.json()["consultation"]["selectedTaskId"] == independent[0]
+    )
+    assert calls == {"owned_look": 2, "knowledge": 2 if mode == "changed" else 1, "product": 2}
+    detail = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+    assert detail["messages"][-1]["displayPayload"]["consultation"] == shown.json()["consultation"]
+    replay = client.post("/api/chat", json=body, headers=AUTH)
+    assert replay.json() == first.json()
+    assert client.get(f"/api/chat/conversations/{room}", headers=OTHER).status_code == 404
+
+
 class RecordingChat:
     def __init__(self):
         self.requests = []
