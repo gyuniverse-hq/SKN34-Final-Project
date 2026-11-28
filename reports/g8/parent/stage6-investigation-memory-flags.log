@@ -1,8 +1,0 @@
-....                                                                     [100%]
-============================== warnings summary ===============================
-tests\test_g7_memory_api_pg.py:33
-  C:\Users\playdata2\.codex\worktrees\vishue-compound-consultation\SKN34-Final-Project\backend\chatbot\tests\test_g7_memory_api_pg.py:33: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
-    pytestmark = [pytest.mark.integration, pytest.mark.skipif(not URL, reason="test database required")]
-
--- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-4 passed, 1 warning in 4.74s

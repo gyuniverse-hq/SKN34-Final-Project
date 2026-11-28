@@ -1,4 +1,0 @@
-{"at": "2026-11-27T18:09:12.341826+00:00", "event": "start", "path": "/v1/embeddings", "model": "text-embedding-3-large", "status": null, "mode": "live"}
-{"at": "2026-11-27T18:09:13.962793+00:00", "event": "end", "path": "/v1/embeddings", "model": "text-embedding-3-large", "status": 200, "mode": "live"}
-{"at": "2026-11-27T18:47:12.254792+00:00", "event": "start", "path": "/v1/embeddings", "model": "text-embedding-3-large", "status": null, "mode": "live"}
-{"at": "2026-11-27T18:47:13.754051+00:00", "event": "end", "path": "/v1/embeddings", "model": "text-embedding-3-large", "status": 200, "mode": "live"}

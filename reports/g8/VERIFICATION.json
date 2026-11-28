@@ -1,0 +1,1209 @@
+{
+  "schemaVersion": 2,
+  "sourceHead": "5208f89b83de9ebebf9d78c6016b3b2fda327a87",
+  "sourceEvidence": [
+    {
+      "archiveEntry": "reports/g8/parent/review-p1/lifecycle-verification.json",
+      "original": {
+        "path": "reports/g8/parent/review-p1/lifecycle-verification.json",
+        "bytes": 516434,
+        "sha256": "37e35c4e988247227a7ff7a64982eacdf3e603a81f982d3cc05ff1004e2e541d",
+        "gitBlob": "10a45dd385d6b3463cdde78822ce1acc3c447890"
+      },
+      "overlay": null
+    },
+    {
+      "archiveEntry": "reports/g8/parent/closing-last/performance.json",
+      "original": {
+        "path": "reports/g8/parent/closing-last/performance.json",
+        "bytes": 14192,
+        "sha256": "65dfebe9627aa97fa1e0adf2dbaccfc163c58bc2c4cae95ee88a7cd35e2016bf",
+        "gitBlob": "8a211c93856fd50d20fdc4c9fe8ca4dc8b9a6750"
+      },
+      "overlay": null
+    }
+  ],
+  "remoteCI": {
+    "head": "5208f89b83de9ebebf9d78c6016b3b2fda327a87",
+    "ciRun": 46156366255,
+    "secretsRun": 46156366207,
+    "app": {
+      "passed": 1387,
+      "suitesPassed": 113
+    },
+    "api": {
+      "passed": 700,
+      "skipped": 42,
+      "warnings": 1
+    },
+    "chatbot": {
+      "passed": 1938,
+      "skipped": 29
+    },
+    "gitleaks": {
+      "commits": 699,
+      "findings": 0
+    },
+    "scope": "Previously observed CI on source HEAD; not this uncommitted layout"
+  },
+  "lifecycleRegression": {
+    "retryDependency": "PASS",
+    "standaloneWithdrawalAndNumberSelection": "PASS",
+    "chatbotDefault": {
+      "passed": 1825,
+      "skipped": 142,
+      "models": "synthetic",
+      "liveExternalCalls": 0
+    },
+    "isolatedPG": {
+      "passed": 34,
+      "skipped": 5,
+      "newLifecycleModes": 3,
+      "modelsAndTools": "synthetic",
+      "database": "actual new isolated PG"
+    },
+    "appTypecheck": "PASS",
+    "appLint": "PASS",
+    "ruff": "PASS",
+    "layerContracts": "PASS",
+    "modelsCatalogLoginAppNewE2E": "NOT_RUN; no caller/schema/UI changes; prior actual evidence reused",
+    "security": "PASS; repeat scan after final metadata below",
+    "mandatoryAppFullCheck": {
+      "passed": 1387,
+      "suitesPassed": 113,
+      "seconds": 94.476,
+      "exit": 0
+    }
+  },
+  "testedProductSources": [
+    {
+      "path": "backend/chatbot/app/services/consultation_parent_graph.py",
+      "testedWorkingSha256": "68c77a60ccfde7bbd177c83fa93ea3f69aa5678eecc594b24563982ae9f71be5",
+      "gitContentSha256": "a658732544e0cae72dbc30f40e9610b87c139fad75f7d296dce37e352fa0d3af",
+      "gitBlob": "97e2fa7e79d88b9db9ef0176c1069d15a9092686",
+      "equalAfterCRLFNormalization": true
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_intent_service.py",
+      "testedWorkingSha256": "1e8148876ad08de5b8269f185417d312b83a875871b4f80bff6df8ea3599ac4f",
+      "gitContentSha256": "73a9aafa1da755c7f7a75b48b97bd6215fa83f4d2b02fc7a7753d195b9545a83",
+      "gitBlob": "d091f62f688b8dc5803aa2601c24ff35b9c6381f",
+      "equalAfterCRLFNormalization": true
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_result_service.py",
+      "testedWorkingSha256": "6c706d58c2ed66d1b6b2ec7b76da1bcf5b129711dae3ba9b76a537f028ea5f18",
+      "gitContentSha256": "6c706d58c2ed66d1b6b2ec7b76da1bcf5b129711dae3ba9b76a537f028ea5f18",
+      "gitBlob": "7d987b8c3724f138b485f1af047219935a9da61b",
+      "equalAfterCRLFNormalization": true
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_consultation_parent.py",
+      "testedWorkingSha256": "a77041e582d15c033cedaa7d9f3564e240bb1df53a57f5898dfd69b11cda6fc0",
+      "gitContentSha256": "bc10e330adad1b68972e10eebf108c26b664177db55cb148f976dd3489ce42a3",
+      "gitBlob": "728bb07e55484bc59cb74fc7ca220206126f1650",
+      "equalAfterCRLFNormalization": true
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_consultation_intent.py",
+      "testedWorkingSha256": "7524ae7fdc5ed37bcbfc64399184c987fcddbf3c38e64a43ed9ec82aa89cfa64",
+      "gitContentSha256": "024a1cd091c00b4a51d3867e54b900eecc6a30c8225b50f2d0e68c7f193a51df",
+      "gitBlob": "17fadb5c06d41c3d2ddef8787311030ce85897db",
+      "equalAfterCRLFNormalization": true
+    },
+    {
+      "path": "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+      "testedWorkingSha256": "fd448e82096019ce01f415da95c2add2043cc38c2490ae228068da3a95694f94",
+      "gitContentSha256": "b0d69a500e26aea907debf5594a62eeb8b76e80ff81e8ce7d347e84d3b410512",
+      "gitBlob": "05e24ea67c2fe6c49a8cbc8f1482cb3a0a78e168",
+      "equalAfterCRLFNormalization": true
+    }
+  ],
+  "recordedPerformance": {
+    "models": {
+      "gpt-6-luna": 13,
+      "text-embedding-3-large": 3,
+      "gpt-6.1-terra": 9
+    },
+    "actualCalls": 25,
+    "usageResponses": 25,
+    "capturedTokens": {
+      "input": 133879,
+      "output": 6609,
+      "total": 140488
+    },
+    "perTurn": [
+      {
+        "turn": "bc3fd64572e7",
+        "ms": 39344.0,
+        "directModelHTTP": 6,
+        "embeddingCountMethod": "Separate API process;serial search correlation,not propagated ID"
+      },
+      {
+        "turn": "c30e7f0641c3",
+        "ms": 2625.0,
+        "directModelHTTP": 1,
+        "embeddingCountMethod": "Separate API process;serial search correlation,not propagated ID"
+      },
+      {
+        "turn": "cf1b8d647b1c",
+        "ms": 37156.0,
+        "directModelHTTP": 6,
+        "embeddingCountMethod": "Separate API process;serial search correlation,not propagated ID"
+      },
+      {
+        "turn": "ff750dcd498c",
+        "ms": 30625.0,
+        "directModelHTTP": 6,
+        "embeddingCountMethod": "Separate API process;serial search correlation,not propagated ID"
+      }
+    ],
+    "billingCost": {
+      "status": "NOT_RUN",
+      "reason": "No billing ledger/immutable rate card;do not infer billed amount."
+    },
+    "loadSLO": "NOT_RUN;small samples and exact scan without rebuilt HNSW",
+    "sourceNote": "Multiple prompt phases and rephrases preserved;only final positive proof is final-source case4."
+  },
+  "performanceScope": "Historical limited samples, retries/rephrases; not a new load run",
+  "previousPublicationChecks": [
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--no-sync",
+        "ruff",
+        "format",
+        "--check",
+        "--config",
+        "pyproject.toml",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py"
+      ],
+      "exit": 0,
+      "seconds": 0.078
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--no-sync",
+        "ruff",
+        "check",
+        "--config",
+        "pyproject.toml",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py"
+      ],
+      "exit": 1,
+      "seconds": 0.078
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--no-sync",
+        "ruff",
+        "format",
+        "--check",
+        "--config",
+        "pyproject.toml",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py"
+      ],
+      "exit": 0,
+      "seconds": 0.094,
+      "toolSha256": "241b266df225bd1433caa22dd385d241e46bdffbf22823aab7ded3e483948166"
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--no-sync",
+        "ruff",
+        "check",
+        "--config",
+        "pyproject.toml",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py"
+      ],
+      "exit": 0,
+      "seconds": 0.063,
+      "toolSha256": "241b266df225bd1433caa22dd385d241e46bdffbf22823aab7ded3e483948166"
+    },
+    {
+      "command": [
+        "npm.cmd",
+        "run",
+        "typecheck"
+      ],
+      "exit": 0,
+      "seconds": 11.781,
+      "toolSha256": "241b266df225bd1433caa22dd385d241e46bdffbf22823aab7ded3e483948166"
+    },
+    {
+      "command": [
+        "npm.cmd",
+        "run",
+        "lint"
+      ],
+      "exit": 0,
+      "seconds": 9.062,
+      "toolSha256": "241b266df225bd1433caa22dd385d241e46bdffbf22823aab7ded3e483948166"
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--no-sync",
+        "ruff",
+        "format",
+        "--config",
+        "pyproject.toml",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py"
+      ],
+      "exit": 0,
+      "seconds": 0.094,
+      "toolSha256": "e7da8d7b652356bdf5d5c1918fd94a35666fc4d4d3ec4a43c5b471b41a3218ee"
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--no-sync",
+        "ruff",
+        "check",
+        "--config",
+        "pyproject.toml",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py"
+      ],
+      "exit": 0,
+      "seconds": 0.093,
+      "toolSha256": "e7da8d7b652356bdf5d5c1918fd94a35666fc4d4d3ec4a43c5b471b41a3218ee"
+    },
+    {
+      "command": [
+        "python",
+        "-B",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py",
+        "selftest"
+      ],
+      "exit": 0,
+      "seconds": 0.188,
+      "toolSha256": "e7da8d7b652356bdf5d5c1918fd94a35666fc4d4d3ec4a43c5b471b41a3218ee"
+    },
+    {
+      "command": [
+        "python",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts",
+        "-p",
+        "test_g8_evidence.py"
+      ],
+      "exit": 0,
+      "seconds": 4.203,
+      "summary": "....s\r\n----------------------------------------------------------------------\r\nRan 5 tests in 4.025s\r\n\r\nOK (skipped=1)\r\n",
+      "scope": "existing G8 evidence helper/legacy historical fingerprint regression"
+    },
+    {
+      "name": "final actual backup/public derivative verification",
+      "at": "2026-11-28T16:14:45.262728+00:00",
+      "exit": 0,
+      "seconds": 9.641,
+      "toolSha256": "e7da8d7b652356bdf5d5c1918fd94a35666fc4d4d3ec4a43c5b471b41a3218ee",
+      "result": {
+        "action": "verify",
+        "backupFilesVerified": 1475,
+        "publicDerivatives": 41,
+        "otherEvidenceUnchanged": 1434,
+        "sourceQuotesRemaining": 0,
+        "beforeBytes": 34606546,
+        "afterBytes": 31168545,
+        "imageReviews": 13,
+        "preservedFacts": true,
+        "history": "UNCHANGED"
+      }
+    },
+    {
+      "name": "current 45 publication files credential scan",
+      "at": "2026-11-28T16:14:59.232494+00:00",
+      "counts": {
+        "protectedValue": 0,
+        "jwt": 0,
+        "privateKey": 0,
+        "email": 0
+      },
+      "gitleaksVersion": "8.30.1",
+      "gitleaksExit": 0,
+      "seconds": 2.218,
+      "redactedLogSha256": "f47f8bbfab3c086eeee48027a30f563199db21edcabf88d7a43e0fb5a2501b8e",
+      "fingerprintIgnore": "disabled",
+      "scannerControls": [
+        {
+          "name": "synthetic secret positive",
+          "exit": 1,
+          "expectedExit": 1,
+          "seconds": 0.766,
+          "redactedLogSha256": "e6b8bb3308c9ab59c22ba39f0628fb83acb61bd795dd4b6d220795d1faf9ffbe"
+        },
+        {
+          "name": "digest manifest negative",
+          "exit": 0,
+          "expectedExit": 0,
+          "seconds": 0.594,
+          "redactedLogSha256": "fb44772ce7d6e840d8209543a14845f1e969ed3bc684533f2d1219576f41ff87"
+        }
+      ]
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--no-sync",
+        "ruff",
+        "format",
+        "--config",
+        "pyproject.toml",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py"
+      ],
+      "exit": 0,
+      "seconds": 0.109,
+      "toolSha256": "26f78ed6aba26c40b89e4128fff4be3ef67b32883e16802ed9d1107623519213"
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--no-sync",
+        "ruff",
+        "check",
+        "--config",
+        "pyproject.toml",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py"
+      ],
+      "exit": 0,
+      "seconds": 0.079,
+      "toolSha256": "26f78ed6aba26c40b89e4128fff4be3ef67b32883e16802ed9d1107623519213"
+    },
+    {
+      "command": [
+        "python",
+        "-B",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py",
+        "selftest"
+      ],
+      "exit": 0,
+      "seconds": 0.171,
+      "toolSha256": "26f78ed6aba26c40b89e4128fff4be3ef67b32883e16802ed9d1107623519213"
+    },
+    {
+      "command": [
+        "python",
+        "-B",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py",
+        "export"
+      ],
+      "exit": 0,
+      "seconds": 9.766,
+      "toolSha256": "26f78ed6aba26c40b89e4128fff4be3ef67b32883e16802ed9d1107623519213"
+    },
+    {
+      "command": [
+        "python",
+        "-B",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py",
+        "verify"
+      ],
+      "exit": 0,
+      "seconds": 10.25,
+      "toolSha256": "26f78ed6aba26c40b89e4128fff4be3ef67b32883e16802ed9d1107623519213"
+    },
+    {
+      "name": "final-source 45-file security seal",
+      "at": "2026-11-28T16:19:39.464317+00:00",
+      "toolSha256": "26f78ed6aba26c40b89e4128fff4be3ef67b32883e16802ed9d1107623519213",
+      "counts": {
+        "protectedValue": 0,
+        "jwt": 0,
+        "privateKey": 0,
+        "email": 0
+      },
+      "gitleaksVersion": "8.30.1",
+      "gitleaksExit": 0,
+      "redactedLogSha256": "35ef114ddd5849ea70a40ce1d3084a909d022f753fa046e5bd73463ae4b201d1",
+      "scopeFiles": 45
+    }
+  ],
+  "imageReview": [
+    {
+      "path": "reports/g8/first-compound/chat.png",
+      "sha256": "945e79f9809f264ace46ede0b37fdf549a94223de60c2b7bc41b9c309850d9d3",
+      "status": "PASS_VISIBLE_REGION",
+      "method": "assistant visual inspection; no OCR",
+      "credentialsVisible": false,
+      "personalFaceVisible": false,
+      "expandedSourceQuotePanelVisible": false,
+      "pngChunks": [
+        "IDAT",
+        "IEND",
+        "IHDR"
+      ],
+      "modified": false
+    },
+    {
+      "path": "reports/g8/parent/closing4/B01.png",
+      "sha256": "3b021f52d9aa3186967c5d3f1752d95fcbabb02f3de8cbb25f1f26a0f6fb34b4",
+      "status": "PASS_VISIBLE_REGION",
+      "method": "assistant visual inspection; no OCR",
+      "credentialsVisible": false,
+      "personalFaceVisible": false,
+      "expandedSourceQuotePanelVisible": false,
+      "pngChunks": [
+        "IDAT",
+        "IEND",
+        "IHDR"
+      ],
+      "modified": false
+    },
+    {
+      "path": "reports/g8/parent/closing4/E01.png",
+      "sha256": "e7f6355ded3868fed9f63683e7c21bc60ca2d55daff404fa930bc90c3912d561",
+      "status": "PASS_VISIBLE_REGION",
+      "method": "assistant visual inspection; no OCR",
+      "credentialsVisible": false,
+      "personalFaceVisible": false,
+      "expandedSourceQuotePanelVisible": false,
+      "pngChunks": [
+        "IDAT",
+        "IEND",
+        "IHDR"
+      ],
+      "modified": false
+    },
+    {
+      "path": "reports/g8/parent/closing4/N01.png",
+      "sha256": "4227fa693eb08225dcaed8d429e2aef50142286b57f3102f798d9d1cabba996b",
+      "status": "PASS_VISIBLE_REGION",
+      "method": "assistant visual inspection; no OCR",
+      "credentialsVisible": false,
+      "personalFaceVisible": false,
+      "expandedSourceQuotePanelVisible": false,
+      "pngChunks": [
+        "IDAT",
+        "IEND",
+        "IHDR"
+      ],
+      "modified": false
+    },
+    {
+      "path": "reports/g8/parent/closing4/N02.png",
+      "sha256": "cbe417b1797e85b88829bd4fbc36bebf7d1f412303ca371fe9b89a63322f3c6a",
+      "status": "PASS_VISIBLE_REGION",
+      "method": "assistant visual inspection; no OCR",
+      "credentialsVisible": false,
+      "personalFaceVisible": false,
+      "expandedSourceQuotePanelVisible": false,
+      "pngChunks": [
+        "IDAT",
+        "IEND",
+        "IHDR"
+      ],
+      "modified": false
+    },
+    {
+      "path": "reports/g8/parent/closing4/cancel-replace.png",
+      "sha256": "f88c67a4560b6356eab36092bf924253c34c6613aa12d949dba857c34b18a2bd",
+      "status": "PASS_VISIBLE_REGION",
+      "method": "assistant visual inspection; no OCR",
+      "credentialsVisible": false,
+      "personalFaceVisible": false,
+      "expandedSourceQuotePanelVisible": false,
+      "pngChunks": [
+        "IDAT",
+        "IEND",
+        "IHDR"
+      ],
+      "modified": false
+    },
+    {
+      "path": "reports/g8/parent/closing4/cart-option.png",
+      "sha256": "0b4ea73ac261c04f742a11744a68d6a14ac1a08668b433ac382fed9f1d9e95d8",
+      "status": "PASS_VISIBLE_REGION",
+      "method": "assistant visual inspection; no OCR",
+      "credentialsVisible": false,
+      "personalFaceVisible": false,
+      "expandedSourceQuotePanelVisible": false,
+      "pngChunks": [
+        "IDAT",
+        "IEND",
+        "IHDR"
+      ],
+      "modified": false
+    },
+    {
+      "path": "reports/g8/parent/closing4/product-detail.png",
+      "sha256": "e3548236fd3b671e17dec1f6d62638de9907e6fc440b5ea7e09d5d8057f803d9",
+      "status": "PASS_VISIBLE_REGION",
+      "method": "assistant visual inspection; no OCR",
+      "credentialsVisible": false,
+      "personalFaceVisible": false,
+      "expandedSourceQuotePanelVisible": false,
+      "pngChunks": [
+        "IDAT",
+        "IEND",
+        "IHDR"
+      ],
+      "modified": false
+    },
+    {
+      "path": "reports/g8/parent/closing4/restored-option.png",
+      "sha256": "b50278a6f7837aa28f9501cf6796ba4507c09222f3587995c2bc0627bcd2b432",
+      "status": "PASS_VISIBLE_REGION",
+      "method": "assistant visual inspection; no OCR",
+      "credentialsVisible": false,
+      "personalFaceVisible": false,
+      "expandedSourceQuotePanelVisible": false,
+      "pngChunks": [
+        "IDAT",
+        "IEND",
+        "IHDR"
+      ],
+      "modified": false
+    },
+    {
+      "path": "reports/g8/parent/closing5/n01.png",
+      "sha256": "8a4d8b5f971c21123c5d4467e5f127e88ccd89da1d4d5df020425cf1c75eccba",
+      "status": "PASS_VISIBLE_REGION",
+      "method": "assistant visual inspection; no OCR",
+      "credentialsVisible": false,
+      "personalFaceVisible": false,
+      "expandedSourceQuotePanelVisible": false,
+      "pngChunks": [
+        "IDAT",
+        "IEND",
+        "IHDR"
+      ],
+      "modified": false
+    },
+    {
+      "path": "reports/g8/parent/closing5/n02.png",
+      "sha256": "8f838358a28e92ced006ab697ee35cf98fe5c5516e7492cbe6d673144e4d5fc1",
+      "status": "PASS_VISIBLE_REGION",
+      "method": "assistant visual inspection; no OCR",
+      "credentialsVisible": false,
+      "personalFaceVisible": false,
+      "expandedSourceQuotePanelVisible": false,
+      "pngChunks": [
+        "IDAT",
+        "IEND",
+        "IHDR"
+      ],
+      "modified": false
+    },
+    {
+      "path": "reports/g8/parent/e01-fix/comparison.png",
+      "sha256": "9d0d6adc3e0e91c1b9e29a8d6cc43b068027184b2fe16797fe3b16d168871472",
+      "status": "PASS_VISIBLE_REGION",
+      "method": "assistant visual inspection; no OCR",
+      "credentialsVisible": false,
+      "personalFaceVisible": false,
+      "expandedSourceQuotePanelVisible": false,
+      "pngChunks": [
+        "IDAT",
+        "IEND",
+        "IHDR"
+      ],
+      "modified": false
+    },
+    {
+      "path": "reports/g8/parent/e01-fix/retry.png",
+      "sha256": "3e33e1d48b14a664de6fce5a2b9dafc4f64e144d94d7af61d6a4dca35359d261",
+      "status": "PASS_VISIBLE_REGION",
+      "method": "assistant visual inspection; no OCR",
+      "credentialsVisible": false,
+      "personalFaceVisible": false,
+      "expandedSourceQuotePanelVisible": false,
+      "pngChunks": [
+        "IDAT",
+        "IEND",
+        "IHDR"
+      ],
+      "modified": false
+    }
+  ],
+  "privacyDerivatives": {
+    "archivedFiles": 41,
+    "knownSourceQuotes": 95,
+    "remainingKnownQuotes": 0,
+    "sourceIndex": {
+      "archiveEntry": "reports/g8/EVIDENCE-INDEX.json",
+      "original": null,
+      "overlay": {
+        "path": "reports/g8/EVIDENCE-INDEX.json",
+        "bytes": 44687,
+        "sha256": "9d3b1f82e1b3e55b56e5fab8c2c7237d3a14368157a1786bbaccd875079ca2c5"
+      }
+    },
+    "originalRecordDetails": "private backups"
+  },
+  "modelAndCatalogCallsAdded": 0,
+  "currentChecks": [
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--no-sync",
+        "ruff",
+        "format",
+        "--config",
+        "pyproject.toml",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py"
+      ],
+      "exit": 0,
+      "seconds": 0.11,
+      "toolSha256": "2b3280a0ac652543210dcfb6967630d1e48b3c916a185a1026812971b88e8aaa",
+      "outputSha256": "413a709001976657cb743636fd34e48fc41d8d302d665460d3f874b3313da127",
+      "counts": [],
+      "suiteSummary": []
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--no-sync",
+        "ruff",
+        "check",
+        "--config",
+        "pyproject.toml",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py"
+      ],
+      "exit": 1,
+      "seconds": 0.093,
+      "toolSha256": "2b3280a0ac652543210dcfb6967630d1e48b3c916a185a1026812971b88e8aaa",
+      "outputSha256": "3c2749145d86ca06b7c0c7106c074b3d5e323e0833f1a2771d2246e322980d01",
+      "counts": [],
+      "suiteSummary": []
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--no-sync",
+        "ruff",
+        "format",
+        "--config",
+        "pyproject.toml",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py"
+      ],
+      "exit": 0,
+      "seconds": 0.078,
+      "toolSha256": "767bb65c69eba1ab9daa81b6ae14163ea9e7653f1858d0d97daf9b2be3381316",
+      "outputSha256": "d807f3580f2470a7fe15ad89e1a6c08e4166ffe1e33d94152d605f0c46d21bfa",
+      "counts": [],
+      "suiteSummary": []
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--no-sync",
+        "ruff",
+        "check",
+        "--config",
+        "pyproject.toml",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py"
+      ],
+      "exit": 0,
+      "seconds": 0.078,
+      "toolSha256": "767bb65c69eba1ab9daa81b6ae14163ea9e7653f1858d0d97daf9b2be3381316",
+      "outputSha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "counts": [],
+      "suiteSummary": []
+    },
+    {
+      "command": [
+        "python",
+        "-B",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py",
+        "selftest"
+      ],
+      "exit": 0,
+      "seconds": 0.125,
+      "toolSha256": "767bb65c69eba1ab9daa81b6ae14163ea9e7653f1858d0d97daf9b2be3381316",
+      "outputSha256": "0425769c25c58bcd45623ab7157e6ad1aad7045c26a7371eea541cf4783815c3",
+      "counts": [],
+      "suiteSummary": []
+    },
+    {
+      "command": [
+        "python",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts",
+        "-p",
+        "test_g8_evidence.py"
+      ],
+      "exit": 0,
+      "seconds": 4.36,
+      "toolSha256": "767bb65c69eba1ab9daa81b6ae14163ea9e7653f1858d0d97daf9b2be3381316",
+      "outputSha256": "d864a35b64ba1ba010532d555c08782dbd7d2ca2d0e8d510f5ea610689ce6274",
+      "counts": [],
+      "suiteSummary": [
+        "Ran 5 tests in 4.200s",
+        "OK (skipped=1)"
+      ]
+    },
+    {
+      "command": [
+        "npm.cmd",
+        "run",
+        "check",
+        "--",
+        "--",
+        "--runInBand"
+      ],
+      "exit": 0,
+      "seconds": 86.312,
+      "toolSha256": "767bb65c69eba1ab9daa81b6ae14163ea9e7653f1858d0d97daf9b2be3381316",
+      "outputSha256": "68216c71562315edb0397cdca61e93fa36aeffdc4cc6d8c33c130c78c0ebdcd5",
+      "counts": [
+        [
+          "113",
+          "passed"
+        ],
+        [
+          "1387",
+          "passed"
+        ]
+      ],
+      "suiteSummary": [
+        "Test Suites: 113 passed, 113 total",
+        "Tests:       1387 passed, 1387 total"
+      ]
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--no-sync",
+        "ruff",
+        "format",
+        "--config",
+        "pyproject.toml",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py"
+      ],
+      "exit": 0,
+      "seconds": 0.078,
+      "toolSha256": "ed9ca10fe2842a28398ab7c65c4898d8d50ea4a1142f706d8ceb25c7b5498fbc",
+      "outputSha256": "413a709001976657cb743636fd34e48fc41d8d302d665460d3f874b3313da127"
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--no-sync",
+        "ruff",
+        "check",
+        "--config",
+        "pyproject.toml",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py"
+      ],
+      "exit": 0,
+      "seconds": 0.079,
+      "toolSha256": "ed9ca10fe2842a28398ab7c65c4898d8d50ea4a1142f706d8ceb25c7b5498fbc",
+      "outputSha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "command": [
+        "python",
+        "-B",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py",
+        "selftest"
+      ],
+      "exit": 0,
+      "seconds": 0.125,
+      "toolSha256": "ed9ca10fe2842a28398ab7c65c4898d8d50ea4a1142f706d8ceb25c7b5498fbc",
+      "outputSha256": "0425769c25c58bcd45623ab7157e6ad1aad7045c26a7371eea541cf4783815c3"
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--no-sync",
+        "ruff",
+        "format",
+        "--config",
+        "pyproject.toml",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py"
+      ],
+      "exit": 0,
+      "seconds": 0.078,
+      "toolSha256": "4c42110420600909affea91b05b6eeebcb0aaa4b07a8275bf87959e67ddf0012",
+      "outputSha256": "413a709001976657cb743636fd34e48fc41d8d302d665460d3f874b3313da127"
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--no-sync",
+        "ruff",
+        "check",
+        "--config",
+        "pyproject.toml",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py"
+      ],
+      "exit": 0,
+      "seconds": 0.078,
+      "toolSha256": "4c42110420600909affea91b05b6eeebcb0aaa4b07a8275bf87959e67ddf0012",
+      "outputSha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "command": [
+        "python",
+        "-B",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py",
+        "selftest"
+      ],
+      "exit": 0,
+      "seconds": 0.141,
+      "toolSha256": "4c42110420600909affea91b05b6eeebcb0aaa4b07a8275bf87959e67ddf0012",
+      "outputSha256": "0425769c25c58bcd45623ab7157e6ad1aad7045c26a7371eea541cf4783815c3"
+    },
+    {
+      "name": "current seven text files privacy and actual Gitleaks",
+      "at": "2026-11-28T16:57:12.726665+00:00",
+      "toolSha256": "4c42110420600909affea91b05b6eeebcb0aaa4b07a8275bf87959e67ddf0012",
+      "counts": {
+        "protectedValue": 0,
+        "jwt": 0,
+        "privateKey": 0,
+        "email": 0
+      },
+      "dotenvFilesRead": [],
+      "gitleaksVersion": "8.30.1",
+      "fingerprintIgnore": "disabled",
+      "scanner": {
+        "exit": 0,
+        "seconds": 0.89,
+        "redactedOutputSha256": "07a93fea55414580cff1bee60243b49a4dc4416946461ea74bfcaa3839250b4c",
+        "errors": false
+      },
+      "controls": [
+        {
+          "name": "synthetic-secret",
+          "expectedExit": 1,
+          "exit": 1,
+          "seconds": 0.719,
+          "redactedOutputSha256": "18f77ede7db313f25ee1e255dbaafb352edfa3fd0b569260050c228a99844e18",
+          "errors": false
+        },
+        {
+          "name": "normal-digest",
+          "expectedExit": 0,
+          "exit": 0,
+          "seconds": 0.578,
+          "redactedOutputSha256": "79a61d279df96cc1fe43e4292ad668af778b8bbc01410babd802484fc9568b2f",
+          "errors": false
+        }
+      ]
+    },
+    {
+      "phase": "publication LF portability",
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--no-sync",
+        "ruff",
+        "format",
+        "--config",
+        "pyproject.toml",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py"
+      ],
+      "exit": 0,
+      "seconds": 0.11,
+      "toolSha256": "08f2bb1fe57859ece7b927a06d4efaaebe2bb8c265b86fc2d13453cfd6d86573",
+      "outputSha256": "d807f3580f2470a7fe15ad89e1a6c08e4166ffe1e33d94152d605f0c46d21bfa"
+    },
+    {
+      "phase": "publication LF portability",
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--no-sync",
+        "ruff",
+        "check",
+        "--config",
+        "pyproject.toml",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py"
+      ],
+      "exit": 0,
+      "seconds": 0.094,
+      "toolSha256": "08f2bb1fe57859ece7b927a06d4efaaebe2bb8c265b86fc2d13453cfd6d86573",
+      "outputSha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "phase": "publication LF portability",
+      "command": [
+        "python",
+        "-B",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py",
+        "selftest"
+      ],
+      "exit": 0,
+      "seconds": 0.14,
+      "toolSha256": "08f2bb1fe57859ece7b927a06d4efaaebe2bb8c265b86fc2d13453cfd6d86573",
+      "outputSha256": "0425769c25c58bcd45623ab7157e6ad1aad7045c26a7371eea541cf4783815c3"
+    },
+    {
+      "phase": "publication preflight",
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--no-sync",
+        "ruff",
+        "format",
+        "--config",
+        "pyproject.toml",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py"
+      ],
+      "exit": 0,
+      "seconds": 0.094,
+      "toolSha256": "49f3f4bfeb827d7b7c88aab4c5ab35de8a37978fc420be8c76bdff07107fe5dc",
+      "outputSha256": "413a709001976657cb743636fd34e48fc41d8d302d665460d3f874b3313da127",
+      "summary": []
+    },
+    {
+      "phase": "publication preflight",
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--no-sync",
+        "ruff",
+        "check",
+        "--config",
+        "pyproject.toml",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py"
+      ],
+      "exit": 0,
+      "seconds": 0.078,
+      "toolSha256": "49f3f4bfeb827d7b7c88aab4c5ab35de8a37978fc420be8c76bdff07107fe5dc",
+      "outputSha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "summary": []
+    },
+    {
+      "phase": "publication preflight",
+      "command": [
+        "python",
+        "-B",
+        "C:\\Users\\playdata2\\.codex\\worktrees\\vishue-compound-consultation\\SKN34-Final-Project\\scripts\\g8_evidence_export.py",
+        "selftest"
+      ],
+      "exit": 0,
+      "seconds": 0.14,
+      "toolSha256": "49f3f4bfeb827d7b7c88aab4c5ab35de8a37978fc420be8c76bdff07107fe5dc",
+      "outputSha256": "0425769c25c58bcd45623ab7157e6ad1aad7045c26a7371eea541cf4783815c3",
+      "summary": []
+    },
+    {
+      "phase": "publication preflight",
+      "command": [
+        "python",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts",
+        "-p",
+        "test_g8_evidence.py"
+      ],
+      "exit": 0,
+      "seconds": 4.219,
+      "toolSha256": "49f3f4bfeb827d7b7c88aab4c5ab35de8a37978fc420be8c76bdff07107fe5dc",
+      "outputSha256": "b3a239ce611059364582702c6d6367160d7b2b396f94c236a891b765a5eab674",
+      "summary": [
+        "Ran 5 tests in 4.052s",
+        "OK (skipped=1)"
+      ]
+    },
+    {
+      "phase": "publication preflight",
+      "command": [
+        "npm.cmd",
+        "run",
+        "check",
+        "--",
+        "--",
+        "--runInBand"
+      ],
+      "exit": 0,
+      "seconds": 86.109,
+      "toolSha256": "08f2bb1fe57859ece7b927a06d4efaaebe2bb8c265b86fc2d13453cfd6d86573",
+      "outputSha256": "b11bb8f500803d9b5d33f3502cf9cd152f80cc42e9369b7074a33ff6a8d861dc",
+      "summary": [
+        "Test Suites: 113 passed, 113 total",
+        "Tests:       1387 passed, 1387 total"
+      ]
+    },
+    {
+      "phase": "publication privacy gate",
+      "at": "2026-11-28T17:10:29.217364+00:00",
+      "toolSha256": "08f2bb1fe57859ece7b927a06d4efaaebe2bb8c265b86fc2d13453cfd6d86573",
+      "textFiles": 7,
+      "counts": {
+        "protectedValue": 0,
+        "jwt": 0,
+        "privateKey": 0,
+        "email": 0
+      },
+      "gitleaksVersion": "8.30.1",
+      "scan": {
+        "exit": 0,
+        "seconds": 0.907,
+        "redactedOutputSha256": "6a45fcfd975c5e598020935433e418d8285ff9b12a6616bb7b24428f77dea6e8"
+      },
+      "controls": [
+        {
+          "name": "synthetic-secret",
+          "expected": 1,
+          "exit": 1,
+          "seconds": 0.718,
+          "redactedOutputSha256": "4cabee0b46a7eb29582660a48d1844cd86e10fa98d59c04501128547d28e0749"
+        },
+        {
+          "name": "normal-digest",
+          "expected": 0,
+          "exit": 0,
+          "seconds": 0.703,
+          "redactedOutputSha256": "b7bed33dfc48a487c942906025dbc1c71a1fd7f61cb78523e9157e0bff205f71"
+        }
+      ]
+    }
+  ],
+  "documentLinkMigration": [
+    {
+      "path": "docs/ai-design/G8-IMPLEMENTATION-SPEC.md",
+      "converted": 3,
+      "notInSnapshot": []
+    },
+    {
+      "path": "docs/ai-design/G8-WORKLOG.md",
+      "converted": 6,
+      "notInSnapshot": []
+    }
+  ],
+  "currentLayoutValidation": {
+    "status": "PASS",
+    "originalBackupFiles": 1475,
+    "overlayFiles": 45,
+    "removed": 1461,
+    "retainedPrEvidence": 17,
+    "sharedSecurity": 4,
+    "prospectivePrFiles": 129,
+    "knownSourceQuotesRemaining": 0,
+    "bundles": 6,
+    "capabilities": 14,
+    "scenarios": 12,
+    "cases": 4,
+    "gitHistory": "UNCHANGED",
+    "productSourceGitBlobsMatch": true,
+    "ignoredLocalCachesPreserved": [
+      "reports/g8/parent/__pycache__/common-execution-control-app-run.cpython-312.pyc",
+      "reports/g8/parent/__pycache__/completion-restore-app-run.cpython-312.pyc"
+    ],
+    "measurement": "actual current working tree; no commit or push"
+  },
+  "currentValidation": {
+    "offlineToolRuffAndSelftest": "PASS",
+    "existingEvidenceHelper": {
+      "passed": 4,
+      "skipped": 1
+    },
+    "app": {
+      "suitesPassed": 113,
+      "testsPassed": 1387,
+      "typecheck": "PASS",
+      "lint": "PASS",
+      "seconds": 86.312
+    },
+    "actualSecurity": "PASS",
+    "newModelCatalogDatabaseCalls": 0,
+    "oldHistoryP1": "OPEN",
+    "scope": {
+      "approvedPaths": 1467,
+      "observedPaths": 1467,
+      "outsideApproval": [],
+      "staged": 0,
+      "head": "5208f89b83de9ebebf9d78c6016b3b2fda327a87",
+      "gitDiffCheck": "PASS"
+    }
+  },
+  "publication": {
+    "sourceHeadBeforePublish": "5208f89b83de9ebebf9d78c6016b3b2fda327a87",
+    "targetBranch": "feat/compound-consultation",
+    "phase": "preflight passed; paired commits and full-history gate follow this snapshot",
+    "commitPlan": [
+      {
+        "role": "evidence-and-tool",
+        "paths": 1465,
+        "message": "chore: G8 증빙을 17개로 통합하고 원본 보존"
+      },
+      {
+        "role": "documentation",
+        "paths": 2,
+        "message": "docs: G8 증빙 보존과 Draft 인계 기록 갱신"
+      }
+    ],
+    "pr": 309,
+    "draftRequired": true,
+    "mergeDeploy": "NOT_RUN",
+    "newRemoteCI": "PENDING after authorized push",
+    "lfRetentionSimulation": {
+      "status": "PASS",
+      "textFiles": 5,
+      "method": "in-memory LF view checked against actual immutable SOURCE Git blobs"
+    },
+    "appCheck": {
+      "phase": "publication preflight",
+      "command": [
+        "npm.cmd",
+        "run",
+        "check",
+        "--",
+        "--",
+        "--runInBand"
+      ],
+      "exit": 0,
+      "seconds": 86.109,
+      "toolSha256": "08f2bb1fe57859ece7b927a06d4efaaebe2bb8c265b86fc2d13453cfd6d86573",
+      "outputSha256": "b11bb8f500803d9b5d33f3502cf9cd152f80cc42e9369b7074a33ff6a8d861dc",
+      "summary": [
+        "Test Suites: 113 passed, 113 total",
+        "Tests:       1387 passed, 1387 total"
+      ]
+    }
+  }
+}

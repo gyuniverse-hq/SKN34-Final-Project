@@ -1,9 +1,0 @@
-{
-  "recordedAt": "2026-11-27T05:43:39.394Z",
-  "browser": "Aside",
-  "mode": "live-web-DOM",
-  "login": "guest",
-  "externalModelCalls": 0,
-  "detail": "# note: interactive (clickable / focusable) elements only.\n- title: \"VISHUE\" [url=http://localhost:19832/product/oy-a000000162667?optionId=A000000162667-012]\n- link \"(tabs), back\" [ref=e1]\n- heading \"삐아\" [level=1]\n- generic [ref=e2] [scrollable]:\n  - text: \"삐아\"\n  - heading \"[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)\" [level=1]\n  - text: \"[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)[단품] 07 웜 베이지 발색 참고 이미지 이 옵션은 장바구니에 보관할 수 있어요. 앱 결제는 아직 지원하지 않아요. 결제하려면 이 옵션을 장바구니에서 제외해 주세요.가격 기준일: 2026-10-28T10:06:07₩17,000 참고 가격 · 용량  5g\"\n  - button \"비교에 담기\" [ref=e3] [disabled]: \"비교에 담기\"\n  - text: \"제형·마무리 새틴 이 제품이 나온 영상\"\n  - link \"로판여주 재질💜 설윤 Pocket Locket 메이크업 복붙해봄✨(눈 4배 커지는 아이메이크업👁️) | #복붙메이크업 안다 ANDA\" [ref=e4]\n  - link \"서늘한 냉미녀 메이크업\" [ref=e5]\n  - link \"청순 청량 여름 데일리 메이크업\" [ref=e6]\n  - link \"사진발 윤곽 보정 메이크업\" [ref=e7]\n  - link \"스모키 눈확장 메이크업\" [ref=e8]\n- button \"VISHUE에게 물어보기\" [ref=e9]: \"AI\"\n- button \"장바구니 담기\" [ref=e10]: \"장바구니 담기\"",
-  "chat": "# note: interactive (clickable / focusable) elements only.\n- title: \"VISHUE\" [url=http://localhost:19832/chat?productId=oy-a000000162667&optionId=A000000162667-012]\n- link \"삐아, back\" [ref=e11]\n- heading \"상품 상담\" [level=1]\n- button \"최근 상담\" [ref=e12]: \"\"\n- button \"새 상담\" [ref=e13]: \"\"\n- heading \"상품 상담\" [level=1]\n- text: \"상담 대상: [6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품) · [단품] 07 웜 베이지 뷰티 고민을 자유롭게 이야기해 주세요\"\n- button \"이 제품 성분은?\" [ref=e14]\n- button \"이 제품 자세히 알려줘\" [ref=e15]\n- button \"이 제품 가격은?\" [ref=e16]\n- button \"이 제품과 비교해줘. 비교할 제품: \" [ref=e17]\n- textbox \"궁금한 점을 입력하세요\" [ref=e18] [placeholder=\"궁금한 점을 입력하세요\"]\n- button \"보내기\" [ref=e19] [disabled]: \"\""
-}

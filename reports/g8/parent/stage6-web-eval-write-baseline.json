@@ -1,8 +1,0 @@
-{
-  "tables": {
-    "chat_memories": 0,
-    "chat_memory_proposals": 0,
-    "chat_turns": 279
-  },
-  "memoryWriteTurns": 1
-}

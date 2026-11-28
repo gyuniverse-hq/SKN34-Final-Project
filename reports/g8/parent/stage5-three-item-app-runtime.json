@@ -1,9 +1,0 @@
-{
-  "chatPid": 22580,
-  "webPid": 50388,
-  "chatPort": 19833,
-  "webPort": 19836,
-  "model": "gpt-6-luna",
-  "modelConfiguredMode": "live",
-  "startedAt": "2026-11-27T19:28:30.467547+00:00"
-}
