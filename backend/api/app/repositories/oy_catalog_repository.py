@@ -58,14 +58,17 @@ class OyCatalogRepository:
         return tuple(row) if row else None
 
     async def option_image(self, option_id: str, product_id: str):
-        rows = (await self._session.execute(
-            select(RawOyImageRow.image_url, RawOyImageRow.image_type)
-            .where(
-                RawOyImageRow.option_id == option_id,
-                RawOyImageRow.goods_no == product_id.removeprefix("oy-").upper(),
-                RawOyImageRow.image_type.in_(["option", "color_chip", "color_compare"]),
-            ).order_by(RawOyImageRow.sort_seq, RawOyImageRow.image_id)
-        )).all()
+        rows = (
+            await self._session.execute(
+                select(RawOyImageRow.image_url, RawOyImageRow.image_type)
+                .where(
+                    RawOyImageRow.option_id == option_id,
+                    RawOyImageRow.goods_no == product_id.removeprefix("oy-").upper(),
+                    RawOyImageRow.image_type.in_(["option", "color_chip", "color_compare"]),
+                )
+                .order_by(RawOyImageRow.sort_seq, RawOyImageRow.image_id)
+            )
+        ).all()
         for kind in ("option", "color_chip", "color_compare"):
             for url, image_type in rows:
                 if image_type == kind and url and url.startswith("https://"):
@@ -74,22 +77,49 @@ class OyCatalogRepository:
 
     async def option_ar_shade(self, option_id: str, product_id: str):
         # Reuse the existing conservative raw-to-serving mapping, never route shade input.
-        options = (await self._session.execute(select(RawOyProductOptionRow).where(
-            RawOyProductOptionRow.goods_no == product_id.removeprefix("oy-").upper(),
-            RawOyProductOptionRow.delisted_at.is_(None),
-        ))).scalars().all()
-        shades = (await self._session.execute(select(ShadeRow).where(
-            ShadeRow.product_id == product_id,
-        ))).scalars().all()
-        color = (await self._session.execute(select(RawOyOptionColorRow).where(
-            RawOyOptionColorRow.option_id == option_id,
-        ).order_by(RawOyOptionColorRow.collected_at.desc()).limit(1))).scalar_one_or_none()
+        options = (
+            (
+                await self._session.execute(
+                    select(RawOyProductOptionRow).where(
+                        RawOyProductOptionRow.goods_no == product_id.removeprefix("oy-").upper(),
+                        RawOyProductOptionRow.delisted_at.is_(None),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        shades = (
+            (
+                await self._session.execute(
+                    select(ShadeRow).where(
+                        ShadeRow.product_id == product_id,
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        color = (
+            await self._session.execute(
+                select(RawOyOptionColorRow)
+                .where(
+                    RawOyOptionColorRow.option_id == option_id,
+                )
+                .order_by(RawOyOptionColorRow.collected_at.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
         return resolve_confirmed_shade_fallback(
-            product_id=product_id, raw_option_id=option_id,
-            options=[RawShadeOption(o.option_id, o.goods_no, o.shade_code, o.shade_name)
-                     for o in options],
-            shades=[ServingShade(s.product_id, s.id, s.name, s.hex,
-                                 s.measure_method, s.color_source) for s in shades],
+            product_id=product_id,
+            raw_option_id=option_id,
+            options=[
+                RawShadeOption(o.option_id, o.goods_no, o.shade_code, o.shade_name) for o in options
+            ],
+            shades=[
+                ServingShade(s.product_id, s.id, s.name, s.hex, s.measure_method, s.color_source)
+                for s in shades
+            ],
             color=RawShadeColor(color.hex_code, color.color_method) if color else None,
         )
 

@@ -462,10 +462,15 @@ async def execute_owned_look(req, catalog, *, trace=None):
     bound_answers = [(q, quote) for q, quote in req._question_answers if q.input_key == "ownership"]
     # Question answers are applied only after validating their exact recipe target.
     answered = {quote.strip().rstrip(".!?") for _, quote in bound_answers}
-    remaining = "\n".join(
-        clause for clause in re.split(r"(?<=[.!?])\s+|\n+", req.message)
-        if clause.strip().rstrip(".!?") not in answered
-    ) if bound_answers else req.message
+    remaining = (
+        "\n".join(
+            clause
+            for clause in re.split(r"(?<=[.!?])\s+|\n+", req.message)
+            if clause.strip().rstrip(".!?") not in answered
+        )
+        if bound_answers
+        else req.message
+    )
     declaration_message, item_updates = _scoped_declarations(remaining, recipe)
     owned_state = next_context(req, recipe.recipe_version, declaration_message=declaration_message)
     refs = owned_look_interpreter.snapshot(recipe)
@@ -508,17 +513,25 @@ async def execute_owned_look(req, catalog, *, trace=None):
             response._task_results = list(task_results)
             return response
         answer_plans.append((answer_plan, quote))
-    extra_statements = [
-        clause for clause in re.split(r"(?<=[.!?])\s+|\n+", declaration_message)
-        if _self_declaration(clause)
-        and re.search(r"보유|갖고|가지고|(?:있|없)(?:어|고|습니다)", clause)
-    ] if bound_answers else []
-    reference_message = "\n".join(extra_statements) if extra_statements else (
-        declaration_message if bound_answers else req.message
+    extra_statements = (
+        [
+            clause
+            for clause in re.split(r"(?<=[.!?])\s+|\n+", declaration_message)
+            if _self_declaration(clause)
+            and re.search(r"보유|갖고|가지고|(?:있|없)(?:어|고|습니다)", clause)
+        ]
+        if bound_answers
+        else []
     )
-    if extra_statements or (req._owned_look_reference and (
-        not bound_answers or owned_look_interpreter.needs_reference(reference_message)
-    )):
+    reference_message = (
+        "\n".join(extra_statements)
+        if extra_statements
+        else (declaration_message if bound_answers else req.message)
+    )
+    if extra_statements or (
+        req._owned_look_reference
+        and (not bound_answers or owned_look_interpreter.needs_reference(reference_message))
+    ):
         previous_refs = req._owned_look_context.references if req._owned_look_context else None
         if (
             previous_refs is None

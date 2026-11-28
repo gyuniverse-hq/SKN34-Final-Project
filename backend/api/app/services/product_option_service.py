@@ -1,4 +1,5 @@
 """Read one active sale option; no order, ingredient or AR approval side effects."""
+
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,7 +20,9 @@ class ProductOptionService:
         price = await self.repository.option_price(option_id, product_id)
         image = await self.repository.option_image(option_id, product_id)
         return ProductOption(
-            product_id=product_id, option_id=identity[0], name=identity[1] or identity[0],
+            product_id=product_id,
+            option_id=identity[0],
+            name=identity[1] or identity[0],
             price_krw=price[1] if price and price[1] is not None and price[1] >= 0 else None,
             observed_at=price[2].isoformat() if price and price[2] else None,
             source_url=identity[3],

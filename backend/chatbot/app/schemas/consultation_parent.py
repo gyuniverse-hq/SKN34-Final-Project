@@ -118,7 +118,8 @@ class ConsultationParent(ParentModel):
             raise ValueError("Stale question revision")
         if self.question and self.question.task_id is None:
             owners = [
-                task for task in self.tasks
+                task
+                for task in self.tasks
                 if task.goal == self.question.goal and task.status == "waiting_user"
             ]
             if len(owners) == 1:

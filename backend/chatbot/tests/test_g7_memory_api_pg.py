@@ -3447,7 +3447,10 @@ def test_added_same_role_task_ids_pg_restore_and_targeted_retry(memory_api, monk
     assert [e["documentId"] for e in saved_first.display_result["knowledge"]["evidence"]] == [1]
     service._llm = AdditionModel(action="show", targets=[task_ids[0]])
     shown = ask(
-        client, room, recovered["conversation"]["version"], "보습 설명 다시 보여줘",
+        client,
+        room,
+        recovered["conversation"]["version"],
+        "보습 설명 다시 보여줘",
         request_type="beauty_consultation",
     )
     assert [e["documentId"] for e in shown["knowledge"]["evidence"]] == [1]

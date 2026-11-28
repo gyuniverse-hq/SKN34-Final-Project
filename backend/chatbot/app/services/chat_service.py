@@ -384,11 +384,8 @@ def route_intent(context: ResolvedContext) -> IntentDecision:
     shopping = _SHOPPING.search(text)
     execution = compound_graph.EXECUTION_REQUEST.search(text)
     intent = "general"
-    if (
-        ((shopping and execution) or _explicit_protected_action(text))
-        and not (
-            get_settings().g8_enabled and compound_graph.is_search_condition_change(context.message)
-        )
+    if ((shopping and execution) or _explicit_protected_action(text)) and not (
+        get_settings().g8_enabled and compound_graph.is_search_condition_change(context.message)
     ):
         intent = "compound"
     elif context.request_type == "ar_command":
@@ -711,11 +708,7 @@ class ChatService:
             return control
         from app.services.consultation_parent_graph import run_id_tasks
 
-        delegated = (
-            await run_id_tasks(req, self._dispatch_parent_read)
-            if g8_enabled
-            else None
-        )
+        delegated = await run_id_tasks(req, self._dispatch_parent_read) if g8_enabled else None
         if delegated is not None:
             return delegated
         intent = req._parent_intent if g8_enabled else None
@@ -2073,8 +2066,7 @@ class ChatService:
                             "지금 얼굴에 적용한 상태는 아니에요."
                         ),
                         "memory": (
-                            "기억에는 어떤 내용을 저장할지 먼저 확인할게요. "
-                            "아직 저장하지 않았어요."
+                            "기억에는 어떤 내용을 저장할지 먼저 확인할게요. 아직 저장하지 않았어요."
                         ),
                         "other": (
                             "실제 변경은 해당 화면에서 내용을 확인한 뒤 진행해 주세요. "

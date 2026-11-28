@@ -1691,11 +1691,21 @@ async def test_bound_answer_keeps_additional_named_product_ownership_and_budget(
     first = await execute_owned_look(req, catalog)
     first_item = next(i for i in first._owned_look_outcome.items if "하트퍼센트" in i.label)
     req._owned_look_context = first._owned_look_context
-    req._question_answers = [(ParentQuestion(
-        task_id="task-look", goal="owned_look", version=1, text="첫 상품 있나요?",
-        input_key="ownership", need_id=first_item.need_id,
-        recipe_version=first.style_recipe.recipe_version, ownership_scope="option",
-    ), "없어")]
+    req._question_answers = [
+        (
+            ParentQuestion(
+                task_id="task-look",
+                goal="owned_look",
+                version=1,
+                text="첫 상품 있나요?",
+                input_key="ownership",
+                need_id=first_item.need_id,
+                recipe_version=first.style_recipe.recipe_version,
+                ownership_scope="option",
+            ),
+            "없어",
+        )
+    ]
     req.message = f"없어. 롬앤 쥬시 래스팅 틴트는 {possession}. 각각 2만원 이하로 찾아줘."
     result = await execute_owned_look(req, catalog)
     state = result._owned_look_context
@@ -1726,11 +1736,21 @@ async def test_additional_name_variant_uses_existing_reference_interpreter_witho
     first = await execute_owned_look(req, catalog)
     target = next(i for i in first._owned_look_outcome.items if "하트퍼센트" in i.label)
     req._owned_look_context = first._owned_look_context
-    req._question_answers = [(ParentQuestion(
-        task_id="task-look", goal="owned_look", version=1, text="첫 상품 있나요?",
-        input_key="ownership", need_id=target.need_id,
-        recipe_version=first.style_recipe.recipe_version, ownership_scope="option",
-    ), "없어")]
+    req._question_answers = [
+        (
+            ParentQuestion(
+                task_id="task-look",
+                goal="owned_look",
+                version=1,
+                text="첫 상품 있나요?",
+                input_key="ownership",
+                need_id=target.need_id,
+                recipe_version=first.style_recipe.recipe_version,
+                ownership_scope="option",
+            ),
+            "없어",
+        )
+    ]
     req.message = "없어. 롬앤 틴트는 갖고 있어. 각각 2만원 이하로 찾아줘."
     calls = []
 
@@ -1742,13 +1762,34 @@ async def test_additional_name_variant_uses_existing_reference_interpreter_witho
             calls.append(payload)
             snapshot = payload["snapshot"]
             extra = next(t for t in snapshot["targets"] if t["productId"] == "lip-b")
-            args = {"snapshotVersion": snapshot["version"], "action": "update", "operations": [
-                {"action": "declare", "targetId": extra["targetId"],
-                 "scope": "product", "status": "present"},
-            ]}
-            return {"choices": [{"message": {"tool_calls": [{"function": {
-                "name": required_tool, "arguments": json.dumps(args),
-            }}]}}]}, 0
+            args = {
+                "snapshotVersion": snapshot["version"],
+                "action": "update",
+                "operations": [
+                    {
+                        "action": "declare",
+                        "targetId": extra["targetId"],
+                        "scope": "product",
+                        "status": "present",
+                    },
+                ],
+            }
+            return {
+                "choices": [
+                    {
+                        "message": {
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": required_tool,
+                                        "arguments": json.dumps(args),
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }, 0
 
     req._owned_look_llm = Model()
     result = await execute_owned_look(req, catalog)

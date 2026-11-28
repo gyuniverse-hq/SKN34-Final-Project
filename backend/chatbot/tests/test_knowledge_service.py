@@ -839,7 +839,9 @@ def test_one_claim_can_fully_answer_some_requirements_without_fulfilling_the_res
     reply = resolve(draft, audit, evidence, coverage=coverage)
     assert reply.status == "partial" and len(reply.claims) == 1
     assert [(r.requirement_id, r.fulfilled) for r in coverage.requirements] == [
-        ("R1", True), ("R2", True), ("R3", False),
+        ("R1", True),
+        ("R2", True),
+        ("R3", False),
     ]
     assert "아직 답하지 않은 관리 방법" in reply.limitations
     audit["reviews"][0]["match"] = "PARTIAL_MATCH"

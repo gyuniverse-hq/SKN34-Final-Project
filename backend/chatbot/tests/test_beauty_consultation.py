@@ -76,13 +76,18 @@ async def test_two_explicit_names_resolve_both_catalog_identities_without_select
 
 @pytest.mark.anyio
 async def test_pair_price_comparison_keeps_previous_candidate_order_and_selection(setup):
-    context = BeautyContext(issued_at=1000, filters=BeautyFilters(),
-                            candidate_ids=["c", "a", "b"], selected_product_id="b")
+    context = BeautyContext(
+        issued_at=1000,
+        filters=BeautyFilters(),
+        candidate_ids=["c", "a", "b"],
+        selected_product_id="b",
+    )
     req = request("1번과 2번 가격 비교해줘")
     req.chat_context = context  # Server-restored context, not untrusted client input.
     result = await beauty.answer_beauty(
         req,
-        PlanLlm(intent="detail", compareOrdinals=[1, 2]), setup,
+        PlanLlm(intent="detail", compareOrdinals=[1, 2]),
+        setup,
     )
     assert "25,000" in result.answer and "15,000" in result.answer
     assert result.chat_context.candidate_ids == ["c", "a", "b"]
@@ -98,7 +103,8 @@ async def test_named_pair_ambiguity_keeps_unique_base_and_asks_for_actual_choice
     ]
     response = await beauty.answer_beauty(
         request("Sol Cream과 Rain Toner 가격 비교"),
-        PlanLlm(intent="detail", comparisonNames=["Sol Cream", "Rain Toner"]), setup,
+        PlanLlm(intent="detail", comparisonNames=["Sol Cream", "Rain Toner"]),
+        setup,
     )
     assert response.result_type == "clarification"
     assert {c.product_id for c in response._comparison_choices} == {"a", "c"}
@@ -108,16 +114,20 @@ async def test_named_pair_ambiguity_keeps_unique_base_and_asks_for_actual_choice
 
 @pytest.mark.anyio
 async def test_named_comparison_does_not_invent_live_price_or_accept_unquoted_names(setup):
-    setup.products = [product("a", 15000).model_copy(update={"name": "Sol Cream"}),
-                      product("b", 19000).model_copy(update={"name": "Rain Toner"})]
+    setup.products = [
+        product("a", 15000).model_copy(update={"name": "Sol Cream"}),
+        product("b", 19000).model_copy(update={"name": "Rain Toner"}),
+    ]
     result = await beauty.answer_beauty(
         request("Sol Cream과 Rain Toner 현재가 비교"),
-        PlanLlm(intent="detail", comparisonNames=["Sol Cream", "Rain Toner"]), setup,
+        PlanLlm(intent="detail", comparisonNames=["Sol Cream", "Rain Toner"]),
+        setup,
     )
     assert "실제 판매가" in result.answer and "미확인" in result.answer
     bad = await beauty.answer_beauty(
         request("이 제품과 다른 제품 비교"),
-        PlanLlm(intent="detail", comparisonNames=["Sol Cream", "Rain Toner"]), setup,
+        PlanLlm(intent="detail", comparisonNames=["Sol Cream", "Rain Toner"]),
+        setup,
     )
     assert bad.result_type == "clarification" and bad._product_assessment is None
 

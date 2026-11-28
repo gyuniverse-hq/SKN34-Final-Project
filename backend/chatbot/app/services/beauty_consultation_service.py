@@ -589,19 +589,21 @@ def _comparison_pair(req, plan):
 def direct_comparison(req, plan):
     return bool(
         _comparison_pair(req, plan)
-        or (not (
-            len(set(plan.compare_ordinals)) == 2
-            and all(_comparison_ordinal(req.message, n) for n in plan.compare_ordinals)
+        or (
+            not (
+                len(set(plan.compare_ordinals)) == 2
+                and all(_comparison_ordinal(req.message, n) for n in plan.compare_ordinals)
+            )
+            and (
+                _COMPARE.search(req.message)
+                or req._comparison_followup
+                or (req.screen_context and req.screen_context.screen_id in COMPARISON_SCREENS)
+            )
+            and (
+                (req.screen_context and req.screen_context.product_id)
+                or (req.chat_context and req.chat_context.selected_product_id)
+            )
         )
-        and (
-            _COMPARE.search(req.message)
-            or req._comparison_followup
-            or (req.screen_context and req.screen_context.screen_id in COMPARISON_SCREENS)
-        )
-        and (
-            (req.screen_context and req.screen_context.product_id)
-            or (req.chat_context and req.chat_context.selected_product_id)
-        ))
     )
 
 
@@ -735,8 +737,10 @@ async def _compare_product(req, plan, catalog):
 
 async def _compare_pair(req, plan, catalog):
     previous = req.chat_context
-    context = previous.model_copy(deep=True) if previous else _context(
-        BeautyFilters(), [], int(time.time())
+    context = (
+        previous.model_copy(deep=True)
+        if previous
+        else _context(BeautyFilters(), [], int(time.time()))
     )
     clarify, unverified = _COMPARISON_COPY[req.locale]
     if _comparison_pair(req, plan) == "ordinals":
@@ -757,9 +761,13 @@ async def _compare_pair(req, plan, catalog):
         matches = []
         for name in names:
             rows = await catalog.search_products(q=name)
-            matches.append(list({
-                p.id: p for p in rows if p.id == name or _matches_product_name(p, name)
-            }.values()))
+            matches.append(
+                list(
+                    {
+                        p.id: p for p in rows if p.id == name or _matches_product_name(p, name)
+                    }.values()
+                )
+            )
         if any(len(items) != 1 for items in matches):
             unique = next((i for i, items in enumerate(matches) if len(items) == 1), None)
             if unique is not None:
@@ -769,17 +777,20 @@ async def _compare_pair(req, plan, catalog):
 
                     context.selected_product_id = matches[unique][0].id
                     return _comparison_choice_reply(
-                        context, context.selected_product_id,
+                        context,
+                        context.selected_product_id,
                         [ComparisonChoice(product_id=p.id, label=p.name) for p in other],
-                        req.locale, _requested_price_basis(req.message),
+                        req.locale,
+                        _requested_price_basis(req.message),
                     )
             return _reply(unverified, context, preserve_selection=True)
         products = [items[0] for items in matches]
     if products[0].id == products[1].id:
         return _reply(unverified, context, preserve_selection=True)
     if previous is None:
-        context = _context(BeautyFilters(), [p.id for p in products], int(time.time()),
-                           selected=products[0].id)
+        context = _context(
+            BeautyFilters(), [p.id for p in products], int(time.time()), selected=products[0].id
+        )
     return await _comparison_result(req, catalog, context, *products)
 
 

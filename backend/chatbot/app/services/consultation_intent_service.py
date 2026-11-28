@@ -461,7 +461,8 @@ def intent_schema(parent):
     schema["properties"]["planId"]["enum"] = [str(parent.plan_id)]
     schema["properties"]["version"]["enum"] = [parent.version]
     questions = [
-        q for q in parent.pending_questions or ([parent.question] if parent.question else [])
+        q
+        for q in parent.pending_questions or ([parent.question] if parent.question else [])
         if q.task_id is not None
     ]
     if not questions:
@@ -673,15 +674,29 @@ async def prepare_turn(req, llm, *, initial=False, _repair_omitted=True):
             audit["rejectionCode"] = reasons.get(str(exc), "invalid_contract")
             if isinstance(exc, ValidationError):
                 audit["rejectionCode"] = "schema_validation"
-                fields = set(ConsultationIntent.model_fields) | {
-                    f.alias for f in ConsultationIntent.model_fields.values()
-                } | {"taskId", "inputKey", "needId", "operation", "quote", "productOperation",
-                     "capability", "sharedQuotes", "explanationQuote"}
+                fields = (
+                    set(ConsultationIntent.model_fields)
+                    | {f.alias for f in ConsultationIntent.model_fields.values()}
+                    | {
+                        "taskId",
+                        "inputKey",
+                        "needId",
+                        "operation",
+                        "quote",
+                        "productOperation",
+                        "capability",
+                        "sharedQuotes",
+                        "explanationQuote",
+                    }
+                )
                 audit["schemaErrors"] = [
-                    {"type": e["type"], "path": [
-                        p if isinstance(p, int) or p in fields else "unknown_field"
-                        for p in e["loc"]
-                    ]}
+                    {
+                        "type": e["type"],
+                        "path": [
+                            p if isinstance(p, int) or p in fields else "unknown_field"
+                            for p in e["loc"]
+                        ],
+                    }
                     for e in exc.errors(include_input=False, include_context=False)
                 ]
             return control_response(

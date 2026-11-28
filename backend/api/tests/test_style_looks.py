@@ -36,8 +36,15 @@ def catalog_rows(monkeypatch):
 
     async def published(session, source):
         assert source == "style"
-        return [{"video_id": r["id"], "catalog_title": r["title"],
-                 "style_group": r["group"], "style_tag": r["tag"]} for r in rows()]
+        return [
+            {
+                "video_id": r["id"],
+                "catalog_title": r["title"],
+                "style_group": r["group"],
+                "style_tag": r["tag"],
+            }
+            for r in rows()
+        ]
 
     async def mentions(session, source):
         assert source == "style"

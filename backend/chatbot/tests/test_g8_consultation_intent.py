@@ -26,10 +26,13 @@ def test_unique_legacy_question_is_bound_and_ambiguous_owner_is_not_guessed():
     )
     assert single.question.task_id == "skin"
     assert single.pending_questions[0].task_id == "skin"
-    ambiguous = ConsultationParent(tasks=[
-        ParentTask(task_id="skin-a", goal="skin", version=1, status="waiting_user"),
-        ParentTask(task_id="skin-b", goal="skin", version=1, status="waiting_user"),
-    ], question=question)
+    ambiguous = ConsultationParent(
+        tasks=[
+            ParentTask(task_id="skin-a", goal="skin", version=1, status="waiting_user"),
+            ParentTask(task_id="skin-b", goal="skin", version=1, status="waiting_user"),
+        ],
+        question=question,
+    )
     assert ambiguous.question.task_id is None and ambiguous.pending_questions == []
     assert intent_schema(ambiguous)["properties"]["questionChanges"]["maxItems"] == 0
 
@@ -120,9 +123,13 @@ def test_question_answer_retains_extra_ownership_clause_for_the_same_workflow():
     proposal.question_changes = proposal.question_changes[:1]
     from app.schemas.consultation_parent import ConsultationChange
 
-    proposal.changes.append(ConsultationChange(
-        task_id="task-look", operation="update", quote=extra,
-    ))
+    proposal.changes.append(
+        ConsultationChange(
+            task_id="task-look",
+            operation="update",
+            quote=extra,
+        )
+    )
     result = validate_intent(proposal, req)
     assert next(c.quote for c in result.changes if c.task_id == "task-look") == (
         "삐아는 없어\n" + extra
@@ -149,9 +156,13 @@ def test_redundant_targets_can_include_a_separately_grounded_sibling_change(extr
     req.message = "삐아는 없어. 피부 상담은 오후 각질로 설명해줘."
     proposal = question_proposal(req)
     proposal.question_changes = proposal.question_changes[:1]
-    proposal.changes = [ConsultationChange(
-        task_id="task-skin", operation="update", quote="피부 상담은 오후 각질로 설명해줘.",
-    )]
+    proposal.changes = [
+        ConsultationChange(
+            task_id="task-skin",
+            operation="update",
+            quote="피부 상담은 오후 각질로 설명해줘.",
+        )
+    ]
     proposal.targets = ["task-look", "task-skin"] + ([extra_target] if extra_target else [])
     if not valid:
         with pytest.raises(ValueError):
@@ -164,9 +175,13 @@ def test_redundant_targets_can_include_a_separately_grounded_sibling_change(extr
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("kind,expected", [
-    ("schema", "schema_validation"), ("duplicate", "conflicting_task_changes"),
-])
+@pytest.mark.parametrize(
+    "kind,expected",
+    [
+        ("schema", "schema_validation"),
+        ("duplicate", "conflicting_task_changes"),
+    ],
+)
 async def test_parent_rejection_audit_is_specific_without_raw_input(kind, expected):
     from app.services.consultation_intent_service import prepare_turn
 
@@ -176,16 +191,34 @@ async def test_parent_rejection_audit_is_specific_without_raw_input(kind, expect
         configured = True
 
         async def complete_with_tools(self, messages, tools, *, required_tool=None):
-            args = {"planId": str(req._consultation_parent.plan_id), "version": 1,
-                    "action": "continue", "changes": []}
+            args = {
+                "planId": str(req._consultation_parent.plan_id),
+                "version": 1,
+                "action": "continue",
+                "changes": [],
+            }
             if kind == "schema":
                 args["private-freeform-field"] = "DO-NOT-LOG-PRIVATE-INPUT"
             else:
-                args["changes"] = [{"taskId": "task-look", "operation": "update",
-                                    "quote": "삐아는 없어"}] * 2
-            return {"choices": [{"message": {"tool_calls": [{"function": {
-                "name": required_tool, "arguments": json.dumps(args),
-            }}]}}]}, 0
+                args["changes"] = [
+                    {"taskId": "task-look", "operation": "update", "quote": "삐아는 없어"}
+                ] * 2
+            return {
+                "choices": [
+                    {
+                        "message": {
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": required_tool,
+                                        "arguments": json.dumps(args),
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }, 0
 
     result = await prepare_turn(req, InvalidModel())
     assert result.result_type == "clarification"
@@ -1715,15 +1748,25 @@ async def test_g5_flag_applies_to_initial_and_restored_knowledge_without_losing_
 
     class Model(EntryModel):
         async def complete(self, messages):
-            return json.dumps({
-                "intent": "search", "category": "lip", "productRequirement": {"operation": "keep"},
-            })
+            return json.dumps(
+                {
+                    "intent": "search",
+                    "category": "lip",
+                    "productRequirement": {"operation": "keep"},
+                }
+            )
 
     catalog = ProductCatalog()
-    first = await ChatService(FakeGraph(), Model([
-        {"capability": "knowledge", "quote": explanation},
-        {"capability": "product", "productOperation": "search", "quote": shopping},
-    ]), catalog).answer(ChatRequest(message=explanation + ". " + shopping, locale="ko"))
+    first = await ChatService(
+        FakeGraph(),
+        Model(
+            [
+                {"capability": "knowledge", "quote": explanation},
+                {"capability": "product", "productOperation": "search", "quote": shopping},
+            ]
+        ),
+        catalog,
+    ).answer(ChatRequest(message=explanation + ". " + shopping, locale="ko"))
     tasks = {t.goal: t for t in first._consultation_parent.tasks}
     assert first.products and tasks["product"].status == "completed"
     assert tasks["knowledge"].status == ("completed" if g5_enabled else "failed")
@@ -1733,9 +1776,19 @@ async def test_g5_flag_applies_to_initial_and_restored_knowledge_without_losing_
         assert first.consultation.status == "partial"
     raw = json.loads(json.dumps(updated_context({}, first)))
     req = prepare_request(ChatRequest(message=explanation, locale="ko"), raw, [])
-    second = await ChatService(FakeGraph(), AdditionModel(changes=[{
-        "taskId": tasks["knowledge"].task_id, "operation": "update", "quote": explanation,
-    }]), catalog).answer(req)
+    second = await ChatService(
+        FakeGraph(),
+        AdditionModel(
+            changes=[
+                {
+                    "taskId": tasks["knowledge"].task_id,
+                    "operation": "update",
+                    "quote": explanation,
+                }
+            ]
+        ),
+        catalog,
+    ).answer(req)
     assert {p.id for p in second.products} == {p.id for p in first.products}
     assert len(calls) == (2 if g5_enabled else 0)
     assert next(t for t in second._consultation_parent.tasks if t.goal == "knowledge").status == (
@@ -1750,13 +1803,20 @@ async def test_g5_off_can_display_saved_answer_without_a_new_knowledge_read(monk
     monkeypatch.setattr(get_settings(), "g5_enabled", False)
     req = ChatRequest(message="이전 설명 보여줘", locale="ko")
     stored = knowledge_result("보습", 1)
-    req._consultation_parent = ConsultationParent(tasks=[ParentTask(
-        task_id="task-saved", goal="knowledge", version=1, status="completed",
-        scope_digest=task_scope(req),
-        display_result=ChatResponse(
-            answer=stored.answer, products=[], knowledge=stored.reply
-        ).model_dump(mode="json", by_alias=True),
-    )])
+    req._consultation_parent = ConsultationParent(
+        tasks=[
+            ParentTask(
+                task_id="task-saved",
+                goal="knowledge",
+                version=1,
+                status="completed",
+                scope_digest=task_scope(req),
+                display_result=ChatResponse(
+                    answer=stored.answer, products=[], knowledge=stored.reply
+                ).model_dump(mode="json", by_alias=True),
+            )
+        ]
+    )
 
     async def forbidden(*args, **kwargs):
         pytest.fail("Saved display must not execute knowledge")
@@ -1780,11 +1840,19 @@ async def test_g8_off_saved_parent_does_not_intercept_or_disappear(monkeypatch, 
 
     monkeypatch.setattr(get_settings(), "g8_enabled", False)
     monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", False)
-    original = ConsultationParent(execution_state=state, tasks=[ParentTask(
-        task_id="task-old", goal="knowledge", version=1,
-        status="completed" if state == "active" else "cancelled", objective="과거 목표",
-        display_result={"answer": "저장한 설명", "products": []},
-    )])
+    original = ConsultationParent(
+        execution_state=state,
+        tasks=[
+            ParentTask(
+                task_id="task-old",
+                goal="knowledge",
+                version=1,
+                status="completed" if state == "active" else "cancelled",
+                objective="과거 목표",
+                display_result={"answer": "저장한 설명", "products": []},
+            )
+        ],
+    )
     stored = ChatResponse(answer="저장한 설명", products=[])
     stored._consultation_parent = original
     raw = updated_context({}, stored)
@@ -1817,9 +1885,15 @@ def test_restored_ownership_answer_is_interpreted_only_when_g8_enabled(monkeypat
     old = ConsultationParent(
         tasks=[ParentTask(goal="owned_look", version=1, status="waiting_user")],
         question=ParentQuestion(
-            task_id="owned_look", goal="owned_look", version=1, text="립 있나요?",
-            input_key="ownership", zone="lip", need_id="lip-option",
-            recipe_version="recipe-v1", ownership_scope="option",
+            task_id="owned_look",
+            goal="owned_look",
+            version=1,
+            text="립 있나요?",
+            input_key="ownership",
+            zone="lip",
+            need_id="lip-option",
+            recipe_version="recipe-v1",
+            ownership_scope="option",
         ),
     )
     before = old.model_dump_json()

@@ -74,18 +74,44 @@ async def test_question_answer_and_extra_ownership_reach_only_their_workflow():
 
         async def complete_with_tools(self, messages, tools, *, required_tool=None):
             state = json.loads(messages[-1]["content"])
-            args = {"planId": state["planId"], "version": state["version"],
-                    "action": "continue", "questionChanges": [{
-                        "taskId": "task-look", "inputKey": "ownership", "needId": "bbia",
-                        "operation": "answer", "quote": "삐아는 없어",
-                    }], "changes": [
-                        {"taskId": "task-look", "operation": "update", "quote": extra},
-                        {"taskId": "task-skin", "operation": "preserve",
-                         "quote": "피부 설명은 유지해줘"},
-                    ]}
-            return {"choices": [{"message": {"tool_calls": [{"function": {
-                "name": required_tool, "arguments": json.dumps(args),
-            }}]}}]}, 0
+            args = {
+                "planId": state["planId"],
+                "version": state["version"],
+                "action": "continue",
+                "questionChanges": [
+                    {
+                        "taskId": "task-look",
+                        "inputKey": "ownership",
+                        "needId": "bbia",
+                        "operation": "answer",
+                        "quote": "삐아는 없어",
+                    }
+                ],
+                "changes": [
+                    {"taskId": "task-look", "operation": "update", "quote": extra},
+                    {
+                        "taskId": "task-skin",
+                        "operation": "preserve",
+                        "quote": "피부 설명은 유지해줘",
+                    },
+                ],
+            }
+            return {
+                "choices": [
+                    {
+                        "message": {
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": required_tool,
+                                        "arguments": json.dumps(args),
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }, 0
 
     assert await prepare_turn(req, Model()) is None
     seen = []
@@ -122,15 +148,20 @@ async def test_skin_condition_update_passes_current_utterance_and_structured_goa
     req = ChatRequest(message=quote)
     compound = CompoundContext(planVersion=1, goal=CompoundGoal(goals=["dryness"]))
     task = ParentTask(
-        task_id="task-skin", goal="skin", version=1,
-        objective="원인과 관리 방법을 설명하고 제품도 추천", compound_context=compound,
+        task_id="task-skin",
+        goal="skin",
+        version=1,
+        objective="원인과 관리 방법을 설명하고 제품도 추천",
+        compound_context=compound,
     )
     req._consultation_parent = ConsultationParent(tasks=[task])
     req._parent_intent = ConsultationIntent(
-        plan_id=req._consultation_parent.plan_id, version=1, action="continue",
+        plan_id=req._consultation_parent.plan_id,
+        version=1,
+        action="continue",
         changes=[ConsultationChange(task_id=task.task_id, operation="update", quote=quote)],
     )
-    req._parent_replan = {"updated":[task.task_id], "invalidated":[task.task_id], "withdrawn":[]}
+    req._parent_replan = {"updated": [task.task_id], "invalidated": [task.task_id], "withdrawn": []}
     seen = []
 
     async def dispatch(kind, child):
@@ -152,7 +183,9 @@ async def test_skin_situation_answer_retains_original_workflow_until_goal_is_str
     task = ParentTask(task_id="task-skin", goal="skin", version=1, objective=objective)
     req._consultation_parent = ConsultationParent(tasks=[task])
     req._parent_intent = ConsultationIntent(
-        plan_id=req._consultation_parent.plan_id, version=1, action="continue",
+        plan_id=req._consultation_parent.plan_id,
+        version=1,
+        action="continue",
         changes=[ConsultationChange(task_id=task.task_id, operation="update", quote=quote)],
     )
     req._parent_replan = {"updated": [task.task_id], "invalidated": [task.task_id], "withdrawn": []}
@@ -997,8 +1030,9 @@ def test_independent_style_and_compare_scope_ignore_only_unrelated_inputs():
     req._memory_epoch = 7
     req._memory_generation = "enabled-same"
     style = ParentTask(task_id="task-style", goal="style", version=1)
-    compare = ParentTask(task_id="task-compare", goal="product", product_operation="compare",
-                         version=1)
+    compare = ParentTask(
+        task_id="task-compare", goal="product", product_operation="compare", version=1
+    )
     for task in (style, compare):
         task.scope_snapshot = parent.task_scope_components(req, task)
         task.scope_digest = fingerprint(task.scope_snapshot)
@@ -1007,8 +1041,9 @@ def test_independent_style_and_compare_scope_ignore_only_unrelated_inputs():
     for task in (style, compare):
         task.input_refs = [f"previous-plan:1:{task.task_id}"]
     assert parent.scope_matches(req, style) and parent.scope_matches(req, compare)
-    req.chat_context = BeautyContext(issued_at=1, filters=BeautyFilters(),
-                                     selected_product_id="new-product")
+    req.chat_context = BeautyContext(
+        issued_at=1, filters=BeautyFilters(), selected_product_id="new-product"
+    )
     assert parent.scope_matches(req, style)
     assert not parent.scope_matches(req, compare)
     req.chat_context = None
@@ -1030,12 +1065,16 @@ def test_legacy_scope_compatibility_does_not_relax_consent_or_selection_fences()
     req = ChatRequest(message="룩만 다시", locale="ko")
     req._memory_epoch = 0
     req._memory_generation = "same-generation"
-    task = ParentTask(goal="style", version=1,
-                      scope_digest=fingerprint(parent.task_scope_components(req, legacy=True)))
+    task = ParentTask(
+        goal="style",
+        version=1,
+        scope_digest=fingerprint(parent.task_scope_components(req, legacy=True)),
+    )
     req._consultation_memories = ()
     assert parent.scope_matches(req, task)
-    req.chat_context = BeautyContext(issued_at=1, filters=BeautyFilters(),
-                                     selected_product_id="actually-changed")
+    req.chat_context = BeautyContext(
+        issued_at=1, filters=BeautyFilters(), selected_product_id="actually-changed"
+    )
     assert not parent.scope_matches(req, task)
     req.chat_context = None
     req._memory_epoch += 1
@@ -1313,9 +1352,11 @@ async def test_g5_disabled_explanation_preserves_owned_look_results(monkeypatch,
     if entry == "legacy":
         result = await parent.run_parent(req, "owned_look", lambda: None, catalog=catalog)
     else:
-        model = EntryModel([
-            {"capability": "owned_look", "quote": req.message, "explanationQuote": quote},
-        ])
+        model = EntryModel(
+            [
+                {"capability": "owned_look", "quote": req.message, "explanationQuote": quote},
+            ]
+        )
         result = await ChatService(None, model, catalog).answer(req)
     task = next(t for t in result._consultation_parent.tasks if t.goal == "knowledge")
     assert task.status == "failed" and task.reason == "g5_disabled"
@@ -1338,7 +1379,8 @@ async def test_g8_off_ordinary_reply_preserves_saved_owned_look_context(monkeypa
     response = await ChatService(FakeGraph(), FakeLlm()).answer(restored)
     again = prepare_request(
         req.model_copy(update={"message": "안녕", "request_type": "chat"}),
-        updated_context(raw, response), [],
+        updated_context(raw, response),
+        [],
     )
     assert again._owned_look_context == first._owned_look_context
     assert again._consultation_parent == first._consultation_parent

@@ -1,4 +1,5 @@
 """Sale identity and recorded price; independent of AR capability."""
+
 from typing import Literal
 
 from pydantic import Field

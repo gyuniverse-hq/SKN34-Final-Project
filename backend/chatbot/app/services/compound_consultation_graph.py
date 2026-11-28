@@ -231,15 +231,20 @@ async def interpret(req, llm, previous: CompoundContext | None):
         return plan
     except Exception as exc:
         # Keep only server-owned categories/types; never log model/user payloads or error text.
-        schema_errors = sorted({e["type"] for e in exc.errors(include_input=False)}) if (
-            isinstance(exc, ValidationError)
-        ) else []
+        schema_errors = (
+            sorted({e["type"] for e in exc.errors(include_input=False)})
+            if (isinstance(exc, ValidationError))
+            else []
+        )
         logger.warning(
             "g8_skin_plan_failed stage=%s reason=%s errorType=%s causeType=%s "
             "ms=%.1f schemaErrors=%s",
-            stage, reason, type(exc).__name__,
+            stage,
+            reason,
+            type(exc).__name__,
             type(exc.__cause__).__name__ if exc.__cause__ else None,
-            (monotonic() - started) * 1000, schema_errors,
+            (monotonic() - started) * 1000,
+            schema_errors,
         )
         if isinstance(exc, (KeyError, IndexError, TypeError, ValueError, UpstreamError)):
             raise ApiError(

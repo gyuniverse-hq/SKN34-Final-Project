@@ -385,9 +385,7 @@ def task_scope_components(req, task=None, *, legacy=False):
         else None,
     }
     # A cached task's reference to its own earlier result is history, not a sibling input.
-    source_refs = task and any(
-        ref.rsplit(":", 1)[-1] != task.task_id for ref in task.input_refs
-    )
+    source_refs = task and any(ref.rsplit(":", 1)[-1] != task.task_id for ref in task.input_refs)
     if not legacy and task and not task.depends_on and not source_refs:
         if task.goal == "style":
             catalog = {key: catalog[key] for key in ("style", "conditions")}
@@ -396,17 +394,16 @@ def task_scope_components(req, task=None, *, legacy=False):
                 key: value for key, value in catalog.items() if key not in {"style", "conditions"}
             }
     values = {
-            "catalog": catalog,
-            "memoryEpoch": req._memory_epoch,
-            "memoryGeneration": req._memory_generation,
-            # None and an empty read contain no structured personal data. Consent/data
-            # changes still invalidate via epoch, generation, opt-out and exact refs.
-            "memoryAvailable": (
-                req._consultation_memories is not None
-                if legacy else bool(req._consultation_memories)
-            ),
-            "ignoreMemory": ignores_memory(req.message),
-            "memoryRefs": sorted([str(m.id), m.version] for m in req._consultation_memories or ()),
+        "catalog": catalog,
+        "memoryEpoch": req._memory_epoch,
+        "memoryGeneration": req._memory_generation,
+        # None and an empty read contain no structured personal data. Consent/data
+        # changes still invalidate via epoch, generation, opt-out and exact refs.
+        "memoryAvailable": (
+            req._consultation_memories is not None if legacy else bool(req._consultation_memories)
+        ),
+        "ignoreMemory": ignores_memory(req.message),
+        "memoryRefs": sorted([str(m.id), m.version] for m in req._consultation_memories or ()),
     }
     if not legacy:
         values["version"] = 2
@@ -421,8 +418,7 @@ def scope_matches(req, task):
     expected = task_scope(req, task)
     if task.scope_snapshot is not None:
         return (
-            fingerprint(task.scope_snapshot) == task.scope_digest
-            and task.scope_digest == expected
+            fingerprint(task.scope_snapshot) == task.scope_digest and task.scope_digest == expected
         )
     if task.scope_digest in {expected, task_scope(req)}:
         return True
@@ -579,7 +575,8 @@ async def run_id_tasks(req, dispatch):
             if child._question_answers:
                 quotes = [quote for _, quote in child._question_answers]
                 quotes.extend(
-                    c.quote for c in intent.changes
+                    c.quote
+                    for c in intent.changes
                     if c.task_id == current.task_id and c.operation == "update"
                 )
                 child.message = "\n".join(dict.fromkeys(quotes))
@@ -590,8 +587,11 @@ async def run_id_tasks(req, dispatch):
             if current.goal == "skin":
                 child._compound_context = current.compound_context
                 update = next(
-                    (c for c in intent.changes
-                     if c.task_id == current.task_id and c.operation == "update"),
+                    (
+                        c
+                        for c in intent.changes
+                        if c.task_id == current.task_id and c.operation == "update"
+                    ),
                     None,
                 )
                 if update and current.compound_context is not None:

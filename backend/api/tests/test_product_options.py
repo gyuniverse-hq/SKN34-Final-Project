@@ -1,4 +1,5 @@
 """Mock repository/HTTP contracts. Live Catalog evidence is recorded separately."""
+
 from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -20,7 +21,9 @@ def anyio_backend():
 def repository():
     return SimpleNamespace(
         option_identity=AsyncMock(return_value=("o2", "Option 2", None, "https://example.test/p")),
-        option_price=AsyncMock(return_value=(1, 1200, datetime(2026, 10, 28), "https://example.test/p")),
+        option_price=AsyncMock(
+            return_value=(1, 1200, datetime(2026, 10, 28), "https://example.test/p")
+        ),
         option_image=AsyncMock(return_value=("https://example.test/chip.jpg", "color_chip")),
         option_ar_shade=AsyncMock(return_value=None),
     )

@@ -1106,16 +1106,27 @@ async def test_disabled_option_requirement_stays_partial_in_parent_answer(monkey
 
     class Model(EntryModel):
         async def complete(self, messages):
-            return await PlanLlm(intent="search", category="lip", maxPriceKRW=10000,
-                optionSearch=True, productRequirement={"operation": "keep"}).complete(messages)
+            return await PlanLlm(
+                intent="search",
+                category="lip",
+                maxPriceKRW=10000,
+                optionSearch=True,
+                productRequirement={"operation": "keep"},
+            ).complete(messages)
 
     monkeypatch.setattr(get_settings(), "g8_enabled", True)
     monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", False)
     quote = "만원 이하 립 옵션 찾아줘"
     catalog = OptionCatalog()
-    result = await ChatService(FakeGraph(), Model([
-        {"capability": "product", "productOperation": "search", "quote": quote},
-    ]), catalog).answer(ChatRequest(message=quote, locale="ko"))
+    result = await ChatService(
+        FakeGraph(),
+        Model(
+            [
+                {"capability": "product", "productOperation": "search", "quote": quote},
+            ]
+        ),
+        catalog,
+    ).answer(ChatRequest(message=quote, locale="ko"))
     assert result.consultation.status == "partial"
     task = result._consultation_parent.tasks[0]
     assert task.product_assessment.outcome == "unsupported"

@@ -122,8 +122,13 @@ def test_real_checkpoint_cancel_then_replacement_before_old_finishes(api, record
     client.app.dependency_overrides[get_chat_service] = lambda: DurableChat()
     room = create(client)[0]["conversationId"]
     request_id = str(uuid4())
-    body = {"conversationId": room, "requestId": request_id, "expectedConversationVersion": 0,
-            "message": "old durable read", "locale": "en"}
+    body = {
+        "conversationId": room,
+        "requestId": request_id,
+        "expectedConversationVersion": 0,
+        "message": "old durable read",
+        "locale": "en",
+    }
     with ThreadPoolExecutor(max_workers=1) as pool:
         pending = pool.submit(client.post, "/api/chat", json=body, headers=AUTH)
         try:
@@ -134,11 +139,19 @@ def test_real_checkpoint_cancel_then_replacement_before_old_finishes(api, record
             assert cancelled.status_code == 200
             replacement_body = {**body, "requestId": str(uuid4()), "message": "new durable read"}
             replacement = client.post("/api/chat", json=replacement_body, headers=AUTH)
-            record_property("real_checkpoint_replacement", json.dumps({
-                "postgres": "actual", "checkpoint": "actual durable_supervisor/fresh_writer",
-                "model": "controlled mock; zero external calls", "oldReleased": release.is_set(),
-                "replacementStatus": replacement.status_code, "errors": errors,
-            }))
+            record_property(
+                "real_checkpoint_replacement",
+                json.dumps(
+                    {
+                        "postgres": "actual",
+                        "checkpoint": "actual durable_supervisor/fresh_writer",
+                        "model": "controlled mock; zero external calls",
+                        "oldReleased": release.is_set(),
+                        "replacementStatus": replacement.status_code,
+                        "errors": errors,
+                    }
+                ),
+            )
             assert replacement.status_code == 200, replacement.text
             assert not release.is_set()
         finally:
@@ -148,7 +161,8 @@ def test_real_checkpoint_cancel_then_replacement_before_old_finishes(api, record
     assert late.json()["code"] == "request_interrupted"
     restored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
     assert [m["text"] for m in restored["messages"]] == [
-        "new durable read", "new durable read result"
+        "new durable read",
+        "new durable read result",
     ]
     replay = client.post("/api/chat", json=replacement_body, headers=AUTH)
     assert replay.json() == replacement.json()
@@ -1825,10 +1839,19 @@ def test_style_only_retry_preserves_comparison_across_empty_memory_shape_pg(api,
     monkeypatch.setattr(get_settings(), "g8_enabled", True)
     monkeypatch.setattr(get_settings(), "g8_read_retries", 0)
     room = create(client)[0]["conversationId"]
-    service = ChatService(None, EntryModel([
-        {"capability": "product", "quote": "두 상품 가격 비교", "productOperation": "compare"},
-        {"capability": "style", "quote": "출근 룩 찾아줘"},
-    ]))
+    service = ChatService(
+        None,
+        EntryModel(
+            [
+                {
+                    "capability": "product",
+                    "quote": "두 상품 가격 비교",
+                    "productOperation": "compare",
+                },
+                {"capability": "style", "quote": "출근 룩 찾아줘"},
+            ]
+        ),
+    )
     calls, seen = [], []
 
     async def dispatch(capability, req):
@@ -1842,8 +1865,12 @@ def test_style_only_retry_preserves_comparison_across_empty_memory_shape_pg(api,
             issued_at=1, filters=BeautyFilters(), candidate_ids=["a", "b"], selected_product_id="a"
         )
         result._product_assessment = ProductAssessment(
-            status="completed", outcome="matched", requirement=ProductRequirement(),
-            inspected=2, matched=2, evidence=[{"productId": "a"}, {"productId": "b"}],
+            status="completed",
+            outcome="matched",
+            requirement=ProductRequirement(),
+            inspected=2,
+            matched=2,
+            evidence=[{"productId": "a"}, {"productId": "b"}],
         )
         return result
 
@@ -1857,18 +1884,28 @@ def test_style_only_retry_preserves_comparison_across_empty_memory_shape_pg(api,
         return result
 
     monkeypatch.setattr(fake, "answer", answer)
-    body = {"conversationId": room, "requestId": str(uuid4()),
-            "expectedConversationVersion": 0, "message": "두 상품 가격 비교하고 출근 룩 찾아줘"}
+    body = {
+        "conversationId": room,
+        "requestId": str(uuid4()),
+        "expectedConversationVersion": 0,
+        "message": "두 상품 가격 비교하고 출근 룩 찾아줘",
+    }
     first = client.post("/api/chat", headers=AUTH, json=body)
     assert first.status_code == 200, first.text
     product_task = next(t for t in seen[0].tasks if t.goal == "product")
     style_task = next(t for t in seen[0].tasks if t.goal == "style")
     assert product_task.status == "completed" and style_task.status == "failed"
     service._llm = IntentModel("retry", [style_task.task_id])
-    second = client.post("/api/chat", headers=AUTH, json={
-        **body, "requestId": str(uuid4()), "expectedConversationVersion": 1,
-        "message": "룩만 다시 찾아줘",
-    })
+    second = client.post(
+        "/api/chat",
+        headers=AUTH,
+        json={
+            **body,
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": 1,
+            "message": "룩만 다시 찾아줘",
+        },
+    )
     assert second.status_code == 200, second.text
     assert calls == ["product", "style", "style"]
     preserved = next(t for t in seen[1].tasks if t.task_id == product_task.task_id)
@@ -1976,16 +2013,26 @@ def test_additional_product_ownership_survives_real_pg_followup(api, monkeypatch
     headers = {"Authorization": f"Bearer ok-owned-extra-{uuid4()}"}
     settings_path = "/api/chat/v2/memory-settings"
     setting = client.get(settings_path, headers=headers).json()
-    result = client.patch(settings_path, headers=headers, json={
-        "requestId": str(uuid4()), "expectedVersion": setting["version"], "enabled": True,
-    })
+    result = client.patch(
+        settings_path,
+        headers=headers,
+        json={
+            "requestId": str(uuid4()),
+            "expectedVersion": setting["version"],
+            "enabled": True,
+        },
+    )
     assert result.status_code == 200, result.text
     catalog = KoreanScopeCatalog()
     fake._catalog = catalog
-    created = client.post("/api/chat/conversations", headers=headers, json={
-        "requestId": str(uuid4()),
-        "entry": {"type": "look", "kind": "video", "lookId": "fixture-look"},
-    })
+    created = client.post(
+        "/api/chat/conversations",
+        headers=headers,
+        json={
+            "requestId": str(uuid4()),
+            "entry": {"type": "look", "kind": "video", "lookId": "fixture-look"},
+        },
+    )
     assert created.status_code == 201, created.text
     room, responses, observed = created.json()["conversationId"], [], []
 
@@ -1993,9 +2040,13 @@ def test_additional_product_ownership_survives_real_pg_followup(api, monkeypatch
         from app.schemas.consultation_parent import ParentQuestion
 
         req.style_context = StyleContext(kind="video", look_id="fixture-look")
-        observed.append({"structured": req.structured_memory,
-                         "memoryRead": req._consultation_memories is not None,
-                         "execution": req._g7_execution is not None})
+        observed.append(
+            {
+                "structured": req.structured_memory,
+                "memoryRead": req._consultation_memories is not None,
+                "execution": req._g7_execution is not None,
+            }
+        )
         if not responses:
             guide = ChatResponse(
                 answer="합성 룩 안내", products=[], style_context=req.style_context
@@ -2003,29 +2054,50 @@ def test_additional_product_ownership_survives_real_pg_followup(api, monkeypatch
             responses.append(guide)
             return guide
         if len(responses) == 2:
-            original = next(i for i in responses[1]._owned_look_outcome.items
-                            if "하트퍼센트" in i.label)
-            req._question_answers = [(ParentQuestion(
-                task_id="task-look", goal="owned_look", version=1, text="첫 상품 있나요?",
-                input_key="ownership", need_id=original.need_id,
-                recipe_version=responses[1].style_recipe.recipe_version,
-                ownership_scope="option",
-            ), "없어")]
+            original = next(
+                i for i in responses[1]._owned_look_outcome.items if "하트퍼센트" in i.label
+            )
+            req._question_answers = [
+                (
+                    ParentQuestion(
+                        task_id="task-look",
+                        goal="owned_look",
+                        version=1,
+                        text="첫 상품 있나요?",
+                        input_key="ownership",
+                        need_id=original.need_id,
+                        recipe_version=responses[1].style_recipe.recipe_version,
+                        ownership_scope="option",
+                    ),
+                    "없어",
+                )
+            ]
         reply = await execute_owned_look(req, catalog)
         assert reply is not None, observed
         responses.append(reply)
         return reply
 
     monkeypatch.setattr(fake, "answer", answer)
-    utterances = ["이 룩 안내해줘", "내가 가진 립으로 이 룩을 따라 하고 필요한 것만 추천해줘",
-                  "없어. 롬앤 쥬시 래스팅 틴트는 갖고 있어. 각각 2만원 이하로 찾아줘.",
-                  "예산만 3만원 이하로 바꿔줘"]
+    utterances = [
+        "이 룩 안내해줘",
+        "내가 가진 립으로 이 룩을 따라 하고 필요한 것만 추천해줘",
+        "없어. 롬앤 쥬시 래스팅 틴트는 갖고 있어. 각각 2만원 이하로 찾아줘.",
+        "예산만 3만원 이하로 바꿔줘",
+    ]
     for version, message in enumerate(utterances):
-        result = client.post("/api/chat", headers=headers, json={
-            "conversationId": room, "requestId": str(uuid4()),
-            "expectedConversationVersion": version, "locale": "ko", "message": message,
-            "structuredMemory": True, "requestType": "style_consultation",
-        })
+        result = client.post(
+            "/api/chat",
+            headers=headers,
+            json={
+                "conversationId": room,
+                "requestId": str(uuid4()),
+                "expectedConversationVersion": version,
+                "locale": "ko",
+                "message": message,
+                "structuredMemory": True,
+                "requestType": "style_consultation",
+            },
+        )
         assert result.status_code == 200, (version, result.text, observed)
     extra = next(i for i in responses[2]._owned_look_outcome.items if "롬앤" in i.label)
     declaration = responses[2]._owned_look_context.item_declarations[extra.need_id]
