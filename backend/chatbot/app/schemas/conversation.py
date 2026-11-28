@@ -8,6 +8,7 @@ from pydantic.alias_generators import to_camel
 from app.schemas.compound_consultation import CompoundContext
 from app.schemas.consultation_parent import ConsultationParent
 from app.schemas.owned_look_context import OwnedLookContext
+from app.schemas.product_style_consultation import ProductStyleContext
 from app.schemas.style_recipe import StyleCandidateRef, StyleCondition, StyleContext
 
 
@@ -129,6 +130,7 @@ class StoredMemoryRef(ConversationModel):
 
 
 class StoredConversationContext(ConversationModel):
+    product_style: ProductStyleContext | None = Field(default=None, exclude_if=lambda v: v is None)
     consultation_parent: ConsultationParent | None = Field(
         default=None, exclude_if=lambda v: v is None
     )

@@ -8,6 +8,16 @@ import { skinJa } from './skin';
 import { skinReportJa } from './skinReport';
 
 export const ja: Dictionary = {
+  'chat.consultation.completed': 'ご依頼の確認が終わりました',
+  'chat.consultation.partial': 'まだ確認できていない内容があります',
+  'chat.consultation.waiting_user': 'もう少し情報を教えてください',
+  'chat.consultation.failed': 'ご依頼の内容を確認できませんでした',
+  'chat.consultation.cancelled': '相談を停止しました',
+  'chat.consultation.pending': '確認がまだ終わっていません',
+  'chat.consultation.input': '追加の質問にお答えください',
+  'chat.consultation.selection': '表示する結果を選んでください',
+  'chat.cancel.action': '回答を停止',
+  'chat.cancel.done': '回答を停止しました。内容を変更してもう一度質問できます。',
   'chat.memory.manage': '記憶を管理',
   'chat.memory.proposal': 'この内容を記憶しますか？',
   'chat.memory.purpose': '今後の相談でこの内容を活用します。',

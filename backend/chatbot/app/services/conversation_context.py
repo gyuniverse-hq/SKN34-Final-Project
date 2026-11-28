@@ -23,6 +23,7 @@ from app.schemas.supervisor import ScreenContext
 from app.services.style_recipe_service import execute_style
 
 _DISPLAY_FIELDS = {
+    "consultation",
     "ownedLookOptions",
     "compound",
     "appliedMemories",
@@ -184,10 +185,14 @@ def prepare_request(
             "style_compare": bool(request.style_compare and context.style_candidates),
         },
     )
+    result._owned_look_llm = None
+    result._owned_look_reference = False
+    result._owned_look_goal_followup = False
     result._owned_look_answer = None
     result._owned_look_context = None
     result._server_history = True
     result._compound_context = context.compound
+    result._product_style_context = context.product_style
     if (
         style
         and context.owned_look
@@ -198,10 +203,21 @@ def prepare_request(
         result._historical_product_ids = tuple(context.product.historical_candidate_refs)
     from app.services.consultation_parent_graph import restore_followup
 
+    # Old rooms have only question; new queues keep the same focused-question contract.
+    if context.consultation_parent and context.consultation_parent.question is None:
+        context.consultation_parent.question = next(
+            iter(context.consultation_parent.pending_questions), None
+        )
     return restore_followup(result, context.consultation_parent)
 
 
 async def revalidate_request(chat, request: ChatRequest) -> None:
+    from app.services.product_style_consultation_service import may_product_style
+
+    if may_product_style(request):
+        # Each independent read validates its own catalog references. A failed style
+        # lookup must not abort an otherwise valid product comparison before the parent.
+        return
     beauty = request.chat_context
     selected = beauty.selected_product_id if beauty else None
     style = request.style_context
@@ -249,6 +265,7 @@ async def revalidate_request(chat, request: ChatRequest) -> None:
 def updated_context(raw: dict, response: ChatResponse) -> dict:
     context = read_context(raw)
     context.consultation_parent = response._consultation_parent
+    context.product_style = response._product_style_context
     context.owned_look = response._owned_look_context
     compound = response.compound
     context.compound = (
@@ -258,6 +275,8 @@ def updated_context(raw: dict, response: ChatResponse) -> dict:
             candidates=[item.candidate for item in compound.options],
         )
         if compound is not None
+        else context.compound
+        if response._preserve_parent_context
         else None
     )
     if response.chat_context is not None:

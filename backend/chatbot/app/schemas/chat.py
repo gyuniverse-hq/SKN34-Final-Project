@@ -13,7 +13,20 @@ from app.schemas.catalog import (
     OptionSearchResponse,
 )
 from app.schemas.compound_consultation import CompoundContext, CompoundDisplay
-from app.schemas.consultation_parent import ConsultationParent
+from app.schemas.consultation_answer import ConsultationAnswer
+from app.schemas.consultation_parent import (
+    ComparisonChoice,
+    ConsultationIntent,
+    ConsultationParent,
+    ConsultationSummary,
+    ParentQuestion,
+)
+from app.schemas.consultation_task import (
+    ConsultationTaskResult,
+    ProductAssessment,
+    ProductRequirement,
+    TaskContinuation,
+)
 from app.schemas.conversation import ConversationMetadata
 from app.schemas.knowledge import KnowledgeReply
 from app.schemas.memory import (
@@ -29,6 +42,7 @@ from app.schemas.owned_look_context import (
     OwnedLookOptionDisplay,
     OwnedLookOutcome,
 )
+from app.schemas.product_style_consultation import ProductStyleContext
 from app.schemas.style_recipe import (
     StyleCandidate,
     StyleCandidateRef,
@@ -184,13 +198,30 @@ class PendingClarification(ArModel):
 
 
 class ChatRequest(ApiModel):
+    _comparison_question: ParentQuestion | None = PrivateAttr(default=None)
+    _comparison_followup: bool = PrivateAttr(default=False)
+    _product_requirement: ProductRequirement | None = PrivateAttr(default=None)
+    _product_operation: str | None = PrivateAttr(default=None)
+    _product_contract_required: bool = PrivateAttr(default=False)
+    _parent_intent: ConsultationIntent | None = PrivateAttr(default=None)
+    _parent_intent_audit: dict | None = PrivateAttr(default=None)
+    _parent_deadline: float | None = PrivateAttr(default=None)
+    _parent_replan: dict | None = PrivateAttr(default=None)
+    _requested_explanation: str = PrivateAttr(default="")
+    _requested_explanation: str = PrivateAttr(default="")
+    _parent_sources: dict = PrivateAttr(default_factory=dict)
     _consultation_parent: ConsultationParent | None = PrivateAttr(default=None)
+    _product_style_context: ProductStyleContext | None = PrivateAttr(default=None)
     structured_memory: bool = Field(default=False, strict=True, exclude_if=lambda value: not value)
     _server_history: bool = PrivateAttr(default=False)
     _historical_product_ids: tuple[str, ...] = PrivateAttr(default=())
     _compound_context: CompoundContext | None = PrivateAttr(default=None)
     _owned_look_context: OwnedLookContext | None = PrivateAttr(default=None)
-    _owned_look_answer: tuple[str, str, str] | None = PrivateAttr(default=None)
+    _owned_look_goal_followup: bool = PrivateAttr(default=False)
+    _owned_look_llm: object | None = PrivateAttr(default=None)
+    _owned_look_reference: bool = PrivateAttr(default=False)
+    _owned_look_answer: tuple[str, str, str, str] | None = PrivateAttr(default=None)
+    _question_answers: list[tuple[ParentQuestion, str]] = PrivateAttr(default_factory=list)
     _g7_execution: object | None = PrivateAttr(default=None)
     _consented_memories: list[str] = PrivateAttr(default_factory=list)
     _consultation_memories: tuple[ConsultationMemory, ...] | None = PrivateAttr(default=None)
@@ -430,13 +461,27 @@ class ChatIngredientResult(CatalogIngredients):
 
 
 class ChatResponse(ApiModel):
+    consultation: ConsultationSummary | None = Field(default=None, exclude_if=lambda v: v is None)
+    _comparison_choices: list[ComparisonChoice] = PrivateAttr(default_factory=list)
+    _comparison_price_basis: (
+        Literal["current_offer", "catalog_reference", "collected_snapshot"] | None
+    ) = PrivateAttr(default=None)
+    _comparison_base_id: str | None = PrivateAttr(default=None)
+    _product_assessment: ProductAssessment | None = PrivateAttr(default=None)
+    _consultation_answer: ConsultationAnswer | None = PrivateAttr(default=None)
+    _product_style_context: ProductStyleContext | None = PrivateAttr(default=None)
     _consultation_parent: ConsultationParent | None = PrivateAttr(default=None)
     _parent_trace: list[dict] = PrivateAttr(default_factory=list)
+    _proposed_next_tasks: list[TaskContinuation] = PrivateAttr(default_factory=list)
+    _proposed_next_tasks: list[TaskContinuation] = PrivateAttr(default_factory=list)
+    _task_results: list[ConsultationTaskResult] = PrivateAttr(default_factory=list)
+    _preserve_parent_context: bool = PrivateAttr(default=False)
     owned_look_options: OwnedLookOptionDisplay | None = Field(
         default=None, exclude_if=lambda v: v is None
     )
     _owned_look_context: OwnedLookContext | None = PrivateAttr(default=None)
     _owned_look_outcome: OwnedLookOutcome | None = PrivateAttr(default=None)
+    _owned_look_interpretation: dict | None = PrivateAttr(default=None)
 
     compound: CompoundDisplay | None = Field(default=None, exclude_if=lambda v: v is None)
     conversation: ConversationMetadata | None = Field(default=None, exclude_if=lambda v: v is None)

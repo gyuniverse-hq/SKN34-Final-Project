@@ -12,6 +12,7 @@ from app.schemas.catalog import (
     OptionIngredientResolution,
     OptionSearchRequest,
 )
+from app.schemas.consultation_answer import KnowledgeCoverage
 from app.schemas.knowledge import KnowledgeReply
 from app.schemas.skincare_recommendation import SkincareReason, SkinGoal
 
@@ -77,6 +78,8 @@ class VerifiedOption(CompoundModel):
 
 
 class BatchCoverage(CompoundModel):
+    deferred_knowledge_conditions: list[str] = Field(default_factory=list)
+    attempt: Literal["primary", "without_unresolved_knowledge"] = "primary"
     product_ids: list[str] = Field(max_length=6)
     scope: CheckedScope | None = None
     reason: str | None = None
@@ -101,6 +104,8 @@ class KnowledgeSearchPlan(CompoundModel):
 
 
 class KnowledgeSearchState(CompoundModel):
+    coverage: KnowledgeCoverage | None = None
+    deferred_ingredients: list[Text] = Field(default_factory=list)
     source: Literal["knowledge"] = "knowledge"
     goals: list[SkinGoal]
     conditions: list[KnowledgeSearchCondition] = Field(default_factory=list, max_length=6)
@@ -142,6 +147,7 @@ class TaskRequest(CompoundModel):
 
 
 class TaskResult(CompoundModel):
+    knowledge_coverage: KnowledgeCoverage | None = None
     task_id: str
     plan_id: UUID
     plan_version: int

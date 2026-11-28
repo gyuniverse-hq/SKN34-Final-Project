@@ -802,6 +802,56 @@ def test_pipeline_keeps_document_citations():
     assert "[E1]" in result.answer
 
 
+def test_delegated_explanation_scope_reaches_all_g5_stages_and_keeps_coverage():
+    seen = []
+
+    class ScopedModel(Model):
+        async def run(self, stage, prompt, payload, *args):
+            seen.append((stage, prompt, payload))
+            return await super().run(stage, prompt, payload, *args)
+
+    question = "사용 방법을 설명하고 제품도 찾아줘"
+    result = asyncio.run(
+        KnowledgeService(Retrieval(), ScopedModel()).consult(
+            question, delegation_scope="explanation"
+        )
+    )
+    assert [stage for stage, _, _ in seen] == ["select", "answer", "detect"]
+    assert all("Catalog actions are NOT requirements" in prompt for _, prompt, _ in seen)
+    assert all(payload["question"] == question for _, _, payload in seen)
+    assert result.trace["coverage"]["scope"] == "explanation"
+    assert result.trace["coverage"]["requirements"] == [
+        {"requirement_id": "R1", "description": "사용 범위", "fulfilled": True}
+    ]
+
+
+def test_coverage_uses_original_review_ids_after_first_claim_dropped():
+    from app.schemas.consultation_answer import KnowledgeCoverage
+
+    evidence, _, _ = verify_selection([SELECTED], {"C1": HIT})
+    draft = {
+        "status": "partial",
+        "limitations": "",
+        "claims": [
+            {"claim": "모든 곳에 사용", "citations": ["E1"]},
+            {"claim": "볼에 한정됩니다.", "citations": ["E1"]},
+        ],
+    }
+    audit = verification(
+        check(1, label="UNSUPPORTED", match="MISMATCHED"),
+        check(2, requirements=["R2"], citations=["E1"]),
+        required=("개인 원인", "사용 범위"),
+    )
+    coverage = KnowledgeCoverage(scope="explanation")
+    reply = resolve(draft, audit, evidence, coverage=coverage)
+    assert reply.status == "partial" and len(reply.claims) == 1
+    assert [(r.requirement_id, r.fulfilled) for r in coverage.requirements] == [
+        ("R1", False),
+        ("R2", True),
+    ]
+    assert reply.findings[0].index == 1
+
+
 @pytest.mark.parametrize(
     ("failure", "expected"),
     [
@@ -2181,3 +2231,34 @@ def test_http_search_deadline_returns_g5_error_and_stops_later_stages(routed_cha
     assert service.last_route.result.status == "error"
     assert cancelled == [True]
     model.run.assert_not_awaited()
+
+
+@pytest.mark.parametrize("source_bound", [False, True])
+def test_delegated_limits_follow_verified_requirements_and_keep_sourced_bounds(source_bound):
+    from app.schemas.consultation_answer import KnowledgeCoverage
+
+    evidence, _, _ = verify_selection([SELECTED], {"C1": HIT})
+    draft = {
+        "claims": [{"claim": "볼에 한정됩니다.", "citations": ["E1"]}],
+        "limitations": "제공된 원문은 볼 사용에 한정됩니다."
+        if source_bound
+        else "제공된 근거에서는 판매 정보를 확인할 수 없습니다.",
+        "limitation_citations": ["E1"] if source_bound else [],
+    }
+    audit = verification(check(1, requirements=["R1"], citations=["E1"]))
+    reply = resolve(draft, audit, evidence, coverage=KnowledgeCoverage(scope="explanation"))
+    assert reply.status == "answered" and len(reply.claims) == 1
+    assert bool(reply.limitations) == source_bound
+    if source_bound:
+        assert "볼 사용에 한정" in reply.limitations and reply.evidence
+    # Unmet actual explanation requirements are regenerated, not silently removed.
+    audit = verification(
+        check(1, requirements=["R1"], citations=["E1"]), required=["사용 범위", "바르는 순서"]
+    )
+    partial = resolve(draft, audit, evidence, coverage=KnowledgeCoverage(scope="explanation"))
+    assert partial.status == "partial"
+    assert (
+        "볼 사용에 한정" in partial.limitations
+        if source_bound
+        else "바르는 순서" in partial.limitations
+    )

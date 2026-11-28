@@ -310,9 +310,10 @@ async def test_unknown_ownership_is_not_a_missing_product():
     response = await execute_owned_look(request([owned("lip-a", "lip-a-shade")]), catalog)
     assert catalog.searches == [{"ids": ["lip-a"]}]
     assert not response.products and response.result_type == "clarification"
-    assert "제품도 가지고 있나요" in response.answer
+    assert "제품을 가지고 있나요" in response.answer
     empty = await execute_owned_look(request([]), Catalog())
-    assert not empty.products and "실제 미보유를 뜻하지는" in empty.answer
+    assert not empty.products and "제품을 가지고 있나요" in empty.answer
+    assert all(i.status == "ownership_unknown" for i in empty._owned_look_outcome.items)
 
 
 @pytest.mark.anyio
@@ -434,12 +435,21 @@ def test_g8_off_does_not_enter(monkeypatch):
     "suffix",
     ["얼굴에 발라줘", "AR 켜줘", "이 제품 기억해줘", "장바구니에 넣어줘", "강도를 조절해줘"],
 )
-async def test_mixed_execution_stays_with_parent_without_reading_inventory(suffix):
+@pytest.mark.parametrize("request_type", ["chat", "style_consultation"])
+async def test_mixed_execution_stays_with_parent_without_reading_inventory(suffix, request_type):
     req = request([owned("lip-a", "lip-a-shade")], suffix)
+    req.request_type = request_type
     catalog = Catalog()
     assert not may_consult_owned_look(req)
     assert await execute_owned_look(req, catalog) is None
     assert not catalog.searches and not catalog.look_calls
+
+
+def test_selected_look_explanation_alone_does_not_enter_owned_recommendation():
+    req = request([])
+    req.request_type = "style_consultation"
+    req.message = "이 룩 화장법을 단계별로 알려줘"
+    assert not may_consult_owned_look(req)
 
 
 @pytest.mark.anyio
@@ -725,11 +735,21 @@ async def test_unverified_conditions_or_other_shade_never_make_recommendation(mo
     )
     assert not response.products
     assert {
-        "unknown": "미확인 1개",
-        "excluded": "불일치 1개",
-        "failed": "조회에 실패",
-        "wrong_shade": "옵션 근거를 확보하지 못",
+        "unknown": "정보가 부족해요",
+        "excluded": "조건에 맞지 않아",
+        "failed": "정보를 불러오지 못했어요",
+        "wrong_shade": "정확한 옵션이나",
     }[mode] in response.answer
+    expected_status = {
+        "unknown": "evidence_missing",
+        "excluded": "excluded",
+        "failed": "lookup_failed",
+        "wrong_shade": "evidence_missing",
+    }[mode]
+    assert (
+        next(i for i in response._owned_look_outcome.items if i.zone == "blush").status
+        == expected_status
+    )
 
 
 @pytest.mark.anyio
@@ -1045,6 +1065,9 @@ async def test_unreviewed_video_sale_option_without_ar_is_queried_exactly(
     assert [p.id for p in response.products] == ([] if condition else ["blush-b"])
     assert not response.style_recipe.products[0].ar_eligible
     assert response.style_recipe.basis == "video_metadata"
+    assert response._consultation_answer.guidance
+    assert all("None" not in line for line in response._consultation_answer.guidance)
+    assert "None" not in response.answer
     if not condition:
         assert response.owned_look_options.selections[0].shade_id is None
         assert response.owned_look_options.selections[0].shade_name == "01 Rose"
@@ -1477,7 +1500,11 @@ async def test_item_present_and_missing_in_one_sentence():
         request([owned("blush-b", "blush-b-shade")], "lip-a는 있고 lip-b는 없어."), catalog
     )
     assert [p.id for p in result.products] == ["lip-b"]
-    assert result._owned_look_outcome.status == "completed"
+    assert result._owned_look_outcome.status == "waiting_user"
+    assert any(
+        i.status == "ownership_unknown" and "lip-a" in i.label
+        for i in result._owned_look_outcome.items
+    )
     assert len(result._owned_look_context.item_declarations) == 2
 
 
@@ -1496,7 +1523,7 @@ async def test_all_option_queries_fail_is_failed_not_completed():
 async def test_item_missing_conflict_requires_confirmation_not_memory_write():
     catalog = MultiLipCatalog()
     memories = [owned("lip-a", "lip-a-shade"), owned("blush-b", "blush-b-shade")]
-    req = request(memories, "lip-a는 없어. lip-b는 있어.")
+    req = request(memories, "lip-a는 없어. lip-b-shade는 있어.")
     first = await execute_owned_look(req, catalog)
     item = next(i for i in first._owned_look_outcome.items if "lip-a" in i.label)
     assert item.status == "ownership_unknown"
@@ -1585,3 +1612,247 @@ async def test_unidentified_sibling_is_preserved_in_final_coverage():
         i.status == "evidence_missing" and "lip-b" in i.label
         for i in response._owned_look_outcome.items
     )
+
+
+class KoreanScopeCatalog(MultiLipCatalog):
+    """Mock Catalog with natural Korean names and colorless exact sale options."""
+
+    def __init__(self):
+        from app.schemas.catalog import CatalogStyleLook
+
+        super().__init__()
+        self.products["lip-a"].brand = "하트퍼센트"
+        self.products["lip-a"].name = "립펜슬"
+        self.products["lip-b"].brand = "롬앤"
+        self.products["lip-b"].name = "쥬시 래스팅 틴트"
+        recipe = self.look.recipe.model_copy(deep=True)
+        recipe.kind = "video"
+        recipe.steps = [recipe.steps[1].model_copy(update={"order": 1})]
+        self.look = CatalogStyleLook.model_validate(
+            {
+                "id": "fixture-look",
+                "title": "합성 립 룩",
+                "group": "fixture",
+                "tag": "fixture",
+                "videoUrl": "https://www.youtube.com/watch?v=fixture-look",
+                "recipe": recipe,
+                "products": [
+                    {
+                        "number": i,
+                        "brand": p.brand,
+                        "name": p.name,
+                        "option": "07호",
+                        "category": "립 메이크업",
+                        "zone": "립",
+                        "mappingVerified": True,
+                        "reviewStatus": "verified",
+                        "catalogProductId": p.id,
+                        "catalogOptionId": p.id + "-07",
+                        "catalogOptionSource": "fixture:option",
+                    }
+                    for i, p in enumerate([self.products["lip-a"], self.products["lip-b"]], 1)
+                ],
+            }
+        )
+
+    async def get_style_look(self, kind, look_id):
+        return self.look if (kind, look_id) == ("video", "fixture-look") else None
+
+    async def search_options(self, req):
+        result = await super().search_options(req)
+        for item in result.items:
+            selected = next(s for s in req.option_scope if s.product_id == item.product_id)
+            item.option_id = selected.option_id
+            item.shade_id = selected.shade_id
+            item.option_name = "07호"
+        return result
+
+
+def scope_request(message, *, other_option=False):
+    memories = [owned("lip-a")]
+    memories[0].structured.value["optionId"] = "lip-a-07"
+    if other_option:
+        memory = owned("lip-b")
+        memory.structured.value["optionId"] = "lip-b-02"
+        memories.append(memory)
+    req = request(memories, message)
+    req.style_context.kind = "video"
+    return req
+
+
+@pytest.mark.anyio
+async def test_korean_product_missing_never_expands_to_zone_and_release_is_scoped():
+    from app.schemas.owned_look_context import OwnershipDeclaration
+
+    catalog = KoreanScopeCatalog()
+    req = scope_request("롬앤 쥬시 래스팅 틴트는 없어.")
+    trace = []
+    from tests.conftest import FakeLlm
+
+    result = await ChatService(None, FakeLlm(configured=False), catalog).answer(req)
+    assert [p.id for p in result.products] == ["lip-b"]
+    assert not result._owned_look_context.declarations
+    assert catalog.option_calls[-1].product_ids == ["lip-b"]
+    # Preserve an independent declaration for the other lip while clearing B only.
+    direct = await execute_owned_look(req, catalog, trace=trace)
+    coverage = next(t["result"]["coverage"] for t in trace if t["task"]["taskId"] == "N1")
+    a = next(c["needId"] for c in coverage if c["productId"] == "lip-a")
+    direct._owned_look_context.item_declarations[a] = OwnershipDeclaration(
+        status="present", quote="07호 확인", scope="option"
+    )
+    req._owned_look_context = direct._owned_look_context
+    req.message = "롬앤 쥬시 래스팅 틴트 미보유 조건 해제해줘."
+    released = await execute_owned_look(req, catalog)
+    assert set(released._owned_look_context.item_declarations) == {a}
+    assert not released.products
+    assert released._owned_look_outcome.status == "waiting_user"
+
+
+@pytest.mark.anyio
+async def test_fingerprint_includes_item_declaration_and_is_order_independent():
+    from app.schemas.owned_look_context import OwnershipDeclaration
+
+    catalog = KoreanScopeCatalog()
+    req = scope_request("하트퍼센트 립펜슬 07호는 있어. 롬앤 쥬시 래스팅 틴트는 없어.")
+    traces = []
+    first = await execute_owned_look(req, catalog)
+    req._owned_look_context = first._owned_look_context
+    req.message = "다시 추천해줘"
+    for status in ["missing", "present"]:
+        for key in req._owned_look_context.item_declarations:
+            req._owned_look_context.item_declarations[key] = OwnershipDeclaration(
+                status=status, quote="합성 동일 발화", scope="product"
+            )
+        trace = []
+        await execute_owned_look(req, catalog, trace=trace)
+        traces.append(next(t for t in trace if t["task"]["taskId"] == "N1"))
+    assert traces[0]["result"]["inputFingerprint"] != traces[1]["result"]["inputFingerprint"]
+    assert traces[0]["inputs"]["itemDeclarations"] != traces[1]["inputs"]["itemDeclarations"]
+    assert len(req._owned_look_context.item_declarations) == 2
+    # Reordering serialized declaration dictionaries does not change the fingerprint.
+    req._owned_look_context.item_declarations = dict(
+        reversed(list(req._owned_look_context.item_declarations.items()))
+    )
+    trace = []
+    await execute_owned_look(req, catalog, trace=trace)
+    assert (
+        next(t["result"]["inputFingerprint"] for t in trace if t["task"]["taskId"] == "N1")
+        == traces[1]["result"]["inputFingerprint"]
+    )
+
+
+@pytest.mark.anyio
+async def test_korean_explicit_whole_zone_and_ambiguous_option():
+    catalog = KoreanScopeCatalog()
+    req = scope_request("립 제품은 전부 없어.")
+    result = await execute_owned_look(req, catalog)
+    assert {p.id for p in result.products} == {"lip-a", "lip-b"}
+    assert result._owned_look_context.declarations["lip"].scope == "zone"
+    ambiguous = scope_request("07호는 있어.")
+    response = await execute_owned_look(ambiguous, catalog)
+    assert not response._owned_look_context.item_declarations
+    assert response._owned_look_outcome.status == "waiting_user"
+
+
+@pytest.mark.anyio
+async def test_live_korean_utterance_to_exact_option_request(record_property):
+    import json
+    import os
+
+    from app.clients.catalog_client import CatalogClient
+    from app.services.conversation_context import prepare_request, updated_context
+    from tests.conftest import FakeLlm
+
+    base = os.environ.get("G8_N02_LIVE_CATALOG")
+    if not base:
+        pytest.skip("read-only live Catalog required")
+    catalog = CatalogClient(base)
+    service = ChatService(None, FakeLlm(configured=False), catalog)
+    memory = owned("oy-a000000183683")
+    memory.structured.value["optionId"] = "A000000183683-001"
+    req = request([memory])
+    req.style_context.kind = "video"
+    req.style_context.look_id = "XyqUi5HKkX8"
+    first = await service.answer(req)
+    target = next(p for p in first.style_recipe.products if p.product_id == "oy-a000000158896")
+    assert target.option_id == "A000000158896-010"
+    # Natural name from the actual Catalog, with no injected internal answer.
+    message = f"{target.label}는 없어. 2만원 이하로 추천해줘."
+    follow = prepare_request(
+        req.model_copy(update={"message": message}), updated_context({}, first), []
+    )
+    assert follow._owned_look_answer is None
+    second = await service.answer(follow)
+    n1 = next(
+        t
+        for e in second._parent_trace
+        for t in e.get("specialistTrace", [])
+        if t["task"]["taskId"] == "N1"
+    )
+    coverage = n1["result"]["coverage"]
+    assert (
+        next(c["status"] for c in coverage if c["productId"] == "oy-a000000183683") == "fulfilled"
+    )
+    assert (
+        next(c["status"] for c in coverage if c["productId"] == target.product_id)
+        == "confirmed_missing"
+    )
+    assert "lip" not in second._owned_look_context.declarations
+    v1 = next(
+        t
+        for e in second._parent_trace
+        for t in e.get("specialistTrace", [])
+        if t["task"]["taskId"] == "V1"
+    )
+    assert [s["optionId"] for q in v1["inputs"]["requests"] for s in q["optionScope"]] == [
+        target.option_id
+    ]
+    assert any(s.option_id == target.option_id for s in second.owned_look_options.selections)
+    third_req = prepare_request(
+        req.model_copy(update={"message": "설명은 빼고 상품만 찾아줘"}),
+        updated_context({}, second),
+        [],
+    )
+    third = await service.answer(third_req)
+    assert third._owned_look_context.filters.max_price_krw == 20000
+    assert any(s.option_id == target.option_id for s in third.owned_look_options.selections)
+    assert not third.ar_result
+    record_property(
+        "scope_live_catalog",
+        json.dumps(
+            {
+                "catalogMode": "live_http",
+                "inventoryMode": "synthetic",
+                "postgresMode": "not_used",
+                "modelConfiguredMode": "disabled",
+                "actualExternalModelCalls": 0,
+                "lookId": req.style_context.look_id,
+                "recipeVersion": first.style_recipe.recipe_version,
+                "turns": [
+                    {
+                        "message": m,
+                        "actualModelCalls": 0,
+                        "modelMode": "disabled",
+                        "trace": r._parent_trace,
+                        "response": r.model_dump(mode="json", by_alias=True),
+                    }
+                    for m, r in [
+                        (req.message, first),
+                        (message, second),
+                        (third_req.message, third),
+                    ]
+                ],
+            },
+            ensure_ascii=False,
+        ),
+    )
+
+
+@pytest.mark.anyio
+async def test_unrecognized_product_name_does_not_become_zone_declaration():
+    catalog = KoreanScopeCatalog()
+    result = await execute_owned_look(scope_request("다른 브랜드의 틴트는 없어."), catalog)
+    assert not result._owned_look_context.declarations
+    assert not result._owned_look_context.item_declarations
+    assert not result.products
+    assert result._owned_look_outcome.status == "waiting_user"

@@ -735,6 +735,13 @@ export interface OwnedLookOptionDisplay {
 }
 
 export interface ChatResponse {
+  consultation?: {
+    status: 'completed' | 'partial' | 'waiting_user' | 'failed' | 'cancelled' | 'pending';
+    hasPendingInput: boolean;
+    displaySelectionRequired: boolean;
+    displayChoices: { taskId: string; label: string }[];
+    selectedTaskId?: string | null;
+  };
   ownedLookOptions?: OwnedLookOptionDisplay;
 
   compound?: CompoundConsultation | null;

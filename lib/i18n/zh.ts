@@ -8,6 +8,16 @@ import { skinZh } from './skin';
 import { skinReportZh } from './skinReport';
 
 export const zh: Dictionary = {
+  'chat.consultation.completed': '已完成所需确认',
+  'chat.consultation.partial': '还有部分内容尚未确认',
+  'chat.consultation.waiting_user': '请再提供一些信息',
+  'chat.consultation.failed': '未能确认所需内容',
+  'chat.consultation.cancelled': '咨询已停止',
+  'chat.consultation.pending': '确认尚未完成',
+  'chat.consultation.input': '请回答补充问题',
+  'chat.consultation.selection': '请选择要查看的结果',
+  'chat.cancel.action': '停止回答',
+  'chat.cancel.done': '回答已停止。你可以修改内容后重新提问。',
   'chat.memory.manage': '管理记忆',
   'chat.memory.proposal': '要记住这些内容吗？',
   'chat.memory.purpose': '今后的咨询会使用这些内容。',

@@ -391,3 +391,46 @@ test('switches sale options in the same product room and clears option on legacy
   store().open({ type: 'product', productId: 'same-product' });
   expect(store().conversations[id].view.linkedProduct?.optionId).toBeUndefined();
 });
+
+test('confirmed cancellation fences late replies and keeps the replacement request', () => {
+  const id = store().open({ type: 'general' })!;
+  let room = store().conversations[id].conversation;
+  store().bindServerRoom(room, 'server-room', 0);
+  room = store().conversations[id].conversation;
+  const old = store().beginRequest(room, request(room))!;
+  room = store().conversations[id].conversation;
+  const recovery = store().beginRequestRecovery(room, old.requestId, old)!;
+  expect(store().completeRequest(old, { answer: 'late', products: [] }, 'question')).toBe(false);
+  expect(store().beginRequest(room, request(room))).toBeUndefined();
+  expect(store().confirmCancellation(recovery, 0)).toBe(true);
+  room = store().conversations[id].conversation;
+  const next = store().beginRequest(room, request(room, 'replacement'))!;
+  expect(next.requestId).not.toBe(old.requestId);
+  expect(store().conversations[id].view.notice).toBeUndefined();
+  store().failRequest(old, 'chat.ui.error', false, false);
+  expect(store().conversations[id].conversation.request).toBe(next.requestId);
+  expect(store().completeRequest(old, { answer: 'late', products: [] }, 'question')).toBe(false);
+  expect(store().confirmCancellation(recovery, 0)).toBe(false);
+  const consultation={status:'completed' as const,hasPendingInput:false,displaySelectionRequired:false,displayChoices:[]};
+  expect(store().completeRequest(next,{answer:'replacement',products:[],consultation},'replacement')).toBe(true);
+  expect(store().completeRequest(old,{answer:'late summary',products:[],consultation:{...consultation,status:'failed'}},'question')).toBe(false);
+  expect(store().conversations[id].messages.at(-1)?.consultation).toEqual(consultation);
+});
+
+test('restores grouped consultation state and sale options without an independent-search warning', () => {
+  const id=store().open({type:'general'})!;
+  const target=store().conversations[id].conversation;
+  store().bindServerRoom(target,'saved',0);
+  const consultation={status:'completed' as const,hasPendingInput:false,displaySelectionRequired:false,
+    displayChoices:[{taskId:'task-a',label:'토너'},{taskId:'task-b',label:'크림'}],selectedTaskId:'task-b'};
+  const ownedLookOptions={selections:[{productId:'p',shadeId:null,optionId:'sale-b',productName:'P',brand:'B',shadeName:'S'}],batches:[],failedProductIds:[]};
+  const ticket=store().beginRequest(target,request(target))!;
+  store().completeRequest(ticket,{answer:'크림',products:[],consultation,ownedLookOptions},'question');
+  expect(store().conversations[id].messages.at(-1)?.consultation).toEqual(consultation);
+  const current=store().conversations[id].conversation;
+  store().restoreServerRoom(current,{conversationId:'saved',conversationVersion:1,subject:{type:'general'},context:{},
+    messages:[{id:'answer',role:'assistant',createdAt:'2026-11-28',text:'크림',displayPayload:{consultation,ownedLookOptions,products:[{id:'p',brand:'B',name:'P',category:'skincare'}]}}]},current.generation,true);
+  expect(store().conversations[id].messages[0].ownedLookOptions?.selections[0].optionId).toBe('sale-b');
+  expect(store().conversations[id].messages[0].consultation).toEqual(consultation);
+  expect(store().conversations[id].view.notice).toBeUndefined();
+});

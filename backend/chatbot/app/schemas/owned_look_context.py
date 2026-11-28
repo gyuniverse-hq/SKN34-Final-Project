@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 from app.schemas.catalog import OptionSearchResponse, PriceBasis, SearchIngredient
+from app.schemas.owned_look_intent import LookReferenceSnapshot
 from app.schemas.style_recipe import LookKind, Zone
 
 
@@ -14,6 +15,8 @@ class OwnershipDeclaration(BaseModel):
     status: Literal["missing", "present"]
     quote: str = Field(min_length=1, max_length=500)
     confirmed_current: bool = False
+    # Old records have no evidence that an exact option was shown to the user.
+    scope: Literal["legacy", "zone", "product", "option"] = "legacy"
 
 
 class OwnedLookFilters(BaseModel):
@@ -38,6 +41,10 @@ class OwnedLookContext(BaseModel):
     declarations: dict[Zone, OwnershipDeclaration] = Field(default_factory=dict)
     # Keys are bounded by the current recipe, pruned on every execution.
     item_declarations: dict[str, OwnershipDeclaration] = Field(default_factory=dict)
+    # Exemptions suppress only the inherited zone rule, not verified inventory.
+    exceptions: dict[str, Zone] = Field(default_factory=dict)
+    product_declarations: dict[str, OwnershipDeclaration] = Field(default_factory=dict)
+    references: LookReferenceSnapshot | None = None
     filters: OwnedLookFilters = Field(default_factory=OwnedLookFilters)
 
 

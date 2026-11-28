@@ -355,6 +355,13 @@ _GENERAL_TIP_NOTICE = {
 }
 
 
+def step_guidance_line(step, locale, *, reviewed):
+    """Use source descriptions only for reviewed recipes; general steps use existing tips."""
+    zone = {"foundation": "base", "blush": "cheek"}.get(step.zone, step.zone)
+    guidance = step.description if reviewed else TIPS[locale].get(zone)
+    return f"{step.order}. {step.title}" + (f": {guidance}" if guidance else "")
+
+
 def explicit_step(message):
     digits = re.search(r"(?<!\d)(\d{1,2})\s*(?:번(?:째)?\s*)?단계", message)
     if digits:
@@ -776,11 +783,7 @@ async def execute_style(req, catalog):
                 shown = [steps[index]] if is_single_step else steps
                 lines = []
                 for step in shown:
-                    zone = {"foundation": "base", "blush": "cheek"}.get(step.zone, step.zone)
-                    guidance = step.description if reviewed else TIPS[req.locale].get(zone)
-                    lines.append(
-                        f"{step.order}. {step.title}" + (f": {guidance}" if guidance else "")
-                    )
+                    lines.append(step_guidance_line(step, req.locale, reviewed=reviewed))
                 answer += "\n" + "\n".join(lines)
         if tip and context.kind == "video" and not product_question:
             answer += "\n" + _GENERAL_TIP_NOTICE[req.locale]

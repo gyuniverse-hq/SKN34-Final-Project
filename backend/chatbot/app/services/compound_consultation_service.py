@@ -26,6 +26,7 @@ from app.schemas.compound_consultation import (
     RankedOption,
     VerifiedOption,
 )
+from app.schemas.consultation_answer import KnowledgeCoverage, KnowledgeResearch
 from app.schemas.knowledge import KnowledgeReply
 from app.schemas.skincare_recommendation import SkincareToolInput, SkinGoal
 from app.services.knowledge_service import consult_knowledge
@@ -51,12 +52,14 @@ def care_question(goals: list[SkinGoal]) -> str:
     return f"피부 고민({labels})에 맞는 관리 방법은 무엇인가요?"
 
 
-async def research(question: str, task_id: str = "K1") -> KnowledgeReply:
+async def research(question: str, task_id: str = "K1") -> KnowledgeResearch:
     if not get_settings().g5_enabled:
-        return KnowledgeReply(
-            status="error", limitations="지금은 관리 방법을 안내할 자료를 확인하기 어려워요."
+        return KnowledgeResearch(
+            reply=KnowledgeReply(
+                status="error", limitations="지금은 관리 방법을 안내할 자료를 확인하기 어려워요."
+            )
         )
-    consultation = await consult_knowledge(question)
+    consultation = await consult_knowledge(question, delegation_scope="explanation")
     reply = consultation.reply.model_copy(deep=True)
     # Keep the mapping stable across claims, evidence records and text citation markers.
     refs = {e.id: f"{task_id}.{e.id}" for e in reply.evidence}
@@ -66,7 +69,10 @@ async def research(question: str, task_id: str = "K1") -> KnowledgeReply:
         claim.citations = [refs[ref] for ref in claim.citations]
     for old, new in refs.items():
         reply.limitations = reply.limitations.replace(f"[{old}]", f"[{new}]")
-    return reply
+    coverage = consultation.trace.get("coverage")
+    return KnowledgeResearch(
+        reply=reply, coverage=KnowledgeCoverage.model_validate(coverage) if coverage else None
+    )
 
 
 async def extract_search_conditions(reply, goal, llm):
@@ -233,10 +239,22 @@ async def verify(
     *,
     deadline: float | None = None,
     search_conditions=(),
+    deferred_ingredients=(),
 ) -> tuple[list[VerifiedOption], list[BatchCoverage], list[str]]:
     verified = {}
     batches = []
     limits = []
+    explicit = {
+        normalized_ingredient(c.ingredient_name) for c in explicit_ingredient_conditions(goal)
+    }
+
+    def required_by_user(name):
+        normalized = normalized_ingredient(name)
+        return normalized in explicit or any(
+            normalized in normalized_ingredient(c) for c in goal.unsupported_conditions
+        )
+
+    deferred = {name for name in deferred_ingredients if not required_by_user(name)}
     unshaded = []
     for candidate in candidates:
         if candidate.has_shades:
@@ -261,43 +279,80 @@ async def verify(
             + [
                 SearchIngredient(ingredient_name=p.ingredient_name, operator=p.operator)
                 for p in search_conditions
+                if p.ingredient_name not in deferred
             ],
             fragrance_free=goal.fragrance_free,
             unsupported_conditions=goal.unsupported_conditions,
         )
         result = None
         failure = "catalog_unavailable"
-        try:
-            remaining = deadline - monotonic() if deadline is not None else None
-            if remaining is not None and remaining <= 0:
-                raise TimeoutError
-            if catalog is not None:
-                async with asyncio.timeout(remaining):
-                    result = await catalog.search_options(request)
-        except TimeoutError:
-            failure = "catalog_deadline"
-        except UpstreamError:
-            pass
+        # One additional read per batch, using the same deadline and exact option scope.
+        for attempt in ("primary", "without_unresolved_knowledge"):
+            result = None
+            try:
+                remaining = deadline - monotonic() if deadline is not None else None
+                if remaining is not None and remaining <= 0:
+                    raise TimeoutError
+                if catalog is not None:
+                    async with asyncio.timeout(remaining):
+                        result = await catalog.search_options(request)
+            except TimeoutError:
+                failure = "catalog_deadline"
+            except UpstreamError:
+                pass
+            coverage = BatchCoverage(
+                product_ids=ids,
+                request=request,
+                attempt=attempt,
+                reason=failure,
+                deferred_knowledge_conditions=sorted(deferred),
+            )
+            batches.append(coverage)
+            if result is None:
+                break
+            coverage.scope = result.checked_scope
+            coverage.status = result.status
+            coverage.reason = result.checked_scope.stopped_reason
+            coverage.omitted_count = result.omitted_count
+            coverage.excluded_count = result.excluded_count
+            coverage.limitations = result.limitations
+            coverage.ingredient_resolutions = result.ingredient_resolutions
+            unresolved = {
+                (normalized_ingredient(r.ingredient_name), r.operator)
+                for r in result.ingredient_resolutions
+                if r.status not in {"resolved", "literal"}
+            }
+            proposals = {
+                (normalized_ingredient(p.ingredient_name), p.operator): p.ingredient_name
+                for p in search_conditions
+                if not required_by_user(p.ingredient_name)
+            }
+            if (
+                attempt == "primary"
+                and coverage.reason == "INGREDIENT_CONFIRMATION"
+                and unresolved
+                and unresolved <= proposals.keys()
+            ):
+                deferred.update(proposals[key] for key in unresolved)
+                coverage.deferred_knowledge_conditions = sorted(deferred)
+                request = request.model_copy(
+                    update={
+                        "ingredient_conditions": [
+                            c
+                            for c in request.ingredient_conditions
+                            if (normalized_ingredient(c.ingredient_name), c.operator)
+                            not in unresolved
+                        ]
+                    }
+                )
+                continue
+            break
         if result is None:
-            batches.append(BatchCoverage(product_ids=ids, request=request, reason=failure))
             for candidate in batch:
                 verified[candidate.rank] = VerifiedOption(
                     candidate=candidate, outcome="failed", reason=failure
                 )
             continue
-        batches.append(
-            BatchCoverage(
-                product_ids=ids,
-                request=request,
-                scope=result.checked_scope,
-                status=result.status,
-                reason=result.checked_scope.stopped_reason,
-                omitted_count=result.omitted_count,
-                excluded_count=result.excluded_count,
-                limitations=result.limitations,
-                ingredient_resolutions=result.ingredient_resolutions,
-            )
-        )
         by_option = {(i.product_id, i.shade_id, i.option_id): i for i in result.items}
         for candidate in batch:
             item = by_option.get((candidate.product_id, None, candidate.option_id))
@@ -325,7 +380,16 @@ async def verify(
             verified[candidate.rank] = VerifiedOption(
                 candidate=candidate, outcome=outcome, verification=item, reason=reason
             )
-    if any(b.reason == "INGREDIENT_CONFIRMATION" for b in batches):
+    if deferred:
+        limits.append(
+            "지식에서 제안한 성분 중 정확히 식별하지 못한 "
+            + ", ".join(sorted(deferred))
+            + " 조건은 적용하지 않았어요. 나머지 요청 조건으로 확인한 결과예요."
+        )
+    if any(
+        b.reason == "INGREDIENT_CONFIRMATION" and not b.deferred_knowledge_conditions
+        for b in batches
+    ):
         limits.append("입력하신 성분명을 정확히 식별하지 못해 제외 조건을 확인하지 못했어요.")
     return [verified[c.rank] for c in candidates], batches, limits
 
@@ -353,18 +417,22 @@ def _price_description(item: OptionCandidate) -> str:
     return f"{basis}은 {price.amount_krw:,}원으로 예산 안에 들어요."
 
 
-def compose(display: CompoundDisplay, knowledge: KnowledgeReply | None) -> str:
+def compose(display: CompoundDisplay, knowledge: KnowledgeReply | None, coverage=None) -> str:
     lines = []
     if knowledge:
         references = {e.id: f"[{i}]" for i, e in enumerate(knowledge.evidence, 1)}
         for claim in knowledge.claims:
             citations = " ".join(references[ref] for ref in dict.fromkeys(claim.citations))
             lines.append(f"{claim.claim} {citations}".rstrip())
-        if knowledge.limitations:
+        if knowledge.limitations and (
+            not knowledge.claims
+            or any(f"[{e.id}]" in knowledge.limitations for e in knowledge.evidence)
+        ):
             limitation = knowledge.limitations
             for ref, number in references.items():
                 limitation = limitation.replace(f"[{ref}]", number)
-            lines.append(limitation)
+            if limitation not in "\n".join(c.claim for c in knowledge.claims):
+                lines.append(limitation)
     if display.goal.wants_products and display.options:
         counts = Counter(option.outcome for option in display.options)
         if not counts["eligible"]:
@@ -372,11 +440,13 @@ def compose(display: CompoundDisplay, knowledge: KnowledgeReply | None) -> str:
             lines.append(
                 f"살펴본 {total}개 옵션 중에서 모든 조건을 확인하고 추천할 만한 제품은 없었어요."
             )
+        else:
+            lines.append("확인한 상품 조건에 맞는 옵션이에요.")
         for option in display.options:
             if option.outcome != "eligible":
                 continue
             item = option.verification
-            parts = [f"{_product_label(option.candidate)} 옵션을 추천해요."]
+            parts = [_product_label(option.candidate)]
             if item.price:
                 parts.append(_price_description(item))
             excluded_names = [
@@ -388,7 +458,7 @@ def compose(display: CompoundDisplay, knowledge: KnowledgeReply | None) -> str:
                 parts.append(
                     f"이 옵션의 전성분 목록에는 {', '.join(excluded_names)} 표기가 없어요."
                 )
-            lines.append(" ".join(parts))
+            lines.append("- " + " ".join(parts))
         if not counts["eligible"]:
             for option in display.options:
                 item = option.verification

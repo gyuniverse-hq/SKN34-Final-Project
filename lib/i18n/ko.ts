@@ -8,6 +8,16 @@ import { skinKo } from './skin';
 import { skinReportKo } from './skinReport';
 
 export const ko: Dictionary = {
+  'chat.consultation.completed': '요청하신 확인을 마쳤어요',
+  'chat.consultation.partial': '아직 확인하지 못한 내용이 있어요',
+  'chat.consultation.waiting_user': '조금 더 알려주시면 이어서 도와드릴게요',
+  'chat.consultation.failed': '요청하신 내용을 확인하지 못했어요',
+  'chat.consultation.cancelled': '상담을 중단했어요',
+  'chat.consultation.pending': '아직 확인이 끝나지 않았어요',
+  'chat.consultation.input': '추가 질문에 답해주세요',
+  'chat.consultation.selection': '확인할 결과를 골라주세요',
+  'chat.cancel.action': '답변 중단',
+  'chat.cancel.done': '답변을 중단했어요. 내용을 바꿔 다시 질문할 수 있어요.',
   'chat.memory.manage': '기억 관리',
   'chat.memory.proposal': '이 내용을 기억할까요?',
   'chat.memory.purpose': '이후 상담에서 이 내용을 활용해요.',

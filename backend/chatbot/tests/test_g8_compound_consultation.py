@@ -262,20 +262,64 @@ async def test_unidentified_shade_skips_lookup_and_g5_evidence_ids_are_scoped(
     assert options[0].outcome == "unknown" and not batches
     assert len(api.calls) == 1
     consult = install_knowledge(monkeypatch)
-    first = await specialists.research(CARE_QUESTION, "care")
-    second = await specialists.research(CARE_QUESTION, "pores")
+    first = (await specialists.research(CARE_QUESTION, "care")).reply
+    second = (await specialists.research(CARE_QUESTION, "pores")).reply
     assert first.claims[0].citations == [first.evidence[0].id] == ["care.E1"]
     assert second.claims[0].citations == ["pores.E1"]
     assert first.evidence[0].source_version == "fixture-rag"
     monkeypatch.setattr(get_settings(), "g5_enabled", False)
-    assert (await specialists.research(CARE_QUESTION)).status == "error"
+    assert (await specialists.research(CARE_QUESTION)).reply.status == "error"
     assert consult.await_count == 2
+
+
+@pytest.mark.anyio
+async def test_personal_knowledge_gap_is_separate_from_eligible_option(connections, monkeypatch):
+    from app.schemas.compound_consultation import CompoundDisplay
+
+    _, skincare, catalog = connections
+    candidates, _ = await specialists.recommend(GOAL, skincare)
+    options, batches, _ = await specialists.verify(GOAL, candidates, catalog)
+    assert any(o.outcome == "eligible" for o in options)
+    knowledge = install_knowledge(monkeypatch).return_value.reply.model_copy(
+        update={"limitations": "현재 쓰는 제품이 없어 개인 원인은 확인하지 못했어요."}
+    )
+    text = specialists.compose(
+        CompoundDisplay(plan_version=1, goal=GOAL, options=options, batches=batches),
+        knowledge,
+    )
+    assert "개인 원인은 확인하지 못했어요" not in text
+    assert "개인 원인은 확인하지 못했어요" in knowledge.limitations
+    assert "확인한 상품 조건에 맞는 옵션" in text
+    assert "개인별 원인을 해결하거나 효과가 있다는 근거까지 확인한 것은 아니에요" not in text
+    assert CARE_ADVICE in text
+    assert "관리 설명의 한계:" not in text
+    assert text.count("확인한 상품 조건에 맞는 옵션") == 1
+    assert "옵션을 추천해요" not in text
 
 
 class Planner:
     configured = True
 
     async def complete_with_tools(self, messages, tools, *, required_tool=None):
+        if required_tool in {"interpret_consultation_change", "plan_consultation_entry"}:
+            state = json.loads(messages[-1]["content"])
+            args = {"planId": state["planId"], "version": state["version"], "action": "continue"}
+            return {
+                "choices": [
+                    {
+                        "message": {
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": required_tool,
+                                        "arguments": json.dumps(args),
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }, 0
         if required_tool == "extract_knowledge_search_conditions":
             return {
                 "choices": [
@@ -318,7 +362,7 @@ async def test_first_compound_through_chat_service(monkeypatch, connections):
     consult = install_knowledge(monkeypatch)
     chat = ChatService(None, Planner(), catalog, skincare=skincare)
     answer = await chat.answer(ChatRequest(message=QUESTION, locale="ko"))
-    consult.assert_awaited_once_with(CARE_QUESTION)
+    consult.assert_awaited_once_with(CARE_QUESTION, delegation_scope="explanation")
     cards = [o for o in answer.compound.options if o.outcome == "eligible"]
     assert [(o.candidate.product_id, o.candidate.option_id) for o in cards] == [("p9", "sale-9")]
     assert answer.chat_context.compound.candidates[8].option_id == "sale-9"
@@ -447,7 +491,7 @@ async def test_serum_cream_question_keeps_order_and_context(monkeypatch, connect
 
     chat = ChatService(None, OrderPlanner(), catalog, skincare=skincare)
     await chat.answer(ChatRequest(message=question + " 제품도 추천해 줘.", locale="ko"))
-    consult.assert_awaited_once_with(question)
+    consult.assert_awaited_once_with(question, delegation_scope="explanation")
     assert len(api.calls) == 3
 
 
@@ -713,6 +757,77 @@ class IngredientExtractor:
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("user_unresolved", [False, True])
+async def test_unresolved_knowledge_preserves_user_query_and_deferred_state(
+    monkeypatch, connections, user_unresolved
+):
+    from app.schemas.catalog import OptionIngredientResolution
+    from app.services.conversation_context import read_context, updated_context
+
+    api, skincare, catalog = connections
+    reply = resolved_ingredient_reply(monkeypatch)
+    monkeypatch.setattr(
+        specialists,
+        "consult_knowledge",
+        AsyncMock(return_value=Consultation(reply=reply, trace={})),
+    )
+    original = catalog.search_options
+    requests = []
+
+    async def search(request):
+        requests.append(request)
+        result = await original(request)
+        if user_unresolved or any(
+            c.ingredient_name == "글리세린" for c in request.ingredient_conditions
+        ):
+            result.items = []
+            result.status = "PARTIAL"
+            result.checked_scope.stopped_reason = "INGREDIENT_CONFIRMATION"
+            result.ingredient_resolutions = [
+                OptionIngredientResolution(
+                    ingredient_name="향료" if user_unresolved else "글리세린",
+                    operator="excludes" if user_unresolved else "includes",
+                    status="unresolved",
+                )
+            ]
+        return result
+
+    monkeypatch.setattr(catalog, "search_options", search)
+    first = await graph.run_compound(
+        GOAL, CARE_QUESTION, skincare, catalog, llm=IngredientExtractor()
+    )
+    context = read_context(updated_context({}, first)).compound
+    assert all(
+        any(
+            c.ingredient_name == "향료" and c.operator == "excludes"
+            for c in request.ingredient_conditions
+        )
+        for request in requests
+    )
+    if user_unresolved:
+        assert len(requests) == 2
+        assert not context.knowledge_search.deferred_ingredients
+        assert all(o.outcome == "unknown" for o in first.compound.options)
+        return
+    assert len(requests) == 3  # first batch retries once; second uses known deferred state
+    assert context.knowledge_search.deferred_ingredients == ["글리세린"]
+    assert first.compound.options[8].outcome == "eligible"
+    assert "조건은 적용하지 않았어요" in first.answer
+    requests.clear()
+    await graph.run_compound(
+        GOAL.model_copy(update={"max_price_krw": 19000, "wants_knowledge": False}),
+        "",
+        skincare,
+        catalog,
+        previous=context,
+        reuse_candidates=True,
+        llm=IngredientExtractor(),
+    )
+    assert len(requests) == 2
+    assert all(len(r.ingredient_conditions) == 1 for r in requests)
+
+
+@pytest.mark.anyio
 async def test_g5_resolved_claim_indices_reach_n01_and_alias_limit(monkeypatch, connections):
     api, skincare, catalog = connections
     reply = resolved_ingredient_reply(monkeypatch)
@@ -972,6 +1087,8 @@ async def test_original_n01_requests_situation_before_inventing_goal(
             response, ms = await super().complete_with_tools(
                 messages, tools, required_tool=required_tool
             )
+            if required_tool == "plan_consultation_entry":
+                return response, ms
             f = response["choices"][0]["message"]["tool_calls"][0]["function"]
             f["arguments"] = json.dumps(
                 {
@@ -1019,7 +1136,9 @@ async def test_original_n01_requests_situation_before_inventing_goal(
             return response, ms
 
     answer = await ChatService(None, ContextPlanner(), catalog, skincare=skincare).answer(followup)
-    consult.assert_awaited_once_with(original + " / " + followup.message)
+    consult.assert_awaited_once_with(
+        original + " / " + followup.message, delegation_scope="explanation"
+    )
     assert answer.compound.goal.goals == ["dryness"]
     assert answer.compound.options[8].outcome == "eligible"
     record_property(
@@ -1267,7 +1386,10 @@ async def test_semantic_execution_scope_is_not_lost_in_lexical_fallback(
     )
     assert result.products == [] and result.compound is None and result.ar_result is None
     assert result.answer
-    assert api.calls == [] and planner.complete_with_tools.await_count == 1
+    assert api.calls == []
+    assert [
+        call.kwargs["required_tool"] for call in planner.complete_with_tools.await_args_list
+    ] == ["plan_consultation_entry", "plan_skin_consultation"]
 
 
 @pytest.mark.anyio
@@ -1312,3 +1434,19 @@ async def test_skin_parent_usage_only_preserves_goal_without_product_tools(
     assert result.style_recipe is None
     assert consult.call_args.args[0] == followup.message
     assert result._consultation_parent.plan_id == first._consultation_parent.plan_id
+
+
+@pytest.mark.anyio
+async def test_compound_keeps_source_bounds_and_no_answer_errors_but_not_coverage_dump(monkeypatch):
+    from app.schemas.compound_consultation import CompoundDisplay
+
+    reply = install_knowledge(monkeypatch).return_value.reply.model_copy(deep=True)
+    reply.status = "partial"
+    reply.limitations = "내부 필수 항목 미충족"
+    display = CompoundDisplay(plan_version=1, goal=GOAL)
+    assert "내부 필수 항목 미충족" not in specialists.compose(display, reply)
+    assert reply.status == "partial" and reply.limitations == "내부 필수 항목 미충족"
+    reply.limitations = "이 방법의 적용 범위는 볼입니다. [E1]"
+    assert "이 방법의 적용 범위는 볼입니다. [1]" in specialists.compose(display, reply)
+    empty = KnowledgeReply(status="error", limitations="자료 조회 오류")
+    assert "자료 조회 오류" in specialists.compose(display, empty)

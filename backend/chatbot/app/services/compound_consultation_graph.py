@@ -4,7 +4,7 @@ import asyncio
 import hashlib
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from graphlib import TopologicalSorter
 from time import monotonic
 from typing import Literal, TypedDict
@@ -30,6 +30,7 @@ from app.schemas.compound_consultation import (
 )
 from app.services import compound_consultation_service as specialists
 from app.services.beauty_consultation_service import _explicit_krw_budget, _requested_price_basis
+from app.services.consultation_task_adapter import adapt_specialist
 
 
 class Interpretation(CompoundModel):
@@ -241,6 +242,7 @@ class RunContext:
     trace: list | None
     llm: object = None
     knowledge_state: KnowledgeSearchState | None = None
+    task_results: dict = field(default_factory=dict)
 
 
 def can_reuse_candidates(goal, previous, requested=True):
@@ -356,7 +358,9 @@ async def execute_ready(state: RunState, runtime: Runtime[RunContext]):
         if task.agent == "verify":
             if "K1" in sources:
                 search_state.knowledge = sources["K1"].knowledge
+                search_state.coverage = sources["K1"].knowledge_coverage
                 search_state.conditions = proposals
+                search_state.deferred_ingredients = []
                 search_state.goals = list(ctx.goal.goals)
             removed = {
                 specialists.normalized_ingredient(n) for n in search_state.removed_ingredients
@@ -379,10 +383,12 @@ async def execute_ready(state: RunState, runtime: Runtime[RunContext]):
             inputs["knowledgeConditions"] = [
                 c.model_dump(mode="json", by_alias=True) for c in search_conditions
             ]
+            inputs["deferredKnowledgeIngredients"] = list(search_state.deferred_ingredients)
             inputs["conditionDecisions"] = decisions
             inputs["optionScope"] = [[c.product_id, c.option_id] for c in candidates]
         if task.agent == "knowledge":
             inputs["question"] = ctx.question
+            inputs["delegationScope"] = "explanation"
         if task.agent == "recommend" and ctx.reuse_candidates and ctx.previous:
             inputs["previousScope"] = [[c.product_id, c.option_id] for c in ctx.previous.candidates]
         fingerprint = hashlib.sha256(json.dumps(inputs, sort_keys=True).encode()).hexdigest()
@@ -399,9 +405,11 @@ async def execute_ready(state: RunState, runtime: Runtime[RunContext]):
             limit = None if task.agent == "verify" else max(0.0, ctx.deadline - monotonic())
             async with asyncio.timeout(limit), semaphore:
                 if task.agent == "knowledge":
-                    result.knowledge = await specialists.research(
+                    research = await specialists.research(
                         ctx.question or specialists.care_question(ctx.goal.goals)
                     )
+                    result.knowledge = research.reply
+                    result.knowledge_coverage = research.coverage
                     result.search_conditions = (
                         await specialists.extract_search_conditions(
                             result.knowledge, ctx.goal, ctx.llm
@@ -431,7 +439,16 @@ async def execute_ready(state: RunState, runtime: Runtime[RunContext]):
                         ctx.catalog,
                         deadline=ctx.deadline,
                         search_conditions=search_conditions,
+                        deferred_ingredients=search_state.deferred_ingredients,
                     )
+                    search_state.deferred_ingredients = list(
+                        dict.fromkeys(
+                            name
+                            for batch in result.batches
+                            for name in batch.deferred_knowledge_conditions
+                        )
+                    )
+                    result.knowledge_search = search_state
                     if result.limitations or any(
                         o.outcome in {"failed", "unknown"} for o in result.options
                     ):
@@ -452,6 +469,14 @@ async def execute_ready(state: RunState, runtime: Runtime[RunContext]):
                     VerifiedOption(candidate=c, outcome="failed", reason="lookup_failed")
                     for c in candidates
                 ]
+        ctx.task_results[task.task_id] = adapt_specialist(
+            task,
+            result,
+            inputs,
+            sources,
+            bound_inputs={"option_scope": candidates, "ingredient_conditions": proposals},
+            attempt=state["attempts"] + 1,
+        )
         if ctx.trace is not None:
             ctx.trace.append(
                 {
@@ -512,12 +537,15 @@ def finish(state: RunState, runtime: Runtime[RunContext]):
         knowledge_search=verified.knowledge_search if verified else ctx.knowledge_state,
     )
     response = ChatResponse(
-        answer=specialists.compose(display, knowledge),
+        answer=specialists.compose(
+            display, knowledge, research.knowledge_coverage if research else None
+        ),
         knowledge=knowledge,
         compound=display,
         products=[],
         chat_context=BeautyContext(issued_at=0, filters=BeautyFilters(), compound=context),
     )
+    response._task_results = list(ctx.task_results.values())
     return {"response": response}
 
 
@@ -563,7 +591,9 @@ async def run_compound(
     )
     if set(state.goals) != set(goal.goals) or knowledge_action == "reevaluate":
         state.conditions = []
+        state.deferred_ingredients = []
         state.knowledge = None
+        state.coverage = None
         state.goals = []
     if knowledge_action == "reevaluate":
         state.cleared = False
@@ -571,7 +601,9 @@ async def run_compound(
     if knowledge_action == "clear":
         state.cleared = True
         state.conditions = []
+        state.deferred_ingredients = []
         state.knowledge = None
+        state.coverage = None
     names = list(dict.fromkeys([*state.removed_ingredients, *remove_knowledge_ingredients]))
     state.removed_ingredients = names
     removed = {specialists.normalized_ingredient(n) for n in names}

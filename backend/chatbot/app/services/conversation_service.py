@@ -474,9 +474,36 @@ class ConversationService:
                         cutoffs.get(str(room_id)),
                     )
                     memories = []
-                    if structured:
+                    owned_look_read = (
+                        memory_enabled
+                        and request.structured_memory
+                        and structured_memory_enabled()
+                        and room.subject_json.get("type") in {"general", "look"}
+                        and (
+                            request.request_type == "style_consultation"
+                            or (
+                                request.request_type in {"chat", "beauty_consultation"}
+                                and prepared._consultation_parent is not None
+                                and any(
+                                    task.goal == "owned_look"
+                                    and task.status not in {"cancelled", "superseded"}
+                                    for task in prepared._consultation_parent.tasks
+                                )
+                            )
+                        )
+                        and settings.g8_enabled
+                        and prepared.style_context is not None
+                        and not (
+                            prepared.ar_context or prepared.screen_context or prepared.style_search
+                        )
+                        and not is_explicit_request(request.message)
+                    )
+                    # Read-only N02 eligibility does not enable structured memory writes.
+                    if structured or owned_look_read:
                         prepared._consultation_memories = ()
-                        if not memory_opt_out and not is_explicit_request(request.message):
+                        if not ignores_memory(request.message) and not is_explicit_request(
+                            request.message
+                        ):
                             try:
                                 async with session.begin_nested():
                                     prepared._consultation_memories = select_consultation_memories(
@@ -528,14 +555,26 @@ class ConversationService:
             raise _unavailable() from exc
 
         stop = asyncio.Event()
+
+        async def check_active():
+            async with self._sessions().begin() as session:
+                active = await ConversationRepository(session).execution_active(
+                    owner_id, room_id, request_id, version
+                )
+            if not active:
+                raise ApiError(409, "Request was interrupted", "request_interrupted")
+
+        execution.check_active = check_active
         heartbeat = asyncio.create_task(
             self._heartbeat(owner_id, room_id, request_id, 1, lease_seconds, stop)
         )
         try:
+            await check_active()
             await revalidate_request(self.chat, prepared)
             with capture_prompt_dependencies() as model_dependencies:
                 response = await self.chat.answer(prepared, principal_key)
-            if structured:
+            await check_active()
+            if structured or owned_look_read:
                 selected_versions = {
                     entry.id: entry.version for entry in prepared._consultation_memories or ()
                 }
@@ -645,7 +684,7 @@ class ConversationService:
                         except (SQLAlchemyError, ValueError):
                             # A proposal failure leaves the completed consultation intact.
                             logger.warning("Structured memory proposal could not be issued")
-                elif memory_enabled:
+                elif memory_enabled and not owned_look_read:
                     response.memory_proposal = await create_candidate(
                         session, owner_id, room_id, request_id, memory_epoch, request.message
                     )
@@ -701,6 +740,18 @@ class ConversationService:
                     return
             except (SQLAlchemyError, OSError, ApiError):
                 return
+
+    async def cancel_request(self, owner_id: str, conversation_id: UUID, request_id: UUID) -> dict:
+        try:
+            async with self._sessions().begin() as session:
+                result = await ConversationRepository(session).cancel_turn(
+                    owner_id, conversation_id, request_id
+                )
+                if result is None:
+                    raise ApiError(404, "Request not found", "not_found")
+                return result
+        except (SQLAlchemyError, OSError) as exc:
+            raise _unavailable() from exc
 
     async def request_status(self, owner_id: str, conversation_id: UUID, request_id: UUID) -> dict:
         try:

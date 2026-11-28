@@ -40,7 +40,13 @@ export type ServerConversationDetail = Omit<ServerConversationSummary, 'updatedA
 };
 
 export type ChatCategory = 'product' | 'ingredient' | 'style';
+export type ChatCancellationResult = {
+  requestId: string;
+  status: 'INTERRUPTED' | 'COMMITTED' | 'FAILED';
+  conversationVersion: number;
+};
 export type ChatMessage = {
+  consultation?: ChatResponse['consultation'];
   id: string;
   role: 'user' | 'assistant';
   automatic?: boolean;

@@ -10,16 +10,20 @@ from langgraph.checkpoint.postgres import PostgresSaver
 from sqlalchemy.engine import make_url
 
 
-def _lock_thread(saver, thread_id: UUID) -> None:
+def _lock_thread(saver, thread_id: UUID, *, shared=False) -> None:
     key = f"g7:checkpoint:{thread_id}"
+    lock = "pg_try_advisory_lock_shared" if shared else "pg_try_advisory_lock"
     if not saver.conn.execute(
-        "SELECT pg_try_advisory_lock(hashtextextended(%s, 0)) AS acquired", (key,)
+        f"SELECT {lock}(hashtextextended(%s, 0)) AS acquired", (key,)
     ).fetchone()["acquired"]:
         raise OSError("Checkpoint thread is busy")
 
 
 def _guard_active(saver, thread_id, conversation_id, owner_id, request_id):
-    _lock_thread(saver, thread_id)
+    # A cancelled HTTP/model call may still be unwinding. Fresh writers never load its
+    # state, and final commit remains guarded by the authoritative active turn.
+    # Shared execution locks allow its replacement; deletion keeps the exclusive lock.
+    _lock_thread(saver, thread_id, shared=True)
     active = saver.conn.execute(
         "SELECT EXISTS (SELECT 1 FROM chat_conversations c "
         "JOIN chat_owner_status o ON o.owner_id = c.owner_id "

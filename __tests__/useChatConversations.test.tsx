@@ -38,12 +38,15 @@ it('loads a server room, restores selected state, and loads earlier messages', a
     } },
     messages: [{ id: 'm2', role: 'assistant', text: 'answer', displayPayload: { products: [{ id: 'p1' }] } }], nextMessageCursor: 10 });
   await act(async () => { expect(await current.open('room')).toBe('room'); });
+  expect(current.detailLoading).toBe(false);
+  expect(current.detailError).toBe(false);
   let room = useChatConversationStore.getState().conversations.room;
   expect(room.view.linkedProduct).toMatchObject({ productId: 'p1', shadeId: 's1' });
   expect(room.conversation.styleContext).toEqual({ kind: 'catalog', lookId: 'look1', recipeId: 'recipe1',
     recipeVersion: 'v1', currentStep: 1 });
   expect(room.conversation.styleConditions).toEqual([{ slot: 'color', value: 'coral' }]);
   expect(room.messages.map((message) => message.text)).toEqual(['answer']);
+  expect(room.messages[0].products?.map((product) => product.id)).toEqual(['p1']);
   expect(room.conversation.beautyContext?.session).toBeUndefined();
   expect(room.view.notice).toBe('chat.session.newSearchHint');
   request.mockResolvedValueOnce({ conversationId: 'room', messages: [{ id: 'm1', role: 'user', text: 'question' }], nextMessageCursor: null });
@@ -86,6 +89,26 @@ async function mountRooms(...ids: string[]) {
   await act(async () => { await current.list(); });
   return view;
 }
+
+it('finishes explicit selection while a background refresh of another room completes', async () => {
+  const view = await mountRooms();
+  let finishRefresh!: (value: unknown) => void;
+  let finishSelection!: (value: unknown) => void;
+  request.mockImplementationOnce(() => new Promise(resolve => { finishRefresh = resolve; }));
+  request.mockImplementationOnce(() => new Promise(resolve => { finishSelection = resolve; }));
+  let refresh!: Promise<string | undefined>;
+  let selection!: Promise<string | undefined>;
+  await act(async () => { refresh = current.open('other', 'refresh'); });
+  await act(async () => { selection = current.open('room', 'select', () => true); });
+  expect(current.detailLoading).toBe(true);
+  await act(async () => { finishRefresh(detail('other', 2)); await refresh; });
+  expect(current.detailLoading).toBe(true);
+  await act(async () => { finishSelection(detail('room', 3)); expect(await selection).toBe('room'); });
+  expect(current.detailLoading).toBe(false);
+  expect(current.detailError).toBe(false);
+  expect(useChatConversationStore.getState().conversations.room.conversation.serverVersion).toBe(3);
+  await act(async () => view.unmount());
+});
 
 it('removes only a room confirmed missing and ignores a late listing for that room', async () => {
   const view = await mountRooms();
@@ -455,4 +478,100 @@ it('does not apply request recovery after the room selection is cancelled', asyn
   expect(useChatConversationStore.getState().conversations.room.conversation.requestRecovery?.status).toBe('unconfirmed');
   expect(await AsyncStorage.getItem(marker)).toBe('1');
   await act(async () => view.unmount());
+});
+
+
+it('restores sale option display and selected option without an AR shade', async () => {
+  const saleOptions = { selections: [{ productId: 'p1', optionId: 'sale-1', shadeId: null,
+    productName: 'Product', brand: 'Brand', shadeName: 'Sale option' }], batches: [], failedProductIds: [] };
+  const key = useChatConversationStore.getState().identity!.key;
+  let view!: ReactTestRenderer;
+  await act(async () => { view = create(createElement(Harness, { userId: 'A', ownerKey: key })); });
+  request.mockResolvedValueOnce({ conversations: [{ conversationId: 'room', conversationVersion: 2, subject: { type: 'general' }, updatedAt: '2026-01-01T00:00:00Z' }], nextCursor: null });
+  await act(async () => { await current.list(); });
+  request.mockResolvedValueOnce({ conversationId: 'room', conversationVersion: 2, subject: { type: 'product', productId: 'p1' },
+    context: { product: { selectedProductId: 'p1', selectedOptionId: 'sale-1', filters: {} } },
+    messages: [{ id: 'm', role: 'assistant', text: 'option', displayPayload: { ownedLookOptions: saleOptions } }] });
+  await act(async () => { expect(await current.open('room')).toBe('room'); });
+  const room = useChatConversationStore.getState().conversations.room;
+  expect(room.view.linkedProduct?.optionId).toBe('sale-1');
+  expect(room.messages[0].ownedLookOptions).toEqual(saleOptions);
+  expect(room.messages[0].ownedLookOptions?.selections[0].shadeId).toBeNull();
+  expect(current.detailLoading).toBe(false);
+  await act(async () => { view.unmount(); });
+});
+
+it('cancels the exact pending request and releases it only after server acknowledgement', async () => {
+  const store = useChatConversationStore.getState;
+  const id = store().open({ type: 'general' })!;
+  let room = store().conversations[id].conversation;
+  store().bindServerRoom(room, 'server-room', 0);
+  room = store().conversations[id].conversation;
+  const ticket = store().beginRequest(room, { automatic: false, revision: 0, generation: room.generation,
+    styleRevision: 0, args: { message: 'old question', locale: 'ko', requestId: 'old-request', expectedUserId: 'A' } })!;
+  let view!: ReactTestRenderer;
+  await act(async () => { view = create(createElement(Harness, { userId: 'A', ownerKey: room.ownerKey })); });
+  let finish!: (value: unknown) => void;
+  request.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  let pending!: Promise<void>;
+  await act(async () => { pending = current.cancel(id); });
+  expect(store().conversations[id].conversation.requestRecovery?.status).toBe('checking');
+  expect(store().completeRequest(ticket, { answer: 'late', products: [] }, 'old')).toBe(false);
+  await act(async () => { finish({requestId: 'old-request', status: 'INTERRUPTED', conversationVersion: 0}); await pending; });
+  expect(request.mock.calls[0].slice(0, 3)).toEqual(['/api/chat/conversations/server-room/requests/old-request/cancel', 'POST', 'A']);
+  expect(store().conversations[id].conversation.requestRecovery).toBeUndefined();
+  expect(store().conversations[id].view.notice).toBe('chat.cancel.done');
+  expect(store().conversations[id].view.draft).toBe('old question');
+  await act(async () => view.unmount());
+});
+
+it.each(['committed', 'lost', 'account-change'])('resolves cancellation %s without inventing success', async (mode) => {
+  const store = useChatConversationStore.getState;
+  const id = store().open({ type: 'general' })!;
+  let room = store().conversations[id].conversation;
+  store().bindServerRoom(room, 'server-room', 0);
+  room = store().conversations[id].conversation;
+  store().beginRequest(room, { automatic: false, revision: 0, generation: room.generation,
+    styleRevision: 0, args: { message: 'question', locale: 'ko', requestId: 'rid', expectedUserId: 'A' } });
+  let view!: ReactTestRenderer;
+  await act(async () => { view = create(createElement(Harness, { userId: 'A', ownerKey: room.ownerKey })); });
+  if (mode === 'committed') {
+    request.mockResolvedValueOnce({requestId:'rid',status:'COMMITTED',conversationVersion:1});
+    request.mockResolvedValueOnce({requestId:'rid',status:'COMMITTED',response:{conversation:{id:'server-room',version:1,persistenceStatus:'stored'}}});
+    request.mockResolvedValueOnce({conversationId:'server-room',conversationVersion:1,subject:{type:'general'},context:{},messages:[{id:'answer',role:'assistant',text:'completed',createdAt:'now',displayPayload:{consultation:{status:'partial',hasPendingInput:true,displaySelectionRequired:false,displayChoices:[]}}}]});
+    await act(async () => { await current.cancel(id); });
+    expect(store().conversations[id].messages[0].text).toBe('completed');
+    expect(store().conversations[id].messages[0].consultation).toMatchObject({status:'partial',hasPendingInput:true});
+    expect(store().conversations[id].view.notice).not.toBe('chat.cancel.done');
+  } else if (mode === 'lost') {
+    request.mockRejectedValueOnce(new ApiError('offline',0));
+    request.mockResolvedValueOnce({requestId:'rid',status:'IN_PROGRESS'});
+    await act(async () => { await current.cancel(id); });
+    expect(store().conversations[id].conversation.requestRecovery?.status).toBe('in_progress');
+    expect(store().conversations[id].view.notice).not.toBe('chat.cancel.done');
+  } else {
+    let finish!: (value: unknown) => void;
+    request.mockImplementationOnce(() => new Promise(resolve => { finish=resolve; }));
+    let pending!: Promise<void>;
+    await act(async () => { pending=current.cancel(id); });
+    await act(async () => { store().activate('B'); finish({requestId:'rid',status:'INTERRUPTED',conversationVersion:0}); await pending; });
+    expect(store().conversations[id]).toBeUndefined();
+  }
+  await act(async () => view.unmount());
+});
+
+it('opens saved consultation summary without losing its result choices or staying in loading', async () => {
+  const key=useChatConversationStore.getState().identity!.key;
+  let view!:ReactTestRenderer;
+  await act(async()=>{view=create(createElement(Harness,{userId:'A',ownerKey:key}));});
+  const consultation={status:'partial',hasPendingInput:true,displaySelectionRequired:true,
+    displayChoices:[{taskId:'task-a',label:'첫 요청'},{taskId:'task-b',label:'다음 요청'}],selectedTaskId:null};
+  request.mockResolvedValueOnce({conversations:[{conversationId:'room',conversationVersion:1,subject:{type:'general'}}],nextCursor:null});
+  await act(async()=>{await current.list();});
+  request.mockResolvedValueOnce({conversationId:'room',conversationVersion:1,subject:{type:'general'},context:{},messages:[
+    {id:'reply',role:'assistant',text:'확인할 결과를 골라주세요',displayPayload:{consultation,products:[]}}]});
+  await act(async()=>{await current.open('room');});
+  expect(current.detailLoading).toBe(false);
+  expect(useChatConversationStore.getState().conversations.room.messages[0].consultation).toEqual(consultation);
+  await act(async()=>{view.unmount();});
 });

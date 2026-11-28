@@ -2141,3 +2141,69 @@ test('keeps a sale option in the chat entry, label and outgoing screen context',
   delete mockRouteParams.optionId;
   delete mockRouteParams.productId;
 });
+
+it('stops an active saved request and ignores its late response after replacement', async () => {
+  mockAuth.mockReturnValue({ user: { id: 'A' }, ready: true });
+  const server = jest.spyOn(chatApi, 'apiChatUserRequest').mockImplementation(async (path, method) => {
+    if (path === '/api/chat/conversations' && method === 'POST') return { conversationId: 'saved-room', conversationVersion: 0 };
+    if (path.endsWith('/cancel')) return { requestId: path.split('/').at(-2), status: 'INTERRUPTED', conversationVersion: 0 };
+    throw new Error('Unexpected request');
+  });
+  let late!: (value: unknown) => void;
+  mockMutateAsync.mockImplementationOnce(() => new Promise(resolve => { late=resolve; }))
+    .mockResolvedValueOnce({ answer: 'Replacement answer', products: [], consultation:{status:'completed',hasPendingInput:false,displaySelectionRequired:false,displayChoices:[]}, conversation: {id:'saved-room',version:1,turnId:'new',persistenceStatus:'stored'} });
+  const view = await renderScreen();
+  await act(async () => view.root.findByType(TextInput).props.onChangeText('Initial question'));
+  await act(async () => view.root.findByProps({accessibilityLabel:'chat.ui.send'}).props.onPress());
+  await act(async () => view.root.findByProps({accessibilityLabel:'chat.cancel.action'}).props.onPress());
+  expect(view.root.findByType(TextInput).props.editable).toBe(true);
+  await act(async () => view.root.findByType(TextInput).props.onChangeText('Replacement'));
+  await act(async () => view.root.findByProps({accessibilityLabel:'chat.ui.send'}).props.onPress());
+  await act(async () => { late({answer:'Late old answer',products:[],consultation:{status:'failed',hasPendingInput:false,displaySelectionRequired:false,displayChoices:[]},conversation:{id:'saved-room',version:1,persistenceStatus:'stored'}}); });
+  const texts = view.root.findAllByType(Text).map(({props}) => props.children);
+  expect(texts).toContain('Replacement answer');
+  expect(texts).not.toContain('Late old answer');
+  expect(texts.some(value=>Array.isArray(value)&&value.includes('chat.consultation.completed'))).toBe(true);
+  expect(texts.some(value=>Array.isArray(value)&&value.includes('chat.consultation.failed'))).toBe(false);
+  expect(mockMutateAsync.mock.calls[1][0].requestId).not.toBe(mockMutateAsync.mock.calls[0][0].requestId);
+  await act(async () => view.unmount());
+  server.mockRestore();
+});
+
+it('shows consultation completion and display selection separately from the answer', async () => {
+  mockMutateAsync.mockResolvedValueOnce({answer:'1. 토너\n2. 크림',products:[],consultation:{
+    status:'completed',hasPendingInput:false,displaySelectionRequired:true,
+    displayChoices:[{taskId:'task-a',label:'토너'},{taskId:'task-b',label:'크림'}],selectedTaskId:null}});
+  const view=await renderScreen();
+  await act(async()=>view.root.findByType(TextInput).props.onChangeText('토너와 크림'));
+  await act(async()=>view.root.findByProps({accessibilityLabel:'chat.ui.send'}).props.onPress());
+  const labels=view.root.findAllByType(Text).map(item=>item.props.children);
+  expect(labels.some(value=>Array.isArray(value)&&value.includes('chat.consultation.completed'))).toBe(true);
+  expect(labels).not.toContain('chat.ui.contextNotice');
+  expect(labels).toContain('1. 토너\n2. 크림');
+  await act(async()=>view.unmount());
+});
+
+it.each([['sale-a'],['sale-a','sale-b']])('keeps a unique restored option and does not guess among sale variants: %j', async (...ids) => {
+  mockProductsByIds.mockReturnValue({data:[{id:'p1',shades:[{id:'shade-a'}]}],isPending:false,isError:false,refetch:mockRefetch});
+  mockMutateAsync.mockResolvedValueOnce({answer:'결과',products:[{id:'p1',brand:'B',name:'P',category:'lip'}],optionSearch:{
+    schemaVersion:1,status:'PARTIAL',items:ids.map(optionId=>({productId:'p1',shadeId:'shade-a',optionId,group:'ELIGIBLE'})),
+    products:[],excludedCount:0,omittedCount:0,checkedScope:{candidateProducts:1,candidateOptions:ids.length,checkedOptions:ids.length,unidentifiedOptions:0,exhaustive:true,stoppedReason:'COMPLETE',errors:0}}});
+  const view=await renderScreen();
+  await act(async()=>view.root.findByType(TextInput).props.onChangeText('판매 옵션'));
+  await act(async()=>view.root.findByProps({accessibilityLabel:'chat.ui.send'}).props.onPress());
+  await act(async()=>view.root.findByType(ChatProducts).props.onOpenProduct('p1','shade-a'));
+  const route=mockPush.mock.calls.at(-1)?.[0];
+  expect(route.params.shade).toBe('shade-a');
+  expect(route.params.optionId).toBe(ids.length===1?'sale-a':undefined);
+  await act(async()=>view.unmount());
+});
+
+it('does not present failed consultation reads as no matching products', async () => {
+  mockMutateAsync.mockResolvedValueOnce({answer:'조회하지 못했어요',products:[],consultation:{status:'failed',hasPendingInput:false,displaySelectionRequired:false,displayChoices:[]}});
+  const view=await renderScreen();
+  await act(async()=>view.root.findByType(TextInput).props.onChangeText('2만원 이하 립 찾아줘'));
+  await act(async()=>view.root.findByProps({accessibilityLabel:'chat.ui.send'}).props.onPress());
+  expect(view.root.findAllByType(Text).map(item=>item.props.children)).not.toContain('chat.ui.noProducts');
+  await act(async()=>view.unmount());
+});

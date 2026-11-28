@@ -6,6 +6,16 @@ import { flowsEn } from './flows';
 import { skinEn } from './skin';
 import { skinReportEn } from './skinReport';
 export const en = {
+  'chat.consultation.completed': 'Requested checks completed',
+  'chat.consultation.partial': 'Some checks are still incomplete',
+  'chat.consultation.waiting_user': 'A little more information is needed',
+  'chat.consultation.failed': 'The requested checks could not be completed',
+  'chat.consultation.cancelled': 'Consultation stopped',
+  'chat.consultation.pending': 'Checks are still pending',
+  'chat.consultation.input': 'Please answer the follow-up question',
+  'chat.consultation.selection': 'Choose a result to view',
+  'chat.cancel.action': 'Stop response',
+  'chat.cancel.done': 'Response stopped. You can edit your message and ask again.',
   'chat.memory.manage': 'Manage memories',
   'chat.memory.proposal': 'Remember this?',
   'chat.memory.purpose': 'Use this in future consultations.',

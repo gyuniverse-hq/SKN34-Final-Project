@@ -188,7 +188,12 @@ function RelatedProducts({ optionSearch, sourceProducts, refs, question, categor
         failed={ids.length > 0 && query.isError}
         missingCount={!query.isPending && !query.isPlaceholderData && !query.isError ? ids.length - products.length : 0}
         onRetry={() => { if (mounted.current) void query.refetch(); }}
-        onOpenProduct={(id, shadeId, optionId) => { if (mounted.current) router.push(productHref(id, shadeId, undefined, !!sourceProducts, optionId)); }}
+        onOpenProduct={(id, shadeId, optionId) => {
+          const options = [...new Set(optionSearch?.items.filter(item => item.productId === id &&
+            (item.shadeId ?? undefined) === shadeId).map(item => item.optionId).filter(Boolean) ?? [])];
+          const exactOption = optionId ?? (options.length === 1 ? options[0] : undefined);
+          if (mounted.current) router.push(productHref(id, shadeId, undefined, !!sourceProducts, exactOption));
+        }}
         onOpenAr={(productId, shadeId) => { if (mounted.current) router.push(arHref({ productId, shadeId })); }}
       />
     </View>
@@ -357,6 +362,7 @@ export default function ChatScreen() {
       initialMemoryOpen={params.memory === 'manage'}
       onRecent={openRecent} onNew={startNew}
       onReload={() => savedRooms.open(roomId, 'reload')}
+      onCancel={() => savedRooms.cancel(roomId)}
       onRecover={(ticket, stillSelected) => savedRooms.recover(roomId, ticket, stillSelected)}
       onDismissRecovery={() => savedRooms.dismissRecovery(roomId)}
       onOlder={() => { void savedRooms.older(roomId); }} olderLoading={savedRooms.detailLoading} olderError={savedRooms.detailError} />}
@@ -446,12 +452,13 @@ function InlineStyleLookPicker({ question, onSelect }: { question: string; onSel
   </View>;
 }
 
-function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload, onRecover, onDismissRecovery, onOlder, olderLoading, olderError }: {
+function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload, onCancel, onRecover, onDismissRecovery, onOlder, olderLoading, olderError }: {
   record: ConversationRecord;
   initialMemoryOpen: boolean;
   onRecent: () => void;
   onNew: () => void;
   onReload: () => Promise<string | undefined>;
+  onCancel: () => Promise<void>;
   onRecover: (ticket?: ChatRequestTicket, stillSelected?: () => boolean) => Promise<void>;
   onDismissRecovery: () => Promise<void>;
   onOlder: () => void;
@@ -1033,7 +1040,7 @@ function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload
             </View>
           ) : (
             <View>
-              {messages.length && !editing && subject.type === 'general' && !hasStyleConversation && !messages.findLast((item) => item.role === 'assistant')?.compound ? <Text style={styles.contextNotice}>{t('chat.ui.contextNotice')}</Text> : null}
+              {messages.length && !editing && subject.type === 'general' && !hasStyleConversation && !messages.findLast((item) => item.role === 'assistant')?.consultation && !messages.findLast((item) => item.role === 'assistant')?.compound ? <Text style={styles.contextNotice}>{t('chat.ui.contextNotice')}</Text> : null}
               {subject.type === 'general' ? <View style={styles.categoryChips}>
                 {categories.map((item) => (
                   <Pressable key={item.id} accessibilityRole="button" accessibilityState={{ selected: category === item.id }}
@@ -1131,6 +1138,11 @@ function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload
           </View> : null}
           {visibleMessages.map((message, messageIndex) => (
             <View key={message.id} style={styles.messageGroup}>
+              {message.role === 'assistant' && message.consultation ? <Text style={styles.note}>
+                {t(`chat.consultation.${message.consultation.status}`)}
+                {message.consultation.hasPendingInput ? ` · ${t('chat.consultation.input')}` : ''}
+                {message.consultation.displaySelectionRequired ? ` · ${t('chat.consultation.selection')}` : ''}
+              </Text> : null}
               {message.role === 'assistant' && !message.compound && message.fragranceSearchSummary ? (
                 <FragranceSearchResult message={message} selectedShades={selectedShades} selectedProductId={chosenProductId}
                   onSelectProduct={canSelect(message) ? (productId) => selectProduct(productId, message) : undefined}
@@ -1289,6 +1301,7 @@ function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload
                 onSelectProduct={canSelect(message) ? (productId) => selectProduct(productId, message) : undefined}
                 onSelectShade={(productId, shadeId) => selectShade(productId, shadeId, message)} /> : null}
               {message.role === 'assistant' && !message.compound && !message.ownedLookOptions && !message.fragranceSearchSummary && !message.knowledge && !message.products?.length && (message.category === 'product' || message.category === undefined) &&
+                (!message.consultation || message.consultation.status === 'completed') &&
                 (message.resultType === 'empty' || (!message.resultType && extractChatConditions(message.question ?? '').length)) ? (
                 <View style={styles.emptyState}>
                   <View style={styles.stateIcon}><Ionicons name="search-outline" size={22} color={theme.colors.rose} /></View>
@@ -1399,6 +1412,11 @@ function ChatConversation({ record, initialMemoryOpen, onRecent, onNew, onReload
               </Pressable>
             </View>
           ) : null}
+          {chatPending && conversation.serverId ? <Pressable accessibilityRole="button"
+            accessibilityLabel={t('chat.cancel.action')} onPress={() => void onCancel()}
+            style={styles.selectionAction}>
+            <Text style={styles.selectionActionText}>{t('chat.cancel.action')}</Text>
+          </Pressable> : null}
           <View style={styles.inputRow}>
             <TextInput ref={inputRef} accessibilityLabel={t('chat.ui.placeholder')} editable={!isPending} maxLength={2000}
               multiline onChangeText={(value) => setInput(Array.from(value).slice(0, 1000).join(''))} onFocus={() => setEditing(true)} onBlur={() => setEditing(false)}

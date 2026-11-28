@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID, uuid4
 
@@ -15,6 +15,7 @@ from app.schemas.conversation import ConversationEntry
 
 _ENTRY = TypeAdapter(ConversationEntry)
 _CONTEXT_KEYS = {
+    "productStyle",
     "consultationParent",
     "ownedLook",
     "compound",
@@ -52,6 +53,7 @@ _FORBIDDEN = {
     "videoframe",
 }
 _DISPLAY_KEYS = {
+    "consultation",
     "ownedLookOptions",
     "compound",
     "appliedMemories",
@@ -440,6 +442,63 @@ class ConversationRepository:
                 ChatTurn.lease_until <= func.clock_timestamp(),
             )
             .values(status="INTERRUPTED", updated_at=func.now(), error_code="lease_expired")
+        )
+
+    async def cancel_turn(self, owner_id: str, conversation_id: UUID, request_id: UUID):
+        # Match finish_turn's owner -> room -> turn lock order. The winner is durable.
+        if not await self.ensure_active_owner(owner_id):
+            return None
+        room = await self.session.scalar(
+            select(ChatConversation)
+            .where(
+                ChatConversation.id == conversation_id,
+                ChatConversation.owner_id == owner_id,
+                ChatConversation.deleted_at.is_(None),
+            )
+            .with_for_update()
+        )
+        if room is None:
+            return None
+        turn = await self.session.scalar(
+            select(ChatTurn)
+            .where(
+                ChatTurn.owner_id == owner_id,
+                ChatTurn.conversation_id == conversation_id,
+                ChatTurn.request_id == request_id,
+                ChatTurn.operation == "chat",
+            )
+            .with_for_update()
+        )
+        if turn is None:
+            return None
+        if turn.status == "IN_PROGRESS":
+            turn.status = "INTERRUPTED"
+            turn.error_code = "user_cancelled"
+            turn.updated_at = datetime.now(UTC)
+        return {
+            "requestId": str(request_id),
+            "status": turn.status,
+            "conversationVersion": room.conversation_version,
+        }
+
+    async def execution_active(self, owner_id, conversation_id, request_id, base_version):
+        return bool(
+            await self.session.scalar(
+                select(ChatTurn.request_id)
+                .join(ChatConversation, ChatConversation.id == ChatTurn.conversation_id)
+                .join(ChatOwnerStatus, ChatOwnerStatus.owner_id == ChatTurn.owner_id)
+                .where(
+                    ChatTurn.owner_id == owner_id,
+                    ChatTurn.conversation_id == conversation_id,
+                    ChatTurn.request_id == request_id,
+                    ChatTurn.status == "IN_PROGRESS",
+                    ChatTurn.lease_until > func.clock_timestamp(),
+                    ChatTurn.base_version == base_version,
+                    ChatConversation.conversation_version == base_version,
+                    ChatConversation.deleted_at.is_(None),
+                    ChatOwnerStatus.status == "ACTIVE",
+                )
+            )
         )
 
     async def interrupt_turn(self, owner_id: str, request_id: UUID, attempt: int) -> None:

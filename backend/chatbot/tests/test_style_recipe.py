@@ -36,6 +36,19 @@ class NoLlm:
         raise AssertionError("Style does not need an LLM or external provider")
 
 
+@pytest.mark.parametrize("locale", ["ko", "en", "ja", "zh"])
+def test_general_step_guidance_never_formats_missing_description(locale):
+    from app.schemas.style_recipe import RecipeStep
+    from app.services.style_recipe_service import step_guidance_line
+
+    lip = RecipeStep(order=1, zone="lip", title="립", guideKey="lip")
+    assert "None" not in step_guidance_line(lip, locale, reviewed=False)
+    assert ": " in step_guidance_line(lip, locale, reviewed=False)
+    assert step_guidance_line(lip, locale, reviewed=True) == "1. 립"
+    brow = RecipeStep(order=2, zone="brow", title="눈썹", description="unreviewed source text")
+    assert step_guidance_line(brow, locale, reviewed=False) == "2. 눈썹"
+
+
 def video():
     return CatalogStyleLook.model_validate(
         {

@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 from app.schemas.catalog import BaseProductType
+from app.schemas.consultation_task import ProductRequirementChange
 from app.schemas.style_recipe import StyleContext
 
 ToolName = Literal["beauty", "graph_chat", "ar_command", "style", "knowledge"]
@@ -61,6 +62,7 @@ class IngredientPlanCondition(SupervisorModel):
 
 
 class SearchPlan(SupervisorModel):
+    product_requirement: ProductRequirementChange | None = None
     product_type: BaseProductType | None = Field(default=None, exclude_if=lambda v: v is None)
     option_search: bool = Field(default=False, exclude_if=lambda v: not v)
     price_basis: Literal["current_offer", "catalog_reference", "collected_snapshot"] | None = Field(

@@ -227,3 +227,41 @@ async def test_recipe_step_requires_current_catalog_version_and_valid_range():
 @pytest.fixture
 def anyio_backend():
     return "asyncio"
+
+
+def test_pending_question_queue_roundtrips_without_granting_execution():
+    from app.schemas.consultation_parent import ConsultationParent, ParentQuestion, ParentTask
+    from app.services.consultation_result_service import finalize_result
+
+    p = ConsultationParent(
+        tasks=[
+            ParentTask(task_id="task-a", goal="skin", version=1, status="waiting_user"),
+            ParentTask(task_id="task-b", goal="product", version=1, status="waiting_user"),
+        ],
+        pending_questions=[
+            ParentQuestion(
+                task_id="task-a",
+                goal="skin",
+                version=1,
+                text="어떤 상황인가요?",
+                input_key="situation",
+            ),
+            ParentQuestion(
+                task_id="task-b",
+                goal="product",
+                version=1,
+                text="어떤 제품인가요?",
+                input_key="selection",
+            ),
+        ],
+    )
+    r = ChatResponse(answer="확인이 필요해요", products=[])
+    r._consultation_parent = p
+    finalize_result(r)
+    assert r.consultation.status == "waiting_user" and r.consultation.has_pending_input
+    saved = updated_context({}, r)
+    restored = prepare_request(ChatRequest(message="첫 질문에 답할게요"), saved, [])
+    assert len(restored._consultation_parent.pending_questions) == 2
+    assert restored._consultation_parent.question.task_id == "task-a"
+    assert restored.ar_context is None and r.ar_result is None and r.memory_proposal is None
+    assert restore_response(r.answer, display_payload(r)).consultation == r.consultation
