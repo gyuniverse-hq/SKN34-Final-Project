@@ -3,7 +3,14 @@ from fastapi import APIRouter, Depends
 from app.core.auth import ChatPrincipal, chat_principal
 from app.core.errors import ApiError
 from app.core.ratelimit import RateLimiter, get_rate_limiter
-from app.schemas.chat import ArAckRequest, ArAckResponse, ChatRequest, ChatResponse
+from app.schemas.chat import (
+    ArAckRequest,
+    ArAckResponse,
+    ArControlFeedback,
+    ChatRequest,
+    ChatResponse,
+)
+from app.services.ar_control_service import ArControlAgent, get_ar_control_agent
 from app.services.chat_service import ChatService, get_chat_service
 from app.services.conversation_service import ConversationService
 from app.services.owner_deletion_service import OwnerDeletionService
@@ -33,6 +40,22 @@ async def chat(
         return response
 
 
+@router.post("/chat/ar-control/reply")
+async def control_reply(
+    body: ArControlFeedback,
+    principal: ChatPrincipal = Depends(chat_principal),
+    limiter: RateLimiter = Depends(get_rate_limiter),
+    agent: ArControlAgent = Depends(get_ar_control_agent),
+) -> dict[str, str]:
+    owner_id = principal.user.id if principal.user else None
+    async with OwnerDeletionService.access(owner_id):
+        if not await limiter.allow("ar-reply:" + principal.rate_limit_key):
+            raise ApiError(429, "Too many questions", "rate_limited")
+    answer = await agent.answer(body, principal.rate_limit_key)
+    async with OwnerDeletionService.access(owner_id):
+        return {"answer": answer}
+
+
 @router.post("/chat/acks", response_model=ArAckResponse)
 async def acknowledge_ar(
     body: ArAckRequest,
@@ -41,5 +64,5 @@ async def acknowledge_ar(
 ) -> ArAckResponse:
     owner_id = principal.user.id if principal.user else None
     async with OwnerDeletionService.access(owner_id):
-        service.acknowledge_ar(principal.rate_limit_key, body)
+        await service.acknowledge_ar(principal.rate_limit_key, body)
         return ArAckResponse(received=True)

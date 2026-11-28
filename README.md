@@ -441,6 +441,15 @@ cd backend/api && uv run ruff check . && uv run lint-imports && uv run pytest
 | `EXPO_PUBLIC_ENABLE_SKIN_ANALYSIS` · `SKIN_ANALYSIS_MODEL` | 앱 | 기기 내 피부 분석 활성화와 모델 선택 |
 | `SKIN_RECOMMENDATION_FEEDBACK_CONSENTED_MEMBERS` | api | 피부 추천의 노출·담기·결제 기록에 동의한 회원 목록. [추천 이력과 집계](docs/recommendation-v2-feedback-erd.md#현재-v3-피부-추천의-전환-측정) |
 
+| 변수 | 읽는 곳 | 용도 |
+| --- | --- | --- |
+| `YOUTUBE_API_KEY` | 백엔드 | 튜토리얼 검색 (YouTube Data API v3) |
+| `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` | 백엔드 | 실제 제품 이미지·온라인 최저가 (네이버 쇼핑 검색 API) |
+| `LLM_API_KEY` / `LLM_MODEL` | 백엔드 | 챗봇 |
+| `STT_MODEL` / `TTS_MODEL` | 백엔드 | AR 음성 전사 모델(`gpt-transcribe`) / 향후 서버 TTS 모델. 현재 답변은 스마트폰 내장 TTS로 읽는다. |
+| `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | 앱·백엔드 | 로그인 (Supabase Auth). 공개용 값이라 앱에 포함됨 |
+| `EXPO_PUBLIC_API_BASE_URL` | 앱 | 백엔드 주소 (공개 값). 개발 중에는 비워 둠 |
+
 > 🔐 서버 키에는 절대 `EXPO_PUBLIC_` 접두어를 붙이지 않습니다. 붙이면 앱 번들에 노출됩니다. `.env`는 커밋하지 않습니다.
 
 ---

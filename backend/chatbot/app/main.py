@@ -10,7 +10,7 @@ from app.core.errors import install_error_handlers
 from app.core.graph import close_driver
 from app.core.observability import RequestContextMiddleware, configure_logging
 from app.core.ratelimit import close_redis
-from app.routers import chat, conversations, health, internal_account_deletion, memories
+from app.routers import chat, conversations, health, internal_account_deletion, memories, voice
 
 
 @asynccontextmanager
@@ -44,12 +44,14 @@ def create_app() -> FastAPI:
                 "Idempotency-Key",
                 "X-Request-ID",
                 "X-Vishue-Anonymous-Id",
+                "X-Vishue-Transcription-Context",
             ],
         )
     app.add_middleware(RequestContextMiddleware)
     install_error_handlers(app)
     app.include_router(health.router)
     app.include_router(chat.router)
+    app.include_router(voice.router)
     app.include_router(conversations.router)
     app.include_router(memories.router)
     if settings.env in {"local", "test"} and settings.g7_internal_deletion_enabled:

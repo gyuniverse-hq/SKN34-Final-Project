@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RecordingSink, shareRecording, type RecorderMessage } from '@/lib/arRecording';
+import { reject, result, type ControlResult } from '@/lib/arControl';
 
 export type RecordingState = 'idle' | 'starting' | 'recording' | 'saving';
 export type RecordingFailure = 'unsupported' | 'failed' | 'share';
@@ -16,9 +17,13 @@ export function useArRecording(onFail: (reason: RecordingFailure) => void) {
   const [seconds, setSeconds] = useState(0);
   const sink = useRef<RecordingSink | null>(null);
   const startedAt = useRef(0);
+  const pending = useRef<{ target: RecordingState; finish:(outcome:ControlResult)=>void } | null>(null);
   const onFailRef = useRef(onFail);
   useEffect(() => {
-    onFailRef.current = onFail;
+    onFailRef.current = reason => {
+      pending.current?.finish(result('FAILED', reason));
+      onFail(reason);
+    };
   });
 
   const reset = useCallback(() => {
@@ -39,6 +44,27 @@ export function useArRecording(onFail: (reason: RecordingFailure) => void) {
       if (state === 'recording') setState('saving');
     }
   }, [available, state, wanted]);
+
+  const transition = useCallback((start:boolean): ControlResult | Promise<ControlResult> => {
+    if (!available) return reject('recording unavailable');
+    if (pending.current || (state !== 'idle' && state !== 'recording')) return reject('recorder busy');
+    const target = start ? 'recording' : 'idle';
+    if (state === target) return result('NO_CHANGE', state);
+    return new Promise(resolve => {
+      const finish = (outcome:ControlResult) => {
+        clearTimeout(timer);
+        pending.current = null;
+        resolve(outcome);
+      };
+      const timer = setTimeout(() => finish(result('UNKNOWN', 'recording not confirmed')), 6000);
+      pending.current = { target, finish };
+      toggle();
+    });
+  }, [available, state, toggle]);
+  useEffect(() => {
+    if (pending.current?.target === state) pending.current.finish(result('APPLIED', state));
+  }, [state]);
+  useEffect(() => () => pending.current?.finish(result('UNKNOWN', 'screen closed')), []);
 
   const handleMessage = useCallback(
     (m: RecorderMessage) => {
@@ -89,5 +115,5 @@ export function useArRecording(onFail: (reason: RecordingFailure) => void) {
   // Leaving the AR screen ends the page; a half-written clip is dropped.
   useEffect(() => () => void sink.current?.discard(), []);
 
-  return { available, state, wanted, seconds: state === 'recording' ? seconds : 0, toggle, handleMessage };
+  return { available, state, wanted, seconds: state === 'recording' ? seconds : 0, toggle, transition, handleMessage };
 }

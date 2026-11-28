@@ -12,7 +12,7 @@ from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 from fastapi import Depends
 
 from app.clients.catalog_client import CatalogClient, get_catalog_client
-from app.clients.llm_client import LlmClient, get_llm_client
+from app.clients.llm_client import LlmClient, get_ar_llm_client, get_llm_client
 from app.clients.skincare_recommendation_client import SkincareRecommendationClient
 from app.core.config import get_settings
 from app.core.errors import ApiError, UpstreamError
@@ -25,6 +25,8 @@ from app.repositories.graph_repository import GraphRepository
 from app.repositories.owner_deletion_repository import legacy_owner_access
 from app.schemas.chat import (
     ArAckRequest,
+    ArAdjustmentSnapshot,
+    ArControlProposal,
     BeautyContext,
     BeautyFilters,
     ChatRequest,
@@ -50,6 +52,7 @@ from app.schemas.supervisor import (
 )
 from app.schemas.vishue_state import VishueState
 from app.services.ar_command_service import propose_ar_command
+from app.services.ar_control_service import ArControlAgent
 from app.services.beauty_consultation_service import (
     COMPARISON_SCREENS,
     TEXT,
@@ -240,20 +243,21 @@ def build_messages(req: ChatRequest, products: list[GraphProduct]) -> list[dict[
 
 def resolve_context(req: ChatRequest) -> ResolvedContext:
     beauty, ar = req.chat_context, req.ar_context
-    lip = ar.lip if ar else None
+    selection = ar.selection(ar.active_zone) if ar and ar.active_zone else None
     return ResolvedContext(
         style=req.style_context,
         message=req.message,
         request_type=req.request_type,
         screen=req.screen_context,
         candidate_ids=list(beauty.candidate_ids) if beauty else [],
-        selected_product_id=lip.product_id
-        if lip
+        selected_product_id=selection.product_id
+        if selection
         else (beauty.selected_product_id if beauty else None),
-        selected_shade_id=lip.shade_id if lip else None,
+        selected_shade_id=selection.shade_id if selection else None,
         ar_state_version=ar.state_version if ar else None,
         has_beauty_context=beauty is not None,
         has_ar_context=ar is not None,
+        has_ar_control=ar is not None and ar.control is not None,
     )
 
 
@@ -372,7 +376,9 @@ def route_intent(context: ResolvedContext) -> IntentDecision:
     shopping = _SHOPPING.search(text)
     execution = re.search(r"발라|적용해|설정해|조절해|apply|set .*intensity|塗って|涂上", text)
     intent = "general"
-    if shopping and execution:
+    if context.request_type == "ar_command" and context.has_ar_control:
+        intent = "ar"
+    elif shopping and execution:
         intent = "compound"
     elif context.request_type == "ar_command":
         intent = "ar"
@@ -518,8 +524,10 @@ def check_sufficiency(context: ResolvedContext, intent: IntentDecision) -> Suffi
     if intent.intent == "ar":
         if not context.has_ar_context:
             missing.append("arContext")
-        if not context.selected_product_id or not context.selected_shade_id:
-            missing.append("lipSelection")
+        if not context.has_ar_control and (
+            not context.selected_product_id or not context.selected_shade_id
+        ):
+            missing.append("productSelection")
     if (
         intent.slots
         and not context.has_beauty_context
@@ -610,14 +618,25 @@ def verify_response(
             raise ApiError(502, "Unexpected AR request ID", "invalid_tool_result")
         proposal = response.ar_result.action_proposal
         if proposal:
-            lip = req.ar_context.lip if req.ar_context else None
-            if (
-                not lip
-                or proposal.product_id != lip.product_id
-                or proposal.shade_id != lip.shade_id
-                or proposal.expected_state_version != req.ar_context.state_version
-            ):
+            ctx = req.ar_context
+            if ctx is None or proposal.expected_state_version != ctx.state_version:
                 raise ApiError(502, "Invalid AR proposal context", "invalid_tool_result")
+            if isinstance(proposal, ArControlProposal):
+                if (
+                    ctx.control is None
+                    or proposal.choice not in ctx.control.choices
+                    or proposal.session_id != ctx.session_id
+                ):
+                    raise ApiError(502, "Invalid AR control proposal", "invalid_tool_result")
+            else:
+                selection = ctx.selection(proposal.zone)
+                if (
+                    ctx.control is not None
+                    or selection is None
+                    or proposal.product_id != selection.product_id
+                    or proposal.shade_id != selection.shade_id
+                ):
+                    raise ApiError(502, "Invalid AR proposal context", "invalid_tool_result")
             result.action_proposed = True
             result.application = "awaiting_app_ack"
     response.supervisor = SupervisorResult(
@@ -639,11 +658,14 @@ class ChatService:
         catalog=None,
         requests=None,
         sessions=None,
+        ar_llm: Completer | None = None,
         *,
         skincare: SkincareRecommendationTool | None = None,
     ) -> None:
         self._graph = graph
         self._llm = llm
+        self._ar_llm = ar_llm or llm
+        self._ar_agent = ArControlAgent(self._ar_llm, requests)
         self._catalog = catalog
         self._requests = requests
         self._sessions = sessions
@@ -727,7 +749,7 @@ class ChatService:
                 principal_key,
                 req.request_id,
                 fingerprint,
-                lambda: self._run_supervisor(req, context, decision),
+                lambda: self._run_supervisor(req, context, decision, ar_owner=principal_key),
             )
         return await self._run_supervisor(req, context, decision)
 
@@ -780,6 +802,7 @@ class ChatService:
         thread_id: UUID | None = None,
         request_id: UUID | None = None,
         model_turn: G1ModelTurn | None = None,
+        ar_owner: str | None = None,
     ) -> ChatResponse:
         if decision.intent == "knowledge":
             return await self._execute_turn(req, decision, self._plan_turn(context, decision))
@@ -903,7 +926,9 @@ class ChatService:
                 context=supervisor_runtime,
             )
             return output["response"]
-        return await self._execute_turn(req, decision, self._plan_turn(context, decision))
+        return await self._execute_turn(
+            req, decision, self._plan_turn(context, decision), ar_owner=ar_owner
+        )
 
     async def _choose_g1_turn(self, req: ChatRequest) -> G1ModelTurn | None:
         complete = getattr(self._llm, "complete_with_tools", None)
@@ -925,6 +950,7 @@ class ChatService:
         *,
         g1_catalog=False,
         model_turn: G1ModelTurn | None = None,
+        ar_owner: str | None = None,
     ) -> ChatResponse:
         tool = (
             plan.tasks[0] if plan.tasks else "ar_command" if decision.intent == "ar" else "beauty"
@@ -955,7 +981,7 @@ class ChatService:
             else:
                 if model_turn and model_turn.tool_call_id:
                     raise ApiError(502, "Unsupported G1 tool route", "invalid_tool_result")
-                response, result = await self.execute_tool(req, decision, plan)
+                response, result = await self.execute_tool(req, decision, plan, ar_owner=ar_owner)
             response = verify_response(req, decision, plan, response, result)
             if model_turn and model_turn.tool_call_id:
                 logger.info(
@@ -1737,7 +1763,12 @@ class ChatService:
         return response
 
     async def execute_tool(
-        self, req: ChatRequest, decision: IntentDecision, plan: TaskPlan
+        self,
+        req: ChatRequest,
+        decision: IntentDecision,
+        plan: TaskPlan,
+        *,
+        ar_owner: str | None = None,
     ) -> tuple[ChatResponse, ToolResult]:
         if not plan.tasks or len(plan.tasks) > 1:
             if req.request_type == "style_consultation":
@@ -1752,7 +1783,14 @@ class ChatService:
             )
         tool = plan.tasks[0]
         if tool == "ar_command":
-            response = await self._propose_ar(req)
+            if req.ar_context and req.ar_context.control:
+                if not ar_owner:
+                    raise ApiError(
+                        503, "AR request storage is unavailable", "ar_requests_unavailable"
+                    )
+                response = await self._plan_control(req, ar_owner)
+            else:
+                response = await self._propose_ar(req)
             ar = response.ar_result
             status = {
                 "proposed": "success",
@@ -1770,7 +1808,7 @@ class ChatService:
                         verification="verified",
                     )
                 ]
-                if proposal
+                if proposal and not isinstance(proposal, ArControlProposal)
                 else []
             )
             return response, ToolResult(
@@ -1864,7 +1902,7 @@ class ChatService:
         )
 
     async def _propose_ar(self, req: ChatRequest) -> ChatResponse:
-        result = await propose_ar_command(req, self._llm)
+        result = await propose_ar_command(req, self._ar_llm)
         proposal = result.ar_result.action_proposal if result.ar_result else None
         if proposal is None:
             return result
@@ -1875,20 +1913,60 @@ class ChatService:
         if (
             product is None
             or product.id != proposal.product_id
-            or product.makeup_zone != "lip"
+            or product.makeup_zone != proposal.zone
             or not any(shade.id == proposal.shade_id for shade in product.shades)
         ):
-            raise ApiError(422, "Invalid lip product or shade", "invalid_ar_selection")
+            raise ApiError(422, "Invalid AR product or shade", "invalid_ar_selection")
         return result
 
-    def acknowledge_ar(self, principal_key: str, ack: ArAckRequest) -> None:
+    async def _plan_control(self, req: ChatRequest, owner: str) -> ChatResponse:
+        ctx = req.ar_context
+        previous = None
+        if ctx.session_id and ctx.previous_adjustment_id and self._sessions is not None:
+            snapshot = await self._sessions.load_adjustment(
+                owner, ctx.session_id, ctx.previous_adjustment_id
+            )
+            if snapshot and snapshot.state_version == ctx.state_version:
+                previous = snapshot
+        return await self._ar_agent.plan(req, previous)
+
+    async def acknowledge_ar(self, principal_key: str, ack: ArAckRequest) -> None:
         if get_settings().is_production or self._requests is None:
             raise ApiError(503, "AR request storage is unavailable", "ar_requests_unavailable")
-        self._requests.record_ack(principal_key, ack)
+        delta = ack.intensity_change
+        if delta is not None:
+            proposal = self._requests.issued_proposal(principal_key, ack.request_id, ack.command_id)
+            direction = "down" if delta.after < delta.before else "up"
+            valid_choices = {
+                f"adjust_intensity/{delta.zone}/{direction}",
+                f"set_intensity/{delta.zone}/absolute",
+            }
+            if direction == "down":
+                valid_choices.add(f"set_intensity/{delta.zone}/half")
+            if (
+                not isinstance(proposal, ArControlProposal)
+                or ack.status != "APPLIED"
+                or proposal.session_id != ack.session_id
+                or ack.actual_state_version is None
+                or ack.actual_state_version <= proposal.expected_state_version
+                or delta.after == delta.before
+                or proposal.choice not in valid_choices
+            ):
+                raise ApiError(422, "Invalid confirmed adjustment", "invalid_ar_result")
+        received_at = self._requests.record_ack(principal_key, ack)
+        if delta is not None and self._sessions is not None:
+            await self._sessions.save_adjustment(
+                principal_key,
+                ack.session_id,
+                ack.command_id,
+                ArAdjustmentSnapshot(**delta.model_dump(), state_version=ack.actual_state_version),
+                received_at,
+            )
 
 
 def get_chat_service(
     llm: LlmClient = Depends(get_llm_client),
+    ar_llm: LlmClient = Depends(get_ar_llm_client),
     catalog: CatalogClient = Depends(get_catalog_client),
     requests: MemoryArRequestRepository = Depends(get_ar_requests),
     sessions: ChatSessionRepository = Depends(get_chat_sessions),
@@ -1896,4 +1974,4 @@ def get_chat_service(
     skincare = SkincareRecommendationTool(
         SkincareRecommendationClient(get_settings().catalog_api_url)
     )
-    return ChatService(None, llm, catalog, requests, sessions, skincare=skincare)
+    return ChatService(None, llm, catalog, requests, sessions, ar_llm, skincare=skincare)

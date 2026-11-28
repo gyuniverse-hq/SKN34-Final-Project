@@ -37,6 +37,12 @@ class RedisDouble:
         entry = self.rows.get(key)
         return entry[0] if entry and entry[1] > time.time() else None
 
+    async def set(self, key, value, *, ex, nx):
+        if nx and await self.get(key) is not None:
+            return None
+        self.rows[key] = (value, time.time() + ex)
+        return True
+
     async def mget(self, keys):
         return [await self.get(key) for key in keys]
 

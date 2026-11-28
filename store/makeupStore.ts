@@ -9,6 +9,8 @@ export interface ZoneSelection {
   shadeId: string;
 }
 
+export type TriedShade = ZoneSelection & { zone: MakeupZone | 'lipCare' };
+
 type ArProposalBase = {
   commandId: string;
   expectedStateVersion: number;
@@ -17,7 +19,8 @@ type ArProposalBase = {
 };
 
 export type ArProposal =
-  | (ArProposalBase & { action: 'set_intensity'; zone: 'lip'; value: number })
+  | (ArProposalBase & { action: 'set_intensity'; zone: MakeupZone; value: number })
+  | (ArProposalBase & { action: 'undo'; zone: MakeupZone; value: number })
   | (ArProposalBase & { action: 'set_geometry'; zone: MakeupZone; style: string; geometry: ZoneGeometry });
 
 export type ArOutcome = {
@@ -136,7 +139,9 @@ interface MakeupStore {
   fit: ProductFit | null;
   fitOrigin: FitOrigin | null;
   arVersion: number;
+  arUndo: { zone: MakeupZone; value: number } | null;
   arSessionId: string | null;
+  tryOnHistory: TriedShade[] | null;
   pendingArCommand: PendingArCommand | null;
   processedArCommands: Record<string, true>;
   processedArRequests: Record<string, true>;
@@ -160,7 +165,7 @@ interface MakeupStore {
   /** Take the lip oil / balm off; the colour lip stays. */
   clearLipCare: () => void;
   /** Put a zone (and the zones linked to it) back to the look's color and product, keeping the user's intensity. */
-  revertZone: (zone: MakeupZone) => void;
+  revertZone: (zone: MakeupZone, exactZone?: boolean) => void;
   /** Paint only this product shade; snapshot the current face to restore when the AR tab is left. */
   startFit: (product: Product, shade: Shade) => void;
   endFit: () => void;
@@ -206,7 +211,13 @@ const EMPTY: MakeupState = {
   foundation: null,
 };
 
-const createMakeupStore = () => create<MakeupStore>((rawSet) => {
+function recordTryOn(state: MakeupStore, zone: TriedShade['zone'], selection: ZoneSelection) {
+  const worn = zone === 'lipCare' ? state.careSelection : state.selections[zone];
+  if (!state.tryOnHistory || (worn?.productId === selection.productId && worn.shadeId === selection.shadeId)) return {};
+  return { tryOnHistory: [...state.tryOnHistory, { zone, ...selection }] };
+}
+
+export const createMakeupStore = () => create<MakeupStore>((rawSet) => {
   // All existing manual mutations pass this gate, including fit and look restoration.
   const set = (update: Partial<MakeupStore> | ((state: MakeupStore) => Partial<MakeupStore> | MakeupStore)) => {
     rawSet((state) => {
@@ -218,6 +229,7 @@ const createMakeupStore = () => create<MakeupStore>((rawSet) => {
       if (!affectsAr) return patch;
       return {
         ...patch,
+        arUndo: null,
         // Even a repeated value is a later user decision and invalidates an in-flight proposal.
         arVersion: Math.min(state.arVersion + 1, Number.MAX_SAFE_INTEGER),
         pendingArCommand: null,
@@ -237,13 +249,15 @@ const createMakeupStore = () => create<MakeupStore>((rawSet) => {
   fit: null,
   fitOrigin: null,
   arVersion: 0,
+  arUndo: null,
   arSessionId: null,
+  tryOnHistory: null,
   pendingArCommand: null,
   processedArCommands: {},
   processedArRequests: {},
 
-  beginArSession: (sessionId) => rawSet({ arSessionId: sessionId || null, pendingArCommand: null }),
-  endArSession: () => rawSet({ arSessionId: null, pendingArCommand: null }),
+  beginArSession: (sessionId) => rawSet({ arUndo: null, arSessionId: sessionId || null, pendingArCommand: null }),
+  endArSession: () => rawSet({ arUndo: null, arSessionId: null, pendingArCommand: null }),
 
   prepareArCommand: (requestId, sessionId, proposal) => {
     let outcome: ArOutcome | { status: 'PENDING'; actualStateVersion: number } = {
@@ -254,7 +268,8 @@ const createMakeupStore = () => create<MakeupStore>((rawSet) => {
       const zone = proposal?.zone;
       const selected = zone ? state.selections[zone] : undefined;
       const painted = zone ? state.makeup[zone] : undefined;
-      const intensityOk = proposal?.action === 'set_intensity' && proposal.zone === 'lip' &&
+      const intensityOk = (proposal?.action === 'set_intensity' || proposal?.action === 'undo') && isArPaintZone(proposal.zone) &&
+        (proposal.action !== 'undo' || (state.arUndo?.zone === proposal.zone && state.arUndo.value === proposal.value)) &&
         Number.isFinite(proposal.value) && proposal.value >= 0 && proposal.value <= 1;
       const geometryOk = proposal?.action === 'set_geometry' && isLookPaintZone(proposal.zone) &&
         typeof proposal.style === 'string' && proposal.style && isCommandGeometry(proposal.geometry);
@@ -291,14 +306,14 @@ const createMakeupStore = () => create<MakeupStore>((rawSet) => {
       if (state.arSessionId !== sessionId || state.fit || !painted || !selected ||
           state.arVersion !== proposal.expectedStateVersion || selected.productId !== proposal.productId ||
           selected.shadeId !== proposal.shadeId) return { pendingArCommand: null };
-      if (proposal.action === 'set_intensity') {
+      if (proposal.action === 'set_intensity' || proposal.action === 'undo') {
         if (painted.intensity === proposal.value) {
           outcome = { status: 'NO_CHANGE', actualStateVersion: state.arVersion };
           return { pendingArCommand: null };
         }
         const arVersion = state.arVersion + 1;
         outcome = { status: 'APPLIED', actualStateVersion: arVersion };
-        return { makeup: { ...state.makeup, lip: { ...painted, intensity: proposal.value } }, arVersion, pendingArCommand: null };
+        return { makeup: { ...state.makeup, [proposal.zone]: { ...painted, intensity: proposal.value } }, arUndo: proposal.action === 'undo' ? null : { zone: proposal.zone, value: painted.intensity }, arVersion, pendingArCommand: null };
       }
       const nextGeometry = { ...painted.geometry, ...proposal.geometry };
       if (geometrySnapshot(painted.geometry) === geometrySnapshot(nextGeometry)) {
@@ -309,7 +324,7 @@ const createMakeupStore = () => create<MakeupStore>((rawSet) => {
       outcome = { status: 'APPLIED', actualStateVersion: arVersion };
       return {
         makeup: { ...state.makeup, [proposal.zone]: { ...painted, geometry: nextGeometry } },
-        arVersion,
+        arUndo: null, arVersion,
         pendingArCommand: null,
       };
     });
@@ -336,7 +351,9 @@ const createMakeupStore = () => create<MakeupStore>((rawSet) => {
       set((s) => {
         if (s.fit) return s;
         const layer: ZoneSetting = { hex: shade.hex, texture: texture ?? 'glossy', intensity: LIP_CARE_INTENSITY, care };
-        return { makeup: { ...s.makeup, lipCare: layer }, careSelection: { productId: product.id, shadeId: shade.id } };
+        const selection = { productId: product.id, shadeId: shade.id };
+        return { makeup: { ...s.makeup, lipCare: layer }, careSelection: selection,
+          ...recordTryOn(s, 'lipCare', selection) };
       });
       return;
     }
@@ -371,7 +388,8 @@ const createMakeupStore = () => create<MakeupStore>((rawSet) => {
         }
       }
       // The look stays applied; the zones that moved off it are listed in `modified`.
-      return { makeup, selections, modified: modifiedZones(makeup, selections, s.lookOrigin) };
+      return { makeup, selections, modified: modifiedZones(makeup, selections, s.lookOrigin),
+        ...recordTryOn(s, zone, selections[zone]!) };
     });
   },
 
@@ -456,18 +474,18 @@ const createMakeupStore = () => create<MakeupStore>((rawSet) => {
       return { makeup: { ...s.makeup, lipCare: null }, careSelection: null };
     }),
 
-  revertZone: (zone) =>
+  revertZone: (zone, exactZone = false) =>
     set((s) => {
       if (s.fit) return s;
       const origin = s.lookOrigin;
       if (!origin) return s;
       const zones = new Set<MakeupZone>([zone]);
-      for (const link of s.colorLinks) if (link.zones.includes(zone)) link.zones.forEach((z) => zones.add(z));
+      if (!exactZone) for (const link of s.colorLinks) if (link.zones.includes(zone)) link.zones.forEach((z) => zones.add(z));
       const makeup = { ...s.makeup };
       const selections = { ...s.selections };
       for (const z of zones) {
         const back = origin.makeup[z];
-        makeup[z] = back ? { ...back, intensity: s.makeup[z]?.intensity ?? back.intensity } : null;
+        makeup[z] = back ? { ...back, intensity: exactZone ? back.intensity : s.makeup[z]?.intensity ?? back.intensity } : null;
         const sel = origin.selections[z];
         if (sel) selections[z] = sel;
         else delete selections[z];
@@ -501,6 +519,7 @@ const createMakeupStore = () => create<MakeupStore>((rawSet) => {
           fitOrigin: origin,
           makeup: { ...origin.makeup, lipCare: layer },
           careSelection: { productId: product.id, shadeId: shade.id },
+          ...recordTryOn(s, 'lipCare', { productId: product.id, shadeId: shade.id }),
         };
       }
       const lipFinish = zone === 'lip' ? productLipFinishFor(product, shade) : undefined;
@@ -515,6 +534,7 @@ const createMakeupStore = () => create<MakeupStore>((rawSet) => {
         fitOrigin: origin,
         makeup: { ...origin.makeup, [zone]: painted },
         selections: { ...origin.selections, [zone]: { productId: product.id, shadeId: shade.id } },
+        ...recordTryOn(s, zone, { productId: product.id, shadeId: shade.id }),
       };
     });
   },

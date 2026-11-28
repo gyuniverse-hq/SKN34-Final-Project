@@ -47,6 +47,7 @@ class ResolvedContext(SupervisorModel):
     ar_state_version: int | None = None
     has_beauty_context: bool = False
     has_ar_context: bool = False
+    has_ar_control: bool = False
     # Caller IDs are references, not catalog facts or server-owned sessions.
     trusted: Literal[False] = False
     session_version: int | None = None

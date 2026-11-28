@@ -35,7 +35,6 @@
       },
       "permissions": ["android.permission.CAMERA"],
       "blockedPermissions": [
-        "android.permission.RECORD_AUDIO",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.SYSTEM_ALERT_WINDOW"
@@ -67,15 +66,23 @@
         "expo-camera",
         {
           "cameraPermission": "Your camera supports on-device makeup try-on and skin analysis.",
-          "microphonePermission": false,
-          "recordAudioAndroid": false,
+          "microphonePermission": "Your microphone records AR voice commands for transcription.",
+          "recordAudioAndroid": true,
           "barcodeScannerEnabled": false
         }
       ],
       "expo-image",
       "expo-localization",
       "expo-web-browser",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Your microphone records AR voice commands for transcription.",
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

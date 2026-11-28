@@ -550,7 +550,8 @@ describe('face-fit page', () => {
     // The highlighter keeps its style and area chips, and both zones keep their intensity bar.
     expect(tsx).toContain('HIGHLIGHTER_STYLE_IDS.map');
     expect(tsx).toContain('HIGHLIGHTER_AREAS.map');
-    expect(tsx).toContain('toggleHighlighterArea(painted, area)');
+    expect(tsx).toContain('highlighterAreaPatch(makeup.highlighter?.geometry, faceShape, area)');
+    expect(tsx).toContain("if (patch) patchGeometry('highlighter', patch);");
     // 11-11: face-type chips (auto + six types) set the regions; the region chips show exactly what is painted.
     expect(tsx).toContain('HIGHLIGHT_FACES.map');
     expect(tsx).toContain('const painted = effectiveHighlighterAreas(makeup.highlighter?.geometry, faceShape);');

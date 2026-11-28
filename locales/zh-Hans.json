@@ -1,5 +1,6 @@
 {
   "ios": {
+    "NSMicrophoneUsageDescription": "麦克风用于录制 AR 对话中的语音请求并转换为文字。",
     "NSCameraUsageDescription": "相机用于本机虚拟试妆与皮肤拍照。开始分析后，一张照片会发送到分析服务器，仅在内存中处理而不保存。"
   }
 }

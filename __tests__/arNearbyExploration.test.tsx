@@ -143,7 +143,7 @@ it('keeps manual adjustments inside direct exploration and preserves them throug
   expect(screen.root.findAllByProps({ accessibilityLabel: 'ar.ui.adjust' })).toHaveLength(0);
   expect(screen.root.findAllByType(IntensityRail)).toHaveLength(0);
   expect(screen.root.findAllByType(OpenArcPalette)).toHaveLength(0);
-  expect(screen.root.findAllByProps({ accessibilityLabel: 'ar.send' }).length).toBeGreaterThan(0);
+  expect(screen.root.findAllByProps({ accessibilityLabel: 'ar.voice.start' }).length).toBeGreaterThan(0);
   await act(async () => { modeTab('ar.mode.direct').props.onPress(); });
   expect(screen.root.findByType(OpenArcPalette)).toBeTruthy();
   expect(useMakeupStore.getState().makeup.lip?.intensity).toBe(0.35);

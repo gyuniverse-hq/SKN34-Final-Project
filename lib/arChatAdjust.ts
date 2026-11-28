@@ -93,11 +93,10 @@ function painted(makeup: MakeupState, zone: MakeupZone): boolean {
 /** Closed-set style/intensity/shade phrases that the AR screen may run locally. */
 export function isClosedLocalArChat(text: string): boolean {
   const query = text.trim().toLowerCase();
-  if (!query || /하지\s*마|don't|do not|말고/.test(query)) return false;
+  if (!query || /하지\s*마|don't|do not|말고/.test(query) || asksSofterBlush(query)) return false;
   const styles = styleHits(query);
   const intensity = intensityHit(query);
   const intents = [
-    asksSofterBlush(query),
     asksLighterLip(query),
     asksCoralLook(query),
     styles.length === 1 && !intensity,
@@ -114,11 +113,6 @@ export function adjustMakeupFromChat(
 ): ArChatResult {
   const query = text.trim().toLowerCase();
   if (!query) return { kind: 'none' };
-
-  if (asksSofterBlush(query)) {
-    if (!makeup.blush) return { kind: 'none' };
-    return { kind: 'intensity', zone: 'blush', intensity: Math.max(0.12, makeup.blush.intensity - 0.18) };
-  }
 
   const lips = lipSwatches(products);
   if (asksLighterLip(query)) {

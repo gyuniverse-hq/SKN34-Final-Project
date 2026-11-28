@@ -52,6 +52,39 @@ def answer(req, model):
     return anyio.run(propose_ar_command, req, model).model_dump(mode="json", by_alias=True)
 
 
+@pytest.mark.parametrize(
+    ("message", "operation", "target", "expected"),
+    [
+        ("블러셔 강도 40%로", "set", "blush", 0.4),
+        ("조금 더 연하게", "down", None, 0.3),
+        ("이거 좀 더 진하게", "up", None, 0.5),
+        ("방금 변경 취소", "undo", None, 0.65),
+        ("블러셔 강도 150%로", "set", "blush", None),
+        ("립 강도 40%로", "set", "lip", None),
+        ("립 강도 40%로", "set", "blush", None),
+        ("블러셔 40%로 설정하지 마", "set", "blush", None),
+    ],
+)
+def test_selected_zone_actions(message, operation, target, expected):
+    req = ar_request(message)
+    context = req.ar_context.model_dump()
+    context.update(
+        activeZone="blush",
+        supportedActions=["set_intensity", "adjust_intensity", "undo"],
+        selections={"blush": {**context["lip"], "intensity": 0.4}},
+        undo={"zone": "blush", "value": 0.65},
+        lip=None,
+    )
+    req.ar_context = type(req.ar_context).model_validate(context)
+    result = answer(req, JsonLlm({"operation": operation, "zone": target}))["arResult"]
+    if expected is None:
+        assert "actionProposal" not in result
+    else:
+        proposal = result["actionProposal"]
+        assert (proposal["zone"], proposal["value"]) == ("blush", expected)
+        assert proposal["action"] == ("undo" if operation == "undo" else "set_intensity")
+
+
 @pytest.mark.parametrize("suffix", ["%", "퍼센트", "프로"])
 @pytest.mark.parametrize("percentage", [0, 50, 100])
 def test_explicit_absolute_percentage_is_normalized_and_bound_to_the_request(suffix, percentage):
@@ -175,6 +208,26 @@ def test_absolute_highlighter_placement_is_bound_to_the_closed_style():
     assert result["actionProposal"]["productId"] == "hl-1"
     assert result["actionProposal"]["shadeId"] == "glow"
     assert "value" not in result["actionProposal"]
+
+
+def test_geometry_with_multizone_intensity_context():
+    req = ar_request("하이라이터를 콧대로 설정해 줘.")
+    req.ar_context.supported_actions = ["set_intensity", "adjust_intensity", "undo", "set_geometry"]
+    req.ar_context.selections = {
+        "highlighter": ArLipSelection(product_id="hl-1", shade_id="glow", intensity=0.5)
+    }
+    result = answer(
+        req,
+        JsonLlm(
+            {
+                "status": "proposed",
+                "action": {"action": "set_geometry", "zone": "highlighter", "style": "nose_tip"},
+            }
+        ),
+    )["arResult"]
+    assert result["status"] == "proposed"
+    assert result["actionProposal"]["geometry"] == {"hlStyle": "nose_tip"}
+    assert result["actionProposal"]["productId"] == "hl-1"
 
 
 def test_geometry_without_client_capability_does_not_propose():

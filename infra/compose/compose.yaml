@@ -72,10 +72,12 @@ services:
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:-vishue-local}
       REDIS_URL: redis://redis:6379/1
       CHAT_DATABASE_URL: postgresql+asyncpg://${CHAT_POSTGRES_USER:-vishue_chat}:${CHAT_POSTGRES_PASSWORD:-vishue-chat-local}@postgres:5432/${CHAT_POSTGRES_DB:-vishue_chat_db}
-      CATALOG_API_URL: http://api:8000
+      CATALOG_API_URL: ${CATALOG_API_URL:-http://api:8000}
       LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_MODEL: ${LLM_MODEL:-}
+      STT_MODEL: ${STT_MODEL:-}
+      TTS_MODEL: ${TTS_MODEL:-}
     depends_on:
       neo4j: { condition: service_healthy }
       redis: { condition: service_healthy }

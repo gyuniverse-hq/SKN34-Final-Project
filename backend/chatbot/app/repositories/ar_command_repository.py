@@ -1,6 +1,7 @@
 """Process-local AR request deduplication for development only."""
 
 import asyncio
+import time
 from collections.abc import Awaitable, Callable
 from functools import lru_cache
 from uuid import UUID
@@ -14,7 +15,7 @@ class MemoryArRequestRepository:
 
     def __init__(self, limit: int = 1024) -> None:
         self._entries: dict[tuple[str, UUID], tuple[str, asyncio.Task[ChatResponse]]] = {}
-        self._acks: dict[tuple[str, UUID], ArAckRequest] = {}
+        self._acks: dict[tuple[str, UUID], tuple[ArAckRequest, int]] = {}
         self._limit = limit
 
     async def run(
@@ -42,10 +43,8 @@ class MemoryArRequestRepository:
             return task.result()
         return await asyncio.shield(task)
 
-    def record_ack(self, owner: str, ack: ArAckRequest) -> None:
-        """Record only the first result for a proposal issued to this owner."""
-        key = (owner, ack.request_id)
-        entry = self._entries.get(key)
+    def issued_proposal(self, owner: str, request_id: UUID, command_id: UUID):
+        entry = self._entries.get((owner, request_id))
         if entry is None:
             raise ApiError(404, "AR proposal not found", "ar_proposal_not_found")
         task = entry[1]
@@ -55,14 +54,23 @@ class MemoryArRequestRepository:
             raise ApiError(404, "AR proposal not found", "ar_proposal_not_found")
         result = task.result()
         proposal = result.ar_result.action_proposal if result.ar_result else None
-        if proposal is None or proposal.command_id != ack.command_id:
+        if proposal is None or proposal.command_id != command_id:
             raise ApiError(404, "AR proposal not found", "ar_proposal_not_found")
+        return proposal
+
+    def record_ack(self, owner: str, ack: ArAckRequest) -> int:
+        """Record only the first result for a proposal issued to this owner."""
+        self.issued_proposal(owner, ack.request_id, ack.command_id)
+        key = (owner, ack.request_id)
         existing = self._acks.get(key)
-        if existing is not None and existing != ack:
-            raise ApiError(409, "AR result already recorded", "ar_ack_conflict")
-        if existing is None:
-            # No await between the check and write: duplicate submissions are atomic per loop.
-            self._acks[key] = ack.model_copy(deep=True)
+        if existing is not None:
+            if existing[0] != ack:
+                raise ApiError(409, "AR result already recorded", "ar_ack_conflict")
+            return existing[1]
+        # The first receipt fixes the TTL even if delivery to Redis has to be retried.
+        received_at = int(time.time())
+        self._acks[key] = (ack.model_copy(deep=True), received_at)
+        return received_at
 
 
 @lru_cache

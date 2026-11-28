@@ -350,6 +350,7 @@ export interface ZoneSetting {
 }
 
 export interface ArRenderCommand {
+  zone?: MakeupZone;
   commandId: string;
   renderSeq: number;
   rendererId: string;

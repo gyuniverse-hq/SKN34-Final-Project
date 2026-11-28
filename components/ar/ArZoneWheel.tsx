@@ -19,6 +19,9 @@ interface Props<T extends WheelItem> {
   hint: string; openHint?: string; openLabel: string; closeLabel: string;
   onSelect: (zone: T) => void; onOpenChange?: (open: boolean) => void;
 }
+const WHEEL_HUB_SIZE = 64;
+const COLLAPSED_WHEEL_HEIGHT = 88;
+export const ZONE_WHEEL_HUB_CENTER_FROM_BOTTOM = COLLAPSED_WHEEL_HEIGHT - WHEEL_HUB_SIZE / 2;
 export const zoneWheelRadius = (width: number) => Math.min(220, (width - 24) / 2);
 
 /** Intersect both text-band edges with the sector rays and circular boundaries. */
@@ -123,7 +126,7 @@ export function ArZoneWheel<T extends WheelItem>({ directionLabel, zones, select
   });
   const hovered = sectors.find((sector) => sector.zone === hover);
   return (
-    <View pointerEvents="box-none" style={[styles.container, { height: visible ? radius + 88 : 88 }]}>
+    <View pointerEvents="box-none" style={[styles.container, { height: COLLAPSED_WHEEL_HEIGHT + (visible ? radius : 0) }]}>
       {visible ? (
         <View testID="ar-zone-fan" pointerEvents={open ? 'box-none' : 'none'} style={StyleSheet.absoluteFill} accessibilityViewIsModal
           onStartShouldSetResponderCapture={(event) => !!targetAt(event)}
@@ -196,7 +199,7 @@ const styles = StyleSheet.create({
   fan: { position: 'absolute', top: 31 },
   sectorIcon: { position: 'absolute', width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
   sectorLabel: { position: 'absolute', overflow: 'hidden', justifyContent: 'center' },
-  hub: { width: 64, height: 64, borderRadius: 32, borderWidth: 1.5, borderColor: '#FFFFFF', backgroundColor: theme.colors.rose, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  hub: { width: WHEEL_HUB_SIZE, height: WHEEL_HUB_SIZE, borderRadius: WHEEL_HUB_SIZE / 2, borderWidth: 1.5, borderColor: '#FFFFFF', backgroundColor: theme.colors.rose, alignItems: 'center', justifyContent: 'center', gap: 2 },
   zoneLabel: { color: '#FFFFFF', fontWeight: '500', textAlign: 'center' },
   hubLabel: { color: '#FFFFFF', fontSize: 10, fontWeight: '600' },
   hint: { marginTop: 6, fontSize: 10, color: 'rgba(255,255,255,0.8)' },
