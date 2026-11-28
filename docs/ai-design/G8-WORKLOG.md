@@ -1,6 +1,6 @@
 # G8 진행 기록
 
-## 진행 중 — 마감 3단계 최신 develop 통합 (2026-11-28)
+## 완료 — 마감 3단계 최신 develop 로컬 통합·호환성 검증 (2026-11-28)
 
 사용자가 2단계 결과를 수용하고 로컬 보존 커밋·최신 develop의 작업 브랜치 반영·충돌 해결·격리 마이그레이션/호환성 검증을 승인했다. 원격 push·PR·develop 대상 병합·배포는 제외한다. 시작 `feat/compound-consultation` / `200010e1a6bad86ad0364f981f47a6ab1ba721fc`, 승인 수정 10파일·기존 미추적 조사 증빙 52파일을 구분해 해시로 확인했다. 미추적 파일은 일괄 커밋하지 않는다.
 
@@ -8,7 +8,83 @@
 
 통합 전 첫 전체 실행은 1 FAIL/1,766 PASS/137 SKIP/17 ERROR였다. 17건은 기존 pytest 임시 폴더 ACL 오류이며 기존 폴더를 삭제하지 않고 새 basetemp로 해결했다. 1건은 2단계 신규 G8 검사와 기존 AR 테스트의 축약 SimpleNamespace 설정(g8_enabled 없음) 사이 호환 문제다. 승인된 chat_service.py에서 기존 기본 OFF를 getattr로 유지해 위 전체 재실행이 통과했다. 실제 develop 반영 전 발생했으므로 병합 회귀로 기록하지 않는다. 아래 2단계 소스 해시는 당시 표적 검증 코드이며 이 호환 보완 전 이력이다.
 
-현재 전체 G8은 ⑤ 종료 조건 보완, 마감 실행은 3/6 진행 중이다. 최종 통합 SHA·충돌 해결·영향·통합 후 테스트와 기존 6묶음 대조는 통합 후 이 절을 갱신한다.
+보존 커밋은 `1f7fb283ebf1a9c65f4034ec3bafc701972af8be`, 2-parent 통합 커밋은 **`51cfedfa03e0198428afb2333236ea90f5315570`**다. 그 부모는 보존 커밋과 위 develop SHA다. 원격 작업 브랜치는 확인 시 `200010e1` 그대로이며 push하지 않았다. 본 완료 기록은 통합 후 문서 전용 커밋으로 분리한다. 테스트는 병합 작업 트리에서 실행했으며 코드·데이터·락파일은 통합 커밋과 동일하다. 기존 미추적 증빙 52개는 모두 시작 해시와 일치하고 일괄 커밋하지 않았다.
+
+### 세 진행표
+
+전체 G8은 **① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → ⑤ 종료 조건 보완 → ⑥ 통합 검증 → ⑦ PR 인계**다. 이번 마감 실행은 **1 조사 완료 → 2 결함 수정 완료 → 3 로컬 develop 통합·호환성 검증 완료 → 4 실제 대표 평가 대기 → 5 최종 회귀·종료 판정 대기 → 6 PR 인계·병합 미실행**이다. 마감 3단계 완료를 ⑤/G8 전체 완료로 바꾸지 않는다.
+
+| 기존 ⑤ 완료 기준 6묶음 | 통합 후 판단 |
+|---|---|
+| 1 공통 계획 진입 | 2단계 세 결함 및 G8 ON/OFF 회귀 유지. 실제 모델 평가는 4단계 |
+| 2 결과 기반 협력 | DB 룩 공급과 선택적 레시피·정확한 옵션 연결 유지. 모의/실제 PG 통과를 새 실제 지식 협력으로 승격하지 않음 |
+| 3 후속·질문 관리 | 질문 소유권·저장 복원·재시도·이전 설명 재표시를 실제 PG/모의 모델로 확인 |
+| 4 중단·교체 | 실제 PG checkpoint/실행 제어 회귀 통과. 로그인 웹과 모델을 결합한 재평가는 대기 |
+| 5 판정·응답·복원 | 옵션 미실행 판정, 카드/상세/장바구니/직접 구매 계약 회귀 통과. 과거 복원 로딩 원인은 미확정 |
+| 6 종료 증거 정합성 | 아래 SHA·원본 로그·중간 실패·환경 차이를 기록. 최종 대표 평가 종료표는 4~5단계 |
+
+### 실제 충돌 8파일과 해결 근거
+
+| 파일 | 양쪽 목적과 해결 |
+|---|---|
+| app/checkout.tsx | develop 직접 구매·결제 재개와 G8 판매 옵션 결제 차단을 함께 유지. 직접 선택과 장바구니를 분리하고 optionId URL이 shade 주문으로 바뀌지 않게 차단 |
+| __tests__/checkout.test.tsx | 양쪽 결제 테스트 유지. 별개 장바구니의 옵션 때문에 정상 직접 구매를 막지 않는지, optionId URL을 결제하지 않는지 추가 |
+| backend/api/app/repositories/style_look_repository.py | develop의 DB 조회를 채택하고 G8의 선택적 검수 레지스트리만 덧붙임. 정적 목록 fallback·검수 필수 조건은 추가하지 않음 |
+| backend/api/tests/test_style_looks.py | DB 행/메타데이터 테스트와 기존 G8 검수·중복·합성 거절·상품/호수 근거 테스트를 모두 유지. 기존 자료를 DB 행 fixture로 변환; 운영 fallback 아님 |
+| lib/i18n/en.ts, ko.ts, ja.ts, zh.ts | 커뮤니티 키와 G8 상태·중단 키를 네 언어 모두 보존 |
+
+자동 병합 뒤 `store/cartStore.ts`의 v2 전환에 migrate가 없어 v1 장바구니가 사라지는 회귀를 실제 테스트로 확인했다. v1 항목/optionId/대기 주문은 구조가 호환되므로 보존하고 v2의 선택적 checkoutUrl은 그대로 유지했다. `__tests__/cartStore.test.ts`는 옵션·shade 동시 복원과 URL 없는 이전 대기 주문 보존을 확인한다.
+
+추가한 테스트 호환 보완은 세 파일이다. `test_g7_checkpoint_pg.py`는 독립 실행 가능한 새 DB에서 first.setup()으로 프레임워크 테이블을 준비한다. `test_g7_conversation_api_pg.py`의 G8 보유 질문 사례는 G8 ON을 명시한다. `test_g7_memory_api_pg.py`는 재시도 응답의 근거 [2]와 저장된 이전 근거 [1]을 구별하고, 실제 PG 복원 뒤 show로 [1]을 추가 지식 호출 없이 다시 표시함을 검증한다. 이 세 파일과 관련 제품 코드는 develop이 바꾼 부분이 아니며 통합 전부터 있던 준비/설정/기대값 불일치다. 기존 검증을 삭제하거나 OFF 방어를 완화하지 않았다.
+
+### 공용 계약 영향
+
+- Catalog 상품·성분·판매 옵션 API와 exact optionId, 공용 오류/판정 계약을 유지했다. develop의 선택적 ProductsResponse.hasMore와 신규 발견/커뮤니티 API를 반영했다.
+- 영상 룩은 DB published/mention source_payload를 읽고 기존 검증 상품/옵션 연결 서비스를 거친다. 검수 레시피는 선택적이며 일반 상담·추천의 필수 조건이 아니다. 영상 실제 기법·대체 적합성·AR에 필요한 근거는 유지한다.
+- 앱은 optionId 상세/장바구니 경로와 결제 제한, 기존 shade 구매, 신규 직접 구매·결제 재개를 함께 유지한다. AR renderer 변경은 develop 내용이며 제품/룩/판매 옵션 경계를 새로 합치지 않았다.
+- lib/api.ts의 FormData 지원과 API JWT 허용오차 60초는 develop 변경이다. G8 로그인·복원 문제를 추측해 수정한 것이 아니다. G7 저장·기억·동의·소유권·삭제 계약은 유지했다.
+- API migration은 0040~0044가 추가되어 head=0044, chatbot은 기존 head=0005_g7_memory_settings다. 단일 head를 확인했다. 신규 G8 플래그·Agent 구조·DB schema를 별도로 추가하지 않았다.
+
+### 통합 후 실제 실행 결과
+
+원본 로그는 로컬 `C:/Users/playdata2/AppData/Local/Temp/vishue-g8-stage3-20261128-1f7fb283/`에 보존했다. source-manifest.json은 통합 커밋/두 부모와 변경 176파일의 실제 바이트 식별값, validation-summary.json은 실행 모드를 기록한다. 이 절에도 결과를 고정해 Temp 원본과 구분한다. 유료 모델/임베딩 호출은 **0회**다.
+
+| 실행 | 실제 결과·범위 |
+|---|---|
+| npm ci --ignore-scripts --no-audit --no-fund | develop package-lock 그대로 동기화. 새 Expo 이미지 조작 모듈은 upstream 의존성. 별도 앱 의존성 선택/lock 변경 없음 |
+| npm run check | 타입·lint PASS, **113 suites / 1,387 tests PASS**, 71.15s. 실제 결제·AR 카메라 아님 |
+| API ruff check . / lint-imports | PASS / 계층 3계약 유지 |
+| API 전체 pytest | **721 PASS / 21 SKIP**, 174.15s. 실제 격리 PG, 외부 서비스 모의 |
+| chatbot ruff check . / lint-imports | PASS / 계층 3계약 유지 |
+| chatbot 전체 pytest 최종 | **1,893 PASS / 28 SKIP**, 125.01s. 실제 격리 PG/Redis, 모델·Catalog·인증 모의 |
+| API↔chatbot 계정 삭제 프로토콜 | **5 PASS**, 24.85s. 실제 HTTP/PG/Redis, 외부 계정 제공자는 모의. 실제 계정 삭제 없음 |
+| migration | 별도 tmpfs PG에서 빈 DB→API0039→0044, chatbot0005 성공. 기존 DB에 upgrade/downgrade하지 않음 |
+| 실제 기동 HTTP | API/챗봇 healthz·readyz 200, 격리 Catalog 상품 읽기 200(테스트 상품), 미인증 저장 상담 401, Expo 웹 HTML 200 |
+| Compose / Helm | compose config --quiet PASS. 공식 SHA 확인한 Helm4.3.2로 local/prod 각 lint PASS, 배포 없음 |
+| Gitleaks8.30.1 | 통합 커밋의 CI 동일 전체 이력 범위 **692 commits / 257.05MB / 0 leaks**, 33.1s. 설정·예외 변경 없음 |
+
+공통 pytest 명령은 각 backend에서 `uv run --frozen --no-sync python -B -m pytest -q --tb=line -p no:cacheprovider --basetemp=<새 임시 경로>`다. TEST_DATABASE_URL/TEST_CHAT_DATABASE_URL은 이번 컨테이너에만 연결했다. API 삭제 전용 DB는 vishue_api_g7_test, 챗봇은 vishue_chat_test, Redis는 이번 임시 인스턴스의 DB15다. G7_ALLOW_DESTRUCTIVE_TESTS=1은 이 격리 DB들에만 적용했다. 모델 live opt-in과 모델 키를 비활성화했다. 계정 삭제 연동은 전체 테스트가 끝난 뒤 별도 실행하여 공유 테스트 DB 충돌을 피했다.
+
+| 원본 로그 | SHA-256 |
+|---|---|
+| api-pytest.log | d10541f2791d11bc1222dfc54db9d2d6547be5176a9b9df1a740d52472b84da9 |
+| chatbot-pytest-final.log | d67c8b8b0677ad2efbb782a696acca2335acba202d78d57bddee8f2a90f26f5e |
+| account-deletion-cross.log | 3ea4ad254d7fa2a2770582d4b812e0b8ad34ace97d5921446eda24dfd1015818 |
+| gitleaks-merge-history-final.log | c54a3beaccf8f4851c69208ff42bfbbc8b93558fb6689eab48771c2fd02560f2 |
+
+중간 실패도 구분한다. 첫 통합 챗봇 PG 실행은 1,890 PASS/28 SKIP/3 FAIL이며 위 테스트 준비/설정/현행 답변 기대를 보완한 뒤 전체 재실행이 통과했다. 실패 원본 chatbot-pytest.log는 유지한다. 출력 래퍼의 CP949 디코딩 실패는 원본 바이트 로그와 분리하고 최종 출력은 UTF-8로 고정했다. 새 경로의 초기 앱 타입 오류는 오래된 Expo 생성 경로 타입이며 Expo 기동 후 해소됐다. 최초 웹 HTTP는 콜드 번들 23s+8s 도중 30s 제한으로 취소됐고, 동일 제한으로 재조회해 200을 확인했다. 과거 상담 복원 실패 재현으로 사용하지 않는다. ENV=test의 OpenAPI404는 공개 문서 비활성 설정이다. 첫 WSL 이력 검사는 Windows worktree 경로 오류로 0커밋을 읽어 무효였고 Git 경로 명시 후 위 실제 이력을 검사했다. Helm 첫 체크섬 처리 오류도 보존하며 공식 SHA 대조 후 검증본으로 재실행했다.
+
+git diff --check의 upstream Markdown 4줄 경고는 원래 hard break 공백이며 두 파일이 develop과 동일함을 확인해 보존했다. 실제 충돌 해결·호환 보완 파일의 diff 검사는 통과했다. 해당 두 파일은 research/lip_rubric/naturalness_astra_prompt.md, web/README.md다.
+
+### 4단계 준비와 미검증 범위
+
+기존 로컬 Catalog를 **읽기 전용**으로 확인했다. 이전 Docker runtime 설정이 가리키는 vishue_db는 revision0033, 상품9,035개·원본 판매 옵션21,951개이며 0040의 is_catalog_published 열은 아직 없다. 이는 특정 실행 DB의 상태이며 프로젝트 데이터가 없다는 뜻이 아니다. 기존 DB는 수정하지 않았다. 이번 새 격리 DB에서 style-looks가 0건인 것은 분류/수입 자료를 올리지 않은 fixture 환경의 결과다.
+
+4단계 실제 평가 전에 기존 데이터의 안전한 복제본에 migration과 load_makeup_look_catalog의 분류/mention 공급을 준비하고 정확한 상품·판매 옵션 연결 및 데이터 버전을 확인해야 한다. 현재 source/의존성/단일 migration head/실행 계약은 준비됐지만 원본 DB를 그대로 새 서버에 연결하면 된다고 보고하지 않는다. Aside 로그인 브라우저 프로필도 현재 연결되지 않아 실제 GUI 평가는 실행하지 않았다. Expo 공식 SDK58 문서는 Aside 실패 후 공식 문서를 직접 조회했다.
+
+실제 모델·로그인 앱의 N01/N02/E01/B01·복합 후속·저장 복원·자동 룩 안내 중복 재관찰은 **NOT_RUN**, admin/web 별도 프런트 빌드·실기기 AR/카메라·운영 배포·실제 결제/외부 계정 삭제는 이번 범위 밖이다. 건너뛴 live/외부 자료 의존 테스트를 통과로 계산하지 않는다. ⑤ 전체 종료는 4~5단계 증거 대조 후 판단한다.
+
+검증용 서비스 포트19833/19834/19836과 라벨이 확인된 임시 PG/Redis만 종료·제거했다. 기존 서비스·원본 DB·기존 증빙은 유지했다. 원격 push·PR 생성·develop 대상 병합·배포는 하지 않았다.
 
 ## 최신 실행 — 마감 2단계 플래그 결함 수정·표적 검증 (2026-11-28)
 
