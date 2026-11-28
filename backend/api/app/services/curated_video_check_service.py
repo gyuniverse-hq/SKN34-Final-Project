@@ -1,3 +1,5 @@
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.clients.youtube_client import YoutubeClient, get_youtube_client
 from app.core.errors import UpstreamError
 from app.repositories.celebrity_video_repository import CelebrityVideoRepository
@@ -54,7 +56,7 @@ class CuratedVideoCheckService:
         return results
 
 
-def get_curated_video_check_service() -> CuratedVideoCheckService:
+def get_curated_video_check_service(session: AsyncSession) -> CuratedVideoCheckService:
     return CuratedVideoCheckService(
-        get_youtube_client(), CelebrityVideoRepository(), StyleLookRepository()
+        get_youtube_client(), CelebrityVideoRepository(session), StyleLookRepository(session)
     )

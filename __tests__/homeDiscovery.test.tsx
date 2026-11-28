@@ -70,7 +70,7 @@ jest.mock('@/components/home/HomeCatalog', () => ({ HomeCategories: () => null, 
 jest.mock('@/components/home/HomeSearch', () => ({ HomeSearch: ({ children }: { children: ReactNode }) => children }));
 jest.mock('@/components/celeb/KStyleCollection', () => ({ KStyleCollection: () => null }));
 jest.mock('@/components/shop/ShopHeaderActions', () => ({ ShopHeaderActions: () => null }));
-jest.mock('@/components/shop/ProductCard', () => ({ ProductCard: () => null }));
+jest.mock('@/components/ui/ProductCard', () => ({ ProductCard: () => null }));
 jest.mock('@/components/skin/SkinMatchSection', () => ({ SkinMatchSection: () => null }));
 jest.mock('@/components/ui/ProductImage', () => ({ ProductImage: () => null }));
 jest.mock('@/components/ui/StateViews', () => ({ EmptyState: () => null, ErrorState: () => null, LoadingState: () => null }));

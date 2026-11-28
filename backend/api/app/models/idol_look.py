@@ -39,13 +39,61 @@ class YoutubeVideoRow(Base):
     product_mapping_status: Mapped[str] = mapped_column(String(32))
 
 
+# Catalog classification of a makeup look (0040). Kept in step with the migration.
+LOOK_CATALOG_CHECKS = {
+    "ck_makeup_looks_look_type": "look_type IS NULL OR look_type IN ('style', 'celebrity')",
+    "ck_makeup_looks_classification": (
+        "CASE"
+        " WHEN look_type IS NULL THEN style_group IS NULL AND style_tag IS NULL"
+        " AND celebrity_id IS NULL AND catalog_link_status IS NULL"
+        " WHEN look_type = 'style' THEN NULLIF(btrim(style_group), '') IS NOT NULL"
+        " AND NULLIF(btrim(style_tag), '') IS NOT NULL"
+        " AND celebrity_id IS NULL AND catalog_link_status IS NULL"
+        " WHEN look_type = 'celebrity' THEN NULLIF(btrim(celebrity_id), '') IS NOT NULL"
+        " AND style_group IS NULL AND style_tag IS NULL"
+        " ELSE FALSE END"
+    ),
+    "ck_makeup_looks_catalog_position": "catalog_position IS NULL OR catalog_position >= 0",
+    "ck_makeup_looks_catalog_start": "catalog_start_seconds IS NULL OR catalog_start_seconds >= 0",
+    "ck_makeup_looks_catalog_link_status": (
+        "catalog_link_status IS NULL"
+        " OR catalog_link_status IN ('metadata_available', 'needs_review')"
+    ),
+    "ck_makeup_looks_catalog_published": (
+        "NOT is_catalog_published OR (look_type IS NOT NULL"
+        " AND NULLIF(btrim(catalog_title), '') IS NOT NULL AND catalog_position IS NOT NULL"
+        " AND (look_type <> 'celebrity' OR catalog_link_status IS NOT NULL))"
+    ),
+}
+
+
 class MakeupLookRow(Base):
+    """One makeup video look. style/celebrity looks feed the general catalog screens;
+    is_published is the separate AR look (idol-looks API) publication."""
+
     __tablename__ = "makeup_looks"
+    __table_args__ = tuple(
+        CheckConstraint(sql, name=name) for name, sql in LOOK_CATALOG_CHECKS.items()
+    )
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
     video_id: Mapped[str] = mapped_column(ForeignKey("youtube_videos.id"), unique=True)
     display_name: Mapped[str] = mapped_column(String(300))
     style_description: Mapped[str] = mapped_column(Text)
     is_published: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    # None while a newly registered video is not yet classified.
+    look_type: Mapped[str | None] = mapped_column(String(20))
+    style_group: Mapped[str | None] = mapped_column(String(100))
+    style_tag: Mapped[str | None] = mapped_column(String(200))
+    # Celebrity profile id used by the app (constants/celebrities.ts).
+    celebrity_id: Mapped[str | None] = mapped_column(String(64))
+    catalog_title: Mapped[str | None] = mapped_column(String(300))
+    catalog_position: Mapped[int | None] = mapped_column(Integer)
+    # Start of the general catalog player; None when the curation gives none.
+    catalog_start_seconds: Mapped[int | None] = mapped_column(Integer)
+    catalog_link_status: Mapped[str | None] = mapped_column(String(32))
+    is_catalog_published: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false")
+    )
     video: Mapped[YoutubeVideoRow] = relationship(lazy="selectin")
     products: Mapped[list["LookProductRow"]] = relationship(
         cascade="all, delete-orphan", lazy="selectin"

@@ -3438,9 +3438,20 @@ def test_added_same_role_task_ids_pg_restore_and_targeted_retry(memory_api, monk
     ] == task_ids
     records = {r.task_id: r for r in observed[-1]._task_results}
     assert records[task_ids[0]].reused and records[task_ids[0]].attempt == 0
-    assert [e["documentId"] for e in recovered["knowledge"]["evidence"]] == [1, 2]
+    assert [e["documentId"] for e in recovered["knowledge"]["evidence"]] == [2]
     restored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
     assert restored["messages"][-1]["text"] == recovered["answer"]
+    saved_first = next(
+        task for task in observed[-1]._consultation_parent.tasks if task.task_id == task_ids[0]
+    )
+    assert [e["documentId"] for e in saved_first.display_result["knowledge"]["evidence"]] == [1]
+    service._llm = AdditionModel(action="show", targets=[task_ids[0]])
+    shown = ask(
+        client, room, recovered["conversation"]["version"], "보습 설명 다시 보여줘",
+        request_type="beauty_consultation",
+    )
+    assert [e["documentId"] for e in shown["knowledge"]["evidence"]] == [1]
+    assert calls == [q1, q2, q2]
 
 
 def test_live_common_entry_without_parent_seed_pg(memory_api, monkeypatch, record_property):

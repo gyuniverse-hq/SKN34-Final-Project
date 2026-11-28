@@ -158,6 +158,32 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     // found no edge (t at the search cap = warm skin all the way), smoothed along the lip and capped. 0 = off (as before).
     lipEdgePushUp: 0.5,
     lipEdgePushValid: 1.55,     // a ray at or beyond this found no edge (search cap 1.6): ignored
+    // 11-26 (user: the upper lip's Cupid's bow, sides and tips were left short of the applied lipstick). The worn-lipstick photo of
+    // the same face, aligned onto the AR frame, reached 8-10 px (≈ 0.3 of the upper-lip thickness) above the paint at the bow and
+    // 12-13 px past each mouth corner (mouth 190 px); the camera edge rays above stop at the redness midpoint, inside that line.
+    // lipUpperGrow: every upper outer point (corners excluded) moved out by this share of the lip thickness there, on top of the
+    // pull / push. lipCornerGrow: both mouth corners moved out along the mouth line by this share of the mouth width (their
+    // neighbours by half). Rendered (close selfie, paint region read from a vivid test colour): IoU with the worn lipstick
+    // 0.855 → 0.880, bow gap 7-10 px → 1-3 px, corner gap 13-15 px → 3-4 px; the sloped sides now sit 4-8 px above it
+    // (0.3 / 0.4 overshot more: IoU 0.858 / 0.818). One face only; not yet seen on a phone. 0 / 0 = as before.
+    // 11-26 (user: 0.2 / 0.05 spills too far) halved to the midpoint of before and after; this midpoint was not re-measured.
+    // 11-26 (user: 0.1 still spills past the lip line, the bow included; below 0.15 / 0.1 everywhere): one value per upper
+    // point j = 1..9 (185, 40, 39, 37, 0, 267, 269, 270, 409). Bow and centre 0.05, beside the bow 0.03, sloped sides and
+    // next to the corners 0 (at 0.2 the sides were 4-8 px over the worn lipstick, at 0 already within -3..+4 px).
+    lipUpperGrow: [0, 0, 0.03, 0.05, 0.05, 0.05, 0.03, 0, 0],
+    lipUpperGrowStart: 0.1,     // every upper point when a face is first found; each settles to lipUpperGrow (below)
+    lipUpperGrowSettleS: 1.5,   // seconds to settle where the camera edge rays around that point are confident (4x elsewhere)
+    lipCornerGrow: 0.025,
+    // On-lip colour (onLipAlbedo below): k = how much of the product's hue, kL = how much of its lightness against the bare
+    // lip, dark = film darkening. null = the hex as before.
+    // alpha = share of the product colour over the bare lip (translucent coat), dark = film darkening (1 = none).
+    // 11-26 headless, cheek-relative Lab gap to the worn photos (matte / velvet / glossy): hex as before 26.5 / 17.9 / 19.9,
+    // alpha 0.35 12.5 / 10.2 / 11.5, 0.5 16.2 / 11.8 / 13.6, 0.65 19.6 / 13.6 / 15.4. 0.4: the product colour still reads.
+    // Still lighter than every worn photo (L* +3..+15), so the film darkens too. With two more worn products of the same face
+    // (10 에이쁘 블러 틴 팟 피칸버터 #8E463F, 12 힌스 로 글로우 젤 틴트 시나몬 #A66050; the team's photos, 11-26), gap
+    // matte / velvet / glossy / 10 / 12: alpha 0.4 dark 1 14.2 / 10.6 / 12.4 / - / -, alpha 0.4 dark 0.72 7.7 / 8.7 / 10.1 /
+    // 5.5 / 7.3 (0.35/0.8, 0.35/0.7 and 0.45/0.65 all within 0.1 of it on average; 0.72 spreads the L* error most evenly).
+    onLip: { alpha: 0.4, dark: 0.72 },
     // Lip form (10-25 "직접 바른 느낌", user request): each lip is a rounded body built from this
     // person's outline (upper and lower lip apart, split at the inner line). Its normal shades the
     // paint (Lambert under the estimated light) and places each finish's GGX highlight, so a gloss
@@ -169,7 +195,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     formTilt: 1.0,              // max tilt of the form normal at the lip line (≈ 45°)
     lipVolume: 0.3,             // share of the form's Lambert falloff applied to the paint (was 0.6; 11-02: the camera already carries the lip's own shading, the added form shade read as a dark band along the lower lip)
     seamPx: 0.12,               // closed mouth: seam split width as a share of the lip thickness
-    glossMax: [0.04, 0.45],     // form highlight peak: matte → glossy (by (1 - roughness)³; satin ≈ 0.2). Was 0.85: survey 11-02, glossy lips read as plastic (white streak on the lower lip)
+    glossMax: [0.04, 0.65],     // form highlight peak: matte → glossy (by (1 - roughness)³; satin ≈ 0.2). Was 0.85: survey 11-02, glossy lips read as plastic (white streak on the lower lip); 0.45 -> 0.65 on 11-26 (user: glossy needs more shine and reflection)
     glossGain: 3.0,             // highlight peak = glossMax × skin luminance × this (light sources ≫ skin)
     frontGloss: 0.6,            // share of the peak from the always-present frontal source (screen, room)
     // Flat selfie: the camera has no specular, so keepHl adds nothing and gloss looked like matte
@@ -272,7 +298,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     hlSparkle: 1,
     opaqueShadeGamma: 0.85,     // large-scale brightness swing kept under fully opaque paint (1 = all, 0 = flat sticker). Was 0.6; 0.85 keeps more of the camera's shading and keeps colour ΔE within 4 after the gloss cut
     lowReach: 0.35,             // radius of the large-scale lip brightness, share of the lip thickness
-    lipSpecMax: 0.18,           // cap on the added clear-coat highlight (tinted, lower-centre only)
+    lipSpecMax: 0.26,           // cap on the added clear-coat highlight (tinted, lower-centre only); 0.18 -> 0.26 on 11-26 with glossMax
     lipSheen: 0.35,             // broad clear-coat sheen × (1 - roughness)²; coarse mesh normals miss the narrow peak
     hlKeep: [0.15, 1.0],        // camera highlight kept under the paint: matte → glossy (by 1 - roughness); never amplified
     blushFeatherPx: 28,
@@ -665,8 +691,15 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     // the shine only; both 1 when absent. matte: shine area 45 -> 6 % of the lip, mean lift +2.0 -> +0.9 L* (with matteSpecMask
     // ridge 0.2). glossy (rimTilt only; cavity stays 1.2 by the user's 11-15 order, a thick clear gloss shows the lines least):
     // band 26 -> 14 %, peak 12.9 -> 10.0 L*, shine follows the lines 0.19 -> 0.28. satin: band 22 -> 12 %, peak 9.3 -> 8.3 L*.
-    matte:   { roughness: 0.90, specular: 0.35, flake: 0, a1: 0.72, translucent: 0.0, detail: 1.15, shadeMatch: 0.5, opacity: 0.97, overlay: 0, cavity: 2, glossScale: 0.3 },   // overlay off (user, 11-13)
-    velvet:  { roughness: 0.75, specular: 0.45, flake: 0, a1: 0.66, translucent: 0.0, detail: 0.75, shadeMatch: 0.6, opacity: 0.97, overlay: 0.35, cavity: 2.5 },
+    // 11-26 (user: match the worn photos; TUNING.onLip). matte glossScale 0.3 -> 0.1 and velvet 0.1 / overlay 0.35 -> 0: the worn
+    // matte / velvet lower lip had no shine at all (bright share 0 %), the AR 3-5 %; velvet's Overlay pushed b* +4 over the photo.
+    // onLipSat: extra chroma of the on-lip colour (a wet film reads more saturated).
+    // 11-26 later (user: the three finishes looked alike; the matte must show the lip lines more than the velvet, the glossy more
+    // shine and reflection). Texture apart: matte detail 1.15 -> 1.6 and no form shine, velvet detail 0.75 -> 0.3 (smoothed; cavity
+    // kept by the 11-15 order), glossy glossScale 0.3 -> 1.6 with TUNING glossMax 0.45 -> 0.65 and lipSpecMax 0.18 -> 0.26.
+    // Optional per finish on-lip values: onLipAlpha / onLipDark (over TUNING.onLip), onLipSat.
+    matte:   { roughness: 0.90, specular: 0.35, flake: 0, a1: 0.72, translucent: 0.0, detail: 1.6, shadeMatch: 0.5, opacity: 0.97, overlay: 0, cavity: 2, glossScale: 0 },   // overlay off (user, 11-13)
+    velvet:  { roughness: 0.75, specular: 0.45, flake: 0, a1: 0.66, translucent: 0.0, detail: 0.3, shadeMatch: 0.6, opacity: 0.97, overlay: 0, cavity: 2.5, glossScale: 0.1 },
     cream:   { roughness: 0.55, specular: 0.60, flake: 0, a1: 0.58, translucent: 0.12, detail: 0.90, shadeMatch: 0.5, opacity: 0.97, overlay: 0.30, cavity: 2 },
     satin:   { roughness: 0.42, specular: 0.85, flake: 0, a1: 0.50, translucent: 0.12, detail: 1.05, shadeMatch: 0.5, opacity: 0.96, overlay: 0.20, cavity: 2.3, rimTilt: 0.3 },
     sheer:   { roughness: 0.32, specular: 0.90, flake: 0, a1: 0.38, translucent: 0.8, detail: 1.05, shadeMatch: 0.3, opacity: 0.75, overlay: 0.15, cavity: 2.2 },
@@ -674,7 +707,9 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     // frame with the worn photo as reference (research/makeup_gen/COMPARE_LOCAL.md, fpmt_gap.py): the bare lip's yellow no longer
     // shows through the film (03 Bare Grape #A26263 0.35: lip dE00 to the target 3.56 -> 2.28, b* 15.7 -> 13.3), a red glossy
     // stops glowing (#B0283A 0.65 vs its hex 7.66 -> 4.87, chroma 62 -> 46 vs hex 59.5). One face, one worn photo; headless only.
-    glossy:  { roughness: 0.16, specular: 1.15, flake: 0, a1: 0.46, translucent: 0.0, detail: 0.95, shadeMatch: 0.4, opacity: 0.95, overlay: 0.10, cavity: 1.2, rimTilt: 0.3 },
+    // 11-26: glossScale 0.3 (worn glossy lower lip: bright share 0.6 %, AR 16 % -> 8.5 %), onLipSat 0.3 (worn: a* +7 over bare);
+    // later the same day back to glossScale 1 with onLipSat 0.5 and onLipK 0.45 / onLipDark 0.82 so glossy reads apart (above).
+    glossy:  { roughness: 0.16, specular: 1.15, flake: 0, a1: 0.46, translucent: 0.0, detail: 0.95, shadeMatch: 0.4, opacity: 0.95, overlay: 0.10, cavity: 1.2, rimTilt: 0.3, glossScale: 1.6 },
     shimmer: { roughness: 0.38, specular: 0.90, flake: 1, a1: 0.55, translucent: 0.12, detail: 1.10, shadeMatch: 0.5, opacity: 1.0, overlay: 0, cavity: 1.6 },
     // Lip oil / balm (11-10, user: 80~90% see-through, shine and the lip's lines kept, no sudden colour). Chosen by zone.care
     // (lib/lipCare.ts), not by texture. a1 is unused for them: lipCoverage gives the colour cover, the shine has its own.
@@ -763,7 +798,11 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   }
   // Video-fit overrides affect only explicitly profiled products. Without an
   // override, retain the original material object and exact coverage value.
-  const MATERIAL_PROFILE_RANGES = { a1: [0, 1], translucent: [0, 1], detail: [0, 2], roughness: [0.02, 1], specular: [0, 2] };
+  // Product lip finishes (lib/productLipFinishes.ts) may also set glossScale / rimTilt / overlay / opacity / cavity / shadeMatch.
+  const MATERIAL_PROFILE_RANGES = {
+    a1: [0, 1], translucent: [0, 1], detail: [0, 2], roughness: [0.02, 1], specular: [0, 2],
+    glossScale: [0, 2], rimTilt: [0, 2], overlay: [0, 1], opacity: [0, 1], cavity: [0.5, 4], shadeMatch: [0, 1],
+  };
   const SHADOW_PROFILE_RANGES = { opacity: [0, 1], roughness: [0.02, 1], sparkleDensity: [0, 1], specular: [0, 2] };
   function applyProfileValues(base, overrides, ranges) {
     if (!overrides || typeof overrides !== 'object') return base;
@@ -799,6 +838,37 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     const luminance = c => 0.2126*c[0] + 0.7152*c[1] + 0.0722*c[2];
     const scale = luminance(pigment) / Math.max(1e-4, luminance(corrected));
     return corrected.map(v => clamp01(v * scale));
+  }
+  // On-lip colour (11-26, user decision: the AR lip must look like the worn photos; the catalogue hex itself is unchanged).
+  // A product's hex is the colour of the bullet / swatch. Worn on a lip it is a thin film over the bare lip: the three worn
+  // photos (3CE 머머링 #DD7C6F, 페리페라 집에모카 #C7796C, 삐아 땅콩당 #CC8F8E) all came out darker than the bare lip (L* -2..-6
+  // vs the cheek) and only a little redder, and almost alike (#8D5551 / #894E4D / #8B504E), while the AR, painting the hex
+  // nearly opaque (cover ≈ 0.92), lifted the lip 13-20 L* and added b* +12. A first fix built the paint from a darkened bare lip
+  // (gap to the photos 5-7) but made every product the same colour, which the user rejected; the paint is now a translucent coat
+  // of the product over the bare lip (below), optional chroma boost MATERIALS onLipSat. Headless on one face (close selfie,
+  // research/makeup_gen ar_zone_render.mjs), cheek-relative Lab gap to the worn photo (TUNING.onLip alpha 0.4, dark 0.72, the
+  // 11-26 finish textures): matte 26.5 -> 7.7, velvet 17.9 -> 8.7, glossy 19.9 -> 10.1; 피칸버터 5.5, 시나몬 7.3.
+  // Video looks (applicationProfile) and lip care keep their own colour. Not yet seen on a phone.
+  function onLipAlbedo(zone, mat, pigment, bare) {
+    const o = TUNING.onLip;
+    if (!o || !zone || zone.care || zone.applicationProfile) return pigment;
+    const L = (v) => 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+    if (!bare.every((v) => Number.isFinite(v) && v > 0)) return pigment;
+    // 11-26 later (user: "the product colour goes on see-through, so it never comes up as strong as the hex: put it on
+    // translucent" — the product's own coral / pink must stay, only thinner). The film model above made every product a darker
+    // bare lip; now the paint is a translucent coat of the product over the bare lip: bare × (1 - alpha) + product × alpha,
+    // × dark. Per finish MATERIALS onLipAlpha / onLipDark over the TUNING.onLip defaults.
+    const pick = (key, def) => (mat && Number.isFinite(mat[key]) ? mat[key] : def);
+    const alpha = clamp01(pick('onLipAlpha', o.alpha)), dark = pick('onLipDark', Number.isFinite(o.dark) ? o.dark : 1);
+    let out = bare.map((v, c) => (v * (1 - alpha) + pigment[c] * alpha) * dark);
+    const sat = mat && mat.onLipSat > 0 ? mat.onLipSat : 0;
+    if (sat) {
+      const l0 = Math.max(L(out), 1e-5);
+      const q = out.map((v) => Math.pow(Math.max(v, 1e-5) / l0, 1 + sat));
+      const lq = Math.max(L(q), 1e-5);
+      out = q.map((v) => (v / lq) * l0);
+    }
+    return out.map(clamp01);
   }
   // Video look only: tint look pigment by the estimated scene light colour × exposure, then restore luminance so
   // coverage stays. gain 0 or neutral light (1,1,1)×exposure 1 returns the same array reference / equal values.
@@ -912,6 +982,8 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   let lastRenderSeq = -1;
   let lastStateSeq = -1;
   let compare = false;
+  let lookMode = false;
+  let lookSceneDeferred = false;
   // Drawing guide (AR_SPEC 6-5-11): null, or { step, angle, length, style } from the app.
   let guide = null;
   let landmarker = null;
@@ -969,6 +1041,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       }
     }
     if (msg.type === 'compare') compare = !!msg.value;
+    if (msg.type === 'look_mode') { lookMode = msg.value === true; lookSceneDeferred = false; }
     if (msg.type === 'pose_enabled') { poseEnabled = msg.value === true; clearPoseHint(); }
     if (msg.type === 'preview') { /* capture already matches the phone screen; cover stays edge-to-edge */ }
     if (msg.type === 'guide') {
@@ -2391,8 +2464,47 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     for (let j = 2; j <= 8; j++) out[j] = Math.min(TUNING.lipEdgePushUp, (raw[j - 1] + 4 * raw[j] + raw[j + 1]) / 6);
     return out;
   }
+  // Outer ring index j: 0 and 10 are the mouth corners, 1..9 the upper lip, 11..19 the lower lip.
+  // lipUpperGrow: one share per upper point j = 1..9, or one number for all of them.
+  const upperGrowTarget = (j) => {
+    if (j < 1 || j > 9) return 0;
+    const g = TUNING.lipUpperGrow;
+    return (Array.isArray(g) ? g[j - 1] : g) || 0;
+  };
+  // Start wide, then settle (11-26, user): a newly found face starts at lipUpperGrowStart so the first frames are never short
+  // of the lip, and each upper point moves to its lipUpperGrow once the camera edge rays around it are confident (the line is
+  // then also fitted by lipEdgePull / push); with no confident edge it still settles, 4 times slower.
+  // Linear, lipUpperGrowSettleS seconds for the whole way. -1 = not started (reset when the face is lost).
+  const lipGrowSm = new Float32Array(LIPS_OUTER.length).fill(-1);
+  let lipGrowAt = 0;
+  function settleUpperGrow() {
+    const now = performance.now();
+    const dt = lipGrowAt ? Math.min(0.1, (now - lipGrowAt) / 1000) : 0;
+    lipGrowAt = now;
+    const start = TUNING.lipUpperGrowStart || 0;
+    for (let j = 1; j <= 9; j++) {
+      const target = upperGrowTarget(j);
+      if (lipGrowSm[j] < 0) lipGrowSm[j] = Math.max(start, target);
+      let c = 0;
+      for (let r = 3 * j - 1; r <= 3 * j + 1; r++) c += lipEdge.conf[r] / 3;
+      // No confident edge (dark room, low lip/skin contrast, the corner rays): settle 4 times slower instead of staying wide.
+      const rate = c >= 0.5 ? 1 : 0.25;
+      const step = rate * (Math.abs(start - target) || 0.05) * dt / Math.max(0.1, TUNING.lipUpperGrowSettleS || 1.5);
+      lipGrowSm[j] += clamp(target - lipGrowSm[j], -step, step);
+    }
+  }
+  const upperGrow = (j) => (j >= 1 && j <= 9 && lipGrowSm[j] >= 0 ? lipGrowSm[j] : upperGrowTarget(j));
+  function growCorners(ring) {
+    const g = TUNING.lipCornerGrow || 0;
+    if (!(g > 0)) return ring;
+    const a = ring[0], b = ring[10], d = [g * (a[0] - b[0]), g * (a[1] - b[1])];
+    // +1 toward corner 0's side, -1 toward corner 10's side; neighbours of a corner move half as far.
+    const w = (i) => (i === 0 || i === 10 ? 1 : i === 1 || i === 9 || i === 11 || i === 19 ? 0.5 : 0) * (i === 0 || i === 1 || i === 19 ? 1 : -1);
+    return ring.map((q, i) => [q[0] + w(i) * d[0], q[1] + w(i) * d[1]]);
+  }
   function drawLipOutline(W, H, shape) {
     let base;
+    settleUpperGrow();
     if (TUNING.lipEdgePull) {
       const push = lipEdgePush();
       const pull = LIPS_OUTER.map((_, j) => {
@@ -2403,12 +2515,13 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         // Slow, step-capped move toward the target: a vertex no longer jumps when its camera evidence flickers.
         const k = TUNING.lipEdgePullSmooth, cap = TUNING.lipEdgeStepMax;
         lipPullSm[j] += clamp(k * (target - lipPullSm[j]), -cap, cap);
-        return lipPullSm[j];
+        return lipPullSm[j] + upperGrow(j);
       });
       base = lipRing(LIPS_OUTER, OUTER_FIXED, W, H, LIPS_INNER, pull);
     } else {
-      base = lipRing(LIPS_OUTER, OUTER_FIXED, W, H);
+      base = lipRing(LIPS_OUTER, OUTER_FIXED, W, H, LIPS_INNER, LIPS_OUTER.map((_, j) => upperGrow(j)));
     }
+    base = growCorners(base);
     const outer = overlipRing(base, shape);
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (const q of outer) { x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); }
@@ -3558,7 +3671,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   let guardErrors = 0, guardLast = '', renderErrors = 0, renderErrLast = '';
   // HUD 'eye' line (11-06 /ar-debug: look mascara and lashes not seen on the phone): which eye paint reached this page and
   // whether the eye canvas was drawn this frame. 'build' tells a stale Expo Go bundle apart from a renderer fault.
-  const EYE_HUD_BUILD = '1123-lip-finish-d';
+  const EYE_HUD_BUILD = '1125-lip-3ce-murmuring';
   const eyeDbg = { liner: '-', mascara: '-', lashes: 0, on: false, cw: 0, ch: 0 };
   // Blink (11-08): MediaPipe blendshape eyeBlinkRight/Left (0 open .. 1 closed) per EYE_LINES entry (0 = subject's right
   // eye, landmarks 33/133; 1 = left). NaN until the model returns blendshapes; drawing then falls back to the lid gap.
@@ -3982,9 +4095,9 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
   let segCount = 0, segPerSec = 0;   // HUD: segmentation calls in the last second
   let foundSegMs = 0;   // moving mean of one segmentation call, ms (HUD)
   // Selfie multiclass: 0 bg, 1 hair, 2 body, 3 face skin, 4 clothes, 5 accessory.
-  function applyFoundSkinMask(mask, conf) {
+  function applyFoundSkinMask(mask, conf, categoryPixels) {
     if (!mask || !renderer) return;
-    const mw = mask.width, mh = mask.height, cat = mask.getAsUint8Array();
+    const mw = mask.width, mh = mask.height, cat = categoryPixels || mask.getAsUint8Array();
     ensureFoundSkinBuffers(mw, mh);
     const n = mw * mh;
     let prob = null;
@@ -4120,10 +4233,15 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         segmentBusy = false;
         const mask = result.categoryMask;
         if (!mask) return;
-        try { envKeepBackground(mask.getAsUint8Array(), mask.width, mask.height); } catch (e) { /* backlight ratio is best-effort */ }
-        if (forSkin && wantSkinMask()) applyFoundSkinMask(mask, result.confidenceMasks);
+        let categoryPixels;
+        try {
+          const pixels = mask.getAsUint8Array();
+          if (lookMode) categoryPixels = pixels;
+          envKeepBackground(pixels, mask.width, mask.height);
+        } catch (e) { /* backlight ratio is best-effort */ }
+        if (forSkin && wantSkinMask()) applyFoundSkinMask(mask, result.confidenceMasks, categoryPixels);
         if (!forLight || !lightSnap) return;
-        const mw = mask.width, mh = mask.height, cat = mask.getAsUint8Array();
+        const mw = mask.width, mh = mask.height, cat = categoryPixels || mask.getAsUint8Array();
         const sw = lightSnap.width, sh = lightSnap.height;
         const sums = bgColorSums(cat, mw, mh, lightSnap.data, sw, sh);
         const r = sums.r, g = sums.g, bl = sums.bl, n = sums.n;
@@ -4170,6 +4288,11 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
       const segMs = performance.now() - segT0;
       foundSegMs = foundSegMs ? foundSegMs + 0.2 * (segMs - foundSegMs) : segMs;
     } catch (e) { segmentBusy = false; }
+  }
+  function lightSegDue(now) {
+    const segEvery = wbLocked ? TUNING.segmentEveryMs : TUNING.segmentEveryMsAuto;
+    return light.snapColor || (camSettling(now) && now - lastSegmentAt >= TUNING.env.camResampleMs) ||
+      (now - lastSegmentAt > segEvery && (lastSegmentAt < 0 || fps >= TUNING.segmentMinFps));
   }
   function sampleScene(now, W, H) {
     const t0 = performance.now();
@@ -4337,9 +4460,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     }
 
     // Color: Gray World over background pixels (segmenter class 0), blown-out and dark pixels excluded.
-    const segEvery = wbLocked ? TUNING.segmentEveryMs : TUNING.segmentEveryMsAuto;
-    const lightDue = light.snapColor || (camSettling(now) && now - lastSegmentAt >= TUNING.env.camResampleMs) ||
-      (now - lastSegmentAt > segEvery && (lastSegmentAt < 0 || fps >= TUNING.segmentMinFps));
+    const lightDue = lightSegDue(now);
     const skinDue = wantSkinMask() && now - lastFoundSegAt > skinSegGap();
     runSegmenter(now, lightDue, skinDue);
     postLightHint();
@@ -5733,6 +5854,15 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
     '}',
   ].join(NL);
 
+  function uploadEyeLayer(gl, canvas, size) {
+    // The canvas pixels follow the current landmarks. Reuse only the texture storage.
+    if (lookMode && size.width === canvas.width && size.height === canvas.height) {
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+      return;
+    }
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+    size.width = canvas.width; size.height = canvas.height;
+  }
   function createGLRenderer() {
     const opts = { alpha: false, antialias: false, premultipliedAlpha: false, depth: true };
     let gl = glCanvas.getContext('webgl2', opts);
@@ -5911,6 +6041,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
 
     // Screen-space eye canvas (eyeliner, mascara), refreshed every frame they are on.
     const eyeTex = gl.createTexture();
+    const eyeTexSize = { width: 1, height: 1 };
     gl.activeTexture(gl.TEXTURE5);
     gl.bindTexture(gl.TEXTURE_2D, eyeTex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
@@ -5921,6 +6052,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
 
     // Brow canvas (green), its own texture so the eye canvas never needs an alpha channel.
     const browTex = gl.createTexture();
+    const browTexSize = { width: 1, height: 1 };
     gl.activeTexture(gl.TEXTURE9);
     gl.bindTexture(gl.TEXTURE_2D, browTex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
@@ -6111,11 +6243,11 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         eyeDbg.on = !!eyesOn; eyeDbg.cw = eyeCanvas.width; eyeDbg.ch = eyeCanvas.height;
         gl.activeTexture(gl.TEXTURE5);
         gl.bindTexture(gl.TEXTURE_2D, eyeTex);
-        if (eyesOn) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, eyeCanvas);
+        if (eyesOn) uploadEyeLayer(gl, eyeCanvas, eyeTexSize);
         gl.uniform1i(u.uEye, 5);
         gl.activeTexture(gl.TEXTURE9);
         gl.bindTexture(gl.TEXTURE_2D, browTex);
-        if (eyesOn && (browZ || mascara)) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, browCanvas);
+        if (eyesOn && (browZ || mascara)) uploadEyeLayer(gl, browCanvas, browTexSize);
         gl.uniform1i(u.uBrowTex, 9);
         gl.activeTexture(gl.TEXTURE5);   // leave the active unit as before this texture existed
         if (eyesOn) gl.uniform4f(u.uEyeRect, eyeRect[0], eyeRect[1], eyeRect[2], eyeRect[3]);
@@ -6318,11 +6450,12 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         gl.uniform2f(u.uHlSat, TUNING.hlSat[0], TUNING.hlSat[1]);
         gl.uniform1f(u.uOpaqueShadeGamma, TUNING.opaqueShadeGamma);
         const lipMat = material(lip), eyeMat = material(eye);
-        const lipAlb = profileLightAdapt(
+        const lipBare = [0, 1, 2].map((c) => light.lipColor[c] / Math.max(1e-3, shown.color[c] * Math.max(1e-3, shown.exposure)));
+        const lipAlb = onLipAlbedo(lip, lipMat, profileLightAdapt(
           lip,
           profilePigment(lip, lip ? hexToLinear(lip.hex) : [0, 0, 0], light.skinColor),
           shown.color, shown.exposure, light.colorConf,
-        );
+        ), lipBare);
         const blushAlb = profileLightAdapt(
           blush,
           profilePigment(blush, blush ? hexToLinear(blush.hex) : [0, 0, 0], light.skinColor),
@@ -6852,6 +6985,12 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
 
   // ── Main loop ────────────────────────────────────────────────────────
   // Runs once per new camera frame: upload → detect on that frame → draw.
+  function deferLookSceneForSkin(now, still, settling) {
+    // A steady look can wait one frame for scene sampling while the skin mask is refreshed.
+    // When lighting needs its own mask, the existing sample path shares a single inference.
+    return !lookSceneDeferred && still && !settling && !lightSegDue(now) &&
+      segmenter && !segmentBusy && foundSkinReady && wantSkinMask() && now - lastFoundSegAt > skinSegGap();
+  }
   function processFrame(now) {
     if (video.readyState < 2) return;
     const W = video.videoWidth, H = video.videoHeight;
@@ -6896,6 +7035,7 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
           hasFace = false;
           lipThick.upBase = 0; lipThick.lowBase = 0;
           lipEdge.samples = 0; lipEdge.conf.fill(0);
+          lipGrowSm.fill(-1);
           filterReady = false;
           resetLidFit();
           shownLight.t = 0;
@@ -6913,19 +7053,27 @@ export const FACE_TRACKER_HTML = `<!DOCTYPE html>
         try { measureLipInner(W, H, now); } catch (e) { /* inner line measurement is best-effort */ }
       }
       if (now - lastLightAt > TUNING.lightEveryMs) {
-        lastLightAt = now;
         // The light estimate (22-35 ms on the phone, 11-08 HUD) only changes when the scene does: a still face in a still
         // scene re-reads it every lightStillMs instead. The lip measurements below keep their own pace (the mouth moves
         // while the face is still).
-        if (camSettling(now) || now - lastSceneAt >= (faceSpeed < TUNING.faceStillSpeed && sceneChange < TUNING.sceneStillDiff ? TUNING.lightStillMs : 0)) {
-          lastSceneAt = now;
-          try { sampleScene(now, W, H); } catch (e) { /* light estimation is best-effort */ }
+        const settling = camSettling(now);
+        const still = faceSpeed < TUNING.faceStillSpeed && sceneChange < TUNING.sceneStillDiff;
+        const sceneDue = settling || now - lastSceneAt >= (still ? TUNING.lightStillMs : 0);
+        if (sceneDue && lookMode && faceThisFrame && deferLookSceneForSkin(now, still, settling)) {
+          lookSceneDeferred = true;
+        } else {
+          lookSceneDeferred = false;
+          lastLightAt = now;
+          if (sceneDue) {
+            lastSceneAt = now;
+            try { sampleScene(now, W, H); } catch (e) { /* light estimation is best-effort */ }
+          }
+          try { envEvaluate(now, W, H); } catch (e) { /* environment guidance is best-effort */ }
+          maybeLockWhiteBalance();
+          measureLipThickness(W, H);
+          try { measureLipEdge(W, H); } catch (e) { /* edge measurement is best-effort */ }
+          updateHud();
         }
-        try { envEvaluate(now, W, H); } catch (e) { /* environment guidance is best-effort */ }
-        maybeLockWhiteBalance();
-        measureLipThickness(W, H);
-        try { measureLipEdge(W, H); } catch (e) { /* edge measurement is best-effort */ }
-        updateHud();
       }
     }
     if (wantSkinMask()) {

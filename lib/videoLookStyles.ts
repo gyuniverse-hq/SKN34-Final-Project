@@ -1,4 +1,4 @@
-import type { ApplicationProfileOverrides, MakeupZone, ZoneGeometry } from '@/types';
+import type { ApplicationProfileOverrides, MakeupZone, Texture, ZoneGeometry } from '@/types';
 
 /**
  * Render-only finish of a video look, applied in the look AR only (lib/videoLookMakeup.ts): the painted colour, shape and
@@ -10,6 +10,7 @@ import type { ApplicationProfileOverrides, MakeupZone, ZoneGeometry } from '@/ty
 export type VideoLookZoneStyle = {
   hex?: string;
   hexTo?: string;
+  texture?: Texture;
   geometry?: ZoneGeometry;
   overrides?: ApplicationProfileOverrides;
 };
@@ -89,7 +90,11 @@ export const VIDEO_LOOK_STYLES: Readonly<Record<string, Partial<Record<MakeupZon
     highlighter: { hex: '#F2DCD0', geometry: { areas: ['nose_bridge', 'chin'] }, overrides: { coverageMultiplier: 0.6 } },
     // The olive catalog contour read grey-green on this pink skin.
     contour: { hex: '#B48C80', overrides: { coverageMultiplier: 0.15 } },
-    eyeshadow: { hex: '#E3A09A', hexTo: '#94605A', overrides: { coverageMultiplier: 0.6, underEyePearl: 0 } },
+    eyeshadow: {
+      hex: '#E3A09A', hexTo: '#94605A',
+      geometry: { shadowFinish: 'satin', glitter: false, sparkle: 0 },
+      overrides: { coverageMultiplier: 0.6, underEyePearl: 0 },
+    },
     eyeliner: {
       hex: '#4A3028',
       geometry: { linerSoftness: 0.7 },
@@ -106,10 +111,11 @@ export const VIDEO_LOOK_STYLES: Readonly<Record<string, Partial<Record<MakeupZon
     brow: { hex: '#7C5C4C', overrides: { coverageMultiplier: 0.4 } },
     lip: {
       hex: '#D2504E',
+      texture: 'velvet',
       geometry: { centerHighlight: 0.08 },
       overrides: {
         coverageMultiplier: 0.55, lipColor: 0.7, lipGradient: 1, lipGloss: 0.8, skinAdapt: 0.2, skinWarmth: 0,
-        material: { roughness: 0.2, specular: 0.8 },
+        material: { roughness: 0.52, specular: 0.48 },
       },
     },
   },
@@ -135,7 +141,7 @@ export const VIDEO_LOOK_STYLES: Readonly<Record<string, Partial<Record<MakeupZon
     eyeshadow: {
       hex: '#F0B8BC',
       hexTo: '#C07880',
-      geometry: { innerPoint: { hex: '#FBEFF0', a1: 0.16, radius: 0.06 } },
+      geometry: { shadowFinish: 'satin', glitter: false, sparkle: 0, innerPoint: { hex: '#FBEFF0', a1: 0.16, radius: 0.06 } },
       overrides: { coverageMultiplier: 0.6, underEyePearl: 0.35 },
     },
     eyeliner: {
@@ -154,10 +160,40 @@ export const VIDEO_LOOK_STYLES: Readonly<Record<string, Partial<Record<MakeupZon
     brow: { hex: '#6E5850', overrides: { coverageMultiplier: 0.2 } },
     lip: {
       hex: '#B85A6C',
+      texture: 'glossy',
       geometry: { centerHighlight: 0.3 },
       overrides: {
-        coverageMultiplier: 0.45, lipColor: 0.4, lipGradient: 1, lipGloss: 2.8, skinAdapt: 0.1, skinWarmth: 0,
-        material: { roughness: 0.04, specular: 2.0 },
+        coverageMultiplier: 0.45, lipColor: 0.4, lipGradient: 1, lipGloss: 1.8, skinAdapt: 0.1, skinWarmth: 0,
+        material: { roughness: 0.14, specular: 1.4 },
+      },
+    },
+  },
+  // This starting profile follows the peach video's catalog shades and mapped products.
+  kWI7_DkDjZ0: {
+    foundation: { overrides: { coverageMultiplier: 0.3, skinEven: 0.55 } },
+    blush: {
+      geometry: { blushPlacement: 'apple', blushSize: 1.25, blushSoftness: 1 },
+      overrides: { coverageMultiplier: 0.9, softLight: 2.2, blushColor: 1.05, skinAdapt: 0.35 },
+    },
+    highlighter: {
+      geometry: { areas: ['nose_bridge', 'under_eye'] },
+      overrides: { coverageMultiplier: 0.55 },
+    },
+    eyeshadow: {
+      geometry: { shadowFinish: 'satin', glitter: false, sparkle: 0, innerPoint: { hex: '#FCD3CC', a1: 0.13, radius: 0.05 } },
+      overrides: { coverageMultiplier: 0.5, underEyePearl: 0.28 },
+    },
+    mascara: {
+      geometry: { falseLash: [] },
+      overrides: { coverageMultiplier: 0.6, lashCurl: 0.65 },
+    },
+    brow: { overrides: { coverageMultiplier: 0.55 } },
+    lip: {
+      texture: 'glossy',
+      geometry: { centerHighlight: 0.12 },
+      overrides: {
+        coverageMultiplier: 0.45, lipColor: 0.4, lipGradient: 0.75, lipGloss: 1.45,
+        material: { roughness: 0.18, specular: 1.2 },
       },
     },
   },
@@ -183,7 +219,7 @@ export const VIDEO_LOOK_STYLES: Readonly<Record<string, Partial<Record<MakeupZon
     eyeshadow: {
       hex: '#E8A8B0',
       hexTo: '#B87880',
-      geometry: { innerPoint: { hex: '#FBECEC', a1: 0.14, radius: 0.05 }, glitter: false, sparkle: 0 },
+      geometry: { shadowFinish: 'satin', innerPoint: { hex: '#FBECEC', a1: 0.14, radius: 0.05 }, glitter: false, sparkle: 0 },
       overrides: { coverageMultiplier: 0.45, underEyePearl: 0.45 },
     },
     eyeliner: {
@@ -202,10 +238,11 @@ export const VIDEO_LOOK_STYLES: Readonly<Record<string, Partial<Record<MakeupZon
     brow: { hex: '#A88878', overrides: { coverageMultiplier: 0.55 } },
     lip: {
       hex: '#A8586A',
+      texture: 'glossy',
       geometry: { centerHighlight: 0.22, overlip: 0.02 },
       overrides: {
-        coverageMultiplier: 0.45, lipColor: 0.9, lipGradient: 1, lipGloss: 2.6, skinAdapt: 0.1, skinWarmth: 0,
-        material: { roughness: 0.04, specular: 2.0 },
+        coverageMultiplier: 0.45, lipColor: 0.9, lipGradient: 1, lipGloss: 1.65, skinAdapt: 0.1, skinWarmth: 0,
+        material: { roughness: 0.16, specular: 1.3 },
       },
     },
   },

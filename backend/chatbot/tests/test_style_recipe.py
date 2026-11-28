@@ -747,10 +747,19 @@ def test_real_catalog_and_chat_http_with_bundled_unreviewed_content():
     api_port, chat_port = port(), port()
     api_url, chat_url = f"http://127.0.0.1:{api_port}", f"http://127.0.0.1:{chat_port}"
     api_code = f"""
+import json
+from pathlib import Path
+
 import uvicorn
 from app.main import create_app
-from app.repositories.style_look_repository import StyleLookRepository
+from app.schemas.style_look import StyleLook
 from app.services.style_look_service import StyleLookService, get_style_look_service
+
+class JsonStyleLooks:
+    # The API reads the database; this test runs without one, so it serves the curated copy.
+    async def list_looks(self):
+        data = json.loads(Path("app/catalog_data/style_looks.json").read_text(encoding="utf-8"))
+        return [StyleLook.model_validate(item) for item in data]
 
 class EmptyVerifiedStyleLinks:
     async def links(self, *, source):
@@ -759,7 +768,7 @@ class EmptyVerifiedStyleLinks:
 
 app = create_app()
 app.dependency_overrides[get_style_look_service] = lambda: StyleLookService(
-    StyleLookRepository(), EmptyVerifiedStyleLinks()
+    JsonStyleLooks(), EmptyVerifiedStyleLinks()
 )
 uvicorn.run(app,host="127.0.0.1",port={api_port},access_log=False,log_level="warning")
 """

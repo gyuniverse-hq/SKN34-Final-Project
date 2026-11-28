@@ -1899,6 +1899,7 @@ def test_completion_restore_keeps_two_query_scopes_and_selected_result(api, monk
 
 
 def test_pending_questions_consume_only_answered_task_pg(api, monkeypatch):
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
     from app.schemas.consultation_parent import ConsultationParent, ParentTask
     from app.schemas.consultation_task import TaskInputNeed
     from app.services.consultation_parent_graph import reconcile_questions

@@ -47,7 +47,7 @@ function zoneSnap(snapshot: ReturnType<typeof useMakeupStore.getState>, zone: Ma
   return selected && painted ? { productId: selected.productId, shadeId: selected.shadeId, intensity: painted.intensity } : null;
 }
 
-export function useArCommand(options: Options) {
+export function useArCommand(options: Options, store = useMakeupStore) {
   const [state, setState] = useState<Phase>('idle');
   const [message, setMessage] = useState('');
   const [renderCommand, setRenderCommand] = useState<ArRenderCommand | null>(null);
@@ -78,7 +78,7 @@ export function useArCommand(options: Options) {
       if (mounted.current) { setRestoreState('unavailable'); setRenderCommand(null); }
       return;
     }
-    const snapshot = useMakeupStore.getState();
+    const snapshot = store.getState();
     const pending: Restore = { cmd, restoreId: uuid.v4(), renderSeq: ++sequence.current,
       rendererId: cmd.rendererId, stateVersion: snapshot.arVersion, displayKey: displayKey(current.current) };
     const visibleZones = current.current.visibleZones;
@@ -93,7 +93,7 @@ export function useArCommand(options: Options) {
       restoreTimer.current = null;
       if (mounted.current) { setRestoreState('unknown'); setRenderCommand(null); }
     }, RENDER_TIMEOUT_MS);
-  }, []);
+  }, [store]);
 
   const complete = useCallback((cmd: Command, outcome: ArOutcome, needsRestore = false) => {
     queueArAck({ requestId: cmd.requestId, commandId: cmd.proposal.commandId, sessionId: cmd.sessionId, ...outcome }, cmd.owner);
@@ -119,20 +119,20 @@ export function useArCommand(options: Options) {
 
   useEffect(() => subscribeArIdentityChange(() => {
     authEpoch.current++;
-    if (command.current) useMakeupStore.getState().cancelArCommand();
+    if (command.current) store.getState().cancelArCommand();
     else {
       activeRequest.current = null;
       busy.current = false;
       if (mounted.current) { setState('idle'); setMessage(''); }
     }
-  }), []);
+  }), [store]);
 
   useEffect(() => {
     if (!options.active) return;
     const id = uuid.v4();
     session.current = id;
-    useMakeupStore.getState().beginArSession(id);
-    const unsubscribe = useMakeupStore.subscribe((next, previous) => {
+    store.getState().beginArSession(id);
+    const unsubscribe = store.subscribe((next, previous) => {
       const restoring = restore.current;
       const pending = previous.pendingArCommand;
       if (pending && !next.pendingArCommand && command.current?.proposal.commandId === pending.proposal.commandId) {
@@ -148,7 +148,7 @@ export function useArCommand(options: Options) {
     });
     return () => {
       session.current = null;
-      if (useMakeupStore.getState().arSessionId === id) useMakeupStore.getState().endArSession();
+      if (store.getState().arSessionId === id) store.getState().endArSession();
       if (restore.current) {
         if (restoreTimer.current) clearTimeout(restoreTimer.current);
         restoreTimer.current = null;
@@ -160,7 +160,7 @@ export function useArCommand(options: Options) {
       if (mounted.current) { setState('idle'); setMessage(''); setRenderCommand(null); }
       unsubscribe();
     };
-  }, [options.active, complete, startRestore]);
+  }, [options.active, complete, startRestore, store]);
 
   useLayoutEffect(() => {
     if (restore.current && (!options.active || options.rendererId !== restore.current.rendererId)) {
@@ -172,14 +172,14 @@ export function useArCommand(options: Options) {
     }
     const cmd = command.current;
     if (cmd && (!options.enabled || options.rendererId !== cmd.rendererId)) {
-      useMakeupStore.getState().cancelArCommand();
+      store.getState().cancelArCommand();
     }
     if (activeRequest.current && (!options.active || !options.enabled || requestRendererId.current !== options.rendererId)) {
       activeRequest.current = null;
       busy.current = false;
       if (mounted.current) setState('idle');
     }
-  }, [options.active, options.enabled, options.rendererId]);
+  }, [options.active, options.enabled, options.rendererId, store]);
 
   useLayoutEffect(() => {
     const pending = restore.current;
@@ -192,7 +192,7 @@ export function useArCommand(options: Options) {
       if (!pending || result.restoreId !== pending.restoreId || result.commandId !== pending.cmd.proposal.commandId ||
           result.rendererId !== pending.rendererId || result.renderSeq !== pending.renderSeq) return;
       if (!current.current.active || current.current.rendererId !== pending.rendererId) return;
-      if (useMakeupStore.getState().arVersion !== pending.stateVersion || pending.displayKey !== displayKey(current.current)) {
+      if (store.getState().arVersion !== pending.stateVersion || pending.displayKey !== displayKey(current.current)) {
         startRestore(pending.cmd); return;
       }
       restore.current = null;
@@ -205,14 +205,14 @@ export function useArCommand(options: Options) {
     const cmd = command.current;
     if (!cmd || result.commandId !== cmd.proposal.commandId || result.rendererId !== cmd.rendererId || result.renderSeq !== cmd.renderSeq) return;
     if (authEpoch.current !== cmd.authEpoch || !current.current.enabled || current.current.rendererId !== cmd.rendererId || session.current !== cmd.sessionId) {
-      useMakeupStore.getState().cancelArCommand();
+      store.getState().cancelArCommand();
       return;
     }
     // Clear before store mutation: the subscription must not mistake commit for manual cancellation.
     command.current = null;
-    const outcome = useMakeupStore.getState().finishArCommand(cmd.proposal.commandId, cmd.sessionId, result.status);
+    const outcome = store.getState().finishArCommand(cmd.proposal.commandId, cmd.sessionId, result.status);
     complete(cmd, outcome, outcome.status !== 'APPLIED' && outcome.status !== 'NO_CHANGE');
-  }, [complete, startRestore]);
+  }, [complete, startRestore, store]);
 
   const send = useCallback(async (text: string) => {
     const opts = current.current;
@@ -224,12 +224,12 @@ export function useArCommand(options: Options) {
     const requestId = uuid.v4();
     activeRequest.current = requestId;
     requestRendererId.current = opts.rendererId;
-    const snapshot = useMakeupStore.getState();
+    const snapshot = store.getState();
     const epoch = authEpoch.current;
     requestVersion.current = snapshot.arVersion;
     const isCurrent = () => authEpoch.current === epoch && activeRequest.current === requestId && session.current === sessionId &&
       mounted.current && current.current.active && current.current.enabled && current.current.rendererId === opts.rendererId &&
-      useMakeupStore.getState().arVersion === snapshot.arVersion;
+      store.getState().arVersion === snapshot.arVersion;
     try {
       const { data: response, owner } = await apiPostOwned<{ answer?: unknown; arResult?: unknown }>('/api/chat', {
         message: text.trim(), locale: opts.locale, requestType: 'ar_command', requestId,
@@ -261,15 +261,15 @@ export function useArCommand(options: Options) {
       if (!proposal) throw new Error('Invalid AR proposal');
       const cmd: Command = { requestId, sessionId, owner, proposal, renderSeq: ++sequence.current, rendererId: opts.rendererId, authEpoch: epoch };
       if (!isCurrent()) {
-        complete(cmd, { status: 'REJECTED', actualStateVersion: useMakeupStore.getState().arVersion });
+        complete(cmd, { status: 'REJECTED', actualStateVersion: store.getState().arVersion });
         return;
       }
-      const prepared = useMakeupStore.getState().prepareArCommand(requestId, sessionId, proposal);
+      const prepared = store.getState().prepareArCommand(requestId, sessionId, proposal);
       if (prepared.status !== 'PENDING') { complete(cmd, prepared); return; }
       command.current = cmd;
-      const latest = arPaintMakeup(useMakeupStore.getState().makeup);
+      const latest = arPaintMakeup(store.getState().makeup);
       const current = latest[proposal.zone];
-      if (!current) { command.current = null; complete(cmd, useMakeupStore.getState().cancelArCommand()!); return; }
+      if (!current) { command.current = null; complete(cmd, store.getState().cancelArCommand()!); return; }
       const next = proposal.action === 'set_intensity'
         ? { ...latest, lip: { ...current, intensity: proposal.value } }
         : { ...latest, [proposal.zone]: { ...current, geometry: { ...current.geometry, ...proposal.geometry } } };
@@ -279,7 +279,7 @@ export function useArCommand(options: Options) {
       timer.current = setTimeout(() => {
         if (command.current !== cmd) return;
         command.current = null;
-        complete(cmd, useMakeupStore.getState().finishArCommand(proposal.commandId, sessionId, 'unknown'), true);
+        complete(cmd, store.getState().finishArCommand(proposal.commandId, sessionId, 'unknown'), true);
       }, RENDER_TIMEOUT_MS);
     } catch {
       if (isCurrent()) {
@@ -288,7 +288,7 @@ export function useArCommand(options: Options) {
         setState('failed');
       }
     }
-  }, [complete]);
+  }, [complete, store]);
 
   return { state, message, restoreState, ackPending, send, retryAck: retryArAcks, renderCommand, onRenderResult };
 }

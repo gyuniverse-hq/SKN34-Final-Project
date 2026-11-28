@@ -9,7 +9,7 @@ import Svg, { Path } from 'react-native-svg';
 import { HomeChatButton } from '@/components/chat/HomeChatButton';
 import { theme } from '@/constants/theme';
 import { useI18n } from '@/lib/i18n';
-import { chatHref } from '@/lib/routes';
+import { chatHref, parseFlag } from '@/lib/routes';
 import { useMakeupStore } from '@/store/makeupStore';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -90,14 +90,18 @@ export default function TabLayout() {
         listeners={({ navigation }) => ({
           tabPress: (event) => {
             const state = navigation.getState();
-            if (state.routes[state.index]?.name !== 'index') return;
+            const currentTab = state.routes[state.index]?.name;
+            if (currentTab === 'ar') return;
+            const arRoute: { params?: { look?: string; video?: string } } | undefined =
+              state.routes.find((route: { name: string }) => route.name === 'ar');
+            const arParams = arRoute?.params;
+            if (currentTab !== 'index' && !parseFlag(arParams?.look) && !parseFlag(arParams?.video)) return;
 
-            // A direct home entry starts a fresh try-on, including when the AR tab
-            // retains parameters from an earlier video or product visit.
+            // The tab can retain look params after a visit from a detail screen.
             event.preventDefault();
-            useMakeupStore.getState().reset();
+            if (currentTab === 'index') useMakeupStore.getState().reset();
             navigation.navigate('ar', {
-              video: undefined, productId: undefined, shadeId: undefined, compare: undefined,
+              video: undefined, look: undefined, productId: undefined, shadeId: undefined, compare: undefined,
             }, { merge: false });
           },
         })}

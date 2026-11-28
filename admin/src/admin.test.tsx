@@ -117,8 +117,11 @@ describe("권한과 운영 화면", () => {
       screen.queryByRole("link", { name: "감사 로그" }),
     ).not.toBeInTheDocument();
     expect(
-      await screen.findByRole("heading", { name: "운영 대시보드" }),
+      await screen.findByRole("heading", { name: "오늘 처리할 일" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "결제 완료 주문" })).toHaveAttribute(
+      "href", "/orders?status=paid",
+    );
   });
   it("미측정 항목을 숨기지 않는다", () => {
     render(<Unmeasured items={["색 재현", "피팅 안정성"]} />);

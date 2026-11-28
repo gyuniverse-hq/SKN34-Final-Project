@@ -1,10 +1,13 @@
 import {
   arHref,
+  checkoutHref,
+  lookPreviewHref,
   externalLinkHref,
   loginHref,
   paramValue,
   parseCategory,
   parseConcerns,
+  parseCheckoutSelection,
   parseFlag,
   parseId,
   parseIntensity,
@@ -16,6 +19,15 @@ import {
   searchHref,
   signupHref,
 } from '@/lib/routes';
+
+test('direct checkout keeps both catalog IDs across auth routes', () => {
+  const selection = { productId: 'p1', shadeId: '02' };
+  expect(parseCheckoutSelection(selection)).toEqual(selection);
+  expect(parseCheckoutSelection({ productId: 'p1', shadeId: 'invalid/shade' })).toBeUndefined();
+  expect(checkoutHref(selection)).toEqual({ pathname: '/checkout', params: selection });
+  expect(loginHref('checkout', selection)).toEqual({ pathname: '/login', params: { returnTo: 'checkout', ...selection } });
+  expect(signupHref({ returnTo: 'checkout', selection })).toEqual({ pathname: '/signup', params: { returnTo: 'checkout', ...selection } });
+});
 
 describe('route param parsing', () => {
   it('takes the first trimmed value of repeated params', () => {
@@ -74,6 +86,13 @@ describe('route builders pass ids, never names', () => {
   it('AR carries product + shade, and drops a shade without a product', () => {
     expect(arHref({ productId: 'p1', shadeId: '02' })).toEqual({ pathname: '/ar', params: { productId: 'p1', shadeId: '02' } });
     expect(arHref({ shadeId: '02', compare: true })).toEqual({ pathname: '/ar', params: { compare: '1' } });
+  });
+
+  it('look preview carries look id and optional title before video AR', () => {
+    expect(lookPreviewHref({ lookId: 'style-ZAozXs-ZZik', title: 'Strawberry' })).toEqual({
+      pathname: '/look-preview',
+      params: { id: 'style-ZAozXs-ZZik', title: 'Strawberry' },
+    });
   });
 
   it('recommendations carry product, shade, zone and intensity', () => {

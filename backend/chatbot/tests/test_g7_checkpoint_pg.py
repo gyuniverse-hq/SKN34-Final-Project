@@ -41,6 +41,7 @@ async def test_execution_locks_share_but_delete_remains_exclusive(record_propert
         PostgresSaver.from_conn_string(dsn) as first,
         PostgresSaver.from_conn_string(dsn) as second,
     ):
+        first.setup()
         _lock_thread(first, thread, shared=True)
         _lock_thread(second, thread, shared=True)
         with pytest.raises(OSError, match="Checkpoint thread is busy"):

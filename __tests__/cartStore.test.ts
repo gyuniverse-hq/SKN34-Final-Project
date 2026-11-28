@@ -72,6 +72,20 @@ describe('cartStore', () => {
     store.reset();
     expect(useCartStore.getState().pendingPayment).toBeNull();
   });
+
+  it('clears a pending payment without changing cart items', () => {
+    const store = useCartStore.getState();
+    store.add({ productId: 'a' });
+    store.setPendingPayment({
+      orderId: 'order-3',
+      userId: 'user-1',
+      items: [...useCartStore.getState().items],
+      checkoutUrl: 'https://example.com/pay',
+    });
+    store.clearPendingPayment();
+    expect(useCartStore.getState().pendingPayment).toBeNull();
+    expect(useCartStore.getState().items).toHaveLength(1);
+  });
 });
 
 
@@ -93,4 +107,16 @@ it('rehydrates exact sale identities alongside unchanged version-1 legacy items'
   await AsyncStorage.setItem(STORAGE_KEYS.cart, JSON.stringify({ state: { items: saved, pendingPayment: null }, version: 1 }));
   await useCartStore.persist.rehydrate();
   expect(useCartStore.getState().items).toEqual(saved);
+});
+
+it('preserves a version-1 pending order without inventing a checkout URL', async () => {
+  const items = [{ productId: 'p', shadeId: 's', quantity: 1 }];
+  const pendingPayment = { orderId: 'old-order', userId: 'owner-1', items };
+  await AsyncStorage.setItem(STORAGE_KEYS.cart, JSON.stringify({
+    state: { items, pendingPayment }, version: 1,
+  }));
+  await useCartStore.persist.rehydrate();
+  expect(useCartStore.getState().items).toEqual(items);
+  expect(useCartStore.getState().pendingPayment).toEqual(pendingPayment);
+  expect(useCartStore.getState().pendingPayment?.checkoutUrl).toBeUndefined();
 });

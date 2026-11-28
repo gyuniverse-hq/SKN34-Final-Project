@@ -329,8 +329,10 @@ sequenceDiagram
   ─▶ export_oy_catalog ─▶ products · shades (PostgreSQL) ─▶ sync_graph ─▶ Neo4j
 
 [K-스타일 영상]
-collect_youtube_playlist ─▶ normalize_youtube_candidates ─▶ match_video_products (후보 규칙)
-  ─▶ 사람 검수 ─▶ apply_video_product_mappings ─▶ 영상 상세 · AR 시착
+collect_youtube_playlist ─▶ normalize_youtube_candidates (영상 후보 CSV)
+조사 엑셀 ─▶ load_products (raw_yt_product · raw_yt_product_mention) ─▶ match_products (올리브영 후보)
+  ─▶ 사람 확정 (yt_oy_product_match · yt_catalog_product_link)   ※ scripts/data/youtube
+  ─▶ load_makeup_look_catalog (makeup_looks 분류 · 공개) ─▶ 영상 상세 · AR 시착
   └─ Gemini VLM 3회 추론 → vote_recipes 다수결 → approved: true → ZoneGeometry 변환
 ```
 

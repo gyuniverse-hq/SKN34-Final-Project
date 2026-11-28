@@ -13,6 +13,7 @@ from app.core.ratelimit import (
 from app.schemas.catalog import (
     CATEGORIES,
     CONCERNS,
+    DiscoveryChart,
     LookDetailResponse,
     LooksResponse,
     ProductDiscoveryOrder,
@@ -42,6 +43,8 @@ async def list_products(
     category: str | None = Query(default=None, max_length=20),
     ids: str | None = Query(default=None, max_length=2000),
     concerns: str | None = Query(default=None, max_length=200),
+    limit: int | None = Query(default=None, ge=1, le=50),
+    offset: int = Query(default=0, ge=0, le=2_147_483_647),
     service: CatalogService = Depends(get_catalog_service),
 ) -> ProductsResponse:
     if category and category not in CATEGORIES:
@@ -51,6 +54,19 @@ async def list_products(
     if any(c not in CONCERNS for c in concern_list):
         raise ApiError(400, "Unknown skin concern", "invalid_concern")
     query = q.strip()[:80] if q and q.strip() else None
+    if limit is not None:
+        products, has_more = await service.list_products_page(
+            q=query,
+            category=category or None,
+            ids=id_list,
+            concerns=concern_list or None,
+            limit=limit,
+            offset=offset,
+        )
+        cache_for(response, 300)
+        return ProductsResponse(products=products, has_more=has_more)
+    if offset:
+        raise ApiError(400, "Offset requires a page limit", "invalid_pagination")
     products = await service.list_products(
         q=query, category=category or None, ids=id_list, concerns=concern_list or None
     )
@@ -78,6 +94,19 @@ async def get_product_discovery_order(
     order = await service.discovery_product_order(preview=preview)
     cache_for(response, 300)
     return order
+
+
+@router.get("/discovery/charts/{chart}", response_model=ProductsResponse)
+async def get_product_discovery_chart(
+    chart: DiscoveryChart,
+    response: Response,
+    limit: int = Query(default=24, ge=1, le=50),
+    offset: int = Query(default=0, ge=0, le=2_147_483_647),
+    service: CatalogService = Depends(get_catalog_service),
+) -> ProductsResponse:
+    products, has_more = await service.discovery_chart_page(chart, limit=limit, offset=offset)
+    cache_for(response, 300)
+    return ProductsResponse(products=products, has_more=has_more)
 
 
 @router.get("/products/{product_id}/ingredients", response_model=IngredientReadResult)

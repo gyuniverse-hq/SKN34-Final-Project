@@ -1,9 +1,13 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 import ArTryOnScreen from '@/app/(tabs)/ar';
+import { CoverageBar } from '@/components/ar/CoverageBar';
+import { IntensityRail } from '@/components/ar/IntensityRail';
 import { Chip } from '@/components/ui/Chip';
 import { HL_FACE_AREAS } from '@/lib/arFacePalette';
-import { useMakeupStore } from '@/store/makeupStore';
+import { useLookMakeupStore, useMakeupStore } from '@/store/makeupStore';
+
+let mockParams: { video?: string; look?: string; productId?: string } = {};
 
 jest.mock('react-native-safe-area-context', () => {
   const actual = jest.requireActual('react-native-safe-area-context') as typeof import('react-native-safe-area-context');
@@ -18,7 +22,7 @@ jest.mock('expo-haptics', () => ({
 }));
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn(), canGoBack: () => false }),
-  useLocalSearchParams: () => ({}),
+  useLocalSearchParams: () => mockParams,
   useNavigation: () => ({ setOptions: jest.fn() }),
   useFocusEffect: jest.fn(),
 }));
@@ -40,6 +44,27 @@ const chip = (screen: renderer.ReactTestRenderer, label: string) =>
 const areasOn = (screen: renderer.ReactTestRenderer) =>
   screen.root.findAllByType(Chip).filter((c) => String(c.props.label).startsWith('looks.area.') && c.props.selected)
     .map((c) => String(c.props.label).replace('looks.area.', ''));
+
+test('the video look keeps its top slider and the product route keeps its intensity rail', async () => {
+  useLookMakeupStore.setState({ activeLook: { id: 'e1gSkUdG6Bo', title: 'Look' } });
+  mockParams = { video: '1' };
+  let screen!: renderer.ReactTestRenderer;
+  await act(async () => { screen = renderer.create(<ArTryOnScreen />); });
+  expect(screen.root.findAllByType(IntensityRail)).toHaveLength(0);
+  expect(screen.root.findAllByType(CoverageBar)).toHaveLength(1);
+
+  mockParams = { look: '1' };
+  await act(async () => { screen.update(<ArTryOnScreen />); });
+  expect(screen.root.findAllByType(IntensityRail)).toHaveLength(0);
+
+  mockParams = { productId: 'hl' };
+  await act(async () => { screen.update(<ArTryOnScreen />); });
+  expect(screen.root.findAllByType(IntensityRail)).toHaveLength(1);
+  expect(screen.root.findAllByType(CoverageBar)).toHaveLength(0);
+  await act(async () => { screen.unmount(); });
+  mockParams = {};
+  useLookMakeupStore.getState().reset();
+});
 
 describe('AR highlighter chips (11-11: face type sets the regions, chips show what is painted)', () => {
   beforeEach(() => {

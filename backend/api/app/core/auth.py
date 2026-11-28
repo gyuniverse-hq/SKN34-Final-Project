@@ -53,12 +53,14 @@ class SupabaseTokenVerifier:
         if alg in _ASYMMETRIC:
             try:
                 key = await anyio.to_thread.run_sync(self._jwks.get_signing_key_from_jwt, token)
+                # Small leeway absorbs local/Supabase clock skew (ImmatureSignatureError).
                 return jwt.decode(
                     token,
                     key.key,
                     algorithms=[alg],
                     audience="authenticated",
                     issuer=self._auth_url,
+                    leeway=60,
                 )
             except jwt.PyJWTError:
                 return None

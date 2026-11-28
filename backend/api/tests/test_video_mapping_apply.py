@@ -1,6 +1,10 @@
 import json
+import sys
 from pathlib import Path
 
+import pytest
+
+from app.jobs import apply_video_product_mappings
 from app.repositories.video_mapping_files import VideoMappingFiles
 from app.services.video_mapping_service import VideoMappingService
 from tests.test_video_product_matching import product
@@ -125,3 +129,14 @@ def test_placeholder_shade_cannot_be_approved(tmp_path):
     result = service.apply(catalog, review, write=True)
     assert result["errors"] and not result["written"]
     assert sources["celebrity"][0].read_bytes() == before
+
+
+def test_apply_job_refuses_to_write_the_json(monkeypatch):
+    def fail(*args, **kwargs):
+        raise AssertionError("must not run")
+
+    monkeypatch.setattr(sys, "argv", ["apply_video_product_mappings", "--write"])
+    monkeypatch.setattr(apply_video_product_mappings, "VideoMappingService", fail)
+    with pytest.raises(SystemExit) as exc:
+        apply_video_product_mappings.main()
+    assert exc.value.code == apply_video_product_mappings.WRITE_DISABLED

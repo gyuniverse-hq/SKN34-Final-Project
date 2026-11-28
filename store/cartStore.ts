@@ -15,6 +15,8 @@ export interface PendingPayment {
   couponId?: string;
   userId: string;
   items: CartItem[];
+  /** Checkout page URL so payment can be resumed after an app restart. */
+  checkoutUrl?: string;
 }
 
 interface CartState {
@@ -28,6 +30,7 @@ interface CartState {
   reset: () => void;
   setPendingPayment: (payment: PendingPayment) => void;
   dismissPayment: (orderId: string) => void;
+  clearPendingPayment: () => void;
   completePayment: (orderId: string) => void;
 }
 
@@ -78,6 +81,7 @@ export const useCartStore = create<CartState>()(
       reset: () => set({ items: [], pendingPayment: null }),
       setPendingPayment: (payment) => set({ pendingPayment: payment }),
       dismissPayment: (orderId) => set(s => s.pendingPayment?.orderId === orderId ? { pendingPayment: null } : s),
+      clearPendingPayment: () => set({ pendingPayment: null }),
       completePayment: (orderId) =>
         set((s) => {
           if (s.pendingPayment?.orderId !== orderId) return s;
@@ -93,7 +97,13 @@ export const useCartStore = create<CartState>()(
           };
         }),
     }),
-    { name: STORAGE_KEYS.cart, storage: persistStorage, version: 1 }
+    {
+      name: STORAGE_KEYS.cart,
+      storage: persistStorage,
+      version: 2,
+      // v2 only adds an optional checkout URL; v1 item identities remain valid.
+      migrate: (state, version) => version === 1 ? state as CartState : { items: [], pendingPayment: null },
+    }
   )
 );
 

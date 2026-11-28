@@ -13,11 +13,11 @@ import {
 } from '@/lib/auth';
 import { notify } from '@/lib/confirm';
 import { useI18n } from '@/lib/i18n';
-import { parseLoginReturnTo, signupHref } from '@/lib/routes';
+import { checkoutHref, parseCheckoutSelection, parseLoginReturnTo, signupHref } from '@/lib/routes';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
+  const params = useLocalSearchParams<{ returnTo?: string; productId?: string; shadeId?: string }>();
   const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,9 +25,12 @@ export default function LoginScreen() {
   const [googleBusy, setGoogleBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const configured = isAuthConfigured();
-  const destination = parseLoginReturnTo(returnTo);
+  const destination = parseLoginReturnTo(params.returnTo);
+  const selection = destination === 'checkout' ? parseCheckoutSelection(params) : undefined;
   const finishLogin = () => {
-    if (destination) router.replace(`/${destination}`);
+    if (destination?.startsWith('community-') && router.canGoBack()) router.back();
+    else if (selection) router.replace(checkoutHref(selection));
+    else if (destination) router.replace(`/${destination}`);
     else router.dismissTo('/my');
   };
 
@@ -41,7 +44,7 @@ export default function LoginScreen() {
     } catch (e) {
       if (authErrorCode(e) === 'email_not_confirmed') {
         await resendSignupCode(address).catch(() => {});
-        router.replace(signupHref({ returnTo: destination, verifyEmail: address }));
+        router.replace(signupHref({ returnTo: destination, verifyEmail: address, selection }));
         return;
       }
       setError(t(authErrorMessageKey(e)));
@@ -112,7 +115,7 @@ export default function LoginScreen() {
         style={authStyles.gap}
       />
 
-      <Pressable accessibilityRole="button" style={authStyles.link} onPress={() => router.replace(signupHref({ returnTo: destination }))}>
+      <Pressable accessibilityRole="button" style={authStyles.link} onPress={() => router.replace(signupHref({ returnTo: destination, selection }))}>
         <Text style={authStyles.linkText}>{t('login.signup')}</Text>
       </Pressable>
     </AuthScreen>

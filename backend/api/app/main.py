@@ -18,6 +18,7 @@ from app.routers import (
     celebrity_videos,
     health,
     idol_looks,
+    look_community,
     look_consult,
     members,
     payments,
@@ -60,6 +61,8 @@ def create_app() -> FastAPI:
         docs_url="/api/docs" if docs else None,
         redoc_url=None,
     )
+    # RequestContext first (inner); CORS last (outer) so error responses still get ACAO.
+    app.add_middleware(RequestContextMiddleware)
     if settings.cors_origins:
         app.add_middleware(
             CORSMiddleware,
@@ -67,7 +70,6 @@ def create_app() -> FastAPI:
             allow_methods=["GET", "POST", "PATCH", "DELETE"],
             allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
         )
-    app.add_middleware(RequestContextMiddleware)
     install_error_handlers(app)
     for module in (
         admin,
@@ -83,6 +85,7 @@ def create_app() -> FastAPI:
         celebrity_videos,
         recommendations,
         look_consult,
+        look_community,
     ):
         app.include_router(module.router)
     app.include_router(payments.router)

@@ -7,11 +7,11 @@ import { en } from '@/lib/i18n/en';
 import { ko } from '@/lib/i18n/ko';
 import { ja } from '@/lib/i18n/ja';
 import { zh } from '@/lib/i18n/zh';
+import { useLookPreviewStore } from '@/store/lookPreviewStore';
 import type { ChatStyleRecipe } from '@/types';
 
 let mockDictionary: Record<string, string> = {};
 const mockPush = jest.fn();
-const mockApplyLook = jest.fn();
 const mockLook = { id: 'catalog-1', title: 'Synthetic catalog look', inspiration: '', description: '', thumbnailUrl: '',
   tutorialQuery: '', items: [], tags: [], makeup: { lip: { hex: '#BB3344', intensity: 0.5, texture: 'matte' }, blush: null, eyeshadow: null } };
 jest.mock('expo-router', () => ({
@@ -20,7 +20,6 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ id: 'catalog-1' }),
 }));
 jest.mock('@/lib/queries', () => ({ useLook: () => ({ data: { look: mockLook, products: [] } }), useTutorials: () => ({ data: { configured: false, videos: [] } }) }));
-jest.mock('@/store/makeupStore', () => ({ useMakeupStore: (select: (s: unknown) => unknown) => select({ applyLook: mockApplyLook }) }));
 jest.mock('@/store/cartStore', () => ({ useCartStore: (select: (s: unknown) => unknown) => select({ add: jest.fn(), addMany: jest.fn() }) }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: ({ children }: { children: unknown }) => children }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({
@@ -130,14 +129,15 @@ test('does not synthesize a recipe when the server returned none', async () => {
   await act(async () => view.unmount());
 });
 
-test('Catalog look entry carries its namespace and preserves the existing full-look AR handler', async () => {
+test('Catalog look entry carries its namespace and opens confirmation before full-look AR', async () => {
   mockDictionary = en;
   let view!: ReactTestRenderer;
   await act(async () => { view = create(createElement(LookDetail)); });
   await act(async () => view.root.findByProps({ accessibilityLabel: en['home.chatFab'] }).props.onPress());
   expect(mockPush).toHaveBeenCalledWith({ pathname: '/chat', params: { recipeKind: 'catalog', recipeLookId: 'catalog-1' } });
   await act(async () => view.root.findByProps({ label: en['looks.applyInAr'] }).props.onPress());
-  expect(mockApplyLook).toHaveBeenCalledWith(mockLook, []);
+  expect(mockPush).toHaveBeenLastCalledWith({ pathname: '/look-preview', params: { id: 'catalog-1' } });
+  expect(useLookPreviewStore.getState().draft).toEqual({ look: mockLook, products: [], video: false });
   await act(async () => view.unmount());
 });
 

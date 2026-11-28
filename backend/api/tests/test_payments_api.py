@@ -15,11 +15,47 @@ def test_result_pages_are_not_captured_as_an_order_id():
     success = client.get(f"/pay/success?token={token}&orderId=o1&paymentKey=k&amount=1000")
     assert success.status_code == 200
     assert "/api/payments/confirm" in success.text
+    assert "결제를 확인하고 있어요" in success.text
 
     fail = client.get("/pay/fail")
     assert fail.status_code == 200
     assert "status=failed" in fail.text
+    assert "결제가 완료되지 않았어요" in fail.text
     assert "status=unknown" in success.text
+
+
+def test_checkout_page_shows_order_summary_and_loading_state():
+    class Orders:
+        async def get(self, order_id):
+            return SimpleNamespace(
+                id=order_id,
+                order_name="3CE 소프트 매트 립스틱",
+                amount_krw=19000,
+                checkout_token_hash="unused",
+                status="pending",
+            )
+
+    class Service(PaymentService):
+        async def checkout(self, order_id: str, token: str):
+            from app.schemas.payment import PublicCheckout
+
+            return PublicCheckout(
+                order_id=order_id,
+                order_name="3CE 소프트 매트 립스틱",
+                amount=19000,
+                checkout_token=token,
+            )
+
+    app = create_app()
+    settings = SimpleNamespace(toss_client_key="test_ck")
+    app.dependency_overrides[get_payment_service] = lambda: Service(Orders(), None, None, settings)
+    token = "t" * 32
+    page = TestClient(app).get(f"/pay/order-1?token={token}")
+    assert page.status_code == 200
+    assert "3CE 소프트 매트 립스틱" in page.text
+    assert "19,000원" in page.text
+    assert "결제 수단을 준비하고 있어요" in page.text
+    assert "VISHUE" in page.text
 
 
 def test_order_status_is_only_visible_to_its_owner():
