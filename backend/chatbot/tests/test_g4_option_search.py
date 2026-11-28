@@ -1047,3 +1047,78 @@ async def test_ambiguous_types_ask_without_scanning_cards(setup):
     assert result.result_type == "clarification"
     assert "파운데이션과 쿠션 중" in result.answer
     assert not result.products and not service._catalog.calls
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("g1_enabled", [False, True])
+@pytest.mark.parametrize("outcome", ["unknown", "no_match", "matched", "failure"])
+async def test_option_capability_and_executed_verdicts_stay_distinct(
+    monkeypatch, g1_enabled, outcome
+):
+    from app.schemas.chat import ChatRequest
+    from app.schemas.supervisor import SearchPlan
+    from app.services.beauty_consultation_service import execute_beauty
+
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", g1_enabled)
+    catalog = OptionCatalog()
+    original = catalog.search_options
+
+    async def lookup(query):
+        if outcome == "failure":
+            catalog.calls.append(query)
+            raise UpstreamError("synthetic outage")
+        result = await original(query)
+        if outcome != "unknown":
+            result.status = "SUCCESS"
+            result.items[0].group = "ELIGIBLE" if outcome == "matched" else "EXCLUDED"
+            result.items[0].checks[-1].verdict = "MATCH" if outcome == "matched" else "NOT_MATCH"
+        return result
+
+    catalog.search_options = lookup
+    req = ChatRequest(message="1만원 이하 립 옵션 찾아줘", locale="ko")
+    plan = SearchPlan(intent="search", category="lip", maxPriceKRW=10000, optionSearch=True)
+    if g1_enabled and outcome == "failure":
+        with pytest.raises(ApiError) as caught:
+            await execute_beauty(req, plan, catalog)
+        assert caught.value.code == "upstream_error" and caught.value.status == 502
+        assert len(catalog.calls) == 1
+        return
+    result = await execute_beauty(req, plan, catalog)
+    assessment = result._product_assessment
+    if not g1_enabled:
+        assert assessment.status == "partial" and assessment.outcome == "unsupported"
+        assert assessment.inspected == 0 and assessment.limitations == ["option_search_disabled"]
+        assert result.tool_result.status == "unsupported"
+        assert not result.products and not catalog.calls and result.option_search is None
+        assert "후보는 찾지 못" not in result.answer
+    else:
+        assert len(catalog.calls) == 1
+        assert assessment.status == ("partial" if outcome == "unknown" else "completed")
+        assert assessment.outcome == outcome
+
+
+@pytest.mark.anyio
+async def test_disabled_option_requirement_stays_partial_in_parent_answer(monkeypatch):
+    from app.schemas.chat import ChatRequest
+    from tests.conftest import FakeGraph
+    from tests.test_beauty_consultation import PlanLlm
+    from tests.test_g8_consultation_intent import EntryModel
+
+    class Model(EntryModel):
+        async def complete(self, messages):
+            return await PlanLlm(intent="search", category="lip", maxPriceKRW=10000,
+                optionSearch=True, productRequirement={"operation": "keep"}).complete(messages)
+
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", False)
+    quote = "만원 이하 립 옵션 찾아줘"
+    catalog = OptionCatalog()
+    result = await ChatService(FakeGraph(), Model([
+        {"capability": "product", "productOperation": "search", "quote": quote},
+    ]), catalog).answer(ChatRequest(message=quote, locale="ko"))
+    assert result.consultation.status == "partial"
+    task = result._consultation_parent.tasks[0]
+    assert task.product_assessment.outcome == "unsupported"
+    assert task.reason == "unsupported" and task.limitations == ["option_search_disabled"]
+    assert "조회할 수 없어" in result.answer and "찾았어요" not in result.answer
+    assert not catalog.calls

@@ -15,7 +15,7 @@ from pydantic import ValidationError
 from app.clients.knowledge_client import KnowledgeClient
 from app.clients.openai_responses_client import MODEL, OpenAIResponses
 from app.core.config import get_settings
-from app.core.errors import UpstreamError
+from app.core.errors import ApiError, UpstreamError
 from app.schemas.consultation_answer import KnowledgeCoverage, RequirementCoverage
 from app.schemas.knowledge import (
     AnswerVerification,
@@ -698,6 +698,8 @@ async def consult_knowledge(
     question, strategy="large", *, prior_user_context="", delegation_scope="question"
 ):
     settings = get_settings()
+    if not settings.g5_enabled:
+        raise ApiError(503, "Knowledge is disabled", "g5_disabled")
     if not settings.g5_openai_api_key or not settings.g5_internal_token:
         return Consultation(KnowledgeReply(status="error", limitations=_ERROR), {})
     async with (

@@ -1,5 +1,96 @@
 # G8 진행 기록
 
+## 진행 중 — 마감 3단계 최신 develop 통합 (2026-11-28)
+
+사용자가 2단계 결과를 수용하고 로컬 보존 커밋·최신 develop의 작업 브랜치 반영·충돌 해결·격리 마이그레이션/호환성 검증을 승인했다. 원격 push·PR·develop 대상 병합·배포는 제외한다. 시작 `feat/compound-consultation` / `200010e1a6bad86ad0364f981f47a6ab1ba721fc`, 승인 수정 10파일·기존 미추적 조사 증빙 52파일을 구분해 해시로 확인했다. 미추적 파일은 일괄 커밋하지 않는다.
+
+`git ls-remote`로 확인한 원격은 develop `991dd634dba33b99ceeb1c03de4dd8d921ce07f9`, 작업 브랜치 `200010e1a6bad86ad0364f981f47a6ab1ba721fc`다. 보존 커밋 전 필수 `npm run check`: 108 suites/1,352 tests·타입·lint PASS. 챗봇 Ruff/계층 3계약 PASS, 전체 pytest는 새 임시 경로에서 **1,784 PASS / 137 SKIP (52.54s)**. 유료 모델 opt-in은 활성화하지 않았다.
+
+통합 전 첫 전체 실행은 1 FAIL/1,766 PASS/137 SKIP/17 ERROR였다. 17건은 기존 pytest 임시 폴더 ACL 오류이며 기존 폴더를 삭제하지 않고 새 basetemp로 해결했다. 1건은 2단계 신규 G8 검사와 기존 AR 테스트의 축약 SimpleNamespace 설정(g8_enabled 없음) 사이 호환 문제다. 승인된 chat_service.py에서 기존 기본 OFF를 getattr로 유지해 위 전체 재실행이 통과했다. 실제 develop 반영 전 발생했으므로 병합 회귀로 기록하지 않는다. 아래 2단계 소스 해시는 당시 표적 검증 코드이며 이 호환 보완 전 이력이다.
+
+현재 전체 G8은 ⑤ 종료 조건 보완, 마감 실행은 3/6 진행 중이다. 최종 통합 SHA·충돌 해결·영향·통합 후 테스트와 기존 6묶음 대조는 통합 후 이 절을 갱신한다.
+
+## 최신 실행 — 마감 2단계 플래그 결함 수정·표적 검증 (2026-11-28)
+
+사용자가 1단계 조사 종료와 제품 4개·테스트 4개·관리 문서 2개, 총 10개 파일 수정을 승인했다. 조사 결과는 `reports/g8/parent/stage6-investigation-report.md` 및 같은 prefix의 원본/모드별 기록을 따른다. 기존 조사 파일은 갱신하지 않았다. 과거 복원 실패의 정확한 원인은 미확정이며, 이번 수정으로 그 로딩을 해결했다고 기록하지 않는다.
+
+전체 G8은 **① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → ⑤ 종료 조건 보완 → ⑥ 통합 검증 → ⑦ PR 인계**다. ⑤ 전체 종료·⑥ 전체 통과는 선언하지 않는다. 이번 마감 실행 6단계는 **1 조사 종료 → 2 확인된 결함 수정·표적 검증 완료 → 3 최신 develop 통합 대기 → 4 대표 시나리오 실제 검증 대기 → 5 최종 회귀·종료 판정 대기 → 6 PR 인계·병합 미실행**이다.
+
+| 기존 ⑤ 고정 6묶음 | 이번 확인과 남은 구분 |
+|---|---|
+| 1 공통 계획 진입 | 최초·저장 맥락 후속의 G5 OFF 차단과 G8 ON 대조 통과 |
+| 2 결과 기반 협력 | G5 비활성에서도 상품·룩 결과 유지. legacy/typed N02 설명 위임 회귀 통과. 새 실제 모델 협력 평가는 통합 후 |
+| 3 후속·질문 관리 | G8 OFF에서 active/cancelled 부모가 일반 상담을 가로채지 않음. 짧은 보유 답변의 의미 변환도 OFF에서 생략. 기존 ON 버전·문맥·ID 검사 유지 |
+| 4 실행 중단·교체 | 구현 변경 없음. 기존 실제 실행 증거 유지; 이번 전체 웹 종단은 미실행 |
+| 5 판정·응답·복원 | 옵션 미실행과 실제 no_match 구분. OFF 저장 부모·룩 협력 맥락 보존. 과거 로딩 원인은 미확정; 현재 실제 복원 양성은 1단계 증거 |
+| 6 종료 증거 정합성 | 이번 실행 명령·결과·중간 실패·소스 식별값을 아래에 고정. 최종 통합 종료표는 후속 단계 |
+
+기준 branch/HEAD는 `feat/compound-consultation` / `200010e1a6bad86ad0364f981f47a6ab1ba721fc`. develop은 기존 로컬 원격 추적 참조 `991dd634dba33b99ceeb1c03de4dd8d921ce07f9`이며 이번에 최신 원격 여부를 조회하거나 병합하지 않았다. 아래 구현은 미커밋이다. commit/push/PR/배포 없음. 개발 하위 에이전트 사용 없음. 앱 인증·복원, DB schema, 공용 설정·플래그·Agent 구조·운영 제한값은 변경하지 않았다.
+
+| 결함 | 변경 내용·실제 표적 결과 |
+|---|---|
+| A G5 OFF 우회 | 공통 consult_knowledge에서 클라이언트 생성 전 g5_disabled 차단. OFF에서 클라이언트/내부 지식/HTTP 0회, ON 대조 유지. 최초+직렬화 저장 맥락 후속과 N02 legacy/typed 위임에서 차단하고 다른 상품·룩 결과 유지. 부모 failed/reason/limitations로 원인을 구분하고 비활성은 재시도하지 않음. 기존 답변 재표시는 새 지식 호출 없이 가능 |
+| B 옵션 검색 완료 판정 | 기존 partial/unsupported 및 option_search_disabled 사용. G1 OFF에서 옵션/현재가·기록가 요구 미실행을 no_match/completed로 반환하지 않음. 조회 실패는 기존 ApiError502/upstream_error, 근거 부족은 partial/unknown, 실제 조건 불일치는 completed/no_match, 성공은 completed/matched로 구분. 조회 전 미지원에 검색 완료 문구를 합성하지 않음 |
+| C G8 OFF 저장 호환 | 최초 계획·ID 실행·중단 부모의 재개 유도·저장 보유 질문 의미 변환을 OFF에서 생략. 새 일반 답변에는 과거 부모 상태 요약을 적용하지 않음. 유효한 부모·룩/상품 협력 맥락은 저장용으로 유지. active/cancelled 직렬화·복원·일반 답변·재활성화 대조와 N02 맥락 보존 통과 |
+
+### 실제 실행과 원본 결과
+
+최종 기록 시각은 2026-11-28 14:42 KST 이후다. 모델 설정은 계약 테스트에서 mock이며 실제 외부 생성/임베딩 호출은 0회다. 실제 PG/Redis 사례의 인증·모델·Catalog는 모의다. 새 실제 모델·Catalog·로그인 웹 종단은 이번에 실행하지 않았으며 develop 통합 이후로 남긴다. 준비한 명령을 실행 증거로 사용하지 않으며 아래 요약은 실제 종료 코드 0인 도구 출력이다. 승인 10파일 범위를 유지하기 위해 별도 신규 보고 파일 대신 이 문서에 기록한다.
+
+작업 위치 `backend/chatbot`; 환경 `PYTHONDONTWRITEBYTECODE=1`, 명령 공통 `uv run --frozen --no-sync python -B -m pytest -q --tb=short -p no:cacheprovider`:
+
+```text
+tests/test_knowledge_service.py tests/test_g8_consultation_intent.py
+tests/test_g8_consultation_parent.py tests/test_g4_option_search.py
+tests/test_product_search_contract.py tests/test_g8_compound_consultation.py
+tests/test_g8_owned_look.py tests/test_g8_partial_success.py
+tests/test_g7_conversation_service.py tests/test_g7_memory_service.py
+tests/test_ingredient_consultation.py tests/test_beauty_consultation.py
+768 passed, 8 skipped in 16.34s
+```
+
+위 결과는 기존 745건과 신규 23건의 PASS다. SKIP 8건은 실제 Catalog opt-in/URL, 로컬 검토 자료가 필요한 기존 사례이며 실제 서비스 통과로 계산하지 않는다.
+
+실제 PG는 기존 Docker stack의 PostgreSQL/전용 `vishue_chat_test`, Redis는 비어 있음을 확인한 논리 DB15다. 접속값은 기존 조사 runtime.environment에서 메모리로 전달하며 출력·신규 저장하지 않았다. G8_*LIVE 설정은 제거했다. 각 모듈은 별도 pytest 프로세스로 실행했다.
+
+```text
+tests/test_g7_memory_api_pg.py
+  -k 'consent_ownership_idempotency_and_redaction or memory_policy_and_catalog_application_end_to_end or structured_memory_partial_approval_preserves_versions_and_sources'
+3 passed, 32 deselected in 4.88s
+
+reports/g8/parent/stage6-investigation-memory.py
+4 passed, 1 warning in 5.67s
+
+tests/test_g7_memory_api_pg.py -k memory_edit_invalidates_old_redis_candidates
+  TEST_CHAT_REDIS_URL=기존 Redis의 DB15, G8_ENABLED=false (legacy 후보 무효화 단독 확인)
+1 passed, 34 deselected in 1.79s
+```
+
+PG 8건에서 저장 OFF·일반 상담 지속·기억 OFF·구조화 기억 OFF·동의/소유권·기억 변경과 후보 삭제·실행 중 늦은 저장 거절을 확인했다. integration mark 미등록의 기존 경고 1건은 오류가 아니다. DB15의 기존 키를 flush하지 않았다. 기존 로그인 상담 DB는 변경하지 않았다.
+
+정적 검증은 변경 Python 8파일의 `uv run --frozen --no-sync ruff check ...`가 `All checks passed!`, `uv run --frozen --no-sync lint-imports`는 `Contracts: 3 kept, 0 broken.`이다. 루트의 `npm run typecheck` / `npm run lint`도 종료 0이다. 앱 전체 테스트·backend 전체를 재실행한 결과는 아니다. `git diff --check` 통과.
+
+중간 실패도 보존한다. 첫 4파일 441건은 440 PASS/1 FAIL이며 신규 테스트가 기존 HTTP 경계 예외를 UpstreamError로 예상했기 때문이다. 실제 계약인 ApiError(502/upstream_error)로 기대를 수정하고 4파일 441 PASS, 추가 3건을 포함한 최종 768 PASS를 확인했다. 초기 Ruff의 신규 줄 길이/import 순서도 수정했다. PG는 Docker 중단으로 처음에는 시작되지 않았으며 기존 환경을 켠 뒤 통과했다. 한 번의 합동 수집은 진단 pytest_plugins의 중복 등록으로 수집 오류가 발생해, 기존 별도 프로세스 방식으로 최종 8 PASS를 확인했다. 이를 제품 결함이나 단일 실행 무실패 기록으로 바꾸지 않는다.
+
+### 검증 소스 식별값·남은 과제
+
+검증 코드는 위 HEAD에 대한 작업 트리의 다음 8파일이다. `git diff --no-ext-diff --binary HEAD -- <아래 8파일>`의 SHA-256은 `8933869ecbe94b7ab6cd4845943eb2ebba04b02ae81d0905010db8233fb2eef6`이다. 미커밋 diff는 이 작업 트리에 보존한다. 신규 코드 파일은 없다.
+
+| path | exact-byte SHA-256 |
+|---|---|
+| backend/chatbot/app/services/beauty_consultation_service.py | a967850d4e3ebf518cfddee77df1abe7802deed17beddb735a876c38a07d6797 |
+| backend/chatbot/app/services/chat_service.py | 95985ec9c65fe884b0bb4fbdf01dae44119069390942a4cb3a470131999cbdfc |
+| backend/chatbot/app/services/consultation_parent_graph.py | 8fb047b0e53506f1682aa207c6dab632441bcf85e4bdd02821c35824c5797b74 |
+| backend/chatbot/app/services/knowledge_service.py | 86076cdf41d6201b0af01c3a50f36acd220db10e6fdbf14775453912ddbc52d0 |
+| backend/chatbot/tests/test_g4_option_search.py | 7ec2756d9e90dc9b70d96012f93147a26491299ba2b910d1a546b6f2ab6b84a8 |
+| backend/chatbot/tests/test_g8_consultation_intent.py | b20a59763a2ee17dc09c60270b85ab3fe44984f2ee33b42fe5bb00ea0ce2fa26 |
+| backend/chatbot/tests/test_g8_consultation_parent.py | a6626cf5b537d9163c51b896b394068980b44d6075486f250a8e8c53fa019fee |
+| backend/chatbot/tests/test_knowledge_service.py | 638a526421fe439a26c557e4dc6ff015eed016305172e3ebddbb5f6f61e7f8e2 |
+
+보안 검사: 변경 10파일 원문(첫 검사 1,129,793 bytes)을 Gitleaks 8.30.1/저장소 설정/빈 ignore(`/dev/null`)/redact로 검사해 0건 PASS. 실제 자격증명·계정 식별값의 메모리 비교도 PASS이며 값은 출력하지 않았다. 위 소스 8개 해시 일치 및 기존 1단계 증거의 기록된 해시 불변도 확인했다. 검사 문구 반영 후 같은 검사를 최종 재실행한다. 공용 검사 설정·예외는 변경하지 않는다. 전체 Git 이력 검사는 이번에 수행하지 않았다. 실제 PG 서버 버전은 17.10이다.
+
+다음은 별도 범위인 마감 3단계 최신 develop 통합이다. 그 소스에서 4단계 N01/N02/E01/B01·복합 후속·실제 모델·로그인 웹을 검증하고, 5단계 종료표를 판정한다. 과거 복원 원인은 미확정, 자동 룩 안내 중복은 재관찰 대상으로 유지한다. N02 일반 상담·정확한 판매 옵션·영상 기법 근거·AR의 기존 정책을 유지한다. 운영·실기기·데이터 부족을 이 수정의 새로운 완료 조건으로 추가하지 않는다.
+
 ## 최신 실행 — 네 결함 보완, 앱 복원 실패 보존 (2026-11-28)
 
 전체 **① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → ⑤ 기존 종료 기준 보완 → ⑥ 표적 재검증 중 → ⑦ PR 인계 대기**. **F1~F4 수정·재검증은 확인했지만 최근 상담 앱 복원 로딩이 남아 ⑤ 전체 종료는 보류**한다. 기존 6묶음·14능력/12시나리오를 유지한다. 이번에는 새 기능으로 범위를 늘리지 않았다.

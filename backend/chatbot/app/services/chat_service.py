@@ -669,7 +669,16 @@ class ChatService:
     async def answer(self, req: ChatRequest, principal_key: str | None = None) -> ChatResponse:
         from app.services.consultation_result_service import finalize_result
 
-        return finalize_result(await self._answer(req, principal_key))
+        response = finalize_result(await self._answer(req, principal_key))
+        if (
+            not getattr(get_settings(), "g8_enabled", False)
+            and req._consultation_parent is not None
+        ):
+            # Preserve saved context without applying its execution state to this answer.
+            response._consultation_parent = req._consultation_parent
+            response._owned_look_context = req._owned_look_context
+            response._product_style_context = req._product_style_context
+        return response
 
     async def _answer(self, req: ChatRequest, principal_key: str | None = None) -> ChatResponse:
         from app.services.consultation_intent_service import prepare_entry
@@ -694,19 +703,25 @@ class ChatService:
             if req.request_type == "style_consultation":
                 response.style_status = "unsupported"
             return response
-        if getattr(get_settings(), "g8_enabled", False) and req.request_type != "ar_command":
+        g8_enabled = getattr(get_settings(), "g8_enabled", False)
+        if g8_enabled and req.request_type != "ar_command":
             req._parent_deadline = time.monotonic() + get_settings().g8_deadline_seconds
-        control = await prepare_entry(req, self._llm)
+        control = await prepare_entry(req, self._llm) if g8_enabled else None
         if control is not None:
             return control
         from app.services.consultation_parent_graph import run_id_tasks
 
-        delegated = await run_id_tasks(req, self._dispatch_parent_read)
+        delegated = (
+            await run_id_tasks(req, self._dispatch_parent_read)
+            if g8_enabled
+            else None
+        )
         if delegated is not None:
             return delegated
-        intent = req._parent_intent
+        intent = req._parent_intent if g8_enabled else None
         if (
-            req._consultation_parent
+            g8_enabled
+            and req._consultation_parent
             and req._consultation_parent.execution_state == "cancelled"
             and req.request_type != "ar_command"
             and req.ar_context is None

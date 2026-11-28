@@ -1600,3 +1600,151 @@ async def test_unassigned_read_clause_replans_once_preserving_original_siblings(
     else:
         assert response.result_type == "clarification"
         assert req._parent_intent_audit["status"] == "omitted_read_unresolved"
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("g5_enabled", [False, True])
+async def test_g5_flag_applies_to_initial_and_restored_knowledge_without_losing_products(
+    monkeypatch, g5_enabled
+):
+    import httpx
+
+    from app.services import knowledge_service
+    from tests.conftest import FakeGraph
+    from tests.test_beauty_consultation import Catalog as ProductCatalog
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "g1_supervisor_enabled", False)
+    monkeypatch.setattr(settings, "g5_enabled", g5_enabled)
+    monkeypatch.setattr(settings, "g5_openai_api_key", "synthetic-key")
+    monkeypatch.setattr(settings, "g5_internal_token", "synthetic-token")
+    calls = []
+
+    async def consult(self, question, *args, **kwargs):
+        calls.append(question)
+        return knowledge_result(question, 1)
+
+    async def no_http(*args, **kwargs):
+        pytest.fail("External HTTP forbidden")
+
+    monkeypatch.setattr(knowledge_service.KnowledgeService, "consult", consult)
+    monkeypatch.setattr(httpx.AsyncClient, "send", no_http)
+    explanation, shopping = "세안 후 보습 순서를 설명해줘", "립 제품 찾아줘"
+
+    class Model(EntryModel):
+        async def complete(self, messages):
+            return json.dumps({
+                "intent": "search", "category": "lip", "productRequirement": {"operation": "keep"},
+            })
+
+    catalog = ProductCatalog()
+    first = await ChatService(FakeGraph(), Model([
+        {"capability": "knowledge", "quote": explanation},
+        {"capability": "product", "productOperation": "search", "quote": shopping},
+    ]), catalog).answer(ChatRequest(message=explanation + ". " + shopping, locale="ko"))
+    tasks = {t.goal: t for t in first._consultation_parent.tasks}
+    assert first.products and tasks["product"].status == "completed"
+    assert tasks["knowledge"].status == ("completed" if g5_enabled else "failed")
+    if not g5_enabled:
+        assert tasks["knowledge"].reason == "g5_disabled"
+        assert tasks["knowledge"].attempts == 1
+        assert first.consultation.status == "partial"
+    raw = json.loads(json.dumps(updated_context({}, first)))
+    req = prepare_request(ChatRequest(message=explanation, locale="ko"), raw, [])
+    second = await ChatService(FakeGraph(), AdditionModel(changes=[{
+        "taskId": tasks["knowledge"].task_id, "operation": "update", "quote": explanation,
+    }]), catalog).answer(req)
+    assert {p.id for p in second.products} == {p.id for p in first.products}
+    assert len(calls) == (2 if g5_enabled else 0)
+    assert next(t for t in second._consultation_parent.tasks if t.goal == "knowledge").status == (
+        "completed" if g5_enabled else "failed"
+    )
+
+
+@pytest.mark.anyio
+async def test_g5_off_can_display_saved_answer_without_a_new_knowledge_read(monkeypatch):
+    from app.services.consultation_parent_graph import task_scope
+
+    monkeypatch.setattr(get_settings(), "g5_enabled", False)
+    req = ChatRequest(message="이전 설명 보여줘", locale="ko")
+    stored = knowledge_result("보습", 1)
+    req._consultation_parent = ConsultationParent(tasks=[ParentTask(
+        task_id="task-saved", goal="knowledge", version=1, status="completed",
+        scope_digest=task_scope(req),
+        display_result=ChatResponse(
+            answer=stored.answer, products=[], knowledge=stored.reply
+        ).model_dump(mode="json", by_alias=True),
+    )])
+
+    async def forbidden(*args, **kwargs):
+        pytest.fail("Saved display must not execute knowledge")
+
+    monkeypatch.setattr(ChatService, "_dispatch_parent_read", forbidden)
+    saved = ChatResponse(answer="stored", products=[])
+    saved._consultation_parent = req._consultation_parent
+    restored = prepare_request(
+        ChatRequest(message=req.message, locale="ko"),
+        updated_context({}, saved),
+        [],
+    )
+    reply = await ChatService(None, IntentModel("show", ["task-saved"])).answer(restored)
+    assert reply.knowledge.claims and "보습" in reply.answer
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("state", ["active", "cancelled"])
+async def test_g8_off_saved_parent_does_not_intercept_or_disappear(monkeypatch, state):
+    from tests.conftest import FakeGraph, FakeLlm
+
+    monkeypatch.setattr(get_settings(), "g8_enabled", False)
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", False)
+    original = ConsultationParent(execution_state=state, tasks=[ParentTask(
+        task_id="task-old", goal="knowledge", version=1,
+        status="completed" if state == "active" else "cancelled", objective="과거 목표",
+        display_result={"answer": "저장한 설명", "products": []},
+    )])
+    stored = ChatResponse(answer="저장한 설명", products=[])
+    stored._consultation_parent = original
+    raw = updated_context({}, stored)
+    req = prepare_request(ChatRequest(message="안녕", locale="ko"), raw, [])
+    before = req._consultation_parent.model_dump(mode="json", by_alias=True)
+    reply = await ChatService(FakeGraph(), FakeLlm()).answer(req)
+    assert reply.answer == "Try Rom&nd Juicy Tint."
+    assert reply.consultation is None
+    assert reply._consultation_parent.model_dump(mode="json", by_alias=True) == before
+    saved = updated_context(raw, reply)
+    assert saved["consultationParent"] == raw["consultationParent"]
+    assert req._parent_intent is None
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    restored = prepare_request(ChatRequest(message="안녕", locale="ko"), saved, [])
+
+    async def forbidden(*args, **kwargs):
+        pytest.fail("Re-enabling G8 must not automatically execute old work")
+
+    monkeypatch.setattr(ChatService, "_dispatch_parent_read", forbidden)
+    resumed = await ChatService(FakeGraph(), IntentModel("delegate", [])).answer(restored)
+    assert resumed.result_type != "clarification"
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_restored_ownership_answer_is_interpreted_only_when_g8_enabled(monkeypatch, enabled):
+    from app.schemas.consultation_parent import ParentQuestion
+    from app.services.consultation_parent_graph import restore_followup
+
+    monkeypatch.setattr(get_settings(), "g8_enabled", enabled)
+    old = ConsultationParent(
+        tasks=[ParentTask(goal="owned_look", version=1, status="waiting_user")],
+        question=ParentQuestion(
+            task_id="owned_look", goal="owned_look", version=1, text="립 있나요?",
+            input_key="ownership", zone="lip", need_id="lip-option",
+            recipe_version="recipe-v1", ownership_scope="option",
+        ),
+    )
+    before = old.model_dump_json()
+    restored = restore_followup(ChatRequest(message="있어", locale="ko"), old)
+    assert restored._consultation_parent.model_dump_json() == before
+    if enabled:
+        assert restored._owned_look_answer == ("lip-option", "recipe-v1", "있어", "option")
+        assert "추가 추천" in restored.message
+    else:
+        assert restored.message == "있어" and restored._owned_look_answer is None

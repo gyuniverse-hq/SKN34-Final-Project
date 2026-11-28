@@ -1192,3 +1192,59 @@ def test_identical_preservation_acknowledgements_do_not_repeat_or_merge_task_sta
     assert r.answer.count("앞서 안내한 설명은 그대로 유지했어요.") == 1
     assert [t.task_id for t in p.tasks] == ["task-0", "task-1"]
     assert all(x.answer == "원래 설명" for x in results.values())
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("entry", ["legacy", "typed"])
+async def test_g5_disabled_explanation_preserves_owned_look_results(monkeypatch, entry):
+    import httpx
+
+    from app.services import knowledge_service
+    from tests.test_g8_consultation_intent import EntryModel
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "g5_enabled", False)
+    monkeypatch.setattr(settings, "g5_openai_api_key", "synthetic-key")
+    monkeypatch.setattr(settings, "g5_internal_token", "synthetic-token")
+
+    async def forbidden(*args, **kwargs):
+        pytest.fail("Disabled knowledge must not execute HTTP or its specialist")
+
+    monkeypatch.setattr(knowledge_service.KnowledgeService, "consult", forbidden)
+    monkeypatch.setattr(httpx.AsyncClient, "send", forbidden)
+    catalog = Catalog()
+    quote = "이 룩 순서의 이유도 설명해줘"
+    req = request([owned("lip-a", "lip-a-shade")], "블러셔는 없어. " + quote)
+    if entry == "legacy":
+        result = await parent.run_parent(req, "owned_look", lambda: None, catalog=catalog)
+    else:
+        model = EntryModel([
+            {"capability": "owned_look", "quote": req.message, "explanationQuote": quote},
+        ])
+        result = await ChatService(None, model, catalog).answer(req)
+    task = next(t for t in result._consultation_parent.tasks if t.goal == "knowledge")
+    assert task.status == "failed" and task.reason == "g5_disabled"
+    assert task.limitations == ["g5_disabled"] and task.attempts == 1
+    assert [p.id for p in result.products] == ["blush-b"]
+    assert result.style_recipe and result._owned_look_context
+
+
+@pytest.mark.anyio
+async def test_g8_off_ordinary_reply_preserves_saved_owned_look_context(monkeypatch):
+    from tests.conftest import FakeGraph
+
+    req = request([owned("lip-a", "lip-a-shade")], "블러셔는 없어")
+    first = await parent.run_parent(req, "owned_look", lambda: None, catalog=Catalog())
+    raw = updated_context({}, first)
+    monkeypatch.setattr(get_settings(), "g8_enabled", False)
+    restored = prepare_request(
+        req.model_copy(update={"message": "안녕", "request_type": "chat"}), raw, []
+    )
+    response = await ChatService(FakeGraph(), FakeLlm()).answer(restored)
+    again = prepare_request(
+        req.model_copy(update={"message": "안녕", "request_type": "chat"}),
+        updated_context(raw, response), [],
+    )
+    assert again._owned_look_context == first._owned_look_context
+    assert again._consultation_parent == first._consultation_parent
+    assert response.consultation is None

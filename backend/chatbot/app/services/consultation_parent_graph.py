@@ -57,7 +57,7 @@ def restore_followup(req, parent):
     ):
         return req
     req._consultation_parent = parent
-    if parent.execution_state == "cancelled":
+    if not get_settings().g8_enabled or parent.execution_state == "cancelled":
         return req
     question = parent.question
     answer = _ANSWERS.get(req.message.strip().rstrip(".!"))
@@ -174,7 +174,9 @@ async def execute_request(
         task.reason = exc.code if isinstance(exc, ApiError) else "upstream_unavailable"
         task.limitations = [task.reason or "upstream_unavailable"]
         cause = exc
-        transient = not isinstance(exc, ApiError) or exc.status in {502, 503, 504}
+        transient = not isinstance(exc, ApiError) or (
+            exc.status in {502, 503, 504} and exc.code != "g5_disabled"
+        )
         while cause is not None:
             if isinstance(cause, httpx.HTTPStatusError):
                 transient = cause.response.status_code in {429, 502, 503, 504}
@@ -837,12 +839,18 @@ def combine_id_results(parent, results, *, previous=None, locale="ko", display_t
             if task.status == "failed":
                 parts.append(independent_answer(task, None, locale=locale))
             continue
-        answer = independent_answer(
-            task,
-            result,
-            prior_tasks.get(task.task_id),
-            cards_visible=scoped_count <= 1,
-            locale=locale,
+        answer = (
+            result.answer
+            if task.product_assessment
+            and task.product_assessment.outcome == "unsupported"
+            and task.product_assessment.inspected == 0
+            else independent_answer(
+                task,
+                result,
+                prior_tasks.get(task.task_id),
+                cards_visible=scoped_count <= 1,
+                locale=locale,
+            )
         )
         if previous is not None and task.reason == "preserved_completed_result":
             pending = [q.text for q in parent.pending_questions if q.task_id == task.task_id]
@@ -1164,9 +1172,10 @@ async def run_parent(
                         and response.knowledge.status == "answered"
                     ):
                         task.status = "completed"
-        except (UpstreamError, ApiError, TimeoutError):
+        except (UpstreamError, ApiError, TimeoutError) as exc:
             task.status = "failed"
-            task.limitations = ["specialist_unavailable"]
+            task.reason = exc.code if isinstance(exc, ApiError) else "specialist_unavailable"
+            task.limitations = [task.reason]
             if response is None:
                 response = ChatResponse(
                     answer="요청한 자료를 조회하지 못했어요. 다시 시도해 주세요.", products=[]

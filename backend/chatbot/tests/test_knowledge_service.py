@@ -2262,3 +2262,42 @@ def test_delegated_limits_follow_verified_requirements_and_keep_sourced_bounds(s
         if source_bound
         else "바르는 순서" in partial.limitations
     )
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+@pytest.mark.parametrize("scope", ["question", "explanation"])
+def test_common_knowledge_flag_precedes_client_creation(monkeypatch, enabled, scope):
+    from app.core.errors import ApiError
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "g5_enabled", enabled)
+    monkeypatch.setattr(settings, "g5_openai_api_key", "synthetic-key")
+    monkeypatch.setattr(settings, "g5_internal_token", "synthetic-token")
+    original_client = httpx.AsyncClient
+    clients = []
+
+    def client(**kwargs):
+        clients.append(kwargs["base_url"])
+        return original_client(
+            transport=httpx.MockTransport(lambda req: pytest.fail("HTTP forbidden"))
+        )
+
+    consultation = Consultation(KnowledgeReply(status="insufficient_evidence"), {})
+    inner = AsyncMock(return_value=consultation)
+    monkeypatch.setattr(httpx, "AsyncClient", client)
+    monkeypatch.setattr(knowledge_service.KnowledgeService, "consult", inner)
+    operation = knowledge_service.consult_knowledge(
+        "합성 질문", prior_user_context="합성 참조", delegation_scope=scope
+    )
+    if enabled:
+        assert asyncio.run(operation) is consultation
+        assert len(clients) == 2
+        inner.assert_awaited_once_with(
+            "합성 질문", "large", prior_user_context="합성 참조", delegation_scope=scope
+        )
+    else:
+        with pytest.raises(ApiError) as caught:
+            asyncio.run(operation)
+        assert caught.value.code == "g5_disabled"
+        assert clients == []
+        inner.assert_not_awaited()

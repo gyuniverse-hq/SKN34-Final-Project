@@ -1240,6 +1240,41 @@ async def execute_beauty(
         )
     if g4_search and not effective_filters.option_search:
         effective_filters.price_basis = None
+    if (
+        not g4_enabled
+        and plan.intent in {"search", "refine"}
+        and (
+            effective_filters.option_search
+            or effective_filters.price_basis in {"current_offer", "collected_snapshot"}
+        )
+    ):
+        from app.schemas.consultation_task import ProductAssessment
+
+        response = _reply(
+            {
+                "ko": (
+                    "지금은 판매 옵션의 가격·조건을 조회할 수 없어 "
+                    "요청하신 조건을 확인하지 못했어요."
+                ),
+                "en": (
+                    "Sale option lookup is unavailable, "
+                    "so I could not verify your requested conditions."
+                ),
+                "ja": "販売オプションを照会できないため、ご指定の条件を確認できませんでした。",
+                "zh": "目前无法查询销售选项，因此未能核实您要求的条件。",
+            }[req.locale],
+            _context(effective_filters, [], int(time.time())),
+            result_type="empty",
+        )
+        response._product_assessment = ProductAssessment(
+            status="partial",
+            outcome="unsupported",
+            requirement=requirement,
+            limitations=["option_search_disabled"],
+        )
+        response.tool_result.status = "unsupported"
+        response.tool_result.reason = "option_search_disabled"
+        return response
     if g4_enabled and plan.intent == "price" and previous:
         effective_filters.max_price_krw = previous.filters.max_price_krw
         effective_filters.price_basis = previous.filters.price_basis
