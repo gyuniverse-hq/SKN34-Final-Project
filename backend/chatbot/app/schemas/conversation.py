@@ -5,6 +5,10 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
+from app.schemas.compound_consultation import CompoundContext
+from app.schemas.consultation_parent import ConsultationParent
+from app.schemas.owned_look_context import OwnedLookContext
+from app.schemas.product_style_consultation import ProductStyleContext
 from app.schemas.style_recipe import StyleCandidateRef, StyleCondition, StyleContext
 
 
@@ -22,6 +26,7 @@ class GeneralEntry(ConversationModel):
 
 
 class ProductEntry(ConversationModel):
+    option_id: str | None = Field(default=None, min_length=1, max_length=128)
     type: Literal["product"]
     product_id: str = Field(min_length=1, max_length=128)
     shade_id: str | None = Field(default=None, min_length=1, max_length=128)
@@ -47,6 +52,7 @@ class CreateConversationResponse(ConversationModel):
 
 
 class SelectProductPayload(ConversationModel):
+    option_id: str | None = Field(default=None, min_length=1, max_length=128)
     product_id: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
@@ -105,6 +111,7 @@ class StoredGoal(ConversationModel):
 
 
 class StoredProductContext(ConversationModel):
+    selected_option_id: str | None = Field(default=None, max_length=128)
     selected_product_id: str | None = Field(default=None, max_length=128)
     selected_shade_id: str | None = Field(default=None, max_length=128)
     filters: dict[str, object] = Field(default_factory=dict)
@@ -123,8 +130,14 @@ class StoredMemoryRef(ConversationModel):
 
 
 class StoredConversationContext(ConversationModel):
+    product_style: ProductStyleContext | None = Field(default=None, exclude_if=lambda v: v is None)
+    consultation_parent: ConsultationParent | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
     schema_version: Literal[1] = 1
+    owned_look: OwnedLookContext | None = Field(default=None, exclude_if=lambda v: v is None)
     current_goal: StoredGoal | None = None
+    compound: CompoundContext | None = Field(default=None, exclude_if=lambda v: v is None)
     product: StoredProductContext | None = None
     style: StoredStyleContext | None = None
     style_candidates: list[StyleCandidateRef] = Field(default_factory=list, max_length=6)

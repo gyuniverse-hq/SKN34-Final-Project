@@ -64,18 +64,20 @@ const START_FAILED_KEYS = {
 
 export default function CheckoutScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ cartVisitId?: string; productId?: string; shadeId?: string }>();
-  const direct = params.productId !== undefined || params.shadeId !== undefined;
+  const params = useLocalSearchParams<{ cartVisitId?: string; productId?: string; shadeId?: string; optionId?: string }>();
+  const direct = params.productId !== undefined || params.shadeId !== undefined || params.optionId !== undefined;
   const orderItems = useMemo(() => {
+    if (params.optionId !== undefined) return [];
     if (params.productId === undefined && params.shadeId === undefined) return undefined;
     const selection = parseCheckoutSelection({ productId: params.productId, shadeId: params.shadeId });
     return selection ? [{ ...selection, quantity: 1 }] : [];
-  }, [params.productId, params.shadeId]);
+  }, [params.productId, params.shadeId, params.optionId]);
   const cartVisitId = !direct && typeof params.cartVisitId === 'string' &&
     /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(params.cartVisitId) ? params.cartVisitId : undefined;
   const { t } = useI18n();
   const { user, ready } = useAuth();
   const { lines, total, query } = useCartLines(orderItems);
+  const hasSaleOptions = useCartStore(s => !direct && s.items.some(i => !!i.optionId));
   const wallet = useRewards(user?.id);
   const [choice, setChoice] = useState<{ owner: string; id: string } | null>(null);
   const available = wallet.data?.coupons.filter(c => c.status === 'available') ?? [];
@@ -138,7 +140,7 @@ export default function CheckoutScreen() {
   };
 
   const startPayment = async () => {
-    if (busy.current || pending) return;
+    if (busy.current || pending || lines.some(l => !!l.item.optionId) || (!direct && useCartStore.getState().items.some(i => !!i.optionId))) return;
     busy.current = true;
     setPaymentBusy(true);
     setNotice(null);
@@ -241,6 +243,7 @@ export default function CheckoutScreen() {
       </View>
     );
   }
+  if (hasSaleOptions) return <View style={styles.content}><Notice body={t('sale.checkoutBlocked')} /><Button label={t('checkout.goCart')} onPress={() => router.replace('/cart')} /></View>;
   if (query.isPending) return <LoadingState />;
   if (lines.length === 0) return <EmptyState icon="cart-outline" title={t(direct ? 'lookPreview.purchaseUnavailable' : 'checkout.empty')} />;
 

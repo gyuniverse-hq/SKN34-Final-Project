@@ -143,6 +143,18 @@ async def test_compound_request_stops_without_llm_catalog_or_ar():
 
 
 @pytest.mark.anyio
+async def test_protected_actions_do_not_become_product_filter_interpretation():
+    llm = PlanLlm(intent="search", category="lip")
+    service = ChatService(FakeGraph(), llm, Catalog())
+    service._sessions = object()
+    req = request("지금 바로 얼굴에 발라주고 내 기억에도 저장해")
+    result = await service.answer(req)
+    assert llm.calls == 0 and not result.products and result.ar_result is None
+    assert "뷰티미러" in result.answer and "아직 저장하지 않았어요" in result.answer
+    assert "매트" not in result.answer and "가격 조건" not in result.answer
+
+
+@pytest.mark.anyio
 async def test_tool_error_is_not_an_empty_result():
     class Broken(Catalog):
         async def search_products(self, **kwargs):

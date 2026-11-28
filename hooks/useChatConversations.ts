@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ApiError, apiChatUserRequest } from '@/lib/api';
 import { chatRequestRecoveryKey, chatRequestRecoveryPrefix, chatRoomDeletionKey, chatRoomDeletionPrefix } from '@/lib/storage';
 import { isRequestRecoveryPending, useChatConversationStore } from '@/store/chatConversationStore';
-import type { ChatRequestTicket, ServerConversationDetail, ServerConversationSummary } from '@/types/chatConversation';
+import type { ChatCancellationResult, ChatRequestTicket, ServerConversationDetail, ServerConversationSummary } from '@/types/chatConversation';
 
 const emptyStatus = {
   listLoading: false, listError: false, detailLoading: false, detailError: false, cursor: null as string | null,
@@ -146,6 +146,39 @@ export function useChatConversations(userId: string | null, ownerKey?: string) {
     }
   };
 
+  const cancel = async (id: string) => {
+    const store = useChatConversationStore.getState();
+    const room = store.conversations[id]?.conversation;
+    if (!current() || !room?.serverId || !room.request || room.ownerKey !== ownerKey || room.deletionState) return;
+    const entry = [...room.snapshots].find(([, snapshot]) => snapshot.args.requestId === room.request);
+    if (!entry) return;
+    const requestId = room.request;
+    const ticket: ChatRequestTicket = { id, ownerKey: room.ownerKey, requestId,
+      messageId: entry[0], generation: room.generation, attempt: room.attempt };
+    // Fence the old promise immediately; keep input blocked until server status is known.
+    const expected = store.beginRequestRecovery(room, requestId, ticket);
+    if (!expected) return;
+    const applicable = () => current() && store.identity?.key === ownerKey &&
+      useChatConversationStore.getState().conversations[id]?.conversation.requestRecovery === expected.requestRecovery;
+    try {
+      const result = await apiChatUserRequest<ChatCancellationResult>(
+        `/api/chat/conversations/${encodeURIComponent(room.serverId)}/requests/${encodeURIComponent(requestId)}/cancel`,
+        'POST', room.userId!,
+      );
+      if (!applicable()) return;
+      if (result.requestId !== requestId || !Number.isSafeInteger(result.conversationVersion)) throw new Error('Invalid cancellation response');
+      if (result.status === 'INTERRUPTED' && store.confirmCancellation(expected, result.conversationVersion)) {
+        await AsyncStorage.removeItem(chatRequestRecoveryKey(room.userId!, room.serverId, requestId)).catch(() => {});
+        return;
+      }
+    } catch {
+      // A lost response is not proof of cancellation. Resolve through the existing status API.
+    }
+    if (applicable() && store.finishRequestRecovery(expected, 'unconfirmed')) {
+      await recoverRequest(id, requestId);
+    }
+  };
+
   const dismissRecovery = async (id: string) => {
     const store = useChatConversationStore.getState();
     const room = store.conversations[id]?.conversation;
@@ -266,7 +299,7 @@ export function useChatConversations(userId: string | null, ownerKey?: string) {
   };
 
   return {
-    list, open, older, remove, refresh, recover, dismissRecovery, detailLoading, detailError,
+    list, open, older, remove, refresh, recover, cancel, dismissRecovery, detailLoading, detailError,
     loading: listLoading || detailLoading, error: listError || detailError, hasMore: !!cursor,
   };
 }

@@ -15,6 +15,7 @@ jest.mock('expo-router', () => ({
   Stack: { Screen: () => null },
   Redirect: (props: unknown) => mockRedirect(props),
   useRouter: () => ({ push: mockPush }),
+  useLocalSearchParams: () => ({}),
 }));
 jest.mock('@/lib/i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 jest.mock('@expo/vector-icons/Ionicons', () => () => null);

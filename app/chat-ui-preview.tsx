@@ -1,15 +1,16 @@
-import { Redirect, Stack, useRouter } from 'expo-router';
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChatProducts } from '@/components/chat/ChatProducts';
+import { ChatProducts, OwnedLookOptionCards } from '@/components/chat/ChatProducts';
 import { IngredientResult } from '@/components/chat/IngredientResult';
 import { StyleRecipeResult } from '@/components/chat/StyleRecipeResult';
 import { theme } from '@/constants/theme';
 import type { ChatCondition } from '@/lib/chatConditions';
 import { useI18n } from '@/lib/i18n';
-import type { Product } from '@/types';
+import { productHref } from '@/lib/routes';
+import type { OwnedLookOptionDisplay, Product } from '@/types';
 
 const styleImage = require('@/assets/images/chat/style-recipe.png');
 const productImage = require('@/assets/images/chat/product-recommendation.png');
@@ -18,13 +19,18 @@ type PreviewCategory = 'product' | 'ingredient' | 'style';
 function PreviewContent() {
   const { t } = useI18n();
   const router = useRouter();
+  const { g8 } = useLocalSearchParams<{ g8?: string }>();
+  // Development-only replay of recorded live Catalog output, not a live chat session.
+  const replay = g8 === 'sale' ? require('@/reports/g8/parent/sale-card-replay.json') as {
+    message: string; response: { ownedLookOptions: OwnedLookOptionDisplay };
+  } : null;
   const [category, setCategory] = useState<PreviewCategory>('product');
   const categories = [
     { id: 'product' as const, label: t('chat.ui.product') },
     { id: 'ingredient' as const, label: t('chat.ui.ingredient') },
     { id: 'style' as const, label: t('chat.ui.style') },
   ];
-  const question = category === 'product'
+  const question = replay && category === 'product' ? replay.message : category === 'product'
     ? `${t('chat.ui.productQuestion2')} · ${t('chat.preview.conditionPrice')}`
     : category === 'ingredient' ? t('chat.ui.ingredientQuestion1') : t('chat.ui.styleQuestion1');
   const product: Product = {
@@ -43,7 +49,7 @@ function PreviewContent() {
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       <Stack.Screen options={{ title: t('chat.preview.title') }} />
       <View style={styles.banner}>
-        <Text style={styles.bannerText}>{t('chat.preview.notice')}</Text>
+        <Text style={styles.bannerText}>{t(replay ? 'chat.preview.title' : 'chat.preview.notice')}</Text>
       </View>
       <View style={styles.tabs}>
         {categories.map((item) => (
@@ -56,7 +62,9 @@ function PreviewContent() {
       </View>
       <ScrollView key={category} contentContainerStyle={styles.content}>
         <View style={styles.question}><Text style={styles.questionText}>{question}</Text></View>
-        {category === 'product' ? <View style={styles.result}>
+        {category === 'product' && replay ? <OwnedLookOptionCards result={replay.response.ownedLookOptions}
+          onOpenProduct={(id, shadeId, optionId) => router.push(productHref(id, shadeId, undefined, true, optionId))} /> : null}
+        {category === 'product' && !replay ? <View style={styles.result}>
           <View style={styles.answer}>
             <Text style={styles.answerTitle}>{t('chat.ui.product')}</Text>
             <Text style={styles.answerText}>{t('chat.preview.productSummary')}</Text>

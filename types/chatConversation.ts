@@ -7,7 +7,7 @@ export type ConversationSubject =
 
 export type ConversationEntry =
   | Extract<ConversationSubject, { type: 'general' | 'look' }>
-  | (Extract<ConversationSubject, { type: 'product' }> & { shadeId?: string });
+  | (Extract<ConversationSubject, { type: 'product' }> & { shadeId?: string; optionId?: string });
 
 export type ConversationListSummary = {
   titleTopic?: 'product' | 'ingredient' | 'look';
@@ -28,6 +28,7 @@ export type ServerConversationDetail = Omit<ServerConversationSummary, 'updatedA
     product?: {
       selectedProductId?: string | null;
       selectedShadeId?: string | null;
+      selectedOptionId?: string | null;
       historicalCandidateRefs?: string[];
       filters?: Pick<BeautyChatContext['filters'], 'optionSearch'>;
     } | null;
@@ -39,7 +40,13 @@ export type ServerConversationDetail = Omit<ServerConversationSummary, 'updatedA
 };
 
 export type ChatCategory = 'product' | 'ingredient' | 'style';
+export type ChatCancellationResult = {
+  requestId: string;
+  status: 'INTERRUPTED' | 'COMMITTED' | 'FAILED';
+  conversationVersion: number;
+};
 export type ChatMessage = {
+  consultation?: ChatResponse['consultation'];
   id: string;
   role: 'user' | 'assistant';
   automatic?: boolean;
@@ -53,6 +60,8 @@ export type ChatMessage = {
   evidence?: ChatProductEvidence[];
   resultType?: ChatResponse['resultType'];
   optionSearch?: ChatResponse['optionSearch'];
+  compound?: ChatResponse['compound'];
+  ownedLookOptions?: ChatResponse['ownedLookOptions'];
   ingredientResults?: ChatResponse['ingredientResults'];
   knowledge?: ChatResponse['knowledge'];
   ingredientComparison?: ChatResponse['ingredientComparison'];

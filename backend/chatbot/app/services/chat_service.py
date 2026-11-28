@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import re
@@ -49,6 +50,7 @@ from app.schemas.supervisor import (
     ToolResult,
 )
 from app.schemas.vishue_state import VishueState
+from app.services import compound_consultation_graph as compound_graph
 from app.services.ar_command_service import propose_ar_command
 from app.services.beauty_consultation_service import (
     COMPARISON_SCREENS,
@@ -366,13 +368,25 @@ def _grounded_look_query(message, look_title, query):
     return query.strip() if name in text else None
 
 
+def _explicit_protected_action(message):
+    # Imperative boundaries exclude advice questions such as applying a method generally.
+    message = compound_graph._CONDITION_CHANGE.sub("", message)
+    return re.search(
+        rf"(?:{compound_graph._ACTION.pattern})(?:\s*(?:줘|주세요|주고))?(?![가-힣])",
+        message,
+        re.I,
+    )
+
+
 def route_intent(context: ResolvedContext) -> IntentDecision:
     """Conservative routing hints; dedicated AR parsing still validates execution intent."""
     text = context.message.casefold()
     shopping = _SHOPPING.search(text)
-    execution = re.search(r"발라|적용해|설정해|조절해|apply|set .*intensity|塗って|涂上", text)
+    execution = compound_graph.EXECUTION_REQUEST.search(text)
     intent = "general"
-    if shopping and execution:
+    if ((shopping and execution) or _explicit_protected_action(text)) and not (
+        get_settings().g8_enabled and compound_graph.is_search_condition_change(context.message)
+    ):
         intent = "compound"
     elif context.request_type == "ar_command":
         intent = "ar"
@@ -650,6 +664,71 @@ class ChatService:
         self._skincare = skincare
 
     async def answer(self, req: ChatRequest, principal_key: str | None = None) -> ChatResponse:
+        from app.services.consultation_result_service import finalize_result
+
+        response = finalize_result(await self._answer(req, principal_key))
+        if (
+            not getattr(get_settings(), "g8_enabled", False)
+            and req._consultation_parent is not None
+        ):
+            # Preserve saved context without applying its execution state to this answer.
+            response._consultation_parent = req._consultation_parent
+            response._owned_look_context = req._owned_look_context
+            response._product_style_context = req._product_style_context
+        return response
+
+    async def _answer(self, req: ChatRequest, principal_key: str | None = None) -> ChatResponse:
+        from app.services.consultation_intent_service import prepare_entry
+        from app.services.product_style_consultation_service import try_product_style
+
+        context = resolve_context(req)
+        decision = route_intent(context)
+        if (
+            decision.intent == "compound"
+            and _explicit_protected_action(req.message)
+            and not (
+                _SHOPPING.search(req.message)
+                and compound_graph.EXECUTION_REQUEST.search(req.message)
+            )
+        ):
+            response = await self._execute_turn(
+                req, decision, TaskPlan(stop_reason="compound_request_unsupported")
+            )
+            response._consultation_parent = req._consultation_parent
+            response._owned_look_context = req._owned_look_context
+            response.chat_context, response.style_context = req.chat_context, req.style_context
+            if req.request_type == "style_consultation":
+                response.style_status = "unsupported"
+            return response
+        g8_enabled = getattr(get_settings(), "g8_enabled", False)
+        if g8_enabled and req.request_type != "ar_command":
+            req._parent_deadline = time.monotonic() + get_settings().g8_deadline_seconds
+        control = await prepare_entry(req, self._llm) if g8_enabled else None
+        if control is not None:
+            return control
+        from app.services.consultation_parent_graph import run_id_tasks
+
+        delegated = await run_id_tasks(req, self._dispatch_parent_read) if g8_enabled else None
+        if delegated is not None:
+            return delegated
+        intent = req._parent_intent if g8_enabled else None
+        if (
+            g8_enabled
+            and req._consultation_parent
+            and req._consultation_parent.execution_state == "cancelled"
+            and req.request_type != "ar_command"
+            and req.ar_context is None
+            and not (intent and intent.action in {"resume", "delegate"})
+        ):
+            from app.services.consultation_intent_service import control_response
+
+            return control_response(req, "중단한 상담을 다시 이어갈까요?", clarification=True)
+        if intent and intent.action in {"retry", "resume"} and intent.targets == ["skin"]:
+            task = next(t for t in req._consultation_parent.tasks if t.goal == "skin")
+            req = req.model_copy(update={"message": task.objective})
+        mixed_read = await try_product_style(req, self._catalog, self._llm)
+        if mixed_read is not None:
+            return mixed_read
         if req.style_search:
             return await search_style(req, self._catalog, self._llm)
         explicit_knowledge = req.request_type == "knowledge_consultation"
@@ -658,6 +737,115 @@ class ChatService:
             req = req.model_copy(update={"request_type": "chat"})
         context = resolve_context(req)
         decision = route_intent(context)
+        if not explicit_knowledge and decision.intent not in {"ar", "compound"}:
+            from app.services.consultation_parent_graph import try_owned_look
+
+            owned_look = await try_owned_look(req, self._catalog, llm=self._llm)
+            if owned_look is not None:
+                return owned_look
+        session_ref = req.chat_context.session if req.chat_context else None
+        if (
+            not explicit_knowledge
+            and decision.intent not in {"ar", "style"}
+            and not (req._parent_intent and req._parent_intent.action == "delegate")
+            and (
+                compound_graph.may_plan(req, previous=bool(req._compound_context or session_ref))
+                or (req._parent_replan and "skin" in req._parent_replan["updated"])
+            )
+        ):
+            if self._sessions is not None and principal_key:
+                return await self._answer_session(req, principal_key, consider_compound=True)
+            if session_ref:
+                raise ApiError(503, "Chat session is unavailable", "chat_session_unavailable")
+            response = await self._try_compound(req, context, decision, req._compound_context)
+            if response is not None:
+                return response
+        return await self._answer_single(req, principal_key, context, decision, explicit_knowledge)
+
+    async def _dispatch_parent_read(self, capability, req):
+        """Reuse specialist entry points, never recurse into ConversationService or save."""
+        if capability == "knowledge":
+            recipes = [r.style_recipe for r in req._parent_sources.values() if r.style_recipe]
+            if recipes:
+                result = await consult_knowledge(
+                    req.message,
+                    prior_user_context=json.dumps(
+                        {"styleRecipe": recipes[0].model_dump(mode="json", by_alias=True)},
+                        ensure_ascii=False,
+                    ),
+                )
+            else:
+                result = await consult_knowledge(req.message)
+            return ChatResponse(answer=result.answer, products=[], knowledge=result.reply)
+        if capability == "product":
+            plan = await interpret_beauty(req, self._llm)
+            result = await execute_beauty(req, plan, self._catalog, skincare=self._skincare)
+            if (
+                result is not None
+                and result._product_assessment is None
+                and req._product_requirement
+                and req._product_requirement.kind
+                and result.result_type != "clarification"
+            ):
+                from app.services.product_search_contract import missing_assessment
+
+                result = ChatResponse(
+                    answer={
+                        "ko": (
+                            "이 조회 경로에서는 요청하신 상품 종류를 확인하지 못했어요. "
+                            "조건에 맞는 상품으로 확정해 추천하기 어려워요."
+                        ),
+                        "en": "This search could not verify the requested product type.",
+                        "ja": "この検索ではご希望の商品種類を確認できませんでした。",
+                        "zh": "本次查询无法核实所需商品类型。",
+                    }[req.locale],
+                    products=[],
+                )
+                result._product_assessment = missing_assessment(req._product_requirement)
+            return result or ChatResponse(
+                answer="찾을 상품이나 비교 대상을 알려주세요.",
+                products=[],
+                result_type="clarification",
+            )
+        if capability == "style":
+            return await search_style(req, self._catalog, self._llm)
+        if capability == "owned_look":
+            from app.services.owned_look_consultation_service import execute_owned_look
+
+            req._owned_look_goal_followup = True
+            req._owned_look_llm = self._llm
+            return await execute_owned_look(req, self._catalog)
+        if capability == "skin":
+            choice = await compound_graph.interpret(req, self._llm, req._compound_context)
+            if (
+                choice is None
+                or choice.action not in {"start", "refine"}
+                or choice.scope != "consultation"
+            ):
+                return ChatResponse(
+                    answer=choice.question
+                    if choice and choice.scope == "consultation" and choice.action == "clarify"
+                    else "피부 관리 목표와 원하는 상품 조건을 알려주세요.",
+                    products=[],
+                    result_type="clarification",
+                )
+            return await compound_graph.run_compound(
+                choice.goal,
+                choice.question,
+                self._skincare,
+                self._catalog,
+                previous=req._compound_context,
+                reuse_candidates=compound_graph.can_reuse_candidates(
+                    choice.goal, req._compound_context
+                ),
+                deadline=req._parent_deadline,
+                llm=self._llm,
+                knowledge_action=choice.knowledge_action,
+                remove_knowledge_ingredients=choice.remove_knowledge_ingredients,
+            )
+        raise ValueError("Unsupported parent capability")
+
+    async def _answer_single(self, req, principal_key, context, decision, explicit_knowledge):
         if explicit_knowledge and _is_knowledge_question(req, context, decision):
             return await self._run_supervisor(
                 req, context, decision.model_copy(update={"intent": "knowledge"})
@@ -771,6 +959,88 @@ class ChatService:
         query = _grounded_look_query(req.message, look.title, plan.query)
         return plan.model_copy(update={"category": category, "query": query})
 
+    async def _try_compound(self, req, context, decision, previous):
+        deadline = req._parent_deadline or time.monotonic() + get_settings().g8_deadline_seconds
+        try:
+            async with asyncio.timeout(max(0.0, deadline - time.monotonic())):
+                choice = await compound_graph.interpret(req, self._llm, previous)
+        except TimeoutError as exc:
+            raise ApiError(504, "Consultation planning timed out", "compound_plan_timeout") from exc
+        if choice is None:
+            return None
+        active_previous = previous if choice.action == "refine" else None
+
+        async def execute(_req, _decision, _plan):
+            if choice.scope != "consultation":
+                return await self._execute_turn(
+                    req,
+                    decision.model_copy(update={"intent": "compound"}),
+                    TaskPlan(stop_reason="compound_request_unsupported"),
+                )
+            if choice.action == "knowledge":
+                response = await self._execute_turn(
+                    req.model_copy(update={"message": choice.question}),
+                    decision.model_copy(update={"intent": "knowledge"}),
+                    TaskPlan(tasks=["knowledge"]),
+                )
+                if choice.unsupported_product_conditions:
+                    response.answer += (
+                        "\n\n요청하신 상품 조건("
+                        + ", ".join(choice.unsupported_product_conditions)
+                        + ")은 현재 상품 검색에서 확인할 수 없어 추천을 연결하지 못했어요."
+                    )
+                return response
+            if choice.action == "clarify":
+                return ChatResponse(
+                    answer=choice.question, products=[], result_type="clarification"
+                )
+            return await compound_graph.run_compound(
+                choice.goal,
+                choice.question,
+                self._skincare,
+                self._catalog,
+                previous=previous,
+                reuse_candidates=bool(
+                    compound_graph.can_reuse_candidates(choice.goal, active_previous)
+                ),
+                deadline=deadline,
+                llm=self._llm,
+                knowledge_action=choice.knowledge_action,
+                remove_knowledge_ingredients=choice.remove_knowledge_ingredients,
+            )
+
+        async def coordinated(*_):
+            from app.services.consultation_parent_graph import run_parent
+
+            if choice.scope != "consultation":
+                return await execute(req, decision, None)
+            return await run_parent(req, "skin", lambda: execute(req, decision, None))
+
+        if req._g7_execution is not None:
+            runtime = SupervisorRuntime(req, context, lambda *_: TaskPlan(), coordinated)
+            return await self._run_durable(req._g7_execution, runtime, decision)
+        return await coordinated()
+
+    @staticmethod
+    async def _run_durable(execution, supervisor_runtime, decision):
+        repository = CheckpointRepository(get_settings().chat_database_url)
+        async with repository.fresh_writer(
+            execution.thread_id,
+            execution.conversation_id,
+            execution.owner_id,
+            execution.request_id,
+        ) as writer:
+            runtime = DurableRuntime(supervisor_runtime, decision)
+            await durable_supervisor(writer).ainvoke(
+                {"request_id": str(execution.request_id), "execution_status": "new"},
+                config={"configurable": {"thread_id": str(execution.thread_id)}},
+                context=runtime,
+            )
+            if runtime.response is None:
+                raise ValueError("Missing graph response")
+            execution.checkpoint_id = await writer.completed_id(execution.request_id)
+            return runtime.response
+
     async def _run_supervisor(
         self,
         req: ChatRequest,
@@ -881,23 +1151,7 @@ class ChatService:
             )
             execution = req._g7_execution
             if execution is not None:
-                repository = CheckpointRepository(get_settings().chat_database_url)
-                async with repository.fresh_writer(
-                    execution.thread_id,
-                    execution.conversation_id,
-                    execution.owner_id,
-                    execution.request_id,
-                ) as writer:
-                    runtime = DurableRuntime(supervisor_runtime, decision)
-                    await durable_supervisor(writer).ainvoke(
-                        {"request_id": str(execution.request_id), "execution_status": "new"},
-                        config={"configurable": {"thread_id": str(execution.thread_id)}},
-                        context=runtime,
-                    )
-                    if runtime.response is None:
-                        raise ValueError("Missing graph response")
-                    execution.checkpoint_id = await writer.completed_id(execution.request_id)
-                    return runtime.response
+                return await self._run_durable(execution, supervisor_runtime, decision)
             output = await product_supervisor.ainvoke(
                 state,
                 context=supervisor_runtime,
@@ -1061,7 +1315,9 @@ class ChatService:
                 context.shade_selections.pop(screen.product_id, None)
         return context
 
-    async def _answer_session(self, incoming: ChatRequest, owner: str | None):
+    async def _answer_session(
+        self, incoming: ChatRequest, owner: str | None, *, consider_compound=False
+    ):
         if not owner or not owner.startswith(("user:", "guest:")):
             raise ApiError(401, "Chat principal required", "chat_session_owner_required")
         owner_id = owner.removeprefix("user:") if owner.startswith("user:") else None
@@ -1117,7 +1373,9 @@ class ChatService:
                     ref = None
                     load_error = exc
                     await repo.check_new_request(owner, request_id)
-                elif incoming.locale == "ko" and get_settings().g1_supervisor_enabled:
+                elif consider_compound or (
+                    incoming.locale == "ko" and get_settings().g1_supervisor_enabled
+                ):
                     # A supplied capability must be valid before any model or Catalog call.
                     raise
                 elif exc.code not in {"chat_session_unavailable", "chat_session_expired"}:
@@ -1196,6 +1454,33 @@ class ChatService:
             context.session_version = state.state_version
             context.result_set_id = str(state.result_set_id)
         decision = route_intent(context)
+        if consider_compound and not (old_pending or general_only or req.screen_context):
+            previous = incoming._compound_context
+            if incoming._g7_execution is None and state:
+                previous = state.context.compound
+            response = await self._try_compound(req, context, decision, previous)
+            if response is not None:
+                if incoming._g7_execution is not None:
+                    # G7 owns the completed response and restores exact options without Redis.
+                    return response
+                return await self._store_session_reply(
+                    req,
+                    owner,
+                    repo,
+                    state,
+                    ref,
+                    response,
+                    request_id,
+                    fingerprint,
+                    conversation_id,
+                    next_pending=None,
+                    renewed=True,
+                )
+            if not ref and incoming.request_type == "chat":
+                original_context = resolve_context(incoming)
+                return await self._answer_single(
+                    incoming, owner, original_context, route_intent(original_context), False
+                )
         if general_only:
             decision.intent = "general"
         if decision.intent == "compound":
@@ -1656,13 +1941,45 @@ class ChatService:
             await self._validate_session_context(ctx, None, None)
         except UpstreamError as exc:
             raise ApiError(502, "Catalog validation failed", "upstream_error") from exc
-        now = int(time.time())
         renewed = state is None or (
             slots.intent in {"search", "refine"}
             or ctx.candidate_ids != state.context.candidate_ids
             or ctx.filters != state.context.filters
             or ctx.option_scope != state.context.option_scope
         )
+        return await self._store_session_reply(
+            req,
+            owner,
+            repo,
+            state,
+            ref,
+            response,
+            request_id,
+            fingerprint,
+            conversation_id,
+            next_pending=next_pending,
+            renewed=renewed,
+        )
+
+    async def _store_session_reply(
+        self,
+        req,
+        owner,
+        repo,
+        state,
+        ref,
+        response,
+        request_id,
+        fingerprint,
+        conversation_id,
+        *,
+        next_pending,
+        renewed,
+    ):
+        now = int(time.time())
+        ctx = response.chat_context
+        result = response.supervisor.result if response.supervisor else response.tool_result
+        owner_id = owner.removeprefix("user:") if owner.startswith("user:") else None
         created = now if renewed else state.result_created_at
         ctx.issued_at = created
         token = ref.session_token if state else secrets.token_urlsafe(32)
@@ -1728,18 +2045,82 @@ class ChatService:
             ctx.session = None
             response.session_status = "unavailable"
             response.answer += "\n" + TEXT[req.locale]["session_unavailable"]
-            result.status = "partial"
-            result.conditions.append(
-                ConditionCheck(
-                    condition="session", verdict="ERROR", reason="chat_session_unavailable"
+            if result is not None:
+                result.status = "partial"
+                result.conditions.append(
+                    ConditionCheck(
+                        condition="session", verdict="ERROR", reason="chat_session_unavailable"
+                    )
                 )
-            )
         return response
 
     async def execute_tool(
         self, req: ChatRequest, decision: IntentDecision, plan: TaskPlan
     ) -> tuple[ChatResponse, ToolResult]:
         if not plan.tasks or len(plan.tasks) > 1:
+            if plan.stop_reason == "compound_request_unsupported":
+                replies = {
+                    "ko": {
+                        "ar": (
+                            "AR은 뷰티미러에서 상품과 호수를 확인한 뒤 적용해 주세요. "
+                            "지금 얼굴에 적용한 상태는 아니에요."
+                        ),
+                        "memory": (
+                            "기억에는 어떤 내용을 저장할지 먼저 확인할게요. 아직 저장하지 않았어요."
+                        ),
+                        "other": (
+                            "실제 변경은 해당 화면에서 내용을 확인한 뒤 진행해 주세요. "
+                            "여기서 실행하지는 않았어요."
+                        ),
+                    },
+                    "en": {
+                        "ar": (
+                            "Confirm the product and shade in Beauty Mirror before applying AR. "
+                            "Nothing has been applied to your face here."
+                        ),
+                        "memory": (
+                            "First, please clarify what you want remembered. "
+                            "Nothing has been saved yet."
+                        ),
+                        "other": (
+                            "Confirm the action in its screen before proceeding. "
+                            "Nothing has been changed here."
+                        ),
+                    },
+                    "ja": {
+                        "ar": (
+                            "ビューティーミラーで商品と色番を確認してからARを適用してください。"
+                            "ここでは顔に適用していません。"
+                        ),
+                        "memory": "記憶に保存する内容を先に確認します。まだ保存していません。",
+                        "other": (
+                            "該当画面で内容を確認してから実行してください。"
+                            "ここでは変更していません。"
+                        ),
+                    },
+                    "zh": {
+                        "ar": "请先在美妆镜确认商品和色号再应用AR。此处尚未应用到脸部。",
+                        "memory": "请先确认希望记住的内容，目前尚未保存。",
+                        "other": "请先在对应页面确认操作内容，此处尚未执行更改。",
+                    },
+                }[req.locale]
+                sections = []
+                if compound_graph.EXECUTION_REQUEST.search(req.message):
+                    sections.append(replies["ar"])
+                if re.search(
+                    r"기억|저장|삭제|memory|remember|save|記憶|保存|记忆", req.message, re.I
+                ):
+                    sections.append(replies["memory"])
+                return (
+                    ChatResponse(
+                        answer="\n\n".join(sections or [replies["other"]]),
+                        products=[],
+                        style_status=(
+                            "unsupported" if req.request_type == "style_consultation" else None
+                        ),
+                    ),
+                    ToolResult(tool="beauty", status="unsupported", reason=plan.stop_reason),
+                )
             if req.request_type == "style_consultation":
                 return ChatResponse(
                     answer=STYLE_TEXT[req.locale]["unsupported"],

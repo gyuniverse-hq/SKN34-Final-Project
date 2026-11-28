@@ -6,8 +6,8 @@ import type { CartItem } from '@/types';
 
 export const MAX_QUANTITY = 20;
 
-export function cartLineKey(item: Pick<CartItem, 'productId' | 'shadeId'>) {
-  return `${item.productId}::${item.shadeId ?? ''}`;
+export function cartLineKey(item: Pick<CartItem, 'productId' | 'shadeId' | 'optionId'>) {
+  return item.optionId ? `${item.productId}::option::${item.optionId}` : `${item.productId}::${item.shadeId ?? ''}`;
 }
 
 export interface PendingPayment {
@@ -97,7 +97,13 @@ export const useCartStore = create<CartState>()(
           };
         }),
     }),
-    { name: STORAGE_KEYS.cart, storage: persistStorage, version: 2 }
+    {
+      name: STORAGE_KEYS.cart,
+      storage: persistStorage,
+      version: 2,
+      // v2 only adds an optional checkout URL; v1 item identities remain valid.
+      migrate: (state, version) => version === 1 ? state as CartState : { items: [], pendingPayment: null },
+    }
   )
 );
 

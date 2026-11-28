@@ -31,6 +31,7 @@ class VerifiedVideoProductLink:
     link_type: str = "confirmed_oy"
     display_brand: str | None = None
     display_name: str | None = None
+    option_id: str | None = None
 
 
 class VerifiedVideoProductRepository:
@@ -119,7 +120,13 @@ class VerifiedVideoProductRepository:
                 ProductRow.id,
                 ShadeRow.id,
                 match.oy_goods_no,
-                match.oy_option_id,
+                select(RawOyProductOptionRow.option_id)
+                .where(
+                    RawOyProductOptionRow.option_id == match.oy_option_id,
+                    RawOyProductOptionRow.goods_no == match.oy_goods_no,
+                    RawOyProductOptionRow.delisted_at.is_(None),
+                )
+                .scalar_subquery(),
             )
             .select_from(mention)
             .join(match, match.yt_product_id == mention.yt_product_id)
@@ -155,6 +162,7 @@ class VerifiedVideoProductRepository:
                 if exact_shade is not None
                 else resolved.get((pid, goods_no, option_id)),
                 "confirmed_oy",
+                option_id=option_id,
             )
             for src, video, number, pid, exact_shade, goods_no, option_id in rows
         ]

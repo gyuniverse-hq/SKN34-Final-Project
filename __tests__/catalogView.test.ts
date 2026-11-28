@@ -112,3 +112,17 @@ describe('external links', () => {
     expect(findOffer(undefined, 'https://shop.example/item/1')).toBeUndefined();
   });
 });
+
+
+it('uses exact option prices, preserves unknowns and never substitutes product price', () => {
+  const items = [{ productId: 'a', optionId: '01', quantity: 2 }, { productId: 'a', optionId: '02', quantity: 1 },
+    { productId: 'a', optionId: 'gone', quantity: 1 }];
+  const base = { productId: 'a', name: 'Option', priceBasis: 'collected_snapshot' as const,
+    observedAt: null, sourceUrl: null, image: null, arShadeId: null };
+  const lines = buildCartLines(items, [product('a', [])], [
+    { ...base, optionId: '01', priceKRW: 1200 }, { ...base, optionId: '02', priceKRW: null },
+  ]);
+  expect(lines[0].lineTotal).toBe(2400);
+  expect(lines[1].priceUnknown).toBe(true);
+  expect(lines[2].availability).toBe('option_unavailable');
+});

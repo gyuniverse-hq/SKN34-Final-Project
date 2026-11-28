@@ -1,11 +1,12 @@
 """Internal Supervisor contracts; never authorize writes or claim app execution."""
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 from app.schemas.catalog import BaseProductType
+from app.schemas.consultation_task import ProductRequirementChange
 from app.schemas.style_recipe import StyleContext
 
 ToolName = Literal["beauty", "graph_chat", "ar_command", "style", "knowledge"]
@@ -26,6 +27,7 @@ class IngredientComparison(SupervisorModel):
 
 
 class ScreenContext(SupervisorModel):
+    option_id: str | None = Field(default=None, max_length=128)
     ingredient_comparison: IngredientComparison | None = Field(
         default=None, exclude_if=lambda value: value is None
     )
@@ -60,6 +62,7 @@ class IngredientPlanCondition(SupervisorModel):
 
 
 class SearchPlan(SupervisorModel):
+    product_requirement: ProductRequirementChange | None = None
     product_type: BaseProductType | None = Field(default=None, exclude_if=lambda v: v is None)
     option_search: bool = Field(default=False, exclude_if=lambda v: not v)
     price_basis: Literal["current_offer", "catalog_reference", "collected_snapshot"] | None = Field(
@@ -85,6 +88,9 @@ class SearchPlan(SupervisorModel):
     ingredient_conditions: list[IngredientPlanCondition] = Field(default_factory=list, max_length=6)
     shade_name: str | None = Field(default=None, min_length=1, max_length=128)
     compare_ordinals: list[int] = Field(default_factory=list, max_length=2)
+    comparison_names: list[Annotated[str, Field(min_length=2, max_length=80)]] = Field(
+        default_factory=list, max_length=2, exclude_if=lambda v: not v
+    )
     clear_filters: list[
         Literal[
             "category",

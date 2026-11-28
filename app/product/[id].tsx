@@ -16,14 +16,16 @@ import { isSafeExternalUrl } from '@/lib/externalLink';
 import { notify } from '@/lib/confirm';
 import { formatKRW } from '@/lib/format';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
-import { useProduct, useProductVideos } from '@/lib/queries';
+import { useProduct, useProductOption, useProductVideos } from '@/lib/queries';
 import { arHref, chatHref, parseId, productVideoHref, recommendationsHref } from '@/lib/routes';
 import { useCartStore } from '@/store/cartStore';
 import { useRecommendationProductFeedback } from '@/hooks/useRecommendationProductFeedback';
 import { MAX_COMPARE, useCompareStore } from '@/store/compareStore';
 export default function ProductDetailScreen() {
-  const params = useLocalSearchParams<{ id: string; shade?: string; recommendation?: string; requireShade?: string }>();
+  const params = useLocalSearchParams<{ id: string; shade?: string; recommendation?: string; requireShade?: string; optionId?: string }>();
   const id = parseId(params.id);
+  const optionId = parseId(params.optionId);
+  const sale = useProductOption(id, optionId);
   const requestedShadeId = parseId(params.shade);
   const router = useRouter();
   const { t } = useI18n();
@@ -38,23 +40,30 @@ export default function ProductDetailScreen() {
   const pickedShadeId = selection.productId === id
     ? selection.shadeId
     : requestedShadeId === selection.shadeId ? undefined : requestedShadeId;
-  const [added, setAdded] = useState(false);
+  const selectionKey = JSON.stringify([id, optionId, pickedShadeId]);
+  const [addedKey, setAddedKey] = useState<string>();
+  const added = addedKey === selectionKey;
 
   useEffect(() => {
     if (!added) return;
-    const timer = setTimeout(() => setAdded(false), 2400);
+    const timer = setTimeout(() => setAddedKey(undefined), 2400);
     return () => clearTimeout(timer);
   }, [added]);
 
+  if (params.optionId !== undefined && !optionId) return <EmptyState icon="search-outline" title={t('sale.unavailable')} />;
   if (!id) return <EmptyState icon="search-outline" title={t('common.notFound')} />;
   if (product.isPending) return <LoadingState />;
   if (product.isError) return <ErrorState error={product.error} onRetry={() => product.refetch()} />;
 
+  if (optionId && sale.isPending) return <LoadingState />;
+  if (optionId && (sale.isError || sale.data?.productId !== id || sale.data?.optionId !== optionId))
+    return <EmptyState icon="search-outline" title={t('sale.unavailable')} />;
+  const option = optionId ? sale.data : undefined;
   const p = product.data;
-  const selectedShade = params.requireShade === '1' ? p.shades.find((shade) => shade.id === pickedShadeId) : pickShade(p, pickedShadeId);
-  const arShade = p.shades.find((shade) => shade.id === pickedShadeId);
+  const selectedShade = optionId ? p.shades.find(s => s.id === option?.arShadeId) : params.requireShade === '1' ? p.shades.find((shade) => shade.id === pickedShadeId) : pickShade(p, pickedShadeId);
+  const arShade = optionId ? selectedShade : p.shades.find((shade) => shade.id === pickedShadeId);
   const shadeMissing = !!requestedShadeId && pickedShadeId === requestedShadeId && !p.shades.some((s) => s.id === requestedShadeId);
-  const tryOn = canTryOn(p);
+  const tryOn = canTryOn(p) && (!optionId || !!arShade);
 
   const selectShade = (shadeId: string) => {
     setSelection({ productId: id, shadeId });
@@ -62,20 +71,20 @@ export default function ProductDetailScreen() {
   };
 
   const onAdd = () => {
-    if (params.requireShade === '1' && p.shades.length && !selectedShade) { notify(t('chat.ingredient.selection')); return; }
-    const quantity = () => useCartStore.getState().items.find(i => i.productId === p.id && i.shadeId === selectedShade?.id)?.quantity ?? 0;
+    if (!optionId && params.requireShade === '1' && p.shades.length && !selectedShade) { notify(t('chat.ingredient.selection')); return; }
+    const quantity = () => useCartStore.getState().items.find(i => i.productId === p.id && (optionId ? i.optionId === optionId : !i.optionId && i.shadeId === selectedShade?.id))?.quantity ?? 0;
     const before = quantity();
     const cart = feedback.prepareCartAdd();
-    addToCart({ productId: p.id, shadeId: selectedShade?.id,
+    addToCart({ productId: p.id, shadeId: selectedShade?.id, ...(optionId ? { optionId } : {}),
       ...(cart?.source ? { skincareCartSources: [cart.source] } : {}),
     });
     if (quantity() > before) cart?.record();
-    setAdded(true);
+    setAddedKey(selectionKey);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
   };
 
   const onCompare = () => {
-    if (params.requireShade === '1' && p.shades.length && !selectedShade) { notify(t('chat.ingredient.selection')); return; }
+    if (!optionId && params.requireShade === '1' && p.shades.length && !selectedShade) { notify(t('chat.ingredient.selection')); return; }
     if (addToCompare({ productId: p.id, shadeId: selectedShade?.id })) router.push('/compare');
     else notify(t('compare.full', { max: MAX_COMPARE }));
   };
@@ -85,7 +94,7 @@ export default function ProductDetailScreen() {
       <Stack.Screen options={{ title: p.brand }} />
       <View style={styles.scrollArea}>
         <ScrollView contentContainerStyle={styles.content}>
-          <ProductImage uri={p.imageUrl} category={p.category} style={styles.hero} recyclingKey={p.id} />
+          <ProductImage uri={optionId ? option?.image?.url ?? '' : p.imageUrl} category={p.category} style={styles.hero} recyclingKey={optionId ?? p.id} />
           <View style={styles.body}>
             {feedback.failed ? <Notice tone="warning" body={t('skincare.feedbackFailed')} /> : null}
             <Text style={styles.brand}>{p.brand}</Text>
@@ -93,14 +102,20 @@ export default function ProductDetailScreen() {
               {p.name}
             </Text>
             <Text style={styles.nameKo}>{p.nameKo}</Text>
+            {option ? <>
+              <Text style={styles.sectionTitle}>{option.name}</Text>
+              <Text style={styles.hint}>{t(option.image ? `sale.image.${option.image.kind}` : 'sale.image.missing')}</Text>
+              <Text style={styles.hint}>{t('sale.checkoutBlocked')}</Text>
+              {option.observedAt ? <Text style={styles.hint}>{t('sale.observedAt', { date: option.observedAt })}</Text> : null}
+            </> : null}
             <View style={styles.priceRow}>
-              <Text style={styles.price}>{formatKRW(p.priceKRW)}</Text>
+              <Text style={styles.price}>{optionId ? option?.priceKRW != null ? formatKRW(option.priceKRW) : t('sale.priceUnknown') : formatKRW(p.priceKRW)}</Text>
               <Text style={styles.priceLabel}>
                 {t('product.referencePrice')} · {t('product.size')} {p.volume}
               </Text>
             </View>
 
-            {p.shades.length > 0 ? (
+            {!optionId && p.shades.length > 0 ? (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>
                   {t('product.shades')}
@@ -130,6 +145,7 @@ export default function ProductDetailScreen() {
                 icon="git-compare-outline"
                 variant="secondary"
                 compact
+                disabled={!!optionId}
                 onPress={onCompare}
                 style={styles.inlineBtn}
               />
@@ -174,7 +190,7 @@ export default function ProductDetailScreen() {
           </View>
         </ScrollView>
         <HomeChatButton label={t('home.chatFab')} hint={t('home.chatFabHint')}
-          onPress={() => router.push(chatHref({ productId: p.id, shadeId: arShade?.id }))} />
+          onPress={() => router.push(chatHref({ productId: p.id, shadeId: arShade?.id, optionId: option?.optionId }))} />
       </View>
 
       <View style={styles.footer}>

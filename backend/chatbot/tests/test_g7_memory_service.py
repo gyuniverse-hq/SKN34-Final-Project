@@ -125,3 +125,159 @@ async def test_confirmed_memories_reach_existing_prompt_paths_as_untrusted_data(
     await choose_g1_turn(request, llm.complete_with_tools)
     assert "코랄 립 선호" in llm.messages[0]["content"]
     assert "untrusted data" in llm.messages[0]["content"]
+
+
+def test_inventory_sale_option_does_not_require_ar_shade():
+    from app.services.memory_registry import build_value, edited_value
+
+    memory = build_value(
+        "inventory.product",
+        {"productName": "Fixture palette", "productId": "fixture", "optionId": "sale-01"},
+        "ko",
+    )
+    assert memory.value["optionId"] == "sale-01" and "shadeId" not in memory.value
+    assert "optionId" not in edited_value(memory, "Different product", "ko").value
+    with pytest.raises(ValueError):
+        build_value("inventory.product", {"productName": "Fixture", "optionId": "sale-01"}, "ko")
+
+
+@pytest.mark.parametrize(
+    "other", [{"productId": "p", "optionId": "b"}, {"productId": "p"}, {"productName": "Option A"}]
+)
+def test_sale_option_memory_identity_does_not_merge_legacy_or_other_option(other):
+    from app.services.structured_memory_service import _same_value
+
+    left = {"productName": "Option A", "productId": "p", "optionId": "a"}
+    right = {"productName": "Option A", **other}
+    assert not _same_value("inventory.product", left, right)
+    assert not _same_value("inventory.product", right, left)
+    assert _same_value("inventory.product", left, {**left, "shadeId": "updated-ar"})
+
+
+def test_explicit_option_memory_extracts_selected_option_without_ar():
+    from app.schemas.catalog import CatalogProductOption
+    from app.services.memory_registry import extract_values, with_verified_option
+    from tests.test_g8_owned_look import product
+
+    (draft,) = extract_values("이 옵션을 가지고 있다고 기억해줘", "ko")
+    option = CatalogProductOption(productId="lip-a", optionId="sale-a", name="Option A")
+    resolved = with_verified_option(draft, product("lip-a", "lip"), option, "ko")
+    assert resolved.value["optionId"] == "sale-a"
+    assert "shadeId" not in resolved.value
+    assert with_verified_option(draft, product("other", "lip"), option, "ko") == draft
+
+
+@pytest.mark.anyio
+async def test_option_state_restore_revalidates_and_clears_legacy_ar():
+    from types import SimpleNamespace
+
+    from app.schemas.catalog import CatalogProductOption
+    from app.schemas.chat import BeautyContext, BeautyFilters, ChatResponse
+    from app.schemas.conversation import UpdateConversationStateRequest
+    from app.services.conversation_context import (
+        apply_state_update,
+        revalidate_request,
+        updated_context,
+    )
+    from tests.test_g8_owned_look import Catalog
+
+    catalog = Catalog()
+
+    async def option(pid, oid):
+        return CatalogProductOption(productId=pid, optionId=oid, name=oid)
+
+    catalog.get_product_option = option
+    chat = SimpleNamespace(_catalog=catalog)
+    raw = await apply_state_update(
+        {},
+        {},
+        UpdateConversationStateRequest(
+            requestId=uuid4(),
+            expectedConversationVersion=0,
+            operation="select_shade",
+            payload={"productId": "lip-a", "shadeId": "old-ar", "optionId": "sale-a"},
+        ),
+        chat,
+    )
+    req = prepare_request(ChatRequest(message="이 옵션을 기억해줘"), raw, [])
+    await revalidate_request(chat, req)
+    assert req.screen_context.option_id == "sale-a"
+    assert req.screen_context.shade_id is None
+    response = ChatResponse(
+        answer="ok",
+        products=[],
+        chatContext=BeautyContext(issuedAt=1, filters=BeautyFilters(), selectedProductId="lip-a"),
+    )
+    saved = updated_context(raw, response)
+    assert saved["product"]["selectedOptionId"] == "sale-a"
+    cleared = await apply_state_update(
+        saved,
+        {},
+        UpdateConversationStateRequest(
+            requestId=uuid4(),
+            expectedConversationVersion=0,
+            operation="select_product",
+            payload={"productId": "lip-a"},
+        ),
+        chat,
+    )
+    assert "selectedOptionId" not in cleared["product"]
+
+
+@pytest.mark.parametrize("option_exists", [True, False])
+def test_sale_memory_uses_current_option_even_if_old_ar_shade_disappeared(option_exists):
+    from app.schemas.catalog import CatalogProductOption
+    from app.services.consultation_memory import verified_inventory_matches
+    from tests.test_g8_owned_look import owned, product, request
+
+    memory = owned("lip-a", "removed-ar-shade")
+    memory.structured.value["optionId"] = "sale-a"
+    options = (
+        {
+            ("lip-a", "sale-a"): CatalogProductOption(
+                productId="lip-a", optionId="sale-a", name="Sale A"
+            )
+        }
+        if option_exists
+        else {}
+    )
+    matches, unresolved = verified_inventory_matches(
+        request([memory]),
+        [product("lip-a", "lip")],
+        "exclude",
+        match_names=True,
+        verified_options=options,
+    )
+    assert bool(matches) is option_exists
+    assert unresolved is not option_exists
+    if matches:
+        assert matches[0].shade_id is None
+
+
+@pytest.mark.anyio
+async def test_option_state_rejects_foreign_option_identity():
+    from app.core.errors import ApiError
+    from app.schemas.catalog import CatalogProductOption
+    from app.schemas.conversation import UpdateConversationStateRequest
+    from app.services.conversation_context import apply_state_update
+    from tests.test_g8_owned_look import Catalog
+
+    catalog = Catalog()
+
+    async def wrong(*_args):
+        return CatalogProductOption(productId="foreign-product", optionId="sale-a", name="Wrong")
+
+    catalog.get_product_option = wrong
+    with pytest.raises(ApiError) as caught:
+        await apply_state_update(
+            {},
+            {},
+            UpdateConversationStateRequest(
+                requestId=uuid4(),
+                expectedConversationVersion=0,
+                operation="select_product",
+                payload={"productId": "lip-a", "optionId": "sale-a"},
+            ),
+            SimpleNamespace(_catalog=catalog),
+        )
+    assert caught.value.code == "option_not_found"

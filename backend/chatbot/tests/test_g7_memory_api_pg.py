@@ -24,7 +24,7 @@ from app.services import memory_service
 from app.services.chat_service import ChatService, build_messages, get_chat_service
 from app.services.conversation_service import ConversationService
 from app.services.skincare_recommendation_tool import SkincareRecommendationTool
-from tests.conftest import FakeGraph
+from tests.conftest import FakeGraph, FakeLlm
 from tests.test_beauty_consultation import Catalog, PlanLlm, product
 from tests.test_chat_sessions import SessionCatalog
 from tests.test_g2_multiturn import G2Llm
@@ -67,13 +67,13 @@ def memory_api(client, monkeypatch):
         yield client, chat
 
 
-def new_room(client):
+def new_room(client, entry=None):
     result = client.post(
         "/api/chat/conversations",
         headers=AUTH,
         json={
             "requestId": str(uuid4()),
-            "entry": {"type": "general"},
+            "entry": entry or {"type": "general"},
         },
     )
     assert result.status_code == 201, result.text
@@ -1456,3 +1456,2221 @@ def test_use_only_or_exclude_verified_owned_products_without_changing_memory(
     assert not ignored["products"] and "appliedMemories" not in ignored
     stored = client.get(detail, headers=AUTH).json()["messages"][-1]["displayPayload"]
     assert "appliedMemories" not in stored
+
+
+def test_n02_consented_inventory_selected_look_persistence_and_replay(
+    memory_api, monkeypatch, record_property
+):
+    from app.services import owned_look_consultation_service as owned_service
+    from tests.test_g8_owned_look import FilteredCatalog as LookCatalog
+
+    client, _ = memory_api
+    settings = get_settings()
+    for name in ("g7_structured_memory_enabled", "g8_enabled"):
+        monkeypatch.setattr(settings, name, True)
+    monkeypatch.setattr(settings, "g1_supervisor_enabled", False)
+    catalog = LookCatalog()
+
+    class NoModel(FakeLlm):
+        async def complete(self, *args, **kwargs):
+            raise AssertionError("N02 exact-match path must not call a model")
+
+    service = ChatService(FakeGraph(), FakeLlm(), catalog)
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    tasks = []
+    original = owned_service.execute_owned_look
+
+    async def observed(req, catalog, *, trace=None):
+        local = []
+        response = await original(req, catalog, trace=local)
+        tasks.extend(local)
+        if trace is not None:
+            trace.extend(local)
+        return response
+
+    monkeypatch.setattr(owned_service, "execute_owned_look", observed)
+
+    def select(room, version, operation, payload):
+        response = client.patch(
+            f"/api/chat/conversations/{room}/state",
+            headers=AUTH,
+            json={
+                "requestId": str(uuid4()),
+                "expectedConversationVersion": version,
+                "operation": operation,
+                "payload": payload,
+            },
+        )
+        assert response.status_code == 200, response.text
+        return response.json()["conversationVersion"]
+
+    origin = new_room(client)
+    version = select(origin, 0, "select_shade", {"productId": "lip-a", "shadeId": "lip-a-shade"})
+    ask(
+        client,
+        origin,
+        version,
+        "Please remember that I own Fixture lip-a Fixture shade",
+        structured=True,
+    )
+    path = "/api/chat/v2/memory-proposals"
+    (group,) = client.get(path, headers=AUTH, params={"conversationId": origin}).json()
+    (item,) = group["items"]
+    assert item["value"]["productId"] == "lip-a"
+    assert item["value"]["shadeId"] == "lip-a-shade"
+    approved = client.post(
+        f"{path}/{group['groupId']}/decisions",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "decisions": [
+                {
+                    "itemId": item["itemId"],
+                    "expectedVersion": item["version"],
+                    "action": "approve",
+                    "confirmed": True,
+                }
+            ],
+        },
+    )
+    assert approved.status_code == 200, approved.text
+    service = ChatService(FakeGraph(), NoModel(), catalog)
+    # Shared-parent conversational resume, using real PostgreSQL and synthetic Catalog/G5.
+    from app.schemas.knowledge import KnowledgeReply
+    from app.services import consultation_parent_graph as parent_graph
+    from app.services.knowledge_service import Consultation
+
+    knowledge_inputs = []
+
+    async def mock_knowledge(question, *, prior_user_context):
+        knowledge_inputs.append(json.loads(prior_user_context))
+        return Consultation(
+            KnowledgeReply(status="insufficient_evidence", limitations="합성 근거 부족"), {}
+        )
+
+    monkeypatch.setattr(parent_graph.knowledge_service, "consult_knowledge", mock_knowledge)
+    parent_room = new_room(client)
+    parent_version = select(
+        parent_room, 0, "select_look", {"kind": "catalog", "lookId": "fixture-look"}
+    )
+    parent_first = ask(
+        client,
+        parent_room,
+        parent_version,
+        "내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘. 순서의 이유도 설명해줘.",
+        structured=True,
+    )
+    assert not parent_first["products"]
+    assert "Fixture blush-b (blush-b-shade) 제품을 가지고 있나요" in parent_first["answer"]
+    assert knowledge_inputs[0]["styleRecipe"]["lookId"] == "fixture-look"
+    parent_second = ask(
+        client, parent_room, parent_first["conversation"]["version"], "없어", structured=True
+    )
+    assert [p["id"] for p in parent_second["products"]] == ["blush-b"]
+    assert len(knowledge_inputs) == 1  # No repeat G5 call for a resolved ownership question.
+    parent_third = ask(
+        client,
+        parent_room,
+        parent_second["conversation"]["version"],
+        "상품은 됐고 사용 순서만 알려줘",
+        structured=True,
+    )
+    assert not parent_third["products"] and parent_third["styleRecipe"]
+    restored_parent = client.get(f"/api/chat/conversations/{parent_room}", headers=AUTH).json()
+    assert restored_parent["messages"][-1]["displayPayload"]["products"] == []
+    record_property(
+        "parent_pg_evidence",
+        json.dumps(
+            {
+                "postgresMode": "live",
+                "catalogMode": "mock",
+                "authenticationMode": "mock",
+                "modelConfiguredMode": "mock",
+                "externalModelCalls": 0,
+                "knowledgeInputs": knowledge_inputs,
+                "turns": [
+                    {"modelMode": "mock", "externalModelCalls": 0, "response": value}
+                    for value in (parent_first, parent_second, parent_third)
+                ],
+            },
+            ensure_ascii=False,
+        ),
+    )
+    room = new_room(client)
+    version = select(room, 0, "select_look", {"kind": "catalog", "lookId": "fixture-look"})
+    body = {
+        "conversationId": room,
+        "expectedConversationVersion": version,
+        "requestId": str(uuid4()),
+        "locale": "ko",
+        "structuredMemory": True,
+        "message": "내가 가진 립으로 이 룩을 따라 해보고 필요한 것만 추가 추천해줘. 블러셔는 없어.",
+        "styleContext": {"kind": "catalog", "lookId": "client-forged-look"},
+    }
+    catalog.searches.clear()
+    first = client.post("/api/chat", headers=AUTH, json=body)
+    assert first.status_code == 200, first.text
+    reply = first.json()
+    assert [p["id"] for p in reply["products"]] == ["blush-b"]
+    assert reply["appliedMemories"][0]["productId"] == "lip-a"
+    assert reply["appliedMemories"][0]["shadeId"] == "lip-a-shade"
+    assert catalog.searches == [{"ids": ["lip-a"]}, {"ids": ["blush-b"]}]
+    assert all(look_id == "fixture-look" for _, look_id in catalog.look_calls)
+    before = (len(catalog.searches), len(catalog.look_calls), len(tasks))
+    replay = client.post("/api/chat", headers=AUTH, json=body)
+    assert replay.json() == reply
+    assert before == (len(catalog.searches), len(catalog.look_calls), len(tasks))
+    detail = f"/api/chat/conversations/{room}"
+    stored = client.get(detail, headers=AUTH).json()["messages"][-1]["displayPayload"]
+    assert stored["products"] == reply["products"]
+    assert stored["appliedMemories"] == reply["appliedMemories"]
+    assert client.get(detail, headers=OTHER).status_code == 404
+    denied = client.post("/api/chat", headers=OTHER, json={**body, "requestId": str(uuid4())})
+    assert denied.status_code == 404
+    assert before == (len(catalog.searches), len(catalog.look_calls), len(tasks))
+    following = ask(
+        client,
+        room,
+        reply["conversation"]["version"],
+        "내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘.",
+        structured=True,
+    )
+    assert following["appliedMemories"][0]["productId"] == "lip-a"
+    assert [p["id"] for p in following["products"]] == ["blush-b"]
+    assert "블러셔 제품도 가지고 있나요" not in following["answer"]
+    assert "Fixture blush-b (blush-b-shade) 제품을 가지고 있나요" not in following["answer"]
+    priced_request_id = str(uuid4())
+    priced = ask(
+        client,
+        room,
+        following["conversation"]["version"],
+        "2만원 이하, 향료 제외",
+        request_id=priced_request_id,
+        structured=True,
+    )
+    assert [p["id"] for p in priced["products"]] == ["blush-b"]
+    display = priced["ownedLookOptions"]
+    assert display["selections"][0]["optionId"] == "blush-b-sale"
+    assert display["batches"][0]["items"][0]["price"]["amountKRW"] == 15000
+    restored = client.get(detail, headers=AUTH).json()["messages"][-1]["displayPayload"]
+    assert restored["ownedLookOptions"] == display
+    calls_before_replay = (len(catalog.option_calls), len(tasks))
+    replay_priced = ask(
+        client,
+        room,
+        following["conversation"]["version"],
+        "2만원 이하, 향료 제외",
+        request_id=priced_request_id,
+        structured=True,
+    )
+    assert replay_priced == priced
+    assert calls_before_replay == (len(catalog.option_calls), len(tasks))
+
+    lowered = ask(
+        client, room, priced["conversation"]["version"], "예산은 1만원 이하", structured=True
+    )
+    assert not lowered["products"]
+    assert catalog.option_calls[-1].max_price_krw == 10000
+    assert catalog.option_calls[-1].ingredient_conditions[0].ingredient_name == "향료"
+    reversed_release = ask(
+        client,
+        room,
+        lowered["conversation"]["version"],
+        "향료 제외. 성분 조건 전체 해제해줘.",
+        structured=True,
+    )
+    assert not catalog.option_calls[-1].ingredient_conditions
+    assert catalog.option_calls[-1].max_price_krw == 10000
+    filter_clear = ask(
+        client,
+        room,
+        reversed_release["conversation"]["version"],
+        "상품 조건 전체 해제해줘. 예산은 2만원 이하. 판테놀 제외.",
+        structured=True,
+    )
+    assert [p["id"] for p in filter_clear["products"]] == ["blush-b"]
+    assert catalog.option_calls[-1].max_price_krw == 20000
+    assert [c.ingredient_name for c in catalog.option_calls[-1].ingredient_conditions] == ["판테놀"]
+    restored = client.get(detail, headers=AUTH).json()["messages"][-1]["displayPayload"]
+    assert restored["ownedLookOptions"] == filter_clear["ownedLookOptions"]
+
+    changed = ask(
+        client,
+        room,
+        filter_clear["conversation"]["version"],
+        "블러셔는 이제 있어.",
+        structured=True,
+    )
+    assert not changed["products"]
+    assert "확인할 정보가 부족해요" in changed["answer"]
+    released = ask(
+        client,
+        room,
+        changed["conversation"]["version"],
+        "블러셔 미보유 조건 해제해줘",
+        structured=True,
+    )
+    assert not released["products"]
+    assert "Fixture blush-b (blush-b-shade) 제품을 가지고 있나요" in released["answer"]
+    reset_missing = ask(
+        client, room, released["conversation"]["version"], "블러셔는 없어.", structured=True
+    )
+    assert [p["id"] for p in reset_missing["products"]] == ["blush-b"]
+    clear_all = ask(
+        client,
+        room,
+        reset_missing["conversation"]["version"],
+        "미보유 조건 전부 해제해줘",
+        structured=True,
+    )
+    assert not clear_all["products"]
+    task_count = len(tasks)
+    search_count = len(catalog.searches)
+    opted_out = ask(
+        client,
+        room,
+        clear_all["conversation"]["version"],
+        "내가 가진 립으로 이 룩에 필요한 제품 추천해줘. 기억은 쓰지 마.",
+        structured=True,
+    )
+    assert not opted_out["products"] and not opted_out.get("appliedMemories")
+    assert (len(tasks), len(catalog.searches)) == (task_count, search_count)
+    look_room = client.post(
+        "/api/chat/conversations",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "entry": {"type": "look", "kind": "catalog", "lookId": "fixture-look"},
+        },
+    )
+    assert look_room.status_code == 201, look_room.text
+    look_reply = ask(
+        client, look_room.json()["conversationId"], 0, body["message"], structured=True
+    )
+    assert not look_reply["products"] and not look_reply.get("appliedMemories")
+    assert (len(tasks), len(catalog.searches)) == (task_count, search_count)
+    record_property(
+        "n02_pg_evidence",
+        json.dumps(
+            {
+                "catalogMode": "mock",
+                "postgresMode": "live",
+                "modelMode": "mock-forbidden",
+                "actualModelCalls": 0,
+                "tasks": tasks,
+                "answer": reply["answer"],
+                "products": reply["products"],
+                "replayAdditionalCalls": 0,
+                "optionDisplayStoredAndReplayed": display,
+                "orderedConditionTurns": [lowered, reversed_release, filter_clear],
+                "serverLookRestored": True,
+                "ownerIsolation": True,
+                "followup": following["answer"],
+                "absenceDecisionPersistence": "passed: keep/change/release/restore/clear-all",
+                "memoryOptout": "passed",
+                "directLookEntryMemoryBoundary": "passed: no inventory consumption",
+            },
+            ensure_ascii=False,
+        ),
+    )
+
+
+@pytest.mark.skipif(
+    not os.environ.get("G8_N02_LIVE_CATALOG"), reason="live Catalog opt-in required"
+)
+def test_n02_live_catalog_pg_evidence_boundary(memory_api, monkeypatch, record_property):
+    import asyncio
+    import hashlib
+
+    from app.services import owned_look_consultation_service as owned_service
+
+    client, _ = memory_api
+    settings = get_settings()
+    monkeypatch.setattr(settings, "g7_structured_memory_enabled", True)
+    monkeypatch.setattr(settings, "g8_enabled", True)
+    monkeypatch.setattr(settings, "g1_supervisor_enabled", False)
+    queries, tasks = [], []
+
+    class ObservedCatalog(CatalogClient):
+        async def search_products(self, **query):
+            rows = await super().search_products(**query)
+            queries.append({"request": query, "resultIds": [p.id for p in rows]})
+            return rows
+
+    catalog = ObservedCatalog(os.environ["G8_N02_LIVE_CATALOG"])
+
+    async def select_data():
+        looks = await catalog.fetch_style_looks()
+        products = await catalog.search_products(category="lip")
+        for product in products:
+            for shade in product.shades:
+                label = f"{product.brand} {product.name} {shade.name}"
+                if product.makeup_zone == "lip" and not any(
+                    c in label for c in ",;.!?。！？；，\n"
+                ):
+                    return looks[0], product, shade
+        pytest.skip("Live Catalog has no lip/shade suitable for an exact memory label")
+
+    look, product, shade = asyncio.run(select_data())
+    # General consultation does not require a reviewed recipe. Availability of
+    # exact sale options and actual usage evidence are evaluated separately.
+    service = ChatService(FakeGraph(), FakeLlm(), catalog)
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    original = owned_service.execute_owned_look
+
+    async def observed(req, catalog, *, trace=None):
+        local = []
+        response = await original(req, catalog, trace=local)
+        tasks.extend(local)
+        if trace is not None:
+            trace.extend(local)
+        return response
+
+    monkeypatch.setattr(owned_service, "execute_owned_look", observed)
+    room = new_room(client)
+    selected = client.patch(
+        f"/api/chat/conversations/{room}/state",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": 0,
+            "operation": "select_shade",
+            "payload": {"productId": product.id, "shadeId": shade.id},
+        },
+    )
+    assert selected.status_code == 200, selected.text
+    ask(
+        client,
+        room,
+        selected.json()["conversationVersion"],
+        f"Please remember that I own {product.brand} {product.name} {shade.name}",
+        structured=True,
+    )
+    path = "/api/chat/v2/memory-proposals"
+    (group,) = client.get(path, headers=AUTH, params={"conversationId": room}).json()
+    item = next(i for i in group["items"] if i["key"] == "inventory.product")
+    assert item["value"]["productId"] == product.id
+    assert item["value"]["shadeId"] == shade.id
+    consent = client.post(
+        f"{path}/{group['groupId']}/decisions",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "decisions": [
+                {
+                    "itemId": item["itemId"],
+                    "expectedVersion": item["version"],
+                    "action": "approve",
+                    "confirmed": True,
+                }
+            ],
+        },
+    )
+    assert consent.status_code == 200, consent.text
+    room = new_room(client)
+    selected = client.patch(
+        f"/api/chat/conversations/{room}/state",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": 0,
+            "operation": "select_look",
+            "payload": {"kind": "video", "lookId": look.id},
+        },
+    )
+    assert selected.status_code == 200, selected.text
+    replies = []
+    version = selected.json()["conversationVersion"]
+    for text in [
+        "내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘. 블러셔는 없어.",
+        "블러셔는 이제 있어.",
+        "블러셔 미보유 조건 해제해줘",
+    ]:
+        reply = ask(client, room, version, text, structured=True)
+        assert reply["styleRecipe"]
+        restored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+        display = restored["messages"][-1]["displayPayload"]
+        from app.schemas.style_recipe import StyleRecipe
+
+        assert StyleRecipe.model_validate(display["styleRecipe"]) == StyleRecipe.model_validate(
+            reply["styleRecipe"]
+        )
+        assert display.get("ownedLookOptions") == reply.get("ownedLookOptions")
+        replies.append(
+            {
+                "text": text,
+                "answer": reply["answer"],
+                "products": reply["products"],
+                "modelSettingsMode": "mock",
+                "actualExternalModelCalls": 0,
+            }
+        )
+        version = reply["conversation"]["version"]
+    assert any(q["request"].get("ids") == [product.id] for q in queries)
+    assert any(t["task"]["taskId"] == "N1" for t in tasks)
+    record_property(
+        "n02_live_catalog_evidence",
+        json.dumps(
+            {
+                "catalogMode": "live HTTP",
+                "postgresMode": "live isolated",
+                "lookId": look.id,
+                "productId": product.id,
+                "shadeId": shade.id,
+                "lookSnapshotSha256": hashlib.sha256(look.model_dump_json().encode()).hexdigest(),
+                "productSnapshotSha256": hashlib.sha256(
+                    product.model_dump_json().encode()
+                ).hexdigest(),
+                "dataVersion": "API does not expose snapshot version; response digests recorded",
+                "recipe": "present" if look.recipe else "absent",
+                "ownedProductRelationToLook": "not established; no substitution claim",
+                "positiveRecommendation": any(t["products"] for t in replies),
+                "queries": queries,
+                "tasks": tasks,
+                "turns": replies,
+            },
+            ensure_ascii=False,
+        ),
+    )
+
+
+@pytest.mark.skipif(not os.environ.get("G8_SALE_CATALOG_URL"), reason="current Catalog required")
+def test_live_sale_without_ar_persists_and_restores(memory_api, monkeypatch, record_property):
+    client, _ = memory_api
+    settings = get_settings()
+    monkeypatch.setattr(settings, "g7_structured_memory_enabled", True)
+    monkeypatch.setattr(settings, "g8_enabled", True)
+    monkeypatch.setattr(settings, "g1_supervisor_enabled", False)
+    catalog = CatalogClient(os.environ["G8_SALE_CATALOG_URL"])
+
+    class NoModel(FakeLlm):
+        async def complete(self, *args, **kwargs):
+            raise AssertionError("No model call expected")
+
+    service = ChatService(FakeGraph(), NoModel(configured=False), catalog)
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    room = new_room(client)
+    selected = client.patch(
+        f"/api/chat/conversations/{room}/state",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": 0,
+            "operation": "select_look",
+            "payload": {"kind": "video", "lookId": "AG03mUj4vnY"},
+        },
+    )
+    assert selected.status_code == 200
+    version = selected.json()["conversationVersion"]
+    turns = []
+    for message, expected in [
+        ("내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘. 아이섀도는 없어.", True),
+        ("향료 제외 조건 추가해줘", False),
+        ("향료 제외 조건 해제해줘", True),
+    ]:
+        reply = ask(client, room, version, message, structured=True)
+        assert ("oy-a000000162667" in [p["id"] for p in reply["products"]]) is expected
+        restored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+        display = restored["messages"][-1]["displayPayload"]
+        assert display["ownedLookOptions"] == reply["ownedLookOptions"]
+        from app.schemas.style_recipe import StyleRecipe
+
+        assert StyleRecipe.model_validate(display["styleRecipe"]) == StyleRecipe.model_validate(
+            reply["styleRecipe"]
+        )
+        assert not reply.get("arResult")
+        if expected:
+            option = next(
+                o
+                for o in display["ownedLookOptions"]["selections"]
+                if o["productId"] == "oy-a000000162667"
+            )
+            assert option["optionId"] == "A000000162667-012" and option.get("shadeId") is None
+        turns.append(
+            {
+                "message": message,
+                "response": reply,
+                "restoredDisplay": display,
+                "catalogMode": "live_http_current_source",
+                "postgresMode": "live_disposable",
+                "authenticationMode": "mock",
+                "modelConfiguredMode": "disabled",
+                "actualRemoteModelCalls": 0,
+            }
+        )
+        version = reply["conversation"]["version"]
+    record_property("live_sale_pg_roundtrip", json.dumps(turns, ensure_ascii=False))
+
+
+@pytest.mark.skipif(not os.environ.get("G8_N02_LIVE_CATALOG"), reason="live Catalog required")
+def test_sale_option_normal_proposal_pg_restore_and_n02(memory_api, monkeypatch, record_property):
+    from app.services import owned_look_consultation_service as owned_service
+
+    client, _ = memory_api
+    settings = get_settings()
+    monkeypatch.setattr(settings, "g7_structured_memory_enabled", True)
+    monkeypatch.setattr(settings, "g8_enabled", True)
+    monkeypatch.setattr(settings, "g1_supervisor_enabled", False)
+    calls, tasks = [], []
+
+    class ObservedCatalog(CatalogClient):
+        async def get_product_option(self, pid, oid):
+            result = await super().get_product_option(pid, oid)
+            calls.append(
+                {
+                    "productId": pid,
+                    "optionId": oid,
+                    "found": result is not None,
+                    "arShadeId": result.ar_shade_id if result else None,
+                }
+            )
+            return result
+
+    catalog = ObservedCatalog(os.environ["G8_N02_LIVE_CATALOG"])
+
+    class RecordingLlm(FakeLlm):
+        call_count = 0
+
+        async def complete(self, messages):
+            self.call_count += 1
+            return await super().complete(messages)
+
+    llm = RecordingLlm()
+    service = ChatService(FakeGraph(), llm, catalog)
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    original = owned_service.execute_owned_look
+
+    async def observed(req, catalog, *, trace=None):
+        local = []
+        response = await original(req, catalog, trace=local)
+        tasks.extend(local)
+        if trace is not None:
+            trace.extend(local)
+        return response
+
+    monkeypatch.setattr(owned_service, "execute_owned_look", observed)
+    pid = "oy-a000000162667"
+    oid = "A000000162667-012"
+    created = client.post(
+        "/api/chat/conversations",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "entry": {"type": "product", "productId": pid, "optionId": oid},
+        },
+    )
+    assert created.status_code == 201, created.text
+    room = created.json()["conversationId"]
+    reply = ask(client, room, 0, "이 옵션을 가지고 있다고 기억해줘", structured=True)
+    first_calls = llm.call_count
+    path = "/api/chat/v2/memory-proposals"
+    (group,) = client.get(path, headers=AUTH, params={"conversationId": room}).json()
+    (item,) = [i for i in group["items"] if i["key"] == "inventory.product"]
+    assert item["value"]["optionId"] == oid
+    assert "shadeId" not in item["value"]
+    # A proposal is not consent. Only this explicit decision writes a memory.
+    consent = client.post(
+        f"{path}/{group['groupId']}/decisions",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "decisions": [
+                {
+                    "itemId": item["itemId"],
+                    "expectedVersion": item["version"],
+                    "action": "approve",
+                    "confirmed": True,
+                }
+            ],
+        },
+    )
+    assert consent.status_code == 200, consent.text
+    restored = client.get(f"/api/chat/conversations/{room}", headers=AUTH)
+    assert restored.status_code == 200, restored.text
+    assert restored.json()["context"]["product"]["selectedOptionId"] == oid
+    # Same product, different sale option, both without AR: independent consented memories.
+    changed = client.patch(
+        f"/api/chat/conversations/{room}/state",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": reply["conversation"]["version"],
+            "operation": "select_product",
+            "payload": {"productId": pid, "optionId": "A000000162667-001"},
+        },
+    )
+    assert changed.status_code == 200, changed.text
+    ask(
+        client,
+        room,
+        changed.json()["conversationVersion"],
+        "이 옵션을 가지고 있다고 기억해줘",
+        structured=True,
+    )
+    second_calls = llm.call_count - first_calls
+    groups = client.get(path, headers=AUTH, params={"conversationId": room}).json()
+    group_b = next(
+        g
+        for g in groups
+        if any(i["value"].get("optionId") == "A000000162667-001" for i in g["items"])
+    )
+    item_b = next(i for i in group_b["items"] if i["value"].get("optionId") == "A000000162667-001")
+    saved_b = client.post(
+        f"{path}/{group_b['groupId']}/decisions",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "decisions": [
+                {
+                    "itemId": item_b["itemId"],
+                    "expectedVersion": item_b["version"],
+                    "action": "approve",
+                    "confirmed": True,
+                }
+            ],
+        },
+    )
+    assert saved_b.status_code == 200, saved_b.text
+    look_room = new_room(client)
+    selected = client.patch(
+        f"/api/chat/conversations/{look_room}/state",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": 0,
+            "operation": "select_look",
+            "payload": {"kind": "video", "lookId": "L8RvSmdkR2g"},
+        },
+    )
+    assert selected.status_code == 200, selected.text
+    response = ask(
+        client,
+        look_room,
+        selected.json()["conversationVersion"],
+        "내가 보유한 제품으로 이 룩을 구성하고 없는 제품만 추천해줘",
+        structured=True,
+    )
+    owned_tasks = [t for t in tasks if t.get("task", {}).get("taskId") == "O1"]
+    assert owned_tasks and oid in json.dumps(owned_tasks, ensure_ascii=False)
+    assert "A000000162667-001" in json.dumps(owned_tasks, ensure_ascii=False)
+    assert response.get("arResult") is None
+    record_property(
+        "option_memory_evidence",
+        json.dumps(
+            {
+                "catalogMode": "live",
+                "storageMode": "PostgreSQL",
+                "modelConfiguredMode": "mock-configured",
+                "actualExternalModelCalls": 0,
+                "optionCalls": calls,
+                "ownedTasks": owned_tasks,
+                "proposalValue": item["value"],
+                "restoredOptionId": oid,
+                "turns": [
+                    {
+                        "modelMode": "mock",
+                        "externalModelCalls": 0,
+                        "mockCompleteCalls": first_calls,
+                        "purpose": "memory-proposal-A",
+                    },
+                    {
+                        "modelMode": "mock",
+                        "externalModelCalls": 0,
+                        "mockCompleteCalls": second_calls,
+                        "purpose": "memory-proposal-B",
+                    },
+                    {
+                        "modelMode": "mock",
+                        "externalModelCalls": 0,
+                        "mockCompleteCalls": llm.call_count - first_calls - second_calls,
+                        "purpose": "N02-memory-use",
+                    },
+                ],
+                "memoryReply": reply["answer"],
+                "n02Answer": response["answer"],
+            },
+            ensure_ascii=False,
+        ),
+    )
+
+
+def test_same_zone_item_question_pg_restore_and_final_status(
+    memory_api, monkeypatch, record_property
+):
+    from tests.test_g8_owned_look import MultiLipCatalog
+
+    client, _ = memory_api
+    settings = get_settings()
+    monkeypatch.setattr(settings, "g7_structured_memory_enabled", True)
+    monkeypatch.setattr(settings, "g8_enabled", True)
+    monkeypatch.setattr(settings, "g1_supervisor_enabled", False)
+    catalog = MultiLipCatalog()
+    service = ChatService(FakeGraph(), FakeLlm(configured=False), catalog)
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    room = new_room(client)
+    selected = client.patch(
+        f"/api/chat/conversations/{room}/state",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": 0,
+            "operation": "select_look",
+            "payload": {"kind": "catalog", "lookId": "fixture-look"},
+        },
+    )
+    assert selected.status_code == 200, selected.text
+    version = selected.json()["conversationVersion"]
+    turns = []
+    # First answer resolves blush, second lip-a, third lip-b; all are independent.
+    for message in [
+        "내가 보유한 제품으로 이 룩을 구성하고 필요한 것만 추천해줘. 2만원 이하로 추천해줘.",
+        "있어",
+        "있어",
+        "없어",
+        "예산 1만원 이하로 바꿔줘.",
+        "lip-b 미보유 조건 해제해줘.",
+    ]:
+        response = ask(client, room, version, message, structured=True)
+        restored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+        display = restored["messages"][-1]["displayPayload"]
+        assert display.get("ownedLookOptions") == response.get("ownedLookOptions")
+        turns.append(
+            {
+                "message": message,
+                "response": response,
+                "restoredDisplay": display,
+                "catalogMode": "mock",
+                "postgresMode": "live_disposable",
+                "authenticationMode": "mock",
+                "modelConfiguredMode": "disabled",
+                "actualModelCalls": 0,
+            }
+        )
+        version = response["conversation"]["version"]
+    assert [p["id"] for p in turns[3]["response"]["products"]] == ["lip-b"]
+    assert not turns[4]["response"]["products"]
+    assert "lip-b" in turns[5]["response"]["answer"]
+    assert "가지고 있나요" in turns[5]["response"]["answer"]
+    assert all(q.product_ids == ["lip-b"] for q in catalog.option_calls)
+    record_property("item_question_pg_roundtrip", json.dumps(turns, ensure_ascii=False))
+
+
+def test_scope_option_level_and_goal_only_followup_pg(memory_api, monkeypatch, record_property):
+    from tests.test_g8_owned_look import KoreanScopeCatalog
+
+    client, _ = memory_api
+    settings = get_settings()
+    monkeypatch.setattr(settings, "g7_structured_memory_enabled", True)
+    monkeypatch.setattr(settings, "g8_enabled", True)
+    monkeypatch.setattr(settings, "g1_supervisor_enabled", False)
+    catalog = KoreanScopeCatalog()
+    observed = []
+
+    class NoModel(FakeLlm):
+        async def complete(self, *args, **kwargs):
+            raise AssertionError("No external or mock model invocation expected")
+
+    class ObservedChat(ChatService):
+        async def answer(self, req, principal_key=None):
+            response = await super().answer(req, principal_key)
+            observed.append(response)
+            return response
+
+    service = ObservedChat(FakeGraph(), NoModel(configured=False), catalog)
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    room = new_room(client)
+    selected = client.patch(
+        f"/api/chat/conversations/{room}/state",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": 0,
+            "operation": "select_look",
+            "payload": {"kind": "video", "lookId": "fixture-look"},
+        },
+    )
+    assert selected.status_code == 200, selected.text
+    version = selected.json()["conversationVersion"]
+    turns = []
+    for message in [
+        "내가 보유한 제품으로 이 룩에 필요한 것만 추천해줘. 하트퍼센트 립펜슬 07호는 있어. "
+        "롬앤 쥬시 래스팅 틴트는 있어. 2만원 이하 향료 제외해줘.",
+        "있어",
+        "롬앤 쥬시 래스팅 틴트 07호는 없어.",
+        "설명은 빼고 상품만 찾아줘",
+        "롬앤 쥬시 래스팅 틴트 미보유 조건 해제해줘.",
+    ]:
+        response = ask(client, room, version, message, structured=True)
+        restored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+        display = restored["messages"][-1]["displayPayload"]
+        assert display.get("ownedLookOptions") == response.get("ownedLookOptions")
+        turns.append(
+            {
+                "message": message,
+                "response": response,
+                "restoredDisplay": display,
+                "parent": observed[-1]._consultation_parent.model_dump(mode="json", by_alias=True),
+                "trace": observed[-1]._parent_trace,
+                "catalogMode": "mock",
+                "postgresMode": "live_disposable",
+                "authenticationMode": "mock",
+                "modelConfiguredMode": "disabled",
+                "actualModelCalls": 0,
+            }
+        )
+        version = response["conversation"]["version"]
+    assert observed[0]._owned_look_outcome.status == "waiting_user"
+    assert "07호" in observed[0]._consultation_parent.question.text
+    assert observed[1]._owned_look_outcome.status == "completed"
+    assert [p.id for p in observed[2].products] == ["lip-b"]
+    assert [p.id for p in observed[3].products] == ["lip-b"]
+    assert observed[3]._owned_look_context.filters == observed[2]._owned_look_context.filters
+    assert observed[4]._owned_look_outcome.status == "waiting_user"
+    assert len(observed[4]._owned_look_context.item_declarations) == 1
+    assert observed[4]._consultation_parent.question.ownership_scope == "option"
+    assert all(q.product_ids == ["lip-b"] for q in catalog.option_calls)
+    assert all(q.max_price_krw == 20000 for q in catalog.option_calls)
+    record_property("scope_pg_roundtrip", json.dumps(turns, ensure_ascii=False))
+
+
+@pytest.mark.parametrize(
+    "request_type,look_room",
+    [("chat", False), ("style_consultation", False), ("style_consultation", True)],
+)
+def test_reference_exception_pg_restore(
+    memory_api, monkeypatch, record_property, request_type, look_room
+):
+    from tests.test_g8_owned_look import KoreanScopeCatalog
+    from tests.test_g8_owned_look_interpreter import Model
+
+    client, _ = memory_api
+    monkeypatch.setattr(get_settings(), "g7_structured_memory_enabled", True)
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    monkeypatch.setattr(get_settings(), "g1_supervisor_enabled", False)
+
+    class GeneralCapableModel(Model):
+        general_messages = None
+
+        async def complete(self, messages):
+            self.general_messages = messages
+            return "새 상담 목표를 알려주세요."
+
+    catalog, model, observed = KoreanScopeCatalog(), GeneralCapableModel(), []
+
+    class ObservedChat(ChatService):
+        async def answer(self, req, principal_key=None):
+            response = await super().answer(req, principal_key)
+            observed.append(response)
+            return response
+
+    service = ObservedChat(FakeGraph(), model, catalog)
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    room = new_room(
+        client,
+        {"type": "look", "kind": "video", "lookId": "fixture-look"} if look_room else None,
+    )
+    selected = client.patch(
+        f"/api/chat/conversations/{room}/state",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": 0,
+            "operation": "select_look",
+            "payload": {"kind": "video", "lookId": "fixture-look"},
+        },
+    )
+    assert selected.status_code == 200
+    version = selected.json()["conversationVersion"]
+    turns = []
+    for message in [
+        "내가 보유한 제품으로 이 룩에 필요한 것만 추천해줘. "
+        "립 제품은 전부 없어. 2만원 이하로 찾아줘.",
+        "그 틴트만 미보유 조건에서 빼줘",
+        "예산은 3만원 이하로 바꿔줘",
+        "립 제품은 전부 없어.",
+    ]:
+        before = len(model.calls)
+        response = ask(client, room, version, message, structured=True, request_type=request_type)
+        restored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+        assert restored["messages"][-1]["text"] == response["answer"]
+        display = restored["messages"][-1]["displayPayload"]
+        assert display.get("ownedLookOptions") == response.get("ownedLookOptions")
+        version = response["conversation"]["version"]
+        turns.append(
+            {
+                "utterance": message,
+                "response": response,
+                "state": observed[-1]._owned_look_context.model_dump(mode="json", by_alias=True),
+                "catalogMode": "mock",
+                "modelMode": "mock",
+                "modelConfigured": True,
+                "mockCalls": len(model.calls) - before,
+                "actualExternalCalls": 0,
+                "storageMode": "live_disposable_postgresql",
+                "authMode": "mock",
+                "restoredAnswer": restored["messages"][-1]["text"],
+                "answerModelCalls": 0,
+            }
+        )
+    assert "‘없음’ 조건에서 뺐어요" in observed[1].answer
+    assert observed[2].answer.startswith("예산을 30,000원 이하로 바꿨어요.")
+    assert "가지고 있나요?" not in observed[2].answer
+    assert observed[1]._owned_look_context.exceptions
+    assert observed[2]._owned_look_context.exceptions == observed[1]._owned_look_context.exceptions
+    assert {p.id for p in observed[2].products} == {"lip-a"}
+    assert not observed[3]._owned_look_context.exceptions
+    assert {p.id for p in observed[3].products} == {"lip-a", "lip-b"}
+    assert len(model.calls) == 1
+    record_property("reference_pg", json.dumps(turns, ensure_ascii=False))
+    settings_path = "/api/chat/v2/memory-settings"
+    settings = client.get(settings_path, headers=AUTH).json()
+    off = client.patch(
+        settings_path,
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "expectedVersion": settings["version"],
+            "enabled": False,
+        },
+    )
+    assert off.status_code == 200
+    disabled = ask(
+        client,
+        room,
+        version,
+        "내가 보유한 제품으로 이 룩에 필요한 것만 추천해줘",
+        structured=True,
+        request_type=request_type,
+    )
+    assert not disabled["products"]
+    assert observed[-1]._owned_look_context is None
+    assert "동의" in disabled["answer"]
+    if request_type == "chat":
+        general = ask(
+            client,
+            room,
+            disabled["conversation"]["version"],
+            "다시 추천해줘",
+            structured=True,
+            request_type=request_type,
+        )
+        assert general["answer"] == "새 상담 목표를 알려주세요."
+        assert model.general_messages is not None
+        assert not general.get("appliedMemories")
+        restored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+        assert restored["messages"][-1]["text"] == general["answer"]
+
+
+def test_e01_partial_result_pg_restore_and_style_only_retry(
+    memory_api, monkeypatch, record_property
+):
+    from tests.test_g8_partial_success import Catalog, CombinedModel
+
+    client, _ = memory_api
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    monkeypatch.setattr(get_settings(), "g8_read_retries", 1)
+    catalog, model, observed = Catalog(), CombinedModel(), []
+
+    class ObservedChat(ChatService):
+        async def answer(self, req, principal_key=None):
+            result = await super().answer(req, principal_key)
+            observed.append(result)
+            return result
+
+    service = ObservedChat(FakeGraph(), model, catalog)
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    room = new_room(client)
+    version = 0
+    for operation, payload in [
+        ("select_product", {"productId": "product-a"}),
+        ("select_look", {"kind": "catalog", "lookId": "daily"}),
+    ]:
+        changed = client.patch(
+            f"/api/chat/conversations/{room}/state",
+            headers=AUTH,
+            json={
+                "requestId": str(uuid4()),
+                "expectedConversationVersion": version,
+                "operation": operation,
+                "payload": payload,
+            },
+        )
+        assert changed.status_code == 200, changed.text
+        version = changed.json()["conversationVersion"]
+    catalog.product_calls.clear()
+    first = ask(
+        client,
+        room,
+        version,
+        '"상품나"와 브랜드 비교하고 비슷한 룩도 찾아줘',
+        request_type="beauty_consultation",
+    )
+    assert first["styleStatus"] == "error"
+    product_calls = list(catalog.product_calls)
+    restored = client.get(f"/api/chat/conversations/{room}", headers=AUTH)
+    assert restored.status_code == 200
+    assert restored.json()["messages"][-1]["text"] == first["answer"]
+    second = ask(
+        client,
+        room,
+        first["conversation"]["version"],
+        "룩만 다시 찾아줘",
+        request_type="beauty_consultation",
+    )
+    assert second["styleStatus"] == "ready"
+    assert catalog.product_calls == product_calls and model.calls == 1
+    assert observed[-1]._consultation_parent.tasks[0].attempts == 0
+    assert observed[-1]._consultation_parent.tasks[0].input_refs
+    restored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+    assert restored["messages"][-1]["text"] == second["answer"]
+    record_property(
+        "e01_pg",
+        json.dumps(
+            {
+                "storageMode": "real PostgreSQL",
+                "authMode": "mock",
+                "catalogMode": "mock",
+                "modelMode": "mock",
+                "actualExternalModelCalls": 0,
+                "firstAnswer": first["answer"],
+                "secondAnswer": second["answer"],
+                "firstTrace": observed[0]._parent_trace,
+                "secondTrace": observed[1]._parent_trace,
+            },
+            ensure_ascii=False,
+        ),
+    )
+
+
+def test_parent_cancel_resume_pg_preserves_results_and_stops_reads(memory_api, monkeypatch):
+    from tests.test_g8_consultation_intent import IntentModel
+    from tests.test_g8_partial_success import Catalog, CombinedModel
+
+    client, _ = memory_api
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    catalog, model, observed = Catalog(failures=0), CombinedModel(), []
+
+    class ObservedChat(ChatService):
+        async def answer(self, req, principal_key=None):
+            result = await super().answer(req, principal_key)
+            observed.append(result)
+            return result
+
+    service = ObservedChat(FakeGraph(), model, catalog)
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    room, version = new_room(client), 0
+    for operation, payload in [
+        ("select_product", {"productId": "product-a"}),
+        ("select_look", {"kind": "catalog", "lookId": "daily"}),
+    ]:
+        changed = client.patch(
+            f"/api/chat/conversations/{room}/state",
+            headers=AUTH,
+            json={
+                "requestId": str(uuid4()),
+                "expectedConversationVersion": version,
+                "operation": operation,
+                "payload": payload,
+            },
+        )
+        assert changed.status_code == 200
+        version = changed.json()["conversationVersion"]
+    first = ask(
+        client,
+        room,
+        version,
+        '"상품나"와 브랜드 비교하고 비슷한 룩도 찾아줘',
+        request_type="beauty_consultation",
+    )
+    service._llm = IntentModel("cancel", ["product", "style"])
+    stopped = ask(
+        client,
+        room,
+        first["conversation"]["version"],
+        "이 상담은 여기서 멈춰",
+        request_type="beauty_consultation",
+    )
+    assert observed[-1]._consultation_parent.execution_state == "cancelled"
+    style_calls = catalog.style_calls
+    service._llm = IntentModel("continue", [])
+    waiting = ask(
+        client,
+        room,
+        stopped["conversation"]["version"],
+        "그다음은?",
+        request_type="beauty_consultation",
+    )
+    assert waiting["resultType"] == "clarification" and catalog.style_calls == style_calls
+    assert observed[-1]._product_style_context.product_result is not None
+    service._llm = IntentModel("resume", ["style"])
+    resumed = ask(
+        client,
+        room,
+        waiting["conversation"]["version"],
+        "중단한 룩 찾기부터 이어 줘",
+        request_type="beauty_consultation",
+    )
+    assert resumed["styleStatus"] == "ready" and catalog.style_calls == style_calls + 1
+    assert observed[-1]._consultation_parent.execution_state == "active"
+    assert (
+        next(t for t in observed[-1]._consultation_parent.tasks if t.goal == "product").attempts
+        == 0
+    )
+    restored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+    assert restored["messages"][-1]["text"] == resumed["answer"]
+
+
+def test_live_new_search_after_comparison_pg(memory_api, monkeypatch, record_property):
+    from app.clients.llm_client import LlmClient
+
+    if os.environ.get("G8_GOAL_BINDING_LIVE") != "1":
+        pytest.skip("Explicit synthetic live model/Catalog/PG verification only")
+    client, _ = memory_api
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    events, turns, observed, restored = [], [], [], []
+    original_send = httpx.AsyncClient.send
+
+    async def send(http, request, *args, **kwargs):
+        row = {
+            "host": request.url.host,
+            "path": request.url.path,
+            "query": request.url.query.decode(),
+        }
+        events.append(row)
+        response = await original_send(http, request, *args, **kwargs)
+        row["status"] = response.status_code
+        return response
+
+    monkeypatch.setattr(httpx.AsyncClient, "send", send)
+
+    class Service(ChatService):
+        async def answer(self, req, principal_key=None):
+            restored.append(req._consultation_parent)
+            response = await super().answer(req, principal_key)
+            observed.append(response)
+            return response
+
+    llm = LlmClient(
+        os.environ["LLM_BASE_URL"], os.environ["LLM_API_KEY"], os.environ["LLM_MODEL"], 80
+    )
+    service = Service(None, llm, CatalogClient("http://127.0.0.1:19834"))
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    room = new_room(client, {"type": "product", "productId": "oy-a000000004434"})
+    version = 0
+    comparison = toner = cream = None
+    try:
+        for index, question in enumerate(
+            [
+                "이 제품과 토리든 립 에센스를 비교하고 데일리 룩도 찾아줘",
+                "토너 찾아줘. 크림도 찾아줘",
+                "크림만 15,000원 이하로 바꿔줘",
+            ]
+        ):
+            start = len(events)
+            result = ask(client, room, version, question, request_type="beauty_consultation")
+            version = result["conversation"]["version"]
+            parent = observed[-1]._consultation_parent
+            turns.append(
+                {
+                    "question": question,
+                    "answer": result["answer"],
+                    "parent": parent.model_dump(mode="json", by_alias=True) if parent else None,
+                    "events": events[start:],
+                    "modelConfiguredMode": "live",
+                    "actualModelCalls": sum(e["host"] == "api.openai.com" for e in events[start:]),
+                }
+            )
+            assert parent is not None
+            if index == 0:
+                comparison = next(t for t in parent.tasks if t.product_operation == "compare")
+            else:
+                old = next(t for t in parent.tasks if t.task_id == comparison.task_id)
+                assert old.objective == comparison.objective
+                assert old.product_operation == "compare"
+                searches = [t for t in parent.tasks if t.product_operation == "search"]
+                assert len(searches) == 2
+                current_toner = next(t for t in searches if t.product_requirement.kind == "toner")
+                current_cream = next(t for t in searches if t.product_requirement.kind == "cream")
+                assert all(
+                    t.status == "completed" and t.product_assessment.matched > 0 for t in searches
+                )
+                queries = [e for e in events[start:] if e["path"] == "/api/products"]
+                assert len(queries) == (2 if index == 1 else 1)
+                if index == 1:
+                    toner, cream = current_toner, current_cream
+                else:
+                    assert current_toner.task_id == toner.task_id
+                    assert current_toner.display_result == toner.display_result
+                    assert current_cream.task_id == cream.task_id
+                    assert current_cream.product_context["filters"]["maxPriceKRW"] == 15000
+                    assert (
+                        next(
+                            t for t in restored[-1].tasks if t.task_id == cream.task_id
+                        ).product_operation
+                        == "search"
+                    )
+            stored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+            assert stored["messages"][-1]["text"] == result["answer"]
+    finally:
+        record_property(
+            "live_goal_binding",
+            json.dumps(
+                {
+                    "turns": turns,
+                    "auth": "mock",
+                    "parentSeed": "normal ChatService",
+                    "pg": "live",
+                    "catalog": "live",
+                    "loginApp": "NOT_RUN",
+                    "model": os.environ["LLM_MODEL"],
+                },
+                ensure_ascii=False,
+            ),
+        )
+
+
+def test_live_comparison_question_model_catalog_pg(memory_api, monkeypatch, record_property):
+    from app.clients.llm_client import LlmClient
+
+    if os.environ.get("G8_COMPARISON_FOLLOWUP_LIVE") != "1":
+        pytest.skip("Explicit synthetic live model/Catalog/PG verification only")
+    client, _ = memory_api
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    events, turns, observed, restored = [], [], [], []
+    original_send = httpx.AsyncClient.send
+
+    async def send(http, request, *args, **kwargs):
+        row = {
+            "host": request.url.host,
+            "path": request.url.path,
+            "query": request.url.query.decode(),
+        }
+        events.append(row)
+        response = await original_send(http, request, *args, **kwargs)
+        row["status"] = response.status_code
+        return response
+
+    monkeypatch.setattr(httpx.AsyncClient, "send", send)
+
+    class Service(ChatService):
+        async def answer(self, req, principal_key=None):
+            restored.append(req._consultation_parent)
+            response = await super().answer(req, principal_key)
+            observed.append(response)
+            return response
+
+    llm = LlmClient(
+        os.environ["LLM_BASE_URL"], os.environ["LLM_API_KEY"], os.environ["LLM_MODEL"], 80
+    )
+    service = Service(None, llm, CatalogClient("http://127.0.0.1:19834"))
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    room = new_room(client, {"type": "product", "productId": "oy-a000000004434"})
+    selected = client.patch(
+        f"/api/chat/conversations/{room}/state",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": 0,
+            "operation": "select_product",
+            "payload": {"productId": "oy-a000000004434"},
+        },
+    )
+    assert selected.status_code == 200, selected.text
+    version = selected.json()["conversationVersion"]
+    old_style = None
+    try:
+        for index, question in enumerate(
+            [
+                "이 제품과 토리든 립 에센스를 비교하고 데일리 룩도 찾아줘",
+                "비교 대상만 다른 크림으로 바꿔줘",
+                "다슈 맨즈 아쿠아 리얼 모이스트 올인원크림",
+            ]
+        ):
+            start = len(events)
+            result = ask(client, room, version, question, request_type="beauty_consultation")
+            version = result["conversation"]["version"]
+            parent = observed[-1]._consultation_parent
+            turns.append(
+                {
+                    "question": question,
+                    "answer": result["answer"],
+                    "parent": parent.model_dump(mode="json", by_alias=True) if parent else None,
+                    "events": events[start:],
+                    "modelConfiguredMode": "live",
+                    "actualModelCalls": sum(e["host"] == "api.openai.com" for e in events[start:]),
+                }
+            )
+            assert parent is not None
+            task = next(t for t in parent.tasks if t.task_id == "product")
+            assert task.product_operation == "compare"
+            style = next(t for t in parent.tasks if t.task_id == "style")
+            if index == 0:
+                old_style = style.display_result
+            else:
+                assert style.display_result == old_style
+                assert not any(
+                    e["path"] in {"/api/looks", "/api/style-looks"} for e in events[start:]
+                )
+                if index == 1:
+                    assert parent.question and parent.question.task_id == "product"
+                    assert task.status == "waiting_user"
+                else:
+                    assert restored[-1].question.task_id == "product"
+                    assert parent.question is None
+                    assert any(
+                        "oy-a000000122212" in e["path"] or "q=" in e["query"]
+                        for e in events[start:]
+                    )
+                    assert {e["productId"] for e in task.product_assessment.evidence} == {
+                        "oy-a000000004434",
+                        "oy-a000000122212",
+                    }
+            stored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+            assert stored["messages"][-1]["text"] == result["answer"]
+    finally:
+        record_property(
+            "live_comparison_followup",
+            json.dumps(
+                {
+                    "turns": turns,
+                    "auth": "mock",
+                    "parentSeed": "normal ChatService",
+                    "pg": "live",
+                    "catalog": "live",
+                    "loginApp": "NOT_RUN",
+                    "model": os.environ["LLM_MODEL"],
+                },
+                ensure_ascii=False,
+            ),
+        )
+
+
+def test_live_original_g8_integration_pg(memory_api, monkeypatch, record_property):
+    from app.clients.llm_client import LlmClient
+    from app.core.errors import UpstreamError
+
+    scenario = os.environ.get("G8_INTEGRATION_SCENARIO")
+    if scenario not in {"n01", "e01"}:
+        pytest.skip("Explicit synthetic integration run only")
+    client, _ = memory_api
+    settings = get_settings()
+    monkeypatch.setattr(settings, "g8_enabled", True)
+    monkeypatch.setattr(settings, "g1_supervisor_enabled", True)
+    if scenario == "n01":
+        monkeypatch.setattr(settings, "g5_enabled", True)
+        monkeypatch.setattr(settings, "catalog_api_url", "http://127.0.0.1:19838")
+        monkeypatch.setattr(settings, "g5_openai_api_key", os.environ["G5_OPENAI_API_KEY"])
+        monkeypatch.setattr(settings, "g5_internal_token", os.environ["G5_INTERNAL_TOKEN"])
+    replay_path = os.environ.get("G8_N01_KNOWLEDGE_REPLAY")
+    if replay_path:
+        from pathlib import Path
+        from unittest.mock import AsyncMock
+
+        from app.schemas.knowledge import KnowledgeReply
+        from app.services import compound_consultation_service as specialists
+        from app.services.knowledge_service import Consultation
+
+        stored = json.loads(Path(replay_path).read_text(encoding="utf-8"))
+        knowledge = KnowledgeReply.model_validate(stored["turns"][1]["response"]["knowledge"])
+        monkeypatch.setattr(
+            specialists,
+            "consult_knowledge",
+            AsyncMock(return_value=Consultation(reply=knowledge, trace={})),
+        )
+    events, turns, observed = [], [], []
+    original_send = httpx.AsyncClient.send
+
+    async def send(http, request, *args, **kwargs):
+        event = {"host": request.url.host, "path": request.url.path}
+        events.append(event)
+        response = await original_send(http, request, *args, **kwargs)
+        event["status"] = response.status_code
+        return response
+
+    monkeypatch.setattr(httpx.AsyncClient, "send", send)
+
+    class Catalog(CatalogClient):
+        inject_failure = scenario == "e01"
+
+        async def fetch_style_looks(self):
+            if self.inject_failure:
+                events.append({"host": "fault_injection", "path": "style", "status": 503})
+                raise UpstreamError("Synthetic integration Style failure")
+            return await super().fetch_style_looks()
+
+    class Service(ChatService):
+        async def answer(self, req, principal_key=None):
+            response = await super().answer(req, principal_key)
+            observed.append(response)
+            return response
+
+    llm = LlmClient(
+        os.environ["LLM_BASE_URL"], os.environ["LLM_API_KEY"], os.environ["LLM_MODEL"], 80
+    )
+    catalog = Catalog("http://127.0.0.1:19834")
+    service = Service(
+        None,
+        llm,
+        catalog,
+        skincare=SkincareRecommendationTool(SkincareRecommendationClient("http://127.0.0.1:19834")),
+    )
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    room = new_room(client)
+    version = 0
+    if scenario == "e01":
+        selected = client.patch(
+            f"/api/chat/conversations/{room}/state",
+            headers=AUTH,
+            json={
+                "requestId": str(uuid4()),
+                "expectedConversationVersion": 0,
+                "operation": "select_product",
+                "payload": {"productId": "oy-a000000004434"},
+            },
+        )
+        assert selected.status_code == 200
+        version = selected.json()["conversationVersion"]
+    questions = (
+        [
+            "오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘",
+            "각질과 당김이 있어. 로션과 쿠션을 써. 예산은 2만 원이고 향료는 제외해 줘.",
+        ]
+        if scenario == "n01"
+        else [
+            "이 제품과 다슈 맨즈 아쿠아 리얼 모이스트 올인원크림 153ml를 비교하고 "
+            "데일리 룩도 찾아줘",
+            "룩만 다시 찾아줘",
+        ]
+    )
+    if replay_path:
+        questions.append("예산만 1만 8천 원으로 바꿔줘")
+    try:
+        for index, question in enumerate(questions):
+            if index:
+                catalog.inject_failure = False
+            start = len(events)
+            reply = ask(client, room, version, question, request_type="beauty_consultation")
+            version = reply["conversation"]["version"]
+            turns.append(
+                {
+                    "question": question,
+                    "response": reply,
+                    "events": events[start:],
+                    "modelConfiguredMode": "live",
+                    "actualModelCalls": sum(e["host"] == "api.openai.com" for e in events[start:]),
+                    "parent": observed[-1]._consultation_parent.model_dump(
+                        mode="json", by_alias=True
+                    )
+                    if observed[-1]._consultation_parent
+                    else None,
+                }
+            )
+            saved = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+            assert saved["messages"][-1]["text"] == reply["answer"]
+            if scenario == "n01":
+                if index == 0:
+                    assert reply["resultType"] == "clarification"
+                elif index == 1:
+                    assert reply.get("compound") and reply.get("knowledge")
+                    assert reply["knowledge"]["status"] != "error"
+                    if replay_path:
+                        assert any(
+                            b["attempt"] == "without_unresolved_knowledge"
+                            for b in reply["compound"]["batches"]
+                        )
+                        assert all(
+                            any(
+                                c["ingredientName"] == "향료"
+                                for c in b["request"]["ingredientConditions"]
+                            )
+                            for b in reply["compound"]["batches"]
+                        )
+                    else:
+                        assert any("knowledge" in e["path"] for e in events[start:])
+                else:
+                    assert reply["compound"]["goal"]["maxPriceKRW"] == 18000
+                    assert all(b["attempt"] == "primary" for b in reply["compound"]["batches"])
+                    assert all(
+                        all(
+                            c["ingredientName"] != "세라마이드"
+                            for c in b["request"]["ingredientConditions"]
+                        )
+                        for b in reply["compound"]["batches"]
+                    )
+            else:
+                assert reply["styleStatus"] == ("ready" if index else "error")
+                if not index:
+                    task = next(
+                        t for t in observed[-1]._consultation_parent.tasks if t.goal == "product"
+                    )
+                    assert task.product_assessment and task.product_assessment.status == "completed"
+                if index:
+                    assert not any("/products" in e["path"] for e in events[start:])
+    finally:
+        record_property(
+            "live_g8_integration",
+            json.dumps(
+                {
+                    "g5Mode": "replay" if replay_path else "live",
+                    "scenario": scenario,
+                    "turns": turns,
+                    "auth": "mock",
+                    "pg": "live",
+                    "catalog": "live",
+                    "model": os.environ["LLM_MODEL"],
+                    "fault": "injected Style failure" if scenario == "e01" else None,
+                    "embeddingCallsInsideApi": "not instrumented",
+                },
+                ensure_ascii=False,
+            ),
+        )
+
+
+def test_live_duplicate_comparison_selection_pg(memory_api, monkeypatch, record_property):
+    from app.clients.llm_client import LlmClient
+
+    if os.environ.get("G8_COMPARISON_SELECTION_LIVE") != "1":
+        pytest.skip("Explicit synthetic live model/Catalog/PG verification only")
+    client, _ = memory_api
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    events, turns, observed, restored = [], [], [], []
+    original_send = httpx.AsyncClient.send
+
+    async def send(http, request, *args, **kwargs):
+        row = {
+            "host": request.url.host,
+            "path": request.url.path,
+            "query": request.url.query.decode(),
+        }
+        events.append(row)
+        response = await original_send(http, request, *args, **kwargs)
+        row["status"] = response.status_code
+        return response
+
+    monkeypatch.setattr(httpx.AsyncClient, "send", send)
+
+    class Service(ChatService):
+        async def answer(self, req, principal_key=None):
+            restored.append(req._consultation_parent)
+            response = await super().answer(req, principal_key)
+            observed.append(response)
+            return response
+
+    llm = LlmClient(
+        os.environ["LLM_BASE_URL"], os.environ["LLM_API_KEY"], os.environ["LLM_MODEL"], 80
+    )
+    service = Service(None, llm, CatalogClient("http://127.0.0.1:19834"))
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    room = new_room(client, {"type": "product", "productId": "oy-a000000122212"})
+    selected = client.patch(
+        f"/api/chat/conversations/{room}/state",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": 0,
+            "operation": "select_product",
+            "payload": {"productId": "oy-a000000122212"},
+        },
+    )
+    assert selected.status_code == 200, selected.text
+    version = selected.json()["conversationVersion"]
+    current_price = os.environ.get("G8_CURRENT_PRICE_FOLLOWUP") == "1"
+    old_style = None
+    try:
+        for index, question in enumerate(
+            [
+                "이 제품과 바이오더마 하이드라비오 토너 250ml를 비교하고 데일리 룩도 찾아줘"
+                + (". 지금 판매 가격으로 비교해줘" if current_price else ""),
+                "2번",
+                "토너 찾아줘. 크림도 찾아줘",
+            ]
+        ):
+            start = len(events)
+            result = ask(client, room, version, question, request_type="beauty_consultation")
+            version = result["conversation"]["version"]
+            parent = observed[-1]._consultation_parent
+            turns.append(
+                {
+                    "question": question,
+                    "answer": result["answer"],
+                    "parent": parent.model_dump(mode="json", by_alias=True) if parent else None,
+                    "events": events[start:],
+                    "modelConfiguredMode": "live",
+                    "actualModelCalls": sum(e["host"] == "api.openai.com" for e in events[start:]),
+                }
+            )
+            assert parent is not None
+            if index == 0:
+                assert parent.question and len(parent.question.comparison_choices) == 2
+                if current_price:
+                    assert parent.question.comparison_price_basis == "current_offer"
+                selected_id = parent.question.comparison_choices[1].product_id
+                old_style = next(t for t in parent.tasks if t.goal == "style").display_result
+            elif index == 1:
+                task = next(t for t in parent.tasks if t.task_id == "product")
+                assert restored[-1].question.comparison_choices[1].product_id == selected_id
+                assert parent.question is None
+                assert {e["productId"] for e in task.product_assessment.evidence} == {
+                    "oy-a000000122212",
+                    selected_id,
+                }
+                assert any(e["path"].endswith(selected_id) for e in events[start:])
+                if current_price:
+                    assert restored[-1].question.comparison_price_basis == "current_offer"
+                    assert "실제 판매가" in result["answer"] and "미확인" in result["answer"]
+                else:
+                    assert "앱 등록 가격" in result["answer"] and "Catalog" not in result["answer"]
+                assert (
+                    next(t for t in parent.tasks if t.goal == "style").display_result == old_style
+                )
+            else:
+                assert "앞서 비교한 내용은 그대로 유지" in result["answer"]
+                assert len([t for t in parent.tasks if t.product_operation == "search"]) == 2
+            stored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+            assert stored["messages"][-1]["text"] == result["answer"]
+    finally:
+        record_property(
+            "live_comparison_selection",
+            json.dumps(
+                {
+                    "turns": turns,
+                    "auth": "mock",
+                    "parentSeed": "normal ChatService",
+                    "pg": "live",
+                    "catalog": "live",
+                    "loginApp": "NOT_RUN",
+                    "model": os.environ["LLM_MODEL"],
+                },
+                ensure_ascii=False,
+            ),
+        )
+
+
+def test_live_product_kind_model_catalog_pg(memory_api, monkeypatch, record_property):
+    import os
+
+    from app.clients.catalog_client import CatalogClient
+    from app.clients.llm_client import LlmClient
+    from app.schemas.chat import ChatResponse
+    from app.schemas.consultation_parent import ConsultationParent, ParentTask
+
+    if os.environ.get("G8_PRODUCT_CONTRACT_LIVE") != "1":
+        pytest.skip("Explicit live synthetic model/Catalog/PG run only")
+    client, _ = memory_api
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    observed, restored, events, turns = [], [], [], []
+    original_send = httpx.AsyncClient.send
+
+    async def send(http, request, *args, **kwargs):
+        row = {
+            "host": request.url.host,
+            "path": request.url.path,
+            "query": request.url.query.decode(),
+        }
+        events.append(row)
+        response = await original_send(http, request, *args, **kwargs)
+        row["status"] = response.status_code
+        return response
+
+    monkeypatch.setattr(httpx.AsyncClient, "send", send)
+
+    class Service(ChatService):
+        async def answer(self, req, principal_key=None):
+            restored.append(req._consultation_parent)
+            if req.message == "합성 기존 상담":
+                result = ChatResponse(answer="합성 준비 상태", products=[])
+                result._consultation_parent = ConsultationParent(
+                    tasks=[ParentTask(goal="knowledge", version=1, status="completed")]
+                )
+            else:
+                result = await super().answer(req, principal_key)
+            observed.append(result)
+            return result
+
+    llm = LlmClient(
+        os.environ["LLM_BASE_URL"], os.environ["LLM_API_KEY"], os.environ["LLM_MODEL"], 80
+    )
+    service = Service(None, llm, CatalogClient("http://127.0.0.1:19834"))
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    room = new_room(client)
+    result = ask(client, room, 0, "합성 기존 상담", request_type="beauty_consultation")
+    target = None
+    preserved_id, preserved_products = None, None
+    try:
+        for question, expected, budget in [
+            ("토너 찾아줘. 크림도 찾아줘", "cream", None),
+            ("토너 쪽은 놔두고 크림만 촉촉한 걸로", "cream", None),
+            ("토너 쪽은 놔두고 크림만 15,000원 이하로", "cream", 15000),
+            ("크림 종류 제한만 풀고 그 예산은 유지해줘", None, 15000),
+        ]:
+            start = len(events)
+            result = ask(
+                client,
+                room,
+                result["conversation"]["version"],
+                question,
+                request_type="beauty_consultation",
+            )
+            parent = observed[-1]._consultation_parent
+            assert "현재 변경 요청:" not in result["answer"]
+            assert "공통 조건:" not in result["answer"]
+            assert all(task.task_id not in result["answer"] for task in parent.tasks)
+            turns.append(
+                {
+                    "question": question,
+                    "answer": result["answer"],
+                    "parent": parent.model_dump(mode="json", by_alias=True),
+                    "events": events[start:],
+                    "modelConfiguredMode": "live",
+                    "actualRemoteHttpCalls": sum(
+                        e["host"] == "api.openai.com" for e in events[start:]
+                    ),
+                }
+            )
+            products = [t for t in parent.tasks if t.goal == "product"]
+            if target is None:
+                assert len(products) == 2
+                target = next(t.task_id for t in products if t.product_requirement.kind == "cream")
+                toner = next(t for t in products if t.product_requirement.kind == "toner")
+                preserved_id = toner.task_id
+                preserved_products = toner.display_result["products"]
+            toner = next(t for t in products if t.task_id == preserved_id)
+            assert toner.status == "completed"
+            assert toner.display_result["products"] == preserved_products
+            task = next(t for t in products if t.task_id == target)
+            assert task.product_requirement.kind == expected
+            assert task.product_context["filters"]["maxPriceKRW"] == budget
+            assert task.status == "completed" and task.product_assessment.matched > 0
+            if budget is not None:
+                assert restored[-1] is not None
+                assert sum(e["path"] == "/api/products" for e in events[start:]) == 1
+            stored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+            assert stored["messages"][-1]["text"] == result["answer"]
+    finally:
+        record_property(
+            "live_product_contract",
+            json.dumps(
+                {
+                    "turns": turns,
+                    "auth": "mock",
+                    "parentSeed": "synthetic",
+                    "pg": "live",
+                    "catalog": "live",
+                    "loginApp": "NOT_RUN",
+                    "model": os.environ["LLM_MODEL"],
+                },
+                ensure_ascii=False,
+            ),
+        )
+
+
+def test_product_kind_pg_restore_budget_change_and_release(memory_api, monkeypatch):
+    from app.schemas.chat import ChatResponse
+    from app.schemas.consultation_parent import ConsultationParent, ParentTask
+    from tests.test_beauty_consultation import Catalog
+    from tests.test_g8_consultation_intent import AdditionModel
+    from tests.test_product_search_contract import named
+
+    client, _ = memory_api
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    catalog = Catalog()
+    catalog.products = [
+        named("수분 토너", 5000),
+        named("보습 크림", 9000),
+        named("보습 로션", 8000),
+        named("클렌징크림", 7000),
+    ]
+    observed, restored = [], []
+
+    class Model(AdditionModel):
+        plans = []
+
+        async def complete(self, messages):
+            return json.dumps(self.plans.pop(0))
+
+    class Service(ChatService):
+        async def answer(self, req, principal_key=None):
+            restored.append(req._consultation_parent)
+            if req.message == "합성 기존 상담":
+                result = ChatResponse(answer="합성 준비 상태", products=[])
+                result._consultation_parent = ConsultationParent(
+                    tasks=[ParentTask(goal="knowledge", version=1, status="completed")]
+                )
+            else:
+                result = await super().answer(req, principal_key)
+            observed.append(result)
+            return result
+
+    model = Model()
+    service = Service(None, model, catalog)
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    room = new_room(client)
+    seed = ask(client, room, 0, "합성 기존 상담", request_type="beauty_consultation")
+    question = "토너 찾아줘. 크림도 찾아줘"
+    model.additions = [
+        {"capability": "product", "quote": q} for q in ["토너 찾아줘", "크림도 찾아줘"]
+    ]
+    model.plans = [
+        {
+            "intent": "search",
+            "category": "skincare",
+            "productRequirement": {"operation": "set", "kind": k, "quote": q},
+        }
+        for k, q in [("toner", "토너"), ("cream", "크림")]
+    ]
+    result = ask(
+        client, room, seed["conversation"]["version"], question, request_type="beauty_consultation"
+    )
+    tasks = [t for t in observed[-1]._consultation_parent.tasks if t.goal == "product"]
+    assert [t.product_requirement.kind for t in tasks] == ["toner", "cream"]
+    target = tasks[1].task_id
+    model.additions = []
+    for question, operation, kind, expected in [
+        ("예산은 1만원 이하", "keep", None, "cream"),
+        ("로션으로 변경", "set", "lotion", "lotion"),
+        ("종류 조건 해제", "clear", None, None),
+    ]:
+        model.changes = [{"taskId": target, "operation": "update", "quote": question}]
+        plan = {
+            "intent": "refine",
+            "category": "skincare",
+            "productRequirement": {"operation": operation, "kind": kind, "quote": question},
+        }
+        if operation == "keep":
+            plan["maxPriceKRW"] = 10000
+        model.plans = [plan]
+        result = ask(
+            client,
+            room,
+            result["conversation"]["version"],
+            question,
+            request_type="beauty_consultation",
+        )
+        task = next(t for t in observed[-1]._consultation_parent.tasks if t.task_id == target)
+        assert task.product_requirement.kind == expected
+        assert task.product_context["filters"]["maxPriceKRW"] == 10000
+        assert task.status == "completed"
+        assert next(t for t in restored[-1].tasks if t.task_id == target).product_requirement
+        assert next(t for t in observed[-1]._task_results if t.task_id == tasks[0].task_id).reused
+    stored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+    assert stored["messages"][-1]["text"] == result["answer"]
+
+
+def test_added_same_role_task_ids_pg_restore_and_targeted_retry(memory_api, monkeypatch):
+    from app.core.errors import UpstreamError
+    from app.services import chat_service
+    from tests.test_g8_consultation_intent import AdditionModel, knowledge_result
+    from tests.test_g8_partial_success import Catalog, CombinedModel
+
+    client, _ = memory_api
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    monkeypatch.setattr(get_settings(), "g8_read_retries", 0)
+    catalog, observed, calls = Catalog(failures=0), [], []
+    q1, q2 = "세안 후 보습 순서를 설명해줘", "자외선 차단제를 덧바르는 방법도 설명해줘"
+    failing = True
+
+    async def knowledge(question):
+        calls.append(question)
+        if question == q2 and failing:
+            raise UpstreamError("synthetic knowledge failure")
+        return knowledge_result(question, 1 if question == q1 else 2)
+
+    monkeypatch.setattr(chat_service, "consult_knowledge", knowledge)
+
+    class Observed(ChatService):
+        async def answer(self, req, principal_key=None):
+            result = await super().answer(req, principal_key)
+            observed.append(result)
+            return result
+
+    service = Observed(FakeGraph(), CombinedModel(), catalog)
+    client.app.dependency_overrides[get_chat_service] = lambda: service
+    room, version = new_room(client), 0
+    for operation, payload in [
+        ("select_product", {"productId": "product-a"}),
+        ("select_look", {"kind": "catalog", "lookId": "daily"}),
+    ]:
+        changed = client.patch(
+            f"/api/chat/conversations/{room}/state",
+            headers=AUTH,
+            json={
+                "requestId": str(uuid4()),
+                "expectedConversationVersion": version,
+                "operation": operation,
+                "payload": payload,
+            },
+        )
+        assert changed.status_code == 200
+        version = changed.json()["conversationVersion"]
+    first = ask(
+        client,
+        room,
+        version,
+        '"상품나"와 브랜드 비교하고 비슷한 룩도 찾아줘',
+        request_type="beauty_consultation",
+    )
+    service._llm = AdditionModel([{"capability": "knowledge", "quote": q} for q in [q1, q2]])
+    added = ask(
+        client,
+        room,
+        first["conversation"]["version"],
+        q1 + ". " + q2,
+        request_type="beauty_consultation",
+    )
+    task_ids = [t.task_id for t in observed[-1]._consultation_parent.tasks if t.goal == "knowledge"]
+    assert len(task_ids) == 2 and calls == [q1, q2]
+    assert [t.status for t in observed[-1]._consultation_parent.tasks if t.goal == "knowledge"] == [
+        "completed",
+        "failed",
+    ]
+    failing = False
+    service._llm = AdditionModel(action="retry", targets=[task_ids[1]])
+    recovered = ask(
+        client,
+        room,
+        added["conversation"]["version"],
+        "덧바르는 방법만 다시 설명해줘",
+        request_type="beauty_consultation",
+    )
+    assert calls == [q1, q2, q2]
+    assert [
+        t.task_id for t in observed[-1]._consultation_parent.tasks if t.goal == "knowledge"
+    ] == task_ids
+    records = {r.task_id: r for r in observed[-1]._task_results}
+    assert records[task_ids[0]].reused and records[task_ids[0]].attempt == 0
+    assert [e["documentId"] for e in recovered["knowledge"]["evidence"]] == [2]
+    restored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+    assert restored["messages"][-1]["text"] == recovered["answer"]
+    saved_first = next(
+        task for task in observed[-1]._consultation_parent.tasks if task.task_id == task_ids[0]
+    )
+    assert [e["documentId"] for e in saved_first.display_result["knowledge"]["evidence"]] == [1]
+    service._llm = AdditionModel(action="show", targets=[task_ids[0]])
+    shown = ask(
+        client,
+        room,
+        recovered["conversation"]["version"],
+        "보습 설명 다시 보여줘",
+        request_type="beauty_consultation",
+    )
+    assert [e["documentId"] for e in shown["knowledge"]["evidence"]] == [1]
+    assert calls == [q1, q2, q2]
+
+
+def test_live_common_entry_without_parent_seed_pg(memory_api, monkeypatch, record_property):
+    from app.clients.catalog_client import CatalogClient
+    from app.clients.llm_client import LlmClient
+
+    if os.environ.get("G8_COMMON_ENTRY_LIVE") != "1":
+        pytest.skip("Explicit synthetic live model/Catalog/PG run only")
+    client, _ = memory_api
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    events, observed, turns = [], [], []
+    original = httpx.AsyncClient.send
+
+    async def send(http, request, *args, **kwargs):
+        row = {"host": request.url.host, "path": request.url.path}
+        events.append(row)
+        result = await original(http, request, *args, **kwargs)
+        row["status"] = result.status_code
+        return result
+
+    monkeypatch.setattr(httpx.AsyncClient, "send", send)
+
+    class Service(ChatService):
+        async def answer(self, req, principal_key=None):
+            if not observed:
+                assert req._consultation_parent is None
+            result = await super().answer(req, principal_key)
+            observed.append(result)
+            return result
+
+    llm = LlmClient(
+        os.environ["LLM_BASE_URL"], os.environ["LLM_API_KEY"], os.environ["LLM_MODEL"], 80
+    )
+    client.app.dependency_overrides[get_chat_service] = lambda: Service(
+        None, llm, CatalogClient("http://127.0.0.1:19834")
+    )
+    room = new_room(client)
+    version = 0
+    try:
+        for question in ["토너 찾아줘. 크림도 찾아줘", "토너 쪽은 놔두고 크림만 15,000원 이하로"]:
+            offset = len(events)
+            result = ask(client, room, version, question, request_type="beauty_consultation")
+            version = result["conversation"]["version"]
+            parent = observed[-1]._consultation_parent
+            turns.append(
+                {
+                    "question": question,
+                    "answer": result["answer"],
+                    "parent": parent.model_dump(mode="json", by_alias=True) if parent else None,
+                    "events": events[offset:],
+                    "modelConfiguredMode": "live",
+                    "actualModelHttpCalls": sum(
+                        e["host"] == "api.openai.com" for e in events[offset:]
+                    ),
+                }
+            )
+            assert parent and len(parent.tasks) == 2
+            assert {t.product_requirement.kind for t in parent.tasks} == {"toner", "cream"}
+            if len(turns) == 1:
+                toner = next(t for t in parent.tasks if t.product_requirement.kind == "toner")
+                saved_id, saved_products = toner.task_id, toner.display_result["products"]
+            else:
+                toner = next(t for t in parent.tasks if t.task_id == saved_id)
+                assert toner.display_result["products"] == saved_products
+                cream = next(t for t in parent.tasks if t.product_requirement.kind == "cream")
+                assert cream.product_context["filters"]["maxPriceKRW"] == 15000
+    finally:
+        record_property(
+            "common_entry_dialogue",
+            json.dumps(
+                {
+                    "turns": turns,
+                    "parentSeed": None,
+                    "auth": "mock",
+                    "pg": "live",
+                    "catalog": "live",
+                    "model": os.environ["LLM_MODEL"],
+                },
+                ensure_ascii=False,
+            ),
+        )
+
+
+def test_live_common_result_cooperation_pg(memory_api, monkeypatch, record_property):
+    from app.clients.knowledge_client import KnowledgeClient
+    from app.clients.llm_client import LlmClient
+
+    if os.environ.get("G8_COMMON_ENTRY_LIVE") != "1":
+        pytest.skip("Explicit synthetic live cooperation only")
+    client, _ = memory_api
+    monkeypatch.setattr(get_settings(), "g8_enabled", True)
+    monkeypatch.setattr(get_settings(), "g5_enabled", True)
+    monkeypatch.setattr(get_settings(), "g7_structured_memory_enabled", True)
+    original_init = KnowledgeClient.__init__
+
+    def init(knowledge, *args, **kwargs):
+        original_init(knowledge, *args, **kwargs)
+        knowledge.http.base_url = httpx.URL("http://127.0.0.1:19838/internal/knowledge/")
+
+    monkeypatch.setattr(KnowledgeClient, "__init__", init)
+    observed, events, turns = [], [], []
+    original_send = httpx.AsyncClient.send
+
+    async def send(http, request, *args, **kwargs):
+        item = {"host": request.url.host, "path": request.url.path}
+        events.append(item)
+        reply = await original_send(http, request, *args, **kwargs)
+        item["status"] = reply.status_code
+        return reply
+
+    monkeypatch.setattr(httpx.AsyncClient, "send", send)
+
+    class Service(ChatService):
+        async def answer(self, req, principal_key=None):
+            if not observed:
+                assert req._consultation_parent is None
+            result = await super().answer(req, principal_key)
+            observed.append(result)
+            return result
+
+    llm = LlmClient(
+        os.environ["LLM_BASE_URL"], os.environ["LLM_API_KEY"], os.environ["LLM_MODEL"], 80
+    )
+    client.app.dependency_overrides[get_chat_service] = lambda: Service(
+        None, llm, CatalogClient("http://127.0.0.1:19834")
+    )
+    room = new_room(client)
+    selected = client.patch(
+        f"/api/chat/conversations/{room}/state",
+        headers=AUTH,
+        json={
+            "requestId": str(uuid4()),
+            "expectedConversationVersion": 0,
+            "operation": "select_look",
+            "payload": {"kind": "video", "lookId": "AG03mUj4vnY"},
+        },
+    )
+    assert selected.status_code == 200
+    question = (
+        "내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘. 아이섀도는 없어. "
+        "이 룩 순서의 이유도 설명해줘."
+    )
+    try:
+        result = ask(
+            client, room, selected.json()["conversationVersion"], question, structured=True
+        )
+        parent = observed[-1]._consultation_parent
+        assert any(e.get("continuation") == "accepted" for e in observed[-1]._parent_trace)
+        assert [t.goal for t in parent.tasks] == ["owned_look", "knowledge"]
+        assert observed[-1]._task_results[1].inputs["referenceContext"]["styleRecipe"]
+        restored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+        from app.schemas.style_recipe import StyleRecipe
+
+        assert StyleRecipe.model_validate(
+            restored["messages"][-1]["displayPayload"]["styleRecipe"]
+        ) == StyleRecipe.model_validate(result["styleRecipe"])
+        turns.append(
+            {
+                "question": question,
+                "answer": result["answer"],
+                "modelConfiguredMode": "live",
+                "actualModelHttpCalls": sum(e["host"] == "api.openai.com" for e in events),
+            }
+        )
+        if os.environ.get("G8_COOPERATION_FOLLOWUP") == "1":
+            task_ids = [t.task_id for t in parent.tasks]
+            for message in ["설명만 다시 해줘", "설명은 빼고 추천만 2만원 이하로 다시 확인해줘"]:
+                offset = len(events)
+                result = ask(
+                    client, room, result["conversation"]["version"], message, structured=True
+                )
+                current = observed[-1]._consultation_parent
+                turns.append(
+                    {
+                        "question": message,
+                        "answer": result["answer"],
+                        "modelConfiguredMode": "live",
+                        "actualModelHttpCalls": sum(
+                            e["host"] == "api.openai.com" for e in events[offset:]
+                        ),
+                        "parent": current.model_dump(mode="json", by_alias=True),
+                        "trace": observed[-1]._parent_trace,
+                    }
+                )
+                assert [t.task_id for t in current.tasks] == task_ids
+                if message == "설명만 다시 해줘" and parent.question:
+                    assert current.question.model_dump(exclude={"version"}) == (
+                        parent.question.model_dump(exclude={"version"})
+                    )
+                if message.startswith("설명은"):
+                    assert current.tasks[1].status == "superseded"
+                    assert not any(e["path"].endswith("/query") for e in events[offset:])
+                restored = client.get(f"/api/chat/conversations/{room}", headers=AUTH).json()
+                assert restored["messages"][-1]["text"] == result["answer"]
+    finally:
+        record_property(
+            "common_cooperation_dialogue",
+            json.dumps(
+                {
+                    "question": question,
+                    "turns": turns,
+                    "events": events,
+                    "modelConfiguredMode": "live",
+                    "actualModelHttpCalls": sum(e["host"] == "api.openai.com" for e in events),
+                    "auth": "mock",
+                    "pg": "live",
+                    "catalog": "live",
+                    "g5": "live",
+                    "answer": observed[-1].answer if observed else None,
+                    "trace": observed[-1]._parent_trace if observed else [],
+                    "parent": observed[-1]._consultation_parent.model_dump(
+                        mode="json", by_alias=True
+                    )
+                    if observed and observed[-1]._consultation_parent
+                    else None,
+                },
+                ensure_ascii=False,
+            ),
+        )

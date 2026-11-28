@@ -918,3 +918,46 @@ async def test_priority_hint_cannot_override_catalog_version_failure(setup, monk
     assert repo.lookup_calls == [("fixture-product", "s2")]
     assert result.checked_scope.unidentified_options == 1
     assert not result.items and not result.products and result.status == "PARTIAL"
+
+
+@pytest.mark.anyio
+async def test_sale_options_without_ar_shades_keep_identity_and_unknown_ingredients(setup):
+    service, repo = setup
+    repo.products[0].shades = []
+    repo.option_identity = AsyncMock(
+        side_effect=lambda oid, pid: (oid, oid + " name", repo.stamp, "fixture://option")
+    )
+    scope = [{"productId": "fixture-product", "optionId": oid} for oid in ["sale-1", "sale-2"]]
+    result = await service.search(
+        request(product_ids=["fixture-product"], option_scope=scope, maxPriceKRW=20000)
+    )
+    assert {i.option_id for i in result.items} == {"sale-1", "sale-2"}
+    assert all(i.shade_id is None and i.group == "ELIGIBLE" for i in result.items)
+    assert all(i.option_name == i.option_id + " name" for i in result.items)
+    assert result.checked_scope.checked_options == 2
+    result = await service.search(
+        request(product_ids=["fixture-product"], option_scope=scope, fragrance_free=True)
+    )
+    assert all(i.group == "REFERENCE_ONLY" for i in result.items)
+    assert all(
+        i.checks[0].verdict == "MATCH" and i.checks[-1].verdict == "UNKNOWN" for i in result.items
+    )
+
+
+@pytest.mark.anyio
+async def test_sale_identity_required_and_production_synthetic_evidence_rejected(
+    setup,
+):
+    service, repo = setup
+    scope = [{"productId": "fixture-product", "shadeId": "s1", "optionId": "option-s1"}]
+    repo.option_identity = AsyncMock(return_value=None)
+    result = await service.search(request(product_ids=["fixture-product"], option_scope=scope))
+    assert not result.items
+    assert result.checked_scope.unidentified_options == 1
+    repo.option_identity.return_value = ("option-s1", "01", repo.stamp, "fixture://option")
+    service.settings.is_production = True
+    result = await service.search(
+        request(product_ids=["fixture-product"], option_scope=scope, fragrance_free=True)
+    )
+    assert result.items[0].group == "REFERENCE_ONLY"
+    assert not result.items[0].synthetic

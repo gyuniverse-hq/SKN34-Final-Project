@@ -90,6 +90,14 @@ class RecipeStep(StyleModel):
     ) = None
 
 
+class ReviewedProductUsage(StyleModel):
+    step_order: int = Field(strict=True, ge=1, le=100)
+    product_id: str = Field(min_length=1, max_length=128, pattern=r"\S")
+    shade_id: str = Field(min_length=1, max_length=128, pattern=r"\S")
+    evidence_id: str = Field(min_length=1, pattern=r"\S")
+    source: str = Field(min_length=1, pattern=r"\S")
+
+
 class ReviewedRecipe(StyleModel):
     look_id: str
     kind: LookKind
@@ -100,6 +108,9 @@ class ReviewedRecipe(StyleModel):
     reviewer_id: str | None = None
     features: list[str] = Field(default_factory=list, max_length=20)
     steps: list[RecipeStep] = Field(min_length=1, max_length=100)
+    product_usages: list[ReviewedProductUsage] = Field(
+        default_factory=list, max_length=100, exclude_if=lambda v: not v
+    )
     synthetic: bool = False
 
     @model_validator(mode="after")
@@ -110,10 +121,22 @@ class ReviewedRecipe(StyleModel):
             not self.reviewer_id or any(not s.description for s in self.steps)
         ):
             raise ValueError("Reviewed steps require reviewer and instructions")
+        keys = [(u.step_order, u.product_id, u.shade_id) for u in self.product_usages]
+        if any(u.step_order > len(self.steps) for u in self.product_usages) or len(keys) != len(
+            set(keys)
+        ):
+            raise ValueError("Invalid or duplicate product usage step")
         return self
 
 
 class RecipeProduct(StyleModel):
+    option_id: str | None = None
+    option_name: str | None = None
+    option_source: str | None = None
+    consultation_zone: str | None = None
+    product_usages: list[ReviewedProductUsage] = Field(
+        default_factory=list, max_length=100, exclude_if=lambda v: not v
+    )
     label: str
     zone: str
     product_id: str | None = None

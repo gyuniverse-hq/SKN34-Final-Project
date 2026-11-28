@@ -1,3 +1,5 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from '@/lib/storage';
 import { cartLineKey, MAX_QUANTITY, selectCartCount, useCartStore } from '@/store/cartStore';
 import { arCartEventIds } from '@/lib/arHistory';
 
@@ -84,4 +86,37 @@ describe('cartStore', () => {
     expect(useCartStore.getState().pendingPayment).toBeNull();
     expect(useCartStore.getState().items).toHaveLength(1);
   });
+});
+
+
+it('separates sale options and legacy lines while merging the same sale option', () => {
+  const { add } = useCartStore.getState();
+  add({ productId: 'p', optionId: '01' });
+  add({ productId: 'p', optionId: '02' });
+  add({ productId: 'p', optionId: '01' });
+  add({ productId: 'p' });
+  expect(useCartStore.getState().items.map(i => [i.optionId, i.quantity])).toEqual([
+    ['01', 2], ['02', 1], [undefined, 1],
+  ]);
+  expect(new Set(useCartStore.getState().items.map(cartLineKey)).size).toBe(3);
+});
+
+
+it('rehydrates exact sale identities alongside unchanged version-1 legacy items', async () => {
+  const saved = [{ productId: 'p', optionId: 'sale-02', quantity: 2 }, { productId: 'p', shadeId: 's', quantity: 1 }];
+  await AsyncStorage.setItem(STORAGE_KEYS.cart, JSON.stringify({ state: { items: saved, pendingPayment: null }, version: 1 }));
+  await useCartStore.persist.rehydrate();
+  expect(useCartStore.getState().items).toEqual(saved);
+});
+
+it('preserves a version-1 pending order without inventing a checkout URL', async () => {
+  const items = [{ productId: 'p', shadeId: 's', quantity: 1 }];
+  const pendingPayment = { orderId: 'old-order', userId: 'owner-1', items };
+  await AsyncStorage.setItem(STORAGE_KEYS.cart, JSON.stringify({
+    state: { items, pendingPayment }, version: 1,
+  }));
+  await useCartStore.persist.rehydrate();
+  expect(useCartStore.getState().items).toEqual(items);
+  expect(useCartStore.getState().pendingPayment).toEqual(pendingPayment);
+  expect(useCartStore.getState().pendingPayment?.checkoutUrl).toBeUndefined();
 });

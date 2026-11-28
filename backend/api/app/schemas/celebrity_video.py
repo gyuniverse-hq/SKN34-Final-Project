@@ -15,6 +15,8 @@ class CelebrityVideoProduct(OmitNoneModel):
     mapping_verified: bool | None = None
     catalog_product_id: str | None = None
     catalog_shade_id: str | None = None
+    catalog_option_id: str | None = None
+    catalog_option_source: str | None = None
 
 
 class CelebrityVideo(ApiModel):

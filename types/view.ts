@@ -1,8 +1,8 @@
 /** Screen view models: API data joined with on-device state. Not part of the HTTP contract. */
-import type { CartItem, Product, Shade, SimilarReason } from './index';
+import type { CartItem, Product, ProductOption, Shade, SimilarReason } from './index';
 
 /** Whether a saved product + shade still exists in the live catalog. */
-export type CatalogAvailability = 'available' | 'shade_unavailable' | 'product_unavailable';
+export type CatalogAvailability = 'available' | 'shade_unavailable' | 'product_unavailable' | 'option_unavailable';
 
 export interface CartLineView {
   key: string;
@@ -11,6 +11,8 @@ export interface CartLineView {
   /** Missing when the product is no longer in the catalog. */
   product?: Product;
   shade?: Shade;
+  option?: ProductOption;
+  priceUnknown?: boolean;
   lineTotal: number;
 }
 

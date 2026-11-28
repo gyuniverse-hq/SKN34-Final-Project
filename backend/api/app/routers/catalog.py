@@ -24,11 +24,13 @@ from app.schemas.catalog import (
 from app.schemas.external import ProductOffers
 from app.schemas.ingredient import IngredientReadResult
 from app.schemas.option_search import OptionSearchRequest, OptionSearchResponse
+from app.schemas.product_option import ProductOption
 from app.schemas.product_video import ProductVideosResponse
 from app.services.catalog_service import CatalogService, get_catalog_service
 from app.services.ingredient_service import IngredientService, get_ingredient_service
 from app.services.offer_service import OfferService, get_offer_service
 from app.services.option_search_service import OptionSearchService, get_option_search_service
+from app.services.product_option_service import ProductOptionService, get_product_option_service
 from app.services.product_video_service import ProductVideoService, get_product_video_service
 
 router = APIRouter(prefix="/api", tags=["catalog"])
@@ -216,3 +218,14 @@ async def search_options(
     if not await limiter.allow(client_key(request)):
         raise ApiError(429, "Too many option searches", "rate_limited")
     return await service.search(payload)
+
+
+@router.get("/products/{product_id}/options/{option_id}", response_model=ProductOption)
+async def get_product_option(
+    response: Response,
+    product_id: str = Path(min_length=1, max_length=128),
+    option_id: str = Path(min_length=1, max_length=128),
+    service: ProductOptionService = Depends(get_product_option_service),
+) -> ProductOption:
+    response.headers["Cache-Control"] = "no-store"
+    return await service.get_option(product_id, option_id)

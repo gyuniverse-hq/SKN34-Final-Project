@@ -17,7 +17,7 @@ const mockProduct: Product = {
   description: '', keyIngredients: [], tags: [], imageUrl: '', searchKeyword: '',
 };
 let mockCurrentProduct = mockProduct;
-jest.mock('@/lib/queries', () => ({ useProduct: () => ({ data: mockCurrentProduct }), useProductVideos: () => ({ data: [] }) }));
+jest.mock('@/lib/queries', () => ({ useProductOption: () => ({ data: undefined, isPending: false, isError: false }), useProduct: () => ({ data: mockCurrentProduct }), useProductVideos: () => ({ data: [] }) }));
 jest.mock('@/components/ui/StateViews', () => ({ EmptyState: 'EmptyState', ErrorState: 'ErrorState', LoadingState: 'LoadingState' }));
 jest.mock('@/components/ui/ProductImage', () => ({ ProductImage: 'ProductImage' }));
 jest.mock('@/components/ui/Button', () => ({ Button: () => null }));

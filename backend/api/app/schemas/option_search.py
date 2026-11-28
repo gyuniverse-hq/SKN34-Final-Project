@@ -91,6 +91,7 @@ class OptionPrice(IngredientModel):
 
 
 class OptionCandidate(IngredientSelection):
+    option_name: str | None = Field(default=None, exclude_if=lambda v: v is None)
     product_type: BaseProductType | None = Field(default=None, exclude_if=lambda v: v is None)
     option_id: str = Field(min_length=1, max_length=128)
     source_version: str

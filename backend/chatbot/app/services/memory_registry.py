@@ -158,8 +158,12 @@ def build_value(
     if key == "inventory.product":
         if (
             not expected <= value.keys()
-            or not value.keys() <= expected | {"productId", "shadeId"}
-            or ("shadeId" in value and "productId" not in value)
+            or not value.keys() <= expected | {"productId", "shadeId", "optionId"}
+            or (("shadeId" in value or "optionId" in value) and "productId" not in value)
+            or (
+                "optionId" in value
+                and (not value["optionId"].strip() or len(value["optionId"]) > 128)
+            )
             or not item.strip()
             or len(item) > 500
             or _SENSITIVE_PRODUCT_NAME.search(item)
@@ -237,6 +241,26 @@ def with_verified_product(
     value = {**draft.value, "productId": product.id}
     if matches[0] is not None:
         value["shadeId"] = matches[0]
+    return build_value(draft.key, value, locale, draft.context)
+
+
+def with_verified_option(draft, product, option, locale):
+    if option is None or option.product_id != product.id:
+        return draft
+    label = normalize(draft.value["productName"])
+    deictic = label in {
+        normalize(v) for v in ("이 옵션", "이 상품 옵션", "선택한 옵션", "this option")
+    }
+    exact = label == normalize(f"{product.name} {option.name}")
+    if not (deictic or exact):
+        return draft
+    value = {
+        "productName": f"{product.name} {option.name}",
+        "productId": product.id,
+        "optionId": option.option_id,
+    }
+    if option.ar_shade_id and any(s.id == option.ar_shade_id for s in product.shades):
+        value["shadeId"] = option.ar_shade_id
     return build_value(draft.key, value, locale, draft.context)
 
 

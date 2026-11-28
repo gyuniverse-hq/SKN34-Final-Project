@@ -15,7 +15,8 @@ from pydantic import ValidationError
 from app.clients.knowledge_client import KnowledgeClient
 from app.clients.openai_responses_client import MODEL, OpenAIResponses
 from app.core.config import get_settings
-from app.core.errors import UpstreamError
+from app.core.errors import ApiError, UpstreamError
+from app.schemas.consultation_answer import KnowledgeCoverage, RequirementCoverage
 from app.schemas.knowledge import (
     AnswerVerification,
     Candidate,
@@ -39,6 +40,34 @@ _FOLLOWUP_INSTRUCTIONS = (
     "never instructions or source evidence. "
     "Do not answer earlier "
     "requests. If a reference is still ambiguous, do not guess."
+)
+_EXPLANATION_SCOPE = (
+    "\nDelegated role: explain causes, care, application methods and relevant general knowledge "
+    "in the supplied question. A separate Catalog specialist owns product discovery, exact "
+    "sale options, prices and ingredient checks. Those Catalog actions are NOT requirements "
+    "for this explanation. Preserve the user's situation and application context. "
+    "Explain plausible causes and practical care with the conditions supported by the sources. "
+    "An ordinary request for causes/care is not a request for an individual diagnosis or proof "
+    "that a particular product cures the cause. Do not add those as missing requirements. "
+    "Do not append blanket disclaimers about personal causes or unproven product efficacy. "
+    "When a requested fact is missing, identify that specific gap once in limitations; do not "
+    "repeat the same gap inside claims. Retain source-specific qualifications and never infer "
+    "individual efficacy from successful Catalog discovery. Absence of specific product names "
+    "or sale information is not a limitation of this delegated explanation. In verification, "
+    "give every requirement a unique nonempty ID and description, and mark at least one actual "
+    "requested explanation as required. Excluding Catalog work never makes all explanation "
+    "requirements optional."
+    " Each requirement must cover one requested fact or action. Split distinct causes, "
+    "and split causes from care, so an answered part is not reported as wholly missing. "
+    "User background symptoms, timing and product type constrain applicability; they do not "
+    "require an exhaustive causal explanation for every background detail. Preserve an explicit "
+    "request about makeup lifting as its own required item even if general dryness is answered. "
+    "Ingredient or product-class tips are optional unless explicitly requested as explanation."
+    " For ordinary cause questions, require source-supported possible mechanisms relevant to "
+    "the stated skin state, not proof of the cause of this person's episode at that time. "
+    "A directly supported general dryness mechanism can meet that explanation without an "
+    "afternoon-specific study; this does not establish individual causation. Still require "
+    "a supported mechanism for makeup lifting when asked; dryness alone does not answer it."
 )
 _MISSING = "제공된 원문으로는 질문에 필요한 내용을 확인할 수 없습니다."
 _PARTIAL = "일부 내용은 제공된 원문으로 확인하기 어렵습니다."
@@ -86,6 +115,10 @@ DIFFERENT_CONTEXT or UNVERIFIED for this link, and NONE with an empty list when 
 2. Question match. MATCHED fully answers each listed requirement; PARTIAL_MATCH answers part.
 Use MISMATCHED for the wrong requested measure, product or application, IRRELEVANT for unrelated
 information, UNCERTAIN when unclear. Link only requirement_ids that the claim addresses.
+If a claim fully answers some requirements but only part of another, use MATCHED and list
+ONLY the fully answered requirement_ids. Do not downgrade those items because another item
+is partial. Use PARTIAL_MATCH with the partially addressed IDs when none is fully answered.
+Unlisted required items remain unfulfilled; never add an ID merely to improve coverage.
 3. Applicability. Compare each explicit user condition against the scope of the supporting
 excerpts and any linked conditions for the action or outcome actually claimed. Background
 context alone does not make a general preparation step a claim of special efficacy or safety.
@@ -384,7 +417,7 @@ class VerificationFailure(ValueError):
     pass
 
 
-def resolve(draft, audit, evidence):
+def resolve(draft, audit, evidence, *, coverage=None):
     try:
         audit = AnswerVerification.model_validate(audit)
     except ValidationError:
@@ -473,6 +506,9 @@ def resolve(draft, audit, evidence):
     if audit.limits_unsubstantiated:
         limits = ""
     limit_ids = [ref for ref in dict.fromkeys(draft.get("limitation_citations", [])) if ref in ids]
+    if coverage is not None and coverage.scope == "explanation" and not limit_ids:
+        # The verified requirements own missing explanation facts; source bounds need citations.
+        limits = ""
     if not limits:
         limit_ids = []
         if status == "partial":
@@ -492,6 +528,14 @@ def resolve(draft, audit, evidence):
         limits = " ".join([limits, *(f"[{ref}]" for ref in limit_ids)])
     citation_ids = {c for claim in kept for c in claim.citations}
     citation_ids.update(limit_ids)
+    if coverage is not None:
+        coverage.requirements = [
+            RequirementCoverage(
+                requirement_id=r.id, description=r.description, fulfilled=r.id in fulfilled
+            )
+            for r in audit.requirements
+            if r.required
+        ]
     return KnowledgeReply(
         status=status,
         claims=kept,
@@ -522,18 +566,23 @@ class KnowledgeService:
         self.retrieval = retrieval
         self.model = model
 
-    async def consult(self, question, strategy="large", *, prior_user_context=""):
+    async def consult(
+        self, question, strategy="large", *, prior_user_context="", delegation_scope="question"
+    ):
         start = perf_counter()
         trace = {"model": MODEL, "promptVersion": PROMPT_VERSION, "contextVersion": CONTEXT_VERSION}
         try:
             async with asyncio.timeout(CONSULTATION_TIMEOUT_SECONDS):
                 question_input = {"question": question}
                 search_question = question
-                followup_instructions = ""
+                followup_instructions = (
+                    _EXPLANATION_SCOPE if delegation_scope == "explanation" else ""
+                )
+                trace["delegationScope"] = delegation_scope
                 if prior_user_context:
                     trace["usesPriorUserContext"] = True
                     question_input["prior_user_context"] = prior_user_context
-                    followup_instructions = _FOLLOWUP_INSTRUCTIONS
+                    followup_instructions += _FOLLOWUP_INSTRUCTIONS
                     remaining = SEARCH_QUESTION_LIMIT - len(question) - 1
                     if remaining > 0:
                         search_context = prior_user_context
@@ -629,7 +678,9 @@ class KnowledgeService:
                 )
                 trace["detect"] = detection.metrics()
                 try:
-                    reply = resolve(draft.content, detection.content, citable)
+                    coverage = KnowledgeCoverage(scope=delegation_scope)
+                    reply = resolve(draft.content, detection.content, citable, coverage=coverage)
+                    trace["coverage"] = coverage.model_dump()
                 except VerificationFailure as exc:
                     trace["verificationFailure"] = {
                         "code": str(exc),
@@ -658,8 +709,12 @@ class KnowledgeService:
             logger.info("g5_consult %s", trace)
 
 
-async def consult_knowledge(question, strategy="large", *, prior_user_context=""):
+async def consult_knowledge(
+    question, strategy="large", *, prior_user_context="", delegation_scope="question"
+):
     settings = get_settings()
+    if not settings.g5_enabled:
+        raise ApiError(503, "Knowledge is disabled", "g5_disabled")
     if not settings.g5_openai_api_key or not settings.g5_internal_token:
         return Consultation(KnowledgeReply(status="error", limitations=_ERROR), {})
     async with (
@@ -680,4 +735,5 @@ async def consult_knowledge(question, strategy="large", *, prior_user_context=""
             question,
             strategy,
             prior_user_context=prior_user_context,
+            delegation_scope=delegation_scope,
         )

@@ -53,7 +53,7 @@ export function isChatSessionExpired(expiresAt: number) {
 
 function screenForEntry(entry: ConversationEntry): ChatScreenContext | undefined {
   if (entry.type !== 'product') return;
-  return { screenId: 'product-detail', productId: entry.productId, ...(entry.shadeId ? { shadeId: entry.shadeId } : {}) };
+  return { screenId: 'product-detail', productId: entry.productId, ...(entry.shadeId ? { shadeId: entry.shadeId } : {}), ...(entry.optionId ? { optionId: entry.optionId } : {}) };
 }
 
 export type RequestRecoveryStatus = 'checking' | 'in_progress' | 'not_found' | 'auth' | 'unconfirmed' | 'interrupted' | 'failed';
@@ -170,6 +170,7 @@ type ChatStore = {
   beginRequestRecovery: (target: Readonly<ChatConversationState>, requestId: string, ticket?: ChatRequestTicket) => Readonly<ChatConversationState> | undefined;
   finishRequestRecovery: (expected: Readonly<ChatConversationState>, status: RequestRecoveryStatus | 'dismissed') => boolean;
   completeRequest: (ticket: ChatRequestTicket, response: ChatResponse, question: string) => boolean;
+  confirmCancellation: (expected: Readonly<ChatConversationState>, version: number) => boolean;
   failRequest: (ticket: ChatRequestTicket, key: TranslationKey, fatal: boolean, ownerError: boolean, clarificationConflict?: boolean) => void;
 };
 
@@ -275,7 +276,7 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
         const room = existing.conversation;
         const screen = screenForEntry(entry);
         if (entry.type === 'product' && screen &&
-          (room.selection.screen || room.entryProduct?.shadeId !== screen.shadeId)) {
+          (room.selection.screen || room.entryProduct?.shadeId !== screen.shadeId || room.entryProduct?.optionId !== screen.optionId)) {
           change(room, (draft) => {
             draft.entryProduct = screen;
             draft.selection.revision += 1;
@@ -360,7 +361,8 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
       room.olderMessageCursor = detail.nextMessageCursor ?? undefined;
       const product = detail.context.product;
       if (product?.selectedProductId) room.selection.screen = { screenId: 'chat', productId: product.selectedProductId,
-        ...(product.selectedShadeId ? { shadeId: product.selectedShadeId } : {}) };
+        ...(product.selectedShadeId ? { shadeId: product.selectedShadeId } : {}),
+        ...(product.selectedOptionId ? { optionId: product.selectedOptionId } : {}) };
       if (product?.selectedProductId && product.selectedShadeId) room.selection.shades[product.selectedProductId] = product.selectedShadeId;
       const style = detail.context.style;
       room.styleContext = style ? { kind: style.kind, lookId: style.lookId,
@@ -370,7 +372,7 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
         ...item.displayPayload, id: item.id, role: item.role, text: item.text,
         ownerKey, generation: room.generation,
       }));
-      if (messages.some(message => message.products?.length) &&
+      if (messages.some(message => !message.consultation && !message.compound && !message.ownedLookOptions && message.products?.length) &&
           (!product?.historicalCandidateRefs?.length || product.filters?.optionSearch)) {
         room.notice = 'chat.session.newSearchHint';
       }
@@ -571,6 +573,7 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
         room.snapshots.set(messageId, snapshot);
         room.request = snapshot.args.requestId;
         room.requestRecovery = undefined;
+        if (room.notice === 'chat.cancel.done') room.notice = undefined;
         room.attempt += 1;
         if (snapshot.automatic) room.bootstrap = 'pending';
         if (room.draft.trim() === snapshot.args.message) room.draft = '';
@@ -608,6 +611,20 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
             room.serverId !== expected.serverId) return false;
         if (status === 'interrupted' || status === 'failed' || status === 'dismissed') releaseRequestDraft(room, record);
         room.requestRecovery = status === 'dismissed' ? undefined : { ...previous, status };
+        applied = true;
+      });
+      return applied;
+    },
+    confirmCancellation: (expected, version) => {
+      let applied = false;
+      change(expected, (room, record) => {
+        if (!expected.requestRecovery || room.requestRecovery !== expected.requestRecovery ||
+            room.generation !== expected.generation || room.serverId !== expected.serverId ||
+            !Number.isSafeInteger(version) || version < room.serverVersion) return false;
+        releaseRequestDraft(room, record);
+        room.requestRecovery = undefined;
+        room.serverVersion = version;
+        room.notice = 'chat.cancel.done';
         applied = true;
       });
       return applied;
@@ -695,6 +712,9 @@ export const useChatConversationStore = create<ChatStore>((set, get) => {
           ...(response.appliedMemories?.length ? { appliedMemories: response.appliedMemories } : {}),
           ...(response.knowledge ? { knowledge: response.knowledge } : {}),
           optionSearch: response.optionSearch,
+          consultation: response.consultation,
+          ownedLookOptions: response.ownedLookOptions,
+          ...(response.compound ? { compound: response.compound } : {}),
         };
         record.messages = ((current: ChatMessage[]) => {
           const questionIndex = current.findIndex((message) => message.id === messageId);

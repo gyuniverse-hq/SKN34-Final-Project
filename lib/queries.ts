@@ -1,11 +1,12 @@
 import type { HybridResponse, SkincareProfileRequest } from '@/types/skincare';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQueries, useQuery, type UseQueryResult } from '@tanstack/react-query';
 import type {
   CelebLook,
   CelebrityVideo,
   IdolLook,
   MeResponse,
   Product,
+  ProductOption,
   ProductDiscoveryOrder,
   ProductOffers,
   ProductQuery,
@@ -292,4 +293,24 @@ export function useSkincareRecommendations(
       : apiPost<HybridResponse>(path, request!),
     enabled: authReady && request !== undefined, gcTime: 0, staleTime: 0,
   });
+}
+
+function productOptionQuery(productId?: string, optionId?: string) {
+  return {
+    queryKey: ['product-option', productId, optionId],
+    queryFn: () => apiGet<ProductOption>(`/api/products/${encodeURIComponent(productId!)}/options/${encodeURIComponent(optionId!)}`),
+    enabled: !!productId && !!optionId,
+    retry: false,
+    staleTime: 0,
+  };
+}
+export function useProductOption(productId?: string, optionId?: string) {
+  return useQuery(productOptionQuery(productId, optionId));
+}
+export function useProductOptions(items: { productId: string; optionId: string }[]) {
+  return useQueries({ queries: items.map(item => productOptionQuery(item.productId, item.optionId)), combine: combineProductOptions });
+}
+
+function combineProductOptions(results: UseQueryResult<ProductOption>[]) {
+  return { data: results.flatMap(q => q.data && !q.isError ? [q.data] : []), isPending: results.some(q => q.isPending) };
 }

@@ -59,6 +59,79 @@ class Catalog:
         return next((p for p in self.products if p.id == pid), None)
 
 
+@pytest.mark.anyio
+async def test_two_explicit_names_resolve_both_catalog_identities_without_selected_base(setup):
+    first = product("a", 15000).model_copy(update={"name": "Sol Cream", "name_ko": "Sol Cream"})
+    second = product("b", 19000).model_copy(update={"name": "Rain Toner", "name_ko": "Rain Toner"})
+    setup.products = [first, second]
+    llm = PlanLlm(intent="price", comparisonNames=["Sol Cream", "Rain Toner"])
+    req = request("Sol Cream과 Rain Toner의 가격을 비교해줘")
+    result = await beauty.answer_beauty(req, llm, setup)
+    assert "Sol Cream" in result.answer and "Rain Toner" in result.answer
+    assert "15,000" in result.answer and "19,000" in result.answer
+    assert result._product_assessment.matched == 2
+    assert [x["productId"] for x in result._product_assessment.evidence] == ["a", "b"]
+    assert result.chat_context.candidate_ids == ["a", "b"]
+
+
+@pytest.mark.anyio
+async def test_pair_price_comparison_keeps_previous_candidate_order_and_selection(setup):
+    context = BeautyContext(
+        issued_at=1000,
+        filters=BeautyFilters(),
+        candidate_ids=["c", "a", "b"],
+        selected_product_id="b",
+    )
+    req = request("1번과 2번 가격 비교해줘")
+    req.chat_context = context  # Server-restored context, not untrusted client input.
+    result = await beauty.answer_beauty(
+        req,
+        PlanLlm(intent="detail", compareOrdinals=[1, 2]),
+        setup,
+    )
+    assert "25,000" in result.answer and "15,000" in result.answer
+    assert result.chat_context.candidate_ids == ["c", "a", "b"]
+    assert result.chat_context.selected_product_id == "b"
+
+
+@pytest.mark.anyio
+async def test_named_pair_ambiguity_keeps_unique_base_and_asks_for_actual_choice(setup):
+    setup.products = [
+        product("a", 15000).model_copy(update={"name": "Sol Cream Mini"}),
+        product("c", 25000).model_copy(update={"name": "Sol Cream Large"}),
+        product("b", 19000).model_copy(update={"name": "Rain Toner"}),
+    ]
+    response = await beauty.answer_beauty(
+        request("Sol Cream과 Rain Toner 가격 비교"),
+        PlanLlm(intent="detail", comparisonNames=["Sol Cream", "Rain Toner"]),
+        setup,
+    )
+    assert response.result_type == "clarification"
+    assert {c.product_id for c in response._comparison_choices} == {"a", "c"}
+    assert response._comparison_base_id == "b"
+    assert response._product_assessment is None
+
+
+@pytest.mark.anyio
+async def test_named_comparison_does_not_invent_live_price_or_accept_unquoted_names(setup):
+    setup.products = [
+        product("a", 15000).model_copy(update={"name": "Sol Cream"}),
+        product("b", 19000).model_copy(update={"name": "Rain Toner"}),
+    ]
+    result = await beauty.answer_beauty(
+        request("Sol Cream과 Rain Toner 현재가 비교"),
+        PlanLlm(intent="detail", comparisonNames=["Sol Cream", "Rain Toner"]),
+        setup,
+    )
+    assert "실제 판매가" in result.answer and "미확인" in result.answer
+    bad = await beauty.answer_beauty(
+        request("이 제품과 다른 제품 비교"),
+        PlanLlm(intent="detail", comparisonNames=["Sol Cream", "Rain Toner"]),
+        setup,
+    )
+    assert bad.result_type == "clarification" and bad._product_assessment is None
+
+
 def request(message="2만원 이하 촉촉한 립 추천", context=None):
     return ChatRequest(
         message=message, locale="ko", request_type="beauty_consultation", chat_context=context

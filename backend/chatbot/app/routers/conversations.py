@@ -70,3 +70,13 @@ async def update_state(
     chat: ChatService = Depends(get_chat_service),
 ) -> dict:
     return await ConversationService(chat).update_state(user.id, conversation_id, body)
+
+
+@router.post("/{conversation_id}/requests/{request_id}/cancel")
+async def cancel_request(
+    conversation_id: UUID,
+    request_id: UUID,
+    user: AuthUser = Depends(require_user),
+    chat: ChatService = Depends(get_chat_service),
+) -> dict:
+    return await ConversationService(chat).cancel_request(user.id, conversation_id, request_id)

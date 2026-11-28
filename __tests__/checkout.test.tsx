@@ -13,7 +13,7 @@ const mockWallet = { data: { coupons: [] as { id: string; status: string }[] }, 
 jest.mock('@/hooks/useRewards', () => ({ useRewards: () => mockWallet }));
 let mockSubtotal = 1000;
 jest.mock('@/components/ui/ProductImage', () => ({ ProductImage: 'ProductImage' }));
-const mockSearchParams: { cartVisitId?: string; productId?: string; shadeId?: string } = {};
+const mockSearchParams: { cartVisitId?: string; productId?: string; shadeId?: string; optionId?: string } = {};
 let mockUser: { id: string } | null = { id: 'user-1' };
 const mockReplace = jest.fn();
 jest.mock('expo-router', () => ({
@@ -63,6 +63,7 @@ beforeEach(() => {
   delete mockSearchParams.cartVisitId;
   delete mockSearchParams.productId;
   delete mockSearchParams.shadeId;
+  delete mockSearchParams.optionId;
   mockUser = { id: 'user-1' };
   useCartStore.setState({ items: [{ productId: 'p', shadeId: 's', quantity: 1 }], pendingPayment: null });
   post.mockResolvedValue({ orderId: 'order-1', checkoutUrl: 'https://example.com/pay', amount: 1000 });
@@ -211,6 +212,37 @@ it('keeps the order pending when the payment window cannot be opened', async () 
   const screen = await start();
   expect(useCartStore.getState().pendingPayment?.orderId).toBe('order-1');
   expect(JSON.stringify(screen.toJSON())).toContain('checkout.pending');
+});
+
+
+it('blocks sale-option checkout including mixed carts without posting an order', async () => {
+  useCartStore.getState().add({ productId: 'p', optionId: 'sale-02' });
+  const screen = await start();
+  expect(JSON.stringify(screen.toJSON())).toContain('sale.checkoutBlocked');
+  expect(post).not.toHaveBeenCalled();
+  expect(browser).not.toHaveBeenCalled();
+});
+
+it('keeps direct shade checkout independent of sale options in the cart', async () => {
+  useCartStore.getState().add({ productId: 'p', optionId: 'sale-02' });
+  mockSearchParams.productId = 'direct-product';
+  mockSearchParams.shadeId = 'direct-shade';
+  await start();
+  expect(post).toHaveBeenCalledWith('/api/payments/orders', {
+    lines: [{ productId: 'direct-product', shadeId: 'direct-shade', quantity: 1 }],
+  }, { expectedUserId: 'user-1' });
+});
+
+it.each([false, true])('does not turn a sale-option URL into legacy shade checkout (%s)', async (withShade) => {
+  mockSearchParams.optionId = 'sale-02';
+  if (withShade) {
+    mockSearchParams.productId = 'p';
+    mockSearchParams.shadeId = 's';
+  }
+  await act(async () => { mounted = renderer.create(<CheckoutScreen />); });
+  expect(JSON.stringify(mounted!.toJSON())).toContain('lookPreview.purchaseUnavailable');
+  expect(post).not.toHaveBeenCalled();
+  expect(browser).not.toHaveBeenCalled();
 });
 
 it('maps start failures to specific notices and can resume from persisted checkoutUrl', async () => {

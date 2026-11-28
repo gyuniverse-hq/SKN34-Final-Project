@@ -48,7 +48,8 @@ _TOPICS = {
         r"제형|마무리|매트|글로시|새틴|물광|\b(?:finish|matte|gloss|glossy|satin|dewy)\b|仕上げ|妆效"
     ),
     "owned": re.compile(
-        r"보유|갖고\s*있|가지고\s*있|\b(?:i own|i already have|my products)\b|持って|我有"
+        r"보유|갖고\s*있|가지고\s*있|(?:내가|제가|이미)\s*가진|"
+        r"\b(?:i own|i already have|my products)\b|持って|我有"
     ),
 }
 _AREAS = frozenset(("lip", "cheek", "base", "eye"))
@@ -210,6 +211,7 @@ def verified_inventory_matches(
     mode: InventoryMode,
     *,
     match_names: bool,
+    verified_options: dict | None = None,
 ) -> tuple[list[AppliedOwnedProductMemory], bool]:
     entries = [
         entry
@@ -245,6 +247,14 @@ def verified_inventory_matches(
             if len(candidates) == 1:
                 product_id, shade_id = candidates[0]
         product = valid.get(product_id)
+        option_id = draft.value.get("optionId")
+        if option_id:
+            option = (verified_options or {}).get((product_id, option_id))
+            if option is None or (option.product_id, option.option_id) != (product_id, option_id):
+                continue
+            shade_id = option.ar_shade_id
+            if product and shade_id and not any(s.id == shade_id for s in product.shades):
+                shade_id = None
         if product is None or (
             shade_id is not None and not any(shade.id == shade_id for shade in product.shades)
         ):
@@ -308,6 +318,11 @@ def select_consultation_memories(
     current = _topics(text)
     if _inventory_intent(text):
         current.add("owned")
+    elif request._owned_look_context is not None:
+        from app.services.owned_look_consultation_service import may_consult_owned_look
+
+        if may_consult_owned_look(request):
+            current.add("owned")
     topics = current
     work = bool(_WORK.search(text))
     if not current and _FOLLOW_UP.search(text):

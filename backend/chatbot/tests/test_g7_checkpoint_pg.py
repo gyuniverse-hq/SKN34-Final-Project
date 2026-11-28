@@ -28,6 +28,31 @@ class SafeState(TypedDict):
     execution_status: str
 
 
+async def test_execution_locks_share_but_delete_remains_exclusive(record_property):
+    from langgraph.checkpoint.postgres import PostgresSaver
+
+    from app.repositories.checkpoint_repository import CheckpointRepository, _lock_thread
+
+    url = make_url(URL)
+    assert url.database == "vishue_chat_test"
+    dsn = url.set(drivername="postgresql").render_as_string(hide_password=False)
+    thread = uuid4()
+    with (
+        PostgresSaver.from_conn_string(dsn) as first,
+        PostgresSaver.from_conn_string(dsn) as second,
+    ):
+        first.setup()
+        _lock_thread(first, thread, shared=True)
+        _lock_thread(second, thread, shared=True)
+        with pytest.raises(OSError, match="Checkpoint thread is busy"):
+            await CheckpointRepository(URL).delete_thread(thread)
+    await CheckpointRepository(URL).delete_thread(thread)
+    record_property(
+        "checkpoint_lock_boundary",
+        "actual PG: shared execution; exclusive deletion blocked until both readers close",
+    )
+
+
 async def test_explicit_setup_and_safe_checkpoint_roundtrip():
     url = make_url(URL)
     if url.database != "vishue_chat_test":

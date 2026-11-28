@@ -1,0 +1,87 @@
+"""Server-only, conversation-scoped user declarations; never durable inventory memory."""
+
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
+
+from app.schemas.catalog import OptionSearchResponse, PriceBasis, SearchIngredient
+from app.schemas.owned_look_intent import LookReferenceSnapshot
+from app.schemas.style_recipe import LookKind, Zone
+
+
+class OwnershipDeclaration(BaseModel):
+    source: Literal["user"] = "user"
+    status: Literal["missing", "present"]
+    quote: str = Field(min_length=1, max_length=500)
+    confirmed_current: bool = False
+    # Old records have no evidence that an exact option was shown to the user.
+    scope: Literal["legacy", "zone", "product", "option"] = "legacy"
+
+
+class OwnedLookFilters(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
+
+    source: Literal["user"] = "user"
+    max_price_krw: int | None = Field(default=None, alias="maxPriceKRW", ge=0, le=100_000_000)
+    ingredient_conditions: list[SearchIngredient] = Field(default_factory=list, max_length=6)
+    fragrance_free: bool = False
+    price_basis: PriceBasis = "collected_snapshot"
+    unsupported: list[str] = Field(default_factory=list, max_length=8)
+
+
+class OwnedLookContext(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
+
+    kind: LookKind
+    look_id: str
+    recipe_version: str
+    version: int = Field(default=1, ge=1)
+    # Closed Zone enum naturally bounds this map to nine areas.
+    declarations: dict[Zone, OwnershipDeclaration] = Field(default_factory=dict)
+    # Keys are bounded by the current recipe, pruned on every execution.
+    item_declarations: dict[str, OwnershipDeclaration] = Field(default_factory=dict)
+    # Exemptions suppress only the inherited zone rule, not verified inventory.
+    exceptions: dict[str, Zone] = Field(default_factory=dict)
+    product_declarations: dict[str, OwnershipDeclaration] = Field(default_factory=dict)
+    references: LookReferenceSnapshot | None = None
+    filters: OwnedLookFilters = Field(default_factory=OwnedLookFilters)
+
+
+class OwnedLookOptionRef(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
+
+    product_id: str
+    shade_id: str | None = None
+    option_id: str
+    product_name: str
+    brand: str
+    shade_name: str
+
+
+class OwnedLookOptionDisplay(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
+
+    selections: list[OwnedLookOptionRef] = Field(default_factory=list)
+    batches: list[OptionSearchResponse] = Field(default_factory=list)
+    failed_product_ids: list[str] = Field(default_factory=list)
+
+
+class OwnedLookOutcomeItem(BaseModel):
+    """Final resolution of one listed product/option, not a claim it is mandatory."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
+
+    need_id: str
+    zone: Zone
+    label: str
+    status: Literal[
+        "owned", "recommended", "ownership_unknown", "evidence_missing", "excluded", "lookup_failed"
+    ]
+
+
+class OwnedLookOutcome(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
+
+    status: Literal["completed", "partial", "waiting_user", "failed"]
+    items: list[OwnedLookOutcomeItem] = Field(default_factory=list)

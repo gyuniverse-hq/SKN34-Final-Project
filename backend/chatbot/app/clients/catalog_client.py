@@ -15,6 +15,7 @@ from app.schemas.catalog import (
     CatalogIngredients,
     CatalogLook,
     CatalogProduct,
+    CatalogProductOption,
     CatalogStyleLook,
     OptionSearchRequest,
     OptionSearchResponse,
@@ -137,6 +138,32 @@ class CatalogClient:
             if not isinstance(exc, httpx.HTTPStatusError):
                 _log_catalog_http("/api/products/{productId}", None, error=type(exc).__name__)
             raise UpstreamError("catalog product request failed") from exc
+
+    async def get_product_option(
+        self, product_id: str, option_id: str
+    ) -> CatalogProductOption | None:
+        if not all(
+            re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", v) for v in (product_id, option_id)
+        ):
+            return None
+        try:
+            async with httpx.AsyncClient(timeout=self._timeout) as client:
+                res = await client.get(
+                    self._base
+                    + "/api/products/"
+                    + quote(product_id, safe="")
+                    + "/options/"
+                    + quote(option_id, safe="")
+                )
+            if res.status_code == 404:
+                return None
+            res.raise_for_status()
+            option = CatalogProductOption.model_validate(res.json())
+            if (option.product_id, option.option_id) != (product_id, option_id):
+                raise ValueError("Option identity mismatch")
+            return option
+        except (httpx.HTTPError, KeyError, ValueError, TypeError) as exc:
+            raise UpstreamError("catalog option request failed") from exc
 
     async def search_options(self, request: OptionSearchRequest) -> OptionSearchResponse:
         try:

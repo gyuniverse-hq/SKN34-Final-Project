@@ -9,7 +9,7 @@ import type { ChatCondition } from '@/lib/chatConditions';
 import { formatKRW } from '@/lib/format';
 import { useI18n, type TranslationKey } from '@/lib/i18n';
 import { parseCategory, parseId } from '@/lib/routes';
-import type { ChatOptionSearch, ChatProductEvidence, ChatStyleRecipe, Product } from '@/types';
+import type { OwnedLookOptionDisplay, CompoundConsultation, ChatOptionSearch, ChatProductEvidence, ChatStyleRecipe, Product } from '@/types';
 
 interface Props {
   optionSearch?: ChatOptionSearch;
@@ -21,7 +21,7 @@ interface Props {
   conditions: ChatCondition[];
   showIngredients: boolean;
   onRetry: () => void;
-  onOpenProduct: (id: string, shadeId?: string) => void;
+  onOpenProduct: (id: string, shadeId?: string, optionId?: string) => void;
   onOpenAr: (productId: string, shadeId: string) => void;
   disabledActions?: boolean;
   previewImage?: number;
@@ -66,6 +66,150 @@ function optionShadeLabel(shadeId: string, items: ChatOptionSearch['items']): Tr
   // A shade can represent multiple source options. Only a unanimous verdict confirms its status.
   if (groups.size !== 1 || groups.has('REFERENCE_ONLY')) return 'chat.option.reference';
   return groups.has('ELIGIBLE') ? 'chat.option.eligible' : 'chat.conditionNotMet';
+}
+
+type VerifiedPrice = NonNullable<ChatOptionSearch['items'][number]['price']>;
+
+function CompoundPrice({ price }: { price: VerifiedPrice }) {
+  const { t, language } = useI18n();
+  const [open, setOpen] = useState(false);
+  const day = /^(\d{4}-\d{2}-\d{2})(?:T|\s|$)/.exec(price.observedAt ?? price.observedAtRaw ?? '')?.[1];
+  const date = day ? new Date(`${day}T00:00:00Z`) : undefined;
+  const verifiedDate = day && date && Number.isFinite(date.getTime()) && date.toISOString().startsWith(day)
+    ? date.toLocaleDateString(language, { year: 'numeric', month: 'numeric', day: 'numeric', timeZone: 'UTC' }) : undefined;
+  let host: string | undefined;
+  if (open && /^https?:\/\//i.test(price.sourceRef)) {
+    try { host = new URL(price.sourceRef).hostname; } catch { /* A source reference can be an opaque catalog ID. */ }
+  }
+  return <View>
+    <View style={styles.compoundPriceRow}>
+      <Text style={styles.price}>{t('chat.compound.amount', { amount: price.amountKRW.toLocaleString(language) })}</Text>
+      <Pressable accessibilityRole="button" aria-expanded={open} accessibilityLabel={t('chat.compound.priceInfo')} onPress={() => setOpen((value) => !value)}
+        style={styles.priceToggle}>
+        <Text style={styles.link}>{t('chat.compound.priceInfo')}</Text>
+      </Pressable>
+    </View>
+    {open ? <View style={styles.ingredientBlock}>
+      <Text style={styles.notice}>{t(price.observedBasis === 'catalog_reference' ? 'chat.compound.catalogPrice' : 'chat.compound.collectedPrice')}</Text>
+      {host ? <Text style={styles.notice}>{t('chat.compound.priceSite', { host })}</Text> : null}
+      <Text style={styles.notice}>{verifiedDate ? t('chat.compound.priceDay', { day: verifiedDate }) : t('chat.compound.noPriceDay')}</Text>
+    </View> : null}
+  </View>;
+}
+
+/** Use the exact option snapshot the server verified, including options without a shade. */
+export function CompoundProductCards({ result, onOpenProduct }: {
+  result: CompoundConsultation;
+  onOpenProduct: (id: string, shadeId?: string, optionId?: string) => void;
+}) {
+  const { t } = useI18n();
+  const [showScope, setShowScope] = useState(false);
+  if (!result.goal.wantsProducts) return null;
+  const cards = result.options.flatMap(({ candidate, outcome, verification }) => {
+    if (outcome !== 'eligible' || verification?.group !== 'ELIGIBLE' ||
+        verification.productId !== candidate.productId || verification.optionId !== candidate.optionId ||
+        !verification.checks.length || verification.checks.some((check) => check.verdict !== 'MATCH')) return [];
+    return [{ candidate, verification }];
+  }).sort((a, b) => a.candidate.rank - b.candidate.rank);
+  const excluded = result.options.filter((item) => item.outcome === 'excluded').length;
+  const failed = result.options.filter((item) => item.outcome === 'failed').length;
+  const scopes = result.batches.flatMap((batch) => batch.scope ? [batch.scope] : []);
+  const missingBatches = result.batches.length - scopes.length;
+  const timedOut = scopes.some((scope) => scope.stoppedReason === 'TIMEOUT');
+  return (
+    <View style={styles.list}>
+      {cards.map(({ candidate, verification }) => {
+        const price = verification.price;
+        return <View key={JSON.stringify([candidate.productId, candidate.optionId])} style={styles.card}>
+          <Text style={styles.brand}>{candidate.brand}</Text>
+          <Text style={styles.name}>{candidate.productName} · {candidate.optionName.trim() || candidate.optionId}</Text>
+          {verification.synthetic ? <Text style={styles.notice}>{t('chat.option.synthetic')}</Text> : null}
+          {price ? <CompoundPrice price={price} /> : null}
+          {verification.checks.flatMap((check, index) => {
+            if (check.condition === 'fragrance_free') return <Text key={index} style={styles.conditionLabel}>{t('chat.ingredient.fragranceVerified')}</Text>;
+            if (check.condition !== 'ingredient' || !check.ingredientName || !check.operator) return [];
+            return <Text key={index} style={styles.conditionLabel}>{t(check.operator === 'excludes'
+              ? 'chat.compound.ingredientAbsent' : 'chat.compound.ingredientPresent', { name: check.ingredientName })}</Text>;
+          })}
+          {parseId(candidate.productId) === candidate.productId ? <Pressable accessibilityRole="button" style={styles.open}
+            onPress={() => onOpenProduct(candidate.productId, verification.shadeId ?? undefined, candidate.optionId)}>
+            <Text style={styles.link}>{t('styleLooks.openProduct')}</Text>
+          </Pressable> : null}
+        </View>;
+      })}
+      {result.options.length || result.batches.length ? <View style={styles.conditionPanel}>
+        <Pressable accessibilityRole="button" aria-expanded={showScope}
+          onPress={() => setShowScope((open) => !open)} style={styles.retry}>
+          <Text style={styles.link}>{t(showScope ? 'chat.option.scopeHide' : 'chat.option.scopeShow')}</Text>
+        </Pressable>
+        {showScope ? <>
+          <Text style={styles.notice}>{t('chat.compound.outcomes', {
+            eligible: cards.length, excluded, failed, unknown: result.options.length - cards.length - excluded - failed,
+          })}</Text>
+          {cards.map(({ candidate }) => <Text key={candidate.rank} style={styles.notice}>{t('chat.compound.rank', { rank: candidate.rank, name: candidate.productName })}</Text>)}
+          {scopes.length ? <>
+            {!missingBatches ? <Text style={styles.notice}>{t(timedOut ? 'chat.option.scopeTimeout'
+              : scopes.every((scope) => scope.exhaustive) ? 'chat.option.scopeComplete' : 'chat.option.scopeLimited')}</Text> : null}
+            <Text style={styles.notice}>{t('chat.option.scopeProgress', {
+              checked: scopes.reduce((count, scope) => count + scope.checkedOptions, 0),
+              total: scopes.reduce((count, scope) => count + scope.candidateOptions, 0),
+            })}</Text>
+          </> : null}
+          {missingBatches ? <Text style={styles.notice}>{t('chat.option.scopeErrors', { count: missingBatches })}</Text> : null}
+        </> : null}
+      </View> : null}
+    </View>
+  );
+}
+
+/** N02 keeps batch evidence and selects exact sale options, never the product headline price. */
+export function OwnedLookOptionCards({ result, onOpenProduct }: {
+  result: OwnedLookOptionDisplay;
+  onOpenProduct: (id: string, shadeId?: string, optionId?: string) => void;
+}) {
+  const { t } = useI18n();
+  const [showScope, setShowScope] = useState(false);
+  const cards = result.selections.flatMap((selection) => {
+    const matches = result.batches.filter(batch => batch.status !== 'ERROR' && batch.effectiveRequest?.priceBasis !== 'current_offer').flatMap(batch => batch.items)
+      .filter(item => item.productId === selection.productId && (item.shadeId ?? null) === (selection.shadeId ?? null) && item.optionId === selection.optionId);
+    // Conflicting or duplicated evidence cannot silently select a different sale option.
+    if (matches.length !== 1 || matches[0].group !== 'ELIGIBLE' || !matches[0].checks.length ||
+        matches[0].checks.some(check => check.verdict !== 'MATCH')) return [];
+    return [{ selection, item: matches[0] }];
+  });
+  return <View style={styles.list}>
+    {cards.map(({ selection, item }) => <View key={JSON.stringify([selection.productId, selection.shadeId, selection.optionId])} style={styles.card}>
+      <Text style={styles.brand}>{selection.brand}</Text>
+      <Text style={styles.name}>{selection.productName} · {selection.shadeName}</Text>
+      {item.synthetic ? <Text style={styles.notice}>{t('chat.option.synthetic')}</Text> : null}
+      {item.price ? <CompoundPrice price={item.price} /> : <Text style={styles.notice}>{t('chat.conditionUnknown')}</Text>}
+      {item.checks.flatMap((check, index) => {
+        if (check.condition === 'fragrance_free') return <Text key={index} style={styles.conditionLabel}>{t('chat.ingredient.fragranceVerified')}</Text>;
+        if (check.condition !== 'ingredient' || !check.ingredientName || !check.operator) return [];
+        return <Text key={index} style={styles.conditionLabel}>{t(check.operator === 'excludes'
+          ? 'chat.compound.ingredientAbsent' : 'chat.compound.ingredientPresent', { name: check.ingredientName })}</Text>;
+      })}
+      {parseId(selection.productId) === selection.productId && (!selection.shadeId || parseId(selection.shadeId) === selection.shadeId) ?
+        <Pressable accessibilityRole="button" style={styles.open} onPress={() => onOpenProduct(selection.productId, selection.shadeId ?? undefined, selection.optionId)}>
+          <Text style={styles.link}>{t('styleLooks.openProduct')}</Text>
+        </Pressable> : null}
+    </View>)}
+    <Pressable accessibilityRole="button" aria-expanded={showScope} onPress={() => setShowScope(value => !value)} style={styles.retry}>
+      <Text style={styles.link}>{t(showScope ? 'chat.option.scopeHide' : 'chat.option.scopeShow')}</Text>
+    </Pressable>
+    {showScope ? <View style={styles.conditionPanel}>
+      {result.batches.map((batch, index) => <View key={index}>
+        <Text style={styles.notice}>{t(batch.checkedScope.stoppedReason === 'TIMEOUT' ? 'chat.option.scopeTimeout'
+          : batch.checkedScope.exhaustive ? 'chat.option.scopeComplete' : 'chat.option.scopeLimited')}</Text>
+        <Text style={styles.notice}>{t('chat.option.scopeProgress', { checked: batch.checkedScope.checkedOptions, total: batch.checkedScope.candidateOptions })}</Text>
+        {batch.checkedScope.errors ? <Text style={styles.notice}>{t('chat.option.scopeErrors', { count: batch.checkedScope.errors })}</Text> : null}
+        <Text style={styles.notice}>{batch.checkedAt}</Text>
+        {batch.items.flatMap(item => item.checks.filter(check => check.sourceRef).map((check, checkIndex) =>
+          <Text key={JSON.stringify([item.productId, item.optionId, checkIndex])} style={styles.notice}>{t('chat.option.evidenceSource', { source: check.sourceRef! })}</Text>))}
+      </View>)}
+      {result.failedProductIds.length ? <Text style={styles.notice}>{t('chat.option.scopeErrors', { count: result.failedProductIds.length })}</Text> : null}
+    </View> : null}
+  </View>;
 }
 
 export function ChatProducts({ optionSearch, sourceProducts, products, loading, failed, missingCount, conditions, showIngredients, onRetry, onOpenProduct, onOpenAr, disabledActions = false, previewImage, candidateOrder, evidence, selectedShades: controlledShades, onSelectShade, onSelectProduct, selectedProductId, expectedIds, fragrance, onOpenEvidence }: Props) {
@@ -318,7 +462,7 @@ export function ChatProducts({ optionSearch, sourceProducts, products, loading, 
                       accessibilityLabel={`${product.brand} ${product.name}, ${t('chat.openProduct')}`}
                       accessibilityState={{ disabled: disabledActions }}
                       disabled={disabledActions}
-                      onPress={disabledActions ? undefined : () => onOpenProduct(product.id, selectedShade?.id)}
+                      onPress={disabledActions ? undefined : () => group.source?.productId === product.id && group.source.optionId ? onOpenProduct(product.id, selectedShade?.id, group.source.optionId) : onOpenProduct(product.id, selectedShade?.id)}
                       style={({ pressed }) => [styles.open, pressed && styles.pressed, disabledActions && styles.disabled]}>
                       <Text style={styles.link}>{t('chat.openProduct')} ›</Text>
                     </Pressable> : null}
@@ -390,6 +534,8 @@ const styles = StyleSheet.create({
   carouselArrowText: { color: theme.colors.rose, fontSize: 23, lineHeight: 28 },
   groupTitle: { color: theme.colors.ink, fontSize: theme.font.small, fontWeight: '700', marginTop: 4 },
   card: { backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderRadius: theme.radius.lg, borderWidth: 1, gap: 10, padding: 12 },
+  compoundPriceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  priceToggle: { minHeight: theme.hitTarget, justifyContent: 'center', paddingHorizontal: 8 },
   cardSelected: { borderColor: theme.colors.rose, borderWidth: 2 },
   selectProduct: { borderColor: theme.colors.rose, borderWidth: 1, minHeight: theme.hitTarget, borderRadius: theme.radius.pill, justifyContent: 'center', alignItems: 'center' },
   selectProductActive: { backgroundColor: theme.colors.rose },
